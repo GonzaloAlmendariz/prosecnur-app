@@ -21,6 +21,7 @@ import InstrumentoTab from "./tabs/InstrumentoTab";
 import ExplorarTab from "./tabs/ExplorarTab";
 import ReglasCustomTab from "./tabs/ReglasCustomTab";
 import { useValidacionStore } from "./store";
+import { usePestanaValidacion } from "./pestanaDireccionable";
 import type { ValidacionTabId } from "./types";
 import "./validacion-v2.css";
 
@@ -47,8 +48,9 @@ const TABS = PROCESAMIENTO_PESTANAS.validacion;
 
 export default function ValidacionPage() {
   const { sessionId, state } = useSession();
-  const activeTab = useValidacionStore((s) => s.activeTab);
-  const setActiveTab = useValidacionStore((s) => s.setActiveTab);
+  // La pestaña activa es la que dice la URL (`?pestana=`), no un estado del
+  // store: toda vista es enlazable — ver ./pestanaDireccionable.ts.
+  const { pestana: activeTab, irAPestana } = usePestanaValidacion();
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const setBaseNombre = useValidacionStore((s) => s.setBaseNombre);
   const version = useValidacionStore((s) => s.version);
@@ -175,7 +177,7 @@ export default function ValidacionPage() {
         rail={(
           <ValidacionModeSidebar
             active={activeTab}
-            onChange={setActiveTab}
+            onChange={(tab) => irAPestana(tab)}
             disabled={!prereqsOk}
           />
         )}

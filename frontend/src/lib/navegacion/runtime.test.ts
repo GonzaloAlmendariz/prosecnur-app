@@ -17,13 +17,13 @@ afterEach(() => {
 });
 
 describe("puente de navegación y direcciones no publicadas", () => {
-  it("rechaza los ocho nodos documentales tanto por clave como por objeto", () => {
+  it("rechaza los cuatro nodos documentales tanto por clave como por objeto", () => {
     const { navegar, limpiar, puente } = instalar();
     const noPublicados = MANIFIESTO_NAVEGACION.filter(
       (nodo) => nodo.nivel === "pestana" && !nodo.direccionPublicada,
     );
 
-    expect(noPublicados).toHaveLength(8);
+    expect(noPublicados).toHaveLength(4);
     for (const nodo of noPublicados) {
       expect(puente.ir(nodo.clave), nodo.clave).toBe(false);
       expect(puente.ir(nodo.direccion), nodo.clave).toBe(false);

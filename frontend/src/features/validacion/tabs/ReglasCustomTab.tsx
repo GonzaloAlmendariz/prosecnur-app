@@ -27,6 +27,7 @@ import type {
   ReglasCustomList,
 } from "../types";
 import { useValidacionStore } from "../store";
+import { usePestanaValidacion } from "../pestanaDireccionable";
 import { EmptyState, ErrorBlock, LoadingBlock } from "../../../components/States";
 import { JobProgress } from "../../../components/JobProgress";
 import ReglaEditor from "../components/ReglaEditor";
@@ -47,7 +48,7 @@ export default function ReglasCustomTab() {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
   const bumpVersion = useValidacionStore((s) => s.bumpVersion);
-  const jumpTo = useValidacionStore((s) => s.jumpTo);
+  const { irAPestana } = usePestanaValidacion();
 
   const [list, setList] = useState<ReglasCustomList | null>(null);
   const [inv, setInv] = useState<ExploradorVariablesList | null>(null);
@@ -291,7 +292,7 @@ export default function ReglasCustomTab() {
           <button
             type="button"
             className="pulso-secondary pulso-criterios-summary-action"
-            onClick={() => jumpTo("limpieza", { source: "reglas_custom", at: Date.now() })}
+            onClick={() => irAPestana("limpieza", { source: "reglas_custom", at: Date.now() })}
           >
             Ver en limpieza <ArrowRight size={13} />
           </button>

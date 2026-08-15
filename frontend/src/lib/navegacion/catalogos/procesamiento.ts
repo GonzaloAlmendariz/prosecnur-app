@@ -99,10 +99,10 @@ export const PROCESAMIENTO_PESTANAS = {
     pestana("carga", "equivalencias", "Equivalencias", "La misma pregunta en cada público", GitCompare, { disponibilidad: "condicional" }),
   ],
   validacion: [
-    pestana("validacion", "explorar", "Explorar respuestas", "Distribuciones y señales de revisión", Compass, { direccionPublicada: false }),
-    pestana("validacion", "instrumento", "Reglas del formulario", "Saltos, rangos y catálogos", ListTree, { direccionPublicada: false }),
-    pestana("validacion", "reglas_custom", "Criterios de revisión", "Señales adicionales", PieChart, { direccionPublicada: false }),
-    pestana("validacion", "limpieza", "Cierre de base", "Limpieza y normalización", Activity, { direccionPublicada: false }),
+    pestana("validacion", "explorar", "Explorar respuestas", "Distribuciones y señales de revisión", Compass),
+    pestana("validacion", "instrumento", "Reglas del formulario", "Saltos, rangos y catálogos", ListTree),
+    pestana("validacion", "reglas_custom", "Criterios de revisión", "Señales adicionales", PieChart),
+    pestana("validacion", "limpieza", "Cierre de base", "Limpieza y normalización", Activity),
   ],
   codificacion: [
     pestana("codificacion", "organizar", "Preparar", "Emparejar y marcar", Layers),

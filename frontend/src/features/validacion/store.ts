@@ -7,7 +7,6 @@ import type { RelationalRuleMeta, RelationalSummary } from "./relationalPlan";
 // =============================================================================
 // El estado "duro" (plan, evaluación, reglas custom) vive en el backend
 // scoped por base. Acá guardamos solo el estado UI efímero:
-//   - Pestaña activa.
 //   - Base seleccionada arriba del todo (único selector de la página).
 //   - Payloads de deep-link (prefill cuando se salta de un tab a otro
 //     desde Limpieza y normalización: ej. "abrir la variable X en Explorar").
@@ -45,32 +44,29 @@ export function relationalBaseKey(base: string | null): string {
   return base && base.trim() ? base : RELATIONAL_DEFAULT_KEY;
 }
 
+// La pestaña activa NO vive acá: la dice la URL (`?pestana=`), y el store sólo
+// guarda lo que la dirección no puede cargar — la base, el prefill de un salto
+// entre pestañas y el contador que invalida caches. Ver ./pestanaDireccionable.ts.
 type ValidacionState = {
-  activeTab: ValidacionTabId;
   baseNombre: string | null;
   version: number; // bump al cambiar base — fuerza refetch en tabs
   prefill: ValidacionPrefill;
   relationalPlan: Record<string, RelationalPlanCapture>;
 
-  setActiveTab: (tab: ValidacionTabId) => void;
   setBaseNombre: (nombre: string | null) => void;
   setPrefill: (tab: ValidacionTabId, payload: Record<string, unknown>) => void;
   clearPrefill: (tab: ValidacionTabId) => void;
   setRelationalPlan: (base: string | null, capture: RelationalPlanCapture) => void;
   bumpVersion: () => void;
   resetForSession: () => void;
-  /** Deep-link: salta a otra pestaña y prefilea su slice de prefill. */
-  jumpTo: (tab: ValidacionTabId, payload?: Record<string, unknown>) => void;
 };
 
 export const useValidacionStore = create<ValidacionState>((set) => ({
-  activeTab: "explorar",
   baseNombre: null,
   version: 0,
   prefill: {},
   relationalPlan: {},
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
   setBaseNombre: (nombre) =>
     set((s) => ({
       baseNombre: nombre,
@@ -100,15 +96,9 @@ export const useValidacionStore = create<ValidacionState>((set) => ({
     })),
   resetForSession: () =>
     set((s) => ({
-      activeTab: "explorar",
       baseNombre: null,
       version: s.version + 1,
       prefill: {},
       relationalPlan: {},
-    })),
-  jumpTo: (tab, payload) =>
-    set((s) => ({
-      activeTab: tab,
-      prefill: payload ? { ...s.prefill, [tab]: payload } : s.prefill,
     })),
 }));
