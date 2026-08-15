@@ -39,8 +39,8 @@ sabe nada que la interfaz calle.
 |---|---|---|---|
 | **L1** | Limpieza declara qué base rige y deja revertir | `components/PromocionBase.tsx` · `limpieza_decision_engine.R` · endpoint `revertir-promocion` | ☑ hecho — `ce9bd5da`. 1283 → 1281 en acnur_acg, revertir vuelve a 1283, segundo revertir 409. Bloqueo por repeats comprobado en acnur_pdm. |
 | **L2** | La pestaña de Validación vive en la URL | `features/validacion/pestanaDireccionable.ts` · `catalogos/procesamiento.ts` | ☑ hecho — `d1e9f32f`. Deep-link, `ir()` y click del rail verificados. |
-| **L3** | Codificación distingue los cuatro estados por pregunta | `codificacion/PreguntasLanding.tsx` | ⛔ bloqueado — ADR 0078 en **Propuesto**. Desbloquea: que Gonzalo lo ratifique. Define vocabulario que va a la interfaz y a los reportes. |
-| **L4** | Registrar «no categorizar» con su motivo, y advertir al aplicar | `PreguntaDetalle.tsx` / `CodificarWizard.tsx` · `/api/codificacion/aplicar` | ⛔ bloqueado — mismo ADR 0078. Sin gate: el ADR es explícito en que un gate se satisfaría desmarcando todo. |
+| **L3** | Codificación distingue los cuatro estados por pregunta | `codificacion_decisiones.R` · `decisionCodificacion.ts` · `DecisionChip.tsx` | ☑ hecho — `878e4adb` + `51346e1f`. ULISESV3: 16 sin decidir de 21 marcadas, donde el conteo viejo decía 18. |
+| **L4** | Registrar «no categorizar» con su motivo, y advertir al aplicar | `NoCategorizarAction.tsx` · `AdaptarPane.tsx` · endpoint `no-categorizar` | ☑ hecho — `878e4adb` + `51346e1f`. PastSalary registrado en ULISESV3 y recuperado del state.rds del .pulso guardado. |
 | **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `codificacion/marcasPrevias.ts` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☑ hecho — `d4273aea`. Medido en ULISESV3: 17 de 45 respuestas abiertas de sus SM vienen de filas con códigos ya marcados. |
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `dashboard/store.ts` | ⛔ bloqueado — necesita tu decisión, ver abajo. |
@@ -147,6 +147,13 @@ Lo que ya costó una conclusión falsa. Se lee antes de tocar nada.
    padre. Cualquier lectura que dependa sólo de `parent_col` sale vacía sin
    error. Kobo además exporta las dos formas: columna única con códigos
    separados por espacios, y dummies `<padre>/<codigo>` 0/1.
+
+10. **El `.pulso` guarda el state de codificación entero menos `inst` y `data`,
+    pero eso no exime de comprobarlo.** Al verificar que «no categorizar»
+    sobrevivía, el guardado salió vacío: estaba guardando la sesión del
+    bootstrap y no la del navegador, que al abrir con `?pulso=` corre en otra
+    (trampa 3, otra vez). El sid del navegador está en
+    `localStorage["pulso.sessionId"]`.
 
 ### Receta para sembrar una limpieza cerrada
 
