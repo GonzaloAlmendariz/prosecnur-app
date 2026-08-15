@@ -786,10 +786,67 @@
   unique(as.character(ch$name))
 }
 
+# Los códigos que cada fila ya tiene marcados en una select_multiple.
+#
+# Kobo exporta las dos formas y hay proyectos con una sola: la columna única
+# con los códigos separados por espacios (`UNCHR_improving` = "1 3") y las
+# dummies por opción (`UNCHR_improving/1` = 1). Se prueban en ese orden.
+# `parent_col` viene vacío en buena parte de los drafts, así que el nombre del
+# padre es un candidato de pleno derecho y no un fallback de emergencia.
+#
+# Devuelve una lista alineada con las filas de `data_df`, o NULL si no encontró
+# ninguna de las dos formas — que es distinto de "nadie marcó nada".
+.sm_marcas_por_fila <- function(candidatos, data_df) {
+  cols <- unique(Filter(nzchar, as.character(candidatos %||% character(0))))
+  if (!length(cols) || !nrow(data_df)) return(NULL)
+
+  col_unica <- cols[cols %in% names(data_df)][1]
+  if (!is.na(col_unica) && !is.null(col_unica)) {
+    crudo <- as.character(data_df[[col_unica]])
+    crudo[is.na(crudo)] <- ""
+    return(lapply(strsplit(trimws(crudo), "\\s+"), function(tk) tk[nzchar(tk)]))
+  }
+
+  # Dummies: una columna por opción, `<padre>/<codigo>`. Sin regex — el nombre
+  # de una variable puede traer caracteres que habría que escapar.
+  nombres <- names(data_df)
+  dummies <- character(0)
+  codigos <- character(0)
+  for (base_col in cols) {
+    prefijo <- paste0(base_col, "/")
+    hit <- nombres[startsWith(nombres, prefijo)]
+    if (!length(hit)) next
+    dummies <- c(dummies, hit)
+    codigos <- c(codigos, substring(hit, nchar(prefijo) + 1L))
+  }
+  ok <- nzchar(codigos)
+  dummies <- dummies[ok]; codigos <- codigos[ok]
+  if (!length(dummies)) return(NULL)
+  marcada <- lapply(dummies, function(dc) {
+    v <- data_df[[dc]]
+    n01 <- suppressWarnings(as.integer(as.character(v)))
+    if (all(is.na(n01))) {
+      n01 <- ifelse(tolower(as.character(v)) %in% c("true", "t", "yes", "si", "sí"), 1L, 0L)
+    }
+    !is.na(n01) & n01 == 1L
+  })
+  lapply(seq_len(nrow(data_df)), function(i) {
+    codigos[vapply(marcada, function(m) isTRUE(m[i]), logical(1))]
+  })
+}
+
 # Given a parent/child_col pair, enumerate unique responses in data with
 # frequency + uuids (for audit). Used by the detail view of text / SO-hijo
 # to let the analyst group responses into coded families.
-.respuestas_unicas <- function(col, data_df, labels_lookup = character(0)) {
+#
+# `marcas_por_fila` (opcional, select_multiple): los códigos que cada fila ya
+# tenía marcados. Se agrega a cada respuesta como `ya_marcadas`, que es lo que
+# permite avisar que mandar ese texto a un código que la persona YA marcó es
+# una operación nula — la mención existe y el matiz que escribió se pierde. Va
+# en proporción porque la lista agrupa por texto único y no por fila: dos
+# personas con el mismo texto pueden haber marcado cosas distintas.
+.respuestas_unicas <- function(col, data_df, labels_lookup = character(0),
+                               marcas_por_fila = NULL) {
   if (!nzchar(col) || !col %in% names(data_df)) return(list())
   vals <- data_df[[col]]
   if (is.factor(vals)) vals <- as.character(vals)
@@ -801,9 +858,14 @@
   }
   uuids <- if (!is.null(uuid_col)) as.character(data_df[[uuid_col]]) else as.character(seq_along(vals))
 
+  marcas <- if (is.list(marcas_por_fila) && length(marcas_por_fila) == length(vals)) {
+    marcas_por_fila
+  } else NULL
+
   keep_idx <- !is.na(vals) & nzchar(trimws(vals))
   vals <- vals[keep_idx]
   uuids <- uuids[keep_idx]
+  if (!is.null(marcas)) marcas <- marcas[keep_idx]
   if (length(vals) == 0L) return(list())
 
   normed <- .normalize_text(vals)
@@ -826,13 +888,26 @@
         Encoding(label) <- "UTF-8"
       }
     }
+    # Cuántas de las filas que aportan este texto ya tenían marcada cada
+    # opción. `n` contra `frecuencia` es lo que la UI lee para decir «2 de 3».
+    ya_marcadas <- list()
+    if (!is.null(marcas)) {
+      codigos <- unlist(marcas[ixs], use.names = FALSE)
+      if (length(codigos)) {
+        tab <- sort(table(codigos), decreasing = TRUE)
+        ya_marcadas <- lapply(names(tab), function(cod) {
+          list(codigo = cod, n = as.integer(tab[[cod]]))
+        })
+      }
+    }
     list(
       texto_normalizado = k,
       texto = display,
       label = label,
       variantes = as.integer(length(raw_tab)),
       frecuencia = as.integer(length(ixs)),
-      uuids = uuids_sample
+      uuids = uuids_sample,
+      ya_marcadas = ya_marcadas
     )
   })
   freqs <- vapply(out, function(o) o$frecuencia, integer(1))
@@ -2576,7 +2651,22 @@ mount_codificacion <- function(pr) {
       labels_lookup <- if (!is.null(inst) && nzchar(list_name_for_lookup)) {
         .choices_lookup(inst, list_name_for_lookup)
       } else character(0)
-      respuestas <- .respuestas_unicas(col, data_df, labels_lookup)
+      # En una select_multiple el texto libre convive con las opciones que esa
+      # misma persona marcó, y mandarlo a una que ya marcó no suma mención: el
+      # analista tiene que verlo antes de elegir destino.
+      marcas_por_fila <- if (tipo == "select_multiple") {
+        m <- .sm_marcas_por_fila(c(as.character(row$parent_col %||% ""), parent), data_df)
+        # El propio código de "Otros" lo tiene marcado, por construcción, toda
+        # fila que escribió texto: avisarlo sería ruido en el 100% de los casos
+        # y taparía la señal, que son las opciones reales que esa persona ya
+        # eligió. Sale de `other_dummy_col`, que es `<padre>/<codigo>`.
+        otro_cod <- sub("^.+/", "", as.character(row$other_dummy_col %||% ""))
+        if (!is.null(m) && nzchar(otro_cod)) {
+          m <- lapply(m, function(codes) codes[codes != otro_cod])
+        }
+        m
+      } else NULL
+      respuestas <- .respuestas_unicas(col, data_df, labels_lookup, marcas_por_fila)
 
       grupos <- codif_get(sid, "grupos_recod")[[parent]] %||% list()
 

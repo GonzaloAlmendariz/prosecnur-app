@@ -220,6 +220,12 @@ export async function apiCodifPareja(
 
 // ---------- Codificación: agrupamiento de respuestas ----------
 
+// Un código que las filas que aportan esta respuesta ya tenían marcado en la
+// select_multiple padre. `n` es cuántas de ellas — la lista agrupa por texto
+// único, no por fila, así que dos personas con el mismo texto pueden haber
+// marcado cosas distintas y el aviso va en proporción contra `frecuencia`.
+export type MarcaPrevia = { codigo: string; n: number };
+
 export type RespuestaUnica = {
   texto_normalizado: string;
   texto: string;
@@ -227,6 +233,8 @@ export type RespuestaUnica = {
   variantes: number;
   frecuencia: number;
   uuids: string[];
+  /** Sólo en select_multiple; vacío en el resto. */
+  ya_marcadas?: MarcaPrevia[];
 };
 
 // Reglas de rango para preguntas numéricas. Siempre rangos, nunca valores

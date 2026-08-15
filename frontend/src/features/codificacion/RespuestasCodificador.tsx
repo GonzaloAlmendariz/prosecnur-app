@@ -17,6 +17,7 @@ import {
   apiCodifGrupos,
   apiCodifRespuestas,
   Grupo,
+  type MarcaPrevia,
   RespuestaUnica,
 } from "../../api/client";
 import { LoadingBlock, ErrorBlock, EmptyState } from "../../components/States";
@@ -24,6 +25,7 @@ import { SaveStatusIndicator } from "../../components/SaveStatusIndicator";
 import { GrupoCodificacionCard } from "./GrupoCodificacionCard";
 import { cleanCodificacionLabel, displayCodificacionValueLabel } from "./codificacionLabels";
 import { grupoAccentColor } from "./codificacionGrupoColor";
+import { avisoMarcaPrevia } from "./marcasPrevias";
 
 // Estilo inline que expone el color de acento del grupo como custom property
 // para que el CSS lo mezcle con las superficies (color-mix) y adapte a claro/
@@ -501,6 +503,8 @@ export function RespuestasCodificador({ parent }: Props) {
                           grupos={grupos}
                           asignados={assignedIds}
                           respuesta={display.label}
+                          yaMarcadas={r.ya_marcadas}
+                          frecuencia={r.frecuencia}
                           onToggle={(gid) => toggleRespuestaEnGrupo(r.texto_normalizado, gid)}
                         />
                       )
@@ -509,6 +513,8 @@ export function RespuestasCodificador({ parent }: Props) {
                           mode="single"
                           grupos={gruposDisponibles}
                           respuesta={display.label}
+                          yaMarcadas={r.ya_marcadas}
+                          frecuencia={r.frecuencia}
                           onPick={(gid) => moveToGroup(r.texto_normalizado, gid)}
                         />
                       )}
@@ -569,18 +575,27 @@ export function RespuestasCodificador({ parent }: Props) {
   );
 }
 
+// `yaMarcadas` + `frecuencia` sólo llegan en select_multiple: son los códigos
+// que las filas de esta respuesta ya tenían marcados. Aparecen únicamente al
+// elegir destino —que es donde se comete el error— y no en la fila de siempre,
+// que ya carga texto, frecuencia, variantes y grupos asignados.
+type QuickAssignComun = {
+  respuesta: string;
+  yaMarcadas?: readonly MarcaPrevia[];
+  frecuencia?: number;
+};
+
 type QuickAssignProps =
-  | { mode: "single"; grupos: Grupo[]; respuesta: string; onPick: (gid: string) => void }
-  | {
+  | ({ mode: "single"; grupos: Grupo[]; onPick: (gid: string) => void } & QuickAssignComun)
+  | ({
       mode: "multi";
       grupos: Grupo[];
       asignados: Set<string>;
-      respuesta: string;
       onToggle: (gid: string) => void;
-    };
+    } & QuickAssignComun);
 
 function QuickAssignDropdown(props: QuickAssignProps) {
-  const { mode, grupos, respuesta } = props;
+  const { mode, grupos, respuesta, yaMarcadas, frecuencia = 1 } = props;
   const isMulti = mode === "multi";
   const asignadosCount = isMulti ? grupos.filter((g) => props.asignados.has(g.id)).length : 0;
   const [open, setOpen] = useState(false);
@@ -652,6 +667,7 @@ function QuickAssignDropdown(props: QuickAssignProps) {
             const display = displayCodificacionValueLabel(g.codigo, g.etiqueta);
             const checked = isMulti && props.asignados.has(g.id);
             const accent = grupoAccentColor(g.codigo, g.id);
+            const aviso = avisoMarcaPrevia(g.codigo, yaMarcadas, frecuencia);
             return (
               <button
                 key={g.id}
@@ -701,6 +717,14 @@ function QuickAssignDropdown(props: QuickAssignProps) {
                 <span className="pulso-cv2-qa-item-label">
                   {display.code && <strong>{display.code}</strong>} {display.label || <em className="pulso-cv2-qa-unnamed">sin nombre</em>}
                 </span>
+                {aviso && (
+                  <span
+                    className={`pulso-cv2-qa-marcada${aviso.todas ? " is-todas" : ""}`}
+                    title={aviso.detalle}
+                  >
+                    {aviso.etiqueta}
+                  </span>
+                )}
               </button>
             );
           })}
