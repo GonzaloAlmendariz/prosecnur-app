@@ -7,7 +7,7 @@
 #   - descripcion: frase corta en español no técnico.
 #   - icono_ui: sugerencia de ícono lucide para la UI.
 #   - categoria: agrupador en el picker (estructural / 1grafico / 2graficos /
-#     4graficos / poblacion / dimensiones).
+#     3graficos / 4graficos / poblacion / dimensiones).
 #   - args: lista con nombre técnico + label humano + tipo_input + grupo +
 #     descripcion + choices (si aplica).
 #
@@ -718,6 +718,94 @@
       list(name = "texto", label = "Texto", tipo_input = "textarea", grupo = "textos",
            descripcion = "Línea introductoria que aparece bajo el título del slide.")
     ))
+  ),
+
+  p_slide_3_graficos_2mas1 = list(
+    titulo_humano = "Tres gráficos: dos apilados + uno alto",
+    descripcion   = "Dos paneles apilados a la izquierda y uno alto a la derecha, sin ícono.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "3graficos",
+    render_key    = "graficos_3_2mas1",
+    blueprint     = list(kind = "grid3_2p1", ppt_layout = "graficos_3_2mas1", structure_label = "Dos apilados + uno alto"),
+    slot_specs    = list(
+      superior_izquierda = list(role = "chart", label = "Superior izquierda"),
+      inferior_izquierda = list(role = "chart", label = "Inferior izquierda"),
+      derecha = list(role = "chart", label = "Derecha")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
+  ),
+
+  p_slide_3_graficos_1mas2 = list(
+    titulo_humano = "Tres gráficos: uno alto + dos apilados",
+    descripcion   = "El espejo del anterior: el panel alto abre la lectura a la izquierda.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "3graficos",
+    render_key    = "graficos_3_1mas2",
+    blueprint     = list(kind = "grid3_1p2", ppt_layout = "graficos_3_1mas2", structure_label = "Uno alto + dos apilados"),
+    slot_specs    = list(
+      izquierda = list(role = "chart", label = "Izquierda"),
+      superior_derecha = list(role = "chart", label = "Superior derecha"),
+      inferior_derecha = list(role = "chart", label = "Inferior derecha")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
+  ),
+
+  p_slide_3_graficos_fila = list(
+    titulo_humano = "Tres gráficos en fila",
+    descripcion   = "Tres paneles del mismo ancho: la geometría afirma que se leen en paralelo.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "3graficos",
+    render_key    = "graficos_3_fila",
+    blueprint     = list(kind = "grid3_row", ppt_layout = "graficos_3_fila", structure_label = "Tres en fila"),
+    slot_specs    = list(
+      izquierda = list(role = "chart", label = "Izquierda"),
+      centro = list(role = "chart", label = "Centro"),
+      derecha = list(role = "chart", label = "Derecha")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
+  ),
+
+  p_slide_3_graficos_1arriba = list(
+    titulo_humano = "Tres gráficos: uno ancho arriba",
+    descripcion   = "Un panel ancho arriba con el resultado principal y dos abajo que lo desglosan.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "3graficos",
+    render_key    = "graficos_3_1arriba",
+    blueprint     = list(kind = "grid3_1up", ppt_layout = "graficos_3_1arriba", structure_label = "Uno ancho + dos abajo"),
+    slot_specs    = list(
+      superior = list(role = "chart", label = "Superior"),
+      inferior_izquierda = list(role = "chart", label = "Inferior izquierda"),
+      inferior_derecha = list(role = "chart", label = "Inferior derecha")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
+  ),
+
+  p_slide_2_graficos_vertical = list(
+    titulo_humano = "Dos gráficos apilados",
+    descripcion   = "Dos paneles en una sola columna ancha, uno sobre otro.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "2graficos",
+    render_key    = "graficos_2_vertical",
+    blueprint     = list(kind = "grid2_col", ppt_layout = "graficos_2_vertical", structure_label = "Dos apilados"),
+    slot_specs    = list(
+      superior = list(role = "chart", label = "Superior"),
+      inferior = list(role = "chart", label = "Inferior")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
+  ),
+
+  p_slide_2_graficos_asimetrico = list(
+    titulo_humano = "Dos gráficos: principal y apoyo",
+    descripcion   = "Reparto 60/26 en vez de mitades: un gráfico manda y el otro lo acompaña.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "2graficos",
+    render_key    = "graficos_2_asimetrico",
+    blueprint     = list(kind = "grid2_asym", ppt_layout = "graficos_2_asimetrico", structure_label = "Principal + apoyo"),
+    slot_specs    = list(
+      principal = list(role = "chart", label = "Principal"),
+      apoyo = list(role = "chart", label = "Apoyo")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
   ),
 
   p_slide_3_graficos_poblacion = list(

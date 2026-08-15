@@ -1091,6 +1091,264 @@ p_slide_2_graficos_poblacion <- function(
   ))
 }
 
+#' Tres gráficos: dos apilados + uno alto
+#'
+#' Dos paneles apilados a la izquierda y uno alto a la derecha, sin ícono.
+#'
+#' @param superior_izquierda,inferior_izquierda,derecha Los paneles, en el orden en que se leen.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_2mas1 <- function(
+    superior_izquierda,
+    inferior_izquierda,
+    derecha,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior_izquierda, "superior_izquierda")
+  .ppt_chk_element(inferior_izquierda, "inferior_izquierda")
+  .ppt_chk_element(derecha, "derecha")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "graficos_3_2mas1",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      superior_izquierda   = superior_izquierda,
+      inferior_izquierda   = inferior_izquierda,
+      derecha              = derecha,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Tres gráficos: uno alto + dos apilados
+#'
+#' El espejo del anterior: el panel alto abre la lectura a la izquierda.
+#'
+#' @param izquierda,superior_derecha,inferior_derecha Los paneles, en el orden en que se leen.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_1mas2 <- function(
+    izquierda,
+    superior_derecha,
+    inferior_derecha,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(izquierda, "izquierda")
+  .ppt_chk_element(superior_derecha, "superior_derecha")
+  .ppt_chk_element(inferior_derecha, "inferior_derecha")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "graficos_3_1mas2",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      izquierda            = izquierda,
+      superior_derecha     = superior_derecha,
+      inferior_derecha     = inferior_derecha,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Tres gráficos en fila
+#'
+#' Tres paneles del mismo ancho: la geometría afirma que se leen en paralelo.
+#'
+#' @param izquierda,centro,derecha Los paneles, en el orden en que se leen.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_fila <- function(
+    izquierda,
+    centro,
+    derecha,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(izquierda, "izquierda")
+  .ppt_chk_element(centro, "centro")
+  .ppt_chk_element(derecha, "derecha")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "graficos_3_fila",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      izquierda            = izquierda,
+      centro               = centro,
+      derecha              = derecha,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Tres gráficos: uno ancho arriba
+#'
+#' Un panel ancho arriba con el resultado principal y dos abajo que lo desglosan.
+#'
+#' @param superior,inferior_izquierda,inferior_derecha Los paneles, en el orden en que se leen.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_1arriba <- function(
+    superior,
+    inferior_izquierda,
+    inferior_derecha,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior, "superior")
+  .ppt_chk_element(inferior_izquierda, "inferior_izquierda")
+  .ppt_chk_element(inferior_derecha, "inferior_derecha")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "graficos_3_1arriba",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      superior             = superior,
+      inferior_izquierda   = inferior_izquierda,
+      inferior_derecha     = inferior_derecha,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Dos gráficos apilados
+#'
+#' Dos paneles en una sola columna ancha, uno sobre otro.
+#'
+#' @param superior,inferior Los paneles, en el orden en que se leen.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_2_graficos_vertical <- function(
+    superior,
+    inferior,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior, "superior")
+  .ppt_chk_element(inferior, "inferior")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "graficos_2_vertical",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      superior             = superior,
+      inferior             = inferior,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Dos gráficos: principal y apoyo
+#'
+#' Reparto 60/26 en vez de mitades: un gráfico manda y el otro lo acompaña.
+#'
+#' @param principal,apoyo Los paneles, en el orden en que se leen.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_2_graficos_asimetrico <- function(
+    principal,
+    apoyo,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(principal, "principal")
+  .ppt_chk_element(apoyo, "apoyo")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "graficos_2_asimetrico",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      principal            = principal,
+      apoyo                = apoyo,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
 #' Lámina de perfil con tres gráficos: dos apilados y uno alto
 #'
 #' Dos paneles a la izquierda, uno arriba y otro abajo, y un tercero a la
