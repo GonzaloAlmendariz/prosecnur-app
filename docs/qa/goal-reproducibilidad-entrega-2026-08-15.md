@@ -47,7 +47,38 @@ decisiones de limpieza.
 
 | Ítem | La decisión | Por qué no puedo yo |
 |---|---|---|
-| **L5 / L10** | Al invalidar el workspace de validación de una base, ¿se revierte también la promoción de Limpieza —porque su justificación acaba de desaparecer— o las decisiones de limpieza deben sobrevivir a una recarga de instrumento? | Las dos opciones son coherentes y cambian el contrato del `.pulso`. Revertir es más seguro pero descarta trabajo del analista sin avisar; conservar exige decidir qué pasa cuando el instrumento nuevo ya no tiene las variables sobre las que se decidió. Es un ADR, no una preferencia de implementación. |
+| **L5 / L10** | Al invalidar el workspace de validación de una base, ¿se revierte también la promoción de Limpieza —porque su justificación acaba de desaparecer— o las decisiones de limpieza deben sobrevivir a una recarga de instrumento? | Cambia el contrato del `.pulso`: es un ADR, no una preferencia de implementación. Las dos opciones están medidas abajo. |
+
+#### Lo que cuesta cada opción (medido el 2026-08-15)
+
+El sitio es `estudio_replace_base_files()` (`api/R/session_store.R:1104`), por
+donde pasan las once vías de carga. Ya distingue los dos casos: calcula
+`pair_changed` en la línea 1117 y lo usa para `choice_code_mapping`. La
+invalidación de la línea 1136 no lo mira.
+
+**Hay que separar dos casos, y sólo uno es discutible.**
+
+- **Cambió la data.** El linaje ya no describe nada: la base promovida fue
+  reemplazada. Descartarlo (`meta$limpieza <- NULL`) es la única lectura
+  coherente y no hay decisión que tomar. Ojo: **no** sirve llamar a
+  `.limpieza_revertir_promocion()`, que restauraría `source_data_file_id` y
+  pisaría la data recién cargada.
+- **Cambió sólo el XLSForm.** Aquí está la decisión. La data promovida sigue
+  siendo el mismo archivo y las decisiones de limpieza están tomadas contra esa
+  data, no contra el instrumento.
+  - *Revertir la promoción*: coherente («si no puedo explicarla, no rige»), pero
+    descarta trabajo del analista **en silencio**, justo lo contrario de lo que
+    el commit `ce9bd5da` construyó para revertir a mano —con confirmación en
+    línea que dice a qué N se vuelve—.
+  - *Conservar `limpieza_draft` y `limpieza_artifacts`*: la data no cambió, así
+    que las decisiones siguen siendo aplicables; sólo el plan y la auditoría
+    dependen del instrumento y ésos sí deben caer. El riesgo es que el
+    instrumento nuevo ya no tenga alguna variable sobre la que se decidió, y hoy
+    nada lo comprueba al rehidratar.
+
+Medido así, conservar parece lo correcto y revertir en silencio lo peor de los
+tres caminos; pero la comprobación de variables que exige conservar es trabajo
+nuevo y la llamada es tuya.
 
 ---
 
