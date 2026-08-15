@@ -720,6 +720,32 @@
     ))
   ),
 
+  p_slide_3_graficos_poblacion = list(
+    titulo_humano = "Tres gráficos + ícono (población)",
+    descripcion   = paste(
+      "Dos paneles apilados a la izquierda y uno alto a la derecha, que ocupa",
+      "el alto de los dos. El alto es para la variable con más categorías",
+      "—nivel, ciclo, año de egreso—: con la mitad sus barras quedan por debajo",
+      "del piso de legibilidad. Antes de existir, tres gráficos se armaban con",
+      "la de cuatro dejando un slot vacío."
+    ),
+    icono_ui      = "UsersRound",
+    categoria     = "poblacion",
+    render_key    = "poblacion_3",
+    blueprint     = list(
+      kind = "population3",
+      ppt_layout = "poblacion_3",
+      structure_label = "Dos apilados + uno alto + ícono"
+    ),
+    slot_specs    = list(
+      superior_izquierda = list(role = "chart", label = "Izquierda arriba"),
+      inferior_izquierda = list(role = "chart", label = "Izquierda abajo"),
+      derecha = list(role = "chart", label = "Derecha (alto)"),
+      icono = list(role = "icon", label = "Ícono central")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+  ),
+
   p_slide_4_graficos_poblacion = list(
     titulo_humano = "Cuatro gráficos + ícono (población)",
     descripcion   = "Grid 2×2 con ícono central, típico para slides demográficas.",

@@ -8644,6 +8644,29 @@ reporte_ppt_plan <- function(
     }
 
     # ---- POBLACION_4 (4 graficos 2x2) ----------------------------------------
+    # `poblacion_3` vive entero en `reporte_slide_poblacion_3.R`: aquí queda solo
+    # el despacho y el paso de las closures del motor, que son las que saben
+    # resolver un placeholder contra el layout real.
+    if (identical(stype, "poblacion_3")) {
+      res <- .poblacion_3_render(
+        doc = doc, slide = slide, contract = PPT_CONTRACT$poblacion_3,
+        helpers = list(
+          add_slide_strict = .add_slide_strict, ph_with_strict = .ph_with_strict,
+          render_element = .render_element, dml_o_tabla = .dml_o_tabla,
+          elemento_degradado = .plan_elemento_degradado,
+          canvas_render_nulo = .plan_canvas_render_nulo,
+          inject_var_titulo = .inject_var_titulo,
+          inject_title_override = .inject_title_override,
+          base_por_grafico = .base_por_grafico,
+          base_auto_from_element = .base_auto_from_element
+        ),
+        presets = presets, solo_lista = isTRUE(solo_lista)
+      )
+      doc <- res$doc
+      for (p in res$rendered) rendered[[length(rendered) + 1]] <- p
+      next
+    }
+
     if (identical(stype, "poblacion_4")) {
 
       contract <- PPT_CONTRACT$poblacion_4

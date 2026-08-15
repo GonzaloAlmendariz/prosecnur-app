@@ -1091,6 +1091,64 @@ p_slide_2_graficos_poblacion <- function(
   ))
 }
 
+#' Lámina de perfil con tres gráficos: dos apilados y uno alto
+#'
+#' Dos paneles a la izquierda, uno arriba y otro abajo, y un tercero a la
+#' derecha que ocupa el alto de los dos. Es la disposición de las láminas de
+#' perfil del entregable aprobado: el panel alto recibe la variable con más
+#' categorías —nivel, ciclo, año de egreso—, que con la mitad del alto sacaba
+#' barras por debajo del piso de legibilidad.
+#'
+#' Antes de existir, tres gráficos se armaban con [p_slide_4_graficos_poblacion]
+#' dejando un slot vacío, y entonces los tres se repartían el alto de cuatro.
+#'
+#' @param superior_izquierda,inferior_izquierda Los dos paneles de la columna
+#'   izquierda, de arriba abajo.
+#' @param derecha El panel alto de la derecha.
+#' @param titulo Título de la lámina.
+#' @param icono Elemento de icono, opcional.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_poblacion <- function(
+    superior_izquierda,
+    inferior_izquierda,
+    derecha,
+    titulo = NULL,
+    icono = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior_izquierda, "superior_izquierda")
+  .ppt_chk_element(inferior_izquierda, "inferior_izquierda")
+  .ppt_chk_element(derecha, "derecha")
+  if (!is.null(icono)) .ppt_chk_element(icono, "icono")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "poblacion_3",
+    title       = titulo,
+    slots       = list(
+      title       = titulo,
+      up_left     = superior_izquierda,
+      bottom_left = inferior_izquierda,
+      right       = derecha,
+      base        = base,
+      icon        = icono
+    ),
+    meta = meta
+  ))
+}
+
 #' @family reporte
 #' @export
 p_slide_4_graficos_poblacion <- function(

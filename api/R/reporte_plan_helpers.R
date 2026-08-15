@@ -1034,6 +1034,34 @@
   ),
 
   # ------------------------------------------------------------
+  # POBLACION_3 — 2 paneles apilados a la izquierda + 1 ALTO a la derecha
+  #
+  # La disposición real de las láminas de perfil del entregable aprobado: el
+  # panel derecho ocupa 5.345 in, el alto de los dos izquierdos juntos, porque
+  # ahí va la variable con más categorías (nivel, ciclo, año de egreso) y con la
+  # mitad del alto sus barras quedaban por debajo del piso del recetario.
+  #
+  # Hasta que existió, tres gráficos se armaban con `poblacion_4` dejando un
+  # slot vacío — y entonces los tres se repartían el alto de cuatro.
+  #
+  # El orden de los `pic` sigue el del layout: 1 = izquierda arriba,
+  # 2 = izquierda abajo, 3 = derecha alto.
+  # ------------------------------------------------------------
+  poblacion_3 = list(
+    layout = "poblacion_3",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+
+      up_left      = list(type = "pic",   type_idx = 1),
+      bottom_left  = list(type = "pic",   type_idx = 2),
+      right        = list(type = "pic",   type_idx = 3),
+
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left"),
+      icon         = list(type = "body",  type_idx = 2)
+    )
+  ),
+
+  # ------------------------------------------------------------
   # POBLACION_2 — 2 paneles grandes (body/body) + icono central
   # body 1 = logo superior derecho — SKIP
   # body 2 = "Place holder 1" (0.4, 1.4) 5.1x5.3 — panel IZQUIERDO
@@ -1502,6 +1530,31 @@
       tx <- slots$text %||% NULL
       if (!is.null(tx) && !(is.character(tx) && length(tx) == 1L)) {
         msg <- paste0("`.validate_plan()`: slide_2_narrativo (i=", i, ") `slots$text` debe ser character(1) o NULL.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+      }
+      next
+    }
+
+    # -------------------------
+    # POBLACION_3 — dos apilados a la izquierda + uno alto a la derecha
+    # -------------------------
+    if (identical(stype, "poblacion_3")) {
+      slots <- s$slots %||% NULL
+      if (is.null(slots) || !is.list(slots)) {
+        msg <- paste0("`.validate_plan()`: poblacion_3 (i=", i, ") requiere `slots` como lista.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+        next
+      }
+      for (nm in c("up_left", "bottom_left", "right")) {
+        el <- slots[[nm]] %||% NULL
+        if (is.null(el) || !inherits(el, "ppt_element")) {
+          msg <- paste0("`.validate_plan()`: poblacion_3 (i=", i, ") requiere `slots$", nm, "` como `ppt_element`.")
+          if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+        }
+      }
+      ic <- slots$icon %||% NULL
+      if (!is.null(ic) && !inherits(ic, "ppt_element")) {
+        msg <- paste0("`.validate_plan()`: poblacion_3 (i=", i, ") `slots$icon` debe ser `ppt_element` o NULL.")
         if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
       }
       next
