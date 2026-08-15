@@ -1445,3 +1445,111 @@ test_that("script R considera presentes las variables select_multiple por sus co
   expect_true(present("D1_information", c("id", "D1_information/96", "D1_information/98")))
   expect_true(present("D1_information", c("id", "D1_information_96")))
 })
+
+# --- Ficha de conteos con base depurada (ADR 0076) --------------------------
+#
+# Un estudio que no separa encuestas de prueba salía con la sección entera
+# vacía: la ficha dependía del filtro de universo y las exclusiones decididas
+# en Limpieza no llegaban al informe. Lo que sí llega es el AGREGADO —cuántas
+# se recibieron, cuántas se retiraron, cuántas quedaron—, nunca el caso ni el
+# motivo, que son material de trabajo interno.
+
+.vmr_cleaning_universe <- function(total = 103L, incluidas = 101L) {
+  list(
+    applied = FALSE,
+    cleaning_applied = TRUE,
+    total = total,
+    included = incluidas,
+    excluded_cleaning = total - incluidas,
+    excluded_test = 0L,
+    corrected = 0L,
+    correction_changes = 0L,
+    excluded_rules = 0L
+  )
+}
+
+test_that("sin filtro de pruebas, la depuración declara los conteos de la ficha", {
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))),
+    upstream_universe = .vmr_cleaning_universe()
+  )
+  u <- model$upstream_universe
+  expect_false(isTRUE(u$applied))
+  expect_true(isTRUE(u$cleaning_applied))
+  expect_identical(u$total, 103L)
+  expect_identical(u$included, 101L)
+  expect_identical(u$excluded_cleaning, 2L)
+
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "# Encuestas recibidas: 103", fixed = TRUE)
+  expect_match(script, "# Otras exclusiones: 2", fixed = TRUE)
+  expect_match(script, "# Encuestas incluidas: 101", fixed = TRUE)
+  # Sin filtro de pruebas no se escriben sus líneas en cero.
+  expect_false(grepl("# Pruebas retiradas", script, fixed = TRUE))
+  expect_false(grepl("# Encuestas reclasificadas", script, fixed = TRUE))
+  expect_match(script, "No se registró un filtro de encuestas de prueba.", fixed = TRUE)
+  # El agregado no arrastra el detalle del caso.
+  expect_match(script, "control de calidad de la base", fixed = TRUE)
+})
+
+test_that("el PDF con base depurada trae los tres números de la ficha", {
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))),
+    upstream_universe = .vmr_cleaning_universe()
+  )
+  pdf_path <- tempfile(fileext = ".pdf")
+  expect_error(validation_methodology_report_pdf(model, pdf_path), NA)
+  expect_true(file.exists(pdf_path) && file.size(pdf_path) > 0)
+
+  if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
+  text_path <- tempfile(fileext = ".txt")
+  status <- system2("pdftotext", c("-layout", pdf_path, text_path))
+  expect_equal(status, 0L)
+  text <- paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(text, "ENCUESTAS INCLUIDAS", fixed = TRUE)
+  expect_match(text, "103", fixed = TRUE)
+  expect_match(text, "101", fixed = TRUE)
+  expect_match(text, "Otras exclusiones", fixed = TRUE)
+  # La portada ya no declara un guion donde va el N del estudio.
+  expect_false(grepl("ENCUESTAS INCLUIDAS\\s*\\n\\s*-\\s*\\n", text))
+})
+
+test_that("con filtro y depuración el embudo cierra y no pierde las exclusiones", {
+  universe <- list(
+    applied = TRUE,
+    variable = "testreal",
+    real_values = "real",
+    test_values = "test",
+    total = 430L,
+    corrected = 0L,
+    excluded_test = 4L,
+    excluded_rules = 0L,
+    included = 424L,
+    cleaning_applied = TRUE,
+    excluded_cleaning = 2L
+  )
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))),
+    upstream_universe = universe
+  )
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "# Encuestas recibidas: 430", fixed = TRUE)
+  expect_match(script, "# Pruebas retiradas: 4", fixed = TRUE)
+  expect_match(script, "# Otras exclusiones: 2", fixed = TRUE)
+  expect_match(script, "# Encuestas incluidas: 424", fixed = TRUE)
+})
+
+test_that("sin depuración ni filtro la sección sigue declarando que no hay filtro", {
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code")))
+  )
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "# No se registró un filtro de encuestas de prueba.", fixed = TRUE)
+  expect_false(grepl("# Encuestas recibidas:", script, fixed = TRUE))
+})

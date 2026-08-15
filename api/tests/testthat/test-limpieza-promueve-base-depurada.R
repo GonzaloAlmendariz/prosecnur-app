@@ -216,3 +216,72 @@ test_that("una base con hijas repeat no se promueve y declara el motivo", {
   expect_false(isTRUE(base$limpieza$enabled))
   expect_true(nzchar(base$limpieza$bloqueo))
 })
+
+# --- La ficha del informe metodológico lee el linaje -------------------------
+#
+# El ADR 0076 hace que la exclusión llegue a la base entregada; también tiene
+# que llegar al informe que la acompaña, y solo en agregado.
+
+test_that("sin filtro de universo, la promoción alimenta la ficha del informe", {
+  sid <- prosecnurapp:::session_create()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio <- list(bases = list(default = .prom_base_meta(list(
+    limpieza = list(enabled = TRUE, n_casos_antes = 103L, n_casos_despues = 101L)
+  ))))
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  u <- prosecnurapp:::.validacion_upstream_universe(sid, "default")
+  expect_false(isTRUE(u$applied))
+  expect_true(isTRUE(u$cleaning_applied))
+  expect_equal(u$total, 103L)
+  expect_equal(u$included, 101L)
+  expect_equal(u$excluded_cleaning, 2L)
+})
+
+test_that("promoción revertida o sin linaje no inventa una ficha", {
+  build <- function(extra) {
+    sid <- prosecnurapp:::session_create()
+    s <- prosecnurapp:::session_get(sid)
+    s$estudio <- list(bases = list(default = .prom_base_meta(extra)))
+    .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+    .env_sesiones[[sid]] <- s
+    prosecnurapp:::.validacion_upstream_universe(sid, "default")
+  }
+  expect_null(build(list()))
+  expect_null(build(list(limpieza = list(enabled = FALSE, n_casos_antes = 103L, n_casos_despues = 101L))))
+  # Bloqueada por repeats: hay linaje, pero nada se promovió.
+  expect_null(build(list(limpieza = list(enabled = FALSE, bloqueo = "repeats",
+                                         n_casos_antes = 103L, n_casos_despues = 101L))))
+})
+
+test_that("la depuración se encadena al filtro sólo si arranca de su universo", {
+  build <- function(n_antes) {
+    sid <- prosecnurapp:::session_create()
+    s <- prosecnurapp:::session_get(sid)
+    s$estudio <- list(bases = list(default = .prom_base_meta(list(
+      universe_filter = list(
+        enabled = TRUE, variable = "testreal",
+        real_values = "real", test_values = "test",
+        audit = list(total = 430L, included = 426L, excluded_test = 4L)
+      ),
+      limpieza = list(enabled = TRUE, n_casos_antes = n_antes, n_casos_despues = 424L)
+    ))))
+    .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+    .env_sesiones[[sid]] <- s
+    prosecnurapp:::.validacion_upstream_universe(sid, "default")
+  }
+
+  # Empalma: la limpieza partió de las 426 que dejó el filtro.
+  encadenado <- build(426L)
+  expect_true(isTRUE(encadenado$cleaning_applied))
+  expect_equal(encadenado$total, 430L)
+  expect_equal(encadenado$excluded_test, 4L)
+  expect_equal(encadenado$excluded_cleaning, 2L)
+  expect_equal(encadenado$included, 424L)
+
+  # No empalma: el linaje habla de otra base y el embudo no se inventa nada.
+  suelto <- build(430L)
+  expect_false(isTRUE(suelto$cleaning_applied))
+  expect_equal(suelto$included, 426L)
+})

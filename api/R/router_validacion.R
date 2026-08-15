@@ -69,15 +69,50 @@
   )
 }
 
+# La ficha del universo declara cuántas encuestas se recibieron y cuántas
+# quedaron. Desde el ADR 0076 una parte de esa merma no viene del filtro de
+# pruebas sino de la depuración: `limpieza_finalize()` promueve la base depurada
+# y deja el linaje en `bases[[x]]$limpieza`. De ahí se lee SOLO el agregado
+# (cuántos casos antes y cuántos después). Ni los identificadores excluidos ni
+# los motivos que escribió el analista salen de Limpieza: son material de
+# trabajo interno y viven en el Excel de decisiones.
+.validacion_universe_cleaning <- function(base_meta) {
+  linaje <- (base_meta %||% list())$limpieza %||% NULL
+  if (is.null(linaje) || !isTRUE(linaje$enabled)) return(NULL)
+  antes <- suppressWarnings(as.integer(linaje$n_casos_antes %||% NA_integer_))[1L]
+  despues <- suppressWarnings(as.integer(linaje$n_casos_despues %||% NA_integer_))[1L]
+  if (is.na(antes) || is.na(despues) || despues > antes) return(NULL)
+  list(antes = antes, despues = despues, excluidas = antes - despues)
+}
+
 .validacion_upstream_universe <- function(sid, base_nombre = NULL) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(NULL)
   resolved <- tryCatch(.resolve_base_nombre(s, base_nombre), error = function(e) NULL)
   if (is.null(resolved)) return(NULL)
-  filter <- ((s$estudio %||% list())$bases %||% list())[[resolved]]$universe_filter %||% NULL
-  if (is.null(filter) || !isTRUE(filter$enabled)) return(NULL)
+  base_meta <- ((s$estudio %||% list())$bases %||% list())[[resolved]] %||% list()
+  filter <- base_meta$universe_filter %||% NULL
+  cleaning <- .validacion_universe_cleaning(base_meta)
+  if (is.null(filter) || !isTRUE(filter$enabled)) {
+    # Sin filtro de pruebas la ficha igual existe si la base se depuró: es el
+    # caso corriente de un estudio que no separa pruebas y sí excluye casos en
+    # el control de calidad.
+    if (is.null(cleaning)) return(NULL)
+    return(list(
+      applied = FALSE,
+      cleaning_applied = TRUE,
+      total = cleaning$antes,
+      included = cleaning$despues,
+      excluded_cleaning = cleaning$excluidas,
+      excluded_test = 0L,
+      excluded_unclassified = 0L,
+      corrected = 0L,
+      correction_changes = 0L,
+      excluded_rules = 0L
+    ))
+  }
   audit <- filter$audit %||% list()
-  list(
+  universe <- list(
     applied = TRUE,
     variable = as.character(filter$variable %||% "")[1],
     real_values = as.list(as.character(unlist(filter$real_values %||% character(0), use.names = FALSE))),
@@ -98,6 +133,15 @@
     applied_at = filter$applied_at %||% NULL,
     inherited_from = filter$inherited_from %||% NULL
   )
+  # La depuración se encadena al filtro sólo si arrancó exactamente del universo
+  # que el filtro dejó. Si los números no empalman, el linaje habla de otra
+  # base y el embudo no se inventa la aritmética: se sirve el filtro tal cual.
+  if (!is.null(cleaning) && identical(cleaning$antes, universe$included)) {
+    universe$cleaning_applied <- TRUE
+    universe$excluded_cleaning <- cleaning$excluidas
+    universe$included <- cleaning$despues
+  }
+  universe
 }
 
 .validacion_sync_shared_logic_if_needed <- function(sid, base_nombre = NULL) {

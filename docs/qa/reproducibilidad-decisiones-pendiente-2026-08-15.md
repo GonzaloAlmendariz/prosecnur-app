@@ -58,7 +58,8 @@ más».
 
 ## 2 · Informe metodológico PDF — la sección de conteos sale vacía
 
-**Estado**: pendiente · es el hueco real
+**Estado**: ✅ reparado el 2026-08-15 · seguimiento en
+[goal-reproducibilidad-entrega-2026-08-15.md](goal-reproducibilidad-entrega-2026-08-15.md)
 
 El informe tiene exactamente la sección que corresponde, y no trae números:
 
@@ -89,17 +90,24 @@ decir, pese a que el motor tiene el dato: el linaje de la promoción guarda
 **Dónde vive**: el armado del informe metodológico · endpoint
 `/api/validacion/v2/report/methodology/pdf`.
 
-**Salvedad de la medición**: el PDF se generó sin reejecutar los criterios
-personalizados en esa sesión, así que conviene repetirla antes de implementar
-para separar lo que falta de lo que no se recalculó. Lo que sí es seguro es que
-las decisiones de limpieza estaban en el proyecto —la base ya tenía 101 casos— y
-la sección igual salió vacía.
+**Causa**: la ficha colgaba de `universe_filter`, el filtro que separa encuestas
+de prueba. Un estudio que no separa pruebas no tenía de dónde sacar los
+conteos, aunque hubiera excluido casos: `.validacion_upstream_universe()`
+devolvía `NULL` y todas las ramas del informe cuelgan de `applied`.
+
+**Reparado**: el linaje de la promoción (`bases[[x]]$limpieza`) alimenta la
+ficha en agregado. Verificado sobre `ACNUR_V3_final.pulso` real —
+`total=103 · excluded_cleaning=2 · included=101`— y sobre el PDF renderizado:
+portada `ENCUESTAS INCLUIDAS 101` y embudo `103 · 2 · 101`. Cuando no hubo
+filtro de pruebas el embudo baja a tres columnas en vez de dibujar dos ceros.
+Sin regresión en `acnur_pdm`, que sí tiene filtro: sigue en
+`430 · 2 · 1 · 3 · 426`.
 
 ---
 
-## 3 · El plan de validación no sobrevive al `.pulso`
+## 3 · El plan no estaba — pero no porque el `.pulso` no lo guarde
 
-**Estado**: pendiente · fricción diaria
+**Estado**: diagnosticado el 2026-08-15 · **la premisa original era falsa**
 
 Abrir `ACNUR_V3_final.pulso` y pedir el informe devuelve:
 
@@ -107,14 +115,32 @@ Abrir `ACNUR_V3_final.pulso` y pedir el informe devuelve:
 E_NO_PLAN — "Primero construye el plan de validacion."
 ```
 
-Hay que reconstruir el plan (442 reglas) y repetir la auditoría antes de generar
-el informe, aunque el proyecto ya pasó por validación completa y tiene sus
-decisiones tomadas. Para quien reabre un proyecto cerrado y solo quiere el PDF
-para adjuntarlo, son dos pasos que devuelven lo ya calculado.
+El diagnóstico de que «el plan no sobrevive al `.pulso`» **no se sostiene**: el
+plan sí viaja. `api/inst/reference_projects/acnur_acg` reabre con sus 94 reglas
+intactas, y `ACNUR MDV AGOSTO SIN LIMPIAR.pulso` (v0.6.3) reabre con plan y
+auditoría. `plan_result` se persiste en
+`estudio$bases[[b]]$validacion$plan_result` y `.pulso_strip_caches()` no lo toca.
 
-**A decidir**: persistir el plan en el `.pulso` —con su costo de tamaño y de
-invalidación cuando cambia el instrumento— o que el informe lo reconstruya solo
-en vez de exigírselo al usuario.
+Lo que pasó en el proyecto final es otra cosa, y es peor. Su `state.rds` tiene
+el workspace de validación **entero en blanco** —plan, auditoría, reglas custom,
+decisiones de limpieza y artefactos— mientras conserva la base promovida
+(`n_filas = 101`) y su linaje (`103 → 101`).
+
+El único camino que produce ese estado es `.invalidate_processing_state()`
+(`api/R/session_store.R:972`), que reemplaza `bases[[b]]$validacion` por un
+scope vacío y **no toca `bases[[b]]$limpieza` ni `data_file_id`**. Se dispara al
+recargar el XLSForm o la data de una base (`session_store.R:1136`). Recargar
+sólo el instrumento deja exactamente lo observado: la base sigue siendo la
+depurada de 101 casos y desaparece todo rastro de por qué.
+
+**El problema real, entonces**: la exclusión sobrevive; su justificación no.
+Un proyecto puede quedar diciendo «rige la base depurada, 103 → 101» sin poder
+regenerar ni el informe ni el Excel de decisiones que lo explica.
+
+**A decidir** (ver el GOAL): si al invalidar el workspace hay que revertir
+también la promoción —porque su justificación ya no existe— o si las decisiones
+de limpieza deben sobrevivir a una recarga de instrumento. Las dos son
+decisiones de contrato del `.pulso`, no preferencias de implementación.
 
 ---
 
@@ -124,10 +150,12 @@ en vez de exigírselo al usuario.
 |---|---|
 | Script R reproduce la base exacta | ✅ funciona |
 | Script R con el nivel de detalle correcto | ✅ no tocar |
-| PDF con los conteos de la ficha | ❌ sección vacía |
+| PDF con los conteos de la ficha | ✅ reparado 2026-08-15 |
 | PDF sin detalle de casos ni motivos | ✅ así debe quedar |
-| Informe disponible al reabrir el proyecto | ❌ exige reconstruir el plan |
+| Informe disponible al reabrir el proyecto | ⛔ bloqueado — decisión de contrato |
 
-El trabajo pendiente es más chico de lo que parecía: **poblar tres números en el
-informe** y **decidir qué pasa con el plan al reabrir**. El script no necesita
-nada.
+Los tres números ya están. Lo que queda no es lo que parecía: no es que el plan
+no se guarde —se guarda—, sino que **recargar el instrumento borra las
+decisiones que justifican una base ya promovida y deja la promoción en pie**.
+Eso exige una decisión de contrato, y el seguimiento vive en
+[goal-reproducibilidad-entrega-2026-08-15.md](goal-reproducibilidad-entrega-2026-08-15.md).
