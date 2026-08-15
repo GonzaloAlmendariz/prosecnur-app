@@ -383,6 +383,13 @@ pulso_xlsx_styles <- function(context = c("freq", "cruces", "codebook")) {
   )
 
   if (context == "freq") {
+    # Frecuencias rotula con DOS decimales, no con uno como el resto de los
+    # contextos. La tabla de frecuencias es el documento contra el que se
+    # verifica todo lo demás —el mazo, el informe, las tablas del cliente—, y a
+    # un decimal dos categorías que difieren en un caso pueden imprimirse
+    # iguales. La celda siempre guardó la proporción exacta (0–1) y Excel la
+    # formatea: esto muestra precisión que ya estaba, no la inventa.
+    PCT_FMT <- "0.00%"
     return(list(
       sec_title = sec_title,
       q_title   = q_title,
@@ -390,18 +397,19 @@ pulso_xlsx_styles <- function(context = c("freq", "cruces", "codebook")) {
       body_txt  = body_txt,
       body_int  = body_int,
       body_num  = body_num,
-      body_pct  = body_pct,
+      body_pct  = cs(fontSize = 10, numFmt = PCT_FMT, halign = "right",
+                     valign = "center", fontColour = pal$ink, fgFill = pal$bg),
       total_row = cs(fontSize = 10, numFmt = "#,##0", halign = "right",
                      valign = "center", fontColour = pal$ink, fgFill = pal$bg),
       # variantes "freq_*" (conteos/% centrados) que usa write_one_freq
       freq_body_int  = cs(fontSize = 10, numFmt = "#,##0", halign = "center",
                           valign = "center", fontColour = pal$ink, fgFill = pal$bg),
-      freq_body_pct  = cs(fontSize = 10, numFmt = "0.0%", halign = "center",
+      freq_body_pct  = cs(fontSize = 10, numFmt = PCT_FMT, halign = "center",
                           valign = "center", fontColour = pal$ink, fgFill = pal$bg),
       freq_total_num = cs(fontSize = 10, numFmt = "#,##0", halign = "center",
                           valign = "center", textDecoration = "bold",
                           fontColour = pal$ink, fgFill = pal$bg),
-      freq_total_pct = cs(fontSize = 10, numFmt = "0.0%", halign = "center",
+      freq_total_pct = cs(fontSize = 10, numFmt = PCT_FMT, halign = "center",
                           valign = "center", textDecoration = "bold",
                           fontColour = pal$ink, fgFill = pal$bg),
       total_label = cs(fontSize = 10, textDecoration = "bold", halign = "left",
@@ -410,7 +418,8 @@ pulso_xlsx_styles <- function(context = c("freq", "cruces", "codebook")) {
       # zebra (centrado, como el cuerpo de frecuencias)
       zebra_txt     = zebra_txt,
       zebra_int     = zebra_int_c,
-      zebra_pct     = zebra_pct_c,
+      zebra_pct     = cs(fontSize = 10, numFmt = PCT_FMT, halign = "center",
+                         valign = "center", fontColour = pal$ink, fgFill = pal$zebra),
       note          = note
     ))
   }
