@@ -146,6 +146,11 @@ arquitectura canónica.
   del formato del deck 2021 alcanza al analista sin escribir R.
 - [Validación contra el deck de acreditación 2021](qa/validacion-deck-acreditacion-2021.md):
   medición rasgo a rasgo de los cuatro tipos de lámina contra la vara de la casa.
+- [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
+  las tres barreras que dejaban el identificador de caso fuera de la BBDD y
+  hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [El XLSForm final ignora los overrides en `label::es`](qa/bug-xlsform-final-label-es-sin-overrides.md):
+  defecto abierto; el instrumento exportado se contradice con la base de datos.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
 - [Prompt del loop de Cálculo de muestra](qa/prompt-goal-loop-calc-muestra.md).
 - [Prompt del loop del motor PPT](qa/prompt-goal-loop-motor-ppt.md).
