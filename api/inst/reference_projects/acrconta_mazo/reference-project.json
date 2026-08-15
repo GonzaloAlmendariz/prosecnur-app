@@ -1,0 +1,50 @@
+{
+  "schema": "prosecnur.reference_project_manifest.v1",
+  "reference_project_schema": "prosecnur.reference_project.v1",
+  "slug": "acrconta_mazo",
+  "title": "Acreditación Contabilidad — Mazo entregado",
+  "family": "acreditacion",
+  "aporta": "el primer fixture con un plan de gráficos completo y aprobado: 67 láminas, 11 presets por tipo y las cuatro bases con su codificación aplicada",
+  "description": "Estado del estudio de acreditación de Contabilidad en el momento de la entrega del 14-08-2026, con las cuatro bases (docentes, estudiantes, egresados, administrativos), su codificación aplicada, las equivalencias entre públicos y el plan de mazo con el que se generó el informe que el cliente aprobó. Es el fixture de referencia para el motor de PPT: las disposiciones, el recetario de geometría y la guía de canvas se construyen y se verifican contra él.",
+  "anonimizado": true,
+  "origen_basename": "v4_Conta 14-08 equivalencias.pulso",
+  "project_sha256": "8bdd409a1ea770d0525005727b819e9897e4ff4d2d28e0bbb25f2d88d9971471",
+  "cobertura": {
+    "diseno_estudio": false,
+    "calc_muestra": false,
+    "editor_xlsform": true,
+    "hojas_ruta": true,
+    "monitoreo": false,
+    "carga": true,
+    "validacion": false,
+    "codificacion": true,
+    "analitica": true,
+    "graficos": true,
+    "dashboard": false
+  },
+  "modulos_cubiertos": [
+    "editor_xlsform",
+    "hojas_ruta",
+    "carga",
+    "codificacion",
+    "analitica",
+    "graficos"
+  ],
+  "canonical_flow": [
+    "instrumento",
+    "carga_consolidacion_data",
+    "codificacion",
+    "analitica",
+    "productos_analisis"
+  ],
+  "n_tablas_anonimizadas": 11,
+  "n_nombres_seudonimizados": 0,
+  "notas": {
+    "reproducibilidad": "Generado sin PROSECNUR_ANON_SALT, con sal efímera: el fixture es válido y pasó el gate de PII, pero NO es regenerable idéntico. Para volver a producirlo bit a bit hay que exportar la sal estable y correr de nuevo el anonimizador sobre el origen.",
+    "por_que_no_reemplaza_a_acrconta": "`acrconta` cubre el lado multiactor con Sheets y monitoreo, que este no tiene. Este aporta lo contrario: el plan del mazo y la codificación de las cuatro bases. Son complementarios, no versiones del mismo.",
+    "pii_encontrada_donde_no_se_esperaba": "Las plantillas de codificación conservaban los correos en sus columnas de respuesta abierta (`p2`, `p3`, `p4`): 633 reemplazos en seis tablas. El .pulso de origen ya tenía la data anonimizada, así que el hallazgo estaba solo en las plantillas.",
+    "inconsistencia_de_origen": "En estudiantes la escala se etiqueta «Totalmente en Desacuerdo» (mayúscula intermedia) y en docentes y egresados «Totalmente en desacuerdo». Viene del estudio real y se conserva a propósito: es un caso legítimo para probar que el motor no asume etiquetas idénticas entre bases.",
+    "hueco_del_gate_de_pii": "REPARADO en esta misma tanda. El gate saltaba entera toda columna que él clasificaba como PII (`pulso_anonimizar_proyecto.R`), y por eso un correo auténtico inyectado en `email_address` devolvía «sin PII detectable». Ahora esas columnas SÍ se escanean para el patrón de correo —el seudónimo se reconoce por su dominio `.example.test`— y se siguen saltando solo para DNI y celular, cuyo seudónimo preserva la forma (8 y 9 dígitos) y es indistinguible del dato real.",
+    "riesgo_de_dominio_real_en_seudonimos": "REPARADO. Los seudónimos ahora cierran bajo el TLD reservado: `alguien@pucp.edu.pe.example.test`. Conservan el dominio de origen como prefijo, así que las reglas que segmentan por dominio se siguen ejercitando, pero ya no pueden coincidir con una dirección real. PENDIENTE: `hsvg2026` y `acrconta` siguen con seudónimos de dominio real (136.284 y 519 correos) y hay que regenerarlos con PROSECNUR_ANON_SALT."
+  }
+}

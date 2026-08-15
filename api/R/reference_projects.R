@@ -99,6 +99,26 @@ REFERENCE_PROJECT_MODULOS <- c(
       ),
       aporta = "multiactor con Sheets, carga .sav e intake de hermanos independientes",
       canonical_order = 4L
+    ),
+    # Hermano del anterior y NO su reemplazo: `acrconta` cubre el monitoreo
+    # multiactor con Sheets, que este no tiene; este aporta lo que ningún otro
+    # fixture trae, que es un PLAN DE MAZO COMPLETO Y APROBADO por el cliente.
+    # Hasta ahora las disposiciones, la geometría de barras y la guía de canvas
+    # se probaban contra planes inventados; con esto se prueban contra el que
+    # produjo el informe que se entregó.
+    acrconta_mazo = list(
+      slug = "acrconta_mazo",
+      title = "Acreditación Contabilidad — Mazo entregado",
+      family = "acreditacion",
+      origen = "ACRD CONTA/v4_Conta 14-08 equivalencias.pulso",
+      description = paste(
+        "Estado del estudio en el momento de la entrega del 14-08-2026: las",
+        "cuatro bases con su codificación aplicada, las equivalencias entre",
+        "públicos y el plan de 67 láminas con el que se generó el informe",
+        "aprobado."
+      ),
+      aporta = "plan de mazo completo y aprobado, 11 presets por tipo y cuatro bases codificadas",
+      canonical_order = 5L
     )
   )
 }
