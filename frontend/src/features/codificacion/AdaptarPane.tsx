@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Play, RefreshCw, Tags } from "lucide-react";
+import type { CodifSinRecodificar } from "../../api/codificacion";
 import {
   apiCodifAplicar,
   apiCodifPlanAdaptacion,
@@ -25,6 +26,7 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
   const [loadErr, setLoadErr] = useState<string>("");
   const [busyLoad, setBusyLoad] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [sinRecodificar, setSinRecodificar] = useState<CodifSinRecodificar[]>([]);
   const [runErr, setRunErr] = useState<string>("");
   const [output, setOutput] = useState<{ data: string; inst: string } | null>(null);
 
@@ -45,8 +47,12 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
   async function onAdaptar() {
     setRunErr("");
     setOutput(null);
+    setSinRecodificar([]);
     try {
       const r = await apiCodifAplicar();
+      // ADR 0078, punto 5: declarar qué se entrega sin recodificar. No frena
+      // la adaptación — que ya está corriendo cuando esto se pinta.
+      setSinRecodificar(r.sin_recodificar ?? []);
       setJobId(r.job_id);
     } catch (e) {
       setRunErr((e as Error).message);
@@ -202,6 +208,38 @@ export function AdaptarPane({ onBackToCodificar, onBackToMatrices }: Props) {
       )}
 
       {runErr && <Alert kind="error">{runErr}</Alert>}
+
+      {/* ADR 0078, punto 5: qué se entrega sin recodificar. Aparece al aplicar
+          y no antes, porque es el momento en que deja de ser reversible sin
+          rehacer. Informa y no frena: bloquear acá se satisfaría desmarcando
+          todo, que dejaría el módulo peor que ahora. */}
+      {sinRecodificar.length > 0 && (
+        <Alert kind="warn">
+          <div data-testid="codificacion-sin-recodificar">
+            <strong>
+              {sinRecodificar.length === 1
+                ? "1 variable se entrega sin recodificar"
+                : `${sinRecodificar.length} variables se entregan sin recodificar`}
+              .
+            </strong>
+            <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+              {sinRecodificar.map((v) => (
+                <li key={v.parent} style={{ fontSize: 12, marginBottom: 2 }}>
+                  <code>{v.parent}</code>{" "}
+                  {v.deliberado ? (
+                    <>— decidido: {v.motivo}</>
+                  ) : (
+                    <>
+                      — {v.n_respuestas} {v.n_respuestas === 1 ? "respuesta" : "respuestas"} sin
+                      categorizar
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Alert>
+      )}
 
       {output && (
         <Panel eyebrow="Resultado" title="Archivos adaptados listos para descargar">

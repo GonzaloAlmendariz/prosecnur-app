@@ -152,6 +152,56 @@ export type PreguntaAbierta = {
   opciones_sm?: OpcionSM[];
   marcada: boolean;
   marcada_auto: boolean;
+  /** ADR 0078 — el vocabulario de decisiones, derivado de `status`. */
+  decision?: CodifDecision;
+  /** Presente sólo si se registró la decisión de no categorizar. */
+  no_categorizar?: { motivo: string; decidido_en: string };
+};
+
+// ADR 0078: una codificación está completa cuando no le quedan variables
+// marcadas sin decidir. Las tres primeras cierran; `sin_marcar` no entra en
+// ningún conteo; las tres últimas dejan trabajo abierto.
+export type CodifDecision =
+  | "categorizada"
+  | "no_categorizar"
+  | "sin_material"
+  | "sin_marcar"
+  | "pendiente"
+  | "pendiente_parcial"
+  | "requiere_config";
+
+export const CODIF_DECISIONES_ABIERTAS: readonly CodifDecision[] = [
+  "pendiente",
+  "pendiente_parcial",
+  "requiere_config",
+];
+
+export type CodifPendiente = {
+  parent: string;
+  parent_label: string;
+  decision: CodifDecision;
+  n_respuestas: number;
+  n_unicas: number;
+  n_codificadas: number;
+};
+
+export type CodifResumenDecisiones = {
+  marcadas: number;
+  sin_decidir: number;
+  categorizadas: number;
+  no_categorizar: number;
+  sin_material: number;
+  pendientes: CodifPendiente[];
+};
+
+/** Lo que se entrega sin recodificar; `deliberado` separa la decisión del olvido. */
+export type CodifSinRecodificar = {
+  parent: string;
+  parent_label: string;
+  decision: CodifDecision;
+  motivo: string;
+  n_respuestas: number;
+  deliberado: boolean;
 };
 
 export async function apiCodifMarcar(parent: string, marcada: boolean) {
@@ -197,8 +247,31 @@ export function guessDummyColFromOpciones(opciones: OpcionSM[] | undefined): str
 
 export async function apiCodifPreguntasAbiertas(base?: string) {
   const query = base ? `?base=${encodeURIComponent(base)}` : "";
-  return handle<{ ok: true; preguntas: PreguntaAbierta[] }>(
+  return handle<{
+    ok: true;
+    preguntas: PreguntaAbierta[];
+    resumen_decisiones?: CodifResumenDecisiones;
+  }>(
     await apiFetch(`/api/codificacion/preguntas-abiertas${query}`, { headers: headers() })
+  );
+}
+
+// ADR 0078: «no categorizar» exige motivo. `revertir` la devuelve a pendiente.
+export async function apiCodifNoCategorizar(
+  parent: string,
+  motivo: string,
+  opts?: { base?: string; revertir?: boolean },
+) {
+  return handle<{
+    ok: true;
+    parent: string;
+    no_categorizar: { motivo: string; decidido_en: string } | null;
+  }>(
+    await apiFetch("/api/codificacion/no-categorizar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ parent, motivo, base: opts?.base, revertir: opts?.revertir }),
+    })
   );
 }
 

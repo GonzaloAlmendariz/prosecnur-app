@@ -13,6 +13,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
+  AlertTriangle,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -33,6 +34,7 @@ import {
   apiCodifColumnas,
   apiCodifDesemparejar,
   apiCodifMarcar,
+  apiCodifNoCategorizar,
   apiCodifPareja,
   apiCodifPreguntasAbiertas,
   Arquetipo,
@@ -44,6 +46,9 @@ import {
 import { ErrorBlock, EmptyState } from "../../components/States";
 import { FilterChip } from "../../components/FilterChip";
 import { PairingDialog, PairingResult } from "./PairingDialog";
+import DecisionChip from "./DecisionChip";
+import NoCategorizarAction from "./NoCategorizarAction";
+import { contarSinDecidir, decisionDePregunta, frasePendientes, presentarDecision } from "./decisionCodificacion";
 import { RelationDialog, RelationResult } from "./RelationDialog";
 import { RelationTargetDialog } from "./RelationTargetDialog";
 
@@ -282,15 +287,21 @@ export function PreguntasLanding() {
     return Array.from(map.values());
   }, [data]);
 
+  // ADR 0078: `porCodificar` sumaba las marcadas sin material y las decididas,
+  // que no tienen nada pendiente. Lo que se cuenta es lo que queda por decidir.
   const counts = useMemo(() => {
     if (!data) return { total: 0, emparejadas: 0, porCodificar: 0, codificadas: 0 };
-    let emparejadas = 0, porCodificar = 0, codificadas = 0;
+    let emparejadas = 0, codificadas = 0;
     for (const p of data) {
       if (isPaired(p)) emparejadas++;
-      if (p.marcada && p.status !== "completo") porCodificar++;
       if (p.status === "completo") codificadas++;
     }
-    return { total: data.length, emparejadas, porCodificar, codificadas };
+    return {
+      total: data.length,
+      emparejadas,
+      porCodificar: contarSinDecidir(data),
+      codificadas,
+    };
   }, [data]);
 
   const visibleSections = useMemo(() => {
@@ -301,7 +312,11 @@ export function PreguntasLanding() {
       // Ocultar adoptadas de filtros operativos (solo visibles en "todas")
       if (arq === "adoptada" && filter !== "todas") return false;
       if (filter === "emparejadas") return isPaired(p);
-      if (filter === "por-codificar") return p.marcada && p.status !== "completo";
+      if (filter === "por-codificar") {
+        // Coherente con el contador: lo que queda por decidir, no todo lo
+        // marcado que no esté completo (ADR 0078).
+        return !!presentarDecision(decisionDePregunta(p))?.abierta;
+      }
       if (filter === "codificadas") return p.status === "completo";
       return true; // todas
     };
@@ -407,6 +422,21 @@ export function PreguntasLanding() {
     }
   }
 
+  // ADR 0078: registrar la decisión la cierra sin borrar la intención, que era
+  // lo único que se podía hacer antes (desmarcar) y perdía el rastro.
+  async function onNoCategorizar(parent: string, motivo: string, revertir?: boolean) {
+    setBusyPair(parent);
+    setError("");
+    try {
+      await apiCodifNoCategorizar(parent, motivo, { revertir });
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusyPair("");
+    }
+  }
+
   async function onToggleMarcada(parent: string, marcada: boolean) {
     setBusyPair(parent);
     try {
@@ -457,7 +487,7 @@ export function PreguntasLanding() {
             active={filter === "emparejadas"} onClick={() => setFilter("emparejadas")}
           />
           <FilterChip
-            label="Por codificar" count={counts.porCodificar}
+            label="Sin decidir" count={counts.porCodificar}
             icon={PencilLine} tone="warn"
             active={filter === "por-codificar"} onClick={() => setFilter("por-codificar")}
           />
@@ -469,6 +499,28 @@ export function PreguntasLanding() {
         </div>
         <SearchBar value={query} onChange={setQuery} />
       </div>
+
+      {/* ADR 0078, punto 4: el estado se comunica como número accionable, no
+          como semáforo ni porcentaje de avance. Sólo aparece cuando hay algo
+          que hacer — un "0 pendientes" permanente es ruido. */}
+      {counts.porCodificar > 0 && (
+        <div
+          data-testid="codificacion-sin-decidir"
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 12px", borderRadius: "var(--pulso-radius-panel)",
+            border: "1px solid var(--pulso-warn-border)",
+            background: "var(--pulso-warn-bg)",
+            color: "var(--pulso-text)", fontSize: 12,
+          }}
+        >
+          <AlertTriangle size={14} style={{ color: "var(--pulso-warn-fg)", flex: "0 0 auto" }} />
+          <span>
+            <strong>{frasePendientes(counts.porCodificar)}</strong>. Si alguna no se va a
+            codificar, regístralo con su motivo para que no parezca un olvido.
+          </span>
+        </div>
+      )}
 
       {visibleSections.length === 0 && (
         <EmptyState
@@ -508,6 +560,7 @@ export function PreguntasLanding() {
               onSetModoSo={setModoSoForSelectOne}
               onScrollToPadre={scrollToPadre}
               onToggleMarcada={onToggleMarcada}
+              onNoCategorizar={onNoCategorizar}
               onOpenRelation={(p) => setRelationTargetFor(p)}
             />
           ))}
@@ -699,10 +752,11 @@ type SectionProps = {
   onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
   onScrollToPadre: (parent?: string) => void;
   onToggleMarcada: (parent: string, marcada: boolean) => void;
+  onNoCategorizar: (parent: string, motivo: string, revertir?: boolean) => void;
   onOpenRelation: (p: PreguntaAbierta) => void;
 };
 
-function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onOpenRelation }: SectionProps) {
+function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnpair, busyPair, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onNoCategorizar, onOpenRelation }: SectionProps) {
   const emparejadas = preguntas.filter((p) => isPaired(p)).length;
   const codificadas = preguntas.filter((p) => p.status === "completo").length;
   const sectionDomId = `codif-sec-${domSafeId(id)}`;
@@ -743,6 +797,7 @@ function SectionBlock({ id, label, preguntas, collapsed, onToggle, onPair, onUnp
               onSetModoSo={onSetModoSo}
               onScrollToPadre={onScrollToPadre}
               onToggleMarcada={(m) => onToggleMarcada(p.parent, m)}
+              onNoCategorizar={onNoCategorizar}
               onOpenRelation={() => onOpenRelation(p)}
             />
           ))}
@@ -764,16 +819,33 @@ type CardProps = {
   onSetModoSo: (padre: PreguntaAbierta, modo: ModoSo) => void;
   onScrollToPadre: (parent?: string) => void;
   onToggleMarcada: (marcada: boolean) => void;
+  onNoCategorizar: (parent: string, motivo: string, revertir?: boolean) => void;
   onOpenRelation: () => void;
 };
 
-function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; arq: Arquetipo; busy: boolean; onToggleMarcada: (m: boolean) => void }) {
-  // Emparejadas: auto-marcada, inmutable mientras haya pareja.
+function MarcarFooter({ p, arq, busy, onToggleMarcada, onNoCategorizar }: { p: PreguntaAbierta; arq: Arquetipo; busy: boolean; onToggleMarcada: (m: boolean) => void; onNoCategorizar: (parent: string, motivo: string, revertir?: boolean) => void }) {
+  // ADR 0078: la salida para cerrar sin categorizar acompaña a la de marcar,
+  // porque son las dos formas de resolver la misma pregunta.
+  const decidir = (
+    <NoCategorizarAction
+      parent={p.parent}
+      decision={decisionDePregunta(p)}
+      motivo={p.no_categorizar?.motivo}
+      busy={busy}
+      onRegistrar={(motivo) => onNoCategorizar(p.parent, motivo)}
+      onRevertir={() => onNoCategorizar(p.parent, "", true)}
+    />
+  );
+
+  // Emparejadas: auto-marcada, inmutable mientras haya pareja. La decisión de
+  // no categorizarla sigue disponible: que el módulo la detecte solo no
+  // significa que haya que codificarla.
   if (p.marcada_auto) {
     return (
-      <div style={{ marginTop: 8, padding: "6px 8px", borderTop: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ marginTop: 8, padding: "6px 8px", borderTop: "1px solid var(--pulso-border)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Check size={12} color="var(--pulso-success-fg)" />
         <span style={{ fontSize: 11, color: "var(--pulso-success-fg)", fontWeight: 600 }}>En codificación automáticamente</span>
+        {decidir}
       </div>
     );
   }
@@ -802,14 +874,15 @@ function MarcarFooter({ p, arq, busy, onToggleMarcada }: { p: PreguntaAbierta; a
         />
         {p.marcada ? labelOn : labelOff}
       </label>
+      {p.marcada && decidir}
     </div>
   );
 }
 
-function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onOpenRelation }: CardProps) {
+function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recentlyAdopted, onSetDummy, onSetModoSo, onScrollToPadre, onToggleMarcada, onNoCategorizar, onOpenRelation }: CardProps) {
   const arq = arquetipoOf(p, adoptedBy);
   const tipoStyle = TIPO_STYLE[p.tipo] ?? TIPO_STYLE.text;
-  const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} />;
+  const marcarFooter = <MarcarFooter p={p} arq={arq} busy={busy} onToggleMarcada={onToggleMarcada} onNoCategorizar={onNoCategorizar} />;
   const paired = isPaired(p);
 
   // Drag-drop UNIVERSAL — cualquier pregunta se puede arrastrar sobre
@@ -900,11 +973,22 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
     </div>
   );
 
-  const stats = p.n_respuestas > 0 ? (
-    <div style={{ fontSize: 12, color: "var(--pulso-text-soft)" }}>
-      <strong style={{ color: "var(--pulso-text)" }}>{p.n_respuestas}</strong> respuestas · <strong style={{ color: "var(--pulso-text)" }}>{p.n_unicas}</strong> únicas
+  // ADR 0078: el estado va junto a los conteos, que es donde el analista mira
+  // para saber si le queda trabajo. Una marcada sin respuestas ya no se ve
+  // igual que una marcada sin categorías.
+  const decision = decisionDePregunta(p);
+  const decisionChip = <DecisionChip decision={decision} motivo={p.no_categorizar?.motivo} />;
+
+  const stats = (
+    <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      {p.n_respuestas > 0 && (
+        <span>
+          <strong style={{ color: "var(--pulso-text)" }}>{p.n_respuestas}</strong> respuestas · <strong style={{ color: "var(--pulso-text)" }}>{p.n_unicas}</strong> únicas
+        </span>
+      )}
+      {decisionChip}
     </div>
-  ) : null;
+  );
 
   const preview = p.preview && p.preview.length > 0 ? (
     <div style={{ fontSize: 11, color: "var(--pulso-text-soft)", fontStyle: "italic", borderLeft: "2px solid var(--pulso-border)", paddingLeft: 8 }}>
