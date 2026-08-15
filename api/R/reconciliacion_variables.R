@@ -9,7 +9,8 @@
 #
 # Definición robusta de "extra": una columna es EXTRA (a reconciliar) solo si su
 # STEM RESUELTO no matchea ningún nombre de `inst$survey$name` (case-insensitive),
-# y además no es metadata Kobo ni columna interna de plumbing.
+# y además no es metadata Kobo, ni identificador de caso de otra plataforma
+# (`respondent_id` de SurveyMonkey y hermanos), ni columna interna de plumbing.
 #
 # NO se usa `.dn_expected_data_names`: ese helper excluye a propósito los campos
 # `calculate` (`date`, `E1_age_calc`, `time_*_start`) y los parents de
@@ -41,6 +42,28 @@
     grepl("^formhub", n) ||    # `formhub.uuid`, `formhub/uuid`
     grepl("xform", n) ||       # `__version__`/`xform` variantes de KoboToolbox
     identical(n, "__version__")
+}
+
+# Identificador de caso de una plataforma que NO es Kobo. SurveyMonkey entrega el
+# identificador único de la respuesta en `respondent_id` y el del recopilador en
+# `collector_id`; `response_id` es el mismo concepto en las variantes de la API.
+# Cumplen exactamente el papel de `_uuid`/`_id` de Kobo: son la llave con la que
+# el cliente cruza la BBDD entregada contra su propio registro.
+#
+# Ninguna plataforma declara su metadata en el XLSForm, así que sin esta regla la
+# reconciliación los clasifica como "extra sustantiva" y los excluye del volcado
+# por defecto. Se conservan siempre y NUNCA entran a la reconciliación, igual que
+# la metadata de Kobo.
+#
+# Deliberadamente NO cubre el resto de la metadata de SurveyMonkey. `CollectorNm`,
+# `date_created`, `date_modified` y `custom_1` siguen siendo extra reconciliables
+# —se incluyen desde el popover cuando el estudio las necesita—, y `first_name`,
+# `last_name`, `email_address` e `ip_address` son PII directa: que viajen al
+# cliente es una decisión explícita, no un default.
+.reconciliacion_is_platform_case_id <- function(name) {
+  n <- tolower(trimws(as.character(name)))
+  if (!length(n) || is.na(n) || !nzchar(n)) return(FALSE)
+  n %in% c("respondent_id", "collector_id", "response_id")
 }
 
 # data.frame vacío con el esquema del cubo de reconciliación.
@@ -114,6 +137,7 @@
   extra <- character(0)
   for (col in names(data)) {
     if (.reconciliacion_is_kobo_metadata(col)) next  # metadata Kobo -> se conserva
+    if (.reconciliacion_is_platform_case_id(col)) next  # id de caso SM -> se conserva
     if (col %in% internas) next                      # interna de plumbing -> ya se stripea
     stem <- .reconciliacion_resolve_stem(col)
     # Variable real del instrumento (por stem resuelto o por nombre directo):
