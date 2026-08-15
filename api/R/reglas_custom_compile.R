@@ -75,9 +75,20 @@
            var, var, var)
 }
 
+# Un límite de rango ausente es válido: `.validar_regla_custom()` solo exige que
+# venga al menos uno de los dos. Pero `as.numeric(NULL)` devuelve `numeric(0)` y
+# `if (!is.na(numeric(0)))` aborta con "argument is of length zero", así que una
+# regla legítima —"la duración no puede ser negativa", sin tope superior— pasaba
+# el schema y reventaba al compilar el plan. Se normaliza a NA escalar.
+.regla_lim_escalar <- function(x, casteo) {
+  v <- suppressWarnings(casteo(unlist(x, use.names = FALSE)[1]))
+  if (length(v) != 1L) v <- casteo(NA)
+  v
+}
+
 .regla_expr_rango_num <- function(var, params) {
-  mn <- suppressWarnings(as.numeric(params$min))
-  mx <- suppressWarnings(as.numeric(params$max))
+  mn <- .regla_lim_escalar(params$min, as.numeric)
+  mx <- .regla_lim_escalar(params$max, as.numeric)
   incl <- isTRUE(params$inclusive %||% TRUE)
   ops <- if (incl) c("<", ">") else c("<=", ">=")
   xnum <- sprintf("suppressWarnings(as.numeric(%s))", var)
@@ -89,8 +100,8 @@
 }
 
 .regla_expr_rango_fecha <- function(var, params) {
-  mn <- suppressWarnings(as.Date(params$min))
-  mx <- suppressWarnings(as.Date(params$max))
+  mn <- .regla_lim_escalar(params$min, as.Date)
+  mx <- .regla_lim_escalar(params$max, as.Date)
   xd <- sprintf("suppressWarnings(as.Date(%s))", var)
   parts <- c()
   if (!is.na(mn)) parts <- c(parts, sprintf("%s < as.Date('%s')", xd, mn))
