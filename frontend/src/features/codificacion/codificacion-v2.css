@@ -1498,6 +1498,23 @@ button.pulso-ghost-nav:disabled {
   white-space: nowrap;
 }
 
+/* «Ya marcada»: esa persona ya tenía esta opción, así que mandar el texto acá
+   no suma una mención. Es una advertencia sobre el efecto, no un error: se
+   marca en tono de aviso y nunca deshabilita la opción — recodificar hacia
+   algo ya marcado puede ser exactamente lo que el analista quiere. */
+.pulso-cv2-qa-marcada {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
 .pulso-codificacion-relation-target-dialog {
   position: fixed;
   left: 50%;
