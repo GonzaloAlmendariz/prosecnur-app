@@ -49,7 +49,7 @@ probados**, pero cuya pregunta es de Monitoreo:
 
 | Qué | Dónde vive hoy | Estado |
 |---|---|---|
-| Variantes del nombre del agente | `reglas_semilla_agente()` en `reglas_custom_semilla.R` | funciona; en MDV aísla las 3 variantes |
+| Variantes del nombre del agente | `reglas_semilla_agente()` en `reglas_custom_semilla.R` | **traído en M3**: Monitoreo lo llama, no lo copia |
 | Cruce identidad ↔ solapamiento | tipo `cruce_identidad` en `reglas_custom_*.R` | funciona; en MDV reduce 21 avisos crudos a 1 |
 | Rol de agente e identidad declarados | `operational_config$identity` | ya declarable desde la pantalla de Validación |
 
@@ -83,13 +83,36 @@ terminan diciendo cosas distintas de la misma base.
   `codigo_encuestador` lo lista como alias. El mismo nombre, dos cosas; una
   razón más para que el rol se declare y no se adivine.
 
-**M9 · Cruzar planificado con observado** ☐
+**M9 · Cruzar planificado con observado** ☑ *(2026-08-15)*
 - **Rol**: la pregunta que aparece al tener las dos listas y que hoy no responde
   nadie.
-- **Objetivo**: quién envió datos sin estar en el roster, y quién está en el
-  roster sin haber enviado nada. Lo primero es un encuestador no autorizado o un
+- **Objetivo**: quién envió datos sin estar en el padrón, y quién está en el
+  padrón sin haber enviado nada. Lo primero es un encuestador no autorizado o un
   nombre mal escrito; lo segundo, alguien que no arrancó.
-- **Depende de**: M1 y M3 (con nombres sucios, el cruce da falsos negativos).
+- **Dónde vive**: `monitoreo_alertas_padron()`. Empareja por nombre normalizado
+  **y por código**: en territorial la misma columna trae una cosa o la otra
+  según el estudio.
+- **La dependencia con M3, resuelta midiendo**: un valor que no está en el
+  padrón pero se parece a uno que sí está sale con `probable_variante = TRUE` y
+  con otra pregunta. Un tipeo y un intruso no se preguntan igual, y sin esa
+  distinción el cruce acusaría a media plantilla.
+- **Evidencia** sobre el equipo real de MDV con un padrón de 5 (los 4 que
+  trabajaron + una que no arrancó):
+
+  | Aviso | Actor | Qué dice |
+  |---|---|---|
+  | `envio_sin_padron` | `Mary` | se parece a «Mary Berrocal» → probable variante |
+  | `envio_sin_padron` | `JORGE DE SOLAR` | se parece a «JORGE DEL SOLAR» → probable variante |
+  | `envio_sin_padron` | `957130752` | no se parece a nadie → **¿quién es?** |
+  | `padron_sin_envio` | `Rosa Quispe` | está en el padrón y no envió nada |
+
+- **Controles**: sin padrón cargado, **0 alertas** —no se inventa un padrón
+  desde la data—; padrón que coincide con lo observado, **0**; columna con
+  códigos `PXXX` en vez de nombres, **0**.
+- **Ojo**: ninguno de los cuatro proyectos de referencia tiene padrón cargado
+  (0 asignaciones en los cuatro), así que el cruce se midió con un padrón
+  construido sobre el equipo real de MDV. La mitad «planificada» del cruce
+  todavía no existe en ningún `.pulso` versionado.
 
 ### Capa 2 · Señales de calidad del trabajo
 
@@ -118,11 +141,32 @@ terminan diciendo cosas distintas de la misma base.
 - **Severidad alta**, como se decidió: es la única señal que produce datos
   irrecuperables. Y la app **no frena**: avisa.
 
-**M3 · Identidad del agente** ☐
+**M3 · Identidad del agente** ☑ *(2026-08-15)*
 - **Rol**: proteger todo lo que se reporta por encuestador.
 - **Objetivo**: traer el sembrador existente y ofrecer la unificación antes de
   que las tablas salgan con filas fantasma. Se sugiere, nunca se fusiona solo.
 - **Cubre**: en MDV, 7 valores distintos para 4 personas.
+- **Dónde vive**: `monitoreo_alertas_identidad()`, que **llama** a
+  `reglas_semilla_agente()` y traduce su salida a alerta. No se reimplementó
+  nada, y un test compara variante por variante contra el sembrador para que no
+  puedan divergir.
+- **Dos preguntas distintas, no una**: «se parece a otro nombre» se resuelve
+  unificando; «no se parece a nada» no —puede ser un dato de otra cosa escrito
+  en la casilla del encuestador—. En MDV el `957130752` es exactamente ese
+  segundo caso.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: **3 avisos**, uno por variante.
+
+  > **[advertencia] identidad_agente** — «JORGE DE SOLAR» aparece en 1 encuesta
+  > y se parece mucho a «JORGE DEL SOLAR». Si son la misma persona, el reporte
+  > por encuestador la está partiendo en dos filas.
+  >
+  > *¿«JORGE DE SOLAR» y «JORGE DEL SOLAR» son la misma persona? Si lo son,
+  > conviene unificarlos antes de sacar cualquier tabla por encuestador.*
+
+- **Controles**: sin rol declarado, **0**; equipo escrito siempre igual
+  (101 casos), **0**.
+- **Severidad `advertencia`** por M7: el dato está, solo está mal atribuido. Lo
+  urgente es corregirlo *antes* de que salga un reporte por agente.
 
 **M4 · Casos que se pisan** ☐
 - **Rol**: el único hallazgo de campo que sobrevivió al filtro en MDV.
@@ -199,6 +243,13 @@ terminan diciendo cosas distintas de la misma base.
 | Qué preguntas abiertas vigilar | **Solo las dependientes** por defecto; las independientes se declaran |
 | Qué alerta frena el campo | **Solo procedencia**, con severidad alta. La app nunca frena sola |
 
+## Decisiones tomadas — 2026-08-15
+
+| Qué | Decisión |
+|---|---|
+| M3 y M9 avisan del mismo valor sucio | **El padrón manda.** Con padrón cargado, la cercanía se mide contra él y el aviso de identidad solo cubre lo que el cruce no nombró. Sin padrón —casi todos los estudios— identidad trabaja sola. Resuelto una vez en `monitoreo_alertas_equipo()`, no en cada pantalla |
+| Cómo se decide que dos nombres son el mismo | **Una sola definición** (`.semilla_nombres_cercanos()`), compartida por Validación y Monitoreo. Dos criterios: distancia ≤ 2 (tipeo) o uno prefijo del otro (nombre incompleto — ahí la distancia es enorme y el prefijo es lo único que lo ve) |
+
 ## Espera decisión de Gonzalo
 
 | Qué | Por qué no puedo yo |
@@ -242,6 +293,14 @@ terminan diciendo cosas distintas de la misma base.
   porque no tienen letras. El código de caso, el teléfono y el nombre del
   encuestador son captura operativa y el instrumento no los distingue del texto
   de contenido. (Medido el 2026-08-13.)
+- **El padrón de encuestadores no existe en ningún proyecto real.** Los cuatro
+  de referencia traen 0 asignaciones, así que M9 solo se puede medir con un
+  padrón armado a mano. Antes de dar por buena cualquier conclusión del cruce
+  sobre un estudio, verificar que el Excel esté subido. (Medido el 2026-08-15.)
+- **Un nombre mal escrito parece un intruso.** Sin medir la cercanía contra el
+  padrón, las 2 variantes de MDV saldrían como «encuestador no autorizado» junto
+  al único valor que sí lo amerita, y la alerta perdería toda su fuerza por
+  dilución. (Medido el 2026-08-15.)
 - **Una alerta sin destinatario no es una alerta.** «Revisar duración» no le
   sirve a nadie; «llamar a X y preguntar por los casos A y B» sí. La diferencia
   la marca V3.

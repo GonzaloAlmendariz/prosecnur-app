@@ -115,6 +115,139 @@ test_that("el rol de agente se lee de la declaración de Validación", {
   expect_identical(monitoreo_agente_declarado(session_create()), "")
 })
 
+# --- M3 · identidad del agente ------------------------------------------------
+
+.mcc_equipo <- function(agentes) {
+  data.frame(
+    `_uuid` = sprintf("u%02d", seq_along(agentes)),
+    quien = agentes,
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+}
+
+test_that("un equipo escrito siempre igual no genera aviso de identidad", {
+  # Control negativo: sin esto, el aserto de abajo no distinguiría un equipo
+  # limpio de uno con variantes.
+  d <- .mcc_equipo(c(rep("Ana Lopez", 12), rep("Luis Diaz", 9)))
+  expect_length(monitoreo_alertas_identidad(d, "quien"), 0L)
+  # Y sin rol declarado tampoco se adivina la columna (V1).
+  expect_length(monitoreo_alertas_identidad(d, ""), 0L)
+})
+
+test_that("avisa cuando el mismo nombre está escrito de dos formas", {
+  d <- .mcc_equipo(c(rep("Ana Lopez", 12), rep("Luis Diaz", 9), "Ana Lopes"))
+  al <- monitoreo_alertas_identidad(d, "quien")
+
+  expect_length(al, 1L)
+  expect_identical(al[[1]]$tipo, "identidad_agente")
+  expect_identical(al[[1]]$actor, "Ana Lopes")
+  expect_identical(al[[1]]$detalle$parecido_a, "Ana Lopez")
+  # M7: solo procedencia avisa fuerte. Esto se corrige después sin perder dato.
+  expect_identical(al[[1]]$severidad, "advertencia")
+  # V3: la pregunta nombra a los dos, porque la respuesta es sí o no.
+  expect_true(grepl("Ana Lopes", al[[1]]$detalle$pregunta, fixed = TRUE))
+  expect_true(grepl("Ana Lopez", al[[1]]$detalle$pregunta, fixed = TRUE))
+})
+
+test_that("un valor que no parece un nombre hace otra pregunta", {
+  # No es lo mismo «se escribió mal» que «acá hay un dato de otra cosa»: la
+  # segunda no se resuelve unificando.
+  d <- .mcc_equipo(c(rep("Ana Lopez", 12), rep("Luis Diaz", 9), "987654321"))
+  al <- monitoreo_alertas_identidad(d, "quien")
+  expect_length(al, 1L)
+  expect_identical(al[[1]]$detalle$parecido_a, "")
+  expect_true(grepl("Qui", al[[1]]$detalle$pregunta, fixed = TRUE))
+})
+
+test_that("el aviso de identidad no reimplementa el detector de Validación", {
+  # Trampa del GOAL: dos motores para la misma pregunta terminan discrepando de
+  # la misma base. Este debe coincidir con el sembrador, valor por valor.
+  d <- .mcc_equipo(c(rep("Ana Lopez", 12), rep("Luis Diaz", 9), "Ana Lopes", "Luis"))
+  sem <- reglas_semilla_agente(
+    d, list(identity = list(enabled = TRUE, agent_variable = "quien"))
+  )[[1]]$semilla
+  al <- monitoreo_alertas_identidad(d, "quien")
+  expect_setequal(
+    vapply(al, function(x) x$actor, character(1)),
+    as.character(unlist(sem$variantes))
+  )
+})
+
+# --- M9 · padrón planificado vs envíos observados -----------------------------
+
+.mcc_padron <- function(nombres) {
+  list(code_format = "PXXX", assignments = lapply(seq_along(nombres), function(i) {
+    list(codigo_pulso = sprintf("P%03d", i), nombre = nombres[i])
+  }))
+}
+
+test_that("sin padrón cargado no hay cruce", {
+  # La mitad de la pregunta no existe: no se inventa un padrón desde la data.
+  d <- .mcc_equipo(c(rep("Ana Lopez", 5), rep("Luis Diaz", 4)))
+  expect_length(monitoreo_alertas_padron(d, "quien", NULL), 0L)
+  expect_length(monitoreo_alertas_padron(d, "quien", list(assignments = list())), 0L)
+})
+
+test_that("padrón y envíos que coinciden no alertan", {
+  d <- .mcc_equipo(c(rep("Ana Lopez", 5), rep("Luis Diaz", 4)))
+  expect_length(
+    monitoreo_alertas_padron(d, "quien", .mcc_padron(c("Ana Lopez", "Luis Diaz"))),
+    0L
+  )
+})
+
+test_that("nombra a quien envía sin estar en el padrón y a quien no arrancó", {
+  d <- .mcc_equipo(c(rep("Ana Lopez", 5), rep("Rosa Vega", 3)))
+  al <- monitoreo_alertas_padron(d, "quien", .mcc_padron(c("Ana Lopez", "Luis Diaz")))
+  tipos <- vapply(al, function(x) x$tipo, character(1))
+
+  expect_setequal(tipos, c("envio_sin_padron", "padron_sin_envio"))
+  fuera <- al[[which(tipos == "envio_sin_padron")]]
+  expect_identical(fuera$actor, "Rosa Vega")
+  expect_false(fuera$detalle$probable_variante)
+  sin_enviar <- al[[which(tipos == "padron_sin_envio")]]
+  expect_identical(sin_enviar$actor, "Luis Diaz")
+  expect_identical(sin_enviar$detalle$n_casos, 0L)
+  expect_true(grepl("arrancó", sin_enviar$detalle$pregunta, fixed = TRUE))
+})
+
+test_that("un nombre mal escrito no se reporta como encuestador no autorizado", {
+  # La dependencia M3 -> M9 hecha aserto: sin distinguirlos, cada variante mal
+  # tipeada se leería como alguien recolectando fuera del padrón.
+  d <- .mcc_equipo(c(rep("Ana Lopez", 5), rep("Luis Diaz", 4), "Ana Lopes"))
+  al <- monitoreo_alertas_padron(d, "quien", .mcc_padron(c("Ana Lopez", "Luis Diaz")))
+
+  expect_length(al, 1L)
+  expect_identical(al[[1]]$tipo, "envio_sin_padron")
+  expect_true(al[[1]]$detalle$probable_variante)
+  expect_identical(al[[1]]$detalle$parecido_a, "Ana Lopez")
+  # Y Ana no aparece como «no arrancó»: sí envió, con el nombre sucio.
+  expect_false("padron_sin_envio" %in% vapply(al, function(x) x$tipo, character(1)))
+})
+
+test_that("el padrón acepta que la columna traiga el código en vez del nombre", {
+  # En territorial el mismo campo se usa de las dos formas según el estudio.
+  d <- .mcc_equipo(c(rep("P001", 5), rep("P002", 4)))
+  expect_length(
+    monitoreo_alertas_padron(d, "quien", .mcc_padron(c("Ana Lopez", "Luis Diaz"))),
+    0L
+  )
+})
+
+test_that("con padrón cargado el mismo valor no se avisa dos veces", {
+  # El padrón manda: es la lista autoritativa del equipo.
+  d <- .mcc_equipo(c(rep("Ana Lopez", 12), rep("Luis Diaz", 9), "Ana Lopes"))
+  todo <- monitoreo_alertas_equipo(d, "quien", .mcc_padron(c("Ana Lopez", "Luis Diaz")))
+  expect_length(todo, 1L)
+  expect_identical(todo[[1]]$tipo, "envio_sin_padron")
+
+  # Sin padrón —el caso de casi todos los estudios— el aviso de identidad
+  # trabaja solo y el valor sigue apareciendo.
+  solo <- monitoreo_alertas_equipo(d, "quien", NULL)
+  expect_length(solo, 1L)
+  expect_identical(solo[[1]]$tipo, "identidad_agente")
+})
+
 test_that("el motor no confunde el roster planificado con el agente observado", {
   # Son preguntas distintas y ambas se conservan (decisión del 2026-08-13):
   # el roster PXXX dice quién debería trabajar, el rol quién trabajó. Este

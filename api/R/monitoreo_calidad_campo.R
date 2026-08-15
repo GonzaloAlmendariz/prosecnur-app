@@ -140,3 +140,245 @@ monitoreo_alertas_procedencia <- function(data, agent_var = "",
   # Primero quien más casos arrastra: es a quien hay que llamar antes.
   out[order(-vapply(out, function(x) x$detalle$n_casos, numeric(1)))]
 }
+
+# =============================================================================
+# M3 · Identidad del agente
+# =============================================================================
+# El nombre de quien recolecta se escribe a mano en casi todos los estudios.
+# Cuando se ensucia, todo lo que se reporte por encuestador sale con filas
+# fantasma: un mismo trabajo repartido entre dos filas que parecen dos personas.
+# Y no se nota, porque cada fila cuadra consigo misma.
+#
+# El detector ya existe y está probado en Validación (`reglas_semilla_agente()`).
+# Acá NO se reimplementa: se llama y se traduce a alerta. Dos motores para la
+# misma pregunta terminan discrepando de la misma base.
+
+#' Alertar que el equipo aparece con más nombres de los que tiene
+#'
+#' Se **sugiere**, nunca se fusiona solo: dos nombres cercanos pueden ser dos
+#' personas, y unificarlas por cuenta propia rompería el reporte en la dirección
+#' contraria. Por eso cada aviso es una pregunta cerrada sobre un par concreto.
+#'
+#' Severidad `advertencia`: a diferencia de la procedencia, esto se corrige
+#' después sin perder nada —el dato está, solo está mal atribuido—. Lo que sí es
+#' urgente es corregirlo **antes** de que salga un reporte por agente.
+#'
+#' @param data data.frame de la base recolectada.
+#' @param agent_var variable declarada como agente (ver
+#'   `monitoreo_agente_declarado()`).
+#' @param survey hoja `survey` del instrumento, para nombrar la variable con su
+#'   etiqueta y el código entre paréntesis. Opcional.
+#' @return lista de alertas, una por variante detectada.
+#' @family monitoreo
+#' @export
+monitoreo_alertas_identidad <- function(data, agent_var = "", survey = NULL) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  agent_var <- as.character(agent_var %||% "")[1]
+  if (is.na(agent_var) || !nzchar(agent_var) || !(agent_var %in% names(data))) return(list())
+
+  cfg <- list(identity = list(enabled = TRUE, agent_variable = agent_var))
+  props <- tryCatch(reglas_semilla_agente(data, cfg, list(), survey),
+                    error = function(e) list())
+  if (!length(props)) return(list())
+
+  sem <- props[[1]]$semilla %||% list()
+  variantes <- as.character(unlist(sem$variantes %||% list()))
+  equipo <- as.character(unlist(sem$equipo %||% list()))
+  pares <- as.character(unlist(sem$pares %||% list()))
+  if (!length(variantes)) return(list())
+
+  vals <- .mcc_chr(data[[agent_var]])
+  out <- list()
+  for (i in seq_along(variantes)) {
+    v <- variantes[i]
+    n <- sum(vals == v)
+    par <- if (i <= length(pares)) pares[i] else ""
+    # El par ya trae la forma «'X' ~ 'Y'» o «'X' (no parece un nombre)»: son dos
+    # preguntas distintas y merecen dos redacciones distintas.
+    parecido <- sub("^'[^']*' ~ '([^']*)'$", "\\1", par)
+    tiene_par <- nzchar(parecido) && !identical(parecido, par)
+
+    mensaje <- if (tiene_par) sprintf(
+      "«%s» aparece en %d encuesta%s y se parece mucho a «%s». Si son la misma persona, el reporte por encuestador la está partiendo en dos filas.",
+      v, n, if (n == 1L) "" else "s", parecido
+    ) else sprintf(
+      "«%s» aparece en %d encuesta%s y no se parece a ningún nombre del equipo. Puede ser un dato de otra cosa escrito en la casilla del encuestador.",
+      v, n, if (n == 1L) "" else "s"
+    )
+    pregunta <- if (tiene_par) sprintf(
+      "¿«%s» y «%s» son la misma persona? Si lo son, conviene unificarlos antes de sacar cualquier tabla por encuestador.", v, parecido
+    ) else sprintf(
+      "¿Quién trabajó en las encuestas que quedaron con «%s» en la casilla del encuestador?", v
+    )
+
+    out[[length(out) + 1L]] <- list(
+      severidad = "advertencia",
+      componente_id = NA_character_,
+      actor = v,
+      tipo = "identidad_agente",
+      mensaje = mensaje,
+      detalle = list(
+        valor = v,
+        n_casos = as.integer(n),
+        parecido_a = if (tiene_par) parecido else "",
+        equipo = as.list(equipo),
+        variable = agent_var,
+        pregunta = pregunta
+      )
+    )
+  }
+  out[order(-vapply(out, function(x) x$detalle$n_casos, numeric(1)))]
+}
+
+# =============================================================================
+# M9 · Cruzar planificado con observado
+# =============================================================================
+# Monitoreo ya tiene dos listas de encuestadores y nunca las miró juntas:
+#   - el padrón territorial (`enumerator_roster`, códigos PXXX subidos en Excel)
+#     dice QUIÉN DEBERÍA trabajar;
+#   - la variable declarada como agente dice QUIÉN TRABAJÓ.
+# Cruzarlas responde dos preguntas que hoy no responde nadie: quién está
+# enviando datos sin estar en el padrón, y quién está en el padrón sin haber
+# enviado nada.
+#
+# Depende de M3: sin nombres limpios, cada variante mal escrita se leería como
+# un encuestador no autorizado. Por eso el cruce mide la cercanía contra el
+# padrón y lo dice — un nombre parecido es un tipeo, no un intruso, y la
+# pregunta que hay que hacer no es la misma.
+
+.mcc_roster_normalizado <- function(roster) {
+  ro <- tryCatch(.monitoreo_territorial_normalize_enumerator_roster(roster %||% list()),
+                 error = function(e) NULL)
+  if (is.null(ro) || !length(ro$assignments %||% list())) return(NULL)
+  ro
+}
+
+#' Cruzar el padrón de encuestadores con quién envió datos
+#'
+#' @param data data.frame de la base recolectada.
+#' @param agent_var variable declarada como agente.
+#' @param roster padrón territorial (`config$territorial$enumerator_roster`), en
+#'   crudo o ya normalizado. Sin padrón cargado no hay cruce posible y devuelve
+#'   vacío: la mitad de la pregunta no existe.
+#' @return lista de alertas `envio_sin_padron` y `padron_sin_envio`.
+#' @family monitoreo
+#' @export
+monitoreo_alertas_padron <- function(data, agent_var = "", roster = NULL) {
+  if (!is.data.frame(data) || !nrow(data)) return(list())
+  agent_var <- as.character(agent_var %||% "")[1]
+  if (is.na(agent_var) || !nzchar(agent_var) || !(agent_var %in% names(data))) return(list())
+  ro <- .mcc_roster_normalizado(roster)
+  if (is.null(ro)) return(list())
+
+  padron_nombre <- vapply(ro$assignments, function(a) as.character(a$nombre %||% ""), character(1))
+  padron_key <- vapply(ro$assignments, function(a) as.character(a$nombre_normalizado %||% ""), character(1))
+  padron_code <- vapply(ro$assignments, function(a) as.character(a$codigo_pulso %||% ""), character(1))
+  padron_norm <- .semilla_norm_agente(padron_nombre)
+
+  vals <- .mcc_chr(data[[agent_var]])
+  observados <- unique(vals[nzchar(vals)])
+  if (!length(observados)) return(list())
+
+  obs_key <- vapply(observados, .monitoreo_territorial_enumerator_key, character(1),
+                    USE.NAMES = FALSE)
+  # La columna del agente puede traer el nombre o el código: en territorial el
+  # mismo campo se usa de las dos formas según el estudio.
+  obs_code <- .monitoreo_territorial_clean_code(observados, ro$code_format)
+  obs_code[!.monitoreo_territorial_valid_code(obs_code, ro$code_format)] <- ""
+  obs_norm <- .semilla_norm_agente(observados)
+
+  reconocido <- (obs_key %in% padron_key[nzchar(padron_key)]) |
+    (nzchar(obs_code) & obs_code %in% padron_code[nzchar(padron_code)])
+
+  out <- list()
+
+  # --- Envió sin estar en el padrón ------------------------------------------
+  for (i in which(!reconocido)) {
+    n <- sum(vals == observados[i])
+    cerca <- .semilla_nombres_cercanos(obs_norm[i], padron_norm)
+    parecido <- if (length(cerca)) padron_nombre[cerca[1]] else ""
+
+    mensaje <- if (nzchar(parecido)) sprintf(
+      "«%s» envió %d encuesta%s y no está en el padrón, pero se parece a «%s», que sí está. Lo más probable es que sea el mismo nombre escrito distinto.",
+      observados[i], n, if (n == 1L) "" else "s", parecido
+    ) else sprintf(
+      "«%s» envió %d encuesta%s y no figura en el padrón de encuestadores del estudio.",
+      observados[i], n, if (n == 1L) "" else "s"
+    )
+    pregunta <- if (nzchar(parecido)) sprintf(
+      "¿«%s» es «%s»? Si lo es, se corrige en la data; si no, hay alguien recolectando fuera del padrón.",
+      observados[i], parecido
+    ) else sprintf(
+      "¿Quién es «%s» y por qué está enviando encuestas de este estudio?", observados[i]
+    )
+
+    out[[length(out) + 1L]] <- list(
+      severidad = "advertencia",
+      componente_id = NA_character_,
+      actor = observados[i],
+      tipo = "envio_sin_padron",
+      mensaje = mensaje,
+      detalle = list(
+        valor = observados[i], n_casos = as.integer(n),
+        parecido_a = parecido,
+        # Lo que separa un tipeo de un intruso, y por eso viaja explícito: quien
+        # lee la alerta necesita saber cuál de las dos preguntas está haciendo.
+        probable_variante = nzchar(parecido),
+        pregunta = pregunta
+      )
+    )
+  }
+
+  # --- En el padrón y sin enviar nada ----------------------------------------
+  for (j in seq_along(padron_nombre)) {
+    if (nzchar(padron_key[j]) && padron_key[j] %in% obs_key) next
+    if (nzchar(padron_code[j]) && padron_code[j] %in% obs_code) next
+    # No se avisa de quien igual llegó con el nombre mal escrito: ese caso ya lo
+    # cubre el aviso de arriba, y duplicarlo lo haría parecer dos problemas.
+    if (length(.semilla_nombres_cercanos(padron_norm[j], obs_norm[!reconocido]))) next
+
+    out[[length(out) + 1L]] <- list(
+      severidad = "advertencia",
+      componente_id = NA_character_,
+      actor = padron_nombre[j],
+      tipo = "padron_sin_envio",
+      mensaje = sprintf(
+        "%s está en el padrón y no ha enviado ninguna encuesta todavía.",
+        padron_nombre[j]
+      ),
+      detalle = list(
+        valor = padron_nombre[j], n_casos = 0L,
+        codigo = padron_code[j],
+        pregunta = sprintf(
+          "¿%s arrancó? Si tuvo un problema con el equipo o el formulario, hoy todavía se puede recuperar el día.",
+          padron_nombre[j]
+        )
+      )
+    )
+  }
+  out
+}
+
+#' Todas las señales sobre quién está recolectando
+#'
+#' M3 y M9 miran el mismo valor sucio desde dos lados y, con padrón cargado,
+#' dirían lo mismo dos veces: que «X» se parece a «Y». Acá se resuelve una sola
+#' vez, con la regla evidente — **el padrón manda**. Cuando existe, es la lista
+#' autoritativa del equipo y la cercanía se mide contra ella; el aviso de
+#' identidad solo cubre los valores que el cruce no nombró. Sin padrón, que es el
+#' caso de la mayoría de los estudios, el aviso de identidad trabaja solo.
+#'
+#' @param data data.frame de la base recolectada.
+#' @param agent_var variable declarada como agente.
+#' @param roster padrón territorial, si el estudio lo tiene.
+#' @param survey hoja `survey` del instrumento. Opcional.
+#' @return lista de alertas, sin repetir un mismo valor en dos avisos.
+#' @family monitoreo
+#' @export
+monitoreo_alertas_equipo <- function(data, agent_var = "", roster = NULL, survey = NULL) {
+  padron <- monitoreo_alertas_padron(data, agent_var, roster)
+  identidad <- monitoreo_alertas_identidad(data, agent_var, survey)
+  if (!length(padron)) return(identidad)
+  ya <- vapply(padron, function(a) as.character(a$actor %||% ""), character(1))
+  c(padron, Filter(function(a) !(as.character(a$actor %||% "") %in% ya), identidad))
+}
