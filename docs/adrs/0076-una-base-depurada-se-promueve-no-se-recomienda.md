@@ -1,7 +1,7 @@
 # ADR 0076 — Una base depurada se promueve, no se recomienda
 
-- **Estado**: Propuesto
-- **Implementación**: No iniciada
+- **Estado**: Aceptado
+- **Implementación**: Completa
 - **Fecha**: 2026-08-15
 - **Ámbito**: Limpieza · Codificación · Analítica · contrato de la base efectiva del estudio
 - **Relación**: continúa [ADR 0075](0075-una-base-validada-es-una-base-sin-hallazgos-sin-decidir.md),
