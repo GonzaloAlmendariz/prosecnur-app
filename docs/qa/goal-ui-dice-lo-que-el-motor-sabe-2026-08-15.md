@@ -41,9 +41,28 @@ sabe nada que la interfaz calle.
 | **L2** | La pestaña de Validación vive en la URL | `features/validacion/pestanaDireccionable.ts` · `catalogos/procesamiento.ts` | ☑ hecho — `d1e9f32f`. Deep-link, `ir()` y click del rail verificados. |
 | **L3** | Codificación distingue los cuatro estados por pregunta | `codificacion/PreguntasLanding.tsx` | ⛔ bloqueado — ADR 0078 en **Propuesto**. Desbloquea: que Gonzalo lo ratifique. Define vocabulario que va a la interfaz y a los reportes. |
 | **L4** | Registrar «no categorizar» con su motivo, y advertir al aplicar | `PreguntaDetalle.tsx` / `CodificarWizard.tsx` · `/api/codificacion/aplicar` | ⛔ bloqueado — mismo ADR 0078. Sin gate: el ADR es explícito en que un gate se satisfaría desmarcando todo. |
-| **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `RespuestasCodificador.tsx` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☐ sin empezar — sin dependencias. En ACNUR V3, 18 de 47 respuestas abiertas (38%) venían de filas con códigos ya marcados. |
-| **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☐ sin empezar — el Cumplimiento del ADR 0076 lo exige. Hoy es un campo legado que ningún consumidor lee. |
-| **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` | ☐ sin empezar — son las cuatro que quedan sin `direccionPublicada`. Hay que decidir si son secciones de un documento (y está bien) o pestañas que deberían enlazarse. |
+| **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `codificacion/marcasPrevias.ts` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☑ hecho — `d4273aea`. Medido en ULISESV3: 17 de 45 respuestas abiertas de sus SM vienen de filas con códigos ya marcados. |
+| **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
+| **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `dashboard/store.ts` | ⛔ bloqueado — necesita tu decisión, ver abajo. |
+| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ☐ sin empezar — es la medición de la vara, no un arreglo. Lo que encuentre entra como ítem nuevo. |
+
+### L7 — lo que encontré y por qué no lo decido yo
+
+`tabActiva` vive en el store de Dashboard (`store.ts:493`), igual que vivía
+`activeTab` en Validación antes de L2, y las cuatro pestañas se declaran con
+`direccionPublicada: false` **en el tipo**, no como opción: `PestanaDashboard`
+lo tiene hardcodeado. Consecuencia medible: el recorrido del QA visual sólo
+alcanza Resumen; Relaciones, Base de datos y Dimensiones no se pueden abrir con
+`__pulsoNav.ir()`.
+
+Lo que no puedo decidir solo: el mismo catálogo alimenta el editor interno y el
+artefacto publicado que ve el cliente del estudio. Si son secciones de un
+documento, `direccionPublicada: false` es correcto y el hueco de QA se resuelve
+de otra forma; si son pestañas del editor, se publican como las de Validación.
+
+**Mi recomendación**: publicarlas sólo en la ruta de admin. El artefacto público
+no cambia —es otra app (`PublicArtifactApp`)— y el editor gana deep-link y
+recorrido de QA. Pero toca una superficie de marca y la decisión es tuya.
 
 ### Descartado a propósito
 
@@ -98,6 +117,17 @@ Lo que ya costó una conclusión falsa. Se lee antes de tocar nada.
 7. **`parsearDireccion` normaliza el token** (minúsculas, `_` a `-`), así que
    `reglas_custom` vuelve como `reglas-custom`. Quien compare un id de catálogo
    contra la URL tiene que normalizar los dos lados.
+
+8. **El código de «Otros» de una select_multiple lo tiene marcado toda fila que
+   escribió texto.** Contarlo como «ya marcada» produce el aviso en el 100% de
+   los casos y tapa la señal: en ULISESV3 salía 12 de 12 en vez de 7 de 12. Se
+   excluye leyendo `other_dummy_col`, que es `<padre>/<codigo>`.
+
+9. **`parent_col` viene vacío en el draft de familias** para los siete
+   select_multiple de ACNUR V3, y la columna en la data se llama igual que el
+   padre. Cualquier lectura que dependa sólo de `parent_col` sale vacía sin
+   error. Kobo además exporta las dos formas: columna única con códigos
+   separados por espacios, y dummies `<padre>/<codigo>` 0/1.
 
 ### Receta para sembrar una limpieza cerrada
 
