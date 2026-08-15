@@ -44,7 +44,7 @@ sabe nada que la interfaz calle.
 | **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `codificacion/marcasPrevias.ts` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☑ hecho — `d4273aea`. Medido en ULISESV3: 17 de 45 respuestas abiertas de sus SM vienen de filas con códigos ya marcados. |
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
-| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ◐ a medias — Codificación barrida (sin hallazgos, ver abajo). Faltan Carga, Validación, Analítica y Gráficos. |
+| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ◐ a medias — Codificación y Validación barridas, sin hallazgos. Faltan Carga, Analítica y Gráficos. |
 
 ### L8 — barrido de V1, primera pasada
 
@@ -63,7 +63,13 @@ no falso —N sí son respuestas— y el detalle muestra las únicas abajo.
 Queda anotado para no volver a investigarlo: **el par 103/12 es correcto y
 deliberado**, no un bug de denominador.
 
-Falta barrer Carga, Validación, Analítica y Gráficos.
+**Validación: sin hallazgos.** Dos candidatos revisados. `canFinalize` ANDea
+`auditoria_corrida` con `ready_to_finalize`, y el backend ya exige `evaluacion`
+dentro del segundo: es redundante, no contradictorio. Y los pills de progreso
+del panorama leen los mismos `plan_construido` / `auditoria_corrida` que el
+payload declara, sin derivarlos por su cuenta.
+
+Falta barrer Carga, Analítica y Gráficos.
 
 ### L7 — cómo quedó
 
