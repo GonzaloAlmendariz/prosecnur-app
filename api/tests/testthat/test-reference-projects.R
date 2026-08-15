@@ -1,7 +1,11 @@
 test_that("el catalogo de proyectos de referencia cubre las cuatro familias", {
   catalog <- reference_project_catalog()
-  expect_equal(catalog$slug, c("acnur_pdm", "acnur_acg", "hsvg2026", "acrconta"))
-  expect_equal(catalog$family, c("telefonico", "territorial", "muestral", "acreditacion"))
+  # `acrconta_mazo` es el segundo de la familia acreditacion y no la duplica:
+  # aquel cubre monitoreo multiactor con Sheets, este el plan de mazo aprobado.
+  expect_equal(catalog$slug,
+               c("acnur_pdm", "acnur_acg", "hsvg2026", "acrconta", "acrconta_mazo"))
+  expect_equal(catalog$family,
+               c("telefonico", "territorial", "muestral", "acreditacion", "acreditacion"))
   expect_true(all(catalog$canonical_order == seq_len(nrow(catalog))))
   # Cada fixture debe justificar su existencia: si no aporta algo que otro no
   # cubra, no vale el peso que ocupa en el repo.
