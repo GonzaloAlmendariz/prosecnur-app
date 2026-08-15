@@ -43,9 +43,17 @@ test_that("los seudonimos son estables y preservan la forma del original", {
   expect_true(all(substr(a$data$celular[1:2], 1, 1) == "9"))
   expect_equal(nchar(a$data$dni[1:2]), c(8L, 8L))
 
-  # El dominio institucional se conserva: las reglas que segmentan por dominio
-  # se siguen ejercitando.
-  expect_true(grepl("@pucp\\.edu\\.pe$", a$data$correo[[1]]))
+  # El dominio institucional se conserva como PREFIJO —las reglas que segmentan
+  # por dominio se siguen ejercitando— pero el correo cierra bajo el TLD
+  # reservado `example.test`, que no resuelve.
+  #
+  # Antes el seudónimo terminaba en el dominio real, y eso costaba dos cosas:
+  # podía coincidir con la dirección de una persona ajena al estudio (el fixture
+  # se versiona), y obligaba al detector a saltarse las columnas de correo para
+  # no marcar sus propias sustituciones — dejando pasar un correo auténtico que
+  # hubiera sobrevivido.
+  expect_true(grepl("@pucp\\.edu\\.pe\\.example\\.test$", a$data$correo[[1]]))
+  expect_false(grepl("@pucp\\.edu\\.pe$", a$data$correo[[1]]))
 
   # Nada del original sobrevive.
   expect_false(any(grepl("Rojas|Vargas|Maria", a$data$`Apellidos y nombres`, ignore.case = TRUE)))

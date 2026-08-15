@@ -186,8 +186,24 @@ pulso_pii_inventario <- function(df) {
 # ser identificante una vez que el usuario es sintético, y conservarlo mantiene
 # vivas las reglas que segmentan por dominio).
 .pulso_pii_fake_correo <- function(hash, originales) {
+  # El dominio del original se CONSERVA como prefijo pero se cierra siempre bajo
+  # `example.test`, que es un TLD reservado y no resuelve.
+  #
+  # Antes se preservaba el dominio tal cual, y eso tenía dos costos. El primero
+  # es de privacidad: un seudónimo como `lucia.guzman@pucp.edu.pe` puede
+  # coincidir con la dirección de una persona real ajena al estudio, y el
+  # fixture se versiona. El segundo es que obligaba al detector de PII a
+  # saltarse las columnas de correo enteras para no marcar sus propias
+  # sustituciones — y ese salto dejaba pasar un correo auténtico que hubiera
+  # sobrevivido. Con el sufijo sintético las dos cosas se cierran a la vez:
+  # el seudónimo sigue diciendo de qué dominio venía y ya no puede confundirse
+  # con una dirección real.
   dominio <- sub(".*@", "", as.character(originales))
-  dominio[is.na(dominio) | !nzchar(dominio) | dominio == as.character(originales)] <- "example.test"
+  sin_dominio <- is.na(dominio) | !nzchar(dominio) | dominio == as.character(originales)
+  dominio[sin_dominio] <- ""
+  dominio <- ifelse(nzchar(dominio),
+                    paste0(dominio, ".example.test"),
+                    "example.test")
   usuario <- tolower(paste0(
     .PULSO_PII_NOMBRES[.pulso_pii_indice(hash, length(.PULSO_PII_NOMBRES))],
     ".",
