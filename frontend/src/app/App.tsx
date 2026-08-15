@@ -16,9 +16,12 @@ import { useApplyLayoutPreset } from "../lib/layoutPreference";
 // Dashboard — code-split para no arrastrar plotly al bundle principal.
 // Su payload solo se carga cuando el usuario entra a /tablero. La ruta
 // se mantiene como `/tablero` por compatibilidad de URLs.
-const DashboardPage = lazyWithReload(
-  () => import("../features/dashboard/DashboardPage"),
-  "DashboardPage",
+// La ruta de admin monta el wrapper que resuelve `?pestana=`; el artefacto
+// público monta `DashboardPage` directo desde `PublicArtifactApp`, fuera del
+// Router. El code-split se mantiene: plotly no entra al bundle principal.
+const DashboardRuta = lazyWithReload(
+  () => import("../features/dashboard/DashboardRuta"),
+  "DashboardRuta",
 );
 const PublicArtifactApp = lazyWithReload(
   () => import("./PublicArtifactApp"),
@@ -158,7 +161,7 @@ export default function App() {
                   <Route path="/muestra-aulas" element={<Navigate to="/calc-muestra?modo=opinion-universitaria" replace />} />
                   <Route path="/monitoreo" element={<MonitoreoShell />} />
                   <Route path="/editor-xlsform" element={<XlsformEditorPage />} />
-                  <Route path="/tablero" element={<DashboardPage />} />
+                  <Route path="/tablero" element={<DashboardRuta />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>
               </Routes>

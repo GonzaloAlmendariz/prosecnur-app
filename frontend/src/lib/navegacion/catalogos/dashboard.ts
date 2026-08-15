@@ -17,9 +17,9 @@ export type PestanaDashboard<Key extends DashboardPestanaId = DashboardPestanaId
   readonly key: Key;
   readonly label: string;
   readonly icon: LucideIcon;
-  readonly to: "/tablero";
+  readonly to: string;
   readonly layoutPolicy: "viewport";
-  readonly direccionPublicada: false;
+  readonly direccionPublicada: true;
 };
 
 function pestana<const Key extends DashboardPestanaId>(
@@ -32,9 +32,13 @@ function pestana<const Key extends DashboardPestanaId>(
     key,
     label,
     icon,
-    to: "/tablero",
+    to: `/tablero?pestana=${key}`,
     layoutPolicy: "viewport",
-    direccionPublicada: false,
+    // Publicada desde 2026-08-15: la pestaña activa vivía sólo en el store y
+    // el recorrido del QA visual llegaba a Resumen y a ninguna otra. La
+    // dirección se resuelve en `DashboardRuta`, que es lo que monta la ruta
+    // de admin; el artefacto público corre fuera del Router y no la usa.
+    direccionPublicada: true,
   };
 }
 
