@@ -33,7 +33,7 @@ export type PromocionBaseProps = {
   onRevertir: () => void;
 };
 
-type Tone = "success" | "warn" | "neutral";
+type Tone = "success" | "warn" | "danger" | "neutral";
 
 const TONES: Record<Tone, { bg: string; border: string; fg: string }> = {
   success: {
@@ -45,6 +45,16 @@ const TONES: Record<Tone, { bg: string; border: string; fg: string }> = {
     bg: "var(--pulso-warn-bg)",
     border: "var(--pulso-warn-border)",
     fg: "var(--pulso-warn-fg)",
+  },
+  // `sin respaldo` no puede compartir el ámbar de `bloqueada`: la pestaña ya
+  // muestra el aviso rutinario de "corre la auditoría" en ese tono, y dos
+  // bandas ámbar pegadas se leen como una sola. Además la gravedad es otra —
+  // bloqueada dice "tu exclusión no rigió", sin respaldo dice "está rigiendo y
+  // no puedes justificarla".
+  danger: {
+    bg: "var(--pulso-danger-bg)",
+    border: "var(--pulso-danger-border)",
+    fg: "var(--pulso-danger-fg)",
   },
   neutral: {
     bg: "var(--pulso-surface-2)",
@@ -64,7 +74,7 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
   const antes = asCount(promocion.n_casos_antes);
   const despues = asCount(promocion.n_casos_despues);
 
-  const tone: Tone = bloqueo || sinRespaldo ? "warn" : rige ? "success" : "neutral";
+  const tone: Tone = sinRespaldo ? "danger" : bloqueo ? "warn" : rige ? "success" : "neutral";
   const colors = TONES[tone];
 
   const estado = bloqueo ? "bloqueada" : sinRespaldo ? "sin-respaldo" : rige ? "rige" : "revertida";
