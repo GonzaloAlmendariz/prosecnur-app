@@ -17,18 +17,28 @@ afterEach(() => {
 });
 
 describe("puente de navegación y direcciones no publicadas", () => {
-  it("rechaza los cuatro nodos documentales tanto por clave como por objeto", () => {
-    const { navegar, limpiar, puente } = instalar();
+  it("ya no queda ninguna pestaña que el puente tenga que rechazar", () => {
+    const { limpiar, puente } = instalar();
     const noPublicados = MANIFIESTO_NAVEGACION.filter(
       (nodo) => nodo.nivel === "pestana" && !nodo.direccionPublicada,
     );
 
-    expect(noPublicados).toHaveLength(4);
-    for (const nodo of noPublicados) {
-      expect(puente.ir(nodo.clave), nodo.clave).toBe(false);
-      expect(puente.ir(nodo.direccion), nodo.clave).toBe(false);
-    }
-    expect(navegar).not.toHaveBeenCalled();
+    // Eran ocho —las de Validación y las del Dashboard—, y el puente las
+    // rechazaba: el recorrido del QA visual no podía entrar a ninguna.
+    expect(noPublicados).toHaveLength(0);
+    // El rechazo sigue siendo la conducta correcta si alguna vuelve a
+    // aparecer; se comprueba con una clave que no existe en el manifiesto.
+    expect(puente.ir("dashboard/dashboard/inexistente")).toBe(false);
+    limpiar();
+  });
+
+  it("entra a una pestaña del Dashboard, que antes no publicaba dirección", () => {
+    const { navegar, limpiar, puente } = instalar();
+    const nodo = nodoPorClave("dashboard/dashboard/relaciones");
+
+    expect(nodo?.direccionPublicada).toBe(true);
+    expect(puente.ir(nodo!.clave)).toBe(true);
+    expect(navegar).toHaveBeenCalledWith("/tablero?pestana=relaciones");
     limpiar();
   });
 

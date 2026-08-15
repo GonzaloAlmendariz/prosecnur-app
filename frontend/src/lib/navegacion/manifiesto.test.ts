@@ -139,26 +139,21 @@ describe("manifiesto de navegación", () => {
     expect(dashboard).toHaveLength(4);
   });
 
-  it("conserva cuatro pestañas auditables sin prometer una URL inexistente", () => {
+  it("no deja ninguna pestaña prometiendo una URL que no existe", () => {
     const noPublicadas = MANIFIESTO_NAVEGACION.filter(
       (nodo) => !nodo.direccionPublicada,
     );
 
-    // Las cuatro de Validación salieron de esta lista al publicar su
-    // dirección: la pestaña activa vivía en el store y `?pestana=` no hacía
-    // nada. Quedan las del Dashboard, que son secciones de un documento.
-    expect(noPublicadas.map((nodo) => nodo.clave)).toEqual([
-      "dashboard/dashboard/resumen",
-      "dashboard/dashboard/relaciones",
-      "dashboard/dashboard/base_datos",
-      "dashboard/dashboard/dimensiones",
-    ]);
-    expect(noPublicadas.every((nodo) => nodo.href === "/tablero")).toBe(
-      true,
-    );
+    // Validación y Dashboard eran las últimas sin dirección: sus pestañas
+    // vivían en un store y ni el deep-link ni `__pulsoNav.ir()` llegaban.
+    // Que la lista esté vacía es lo que obliga a que una pestaña nueva nazca
+    // enlazable, o con una decisión explícita que la saque de acá.
+    expect(noPublicadas.map((nodo) => nodo.clave)).toEqual([]);
 
+    // Y el recorrido del QA visual, que sólo pisa lo publicado, ahora las ve.
     const clavesQA = new Set(recorridoCompleto().map((nodo) => nodo.clave));
-    expect(noPublicadas.every((nodo) => !clavesQA.has(nodo.clave))).toBe(true);
+    expect(clavesQA.has("dashboard/dashboard/relaciones")).toBe(true);
+    expect(clavesQA.has("procesamiento/validacion/limpieza")).toBe(true);
   });
 
   it("permite que runtime sustituya una sección por un subconjunto declarado", () => {

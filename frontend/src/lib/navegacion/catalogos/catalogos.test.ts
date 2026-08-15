@@ -115,15 +115,22 @@ describe("catálogos canónicos de pestañas", () => {
     ]);
   });
 
-  it("fija las cuatro pestañas de Dashboard sin fabricar rutas por pestaña", () => {
+  it("fija las cuatro pestañas de Dashboard, cada una con su dirección", () => {
     expect(firma(DASHBOARD_PESTANAS)).toEqual([
       "resumen:Resumen",
       "relaciones:Relaciones",
       "base_datos:Base de datos",
       "dimensiones:Dimensiones",
     ]);
-    expect(DASHBOARD_PESTANAS.every((tab) => tab.to === "/tablero")).toBe(true);
-    expect(DASHBOARD_PESTANAS.every((tab) => !tab.direccionPublicada)).toBe(true);
+    // Publicadas desde 2026-08-15: antes la pestaña activa vivía en el store y
+    // `/tablero?pestana=relaciones` no abría nada.
+    expect(DASHBOARD_PESTANAS.map((tab) => tab.to)).toEqual([
+      "/tablero?pestana=resumen",
+      "/tablero?pestana=relaciones",
+      "/tablero?pestana=base_datos",
+      "/tablero?pestana=dimensiones",
+    ]);
+    expect(DASHBOARD_PESTANAS.every((tab) => tab.direccionPublicada)).toBe(true);
   });
 
   it("mantiene ids, claves y direcciones públicas coherentes", () => {
@@ -178,14 +185,11 @@ describe("catálogos canónicos de pestañas", () => {
       auditables
         .filter((tab) => !tab.direccionPublicada)
         .map((tab) => `${tab.seccion}/${tab.id}`),
-    ).toEqual([
-      // Validación publicó las suyas: su pestaña vivía en el store y
-      // `/validacion?pestana=limpieza` aterrizaba en Explorar.
-      "dashboard/resumen",
-      "dashboard/relaciones",
-      "dashboard/base_datos",
-      "dashboard/dimensiones",
-    ]);
+    // Ya no queda ninguna pestaña de sección sin dirección publicada: las de
+    // Validación y las del Dashboard eran las últimas. Este aserto es el que
+    // obliga a que una pestaña nueva llegue enlazable o con una decisión
+    // explícita detrás, y no por descuido.
+    ).toEqual([]);
   });
 
   it("declara multibase como posibilidad estática y la filtra solo en runtime", () => {

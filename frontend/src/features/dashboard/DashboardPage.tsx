@@ -49,7 +49,20 @@ type DashboardVisibleTab = typeof DASHBOARD_PESTANAS[number] & {
 // La estructura de tabs viene del manifest del paquete (NO editable).
 // Las tabs no disponibles aparecen deshabilitadas con tooltip.
 
-export default function DashboardPage({ publicMode: publicModeProp }: { publicMode?: boolean } = {}) {
+export default function DashboardPage({
+  publicMode: publicModeProp,
+  pestana: pestanaProp,
+  onPestana,
+}: {
+  publicMode?: boolean;
+  /**
+   * La pestaña activa cuando la manda la dirección (ruta de admin, vía
+   * `DashboardRuta`). Sin ella se usa el store, que es el caso del artefacto
+   * público: corre fuera del Router y no tiene URL que leer.
+   */
+  pestana?: DashboardTabId;
+  onPestana?: (id: DashboardTabId) => void;
+} = {}) {
   // Modo público (deploy a HF/Fly): backend real, pero UI sin shell admin.
   // Misma desactivación de autosave (el .pulso del server es read-only;
   // no hay para dónde guardar cambios y los endpoints de mutación están
@@ -59,8 +72,12 @@ export default function DashboardPage({ publicMode: publicModeProp }: { publicMo
   useDashboardAutosave(!adminHidden);
 
   const config = useDashboardStore((s) => s.config);
-  const tabActiva = useDashboardStore((s) => s.tabActiva);
-  const setTabActiva = useDashboardStore((s) => s.setTabActiva);
+  const tabActivaStore = useDashboardStore((s) => s.tabActiva);
+  const setTabActivaStore = useDashboardStore((s) => s.setTabActiva);
+  // Una sola fuente por montaje: la dirección si la ruta la provee, el store
+  // si no. Nunca las dos sincronizándose.
+  const tabActiva = pestanaProp ?? tabActivaStore;
+  const setTabActiva = onPestana ?? setTabActivaStore;
   const setSeccionActiva = useDashboardStore((s) => s.setSeccionActiva);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [palettesOpen, setPalettesOpen] = useState(false);
