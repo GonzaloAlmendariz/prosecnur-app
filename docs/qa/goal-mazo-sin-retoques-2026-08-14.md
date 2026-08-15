@@ -44,9 +44,10 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
 | L13 | Regenerar `hsvg2026` y `acrconta` con el dominio sintético | fixtures | ⛔ |
 | L14 | Llevar el arreglo del color al DEFAULT del motor | `.PULSO_PPT_COLORS` / generador de paletas por lista | ☐ |
-| L15 | Cerrar la brecha de Top Two Box: 29 de 63 contra 45 | ◐ acotado a **9 láminas**, y varias son sí/no legítimas |
+| L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
 | L16 | Residuo de tamaños: 9 pt×123, 8.5×28, 9.48×20, 31.2×13 | falta ubicar qué elemento los emite | ☐ |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | `.PRESETS_META$base` | ☐ |
+| L18 | Que el modo `multilista` dibuje la columna Top Two Box | `graficador_barras_apiladas.R` — desarrollo | ☐ |
 
 ## Dónde está el mazo hoy
 
@@ -63,17 +64,31 @@ sigue lejos es Top Two Box (29 contra 45), y su causa está en L15: falta
 identificar qué familias de gráfico no la dibujan aunque las categorías estén
 declaradas.
 
-### L15 — lo acotado hasta ahora
+### L15 — CERRADO: la causa es el modo del graficador, no la configuración
 
-De las 63 láminas, 37 muestran una escala. **28 llevan la columna y 9 no.** De
-esas 9, al menos tres son de dos categorías —«90 % / 10 %», «75 % / 25 %»— donde
-el Top Two Box no aplica y su ausencia es correcta. Quedan ~6 de cuatro puntos
-que sí deberían llevarla.
+De las 63 láminas, 37 muestran una escala: **28 llevan la columna y 9 no**. La
+diferencia no está en los datos ni en los overrides —las nueve no tienen
+ninguno— sino en el **modo** de `p_barras_multiapiladas`:
 
-Descartado: no es la escala de satisfacción. Se añadieron «Satisfecho» y «Muy
-satisfecho» a `top2box_labels` y el conteo no se movió, así que la causa está en
-otra parte — probablemente en el `barra_extra_preset` de esas láminas concretas
-o en un override por elemento.
+| Modo | Columna Top Two Box |
+|---|---|
+| `var_cruce` | sí |
+| `multilista` (con `bloques`) | **no** |
+
+Descartados por medición, no por razonamiento:
+
+- **No es la escala de satisfacción.** Se añadieron «Satisfecho» y «Muy
+  satisfecho» a `top2box_labels`: el conteo no se movió.
+- **No es que falte declararlo.** Se puso `top2box = TRUE` explícito en las nueve
+  láminas `multilista`: el conteo tampoco se movió.
+
+Con eso queda establecido que **el modo `multilista` no soporta la columna**, y
+el arreglo deja de ser configuración para pasar a ser capacidad del graficador.
+Sigue como **L18**.
+
+Nota sobre el objetivo: de las nueve, al menos tres son escalas de dos
+categorías —«90 % / 10 %»— donde la columna no aplica. El techo realista no es
+45 sino ~34.
 
 ## Bloqueados y por qué
 
