@@ -1,9 +1,9 @@
 # ADR 0078 — Marcar una variable abre una decisión, no la cierra
 
-- **Estado**: Propuesto
-- **Implementación**: No iniciada
+- **Estado**: Aceptado
+- **Implementación**: En curso
 - **Ámbito**: Codificación · gate de avance a Analítica · vocabulario de decisiones
-- **Fecha**: 2026-08-15
+- **Fecha**: 2026-08-15 · **Ratificado**: 2026-08-15
 - **Relación**: aplica a Codificación la misma regla que
   [ADR 0075](0075-una-base-validada-es-una-base-sin-hallazgos-sin-decidir.md)
   fijó para Validación.
