@@ -197,7 +197,12 @@ function leerParam(
   return undefined;
 }
 
-function normalizarToken(raw: string): string {
+/**
+ * El token tal como lo deja `parsearDireccion`. Se exporta porque quien compara
+ * un id de manifiesto contra lo que vino en la URL tiene que normalizar los dos
+ * lados: `reglas_custom` en el catálogo vuelve como `reglas-custom` acá.
+ */
+export function normalizarToken(raw: string): string {
   return raw
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

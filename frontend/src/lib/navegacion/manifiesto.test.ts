@@ -139,25 +139,21 @@ describe("manifiesto de navegación", () => {
     expect(dashboard).toHaveLength(4);
   });
 
-  it("conserva ocho pestañas auditables sin prometer una URL inexistente", () => {
+  it("conserva cuatro pestañas auditables sin prometer una URL inexistente", () => {
     const noPublicadas = MANIFIESTO_NAVEGACION.filter(
       (nodo) => !nodo.direccionPublicada,
     );
 
+    // Las cuatro de Validación salieron de esta lista al publicar su
+    // dirección: la pestaña activa vivía en el store y `?pestana=` no hacía
+    // nada. Quedan las del Dashboard, que son secciones de un documento.
     expect(noPublicadas.map((nodo) => nodo.clave)).toEqual([
-      "procesamiento/validacion/explorar",
-      "procesamiento/validacion/instrumento",
-      "procesamiento/validacion/reglas_custom",
-      "procesamiento/validacion/limpieza",
       "dashboard/dashboard/resumen",
       "dashboard/dashboard/relaciones",
       "dashboard/dashboard/base_datos",
       "dashboard/dashboard/dimensiones",
     ]);
-    expect(noPublicadas.slice(0, 4).every((nodo) => nodo.href === "/validacion")).toBe(
-      true,
-    );
-    expect(noPublicadas.slice(4).every((nodo) => nodo.href === "/tablero")).toBe(
+    expect(noPublicadas.every((nodo) => nodo.href === "/tablero")).toBe(
       true,
     );
 

@@ -22,6 +22,7 @@ async function apiV2Panorama(_baseNombre: string | null): Promise<PanoramaSummar
   throw new Error("apiV2Panorama: pendiente de implementación (Sprint 5)");
 }
 import { useValidacionStore } from "../store";
+import { usePestanaValidacion } from "../pestanaDireccionable";
 import { LoadingBlock, EmptyState } from "../../../components/States";
 import PlotlyView from "../components/PlotlyView";
 
@@ -42,7 +43,7 @@ import PlotlyView from "../components/PlotlyView";
 export default function PanoramaTab() {
   const baseNombre = useValidacionStore((s) => s.baseNombre);
   const version = useValidacionStore((s) => s.version);
-  const jumpTo = useValidacionStore((s) => s.jumpTo);
+  const { irAPestana } = usePestanaValidacion();
 
   const [data, setData] = useState<PanoramaSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +92,7 @@ export default function PanoramaTab() {
     } else {
       prefill = payloadRaw;
     }
-    jumpTo(tab, prefill);
+    irAPestana(tab, prefill);
   }
 
   return (

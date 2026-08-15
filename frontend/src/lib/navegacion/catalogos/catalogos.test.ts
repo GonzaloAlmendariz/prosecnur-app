@@ -179,10 +179,8 @@ describe("catálogos canónicos de pestañas", () => {
         .filter((tab) => !tab.direccionPublicada)
         .map((tab) => `${tab.seccion}/${tab.id}`),
     ).toEqual([
-      "validacion/explorar",
-      "validacion/instrumento",
-      "validacion/reglas_custom",
-      "validacion/limpieza",
+      // Validación publicó las suyas: su pestaña vivía en el store y
+      // `/validacion?pestana=limpieza` aterrizaba en Explorar.
       "dashboard/resumen",
       "dashboard/relaciones",
       "dashboard/base_datos",
