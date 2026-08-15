@@ -1,0 +1,183 @@
+/* Cómo se está trabajando — bloque propio, no una sección más de la lista de
+ * alertas de avance.
+ *
+ * La separación es el punto: el borde superior de acento y el encabezado
+ * propio existen para que nadie confunda «te faltan 12 encuestas» con «esta
+ * persona lleva seis horas usando el formulario viejo». Lo primero se arregla
+ * al cierre; lo segundo, solo hoy.
+ *
+ * Sin altura fija: la lista crece con sus avisos y el scroll es del contenedor
+ * del workbench (No Scroll Jail). Acotarla acá escondería justo el aviso que
+ * quedó abajo. */
+
+.mon-calidad {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--pulso-border);
+  border-top: 2px solid color-mix(in srgb, var(--pulso-warn-accent) 55%, var(--pulso-border));
+  border-radius: 12px;
+  background: var(--pulso-surface);
+}
+
+.mon-calidad-head {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mon-calidad-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.mon-calidad-head p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.mon-calidad-conteo {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+  background: var(--pulso-surface-2);
+}
+
+.mon-calidad-conteo[data-alta="1"] {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 40%, var(--pulso-border));
+  color: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-fg) 8%, var(--pulso-surface));
+}
+
+/* --- El vacío, que también es información ---------------------------------- */
+
+.mon-calidad-vacio {
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-calidad-vacio strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.mon-calidad-vacio span {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+/* --- Los avisos ------------------------------------------------------------ */
+
+.mon-calidad-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.mon-calidad-aviso {
+  --calidad-accent: var(--pulso-warn-accent);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  align-items: start;
+  gap: 0 9px;
+  padding: 9px 10px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--calidad-accent);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--calidad-accent);
+}
+
+.mon-calidad-aviso[data-severidad="alta"] {
+  --calidad-accent: var(--pulso-danger-fg);
+  background: color-mix(in srgb, var(--pulso-danger-fg) 5%, var(--pulso-surface));
+}
+
+.mon-calidad-aviso-cuerpo {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mon-calidad-aviso-rotulo {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--calidad-accent);
+}
+
+.mon-calidad-aviso-rotulo b {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-muted);
+}
+
+/* Cada caso del mismo problema. La separación es una hairline y no una tarjeta:
+   son instancias de un aviso, no avisos distintos. */
+.mon-calidad-caso + .mon-calidad-caso {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--calidad-accent) 18%, transparent);
+}
+
+.mon-calidad-resto {
+  margin: 5px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-calidad-aviso-rotulo em {
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--pulso-danger-fg);
+}
+
+.mon-calidad-aviso-mensaje {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+/* La pregunta es lo único que convierte el aviso en una llamada. Se distingue
+ * del mensaje sin gritar: misma familia, un peso menos y sangrada. */
+.mon-calidad-aviso-pregunta {
+  margin: 3px 0 0;
+  padding-left: 8px;
+  border-left: 2px solid color-mix(in srgb, var(--calidad-accent) 35%, transparent);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+  overflow-wrap: anywhere;
+}

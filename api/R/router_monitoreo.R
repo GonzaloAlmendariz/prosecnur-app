@@ -1139,6 +1139,9 @@
     n_rows = as.integer(nrow(display_data)),
     variables = monitoreo_variables_cached(sid, display_data, snapshot$synced_at %||% "", cfg),
     dashboard = .monitoreo_public_dashboard(dashboard, include_reports = include_reports),
+    # Bloque aparte del dashboard a propósito (M6): «cuánto falta» y «cómo se
+    # está trabajando» no se leen igual. Ver monitoreo_calidad_campo.R.
+    calidad_campo = monitoreo_calidad_campo_para_sesion(sid, display_data, cfg),
     territorial_phase_coherence = territorial_phase_coherence,
     territorial_map_cache = territorial_map_cache,
     territorial_report_cache = territorial_report_cache_meta,
