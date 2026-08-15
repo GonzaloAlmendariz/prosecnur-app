@@ -28,7 +28,7 @@ sabe nada que la interfaz calle.
 | **V3** | Una operación que no hace nada se ve antes de hacerla, no después. | El caso canónico: recodificar a un código ya marcado. La UI lo declara en el momento de elegir destino. |
 | **V4** | Lo que el motor no pudo hacer se dice, no se omite. | Forzar cada rama de bloqueo (repeats en la promoción, catálogo a medias) y comprobar que la superficie la nombra con su motivo. |
 | **V5** | Una decisión metodológica deliberada tiene dónde vivir. | «No categorizar por n insuficiente» se registra con su motivo y sobrevive al `.pulso`; quien abra el proyecto después no la confunde con un olvido. |
-| **V6** | Toda vista de Procesamiento es enlazable. | `?pestana=` abre la pestaña y `window.__pulsoNav.ir()` devuelve `true` para cada nodo del manifiesto. Sin `direccionPublicada: false` en pestañas de sección. |
+| **V6** | Toda vista es enlazable. ✅ **alcanzada 2026-08-15** | `?pestana=` abre la pestaña y `window.__pulsoNav.ir()` devuelve `true` para cada nodo del manifiesto. Cero `direccionPublicada: false`; el test lo exige. |
 | **V7** | Cada estado nuevo de superficie tiene test que lo distingue del vecino. | Test de render por estado, con el control: si el arreglo se revirtiera, el aserto falla. |
 
 ---
@@ -43,7 +43,7 @@ sabe nada que la interfaz calle.
 | **L4** | Registrar «no categorizar» con su motivo, y advertir al aplicar | `NoCategorizarAction.tsx` · `AdaptarPane.tsx` · endpoint `no-categorizar` | ☑ hecho — `878e4adb` + `51346e1f`. PastSalary registrado en ULISESV3 y recuperado del state.rds del .pulso guardado. |
 | **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `codificacion/marcasPrevias.ts` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☑ hecho — `d4273aea`. Medido en ULISESV3: 17 de 45 respuestas abiertas de sus SM vienen de filas con códigos ya marcados. |
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
-| **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `dashboard/store.ts` | ⛔ bloqueado — necesita tu decisión, ver abajo. |
+| **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ◐ a medias — Codificación barrida (sin hallazgos, ver abajo). Faltan Carga, Validación, Analítica y Gráficos. |
 
 ### L8 — barrido de V1, primera pasada
@@ -65,23 +65,17 @@ deliberado**, no un bug de denominador.
 
 Falta barrer Carga, Validación, Analítica y Gráficos.
 
-### L7 — lo que encontré y por qué no lo decido yo
+### L7 — cómo quedó
 
-`tabActiva` vive en el store de Dashboard (`store.ts:493`), igual que vivía
-`activeTab` en Validación antes de L2, y las cuatro pestañas se declaran con
-`direccionPublicada: false` **en el tipo**, no como opción: `PestanaDashboard`
-lo tiene hardcodeado. Consecuencia medible: el recorrido del QA visual sólo
-alcanza Resumen; Relaciones, Base de datos y Dimensiones no se pueden abrir con
-`__pulsoNav.ir()`.
+Gonzalo decidió publicarlas. Van por wrapper (`DashboardRuta`) y no por hook
+dentro de `DashboardPage`, porque el artefacto público monta la misma página
+**fuera** del `BrowserRouter` y cualquier `useLocation` adentro reventaría en la
+publicación. Una sola fuente por montaje: la dirección en admin, el store en la
+publicación, que no cambió en nada.
 
-Lo que no puedo decidir solo: el mismo catálogo alimenta el editor interno y el
-artefacto publicado que ve el cliente del estudio. Si son secciones de un
-documento, `direccionPublicada: false` es correcto y el hueco de QA se resuelve
-de otra forma; si son pestañas del editor, se publican como las de Validación.
-
-**Mi recomendación**: publicarlas sólo en la ruta de admin. El artefacto público
-no cambia —es otra app (`PublicArtifactApp`)— y el editor gana deep-link y
-recorrido de QA. Pero toca una superficie de marca y la decisión es tuya.
+Con esto **no queda ninguna pestaña de sección sin dirección publicada**, que es
+la vara V6. Los tres tests que contaban nodos no publicados ahora exigen la
+lista vacía: es lo que obliga a que una pestaña nueva nazca enlazable.
 
 ### Descartado a propósito
 
