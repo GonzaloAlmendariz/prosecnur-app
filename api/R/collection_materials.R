@@ -9,9 +9,52 @@ COLLECTION_MATERIAL_INSTANCE_SCHEMA <- "collection_material_instance/v1"
 COLLECTION_ARTIFACT_RECEIPT_SCHEMA <- "collection_artifact_receipt/v1"
 
 COLLECTION_MATERIAL_BLOCK_TYPES <- c(
-  "brand_header", "heading", "body", "access_qr", "field_grid",
-  "instructions", "application_log", "divider", "footer"
+  "brand_header", "brand_strip", "status_tag", "heading", "body", "access_qr",
+  "field_grid", "form_lines", "instructions", "application_log", "divider", "footer"
 )
+
+# Registro cerrado de presets. Antes las compuertas de preset, material_kind y
+# layout vivian hardcodeadas en tres puntos distintos de la validacion; al
+# agregar el segundo preset eso ya no escala. Cada entrada declara con que
+# layout se dibuja, que clase de material produce y que bloques admite: un
+# preset no hereda el vocabulario del otro.
+COLLECTION_MATERIAL_PRESETS <- list(
+  ficha_aplicacion_a4_v1 = list(
+    layout_preset = "single_sheet",
+    material_kind = "application_sheet",
+    blocks = c(
+      "brand_header", "brand_strip", "status_tag", "heading", "body", "access_qr",
+      "field_grid", "instructions", "application_log", "divider", "footer"
+    )
+  ),
+  afiche_qr_a4_v1 = list(
+    layout_preset = "poster_qr",
+    material_kind = "access_poster",
+    blocks = c(
+      "brand_strip", "heading", "body", "access_qr", "instructions",
+      "divider", "footer"
+    )
+  ),
+  # Ficha de campo: la hoja de papel que el aplicador lleva al aula. El QR
+  # domina la pagina y debajo va un formulario de lineas que se llena a mano.
+  # No comparte layout con `ficha_aplicacion_a4_v1`: alli los datos vienen
+  # impresos del plan, aqui casi todo nace en campo.
+  ficha_campo_qr_a4_v1 = list(
+    layout_preset = "field_form",
+    material_kind = "application_sheet",
+    # Sin `status_tag`: en esta hoja lo que identifica la ficha es su titulo, y
+    # el titulo es el id del colector. Una pildora aparte diria dos veces lo
+    # mismo, o peor, algo distinto.
+    blocks = c("brand_strip", "heading", "access_qr", "form_lines", "footer")
+  )
+)
+
+# Ids de logo de la careta. Nunca una ruta: el template solo nombra activos y
+# el renderer los resuelve contra un mapa efimero. Asi una plantilla no puede
+# apuntar al sistema de archivos ni filtrar rutas al estado persistido.
+.cm_asset_id_ok <- function(value) {
+  .cc_is_scalar_string(value) && grepl("^[a-z0-9][a-z0-9_-]{0,63}$", value)
+}
 
 COLLECTION_MATERIAL_BINDINGS <- c(
   "project.name", "project.period",
@@ -66,6 +109,9 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   common <- c("block_id", "type", "required")
   specific <- switch(type,
     brand_header = c("text"),
+    brand_strip = c("assets", "align", "max_height_mm"),
+    status_tag = c("text"),
+    form_lines = c("rows"),
     heading = c("binding", "text", "max_lines"),
     body = c("binding", "text", "max_lines"),
     access_qr = c("binding", "correction", "quiet_zone", "min_size_mm"),
@@ -79,7 +125,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   c(common, specific)
 }
 
-.cm_block_problems <- function(block, path) {
+.cm_block_problems <- function(block, path, allowed_types = COLLECTION_MATERIAL_BLOCK_TYPES) {
   if (!is.list(block)) {
     return(list(.cm_problem(path, "not_object", "Cada bloque debe ser un objeto.")))
   }
@@ -94,6 +140,13 @@ COLLECTION_MATERIAL_BINDINGS <- c(
     problems[[length(problems) + 1L]] <- .cm_problem(
       paste0(path, ".type"), "block_type_not_allowed",
       sprintf("Tipo de bloque no permitido. Registro V1: %s.", paste(COLLECTION_MATERIAL_BLOCK_TYPES, collapse = ", "))
+    )
+    return(problems)
+  }
+  if (!(type %in% allowed_types)) {
+    problems[[length(problems) + 1L]] <- .cm_problem(
+      paste0(path, ".type"), "block_not_in_preset",
+      sprintf("El preset no dibuja `%s`. Admite: %s.", type, paste(allowed_types, collapse = ", "))
     )
     return(problems)
   }
@@ -141,6 +194,96 @@ COLLECTION_MATERIAL_BINDINGS <- c(
       )
     }
   }
+  if (identical(type, "brand_strip")) {
+    assets <- as.character(unlist(block$assets %||% list(), use.names = FALSE))
+    if (!length(assets) || length(assets) > 6L) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".assets"), "bad_brand_assets",
+        "La careta admite entre 1 y 6 logos."
+      )
+    } else if (anyDuplicated(assets) || !all(vapply(as.list(assets), .cm_asset_id_ok, logical(1)))) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".assets"), "bad_brand_asset_id",
+        "Cada logo es un id slug unico ([a-z0-9_-]), nunca una ruta ni una URL."
+      )
+    }
+    align <- as.character(block$align %||% "center")[[1]]
+    if (!(align %in% c("left", "center", "right"))) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".align"), "bad_brand_align", "align debe ser left, center o right."
+      )
+    }
+    height <- suppressWarnings(as.numeric(block$max_height_mm %||% 14))
+    if (is.na(height) || height < 8 || height > 30) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".max_height_mm"), "bad_brand_height",
+        "max_height_mm debe estar entre 8 y 30 mm."
+      )
+    }
+  }
+  if (identical(type, "status_tag")) {
+    text <- as.character(block$text %||% "")[1]
+    if (!nzchar(trimws(text)) || nchar(text) > 24L) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".text"), "bad_status_tag",
+        "La etiqueta de estado es un texto corto y obligatorio (hasta 24 caracteres)."
+      )
+    }
+  }
+  if (identical(type, "form_lines")) {
+    rows <- block$rows
+    if (!is.list(rows) || !length(rows) || length(rows) > 12L) {
+      problems[[length(problems) + 1L]] <- .cm_problem(
+        paste0(path, ".rows"), "bad_form_rows", "El formulario admite entre 1 y 12 renglones."
+      )
+    } else {
+      for (i in seq_along(rows)) {
+        row_path <- sprintf("%s.rows[%d]", path, i)
+        cells <- if (is.list(rows[[i]])) rows[[i]]$fields else NULL
+        if (!is.list(cells) || !length(cells) || length(cells) > 4L) {
+          problems[[length(problems) + 1L]] <- .cm_problem(
+            paste0(row_path, ".fields"), "bad_form_fields",
+            "Cada renglon lleva entre 1 y 4 campos."
+          )
+          next
+        }
+        total <- 0
+        for (j in seq_along(cells)) {
+          cell_path <- sprintf("%s.fields[%d]", row_path, j)
+          cell <- cells[[j]]
+          if (!is.list(cell) || !.cc_is_scalar_string(cell$label)) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(cell_path, ".label"), "missing_form_label",
+              "Una linea sin etiqueta no le dice nada a quien la llena."
+            )
+            next
+          }
+          for (nm in setdiff(names(cell) %||% character(0), c("label", "span"))) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(cell_path, ".", nm), "form_field_not_allowed",
+              "Cada campo del formulario solo admite label y span."
+            )
+          }
+          problems <- c(problems, .cm_plain_text_problem(cell$label, paste0(cell_path, ".label")))
+          span <- suppressWarnings(as.numeric(cell$span %||% (1 / length(cells))))
+          if (is.na(span) || span < 0.10 || span > 1) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(cell_path, ".span"), "bad_form_span",
+              "span es la fraccion del ancho del renglon, entre 0.10 y 1."
+            )
+          } else {
+            total <- total + span
+          }
+        }
+        if (total > 1.001) {
+          problems[[length(problems) + 1L]] <- .cm_problem(
+            paste0(row_path, ".fields"), "form_row_overflow",
+            sprintf("Los campos del renglon suman %.2f del ancho; el maximo es 1.", total)
+          )
+        }
+      }
+    }
+  }
   if (identical(type, "field_grid")) {
     fields <- block$fields
     if (!is.list(fields) || !length(fields)) {
@@ -151,14 +294,37 @@ COLLECTION_MATERIAL_BINDINGS <- c(
       for (i in seq_along(fields)) {
         field_path <- sprintf("%s.fields[%d]", path, i)
         field <- fields[[i]]
-        binding <- if (is.character(field)) field else if (is.list(field)) field$binding else NULL
-        problems <- c(problems, .cm_binding_problem(binding, paste0(field_path, ".binding")))
+        # Un campo `blank` es una linea para llenar a mano (fecha de aplicacion,
+        # hora de inicio, quien aplico). No tiene binding porque el dato no
+        # existe en el plan: nace en campo, sobre el papel.
+        is_blank <- is.list(field) && isTRUE(field$blank)
+        if (!is_blank) {
+          binding <- if (is.character(field)) field else if (is.list(field)) field$binding else NULL
+          problems <- c(problems, .cm_binding_problem(binding, paste0(field_path, ".binding")))
+        }
         if (is.list(field)) {
-          unknown_field <- setdiff(names(field) %||% character(0), c("label", "binding"))
+          unknown_field <- setdiff(names(field) %||% character(0), c("label", "binding", "blank"))
           for (nm in unknown_field) {
             problems[[length(problems) + 1L]] <- .cm_problem(
               paste0(field_path, ".", nm), "field_property_not_allowed",
-              "Cada campo solo admite label y binding."
+              "Cada campo solo admite label, binding y blank."
+            )
+          }
+          if (!is.null(field$blank) && !is.logical(field$blank)) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(field_path, ".blank"), "bad_blank", "blank debe ser booleano."
+            )
+          }
+          if (is_blank && !.cc_is_scalar_string(field$label)) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(field_path, ".label"), "missing_blank_label",
+              "Un campo para llenar a mano necesita su etiqueta impresa."
+            )
+          }
+          if (is_blank && !is.null(field$binding)) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(field_path, ".binding"), "blank_with_binding",
+              "Un campo `blank` no resuelve datos: o se imprime un valor o se deja la linea."
             )
           }
           problems <- c(problems, .cm_plain_text_problem(field$label %||% "", paste0(field_path, ".label")))
@@ -232,6 +398,73 @@ collection_material_builtin_template <- function() {
   template
 }
 
+#' Ficha de aplicacion con careta de co-marca y etiqueta de estado.
+#'
+#' Misma hoja operativa que `collection_material_builtin_template()` — grid de
+#' datos, indicaciones y registro de aplicacion — con los logos del estudio
+#' arriba y, opcionalmente, una pildora que declara de que tipo de hoja se
+#' trata (piloto, reemplazo, segunda visita).
+#'
+#' @param assets ids de logo de la careta, izquierda a derecha.
+#' @param status_tag texto corto de la pildora, o NULL para omitirla.
+#' @param fields filas del grid; por defecto fecha a mano mas el juego clasico.
+#' @param instructions copy bajo el enlace.
+#' @param log_rows filas del registro de aplicacion.
+#' @return `collection_material_template/v1` determinista.
+#' @export
+collection_material_branded_sheet_template <- function(assets, status_tag = NULL,
+                                                       fields = NULL,
+                                                       instructions = "Escanea el QR para responder. Si no abre, digita el enlace visible.",
+                                                       log_rows = 3L) {
+  if (is.null(fields)) {
+    fields <- list(
+      list(label = "Fecha", blank = TRUE),
+      list(label = "Horario", binding = "unit.schedule"),
+      list(label = "Salon", binding = "unit.venue"),
+      list(label = "Docente", binding = "unit.teacher"),
+      list(label = "Muestra", binding = "unit.sample_label"),
+      list(label = "Estudiantes", binding = "unit.eligible_n")
+    )
+  }
+  blocks <- list(
+    list(
+      block_id = "careta", type = "brand_strip", assets = as.list(assets),
+      align = "left", max_height_mm = 13
+    ),
+    list(block_id = "unit", type = "heading", binding = "unit.label", max_lines = 2L),
+    list(block_id = "course", type = "body", binding = "unit.course_name", max_lines = 3L),
+    list(
+      block_id = "qr", type = "access_qr", binding = "access.qr_payload",
+      required = TRUE, correction = "M", quiet_zone = 4L, min_size_mm = 35
+    ),
+    list(block_id = "details", type = "field_grid", fields = fields),
+    list(block_id = "rule", type = "divider"),
+    list(block_id = "instructions", type = "instructions", text = instructions, max_lines = 4L),
+    list(block_id = "log", type = "application_log", text = "Registro de aplicacion",
+         rows = as.integer(log_rows)),
+    list(block_id = "footer", type = "footer", binding = "project.period")
+  )
+  if (!is.null(status_tag)) {
+    blocks <- append(blocks, list(list(
+      block_id = "estado", type = "status_tag", text = as.character(status_tag)[1]
+    )), after = 1L)
+  }
+  template <- list(
+    schema = COLLECTION_MATERIAL_TEMPLATE_SCHEMA,
+    template_id = "template-ficha-aplicacion-marca-a4-v1",
+    revision = 1L,
+    preset_id = "ficha_aplicacion_a4_v1",
+    material_kind = "application_sheet",
+    compatible_adapters = list("aulas_v1", "kobo_existing_v1", "manual_links_v1"),
+    page = list(size = "A4", orientation = "portrait"),
+    pages = list(list(page_id = "ficha", layout_preset = "single_sheet", blocks = blocks)),
+    brand_ref = "project-brand",
+    sensitivity_policy = "operational"
+  )
+  template$template_sha256 <- .cm_template_sha256(template)
+  template
+}
+
 #' Valida una plantilla semantica de materiales V1.
 #'
 #' @param template lista de plantilla.
@@ -267,15 +500,23 @@ collection_material_template_validate <- function(template) {
       )
     }
   }
-  if (!identical(template$preset_id, "ficha_aplicacion_a4_v1")) {
+  preset <- if (.cc_is_scalar_string(template$preset_id)) {
+    COLLECTION_MATERIAL_PRESETS[[template$preset_id]]
+  } else {
+    NULL
+  }
+  if (is.null(preset)) {
     problems[[length(problems) + 1L]] <- .cm_problem(
       "template.preset_id", "preset_not_allowed",
-      "V1 solo compila el preset curado ficha_aplicacion_a4_v1."
+      sprintf(
+        "V1 solo compila los presets curados: %s.",
+        paste(names(COLLECTION_MATERIAL_PRESETS), collapse = ", ")
+      )
     )
-  }
-  if (!identical(template$material_kind, "application_sheet")) {
+  } else if (!identical(template$material_kind, preset$material_kind)) {
     problems[[length(problems) + 1L]] <- .cm_problem(
-      "template.material_kind", "material_kind_not_allowed", "V1 solo admite application_sheet."
+      "template.material_kind", "material_kind_not_allowed",
+      sprintf("El preset %s produce %s.", template$preset_id, preset$material_kind)
     )
   }
   if (.cc_is_scalar_string(template$sensitivity_policy) &&
@@ -338,9 +579,10 @@ collection_material_template_validate <- function(template) {
         }
         ids <- c(ids, page_spec$page_id)
       }
-      if (!identical(page_spec$layout_preset, "single_sheet")) {
+      if (!is.null(preset) && !identical(page_spec$layout_preset, preset$layout_preset)) {
         problems[[length(problems) + 1L]] <- .cm_problem(
-          paste0(path, ".layout_preset"), "layout_not_allowed", "V1 solo admite single_sheet."
+          paste0(path, ".layout_preset"), "layout_not_allowed",
+          sprintf("El preset %s se dibuja con %s.", template$preset_id, preset$layout_preset)
         )
       }
       blocks <- page_spec$blocks
@@ -350,7 +592,10 @@ collection_material_template_validate <- function(template) {
         block_ids <- character(0)
         for (j in seq_along(blocks)) {
           block_path <- sprintf("%s.blocks[%d]", path, j)
-          problems <- c(problems, .cm_block_problems(blocks[[j]], block_path))
+          problems <- c(problems, .cm_block_problems(
+            blocks[[j]], block_path,
+            allowed_types = preset$blocks %||% COLLECTION_MATERIAL_BLOCK_TYPES
+          ))
           bid <- if (is.list(blocks[[j]])) blocks[[j]]$block_id else NULL
           if (.cc_is_scalar_string(bid)) {
             if (bid %in% block_ids) {
@@ -715,6 +960,55 @@ collection_material_instance_create <- function(sid, expected_revision, unit_ref
   )
 }
 
+#' Ids de logo declarados por una plantilla, en orden y sin repetir.
+#'
+#' @param template plantilla validada.
+#' @return vector de ids.
+#' @keywords internal
+.cm_template_brand_ids <- function(template) {
+  ids <- character(0)
+  for (page_spec in template$pages %||% list()) {
+    for (block in page_spec$blocks %||% list()) {
+      if (is.list(block) && identical(block$type, "brand_strip")) {
+        ids <- c(ids, as.character(unlist(block$assets %||% list(), use.names = FALSE)))
+      }
+    }
+  }
+  unique(ids)
+}
+
+.cm_brand_slug <- function(value) {
+  slug <- tolower(trimws(as.character(value %||% "")[1]))
+  slug <- sub("\\.[a-z0-9]+$", "", slug)
+  slug <- gsub("[^a-z0-9]+", "-", slug)
+  gsub("^-+|-+$", "", slug)
+}
+
+#' Resuelve los logos de la careta contra los archivos del proyecto.
+#'
+#' Los activos son archivos del `.pulso` (kind `brand_logo`), no assets del
+#' binario: la co-marca pertenece al estudio, no a la app. El match es por slug
+#' del nombre original, de modo que la plantilla nombre `logo-unsa` y el
+#' proyecto aporte `LOGO_UNSA.png`.
+#'
+#' @param session sesion viva.
+#' @param asset_ids ids declarados por la plantilla.
+#' @return mapa id -> ruta, solo con los que existen en disco.
+#' @keywords internal
+.cm_brand_assets_map <- function(session, asset_ids) {
+  ids <- as.character(asset_ids %||% character(0))
+  if (!length(ids)) return(list())
+  out <- list()
+  for (meta in session$files %||% list()) {
+    if (!is.list(meta) || !identical(as.character(meta$kind %||% "")[1], "brand_logo")) next
+    path <- as.character(meta$path %||% "")[1]
+    if (!nzchar(path) || !file.exists(path)) next
+    slug <- .cm_brand_slug(meta$original_name)
+    if (slug %in% ids && is.null(out[[slug]])) out[[slug]] <- path
+  }
+  out
+}
+
 collection_material_render_snapshot <- function(sid, instance_id, resolved_access = NULL) {
   session <- session_get(sid)
   state <- .collection_current(session)
@@ -730,13 +1024,15 @@ collection_material_render_snapshot <- function(sid, instance_id, resolved_acces
       details = list(reasons = as.list(unique(c(reasons, if (identical(instance$status, "stale")) "instance_stale"))))
     )
   }
+  template <- .cm_material_template(state)
   list(
     schema = "collection_material_render_snapshot/v1",
-    template = .cm_material_template(state),
+    template = template,
     instance = instance,
     project = .cm_project_snapshot(session),
     plan = state$plan,
     deployment = state$deployment,
-    resolved_access = .cm_resolved_access_map(resolved_access)
+    resolved_access = .cm_resolved_access_map(resolved_access),
+    brand_assets = .cm_brand_assets_map(session, .cm_template_brand_ids(template))
   )
 }

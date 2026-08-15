@@ -78,12 +78,16 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
   if (identical(format, "png")) {
     report("render", percent = 45, message = "Renderizando preview PNG...")
     rendered <- collection_material_render_compiled(
-      compiled, result_path, device = "png", page = page, dpi = dpi
+      compiled, result_path, device = "png", page = page, dpi = dpi,
+      brand_assets = snapshot$brand_assets %||% list()
     )
     output_page_map <- rendered$page_map
   } else if (identical(format, "pdf")) {
     report("render", percent = 45, message = "Renderizando PDF final...")
-    rendered <- collection_material_render_compiled(compiled, result_path, device = "pdf")
+    rendered <- collection_material_render_compiled(
+      compiled, result_path, device = "pdf",
+      brand_assets = snapshot$brand_assets %||% list()
+    )
   } else {
     report("render", percent = 40, message = "Renderizando PDF del paquete...")
     stage <- tempfile("collection-material-bundle-", tmpdir = dirname(result_path))
@@ -91,7 +95,10 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
     pdf_path <- file.path(stage, "fichas.pdf")
     tsv_path <- file.path(stage, "accesos.tsv")
-    rendered <- collection_material_render_compiled(compiled, pdf_path, device = "pdf")
+    rendered <- collection_material_render_compiled(
+      compiled, pdf_path, device = "pdf",
+      brand_assets = snapshot$brand_assets %||% list()
+    )
     utils::write.table(
       .cmj_tsv_rows(compiled), tsv_path,
       sep = "\t", quote = TRUE, row.names = FALSE, na = "", fileEncoding = "UTF-8"
