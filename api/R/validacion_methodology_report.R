@@ -582,6 +582,14 @@
   if (is.na(out)) as.integer(fallback) else out
 }
 
+# La ficha de conteos (recibidas → incluidas) se dibuja cuando hay de dónde
+# sacarla: el filtro de pruebas, el embudo territorial o la depuración del
+# ADR 0076. Antes dependía sólo de `applied` y un estudio que no separa pruebas
+# salía con la sección entera vacía aunque hubiera excluido casos.
+.vmr_universe_declares_counts <- function(universe) {
+  isTRUE(universe$applied) || isTRUE(universe$territorial) || isTRUE(universe$cleaning_applied)
+}
+
 .vmr_universe_rejection_count <- function(universe) {
   rules <- universe$exclusion_rules %||% list()
   audits <- .vmr_universe_records(universe$exclusion_audit %||% list())
@@ -636,7 +644,16 @@
       if (excluded_test == 1L) " encuesta de prueba." else " encuestas de prueba."
     )
   } else character(0)
-  c(correction_lines, filter_line, exclusion_lines)
+  # Agregado y nada más: cuántas se retiraron, no cuáles ni por qué. El detalle
+  # por caso es material de trabajo interno (Excel de decisiones de limpieza).
+  excluded_cleaning <- .vmr_universe_count(universe$excluded_cleaning, 0L)
+  cleaning_line <- if (excluded_cleaning > 0L) {
+    paste0(
+      "Se retir", if (excluded_cleaning == 1L) "ó " else "aron ", excluded_cleaning,
+      if (excluded_cleaning == 1L) " encuesta en el control de calidad de la base." else " encuestas en el control de calidad de la base."
+    )
+  } else character(0)
+  c(correction_lines, filter_line, exclusion_lines, cleaning_line)
 }
 
 .vmr_universe_formula <- function(universe) {
@@ -733,6 +750,8 @@
   universe$corrected <- .vmr_universe_count(universe$corrected, 0L)
   universe$correction_changes <- .vmr_universe_count(universe$correction_changes, universe$corrected)
   universe$excluded_rules <- .vmr_universe_count(universe$excluded_rules, 0L)
+  universe$excluded_cleaning <- .vmr_universe_count(universe$excluded_cleaning, 0L)
+  universe$cleaning_applied <- isTRUE(universe$cleaning_applied)
   universe$excluded_rejections <- .vmr_universe_rejection_count(universe)
   universe$formula_r <- .vmr_universe_formula(universe)
   universe$formula_available <- nzchar(universe$formula_r)
@@ -1739,14 +1758,17 @@ validation_methodology_report_r <- function(model, path) {
   universe_summary <- c("# DATOS INCLUIDOS EN LA VALIDACIÓN")
   if (isTRUE(universe$territorial)) {
     universe_summary <- c(universe_summary, universe$summary_comment_lines %||% character(0))
-  } else if (isTRUE(universe$applied)) {
+  } else if (.vmr_universe_declares_counts(universe)) {
     rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
-    other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
+    other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count) +
+      .vmr_universe_count(universe$excluded_cleaning, 0L)
+    # Sin filtro de pruebas no se escriben sus líneas en cero: la ficha queda en
+    # recibidas / exclusiones / incluidas, que es lo que el cliente necesita ver.
     universe_summary <- c(
       universe_summary,
       paste0("# Encuestas recibidas: ", .vmr_script_count(universe$total)),
-      paste0("# Encuestas reclasificadas de prueba a real: ", .vmr_script_count(universe$corrected, "0")),
-      paste0("# Pruebas retiradas: ", .vmr_script_count(universe$excluded_test, "0")),
+      if (isTRUE(universe$applied)) paste0("# Encuestas reclasificadas de prueba a real: ", .vmr_script_count(universe$corrected, "0")) else NULL,
+      if (isTRUE(universe$applied)) paste0("# Pruebas retiradas: ", .vmr_script_count(universe$excluded_test, "0")) else NULL,
       if (rejection_count > 0L) paste0("# Rechazos retirados: ", .vmr_script_count(rejection_count, "0")) else NULL,
       if (other_exclusions > 0L) paste0("# Otras exclusiones: ", .vmr_script_count(other_exclusions, "0")) else NULL,
       paste0("# Encuestas incluidas: ", .vmr_script_count(universe$included)),
@@ -1754,6 +1776,9 @@ validation_methodology_report_r <- function(model, path) {
       "# Preparación del universo"
     )
     preparation_sentences <- .vmr_universe_preparation_sentences(universe)
+    if (!isTRUE(universe$applied)) {
+      preparation_sentences <- c(preparation_sentences, "No se registró un filtro de encuestas de prueba.")
+    }
     if (length(preparation_sentences)) {
       universe_summary <- c(universe_summary, unlist(lapply(preparation_sentences, .vmr_script_comment), use.names = FALSE))
     }
@@ -2260,24 +2285,44 @@ validation_methodology_report_pdf <- function(model, path) {
   grid::grid.roundrect(x = 0.5, y = 0.17, width = 0.86, height = 0.13, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$white, col = theme$line))
   grid::grid.text("BASE USADA", x = 0.09, y = 0.209, just = "left", gp = grid::gpar(col = theme$teal, fontsize = 7.5, fontface = "bold"))
   rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
-  exclusion_value <- if (rejection_count > 0L) rejection_count else .vmr_universe_count(universe$excluded_rules, 0L)
-  exclusion_label <- if (rejection_count > 0L) "Rechazos retirados" else "Otras exclusiones"
+  # El embudo tiene una sola columna de exclusiones y tiene que cerrar: lleva
+  # todo lo retirado que no sean pruebas. Se llama "Rechazos retirados" sólo
+  # cuando eso es exactamente lo único que hay.
+  other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count) +
+    .vmr_universe_count(universe$excluded_cleaning, 0L)
+  exclusion_value <- rejection_count + other_exclusions
+  exclusion_label <- if (rejection_count > 0L && other_exclusions == 0L) "Rechazos retirados" else "Otras exclusiones"
   if (isTRUE(universe$territorial)) {
     base_values <- universe$funnel_values
     base_labels <- universe$funnel_labels
   } else {
-    base_values <- c(
-      universe$total %||% NA_real_,
-      universe$corrected %||% 0L,
-      universe$excluded_test %||% NA_real_,
-      exclusion_value,
-      universe$included %||% NA_real_
-    )
-    base_labels <- c("Encuestas recibidas", "Reclasificadas", "Pruebas retiradas", exclusion_label, "Encuestas incluidas")
+    # Las dos etapas del filtro de pruebas sólo se dibujan si hubo filtro: un
+    # estudio que no separa pruebas no necesita dos columnas en cero para
+    # contar que de 103 recibidas quedaron 101.
+    if (isTRUE(universe$applied)) {
+      base_values <- c(
+        universe$total %||% NA_real_,
+        universe$corrected %||% 0L,
+        universe$excluded_test %||% NA_real_,
+        exclusion_value,
+        universe$included %||% NA_real_
+      )
+      base_labels <- c("Encuestas recibidas", "Reclasificadas", "Pruebas retiradas", exclusion_label, "Encuestas incluidas")
+    } else {
+      base_values <- c(
+        universe$total %||% NA_real_,
+        exclusion_value,
+        universe$included %||% NA_real_
+      )
+      base_labels <- c("Encuestas recibidas", exclusion_label, "Encuestas incluidas")
+    }
   }
   base_x <- seq(0.125, 0.875, length.out = length(base_values))
+  # El separador va a 0.6 del paso entre columnas; con cinco columnas eso da el
+  # 0.1125 de siempre, y con otro número no se descuelga.
+  divider_offset <- if (length(base_x) > 1L) (base_x[[2L]] - base_x[[1L]]) * 0.6 else 0
   for (i in seq_along(base_x)) {
-    if (i > 1L) grid::grid.lines(x = rep(base_x[[i]] - 0.1125, 2L), y = c(0.125, 0.19), gp = grid::gpar(col = theme$line, lwd = 0.8))
+    if (i > 1L) grid::grid.lines(x = rep(base_x[[i]] - divider_offset, 2L), y = c(0.125, 0.19), gp = grid::gpar(col = theme$line, lwd = 0.8))
     grid::grid.text(fmt(base_values[[i]]), x = base_x[[i]], y = 0.165, gp = grid::gpar(col = theme$ink, fontsize = 16, fontface = "bold"))
     grid::grid.text(.vmr_wrap(base_labels[[i]], 28L), x = base_x[[i]], y = 0.135, just = c("center", "top"), gp = grid::gpar(col = theme$muted, fontsize = 7.1, lineheight = 1.08))
   }
@@ -2288,22 +2333,33 @@ validation_methodology_report_pdf <- function(model, path) {
   if (isTRUE(model$evaluation_available)) {
     invisible(NULL)
   }
-  if (isTRUE(universe$applied)) {
+  if (.vmr_universe_declares_counts(universe)) {
     if (isTRUE(universe$territorial)) {
       criterion <- .vmr_text(universe$criterion_text %||% "")
     } else {
       rejection_count <- .vmr_universe_count(universe$excluded_rejections, 0L)
       other_exclusions <- max(0L, .vmr_universe_count(universe$excluded_rules, 0L) - rejection_count)
-      count_text <- paste0(
-        "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas, ",
-        fmt(universe$corrected %||% 0L), " se reclasificaron de prueba a real. ",
-        "Quedaron fuera ", fmt(universe$excluded_test %||% 0L),
-        if (identical(.vmr_universe_count(universe$excluded_test, 0L), 1L)) " prueba retirada" else " pruebas retiradas",
-        if (rejection_count > 0L) paste0(" y ", fmt(rejection_count), if (rejection_count == 1L) " rechazo retirado" else " rechazos retirados") else "",
-        if (other_exclusions > 0L) paste0(" y ", fmt(other_exclusions), " por otros criterios") else "",
-        ". Se incluyeron ", fmt(universe$included %||% NA_real_), " encuestas."
-      )
+      count_text <- if (isTRUE(universe$applied)) {
+        paste0(
+          "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas, ",
+          fmt(universe$corrected %||% 0L), " se reclasificaron de prueba a real. ",
+          "Quedaron fuera ", fmt(universe$excluded_test %||% 0L),
+          if (identical(.vmr_universe_count(universe$excluded_test, 0L), 1L)) " prueba retirada" else " pruebas retiradas",
+          if (rejection_count > 0L) paste0(" y ", fmt(rejection_count), if (rejection_count == 1L) " rechazo retirado" else " rechazos retirados") else "",
+          if (other_exclusions > 0L) paste0(" y ", fmt(other_exclusions), " por otros criterios") else "",
+          ". Se incluyeron ", fmt(universe$included %||% NA_real_), " encuestas."
+        )
+      } else {
+        # Sin filtro de pruebas la ficha se apoya sólo en la depuración.
+        paste0(
+          "De ", fmt(universe$total %||% NA_real_), " encuestas recibidas se incluyeron ",
+          fmt(universe$included %||% NA_real_), " en el estudio."
+        )
+      }
       preparation_details <- .vmr_universe_preparation_sentences(universe)
+      if (!isTRUE(universe$applied)) {
+        preparation_details <- c(preparation_details, "No se registró un filtro de encuestas de prueba.")
+      }
       criterion <- paste(c(count_text, preparation_details), collapse = " ")
     }
     # El ancho de wrapping se fija al ancho REAL de la caja (0.86 npc menos
