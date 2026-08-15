@@ -2833,6 +2833,59 @@ export type MonitoreoDashboard = {
   aulas_universitarias_reports?: MonitoreoAulasDashboard | null;
 };
 
+/**
+ * Una señal sobre CÓMO se está recolectando, no sobre cuánto falta.
+ *
+ * Viven en un bloque aparte de `dashboard.alertas` a propósito: una brecha de
+ * cuota se resuelve al cierre y un formulario desactualizado solo se puede
+ * resolver hoy. Mezclarlas las haría leer igual.
+ */
+export type MonitoreoCalidadCampoAlerta = {
+  severidad: "bloqueante" | "advertencia" | string;
+  /** Quién está detrás del hallazgo. Vacío cuando el aviso no es de una persona. */
+  actor: string;
+  tipo:
+    | "formulario_desactualizado"
+    | "identidad_agente"
+    | "envio_sin_padron"
+    | "padron_sin_envio"
+    | "cruce_identidad"
+    | string;
+  mensaje: string;
+  detalle?: {
+    /** Qué preguntarle a campo. Sin esto el aviso no es accionable. */
+    pregunta?: string;
+    n_casos?: number;
+    casos?: string[];
+    parecido_a?: string;
+    probable_variante?: boolean;
+    mismo_agente?: boolean;
+    minutos_solape?: number;
+    /** V4 de la vara: toda métrica de tiempo declara de dónde sale. */
+    fuente_tiempo?: Record<string, string>;
+    [key: string]: unknown;
+  };
+};
+
+/**
+ * `motivo` es la razón por la que no hay avisos, y es información: «no
+ * declaraste quién recolecta» no significa lo mismo que «el campo está limpio».
+ * Sin él la pantalla no puede contener su propio vacío (C3).
+ */
+export type MonitoreoCalidadCampo = {
+  enabled: boolean;
+  alertas: MonitoreoCalidadCampoAlerta[];
+  resumen: { total: number; bloqueantes: number; por_tipo?: Record<string, number> };
+  roles: { agente: string; llaves: string[] };
+  motivo:
+    | ""
+    | "sin_datos"
+    | "sin_rol_de_agente"
+    | "sin_llaves_de_identidad"
+    | "sin_hallazgos"
+    | string;
+};
+
 export type MonitoreoState = {
   ok: true;
   sources: MonitoreoSource[];
@@ -2851,6 +2904,8 @@ export type MonitoreoState = {
   n_rows: number;
   variables: MonitoreoVariable[];
   dashboard: MonitoreoDashboard | null;
+  /** Señales de cómo se trabaja, separadas de las de avance a propósito. */
+  calidad_campo?: MonitoreoCalidadCampo | null;
   territorial_phase_coherence?: MonitoreoTerritorialPhaseCoherence | null;
   territorial_map_cache?: MonitoreoTerritorialMapCacheMeta | null;
   territorial_report_cache?: MonitoreoTerritorialReportCacheMeta | null;

@@ -50,7 +50,7 @@ probados**, pero cuya pregunta es de Monitoreo:
 | Qué | Dónde vive hoy | Estado |
 |---|---|---|
 | Variantes del nombre del agente | `reglas_semilla_agente()` en `reglas_custom_semilla.R` | **traído en M3**: Monitoreo lo llama, no lo copia |
-| Cruce identidad ↔ solapamiento | tipo `cruce_identidad` en `reglas_custom_*.R` | funciona; en MDV reduce 21 avisos crudos a 1 |
+| Cruce identidad ↔ solapamiento | tipo `cruce_identidad` en `reglas_custom_*.R` | **traído en M4**: mismo criterio, grano de par |
 | Rol de agente e identidad declarados | `operational_config$identity` | ya declarable desde la pantalla de Validación |
 
 No hay que reimplementarlos: hay que decidir **dónde viven** y que Monitoreo los
@@ -168,12 +168,36 @@ terminan diciendo cosas distintas de la misma base.
 - **Severidad `advertencia`** por M7: el dato está, solo está mal atribuido. Lo
   urgente es corregirlo *antes* de que salga un reporte por agente.
 
-**M4 · Casos que se pisan** ☐
+**M4 · Casos que se pisan** ☑ *(2026-08-15)*
 - **Rol**: el único hallazgo de campo que sobrevivió al filtro en MDV.
 - **Objetivo**: traer el tipo `cruce_identidad` y presentarlo como pregunta para
   campo: «¿por qué estas dos encuestas al mismo número corrieron en paralelo?».
-- **Cubre**: `H1029` ∩ `VL2004`, mismo teléfono y titular, misma encuestadora,
-  solapadas 2 h 13 min.
+- **Dónde vive**: `monitoreo_alertas_cruce()`.
+- **Mismo criterio, otro grano**: la regla de Validación marca **casos**; para
+  llamar a campo hace falta el **par** —quién lo hizo y cuánto se pisan—. Un
+  test compara los casos que nombra Monitoreo con los que marca
+  `.regla_expr_cruce_identidad()` sobre la misma base: tienen que ser los
+  mismos.
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: **370 pares se solapan en el tiempo,
+  1 comparte además identidad**. Ese es el aviso:
+
+  > **[advertencia] cruce_identidad** — VL2004 y H1029 son de la misma persona
+  > encuestada y corrieron a la vez, solapadas 2 h 13 min. Las dos las hizo
+  > Silbia Cruzado, que no pudo estar en las dos.
+  >
+  > *¿Por qué Silbia Cruzado tiene dos encuestas de la misma persona corriendo
+  > en paralelo? Puede ser un formulario que quedó abierto, o una encuesta que
+  > se rehízo sin cerrar la anterior.*
+
+- **El mismo agente cambia la pregunta**: dos encuestadores distintos a la misma
+  hora puede ser la misma entrevista cargada dos veces; el mismo encuestador es
+  físicamente imposible. Son dos preguntas y salen distintas.
+- **Controles**: solaparse sin identidad, **0**; compartir identidad sin
+  solaparse, **0**; llave vacía —que emparejaría a todos los casos sin dato—,
+  **0**; sin llaves declaradas, **0**.
+- **V4 cumplida**: cada aviso declara en `detalle$fuente_tiempo` de qué columnas
+  sale el solape. Si el fin es el `end` de la plataforma, hereda que se corre
+  con el formulario abierto — y por eso el criterio exige también identidad.
 
 **M5 · Una duración que se pueda usar** ☐
 - **Rol**: hoy no hay ninguna métrica de tiempo confiable, y el equipo la
@@ -213,12 +237,36 @@ terminan diciendo cosas distintas de la misma base.
 
 ### Capa 3 · Presentación
 
-**M6 · Las alertas de calidad conviven con las de avance** ☐
+**M6 · Las alertas de calidad conviven con las de avance** ☑ *(2026-08-15)*
 - **Rol**: las siete alertas actuales responden «cuánto falta»; estas responden
   «cómo se está trabajando». Mezclarlas sin distinguirlas haría que una brecha
   de cuota y un formulario desactualizado se lean igual.
-- **Objetivo**: que el panel las separe y que las de calidad digan a quién
-  llamar.
+- **Dónde vive**: `monitoreo_calidad_campo_bloque()` arma las cuatro señales y
+  el router las publica como `calidad_campo`, **fuera de `dashboard$alertas`**.
+  En el front, `CalidadDeCampo.tsx` + `useCalidadDeCampo.ts`, montados desde
+  `MonitoreoWorkbenchChrome` —chrome compartido y no congelado—, así que los
+  cuatro perfiles lo tienen sin tocar sus page-files.
+- **Dónde se muestra**: en **Avance** (donde viven las de «cuánto falta», que es
+  lo que el ítem pide) y en **Validación**. Fuera de esas dos sería ruido: nadie
+  entra a Fuentes o Modelo a decidir a quién llamar hoy.
+- **El vacío también informa**: el bloque viaja siempre y trae un `motivo`.
+  «Falta declarar quién recolecta» y «el campo está limpio» se ven igual y
+  significan lo contrario, así que la pantalla dice cuál de los dos es (C3), y
+  el primero indica dónde se resuelve.
+- **Verificado en la app**, sobre un segundo proyecto y no el que abrió el GOAL
+  —`acnur_pdm`, 2.726 casos, telefónico— con el rol declarado: el bloque
+  aparece encabezando Avance y atrapa **tres variantes que MDV no tenía**: un
+  doble espacio (`JORGE  DEL SOLAR`), una `L` caída (`MARTHA VILANUEVA`) y una
+  diferencia de mayúsculas (`silbia cruzado`).
+- **Tres casos del mismo tipo son un problema, no tres**: medido en pantalla,
+  tres avisos sueltos ocupaban ~300 px encima del gráfico de avance. Se agrupan
+  por tipo, con las instancias dentro y tope de 4 visibles; un solo caso
+  bloqueante tiñe a todo su grupo para que no se diluya.
+- **Geometría**: el bloque va **dentro** del contenido, no como fila del `main`.
+  Ese grid declara sus filas por familia (`auto minmax(0,1fr)`, con y sin
+  status) y un hijo de más se lleva una fila declarada: medido, el bloque
+  quedaba en **25 px de alto**. Adentro mide 245 px, sin scroll horizontal
+  a 800 px de ancho (C2).
 
 ### Capa 4 · Gobierno
 
@@ -248,6 +296,8 @@ terminan diciendo cosas distintas de la misma base.
 | Qué | Decisión |
 |---|---|
 | M3 y M9 avisan del mismo valor sucio | **El padrón manda.** Con padrón cargado, la cercanía se mide contra él y el aviso de identidad solo cubre lo que el cruce no nombró. Sin padrón —casi todos los estudios— identidad trabaja sola. Resuelto una vez en `monitoreo_alertas_equipo()`, no en cada pantalla |
+| Dónde vive el bloque en la pantalla | **Dentro del contenido de Avance y Validación**, no como fila del `main`: ese grid declara sus filas por familia y un hijo de más se lleva una declarada (medido: 25 px de alto) |
+| Cómo se presentan varios casos del mismo tipo | **Agrupados**, con las instancias dentro y tope de 4 visibles. Tres avisos sueltos ocupaban ~300 px encima del gráfico; un caso bloqueante tiñe a todo su grupo |
 | Cómo se decide que dos nombres son el mismo | **Una sola definición** (`.semilla_nombres_cercanos()`), compartida por Validación y Monitoreo. Dos criterios: distancia ≤ 2 (tipeo) o uno prefijo del otro (nombre incompleto — ahí la distancia es enorme y el prefijo es lo único que lo ve) |
 
 ## Espera decisión de Gonzalo
@@ -301,6 +351,11 @@ terminan diciendo cosas distintas de la misma base.
   padrón, las 2 variantes de MDV saldrían como «encuestador no autorizado» junto
   al único valor que sí lo amerita, y la alerta perdería toda su fuerza por
   dilución. (Medido el 2026-08-15.)
+- **Un hijo de más rompe un grid de filas declaradas.** `mon-workbench-main`
+  declara `auto minmax(0,1fr)` (y una variante con status): el bloque nuevo se
+  llevó la fila del status y quedó en **25 px**. La regla: contenido nuevo va
+  dentro del contenido, no como fila hermana de un template cerrado. (Medido el
+  2026-08-15.)
 - **Una alerta sin destinatario no es una alerta.** «Revisar duración» no le
   sirve a nadie; «llamar a X y preguntar por los casos A y B» sí. La diferencia
   la marca V3.

@@ -359,6 +359,155 @@ monitoreo_alertas_padron <- function(data, agent_var = "", roster = NULL) {
   out
 }
 
+# =============================================================================
+# M4 · Casos que se pisan
+# =============================================================================
+# Dos encuestas que comparten identidad Y corren a la vez. Ninguna de las dos
+# señales vale sola, y eso está medido: en MDV hay 24 pares solapados y 1 llave
+# repetida, y solo **1 caso** cumple las dos. El solape solo mide una propiedad
+# de `end` —que se corre si el formulario queda abierto, hay entrevistas de
+# 44 h— y una llave repetida puede ser legítima (dos personas del mismo hogar).
+#
+# Mismo criterio que el tipo `cruce_identidad` de Validación, y un test lo
+# comprueba fila por fila contra el motor de reglas. Lo que Monitoreo agrega no
+# es otro criterio sino otro grano: la regla marca **casos**, y para llamar a
+# campo hace falta el **par** — quién lo hizo y cuánto se pisan.
+
+# Mismo parseo que `.regla_expr_cruce_identidad()`: ISO-8601 con el offset
+# recortado. Si divergiera, los dos motores marcarían casos distintos.
+.mcc_a_tiempo <- function(x) {
+  suppressWarnings(as.POSIXct(
+    sub("([+-][0-9]{2}):([0-9]{2})$", "", as.character(x)),
+    format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC"
+  ))
+}
+
+# Cómo se nombra una encuesta en la prosa de un aviso. El `_uuid` es el
+# identificador honesto —el código de caso del estudio no tiene rol declarado y
+# nombrarlo sería hardcodear—, pero un UUID entero en una frase es ilegible y
+# nadie lo va a dictar por teléfono. El prefijo basta para encontrarlo y el
+# completo viaja en `detalle$casos`, que es lo que consume la UI.
+.mcc_nombrar_caso <- function(x) {
+  v <- .mcc_chr(x)
+  uuid <- grepl("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-", v)
+  v[uuid] <- substr(v[uuid], 1, 8)
+  v
+}
+
+.mcc_dur <- function(minutos) {
+  m <- round(as.numeric(minutos))
+  if (!is.finite(m) || m < 1) return("menos de un minuto")
+  h <- m %/% 60L
+  if (h < 1L) return(sprintf("%d min", m))
+  if (m %% 60L == 0L) return(sprintf("%d h", h))
+  sprintf("%d h %d min", h, m %% 60L)
+}
+
+#' Alertar sobre encuestas que comparten identidad y corrieron a la vez
+#'
+#' Devuelve un aviso **por par**, no por caso: la pregunta que hay que hacerle a
+#' campo es sobre las dos encuestas juntas.
+#'
+#' Sobre el tiempo (V4 de la vara): el solape se mide con las columnas que
+#' recibe y las declara en `detalle$fuente_tiempo`. Si el fin es el `end` de la
+#' plataforma, hereda que se corre cuando el formulario queda abierto — por eso
+#' el criterio exige además identidad compartida, que es lo que en MDV lleva de
+#' 24 pares a 1.
+#'
+#' @param data data.frame de la base recolectada.
+#' @param llaves variables que identifican al sujeto
+#'   (`operational_config$identity$variables`). Sin llaves no hay cruce.
+#' @param ini_var,fin_var columnas de inicio y fin.
+#' @param agent_var variable del agente. El mismo agente en las dos encuestas es
+#'   lo que vuelve el par imposible; agentes distintos puede ser legítimo.
+#' @param caso_var columna con la que nombrar cada encuesta.
+#' @return lista de alertas, una por par.
+#' @family monitoreo
+#' @export
+monitoreo_alertas_cruce <- function(data, llaves = character(0),
+                                    ini_var = "", fin_var = "",
+                                    agent_var = "", caso_var = "") {
+  if (!is.data.frame(data) || nrow(data) < 2L) return(list())
+  llaves <- as.character(unlist(llaves %||% character(0)))
+  llaves <- llaves[nzchar(llaves) & llaves %in% names(data)]
+  ini_var <- as.character(ini_var %||% "")[1]
+  fin_var <- as.character(fin_var %||% "")[1]
+  if (!length(llaves)) return(list())
+  if (is.na(ini_var) || is.na(fin_var) ||
+      !(ini_var %in% names(data)) || !(fin_var %in% names(data))) return(list())
+
+  clave <- do.call(paste, c(lapply(llaves, function(v) .mcc_chr(data[[v]])),
+                            list(sep = "␟")))
+  # Una llave vacía no identifica a nadie: emparejaría a todos los casos sin
+  # dato entre sí.
+  vacia <- vapply(strsplit(clave, "␟", fixed = TRUE),
+                  function(p) !any(nzchar(p)), logical(1))
+  ini <- .mcc_a_tiempo(data[[ini_var]])
+  fin <- .mcc_a_tiempo(data[[fin_var]])
+  utilizable <- !vacia & !is.na(ini) & !is.na(fin)
+  if (sum(utilizable) < 2L) return(list())
+
+  agente <- if (nzchar(agent_var %||% "") && agent_var %in% names(data)) {
+    .mcc_chr(data[[agent_var]])
+  } else rep("", nrow(data))
+  caso <- if (nzchar(caso_var %||% "") && caso_var %in% names(data)) {
+    .mcc_chr(data[[caso_var]])
+  } else as.character(seq_len(nrow(data)))
+
+  out <- list()
+  for (idx in split(which(utilizable), clave[utilizable])) {
+    if (length(idx) < 2L) next
+    for (a in seq_len(length(idx) - 1L)) for (b in seq(a + 1L, length(idx))) {
+      i <- idx[a]; j <- idx[b]
+      if (!(ini[i] < fin[j] && fin[i] > ini[j])) next
+      minutos <- as.numeric(difftime(min(fin[i], fin[j]), max(ini[i], ini[j]),
+                                     units = "mins"))
+      mismo <- nzchar(agente[i]) && identical(agente[i], agente[j])
+
+      corto <- .mcc_nombrar_caso(c(caso[i], caso[j]))
+      mensaje <- if (mismo) sprintf(
+        "%s y %s son de la misma persona encuestada y corrieron a la vez, solapadas %s. Las dos las hizo %s, que no pudo estar en las dos.",
+        corto[1], corto[2], .mcc_dur(minutos), agente[i]
+      ) else sprintf(
+        "%s y %s son de la misma persona encuestada y corrieron a la vez, solapadas %s.",
+        corto[1], corto[2], .mcc_dur(minutos)
+      )
+      pregunta <- if (mismo) sprintf(
+        "¿Por qué %s tiene dos encuestas de la misma persona corriendo en paralelo? Puede ser un formulario que quedó abierto, o una encuesta que se rehízo sin cerrar la anterior.",
+        agente[i]
+      ) else paste(
+        "¿Por qué dos encuestadores distintos levantaron a la misma persona a la",
+        "misma hora? Si es la misma entrevista cargada dos veces, hay que quedarse con una."
+      )
+
+      out[[length(out) + 1L]] <- list(
+        severidad = "advertencia",
+        componente_id = NA_character_,
+        actor = if (mismo) agente[i] else "",
+        tipo = "cruce_identidad",
+        mensaje = mensaje,
+        detalle = list(
+          casos = c(caso[i], caso[j]),
+          minutos_solape = round(minutos),
+          mismo_agente = mismo,
+          agentes = unique(c(agente[i], agente[j])),
+          llaves = as.list(llaves),
+          # V4: toda métrica de tiempo declara de dónde sale. Si el fin es el
+          # `end` de la plataforma, el solape hereda que se corre con el
+          # formulario abierto — por eso el criterio exige también identidad.
+          fuente_tiempo = c(inicio = ini_var, fin = fin_var),
+          pregunta = pregunta
+        )
+      )
+    }
+  }
+  # El par que más se pisa primero, y dentro de eso el del mismo agente: es el
+  # que no admite explicación inocente.
+  if (!length(out)) return(out)
+  out[order(-vapply(out, function(x) isTRUE(x$detalle$mismo_agente), logical(1)),
+            -vapply(out, function(x) x$detalle$minutos_solape, numeric(1)))]
+}
+
 #' Todas las señales sobre quién está recolectando
 #'
 #' M3 y M9 miran el mismo valor sucio desde dos lados y, con padrón cargado,
@@ -381,4 +530,143 @@ monitoreo_alertas_equipo <- function(data, agent_var = "", roster = NULL, survey
   if (!length(padron)) return(identidad)
   ya <- vapply(padron, function(a) as.character(a$actor %||% ""), character(1))
   c(padron, Filter(function(a) !(as.character(a$actor %||% "") %in% ya), identidad))
+}
+
+# =============================================================================
+# M6 · Las alertas de calidad conviven con las de avance
+# =============================================================================
+# Las siete alertas del módulo responden «cuánto falta»; estas responden «cómo
+# se está trabajando». Mezclarlas en una lista haría que una brecha de cuota y
+# un formulario desactualizado se lean igual, y la que se puede arreglar hoy se
+# perdería entre las que se arreglan al cierre.
+#
+# Van en un bloque propio del payload (`calidad_campo`), no dentro de
+# `dashboard$alertas`. Y el bloque viaja SIEMPRE, aunque esté vacío: la razón
+# por la que no hay avisos es información —«no declaraste quién recolecta» no es
+# lo mismo que «el campo está limpio»— y sin ella la pantalla no puede contener
+# su propio vacío.
+
+# Columnas que pone la plataforma, no el estudio. Mismo estatus que `_uuid` o
+# `__version__`: nombrarlas no es hardcodear un proyecto.
+.MCC_INICIO_CANDIDATAS <- c("start", "_start", "starttime")
+.MCC_FIN_CANDIDATAS <- c("end", "_end", "endtime")
+.MCC_CASO_CANDIDATAS <- c("_uuid", "uuid", "_id")
+
+.mcc_primera <- function(data, candidatas) {
+  for (nm in candidatas) if (nm %in% names(data)) return(nm)
+  ""
+}
+
+#' Bloque de calidad de campo para el payload de Monitoreo
+#'
+#' Reúne las cuatro señales del GOAL y explica su propio vacío. `motivo` dice
+#' por qué no hay avisos cuando no los hay, que es lo que separa «el campo está
+#' limpio» de «falta declarar un rol».
+#'
+#' @param data data.frame de la base recolectada.
+#' @param operational_config config operacional de la base (roles declarados).
+#' @param roster padrón territorial, si el estudio lo tiene.
+#' @param survey hoja `survey` del instrumento. Opcional.
+#' @return lista con `enabled`, `alertas`, `resumen`, `roles` y `motivo`.
+#' @family monitoreo
+#' @export
+monitoreo_calidad_campo_bloque <- function(data, operational_config = NULL,
+                                           roster = NULL, survey = NULL) {
+  vacio <- function(motivo, agente = "", llaves = character(0)) {
+    list(
+      enabled = FALSE, alertas = list(),
+      resumen = list(total = 0L, bloqueantes = 0L, por_tipo = list()),
+      roles = list(agente = agente, llaves = as.list(llaves)),
+      motivo = motivo
+    )
+  }
+  if (!is.data.frame(data) || !nrow(data)) {
+    return(vacio("sin_datos"))
+  }
+  cfg <- tryCatch(normalize_validation_operational_config(operational_config %||% list()),
+                  error = function(e) NULL)
+  ident <- (cfg %||% list())$identity %||% list()
+  agente <- as.character(ident$agent_variable %||% "")[1]
+  if (is.na(agente)) agente <- ""
+  llaves <- as.character(unlist(ident$variables %||% character(0)))
+  llaves <- llaves[nzchar(llaves) & llaves %in% names(data)]
+
+  # Sin agente declarado no hay ninguna señal posible sin hardcodear una
+  # columna, y el cruce solo diría «hay dos casos» sin decir a quién llamar.
+  if (!nzchar(agente) || !(agente %in% names(data))) {
+    return(vacio("sin_rol_de_agente", agente, llaves))
+  }
+
+  fecha <- .mcc_primera(data, .semilla_envio_candidatas)
+  ini <- .mcc_primera(data, .MCC_INICIO_CANDIDATAS)
+  fin <- .mcc_primera(data, .MCC_FIN_CANDIDATAS)
+  caso <- .mcc_primera(data, .MCC_CASO_CANDIDATAS)
+
+  alertas <- c(
+    monitoreo_alertas_procedencia(data, agente, fecha),
+    monitoreo_alertas_equipo(data, agente, roster, survey),
+    monitoreo_alertas_cruce(data, llaves, ini, fin, agente, caso)
+  )
+  # Lo bloqueante arriba: es lo único que produce datos irrecuperables y lo
+  # único que hay que resolver hoy.
+  if (length(alertas)) {
+    alertas <- alertas[order(vapply(
+      alertas, function(a) !identical(a$severidad, "bloqueante"), logical(1)
+    ))]
+  }
+  tipos <- vapply(alertas, function(a) as.character(a$tipo %||% ""), character(1))
+
+  out <- list(
+    enabled = TRUE,
+    alertas = alertas,
+    resumen = list(
+      total = length(alertas),
+      bloqueantes = as.integer(sum(vapply(
+        alertas, function(a) identical(a$severidad, "bloqueante"), logical(1)
+      ))),
+      por_tipo = as.list(table(tipos))
+    ),
+    roles = list(agente = agente, llaves = as.list(llaves)),
+    motivo = if (length(alertas)) "" else if (!length(llaves)) {
+      # Con agente pero sin llaves de identidad, el cruce de M4 no puede correr:
+      # decirlo evita leer el silencio como campo limpio.
+      "sin_llaves_de_identidad"
+    } else "sin_hallazgos"
+  )
+  out
+}
+
+#' Bloque de calidad de campo resuelto desde la sesión
+#'
+#' El envoltorio que consume el router: resuelve los roles declarados en
+#' Validación y el padrón de la config de Monitoreo, y nunca deja caer el
+#' payload por un fallo suyo — una señal nueva no puede tumbar el módulo.
+#'
+#' @param sid sesión.
+#' @param data data.frame ya derivado por el payload de Monitoreo.
+#' @param cfg config de Monitoreo normalizada.
+#' @param base_nombre base del estudio; por defecto la activa.
+#' @return el bloque de `monitoreo_calidad_campo_bloque()`.
+#' @family monitoreo
+#' @export
+monitoreo_calidad_campo_para_sesion <- function(sid, data, cfg = list(), base_nombre = NULL) {
+  tryCatch({
+    s <- session_get(sid)
+    base <- base_nombre %||% tryCatch(codif_source_active(sid), error = function(e) NULL)
+    oc <- NULL
+    if (!is.null(base) && nzchar(base)) {
+      oc <- ((s$estudio %||% list())$bases %||% list())[[base]]$validacion$operational_config
+    }
+    oc <- oc %||% s$validacion$operational_config %||% list()
+    monitoreo_calidad_campo_bloque(
+      data,
+      operational_config = oc,
+      roster = (cfg$territorial %||% list())$enumerator_roster %||% NULL
+    )
+  }, error = function(e) list(
+    enabled = FALSE, alertas = list(),
+    resumen = list(total = 0L, bloqueantes = 0L, por_tipo = list()),
+    roles = list(agente = "", llaves = list()),
+    motivo = "sin_datos"
+  ))
 }
