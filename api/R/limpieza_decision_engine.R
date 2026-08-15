@@ -1380,9 +1380,10 @@ limpieza_finalize <- function(sid, base_nombre, scope) {
 
   artifacts <- list(
     finalized_at = .limpieza_now_utc(),
-    # ADR 0076: la base ya rige, no se "recomienda". El campo se conserva por
-    # compatibilidad del contrato, y `promocion` dice qué pasó de verdad.
-    recommended_file_id = clean_meta$file_id,
+    # ADR 0076, Cumplimiento: `recommended_file_id` se retiró el 2026-08-15. Era
+    # una recomendación que ningún consumidor leía, y desde que la base se
+    # promueve sola describía algo que ya no ocurre. Quien quiera el archivo lo
+    # tiene en `files` con kind "base_limpia"; qué base rige lo dice `promocion`.
     promocion = linaje_limpieza,
     files = list(
       list(kind = "base_limpia", label = "Base final limpia", file_id = clean_meta$file_id, original_name = clean_meta$original_name, generated_at = clean_meta$uploaded_at),

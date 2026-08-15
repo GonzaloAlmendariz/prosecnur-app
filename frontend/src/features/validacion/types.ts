@@ -339,9 +339,11 @@ export type LimpiezaPromocion = {
   reverted_at?: string;
 };
 
+// `recommended_file_id` se retiró el 2026-08-15 (ADR 0076, Cumplimiento): era
+// una recomendación sin consumidor, y desde que la base se promueve sola
+// describía algo que ya no ocurre. `promocion` dice qué base rige.
 export type LimpiezaArtifactsBundle = {
   finalized_at?: string;
-  recommended_file_id?: string;
   promocion?: LimpiezaPromocion;
   files: LimpiezaArtifact[];
 };
