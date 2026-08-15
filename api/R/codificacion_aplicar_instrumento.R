@@ -645,6 +645,13 @@
   new_row$type <- new_type
   new_row$name <- new_name
   new_row[[lab_col_s]] <- base_label  # misma etiqueta que la base
+  # La derivada vive en la misma sección que su origen. Sin esto `section` queda
+  # NA y los reportes que filtran por secciones activas (frecuencias, cruces)
+  # nunca ven las `_recod`: la tabla mostraba la variable sin codificar mientras
+  # el PPT mostraba la codificada.
+  for (col in intersect(c("section", "section_label"), names(survey))) {
+    if (!is.na(i_base)) new_row[[col]] <- survey[[col]][i_base]
+  }
 
   # Reaplicación sobre un instrumento YA adaptado: `<new_name>` puede venir del
   # ciclo anterior (propio o del bridge de project_pulso). Se retiran esas filas
@@ -658,9 +665,18 @@
     i_base <- match(base_name, survey$name)
   }
 
-  survey2 <- .row_after(survey, i_base, new_row)
+  # Orden de entrega: original -> verbatim -> recodificada. La derivada se cuelga
+  # DESPUES del `<base>_other`, no pegada a la original, para que las tres
+  # columnas de una misma pregunta se lean en el orden en que se producen: lo que
+  # se preguntó, lo que la persona escribió y en qué quedó clasificado.
+  i_anchor <- i_base
+  if (!is.na(i_base)) {
+    i_other <- match(paste0(base_name, "_other"), survey$name)
+    if (!is.na(i_other) && i_other > i_base) i_anchor <- i_other
+  }
+  survey2 <- .row_after(survey, i_anchor, new_row)
 
-  # inyectar choices del list destino (evitando duplicados exactos)
+  # inyectar choices del list destino, reemplazando su catálogo completo
   if (length(codes)) {
     if (lab_col_c %in% names(choices)) {
       choices[[lab_col_c]] <- as.character(choices[[lab_col_c]])
