@@ -14,6 +14,23 @@ stop_api <- function(status, code, message, details = NULL) {
   sprintf("%08X", as.integer(micros %% (.Machine$integer.max + 1)))
 }
 
+# E_INTERNAL emitido a propósito desde un motor, para invariantes que el
+# usuario no puede provocar ni corregir (un artefacto que el propio motor
+# acaba de escribir y no está donde lo dejó). Mismo contrato que el handler
+# central: al cliente va el mensaje genérico y el detalle queda en stderr,
+# correlacionable por error_id. El detalle nunca viaja al wire porque suele
+# traer paths absolutos del usuario.
+stop_internal <- function(detail) {
+  error_id <- .api_error_id()
+  message(sprintf("[prosecnur-app] E_INTERNAL %s: %s", error_id, detail))
+  stop_api(
+    500,
+    "E_INTERNAL",
+    sprintf("Error interno del servidor (ref. %s).", error_id),
+    details = list(error_id = error_id)
+  )
+}
+
 handle_api_error <- function(req, res, err) {
   if (inherits(err, "api_error")) {
     res$status <- err$status

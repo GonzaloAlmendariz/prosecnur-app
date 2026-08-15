@@ -48,6 +48,51 @@ test_that("error crudo -> E_INTERNAL generico con error_id; el detalle va al log
   expect_true(grepl(payload$error$error_id, payload$error$message, fixed = TRUE))
 })
 
+test_that("stop_internal emite E_INTERNAL sin filtrar el detalle al cliente", {
+  # Un motor que rompe una invariante propia (un artefacto que acaba de
+  # escribir y no esta donde lo dejo) no debe propagar el path al wire.
+  detalle <- "pulso_pdf_add_link_annotations: no existe el PDF a enlazar: /Users/gonzalo/privado/ficha.pdf"
+
+  err <- NULL
+  expect_message(
+    { err <- tryCatch(stop_internal(detalle), error = function(e) e) },
+    regexp = "\\[prosecnur-app\\] E_INTERNAL [0-9A-F]{8}: pulso_pdf_add_link_annotations"
+  )
+
+  expect_s3_class(err, "api_error")
+  expect_equal(err$status, 500)
+  expect_identical(err$code, "E_INTERNAL")
+
+  # Pasa por el handler como cualquier api_error: sin re-derivar el id.
+  res <- new.env(parent = emptyenv())
+  payload <- handle_api_error(NULL, res, err)
+
+  expect_equal(res$status, 500)
+  expect_identical(payload$error$code, "E_INTERNAL")
+  expect_match(payload$error$message, "^Error interno del servidor \\(ref\\. [0-9A-F]{8}\\)\\.$")
+  expect_false(grepl("/Users/", payload$error$message, fixed = TRUE))
+  expect_false(grepl("ficha.pdf", payload$error$message, fixed = TRUE))
+  # El id viaja en details y coincide con el que se embebio en el mensaje.
+  expect_match(payload$error$details$error_id, "^[0-9A-F]{8}$")
+  expect_true(grepl(payload$error$details$error_id, payload$error$message, fixed = TRUE))
+})
+
+test_that("un PDF ausente rompe con E_INTERNAL y no con un stop crudo", {
+  links <- list(list(page = 1, x0 = 0.1, y0 = 0.1, x1 = 0.4, y1 = 0.2, url = "https://pulso.pe"))
+  faltante <- file.path(tempdir(), "no-existe-este-pdf-de-prueba.pdf")
+  expect_false(file.exists(faltante))
+
+  err <- suppressMessages(
+    tryCatch(pulso_pdf_add_link_annotations(faltante, links), error = function(e) e)
+  )
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_INTERNAL")
+  expect_equal(err$status, 500)
+
+  # Sin links no hay nada que anotar: sale antes de tocar el archivo.
+  expect_identical(pulso_pdf_add_link_annotations(faltante, list()), invisible(0L))
+})
+
 test_that("wrap_endpoint mantiene el mismo shape {error:{code,message}} para errores crudos", {
   fn <- wrap_endpoint(function(req, res) stop("boom interno con detalle sensible"))
   res <- new.env(parent = emptyenv())

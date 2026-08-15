@@ -339,7 +339,7 @@ errores_registrados <- function() {
     "E_HF_PUSH_FAILED",                                      "dashboard_publish.R",               "indirecto",
     "E_INCOMPLETE_SOURCE",                                   "dashboard_source.R",                "400",
     "E_INSTRUMENT_REVISION_COMMIT_FAILED",                   "xlsform_revisions.R",               "500",
-    "E_INTERNAL",                                            "errors.R",                          "indirecto",
+    "E_INTERNAL",                                            "errors.R",                          "500",
     "E_INVALID_FILENAME",                                    "router_proyecto.R",                 "400",
     "E_INVALID_KIND",                                        "io.R",                              "400",
     "E_INVALID_PATH",                                        "router_proyecto.R",                 "400",
