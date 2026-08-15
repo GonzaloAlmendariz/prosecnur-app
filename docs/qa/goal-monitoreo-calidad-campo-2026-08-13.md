@@ -309,7 +309,18 @@ terminan diciendo cosas distintas de la misma base.
 
 ### Capa 4 · Gobierno
 
-**M7 · Qué alerta de calidad detiene el campo** ☐
+**M7 · Qué alerta de calidad detiene el campo** ☑ *(2026-08-15)*
+- **Escrito en**
+  [ADR 0077 — Avisa fuerte lo que sigue produciendo daño](../adrs/0077-avisa-fuerte-lo-que-sigue-produciendo-dano.md).
+- **El criterio quedó más filoso al escribirlo.** «Datos irrecuperables» sonaba
+  bien pero no discrimina: una respuesta abierta vacía también se pierde si el
+  campo cierra. Lo que sí distingue es si **el conjunto de casos afectados sigue
+  abierto**. Una encuestadora con el formulario viejo produce una encuesta
+  perdida más por cada hora; un nombre mal escrito, dos encuestas superpuestas o
+  un `hjk` son hechos ya ocurridos sobre un conjunto cerrado — llamar hoy o
+  mañana cambia lo fácil que será resolverlo, no cuántos casos hay.
+- **Y es una prueba, no una lista**: antes de darle severidad alta a una señal
+  nueva hay que poder responder «¿esto sigue creciendo?». Si no, es advertencia.
 - **Rol**: una alerta que no cambia ninguna decisión es ruido con presupuesto.
 - **Resuelto (2026-08-13)**: **solo procedencia avisa fuerte**. El formulario
   desactualizado es la única señal que produce datos **irrecuperables** — una
@@ -319,8 +330,11 @@ terminan diciendo cosas distintas de la misma base.
 - **Y un límite que no se cruza**: la app **nunca frena el campo sola**. Avisar
   fuerte es su techo; parar es decisión del coordinador. Un bloqueo automático
   sobre una señal con falsos positivos costaría más que el problema que evita.
-- **Objetivo**: dejarlo escrito, probablemente como sección del ADR de
-  Monitoreo o extendiendo el 0075.
+- **Dónde se escribió**: ADR propio y no una extensión del 0075. El 0075
+  gobierna el gate de Validación **después** del campo —qué hace que una base
+  esté validada— y este gobierna los avisos **durante** el campo. Son la misma
+  familia de decisiones en dos momentos distintos, y mezclarlas habría hecho
+  que ninguno de los dos se pudiera citar solo.
 
 ## Decisiones tomadas — 2026-08-13
 
