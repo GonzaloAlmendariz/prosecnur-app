@@ -1,0 +1,246 @@
+# Layout `field_form`: QR grande + formulario de lineas para llenar a mano.
+#
+# Reproduce la hoja de papel que el equipo ya usaba. Las pruebas miran el PNG
+# porque lo que define esta ficha es geometria: que el QR domine la pagina y
+# que cada linea tenga sitio real donde escribir.
+
+.cfx_logo <- function(path, w = 120L, h = 40L) {
+  grDevices::png(path, width = w, height = h, res = 72, type = "cairo-png", bg = "white")
+  grid::grid.rect(gp = grid::gpar(fill = "#112244", col = NA))
+  grDevices::dev.off()
+  path
+}
+
+.cfx_compiled <- function(template, url = "https://x.test/enc", collector = "PILOTO_2026") {
+  unit <- list(unit_id = "u1", label = "Rotulo de la unidad", role = "piloto", group = "PILOTO")
+  binding <- list(
+    access_id = "a1", logical_collector_id = collector, unit_id = "u1",
+    access_kind = "manual_handoff", access_ref = url, status = "ready"
+  )
+  deployment <- list(
+    deployment_id = "d1", target = list(provider = "kobo"), bindings = list(binding),
+    sensitivity = list(access_urls = "operational"), status = "prepared"
+  )
+  fp <- function(x) collection_fingerprint(x)
+  instance <- list(
+    schema = COLLECTION_MATERIAL_INSTANCE_SCHEMA, instance_id = "m1",
+    template_ref = list(
+      template_id = template$template_id, revision = 1L, sha256 = template$template_sha256
+    ),
+    deployment_id = "d1", deployment_fingerprint = fp(deployment),
+    access_fingerprint = fp(list(binding)), instance_fingerprint = fp("m1"),
+    unit_refs = list("u1"), access_refs = list("a1"),
+    locale = "es-PE", status = "ready", sensitivity = "operational", warnings = list()
+  )
+  collection_material_compile(
+    template, instance, project = list(name = "Estudio", period = "Piloto"),
+    plan = list(plan_id = "p1", units = list(unit)), deployment = deployment
+  )
+}
+
+.cfx_grey <- function(path) {
+  img <- png::readPNG(path)
+  if (length(dim(img)) == 3L) img[, , 1] else img
+}
+
+.cfx_codes <- function(result) vapply(result$problems, function(p) p$code, character(1))
+
+.cfx_validate_rows <- function(rows) {
+  t <- collection_material_field_sheet_template(rows = rows)
+  t$template_sha256 <- NULL
+  t$template_sha256 <- collection_fingerprint(t)
+  collection_material_template_validate(t)
+}
+
+test_that("la ficha de campo declara su propio preset y no el de la ficha de plan", {
+  template <- collection_material_field_sheet_template(assets = c("logo-unsa", "logo-pulso"))
+  expect_true(collection_material_template_validate(template)$ok)
+  expect_identical(template$preset_id, "ficha_campo_qr_a4_v1")
+  expect_identical(template$pages[[1]]$layout_preset, "field_form")
+  expect_identical(template$material_kind, "application_sheet")
+
+  bloque <- function(id) {
+    hit <- Filter(function(b) identical(b$block_id, id), template$pages[[1]]$blocks)
+    if (length(hit)) hit[[1]] else NULL
+  }
+  # El titulo es el id del colector y el pie nombra el estudio. La careta va
+  # centrada, no arrimada al margen.
+  expect_identical(bloque("titulo")$binding, "access.logical_collector_id")
+  expect_identical(bloque("footer")$binding, "project.name")
+  expect_identical(bloque("careta")$align, "center")
+
+  # La pildora de estado no pertenece a este layout: diria dos veces lo mismo
+  # que el titulo, o algo distinto.
+  expect_false("status_tag" %in% COLLECTION_MATERIAL_PRESETS$ficha_campo_qr_a4_v1$blocks)
+  con_pildora <- template
+  con_pildora$pages[[1]]$blocks <- c(con_pildora$pages[[1]]$blocks, list(
+    list(block_id = "estado", type = "status_tag", text = "PILOTO")
+  ))
+  con_pildora$template_sha256 <- NULL
+  con_pildora$template_sha256 <- collection_fingerprint(con_pildora)
+  expect_true("block_not_in_preset" %in% .cfx_codes(
+    collection_material_template_validate(con_pildora)
+  ))
+
+  # Los bloques de la ficha de plan no pertenecen aqui: esta hoja no imprime
+  # datos ni el enlace, solo QR y lineas.
+  intruso <- template
+  intruso$pages[[1]]$blocks <- c(intruso$pages[[1]]$blocks, list(
+    list(block_id = "log", type = "application_log", rows = 3L)
+  ))
+  intruso$template_sha256 <- NULL
+  intruso$template_sha256 <- collection_fingerprint(intruso)
+  expect_true("block_not_in_preset" %in% .cfx_codes(collection_material_template_validate(intruso)))
+})
+
+test_that("los renglones del formulario tienen que caber en su propio ancho", {
+  fila <- function(...) list(fields = list(...))
+  campo <- function(label, span) list(label = label, span = span)
+
+  expect_true(.cfx_validate_rows(list(fila(campo("Fecha:", 0.5), campo("Hora:", 0.5))))$ok)
+  expect_true("form_row_overflow" %in% .cfx_codes(
+    .cfx_validate_rows(list(fila(campo("Fecha:", 0.7), campo("Hora:", 0.7))))
+  ))
+  expect_true("bad_form_span" %in% .cfx_codes(
+    .cfx_validate_rows(list(fila(campo("Fecha:", 0.02))))
+  ))
+  expect_true("missing_form_label" %in% .cfx_codes(
+    .cfx_validate_rows(list(fila(list(span = 0.5))))
+  ))
+  expect_true("bad_form_fields" %in% .cfx_codes(
+    .cfx_validate_rows(list(fila(
+      campo("A", 0.2), campo("B", 0.2), campo("C", 0.2), campo("D", 0.2), campo("E", 0.2)
+    )))
+  ))
+  expect_true("bad_form_rows" %in% .cfx_codes(
+    .cfx_validate_rows(rep(list(fila(campo("X", 1))), 13L))
+  ))
+})
+
+test_that("los renglones por defecto son los de la hoja en uso", {
+  rows <- collection_material_field_form_rows()
+  etiquetas <- unlist(lapply(rows, function(r) vapply(r$fields, function(f) f$label, character(1))))
+  expect_true(all(c(
+    "Facultad", "Pabellón y aula:", "Curso:", "Horario del curso:", "Docente:",
+    "N° de alumnos en aula", "Hombres:", "Mujeres:", "N° de encuestas aplicadas:",
+    "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:"
+  ) %in% etiquetas))
+
+  # La hoja no desdobla la aplicacion en fisico y virtual: es una sola cifra.
+  expect_false(any(grepl("virtual|físico|fisico", etiquetas, ignore.case = TRUE)))
+})
+
+test_that("el QR domina la pagina y se relee con la geometria de este layout", {
+  url <- "https://ee-eu.kobotoolbox.org/x/5rbcghMb?d%5B/afWqShr22MB4436VTsw32p/collectorID%5D=PILOTO_2026"
+  compiled <- .cfx_compiled(collection_material_field_sheet_template(), url)
+  dir <- tempfile("cfx-qr-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  L <- prosecnurapp:::.cfc_layout()
+  expect_gt(L$qr_side * 8.27 * 25.4, 130)
+
+  esperada <- collection_qr_matrix(url, correction = "M", quiet_zone = 4L)
+  expect_identical(
+    collection_qr_matrix_from_png(png_path, n = nrow(esperada), dpi = 150,
+                                  layout_preset = "field_form"),
+    esperada
+  )
+  expect_false(identical(
+    collection_qr_matrix_from_png(png_path, n = nrow(esperada), dpi = 150,
+                                  layout_preset = "single_sheet"),
+    esperada
+  ))
+})
+
+test_that("el titulo es el id del colector, centrado y debajo del QR", {
+  skip_if_not_installed("png")
+  compiled <- .cfx_compiled(collection_material_field_sheet_template(), collector = "PILOTO_2026")
+  expect_identical(
+    Filter(function(b) identical(b$block_id, "titulo"), compiled$pages[[1]]$blocks)[[1]]$value,
+    "PILOTO_2026"
+  )
+
+  dir <- tempfile("cfx-title-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .cfx_grey(png_path)
+  L <- prosecnurapp:::.cfc_layout()
+  fila <- round((1 - L$y_title + 0.008) * nrow(g))
+  tramo <- g[max(1L, fila - 6L):min(nrow(g), fila + 6L), , drop = FALSE]
+  con_tinta <- which(apply(tramo < 0.5, 2, any))
+  expect_gt(length(con_tinta), 20L)
+
+  # Centrado: el punto medio de la tinta cae sobre el eje de la pagina.
+  centro <- (min(con_tinta) + max(con_tinta)) / 2
+  expect_equal(centro / ncol(g), 0.5, tolerance = 0.03)
+
+  # Debajo del QR, no encima: en indices de fila, mas abajo es mayor.
+  qr_abajo <- (1 - (L$qr_y - L$qr_side * (8.27 / 11.69) / 2)) * nrow(g)
+  expect_gt(fila, qr_abajo)
+})
+
+test_that("sin id de colector la hoja se cae al rotulo de la unidad y avisa", {
+  compiled <- .cfx_compiled(collection_material_field_sheet_template(), collector = "")
+  dir <- tempfile("cfx-notitle-"); dir.create(dir)
+  rendered <- collection_material_render_compiled(
+    compiled, file.path(dir, "sin.pdf"), device = "pdf"
+  )
+  expect_true("sheet_title_missing" %in% vapply(
+    rendered$warnings, function(w) as.character(w$code %||% ""), character(1)
+  ))
+})
+
+test_that("cada renglon deja una linea real donde escribir, dentro de los margenes", {
+  skip_if_not_installed("png")
+  compiled <- .cfx_compiled(collection_material_field_sheet_template())
+  dir <- tempfile("cfx-form-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .cfx_grey(png_path)
+  L <- prosecnurapp:::.cfc_layout()
+  # Se mide la franja completa del renglon, no una rebanada de pocos pixeles:
+  # la etiqueta y su raya no comparten linea de base, y una franja angosta cae
+  # entre las dos y reporta cero tinta con el renglon perfectamente dibujado.
+  media_franja <- L$form_step / 3
+  for (i in seq_along(collection_material_field_form_rows())) {
+    y <- L$form_top - (i - 1L) * L$form_step
+    desde <- round((1 - (y + media_franja)) * nrow(g))
+    hasta <- round((1 - (y - media_franja)) * nrow(g))
+    tramo <- g[max(1L, desde):min(nrow(g), hasta), , drop = FALSE]
+    con_tinta <- which(apply(tramo < 0.5, 2, any))
+    expect_gt(length(con_tinta), 100L)
+    expect_gte(min(con_tinta), round(L$x_left * ncol(g)) - 4L)
+    expect_lte(max(con_tinta), round(L$x_right * ncol(g)) + 4L)
+  }
+})
+
+test_that("mas renglones de los que caben se recortan con aviso", {
+  fila <- function(label) list(fields = list(list(label = label, span = 1)))
+  rows <- lapply(sprintf("Campo %d", seq_len(11L)), fila)
+  compiled <- .cfx_compiled(collection_material_field_sheet_template(rows = rows))
+  dir <- tempfile("cfx-over-"); dir.create(dir)
+  rendered <- collection_material_render_compiled(
+    compiled, file.path(dir, "over.pdf"), device = "pdf"
+  )
+  hit <- Filter(function(w) identical(w$code, "form_lines_overflow"), rendered$warnings)
+  expect_length(hit, 1L)
+  expect_identical(hit[[1]]$rows, 11L)
+  expect_lt(hit[[1]]$visible_rows, 11L)
+})
+
+test_that("una etiqueta que se come su renglon avisa en vez de dibujar una raya inutil", {
+  rows <- list(list(fields = list(list(
+    label = strrep("Etiqueta larguisima ", 6L), span = 0.15
+  ))))
+  compiled <- .cfx_compiled(collection_material_field_sheet_template(rows = rows))
+  dir <- tempfile("cfx-room-"); dir.create(dir)
+  rendered <- collection_material_render_compiled(
+    compiled, file.path(dir, "room.pdf"), device = "pdf"
+  )
+  expect_true("form_field_no_room" %in% vapply(
+    rendered$warnings, function(w) as.character(w$code %||% ""), character(1)
+  ))
+})

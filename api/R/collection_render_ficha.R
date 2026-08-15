@@ -3,8 +3,8 @@
 # PDF final y PNG autoritativo llaman al mismo `collection_material_draw_page`.
 # Solo cambia el device; no se rasteriza el PDF ni se usa ImageMagick.
 
-.crf_layout <- function() {
-  list(
+.crf_layout <- function(branded = FALSE) {
+  base <- list(
     qr_side = 0.34,
     qr_x = 0.72,
     qr_y = 0.62,
@@ -14,8 +14,22 @@
     y_rows_top = 0.69,
     row_step = 0.053,
     y_link = 0.365,
-    label_w = 0.13
+    label_w = 0.13,
+    # Cabecera propia del kit Pulso cuando no hay careta encima.
+    y_brand = NA_real_,
+    y_header = 0.968,
+    y_header_sub = 0.952,
+    y_header_rule = 0.918
   )
+  if (!branded) return(base)
+  # Con careta, la cabecera baja para dejarle su banda. El cuerpo no se mueve:
+  # entre la regla y `y_title` ya habia aire suficiente, y correrlo obligaria a
+  # reubicar QR, grid y registro, que es justo lo que este layout ya resolvio.
+  base$y_brand <- 0.950
+  base$y_header <- 0.898
+  base$y_header_sub <- 0.882
+  base$y_header_rule <- 0.852
+  base
 }
 
 .crf_txt <- function(value, fallback = "Por confirmar") {
@@ -174,11 +188,16 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   if (identical(block$type, "field_grid")) {
     out$rows <- lapply(block$fields %||% list(), function(field) {
       if (is.character(field)) field <- list(label = field, binding = field)
+      if (isTRUE(field$blank)) {
+        return(list(label = field$label, binding = NULL, value = "", lines = character(0), blank = TRUE))
+      }
       value <- .crf_binding_value(field$binding, context)
       lines <- .crf_wrap(value, width = 31L, max_lines = 2L)
-      list(label = field$label %||% field$binding, binding = field$binding, value = value, lines = lines)
+      list(label = field$label %||% field$binding, binding = field$binding, value = value,
+           lines = lines, blank = FALSE)
     })
     for (row in out$rows) {
+      if (isTRUE(row$blank)) next
       if (length(.crf_wrap(row$value, width = 31L)) > 2L) {
         warnings[[length(warnings) + 1L]] <- list(
           code = "field_truncated", page = page_index, unit_id = unit_id, binding = row$binding
@@ -318,18 +337,61 @@ collection_material_compile <- function(template, instance, project, plan, deplo
   invisible(NULL)
 }
 
-#' Dibuja una pagina ya compilada. Es el unico cuerpo grid del material.
+#' Dibuja una pagina ya compilada, despachando por layout.
 #'
 #' @param page pagina de `collection_material_compile`.
 #' @param page_no numero visible.
 #' @param total_pages total visible.
-#' @return invisible TRUE.
+#' @param brand_assets mapa efimero id -> ruta PNG para layouts con careta.
+#' @return lista con `warnings` y `links` declarados por el layout.
 #' @export
-collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) {
+collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
+                                          brand_assets = list()) {
+  if (identical(page$layout_preset, "poster_qr")) {
+    return(collection_material_draw_poster(page, page_no, total_pages, brand_assets))
+  }
+  if (identical(page$layout_preset, "field_form")) {
+    return(collection_material_draw_field_form(page, page_no, total_pages, brand_assets))
+  }
+  collection_material_draw_sheet(page, page_no, total_pages, brand_assets)
+}
+
+# Pildora navy arriba a la derecha: marca la hoja como piloto, reemplazo o
+# segunda visita sin robarle sitio al titulo.
+.crf_draw_status_tag <- function(text, L, tokens, geo) {
+  if (!nzchar(text)) return(invisible(NULL))
+  ty <- pulso_pdf_type()
+  pad <- 0.011
+  half_w <- (nchar(text, type = "width") * ty$caption * 0.62 / 72) / geo$page_w / 2 + pad
+  half_h <- (ty$caption * 1.9 / 72) / geo$page_h / 2
+  cx <- L$x_right - half_w
+  cy <- L$y_header + 0.006
+  grid::grid.roundrect(
+    x = cx, y = cy, width = half_w * 2, height = half_h * 2, r = grid::unit(2, "pt"),
+    default.units = "npc", gp = grid::gpar(fill = tokens$navy, col = NA)
+  )
+  grid::grid.text(
+    text, x = cx, y = cy, default.units = "npc",
+    gp = grid::gpar(col = "#ffffff", fontsize = ty$caption, fontface = "bold")
+  )
+  invisible(NULL)
+}
+
+#' Dibuja una pagina con el layout `single_sheet` (ficha de aplicacion).
+#'
+#' @param page pagina de `collection_material_compile`.
+#' @param page_no numero visible.
+#' @param total_pages total visible.
+#' @param brand_assets mapa efimero id -> ruta PNG si la ficha lleva careta.
+#' @return lista con `warnings` y `links`.
+#' @export
+collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
+                                           brand_assets = list()) {
   tokens <- pulso_pdf_tokens()
   type <- pulso_pdf_type()
   geo <- pulso_pdf_geo(page$orientation %||% "portrait")
-  L <- .crf_layout()
+  brand <- .crf_block(page, "brand_strip")
+  L <- .crf_layout(branded = !is.null(brand))
   heading <- .crf_block(page, "heading")
   body <- .crf_block(page, "body")
   qr <- .crf_block(page, "access_qr")
@@ -337,14 +399,31 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) 
   instructions <- .crf_block(page, "instructions")
   log_block <- .crf_block(page, "application_log")
   footer <- .crf_block(page, "footer")
+  tag <- .crf_block(page, "status_tag")
+  warnings <- list()
 
   grid::grid.newpage()
   grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = NA))
+  if (!is.null(brand)) {
+    for (id in .cra_draw_brand_strip(
+      brand$assets, brand_assets, y = L$y_brand,
+      max_height_mm = brand$max_height_mm %||% 13,
+      align = as.character(brand$align %||% "left")[[1]], geo = geo
+    )) {
+      warnings[[length(warnings) + 1L]] <- list(
+        code = "brand_asset_missing", page = page_no, asset_id = id
+      )
+    }
+  }
   pulso_pdf_header(
     titulo = .crf_txt(heading$value %||% page$unit$label, "Unidad de aplicacion"),
     subtitulo = .crf_txt(page$unit$faculty %||% page$project$name, ""),
-    tokens = tokens, geo = geo
+    tokens = tokens, geo = geo,
+    y_titulo = L$y_header, y_subtitulo = L$y_header_sub, y_regla = L$y_header_rule
   )
+  if (!is.null(tag)) {
+    .crf_draw_status_tag(.crf_txt(tag$value %||% tag$text, ""), L, tokens, geo)
+  }
 
   if (!is.null(qr)) {
     grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side * 1.20, geo))
@@ -373,6 +452,19 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) 
   )
 
   rows <- fields$rows %||% list()
+  # El grid vive a la izquierda del QR, asi que una fila no puede invadir su
+  # columna: el ancho util termina donde empieza el recuadro del simbolo.
+  row_right <- min(L$x_right, L$qr_x - L$qr_side * 0.60 - 0.02)
+  # Capacidad real de la banda: por debajo empieza el bloque del enlace. Una
+  # fila de mas no se "aprieta", pisa el enlace, asi que se recorta y se avisa.
+  max_rows <- max(1L, as.integer(floor((L$y_rows_top - (L$y_link + 0.055)) / L$row_step)) + 1L)
+  if (length(rows) > max_rows) {
+    warnings[[length(warnings) + 1L]] <- list(
+      code = "field_grid_overflow", page = page_no,
+      rows = length(rows), visible_rows = max_rows
+    )
+    rows <- rows[seq_len(max_rows)]
+  }
   for (i in seq_along(rows)) {
     y <- L$y_rows_top - (i - 1L) * L$row_step
     grid::grid.text(
@@ -380,6 +472,10 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) 
       just = "left", default.units = "npc",
       gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
     )
+    if (isTRUE(rows[[i]]$blank)) {
+      pulso_pdf_hairline(L$x_left + L$label_w, row_right, y - 0.004, tokens = tokens, lwd = 0.5)
+      next
+    }
     .crf_draw_lines(
       rows[[i]]$lines %||% .crf_wrap(rows[[i]]$value, 31L, 2L),
       L$x_left + L$label_w, y + 0.008,
@@ -393,12 +489,23 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) 
     just = "left", default.units = "npc",
     gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
   )
-  link_lines <- .crf_wrap(page$access$qr_payload, width = 92L, max_lines = 3L)
+  payload <- .crf_txt(page$access$qr_payload, "")
+  link_size <- max(6.5, type$code - 0.5)
+  link_lines <- .crf_wrap(payload, width = 92L, max_lines = 3L)
   if (!length(link_lines)) link_lines <- "Pendiente de generar"
   .crf_draw_lines(
     link_lines, L$x_left, L$y_link,
-    grid::gpar(col = tokens$ink, fontsize = max(6.5, type$code - 0.5)), lineheight = 1.05
+    grid::gpar(col = tokens$navy, fontsize = link_size), lineheight = 1.05
   )
+  links <- list()
+  if (nzchar(payload)) {
+    link_h <- length(link_lines) * (link_size * 1.05 / 72) / geo$page_h
+    links[[1]] <- list(
+      page = page_no, url = payload,
+      x0 = L$x_left, x1 = L$x_right,
+      y0 = L$y_link - link_h, y1 = L$y_link + 0.006
+    )
+  }
 
   if (!is.null(instructions)) {
     .crf_draw_lines(
@@ -432,7 +539,7 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) 
       gp = grid::gpar(col = tokens$faint, fontsize = type$caption)
     )
   }
-  invisible(TRUE)
+  list(warnings = warnings, links = links)
 }
 
 .crf_open_device <- function(path, device, orientation, dpi) {
@@ -458,10 +565,15 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L) 
 #' @param device pdf o png.
 #' @param page pagina seleccionada para PNG.
 #' @param dpi resolucion PNG.
+#' @param brand_assets mapa efimero id -> ruta PNG de los logos de la careta.
+#'   Vive solo aqui, no en la instancia ni en el layout compilado: una ruta
+#'   absoluta dentro del `layout_fingerprint` lo volveria distinto en cada
+#'   maquina y el fingerprint dejaria de comparar lo que dice comparar.
 #' @return metadatos estructurales del render.
 #' @export
 collection_material_render_compiled <- function(compiled, path, device = c("pdf", "png"),
-                                                page = 1L, dpi = 150) {
+                                                page = 1L, dpi = 150,
+                                                brand_assets = list()) {
   device <- match.arg(device)
   selected <- if (identical(device, "png")) {
     index <- suppressWarnings(as.integer(page[[1]]))
@@ -476,18 +588,34 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
   .crf_open_device(path, device, orientation, dpi)
   device_open <- TRUE
   on.exit(if (device_open) grDevices::dev.off(), add = TRUE)
-  for (index in selected) {
-    collection_material_draw_page(compiled$pages[[index]], index, length(compiled$pages))
+  draw_warnings <- list()
+  links <- list()
+  for (position in seq_along(selected)) {
+    index <- selected[[position]]
+    drawn <- collection_material_draw_page(
+      compiled$pages[[index]], index, length(compiled$pages), brand_assets
+    )
+    draw_warnings <- c(draw_warnings, drawn$warnings %||% list())
+    # `position`, no `index`: en PNG se emite una sola pagina y el PDF de una
+    # seleccion parcial renumera desde 1. La anotacion tiene que caer en la
+    # pagina del archivo, no en la del layout.
+    links <- c(links, lapply(drawn$links %||% list(), function(link) {
+      link$page <- position
+      link
+    }))
   }
   grDevices::dev.off()
   device_open <- FALSE
+  if (identical(device, "pdf") && length(links)) {
+    pulso_pdf_add_link_annotations(path, links)
+  }
   list(
     path = path,
     device = device,
     page_count = as.integer(length(selected)),
     page_map = compiled$page_map[selected],
     layout_fingerprint = compiled$layout_fingerprint,
-    warnings = compiled$warnings
+    warnings = c(compiled$warnings, draw_warnings)
   )
 }
 
@@ -576,15 +704,20 @@ collection_render_ficha_receipt <- function(ficha, path, device = c("pdf", "png"
 #' @param png_path ruta PNG.
 #' @param n modulos por lado.
 #' @param dpi resolucion usada.
+#' @param layout_preset layout con el que se dibujo la pagina; decide donde
+#'   buscar el simbolo. Releer un afiche con la geometria de la ficha devuelve
+#'   ruido blanco, no un fallo, asi que el preset es parte de la pregunta.
 #' @return matriz logica.
 #' @export
-collection_qr_matrix_from_png <- function(png_path, n, dpi = 150) {
+collection_qr_matrix_from_png <- function(png_path, n, dpi = 150,
+                                          layout_preset = c("single_sheet", "poster_qr", "field_form")) {
   if (!requireNamespace("png", quietly = TRUE)) {
     stop("Se necesita el paquete 'png' para releer la matriz del QR.", call. = FALSE)
   }
+  layout_preset <- match.arg(layout_preset)
   img <- png::readPNG(png_path)
   grey <- if (length(dim(img)) == 3L) img[, , 1] else img
-  L <- .crf_layout()
+  L <- switch(layout_preset, poster_qr = .cra_layout(), field_form = .cfc_layout(), .crf_layout())
   px_w <- ncol(grey)
   px_h <- nrow(grey)
   side_px <- L$qr_side * px_w

@@ -105,16 +105,20 @@ pulso_pdf_geo <- function(orientation = c("portrait", "landscape")) {
 }
 
 # --- Cabecera: título (navy bold) + subtítulo (soft) + regla navy -----------
+# `y_titulo`/`y_subtitulo`/`y_regla` existen para las paginas que llevan algo
+# por encima de la cabecera (p. ej. una careta de logos de co-marca). Los
+# valores por defecto son los historicos: omitirlos deja la cabecera intacta.
 pulso_pdf_header <- function(titulo, subtitulo = "", tokens = pulso_pdf_tokens(),
-                             ty = pulso_pdf_type(), geo = pulso_pdf_geo()) {
+                             ty = pulso_pdf_type(), geo = pulso_pdf_geo(),
+                             y_titulo = 0.968, y_subtitulo = 0.952, y_regla = 0.918) {
   m <- geo$margin; right <- 1 - m
-  .form_pdf_text(titulo, x = m, y = 0.968, w = right - m, chars = 84,
+  .form_pdf_text(titulo, x = m, y = y_titulo, w = right - m, chars = 84,
                  fontsize = ty$title, fontface = "bold", col = tokens$navy, line_h = 0.020)
   if (nzchar(subtitulo)) {
-    .form_pdf_text(subtitulo, x = m, y = 0.952, w = right - m, chars = 130,
+    .form_pdf_text(subtitulo, x = m, y = y_subtitulo, w = right - m, chars = 130,
                    fontsize = ty$subtitle, col = tokens$soft, line_h = 0.014)
   }
-  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(0.918, "npc"),
+  grid::grid.lines(x = grid::unit(c(m, right), "npc"), y = grid::unit(y_regla, "npc"),
                    gp = grid::gpar(col = tokens$navy, lwd = 1.1))
   invisible(NULL)
 }

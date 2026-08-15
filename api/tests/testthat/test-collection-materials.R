@@ -34,8 +34,17 @@ test_that("el built-in congela los tres contratos V1 y reproduce el registro cer
   expect_match(template$template_sha256, "^sha256:[0-9a-f]{64}$")
   expect_identical(template, collection_material_builtin_template())
 
+  # "Congela" se prueba fijando la lista literal, no comparando contra un
+  # registro: el vocabulario global es la union de los presets y el del preset
+  # incluye bloques opcionales (careta, etiqueta de estado) que esta ficha no
+  # usa. Comparar contra cualquiera de los dos hace fallar el test cada vez que
+  # se agrega una opcion, sin que el built-in haya cambiado.
   types <- vapply(template$pages[[1]]$blocks, `[[`, character(1), "type")
-  expect_setequal(types, COLLECTION_MATERIAL_BLOCK_TYPES)
+  expect_identical(types, c(
+    "brand_header", "heading", "body", "access_qr", "field_grid",
+    "divider", "instructions", "application_log", "footer"
+  ))
+  expect_true(all(types %in% COLLECTION_MATERIAL_PRESETS$ficha_aplicacion_a4_v1$blocks))
   expect_true(all(vapply(
     template$pages[[1]]$blocks,
     function(block) isTRUE(block$type != "access_qr") || identical(block$binding, "access.qr_payload"),
