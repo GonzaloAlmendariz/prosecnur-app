@@ -50,7 +50,9 @@
 pulso_pdf_add_link_annotations <- function(path, links) {
   links <- Filter(function(l) is.list(l) && nzchar(as.character(l$url %||% "")[1]), links %||% list())
   if (!length(links)) return(invisible(0L))
-  if (!file.exists(path)) stop("No existe el PDF a enlazar: ", path, call. = FALSE)
+  if (!file.exists(path)) {
+    stop_internal(sprintf("pulso_pdf_add_link_annotations: no existe el PDF a enlazar: %s", path))
+  }
 
   raw <- readBin(path, "raw", n = file.info(path)$size)
   total <- length(raw)
