@@ -41,7 +41,10 @@ decisiones de limpieza.
 | **L7** | La pestaña Instrumento sólo muestra el resumen del universo si `upstream_universe.applied`; con base depurada y sin filtro no muestra nada. | `InstrumentoOperationalControls.tsx:134` vs `PromocionBase.tsx` | ☑ cerrado sin tocar código — ese aviso pertenece al filtro de pruebas, que es de lo que trata esa superficie; el hecho de la depuración ya lo declara `PromocionBase` en Limpieza, que es su dueña. Repetirlo sería duplicar información entre dimensiones |
 | **L8** | Verificar sobre proyectos reales, no sólo con universos sintéticos. | `api/inst/reference_projects/*` · `ACNUR_V3_final.pulso` | ☑ hecho — ficha correcta sobre el `.pulso` real (`103 · 2 · 101`) y sin regresión en `acnur_pdm` (`430 · 2 · 1 · 3 · 426`) |
 | **L9** | Gate escalado al diff + commit de la unidad. | — | ◐ a medias — gate en verde (360 + 49 + 42 + 61 asertos); falta commitear |
-| **L10** | Un `.pulso` puede quedar declarando «rige la base depurada 103 → 101» sin conservar las decisiones que lo justifican ni el plan. La exclusión sobrevive; su explicación no. | mismo sitio que L5 | ⛔ bloqueado — es la misma decisión de contrato |
+| **L10** | Un `.pulso` puede quedar declarando «rige la base depurada 103 → 101» sin conservar las decisiones que lo justifican ni el plan. La exclusión sobrevive; su explicación no. | mismo sitio que L5 | ◐ **se avisa**, falta decidir qué hacer — cuarto estado «rige, pero ya no puede explicarse» en `PromocionBase`, verificado sobre `ACNUR_V3_final.pulso` |
+| **L11** | Reemplazar la data dejaba el linaje describiendo un archivo que ya no rige — y desde L1 ese número llegaba al PDF del cliente. | `session_store.R` · `estudio_replace_base_files()` | ☑ hecho — cambiar la data descarta el linaje; recargar el XLSForm no lo toca |
+| **L12** | El linaje era de un solo salto: depurar dos veces reescribía `n_casos_antes` con el N intermedio y un estudio que recibió 103 declaraba 101. | `limpieza_decision_engine.R` · `.limpieza_promover_base()` | ☑ hecho — se ancla al primer salto; revertir vuelve a lo recibido |
+| **L13** | Falta el paso visual del cuarto estado a 1440x1000 y 1024x600. | `PromocionBase.tsx` | ☐ sin empezar — el backend de `:8787` es del usuario y precede al cambio, así que no emite el flag; exige reiniciarlo o levantar una pila aparte |
 
 ### Espera a Gonzalo
 
@@ -79,6 +82,16 @@ invalidación de la línea 1136 no lo mira.
 Medido así, conservar parece lo correcto y revertir en silencio lo peor de los
 tres caminos; pero la comprobación de variables que exige conservar es trabajo
 nuevo y la llamada es tuya.
+
+**Lo que ya se hizo de esa lista** (2026-08-15): el caso «cambió la data» está
+cerrado —no era decisión, era bug (L11)—, y el silencio también: el cuarto
+estado de `PromocionBase` declara la situación en vez de dejarla pasar (L10).
+Lo que sigue esperando es sólo la mitad discutible: **qué pasa con las
+decisiones cuando se recarga el XLSForm**. Las decisiones no dependen del
+instrumento por igual —una exclusión de casos se ancla en `target_case_ids` y
+no tiene ninguna dependencia; una transformación se ancla en `target_variable` y
+sí—, así que la respuesta razonable no es binaria: rehidratar lo aplicable y
+declarar lo que quedó huérfano, empezando por las exclusiones.
 
 ---
 
