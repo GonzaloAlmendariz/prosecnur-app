@@ -159,9 +159,16 @@
       base_meta$original_xlsform_file_id,
       "instrumento_adaptado"
     )
-    filtered_id <- if (isTRUE((base_meta$universe_filter %||% list())$enabled)) {
-      as.character((base_meta$universe_filter %||% list())$effective_data_file_id %||% "")
-    } else ""
+    # ADR 0076: la base efectiva la fija la última etapa que depuró. Se consulta
+    # la cadena en orden inverso al aplicado —limpieza, luego universo— porque
+    # la limpieza opera sobre lo que el universo dejó.
+    filtered_id <- ""
+    for (etapa in c("limpieza", "universe_filter")) {
+      cfg <- base_meta[[etapa]] %||% list()
+      if (!isTRUE(cfg$enabled)) next
+      candidato <- as.character(cfg$effective_data_file_id %||% "")
+      if (nzchar(candidato)) { filtered_id <- candidato; break }
+    }
     data_id <- if (nzchar(filtered_id)) filtered_id else
       .analitica_original_member_id(
         s,

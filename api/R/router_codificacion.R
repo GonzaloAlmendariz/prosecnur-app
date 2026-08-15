@@ -38,11 +38,18 @@
     return(NULL)
   }
   base <- s$estudio$bases[[active]]
-  if (identical(slot, "data") && isTRUE(prefer_original) &&
-      isTRUE((base$universe_filter %||% list())$enabled)) {
-    effective_fid <- as.character((base$universe_filter %||% list())$effective_data_file_id %||% "")
-    if (nzchar(effective_fid) && !is.null(s$files[[effective_fid]])) {
-      return(s$files[[effective_fid]])
+  # ADR 0076: `prefer_original` significa "la base vigente que no produjo esta
+  # etapa", no "el archivo que se cargó". La cadena de depuración se consulta en
+  # orden inverso al que se aplicó —limpieza primero, universo después— porque
+  # la limpieza opera sobre lo que el universo dejó.
+  if (identical(slot, "data") && isTRUE(prefer_original)) {
+    for (etapa in c("limpieza", "universe_filter")) {
+      cfg <- base[[etapa]] %||% list()
+      if (!isTRUE(cfg$enabled)) next
+      effective_fid <- as.character(cfg$effective_data_file_id %||% "")
+      if (nzchar(effective_fid) && !is.null(s$files[[effective_fid]])) {
+        return(s$files[[effective_fid]])
+      }
     }
   }
   fid_fields <- if (identical(slot, "xlsform")) {
