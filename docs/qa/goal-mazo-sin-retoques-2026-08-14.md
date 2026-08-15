@@ -24,7 +24,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | 0.280 ✗ |
 | V6 | Ninguna lámina supera las 9 premisas | máx. premisas por lámina | una con 13 ✗ |
 | V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
-| V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | no existe ✗ |
+| V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | **`p_slide_3_graficos_poblacion`** ✓ |
 
 ## Cola
 
@@ -35,8 +35,8 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L3 | Cambiar el extremo de la rampa a `#F4B183` | paletas del proyecto (23 listas) | ☑ **rojo 270→97, naranja 0→173** |
 | L4 | Activar `preservar_tamanos_texto` y fijar el juego de seis | preset base | ☑ **82.8 % → 8.2 %** fuera del juego |
 | L5 | Piso de grosor declarado por familia | `grosor_modo` + `grosor_barras` | ☐ |
-| L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | `plantilla_16_9.pptx` | ☐ |
-| L7 | Contrato, constructor, render y metadata de `poblacion_3` | 4 archivos R | ☐ |
+| L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | las **dos** plantillas | ☑ officer lo ve, 7 placeholders |
+| L7 | Contrato, constructor, render y metadata de `poblacion_3` | 6 archivos R + NAMESPACE | ☑ **lámina generada**, alto 2.08× |
 | L8 | Las otras 11 disposiciones del artefacto | ídem | ☐ |
 | L9 | Partir la lámina cuando supera 9 premisas | motor, no graficador | ☐ |
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
@@ -139,6 +139,17 @@ categorías —«90 % / 10 %»— donde la columna no aplica. El techo realista 
   recalibrar llevó el texto de barras de 15.93 a 8.53 pt —ilegible—, porque deja
   de escalar y respeta un declarado que estaba pensado para ser escalado. Los dos
   cambios van juntos: preservar + declarar el tamaño real.
+- **Añadir una lámina toca CUATRO sitios que la cuentan a mano**, y ninguno se
+  deriva solo: el contador de `render_key` en el contrato, dos listas del test de
+  metadata (`.gm_slide_blueprints` y `.gm_slide_slot_specs`, más el vector de
+  `kinds`) y el deck de sentinelas, que numera correlativamente y obliga a
+  renumerar todo lo que va después. La siguiente lámina volverá a pedirlos.
+- **El contrato de la matriz se acredita contra la plantilla de ACNUR**, no
+  contra la general. Un layout añadido solo a `plantilla_16_9.pptx` deja la
+  disposición existiendo a medias: genera, pero la matriz no le resuelve layout.
+- **El export va a mano al NAMESPACE.** Regenerarlo con roxygen quita 19 exports
+  —incluidos graficadores— y rompe `R CMD INSTALL`, que es de lo que dependen los
+  jobs `callr`.
 - **Un regex sobre `<a:bodyPr />` se traga el `/` del autocierre.** `[^>]*` es
   greedy: deja `attrs=" /"` y produce `<a:bodyPr / anchor="ctr">`, XML inválido
   que rompe la generación entera con «error parsing attribute name». Hay que
