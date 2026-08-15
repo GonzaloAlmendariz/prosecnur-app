@@ -1034,6 +1034,75 @@
   ),
 
   # ------------------------------------------------------------
+  # COMPOSICION — repartos de 2 y 3 gráficos sin icono.
+  # Comparten renderer (`.composicion_render`): lo que las distingue vive en
+  # la plantilla, que es donde se declara dónde cae cada hueco.
+  # ------------------------------------------------------------
+  graficos_3_2mas1 = list(
+    layout = "graficos_3_2mas1",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      superior_izquierda = list(type = "pic",   type_idx = 1),
+      inferior_izquierda = list(type = "pic",   type_idx = 2),
+      derecha      = list(type = "pic",   type_idx = 3),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  graficos_3_1mas2 = list(
+    layout = "graficos_3_1mas2",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      izquierda    = list(type = "pic",   type_idx = 1),
+      superior_derecha = list(type = "pic",   type_idx = 2),
+      inferior_derecha = list(type = "pic",   type_idx = 3),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  graficos_3_fila = list(
+    layout = "graficos_3_fila",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      izquierda    = list(type = "pic",   type_idx = 1),
+      centro       = list(type = "pic",   type_idx = 2),
+      derecha      = list(type = "pic",   type_idx = 3),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  graficos_3_1arriba = list(
+    layout = "graficos_3_1arriba",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      superior     = list(type = "pic",   type_idx = 1),
+      inferior_izquierda = list(type = "pic",   type_idx = 2),
+      inferior_derecha = list(type = "pic",   type_idx = 3),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  graficos_2_vertical = list(
+    layout = "graficos_2_vertical",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      superior     = list(type = "pic",   type_idx = 1),
+      inferior     = list(type = "pic",   type_idx = 2),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  graficos_2_asimetrico = list(
+    layout = "graficos_2_asimetrico",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      principal    = list(type = "pic",   type_idx = 1),
+      apoyo        = list(type = "pic",   type_idx = 2),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  # ------------------------------------------------------------
   # POBLACION_3 — 2 paneles apilados a la izquierda + 1 ALTO a la derecha
   #
   # La disposición real de las láminas de perfil del entregable aprobado: el
@@ -1531,6 +1600,26 @@
       if (!is.null(tx) && !(is.character(tx) && length(tx) == 1L)) {
         msg <- paste0("`.validate_plan()`: slide_2_narrativo (i=", i, ") `slots$text` debe ser character(1) o NULL.")
         if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+      }
+      next
+    }
+
+    # -------------------------
+    # COMPOSICION — las seis comparten forma: N slots de gráfico y nada más.
+    # -------------------------
+    if (stype %in% names(.SLIDES_COMPOSICION)) {
+      slots <- s$slots %||% NULL
+      if (is.null(slots) || !is.list(slots)) {
+        msg <- paste0("`.validate_plan()`: ", stype, " (i=", i, ") requiere `slots` como lista.")
+        if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+        next
+      }
+      for (nm in .SLIDES_COMPOSICION[[stype]]) {
+        el <- slots[[nm]] %||% NULL
+        if (is.null(el) || !inherits(el, "ppt_element")) {
+          msg <- paste0("`.validate_plan()`: ", stype, " (i=", i, ") requiere `slots$", nm, "` como `ppt_element`.")
+          if (isTRUE(strict)) stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+        }
       }
       next
     }

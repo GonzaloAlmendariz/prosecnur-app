@@ -1,4 +1,4 @@
-# Contrato geométrico efectivo de las 22 láminas PPT.
+# Contrato geométrico efectivo de las 28 láminas PPT.
 #
 # Esta es la única autoridad que combina metadata pública, plantilla abierta,
 # presets efectivos y `.PPT_CONTRACT`. El renderer conserva el contrato interno
@@ -29,6 +29,12 @@
     bottom_left = "inferior_izquierda", bottom_right = "inferior_derecha",
     base = "base", footer = "pie"
   ),
+  graficos_3_2mas1 = c(title = "titulo", superior_izquierda = "superior_izquierda", inferior_izquierda = "inferior_izquierda", derecha = "derecha", base = "base"),
+  graficos_3_1mas2 = c(title = "titulo", izquierda = "izquierda", superior_derecha = "superior_derecha", inferior_derecha = "inferior_derecha", base = "base"),
+  graficos_3_fila = c(title = "titulo", izquierda = "izquierda", centro = "centro", derecha = "derecha", base = "base"),
+  graficos_3_1arriba = c(title = "titulo", superior = "superior", inferior_izquierda = "inferior_izquierda", inferior_derecha = "inferior_derecha", base = "base"),
+  graficos_2_vertical = c(title = "titulo", superior = "superior", inferior = "inferior", base = "base"),
+  graficos_2_asimetrico = c(title = "titulo", principal = "principal", apoyo = "apoyo", base = "base"),
   poblacion_2 = c(title = "titulo", text = "texto", left = "izquierda", right = "derecha", icon = "icono", base = "base"),
   poblacion_3 = c(
     title = "titulo", up_left = "superior_izquierda", bottom_left = "inferior_izquierda",
@@ -458,10 +464,10 @@
 
   render_keys <- vapply(metadata, function(meta) as.character(meta$render_key %||% "")[1], character(1))
   # El número es una cuenta declarada, no un tope: sube cuando se añade una
-  # lámina (la última, `poblacion_3`, en 2026-08-14). Lo que protege de verdad
+  # lámina (las últimas, las seis de composición, en 2026-08-14). Lo que protege de verdad
   # es el `anyDuplicated`, que caza dos láminas compartiendo renderer.
-  if (length(render_keys) != 22L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
-    stop("El metadata de slides debe declarar 22 `render_key` únicos.", call. = FALSE)
+  if (length(render_keys) != 28L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
+    stop("El metadata de slides debe declarar 28 `render_key` únicos.", call. = FALSE)
   }
 
   contract <- .ppt_slide_template_manual_contracts(.PPT_CONTRACT)

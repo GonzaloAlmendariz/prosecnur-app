@@ -122,7 +122,7 @@ if (!exists("http_contract_server", mode = "function")) {
   stop("familia desconocida")
 }
 
-test_that("matriz ACNUR v2 acredita 22 tipos, 18 layouts y wire path-free", {
+test_that("matriz ACNUR v2 acredita 28 tipos, 18 layouts y wire path-free", {
   skip_if_not_installed("officer")
   matrix <- .graficos_slide_layout_matrix(template_id = "acnur_16_9")
 
@@ -136,8 +136,8 @@ test_that("matriz ACNUR v2 acredita 22 tipos, 18 layouts y wire path-free", {
   expect_identical(matrix$template$id, "acnur_16_9")
   expect_identical(matrix$template$identity_source, "template_id")
   expect_match(matrix$template$fingerprint, "^[0-9a-f]{64}$")
-  expect_identical(length(matrix$slides), 22L)
-  expect_identical(length(unique(vapply(matrix$slides, `[[`, character(1), "layout"))), 19L)
+  expect_identical(length(matrix$slides), 28L)
+  expect_identical(length(unique(vapply(matrix$slides, `[[`, character(1), "layout"))), 25L)
 
   tipos <- vapply(matrix$slides, `[[`, character(1), "tipo")
   expect_setequal(tipos, names(.SLIDES_META))
@@ -243,7 +243,7 @@ test_that("oracle pre-L7 conserva Graficos2 como primera opción de slide_1", {
   expect_identical(attr(resolved, "ppt_contract")$slide_1$layout, expected)
 })
 
-test_that("aliases compatibles resuelven 22 de 22 dentro del mismo master", {
+test_that("aliases compatibles resuelven 28 de 28 dentro del mismo master", {
   preferred <- vapply(
     .SLIDES_META,
     function(meta) as.character(meta$blueprint$ppt_layout)[1],
@@ -270,7 +270,7 @@ test_that("aliases compatibles resuelven 22 de 22 dentro del mismo master", {
     master = "Target Master"
   )
   diagnostics <- ifelse(is.na(selected), "layout_missing", "")
-  expect_identical(length(selected), 22L)
+  expect_identical(length(selected), 28L)
   expect_false(any(diagnostics == "layout_missing"))
   expect_identical(unname(selected[["p_slide_1_grafico"]]), "Graficos")
   expect_true(all(selected[preferred == "Title and Content"] == "General Objective"))
@@ -383,10 +383,10 @@ test_that("objetivo ACNUR usa body 1 texto y body 2 icono del resolver", {
   expect_identical(contract$slots$icon$type_idx, 2L)
 })
 
-test_that("registry serializa render_key declarativo para los 22 tipos", {
+test_that("registry serializa render_key declarativo para los 28 tipos", {
   registry <- .graficos_registry_payload()
   slides <- registry$slides
-  expect_identical(length(slides), 22L)
+  expect_identical(length(slides), 28L)
   keys <- vapply(slides, `[[`, character(1), "render_key")
   expect_identical(
     keys,
@@ -417,7 +417,7 @@ test_that("GET slide-layout-matrix monta y sirve el contrato v2 explícito", {
   expect_identical(payload$contract_version, 2L)
   expect_identical(payload$template$id, "acnur_16_9")
   expect_identical(payload$template$identity_source, "template_id")
-  expect_identical(length(payload$slides), 22L)
+  expect_identical(length(payload$slides), 28L)
 })
 
 test_that("HTTP real absorbe query params y conserva req$argsQuery como autoridad", {
@@ -434,7 +434,7 @@ test_that("HTTP real absorbe query params y conserva req$argsQuery como autorida
   expect_identical(matrix$status, 200L)
   expect_null(matrix$json$error)
   expect_identical(matrix$json$schema, "graficos.slide_layout_matrix/v2")
-  expect_identical(length(matrix$json$slides), 22L)
+  expect_identical(length(matrix$json$slides), 28L)
   expect_identical(matrix$json$template$id, "acnur_16_9")
   expect_identical(matrix$json$template$identity_source, "template_id")
 
@@ -574,23 +574,41 @@ test_that("GET matrix separa scope efectivo, identidad y precedencia de query", 
     p_slide_2_graficos_poblacion(
       blank, blank, "L7-S18-poblacion-dos", "L7-POP-TWO-TEXT", icon
     ),
+    p_slide_3_graficos_2mas1(
+      blank, blank, blank, "L7-S19-graficos_3_2mas1"
+    ),
+    p_slide_3_graficos_1mas2(
+      blank, blank, blank, "L7-S20-graficos_3_1mas2"
+    ),
+    p_slide_3_graficos_fila(
+      blank, blank, blank, "L7-S21-graficos_3_fila"
+    ),
+    p_slide_3_graficos_1arriba(
+      blank, blank, blank, "L7-S22-graficos_3_1arriba"
+    ),
+    p_slide_2_graficos_vertical(
+      blank, blank, "L7-S23-graficos_2_vertical"
+    ),
+    p_slide_2_graficos_asimetrico(
+      blank, blank, "L7-S24-graficos_2_asimetrico"
+    ),
     p_slide_3_graficos_poblacion(
-      blank, blank, blank, "L7-S19-poblacion-tres", icon
+      blank, blank, blank, "L7-S25-poblacion-tres", icon
     ),
     p_slide_4_graficos_poblacion(
-      blank, blank, blank, blank, "L7-S20-poblacion-cuatro", icon
+      blank, blank, blank, blank, "L7-S26-poblacion-cuatro", icon
     ),
     p_slide_5_graficos_poblacion(
-      blank, blank, blank, blank, blank, "L7-S21-poblacion-cinco", icono = icon
+      blank, blank, blank, blank, blank, "L7-S27-poblacion-cinco", icono = icon
     ),
     p_slide_6_graficos_poblacion(
       blank, blank, blank, blank, blank, blank,
-      "L7-S22-poblacion-seis", icono = icon
+      "L7-S28-poblacion-seis", icono = icon
     )
   )
 }
 
-test_that("renderer ACNUR consume el mismo objeto v2 en un deck de 22 sentinelas", {
+test_that("renderer ACNUR consume el mismo objeto v2 en un deck de 28 sentinelas", {
   skip_if_not_installed("officer")
   skip_if_not_installed("rvg")
   skip_if_not_installed("ggplot2")
@@ -630,9 +648,9 @@ test_that("renderer ACNUR consume el mismo objeto v2 en un deck de 22 sentinelas
   )
 
   doc <- officer::read_pptx(output)
-  expect_identical(length(doc$slide$names()), 22L)
+  expect_identical(length(doc$slide$names()), 28L)
   layout_meta <- doc$slideLayouts$get_metadata()
-  actual_layouts <- vapply(seq_len(22L), function(i) {
+  actual_layouts <- vapply(seq_len(28L), function(i) {
     rel <- doc$slide$get_slide(i)$get_metadata()$layout_file[[1]]
     filename <- basename(rel)
     as.character(layout_meta$name[match(filename, layout_meta$filename)])
@@ -640,7 +658,7 @@ test_that("renderer ACNUR consume el mismo objeto v2 en un deck de 22 sentinelas
   expect_identical(actual_layouts, vapply(matrix$slides, `[[`, character(1), "layout"))
 
   summary <- officer::pptx_summary(doc)
-  sentinels <- sprintf("L7-S%02d-", seq_len(22L))
+  sentinels <- sprintf("L7-S%02d-", seq_len(28L))
   for (i in seq_len(21L)) {
     slide_text <- paste(summary$text[summary$slide_id == i], collapse = " ")
     expect_match(slide_text, sentinels[[i]], fixed = TRUE, label = paste("slide", i))
