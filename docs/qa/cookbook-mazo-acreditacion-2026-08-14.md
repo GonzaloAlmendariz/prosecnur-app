@@ -27,42 +27,42 @@ O sea: «barras más gruesas», repetido en seis láminas, **no se resolvió
 engrosando las barras**. Un estándar que fije «grosor = X» no habría resuelto
 nada, porque el problema nunca fue el valor central.
 
-Lo que sí cambió, y es donde está la receta:
+Lo que cambió fue **dónde** se puso el grosor, no cuánto. Y para verlo hay que
+controlar por una variable que la primera medición ignoraba: **cuántos gráficos
+comparten la lámina** (ver la corrección más abajo). Normalizado así:
 
-| Barras en la lámina | 12-08 | 14-08 | Motor | Qué pasó |
-|---|---|---|---|---|
-| 1 | 0.492 | **0.583** | 0.423 | engrosó donde sobraba espacio |
-| 2 | 0.436 | **0.566** | 0.490 | engrosó |
-| 3 | 0.479 | **0.505** | 0.642 | engrosó |
-| 4 | 0.472 | 0.411 | 0.604 | adelgazó |
-| 5 | 0.512 | 0.511 | 0.573 | igual |
-| 6 | 0.475 | 0.462 | 0.509 | igual |
-| 7 | 0.420 | 0.394 | 0.458 | adelgazó |
+| Gráficos en la lámina | Aprobado | Motor |
+|---|---|---|
+| 1 | 0.498 in | 0.508 in |
+| 2 | 0.374 in | 0.420 in |
+| 3 | 0.279 in | 0.334 in |
+| 4 | 0.256 in | 0.280 in |
 
-**La corrección fue local, no global**: engrosar donde había hueco (1–3 barras) y
-dejar que adelgace donde no lo hay (4+). El aprobado usa el espacio disponible;
-el criticado dejaba aire muerto arriba y abajo.
+**El motor está dentro o por encima del aprobado en los cuatro casos.** El
+grosor de barra, que parecía el corazón del encargo por ser el comentario más
+repetido, **no es un defecto del motor**.
 
-Y nuestro motor falla **exactamente en el extremo opuesto** al que se corrigió:
-con 1 barra hace 0.423 in donde el aprobado hace 0.583. Es literalmente el
-comentario de la lámina 11 («el grosor podría estar más ancho, no se ve
-estético») y el de la 13 («para que el círculo sea un poquito más grande»).
+Ese es el segundo giro: los comentarios más repetidos no señalaban lo que más
+falla. Lo que sí falla está en tipografía, color, posición y en la columna Top
+Two Box, y casi nadie lo comentó porque no se ve como un problema de diseño sino
+como «está muy apretado».
 
 ---
 
 ## Receta 1 — Grosor de barra en apiladas
 
-El grosor **no es constante y no debe serlo**: es una función del número de
-barras, acotada por arriba y por abajo.
+El grosor **no es constante y no debe serlo**. Depende de **dos** variables:
+cuántos gráficos comparten la lámina y cuántas barras tiene cada gráfico.
 
-| Barras | Grosor objetivo | Mínimo | Origen |
+| Gráficos/lámina | 2 barras | 3 barras | 4 barras |
 |---|---|---|---|
-| 1 | 0.60–0.71 in | 0.55 | medido en 14-08 láms 20, 34 |
-| 2 | 0.55–0.63 in | 0.50 | láms 32, 39 |
-| 3 | 0.50–0.59 in | 0.45 | láms 23, 27, 35, 36 |
-| 4–6 | 0.45–0.51 in | 0.39 | láms 25, 28, 40, 42 |
-| 7–9 | 0.39–0.45 in | 0.32 | láms 22, 37 |
-| 10+ | — | **0.32** | ver receta 2 |
+| 1 | 0.509 in | 0.495 in | — |
+| 2 | 0.456 in | 0.394 in | 0.354 in |
+| 3 | 0.342 in | 0.278 in | 0.256 in |
+| 4 | 0.325 in | — | 0.256 in |
+
+Para gráficos con muchas barras (7+) en lámina única, medido aparte: 0.39–0.45 in,
+con **piso de 0.32 in**.
 
 **El piso de 0.32 in es la regla dura.** Por debajo aparece el comentario «barras
 muy delgadas, se ve muy apretado» (lám 21). El 12-08 bajaba a 0.240 in; ninguna
@@ -169,29 +169,50 @@ Con dos círculos coinciden. **Con uno solo, el motor lo dibuja un 24 % más
 pequeño que el aprobado.** Es exactamente el comentario de la lámina 12: «me
 parece que el pye está muy chiquito».
 
-## La regla transversal: el motor dimensiona por defecto, no por espacio
+## CORRECCIÓN — la variable que faltaba: cuántos gráficos comparten la lámina
 
-Las recetas 1, 5 y 6 apuntan al mismo sitio. Puestas juntas:
+Una versión anterior de este documento concluía que «el motor no usa el espacio
+disponible» (−27 % con una barra). **Era un artefacto de la medición.**
 
-| Caso | Motor | Aprobado | Diferencia |
+El grosor no depende solo de cuántas barras tiene el gráfico, sino de **cuántos
+gráficos se reparten el alto de la lámina**. Hay láminas con un solo gráfico, las
+de perfil con cuatro, y alguna que nació con cuatro y quedó en tres al quitar
+uno. Agrupar por «láminas con 1 barra» mete en la misma fila una barra que ocupa
+la lámina entera y una barra de un panel de cuatro. La dispersión resultante
+parecía arbitrariedad y era aritmética.
+
+Medido de nuevo, controlando por gráficos por lámina:
+
+| Gráficos en la lámina | Aprobado | Motor | Diferencia |
 |---|---|---|---|
-| 1 barra apilada | 0.423 in | 0.583 in | −27 % |
-| 2 barras apiladas | 0.490 in | 0.566 in | −13 % |
-| 1 círculo solo | 1.654 in | 2.047 in | −24 % |
-| 6+ barras apiladas | 0.509 in | 0.462 in | +10 % |
+| 1 | 0.498 in | 0.508 in | **+2 %** |
+| 2 | 0.374 in | 0.420 in | **+12 %** |
+| 3 | 0.279 in | 0.334 in | **+20 %** |
+| 4 | 0.256 in | 0.280 in | **+9 %** |
 
-**Cuando sobra espacio, el motor no lo usa; cuando falta, lo compensa
-encogiendo.** Es el mismo defecto visto desde los dos extremos, y explica de un
-tirón cuatro familias de comentarios: «el pye está muy chiquito», «las barras
-podrían estar más anchas», «se ve un poco vacío», «no se puede poner todo más
-grande».
+**El motor no se queda corto en ningún caso: está por encima del aprobado en los
+cuatro.** El déficit del −27 % no existe.
 
-No hace falta un número por lámina. Hace falta que el elemento **crezca hasta
-llenar su canvas** cuando hay holgura, con un tope, en vez de quedarse en su
-tamaño de fábrica.
+Lo que sí queda establecido, y es la receta útil, es que el grosor es una función
+de **dos** variables:
 
-Esa es la receta madre del mazo, y probablemente el arreglo que más comentarios
-cierra por línea de código.
+| Gráficos/lámina | 2 barras | 3 barras | 4 barras |
+|---|---|---|---|
+| 1 | 0.509 | 0.495 | — |
+| 2 | 0.456 | 0.394 | 0.354 |
+| 3 | 0.342 | 0.278 | 0.256 |
+| 4 | 0.325 | — | 0.256 |
+
+La tendencia es monótona en las dos direcciones: más gráficos por lámina y más
+barras por gráfico, barra más fina. Esa tabla **sí** es un default declarable.
+
+**Qué sobrevive de los hallazgos anteriores.** Los que no dependían del reparto
+del alto siguen en pie y verificados: el título en 0.130 in contra 0.355 (receta
+7), los tamaños fraccionarios (receta 3), el rojo en la rampa (receta 4) y la
+columna Top Two Box ausente (E1). El del círculo único (receta 6) queda **por
+reconfirmar** con esta métrica: sus dos láminas tienen un solo gráfico, así que
+probablemente aguanta, pero no está medido con el mismo rigor que la tabla de
+arriba.
 
 ## Receta 7 — Posición del título: medida, y es la que más claramente falla
 
@@ -315,7 +336,7 @@ una lista que alguien recuerda:
 | 7 | y del título = 0.355 in | motor: 0.130 ✗ |
 | 8 | y del primer dato ≥ 1.65 in | motor: 1.527 ✗ |
 | 9 | rojo en títulos sí, en rampa de escala no | motor: rampa ✗, títulos ✓ |
-| transversal | con 1–2 elementos, el grosor está en el tramo alto de su tabla | motor: −27 % ✗ |
+| 1 | grosor dentro de la tabla (gráficos × barras) | motor: +2 a +20 % ✓ |
 
 Nueve de los diez se leen del `.pptx` sin abrirlo, así que el recetario entero
 puede correr como gate. El que falta es el contraste del texto sobre la barra,
@@ -325,21 +346,22 @@ que necesita cruce por posición.
 
 | Receta | Motor | Aprobado | Estado |
 |---|---|---|---|
-| 1 · grosor apilada (1 barra) | 0.423 in | 0.583 in | ✗ −27 % |
+| 1 · grosor por (gráficos, barras) | +2 a +20 % | — | ✓ dentro de rango |
 | 2 · partir lámina > 9 premisas | no existe | — | ✗ |
 | 3 · tamaños del juego de seis | 15.93, 15.99… | 14/13/12 | ✗ |
 | 4 · naranja en la rampa | rojo | naranja | ✗ |
 | 5 · grosor categórica | 0.28 in | 0.28 in | ✓ |
-| 6 · círculo único | 1.654 in | 2.047 in | ✗ −24 % |
+| 6 · círculo único | 1.654 in | 2.047 in | ⚠ por reconfirmar |
 | 7 · y del título | 0.130 in | 0.355 in | ✗ |
 | 8 · y del primer dato | 1.527 in | 1.658 in | ✗ |
 | 9 · rojo en títulos | ✓ | ✓ | ✓ |
 | 10 · interlineado | 100 % | 100 % | ✓ |
 
-**Siete fallan, tres ya están bien.** Y de los siete, cinco son el mismo defecto:
-el motor no usa el espacio disponible (1, 6) o coloca los elementos donde los
-dejó el mazo criticado (7, 8), y el tercero (3) es el autoescalado que provoca
-todo lo anterior.
+**Cinco fallan, cuatro están bien, una por reconfirmar.** Y las cinco que fallan
+no comparten causa: son el autoescalado de la letra (3), el color de la rampa
+(4), la posición del título y del bloque (7, 8) y la columna Top Two Box
+ausente. El grosor de barra —que parecía el problema central— **no está entre
+ellas**.
 
 ## ¿Sirve el entregable final como manual guía?
 
@@ -365,13 +387,14 @@ nadie la escribiera, y se puede copiar tal cual.
 | Dimensión | Consistencia interna |
 |---|---|
 | Posición vertical del título | valor dominante en solo **9 de 57 láminas (16 %)** |
-| Grosor con 1 barra | 0.192–0.709 in — **varía 3.7×** |
-| Grosor con 4 barras | 0.256–0.551 in — **varía 2.1×** |
-| Grosor con 5 barras | 0.506–0.512 in — 1.01× ✓ |
+| Grosor, agrupado solo por nº de barras | varía hasta 3.7× |
+| Grosor, agrupado por (gráficos × barras) | varía 1.2–2.0× en la mayoría de celdas |
 
-Con el mismo número de barras, el mazo aprobado usa grosores que se diferencian
-en más del triple. Eso no es una regla con excepciones: es **ausencia de regla**.
-Son láminas ajustadas a mano, una por una, hasta que se vieron bien.
+Aquí hay que ser preciso, porque una primera lectura exageró el problema: **buena
+parte de esa dispersión desaparece al controlar por cuántos gráficos comparten la
+lámina**. Lo que queda tras normalizar es una variación de 1.2× a 2.0× dentro de
+la misma celda — bastante para no copiar un valor suelto, poco para llamarlo
+arbitrario.
 
 ### Qué implica
 
@@ -418,6 +441,12 @@ manual construido copiándolo heredaría justo eso.
   medidor devuelve 0.159 repetido en treinta láminas — un número que no es
   ninguna barra y que parece perfectamente creíble. Se descubrió abriendo la
   lámina 9 forma por forma, no revisando el código.
+- **Una medición sin normalizar por el reparto del espacio inventa un defecto.**
+  Agrupar el grosor solo por número de barras mezcla una barra que ocupa la
+  lámina entera con una de un panel de cuatro, y produjo un «el motor se queda
+  27 % corto» que no existe: normalizado por gráficos por lámina, el motor está
+  por encima del aprobado en los cuatro casos. Lo detectó Gonzalo, no la
+  medición — el número era coherente consigo mismo y con el relato.
 - **Las mediciones agregadas mienten dos veces**: la media mezcla barras con
   cabeceras (hay que usar la moda) y el conteo mezcla etiquetas con datos (hay
   que exigir forma sin texto). Las dos veces el resultado erróneo era plausible.
