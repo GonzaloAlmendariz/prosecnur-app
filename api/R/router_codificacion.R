@@ -2446,6 +2446,9 @@ mount_codificacion <- function(pr) {
       } else data.frame(name = character(0), stringsAsFactors = FALSE)
 
       marcadas_set <- codif_get(sid, "marcadas", source = source) %||% list()
+      # ADR 0078: las decisiones explícitas de no categorizar, para que la
+      # pregunta salga cerrada y con su motivo en vez de parecer un olvido.
+      no_cat_todas <- .codif_no_categorizar_todas(sid, source = source)
 
       rows <- draft$rows %||% list()
       draft <- .codif_normalize_legacy_select_one_modes(sid, draft, data_df, source = source)
@@ -2470,13 +2473,13 @@ mount_codificacion <- function(pr) {
         } else tipo
         recoded <- codif_get(sid, "respuestas_recod", source = source)[[parent]] %||% list()
         n_cod <- length(recoded)
-        needs_config <- tipo == "select_one" && !modo_so %in% c("padre", "hijo")
-        status <- if (!use_flag) "no-aplica"
-          else if (needs_config) "requiere-config"
-          else if (stats$n_respuestas == 0L) "sin-datos"
-          else if (n_cod == 0L) "no-iniciado"
-          else if (n_cod < stats$n_unicas) "en-curso"
-          else "completo"
+        # La regla vive en codificacion_decisiones.R: `/aplicar` la necesita
+        # igual y recalcularla allá crearía una segunda taxonomía (ADR 0078).
+        status <- .codif_status_de_pregunta(
+          tipo = tipo, modo_so = modo_so, use_flag = use_flag,
+          n_respuestas = stats$n_respuestas, n_unicas = stats$n_unicas,
+          n_codificadas = n_cod
+        )
 
         # XLSForm metadata (section + q_order)
         sec_row <- section_info[!is.na(section_info$name) & section_info$name == parent, , drop = FALSE]
@@ -2513,7 +2516,7 @@ mount_codificacion <- function(pr) {
           .opciones_sm(parent, list_norm_r, inst, data_df)
         } else list()
 
-        list(
+        salida <- list(
           parent = parent,
           parent_label = parent_label,
           tipo = tipo,
@@ -2547,14 +2550,50 @@ mount_codificacion <- function(pr) {
           marcada = !is.null(pareja) || isTRUE(marcadas_set[[parent]]),
           marcada_auto = !is.null(pareja)
         )
+        # ADR 0078: el vocabulario de decisiones se deriva del `status` que ya
+        # se calculó arriba, no en paralelo.
+        salida$no_categorizar <- no_cat_todas[[parent]]
+        salida$decision <- .codif_decision_de_pregunta(
+          status = status, marcada = salida$marcada,
+          no_categorizar = salida$no_categorizar
+        )
+        salida
       })
       if (isTRUE(labels_changed)) {
         draft$rows <- rows
         draft$updated_at <- format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
         codif_set(sid, "familias_draft", draft, source = source)
       }
-      list(ok = TRUE, preguntas = preguntas)
+      list(
+        ok = TRUE,
+        preguntas = preguntas,
+        # ADR 0078, punto 4: el estado se comunica como número accionable.
+        resumen_decisiones = .codif_resumen_decisiones(preguntas)
+      )
     })) |>
+
+    # ADR 0078, punto 2: «no categorizar» es una decisión de primera clase, y
+    # exige motivo. Se registra por variable y viaja en el `.pulso`.
+    plumber::pr_post("/api/codificacion/no-categorizar", wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      body_raw <- if (!is.null(req$bodyRaw)) rawToChar(req$bodyRaw) else (req$postBody %||% "")
+      if (!nzchar(body_raw)) stop_api(400, "E_EMPTY_BODY", "Body vacío.")
+      Encoding(body_raw) <- "UTF-8"
+      parsed <- tryCatch(
+        jsonlite::fromJSON(body_raw, simplifyVector = FALSE),
+        error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
+      )
+      source <- .codif_config_scalar(parsed$base %||% "", "")
+      source <- if (nzchar(source)) .codif_matrix_selected_bases(sid, source)[[1]] else NULL
+      parent <- as.character(parsed$parent %||% "")
+      if (isTRUE(parsed$revertir)) {
+        codif_no_categorizar_unset(sid, parent, source = source)
+        return(list(ok = TRUE, parent = parent, no_categorizar = NULL))
+      }
+      reg <- codif_no_categorizar_set(sid, parent, parsed$motivo %||% "", source = source)
+      list(ok = TRUE, parent = parent, no_categorizar = reg)
+    })) |>
+
     plumber::pr_post("/api/codificacion/pareja", wrap_endpoint(function(req, res, ...) {
       sid <- session_header(req)
       s <- session_get(sid)
@@ -3197,6 +3236,18 @@ mount_codificacion <- function(pr) {
           .codif_apply_complete(j$sid, target_base, j$result_data)
         }
       )
-      list(ok = TRUE, job_id = job_id, kind = "codificacion.aplicar")
+      # ADR 0078, invariante 5: aplicar deja constancia de qué variables se
+      # entregan sin recodificar, distinguiendo la decisión deliberada del
+      # olvido. No bloquea — un gate acá se satisfaría desmarcando todo.
+      sin_recod <- tryCatch(
+        .codif_sin_recodificar(.codif_decisiones_del_draft(sid, draft, data_df)),
+        error = function(e) list()
+      )
+      codif_set(sid, "ultimo_aplicar_sin_recodificar", sin_recod)
+
+      list(
+        ok = TRUE, job_id = job_id, kind = "codificacion.aplicar",
+        sin_recodificar = sin_recod
+      )
     }))
 }
