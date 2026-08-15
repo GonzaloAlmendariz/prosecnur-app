@@ -83,13 +83,14 @@ describe("tres casos del mismo problema son un problema", () => {
 });
 
 describe("cada señal se nombra por lo que es", () => {
-  test("los cinco tipos tienen rótulo propio", () => {
+  test("los seis tipos tienen rótulo propio", () => {
     const tipos = [
       "formulario_desactualizado",
       "identidad_agente",
       "envio_sin_padron",
       "padron_sin_envio",
       "cruce_identidad",
+      "abierta_sin_contenido",
     ];
     const rotulos = tipos.map(rotuloDeTipo);
     expect(new Set(rotulos).size).toBe(tipos.length);

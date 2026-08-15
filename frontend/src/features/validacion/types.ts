@@ -404,6 +404,16 @@ export type InstrumentoOperationalConfig = {
       valores: string[];
     }>;
   };
+  /**
+   * Qué preguntas abiertas se vigilan además del «otro, especifique», que el
+   * instrumento ya delata solo. Las independientes se declaran porque no se
+   * pueden inferir: un detector de «esto no dice nada» aplicado a todo campo de
+   * texto marcó 103 de 104 teléfonos, que no tienen letras.
+   */
+  abiertas: {
+    enabled: boolean;
+    variables: string[];
+  };
 };
 
 /** Candidatas que la app propone para declarar cada rol. Read-only. */
@@ -429,6 +439,18 @@ export type RolesSugerencias = {
      *  criterio de validez: adoptarla sacaría del universo a media muestra. */
     probable_rama: boolean;
     porque: string;
+  }>;
+  /** Preguntas de texto independientes: cuáles parecen contenido y cuáles
+   *  captura operativa (un código, un teléfono). Declarar una operativa
+   *  alertaría en cada caso de la base, así que la evidencia va visible. */
+  abiertas?: Array<{
+    variable: string;
+    etiqueta: string;
+    n_respuestas: number;
+    palabras_promedio: number;
+    probable_operativa: boolean;
+    porque: string;
+    ejemplos: string[];
   }>;
 };
 

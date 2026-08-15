@@ -210,7 +210,46 @@ terminan diciendo cosas distintas de la misma base.
   existe, la respuesta honesta es que la duración no se mide y el ítem se cierra
   diciendo eso.
 
-**M8 · Qué se está escribiendo en las preguntas abiertas** ☐
+**M8 · Qué se está escribiendo en las preguntas abiertas** ☑ *(2026-08-15)*
+- **Dónde vive**: `api/R/monitoreo_abiertas.R` (archivo propio) y el rol nuevo
+  `operational_config$abiertas`, declarable desde la misma pantalla de
+  Validación que los demás.
+- **Qué cuenta como «no dice nada»**, elegido midiendo sobre las 69 respuestas
+  reales y no por gusto:
+
+  | Señal | Marca en MDV | Veredicto |
+  |---|---|---|
+  | adyacencia de teclado | **10 de 69** | **descartada** — cualquier frase contiene pares de teclas vecinas |
+  | sin vocales | **1** (`hjk`) | se queda |
+  | sin letras, carácter repetido, un solo carácter | 0 | se quedan: no cuestan nada y cubren lo que MDV no tiene |
+  | 5+ consonantes seguidas | 0 | se queda: caza `asdfghjkl` y el español llega a cuatro (`abstracto`, `obstrucción`) |
+
+- **Evidencia** sobre `ACNUR MDV AGOSTO`: **1 alerta**, la real.
+
+  > **[advertencia] abierta_sin_contenido** — En «¿Qué otra barrera?
+  > (RevB_barriers_other)» hay 1 de 15 respuestas que no dicen nada: «hjk» (no
+  > tiene ninguna vocal). Todas las escribió Silbia Cruzado.
+  >
+  > *¿Qué le respondieron a Silbia Cruzado en esa pregunta? Mientras el caso
+  > esté fresco todavía se puede recuperar; en Codificación ya no.*
+
+- **Controles**: sin instrumento, **0** —adivinar por nombre de columna es lo
+  que ninguna señal puede hacer—; las 10 respuestas legítimas de prueba, **0**;
+  y la razón medida de que las independientes se declaren: vigilar el teléfono
+  marcaría **103 de 104 casos**, porque no tiene letras.
+- **Una alerta por pregunta, no por respuesta**: si alguien escribió tres veces
+  cualquier cosa en la misma pregunta, es un problema con tres casos.
+- **El sugeridor separa contenido de captura operativa** con la evidencia a la
+  vista (respuestas, palabras promedio) y marca `probable_operativa`, porque
+  declarar una operativa alertaría en cada caso de la base. **Lo que ya tiene
+  otro rol queda fuera**: medido, sin eso el nombre del encuestador —2,2
+  palabras, repetido entre casos— se proponía como texto de contenido.
+- **Límites conocidos y medidos, que quedan escritos**: un manotazo pronunciable
+  (`qwertyuiop` tiene vocales y no encadena consonantes) **no se detecta**, y un
+  acrónimo sin vocales (`RH`, `PC`) **se marca de más**. Con avisos de
+  advertencia, el segundo cuesta una mirada; el primero es el techo honesto del
+  detector.
+
 - **Rol**: hoy la app **muestra** las respuestas abiertas y es el analista quien
   descubre, leyendo, que alguien escribió cualquier cosa. Y las descubre en
   Codificación, cuando el campo ya cerró. Es la misma inversión que el resto del
@@ -356,6 +395,11 @@ terminan diciendo cosas distintas de la misma base.
   llevó la fila del status y quedó en **25 px**. La regla: contenido nuevo va
   dentro del contenido, no como fila hermana de un template cerrado. (Medido el
   2026-08-15.)
+- **La adyacencia de teclado no detecta tecleo al azar.** Parecía la señal
+  obvia para cazar un `hjk` y marcó **10 de 69** respuestas reales: cualquier
+  frase en español contiene pares de teclas vecinas («as», «er», «op»). Lo que
+  sí discrimina es la ausencia de vocales y las rachas de consonantes que
+  ninguna palabra tiene. (Medido el 2026-08-15.)
 - **Una alerta sin destinatario no es una alerta.** «Revisar duración» no le
   sirve a nadie; «llamar a X y preguntar por los casos A y B» sí. La diferencia
   la marca V3.

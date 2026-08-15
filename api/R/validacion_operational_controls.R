@@ -36,6 +36,18 @@
     caso_valido = list(
       enabled = FALSE,
       condiciones = list()
+    ),
+    # Qué preguntas abiertas se vigilan además de las que el instrumento ya
+    # delata. Las de «otro, especifique» se detectan solas —dependen de una
+    # pregunta anterior y son de contenido por construcción—; las
+    # independientes no se pueden inferir sin destrozar la señal: un detector
+    # aplicado a todo campo `text` marcó 103 de 104 teléfonos como basura,
+    # porque no tienen letras. El código de caso, el teléfono y el nombre del
+    # encuestador son captura operativa y el instrumento no los distingue del
+    # texto de contenido. Por eso se declaran.
+    abiertas = list(
+      enabled = FALSE,
+      variables = character(0)
     )
   )
 }
@@ -204,6 +216,20 @@ normalize_validation_operational_config <- function(config = NULL,
              "La identidad del caso requiere al menos una variable llave.")
   }
 
+  ab_in <- config$abiertas %||% list()
+  if (!is.list(ab_in)) {
+    stop_api(400, "E_OPERATIONAL_CONFIG_INVALID",
+             "Los controles operativos deben ser objetos.")
+  }
+  ab <- list(
+    enabled = isTRUE(ab_in$enabled),
+    variables = .validation_operational_chr(ab_in$variables)
+  )
+  if (ab$enabled && !length(ab$variables)) {
+    stop_api(400, "E_OPERATIONAL_ABIERTAS_INCOMPLETA",
+             "Vigilar preguntas abiertas requiere declarar al menos una variable.")
+  }
+
   available <- .validation_operational_chr(available_variables)
   if (length(available)) {
     selected <- c(
@@ -211,6 +237,7 @@ normalize_validation_operational_config <- function(config = NULL,
       if (du$enabled) du$variables else NULL,
       if (id$enabled) id$variables else NULL,
       if (id$enabled) id$agent_variable else NULL,
+      if (ab$enabled) ab$variables else NULL,
       if (cv$enabled) vapply(cv$condiciones, function(c1) c1$variable, character(1)) else NULL
     )
     missing <- setdiff(.validation_operational_chr(selected), available)
@@ -227,13 +254,14 @@ normalize_validation_operational_config <- function(config = NULL,
   # se materializa en Carga y nunca vuelve a filtrarse dentro de Validacion.
   id$agent_variable <- id$agent_variable %||% ""
   list(version = 2L, field_period = fp, duplicates = du, identity = id,
-       caso_valido = cv)
+       caso_valido = cv, abiertas = ab)
 }
 
 validation_operational_config_public <- function(config = NULL) {
   out <- normalize_validation_operational_config(config)
   out$duplicates$variables <- as.list(out$duplicates$variables)
   out$identity$variables <- as.list(out$identity$variables)
+  out$abiertas$variables <- as.list(out$abiertas$variables)
   out$caso_valido$condiciones <- lapply(out$caso_valido$condiciones, function(c1) {
     c1$valores <- as.list(c1$valores); c1
   })

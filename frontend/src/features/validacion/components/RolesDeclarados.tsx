@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { Check, KeyRound, ListChecks, Sparkles, User } from "lucide-react";
+import { Check, KeyRound, ListChecks, MessageSquare, Sparkles, User } from "lucide-react";
 import { apiV2RolesSugerencias } from "../../../api/client";
 import type { InstrumentoOperationalConfig, RolesSugerencias } from "../types";
 
@@ -41,12 +41,16 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
 
   const identidad = value.identity;
   const validez = value.caso_valido;
+  const abiertas = value.abiertas ?? { enabled: false, variables: [] };
 
   function setIdentidad(patch: Partial<InstrumentoOperationalConfig["identity"]>) {
     onChange({ ...value, identity: { ...identidad, ...patch } });
   }
   function setValidez(patch: Partial<InstrumentoOperationalConfig["caso_valido"]>) {
     onChange({ ...value, caso_valido: { ...validez, ...patch } });
+  }
+  function setAbiertas(patch: Partial<InstrumentoOperationalConfig["abiertas"]>) {
+    onChange({ ...value, abiertas: { ...abiertas, ...patch } });
   }
 
   return (
@@ -164,6 +168,48 @@ export default function RolesDeclarados({ value, onChange, baseNombre, disabled 
               setValidez({
                 condiciones: validez.condiciones.filter((x) => x.variable !== clave),
               })
+            }
+            disabled={disabled}
+          />
+        ) : null}
+      </RolBloque>
+
+      {/* --- Preguntas abiertas que se vigilan ----------------------------- */}
+      <RolBloque
+        icono={<MessageSquare size={13} aria-hidden="true" focusable="false" />}
+        titulo="Qué respuestas abiertas se vigilan"
+        ayuda="Las de «otro, especifique» ya se vigilan solas: dependen de otra pregunta y son de contenido por construcción. Acá se suman las independientes que sí son respuestas."
+        activo={abiertas.enabled}
+        onToggle={(enabled) => setAbiertas({ enabled })}
+        disabled={disabled}
+        resumen={abiertas.variables.length
+          ? abiertas.variables.join(" + ")
+          : "solo las que dependen de otra pregunta"}
+      >
+        {!cargando && sug?.abiertas?.length ? (
+          <Sugerencias
+            titulo="Preguntas de texto independientes"
+            items={sug.abiertas.map((a) => ({
+              clave: a.variable,
+              etiqueta: a.etiqueta ? `${a.etiqueta} (${a.variable})` : a.variable,
+              porque: a.porque,
+              // Declarar una columna operativa alertaría en CADA caso de la
+              // base —un teléfono no tiene letras—, así que el riesgo se dice
+              // antes del clic, no después.
+              aviso: a.probable_operativa
+                ? `Parece captura operativa · alertaría en los ${a.n_respuestas} casos`
+                : `${a.n_respuestas} respuestas · ${a.palabras_promedio} palabras en promedio`,
+              tono: a.probable_operativa ? ("warn" as const) : ("ok" as const),
+              yaEsta: abiertas.variables.includes(a.variable),
+            }))}
+            onUsar={(clave) =>
+              setAbiertas({
+                enabled: true,
+                variables: [...new Set([...abiertas.variables, clave])],
+              })
+            }
+            onQuitar={(clave) =>
+              setAbiertas({ variables: abiertas.variables.filter((v) => v !== clave) })
             }
             disabled={disabled}
           />

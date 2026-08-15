@@ -12,7 +12,7 @@
  * preguntarle. Un aviso sin destinatario no es un aviso.
  */
 
-import { AlertTriangle, PhoneCall, ShieldAlert, Users } from "lucide-react";
+import { AlertTriangle, MessageSquare, PhoneCall, ShieldAlert, Users } from "lucide-react";
 
 import type {
   MonitoreoCalidadCampo,
@@ -63,6 +63,7 @@ const ICONO: Record<string, typeof Users> = {
   envio_sin_padron: Users,
   padron_sin_envio: PhoneCall,
   cruce_identidad: AlertTriangle,
+  abierta_sin_contenido: MessageSquare,
 };
 
 /** El rótulo dice de qué trata el aviso; el mensaje ya dice el resto. */
@@ -72,6 +73,7 @@ export function rotuloDeTipo(tipo: string): string {
   if (tipo === "envio_sin_padron") return "Fuera del padrón";
   if (tipo === "padron_sin_envio") return "Sin enviar nada";
   if (tipo === "cruce_identidad") return "Encuestas que se pisan";
+  if (tipo === "abierta_sin_contenido") return "Respuesta abierta vacía";
   return "Calidad de campo";
 }
 

@@ -545,6 +545,7 @@ errores_registrados <- function() {
     "E_OPERATIONAL_DATE_INVALID",                            "validacion_operational_controls.R", "400",
     "E_OPERATIONAL_DUPLICATE_METHOD",                        "validacion_operational_controls.R", "400",
     "E_OPERATIONAL_DUPLICATE_THRESHOLD",                     "validacion_operational_controls.R", "400",
+    "E_OPERATIONAL_ABIERTAS_INCOMPLETA",                     "validacion_operational_controls.R", "400",
     "E_OPERATIONAL_DUPLICATES_INCOMPLETE",                   "validacion_operational_controls.R", "400",
     "E_OPERATIONAL_IDENTITY_INCOMPLETE",                     "validacion_operational_controls.R", "400",
     "E_OPERATIONAL_VALIDEZ_CONDICION",                       "validacion_operational_controls.R", "400",

@@ -248,6 +248,240 @@ test_that("con padrón cargado el mismo valor no se avisa dos veces", {
   expect_identical(solo[[1]]$tipo, "identidad_agente")
 })
 
+# --- M4 · casos que se pisan --------------------------------------------------
+
+.mcc_cruce <- function(llave, ini, fin, agente = NULL, caso = NULL) {
+  d <- data.frame(
+    caso = caso %||% sprintf("C%02d", seq_along(llave)),
+    llave = llave, inicio = ini, fin = fin,
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+  d$quien <- agente %||% rep("Ana Lopez", length(llave))
+  d
+}
+
+test_that("solaparse en el tiempo no basta para alertar", {
+  # V2 de la vara, que es lo que hace utilizable esta señal: en MDV hay 370
+  # pares solapados y solo 1 comparte identidad. Sin este control, el aviso
+  # sería ruido con el volumen de la base.
+  d <- .mcc_cruce(
+    llave = c("999111", "999222"),
+    ini = c("2026-08-03T09:00:00", "2026-08-03T09:30:00"),
+    fin = c("2026-08-03T11:00:00", "2026-08-03T10:30:00")
+  )
+  expect_length(monitoreo_alertas_cruce(d, "llave", "inicio", "fin"), 0L)
+})
+
+test_that("compartir identidad sin solaparse tampoco basta", {
+  # Una llave repetida puede ser legítima: dos personas del mismo hogar, o la
+  # misma persona reencuestada otro día.
+  d <- .mcc_cruce(
+    llave = c("999111", "999111"),
+    ini = c("2026-08-03T09:00:00", "2026-08-03T12:00:00"),
+    fin = c("2026-08-03T10:00:00", "2026-08-03T13:00:00")
+  )
+  expect_length(monitoreo_alertas_cruce(d, "llave", "inicio", "fin"), 0L)
+})
+
+test_that("identidad compartida y solape a la vez sí alertan, por par", {
+  d <- .mcc_cruce(
+    llave = c("999111", "999111"),
+    ini = c("2026-08-03T09:00:00", "2026-08-03T09:30:00"),
+    fin = c("2026-08-03T11:00:00", "2026-08-03T10:30:00")
+  )
+  al <- monitoreo_alertas_cruce(d, "llave", "inicio", "fin",
+                                agent_var = "quien", caso_var = "caso")
+  expect_length(al, 1L)
+  expect_identical(al[[1]]$tipo, "cruce_identidad")
+  # El grano es el par: la pregunta a campo es sobre las dos encuestas juntas.
+  expect_setequal(al[[1]]$detalle$casos, c("C01", "C02"))
+  expect_identical(al[[1]]$detalle$minutos_solape, 60)
+  expect_true(al[[1]]$detalle$mismo_agente)
+  expect_identical(al[[1]]$actor, "Ana Lopez")
+})
+
+test_that("el mismo agente en las dos encuestas cambia la pregunta", {
+  # Dos encuestadores distintos a la misma hora puede ser la misma entrevista
+  # cargada dos veces; el mismo encuestador es físicamente imposible.
+  ini <- c("2026-08-03T09:00:00", "2026-08-03T09:30:00")
+  fin <- c("2026-08-03T11:00:00", "2026-08-03T10:30:00")
+  distintos <- monitoreo_alertas_cruce(
+    .mcc_cruce(c("999111", "999111"), ini, fin, agente = c("Ana Lopez", "Luis Diaz")),
+    "llave", "inicio", "fin", agent_var = "quien", caso_var = "caso"
+  )
+  expect_length(distintos, 1L)
+  expect_false(distintos[[1]]$detalle$mismo_agente)
+  expect_identical(distintos[[1]]$actor, "")
+  expect_true(grepl("dos encuestadores distintos", distintos[[1]]$detalle$pregunta,
+                    fixed = TRUE))
+})
+
+test_that("una llave vacía no empareja a todos los casos sin dato", {
+  d <- .mcc_cruce(
+    llave = c("", "", NA_character_),
+    ini = rep("2026-08-03T09:00:00", 3),
+    fin = rep("2026-08-03T11:00:00", 3)
+  )
+  expect_length(monitoreo_alertas_cruce(d, "llave", "inicio", "fin"), 0L)
+})
+
+test_that("sin llaves declaradas no hay cruce", {
+  d <- .mcc_cruce(c("999111", "999111"),
+                  c("2026-08-03T09:00:00", "2026-08-03T09:30:00"),
+                  c("2026-08-03T11:00:00", "2026-08-03T10:30:00"))
+  expect_length(monitoreo_alertas_cruce(d, character(0), "inicio", "fin"), 0L)
+  expect_length(monitoreo_alertas_cruce(d, "no_existe", "inicio", "fin"), 0L)
+  expect_length(monitoreo_alertas_cruce(d, "llave", "no_existe", "fin"), 0L)
+})
+
+test_that("el cruce marca exactamente los mismos casos que la regla de Validación", {
+  # Trampa del GOAL: dos motores para la misma pregunta terminan discrepando.
+  # Monitoreo cambia el grano (par en vez de caso), no el criterio.
+  d <- .mcc_cruce(
+    llave = c("999111", "999111", "999222", "999222", "999333"),
+    ini = c("2026-08-03T09:00:00", "2026-08-03T09:30:00",
+            "2026-08-03T09:00:00", "2026-08-03T12:00:00", "2026-08-03T09:00:00"),
+    fin = c("2026-08-03T11:00:00", "2026-08-03T10:30:00",
+            "2026-08-03T10:00:00", "2026-08-03T13:00:00", "2026-08-03T10:00:00")
+  )
+  regla <- eval(
+    parse(text = .regla_expr_cruce_identidad(c("inicio", "fin", "llave"))),
+    envir = list2env(as.list(d), parent = parent.frame())
+  )
+  al <- monitoreo_alertas_cruce(d, "llave", "inicio", "fin", caso_var = "caso")
+  expect_setequal(
+    unique(unlist(lapply(al, function(x) x$detalle$casos))),
+    d$caso[which(regla)]
+  )
+})
+
+test_that("el mensaje acorta el uuid pero el detalle lo conserva entero", {
+  # Nadie dicta un UUID de 36 caracteres por teléfono, y la UI necesita el
+  # completo para llevar al caso.
+  uuids <- c("bd1a271a-dac8-4a2e-9c5c-d803cfc4da8b",
+             "000e0284-4044-49cb-84f0-f73c0207c6d0")
+  d <- .mcc_cruce(c("999111", "999111"),
+                  c("2026-08-03T09:00:00", "2026-08-03T09:30:00"),
+                  c("2026-08-03T11:00:00", "2026-08-03T10:30:00"),
+                  caso = uuids)
+  al <- monitoreo_alertas_cruce(d, "llave", "inicio", "fin", caso_var = "caso")[[1]]
+  expect_setequal(al$detalle$casos, uuids)
+  expect_true(grepl("bd1a271a", al$mensaje, fixed = TRUE))
+  expect_false(grepl(uuids[1], al$mensaje, fixed = TRUE))
+})
+
+test_that("la alerta declara de qué columnas sale el tiempo", {
+  # V4 de la vara: `end` se corre si el formulario queda abierto, así que toda
+  # métrica de tiempo dice su fuente o no se muestra.
+  d <- .mcc_cruce(c("999111", "999111"),
+                  c("2026-08-03T09:00:00", "2026-08-03T09:30:00"),
+                  c("2026-08-03T11:00:00", "2026-08-03T10:30:00"))
+  al <- monitoreo_alertas_cruce(d, "llave", "inicio", "fin", caso_var = "caso")[[1]]
+  expect_identical(unname(al$detalle$fuente_tiempo), c("inicio", "fin"))
+})
+
+# --- M6 · el bloque que llega al payload --------------------------------------
+
+.mcc_bloque_base <- function() {
+  data.frame(
+    `_uuid` = sprintf("u%02d", 1:14),
+    `__version__` = c(rep("vNueva", 10), rep("vVieja", 4)),
+    telefono = c(sprintf("9%08d", 1:12), "955555555", "955555555"),
+    start = c(rep("2026-08-03T09:00:00", 12),
+              "2026-08-03T09:00:00", "2026-08-03T09:30:00"),
+    end = c(rep("2026-08-03T09:40:00", 12),
+            "2026-08-03T11:00:00", "2026-08-03T10:30:00"),
+    quien = c(rep("Ana Lopez", 10), rep("Luis Diaz", 4)),
+    stringsAsFactors = FALSE, check.names = FALSE
+  )
+}
+
+.mcc_cfg <- function(agente = "quien", llaves = list("telefono")) {
+  # `enabled` gobierna la detección de repetidos, no el rol de agente: la
+  # pantalla de Validación los declara por separado y el normalizador rechaza
+  # una identidad activa sin llaves. Declarar quién recolectó sin declarar la
+  # llave del sujeto es un estado legítimo, y el bloque tiene que sobrevivirlo.
+  list(version = 2L,
+       identity = list(enabled = length(llaves) > 0L, variables = llaves,
+                       agent_variable = agente))
+}
+
+test_that("el bloque explica su vacío en vez de callarse", {
+  # C3 del Contrato de Superficie: la pantalla contiene su propio vacío. «No
+  # declaraste quién recolecta» y «el campo está limpio» no son lo mismo, y sin
+  # el motivo la UI no puede distinguirlos.
+  d <- .mcc_bloque_base()
+
+  vacio <- monitoreo_calidad_campo_bloque(data.frame())
+  expect_false(vacio$enabled)
+  expect_identical(vacio$motivo, "sin_datos")
+
+  sin_rol <- monitoreo_calidad_campo_bloque(d, .mcc_cfg(agente = ""))
+  expect_false(sin_rol$enabled)
+  expect_identical(sin_rol$motivo, "sin_rol_de_agente")
+  expect_length(sin_rol$alertas, 0L)
+
+  # Con agente pero sin llaves, el cruce no puede correr y el bloque lo dice.
+  limpia <- d[1:10, ]
+  sin_llaves <- monitoreo_calidad_campo_bloque(limpia, .mcc_cfg(llaves = list()))
+  expect_true(sin_llaves$enabled)
+  expect_identical(sin_llaves$motivo, "sin_llaves_de_identidad")
+
+  sano <- monitoreo_calidad_campo_bloque(limpia, .mcc_cfg())
+  expect_identical(sano$motivo, "sin_hallazgos")
+  expect_length(sano$alertas, 0L)
+})
+
+test_that("el bloque reúne las cuatro señales y pone lo bloqueante primero", {
+  b <- monitoreo_calidad_campo_bloque(.mcc_bloque_base(), .mcc_cfg())
+  tipos <- vapply(b$alertas, function(a) a$tipo, character(1))
+
+  expect_true(b$enabled)
+  expect_true(all(c("formulario_desactualizado", "cruce_identidad") %in% tipos))
+  # Lo irrecuperable arriba: es lo único que hay que resolver hoy.
+  expect_identical(b$alertas[[1]]$severidad, "bloqueante")
+  expect_identical(b$resumen$total, length(b$alertas))
+  expect_identical(b$resumen$bloqueantes, 1L)
+  expect_identical(b$roles$agente, "quien")
+})
+
+test_that("las de calidad no se mezclan con las de avance", {
+  # M6: una brecha de cuota y un formulario desactualizado no se leen igual.
+  # El bloque es propio y ningún tipo de avance se cuela en él.
+  b <- monitoreo_calidad_campo_bloque(.mcc_bloque_base(), .mcc_cfg())
+  avance <- c("brecha_relevante", "brecha_menor", "sin_objetivo",
+              "minimo_estadistico", "benchmark_bajo", "subcuotas_incompletas",
+              "reemplazo_sin_motivo")
+  expect_false(any(vapply(b$alertas, function(a) a$tipo, character(1)) %in% avance))
+  # Y todas dicen a quién llamar o qué preguntar (V3).
+  for (a in b$alertas) expect_true(nzchar(a$detalle$pregunta %||% ""))
+})
+
+test_that("una señal que falla no tumba el payload de Monitoreo", {
+  # El bloque es nuevo y viaja en cada state: si reventara, se llevaría puesto
+  # el módulo entero por una alerta.
+  b <- monitoreo_calidad_campo_para_sesion("sesion-que-no-existe", .mcc_bloque_base())
+  expect_false(b$enabled)
+  expect_length(b$alertas, 0L)
+  expect_identical(b$resumen$total, 0L)
+})
+
+test_that("el bloque llega resuelto desde los roles declarados en Validación", {
+  sid <- session_create()
+  s <- session_get(sid)
+  s$estudio <- list(bases = list(base_1 = list(
+    nombre = "base_1",
+    validacion = list(operational_config = .mcc_cfg())
+  )))
+  .session_env[[sid]] <- s
+
+  b <- monitoreo_calidad_campo_para_sesion(sid, .mcc_bloque_base(),
+                                           base_nombre = "base_1")
+  expect_true(b$enabled)
+  expect_identical(b$roles$agente, "quien")
+  expect_true(b$resumen$total > 0L)
+})
+
 test_that("el motor no confunde el roster planificado con el agente observado", {
   # Son preguntas distintas y ambas se conservan (decisión del 2026-08-13):
   # el roster PXXX dice quién debería trabajar, el rol quién trabajó. Este
