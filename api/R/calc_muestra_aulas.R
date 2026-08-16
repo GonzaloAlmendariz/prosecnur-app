@@ -4693,7 +4693,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   .cm_aulas_int(hit[[1]], 99L)
 }
 
-.cm_aulas_operational_routes_sheet <- function(selection_result, replacement_simulation = NULL, max_depth = 6L) {
+.cm_aulas_operational_routes_sheet <- function(selection_result, replacement_simulation = NULL, max_depth = NULL) {
   selection <- .cm_aulas_as_df(selection_result$selection %||% data.frame(stringsAsFactors = FALSE), "selection")
   if (!nrow(selection)) return(data.frame(stringsAsFactors = FALSE))
   cell <- function(df, candidates, row = 1L) {
@@ -4713,7 +4713,11 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   }
   suggestions <- .cm_aulas_as_df(replacement_simulation$suggestions %||% data.frame(stringsAsFactors = FALSE), "replacement_suggestions")
   if (nrow(suggestions) && !"rank" %in% names(suggestions)) suggestions$rank <- seq_len(nrow(suggestions))
-  depth <- max(1L, min(12L, .cm_aulas_int(max_depth, 6L)))
+  # Sin profundidad pedida, la hoja sigue a la cadena que el motor construyo. El
+  # default fijo en 6 exportaba 6 reemplazos por titular cuando la seleccion
+  # trae 11, y esta hoja es la que viaja a campo.
+  depth <- if (is.null(max_depth)) .cm_aulas_reservas_por_titular(reserves, titulars) else .cm_aulas_int(max_depth, 6L)
+  depth <- max(1L, min(12L, depth))
   if (!nrow(titulars)) return(data.frame(stringsAsFactors = FALSE))
   route_rows <- lapply(seq_len(nrow(titulars)), function(i) {
     titular <- titulars[i, , drop = FALSE]
