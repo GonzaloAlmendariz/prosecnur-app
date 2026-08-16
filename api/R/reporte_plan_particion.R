@@ -20,8 +20,19 @@
 # Vive fuera de `reporte_plan_ppt.R`, congelado a crecimiento: alli solo queda
 # la llamada.
 
-# Barras por lamina a partir de las cuales el grosor cae bajo el piso legible.
-.PARTICION_MAX_BARRAS <- 9L
+# Barras por lamina a partir de las cuales se parte.
+#
+# Sale de medir el entregable aprobado, no de un calculo propio: ninguno de sus
+# graficos pasa de siete barras. El 9 anterior lo habia derivado del piso de
+# grosor —2.87 in utiles entre 0.32— y ese piso tambien era inventado: el
+# aprobado no lo cumple.
+#
+# Se usa su MAXIMO y no su percentil alto: con seis, el mazo pasaba de 63 a 73
+# laminas, partiendo lo que el entregable no partia. Un techo por debajo de lo
+# que hace la referencia deja de medir conformidad.
+#
+# Ver `calibrar_umbrales()` en `graficos_verificar_mazo.R`.
+.PARTICION_MAX_BARRAS <- 7L
 
 # Sufijo del titulo de las laminas de continuacion.
 .PARTICION_SUFIJO_CONT <- "(cont.)"

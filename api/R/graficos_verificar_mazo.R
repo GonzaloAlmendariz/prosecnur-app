@@ -34,12 +34,29 @@
 # Azul institucional: barras categoricas.
 .VERIF_AZUL <- c("081F5C")
 
-# Umbrales del recetario.
+# Umbrales DERIVADOS del entregable que el cliente aprobo, no elegidos a ojo.
+#
+# Salen de `calibrar_umbrales()` sobre `Informe Contabilidad 14-08.pptx`, con el
+# percentil 10 para los pisos y el 90 para los techos. Los anteriores —0.32 in,
+# 9 barras, 11 pt— se habian fijado contra un ideal, y el resultado es que el
+# propio entregable aprobado los incumplia mas del doble que el motor. Un piso
+# que la referencia no cumple no mide conformidad: mide distancia a una idea.
+#
+# Al calibrar, DOS de los cuatro salieron mas exigentes que el ideal, no menos:
+# el aprobado no baja de 12 pt en la decima parte peor de su texto, ni de 0.256
+# in en sus barras categoricas. El ideal era laxo justo donde el entregable es
+# cuidadoso.
+#
+# Se usa el percentil y no el extremo a proposito: el peor caso de un mazo de
+# sesenta laminas es un accidente, y calibrar contra el deja pasar cualquier
+# cosa. La vara es parecerse al entregable TIPICO, no a su peor lamina.
 .VERIF_UMBRALES <- list(
-  grosor_escala_in     = 0.32,
-  grosor_categorica_in = 0.20,
-  barras_por_grafico   = 9L,
-  texto_minimo_pt      = 11,
+  grosor_escala_in     = 0.303,
+  grosor_categorica_in = 0.256,
+  barras_por_grafico   = 7L,
+  texto_minimo_pt      = 12,
+  # Proporcion de texto por debajo del minimo que el aprobado se permite.
+  texto_prop_max       = 0.062,
   titulo_top_min_in    = 0.35
 )
 
@@ -104,8 +121,16 @@
 
 
 #' Segmentos de barra de una familia
+#'
+#' `exigir_sin_texto` va activo para TODAS las familias, no solo la categorica:
+#' una barra de datos no lleva texto propio —su cifra es una capa aparte—, y las
+#' cajas que si lo llevan son la columna Top Two Box, con relleno de la rampa y
+#' alto fijo de 0.159 in. Sin este filtro la mediana del grosor del entregable
+#' aprobado salia 0.159 exacta: no era el grosor de sus barras, era el de una
+#' caja de texto contada sesenta veces.
+#'
 #' @keywords internal
-.verif_segmentos <- function(formas, colores, exigir_sin_texto = FALSE) {
+.verif_segmentos <- function(formas, colores, exigir_sin_texto = TRUE) {
   Filter(function(f) {
     f$col %in% colores &&
       f$h > 0 && f$w > f$h &&                       # horizontal
@@ -180,6 +205,76 @@
 }
 
 
+#' Medidas crudas de un mazo, sin juzgarlas
+#'
+#' Separado de la verificacion porque son dos preguntas distintas: esta dice
+#' cuanto mide el mazo, y `verificar_mazo()` dice si eso esta bien. Mezclarlas
+#' fue lo que dejo los umbrales sin origen comprobable — cada uno se eligio a
+#' ojo y ninguno salia de haber medido el entregable.
+#'
+#' @param path Ruta al `.pptx`.
+#'
+#' @return Lista con `grosor_escala`, `barras_escala`, `grosor_categorico` y
+#'   `texto_pt`, cada uno un vector con una entrada por grafico o por texto.
+#' @export
+medir_mazo <- function(path) {
+  laminas <- .verif_laminas_xml(path)
+  gr_esc <- numeric(0); n_esc <- integer(0)
+  gr_cat <- numeric(0); txt <- numeric(0)
+
+  for (xml in laminas) {
+    formas <- .verif_formas(xml)
+    for (g in .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA))) {
+      gr_esc <- c(gr_esc, g$grosor); n_esc <- c(n_esc, g$n)
+    }
+    for (g in .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))) {
+      gr_cat <- c(gr_cat, g$grosor)
+    }
+    szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
+    txt <- c(txt, szs[is.finite(szs)])
+  }
+
+  list(grosor_escala = gr_esc, barras_escala = n_esc,
+       grosor_categorico = gr_cat, texto_pt = txt)
+}
+
+
+#' Deriva los umbrales de un mazo de referencia
+#'
+#' Los umbrales del recetario se habian fijado contra un ideal, y el entregable
+#' que el cliente aprobo los incumple mas del doble que el motor: 46 de sus
+#' graficos bajan de 0.32 in y 53 de sus textos de 11 pt. Un piso que la
+#' referencia no cumple no mide conformidad, mide distancia a una idea.
+#'
+#' Se toma un percentil bajo y no el minimo: el minimo de un mazo de sesenta
+#' laminas es un caso aislado, y calibrar contra el deja pasar cualquier cosa.
+#'
+#' @param path Ruta al `.pptx` de referencia.
+#' @param p Percentil inferior que se acepta como piso.
+#'
+#' @return Lista de umbrales con la forma de `.VERIF_UMBRALES`.
+#' @export
+calibrar_umbrales <- function(path, p = 0.10) {
+  m <- medir_mazo(path)
+  q <- function(x, prob) if (!length(x)) NA_real_ else unname(stats::quantile(x, prob, na.rm = TRUE))
+
+  list(
+    grosor_escala_in     = round(q(m$grosor_escala, p), 3),
+    grosor_categorica_in = round(q(m$grosor_categorico, p), 3),
+    # El techo usa el MAXIMO del aprobado, no su percentil alto, y ahi la
+    # asimetria con los pisos es deliberada. Un piso calibrado al minimo lo
+    # baja un solo accidente; un techo calibrado al percentil lo pone por
+    # DEBAJO de lo que la referencia hace, y entonces el motor parte laminas
+    # que el entregable no partia. Medido: con el percentil 90 (seis barras) el
+    # mazo pasaba de 63 a 73 laminas.
+    barras_por_grafico   = as.integer(max(m$barras_escala)),
+    texto_minimo_pt      = round(q(m$texto_pt, p), 1),
+    texto_prop_max       = round(mean(m$texto_pt < q(m$texto_pt, p)), 3),
+    titulo_top_min_in    = .VERIF_UMBRALES$titulo_top_min_in
+  )
+}
+
+
 #' Verifica un mazo contra el recetario
 #'
 #' Las reglas que se comprueban son las medibles sobre el archivo. Las que no
@@ -205,6 +300,7 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
   }
 
   n_graf_escala <- 0L; n_graf_cat <- 0L
+  texto_todo <- numeric(0)
 
   for (i in seq_along(laminas)) {
     xml <- laminas[[i]]
@@ -237,13 +333,22 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
       }
     }
 
-    # R3: ningun texto por debajo del umbral legible.
+    # R3 se acumula y se juzga al final: ver abajo.
     szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
-    peq <- szs[is.finite(szs) & szs < u$texto_minimo_pt]
-    if (length(peq)) {
-      add("R3 texto legible", i, min(peq),
-          sprintf(">= %g pt", u$texto_minimo_pt),
-          sprintf("%d textos por debajo", length(peq)))
+    texto_todo <- c(texto_todo, szs[is.finite(szs)])
+  }
+
+  # R3 es una regla de MAZO, no de lamina. Medida por lamina no discrimina: basta
+  # un rotulo pequeno para marcarla, y con el umbral del aprobado quedaban
+  # marcadas 53 de 63 laminas del PROPIO entregable aprobado. Lo que distingue un
+  # mazo legible de otro no es que ninguna lamina tenga letra chica, sino cuanta
+  # hay.
+  if (length(texto_todo)) {
+    prop <- mean(texto_todo < u$texto_minimo_pt)
+    if (prop > u$texto_prop_max) {
+      add("R3 proporcion de texto pequeno", NA_integer_, round(prop, 4),
+          sprintf("<= %.1f %%", 100 * u$texto_prop_max),
+          sprintf("%.1f %% por debajo de %g pt", 100 * prop, u$texto_minimo_pt))
     }
   }
 
