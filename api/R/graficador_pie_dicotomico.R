@@ -235,7 +235,11 @@ graficar_pie <- function(
   # (B-H31): se escalan al ancho real, con piso legible.
   ancho_chk <- suppressWarnings(as.numeric(ancho)[1])
   if (is.finite(ancho_chk) && ancho_chk > 0 && ancho_chk < 9) {
-    size_etiquetas_pct <- max(2.6, size_etiquetas_pct * ancho_chk / 12.5)
+    # El piso sube de 2.6 a 2.81 unidades ggplot: 2.6 son 7.39 pt —que es lo que
+    # salia en los cuadrantes de perfil, «31% (56)» en blanco sobre el
+    # segmento— y el entregable aprobado no baja de 8 pt en ninguna lamina.
+    # 2.81 x 2.845 = 8.0 pt exactos.
+    size_etiquetas_pct <- max(2.81, size_etiquetas_pct * ancho_chk / 12.5)
     # En cajones minimos (poblacion 5/6) la leyenda derecha roba ancho al
     # panel y el donut clipeaba su etiqueta izquierda (B-H33).
     if (ancho_chk < 5 && identical(leyenda_posicion, "derecha")) {
