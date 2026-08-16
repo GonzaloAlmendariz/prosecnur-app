@@ -66,8 +66,6 @@ correcto que no se puede explicar tampoco está entregado.
 
 | # | Decisión | Por qué no puedo yo |
 |---|---|---|
-
-| L14 | Cómo se cierra el traspaso del objetivo de cursos-horario: **(a)** persistir `n_aulas` al calcular —conservador, mantiene la doble llave— o **(b)** que el handoff use el objetivo del motor sin exigir copia —de raíz, pero hay que reconstruir qué caso detectaba la comparación— | La doble llave parece un guard deliberado contra corridas obsoletas. Quitarla sin saber qué protegía reabre lo que cerraba, y este módulo ya tiene historial de fixes que corrigen el feat anterior. Mientras siga así, **C5 de L8 no se puede medir** |
 | L6 | Qué se hace con el test `[gated]` de la base canónica: **(a)** versionar una fixture anonimizada, **(b)** documentar `PULSO_CALC_MUESTRA_CANONICO` como gate manual y quitar el fallback muerto, o **(c)** retirar el test | Las tres son defendibles y tienen precios distintos. (a) da cobertura real en CI pero exige pasar la base por el anonimizador, que ya envenenó `hsvg2026` una vez; (c) pierde la única defensa contra la cancelación de errores. Elegir por ti sería decidir cuánta cobertura vale ese riesgo |
 
 ## Trampas medidas (no volver a pagarlas)
