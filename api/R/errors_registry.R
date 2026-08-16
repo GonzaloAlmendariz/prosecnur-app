@@ -79,6 +79,7 @@
 # Vocabulario registrado: codigo | modulo | status (ver cabecera del archivo).
 errores_registrados <- function() {
   tabla <- c(
+    "E_ARCHIVO_NO_EXISTE",                                   "graficos_verificar_mazo.R",         "400",
     "E_ACREDITACION_BATCH_ACTORS",                           "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_BASE_CONFLICT",                    "carga_acreditacion_batch.R",        "indirecto",
     "E_ACREDITACION_BATCH_CACHE_STALE",                      "carga_acreditacion_batch.R",        "indirecto",
