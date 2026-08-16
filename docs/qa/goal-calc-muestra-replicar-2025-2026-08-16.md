@@ -58,7 +58,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
-| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido** (2026-08-16) · tabla abajo; el contraste con 2025 sigue bloqueado |
+| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido y confirmado** (2026-08-16) · idéntico con y sin descuento; el contraste con 2025 sigue bloqueado |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **config leída** (2026-08-16) · 30 titulares × 11 olas; diferencia de escala con 2025 sin explicar |
 
 ## L1 · el material de 2025 (2026-08-16)
@@ -551,8 +551,24 @@ deriva de la configuración guardada: eso lo decide el entregable.
   vuelve. El motor de hoy está bien; lo que fallaba era el aviso, que decía el
   síntoma en jerga interna y tapaba dos situaciones opuestas —marco recuperable
   contra marco anónimo por diseño—. Ahora dice cuál es y, cuando la hay, la
-  salida. **Para el contraste con 2025 esto importa**: el sorteo que medí en L11
-  corrió sin descontar repetidos, así que su perfil no es el que produciría el
-  motor con el marco reconstruido.
+  salida.
+
+### El descuento no mueve este diseño (2026-08-16)
+
+Rehíce el marco desde el archivo fuente del propio `.pulso` —139,9 s, y hay que
+pasarle la hoja `CURSO Y HORARIO` o salen 0 incluidas— y volví a sortear con el
+descuento activo. **Reproduce las 2.468 incluidas exactas** y el perfil sale
+idéntico: las mismas 30 aulas, las mismas 10 facultades, los mismos 30 estratos.
+
+La razón se mide: entre las 30 titulares hay **981 exposiciones alumno-aula y
+972 alumnos únicos**, o sea 9 repetidos (0,9%). El descuento aplica —modo
+`post_hoc`, sin advertencias— y no tiene prácticamente nada que descontar. La
+métrica agregada lo dice bien ("Perdida por duplicacion 0.9%") y `ya_cubiertos`
+sale 0 en los 30 estratos porque cada uno lleva una sola aula: los 9 repetidos
+cruzan estratos, no se solapan dentro de ninguno.
+
+**El perfil de L11 vale tal cual.** Con el marco reconstruido el score global
+sube de 36,9 a 45,6, pero eso es sólo que cobertura y duplicación dejan de ser
+NA y entran al promedio — la selección no cambió.
 - `session_type` está vacío en todo el marco de 2025, así que esa dimensión del
   perfil no se puede contrastar con nada.
