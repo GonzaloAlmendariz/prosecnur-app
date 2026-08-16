@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | backend (`..._resello.R`) | ☑ **hecho** (2026-08-15) · reconstruir re-sella la decisión; mutante: 2 asserts caen |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | backend (`..._resello.R`) | ☑ **hecho y verificado en la app** (2026-08-15) · la decisión pasa del hash viejo al del marco nuevo tras reconstruir |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -650,6 +650,19 @@ test que lo respalda. El guard no confunde nada — distingue deliberadamente.
 El fix se revirtió; el contrato vuelve a 44 PASS.
 
 ### Resuelto: reconstruir re-sella la decisión (2026-08-15)
+
+**Verificado end-to-end contra un backend real** (8801, arrancado con el fix):
+sembrada una decisión confirmada con `frame_hash = HASH_VIEJO_SIMULADO`,
+disparada la reconstrucción del marco por HTTP (job, 136.284 filas), y al
+terminar:
+
+```
+frame_hash del marco : df88629f1fa90b7c2161
+hash de la decisión  : df88629f1fa90b7c2161   -> RE-SELLADO
+```
+
+Antes del fix la decisión se quedaba en el hash viejo y todo guardado posterior
+borraba el objetivo de cursos-horario.
 
 **Decisión de dominio de Gonzalo: re-sellar es legítimo, el estadístico no
 depende del marco.** Elegir P25, mediana o media es una postura sobre cómo
