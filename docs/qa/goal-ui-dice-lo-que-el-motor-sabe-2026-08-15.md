@@ -45,7 +45,7 @@ sabe nada que la interfaz calle.
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
-| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y Monitoreo | ◐ a medias — **un hallazgo, reparado y visto** (`a29629e7`). Faltan los perfiles territorial y cursos-horario. |
+| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y los cuatro perfiles de Monitoreo | ☑ hecho — diez ejes probados, **un hallazgo** reparado y visto (`a29629e7`). **V2 se sostiene** en el resto. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
 
 ### L8 — barrido de V1, completo
@@ -133,9 +133,28 @@ sus cuatro colores en `mon-actor-card`, tres mil líneas más abajo en el mismo
 archivo. Reparado en `a29629e7` pasando el tono canónico y dándole al CSS los
 acentos que faltaban, los mismos de la otra tarjeta.
 
-**Falta**: verlo en pantalla (L10) y barrer territorial y cursos-horario. El
-histórico dice que ahí hubo taxonomías en conflicto —«efectivo» que es un
-`outcome_value` y no un estado—, así que todavía hay dónde buscar.
+**Territorial y cursos-horario: sin hallazgos**, y territorial además tiene el
+mejor ejemplo del repo de cómo se hace bien.
+
+*Cuota territorial* (`TerritorialQuotaConsistencyPanel.tsx:375`) parecía un
+colapso: normaliza `exceeded` a `complete` y `partial` a `pending`. No lo es —
+`quota_status()` en `monitoreo_engine.R:10154` emite exactamente seis valores y
+**ninguno de los dos** está entre ellos. Son ramas defensivas para estados que
+este motor no produce. Los seis que sí produce tienen sus seis etiquetas.
+
+*Ocurrencias de campo* es el ejemplo a copiar: siete estados, un
+`Record<OccurrenceUmpAttentionStatus, …>` que TypeScript obliga a completar, y
+siete reglas CSS con siete colores distintos —los verifiqué uno por uno—. El
+ícono sí se comparte entre las cuatro variantes de «sin reporte», pero eso es
+agrupar una familia, no perder la distinción: etiqueta y color siguen separando.
+
+*Cursos-horario* no tiene taxonomía que colapsar: su único `status` es
+`package_status`, que viene de una columna de la hoja de cálculo del usuario y
+se usa como heurística para detectar si hay PDF, no como estado del motor.
+
+**Cierre de L9**: diez ejes probados entre Carga y los cuatro perfiles, un solo
+hallazgo. La firma funciona y es barata de aplicar; lo caro fue distinguir el
+hallazgo real de las tres redundancias que se le parecen.
 
 ### L7 — cómo quedó
 
