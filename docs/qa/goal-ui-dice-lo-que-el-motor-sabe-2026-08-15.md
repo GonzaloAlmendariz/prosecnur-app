@@ -51,6 +51,8 @@ sabe nada que la interfaz calle.
 | **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `InstrumentoTab.tsx` · informe | ☑ hecho — `c695c9f1`. Motivo exigido sólo para las que se agregan. |
 | **L16** | Barrido V7: cada estado nuevo con test que lo distinga | los diez módulos y componentes que agregó este GOAL | ☑ hecho — `6a89b22f`. Cinco sin test, tres eran gaps reales. |
 | **L18** | Barrido de módulos sin tocar: Hojas de ruta, Recopiladores y Bitácora | `RecopiladoresShell.tsx` | ☑ hecho — **un hallazgo** (`22713e67`). Cálculo de muestra queda fuera mientras la otra sesión lo trabaje. |
+| **L20** | Barrido de Analítica y Dashboard | — | ☑ hecho — **sin hallazgos**, con una limitación de medición anotada. |
+| **L21** | Barrer Gráficos y Cálculo de muestra | — | ⛔ bloqueado — los trabaja la otra sesión sobre este mismo árbol. Desbloquea: que suelte esos archivos. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
@@ -109,6 +111,25 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L20 — Analítica y Dashboard, sin hallazgos
+
+**Dashboard: V4 se cumple, y mejor de lo que parecía.** Una pestaña no
+disponible no sólo aparece deshabilitada: lleva el motivo del motor en `title`,
+en `aria-label` y en `data-audit-disabled-reason`, **en todos los modos**,
+incluido el artefacto publicado. La banda extra de avisos que sí es sólo del
+editor es un resumen, no el único portador de la razón. Un lector de pantalla
+recibe «Relaciones. Carga la base y el instrumento primero».
+
+**Analítica: los campos que pude alcanzar tienen consumidor.** `fields`, `kpis`,
+`sources`, `tables` y `layout` de la ficha técnica se usan todos. Y los 409 de
+`data-review` y `reconciliacion` explican la precondición en castellano llano
+—«Primero corre el Paso 1»— en vez de fallar mudos.
+
+**La limitación, que importa más que el resultado.** `acrconta` no tiene
+Analítica preparada, así que esos dos endpoints devolvieron 409 y **medí la
+forma del contrato, no un payload poblado**. Un campo puede tener consumidor y
+aun así mostrarse mal cuando trae datos. Este barrido no descarta eso.
 
 ### L18 — módulos que el GOAL no había tocado
 
