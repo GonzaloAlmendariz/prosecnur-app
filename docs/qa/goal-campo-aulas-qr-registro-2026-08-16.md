@@ -363,8 +363,8 @@ archivo.
 
 Mientras este GOAL avanzaba, otra sesión trabajaba **en el mismo repositorio** y
 subió `reserve_depth_target` de 1 a 6, aflojando el candado de celda a facultad.
-Las cadenas pasaron de uno o dos eslabones a **once**, y eso destapó **cuatro
-defectos** que no existían antes:
+Las cadenas **planificadas** pasaron de uno o dos eslabones a **once**, y eso
+destapó **cuatro defectos** que no existían antes:
 
 | Superficie | Qué se rompía con cadenas largas |
 |---|---|
@@ -377,9 +377,21 @@ El libro Excel aguantó sin tocar nada: 7 bloques y 141 columnas, con los órden
 intactos al reimportar. Y la lista del registro tampoco necesitó cambio — ya
 mostraba código y estado.
 
+**Corrección (2026-08-16)**: escribí que «las cadenas reales pasan a ser de hasta
+11–12». Lo medido después por la sesión paralela dice otra cosa —y la distinción
+importa—: **planificadas** llegan a once; **consumidas** en 2025 fueron **dos**.
+El operativo gastó 26 reemplazos para 170 titulares —0,153 por titular— con 24
+aulas en reserva 1 y sólo 2 en reserva 2.
+
+Eso **no invalida las cuatro reparaciones**: la ficha se imprime para toda la
+cadena planificada, y la agenda y la tabla la muestran entera. Lo que corrige es
+la premisa. Es la misma distinción que este GOAL ya cuidaba entre muestra
+planificada y efectiva, aplicada a las cadenas.
+
 **La lección**: un cambio de rango en otra capa no rompe nada por sí mismo, pero
 convierte en ambiguo lo que era suficiente. Cuando un parámetro de escala se
-mueve, hay que recorrer las superficies que muestran esa escala.
+mueve, hay que recorrer las superficies que muestran esa escala — y comprobar si
+el rango que se mueve es el planificado o el consumido, porque no son el mismo.
 
 **Y sobre trabajar en paralelo**: los commits de ambas sesiones conviven
 intercalados y nada se pierde, pero un gate completo desde cualquiera de las dos
