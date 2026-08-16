@@ -951,3 +951,34 @@ opción está medida y tiene precedente en el operativo que se quiere replicar.
 | Bloque horario (4) | Regular tarde 65 · Regular mañana 63 · Especial mañana 34 · Especial noche 8 |
 | Tipo de docente (2) | Contratado 145 · Ordinario principal 25 |
 | Modalidad | Presencial 170 (única) |
+
+## Las probabilidades de 2025 y las del motor no viven en la misma escala (2026-08-16)
+
+| | 2025 (170 titulares) | Motor (30 titulares) |
+|---|---|---|
+| π mínimo · mediana · máximo | 0,009 · **0,529** · 0,999 | 0,004 · **0,024** · 0,081 |
+| π medio | 0,525 | 0,027 |
+| CV de π | 0,557 | 0,709 |
+| Peso mediano | 1,89 | 41,9 |
+| **Suma de pesos** | **935,9** | **2.105** |
+
+Veinte veces de diferencia en el π típico. La suma de pesos explica por qué: si el
+peso es 1/π, su suma estima el marco del que se sortea, y **cada diseño está
+estimando un marco distinto**.
+
+- El **motor** suma 2.105 sobre un marco medido de **2.468** cursos-horario
+  elegibles: lo recupera con un 15% de subestimación. Es una comprobación
+  razonable de que sus π son coherentes con su propio marco.
+- **2025** suma 935,9, o sea que sorteaba de un marco de unas **936 aulas** —
+  menos de la mitad de las 2.468 que el mismo criterio da hoy.
+
+**No concluyo que ninguno esté mal.** Son años distintos y el marco de 2025 pudo
+construirse con criterios más estrechos, o con la base del semestre anterior. Lo
+que sí queda medido es que **la diferencia entre los dos diseños no es sólo de n
+(170 contra 30) sino de universo (936 contra 2.468)**, y las dos cosas se
+multiplican: por eso el π de 2025 es veinte veces mayor y no cinco.
+
+**Para Gonzalo**: ¿el marco de 2025 era efectivamente de ~936 cursos-horario? Si
+lo era, replicar el diseño exige replicar también ese recorte, no sólo el n; si
+no lo era, el `prob_seleccion` del histórico mide otra cosa —π dentro del cupo,
+por ejemplo— y hay que leerlo con esa clave.
