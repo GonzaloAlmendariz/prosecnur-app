@@ -444,3 +444,32 @@ Se dejan explícitas porque afectan a lo que se puede dar por cierto:
 **no por pantalla**. L13 y L14 sí se confirmaron en UI real. Verlos exige montar
 un estudio de aulas completo desde la UI —tres intentos por vías sintéticas
 fallaron, y el obstáculo era el atajo, no el producto—.
+
+
+### 2026-08-16 — El circuito contra el operativo real, no contra el extremo
+
+Todo lo anterior se probó con cadenas sueltas: una, dos, seis, once. Faltaba el
+estudio **entero**, con la forma que el operativo tuvo de verdad — 170 titulares
+y 26 reemplazos consumidos, 24 en reserva 1 y 2 en reserva 2.
+
+| Paso | Tiempo | Resultado |
+|---|---:|---|
+| Normalizar el plan | 0,2 s | **196 unidades** |
+| Tablero | 0,7 s | 6 estratos · 12 cuotas · 26 reemplazos |
+| Libro ida y vuelta | 0,9 s | 196 → 196, códigos idénticos |
+| Cuadre sobre 170 partes | — | los **2** sembrados, ni uno más |
+
+Las 196 unidades coinciden con los 196 partes que el Excel de 2025 tiene. Buena
+señal de que la forma es la correcta.
+
+Dos comprobaciones que sólo tienen sentido a esta escala:
+
+- **Los desgloses no se vacían.** Seis facultades y doce celdas de cuota con
+  196 aulas: sumar sin agrupar habría dado KPI correctos y desgloses vacíos, que
+  es exactamente como se escondió un defecto antes en este GOAL.
+- **El cuadre no genera falsos.** Dos descuadres sembrados entre 170 partes, y
+  encuentra dos: ni uno de más por redondeo, ni uno de menos.
+
+Y el caso **dominante**: en 2025, 146 de 170 titulares no consumieron ningún
+reemplazo. Que el aviso distinga «nunca tuvo reserva» de «se agotó la cadena»
+importa más aquí que en el caso raro — es lo que verá la mayoría de las aulas.
