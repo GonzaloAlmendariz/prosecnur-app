@@ -64,13 +64,13 @@ ya existente.
 | P4 | **La ficha técnica desborda la lámina** | `reporte_ppt_tabla_lineas.R` + plan | ☑ el alto de fila contaba **caracteres**, no líneas: «Muestra» llevaba cuatro públicos en 1.24 cm. Y el contenido venía pegado (`…PUCPDocentes…`). Geometría y 15 pt del aprobado |
 | P5 | Escala usada y número de respuestas están puestas **como texto suelto**, no armadas como en el PPT final | plan del `.pulso` + constructor | ☐ |
 | P6 | La guía no acota como una regla: falta «de tal punto a tal punto, tantos cm» | `graficador_guia_arquitectonica.R` | ☐ |
-| P7 | Perfil del docente: el título «Sexo» sale mucho más alto que «Departamento académico» | disposición de 4 paneles | ☐ |
+| P7 | Perfil del docente: el título «Sexo» sale mucho más alto que «Departamento académico» | disposición de 4 paneles | ⏸ **no se reproduce midiendo**: 15.99 pt y negrita en los cuatro, tops a 3.53 vs 3.46 (0.07 cm). La caja de «Sexo» es menor (0.42 vs 0.52) sólo porque cabe en una línea. Necesita el render |
 | P8 | Perfil del egresado: «¿Se encuentra trabajando?» tiene guías distintas, sin los avances | ídem | ☐ |
 | P9 | Barras agrupadas muestran **columna extra** y el reporte final de Contabilidad no la tiene | suelo editorial de Pulso | ☑ era la N de la base repetida **18 veces** en una lámina; el aprobado: 0 |
-| P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paletas del proyecto | ☐ |
+| P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paleta `lst_p10` del proyecto | ☑ la 2ª pregunta salía `081F5C`+`F4B183` y su hermana `081F5C`+`9DC3E6`; el aprobado pinta las dos en celeste |
 | P11 | Estructura organizacional: porcentajes unos en blanco y otros en azul; deben ser todos azules | `graficador_contraste_texto.R` | ☑ el umbral 0.6 dejaba `#70AD47` (0.561) del lado oscuro → **7 blancas**; el aprobado usa azul ahí. Umbral a 0.52 |
 | P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `graficos_radar_multibase.R` | ☐ |
-| P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda del graficador | ☐ |
+| P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda manual de apiladas | ◐ **medido**: lám 68 usa `0.54×0.54` (ggplot, cuadrado) y lám 69 `0.40×0.29` (manual, rel 1.38). El motor es inconsistente consigo mismo. **Pero el aprobado usa `0.29×0.21`, la misma rel 1.38**: la referencia no decide, decide Gonzalo |
 
 ### El defecto que estaba detrás de varios a la vez
 
@@ -94,6 +94,14 @@ cifras ilegibles.
 **Los P sin marcar siguen pendientes de verse en el PDF de PowerPoint.** Los
 cerrados se cerraron midiendo el XML contra el aprobado, que no depende del
 render.
+
+### Por qué el marcador de leyenda se deforma (P13)
+
+La leyenda manual calcula `aspect_yx = alto / ancho` del canvas para cuadrar la
+marca, y el canvas declara **6 pulgadas de alto fijo** mientras el cajón real
+mide 4.59. Con el aspecto equivocado la marca sale 1.38 veces más ancha que
+alta. Es el **mismo defecto raíz que R5**: el graficador no conoce el alto de su
+cajón. Repararlo de fondo es la unidad grande que sigue pendiente.
 
 ## Lo aprendido
 
