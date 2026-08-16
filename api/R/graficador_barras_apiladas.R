@@ -165,7 +165,8 @@
 .finalizar_estado_labels_apiladas <- function(df_lab,
                                              color_texto_barras,
                                              color_texto_barras_fuera,
-                                             fit_padding = 0.003) {
+                                             fit_padding = 0.003,
+                                             colores_grupos = NULL) {
   if (!NROW(df_lab)) return(df_lab)
 
   hjust <- suppressWarnings(as.numeric(df_lab$.hjust_label))
@@ -195,7 +196,9 @@
   forced_out[is.na(forced_out)] <- FALSE
 
   df_lab$.label_fuera <- forced_out | !inside_bar
-  df_lab$.col_label <- ifelse(df_lab$.label_fuera, color_texto_barras_fuera, color_texto_barras)
+
+  df_lab$.col_label <- ifelse(df_lab$.label_fuera, color_texto_barras_fuera,
+                              color_texto_barras)
   df_lab$.span_label_left <- span_left
   df_lab$.span_label_right <- span_right
   df_lab
@@ -592,6 +595,7 @@
                                                   var_categoria,
                                                   color_texto_barras,
                                                   color_texto_barras_fuera,
+                                                  colores_grupos = NULL,
                                                   fit_padding = 0.003,
                                                   etiquetas_peq_padding = 0.012,
                                                   width_factor = 2.10) {
@@ -601,7 +605,8 @@
     df_lab,
     color_texto_barras = color_texto_barras,
     color_texto_barras_fuera = color_texto_barras_fuera,
-    fit_padding = fit_padding
+    fit_padding = fit_padding,
+    colores_grupos = colores_grupos
   )
   df_lab <- .limitar_una_label_fuera_por_barra_apiladas(
     df_lab,
@@ -626,6 +631,35 @@
     width_factor = width_factor
   )
 
+  # El contraste va AQUI y no antes: cinco pasos de acomodo reasignan
+  # `.col_label` al color fijo cuando meten una etiqueta dentro de su barra, y
+  # cualquier decision tomada antes se pierde. Ver `graficador_contraste_texto.R`.
+  df_lab <- .aplicar_contraste_labels_apiladas(df_lab, color_texto_barras,
+                                               colores_grupos)
+
+  df_lab
+}
+
+
+#' Recolorea las cifras interiores segun el segmento sobre el que caen
+#' @keywords internal
+.aplicar_contraste_labels_apiladas <- function(df_lab, color_texto_barras,
+                                               colores_grupos = NULL) {
+  if (!NROW(df_lab) || is.null(colores_grupos)) return(df_lab)
+  if (!length(names(colores_grupos)) || !(".grupo" %in% names(df_lab))) return(df_lab)
+  if (!(".col_label" %in% names(df_lab))) return(df_lab)
+
+  dentro <- if (".label_fuera" %in% names(df_lab)) !as.logical(df_lab$.label_fuera) else rep(TRUE, nrow(df_lab))
+  dentro[is.na(dentro)] <- TRUE
+  if (!any(dentro)) return(df_lab)
+
+  fill <- as.character(colores_grupos[match(as.character(df_lab$.grupo),
+                                            names(colores_grupos))])
+  hay <- dentro & !is.na(fill) & nzchar(fill)
+  if (!any(hay)) return(df_lab)
+
+  df_lab$.col_label[hay] <- .contraste_texto(fill[hay],
+                                             sobre_oscuro = color_texto_barras)
   df_lab
 }
 
@@ -1623,6 +1657,15 @@ graficar_barras_apiladas <- function(
   niveles_stack      <- if (invertir_segmentos) niveles_originales else rev(niveles_originales)
   niveles_leyenda    <- if (invertir_leyenda)  rev(niveles_originales) else niveles_originales
   etiquetas_leyenda_resueltas <- niveles_leyenda
+
+  # Paleta EFECTIVA de los segmentos, la misma que acabara en `scale_fill_manual`.
+  # Hace falta aqui —y no solo al pintar— porque el color de la cifra que va
+  # dentro de la barra se decide por contraste con su segmento, y `colores_grupos`
+  # crudo suele venir vacio: el proyecto declara los colores por paleta de lista.
+  colores_efectivos <- tryCatch(
+    .graficos_mk_palette(niveles_leyenda, pal_user = colores_grupos),
+    error = function(e) NULL
+  )
   if (!is.null(etiquetas_leyenda)) {
     etiquetas_leyenda_names <- names(etiquetas_leyenda)
     etiquetas_leyenda <- if (is.list(etiquetas_leyenda) && !is.data.frame(etiquetas_leyenda)) {
@@ -2102,6 +2145,7 @@ graficar_barras_apiladas <- function(
           var_categoria = var_categoria,
           color_texto_barras = color_texto_barras,
           color_texto_barras_fuera = color_texto_barras_fuera,
+          colores_grupos = colores_efectivos,
           fit_padding = fit_padding,
           etiquetas_peq_padding = etiquetas_peq_padding,
           width_factor = 2.10
@@ -2324,6 +2368,7 @@ graficar_barras_apiladas <- function(
           var_categoria = var_categoria,
           color_texto_barras = color_texto_barras,
           color_texto_barras_fuera = color_texto_barras_fuera,
+          colores_grupos = colores_efectivos,
           fit_padding = fit_padding,
           etiquetas_peq_padding = etiquetas_peq_padding,
           width_factor = 2.10
