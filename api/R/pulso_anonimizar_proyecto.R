@@ -366,6 +366,27 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
   # arroba pegada: basta con que el correo TERMINE en el TLD reservado.
   correo_sintetico <- "(^|@|\\.)example\\.test$"
 
+  # Seudónimos emitidos ANTES de que el anonimizador marcara el dominio con
+  # `.example.test`. Los fixtures de esa época —`hsvg2026`, `acrconta`— llevan
+  # correos con forma real (`carla.valdiviaf4f@pucp.edu.pe`) y el gate los
+  # reportaba a todos: 5 y 6 hallazgos que nadie podía accionar, con el efecto
+  # de siempre — un gate que lleva meses rojo deja de leerse y ya no protege.
+  #
+  # Se reconocen por el LOCAL-PART, que no cambió entre versiones: el
+  # anonimizador compone `nombre.apellido` + 3 hex del hash, tomando nombre y
+  # apellido de dos catálogos CERRADOS (32 x 26). No es una heurística de forma
+  # sino la firma del propio emisor, y por eso se construye desde sus catálogos
+  # y no desde una copia: si mañana se amplían, esto los sigue.
+  #
+  # Lo que NO afloja: la comprobación es por valor, no por columna. Un correo
+  # real que sobreviva entre seudónimos no lleva esa firma y se marca igual, que
+  # es justo el caso que este detector existe para atrapar.
+  correo_seudonimo_legacy <- paste0(
+    "^(", paste(tolower(.PULSO_PII_NOMBRES), collapse = "|"), ")\\.",
+    "(", paste(tolower(.PULSO_PII_APELLIDOS), collapse = "|"), ")",
+    "[0-9a-f]{3}@"
+  )
+
   hallazgos <- list()
   registrar <- function(df, ruta) {
     if (!is.data.frame(df) || !nrow(df)) return(invisible(NULL))
@@ -391,7 +412,10 @@ pulso_detectar_pii <- function(path, max_ejemplos = 3L, incluir_columnas_pii = F
       for (tipo in names(patrones)) {
         if (col_es_pii && !incluir_columnas_pii && tipo != "correo") next
         hits <- grepl(patrones[[tipo]], v, perl = TRUE)
-        if (tipo == "correo") hits <- hits & !grepl(correo_sintetico, v)
+        if (tipo == "correo") {
+          hits <- hits & !grepl(correo_sintetico, v) &
+            !grepl(correo_seudonimo_legacy, v)
+        }
         # Mismo criterio que el anonimizador: una fecha compacta yyyymmdd no es
         # un documento. Sin esta exclusión el gate rechazaría todo fixture de
         # campo por sus propias fechas de captura.

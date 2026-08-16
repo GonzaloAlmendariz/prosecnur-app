@@ -444,3 +444,83 @@ test_that("las columnas reales del catalogo de curso-horario se clasifican bien"
   expect_identical(unname(tipos[["Nombre de docente"]]), "nombre")
   expect_identical(unname(tipos[["Celular"]]), "telefono")
 })
+
+# ---------------------------------------------------------------------------
+# El detector reconoce los seudónimos de correo emitidos ANTES de que el
+# anonimizador marcara el dominio con `.example.test`.
+#
+# Los fixtures de esa época llevan correos con forma real
+# (`carla.valdiviaf4f@pucp.edu.pe`) y el gate los reportaba todos: 5 hallazgos
+# en `hsvg2026`, 6 en `acrconta`, ninguno accionable. Un gate que lleva meses
+# rojo deja de leerse, y entonces no protege de nada.
+#
+# La firma que los distingue es el LOCAL-PART, que no cambió entre versiones:
+# `nombre.apellido` + 3 hex, con nombre y apellido de dos catálogos cerrados.
+# Lo que estos tests fijan es la FRONTERA: qué se reconoce y qué no, porque una
+# regla demasiado laxa aquí apaga el detector para correos reales.
+.pii_pulso_con <- function(valores, columna = "correo_contacto") {
+  path <- tempfile(fileext = ".pulso")
+  stage <- tempfile("mk-legacy-"); dir.create(stage, recursive = TRUE)
+  on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
+  df <- data.frame(x = valores, stringsAsFactors = FALSE)
+  names(df) <- columna
+  saveRDS(list(monitoreo_snapshot = list(data = df)), file.path(stage, "state.rds"))
+  writeLines(
+    jsonlite::toJSON(list(format_version = 1, project_name = "test"), auto_unbox = TRUE),
+    file.path(stage, "manifest.json")
+  )
+  zip::zip(zipfile = path, files = list.files(stage), root = stage)
+  path
+}
+
+test_that("los seudónimos de correo sin `.example.test` dejan de ser hallazgos", {
+  # Muestra real de `hsvg2026`: nombre y apellido de los catálogos, 3 hex y el
+  # dominio institucional intacto.
+  legacy <- c(
+    "carla.valdiviaf4f@pucp.edu.pe",
+    "julia.ochoa57e@pucp.edu.pe",
+    "gabriela.palacios725@pucp.edu.pe",
+    "bruno.mendoza5d9@pucp.edu.pe"
+  )
+  expect_equal(nrow(pulso_detectar_pii(.pii_pulso_con(legacy))), 0L)
+
+  # Y los de la versión actual siguen reconociéndose por el TLD reservado.
+  expect_equal(
+    nrow(pulso_detectar_pii(.pii_pulso_con("carla.valdiviaf4f@pucp.edu.pe.example.test"))),
+    0L
+  )
+})
+
+test_that("un correo real sobreviviente entre seudónimos se sigue marcando", {
+  # EL test de la afinación. La comprobación es por VALOR y no por columna, así
+  # que un correo auténtico mezclado con seudónimos no se cuela: es exactamente
+  # el caso que el detector existe para atrapar, y el que una regla por columna
+  # habría dejado pasar.
+  mezcla <- c(
+    "carla.valdiviaf4f@pucp.edu.pe",   # seudónimo
+    "g.almendariz@pucp.edu.pe",        # REAL
+    "julia.ochoa57e@pucp.edu.pe"       # seudónimo
+  )
+  h <- pulso_detectar_pii(.pii_pulso_con(mezcla))
+  expect_equal(nrow(h), 1L)
+  expect_identical(h$tipo, "correo")
+  expect_identical(h$n, 1L)
+  expect_true(grepl("g.almendariz", h$ejemplo, fixed = TRUE))
+})
+
+test_that("la firma del anonimizador no se confunde con un correo cualquiera", {
+  # Cada caso rompe UNA de las tres condiciones de la firma. Si alguno dejara de
+  # marcarse, la regla se habría vuelto una heurística de forma —«algo.algo123»—
+  # y apagaría el detector para media libreta de direcciones.
+  fuera_de_catalogo <- c(
+    "zoraida.valdiviaf4f@pucp.edu.pe",  # nombre que no está en el catálogo
+    "carla.mercadof4f@pucp.edu.pe",     # apellido que no está en el catálogo
+    "carla.valdiviaxyz@pucp.edu.pe",    # sufijo no hexadecimal
+    "carla.valdiviaf4@pucp.edu.pe",     # sufijo de 2, no de 3
+    "carla.valdiviaf4f2@pucp.edu.pe",   # sufijo de 4
+    "prefijo.carla.valdiviaf4f@pucp.edu.pe"  # la firma no ancla al inicio
+  )
+  h <- pulso_detectar_pii(.pii_pulso_con(fuera_de_catalogo))
+  expect_equal(nrow(h), 1L)
+  expect_identical(h$n, length(fuera_de_catalogo))
+})
