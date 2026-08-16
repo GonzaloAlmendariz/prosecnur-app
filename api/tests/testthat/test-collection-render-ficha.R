@@ -300,3 +300,56 @@ test_that("labels de mas que renglones no pasa la validacion", {
   expect_false(resultado$ok)
   expect_true("log_labels_overflow" %in% vapply(resultado$problems, function(p) p$code, character(1)))
 })
+
+# --- Legibilidad fisica del QR -----------------------------------------------
+# Lo que decide si una camara mala lee el simbolo en un aula mal iluminada no es
+# el numero de caracteres sino los MILIMETROS QUE MIDE CADA MODULO impreso. Un
+# payload mas largo sube la version del simbolo, mete mas modulos en el mismo
+# lado y encoge cada uno.
+#
+# Los tests de QR usaban "https://kf/x?d=A-1": 18 caracteres, 33 modulos. El
+# payload que este sistema genera de verdad ronda los 86 y da 49. Se probaba un
+# simbolo que la app no produce — el mismo sesgo de fixture que escondia el bug
+# del cruce por `collectorID`.
+
+.crf_mm_por_modulo <- function(payload, branded = FALSE) {
+  L <- .crf_layout(branded = branded)
+  lado_mm <- L$qr_side * pulso_pdf_geo("portrait")$page_w * 25.4
+  lado_mm / nrow(collection_qr_matrix(payload))
+}
+
+# El enlace mas largo que el sistema llega a producir: servidor europeo, campo
+# de prefill con ruta de grupo, y un identificador holgado.
+.crf_payload_realista <- function() {
+  paste0(
+    "https://ee-eu.kobotoolbox.org/x/5rbcghMb",
+    "?d%5B/afWqShr22MB4436VTsw32p/collectorID%5D=unit-aulas-aula-01-fd6e0ab1ee"
+  )
+}
+
+test_that("el QR impreso deja modulos comodos incluso con el enlace mas largo", {
+  mm <- .crf_mm_por_modulo(.crf_payload_realista())
+
+  # 0,4 mm es el minimo para un lector decente; 0,6 es la zona comoda para la
+  # camara de un telefono a medio metro. Hoy sobra: el simbolo mide ~71 mm.
+  expect_gt(mm, 0.6)
+  # Y con careta el QR no cambia de tamano, solo de sitio.
+  expect_equal(.crf_mm_por_modulo(.crf_payload_realista(), branded = TRUE), mm)
+})
+
+test_that("el fixture de QR representa el enlace que el sistema produce", {
+  real <- .crf_payload_realista()
+  juguete <- "https://kf/x?d=A-1"
+
+  # El control: si alguien vuelve a probar solo con el juguete, esto lo delata.
+  expect_gt(nrow(collection_qr_matrix(real)), nrow(collection_qr_matrix(juguete)))
+  expect_match(real, "d%5B", fixed = TRUE)
+  expect_gt(nchar(real), 60L)
+})
+
+test_that("un enlace que encogiera el modulo por debajo del umbral se detecta", {
+  # Control del control: un payload absurdo SI baja de 0.6 mm, asi que el
+  # aserto de arriba no esta pasando por vacio.
+  gigante <- paste0("https://ee.example.test/x/aB3xY9kQ?d%5BcollectorID%5D=", strrep("x", 1200L))
+  expect_lt(.crf_mm_por_modulo(gigante), 0.6)
+})

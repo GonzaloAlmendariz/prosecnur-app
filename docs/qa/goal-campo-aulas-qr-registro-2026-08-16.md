@@ -56,9 +56,14 @@ https://ee.kobotoolbox.org/x/aB3xY9kQ
 ```
 
 Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es un
-**slug interno** en vez de `CH 1`. El enlace impreso ocupa dos renglones y el QR
-sale al doble de denso de lo necesario — que es justamente lo que se paga en un
-aula con mala luz y un teléfono viejo.
+**slug interno** en vez de `CH 1`. El enlace impreso ocupa dos renglones.
+
+> **Corrección (2026-08-16, al hacer L10):** aquí se dijo además que el QR salía
+> «al doble de denso, que es lo que se paga en un aula con mala luz». Medido:
+> con el parámetro duplicado el módulo impreso mide **1,25 mm** y sin él
+> **1,46 mm**, contra un umbral cómodo de 0,6 mm. **El QR nunca estuvo en riesgo
+> de no escanearse.** Lo que L1 arregló de verdad fue el enlace impreso en una
+> línea y la higiene del payload, no la legibilidad.
 
 ---
 
@@ -78,7 +83,7 @@ aula con mala luz y un teléfono viejo.
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
 | **L8** | `apiMonitoreoAulasConfig` tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. | ☑ **hecho** (2026-08-16) — **no era limpieza: era el eslabón roto del circuito.** Su `source_mapping` es lo único que dice qué columna de Kobo lleva el id de colector, y sin UI nadie podía fijarlo. El fallback por nombres convencionales no incluía `collectorID`, que es justo el nombre que produce nuestro propio QR. Añadido a las dos listas de candidatos; el endpoint sigue sin superficie pero ya no hace falta para el caso normal. |
 | **L9** | No hay test que ate la costura completa (selección → enlaces → fichas → handoff). | `api/tests/testthat/test-collection-costura-aulas.R`. | ☑ **hecho** (2026-08-16) — 41 asertos. Controles verificados revirtiendo L1, L3 y la geometría de L7: los tres lo ponen rojo. |
-| **L10** | El QR nunca se verificó decodificándolo. | **Corregido el 2026-08-16: la premisa era inexacta.** `collection_qr_matrix_from_png()` sí relee el QR del PNG renderizado y compara la matriz módulo a módulo contra la esperada, en 5 archivos de test. Lo que falta es más estrecho: nadie **decodifica** la matriz a texto, así que un error de encoding del payload (no de dibujo) pasaría. Y ningún lector real ha visto la hoja impresa. | ◐ a medias |
+| **L10** | El QR no se decodifica a texto. | `collection_qr_matrix()` usa el paquete `qrcode`; `collection_qr_matrix_from_png()` relee la matriz del PNG y la compara módulo a módulo. | ◐ a medias — **la parte medible está hecha**: el fixture ya usa el enlace real (86 chars, 49 módulos) en vez del juguete de 18, y hay guardia de legibilidad física (mm por módulo). **Decodificar a texto queda ⛔ bloqueado**: no hay decodificador en R ni en Python en esta máquina, y añadirlo es una dependencia nueva en `DESCRIPTION` que el CI tendría que instalar. |
 
 ### Espera al usuario
 
@@ -317,3 +322,35 @@ paso cómodo— así que ni avisaba. Ahora reparte su banda y recorta con
 
 Se ve en el PNG: los cinco rótulos caben y el pie queda limpio. Controles
 verificados: quitar el reparto pone el test en rojo.
+
+### 2026-08-16 — L10: lo medible hecho, lo demás bloqueado, y una corrección mía
+El fixture de QR usaba `"https://kf/x?d=A-1"`: 18 caracteres, 33 módulos. El
+enlace que el sistema produce de verdad ronda los 86 y da 49. **Se estaba
+probando un símbolo que la app no genera** — el mismo sesgo de fixture que
+escondía el bug del cruce por `collectorID` en L8. Corregido, con control.
+
+Lo que decide si una cámara mala lee el símbolo no es el número de caracteres
+sino los milímetros de cada módulo impreso:
+
+| enlace | chars | módulos | mm/módulo |
+|---|---|---|---|
+| juguete del test | 18 | 33 | 2,16 |
+| real, código operativo | 63 | 45 | 1,59 |
+| real, slug interno | 86 | 49 | 1,46 |
+| el más largo posible | 95 | 49 | 1,46 |
+
+Umbral cómodo: 0,6 mm. **Sobra holgadamente** porque el símbolo mide 71 mm de
+lado. Hay guardia con control invertido —un payload absurdo sí baja de 0,6—, de
+modo que el aserto no pasa por vacío.
+
+**Corrección de algo que afirmé el día que abrí el GOAL**: dije que el parámetro
+duplicado dejaba el QR «al doble de denso, que es lo que se paga en un aula con
+mala luz». Falso: 1,25 mm contra 1,46 mm, ambos muy por encima del umbral. El QR
+nunca estuvo en riesgo. L1 sigue valiendo por el enlace impreso y por la higiene
+del payload, no por la legibilidad. Escribí una consecuencia plausible sin
+medirla.
+
+**Decodificar a texto queda bloqueado**: no hay decodificador disponible ni en R
+(`zxingcpp`, `quadrangle`, `opencv`) ni en Python (`pyzbar`, `cv2`). Añadirlo es
+una dependencia nueva en `DESCRIPTION` que el CI instalaría en cada corrida — es
+decisión tuya si vale la pena para cerrar el último tramo.
