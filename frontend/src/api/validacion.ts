@@ -152,15 +152,18 @@ export async function apiV2InstrumentoVariablesExcluidas(baseNombre?: string | n
   );
 }
 
+// `motivos` sólo hace falta para las variables que se agregan ahora (vara V5):
+// excluir una silencia todas sus reglas de una vez. Reponer no lo pide.
 export async function apiV2InstrumentoVariablesExcluidasSave(
   variables: string[],
   baseNombre?: string | null,
+  motivos?: Record<string, string>,
 ) {
   return handle<InstrumentoVariablesExcluidas>(
     await apiFetch("/api/validacion/v2/instrumento/variables-excluidas", {
       method: "POST",
       headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ variables }),
+      body: JSON.stringify({ variables, motivos }),
     }),
   );
 }

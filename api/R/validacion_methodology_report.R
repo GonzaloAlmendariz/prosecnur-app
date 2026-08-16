@@ -1065,6 +1065,8 @@ build_validation_methodology_report_model <- function(scope,
   disabled_motivos <- scope$reglas_desactivadas_motivo
   if (!is.list(disabled_motivos)) disabled_motivos <- list()
   excluded_variables <- as.character(scope$variables_excluidas %||% character(0))
+  excluded_motivos <- scope$variables_excluidas_motivo
+  if (!is.list(excluded_motivos)) excluded_motivos <- list()
   bundle_rules <- (scope$plan_result %||% list())$bundle$rules %||% list()
   shared_variable_labels <- list()
   external_variable_labels <- list()
@@ -1151,6 +1153,7 @@ build_validation_methodology_report_model <- function(scope,
     operational_config = operational_config,
     disabled_rule_ids = as.list(disabled_ids),
     reglas_desactivadas = .vmr_reglas_desactivadas(disabled_ids, disabled_motivos, rules),
+    variables_excluidas = .vmr_variables_excluidas(excluded_variables, excluded_motivos),
     excluded_variables = as.list(excluded_variables),
     unsupported = unsupported,
     descartadas = descartadas,
@@ -1235,6 +1238,25 @@ build_validation_methodology_report_model <- function(scope,
     ))
   }
   paste(partes, collapse = " ")
+}
+
+# Vara V5 — por qué se dejó cada variable fuera de la auditoría.
+#
+# Excluir una variable silencia todas sus reglas de una vez, así que el informe
+# tiene que poder decir por qué igual que con una regla apagada.
+.vmr_variables_excluidas <- function(variables, motivos) {
+  variables <- unique(as.character(variables %||% character(0)))
+  if (!length(variables)) return(list())
+  lapply(variables, function(v) {
+    reg <- motivos[[v]]
+    motivo <- .vmr_text((reg %||% list())$motivo %||% "")
+    list(
+      variable = v,
+      motivo = motivo,
+      decidido_en = .vmr_text((reg %||% list())$decidido_en %||% ""),
+      sin_motivo = !nzchar(motivo)
+    )
+  })
 }
 
 # Vara V5 — por qué se apagó cada control.

@@ -512,6 +512,8 @@ export type InstrumentoVariablesExcluidas = {
   base_nombre: string | null;
   variables: string[];
   opciones: InstrumentoVariableExclusionOption[];
+  /** Por qué se excluyó cada variable; ausente en proyectos anteriores. */
+  motivos?: Record<string, { motivo: string; decidido_en: string }>;
 };
 
 export type ExploradorVariable = {

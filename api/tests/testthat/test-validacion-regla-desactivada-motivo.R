@@ -66,3 +66,28 @@ test_that("el endpoint exige motivo al desactivar y no al reactivar", {
   # Reactivar limpia el motivo en vez de conservar uno que ya no aplica.
   expect_true(grepl("motivos[[id_regla]] <- NULL", bloque, fixed = TRUE))
 })
+
+test_that("una variable dejada fuera también lleva su motivo", {
+  # Hermana de la regla apagada: excluir una variable silencia todas sus
+  # reglas de una vez, así que el informe necesita el mismo porqué.
+  out <- prosecnurapp:::.vmr_variables_excluidas(
+    c("telefono", "gps_inicio"),
+    list(telefono = list(motivo = "es metadato de contacto, no dato del estudio",
+                         decidido_en = "2026-08-15T11:00:00Z"))
+  )
+  expect_length(out, 2L)
+  tel <- Filter(function(x) x$variable == "telefono", out)[[1]]
+  expect_true(grepl("metadato", tel$motivo, fixed = TRUE))
+  expect_false(tel$sin_motivo)
+  gps <- Filter(function(x) x$variable == "gps_inicio", out)[[1]]
+  expect_true(gps$sin_motivo)
+})
+
+test_that("el endpoint exige motivo sólo para las variables que se agregan", {
+  # El control: pedirlo también para las que ya estaban rompería cualquier
+  # guardado de un proyecto anterior, y pedirlo al reponer sería absurdo.
+  router <- paste(readLines("../../R/router_validacion.R", warn = FALSE), collapse = "\n")
+  expect_true(grepl("E_VARIABLE_MOTIVO_REQUERIDO", router, fixed = TRUE))
+  expect_true(grepl("nuevas <- setdiff(vars, ya_excluidas)", router, fixed = TRUE))
+  expect_true(grepl("for (v in setdiff(ya_excluidas, vars)) motivos[[v]] <- NULL", router, fixed = TRUE))
+})
