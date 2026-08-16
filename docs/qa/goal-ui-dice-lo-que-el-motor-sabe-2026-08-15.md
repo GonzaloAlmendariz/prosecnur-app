@@ -60,7 +60,7 @@ sabe nada que la interfaz calle.
 | **L27** | Barrido de Monitoreo territorial | `filasDeFase.ts` | ☑ hecho — cuatro respuestas se perdían entre la consola y el tablero. |
 | **L28** | Bitácora no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves en los cuatro proyectos; tercer módulo, misma decisión que L24 y L26. |
 | **L29** | Barrido de Gráficos | `coberturaBases.ts` | ☑ hecho — la etapa se daba por hecha con la mitad del estudio sin mazo. |
-| **L21** | Barrer Gráficos y Cálculo de muestra | — | ◐ Gráficos hecho en [L29]; falta Cálculo de muestra, que la otra sesión soltó recién. |
+| **L21** | Barrer Gráficos y Cálculo de muestra | — | ☑ hecho — Gráficos en [L29], Cálculo de muestra en [L30] **sin hallazgos**. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
@@ -119,6 +119,43 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L30 — Cálculo de muestra: sin hallazgos, y un falso positivo que casi cometo
+
+Censo: sólo `hsvg2026` tiene marco de aulas construido (22 bloques, 136 284
+filas de entrada); `acnur_acg` trae la carcasa del estudio y los otros tres,
+nada. Un único proyecto donde el defecto puede caber.
+
+**El campo huérfano existe y no es una brecha.** `frame.warnings` está
+declarado como `warnings: string[]`, el motor lo escribe en ocho sitios
+—«no se pudo excluir posgrado», «no se pudo empatar con la base principal»,
+«requiere revision»— y **no lo lee ningún componente**. Encaja perfecto con el
+patrón que dio once hallazgos, así que llegué a escribir el módulo, el panel,
+el CSS y los tests.
+
+Y entonces la suite existente lo rechazó, con un test cuyo nombre dice el
+porqué: *«explica una coincidencia sólida con revisión pendiente **sin duplicar
+el banner del motor**»*, que prohíbe explícitamente el string
+`requiere revision` y la clase `cmv2-frame-warning-list`. Es decir: **ese panel
+ya existió y se retiró a propósito**. `decidirConsistenciaMarco()` narra los
+avisos de relación en castellano propio —«La relación requiere revisión.
+Resuelve los hallazgos y reconstruye el marco antes de continuar a Diseño»— en
+vez del crudo del motor sin tildes.
+
+Sobre datos reales el único aviso que `hsvg2026` trae es exactamente ése. Mi
+panel habría mostrado, en el único proyecto donde se puede ver, justo lo que
+la decisión previa quitó. Revertido entero.
+
+**La trampa, que es nueva y vale para todo el método:** «campo del payload sin
+consumidor» detecta bien, pero **no distingue un olvido de una retirada
+deliberada**. La prueba de que es una brecha no es que nadie lo lea; es que la
+información no esté en ninguna otra parte de la pantalla. Antes de construir
+hay que buscar quién más narra ese hecho —aquí, un test lo decía en su propio
+nombre—.
+
+Menor y no reparado: `.cmv2-sal-reporte-stale` quedó en `salidas.css` sin
+ningún componente que la use, residuo de esa misma retirada. Es deuda de CSS,
+no un aviso perdido.
 
 ### L29 — la etapa hecha con la mitad del estudio vacía
 
