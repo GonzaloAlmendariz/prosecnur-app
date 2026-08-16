@@ -36,6 +36,9 @@
 # para pasar de «cuantas pulgadas mide la fila» a «cuantas lineas caben».
 .BARRAS_INTERLINEA_TITULO <- 0.86
 
+# Margen al contar lineas que caben. Ver `.barras_acotar_titulo_grupo()`.
+.BARRAS_TOL_LINEA <- 0.05
+
 # Recorta el titulo a las lineas que caben en un bloque de `n_filas` barras.
 # Siempre deja al menos una linea: un bloque sin titulo no dice de que habla.
 # `alto_rel` es la porcion de la lamina que ocupa este grafico. Vale 1 en un
@@ -71,7 +74,12 @@
     # Alto de una linea = cuerpo por interlineado, en pulgadas.
     alto_linea <- (pt / 72) * .BARRAS_INTERLINEA_TITULO
     if (is.finite(alto_linea) && alto_linea > 0) {
-      lpf <- max(lpf, as.integer(floor(alto_in / alto_linea)))
+      # La tolerancia no es un redondeo optimista: el interlineado es una
+      # estimacion, y sin ella una fila donde caben 3.99 lineas devuelve 3 y el
+      # enunciado pierde una linea entera por un 0.25 % de diferencia. Medido
+      # sobre el mazo de acreditacion: 25 de los 33 recortes estaban exactamente
+      # en ese caso.
+      lpf <- max(lpf, as.integer(floor(alto_in / alto_linea + .BARRAS_TOL_LINEA)))
     }
   }
   cupo <- max(1L, as.integer(floor(n_filas * lpf * min(1, alto_rel))))
