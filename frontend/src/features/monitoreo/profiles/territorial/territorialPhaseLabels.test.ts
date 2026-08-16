@@ -44,9 +44,25 @@ describe("etiquetas de fase de la consola territorial", () => {
     expect(territorialPhaseBadgeLabel(sinDif)).toBe("1,697 locales");
   });
 
-  it("los estados que no son de conteo siguen intactos", () => {
-    const err = item({ status: "sync_error", message: "", report_rows: null });
-    expect(territorialPhaseBadgeLabel(err)).not.toContain("de");
-    expect(territorialPhaseStatusLabel(err, "field")).toContain("error");
+  it("un estado urgente gana aunque haya diferencia de filas", () => {
+    // Este test nació neutralizado: pasaba `report_rows: null`, que apagaba el
+    // desglose por el guardia de nulos y no por el de estado, así que daba
+    // verde sin ejercitar la precedencia. Con la diferencia REAL de acnur_acg
+    // encima, la frase del motor tiene que seguir ganando.
+    for (const [status, badge, enElTexto] of [
+      ["sync_error", "Error al actualizar", "error"],
+      ["dashboard_stale", "Ficha desactualizada", "tablero"],
+      ["source_snapshot_mismatch", "Revisar fuente", "desalineación"],
+    ] as const) {
+      const urgente = item({
+        status,
+        message: `Campo: ${enElTexto} que hay que atender.`,
+        local_rows: 1697,
+        report_rows: 1693,
+      });
+      expect(territorialPhaseBadgeLabel(urgente)).toBe(badge);
+      expect(territorialPhaseStatusLabel(urgente, "field")).toContain(enElTexto);
+      expect(territorialPhaseStatusLabel(urgente, "field")).not.toContain("1,693");
+    }
   });
 });
