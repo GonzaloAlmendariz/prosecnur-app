@@ -57,7 +57,9 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
 | L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
-| L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 38**; 0 degeneradas |
+| L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
+| L19 | Los enunciados largos se recortan hasta perder el 58 % | alto del bloque atado al nº de públicos | ☐ |
+| L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
 
 **L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
 con el dominio sintético no le corresponde a este GOAL. El arreglo del
@@ -597,3 +599,48 @@ Cada caja del plano lleva su tamaño en cm, el **cuerpo del texto en pt** y, en
 el área de barras, el **grosor de la barra en cm**. Eran las tres medidas que
 había que sacar del XML con el archivo ya exportado —`sz=` en centésimas de
 punto, alturas en EMU— y ahora las dice la propia lámina.
+
+## Revisión del mazo completo (2026-08-16)
+
+Regenerado PPT + Word de punta a punta. **El verificador da 0 incumplimientos
+contra los 6 del entregable aprobado**, y las medidas de fondo coinciden o
+mejoran:
+
+| | Aprobado | Motor |
+|---|---|---|
+| Incumplimientos | 6 | **0** |
+| Grosor de escala, mediana | 1.30 cm | **1.30 cm** |
+| Grosor de escala, mínimo | 0.49 cm | **0.82 cm** |
+| Máximo de barras por gráfico | 7 | **7** |
+| Texto bajo 12 pt | 6.2 % | **6.1 %** |
+| Láminas con Top Two Box | 40 | **39** |
+| Naranja en la rampa | 213 | 180 |
+
+Las 7 láminas de más son las continuaciones, todas marcadas «(CONT.)».
+
+### L19 — lo que la vara no miraba: los enunciados se recortan
+
+**18 enunciados salen recortados y 11 pierden más de la mitad; de media se
+muestra el 42 %.** El peor caso enseña **1 de 9 líneas**. El entregable
+aprobado muestra ese mismo enunciado **entero**, así que no es una limitación
+del formato.
+
+Y no es falta de ancho: el proyecto declara `canvas_w_grupo = 0.22` y el
+aprobado usa el 19 % para esa columna —el motor tiene *más* sitio—. Es falta de
+**alto**: el aviso lo dice literalmente, «el bloque tiene 1 fila y el texto
+necesita 9 líneas». El motor ata el alto del enunciado al número de públicos de
+esa premisa, así que una premisa preguntada a un solo público dispone del alto
+de una barra para un texto de nueve líneas. El aprobado le da al enunciado un
+alto propio.
+
+Esto **no lo veía ninguna vara**: V1–V8 miden geometría, tipografía y color, y
+un texto truncado pasa todas. Es el recordatorio de que el verificador declara
+seis reglas sin cubrir, y «0 incumplimientos» significa «cumple lo que se mide».
+
+### Otros dos, menores
+
+- **7 láminas se generan sin su ícono**: el `.pulso` no trae el PNG de
+  `318ecf24`. Es dato del proyecto, no del motor.
+- **El rótulo de la columna difiere**: el motor escribe «Top 2 Box» y el
+  aprobado «TOP TWO BOX». Cosmético, pero es lo que hizo que una medición mía
+  contara 0 columnas en el aprobado cuando tiene 40.
