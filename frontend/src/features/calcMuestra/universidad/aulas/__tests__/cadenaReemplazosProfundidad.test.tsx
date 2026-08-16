@@ -52,6 +52,36 @@ function seleccion(n: number) {
   return [titular, ...reservas];
 }
 
+/** `n` titulares, cada uno con dos reservas atadas. */
+function variosTitulares(n: number) {
+  return Array.from({ length: n }, (_, i) => [
+    {
+      classroom_id: `CH-${i + 1}`,
+      selection_slot_id: `slot-${i + 1}`,
+      sample_role: "titular",
+      wave: "M1",
+      course_name: `Titular ${i + 1}`,
+      faculty: "Ciencias",
+      stratum: "Ciencias",
+      eligible_n: 40,
+      operational_code: `CH ${i + 1}`,
+    },
+    {
+      classroom_id: `R-${i + 1}-1`,
+      selection_slot_id: `slot-${i + 1}`,
+      replacement_for: `CH-${i + 1}`,
+      sample_role: "chain_reserve",
+      course_name: `Reemplazo de ${i + 1}`,
+      faculty: "Ciencias",
+      stratum: "Ciencias",
+      replacement_order: 1,
+      wave: "M2",
+      operational_code: `R ${i + 1}.1`,
+      equivalence_level: "misma_celda",
+    },
+  ]).flat();
+}
+
 function pintar(n: number, depth: number): string {
   return renderToStaticMarkup(
     <ClassroomReplacementChainPanel selectionRows={seleccion(n)} depth={depth} />,
@@ -113,5 +143,38 @@ describe("profundidad que la pestaña pide", () => {
     for (const vacio of [undefined, null, 0, -3, "", Number.NaN]) {
       expect(profundidadCadenaPedida(vacio)).toBe(6);
     }
+  });
+});
+
+describe("cuántos titulares reciben tarjeta de ruta", () => {
+  /**
+   * Tercer recorte silencioso de la misma familia: `titulars.slice(0, 24)`
+   * mientras la selección de referencia trae 30 titulares. Seis se quedaban sin
+   * tarjeta y sin aviso, en la pantalla que entrega los códigos operativos a
+   * campo. La métrica «Titulares con ruta» decía 24 y sonaba a dato del plan.
+   */
+  it("dibuja los treinta titulares de la selección de referencia", () => {
+    const html = renderToStaticMarkup(
+      <ClassroomReplacementChainPanel selectionRows={variosTitulares(30)} depth={11} />,
+    );
+    const tarjetas = html.match(/cmv2-chain-route-card/g) ?? [];
+    expect(tarjetas).toHaveLength(30);
+  });
+
+  it("el titular 25 ya no se pierde", () => {
+    // EL defecto: del 25 al 30 no llegaban a pintarse.
+    const html = renderToStaticMarkup(
+      <ClassroomReplacementChainPanel selectionRows={variosTitulares(30)} depth={11} />,
+    );
+    expect(html).toContain("Titular 25");
+    expect(html).toContain("Titular 30");
+  });
+
+  it("la métrica cuenta los titulares que hay", () => {
+    const html = renderToStaticMarkup(
+      <ClassroomReplacementChainPanel selectionRows={variosTitulares(30)} depth={11} />,
+    );
+    expect(html).toContain("<strong>30</strong>");
+    expect(html).not.toContain("<strong>24</strong>");
   });
 });
