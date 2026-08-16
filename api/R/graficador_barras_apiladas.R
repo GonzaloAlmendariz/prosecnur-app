@@ -1278,8 +1278,10 @@ graficar_barras_apiladas <- function(
     # DEBUG PH
     # ==========================
     debug_ph_bordes       = FALSE,
-    debug_ph_col          = "#FF00FF",
-    debug_ph_lwd          = 0.6,
+    # Plano, no subrayador: linea fina y fria. El magenta de 0.6 pintaba una
+    # banda que tapaba lo que se auditaba. Ver `graficador_guia_arquitectonica.R`.
+    debug_ph_col          = .GUIA_COL,
+    debug_ph_lwd          = .GUIA_LWD,
 
     # ==========================
     # EXPORTAR
@@ -2719,16 +2721,23 @@ graficar_barras_apiladas <- function(
       plot.margin      = ggplot2::margin(0, 4, 0, 18)
     )
 
-  .ph_border <- function(x, y, w, h) {
-    cowplot::draw_grob(
-      grid::rectGrob(
-        x = 0, y = 0, width = 1, height = 1,
-        just = c("left", "bottom"),
-        gp = grid::gpar(col = debug_ph_col, fill = NA, lwd = debug_ph_lwd)
-      ),
-      x = x, y = y, width = w, height = h,
-      hjust = 0, vjust = 0
+  # Ver `graficador_guia_arquitectonica.R`: la guia se dibuja como un plano —
+  # linea fina y cada caja con su cota en pulgadas— y no como un subrayador.
+  # Antes habia que exportar y medir el XML en EMU para saber cuanto media un
+  # hueco; ahora lo dice la propia caja.
+  .ph_border <- function(x, y, w, h, etiqueta = NULL) {
+    grobs <- .guia_ph_grobs(
+      x = x, y = y, w = w, h = h,
+      ancho_in = suppressWarnings(as.numeric(ancho)[1]),
+      alto_in  = suppressWarnings(as.numeric(alto)[1]),
+      etiqueta = etiqueta,
+      col = debug_ph_col %||% .GUIA_COL,
+      lwd = debug_ph_lwd %||% .GUIA_LWD
     )
+    lapply(grobs, function(g) {
+      cowplot::draw_grob(g, x = x, y = y, width = w, height = h,
+                         hjust = 0, vjust = 0)
+    })
   }
 
   # alturas en pulgadas — mismo helper que usó el piso de grosor, para que las
