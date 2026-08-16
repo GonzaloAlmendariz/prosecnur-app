@@ -56,7 +56,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
-| L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ☐ |
+| L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☐ |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ☐ |
@@ -93,6 +93,30 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L9 · alumnos por CH por facultad (2026-08-16)
+
+El marco de 2025 publica `alumnos_por_ch` con **18 facultades**. Recalculado
+desde su propio `aula_frame` y contrastado fila a fila:
+
+| | |
+|---|---|
+| Facultades publicadas | 18 |
+| Facultades recalculadas | 18 |
+| Mismas claves | ✅ |
+| **Filas con diferencia en `n_ch` o P25** | **0 de 18** |
+
+Muestra (nombres reales, este proyecto no está anonimizado):
+`ciencias_e_ingenieria` 592 CH con P25 = 24, `ciencias_sociales` 169 con 21,
+`arquitectura_y_urbanismo` 56 con 22,5, `arte_y_diseno` 63 con 18.
+
+**La mitad reproducible de V6 queda cerrada**: el estadístico por facultad sale
+del marco ejecutado y se recalcula idéntico, sin recomputar nada por otra vía.
+
+Lo que falta de V6 no es aritmética sino justificación: **por qué P25 y no
+mediana o media**. La decisión está guardada, pero el motivo de elegir el
+conservador —una cuarta parte de los CH tiene ese valor o menos— es metodológico
+y pertenece al estudio, no al motor.
 
 ## L8 · el tamaño (2026-08-16)
 
