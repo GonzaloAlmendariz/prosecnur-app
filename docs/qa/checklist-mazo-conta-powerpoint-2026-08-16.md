@@ -119,6 +119,23 @@ de una lámina, aquí son dos láminas del mismo tipo. Y explica el síntoma que
 abrió este punto: «veo demasiadas cosas que difieren en el mismo tipo de gráfico
 y slide».
 
+**Precisión al medir mejor**: agrupar por número de filas mezclaba casos que no
+son comparables —«3 filas en un bloque» y «2+1 en dos bloques» reparten
+distinto por diseño—. Agrupando por patrón exacto, **las tres láminas que
+comparten patrón salen idénticas** (grosor 2.02, pasos 2.59/4.78). El motor sí
+sabe ser consistente; lo que dispersa es que patrones distintos den resultados
+muy separados: **0.65, 1.09, 1.65 y 2.02 cm** en láminas de tres filas.
+
+**Una hipótesis descartada con medición**: si la dispersión fuera de redondeo,
+una rejilla al milímetro la colapsaría. Aplicada a todo el mazo bajó de **22
+grosores distintos a 21** —el aprobado tiene 17—, así que no hay valores casi
+iguales que juntar: son grosores genuinamente distintos. La rejilla se revirtió;
+el helper queda documentado con el dato que lo descarta.
+
+El aprobado, para comparar: 408 barras, 17 valores, y **153 en un solo grosor**
+(1.30 cm). El motor: 411 barras, 22 valores, 96 en el suyo. La diferencia no es
+el rango —los dos van de 0.65 a ~1.8/2.0— sino la **concentración**.
+
 ### El texto más pequeño del mazo, y por qué R3 no lo veía
 
 El mínimo del motor era **7.39 pt** —cifras blancas dentro de los segmentos de
