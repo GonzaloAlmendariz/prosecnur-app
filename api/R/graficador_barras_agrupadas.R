@@ -389,8 +389,8 @@ graficar_barras_agrupadas <- function(
     centro_cowplot            = NA_real_,
 
     debug_ph_bordes           = FALSE,
-    debug_ph_col              = "#FF00FF",
-    debug_ph_lwd              = 0.6,
+    debug_ph_col              = .GUIA_COL,
+    debug_ph_lwd              = .GUIA_LWD,
 
     # ==========================
     # EXPORTAR
@@ -1598,16 +1598,26 @@ graficar_barras_agrupadas <- function(
   y_top0  <- y_panel0 + main_h
   y_main0 <- y_panel0
 
-  .ph_border <- function(x, y, w, h) {
-    cowplot::draw_grob(
-      grid::rectGrob(
-        x = 0, y = 0, width = 1, height = 1,
-        just = c("left", "bottom"),
-        gp = grid::gpar(col = debug_ph_col, fill = NA, lwd = debug_ph_lwd)
-      ),
-      x = x, y = y, width = w, height = h,
-      hjust = 0, vjust = 0
+  # El plano, igual que en apiladas: marco fino y cada caja con su cota en cm,
+  # su cuerpo en pt y el grosor de barra. Antes esta familia dibujaba solo el
+  # marco, asi que la lamina de cuatro paneles —la unica que usa agrupadas en
+  # el mazo— salia sin una sola medida. Ver `graficador_guia_arquitectonica.R`.
+  .guia_nivel <- .guia_registro_notas()
+  .ph_border <- function(x, y, w, h, etiqueta = NULL, nota = NULL,
+                         nivel_extra = 0L) {
+    grobs <- .guia_ph_grobs(
+      x = x, y = y, w = w, h = h,
+      ancho_in = suppressWarnings(as.numeric(ancho)[1]),
+      alto_in  = suppressWarnings(as.numeric(alto)[1]),
+      etiqueta = etiqueta, nota = nota,
+      col = debug_ph_col %||% .GUIA_COL,
+      lwd = debug_ph_lwd %||% .GUIA_LWD,
+      nivel = .guia_nivel(y + h) + nivel_extra
     )
+    lapply(grobs, function(g) {
+      cowplot::draw_grob(g, x = x, y = y, width = w, height = h,
+                         hjust = 0, vjust = 0)
+    })
   }
 
   canvas <- cowplot::ggdraw()
@@ -1659,7 +1669,8 @@ graficar_barras_agrupadas <- function(
       )
     }
 
-    if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_header0, 1, header_h)
+    if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_header0, 1, header_h,
+                                                      etiqueta = "cabecera")
   }
 
   # TOP ROW: titulo extra
@@ -1744,11 +1755,17 @@ graficar_barras_agrupadas <- function(
 
   if (debug_ph_bordes) {
     canvas <- canvas +
-      .ph_border(x_etq0,   y_main0, w_etq,   main_h) +
+      .ph_border(x_etq0,   y_main0, w_etq,   main_h, etiqueta = "eje",
+                 nivel_extra = 1L,
+                 nota = .guia_nota(texto_pt = size_ejes_eff)) +
       .ph_border(x_buf10,  y_main0, w_buf1,  main_h) +
-      .ph_border(x_bars0,  y_main0, w_bars,  main_h) +
+      .ph_border(x_bars0,  y_main0, w_bars,  main_h, etiqueta = "barras",
+                 nota = .guia_nota(texto_pt = size_texto_barras_eff * 72 / 25.4,
+                                   barra_in = grosor_barras_eff * alto_por_cat_eff)) +
       .ph_border(x_buf20,  y_main0, w_buf2,  main_h) +
-      .ph_border(x_extra0, y_main0, w_extra, main_h)
+      .ph_border(x_extra0, y_main0, w_extra, main_h, etiqueta = "extra",
+                 nivel_extra = 1L,
+                 nota = .guia_nota(texto_pt = size_barra_extra))
   }
 
   # LEYENDA

@@ -3294,7 +3294,7 @@ reporte_ppt_plan <- function(
       return(.dim_blank_canvas(
         mensaje = mensaje,
         debug_ph_bordes = isTRUE(dbg$debug_ph_bordes %||% FALSE),
-        debug_ph_col = dbg$debug_ph_col %||% "#FF00FF",
+        debug_ph_col = dbg$debug_ph_col %||% .GUIA_COL,
         debug_ph_lwd = dbg$debug_ph_lwd %||% 0.6
       ))
     }

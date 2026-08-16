@@ -142,7 +142,7 @@ graficar_media_rango <- function(
     canvas_h_caption  = 0.06,
     canvas_pad_top    = 0.01,
     debug_ph_bordes   = FALSE,
-    debug_ph_col      = "#FF00FF",
+    debug_ph_col      = .GUIA_COL,
     debug_ph_lwd      = 0.8,
     exportar          = c("rplot", "png", "ppt", "word"),
     path_salida       = NULL,

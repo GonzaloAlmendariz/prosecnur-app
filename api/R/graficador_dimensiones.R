@@ -6,7 +6,7 @@
 # =============================================================================
 
 #' @keywords internal
-.dim_wrap_debug_canvas <- function(g, debug_ph_bordes = FALSE, debug_ph_col = "#FF00FF", debug_ph_lwd = 0.6) {
+.dim_wrap_debug_canvas <- function(g, debug_ph_bordes = FALSE, debug_ph_col = .GUIA_COL, debug_ph_lwd = .GUIA_LWD) {
   if (!isTRUE(debug_ph_bordes)) return(g)
   cowplot::ggdraw(g) +
     cowplot::draw_grob(
@@ -85,8 +85,8 @@
 .dim_blank_canvas <- function(
     mensaje = "Sin datos para mostrar",
     debug_ph_bordes = FALSE,
-    debug_ph_col = "#FF00FF",
-    debug_ph_lwd = 0.6
+    debug_ph_col = .GUIA_COL,
+    debug_ph_lwd = .GUIA_LWD
 ) {
   .dim_wrap_debug_canvas(
     cowplot::ggdraw() +
@@ -1068,8 +1068,8 @@
     tabla_fit_pad = 0.98,
     tabla_allow_upscale = FALSE,
     debug_ph_bordes = FALSE,
-    debug_ph_col = "#FF00FF",
-    debug_ph_lwd = 0.6
+    debug_ph_col = .GUIA_COL,
+    debug_ph_lwd = .GUIA_LWD
 ) {
   tabla_ph_ancho <- suppressWarnings(as.numeric(tabla_ph_ancho))
   if (!is.finite(tabla_ph_ancho) || tabla_ph_ancho <= 0 || tabla_ph_ancho >= 0.8) tabla_ph_ancho <- 0.40
@@ -1204,8 +1204,8 @@ graficar_heatmap_dimensiones <- function(
     canvas_h_caption = 0.06,
     canvas_pad_top = 0.01,
     debug_ph_bordes = FALSE,
-    debug_ph_col = "#FF00FF",
-    debug_ph_lwd = 0.6,
+    debug_ph_col = .GUIA_COL,
+    debug_ph_lwd = .GUIA_LWD,
     exportar = c("rplot", "png", "ppt", "word"),
     path_salida = NULL,
     ancho = 8.5,
@@ -1819,8 +1819,8 @@ graficar_heatmap_criterios_dimensiones <- function(
     semaforo_gradiente_valores = NULL,
     semaforo_gradiente_limites = NULL,
     debug_ph_bordes = FALSE,
-    debug_ph_col = "#FF00FF",
-    debug_ph_lwd = 0.6,
+    debug_ph_col = .GUIA_COL,
+    debug_ph_lwd = .GUIA_LWD,
     exportar = c("rplot", "png", "ppt", "word"),
     path_salida = NULL,
     ancho = 8.5,
@@ -2707,7 +2707,7 @@ graficar_radar_tabla_dimensiones <- function(
     tabla_fit_pad = extra_args$tabla_fit_pad %||% 0.98,
     tabla_allow_upscale = extra_args$tabla_allow_upscale %||% FALSE,
     debug_ph_bordes = extra_args$debug_ph_bordes %||% FALSE,
-    debug_ph_col = extra_args$debug_ph_col %||% "#FF00FF",
+    debug_ph_col = extra_args$debug_ph_col %||% .GUIA_COL,
     debug_ph_lwd = extra_args$debug_ph_lwd %||% 0.6
   )
 
@@ -2986,8 +2986,8 @@ graficar_foda_dimensiones <- function(
     canvas_pad_top = 0.01,
     icono_modo = c("reemplazar", "acompanar"),
     debug_ph_bordes = FALSE,
-    debug_ph_col = "#FF00FF",
-    debug_ph_lwd = 0.6,
+    debug_ph_col = .GUIA_COL,
+    debug_ph_lwd = .GUIA_LWD,
     exportar = c("rplot", "png", "ppt", "word"),
     path_salida = NULL,
     ancho = 10,
