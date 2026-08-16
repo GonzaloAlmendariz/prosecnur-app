@@ -109,7 +109,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L38** | El tablero **reventaba entero** el primer día de campo. | `.monitoreo_aulas_quota_sex_faculty()` construía el caso vacío con la columna `x` y la renombraba a `observed` sólo `if (nrow(observed))` — que nunca se cumple. El merge salía sin la columna y la línea siguiente asignaba `integer(0)` a un data.frame con filas. | ☑ **hecho** (2026-08-16) — hallazgo de propina al sembrar el `.pulso` de L23. |
 | **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
 | **L40** | El alto se reparte al revés del contenido. | En Avance, el panel de 7 filas recibe **135 px** y el de 6 filas **303 px**. Las 7 filas están en el DOM y hay scroll interno (61/313), así que **C4 es conforme**: se alcanzan. Lo que falla es C3 — el reparto no sigue la necesidad. | ☐ sin empezar — medido, no tocado. |
-| **L41** | `titular_operational_code` no apunta al titular. | En pantalla, `R 4.1` y `R 4.2` reemplazan a `CH 4` pero su código titular dice `CH 6` y `CH 7`. Se ve en Consultas > Cadena de reemplazos. | ☐ sin empezar — hallazgo de propina de L39. |
+| **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -624,3 +624,36 @@ contaba cinco `monitoring-aulas-table` y se puso rojo al separar los paneles —
 cambio que *añade* superficies declaradas. Ahora exige que **todo panel de datos
 declare su contrato**, sea cual sea su nombre. Verificado quitando una
 declaración: rojo.
+
+
+### 2026-08-16 — L41: tres derivaciones que salían de la posición
+
+Visto en pantalla, no en un test: en Consultas > Cadena de reemplazos, `R 4.1` y
+`R 4.2` reemplazan a `CH 4` y la tabla decía que su titular era `CH 6` y `CH 7`.
+El código no salía vacío — **apuntaba a otra aula real del estudio**, y esa es la
+tabla desde la que el equipo decide a quién activar.
+
+La causa: `slot_number` cae a `orden` cuando el plan no trae
+`selection_slot_id`, y de ahí salían tres cosas distintas. Al reparar la primera
+apareció la segunda en la línea de al lado, y al reparar esa, la tercera:
+
+| Derivación | Decía | Dice |
+|---|---|---|
+| `titular_operational_code` de una reserva | `CH 6` / `CH 7` (su posición) | `CH 4` (su `replacement_for`) |
+| `replacement_chain_code` | `R 6.1` / `R 7.1` | `R 4.1` / `R 4.2` |
+| `replacement_order` sin declarar | 1 para todas → **dos aulas con el mismo nombre** | su puesto dentro de la cadena |
+
+**Séptima aparición del patrón**: lo escrito dos veces se arregla una sola vez.
+Aquí estaban en líneas consecutivas del mismo archivo.
+
+Dos decisiones sobre qué hacer cuando no hay de dónde:
+
+- Una reserva **sin** `replacement_for` deja el titular **vacío**. Inventar
+  `CH 9` desde la posición es peor que no decir nada: es plausible.
+- El orden dentro de la cadena se cuenta **sólo entre reservas**. Incluir al
+  titular en su propio grupo lo hacía ocupar el puesto 1 y desplazaba a sus
+  reservas a `R n.2` y `R n.3` — lo detectó el test, no la lectura del código.
+
+**Lección de método aplicada**: el control invertido de este ítem se hizo con
+copia y restauración del archivo, no con `git checkout` — que en el turno
+anterior se llevó por delante dos ediciones sin stagear.
