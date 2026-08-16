@@ -47,6 +47,17 @@ describe("describirFilasDeFase", () => {
     expect(f.texto).not.toContain("1 respuestas");
   });
 
+  it("no tapa un aviso más urgente del motor", () => {
+    // La consola devuelve esta frase antes que `item.message`. Con el tablero
+    // desactualizado o un error de sincronización, el mensaje del motor pide
+    // una acción; un desglose de conteos la reemplazaría por aritmética.
+    for (const status of ["dashboard_stale", "sync_error", "source_snapshot_mismatch", "source_applied_not_synced"]) {
+      expect(describirFilasDeFase(item({ status }), "Campo")).toBeNull();
+    }
+    // Y sigue narrando la fase sana, que es la única donde el desglose manda.
+    expect(describirFilasDeFase(item(), "Campo")).not.toBeNull();
+  });
+
   it("usa la etiqueta de la fase que recibe", () => {
     expect(describirFilasDeFase(item({ phase: "pilot" }), "Piloto")!.texto.startsWith("Piloto")).toBe(true);
   });
