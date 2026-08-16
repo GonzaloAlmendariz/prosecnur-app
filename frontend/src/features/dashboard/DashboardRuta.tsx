@@ -17,23 +17,9 @@
 
 import { useMemo } from "react";
 
-import { DASHBOARD_PESTANAS, type DashboardPestanaId } from "../../lib/navegacion/catalogos/dashboard";
-import { normalizarToken } from "../../lib/navegacion/direccion";
 import { useSeccion } from "../../lib/navegacion/useDireccion";
+import { resolverPestanaDashboard } from "./pestanaDashboard";
 import DashboardPage from "./DashboardPage";
-
-const POR_DEFECTO: DashboardPestanaId = DASHBOARD_PESTANAS[0].id;
-
-/** La pestaña que nombra la URL, o Resumen si no nombra ninguna válida. */
-export function resolverPestanaDashboard(
-  pedida: string | null | undefined,
-): DashboardPestanaId {
-  if (!pedida) return POR_DEFECTO;
-  const buscada = normalizarToken(pedida);
-  return (
-    DASHBOARD_PESTANAS.find((t) => normalizarToken(t.id) === buscada)?.id ?? POR_DEFECTO
-  );
-}
 
 export default function DashboardRuta() {
   const { pestana, irA } = useSeccion("dashboard");
