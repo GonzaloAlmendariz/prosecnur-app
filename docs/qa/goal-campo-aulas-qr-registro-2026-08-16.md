@@ -127,6 +127,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L56** | La tabla de reemplazos no decía **cuál sigue ni cuál ya se usó**. | Con seis reservas del mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten en las seis filas. El motor traía `replacement_order` y `sample_status`; la tabla no los pedía. Y el orden **derivado** se quedaba en una variable local, así que el campo mostraba 0. | ☑ **hecho** (2026-08-16) — órdenes 1–4 y estados distintos, verificado en pantalla. |
 | **L57** | La **Agenda** no distinguía titular de reserva. | Sus columnas eran código, aula, curso, sección, horario, enlace, estado de ficha, responsable y origen: con una cadena de seis, las siete filas del mismo titular sólo se diferenciaban por su código. | ☑ **hecho** (2026-08-16) — rol y «reemplaza a» delante de sección y responsable. |
 | **L58** | A escala real la Agenda **no mostraba ni una reserva**. | La tabla recortaba a 80 filas y el plan ordena las reservas al final: con 196 aulas se veían `CH 1`–`CH 80` y las 26 reservas quedaban fuera. El aviso lo declaraba, pero el trabajo de L57 era invisible en un operativo de verdad. | ☑ **hecho** (2026-08-16) — tope a 400; 196 filas con sus 26 reservas. |
+| **L59** | Una pestaña era alcanzable **por clic pero no por dirección**. | Al saltar de otra sección, la sección se aplica primero y la pestaña **recordada** se publica en la URL, pisando la pedida: `?seccion=consultas&pestana=reemplazos` aterrizaba en `brechas`. Lo introdujo la memoria por sección de L53. | ☑ **hecho** (2026-08-16) — la pestaña de la URL se aplica junto con su sección. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -499,3 +500,32 @@ de tamaño y pasa a ser un filtro que nadie eligió.
 Con esto la escala real queda vista en pantalla: 196 cursos-horario, 600
 respuestas, representatividad 95%, 12 celdas de cuota y las 26 reservas
 alcanzables.
+
+
+### 2026-08-16 — L59: alcanzable por clic, no por dirección
+
+El barrido a escala 196 lo destapó: `consultas/reemplazos` salía con **0 filas y
+sin título**, y `consultas/brechas` bien. No era timing —lo comprobé pidiéndola
+sola, tres veces—: **la URL nunca llegaba a `reemplazos`**.
+
+El clic en la pestaña sí funcionaba, y mostraba sus 26 reservas. Eso acota el
+defecto: la vista existe y es correcta; **lo que fallaba era llegar a ella por
+dirección**, que es exactamente lo que el contrato v3 prohíbe.
+
+La causa la introdujo la memoria por sección de L53. Al pedir
+`?seccion=consultas&pestana=reemplazos` estando en `calidad`:
+
+1. la sección pedida difiere → se aplica primero, y la pestaña llega «en el
+   siguiente paso»;
+2. al activar `consultas`, la pestaña activa pasa a ser la **recordada**
+   —`brechas`— y se publica en la URL;
+3. el segundo paso no llega: la URL ya dice `brechas` y no hay diferencia que
+   seguir.
+
+La memoria por sección es útil —volver a una sección la reencuentra donde se
+dejó— pero **no puede ganarle a una dirección explícita**. Ahora `onSeccionPedida`
+lee la pestaña de la misma URL y la aplica junto con su sección.
+
+**Y un aserto mío que afirmaba de más**: escribí que el lector canónico resuelve
+los alias heredados (`tab`, `step`). No los resuelve — lee sólo `pestana`. El
+test lo dice ahora medido en vez de supuesto.

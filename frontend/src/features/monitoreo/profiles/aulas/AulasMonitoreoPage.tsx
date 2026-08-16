@@ -21,6 +21,7 @@ import {
 import {
   modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
+  monitoreoPestanaDesdeParams,
   pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
   useMonitoreoDireccion,
@@ -520,7 +521,21 @@ export default function AulasMonitoreoPage() {
     setPestanaPorSeccion((prev) => ({ ...prev, [seccion]: clave }));
 
   useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, "aulas", {
-    onSeccionPedida: setActiveView,
+    onSeccionPedida: (seccion) => {
+      setActiveView(seccion);
+      // La pestaña de la URL se aplica AQUÍ, junto con su sección. Al cambiar
+      // de sección, la pestaña activa pasa a ser la recordada para esa sección
+      // y se publica en la URL, pisando la pedida: `?seccion=consultas&
+      // pestana=reemplazos` aterrizaba en `brechas` si esa era la última vista.
+      // La vista quedaba alcanzable por clic y no por dirección, que es
+      // justamente lo que el contrato v3 prohíbe.
+      // Con el lector canónico, no con `URLSearchParams` a pelo: conoce los
+      // alias heredados (`tab`, `step`…) que la gramática v3 sigue leyendo.
+      const pedida = monitoreoPestanaDesdeParams(window.location.search);
+      if (pedida && pestanasDe(seccion).some((item) => item.key === pedida)) {
+        elegirPestana(seccion, pedida);
+      }
+    },
     onPestanaPedida: (pestana, seccion) => {
       if (pestanasDe(seccion as MonitoreoSeccion).some((item) => item.key === pestana)) {
         elegirPestana(seccion as MonitoreoSeccion, pestana);
