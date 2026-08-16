@@ -1,0 +1,71 @@
+# El patron que mas veces ha aparecido en este GOAL, convertido en control.
+#
+# `monitoreo_aulas_normalize_plan()` reconstruye cada fila campo a campo con una
+# lista CERRADA: lo que no se declara ahi se cae en silencio. Once veces a lo
+# largo del GOAL un dato se perdio exactamente asi —el ultimo, el telefono del
+# docente, que es EL dato con el que se agenda—.
+#
+# El control no es «estos campos concretos existen»: es que **todo lo que un
+# lector produce sobreviva**. Un campo nuevo en una spec de lectura sin su
+# declaracion aqui pone rojo este test, en vez de descubrirse cuando un estudio
+# real pierde datos.
+
+.mcd_campos_declarados <- function() {
+  base <- list(list(classroom_id = "A", operational_code = "CH 1", label = "x",
+                    wave = "M1", sample_role = "titular", orden = 1))
+  names(monitoreo_aulas_normalize_plan(base)[[1]])
+}
+
+test_that("todo campo del lector de agendamiento sobrevive al plan", {
+  declarados <- .mcd_campos_declarados()
+  produce <- unique(vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1)))
+  # `notes` entra por el alias de `replacement_note`: el lector lo deja ahi y el
+  # generador lo escribe con el otro nombre.
+  produce <- setdiff(produce, "notes")
+  perdidos <- setdiff(produce, declarados)
+  expect_identical(perdidos, character(0),
+                   info = paste("campos que el lector produce y el plan descarta:",
+                                paste(perdidos, collapse = ", ")))
+})
+
+test_that("el telefono del docente no se cae entre el lector y el generador", {
+  # El caso concreto que destapo el control. El estudio de 2025 no llenaba esa
+  # columna, asi que un fixture real NO lo habria encontrado: hace falta el
+  # sintetico para probar el mecanismo.
+  fila <- monitoreo_aulas_normalize_plan(list(list(
+    classroom_id = "A-01", operational_code = "CH 1", label = "Aula 1", wave = "M1",
+    sample_role = "titular", orden = 1,
+    teacher = "Docente 1", teacher_phone = "999888777", teacher_email = "d1@pucp.pe"
+  )))[[1]]
+  expect_identical(as.character(fila$teacher_phone), "999888777")
+  # El control del otro lado: el correo SI sobrevivia, y por eso la ausencia del
+  # telefono no saltaba a la vista.
+  expect_identical(as.character(fila$teacher_email), "d1@pucp.pe")
+})
+
+test_that("la observacion entra por cualquiera de sus dos nombres", {
+  por_notes <- monitoreo_aulas_normalize_plan(list(list(
+    classroom_id = "A", operational_code = "CH 1", label = "x", wave = "M1",
+    sample_role = "titular", orden = 1, notes = "No contesta desde el lunes"
+  )))[[1]]
+  por_nota <- monitoreo_aulas_normalize_plan(list(list(
+    classroom_id = "A", operational_code = "CH 1", label = "x", wave = "M1",
+    sample_role = "titular", orden = 1, replacement_note = "No contesta desde el lunes"
+  )))[[1]]
+  expect_identical(as.character(por_notes$replacement_note), "No contesta desde el lunes")
+  expect_identical(as.character(por_nota$replacement_note), "No contesta desde el lunes")
+})
+
+test_that("el round-trip por el libro conserva el contacto del docente", {
+  plan <- list(list(
+    classroom_id = "A-01", operational_code = "CH 1", label = "Aula 101",
+    course_name = "Curso 1", faculty = "Ciencias", sample_role = "titular",
+    wave = "M1", orden = 1, eligible_n = 30, enrolled_total = 34, expected_valid = 20,
+    teacher = "Docente 1", teacher_phone = "999888777", teacher_email = "d1@pucp.pe"
+  ))
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(monitoreo_aulas_normalize_plan(plan), libro)
+  vuelta <- aulas_libro_importar(libro)$plan[[1]]
+  expect_identical(as.character(vuelta$teacher_phone), "999888777")
+  expect_identical(as.character(vuelta$teacher_email), "d1@pucp.pe")
+})

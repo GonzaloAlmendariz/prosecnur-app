@@ -323,6 +323,12 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     session_type = get(c("session_type", "tipo_sesion", "tipo_sesión"), ""),
     teacher = get(c("teacher", "docente"), ""),
     teacher_email = get(c("teacher_email", "correo_docente"), ""),
+    # El telefono viaja con el correo: es EL dato con el que se agenda. El
+    # lector del Excel lo trae y el generador lo escribe, pero esta lista es
+    # cerrada y no lo declaraba, asi que se caia entre los dos. El estudio de
+    # 2025 no lo llenaba —por eso no se noto—, y uno que si lo llene lo perdia
+    # en la primera vuelta.
+    teacher_phone = get(c("teacher_phone", "telefono_docente", "celular_docente"), ""),
     faculty = get(c("faculty", "facultad"), ""),
     program = get(c("program", "programa", "carrera"), ""),
     level = get(c("level", "nivel"), ""),
@@ -369,7 +375,10 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     operational_status = get(c("operational_status", "estado", "estado_operativo"), "planificada"),
     replacement_for = get(c("replacement_for", "reemplazo_de"), ""),
     replacement_reason = get(c("replacement_reason", "motivo_reemplazo"), ""),
-    replacement_note = get(c("replacement_note", "nota_reemplazo"), ""),
+    # `notes` es el alias con el que lo escribe el generador del libro; el lector
+    # lo deja en `replacement_note`. Aceptar los dos evita que la observacion se
+    # caiga segun por que puerta entre.
+    replacement_note = get(c("replacement_note", "nota_reemplazo", "notes", "observaciones"), ""),
     equivalence_level = get(c("equivalence_level", "nivel_equivalencia"), ""),
     chain_score = getn(c("chain_score", "score_cadena"), NA_real_),
     chain_depth = getn(c("chain_depth", "profundidad_cadena"), NA_real_),
