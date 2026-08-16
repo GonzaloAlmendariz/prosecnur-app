@@ -522,3 +522,30 @@ por eso vale la pena que un aviso nombre la causa y no sólo el síntoma.
 aulas del marco (5263 reales, 2373 elegibles), no de una selección sembrada.
 Prueba que el circuito aguanta identificadores y escala de verdad, que es lo que
 importa aquí.
+
+
+### 2026-08-16 — El gate completo, y una afirmación que tuve que corregir
+
+Lancé `test_dir` entero en background y **reporté que iba con 0 fallos**. No era
+cierto: el `exit code 0` que leí era del `tail` de mi propio comando encadenado,
+no del `Rscript`. Es exactamente la trampa que este repo ya tiene anotada —el
+código de salida de un *pipe* no es el del comando— y caí en ella igual.
+
+El gate tenía **10 fallos** (tope del reporter). De ellos:
+
+- **Quince códigos `E_*` sin registrar, todos míos.** La regla de la casa es
+  «código nuevo ⇒ fila nueva en el registro, mismo commit», y los lectores del
+  libro, el generador, la activación de reemplazos y dos rutas los habían
+  incumplido en silencio: los gates escalados por área nunca corren
+  `test-errors-registry.R`, que es global.
+- Los otros nueve son de **analítica, PPT var-cruce y graficador**, áreas que
+  esta sesión no tocó. Comprobado con `git stash`: fallan igual sin mis cambios.
+
+**El árbol tiene además modificaciones que no son mías** —`test-calc-muestra-aulas.R`
+y el ADR 0073— de la tarea que corre en paralelo sobre el mismo repo. No las
+toco ni las commiteo.
+
+**Lo que esto enseña sobre el gate escalado**: acotar por área es correcto para
+lo que el área comprueba, pero hay contratos **globales** —el registro de
+errores es uno— que ningún gate parcial mira. Un cambio que añade códigos `E_*`
+tiene que correr ese test aunque el resto se acote.
