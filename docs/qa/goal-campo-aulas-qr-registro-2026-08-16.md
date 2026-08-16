@@ -131,7 +131,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☑ **hecho** (2026-08-16) — `contact_medium`, `contact_date` y `contact_attempts` llegan al plan. En el estudio real: **232 aulas con intentos, hasta 7 llamadas**. |
 | **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☑ **hecho** (2026-08-16) — `duplicates`, `effective_surveys` y `actual_room` completan el parte. |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo tenía el vocabulario; faltaba la acción. | ☑ **hecho** (2026-08-16) — motor, endpoint y botón. Verificado en el navegador: `CH 4` → `R 4.1` → `R 4.2` → cadena agotada. |
-| **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
+| **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero. Pero pedía asistentes y rechazos y **no duplicados ni efectivas**, que son los dos números que el cuadre comprueba: quien aplica en el aula no anotaba lo que después hay que meter en el Excel y en la app. | ☑ **hecho** (2026-08-16) — los cuatro números en la fila de aplicadas. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
 | **L8** | `apiMonitoreoAulasConfig` tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. | ☑ **hecho** (2026-08-16) — **no era limpieza: era el eslabón roto del circuito.** Su `source_mapping` es lo único que dice qué columna de Kobo lleva el id de colector, y sin UI nadie podía fijarlo. El fallback por nombres convencionales no incluía `collectorID`, que es justo el nombre que produce nuestro propio QR. Añadido a las dos listas de candidatos; el endpoint sigue sin superficie pero ya no hace falta para el caso normal. |
@@ -383,3 +383,34 @@ Se dejan explícitas porque afectan a lo que se puede dar por cierto:
 **no por pantalla**. L13 y L14 sí se confirmaron en UI real. Verlos exige montar
 un estudio de aulas completo desde la UI —tres intentos por vías sintéticas
 fallaron, y el obstáculo era el atajo, no el producto—.
+
+
+### 2026-08-16 — L6: el papel no pedía lo que el cuadre necesita
+
+El formulario impreso pedía **asistentes** y **rechazos**, pero no **duplicados**
+ni **efectivas** — justo los dos que el control de L33 comprueba y que el
+registro de la app ya captura. El aplicador no anotaba en el aula lo que después
+alguien tiene que meter en el Excel.
+
+Los cuatro van ahora en la fila de aplicadas, **no en una fila nueva**: el
+formulario está **lleno**. Su capacidad es de 7 renglones y usaba 7; una octava
+fila se recortaba con `form_lines_overflow`, y el test que mide el PNG lo
+detectó.
+
+**Cuarta vez que el instrumento me engaña**: calculé «caben 9 filas» con
+`.crf_layout(branded = TRUE)`, que es **otra plantilla**. La ficha de campo usa
+`.cfc_layout()`, con su propio `form_top`, `form_step` y `form_floor`. Dos
+layouts con nombres parecidos y capacidades distintas.
+
+**El log de la ficha está en su tope**: banda de 0.093 y paso mínimo de 0.020
+dan **exactamente 5 rótulos**, que es lo que tiene. Meter ahí los dos números
+exigiría ampliar la banda, que es tocar el reparto que L7 dejó medido.
+
+**Y no renombré nada.** «N° de encuestas aplicadas:» se quedó como está: hay un
+test que exige que la ficha calque la hoja que el equipo usa hoy, y acortar
+etiquetas para ganar sitio habría cambiado el papel que ellos ya conocen. El
+sitio salió de repartir los `span`.
+
+El riesgo de meter cuatro campos donde había dos es que se pisen, así que el
+control nuevo mide el PNG: exige **al menos cuatro bloques de tinta separados**
+en esa fila, dentro de los márgenes. Verificado revirtiendo: 3 rojos.
