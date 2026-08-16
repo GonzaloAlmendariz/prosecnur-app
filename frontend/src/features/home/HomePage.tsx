@@ -3,6 +3,7 @@ import { Power, Settings2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayoutPreset } from "../../lib/layoutPreference";
 import { useSession } from "../../lib/SessionContext";
+import { coberturaGraficos } from "../graficos/coberturaBases";
 import { useProjectShell } from "../project/ProjectShell";
 import { useProjectModules } from "../project/ProjectModulesContext";
 import { GlobalSettingsDialog } from "./GlobalSettingsDialog";
@@ -39,7 +40,7 @@ function useProcesamientoState(): ProcState {
     { done: !!state?.auditoria_run },
     { done: !!state?.codif_aplicado },
     { done: !!state?.analitica_prep_ok },
-    { done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok },
+    { done: coberturaGraficos(state).hecho },
   ];
   let done = 0;
   for (const phase of phases) {
