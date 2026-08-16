@@ -1560,7 +1560,7 @@ export default function CalcMuestraPage() {
       const base = estudioOverride ?? estudio;
       const workingWorkspace = normalizeWorkspace(base);
       const prepared = inferDesk(base, workingWorkspace) === "opinion_universitaria"
-        ? prepareUniversityStudyForCalculation(base, workingWorkspace)
+        ? prepareUniversityStudyForCalculation(base, workingWorkspace, useMotorStore.getState().perfil.resumenEstAula)
         : base;
       await persistCurrent(prepared);
       const res = await apiCalcMuestraCalcular();

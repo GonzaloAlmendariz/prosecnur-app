@@ -1445,3 +1445,59 @@ mueve los dos tests de backtesting del preset (177 y 250), que son la
 certificación de que el repo reproduce 2025. Eso merece su propio commit, con
 los números nuevos y su porqué a la vista — que es justo lo que se avisó antes
 de empezar.
+
+---
+
+## L16 · El estadístico que elige el Recorrido ya llega al motor (2026-08-16)
+
+`parametros.estadistico_conglomerado` estaba **declarado en TypeScript y nadie
+lo escribía**. Su propio comentario decía que es «espejo del `resumenEstAula`
+del Recorrido», y el Recorrido tiene ese ajuste con default
+`min_mediana_media` —la regla de 2025—, pero el parámetro nunca viajaba: R se
+quedaba en su default, `media`, mientras la pantalla mostraba otra cosa.
+
+### Por qué nadie lo había cableado: los nombres están cruzados
+
+| | |
+|---|---|
+| Recorrido (TS) | `min_mediana_media` |
+| Motor (R) | `min_media_mediana` |
+
+Las mismas dos palabras en orden distinto. Un pase directo no rompe nada
+visible: `calc_enum` no reconoce el valor, cae al default y el motor sigue
+dividiendo por la media **sin decirlo**. Ese silencio es lo que hace que el
+módulo de traducción exista en vez de una asignación.
+
+`li_bootstrap` no tiene equivalente —la cota inferior del intervalo la calcula
+el perfil, no el motor de tamaño— y se traduce a `min_media_mediana`: es el
+mismo cálculo al que el propio Recorrido degrada cuando el intervalo falta, y
+el más conservador de los tres que R sabe hacer. No es equivalencia exacta y
+queda dicho en el módulo.
+
+### Lo implementado
+
+- `universidad/marco/estadisticoConglomerado.ts`, traducción explícita.
+- `prepareUniversityStudyForCalculation` acepta el resumen y lo escribe en los
+  dos componentes; omitirlo deja el parámetro como esté, para no decidir por
+  los llamadores que no conocen el Recorrido.
+- Conectado en los dos sitios que calculan: `CalcMuestraPage` y
+  `UniversidadDesk`, leyendo `perfil.resumenEstAula` del store.
+
+Verificación: 4 + 4 casos nuevos y tres mutantes sobre el fuente, revertidos —
+el cableado que no escribe nada (2 fallos), el pase directo del nombre cruzado
+(5 fallos) y, del tick anterior, quitar la mediana (2)—. Control 269/269 en
+`universidad/marco`, `tsc --noEmit` en 0 y **1.319/1.319** en vitest de
+`calcMuestra`.
+
+### El aviso sobre los backtestings no aplicaba
+
+Avisé dos veces de que esto movería los dos tests de backtesting del preset (177
+y 250). **No se movieron**, y siguen en 138/138: el cambio vive en el payload
+que arma el frontend, y esos tests corren el preset JSON de R, que no se tocó.
+
+Tampoco se le puso el modo al preset, y es deliberado: mientras el preset siga
+trayendo `aulas_base_fijas`, el modo no cambiaría ni una cifra —sólo el
+`estadistico_usado` que reporta—, y añadirle las medianas de 2025 sería meter
+otra constante donde el problema es justamente que hay constantes. El preset
+existe para reproducir 2025; el camino vivo ya toma sus divisores del marco
+desde L15.

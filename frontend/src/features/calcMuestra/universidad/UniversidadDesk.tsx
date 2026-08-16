@@ -268,6 +268,7 @@ export function UniversidadDesk({
     const nextEstudio = prepareUniversityStudyForCalculation(
       { ...estudio, componentes: [totalComp, facultyComp], workspace: syncedWorkspace },
       syncedWorkspace,
+      useMotorStore.getState().perfil.resumenEstAula,
     );
     onSetComponentes(nextEstudio.componentes);
     if (nextEstudio.workspace) onWorkspace(nextEstudio.workspace);
