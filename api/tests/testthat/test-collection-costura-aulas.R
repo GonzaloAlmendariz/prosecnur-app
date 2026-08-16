@@ -556,3 +556,97 @@ test_that("sin identificador de respuesta el aviso lo dice, no calla ni alarma",
   expect_identical(sin_id$status, "ok")
   expect_match(sin_id$detail, "no trae identificador de respuesta")
 })
+
+# --- Cuotas sexo x facultad --------------------------------------------------
+# Los objetivos derivan de la composicion del aula (`sex_top_*`), que produce
+# Calculo de muestra. El plan de Recopiladores no la transportaba, asi que la
+# seccion salia vacia para todo plan creado por el handoff. Y la facultad de
+# cada respuesta se buscaba indexando el plan SOLO por `classroom_id` —tercera
+# copia del mismo emparejamiento—, de modo que ninguna respuesta con el id del
+# QR encontraba su facultad.
+
+.costura_aula_con_sexo <- function(i, role, wave, rf = "") {
+  c(.costura_aula(i, role, wave, rf), list(
+    stratum = if (i %% 2 == 0) "Ingenieria" else "Sociales",
+    sex_top_1 = "Mujer", sex_top_1_n = 12, sex_top_2 = "Hombre", sex_top_2_n = 8
+  ))
+}
+
+.costura_sesion_con_sexo <- function(sid) {
+  sel <- c(
+    lapply(1:4, function(i) .costura_aula_con_sexo(i, "titular", "M1")),
+    lapply(5:7, function(i) .costura_aula_con_sexo(i, "chain_reserve", "R1", sprintf("AULA-%02d", i - 4)))
+  )
+  session_set(sid, "calc_muestra_aulas_selection", list(selection = sel))
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  session_set(sid, "project_dirty", FALSE)
+  seeded <- collection_state_seed(sid)
+  adapter <- collection_adapter_get("kobo_existing_v1")
+  preview <- adapter$preview_deployment(seeded$plan, adapter$inspect_target(list(), .costura_target()))
+  preview$capability_preflight <- NULL
+  put <- collection_deployment_put(sid, preview, seeded$state_revision)
+  prep <- collection_deployment_prepare(sid, put$state_revision)
+  list(seeded = seeded, prepared = prep)
+}
+
+test_that("el handoff arrastra la composicion del aula, no solo su tamano", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion_con_sexo(sid)
+  ho <- collection_handoff(sid, fx$prepared$state_revision)
+  fila <- ho$monitoring_rows[[1]]
+
+  # El control: antes estos campos no existian en la fila creada por el handoff.
+  expect_identical(as.character(fila$sex_top_1), "Mujer")
+  expect_equal(as.numeric(fila$sex_top_1_n), 12)
+  expect_identical(as.character(fila$sex_top_2), "Hombre")
+  expect_true(nzchar(as.character(fila$stratum %||% "")))
+})
+
+test_that("las cuotas sexo x facultad se pueblan con un plan del handoff", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion_con_sexo(sid)
+  ho <- collection_handoff(sid, fx$prepared$state_revision)
+  uid <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+
+  respuestas <- data.frame(
+    collectorID = c(rep(uid[1], 12), rep(uid[2], 8)),
+    sexo = c(rep("Mujer", 12), rep("Hombre", 8)),
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, plan = ho$monitoring_rows))
+  d <- monitoreo_aulas_dashboard(ho$monitoring_rows, respuestas, cfg)
+
+  # El control: antes esto valia 0 celdas.
+  expect_gt(length(d$quotas_sex_faculty), 0L)
+  facultades <- unique(vapply(d$quotas_sex_faculty, function(q) as.character(q$faculty %||% ""), character(1)))
+  # Las del fixture, no un literal a mano: `.costura_aula()` usa
+  # "Ciencias Sociales" / "Ingenieria".
+  esperadas <- unique(vapply(.costura_seleccion(), function(r) as.character(r$facultad), character(1)))
+  expect_setequal(facultades, esperadas)
+  # Y las respuestas encontraron su facultad por el id del QR, no por el aula.
+  observado <- sum(vapply(d$quotas_sex_faculty, function(q) as.numeric(q$observed %||% 0), numeric(1)))
+  expect_identical(observado, 20)
+})
+
+test_that("la facultad de una respuesta se resuelve por el id que viajo en su QR", {
+  plan <- data.frame(
+    classroom_id = c("A-01", "A-02"),
+    collection_unit_id = c("unit-1", "unit-2"),
+    faculty = c("Sociales", "Ingenieria"),
+    stringsAsFactors = FALSE
+  )
+  respuestas <- data.frame(x = 1:3, stringsAsFactors = FALSE)
+
+  # El control: indexando solo por `classroom_id` esto devolvia "" en las tres.
+  expect_identical(
+    .monitoreo_aulas_response_faculty_values(respuestas, plan, c("unit-1", "unit-2", "unit-1")),
+    c("Sociales", "Ingenieria", "Sociales")
+  )
+  # Y el aula sigue mandando cuando es ella la que llega.
+  expect_identical(
+    .monitoreo_aulas_response_faculty_values(respuestas, plan, c("A-02", "A-01", "A-02")),
+    c("Ingenieria", "Sociales", "Ingenieria")
+  )
+})

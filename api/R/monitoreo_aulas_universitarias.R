@@ -660,7 +660,17 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   faculty_col <- .monitoreo_aulas_col(responses, c("faculty", "facultad", "unidad", "escuela"))
   faculty <- if (nzchar(faculty_col)) .monitoreo_aulas_values(responses, faculty_col, "") else rep("", nrow(responses))
   if (is.data.frame(plan_df) && nrow(plan_df) && length(response_classroom)) {
-    lookup <- stats::setNames(as.character(plan_df$faculty %||% plan_df$stratum %||% ""), as.character(plan_df$classroom_id %||% ""))
+    # Tercera copia del mismo emparejamiento: la respuesta se identifica por el
+    # id que viajo en su QR (`collection_unit_id`), no por `classroom_id`.
+    # Indexar solo por aula dejaba sin facultad a toda respuesta que llegara con
+    # el id del colector, y con ella el cruce de cuotas sexo x facultad ciego.
+    valores <- as.character(plan_df$faculty %||% plan_df$stratum %||% "")
+    lookup <- stats::setNames(valores, as.character(plan_df$classroom_id %||% ""))
+    if ("collection_unit_id" %in% names(plan_df)) {
+      por_unidad <- stats::setNames(valores, as.character(plan_df$collection_unit_id))
+      por_unidad <- por_unidad[nzchar(names(por_unidad))]
+      lookup <- c(lookup, por_unidad[!names(por_unidad) %in% names(lookup)])
+    }
     missing <- !nzchar(faculty) & nzchar(response_classroom)
     faculty[missing] <- as.character(lookup[response_classroom[missing]] %||% "")
     faculty[is.na(faculty)] <- ""
