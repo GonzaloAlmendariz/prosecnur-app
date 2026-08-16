@@ -45,6 +45,7 @@ import {
   type MonitoreoVariable,
 } from "../../../../api/client";
 import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import { describirFilasDeFase } from "./filasDeFase";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
 
 type TerritorialSourceTab = "form" | "filter" | "roster" | "reconciliation" | "history";
@@ -110,9 +111,13 @@ function phaseLabel(phase: MonitoreoTerritorialPhase) {
   return phase === "pilot" ? "Piloto" : "Campo";
 }
 
-function territorialPhaseStatusLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null, phase: MonitoreoTerritorialPhase) {
+export function territorialPhaseStatusLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null, phase: MonitoreoTerritorialPhase) {
   const label = phaseLabel(phase);
   if (!item) return `${label} seleccionado.`;
+  // Antes que `item.message`: el mensaje que arma el motor cuenta `local_rows`
+  // y se calla las que el corte de la fase deja fuera.
+  const filas = describirFilasDeFase(item, label);
+  if (filas) return filas.texto;
   if (item.message) return item.message;
   switch (item.status) {
     case "source_not_applied":
@@ -134,8 +139,10 @@ function territorialPhaseStatusLabel(item: MonitoreoTerritorialPhaseCoherenceIte
   }
 }
 
-function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null) {
+export function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null) {
   if (!item) return "Sin diagnóstico";
+  const filas = describirFilasDeFase(item, phaseLabel(item.phase));
+  if (filas) return filas.badge;
   switch (item.status) {
     case "source_not_applied":
       return "Sin fuente";
@@ -963,11 +970,15 @@ function TerritorialSourceConsoleImpl({
         <div className="mon-territorial-source-title">
           <span><DatabaseZap size={15} /> Fuentes territoriales</span>
           <strong>{activeAssetName || "Formulario Kobo por definir"}</strong>
-          <em>{sourceOperationalStatus}{sourceReceivedCount ? ` · ${fmt(sourceReceivedCount)} respuestas recibidas` : ""}</em>
+          <em>{sourceOperationalStatus}{sourceReceivedCount ? ` · ${fmt(sourceReceivedCount)} respuestas sincronizadas` : ""}</em>
         </div>
         <div className="mon-territorial-source-top-metrics" aria-label="Resumen de fuente">
           <span><strong>{fmt(alignedDistricts.length)}</strong><em>alineados</em></span>
-          <span><strong>{fmt(sourceReceivedCount)}</strong><em>recibidas</em></span>
+          {/* «locales», no «recibidas»: la píldora de la cabecera ya llama
+              «recibidas» a las filas del reporte (1 693) y aquí se cuentan las
+              del snapshot (1 697). Y no «sincronizadas», que envuelve a dos
+              líneas y rompe el renglón de la banda. */}
+          <span><strong>{fmt(sourceReceivedCount)}</strong><em>locales</em></span>
           <span><strong>{sourceEffectiveCount == null ? "S/D" : fmt(sourceEffectiveCount)}</strong><em>pasan filtro</em></span>
         </div>
         <button type="button" className="pulso-button is-primary" onClick={() => { void syncKobo(); }} disabled={saving || busy || !koboSource?.id}>
@@ -1000,7 +1011,7 @@ function TerritorialSourceConsoleImpl({
                   <em>{item.hint}</em>
                 </span>
                 <i>{item.assetUid ? "Definido" : "Pendiente"}</i>
-                <small>{item.assetUid ? `${shortenMiddle(item.name, 38)} · ${fmt(item.health?.local_rows ?? 0)} locales` : "Selecciona un formulario Kobo"}</small>
+                <small>{item.assetUid ? `${shortenMiddle(item.name, 38)} · ${describirFilasDeFase(item.health, phaseLabel(item.phase))?.badge ?? `${fmt(item.health?.local_rows ?? 0)} locales`}` : "Selecciona un formulario Kobo"}</small>
               </button>
             ))}
           </section>
@@ -1085,7 +1096,7 @@ function TerritorialSourceConsoleImpl({
                 </div>
                 <div className="mon-territorial-form-kpi-grid" aria-label="Estado operativo de la fuente">
                   <TerritorialSourceMetric label="Distritos alineados" value={`${fmt(alignedDistricts.length)} de ${fmt(routeDistrictTotal)}`} hint={alignedDistricts.length >= routeDistrictTotal ? "Hojas de Ruta y Kobo coinciden" : "Revisar cobertura territorial"} progress={districtCrossPct ?? 0} tone={alignedDistricts.length >= routeDistrictTotal ? "ready" : "warning"} />
-                  <TerritorialSourceMetric label="Respuestas recibidas" value={fmt(responseCount)} hint={koboSource?.last_sync_at ? `Actualizado ${formatDate(koboSource.last_sync_at)}` : "Sin actualización reciente"} progress={responseCount ? 100 : 0} tone={responseCount ? "base" : "warning"} />
+                  <TerritorialSourceMetric label="Respuestas sincronizadas" value={fmt(responseCount)} hint={koboSource?.last_sync_at ? `Actualizado ${formatDate(koboSource.last_sync_at)}` : "Sin actualización reciente"} progress={responseCount ? 100 : 0} tone={responseCount ? "base" : "warning"} />
                   <TerritorialSourceMetric label="Respuestas que pasan el filtro" value={sourceEffectiveCount == null ? "Por definir" : fmt(sourceEffectiveCount)} hint={filterConfigured ? `${effectivePct == null ? "S/D" : `${effectivePct}%`} del corte` : "Define el corte operativo"} progress={effectivePct ?? 0} tone={filterConfigured ? "ready" : "warning"} />
                   <TerritorialSourceMetric label="Formulario leído" value={surveyQuestionCount == null ? "Pendiente" : `${fmt(surveyQuestionCount)} preguntas`} hint={surveyChoiceCount == null ? `Inspección ${formatDate(sourceCoherence?.date_modified)}` : `${fmt(surveyChoiceCount)} opciones disponibles`} progress={schemaHealthPct} tone={surveyQuestionCount ? "ready" : "warning"} />
                 </div>
