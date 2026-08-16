@@ -24,6 +24,7 @@ import {
   ClassroomOperationalHandoffPanel,
   ClassroomReplacementBlueprintPanel,
   ClassroomReplacementChainPanel,
+  profundidadCadenaPedida,
   ClassroomReplacementTables,
   classroomWaveNumber,
   type ClassroomLabModel,
@@ -242,7 +243,7 @@ export function AulasReemplazosTab({
             <ClassroomReplacementChainPanel
               selectionRows={selectionRows}
               simulation={replacementSimulation}
-              depth={Math.min(6, Math.max(1, config.bolsas_reemplazo || 6))}
+              depth={profundidadCadenaPedida(config.bolsas_reemplazo)}
             />
               </div>
               {!m1Rows.length && (

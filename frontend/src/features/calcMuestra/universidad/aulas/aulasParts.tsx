@@ -44,6 +44,7 @@ export {
   ClassroomReplacementChainPanel,
   ClassroomReplacementTables,
   classroomReplacementChains,
+  profundidadCadenaPedida,
 } from "./ClassroomReplacementPanels";
 export {
   ClassroomMethodSources,

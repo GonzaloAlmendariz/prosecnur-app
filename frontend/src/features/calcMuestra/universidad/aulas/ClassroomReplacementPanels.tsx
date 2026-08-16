@@ -153,6 +153,16 @@ export function classroomReplacementChains(
   });
 }
 
+/**
+ * Profundidad que la pantalla debe pedir a la cadena: la que el estudio
+ * configuró. Vive aquí, y no en la pestaña, para que el recorte no pueda
+ * reaparecer en el call site sin que un test lo note.
+ */
+export function profundidadCadenaPedida(bolsasReemplazo: unknown): number {
+  const n = typeof bolsasReemplazo === "number" ? bolsasReemplazo : Number(bolsasReemplazo);
+  return Number.isFinite(n) && n >= 1 ? Math.round(n) : 6;
+}
+
 export function ClassroomReplacementChainPanel({
   selectionRows,
   simulation,
@@ -165,7 +175,13 @@ export function ClassroomReplacementChainPanel({
   const rows = rowsFrom<Record<string, unknown>>(selectionRows);
   const chains = classroomReplacementChains(rows, simulation, depth);
   const extraPool = rows.filter((row) => classroomRowText(row, ["sample_role"]) === "extra_reserve_pool").length;
-  const maxDepth = Math.max(1, Math.min(depth, 6));
+  // La profundidad la fija la cadena que el motor construyó, no un tope de la
+  // pantalla. Estaba clavada en 6 mientras `bolsas_reemplazo` vale 11: sobre la
+  // selección de referencia —30 titulares con 11 reservas cada uno— se dibujaban
+  // 6 de 11 y la métrica anunciaba «R n.1–R n.6». Estos códigos viajan a agenda,
+  // Excel/Sheets y Monitoreo, así que esconder cinco eslabones de cada ruta hace
+  // planificar con menos reemplazos de los que existen.
+  const maxDepth = Math.max(1, ...chains.map((chain) => chain.slots.length));
   if (!chains.length) {
     return (
       <ClassroomEmptyState
