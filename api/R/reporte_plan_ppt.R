@@ -4723,11 +4723,18 @@ reporte_ppt_plan <- function(
         n_rows_eff <- max(n_rows_eff, 2)
       }
 
-      0.85 +
+      alto <- 0.85 +
         (0.90 * n_rows_eff) +
         (0.18 * title_lines) +
         if (isTRUE(show_legend)) 0.70 * max(1L, filas_leyenda) else 0 +
         if (isTRUE(show_extra)) 0.25 else 0
+
+      # `n_rows` y las lineas de etiqueta salen ya calculados aqui; se cuelgan
+      # del alto para que el reparto de bloques pueda pedir el paso de fila de
+      # cada uno sin repetir el calculo. Ver `graficador_row_step.R`.
+      attr(alto, "n_rows") <- n_rows_eff
+      attr(alto, "title_lines") <- title_lines
+      alto
     }
 
     if (identical(modo, "multilista")) {
@@ -4737,7 +4744,40 @@ reporte_ppt_plan <- function(
         stop("multiapiladas (modo='multilista'): se requiere cowplot.", call. = FALSE)
       }
 
-      rel_heights_plan <- vapply(bloques, .multilista_block_height, numeric(1))
+      alturas_bloque <- lapply(bloques, .multilista_block_height)
+      rel_heights_plan <- vapply(alturas_bloque, function(a) as.numeric(a)[1], numeric(1))
+
+      # Paso de fila COMUN. Cada bloque lo calculaba con SUS categorias, asi que
+      # en una lamina con un bloque de escala y otro dicotomico las barras
+      # salian a 1.19 y 0.90 cm —la fraccion era 0.33 contra 0.26—. Se toma el
+      # mayor: es el unico que cubre el texto de todos.
+      row_step_comun <- .apiladas_row_step_comun(vapply(alturas_bloque, function(a) {
+        .apiladas_row_step(
+          attr(a, "n_rows") %||% NA_real_,
+          attr(a, "title_lines") %||% NA_real_
+        )
+      }, numeric(1)))
+
+      # El reparto de alto tiene que seguir al paso. Con el paso comun impuesto,
+      # un bloque de tres filas ocupa 3 x paso unidades y uno de dos, 2 x paso;
+      # si `rel_heights` no lo refleja, el primero mete mas unidades en el mismo
+      # espacio fisico y SUS barras adelgazan —medido: la escala de «Mecanismos
+      # de admision» caia a 0.66 cm contra el piso de 0.77—.
+      if (!is.null(row_step_comun)) {
+        rel_heights_plan <- vapply(seq_along(alturas_bloque), function(k) {
+          a <- alturas_bloque[[k]]
+          n <- suppressWarnings(as.numeric(attr(a, "n_rows") %||% NA_real_)[1])
+          alto <- as.numeric(a)[1]
+          if (!is.finite(n) || n <= 0) return(alto)
+          # Se infla solo la parte proporcional a las filas; el cromo del bloque
+          # —titulo, leyenda, columna extra— no depende del paso.
+          filas <- 0.90 * n
+          (alto - filas) + filas * row_step_comun
+        }, numeric(1))
+        rel_heights_plan[!is.finite(rel_heights_plan) | rel_heights_plan <= 0] <- 1
+        rel_total <- sum(rel_heights_plan, na.rm = TRUE)
+        if (!is.finite(rel_total) || rel_total <= 0) rel_total <- length(bloques)
+      }
       rel_heights_plan[!is.finite(rel_heights_plan) | rel_heights_plan <= 0] <- 1
       rel_total <- sum(rel_heights_plan, na.rm = TRUE)
       if (!is.finite(rel_total) || rel_total <= 0) rel_total <- length(bloques)
@@ -4766,6 +4806,10 @@ reporte_ppt_plan <- function(
         # reponerla aqui el subbloque la pierde y «SIN INF» vuelve al denominador
         # (93 % en vez de 94 % en la bateria p30 de acrconta).
         block_render$overrides$excluir_opciones <- block_render$overrides$excluir_opciones %||% excluir_opciones
+        if (!is.null(row_step_comun) &&
+            is.null(block_render$overrides$row_step_forzado)) {
+          block_render$overrides$row_step_forzado <- row_step_comun
+        }
         if (is.null(block_render$overrides$legend_key_aspect_yx)) {
           block_aspect_yx <- parent_aspect_yx * (rel_heights_plan[[idx_block]] / rel_total)
           block_render$overrides[c("legend_key_aspect_yx", "titulos_grupo_alto_rel")] <- list(max(0.08, min(parent_aspect_yx, block_aspect_yx)), rel_heights_plan[[idx_block]] / rel_total)
