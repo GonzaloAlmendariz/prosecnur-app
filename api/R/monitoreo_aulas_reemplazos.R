@@ -124,9 +124,18 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
 #' @export
 monitoreo_aulas_activacion_texto <- function(res) {
   if (isTRUE(res$agotada)) {
+    usadas <- as.integer(res$reservas_usadas %||% 0L)
+    # Nunca haber tenido reserva y haberlas gastado todas son cosas distintas:
+    # la primera es una decision del diseno muestral y la segunda un hecho del
+    # operativo. Decir «ya se agoto: se habian usado 0» las confundia.
+    if (usadas == 0L) {
+      return(sprintf(
+        "%s cae y no tiene ninguna reserva en el plan: la muestra nunca le asigno una. Su meta se queda sin cubrir.",
+        res$reemplazada))
+    }
     return(sprintf(
       "%s cae y su cadena de reemplazos ya se agoto: se habian usado %s. No queda reserva equivalente, asi que la meta de ese curso-horario se queda sin cubrir.",
-      res$reemplazada, res$reservas_usadas %||% 0L))
+      res$reemplazada, usadas))
   }
   sprintf("%s pasa a reemplazada y entra %s en su lugar. Quedan %s reservas en la cadena.",
           res$reemplazada, res$activada, res$restantes %||% 0L)

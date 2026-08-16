@@ -126,12 +126,115 @@ for (r in rows) {
 con_link <- sum(vapply(rows, function(r) nzchar(r$link %||% ""), logical(1)))
 say("    filas con enlace personalizado: %d/%d", con_link, length(rows))
 
+# --- 8. El libro operativo: la app lo produce y lo vuelve a leer --------------
+# Es el ciclo que el equipo usa de verdad: la app genera el Excel, alguien lo
+# llena, la app lo relee. Aqui se comprueba que la ida y la vuelta no pierden
+# nada de lo que ya se sabia.
+plan_mon <- monitoreo_aulas_normalize_plan(rows)
+libro <- file.path(tempdir(), "sim_libro_aulas.xlsx")
+invisible(aulas_libro_generar(plan_mon, libro))
+vuelta <- aulas_libro_importar(libro)
+say("[8] libro generado y releido: %d unidades -> %d", length(plan_mon), length(vuelta$plan))
+cod <- function(l) sort(vapply(l, function(r) as.character(r$operational_code %||% ""), character(1)))
+libro_ok <- identical(cod(plan_mon), cod(vuelta$plan))
+enlaces_vuelta <- sum(vapply(vuelta$plan, function(r) nzchar(as.character(r$link %||% "")), logical(1)))
+say("    codigos conservados: %s · enlaces que vuelven: %d/%d",
+    libro_ok, enlaces_vuelta, length(vuelta$plan))
+
+# --- 9. Registro de campo y parte --------------------------------------------
+# Lo que el coordinador anota por aula. Los cuatro numeros son los que el cuadre
+# comprueba, y por eso la ficha impresa los pide desde hoy.
+titulares <- Filter(function(r) identical(as.character(r$sample_role %||% ""), "titular"), plan_mon)
+codigo1 <- as.character(titulares[[1]]$operational_code)
+plan_reg <- monitoreo_aulas_update_agenda(plan_mon, list(list(
+  operational_code = codigo1, operational_status = "aplicada",
+  observed_students = 22, refusals = 1, duplicates = 1, effective_surveys = 20,
+  actual_room = "H-203", applied_by = "Equipo A"
+)))
+reg <- Filter(function(r) identical(as.character(r$operational_code), codigo1), plan_reg)[[1]]
+say("[9] registro de %s: %s asistentes, %s rechazos, %s duplicados, %s efectivas, aula %s",
+    codigo1, reg$observed_students, reg$refusals, reg$duplicates,
+    reg$effective_surveys, reg$actual_room)
+registro_ok <- all(vapply(c("observed_students", "refusals", "duplicates",
+                            "effective_surveys", "actual_room"),
+                          function(k) nzchar(as.character(reg[[k]] %||% "")), logical(1)))
+
+# --- 10. El cuadre del parte --------------------------------------------------
+# 22 - 1 - 1 = 20 cuadra; el segundo parte no, a proposito.
+partes <- list(
+  list(operational_code = codigo1, intento = 1L, observed_students = 22,
+       refusals = 1, duplicates = 1, effective_surveys = 20),
+  list(operational_code = as.character(titulares[[2]]$operational_code), intento = 1L,
+       observed_students = 15, refusals = 0, duplicates = 0, effective_surveys = 14)
+)
+descuadres <- monitoreo_aulas_reconciliacion_partes(partes)
+say("[10] cuadre: %d descuadre(s) de %d partes", length(descuadres), length(partes))
+for (d in descuadres) say("      %s", monitoreo_aulas_descuadre_texto(d))
+cuadre_ok <- length(descuadres) == 1L
+
+# --- 11. Activar un reemplazo -------------------------------------------------
+# Los DOS casos, porque en esta muestra conviven: un titular con cadena y otro
+# sin ella. Elegir a ciegas el ultimo titular daba «cadena agotada» y parecia un
+# defecto del motor cuando era la respuesta correcta —ese titular no tiene
+# reserva—.
+estado_de <- function(pl, c) {
+  f <- Filter(function(r) identical(as.character(r$operational_code), c), pl)
+  if (!length(f)) "" else as.character(f[[1]]$sample_status %||% "")
+}
+tiene_cadena <- function(pl, c) length(monitoreo_aulas_reservas_disponibles(pl, c)) > 0L
+con_cadena <- Filter(function(r) tiene_cadena(plan_reg, as.character(r$operational_code)), titulares)
+sin_cadena <- Filter(function(r) !tiene_cadena(plan_reg, as.character(r$operational_code)), titulares)
+
+caida <- as.character(con_cadena[[1]]$operational_code)
+act <- monitoreo_aulas_activar_reemplazo(plan_reg, caida,
+                                         motivo = "docente_no_autoriza",
+                                         ahora = "2026-08-16T12:00:00Z")
+say("[11] %s", monitoreo_aulas_activacion_texto(act))
+reemplazo_ok <- !is.null(act$activada) &&
+  identical(estado_de(act$plan, caida), "reemplazada") &&
+  identical(estado_de(act$plan, act$activada), "agendada")
+
+# Y el titular sin reserva: la caida NO se marca reemplazada, porque no lo esta.
+huerfano_ok <- TRUE
+if (length(sin_cadena)) {
+  solo <- as.character(sin_cadena[[1]]$operational_code)
+  ag <- monitoreo_aulas_activar_reemplazo(act$plan, solo, ahora = "2026-08-16T12:30:00Z")
+  say("     %s", monitoreo_aulas_activacion_texto(ag))
+  huerfano_ok <- isTRUE(ag$agotada) && is.null(ag$activada) &&
+    !identical(estado_de(ag$plan, solo), "reemplazada")
+}
+
+# --- 12. El tablero ve todo lo anterior ---------------------------------------
+tablero <- monitoreo_aulas_dashboard(act$plan, data.frame(), list(
+  enabled = TRUE, plan = act$plan, partes_campo = partes
+))
+avisos <- tablero$validation %||% list()
+cuadre_en_tablero <- Filter(function(r) identical(as.character(r$check), "field_report_reconciliation"), avisos)
+say("[12] tablero: %d aulas · %d controles · cuadre dice «%s»",
+    tablero$kpis$total_aulas %||% 0L, length(avisos),
+    if (length(cuadre_en_tablero)) as.character(cuadre_en_tablero[[1]]$status) else "?")
+tablero_ok <- length(cuadre_en_tablero) == 1L &&
+  identical(as.character(cuadre_en_tablero[[1]]$status), "review")
+
 # --- 8. Veredicto -------------------------------------------------------------
 say("")
 say("VEREDICTO")
 say("  enlaces personalizados por unidad ..... %s", con_link == length(seleccion))
 say("  una ficha por unidad .................. %s", length(compiled$pages) == length(seleccion))
 say("  QR distinto por unidad ................ %s", length(unique(payloads)) == length(seleccion))
-say("  reemplazos con su propio enlace ....... %s",
-    all(vapply(rows[grepl("reserve", vapply(rows, function(r) r$sample_role %||% "", character(1)))],
-               function(r) nzchar(r$link %||% ""), logical(1))))
+reservas_ok <- all(vapply(rows[grepl("reserve", vapply(rows, function(r) r$sample_role %||% "", character(1)))],
+                          function(r) nzchar(r$link %||% ""), logical(1)))
+say("  reemplazos con su propio enlace ....... %s", reservas_ok)
+say("  el libro va y vuelve sin perder nada .. %s", libro_ok && enlaces_vuelta == length(vuelta$plan))
+say("  el registro captura el parte entero ... %s", registro_ok)
+say("  el cuadre distingue lo que no cuadra .. %s", cuadre_ok)
+say("  activar un reemplazo mueve los dos .... %s", reemplazo_ok)
+say("  sin reserva no se finge un reemplazo .. %s", huerfano_ok)
+say("  el tablero lo dice ..................... %s", tablero_ok)
+
+todo <- con_link == length(seleccion) && length(compiled$pages) == length(seleccion) &&
+  length(unique(payloads)) == length(seleccion) && reservas_ok &&
+  libro_ok && registro_ok && cuadre_ok && reemplazo_ok && huerfano_ok && tablero_ok
+say("")
+say("COSTURA COMPLETA: %s", if (todo) "de punta a punta" else "HAY UN ESLABON ROTO")
+if (!todo) quit(status = 1L)
