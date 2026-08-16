@@ -243,6 +243,7 @@ monitoreo_aulas_default_config <- function() {
     # normalizador los descartaba y el control de reconciliacion nunca veia
     # nada que comprobar.
     partes_campo = list(),
+    control_sin_nombre = 0L,
     quotas = list(),
     variables_control = list(),
     methodology = list(),
@@ -280,6 +281,14 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no
     # tenia nada que comprobar.
+    # Columnas de «Base de control» con datos que la cabecera del Excel no
+    # bautiza. El lector las cuenta desde el principio y el dato viajaba en la
+    # respuesta de la importacion sin que nadie lo mirara: una capacidad sin
+    # consumidor. Aqui entra al tablero.
+    control_sin_nombre = {
+      v <- suppressWarnings(as.integer(config$control_sin_nombre %||% defaults$control_sin_nombre %||% 0L))
+      if (length(v) != 1L || !is.finite(v) || v < 0L) 0L else v
+    },
     partes_campo = {
       pc <- config$partes_campo %||% config$partes %||% defaults$partes_campo
       if (is.list(pc)) unname(Filter(is.list, pc)) else list()
@@ -978,7 +987,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
 
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "unnamed_control_columns"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
@@ -989,7 +998,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
-      if (length(descuadres)) "review" else "ok"
+      if (length(descuadres)) "review" else "ok",
+      # Columnas de «Base de control» con datos que la cabecera no bautiza. No
+      # es un fallo del lector —adivinar seria peor— pero es informacion del
+      # equipo que no entra, y hasta ahora nadie lo decia.
+      if ((cfg$control_sin_nombre %||% 0L) > 0L) "review" else "ok"
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
@@ -1012,6 +1025,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         "Los numeros de cada parte de campo cuadran."
       } else {
         "No hay partes de campo que comprobar."
+      },
+      if ((cfg$control_sin_nombre %||% 0L) > 0L) {
+        sprintf(
+          "%d columnas de la Base de control tienen datos pero su cabecera esta vacia en el Excel, asi que no se leyeron. Ponles nombre en la hoja para que entren.",
+          cfg$control_sin_nombre
+        )
+      } else {
+        "Todas las columnas con datos de la Base de control tienen nombre."
       }
     ),
     stringsAsFactors = FALSE,

@@ -119,6 +119,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L48** | `monitoreo_aulas_estado_muestra()` **no reconocía su propia salida**. | Borraba el guion bajo en vez de convertirlo en espacio, así que `en_reserva` quedaba en `enreserva`, no casaba con `en reserva` y **degradaba a `sin_contactar`** en cada vuelta de normalización. | ☑ **hecho** (2026-08-16) — los tres vocabularios son idempotentes. |
 | **L49** | Las marcas de la activación se caían al normalizar. | `monitoreo_aulas_normalize_plan()` reconstruye la fila campo a campo con lista **cerrada**: `replaced_at`, `activated_at` y `activation_reason` no estaban declarados, así que el motor los escribía y el tablero los mostraba vacíos. | ☑ **hecho** (2026-08-16) — **décima** aparición del patrón. |
 | **L50** | El **teléfono del docente** se leía del Excel y moría por el camino. | Dos listas cerradas en serie: el registro que arma `aulas_agendadas_a_plan()` no lo emitía, y `monitoreo_aulas_normalize_plan()` no lo declaraba. El correo sí sobrevivía, y por eso la ausencia no saltaba. | ☑ **hecho** (2026-08-16) — **undécima** aparición; ahora hay un control que compara la spec del lector contra el plan. |
+| **L51** | Las **7 columnas sin nombre** de la Base de control no se avisaban. | El lector las contaba desde el principio y el dato viajaba en la respuesta del endpoint, donde nadie lo miraba. | ☑ **hecho** (2026-08-16) — control `unnamed_control_columns` en Validación, con qué hacer para arreglarlo. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -983,3 +984,26 @@ fixture.
 contra los campos que el plan conserva, campo a campo. Un campo nuevo en una
 spec sin su declaración correspondiente pone rojo el test, en vez de descubrirse
 cuando un estudio real pierde datos.
+
+
+### 2026-08-16 — Las otras dos hojas, y una capacidad sin consumidor
+
+Extendí el control de campos declarados al parte de campo y a la base de
+control. Cinco campos aparecían declarados y no emitidos, **y los cinco son
+porcentajes**: `attendance_pct`, `quota_pct`, `women_pct`, `men_pct`.
+
+No son defecto. En la Base de control del estudio real, **esas cuatro columnas
+no existen con nombre**: el mapa no las resuelve porque su cabecera está vacía.
+El lector hace lo correcto al no adivinar — inventar un mapeo por posición sería
+mucho peor que no leerlas.
+
+Lo que sí encontré es **L51**: el lector cuenta esas columnas huérfanas desde el
+primer día y el dato viajaba en la respuesta del endpoint de importación, donde
+**ningún consumidor lo miraba**. Ahora es un control de Validación que además
+dice qué hacer: «ponles nombre en la hoja para que entren».
+
+Qué hay en esas 7 columnas del estudio de 2025, medido: tres conteos enteros y
+tres proporciones que **suman exactamente 1** en cada fila —una partición de
+tres categorías— más la facultad bajo el grupo `CONTROL - CUOTAS`. Son datos
+reales del equipo que la app no puede interpretar sin que alguien le diga qué
+son. Ponerles nombre en el Excel basta para que entren.

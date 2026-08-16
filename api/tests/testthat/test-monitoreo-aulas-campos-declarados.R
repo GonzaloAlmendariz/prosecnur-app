@@ -69,3 +69,39 @@ test_that("el round-trip por el libro conserva el contacto del docente", {
   expect_identical(as.character(vuelta$teacher_phone), "999888777")
   expect_identical(as.character(vuelta$teacher_email), "d1@pucp.pe")
 })
+
+# --- El aviso de columnas sin nombre --------------------------------------
+# `control_sin_nombre` lo calculaba el lector desde el principio y viajaba en la
+# respuesta del endpoint de importacion, donde ningun consumidor lo miraba. En
+# el estudio de 2025 son 7 columnas con datos —tres conteos y tres proporciones
+# que suman 1— cuya cabecera esta vacia en la hoja.
+
+.mcd_aviso <- function(n) {
+  plan <- list(list(classroom_id = "A", operational_code = "CH 1", label = "x",
+                    wave = "M1", sample_role = "titular", orden = 1, eligible_n = 30))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(),
+                                 list(enabled = TRUE, plan = plan, control_sin_nombre = n))
+  Filter(function(r) identical(as.character(r$check), "unnamed_control_columns"), d$validation)[[1]]
+}
+
+test_that("el tablero avisa de las columnas que no pudo leer", {
+  aviso <- .mcd_aviso(7L)
+  expect_identical(as.character(aviso$status), "review")
+  expect_match(as.character(aviso$detail), "7 columnas")
+  # Dice QUE HACER, no solo que pasa: la jerga del motor no viaja a la UI.
+  expect_match(as.character(aviso$detail), "Ponles nombre")
+})
+
+test_that("sin columnas huerfanas el aviso queda en ok", {
+  # El control: si el aviso dijera siempre lo mismo, este caso no lo distinguiria.
+  aviso <- .mcd_aviso(0L)
+  expect_identical(as.character(aviso$status), "ok")
+  expect_no_match(as.character(aviso$detail), "Ponles nombre")
+})
+
+test_that("el conteo sobrevive al normalizador de config", {
+  # Septima aparicion del patron de la lista cerrada fue `partes_campo`; este
+  # campo entra por la misma puerta y necesita la misma declaracion.
+  cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, control_sin_nombre = 7L))
+  expect_identical(as.integer(cfg$control_sin_nombre), 7L)
+})
