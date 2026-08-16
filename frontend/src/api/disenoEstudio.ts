@@ -38,15 +38,6 @@ export type DisenoEstudioProtocol = {
   project_file: string;
 };
 
-export type DisenoEstudioReadiness = {
-  score: number;
-  ready_count: number;
-  total_count: number;
-  pending_count: number;
-  active_count: number;
-  warning_count: number;
-};
-
 export type DisenoEstudioSource = {
   id: string;
   label: string;
@@ -56,13 +47,6 @@ export type DisenoEstudioSource = {
   evidence: string[];
   owner: string;
   category: string;
-};
-
-export type DisenoEstudioDecision = {
-  title: string;
-  detail: string;
-  source: string;
-  tone: string;
 };
 
 export type DisenoEstudioRisk = {
@@ -108,35 +92,6 @@ export type DisenoEstudioBitacoraEntry = {
   links?: BitacoraVinculo[];
 };
 
-export type DisenoEstudioTimelineItem = DisenoEstudioBitacoraEntry & {
-  kind: "manual" | "auto" | string;
-  route: string;
-  source: string;
-};
-
-export type DisenoEstudioLibrary = {
-  available: boolean;
-  methodologies_count: number;
-  study_families_count: number;
-  updated_at: string;
-  source: string;
-};
-
-export type DisenoEstudioState = {
-  ok: true;
-  schema: "diseno_estudio_state_v1" | string;
-  generated_at: string;
-  protocol: DisenoEstudioProtocol;
-  readiness: DisenoEstudioReadiness;
-  sources: DisenoEstudioSource[];
-  decisions: DisenoEstudioDecision[];
-  risks: DisenoEstudioRisk[];
-  next_actions: DisenoEstudioNextAction[];
-  bitacora: DisenoEstudioBitacoraEntry[];
-  timeline: DisenoEstudioTimelineItem[];
-  library: DisenoEstudioLibrary;
-};
-
 export type DisenoEstudioBitacoraInput = {
   id?: string;
   module_id?: string;
@@ -148,30 +103,12 @@ export type DisenoEstudioBitacoraInput = {
   links?: BitacoraVinculo[];
 };
 
-export async function apiDisenoEstudioState() {
-  return handle<DisenoEstudioState>(
-    await apiFetch("/api/diseno-estudio/state", { headers: headers() }),
-  );
-}
-
-export async function apiDisenoEstudioBitacoraUpsert(entry: DisenoEstudioBitacoraInput) {
-  return handle<DisenoEstudioState>(
-    await apiFetch("/api/diseno-estudio/bitacora", {
-      method: "POST",
-      headers: headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ entry }),
-    }),
-  );
-}
-
-export async function apiDisenoEstudioBitacoraDelete(id: string) {
-  return handle<DisenoEstudioState>(
-    await apiFetch(`/api/diseno-estudio/bitacora/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-      headers: headers(),
-    }),
-  );
-}
+// El ADR 0027 modelaba el estudio como un «expediente»; el ADR 0029 lo
+// reemplazó por el módulo Bitácora. El 2026-08-16 se retiró lo que quedaba de
+// esa superficie: `apiDisenoEstudioState`, `...BitacoraUpsert` y
+// `...BitacoraDelete` —cero consumidores— junto con sus tres endpoints y los
+// cuatro tipos que sólo describían ese payload. Los que quedan arriba siguen
+// usándose desde el módulo Bitácora y desde el overview del Home.
 
 // ---- Bitácora (alias canónico, payload liviano solo-entradas) --------------
 export type BitacoraStateResponse = {
