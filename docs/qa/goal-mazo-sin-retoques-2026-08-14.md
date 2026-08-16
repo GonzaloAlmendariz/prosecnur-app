@@ -64,7 +64,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
-| L30 | Separación entre premisas: 0.97 → 1.31 cm, faltan 0.45 | **no es trade-off**: sobran 1.88 cm de panel | ◐ **20 → 9** |
+| L30 | Separación entre premisas: 0.97 → 1.31 cm, faltan 0.45 | la leyenda del motor va 2.7 cm más arriba | ◐ **20 → 9** |
 | L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
@@ -899,3 +899,29 @@ Así que L30 no se cierra subiendo el gap ni partiendo antes, sino **dando al
 panel el alto que le sobra**. Es un cambio de geometría de la disposición y toca
 medirlo aparte —el margen inferior no es decorativo en todas las láminas: en las
 que llevan nota al pie o base, parte de ese espacio está ocupado.
+
+### L30, corrección: el margen no estaba libre, estaba ocupado por la leyenda
+
+Escribí que el motor «deja 1.88 cm de lámina sin usar». **Medí el espacio hasta
+el borde sin comprobar qué había en medio**, que es la misma falla que ya costó
+dos iteraciones en este GOAL con otras formas.
+
+Lo que hay debajo de la última barra:
+
+| | Qué ocupa el hueco | Hueco libre |
+|---|---|---|
+| Aprobado | la **Base** («Base: 52 docentes…») | 1.55 cm |
+| Motor | la **leyenda** («Totalmente en desacuerdo»…) | 0.66 cm |
+
+Y la diferencia está en dónde cae la leyenda: el aprobado la empuja hasta
+**16.80 cm** del borde superior y el motor la deja en **14.10**. Son los 2.7 cm
+que el panel del motor no puede usar —no porque estén ocupados por contenido,
+sino porque la composición los reserva antes.
+
+**No es que sobre espacio: es que la leyenda va colocada más arriba.** El
+proyecto ya reserva poco para ella (`canvas_h_legend_in = 0.272`), así que el
+mando no es esa reserva y bajar el panel sin entender el reparto entero
+arriesga pisar la base. Queda para medir aparte.
+
+Con el gap en 0.65, B2 baja de 20 a 9 y el grosor de 1.30 a 1.22 cm: es el
+estado actual y no empeora ninguna vara, pero tampoco cierra.
