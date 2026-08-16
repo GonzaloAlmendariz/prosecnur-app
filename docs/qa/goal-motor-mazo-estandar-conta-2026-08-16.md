@@ -1,9 +1,15 @@
 # GOAL — El motor produce el informe de Contabilidad, y después mejor
 
 Tipo: Goal operativo (loop de convergencia)
-Estado: Abierto
+Estado: Abierto — **lo lleva otra sesión** (Gonzalo, 2026-08-16)
 Fecha: 2026-08-16
 Autoridad: Objetivo de trabajo medible; **sólo Gonzalo lo cierra**
+
+> **Quién lo ejecuta.** Este GOAL se redactó desde la sesión de Cálculo de
+> muestra, pero su ejecución vive en la sesión de gráficos/PPT. El loop de
+> cálculo de muestra **no** lo toca: su alcance es marco, criterios, tamaño,
+> cuotas y selección de aulas. Dejar esto escrito evita la duplicación que ya
+> costó dos veces hoy, cuando dos sesiones tocaron el mismo archivo.
 
 ## Por qué existe
 
