@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | frontend (`classroomHandoff.ts`) | ⛔ **decisión de contrato** · diagnosticado; ver abajo |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | frontend | ⛔ **abierto** · vía conservadora probada y descartada; tres hipótesis acotadas abajo |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -510,7 +510,42 @@ Es la familia de L1/L5/L10 un escalón más arriba: no es que falte mostrar un
 número, es que la cifra correcta está a un `resultado.aulas_base_total` de
 distancia y el handoff exige una llave que nadie fabrica.
 
-### Por qué no lo arreglé
+### Intento fallido de la vía conservadora (2026-08-15)
+
+Se probó y **no bastó**. Queda escrito porque descarta la hipótesis más obvia y
+ahorra repetirla.
+
+El mecanismo que debía persistir el objetivo **ya existe**:
+`reconcileUniversityAulasTarget` escribe `aulas_config.n_aulas` con
+`resultado.aulas_base_total`, y se llama justo después de calcular. Lo que
+fallaba parecía ser su guard: `registrarCorridaDeCalculo` decidía si el proyecto
+es universitario con `normalizedWorkspace.frame_mode === "opinion_universitaria"`,
+mientras que el cálculo, tres líneas antes, lo decide con `inferDesk(...)`.
+
+**Y los dos discrepan en `hsvg2026`**: su `frame_mode` es `sin_definir` y
+`inferDesk` lo reconoce como universitario por `macro_familia`
+(`encuesta_estudiantes` + componentes). Dos criterios para la misma pregunta, y
+el de la reconciliación es el estrecho.
+
+Se unificó a `inferDesk` en los dos call-sites, se recargó la app y se
+recalculó: **`aulas_config.n_aulas` sigue AUSENTE** con `aulas_base_total = 200`
+disponible en el resultado. El cambio se revirtió por no estar verificado.
+
+Quedan tres hipótesis, en orden de sospecha:
+
+1. `universityComponentForScenario` no encuentra el componente esperado, así que
+   `reconcileUniversityAulasTarget` calcula `target = undefined` y **borra**
+   `n_aulas` en vez de escribirlo (su rama `target == null` quita la clave).
+2. `setWorkspaceSiCambia` no llega a persistir —el autosave del workspace no se
+   dispara, o lo pisa una escritura posterior—.
+3. `hasUsefulResult(selected)` devuelve `false` pese a que el componente trae
+   resultado con `aulas_base_total`.
+
+La forma barata de separarlas es instrumentar `reconcileUniversityAulasTarget`
+con un log del `target` que calcula, recalcular una vez y mirar: si sale
+`undefined`, es (1) o (3); si sale 200 y no se persiste, es (2).
+
+### Por qué no lo arreglé de raíz
 
 La lectura obvia —`persistedTarget` sobra, si `expectedTarget` ya viene del
 motor— es probablemente correcta, pero **esa doble llave parece deliberada**:
