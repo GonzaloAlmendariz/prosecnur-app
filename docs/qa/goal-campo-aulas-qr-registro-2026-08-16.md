@@ -129,6 +129,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L58** | A escala real la Agenda **no mostraba ni una reserva**. | La tabla recortaba a 80 filas y el plan ordena las reservas al final: con 196 aulas se veían `CH 1`–`CH 80` y las 26 reservas quedaban fuera. El aviso lo declaraba, pero el trabajo de L57 era invisible en un operativo de verdad. | ☑ **hecho** (2026-08-16) — tope a 400; 196 filas con sus 26 reservas. |
 | **L59** | Una pestaña era alcanzable **por clic pero no por dirección**. | Al saltar de otra sección, la sección se aplica primero y la pestaña **recordada** se publica en la URL, pisando la pedida: `?seccion=consultas&pestana=reemplazos` aterrizaba en `brechas`. Lo introdujo la memoria por sección de L53. | ☑ **hecho** (2026-08-16) — la pestaña de la URL se aplica junto con su sección. |
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
+| **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -591,3 +592,30 @@ convierte «recordar dónde estabas» en «ignorar lo que te piden».
 La condición que evita el falso positivo es la misma en los cuatro: **la sección
 de la URL debe coincidir con la que se activa**, porque en un clic de sección la
 URL todavía trae la pestaña de la anterior.
+
+
+### 2026-08-16 — L61: el contrato que faltaba, y el hueco que encontró
+
+Un defecto presente en **los cuatro perfiles a la vez**, que nadie notó y que
+sólo cubría mi verificación manual, necesita un guard permanente.
+`MonitoringDireccionPestanaContract.test.ts` exige dos propiedades en los
+cuatro:
+
+1. **Leer la pestaña de la URL** al cambiar de sección — sin eso, la recordada
+   de la sección destino la pisa.
+2. **Exigir que la sección de la URL coincida** con la que se activa — sin eso,
+   un clic de sección aplicaría la pestaña que la URL todavía trae de la
+   anterior: válida por casualidad si comparten nombre, equivocada siempre.
+
+**Y el guard encontró un hueco al escribirlo**: aulas cumplía la primera y no la
+segunda. En aulas el clic de sección no pasa por ese callback, así que
+*funcionaba*, pero depender de eso es suponer quién dispara qué. Ahora la
+condición es explícita y la misma en los cuatro.
+
+Control invertido: quitar las dos lecturas en territorial pone 2 en rojo;
+restaurarlas, 8 en verde.
+
+**Por qué este test mira el código y no el comportamiento**: reproducir el
+defecto exige montar el perfil, cargar un proyecto real y navegar entre
+secciones — lo que hice a mano cuatro veces. El guard comprueba la propiedad que
+lo sostiene, que es lo que se puede verificar en cada corrida sin un navegador.

@@ -22,6 +22,7 @@ import {
   modoIdDesdeFamily, AULAS_WORKBENCH_VIEWS, MONITOREO_MODOS, type MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
   monitoreoPestanaDesdeParams,
+  monitoreoSeccionDesdeParams,
   pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
   useMonitoreoDireccion,
@@ -529,8 +530,13 @@ export default function AulasMonitoreoPage() {
       // pestana=reemplazos` aterrizaba en `brechas` si esa era la última vista.
       // La vista quedaba alcanzable por clic y no por dirección, que es
       // justamente lo que el contrato v3 prohíbe.
-      // Con el lector canónico, no con `URLSearchParams` a pelo: conoce los
-      // alias heredados (`tab`, `step`…) que la gramática v3 sigue leyendo.
+      // Se exige que la SECCIÓN de la URL coincida con la que se activa: eso
+      // distingue «vengo de una dirección» de «vengo de un clic», donde la URL
+      // todavía trae la pestaña de la sección anterior. Aquí el clic de sección
+      // no pasa por este callback, pero depender de eso es suponer quién
+      // dispara qué; la condición lo hace explícito y es la misma en los cuatro
+      // perfiles.
+      if (monitoreoSeccionDesdeParams(window.location.search) !== seccion) return;
       const pedida = monitoreoPestanaDesdeParams(window.location.search);
       if (pedida && pestanasDe(seccion).some((item) => item.key === pedida)) {
         elegirPestana(seccion, pedida);
