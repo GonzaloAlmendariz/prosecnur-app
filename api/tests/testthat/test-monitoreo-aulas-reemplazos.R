@@ -195,3 +195,47 @@ test_that("nunca tener reserva no es lo mismo que haberlas gastado", {
   expect_match(gastada, "ya se agoto")
   expect_match(gastada, "se habian usado 2")
 })
+
+test_that("la activacion aguanta una cadena profunda de punta a punta", {
+  # `feat(calc-muestra): la cadena de reemplazos se acandala por facultad` subio
+  # `reserve_depth_target` de 1 a 6 y solto el candado de celda a facultad, asi
+  # que las cadenas reales pasan a ser de hasta 11-12 eslabones. Los demas tests
+  # de este archivo usan cadenas de 2: sin este, la profundidad nueva no la
+  # prueba nadie.
+  plan <- c(
+    list(list(classroom_id = "A-00", operational_code = "CH 1", label = "titular",
+              sample_role = "titular", wave = "M1", orden = 1, eligible_n = 30,
+              expected_valid = 20, faculty = "Ciencias", stratum = "Ciencias",
+              sample_status = "agendada")),
+    lapply(1:11, function(k) list(
+      classroom_id = sprintf("A-%02d", k), operational_code = sprintf("R 1.%d", k),
+      label = sprintf("reserva %d", k), sample_role = "chain_reserve",
+      replacement_for = "CH 1", replacement_order = k, wave = sprintf("M%d", k + 1),
+      orden = k + 1, eligible_n = 28, expected_valid = 19, faculty = "Ciencias",
+      stratum = "Ciencias", sample_status = "en_reserva"))
+  )
+  actual <- monitoreo_aulas_normalize_plan(plan)
+  caido <- "CH 1"
+  activadas <- character(0)
+  for (paso in seq_len(15L)) {
+    res <- monitoreo_aulas_activar_reemplazo(actual, caido,
+                                             ahora = sprintf("2026-08-16T%02d:00:00Z", 8 + paso))
+    if (isTRUE(res$agotada)) break
+    activadas <- c(activadas, res$activada)
+    actual <- res$plan
+    caido <- res$activada
+  }
+  # Las once, en el orden de la cadena y sin repetir ninguna.
+  expect_identical(activadas, sprintf("R 1.%d", 1:11))
+
+  estados <- vapply(actual, function(r) as.character(r$sample_status %||% ""), character(1))
+  codigos <- vapply(actual, function(r) as.character(r$operational_code), character(1))
+  expect_identical(unname(estados[codigos == "R 1.11"]), "agendada")
+  expect_identical(sum(estados == "reemplazada"), 11L)
+
+  # Y al final dice que se AGOTO con su cuenta, no que nunca tuvo reserva.
+  fin <- monitoreo_aulas_activar_reemplazo(actual, "R 1.11", ahora = "2026-08-16T23:00:00Z")
+  expect_true(fin$agotada)
+  expect_identical(fin$reservas_usadas, 11L)
+  expect_match(monitoreo_aulas_activacion_texto(fin), "se habian usado 11")
+})

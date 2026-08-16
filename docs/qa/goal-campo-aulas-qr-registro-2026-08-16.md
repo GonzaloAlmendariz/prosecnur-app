@@ -549,3 +549,30 @@ toco ni las commiteo.
 lo que el área comprueba, pero hay contratos **globales** —el registro de
 errores es uno— que ningún gate parcial mira. Un cambio que añade códigos `E_*`
 tiene que correr ese test aunque el resto se acote.
+
+
+### 2026-08-16 — Dos sesiones en el mismo árbol, y una interacción que había que probar
+
+Mientras este GOAL avanzaba, **otra sesión trabajaba en el mismo repositorio** —
+gráficos y Cálculo de muestra— y commiteó por encima. Los commits de ambas
+conviven en el historial, intercalados. Nada se perdió, pero conviene saberlo:
+parte de los fallos que aparecen en un gate completo pueden ser trabajo ajeno a
+medias, no deuda propia.
+
+Uno de sus commits toca terreno de este GOAL sin colisionar en archivos:
+
+> `feat(calc-muestra): la cadena de reemplazos se acandala por facultad, como en 2025`
+
+Sube `reserve_depth_target` de 1 a 6 y afloja el candado de celda a facultad, así
+que **las cadenas reales pasan a ser de hasta 11–12 eslabones**. Todos los tests
+de activación de este GOAL usaban cadenas de **2**.
+
+Probado: la activación consume las once en orden, sin repetir ni entrar en
+bucle, deja diez `reemplazada` y la última `agendada`, y al agotarse dice «se
+habían usado 11» —el mensaje de cadena consumida, no el de aula sin reserva—.
+Queda como test de regresión, porque es una interacción que sólo existe cuando
+los dos trabajos se juntan y ningún gate por área la vería.
+
+**Y el gate se corrió leyendo el exit code del `Rscript`**, no el de un `tail`
+encadenado: 71 archivos de las áreas de este GOAL, 0 fallos, y la costura
+completa sigue pasando de punta a punta.
