@@ -21,7 +21,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | V2 | Todo tamaño de letra pertenece al juego de seis (24·14·13·12·11·8) | ningún `sz=` fuera de esa lista | **8.2 % fuera** ◐ (era 82.8 %; aprobado 3.0 %) |
 | V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **29 de 67** ◐ (aprobado: 45 de 63) |
-| V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | **0.295** ◐ (era 0.221; 2 gráficos de 21) |
+| V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | **0.321 · 0 de 18** ✓ (era 0.221) |
 | V6 | Ninguna lámina supera las 9 **barras** | máx. barras por lámina | **el motor parte**; dispara en 3 ✓ |
 | V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
 | V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | **`p_slide_3_graficos_poblacion`** ✓ |
@@ -34,7 +34,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L2 | Declarar `top2box_labels` en el preset del proyecto | `multi_apiladas` + `barras_apiladas` | ☑ **1 → 29 láminas**; 0 avisos del motor |
 | L3 | Cambiar el extremo de la rampa a `#F4B183` | paletas del proyecto (23 listas) | ☑ **rojo 270→97, naranja 0→173** |
 | L4 | Activar `preservar_tamanos_texto` y fijar el juego de seis | preset base | ☑ **82.8 % → 8.2 %** fuera del juego |
-| L5 | Piso de grosor declarado por familia | `grosor_modo` + `grosor_barras` | ☐ |
+| L5 | Piso de grosor declarado por familia | `graficador_grosor_piso.R` | ☑ **en pulgadas**; V5 cierra |
 | L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | las **dos** plantillas | ☑ officer lo ve, 7 placeholders |
 | L7 | Contrato, constructor, render y metadata de `poblacion_3` | 6 archivos R + NAMESPACE | ☑ **lámina generada**, alto 2.08× |
 | L8 | Las otras 11 disposiciones del artefacto | ídem | ☑ **11 de 11**; la 11ª no era disposición sino capacidad (L9) |
@@ -218,3 +218,29 @@ pulgadas y traducirlo sabiendo el alto del panel.
 no aplicada una marca que sí estaba, porque busqué `(cont.)` distinguiendo
 mayúsculas y el motor escribe los títulos en caja alta. Antes de declarar que
 algo no se aplicó, buscarlo como lo escribe el motor, no como lo escribí yo.
+
+### L5 — el piso estaba declarado en la unidad equivocada
+
+Los graficadores fijaban el grosor en **fracción de la fila** (0.40, 0.42, 0.95
+repartidos por el archivo) y el recetario lo mide en **pulgadas**. Son cosas
+distintas: 0.70 de una fila corta sigue siendo una cinta. Por eso ningún ajuste
+de la fracción cerraba V5 — protegían un número que no era el que se ve.
+
+La conversión es una multiplicación: pulgadas = fracción × alto de fila. Con
+`grosor_min_in = 0.32` el peor grosor pasa de 0.295 a **0.321 in** y ninguno de
+los 18 gráficos queda bajo el piso.
+
+**La familia categórica nunca estuvo rota**: mide 0.310 sobre un piso de 0.20.
+Lo que la hacía parecer rota era el medidor, que sólo contaba los cuatro
+colores de la rampa y por tanto no veía los gráficos de barras azules. Una
+lámina con 29 barras azules y 2 segmentos de escala se leía como «2 barras a
+0.295 in», un número que no describía ningún gráfico entero.
+
+También costó un rato leer el graficador equivocado: la familia que fallaba es
+la de escala (`barras_apiladas`) y estuve midiendo palancas en
+`barras_agrupadas`, que es la categórica y ya cumplía.
+
+**Y un medidor nuevo escrito desde cero para la ocasión dio 0.105 in y 30
+láminas bajo el piso**, contra 0.295 y 2 del ya validado: se le colaban
+cabeceras. La regla que queda: extender la cadena de medición validada
+—segmento → barra → gráfico, con la leyenda fuera—, nunca escribir una paralela.
