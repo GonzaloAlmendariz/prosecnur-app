@@ -33,7 +33,7 @@ function pintar(recorte: RecorteCriterioAlumno | null, desactualizado = false): 
   );
 }
 
-const BASE = { id: "level", layer: "marco", pasan: 136284, recorta: 0, pctRecorte: 0, noRecorta: true };
+const BASE = { id: "level", layer: "marco", pasan: 136284, recorta: 0, pctRecorte: 0, noRecorta: true, evaluable: true };
 
 describe("recorte medido en la tarjeta del criterio", () => {
   it("dice que dejó fuera a 0 cuando está declarado y no filtra", () => {
@@ -67,5 +67,18 @@ describe("recorte medido en la tarjeta del criterio", () => {
 
   it("sin medición no dibuja nada", () => {
     expect(pintar(null)).not.toContain("cmv2-crit-recorte-medido");
+  });
+});
+
+describe("criterio que no se pudo medir", () => {
+  it("no se anuncia como que no filtra, sino como no medido", () => {
+    // Sin datos en su columna el criterio deja pasar a todos porque no había
+    // con qué morder. Decir «no filtra a nadie» afirmaría una medición que no
+    // ocurrió — y es justo la distinción que este desglose existe para hacer.
+    const html = pintar({ ...BASE, id: "formation", evaluable: false, noRecorta: false });
+    expect(html).toContain('data-estado="no-medible"');
+    expect(html).toContain("No se pudo medir");
+    expect(html).toContain("no trae datos en la base");
+    expect(html).not.toContain("no filtra a nadie");
   });
 });

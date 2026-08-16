@@ -47,6 +47,18 @@ function RecorteMedido({
 }) {
   if (!recorte) return null;
   const capaNoRecorta = recorte.layer !== "marco";
+  // Sin datos en su columna el criterio deja pasar a todos, pero no porque no
+  // muerda: porque no había con qué morder. Decir «no filtra a nadie» sería
+  // afirmar una medición que no ocurrió.
+  if (!recorte.evaluable) {
+    return (
+      <p className="cmv2-crit-recorte-medido" data-estado="no-medible" role="note">
+        No se pudo medir: la columna de este criterio no trae datos en la base
+        cargada, así que dejó pasar las <strong>{fmtInt(recorte.pasan)}</strong> filas
+        sin llegar a evaluarlas
+      </p>
+    );
+  }
   return (
     <p
       className="cmv2-crit-recorte-medido"

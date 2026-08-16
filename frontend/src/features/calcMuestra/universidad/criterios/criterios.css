@@ -2069,3 +2069,9 @@
   border-left-color: var(--pulso-warn-accent);
 }
 .cmv2-crit-recorte-medido[data-estado="inerte"] strong { color: var(--pulso-warn-fg); }
+.cmv2-crit-recorte-medido[data-estado="no-medible"] {
+  color: var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 68%, var(--pulso-surface));
+  border-left-color: var(--pulso-warn-accent);
+}
+.cmv2-crit-recorte-medido[data-estado="no-medible"] strong { color: var(--pulso-warn-fg); }
