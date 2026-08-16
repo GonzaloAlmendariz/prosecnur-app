@@ -27,7 +27,7 @@
 #' `force = TRUE` en cada hito: son seis etapas en varios minutos, no un bucle.
 #' Con el rate-limit por defecto del writer (0.5 s) las etapas rápidas se
 #' perderían y la UI se quedaría clavada en una etapa vieja.
-.cm_aulas_construir_progreso <- function(on_progress, total = 6L) {
+.cm_aulas_construir_progreso <- function(on_progress, total = 8L) {
   if (!is.function(on_progress)) return(function(...) invisible(NULL))
   function(current, message) {
     on_progress(

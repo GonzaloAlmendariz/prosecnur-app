@@ -1526,11 +1526,19 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # las señales ya adjuntadas en out$particularidades. Un solo call-site; la
   # lógica vive en calc_muestra_aulas_exploracion.R (este archivo no debe
   # crecer).
-  .p(6L, "Radiografía por facultad")
-  out <- .cm_criterios_i18b_adjuntar(.cm_exploracion_adjuntar(out, criterios), criterios)
+  # L11: las dos radiografías se emiten por separado porque su coste no se
+  # parece. Medido a escala real (5.263 CH): la del marco publica 0,6 MB y la
+  # de criterios 19,5 MB, y juntas se llevaban 114 de los 177 s del build con
+  # la barra clavada en el último hito. Un progreso repartido por etapas del
+  # código y no por coste miente aunque cada etapa exista.
+  .p(6L, "Radiografía del marco")
+  out <- .cm_exploracion_adjuntar(out, criterios)
+  .p(7L, "Radiografía por criterio y facultad")
+  out <- .cm_criterios_i18b_adjuntar(out, criterios)
   # Impacto del tipo de sesión por facultad (guard §12 «doble selección del
   # taller», schema cm_session_type_impacto_v1): un solo call-site; la lógica
   # vive en calc_muestra_aulas_criterios.R (este archivo no debe crecer).
+  .p(8L, "Impacto del tipo de sesión")
   out <- .cm_criterios_session_impacto_adjuntar(out, catalog_signals)
   out
 }
