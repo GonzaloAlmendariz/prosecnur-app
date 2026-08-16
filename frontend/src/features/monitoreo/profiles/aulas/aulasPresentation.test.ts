@@ -24,14 +24,14 @@ describe("aulasPresentation", () => {
       "anonymous_responses",
       "student_id_required",
       "unmapped_valid_responses",
-      "duplicate_collectors",
+      "duplicate_responses",
       "effective_representativity",
       "sex_faculty_quota",
     ].map(aulasCheckLabel)).toEqual([
       "Respuestas anónimas",
       "Identificador estudiantil no requerido",
       "Respuestas válidas sin curso-horario",
-      "Recolectores duplicados",
+      "Respuestas repetidas",
       "Representatividad efectiva",
       "Cuota por sexo y facultad",
     ]);
@@ -90,7 +90,7 @@ describe("aulasPresentation", () => {
 
     expect(summarizeAulasValidation([
       { check: "anonymous_responses", status: "ok" },
-      { check: "duplicate_collectors", status: "review" },
+      { check: "duplicate_responses", status: "review" },
       { check: "sex_faculty_quota", status: "warning" },
     ])).toEqual({ label: "2 alertas", count: 2 });
 

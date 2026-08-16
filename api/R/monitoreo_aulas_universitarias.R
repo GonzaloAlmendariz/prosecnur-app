@@ -762,22 +762,63 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     "collectorID", "collector_id", "collector", "link", "aula_id", "classroom_id"
   ))
   collector_values <- if (nzchar(collector_col)) .monitoreo_aulas_values(responses, collector_col, "") else character(0)
+
+  # Una respuesta huerfana es la que trae un colector que NO pertenece a ninguna
+  # aula del plan: un QR de otro estudio, una ficha vieja, un id mal tecleado.
+  # Antes este chequeo solo miraba si la respuesta TENIA valor de colector, no
+  # si ese valor casaba con algo, asi que una respuesta de un aula inexistente
+  # pasaba como buena. Comprobarlo solo es posible desde que el emparejamiento
+  # conoce `collection_unit_id`.
+  ids_del_plan <- unique(c(
+    as.character(plan_df$classroom_id %||% character(0)),
+    as.character(plan_df$collection_unit_id %||% character(0))
+  ))
+  ids_del_plan <- ids_del_plan[nzchar(ids_del_plan)]
+  huerfanas <- if (length(valid_response)) {
+    valid_response %in% TRUE & (!nzchar(response_classroom) | !(response_classroom %in% ids_del_plan))
+  } else {
+    logical(0)
+  }
+
+  # En un estudio de aulas el MISMO colector lo escanean todos los alumnos del
+  # aula: el duplicado es el diseno, no una anomalia. Este chequeo miraba
+  # duplicados de colector y por eso decia "review" en cuanto un aula tenia dos
+  # respuestas — es decir, siempre. Lo que si es anomalo es la misma RESPUESTA
+  # dos veces, y eso se mira por su identificador, no por el del colector.
+  respuesta_id_col <- .monitoreo_aulas_col(responses, c(
+    "_uuid", "uuid", "_id", "instanceID", "meta/instanceID", "response_id", "submission_uuid"
+  ))
+  respuesta_ids <- if (nzchar(respuesta_id_col)) {
+    .monitoreo_aulas_values(responses, respuesta_id_col, "")
+  } else {
+    character(0)
+  }
+  respuestas_repetidas <- sum(duplicated(respuesta_ids[nzchar(respuesta_ids)]))
+
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_collectors", "effective_representativity", "sex_faculty_quota"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
-      if (length(valid_response) && any(valid_response & !nzchar(response_classroom))) "warning" else "ok",
-      if (length(collector_values) && any(duplicated(collector_values[nzchar(collector_values)]))) "review" else "ok",
+      if (any(huerfanas)) "warning" else "ok",
+      if (respuestas_repetidas > 0L) "review" else "ok",
       if (nzchar(representativity$warning %||% "")) "warning" else "ok",
       if (length(quota_status) && any(quota_status %in% c("pendiente", "en_riesgo"))) "warning" else "ok"
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
       "No se exige identificador personal de estudiante.",
-      as.character(sum(valid_response & !nzchar(response_classroom))),
-      as.character(sum(duplicated(collector_values[nzchar(collector_values)]))),
+      if (any(huerfanas)) {
+        sprintf("%d respuestas validas no corresponden a ninguna aula del plan.", sum(huerfanas))
+      } else {
+        "Todas las respuestas validas se atribuyeron a un aula del plan."
+      },
+      if (!nzchar(respuesta_id_col)) {
+        "La fuente no trae identificador de respuesta; no se puede comprobar."
+      } else {
+        sprintf("%d respuestas repetidas.", respuestas_repetidas)
+      },
       if (nzchar(representativity$warning %||% "")) representativity$warning else sprintf("Score efectivo %.1f.", representativity$effective_score %||% NA_real_),
       if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable."
     ),

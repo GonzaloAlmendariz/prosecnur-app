@@ -476,3 +476,83 @@ test_that("el emparejamiento por unidad vive en un solo sitio", {
   counts2 <- table(c("A-01", "unit-2", "unit-2"))
   expect_identical(.monitoreo_aulas_contar_por_fila(filas, counts2), c(1L, 2L))
 })
+
+# --- Los avisos del tablero dicen algo -------------------------------------
+
+.costura_validacion <- function(plan, respuestas, check) {
+  cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, plan = plan))
+  d <- monitoreo_aulas_dashboard(plan, respuestas, cfg)
+  hit <- Filter(function(r) identical(as.character(r$check), check), d$validation)
+  if (!length(hit)) return(NULL)
+  list(status = as.character(hit[[1]]$status), detail = as.character(hit[[1]]$detail))
+}
+
+test_that("una respuesta que no es de ninguna aula del plan se avisa", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+  uid <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+
+  limpio <- .costura_validacion(
+    ho$monitoring_rows,
+    data.frame(collectorID = rep(uid[1], 5), stringsAsFactors = FALSE),
+    "unmapped_valid_responses"
+  )
+  huerfana <- .costura_validacion(
+    ho$monitoring_rows,
+    data.frame(collectorID = c(rep(uid[1], 5), "unit-fantasma"), stringsAsFactors = FALSE),
+    "unmapped_valid_responses"
+  )
+
+  expect_identical(limpio$status, "ok")
+  # El control: antes esto tambien valia "ok", porque el chequeo miraba si la
+  # respuesta TENIA colector, no si ese colector era de alguna aula del plan.
+  expect_identical(huerfana$status, "warning")
+  expect_match(huerfana$detail, "^1 respuestas validas no corresponden")
+})
+
+test_that("un aula llena no se denuncia como colectores duplicados", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+  uid <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+
+  # 10 alumnos escanean el MISMO QR: es el diseno del estudio, no una anomalia.
+  # El control: el chequeo viejo (`duplicate_collectors`) decia "review" aqui, o
+  # sea siempre que un aula tuviera mas de una respuesta.
+  lleno <- .costura_validacion(
+    ho$monitoring_rows,
+    data.frame(collectorID = rep(uid[1], 10), stringsAsFactors = FALSE),
+    "duplicate_responses"
+  )
+  expect_identical(lleno$status, "ok")
+  expect_null(.costura_validacion(ho$monitoring_rows, data.frame(collectorID = uid[1]), "duplicate_collectors"))
+
+  # Lo anomalo es la misma RESPUESTA dos veces.
+  repetida <- .costura_validacion(
+    ho$monitoring_rows,
+    data.frame(collectorID = rep(uid[1], 3), `_uuid` = c("a", "b", "b"),
+               check.names = FALSE, stringsAsFactors = FALSE),
+    "duplicate_responses"
+  )
+  expect_identical(repetida$status, "review")
+  expect_match(repetida$detail, "^1 respuestas repetidas")
+})
+
+test_that("sin identificador de respuesta el aviso lo dice, no calla ni alarma", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+  uid <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+
+  sin_id <- .costura_validacion(
+    ho$monitoring_rows,
+    data.frame(collectorID = rep(uid[1], 4), stringsAsFactors = FALSE),
+    "duplicate_responses"
+  )
+  expect_identical(sin_id$status, "ok")
+  expect_match(sin_id$detail, "no trae identificador de respuesta")
+})
