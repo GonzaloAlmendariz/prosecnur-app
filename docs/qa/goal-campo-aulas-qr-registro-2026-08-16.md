@@ -103,7 +103,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
 | **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
 | **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ◐ **a medias** (2026-08-16) — `api/R/carga_aulas_agendadas.R` traduce de ancho a largo y **corre contra el estudio real de 2025**: 170 titulares → **1012 filas**, 230 con estado y 228 con enlace de ficha. Falta el endpoint que lo cuelgue de una sesión y la superficie que lo dispare. |
-| **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques (principal + reemplazo 2 y 3). Análogo a la base de barrido telefónico de los otros modos. | ☐ sin empezar |
+| **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques de **ancho distinto** (34/33/33: sólo el principal trae `AULA`) y `FECHA DE APLICACIÓN` duplicada dentro del bloque. | ◐ **a medias** (2026-08-16) — `api/R/carga_aulas_aplicadas.R` detecta bloques por marcador y separa agenda de parte por la segunda `MATRICULADOS TOTAL DTI`. Contra el estudio real: **196 partes** (170+24+2), **4269 efectivas**. Falta colgarlo de una sesión. |
+| **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☐ sin empezar — es un control que la app **sí** puede aportar |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula: cuenta contra los dos denominadores, duración (cortas/largas, 70T/70P), cuotas por sexo y rango horario. Mucho más rico que los 6 chequeos de la pestaña Validación. | ☐ sin empezar |
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☐ sin empezar |
@@ -339,3 +340,26 @@ golden. Lo que se fija es la anatomía, no los datos.
 Falta el endpoint que cuelgue el resultado de una sesión y la superficie que lo
 dispare; y después L28 (parte de campo) y L29 (base de control), que son las
 hojas que cuelgan de esta.
+
+### 2026-08-16 — L28: el parte de campo, y un descuadre que el Excel no ve
+`aulas_aplicadas_leer()` corre contra el estudio real: **196 partes** —170 del
+bloque principal, 24 del reemplazo 2 y 2 del reemplazo 3—, con
+`APLICADA` (194) y `NO APLICADA` (2). Totales: 4931 asistentes, 219 rechazos,
+446 duplicados y **4269 efectivas**.
+
+Dos trampas de esta hoja que obligaron a leerla distinto de «Aulas Agendadas»:
+
+1. **Los bloques no miden lo mismo.** 34 columnas el principal y 33 los de
+   reemplazo, porque sólo el primero trae `AULA` —dónde se aplicó de verdad, que
+   puede no ser la planificada—. Un paso fijo desalinearía todo a partir del
+   segundo, así que los bloques se detectan por su marcador `ID MATCH`.
+2. **`FECHA DE APLICACIÓN` aparece dos veces en el mismo bloque**: la agendada y
+   la real. Resolver por título a secas devuelve siempre la primera. La frontera
+   la marca la **segunda** `MATRICULADOS TOTAL DTI`, que el equipo repite al
+   abrir el parte.
+
+**Hallazgo (L33):** en **2 de 196** partes la identidad
+`asistentes − rechazos − duplicados = efectivas` no cierra —`1TEA08-0401` da 14
+donde deberían ser 15, y `LIN127-0203` da 27 donde deberían ser 23—. El Excel no
+comprueba esa identidad; **la app sí puede**, y es exactamente el tipo de control
+que justifica leer estas hojas en vez de mirarlas.
