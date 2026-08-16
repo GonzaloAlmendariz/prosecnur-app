@@ -161,9 +161,16 @@ AUDIT_REFERENCE_GOBIERNO_AT <- "2026-08-16T12:00:00Z"
 #' binding por unidad y se pasa por `collection_deployment_prepare()`, que es lo
 #' que hace la app: fabricarlo a mano se saltaria el validador del contrato.
 .audit_reference_deployment <- function(sid) {
+  # Durante el build el estado todavia no esta materializado: `collection_state_get`
+  # solo lo DERIVA para leer, no lo guarda. Sin este seed explicito el plan
+  # llega vacio y el deployment no se puede preparar contra nada.
+  tryCatch(collection_state_seed(sid), error = function(e) NULL)
   st <- tryCatch(collection_state_get(sid), error = function(e) NULL)
   plan <- (st %||% list())$state$plan %||% (st %||% list())$plan
-  if (!is.list(plan) || !length(plan$units %||% list())) return(invisible(FALSE))
+  if (!is.list(plan) || !length(plan$units %||% list())) {
+    message("[audit-reference] deployment no sembrado: el plan de recoleccion llego vacio.")
+    return(invisible(FALSE))
+  }
 
   bindings <- lapply(seq_along(plan$units), function(i) {
     unit_id <- as.character(plan$units[[i]]$unit_id %||% "")
@@ -173,6 +180,9 @@ AUDIT_REFERENCE_GOBIERNO_AT <- "2026-08-16T12:00:00Z"
       unit_id = unit_id,
       access_kind = "parameterized_link",
       status = "ready",
+      # Sin `prefill` el enlace abre la encuesta sin identificar su unidad y la
+      # respuesta llega huerfana; el validador lo rechaza por eso.
+      prefill = list(unidad = unit_id, ola = "M1"),
       target = list(url = sprintf("https://ejemplo.local/encuesta?u=%s", unit_id))
     )
   })
@@ -183,15 +193,23 @@ AUDIT_REFERENCE_GOBIERNO_AT <- "2026-08-16T12:00:00Z"
     plan_id = as.character(plan$plan_id %||% ""),
     plan_fingerprint = as.character(plan$input_fingerprint %||% ""),
     status = "draft",
-    accesses = bindings
+    # `connection_profile_id` es una REFERENCIA al perfil, nunca la credencial:
+    # los secretos viven fuera del .pulso (ADR 0005) y el validador rechaza
+    # cualquier campo que huela a token.
+    target = list(provider = "manual", connection_profile_id = "perfil-audit-local"),
+    # V1 exige exactamente esto: el fixture no puede declararse capaz de
+    # escribir contra un proveedor remoto.
+    capabilities = list(remote_write = list(observed = FALSE, source = "disabled_v1")),
+    sensitivity = list(access_urls = "reference"),
+    bindings = bindings
   )
 
-  revision <- as.integer((st %||% list())$state$revision %||% (st %||% list())$state_revision %||% 1L)
+  # El campo es `state_revision`, y `put` la incrementa: hay que releerla antes
+  # de preparar o el motor responde que el estado cambio desde la pantalla.
+  revision <- as.integer(st$state_revision %||% 1L)
   ok <- tryCatch({
     collection_deployment_put(sid, deployment, revision)
-    st2 <- collection_state_get(sid)
-    rev2 <- as.integer((st2 %||% list())$state$revision %||% (st2 %||% list())$state_revision %||% revision + 1L)
-    collection_deployment_prepare(sid, rev2)
+    collection_deployment_prepare(sid, as.integer(collection_state_get(sid)$state_revision))
     TRUE
   }, error = function(e) {
     message("[audit-reference] deployment no sembrado: ", conditionMessage(e))
