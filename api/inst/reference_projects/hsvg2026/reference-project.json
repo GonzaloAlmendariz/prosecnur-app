@@ -8,7 +8,7 @@
   "description": "Diseño muestral de aulas a escala real: marco de 29 mil estudiantes y 5 mil cursos-horario, con criterios, particularidades y auditorías.",
   "anonimizado": true,
   "origen_basename": "HSTVG26.pulso",
-  "project_sha256": "07f8bd17f40366103db2169d4d3bad5d23c0850b39999e1aada358ee7cb22a41",
+  "project_sha256": "17bb5857fcdfc8a238711acbf46bb3577b3c1dccb852ec0a32d95c10aab2cddf",
   "cobertura": {
     "diseno_estudio": false,
     "calc_muestra": true,
@@ -22,7 +22,10 @@
     "graficos": false,
     "dashboard": false
   },
-  "modulos_cubiertos": ["calc_muestra", "editor_xlsform"],
+  "modulos_cubiertos": [
+    "calc_muestra",
+    "editor_xlsform"
+  ],
   "canonical_flow": [
     "diseno_planificacion",
     "diseno_muestral",
