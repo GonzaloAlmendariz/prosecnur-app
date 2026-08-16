@@ -1307,3 +1307,78 @@ depende de un factor global heredado.
 Lo que falta para que eso corra no es fórmula, es **cableado**: llevar
 `est_aula_mediana` del perfil a `mediana_conglomerado` del estrato, y poner
 `estadistico_conglomerado` en `min_media_mediana`.
+
+---
+
+## L14 · Hay dos motores de aulas, y el de R está congelado en 2025 (2026-08-16)
+
+Iba a cablear `est_aula_mediana` → `mediana_conglomerado` y me encontré con que
+la app ya calcula esto por otro lado. Corrección al encuadre del tick anterior
+(«nadie conecta las puntas»): **sí las conecta, pero en otra capa.**
+
+`frontend/src/features/calcMuestra/dominio/motor.ts` implementa la cadena del
+Excel completa y fiel:
+
+```ts
+sobremuestra = round(cuota.n * factorSobremuestra)
+estAula      = estudiantesPorAula(facultad, resumenEstAula)   // mín(mediana, media)
+aulas        = ceil(sobremuestra / estAula) + bolsaExtraPorFacultad
+```
+
+con `escenario1` y `escenario2` nombrados como las dos propuestas de la hoja, y
+alimentado por `datosProyecto.ts`, que toma `estAulaMediana`/`estAulaMedia`
+**vivos del marco**. Incluso ofrece un tercer resumen, la cota inferior del
+bootstrap, que degrada a mín(mediana, media) en facultades con menos de 15
+cursos-horario.
+
+El motor R, en cambio, calcula `ceil(cuota / (promedio_conglomerado × τ))`, y en
+el preset ni siquiera llega a hacerlo.
+
+### El defecto: `aulas_base_fijas` congela la cifra
+
+`aulas_base_fijas` cortocircuita la fórmula cuando viene > 0, y el preset la
+trae rellena en las quince. Medido:
+
+| Marco | Con las fijas (como se envía) | Sin las fijas |
+|---|---|---|
+| 2025 | 177 | 166 |
+| aulas la **mitad** de grandes | **177** | 324 |
+| aulas el **doble** de grandes | **177** | — |
+
+Partir a la mitad el tamaño de los cursos-horario **no mueve ni un aula**. La
+fórmula sí reacciona (166 → 324, casi el doble, como manda la aritmética), así
+que no es una limitación del motor: es una constante puesta encima.
+
+Mientras el marco sea el de 2025 hace lo correcto —reproduce el estudio al
+dígito—. Con el marco de 2026 el motor seguiría pidiendo las 177 aulas de 2025 y
+la pantalla, que sí usa datos vivos, diría otra cosa. **Nadie avisaría.**
+
+Fijado en `api/tests/testthat/test-calc-muestra-aulas-fijas-congelan-el-marco.R`
+(16 expectativas), con dos mutantes verificados sobre el fuente y revertidos:
+
+| Mutante | Fallos |
+|---|---|
+| Ignorar `aulas_base_fijas` (el arreglo futuro) | 4 |
+| `min_media_mediana` deja de declarar que degradó | 1 |
+
+Control 0/16, y `test-calc-muestra-engine.R` sigue en 138/138.
+
+El cuarto test deja demostrado lo otro: `min_media_mediana` **hoy no cambia ni
+una cifra**, porque el preset trae `mediana_conglomerado = 0` en las quince y el
+motor degrada a la media en silencio. Alimentada la mediana, el modo manda y el
+resultado se mueve.
+
+### La decisión que queda
+
+Son dos fuentes de verdad para el mismo número, y hay que quedarse con una:
+
+- **La cadena TS** ya es fiel al Excel y usa datos vivos, pero vive en el
+  frontend y no es la que alimenta el sorteo de aulas.
+- **El motor R** es el que produce `aulas_por_estrato`, que es lo que consume el
+  sorteo — y es el que está congelado.
+
+Lo natural es descongelar R y darle los insumos que le faltan (la mediana por
+facultad del perfil, el modo `min_media_mediana`), dejando la cadena TS como
+vista previa. Pero eso **mueve los dos tests de backtesting** de
+`test-calc-muestra-engine.R`, que hoy afirman 177 y 250, así que no se hace de
+callado: es el siguiente paso y tiene que verse en el diff.
