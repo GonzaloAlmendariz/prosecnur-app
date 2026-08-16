@@ -110,6 +110,8 @@ import {
   frameAuditNumber,
 } from "./universidad/shared/frame";
 import { seleccionActiva } from "./dominio/criteriosMarco";
+import { facultadesDesdeFrame } from "./dominio";
+import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
 import {
   defaultTitleFor,
   filtrosLegacyPayload,
@@ -1878,7 +1880,10 @@ export default function CalcMuestraPage() {
           marco_validado: sync.total,
           marco_contactable: sync.total,
           estado: "validado" as const,
-          estratos: sync.estratos,
+          // Y con ellos el divisor de cada facultad, medido sobre este marco:
+          // sin esto el motor seguiría dividiendo por los tamaños de aula del
+          // estudio de referencia aunque la base cargada sea otra.
+          estratos: conDivisorDelMarco(sync.estratos, facultadesDesdeFrame(frame)),
         };
         setComponentes([
           { ...totalComp, marco: { ...totalComp.marco, ...marcoPatch }, resultado: null },

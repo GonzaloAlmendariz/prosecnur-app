@@ -25,6 +25,8 @@ import {
   type ClassroomLabTab,
 } from "./shared/constants";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "./shared/frame";
+import { facultadesDesdeFrame } from "../dominio";
+import { conDivisorDelMarco } from "./marco/divisorDelMarco";
 import {
   componentFormulaBase,
   estratosDesdeFrame,
@@ -204,23 +206,30 @@ export function UniversidadDesk({
   // detectar ese estado, el estudio absorbe N y estratos del frame una vez
   // (marco_validado > 0 corta el efecto en el siguiente render).
   const framePoblacion = aulasState?.frame?.population;
+  const frameAulas = aulasState?.frame ?? null;
   useEffect(() => {
     if (needsSync) return;
     if (safeNumber(totalComp.marco.marco_validado) > 0) return;
     const sync = estratosDesdeFrame(rowsFrom<Record<string, unknown>>(framePoblacion));
     if (!sync) return;
+    // El divisor de cada facultad —cuántos alumnos caben en un curso-horario—
+    // sale del perfil del marco recién cargado, no del mapa de referencia de
+    // 2025. Sin esto el motor divide por los tamaños del año pasado aunque la
+    // base sea otra, y `min_media_mediana` nunca puede dispararse porque la
+    // mediana no llega.
+    const estratos = conDivisorDelMarco(sync.estratos, facultadesDesdeFrame(frameAulas));
     const marcoPatch = {
       universo_bruto: sync.total,
       marco_validado: sync.total,
       marco_contactable: sync.total,
       estado: "validado" as const,
-      estratos: sync.estratos,
+      estratos,
     };
     onSetComponentes([
       { ...totalComp, marco: { ...totalComp.marco, ...marcoPatch }, resultado: null },
       { ...facultyComp, marco: { ...facultyComp.marco, ...marcoPatch }, resultado: null },
     ]);
-  }, [facultyComp, framePoblacion, needsSync, onSetComponentes, totalComp]);
+  }, [facultyComp, frameAulas, framePoblacion, needsSync, onSetComponentes, totalComp]);
 
   function setDraftTarget(componentId: string, value: number) {
     setDraftTargets((prev) => ({ ...prev, [componentId]: Math.max(0, Math.round(value)) }));

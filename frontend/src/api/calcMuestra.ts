@@ -339,6 +339,14 @@ export type CalcMuestraEstrato = {
   aulas_base_fijas?: number;
   aulas_extra_operativas?: number;
   promedio_conglomerado: number;
+  /**
+   * Mediana del tamaño de conglomerado del estrato. El motor R la acepta desde
+   * siempre y la usa cuando `estadistico_conglomerado` vale `mediana` o
+   * `min_media_mediana` —la regla del diseño de 2025—, pero degrada a la media
+   * en silencio si llega en 0. Faltaba declararla aquí, así que no había forma
+   * de enviarla y el modo no podía dispararse nunca.
+   */
+  mediana_conglomerado?: number;
   tau: number;
 };
 
