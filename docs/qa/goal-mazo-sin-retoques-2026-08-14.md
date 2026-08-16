@@ -18,7 +18,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | | Afirmación | Cómo se mide | Estado |
 |---|---|---|---|
 | V1 | El título de lámina no va pegado al borde superior | mediana del `y` del título en el .pptx ≥ 0.35 in | **0.370** ✓ |
-| V2 | Todo tamaño de letra pertenece al juego de seis (24·14·13·12·11·8) | ningún `sz=` fuera de esa lista | **8.2 % fuera** ◐ (era 82.8 %; aprobado 3.0 %) |
+| V2 | El texto no baja del umbral legible | % de `sz=` por debajo de 11 pt | **6.6 %** ◐ · en absoluto **157 vs 146** del aprobado ✓ |
 | V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **38 de 66** ✓ (era 29; techo real ~35) |
 | V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | **0.321 · 0 de 18** ✓ (era 0.221) |
@@ -44,8 +44,8 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
 | L14 | Llevar el arreglo del color al DEFAULT del motor | `.PULSO_PPT_COLORS` / generador de paletas por lista | ☐ |
 | L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
-| L16 | Residuo de tamaños: 9 pt×123, 8.5×28, 9.48×20, 31.2×13 | falta ubicar qué elemento los emite | ☐ |
-| L17 | Llevar los tamaños calibrados al DEFAULT del motor | `.PRESETS_META$base` | ☐ |
+| L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
+| L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 38**; 0 degeneradas |
 
 **L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
@@ -287,3 +287,50 @@ corta, donde el motor calla a propósito —y su propio comentario lo explica—
 Fallaban desde antes de esta tanda: quedaron desactualizados cuando se cambió
 la política a silencio. Ahora afirman la omisión sobre la decisión, no sobre el
 mensaje, que es lo que de verdad importa.
+
+### L16 — la vara medía la variedad, no la legibilidad
+
+**V2 estaba mal formulada.** Pedía que todo tamaño perteneciera a un «juego de
+seis», y el entregable aprobado usa **veinte tamaños distintos**. También tiene
+38 tamaños con decimales raros (15.99, 18.67, 14.02) — exactamente los mismos
+38 que el motor. Contar variedad no medía nada: la vara la cumplía peor el
+propio documento aprobado que el motor.
+
+Lo que sí discrimina es **cuánto texto queda por debajo del umbral legible**.
+Con 11 pt como umbral —el mínimo del aprobado en texto de gráfico— el motor
+estaba en 16.8 % contra 3.5 %.
+
+**Dónde estaba.** El texto pequeño se concentraba en dos layouts (`Graficos2` y
+`poblacion_4`, cero en el resto) y **fuera** de los grupos de gráfico, así que
+no lo emitía ningún graficador. Eran los defaults de firma de la columna extra:
+`size_barra_extra = 10` (202 cifras) y `size_titulo_extra = 8.5` (38 títulos).
+
+**Por qué nadie lo vio: dos capas de defaults desconectadas.**
+`.PRESETS_DEFAULT_PULSO` ya los declara a 16, pero esa capa sólo llega si el
+proyecto la trae en su config. Cuando no, se cae a la firma del graficador, que
+nadie había calibrado contra el entregable. Es el mismo patrón que L18: una
+declaración que existe pero no viaja hasta donde se usa.
+
+Y estaba **creciendo**: cada lámina a la que L18 le activó la columna añadía sus
+propios textos pequeños. Cerrar L18 empeoró V2 antes de arreglarla.
+
+Con 12 y 11 el residuo cae al 6.6 %, y **en absoluto el motor queda en 157
+casos contra los 146 del aprobado**: a la par. El porcentaje sigue más alto sólo
+porque el aprobado tiene casi el doble de texto total —muestra todas las
+etiquetas de porcentaje y el motor oculta las de segmentos estrechos—, que es
+otra cosa y no de este ítem.
+
+Quedan 123 casos a 9 pt sin ubicar. No son de ningún graficador ni de la
+plantilla; el rastro apunta a texto que el motor escribe en placeholders.
+
+### Tres cosas que costaron una conclusión falsa aquí
+
+- **Medí el proceso equivocado.** Las primeras 176 llamadas con texto a 7.97 pt
+  eran del informe **Word**, no del mazo: el script genera los dos. El PPT
+  siempre recibió sus 14 pt.
+- **Instrumenté sólo una rama.** El contador estaba dentro del `if` que preserva
+  tamaños, así que las llamadas que escalaban no aparecían. Un contador que sólo
+  ve un lado del `if` siempre confirma la hipótesis.
+- **Nombré mal la estructura.** Escribí que `.PRESETS_META` declaraba los 16
+  cuando es `.PRESETS_DEFAULT_PULSO`; el test lo detectó al no encontrar la
+  clave. Comprobar el nombre antes de dejarlo escrito en un comentario.
