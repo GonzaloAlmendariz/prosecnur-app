@@ -370,7 +370,7 @@ function renderAulasView(
     const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
     return (
-      <div className="mon-profile-stack">
+      <div className="mon-profile-stack aulas-tablas-apiladas">
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-consultas"
@@ -413,7 +413,7 @@ function renderAulasView(
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   return (
-    <div className="mon-profile-stack">
+    <div className="mon-profile-stack aulas-tablas-apiladas">
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"

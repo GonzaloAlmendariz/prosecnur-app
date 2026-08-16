@@ -551,3 +551,53 @@
   > .mon-profile-stack:has(.mon-aulas-handoff-panel):has(.mon-profile-table-wrap > .mon-profile-muted) {
   grid-template-rows: auto auto;
 }
+
+/* Reparto de alto cuando varias tablas comparten la vista.
+ *
+ * El stack es grid y `.mon-profile-table-wrap` topa cada tabla en
+ * `min(420px, 100vh - 430px)`: los dos limites estan pensados para UNA tabla
+ * por vista. Con tres apiladas, grid sirve enteras a las que caben y descuenta
+ * TODO el faltante de la unica que excede —justo la que mas filas tiene—.
+ * Medido en Avance a 1440x1000: la tabla de 7 filas mostraba 61 px de 313 (dos
+ * filas) mientras la de 6 tenia sus 229 completos. A 1024x600 era peor: dos de
+ * los tres paneles colapsaban a altura cero.
+ *
+ * Dos intentos que NO sirvieron, anotados para no repetirlos:
+ *
+ *  - un `min-height` en la tabla: grid le concede a la que desborda
+ *    exactamente ese minimo y ni un pixel mas, asi que subirlo solo traslada
+ *    vacio a las tablas cortas (190 px daba 188/188/229) y bajarlo empeora la
+ *    principal (150 px la dejaba en 148). A 1024x600 ademas hacia que los
+ *    paneles se SOLAPARAN;
+ *  - quitar solo el `max-height`: la compresion no la produce el tope sino que
+ *    las filas del grid se encogen. Volvia a 61 px.
+ *
+ * Lo que corresponde es que los paneles no se encojan y que el total lo absorba
+ * `.mon-profile-content`, que YA es el dueno de scroll declarado de la vista.
+ * Sin `max-height` la tabla tampoco scrollea por dentro, asi que no aparece una
+ * cadena anidada: sigue habiendo un solo dueno. Verificado a 1440x1000 y
+ * 1024x600: las tres tablas completas, `atEnd` alcanzable y cero scrollers
+ * dentro del stack.
+ *
+ * La condicion va en el markup y no en el selector: `:has()` anidado es
+ * invalido y descarta la regla entera en silencio. */
+.mon-profile-page.is-aulas-flow
+  .aulas-mon-view
+  .mon-profile-stack.aulas-tablas-apiladas {
+  display: flex;
+  flex-direction: column;
+}
+
+.mon-profile-page.is-aulas-flow
+  .aulas-mon-view
+  .mon-profile-stack.aulas-tablas-apiladas
+  > .mon-profile-panel {
+  flex: 0 0 auto;
+}
+
+.mon-profile-page.is-aulas-flow
+  .aulas-mon-view
+  .mon-profile-stack.aulas-tablas-apiladas
+  .mon-profile-table-wrap {
+  max-height: none;
+}
