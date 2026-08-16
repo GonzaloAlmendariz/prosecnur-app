@@ -799,6 +799,7 @@ errores_registrados <- function() {
     "E_UNKNOWN_GRAF",                                        "router_graficos.R",                 "400",
     "E_UNKNOWN_TIPO",                                        "router_graficos.R",                 "400",
     "E_UNSUPPORTED_EXT",                                     "router_codificacion.R",             "400",
+    "E_VARIABLE_MOTIVO_REQUERIDO",                           "router_validacion.R",               "400",
     "E_VALIDACION_REPEAT_EXT",                               "validacion_repeats_multibase.R",    "400",
     "E_VALIDACION_REPEAT_FILE",                              "validacion_repeats_multibase.R",    "409",
     "E_WORD_DEPS",                                           "reporte_formulario_word.R",         "500",

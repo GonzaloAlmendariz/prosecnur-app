@@ -267,7 +267,7 @@ export default function InstrumentoTab() {
     await refetchAll();
   }
 
-  async function onToggleVariableExcluida(variable: string, checked: boolean) {
+  async function onToggleVariableExcluida(variable: string, checked: boolean, motivo?: string) {
     const current = variablesExcluidas?.variables ?? estado?.variables_excluidas ?? [];
     const next = checked
       ? uniqueStrings([...current, variable])
@@ -275,7 +275,13 @@ export default function InstrumentoTab() {
     setBusy(checked ? "Excluyendo variable…" : "Reactivando variable…");
     setError("");
     try {
-      const saved = await apiV2InstrumentoVariablesExcluidasSave(next, baseNombre);
+      // Vara V5: el motivo viaja sólo para la que se agrega ahora; el backend
+      // no lo pide para las que ya estaban ni para reponer.
+      const saved = await apiV2InstrumentoVariablesExcluidasSave(
+        next,
+        baseNombre,
+        checked && motivo ? { [variable]: motivo } : undefined,
+      );
       setVariablesExcluidas(saved);
       const e = await apiV2InstrumentoEstado(baseNombre);
       setEstado(e);
@@ -672,7 +678,7 @@ export default function InstrumentoTab() {
             excluded={excludedVariableSet}
             query={variableQuery}
             onQuery={setVariableQuery}
-            onToggle={(variable, checked) => void onToggleVariableExcluida(variable, checked)}
+            onToggle={(variable, checked, motivo) => void onToggleVariableExcluida(variable, checked, motivo)}
             disabled={!!busy || !!jobId}
           />
           <div>
@@ -880,6 +886,21 @@ function relationalSignalsFromRow(row: CompactRuleRowBase): RelationalRowSignals
   };
 }
 
+const linkButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: 0,
+  border: "none",
+  background: "none",
+  color: "var(--pulso-text-soft)",
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: "pointer",
+  textDecoration: "underline",
+  textUnderlineOffset: 2,
+};
+
 function VariableExclusionsPanel({
   options,
   excluded,
@@ -892,11 +913,15 @@ function VariableExclusionsPanel({
   excluded: Set<string>;
   query: string;
   onQuery: (value: string) => void;
-  onToggle: (variable: string, checked: boolean) => void;
+  onToggle: (variable: string, checked: boolean, motivo?: string) => void;
   disabled?: boolean;
 }) {
   const selectedCount = excluded.size;
   const totalCases = options.reduce((sum, option) => sum + (option.n_inconsistencias ?? 0), 0);
+  // Vara V5: excluir silencia todas las reglas de esa variable, así que pide el
+  // porqué antes de aplicarlo. Reponer no lo pide.
+  const [pidiendo, setPidiendo] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
   return (
     <div
       style={{
@@ -1033,7 +1058,14 @@ function VariableExclusionsPanel({
                   type="checkbox"
                   checked={checked}
                   disabled={disabled}
-                  onChange={(event) => onToggle(option.variable, event.target.checked)}
+                  onChange={(event) => {
+                    if (event.target.checked) {
+                      setMotivo("");
+                      setPidiendo(option.variable);
+                    } else {
+                      onToggle(option.variable, false);
+                    }
+                  }}
                   style={{ marginTop: 2 }}
                 />
                 <span style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
@@ -1076,6 +1108,43 @@ function VariableExclusionsPanel({
                   >
                     {option.label || "Sin etiqueta"}
                   </span>
+                  {pidiendo === option.variable && (
+                    <span
+                      onClick={(e) => e.preventDefault()}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 2 }}
+                    >
+                      <input
+                        autoFocus
+                        value={motivo}
+                        onChange={(e) => setMotivo(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && motivo.trim()) {
+                            onToggle(option.variable, true, motivo.trim());
+                            setPidiendo(null);
+                          }
+                          if (e.key === "Escape") setPidiendo(null);
+                        }}
+                        placeholder={`Por qué se deja «${option.variable}» fuera`}
+                        aria-label={`Motivo para excluir ${option.variable}`}
+                        style={{
+                          minWidth: 200, padding: "4px 8px", borderRadius: 6, fontSize: 11,
+                          border: "1px solid var(--pulso-border)",
+                          background: "var(--pulso-surface)", color: "var(--pulso-text)",
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={!motivo.trim()}
+                        onClick={() => { onToggle(option.variable, true, motivo.trim()); setPidiendo(null); }}
+                        style={{ ...linkButtonStyle, opacity: motivo.trim() ? 1 : 0.5 }}
+                      >
+                        Excluir
+                      </button>
+                      <button type="button" onClick={() => setPidiendo(null)} style={linkButtonStyle}>
+                        Cancelar
+                      </button>
+                    </span>
+                  )}
                   <span
                     style={{
                       display: "inline-flex",

@@ -930,7 +930,33 @@ mount_validacion <- function(pr) {
         error = function(e) stop_api(400, "E_BAD_JSON", conditionMessage(e))
       )
       vars <- .validacion_chr_vec(parsed$variables %||% parsed$variables_excluidas)
+
+      # Vara V5: excluir una variable silencia todas sus reglas de una vez —el
+      # selector muestra cuántas—, así que es la misma clase de decisión que
+      # apagar una regla y necesita el mismo porqué. Se exige sólo para las que
+      # se agregan ahora: reponer una variable no necesita justificación, y los
+      # `.pulso` abiertos antes de esto conservan sus exclusiones sin motivo.
+      scope_previo <- .get_base_scope(sid, base)
+      ya_excluidas <- .validacion_chr_vec(scope_previo$variables_excluidas)
+      motivos <- scope_previo$variables_excluidas_motivo
+      if (!is.list(motivos)) motivos <- list()
+      entrantes <- as.list(parsed$motivos %||% list())
+      nuevas <- setdiff(vars, ya_excluidas)
+      for (v in nuevas) {
+        motivo <- trimws(as.character(entrantes[[v]] %||% ""))
+        if (!nzchar(motivo)) {
+          stop_api(400, "E_VARIABLE_MOTIVO_REQUERIDO",
+                   sprintf("Excluir «%s» exige un motivo: sin el porque no se distingue de un descuido.", v))
+        }
+        motivos[[v]] <- list(
+          motivo = motivo,
+          decidido_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+        )
+      }
+      for (v in setdiff(ya_excluidas, vars)) motivos[[v]] <- NULL
+
       validacion_scope_set(sid, base, "variables_excluidas", vars)
+      validacion_scope_set(sid, base, "variables_excluidas_motivo", motivos)
       validacion_scope_set(sid, base, "evaluacion", NULL)
       .limpieza_invalidate_outputs(sid, base)
       scope <- .get_base_scope(sid, base)
@@ -938,6 +964,7 @@ mount_validacion <- function(pr) {
         ok = TRUE,
         base_nombre = base %||% NA_character_,
         variables = as.list(.validacion_chr_vec(scope$variables_excluidas)),
+        motivos = scope$variables_excluidas_motivo %||% list(),
         opciones = .validacion_variable_options(sid, base, scope)
       )
     })) |>
