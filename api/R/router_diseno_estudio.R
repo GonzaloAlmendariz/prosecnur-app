@@ -540,66 +540,18 @@
   })
 }
 
-.diseno_estudio_state_payload <- function(sid) {
-  s <- session_get(sid)
-  protocol <- .diseno_protocol_summary(s)
-  statuses <- .diseno_module_statuses(s, protocol)
-  weights <- vapply(statuses, function(item) .diseno_state_weight(item$state), numeric(1))
-  score <- as.integer(round(100 * sum(weights) / max(length(statuses), 1L)))
-  ready_count <- sum(vapply(statuses, function(item) identical(item$state, "ready"), logical(1)))
-  decisions <- .diseno_decisions(s, statuses, protocol)
-  risks <- .diseno_risks(statuses, protocol)
-  bitacora <- .diseno_bitacora_entries(s)
-  manual_timeline <- lapply(bitacora, function(entry) {
-    c(entry, list(kind = "manual", route = "/diseno-estudio", source = "bitacora del usuario"))
-  })
-
-  list(
-    ok = TRUE,
-    schema = "diseno_estudio_state_v1",
-    generated_at = .diseno_now_iso(),
-    protocol = protocol,
-    readiness = list(
-      score = score,
-      ready_count = as.integer(ready_count),
-      total_count = length(statuses),
-      pending_count = as.integer(sum(vapply(statuses, function(item) identical(item$state, "pending"), logical(1)))),
-      active_count = as.integer(sum(vapply(statuses, function(item) identical(item$state, "active"), logical(1)))),
-      warning_count = as.integer(sum(vapply(statuses, function(item) identical(item$state, "warning"), logical(1))))
-    ),
-    sources = statuses,
-    decisions = decisions,
-    risks = risks,
-    next_actions = .diseno_next_actions(statuses),
-    bitacora = bitacora,
-    timeline = c(manual_timeline, .diseno_auto_timeline(statuses, decisions, risks)),
-    library = .diseno_library_summary()
-  )
-}
+# El payload del "expediente" del ADR 0027 se retiro el 2026-08-16 junto con
+# sus tres endpoints legacy: el ADR 0029 lo reemplazo por el modulo Bitacora,
+# cuyos alias canonicos /api/bitacora arman su propio payload liviano. Los
+# helpers que componia -.diseno_protocol_summary y .diseno_module_statuses-
+# siguen vivos: los usan project_overview.R y project_pulso.R.
 
 mount_diseno_estudio <- function(pr) {
   pr |>
-    plumber::pr_get("/api/diseno-estudio/state",
-                    wrap_endpoint(function(req, res) {
-      .diseno_estudio_state_payload(session_header(req))
-    })) |>
-    plumber::pr_post("/api/diseno-estudio/bitacora",
-                     wrap_endpoint(function(req, res) {
-      sid <- session_header(req)
-      body <- .diseno_parse_body(req)
-      entry <- .diseno_bitacora_entry(body$entry %||% body)
-      .diseno_bitacora_upsert(sid, entry)
-      .diseno_estudio_state_payload(sid)
-    })) |>
-    plumber::pr_delete("/api/diseno-estudio/bitacora/<id>",
-                       wrap_endpoint(function(req, res, id) {
-      sid <- session_header(req)
-      .diseno_bitacora_delete(sid, id)
-      .diseno_estudio_state_payload(sid)
-    })) |>
-    # Alias canonicos del modulo Bitacora. La clave persistente sigue siendo
-    # `diseno_estudio_bitacora` (compat con .pulso existentes). El GET es liviano
-    # (solo entradas) para que el modulo no cargue el payload de expediente.
+    # Rutas del modulo Bitacora. La clave persistente sigue siendo
+    # `diseno_estudio_bitacora` (compat con .pulso existentes) y el GET es
+    # liviano: solo entradas, sin el payload de expediente que el ADR 0029
+    # retiro.
     plumber::pr_get("/api/bitacora",
                     wrap_endpoint(function(req, res) {
       sid <- session_header(req)

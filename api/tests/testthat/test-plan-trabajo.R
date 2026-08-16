@@ -231,8 +231,9 @@ test_that("diseno del estudio lee plan de trabajo como fuente transversal", {
     windows = list(list(module_id = "monitoreo"))
   ))
 
-  state <- .diseno_estudio_state_payload(sid)
-  expect_equal(state$protocol$workplan_tasks_count, 1L)
-  expect_equal(state$protocol$workplan_milestones_count, 1L)
-  expect_true(any(vapply(state$sources, function(item) item$id == "plan-trabajo" && item$state == "ready", logical(1))))
+  protocol <- .diseno_protocol_summary(session_get(sid))
+  expect_equal(protocol$workplan_tasks_count, 1L)
+  expect_equal(protocol$workplan_milestones_count, 1L)
+  statuses <- .diseno_module_statuses(session_get(sid), protocol)
+  expect_true(any(vapply(statuses, function(item) item$id == "plan-trabajo" && item$state == "ready", logical(1))))
 })
