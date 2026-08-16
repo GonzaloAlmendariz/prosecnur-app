@@ -5,8 +5,11 @@
  * todo marcado—, pero eso mira la DECLARACIÓN. Un criterio con un subconjunto
  * propio seleccionado puede aun así no dejar fuera a nadie porque las
  * categorías elegidas cubren toda la base. Es lo que pasó en el proyecto real
- * de 2025-2: `level` estaba declarado, se leía restrictivo y dejaba pasar las
- * 136.284 filas. Sólo se detectó calculándolo a mano.
+ * de 2025-2 ningún criterio es inerte —los cinco recortan—, así que el caso se
+ * prueba con cifras SINTÉTICAS: es el que la pantalla no sabía distinguir, no
+ * uno observado ahí. Lo que sí ocurre en ese proyecto es lo contrario y también
+ * necesita decirse: `level` deja fuera 35.364 filas y aun así no reduce el
+ * marco, porque vive en capa `instrumento`.
  */
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -33,7 +36,8 @@ function pintar(recorte: RecorteCriterioAlumno | null, desactualizado = false): 
   );
 }
 
-const BASE = { id: "level", layer: "marco", pasan: 136284, recorta: 0, pctRecorte: 0, noRecorta: true, evaluable: true };
+/** Criterio sintético que se midió y no dejó fuera a nadie. */
+const BASE = { id: "sintetico", layer: "marco", pasan: 136284, recorta: 0, pctRecorte: 0, noRecorta: true, evaluable: true };
 
 describe("recorte medido en la tarjeta del criterio", () => {
   it("dice que dejó fuera a 0 cuando está declarado y no filtra", () => {
@@ -53,7 +57,8 @@ describe("recorte medido en la tarjeta del criterio", () => {
   it("un criterio de otra capa no promete recortar el marco", () => {
     // instrumento/procesamiento se reportan pero no sacan a nadie del marco:
     // leer su conteo como un recorte sería atribuirle un efecto que no tuvo.
-    const html = pintar({ ...BASE, layer: "instrumento", pasan: 100000, recorta: 36284, pctRecorte: 0.27, noRecorta: false });
+    // Cifras reales de `level` en 2025-2, que es justo este caso.
+    const html = pintar({ ...BASE, id: "level", layer: "instrumento", pasan: 100920, recorta: 35364, pctRecorte: 0.2595, noRecorta: false });
     expect(html).toContain('data-estado="otra-capa"');
     expect(html).toContain("no recorta el marco");
   });

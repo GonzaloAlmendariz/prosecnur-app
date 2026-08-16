@@ -31,9 +31,11 @@ import type { RecorteCriterioAlumno } from "./recorteCriteriosAlumnoModel";
  * La cabecera ya avisa cuando la selección no restringe —nada o todo marcado—,
  * pero eso mira la declaración, no el efecto. Un criterio puede tener un
  * subconjunto propio seleccionado y aun así no dejar fuera a nadie, porque las
- * categorías elegidas cubren a toda la base. Es lo que pasó en el proyecto real
- * de 2025-2: `level` estaba declarado, se leía como restrictivo y dejaba pasar
- * las 136.284 filas. La única forma de verlo era calcularlo a mano.
+ * categorías elegidas cubren a toda la base. Y al revés: puede recortar mucho y
+ * aun así no reducir el marco, si su capa no es `marco`. En el proyecto real de
+ * 2025-2 `level` deja fuera 35.364 filas de 136.284 y no recorta la población
+ * porque vive en capa `instrumento` — dos cosas que la cabecera, que sólo mira
+ * la declaración, no puede separar.
  *
  * La cifra es del marco EJECUTADO, no de lo que hay en pantalla: si la selección
  * cambió y todavía no se reconstruyó, describe el marco anterior.
