@@ -50,7 +50,7 @@ sabe nada que la interfaz calle.
 | **L14** | Barrido V5: apagar una regla exige motivo | `router_validacion.R` · `ReglaDrillPanel.tsx` · informe | ☑ hecho — `f08ff427`. El mismo hueco del ADR 0078, en Validación. |
 | **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `InstrumentoTab.tsx` · informe | ☑ hecho — `c695c9f1`. Motivo exigido sólo para las que se agregan. |
 | **L16** | Barrido V7: cada estado nuevo con test que lo distinga | los diez módulos y componentes que agregó este GOAL | ☑ hecho — `6a89b22f`. Cinco sin test, tres eran gaps reales. |
-| **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☐ sin empezar — se midieron contra V7, no contra V1–V4. Lo que agregué también puede contradecir al motor o colapsar estados. |
+| **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
@@ -107,6 +107,34 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L17 — las varas contra lo que el propio GOAL agregó
+
+Valió la pena: **el hallazgo es contra el arreglo que estableció el patrón**.
+
+`ee4b308d` hizo que las degradaciones del motor de PPT avisaran por
+`.pulso_aviso()`. De los tres exports de gráficos, dos cosechan esos avisos
+—`graficos.ppt` y `graficos.word`— y **`graficos.ppt_all` no**. Es el peor sitio
+para callarse: en el mazo de todas las bases, con sesenta y siete láminas por
+base, una lámina en blanco es exactamente lo que no se nota. El aviso se emitía
+y moría en el stderr.
+
+O sea, la propia trampa que este GOAL había anotado —«no preguntes si el motor
+lo registra, pregunta por dónde sale»— mordiendo al arreglo que la estableció.
+Reparado en `3aa93906`, con test que trocea el router por `job_submit(`: buscar
+«avisos» en todo el archivo habría dado verde por los vecinos.
+
+**Trampa nueva, medida de paso**: dentro del mismo `impact` de Limpieza,
+`cases_excluded` es **declarativo** (cuenta ids escritos) y `rules_resolved` es
+un **delta medido** (`before$reglas_con_casos - after$reglas_con_casos`). Dos
+campos vecinos con confiabilidad opuesta: leer el primero como si fuera el
+segundo es el error que L13 casi comete.
+
+Del resto de las superficies nuevas, nada. `PromocionBase` cubre los cuatro
+estados que el backend puede emitir —incluido el `sin_respaldo` que agregó la
+otra sesión—, la proporción de `marcasPrevias` usa el denominador correcto, y
+los chips derivan del mismo módulo puro que alimenta sus contadores, así que no
+pueden contradecirlos.
 
 ### L16 — barrido de V7
 
