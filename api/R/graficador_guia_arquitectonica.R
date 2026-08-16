@@ -35,7 +35,16 @@
 
 # La cota tiene que leerse al hacer zoom, no a tamano completo: es una anotacion
 # de trabajo, no un rotulo de la lamina.
-.GUIA_SIZE_COTA <- 4.6
+.GUIA_SIZE_COTA <- 5.6
+
+# Las cifras de cota se leen sobre barras, texto y fondo. Un halo claro detras
+# las despega de lo que haya debajo sin taparlo: con 4.6 pt y sin halo, la cota
+# de una caja que cruzaba una barra verde era ilegible.
+# 0x8C = 55 % de opacidad. Con 0xCC (80 %) el halo tapaba el dato que estaba
+# debajo —barras y etiquetas de leyenda quedaban con un recuadro blanco
+# encima—, que es justo lo que la guia no debe hacer: es papel milimetrado, no
+# una capa opaca.
+.GUIA_HALO_FILL <- "#FFFFFF8C"
 
 # Pulgadas a centimetros. El motor mide en pulgadas; el plano se lee en cm.
 .GUIA_CM_POR_IN <- 2.54
@@ -166,15 +175,25 @@
       gp = grid::gpar(col = col, lwd = lwd)
     )
   }
-  cifra <- grid::textGrob(
-    label = texto,
-    x = grid::unit((vals[[1]] + vals[[2]]) / 2, "npc"),
-    y = grid::unit((vals[[3]] + vals[[4]]) / 2, "npc"),
-    rot = if (horizontal) 0 else 90,
-    just = c("center", if (horizontal) "bottom" else "top"),
-    gp = grid::gpar(col = col, fontsize = size_cota)
+  x_cifra <- grid::unit((vals[[1]] + vals[[2]]) / 2, "npc")
+  y_cifra <- grid::unit((vals[[3]] + vals[[4]]) / 2, "npc")
+  rot <- if (horizontal) 0 else 90
+  just <- c("center", if (horizontal) "bottom" else "top")
+
+  # Halo: un rectangulo claro del tamano del texto, detras. `grid` lo dimensiona
+  # solo a partir de la cadena, asi que no hay que estimar anchos.
+  halo <- grid::roundrectGrob(
+    x = x_cifra, y = y_cifra,
+    width = grid::stringWidth(texto) + grid::unit(1.6, "mm"),
+    height = grid::stringHeight(texto) + grid::unit(1.0, "mm"),
+    just = just, r = grid::unit(0.4, "mm"),
+    gp = grid::gpar(fill = .GUIA_HALO_FILL, col = NA)
   )
-  list(linea, topes, cifra)
+  cifra <- grid::textGrob(
+    label = texto, x = x_cifra, y = y_cifra, rot = rot, just = just,
+    gp = grid::gpar(col = col, fontsize = size_cota, fontface = "bold")
+  )
+  list(linea, topes, halo, cifra)
 }
 
 
@@ -250,7 +269,7 @@
   # dentro dice CUANTO; las cotas dicen DE DONDE A DONDE.
   cotas <- c(
     .guia_cota_grobs(
-      0.02, 0.98, 0.045, 0.045,
+      0.02, 0.98, 0.022, 0.022,
       sprintf("%.2f cm", w_in * .GUIA_CM_POR_IN),
       col = col, lwd = lwd, size_cota = size_cota
     ),
