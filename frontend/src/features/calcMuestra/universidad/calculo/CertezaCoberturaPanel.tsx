@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { Info, Shuffle } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasEstrato } from "../../../../api/client";
-import { fmtInt } from "../../sharedCore";
+import { fmtDec, fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { CifraFila, CifraMotor } from "../ui";
 import {
@@ -60,6 +60,10 @@ function fmtBrecha(value: number | null | undefined): string {
   return value > 0 ? `+${fmtInt(value)}` : fmtInt(value);
 }
 
+function fmtRendimiento(value: number | null): string {
+  return typeof value === "number" && Number.isFinite(value) ? fmtDec(value, 1) : "—";
+}
+
 function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number }) {
   const texto = ESTADO_TEXTO[fila.estado];
   // Marcar «probabilidad baja» contra un 0,95 escrito a mano decía que el nivel
@@ -89,6 +93,13 @@ function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number })
         <strong>{fila.aulas_certeza == null ? "—" : fmtInt(fila.aulas_certeza)}</strong>
       </td>
       <td className="cmv2-certeza-brecha">{fmtBrecha(fila.brecha)}</td>
+      {/* El motor simulaba el rendimiento y publicaba las dos cifras; ninguna
+          pantalla las mostraba. El P05 es el que decide si la cuota aguanta un
+          mal día: la media puede alcanzar y el peor 5% quedarse corto. */}
+      <td className="cmv2-certeza-rendimiento">
+        <strong>{fmtRendimiento(fila.rendimiento_medio)}</strong>
+        <small>P05 {fmtRendimiento(fila.rendimiento_p05)}</small>
+      </td>
       <td>
         <span className="cmv2-certeza-chip" data-estado={fila.estado} title={texto.detalle}>
           {texto.etiqueta}
@@ -249,6 +260,9 @@ export function CertezaCoberturaPanel({
                   </th>
                   <th>Titulares para {PCT.format(nivelMostrado)}</th>
                   <th>Dif.</th>
+                  <th title="Alumnos que rinde un aula en la simulación: la media arriba, y debajo el percentil 5 —el peor escenario razonable—.">
+                    Alumnos por aula
+                  </th>
                   <th>Estado</th>
                 </tr>
               </thead>

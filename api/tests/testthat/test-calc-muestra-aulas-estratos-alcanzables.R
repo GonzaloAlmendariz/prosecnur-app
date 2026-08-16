@@ -167,13 +167,18 @@ test_that("el objetivo declarado manda sobre el de fabrica", {
 
 test_that("la primera reserva puede salir de la facultad; las siguientes no", {
   # El mecanismo que corrige la lectura ingenua «celda chica => titular sin
-  # reserva». Con `strict_cell = FALSE` (profundidad 1 bajo la estrategia por
-  # defecto) el pool cae a la facultad cuando la celda no tiene hermanos; con
-  # `strict_cell = TRUE` (de la segunda en adelante) no hay a donde caer.
+  # reserva». En profundidad 1 el pool cae a la facultad cuando la celda no
+  # tiene hermanos; de la segunda en adelante, bajo el candado de CELDA, no hay
+  # a donde caer.
   #
   # Es la diferencia entre una celda que acaba con UNA reserva de otra celda y
   # una que acaba con ninguna, y de ahi depende que el aviso de profundidad
   # tenga algo que decir.
+  #
+  # El parametro se llamaba `strict_cell` y era booleano; desde 2026-08-16 es
+  # `candado` con tres valores, porque hizo falta un tercero —el de FACULTAD,
+  # que es el del operativo de 2025—. `FALSE` equivale a "libre" y `TRUE` a
+  # "celda"; lo que este test fija no cambia.
   tit <- list(stratum = "GASTRO / F / G3", faculty = "GASTRO")
   cand <- list(
     n = 3L,
@@ -183,11 +188,11 @@ test_that("la primera reserva puede salir de la facultad; las siguientes no", {
   mask <- rep(TRUE, 3)
   score <- c(1, 2, 3)
 
-  laxo <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, strict_cell = FALSE)
+  laxo <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, candado = "libre")
   expect_identical(cand$faculty[laxo], "GASTRO")   # cae a la facultad, no a cualquiera
   expect_false(identical(cand$stratum[laxo], tit$stratum))
 
-  estricto <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, strict_cell = TRUE)
+  estricto <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, candado = "celda")
   expect_true(is.na(estricto))
 
   # Y con un hermano en la propia celda, el estricto sí elige — y prefiere la
@@ -197,6 +202,6 @@ test_that("la primera reserva puede salir de la facultad; las siguientes no", {
     stratum = c("GASTRO / F / G3", "GASTRO / M / G2"),
     faculty = c("GASTRO", "GASTRO")
   )
-  propio <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand2, rep(TRUE, 2), c(1, 9), TRUE, TRUE, strict_cell = FALSE)
+  propio <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand2, rep(TRUE, 2), c(1, 9), TRUE, TRUE, candado = "libre")
   expect_identical(cand2$stratum[propio], tit$stratum)
 })

@@ -45,8 +45,17 @@
 
 .cmv2-certeza-prob,
 .cmv2-certeza-minimo,
-.cmv2-certeza-brecha {
+.cmv2-certeza-brecha,
+.cmv2-certeza-rendimiento {
   font-variant-numeric: tabular-nums;
+}
+
+/* Media y P05 en la misma celda: la de arriba es la cifra que se lee de
+   corrido, la de abajo la que decide si la cuota aguanta un mal día. */
+.cmv2-certeza-rendimiento small {
+  display: block;
+  color: var(--pulso-text-muted);
+  font-size: 0.75rem;
 }
 
 .cmv2-certeza-prob[data-bajo] {
