@@ -842,7 +842,11 @@ reporte_ppt_plan <- function(
 
     table_width <- .style_num(style, "table_width", 12.30, min = 4)
     table_height <- .style_num(style, "table_height", 5.55, min = 1)
-    first_col_pct <- .style_num(style, "first_col_pct", 0.20, min = 0.14, max = 0.32)
+    # El piso baja de 0.14 a 0.02: con 0.14 la primera columna nunca podia ser
+    # un cuadro de leyenda —topaba en 4.38 cm sobre un cajon de 31— y la lamina
+    # de escala salia con rectangulos 4:1 en vez de cuadros. La ficha tecnica
+    # declara su 0.20 y no se entera.
+    first_col_pct <- .style_num(style, "first_col_pct", 0.20, min = 0.02, max = 0.32)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
     text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
     first_col_fill <- as.character(.style_value(style, "first_col_fill", "#D8D8D8"))[1]
@@ -871,6 +875,21 @@ reporte_ppt_plan <- function(
       ft <- flextable::color(ft, color = text_color, part = "all")
       ft <- flextable::bg(ft, j = 1, bg = first_col_fill, part = "body")
       ft <- flextable::bg(ft, j = 2, bg = body_fill, part = "body")
+      # Un color por fila en la primera columna convierte la tabla en la leyenda
+      # de una escala: el cuadro de color a la izquierda y su etiqueta al lado,
+      # que es como el entregable aprobado explica los cuatro grados. Sin esto
+      # la lamina de escala solo podia llevar texto.
+      # Directo y no con `.style_value()`: ese accesor devuelve `out[[1]]` y
+      # trunca cualquier vector a su primer elemento, asi que los cuatro colores
+      # de la rampa llegaban como uno.
+      fills_fila <- style[["first_col_fill_by_row"]]
+      if (!is.null(fills_fila)) {
+        fills_fila <- as.character(unlist(fills_fila))
+        for (r in seq_len(min(length(fills_fila), nrow(tbl)))) {
+          if (!nzchar(fills_fila[[r]]) || is.na(fills_fila[[r]])) next
+          ft <- flextable::bg(ft, i = r, j = 1, bg = fills_fila[[r]], part = "body")
+        }
+      }
       ft <- flextable::align(ft, j = 1, align = "center", part = "body")
       ft <- flextable::align(ft, j = 2, align = "left", part = "body")
       ft <- flextable::valign(ft, valign = "center", part = "body")
