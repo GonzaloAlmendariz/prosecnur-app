@@ -1973,3 +1973,70 @@ La primera versión del fixture usaba `categorias` donde el normalizador espera
 test de control**, que estaba puesto justamente para eso: si el caso positivo
 también hubiera pasado en falso, el archivo entero habría certificado un hueco
 que no era el medido.
+
+---
+
+## L25 · Desbloqueado: la facultad del estudio recorta también las aulas (2026-08-16)
+
+Gonzalo preguntó por qué L19 era decisión suya. Revisándolo, **no lo era**, y lo
+que sigue corrige el encuadre de los cinco ticks anteriores:
+
+- El estudio **ya declara** 15 de 18 facultades, en la UI y coincidiendo con la
+  tabla de cuotas del diseño. Que esa selección no llegue a los cursos-horario
+  es un **defecto**, no una pregunta abierta. Un aula cuya facultad no es un
+  estrato del estudio no puede recibir cuota; conservarla sólo rompía el
+  contrato.
+- Lo que **sí** es metodológico y sigue esperándole es la coherencia de facultad
+  al 0,80, que quita 356 aulas por una razón distinta.
+
+Confundí las dos y le puse las dos a él. Es el reverso del error que este loop
+venía corrigiendo: por no decidir de más, dejé bloqueado algo que sólo pedía
+implementar lo ya decidido.
+
+### Lo implementado
+
+`api/R/calc_muestra_aulas_criterios_facultad_curso.R`, en archivo propio, y un
+paso nuevo en `.cm_criterios_evaluar_aula`. **No** cambia el `scope` del
+registro: moverlo a `"aula"` conectaría este lado y desconectaría el de
+estudiantes, porque el scope es uno solo. La selección se reutiliza sin moverla
+de sitio.
+
+Tres decisiones documentadas en el módulo: un aula **sin facultad pasa** (misma
+regla que el resto de criterios planos), `mode = "exclude"` invierte el set, y
+**las excepciones por facultad no se leen** — sobre el propio criterio de
+facultad serían una regla que se habla a sí misma, y dejarían entrar aulas por
+una excepción pensada para los estudiantes.
+
+14 expectativas y cuatro mutantes sobre el fuente, revertidos: no conectar el
+recorte (**4 fallos**), que un aula sin señal se caiga (1), leer las excepciones
+(1) e ignorar el modo excluir (1). Control 14/14. Suites del área en verde:
+criterios 92/92, radiografía 295/295, cascada 112/112, criterio8 39/39, engine
+138/138, alumnos-por-ch 91/91.
+
+### Verificado por la ruta real, y el cálculo ya corre
+
+Sobre `HSVG2026.pulso`, reconstruyendo el marco (job de 2,5 minutos sobre
+136.284 filas) y volviendo a calcular:
+
+| | Antes | Ahora |
+|---|---|---|
+| Cursos-horario elegibles | 2.468 | **2.364** |
+| Escuela de Posgrado | 2 CH · 33 matrículas | **0** |
+| `POST /calcular` | 409 `facultades_incompletas` | **200** |
+| Muestra objetivo · sobremuestra | — | **2.500 · 3.750** |
+
+Los dos últimos son exactamente los del diseño de 2025. Y la pestaña
+«Cursos-horario requeridos», vacía durante todo el loop, ya publica las 15
+facultades con su cuota, método, alumnos por CH, titulares y reservas:
+**193 titulares + 15 reservas = 208 a coordinar**, bajo el umbral de 200 que
+pidió Gonzalo y a un aula de las 194 que se aplicaron en 2025.
+
+### Lo que NO está explicado
+
+Predije que caerían **2** aulas y cayeron **104** (2.468 → 2.364, y 83.917 →
+80.835 matrículas). Las 2 de Posgrado están confirmadas; **las otras 102 no las
+he explicado**. La hipótesis más plausible es que el marco guardado se construyó
+con 0.7.1 el 2026-08-06 y su columna `faculty` no se derive igual que en la
+build de hoy, de modo que medir mi flag sobre el marco viejo no predice el
+nuevo. Es una hipótesis, no una medición, y queda como primer trabajo del
+próximo tick.

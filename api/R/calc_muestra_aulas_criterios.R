@@ -1349,6 +1349,18 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   }
   registry <- .cm_criterios_var_registry()
   by <- seleccion$byVariable %||% list()
+  # La facultad que el estudio declara recorta también las aulas: su criterio es
+  # de scope alumno, así que no entra por el bucle de abajo. Ver
+  # calc_muestra_aulas_criterios_facultad_curso.R.
+  crit_fac <- .cm_criterios_facultad_curso_regla(seleccion)
+  if (!is.null(crit_fac)) {
+    add(
+      "faculty_curso",
+      .cm_criterios_facultad_curso_flag(vals$faculty, crit_fac),
+      "faculty_curso",
+      .cm_criterios_facultad_curso_label(crit_fac)
+    )
+  }
   orden <- c("modality", "session_type", "teacher_type", "course_level", "condicion_curso", "enrolled_total", "campus")
   for (id in orden) {
     if (identical(id, "course_level")) {
