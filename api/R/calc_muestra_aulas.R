@@ -3020,9 +3020,29 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   if (nrow(missing)) warnings <- c(warnings, sprintf("Se redistribuyo peso de %s dimension(es) sin datos activos.", nrow(missing)))
   severe <- metrics[metrics$metric_group == "balance" & is.finite(metrics$max_abs_error) & is.finite(metrics$tolerance) & metrics$max_abs_error > 2 * metrics$tolerance, , drop = FALSE]
   if (nrow(severe)) warnings <- c(warnings, sprintf("Balance fuera de tolerancia severa en: %s.", paste(severe$label, collapse = ", ")))
-  if (is.finite(dup_loss) && dup_loss > objective$duplicate_loss_tolerance) warnings <- c(warnings, "La perdida por estudiantes repetidos supera la tolerancia configurada.")
-  if (isTRUE(weight_stability$active) && is.finite(weight_stability$cv) && weight_stability$cv > objective$weight_cv_critical) warnings <- c(warnings, "CV de pesos critico; revisar probabilidades o postestratificacion.")
-  if (has_reserve && is.finite(reserve_ratio) && reserve_ratio < objective$reserve_depth_target) warnings <- c(warnings, "Profundidad de reservas menor al objetivo.")
+  # Los tres avisos de umbral llevan SUS DOS CIFRAS: la medida y el umbral que
+  # la juzga. Decian solo el hecho —«supera la tolerancia configurada»— y con
+  # eso no se puede decidir nada: quedarse a un pelo del umbral y quedarse a la
+  # mitad piden cosas distintas, y el aviso las escribia igual. Sus vecinos de
+  # este mismo bloque ya nombraban cifra y dimension.
+  if (is.finite(dup_loss) && dup_loss > objective$duplicate_loss_tolerance) {
+    warnings <- c(warnings, sprintf(
+      "La perdida por estudiantes repetidos es %.1f%% y supera la tolerancia de %.1f%%.",
+      100 * dup_loss, 100 * objective$duplicate_loss_tolerance
+    ))
+  }
+  if (isTRUE(weight_stability$active) && is.finite(weight_stability$cv) && weight_stability$cv > objective$weight_cv_critical) {
+    warnings <- c(warnings, sprintf(
+      "CV de pesos %.2f, por encima del critico %.2f; revisar probabilidades o postestratificacion.",
+      weight_stability$cv, objective$weight_cv_critical
+    ))
+  }
+  if (has_reserve && is.finite(reserve_ratio) && reserve_ratio < objective$reserve_depth_target) {
+    warnings <- c(warnings, sprintf(
+      "Profundidad de reservas %.2f por titular, menor al objetivo de %.2f.",
+      reserve_ratio, objective$reserve_depth_target
+    ))
+  }
   warnings <- c(warnings, .cm_aulas_aviso_celdas_sin_reserva(depth, objective$reserve_depth_target))
   if (!is.null(coverage_guard)) warnings <- c(warnings, coverage_guard$detalle)
   warnings <- c(warnings, .cm_aulas_aviso_estratos_inalcanzables(aula_frame, selection_df, roles))
