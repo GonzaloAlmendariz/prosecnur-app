@@ -9402,6 +9402,12 @@ reporte_ppt_plan <- function(
 
   if (!isTRUE(solo_lista)) {
     print(doc, target = path_ppt)
+    # officer escribe las fuentes del `rPr` en un orden que el esquema no
+    # admite, y PowerPoint abre el archivo con «found a problem» y lo repara
+    # QUITANDO contenido. LibreOffice no se queja, asi que sin este paso el
+    # mazo se validaba sano y el cliente lo abria roto. Ver
+    # `reporte_ppt_saneo_ooxml.R`.
+    ppt_sanear_ooxml(path_ppt)
     if (isTRUE(mensajes_progreso)) {
       message("PPT generado en: ", normalizePath(path_ppt, winslash = "/"))
     }
