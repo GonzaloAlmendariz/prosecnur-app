@@ -7747,7 +7747,17 @@ reporte_ppt_plan <- function(
             ),
             fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
           )
-          doc <- .ph_with_strict(doc, title_value, contract$slots$title)
+          # R7: el placeholder de este layout vive a 0.57 cm del borde. Si queda
+          # bajo el piso se emite por coordenadas; si ya cumple, `NULL` y sigue
+          # la via del placeholder. Ver `reporte_ppt_titulo_piso.R`.
+          loc_piso <- .ppt_titulo_loc_con_piso(
+            doc, contract$layout, contract$slots$title
+          )
+          if (is.null(loc_piso)) {
+            doc <- .ph_with_strict(doc, title_value, contract$slots$title)
+          } else {
+            doc <- officer::ph_with(doc, value = title_value, location = loc_piso)
+          }
         } else {
           .plan_input_abort("text_slide requiere `title` no vacio.")
         }
