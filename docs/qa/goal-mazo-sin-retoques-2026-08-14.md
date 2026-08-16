@@ -21,7 +21,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | V2 | Todo tamaño de letra pertenece al juego de seis (24·14·13·12·11·8) | ningún `sz=` fuera de esa lista | **8.2 % fuera** ◐ (era 82.8 %; aprobado 3.0 %) |
 | V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **29 de 67** ◐ (aprobado: 45 de 63) |
-| V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | 0.280 ✗ |
+| V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | **0.295** ◐ (era 0.221; 2 gráficos de 21) |
 | V6 | Ninguna lámina supera las 9 **barras** | máx. barras por lámina | **el motor parte**; dispara en 3 ✓ |
 | V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
 | V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | **`p_slide_3_graficos_poblacion`** ✓ |
@@ -38,7 +38,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | las **dos** plantillas | ☑ officer lo ve, 7 placeholders |
 | L7 | Contrato, constructor, render y metadata de `poblacion_3` | 6 archivos R + NAMESPACE | ☑ **lámina generada**, alto 2.08× |
 | L8 | Las otras 11 disposiciones del artefacto | ídem | ☑ **11 de 11**; la 11ª no era disposición sino capacidad (L9) |
-| L9 | Partir la lámina cuando supera 9 **barras** · incluye `escala_continuada` | `reporte_plan_particion.R` | ☑ **3 láminas del estudio**; 34 asserts |
+| L9 | Partir la lámina cuando supera 9 **barras** · incluye `escala_continuada` | `reporte_plan_particion.R` | ☑ **3 láminas**, avisa y marca «(CONT.)» |
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
 | L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
@@ -199,3 +199,22 @@ Es la cuarta medición de este GOAL que confunde una cosa con su envoltorio
 —grosor medio contra moda, cajas de etiqueta contra barras, canvas contra
 hueco, y ahora dato aplanado contra estructura—. El patrón: **`print()` y
 `unlist()` mienten sobre la forma; `str()` no.**
+
+### L9 movió V5 sin proponérselo
+
+Partir las tres láminas de 13 barras subió el mínimo de grosor de **0.221 a
+0.295 in** y bajó el máximo de barras por gráfico de 9 a 6. V5 sigue sin
+cerrar, pero ahora sólo 2 de 21 gráficos quedan bajo el piso, y ninguno de los
+dos es por acumulación: uno tiene **2 barras** y aun así mide 0.295.
+
+Eso acota L5. Un gráfico de dos barras finas no se arregla partiéndolo: lo que
+lo adelgaza es `canvas_min_filas`, que reserva filas virtuales para que una
+barra aislada no se vea desproporcionada. El piso actual vive en **unidades
+ggplot** (fracción de la fila) y por eso no protege nada en pulgadas: 0.62 de
+una fila estrecha sigue siendo una barra fina. El piso hay que declararlo en
+pulgadas y traducirlo sabiendo el alto del panel.
+
+**Segundo falso rojo de la sesión, y el mismo patrón que el primero**: di por
+no aplicada una marca que sí estaba, porque busqué `(cont.)` distinguiendo
+mayúsculas y el motor escribe los títulos en caja alta. Antes de declarar que
+algo no se aplicó, buscarlo como lo escribe el motor, no como lo escribí yo.
