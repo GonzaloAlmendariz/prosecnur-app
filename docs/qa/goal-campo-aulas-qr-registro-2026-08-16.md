@@ -77,7 +77,7 @@ aula con mala luz y un teléfono viejo.
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
 | **L8** | `apiMonitoreoAulasConfig` también tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. Verificar si es capacidad muerta o pendiente de conectar antes de borrarla. | ☐ sin empezar |
-| **L9** | No hay test que ate la simulación end-to-end (selección → enlaces → fichas → handoff). | Hay tests por pieza (`test-collection-engine.R`, `test-collection-materials.R`, `test-collection-render-ficha.R`) pero ninguno recorre la costura completa. La simulación de este GOAL es el borrador de ese test. | ☐ sin empezar |
+| **L9** | No hay test que ate la costura completa (selección → enlaces → fichas → handoff). | `api/tests/testthat/test-collection-costura-aulas.R`. | ☑ **hecho** (2026-08-16) — 41 asertos. Controles verificados revirtiendo L1, L3 y la geometría de L7: los tres lo ponen rojo. |
 | **L10** | El QR nunca se verificó decodificándolo. | **Corregido el 2026-08-16: la premisa era inexacta.** `collection_qr_matrix_from_png()` sí relee el QR del PNG renderizado y compara la matriz módulo a módulo contra la esperada, en 5 archivos de test. Lo que falta es más estrecho: nadie **decodifica** la matriz a texto, así que un error de encoding del payload (no de dibujo) pasaría. Y ningún lector real ha visto la hoja impresa. | ◐ a medias |
 
 ### Espera al usuario
@@ -234,3 +234,27 @@ asumido y anotado.
 Con esto **se acaban los ítems no bloqueados del lado del motor.** Lo que queda
 —L6, L8, L9, L10— es menor, y las cuatro varas abiertas (V3, V5–V8) dependen de
 las dos decisiones que esperan a Gonzalo.
+
+### 2026-08-16 — L9 cerrado, y un aserto mío resultó inerte
+La simulación es ahora `test-collection-costura-aulas.R`: 41 asertos que
+recorren selección → plan → adapter → deployment → instancia → compilado →
+render → handoff, sin red y sin depender del guion narrado.
+
+Lo importante no fue escribirlo sino **probar que sirve**. Revertí cada arreglo
+y comprobé que el test se pone rojo:
+
+| control | resultado |
+|---|---|
+| revertir L1 (parámetro duplicado) | 🔴 7 fallos, uno por página |
+| revertir L3 (rol en crudo) | 🔴 4 fallos |
+| revertir `row_step` de L7 | 🟢 **verde — el aserto era inerte** |
+
+El tercero delató un aserto mío que no verificaba nada: probaba el desborde
+contra la plantilla **built-in**, que cabe en cualquier caso. La única que llegó
+a desbordarse fue la de **careta** —cabecera más baja, banda más corta y un
+campo más— y no la miraba nadie. Corregido: el test ahora hace PUT de la
+plantilla con careta y además comprueba que las 7 filas siguen en la hoja, no
+sólo que no hubo warning. Con eso, revertir la geometría de L7 sí lo pone rojo.
+
+La lección se suma a las trampas: **un control que no se ejecuta no es un
+control**. Verificar el arreglo no basta; hay que verificar el verificador.
