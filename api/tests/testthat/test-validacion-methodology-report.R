@@ -1553,3 +1553,92 @@ test_that("sin depuración ni filtro la sección sigue declarando que no hay fil
   expect_match(script, "# No se registró un filtro de encuestas de prueba.", fixed = TRUE)
   expect_false(grepl("# Encuestas recibidas:", script, fixed = TRUE))
 })
+
+# --- El universo por identificador (depuración sin filtro de pruebas) --------
+#
+# Cuando la merma vino de Limpieza no hay condición sobre una variable que la
+# exprese. El script declaraba "Encuestas incluidas: 101" y su
+# `prepare_validation_universe()` devolvía la base sin tocar: un paquete que
+# afirma un número que su propio código no reproduce.
+
+test_that("sin identificadores la función sigue siendo un aviso, no un filtro", {
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))),
+    upstream_universe = .vmr_cleaning_universe()
+  )
+  expect_identical(model$upstream_universe$formula_kind, "condicion")
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_match(script, "No se registró un filtro de encuestas de prueba en este plan.", fixed = TRUE)
+})
+
+test_that("con identificadores el script reproduce el universo de verdad", {
+  universo <- utils::modifyList(.vmr_cleaning_universe(total = 5L, incluidas = 3L), list(
+    final_case_variable = "_uuid",
+    final_case_ids = list("A1", "A3", "A5")
+  ))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))),
+    upstream_universe = universo
+  )
+  expect_identical(model$upstream_universe$formula_kind, "identificadores")
+
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  env <- new.env(parent = globalenv())
+  sys.source(r_path, envir = env)
+
+  crudo <- data.frame(`_uuid` = c("A1", "A2", "A3", "A4", "A5"),
+                      edad = c(30, 41, 22, 55, 19),
+                      check.names = FALSE, stringsAsFactors = FALSE)
+  out <- env$prepare_validation_universe(crudo)
+  expect_equal(nrow(out), 3L)
+  expect_equal(as.character(out$`_uuid`), c("A1", "A3", "A5"))
+  # El control: sin el arreglo esto devolvía las 5 filas intactas.
+  expect_false(identical(nrow(out), nrow(crudo)))
+
+  # Lo que se lista es lo que PERMANECE; los excluidos no aparecen.
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  expect_false(grepl("\"A2\"", script, fixed = TRUE))
+  expect_false(grepl("\"A4\"", script, fixed = TRUE))
+})
+
+test_that("el script falla fuerte si la base recibida no trae el universo", {
+  universo <- utils::modifyList(.vmr_cleaning_universe(total = 5L, incluidas = 3L), list(
+    final_case_variable = "_uuid", final_case_ids = list("A1", "A3", "A5")
+  ))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))), upstream_universe = universo)
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  env <- new.env(parent = globalenv()); sys.source(r_path, envir = env)
+
+  # Un crudo incompleto no puede devolver un universo a medias en silencio.
+  incompleto <- data.frame(`_uuid` = c("A1", "A3"), check.names = FALSE, stringsAsFactors = FALSE)
+  expect_error(env$prepare_validation_universe(incompleto), "universo final")
+  # Y sin la variable de identificador tampoco.
+  sin_llave <- data.frame(edad = c(1, 2, 3))
+  expect_error(env$prepare_validation_universe(sin_llave), "identificador de caso")
+})
+
+test_that("el PDF no imprime los identificadores: declara dónde están", {
+  universo <- utils::modifyList(.vmr_cleaning_universe(), list(
+    final_case_variable = "_uuid",
+    final_case_ids = as.list(sprintf("caso-%03d", seq_len(101)))
+  ))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))), upstream_universe = universo)
+  pdf_path <- tempfile(fileext = ".pdf")
+  expect_error(validation_methodology_report_pdf(model, pdf_path), NA)
+
+  if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
+  txt <- tempfile(fileext = ".txt")
+  expect_equal(system2("pdftotext", c("-layout", pdf_path, txt)), 0L)
+  texto <- paste(readLines(txt, warn = FALSE, encoding = "UTF-8"), collapse = " ")
+  expect_match(texto, "identificadores incluidos viajan en el script R", fixed = TRUE)
+  # Cientos de UUID desbordarían la caja; no se imprime ninguno.
+  expect_false(grepl("caso-001", texto, fixed = TRUE))
+  expect_false(grepl("FÓRMULA R USADA PARA FILTRAR", texto, fixed = TRUE))
+})
+

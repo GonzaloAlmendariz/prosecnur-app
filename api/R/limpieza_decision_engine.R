@@ -240,6 +240,32 @@
   nombres[!is.na(nombres) & nzchar(nombres)]
 }
 
+# Los identificadores de los casos que sobrevivieron a la depuración, leídos de
+# la base vigente. Es lo que permite que el script del paquete metodológico
+# reproduzca el universo de verdad: cuando la merma vino de Limpieza no hay
+# fórmula sobre una variable que la exprese —es una lista de casos—, y sin esto
+# el script declara "101 incluidas" en un comentario mientras su función
+# devuelve las 103 tal cual.
+#
+# Se lista lo que PERMANECE, nunca lo excluido: es el mínimo imprescindible
+# para reconstruir la base y no expone qué se cayó ni por qué.
+#
+# Se lee un archivo, así que sólo debe llamarse donde ya se paga ese costo (los
+# endpoints del informe, que corren como job), no en cada consulta de estado.
+.limpieza_universo_final_ids <- function(sid, base_nombre = NULL) {
+  files <- tryCatch(.resolve_base_files(sid, base_nombre), error = function(e) NULL)
+  if (is.null(files) || is.null(files$data$path)) return(NULL)
+  datos <- tryCatch(.read_data_for_validation(files$data$path, files$data_ext %||% "xlsx"),
+                    error = function(e) NULL)
+  if (!is.data.frame(datos) || !nrow(datos)) return(NULL)
+  llave <- .script_replica_key_col(datos)
+  if (is.na(llave) || !nzchar(llave)) return(NULL)
+  ids <- as.character(datos[[llave]])
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  if (!length(ids)) return(NULL)
+  list(variable = llave, values = ids)
+}
+
 # Por qué una decisión conservada NO puede volver al borrador todavía. Cadena
 # vacía = puede volver. Las dos puertas son independientes y ambas fallan
 # cerradas: en la duda la decisión se queda en cuarentena, porque aplicarla sin
