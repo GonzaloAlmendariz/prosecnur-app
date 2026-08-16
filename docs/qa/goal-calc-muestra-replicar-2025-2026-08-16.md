@@ -350,7 +350,11 @@ Sobre el fixture reparado, 136.284 filas de la hoja `MATRICULADO`:
 | **Todos (capa marco)** | **106.013** | **30.271** | **22,2 %** | |
 
 Las 30.271 cuadran con las exclusiones que publica el marco construido, así que
-la medición es consistente con el motor.
+la medición es consistente con el motor. **Verificado contra `frame$audit` el
+2026-08-16**: `input_rows` 136.284, `eligible_student_rows` 106.013,
+`excluded_rows` 30.271, `population_n` 21.365, `classroom_n` 5.263,
+`classroom_included_n` 2.468. El agregado siempre estuvo bien; lo que estaba mal
+era el reparto por criterio.
 
 > **Corregido el 2026-08-16.** Esta tabla llegó a publicar `level` con recorte 0
 > en capa marco y `faculty` con 128.018. Las cifras buenas son las de arriba,
@@ -358,34 +362,43 @@ la medición es consistente con el motor.
 > `level` es el que MÁS recorta y su capa es `instrumento`. Detalle al final del
 > documento.
 
-**La suma de los recortes individuales (44.588) supera al conjunto (30.271)**
-porque muchas filas caen por más de un criterio a la vez — se ve en las razones
-combinadas que publica el marco (`age|condition`, `condition|formation`…). Eso
-significa que **el recorte de un criterio no se puede leer aislado**: quitarlo no
-devuelve sus 12.000 filas, devuelve sólo las que no caían también por otro.
+**La suma de los recortes individuales de capa marco (46.069) supera al conjunto
+(30.271)** porque muchas filas caen por más de un criterio a la vez — se ve en
+las razones combinadas que publica el marco (`age|condition`,
+`condition|formation`…). Eso significa que **el recorte de un criterio no se
+puede leer aislado**: quitarlo no devuelve sus 12.000 filas, devuelve sólo las
+que no caían también por otro.
 
-### Hallazgo: `level` está activo y no recorta nada
+### `level` recorta mucho y aun así no reduce el marco
 
-Es un criterio de capa marco, declarado, con `kind = ordinal` y **`fromValue =
-NA`**. Deja pasar las 136.284 filas.
+Es el criterio que **más** discrimina de los cinco: deja fuera 35.364 filas de
+136.284. Y sin embargo no toca la población elegible, porque su capa es
+**`instrumento`**: por diseño se reporta y se valida después del campo, no
+recorta el marco.
 
-Tres lecturas posibles, y hay que decidir cuál antes de tocar nada:
+Para V3 —«los criterios se entienden solos»— éste es el caso exigente, pero no
+por lo que escribí primero. Un criterio que recorta un cuarto de las filas y aun
+así no cambia el marco es indistinguible, mirando sólo el marco, de uno que no
+hace nada. La distinción está en la capa, y la pantalla tiene que decirla — cosa
+que hoy hace: la tarjeta muestra «deja pasar N · en capa instrumento no recorta
+el marco, se valida después».
 
-1. **Correcto y deliberado**: en 2025 no se filtró por ciclo, y el criterio está
-   presente sólo para dejar constancia de que se consideró.
-2. **Configurado a medias**: alguien lo activó y no fijó el umbral, así que
-   parece que filtra y no filtra.
-3. **Perdido en la anonimización**, como pasó con `faculty`.
-
-Para V3 —«los criterios se entienden solos»— este caso es el más exigente: un
-criterio que aparece activo y no recorta es exactamente lo que hace desconfiar
-del resto. **La UI debería decir «este criterio no está recortando» sin que haya
-que calcularlo.**
+> **Este bloque decía lo contrario** hasta el 2026-08-16: que `level` estaba
+> declarado con `fromValue = NA` y dejaba pasar las 136.284 filas, con tres
+> lecturas posibles sobre si era un error de configuración o de anonimización.
+> Nada de eso era cierto. Salió de calcular el recorte a mano contra `Ciclo
+> (2025-I)` en vez de contra la columna mapeada, y sobrevivió varios ticks
+> porque nadie —yo— volvió a mirar el `criterios_alumno_report` que el propio
+> proyecto trae guardado. La lección quedó anotada en el loop: leer la fuente,
+> no la memoria.
 
 ## V2 · recorte de los criterios de curso-horario (medido 2026-08-16)
 
 Sobre el marco del proyecto **real** de 2025-2 (no el fixture): 5.263
 cursos-horario.
+
+Cifras leídas del `exclude_reason` del `aula_frame` guardado, verificadas una a
+una el 2026-08-16: la tabla cuadra exacta con la fuente.
 
 | Criterio | Recorta | % del marco |
 |---|---:|---:|
