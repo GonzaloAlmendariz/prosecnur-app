@@ -105,7 +105,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ◐ **a medias** (2026-08-16) — `api/R/carga_aulas_agendadas.R` traduce de ancho a largo y **corre contra el estudio real de 2025**: 170 titulares → **1012 filas**, 230 con estado y 228 con enlace de ficha. Falta el endpoint que lo cuelgue de una sesión y la superficie que lo dispare. |
 | **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques de **ancho distinto** (34/33/33: sólo el principal trae `AULA`) y `FECHA DE APLICACIÓN` duplicada dentro del bloque. | ◐ **a medias** (2026-08-16) — `api/R/carga_aulas_aplicadas.R` detecta bloques por marcador y separa agenda de parte por la segunda `MATRICULADOS TOTAL DTI`. Contra el estudio real: **196 partes** (170+24+2), **4269 efectivas**. Falta colgarlo de una sesión. |
 | **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☐ sin empezar — es un control que la app **sí** puede aportar |
-| **L29** | La app no lee «Base de control». | Seis grupos de control por aula: cuenta contra los dos denominadores, duración (cortas/largas, 70T/70P), cuotas por sexo y rango horario. Mucho más rico que los 6 chequeos de la pestaña Validación. | ☐ sin empezar |
+| **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ◐ **a medias** (2026-08-16) — `api/R/carga_base_control.R`: **194 filas, 36 campos** contra el estudio real. La cabecera del libro está **incompleta** (7 columnas con datos y sin nombre): se **reportan**, no se adivinan. Falta colgarlo de una sesión. |
+| **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☐ sin empezar |
 | **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☐ sin empezar — corrige lo construido hoy en L4 |
@@ -363,3 +364,26 @@ Dos trampas de esta hoja que obligaron a leerla distinto de «Aulas Agendadas»:
 donde deberían ser 15, y `LIN127-0203` da 27 donde deberían ser 23—. El Excel no
 comprueba esa identidad; **la app sí puede**, y es exactamente el tipo de control
 que justifica leer estas hojas en vez de mirarlas.
+
+### 2026-08-16 — L29: la tercera hoja, y un símbolo que borraba seis campos
+`base_control_leer()` cierra el trío: **194 filas y 36 campos** del estudio real,
+con los seis grupos de control —cuenta contra los dos denominadores, duración
+(cortas/largas), umbrales 70T/70P, cuotas por sexo y rango horario—.
+
+**Dos defectos propios, encontrados midiendo y no leyendo:**
+
+1. **`iconv` convierte `°` en un cero.** «N° ASISTENTES EN AULA» se normalizaba
+   como `N0 ASISTENTES...` y no casaba con nada: **seis campos de cuotas
+   quedaban sin mapear en silencio**. Arreglado quitando el símbolo *antes* de
+   transliterar; el mapeo pasó de 32 a 36 campos.
+2. **El diagnóstico de cabecera incompleta decía 0.** `.caa_key(NA)` devuelve el
+   **texto** `"NA"`, que pasa `nzchar()`. La hoja tiene **siete** columnas con
+   datos y sin nombre en la fila 2; el lector ahora las cuenta y las reporta en
+   vez de bautizarlas a ojo.
+
+**Hallazgo (L34):** el propio Excel marca `VALIDO TOTAL = NO CUMPLE` en **149 de
+194 aulas**. Es un número lo bastante grande como para no llevarlo a un tablero
+sin entender antes si lo que falla es el criterio o el operativo.
+
+Con esto las **tres hojas ya se leen**. Lo que falta de L27–L29 es común:
+colgarlas de una sesión con su endpoint y su superficie.

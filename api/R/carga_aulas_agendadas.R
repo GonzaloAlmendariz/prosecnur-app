@@ -45,6 +45,10 @@ AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)
 .caa_key <- function(x) {
   v <- as.character(x %||% "")
   v <- gsub("[\r\n]+", " ", v)
+  # El simbolo de grado se quita ANTES de transliterar: `iconv` lo convierte en
+  # un CERO, asi que "N ASISTENTES" no casaba con "N0 ASISTENTES" y seis campos
+  # de cuotas quedaban sin mapear en silencio.
+  v <- gsub("[\u00b0\u00ba\u00aa]", "", v)
   v <- trimws(gsub("[[:space:]]+", " ", v))
   v <- toupper(iconv(v, from = "", to = "ASCII//TRANSLIT", sub = ""))
   gsub("[^A-Z0-9 -]", "", v)
