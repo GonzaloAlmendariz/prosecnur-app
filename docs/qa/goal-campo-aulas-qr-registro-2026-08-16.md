@@ -115,6 +115,11 @@ aula con mala luz y un teléfono viejo.
   pasaba **igual con el código viejo**, porque la duplicación nacía de que el
   adapter ya traía el parámetro. El test que sirve recorre adapter →
   resolvedor. Si el arreglo no cambiara nada, ¿el aserto seguiría pasando?
+- **Un control que no se ejecuta no es un control.** El aserto de desborde del
+  grid probaba la plantilla **built-in**, que cabe en cualquier caso; la única
+  que llegó a desbordarse fue la de **careta**. Pasaba en verde con el bug
+  reintroducido. Verificar el arreglo no basta: hay que revertirlo y comprobar
+  que el test se pone rojo — y sobre la variante que de verdad falla.
 - **El metro promediado mentía sobre el blanco.** «Bandas horizontales sin
   tinta» en 20 bandas de ~88 px promedia una línea de texto fina hasta cero, así
   que marcaba vacío lo que tenía contenido, y daba 6/20 idéntico antes y después
