@@ -766,22 +766,61 @@ mount_calc_muestra <- function(pr) {
       # malformada, hoja inexistente): dentro del tryCatch se traducen al
       # mismo 400 accionable en vez de filtrarse como 500 E_INTERNAL. Un
       # api_error previo (p. ej. file_id desconocido) se re-lanza intacto.
-      frame <- tryCatch({
-        base_madre <- .cm_table_from_payload(sid, body, "base_madre")
-        estudiantes <- .cm_table_from_payload(sid, body, "estudiantes")
-        inscripciones <- .cm_table_from_payload(sid, body, "inscripciones")
-        catalogo_curso_horario <- .cm_table_from_payload(sid, body, "catalogo_curso_horario")
-        calc_muestra_aulas_construir(
-          base_madre = base_madre,
-          estudiantes = estudiantes,
-          inscripciones = inscripciones,
-          catalogo_curso_horario = catalogo_curso_horario,
-          config = config
+      # Las tablas se leen SIEMPRE en el hilo del router: la lectura es I/O de
+      # archivo (rápida) y es la que produce los errores accionables de mapeo,
+      # que deben llegar como 400 inmediato y no enterrados en un job.
+      tablas <- tryCatch({
+        list(
+          base_madre = .cm_table_from_payload(sid, body, "base_madre"),
+          estudiantes = .cm_table_from_payload(sid, body, "estudiantes"),
+          inscripciones = .cm_table_from_payload(sid, body, "inscripciones"),
+          catalogo_curso_horario = .cm_table_from_payload(sid, body, "catalogo_curso_horario")
         )
       }, error = function(e) {
         if (inherits(e, "api_error")) stop(e)
         stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
       })
+
+      # I21b: lo caro es construir, no leer. Por encima del umbral de filas el
+      # build se va a job con progreso y cancelación; plumber es monohilo y
+      # hacerlo aquí congelaba la app entera (>9 min medidos en HSVG2026).
+      input_rows <- calc_muestra_aulas_construir_input_rows(
+        base_madre = tablas$base_madre,
+        estudiantes = tablas$estudiantes,
+        inscripciones = tablas$inscripciones
+      )
+      if (.cm_aulas_construir_run_as_job(input_rows)) {
+        job_id <- job_submit(
+          sid = sid,
+          kind = "calc_muestra_aulas_construir",
+          func = calc_muestra_aulas_construir_job,
+          args = list(
+            base_madre = tablas$base_madre,
+            estudiantes = tablas$estudiantes,
+            inscripciones = tablas$inscripciones,
+            catalogo_curso_horario = tablas$catalogo_curso_horario,
+            config = config
+          ),
+          on_complete = .cm_aulas_construir_on_complete(
+            sid, s$calc_muestra_referencia_asistencia
+          )
+        )
+        return(list(ok = TRUE, mode = "job", job_id = job_id, input_rows = input_rows))
+      }
+
+      frame <- tryCatch(
+        calc_muestra_aulas_construir(
+          base_madre = tablas$base_madre,
+          estudiantes = tablas$estudiantes,
+          inscripciones = tablas$inscripciones,
+          catalogo_curso_horario = tablas$catalogo_curso_horario,
+          config = config
+        ),
+        error = function(e) {
+          if (inherits(e, "api_error")) stop(e)
+          stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
+        }
+      )
       frame <- .cm_criterios_frame_guardar(
         sid, frame, s$calc_muestra_referencia_asistencia
       )

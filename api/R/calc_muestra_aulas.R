@@ -1030,7 +1030,14 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
                                          estudiantes = NULL,
                                          inscripciones = NULL,
                                          catalogo_curso_horario = NULL,
-                                         config = list()) {
+                                         config = list(),
+                                         on_progress = NULL) {
+  # I21b: hitos de progreso para la vía job. Son etapas reales del build, no un
+  # reloj: el worker las escribe y la UI las muestra. Sin callback no cuesta
+  # nada, y ninguna toca RNG, así que la vía job y la síncrona dan el MISMO
+  # marco con la misma semilla (test de paridad).
+  .p <- .cm_aulas_construir_progreso(on_progress)
+  .p(1L, "Leyendo la base institucional")
   cfg <- calc_muestra_aulas_normalize_config(config)
   mapping <- cfg$mapping
   input_mode <- "base_madre"
@@ -1192,6 +1199,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # sin esta línea toda fila que solo recorta un criterio de alumno se publicaba
   # excluida y muda, y el marco no podía declarar su propia causa.
   reason_rows <- .cm_criterios_concat_razones(list(reason_rows, alumno_sel$marco_razon))
+  .p(2L, "Depurando elegibles")
 
   population_raw <- data.frame(
     student_id = student_id,
@@ -1299,6 +1307,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     )
   })
   aula_frame <- if (length(aula_rows)) do.call(rbind, aula_rows) else data.frame(stringsAsFactors = FALSE)
+  .p(3L, "Agrupando cursos-horario")
   rownames(aula_frame) <- NULL
   if (nrow(aula_frame)) {
     aula_frame$size_group <- cut(
@@ -1319,6 +1328,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # categorías. Vacío sin catálogo (fallback a la base). Lógica en
   # calc_muestra_aulas_catalogo.R.
   catalog_signals <- .cm_aulas_catalog_aula_signals(catalogo_curso_horario, mapping)
+  .p(4L, "Aplicando criterios del marco")
   criterios <- calc_muestra_aulas_aplicar_criterios(
     aula_frame = aula_frame,
     filas = list(
@@ -1476,6 +1486,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   ))
   # Enumeración de la suite de criterios por categoría (ambos scopes): la
   # lógica vive en calc_muestra_aulas_criterios.R; aquí solo se adjunta.
+  .p(5L, "Perfilando el marco")
   out$criterios_catalogo <- calc_muestra_aulas_criterios_catalogo(
     aula_frame = aula_frame,
     catalog_signals = catalog_signals,
@@ -1515,6 +1526,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # las señales ya adjuntadas en out$particularidades. Un solo call-site; la
   # lógica vive en calc_muestra_aulas_exploracion.R (este archivo no debe
   # crecer).
+  .p(6L, "Radiografía por facultad")
   out <- .cm_criterios_i18b_adjuntar(.cm_exploracion_adjuntar(out, criterios), criterios)
   # Impacto del tipo de sesión por facultad (guard §12 «doble selección del
   # taller», schema cm_session_type_impacto_v1): un solo call-site; la lógica

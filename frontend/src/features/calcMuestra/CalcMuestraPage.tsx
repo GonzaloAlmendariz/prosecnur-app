@@ -1828,8 +1828,18 @@ export default function CalcMuestraPage() {
     setBusy("Leyendo base institucional");
     try {
       const res = await apiCalcMuestraMarcoConstruir(universityMarcoPayload(nextWorkspace));
-      setAulasState(res.state.aulas ?? null);
-      const frame = res.frame ?? res.state.aulas?.frame ?? null;
+      // I21b: con bases institucionales el build corre como job (progreso por
+      // etapas y cancelación); el marco no viene en la respuesta sino que queda
+      // en la sesión, así que se relee el estado al terminar.
+      let estado: CalcMuestraState;
+      if (res.mode === "job") {
+        await esperarJobAulas(res.job_id, "Construyendo el marco");
+        estado = await apiCalcMuestraState();
+      } else {
+        estado = res.state;
+      }
+      setAulasState(estado.aulas ?? null);
+      const frame = (res.mode === "job" ? null : res.frame) ?? estado.aulas?.frame ?? null;
       const populationRows = rowsFrom<Record<string, unknown>>(frame?.population);
       const populationN = Math.max(
         populationRows.length,
