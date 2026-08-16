@@ -87,6 +87,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L20** | Las cuotas sexo×facultad salen vacías con un plan creado por el handoff. | Los objetivos derivan de `sex_top_1`/`sex_top_2`, composición que produce Cálculo de muestra y que el plan de Recopiladores **no transporta**. | ☐ sin empezar — límite conocido: las filas que **crea** el handoff son más delgadas que las que importa Monitoreo desde calc-muestra. El flujo soportado es importar primero y entregar después; conviene decidir si el plan de Recopiladores debe llevar la composición. |
 | **L21** | El aviso «recolectores duplicados» saltaba **siempre**. | En un estudio de aulas el mismo QR lo escanean todos los alumnos: el colector se repite por diseño. El chequeo sólo decía «ok» con una única respuesta, que es el caso anómalo. | ☑ **hecho** (2026-08-16) — pasa a `duplicate_responses`, que mira el id de respuesta (`_uuid`/`_id`/`instanceID`); si la fuente no lo trae, lo dice en vez de callar o alarmar. Etiqueta del frontend actualizada. |
 | **L22** | Una respuesta de un aula inexistente pasaba como **buena**. | `unmapped_valid_responses` miraba si la respuesta *tenía* colector, no si ese colector correspondía a un aula del plan. | ☑ **hecho** (2026-08-16) — se compara contra los ids del plan (`classroom_id` + `collection_unit_id`), posible sólo desde que el emparejamiento los conoce. |
+| **L23** | Los números de L15–L22 no se han visto en pantalla. | Un `.pulso` armado a mano no transporta las respuestas ni `monitoreo_config$aulas_universitarias`: la whitelist de persistencia guarda el plan y poco más. | ☐ sin empezar — exige recorrer el flujo real desde la UI (calc-muestra → importar → Recopiladores → handoff). L13 y L14 **sí** quedaron confirmados en pantalla: 7 cursos-horario, no 49, y sin crash. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
@@ -515,3 +516,36 @@ traducir — la misma clase de costura que este loop lleva persiguiendo. Gate:
 
 Con esto **el tablero de aulas queda recorrido entero** con datos: KPIs,
 desglose por aula, brechas, estratos, reemplazos, cuotas y validación.
+
+### 2026-08-16 — verificación visual: parcial, y por qué
+Todo lo cerrado hasta aquí estaba verificado con motor y tests, y las fichas
+miradas renderizadas — pero **la UI de Monitoreo no se había abierto ni una vez**
+en toda la sesión, y L13–L22 cambian justo lo que ese tablero muestra.
+
+Se levantó una pila propia en puertos libres (API 8795, Vite 5199) para no tocar
+la del usuario (8787 y 5173, suyos), con un `.pulso` construido desde la
+simulación vía `build_pulso()`.
+
+**Verificado end-to-end en UI real:**
+- El módulo monta con readiness `monitoreo-aulas`, sin errores de consola.
+- Un plan producido por el handoff muestra **7 cursos-horario, no 49**, y la
+  vista **no revienta**. Eso confirma **L13 y L14** en la pantalla, no sólo en
+  test.
+- Banda de KPIs, pestañas y tabla de estratos renderizan limpias a 1440×1000.
+
+**No verificado, y la razón importa:** los números de L15–L22 (avance por aula,
+brechas reales, reemplazos, avisos) **no se pudieron ver**. Un `.pulso` armado a
+mano no los transporta: la whitelist de persistencia guarda
+`monitoreo_aulas_plan` pero **no** `calc_muestra_aulas_selection`,
+`monitoreo_config$aulas_universitarias` ni las respuestas. El endpoint de
+import responde `E_NO_CALC_MUESTRA_AULAS` y el de sync no tiene config de dónde
+calcular.
+
+Verlos exige recorrer el flujo real —calc-muestra → importar a Monitoreo →
+Recopiladores → handoff— desde la UI, que es bastante más que un tick. Queda
+como **L23**, y hasta entonces esos siete arreglos están respaldados por tests y
+por la simulación, no por pantalla.
+
+De paso: una primera captura mostró lo que parecía una mancha oscura sobre la
+pestaña «Agenda». Al volver a capturar salió limpia — era un artefacto
+transitorio del render, no un defecto. Se anota porque casi se reporta como bug.
