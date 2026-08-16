@@ -27,6 +27,22 @@
 # cm dentro de una misma lamina y el aprobado 0.12-0.29.
 .GROSOR_TECHO_IN <- 0.394
 
+# Rejilla del grosor de barra, en pulgadas. 0.0394 in = 1 mm.
+#
+# Dos laminas del mismo tipo salian con grosores que solo diferian en decimas
+# de milimetro —1.17 y 1.16 y 1.19 cm— porque el reparto de alto depende del
+# cromo de cada bloque. Medido sobre el mazo: 22 grosores distintos en 411
+# barras, contra 17 en 408 del entregable aprobado, que ademas concentra 153
+# barras en un solo valor.
+#
+# MEDIDO Y DESCARTADO como remedio: aplicada a todo el mazo, la rejilla bajo de
+# 22 grosores distintos a 21. La dispersion no es de redondeo —no hay valores
+# casi iguales que colapsar—, son grosores GENUINAMENTE distintos que salen del
+# reparto de alto: 0.65, 1.09, 1.65 y 2.02 cm en laminas de tres filas. El
+# helper se conserva porque la funcion es correcta y el dato de que no sirve
+# vale mas escrito que reaprendido, pero no se aplica.
+.GROSOR_REJILLA_IN <- 0.0394
+
 
 #' Alto en pulgadas de la fila de una categoria
 #'
@@ -107,6 +123,25 @@
   if (!is.finite(alto) || is.na(alto) || alto <= 0) return(g)
 
   min(g, techo / alto)
+}
+
+
+#' Ajusta el grosor a la rejilla del milimetro
+#'
+#' Sobre el grosor en PULGADAS FISICAS, no sobre la fraccion: dos barras con la
+#' misma fraccion y distinto alto de fila no miden lo mismo, y es la medida
+#' fisica la que se compara entre laminas.
+#'
+#' @param grosor_in Grosor en pulgadas.
+#' @param rejilla Paso de la rejilla, en pulgadas.
+#' @return El grosor ajustado, o el original si no se puede leer.
+#' @keywords internal
+.grosor_a_rejilla <- function(grosor_in, rejilla = .GROSOR_REJILLA_IN) {
+  g <- suppressWarnings(as.numeric(grosor_in)[1])
+  if (!is.finite(g) || is.na(g) || g <= 0) return(grosor_in)
+  r <- suppressWarnings(as.numeric(rejilla)[1])
+  if (!is.finite(r) || is.na(r) || r <= 0) return(g)
+  round(g / r) * r
 }
 
 
