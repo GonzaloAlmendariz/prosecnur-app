@@ -3740,6 +3740,13 @@
   ),
 
   barras_agrupadas = list(
+    # La columna extra de esta familia escribe la N de la BASE, que es la misma
+    # en todas las categorias: en el perfil del estudiante salia «172» repetido
+    # dieciocho veces, y la base ya la dice el pie. El entregable aprobado no la
+    # usa en ninguna lamina. `canvas_w_extra = 0` no bastaba —el texto se
+    # dibujaba igual sobre un cajon de ancho cero—, hay que apagarla.
+    mostrar_barra_extra      = FALSE,
+
     canvas_w_etiquetas       = 0.45,
     canvas_w_buf_etq_bars    = 0.03,
     canvas_w_bars            = 0.52,
