@@ -65,3 +65,53 @@ test_that("el tablero distingue descuadre, cuadre y ausencia de partes", {
   expect_identical(as.character(aviso(list(.mar_parte(15, 0, 0, 15)))$status), "ok")
   expect_match(as.character(aviso(list())$detail), "No hay partes")
 })
+
+# --- Cuotas sexo x facultad el primer dia de campo ----------------------------
+# Encontrado sembrando un .pulso de QA para VER en pantalla lo que hasta ahora
+# solo estaba en tests. El tablero reventaba entero —500 al abrir Monitoreo— en
+# el estado mas normal del arranque: ya llegan envios y ninguno cuenta todavia.
+
+test_that("el tablero no revienta con respuestas que aun no son validas", {
+  plan <- list(list(classroom_id = "A-01", operational_code = "CH 1", label = "x",
+                    wave = "M1", sample_role = "titular", orden = 1,
+                    eligible_n = 30, expected_valid = 20,
+                    faculty = "Ciencias", stratum = "Ciencias",
+                    sex_top_1 = "Mujer", sex_top_1_n = 17,
+                    sex_top_2 = "Hombre", sex_top_2_n = 13))
+  cfg <- list(enabled = TRUE, plan = plan,
+              source_mapping = list(collector_var = "collectorID", status_var = "estado"))
+
+  # El control: sin cuotas declaradas la funcion sale antes de tocar el merge,
+  # y sin respuestas la otra rama construye bien la columna. El caso que fallaba
+  # es exactamente este: HAY respuestas y NINGUNA es valida.
+  resp <- data.frame(collectorID = "A-01", sexo = "Mujer", estado = "pendiente",
+                     stringsAsFactors = FALSE)
+  d <- monitoreo_aulas_dashboard(plan, resp, cfg)
+
+  cuotas <- d$cuotas_sexo_facultad %||% d$quotas_sex_faculty %||% list()
+  expect_gt(length(cuotas), 0L)
+  # Ninguna respuesta cuenta, asi que las dos cuotas estan enteras por cubrir.
+  observadas <- vapply(cuotas, function(r) as.integer(r$observed %||% 0L), integer(1))
+  expect_true(all(observadas == 0L))
+  expect_true(all(vapply(cuotas, function(r) identical(as.character(r$status), "pendiente"), logical(1))))
+})
+
+test_that("con respuestas validas las cuotas si cuentan", {
+  # El otro lado del control: si el arreglo hubiera puesto ceros a la fuerza,
+  # este test lo veria.
+  plan <- list(list(classroom_id = "A-01", operational_code = "CH 1", label = "x",
+                    wave = "M1", sample_role = "titular", orden = 1,
+                    eligible_n = 30, expected_valid = 20,
+                    faculty = "Ciencias", stratum = "Ciencias",
+                    sex_top_1 = "Mujer", sex_top_1_n = 2,
+                    sex_top_2 = "Hombre", sex_top_2_n = 1))
+  resp <- data.frame(collectorID = rep("A-01", 3), sexo = c("Mujer", "Mujer", "Hombre"),
+                     estado = rep("completed", 3), stringsAsFactors = FALSE)
+  d <- monitoreo_aulas_dashboard(plan, resp, list(
+    enabled = TRUE, plan = plan,
+    source_mapping = list(collector_var = "collectorID", status_var = "estado")))
+
+  cuotas <- d$cuotas_sexo_facultad %||% d$quotas_sex_faculty %||% list()
+  total <- sum(vapply(cuotas, function(r) as.integer(r$observed %||% 0L), integer(1)))
+  expect_identical(total, 3L)
+})

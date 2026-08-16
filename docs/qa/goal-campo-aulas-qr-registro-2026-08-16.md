@@ -100,12 +100,13 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L25** | La agenda sólo aceptaba `classroom_id` u `operational_code`. | `monitoreo_aulas_update_agenda()` **lanzaba error** con cualquier otro identificador, incluido el que viaja en el QR. Sin consumidor hoy —la superficie de registro no existe (L4)—, pero es el muro exacto con el que chocaría quien la implemente. | ☑ **hecho** (2026-08-16) — **preparatorio, no un defecto observado**: `.monitoreo_aulas_plan_index()` y la agenda aceptan `collection_unit_id` como tercer identificador. No decide nada sobre L4. |
 | **L21** | El aviso «recolectores duplicados» saltaba **siempre**. | En un estudio de aulas el mismo QR lo escanean todos los alumnos: el colector se repite por diseño. El chequeo sólo decía «ok» con una única respuesta, que es el caso anómalo. | ☑ **hecho** (2026-08-16) — pasa a `duplicate_responses`, que mira el id de respuesta (`_uuid`/`_id`/`instanceID`); si la fuente no lo trae, lo dice en vez de callar o alarmar. Etiqueta del frontend actualizada. |
 | **L22** | Una respuesta de un aula inexistente pasaba como **buena**. | `unmapped_valid_responses` miraba si la respuesta *tenía* colector, no si ese colector correspondía a un aula del plan. | ☑ **hecho** (2026-08-16) — se compara contra los ids del plan (`classroom_id` + `collection_unit_id`), posible sólo desde que el emparejamiento los conoce. |
-| **L23** | Los números de L15–L22 no se han visto en pantalla. | Un `.pulso` armado a mano no transporta las respuestas ni `monitoreo_config$aulas_universitarias`: la whitelist de persistencia guarda el plan y poco más. | ☐ sin empezar — exige recorrer el flujo real desde la UI (calc-muestra → importar → Recopiladores → handoff). L13 y L14 **sí** quedaron confirmados en pantalla: 7 cursos-horario, no 49, y sin crash. |
+| **L23** | Los números de L15–L22 no se han visto en pantalla. | **La premisa era falsa.** La persistencia del `.pulso` es lista **negra**, no whitelist: `build_pulso()` guarda todo salvo los caches que `.pulso_strip_caches()` nombra. Plan, config, partes y respuestas viajan. | ◐ a medias (2026-08-16) — `api/scripts/qa_pulso_aulas_campo.R` siembra un estudio en campo y los ocho fenómenos se comprueban sobre un `.pulso` de ida y vuelta. Falta abrirlo en la UI. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
 | **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
 | **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ☑ **hecho** (2026-08-16) — lector + endpoint `/api/monitoreo/aulas/importar-libro`. Contra el estudio real: **1012 filas**, 170 titulares, 230 contactadas. |
 | **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques de **ancho distinto** (34/33/33: sólo el principal trae `AULA`) y `FECHA DE APLICACIÓN` duplicada dentro del bloque. | ☑ **hecho** (2026-08-16) — lector + endpoint. **196 partes**, 4269 efectivas. |
 | **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☑ **hecho** (2026-08-16) — control `field_report_reconciliation` en el tablero. Detecta los 2 descuadres del estudio real y **explica la resta**, no sólo el hecho. |
+| **L38** | El tablero **reventaba entero** el primer día de campo. | `.monitoreo_aulas_quota_sex_faculty()` construía el caso vacío con la columna `x` y la renombraba a `observed` sólo `if (nrow(observed))` — que nunca se cumple. El merge salía sin la columna y la línea siguiente asignaba `integer(0)` a un data.frame con filas. | ☑ **hecho** (2026-08-16) — hallazgo de propina al sembrar el `.pulso` de L23. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -536,3 +537,50 @@ Tres decisiones sobre qué es un descuadre y qué no:
 la config con una lista cerrada de campos, así que `partes_campo` se descartaba
 y el control no veía nada que comprobar. Declararlo en el normalizador *y* en el
 default es lo que lo hizo llegar.
+
+
+### 2026-08-16 — L23: la premisa era falsa, y por eso salió un 500
+
+La nota de L23 decía que verlo en pantalla exigía recorrer el flujo entero desde
+Cálculo de muestra, porque «la whitelist de persistencia guarda el plan y poco
+más». **No hay whitelist.** `build_pulso()` serializa el estado completo salvo
+los caches que `.pulso_strip_caches()` nombra uno a uno. Comprobado con una ida
+y vuelta: plan, `monitoreo_config$aulas_universitarias`, partes de campo y las
+respuestas de `monitoreo_snapshot$data` sobreviven todos.
+
+Eso desbloqueó `api/scripts/qa_pulso_aulas_campo.R`: siete aulas donde cada una
+existe para hacer fallar un control distinto, 35 respuestas que llegan por
+`collectorID` como las devuelve Kobo, y tres partes de campo con un descuadre
+deliberado.
+
+**Y al primer intento reventó.** No por el fixture: `.monitoreo_aulas_quota_sex_faculty()`
+lanzaba un 500 cuando hay respuestas y **ninguna es válida todavía** — el estado
+más normal del arranque de campo. Con cero respuestas no falla, y con respuestas
+válidas tampoco; sólo en esa franja. Un estudio con cuotas declaradas recibía un
+error al abrir Monitoreo el primer día. Es **L38**, y es exactamente lo que L23
+existía para encontrar: ocho reparaciones verdes en tests, y el camino que las
+une reventaba.
+
+Lo que el tablero muestra ahora sobre ese `.pulso`:
+
+| Fenómeno | Evidencia |
+|---|---|
+| **L15** avance por aula | `CH 1` 20/20 · `CH 2` 5/20 · `R 4.1` 9/16 |
+| **L17** «cerrando» falso | `CH 1` cerrando · `CH 2` **en_aplicación**, no cerrando |
+| **L18** brechas y estratos | Ciencias 25 válidas / 15 brecha · Letras 9/57 · Derecho 0/28 |
+| **L19** cadena de reemplazos | `R 4.1` y `R 4.2` cuelgan de `CH 4` |
+| **L20** cuotas sexo×facultad | 6 celdas, 4 en riesgo y 2 pendientes |
+| **L21 · L22** los dos avisos | duplicados no salta · la respuesta fantasma sí |
+| **L33** cuadre del parte | 2 descuadres de 3 partes, con la resta explicada |
+
+**Dos veces miré la lista equivocada** y estuve a punto de reportar defectos que
+no existían: `application_state` vive en `course_status`, no en `agenda`; y la
+representatividad no se llama `representatividad_efectiva` en los KPIs. La
+consulta mal dirigida devuelve vacío, que es indistinguible de un cero real.
+
+**Aprendido de L12 sin tocarlo:** declarar `status_var = "_validation_status"`
+descarta **todas** las respuestas de Kobo, porque Kobo deja esa columna vacía
+mientras nadie las revisa a mano y `""` no está entre los estados válidos. O sea
+que L12 no sólo falla abierto cuando no hay columna: falla **cerrado y en
+silencio** cuando sí la hay. Las dos caras del mismo ítem siguen esperando tu
+decisión.

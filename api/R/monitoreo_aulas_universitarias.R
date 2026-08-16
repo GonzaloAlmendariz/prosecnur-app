@@ -802,7 +802,12 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     observed <- if (any(keep)) {
       stats::aggregate(rep(1L, sum(keep)), by = list(faculty = faculty[keep], sex = sex[keep]), FUN = sum)
     } else {
-      data.frame(faculty = character(0), sex = character(0), x = integer(0), stringsAsFactors = FALSE)
+      # La columna se llama `observed` DESDE AQUI. Nombrarla `x` y renombrarla
+      # despues dejaba el caso vacio sin renombrar —el `if` de abajo pide filas—,
+      # asi que el merge salia sin columna `observed` y la linea siguiente
+      # asignaba `integer(0)` a un data.frame con filas: 500 al abrir Monitoreo.
+      # Se veia el primer dia de campo, con envios que aun no pasan el filtro.
+      data.frame(faculty = character(0), sex = character(0), observed = integer(0), stringsAsFactors = FALSE)
     }
     if (nrow(observed)) names(observed)[names(observed) == "x"] <- "observed"
   }
