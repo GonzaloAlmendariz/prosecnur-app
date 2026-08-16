@@ -32,3 +32,23 @@ test_that("un canvas que ya llena su hueco no se estira", {
   disponible <- alto - header - leyenda - pie
   expect_lte(disponible, panel_natural)
 })
+
+# --- el mismo estirado, en agrupadas ------------------------------------------
+
+test_that("el tope de agrupadas es mayor que el de apiladas", {
+  # El hueco de un perfil es un cuarto de lámina y su alto natural se queda
+  # mucho más corto, así que necesita más margen de estirado. Medido: con 1.8
+  # quedan 9 gráficos bajo el piso, con 2.6 quedan 5, y 3.4 no cambia nada.
+  expect_gt(.AGRUPADAS_PANEL_ESTIRA_MAX, .BARRAS_PANEL_ESTIRA_MAX)
+  expect_lte(.AGRUPADAS_PANEL_ESTIRA_MAX, 3)
+})
+
+test_that("en agrupadas el panel tampoco puede pasarse del hueco", {
+  alto <- 3.00; header <- 0.26; leyenda <- 0.29; pie <- 0.40
+  panel_natural <- 0.70
+  disponible <- alto - header - leyenda - pie
+  panel <- min(disponible, panel_natural * .AGRUPADAS_PANEL_ESTIRA_MAX)
+
+  expect_gt(panel, panel_natural)
+  expect_lte(panel + header + leyenda + pie, alto)
+})
