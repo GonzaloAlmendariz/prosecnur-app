@@ -3466,7 +3466,12 @@ mount_graficos <- function(pr) {
             filename = meta$original_name,
             size = meta$size,
             n_bases = length(j$result_data$bases %||% list()),
-            bases = j$result_data$bases
+            bases = j$result_data$bases,
+            # Vara V4: `graficos.ppt` y `graficos.word` ya cosechaban los avisos
+            # del job y éste no, que es justo donde una lámina degradada se
+            # esconde mejor —el mazo de todas las bases—. Sin esto, el aviso de
+            # «lámina degradada a canvas Sin datos» moría en el stderr.
+            avisos = I(.pulso_avisos_de_job(j$sid, j$id))
           )
         }
       )
