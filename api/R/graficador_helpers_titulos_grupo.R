@@ -32,15 +32,23 @@
 # de antes. Se corta menos y ya no se pisa.
 .BARRAS_LINEAS_POR_FILA <- 3L
 
+# Interlineado del enunciado de bloque. Es el mismo que usa el eje Y, y sirve
+# para pasar de «cuantas pulgadas mide la fila» a «cuantas lineas caben».
+.BARRAS_INTERLINEA_TITULO <- 0.86
+
 # Recorta el titulo a las lineas que caben en un bloque de `n_filas` barras.
 # Siempre deja al menos una linea: un bloque sin titulo no dice de que habla.
 # `alto_rel` es la porcion de la lamina que ocupa este grafico. Vale 1 en un
 # grafico normal y menos en un sub-bloque de escalas mixtas, donde tres o cuatro
 # bloques se reparten la altura: ahi la fila mide la mitad y el titulo tiene que
 # encogerse en la misma proporcion o invade al vecino.
+#' @param alto_fila_in Alto real de la fila, en pulgadas. Cuando se da, el cupo
+#'   sale de cuantas lineas caben de verdad en ese alto y no de la constante.
+#' @param cuerpo_pt Cuerpo del enunciado, en puntos.
 .barras_acotar_titulo_grupo <- function(titulo, n_filas,
                                         lineas_por_fila = .BARRAS_LINEAS_POR_FILA,
-                                        alto_rel = 1) {
+                                        alto_rel = 1,
+                                        alto_fila_in = NULL, cuerpo_pt = NULL) {
   titulo <- as.character(titulo)[1]
   if (is.na(titulo) || !nzchar(trimws(titulo))) return("")
   lineas <- strsplit(titulo, "\n", fixed = TRUE)[[1]]
@@ -50,7 +58,23 @@
   if (!is.finite(n_filas) || n_filas < 1L) n_filas <- 1L
   alto_rel <- suppressWarnings(as.numeric(alto_rel)[1])
   if (!is.finite(alto_rel) || alto_rel <= 0) alto_rel <- 1
-  cupo <- max(1L, as.integer(floor(n_filas * as.integer(lineas_por_fila) * min(1, alto_rel))))
+  # El cupo sale del alto REAL de la fila cuando se conoce. La constante estaba
+  # calibrada contra el alto por defecto (0.42 in), y el motor ya ensancha la
+  # fila cuando las etiquetas de eje lo piden —hasta 1.06 in— sin que el cupo se
+  # entere: el enunciado seguia cortandose a tres lineas en una fila que admitia
+  # el doble. Medido sobre el mazo de acreditacion: 18 enunciados recortados, 11
+  # perdiendo mas de la mitad, y el entregable aprobado los muestra enteros.
+  lpf <- as.integer(lineas_por_fila)
+  alto_in <- suppressWarnings(as.numeric(alto_fila_in %||% NA_real_)[1])
+  pt <- suppressWarnings(as.numeric(cuerpo_pt %||% NA_real_)[1])
+  if (is.finite(alto_in) && alto_in > 0 && is.finite(pt) && pt > 0) {
+    # Alto de una linea = cuerpo por interlineado, en pulgadas.
+    alto_linea <- (pt / 72) * .BARRAS_INTERLINEA_TITULO
+    if (is.finite(alto_linea) && alto_linea > 0) {
+      lpf <- max(lpf, as.integer(floor(alto_in / alto_linea)))
+    }
+  }
+  cupo <- max(1L, as.integer(floor(n_filas * lpf * min(1, alto_rel))))
   if (length(lineas) <= cupo) return(titulo)
 
   entero <- paste(trimws(lineas), collapse = " ")
