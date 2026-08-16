@@ -1116,6 +1116,12 @@ build_validation_methodology_report_model <- function(scope,
   kinds <- vapply(rules, `[[`, character(1), "formula_kind")
   operational_config <- scope$operational_config %||% (scope$plan_result %||% list())$operational_config %||% list()
   unsupported <- (scope$plan_result %||% list())$bundle$unsupported %||% list()
+  # Vara V4: lo que el plan NO cubre. Dos listas distintas a propósito —
+  # `unsupported` es una expresión que se rompió al compilar, `descartadas` es
+  # una limitación declarada del motor (hoy, reglas sobre `pulldata`). Hasta
+  # ahora las dos viajaban y sólo se contaban; un informe que sustenta la
+  # entrega tiene que decir qué quedó fuera y por qué.
+  descartadas <- (scope$plan_result %||% list())$bundle$discarded %||% list()
   universe_model <- .vmr_universe_model(upstream_universe)
   inconsistency_summary <- .vmr_inconsistency_summary(rules, evaluation_available)
   inventory_hash <- digest::digest(list(
@@ -1124,7 +1130,8 @@ build_validation_methodology_report_model <- function(scope,
     kinds = kinds,
     disabled = sort(disabled_ids),
     excluded = sort(excluded_variables),
-    unsupported = unsupported
+    unsupported = unsupported,
+    descartadas = descartadas
   ), algo = "sha256", serialize = TRUE)
   list(
     schema = "validation_methodology_report_v2",
@@ -1140,6 +1147,8 @@ build_validation_methodology_report_model <- function(scope,
     disabled_rule_ids = as.list(disabled_ids),
     excluded_variables = as.list(excluded_variables),
     unsupported = unsupported,
+    descartadas = descartadas,
+    cobertura_no_cubierta = .vmr_cobertura_no_cubierta(unsupported, descartadas),
     rules = rules,
     summary = list(
       total = length(rules),
@@ -1160,9 +1169,66 @@ build_validation_methodology_report_model <- function(scope,
       not_executed = sum(kinds == "not_executed"),
       disabled = length(disabled_ids),
       excluded = length(excluded_variables),
-      unsupported = length(unsupported)
+      unsupported = length(unsupported),
+      descartadas = length(descartadas)
     )
   )
+}
+
+# Vara V4 — lo que el plan no cubre, en prosa.
+#
+# El informe metodológico es lo que sustenta la entrega: si el plan dejó
+# preguntas fuera, callarlo lo vuelve una promesa que no cumple. Las dos
+# razones se dicen por separado porque no son lo mismo y se resuelven distinto:
+# una expresión rota es un defecto que puede repararse; una regla sobre
+# `pulldata` es un límite conocido del motor y lo que corresponde es revisarla
+# a mano.
+#
+# Devuelve "" cuando no hay nada que declarar: la nota no existe en vez de
+# afirmar que todo está cubierto, que es una afirmación más fuerte de lo que
+# este dato soporta.
+.vmr_nombres_no_cubiertos <- function(items, n = 4L) {
+  nombres <- unique(Filter(nzchar, vapply(items, function(it) {
+    .vmr_text(it$row_name %||% it$name %||% "")
+  }, character(1))))
+  if (!length(nombres)) return("")
+  visibles <- utils::head(nombres, n)
+  txt <- paste(sprintf("«%s»", visibles), collapse = ", ")
+  resto <- length(nombres) - length(visibles)
+  if (resto > 0L) txt <- sprintf("%s y %d más", txt, resto)
+  txt
+}
+
+.vmr_cobertura_no_cubierta <- function(unsupported = list(), descartadas = list()) {
+  unsupported <- if (is.list(unsupported)) unsupported else list()
+  descartadas <- if (is.list(descartadas)) descartadas else list()
+  n_unsup <- length(unsupported)
+  n_desc <- length(descartadas)
+  if (n_unsup == 0L && n_desc == 0L) return("")
+
+  partes <- character(0)
+  if (n_desc > 0L) {
+    nombres <- .vmr_nombres_no_cubiertos(descartadas)
+    partes <- c(partes, sprintf(
+      "%s del formulario %s sobre un dato externo (pulldata), que este plan no puede evaluar porque el archivo de referencia no viaja con la base%s. %s revisarse a mano.",
+      if (n_desc == 1L) "Una regla" else sprintf("%d reglas", n_desc),
+      if (n_desc == 1L) "se apoya" else "se apoyan",
+      if (nzchar(nombres)) sprintf(" — %s", nombres) else "",
+      if (n_desc == 1L) "Debe" else "Deben"
+    ))
+  }
+  if (n_unsup > 0L) {
+    nombres <- .vmr_nombres_no_cubiertos(unsupported)
+    partes <- c(partes, sprintf(
+      "%s no se %s traducir a una comprobación ejecutable%s. %s fuera del plan y conviene %s.",
+      if (n_unsup == 1L) "Una expresión del formulario" else sprintf("%d expresiones del formulario", n_unsup),
+      if (n_unsup == 1L) "pudo" else "pudieron",
+      if (nzchar(nombres)) sprintf(" — %s", nombres) else "",
+      if (n_unsup == 1L) "Quedó" else "Quedaron",
+      if (n_unsup == 1L) "reportarla" else "reportarlas"
+    ))
+  }
+  paste(partes, collapse = " ")
 }
 
 .vmr_wrap <- function(text, width = 100L) paste(strwrap(.vmr_text(text), width = width), collapse = "\n")
@@ -2605,6 +2671,22 @@ validation_methodology_report_pdf <- function(model, path) {
       grid::grid.text(if (is.finite(row_coverage)) sprintf("%.0f%%", row_coverage * 100) else "Pendiente", x = 0.82, y = y, just = "right", gp = grid::gpar(col = theme$text, fontsize = 8, fontface = "bold"))
       grid::grid.text(page_range, x = 0.91, y = y, just = "right", gp = grid::gpar(col = theme$navy, fontsize = 8, fontface = "bold"))
       y <- y - 0.055
+    }
+    if (chunk_idx == 1L) {
+      # Vara V4: lo que el plan no cubre va en la misma página que la cobertura
+      # y antes del anexo, porque es parte de leer el plan y no una nota al pie.
+      # Si no hay nada que declarar la caja no existe: afirmar "todo cubierto"
+      # sería más fuerte de lo que este dato soporta.
+      no_cubierta <- .vmr_text(model$cobertura_no_cubierta %||% "")
+      if (nzchar(no_cubierta)) {
+        nc_lines <- wrap_lines(no_cubierta, 108L)
+        nc_h <- max(0.09, 0.05 + length(nc_lines) * 0.017)
+        nc_y <- max(0.12, y - nc_h / 2 - 0.005)
+        grid::grid.roundrect(x = 0.5, y = nc_y, width = 0.86, height = nc_h, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_amber, col = NA))
+        grid::grid.text("LO QUE ESTE PLAN NO CUBRE", x = 0.09, y = nc_y + nc_h / 2 - 0.022, just = "left", gp = grid::gpar(col = theme$amber, fontsize = 8, fontface = "bold"))
+        grid::grid.text(paste(nc_lines, collapse = "\n"), x = 0.09, y = nc_y + nc_h / 2 - 0.05, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 8.4, lineheight = 1.16))
+        y <- nc_y - nc_h / 2 - 0.02
+      }
     }
     if (chunk_idx == 1L && isTRUE(universe$territorial)) {
       reconciliation <- vmr_territorial_reconciliation_text(length(model$rules %||% list()), length(rules))
