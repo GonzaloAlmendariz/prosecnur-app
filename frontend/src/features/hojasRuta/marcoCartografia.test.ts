@@ -46,6 +46,18 @@ describe("describirMarcoCartografia", () => {
     expect(describirMarcoCartografia(frame({ pilot: true }))!.piloto).toBe(true);
   });
 
+  it("en el piloto manda su nota, sin la comparación delante", () => {
+    // La nota del piloto dice que las manzanas están limitadas al piloto: es
+    // lo más consecuente que hay que saber y no puede quedar debajo de una
+    // pared de números. Y la auditoría es de la cartografía empaquetada
+    // completa, no del subconjunto del piloto: describiría otro marco.
+    const NOTA_PILOTO = "Marco empaquetado para el piloto funcional Lima/Callao. Las manzanas siguen limitadas al piloto hasta activar el frame oficial validado.";
+    const m = describirMarcoCartografia(frame({ pilot: true, note: NOTA_PILOTO }))!;
+    expect(m.resumen).toBe(NOTA_PILOTO);
+    expect(m.detalle).toBe(NOTA_PILOTO);
+    expect(m.detalle).not.toContain("117,352");
+  });
+
   it("no dice nada cuando el motor no aporta nada", () => {
     // El control: sin nota y sin auditoría no hay chip. Un chip vacío en cada
     // proyecto sería ruido permanente en el chrome del módulo.
