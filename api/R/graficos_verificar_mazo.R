@@ -68,7 +68,9 @@
   # 0.90 cm; se toma el p10 para no marcar por una lamina que empieza mas arriba.
   titulo_top_min_cm    = 0.78,
   # Proporcion de texto por debajo del minimo que el aprobado se permite.
-  texto_prop_max       = 0.062
+  texto_prop_max       = 0.062,
+  # Cifras blancas sobre un tramo claro de la rampa. El aprobado tiene CERO.
+  texto_ilegible_max   = 0L
 )
 
 .VERIF_EMU <- 914400
@@ -233,7 +235,7 @@ medir_mazo <- function(path) {
   laminas <- .verif_laminas_xml(path)
   gr_esc <- numeric(0); n_esc <- integer(0)
   gr_cat <- numeric(0); txt <- numeric(0)
-  rojo <- 0L; tops <- numeric(0)
+  rojo <- 0L; tops <- numeric(0); ilegible <- 0L
 
   for (xml in laminas) {
     formas <- .verif_formas(xml)
@@ -246,13 +248,14 @@ medir_mazo <- function(path) {
     szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
     txt <- c(txt, szs[is.finite(szs)])
     rojo <- rojo + .verif_rojo_en_rampa(xml)
+    ilegible <- ilegible + .verif_texto_ilegible(.verif_formas(xml))
     tt <- .verif_titulo_top_cm(xml)
     if (!is.na(tt)) tops <- c(tops, tt)
   }
 
   list(grosor_escala = gr_esc * .VERIF_CM_POR_IN, barras_escala = n_esc,
        grosor_categorico = gr_cat * .VERIF_CM_POR_IN, texto_pt = txt,
-       rojo_en_rampa = rojo, titulo_top_cm = tops)
+       rojo_en_rampa = rojo, titulo_top_cm = tops, texto_ilegible = ilegible)
 }
 
 
@@ -288,6 +291,7 @@ calibrar_umbrales <- function(path, p = 0.10) {
     texto_minimo_pt      = round(q(m$texto_pt, p), 1),
     texto_prop_max       = round(mean(m$texto_pt < q(m$texto_pt, p)), 3),
     rojo_en_rampa_max    = as.integer(m$rojo_en_rampa),
+    texto_ilegible_max   = as.integer(m$texto_ilegible),
     titulo_top_min_cm    = if (length(m$titulo_top_cm)) round(q(m$titulo_top_cm, p), 2)
                            else .VERIF_UMBRALES$titulo_top_min_cm
   )
@@ -359,6 +363,14 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
           sprintf(">= %.2f cm", u$titulo_top_min_cm), "pegado al borde")
     }
 
+    # R9: una cifra blanca sobre un tramo claro no se lee.
+    il <- .verif_texto_ilegible(formas)
+    if (il > u$texto_ilegible_max) {
+      add("R9 texto ilegible", i, il,
+          sprintf("<= %d", u$texto_ilegible_max),
+          "cifra blanca sobre tramo claro")
+    }
+
     # R4: el rojo institucional es color de TITULO, no extremo de escala.
     rr <- .verif_rojo_en_rampa(xml)
     if (rr > u$rojo_en_rampa_max) {
@@ -405,9 +417,9 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     # se confunda con un mazo conforme.
     no_cubierto = c(
       "R6 circulares",
+      "R10 interlineado (medido: los tres mazos usan 100 %; no es la causa)",
       "R8 arranque vertical del bloque",
-      "R9 color del texto",
-      "R10 interlineado"
+      "R9 color del texto: el resto del criterio, mas alla de la legibilidad"
     )
   )
 }
@@ -450,4 +462,40 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     if (length(nums) >= 2L) return(nums[[2]] / .VERIF_EMU * .VERIF_CM_POR_IN)
   }
   NA_real_
+}
+
+
+# Tramos claros de la rampa: sobre ellos una cifra blanca no se lee.
+.VERIF_CLAROS <- c("F4B183", "FFD965", "FFD966", "EFD25E")
+
+
+#' Cifras blancas que caen sobre un tramo claro
+#'
+#' El recetario dejo esto abierto por no poder medirlo: «el metodo por forma
+#' devuelve el color de relleno de la propia caja, no el del segmento que hay
+#' debajo». Se resuelve cruzando por POSICION —que segmento contiene el centro
+#' de la caja de texto—, que es la unica forma de saber sobre que fondo cae.
+#'
+#' Importa porque es una regresion posible de la receta 4: al cambiar el extremo
+#' negativo de rojo oscuro a naranja claro, las cifras blancas que se leian
+#' sobre el rojo dejan de leerse sobre el naranja. El entregable aprobado tiene
+#' cero.
+#'
+#' @param formas Salida de `.verif_formas()`.
+#' @return Numero de cifras blancas sobre fondo claro.
+#' @keywords internal
+.verif_texto_ilegible <- function(formas) {
+  if (!length(formas)) return(0L)
+  segs <- Filter(function(f) f$col %in% .VERIF_CLAROS && !nzchar(f$texto), formas)
+  if (!length(segs)) return(0L)
+  blancos <- Filter(function(f) f$col == "FFFFFF" && nzchar(f$texto), formas)
+  if (!length(blancos)) return(0L)
+
+  sum(vapply(blancos, function(b) {
+    cx <- b$x + b$w / 2
+    cy <- b$y + b$h / 2
+    any(vapply(segs, function(s) {
+      cx >= s$x && cx <= s$x + s$w && cy >= s$y && cy <= s$y + s$h
+    }, logical(1)))
+  }, logical(1)))
 }
