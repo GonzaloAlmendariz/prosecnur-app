@@ -195,8 +195,27 @@ if (!tiene_ids(frame)) {
   reconstruido <- TRUE
 
   if (!tiene_ids(frame)) {
-    stop("El marco reconstruido sigue sin ids de alumno; revisa `mapping$student_id`.",
-         call. = FALSE)
+    # El mapeo puede estar PERFECTO y llegar aqui igual. En un proyecto de
+    # referencia anonimizado los ids de alumno se subrogan: `unique_student_hash`
+    # queda con contenido y `unique_student_ids` con cadenas vacias. Medido en
+    # hsvg2026: la hoja trae 136.284 filas y 29.083 codigos distintos, el mapeo
+    # los encuentra, y aun asi el marco sale sin ids — porque son PII y por eso
+    # no viajan. Culpar al mapeo mandaba a revisar lo unico que estaba bien.
+    hay_hash <- "unique_student_hash" %in% names(frame$aula_frame) &&
+      any(nzchar(as.character(frame$aula_frame$unique_student_hash)))
+    if (hay_hash) {
+      stop(sprintf(paste0(
+        "'%s' esta anonimizado: conserva el hash subrogado de alumno pero no sus ",
+        "ids, que son PII y no viajan en un proyecto de referencia. El descuento ",
+        "secuencial los necesita, asi que esta seleccion no se puede sembrar aqui. ",
+        "El mapeo (`%s`) es correcto."), slug, mapping$student_id %||% "?"),
+        call. = FALSE)
+    }
+    stop(sprintf(paste0(
+      "El marco reconstruido de '%s' sigue sin ids de alumno y tampoco trae el ",
+      "hash subrogado. Revisa `mapping$student_id` (ahora: `%s`) contra las ",
+      "columnas de la hoja de matricula."), slug, mapping$student_id %||% "?"),
+      call. = FALSE)
   }
 }
 
