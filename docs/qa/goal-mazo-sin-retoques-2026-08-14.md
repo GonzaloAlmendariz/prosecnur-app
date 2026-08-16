@@ -42,12 +42,17 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
 | L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
-| L13 | Regenerar `hsvg2026` y `acrconta` con el dominio sintético | fixtures | ⛔ |
 | L14 | Llevar el arreglo del color al DEFAULT del motor | `.PULSO_PPT_COLORS` / generador de paletas por lista | ☐ |
 | L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
 | L16 | Residuo de tamaños: 9 pt×123, 8.5×28, 9.48×20, 31.2×13 | falta ubicar qué elemento los emite | ☐ |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | `.PRESETS_META$base` | ☐ |
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | `graficador_barras_apiladas.R` — desarrollo | ☐ |
+
+**L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
+con el dominio sintético no le corresponde a este GOAL. El arreglo del
+anonimizador ya está hecho y commiteado; regenerar es una tarea de fixtures que
+depende de `PROSECNUR_ANON_SALT` y se resuelve donde vivan esos fixtures, no
+aquí. Los números de la cola no se recorren: L14–L18 conservan el suyo.
 
 ## Dónde está el mazo hoy
 
@@ -89,12 +94,6 @@ Sigue como **L18**.
 Nota sobre el objetivo: de las nueve, al menos tres son escalas de dos
 categorías —«90 % / 10 %»— donde la columna no aplica. El techo realista no es
 45 sino ~34.
-
-## Bloqueados y por qué
-
-| | Qué lo desbloquea |
-|---|---|
-| L13 | `PROSECNUR_ANON_SALT`. El build de fixtures la exige y no está en el entorno. Sin ella los dos fixtures publican 205.770 correos seudónimos bajo dominio real. |
 
 ## Trampas — lo que ya costó una conclusión falsa
 
