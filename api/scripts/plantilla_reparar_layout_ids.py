@@ -22,6 +22,46 @@ import zipfile
 MASTER = re.compile(r"ppt/slideMasters/slideMaster\d+\.xml$")
 LAYOUT_ID = re.compile(r'(<p:sldLayoutId id=")(\d+)(")')
 
+# Tipo de contenido por extension, para las partes que la plantilla trae sin
+# declarar. `plantilla_acnur_16_9` guardaba tres SVG sin `Default`: un paquete
+# con una parte sin content-type es corrupto por definicion, y python-pptx se
+# niega a abrirlo.
+TIPOS = {
+    "svg": "image/svg+xml", "png": "image/png", "jpeg": "image/jpeg",
+    "jpg": "image/jpeg", "gif": "image/gif", "bmp": "image/bmp",
+    "tiff": "image/tiff", "emf": "image/x-emf", "wmf": "image/x-wmf",
+}
+
+
+def content_types_faltantes(partes):
+    """Extensiones presentes en el paquete que nadie declara."""
+    ct = partes["[Content_Types].xml"].decode("utf8")
+    declaradas = {d.lower() for d in re.findall(r'<Default Extension="([^"]+)"', ct)}
+    overrides = set(re.findall(r'<Override PartName="/([^"]+)"', ct))
+    faltan = set()
+    for n in partes:
+        if n.endswith("/") or "." not in n or n in overrides:
+            continue
+        ext = n.rsplit(".", 1)[-1].lower()
+        if ext not in declaradas and ext in TIPOS:
+            faltan.add(ext)
+    return ct, sorted(faltan)
+
+
+def anadir_content_types(partes):
+    ct, faltan = content_types_faltantes(partes)
+    if not faltan:
+        return 0
+    nuevos = "".join(
+        f'<Default Extension="{e}" ContentType="{TIPOS[e]}"/>' for e in faltan
+    )
+    # Se insertan justo despues de la apertura de <Types ...>, que es donde el
+    # esquema espera los Default.
+    m = re.search(r"<Types[^>]*>", ct)
+    partes["[Content_Types].xml"] = (ct[: m.end()] + nuevos + ct[m.end():]).encode("utf8")
+    print(f"    [Content_Types].xml: declarados {faltan}")
+    return len(faltan)
+
 
 def ids_duplicados(xml):
     ids = LAYOUT_ID.findall(xml)
@@ -60,6 +100,7 @@ def reparar(path, respaldo=True):
     infos = z.infolist()
     z.close()
 
+    tipos = anadir_content_types(partes)
     total = 0
     for nombre in list(partes):
         if not MASTER.match(nombre):
@@ -73,8 +114,8 @@ def reparar(path, respaldo=True):
         total += cambios
         print(f"    {nombre}: {cambios} id(s) reasignados (duplicados: {dup})")
 
-    if not total:
-        print(f"  {path.split('/')[-1]}: sin duplicados, no se toca")
+    if not (total or tipos):
+        print(f"  {path.split('/')[-1]}: nada que reparar")
         return 0
 
     if respaldo:
@@ -82,8 +123,8 @@ def reparar(path, respaldo=True):
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as out:
         for info in infos:                       # mismo orden que el original
             out.writestr(info, partes[info.filename])
-    print(f"  {path.split('/')[-1]}: {total} id(s) reparados")
-    return total
+    print(f"  {path.split('/')[-1]}: {total} id(s) y {tipos} tipo(s) reparados")
+    return total + tipos
 
 
 if __name__ == "__main__":
