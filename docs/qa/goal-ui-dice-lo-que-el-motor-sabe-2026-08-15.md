@@ -61,6 +61,7 @@ sabe nada que la interfaz calle.
 | **L28** | Bitácora no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves en los cuatro proyectos; tercer módulo, misma decisión que L24 y L26. |
 | **L29** | Barrido de Gráficos | `coberturaBases.ts` | ☑ hecho — la etapa se daba por hecha con la mitad del estudio sin mazo. |
 | **L31** | Segunda pasada sobre lo que este GOAL reparó | `filasDeFase.ts`, `marcoCartografia.ts` | ☑ hecho — dos arreglos míos tapaban un aviso más urgente. |
+| **L32** | Pasada de cierre: verificar en pantalla y auditar mis propios tests | — | ☑ hecho — los tres arreglos limpios; un test nacido neutralizado, reparado. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ☑ hecho — Gráficos en [L29], Cálculo de muestra en [L30] **sin hallazgos**. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -120,6 +121,33 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L32 — cierre: el GOAL convergió
+
+**En pantalla, sobre el proyecto que corresponde a cada caso:**
+
+| Arreglo | Proyecto | Lo que se ve |
+|---|---|---|
+| Cobertura de variable | `acnur_acg` | 1 marca en 77 tarjetas; `whynotconsent` «0 de 1283», `D1_information` «llega repartida en sus opciones», `gps_inicio` «1241 de 1283» |
+| Decisión de codificación | `acnur_acg` | «A medias · 48 sin asignar», sin «Motivo:» espurio, y la cabecera «1 variable marcada sin decidir» concuerda con el único chip |
+| Riel de Gráficos | `acrconta_mazo` | «Faltan los mazos de egresados, administrativos», `done: false`, **sin** `is-blocked`, con el escalar `graficos_ppt_ok` todavía en `true` |
+
+**Auditoría de mis propios tests.** Uno estaba neutralizado, y es el mismo que
+dejó pasar el defecto de L31: pasaba `report_rows: null` en el escenario de
+`sync_error`, así que el desglose se apagaba por el guardia de nulos y no por
+el de estado. Verde sin ejercitar la precedencia que decía cubrir. Ahora los
+tres estados urgentes se prueban **con** la diferencia de filas encima, que es
+la combinación peligrosa. Los demás pasan la revisión: sus fixtures alcanzan la
+rama que declaran.
+
+**Gate de cierre:** typecheck 0 · **4 109 tests verdes** en las 505 suites del
+frontend.
+
+**El GOAL convergió.** El barrido cubrió los ocho módulos, la segunda pasada
+revisó los arreglos entre sí y esta tercera no encontró nada que reparar salvo
+un test flojo. Lo que queda no es trabajo pendiente: son **cuatro decisiones de
+Gonzalo**, y tres de ellas son la misma —tres módulos enteros sin un solo caso
+real en el corpus de referencia—.
 
 ### L31 — la lección de L30 al revés, aplicada a mis propios arreglos
 
