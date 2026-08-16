@@ -33,7 +33,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
 | V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
 | V10 | Cada comentario tiene regla y estado | mapa de los 57, uno por uno | **20 de 28 geométricos** ✓ · 29 no son del motor |
-| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **10 de 11** ✓ (falta R6) |
+| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **10 de 10** ✓ · R6 ⛔ sin modelo |
 | V12 | Cada disposición con modelo tiene su celda | disposiciones de Contabilidad | **2 de 2** ✓ · 29 sin modelo |
 
 **Incumplimientos de `verificar_mazo()`: aprobado 14 · motor 9.**
@@ -63,7 +63,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
-| L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
+| L20 | El rótulo de la columna | literal en `reporte_plan_ppt.R` | ☑ **«TOP TWO BOX» ×39** |
 | L30 | Separación entre premisas | el panel no usaba el alto del hueco | ◐ **20 → 4**; hueco 0.97 → 1.74 cm |
 | L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
@@ -1027,3 +1027,33 @@ tope sino el hueco disponible—.
 Queda una diferencia que no es incumplimiento pero se aparta del modelo: el
 máximo del motor es **2.42 cm** contra los 1.80 del aprobado. Sus barras
 categóricas más gruesas lo son más de lo que el entregable se permite.
+
+### R6 circulares: bloqueado por falta de modelo, no por falta de trabajo
+
+Los dos mazos tienen **tres círculos cada uno**, en dos láminas:
+
+| | Diámetros |
+|---|---|
+| Aprobado | 5.2 · 3.8 · 4.4 cm |
+| Motor | 3.9 · 4.1 · 3.9 cm |
+
+El motor los hace algo más pequeños —4.0 cm de mediana contra 4.4— pero **los
+rangos se solapan y con n = 3 la diferencia es del tamaño del ruido**. No hay de
+dónde derivar un umbral: se marca ⛔, como L22 y como las 29 disposiciones sin
+modelo. Inventar un piso aquí sería exactamente lo que este GOAL lleva quince
+iteraciones evitando.
+
+Con eso **V11 cierra en 10 de 10 reglas medibles**.
+
+### L20: el rótulo, y la trampa por tercera vez
+
+El motor escribía «Top 2 Box» y el aprobado escribe «TOP TWO BOX» en sus 41
+láminas. El valor venía de **un literal escrito a mano en `reporte_plan_ppt.R`**
+que gana sobre el default del graficador: cambiar sólo el default no movió ni una
+lámina. Es la tercera vez —antes pasó con `canvas_gap_grupos` (0.35) y con
+`size_barra_extra`—, y ahora hay un test que detecta el literal.
+
+Y al ponerlo mal se rompió el render entero: la constante del graficador no es
+visible desde el motor, salieron 63 láminas degradadas y el verificador devolvió
+**1.88 cm de grosor de escala**, un valor imposible. La alarma funcionó antes de
+abrir el archivo.
