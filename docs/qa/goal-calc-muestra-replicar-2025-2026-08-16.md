@@ -1382,3 +1382,66 @@ facultad del perfil, el modo `min_media_mediana`), dejando la cadena TS como
 vista previa. Pero eso **mueve los dos tests de backtesting** de
 `test-calc-muestra-engine.R`, que hoy afirman 177 y 250, así que no se hace de
 callado: es el siguiente paso y tiene que verse en el diff.
+
+---
+
+## L15 · El divisor de cada facultad ya sale del marco (2026-08-16)
+
+Al abrir el cableado apareció que el congelamiento era más ancho de lo
+reportado: el preset —y su espejo en `constants.ts`— fija **tres** cosas por
+facultad, no una: `cuota_fija`, `sobremuestra_fija` y `aulas_base_fijas`. O sea
+que el n por facultad que en L13 di por «calculado y cuadra» también venía
+escrito cuando se corre el preset tal cual.
+
+Pero eso sólo pasa con el preset. **Tras cargar una base real el estudio
+sincroniza los estratos desde el marco** (`estratosDesdeFrame`), y esos estratos
+salen con sólo `label`, `N`, `N_a`, `N_b` y las etiquetas de sexo: sin fijas
+—bien— y también **sin `promedio_conglomerado`**. Sin él, R cae al parámetro
+global: **28 alumnos por curso-horario para las quince facultades**, que es
+exactamente el «general» que Gonzalo descartó.
+
+Y `mediana_conglomerado` no llegaba nunca, por una razón más simple de lo que
+parecía: **no estaba declarada en `CalcMuestraEstrato`**. R la acepta desde
+siempre; el frontend no tenía cómo enviarla. Ese era el eslabón que faltaba para
+que `min_media_mediana` pudiera dispararse.
+
+### Lo implementado
+
+`frontend/src/features/calcMuestra/universidad/marco/divisorDelMarco.ts`, una
+función pura, `conDivisorDelMarco(estratos, facultades)`, que refresca los dos
+divisores desde el perfil del marco emparejando por slug de facultad. Conectada
+en los **dos** puntos donde el estudio absorbe estratos del marco:
+
+- `CalcMuestraPage.tsx` — el handoff Marco → Cálculo, que es el camino normal;
+- `UniversidadDesk.tsx` — la auto-reparación de proyectos guardados antes del
+  sync automático.
+
+Lo que deliberadamente **no** hace: pisar un divisor existente con un valor
+inútil. Una facultad que el perfil no conoce, o que no tiene ningún
+curso-horario elegible, conserva el suyo. «El marco no dice nada» no es «el
+marco dice cero», y confundirlos es una división por cero.
+
+### El efecto, medido
+
+| | Titulares | Reservas |
+|---|---|---|
+| Hoy, tras cargar una base (promedio global 28 para las 15) | 180 | 15 |
+| **Con la media por facultad** (este cableado) | **166** | 15 |
+| + la mediana, con `min_media_mediana` (la regla de 2025) | 199 | 15 |
+
+Las tres cumplen el umbral de 200. El cableado mueve 180 → 166 y, sobre todo,
+deja de repartir con un número único para toda la universidad.
+
+Verificación: `divisorDelMarco.test.ts` con 6 casos y dos mutantes sobre el
+fuente (quitar la mediana → 2 fallos; quitar el guard del divisor útil → 1),
+control 6/6 y fuente revertido. `tsc --noEmit` en 0 y los 153 archivos de
+vitest de `calcMuestra` en 1.311/1.311.
+
+### Lo que queda, y por qué no se hizo aquí
+
+Poner `estadistico_conglomerado` en `min_media_mediana` es lo que lleva de 166 a
+199 y reproduce la regla del diseño de 2025. **No se tocó**: cambiar ese default
+mueve los dos tests de backtesting del preset (177 y 250), que son la
+certificación de que el repo reproduce 2025. Eso merece su propio commit, con
+los números nuevos y su porqué a la vista — que es justo lo que se avisó antes
+de empezar.
