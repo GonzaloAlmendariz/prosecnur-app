@@ -37,8 +37,8 @@ decisiones de limpieza.
 | **L3** | Con filtro **y** depuración a la vez, la columna de exclusiones perdía lo que no fuera rechazo y el embudo no cerraba. | mismo archivo | ☑ hecho — la columna lleva todo lo retirado que no sea prueba; se llama «Rechazos retirados» sólo cuando es lo único que hay |
 | **L4** | El script R de replicación: nivel de detalle correcto, reproduce la base exacta. | motor del script de replicación (ADR 0031) | ☑ verificado 2026-08-15 — **no tocar** |
 | **L5** | `E_NO_PLAN` al reabrir `ACNUR_V3_final.pulso`. **La premisa era falsa**: el plan sí se persiste. Lo que pasa es que recargar el instrumento borra el workspace entero y deja la promoción en pie. | `session_store.R` (`.invalidate_processing_state`) · `limpieza_decision_engine.R` | ☑ hecho — las exclusiones se conservan en cuarentena y vuelven al borrador cuando su regla reaparece; lo anclado a variables no se rehidrata (trabajo aparte, ver L14) |
-| **L14** | Rehidratar lo anclado a variables (`replace_value`, `impute_value`, `recode_map`, `nullify_fields`, `set_value`, `normalize_value`, select_multiple) exige comprobar variable por variable contra el instrumento nuevo. | mismo sitio que L5 | ☐ sin empezar — hoy se descartan; es la segunda vuelta que L5 dejó nombrada |
-| **L15** | Paso visual del aviso de exclusiones conservadas. | `LimpiezaTab.tsx` | ☐ sin empezar — reproducir el estado en la UI exige correr una auditoría completa y tomar decisiones a mano |
+| **L14** | Rehidratar lo anclado a variables (`replace_value`, `impute_value`, `recode_map`, `nullify_fields`, `set_value`, `normalize_value`, select_multiple) exige comprobar variable por variable contra el instrumento nuevo. | mismo sitio que L5 | ☑ hecho — se conserva todo lo que tiene ancla y la comprobación se pospone a la rehidratación, que es cuando existen a la vez el instrumento y el catálogo |
+| **L15** | Paso visual del aviso de decisiones conservadas, en sus dos tonos. | `LimpiezaTab.tsx` | ☐ sin empezar — reproducir el estado en la UI exige correr una auditoría completa y tomar decisiones a mano |
 | **L6** | El paquete metodológico (ZIP con PDF + R) usa el mismo modelo: confirmar que hereda la ficha y no tiene su propia ruta. | `validacion_methodology_report.R:2715` | ☑ hecho — el runner lee el mismo `model` y llama a los dos mismos renderizadores; no hay ruta paralela que arreglar |
 | **L7** | La pestaña Instrumento sólo muestra el resumen del universo si `upstream_universe.applied`; con base depurada y sin filtro no muestra nada. | `InstrumentoOperationalControls.tsx:134` vs `PromocionBase.tsx` | ☑ cerrado sin tocar código — ese aviso pertenece al filtro de pruebas, que es de lo que trata esa superficie; el hecho de la depuración ya lo declara `PromocionBase` en Limpieza, que es su dueña. Repetirlo sería duplicar información entre dimensiones |
 | **L8** | Verificar sobre proyectos reales, no sólo con universos sintéticos. | `api/inst/reference_projects/*` · `ACNUR_V3_final.pulso` | ☑ hecho — ficha correcta sobre el `.pulso` real (`103 · 2 · 101`) y sin regresión en `acnur_pdm` (`430 · 2 · 1 · 3 · 426`) |
@@ -133,6 +133,16 @@ declarar lo que quedó huérfano, empezando por las exclusiones.
   auditoría. La forma de comprobarlo en un minuto es abrir el `.pulso` y leer
   `estudio$bases[[b]]$validacion$plan_result` del `state.rds`, en vez de deducir
   la causa del mensaje de error. Un `E_NO_PLAN` dice que no hay plan, no por qué.
+- **Decidir qué se conserva y decidir qué se puede aplicar son dos momentos
+  distintos.** L5 filtró en el momento de invalidar y por eso sólo pudo salvar
+  las exclusiones: ahí no existen ni el instrumento nuevo ni el catálogo de
+  reglas. Conservando todo lo que tiene ancla y posponiendo la comprobación a la
+  rehidratación, la misma máquina sirve para las tres anclas. Cuando una
+  comprobación no se puede hacer todavía, la salida no es descartar: es esperar.
+- **`NULL` y «vacío» no son lo mismo, y confundirlos inventa un motivo.** Si
+  `.limpieza_variables_del_instrumento()` devolviera `character(0)` al no poder
+  leer el XLSForm, todas las decisiones se declararían «sin su variable» —una
+  pérdida falsa y definitiva— en vez de «no se pudo comprobar».
 - **Restaurar trabajo no es devolverlo al sitio de donde salió.** El borrador de
   limpieza no es una lista inerte: `.limpieza_simulate()` aplica todo lo que
   esté en `ready`, sin mirar la cola. Devolver ahí una decisión conservada la
