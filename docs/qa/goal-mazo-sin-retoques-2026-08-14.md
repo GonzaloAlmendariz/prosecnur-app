@@ -20,7 +20,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | V1 | El título de lámina no va pegado al borde superior | mediana del `y` del título en el .pptx ≥ 0.35 in | **0.370** ✓ |
 | V2 | Todo tamaño de letra pertenece al juego de seis (24·14·13·12·11·8) | ningún `sz=` fuera de esa lista | **8.2 % fuera** ◐ (era 82.8 %; aprobado 3.0 %) |
 | V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
-| V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **29 de 67** ◐ (aprobado: 45 de 63) |
+| V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **38 de 66** ✓ (era 29; techo real ~35) |
 | V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | **0.321 · 0 de 18** ✓ (era 0.221) |
 | V6 | Ninguna lámina supera las 9 **barras** | máx. barras por lámina | **el motor parte**; dispara en 3 ✓ |
 | V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
@@ -46,7 +46,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
 | L16 | Residuo de tamaños: 9 pt×123, 8.5×28, 9.48×20, 31.2×13 | falta ubicar qué elemento los emite | ☐ |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | `.PRESETS_META$base` | ☐ |
-| L18 | Que el modo `multilista` dibuje la columna Top Two Box | `graficador_barras_apiladas.R` — desarrollo | ☐ |
+| L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 38**; 0 degeneradas |
 
 **L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
 con el dominio sintético no le corresponde a este GOAL. El arreglo del
@@ -244,3 +244,46 @@ la de escala (`barras_apiladas`) y estuve midiendo palancas en
 láminas bajo el piso**, contra 0.295 y 2 del ya validado: se le colaban
 cabeceras. La regla que queda: extender la cadena de medición validada
 —segmento → barra → gráfico, con la leyenda fuera—, nunca escribir una paralela.
+
+### L18 — no era el graficador, era la herencia
+
+El diagnóstico de L15 apuntaba al graficador («el modo `multilista` no soporta
+la columna»). La causa estaba un piso más arriba: en `multilista` los bloques
+son elementos hijos construidos por el mismo constructor, y **no heredaban**
+`top2box` ni sus categorías —cada uno reponía el defecto—, mientras que
+`wrap_y` y `numerar_oe` sí se heredan. Por eso declararlo en la lámina no movía
+el conteo: la declaración no llegaba a los bloques.
+
+Eso también explica por qué las dos pruebas del diagnóstico salieron negativas.
+No descartaban lo que parecían descartar: ambas declaraban en la lámina.
+
+**Heredar destapó un segundo defecto, y lo introduje yo.** Con categorías de
+acuerdo heredadas sobre una pregunta Sí/No no empareja ninguna, y el motor caía
+al reparto posicional —«las dos últimas»— que sobre una escala de dos son las
+dos: 16 láminas con la columna al 100 %, cuatro filas de ellas en «¿Conoce los
+propósitos…?», que es el defecto exacto que el guardián existía para evitar.
+
+Adivinar ahí es lo mismo que el motor ya se niega a hacer cuando no hay
+declaración. La decisión vive ahora en un solo sitio y no se dibuja la columna
+si lo declarado no empareja nada, si cubre la escala entera, o si no hay
+declaración.
+
+Quedan 8 láminas con algún 100 %, y son **dato**: una o dos celdas de entre 4 y
+20 filas. Lo que era defecto es el 100 % en todas por construcción.
+
+### Un bug de plataforma que salió por el camino
+
+La normalización de tildes usaba `iconv(to = "ASCII//TRANSLIT")`, que depende
+de la libc: en macOS «Sí» sale como `S'I` y no empareja con «SI»; en el Linux
+del CI sale bien. El emparejamiento por etiquetas acentuadas **funcionaba en el
+CI y fallaba en la máquina donde se trabaja**, en silencio y con la columna
+sumando de menos. Pasa a `stringi`, que da lo mismo en las tres plataformas.
+Mismo patrón que el sorteo del cubo.
+
+### Dos tests que llevaban tiempo en rojo
+
+`test-graficos-top2box-comparativo.R` esperaba un aviso en el caso de escala
+corta, donde el motor calla a propósito —y su propio comentario lo explica—.
+Fallaban desde antes de esta tanda: quedaron desactualizados cuando se cambió
+la política a silencio. Ahora afirman la omisión sobre la decisión, no sobre el
+mensaje, que es lo que de verdad importa.
