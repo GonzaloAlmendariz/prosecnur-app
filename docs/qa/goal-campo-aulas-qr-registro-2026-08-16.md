@@ -102,7 +102,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L23** | Los números de L15–L22 no se han visto en pantalla. | Un `.pulso` armado a mano no transporta las respuestas ni `monitoreo_config$aulas_universitarias`: la whitelist de persistencia guarda el plan y poco más. | ☐ sin empezar — exige recorrer el flujo real desde la UI (calc-muestra → importar → Recopiladores → handoff). L13 y L14 **sí** quedaron confirmados en pantalla: 7 cursos-horario, no 49, y sin crash. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
 | **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
-| **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones de cadena, a lo ancho). El modelo de la app representa la cadena como filas con `replacement_for`: el importador tiene que traducir de ancho a largo. | ☐ sin empezar — **es la prioridad** |
+| **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ◐ **a medias** (2026-08-16) — `api/R/carga_aulas_agendadas.R` traduce de ancho a largo y **corre contra el estudio real de 2025**: 170 titulares → **1012 filas**, 230 con estado y 228 con enlace de ficha. Falta el endpoint que lo cuelgue de una sesión y la superficie que lo dispare. |
 | **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques (principal + reemplazo 2 y 3). Análogo a la base de barrido telefónico de los otros modos. | ☐ sin empezar |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula: cuenta contra los dos denominadores, duración (cortas/largas, 70T/70P), cuotas por sexo y rango horario. Mucho más rico que los 6 chequeos de la pestaña Validación. | ☐ sin empezar |
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
@@ -312,3 +312,30 @@ Y una diferencia estructural: la cadena de reemplazo en el Excel es **ancha**
 
 La prioridad pasa a **L27** (leer «Aulas Agendadas»), que es la hoja de la que
 cuelgan las otras dos.
+
+### 2026-08-16 — L27: el lector de «Aulas Agendadas», probado contra el estudio real
+Primer tramo de la nueva prioridad. `aulas_agendadas_leer()` traduce la hoja
+**ancha** —1 columna de `ID MATCH` y bloques de 20— al formato **largo** del
+plan, con una fila por unidad y `replacement_for` apuntando al titular.
+
+Corrido sobre `Hostigamiento PUCP 2025`: **170 titulares → 1012 filas**, 230 con
+`STATUS MUESTRA` y 228 de esas con enlace de ficha. El vocabulario completo
+resultó ser más rico que el visto en la primera inspección: `AGENDADA` ·
+`REAGENDADA` · `EN RESERVA 1` · **`EN RESERVA 2`** · `REEMPLAZADA`.
+
+Dos decisiones que salieron de mirar el dato y no de suponerlo:
+
+- **El ancho de bloque se deduce, no se asume.** 12 es lo que trae este estudio;
+  otro con cadenas más cortas produce menos bloques.
+- **Un guion es ausencia, no un valor.** El equipo escribe `-` para «todavía
+  nada aquí»: 1810 de 2040 celdas de estado. Tratarlo como dato inflaba el plan
+  de 1012 a 2040 filas y creaba una categoría fantasma llamada `-` en los
+  conteos.
+
+**La fixture del test es sintética a propósito**: el libro real trae nombre,
+teléfono y correo de cada docente, así que no entra al repositorio ni como
+golden. Lo que se fija es la anatomía, no los datos.
+
+Falta el endpoint que cuelgue el resultado de una sesión y la superficie que lo
+dispare; y después L28 (parte de campo) y L29 (base de control), que son las
+hojas que cuelgan de esta.
