@@ -61,8 +61,10 @@ import { coberturaDelCorte } from "../../core/coberturaDelCorte";
 import { fuentesSincronizables, motivoSinFuentes } from "../../core/fuentesSincronizables";
 import { PIEZAS_DEL_PAQUETE_TELEFONICO, piezasRequeridas } from "../../core/paqueteDeFuentes";
 import {
+  monitoreoPestanaDesdeParams,
   pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
+  monitoreoSeccionDesdeParams,
   useMonitoreoDireccion,
 } from "../../useMonitoreoDireccion";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -18237,11 +18239,27 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
           : seccionActiva === "avance"
             ? activeAdvanceTab
             : "";
+  // `changeLocalTab` se declara mas abajo; la ref rompe ese orden sin reatar
+  // este callback en cada render.
+  const cambiarPestanaRef = useRef<((seccion: MonitoreoSeccion, pestana: AcreditacionLocalTabKey) => void) | null>(null);
   const navigateSection = useCallback((view: MonitoreoSeccion) => {
     if (view === activeViewRef.current) return;
     activeViewRef.current = view;
     setActiveView(view);
     if (view !== "avance") setActiveAdvanceTab("resumen");
+    // Si la peticion viene de una DIRECCION que ademas trae pestana, se aplica
+    // aqui, junto con su seccion. Sin esto la pestana activa de la seccion
+    // nueva se publicaba en la URL y pisaba la pedida: medido en acreditacion,
+    // `?seccion=avance&pestana=detalle` desde Consultas aterrizaba en
+    // `resumen`. La vista quedaba alcanzable por clic y no por direccion.
+    //
+    // Se exige que la SECCION de la URL coincida con la que se activa: eso
+    // distingue «vengo de una direccion» de «vengo de un clic», donde la URL
+    // todavia trae la pestana de la seccion anterior.
+    if (monitoreoSeccionDesdeParams(window.location.search) === view) {
+      const pedida = monitoreoPestanaDesdeParams(window.location.search);
+      if (pedida) cambiarPestanaRef.current?.(view, pedida as AcreditacionLocalTabKey);
+    }
     void loadView(view);
   }, [loadView]);
   useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, modoIdDesdeFamily(route.family), {
@@ -18272,6 +18290,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       setActiveAdvanceTab(tab as AcreditacionAdvanceTab);
     }
   }, []);
+  cambiarPestanaRef.current = changeLocalTab;
   const navigateLocalTab = useCallback((view: MonitoreoSeccion, tab: AcreditacionLocalTabKey) => {
     changeLocalTab(view, tab);
     navigateSection(view);

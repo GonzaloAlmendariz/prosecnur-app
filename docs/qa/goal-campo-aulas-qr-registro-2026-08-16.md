@@ -128,6 +128,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L57** | La **Agenda** no distinguía titular de reserva. | Sus columnas eran código, aula, curso, sección, horario, enlace, estado de ficha, responsable y origen: con una cadena de seis, las siete filas del mismo titular sólo se diferenciaban por su código. | ☑ **hecho** (2026-08-16) — rol y «reemplaza a» delante de sección y responsable. |
 | **L58** | A escala real la Agenda **no mostraba ni una reserva**. | La tabla recortaba a 80 filas y el plan ordena las reservas al final: con 196 aulas se veían `CH 1`–`CH 80` y las 26 reservas quedaban fuera. El aviso lo declaraba, pero el trabajo de L57 era invisible en un operativo de verdad. | ☑ **hecho** (2026-08-16) — tope a 400; 196 filas con sus 26 reservas. |
 | **L59** | Una pestaña era alcanzable **por clic pero no por dirección**. | Al saltar de otra sección, la sección se aplica primero y la pestaña **recordada** se publica en la URL, pisando la pedida: `?seccion=consultas&pestana=reemplazos` aterrizaba en `brechas`. Lo introdujo la memoria por sección de L53. | ☑ **hecho** (2026-08-16) — la pestaña de la URL se aplica junto con su sección. |
+| **L60** | El mismo defecto de dirección estaba en **acreditación y telefónico**. | No lo introdujo L53: es anterior y afecta a dos perfiles en uso. Medido en `acrconta`: `avance/detalle` pedido desde Consultas aterrizaba en `resumen`. | ☑ **hecho** (2026-08-16) — la pestaña de la URL se aplica dentro de `navigateSection`. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -529,3 +530,36 @@ lee la pestaña de la misma URL y la aplica junto con su sección.
 **Y un aserto mío que afirmaba de más**: escribí que el lector canónico resuelve
 los alias heredados (`tab`, `step`). No los resuelve — lee sólo `pestana`. El
 test lo dice ahora medido en vez de supuesto.
+
+
+### 2026-08-16 — L60: el defecto no era sólo de aulas
+
+Tras reparar L59 quedaba la pregunta obvia: telefónico y acreditación usan el
+mismo hook y también recuerdan pestaña por sección. **No lo di por hecho: lo
+medí** levantando `acrconta`, el proyecto de referencia de acreditación.
+
+- Carga directa por URL: **correcta** — `?seccion=avance&pestana=actores`
+  aterriza en «actores».
+- Salto desde otra sección: **falla** — pedir `avance/detalle` desde Consultas
+  aterriza en `resumen`.
+
+Así que el defecto **no lo introdujo la memoria por sección de L53**: es anterior
+y afecta a dos perfiles que llevan mucho más tiempo en uso que el de aulas.
+
+La reparación va dentro de `navigateSection`, no en un envoltorio del callback,
+porque hay un **test de contrato que analiza el AST** y exige que
+`onSeccionPedida` llame directamente a `setActiveView`, `loadView` y mueva
+`activeViewRef`. Envolverlo lo puso rojo — el contrato existe para que una
+navegación externa cargue el scope, y tenía razón.
+
+Dos detalles que la reparación necesita:
+
+- **La sección de la URL debe coincidir** con la que se activa. Eso distingue
+  «vengo de una dirección» de «vengo de un clic», donde la URL todavía trae la
+  pestaña de la sección anterior y aplicarla sería incorrecto.
+- `changeLocalTab` se declara **después** de `navigateSection`, así que la
+  llamada va por una ref que se rellena tras su declaración. Sin eso, TypeScript
+  rechaza el uso antes de la declaración.
+
+Verificado en pantalla: `?seccion=avance&pestana=detalle` desde Consultas
+selecciona la cuarta pestaña, que es la pedida.
