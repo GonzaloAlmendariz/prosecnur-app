@@ -15,16 +15,27 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 
 ## Vara
 
-| | Afirmación | Cómo se mide | Estado |
-|---|---|---|---|
-| V1 | El título de lámina no va pegado al borde superior | mediana del `y` del título en el .pptx ≥ 0.35 in | **0.370** ✓ |
-| V2 | El texto no baja del umbral legible | % de `sz=` por debajo de 11 pt | **6.6 %** ◐ · en absoluto **157 vs 146** del aprobado ✓ |
-| V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
-| V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **38 de 66** ✓ (era 29; techo real ~35) |
-| V5 | El motor no incumple más que el aprobado | incumplimientos de `verificar_mazo()` | **47 vs 100** del aprobado ✓ |
-| V6 | Ninguna lámina supera las 9 **barras** | máx. barras por lámina | **el motor parte**; dispara en 3 ✓ |
-| V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
-| V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | **`p_slide_3_graficos_poblacion`** ✓ |
+Los umbrales salen de medir `Informe Contabilidad 14-08.pptx` con
+`calibrar_umbrales()`, no de elegirlos. Los anteriores se habían fijado contra
+un ideal y el propio entregable aprobado los incumplía más del doble que el
+motor. **Verde aquí significa «no peor que el entregable que el cliente
+aprobó»**, que es lo que el encargo pedía desde el principio.
+
+| | Afirmación | Umbral medido | Aprobado | Motor |
+|---|---|---|---|---|
+| V1 | El título no va pegado al borde | ≥ 0.35 in | 0.361 | **0.370** ✓ |
+| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **12.2 %** ✗ |
+| V3 | El extremo de la escala es naranja | sin rojo en rampa | — | naranja 173 ✓ |
+| V4 | La columna Top Two Box se dibuja | — | 45 | **38** ✓ |
+| V5 | El grosor de escala no baja del piso | ≥ 0.303 in (p10) | 4 fallos | **0** ✓ |
+| V6 | Ningún gráfico pasa del techo de barras | ≤ 7 (máx.) | 3 fallos | **0** ✓ |
+| V7 | El grosor cae en su celda del recetario | mediana 0.512 | 0.510 | **0.486** ✓ |
+| V8 | Existe disposición para 3 gráficos | — | — | ✓ |
+
+**Incumplimientos totales de `verificar_mazo()`: aprobado 6 · motor 1.**
+
+El único que queda es V2, y es el que L16 dejó a medias: 123 textos a 9 pt que
+no emite ningún graficador ni declara la plantilla.
 
 ## Cola
 
@@ -374,3 +385,32 @@ La vara honesta no es «ninguna barra baja de 0.32» sino **«el motor no incump
 más que el entregable aprobado»**, y esa se cumple con holgura en las cuatro
 reglas medidas. Lo cual no invalida L5 ni L16: subieron el suelo de verdad y el
 motor está mejor que antes. Lo que invalida es la cifra con que los cerré.
+
+### La recalibración, y por qué pisos y techos no se miden igual
+
+Al calibrar contra el entregable, **dos de los cuatro umbrales salieron más
+exigentes que el ideal, no menos**: el aprobado no baja de 12 pt en la décima
+parte peor de su texto, ni de 0.256 in en sus barras categóricas. El ideal era
+laxo justo donde el entregable es cuidadoso, y estricto donde el entregable se
+permite cosas. Eso es lo que pasa cuando una vara se escribe antes de medir.
+
+**Piso y techo usan estadísticos distintos, y la asimetría es deliberada.** Un
+piso calibrado al mínimo lo hunde un solo accidente del mazo de referencia, así
+que va por percentil 10. Un techo calibrado al percentil queda por *debajo* de
+lo que la referencia hace, y entonces el motor corrige lo que el entregable no
+corregía: con el techo en seis barras el mazo pasaba de 63 láminas a 73,
+partiendo lo que nadie había pedido partir. El techo va por el máximo.
+
+**La regla del texto pasó de lámina a mazo.** Medida por lámina no discrimina
+—basta un rótulo pequeño para marcarla— y con el umbral del aprobado quedaban
+marcadas 53 de las 63 láminas del propio entregable aprobado. Lo que distingue
+un mazo legible de otro no es que ninguna lámina tenga letra chica, sino cuánta
+hay: 6.2 % contra 12.2 %.
+
+**Y una corrección al verificador que salió de aquí.** La mediana del grosor del
+aprobado daba 0.159 in exactos, idéntica a su percentil 5: era la altura de las
+cajas de la columna Top Two Box, que llevan relleno de la rampa y texto dentro.
+El filtro «una barra de datos no lleva texto propio» estaba puesto sólo para la
+familia categórica. Con él en las dos, la mediana del aprobado sale 0.510 in
+—y el recetario, medido a mano en su día, decía 0.512—. Esa coincidencia es la
+mejor prueba de que la cadena de medición ya está bien.
