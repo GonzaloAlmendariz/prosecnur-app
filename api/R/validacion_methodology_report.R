@@ -656,6 +656,38 @@
   c(correction_lines, filter_line, exclusion_lines, cleaning_line)
 }
 
+# Cuando la merma no vino de un filtro sobre una variable sino de la depuración,
+# el universo no se puede expresar como condición: es una lista de casos. Se
+# emite el mismo filtro por identificador que usa el script de replicación, con
+# los que PERMANECEN. Sin esto el script declaraba "Encuestas incluidas: 101" y
+# su `prepare_validation_universe()` devolvía las 103 sin tocar.
+.vmr_universe_formula_ids <- function(universe) {
+  llave <- .vmr_text(universe$final_case_variable %||% "")
+  ids <- as.character(unlist(universe$final_case_ids %||% character(0), use.names = FALSE))
+  ids <- ids[!is.na(ids) & nzchar(ids)]
+  if (!nzchar(llave) || !length(ids)) return("")
+  literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = "\n")
+  paste(c(
+    "# Universo final del estudio: los casos que superaron el control de calidad.",
+    "# Se listan por su identificador de caso, que ya viene en la base recibida;",
+    "# reproduce el universo exacto sin exponer nada más.",
+    paste0(".universo_variable <- ", literal(llave)),
+    paste0(".universo_final <- ", literal(ids)),
+    "if (!(.universo_variable %in% names(data))) {",
+    "  stop(\"Falta la variable de identificador de caso para reconstruir el universo.\", call. = FALSE)",
+    "}",
+    ".casos <- as.character(data[[.universo_variable]])",
+    ".faltantes <- setdiff(.universo_final, .casos)",
+    "if (length(.faltantes) > 0L) {",
+    "  stop(sprintf(",
+    "    \"La base recibida no contiene %d caso(s) del universo final.\",",
+    "    length(.faltantes)",
+    "  ), call. = FALSE)",
+    "}",
+    "base_validacion <- data[match(.universo_final, .casos), , drop = FALSE]"
+  ), collapse = "\n")
+}
+
 .vmr_universe_formula <- function(universe) {
   variable <- .vmr_text(universe$variable %||% "")
   real_values <- as.character(unlist(universe$real_values %||% character(0), use.names = FALSE))
@@ -754,6 +786,18 @@
   universe$cleaning_applied <- isTRUE(universe$cleaning_applied)
   universe$excluded_rejections <- .vmr_universe_rejection_count(universe)
   universe$formula_r <- .vmr_universe_formula(universe)
+  # El filtro por identificador es el recurso cuando no hay filtro de pruebas
+  # que exprese la merma. `formula_kind` distingue las dos: la del PDF se
+  # imprime, la de identificadores no cabe —son cientos de UUID— y allí se
+  # declara en prosa que la lista viaja en el script.
+  universe$formula_kind <- "condicion"
+  if (!nzchar(universe$formula_r)) {
+    ids_formula <- .vmr_universe_formula_ids(universe)
+    if (nzchar(ids_formula)) {
+      universe$formula_r <- ids_formula
+      universe$formula_kind <- "identificadores"
+    }
+  }
   universe$formula_available <- nzchar(universe$formula_r)
   universe
 }
@@ -2380,6 +2424,16 @@ validation_methodology_report_pdf <- function(model, path) {
       if (!isTRUE(universe$applied)) {
         preparation_details <- c(preparation_details, "No se registró un filtro de encuestas de prueba.")
       }
+      if (identical(universe$formula_kind, "identificadores")) {
+        n_ids <- length(as.character(unlist(universe$final_case_ids %||% character(0), use.names = FALSE)))
+        preparation_details <- c(preparation_details, sprintf(
+          paste0(
+            "El universo final se reproduce por identificador de caso: los %s ",
+            "identificadores incluidos viajan en el script R de este paquete."
+          ),
+          fmt(n_ids)
+        ))
+      }
       criterion <- paste(c(count_text, preparation_details), collapse = " ")
     }
     # El ancho de wrapping se fija al ancho REAL de la caja (0.86 npc menos
@@ -2407,7 +2461,13 @@ validation_methodology_report_pdf <- function(model, path) {
     grid::grid.roundrect(x = 0.5, y = 0.745, width = 0.86, height = 0.11, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$soft_amber, col = NA))
     grid::grid.text(.vmr_wrap("No consta un filtro de encuestas de prueba aplicado; por ello no se presenta una fórmula de filtrado.", 76L), x = 0.09, y = 0.765, just = c("left", "top"), gp = grid::gpar(col = "#6D5315", fontsize = 9.5, lineheight = 1.18))
   }
-  filter_formula <- .vmr_text(universe$formula_r %||% "")
+  # La fórmula por identificadores no se imprime: son cientos de UUID que
+  # desbordarían la caja y no se leen. La prosa de arriba ya dice dónde está.
+  filter_formula <- if (identical(universe$formula_kind, "identificadores")) {
+    ""
+  } else {
+    .vmr_text(universe$formula_r %||% "")
+  }
   filter_lines <- if (nzchar(filter_formula)) {
     display_formula <- if (rich_preparation) {
       filter_formula

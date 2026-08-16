@@ -266,3 +266,44 @@ test_that("todo lo que produce el builder llega al cliente", {
   expect_false(identical(publico$before_after_preview, limpieza$before_after_preview))
 })
 
+test_that("los identificadores no viajan si no cuadran con lo que declara el linaje", {
+  sid <- .cons_sesion()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio$bases$default$limpieza <- list(enabled = TRUE, n_casos_antes = 103L,
+                                            n_casos_despues = 101L)
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  # Coincide: se sirven.
+  local_mocked_bindings(
+    .limpieza_universo_final_ids = function(sid, base_nombre = NULL) {
+      list(variable = "_uuid", values = sprintf("c%03d", seq_len(101)))
+    },
+    .package = "prosecnurapp"
+  )
+  u <- prosecnurapp:::.validacion_universo_con_ids(sid, "default")
+  expect_equal(u$final_case_variable, "_uuid")
+  expect_length(u$final_case_ids, 101L)
+})
+
+test_that("una lista de otro tamaño describe otra base y no se sirve", {
+  sid <- .cons_sesion()
+  s <- prosecnurapp:::session_get(sid)
+  s$estudio$bases$default$limpieza <- list(enabled = TRUE, n_casos_antes = 103L,
+                                            n_casos_despues = 101L)
+  .env_sesiones <- getFromNamespace(".session_env", "prosecnurapp")
+  .env_sesiones[[sid]] <- s
+
+  # 99 != 101: mejor un script que avisa que no hay filtro, que uno que
+  # reproduce un universo equivocado.
+  local_mocked_bindings(
+    .limpieza_universo_final_ids = function(sid, base_nombre = NULL) {
+      list(variable = "_uuid", values = sprintf("c%03d", seq_len(99)))
+    },
+    .package = "prosecnurapp"
+  )
+  u <- prosecnurapp:::.validacion_universo_con_ids(sid, "default")
+  expect_null(u$final_case_ids)
+  expect_equal(u$included, 101L)
+})
+
