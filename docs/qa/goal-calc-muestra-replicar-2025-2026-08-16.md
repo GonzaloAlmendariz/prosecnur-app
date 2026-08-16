@@ -59,7 +59,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ⛔ **bloqueado por la fuente** · reproduce exacto y el estadístico ya está justificado en la UI; el contraste exige la decisión de 2025, que nunca se firmó |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☑ **el patrón SÍ estaba** (2026-08-16) · 15 facultades, 194 aulas, en el histórico; contraste abajo |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☑ **contrastado** (2026-08-16) · abierta la relación de aplicados: 170 titulares + 26 reemplazos = 196, 194 aplicadas. Facultad calca exacto; horario y tipo de docente difieren del otro registro (ver abajo) |
-| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **cadena dimensionada; falta conciliar** (2026-08-16) · 30 × 11 = 330. La fuente NO falta: `Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx` trae las 1.012 agendadas. Sigue sin abrirse |
+| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ☑ **conciliado** (2026-08-16) · las «1.012 agendadas» eran falsas: la agenda de 2025 fue de **170** titulares con **85** en reserva —0,5 por titular— y consumió 26 |
 
 ## L1 · el material de 2025 (2026-08-16)
 
@@ -1004,6 +1004,52 @@ opción está medida y tiene precedente en el operativo que se quiere replicar.
 | Bloque horario (4) | Regular tarde 65 · Regular mañana 63 · Especial mañana 34 · Especial noche 8 |
 | Tipo de docente (2) | Contratado 145 · Ordinario principal 25 |
 | Modalidad | Presencial 170 (única) |
+
+## L12 · las «1.012 agendadas» no existieron (2026-08-16)
+
+Abierto `Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx`. El
+libro tiene 19 hojas y la cifra que arrastrábamos salía de contar la equivocada.
+
+| Hoja | Filas | Qué es |
+|---|---|---|
+| `Muestra - Full Data` | **1.097** | el **marco** completo de 2025 — cuadra con `aulas_marco` |
+| `Aulas Agendadas` | **170** | los titulares agendados |
+| `En Reserva` | **85** | la bolsa de reserva |
+| `aulas adicionales` | **26** | los reemplazos que se llegaron a usar |
+
+Los 26 cuadran exactos con los 26 `es_reemplazo = Sí` de la relación de
+aplicados (L11), y los 170 con sus titulares. Dos archivos independientes dicen
+lo mismo.
+
+**No hubo 1.012 agendadas.** Hubo 170, y la diferencia con el marco de 1.097 es
+justo lo que no se agendó. La sospecha de «casi 5 a 1, más parecido a un
+registro de intentos» era razonable pero falsa: el 5 a 1 era marco contra
+aplicadas, no agenda contra aplicadas.
+
+### La conciliación, ahora que las cifras son comparables
+
+| | 2025 (real) | 2026 (diseño de hoy) |
+|---|---|---|
+| Titulares | 170 | 30 |
+| Reserva planificada | 85 | 330 |
+| **Reserva por titular** | **0,5** | **11** |
+| Reemplazos consumidos | 26 · **0,153 por titular** | — |
+| Profundidad más honda usada | **reserva 2** | — |
+
+2025 planificó **media reserva por titular** y consumió **0,15**. El diseño de
+2026 planifica **once**, veintidós veces más holgura de la que su precedente
+consideró necesaria, y su objetivo de profundidad quedó en 6.
+
+Eso no lo decide este loop, pero ya no hay que discutirlo con impresiones: la
+cadena de 2026 no es «más chica» que la de 2025 como se temía en la primera
+lectura de L12 —es **muchísimo más grande**, y la primera lectura comparaba
+contra una cifra que no existía.
+
+### Un límite de lo medido
+
+La hoja `Aulas Aplicadas (Campo)` devuelve 1.000 filas con la cabecera en otra
+fila, así que ese conteo no es de aulas y no se usa aquí. Para leerla haría
+falta ajustar el `skip`; no hacía falta para cerrar esto.
 
 ## Las probabilidades de 2025 y las del motor no viven en la misma escala (2026-08-16)
 
