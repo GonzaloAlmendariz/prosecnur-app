@@ -1151,3 +1151,78 @@ Sus 18 facultades se llaman «Andres», «Karina Y Elena DE LA Jimenez.», «Ric
 Ricardo Gabriela». Viene del proyecto anonimizado, cuyas categóricas destruyó el
 anonimizador. Los totales agregados sí son válidos; cualquier contraste por
 facultad contra el Excel exige el `.pulso` real.
+
+---
+
+## L13 · Qué de la hoja de diseño muestral ya existe en el motor (2026-08-16)
+
+Medido contra el código y corriendo el motor, no leyendo por encima. La
+respuesta corta: **casi todo existe, y una pieza está escrita a mano.**
+
+Hay un preset, `calc_muestra_aplicar_preset_hsvg()`
+(`api/inst/catalogos/preset_hsvg_pucp.json`), que ya trae las 15 facultades con
+su `N`, `N_a`/`N_b` (mujeres/hombres), `e_facultad`, `p_facultad` y
+`confianza_facultad`. Y hay dos tests de backtesting en
+`test-calc-muestra-engine.R` que reproducen **los dos escenarios del Excel**.
+
+| Pieza | Estado | Evidencia |
+|---|---|---|
+| (a) n por facultad con parámetros propios | ☑ existe y **cuadra** | `.cm_calc_estratificado_independiente` dimensiona cada facultad con su `p_facultad`, `z` y `e_facultad`, y **`n_teorico` es la suma de las cuotas**: 4.049 contra los 4.050 del Excel (la cuadratura operativa añade 1 al dominio mayor) |
+| (b) cuotas por sexo dentro de facultad | ☑ existe | sub-distribución proporcional a `N_a`/`N_b`; la pestaña de Distribución declara grano «facultad efectiva × sexo» |
+| (c) sobremuestra | ☑ existe y **cuadra exacto** | `n_operativo` = 3.754 (escenario 1) y 4.865 (escenario 2), los dos números del Excel |
+| (d) la división que da «aulas por aplicar» | ◐ **la fórmula existe pero el preset la pisa** | ver abajo |
+| (e) ponderación W | ☐ **no está** | no aparece en el motor ni en las pestañas; lo más cercano es un caption sobre afijación proporcional en `CalculoPropuestasTab` |
+
+La pestaña `CalculoCursosHorarioFacultadTab` ya publica por facultad: cuota,
+método R, alumnos por CH, titulares, reservas y total a coordinar.
+
+### (d) es el hallazgo: las aulas del preset están escritas a mano
+
+`.cm_calc_estratificado` tiene la fórmula:
+
+```r
+aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) e$aulas_base_fijas
+              else ceiling(cuota / (avg_e * tau_e))
+```
+
+y el preset HSVG **rellena `aulas_base_fijas` en las 15 facultades**, así que la
+fórmula nunca corre. Los valores fijados son 11, 13, 11, 3, 33, 12, 9, 21, 4,
+20, 18, 3, 8, 5, 6 — que son **exactamente los del Excel más uno, en todas**.
+Suman 177 contra los 162 del Excel, y el test lo documenta como «bolsa uniforme
+de +1 aula por facultad».
+
+Dejando que la fórmula calcule (`aulas_base_fijas = 0`), el total se acerca
+—166 contra 162— pero **el reparto por facultad no se parece**:
+
+| Facultad | Cuota | avg × τ | Fórmula | Excel | Dif |
+|---|---|---|---|---|---|
+| Estudios Generales Letras | 389 | 41,4 × 0,39 | 25 | 17 | **+8** |
+| Derecho | 347 | 37,2 × 0,60 | 16 | 20 | **−4** |
+| Arquitectura y Urbanismo | 126 | 37,8 × 0,55 | 7 | 10 | **−3** |
+| Psicología | 79 | 22,1 × 0,50 | 8 | 5 | **+3** |
+| Ciencias Contables | 21 | 25,2 × 0,60 | 2 | 2 | 0 |
+| Gestión y Alta Dirección | 115 | 32,0 × 0,55 | 7 | 7 | 0 |
+
+El total cuadra por cancelación, no por acuerdo. La causa está en el divisor: el
+motor usa `promedio_conglomerado × τ` y el Excel usa una única columna
+«Estudiantes por Curso-Horario» que **mezcla valores calculados y valores puestos
+a mano**. Nueve de sus quince entradas son redondas (20, 15, 11, 25, 22, 15, 16,
+10, 25) y seis traen decimales de cálculo (24,882 · 20,113 · 26,696 · 32,217 ·
+35,949 · 26,433). Ninguna fórmula única puede reproducir esa columna, porque no
+salió de una sola fórmula.
+
+### Lo que esto cambia para el trabajo pendiente
+
+La cadena `n_facultad → sobremuestra → aulas` **ya está construida**: lo que
+falta no es capacidad de cálculo, es que el número de aulas de cada facultad deje
+de venir fijado. Dos preguntas que sólo Gonzalo puede contestar:
+
+- **El +1 por facultad**: ¿es una decisión operativa vigente (bolsa de holgura) o
+  un residuo del preset? Cambia si el motor debe sumarlo o si la referencia real
+  son los 162.
+- **El divisor**: ¿la columna «Estudiantes por Curso-Horario» del Excel se
+  reemplaza por `promedio_conglomerado × τ` del marco —que es medido y trazable,
+  pero da otro reparto—, o hay que poder fijarla por facultad como hizo la hoja?
+
+Hasta que eso se decida, el cambio a cuotas por facultad no puede implementarse
+sin elegir por Gonzalo, así que queda **bloqueado**, no pendiente.
