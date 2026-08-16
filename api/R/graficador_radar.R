@@ -1552,7 +1552,13 @@ graficar_radar <- function(
       # IMPORTANTE: anclar el grob al borde izquierdo del PH para evitar
       # que una tabla ancha "derrame" por la izquierda cuando auto_fit = FALSE.
       x_tab <- if (isTRUE(ocultar_radar)) (1 - w_tab) * 0.5 else (w_radar + w_gap)
-      if (isTRUE(emitir_nativa) && exists("tabla_nativa_estilo", inherits = FALSE)) {
+      # La geometria SOLO cuando el radar se ve. Con `ocultar_radar` la tabla
+      # ocupa el placeholder entero por la via de siempre —`.dml_o_tabla()`—,
+      # que funciona en cualquier disposicion. Adjuntar geometria ahi obligaria
+      # a que TODOS los renderers supieran emitirla aparte, y solo lo sabe el de
+      # una lamina de un grafico: el resto perderia la tabla.
+      if (isTRUE(emitir_nativa) && !isTRUE(ocultar_radar) &&
+          exists("tabla_nativa_estilo", inherits = FALSE)) {
         # Fracciones del canvas: el renderer las convierte contra el cajon real.
         # Sin esto solo sabria QUE hay tabla, no DONDE va, y la unica opcion era
         # ocupar el placeholder entero —de ahi que antes exigiera ocultar_radar—.
