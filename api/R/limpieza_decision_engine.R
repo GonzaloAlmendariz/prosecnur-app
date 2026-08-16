@@ -216,6 +216,10 @@
     }
     FALSE
   }, decisions)
+  # El motivo es el veredicto contra UN instrumento; con otro por delante ya no
+  # dice nada y arrastrarlo mentiría —la variable que faltaba puede haber
+  # vuelto—. Se borra: vuelven a estar sin evaluar, que es la verdad.
+  conservables <- lapply(conservables, function(d) { d$preservada_motivo <- NULL; d })
   # Un mismo `id` puede venir del borrador y de la cuarentena anterior; se
   # conserva una sola vez y gana la última, que es la que el analista editó.
   if (length(conservables) < 2L) return(unname(conservables))

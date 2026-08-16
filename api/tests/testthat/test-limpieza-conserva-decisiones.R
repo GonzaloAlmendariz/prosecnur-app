@@ -230,3 +230,39 @@ test_that("el payload declara la cuarentena y su motivo, no sólo el número", {
   vacio <- prosecnurapp:::build_limpieza(list(), sid = sid, base_nombre = "default")
   expect_equal(vacio$decisiones_preservadas$n, 0L)
 })
+
+test_that("una recarga nueva borra el motivo viejo: ya no dice nada", {
+  # El motivo es el veredicto contra UN instrumento. Con otro por delante la
+  # variable que faltaba puede haber vuelto, y arrastrarlo dejaría a la pestaña
+  # declarando una pérdida que quizá no ocurrió.
+  sid <- .cons_sesion(preservadas = list(
+    utils::modifyList(
+      .cons_decision("d1", action_type = "impute_value", variable = "P1"),
+      list(preservada_motivo = "variable")
+    )
+  ))
+  prosecnurapp:::estudio_replace_base_files(sid, "default", xlsform_file_id = "XLS2")
+  preservadas <- .cons_scope(sid)$limpieza_preservadas
+
+  expect_length(preservadas, 1L)
+  expect_null(preservadas[[1L]]$preservada_motivo)
+})
+
+test_that("todo lo que produce el builder llega al cliente", {
+  # El router enumeraba campos uno por uno y `decisiones_preservadas` se quedaba
+  # en el servidor: el builder lo producía, los tests lo verificaban y la
+  # pestaña no lo veía nunca. Este aserto falla si alguien vuelve a enumerar.
+  sid <- .cons_sesion(preservadas = list(.cons_decision("d1", casos = c("C1", "C2"))))
+  scope <- .cons_scope(sid)
+  scope$evaluacion <- NULL
+  limpieza <- prosecnurapp:::build_limpieza(scope, sid = sid, base_nombre = "default")
+  publico <- prosecnurapp:::limpieza_payload_publico(limpieza, base_nombre = "default")
+
+  expect_true(all(names(limpieza) %in% names(publico)))
+  expect_equal(publico$decisiones_preservadas$n, 1L)
+  expect_true(all(c("ok", "base_nombre", "actions") %in% names(publico)))
+  # El preview no puede viajar crudo: trae closures cíclicas que revientan
+  # jsonlite. Sale recortado a los campos serializables.
+  expect_false(identical(publico$before_after_preview, limpieza$before_after_preview))
+})
+

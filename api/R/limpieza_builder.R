@@ -214,6 +214,17 @@
 # -----------------------------------------------------------------------------
 # Public: arma el payload completo de Limpieza y normalización
 # -----------------------------------------------------------------------------
+# El payload que sale por HTTP se arma DESDE el del builder, no enumerando
+# campos: el router listaba uno por uno y `decisiones_preservadas` se quedó en
+# el servidor —el builder lo producía, los tests lo verificaban y el cliente no
+# lo veía nunca—. Lo único que cambia aquí es lo que no puede viajar tal cual:
+# el preview trae closures cíclicas y `actions` lo decide el router.
+limpieza_payload_publico <- function(limpieza, base_nombre = NULL) {
+  limpieza$before_after_preview <- .limpieza_preview_public(limpieza$before_after_preview)
+  limpieza$actions <- list()
+  c(list(ok = TRUE, base_nombre = base_nombre %||% NA_character_), limpieza)
+}
+
 build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_override = NULL) {
   decisions <- scope$limpieza_draft %||% list()
   queue <- .limpieza_build_decision_queue(scope, decisions)
