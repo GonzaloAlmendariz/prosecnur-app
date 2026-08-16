@@ -33,10 +33,10 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
 | V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
 | V10 | Cada comentario de Gabriela tiene regla y estado | 57 comentarios → 17 reglas | ◐ sin mapa por comentario |
-| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **4 de 10** ◐ |
+| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **6 de 10** ◐ |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
-**Incumplimientos totales de `verificar_mazo()`: aprobado 6 · motor 0.**
+**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 4** (con R4 y R7 ya medidas).
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -68,7 +68,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | doc nuevo | ☐ |
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
-| L25 | Ampliar `verificar_mazo()` a las 6 reglas sin cubrir | verificador | ☐ |
+| L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ◐ **R4 y R7 medidas**; faltan R6, R8, R9, R10 |
 | L26 | Medir las 31 disposiciones y darles celda en el recetario | recetario | ☐ |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
@@ -749,3 +749,27 @@ no puede salir de este estudio: hace falta otro entregable aprobado que las use,
 o se escriben por criterio y entonces no son medición. Queda como **L22
 bloqueado**, no como pendiente: pendiente sugiere que basta con ponerse, y aquí
 falta el modelo.
+
+### V11 avanza: dos reglas más medidas, y una destapa un incumplimiento
+
+De las seis que el verificador declaraba sin cubrir, dos eran perfectamente
+medibles y ya lo están:
+
+- **R4, rojo en la rampa.** Umbral cero, porque el aprobado tiene cero. El rojo
+  institucional no está prohibido —pinta 67 títulos suyos— pero no puede ser el
+  extremo negativo de una escala, y el criterio que los separa es la vecindad:
+  es rampa cuando el color siguiente es el amarillo.
+- **R7, posición del título.** Umbral 0.78 cm, el percentil 10 del aprobado
+  (mediana 0.90).
+
+**Y R4 destapa un incumplimiento que nadie veía: el motor deja 4 láminas con
+rojo en la rampa.** L3 lo bajó de 270 a 97 y los 97 restantes se dieron por
+títulos sin comprobarlo uno a uno; cuatro no lo eran.
+
+El aprobado, en cambio, falla **R7 cuatro veces** —láminas cuyo título arranca
+por encima de su propio percentil 10—. Eso es exactamente lo que hace útil medir
+contra el entregable y no contra un ideal: el modelo tampoco es homogéneo, y
+saber dónde no lo es evita perseguir una uniformidad que nadie pidió.
+
+Quedan sin cubrir R6 (circulares), R8 (arranque vertical), R9 (color del texto)
+y R10 (interlineado).
