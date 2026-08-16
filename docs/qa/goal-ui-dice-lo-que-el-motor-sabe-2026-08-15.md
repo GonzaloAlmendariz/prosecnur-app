@@ -50,7 +50,8 @@ sabe nada que la interfaz calle.
 | **L14** | Barrido V5: apagar una regla exige motivo | `router_validacion.R` · `ReglaDrillPanel.tsx` · informe | ☑ hecho — `f08ff427`. El mismo hueco del ADR 0078, en Validación. |
 | **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `InstrumentoTab.tsx` · informe | ☑ hecho — `c695c9f1`. Motivo exigido sólo para las que se agregan. |
 | **L16** | Barrido V7: cada estado nuevo con test que lo distinga | los diez módulos y componentes que agregó este GOAL | ☑ hecho — `6a89b22f`. Cinco sin test, tres eran gaps reales. |
-| **L18** | Barrido de módulos sin tocar: Hojas de ruta y Recopiladores | `RecopiladoresShell.tsx` | ◐ a medias — **un hallazgo** (`22713e67`). Falta Bitácora; Cálculo de muestra lo trabaja la otra sesión. |
+| **L18** | Barrido de módulos sin tocar: Hojas de ruta, Recopiladores y Bitácora | `RecopiladoresShell.tsx` | ☑ hecho — **un hallazgo** (`22713e67`). Cálculo de muestra queda fuera mientras la otra sesión lo trabaje. |
+| **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
@@ -131,8 +132,28 @@ conserva la base actual» para su propio noop.
 contradicción de manual. No lo es: `has_data` habla de la data de población y
 `territories` del marco cartográfico. Anotado para no volver a levantarlo.
 
+**Bitácora: sin hallazgo.** Su canal de avisos (`bitacora_avisos_v1`) distingue
+cuatro buckets —pendientes, silenciadas, pospuestas, historial— y el frontend
+consume los cuatro. Es el módulo mejor cubierto de los barridos hasta ahora:
+tiene su propio directorio `avisos/` y tests de semántica propios.
+
+**Lo que sí apareció, y no es de vara.** `GET /api/diseno-estudio/state` calcula
+protocolo, readiness, fuentes, decisiones, riesgos, próximas acciones, timeline
+y biblioteca. `apiDisenoEstudioState()` existe en el cliente y **no la llama
+nadie**: del módulo sólo se importan tipos.
+
+No es una superficie que mienta: es un endpoint sin superficie. Y tiene dueño
+documental — lo declaró el **ADR 0027**, que está *Reemplazado por 0029*, y el
+0029 retiró explícitamente Expediente, Fuentes y Biblioteca y movió el agregador
+de estado por módulo a `GET /api/project/overview`. Es decir: el payload que
+sirve es exactamente lo que el 0029 dio de baja.
+
+Retirarlo sería implementar un ADR aceptado, no tomar una decisión nueva. Pero
+borrar un endpoint montado es un cambio de contrato y la regla de la casa pide
+doble confirmación, así que queda como **L19** esperando tu visto bueno.
+
 **Cálculo de muestra queda fuera**: lo está trabajando la otra sesión sobre este
-mismo árbol. Falta Bitácora.
+mismo árbol.
 
 ### L17 — las varas contra lo que el propio GOAL agregó
 
