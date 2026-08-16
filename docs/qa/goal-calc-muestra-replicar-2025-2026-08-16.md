@@ -544,8 +544,15 @@ deriva de la configuración guardada: eso lo decide el entregable.
 
 **Dos cosas más que el sorteo dejó a la vista**, sin tocar todavía:
 
-- `descuento_sin_ids`: el marco no trae ids de estudiante parseables, así que el
-  descuento secuencial de repetidos **se desactivó** y el sorteo corrió sin él.
-  La cobertura única se reporta NA en las 2.468 aulas.
+- `descuento_sin_ids`: **resuelto** (2026-08-16, `9b655112`). No era un mapeo
+  que faltara: el `.pulso` lo guardó 0.7.1 el 2026-08-06, dos días antes de que
+  los ids pasaran a subrogarse en vez de borrarse al guardar (`a859b321`, F114).
+  Reconstruido desde su propio archivo fuente (93,6 s, 5.263 aulas) la columna
+  vuelve. El motor de hoy está bien; lo que fallaba era el aviso, que decía el
+  síntoma en jerga interna y tapaba dos situaciones opuestas —marco recuperable
+  contra marco anónimo por diseño—. Ahora dice cuál es y, cuando la hay, la
+  salida. **Para el contraste con 2025 esto importa**: el sorteo que medí en L11
+  corrió sin descontar repetidos, así que su perfil no es el que produciría el
+  motor con el marco reconstruido.
 - `session_type` está vacío en todo el marco de 2025, así que esa dimensión del
   perfil no se puede contrastar con nada.
