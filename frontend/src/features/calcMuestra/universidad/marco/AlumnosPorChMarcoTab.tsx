@@ -14,6 +14,7 @@ import {
   ALUMNOS_POR_CH_METHODS,
   alumnosPorChDraftMatchesDecision,
   effectiveAlumnosPorChMethod,
+  etiquetaAlumnosPorChMetodo,
   metodoAlumnosPorChInicial,
   missingAlumnosPorChFaculties,
   normalizeAlumnosPorChOverrides,
@@ -210,19 +211,19 @@ export function AlumnosPorChMarcoTab({
                     </td>
                     <td>
                       {row.row_kind === "total" ? (
-                        <span>{ALUMNOS_POR_CH_METHODS.find((item) => item.id === defaultMethod)?.label}</span>
+                        <span>{etiquetaAlumnosPorChMetodo(defaultMethod)}</span>
                       ) : (
                         <select
                           aria-label={`Método para ${row.faculty_label}`}
                           value={overrides[row.faculty_key] ?? ""}
                           onChange={(event) => setOverride(row.faculty_key, event.currentTarget.value)}
                         >
-                          <option value="">Global · {ALUMNOS_POR_CH_METHODS.find((item) => item.id === defaultMethod)?.label}</option>
+                          <option value="">Global · {etiquetaAlumnosPorChMetodo(defaultMethod)}</option>
                           {ALUMNOS_POR_CH_METHODS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                         </select>
                       )}
                     </td>
-                    <td className="cmv2-alumnos-ch-selected"><strong>{metric(selectedValue)}</strong><small>{selectedMethod}</small></td>
+                    <td className="cmv2-alumnos-ch-selected"><strong>{metric(selectedValue)}</strong><small>{etiquetaAlumnosPorChMetodo(selectedMethod)}</small></td>
                   </tr>
                 );
               })}
@@ -243,7 +244,7 @@ export function AlumnosPorChMarcoTab({
           <span>
             {missing.length
               ? `Falta ${missing.join(", ")}: el estadístico elegido no tiene dato publicado.`
-              : `${ALUMNOS_POR_CH_METHODS.find((item) => item.id === defaultMethod)?.label} global · ${Object.keys(overrides).length} overrides por facultad.`}
+              : `${etiquetaAlumnosPorChMetodo(defaultMethod)} global · ${Object.keys(overrides).length} overrides por facultad.`}
           </span>
         </div>
         <div className="cmv2-inline-actions">

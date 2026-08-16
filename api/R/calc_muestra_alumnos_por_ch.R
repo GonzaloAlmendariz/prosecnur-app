@@ -6,7 +6,15 @@
 .cm_alumnos_por_ch_schema <- "calc_muestra_alumnos_por_ch_v1"
 .cm_alumnos_por_ch_owner <- "calc_muestra_aulas_frame_v1.aula_frame"
 .cm_alumnos_por_ch_decision_schema <- "calc_muestra_alumnos_por_ch_decision_v1"
-.cm_alumnos_por_ch_methods <- c("media", "mediana", "p25")
+# `min_mediana_media` es el estadistico que aplico el diseno de 2025 —la hoja
+# «TD Estudiantes» lo nombra «Minimo entre mediana y media»— y se resuelve de la
+# misma distribucion que los otros tres: no agrega campo al snapshot ni cambia
+# el schema, asi que un `.pulso` firmado con `p25` sigue siendo valido.
+#
+# OJO con el nombre: el estadistico de conglomerado del Recorrido llama
+# `min_media_mediana` a lo mismo, con los dos terminos invertidos. Son contratos
+# distintos y ninguno lee la whitelist del otro; aqui manda el orden del diseno.
+.cm_alumnos_por_ch_methods <- c("media", "mediana", "p25", "min_mediana_media")
 .cm_alumnos_por_ch_total_key <- "__total__"
 
 .cm_alumnos_por_ch_snapshot <- function(values) {
@@ -306,6 +314,17 @@ calc_muestra_alumnos_por_ch <- function(aula_frame, frame_hash = NA_character_) 
     media = if (is.list(distribution)) distribution$media else NULL,
     mediana = if (is.list(distribution)) distribution$p50 else NULL,
     p25 = if (is.list(distribution)) distribution$p25 else NULL,
+    # Sin `na.rm` a proposito: si una de las dos falta, el minimo no esta
+    # definido y la fila debe quedar sin valor. Con `na.rm = TRUE` una facultad
+    # a la que le falta la media devolveria la mediana disfrazada de minimo, y
+    # el guard de `valor_no_positivo` la dejaria pasar sin que nadie lo vea.
+    min_mediana_media = if (is.list(distribution)) {
+      pareja <- suppressWarnings(as.numeric(c(
+        unlist(distribution$p50, use.names = FALSE)[1],
+        unlist(distribution$media, use.names = FALSE)[1]
+      )))
+      if (length(pareja) == 2L) min(pareja) else NA_real_
+    } else NULL,
     NULL
   )
   suppressWarnings(as.numeric(unlist(value, use.names = FALSE))[1])
