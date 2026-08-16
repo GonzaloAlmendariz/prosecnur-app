@@ -11,7 +11,14 @@ export const CALC_MUESTRA_ALUMNOS_POR_CH_METRIC = "eligible_n" as const;
 export const CALC_MUESTRA_ALUMNOS_POR_CH_DECISION_SCHEMA =
   "calc_muestra_alumnos_por_ch_decision_v1" as const;
 
-export type CalcMuestraAlumnosPorChMethod = "media" | "mediana" | "p25";
+// `min_mediana_media` se deriva de la misma distribución que los otros tres, así
+// que no agrega campo al snapshot ni cambia el schema: una decisión firmada con
+// `p25` sigue normalizando igual.
+export type CalcMuestraAlumnosPorChMethod =
+  | "media"
+  | "mediana"
+  | "p25"
+  | "min_mediana_media";
 
 export type CalcMuestraAlumnosPorChDistribution = {
   media: number | null;
@@ -54,7 +61,12 @@ export type CalcMuestraAlumnosPorChDecision = {
   confirmado_at: string;
 };
 
-const METHODS = new Set<CalcMuestraAlumnosPorChMethod>(["media", "mediana", "p25"]);
+const METHODS = new Set<CalcMuestraAlumnosPorChMethod>([
+  "media",
+  "mediana",
+  "p25",
+  "min_mediana_media",
+]);
 
 function unwrap(value: unknown): unknown {
   return Array.isArray(value) && value.length === 1 ? value[0] : value;
@@ -227,5 +239,10 @@ export function alumnosPorChValue(
 ): number | null {
   if (selectedMethod === "media") return snapshot.distribution.media;
   if (selectedMethod === "p25") return snapshot.distribution.p25;
+  if (selectedMethod === "min_mediana_media") {
+    // Espeja el motor: si falta una de las dos, no hay mínimo que decidir.
+    const { p50, media } = snapshot.distribution;
+    return p50 === null || media === null ? null : Math.min(p50, media);
+  }
   return snapshot.distribution.p50;
 }

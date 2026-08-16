@@ -13,7 +13,28 @@ export const ALUMNOS_POR_CH_METHODS: ReadonlyArray<{
   { id: "p25", label: "P25", detail: "Conservador: una cuarta parte de los CH tiene este valor o menos." },
   { id: "mediana", label: "Mediana", detail: "Centro robusto: divide los CH elegibles en dos mitades." },
   { id: "media", label: "Media", detail: "Promedio: sensible a CH excepcionalmente grandes." },
+  {
+    id: "min_mediana_media",
+    label: "mín(mediana, media)",
+    detail: "El menor de los dos centros: es el estadístico que aplicó el diseño de 2025.",
+  },
 ];
+
+/**
+ * Etiqueta legible de un método.
+ *
+ * Existe porque el id viaja en la decisión firmada y en la auditoría del
+ * cálculo, y dos superficies lo imprimían crudo. Con `p25` colaba; con
+ * `min_mediana_media` sería jerga del motor puesta delante del analista.
+ *
+ * Un id ausente devuelve cadena vacía —la celda de la auditoría ya se pintaba
+ * así— y uno desconocido se muestra tal cual: preferimos un id feo a una celda
+ * en blanco que borre la trazabilidad de lo que el motor usó.
+ */
+export function etiquetaAlumnosPorChMetodo(id: string | null | undefined): string {
+  if (!id) return "";
+  return ALUMNOS_POR_CH_METHODS.find((method) => method.id === id)?.label ?? id;
+}
 
 export function effectiveAlumnosPorChMethod(
   facultyKey: string,

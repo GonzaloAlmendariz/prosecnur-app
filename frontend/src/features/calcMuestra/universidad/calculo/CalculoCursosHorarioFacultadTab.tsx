@@ -4,6 +4,7 @@ import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../..
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { useMotorStore } from "../../store";
+import { etiquetaAlumnosPorChMetodo } from "../marco/alumnosPorChDecisionModel";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import type { UniversityAulasScenario } from "../shared/study";
@@ -108,7 +109,7 @@ export function CalculoCursosHorarioFacultadTab({
           <div>
             <strong>Cursos-horario requeridos publicados por R</strong>
             <p className="cmv2-calc-diseno-nota">
-              La decisión firmada usa {model.decision.estadistico_default} sobre el marco elegible.
+              La decisión firmada usa {etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)} sobre el marco elegible.
               Titulares, reservas y total son cifras del resultado; esta pestaña solo las proyecta.
             </p>
           </div>
@@ -132,7 +133,7 @@ export function CalculoCursosHorarioFacultadTab({
                 <tr key={fila.estrato}>
                   <td><strong>{fila.estrato}</strong></td>
                   <td>{fmtInt(fila.cuota)}</td>
-                  <td>{fila.estadistico_usado}</td>
+                  <td>{etiquetaAlumnosPorChMetodo(fila.estadistico_usado)}</td>
                   <td>{fmtDec(fila.alumnos_por_ch!.valor, 1)}</td>
                   <td>{fmtInt(fila.aulas_base)}</td>
                   <td>{fmtInt(fila.aulas_reemplazo)}</td>
