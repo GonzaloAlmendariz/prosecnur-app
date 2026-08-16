@@ -37,16 +37,21 @@ Se dibuja entera cada vez que este checklist se mencione.
 |---|---|---|---|---|
 | C1 | El gate de archivos congelados está rojo en main | `agentic/manifest.json` | minutos | ☑ **hecho** (2026-08-15) · línea base 5155 → 5161, `--audit` OK |
 | C2 | Las exclusiones del marco no declaran su causa | motor R (`calc_muestra_aulas.R`) | bajo | ☑ **hecho** (2026-08-15) · verificado con mutante: 5 FAIL sin el fix, 0 con él |
-| C3 | Construir el marco congela la app | router R (`router_calc_muestra.R`) | medio | ☐ **pendiente** |
-| C4 | El test direccional del MC secuencial mide un solo motor | tests R | bajo | ☐ **pendiente** |
-| C5 | Tres campos viajan tipados y no los muestra nadie | frontend | bajo | ☐ **pendiente** |
+| C3 | Construir el marco congela la app | router R (`router_calc_muestra.R`) | medio | ☑ **hecho** (2026-08-15) · verificado en la app: 177 s de job, backend respondiendo en 2–57 ms |
+| C4 | El test direccional del MC secuencial mide un solo motor | tests R | bajo | ☑ **hecho** (2026-08-15) · control negativo; caza el Defecto 1 del ADR 0066 |
+| C5 | Tres campos viajan tipados y no los muestra nadie | frontend | bajo | ☑ **hecho** (2026-08-15) · los tres tienen superficie; abrió el hallazgo L10 del GOAL |
 | C6 | Un test gateado que ya no puede correr nunca | tests R | decisión | ⛔ **bloqueado** · exige decisión de Gonzalo |
-| C7 | ¿Sigue el marco de referencia con 0 elegibles? | proyecto de referencia | verificación | ☐ **pendiente** · ahora diagnosticable gracias a C2 |
-| C8 | Titulares, Reemplazos y Sustento con selección real | frontend + corrida | verificación | ☐ **pendiente** · no verificable sin corrida |
+| C7 | ¿Sigue el marco de referencia con 0 elegibles? | **fixture** | bajo | ☑ **reparado** (2026-08-15) · criterio reescrito al vocabulario de su base: 0 → **21.362 elegibles** |
+| C8 | Titulares, Reemplazos y Sustento con selección real | frontend + corrida | verificación | ◐ **el dato ya existe** · selección de 30 titulares persistida; falta la auditoría visual |
 
-C1 y C2 se cerraron el 2026-08-15. Siguiente por rentabilidad: **C7** (ahora que
-el marco declara sus causas, el diagnóstico deja de ser a ciegas) y **C3**, que
-es el que más duele en uso real.
+**Seis cerrados el 2026-08-15** (C1–C5 y C7). Queda **C6**, que espera una
+decisión tuya, y **C8**, que ya tiene su dato —30 titulares persistidos— y sólo
+necesita una pila viva para la auditoría visual.
+
+C7 se investigó a fondo y cambió de naturaleza: no es un defecto del motor sino
+del **fixture**. El detalle vive en el GOAL
+(`goal-calc-muestra-marco-defendible-2026-08-15.md`), que es el doc vivo de este
+trabajo.
 
 ---
 
@@ -235,12 +240,16 @@ que esa fila sigue siendo elegible y nunca llega a `exclusions`.
 
 ---
 
-## C3 — Construir el marco congela la app
+## C3 — Construir el marco congela la app ◐
 
-Este es el lote **I21b** del loop v2, abierto desde el 2026-08-02 y todavía sin
-tocar.
+Este es el lote **I21b** del loop v2, abierto desde el 2026-08-02.
 
-### Qué pasa
+**Implementado el 2026-08-15**, con el detalle al final de la sección. Queda
+**a medias a propósito**: lo verificable sin levantar la app está verde, pero la
+corrida real sobre una base institucional todavía no se hizo, y esa es la única
+que prueba que los nueve minutos se fueron.
+
+### Qué pasaba
 
 `POST /api/calc-muestra/marco/construir` lee las cuatro tablas de entrada y
 llama a `calc_muestra_aulas_construir()` **en el hilo de Plumber**, de forma
@@ -281,10 +290,55 @@ contra `load_all()`, y necesitan el bootstrap de locale UTF-8. Los tests que
 disparen jobs reales exigen `R CMD INSTALL` antes. Está documentado en el skill
 `/jobs-asincronos` y es la trampa que ya se pagó dos veces.
 
+### Qué se cambió
+
+Cuatro piezas, ninguna de las cuales altera el camino síncrono:
+
+1. **El motor sabe reportar.** `calc_muestra_aulas_construir()` acepta
+   `on_progress` y emite **seis hitos reales** —leer la base, depurar elegibles,
+   agrupar cursos-horario, aplicar criterios, perfilar, radiografía—. No es un
+   reloj: son las etapas que de verdad consumen el tiempo. Ninguna toca RNG, por
+   eso la vía job y la síncrona dan el mismo marco con la misma semilla.
+2. **Un archivo nuevo, `calc_muestra_aulas_construir_job.R`**, con el emisor de
+   progreso, el gate y el `on_complete`. Va aparte porque el motor está
+   congelado a crecimiento.
+3. **El gate mide lo único medible antes de construir.** Los otros jobs se
+   deciden por n de aulas, pero aquí el marco todavía no existe: se cuentan las
+   **filas de entrada** (la base madre, o estudiantes + inscripciones en modo dos
+   bases). Umbral 20.000, ajustable con
+   `PULSO_CALC_MUESTRA_CONSTRUIR_JOB_THRESHOLD` para poder ejercitar ambos
+   caminos sin fabricar una base gigante.
+4. **La lectura de tablas se queda en el hilo del router**, a propósito: es I/O
+   rápido y es lo que produce los errores accionables de mapeo, que deben llegar
+   como 400 inmediato y no enterrados dentro de un job.
+
+En el frontend, `apiCalcMuestraMarcoConstruir` reusa el tipo
+`CalcMuestraAulasAsyncResponse` que ya existía, y `construirMarcoDesdeFuentes`
+espera el job con el mismo `esperarJobAulas` que ya usaban comparar y
+seleccionar — con su barra de progreso y su cancelación. No hubo que construir
+infraestructura nueva.
+
 ### Cómo se verifica
 
-Test de paridad sync↔job: misma semilla, mismo marco resultante. Es el mismo
-contrato que ya cumplen comparar y seleccionar.
+`api/tests/testthat/test-calc-muestra-aulas-construir-job.R` — 6 tests, 27
+asserts: el gate por modo de entrada, el umbral y su variable de entorno (con
+valor basura incluido), **la paridad sync↔job** por `frame_hash` y por cada
+bloque del marco, que el progreso no altere el resultado, y que los hitos salgan
+en orden hasta el sexto.
+
+**Verificado con mutante**: devolviendo `NULL` desde el emisor de progreso y
+quitando el `force = TRUE`, caen 3 tests con error y 2 con fallo. Los dos del
+gate siguen verdes, que es lo correcto —miden otra cosa—.
+
+Gate tras el cambio: **66 archivos · 4616 PASS · 0 FAIL**, typecheck 0, vitest
+142 archivos / 1251 tests.
+
+### Lo que falta para darlo por cerrado
+
+Una corrida real: abrir un proyecto con base institucional, construir el marco y
+comprobar que la app responde mientras tanto, que la barra avanza por las seis
+etapas y que cancelar funciona. Es lo único que prueba que los nueve minutos de
+bloqueo se fueron — el resto es infraestructura verificada, no el efecto.
 
 ---
 
@@ -318,12 +372,42 @@ precisamente el cruce de las dos cosas que ya fallaron por separado.
 
 `api/tests/testthat/test-calc-muestra-aulas-descuento-pi.R`.
 
-### Cómo se cierra
+### Qué se cambió
 
-Repetir la medición direccional con `estratificado_aleatorio`. Si el motor está
-bien, el test pasa a la primera — y entonces vale la pena verificarlo con un
-mutante (romper a propósito la π publicada y comprobar que el test lo caza),
-porque un test que pasa a la primera puede estar midiendo nada.
+**Cerrado el 2026-08-15**, pero no copiando el arnés: la dirección esperada
+resultó ser **la contraria**, y descubrirlo era el trabajo.
+
+Con PPS la medida de tamaño manda, así que descontar repetidos mueve la π: las
+aulas grandes solapadas pierden probabilidad y las chicas disjuntas la ganan.
+Con `estratificado_aleatorio` el sorteo es **uniforme dentro del estrato** y la
+MOS no interviene — recalcularla sobre netos no cambia la chance de nadie
+mientras el aula conserve elegibles.
+
+Medido en el mismo marco de traslape, 400 corridas:
+
+| | A1 (100) | A2 (100) | A3 (30) | A4 (30) |
+|---|---:|---:|---:|---:|
+| π declarada | 0.500 | 0.500 | 0.500 | 0.500 |
+| π medida por MC | 0.505 | 0.483 | 0.490 | 0.523 |
+
+Desvío máximo 0.023, con SE ≈ 0.025. La π no se mueve, y las aulas de 100 y las
+de 30 tienen la misma — que es exactamente lo que distingue este motor del PPS.
+
+El test que salió es un **control negativo**: prueba que el arnés MC no fabrica
+divergencias donde no las hay. Copiar el test de PPS habría producido un rojo
+que parecería un defecto del motor cuando el motor está bien.
+
+### Cómo se verifica
+
+`test-calc-muestra-aulas-descuento-pi.R`, tercer test. Margen 0.10 (4 SE), que
+tolera el ruido y queda muy por debajo de la separación que produciría una π
+proporcional al tamaño (0.769 vs 0.231).
+
+**Verificado con mutante**: reintroduciendo el Defecto 1 del ADR 0066 —que
+`estratificado_aleatorio` vuelva a publicar π PPS— caen **5 asserts**. Los otros
+dos tests del archivo siguen verdes, porque miden PPS y el mutante no los toca.
+Además de cerrar la celda que faltaba, el test queda como guard de esa
+regresión concreta.
 
 ---
 
@@ -337,8 +421,12 @@ loop de frontend»; se cerró un tercio.
 | Campo | Motor R | Tipo en `api/calcMuestra.ts` | ¿Alguna superficie lo muestra? |
 |---|---|---|---|
 | `residual_negativo` | ✅ | ✅ | ✅ `HistoricoEstudioPanel.tsx` |
-| `composicion_na_n` | ✅ | ✅ | ❌ **ninguna** |
-| `asistencia_elegibles_min` / `_max` | ✅ | ✅ | ❌ **ninguna** |
+| `composicion_na_n` | ✅ | ✅ | ✅ **desde 2026-08-15** · `CriterioComposicionCard.tsx` |
+| `asistencia_elegibles_min` / `_max` | ✅ | ✅ | ✅ **desde 2026-08-15** · `BarraTasa` en la serie semanal |
+
+El tipo de `composicion_na_n` lo decía con todas las letras: *«divulgación
+aditiva: frames previos no lo traen y no hay UI en esta ronda»*. Esa ronda nunca
+llegó hasta hoy.
 
 ### Por qué importa
 
@@ -360,12 +448,43 @@ precisamente para que esa advertencia sea visible; hoy no lo es.
 Tipos en `frontend/src/api/calcMuestra.ts`. La superficie natural es la misma
 que ya muestra `residual_negativo`.
 
-### Cómo se verifica
+### Qué se cambió (`composicion_na_n`)
 
-Que las tres cifras se lean en pantalla con su denominador rotulado, y que su
-vacío esté clasificado (C3 del Contrato de Superficie): un intervalo ausente
-porque el screening fue completo no se dibuja igual que uno ausente porque el
-motor no lo calculó.
+Vive ahora dentro de cada paso de `CriterioComposicionCard`, pegada al recorte:
+*«**37** de los 420 que quedan entraron sin señal que medir: el criterio no los
+evalúa, los deja pasar»*. Sale de `perfil.opcionales[id].composicion_na_n`, que
+es del marco ejecutado y global al criterio.
+
+La regla que la hace honesta: **sin cifra o en cero, no hay línea**. Un 0 sobre
+un frame que no trae la clave afirmaría que se midió y no había ninguno, cuando
+la verdad es que no se midió.
+
+**Verificado con mutante**: quitando el guard del cero y haciendo que los tres
+pasos lean el mismo criterio, caen **3 de los 5 tests**. Los 2 que sobreviven
+son los que miden otra cosa (frame sin la clave, tarjeta sin el prop).
+
+### Qué se cambió (el intervalo de elegibles)
+
+La asistencia de elegibles no se observa: se acota. `BarraTasa` acepta ahora
+`cotaInferior` y, con las dos cotas, deja de afirmar un punto: sólido hasta lo
+cierto, tramado hasta el techo, y la cifra como rango (`62%–87%`).
+
+El vacío queda clasificado (C3) por construcción: sin glosario el motor no
+publica el intervalo, la barra es la de siempre y no insinúa incertidumbre. Y
+sólo cambia de forma cuando el intervalo es **real** —cota finita y menor que el
+valor—, así que ni un intervalo degenerado ni un payload imposible (suelo por
+encima del techo) producen una barra rara.
+
+**Verificado con mutante**: colapsando el guard a `cotaInferior != null` caen
+**3 de los 6 tests** — degenerado, cota mayor que el valor, y valor nulo.
+
+### Lo que abrió: L10 del GOAL
+
+Rastreando las cotas apareció que el agregado **ya publica el intervalo sin
+decirlo**: la tasa de «Asistencia» del panel es la cota superior y la de
+«Rendimiento» es la inferior, están una al lado de la otra y nada dice que son
+las dos cotas de la misma cantidad. Queda anotado como L10 porque cambia la
+lectura de la cifra principal y merece decidirse, no colarse.
 
 ---
 
