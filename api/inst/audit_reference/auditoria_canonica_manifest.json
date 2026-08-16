@@ -1,12 +1,12 @@
 {
   "ok": true,
   "name": "Auditoria Canonica Prosecnur",
-  "generated_at": "2026-06-20T14:17:56Z",
+  "generated_at": "2026-08-16T13:12:52Z",
   "project_path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso",
-  "project_sha256": "62c49aa92432c63ca8bcb17eaa37cb3dff5e0e15734052ce8ea5d33646a94055",
+  "project_sha256": "0c7dc0e94836266483fc74ac6add1c8a18eb2a0576d5a3d5c03d4f2c50b011d3",
   "xlsform_path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/auditoria_canonica_xlsform.xlsx",
   "data_path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/auditoria_canonica_data.xlsx",
   "data_panel_path": "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/auditoria_canonica_data_ola2.xlsx",
-  "app_version": "3.4.2",
-  "git_sha": "2d6dd5e"
+  "app_version": "0.8.0",
+  "git_sha": "b459880f"
 }
