@@ -71,6 +71,42 @@ NULL
 }
 
 
+#' Quita los tipos de contenido declarados para extensiones que no existen
+#'
+#' `officer` declara un `Default` por cada formato de imagen que sabe manejar,
+#' aunque el paquete no contenga ninguno: en un mazo con solo PNG se declaran
+#' nueve de mas —jpeg, gif, svg, bmp, emf, wmf, tiff, pdf y jpg—. Uno de ellos
+#' declara `jpg` como `application/octet-stream`, que no es el tipo de un JPEG.
+#' El entregable aprobado no trae ninguno de los nueve.
+#'
+#' Los que SI corresponden a partes presentes se conservan tal cual: un mazo con
+#' iconos SVG necesita su `Default`, y quitarlo romperia el paquete de verdad.
+#'
+#' @param ct Texto de `[Content_Types].xml`.
+#' @param extensiones Extensiones realmente presentes en el paquete.
+#' @return El XML con solo los `Default` que se usan.
+#' @keywords internal
+.ooxml_limpiar_content_types <- function(ct, extensiones) {
+  if (!is.character(ct) || length(ct) != 1L || is.na(ct)) return(ct)
+  ext <- tolower(as.character(extensiones %||% character(0)))
+  # Sin lista de extensiones no se sabe cual sobra: no tocar es lo seguro.
+  # Borrarlas todas dejaria el paquete sin tipo para sus propias partes.
+  if (!length(ext)) return(ct)
+  patron <- "<Default Extension=\"([^\"]+)\" ContentType=\"[^\"]*\"\\s*/>"
+  trozos <- regmatches(ct, gregexpr(patron, ct, perl = TRUE))[[1]]
+  if (!length(trozos)) return(ct)
+  decl <- tolower(sub("^<Default Extension=\"([^\"]+)\".*$", "\\1", trozos))
+  # `rels` y `xml` nunca son partes con extension propia visible pero son
+  # obligatorias: se conservan siempre.
+  conservar <- decl %in% c(ext, "rels", "xml")
+  if (all(conservar)) return(ct)
+  regmatches(ct, gregexpr(patron, ct, perl = TRUE)) <- list(
+    ifelse(conservar, trozos, "")
+  )
+  ct
+}
+
+
 #' Sanea el texto XML de una parte del paquete
 #'
 #' @param xml Texto XML completo de una parte.
@@ -153,11 +189,17 @@ ppt_sanear_ooxml <- function(path) {
     orden <- utils::unzip(path, list = TRUE)$Name
     utils::unzip(path, exdir = dir)
 
+    extensiones <- unique(tolower(tools::file_ext(orden)))
+    extensiones <- extensiones[nzchar(extensiones)]
+
     partes <- list.files(dir, pattern = "\\.xml$", recursive = TRUE, full.names = TRUE)
     tocadas <- 0L
     for (p in partes) {
       xml <- paste(readLines(p, warn = FALSE, encoding = "UTF-8"), collapse = "")
       nuevo <- .ooxml_sanear_texto(xml)
+      if (identical(basename(p), "[Content_Types].xml")) {
+        nuevo <- .ooxml_limpiar_content_types(nuevo, extensiones)
+      }
       if (!identical(xml, nuevo)) {
         con <- file(p, open = "wb")
         writeBin(charToRaw(nuevo), con)
