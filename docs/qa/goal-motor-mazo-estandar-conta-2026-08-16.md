@@ -36,7 +36,7 @@ que separa «el motor dibuja» de «el motor entrega».
 
 | # | Qué | Vara | Estado |
 |---|---|---|---|
-| L1 | Inventariar el informe de CONTA lámina por lámina y marcar cuáles sabe hacer el motor hoy | V1 | ☐ **sin empezar** · es el mapa; sin él la distancia es una impresión |
+| L1 | Inventariar el informe de CONTA lámina por lámina y marcar cuáles sabe hacer el motor hoy | V1 | ◐ **mitad hecha** · inventariado lo que el motor sabe hoy (abajo); falta el lado del informe, que espera decisión |
 | L2 | Reunir los comentarios de Gabriela y clasificarlos: motor, receta, dato o criterio | V2 | ☐ |
 | L3 | Cerrar los que son del motor | V2 | ☐ |
 | L4 | Cerrar los que son de receta | V2 | ☐ |
@@ -46,6 +46,33 @@ que separa «el motor dibuja» de «el motor entrega».
 | L8 | Definir al milímetro los gráficos que hoy calibran a ojo | V3 | ☐ |
 | L9 | Ampliar tipos de lámina, uno por necesidad medida | V5 | ☐ |
 | L10 | Guard de no-regresión entre tipos de gráfico | V6 | ☐ |
+
+## Lo que el motor sabe hacer hoy (2026-08-16)
+
+Mitad no bloqueada de L1: el lado del motor no depende de qué informe sea el
+canónico, así que se midió primero.
+
+| | |
+|---|---|
+| Graficadores con nombre propio | **23** |
+| Tipos de lámina | **3** — `title_slide`, `text_slide`, `ppt_slide` |
+| Archivos del motor de plan/slides | 12 |
+
+Los 23: barras (categóricas, numéricas, agrupadas, apiladas, divergentes),
+boxplot, histograma, pie, lollipop, dumbbell, radar (simple, dimensiones, tabla,
+comparativo radarbar), heatmap (dimensiones, criterios), FODA, media-rango,
+puntos comparativos, serie temporal, nube de palabras, mapa de cobertura
+territorial y el propio `graficar_ppt`.
+
+**La cifra que llama la atención es la de láminas: tres.** Veintitrés formas de
+dibujar y tres formas de montar la página. Si el informe de CONTA usa
+disposiciones que el motor no tiene —dos gráficos comparados, gráfico con tabla
+al lado, lámina de cierre con conclusión— eso no sale de un graficador nuevo
+sino de un tipo de lámina nuevo, y es justo lo que V5 pide medir contra un
+informe real antes de inventar.
+
+Queda pendiente el otro lado del mapa: qué necesita el informe. Sin él esto es
+un inventario, no una distancia.
 
 ## Reglas de este loop
 
