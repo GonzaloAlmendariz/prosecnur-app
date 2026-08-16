@@ -180,3 +180,23 @@ export function marcoFueConstruido(
   const hash = (frame as { frame_hash?: unknown } | null | undefined)?.frame_hash;
   return typeof hash === "string" && hash.trim().length > 0;
 }
+
+/**
+ * Nota bajo los KPIs de elegibles: en qué estado está el marco y qué hacer.
+ *
+ * Vive aquí y no dentro de la cabecera porque la distinción que resuelve es la
+ * misma que gobierna `marcoFueConstruido`, y porque una decisión que se toma
+ * mirando tres estados merece poder probarse sin montar el componente entero.
+ *
+ * `null` significa que no hay nada que advertir: el marco está construido y
+ * cuadra con su radiografía.
+ */
+export function notaEstadoDelMarco(
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+): string | null {
+  if (!marcoFueConstruido(frame)) return "sin construir · calcula elegibles";
+  const { status } = frameIntegrity(frame);
+  if (status === "inconsistent") return "frame incoherente · reconstruye";
+  if (status === "unverifiable") return "frame no verificable · reconstruye";
+  return null;
+}
