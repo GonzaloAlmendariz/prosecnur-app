@@ -60,6 +60,7 @@ sabe nada que la interfaz calle.
 | **L27** | Barrido de Monitoreo territorial | `filasDeFase.ts` | ☑ hecho — cuatro respuestas se perdían entre la consola y el tablero. |
 | **L28** | Bitácora no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves en los cuatro proyectos; tercer módulo, misma decisión que L24 y L26. |
 | **L29** | Barrido de Gráficos | `coberturaBases.ts` | ☑ hecho — la etapa se daba por hecha con la mitad del estudio sin mazo. |
+| **L31** | Segunda pasada sobre lo que este GOAL reparó | `filasDeFase.ts`, `marcoCartografia.ts` | ☑ hecho — dos arreglos míos tapaban un aviso más urgente. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ☑ hecho — Gráficos en [L29], Cálculo de muestra en [L30] **sin hallazgos**. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -119,6 +120,41 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L31 — la lección de L30 al revés, aplicada a mis propios arreglos
+
+L30 enseñó que un campo sin consumidor puede ser una retirada deliberada. El
+reverso: **una frase nueva puede tapar una anterior que importaba más**. Revisé
+con ese criterio los nueve arreglos de este GOAL. Dos fallaban, y los dos son
+míos y de la misma forma.
+
+**Monitoreo.** `territorialPhaseStatusLabel` devuelve mi desglose de conteos
+*antes* que `item.message`, y `describirFilasDeFase` no miraba el `status`. Con
+`dashboard_stale`, `sync_error` o `source_snapshot_mismatch` **y** diferencia de
+filas, el mensaje del motor —«Actualiza Campo para reconstruir el corte»— se
+habría reemplazado por aritmética. Ahora sólo narra sobre
+`source_synced_with_rows`. Mi propio test lo dejaba pasar: usaba
+`report_rows: null` para el caso de `sync_error`, así que nunca ejercitaba la
+combinación peligrosa.
+
+**Hojas de ruta.** La banda del marco piloto pasó a leerse «117 352 manzanas
+coinciden…; 1 056 sólo en la oficial. Marco empaquetado para el piloto
+funcional…», dejando lo urgente —que las manzanas siguen limitadas al piloto—
+detrás de una pared de números. Y era engañoso además: `frame.audit` audita
+**siempre** la cartografía empaquetada completa, no el subconjunto del piloto,
+así que describía un marco que no está en uso. En piloto vuelve la nota sola.
+
+Los otros siete pasan: Analítica no compite con ningún mensaje por ese hueco;
+en Codificación motivo y nota son excluyentes por estado; en Gráficos
+`blockedReason` quedó separado de `faltaReason` y hay test; y en Monitoreo la
+repetición de «1 693 de 1 697» en el riel y en la tarjeta ya existía antes
+—cambié el texto de las dos, no agregué superficie—.
+
+**La trampa, y es sobre cómo se prueba:** los dos defectos vivían en la
+precedencia, no en el cálculo, y mis tests del módulo puro no podían verlos. El
+de Monitoreo lo tapé yo mismo eligiendo un fixture que esquivaba la
+combinación. Un test que cubre el caso peligroso con datos que lo desactivan da
+verde y no prueba nada.
 
 ### L30 — Cálculo de muestra: sin hallazgos, y un falso positivo que casi cometo
 
