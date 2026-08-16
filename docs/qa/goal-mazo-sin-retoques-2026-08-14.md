@@ -31,7 +31,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V6 | Ningún gráfico pasa del techo de barras | ≤ 7 (máx.) | 3 fallos | **0** ✓ |
 | V7 | El grosor cae en su celda del recetario | mediana 0.512 | 0.510 | **0.486** ✓ |
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
-| V9 | Cada familia de gráfico tiene su receta medida | recetas / graficadores | **10 de 18** ◐ |
+| V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
 | V10 | Cada comentario de Gabriela tiene regla y estado | 57 comentarios → 17 reglas | ◐ sin mapa por comentario |
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **4 de 10** ◐ |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
@@ -64,8 +64,8 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
-| L21 | Inventario: qué familias de las 18 no tienen receta | recetario | ☐ |
-| L22 | Medir cada familia sin receta contra Contabilidad y escribirla | recetario | ☐ |
+| L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
+| L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | doc nuevo | ☐ |
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
 | L25 | Ampliar `verificar_mazo()` a las 6 reglas sin cubrir | verificador | ☐ |
@@ -727,3 +727,25 @@ es cuánto muestra antes de cortar: del 42 % al 51 %.
 Queda como decisión del analista, no del motor: acortar los enunciados —el plan
 promedia 103 caracteres contra los 90 del aprobado, y el 51 % pasa de 90— o
 aceptar el recorte, que va avisado.
+
+### V9 cerrada, y el denominador estaba inventado
+
+«10 recetas de 18 familias» mezclaba dos cosas. **Siete de las diez recetas son
+transversales** —tipografía, color de escala, posición del título, arranque
+vertical, color del texto, interlineado, y el criterio de partir la lámina—: se
+aplican a cualquier familia. Sólo tres hablan de una familia concreta.
+
+Y el denominador tampoco eran 18. **Contabilidad usa tres familias**:
+multiapiladas (42 láminas), agrupadas (20) y circulares (4). Las tres tienen su
+receta. **V9 cierra en 3 de 3.**
+
+El motor dibuja además un **radar** en dos láminas, y ahí no hay nada que medir:
+el entregable aprobado **no tiene ninguna** —2 láminas suyas llevan `custGeom`,
+pero de 4 y 2 geometrías, contra las 16-17 de un radar—. El radar lo añade el
+plan actual, no el modelo.
+
+**Las otras catorce familias del motor no aparecen en Contabilidad.** Su receta
+no puede salir de este estudio: hace falta otro entregable aprobado que las use,
+o se escriben por criterio y entonces no son medición. Queda como **L22
+bloqueado**, no como pendiente: pendiente sugiere que basta con ponerse, y aquí
+falta el modelo.
