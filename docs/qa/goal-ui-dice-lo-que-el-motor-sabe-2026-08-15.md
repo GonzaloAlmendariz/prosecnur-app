@@ -53,6 +53,7 @@ sabe nada que la interfaz calle.
 | **L18** | Barrido de módulos sin tocar: Hojas de ruta, Recopiladores y Bitácora | `RecopiladoresShell.tsx` | ☑ hecho — **un hallazgo** (`22713e67`). Cálculo de muestra queda fuera mientras la otra sesión lo trabaje. |
 | **L20** | Barrido de Analítica y Dashboard | — | ☑ hecho — **sin hallazgos**, con una limitación de medición anotada. |
 | **L22** | Analítica sobre payload poblado (lo que L20 no pudo medir) | `coberturaVariable.ts` | ☑ hecho — «0 con dato» decía tres cosas distintas. |
+| **L23** | Recontar Validación y Codificación con el criterio de fixture de L22 | `decisionCodificacion.ts` | ☑ hecho — la única con decisión abierta era la única sin chip. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ⛔ bloqueado — los trabaja la otra sesión sobre este mismo árbol. Desbloquea: que suelte esos archivos. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -112,6 +113,40 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L23 — el censo de estados, y lo que destapó
+
+Aplicando L22 al revés: antes de dar por conforme lo que cerré en Codificación,
+conté cuántos casos de cada estado del ADR 0078 contienen los proyectos de
+referencia. El censo, sobre los cuatro:
+
+| Estado | Casos en los 4 proyectos |
+|---|---|
+| `sin_marcar` | 29 |
+| `pendiente_parcial` | 1 |
+| `categorizada`, `no_categorizar`, `sin_material`, `pendiente`, `requiere_config` | **0** |
+
+Cinco de los siete estados **no existen en ningún proyecto de referencia**, y
+sólo `acnur_acg` tiene draft de codificación: `acrconta`, `acnur_pdm` y
+`hsvg2026` no tienen ninguno. Todo el trabajo del ADR 0078 estaba verificado
+por tests unitarios y nunca contra una pantalla con datos.
+
+Y el único caso real que sí existe destapó el defecto. De las cinco variantes
+de tarjeta, **la emparejada era la única que no montaba `stats`**, y por tanto
+la única sin chip de decisión. `D1_information` —la única de las 30 con
+decisión abierta— mostraba un «En codificación automáticamente» en verde y nada
+más, mientras el encabezado decía «1 sin decidir» sin que ninguna tarjeta
+dijera cuál.
+
+Debajo había un segundo hallazgo del patrón de siempre: `n_codificadas` llega
+en el payload y **no tenía ningún consumidor**. El chip decía «A medias» y el
+motor sabía que eran 27 de 75. Una pregunta a la que le queda una respuesta se
+veía igual que ésta, en la lista donde se decide qué atender primero.
+
+**La trampa**, esta vez cara: el chip pinta motivo y nota en la misma ranura, y
+colapsarlos en una variable produjo un `title` que decía «Motivo: 48 sin
+asignar». Los tests del módulo puro no llegan al markup, así que no lo vieron.
+Un estado nuevo en un componente sin test de render se verifica solo mirándolo.
 
 ### L22 — el mismo «0 con dato» para tres situaciones opuestas
 
