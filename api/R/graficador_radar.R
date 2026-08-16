@@ -1011,7 +1011,9 @@ graficar_radar <- function(
       data = df_val,
       ggplot2::aes(x = .data$x, y = .data$y, label = .data$.lab_val, color = .data$.grupo),
       size = size_valores,
-      family = font_family,
+      # Literal por lo mismo que en las etiquetas de eje: `font_family` no esta
+      # en scope en el cuerpo de `graficar_radar()`.
+      family = "Arial",
       fontface = "bold",
       show.legend = FALSE
     )
@@ -1050,7 +1052,13 @@ graficar_radar <- function(
       # Sin `family` estos textos caian al default del device —Helvetica— y el
       # mazo salia con dos tipografias: 22 textos en las dos laminas de radar,
       # contra un entregable aprobado que usa Arial y nada mas.
-      family = font_family,
+      #
+      # El literal, no la variable: el unico `font_family` del archivo es el
+      # parametro de `.make_table_grob_ttb_style()`, que aqui no esta en scope.
+      # Escrito como variable, `graficar_radar()` aborta con «object
+      # 'font_family' not found` en cuanto se le pide sin canvas —la ruta que el
+      # mazo no ejercita—. El resto del cuerpo ya usa el literal.
+      family = "Arial",
       fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
       lineheight = 0.95
     )

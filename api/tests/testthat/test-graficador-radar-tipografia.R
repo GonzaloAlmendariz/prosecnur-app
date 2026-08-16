@@ -52,3 +52,47 @@ test_that("el literal se usa donde la variable no llega", {
   ), collapse = "\n")
   expect_true(grepl('family = "Arial"', f, fixed = TRUE))
 })
+
+
+test_that("`graficar_radar` corre sin canvas, que es donde reventaba", {
+  # Este es el test que faltaba. Los dos anteriores leen el FUENTE y por eso
+  # dieron verde mientras el motor estaba roto: comprobaban que existiera algun
+  # `family = "Arial"` —lo habia, en otras tres lineas— sin ejercitar la ruta.
+  # Al sustituir `family = "sans"` por `family = font_family` en dos geom_text
+  # del cuerpo de `graficar_radar()`, esa variable no estaba en scope: el unico
+  # `font_family` del archivo es un parametro de `.make_table_grob_ttb_style()`.
+  # Con canvas la funcion no llega ahi, y el mazo solo usa canvas —por eso las
+  # 66 laminas salian bien con el motor abortando en la otra ruta—.
+  d <- data.frame(
+    eje = c("E1", "E2", "E3"),
+    grupo = "Total",
+    valor = c(0.30, 0.55, 0.70),
+    stringsAsFactors = FALSE
+  )
+  expect_no_error(
+    graficar_radar(d, var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
+                   escala_valor = "proporcion_100", mostrar_valores = TRUE,
+                   usar_canvas = FALSE, exportar = "rplot")
+  )
+})
+
+
+test_that("ningun `family` de ggplot referencia la variable ausente", {
+  # Guarda directa contra la regresion. El `family =` de ggplot es el que vive
+  # en el cuerpo de `graficar_radar()`, donde `font_family` no existe. El
+  # `fontfamily =` de grid es otro: vive dentro de
+  # `.make_table_grob_ttb_style()`, que SI lo declara como parametro, y ahi la
+  # variable es lo correcto. Un patron `fixed` no distingue los dos porque
+  # «fontfamily = font_family» contiene «family = font_family».
+  f <- readLines(
+    testthat::test_path("..", "..", "R", "graficador_radar.R"),
+    warn = FALSE
+  )
+  expect_length(
+    grep("(?<!font)family = font_family", f, perl = TRUE),
+    0L
+  )
+  # Y las de grid siguen ahi: no se trata de borrar la variable, sino de usarla
+  # solo donde esta en scope.
+  expect_gt(length(grep("fontfamily = font_family", f, fixed = TRUE)), 0L)
+})
