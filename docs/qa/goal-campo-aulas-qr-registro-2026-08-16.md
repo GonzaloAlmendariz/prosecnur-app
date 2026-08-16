@@ -73,7 +73,7 @@ aula con mala luz y un teléfono viejo.
 | **L11** | Hay **dos plantillas por defecto que no coinciden**. | `DEFAULT_COLLECTION_TEMPLATE` (`MaterialsSection.tsx`) declaraba otra ficha que la del backend. | ☑ **hecho** (2026-08-16) — borrada. Era **inalcanzable**: el backend siempre responde plantilla y el componente corta el render en `loading`, así que nunca se dibujó ni sirvió de fallback. Queda una semilla vacía explícita y, si el backend respondiera sin plantilla, el editor avisa en vez de inventar una receta. ⚠ verificado con typecheck + 89 tests, **sin chequeo visual**. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
-| **L6** | El registro de campo no existe como concepto: hora de inicio, aforo observado, quién aplicó. | La ficha impresa **sí** los tiene (bloque `application_log`, 3 renglones a mano). Nunca vuelven al sistema. | ☐ sin empezar |
+| **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
 | **L8** | `apiMonitoreoAulasConfig` tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. | ☑ **hecho** (2026-08-16) — **no era limpieza: era el eslabón roto del circuito.** Su `source_mapping` es lo único que dice qué columna de Kobo lleva el id de colector, y sin UI nadie podía fijarlo. El fallback por nombres convencionales no incluía `collectorID`, que es justo el nombre que produce nuestro propio QR. Añadido a las dos listas de candidatos; el endpoint sigue sin superficie pero ya no hace falta para el caso normal. |
@@ -291,3 +291,29 @@ raíz**: el cruce funciona sin configurar nada. Lo que falta de V7 —el «mient
 ocurre»— sigue dependiendo de L4.
 
 Control verificado: revertir el fallback pone el test en rojo.
+
+### 2026-08-16 — L6: la premisa era falsa y el arreglo casi rompe la hoja
+L6 decía «el registro de campo no existe como concepto». **Existe**, y muy bien:
+`collection_material_field_form_rows()` lo define completo —facultad, aula,
+curso, docente, alumnos en aula con hombres y mujeres, encuestas aplicadas,
+rechazos, aplicador/a, fecha y hora— calcado de la hoja de papel que el equipo
+ya usaba. Vive en la ficha de campo (`ficha_campo_qr_a4_v1`).
+
+Lo real era otra cosa: la ficha **built-in** imprimía tres renglones numerados
+`1`, `2`, `3` sin etiqueta. Un segundo registro, vago, compitiendo con el bueno
+— y unas líneas en blanco sin rótulo *son* la planilla paralela que V8 quiere
+eliminar, sólo que impresa en nuestra propia hoja.
+
+Ahora ambas plantillas leen el vocabulario de **una sola función**
+(`collection_material_application_log_labels()`), recortado a lo que la ficha no
+imprime ya. Dos listas paralelas del mismo registro derivan, y después no hay
+forma de juntar lo anotado — la lección de L11 aplicada antes de cometerla.
+
+**Y volví a tropezar con lo mismo que en L3**: pasar de 3 a 5 renglones metió el
+quinto encima del pie, sobre el logo. `application_log` no tenía guardia de
+desbordamiento —el contrato admite hasta 6 filas y la banda no da para seis al
+paso cómodo— así que ni avisaba. Ahora reparte su banda y recorta con
+`application_log_overflow`, igual que el grid.
+
+Se ve en el PNG: los cinco rótulos caben y el pie queda limpio. Controles
+verificados: quitar el reparto pone el test en rojo.

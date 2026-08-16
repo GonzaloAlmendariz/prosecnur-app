@@ -33,6 +33,12 @@
     y_log_title = 0.196,
     y_log_rows = 0.168,
     log_row_step = 0.032,
+    log_row_step_min = 0.020,
+    # Suelo del registro: por debajo empieza el pie. `application_log` admite
+    # hasta 6 renglones por contrato y la banda no da para seis al paso comodo,
+    # asi que reparte igual que el grid en vez de escribir sobre el logo.
+    y_log_floor = 0.075,
+    log_label_w = 0.30,
     label_w = 0.13,
     # Cabecera propia del kit Pulso cuando no hay careta encima.
     y_brand = NA_real_,
@@ -574,11 +580,30 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       gp = grid::gpar(col = tokens$navy, fontsize = type$caption, fontface = "bold")
     )
     y0 <- L$y_log_rows
+    etiquetas <- as.character(unlist(log_block$labels %||% list(), use.names = FALSE))
+    banda_log <- L$y_log_rows - L$y_log_floor
+    max_log <- max(1L, as.integer(floor(banda_log / L$log_row_step_min)) + 1L)
+    if (rows_n > max_log) {
+      warnings[[length(warnings) + 1L]] <- list(
+        code = "application_log_overflow", page = page_no,
+        rows = rows_n, visible_rows = max_log
+      )
+      rows_n <- max_log
+    }
+    log_step <- if (rows_n > 1L) min(L$log_row_step, banda_log / (rows_n - 1L)) else 0
     for (i in seq_len(rows_n)) {
-      y <- y0 - (i - 1L) * L$log_row_step
-      grid::grid.text(sprintf("%d", i), x = L$x_left, y = y, just = "left", default.units = "npc",
-                      gp = grid::gpar(col = tokens$faint, fontsize = type$caption))
-      pulso_pdf_hairline(L$x_left + 0.03, L$x_right, y - 0.006, tokens = tokens, lwd = 0.5)
+      y <- y0 - (i - 1L) * log_step
+      # Con etiqueta, la linea dice que anotar y empieza donde termina el texto.
+      # Sin ella cae al ordinal de siempre, que no compromete a nada.
+      etiqueta <- if (i <= length(etiquetas)) etiquetas[[i]] else ""
+      con_etiqueta <- nzchar(etiqueta)
+      grid::grid.text(
+        if (con_etiqueta) etiqueta else sprintf("%d", i),
+        x = L$x_left, y = y, just = "left", default.units = "npc",
+        gp = grid::gpar(col = if (con_etiqueta) tokens$soft else tokens$faint, fontsize = type$caption)
+      )
+      inicio <- if (con_etiqueta) L$x_left + L$log_label_w else L$x_left + 0.03
+      pulso_pdf_hairline(inicio, L$x_right, y - 0.006, tokens = tokens, lwd = 0.5)
     }
   }
 
