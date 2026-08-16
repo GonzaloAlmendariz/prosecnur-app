@@ -56,9 +56,9 @@ sabe nada que la interfaz calle.
 | **L23** | Recontar Validación y Codificación con el criterio de fixture de L22 | `decisionCodificacion.ts` | ☑ hecho — la única con decisión abierta era la única sin chip. |
 | **L24** | Validación no tiene ningún caso real en el corpus de referencia | ADR 0043 | ⛔ bloqueado — exige decidir si se enriquece un proyecto de referencia (necesita la sal) o se acepta que Validación es sólo de tests. |
 | **L25** | Barrido de Hojas de ruta | `marcoCartografia.ts` | ☑ hecho — la auditoría del marco contra la cartografía oficial no tenía consumidor. |
-| **L26** | Recopiladores no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves de recopiladores en los cuatro proyectos; misma decisión que L24. |
+| **L26** | Recopiladores sin casos en el corpus | `audit_reference_gobierno.R` | ☑ hecho — el sintético trae un deployment `prepared` que cubre las 12 unidades. |
 | **L27** | Barrido de Monitoreo territorial | `filasDeFase.ts` | ☑ hecho — cuatro respuestas se perdían entre la consola y el tablero. |
-| **L28** | Bitácora no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves en los cuatro proyectos; tercer módulo, misma decisión que L24 y L26. |
+| **L28** | Bitácora sin casos en el corpus | `audit_reference_gobierno.R` | ☑ hecho — tres entradas en tres tonos. |
 | **L29** | Barrido de Gráficos | `coberturaBases.ts` | ☑ hecho — la etapa se daba por hecha con la mitad del estudio sin mazo. |
 | **L31** | Segunda pasada sobre lo que este GOAL reparó | `filasDeFase.ts`, `marcoCartografia.ts` | ☑ hecho — dos arreglos míos tapaban un aviso más urgente. |
 | **L32** | Pasada de cierre: verificar en pantalla y auditar mis propios tests | — | ☑ hecho — los tres arreglos limpios; un test nacido neutralizado, reparado. |
@@ -122,6 +122,45 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L34 — el sintético trae las decisiones que nadie podía mirar
+
+Cerrado L26 y L28, y el resto angosto de L24. El `.pulso` sintético canónico
+—que se construye desde el XLSForm del propio repo, sin datos de cliente, sin
+anonimizar y sin sal— ahora trae:
+
+| Fenómeno | Antes | Ahora |
+|---|---|---|
+| Plan de validación por base | vacío | **24 reglas** |
+| Reglas apagadas con motivo | 0 | **2 por base** |
+| Variables excluidas con motivo | 0 | **2 por base** (`fecha`, `region`) |
+| Deployment de Recopiladores | `NULL` | **`prepared`, 12 de 12 unidades cubiertas** |
+| Entradas de bitácora | 0 | **3, en tres tonos** |
+
+Y el informe metodológico, corrido sobre ese estado, ya narra las dos listas
+con el **nombre humano** de cada regla y su motivo, no con el id crudo.
+
+**Dos cuidados del fixture, ambos con test propio**, porque un fixture
+degenerado aparenta cobertura sin darla:
+
+- Los ids apagados salen del plan recién construido. Con un id inventado el
+  informe caería al id crudo justo donde debe ir el nombre — que es el defecto
+  que esto existe para poder ver.
+- Las variables excluidas se eligen **fuera** de las que tocan las reglas
+  apagadas. Si coincidieran, las dos listas dirían lo mismo, y apagar una regla
+  sobre una variable ya excluida es redundante.
+
+El deployment se arma con `collection_deployment_put` + `_prepare`, que es lo
+que hace la app: fabricarlo a mano se saltaría el validador del contrato. Costó
+cuatro vueltas —`target`, `capabilities.remote_write`, `sensitivity`, `prefill`
+por binding— y cada una la dijo el propio validador cuando le pedí los
+problemas en vez de adivinar.
+
+**La trampa:** `collection_state_get()` **deriva** el estado para leer pero no
+lo guarda. Durante el build el plan llegaba vacío y el sembrado se saltaba en
+silencio; hace falta `collection_state_seed()` explícito. Un helper que
+devuelve datos correctos sin persistirlos se comporta distinto según quién lo
+llame.
 
 ### L33 — L24 era un error mío: Validación sí tiene casos
 
