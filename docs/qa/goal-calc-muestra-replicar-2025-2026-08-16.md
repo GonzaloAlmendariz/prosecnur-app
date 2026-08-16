@@ -1501,3 +1501,43 @@ trayendo `aulas_base_fijas`, el modo no cambiaría ni una cifra —sólo el
 otra constante donde el problema es justamente que hay constantes. El preset
 existe para reproducir 2025; el camino vivo ya toma sus divisores del marco
 desde L15.
+
+---
+
+## L17 · La cadena viva, verificada contra el marco real (2026-08-16)
+
+L15 y L16 se verificaron con tests y con el preset. Faltaba la pregunta que los
+tests no contestan: **¿el marco real tiene con qué alimentarlos?** Un cableado
+puede estar perfecto y ser un no-op si la fuente no publica el dato.
+
+Medido sobre el frame del estudio real:
+
+- El perfil **sí** publica `est_aula_mediana` y `est_aula_media` por facultad,
+  para las 15, con `est_aula_n_ch` al lado (577, 373, 310, 423, 144, 93…). Hay
+  con qué.
+- El emparejamiento por slug —el punto donde este tipo de cableado suele fallar
+  en silencio— da **15 de 15**. Los estratos salen de la columna `faculty` de
+  `population` y los divisores del perfil de R: dos rutas distintas, mismos
+  nombres tras normalizar.
+
+Y el payload que el frontend arma ahora, corrido contra el motor:
+
+| Configuración | Titulares | Reservas | `estadistico_usado` |
+|---|---|---|---|
+| Como estaba (sin divisores → global 28) | 180 | 15 | `media` |
+| Con la media por facultad (L15) | **154** | 15 | `media` |
+| **Con mediana y `min_media_mediana`** (L15 + L16) | **160** | 15 | **`min_media_mediana`** |
+
+Los cuatro puntos que había que comprobar quedan comprobados: los divisores
+llegan por facultad y no en global; el estadístico viaja; el motor **declara
+haberlo usado** en las quince y no degrada a la media; y los titulares quedan en
+160, cómodamente bajo el umbral de 200.
+
+Las cifras no coinciden con las del tick anterior (166 y 199) y es lo esperado:
+aquellas salían de las medianas y medias del preset —las de 2025— y éstas del
+marco real cargado. Que se muevan es exactamente el comportamiento que faltaba.
+
+### Lo que sigue abierto
+
+El recorrido visual de `CalculoCursosHorarioFacultadTab` renderizada sigue sin
+hacerse. Lo verificado aquí es el motor y el payload, no la pantalla.
