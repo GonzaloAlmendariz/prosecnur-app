@@ -108,7 +108,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☑ **hecho** (2026-08-16) — control `field_report_reconciliation` en el tablero. Detecta los 2 descuadres del estudio real y **explica la resta**, no sólo el hecho. |
 | **L38** | El tablero **reventaba entero** el primer día de campo. | `.monitoreo_aulas_quota_sex_faculty()` construía el caso vacío con la columna `x` y la renombraba a `observed` sólo `if (nrow(observed))` — que nunca se cumple. El merge salía sin la columna y la línea siguiente asignaba `integer(0)` a un data.frame con filas. | ☑ **hecho** (2026-08-16) — hallazgo de propina al sembrar el `.pulso` de L23. |
 | **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
-| **L40** | El alto se reparte al revés del contenido. | En Avance, el panel de 7 filas recibe **135 px** y el de 6 filas **303 px**. Las 7 filas están en el DOM y hay scroll interno (61/313), así que **C4 es conforme**: se alcanzan. Lo que falla es C3 — el reparto no sigue la necesidad. | ☐ sin empezar — medido, no tocado. |
+| **L40** | El alto se repartía al revés del contenido. | El stack es grid y la tabla topa en `min(420px, 100vh−430px)`: dos límites pensados para **una** tabla por vista. Con tres, grid sirve enteras a las que caben y descuenta todo el faltante de la única que excede. A 1024×600 **dos de los tres paneles colapsaban a cero** — regresión que introdujo L39. | ☑ **hecho** (2026-08-16) — paneles que no se encogen; el scroll lo absorbe su dueño ya declarado. Verificado a 1440×1000 y 1024×600. |
 | **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
@@ -657,3 +657,37 @@ Dos decisiones sobre qué hacer cuando no hay de dónde:
 **Lección de método aplicada**: el control invertido de este ítem se hizo con
 copia y restauración del archivo, no con `git checkout` — que en el turno
 anterior se llevó por delante dos ediciones sin stagear.
+
+
+### 2026-08-16 — L40: dos intentos fallidos antes del bueno
+
+La reparación de L39 tenía una regresión que sólo se veía en el viewport bajo:
+al pasar de un panel a tres, **a 1024×600 dos de ellos colapsaban a altura
+cero**. A 1440×1000 la vista se veía bien, y por eso no lo noté al commitear.
+
+Dos intentos que no sirvieron, anotados para no repetirlos:
+
+- **Un `min-height` en la tabla.** Grid le concede a la que desborda
+  exactamente ese mínimo y ni un píxel más, así que subirlo sólo traslada vacío
+  a las tablas cortas (190 px daba 188/188/229, con 58 px muertos en la de 3
+  filas) y bajarlo empeora la principal (150 px la dejaba en 148). Y a 1024×600
+  hacía que los paneles **se solaparan**: peor que el defecto original.
+- **Quitar sólo el `max-height`.** La compresión no la produce el tope sino que
+  las filas del grid se encogen. Volvía exacto a 61 px.
+
+Lo que funcionó: que los paneles **no se encojan** (`flex: 0 0 auto`) y que el
+total lo absorba `.mon-profile-content`, que ya era el dueño de scroll declarado
+de la vista. Sin `max-height` la tabla tampoco scrollea por dentro, así que no
+aparece una cadena anidada.
+
+| | 1440×1000 | 1024×600 |
+|---|---|---|
+| Antes | 61 / 130 / 229 de 313 / 130 / 229 | dos paneles a cero |
+| Ahora | 313 / 130 / 229 — completas | 313 / 141 / 229 — completas |
+
+`atEnd` alcanzable, última fila visible, **cero scrollers dentro del stack**.
+
+**La lección es del método, no del CSS**: medí L39 sólo a 1440×1000 y di por
+bueno un cambio que rompía el viewport bajo. La matriz de QA tiene cinco
+viewports por esto exactamente, y «se ve bien» en uno no es evidencia de nada
+sobre los otros.
