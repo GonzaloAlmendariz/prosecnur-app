@@ -57,7 +57,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
-| L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☐ |
+| L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ☐ |
 
@@ -93,6 +93,50 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L10 · el reparto de aulas por facultad (2026-08-16)
+
+Los dos componentes traen **15 estratos** con N que suma **21.365** —cuadra con
+los elegibles— pero **todos los campos del reparto están en cero**:
+`cuota_fija`, `sobremuestra_fija`, `aulas_base_fijas`,
+`aulas_extra_operativas`, `promedio_conglomerado`, `mediana_conglomerado`,
+`tau`. Ni un estrato con valor.
+
+**V7 se queda sin patrón, igual que V5.** No hay contra qué contrastar el
+reparto de 2025 dentro del proyecto.
+
+### El patrón real: el `.pulso` guarda decisiones, no resultados
+
+Tres artefactos del cálculo faltan en el proyecto guardado, y ya no parece
+casualidad:
+
+| Artefacto | ¿Se conserva? |
+|---|---|
+| Parámetros (z, p, e, deff) | ✅ |
+| Marco y estratos con su N | ✅ |
+| Decisión de alumnos por CH | ✅ |
+| **n calculado** | ❌ |
+| **Aulas totales** | ❌ |
+| **Reparto por estrato** | ❌ |
+
+Lo que entra a la decisión sobrevive; **lo que sale del motor, no**. Y eso hace
+que un proyecto archivado no pueda mostrar su propio diseño muestral sin
+recalcularlo —con el marco y la decisión exactos de entonces, que es
+precisamente la cadena que resultó frágil en el GOAL hermano—.
+
+Es la misma pregunta de contrato que abrió L8, ahora con tres casos en vez de
+uno: **¿el resultado del cálculo debería sobrevivir en el `.pulso`?**
+
+### De paso: 15 estratos frente a 18 facultades
+
+Los componentes reparten sobre **15 estratos**; `alumnos_por_ch` publica **18
+facultades**. La diferencia cuadra con el criterio `faculty`, que lista 15: las
+otras tres son las que el criterio excluye —posgrado, estudios especiales y el
+consorcio—.
+
+No es un defecto, pero conviene tenerlo presente al comparar tablas: **una misma
+palabra, «facultad», cuenta 18 en el marco y 15 en el diseño.** Comparar las dos
+sin notarlo produce una diferencia que no existe.
 
 ## L9 · alumnos por CH por facultad (2026-08-16)
 
