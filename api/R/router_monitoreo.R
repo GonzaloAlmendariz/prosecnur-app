@@ -4794,6 +4794,38 @@ mount_monitoreo <- function(pr) {
       cfg <- .monitoreo_store_config(sid, cfg)
       list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid))
     })) |>
+    # Importa el libro operativo del estudio: las tres hojas que el equipo llena
+    # en Excel. La app LEE; no sustituye la hoja de calculo.
+    plumber::pr_post("/api/monitoreo/aulas/importar-libro", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      parsed <- .monitoreo_parse_body(req)
+      s <- session_get(sid)
+      ruta <- ""
+      fid <- .monitoreo_scalar(parsed$file_id, "")
+      if (nzchar(fid)) {
+        meta <- (s$files %||% list())[[fid]]
+        if (is.null(meta) || !nzchar(as.character(meta$path %||% ""))) {
+          stop_api(404, "E_AULAS_LIBRO_FILE_ID", "El file_id no corresponde a un archivo de la sesion.")
+        }
+        ruta <- as.character(meta$path)
+      } else {
+        # Solo en desarrollo: permite apuntar a un libro del disco sin subirlo.
+        ruta <- .monitoreo_scalar(parsed$path, "")
+      }
+      if (!nzchar(ruta)) {
+        stop_api(400, "E_AULAS_LIBRO_SIN_ORIGEN", "Indica el file_id del libro a importar.")
+      }
+      out <- aulas_libro_importar_en_sesion(sid, ruta)
+      saved_project <- .monitoreo_mark_project_dirty_if_open(sid)
+      list(
+        ok = TRUE,
+        resumen = out$resumen,
+        hojas_ausentes = out$hojas_ausentes,
+        control_sin_nombre = out$control_sin_nombre,
+        state = .monitoreo_state_payload(sid),
+        saved_project = !is.null(saved_project)
+      )
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/import-from-calc-muestra", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       parsed <- .monitoreo_parse_body(req)
