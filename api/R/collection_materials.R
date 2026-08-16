@@ -59,7 +59,7 @@ COLLECTION_MATERIAL_PRESETS <- list(
 COLLECTION_MATERIAL_BINDINGS <- c(
   "project.name", "project.period",
   "deployment.deployment_id", "deployment.provider",
-  "unit.unit_id", "unit.label", "unit.role", "unit.group",
+  "unit.unit_id", "unit.label", "unit.role", "unit.replacement_for", "unit.group",
   "unit.faculty", "unit.course_name", "unit.schedule", "unit.venue",
   "unit.teacher", "unit.sample_label", "unit.eligible_n",
   "access.access_id", "access.logical_collector_id", "access.qr_payload"
@@ -359,7 +359,10 @@ collection_material_builtin_template <- function() {
   template <- list(
     schema = COLLECTION_MATERIAL_TEMPLATE_SCHEMA,
     template_id = "template-ficha-aplicacion-a4-v1",
-    revision = 1L,
+    # r2: la ficha declara el rol. Antes titular y reemplazo salian identicos
+    # salvo el nombre del aula, y el unico indicio era "Muestra: M1" vs "R1",
+    # que solo entiende quien conoce la nomenclatura.
+    revision = 2L,
     preset_id = "ficha_aplicacion_a4_v1",
     material_kind = "application_sheet",
     compatible_adapters = list("aulas_v1"),
@@ -376,6 +379,10 @@ collection_material_builtin_template <- function() {
           required = TRUE, correction = "M", quiet_zone = 4L, min_size_mm = 35
         ),
         list(block_id = "details", type = "field_grid", fields = list(
+          # El rol va primero y en una sola linea ("Titular" / "Reemplazo de
+          # CH 3"): un campo aparte para el titular quedaria vacio en la
+          # mayoria de las fichas, que es ruido impreso.
+          list(label = "Rol", binding = "unit.role"),
           list(label = "Horario", binding = "unit.schedule"),
           list(label = "Salon", binding = "unit.venue"),
           list(label = "Docente", binding = "unit.teacher"),
@@ -419,6 +426,7 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
   if (is.null(fields)) {
     fields <- list(
       list(label = "Fecha", blank = TRUE),
+      list(label = "Rol", binding = "unit.role"),
       list(label = "Horario", binding = "unit.schedule"),
       list(label = "Salon", binding = "unit.venue"),
       list(label = "Docente", binding = "unit.teacher"),
