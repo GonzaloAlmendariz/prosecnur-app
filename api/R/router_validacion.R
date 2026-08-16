@@ -85,6 +85,27 @@
   list(antes = antes, despues = despues, excluidas = antes - despues)
 }
 
+# El informe metodológico es el único consumidor que necesita los
+# identificadores del universo final: son los que hacen ejecutable el
+# `prepare_validation_universe()` de su script cuando la merma vino de la
+# depuración. Se leen aquí y no en `.validacion_upstream_universe()` porque eso
+# implica abrir la base, y ese helper lo consulta cada refresco de estado.
+.validacion_universo_con_ids <- function(sid, base_nombre = NULL) {
+  universe <- .validacion_upstream_universe(sid, base_nombre)
+  if (is.null(universe) || !isTRUE(universe$cleaning_applied)) return(universe)
+  final <- tryCatch(.limpieza_universo_final_ids(sid, base_nombre), error = function(e) NULL)
+  if (is.null(final)) return(universe)
+  # Si el conteo no coincide con lo que declara el linaje, la lista describe
+  # otra cosa y no se sirve: mejor un script que avisa que no hay filtro que uno
+  # que reproduce un universo equivocado.
+  if (!identical(length(final$values), as.integer(universe$included %||% NA_integer_))) {
+    return(universe)
+  }
+  universe$final_case_variable <- final$variable
+  universe$final_case_ids <- as.list(final$values)
+  universe
+}
+
 .validacion_upstream_universe <- function(sid, base_nombre = NULL) {
   s <- session_get(sid, required = FALSE)
   if (is.null(s)) return(NULL)
@@ -807,7 +828,7 @@ mount_validacion <- function(pr) {
         scope = scope,
         base_nombre = base_meta$source_alias %||% base_meta$source_title %||% base_meta$nombre %||% base,
         estudio_nombre = (s$estudio %||% list())$nombre %||% s$project_name %||% "Estudio",
-        upstream_universe = .validacion_upstream_universe(sid, base),
+        upstream_universe = .validacion_universo_con_ids(sid, base),
         generated_at = Sys.time()
       )
       model_path <- job_save_rds(sid, "validacion_methodology_report_model", model)
@@ -842,7 +863,7 @@ mount_validacion <- function(pr) {
         scope = scope,
         base_nombre = base_meta$source_alias %||% base_meta$source_title %||% base_meta$nombre %||% base,
         estudio_nombre = (s$estudio %||% list())$nombre %||% s$project_name %||% "Estudio",
-        upstream_universe = .validacion_upstream_universe(sid, base),
+        upstream_universe = .validacion_universo_con_ids(sid, base),
         generated_at = Sys.time()
       )
       model_path <- job_save_rds(sid, "validacion_methodology_report_bundle_model", model)
@@ -997,6 +1018,14 @@ mount_validacion <- function(pr) {
       # construye con el resto y aquí se reporta cuántas/cuáles se saltaron.
       no_soportadas <- bundle$unsupported %||% list()
 
+      # Vara V4: el motor también descarta a propósito las reglas que dependen
+      # de un dataset externo (`pulldata`), y eso lo registraba en
+      # `bundle$discarded` sin que el registro saliera nunca del backend. Un
+      # plan que no cubre esas preguntas se leía igual que uno que sí. Van
+      # aparte de `no_soportadas` porque no son lo mismo: una es una limitación
+      # declarada del motor, la otra es una expresión que se rompió.
+      descartadas <- bundle$discarded %||% list()
+
       # Surfacing relacional (Fase 4): madre + hija son UN instrumento con tabla
       # relacionada. Anotamos cada regla del preview con los campos que el
       # frontend necesita (relational / repeat_group / requires_external_dataset
@@ -1017,7 +1046,9 @@ mount_validacion <- function(pr) {
         relational_summary = relational$summary,
         relational_suppressed_legacy = as.list(bundle$relational_suppressed_legacy %||% character(0)),
         n_no_soportadas = length(no_soportadas),
-        no_soportadas = utils::head(no_soportadas, 50)
+        no_soportadas = utils::head(no_soportadas, 50),
+        n_descartadas = length(descartadas),
+        descartadas = utils::head(descartadas, 50)
       )
     })) |>
 
