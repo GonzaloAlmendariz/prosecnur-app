@@ -2137,3 +2137,40 @@ que casi cuadraran fue suerte.
 La lección, que ya costó dos veces en este loop: **un número que casi cuadra no
 es una explicación.** La explicación estaba publicada en el embudo, a un clic de
 donde yo estaba midiendo.
+
+---
+
+## L28 · Barrido de capacidades declaradas y sin consumidor (2026-08-16)
+
+Este loop encontró tres —`mediana_conglomerado` sin declarar en TS,
+`estadistico_conglomerado` sin escribir, la lista de facultades sin llegar a las
+aulas—, así que valía la pena barrer el resto. **Sale mayormente limpio**, y eso
+también es un resultado.
+
+| Familia | Veredicto |
+|---|---|
+| Flags de criterios (`require_stable_teacher`, `require_min_prevalence`, `require_faculty_prevalence`, `require_cycle_homogeneity` y sus umbrales) | ☑ **cableados**. `require_faculty_prevalence` está apagado por config en este proyecto, que no es lo mismo que no estar conectado |
+| `session_type_excepciones`, `accepted_campuses`, `nivel_por_unidad` | ☑ cableados |
+| `tasa_contacto` · `tasa_elegibilidad` | ☑ **se usan**, aunque sólo en `.cm_calc_listado_externo` —`registros = meta / (contacto × elegibilidad × respuesta)`—, que no es la técnica de este estudio. Una sola referencia en el frontend no era una señal de abandono |
+| `tope_operativo` · `n_minimo_estrato` | ☑ usados y visibles en la UI |
+| **`cuota_fija` · `sobremuestra_fija` · `aulas_base_fijas`** | ⚠ **invisibles e ineditables** |
+
+### El único hallazgo
+
+La tabla de estratos de `CalcMuestraPage` da celda editable a `label`, `N`,
+`N_a`, `N_b`, `e_facultad`, `confianza_facultad`, `p_facultad`,
+`aulas_extra_operativas`, y en modo no-facultad a `promedio_conglomerado` y
+`tau`. **No tiene columna para `cuota_fija`, `sobremuestra_fija` ni
+`aulas_base_fijas`**, que son justamente los tres valores que cortocircuitan el
+cálculo por facultad (L14). Llegan del mapa de referencia de
+`constants.ts` y el usuario no puede verlos ni quitarlos desde la pantalla.
+
+Lo que reduce su gravedad, y por eso queda anotado y no arreglado: en la ruta
+real esos valores **no sobreviven**. Los estratos sincronizados desde el marco
+no los traen (L15), y al calcular, la decisión de Alumnos por CH pone
+`aulas_base_fijas` en 0 (L26 · 65efa2bf). Sólo pintan mientras se trabaja sobre
+el preset sin marco cargado, que es el estado de arranque.
+
+Merece arreglo cuando se toque esa tabla —una columna más, o al menos un aviso
+de que la facultad trae valores fijados—, pero no justifica abrirla ahora: el
+cálculo real no depende de ellos.
