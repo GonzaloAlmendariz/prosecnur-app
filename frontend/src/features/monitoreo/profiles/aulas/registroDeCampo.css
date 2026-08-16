@@ -240,9 +240,49 @@
   min-height: 0;
 }
 
+/* El cuerpo scrollea DENTRO del panel cuando la pantalla no da para todo.
+ *
+ * Medido a 1024x600 con un curso-horario seleccionado: hay 227 px disponibles y
+ * el panel pedia 422 —el formulario solo ya son 354—, asi que sus ultimos
+ * campos y el boton de guardar quedaban fuera sin forma de llegar. El dueno del
+ * scroll es este cuerpo, que tiene borde propio: no se anade una cadena al
+ * shell ni se roba el scroll a nadie.
+ *
+ * `min-height: 0` es imprescindible: el minimo automatico de un contenedor de
+ * grid es su contenido, asi que sin esto el `1fr` del panel no puede encogerlo
+ * y el overflow no llega a activarse nunca. */
 .mon-profile-stack.aulas-agenda-stack.is-registro .registro-campo-cuerpo {
   min-height: 0;
   height: 100%;
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* El panel acepta el alto que el stack le asigna en vez de crecer con su
+ * contenido. Sin esto el stack le adjudicaba 219 px y el panel medía 422:
+ * `min-height: auto` es el valor por defecto de un ítem de grid, así que su
+ * suelo es su propio contenido y el `1fr` de arriba no puede encogerlo. El
+ * `min-height: 180px` que trae de la vista con tabla tambien tiene que ceder,
+ * de ahí la especificidad. */
+.mon-profile-page.is-aulas-flow
+  .aulas-mon-view
+  .mon-profile-stack.aulas-agenda-stack.is-registro
+  > .mon-profile-panel.registro-campo {
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  /* `align-self: start` —que el panel trae para no estirarse en la vista con
+   * tabla— le hacia tomar su alto de CONTENIDO en vez del de su pista: el stack
+   * le adjudicaba 219 px y el panel medía 422. Con `stretch` acepta la pista y
+   * el desborde lo absorbe el scroll de su cuerpo. */
+  align-self: stretch;
+}
+
+/* La lista cede su tope y sigue el alto del cuerpo: con el cuerpo scrolleando,
+ * un tope fijo de 20rem la dejaba mas alta que su contenedor. */
+.mon-profile-stack.aulas-agenda-stack.is-registro .registro-campo-lista {
+  max-height: 100%;
+  min-height: 6rem;
 }
 
 /* La lista CONSERVA su tope y su scroll: quitárselo la hacía crecer hasta su
