@@ -101,8 +101,14 @@
     tabla[[j]] <- col
   }
 
+  # El gris de la rejilla se midio sobre el entregable aprobado, no se eligio:
+  # sus tres tablas —ficha tecnica 6x2 y los dos perfiles de egreso 7x4 y 6x4—
+  # declaran los cuatro lados de cada celda en `757070` a 0.75 pt, cuarenta y
+  # ocho bordes en total. El motor venia pintando esa misma rejilla completa en
+  # `BFBFBF`, que es cuatro tonos mas claro y sobre el relleno `F2F2F2` del
+  # cuerpo casi no se ve. El grosor ya coincidia; solo el color no.
   borde <- officer::fp_border(
-    color = chr("grid_col", "#BFBFBF"),
+    color = chr("grid_col", "#757070"),
     width = num("line_lwd", 0.75)
   )
 

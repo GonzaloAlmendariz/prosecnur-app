@@ -851,7 +851,12 @@ reporte_ppt_plan <- function(
     text_color <- as.character(.style_value(style, "text_color", "#081F5C"))[1]
     first_col_fill <- as.character(.style_value(style, "first_col_fill", "#D8D8D8"))[1]
     body_fill <- as.character(.style_value(style, "body_fill", "#F2F2F2"))[1]
-    border_color <- as.character(.style_value(style, "border_color", "#BFBFBF"))[1]
+    # `757070` y no `BFBFBF`: es el gris con que el entregable aprobado declara
+    # los cuatro lados de cada celda de su ficha tecnica, medido sobre el XML.
+    # El claro se perdia sobre el relleno `F2F2F2` del cuerpo. Mismo valor que
+    # usa el otro constructor de tablas nativas —`.tabla_nativa_flextable()`—,
+    # para que las cinco tablas del mazo lleven una sola rejilla.
+    border_color <- as.character(.style_value(style, "border_color", "#757070"))[1]
     border_width <- .style_num(style, "border_width", 0.75, min = 0.1)
     first_col_size <- .style_num(style, "first_col_size", 14, min = 6)
     body_size <- .style_num(style, "body_size", 14, min = 6)
