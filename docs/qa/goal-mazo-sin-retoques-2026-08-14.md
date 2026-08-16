@@ -468,3 +468,28 @@ Con eso V2 queda explicada entera y **no queda nada que arreglar en el motor**:
 
 Bajar V2 de 9.4 % a 6.2 % ya no es trabajo de motor: es subir
 `tabla_body_size` en el proyecto, y eso lo decide quien firma el informe.
+
+### `tabla_body_size` a 12: hecho, verificado, y sin efecto
+
+El valor se subió a 12 en el `.pulso` del proyecto —en los **dos** sitios donde
+vive, `presets$radar_tabla` y `scope_rules$global$presets$radar_tabla`, porque
+cambiar uno solo deja que el otro lo pise— y se comprobó que **llega al
+graficador**: instrumentado, `graficar_radar()` recibe `tabla_body_size = 12`.
+
+El mazo regenerado **no se movió**: sigue en 9.4 % y con los mismos 54 textos a
+9 pt. Descartado, midiendo:
+
+- **No es el auto-fit.** `scale_tab` se queda en 1: el bloque que lo calcularía
+  no llega a ejecutarse.
+- **No es un reescalado del grupo.** El gráfico se emite a 12.51 in con escala
+  1.000, y ocupa la lámina entera, no media.
+- **No es que el tamaño no se declare en el grob.** Lo aplica como
+  `gpar(fontsize = body_size)`.
+
+Y el dato que más desconcierta: la cabecera declara 14 pt y **tampoco hay ningún
+texto a 14** en esas láminas. Todo sale a 9, sea cual sea el tamaño pedido, lo
+que apunta a que algo entre el grob y el DML uniformiza el cuerpo — no a que un
+valor concreto no viaje.
+
+Queda abierto. El cambio del `.pulso` se deja puesto porque es inocuo y correcto
+en su intención; hay copia en `v5_Conta 14-08 equivalencias.ANTES-tabla12.pulso`.
