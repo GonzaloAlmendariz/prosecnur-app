@@ -77,6 +77,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L3** | La ficha no declara el rol: titular y reemplazo se ven iguales. | `collection_material_builtin_template()` no usaba `unit.role`; y el binding devolvía la clave cruda del motor. | ☑ **hecho** (2026-08-16) — la ficha imprime «Rol: Titular» / «Rol: Reemplazo de AULA-01». `.crf_role_label()` traduce, `replacement_for` viaja al plan y existe el binding `unit.replacement_for`. Built-in a revisión 2. |
 | **L11** | Hay **dos plantillas por defecto que no coinciden**. | `DEFAULT_COLLECTION_TEMPLATE` (`MaterialsSection.tsx`) declaraba otra ficha que la del backend. | ☑ **hecho** (2026-08-16) — borrada. Era **inalcanzable**: el backend siempre responde plantilla y el componente corta el render en `loading`, así que nunca se dibujó ni sirvió de fallback. Queda una semilla vacía explícita y, si el backend respondiera sin plantilla, el editor avisa en vez de inventar una receta. ⚠ verificado con typecheck + 89 tests, **sin chequeo visual**. |
 | **L12** | El filtro de «respuesta válida» no conoce los estados de Kobo, y falla abierto. | `.monitoreo_aulas_valid_response()` en `monitoreo_aulas_universitarias.R:434`. Kobo nombra su columna `_validation_status` (guion bajo delante) y la llena con `validation_status_approved`; los candidatos incluyen `validation_status` y `_status` pero **no** `_validation_status`, y `valid_statuses` (`completed`·`complete`·`valid`·`aprobado`·`aplicada`) no incluye ningún valor de Kobo. | ⛔ **bloqueado** — necesita decisión: hoy sin columna reconocible **todo cuenta como válido** (fail-open) y quien configurara el mapeo «bien» se quedaría con **cero válidas** sin aviso. Cambiar fail-open por fail-closed altera lo que cuenta en estudios vivos, así que no se toca sin tu visto bueno. Comportamiento actual **fijado con tests de caracterización** para que cambiarlo sea visible. |
+| **L13** | Tras el handoff, abrir Monitoreo **reventaba**. | `.monitoreo_aulas_status()` resolvía el alias con `aliases[[key]]`, que **lanza** `subscript out of bounds` con una clave desconocida en vez de devolver NULL: el `%||%` que hacía de red nunca actuaba. Y el handoff escribía `operational_status = "pendiente"`, palabra fuera de `monitoreo_aulas_estados()`. | ☑ **hecho** (2026-08-16) — el handoff escribe `planificada`, `pendiente` entra como alias, y ambos normalizadores caen al default con `[` en vez de romper. |
+| **L14** | El plan entregado se **multiplicaba n²**: 7 aulas salían como 49. | `.monitoreo_aulas_values()` / `.monitoreo_aulas_num_values()` hacían `rep(default, nrow(df))`, y `orden = getn(c("orden","order"), seq_len(n))` pasa un default **vectorial**. Al asignar esa columna de n² valores, el data.frame reciclaba todas las demás. Se disparaba sólo cuando faltaba la columna `orden` — el caso exacto de las filas que crea el handoff. | ☑ **hecho** (2026-08-16) — `rep_len` en vez de `rep`, en los dos helpers. Verificado de 1 a 20 filas. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
@@ -384,3 +386,34 @@ no un efecto colateral.
 Vale la pena notar que el `valid_statuses` actual (`aprobado`, `aplicada`) suena
 a vocabulario nuestro, no de Kobo: probablemente se escribió pensando en un
 estado que pone el pipeline, no la plataforma. Eso también entra en la decisión.
+
+### 2026-08-16 — dos bugs que rompían Monitoreo justo después de entregar a campo
+Siguiendo el mismo lente productor/consumidor aparecieron dos defectos
+encadenados en el punto exacto por el que se abrió este GOAL: entregar los
+materiales y empezar a monitorear.
+
+**L13 — reventaba.** El handoff escribía `operational_status = "pendiente"`, que
+no está en `monitoreo_aulas_estados()`. Y el normalizador resolvía el alias con
+`aliases[[key]]`: `[[` sobre un vector con nombres **lanza** `subscript out of
+bounds` con una clave desconocida, no devuelve `NULL`. El `%||%` que alguien
+puso de red nunca llegaba a actuar. Cualquier plan con vocabulario ajeno tumbaba
+la vista entera.
+
+**L14 — y multiplicaba.** Ya sin el crash, 7 aulas normalizaban a **49
+registros**, con los `classroom_id` ciclando `01..07, 01..07`. La causa:
+`orden = getn(c("orden","order"), seq_len(n))` pasa un default **vectorial**, y
+el helper hacía `rep(default, nrow(df))` — n² valores en vez de n. Al asignar
+esa columna larga, el data.frame reciclaba todas las demás. Se disparaba sólo
+cuando faltaba la columna `orden`, que es justo el caso de las filas nuevas del
+handoff.
+
+Ninguno de los dos lo veía la suite: sus fixtures traen `orden` y estados del
+vocabulario. **Tercera y cuarta vez que el sesgo de fixture esconde un bug real
+en este mismo loop.**
+
+Camino hasta encontrarlo, sin adornos: perseguí primero una hipótesis de códigos
+divergentes entre Recopiladores y Monitoreo — **falsa**, el handoff casa por
+`classroom_id`. Después mi propio diagnóstico etiquetó «no es data.frame» como
+«VACÍO» y me hizo perseguir un fantasma. El bisect por campo tampoco sirvió
+porque el mínimo ya disparaba; lo que lo resolvió fue añadir campos de uno en
+uno hasta ver que `orden` apagaba la inflación.

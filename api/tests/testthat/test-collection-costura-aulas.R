@@ -290,3 +290,76 @@ test_that("apuntar al campo de Kobo a mano hoy invalidaria TODO", {
   # mapeo "bien" se quedaria con cero respuestas validas y sin aviso.
   expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(FALSE, FALSE))
 })
+
+# --- Monitoreo abre despues del handoff --------------------------------------
+# El handoff creaba filas con `operational_status = "pendiente"`, palabra que no
+# esta en `monitoreo_aulas_estados()`. Y el normalizador resolvia el alias con
+# `aliases[[key]]`, que LANZA "subscript out of bounds" con una clave
+# desconocida en vez de devolver NULL: el `%||%` que hacia de red nunca llegaba
+# a actuar. Resultado: entregar el material a campo y abrir Monitoreo reventaba.
+
+test_that("el plan que deja el handoff se puede normalizar", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+
+  # El control: antes esto tiraba "subscript out of bounds".
+  # Devuelve una LISTA de registros, no un data.frame — `.monitoreo_aulas_records()`.
+  plan <- monitoreo_aulas_normalize_plan(ho$monitoring_rows)
+  campo <- function(f) vapply(plan, function(r) as.character(r[[f]] %||% ""), character(1))
+
+  expect_length(plan, 7L)
+  expect_true(all(campo("operational_status") %in% monitoreo_aulas_estados()))
+  expect_true(all(nzchar(campo("link"))))
+})
+
+test_that("el handoff escribe una palabra del vocabulario de Monitoreo", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+
+  estados <- unique(vapply(ho$monitoring_rows, function(r) as.character(r$operational_status %||% ""), character(1)))
+  expect_true(all(estados %in% monitoreo_aulas_estados()))
+})
+
+test_that("un estado o motivo desconocido cae al default en vez de tumbar la vista", {
+  # La red que el `%||%` pretendia ser. Cualquier plan importado de fuera puede
+  # traer vocabulario ajeno; eso degrada, no rompe.
+  expect_identical(.monitoreo_aulas_status("un_estado_que_nadie_previo"), "planificada")
+  expect_identical(.monitoreo_aulas_status(""), "planificada")
+  expect_identical(.monitoreo_aulas_reason("un_motivo_inventado"), "otro")
+  # Y los alias legitimos siguen funcionando.
+  expect_identical(.monitoreo_aulas_status("pendiente"), "planificada")
+  expect_identical(.monitoreo_aulas_status("completed"), "aplicada")
+  expect_identical(.monitoreo_aulas_reason("profesor_no_autoriza"), "docente_no_autoriza")
+})
+
+test_that("un plan sin columna `orden` no se multiplica al normalizarse", {
+  # `orden = getn(c("orden","order"), seq_len(n))` pasa un default VECTORIAL, y
+  # el helper hacia `rep(default, nrow(df))`: n^2 valores. Al asignar esa
+  # columna larga el data.frame reciclaba todas las demas y el plan se
+  # multiplicaba. Las filas que crea el handoff no traen `orden`, asi que 7
+  # aulas entregadas a campo aparecian como 49 en Monitoreo.
+  fila <- function(i) list(
+    classroom_id = sprintf("A-%02d", i), operational_code = sprintf("A-%02d", i),
+    label = sprintf("Aula %02d", i), sample_role = "titular", wave = "M1",
+    operational_status = "planificada"
+  )
+  for (n in c(1L, 2L, 3L, 7L, 20L)) {
+    # El control: antes esto valia n^2 en cada caso.
+    expect_length(monitoreo_aulas_normalize_plan(lapply(seq_len(n), fila)), n)
+  }
+})
+
+test_that("un default vectorial se ajusta a las filas en vez de repetirse", {
+  df <- data.frame(a = c("x", "y", "z"), stringsAsFactors = FALSE)
+  expect_length(.monitoreo_aulas_num_values(df, "ausente", seq_len(3)), 3L)
+  # `expect_equal` y no `expect_identical`: el default entero se conserva
+  # entero, igual que antes del arreglo.
+  expect_equal(.monitoreo_aulas_num_values(df, "ausente", seq_len(3)), 1:3)
+  expect_length(.monitoreo_aulas_values(df, "ausente", c("p", "q", "r")), 3L)
+  # Y un default escalar sigue rellenando todas las filas.
+  expect_identical(.monitoreo_aulas_values(df, "ausente", "-"), rep("-", 3L))
+})

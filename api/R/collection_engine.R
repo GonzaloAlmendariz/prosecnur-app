@@ -639,7 +639,11 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       label = unit$label,
       sample_role = unit$role,
       wave = unit$group,
-      operational_status = "pendiente"
+      # `planificada` es la palabra del vocabulario de Monitoreo
+      # (`monitoreo_aulas_estados()`). Aqui decia "pendiente", que no esta en
+      # esa lista: el plan salia del handoff con un estado que su consumidor no
+      # reconocia.
+      operational_status = "planificada"
     )
     row$collection_unit_id <- unit$unit_id
     row$collection_deployment_id <- deployment$deployment_id

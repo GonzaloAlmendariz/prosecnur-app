@@ -56,21 +56,33 @@ monitoreo_aulas_motivos_reemplazo <- function() {
   ""
 }
 
+# `rep_len` y no `rep`: algunos defaults son VECTORES de largo nrow —el mas
+# visible es `orden = getn(c("orden","order"), seq_len(n))`—, y `rep(default, n)`
+# los repetia n veces en vez de ajustarlos, devolviendo n^2 valores. Al asignar
+# esa columna larga, el data.frame reciclaba TODAS las demas y el plan se
+# multiplicaba: 7 aulas salian como 49. Se disparaba solo cuando la columna
+# faltaba, que es justo el caso de las filas que crea el handoff de
+# Recopiladores.
 .monitoreo_aulas_values <- function(df, col, default = "") {
   if (!is.data.frame(df) || !nrow(df)) return(character(0))
   col <- .monitoreo_scalar(col, "")
-  if (!nzchar(col) || !col %in% names(df)) return(rep(default, nrow(df)))
+  fallback <- rep_len(default, nrow(df))
+  if (!nzchar(col) || !col %in% names(df)) return(fallback)
   out <- as.character(df[[col]])
-  out[is.na(out)] <- default
+  faltan <- is.na(out)
+  out[faltan] <- fallback[faltan]
   trimws(out)
 }
 
 .monitoreo_aulas_num_values <- function(df, col, default = NA_real_) {
   if (!is.data.frame(df) || !nrow(df)) return(numeric(0))
   col <- .monitoreo_scalar(col, "")
-  if (!nzchar(col) || !col %in% names(df)) return(rep(default, nrow(df)))
+  # Ver la nota de `.monitoreo_aulas_values()`: aqui vivia el n^2.
+  fallback <- rep_len(default, nrow(df))
+  if (!nzchar(col) || !col %in% names(df)) return(fallback)
   out <- suppressWarnings(as.numeric(df[[col]]))
-  out[!is.finite(out)] <- default
+  faltan <- !is.finite(out)
+  out[faltan] <- fallback[faltan]
   out
 }
 
@@ -92,10 +104,17 @@ monitoreo_aulas_motivos_reemplazo <- function() {
     cancelada = "cancelada",
     reemplazo_pendiente = "reemplazo_pendiente",
     reemplazada = "reemplazada",
-    cerrada = "cerrada"
+    cerrada = "cerrada",
+    # `pendiente` lo escribe el handoff de Recopiladores al crear una fila nueva
+    # en el plan de Monitoreo. Significa lo mismo que `planificada`.
+    pendiente = "planificada"
   )
-  out <- unname(aliases[[key]] %||% "")
-  if (nzchar(out) && out %in% monitoreo_aulas_estados()) out else default
+  # `aliases[[key]]` LANZA "subscript out of bounds" con una clave desconocida:
+  # `[[` sobre un vector con nombres no devuelve NULL, asi que el `%||%` no
+  # llegaba a actuar nunca y cualquier estado no previsto tumbaba la vista en
+  # vez de caer al default. Con `[` se obtiene NA y el fallback funciona.
+  out <- unname(aliases[key])
+  if (!is.na(out) && out %in% monitoreo_aulas_estados()) out else default
 }
 
 .monitoreo_aulas_reason <- function(x, default = "otro") {
@@ -115,8 +134,10 @@ monitoreo_aulas_motivos_reemplazo <- function() {
     incidencia_etica = "incidencia_etica",
     otro = "otro"
   )
-  out <- unname(aliases[[key]] %||% "")
-  if (nzchar(out) && out %in% monitoreo_aulas_motivos_reemplazo()) out else default
+  # Mismo defecto que en `.monitoreo_aulas_status()`: un motivo escrito a mano
+  # que no estuviera en la tabla tumbaba la normalizacion entera.
+  out <- unname(aliases[key])
+  if (!is.na(out) && out %in% monitoreo_aulas_motivos_reemplazo()) out else default
 }
 
 monitoreo_aulas_default_config <- function() {
