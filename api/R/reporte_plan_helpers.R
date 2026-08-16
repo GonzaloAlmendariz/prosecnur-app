@@ -567,7 +567,15 @@
   table_left <- sn("table_left", 6.56, min = 0)
   table_top <- sn("table_top", 2.14 + base::max(0, title_height - 0.62), min = 0)
   table_width <- sn("table_width", 5.22, min = 3)
-  row_height_default <- if (n <= 4L) 0.55 else base::max(0.34, base::min(0.48, 2.34 / n))
+  # 3.37 y no 2.34: con cinco secciones la formula antigua daba 0.468 in
+  # —1.19 cm de paso— y el entregable aprobado separa 1.71 cm de una entrada a
+  # la siguiente (1.38 de cuadro mas 0.33 de hueco). En una tabla el hueco vive
+  # DENTRO de la fila, como borde del color del fondo, asi que la fila tiene que
+  # medir el paso entero.
+  #
+  # El tope sube a 0.68 = 1.71 cm. Si de verdad no cabe, el ajuste por `escala`
+  # de mas abajo lo reduce: el tope solo decide el punto de partida.
+  row_height_default <- if (n <= 4L) 0.55 else base::max(0.34, base::min(0.68, 3.37 / n))
   row_height <- sn("row_height", row_height_default, min = 0.24)
 
   style$number_width <- sv("number_width", 0.55)

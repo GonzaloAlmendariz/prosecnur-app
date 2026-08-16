@@ -1097,7 +1097,10 @@ reporte_ppt_plan <- function(
 
     table_width <- .style_num(style, "table_width", 6.85, min = 3)
     number_width <- .style_num(style, "number_width", 0.52, min = 0.30, max = 0.90)
-    row_height <- .style_num(style, "row_height", 0.39, min = 0.24)
+    # 0.543 in son los 1.38 cm que mide cada entrada del indice en el
+    # entregable aprobado. Con 0.39 las cinco entradas salian a 1.19 cm de paso
+    # contra los 1.71 del aprobado, y el indice se leia apretado.
+    row_height <- .style_num(style, "row_height", 0.543, min = 0.24)
     font_family <- as.character(.style_value(style, "font_family", font_family_default))[1]
     number_fill <- as.character(.style_value(style, "number_fill", "#D8504F"))[1]
     section_fill <- as.character(.style_value(style, "section_fill", "#E7E7E7"))[1]
@@ -1112,6 +1115,10 @@ reporte_ppt_plan <- function(
     ft <- flextable::width(ft, j = 1, width = number_width)
     ft <- flextable::width(ft, j = 2, width = table_width - number_width)
     ft <- flextable::height(ft, i = seq_len(nrow(tbl)), height = row_height, part = "body")
+    # `height()` sola es una sugerencia: flextable deja que la fila se encoja
+    # hasta lo que pide su texto, y el indice salia a 1.19 cm por fila pidiendo
+    # 1.38. Con la regla exacta el alto se respeta.
+    ft <- flextable::hrule(ft, rule = "exact", part = "body")
     ft <- flextable::hrule(ft, rule = "exact", part = "body")
     ft <- flextable::font(ft, fontname = font_family, part = "all")
     ft <- flextable::fontsize(ft, j = 1, size = number_size, part = "body")
@@ -1133,7 +1140,11 @@ reporte_ppt_plan <- function(
       part = "body"
     )
     ft <- flextable::border_remove(ft)
-    row_gap <- officer::fp_border(color = row_gap_color, width = 4)
+    # El «hueco» entre entradas es un borde del color del fondo. 9.4 pt son los
+    # 0.33 cm que separan un cuadro del siguiente en el aprobado (paso 1.71 cm
+    # menos la entrada de 1.38); con 4 pt quedaban pegadas.
+    row_gap_pt <- .style_num(style, "row_gap_pt", 9.4, min = 0, max = 24)
+    row_gap <- officer::fp_border(color = row_gap_color, width = row_gap_pt)
     ft <- flextable::border_inner_h(ft, border = row_gap, part = "body")
     flextable::fix_border_issues(ft)
   }
