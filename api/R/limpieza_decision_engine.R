@@ -183,6 +183,63 @@
 # El linaje que rige ahora mismo, leído de la base y no del artefacto congelado
 # del último cierre: revertir cambia la base sin volver a finalizar, y el
 # cliente tiene que ver el estado actual, no el del momento en que se cerró.
+# Qué decisión sobrevive a un instrumento nuevo. La respuesta la da el ancla,
+# no el tipo de trabajo: `exclude_cases` dice "estos casos salen" y se apoya en
+# `target_case_ids`, que son de la data — la misma data, porque este camino sólo
+# corre cuando cambió el XLSForm. Todo lo demás (`replace_value`,
+# `impute_value`, `recode_map`, `nullify_fields`, `set_value`,
+# `normalize_value`, los de select_multiple) nombra una variable que el
+# instrumento nuevo puede ya no tener, e `ignore_rule` se ancla en una regla.
+# Ésas no se conservan: rehidratarlas exigiría comprobar variable por variable
+# contra el instrumento nuevo, que es trabajo aparte.
+.limpieza_decisiones_conservables <- function(decisions) {
+  decisions <- decisions %||% list()
+  if (!length(decisions)) return(list())
+  conservables <- Filter(function(d) {
+    if (!is.list(d)) return(FALSE)
+    if (!identical(as.character(d$action_type %||% ""), "exclude_cases")) return(FALSE)
+    casos <- unlist(d$target_case_ids %||% list(), use.names = FALSE)
+    casos <- as.character(casos)
+    length(casos[!is.na(casos) & nzchar(casos)]) > 0L
+  }, decisions)
+  # Un mismo `id` puede venir del borrador y de la cuarentena anterior; se
+  # conserva una sola vez y gana la última, que es la que el analista editó.
+  if (length(conservables) < 2L) return(unname(conservables))
+  ids <- vapply(conservables, function(d) as.character(d$id %||% ""), character(1))
+  unname(conservables[!duplicated(ids, fromLast = TRUE)])
+}
+
+# Devuelve al borrador las decisiones en cuarentena cuya regla volvió a existir
+# en el plan reconstruido. Las que no encuentran su regla NO se aplican: siguen
+# en cuarentena y el payload las declara, porque una exclusión que ya no se
+# puede mostrar tampoco se puede justificar.
+.limpieza_rehidratar_preservadas <- function(sid, base_nombre = NULL) {
+  scope <- tryCatch(validacion_scope_get(sid, base_nombre), error = function(e) NULL)
+  if (is.null(scope)) return(invisible(NULL))
+  preservadas <- scope$limpieza_preservadas %||% list()
+  if (!length(preservadas) || is.null(scope$evaluacion)) return(invisible(NULL))
+
+  catalogo <- tryCatch(.limpieza_rule_catalog(scope), error = function(e) NULL)
+  reglas <- if (is.data.frame(catalogo) && nrow(catalogo)) {
+    as.character(catalogo$id_regla)
+  } else character(0)
+
+  reubicable <- vapply(preservadas, function(d) {
+    as.character(d$source_id %||% "") %in% reglas
+  }, logical(1))
+  if (!any(reubicable)) return(invisible(NULL))
+
+  draft <- scope$limpieza_draft %||% list()
+  ids_draft <- vapply(draft, function(d) as.character(d$id %||% ""), character(1))
+  vuelven <- Filter(function(d) !(as.character(d$id %||% "") %in% ids_draft),
+                    preservadas[reubicable])
+
+  validacion_scope_set(sid, base_nombre, "limpieza_draft", c(draft, unname(vuelven)))
+  validacion_scope_set(sid, base_nombre, "limpieza_preservadas",
+                       unname(preservadas[!reubicable]))
+  invisible(length(vuelven))
+}
+
 .limpieza_linaje_vigente <- function(sid, base_nombre = NULL) {
   s <- tryCatch(session_get(sid, required = FALSE), error = function(e) NULL)
   if (is.null(s)) return(NULL)
