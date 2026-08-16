@@ -1102,6 +1102,57 @@
     )
   ),
 
+  poblacion_3_tira = list(
+    layout = "poblacion_3_tira",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      superior           = list(type = "pic",   type_idx = 1),
+      medio              = list(type = "pic",   type_idx = 2),
+      inferior           = list(type = "pic",   type_idx = 3),
+      icon         = list(type = "body",  type_idx = 2),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  poblacion_3_corona = list(
+    layout = "poblacion_3_corona",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      superior_izquierda = list(type = "pic",   type_idx = 1),
+      superior_derecha   = list(type = "pic",   type_idx = 2),
+      inferior           = list(type = "pic",   type_idx = 3),
+      icon         = list(type = "body",  type_idx = 2),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  poblacion_3_cifras = list(
+    layout = "poblacion_3_cifras",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      superior_izquierda = list(type = "pic",   type_idx = 1),
+      derecha            = list(type = "pic",   type_idx = 2),
+      cifra_superior     = list(type = "pic",   type_idx = 3),
+      inferior_izquierda = list(type = "pic",   type_idx = 4),
+      cifra_inferior     = list(type = "pic",   type_idx = 5),
+      icon         = list(type = "body",  type_idx = 2),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
+  cifras_y_graficos = list(
+    layout = "cifras_y_graficos",
+    slots  = list(
+      title        = list(type = "title", type_idx = 1),
+      cifra_izquierda    = list(type = "pic",   type_idx = 1),
+      cifra_centro       = list(type = "pic",   type_idx = 2),
+      cifra_derecha      = list(type = "pic",   type_idx = 3),
+      grafico_izquierda  = list(type = "pic",   type_idx = 4),
+      grafico_derecha    = list(type = "pic",   type_idx = 5),
+      base         = list(type = "body",  type_idx = 3, loc = list(left = 0.50, top = 7.04, width = 6.40, height = 0.25), align = "left")
+    )
+  ),
+
   # ------------------------------------------------------------
   # POBLACION_3 — 2 paneles apilados a la izquierda + 1 ALTO a la derecha
   #

@@ -1,4 +1,4 @@
-# Contrato geométrico efectivo de las 28 láminas PPT.
+# Contrato geométrico efectivo de las 32 láminas PPT.
 #
 # Esta es la única autoridad que combina metadata pública, plantilla abierta,
 # presets efectivos y `.PPT_CONTRACT`. El renderer conserva el contrato interno
@@ -35,6 +35,10 @@
   graficos_3_1arriba = c(title = "titulo", superior = "superior", inferior_izquierda = "inferior_izquierda", inferior_derecha = "inferior_derecha", base = "base"),
   graficos_2_vertical = c(title = "titulo", superior = "superior", inferior = "inferior", base = "base"),
   graficos_2_asimetrico = c(title = "titulo", principal = "principal", apoyo = "apoyo", base = "base"),
+  poblacion_3_tira = c(title = "titulo", superior = "superior", medio = "medio", inferior = "inferior", icon = "icono", base = "base"),
+  poblacion_3_corona = c(title = "titulo", superior_izquierda = "superior_izquierda", superior_derecha = "superior_derecha", inferior = "inferior", icon = "icono", base = "base"),
+  poblacion_3_cifras = c(title = "titulo", superior_izquierda = "superior_izquierda", derecha = "derecha", cifra_superior = "cifra_superior", inferior_izquierda = "inferior_izquierda", cifra_inferior = "cifra_inferior", icon = "icono", base = "base"),
+  cifras_y_graficos = c(title = "titulo", cifra_izquierda = "cifra_izquierda", cifra_centro = "cifra_centro", cifra_derecha = "cifra_derecha", grafico_izquierda = "grafico_izquierda", grafico_derecha = "grafico_derecha", base = "base"),
   poblacion_2 = c(title = "titulo", text = "texto", left = "izquierda", right = "derecha", icon = "icono", base = "base"),
   poblacion_3 = c(
     title = "titulo", up_left = "superior_izquierda", bottom_left = "inferior_izquierda",
@@ -464,10 +468,10 @@
 
   render_keys <- vapply(metadata, function(meta) as.character(meta$render_key %||% "")[1], character(1))
   # El número es una cuenta declarada, no un tope: sube cuando se añade una
-  # lámina (las últimas, las seis de composición, en 2026-08-14). Lo que protege de verdad
+  # lámina (las últimas, las cuatro de población y cifras, en 2026-08-14). Lo que protege de verdad
   # es el `anyDuplicated`, que caza dos láminas compartiendo renderer.
-  if (length(render_keys) != 28L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
-    stop("El metadata de slides debe declarar 28 `render_key` únicos.", call. = FALSE)
+  if (length(render_keys) != 32L || any(!nzchar(render_keys)) || anyDuplicated(render_keys)) {
+    stop("El metadata de slides debe declarar 32 `render_key` únicos.", call. = FALSE)
   }
 
   contract <- .ppt_slide_template_manual_contracts(.PPT_CONTRACT)
