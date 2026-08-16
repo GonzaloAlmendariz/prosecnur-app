@@ -7,6 +7,9 @@
 # categorias subimos el piso de grosor de modo que las barras llenen el panel y
 # queden en linea con el grosor de los graficos de mas filas, sin exceder nunca
 # el grosor base. Los graficos con muchas categorias conservan el grosor previo.
+# Tope de estirado del panel en agrupadas. Ver el bloque que lo usa.
+.AGRUPADAS_PANEL_ESTIRA_MAX <- 2.6
+
 .barras_agrupadas_grosor_eff <- function(n_categorias, grosor_barras,
                                          canvas_min_filas, usar_canvas = TRUE) {
   grosor_base <- suppressWarnings(as.numeric(grosor_barras)[1])
@@ -1470,6 +1473,31 @@ graficar_barras_agrupadas <- function(
 	  h_caption_in <- if (has_caption) canvas_h_caption_in else reserva_pie_in
 
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
+
+  # El tope es mayor que en apiladas (1.8) porque el hueco de un perfil es un
+  # cuarto de lamina y su alto natural se queda mucho mas corto. Medido: con 1.8
+  # quedan 9 graficos bajo el piso, con 2.6 quedan 5, y subir a 3.4 no cambia
+  # nada —a partir de ahi el limite ya no es el tope sino el hueco disponible—.
+  #
+  # Mismo estirado que en apiladas: el canvas se construia con filas por alto de
+  # fila e ignoraba el hueco donde iba a caer. Aqui pesa mas todavia, porque los
+  # perfiles van de a cuatro por lamina y su hueco es un cuarto: medido, once
+  # graficos categoricos quedaban con la fila en 0.60 cm para trece barras, y su
+  # barra ya ocupaba el 93 % de esa fila —no habia nada que engordar, faltaba
+  # fila—. El entregable aprobado mete MAS barras por grafico (mediana 7 contra
+  # 4) y las saca mas gruesas: su panel es mas alto.
+  alto_hueco <- suppressWarnings(as.numeric(alto)[1])
+  n_filas_panel <- max(1L, n_categorias)
+  if (isTRUE(usar_canvas) && is.finite(alto_hueco) && alto_hueco > 0 &&
+      h_total_in > 0 && h_total_in < alto_hueco) {
+    panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
+    panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX)
+    if (is.finite(panel_nuevo) && panel_nuevo > h_panel_in) {
+      alto_por_cat_eff <- panel_nuevo / n_filas_panel
+      h_panel_in <- panel_nuevo
+      h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
+    }
+  }
   if (h_total_in <= 0) h_total_in <- 1
 
   header_h  <- h_header_in  / h_total_in
