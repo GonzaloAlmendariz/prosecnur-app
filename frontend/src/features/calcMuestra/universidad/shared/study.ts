@@ -35,6 +35,8 @@ import {
   UNIVERSITY_TOTAL_COMPONENT_ID,
 } from "./constants";
 import { normalizeUniversityLabel } from "./format";
+import type { ResumenEstAula } from "../../dominio";
+import { estadisticoConglomeradoDe } from "../marco/estadisticoConglomerado";
 
 export function normalizeAulasSelectorEngine(value: unknown): CalcMuestraWorkspaceAulasSelector {
   const raw = String(value ?? "").trim();
@@ -549,7 +551,18 @@ export function scenarioTarget(escenario: CalcMuestraWorkspaceEscenario) {
   return explicit > 0 ? explicit : 0;
 }
 
-export function prepareUniversityStudyForCalculation(estudio: CalcMuestraEstudio, workspace: CalcMuestraWorkspace): CalcMuestraEstudio {
+/**
+ * `resumen` es el estadístico elegido en el Recorrido. Se traduce y se escribe
+ * en `parametros.estadistico_conglomerado` de los dos componentes: el motor
+ * tiene ese ajuste desde siempre y nadie lo escribía, así que calculaba con la
+ * media aunque la pantalla dijera otra cosa. Omitirlo deja el parámetro como
+ * esté, que es lo que quieren los llamadores que no conocen el Recorrido.
+ */
+export function prepareUniversityStudyForCalculation(
+  estudio: CalcMuestraEstudio,
+  workspace: CalcMuestraWorkspace,
+  resumen?: ResumenEstAula,
+): CalcMuestraEstudio {
   const [rawTotal, rawFaculty] = universityComponents(estudio.componentes);
   const nextWorkspace = universityWorkspace(workspace, rawTotal, rawFaculty);
   const totalScenario = nextWorkspace.escenarios.find((e) => e.component_id === rawTotal.id);
@@ -562,10 +575,19 @@ export function prepareUniversityStudyForCalculation(estudio: CalcMuestraEstudio
   const faculty = facultyRounded && safeNumber(rawFaculty.meta.valor) <= 0
     ? { ...rawFaculty, meta: { ...rawFaculty.meta, valor: facultyRounded } }
     : rawFaculty;
+  const conEstadistico = (comp: CalcMuestraComponente): CalcMuestraComponente =>
+    resumen == null
+      ? comp
+      : {
+          ...comp,
+          parametros: { ...comp.parametros, estadistico_conglomerado: estadisticoConglomeradoDe(resumen) },
+        };
+  const totalFinal = conEstadistico(total);
+  const facultyFinal = conEstadistico(faculty);
   return {
     ...estudio,
-    componentes: [total, faculty],
-    workspace: universityWorkspace(nextWorkspace, total, faculty),
+    componentes: [totalFinal, facultyFinal],
+    workspace: universityWorkspace(nextWorkspace, totalFinal, facultyFinal),
   };
 }
 
