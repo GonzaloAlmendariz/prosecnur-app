@@ -31,7 +31,10 @@ describe("PromocionBase", () => {
     const html = render(BASE);
     expect(html).toContain('data-estado="rige"');
     expect(texto(html)).toContain("La base del estudio quedó depurada");
-    expect(texto(html)).toContain("Pasó de 103 a 101 casos");
+    // La superficie tiene que contestar sola de dónde salen los casos que
+    // faltan: no se perdieron al cargar, los excluyó el analista al cerrar.
+    expect(texto(html)).toContain("Tus decisiones de limpieza excluyeron 2 casos");
+    expect(texto(html)).toContain("pasó de 103 a 101");
     expect(texto(html)).toContain("Revertir");
   });
 
@@ -47,7 +50,7 @@ describe("PromocionBase", () => {
     expect(html).toContain('data-estado="bloqueada"');
     expect(plano).toContain("La depuración no llegó a la base del estudio");
     expect(plano).toContain("grupos repetibles");
-    expect(plano).toContain("La base del estudio sigue con 103 casos");
+    expect(plano).toContain("la base del estudio sigue con 103 casos");
     // No se ofrece revertir lo que nunca rigió.
     expect(plano).not.toContain("Revertir");
   });
@@ -57,13 +60,15 @@ describe("PromocionBase", () => {
     const plano = texto(html);
     expect(html).toContain('data-estado="revertida"');
     expect(plano).toContain("Volviste a la base anterior");
-    expect(plano).toContain("Tus decisiones siguen guardadas");
+    expect(plano).toContain("Tus decisiones de limpieza siguen guardadas");
     expect(plano).not.toContain("Revertir");
   });
 
   it("un conteo ausente no inventa un número", () => {
-    const html = render({ ...BASE, n_casos_despues: null });
-    expect(texto(html)).toContain("Pasó de 103 a — casos");
+    const plano = texto(render({ ...BASE, n_casos_despues: null }));
+    expect(plano).toContain("pasó de 103 a —");
+    // Sin el segundo conteo tampoco se puede afirmar cuántos se excluyeron.
+    expect(plano).toContain("excluyeron —");
   });
 });
 
@@ -74,10 +79,12 @@ describe("PromocionBase — sin respaldo", () => {
     const html = render(SIN_RESPALDO);
     expect(html).toContain('data-estado="sin-respaldo"');
     const t = texto(html);
-    expect(t).toContain("ya no puede explicarse");
+    expect(t).toContain("ya no hay registro de por qué");
+    // Y dice la causa, que es lo que el lector necesita para actuar.
+    expect(t).toContain("Al recargar el formulario");
     // El control: el estado normal SÍ la da por buena, éste no.
-    expect(texto(render(BASE))).toContain("Codificación, Analítica y los entregables ya usan esta base");
-    expect(t).not.toContain("Codificación, Analítica y los entregables ya usan esta base");
+    expect(texto(render(BASE))).toContain("Codificación, Analítica y los entregables ya usan esta versión");
+    expect(t).not.toContain("Codificación, Analítica y los entregables ya usan esta versión");
     // Y sigue diciendo de cuántas a cuántas: el hecho no desaparece por avisar.
     expect(t).toContain("103");
     expect(t).toContain("101");

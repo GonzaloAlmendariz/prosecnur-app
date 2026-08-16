@@ -18,7 +18,7 @@ describe("describirDecisionesPreservadas", () => {
   it("esperar la auditoría es buena noticia, no una alerta", () => {
     const r = describirDecisionesPreservadas({ ...VACIO, n: 2, n_casos: 3, n_sin_evaluar: 2 });
     expect(r?.tone).toBe("success");
-    expect(r?.texto).toContain("2 decisiones");
+    expect(r?.texto).toContain("2 decisiones de limpieza");
     expect(r?.texto).toContain("3 casos");
     expect(r?.texto).toContain("auditoría");
   });
@@ -28,8 +28,8 @@ describe("describirDecisionesPreservadas", () => {
       ...VACIO, n: 3, n_casos: 5, n_sin_regla: 1, n_sin_variable: 2,
     });
     expect(r?.tone).toBe("warn");
-    expect(r?.texto).toContain("1 sin su regla");
-    expect(r?.texto).toContain("2 sin su variable");
+    expect(r?.texto).toContain("1 porque la regla que las originó ya no existe");
+    expect(r?.texto).toContain("2 porque su variable ya no está en el formulario");
     // El control: no puede sonar a que basta con esperar.
     expect(r?.texto).not.toContain("Vuelven a la cola");
     expect(r?.texto).toContain("no se aplican");
@@ -37,20 +37,20 @@ describe("describirDecisionesPreservadas", () => {
 
   it("no enumera motivos en cero", () => {
     const r = describirDecisionesPreservadas({ ...VACIO, n: 1, n_casos: 1, n_sin_variable: 1 });
-    expect(r?.texto).toContain("1 sin su variable");
-    expect(r?.texto).not.toContain("sin su regla");
-    expect(r?.texto).not.toContain("formulario");
+    expect(r?.texto).toContain("su variable ya no está en el formulario");
+    expect(r?.texto).not.toContain("la regla que las originó");
+    expect(r?.texto).not.toContain("no se pudo leer");
   });
 
   it("distingue no poder leer el formulario de que la variable no esté", () => {
     const r = describirDecisionesPreservadas({ ...VACIO, n: 1, n_casos: 1, n_sin_instrumento: 1 });
-    expect(r?.texto).toContain("sin poder leer el formulario");
-    expect(r?.texto).not.toContain("sin su variable");
+    expect(r?.texto).toContain("no se pudo leer el formulario");
+    expect(r?.texto).not.toContain("su variable ya no está");
   });
 
   it("concuerda en singular", () => {
     const r = describirDecisionesPreservadas({ ...VACIO, n: 1, n_casos: 1, n_sin_evaluar: 1 });
-    expect(r?.texto).toContain("1 decisión ");
+    expect(r?.texto).toContain("1 decisión de limpieza");
     expect(r?.texto).toContain("(1 caso)");
     expect(r?.texto).not.toContain("decisiones");
   });
