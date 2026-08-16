@@ -176,3 +176,22 @@ test_that("un motivo del vocabulario de reemplazo sobrevive al tablero", {
   expect_identical(.monitoreo_aulas_reason("docente_no_autoriza"), "docente_no_autoriza")
   expect_identical(.monitoreo_aulas_reason("sin_acceso"), "otro")
 })
+
+test_that("nunca tener reserva no es lo mismo que haberlas gastado", {
+  # La primera es una decision del diseno muestral; la segunda, un hecho del
+  # operativo. «Ya se agoto: se habian usado 0» las confundia.
+  solo <- list(list(classroom_id = "A-09", operational_code = "CH 9", label = "x",
+                    sample_role = "titular", wave = "M1", orden = 9, eligible_n = 30))
+  sin_reserva <- monitoreo_aulas_activar_reemplazo(solo, "CH 9", ahora = "2026-08-16T10:00:00Z")
+  texto <- monitoreo_aulas_activacion_texto(sin_reserva)
+  expect_match(texto, "no tiene ninguna reserva en el plan")
+  expect_no_match(texto, "se agoto")
+
+  # Y el otro lado: con la cadena consumida, sí dice que se agotó y cuántas.
+  p1 <- monitoreo_aulas_activar_reemplazo(.mrr_plan(), "CH 4", ahora = "2026-08-16T10:00:00Z")
+  p2 <- monitoreo_aulas_activar_reemplazo(p1$plan, "R 4.1", ahora = "2026-08-16T11:00:00Z")
+  p3 <- monitoreo_aulas_activar_reemplazo(p2$plan, "R 4.2", ahora = "2026-08-16T12:00:00Z")
+  gastada <- monitoreo_aulas_activacion_texto(p3)
+  expect_match(gastada, "ya se agoto")
+  expect_match(gastada, "se habian usado 2")
+})

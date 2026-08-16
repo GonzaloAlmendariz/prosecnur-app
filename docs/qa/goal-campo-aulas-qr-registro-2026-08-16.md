@@ -122,6 +122,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L51** | Las **7 columnas sin nombre** de la Base de control no se avisaban. | El lector las contaba desde el principio y el dato viajaba en la respuesta del endpoint, donde nadie lo miraba. | ☑ **hecho** (2026-08-16) — control `unnamed_control_columns` en Validación, con qué hacer para arreglarlo. |
 | **L52** | Un puntaje de **0 sobre 100** se mostraba como «Correcto». | El estado de `effective_representativity` salía sólo de `warning`, que exige 10 pp de desvío en **una** celda. Y «Score efectivo 0.0» no dice si 0 es bueno o malo. | ☑ **hecho** (2026-08-16) — el estado mira el puntaje y el aviso explica la escala. |
 | **L53** | Aulas no usaba pestañas como los otros perfiles. | De las cinco secciones sólo `avance` tenía pestañas; telefónico y acreditación las tienen en todas. Por eso tres tablas competían por un panel (L39, L40) y el registro no cabía (L42). | ☑ **hecho** (2026-08-16) — Agenda, Avance y Consultas con sus pestañas; el mecanismo dejó de estar cableado a `avance`. |
+| **L54** | «Cadena agotada: se habían usado **0**» para un aula que **nunca tuvo reserva**. | No es lo mismo una decisión del diseño muestral que un hecho del operativo. | ☑ **hecho** (2026-08-16) — hallazgo de la costura completa. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -414,3 +415,41 @@ sitio salió de repartir los `span`.
 El riesgo de meter cuatro campos donde había dos es que se pisen, así que el
 control nuevo mide el PNG: exige **al menos cuatro bloques de tinta separados**
 en esa fila, dentro de los márgenes. Verificado revirtiendo: 3 rojos.
+
+
+### 2026-08-16 — La costura completa, de punta a punta
+
+`api/scripts/sim_aulas_qr_campo.R` cubría siete pasos —selección → plan →
+enlaces → persistir → materiales → PDF → handoff—. Ahora atraviesa **doce**, con
+los cinco que esta sesión construyó: generar el libro y releerlo, registrar el
+parte, comprobar el cuadre, activar un reemplazo y ver que el tablero lo dice.
+
+```
+enlaces personalizados por unidad ..... TRUE
+una ficha por unidad .................. TRUE
+QR distinto por unidad ................ TRUE
+reemplazos con su propio enlace ....... TRUE
+el libro va y vuelve sin perder nada .. TRUE
+el registro captura el parte entero ... TRUE
+el cuadre distingue lo que no cuadra .. TRUE
+activar un reemplazo mueve los dos .... TRUE
+sin reserva no se finge un reemplazo .. TRUE
+el tablero lo dice .................... TRUE
+
+COSTURA COMPLETA: de punta a punta
+```
+
+**Y la costura encontró L54.** El primer intento eligió a ciegas el último
+titular para tirarlo, y salió «cadena agotada: se habían usado 0». Parecía un
+defecto del motor y era la respuesta correcta — **ese titular no tiene reserva
+en el plan**. Quinta vez que el instrumento produce el hallazgo.
+
+Pero al mirarlo apareció uno de verdad: **«ya se agotó: se habían usado 0»
+confunde dos situaciones distintas**. Un aula sin reserva desde el diseño no es
+un aula cuya cadena se consumió — la primera es una decisión de la muestra, la
+segunda un hecho del operativo, y quien lee el aviso necesita saber cuál de las
+dos tiene delante. Ahora dice: «no tiene ninguna reserva en el plan: la muestra
+nunca le asignó una».
+
+La simulación comprueba **los dos casos** porque en la misma muestra conviven:
+elegir uno a ciegas es lo que produjo el falso positivo.
