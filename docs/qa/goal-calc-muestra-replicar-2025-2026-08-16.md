@@ -1795,3 +1795,67 @@ Suites del área en verde: `alumnos-por-ch` 91/91, contrato HTTP 44/44,
 Una nota honesta: el ajuste de tildes del mensaje se hizo **después** de esa
 corrida, así que la captura de pantalla muestra el texto sin acentuar. El
 contenido verificado en vivo es el mismo; los acentos los cubre el test.
+
+---
+
+## L22 · El registro de diseño de 2025 existe entero (2026-08-16)
+
+`Historico 2025/HSVBG2025_referencia_para_motor.xlsx` tiene tres hojas —
+`referencia` (1.012 × 29), `diseno` (20 × 3) y `cuotas` (15 × 4)— y la de
+`diseno` es el acta del estudio, campo por campo:
+
+| Campo | Valor |
+|---|---|
+| `poblacion_objetivo` | 22.234 |
+| `nivel_confianza` · `proporcion_esperada` · `deff` | 0,95 · 0,30 · 2 |
+| `margen_error` | 0,0246 |
+| `muestra` | 2.500 |
+| `ratio_sobremuestra` · `sobremuestra` | 1,5 · 3.750 |
+| **`aulas_marco`** | **1.097** |
+| `aulas_dimensionadas` | 170 |
+| `aulas_aplicadas` | 194 |
+| `tasa_respuesta_asumida` | 0,7038 |
+| `afijacion` | Proporcional por facultad y sexo |
+| **`metodo_seleccion`** | **Sistemático sobre el marco** |
+| `metodo_ajuste` | Recorte aleatorio por celda |
+| `efectivas_logradas` | 3.303 |
+| `base_analitica` | 2.500 |
+| `casos_recortados` | 803 |
+| `ponderado` · `ponderacion_alcance` | Sí · sólo en Estudios Generales Letras |
+
+### Lo que cierra
+
+- **La vara de V2 tiene número: el marco de 2025 era de 1.097 cursos-horario**,
+  no ~936 como veníamos suponiendo. La suposición era nuestra, no de la fuente.
+- `aulas_dimensionadas = 170` confirma los 170 cupos ya medidos, y
+  `aulas_aplicadas = 194` las 194 aplicadas.
+- **El método de 2025 fue sistemático sobre el marco**, que es uno de los cuatro
+  del motor (`sistematico_pps`). No hubo cubo ni pivotal.
+- La diferencia entre 3.807 y 3.303 que arrastrábamos queda explicada del todo:
+  se lograron **3.303 efectivas** y se recortaron **803 al azar dentro de cada
+  celda** para analizar sobre 2.500.
+- La ponderación existió y fue **quirúrgica**: sólo Estudios Generales Letras.
+
+Las cuotas por facultad de 2025 están completas y suman 2.500 exactas (1.221
+mujeres, 1.279 hombres): Arquitectura 123, Arte y Diseño 117, Artes Escénicas
+70, Contables 21, Ciencias e Ingeniería 523, Ciencias Sociales 148, Comunicación
+95, Derecho 286, Educación 26, EEGG Ciencias 424, EEGG Letras 435, Gastronomía
+16, Gestión 114, Letras y CCHH 25, Psicología 77.
+
+### Lo que informa la decisión 1, con precedente en vez de opinión
+
+**Nuestro marco de 2026 es 2,25 veces el de 2025 para una población menor**:
+2.468 cursos-horario sobre 21.365 estudiantes, contra 1.097 sobre 22.234. Los
+criterios de curso-horario de 2026 son bastante más permisivos que los de 2025.
+
+Y encendiendo la coherencia de facultad al 0,80 el marco quedaría en 2.112 —que
+**sigue siendo casi el doble** del de 2025—. Así que la opción de encenderla no
+acerca el diseño a 2025: lo deja todavía más ancho.
+
+Un límite de lo medido, dicho como tal: **no encontré ningún criterio de
+coherencia de facultad documentado en 2025.** El diccionario de
+`base_aplicabilidad` no lo menciona —sí menciona que los elegibles excluyen
+primer ciclo— y la hoja de `Alertas` de `relacion_cursos_horario_aplicados` son
+alertas de campo (exceso de respuestas, supera población, duración), no
+criterios de selección. Que no esté documentado no prueba que no se aplicara,
+pero tampoco hay precedente que invocar.
