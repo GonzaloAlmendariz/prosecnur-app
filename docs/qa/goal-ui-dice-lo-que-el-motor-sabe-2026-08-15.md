@@ -47,6 +47,8 @@ sabe nada que la interfaz calle.
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
 | **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y los cuatro perfiles de Monitoreo | ☑ hecho — diez ejes probados, **un hallazgo** reparado y visto (`a29629e7`). **V2 se sostiene** en el resto. |
 | **L11** | Barrido V4: forzar cada rama de degradación del motor y comprobar que la superficie la nombra | vocabulario de degradación del backend | ☑ hecho — **dos hallazgos**, reparados (`894bbbb0`, `ee4b308d`). Tres de los seis «flags» eran falsos amigos. |
+| **L14** | Barrido V5: apagar una regla exige motivo | `router_validacion.R` · `ReglaDrillPanel.tsx` · informe | ☑ hecho — `f08ff427`. El mismo hueco del ADR 0078, en Validación. |
+| **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `analitica_*` | ☐ sin empezar — hermano de L14: excluir una variable del plan también cambia lo que se revisa y hoy es un vector pelado. |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
@@ -103,6 +105,26 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L14 — barrido de V5
+
+El caso canónico ya estaba cerrado (L4, «no categorizar»). Barriendo el resto
+aparecieron dos decisiones metodológicas guardadas como **vectores pelados de
+identificadores, sin motivo ni fecha**: `reglas_desactivadas` y
+`variables_excluidas`.
+
+Apagar una regla es la más grave de las dos porque **silencia un control**, y el
+informe metodológico la listaba sin poder justificarla — un entregable que
+menciona la decisión y obliga a asumir buena fe. Reparado en `f08ff427` con el
+mismo criterio del ADR 0078: motivo obligatorio al desactivar, no al reactivar
+—volver a lo que el instrumento declara no necesita justificación—, y reactivar
+limpia el motivo en vez de conservar uno que ya no aplica.
+
+Los `.pulso` anteriores traen el id y nada más; el informe lo declara con
+`sin_motivo` en vez de inventar un porqué.
+
+**Queda L15**, el hermano: `variables_excluidas`. Excluir una variable del plan
+también cambia lo que se revisa.
 
 ### L13 — barrido de V3
 
