@@ -2222,3 +2222,36 @@ construcción real. Usado en las dos pestañas que tenían el mismo `Boolean`:
 y aceptar un hash vacío (1)—, control 5/5, `tsc` en 0 y vitest de `calcMuestra`
 en **1.324/1.324**. Verificado por la ruta real: sobre el proyecto vacío la
 pantalla ya dice «Aún no has construido el marco».
+
+---
+
+## Consolidación: el área entera en verde tras el loop (2026-08-16)
+
+Nueve commits de este loop tocaron el motor de criterios, el de tamaño, el
+contrato de alumnos por CH y dos pestañas del frontend. Corrido el gate completo
+del área de una vez, para dejar constancia de que el conjunto se sostiene y no
+sólo cada pieza por separado:
+
+| Suite | |
+|---|---|
+| `criterios-facultad-no-alcanza-aulas` | 16 |
+| `aulas-criterios` | 92 |
+| `criterio-radiografia` | 295 |
+| `criterios-totales-cascada` | 112 |
+| `aulas-criterio8-facultad-nivel` | 39 |
+| `engine` | 138 |
+| `alumnos-por-ch` | 91 |
+| contrato HTTP `alumnos-ch` | 44 |
+| `aulas-cuota-por-estrato` | 31 |
+| `aulas-fijas-congelan-el-marco` | 16 |
+| `alumnos-ch-cobertura-aviso` | 22 |
+| `alumnos-ch-facultad-sin-alumnos` | 10 |
+| `aulas-estratos-alcanzables` | 41 |
+| `aulas-descuento-aviso-causa` | 15 |
+| **Total R del área** | **962 · 0 fallos** |
+| `tsc --noEmit` | 0 |
+| vitest de `calcMuestra` | **1.324 · 156 archivos** |
+
+El working tree no tiene nada pendiente de esta rebanada. Lo que queda sin
+commitear son las plantillas PPT y un script de reparación de layouts, que son
+de otra sesión y no se tocan.
