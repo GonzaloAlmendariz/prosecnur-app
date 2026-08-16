@@ -758,7 +758,9 @@ function StatusBar({
     <section
       style={{
         position: "sticky",
-        top: 0,
+        // Debajo del encabezado de sección, no encima: los dos son sticky en el
+        // mismo scroller y con `top: 0` esta banda lo tapaba al hacer scroll.
+        top: "var(--pulso-validacion-sticky-top, 0px)",
         zIndex: 4,
         display: "flex",
         flexDirection: "column",

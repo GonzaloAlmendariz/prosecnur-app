@@ -5163,6 +5163,12 @@ a { color: var(--pulso-primary); }
   justify-content: center;
 }
 .pulso-validacion-content {
+  /* El encabezado de sección y las bandas sticky de cada pestaña viven en este
+     mismo scroller. Si las dos pegan en `top: 0` la de la pestaña se monta
+     encima y tapa el encabezado. La altura del head y el offset salen de la
+     misma variable para que no puedan divergir. */
+  --pulso-validacion-head-h: 48px;
+  --pulso-validacion-sticky-top: var(--pulso-validacion-head-h);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   align-content: start;
@@ -5179,7 +5185,7 @@ a { color: var(--pulso-primary); }
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: var(--pulso-validacion-head-h, 48px);
   padding: 7px 12px;
   border-bottom: 1px solid var(--pulso-border);
   background:
@@ -7749,6 +7755,11 @@ a { color: var(--pulso-primary); }
 
   .pulso-validacion-panel-head {
     position: static;
+  }
+
+  /* Sin head pegado no hay nada debajo de lo que quedarse. */
+  .pulso-validacion-content {
+    --pulso-validacion-sticky-top: 0px;
   }
 
   .pulso-validacion-explorar-layout {
