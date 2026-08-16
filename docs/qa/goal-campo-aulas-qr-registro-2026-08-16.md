@@ -70,7 +70,7 @@ aula con mala luz y un teléfono viejo.
 | **L1b** | SurveyMonkey recibía la sintaxis `d[]` de Kobo. | Hallazgo de propina al hacer L1: `.collection_access_url` hardcodeaba `d[%s]` para todo proveedor, así que al link de SM se le colgaba un parámetro que su formulario ignora. | ☑ **hecho** (2026-08-16) — `.collection_prefill_param()` decide por proveedor; el resolvedor recibe `deployment$target$provider`. |
 | **L2** | El valor del `collectorID` es un slug interno con hash, no el código operativo. | `.collection_stable_id()` en `collection_engine.R`; el código operativo canónico lo produce `.cm_aulas_codigo_operativo()`. Decidir cuál viaja a Kobo — afecta la reconciliación de la data que vuelve. | ⛔ bloqueado — ver «Espera al usuario» |
 | **L3** | La ficha no declara el rol: titular y reemplazo se ven iguales. | `collection_material_builtin_template()` no usaba `unit.role`; y el binding devolvía la clave cruda del motor. | ☑ **hecho** (2026-08-16) — la ficha imprime «Rol: Titular» / «Rol: Reemplazo de AULA-01». `.crf_role_label()` traduce, `replacement_for` viaja al plan y existe el binding `unit.replacement_for`. Built-in a revisión 2. |
-| **L11** | Hay **dos plantillas por defecto que no coinciden**. | `collection_material_builtin_template()` (backend, `template-ficha-aplicacion-a4-v1`) y `DEFAULT_COLLECTION_TEMPLATE` (`frontend/.../MaterialsSection.tsx:80`, `template-ficha-aplicacion`) declaran bloques distintos. El editor siembra una ficha que el motor nunca produce. Hallazgo de propina al hacer L3. | ☐ sin empezar |
+| **L11** | Hay **dos plantillas por defecto que no coinciden**. | `DEFAULT_COLLECTION_TEMPLATE` (`MaterialsSection.tsx`) declaraba otra ficha que la del backend. | ☑ **hecho** (2026-08-16) — borrada. Era **inalcanzable**: el backend siempre responde plantilla y el componente corta el render en `loading`, así que nunca se dibujó ni sirvió de fallback. Queda una semilla vacía explícita y, si el backend respondiera sin plantilla, el editor avisa en vez de inventar una receta. ⚠ verificado con typecheck + 89 tests, **sin chequeo visual**. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto: hora de inicio, aforo observado, quién aplicó. | La ficha impresa **sí** los tiene (bloque `application_log`, 3 renglones a mano). Nunca vuelven al sistema. | ☐ sin empezar |
@@ -209,3 +209,28 @@ implementación**, que es el registro en campo.
 Vale anotar que la vara no cubría «la ficha está bien compuesta». No se agrega
 ahora una V9 a mitad de camino: se deja dicho que L7 y L11 miden calidad de la
 pieza, no capacidad, y que la vara mide capacidad.
+
+### 2026-08-16 — L11 cerrado, y la pregunta que importaba era otra
+L11 se abrió como «dos plantillas por defecto divergentes». La pregunta que de
+verdad importaba no era si diferían sino **cuál gana**: si el editor hacía PUT
+de la suya, todo lo arreglado en L3 y L7 sobre la plantilla del backend nunca
+llegaría al usuario.
+
+No gana. `collection_material_template_get()` siempre responde una plantilla
+—cae a `collection_material_builtin_template()`—, y el componente corta el
+render mientras carga. `DEFAULT_COLLECTION_TEMPLATE` no se dibujaba nunca y su
+rama de fallback era inalcanzable. **L3 y L7 sí llegan al usuario.**
+
+Pero por eso mismo había derivado sin que nadie lo notara: otro `template_id`,
+otra revisión, campos sin etiqueta, ni separador ni registro de aplicación. Una
+segunda fuente de verdad que nadie consulta no se sincroniza —se borra—, porque
+el día que alguien la lea va a creerle.
+
+**Verificación**: `tsc --noEmit` en 0 y 13 archivos / 89 tests del feature en
+verde. **No se hizo chequeo visual**: llegar al editor de materiales exige una
+sesión con plan y deployment, y la ruta de render no se tocó. Riesgo residual
+asumido y anotado.
+
+Con esto **se acaban los ítems no bloqueados del lado del motor.** Lo que queda
+—L6, L8, L9, L10— es menor, y las cuatro varas abiertas (V3, V5–V8) dependen de
+las dos decisiones que esperan a Gonzalo.
