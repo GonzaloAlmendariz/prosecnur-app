@@ -3,7 +3,7 @@
   list(
     plan_result = list(
       plan = plan,
-      bundle = list(rules = rules, unsupported = list(), choices_map = choices_map)
+      bundle = list(rules = rules, unsupported = list(), discarded = list(), choices_map = choices_map)
     ),
     evaluacion = evaluation
   )
@@ -1642,3 +1642,53 @@ test_that("el PDF no imprime los identificadores: declara dónde están", {
   expect_false(grepl("FÓRMULA R USADA PARA FILTRAR", texto, fixed = TRUE))
 })
 
+
+test_that("el informe declara en el PDF lo que el plan no cubre (vara V4)", {
+  # Una regla sobre `pulldata` se descarta a propósito, pero un informe que
+  # sustenta la entrega no puede callarlo: quien lo lea creería que el plan
+  # cubre todas las preguntas del formulario.
+  rules <- list(rule_range("edad", min = 0, max = 120, type = "numeric", nombre = "Edad válida"))
+  scope <- .vmr_test_scope(rules)
+  scope$plan_result$bundle$discarded <- list(
+    list(row_name = "nombre_padron", field = "relevant", origin = "pulldata",
+         expression = "pulldata('padron','activo','id',${id}) = '1'")
+  )
+  model <- build_validation_methodology_report_model(
+    scope, base_nombre = "base", estudio_nombre = "Prueba V4"
+  )
+
+  expect_equal(model$summary$descartadas, 1L)
+  expect_true(grepl("pulldata", model$cobertura_no_cubierta, fixed = TRUE))
+  expect_true(grepl("«nombre_padron»", model$cobertura_no_cubierta, fixed = TRUE))
+
+  pdf_path <- tempfile(fileext = ".pdf")
+  validation_methodology_report_pdf(model, pdf_path)
+  expect_true(file.exists(pdf_path))
+  if (nzchar(Sys.which("pdftotext"))) {
+    text_path <- tempfile(fileext = ".txt")
+    expect_identical(system2("pdftotext", c("-layout", pdf_path, text_path)), 0L)
+    report_text <- paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+    expect_match(report_text, "LO QUE ESTE PLAN NO CUBRE", fixed = TRUE)
+    expect_match(report_text, "nombre_padron", fixed = TRUE)
+  }
+})
+
+test_that("sin nada descartado el informe no inventa la sección", {
+  # El control del test anterior: si la caja se dibujara siempre, el aserto de
+  # arriba pasaría sin que el dato la haya provocado.
+  rules <- list(rule_range("edad", min = 0, max = 120, type = "numeric", nombre = "Edad válida"))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(rules), base_nombre = "base", estudio_nombre = "Prueba V4"
+  )
+  expect_equal(model$summary$descartadas, 0L)
+  expect_equal(model$cobertura_no_cubierta, "")
+
+  pdf_path <- tempfile(fileext = ".pdf")
+  validation_methodology_report_pdf(model, pdf_path)
+  if (nzchar(Sys.which("pdftotext"))) {
+    text_path <- tempfile(fileext = ".txt")
+    expect_identical(system2("pdftotext", c("-layout", pdf_path, text_path)), 0L)
+    report_text <- paste(readLines(text_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+    expect_false(grepl("LO QUE ESTE PLAN NO CUBRE", report_text, fixed = TRUE))
+  }
+})
