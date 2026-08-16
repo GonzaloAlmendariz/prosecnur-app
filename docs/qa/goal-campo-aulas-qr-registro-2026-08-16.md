@@ -143,6 +143,9 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 Cuatro decisiones. Ninguna es de implementación: cada una cambia lo que el
 estudio *significa*, y elegir por ti sería decidir metodología.
 
+(El quinto ⛔ del documento, dentro de **L10**, es de otra naturaleza: lo bloquea
+una dependencia que el CI tendría que instalar, no un juicio tuyo.)
+
 | Ítem | Qué hay que decidir | Lo aprendido sin tocarlo |
 |---|---|---|
 | **L2** | Cuál es el identificador de campo que viaja a Kobo | **No es un solo productor.** El adapter usa `.ca_unit_value()`, que prefiere `link_key` → `prefill_value` → `logical_collector_id` → `unit_id`: **el plan ya puede decidirlo** poniendo `link_key`, sin tocar `.collection_stable_id()`. Pero la ruta legacy fuerza `prefill = list(collectorID = unit_id)` con el slug interno **aunque el enlace pegado ya traiga `OP-01`**. Hay dos caminos que eligen distinto y el legacy pisa al operador. Cerrar L2 es unificarlos. |
