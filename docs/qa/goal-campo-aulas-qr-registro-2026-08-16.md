@@ -125,6 +125,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L54** | «Cadena agotada: se habían usado **0**» para un aula que **nunca tuvo reserva**. | No es lo mismo una decisión del diseño muestral que un hecho del operativo. | ☑ **hecho** (2026-08-16) — hallazgo de la costura completa. |
 | **L55** | Seis fichas de la misma cadena decían **lo mismo**. | Todas: «Reemplazo de AULA-01». Quien las lleva al aula no sabía cuál entra primero. `dimensions` declaraba `replacement_for` pero no `replacement_order` — **duodécima** aparición de la lista cerrada. | ☑ **hecho** (2026-08-16) — «Reemplazo 1 de AULA-01» … «Reemplazo 6 de AULA-01». |
 | **L56** | La tabla de reemplazos no decía **cuál sigue ni cuál ya se usó**. | Con seis reservas del mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten en las seis filas. El motor traía `replacement_order` y `sample_status`; la tabla no los pedía. Y el orden **derivado** se quedaba en una variable local, así que el campo mostraba 0. | ☑ **hecho** (2026-08-16) — órdenes 1–4 y estados distintos, verificado en pantalla. |
+| **L57** | La **Agenda** no distinguía titular de reserva. | Sus columnas eran código, aula, curso, sección, horario, enlace, estado de ficha, responsable y origen: con una cadena de seis, las siete filas del mismo titular sólo se diferenciaban por su código. | ☑ **hecho** (2026-08-16) — rol y «reemplaza a» delante de sección y responsable. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -685,3 +686,34 @@ Dos capas, como suele pasar en este GOAL:
 
 En pantalla: `R 4.1` orden 1 Reemplazada · `R 4.2` orden 2 Agendada · `R 4.3` y
 `R 4.4` órdenes 3 y 4 En reserva. La cadena se lee de un vistazo.
+
+
+### 2026-08-16 — L57: la Agenda tampoco distinguía la cadena
+
+Tercera superficie de la misma revisión. La tabla de Agenda mostraba código,
+aula, curso, sección, horario, enlace, estado de ficha, responsable y origen —
+**nada que dijera si una fila es titular o reserva**, ni de quién.
+
+La tabla recorta a ocho columnas y lo declara, así que el orden de
+`preferredColumns` decide qué se ve. Rol y «reemplaza a» entran delante de
+sección, responsable y origen.
+
+En pantalla, las nueve filas del proyecto de QA:
+
+```
+CH 1  Titular
+…
+CH 5  Titular
+R 4.1 Reserva encadenada   CH 4
+R 4.2 Reserva encadenada   CH 4
+R 4.3 Reserva encadenada   CH 4
+R 4.4 Reserva encadenada   CH 4
+```
+
+**La lista del registro de campo no necesitó cambio**: cada entrada ya muestra
+su código y su estado —«Reemplazada», «Agendada», «En reserva»—, que es
+justamente lo que el coordinador necesita para saber cuál está en campo.
+
+Con esto quedan revisadas las cinco superficies que muestran cadenas: ficha
+impresa (L55), tabla de reemplazos (L56), Agenda (L57), libro Excel —que aguantó
+sin tocar nada— y la lista del registro.

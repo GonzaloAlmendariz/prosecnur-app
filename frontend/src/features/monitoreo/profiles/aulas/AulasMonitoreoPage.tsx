@@ -358,7 +358,11 @@ function renderAulasView(
           <DataTable
             rows={agendaRows(dashboard)}
             empty="No hay agenda importada para cursos-horario."
-            preferredColumns={["operational_code", "label", "course_name", "section", "schedule", "link", "package_status", "responsible", "collector_id"]}
+            // El rol y a quién reemplaza van delante de la sección y el
+            // responsable: con una cadena de seis, las siete filas del mismo
+            // titular sólo se distinguían por su código. La tabla recorta a
+            // ocho columnas y lo declara, así que el orden decide qué se ve.
+            preferredColumns={["operational_code", "sample_role", "replacement_for", "label", "course_name", "schedule", "link", "package_status"]}
           />
         </section>
         )}
