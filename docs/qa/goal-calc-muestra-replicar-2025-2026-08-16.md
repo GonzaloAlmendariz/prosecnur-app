@@ -1014,8 +1014,39 @@ existen y no se tocan.
 Y es justo lo que 2025 sí hizo: **170 cupos, un titular por cupo**, con reparto
 por facultad que cubrió las 15.
 
-**BLOQUEADO — decisión de Gonzalo.** Conectar Certeza con el selector cambia el
-diseño muestral: pasar de «sortea 30 balanceadas» a «cubre la cuota de cada
-facultad» redefine las probabilidades de inclusión y, con ellas, los pesos. Es
-la misma familia de decisión que el candado de la cadena, y probablemente la
-misma respuesta: el precedente de 2025 es por cupo.
+**DECIDIDO por Gonzalo (2026-08-16): el diseño pasa a cuotas por facultad, como
+2025, pero sorteando con los métodos actuales.** El precedente manda en la
+ESTRUCTURA —cupos por facultad, no un n global repartido hacia abajo— y el motor
+manda en el CÓMO: los cuatro métodos que hoy compara son más sofisticados que el
+sorteo de 2025 y se conservan.
+
+### Contrato del cambio
+
+Los cuatro métodos son `cube_balanceado`, `local_pivotal_balanceado`,
+`sistematico_pps` y `estratificado_aleatorio` (`.cm_aulas_engine_key`), con sus
+familias `balanced_probability`, `pps_probability` y `stratified_probability`.
+
+Lo que cambia es **de dónde sale el número de aulas**, no cómo se sortean:
+
+| | Hoy | Con cuotas |
+|---|---|---|
+| Entrada del selector | `n_aulas` global (30) | cuota por facultad/estrato |
+| Reparto | `.cm_aulas_quota_by_stratum` divide el n hacia abajo, y con n < nº estratos se queda con los de mayor peso y deja el resto en 0 | la cuota la fija Cálculo/Certeza por estrato |
+| n total | dato de entrada | **suma de las cuotas** |
+| Método de sorteo | los cuatro | **los cuatro, sin cambio** — se aplican dentro de cada cuota |
+
+**Lo que hay que cuidar al implementarlo**, porque es donde se rompe:
+
+1. **π y pesos se redefinen.** Sortear k de N dentro de una facultad no da el
+   mismo π que sortear 30 de 2.468 balanceando por facultad. `pi_final` y
+   `weight_classroom` tienen que recalcularse con el nuevo esquema o los pesos
+   analíticos quedan mal.
+2. **El corte silencioso desaparece, pero puede volver por otra puerta**: si una
+   facultad pide más aulas de las que tiene elegibles, hay que decirlo —es el
+   mismo patrón de «el aviso dice la causa» que ya se corrigió tres veces hoy—.
+3. **La cadena de reemplazos** sigue siendo decisión aparte (candado por
+   facultad y profundidad variable), pero se vuelve más natural con cupos: en
+   2025 cada cupo tenía su propia cadena.
+4. **El test de `.cm_aulas_quota_by_stratum`** debe fijar primero el
+   comportamiento de hoy para que el cambio sea visible en el diff, no
+   silencioso.
