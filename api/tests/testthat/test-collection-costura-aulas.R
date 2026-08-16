@@ -650,3 +650,36 @@ test_that("la facultad de una respuesta se resuelve por el id que viajo en su QR
     c("Ingenieria", "Sociales", "Ingenieria")
   )
 })
+
+test_that("la agenda acepta el id que viaja en el QR, no solo el aula", {
+  # PREPARATORIO: hoy nadie llama a este camino porque la superficie de registro
+  # no existe (L4). Pero es el id que trae la data de campo, y ya hubo tres
+  # sitios en el modulo donde emparejar solo por `classroom_id` dejaba ciego al
+  # consumidor. Esto evita el cuarto, sin decidir como sera esa superficie.
+  plan <- list(
+    list(classroom_id = "A-01", operational_code = "CH 1", label = "Aula 1",
+         sample_role = "titular", wave = "M1", operational_status = "planificada",
+         eligible_n = 20, orden = 1, collection_unit_id = "unit-01"),
+    list(classroom_id = "A-02", operational_code = "CH 2", label = "Aula 2",
+         sample_role = "titular", wave = "M1", operational_status = "planificada",
+         eligible_n = 20, orden = 2, collection_unit_id = "unit-02")
+  )
+  estado <- function(r) vapply(r, function(x) as.character(x$operational_status), character(1))
+
+  # El control: antes esto tiraba "Las actualizaciones requieren classroom_id u
+  # operational_code."
+  por_unidad <- monitoreo_aulas_update_agenda(
+    plan, list(list(collection_unit_id = "unit-02", operational_status = "sin_acceso"))
+  )
+  expect_identical(estado(por_unidad), c("planificada", "sin_acceso"))
+
+  # Y los dos identificadores de siempre siguen mandando.
+  por_aula <- monitoreo_aulas_update_agenda(
+    plan, list(list(classroom_id = "A-01", operational_status = "aplicada"))
+  )
+  expect_identical(estado(por_aula), c("aplicada", "planificada"))
+  por_codigo <- monitoreo_aulas_update_agenda(
+    plan, list(list(operational_code = "CH 2", operational_status = "en_campo"))
+  )
+  expect_identical(estado(por_codigo), c("planificada", "en_campo"))
+})
