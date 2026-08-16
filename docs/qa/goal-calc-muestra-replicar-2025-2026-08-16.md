@@ -57,7 +57,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☑ **cerrado** (2026-08-16, `7addb99c`) · el motor publica `filas_total` y cada tarjeta de criterio de alumno dice a cuántos dejó fuera; el 0 de `level` se pinta de aviso |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **hay patrón LOGRADO** (2026-08-16) · 194 aulas aplicadas, 3.303 válidas; el n PLANIFICADO sigue sin patrón |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** · el estadístico YA está justificado en la UI; lo que falta es de 2025, que nunca firmó la decisión |
-| L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
+| L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☑ **el patrón SÍ estaba** (2026-08-16) · 15 facultades, 194 aulas, en el histórico; contraste abajo |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido y confirmado** (2026-08-16) · idéntico con y sin descuento; el contraste con 2025 sigue bloqueado |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **diferencia explicada** (2026-08-16) · estaba comparando agendadas contra agendadas de n distintos; ver abajo |
 
@@ -815,3 +815,48 @@ pasar N · en capa instrumento no recorta el marco, se valida después», que es
 exactamente lo que pasa con `level`. Lo que estaba mal era el relato, no el
 código. Pero conviene saberlo: **en el proyecto real de 2025-2 no hay ningún
 criterio de alumno inerte**, los cinco discriminan.
+
+## L10 · el reparto por facultad de 2025 estaba en el histórico (2026-08-16)
+
+Escribí que el reparto de aulas por facultad «tampoco se persiste». **Es falso, y
+lo señaló Gonzalo.** Miré la estructura de `calc_muestra_referencia_asistencia`
+por encima —`str` a dos niveles— y no abrí `dimensiones`, que es donde está.
+
+La dimensión `facultad` trae **15 filas** con las aulas aplicadas de cada una.
+Suman **194 exactas**, y sus matriculados suman **7.070**: cuadra con el global,
+así que es el reparto real y no una muestra de él. Hay además
+`celdas_criterios$rows` con **150 filas** de facultad × celda (tamaño, rango
+horario, tipo de sesión), que suman 582 = 194 × 3 dimensiones.
+
+| Facultad | 2025 (aulas aplicadas) | Sorteo de hoy (30 titulares) |
+|---|---:|---:|
+| CIENCIAS E INGENIERIA | 40 (20,6%) | 4 (13,3%) |
+| ESTUDIOS GENERALES CIENCIAS | 26 (13,4%) | 3 (10,0%) |
+| ESTUDIOS GENERALES LETRAS | 23 (11,9%) | 4 (13,3%) |
+| CIENCIAS SOCIALES | 17 (8,8%) | 5 (16,7%) |
+| DERECHO | 16 (8,2%) | 4 (13,3%) |
+| ARTE Y DISEÑO | 12 (6,2%) | 2 (6,7%) |
+| CIENCIAS Y ARTES DE LA COMUN. | 11 (5,7%) | 3 (10,0%) |
+| **ARTES ESCÉNICAS** | 11 (5,7%) | **0** |
+| GESTIÓN Y ALTA DIRECCIÓN | 9 (4,6%) | 2 (6,7%) |
+| ARQUITECTURA Y URBANISMO | 7 (3,6%) | 2 (6,7%) |
+| **EDUCACION** | 7 (3,6%) | **0** |
+| PSICOLOGÍA | 6 (3,1%) | 1 (3,3%) |
+| **LETRAS Y CIENCIAS HUMANAS** | 4 (2,1%) | **0** |
+| **GASTRONOMÍA, HOTELERÍA Y TURISMO** | 3 (1,5%) | **0** |
+| **CIENCIAS CONTABLES** | 2 (1,0%) | **0** |
+
+**2025 cubrió 15 facultades; el sorteo de hoy cubre 10.** Las cinco que caen son
+las cinco más chicas, y entre ellas suman 27 aulas del operativo de 2025 —
+ARTES ESCÉNICAS sola aportó 11, más que ARQUITECTURA o EDUCACION.
+
+Esto no es un defecto del sorteo: con 30 titulares no caben 15 facultades
+repartidas como en un operativo de 194. Pero **da contenido a la decisión
+bloqueada de la cadena**: las facultades que hoy quedan fuera son exactamente
+las que 2025 sí cubrió, y agrupar los estratos chicos —la tercera opción— es lo
+que las devolvería.
+
+**Lo que sigue sin estar**: la lista de aulas una a una. Las 150 filas tienen
+grano facultad × celda, sin ningún identificador de curso, horario ni aula. Así
+que L11 —contrastar el PERFIL de las aulas sorteadas contra las de 2025— sigue
+necesitando el entregable; lo que ya no necesita nada es el reparto por facultad.
