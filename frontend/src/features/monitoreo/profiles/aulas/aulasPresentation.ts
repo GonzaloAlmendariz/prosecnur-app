@@ -76,6 +76,9 @@ const CHECK_LABELS: Record<string, string> = {
   // escanean todos los alumnos, así que el colector se repite por diseño y ese
   // aviso saltaba siempre. Lo anómalo es la misma respuesta dos veces.
   duplicate_responses: "Respuestas repetidas",
+  // El Excel no comprueba que asistentes − rechazos − duplicados cuadre con las
+  // efectivas; la app sí.
+  field_report_reconciliation: "Cuadre del parte de campo",
   effective_representativity: "Representatividad efectiva",
   sex_faculty_quota: "Cuota por sexo y facultad",
 };

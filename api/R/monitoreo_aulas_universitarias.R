@@ -233,6 +233,11 @@ monitoreo_aulas_default_config <- function() {
       valid_statuses = as.list(c("completed", "complete", "valid", "aprobado", "aplicada"))
     ),
     plan = list(),
+    # Partes de campo de la hoja «Aulas Aplicadas». Viven junto al plan y no
+    # dentro de el: son otra medida del mismo aula. Sin declararlos aqui el
+    # normalizador los descartaba y el control de reconciliacion nunca veia
+    # nada que comprobar.
+    partes_campo = list(),
     quotas = list(),
     variables_control = list(),
     methodology = list(),
@@ -267,6 +272,13 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses))
     ),
     plan = monitoreo_aulas_normalize_plan(config$plan %||% config$agenda %||% defaults$plan),
+    # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
+    # normalizador descartaba los partes y el control de reconciliacion no
+    # tenia nada que comprobar.
+    partes_campo = {
+      pc <- config$partes_campo %||% config$partes %||% defaults$partes_campo
+      if (is.list(pc)) unname(Filter(is.list, pc)) else list()
+    },
     quotas = config$quotas %||% config$cuotas %||% defaults$quotas,
     variables_control = config$variables_control %||% config$variablesControl %||% defaults$variables_control,
     methodology = config$methodology %||% config$metodologia %||% defaults$methodology,
@@ -904,16 +916,25 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   }
   respuestas_repetidas <- sum(duplicated(respuesta_ids[nzchar(respuesta_ids)]))
 
+  # El parte de campo llega de su propia hoja, no del plan: vive aparte en la
+  # sesion justo para no perder de cual medida viene cada numero.
+  partes_campo <- cfg$partes_campo %||% list()
+  descuadres <- monitoreo_aulas_reconciliacion_partes(partes_campo)
+
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
       if (any(huerfanas)) "warning" else "ok",
       if (respuestas_repetidas > 0L) "review" else "ok",
       if (nzchar(representativity$warning %||% "")) "warning" else "ok",
-      if (length(quota_status) && any(quota_status %in% c("pendiente", "en_riesgo"))) "warning" else "ok"
+      if (length(quota_status) && any(quota_status %in% c("pendiente", "en_riesgo"))) "warning" else "ok",
+      # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
+      # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
+      # de 101 columnas.
+      if (length(descuadres)) "review" else "ok"
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
@@ -929,7 +950,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         sprintf("%d respuestas repetidas.", respuestas_repetidas)
       },
       if (nzchar(representativity$warning %||% "")) representativity$warning else sprintf("Score efectivo %.1f.", representativity$effective_score %||% NA_real_),
-      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable."
+      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable.",
+      if (length(descuadres)) {
+        paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
+      } else if (length(partes_campo)) {
+        "Los numeros de cada parte de campo cuadran."
+      } else {
+        "No hay partes de campo que comprobar."
+      }
     ),
     stringsAsFactors = FALSE,
     check.names = FALSE

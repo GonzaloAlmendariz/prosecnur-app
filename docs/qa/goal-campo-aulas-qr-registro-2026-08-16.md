@@ -105,7 +105,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
 | **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ☑ **hecho** (2026-08-16) — lector + endpoint `/api/monitoreo/aulas/importar-libro`. Contra el estudio real: **1012 filas**, 170 titulares, 230 contactadas. |
 | **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques de **ancho distinto** (34/33/33: sólo el principal trae `AULA`) y `FECHA DE APLICACIÓN` duplicada dentro del bloque. | ☑ **hecho** (2026-08-16) — lector + endpoint. **196 partes**, 4269 efectivas. |
-| **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☐ sin empezar — es un control que la app **sí** puede aportar |
+| **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☑ **hecho** (2026-08-16) — control `field_report_reconciliation` en el tablero. Detecta los 2 descuadres del estudio real y **explica la resta**, no sólo el hecho. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -510,3 +510,29 @@ Dos decisiones al normalizar:
 
 Hay test que fija que los campos nuevos **no multiplican el plan** — el defecto
 del n² vivía en defaults vectoriales y estos son escalares.
+
+### 2026-08-16 — L33: el cuadre del parte, que el Excel no hace
+El parte declara cuatro números que no son independientes:
+`asistentes − rechazos − duplicados = efectivas`. El Excel **no comprueba** esa
+identidad, y falla en 2 de 196 partes del estudio real. Son pocos, y por eso
+mismo son invisibles a ojo en una hoja de 101 columnas.
+
+El control nuevo aparece en Validación como **«Cuadre del parte de campo»**, y
+lo que dice es la resta entera:
+
+> `LIN127-0203`: 27 asistentes menos 1 rechazos y 3 duplicados dan 23, pero el
+> parte declara 27 efectivas (sobran 4).
+
+Tres decisiones sobre qué es un descuadre y qué no:
+
+- **Sin asistentes o sin efectivas no se comprueba nada.** Suponer cero donde no
+  hay dato denunciaría aulas que nadie llegó a medir.
+- **Rechazos y duplicados ausentes sí valen cero**: son cantidades de eventos, y
+  si no se anotaron, no ocurrieron.
+- **El control señala, no corrige.** No decide cuál de los cuatro números está
+  mal — quien sabe qué pasó en esa aula es el equipo.
+
+**Sexta aparición del patrón**: `monitoreo_aulas_normalize_config()` reconstruye
+la config con una lista cerrada de campos, así que `partes_campo` se descartaba
+y el control no veía nada que comprobar. Declararlo en el normalizador *y* en el
+default es lo que lo hizo llegar.
