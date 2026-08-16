@@ -966,6 +966,16 @@ audit_reference_write_inputs <- function(dir = audit_reference_dir()) {
   session_set(sid, "hojas_ruta_workspace_outputs", hojas$workspace_outputs)
   session_set(sid, "hojas_ruta_runs", hojas$runs)
   session_set(sid, "hojas_ruta_active_phase", hojas$active_phase)
+  # Decisiones de gobierno: reglas apagadas, variables excluidas y bitacora.
+  # Ver audit_reference_gobierno.R — son los tres fenomenos que el barrido del
+  # 2026-08-16 midio que no existian en ningun corpus.
+  audit_reference_seed_gobierno(sid, list(
+    list(nombre = AUDIT_REFERENCE_BASE, xlsform_path = paths$xlsform,
+         data_path = dmeta$path, data_ext = dmeta$ext, variables = names(data_norm)),
+    list(nombre = AUDIT_REFERENCE_PANEL_BASE, xlsform_path = paths$xlsform,
+         data_path = d2meta$path, data_ext = d2meta$ext, variables = names(data_panel_norm))
+  ))
+
   session_set(sid, "audit_reference", list(
     name = AUDIT_REFERENCE_NAME,
     generated_at = .audit_reference_now(),

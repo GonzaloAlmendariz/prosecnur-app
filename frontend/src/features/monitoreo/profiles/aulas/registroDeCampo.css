@@ -1,0 +1,214 @@
+/* Registro de campo por curso-horario.
+ *
+ * Dos columnas: la lista de aulas a la izquierda y el formulario a la derecha.
+ * La lista es la que crece con los datos, así que es ella la que scrollea
+ * dentro de su propia caja (C3/C4) — el panel no cambia de alto porque el
+ * estudio tenga 7 aulas o 200.
+ *
+ * Colores sólo con tokens `--pulso-*`.
+ */
+
+/* `min-height` explicito y no `auto`: el tamano minimo automatico de un
+ * contenedor con `overflow` es CERO, asi que sin esto el stack que envuelve al
+ * panel puede aplastarlo a 0 px y el registro desaparece aunque su contenido
+ * este en el DOM. Medido: el panel salia con 26 px de alto —solo la cabecera—
+ * y su cuerpo con 0. El marco no puede depender de que el contenedor padre
+ * tenga sitio de sobra (C2), y el vacio necesita una caja visible que lo
+ * contenga (C3). */
+.registro-campo-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: var(--pulso-space-4, 16px);
+  align-items: start;
+  /* Alto minimo del cuerpo, no del panel: el panel vive en una vista de alto
+   * fijo y su fila compite con la tabla. Esto garantiza que el registro sea
+   * usable; lo que sobre lo absorbe la lista con su propio scroll. */
+  min-height: 14rem;
+}
+
+@media (max-width: 60rem) {
+  .registro-campo-cuerpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Alto fijo: el marco no depende de `items.length` (C2). Lo que sobra se
+   resuelve dentro con scroll, no estirando el panel. */
+.registro-campo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 8rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  border: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 10px;
+  background: var(--pulso-surface-sunken, transparent);
+}
+
+.registro-campo-lista > li + li {
+  border-top: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.registro-campo-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--pulso-text-primary, inherit);
+}
+
+.registro-campo-item:hover {
+  background: var(--pulso-surface-hover, rgba(0, 0, 0, 0.03));
+}
+
+.registro-campo-item.is-activa {
+  background: var(--pulso-module-monitoreo-soft, rgba(0, 0, 0, 0.06));
+  box-shadow: inset 2px 0 0 var(--pulso-module-monitoreo, currentColor);
+}
+
+.registro-campo-item-titulo {
+  font-size: 0.82rem;
+  font-weight: 500;
+  /* Dato operativo: no se recorta con elipsis (C4). */
+  overflow-wrap: anywhere;
+}
+
+.registro-campo-estado {
+  font-size: 0.7rem;
+  color: var(--pulso-text-muted, rgba(0, 0, 0, 0.55));
+}
+
+.registro-campo-estado.is-sin_acceso,
+.registro-campo-estado.is-cancelada {
+  color: var(--pulso-danger-text, #a3352a);
+}
+
+.registro-campo-estado.is-aplicada,
+.registro-campo-estado.is-cerrada {
+  color: var(--pulso-success-text, #2f6b45);
+}
+
+.registro-campo-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pulso-space-3, 12px);
+  min-width: 0;
+}
+
+.registro-campo-contexto {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--pulso-text-primary, inherit);
+}
+
+.registro-campo-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.registro-campo-campo > span {
+  font-size: 0.72rem;
+  color: var(--pulso-text-muted, rgba(0, 0, 0, 0.55));
+}
+
+.registro-campo-campo input,
+.registro-campo-campo select {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.14));
+  background: var(--pulso-surface-raised, transparent);
+  color: var(--pulso-text-primary, inherit);
+  min-width: 0;
+}
+
+.registro-campo-numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--pulso-space-3, 12px);
+}
+
+.registro-campo-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--pulso-space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.registro-campo-acciones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.14));
+  background: var(--pulso-module-monitoreo-soft, transparent);
+  color: var(--pulso-text-primary, inherit);
+  cursor: pointer;
+}
+
+.registro-campo-acciones button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.registro-campo-spin {
+  animation: registro-campo-giro 0.9s linear infinite;
+}
+
+@keyframes registro-campo-giro {
+  to { transform: rotate(360deg); }
+}
+
+.registro-campo-ok {
+  font-size: 0.76rem;
+  color: var(--pulso-success-text, #2f6b45);
+}
+
+.registro-campo-error {
+  font-size: 0.76rem;
+  color: var(--pulso-danger-text, #a3352a);
+}
+
+/* El vacío vive DENTRO del panel, con su propia caja (C3). */
+.registro-campo-vacio {
+  margin: 0;
+  padding: var(--pulso-space-4, 16px);
+  font-size: 0.8rem;
+  color: var(--pulso-text-muted, rgba(0, 0, 0, 0.55));
+}
+
+/* La seccion Agenda vive en una vista de alto fijo que RECORTA (`overflow:
+ * hidden`). Con dos paneles cabian; al entrar el registro de campo como tercero
+ * el stack le adjudico 0 px y desaparecio de la pantalla aunque estuviera en el
+ * DOM.
+ *
+ * La parte elastica es la TABLA, no el registro: la tabla ya scrollea dentro de
+ * su propio `mon-profile-table-wrap`, asi que es ella la que debe absorber lo
+ * que sobre o falte. La franja de trazabilidad y el registro toman su alto de
+ * contenido. Se hace con clase propia y no tocando `.mon-profile-stack`, que lo
+ * comparten los cuatro perfiles de Monitoreo. */
+.mon-profile-stack.aulas-agenda-stack {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+/* El panel no puede desaparecer aunque la vista este apretada: sin este minimo
+ * la fila `auto` cede ante el `1fr` de la tabla y el registro queda en 0 px.
+ * Con el, el registro siempre se ve y quien absorbe la falta de sitio es la
+ * tabla, que ya scrollea por dentro. */
+.registro-campo {
+  min-height: 18rem;
+  align-self: start;
+}

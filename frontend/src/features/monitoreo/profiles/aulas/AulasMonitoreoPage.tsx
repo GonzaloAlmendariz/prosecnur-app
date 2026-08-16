@@ -12,6 +12,7 @@ import {
 import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel";
 import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
+import { RegistroDeCampo } from "./RegistroDeCampo";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
   MONITOREO_PESTANAS,
@@ -281,6 +282,7 @@ function renderAulasView(
   dashboard: MonitoreoAulasDashboard | null,
   operations: ReactNode,
   vacioSinTablero: ReactNode,
+  registro: ReactNode,
 ) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -319,8 +321,9 @@ function renderAulasView(
   if (!dashboard) return vacioSinTablero;
   if (view === "modelo") {
     return (
-      <div className="mon-profile-stack">
+      <div className="mon-profile-stack aulas-agenda-stack">
         <HandoffTracePanel dashboard={dashboard} />
+        {registro}
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-table"
@@ -630,6 +633,10 @@ export default function AulasMonitoreoPage() {
                 fuentesActivas={activeSources}
                 fuentesDeclaradas={sourceTotal}
                 onIrAFuentes={() => setActiveView("fuentes")}
+              />,
+              <RegistroDeCampo
+                agenda={aulasConfig?.plan ?? []}
+                onGuardado={() => { void loadView(seccionActiva, true); }}
               />,
             )}
           </div>

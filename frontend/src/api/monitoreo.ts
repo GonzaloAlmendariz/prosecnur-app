@@ -695,6 +695,17 @@ export type MonitoreoAulasPlanRow = {
   chain_depth?: number;
   activation_weight_status?: string;
   analysis_weight_warning?: string;
+  // Registro de campo: lo que sólo existe dentro del aula. `observed_students`
+  // es cuántos ASISTIERON, no cuántos están matriculados (`eligible_n`), y sin
+  // ese denominador no hay tasa de respuesta por aula. Los rechazos nunca tocan
+  // el formulario, así que Kobo no los ve.
+  observed_students?: number | null;
+  applied_surveys?: number | null;
+  refusals?: number | null;
+  applied_by?: string;
+  applied_at?: string;
+  field_note?: string;
+  collection_unit_id?: string;
   updated_at: string;
   [key: string]: string | number | boolean | null | undefined;
 };
