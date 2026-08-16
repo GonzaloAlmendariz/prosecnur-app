@@ -4307,6 +4307,32 @@ export async function apiMonitoreoAulasAgenda(updates: Partial<MonitoreoAulasPla
   );
 }
 
+/**
+ * Activa la siguiente reserva de un curso-horario caído.
+ *
+ * `agotada: true` significa que la cadena se acabó: la caída NO queda marcada
+ * como reemplazada, porque no lo está, y su meta se queda sin cubrir.
+ */
+export async function apiMonitoreoAulasActivarReemplazo(payload: {
+  operational_code: string;
+  motivo?: string;
+}) {
+  return handle<{
+    ok: true;
+    activada: string | null;
+    reemplazada: string;
+    agotada: boolean;
+    mensaje: string;
+    state: MonitoreoState;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/activar-reemplazo", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 export async function apiMonitoreoAulasSync(responses?: MonitoreoRow[]) {
   return handle<{ ok: true; synced_at: string; dashboard: MonitoreoAulasDashboard; state: MonitoreoState }>(
     await apiFetch("/api/monitoreo/aulas/sync", {

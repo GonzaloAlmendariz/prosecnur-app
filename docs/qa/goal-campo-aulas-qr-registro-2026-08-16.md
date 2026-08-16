@@ -30,7 +30,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V3** | El identificador que viaja en el QR es el **código operativo** del equipo (`CH 1`, `R 1.2`), no un slug interno con hash. | El `d[collectorID]` de la ficha de `CH 1` es literalmente `CH 1` (o su forma URL-safe estable), y la data que vuelve de Kobo se reconcilia sin tabla de traducción. |
 | **V4** | La ficha dice **sin interpretación** si el aula es titular o reemplazo, y de quién es reemplazo. | Dos páginas del mismo PDF (una titular, una reserva) difieren en una marca legible; alguien que no conoce la nomenclatura acierta el rol. |
 | **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. **Cumplida (2026-08-16)**: `RegistroDeCampo` en Monitoreo > Agenda. |
-| **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. |
+| **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. **Cumplida (2026-08-16)**: botón en Registro de campo, verificado end-to-end en el navegador. |
 | **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
 | **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. **Comprobada a medias (2026-08-16)**: los tres campos que faltaban ya están en la app; queda el desglose hombres/mujeres, que vive sólo en la ficha impresa. |
 | **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Los totales del lector cuadran con un conteo independiente del Excel real. **Comprobada (2026-08-16)**: 1012 unidades, 766 enlaces, 230 estados y 190 observaciones, todos coincidentes celda a celda. |
@@ -117,6 +117,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L46** | El desglose **hombres/mujeres** vive sólo en la ficha impresa. | `collection_material_field_form_rows()` lo pide en papel; no está ni en el registro de la app ni en el Excel. Puede ser deliberado —el sexo se deriva de las respuestas para las cuotas— o una fuga. | ☐ sin empezar — no lo declaro defecto sin saber para qué se usa en campo. |
 | **L47** | Las **190 observaciones** del agendamiento se perdían al regenerar. | El lector guarda la columna `OBSERVACIONES` en `replacement_note` y el generador leía `notes`. Round-trip de 40 unidades del estudio real: 11 → 0. | ☑ **hecho** (2026-08-16) — 11 → 11. |
 | **L48** | `monitoreo_aulas_estado_muestra()` **no reconocía su propia salida**. | Borraba el guion bajo en vez de convertirlo en espacio, así que `en_reserva` quedaba en `enreserva`, no casaba con `en reserva` y **degradaba a `sin_contactar`** en cada vuelta de normalización. | ☑ **hecho** (2026-08-16) — los tres vocabularios son idempotentes. |
+| **L49** | Las marcas de la activación se caían al normalizar. | `monitoreo_aulas_normalize_plan()` reconstruye la fila campo a campo con lista **cerrada**: `replaced_at`, `activated_at` y `activation_reason` no estaban declarados, así que el motor los escribía y el tablero los mostraba vacíos. | ☑ **hecho** (2026-08-16) — **décima** aparición del patrón. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -125,7 +126,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☑ **hecho** (2026-08-16) — `sample_status` y `application_status` son campos propios, cada uno con su vocabulario. `operational_status` se queda como estaba. |
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☑ **hecho** (2026-08-16) — `contact_medium`, `contact_date` y `contact_attempts` llegan al plan. En el estudio real: **232 aulas con intentos, hasta 7 llamadas**. |
 | **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☑ **hecho** (2026-08-16) — `duplicates`, `effective_surveys` y `actual_room` completan el parte. |
-| **L5** | Activar un reemplazo no es un gesto de la app. | El modelo tenía el vocabulario; faltaba la acción. | ◐ a medias (2026-08-16) — motor `monitoreo_aulas_activar_reemplazo()` + endpoint `POST /api/monitoreo/aulas/activar-reemplazo`, con 9 tests. Falta el botón en la UI. |
+| **L5** | Activar un reemplazo no es un gesto de la app. | El modelo tenía el vocabulario; faltaba la acción. | ☑ **hecho** (2026-08-16) — motor, endpoint y botón. Verificado en el navegador: `CH 4` → `R 4.1` → `R 4.2` → cadena agotada. |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
@@ -921,3 +922,35 @@ tres sean idempotentes.
 
 Falta el botón: la UI todavía no ofrece el gesto. **V6 sigue sin cumplirse del
 todo**, y es lo único de la vara que queda.
+
+
+### 2026-08-16 — V6 cumplida, y dos cosas que sólo se vieron al pulsar el botón
+
+El botón vive en Registro de campo, que es donde el coordinador marca que un
+aula cayó — el momento exacto en que la decisión se toma. Aparece sólo con
+`sin_acceso`, `cancelada` o `reemplazo_pendiente`, y **no** sobre un aula ya
+reemplazada: volver a activarla consumiría otra reserva sin que nadie lo pida.
+
+Verificado end-to-end en el navegador, no en un test: `CH 4` → entra `R 4.1` →
+cae `R 4.1` → entra `R 4.2` → cae `R 4.2` → **cadena agotada**, con el mensaje
+diciendo que esa meta se queda sin cubrir.
+
+**Dos defectos que ningún test mío habría encontrado**, porque los dos aparecen
+al mirar el resultado en la sesión real:
+
+- **L49**: el motor escribía `replaced_at`, `activated_at` y `activation_reason`,
+  y el tablero los mostraba **vacíos**. `monitoreo_aulas_normalize_plan()` tiene
+  lista **cerrada** de campos. Décima aparición del mismo patrón en este GOAL, y
+  la primera contra código que yo mismo acababa de escribir.
+- **El motivo se degradaba a «otro»**: mi UI pasaba `form.estado` como sustituto
+  cuando no había motivo, y **un estado no es un motivo**. `sin_acceso` es
+  estado; `docente_no_autoriza` es motivo. Que se normalizara a «otro» era
+  correcto — el error era colarlo.
+
+**Nota de método**: al pulsar el botón no vi mensaje y estuve a punto de darlo
+por roto. Había funcionado: el mensaje quedaba bajo el recorte de L42, y la
+prueba fue que la siguiente activación entró `R 4.2` en vez de `R 4.1`. Un
+defecto de layout puede disfrazarse de defecto funcional.
+
+Con esto **la vara queda completa salvo L46** (hombres/mujeres en papel) y tus
+cinco decisiones.
