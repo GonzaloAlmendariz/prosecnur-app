@@ -100,13 +100,16 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L25** | La agenda sólo aceptaba `classroom_id` u `operational_code`. | `monitoreo_aulas_update_agenda()` **lanzaba error** con cualquier otro identificador, incluido el que viaja en el QR. Sin consumidor hoy —la superficie de registro no existe (L4)—, pero es el muro exacto con el que chocaría quien la implemente. | ☑ **hecho** (2026-08-16) — **preparatorio, no un defecto observado**: `.monitoreo_aulas_plan_index()` y la agenda aceptan `collection_unit_id` como tercer identificador. No decide nada sobre L4. |
 | **L21** | El aviso «recolectores duplicados» saltaba **siempre**. | En un estudio de aulas el mismo QR lo escanean todos los alumnos: el colector se repite por diseño. El chequeo sólo decía «ok» con una única respuesta, que es el caso anómalo. | ☑ **hecho** (2026-08-16) — pasa a `duplicate_responses`, que mira el id de respuesta (`_uuid`/`_id`/`instanceID`); si la fuente no lo trae, lo dice en vez de callar o alarmar. Etiqueta del frontend actualizada. |
 | **L22** | Una respuesta de un aula inexistente pasaba como **buena**. | `unmapped_valid_responses` miraba si la respuesta *tenía* colector, no si ese colector correspondía a un aula del plan. | ☑ **hecho** (2026-08-16) — se compara contra los ids del plan (`classroom_id` + `collection_unit_id`), posible sólo desde que el emparejamiento los conoce. |
-| **L23** | Los números de L15–L22 no se han visto en pantalla. | **La premisa era falsa.** La persistencia del `.pulso` es lista **negra**, no whitelist: `build_pulso()` guarda todo salvo los caches que `.pulso_strip_caches()` nombra. Plan, config, partes y respuestas viajan. | ◐ a medias (2026-08-16) — `api/scripts/qa_pulso_aulas_campo.R` siembra un estudio en campo y los ocho fenómenos se comprueban sobre un `.pulso` de ida y vuelta. Falta abrirlo en la UI. |
+| **L23** | Los números de L15–L22 no se han visto en pantalla. | **La premisa era falsa.** La persistencia del `.pulso` es lista **negra**, no whitelist. | ☑ **hecho** (2026-08-16) — `api/scripts/qa_pulso_aulas_campo.R` + pila en 8799/5199. Vistos en pantalla: cadena de reemplazos, brechas por aula, avance por estrato, cuotas y los cuatro controles con su etiqueta en español. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
 | **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
 | **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ☑ **hecho** (2026-08-16) — lector + endpoint `/api/monitoreo/aulas/importar-libro`. Contra el estudio real: **1012 filas**, 170 titulares, 230 contactadas. |
 | **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques de **ancho distinto** (34/33/33: sólo el principal trae `AULA`) y `FECHA DE APLICACIÓN` duplicada dentro del bloque. | ☑ **hecho** (2026-08-16) — lector + endpoint. **196 partes**, 4269 efectivas. |
 | **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☑ **hecho** (2026-08-16) — control `field_report_reconciliation` en el tablero. Detecta los 2 descuadres del estudio real y **explica la resta**, no sólo el hecho. |
 | **L38** | El tablero **reventaba entero** el primer día de campo. | `.monitoreo_aulas_quota_sex_faculty()` construía el caso vacío con la columna `x` y la renombraba a `observed` sólo `if (nrow(observed))` — que nunca se cumple. El merge salía sin la columna y la línea siguiente asignaba `integer(0)` a un data.frame con filas. | ☑ **hecho** (2026-08-16) — hallazgo de propina al sembrar el `.pulso` de L23. |
+| **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
+| **L40** | El alto se reparte al revés del contenido. | En Avance, el panel de 7 filas recibe **135 px** y el de 6 filas **303 px**. Las 7 filas están en el DOM y hay scroll interno (61/313), así que **C4 es conforme**: se alcanzan. Lo que falla es C3 — el reparto no sigue la necesidad. | ☐ sin empezar — medido, no tocado. |
+| **L41** | `titular_operational_code` no apunta al titular. | En pantalla, `R 4.1` y `R 4.2` reemplazan a `CH 4` pero su código titular dice `CH 6` y `CH 7`. Se ve en Consultas > Cadena de reemplazos. | ☐ sin empezar — hallazgo de propina de L39. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -584,3 +587,40 @@ mientras nadie las revisa a mano y `""` no está entre los estados válidos. O s
 que L12 no sólo falla abierto cuando no hay columna: falla **cerrado y en
 silencio** cuando sí la hay. Las dos caras del mismo ítem siguen esperando tu
 decisión.
+
+
+### 2026-08-16 — L23 cerrado en pantalla, y lo que apareció al mirar
+
+Pila propia en 8799 (API) y 5199 (Vite) para no tocar la del usuario, con el
+`.pulso` sembrado. Readiness real (`__pulsoNav.listo()` → `monitoreo-aulas`), no
+un sleep.
+
+**Lo verificado en pantalla**, con captura: la cadena `R 4.1`/`R 4.2` colgando de
+`CH 4` (L19), las brechas por aula con sus denominadores (L18), el avance por
+estrato con números reales (L18), las 6 celdas de cuota (L20), y los cuatro
+controles con su etiqueta en español —incluido «Cuadre del parte de campo»
+mostrando la resta entera (L33) y «Respuestas válidas sin curso-horario»
+señalando la respuesta fantasma (L22).
+
+**Y apareció L39, que ningún test podía ver.** La sección se llama Avance y no
+mostraba el avance: las cuotas y el avance por estrato competían por un solo
+panel, y el avance por aula estaba en Consultas mezclado con otras dos listas —
+7 aulas se veían como 15 filas, sin ninguna columna que dijera de cuál venía
+cada fila. El backend calculaba las cuatro cosas bien desde hacía tres ítems.
+Es C5 categoría 3 en estado puro: **el motor lo sabía y la pantalla no lo decía**.
+
+**Dos errores de método propios, anotados porque volverán:**
+
+- Navegué a `monitoreo/aulas/agenda` porque la pestaña **dice** «Agenda». La
+  sección se llama `modelo`. El `ir()` no se queja: se queda donde estaba, y la
+  captura siguiente parece decir que la vista no cambió.
+- Corrí `git checkout` sobre un archivo con ediciones sin stagear para deshacer
+  **una línea** de un control invertido, y perdí las dos ediciones del turno.
+  Para revertir un experimento sobre trabajo vivo, copia y restaura el archivo;
+  `checkout` no distingue tu experimento de tu trabajo.
+
+**El test de geometría estaba atado al nombre del grupo**, no a la relación:
+contaba cinco `monitoring-aulas-table` y se puso rojo al separar los paneles —un
+cambio que *añade* superficies declaradas. Ahora exige que **todo panel de datos
+declare su contrato**, sea cual sea su nombre. Verificado quitando una
+declaración: rojo.
