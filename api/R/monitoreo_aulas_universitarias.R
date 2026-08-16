@@ -295,6 +295,19 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     probability_source = get(c("probability_source", "fuente_probabilidad"), ""),
     nonresponse_policy = get(c("nonresponse_policy", "politica_no_respuesta"), ""),
     methodological_warning = get(c("methodological_warning", "advertencia_metodologica"), ""),
+    # --- Registro de campo -----------------------------------------------
+    # Lo que solo existe dentro del aula y ningun sistema puede saber de
+    # antemano: cuantos ASISTIERON (no cuantos estan matriculados), cuantas
+    # encuestas se repartieron, y quien dijo que no —el rechazo nunca toca el
+    # formulario, asi que es invisible para Kobo—. Sin estos tres numeros no
+    # existe la tasa de respuesta por aula: Kobo dice "llegaron 12", pero 12 de
+    # cuantos.
+    observed_students = getn(c("observed_students", "alumnos_en_aula", "aforo_observado"), NA_real_),
+    applied_surveys = getn(c("applied_surveys", "encuestas_aplicadas"), NA_real_),
+    refusals = getn(c("refusals", "rechazos"), NA_real_),
+    applied_by = get(c("applied_by", "aplicador", "aplicadora"), ""),
+    applied_at = get(c("applied_at", "fecha_aplicacion", "hora_aplicacion"), ""),
+    field_note = get(c("field_note", "nota_campo", "observaciones"), ""),
     updated_at = get(c("updated_at", "actualizado_en"), ""),
     stringsAsFactors = FALSE,
     check.names = FALSE
@@ -920,7 +933,8 @@ monitoreo_aulas_update_agenda <- function(current, updates = list()) {
     for (nm in names(row)) {
       if (!nm %in% names(plan_df)) next
       value <- .monitoreo_scalar(row[[nm]], "")
-      if (!nzchar(value) && !nm %in% c("link", "qr", "word_link", "pdf_link", "package_label", "package_status", "collector_id", "responsible", "replacement_note")) next
+      if (!nzchar(value) && !nm %in% c("link", "qr", "word_link", "pdf_link", "package_label", "package_status", "collector_id", "responsible", "replacement_note",
+                                    "applied_by", "applied_at", "field_note")) next
       # El enlace de aplicación es lo que termina impreso en el QR: una URL que
       # no puede recibir los parámetros de unidad se rechaza al guardar, no al
       # descubrir que las respuestas llegaron sin identificar el aula.

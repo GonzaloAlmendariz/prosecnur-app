@@ -20,7 +20,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V2** | El QR codifica el enlace **mínimo**: base + un parámetro, una sola vez. | El `qr_payload` compilado no repite ningún nombre de parámetro. |
 | **V3** | El identificador que viaja en el QR es el **código operativo** del equipo (`CH 1`, `R 1.2`), no un slug interno con hash. | El `d[collectorID]` de la ficha de `CH 1` es literalmente `CH 1` (o su forma URL-safe estable), y la data que vuelve de Kobo se reconcilia sin tabla de traducción. |
 | **V4** | La ficha dice **sin interpretación** si el aula es titular o reemplazo, y de quién es reemplazo. | Dos páginas del mismo PDF (una titular, una reserva) difieren en una marca legible; alguien que no conoce la nomenclatura acierta el rol. |
-| **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. Hoy ese endpoint tiene **0 consumidores**. |
+| **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. **Cumplida (2026-08-16)**: `RegistroDeCampo` en Monitoreo > Agenda. |
 | **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. |
 | **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
 | **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. |
@@ -88,7 +88,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L21** | El aviso «recolectores duplicados» saltaba **siempre**. | En un estudio de aulas el mismo QR lo escanean todos los alumnos: el colector se repite por diseño. El chequeo sólo decía «ok» con una única respuesta, que es el caso anómalo. | ☑ **hecho** (2026-08-16) — pasa a `duplicate_responses`, que mira el id de respuesta (`_uuid`/`_id`/`instanceID`); si la fuente no lo trae, lo dice en vez de callar o alarmar. Etiqueta del frontend actualizada. |
 | **L22** | Una respuesta de un aula inexistente pasaba como **buena**. | `unmapped_valid_responses` miraba si la respuesta *tenía* colector, no si ese colector correspondía a un aula del plan. | ☑ **hecho** (2026-08-16) — se compara contra los ids del plan (`classroom_id` + `collection_unit_id`), posible sólo desde que el emparejamiento los conoce. |
 | **L23** | Los números de L15–L22 no se han visto en pantalla. | Un `.pulso` armado a mano no transporta las respuestas ni `monitoreo_config$aulas_universitarias`: la whitelist de persistencia guarda el plan y poco más. | ☐ sin empezar — exige recorrer el flujo real desde la UI (calc-muestra → importar → Recopiladores → handoff). L13 y L14 **sí** quedaron confirmados en pantalla: 7 cursos-horario, no 49, y sin crash. |
-| **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
+| **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
+| **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
@@ -229,3 +230,34 @@ Se dejan explícitas porque afectan a lo que se puede dar por cierto:
 **no por pantalla**. L13 y L14 sí se confirmaron en UI real. Verlos exige montar
 un estudio de aulas completo desde la UI —tres intentos por vías sintéticas
 fallaron, y el obstáculo era el atajo, no el producto—.
+
+### 2026-08-16 — L4 decidido y construido: el registro vive en Monitoreo
+Gonzalo decidió que el registro de campo vive en **Monitoreo**, sección Agenda.
+Es la elección coherente: lo que se registra es el estado operativo, y el estado
+operativo mueve los denominadores del avance.
+
+**Backend.** El modelo del plan no tenía dónde guardar lo que nace en el aula.
+Gana seis campos, con sus alias en español: `observed_students` (cuántos
+**asistieron**, no cuántos están matriculados — sin ese denominador no hay tasa
+de respuesta por aula), `applied_surveys`, `refusals` (quien dice que no nunca
+toca el formulario, así que es invisible para Kobo), `applied_by`, `applied_at`
+y `field_note`.
+
+**Frontend.** `RegistroDeCampo.tsx` conecta por fin `/api/monitoreo/aulas/agenda`
+— el endpoint que llevaba **cero consumidores** y que abrió este GOAL. Manda un
+PATCH: sólo los campos que el usuario tocó, porque mandar el resto en blanco
+borraría lo que otro registró antes. El motivo se pide sólo cuando el estado lo
+justifica.
+
+**Un defecto propio, encontrado en pantalla y no por test.** El panel salió con
+**26 px de alto y su cuerpo en 0**: el tamaño mínimo automático de un contenedor
+con `overflow` es cero, así que el stack de alto fijo pudo aplastarlo. Estaba en
+el DOM con sus siete aulas y era invisible. Ningún test lo habría visto.
+
+**Queda L26**, y no se improvisó: la vista Agenda es de alto fijo y ahora
+compiten tres paneles, además de que la lista del registro y la tabla de agenda
+muestran lo mismo. O el registro sustituye a esa tabla —borrar una superficie
+exige visto bueno explícito— o va a pestaña propia. Es decisión de layout.
+
+**V5 se cumple.** V6 (activar reemplazo como gesto) y V8 quedan al alcance con
+lo ya construido; V7 sigue esperando el «mientras ocurre».
