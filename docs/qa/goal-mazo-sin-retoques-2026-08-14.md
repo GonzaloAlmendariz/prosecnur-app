@@ -62,7 +62,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
-| L19 | Los enunciados largos se recortan hasta perder el 58 % | alto del bloque atado al nº de públicos | ☐ |
+| L19 | Los enunciados largos se recortan hasta perder el 58 % | falta que el enunciado pida fila alta | ◐ cupo ya derivado del alto real |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
 | L21 | Inventario: qué familias de las 18 no tienen receta | recetario | ☐ |
 | L22 | Medir cada familia sin receta contra Contabilidad y escribirla | recetario | ☐ |
@@ -656,3 +656,25 @@ seis reglas sin cubrir, y «0 incumplimientos» significa «cumple lo que se mid
 - **El rótulo de la columna difiere**: el motor escribe «Top 2 Box» y el
   aprobado «TOP TWO BOX». Cosmético, pero es lo que hizo que una medición mía
   contara 0 columnas en el aprobado cuando tiene 40.
+
+### L19, primera pasada: el diagnóstico era medio equivocado
+
+Escribí que el alto del enunciado estaba «atado al nº de públicos». Medido, la
+mitad de eso es falso: **`alto_rel = 1.000` en 22 de los 25 recortes**, o sea
+que casi ninguno comparte lámina con otro bloque. El reparto de altura entre
+bloques no es la causa.
+
+La causa es más simple: **el cupo era la constante `3` líneas por fila**,
+calibrada contra el alto por defecto (0.42 in). Y el motor **ya ensancha la
+fila** cuando las etiquetas de eje lo piden —hasta 1.06 in, vía
+`needs_tall_label_slot`— sin que el cupo se entere.
+
+Cerrado en esta pasada: el cupo se deriva del alto real, con el cuerpo y el
+interlineado que de verdad se dibujan. Con 0.42 in da exactamente 3 —el mismo
+número que la constante, así que no hay regresión encubierta— y con 1.06 in da 6.
+
+**Lo que falta, y por qué no cierra todavía**: los 18 recortes del estudio no se
+mueven, porque en sus láminas la fila no crece. Ninguna activa
+`needs_tall_label_slot`, que hoy sólo mira las etiquetas del eje Y. Falta que el
+**enunciado** también pueda pedir fila alta. Eso ya cambia la composición de
+todas las láminas de escala, así que se mide aparte antes de tocarlo.
