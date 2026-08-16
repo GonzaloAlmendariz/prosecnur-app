@@ -318,7 +318,12 @@ graficar_barras_agrupadas <- function(
     # Lo encontro el auditor de composicion: el defecto estaba arreglado en
     # apiladas desde hacia meses y seguia vivo aqui, porque nadie lo habia
     # mirado con la misma vara.
-    size_barra_extra          = 9,
+    # Mismo caso que en apiladas: el default de firma de la columna extra no se
+    # habia calibrado nunca contra el entregable, y su cifra salia mas pequena
+    # que todo lo demas de la lamina. Eran 123 textos a 9 pt —el N repetido por
+    # barra en las laminas de perfil, catorce veces en una sola— y el residuo de
+    # tipografia que quedaba abierto tras subir el de apiladas.
+    size_barra_extra          = 12,
     color_ejes                = "#081F5C",
     size_ejes                 = 9,
     lineheight_eje_y          = NULL,
