@@ -72,7 +72,10 @@ const CHECK_LABELS: Record<string, string> = {
   anonymous_responses: "Respuestas anónimas",
   student_id_required: "Identificador estudiantil no requerido",
   unmapped_valid_responses: "Respuestas válidas sin curso-horario",
-  duplicate_collectors: "Recolectores duplicados",
+  // `duplicate_collectors` se retiró: en un estudio de aulas el mismo QR lo
+  // escanean todos los alumnos, así que el colector se repite por diseño y ese
+  // aviso saltaba siempre. Lo anómalo es la misma respuesta dos veces.
+  duplicate_responses: "Respuestas repetidas",
   effective_representativity: "Representatividad efectiva",
   sex_faculty_quota: "Cuota por sexo y facultad",
 };

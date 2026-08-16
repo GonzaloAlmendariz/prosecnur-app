@@ -85,6 +85,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L18** | Brechas, avance por estrato y reemplazos se calculaban **sobre ceros**. | El emparejamiento respuesta→aula estaba escrito **dos veces**: en `monitoreo_aulas_dashboard()` y en `.monitoreo_aulas_course_status()`. L15 arregló sólo el segundo, así que el desglose por aula quedó bien y todo lo que agrupa siguió ciego. | ☑ **hecho** (2026-08-16) — un solo helper `.monitoreo_aulas_contar_por_fila()` usado por ambos. |
 | **L19** | La cadena de reemplazos era **invisible** en Monitoreo. | El handoff no copiaba `replacement_for` a las filas nuevas, y la sección de reemplazos filtra por ese campo: salía vacía aunque el sorteo hubiera encadenado reservas. | ☑ **hecho** (2026-08-16) — el handoff lo arrastra. |
 | **L20** | Las cuotas sexo×facultad salen vacías con un plan creado por el handoff. | Los objetivos derivan de `sex_top_1`/`sex_top_2`, composición que produce Cálculo de muestra y que el plan de Recopiladores **no transporta**. | ☐ sin empezar — límite conocido: las filas que **crea** el handoff son más delgadas que las que importa Monitoreo desde calc-muestra. El flujo soportado es importar primero y entregar después; conviene decidir si el plan de Recopiladores debe llevar la composición. |
+| **L21** | El aviso «recolectores duplicados» saltaba **siempre**. | En un estudio de aulas el mismo QR lo escanean todos los alumnos: el colector se repite por diseño. El chequeo sólo decía «ok» con una única respuesta, que es el caso anómalo. | ☑ **hecho** (2026-08-16) — pasa a `duplicate_responses`, que mira el id de respuesta (`_uuid`/`_id`/`instanceID`); si la fuente no lo trae, lo dice en vez de callar o alarmar. Etiqueta del frontend actualizada. |
+| **L22** | Una respuesta de un aula inexistente pasaba como **buena**. | `unmapped_valid_responses` miraba si la respuesta *tenía* colector, no si ese colector correspondía a un aula del plan. | ☑ **hecho** (2026-08-16) — se compara contra los ids del plan (`classroom_id` + `collection_unit_id`), posible sólo desde que el emparejamiento los conoce. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
@@ -488,3 +490,28 @@ Van cuatro sitios distintos donde el mismo defecto de emparejamiento o de
 coerción estaba **arreglado en un lado y no en el otro**: el prefill del enlace,
 la coerción numérica de `brecha` vs `application_state`, este join, y el
 vocabulario de estados. Cuando algo se escribe dos veces, se arregla una.
+
+### 2026-08-16 — los dos avisos del tablero decían lo contrario de lo útil
+Última sección sin ejercitar. Los dos chequeos que miran las respuestas estaban
+invertidos respecto de lo que un estudio de aulas necesita.
+
+**L21 — el aviso que salta siempre.** «Recolectores duplicados» disparaba en
+cuanto un aula tenía dos respuestas: el mismo QR lo escanean todos los alumnos,
+así que el duplicado **es el diseño**. Sólo decía «ok» con una única respuesta,
+que es justo el caso raro. Un aviso permanentemente encendido se ignora, y con
+él se ignora el panel entero. Ahora mira el id de respuesta —`_uuid`, `_id`,
+`instanceID`— y, si la fuente no lo trae, **lo dice** en vez de callar o alarmar.
+
+**L22 — el aviso que nunca salta.** `unmapped_valid_responses` comprobaba si la
+respuesta *tenía* valor de colector, no si ese valor correspondía a un aula del
+plan. Una respuesta con un QR de otro estudio o un id mal tecleado pasaba como
+buena. Comprobarlo de verdad sólo es posible desde que el emparejamiento conoce
+`collection_unit_id` (L15).
+
+Renombrar el chequeo obligó a tocar el frontend: `aulasPresentation.ts` traduce
+los nombres a etiquetas, y dejarlo sin actualizar habría mostrado el aviso sin
+traducir — la misma clase de costura que este loop lleva persiguiendo. Gate:
+44 archivos de R, `tsc` en 0 y 17 tests del perfil de aulas.
+
+Con esto **el tablero de aulas queda recorrido entero** con datos: KPIs,
+desglose por aula, brechas, estratos, reemplazos, cuotas y validación.
