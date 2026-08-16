@@ -716,6 +716,26 @@ export function CursosHorarioMarcoTab({
     return pendientes;
   }, [aulasState?.frame?.filters_echo, configComposicion]);
 
+  /*
+   * D6 · Cuántas aulas pasaron cada gate de composición SIN señal medible.
+   *
+   * Sale de `perfil.opcionales[id].composicion_na_n`, que el motor publica
+   * desde el ADR 0060 y hasta hoy no leía nadie. Es una cifra del marco
+   * EJECUTADO y global al criterio —no por facultad, a diferencia del recorte—,
+   * así que no se recalcula con el foco ni con el preview del borrador.
+   *
+   * Frames anteriores al contrato no traen la clave: devuelve null y la tarjeta
+   * simplemente no dibuja la línea, nunca un 0 que afirmaría lo que no se midió.
+   */
+  const sinSenalDe = useMemo(() => {
+    const opcionales = aulasState?.frame?.perfil?.opcionales ?? null;
+    return (criterioId: string): number | null => {
+      const fila = opcionales?.[criterioId as keyof typeof opcionales];
+      const n = (fila as { composicion_na_n?: number | null } | undefined)?.composicion_na_n;
+      return typeof n === "number" && Number.isFinite(n) ? n : null;
+    };
+  }, [aulasState?.frame?.perfil?.opcionales]);
+
   const recorteDe = useMemo(() => {
     const clave = bloqueFoco?.excKey || bloqueFoco?.facLabel || "";
     const porCriterio = new Map<
@@ -1013,6 +1033,7 @@ export function CursosHorarioMarcoTab({
                           confirmador={confirmadorDe(COMPOSICION_ID)}
                           evidenciaComposicion={evidenciaComposicion}
                           recorteComposicion={recorteDe}
+                          sinSenalComposicion={sinSenalDe}
                         />
                       }
                     />

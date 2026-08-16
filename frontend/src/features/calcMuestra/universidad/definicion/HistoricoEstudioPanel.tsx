@@ -33,6 +33,7 @@ import {
   componerCriterio,
 } from "../shared/graficos/PrimitivasGrafico";
 import { tip, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
+import { asistenciaEsAcotada } from "./asistenciaAcotada";
 import type {
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaAsistenciaCelda,
@@ -504,10 +505,27 @@ function SerieCampo({
 
             {/* Cada tasa dice de dónde sale: numerador sobre denominador. */}
             <div className="cmv2-hist-semana-tasas">
+              {/*
+                * H1/ADR 0060 · La asistencia de elegibles no se observa: se
+                * acota. El techo sale de `asistentes − no_elegibles`, y
+                * `no_elegibles` son los DETECTADOS —si el screening fue parcial,
+                * sobran ajenos en el numerador—; el suelo son las efectivas, que
+                * seguro estuvieron y eran del estudio. El motor publica las dos
+                * cotas y hasta hoy la barra pintaba sólo el techo, como si fuera
+                * una observación.
+                *
+                * Cuando el intervalo no viaja (sin glosario, la asistencia es
+                * bruta y no hay nada que acotar) la barra es la de siempre.
+                */}
               <BarraTasa
                 label="Asistencia"
-                detalle={`${num(fila.asistentes)} de ${num(fila.elegibles)}`}
+                detalle={
+                  fila.asistencia_elegibles_min != null && fila.asistencia_elegibles_max != null
+                    ? `entre ${num(fila.efectivas)} y ${num(fila.asistentes)} de ${num(fila.elegibles)}`
+                    : `${num(fila.asistentes)} de ${num(fila.elegibles)}`
+                }
                 valor={fila.asistencia}
+                cotaInferior={fila.asistencia_elegibles_min}
                 tono="asistencia"
               />
               <BarraTasa
@@ -814,6 +832,15 @@ export function HistoricoEstudioPanel({
     filtros_corte: filtros, dimensiones,
   } = referencia;
   const conGlosario = cobertura.glosario_completo;
+  // H1/ADR 0060 · «Asistencia» es la cota SUPERIOR de la asistencia de
+  // elegibles y «Rendimiento» la inferior; las dos ya se publicaban aquí sin
+  // que nada dijera que acotan la misma cantidad. La condición vive en
+  // `asistenciaAcotada.ts`, con el porqué de cada guard.
+  const asistenciaAcotada = asistenciaEsAcotada({
+    asistencia: cadena.asistencia.tasa,
+    rendimiento: cadena.rendimiento.tasa,
+    conGlosario,
+  });
   const deriva = referencia.serie_campo?.deriva ?? null;
   // El eje sobre el que se sitúa cada ventana: la primera y la última semana del
   // operativo. Sale de la serie, que es quien las conoce todas; sin serie no hay
@@ -1083,10 +1110,19 @@ export function HistoricoEstudioPanel({
             </p>
           ) : null}
           <div className="cmv2-hist-tasas">
-            <span>
+            <span data-acotada={asistenciaAcotada || undefined}>
               <small>Asistencia</small>
-              <strong>{pct(cadena.asistencia.tasa)}</strong>
-              <em>de los estudiantes del estudio, cuántos fueron a clase el día de la visita</em>
+              <strong>
+                {asistenciaAcotada
+                  ? `${pct(cadena.rendimiento.tasa)}–${pct(cadena.asistencia.tasa)}`
+                  : pct(cadena.asistencia.tasa)}
+              </strong>
+              <em>
+                de los estudiantes del estudio, cuántos fueron a clase el día de la visita
+                {asistenciaAcotada
+                  ? ". Solo se acota: el suelo son las encuestas completas, el techo descuenta a los ajenos que se detectaron"
+                  : null}
+              </em>
             </span>
             <span data-fuerte="si">
               <small>Efectividad</small>

@@ -282,6 +282,22 @@
 
 .cmv2-hist-tasas em { font-style: normal; font-size: 10px; color: var(--pulso-text-muted); }
 
+/* H1/ADR 0060 · La asistencia es un rango, no un punto. Dos porcentajes y un
+   guion ocupan casi el doble que una cifra sola: sin nowrap el chip parte el
+   rango en dos líneas y deja el techo colgando bajo el suelo, que se lee como
+   dos métricas distintas. El flex-wrap del contenedor ya reacomoda los chips si
+   la fila no da, que es la degradación correcta. */
+.cmv2-hist-tasas span[data-acotada] strong {
+  white-space: nowrap;
+}
+/* El chip acotado carga una frase más larga (el porqué del rango) y sin un
+   suelo de ancho el `em` se estrangula a dos palabras por línea. */
+.cmv2-hist-tasas span[data-acotada] {
+  min-inline-size: 18ch;
+  flex: 1 1 auto;
+  max-inline-size: 34ch;
+}
+
 .cmv2-hist-tasas span[data-fuerte="si"] strong {
   font-size: 24px;
   color: var(--cmv2-accent-fg);

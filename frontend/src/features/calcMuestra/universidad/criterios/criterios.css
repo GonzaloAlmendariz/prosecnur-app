@@ -1461,6 +1461,22 @@
   font-weight: var(--pulso-weight-medium);
 }
 
+/* D6 · Los que pasaron sin señal. Cuelga del recorte —es la misma pregunta,
+   qué hizo el paso con el marco— así que comparte su tipografía y no repite el
+   filete: dos reglas seguidas con borde propio se leen como dos bloques. */
+.cmv2-crit-paso-sinsenal {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-crit-paso-sinsenal strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
 .cmv2-crit-paso[data-active="true"] {
   border-color: color-mix(in srgb, var(--cmv2-accent) 28%, var(--cmv2-border));
   background: color-mix(in srgb, var(--cmv2-accent-soft) 42%, var(--pulso-surface));

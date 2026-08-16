@@ -53,23 +53,49 @@ export function BarraTasa({
   detalle,
   valor,
   tono,
+  cotaInferior,
 }: {
   label: string;
   detalle?: string;
   valor: number | null;
   tono: "asistencia" | "descuento" | "meta";
+  /**
+   * H1/ADR 0060 · Cuando la cantidad sólo se conoce por INTERVALO, `valor` es su
+   * cota superior y ésta la inferior. La barra deja entonces de afirmar un punto:
+   * pinta sólido hasta lo que se sabe cierto, tramado hasta el techo, y la cifra
+   * se escribe como rango.
+   *
+   * Es aditivo: sin este prop la barra es exactamente la de siempre. Y sólo
+   * cambia de forma cuando el intervalo es real —cota finita y menor que el
+   * valor—, así que un intervalo degenerado no dibuja un tramado de ancho cero.
+   */
+  cotaInferior?: number | null;
 }) {
   const ancho = valor !== null && Number.isFinite(valor) ? Math.max(0, Math.min(100, valor * 100)) : 0;
+  const hayIntervalo =
+    valor !== null &&
+    Number.isFinite(valor) &&
+    cotaInferior != null &&
+    Number.isFinite(cotaInferior) &&
+    cotaInferior < valor;
+  const anchoCierto = hayIntervalo
+    ? Math.max(0, Math.min(100, (cotaInferior as number) * 100))
+    : 0;
   return (
-    <span className="cmv2-graf-tasa" data-tono={tono}>
+    <span className="cmv2-graf-tasa" data-tono={tono} data-intervalo={hayIntervalo || undefined}>
       <span className="cmv2-graf-tasa-label">
         {label}
         {detalle ? <em>{detalle}</em> : null}
       </span>
       <span className="cmv2-graf-tasa-track">
         <span style={{ width: `${ancho}%` }} />
+        {hayIntervalo ? (
+          <span className="cmv2-graf-tasa-cierto" style={{ width: `${anchoCierto}%` }} />
+        ) : null}
       </span>
-      <span className="cmv2-graf-tasa-cifra">{pct(valor, 0)}</span>
+      <span className="cmv2-graf-tasa-cifra">
+        {hayIntervalo ? `${pct(cotaInferior, 0)}–${pct(valor, 0)}` : pct(valor, 0)}
+      </span>
     </span>
   );
 }
