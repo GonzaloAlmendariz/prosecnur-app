@@ -86,11 +86,19 @@ export function cambiosDelRegistro(
     ["observed_students", form.aforo],
     ["applied_surveys", form.aplicadas],
     ["refusals", form.rechazos],
+    // Duplicados y efectivas no son adorno: sin ellos el cuadre del parte
+    // —asistentes − rechazos − duplicados = efectivas— no se puede comprobar
+    // sobre lo que la app captura, y ese control ya existe en Validación.
+    ["duplicates", form.duplicados],
+    ["effective_surveys", form.efectivas],
   ] as const) {
     const n = Number(valor);
     if (valor.trim() !== "" && Number.isFinite(n) && n >= 0) cambios[campo] = n;
   }
   if (form.aplicador.trim()) cambios.applied_by = form.aplicador.trim();
+  // El aula REAL: el parte del estudio de 2025 la registra porque una aplicación
+  // se muda de salón con frecuencia y el aula planificada deja de describirla.
+  if (form.aulaReal.trim()) cambios.actual_room = form.aulaReal.trim();
   if (form.momento.trim()) cambios.applied_at = form.momento.trim();
   if (form.nota.trim()) cambios.field_note = form.nota.trim();
   return cambios;
@@ -102,7 +110,10 @@ export type RegistroForm = {
   aforo: string;
   aplicadas: string;
   rechazos: string;
+  duplicados: string;
+  efectivas: string;
   aplicador: string;
+  aulaReal: string;
   momento: string;
   nota: string;
 };
@@ -113,7 +124,10 @@ const FORM_VACIO: RegistroForm = {
   aforo: "",
   aplicadas: "",
   rechazos: "",
+  duplicados: "",
+  efectivas: "",
   aplicador: "",
+  aulaReal: "",
   momento: "",
   nota: "",
 };
@@ -128,7 +142,10 @@ function formDesdeFila(row: MonitoreoAulasPlanRow | null): RegistroForm {
     aforo: num(row.observed_students),
     aplicadas: num(row.applied_surveys),
     rechazos: num(row.refusals),
+    duplicados: num(row.duplicates),
+    efectivas: num(row.effective_surveys),
     aplicador: txt(row.applied_by),
+    aulaReal: txt(row.actual_room),
     momento: txt(row.applied_at),
     nota: txt(row.field_note),
   };
@@ -275,6 +292,30 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.rechazos} onChange={(e) => set("rechazos", e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="registro-campo-numeros">
+                  <label className="registro-campo-campo">
+                    <span>Ya respondieron</span>
+                    <input
+                      type="number" min={0} inputMode="numeric"
+                      value={form.duplicados} onChange={(e) => set("duplicados", e.target.value)}
+                    />
+                  </label>
+                  <label className="registro-campo-campo">
+                    <span>Efectivas</span>
+                    <input
+                      type="number" min={0} inputMode="numeric"
+                      value={form.efectivas} onChange={(e) => set("efectivas", e.target.value)}
+                    />
+                  </label>
+                  <label className="registro-campo-campo">
+                    <span>Aula real</span>
+                    <input
+                      type="text" value={form.aulaReal}
+                      onChange={(e) => set("aulaReal", e.target.value)}
                     />
                   </label>
                 </div>

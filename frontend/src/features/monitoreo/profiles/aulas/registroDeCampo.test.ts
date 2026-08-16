@@ -14,7 +14,8 @@ const fila = (extra: Partial<MonitoreoAulasPlanRow> = {}) => ({
 
 const form = (extra: Partial<RegistroForm> = {}): RegistroForm => ({
   estado: "aplicada", motivo: "", aforo: "", aplicadas: "", rechazos: "",
-  aplicador: "", momento: "", nota: "", ...extra,
+  duplicados: "", efectivas: "", aplicador: "", aulaReal: "", momento: "",
+  nota: "", ...extra,
 });
 
 describe("registro de campo", () => {
@@ -61,5 +62,34 @@ describe("registro de campo", () => {
       .not.toHaveProperty("replacement_reason");
     expect(cambiosDelRegistro(fila(), form({ estado: "sin_acceso", motivo: "docente_no_autoriza" })).replacement_reason)
       .toBe("docente_no_autoriza");
+  });
+});
+
+describe("el registro captura lo que el parte necesita", () => {
+  it("manda duplicados y efectivas, que son lo que el cuadre comprueba", () => {
+    // Sin estos dos, la identidad `asistentes - rechazos - duplicados =
+    // efectivas` no se puede comprobar sobre lo que la app captura, y el
+    // control ya existe en Validación.
+    const c = cambiosDelRegistro(fila(), form({
+      aforo: "22", rechazos: "1", duplicados: "1", efectivas: "20",
+    }));
+    expect(c.observed_students).toBe(22);
+    expect(c.refusals).toBe(1);
+    expect(c.duplicates).toBe(1);
+    expect(c.effective_surveys).toBe(20);
+    // Y cuadran: 22 - 1 - 1 = 20.
+    const n = (v: unknown) => Number(v);
+    expect(n(c.observed_students) - n(c.refusals) - n(c.duplicates)).toBe(n(c.effective_surveys));
+  });
+
+  it("registra el aula real donde se aplicó", () => {
+    expect(cambiosDelRegistro(fila(), form({ aulaReal: "H-203" })).actual_room).toBe("H-203");
+  });
+
+  it("sigue sin mandar en blanco los campos nuevos que nadie tocó", () => {
+    const c = cambiosDelRegistro(fila(), form());
+    expect(c).not.toHaveProperty("duplicates");
+    expect(c).not.toHaveProperty("effective_surveys");
+    expect(c).not.toHaveProperty("actual_room");
   });
 });

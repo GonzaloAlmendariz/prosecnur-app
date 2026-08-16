@@ -32,7 +32,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. **Cumplida (2026-08-16)**: `RegistroDeCampo` en Monitoreo > Agenda. |
 | **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. |
 | **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
-| **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. |
+| **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. **Comprobada a medias (2026-08-16)**: los tres campos que faltaban ya están en la app; queda el desglose hombres/mujeres, que vive sólo en la ficha impresa. |
 | **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Importar el libro real deja el plan, el agendamiento y el parte de campo en el `.pulso`, y sus totales cuadran con los del Excel. |
 | **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
 | **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
@@ -113,6 +113,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L42** | El **Registro de campo** es inalcanzable a 1024×600. | El stack de Agenda tiene 325 px. Franja (54) + mínimo de la agenda (180) + gaps (20) = **254**, así que al registro le quedan **71 px** y necesita ~190 para ser usable. No cabe por aritmética, no por scroll. | ⛔ **bloqueado** — depende de L26: es tu decisión de dónde vive. |
 | **L43** | Dos superficies no declaraban su geometría (C1). | «Operación del plan» en Fuentes y «Aplicación por cursos-horario» en Agenda. La segunda declaraba su grid interior de tarjetas pero no la sección que las contiene: son dos superficies, no una. | ☑ **hecho** (2026-08-16) — cero sin declarar en las cinco secciones. |
 | **L44** | Regenerar el libro **borraba el operativo en curso**. | El generador escribía las columnas de la persona siempre en blanco, así que un estudio en marcha perdía los 7 estados de agendamiento, los 7 contadores de intentos y los 3 partes de campo. Además la hoja de campo filtraba por `sample_role == "titular"`, así que el parte de una reserva activada no se escribía. | ☑ **hecho** (2026-08-16) — 3/3 partes y 7/7 estados sobreviven. |
+| **L45** | El registro de la app capturaba **menos que el parte**. | Faltaban `duplicates`, `effective_surveys` y `actual_room`. Sin los dos primeros, el cuadre de L33 —asistentes − rechazos − duplicados = efectivas— **no se puede comprobar sobre lo que la app captura**; y «encuestas aplicadas» no es «efectivas», que es el número que manda. | ☑ **hecho** (2026-08-16) — tres campos nuevos; el backend ya los aceptaba. |
+| **L46** | El desglose **hombres/mujeres** vive sólo en la ficha impresa. | `collection_material_field_form_rows()` lo pide en papel; no está ni en el registro de la app ni en el Excel. Puede ser deliberado —el sexo se deriva de las respuestas para las cuotas— o una fuga. | ☐ sin empezar — no lo declaro defecto sin saber para qué se usa en campo. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -812,3 +814,35 @@ dejar pasar.
 **Aparte, no es de este GOAL**: `test-reporte-word-multiactor-alto.R` falla en
 main desde antes de esta sesión (verificado con `git stash`). Queda flaggeado
 como tarea propia.
+
+
+### 2026-08-16 — V8: tres inventarios que no coincidían
+
+V8 dice «ningún campo del registro de campo vive sólo en papel o en Excel». Para
+medirla hay que comparar tres listas que nadie había puesto una al lado de otra:
+el formulario **impreso** de la ficha, el registro de la **app**, y el parte del
+**Excel**.
+
+**Lo que faltaba en la app** (L45, reparado):
+
+| Campo | Papel | Excel | App antes | App ahora |
+|---|:-:|:-:|:-:|:-:|
+| Alumnos en aula | ✓ | ✓ | ✓ | ✓ |
+| Rechazos | ✓ | ✓ | ✓ | ✓ |
+| **Ya respondieron** (duplicados) | — | ✓ | **—** | **✓** |
+| **Efectivas** | — | ✓ | **—** | **✓** |
+| **Aula real** | ✓ | ✓ | **—** | **✓** |
+
+Los dos primeros no son adorno: **sin ellos el cuadre de L33 no se puede
+comprobar sobre lo que la app captura**. El control existe en Validación desde
+hace cuatro ítems y el registro no producía sus insumos. Y «encuestas aplicadas»
+no es «efectivas» — L32 ya había dicho que efectivas es el número que manda.
+
+El backend **ya aceptaba los tres**: `monitoreo_aulas_update_agenda()` los
+persiste sin tocar nada. Era sólo la superficie la que no los pedía.
+
+**L46, anotado sin tocar**: el desglose hombres/mujeres se pide **en papel** y no
+está en ningún otro sitio. Puede ser deliberado —el sexo se deriva de las
+respuestas para las cuotas sexo×facultad— o ser una fuga real. No lo declaro
+defecto sin saber para qué lo usa el equipo en campo, que es justo lo que la
+regla de este GOAL pide anotar en vez de adivinar.
