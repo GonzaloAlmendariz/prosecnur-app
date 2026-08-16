@@ -1091,3 +1091,35 @@ dueño con borde propio, sin cadena nueva hacia el shell.
 
 `atEnd` alcanzable y el botón «Guardar registro» visible dentro del cuerpo. La
 pestaña Agenda conserva sus 7 filas: el cambio está acotado a `is-registro`.
+
+
+### 2026-08-16 — Barrido de las nueve vistas, y el instrumento otra vez
+
+Con las pestañas nuevas hay **nueve vistas** (sección × pestaña), no cinco.
+Barrido completo en 1440×1000 y 1024×600:
+
+| | 1440×1000 | 1024×600 |
+|---|---|---|
+| Paneles sin declarar (C1) | 0 | 0 |
+| Paneles colapsados | 0 | 0 |
+| Paneles fuera de alcance (C4) | 0 | 0 |
+| Scroll anidado sin dueño | 0 | 0 |
+
+Cada vista de la viewport baja tiene **un** scroller interno, que es su tabla o
+el cuerpo del registro: dueño con borde propio, conforme.
+
+**Y mi barrido produjo dos falsos positivos**, los dos de timing: `modelo/agenda`
+salía «sin filas» y `consultas/reemplazos` con 6 filas en vez de 2. Verificados a
+mano, los dos estaban bien — el `sleep` de 1250 ms leía el render anterior.
+
+Intenté sustituirlo por una espera **por condición** —dirección observada igual a
+la pedida, más tres lecturas idénticas seguidas— y el bucle nunca converge dentro
+del timeout de la herramienta: **con el panel del navegador oculto, el navegador
+ralentiza los `setTimeout`**, así que una espera de 4 s de reloj tarda mucho más.
+
+La regla que queda: en un barrido, **medir de una vista por llamada** y
+comprobar la dirección observada antes de leer. Un bucle con esperas dentro de
+una sola llamada es frágil por una razón que no tiene nada que ver con la app.
+Es la tercera vez en esta sesión que el instrumento produce el hallazgo en vez
+del código —las otras dos fueron el título con salto de línea y el conteo crudo
+de 40 578 filas—.
