@@ -51,9 +51,9 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L1 | Reunir el material de 2025 | — | ◐ **parcial** (2026-08-16) · bases e histórico de asistencia localizados; **falta la selección de aulas de 2025** |
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
-| L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☐ |
+| L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
-| L6 | Contrastar CH elegibles contra 2025 | V2 | ☐ |
+| L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ☐ |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ☐ |
@@ -93,6 +93,45 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L4 y L6 · el contraste contra 2025 (2026-08-16)
+
+**V1 y V2 quedan cerradas: reproducen el estudio de 2025 al dígito.**
+
+| | Medido hoy | Patrón 2025 | Diferencia |
+|---|---:|---:|---:|
+| Universo (estudiantes únicos) | **29.090** | 29.090 | **0** |
+| **Elegibles** | **21.365** | 21.365 | **0** |
+| Cursos-horario totales | 5.263 | 5.263 | **0** |
+| **CH elegibles (marco)** | **2.468** | 2.468 | **0** |
+
+El patrón sale del `perfil` que el propio marco de 2025 lleva guardado
+(`universo`, `cobertura.elegibles`, `aulas_totales`, `marco_aulas`); lo medido
+sale de aplicar la suite de criterios a la base cruda y deduplicar por
+estudiante.
+
+**Cero diferencias que explicar**, así que la regla de «no se avanza con una
+diferencia sin explicar» no frena aquí: V1 y V2 están cerradas y las paradas
+siguientes (tamaño, alumnos por CH, aulas por facultad) parten de una base
+verificada, no heredan desvío.
+
+### La trampa de las dos unidades
+
+Costó un intento: **136.284 filas ≠ 29.090 estudiantes**. La base es
+alumno × curso-horario, así que un estudiante aparece tantas veces como cursos
+lleva. Los criterios se evalúan por fila —106.013 filas pasan— pero el elegible
+se cuenta **deduplicando por `student_id`**, y sólo entonces salen los 21.365.
+
+Comparar 106.013 contra 21.365 habría dado una diferencia enorme y falsa. Cuando
+una parada no cuadre, lo primero es comprobar que ambos lados hablan de la misma
+unidad.
+
+### `student_id` no está en el mapping
+
+Segundo intento fallido: `mapping$student_id` no existe, así que resolver esa
+columna por el mapping devuelve vacío y todo colapsa. El código de estudiante se
+lee de `Código PUCP` directamente. La regla del mapping vale para las variables
+de criterio, **no para la llave**.
 
 ## V1 · recorte de cada criterio de alumno (medido 2026-08-16)
 
