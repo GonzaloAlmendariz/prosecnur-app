@@ -202,3 +202,54 @@ test_that("cambiar la seleccion despues del handoff no deja enlaces mintiendo", 
   expect_s3_class(err, "api_error")
   expect_identical(err$code, "E_COLLECTION_HANDOFF_STALE")
 })
+
+# --- La vuelta: la data de Kobo reencuentra su aula -------------------------
+# El eslabon que cerraba el circuito y estaba roto. Recopiladores cuelga
+# `d[collectorID]=` (es el `prefill_field` por defecto), asi que Kobo devuelve
+# una columna llamada `collectorID`. El cruce de Monitoreo la buscaba entre
+# `collector_id`, `collector`, `link`... y `.monitoreo_text_key()` conserva el
+# guion bajo, de modo que "collectorid" nunca casaba con "collector_id".
+#
+# El unico arreglo posible era `source_mapping$collector_var`, cuyo unico setter
+# es `/api/monitoreo/aulas/config` — un endpoint con cero consumidores en la UI.
+# Es decir: nuestro propio enlace generaba una columna que el sistema no sabia
+# leer, y el ajuste manual no estaba al alcance de nadie.
+
+test_that("el nombre de parametro que genera el QR es el que espera Monitoreo", {
+  adapter <- collection_adapter_get("kobo_existing_v1")
+  plan <- list(
+    schema = "collection_plan/v1", plan_id = "plan-vuelta",
+    units = list(list(unit_id = "unit-1", link_key = "CH 1"))
+  )
+  deployment <- adapter$preview_deployment(plan, adapter$inspect_target(list(), .costura_target()))
+  campo <- names(deployment$bindings[[1]]$prefill)[[1]]
+
+  expect_identical(campo, "collectorID")
+
+  # La columna que Kobo devolveria con ese parametro tiene que ser encontrable
+  # por el cruce, sin que nadie configure nada.
+  respuestas <- data.frame(
+    collectorID = c("CH 1", "CH 1", "CH 2"),
+    otra = 1:3,
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_aulas_default_config()
+  hallado <- .monitoreo_aulas_response_classroom(respuestas, cfg)
+
+  # El control: antes esto devolvia character(0) y ninguna respuesta se
+  # atribuia a su aula.
+  expect_length(hallado, 3L)
+  expect_identical(hallado, c("CH 1", "CH 1", "CH 2"))
+})
+
+test_that("un mapeo explicito sigue mandando sobre el fallback", {
+  respuestas <- data.frame(
+    collectorID = c("no-usar", "no-usar"),
+    mi_columna = c("CH 7", "CH 8"),
+    stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_aulas_default_config()
+  cfg$source_mapping$classroom_id_var <- "mi_columna"
+
+  expect_identical(.monitoreo_aulas_response_classroom(respuestas, cfg), c("CH 7", "CH 8"))
+})

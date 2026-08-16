@@ -446,7 +446,15 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
 .monitoreo_aulas_response_classroom <- function(data, cfg) {
   if (!is.data.frame(data) || !nrow(data)) return(character(0))
   mapping <- cfg$source_mapping %||% list()
-  candidates <- c(mapping$classroom_id_var, "classroom_id", "aula_id", "codigo_aula", "aula", "collector_id", mapping$collector_var, mapping$link_var)
+  candidates <- c(
+    mapping$classroom_id_var, "classroom_id", "aula_id", "codigo_aula", "aula",
+    # `collectorID` es la columna que devuelve Kobo cuando el QR lo genera este
+    # mismo sistema: Recopiladores cuelga `d[collectorID]=` y ese es el nombre
+    # del parametro por defecto. Faltaba en la lista, y `.monitoreo_text_key()`
+    # conserva el guion bajo —"collectorid" no es "collector_id"—, asi que
+    # nuestro propio enlace producia una columna que este cruce no encontraba.
+    "collectorID", "collector_id", mapping$collector_var, mapping$link_var
+  )
   col <- .monitoreo_aulas_col(data, candidates)
   .monitoreo_aulas_values(data, col, "")
 }
@@ -690,7 +698,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   replacements <- tracked_df[nzchar(tracked_df$replacement_for) | tracked_df$operational_status %in% c("reemplazada", "reemplazo_pendiente"), , drop = FALSE]
   representativity <- .monitoreo_aulas_effective_representativity(tracked_df, cfg)
 
-  collector_col <- .monitoreo_aulas_col(responses, c(cfg$source_mapping$collector_var, "collector_id", "collector", "link", "aula_id", "classroom_id"))
+  collector_col <- .monitoreo_aulas_col(responses, c(
+    cfg$source_mapping$collector_var,
+    # Ver la nota de `.monitoreo_aulas_response_classroom()`: `collectorID` es
+    # el nombre que produce nuestro propio QR.
+    "collectorID", "collector_id", "collector", "link", "aula_id", "classroom_id"
+  ))
   collector_values <- if (nzchar(collector_col)) .monitoreo_aulas_values(responses, collector_col, "") else character(0)
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
   validation <- data.frame(
