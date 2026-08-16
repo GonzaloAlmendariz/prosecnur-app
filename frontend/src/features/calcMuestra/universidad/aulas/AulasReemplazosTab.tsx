@@ -8,9 +8,13 @@
  * explicó en Objetivo; aquí solo se referencia.
  */
 import { Route } from "lucide-react";
-import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
+import type {
+  CalcMuestraReferenciaAsistencia,
+  CalcMuestraWorkspaceAulasConfig,
+} from "../../../../api/client";
 import { CadenasReemplazoVisual } from "../../didactica/CadenasReemplazoVisual";
 import { fmtInt, fmtRatio } from "../../sharedCore";
+import { rendimientoAgenda } from "../definicion/rendimientoAgendaModel";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
@@ -31,8 +35,22 @@ import {
 import "../../didactica/didactica.css";
 import "./aulas.css";
 
-/** Cabecera de reservas: profundidad mínima por celda con semáforo. */
-function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
+/**
+ * Cabecera de reservas: profundidad mínima por celda con semáforo.
+ *
+ * La pestaña pregunta «¿alcanzan las reservas?» y hasta ahora la respondía con
+ * un umbral de la casa —menos de 1 alerta, 2 o más holgado— sin ningún punto de
+ * comparación medido. El estudio previo tiene el único que existe: cuántas
+ * aulas hubo que agendar por cada una que se llegó a aplicar. Ponerlo junto a
+ * las reservas por titular convierte una regla de dedo en una comparación.
+ */
+function ReserveDepthHeader({
+  model,
+  referencia,
+}: {
+  model: ClassroomLabModel;
+  referencia: CalcMuestraReferenciaAsistencia | null;
+}) {
   const rows = model.reserveDepthRows;
   if (!rows.length) return null;
   const ratios = rows.map((row) => classroomRowNumber(row, ["depth_ratio"]));
@@ -41,6 +59,12 @@ function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
   const titulares = rows.reduce((sum, row) => sum + classroomRowNumber(row, ["titulares"]), 0);
   const reservas = rows.reduce((sum, row) => sum + classroomRowNumber(row, ["reservas"]), 0);
   const peorCelda = rows.find((row) => classroomRowNumber(row, ["depth_ratio"]) === minRatio);
+  // El histórico se cita, no se convierte en umbral: es lo que costó UN estudio
+  // previo, no una regla. Quien decide compara; el motor no decide por él.
+  const historico = rendimientoAgenda(
+    referencia?.cobertura.agendados,
+    referencia?.cobertura.aplicados,
+  );
   return (
     <section
       className="cmv2-panel cmv2-aulas-panel"
@@ -76,7 +100,9 @@ function ReserveDepthHeader({ model }: { model: ClassroomLabModel }) {
         <CifraMotor
           label="Reservas por titular"
           value={titulares > 0 ? fmtRatio(reservas / titulares) : "—"}
-          detalle={`${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares`}
+          detalle={historico
+            ? `${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares · en ${referencia?.estudio.label ?? "el estudio previo"} se agendaron ${historico.porAplicada.toFixed(1)} por cada aula aplicada`
+            : `${fmtInt(reservas)} reservas para ${fmtInt(titulares)} titulares`}
           origen="motor"
         />
       </CifraFila>
@@ -125,11 +151,14 @@ export function AulasReemplazosTab({
   busy,
   onSimulateReplacements,
   onNavigate,
+  referencia = null,
 }: {
   model: ClassroomLabModel;
   busy: string | null;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
+  /** Estudio previo: el único punto de comparación medido para la cadena. */
+  referencia?: CalcMuestraReferenciaAsistencia | null;
 }) {
   const {
     selection,
@@ -165,7 +194,7 @@ export function AulasReemplazosTab({
         />
       )}
 
-      <ReserveDepthHeader model={model} />
+      <ReserveDepthHeader model={model} referencia={referencia} />
 
       {!selectionReady ? (
         <section

@@ -537,7 +537,7 @@ export function UniversidadDesk({
               />
             )}
             {activeLabTab === "reemplazos" && (
-              <AulasReemplazosTab model={labModel} busy={busy} onSimulateReplacements={onSimularReemplazos} onNavigate={onNavigate} />
+              <AulasReemplazosTab model={labModel} busy={busy} onSimulateReplacements={onSimularReemplazos} onNavigate={onNavigate} referencia={referenciaAsistencia} />
             )}
             {activeLabTab === "aulas-relato" && (
               <RelatoTab model={labModel} foco={activeFocus} onNavigate={onNavigate} />
