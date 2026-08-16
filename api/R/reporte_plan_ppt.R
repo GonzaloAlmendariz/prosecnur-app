@@ -802,10 +802,12 @@ reporte_ppt_plan <- function(
       return(rep(table_height / n, n))
     }
 
-    weights <- pmax(
-      1,
-      nchar(tbl$criterio, type = "width") / 18,
-      nchar(tbl$detalle, type = "width") / 92
+    # El peso son las LINEAS que ocupa la fila, no sus caracteres: un salto no
+    # suma caracteres y si suma alto. Ver `reporte_ppt_tabla_lineas.R`.
+    weights <- vapply(
+      seq_len(n),
+      function(i) as.numeric(.tabla_peso_fila(tbl$criterio[[i]], tbl$detalle[[i]])),
+      numeric(1)
     )
     out <- table_height * weights / sum(weights)
     out <- pmax(min_row_height, out)
