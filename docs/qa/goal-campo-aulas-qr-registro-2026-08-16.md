@@ -603,3 +603,29 @@ haya. Probado en los tres tamaños que el sistema puede producir hoy —**1, 2 y
 
 Es la clase de dato que se pierde entre dos trabajos paralelos: uno mueve un
 default y el otro asume el rango viejo sin enterarse.
+
+
+### 2026-08-16 — El handoff propaga la cadena entera
+
+Faltaba medir el eslabón que une los dos trabajos: **si el handoff de
+Recopiladores lleva la cadena completa a Monitoreo**, o sólo su primer eslabón.
+Los tests de costura usaban una reserva por titular, así que un handoff que se
+quedara con la primera habría pasado inadvertido justo cuando las cadenas se
+vuelven profundas.
+
+Probado con un titular y **seis** reservas, por la ruta real —`collection_state_seed`
+→ adapter Kobo → `collection_deployment_put` → `collection_handoff`—:
+
+| | |
+|---|---|
+| Reservas que llegan | **6 de 6** |
+| Todas cuelgan del titular | ✓ `replacement_for = AULA-01` |
+| Códigos de cadena | `R 1.1` … `R 1.6`, bien numerados |
+| La activación las consume | `AULA-11` → … → `AULA-16`, en orden |
+
+Los códigos confirman L41 sobre el handoff real: el `n` de `R n.k` es el del
+**titular** (slot 1), no la posición de cada reserva en la lista. Ese era el
+defecto que hacía que la reserva de la fila 6 se llamara `R 6.1`.
+
+Con esto el rango queda cubierto de punta a punta: **1, 2, 6 y 11 eslabones**,
+construidos a mano y por la ruta real.
