@@ -886,6 +886,7 @@ graficar_radar <- function(
       legend.position  = leg_pos,
       legend.title     = ggplot2::element_blank(),
       legend.text      = ggplot2::element_text(
+        family = "Arial",
         color  = color_leyenda,
         size   = size_leyenda,
         margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
@@ -894,12 +895,12 @@ graficar_radar <- function(
       legend.key.height     = grid::unit(legend_key_cm, "cm"),
       legend.key.spacing.x  = grid::unit(legend_key_spacing_x_cm, "cm"),
       plot.title = ggplot2::element_text(
-        color = color_titulo, size = size_titulo,
+        color = color_titulo, size = size_titulo, family = "Arial",
         face  = if ("titulo" %in% textos_negrita) "bold" else "plain",
         hjust = hjust_titulo
       ),
       plot.subtitle = ggplot2::element_text(
-        color = color_subtitulo, size = size_subtitulo,
+        color = color_subtitulo, size = size_subtitulo, family = "Arial",
         face  = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
         hjust = hjust_titulo
       ),
@@ -1160,6 +1161,7 @@ graficar_radar <- function(
           legend.text = ggplot2::element_text(
             color  = color_leyenda,
             size   = size_leyenda,
+            family = "Arial",
             face   = if ("leyenda" %in% textos_negrita) "bold" else "plain",
             margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
           ),
@@ -1346,7 +1348,7 @@ graficar_radar <- function(
         canvas <- canvas + cowplot::draw_text(
           titulo, x = hjust_titulo, y = y_title,
           hjust = hjust_titulo, vjust = 0.5,
-          size = size_titulo, colour = color_titulo,
+          size = size_titulo, colour = color_titulo, family = "Arial",
           fontface = if ("titulo" %in% textos_negrita) "bold" else "plain"
         )
       }
@@ -1355,7 +1357,7 @@ graficar_radar <- function(
           subtitulo,
           x = hjust_titulo, y = y_sub,
           hjust = hjust_titulo, vjust = 0.5,
-          size = size_subtitulo, colour = color_subtitulo,
+          size = size_subtitulo, colour = color_subtitulo, family = "Arial",
           fontface = if ("subtitulo" %in% textos_negrita) "bold" else "plain"
         )
       }
@@ -1418,6 +1420,11 @@ graficar_radar <- function(
             vjust = pos_k$vjust,
             size = size_ejes,
             colour = color_ejes,
+            # El literal y no `font_family`: este bloque se evalua en un entorno
+            # que no ve el parametro —«object font_family not found» degradaba
+            # las dos laminas de radar a «Sin datos»—. Arial es el default de la
+            # firma y la unica tipografia del entregable aprobado.
+            family = "Arial",
             fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
             lineheight = 0.95
           )
@@ -1609,6 +1616,7 @@ graficar_radar <- function(
             vjust = pos_k$vjust,
             size = size_ejes,
             colour = color_ejes,
+            family = "Arial",
             fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
             lineheight = 0.95
           )
@@ -1897,26 +1905,28 @@ graficar_radar <- function(
           legend.position  = leg_pos,
           legend.title     = ggplot2::element_blank(),
           legend.text      = ggplot2::element_text(
+            family = "Arial",
+        family = "Arial",
             color  = color_leyenda,
             size   = size_leyenda,
-            family = "sans",
+            family = "Arial",
             margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
           ),
           legend.key.width      = grid::unit(legend_key_cm, "cm"),
           legend.key.height     = grid::unit(legend_key_cm, "cm"),
           legend.key.spacing.x  = grid::unit(legend_key_spacing_x_cm, "cm"),
           plot.title = ggplot2::element_text(
-            color = color_titulo, size = size_titulo, family = "sans",
+            color = color_titulo, size = size_titulo, family = "Arial",
             face  = if ("titulo" %in% textos_negrita) "bold" else "plain",
             hjust = hjust_titulo
           ),
           plot.subtitle = ggplot2::element_text(
-            color = color_subtitulo, size = size_subtitulo, family = "sans",
+            color = color_subtitulo, size = size_subtitulo, family = "Arial",
             face  = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
             hjust = hjust_titulo
           ),
           plot.caption = ggplot2::element_text(
-            color = color_nota_pie, size = size_nota_pie, family = "sans",
+            color = color_nota_pie, size = size_nota_pie, family = "Arial",
             face  = if ("nota_pie" %in% textos_negrita) "bold" else "plain",
             hjust = hjust_caption
           ),
@@ -1969,7 +1979,7 @@ graficar_radar <- function(
         ggplot2::aes(x = .data$x, y = .data$y, label = .data$eje),
         size = size_ejes / 3,
         colour = color_ejes,
-        family = "sans",
+        family = "Arial",
         fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
         lineheight = 1
       )
@@ -1980,7 +1990,7 @@ graficar_radar <- function(
           ggplot2::aes(x = .data$x, y = .data$y, label = .pulso_fmt_pct_half_up(.data$.nivel, 0)),
           size = 3,
           color = "grey40",
-          family = "sans",
+          family = "Arial",
           fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
           vjust = -0.2
         )
