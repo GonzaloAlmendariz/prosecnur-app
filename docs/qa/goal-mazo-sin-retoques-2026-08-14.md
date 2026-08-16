@@ -36,7 +36,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **8 de 10** ◐ |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
-**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 37** (R9 destapa cifras ilegibles).
+**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 0** (con ocho reglas medidas).
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -64,7 +64,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
-| L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | color de texto por contraste | ☐ |
+| L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | doc nuevo | ☐ |
@@ -819,3 +819,30 @@ con su segmento, no ser blanco fijo.
 **R10 sale de pendientes con su medición hecha**, no ignorada: los tres mazos
 usan 100 % de interlineado y el recetario ya había concluido que no es la causa
 de lo que se comentó. Se declara medido.
+
+### L29 cerrado: el color de la cifra sale de su segmento
+
+La decisión va por **luminancia**, no contra una lista de hexes claros: una
+lista hay que mantenerla cada vez que alguien añade un color a una paleta, y el
+día que se olvide vuelven las cifras invisibles sin que nada avise.
+
+**Cifras ilegibles 134 → 0. Incumplimientos del verificador 37 → 0**, sin mover
+ninguna otra vara.
+
+Dos cosas costaron el intento, y las dos son del mismo tipo —código que parece
+aplicado y no lo está:
+
+1. **`colores_grupos` llega vacío.** El proyecto declara los colores por paleta
+   de lista, no por ese parámetro. Hay que usar la paleta EFECTIVA, la misma que
+   acaba en `scale_fill_manual`.
+2. **Cinco pasos de acomodo posteriores reasignan `.col_label` al color fijo**
+   cuando meten una etiqueta dentro de su barra. La primera versión recibía la
+   paleta correcta, calculaba bien el contraste, y no cambiaba nada: se pisaba
+   más adelante. Por eso el recoloreado va **al final** del pipeline.
+
+Y hubo un susto por el camino que conviene anotar: al añadir el parámetro se
+rompió el render entero —`object 'colores_grupos' not found`— y **las 63 láminas
+salieron degradadas a «Sin datos»**. No se vio en el archivo: se vio porque el
+mazo bajó de 931 KB a 816 y de 42 s a 24, y porque el verificador devolvió
+`grosor_med = NA`. **Un mazo roto pesa menos y se genera antes**; esas dos
+cifras valen como alarma antes de abrir nada.
