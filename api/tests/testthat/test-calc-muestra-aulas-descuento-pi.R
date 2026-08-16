@@ -176,3 +176,83 @@ test_that("D3: pi_mc diverge de pi_design en la direccion del traslape (grandes 
     )
   }
 })
+
+# ---------------------------------------------------------------------------
+# D3 con `estratificado_aleatorio` — el otro motor secuencial.
+#
+# Hasta 2026-08-15 la medición direccional del MC secuencial se hacía SOLO con
+# sistematico_pps, y `estratificado_aleatorio` —que también está en
+# .cm_descuento_engines_secuenciales()— no tenía ninguna. Era la única celda de
+# la matriz motor × descuento sin arnés, y justo la del motor que protagonizó el
+# Defecto 1 del ADR 0066 (publicaba la π de otro motor).
+#
+# La dirección esperada NO es la misma, y ese es el punto. Con PPS la MOS manda,
+# así que descontar repetidos mueve la π (las grandes solapadas pierden). Con
+# sorteo uniforme dentro del estrato la MOS no interviene: recalcularla sobre
+# netos no cambia la chance de nadie mientras el aula siga teniendo elegibles.
+#
+# Medido en el mismo marco de traslape (400 corridas): π_design uniforme 0.5 en
+# las cuatro aulas, π_mc entre 0.4825 y 0.5225 — desvío máximo 0.023, dentro del
+# ruido (SE ≈ 0.025).
+#
+# Por eso este test es el CONTROL NEGATIVO del anterior: prueba que el arnés MC
+# no fabrica divergencias donde no las hay, y sobre todo que este motor no
+# publica una π proporcional al tamaño. Si alguien reintrodujera el Defecto 1,
+# π pasaría de 0.5 a 0.769/0.231 y el margen de 0.10 lo cazaría de sobra.
+.descuento_pi_cfg_uniforme <- function() {
+  cfg <- .descuento_pi_cfg()
+  cfg$selector$selector_engine <- "estratificado_aleatorio"
+  calc_muestra_aulas_normalize_config(cfg)
+}
+
+test_that("D3: con estratificado_aleatorio el descuento secuencial NO mueve la pi, que sigue uniforme", {
+  skip_if_not_installed("sampling")
+  runs <- 400L
+  cfg <- .descuento_pi_cfg_uniforme()
+  selector <- cfg$selector
+  frame <- calc_muestra_aulas_construir(base_madre = .descuento_pi_base(), config = cfg)
+  af <- frame$aula_frame
+  af <- af[af$included %in% TRUE, , drop = FALSE]
+  af$stratum <- .cm_aulas_make_stratum(af, selector$strata_cols)
+
+  # Sanidad: es el mismo marco de traslape y el descuento SÍ corre en modo
+  # secuencial para este motor (si dejara de estar en la lista de secuenciales,
+  # este test debe romperse y no pasar en falso).
+  brutos <- stats::setNames(as.numeric(af$eligible_n), af$classroom_id)
+  expect_equal(unname(brutos[c("A1", "A2", "A3", "A4")]), c(100, 100, 30, 30))
+  estado <- .cm_descuento_estado(af, selector, "estratificado_aleatorio")
+  expect_true(estado$applied)
+  expect_identical(estado$mode, "sequential")
+
+  pi_design <- .cm_aulas_design_probabilities(af, selector, "estratificado_aleatorio")
+  # La π declarada es la del sorteo uniforme: cuota/N del estrato, IDÉNTICA para
+  # las cuatro aulas pese a que sus tamaños van de 30 a 100 alumnos.
+  expect_equal(unname(pi_design[c("A1", "A2", "A3", "A4")]), rep(0.5, 4), tolerance = 1e-9)
+
+  mc <- .cm_aulas_mc_probabilities(af, selector, "estratificado_aleatorio", waves = "M1", runs = runs)
+  expect_identical(mc$runs, runs)
+  pi_mc <- mc$pi[names(pi_design)]
+
+  # El estimador conserva la masa total de inclusión (la cuota).
+  expect_equal(sum(pi_mc), 2, tolerance = 1e-6)
+
+  # Y no se separa de la uniforme. Margen 0.10 = 4 SE a 400 corridas: tolera el
+  # ruido y sigue siendo muy inferior a la separación que produciría una π
+  # proporcional al tamaño (0.769 vs 0.231), que es el defecto que vigila.
+  margen <- 0.10
+  for (aula in c("A1", "A2", "A3", "A4")) {
+    expect_lt(
+      abs(pi_mc[[aula]] - pi_design[[aula]]), margen,
+      label = sprintf(
+        "|pi_mc[%s] - pi_design[%s]| = %.3f: con sorteo uniforme el descuento secuencial no puede mover la probabilidad de inclusion",
+        aula, aula, abs(pi_mc[[aula]] - pi_design[[aula]])
+      )
+    )
+  }
+
+  # El control que hace fuerte al test: la pi NO es proporcional al tamaño. Las
+  # aulas grandes y las chicas tienen la misma probabilidad, que es lo que
+  # distingue este motor del PPS.
+  expect_lt(abs(pi_mc[["A1"]] - pi_mc[["A3"]]), margen)
+  expect_lt(abs(pi_mc[["A2"]] - pi_mc[["A4"]]), margen)
+})
