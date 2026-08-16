@@ -57,6 +57,8 @@ sabe nada que la interfaz calle.
 | **L24** | Validación no tiene ningún caso real en el corpus de referencia | ADR 0043 | ⛔ bloqueado — exige decidir si se enriquece un proyecto de referencia (necesita la sal) o se acepta que Validación es sólo de tests. |
 | **L25** | Barrido de Hojas de ruta | `marcoCartografia.ts` | ☑ hecho — la auditoría del marco contra la cartografía oficial no tenía consumidor. |
 | **L26** | Recopiladores no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves de recopiladores en los cuatro proyectos; misma decisión que L24. |
+| **L27** | Barrido de Monitoreo territorial | `filasDeFase.ts` | ☑ hecho — cuatro respuestas se perdían entre la consola y el tablero. |
+| **L28** | Bitácora no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves en los cuatro proyectos; tercer módulo, misma decisión que L24 y L26. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ⛔ bloqueado — los trabaja la otra sesión sobre este mismo árbol. Desbloquea: que suelte esos archivos. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -116,6 +118,47 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L27 — cuatro respuestas entre la consola y el tablero
+
+El censo primero, y otra vez decidió dónde mirar: `acnur_acg` tiene 25 claves de
+Monitoreo (territorial, con historial de actualizaciones, ocurrencias y
+publicación), `acrconta` 8, `acnur_pdm` 5 y `hsvg2026` 4 —sólo caches—.
+
+`territorial_phase_coherence` trae **dos** conteos por fase:
+
+| | Piloto | Campo |
+|---|---|---|
+| `local_rows` — en el snapshot | 35 | **1 697** |
+| `report_rows` — tras el corte de la fase | 35 | **1 693** |
+
+La consola decía «Campo tiene 1,697 respuestas locales sincronizadas» y el badge
+«1,697 locales»; el tablero contaba 1 693. **`report_rows` no estaba ni
+declarado en el tipo del cliente**: el único que lo miraba era el motor, para
+decidir si el tablero está desactualizado.
+
+Medido en R antes de escribir la frase: las cuatro son del 4 de junio,
+anteriores al inicio declarado de Campo (2026-06-12 10:00Z). El filtro de fase
+descarta lo enviado antes del arranque. Ahora el badge dice «1 693 de 1 697» y
+el estado explica que cuatro quedaron fuera del corte.
+
+**Lo que apareció al verificar en pantalla**, y que no se veía leyendo código:
+la píldora de la cabecera llama «recibidas» a las filas del reporte (1 693) y la
+banda de la consola llamaba «recibidas» a las locales (1 697), **a dos
+centímetros una de otra**. Dos cifras distintas con el mismo nombre en la misma
+pantalla. La banda pasa a decir «locales».
+
+**Las dos trampas.** `Number(null)` es 0, así que un `report_rows: null` —lo que
+manda un `.pulso` viejo— habría afirmado que se cayeron las 1 697; lo atrapó el
+test. Y la costura importaba más que el cálculo: la consola devolvía
+`item.message` antes de mirar nada más, así que la frase nueva no se habría
+visto nunca. Por eso hay un test de las etiquetas además del módulo puro.
+
+### L28 — Bitácora tampoco tiene con qué medirse
+
+Cero claves de bitácora, cronograma, calendario o canvas en los cuatro
+proyectos de referencia. **Tercer módulo entero fuera del corpus**, junto con
+Validación [L24] y Recopiladores [L26]. Misma decisión pendiente.
 
 ### L25 — la auditoría del marco estaba registrada y callada
 
