@@ -52,6 +52,7 @@ sabe nada que la interfaz calle.
 | **L16** | Barrido V7: cada estado nuevo con test que lo distinga | los diez módulos y componentes que agregó este GOAL | ☑ hecho — `6a89b22f`. Cinco sin test, tres eran gaps reales. |
 | **L18** | Barrido de módulos sin tocar: Hojas de ruta, Recopiladores y Bitácora | `RecopiladoresShell.tsx` | ☑ hecho — **un hallazgo** (`22713e67`). Cálculo de muestra queda fuera mientras la otra sesión lo trabaje. |
 | **L20** | Barrido de Analítica y Dashboard | — | ☑ hecho — **sin hallazgos**, con una limitación de medición anotada. |
+| **L22** | Analítica sobre payload poblado (lo que L20 no pudo medir) | `coberturaVariable.ts` | ☑ hecho — «0 con dato» decía tres cosas distintas. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ⛔ bloqueado — los trabaja la otra sesión sobre este mismo árbol. Desbloquea: que suelte esos archivos. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -111,6 +112,37 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L22 — el mismo «0 con dato» para tres situaciones opuestas
+
+L20 se cerró sin hallazgos midiendo sobre `acrconta`, y dejó anotado que sólo
+había visto la forma del contrato. Repetido sobre `acnur_acg` y `acnur_pdm`,
+que sí traen Analítica preparada, apareció lo que `acrconta` no podía mostrar:
+**tiene cero casos de los tres estados**. La limitación no era retórica.
+
+La tarjeta de Datos leía `n_non_missing` y descartaba `n_missing`. Sin
+denominador, «1241 con dato» no dice si es casi todo o la mitad. Y en el
+extremo, tres situaciones opuestas escribían la misma frase:
+
+| Variable | Qué pasa de verdad | Decía |
+|---|---|---|
+| `whynotconsent` (acnur_acg) | llegó y sus 1283 filas están vacías | `0 con dato` |
+| `SPACE_nolabel` (acnur_pdm) | está en el formulario, no llegó en la base | `0 con dato` |
+| `D1_information` (acnur_acg) | select_multiple repartido en sus dummies | `0 con dato` |
+
+Las dos primeras entran **incluidas por defecto** en el reporte. La tercera es
+el funcionamiento normal, y avisar ahí habría sido un falso positivo caro: hay
+seis en los proyectos de referencia.
+
+**El motor ya las distinguía** —columna ausente devuelve `0/0`, columna vacía
+devuelve `0/n`— y el único dato que faltaba leer era `n_missing`. Arreglo de
+frontend, sin tocar el engine.
+
+**La trampa**, que es la de siempre en este GOAL con una vuelta más: el fixture
+que se elige decide lo que se puede encontrar. `acrconta` no tenía ninguno de
+los tres estados, así que el barrido dio verde por composición de la muestra y
+no por conformidad del producto. Un «sin hallazgos» vale lo que valga el
+proyecto sobre el que se midió, y eso hay que escribirlo al lado del resultado.
 
 ### L20 — Analítica y Dashboard, sin hallazgos
 
