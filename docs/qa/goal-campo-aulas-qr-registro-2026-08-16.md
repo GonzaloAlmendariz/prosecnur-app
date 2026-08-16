@@ -12,6 +12,15 @@ Son dos motores y el GOAL los mide juntos porque el hueco está en la costura:
 Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 —el campo— hoy no hay nadie.
 
+> **Reencuadre del 2026-08-16, tras leer el estudio real** (`Hostigamiento PUCP
+> 2025_BD Aulas Agendadas`, anatomía completa en
+> [`anatomia-excels-aulas-2026-08-16.md`](anatomia-excels-aulas-2026-08-16.md)):
+> el operativo se gobierna con **tres Excel que el equipo llena a mano y que la
+> app debe LEER, no sustituir** — «Aulas Agendadas» (agendamiento y cadena),
+> «Base de control» (control de calidad) y «Aulas Aplicadas (Campo)» (parte de
+> campo). «Sin planilla paralela» **no significa eliminar el Excel**: significa
+> que el Excel y la app dejen de contar cosas distintas.
+
 ## Vara
 
 | # | Afirmación | Cómo se mide |
@@ -24,6 +33,9 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. |
 | **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
 | **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. |
+| **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Importar el libro real deja el plan, el agendamiento y el parte de campo en el `.pulso`, y sus totales cuadran con los del Excel. |
+| **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
+| **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
 
 ---
 
@@ -90,6 +102,12 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L23** | Los números de L15–L22 no se han visto en pantalla. | Un `.pulso` armado a mano no transporta las respuestas ni `monitoreo_config$aulas_universitarias`: la whitelist de persistencia guarda el plan y poco más. | ☐ sin empezar — exige recorrer el flujo real desde la UI (calc-muestra → importar → Recopiladores → handoff). L13 y L14 **sí** quedaron confirmados en pantalla: 7 cursos-horario, no 49, y sin crash. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
 | **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
+| **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones de cadena, a lo ancho). El modelo de la app representa la cadena como filas con `replacement_for`: el importador tiene que traducir de ancho a largo. | ☐ sin empezar — **es la prioridad** |
+| **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques (principal + reemplazo 2 y 3). Análogo a la base de barrido telefónico de los otros modos. | ☐ sin empezar |
+| **L29** | La app no lee «Base de control». | Seis grupos de control por aula: cuenta contra los dos denominadores, duración (cortas/largas, 70T/70P), cuotas por sexo y rango horario. Mucho más rico que los 6 chequeos de la pestaña Validación. | ☐ sin empezar |
+| **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
+| **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☐ sin empezar |
+| **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☐ sin empezar — corrige lo construido hoy en L4 |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
@@ -261,3 +279,36 @@ exige visto bueno explícito— o va a pestaña propia. Es decisión de layout.
 
 **V5 se cumple.** V6 (activar reemplazo como gesto) y V8 quedan al alcance con
 lo ya construido; V7 sigue esperando el «mientras ocurre».
+
+### 2026-08-16 — reencuadre: el operativo se gobierna con tres Excel
+Gonzalo compartió el estudio real de 2025. Leerlo cambia la prioridad del GOAL y
+corrige una suposición que estaba debajo de todo lo construido hoy.
+
+**La suposición equivocada.** L4 se implementó asumiendo que el registro de
+campo se captura *en la app*. El flujo real es el contrario: el equipo llena
+**tres Excel** —se llama al docente con la hoja abierta, se anota en campo sobre
+ella— y lo que falta es que **la app los lea**. La superficie que se construyó
+no sobra, pero es para correcciones puntuales, no el camino principal.
+
+**Lo que «sin planilla paralela» significa de verdad.** No es eliminar el Excel:
+es que el Excel y la app dejen de contar cosas distintas.
+
+**Tres hallazgos que corrigen el modelo:**
+
+1. **Son dos ejes de estado, no uno.** `STATUS MUESTRA` (AGENDADA · REAGENDADA ·
+   EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA)
+   son independientes: un aula puede estar reemplazada en muestra y aplicada en
+   campo. El `operational_status` de la app los mezcla → **L30**.
+2. **Falta el ciclo de contacto.** Medio, fecha de llamada y sobre todo
+   **número de intentos**: sin eso no se explica por qué un aula sigue sin
+   agendar → **L31**.
+3. **El parte de campo que construí está incompleto.** Faltan **duplicados**,
+   **efectivas** —que es el número que manda, no «encuestas aplicadas»— y el
+   **aula real**, que puede no ser la planificada → **L32**.
+
+Y una diferencia estructural: la cadena de reemplazo en el Excel es **ancha**
+(hasta once eslabones en la misma fila) y en la app es **larga** (filas con
+`replacement_for`). Ambas valen; el importador traduce.
+
+La prioridad pasa a **L27** (leer «Aulas Agendadas»), que es la hoja de la que
+cuelgan las otras dos.
