@@ -59,7 +59,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
-| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ☐ |
+| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **config leída** (2026-08-16) · 30 titulares × 11 olas; diferencia de escala con 2025 sin explicar |
 
 ## L1 · el material de 2025 (2026-08-16)
 
@@ -93,6 +93,53 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L12 · titulares y reemplazos (2026-08-16)
+
+La configuración que el proyecto lleva guardada:
+
+| | |
+|---|---|
+| Motor de sorteo | `cube_balanceado` |
+| Titulares | **30** |
+| **Olas de reemplazo** | **11** |
+| Estratificación | `faculty`, `sex_top_1`, `size_group` |
+| Descuento secuencial | activado |
+| Corridas Monte Carlo | 500 |
+| Semilla | 20260619 |
+
+30 titulares × 11 olas = **hasta 330 reemplazos**, que es exactamente el
+`chain_reserve` que el motor genera hoy con esta config. La cadena está bien
+dimensionada respecto de sí misma.
+
+### La diferencia de escala que hay que explicar
+
+El histórico de 2025 registra **1.012 aulas agendadas** para 194 aplicadas. El
+diseño guardado aquí suma **360 aulas en cadena** (30 + 330).
+
+**No es necesariamente un defecto**, y hay una lectura inocente: este `.pulso` es
+la preparación de **2026**, no el diseño ejecutado en 2025, así que compararlos
+es comparar dos estudios. Pero la diferencia es de casi el triple y toca
+directamente a V8 —«las cadenas de reemplazo son operables en campo»—, así que
+merece una respuesta explícita antes de dar la parada por buena:
+
+- ¿El diseño 2026 es deliberadamente más chico que el de 2025?
+- ¿O los 1.012 de 2025 incluyen algo que estas 360 no cuentan —reagendas,
+  visitas repetidas, aulas que se agendaron y no se aplicaron—?
+
+La segunda lectura es plausible: 1.012 agendadas contra 194 aplicadas es una
+proporción de casi 5 a 1, que se parece más a un registro de intentos que a una
+cadena de reemplazos planificada.
+
+**Es exactamente la clase de diferencia que la regla de este loop manda no dejar
+pasar**, y no se puede cerrar sin el entregable de campo de 2025.
+
+### La simulación tampoco se guardó
+
+`calc_muestra_aulas_replacement_simulation` está **ausente**. Cuarto artefacto
+del cálculo que el proyecto no conserva, junto al n, las aulas totales y el
+reparto por estrato. Refuerza el patrón: **el `.pulso` guarda decisiones, no
+resultados.**
 
 ## L7 · el recorte por criterio no llega a la pantalla (2026-08-16)
 
