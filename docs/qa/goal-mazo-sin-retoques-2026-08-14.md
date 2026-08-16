@@ -21,7 +21,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | V2 | El texto no baja del umbral legible | % de `sz=` por debajo de 11 pt | **6.6 %** ◐ · en absoluto **157 vs 146** del aprobado ✓ |
 | V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **38 de 66** ✓ (era 29; techo real ~35) |
-| V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | **0.321 · 0 de 18** ✓ (era 0.221) |
+| V5 | El motor no incumple más que el aprobado | incumplimientos de `verificar_mazo()` | **47 vs 100** del aprobado ✓ |
 | V6 | Ninguna lámina supera las 9 **barras** | máx. barras por lámina | **el motor parte**; dispara en 3 ✓ |
 | V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
 | V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | **`p_slide_3_graficos_poblacion`** ✓ |
@@ -41,7 +41,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L9 | Partir la lámina cuando supera 9 **barras** · incluye `escala_continuada` | `reporte_plan_particion.R` | ☑ **3 láminas**, avisa y marca «(CONT.)» |
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
-| L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
+| L12 | La guía de canvas pasa a verificar las reglas | `verificar_mazo()` | ☑ 4 reglas medidas, 6 declaradas sin cubrir |
 | L14 | Llevar el arreglo del color al DEFAULT del motor | `.PULSO_PPT_COLORS` / generador de paletas por lista | ☐ |
 | L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
 | L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
@@ -334,3 +334,43 @@ plantilla; el rastro apunta a texto que el motor escribe en placeholders.
 - **Nombré mal la estructura.** Escribí que `.PRESETS_META` declaraba los 16
   cuando es `.PRESETS_DEFAULT_PULSO`; el test lo detectó al no encontrar la
   clave. Comprobar el nombre antes de dejarlo escrito en un comentario.
+
+### L12 — el verificador desmintió una vara que yo había dado por cerrada
+
+`verificar_mazo()` mide el .pptx contra las recetas y devuelve los
+incumplimientos con su lámina. Cubre grosor de escala, barras por gráfico,
+grosor categórico y texto legible, y **declara las seis reglas que no mira**:
+un informe que calla lo que no comprueba se lee como si lo hubiera aprobado.
+
+Lo primero que hizo fue contradecir a su antecesor, y tenía razón él.
+
+**El medidor con el que cerré V5 tenía un fallo.** Agrupaba los ejes con una
+expresión que nunca añadía el eje al grupo, así que conservaba sólo el primero
+de cada columna y descartaba el resto de las barras: veía **18 gráficos donde
+hay 74**. El «0 de 18 bajo el piso» con que di V5 por cumplida no era una
+medición, era el efecto de no mirar. Al portarlo apareció un segundo fallo que
+el primero tapaba: agrupar por fila sin exigir contigüidad funde dos gráficos
+vecinos en una barra que arranca en uno y acaba en el otro.
+
+Por eso el verificador lleva pruebas propias sobre geometría construida a mano.
+**Un medidor sin pruebas no es una vara: es una opinión con decimales**, y las
+tres varas que este GOAL tuvo que reformular —V2, V5, V6— lo fueron por eso.
+
+**Y con la medición buena, el encargo se da vuelta otra vez:**
+
+| | Gráficos de escala | Incumplimientos |
+|---|---|---|
+| Motor | 74 | **47** |
+| Aprobado | 80 | **100** |
+
+El entregable que el cliente aprobó incumple el recetario **más del doble** que
+el motor: 46 de sus gráficos bajan de 0.32 in —el peor, 0.109— y 53 de sus
+textos quedan por debajo de 11 pt. Los umbrales estaban calibrados contra un
+ideal, no contra el entregable; el propio recetario dice que el rango del
+aprobado es 0.192–0.709, así que un piso de 0.32 nunca fue lo que el aprobado
+hace.
+
+La vara honesta no es «ninguna barra baja de 0.32» sino **«el motor no incumple
+más que el entregable aprobado»**, y esa se cumple con holgura en las cuatro
+reglas medidas. Lo cual no invalida L5 ni L16: subieron el suelo de verdad y el
+motor está mejor que antes. Lo que invalida es la cifra con que los cerré.
