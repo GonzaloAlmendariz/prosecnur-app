@@ -39,7 +39,7 @@ import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
-import { frameIntegrity } from "../shared/frameIntegrity";
+import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor } from "../ui";
 import { useMotorStore } from "../../store";
@@ -292,7 +292,7 @@ export function CriteriosMarcoTab({
   // Máquina de estados del recálculo del marco (§4.1.4): el botón exige
   // reconstruir cuando (a) es la primera vez (aún no hay marco), o (b) los
   // criterios confirmados difieren de los que construyeron el marco vigente.
-  const marcoConstruido = Boolean(aulasState?.frame);
+  const marcoConstruido = marcoFueConstruido(aulasState?.frame);
   const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
   const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
   const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;

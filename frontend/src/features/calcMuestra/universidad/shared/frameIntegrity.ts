@@ -155,3 +155,28 @@ export function frameIntegrity(
     marcoAulas: status === "consistent" ? projections.owner : null,
   };
 }
+
+/**
+ * ¿El marco llegó a construirse alguna vez?
+ *
+ * `Boolean(frame)` no sirve: en un proyecto recién creado el backend serializa
+ * el marco ausente como **objeto vacío**, no como `null`. Medido sobre un
+ * `.pulso` nuevo, `state.aulas.frame` llega como `{}`.
+ *
+ * Con `Boolean(frame)` ese `{}` cuenta como marco construido, y entonces
+ * `frameIntegrity` —que clasifica «sin proyecciones» como `unverifiable`—
+ * hace que la pantalla diga «El marco ejecutado no es verificable contra su
+ * radiografía. Reconstruye el marco…» a alguien que **nunca lo construyó**.
+ * Pide rehacer algo que no existe y esconde el mensaje correcto, que ya estaba
+ * escrito más abajo en la misma cadena: «Aún no has construido el marco».
+ *
+ * Ausencia y no-verificabilidad son cosas distintas y llevan a acciones
+ * distintas: una se resuelve calculando por primera vez, la otra reconstruyendo.
+ * El hash es la marca de que hubo una construcción real.
+ */
+export function marcoFueConstruido(
+  frame: CalcMuestraAulasState["frame"] | null | undefined,
+): boolean {
+  const hash = (frame as { frame_hash?: unknown } | null | undefined)?.frame_hash;
+  return typeof hash === "string" && hash.trim().length > 0;
+}

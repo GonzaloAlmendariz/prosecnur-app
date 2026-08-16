@@ -47,7 +47,7 @@ import {
 import { useMotorStore } from "../../store";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
-import { frameIntegrity } from "../shared/frameIntegrity";
+import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
 import { filtrosLegacyPayload, normalizeUniversityAulasConfig } from "../shared/study";
 import {
   copiarVariableCriterio,
@@ -430,7 +430,7 @@ export function CursosHorarioMarcoTab({
 
 
   const totalPendientes = pendientes.size;
-  const marcoConstruido = Boolean(aulasState?.frame);
+  const marcoConstruido = marcoFueConstruido(aulasState?.frame);
   const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
   const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
   const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;
