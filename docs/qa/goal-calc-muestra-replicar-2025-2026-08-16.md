@@ -187,11 +187,26 @@ consecuencias, y la segunda es la grave:
    decidiendo algo que ya está decidido, y si mueve el que no actúa no pasa
    nada, sin que nada se lo diga.
 
-Es exactamente el defecto que V3 vigila. **No se arregló en este tick**: tocar la
-emisión de razones afecta a lo que la UI rotula y a los tests que leen
-`exclude_reason`, y merece hacerse con la suite delante. Queda como el primer
-arreglo del próximo tick, con su regresión: un proyecto donde sólo actúa el
-filtro legacy no puede publicar la razón del criterio de la suite.
+Es exactamente el defecto que V3 vigila.
+
+**Arreglado (2026-08-16).** Cuando el criterio de la suite no trae umbral propio
+y hereda el del filtro legacy, **el flag se conserva y la razón se calla**: el
+corte se sigue aplicando, pero quien lo firma es el filtro de quien realmente
+vino la decisión. Con umbral propio, la suite sí publica su razón, porque
+entonces decide algo distinto.
+
+Suite tras el cambio: **68 archivos · 4648 PASS · 0 FAIL**.
+
+### El primer test era un falso verde
+
+Vale anotarlo porque es la clase de error que este loop existe para atrapar. La
+regresión inicial montaba el caso con `byVariable = list()` — suite vacía— y
+pasaba en verde. **Con el defecto reintroducido también pasaba**: con la suite
+inactiva ese criterio ni se evalúa, así que el test no distinguía nada.
+
+Se arregló activando la suite con un criterio cualquiera. Sólo entonces el
+mutante cayó. **Una regresión de criterios necesita la suite activa, o mide un
+camino que el defecto ni recorre.**
 
 ## Trampa medida: la columna se toma del mapping, no del nombre
 
