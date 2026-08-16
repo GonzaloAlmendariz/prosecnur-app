@@ -1423,6 +1423,16 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 # reducen el marco, solo se reportan (se validan en campo/post-campo). Sin
 # selección activa marco_ok es todo TRUE → retro-compat. La lógica de capa
 # generaliza el "ciclo 1 → instrumento" de HST como una ELECCIÓN, no una regla.
+# ¿La columna trae algo con lo que discriminar? Vacia, toda NA o toda igual al
+# mismo blanco significa que no. Sirve para texto y para numero: `level` llega
+# como numerico y su ausencia es NA, no "".
+.cm_criterios_columna_con_senal <- function(x) {
+  if (is.null(x) || !length(x)) return(FALSE)
+  if (is.numeric(x)) return(any(is.finite(x)))
+  vals <- trimws(as.character(x))
+  any(!is.na(vals) & nzchar(vals) & vals != "NA")
+}
+
 calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
   n <- length(filas$student_id %||% character(0))
   marco_ok <- rep(TRUE, n)
@@ -1450,13 +1460,28 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
     crit <- by[[id]]
     if (!identical(crit$scope, "alumno")) next
     algun_alumno <- TRUE
+    # Un criterio sin señal en su columna NO se evalua: las ramas de abajo
+    # reciben un vector entero de vacios y dejan pasar a todo el mundo. Sin
+    # marcarlo, su conteo es indistinguible del de un criterio que SI se midio y
+    # no recorto, y la pantalla acaba afirmando "esta declarado y no filtra a
+    # nadie" cuando la verdad es que no habia con que filtrar. Medido en una
+    # pila limpia: `formation` sobre una base sin esa columna publicaba 4 de 4.
+    #
+    # El predicado es "no trae señal", no "la columna no existe": `filas` es una
+    # lista de seis vectores que el motor arma SIEMPRE desde el mapeo, asi que
+    # una columna ausente no llega como NULL sino como vacios. Y las dos cosas
+    # importan igual — un criterio sobre una columna que existe pero viene
+    # entera en blanco tampoco puede discriminar a nadie.
+    evaluable <- .cm_criterios_columna_con_senal(filas[[id]])
     flag <- switch(crit$kind,
       flat = .cm_criterios_eval_flat_vec(filas[[id]] %||% rep("", n), crit, fac_keys),
       numeric = .cm_criterios_eval_numeric(.cm_criterios_num_vec(filas[[id]] %||% rep("", n)), crit$threshold),
       ordinal = .cm_criterios_eval_ordinal(.cm_criterios_num_vec(filas[[id]] %||% rep("", n)), crit),
       rep(TRUE, n))
     layer <- crit$layer %||% "marco"
-    report$criterios[[id]] <- list(layer = layer, filas_pasan = as.integer(sum(flag)))
+    report$criterios[[id]] <- list(
+      layer = layer, filas_pasan = as.integer(sum(flag)), evaluable = evaluable
+    )
     # Solo la capa "marco" recorta N, así que solo ella justifica una exclusión:
     # instrumento/procesamiento se reportan pero no sacan a nadie del marco.
     if (identical(layer, "marco")) {
