@@ -6,8 +6,9 @@
 #' que la lamina «NUMERO DE RESPUESTAS» salia con las dos frases pegadas:
 #' `...gráfico correspondiente.• Los porcentajes están redondeados...`.
 #'
-#' Aqui cada linea es su propio run, separados por `run_linebreak()`, que es lo
-#' que OOXML entiende por salto dentro de un parrafo.
+#' Cada linea pasa a ser su propio PARRAFO, agrupados en un `block_list`.
+#' `run_linebreak()` seria lo natural, pero officer no le da metodo `to_pml`:
+#' sirve en Word y en PowerPoint aborta el placeholder entero.
 #'
 #' @name reporte_ppt_texto_lineas
 NULL
@@ -25,18 +26,14 @@ NULL
   lineas <- strsplit(t, "\n", fixed = TRUE)[[1]]
   if (!length(lineas)) lineas <- ""
 
-  runs <- list()
-  for (i in seq_along(lineas)) {
-    # El salto va ANTES de la linea, no despues: asi no queda uno colgando al
-    # final del parrafo, que en PowerPoint abre una linea vacia.
-    if (i > 1L) runs[[length(runs) + 1L]] <- officer::run_linebreak()
-    runs[[length(runs) + 1L]] <- officer::ftext(lineas[[i]], prop = prop)
-  }
-
-  do.call(
-    officer::fpar,
-    c(runs, list(fp_p = officer::fp_par(text.align = align, line_spacing = line_spacing)))
-  )
+  fp_p <- officer::fp_par(text.align = align, line_spacing = line_spacing)
+  parrafos <- lapply(lineas, function(l) {
+    officer::fpar(officer::ftext(l, prop = prop), fp_p = fp_p)
+  })
+  # Una sola linea se devuelve como `fpar` y no como lista de uno: es lo que
+  # espera el resto del render y evita envolver de mas.
+  if (length(parrafos) == 1L) return(parrafos[[1]])
+  do.call(officer::block_list, parrafos)
 }
 
 

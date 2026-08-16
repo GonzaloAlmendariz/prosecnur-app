@@ -1,37 +1,37 @@
 prop <- function() officer::fp_text(font.size = 12, color = "#081F5C")
 
 
-test_that("un texto de una linea produce un solo run", {
+test_that("un texto de una linea sigue siendo un fpar", {
   f <- .ppt_fpar_multilinea("Una sola linea", prop())
+  expect_s3_class(f, "fpar")
   expect_length(f$chunks, 1L)
 })
 
 
-test_that("cada linea trae su salto delante, y ninguno sobra", {
+test_that("cada linea es su propio parrafo", {
   # El caso real: texto y bullet se unen con `\n` en el constructor y salian
   # pegados —«correspondiente.• Los porcentajes»— porque un `\n` dentro de un
-  # run no es un salto en OOXML.
+  # run no es un salto en OOXML. `run_linebreak()` tampoco vale: officer no le
+  # da metodo para PowerPoint y aborta el placeholder.
   f <- .ppt_fpar_multilinea("Primera\n• Segunda", prop())
-  # 2 textos + 1 salto entre ellos
-  expect_length(f$chunks, 3L)
-  clases <- vapply(f$chunks, function(x) class(x)[1], "")
-  expect_equal(clases[[2]], "run_linebreak")
+  expect_s3_class(f, "block_list")
+  expect_length(f, 2L)
 })
 
 
-test_that("tres lineas llevan dos saltos, no tres", {
-  # Un salto al final abriria una linea vacia en PowerPoint.
+test_that("tres lineas dan tres parrafos, sin uno vacio al final", {
   f <- .ppt_fpar_multilinea("a\nb\nc", prop())
-  clases <- vapply(f$chunks, function(x) class(x)[1], "")
-  expect_equal(sum(clases == "run_linebreak"), 2L)
-  expect_equal(clases[[length(clases)]], "ftext")
+  # `block_list` es una lista PLANA de `fpar`, sin `$blocks`.
+  expect_length(f, 3L)
+  expect_equal(f[[3]]$chunks[[1]]$value, "c")
 })
 
 
-test_that("un texto vacio o nulo no revienta", {
-  expect_length(.ppt_fpar_multilinea("", prop())$chunks, 1L)
-  expect_length(.ppt_fpar_multilinea(NULL, prop())$chunks, 1L)
-  expect_length(.ppt_fpar_multilinea(NA, prop())$chunks, 1L)
+test_that("un texto vacio o nulo no revienta y sigue siendo un fpar", {
+  for (x in list("", NULL, NA)) {
+    f <- .ppt_fpar_multilinea(x, prop())
+    expect_s3_class(f, "fpar")
+  }
 })
 
 
