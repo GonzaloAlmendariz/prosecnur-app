@@ -191,7 +191,18 @@ collection_material_field_form_rows <- function() {
     fila(campo("Curso:", 0.45), campo("Horario del curso:", 0.55)),
     fila(campo("Docente:", 1)),
     fila(campo("N° de alumnos en aula", 0.40), campo("Hombres:", 0.30), campo("Mujeres:", 0.30)),
-    fila(campo("N° de encuestas aplicadas:", 0.55), campo("Rechazos:", 0.45)),
+    # Los cuatro numeros que el cuadre del parte comprueba —asistentes menos
+    # rechazos menos duplicados igual efectivas— en una sola fila. El papel no
+    # pedia los dos ultimos, asi que quien aplica en el aula no anotaba lo que
+    # despues hay que meter en el Excel y en la app.
+    #
+    # En una fila y no en dos porque el formulario esta LLENO: su capacidad es
+    # de 7 renglones (`.cfc_layout()`: `form_top`, `form_step`, `form_floor`) y
+    # ya usaba 7. Una octava fila se recortaba con `form_lines_overflow`.
+    fila(
+      campo("N° de encuestas aplicadas:", 0.34), campo("Rechazos:", 0.18),
+      campo("Ya respondieron:", 0.26), campo("Efectivas:", 0.22)
+    ),
     fila(campo("Aplicador/a", 1)),
     fila(campo("Fecha:", 0.45), campo("Hora de aplicación:", 0.55))
   )

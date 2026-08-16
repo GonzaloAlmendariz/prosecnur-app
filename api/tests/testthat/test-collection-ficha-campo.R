@@ -123,7 +123,11 @@ test_that("los renglones por defecto son los de la hoja en uso", {
   expect_true(all(c(
     "Facultad", "Pabellón y aula:", "Curso:", "Horario del curso:", "Docente:",
     "N° de alumnos en aula", "Hombres:", "Mujeres:", "N° de encuestas aplicadas:",
-    "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:"
+    "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:",
+    # Los dos numeros que el cuadre del parte comprueba y que el papel no pedia.
+    # Van en la fila de aplicadas porque el formulario esta lleno: su capacidad
+    # es 7 renglones y ya usaba 7.
+    "Ya respondieron:", "Efectivas:"
   ) %in% etiquetas))
 
   # La hoja no desdobla la aplicacion en fisico y virtual: es una sola cifra.
@@ -243,4 +247,36 @@ test_that("una etiqueta que se come su renglon avisa en vez de dibujar una raya 
   expect_true("form_field_no_room" %in% vapply(
     rendered$warnings, function(w) as.character(w$code %||% ""), character(1)
   ))
+})
+
+test_that("los cuatro numeros del cuadre no se pisan entre si", {
+  skip_if_not_installed("png")
+  # La fila de aplicadas paso de dos campos a cuatro —el cuadre del parte
+  # necesita duplicados y efectivas— y el formulario esta lleno, asi que no
+  # habia sitio para una fila mas. El riesgo de meter cuatro donde habia dos es
+  # que las etiquetas se solapen: aqui se comprueba que siguen siendo bloques
+  # de tinta SEPARADOS.
+  compiled <- .cfx_compiled(collection_material_field_sheet_template())
+  dir <- tempfile("cfx-cuatro-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .cfx_grey(png_path)
+  L <- prosecnurapp:::.cfc_layout()
+  filas <- collection_material_field_form_rows()
+  idx <- which(vapply(filas, function(f) length(f$fields) == 4L, logical(1)))
+  expect_length(idx, 1L)
+
+  y <- L$form_top - (idx[[1]] - 1L) * L$form_step
+  media <- L$form_step / 3
+  tramo <- g[max(1L, round((1 - (y + media)) * nrow(g))):min(nrow(g), round((1 - (y - media)) * nrow(g))), , drop = FALSE]
+  columnas <- which(apply(tramo < 0.5, 2, any))
+  expect_gt(length(columnas), 100L)
+
+  # Cuatro etiquetas separadas dejan al menos cuatro bloques de tinta. Si se
+  # pisaran, los bloques se fundirian en menos.
+  bloques <- length(which(diff(columnas) > 3L)) + 1L
+  expect_gte(bloques, 4L)
+  expect_gte(min(columnas), round(L$x_left * ncol(g)) - 4L)
+  expect_lte(max(columnas), round(L$x_right * ncol(g)) + 4L)
 })
