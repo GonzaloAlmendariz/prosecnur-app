@@ -85,8 +85,15 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
       /<div\s+className="mon-profile-table-wrap"\s+data-qa-geometry-capacity="owned"\s+data-qa-geometry-member/,
     );
     expect(aulasPage.match(/data-qa-geometry-member/g)).toHaveLength(2);
-    expect(aulasPage.match(/data-qa-geometry-group="monitoring-aulas-table"/g) ?? []).toHaveLength(5);
-    expect(aulasPage.match(/data-qa-geometry-contract="intrinsic"/g) ?? []).toHaveLength(5);
+    // Se cuenta la RELACIÓN, no el nombre del grupo: todo panel de datos declara
+    // su contrato. Amarrar el test a `monitoring-aulas-table` con un número fijo
+    // lo hacía fallar al separar Avance y Consultas en paneles propios —un
+    // cambio que AÑADE superficies declaradas— y no habría visto un panel nuevo
+    // bautizado con otro nombre y sin declarar, que es lo que de verdad importa.
+    const paneles = aulasPage.match(/className="mon-profile-panel"/g) ?? [];
+    const intrinsecos = aulasPage.match(/data-qa-geometry-contract="intrinsic"/g) ?? [];
+    expect(paneles.length).toBeGreaterThan(0);
+    expect(intrinsecos).toHaveLength(paneles.length);
     expect(aulasPage).not.toContain('if (!rows.length) return <p className="mon-profile-muted">');
     expect(aulasCss).toMatch(
       /\.aulas-mon-view \.mon-profile-table-wrap > \.mon-profile-muted\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;/s,

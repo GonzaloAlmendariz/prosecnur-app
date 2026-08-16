@@ -364,39 +364,92 @@ function renderAulasView(
     );
   }
   if (view === "consultas") {
-    const rows = [
-      ...((dashboard.course_status ?? []) as Array<Record<string, unknown>>),
-      ...((dashboard.reemplazos ?? []) as Array<Record<string, unknown>>),
-      ...((dashboard.brechas ?? []) as Array<Record<string, unknown>>),
-    ];
+    // Las tres listas van en paneles propios. Concatenadas producian una tabla
+    // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
+    // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
+    const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
+    const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
     return (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          <h3>Reemplazos y brechas</h3>
-          <span>{fmt(rows.length)} filas</span>
-        </div>
-        <DataTable rows={rows} empty="No hay consultas internas preparadas para cursos-horario." />
-      </section>
+      <div className="mon-profile-stack">
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-consultas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Cadena de reemplazos</h3>
+            <span>{fmt(reemplazos.length)} filas</span>
+          </div>
+          <DataTable
+            rows={reemplazos}
+            empty="Ningún curso-horario ha necesitado reemplazo."
+            preferredColumns={["operational_code", "replacement_for", "sample_role", "replacement_reason", "equivalence_level"]}
+          />
+        </section>
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-consultas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Cursos-horario con brecha</h3>
+            <span>{fmt(brechas.length)} filas</span>
+          </div>
+          <DataTable
+            rows={brechas}
+            empty="Ningún curso-horario tiene brecha abierta."
+            preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
+          />
+        </section>
+      </div>
     );
   }
+  // Avance: las tres miradas del mismo campo, cada una en su panel. Antes las
+  // cuotas y el avance por estrato COMPETIAN por un solo panel —`quotaRows.length
+  // ? quotaRows : avance_por_estrato`—, y como un estudio de cursos-horario
+  // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
+  // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
   const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
-  const avanceRows = (quotaRows.length ? quotaRows : dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
+  const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
+  const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   return (
     <div className="mon-profile-stack">
       <section
         className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-group="monitoring-aulas-avance"
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
-          <h3>{quotaRows.length ? "Cuota sexo por facultad" : "Avance por estrato"}</h3>
-          <span>{fmt(avanceRows.length)} filas</span>
+          <h3>Avance por curso-horario</h3>
+          <span>{fmt(aulaRows.length)} filas</span>
         </div>
-        <DataTable rows={avanceRows} empty="No hay avance por estrato preparado." />
+        <DataTable
+          rows={aulaRows}
+          empty="Todavía no hay respuestas que atribuir a un curso-horario."
+          preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
+        />
+      </section>
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Avance por estrato</h3>
+          <span>{fmt(estratoRows.length)} filas</span>
+        </div>
+        <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+      </section>
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Cuota sexo por facultad</h3>
+          <span>{fmt(quotaRows.length)} filas</span>
+        </div>
+        <DataTable rows={quotaRows} empty="El plan no declara composición por sexo para estos cursos-horario." />
       </section>
     </div>
   );
