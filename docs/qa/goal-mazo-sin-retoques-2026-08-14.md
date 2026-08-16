@@ -31,6 +31,10 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V6 | Ningún gráfico pasa del techo de barras | ≤ 7 (máx.) | 3 fallos | **0** ✓ |
 | V7 | El grosor cae en su celda del recetario | mediana 0.512 | 0.510 | **0.486** ✓ |
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
+| V9 | Cada familia de gráfico tiene su receta medida | recetas / graficadores | **10 de 18** ◐ |
+| V10 | Cada comentario de Gabriela tiene regla y estado | 57 comentarios → 17 reglas | ◐ sin mapa por comentario |
+| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **4 de 10** ◐ |
+| V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
 **Incumplimientos totales de `verificar_mazo()`: aprobado 6 · motor 0.**
 
@@ -60,6 +64,14 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan hasta perder el 58 % | alto del bloque atado al nº de públicos | ☐ |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
+| L21 | Inventario: qué familias de las 18 no tienen receta | recetario | ☐ |
+| L22 | Medir cada familia sin receta contra Contabilidad y escribirla | recetario | ☐ |
+| L23 | Mapa comentario → regla → estado, los 57 uno por uno | doc nuevo | ☐ |
+| L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
+| L25 | Ampliar `verificar_mazo()` a las 6 reglas sin cubrir | verificador | ☐ |
+| L26 | Medir las 31 disposiciones y darles celda en el recetario | recetario | ☐ |
+| L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
+| L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
 
 **L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
 con el dominio sintético no le corresponde a este GOAL. El arreglo del
