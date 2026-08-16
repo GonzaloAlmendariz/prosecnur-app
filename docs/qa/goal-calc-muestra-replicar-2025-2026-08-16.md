@@ -1226,3 +1226,84 @@ de venir fijado. Dos preguntas que sólo Gonzalo puede contestar:
 
 Hasta que eso se decida, el cambio a cuotas por facultad no puede implementarse
 sin elegir por Gonzalo, así que queda **bloqueado**, no pendiente.
+
+---
+
+## Corrección: la columna del Excel SÍ sale de una fórmula única (2026-08-16)
+
+En el tick anterior concluí que «Estudiantes por Curso-Horario» mezclaba valores
+puestos a mano con valores calculados, y que ninguna fórmula única la
+reproducía. **Es falso, y lo era por haber leído sólo una hoja del Excel.**
+
+La hoja `TD Estudiantes` trae la derivación completa, facultad por facultad, y
+su última columna se llama literalmente **«Mínimo entre mediana y media»**:
+
+| Facultad | Mediana | Media | mín | Excel usa |
+|---|---|---|---|---|
+| Arquitectura y Urbanismo | 20 | 27,585 | **20** | 20 |
+| Ciencias Contables | 26 | 24,882 | **24,882** | 24,882 |
+| Derecho | 33 | 26,696 | **26,696** | 26,696 |
+| Estudios Generales Letras | 40 | 35,949 | **35,949** | 35,949 |
+| Psicología | 25 | 47,886 | **25** | 25 |
+
+Las quince coinciden. Los «valores redondos puestos a mano» eran las **medianas**
+—enteras por naturaleza— y los «decimales de cálculo» eran las **medias**. Una
+sola regla, conservadora: se queda con el divisor más pequeño de los dos, que es
+el que pide más aulas.
+
+La hoja trae además Cuartil 1 y Cuartil 3, que es de donde salía la pregunta del
+P25: **está en la fuente como contexto, no como el estadístico elegido.**
+
+### El motor ya implementa esa regla, y nadie la alimenta
+
+`.cm_estadistico_conglomerado_estrato` acepta tres modos: `media`, `mediana` y
+**`min_media_mediana`** — exactamente la regla de 2025. Pero degrada a `media`
+salvo que el estrato traiga `mediana_conglomerado > 0`, y **el preset la trae en
+0 en las quince**.
+
+Peor: `mediana_conglomerado` **no aparece ni una vez en todo el frontend**. El
+campo existe en R, `calc_muestra_perfil.R` calcula `est_aula_mediana` por
+facultad, el adaptador la lee como `estAulaMediana` — y nadie conecta las dos
+puntas. Es el patrón de siempre: una capacidad existe sólo si alguien la
+consume. `min_media_mediana` hoy no puede dispararse en producción.
+
+### La fórmula reproduce el Excel exacto cuando se la alimenta
+
+Corriendo el motor con `min_media_mediana`, las medianas y medias de 2025 y
+τ = 1/1,5:
+
+| Configuración | Titulares | Dif contra el Excel, facultad a facultad |
+|---|---|---|
+| media del marco · τ del marco | 199 | 2,4,4,0,7,3,2,−2,1,3,8,−1,1,2,3 |
+| media del Excel · τ del marco | 206 | 2,4,4,0,7,3,2,2,1,4,11,−1,1,2,2 |
+| **media del Excel · τ = 1/1,5** | **162** | **0,0,0,0,0,0,0,0,0,0,0,0,0,0,0** |
+| solo mediana · τ del marco | 197 | 2,4,4,0,7,3,1,−2,1,3,8,−1,1,2,2 |
+
+Reproducción perfecta. Y con la holgura de +1 por facultad da **177**, que es
+exactamente lo que el preset tiene escrito a mano. Así que
+`aulas_base_fijas` **no era un número inventado: es lo que la fórmula produce con
+los parámetros de 2025**. El motor siempre pudo calcularlo; le faltaban los
+insumos.
+
+### Decisiones de Gonzalo (2026-08-16)
+
+1. **El +1 por facultad es holgura operativa vigente. Se mantiene.**
+2. Sobre el divisor: sin preferencia técnica, pero con dos restricciones —
+   **todo por facultad, nunca general**, y **los titulares no deben pasar mucho
+   de 200**.
+
+Esas dos restricciones deciden el caso, y no hacia la regla de 2025:
+
+- τ = 1/1,5 es un factor **general** —la misma compensación de no respuesta para
+  las quince facultades—. Reproduce 2025, pero contradice «todo por facultad».
+- τ del marco es **medido por facultad** (0,39 a 1,00) y da **199 titulares**,
+  justo por debajo del umbral de 200.
+
+**Recomendación medida**: `min_media_mediana` con la mediana y la media del
+marco y τ por facultad → **199 titulares + 15 reservas = 214 aulas a
+coordinar**. Cumple las dos restricciones, es trazable al marco ejecutado y no
+depende de un factor global heredado.
+
+Lo que falta para que eso corra no es fórmula, es **cableado**: llevar
+`est_aula_mediana` del perfil a `mediana_conglomerado` del estrato, y poner
+`estadistico_conglomerado` en `min_media_mediana`.
