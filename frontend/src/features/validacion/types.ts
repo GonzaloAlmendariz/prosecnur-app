@@ -351,13 +351,24 @@ export type LimpiezaArtifactsBundle = {
   files: LimpiezaArtifact[];
 };
 
+export type DecisionesPreservadas = {
+  n: number;
+  n_casos: number;
+  n_sin_evaluar: number;
+  n_sin_regla: number;
+  n_sin_variable: number;
+  n_sin_instrumento: number;
+};
+
 export type LimpiezaSummary = {
   ok: true;
   base_nombre: string | null;
   progreso: LimpiezaProgreso;
-  // Exclusiones que sobrevivieron a una recarga de instrumento y esperan en
-  // cuarentena: no se aplican ni salen en la cola hasta que su regla reaparece.
-  exclusiones_preservadas?: { n: number; n_casos: number };
+  // Decisiones que sobrevivieron a una recarga de instrumento y esperan en
+  // cuarentena: no se aplican ni salen en la cola hasta que su regla reaparece
+  // y su variable sigue en el formulario. `n_sin_evaluar` son las que todavía
+  // no se comprobaron porque falta correr la auditoría.
+  decisiones_preservadas?: DecisionesPreservadas;
   summary: LimpiezaDecisionSummary;
   kpis: ViewDescriptor[];
   top_reglas: ViewDescriptor | null;

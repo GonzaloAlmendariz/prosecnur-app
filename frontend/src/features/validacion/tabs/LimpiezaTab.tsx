@@ -22,6 +22,7 @@ import {
   type InstrumentoDrillResult,
 } from "../../../api/client";
 import type {
+  DecisionesPreservadas,
   LimpiezaArtifactsBundle,
   LimpiezaDecision,
   LimpiezaDecisionActionType,
@@ -599,7 +600,7 @@ export default function LimpiezaTab() {
   if (!data) return null;
 
   const auditReady = !!data.progreso.auditoria_corrida;
-  const preservadasTexto = describirExclusionesPreservadas(data.exclusiones_preservadas);
+  const preservadas = describirDecisionesPreservadas(data.decisiones_preservadas);
 
   return (
     <div
@@ -629,8 +630,12 @@ export default function LimpiezaTab() {
           recargar el instrumento ya no cuesta las exclusiones. Además la banda
           de "Corre la auditoría" que va debajo es ámbar, y dos del mismo tono
           pegadas se leen como una sola. */}
-      {preservadasTexto && (
-        <InlineMessage tone="success" icon={<CheckCircle2 size={14} />} text={preservadasTexto} />
+      {preservadas && (
+        <InlineMessage
+          tone={preservadas.tone}
+          icon={preservadas.tone === "success" ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+          text={preservadas.texto}
+        />
       )}
       {notice && (
         <InlineMessage tone="success" icon={<CheckCircle2 size={14} />} text={notice} />
@@ -1819,18 +1824,42 @@ function CasesTable({
   );
 }
 
-// Las exclusiones que sobrevivieron a una recarga de instrumento esperan en
-// cuarentena: no se aplican ni salen en la cola hasta que su regla reaparezca.
-// Si la pestaña no lo dice, el analista da por perdido un trabajo que sigue ahí.
-export function describirExclusionesPreservadas(
-  preservadas: { n: number; n_casos: number } | undefined,
-): string | null {
+// Las decisiones que sobrevivieron a una recarga de instrumento esperan en
+// cuarentena: no se aplican ni salen en la cola hasta que su regla reaparezca y
+// su variable siga en el formulario. Si la pestaña no lo dice, el analista da
+// por perdido un trabajo que sigue ahí.
+//
+// El motivo cambia lo que hay que hacer, así que cambia el mensaje y el tono:
+// esperar la auditoría es una buena noticia, y quedarse sin la variable es una
+// pérdida real que ya no se recupera sola.
+export function describirDecisionesPreservadas(
+  preservadas: DecisionesPreservadas | undefined,
+): { texto: string; tone: "success" | "warn" } | null {
   const n = preservadas?.n ?? 0;
   if (!Number.isFinite(n) || n <= 0) return null;
-  const casos = preservadas?.n_casos ?? 0;
-  const cuantas = n === 1 ? "1 exclusión" : `${n} exclusiones`;
-  const cuantos = casos === 1 ? "1 caso" : `${casos} casos`;
-  return `Se conservaron ${cuantas} (${cuantos}) del instrumento anterior. Vuelven a la cola al correr la auditoría, si su regla sigue existiendo.`;
+  const cuantas = n === 1 ? "1 decisión" : `${n} decisiones`;
+
+  const sinEvaluar = preservadas?.n_sin_evaluar ?? 0;
+  if (sinEvaluar > 0) {
+    const casos = preservadas?.n_casos ?? 0;
+    const cuantos = casos === 1 ? "1 caso" : `${casos} casos`;
+    return {
+      tone: "success",
+      texto: `Se conservaron ${cuantas} (${cuantos}) del instrumento anterior. Vuelven a la cola al correr la auditoría, si su regla y su variable siguen existiendo.`,
+    };
+  }
+
+  const motivos: string[] = [];
+  const sinRegla = preservadas?.n_sin_regla ?? 0;
+  const sinVariable = preservadas?.n_sin_variable ?? 0;
+  const sinInstrumento = preservadas?.n_sin_instrumento ?? 0;
+  if (sinRegla > 0) motivos.push(`${sinRegla} sin su regla`);
+  if (sinVariable > 0) motivos.push(`${sinVariable} sin su variable`);
+  if (sinInstrumento > 0) motivos.push(`${sinInstrumento} sin poder leer el formulario`);
+  return {
+    tone: "warn",
+    texto: `${cuantas} del instrumento anterior no volvieron a la cola: ${motivos.join(", ")}. Siguen guardadas y no se aplican.`,
+  };
 }
 
 function InlineMessage({
