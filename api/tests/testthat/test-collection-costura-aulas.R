@@ -428,3 +428,51 @@ test_that("un aula lejos de su meta no se declara cerrando", {
   expect_identical(unname(estados[["AULA-01"]]), "en_aplicacion")
   expect_identical(unname(estados[["AULA-04"]]), "pendiente")
 })
+
+test_that("brechas, estratos y reemplazos ven las respuestas, no solo el KPI", {
+  # El emparejamiento estaba escrito DOS veces —en el dashboard y en
+  # `course_status`—. Arreglar solo una dejaba brechas, avance por estrato y
+  # reemplazos calculados sobre ceros, con el KPI global correcto: el tablero se
+  # veia coherente en los numeros grandes y vacio donde se decide.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+  plan <- ho$monitoring_rows
+  uid <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+
+  respuestas <- data.frame(collectorID = c(rep(uid[1], 5), rep(uid[2], 4)), stringsAsFactors = FALSE)
+  cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, plan = plan))
+  d <- monitoreo_aulas_dashboard(plan, respuestas, cfg)
+
+  brecha_de <- stats::setNames(
+    vapply(d$brechas, function(r) as.numeric(r$brecha %||% NA), numeric(1)),
+    vapply(d$brechas, function(r) as.character(r$operational_code %||% ""), character(1))
+  )
+  # El control: antes toda brecha valia la meta entera, ignorando lo recogido.
+  expect_identical(unname(brecha_de[["AULA-01"]]), 29 - 5)
+  expect_identical(unname(brecha_de[["AULA-02"]]), 30 - 4)
+
+  estrato <- d$avance_por_estrato[[1]]
+  expect_identical(as.integer(estrato$respuestas_validas), 9L)
+
+  # Y la cadena de reemplazos existe: el handoff arrastra `replacement_for`.
+  expect_length(d$reemplazos, 3L)
+  expect_true(all(nzchar(vapply(d$reemplazos, function(r) as.character(r$replacement_for %||% ""), character(1)))))
+})
+
+test_that("el emparejamiento por unidad vive en un solo sitio", {
+  # Si vuelve a duplicarse, este aserto no lo impide — pero el helper existe
+  # justo para que el dashboard y `course_status` no diverjan otra vez.
+  filas <- data.frame(
+    classroom_id = c("A-01", "A-02"),
+    collection_unit_id = c("unit-1", "unit-2"),
+    stringsAsFactors = FALSE
+  )
+  counts <- table(c("unit-1", "unit-1", "unit-2"))
+  expect_identical(.monitoreo_aulas_contar_por_fila(filas, counts), c(2L, 1L))
+
+  # `classroom_id` manda cuando casa; la unidad es el respaldo.
+  counts2 <- table(c("A-01", "unit-2", "unit-2"))
+  expect_identical(.monitoreo_aulas_contar_por_fila(filas, counts2), c(1L, 2L))
+})

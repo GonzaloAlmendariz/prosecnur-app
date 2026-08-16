@@ -86,6 +86,29 @@ monitoreo_aulas_motivos_reemplazo <- function() {
   out
 }
 
+# Atribuye a cada fila del plan las respuestas que le corresponden.
+#
+# Una respuesta se identifica por el id que viajo en su QR, y ese no tiene por
+# que ser `classroom_id`: Recopiladores cuelga `collection_unit_id`. Emparejar
+# solo por `classroom_id` dejaba el avance de TODAS las aulas en cero mientras
+# los KPI globales —que suman sin agrupar— contaban bien; el tablero se veia
+# coherente en los numeros grandes y vacio donde se decide.
+#
+# Vive aqui y no en cada consumidor porque el emparejamiento estaba escrito DOS
+# veces —en el dashboard y en `course_status`— y arreglar una sola dejaba
+# brechas, estratos y reemplazos igual de ciegos.
+.monitoreo_aulas_contar_por_fila <- function(rows, counts) {
+  if (!is.data.frame(rows) || !nrow(rows)) return(integer(0))
+  por_aula <- as.integer(counts[rows$classroom_id])
+  if ("collection_unit_id" %in% names(rows)) {
+    por_unidad <- as.integer(counts[rows$collection_unit_id])
+    falta <- is.na(por_aula)
+    por_aula[falta] <- por_unidad[falta]
+  }
+  por_aula[is.na(por_aula)] <- 0L
+  por_aula
+}
+
 .monitoreo_aulas_status <- function(x, default = "planificada") {
   key <- .monitoreo_text_key(.monitoreo_scalar(x, default))
   key <- gsub(" ", "_", key, fixed = TRUE)
@@ -523,24 +546,10 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   rejected_counts <- .monitoreo_aulas_named_counts(response_classroom, !filter_passed & nzchar(response_classroom))
 
   rows <- plan_df
-  # Una respuesta se atribuye por el identificador que viajo en su QR, que no
-  # tiene por que ser `classroom_id`: Recopiladores cuelga `collection_unit_id`
-  # y ese es el que vuelve en la data. Emparejar solo por `classroom_id` dejaba
-  # el avance de TODAS las aulas en cero mientras el KPI global si contaba las
-  # respuestas — el tablero decia "12 validas" y ninguna aula con avance.
-  contar <- function(counts) {
-    por_aula <- as.integer(counts[rows$classroom_id])
-    if ("collection_unit_id" %in% names(rows)) {
-      por_unidad <- as.integer(counts[rows$collection_unit_id])
-      por_aula[is.na(por_aula)] <- por_unidad[is.na(por_aula)]
-    }
-    por_aula[is.na(por_aula)] <- 0L
-    por_aula
-  }
-  rows$responses_total <- contar(total_counts)
-  rows$respuestas_validas <- contar(valid_counts)
-  rows$filter_passed <- contar(passed_counts)
-  rows$filter_rejected <- contar(rejected_counts)
+  rows$responses_total <- .monitoreo_aulas_contar_por_fila(rows, total_counts)
+  rows$respuestas_validas <- .monitoreo_aulas_contar_por_fila(rows, valid_counts)
+  rows$filter_passed <- .monitoreo_aulas_contar_por_fila(rows, passed_counts)
+  rows$filter_rejected <- .monitoreo_aulas_contar_por_fila(rows, rejected_counts)
   # `expected_valid` puede llegar como TEXTO: `.monitoreo_aulas_df()` convierte
   # todas las columnas a character, y este plan hace ese viaje de ida y vuelta.
   # La linea de `brecha` ya lo coaccionaba; la de `application_state` no, asi
@@ -714,9 +723,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   } else {
     integer(0)
   }
-  plan_df$respuestas_validas <- as.integer(valid_counts[plan_df$classroom_id])
-  plan_df$respuestas_validas[is.na(plan_df$respuestas_validas)] <- 0L
-  plan_df$brecha <- pmax(0, suppressWarnings(as.numeric(plan_df$expected_valid)) - plan_df$respuestas_validas)
+  # Mismo emparejamiento que usa `course_status`: por eso es un helper y no dos
+  # copias. Antes esta linea solo miraba `classroom_id`, asi que brechas,
+  # estratos y reemplazos se calculaban sobre ceros.
+  plan_df$respuestas_validas <- .monitoreo_aulas_contar_por_fila(plan_df, valid_counts)
+  meta_plan <- suppressWarnings(as.numeric(plan_df$expected_valid))
+  meta_plan[!is.finite(meta_plan)] <- 0
+  plan_df$brecha <- pmax(0, meta_plan - plan_df$respuestas_validas)
   plan_df$brecha[!is.finite(plan_df$brecha)] <- 0
   tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- plan_df
