@@ -2098,3 +2098,42 @@ Un cabo suelto, dicho como tal: Ciencias e Ingeniería cae 21 con 23 aulas de
 coherencia cero, y Gestión cae 17 con 18. Esas tres aulas de diferencia no están
 reconciliadas; lo más probable es que su catálogo sí las asigne a una facultad
 del estudio y su incoherencia venga sólo de los alumnos, pero no lo he medido.
+
+---
+
+## L27 · El embudo ya lo dice, y corrige la explicación de L26 (2026-08-16)
+
+Lo primero que había que comprobar tras el cambio: si el marco pierde 104 aulas,
+¿la pantalla dice por qué? **Sí.** En Marco › Cursos-horario, el embudo abre con
+
+> `CURSO-HORARIO ÚNICOS 5.263`
+> `FACULTAD DEL CURSO: SÓLO 15 FACULTAD(ES) DEL ESTUDIO → 4.264 · −999 cursos-horario`
+> `MODALIDAD · PRESENCIAL → 3.972 · −292`
+> `TIPO DE SESIÓN · … → 3.304 · −668`
+> …hasta `CURSOS-HORARIO VÁLIDOS 2.364`
+
+El paso nuevo aparece primero, nombrado y cuantificado. C1 y C5 cumplidos sin
+tocar nada más.
+
+### Y con eso, la explicación de L26 estaba mal encuadrada
+
+En L26 atribuí el −104 a las aulas con `faculty_match_share = 0`, apoyándome en
+que trece de dieciséis facultades coincidían al dígito. **Era una coincidencia
+cercana, no la causa.** El embudo enseña lo que de verdad pasa:
+
+- sobre el **universo** de 5.263, el criterio de facultad quita **999** aulas
+  —las catalogadas bajo las tres facultades que el diseño excluye, cuyo universo
+  en el Excel de diseño suma 1.029 entre Posgrado (773), Estudios Especiales
+  (246) y Consorcio (10)—;
+- de esas 999, la inmensa mayoría **habría caído igual** por los criterios que
+  vienen después (modalidad, tipo de sesión, mínimo de elegibles…);
+- el **−104** es el efecto neto sobre el conjunto final, no el tamaño del corte.
+
+Por eso las tres aulas que en L26 quedaron «sin reconciliar» en Ciencias e
+Ingeniería y Gestión no eran un cabo suelto: yo estaba comparando dos cantidades
+distintas —el cambio neto del marco final contra un conteo de incoherencia— y
+que casi cuadraran fue suerte.
+
+La lección, que ya costó dos veces en este loop: **un número que casi cuadra no
+es una explicación.** La explicación estaba publicada en el embudo, a un clic de
+donde yo estaba midiendo.
