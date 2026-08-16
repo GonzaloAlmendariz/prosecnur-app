@@ -4797,6 +4797,35 @@ mount_monitoreo <- function(pr) {
     # Genera el libro operativo para que cada rol lo llene: quien agenda llama a
     # los docentes sobre la hoja 1, quien supervisa campo llena la 2, y la 3
     # recoge el control. Es el mismo papel del Excel de barrido en telefonico.
+    # Activa la siguiente reserva de un curso-horario caido. Mientras el aula
+    # caida siga contando contra su meta, la brecha del estudio miente.
+    plumber::pr_post("/api/monitoreo/aulas/activar-reemplazo", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      body <- .monitoreo_parse_body(req)
+      codigo <- .monitoreo_scalar(body$operational_code %||% body$codigo %||% "", "")
+      if (!nzchar(codigo)) {
+        stop_api(400, "E_AULA_SIN_CODIGO",
+                 "Falta el codigo del curso-horario que cae.")
+      }
+      s <- session_get(sid)
+      plan <- s$monitoreo_aulas_plan %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$plan %||% list()
+      out <- monitoreo_aulas_activar_reemplazo(
+        plan, codigo,
+        motivo = .monitoreo_scalar(body$motivo %||% body$reason %||% "", "")
+      )
+      session_set(sid, "monitoreo_aulas_plan", out$plan)
+      cfg <- s$monitoreo_config %||% list()
+      if (is.list(cfg$aulas_universitarias)) {
+        cfg$aulas_universitarias$plan <- out$plan
+        .monitoreo_store_config(sid, cfg, rebuild_dashboard = TRUE)
+      }
+      .monitoreo_mark_project_dirty_if_open(sid)
+      list(ok = TRUE, activada = out$activada, reemplazada = out$reemplazada,
+           agotada = isTRUE(out$agotada),
+           mensaje = monitoreo_aulas_activacion_texto(out),
+           state = .monitoreo_state_payload(sid))
+    })) |>
     plumber::pr_post("/api/monitoreo/aulas/generar-libro", wrap_endpoint(function(req, res, ...) {
       sid <- .monitoreo_session(req, res)
       s <- session_get(sid)
