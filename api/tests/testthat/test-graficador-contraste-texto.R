@@ -23,9 +23,19 @@ test_that("sobre naranja y amarillo el texto va oscuro", {
   expect_identical(.contraste_texto("#FFD965"), .CONTRASTE_SOBRE_CLARO)
 })
 
-test_that("sobre verde y azul el texto sigue blanco", {
-  expect_identical(.contraste_texto("#70AD47"), "white")
+test_that("sobre el verde alto de la rampa la cifra va azul, como el aprobado", {
+  # Medido: el entregable aprobado escribe azul sobre `#70AD47` en las tres
+  # laminas de estructura organizacional y no usa ni una cifra blanca. Con el
+  # umbral en 0.6 el motor sacaba siete blancas en esa misma lamina.
+  expect_identical(.contraste_texto("#70AD47"), .CONTRASTE_SOBRE_CLARO)
+  expect_identical(.contraste_texto("#8FC36B"), .CONTRASTE_SOBRE_CLARO)
+})
+
+test_that("sobre los fondos de verdad oscuros la cifra sigue blanca", {
+  # El corte no puede bajar tanto como para dejar cifra azul sobre el azul de
+  # cuerpo o sobre el rojo institucional.
   expect_identical(.contraste_texto("#081F5C"), "white")
+  expect_identical(.contraste_texto("#CA5651"), "white")
 })
 
 test_that("un color ilegible conserva el comportamiento de siempre", {
@@ -53,8 +63,8 @@ test_that("el recoloreado solo toca las cifras de DENTRO de la barra", {
   pal <- c("Muy en desacuerdo" = "#F4B183", "Muy de acuerdo" = "#70AD47")
   out <- .aplicar_contraste_labels_apiladas(df, "white", pal)
 
-  expect_identical(out$.col_label[1], "white")           # fuera: intacta
-  expect_identical(out$.col_label[2], "white")           # dentro sobre verde
+  expect_identical(out$.col_label[1], "white")                   # fuera: intacta
+  expect_identical(out$.col_label[2], .CONTRASTE_SOBRE_CLARO)    # dentro sobre verde alto
 })
 
 test_that("una cifra dentro de un segmento claro se vuelve oscura", {
