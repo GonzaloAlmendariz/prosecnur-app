@@ -114,6 +114,70 @@
 }
 
 
+#' Grobs de una linea de cota, como en un plano
+#'
+#' Una cota no es una etiqueta: es una linea que va DE un punto A otro, con
+#' topes perpendiculares en los extremos y la medida escrita en medio. Escribir
+#' «17.43 × 11.65 cm» dentro de la caja dice cuanto mide, pero no de donde a
+#' donde; para comprobar una separacion o un margen hay que poder seguir la
+#' linea hasta sus dos extremos.
+#'
+#' Coordenadas en npc de la caja: 0 y 1 son sus bordes.
+#'
+#' @param x0,x1,y0,y1 Extremos de la cota, en npc.
+#' @param texto Medida ya formateada.
+#' @param col,lwd Color y grosor.
+#' @param size_cota Cuerpo de la cifra.
+#' @param tope Largo del tope perpendicular, en npc.
+#' @return Lista de grobs.
+#' @keywords internal
+.guia_cota_grobs <- function(x0, x1, y0, y1, texto,
+                             col = .GUIA_COL, lwd = .GUIA_LWD,
+                             size_cota = .GUIA_SIZE_COTA, tope = 0.012) {
+  # Se toma cada extremo por separado: `c(x0, x1, y0, y1)` con un `NULL` en
+  # medio colapsa a tres elementos y el cuarto indice se sale del vector.
+  vals <- suppressWarnings(as.numeric(c(
+    x0[1] %||% NA_real_, x1[1] %||% NA_real_,
+    y0[1] %||% NA_real_, y1[1] %||% NA_real_
+  )))
+  if (length(vals) != 4L || any(!is.finite(vals))) return(list())
+  horizontal <- abs(vals[[2]] - vals[[1]]) >= abs(vals[[4]] - vals[[3]])
+
+  linea <- grid::linesGrob(
+    x = grid::unit(c(vals[[1]], vals[[2]]), "npc"),
+    y = grid::unit(c(vals[[3]], vals[[4]]), "npc"),
+    gp = grid::gpar(col = col, lwd = lwd)
+  )
+  # Topes perpendiculares a la cota, uno en cada extremo.
+  topes <- if (horizontal) {
+    grid::segmentsGrob(
+      x0 = grid::unit(c(vals[[1]], vals[[2]]), "npc"),
+      x1 = grid::unit(c(vals[[1]], vals[[2]]), "npc"),
+      y0 = grid::unit(c(vals[[3]] - tope, vals[[4]] - tope), "npc"),
+      y1 = grid::unit(c(vals[[3]] + tope, vals[[4]] + tope), "npc"),
+      gp = grid::gpar(col = col, lwd = lwd)
+    )
+  } else {
+    grid::segmentsGrob(
+      x0 = grid::unit(c(vals[[1]] - tope, vals[[2]] - tope), "npc"),
+      x1 = grid::unit(c(vals[[1]] + tope, vals[[2]] + tope), "npc"),
+      y0 = grid::unit(c(vals[[3]], vals[[4]]), "npc"),
+      y1 = grid::unit(c(vals[[3]], vals[[4]]), "npc"),
+      gp = grid::gpar(col = col, lwd = lwd)
+    )
+  }
+  cifra <- grid::textGrob(
+    label = texto,
+    x = grid::unit((vals[[1]] + vals[[2]]) / 2, "npc"),
+    y = grid::unit((vals[[3]] + vals[[4]]) / 2, "npc"),
+    rot = if (horizontal) 0 else 90,
+    just = c("center", if (horizontal) "bottom" else "top"),
+    gp = grid::gpar(col = col, fontsize = size_cota)
+  )
+  list(linea, topes, cifra)
+}
+
+
 #' Grobs de una caja del plano: su marco y su cota
 #'
 #' @param x,y,w,h Geometria de la caja en npc.
@@ -181,5 +245,21 @@
     gp = grid::gpar(col = col, fontsize = size_cota, fontface = "plain")
   )
 
-  list(marco, rotulo)
+  # Cotas de plano: una horizontal pegada al borde inferior y una vertical
+  # pegada al izquierdo, cada una de un extremo al otro de la caja. La cifra de
+  # dentro dice CUANTO; las cotas dicen DE DONDE A DONDE.
+  cotas <- c(
+    .guia_cota_grobs(
+      0.02, 0.98, 0.045, 0.045,
+      sprintf("%.2f cm", w_in * .GUIA_CM_POR_IN),
+      col = col, lwd = lwd, size_cota = size_cota
+    ),
+    .guia_cota_grobs(
+      0.03, 0.03, 0.02, 0.98,
+      sprintf("%.2f cm", h_in * .GUIA_CM_POR_IN),
+      col = col, lwd = lwd, size_cota = size_cota
+    )
+  )
+
+  c(list(marco, rotulo), cotas)
 }
