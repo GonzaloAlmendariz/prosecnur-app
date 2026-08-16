@@ -32,6 +32,8 @@ import type {
 } from "../types";
 import { EmptyState, LoadingBlock } from "../../../components/States";
 import PromocionBase from "../components/PromocionBase";
+import ImpactoDecisiones from "../components/ImpactoDecisiones";
+import { calcularImpacto } from "../impactoDecisiones";
 import { extractArtifacts } from "../limpiezaArtifacts";
 import { useValidacionStore } from "../store";
 import {
@@ -434,6 +436,12 @@ export default function LimpiezaTab() {
   }, [selectedDecision, selectedQueueItem, selectedSourceId, variableOptions]);
 
   const artifacts = useMemo(() => extractArtifacts(data?.artifacts), [data?.artifacts]);
+  // V3: el motor simula en cada guardado y devuelve el antes/después; hasta
+  // ahora ese payload llegaba acá y no lo miraba nadie.
+  const impacto = useMemo(
+    () => calcularImpacto(data?.before_after_preview, data?.summary),
+    [data?.before_after_preview, data?.summary],
+  );
   const canFinalize = !!data?.progreso.auditoria_corrida && !!data?.summary.ready_to_finalize;
   const selectedCaseIdsSet = useMemo(() => new Set(form.target_case_ids), [form.target_case_ids]);
 
@@ -619,6 +627,8 @@ export default function LimpiezaTab() {
         onRefresh={() => void loadLimpieza({ quiet: true })}
         onFinalize={() => void handleFinalize()}
       />
+
+      <ImpactoDecisiones impacto={impacto} />
 
       <PromocionBase
         promocion={artifacts?.promocion}
