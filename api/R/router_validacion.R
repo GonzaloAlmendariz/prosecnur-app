@@ -676,21 +676,9 @@ mount_validacion <- function(pr) {
       sid <- session_header(req)
       base <- .get_base_nombre(req)
       scope <- .get_base_scope(sid, base)
-      limpieza <- build_limpieza(scope, sid = sid, base_nombre = base)
-      list(
-        ok = TRUE,
-        base_nombre = base %||% NA_character_,
-        progreso = limpieza$progreso,
-        summary = limpieza$summary,
-        kpis = limpieza$kpis,
-        top_reglas = limpieza$top_reglas,
-        top_variables = limpieza$top_variables,
-        decision_queue = limpieza$decision_queue,
-        decision_draft = limpieza$decision_draft,
-        module_stats = limpieza$module_stats,
-        before_after_preview = .limpieza_preview_public(limpieza$before_after_preview),
-        artifacts = limpieza$artifacts,
-        actions = list()
+      limpieza_payload_publico(
+        build_limpieza(scope, sid = sid, base_nombre = base),
+        base_nombre = base
       )
     })) |>
 
