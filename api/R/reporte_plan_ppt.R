@@ -4244,6 +4244,11 @@ reporte_ppt_plan <- function(
       pie              = pa_pie,
       donut            = pa_donut,
       radar_tabla      = pa_radar,
+      # `radar_publicos` es el mismo preset visto por el otro renderer: el modo
+      # `publicos` del radar tiene su propio `etype` y sin esta entrada llegaba
+      # con `preset_args` VACIO, asi que ninguna de las catorce claves `tabla_*`
+      # del proyecto tenia efecto y la tabla se dibujaba con los defectos.
+      radar_publicos   = pa_radar,
       dim_heatmap      = pa_dim_heat,
       dim_heatmap_criterios = pa_dim_heat_criterios,
       dim_radar        = pa_dim_rad,

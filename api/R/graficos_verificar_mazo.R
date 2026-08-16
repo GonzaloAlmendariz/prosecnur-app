@@ -34,6 +34,12 @@
 # Azul institucional: barras categoricas.
 .VERIF_AZUL <- c("081F5C")
 
+# Todo se expresa en CENTIMETROS. El OOXML mide en EMU y `officer` en pulgadas,
+# pero un informe que dice «0.303 in» obliga a convertir para compararlo con una
+# regla o con la guia del canvas, que ya acota en cm. La conversion se hace una
+# vez, al construir los umbrales.
+.VERIF_CM_POR_IN <- 2.54
+
 # Umbrales DERIVADOS del entregable que el cliente aprobo, no elegidos a ojo.
 #
 # Salen de `calibrar_umbrales()` sobre `Informe Contabilidad 14-08.pptx`, con el
@@ -51,13 +57,13 @@
 # sesenta laminas es un accidente, y calibrar contra el deja pasar cualquier
 # cosa. La vara es parecerse al entregable TIPICO, no a su peor lamina.
 .VERIF_UMBRALES <- list(
-  grosor_escala_in     = 0.303,
-  grosor_categorica_in = 0.256,
+  grosor_escala_cm     = 0.77,
+  grosor_categorica_cm = 0.65,
   barras_por_grafico   = 7L,
   texto_minimo_pt      = 12,
   # Proporcion de texto por debajo del minimo que el aprobado se permite.
   texto_prop_max       = 0.062,
-  titulo_top_min_in    = 0.35
+  titulo_top_min_cm    = 0.89
 )
 
 .VERIF_EMU <- 914400
@@ -215,7 +221,8 @@
 #' @param path Ruta al `.pptx`.
 #'
 #' @return Lista con `grosor_escala`, `barras_escala`, `grosor_categorico` y
-#'   `texto_pt`, cada uno un vector con una entrada por grafico o por texto.
+#'   `texto_pt`, cada uno un vector con una entrada por grafico o por texto. Los
+#'   grosores van en CENTIMETROS; el texto, en puntos.
 #' @export
 medir_mazo <- function(path) {
   laminas <- .verif_laminas_xml(path)
@@ -234,8 +241,8 @@ medir_mazo <- function(path) {
     txt <- c(txt, szs[is.finite(szs)])
   }
 
-  list(grosor_escala = gr_esc, barras_escala = n_esc,
-       grosor_categorico = gr_cat, texto_pt = txt)
+  list(grosor_escala = gr_esc * .VERIF_CM_POR_IN, barras_escala = n_esc,
+       grosor_categorico = gr_cat * .VERIF_CM_POR_IN, texto_pt = txt)
 }
 
 
@@ -259,8 +266,8 @@ calibrar_umbrales <- function(path, p = 0.10) {
   q <- function(x, prob) if (!length(x)) NA_real_ else unname(stats::quantile(x, prob, na.rm = TRUE))
 
   list(
-    grosor_escala_in     = round(q(m$grosor_escala, p), 3),
-    grosor_categorica_in = round(q(m$grosor_categorico, p), 3),
+    grosor_escala_cm     = round(q(m$grosor_escala, p), 2),
+    grosor_categorica_cm = round(q(m$grosor_categorico, p), 2),
     # El techo usa el MAXIMO del aprobado, no su percentil alto, y ahi la
     # asimetria con los pisos es deliberada. Un piso calibrado al minimo lo
     # baja un solo accidente; un techo calibrado al percentil lo pone por
@@ -270,7 +277,7 @@ calibrar_umbrales <- function(path, p = 0.10) {
     barras_por_grafico   = as.integer(max(m$barras_escala)),
     texto_minimo_pt      = round(q(m$texto_pt, p), 1),
     texto_prop_max       = round(mean(m$texto_pt < q(m$texto_pt, p)), 3),
-    titulo_top_min_in    = .VERIF_UMBRALES$titulo_top_min_in
+    titulo_top_min_cm    = .VERIF_UMBRALES$titulo_top_min_cm
   )
 }
 
@@ -310,9 +317,9 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     gr_esc <- .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA))
     n_graf_escala <- n_graf_escala + length(gr_esc)
     for (g in gr_esc) {
-      if (g$grosor < u$grosor_escala_in) {
-        add("R1 grosor de escala", i, g$grosor,
-            sprintf(">= %.2f in", u$grosor_escala_in),
+      if (g$grosor * .VERIF_CM_POR_IN < u$grosor_escala_cm) {
+        add("R1 grosor de escala", i, round(g$grosor * .VERIF_CM_POR_IN, 3),
+            sprintf(">= %.2f cm", u$grosor_escala_cm),
             sprintf("%d barras", g$n))
       }
       if (g$n > u$barras_por_grafico) {
@@ -326,9 +333,9 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     gr_cat <- .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))
     n_graf_cat <- n_graf_cat + length(gr_cat)
     for (g in gr_cat) {
-      if (g$grosor < u$grosor_categorica_in) {
-        add("R5 grosor categorico", i, g$grosor,
-            sprintf(">= %.2f in", u$grosor_categorica_in),
+      if (g$grosor * .VERIF_CM_POR_IN < u$grosor_categorica_cm) {
+        add("R5 grosor categorico", i, round(g$grosor * .VERIF_CM_POR_IN, 3),
+            sprintf(">= %.2f cm", u$grosor_categorica_cm),
             sprintf("%d barras", g$n))
       }
     }

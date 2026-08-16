@@ -101,6 +101,17 @@ test_that("un grafico de una sola barra no entra", {
   expect_length(.verif_graficos(.verif_segmentos(.verif_formas(xml), .VERIF_RAMPA)), 0L)
 })
 
+test_that("las medidas salen en centimetros", {
+  # El OOXML mide en EMU y officer en pulgadas, pero un informe que dice
+  # «0.303 in» obliga a convertir para compararlo con una regla o con la guía
+  # del canvas, que ya acota en cm.
+  expect_true(all(c("grosor_escala_cm", "grosor_categorica_cm") %in% names(.VERIF_UMBRALES)))
+  expect_false(any(grepl("_in$", names(.VERIF_UMBRALES))))
+  # Y los umbrales son los del entregable aprobado, no números redondos.
+  expect_equal(.VERIF_UMBRALES$grosor_escala_cm, 0.77)
+  expect_equal(.VERIF_UMBRALES$grosor_categorica_cm, 0.65)
+})
+
 test_that("el informe declara lo que NO mira", {
   # Un informe que calla lo que no comprueba se lee como si lo hubiera aprobado.
   pptx <- tempfile(fileext = ".pptx")

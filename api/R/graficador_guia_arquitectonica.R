@@ -20,6 +20,11 @@
 # La cota va DENTRO de la caja y no fuera con lineas de extension: fuera se
 # solaparia con la caja vecina —los huecos de una lamina son contiguos— y el
 # plano se volveria ilegible justo donde mas junto esta.
+#
+# Todo se acota en CENTIMETROS. El motor calcula en pulgadas porque es la unidad
+# de `officer` y del OOXML, pero quien lee el plano mide en cm, y obligarle a
+# convertir cada cifra para comparar con una regla es exactamente el trabajo que
+# la guia existe para ahorrar. La conversion se hace una vez, aqui.
 
 # Cian apagado: visible sobre blanco y sobre el azul institucional, sin ser el
 # magenta que se comia la lamina.
@@ -32,22 +37,49 @@
 # de trabajo, no un rotulo de la lamina.
 .GUIA_SIZE_COTA <- 4.6
 
-# Caja minima que puede llevar cota escrita, en pulgadas. Por debajo se dibuja
-# solo el marco: la cota de una caja de dos decimas se monta sobre la del hueco
-# de al lado y las dos dejan de leerse.
-.GUIA_MIN_W_COTA <- 0.90
-.GUIA_MIN_H_COTA <- 0.16
+# Pulgadas a centimetros. El motor mide en pulgadas; el plano se lee en cm.
+.GUIA_CM_POR_IN <- 2.54
+
+# Caja minima que puede llevar cota escrita, en centimetros. Por debajo se
+# dibuja solo el marco: la cota de una caja de medio centimetro se monta sobre
+# la del hueco de al lado y las dos dejan de leerse.
+.GUIA_MIN_W_COTA_CM <- 2.30
+.GUIA_MIN_H_COTA_CM <- 0.40
 
 
-#' Formatea una cota en pulgadas
+#' Formatea una cota en centimetros, a partir de pulgadas
 #'
-#' Dos decimales: con uno, dos huecos que difieren en 0.04 in se leen iguales, y
-#' esa diferencia es la que suele explicar por que un texto no cabe.
+#' Dos decimales: con uno, dos huecos que difieren en un milimetro se leen
+#' iguales, y ese milimetro es el que suele explicar por que un texto no cabe.
 #'
 #' @keywords internal
 .guia_cota <- function(w_in, h_in) {
   if (!is.finite(w_in) || !is.finite(h_in)) return("")
-  sprintf("%.2f × %.2f", w_in, h_in)
+  sprintf("%.2f × %.2f cm", w_in * .GUIA_CM_POR_IN, h_in * .GUIA_CM_POR_IN)
+}
+
+
+#' Nota de una caja: cuerpo de texto y grosor de barra
+#'
+#' El texto va en PUNTOS y el grosor en CENTIMETROS. La mezcla es deliberada: el
+#' cuerpo se declara en puntos en todas partes —es como lo escribe el .pptx, en
+#' centesimas— y pasarlo a cm no lo haria mas comparable con nada. La geometria,
+#' en cambio, se compara contra una regla.
+#'
+#' @param texto_pt Cuerpo del texto de la caja, en puntos.
+#' @param barra_in Grosor de la barra, en PULGADAS; se escribe en cm.
+#'
+#' @keywords internal
+.guia_nota <- function(texto_pt = NULL, barra_in = NULL) {
+  partes <- character(0)
+  t <- suppressWarnings(as.numeric(texto_pt %||% NA_real_)[1])
+  # Un decimal: el cuerpo se declara en enteros o medios puntos, y arrastrar
+  # «8.535 pt» —el 3 de ggplot por el factor 2.845— finge una precision que
+  # nadie eligio.
+  if (is.finite(t) && t > 0) partes <- c(partes, paste0(format(round(t, 1), trim = TRUE), " pt"))
+  b <- suppressWarnings(as.numeric(barra_in %||% NA_real_)[1])
+  if (is.finite(b) && b > 0) partes <- c(partes, sprintf("barra %.2f cm", b * .GUIA_CM_POR_IN))
+  paste(partes, collapse = "  ")
 }
 
 
@@ -56,13 +88,16 @@
 #' @param x,y,w,h Geometria de la caja en npc.
 #' @param ancho_in,alto_in Tamano del canvas en pulgadas, para convertir.
 #' @param etiqueta Nombre del hueco; se antepone a la cota cuando se da.
+#' @param nota Medida que la cota no dice: cuerpo del texto en puntos, grosor de
+#'   barra en pulgadas. Se construye con `.guia_nota()`.
 #' @param col,lwd Color y grosor de la linea.
 #' @param size_cota Cuerpo de la cota.
 #'
 #' @return Lista de grobs lista para `cowplot::draw_grob()`.
 #' @keywords internal
 .guia_ph_grobs <- function(x, y, w, h, ancho_in = NA_real_, alto_in = NA_real_,
-                           etiqueta = NULL, col = .GUIA_COL, lwd = .GUIA_LWD,
+                           etiqueta = NULL, nota = NULL,
+                           col = .GUIA_COL, lwd = .GUIA_LWD,
                            size_cota = .GUIA_SIZE_COTA) {
   marco <- grid::rectGrob(
     x = 0, y = 0, width = 1, height = 1,
@@ -81,15 +116,20 @@
   # lee ni dice nada. El marco solo ya ubica la caja; la medida se saca de la
   # caja grande que la contiene.
   if (!is.finite(w_in) || !is.finite(h_in) ||
-      w_in < .GUIA_MIN_W_COTA || h_in < .GUIA_MIN_H_COTA) {
+      w_in * .GUIA_CM_POR_IN < .GUIA_MIN_W_COTA_CM ||
+      h_in * .GUIA_CM_POR_IN < .GUIA_MIN_H_COTA_CM) {
     return(list(marco))
   }
 
-  texto <- if (!is.null(etiqueta) && nzchar(etiqueta)) {
-    paste0(etiqueta, "  ", cota)
-  } else {
-    cota
-  }
+  # La nota lleva lo que la cota no puede decir: el cuerpo del texto que va en
+  # esa caja y el grosor de la barra que dibuja. Son las dos medidas que el
+  # recetario pide y que hasta ahora habia que sacar del XML —`sz=` en centesimas
+  # de punto, alturas en EMU— con el archivo ya exportado.
+  texto <- paste(c(
+    if (!is.null(etiqueta) && nzchar(etiqueta)) etiqueta,
+    cota,
+    if (!is.null(nota) && nzchar(nota)) nota
+  ), collapse = "  ·  ")
 
   # Arriba a la izquierda y pegada al marco: es la esquina que menos ocupan los
   # datos —las barras arrancan mas abajo y las etiquetas de eje van al otro
