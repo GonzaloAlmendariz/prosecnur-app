@@ -599,6 +599,7 @@ export default function LimpiezaTab() {
   if (!data) return null;
 
   const auditReady = !!data.progreso.auditoria_corrida;
+  const preservadasTexto = describirExclusionesPreservadas(data.exclusiones_preservadas);
 
   return (
     <div
@@ -624,6 +625,13 @@ export default function LimpiezaTab() {
         onRevertir={() => void handleRevertirPromocion()}
       />
 
+      {/* En verde a propósito: no es una alerta sino la buena noticia de que
+          recargar el instrumento ya no cuesta las exclusiones. Además la banda
+          de "Corre la auditoría" que va debajo es ámbar, y dos del mismo tono
+          pegadas se leen como una sola. */}
+      {preservadasTexto && (
+        <InlineMessage tone="success" icon={<CheckCircle2 size={14} />} text={preservadasTexto} />
+      )}
       {notice && (
         <InlineMessage tone="success" icon={<CheckCircle2 size={14} />} text={notice} />
       )}
@@ -1809,6 +1817,20 @@ function CasesTable({
       </div>
     </div>
   );
+}
+
+// Las exclusiones que sobrevivieron a una recarga de instrumento esperan en
+// cuarentena: no se aplican ni salen en la cola hasta que su regla reaparezca.
+// Si la pestaña no lo dice, el analista da por perdido un trabajo que sigue ahí.
+export function describirExclusionesPreservadas(
+  preservadas: { n: number; n_casos: number } | undefined,
+): string | null {
+  const n = preservadas?.n ?? 0;
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const casos = preservadas?.n_casos ?? 0;
+  const cuantas = n === 1 ? "1 exclusión" : `${n} exclusiones`;
+  const cuantos = casos === 1 ? "1 caso" : `${casos} casos`;
+  return `Se conservaron ${cuantas} (${cuantos}) del instrumento anterior. Vuelven a la cola al correr la auditoría, si su regla sigue existiendo.`;
 }
 
 function InlineMessage({

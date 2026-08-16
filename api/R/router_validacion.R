@@ -1215,6 +1215,10 @@ mount_validacion <- function(pr) {
         on_complete = function(j) {
           raw <- j$result_data
           validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
+          # Con la auditoría de vuelta existe catálogo de reglas: las
+          # exclusiones que sobrevivieron a una recarga de instrumento pueden
+          # volver al borrador si su regla reapareció.
+          .limpieza_rehidratar_preservadas(j$sid, base_effective)
           .limpieza_invalidate_outputs(j$sid, base_effective)
           list(
             ok = TRUE,
@@ -2102,6 +2106,7 @@ mount_validacion <- function(pr) {
           on_complete = function(j) {
             raw <- j$result_data
             validacion_scope_set(j$sid, base_effective, "evaluacion", raw$ev)
+            .limpieza_rehidratar_preservadas(j$sid, base_effective)
             .limpieza_invalidate_outputs(j$sid, base_effective)
             list(ok = TRUE, total_inconsistencias = raw$total %||% NA_integer_)
           }

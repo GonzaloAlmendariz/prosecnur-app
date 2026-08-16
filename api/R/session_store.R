@@ -894,7 +894,8 @@ validacion_scope_get <- function(sid, base_nombre = NULL, key = NULL) {
       explorador_cache = list(),
       limpieza_draft   = list(),
       limpieza_preview = NULL,
-      limpieza_artifacts = list()
+      limpieza_artifacts = list(),
+      limpieza_preservadas = list()
     )
   }
   if (is.null(key)) scope else scope[[key]]
@@ -923,7 +924,8 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
         explorador_cache = list(),
         limpieza_draft   = list(),
         limpieza_preview = NULL,
-        limpieza_artifacts = list()
+        limpieza_artifacts = list(),
+        limpieza_preservadas = list()
       )
     }
     s$estudio$bases[[base_nombre]]$validacion[[key]] <- value
@@ -946,7 +948,8 @@ validacion_scope_set <- function(sid, base_nombre = NULL, key, value) {
     explorador_cache = list(),
     limpieza_draft   = list(),
     limpieza_preview = NULL,
-    limpieza_artifacts = list()
+    limpieza_artifacts = list(),
+    limpieza_preservadas = list()
   )
 }
 
@@ -969,10 +972,20 @@ validacion_key_present_any <- function(s, key) {
   }, logical(1)))
 }
 
-.invalidate_processing_state <- function(s, base_nombre = NULL) {
+.invalidate_processing_state <- function(s, base_nombre = NULL,
+                                         conservar_exclusiones = FALSE) {
   # Todo lo que depende del par XLSForm + data debe recomputarse cuando
   # alguno de los dos cambia. Si no, Fase 2 puede mostrar plan/auditoría/
   # limpieza del instrumento anterior aunque la carga ya sea nueva.
+  #
+  # `conservar_exclusiones` es para el caso en que cambió SÓLO el instrumento:
+  # la data es la misma, así que una decisión de excluir casos —que se ancla en
+  # `target_case_ids` y no nombra ninguna variable— sigue siendo aplicable. No
+  # vuelve al borrador: `.limpieza_simulate()` aplica todo el draft en estado
+  # `ready` sin mirar la cola, y una decisión cuya regla desapareció del
+  # instrumento nuevo se aplicaría invisible. Va a cuarentena
+  # (`limpieza_preservadas`) y sólo `.limpieza_rehidratar_preservadas()` la
+  # devuelve, cuando la regla que la justifica vuelve a existir.
   s$plan_result <- NULL
   s$evaluacion <- NULL
   s$reglas_custom <- list()
@@ -1056,9 +1069,18 @@ validacion_key_present_any <- function(s, key) {
     validation_targets <- intersect(targets, names(s$estudio$bases))
     for (bn in validation_targets) {
       previous <- s$estudio$bases[[bn]]$validacion %||% list()
-      s$estudio$bases[[bn]]$validacion <- .validacion_empty_scope(
+      vaciado <- .validacion_empty_scope(
         operational_config = previous$operational_config %||% NULL
       )
+      if (isTRUE(conservar_exclusiones)) {
+        # Se arrastra lo que ya estaba en cuarentena: dos recargas seguidas del
+        # instrumento no pueden perder lo que la primera conservó.
+        vaciado$limpieza_preservadas <- .limpieza_decisiones_conservables(c(
+          previous$limpieza_preservadas %||% list(),
+          previous$limpieza_draft %||% list()
+        ))
+      }
+      s$estudio$bases[[bn]]$validacion <- vaciado
     }
   }
   s
@@ -1144,7 +1166,10 @@ estudio_replace_base_files <- function(sid, nombre,
 
   if ((!is.null(xlsform_file_id) && nzchar(xlsform_file_id)) ||
       (!is.null(data_file_id) && nzchar(data_file_id))) {
-    s <- .invalidate_processing_state(s, nombre)
+    # Si la data no cambió, las exclusiones siguen hablando de los mismos casos
+    # y se conservan en cuarentena en vez de perderse con el resto del
+    # workspace.
+    s <- .invalidate_processing_state(s, nombre, conservar_exclusiones = !isTRUE(data_changed))
   }
 
   # Refrescar mirror si es la primera base.

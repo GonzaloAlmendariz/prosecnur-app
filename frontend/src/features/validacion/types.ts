@@ -355,6 +355,9 @@ export type LimpiezaSummary = {
   ok: true;
   base_nombre: string | null;
   progreso: LimpiezaProgreso;
+  // Exclusiones que sobrevivieron a una recarga de instrumento y esperan en
+  // cuarentena: no se aplican ni salen en la cola hasta que su regla reaparece.
+  exclusiones_preservadas?: { n: number; n_casos: number };
   summary: LimpiezaDecisionSummary;
   kpis: ViewDescriptor[];
   top_reglas: ViewDescriptor | null;

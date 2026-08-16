@@ -280,11 +280,22 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
     }
   }
 
+  # Lo que quedó en cuarentena tras una recarga de instrumento no se aplica ni
+  # aparece en la cola, así que si el payload no lo declara es como si no
+  # existiera: el analista creería que perdió esas exclusiones.
+  preservadas <- scope$limpieza_preservadas %||% list()
+
   list(
     progreso = list(
       plan_construido = !is.null(scope$plan_result),
       auditoria_corrida = !is.null(scope$evaluacion),
       n_reglas_custom = length(scope$reglas_custom %||% list())
+    ),
+    exclusiones_preservadas = list(
+      n = length(preservadas),
+      n_casos = length(unique(unlist(lapply(preservadas, function(d) {
+        as.character(unlist(d$target_case_ids %||% list(), use.names = FALSE))
+      }), use.names = FALSE)))
     ),
     summary = summary,
     kpis = .limpieza_kpis(scope),
