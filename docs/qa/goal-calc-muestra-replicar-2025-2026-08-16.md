@@ -1541,3 +1541,73 @@ marco real cargado. Que se muevan es exactamente el comportamiento que faltaba.
 
 El recorrido visual de `CalculoCursosHorarioFacultadTab` renderizada sigue sin
 hacerse. Lo verificado aquí es el motor y el payload, no la pantalla.
+
+---
+
+## Corrección de fondo: la decisión de Alumnos por CH manda sobre todo (2026-08-16)
+
+Abrir la pantalla con el proyecto real cambió el diagnóstico de los tres ticks
+anteriores. **La app ya elige el divisor por facultad, y por otro mecanismo.**
+
+En Marco hay una pestaña «Alumnos por CH» que ofrece, por facultad,
+**P25 · Mediana · Media**, con la distribución del marco a la vista y **P25 como
+recomendación**. Eso responde de paso una pregunta que llevaba abierta todo el
+loop: **el porqué del P25 no está en 2025 — es la recomendación propia de
+Prosecnur**, por lectura conservadora, y la hoja de 2025 usaba otra cosa
+(`mín(mediana, media)`).
+
+La decisión se persiste en `workspace.aulas_config.alumnos_por_ch_decision`, y
+al calcular, `calc_muestra_alumnos_por_ch_resolver_estudio` la aplica sobre cada
+estrato:
+
+```r
+estrato$promedio_conglomerado <- normalized_value
+estrato$mediana_conglomerado  <- 0
+estrato$aulas_base_fijas      <- 0L
+...
+comp$parametros$estadistico_conglomerado <- "media"
+```
+
+con este comentario en el propio motor: *«La decisión vigente prevalece sobre
+`aulas_base_fijas` y sobre los estadísticos legacy que el frontend hubiese
+materializado antes»*. Y el router `/calcular` pasa **siempre** por ahí.
+
+### Qué de lo que escribí queda en pie y qué no
+
+- **L14 sobreestimó el congelamiento.** `aulas_base_fijas` congela el motor
+  llamado directamente, pero la ruta real de la app lo pone en 0 en cada
+  cálculo. La app no estaba congelada como dije; el preset sí lo está.
+- **L15 y L16 no cambian lo que produce la app** cuando hay decisión
+  confirmada: el divisor y el estadístico que cableé se sobrescriben. Aplican
+  sólo mientras no haya decisión —proyectos anteriores al contrato v1, o antes
+  de confirmar—, donde antes se caía al global 28 y ahora se usa el valor por
+  facultad. Es una mejora del estado intermedio, no del resultado final.
+- **L17 no era end-to-end.** Medí llamando a `calc_muestra_calcular_componente`,
+  que se salta `resolver_estudio`. Por eso mis cifras se movían: estaba midiendo
+  el motor, no el camino del endpoint. Un «verificado contra el marco real» que
+  no pasa por la ruta real no es una verificación end-to-end, y así lo llamé.
+
+Lo medido sobre datos reales sigue siendo cierto —el perfil publica mediana y
+media por facultad, y el emparejamiento por slug da 15 de 15—; lo que era falso
+es la conclusión sobre su efecto.
+
+### Lo que la pantalla sí confirma
+
+Abierta con el proyecto real, la mesa cuadra con el resto del GOAL: 29.090
+estudiantes de universo, **21.365 elegibles**, 5.263 cursos-horario de universo
+y **2.468 elegibles**. Los mismos números de L4 y L6, ahora vistos en pantalla.
+
+La pestaña «Cursos-horario requeridos» renderiza con su vacío clasificado —«Los
+cursos-horario requeridos aparecen al recalcular la muestra · Confirma Alumnos
+por CH en Marco y ejecuta la propuesta»—, que es C3 cumplido: la superficie
+contiene su propio vacío y dice qué hacer.
+
+### Qué hacer con L15 y L16
+
+No son dañinas —la decisión pone `mediana_conglomerado` en 0 y el estadístico en
+`media`, así que no hay conflicto— pero sí engañosas: código que parece decidir
+el divisor cuando no lo decide. Antes de dejarlas o retirarlas hay que resolver
+la pregunta de fondo, que ahora es otra: **si el divisor debe seguir eligiéndose
+en «Alumnos por CH» con P25/mediana/media, o si debe ofrecer también
+`mín(mediana, media)`, que es lo que usó el diseño de 2025.** Eso lo decide
+Gonzalo.
