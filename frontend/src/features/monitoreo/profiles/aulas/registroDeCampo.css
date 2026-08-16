@@ -212,3 +212,18 @@
   min-height: 18rem;
   align-self: start;
 }
+
+/* Activar reemplazo no es «guardar»: consume una reserva de la cadena y saca el
+ * curso-horario caído del avance. Se distingue del botón principal para que no
+ * se pulse por inercia, pero sin gritar: es una acción prevista del operativo,
+ * no un borrado. */
+.registro-campo-acciones button.registro-campo-reemplazo {
+  background: transparent;
+  color: var(--pulso-text-strong, #1f2430);
+  border: 1px solid var(--pulso-border, rgba(0, 0, 0, 0.14));
+}
+
+.registro-campo-acciones button.registro-campo-reemplazo:hover:not(:disabled) {
+  background: var(--pulso-surface-sunken, rgba(0, 0, 0, 0.04));
+  border-color: var(--pulso-border-strong, rgba(0, 0, 0, 0.24));
+}

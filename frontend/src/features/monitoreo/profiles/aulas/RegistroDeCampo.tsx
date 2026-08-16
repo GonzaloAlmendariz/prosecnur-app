@@ -14,8 +14,9 @@
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
 import { useMemo, useState } from "react";
-import { ClipboardCheck, Loader2 } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, Loader2 } from "../../../../vendor/lucide-react";
 import {
+  apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
@@ -52,6 +53,20 @@ const MOTIVOS: Array<{ value: string; label: string }> = [
 // El motivo sólo se pide cuando el estado lo justifica. Pedirlo siempre sería
 // ruido; no pedirlo nunca deja sin explicar por qué cayó un aula.
 const ESTADOS_CON_MOTIVO = new Set(["sin_acceso", "cancelada", "reemplazo_pendiente", "reemplazada"]);
+
+// Estados en los que el aula CAE y tiene sentido ofrecer su reemplazo. No
+// incluye `reemplazada`: esa ya lo fue, y volver a activar consumiría otra
+// reserva de la cadena sin que nadie lo haya pedido.
+const ESTADOS_QUE_CAEN = new Set(["sin_acceso", "cancelada", "reemplazo_pendiente"]);
+
+/** Si en este estado procede ofrecer la activación de la cadena. */
+export function aulaPuedeReemplazarse(estado: string, row: MonitoreoAulasPlanRow | null): boolean {
+  if (!row || !ESTADOS_QUE_CAEN.has(estado)) return false;
+  // Sólo tiene cadena quien es titular o reserva de una: una unidad suelta no
+  // tiene a quién llamar.
+  const rol = String(row.sample_role ?? "");
+  return rol === "titular" || rol === "chain_reserve";
+}
 
 export function aulaNecesitaMotivo(estado: string): boolean {
   return ESTADOS_CON_MOTIVO.has(estado);
@@ -160,6 +175,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
   const [seleccion, setSeleccion] = useState<string>("");
   const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
+  const [activando, setActivando] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
 
@@ -182,6 +198,36 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
 
   const set = <K extends keyof RegistroForm>(campo: K, valor: RegistroForm[K]) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
+
+  const activarReemplazo = async () => {
+    if (!activa) return;
+    const codigo = String(activa.operational_code ?? activa.classroom_id ?? "").trim();
+    if (!codigo) return;
+    setActivando(true);
+    setError("");
+    setOk("");
+    try {
+      // El motivo del formulario viaja con la activación: quien mire la reserva
+      // después necesita saber POR QUÉ está en campo, no sólo que lo está.
+      const res = await apiMonitoreoAulasActivarReemplazo({
+        operational_code: codigo,
+        // Sólo el motivo, nunca el estado como sustituto: son vocabularios
+        // distintos —`sin_acceso` es un estado, `docente_no_autoriza` un
+        // motivo— y colarlo aquí lo normalizaba a «otro», perdiendo el dato.
+        motivo: form.motivo.trim(),
+      });
+      // El mensaje del motor dice la consecuencia —cuántas reservas quedan, o
+      // que la cadena se agotó y esa meta se queda sin cubrir—, así que se
+      // muestra tal cual en vez de resumirlo aquí.
+      if (res.agotada) setError(res.mensaje);
+      else setOk(res.mensaje);
+      onGuardado();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo activar el reemplazo.");
+    } finally {
+      setActivando(false);
+    }
+  };
 
   const guardar = async () => {
     if (!activa) return;
@@ -350,6 +396,18 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                     {guardando ? <Loader2 size={14} className="registro-campo-spin" /> : <ClipboardCheck size={14} />}
                     {guardando ? "Guardando…" : "Guardar registro"}
                   </button>
+                  {aulaPuedeReemplazarse(form.estado, activa) ? (
+                    <button
+                      type="button"
+                      className="registro-campo-reemplazo"
+                      onClick={activarReemplazo}
+                      disabled={guardando || activando}
+                      title="Marca este curso-horario como reemplazado y pone en campo su siguiente reserva"
+                    >
+                      {activando ? <Loader2 size={14} className="registro-campo-spin" /> : <ArrowRightLeft size={14} />}
+                      {activando ? "Activando…" : "Activar reemplazo"}
+                    </button>
+                  ) : null}
                   {ok ? <span className="registro-campo-ok">{ok}</span> : null}
                   {error ? <span className="registro-campo-error">{error}</span> : null}
                 </div>

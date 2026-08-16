@@ -153,3 +153,26 @@ test_that("sigue leyendo las formas que escribe el Excel", {
   expect_identical(monitoreo_aulas_estado_muestra("REEMPLAZADA"), "reemplazada")
   expect_identical(monitoreo_aulas_estado_muestra(""), "sin_contactar")
 })
+
+test_that("las marcas de la activacion sobreviven al normalizador", {
+  # Decima aparicion del patron de la lista cerrada: `monitoreo_aulas_normalize_plan()`
+  # reconstruye la fila campo a campo, asi que lo que no se declara se cae. El
+  # motor escribia estas tres marcas y el tablero las mostraba vacias.
+  res <- monitoreo_aulas_activar_reemplazo(.mrr_plan(), "CH 4",
+                                           motivo = "docente_no_autoriza",
+                                           ahora = "2026-08-16T10:00:00Z")
+  normalizado <- monitoreo_aulas_normalize_plan(res$plan)
+  caida <- .mrr_de(normalizado, "CH 4")
+  entra <- .mrr_de(normalizado, "R 4.1")
+  expect_identical(as.character(caida$replaced_at), "2026-08-16T10:00:00Z")
+  expect_identical(as.character(entra$activated_at), "2026-08-16T10:00:00Z")
+  expect_identical(as.character(entra$activation_reason), "docente_no_autoriza")
+})
+
+test_that("un motivo del vocabulario de reemplazo sobrevive al tablero", {
+  # Y el control del otro lado: un ESTADO no es un motivo. `sin_acceso` se
+  # normaliza a «otro» y eso es correcto —no es del vocabulario de motivos—,
+  # asi que la UI no debe colarlo como sustituto.
+  expect_identical(.monitoreo_aulas_reason("docente_no_autoriza"), "docente_no_autoriza")
+  expect_identical(.monitoreo_aulas_reason("sin_acceso"), "otro")
+})

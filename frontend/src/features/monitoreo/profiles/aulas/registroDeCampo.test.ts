@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { aulaNecesitaMotivo, cambiosDelRegistro, etiquetaDeAula, type RegistroForm } from "./RegistroDeCampo";
+import {
+  aulaNecesitaMotivo,
+  aulaPuedeReemplazarse,
+  cambiosDelRegistro,
+  etiquetaDeAula,
+  type RegistroForm,
+} from "./RegistroDeCampo";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 
 const fila = (extra: Partial<MonitoreoAulasPlanRow> = {}) => ({
@@ -91,5 +97,33 @@ describe("el registro captura lo que el parte necesita", () => {
     expect(c).not.toHaveProperty("duplicates");
     expect(c).not.toHaveProperty("effective_surveys");
     expect(c).not.toHaveProperty("actual_room");
+  });
+});
+
+describe("ofrecer el reemplazo", () => {
+  it("sólo cuando el aula cayó de verdad", () => {
+    const titular = fila({ sample_role: "titular" });
+    expect(aulaPuedeReemplazarse("sin_acceso", titular)).toBe(true);
+    expect(aulaPuedeReemplazarse("cancelada", titular)).toBe(true);
+    expect(aulaPuedeReemplazarse("reemplazo_pendiente", titular)).toBe(true);
+    // Aplicada o en curso no son caídas.
+    expect(aulaPuedeReemplazarse("aplicada", titular)).toBe(false);
+    expect(aulaPuedeReemplazarse("planificada", titular)).toBe(false);
+    expect(aulaPuedeReemplazarse("en_campo", titular)).toBe(false);
+  });
+
+  it("no se ofrece sobre un aula que YA fue reemplazada", () => {
+    // Volver a activar consumiría otra reserva de la cadena sin que nadie lo
+    // haya pedido.
+    expect(aulaPuedeReemplazarse("reemplazada", fila({ sample_role: "titular" }))).toBe(false);
+  });
+
+  it("una reserva también puede caer y encadenar", () => {
+    expect(aulaPuedeReemplazarse("sin_acceso", fila({ sample_role: "chain_reserve" }))).toBe(true);
+  });
+
+  it("una unidad sin cadena no tiene a quién llamar", () => {
+    expect(aulaPuedeReemplazarse("sin_acceso", fila({ sample_role: "extra_reserve_pool" }))).toBe(false);
+    expect(aulaPuedeReemplazarse("sin_acceso", null)).toBe(false);
   });
 });
