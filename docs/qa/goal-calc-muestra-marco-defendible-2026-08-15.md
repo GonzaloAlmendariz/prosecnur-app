@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (`calc_muestra_alumnos_por_ch.R:271`) | ⛔ **culpable localizado** · un guard borra `n_aulas` al cambiar la decisión; falta confirmar que lo dispara el `frame_hash` |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (`calc_muestra_alumnos_por_ch.R:192`) | ⛔ **diagnóstico cerrado** · el guard confunde «cambió el marco» con «cambió la decisión»; arreglo propuesto y regresión definida |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -608,8 +608,51 @@ estadístico, el objetivo calculado con el anterior queda obsoleto.
 Y con una decisión estable **no se dispara**: probado, `changed = FALSE` y
 `n_aulas` sobrevive con valor 200. El guard no está roto en general.
 
-**La hipótesis que queda por confirmar** es por qué en la sesión real sí se
-disparaba: la firma de la decisión incluye `frame_hash`, y el flujo obligado
+**CONFIRMADO (2026-08-15).** Dos decisiones idénticas en todo lo que el usuario
+decide, cambiando sólo el hash del marco:
+
+```
+campos que difieren: frame_hash
+changed? TRUE
+n_aulas tras el guard: BORRADO
+```
+
+Mismo `estadistico_default` (p25), mismo denominador, mismo reparto por
+facultad. Se consideran «cambiadas» sólo porque el marco se reconstruyó.
+
+**Por eso la condición era inalcanzable.** La cadena, sin huecos:
+
+1. Firmas la decisión de Alumnos por CH.
+2. El motor **exige reconstruir el marco** (`decision_stale`) → cambia el `frame_hash`.
+3. Calculas: sale `aulas_base_total = 200`, el cliente lo reconcilia y lo envía.
+4. El backend lo normaliza bien **y el guard lo borra**, porque la firma incluye
+   el hash y el hash cambió en el paso 2.
+5. Titulares, Reemplazos y Sustento se quedan bloqueadas para siempre.
+
+El paso 2 es obligatorio, así que el paso 4 siempre lo deshace.
+
+### El arreglo propuesto
+
+El guard mezcla dos preguntas bajo una sola firma: **«¿cambió lo que el usuario
+decidió?»** y **«¿se reconstruyó el marco?»**. La primera debe invalidar un
+objetivo previo; la segunda no puede invalidar uno que se acaba de calcular
+**sobre ese marco nuevo**.
+
+El `frame_hash` sí tiene razón de estar en la firma para otras cosas —marcar una
+decisión como stale frente a un marco viejo es justo lo que produce el
+`decision_stale` del paso 2—, así que **no se saca de ahí**. Lo que cambia es
+esta comparación en concreto: `.cm_alumnos_por_ch_decision_changed` debe mirar
+sólo los campos que el usuario decide, ignorando el hash.
+
+No se aplicó por contexto agotado, y porque es semántica de un guard de
+invalidación: en este módulo un guard mal tocado es exactamente cómo se cuelan
+resultados obsoletos que nadie nota. Merece empezarse en frío, con su regresión
+—dos decisiones que sólo difieren en `frame_hash` no invalidan el objetivo; un
+cambio de estadístico sí—.
+
+### Hipótesis original (ya confirmada)
+
+Por qué en la sesión real se disparaba: la firma de la decisión incluye `frame_hash`, y el flujo obligado
 —firmar la decisión, RECONSTRUIR el marco, calcular— cambia ese hash, así que la
 decisión se considera cambiada y el objetivo se borra justo después de
 calcularse. Encaja con todo lo observado, incluida la selección que se
