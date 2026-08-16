@@ -36,7 +36,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **10 de 11** ✓ (falta R6) |
 | V12 | Cada disposición con modelo tiene su celda | disposiciones de Contabilidad | **2 de 2** ✓ · 29 sin modelo |
 
-**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 0** (con ocho reglas medidas).
+**Incumplimientos de `verificar_mazo()`: aprobado 14 · motor 15** (11 de ellos recién visibles).
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -72,7 +72,8 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
 | L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ☑ **R4, R7, R8, R9, R10, B2**; R6 sin material |
 | L26 | Medir las disposiciones y darles celda | receta 11 del recetario | ☑ las 2 con modelo; 29 sin material |
-| L31 | Las barras de perfil salen en 5 colores; el aprobado las pinta monocromas | paleta de categóricas | ☐ |
+| L31 | Las barras de perfil salen en 5 colores | declaración con nombres que no existen | ☑ **monocromo 081F5C×56** |
+| L32 | 11 gráficos categóricos bajo el piso de grosor | estaban ocultos al medidor | ☐ |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
 
@@ -953,3 +954,30 @@ sostenían, y la última de ellas —«sobran 1.88 cm»— salió de medir el es
 hasta el borde **sin comprobar qué había en medio**. Había leyenda. La medición
 buena fue instrumentar el reparto del canvas y leer sus componentes, no deducirlo
 del archivo generado.
+
+### L31: el perfil salía multicolor porque la declaración nombraba lo que no existe
+
+El entregable aprobado lleva **51 de 52** barras de perfil en el azul
+institucional. El motor las sacaba con **cinco colores** de la paleta genérica.
+
+La causa no era que faltara declaración: **la que hay no sirve**. El preset del
+estudio declara seis colores con nombres genéricos —«Categoria_1», «Categoria_2»…—
+que no coinciden con ninguna categoría real del perfil. No emparejan, el motor
+cae a la genérica, y el resultado no eran ni los colores declarados ni los de la
+casa. Ahora la declaración sólo manda si nombra los niveles que de verdad hay.
+
+**Monocromo: `081F5C` × 56.**
+
+### Y al pintarlas de azul aparece lo que estaba oculto
+
+Los gráficos categóricos que el verificador **ve** pasan de **14 a 28** —el
+aprobado tiene 25—, y con ellos **11 incumplimientos de grosor** que ya existían
+y no se medían: el medidor reconoce las barras categóricas por su color, y la
+mitad estaban pintadas de colores que no eran ninguno de los suyos.
+
+**No es una regresión: es que ahora se ven.** Y es el segundo caso en este GOAL
+en que arreglar el color destapa una medición que faltaba —el primero fue R9, con
+las cifras blancas—. Queda como **L32**.
+
+Conviene tenerlo presente al leer el marcador: el motor pasa de 4 a 15
+incumplimientos sin que el mazo haya empeorado en nada.
