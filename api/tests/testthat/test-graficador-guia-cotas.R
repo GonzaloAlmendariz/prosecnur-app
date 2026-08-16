@@ -1,15 +1,24 @@
-test_that("una cota lleva linea, topes y cifra", {
+test_that("una cota lleva linea, topes, halo y cifra", {
   # Una cota no es una etiqueta: sin los topes no se ve donde empieza y donde
-  # acaba, que es justo lo que se necesita para medir una separacion.
+  # acaba. Y sin el halo, la cifra que cruza una barra de color no se lee.
   g <- .guia_cota_grobs(0.02, 0.98, 0.05, 0.05, "17.43 cm")
-  expect_length(g, 3L)
-  expect_equal(vapply(g, function(x) class(x)[1], ""), c("lines", "segments", "text"))
+  expect_length(g, 4L)
+  expect_equal(vapply(g, function(x) class(x)[1], ""),
+               c("lines", "segments", "roundrect", "text"))
+})
+
+
+test_that("el halo va DETRAS de la cifra, no delante", {
+  # Si se dibujara despues, taparia el numero que viene a hacer legible.
+  g <- .guia_cota_grobs(0.02, 0.98, 0.05, 0.05, "17.43 cm")
+  clases <- vapply(g, function(x) class(x)[1], "")
+  expect_lt(which(clases == "roundrect"), which(clases == "text"))
 })
 
 
 test_that("la cifra va en el punto medio de la cota", {
   g <- .guia_cota_grobs(0.10, 0.90, 0.05, 0.05, "10 cm")
-  txt <- g[[3]]
+  txt <- g[[4]]
   expect_equal(as.numeric(txt$x), 0.50)
   expect_equal(as.numeric(txt$y), 0.05)
 })
@@ -18,8 +27,8 @@ test_that("la cifra va en el punto medio de la cota", {
 test_that("la cota vertical se rota y la horizontal no", {
   h <- .guia_cota_grobs(0.02, 0.98, 0.05, 0.05, "ancho")
   v <- .guia_cota_grobs(0.03, 0.03, 0.02, 0.98, "alto")
-  expect_equal(h[[3]]$rot, 0)
-  expect_equal(v[[3]]$rot, 90)
+  expect_equal(h[[4]]$rot, 0)
+  expect_equal(v[[4]]$rot, 90)
 })
 
 
@@ -49,8 +58,8 @@ test_that("una cota con coordenadas invalidas no dibuja nada", {
 test_that("la caja del plano incluye marco, rotulo y sus dos cotas", {
   g <- .guia_ph_grobs(0, 0, 1, 1, ancho_in = 12.5, alto_in = 6,
                       etiqueta = "barras", nota = "14 pt")
-  # marco + rotulo + 3 grobs por cota x 2 cotas
-  expect_length(g, 8L)
+  # marco + rotulo + 4 grobs por cota x 2 cotas
+  expect_length(g, 10L)
   expect_equal(class(g[[1]])[1], "rect")
 })
 
