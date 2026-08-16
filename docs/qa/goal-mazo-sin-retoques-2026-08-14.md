@@ -23,16 +23,16 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 
 | | Afirmación | Umbral medido | Aprobado | Motor |
 |---|---|---|---|---|
-| V1 | El título no va pegado al borde | ≥ 0.35 in | 0.361 | **0.370** ✓ |
-| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **9.4 %** ◐ · el resto es config, no motor |
+| V1 | El título no va pegado al borde | ≥ 0.89 cm | 0.92 | **0.94** ✓ |
+| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **6.1 %** ✓ |
 | V3 | El extremo de la escala es naranja | sin rojo en rampa | — | naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja | — | 45 | **38** ✓ |
-| V5 | El grosor de escala no baja del piso | ≥ 0.303 in (p10) | 4 fallos | **0** ✓ |
+| V5 | El grosor de escala no baja del piso | ≥ 0.77 cm (p10) | 4 fallos | **0** ✓ |
 | V6 | Ningún gráfico pasa del techo de barras | ≤ 7 (máx.) | 3 fallos | **0** ✓ |
 | V7 | El grosor cae en su celda del recetario | mediana 0.512 | 0.510 | **0.486** ✓ |
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
 
-**Incumplimientos totales de `verificar_mazo()`: aprobado 6 · motor 1.**
+**Incumplimientos totales de `verificar_mazo()`: aprobado 6 · motor 0.**
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -558,3 +558,42 @@ llegan a ejecutarse; las tres se descartaron instrumentándolas una por una.
 El arreglo, cuando toque, es que `base_size` salga del preset en vez de estar
 escrito. El `.pulso` quedó restaurado a su estado previo: el cambio a 12 se
 revirtió porque era inerte y el de 26 era una sonda.
+
+### V2 cerrada: el preset del radar llegaba vacío y el error era invisible
+
+Dos fallos encadenados, y el segundo tapaba al primero:
+
+1. **`radar_publicos` no estaba en el mapa de presets por tipo.** El modo
+   `publicos` tiene su propio `etype` y recibía la lista vacía.
+2. **`do.call(graficar_radar, args)` abortaba con «unused arguments».** El
+   preset llega con el estilo base ya fusionado —`preservar_tamanos_texto`,
+   `size_texto_barras`, `size_titulo_slide`, `size_cuerpo_slide`—, que son de
+   los graficadores de barras. Una sola clave ajena mata la llamada entera.
+
+Y lo que lo volvía indetectable: **el despachador reintenta sin `preset_args`
+cuando el renderer falla**. La lámina salía igual, con los defectos del
+graficador y sin ninguna de las catorce claves `tabla_*` del proyecto. No había
+error que mirar, sólo una tabla que no obedecía. Un fallback silencioso convierte
+un fallo de configuración en un misterio de render.
+
+Con las dos cosas arregladas, el texto bajo el cuerpo mínimo cae del **9.4 % al
+6.1 %** —el aprobado está en 6.2 %— y el verificador pasa a **0
+incumplimientos**, contra los 6 del entregable aprobado.
+
+### Todo en centímetros
+
+Guía y verificador pasan a cm. El motor calcula en pulgadas —es la unidad de
+`officer` y del OOXML— pero quien lee un plano compara contra una regla, y
+obligarle a convertir cada cifra es justo el trabajo que la guía existe para
+ahorrar. La conversión se hace una vez, en el borde.
+
+El cuerpo del texto se queda en **puntos**: es como se declara en todas partes y
+como lo escribe el .pptx (`sz` en centésimas). Pasarlo a cm no lo haría más
+comparable con nada. La geometría se mide con regla; la tipografía, no.
+
+### La guía ahora acota lo que el recetario pide
+
+Cada caja del plano lleva su tamaño en cm, el **cuerpo del texto en pt** y, en
+el área de barras, el **grosor de la barra en cm**. Eran las tres medidas que
+había que sacar del XML con el archivo ya exportado —`sz=` en centésimas de
+punto, alturas en EMU— y ahora las dice la propia lámina.
