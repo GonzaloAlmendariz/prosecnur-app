@@ -117,3 +117,33 @@ test_that("una variable de scope aula sigue recortando como siempre", {
   ))
   expect_identical(unname(.fac_eval(af, sel)$ok), c(TRUE, FALSE))
 })
+
+test_that("manda la facultad del CATALOGO, no la columna del marco", {
+  # Lo que yo habia medido mal. `.cm_criterios_valores_aula` resuelve la
+  # facultad como `pick_chr("faculty_curso", "faculty")`: la senal del catalogo
+  # tiene precedencia y la columna del marco es solo el fallback.
+  #
+  # Importa porque las dos difieren en el estudio real. La columna del marco
+  # atribuye el aula por sus alumnos; el catalogo dice bajo que facultad esta
+  # registrado el curso —la «Facultad del curso» del diseno—. Un curso de
+  # Posgrado dictado a alumnos de Civil aparece como Civil en la columna y como
+  # Posgrado en el catalogo, y es el catalogo el que decide.
+  af <- data.frame(
+    classroom_id = c("A1", "MIX1"),
+    faculty = c("DERECHO", "DERECHO"),   # el marco dice Derecho en las dos
+    modality = c("Presencial", "Presencial"),
+    eligible_n = c(30L, 17L),
+    stringsAsFactors = FALSE
+  )
+  senales <- list(faculty_curso = stats::setNames(
+    c("DERECHO", "ESCUELA DE POSGRADO"),
+    .cm_aulas_text_key(c("A1", "MIX1"))
+  ))
+  sel <- .fac_sel("derecho")
+  ev <- .cm_criterios_evaluar_aula(af, senales, sel, rep(NA_real_, 2), min_eligible_fallback = 1L)
+  expect_identical(unname(ev$ok), c(TRUE, FALSE))
+
+  # Sin senal de catalogo, la misma aula pasa: el fallback es la columna.
+  sin <- .cm_criterios_evaluar_aula(af, list(), sel, rep(NA_real_, 2), min_eligible_fallback = 1L)
+  expect_true(all(sin$ok))
+})
