@@ -106,3 +106,40 @@ test_that("sanear conserva el orden de las entradas del paquete", {
   expect_setequal(despues, antes)
   expect_equal(ppt_contar_fuentes_desordenadas(origen), 0L)
 })
+
+
+test_that("se quitan los tipos de contenido de extensiones ausentes", {
+  ct <- paste0(
+    '<Types>',
+    '<Default Extension="png" ContentType="image/png"/>',
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+    '<Default Extension="xml" ContentType="application/xml"/>',
+    '<Default Extension="jpg" ContentType="application/octet-stream"/>',
+    '<Default Extension="pdf" ContentType="application/pdf"/>',
+    '</Types>'
+  )
+  out <- .ooxml_limpiar_content_types(ct, c("png", "rels", "xml"))
+  expect_true(grepl('Extension="png"', out, fixed = TRUE))
+  # `rels` y `xml` son obligatorias aunque no figuren como extension de parte.
+  expect_true(grepl('Extension="rels"', out, fixed = TRUE))
+  expect_true(grepl('Extension="xml"', out, fixed = TRUE))
+  expect_false(grepl('Extension="jpg"', out, fixed = TRUE))
+  expect_false(grepl('Extension="pdf"', out, fixed = TRUE))
+})
+
+
+test_that("un Default que SI se usa nunca se quita", {
+  # Un mazo con iconos SVG necesita su Default: quitarlo romperia el paquete
+  # de verdad, que es peor que el ruido que se esta limpiando.
+  ct <- paste0('<Types><Default Extension="svg" ContentType="image/svg+xml"/>',
+               '<Default Extension="png" ContentType="image/png"/></Types>')
+  out <- .ooxml_limpiar_content_types(ct, c("png", "svg"))
+  expect_identical(out, ct)
+})
+
+
+test_that("sin nada que quitar el texto no se altera", {
+  ct <- '<Types><Default Extension="png" ContentType="image/png"/></Types>'
+  expect_identical(.ooxml_limpiar_content_types(ct, "png"), ct)
+  expect_identical(.ooxml_limpiar_content_types(ct, character(0)), ct)
+})
