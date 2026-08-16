@@ -44,9 +44,9 @@ sabe nada que la interfaz calle.
 | **L5** | El dropdown muestra qué marcó esa persona en la múltiple | `codificacion/marcasPrevias.ts` · `QuickAssignDropdown` · `/api/codificacion/respuestas` | ☑ hecho — `d4273aea`. Medido en ULISESV3: 17 de 45 respuestas abiertas de sus SM vienen de filas con códigos ya marcados. |
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
-| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones, con un proyecto real | ◐ a medias — Codificación y Validación barridas, sin hallazgos. Faltan Carga, Analítica y Gráficos. |
+| **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
 
-### L8 — barrido de V1, primera pasada
+### L8 — barrido de V1, completo
 
 Medido sobre ULISESV3 el 2026-08-15.
 
@@ -69,7 +69,35 @@ dentro del segundo: es redundante, no contradictorio. Y los pills de progreso
 del panorama leen los mismos `plan_construido` / `auditoria_corrida` que el
 payload declara, sin derivarlos por su cuenta.
 
-Falta barrer Carga, Analítica y Gráficos.
+**Carga: sin hallazgos.** La duda era si la promoción del ADR 0076 dejaba a
+Carga mostrando el archivo viejo junto al conteo nuevo. No: `data_file_name` se
+deriva del `data_file_id` al serializar (`router_estudio.R:943`), no es un campo
+guardado aparte, así que tras promover muestra el nombre de la base limpia. Y
+`n_filas` lo actualiza la propia promoción. El `origin$data_file_name` de la
+línea 908 sí conserva el original, pero eso es lo correcto: describe de dónde
+salió la base, no cuál rige.
+
+**Analítica: sin hallazgos, y es el caso que más importaba.** Si resolviera su
+fuente por `original_data_file_id`, el aviso de Limpieza —«Codificación,
+Analítica y los entregables ya usan esta base»— sería mentira y la exclusión no
+llegaría al entregable, que es el defecto que el ADR 0076 vino a reparar.
+`router_analitica.R:165-178` recorre la cadena en orden inverso al aplicado
+(limpieza, luego universo) y sólo cae al original cuando no hay depuración
+activa. Correcto.
+
+**Gráficos: sin hallazgos, por herencia.** No resuelve la base por su cuenta:
+consume `rp_data`, que produce la preparación de Analítica. Lo que hace que eso
+sea seguro es la invalidación — `.limpieza_invalidate_downstream()` pone
+`analitica_prep_ok` en falso, así que tras promover o revertir la preparación se
+rehace y `rp_data` sale de la base vigente. Si esa invalidación se rompiera,
+Gráficos serviría la base anterior sin decirlo. Vale la pena saber que ahí
+cuelga.
+
+**El límite de este barrido.** Fue a nivel de código y buscando un patrón
+concreto: una superficie que afirme o derive por su cuenta un estado que el
+payload ya declara distinto. No es un recorrido visual exhaustivo de cada
+superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
+es el que produjo los hallazgos de L1, L3 y L5.
 
 ### L7 — cómo quedó
 
