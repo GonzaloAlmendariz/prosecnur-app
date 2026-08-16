@@ -76,6 +76,10 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L32 | Gráficos categóricos bajo el piso | estirado del panel portado a agrupadas | ◐ **11 → 5** |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
+| L33 | El título de las láminas de texto se pega al borde | `reporte_ppt_titulo_piso.R` | ☑ **R7 2 → 0** |
+| L34 | La lámina de perfil repite un cuadrante y deja otro sin título | plan del `.pulso` | ☐ |
+| L35 | Con barra corta la cifra se sale y pisa la etiqueta de categoría | graficador de categóricas | ☐ |
+| L36 | La guía: notas apiladas, sin cotas en 4 paneles, y no se puede encender | `graficador_guia_arquitectonica.R` + `.enriquecer_presets()` | ☐ |
 
 **L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
 con el dominio sintético no le corresponde a este GOAL. El arreglo del
