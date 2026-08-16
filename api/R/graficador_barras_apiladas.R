@@ -3191,8 +3191,13 @@ graficar_barras_apiladas <- function(
         title_i <- stringr::str_wrap(gsub("\n", " ", title_i, fixed = TRUE), width =
           .barras_wrap_titulo_grupo(title_i, w_group, ancho, size_titulos_grupo, font_family))
       }
-      title_i <- .barras_acotar_titulo_grupo(title_i, group_df$n_cat[i],
-                                            alto_rel = titulos_grupo_alto_rel)
+      title_i <- .barras_acotar_titulo_grupo(
+        title_i, group_df$n_cat[i],
+        alto_rel = titulos_grupo_alto_rel,
+        # El alto de fila que de verdad se dibujo, no el de por defecto.
+        alto_fila_in = alto_por_cat_eff,
+        cuerpo_pt = size_titulos_grupo
+      )
       canvas <- canvas + cowplot::draw_text(
         text     = title_i,
         x        = x_group_txt,
