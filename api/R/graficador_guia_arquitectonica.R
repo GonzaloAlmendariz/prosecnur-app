@@ -267,6 +267,14 @@
   # Cotas de plano: una horizontal pegada al borde inferior y una vertical
   # pegada al izquierdo, cada una de un extremo al otro de la caja. La cifra de
   # dentro dice CUANTO; las cotas dicen DE DONDE A DONDE.
+  #
+  # SOLO en las cajas con nombre. Una lamina tiene ocho o mas cajas anidadas
+  # —panel, area de barras, buffers— y acotarlas todas amontonaba dieciseis
+  # cotas sobre el mismo espacio: los halos acababan tapando el texto que la
+  # guia venia a dejar medir. Las auxiliares se quedan con su marco, que ya dice
+  # donde estan.
+  if (is.null(etiqueta) || !nzchar(etiqueta)) return(list(marco, rotulo))
+
   cotas <- c(
     .guia_cota_grobs(
       0.02, 0.98, 0.022, 0.022,
