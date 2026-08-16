@@ -2255,3 +2255,63 @@ sólo cada pieza por separado:
 El working tree no tiene nada pendiente de esta rebanada. Lo que queda sin
 commitear son las plantillas PPT y un script de reparación de layouts, que son
 de otra sesión y no se tocan.
+
+---
+
+## L29 · Coherencia de facultad encendida al 80% (2026-08-16)
+
+Decisión de Gonzalo: «enciende `require_faculty_prevalence` al 0,80». Hecho con
+el interruptor que ya existe en la UI —Marco › Cursos-horario, tarjeta
+«Composición del curso-horario», paso 1 «Misma facultad del curso»—, cuyo umbral
+ya venía en 80%.
+
+**El paso 2 (mismo nivel del curso) queda apagado**: no se pidió, y la propia
+tarjeta advierte que activarlo solo recorta el marco de forma drástica, porque
+los cursos con mezcla natural de facultades —transversales, electivos— caerían
+sin haber fijado antes a quién pertenece el curso.
+
+### El efecto, medido por la ruta real
+
+| | Antes | Ahora |
+|---|---|---|
+| Cursos-horario elegibles | 2.364 | **2.112** |
+| Titulares | 193 | **190** |
+| Reservas | 15 | 15 |
+| A coordinar | 208 | **205** |
+| Muestra objetivo · sobremuestra | 2.500 · 3.750 | **2.500 · 3.750** |
+
+El embudo lo publica como un paso propio, el último de la cadena:
+
+> `CON 15 O MÁS ALUMNOS ELEGIBLES → 2.364 · −224`
+> **`C8 · MISMA FACULTAD DEL CURSO ≥ 80% → 2.112 · −252`**
+
+Quita **252**, no los 356 que habría quitado sobre el marco viejo: el corte por
+facultad del curso ya se había llevado la parte solapada, como estaba previsto.
+Las 15 facultades siguen presentes y el objetivo no se movió.
+
+**190 titulares** queda bajo el umbral de 200 que pidió Gonzalo, y a cuatro
+aulas de las 194 que se aplicaron en 2025.
+
+### Alcance, dicho con precisión
+
+Se encendió **sólo en su proyecto**. Su `aulas_config$filters` traía
+`require_faculty_prevalence = FALSE` guardado explícitamente, así que el default
+no le habría llegado. El de estudios nuevos sigue en `false`
+(`DEFAULT_UNIVERSITY_AULAS_CONFIG`, `constants.ts:113`); cambiarlo es un paso
+distinto y de mayor alcance, y está pendiente de que lo pida.
+
+Y el cambio vive **en sesión**: el `.pulso` no se guardó. Para que sobreviva al
+cierre hay que guardarlo desde la app.
+
+### Una trampa que me costó cinco minutos
+
+Al pulsar «Calcular población y cursos-horario elegibles» reporté que el job
+estaba corriendo y esperé. **No había job**: el botón estaba deshabilitado y mi
+helper devolvía una cadena de éxito sin comprobar `disabled`. Lo dijo el propio
+tooltip del botón —«Confirma o descarta los cambios antes de recalcular el
+marco»— y no lo leí. Tras «Confirmar cambios», el `POST /marco/construir`
+devolvió `job_id` y terminó en ~30 s.
+
+Regla: **un click sobre un botón deshabilitado no hace nada, y `b.click()` no lo
+avisa.** Comprobar `disabled` antes, y confirmar el efecto con la red o el
+`job_id`, nunca con el valor de retorno del helper.
