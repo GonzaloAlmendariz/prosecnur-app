@@ -70,6 +70,7 @@ ya existente.
 | P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paleta `lst_p10` del proyecto | ☑ la 2ª pregunta salía `081F5C`+`F4B183` y su hermana `081F5C`+`9DC3E6`; el aprobado pinta las dos en celeste |
 | P11 | Estructura organizacional: porcentajes unos en blanco y otros en azul; deben ser todos azules | `graficador_contraste_texto.R` | ☑ el umbral 0.6 dejaba `#70AD47` (0.561) del lado oscuro → **7 blancas**; el aprobado usa azul ahí. Umbral a 0.52 |
 | P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `reporte_plan_tabla_nativa.R` | ◐ **el puente ya existía y nadie lo usaba con radar**: el ADR 0072 solo cubría la lámina de SOLO tabla (`tabla_nativa && ocultar_radar`). Ahora el graficador adjunta también **dónde** va (`geom_frac`) y el renderer la coloca junto al gráfico. Falta que el modo `publicos` —que compone varios sub-radares— pase por ese bloque. Antes: **medido**: el aprobado resuelve esto en **2 láminas** con `CHART` nativo + tabla nativa 7×4; el motor usa **5 láminas** con un grupo de 23/82/145/128/39 sub-formas — **417 formas a mano**. La tabla se dibuja dentro del ggplot; sacarla exige que el graficador exponga sus datos y el render emita la tabla. Unidad propia |
+| P16 | **Dos láminas del mismo tipo no salen iguales** | reparto de alto en `multilista` | ◐ **medido**: con 3 filas el paso va de 1.40 a 2.59 cm entre láminas; con 7 filas es idéntico en las tres |
 | P15 | Cifras de un solo color por familia: blanco en dicotómica azul, azul Pulso en Likert | `.contraste_familia()` | ☑ un color por gráfico en vez de por luminancia de cada segmento; la paleta que no es de la casa la sigue decidiendo la luminancia |
 | P14 | **Las barras no tienen el mismo grosor dentro de una lámina** | `graficador_row_step.R` | ☑ **0.29 → 0.13 cm** en Mecanismos de admisión (el aprobado: 0.22). Antes: **medido**: en «Mecanismos de admisión» la escala sale a **1.19 cm** y la dicotómica a **0.90** — 0.29 de diferencia. El motor tiene 8 láminas así (peor 0.38); el aprobado 6 (peor 0.22). Regla **B3** añadida al verificador. **Reparado**: los bloques comparten paso de fila y el reparto de alto lo sigue. Coste medido: una barra de escala de esa lámina queda en 0.66 cm contra el piso de 0.77 (R1 ×1), a cambio de que las dos dejen de diferir en 0.29 |
 | P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda manual de apiladas | ◐ **medido**: lám 68 usa `0.54×0.54` (ggplot, cuadrado) y lám 69 `0.40×0.29` (manual, rel 1.38). El motor es inconsistente consigo mismo. **Pero el aprobado usa `0.29×0.21`, la misma rel 1.38**: la referencia no decide, decide Gonzalo |
@@ -96,6 +97,27 @@ cifras ilegibles.
 **Los P sin marcar siguen pendientes de verse en el PDF de PowerPoint.** Los
 cerrados se cerraron midiendo el XML contra el aprobado, que no depende del
 render.
+
+## P16 — dos láminas del mismo tipo no salen iguales
+
+Medido sobre el mazo, agrupando por número de filas de barra:
+
+| Filas | Láminas | Paso dentro del bloque | Hueco entre bloques |
+|---|---|---|---|
+| 3 | 4 | **1.40 – 2.59 cm** | 2.59 – 4.78 |
+| 4 | 3 | 1.75 – 2.05 | 3.23 – 3.80 |
+| 5 | 8 | 1.49 – 1.70 | 2.76 – 3.15 |
+| 6 | 6 | 1.25 – 1.47 | 2.32 – 2.73 |
+| 7 | 3 | **1.24 idéntico** | **2.29 idéntico** |
+
+Las de siete filas salen clavadas entre sí; las de tres varían casi al doble. Es
+decir: **el motor sí sabe ser consistente**, y deja de serlo cuando algo más que
+el número de filas entra en el reparto —el número de bloques y su cromo—.
+
+Es el mismo defecto raíz que P14, un escalón más arriba: allí eran dos bloques
+de una lámina, aquí son dos láminas del mismo tipo. Y explica el síntoma que
+abrió este punto: «veo demasiadas cosas que difieren en el mismo tipo de gráfico
+y slide».
 
 ### El texto más pequeño del mazo, y por qué R3 no lo veía
 
