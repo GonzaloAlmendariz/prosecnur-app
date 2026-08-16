@@ -27,9 +27,9 @@ sabe nada que la interfaz calle.
 | **V2** | Todo estado que el motor distingue, la interfaz lo distingue. | Por superficie: enumerar los estados del backend y comprobar que cada uno tiene una apariencia propia. Cuatro situaciones con la misma pinta es un fallo de C5. |
 | **V3** | Una operación que no hace nada se ve antes de hacerla, no después. ✅ **alcanzada 2026-08-15** | El caso canónico: recodificar a un código ya marcado. La UI lo declara en el momento de elegir destino. |
 | **V4** | Lo que el motor no pudo hacer se dice, no se omite. | Forzar cada rama de bloqueo (repeats en la promoción, catálogo a medias) y comprobar que la superficie la nombra con su motivo. |
-| **V5** | Una decisión metodológica deliberada tiene dónde vivir. | «No categorizar por n insuficiente» se registra con su motivo y sobrevive al `.pulso`; quien abra el proyecto después no la confunde con un olvido. |
+| **V5** | Una decisión metodológica deliberada tiene dónde vivir. ✅ **alcanzada 2026-08-15** | «No categorizar por n insuficiente» se registra con su motivo y sobrevive al `.pulso`; quien abra el proyecto después no la confunde con un olvido. |
 | **V6** | Toda vista es enlazable. ✅ **alcanzada 2026-08-15** | `?pestana=` abre la pestaña y `window.__pulsoNav.ir()` devuelve `true` para cada nodo del manifiesto. Cero `direccionPublicada: false`; el test lo exige. |
-| **V7** | Cada estado nuevo de superficie tiene test que lo distingue del vecino. | Test de render por estado, con el control: si el arreglo se revirtiera, el aserto falla. |
+| **V7** | Cada estado nuevo de superficie tiene test que lo distingue del vecino. ✅ **alcanzada 2026-08-15** | Test de render por estado, con el control: si el arreglo se revirtiera, el aserto falla. |
 
 ---
 
@@ -48,7 +48,8 @@ sabe nada que la interfaz calle.
 | **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y los cuatro perfiles de Monitoreo | ☑ hecho — diez ejes probados, **un hallazgo** reparado y visto (`a29629e7`). **V2 se sostiene** en el resto. |
 | **L11** | Barrido V4: forzar cada rama de degradación del motor y comprobar que la superficie la nombra | vocabulario de degradación del backend | ☑ hecho — **dos hallazgos**, reparados (`894bbbb0`, `ee4b308d`). Tres de los seis «flags» eran falsos amigos. |
 | **L14** | Barrido V5: apagar una regla exige motivo | `router_validacion.R` · `ReglaDrillPanel.tsx` · informe | ☑ hecho — `f08ff427`. El mismo hueco del ADR 0078, en Validación. |
-| **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `analitica_*` | ☐ sin empezar — hermano de L14: excluir una variable del plan también cambia lo que se revisa y hoy es un vector pelado. |
+| **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `InstrumentoTab.tsx` · informe | ☑ hecho — `c695c9f1`. Motivo exigido sólo para las que se agregan. |
+| **L16** | Barrido V7: cada estado nuevo con test que lo distinga | los diez módulos y componentes que agregó este GOAL | ☑ hecho — `6a89b22f`. Cinco sin test, tres eran gaps reales. |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
@@ -105,6 +106,27 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L16 — barrido de V7
+
+Medido sobre las diez superficies que agregó este GOAL. Cinco sin test, y sólo
+tres eran gaps reales:
+
+- `resolverPestana` y `resolverPestanaDashboard` cargan la costura más fácil de
+  romper —el token normalizado, `reglas_custom` → `reglas-custom`— y nadie la
+  probaba. Si esa comparación se rompiera, el deep-link aterrizaría en otra
+  pestaña sin decir nada.
+- `NoCategorizarAction` tiene sus tres estados sólo en el componente, sin
+  módulo puro detrás.
+
+Los otros dos —`DecisionChip` e `ImpactoDecisiones`— tienen sus estados
+cubiertos en el módulo puro que los alimenta, que es donde el aserto distingue
+de verdad. Contarlos como deuda habría sido cumplir la forma de la vara y no su
+intención.
+
+**De paso**: el resolver del tablero vivía dentro de `DashboardRuta`, que
+importa `DashboardPage` y arrastra plotly. Una función de tres líneas no puede
+costar eso para poder probarse; se movió a `pestanaDashboard.ts`.
 
 ### L14 — barrido de V5
 
