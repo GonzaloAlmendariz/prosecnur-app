@@ -1123,20 +1123,36 @@ calc_muestra_validar_inferencia <- function(comp) {
       )
     ))
   }
+  # Cada motivo dice la regla Y EL VALOR que la incumple. Decian solo la regla
+  # —«deff debe ser >= 1»— y con eso el analista sabe que hay algo mal pero no
+  # que puso 0.8, ni si le falto un pelo o un mundo. Estos motivos son lo unico
+  # que explica por que el resultado sale sin margen de error formal.
   motivos <- character()
   if (isTRUE(comp$marco$marco_validado <= 0L)) {
-    motivos <- c(motivos, "Falta marco validado (cantidad de unidades elegibles).")
+    motivos <- c(motivos, sprintf(
+      "Falta marco validado: la cantidad de unidades elegibles es %s.",
+      format(comp$marco$marco_validado)
+    ))
   }
   if (identical(comp$marco$estado, "no_definido") ||
       identical(comp$marco$estado, "operativo")) {
-    motivos <- c(motivos, "El estado del marco debe ser 'validado' o superior.")
+    motivos <- c(motivos, sprintf(
+      "El estado del marco es '%s' y debe ser 'validado' o superior.",
+      comp$marco$estado
+    ))
   }
   if (identical(comp$tecnica, "prob_conglomerado_multietapico")) {
     if (comp$parametros$deff < 1) {
-      motivos <- c(motivos, "deff debe ser >= 1 para conglomerados.")
+      motivos <- c(motivos, sprintf(
+        "deff es %s y debe ser >= 1 para conglomerados.",
+        format(comp$parametros$deff)
+      ))
     }
     if (comp$parametros$tau <= 0 || comp$parametros$tau > 1) {
-      motivos <- c(motivos, "Tasa de rendimiento τ debe estar en (0, 1].")
+      motivos <- c(motivos, sprintf(
+        "La tasa de rendimiento τ es %s y debe estar en (0, 1].",
+        format(comp$parametros$tau)
+      ))
     }
   }
   list(

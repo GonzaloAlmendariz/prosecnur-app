@@ -67,7 +67,8 @@ function etapasEscenario(comp: CalcMuestraComponente): FlujoEtapa[] {
   ];
 }
 
-function EscenarioCard({
+/** Exportada para poder probar la tarjeta sin montar la pestaña entera. */
+export function EscenarioCard({
   comp,
   redondeoMultiplo,
   draft,
@@ -88,7 +89,16 @@ function EscenarioCard({
   const rounded = roundUpTo(formula, redondeoMultiplo);
   const belowMinimum = formula != null && draft > 0 && draft < formula;
   const extra = formula != null && draft > 0 ? draft - formula : null;
-  const precision = porFacultad
+  // El motor pone `precision_alcanzada` en NA y llena `advertencia` cuando el
+  // cálculo va SIN margen de error formal —marco sin validar, deff < 1, τ fuera
+  // de (0,1]—. El `??` caía entonces a la estimación del cliente, así que la
+  // tarjeta pintaba una precisión donde el motor había dicho que no la hay, y
+  // la advertencia que explica por qué no se mostraba en ninguna parte.
+  //
+  // Con advertencia del motor no se estima: se dice lo que pasa.
+  const advertenciaMotor = String(comp.resultado?.advertencia ?? "").trim();
+  const sinMargenFormal = advertenciaMotor.length > 0;
+  const precision = porFacultad || sinMargenFormal
     ? null
     : comp.resultado?.precision_alcanzada ??
       calcEPreview(draft, comp.marco.marco_validado, params.p, params.z, params.deff);
@@ -213,12 +223,27 @@ function EscenarioCard({
           </button>
         </div>
       </div>
+      {sinMargenFormal && (
+        <div className="cmv2-calc-sin-margen" role="status">
+          <ShieldAlert size={15} aria-hidden="true" />
+          <div>
+            <strong>Este resultado no tiene margen de error formal</strong>
+            <span>{advertenciaMotor}</span>
+          </div>
+        </div>
+      )}
       <div className="cmv2-calc-escenario-foot">
         {belowMinimum
           ? "El n final no puede ser menor al mínimo calculado."
           : porFacultad
             ? `Ajuste sobre la fórmula: ${fmtSignedInt(extra)}. Cada facultad conserva su propio margen de error y p esperada.`
-            : `Ajuste sobre la fórmula: ${fmtSignedInt(extra)} · precisión estimada con este n: ${fmtPct(precision)}.`}
+            // Una sola guarda: el pie deriva de que no haya precisión, en vez de
+            // repetir la condición que la anula. Con la condición duplicada,
+            // quitar una de las dos no cambiaba nada observable —y un mutante
+            // que no cambia nada no lo detecta ningún test—.
+            : precision == null
+              ? `Ajuste sobre la fórmula: ${fmtSignedInt(extra)}.`
+              : `Ajuste sobre la fórmula: ${fmtSignedInt(extra)} · precisión estimada con este n: ${fmtPct(precision)}.`}
       </div>
     </article>
   );
