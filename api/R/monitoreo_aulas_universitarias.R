@@ -8,6 +8,59 @@ monitoreo_aulas_estados <- function() {
   )
 }
 
+# Estados del AGENDAMIENTO. Son un eje distinto del de la aplicacion: un aula
+# puede estar REEMPLAZADA en muestra y APLICADA en campo, porque una cosa es
+# como se consiguio el aula y otra como fue la aplicacion. Medido en el estudio
+# de 2025 sobre 230 aulas contactadas.
+monitoreo_aulas_estados_muestra <- function() {
+  c("agendada", "reagendada", "en_reserva", "reemplazada", "sin_contactar")
+}
+
+# Estados de la APLICACION, tal como los escribe el parte de campo.
+monitoreo_aulas_estados_aplicacion <- function() {
+  c("aplicada", "no_aplicada", "pendiente")
+}
+
+#' Normaliza un estado de agendamiento a su clave canonica.
+#'
+#' `EN RESERVA 1` y `EN RESERVA 2` colapsan a `en_reserva`: el numero es la
+#' profundidad de la cadena y ya vive en `replacement_order`; duplicarlo aqui
+#' crearia tantas categorias como eslabones tenga el estudio.
+#'
+#' @param x valor crudo de la hoja.
+#' @return clave canonica.
+#' @export
+monitoreo_aulas_estado_muestra <- function(x) {
+  key <- .monitoreo_text_key(.monitoreo_scalar(x, ""))
+  key <- gsub("[^a-z ]", "", key)
+  key <- trimws(gsub("[[:space:]]+", " ", key))
+  if (!nzchar(key)) return("sin_contactar")
+  if (startsWith(key, "en reserva")) return("en_reserva")
+  out <- switch(gsub(" ", "_", key, fixed = TRUE),
+    agendada = "agendada",
+    reagendada = "reagendada",
+    reemplazada = "reemplazada",
+    "sin_contactar"
+  )
+  out
+}
+
+#' Normaliza un estado de aplicacion a su clave canonica.
+#'
+#' @param x valor crudo del parte de campo.
+#' @return clave canonica.
+#' @export
+monitoreo_aulas_estado_aplicacion <- function(x) {
+  key <- gsub(" ", "_", .monitoreo_text_key(.monitoreo_scalar(x, "")), fixed = TRUE)
+  if (!nzchar(key)) return("pendiente")
+  switch(key,
+    aplicada = "aplicada",
+    no_aplicada = "no_aplicada",
+    noaplicada = "no_aplicada",
+    "pendiente"
+  )
+}
+
 monitoreo_aulas_motivos_reemplazo <- function() {
   c(
     "docente_no_autoriza", "aula_no_existe", "horario_cambio",
@@ -277,6 +330,24 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # `classroom_id`: hoy es un slug interno. Si la normalizacion lo tira, el
     # avance por aula no puede emparejar una sola respuesta.
     collection_unit_id = get(c("collection_unit_id", "unit_id"), ""),
+    # --- Eje de AGENDAMIENTO (hoja «Aulas Agendadas») --------------------
+    # No se mezcla con `operational_status`, que es el eje de la aplicacion.
+    sample_status = get(c("sample_status", "status_muestra"), ""),
+    contact_medium = get(c("contact_medium", "medio_de_contacto", "medio_contacto"), ""),
+    contact_date = get(c("contact_date", "fecha_de_llamada", "fecha_llamada"), ""),
+    # Sin los intentos no se puede decir POR QUE un aula sigue sin agendar.
+    contact_attempts = getn(c("contact_attempts", "numero_de_intentos", "intentos"), NA_real_),
+    scheduled_date = get(c("scheduled_date", "fecha_agendada"), ""),
+    scheduled_day = get(c("scheduled_day", "dia"), ""),
+    scheduled_time = get(c("scheduled_time", "hora_agendada"), ""),
+    # --- Eje de APLICACION (hoja «Aulas Aplicadas (Campo)») --------------
+    application_status = get(c("application_status", "status_de_aplicacion"), ""),
+    # Ya habian respondido en otra aula: ni rechazo ni efectiva.
+    duplicates = getn(c("duplicates", "duplicados"), NA_real_),
+    # El numero que manda. NO es "encuestas aplicadas".
+    effective_surveys = getn(c("effective_surveys", "cantidad_de_efectivas", "efectivas"), NA_real_),
+    # Donde se aplico de verdad; puede no ser la planificada.
+    actual_room = get(c("actual_room", "aula_real"), ""),
     responsible = get(c("responsible", "responsable"), ""),
     operational_status = get(c("operational_status", "estado", "estado_operativo"), "planificada"),
     replacement_for = get(c("replacement_for", "reemplazo_de"), ""),
@@ -317,6 +388,8 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   out$sample_role <- gsub(" ", "_", .monitoreo_text_key(out$sample_role), fixed = TRUE)
   out$replacement_order[!is.finite(out$replacement_order)] <- suppressWarnings(as.numeric(gsub("[^0-9]", "", out$wave[!is.finite(out$replacement_order)]))) - 1
   out$operational_status <- vapply(out$operational_status, .monitoreo_aulas_status, character(1))
+  out$sample_status <- vapply(out$sample_status, monitoreo_aulas_estado_muestra, character(1))
+  out$application_status <- vapply(out$application_status, monitoreo_aulas_estado_aplicacion, character(1))
   out$replacement_reason <- vapply(out$replacement_reason, function(x) if (nzchar(x)) .monitoreo_aulas_reason(x) else "", character(1))
   out$sex_top_1_n[!is.finite(out$sex_top_1_n)] <- 0
   out$sex_top_2_n[!is.finite(out$sex_top_2_n)] <- 0
