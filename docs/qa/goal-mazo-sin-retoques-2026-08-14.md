@@ -34,7 +34,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
 | V10 | Cada comentario tiene regla y estado | mapa de los 57, uno por uno | **20 de 28 geométricos** ✓ · 29 no son del motor |
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **10 de 11** ✓ (falta R6) |
-| V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
+| V12 | Cada disposición con modelo tiene su celda | disposiciones de Contabilidad | **2 de 2** ✓ · 29 sin modelo |
 
 **Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 0** (con ocho reglas medidas).
 
@@ -71,7 +71,8 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | `mapa-comentarios-conta-2026-08-16.md` | ☑ |
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
 | L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ☑ **R4, R7, R8, R9, R10, B2**; R6 sin material |
-| L26 | Medir las 31 disposiciones y darles celda en el recetario | recetario | ☐ |
+| L26 | Medir las disposiciones y darles celda | receta 11 del recetario | ☑ las 2 con modelo; 29 sin material |
+| L31 | Las barras de perfil salen en 5 colores; el aprobado las pinta monocromas | paleta de categóricas | ☐ |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
 

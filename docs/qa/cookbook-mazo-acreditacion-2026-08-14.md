@@ -450,3 +450,44 @@ manual construido copiándolo heredaría justo eso.
 - **Las mediciones agregadas mienten dos veces**: la media mezcla barras con
   cabeceras (hay que usar la moda) y el conteo mezcla etiquetas con datos (hay
   que exigir forma sin texto). Las dos veces el resultado erróneo era plausible.
+
+## Receta 11 — Las disposiciones, y cuántas tienen modelo
+
+El motor declara **31 disposiciones**. El entregable aprobado usa **dos** para
+contenido —el resto de sus láminas son portada, índice y separadores—, así que
+sólo esas dos se pueden medir contra él. Las otras 29 están en la misma
+situación que las 14 familias de gráfico sin receta: **falta modelo, no falta
+trabajo**.
+
+| | Aprobado | Motor |
+|---|---|---|
+| Láminas `Graficos2` | 46 | 51 |
+| Láminas `poblacion_4` | 6 | 6 |
+| Layouts distintos en todo el mazo | 11 | 7 |
+
+### `Graficos2` — dos gráficos por lámina
+
+| | Aprobado | Motor |
+|---|---|---|
+| Bloque de datos | 15.2 × 9.5 cm | **16.4 × 10.3 cm** |
+| Grosor de barra | 1.30 cm | 1.22 cm |
+| Barras por gráfico | 4 | 4 |
+
+El motor usa un bloque **más grande** y aun así sus barras salen **más finas**:
+la diferencia se la lleva la separación entre premisas. Con el mismo número de
+barras, el aprobado reparte 9.5 cm en barras más gruesas y menos aire; el motor,
+10.3 cm en barras más finas y más aire.
+
+### `poblacion_4` — cuatro perfiles
+
+| | Aprobado | Motor |
+|---|---|---|
+| Alto del bloque | 10.6 cm | — |
+| Grosor de barra | 0.79 cm | — |
+| Barras | 10 | — |
+| **Color de las barras** | **azul institucional, monocromo** (51 de 52) | **cinco colores distintos** |
+
+**El motor pinta las láminas de perfil con la paleta genérica** —`#0B4F8C`,
+`#2A9D8F`, `#E9C46A`, `#F4A261`, `#E76F51`— cuando el aprobado las pinta todas
+del azul de la casa. No es una escala: son categorías de un mismo perfil, y
+darles un color a cada una sugiere una comparación que no existe.
