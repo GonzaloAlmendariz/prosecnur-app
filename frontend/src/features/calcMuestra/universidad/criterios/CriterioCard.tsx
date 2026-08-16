@@ -23,6 +23,61 @@ import { ControlRange, type FacultadRef } from "./facultades";
 import { TeacherTypeOrden } from "./TeacherTypeOrden";
 import { SESSION_TYPE_VARIABLE_ID } from "./tipoSesionModel";
 import { TipoSesionPorFacultad } from "./TipoSesionPorFacultad";
+import type { RecorteCriterioAlumno } from "./recorteCriteriosAlumnoModel";
+
+/**
+ * Lo que ESTE criterio recortó en el marco construido.
+ *
+ * La cabecera ya avisa cuando la selección no restringe —nada o todo marcado—,
+ * pero eso mira la declaración, no el efecto. Un criterio puede tener un
+ * subconjunto propio seleccionado y aun así no dejar fuera a nadie, porque las
+ * categorías elegidas cubren a toda la base. Es lo que pasó en el proyecto real
+ * de 2025-2: `level` estaba declarado, se leía como restrictivo y dejaba pasar
+ * las 136.284 filas. La única forma de verlo era calcularlo a mano.
+ *
+ * La cifra es del marco EJECUTADO, no de lo que hay en pantalla: si la selección
+ * cambió y todavía no se reconstruyó, describe el marco anterior.
+ */
+function RecorteMedido({
+  recorte,
+  desactualizado,
+}: {
+  recorte: RecorteCriterioAlumno | null;
+  desactualizado: boolean;
+}) {
+  if (!recorte) return null;
+  const capaNoRecorta = recorte.layer !== "marco";
+  return (
+    <p
+      className="cmv2-crit-recorte-medido"
+      data-estado={capaNoRecorta ? "otra-capa" : recorte.noRecorta ? "inerte" : "recorta"}
+      role="note"
+    >
+      {capaNoRecorta ? (
+        <>
+          Deja pasar <strong>{fmtInt(recorte.pasan)}</strong> · en capa{" "}
+          <em>{recorte.layer}</em> no recorta el marco, se valida después
+        </>
+      ) : recorte.noRecorta ? (
+        <>
+          En el marco construido dejó fuera a <strong>0</strong>: está declarado
+          y no filtra a nadie
+        </>
+      ) : recorte.recorta != null ? (
+        <>
+          En el marco construido dejó fuera a <strong>{fmtInt(recorte.recorta)}</strong>
+          {recorte.pctRecorte != null ? <> ({(recorte.pctRecorte * 100).toFixed(1)}%)</> : null}
+          {" · "}pasan {fmtInt(recorte.pasan)}
+        </>
+      ) : (
+        <>
+          Dejó pasar <strong>{fmtInt(recorte.pasan)}</strong> en el marco construido
+        </>
+      )}
+      {desactualizado ? " · del marco anterior, la selección cambió" : null}
+    </p>
+  );
+}
 
 /** Conteo/resumen textual de la selección de la variable. */
 function ResumenCabecera({
@@ -90,6 +145,8 @@ export function CriterioCard({
   sessionTypeImpacto,
   sessionTypeDominante,
   onVerExplorador,
+  recorteMedido,
+  recorteDesactualizado,
   radiografia,
   aporte,
 }: {
@@ -130,6 +187,13 @@ export function CriterioCard({
    * cualquier criterio.
    */
   aporte?: (segmentKey: string) => AporteCategoria | null;
+  /**
+   * Cuánto recortó de verdad este criterio en el marco ejecutado. La cabecera
+   * mira la declaración; esto mira el efecto, y son cosas distintas.
+   */
+  recorteMedido?: RecorteCriterioAlumno | null;
+  /** La selección cambió después de construir: la cifra es del marco anterior. */
+  recorteDesactualizado?: boolean;
 }) {
   const sel = seleccionVariable(seleccion, variable.id);
   const mapeada = Boolean(variable.mappedColumn);
@@ -168,6 +232,7 @@ export function CriterioCard({
       </header>
 
       <div className="cmv2-crit-card-body">
+        <RecorteMedido recorte={recorteMedido ?? null} desactualizado={Boolean(recorteDesactualizado)} />
         {variable.id === "condicion_curso" ? <CondicionCursoAviso variable={variable} /> : null}
         {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} aporte={aporte} />}
         {variable.kind === "hierarchical" && (

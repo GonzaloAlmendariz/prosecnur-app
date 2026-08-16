@@ -1427,7 +1427,13 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
   n <- length(filas$student_id %||% character(0))
   marco_ok <- rep(TRUE, n)
   seleccion <- .cm_criterios_normalize_seleccion(criterios_seleccion)
-  report <- list(activa = FALSE, criterios = list())
+  # `filas_total` es el universo sobre el que cortan TODOS estos criterios, y va
+  # aquí porque sin él `filas_pasan` no dice cuánto recorta cada uno: la pantalla
+  # tendría que inferir el total del criterio que más pasa, que sólo es exacto
+  # cuando alguno no recorta nada. Medido en el proyecto real de 2025-2, `level`
+  # dejaba pasar las 136.284 filas —estaba declarado y no filtraba— y el
+  # desglose es justo lo que hace visible ese cero.
+  report <- list(activa = FALSE, filas_total = as.integer(n), criterios = list())
   # `marco_razon` acompaña a `marco_ok` fila a fila: sin ella, una fila que solo
   # cae por un criterio de alumno se publica en `exclusions` con exclude_reason
   # vacío (los flags legacy que arma el motor están todos en TRUE) y el marco no
