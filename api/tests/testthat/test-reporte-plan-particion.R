@@ -2,7 +2,8 @@
 #
 # El umbral se cuenta en BARRAS (premisa x publico), no en premisas: cuatro
 # premisas por cuatro publicos son dieciseis barras y ninguna de las cuatro
-# parece excesiva vista de a una.
+# parece excesiva vista de a una. Su valor sale de medir el entregable
+# aprobado, asi que los asserts lo leen de la constante en vez de repetirlo.
 #
 # El fixture reproduce la forma REAL del plan —`vars` agrupada por premisa, con
 # una variable por publico dentro—, no una lista plana de nombres compuestos.
@@ -49,14 +50,22 @@ test_that("el fixture tiene la forma anidada del plan real", {
   expect_identical(.particion_n_barras(el), 16L)
 })
 
-test_that("una escala que cabe no se toca", {
-  # 4 premisas x 2 publicos = 8 barras, por debajo del maximo de 9.
-  plan <- list(.slide_con(.el_escala(4, 2)))
+test_that("una escala que cabe justo no se toca", {
+  # Exactamente el maximo: se deriva de la constante en vez de escribir el
+  # numero, porque el umbral sale de medir el entregable y se recalibra.
+  n <- .PARTICION_MAX_BARRAS
+  plan <- list(.slide_con(.el_escala(n, 1)))
   out <- .plan_particionar_escalas(plan, .els_de)
 
   expect_length(out, 1L)
   expect_identical(out[[1]]$title, "BIENESTAR UNIVERSITARIO")
-  expect_identical(.barras_de(out[[1]]), 8L)
+  expect_identical(.barras_de(out[[1]]), as.integer(n))
+})
+
+test_that("una barra mas que el maximo ya parte", {
+  n <- .PARTICION_MAX_BARRAS
+  out <- .plan_particionar_escalas(list(.slide_con(.el_escala(n + 1L, 1))), .els_de)
+  expect_length(out, 2L)
 })
 
 test_that("una escala excedida se parte y ninguna parte supera el maximo", {
@@ -65,7 +74,7 @@ test_that("una escala excedida se parte y ninguna parte supera el maximo", {
   out <- .plan_particionar_escalas(plan, .els_de)
 
   expect_gt(length(out), 1L)
-  for (s in out) expect_lte(.barras_de(s), 9L)
+  for (s in out) expect_lte(.barras_de(s), .PARTICION_MAX_BARRAS)
 
   # Ninguna barra se pierde ni se duplica por el camino.
   todas <- unlist(lapply(out, function(s) unlist(s$slots$grafico$vars, use.names = FALSE)))
@@ -99,7 +108,7 @@ test_that("los grupos desiguales se cuentan por sus barras reales", {
 
   out <- .plan_particionar_escalas(list(.slide_con(el)), .els_de)
   expect_gt(length(out), 1L)
-  for (s in out) expect_lte(.barras_de(s), 9L)
+  for (s in out) expect_lte(.barras_de(s), .PARTICION_MAX_BARRAS)
   expect_identical(sum(vapply(out, .barras_de, integer(1))), 13L)
 })
 
