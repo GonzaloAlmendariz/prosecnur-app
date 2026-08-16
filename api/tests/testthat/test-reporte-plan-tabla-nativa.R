@@ -38,11 +38,32 @@ test_that("el interruptor apaga la emisión, que es el control", {
   expect_false(.tabla_nativa_procede(solo_tabla(tabla_nativa = FALSE)))
 })
 
-test_that("con el radar al lado se sigue compartiendo canvas", {
-  # Ahí la alineación entre el radar y su tabla es justo lo que se está
-  # cuidando, y separarlos la rompería.
+test_that("con el radar al lado la tabla TAMBIEN va nativa, con su sitio", {
+  # Este test decia lo contrario: que con radar visible la tabla se quedaba
+  # dentro del canvas «porque separarlos rompe la alineacion». Medido sobre el
+  # entregable aprobado, ahi hay un CHART nativo y una tabla nativa 7x4 lado a
+  # lado, cada uno su forma. Lo que faltaba no era alineacion sino que el
+  # graficador dijera DONDE va su tabla.
   p <- graficar_radar(fx_radar(), mostrar_tabla_derecha = TRUE,
-                      usar_canvas = TRUE, exportar = "rplot")
+                      tabla_nativa = TRUE, usar_canvas = TRUE,
+                      exportar = "rplot")
+  expect_true(.tabla_nativa_procede(p))
+
+  g <- .tabla_nativa_geom(p, list(left = 1, top = 1, width = 10, height = 5))
+  expect_false(is.null(g))
+  # La tabla cae en la mitad derecha del cajon, que es donde la pone el radar.
+  expect_gt(g$left, 1 + 10 * 0.4)
+  expect_lt(g$left + g$width, 1 + 10 + 1e-6)
+})
+
+test_that("con `tabla_nativa = FALSE` la tabla se queda dentro del canvas", {
+  # La salida sigue disponible para quien la quiera dibujada. Ojo: el default
+  # de `tabla_nativa` es TRUE, asi que hay que apagarlo explicitamente —este
+  # test se escribio primero al reves y pasaba por el default, no por lo que
+  # decia comprobar—.
+  p <- graficar_radar(fx_radar(), mostrar_tabla_derecha = TRUE,
+                      tabla_nativa = FALSE, usar_canvas = TRUE,
+                      exportar = "rplot")
   expect_false(.tabla_nativa_procede(p))
 })
 

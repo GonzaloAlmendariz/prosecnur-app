@@ -8286,6 +8286,27 @@ reporte_ppt_plan <- function(
           plot_slot
         )
 
+        # Grafico Y tabla en el mismo cajon: el aprobado pone el radar a la
+        # izquierda y su tabla a la derecha, las dos como formas propias. Si el
+        # graficador adjunto la geometria de su tabla, se emite aqui como tabla
+        # nativa. Ver `reporte_plan_tabla_nativa.R`.
+        geom_tab <- .tabla_nativa_geom(p, plot_slot$loc %||% contract$slots$plot$loc)
+        if (!is.null(geom_tab)) {
+          nativa_tab <- .tabla_nativa_de(p)
+          doc <- officer::ph_with(
+            doc,
+            value = .tabla_nativa_flextable(
+              nativa_tab$tabla, nativa_tab$estilo,
+              font_family_default = presets$base$args$font_family_ppt %||%
+                presets$base$args$font_family %||% "Arial"
+            ),
+            location = officer::ph_location(
+              left = geom_tab$left, top = geom_tab$top,
+              width = geom_tab$width, height = geom_tab$height
+            )
+          )
+        }
+
         # BASE (manual o auto). Algunos perfiles institucionales integran la
         # base dentro del grafico y no deben materializar el marcador externo.
         base_txt <- if (suppress_base_placeholder) "" else slots$base %||% NULL

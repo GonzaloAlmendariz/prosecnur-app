@@ -1489,7 +1489,11 @@ graficar_radar <- function(
       # devuelve igual —vacío en esa zona— para que todo lo que ya sabe tratar
       # un ggplot siga funcionando: la nota al pie, el título y la leyenda se
       # dibujan DESPUÉS de este bloque, y un `return()` aquí se las comería.
-      emitir_nativa <- isTRUE(tabla_nativa) && isTRUE(ocultar_radar)
+      # El ADR 0072 solo cubrio la lamina de SOLO tabla. El entregable aprobado
+      # pone el grafico y la tabla lado a lado —CHART nativo + tabla nativa 7x4—
+      # y ahi la tabla seguia dibujandose dentro del ggplot. Con la geometria
+      # adjunta (mas abajo), el renderer puede colocarla en su sitio.
+      emitir_nativa <- isTRUE(tabla_nativa)
       if (emitir_nativa) {
         tabla_nativa_datos <- tb
         tabla_nativa_estilo <- list(
@@ -1548,6 +1552,14 @@ graficar_radar <- function(
       # IMPORTANTE: anclar el grob al borde izquierdo del PH para evitar
       # que una tabla ancha "derrame" por la izquierda cuando auto_fit = FALSE.
       x_tab <- if (isTRUE(ocultar_radar)) (1 - w_tab) * 0.5 else (w_radar + w_gap)
+      if (isTRUE(emitir_nativa) && exists("tabla_nativa_estilo", inherits = FALSE)) {
+        # Fracciones del canvas: el renderer las convierte contra el cajon real.
+        # Sin esto solo sabria QUE hay tabla, no DONDE va, y la unica opcion era
+        # ocupar el placeholder entero —de ahi que antes exigiera ocultar_radar—.
+        tabla_nativa_estilo$geom_frac <- list(
+          x = x_tab, y = y_tab, w = w_tab, h = h_tab
+        )
+      }
       if (!isTRUE(emitir_nativa)) canvas <- canvas + cowplot::draw_grob(
         tab_draw,
         x = x_tab,
