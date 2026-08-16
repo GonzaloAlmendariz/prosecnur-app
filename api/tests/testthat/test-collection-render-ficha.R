@@ -193,3 +193,48 @@ test_that("la ficha built-in imprime el rol", {
   expect_true("unit.role" %in% bindings)
   expect_identical(grid$fields[[which(bindings == "unit.role")]]$label, "Rol")
 })
+
+# --- Capacidad y reparto del grid --------------------------------------------
+# Anadir un campo a la ficha con careta la desbordo en silencio: 7 campos contra
+# 6 de capacidad, y "Estudiantes" se caia con un warning que nadie lee. La
+# capacidad no es un numero elegido: sale de la banda disponible entre el grid y
+# el bloque del enlace.
+
+.crf_grid_capacity <- function(L) {
+  max(1L, as.integer(floor((L$y_rows_top - (L$y_link + 0.055)) / L$row_step_min)) + 1L)
+}
+
+.crf_grid_fields <- function(template) {
+  grid <- Filter(function(b) identical(b$type, "field_grid"), template$pages[[1]]$blocks)[[1]]
+  grid$fields
+}
+
+test_that("las plantillas de la casa caben en su propia hoja", {
+  builtin <- .crf_grid_fields(collection_material_builtin_template())
+  branded <- .crf_grid_fields(collection_material_branded_sheet_template(assets = "logo-x"))
+
+  # El control: con el paso fijo anterior la capacidad era 6 y la branded 7.
+  expect_lte(length(builtin), .crf_grid_capacity(.crf_layout()))
+  expect_lte(length(branded), .crf_grid_capacity(.crf_layout(branded = TRUE)))
+})
+
+test_that("pocas filas reparten la banda en vez de dejar el hueco abajo", {
+  L <- .crf_layout()
+  band <- L$y_rows_top - (L$y_link + 0.055)
+  paso <- function(n) if (n > 1L) min(L$row_step, band / (n - 1L)) else 0
+  fondo <- function(n) L$y_rows_top - (n - 1L) * paso(n)
+
+  # Con 6 campos el grid llega casi al enlace; con el paso fijo viejo (0.053)
+  # se quedaba en 0.510 y dejaba una franja muerta de ~0.13 npc.
+  expect_gt(fondo(6L), L$y_link)
+  expect_lt(fondo(6L) - L$y_link, 0.09)
+  # Y nunca se aprieta por debajo del minimo legible.
+  expect_gte(paso(.crf_grid_capacity(L)), L$row_step_min * 0.999)
+})
+
+test_that("el lector de QR usa la geometria de la variante que dibujo la hoja", {
+  # Ceguera de la cadena de QA: pedia siempre la geometria sin careta, y solo
+  # funcionaba porque ambas variantes coincidian en `qr_y`.
+  expect_false(identical(.crf_layout()$qr_y, .crf_layout(branded = TRUE)$qr_y))
+  expect_true("branded" %in% names(formals(collection_qr_matrix_from_png)))
+})

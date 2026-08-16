@@ -190,8 +190,10 @@ test_that("la ficha con careta conserva el QR releible y el enlace clicable", {
                                       brand_assets = assets)
   esperada <- collection_qr_matrix(url, correction = "M", quiet_zone = 4L)
   expect_identical(
+    # Con careta: el lector necesita la geometria de la variante que dibujo la
+    # hoja, no la de la ficha sin logos.
     collection_qr_matrix_from_png(png_path, n = nrow(esperada), dpi = 150,
-                                  layout_preset = "single_sheet"),
+                                  layout_preset = "single_sheet", branded = TRUE),
     esperada
   )
 

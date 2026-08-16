@@ -74,10 +74,11 @@ aula con mala luz y un teléfono viejo.
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto: hora de inicio, aforo observado, quién aplicó. | La ficha impresa **sí** los tiene (bloque `application_log`, 3 renglones a mano). Nunca vuelven al sistema. | ☐ sin empezar |
-| **L7** | La ficha desperdicia ~30% del alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. Se ve en `ficha_sim_p1.png`. | ☐ sin empezar |
+| **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
+| **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
 | **L8** | `apiMonitoreoAulasConfig` también tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. Verificar si es capacidad muerta o pendiente de conectar antes de borrarla. | ☐ sin empezar |
 | **L9** | No hay test que ate la simulación end-to-end (selección → enlaces → fichas → handoff). | Hay tests por pieza (`test-collection-engine.R`, `test-collection-materials.R`, `test-collection-render-ficha.R`) pero ninguno recorre la costura completa. La simulación de este GOAL es el borrador de ese test. | ☐ sin empezar |
-| **L10** | El QR nunca se verificó decodificándolo. | Los tests comprueban que la matriz tiene módulos claros y oscuros, no que un lector recupere la URL. La legibilidad real es una suposición. | ☐ sin empezar |
+| **L10** | El QR nunca se verificó decodificándolo. | **Corregido el 2026-08-16: la premisa era inexacta.** `collection_qr_matrix_from_png()` sí relee el QR del PNG renderizado y compara la matriz módulo a módulo contra la esperada, en 5 archivos de test. Lo que falta es más estrecho: nadie **decodifica** la matriz a texto, así que un error de encoding del payload (no de dibujo) pasaría. Y ningún lector real ha visto la hoja impresa. | ◐ a medias |
 
 ### Espera al usuario
 
@@ -114,6 +115,21 @@ aula con mala luz y un teléfono viejo.
   pasaba **igual con el código viejo**, porque la duplicación nacía de que el
   adapter ya traía el parámetro. El test que sirve recorre adapter →
   resolvedor. Si el arreglo no cambiara nada, ¿el aserto seguiría pasando?
+- **El metro promediado mentía sobre el blanco.** «Bandas horizontales sin
+  tinta» en 20 bandas de ~88 px promedia una línea de texto fina hasta cero, así
+  que marcaba vacío lo que tenía contenido, y daba 6/20 idéntico antes y después
+  de un cambio real. El metro que sirve es **la racha más larga de filas de
+  píxeles sin una sola gota**, ignorando los márgenes. Con el metro bueno se ve
+  que el paso intermedio (mover anclajes) **empeoró** la hoja: 206 → 268 px.
+- **Mover un hueco no es cerrarlo.** Subir los anclajes cerró la franja de la
+  cabecera y abrió una igual bajo el grid. El esqueleto de la ficha es fijo
+  (cabecera · datos+QR · enlace · indicaciones · registro · pie); la parte
+  elástica es el grid, y hasta que no repartió su banda el aire solo cambió de
+  sitio.
+- **Un verificador que asume dónde está lo que verifica da verde sin mirar.**
+  `collection_qr_matrix_from_png()` pedía siempre la geometría de la ficha sin
+  careta. Pasaba porque las dos variantes coincidían en `qr_y` por casualidad;
+  el día que dejaron de coincidir, el lector leía papel en blanco.
 - **`utils::modifyList()` recursa dentro de las listas anidadas.** Un fixture de
   binding con `modifyList(base, list(prefill = ...))` **fusiona** las claves de
   `prefill` en vez de reemplazarlas, y el test emite dos parámetros donde pide
@@ -164,3 +180,26 @@ Built-in a revisión 2 — las instancias vivas quedan `stale` con
 `template_changed`, que es el comportamiento correcto y ya estaba cubierto.
 
 **V4 se cumple.** Siguen abiertos V3, V5–V8.
+
+### 2026-08-16 — L7 y L7b cerrados; y una regresión propia atrapada
+Al medir la capacidad del grid apareció que **L3 había desbordado la ficha con
+careta**: le añadí «Rol» a un grid que ya tenía 6 campos y una capacidad de 6,
+así que «Estudiantes» se caía con un `field_grid_overflow` que nadie lee. No lo
+detectó ningún test —la suite pasó verde con la ficha mutilada— sino medir la
+geometría a mano.
+
+Es el mismo problema que L7: no había sitio porque el 30% de la hoja estaba
+muerto en otro lado. Cerrarlo devolvió capacidad.
+
+| | hueco interior mayor |
+|---|---|
+| antes de L7 | 206 px · 11,7% del alto |
+| paso intermedio (mover anclajes) | 268 px · 15,3% — **peor** |
+| final (el grid reparte su banda) | **124 px · 7,1%** |
+
+Capacidad del grid: 6 → **8** filas sin careta, **7** con careta. Los anclajes
+de las indicaciones y del registro, que vivían hardcodeados dentro del
+dibujante, ahora son parte del layout: mover el cuerpo los mueve.
+
+**V3 se cumple** en lo que depende del motor. Siguen abiertos V5–V8, que son el
+registro en campo y no tienen implementación.

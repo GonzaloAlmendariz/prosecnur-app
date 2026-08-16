@@ -3,17 +3,36 @@
 # PDF final y PNG autoritativo llaman al mismo `collection_material_draw_page`.
 # Solo cambia el device; no se rasteriza el PDF ni se usa ImageMagick.
 
+# Anclajes verticales de la ficha, en npc de alto de pagina.
+#
+# Medido sobre el PNG autoritativo, 6 de 20 bandas horizontales salian sin una
+# gota de tinta: el 30% de la hoja. Estaban en dos sitios, no repartidas —una
+# franja bajo la regla de cabecera y otra sobre el pie—, mientras el grid de
+# datos vivia al limite de su capacidad. Cerrar esas dos franjas le devuelve
+# filas al grid sin apretar nada.
+#
+# Los anclajes de abajo (instrucciones, registro) vivian hardcodeados dentro
+# del dibujante, asi que mover el cuerpo no los movia y el aire se acumulaba
+# justo donde ya sobraba.
 .crf_layout <- function(branded = FALSE) {
   base <- list(
     qr_side = 0.34,
     qr_x = 0.72,
-    qr_y = 0.62,
+    qr_y = 0.685,
     x_left = 0.075,
     x_right = 0.925,
-    y_title = 0.80,
-    y_rows_top = 0.69,
-    row_step = 0.053,
-    y_link = 0.365,
+    y_title = 0.868,
+    y_rows_top = 0.775,
+    # `row_step` es el paso MAXIMO, no el fijo: las filas reparten la banda que
+    # les toca en vez de amontonarse arriba y dejar el hueco abajo. `row_step_min`
+    # es lo mas apretado que se admite antes de recortar filas.
+    row_step = 0.075,
+    row_step_min = 0.045,
+    y_link = 0.330,
+    y_instructions = 0.262,
+    y_log_title = 0.196,
+    y_log_rows = 0.168,
+    log_row_step = 0.032,
     label_w = 0.13,
     # Cabecera propia del kit Pulso cuando no hay careta encima.
     y_brand = NA_real_,
@@ -22,13 +41,17 @@
     y_header_rule = 0.918
   )
   if (!branded) return(base)
-  # Con careta, la cabecera baja para dejarle su banda. El cuerpo no se mueve:
-  # entre la regla y `y_title` ya habia aire suficiente, y correrlo obligaria a
-  # reubicar QR, grid y registro, que es justo lo que este layout ya resolvio.
+  # Con careta la cabecera baja ~0.066 para dejarle su banda, y el cuerpo baja
+  # con ella. Antes el cuerpo se quedaba quieto —"entre la regla y el titulo ya
+  # habia aire suficiente"—, que es precisamente como la version sin careta
+  # termino con una franja muerta: ese aire era el hueco.
   base$y_brand <- 0.950
   base$y_header <- 0.898
   base$y_header_sub <- 0.882
   base$y_header_rule <- 0.852
+  base$y_title <- 0.802
+  base$y_rows_top <- 0.712
+  base$qr_y <- 0.622
   base
 }
 
@@ -479,8 +502,10 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   # columna: el ancho util termina donde empieza el recuadro del simbolo.
   row_right <- min(L$x_right, L$qr_x - L$qr_side * 0.60 - 0.02)
   # Capacidad real de la banda: por debajo empieza el bloque del enlace. Una
-  # fila de mas no se "aprieta", pisa el enlace, asi que se recorta y se avisa.
-  max_rows <- max(1L, as.integer(floor((L$y_rows_top - (L$y_link + 0.055)) / L$row_step)) + 1L)
+  # fila de mas no se "aprieta" indefinidamente, pisa el enlace, asi que por
+  # debajo de `row_step_min` se recorta y se avisa.
+  band <- L$y_rows_top - (L$y_link + 0.055)
+  max_rows <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
   if (length(rows) > max_rows) {
     warnings[[length(warnings) + 1L]] <- list(
       code = "field_grid_overflow", page = page_no,
@@ -488,8 +513,12 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
     )
     rows <- rows[seq_len(max_rows)]
   }
+  # Pocas filas no se apelotonan arriba dejando un hueco antes del enlace: se
+  # reparten la banda hasta el paso maximo. Medido sobre el PNG, ese hueco era
+  # la franja muerta mas grande de la hoja.
+  row_step <- if (length(rows) > 1L) min(L$row_step, band / (length(rows) - 1L)) else 0
   for (i in seq_along(rows)) {
-    y <- L$y_rows_top - (i - 1L) * L$row_step
+    y <- L$y_rows_top - (i - 1L) * row_step
     grid::grid.text(
       .crf_txt(rows[[i]]$label, "Dato"), x = L$x_left, y = y,
       just = "left", default.units = "npc",
@@ -533,20 +562,20 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   if (!is.null(instructions)) {
     .crf_draw_lines(
       instructions$lines %||% .crf_wrap(instructions$value, 75L, 4L),
-      L$x_left, 0.295, grid::gpar(col = tokens$soft, fontsize = type$body), lineheight = 1.12
+      L$x_left, L$y_instructions, grid::gpar(col = tokens$soft, fontsize = type$body), lineheight = 1.12
     )
   }
 
   if (!is.null(log_block)) {
     rows_n <- as.integer(log_block$rows %||% 3L)
     grid::grid.text(
-      .crf_txt(log_block$text, "Registro de aplicacion"), x = L$x_left, y = 0.225,
+      .crf_txt(log_block$text, "Registro de aplicacion"), x = L$x_left, y = L$y_log_title,
       just = "left", default.units = "npc",
       gp = grid::gpar(col = tokens$navy, fontsize = type$caption, fontface = "bold")
     )
-    y0 <- 0.195
+    y0 <- L$y_log_rows
     for (i in seq_len(rows_n)) {
-      y <- y0 - (i - 1L) * 0.032
+      y <- y0 - (i - 1L) * L$log_row_step
       grid::grid.text(sprintf("%d", i), x = L$x_left, y = y, just = "left", default.units = "npc",
                       gp = grid::gpar(col = tokens$faint, fontsize = type$caption))
       pulso_pdf_hairline(L$x_left + 0.03, L$x_right, y - 0.006, tokens = tokens, lwd = 0.5)
@@ -733,14 +762,25 @@ collection_render_ficha_receipt <- function(ficha, path, device = c("pdf", "png"
 #' @return matriz logica.
 #' @export
 collection_qr_matrix_from_png <- function(png_path, n, dpi = 150,
-                                          layout_preset = c("single_sheet", "poster_qr", "field_form")) {
+                                          layout_preset = c("single_sheet", "poster_qr", "field_form"),
+                                          branded = FALSE) {
   if (!requireNamespace("png", quietly = TRUE)) {
     stop("Se necesita el paquete 'png' para releer la matriz del QR.", call. = FALSE)
   }
   layout_preset <- match.arg(layout_preset)
   img <- png::readPNG(png_path)
   grey <- if (length(dim(img)) == 3L) img[, , 1] else img
-  L <- switch(layout_preset, poster_qr = .cra_layout(), field_form = .cfc_layout(), .crf_layout())
+  # `branded` no es opcional por gusto: con careta el cuerpo entero baja, y el
+  # QR con el. Este lector pedia siempre la geometria SIN careta, asi que leia
+  # el sitio equivocado de una ficha con logos; no se notaba solo porque ambas
+  # variantes coincidian en `qr_y` por casualidad. Un verificador que asume
+  # donde esta lo que verifica da verde sin mirar.
+  L <- switch(
+    layout_preset,
+    poster_qr = .cra_layout(),
+    field_form = .cfc_layout(),
+    .crf_layout(branded = isTRUE(branded))
+  )
   px_w <- ncol(grey)
   px_h <- nrow(grey)
   side_px <- L$qr_side * px_w
