@@ -227,3 +227,24 @@
   background: var(--pulso-surface-sunken, rgba(0, 0, 0, 0.04));
   border-color: var(--pulso-border-strong, rgba(0, 0, 0, 0.24));
 }
+
+/* Con el registro en su propia pestaña ya no compite con la tabla, así que el
+ * stack deja de reservar la fila elástica que era para ella. Sin esto el
+ * registro seguía topando contra un `minmax(0, 1fr)` pensado para otra
+ * superficie: a 1024x600 su fondo quedaba cortado. */
+.mon-profile-stack.aulas-agenda-stack.is-registro {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.mon-profile-stack.aulas-agenda-stack.is-registro .registro-campo {
+  min-height: 0;
+}
+
+.mon-profile-stack.aulas-agenda-stack.is-registro .registro-campo-cuerpo {
+  min-height: 0;
+  height: 100%;
+}
+
+/* La lista CONSERVA su tope y su scroll: quitárselo la hacía crecer hasta su
+ * contenido —siete aulas— y el panel pasaba de 388 a 406 px. Medido: empeoraba
+ * justo lo que se pretendía arreglar. */

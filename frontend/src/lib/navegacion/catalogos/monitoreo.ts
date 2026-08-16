@@ -201,13 +201,26 @@ export const MONITOREO_PESTANAS = {
   },
   aulas: {
     fuentes: [],
-    modelo: [],
+    // Agenda tiene dos superficies con funciones distintas: consultar el plan y
+    // registrar lo que pasó en el aula. Apiladas competían por el alto —a
+    // 1024x600 el registro quedaba recortado sin forma de alcanzarlo—; como
+    // pestañas cada una recibe la vista entera, igual que en telefónico y
+    // acreditación.
+    modelo: [
+      pestana("aulas", "modelo", "agenda", "Agenda", "Plan y enlaces por curso-horario", Table2),
+      pestana("aulas", "modelo", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
+    ],
     avance: [
-      pestana("aulas", "avance", "resumen", "Resumen", "Avance de cursos-horario", BarChart3),
+      pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),
+      pestana("aulas", "avance", "estratos", "Estratos", "Avance y brecha por estrato", Layers3),
+      pestana("aulas", "avance", "cuotas", "Cuotas", "Sexo por facultad", Target),
       pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
     ],
     calidad: [],
-    consultas: [],
+    consultas: [
+      pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
+      pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
+    ],
   },
 } as const satisfies Record<
   MonitoreoModoId,

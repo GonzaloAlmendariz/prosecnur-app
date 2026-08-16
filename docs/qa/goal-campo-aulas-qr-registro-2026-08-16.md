@@ -102,7 +102,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L22** | Una respuesta de un aula inexistente pasaba como **buena**. | `unmapped_valid_responses` miraba si la respuesta *tenía* colector, no si ese colector correspondía a un aula del plan. | ☑ **hecho** (2026-08-16) — se compara contra los ids del plan (`classroom_id` + `collection_unit_id`), posible sólo desde que el emparejamiento los conoce. |
 | **L23** | Los números de L15–L22 no se han visto en pantalla. | **La premisa era falsa.** La persistencia del `.pulso` es lista **negra**, no whitelist. | ☑ **hecho** (2026-08-16) — `api/scripts/qa_pulso_aulas_campo.R` + pila en 8799/5199. Vistos en pantalla: cadena de reemplazos, brechas por aula, avance por estrato, cuotas y los cuatro controles con su etiqueta en español. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | Decidido por Gonzalo el 2026-08-16: **vive en Monitoreo**, sección Agenda — el estado operativo mueve los denominadores del avance. | ☑ **hecho** — `RegistroDeCampo.tsx` conecta `/api/monitoreo/aulas/agenda`, que llevaba 0 consumidores. El modelo del plan gana `observed_students`, `applied_surveys`, `refusals`, `applied_by`, `applied_at` y `field_note`. ⚠ **queda un pase de layout**: ver L26. |
-| **L26** | El registro queda apretado en la vista Agenda, y duplica la lista de aulas. | La vista es de **alto fijo** y ahora compiten tres paneles; además la lista del registro y la tabla de agenda muestran lo mismo. | ☐ sin empezar — **decisión de layout**: o el registro sustituye a la tabla de solo lectura (borrar superficie exige tu visto bueno, gate 3), o va a pestaña propia dentro de Agenda. No se improvisó. |
+| **L26** | El registro queda apretado en Agenda, y duplica la lista de aulas. | Decidido por Gonzalo el 2026-08-16: **Monitoreo de aulas usa sección y pestaña igual que telefónico y acreditación**. El registro tiene pestaña propia. | ☑ **hecho** (2026-08-16) — Agenda › «Agenda» \| «Registro de campo». |
 | **L27** | La app no lee «Aulas Agendadas». | 241 columnas: 1 de `ID MATCH` + **12 bloques de 20** (titular y once eslabones, a lo ancho). | ☑ **hecho** (2026-08-16) — lector + endpoint `/api/monitoreo/aulas/importar-libro`. Contra el estudio real: **1012 filas**, 170 titulares, 230 contactadas. |
 | **L28** | La app no lee «Aulas Aplicadas (Campo)». | Tres bloques de **ancho distinto** (34/33/33: sólo el principal trae `AULA`) y `FECHA DE APLICACIÓN` duplicada dentro del bloque. | ☑ **hecho** (2026-08-16) — lector + endpoint. **196 partes**, 4269 efectivas. |
 | **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☑ **hecho** (2026-08-16) — control `field_report_reconciliation` en el tablero. Detecta los 2 descuadres del estudio real y **explica la resta**, no sólo el hecho. |
@@ -110,7 +110,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
 | **L40** | El alto se repartía al revés del contenido. | El stack es grid y la tabla topa en `min(420px, 100vh−430px)`: dos límites pensados para **una** tabla por vista. Con tres, grid sirve enteras a las que caben y descuenta todo el faltante de la única que excede. A 1024×600 **dos de los tres paneles colapsaban a cero** — regresión que introdujo L39. | ☑ **hecho** (2026-08-16) — paneles que no se encogen; el scroll lo absorbe su dueño ya declarado. Verificado a 1440×1000 y 1024×600. |
 | **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
-| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | El stack de Agenda tiene 325 px. Franja (54) + mínimo de la agenda (180) + gaps (20) = **254**, así que al registro le quedan **71 px** y necesita ~190 para ser usable. No cabe por aritmética, no por scroll. | ⛔ **bloqueado** — depende de L26: es tu decisión de dónde vive. |
+| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | Competía con la tabla por 325 px. Con pestaña propia deja de competir y su lista es alcanzable, pero el panel pide 388 px y en esa altura hay 227: **el formulario queda 161 px por debajo del corte**. | ◐ a medias (2026-08-16) — la competencia resuelta; falta que el panel quepa. |
 | **L43** | Dos superficies no declaraban su geometría (C1). | «Operación del plan» en Fuentes y «Aplicación por cursos-horario» en Agenda. La segunda declaraba su grid interior de tarjetas pero no la sección que las contiene: son dos superficies, no una. | ☑ **hecho** (2026-08-16) — cero sin declarar en las cinco secciones. |
 | **L44** | Regenerar el libro **borraba el operativo en curso**. | El generador escribía las columnas de la persona siempre en blanco, así que un estudio en marcha perdía los 7 estados de agendamiento, los 7 contadores de intentos y los 3 partes de campo. Además la hoja de campo filtraba por `sample_role == "titular"`, así que el parte de una reserva activada no se escribía. | ☑ **hecho** (2026-08-16) — 3/3 partes y 7/7 estados sobreviven. |
 | **L45** | El registro de la app capturaba **menos que el parte**. | Faltaban `duplicates`, `effective_surveys` y `actual_room`. Sin los dos primeros, el cuadre de L33 —asistentes − rechazos − duplicados = efectivas— **no se puede comprobar sobre lo que la app captura**; y «encuestas aplicadas» no es «efectivas», que es el número que manda. | ☑ **hecho** (2026-08-16) — tres campos nuevos; el backend ya los aceptaba. |
@@ -121,6 +121,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L50** | El **teléfono del docente** se leía del Excel y moría por el camino. | Dos listas cerradas en serie: el registro que arma `aulas_agendadas_a_plan()` no lo emitía, y `monitoreo_aulas_normalize_plan()` no lo declaraba. El correo sí sobrevivía, y por eso la ausencia no saltaba. | ☑ **hecho** (2026-08-16) — **undécima** aparición; ahora hay un control que compara la spec del lector contra el plan. |
 | **L51** | Las **7 columnas sin nombre** de la Base de control no se avisaban. | El lector las contaba desde el principio y el dato viajaba en la respuesta del endpoint, donde nadie lo miraba. | ☑ **hecho** (2026-08-16) — control `unnamed_control_columns` en Validación, con qué hacer para arreglarlo. |
 | **L52** | Un puntaje de **0 sobre 100** se mostraba como «Correcto». | El estado de `effective_representativity` salía sólo de `warning`, que exige 10 pp de desvío en **una** celda. Y «Score efectivo 0.0» no dice si 0 es bueno o malo. | ☑ **hecho** (2026-08-16) — el estado mira el puntaje y el aviso explica la escala. |
+| **L53** | Aulas no usaba pestañas como los otros perfiles. | De las cinco secciones sólo `avance` tenía pestañas; telefónico y acreditación las tienen en todas. Por eso tres tablas competían por un panel (L39, L40) y el registro no cabía (L42). | ☑ **hecho** (2026-08-16) — Agenda, Avance y Consultas con sus pestañas; el mecanismo dejó de estar cableado a `avance`. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -1033,3 +1034,33 @@ deja **dos claves con el mismo nombre** y `$` devuelve la primera, así que el
 `extra` del fixture no hacía nada y el caso «sin muestra efectiva» estaba
 midiendo un aula agendada. Es el mismo tropiezo que `modifyList` dio en esta
 misma sesión, por el lado contrario.
+
+
+### 2026-08-16 — La asimetría que estaba detrás de cuatro ítems
+
+Gonzalo: «el monitoreo de aulas funciona con sección y pestaña de la misma forma
+que otros monitoreos como el telefónico y el de acreditación». Al comparar los
+catálogos, de las cinco secciones de aulas **sólo `avance` tenía pestañas**;
+telefónico y acreditación las tienen en todas.
+
+Eso estaba **detrás de cuatro ítems** que había tratado como problemas de CSS:
+
+| | Lo que parecía | Lo que era |
+|---|---|---|
+| **L39** | La sección Avance no mostraba el avance | Tres vistas apiladas en un panel |
+| **L40** | El alto se repartía mal entre tres tablas | Tres pestañas sin declarar |
+| **L42** | El registro no cabía en 1024×600 | Dos superficies compitiendo por una vista |
+| **L26** | ¿Dónde vive el registro? | Ya estaba resuelto por la gramática |
+
+Ahora Agenda tiene «Agenda» y «Registro de campo», Avance tiene Resumen ·
+Estratos · Cuotas · Salidas, y Consultas tiene Reemplazos · Brechas. El
+mecanismo dejó de estar cableado a `avance`: hay una pestaña activa **por
+sección**, así que volver a una la reencuentra donde se dejó.
+
+**Lo que no quedó resuelto, medido**: el registro pide 388 px y en 1024×600 hay
+227 disponibles, así que su formulario sigue 161 px por debajo del corte. Su
+lista ya es alcanzable y scrollea. L42 baja de bloqueado a *a medias*.
+
+**Un intento que empeoró y revertí**: quitarle el tope a la lista para que
+llenara la vista la hizo crecer hasta sus siete aulas y el panel pasó de 388 a
+406 px — justo lo contrario de lo buscado.

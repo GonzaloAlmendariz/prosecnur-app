@@ -46,8 +46,19 @@ const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_univ
 
 // Avance es la única sección con pestañas: el resto siguen siendo hojas del
 // árbol. «Salidas» es donde vive la publicación a Sheets del perfil (ADR 0019).
-const AULAS_PESTANAS_AVANCE = MONITOREO_PESTANAS.aulas.avance;
-type AulasPestanaAvance = typeof AULAS_PESTANAS_AVANCE[number]["key"];
+// Todas las secciones con pestañas, no sólo Avance: es la misma gramática que
+// usan telefónico y acreditación (módulo → modo → sección → pestaña → panel).
+const AULAS_PESTANAS = MONITOREO_PESTANAS.aulas as Record<string, ReadonlyArray<{ key: string; label: string }>>;
+
+/** Pestañas de una sección; vacío cuando la sección es una hoja del árbol. */
+function pestanasDe(seccion: MonitoreoSeccion) {
+  return AULAS_PESTANAS[seccion] ?? [];
+}
+
+/** Primera pestaña de la sección, que es donde se aterriza. */
+function primeraPestana(seccion: MonitoreoSeccion) {
+  return pestanasDe(seccion)[0]?.key ?? "";
+}
 
 function fmt(value: unknown, fallback = "0") {
   if (value == null || value === "") return fallback;
@@ -289,6 +300,7 @@ function renderAulasView(
   operations: ReactNode,
   vacioSinTablero: ReactNode,
   registro: ReactNode,
+  pestana: string,
 ) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -327,9 +339,13 @@ function renderAulasView(
   if (!dashboard) return vacioSinTablero;
   if (view === "modelo") {
     return (
-      <div className="mon-profile-stack aulas-agenda-stack">
+      // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
+      // plan, y eso importa igual consultándolo que registrando sobre él. Lo que
+      // ya no compite es la tabla contra el registro.
+      <div className={`mon-profile-stack aulas-agenda-stack${pestana === "registro" ? " is-registro" : ""}`}>
         <HandoffTracePanel dashboard={dashboard} />
-        {registro}
+        {pestana === "registro" ? registro : null}
+        {pestana === "registro" ? null : (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-table"
@@ -345,6 +361,7 @@ function renderAulasView(
             preferredColumns={["operational_code", "label", "course_name", "section", "schedule", "link", "package_status", "responsible", "collector_id"]}
           />
         </section>
+        )}
       </div>
     );
   }
@@ -376,7 +393,8 @@ function renderAulasView(
     const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
     return (
-      <div className="mon-profile-stack aulas-tablas-apiladas">
+      <div className="mon-profile-stack">
+        {pestana === "brechas" ? null : (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-consultas"
@@ -392,6 +410,8 @@ function renderAulasView(
             preferredColumns={["operational_code", "replacement_for", "sample_role", "replacement_reason", "equivalence_level"]}
           />
         </section>
+        )}
+        {pestana === "reemplazos" ? null : (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-consultas"
@@ -407,6 +427,7 @@ function renderAulasView(
             preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
           />
         </section>
+        )}
       </div>
     );
   }
@@ -419,7 +440,8 @@ function renderAulasView(
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   return (
-    <div className="mon-profile-stack aulas-tablas-apiladas">
+    <div className="mon-profile-stack">
+      {pestana !== "resumen" ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -435,6 +457,8 @@ function renderAulasView(
           preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
         />
       </section>
+      )}
+      {pestana !== "estratos" ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -446,6 +470,8 @@ function renderAulasView(
         </div>
         <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
       </section>
+      )}
+      {pestana !== "cuotas" ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -457,6 +483,7 @@ function renderAulasView(
         </div>
         <DataTable rows={quotaRows} empty="El plan no declara composición por sexo para estos cursos-horario." />
       </section>
+      )}
     </div>
   );
 }
@@ -464,22 +491,27 @@ function renderAulasView(
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
   const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS));
-  // Avance se abre en Resumen o en Salidas; el resto de secciones son hojas del
-  // árbol y por eso la pestaña solo viaja en la URL cuando Avance está activa.
-  const [pestanaAvance, setPestanaAvance] = useState<AulasPestanaAvance>(() =>
-    pestanaInicialDeSeccion(
-      "avance",
-      seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS),
-      "resumen",
-      AULAS_PESTANAS_AVANCE.map((pestana) => pestana.key),
-    ),
-  );
-  useMonitoreoDireccion(seccionActiva, seccionActiva === "avance" ? pestanaAvance : undefined, "aulas", {
+  // Una pestaña activa POR SECCIÓN: volver a una sección la reencuentra donde
+  // se dejó, en vez de reiniciarla.
+  const [pestanaPorSeccion, setPestanaPorSeccion] = useState<Record<string, string>>(() => {
+    const inicial = seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS);
+    const mapa: Record<string, string> = {};
+    for (const def of AULAS_WORKBENCH_VIEWS) {
+      const claves = pestanasDe(def.key).map((item) => item.key);
+      if (!claves.length) continue;
+      mapa[def.key] = pestanaInicialDeSeccion(def.key, inicial, claves[0], claves);
+    }
+    return mapa;
+  });
+  const pestanaActiva = pestanaPorSeccion[seccionActiva] ?? primeraPestana(seccionActiva);
+  const elegirPestana = (seccion: MonitoreoSeccion, clave: string) =>
+    setPestanaPorSeccion((prev) => ({ ...prev, [seccion]: clave }));
+
+  useMonitoreoDireccion(seccionActiva, pestanaActiva || undefined, "aulas", {
     onSeccionPedida: setActiveView,
     onPestanaPedida: (pestana, seccion) => {
-      if (seccion !== "avance") return;
-      if (AULAS_PESTANAS_AVANCE.some((item) => item.key === pestana)) {
-        setPestanaAvance(pestana as AulasPestanaAvance);
+      if (pestanasDe(seccion as MonitoreoSeccion).some((item) => item.key === pestana)) {
+        elegirPestana(seccion as MonitoreoSeccion, pestana);
       }
     },
   });
@@ -629,19 +661,19 @@ export default function AulasMonitoreoPage() {
           ) : null}
           <div
             className="aulas-mon-view"
-            role={seccionActiva === "avance" ? "tabpanel" : undefined}
-            id={seccionActiva === "avance" ? `aulas-mon-panel-${pestanaAvance}` : undefined}
-            aria-labelledby={seccionActiva === "avance" ? `aulas-mon-tab-${pestanaAvance}` : undefined}
+            role={pestanaActiva ? "tabpanel" : undefined}
+            id={pestanaActiva ? `aulas-mon-panel-${pestanaActiva}` : undefined}
+            aria-labelledby={pestanaActiva ? `aulas-mon-tab-${pestanaActiva}` : undefined}
           >
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
-            {seccionActiva === "avance" ? (
+            {pestanasDe(seccionActiva).length ? (
               <GlidingTabList
-                activeKey={pestanaAvance}
+                activeKey={pestanaActiva}
                 className="aulas-mon-tabs"
                 role="tablist"
-                aria-label="Pestañas de Avance de cursos-horario"
+                aria-label={`Pestañas de ${activeDef.label}`}
               >
-                {AULAS_PESTANAS_AVANCE.map((pestana) => (
+                {pestanasDe(seccionActiva).map((pestana) => (
                   <button
                     key={pestana.key}
                     id={`aulas-mon-tab-${pestana.key}`}
@@ -651,10 +683,10 @@ export default function AulasMonitoreoPage() {
                     data-gliding-key={pestana.key}
                     data-nav-item=""
                     data-nav-shape="pill"
-                    data-nav-state={pestanaAvance === pestana.key ? "selected" : undefined}
-                    aria-selected={pestanaAvance === pestana.key}
-                    className={pestanaAvance === pestana.key ? "is-active" : ""}
-                    onClick={() => setPestanaAvance(pestana.key)}
+                    data-nav-state={pestanaActiva === pestana.key ? "selected" : undefined}
+                    aria-selected={pestanaActiva === pestana.key}
+                    className={pestanaActiva === pestana.key ? "is-active" : ""}
+                    onClick={() => elegirPestana(seccionActiva, pestana.key)}
                   >
                     {pestana.label}
                   </button>
@@ -663,7 +695,7 @@ export default function AulasMonitoreoPage() {
             ) : null}
             {loading ? (
               <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
-            ) : seccionActiva === "avance" && pestanaAvance === "salidas" ? (
+            ) : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
               // Salidas se muestra aunque no haya dashboard: el workbench declara
               // por qué está bloqueada (sin corte, sin válidas) en vez de dejar la
               // pestaña muda.
@@ -697,6 +729,7 @@ export default function AulasMonitoreoPage() {
                 agenda={aulasConfig?.plan ?? []}
                 onGuardado={() => { void loadView(seccionActiva, true); }}
               />,
+              pestanaActiva,
             )}
           </div>
         </section>
