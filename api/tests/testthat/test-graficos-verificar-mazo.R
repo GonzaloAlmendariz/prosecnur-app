@@ -222,3 +222,37 @@ test_that("cuenta cada cifra, no solo si hay alguna", {
   )
   expect_identical(.verif_texto_ilegible(formas), 3L)
 })
+
+# --- R8 y B2: arranque del bloque y aire entre premisas ----------------------
+
+test_that("el arranque es el borde superior de la primera barra", {
+  xml <- .lamina(.barra(y = 3.0, h = 0.40), .barra(y = 3.5, h = 0.40))
+  expect_equal(.verif_arranque_cm(.verif_formas(xml)), 3.0 * 2.54, tolerance = 1e-6)
+})
+
+test_that("el hueco entre premisas separa las DOS poblaciones", {
+  # Dos públicos pegados (0.1) y un salto a la premisa siguiente (0.8). Medir
+  # la mezcla con un estadístico resumen no distingue una cosa de la otra, y
+  # esa confusión ya costó perseguir un alto variable que no existía.
+  xml <- .lamina(
+    .barra(y = 1.0, h = 0.30), .barra(y = 1.4, h = 0.30),
+    .barra(y = 2.5, h = 0.30), .barra(y = 2.9, h = 0.30)
+  )
+  h <- .verif_hueco_entre_premisas_cm(.verif_formas(xml))
+  expect_equal(h, 0.8 * 2.54, tolerance = 0.05)
+})
+
+test_that("una lamina con huecos uniformes no inventa un valor", {
+  # Sin dos poblaciones distinguibles no hay «entre premisas» que medir, y
+  # devolver la mediana de todo sería fabricarlo.
+  xml <- .lamina(
+    .barra(y = 1.0, h = 0.30), .barra(y = 1.5, h = 0.30),
+    .barra(y = 2.0, h = 0.30), .barra(y = 2.5, h = 0.30)
+  )
+  expect_true(is.na(.verif_hueco_entre_premisas_cm(.verif_formas(xml))))
+})
+
+test_that("con menos de cuatro barras no se mide el hueco", {
+  xml <- .lamina(.barra(y = 1.0, h = 0.30), .barra(y = 1.5, h = 0.30))
+  expect_true(is.na(.verif_hueco_entre_premisas_cm(.verif_formas(xml))))
+})
