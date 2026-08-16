@@ -683,3 +683,65 @@ test_that("la agenda acepta el id que viaja en el QR, no solo el aula", {
   )
   expect_identical(estado(por_codigo), c("planificada", "en_campo"))
 })
+
+test_that("el handoff propaga la cadena entera, no solo el primer eslabon", {
+  # Con `reserve_depth_target` en 6 las cadenas reales tienen varios eslabones.
+  # Los demas tests de costura usan una reserva por titular: si el handoff se
+  # quedara con la primera, nadie lo veria.
+  mk <- function(i, role, wave, repl = "", orden = NA) {
+    out <- list(
+      operational_code = sprintf("AULA-%02d", i), classroom_id = sprintf("AULA-%02d", i),
+      label = sprintf("Aula %02d", i), sample_role = role, wave = wave,
+      replacement_for = repl, facultad = "Ingenieria",
+      nombre_del_curso = sprintf("Curso %02d", i),
+      horario = "08:00-10:00", pabellon_aula = sprintf("Pabellon A - %d", i),
+      nombre_de_docente = sprintf("Docente %02d", i), matriculados_poblacion = 28 + i
+    )
+    if (!is.na(orden)) out$replacement_order <- orden
+    out
+  }
+  seleccion <- c(
+    list(mk(1, "titular", "M1")),
+    lapply(1:6, function(k) mk(10 + k, "chain_reserve", sprintf("M%d", k + 1), "AULA-01", k))
+  )
+
+  sid <- session_create()
+  session_set(sid, "estudio", list(nombre = "cadena profunda", periodo = "Agosto 2026"))
+  session_set(sid, "calc_muestra_aulas_selection", list(selection = seleccion))
+  seeded <- collection_state_seed(sid)
+  target <- list(provider = "kobo", base_access_url = "https://ee.kobotoolbox.org/x/aB3xY9kQ",
+                 prefill_field = "collectorID", asset_type = "survey",
+                 deployment_active = TRUE, asset_uid = "aSIM123456789")
+  preview <- collection_adapter_get("kobo_existing_v1")$preview_deployment(
+    plan = seeded$plan, target = target)
+  preview$capability_preflight <- NULL
+  collection_deployment_put(sid, preview, expected_revision = seeded$state_revision)
+  ho <- collection_handoff(sid, expected_revision = collection_state_get(sid)$state_revision)
+
+  plan <- monitoreo_aulas_normalize_plan(ho$monitoring_rows)
+  reservas <- Filter(function(r) identical(r$sample_role, "chain_reserve"), plan)
+  expect_length(reservas, 6L)
+
+  # Todas cuelgan del MISMO titular: `replacement_for` del motor apunta al
+  # titular de la cadena, no al eslabon anterior (ver L41).
+  expect_true(all(vapply(reservas, function(r) identical(as.character(r$replacement_for), "AULA-01"), logical(1))))
+  expect_identical(
+    vapply(reservas, function(r) as.character(r$replacement_chain_code %||% ""), character(1)),
+    sprintf("R 1.%d", 1:6)
+  )
+
+  # Y la activacion las consume todas, en orden, sobre el plan que da el handoff.
+  expect_length(monitoreo_aulas_reservas_disponibles(plan, "AULA-01"), 6L)
+  actual <- plan
+  caido <- "AULA-01"
+  usadas <- character(0)
+  for (paso in seq_len(10L)) {
+    r <- monitoreo_aulas_activar_reemplazo(actual, caido,
+                                           ahora = sprintf("2026-08-16T%02d:00:00Z", 8 + paso))
+    if (isTRUE(r$agotada)) break
+    usadas <- c(usadas, r$activada)
+    actual <- r$plan
+    caido <- r$activada
+  }
+  expect_identical(usadas, sprintf("AULA-%02d", 11:16))
+})
