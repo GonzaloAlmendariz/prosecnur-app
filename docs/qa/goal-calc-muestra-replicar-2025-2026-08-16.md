@@ -56,7 +56,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☑ **cerrado** (2026-08-16, `7addb99c`) · el motor publica `filas_total` y cada tarjeta de criterio de alumno dice a cuántos dejó fuera; el 0 de `level` se pinta de aviso |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **hay patrón LOGRADO** (2026-08-16) · 194 aulas aplicadas, 3.303 válidas; el n PLANIFICADO sigue sin patrón |
-| L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
+| L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** · el estadístico YA está justificado en la UI; lo que falta es de 2025, que nunca firmó la decisión |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido y confirmado** (2026-08-16) · idéntico con y sin descuento; el contraste con 2025 sigue bloqueado |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **diferencia explicada** (2026-08-16) · estaba comparando agendadas contra agendadas de n distintos; ver abajo |
@@ -674,3 +674,37 @@ un décimo de lo previsto:
 
 La tercera resuelve dos problemas de una vez y no toca las probabilidades del
 sorteo, pero cambia el diseño muestral y por eso no la elijo yo.
+
+## El «porqué del P25» no está en el `.pulso` de 2025 (2026-08-16)
+
+Fui a documentar la justificación del estadístico de alumnos por curso-horario y
+encontré dos cosas, ninguna de ellas la que esperaba.
+
+**Primera: la justificación ya existe.** Los tres métodos llegan a pantalla con
+su lectura, no como etiquetas sueltas:
+
+| Método | Lo que dice la UI |
+|---|---|
+| **P25** | «Conservador: una cuarta parte de los CH tiene este valor o menos» |
+| Mediana | «Centro robusto: divide los CH elegibles en dos mitades» |
+| Media | «Promedio: sensible a CH excepcionalmente grandes» |
+
+Y el aviso lo remata: «P25 es la recomendación provisional por su lectura
+conservadora». O sea que L9 no pedía escribir una justificación que faltara: ya
+estaba escrita, y dice por qué, no sólo qué. **Nada que arreglar aquí.**
+
+**Segunda, y ésta sí importa: en el `.pulso` de 2025 la decisión está VACÍA.**
+`alumnos_por_ch_decision` llega con todos sus campos en `""` —`schema`,
+`frame_hash`, `denominador`, `estadistico_default`, `por_facultad` vacío,
+`confirmado_at` vacío—. Nunca se firmó.
+
+Eso corrige la pregunta que este loop venía arrastrando: **«el porqué del P25»
+no tiene respuesta dentro del proyecto**, porque en 2025 no se eligió P25 ni
+ningún otro estadístico por esta vía. El `p25` que aparece hoy es el *default*
+del cliente (`metodoAlumnosPorChInicial` cae a `"p25"` cuando no hay nada
+guardado), no una decisión heredada.
+
+Y matiza lo que anoté como «L9 reproduce exacto»: lo que reproduce exacto es el
+**snapshot** —media, P25 y mediana por facultad, calculados desde el marco—, que
+no depende de ninguna decisión firmada. El contraste contra lo que 2025 usó de
+verdad sigue esperando el entregable.
