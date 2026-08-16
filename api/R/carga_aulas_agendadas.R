@@ -138,6 +138,11 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         faculty = val("faculty"),
         level = val("level"),
         teacher = val("teacher"),
+        # La spec declara `teacher_phone` desde el principio y el generador lo
+        # escribe con su titulo correcto, pero este registro —otra lista
+        # cerrada— no lo emitia: el dato se leia del Excel y moria aqui. Es EL
+        # dato con el que se agenda.
+        teacher_phone = val("teacher_phone"),
         teacher_email = val("teacher_email"),
         schedule = val("label"),
         wave = val("wave"),

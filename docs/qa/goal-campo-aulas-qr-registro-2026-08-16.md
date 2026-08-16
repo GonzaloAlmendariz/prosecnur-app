@@ -118,6 +118,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L47** | Las **190 observaciones** del agendamiento se perdían al regenerar. | El lector guarda la columna `OBSERVACIONES` en `replacement_note` y el generador leía `notes`. Round-trip de 40 unidades del estudio real: 11 → 0. | ☑ **hecho** (2026-08-16) — 11 → 11. |
 | **L48** | `monitoreo_aulas_estado_muestra()` **no reconocía su propia salida**. | Borraba el guion bajo en vez de convertirlo en espacio, así que `en_reserva` quedaba en `enreserva`, no casaba con `en reserva` y **degradaba a `sin_contactar`** en cada vuelta de normalización. | ☑ **hecho** (2026-08-16) — los tres vocabularios son idempotentes. |
 | **L49** | Las marcas de la activación se caían al normalizar. | `monitoreo_aulas_normalize_plan()` reconstruye la fila campo a campo con lista **cerrada**: `replaced_at`, `activated_at` y `activation_reason` no estaban declarados, así que el motor los escribía y el tablero los mostraba vacíos. | ☑ **hecho** (2026-08-16) — **décima** aparición del patrón. |
+| **L50** | El **teléfono del docente** se leía del Excel y moría por el camino. | Dos listas cerradas en serie: el registro que arma `aulas_agendadas_a_plan()` no lo emitía, y `monitoreo_aulas_normalize_plan()` no lo declaraba. El correo sí sobrevivía, y por eso la ausencia no saltaba. | ☑ **hecho** (2026-08-16) — **undécima** aparición; ahora hay un control que compara la spec del lector contra el plan. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -954,3 +955,31 @@ defecto de layout puede disfrazarse de defecto funcional.
 
 Con esto **la vara queda completa salvo L46** (hombres/mujeres en papel) y tus
 cinco decisiones.
+
+
+### 2026-08-16 — El patrón, convertido en control
+
+Once veces en este GOAL una lista cerrada de campos se ha tragado un dato en
+silencio. Audité el patrón en vez de esperar a la duodécima: comparé lo que cada
+lector **declara producir** contra lo que el plan **conserva**.
+
+Cinco campos aparecían fuera. Tres son correctos —`attendance_pct`,
+`applied_date` y `applied_time` viven en el parte de campo, que se guarda aparte
+del plan—. Dos no:
+
+- **`teacher_phone`**, y es el grave: es el dato con el que se agenda. Estaba
+  **dos veces** perdido, en serie: el registro que arma el lector no lo emitía,
+  y el normalizador del plan tampoco lo declaraba. El correo sí sobrevivía a los
+  dos, y por eso la ausencia del teléfono no saltaba a la vista.
+- **`notes`**, que entra por un nombre y sale por otro; ahora se aceptan ambos.
+
+**Un fixture real no lo habría encontrado.** El estudio de 2025 dejó la columna
+del teléfono vacía en las 1012 unidades, así que el round-trip sobre datos
+reales daba «0 → 0» y parecía correcto. Hizo falta un caso sintético para probar
+el mecanismo — la contracara exacta de la lección de que un verde vale lo que su
+fixture.
+
+**El control que queda**: un test compara la spec del lector de agendamiento
+contra los campos que el plan conserva, campo a campo. Un campo nuevo en una
+spec sin su declaración correspondiente pone rojo el test, en vez de descubrirse
+cuando un estudio real pierde datos.
