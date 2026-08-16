@@ -62,7 +62,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
-| L19 | Los enunciados largos se recortan hasta perder el 58 % | falta que el enunciado pida fila alta | ◐ cupo ya derivado del alto real |
+| L19 | Los enunciados largos se recortan | falta alto variable por premisa | ◐ **18→15**, severos 11→7, muestra 51 % |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
 | L21 | Inventario: qué familias de las 18 no tienen receta | recetario | ☐ |
 | L22 | Medir cada familia sin receta contra Contabilidad y escribirla | recetario | ☐ |
@@ -678,3 +678,21 @@ mueven, porque en sus láminas la fila no crece. Ninguna activa
 `needs_tall_label_slot`, que hoy sólo mira las etiquetas del eje Y. Falta que el
 **enunciado** también pueda pedir fila alta. Eso ya cambia la composición de
 todas las láminas de escala, así que se mide aparte antes de tocarlo.
+
+### L19, segunda pasada: el redondeo se comía una línea de cada cuatro
+
+Medido con el cupo ya derivado: la fila del mazo mide **0.62 in** y a 13 pt
+caben **3.99 líneas**. `floor` devolvía 3. Se perdía una línea entera por un
+0.25 % de diferencia, con el interlineado siendo una estimación y no una medida
+—y eran **25 de los 33 recortes**, todos en ese mismo caso.
+
+Con un margen de 0.05 al contar: recortados **18 → 15**, los que pierden más de
+la mitad **11 → 7**, y el texto mostrado sube del 42 % al **51 %**. El margen no
+regala nada: a 16 pt esa misma fila sigue dando 3. Ninguna vara se mueve y el
+texto bajo el cuerpo mínimo incluso baja al 6.0 %.
+
+**Lo que falta para cerrar, ya medido**: los 15 que quedan necesitan hasta 9
+líneas —1.40 in— y su fila da 0.62. La salida es **alto variable por premisa**, y
+hay sitio: cuatro premisas de una fila ocupan 2.48 in de las 3.62 del panel, así
+que sobra un 31 %. Repartir ese sobrante entre las premisas que lo piden es un
+cambio en el reparto vertical, y toca medirlo aparte antes de tocarlo.
