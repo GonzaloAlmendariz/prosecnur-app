@@ -57,7 +57,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
 | L12 | La guía de canvas pasa a verificar las reglas | `verificar_mazo()` | ☑ 4 reglas medidas, 6 declaradas sin cubrir |
-| L14 | Llevar el arreglo del color al DEFAULT del motor | `.PULSO_PPT_COLORS` / generador de paletas por lista | ☐ |
+| L14 | Llevar el arreglo del color al DEFAULT del motor | `paletasSugeridas.ts`: el sugeridor del editor | ☑ **5 rampas** dejan de abrir en rojo |
 | L15 | Cerrar la brecha de Top Two Box | ☑ **diagnosticado**: el modo `multilista` no la soporta. Pasa a L18 |
 | L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
@@ -77,9 +77,9 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
 | L33 | El título de las láminas de texto se pega al borde | `reporte_ppt_titulo_piso.R` | ☑ **R7 2 → 0** |
-| L34 | La lámina de perfil repite un cuadrante y deja otro sin título | plan del `.pulso` | ☐ |
-| L35 | Con barra corta la cifra se sale y pisa la etiqueta de categoría | graficador de categóricas | ☐ |
-| L36 | La guía: notas apiladas, sin cotas en 4 paneles, y no se puede encender | `graficador_guia_arquitectonica.R` + `.enriquecer_presets()` | ☐ |
+| L34 | La lámina de perfil repite un cuadrante y deja otro sin título | `graficos_plan_avisos_lamina.R` | ☑ **avisa de 4**; el contenido lo decide el analista |
+| L35 | Con barra corta la cifra se sale y pisa la etiqueta de categoría | `graficador_ancho_etiqueta.R` | ☑ **4 → 0** solapes |
+| L36 | La guía: notas apiladas, sin cotas en 4 paneles, y no se puede encender | `graficador_guia_arquitectonica.R` + `.enriquecer_presets()` | ☑ los **4** puntos; y destapó la causa de R5 |
 
 **L13 retirado** (2026-08-15): regenerar los fixtures `hsvg2026` y `acrconta`
 con el dominio sintético no le corresponde a este GOAL. El arreglo del
@@ -1186,6 +1186,57 @@ cuerpo en pt y grosor de barra por caja. **Fuera de ahí, no**:
 | Se come el rótulo | la nota del bloque extra cae encima del texto `TOP TWO BOX` |
 | Media guía en 4 paneles | en la disposición de cuatro paneles dibuja los marcos pero **ni una sola cota**: ahí sigue siendo el subrayador viejo, no el plano |
 | No se puede encender | `.enriquecer_presets()` escribe `base$debug_ph_bordes`, pero el render hereda desde **`base$args`**: por la config del proyecto la guía nunca llega al graficador |
+
+## L14, L34, L35 y L36 — y la guía resuelve R5 (2026-08-16)
+
+**L14 ☑.** El arreglo de color no estaba en el motor: el **sugeridor de paletas
+del editor** seguía ofreciendo cinco rampas evaluativas que abrían en rojo
+`#CA5651`, así que cada proyecto nuevo nacía con el defecto y había que
+corregirlo lista por lista —23 en Contabilidad—. Las rampas se mudan a
+`paletasSugeridas.ts`, fuera del componente, para poder verificarse sin montar
+la UI, y abren en `#F4B183`. Las categóricas conservan el rojo: ahí distingue
+series sin orden y es el color de la casa. Se descubrió además que **una escala
+de siete puntos no tenía rampa ofrecida**; ahora la hay.
+
+**L34 ☑ en lo que es del motor.** Cuatro paneles `inferior_derecha` apuntaban
+todos a `p5` —el valor que quedó al crear la lámina—: uno duplica el gráfico de
+Sexo, otro trae la base `docentes` en una lámina de administrativos, tres no
+tienen rótulo. El motor los dibujaba callado. Ahora el plan avisa de las tres
+cosas, con el panel nombrado. **Qué debe ir en su lugar es decisión de análisis,
+no del motor**: la lámina 12 lleva `p5` rotulada «¿Se encuentra trabajando?», y
+eso no lo puede resolver el graficador sin las etiquetas del instrumento.
+
+**L35 ☑.** La cifra se salía de la barra y pisaba la etiqueta de categoría
+(`Décimo ciclo16.9%`, cuatro filas). La decisión dentro/fuera comparaba el texto
+con una **constante por carácter calibrada para lámina completa**; en un cuarto
+de lámina el mismo texto ocupa el triple. Con el ancho físico del cajón —el dato
+que ya usaba el wrap del eje (H22)— se mide de verdad. Sólo se activa en paneles
+angostos: las láminas de un gráfico no se tocan.
+
+**L36 ☑, los cuatro puntos.** La guía **no se podía encender**: el enriquecedor
+escribía la bandera en `base` y el render hereda desde `base$args`. Las notas de
+cajas anidadas se pisaban; ahora un registro por lámina baja una línea cada vez
+que una banda ya está tomada. La nota del bloque extra se comía el rótulo `TOP
+TWO BOX`; baja una línea fija. Y **agrupadas dibujaba sólo marcos**: se porta el
+plano, así que la lámina de cuatro paneles ya lleva cota, cuerpo en pt y grosor
+de barra. De paso, el magenta `#FF00FF` —el que la propia guía nació para
+retirar— seguía siendo el default en **ocho graficadores** más la config y la
+metadata; ahora es el cian del plano en todos.
+
+### La guía resolvió R5 en su primer uso
+
+Con las cotas puestas, el cuadrante de la lámina 9 suma **15.24 cm** de alto
+—cabecera 3.43 + 0.82 + eje 9.16 + pie 1.83— dentro de una caja que mide
+**6.5 cm**, mientras el ancho pasa casi intacto (13.21 contra 13.1). Y la guía
+declara `barra 1.25 cm` donde el `.pptx` mide 0.498.
+
+Eso cierra el diagnóstico que quedó abierto arriba: **el canvas se genera con
+`alto = 6` pulgadas y se aplasta verticalmente al cajón**, sin conservar la
+proporción. El piso de grosor se aplica antes del aplastamiento, así que en
+cuatro paneles se evapora. No es una hipótesis: son dos medidas que coinciden.
+La reparación sigue siendo pasar el alto real del cajón —`.render_element()` ya
+inyecta el ancho y no el alto—, y sigue mereciendo su propia unidad con QA
+visual, porque cambia el canvas de dieciséis gráficos a la vez.
 
 **Lo que este GOAL enseñó, más allá del mazo**: nueve trampas de medición, todas
 pagadas al menos una vez, y las tres que más costaron fueron **medir un espacio
