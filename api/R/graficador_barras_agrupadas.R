@@ -397,6 +397,9 @@ graficar_barras_agrupadas <- function(
     ancho                     = 10,
     alto                      = 6,
     alto_por_categoria        = NULL,
+    # Piso de grosor en pulgadas. 0.256 in son los 0.65 cm del percentil 10 del
+    # entregable aprobado. `0` o `NULL` lo desactiva.
+    grosor_min_in             = 0.256,
     dpi                       = 300,
 
     ppt_append                = TRUE,
@@ -757,6 +760,22 @@ graficar_barras_agrupadas <- function(
     grosor_barras     = grosor_barras,
     canvas_min_filas  = canvas_min_filas_eff,
     usar_canvas       = usar_canvas
+  )
+
+  # Piso en CENTIMETROS, igual que en apiladas (ver `graficador_grosor_piso.R`).
+  # El piso de arriba es una fraccion de fila y no dice nada sobre lo que se ve:
+  # medido sobre el mazo, la mediana del motor (1.07 cm) es mejor que la del
+  # entregable aprobado (0.88) pero su cola es peor —p10 de 0.45 contra 0.65—,
+  # y once graficos caian por debajo. Lo que falla no es el nivel: es la
+  # dispersion, y una fraccion no la controla.
+  #
+  # El alto de fila se toma sin el ajuste por etiquetas de varias lineas, que se
+  # calcula mas abajo y solo lo SUBE: usar el valor base deja el piso algo mas
+  # exigente, que es el lado seguro.
+  grosor_barras_eff <- .grosor_con_piso_in(
+    grosor_barras_eff,
+    alto_por_cat = .grosor_alto_por_categoria(alto_por_categoria),
+    piso_in      = grosor_min_in
   )
 
   size_ejes_eff <- suppressWarnings(as.numeric(size_ejes)[1])

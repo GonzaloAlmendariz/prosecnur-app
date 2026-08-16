@@ -73,7 +73,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ☑ **R4, R7, R8, R9, R10, B2**; R6 sin material |
 | L26 | Medir las disposiciones y darles celda | receta 11 del recetario | ☑ las 2 con modelo; 29 sin material |
 | L31 | Las barras de perfil salen en 5 colores | declaración con nombres que no existen | ☑ **monocromo 081F5C×56** |
-| L32 | 11 gráficos categóricos bajo el piso de grosor | estaban ocultos al medidor | ☐ |
+| L32 | 11 gráficos categóricos bajo el piso | el estirado del panel falta en agrupadas | ◐ diagnosticado |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
 
@@ -981,3 +981,28 @@ las cifras blancas—. Queda como **L32**.
 
 Conviene tenerlo presente al leer el marcador: el motor pasa de 4 a 15
 incumplimientos sin que el mazo haya empeorado en nada.
+
+### L32: no es el piso de grosor, es el mismo panel corto de L30
+
+Los once gráficos categóricos bajo el piso **ya tienen la barra casi tan gruesa
+como su fila permite**: fracciones de 0.75 a 0.93, con 0.93 pegando las barras
+unas con otras. Subir el grosor no es una salida —no queda sitio dentro de la
+fila—.
+
+Lo que falla es el alto de la fila: **0.60 cm para trece barras**. Y la
+comparación lo confirma:
+
+| | Barras por gráfico | Grosor mediano |
+|---|---|---|
+| Aprobado | mediana **7**, máx 11 | 0.88 cm |
+| Motor | mediana 4, máx 13 | 1.07 cm |
+
+**El aprobado mete más barras y las saca más gruesas.** No aprieta mejor: su
+panel es más alto, exactamente igual que en L30 —donde el canvas se construía
+con filas × alto de fila e ignoraba el hueco—. Ese arreglo se hizo en apiladas y
+**falta en agrupadas**, que es donde viven los perfiles.
+
+Se añadió de paso el piso en centímetros a agrupadas (`grosor_min_in = 0.256`,
+los 0.65 cm del percentil 10 del aprobado), igual que en apiladas. Hoy no se
+activa —la fracción ya está al tope— pero entrará en cuanto el panel se estire y
+haya sitio real que repartir.
