@@ -45,6 +45,23 @@ test_that("un cuerpo mayor reduce las lineas que caben en el mismo alto", {
   expect_gt(chico, grande)
 })
 
+test_that("una linea que cabe por los pelos no se pierde", {
+  # La fila real del mazo mide 0.62 in y a 13 pt caben 3.99 líneas: sin margen,
+  # `floor` devuelve 3 y el enunciado pierde una línea entera por un 0.25 % de
+  # diferencia, con el interlineado siendo ya una estimación. Eran 25 de los 33
+  # recortes del estudio.
+  n <- .nlineas(suppressMessages(
+    .barras_acotar_titulo_grupo(.titulo(9), 1, alto_fila_in = 0.62, cuerpo_pt = 13)))
+  expect_identical(n, 4L)
+})
+
+test_that("el margen no regala una linea que no cabe", {
+  # 0.62 in a 16 pt son 3.24 líneas: el margen no puede convertirlo en 4.
+  n <- .nlineas(suppressMessages(
+    .barras_acotar_titulo_grupo(.titulo(9), 1, alto_fila_in = 0.62, cuerpo_pt = 16)))
+  expect_identical(n, 3L)
+})
+
 test_that("un titulo que cabe entero no se toca ni avisa", {
   expect_silent(r <- .barras_acotar_titulo_grupo(.titulo(2), 1))
   expect_identical(.nlineas(r), 2L)
