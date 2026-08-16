@@ -49,7 +49,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | # | Qué | Vara | Estado |
 |---|---|---|---|
 | L1 | Reunir el material de 2025 | — | ◐ **parcial** (2026-08-16) · bases e histórico de asistencia localizados; **falta la selección de aulas de 2025** |
-| L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ |
+| L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ · necesita una pila SIN bootstrap; la de trabajo arranca con un `.pulso` precargado (ver abajo) |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
@@ -708,3 +708,24 @@ Y matiza lo que anoté como «L9 reproduce exacto»: lo que reproduce exacto es 
 **snapshot** —media, P25 y mediana por facultad, calculados desde el marco—, que
 no depende de ninguna decisión firmada. El contraste contra lo que 2025 usó de
 verdad sigue esperando el entregable.
+
+## L2 necesita una pila sin proyecto precargado (2026-08-16)
+
+Intenté arrancar el camino desde cero y me topé con lo obvio en cuanto lo miré:
+**la pila de trabajo arranca con un proyecto ya abierto**. El backend del 8801
+corre con `PULSO_BOOTSTRAP_PROJECT` apuntando al proyecto de referencia
+`hsvg2026.pulso`, y el front que respondía mostraba otro estudio ya cargado. Con
+un `.pulso` precargado no hay «proyecto vacío» que recorrer: el BootGate ya pasó
+y el marco ya existe.
+
+Tampoco sirve pedirle una sesión virgen al backend por HTTP: `/api/session` no
+existe en esa forma —devuelve 404— y `/api/calc-muestra/state` sin cabecera
+responde `E_NO_SESSION`. El camino de sesión limpia es el del propio arranque,
+no un endpoint que se pueda invocar de lado.
+
+Así que L2 **no es un ítem de medición sino de montaje**: hace falta levantar
+una pila propia sin `PULSO_BOOTSTRAP_PROJECT`, cargar sólo las dos hojas del
+archivo de 2025 (`MATRICULADO` y `CURSO Y HORARIO`) y recorrer Definición →
+Criterios → Marco anotando qué se rompe y qué no se explica solo. Es el único
+ítem de la cola que no espera ni una decisión ni el entregable, así que conviene
+hacerlo con el tiempo que pide —el marco tarda ~140 s— en vez de a trozos.
