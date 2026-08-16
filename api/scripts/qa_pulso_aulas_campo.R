@@ -20,10 +20,16 @@
 
 suppressWarnings(suppressMessages(pkgload::load_all("api", quiet = TRUE)))
 
-destino <- commandArgs(trailingOnly = TRUE)[1]
+args <- commandArgs(trailingOnly = TRUE)
+destino <- args[1]
 if (is.na(destino) || !nzchar(destino)) {
   destino <- file.path(tempdir(), "qa_aulas_campo.pulso")
 }
+# `--escala 2025` siembra el operativo entero —170 titulares y 26 reemplazos
+# consumidos, la forma que el campo tuvo de verdad— en vez de las siete aulas de
+# banco de pruebas. Las tablas de 196 filas son donde el recorte de columnas y el
+# reparto de alto se ponen a prueba; con nueve no se ve nada de eso.
+ESCALA_2025 <- any(args == "--escala") && any(args == "2025")
 
 # --- El plan -----------------------------------------------------------------
 # Cinco titulares y dos reservas encadenadas. Cada aula tiene un papel:
@@ -110,6 +116,46 @@ partes <- list(
        refusals = 1, duplicates = 0, effective_surveys = 9,
        applicator = "Equipo B", application_status = "aplicada")
 )
+
+if (ESCALA_2025) {
+  facs <- c("Ciencias e Ingenieria", "Estudios Generales Letras", "Gestion",
+            "Arquitectura", "Educacion", "Derecho")
+  base <- function(cod, rol, fac, i, repl = NULL, ord = NULL, est = "agendada") {
+    o <- list(classroom_id = cod, operational_code = cod, label = paste("Aula", cod),
+              course_name = paste("Curso", cod), schedule = "Lun 08:00",
+              teacher = paste("Docente", cod), teacher_phone = sprintf("9%08d", i * 137 %% 1e8),
+              faculty = fac, stratum = fac, level = "Pregrado", sample_role = rol,
+              wave = if (rol == "titular") "M1" else sprintf("M%d", (ord %||% 1) + 1),
+              orden = i, eligible_n = 20 + (i %% 25), enrolled_total = 25 + (i %% 25),
+              expected_valid = max(1, round((20 + (i %% 25)) * 0.7)), sample_status = est,
+              sex_top_1 = "F", sex_top_1_n = 11 + (i %% 8),
+              sex_top_2 = "M", sex_top_2_n = 9 + (i %% 6),
+              link = sprintf("https://ee.kobotoolbox.org/x/abc?d[collectorID]=%s", cod))
+    if (!is.null(repl)) { o$replacement_for <- repl; o$replacement_order <- ord }
+    o
+  }
+  plan <- c(
+    lapply(1:170, function(i) base(sprintf("CH %d", i), "titular", facs[[1 + (i %% 6)]], i,
+                                   est = if (i <= 24) "reemplazada" else "agendada")),
+    lapply(1:24, function(k) base(sprintf("R %d.1", k), "chain_reserve", facs[[1 + (k %% 6)]],
+                                  170 + k, repl = sprintf("CH %d", k), ord = 1,
+                                  est = if (k <= 2) "reemplazada" else "agendada")),
+    lapply(1:2, function(k) base(sprintf("R %d.2", k), "chain_reserve", facs[[1 + (k %% 6)]],
+                                 194 + k, repl = sprintf("CH %d", k), ord = 2))
+  )
+  aplicadas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
+  partes <- lapply(seq_along(aplicadas), function(i) {
+    u <- aplicadas[[i]]; asist <- as.numeric(u$eligible_n); rech <- i %% 3; dup <- i %% 4
+    efec <- asist - rech - dup
+    if (i %in% c(7L, 88L)) efec <- efec - 1
+    list(operational_code = as.character(u$operational_code), intento = 1L,
+         observed_students = asist, refusals = rech, duplicates = dup,
+         effective_surveys = efec, applied_by = sprintf("Equipo %d", 1 + (i %% 6)))
+  })
+  data <- do.call(rbind, lapply(seq_len(600), function(i) data.frame(
+    collectorID = sprintf("CH %d", 25 + (i %% 145)), sexo = if (i %% 2) "F" else "M",
+    stringsAsFactors = FALSE)))
+}
 
 sid <- session_create()
 session_set(sid, "monitoreo_aulas_plan", plan)

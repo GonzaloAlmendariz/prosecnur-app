@@ -126,6 +126,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L55** | Seis fichas de la misma cadena decían **lo mismo**. | Todas: «Reemplazo de AULA-01». Quien las lleva al aula no sabía cuál entra primero. `dimensions` declaraba `replacement_for` pero no `replacement_order` — **duodécima** aparición de la lista cerrada. | ☑ **hecho** (2026-08-16) — «Reemplazo 1 de AULA-01» … «Reemplazo 6 de AULA-01». |
 | **L56** | La tabla de reemplazos no decía **cuál sigue ni cuál ya se usó**. | Con seis reservas del mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten en las seis filas. El motor traía `replacement_order` y `sample_status`; la tabla no los pedía. Y el orden **derivado** se quedaba en una variable local, así que el campo mostraba 0. | ☑ **hecho** (2026-08-16) — órdenes 1–4 y estados distintos, verificado en pantalla. |
 | **L57** | La **Agenda** no distinguía titular de reserva. | Sus columnas eran código, aula, curso, sección, horario, enlace, estado de ficha, responsable y origen: con una cadena de seis, las siete filas del mismo titular sólo se diferenciaban por su código. | ☑ **hecho** (2026-08-16) — rol y «reemplaza a» delante de sección y responsable. |
+| **L58** | A escala real la Agenda **no mostraba ni una reserva**. | La tabla recortaba a 80 filas y el plan ordena las reservas al final: con 196 aulas se veían `CH 1`–`CH 80` y las 26 reservas quedaban fuera. El aviso lo declaraba, pero el trabajo de L57 era invisible en un operativo de verdad. | ☑ **hecho** (2026-08-16) — tope a 400; 196 filas con sus 26 reservas. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -473,3 +474,28 @@ Dos comprobaciones que sólo tienen sentido a esta escala:
 Y el caso **dominante**: en 2025, 146 de 170 titulares no consumieron ningún
 reemplazo. Que el aviso distinga «nunca tuvo reserva» de «se agotó la cadena»
 importa más aquí que en el caso raro — es lo que verá la mayoría de las aulas.
+
+
+### 2026-08-16 — 196 aulas en pantalla, y lo que sólo se ve ahí
+
+El QA visual había mirado nueve aulas. `--escala 2025` en el sembrador pone las
+**196** del operativo real, con sus 26 reservas y 600 respuestas.
+
+Lo primero que apareció: la Agenda mostraba `CH 1` a `CH 80` y **cero reservas**.
+La tabla recorta a 80 filas —y lo declara, «Mostrando 80 de 196»— pero el plan
+ordena las reservas al final, así que el rol y el «reemplaza a» que L57 añadió
+**no se veían nunca** en un estudio de verdad.
+
+El tope existía para no reventar el DOM. Medido: **196 filas con scroll interno
+no lo revientan**, la vista responde igual y se llega al final —las últimas son
+`R 23.1`, `R 24.1`, `R 1.2`, `R 2.2`, cada una con su titular—. Subido a 400,
+que cubre un estudio entero y sigue declarando el recorte si algún día se pasa.
+
+**La lección**: un recorte declarado no es un engaño, pero tampoco es inocuo. Si
+lo que queda fuera es sistemáticamente el mismo tipo de fila —aquí, todas las
+reservas, porque van al final por construcción— el recorte deja de ser un límite
+de tamaño y pasa a ser un filtro que nadie eligió.
+
+Con esto la escala real queda vista en pantalla: 196 cursos-horario, 600
+respuestas, representatividad 95%, 12 celdas de cuota y las 26 reservas
+alcanzables.

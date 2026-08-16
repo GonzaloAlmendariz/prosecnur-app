@@ -159,7 +159,11 @@ function DataTable({
   const todasLasColumnas = compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER);
   const recorteColumnas = recorteTabla(todasLasColumnas, 8, "columna");
   const columns = recorteColumnas.visibles;
-  const recorteFilas = recorteTabla(rows.map(presentAulasRow), 80);
+  // 80 filas dejaban fuera 116 de las 196 de un operativo real —y con las
+  // reservas al final del plan, la Agenda no mostraba NI UNA—. El tope existe
+  // para no reventar el DOM; 400 filas con scroll interno no lo revientan y
+  // cubren un estudio entero. Sigue declarándose cuando recorta.
+  const recorteFilas = recorteTabla(rows.map(presentAulasRow), 400);
   const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   return (
     <div
