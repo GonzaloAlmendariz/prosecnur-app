@@ -56,7 +56,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L5 | `composicion_na_n` y el intervalo de elegibles tienen superficie | V4 | frontend | ☑ **hecho** (2026-08-15) · mutantes: 3 de 5 y 3 de 6 tests caen |
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
-| L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
+| L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados** · desbloqueado por L14; C5 pendiente de una pasada por la UI (ver «Estado para retomar L8») |
 | L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | backend (`..._resello.R`) | ☑ **hecho y verificado en la app** (2026-08-15) · la decisión pasa del hash viejo al del marco nuevo tras reconstruir |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
@@ -817,6 +817,39 @@ Al pulsar «Calcular muestra» con la decisión sin firmar, la pantalla mostró
 contradice a sí misma en la misma pantalla. Es el hallazgo #1 del ledger v2
 —«`calcular` devuelve 200 con resultado vacío»— visto desde la UI, que es peor:
 el usuario lee éxito donde hubo error.
+
+## Estado para retomar L8 (2026-08-15)
+
+Ya no está bloqueado: L14 cerró la fuga que borraba el objetivo. Lo que falta es
+una pasada por la **UI**, porque el flujo tiene un paso que la API no cubre.
+
+Verificado por API sobre el backend con el fix (8801, sesión `bc146e10`):
+
+| | |
+|---|---|
+| Marco reconstruido con la config real | **21.362 elegibles** |
+| Decisión re-sellada con el marco nuevo | ✅ `3def1503bde4b176` en ambos |
+| `POST /calcular` | **409 `facultades_incompletas`** |
+
+El 409 dice: *«Cada componente P1/P2 debe cubrir exactamente las facultades del
+marco vigente»*. Los estratos del componente son del marco anterior, y quien los
+resincroniza es el **handoff Marco → Cálculo del frontend** —«el estudio absorbe
+N y los estratos del marco recién construido»—, no un endpoint. Por eso una
+corrida sólo por HTTP se queda corta.
+
+**La secuencia completa, ya sin sorpresas conocidas:**
+
+1. Abrir el proyecto en la UI y construir el marco (~4 min, job).
+2. Confirmar Alumnos por CH en Marco.
+3. Reconstruir (~4 min) — con L14, la decisión se re-sella sola.
+4. Calcular desde la UI: el handoff sincroniza los estratos y el objetivo
+   **debería sobrevivir** en `aulas_config.n_aulas`. Es el assert que cierra
+   L14 en el flujo de usuario.
+5. Seleccionar y auditar Titulares, Reemplazos y Sustento contra C5, en la
+   matriz de viewports.
+
+Lo único no verificado del paso 4 es que el objetivo persista tras el handoff;
+todo lo anterior está comprobado.
 
 ## Ledger
 
