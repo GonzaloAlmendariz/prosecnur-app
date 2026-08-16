@@ -129,25 +129,80 @@ test_that("el objetivo declarado manda sobre el de fabrica", {
   expect_false(grepl("6.00", av, fixed = TRUE))
 })
 
+# --- Repetidos y CV, también por la ruta del motor ---------------------------
+#
+# M2. Estos dos quedaron primero fijados sólo contra la fuente —un grep de los
+# literales— porque disparar sus umbrales pedía un fixture propio. Un grep no
+# distingue una cifra bien pasada de una mal pasada: es exactamente el hueco por
+# el que se colaron dos mutantes en la primera versión de este archivo.
+
+# A1 y A2 comparten LOS MISMOS cuatro estudiantes, asi que seleccionar las dos
+# expone 8 matriculas para 4 personas: eficiencia 0.5 y perdida por repetidos
+# del 50%, muy por encima de la tolerancia de 15%. Los pesos dispares (1 y 120)
+# llevan el CV por encima del critico.
+.avc_base_repetidos <- function() data.frame(
+  student_id = c(sprintf("s%02d", 1:4), sprintf("s%02d", 1:4), sprintf("s%02d", 5:8)),
+  aula_id = rep(c("A1", "A2", "A3"), each = 4),
+  curso = rep(c("C1", "C2", "C3"), each = 4),
+  horario = "H1", facultad = "FAC1", programa = "P1",
+  sexo = rep(c("F", "M"), 6), edad = 20, condicion = "regular",
+  nivel = "1", modalidad = "presencial", stringsAsFactors = FALSE
+)
+
+.avc_avisos_umbral <- function(pesos = c(1, 120), objetivo = list(reserve_depth_target = 1)) {
+  frame <- calc_muestra_aulas_construir(
+    base_madre = .avc_base_repetidos(),
+    config = list(filters = list(min_eligible_per_class = 1L))
+  )
+  sel <- frame$aula_frame[1:2, , drop = FALSE]
+  sel$stratum <- "FAC1 / F / G1"
+  sel$wave <- "M1"
+  sel$sample_role <- "titular"
+  sel$weight_classroom <- pesos
+  rep <- calc_muestra_aulas_representativity_objective(frame, sel, objective = objetivo)
+  unlist(rep$warnings, use.names = FALSE)
+}
+
+.avc_que_diga <- function(avisos, patron) {
+  hit <- avisos[grepl(patron, avisos, fixed = TRUE)]
+  if (!length(hit)) NA_character_ else hit[[1]]
+}
+
+test_that("el aviso de repetidos trae la perdida y la tolerancia, en porcentaje", {
+  av <- .avc_que_diga(.avc_avisos_umbral(), "perdida por estudiantes repetidos")
+  expect_false(is.na(av))
+  # 4 personas en 8 matriculas: la mitad se pierde.
+  expect_true(grepl("50.0%", av, fixed = TRUE))
+  expect_true(grepl("15.0%", av, fixed = TRUE))
+  # En PORCENTAJE, no en proporcion: `0.5` escrito como "0.5%" diria lo contrario
+  # de lo que pasa. Es el mutante que sobrevivio a la primera version.
+  expect_false(grepl("0.5%", av, fixed = TRUE))
+  expect_false(grepl("0.1%", av, fixed = TRUE))
+})
+
+test_that("el aviso de CV trae el valor medido y el critico", {
+  av <- .avc_que_diga(.avc_avisos_umbral(), "CV de pesos")
+  expect_false(is.na(av))
+  expect_true(grepl("1.39", av, fixed = TRUE))
+  expect_true(grepl("1.00", av, fixed = TRUE))
+  # Y las dos cifras son distintas: comparar el CV consigo mismo no avisa nada.
+  cifras <- regmatches(av, gregexpr("[0-9]+\\.[0-9]{2}", av))[[1]]
+  expect_identical(cifras, c("1.39", "1.00"))
+  # Conserva la salida accionable que ya tenia.
+  expect_true(grepl("postestratificacion", av, fixed = TRUE))
+})
+
+test_that("con pesos parejos no se avisa del CV", {
+  # Las cifras no convierten en aviso lo que esta conforme.
+  av <- .avc_avisos_umbral(pesos = c(10, 10))
+  expect_true(is.na(.avc_que_diga(av, "CV de pesos")))
+  # La perdida por repetidos sigue avisando: depende del solape, no de los pesos.
+  expect_false(is.na(.avc_que_diga(av, "perdida por estudiantes repetidos")))
+})
+
 test_that("los tres textos ciegos ya no existen en el motor", {
-  # Los otros dos avisos —repetidos y CV— piden un fixture que dispare sus
-  # umbrales, y montarlo aqui traeria ruido de balance. Lo que si se puede fijar
-  # sin ambiguedad es que sus textos ciegos desaparecieron y que los nuevos
-  # llevan DOS marcadores de cifra cada uno, que es lo que el mutante ataca.
   fuente <- readLines("../../R/calc_muestra_aulas.R", warn = FALSE)
   expect_false(any(grepl('"Profundidad de reservas menor al objetivo."', fuente, fixed = TRUE)))
   expect_false(any(grepl('"La perdida por estudiantes repetidos supera la tolerancia configurada."', fuente, fixed = TRUE)))
   expect_false(any(grepl('"CV de pesos critico; revisar probabilidades o postestratificacion."', fuente, fixed = TRUE)))
-
-  # La perdida se escribe en PORCENTAJE: `0.31` tiene que salir como 31.0%, no
-  # como 0.3%. El otro mutante que sobrevivio a la primera version.
-  i <- grep("supera la tolerancia de", fuente, fixed = TRUE)
-  expect_length(i, 1L)
-  expect_true(grepl("%.1f%%", fuente[[i]], fixed = TRUE))
-  expect_true(any(grepl("100 * dup_loss, 100 * objective$duplicate_loss_tolerance", fuente, fixed = TRUE)))
-
-  j <- grep("por encima del critico", fuente, fixed = TRUE)
-  expect_length(j, 1L)
-  expect_true(grepl("%.2f", fuente[[j]], fixed = TRUE))
-  expect_true(any(grepl("weight_stability$cv, objective$weight_cv_critical", fuente, fixed = TRUE)))
 })
