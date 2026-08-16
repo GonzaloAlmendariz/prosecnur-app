@@ -58,7 +58,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
-| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
+| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido** (2026-08-16) · tabla abajo; el contraste con 2025 sigue bloqueado |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **config leída** (2026-08-16) · 30 titulares × 11 olas; diferencia de escala con 2025 sin explicar |
 
 ## L1 · el material de 2025 (2026-08-16)
@@ -514,3 +514,38 @@ servidor con bucle y tope de tiempo.
 ```bash
 make dev-status
 ```
+
+## L11 · Perfil de lo que sortea el cubo sobre el marco de 2025 (2026-08-16)
+
+Sorteo real sobre el marco del `.pulso` de 2025-2 (2.468 cursos-horario
+incluidos, semilla 20260619, selector `cube_balanceado`, familia
+`balanced_probability`, 2,2 s). El `.pulso` no trae selección guardada, así que
+esto es lo que el motor produce hoy con esa configuración — no lo que se hizo en
+2025, que sigue sin patrón.
+
+**Lo que sale**: 30 titulares, 330 reservas en cadena, 2.108 en bolsa extra.
+
+| Dimensión | Marco | Titulares | Lectura |
+|---|---|---|---|
+| Facultades cubiertas | 16 | **10** | 6 facultades sin ninguna aula |
+| Ciencias Sociales | 6,8% | 16,7% (5) | sobrerrepresentada 2,5× |
+| Ciencias e Ingeniería | 24,0% | 13,3% (4) | a la mitad |
+| Tamaño de aula (G1–G4) | — | — | cercano: 33/30/20/17% contra 28/24/30/18% |
+| Elegibles por aula | media 34, mediana 33 | media 32,7, mediana 30,5 | cuadra |
+
+**El hallazgo que no necesitaba el entregable de 2025**: el diseño declara **84
+estratos** y sortea **30 titulares**. 54 estratos no pueden recibir ninguna aula
+por aritmética, antes de cualquier azar. El motor puntuaba la representatividad
+en 36,9/100 con Facultad en 0,0 (distancia 1,000) y avisaba del desbalance, pero
+nombrando el hecho y no la causa. Reparado en `1f19284b`.
+
+Queda abierto si 84 estratos sobre 30 aulas es lo que se quiso en 2025 o una
+deriva de la configuración guardada: eso lo decide el entregable.
+
+**Dos cosas más que el sorteo dejó a la vista**, sin tocar todavía:
+
+- `descuento_sin_ids`: el marco no trae ids de estudiante parseables, así que el
+  descuento secuencial de repetidos **se desactivó** y el sorteo corrió sin él.
+  La cobertura única se reporta NA en las 2.468 aulas.
+- `session_type` está vacío en todo el marco de 2025, así que esa dimensión del
+  perfil no se puede contrastar con nada.
