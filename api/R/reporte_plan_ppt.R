@@ -7795,17 +7795,20 @@ reporte_ppt_plan <- function(
         }
 
         if (is.null(txt) || !nzchar(trimws(as.character(txt)[1]))) txt <- " "
-        body_value <- officer::fpar(
-          officer::ftext(
-            as.character(txt)[1],
-            prop = officer::fp_text(
-              color = base_args$color_nota_pie %||% "#081F5C",
-              font.size = body_size,
-              bold = FALSE,
-              font.family = font_family
-            )
+        # Multilinea y a la IZQUIERDA. El cuerpo se emitia en un solo run, donde
+        # un `\n` no es salto de linea en OOXML, asi que el texto y sus bullets
+        # —que el constructor si separa— salian pegados: «...gráfico
+        # correspondiente.• Los porcentajes están redondeados...». Y justificado
+        # cuando el resto del mazo, y el entregable aprobado, van a la izquierda.
+        body_value <- .ppt_fpar_multilinea(
+          as.character(txt)[1],
+          prop = officer::fp_text(
+            color = base_args$color_nota_pie %||% "#081F5C",
+            font.size = body_size,
+            bold = FALSE,
+            font.family = font_family
           ),
-          fp_p = officer::fp_par(text.align = "justify", line_spacing = 1)
+          align = as.character(.style_value(slide$style %||% list(), "text_align", "left"))[1]
         )
 
         # Diapositivas auto-generadas de "Otros" traen `slots$columnas`: una
