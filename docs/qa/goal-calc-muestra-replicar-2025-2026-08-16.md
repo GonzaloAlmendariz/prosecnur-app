@@ -764,3 +764,35 @@ primero cuando pasa lo segundo.
 `calc_muestra_aulas_criterios_alumno` marque en su reporte los criterios cuya
 columna no está en las filas, y que la tarjeta lo diga en vez de «no filtra a
 nadie».
+
+## Corrección importante: `level` sí discrimina, y está en capa instrumento (2026-08-16)
+
+Barriendo el módulo leí el `criterios_alumno_report` que el proyecto real trae
+guardado, y desmiente lo que vengo repitiendo desde hace varios ticks.
+
+| Criterio | Filas que deja pasar | Capa |
+|---|---|---|
+| **level** | **100.920** | **instrumento** |
+| age | 123.360 | marco |
+| formation | 125.003 | marco |
+| condition | 124.167 | marco |
+| faculty | 126.537 | marco |
+
+**`level` es el criterio que MÁS discrimina de los cinco**, no el que no muerde:
+deja fuera 35.364 filas de las 136.284. Lo que había escrito —«estaba declarado
+y dejaba pasar las 136.284 filas»— es falso. Vino de una medición temprana hecha
+a mano con la columna equivocada (`Ciclo (2025-I)` en vez de la mapeada), y esa
+lectura se me quedó pegada como ejemplo motivador en varios commits y notas.
+
+**Y la razón por la que no reduce el marco es otra, y está bien**: `level` vive
+en capa **instrumento**, no en marco. Por diseño se reporta y se valida después,
+no recorta la población. Eso no es un defecto: es la elección de capa que el
+módulo permite hacer, y el motor la respeta.
+
+**Qué se salva y qué no.** Las tres piezas construidas siguen siendo correctas y
+útiles —el desglose por criterio, `filas_total` y `evaluable`—, y la propia
+tarjeta ya trata bien este caso: para un criterio de capa instrumento dice «deja
+pasar N · en capa instrumento no recorta el marco, se valida después», que es
+exactamente lo que pasa con `level`. Lo que estaba mal era el relato, no el
+código. Pero conviene saberlo: **en el proyecto real de 2025-2 no hay ningún
+criterio de alumno inerte**, los cinco discriminan.
