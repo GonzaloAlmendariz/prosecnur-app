@@ -109,7 +109,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
-| **L36** | El libro generado no se registra como **fuente** de Monitoreo. | En telefónico el Excel de barrido es una fuente (`kind`) que el motor consulta para decidir. Aquí el libro todavía se importa a mano. | ☐ sin empezar — es lo que cierra la analogía |
+| **L36** | El libro generado no se registra como **fuente** de Monitoreo. | En telefónico el Excel de barrido es una fuente que el motor consulta. | ☑ **hecho** (2026-08-16) — `kind = aulas_libro` y los roles `agendamiento` · `parte_campo` · `control`. El mismo libro en Drive entra como `google_sheets` con esos roles. Los otros tres modos no cambian. |
+| **L37** | Un rol llamado `campo` es **indistinguible de la ausencia de rol**. | `.monitoreo_safe_name("")` devuelve literalmente `"campo"` como relleno. Declararlo rol válido convertía en «campo» a **toda fuente sin rol de todos los modos**. | ☑ **hecho** (2026-08-16) — el rol se llama `parte_campo`; hay test que fija por qué no puede llamarse `campo`. |
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☐ sin empezar |
 | **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☐ sin empezar — corrige lo construido hoy en L4 |
@@ -447,3 +448,28 @@ estudio con cadenas de dos produce 41 columnas, no las 241 del de 2025.
 
 Queda **L36**: registrar el libro como *fuente* de Monitoreo, que es lo que
 cierra del todo la analogía con telefónico.
+
+### 2026-08-16 — L36: el libro es una fuente, y un nombre que casi rompe todo
+El libro operativo entra como fuente de Monitoreo con `kind = aulas_libro` y
+tres roles que coinciden con sus tres hojas y con quién las llena:
+`agendamiento` · `parte_campo` · `control`. El mismo libro alojado en Drive
+—«un solo Sheet con tres pestañas»— entra como `google_sheets` con esos mismos
+roles: cambia por dónde entra, no qué es.
+
+Con esto la analogía con telefónico queda cerrada: allí el Excel de barrido es
+una fuente que el motor consulta para decidir; aquí lo es el libro.
+
+**Dos veces el mismo vocabulario.** Los roles están escritos en dos sitios —el
+`switch` de `.monitoreo_source_role()` y el guardián
+`.monitoreo_allowed_source_roles()`—. Añadirlo sólo en el `switch` no bastaba:
+el guardián lo reescribía a `respuestas` en silencio. Ya van cinco apariciones
+de este patrón en el GOAL.
+
+**Y una colisión que rompió tres modos (L37).** El rol se iba a llamar `campo`,
+que es lo natural. Pero `.monitoreo_safe_name("")` devuelve **literalmente
+`"campo"`** como relleno de lo vacío: al declararlo rol válido, **toda fuente sin
+rol —de telefónico y de acreditación también— pasó a ser «campo»** y desapareció
+de sus avances. Lo atraparon tres tests existentes, no yo.
+
+Se renombró a `parte_campo` y hay test que fija **por qué** no puede llamarse
+`campo`, porque el siguiente que lo intente va a encontrar el mismo muro.
