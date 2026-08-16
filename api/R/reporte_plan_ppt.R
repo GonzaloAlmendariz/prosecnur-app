@@ -9504,15 +9504,9 @@ p_presets <- function(
     )
   }
 
-  normalize_block <- function(x) {
-    if (is.null(x)) return(list(args = list()))
-    if (!is.list(x)) .plan_input_abort("Cada preset debe ser una lista.")
-    if (!is.null(x$args)) {
-      if (!is.list(x$args)) .plan_input_abort("`args` debe ser una lista.")
-      return(x)
-    }
-    list(args = x)
-  }
+  # Un bloque MIXTO —claves sueltas Y `args`— perdia las sueltas. Ver
+  # `reporte_ppt_preset_bloque.R`.
+  normalize_block <- .preset_bloque_normalizado
 
   if ((is.null(barras_numericas) || !length(barras_numericas)) && !is.null(numerico)) {
     barras_numericas <- numerico
