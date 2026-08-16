@@ -1929,3 +1929,47 @@ ciclo, nada sobre el marco), ni en `relacion_cursos_horario_aplicados` (196
 aplicados y 77 alertas de campo), ni en «BD Aulas Agendadas» —que es la agenda
 operativa: hojas por día de aplicación, 26 aulas adicionales y una planilla de
 118 filas—. Queda como límite conocido, no como pendiente de buscar.
+
+---
+
+## L24 · Por qué la lista de facultades no llega a las aulas (2026-08-16)
+
+El hueco de L23 tiene un mecanismo, y costó tres mutantes acertarlo.
+
+`.cm_criterios_var_registry()` declara cada variable de criterio con su
+**scope**. Hoy:
+
+| scope | variables |
+|---|---|
+| `alumno` | formation, condition, age, **faculty** (`estratifica = TRUE`), level |
+| `aula` | modality, session_type, teacher_type, course_level, condicion_curso, enrolled_total, campus |
+
+**No hay ninguna variable de scope aula que apunte a la facultad del curso.** Y
+el scope no lo decide quien llama: `.cm_criterios_normalize_seleccion` lo
+reescribe desde el registro, así que pedir la facultad con `scope = "aula"`
+la devuelve igualmente como `"alumno"`, y el guard del lado aula la descarta.
+
+Lo comprobé con mutantes, y dos de los tres **no** movieron nada:
+
+| Mutante | Fallos | Qué enseña |
+|---|---|---|
+| `faculty` pasa a `scope = "aula"` en el registro | **3** | es lo único que conecta las dos puntas |
+| Quitar el guard `if (!identical(crit$scope, "aula")) next` | 0 | el guard es la segunda línea, no la primera |
+| Añadir `faculty` al recorrido del bucle | 0 | tampoco basta: el scope sigue diciendo alumno |
+
+Es una distinción que importa para el arreglo: no es que el criterio esté
+apagado, es que **no está cableado de ese lado**, y el interruptor es una sola
+entrada del registro.
+
+Fijado en `api/tests/testthat/test-calc-muestra-criterios-facultad-no-alcanza-aulas.R`
+(10 expectativas, fixture sintético) con un control que demuestra que el motor
+sí sabe recortar por variables de aula: la misma selección sobre `modality` deja
+fuera el aula que no cumple.
+
+### Una nota sobre el propio test
+
+La primera versión del fixture usaba `categorias` donde el normalizador espera
+`categories`, así que la regla llegaba vacía y no recortaba nada. **Lo cazó el
+test de control**, que estaba puesto justamente para eso: si el caso positivo
+también hubiera pasado en falso, el archivo entero habría certificado un hueco
+que no era el medido.
