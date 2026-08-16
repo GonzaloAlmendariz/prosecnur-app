@@ -36,7 +36,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **10 de 11** ✓ (falta R6) |
 | V12 | Cada disposición con modelo tiene su celda | disposiciones de Contabilidad | **2 de 2** ✓ · 29 sin modelo |
 
-**Incumplimientos de `verificar_mazo()`: aprobado 14 · motor 15** (11 de ellos recién visibles).
+**Incumplimientos de `verificar_mazo()`: aprobado 14 · motor 9.**
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -73,7 +73,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ☑ **R4, R7, R8, R9, R10, B2**; R6 sin material |
 | L26 | Medir las disposiciones y darles celda | receta 11 del recetario | ☑ las 2 con modelo; 29 sin material |
 | L31 | Las barras de perfil salen en 5 colores | declaración con nombres que no existen | ☑ **monocromo 081F5C×56** |
-| L32 | 11 gráficos categóricos bajo el piso | el estirado del panel falta en agrupadas | ◐ diagnosticado |
+| L32 | Gráficos categóricos bajo el piso | estirado del panel portado a agrupadas | ◐ **11 → 5** |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
 
@@ -1006,3 +1006,24 @@ Se añadió de paso el piso en centímetros a agrupadas (`grosor_min_in = 0.256`
 los 0.65 cm del percentil 10 del aprobado), igual que en apiladas. Hoy no se
 activa —la fracción ya está al tope— pero entrará en cuanto el panel se estire y
 haya sitio real que repartir.
+
+### L32: el mismo panel corto, ahora en los perfiles
+
+Portado a agrupadas el estirado que ya funcionaba en apiladas. Aquí pesa más:
+los perfiles van de a cuatro por lámina y su hueco es un cuarto, así que el alto
+natural se queda mucho más corto.
+
+| | Antes | Ahora | Aprobado |
+|---|---|---|---|
+| Bajo el piso de 0.65 cm | 11 | **5** | 2 |
+| Percentil 10 | 0.45 cm | **0.59** | 0.65 |
+| Mínimo | 0.40 cm | **0.50** | 0.46 |
+
+**El mínimo del motor ya supera al del aprobado.** El tope de estirado es 2.6 y
+no 1.8 como en apiladas, y sale de medir: con 1.8 quedan 9 bajo el piso, con 2.6
+quedan 5, y subir a 3.4 **no cambia nada** —a partir de ahí el límite ya no es el
+tope sino el hueco disponible—.
+
+Queda una diferencia que no es incumplimiento pero se aparta del modelo: el
+máximo del motor es **2.42 cm** contra los 1.80 del aprobado. Sus barras
+categóricas más gruesas lo son más de lo que el entregable se permite.
