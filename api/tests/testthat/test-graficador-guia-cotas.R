@@ -64,6 +64,16 @@ test_that("la caja del plano incluye marco, rotulo y sus dos cotas", {
 })
 
 
+test_that("una caja SIN nombre no se acota", {
+  # Una lamina tiene ocho o mas cajas anidadas —buffers incluidos— y acotarlas
+  # todas amontonaba dieciseis cotas: los halos tapaban el texto que la guia
+  # venia a dejar medir.
+  g <- .guia_ph_grobs(0, 0, 1, 1, ancho_in = 12.5, alto_in = 6)
+  expect_length(g, 2L)
+  expect_equal(class(g[[1]])[1], "rect")
+})
+
+
 test_that("una caja demasiado pequena se queda solo con el marco", {
   # Por debajo del minimo no se acota: las cifras se montarian con las del
   # hueco vecino y ninguna se leeria.

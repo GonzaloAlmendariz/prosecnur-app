@@ -648,6 +648,8 @@ p_radar_publicos <- function(
     estilo = "comparativo",
     corte_etiqueta = NULL,
     mostrar_tabla = TRUE,
+    # ADR 0072: la tabla sale como tabla de PowerPoint, no dibujada.
+    tabla_nativa  = FALSE,
     mostrar_valores = FALSE,
     decimales = 0L,
     eje_min = 0,
@@ -685,6 +687,7 @@ p_radar_publicos <- function(
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     estilo         = as.character(estilo %||% "comparativo")[1],
     mostrar_tabla  = isTRUE(mostrar_tabla),
+    tabla_nativa   = isTRUE(tabla_nativa),
     mostrar_valores = isTRUE(mostrar_valores),
     decimales      = .radar_mb_decimales(decimales),
     eje_min        = .radar_mb_eje_min(eje_min),
@@ -743,6 +746,7 @@ p_radar_publicos <- function(
 
   tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = el$decimales)
   .radar_mb_componer(g, tabla,
+                     tabla_nativa = isTRUE(el$tabla_nativa),
                      titulo_tema = el$tabla_titulo,
                      encabezados = el$tabla_encabezados,
                      ancho_tema = el$tabla_ancho_tema,
@@ -800,7 +804,8 @@ p_radar_publicos <- function(
 #' @keywords internal
 .radar_mb_componer <- function(grafico, tabla, titulo_tema = "", encabezados = list(),
                                ancho_tema = NA_real_, proporcion = NA_real_,
-                               texto_pt = .RADAR_MB_TEXTO_PT) {
+                               texto_pt = .RADAR_MB_TEXTO_PT,
+                               tabla_nativa = FALSE) {
   if (!requireNamespace("gridExtra", quietly = TRUE) ||
       !requireNamespace("cowplot", quietly = TRUE)) {
     return(grafico)
@@ -866,6 +871,26 @@ p_radar_publicos <- function(
     }
   }
   rel <- if (is.finite(proporcion)) proporcion else 1
+
+  # ADR 0072. Con `tabla_nativa`, la tabla no se dibuja: viaja como datos y el
+  # renderer la emite con `flextable` en el hueco que aqui se le reserva. El
+  # modo `publicos` componia su propia tabla con `tableGrob` y por eso no
+  # entraba por el camino de `graficar_radar()`, aunque el puente ya existiera.
+  if (isTRUE(tabla_nativa)) {
+    frac_tabla <- rel / (1.35 + rel)
+    canvas <- cowplot::plot_grid(grafico, NULL, ncol = 2,
+                                 rel_widths = c(1.35, rel))
+    return(.tabla_nativa_adjuntar(
+      canvas, fmt,
+      estilo = list(
+        font_family = "Arial",
+        body_size = texto_pt,
+        header_size = texto_pt,
+        geom_frac = list(x = 1 - frac_tabla, y = 0, w = frac_tabla, h = 1)
+      )
+    ))
+  }
+
   cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
                      ncol = 2, rel_widths = c(1.35, rel))
 }
