@@ -48,7 +48,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 
 | # | Qué | Vara | Estado |
 |---|---|---|---|
-| L1 | Reunir el material de 2025: marco, criterios aplicados, cuotas, aulas seleccionadas | — | ☐ **sin empezar** · es el patrón de comparación; sin esto el loop no puede medir nada |
+| L1 | Reunir el material de 2025 | — | ◐ **parcial** (2026-08-16) · bases e histórico de asistencia localizados; **falta la selección de aulas de 2025** |
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☐ |
@@ -60,6 +60,39 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☐ |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ☐ |
+
+## L1 · el material de 2025 (2026-08-16)
+
+Gonzalo señaló `~/Documents/Pulso/HSTVG2026/HSVG2026.pulso` (19 MB, proyecto de
+cliente **sin anonimizar** — se lee, no se copia al repo ni se commitea).
+
+| Qué trae | |
+|---|---|
+| Bases | ✅ `BD estudiantes y curso-horario 2025-2.xlsx` + `Instrumento2026.xlsx` |
+| Marco construido | ✅ 5.263 cursos-horario |
+| **Histórico de asistencia** | ✅ `HSVBG2025_referencia_para_motor.xlsx` |
+| Simulación de reemplazos | ✅ |
+| **Aulas seleccionadas en 2025** | ❌ `calc_muestra_aulas_selection` vacía |
+| Comparación de métodos | ❌ ausente |
+
+El histórico, que es lo que hace medible V8:
+
+```
+agendados 1.012 · aplicados 194 · observados 194
+tasa de asistencia 0,791 (k = 194)
+glosario_completo = FALSE
+```
+
+**Qué desbloquea y qué no.** Con esto V1–V7 pueden medirse contra el marco y las
+cuotas que este proyecto ya tiene. **V8 no**, o no del todo: el histórico dice
+cómo *rindió* el campo 2025 —asistencia, cobertura— pero no **qué aulas se
+sortearon**, que es contra lo que había que comparar el perfil de la muestra
+nueva.
+
+Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado,
+así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
+elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
+releer el intervalo antes de usarlo como vara.
 
 ## V1 · recorte de cada criterio de alumno (medido 2026-08-16)
 
@@ -154,7 +187,7 @@ antes de empezar:
 
 | # | Decisión | Por qué no puedo yo |
 |---|---|---|
-| L1 | Dónde vive el material de 2025 y qué cuenta como «lo que se hizo»: ¿el `.pulso` del estudio, los entregables finales, la selección de aulas que se aplicó en campo? | Sin patrón no hay vara. Y las tres fuentes pueden discrepar entre sí —la selección aplicada en campo puede diferir de la sorteada si hubo reemplazos—, así que elegir cuál manda es una decisión metodológica |
+| L1-bis | **Dónde está la selección de aulas de 2025**: el `.pulso` señalado trae bases, marco e histórico de asistencia, pero su `calc_muestra_aulas_selection` está vacía. ¿Existe en otro archivo —el entregable de campo, una hoja de ruta, el Excel que se mandó a la universidad—? | Sin ella, V8 sólo puede medirse por el rendimiento agregado (0,791 de asistencia), no por el perfil de las aulas sorteadas, que es lo que este loop quería contrastar |
 
 ## Cómo se corre cada visita
 
