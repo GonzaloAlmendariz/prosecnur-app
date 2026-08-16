@@ -430,7 +430,15 @@ test_that("un box que abarca la escala entera se omite en vez de dar 100 %", {
     stringsAsFactors = FALSE
   )
 
-  expect_message(
+  # La omision se afirma sobre la decision, no sobre el mensaje: aqui el motor
+  # calla a proposito. Que un Top 2 Box no informe sobre una escala de dos es
+  # aritmetica, no un error de configuracion, y avisar por cada pregunta Si/No
+  # del mazo tapaba los avisos que si son accionables.
+  expect_identical(
+    .box_decidir(NULL, c(si = "Sí", no = "No"), c("si", "no"), 3L)$motivo,
+    "escala_corta"
+  )
+  expect_no_message(
     graficar_barras_apiladas(
       data = dicotomia, var_categoria = "publico", var_n = "n",
       cols_porcentaje = c("si", "no"),
@@ -439,7 +447,7 @@ test_that("un box que abarca la escala entera se omite en vez de dar 100 %", {
       usar_canvas = TRUE, exportar = "png", path_salida = path,
       ancho = 13.33, alto = 5.2, dpi = 72
     ),
-    "se omite"
+    message = "se omite"
   )
   expect_true(file.exists(path))
 })
@@ -504,7 +512,12 @@ test_that("el minimo depende del tamano del box, no de un numero fijo", {
     a = 0.2, b = 0.5, c = 0.3, stringsAsFactors = FALSE
   )
 
-  expect_message(
+  # Mismo criterio que arriba: se omite en silencio.
+  expect_identical(
+    .box_decidir(NULL, c(a = "Bajo", b = "Medio", c = "Alto"), c("a", "b", "c"), 4L)$motivo,
+    "escala_corta"
+  )
+  expect_no_message(
     graficar_barras_apiladas(
       data = tres, var_categoria = "publico", var_n = "n",
       cols_porcentaje = c("a", "b", "c"),
@@ -513,7 +526,7 @@ test_that("el minimo depende del tamano del box, no de un numero fijo", {
       usar_canvas = TRUE, exportar = "png", path_salida = path,
       ancho = 13.33, alto = 5.2, dpi = 72
     ),
-    "se omite"
+    message = "se omite"
   )
 })
 

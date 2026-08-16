@@ -2144,9 +2144,15 @@ p_barras_multiapiladas <- function(
         titulo = titulo_block,
         cruces = block[["cruces", exact = TRUE]] %||% NULL,
         wrap_y = block[["wrap_y", exact = TRUE]] %||% wrap_y,
-        top2box = block[["top2box", exact = TRUE]] %||% FALSE,
-        top2box_codes = block[["top2box_codes", exact = TRUE]] %||% NULL,
-        top2box_labels = block[["top2box_labels", exact = TRUE]] %||% NULL,
+        # La columna Top Two Box se hereda del elemento, como `wrap_y` o
+        # `numerar_oe`. No heredarla era la causa de que una lamina multilista
+        # no dibujara la columna aunque estuviera declarada: la declaracion se
+        # ponia en la lamina y los bloques la reponian a FALSE/NULL. Un bloque
+        # que la declare —incluido `top2box = FALSE`— sigue mandando sobre la
+        # herencia, que es lo que hace `%||%`.
+        top2box = block[["top2box", exact = TRUE]] %||% top2box,
+        top2box_codes = block[["top2box_codes", exact = TRUE]] %||% top2box_codes,
+        top2box_labels = block[["top2box_labels", exact = TRUE]] %||% top2box_labels,
         titulos_grupo = block[["titulos_grupo", exact = TRUE]] %||% NULL,
         numerar_oe = block[["numerar_oe", exact = TRUE]] %||% numerar_oe,
         prefijo_grupos = block[["prefijo_grupos", exact = TRUE]] %||% prefijo_grupos,
