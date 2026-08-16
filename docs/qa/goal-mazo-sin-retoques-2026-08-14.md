@@ -69,7 +69,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | `mapa-comentarios-conta-2026-08-16.md` | ☑ |
-| L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
+| L24 | Qué del reporte final el motor no sabe hacer | **nada**: sabe: falta declararlo en el plan | ☑ |
 | L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ☑ **R4, R7, R8, R9, R10, B2**; R6 sin material |
 | L26 | Medir las disposiciones y darles celda | receta 11 del recetario | ☑ las 2 con modelo; 29 sin material |
 | L31 | Las barras de perfil salen en 5 colores | declaración con nombres que no existen | ☑ **monocromo 081F5C×56** |
@@ -1057,3 +1057,50 @@ Y al ponerlo mal se rompió el render entero: la constante del graficador no es
 visible desde el motor, salieron 63 láminas degradadas y el verificador devolvió
 **1.88 cm de grosor de escala**, un valor imposible. La alarma funcionó antes de
 abrir el archivo.
+
+### L24: el motor sabe hacerlo todo; el plan no lo declara
+
+Cinco láminas del entregable aprobado no salen del motor:
+
+| Lámina | ¿El motor puede? |
+|---|---|
+| FICHA TÉCNICA CUANTITATIVA | sí — `technical_table` |
+| «Los cuestionarios estuvieron compuestos por una escala…» | sí — `text_slide` |
+| TOP TWO BOX (la explicación del indicador) | sí — `top_two_box` |
+| NÚMERO DE RESPUESTAS | sí — `technical_table` |
+| PRINCIPALES RESULTADOS | sí — `section` |
+
+**Las cinco disposiciones existen.** Lo que falta no es capacidad del motor: es
+que el plan del estudio no las declara. Y coincide con dos comentarios de
+Gabriela que el mapa marcó como no geométricos —«falta el slide de escala de los
+cuestionarios» y «hay un slide de explicación sobre esto de los NS, ¿por qué no
+se incluyó?»—: no eran defectos del graficador, eran láminas que nadie puso en
+el plan.
+
+Es la respuesta a «tener el motor con todos los elementos para hacer lo que hace
+el reporte final»: **ya los tiene**. La distancia que queda entre el mazo y el
+entregable es de plan, no de motor.
+
+## Cierre del loop (2026-08-16)
+
+Diecinueve iteraciones. **La vara está completa** —V1 a V12, cerradas o
+bloqueadas con motivo medido— y el motor queda en **9 incumplimientos contra los
+14 del entregable aprobado**, midiendo diez reglas donde al empezar se medían
+cuatro.
+
+Lo que queda abierto, y por qué no se hizo:
+
+| | Qué falta | Por qué |
+|---|---|---|
+| L30 ◐ | hueco entre premisas 1.74 cm contra 1.91 | 4 incumplimientos; tres iteraciones ya y el valor marginal cayó |
+| L32 ◐ | 5 gráficos categóricos bajo el piso contra 2 del aprobado | ídem; el mínimo del motor ya supera al del aprobado |
+| L22 ⛔ · R6 ⛔ | recetas para 14 familias y para circulares | falta modelo: Contabilidad no las usa o da n = 3 |
+| L27 · L28 | familias y disposiciones nuevas | no tienen vara: son ampliación, no conformidad |
+| 29 comentarios | contenido, datos y método | no los resuelve ningún preset; son trabajo de analista |
+
+**Lo que este GOAL enseñó, más allá del mazo**: nueve trampas de medición, todas
+pagadas al menos una vez, y las tres que más costaron fueron **medir un espacio
+sin comprobar qué hay en medio**, **un literal escrito a mano en el motor que
+gana sobre el default** (tres veces: `canvas_gap_grupos`, `size_barra_extra` y el
+rótulo) y **arreglar un color destapa mediciones que faltaban** (dos veces: R9 y
+L31). Están todas en las secciones de arriba, con su cifra.
