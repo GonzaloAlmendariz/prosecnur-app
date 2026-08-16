@@ -55,7 +55,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
-| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ☐ |
+| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ☐ |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☐ |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
@@ -93,6 +93,44 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L8 · el tamaño (2026-08-16)
+
+El `.pulso` de 2025 conserva **los parámetros y el marco**, pero sus dos
+componentes tienen **`resultado` vacío**: el n calculado no se persiste.
+
+| Componente | z | p | e | deff | N |
+|---|---:|---:|---:|---:|---:|
+| P1 · universidad | 1,96 | 0,3 | 0,025 | 2,0 | 21.365 |
+| P2 · facultad | 1,96 | 0,5 | 0,050 | 1,5 | 21.365 |
+
+Reproducido con esos parámetros:
+
+```
+P1  n0 = 1290,8  ->  finita 1217,3  ->  x deff = 2434,6   ->  2.435
+P2  n0 =  384,2  ->  finita  377,4  ->  x deff =  566,1   ->    567
+```
+
+**V5 no se puede cerrar todavía**, y no por el motor: el patrón contra el que
+comparar —el n que se usó de verdad en 2025— no está en el proyecto. Habría que
+sacarlo del informe o del entregable de campo.
+
+Lo que sí queda establecido: con los parámetros guardados, el tamaño es
+**reproducible y trazable paso a paso** —muestra infinita, corrección por
+población finita, efecto de diseño—, que es la mitad de V5 que sí depende del
+módulo.
+
+### Que el `.pulso` no conserve el n es un hallazgo, no un detalle
+
+Un proyecto guardado que lleva sus parámetros pero no su resultado **no puede
+defender su propio tamaño de muestra** sin recalcularlo. Y recalcular exige que
+el marco vigente sea el mismo, que es justo la cadena que en el GOAL hermano
+resultó frágil (L14: el objetivo se borraba en cada guardado).
+
+Conecta directamente: si el resultado del cálculo se limpia al invalidar la
+decisión de alumnos por CH, un `.pulso` archivado acaba sin el n con el que se
+trabajó. Merece mirarse como pregunta de contrato: **¿el resultado del cálculo
+debería sobrevivir en el proyecto guardado?**
 
 ## L4 y L6 · el contraste contra 2025 (2026-08-16)
 
