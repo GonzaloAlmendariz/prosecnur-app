@@ -549,3 +549,37 @@ por la simulación, no por pantalla.
 De paso: una primera captura mostró lo que parecía una mancha oscura sobre la
 pestaña «Agenda». Al volver a capturar salió limpia — era un artefacto
 transitorio del render, no un defecto. Se anota porque casi se reporta como bug.
+
+### 2026-08-16 — L23 sigue abierto: el intento y dónde se atascó
+Segundo intento de ver los números de L15–L22 en pantalla, esta vez inyectando
+estado por los **endpoints reales** en vez de confiar en el `.pulso`.
+
+Lo que se aprendió del camino, que es lo que evita repetirlo:
+
+1. `POST /api/monitoreo/aulas/config` con una config **sin plan** hace
+   `session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)` —
+   es decir, **borra el plan que había en la sesión**. Hay que mandar siempre el
+   plan completo.
+2. Con el plan completo, la config responde 200 y devuelve las 7 filas.
+3. El tablero de aulas **no** cuelga de `dashboard.kpis`: el sync devuelve
+   directamente la forma de aulas (`brechas`, `reemplazos`,
+   `avance_por_estrato`). Leerlo por `kpis.total_aulas` da `None` y parece un
+   fallo que no lo es.
+4. **Sospecha sin confirmar**: tras el sync, `/api/monitoreo/state` muestra
+   `aulas_universitarias.enabled = FALSE` y `plan = 0`, y el perfil vuelto a
+   `acreditacion`, pese a que el POST anterior devolvió 200 con las 7 filas.
+   Apunta a que `monitoreo_normalize_config()` no conserva
+   `aulas_universitarias` — **pero puede ser un artefacto de esta ruta
+   sintética**, que no es como el plan llega en el flujo real
+   (`import-from-calc-muestra`). No se toca sin confirmarlo.
+
+**L23 sigue abierto.** La vía que queda es recorrer el flujo real desde la UI, y
+para eso hace falta un proyecto con selección de calc-muestra viva — el
+candidato es `hsvg2026`, con la salvedad de que la memoria lo marca como
+envenenado por el anonimizador viejo.
+
+Tercera vez en la sesión que un diagnóstico propio apunta a un fallo que no
+existía: la ruta de lectura equivocada. Las dos anteriores fueron «no es
+data.frame» leído como «vacío» y el aserto inerte del desborde. El patrón es
+mío, no del código: **ante un cero inesperado, verificar primero la forma de lo
+que estoy leyendo.**
