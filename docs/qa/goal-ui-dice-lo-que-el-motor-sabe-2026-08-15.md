@@ -47,7 +47,7 @@ sabe nada que la interfaz calle.
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
 | **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y los cuatro perfiles de Monitoreo | ☑ hecho — diez ejes probados, **un hallazgo** reparado y visto (`a29629e7`). **V2 se sostiene** en el resto. |
 | **L11** | Barrido V4: forzar cada rama de degradación del motor y comprobar que la superficie la nombra | vocabulario de degradación del backend | ◐ a medias — **un hallazgo, reparado** (`894bbbb0`). Faltan los otros cinco flags de degradación. |
-| **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☐ sin empezar — hoy `unsupported` viaja y sólo se cuenta; ahora además hay `descartadas`. Ninguna de las dos se redacta en prosa. |
+| **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
 
 ### L8 — barrido de V1, completo
@@ -127,7 +127,18 @@ en vez de leer el código— resultó que el motor sí registraba y el silencio
 estaba una capa más arriba. El parche se revirtió antes de commitear. La
 lección: en V4 hay que mirar el payload, no la rama del `if`.
 
-Falta tirar de los otros cinco flags.
+**L12, en la misma pasada.** El hallazgo anterior dejaba las dos listas
+viajando y sin redactar. Ahora el informe tiene una sección «LO QUE ESTE PLAN
+NO CUBRE» que las narra por separado —una expresión rota se reporta, una regla
+sobre `pulldata` se revisa a mano contra el padrón— y nombra hasta cuatro
+preguntas para poder ir a buscarlas. No aparece si no hay nada que declarar:
+dibujar «todo cubierto» afirmaría más de lo que el dato soporta.
+
+Verificado sobre un PDF renderizado y leído con `pdftotext`, y con el control
+que le falta a la mitad de los tests visuales: el mismo informe sin nada
+descartado **no** dibuja la sección.
+
+Falta tirar de los otros cinco flags de degradación.
 
 ### L9 — barrido de V2, primera pasada
 
