@@ -2992,6 +2992,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   if (isTRUE(weight_stability$active) && is.finite(weight_stability$cv) && weight_stability$cv > objective$weight_cv_critical) warnings <- c(warnings, "CV de pesos critico; revisar probabilidades o postestratificacion.")
   if (has_reserve && is.finite(reserve_ratio) && reserve_ratio < objective$reserve_depth_target) warnings <- c(warnings, "Profundidad de reservas menor al objetivo.")
   if (!is.null(coverage_guard)) warnings <- c(warnings, coverage_guard$detalle)
+  warnings <- c(warnings, .cm_aulas_aviso_estratos_inalcanzables(aula_frame, selection_df, roles))
   if (!length(warnings)) warnings <- "Sin alertas de representatividad bajo los criterios activos."
 
   list(
