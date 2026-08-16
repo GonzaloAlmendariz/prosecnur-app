@@ -729,3 +729,38 @@ archivo de 2025 (`MATRICULADO` y `CURSO Y HORARIO`) y recorrer Definición →
 Criterios → Marco anotando qué se rompe y qué no se explica solo. Es el único
 ítem de la cola que no espera ni una decisión ni el entregable, así que conviene
 hacerlo con el tiempo que pide —el marco tarda ~140 s— en vez de a trozos.
+
+## L2 · Lo que encuentra quien empieza desde cero (2026-08-16)
+
+Levanté una pila propia sin `PULSO_BOOTSTRAP_PROJECT` (puerto 8811, cerrada al
+terminar) y recorrí el camino desde una base mínima. Dos cosas, y la segunda es
+un defecto en algo que construí yo hace unos ticks.
+
+**Primera, una corrección más a lo que había supuesto**: el marco **no exige** el
+catálogo de cursos-horario. Con una base mínima de alumnos y `catalogo = NULL`
+salen 2 aulas y las 2 incluidas. Lo de «sin la hoja CURSO Y HORARIO salen 0
+incluidas» era cierto del archivo real de 2025, no una regla del motor — y la
+causa está en la segunda cosa.
+
+**Segunda: un criterio declarado sobre una columna que la base no trae deja
+pasar a todo el mundo, en silencio.** Declarando `formation` en capa marco sobre
+una base que no tiene esa columna, el reporte publica `filas_pasan = 4` de 4 y el
+marco incluye las 2 aulas. Los `warnings` del frame hablan de modalidad y de
+condición académica —auditorías suyas— pero **ninguno dice que se declaró un
+criterio sobre una columna ausente**.
+
+Eso rompe justamente la superficie de L7 (`7addb99c`): la tarjeta de ese
+criterio diría «en el marco construido dejó fuera a 0: está declarado y no
+filtra a nadie», que es **falso**. No es que el criterio no restrinja: es que no
+se pudo evaluar. Son las dos cosas que ese desglose existe para distinguir, y ahí
+las confunde.
+
+La UI sí avisa al declarar —`CriterioCard` pinta «variable sin columna mapeada»—,
+así que el hueco está en el lado del motor: el reporte no marca la diferencia
+entre «evaluado y no recortó» y «no evaluable», y por eso la pantalla afirma lo
+primero cuando pasa lo segundo.
+
+**Pendiente concreto** (no bloqueado, no exige decisión): que
+`calc_muestra_aulas_criterios_alumno` marque en su reporte los criterios cuya
+columna no está en las filas, y que la tarjeta lo diga en vez de «no filtra a
+nadie».
