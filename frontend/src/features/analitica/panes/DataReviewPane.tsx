@@ -8,6 +8,7 @@ import {
 } from "../../../api/client";
 import { Panel } from "../../../components/Panel";
 import { ErrorBlock, LoadingBlock } from "../../../components/States";
+import { describirCobertura, padresConDummies } from "../coberturaVariable";
 import { useAnaliticaStore, type SeccionConfig } from "../store";
 
 export function dataReviewHasEditableOptions(variable: Pick<DataReviewVariable, "tipo_xlsform" | "opciones">) {
@@ -244,6 +245,9 @@ export function DataReviewPane() {
     () => buildDataReviewSectionGroups(variables, config.secciones),
     [variables, config.secciones],
   );
+  // Sobre el payload completo y no sobre el grupo: si un dummy cayera en otra
+  // sección, su padre se leería como ausente y avisaría en falso.
+  const padresRepartidos = useMemo(() => padresConDummies(variables), [variables]);
   const baselineDraft = useMemo(
     () => buildDataReviewDraft(variables, config.datos.variable_labels, config.datos.value_labels),
     [variables, config.datos.variable_labels, config.datos.value_labels],
@@ -464,6 +468,7 @@ export function DataReviewPane() {
                   key={group.id}
                   group={group}
                   excluded={excluded}
+                  padresRepartidos={padresRepartidos}
                   baselineDraft={baselineDraft}
                   draftVariableLabels={draftVariableLabels}
                   draftValueLabels={draftValueLabels}
@@ -492,6 +497,7 @@ export function DataReviewPane() {
 function DataReviewSection({
   group,
   excluded,
+  padresRepartidos,
   baselineDraft,
   draftVariableLabels,
   draftValueLabels,
@@ -507,6 +513,7 @@ function DataReviewSection({
 }: {
   group: DataReviewSectionGroup;
   excluded: Set<string>;
+  padresRepartidos: Set<string>;
   baselineDraft: DataReviewDraft;
   draftVariableLabels: Record<string, string>;
   draftValueLabels: Record<string, Record<string, string>>;
@@ -615,9 +622,10 @@ function DataReviewSection({
           const dummyParent = variable.dummy_parent ?? "";
           const dummyParentLabel = variable.dummy_parent_label?.trim() || dummyParent;
           const dummyOptionLabel = variable.dummy_option_label?.trim() || draftLabel;
+          const cobertura = describirCobertura(variable, padresRepartidos.has(variable.name));
           const typeCaption = isDummyOption
-            ? `dummy de ${dummyParent} · ${variable.n_non_missing} con dato`
-            : `${variable.tipo_xlsform || "data"} · ${variable.n_non_missing} con dato`;
+            ? `dummy de ${dummyParent} · ${cobertura.texto}`
+            : `${variable.tipo_xlsform || "data"} · ${cobertura.texto}`;
           const hasOptionDraftChanges = canEditOptions && variable.opciones.some((option) => {
             const draftOption = draftValueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
             const baselineOption = baselineDraft.valueLabels[variable.name]?.[option.code] ?? dataReviewEffectiveOptionLabel(option);
@@ -650,6 +658,15 @@ function DataReviewSection({
                       title={`Opción de «${dummyParentLabel}»`}
                     >
                       opción dummy
+                    </span>
+                  ) : null}
+                  {cobertura.aviso ? (
+                    <span
+                      className="pulso-data-review-cobertura-badge"
+                      data-estado={cobertura.estado}
+                      title={cobertura.aviso.detalle}
+                    >
+                      {cobertura.aviso.etiqueta}
                     </span>
                   ) : null}
                   <div className="pulso-data-review-variable-meta">

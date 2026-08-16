@@ -12373,6 +12373,22 @@ h1.pulso-page-title {
 .pulso-data-review-dummy-parent code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+/* Una variable vacía o ausente entra INCLUIDA por defecto: la marca existe
+   para que se vea antes de exportar, no para bloquear. Ámbar y no rojo —es
+   una decisión pendiente, no un error del motor. */
+.pulso-data-review-cobertura-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-heavy);
+}
+
 .pulso-data-review-dummy-badge {
   display: inline-flex;
   align-items: center;
