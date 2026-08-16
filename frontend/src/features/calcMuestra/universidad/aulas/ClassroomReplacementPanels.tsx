@@ -94,7 +94,10 @@ export function classroomReplacementChains(
     .filter((row) => classroomRowText(row, ["sample_role"]) === "chain_reserve" || (classroomRowText(row, ["wave"]) !== "M1" && classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool"))
     .sort((a, b) => safeNumber(a.replacement_order, classroomWaveNumber(classroomRowText(a, ["wave"]))) - safeNumber(b.replacement_order, classroomWaveNumber(classroomRowText(b, ["wave"]))));
   const suggestions = rowsFrom<CalcMuestraAulasReplacementSuggestion>(simulation?.suggestions);
-  return titulars.slice(0, 24).map((titular, titularIndex) => {
+  // Cada titular seleccionado tiene su ruta y todas viajan a campo, así que la
+  // lista las trae todas. Estaba cortada en 24 mientras la selección de
+  // referencia trae 30: seis titulares se quedaban sin tarjeta y sin aviso.
+  return titulars.map((titular, titularIndex) => {
     const titularId = classroomRowText(titular, ["classroom_id"]);
     const slotId = classroomRowText(titular, ["selection_slot_id"]);
     const slotNumber = classroomSlotNumber(slotId, titularIndex + 1);
