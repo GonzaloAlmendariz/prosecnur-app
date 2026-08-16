@@ -149,6 +149,32 @@ function RecorteDelPaso({
   );
 }
 
+/**
+ * D6 (ADR 0060) · Cuántos entraron sin que el criterio pudiera medirlos.
+ *
+ * Los tres gates de composición **NA-pasan**: `is.na(x) | x >= umbral`
+ * (`calc_muestra_aulas_criterios.R:821`). Un curso-horario sin señal —sin
+ * facultad declarada, sin nivel parseable— no se queda fuera: entra. Eso es
+ * deliberado (excluir por falta de dato sesgaría el marco hacia lo bien
+ * registrado), pero deja una cifra que quien decide el umbral tiene que ver:
+ * de los que pasan, cuántos lo hicieron sin evidencia.
+ *
+ * El motor la publica desde hace rondas como `composicion_na_n` y ninguna
+ * superficie la leía. Va junto al recorte porque es la misma pregunta —qué hizo
+ * este paso con el marco— y sólo se dibuja cuando hay algo que decir: sin cifra
+ * o en cero, no hay línea.
+ */
+function SinSenalDelPaso({ sinSenal, quedan }: { sinSenal: number | null; quedan: number | null }) {
+  if (sinSenal == null || !Number.isFinite(sinSenal) || sinSenal <= 0) return null;
+  return (
+    <p className="cmv2-crit-paso-sinsenal" data-estado="na-pass" role="note">
+      <strong>{fmtInt(sinSenal)}</strong>
+      {quedan != null && quedan > 0 ? <> de los {fmtInt(quedan)} que quedan</> : null} entraron sin señal
+      que medir: el criterio no los evalúa, los deja pasar
+    </p>
+  );
+}
+
 function EvidenciaPaso({ aporte, umbral }: { aporte: AporteCategoria | null; umbral: number }) {
   if (!aporte) return null;
   const conUmbral: AporteCategoria = { ...aporte, umbral: { valor: umbral } };
@@ -217,6 +243,7 @@ export function CriterioComposicionCard({
   onPatch,
   evidenciaDe,
   recorteDe,
+  sinSenalDe,
   confirmador,
 }: {
   /** Config de aulas ya normalizado (la tab lo deriva del workspace). */
@@ -239,6 +266,12 @@ export function CriterioComposicionCard({
     llegan: number; quedan: number; aplicado: boolean;
     recalculando?: boolean; sinRecorridoVivo?: boolean;
   } | null;
+  /**
+   * D6 · Cuántas aulas pasaron ESTE gate sin señal medible
+   * (`perfil.opcionales[id].composicion_na_n`). Opcional: frames anteriores al
+   * contrato no lo traen y la tarjeta se dibuja igual, sin la línea.
+   */
+  sinSenalDe?: (criterioId: string) => number | null;
   /**
    * G41 · El confirmador de este criterio, como en cualquier otro.
    *
@@ -342,6 +375,10 @@ export function CriterioComposicionCard({
               onToggle={() => onPatch({ require_faculty_prevalence: !paso1 })}
             />
             <RecorteDelPaso recorte={recorteDe?.("c8_facultad") ?? null} activo={paso1} />
+            <SinSenalDelPaso
+              sinSenal={sinSenalDe?.("c8_facultad") ?? null}
+              quedan={recorteDe?.("c8_facultad")?.quedan ?? null}
+            />
             <EvidenciaPaso
               aporte={evidenciaDe?.("c8_facultad") ?? null}
               umbral={pctDe(config.min_faculty_prevalence_pct, 0.8)}
@@ -374,6 +411,10 @@ export function CriterioComposicionCard({
               onToggle={() => onPatch({ require_cycle_homogeneity: !paso2 })}
             />
             <RecorteDelPaso recorte={recorteDe?.("c8") ?? null} activo={paso2} />
+            <SinSenalDelPaso
+              sinSenal={sinSenalDe?.("c8") ?? null}
+              quedan={recorteDe?.("c8")?.quedan ?? null}
+            />
             <EvidenciaPaso
               aporte={evidenciaDe?.("c8") ?? null}
               umbral={pctDe(config.min_cycle_homogeneity_pct, 0.8)}
@@ -441,6 +482,10 @@ export function CriterioComposicionCard({
               onToggle={() => onPatch({ require_min_prevalence: !legacyOn })}
             />
             <RecorteDelPaso recorte={recorteDe?.("c7") ?? null} activo={legacyOn} />
+            <SinSenalDelPaso
+              sinSenal={sinSenalDe?.("c7") ?? null}
+              quedan={recorteDe?.("c7")?.quedan ?? null}
+            />
             <EvidenciaPaso
               aporte={evidenciaDe?.("c7") ?? null}
               umbral={pctDe(config.min_prevalence_pct, 0.8)}

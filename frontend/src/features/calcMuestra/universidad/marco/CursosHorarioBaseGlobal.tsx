@@ -24,6 +24,7 @@ export function CursosHorarioBaseGlobal({
   onPatchConfig,
   evidenciaComposicion,
   recorteComposicion,
+  sinSenalComposicion,
   confirmador,
 }: {
   config: CalcMuestraWorkspaceAulasConfig;
@@ -44,6 +45,11 @@ export function CursosHorarioBaseGlobal({
     llegan: number; quedan: number; aplicado: boolean;
     recalculando?: boolean; sinRecorridoVivo?: boolean;
   } | null;
+  /**
+   * D6 · Cuántas aulas pasaron cada gate de composición sin señal medible.
+   * Opcional, igual que la evidencia: sin él la tarjeta se dibuja sin la línea.
+   */
+  sinSenalComposicion?: (criterioId: string) => number | null;
   /** G41 · El confirmador de la composición, como el de cualquier criterio. */
   confirmador?: ReactNode;
 }) {
@@ -64,6 +70,7 @@ export function CursosHorarioBaseGlobal({
         onPatch={onPatchConfig}
         evidenciaDe={evidenciaComposicion}
         recorteDe={recorteComposicion}
+        sinSenalDe={sinSenalComposicion}
         confirmador={confirmador}
       />
     </div>

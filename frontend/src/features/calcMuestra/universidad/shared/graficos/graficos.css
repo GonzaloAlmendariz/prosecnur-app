@@ -40,6 +40,35 @@
 .cmv2-graf-tasa[data-tono="asistencia"] .cmv2-graf-tasa-track > span {
   background: color-mix(in srgb, var(--cmv2-accent) 70%, transparent);
 }
+/* H1/ADR 0060 · Barra de una cantidad que sólo se conoce por intervalo.
+   El track completo llega al techo con trama; el tramo sólido marca lo que se
+   sabe cierto. Se apila encima con position absolute para no reordenar el
+   layout de las barras normales, que siguen con un solo hijo. */
+.cmv2-graf-tasa[data-intervalo] .cmv2-graf-tasa-track {
+  position: relative;
+}
+.cmv2-graf-tasa[data-intervalo] .cmv2-graf-tasa-track > span:first-child {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    color-mix(in srgb, var(--pulso-surface) 55%, transparent) 3px 6px
+  );
+}
+.cmv2-graf-tasa-cierto {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+}
+.cmv2-graf-tasa[data-tono="asistencia"] .cmv2-graf-tasa-cierto {
+  background: color-mix(in srgb, var(--cmv2-accent) 70%, transparent);
+}
+/* La cifra es un rango, así que no puede quedarse con el ancho de un
+   porcentaje suelto ni partirse en dos líneas. */
+.cmv2-graf-tasa[data-intervalo] .cmv2-graf-tasa-cifra {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .cmv2-graf-tasa[data-tono="descuento"] .cmv2-graf-tasa-track > span {
   background: color-mix(in srgb, var(--pulso-warn-fg) 62%, transparent);
 }
