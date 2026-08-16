@@ -2040,3 +2040,61 @@ con 0.7.1 el 2026-08-06 y su columna `faculty` no se derive igual que en la
 build de hoy, de modo que medir mi flag sobre el marco viejo no predice el
 nuevo. Es una hipótesis, no una medición, y queda como primer trabajo del
 próximo tick.
+
+---
+
+## L26 · Las 102 aulas del delta, explicadas (2026-08-16)
+
+Predije que el recorte quitaría 2 aulas y quitó 104. Medido facultad a facultad
+sobre el marco reconstruido, contra las cifras de antes:
+
+| Facultad | Antes | Ahora | Δ | CH con `faculty_match_share = 0` |
+|---|---|---|---|---|
+| Ciencias e Ingeniería | 592 | 571 | −21 | 23 |
+| Ciencias Sociales | 169 | 150 | −19 | 19 |
+| Derecho | 440 | 423 | −17 | 17 |
+| Gestión y Alta Dirección | 119 | 102 | −17 | 18 |
+| Psicología | 100 | 89 | −11 | 11 |
+| Comunicación | 162 | 157 | −5 | 5 |
+| Arquitectura · Contables | 56 · 19 | 52 · 15 | −4 · −4 | 4 · 4 |
+| **Escuela de Posgrado** | 2 | **0** | −2 | 2 |
+| Arte y Diseño · Artes Escénicas · Gastronomía · Letras | | | −1 cada una | 1 cada una |
+| Educación · EEGG Ciencias · EEGG Letras | | | 0 | 0 |
+| **Total** | **2.468** | **2.364** | **−104** | 107 |
+
+Trece de las dieciséis coinciden al dígito con las aulas de coherencia cero.
+
+### La causa: el catálogo manda sobre la columna del marco
+
+`.cm_criterios_valores_aula` resuelve la facultad como
+`pick_chr("faculty_curso", "faculty")`: **la señal del catálogo tiene
+precedencia** y la columna del marco es sólo el fallback. Yo medí mi predicción
+contra la columna, y el motor evalúa contra el catálogo.
+
+Las dos difieren, y la diferencia es justo el fenómeno de L20: la columna
+atribuye el aula por sus alumnos; el catálogo dice bajo qué facultad está
+registrado el curso —la **«Facultad del curso»** que el Excel de diseño nombra
+literalmente—. Un curso de Posgrado dictado a alumnos de Civil figura como
+Civil en la columna y como Posgrado en el catálogo. Por eso `faculty_match_share`
+vale 0 en esas aulas y por eso ahora caen.
+
+Fijado en test: con señal de catálogo el aula cae, sin señal pasa por el
+fallback. 16 expectativas en total; criterios 92/92, radiografía 295/295,
+cascada 112/112.
+
+### Qué hago con esto
+
+**No lo reverto**, por tres razones medidas: el criterio lee la facultad
+autoritativa del curso, que es la del diseño; el resultado deja 193 titulares
+frente a las 194 aulas aplicadas en 2025; y revertirlo vuelve a bloquear el
+cálculo.
+
+Pero **el efecto es mayor del que anuncié y se solapa con la decisión abierta**:
+quita 104 aulas y 3.082 matrículas elegibles, no 2 y 33. Gonzalo debe saber que
+el marco quedó en 2.364 —no en los 2.466 que le dije— y que esto ya cubre buena
+parte de lo que haría la coherencia de facultad al 0,80, que quitaría 356.
+
+Un cabo suelto, dicho como tal: Ciencias e Ingeniería cae 21 con 23 aulas de
+coherencia cero, y Gestión cae 17 con 18. Esas tres aulas de diferencia no están
+reconciliadas; lo más probable es que su catálogo sí las asigne a una facultad
+del estudio y su incoherencia venga sólo de los alumnos, pero no lo he medido.
