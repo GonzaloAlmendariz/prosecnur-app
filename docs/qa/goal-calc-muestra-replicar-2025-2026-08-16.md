@@ -1674,3 +1674,73 @@ No la tomo yo. Son tres caminos y no dan el mismo estudio:
 
 Las tres son defendibles; la 1 y la 2 cambian el marco, la 3 no. Mientras no se
 decida, **el estudio real no calcula**.
+
+---
+
+## L20 · El bloqueo tiene nombre y el arreglo ya existe apagado (2026-08-16)
+
+Medido sobre el `.pulso` real. La asimetría de L19 no era «una facultad sin
+alumnos»: es que **la facultad del CURSO y la facultad del ESTUDIANTE son cosas
+distintas**.
+
+Los dos cursos-horario de Escuela de Posgrado que bloquean el cálculo son:
+
+| classroom_id | curso | elegibles | matriculados | `faculty_match_share` |
+|---|---|---|---|---|
+| `1civ15_0001` | Estructuras Metálicas Avanzadas | 17 | 40 | **0** |
+| `1civ26_0001` | Dinámica de Estructuras | 16 | 51 | **0** |
+
+17 + 16 = 33, exactamente las matrículas que muestra la pantalla. Son cursos de
+Civil catalogados bajo Escuela de Posgrado, y su `faculty_match_share = 0`
+significa que **ninguno de sus 33 alumnos elegibles pertenece a esa facultad**.
+El marco estratifica los cursos-horario por la facultad del curso; el estudio
+estratifica a los estudiantes por la suya. Cuando no coinciden, el contrato pide
+una facultad que el estudio no puede declarar.
+
+### No es un caso aislado
+
+De los 2.468 cursos-horario incluidos, **107 tienen `faculty_match_share = 0`**,
+repartidos en 13 facultades y con **3.169 matrículas elegibles**: Ciencias e
+Ingeniería 23, Ciencias Sociales 19, Gestión 18, Derecho 17, Psicología 11,
+Comunicación 5, Arquitectura 4, Contables 4, **Posgrado 2**, y uno cada una en
+Arte y Diseño, Artes Escénicas, Gastronomía y Letras. Posgrado sólo destaca
+porque es la única facultad que **no existe** entre los estratos del estudio; en
+las demás el desajuste pasa desapercibido.
+
+### El criterio que lo arregla ya está en el motor, y está apagado
+
+`c8_facultad` —criterio 8, parte 1, «coherencia de facultad»— compara
+`faculty_match_share` contra `min_faculty_prevalence_pct`, cuyo **default es
+0,80**. Pero sólo se aplica si la config lo pide:
+
+```r
+c8_facultad = isTRUE(filtros$require_faculty_prevalence)
+```
+
+y el proyecto real no lo pide: sus criterios de aula son sólo `byVariable`,
+`courseLevelRanges`, `minEligible` y `manualExcludedClassrooms`. Por eso los 107
+pasan.
+
+Encendiéndolo, medido sobre el marco real:
+
+| Umbral | CH incluidos | Caen | Facultades | ¿Sigue Posgrado? |
+|---|---|---|---|---|
+| — (hoy) | 2.468 | — | **16** | sí |
+| 0,50 | 2.207 | 261 | **15** | no |
+| **0,80** (default) | **2.112** | 356 | **15** | no |
+| 0,90 | 2.025 | 443 | **15** | no |
+
+Cualquiera de los tres deja **exactamente las 15 facultades del diseño** y
+desbloquea el cálculo. Y con un diseño que pide del orden de 160–200 titulares,
+hasta 2.025 cursos-horario es marco de sobra.
+
+### Lo que esto cambia de la decisión pendiente
+
+La opción 2 —«sacar los cursos-horario de posgrado del marco»— **no necesita
+código**: es encender un criterio que ya existe, con su default. Y hace algo más
+honesto que quitar posgrado: quita **todas** las aulas cuya facultad no describe
+a sus alumnos, que son 107 y no 2.
+
+Sigue siendo decisión de Gonzalo, porque cambia el marco: 356 cursos-horario
+menos al umbral por defecto. Pero ahora la opción está cuantificada y no exige
+tocar el motor.
