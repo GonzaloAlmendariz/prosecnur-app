@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  PULSO_PUCP_COLORS,
+  SUGERIDAS_PALETAS,
+  type SugeridaPalette,
+} from "./paletasSugeridas";
+import {
   CheckCircle2,
   Layers,
   ListChecks,
@@ -32,12 +37,6 @@ import "./v2/styles/paletas-suite.css";
 //   - Botón "Paleta semáforo" sugiere una secuencia rojo→amarillo→verde
 //     para listas ordinales (satisfaccion, acuerdo, etc.).
 //   - Botón "Vaciar paleta" quita los colores de esa lista.
-
-type SugeridaPalette = {
-  label: string;
-  description: string;
-  colors: string[];
-};
 
 function opcionesKey(choices: Array<{ name: string; label: string }>) {
   return choices.map((item) => `${item.name}::${item.label}`).join("|");
@@ -82,53 +81,6 @@ function compactColors(colors: Array<string | undefined>) {
   return colors.filter((color): color is string => Boolean(color));
 }
 
-type PaletasPorCantidad = Record<number, SugeridaPalette[]>;
-
-export const PULSO_PUCP_COLORS = {
-  azul: "#081F5C",
-  rojo: "#CA5651",
-  verde: "#85BB85",
-  amarillo: "#EFD25E",
-  gris: "#BFBFBF",
-  naranja: "#E4A34C",
-  azulSecundario: "#7594CC",
-  morado: "#9688D3",
-  grisSecundario: "#D8D8D8",
-  blanco: "#FFFFFF",
-} as const;
-
-const SUGERIDAS_PALETAS: PaletasPorCantidad = {
-  2: [
-    { label: "Pulso principal", description: "Azul institucional y rojo principal.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo] },
-    { label: "Pulso aprobación", description: "Contraste directo para dos estados evaluativos.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde] },
-    { label: "Pulso neutro", description: "Azul institucional con gris para categorías de soporte.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.gris] },
-  ],
-  3: [
-    { label: "Pulso principal", description: "Tres categorías con colores principales.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde] },
-    { label: "Pulso semáforo", description: "Rojo, amarillo y verde para niveles de aprobación.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde] },
-    { label: "Pulso frecuencias", description: "Azules y gris para frecuencias o distribución.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris] },
-  ],
-  4: [
-    { label: "Pulso aprobación", description: "Rojo, amarillo, verde y gris/plomo.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.gris] },
-    { label: "Pulso principal", description: "Cuatro categorías con fuerte presencia institucional.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo] },
-    { label: "Pulso secundarios", description: "Soporte para categorías adicionales sin repetir principales.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario] },
-  ],
-  5: [
-    { label: "Pulso principales", description: "La secuencia principal completa de la guía.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris] },
-    { label: "Pulso Likert", description: "De desacuerdo a acuerdo con amarillo medio y gris neutro.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.gris] },
-    { label: "Pulso secundarios", description: "Paleta secundaria para series o cortes extensos.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.blanco] },
-  ],
-  6: [
-    { label: "Pulso extendida", description: "Principales más naranja secundario.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.naranja] },
-    { label: "Pulso secundarios", description: "Categorías extra con secundarios y gris claro.", colors: [PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.gris] },
-    { label: "Pulso aprobación", description: "Escala evaluativa amplia con neutros.", colors: [PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris] },
-  ],
-  7: [
-    { label: "Pulso completa", description: "Principales y secundarios sin repetir blanco.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario] },
-    { label: "Pulso extendida", description: "Incluye morado y gris claro para más cortes.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.rojo, PULSO_PUCP_COLORS.verde, PULSO_PUCP_COLORS.amarillo, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.morado] },
-    { label: "Pulso neutra", description: "Más discreta para tablas y cortes con categorías auxiliares.", colors: [PULSO_PUCP_COLORS.azul, PULSO_PUCP_COLORS.azulSecundario, PULSO_PUCP_COLORS.gris, PULSO_PUCP_COLORS.grisSecundario, PULSO_PUCP_COLORS.naranja, PULSO_PUCP_COLORS.morado, PULSO_PUCP_COLORS.rojo] },
-  ],
-};
 
 // Identidad de una entrada del catálogo. El backend separa las escalas que
 // comparten `list_name` entre bases y las desambigua con `escala_id`; un
