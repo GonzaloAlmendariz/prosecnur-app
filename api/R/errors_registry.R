@@ -643,6 +643,7 @@ errores_registrados <- function() {
     "E_REGLA_TRATAMIENTO",                                   "reglas_custom_schema.R",            "400",
     "E_REGLA_VALOR_X",                                       "reglas_custom_schema.R",            "400",
     "E_REGLA_VALOR_Y",                                       "reglas_custom_schema.R",            "400",
+    "E_REGLA_MOTIVO_REQUERIDO",                              "router_validacion.R",               "400",
     "E_REGLAS_DUPLICADAS",                                   "validacion_methodology_report.R",   "409",
     "E_RELATIONAL_CHILD_LINK",                               "analitica_relational_export.R",     "indirecto",
     "E_RELATIONAL_KEY_INVALID",                              "analitica_relational_export.R",     "indirecto",

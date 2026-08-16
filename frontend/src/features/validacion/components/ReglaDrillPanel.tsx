@@ -22,7 +22,8 @@ type Props = {
   displayName?: string;
   casos: Array<Record<string, unknown>>;
   uuidCol: string | null;
-  onToggleActiva: (activa: boolean) => Promise<void>;
+  /** Al desactivar, `motivo` es obligatorio (vara V5). */
+  onToggleActiva: (activa: boolean, motivo?: string) => Promise<void>;
   onClose: () => void;
   invalidatedHint?: string;
   surface?: "inline" | "bubble";
@@ -129,6 +130,8 @@ export default function ReglaDrillPanel({
   showClose = true,
 }: Props) {
   const [expandProc, setExpandProc] = useState(false);
+  const [pidiendoMotivo, setPidiendoMotivo] = useState(false);
+  const [motivo, setMotivo] = useState("");
   const [focusedVariable, setFocusedVariable] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -488,19 +491,65 @@ export default function ReglaDrillPanel({
 
           <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
             {showToggleActiva && (
-              <button
-                type="button"
-                onClick={() => void onToggleActiva(!regla.activa)}
-                title={regla.activa ? "Ignorar esta regla en la proxima auditoria" : "Reactivar esta regla"}
-                style={{
-                  ...ghostButtonStyle,
-                  background: regla.activa ? "white" : "var(--pulso-success-bg)",
-                  color: regla.activa ? "var(--pulso-text-soft)" : "var(--pulso-success-fg)",
-                }}
-              >
-                {regla.activa ? <EyeOff size={13} /> : <Eye size={13} />}
-                {regla.activa ? "Ignorar" : "Reactivar"}
-              </button>
+              regla.activa && pidiendoMotivo ? (
+                // Apagar un control es una decisión metodológica: sin el porqué,
+                // quien abra el proyecto no la distingue de un descuido, y el
+                // informe la lista sin poder justificarla. Vara V5.
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <input
+                    autoFocus
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && motivo.trim()) {
+                        setPidiendoMotivo(false);
+                        void onToggleActiva(false, motivo.trim());
+                        setMotivo("");
+                      }
+                      if (e.key === "Escape") setPidiendoMotivo(false);
+                    }}
+                    placeholder="Por qué se ignora esta regla"
+                    aria-label="Motivo por el que se ignora la regla"
+                    style={{
+                      minWidth: 190, padding: "5px 9px", borderRadius: 8, fontSize: 12,
+                      border: "1px solid var(--pulso-border)",
+                      background: "var(--pulso-surface)", color: "var(--pulso-text)",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!motivo.trim()}
+                    onClick={() => {
+                      setPidiendoMotivo(false);
+                      void onToggleActiva(false, motivo.trim());
+                      setMotivo("");
+                    }}
+                    style={{ ...ghostButtonStyle, opacity: motivo.trim() ? 1 : 0.5 }}
+                  >
+                    Ignorar
+                  </button>
+                  <button type="button" onClick={() => setPidiendoMotivo(false)} style={ghostButtonStyle}>
+                    Cancelar
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (regla.activa) setPidiendoMotivo(true);
+                    else void onToggleActiva(true);
+                  }}
+                  title={regla.activa ? "Ignorar esta regla en la proxima auditoria" : "Reactivar esta regla"}
+                  style={{
+                    ...ghostButtonStyle,
+                    background: regla.activa ? "white" : "var(--pulso-success-bg)",
+                    color: regla.activa ? "var(--pulso-text-soft)" : "var(--pulso-success-fg)",
+                  }}
+                >
+                  {regla.activa ? <EyeOff size={13} /> : <Eye size={13} />}
+                  {regla.activa ? "Ignorar…" : "Reactivar"}
+                </button>
+              )
             )}
             {showClose && (
               <button type="button" onClick={onClose} title="Cerrar drill" style={ghostButtonStyle}>

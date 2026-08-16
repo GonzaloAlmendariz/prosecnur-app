@@ -1059,6 +1059,11 @@ build_validation_methodology_report_model <- function(scope,
   evaluation_available <- nrow(eval_df) > 0L && nzchar(eval_id_col)
 
   disabled_ids <- as.character(scope$reglas_desactivadas %||% character(0))
+  # Vara V5: el informe listaba las reglas apagadas sin poder decir por qué.
+  # Un proyecto abierto antes de que el motivo existiera no lo tiene, y eso se
+  # dice tal cual — inventar un motivo sería peor que no tenerlo.
+  disabled_motivos <- scope$reglas_desactivadas_motivo
+  if (!is.list(disabled_motivos)) disabled_motivos <- list()
   excluded_variables <- as.character(scope$variables_excluidas %||% character(0))
   bundle_rules <- (scope$plan_result %||% list())$bundle$rules %||% list()
   shared_variable_labels <- list()
@@ -1145,6 +1150,7 @@ build_validation_methodology_report_model <- function(scope,
     upstream_universe = universe_model,
     operational_config = operational_config,
     disabled_rule_ids = as.list(disabled_ids),
+    reglas_desactivadas = .vmr_reglas_desactivadas(disabled_ids, disabled_motivos, rules),
     excluded_variables = as.list(excluded_variables),
     unsupported = unsupported,
     descartadas = descartadas,
@@ -1229,6 +1235,32 @@ build_validation_methodology_report_model <- function(scope,
     ))
   }
   paste(partes, collapse = " ")
+}
+
+# Vara V5 — por qué se apagó cada control.
+#
+# El informe listaba `disabled_rule_ids` y nada más. Apagar una regla cambia lo
+# que se revisa, así que un entregable que la menciona sin justificarla obliga a
+# quien lo lea a asumir buena fe. Los proyectos abiertos antes de que el motivo
+# existiera no lo tienen: se dice, no se inventa.
+.vmr_reglas_desactivadas <- function(ids, motivos, rules = list()) {
+  ids <- unique(as.character(ids %||% character(0)))
+  if (!length(ids)) return(list())
+  nombre_de <- function(id) {
+    hit <- Filter(function(r) identical(as.character(r$id %||% ""), id), rules)
+    if (length(hit)) .vmr_text(hit[[1]]$nombre %||% id, id) else id
+  }
+  lapply(ids, function(id) {
+    reg <- motivos[[id]]
+    motivo <- .vmr_text((reg %||% list())$motivo %||% "")
+    list(
+      id = id,
+      nombre = nombre_de(id),
+      motivo = motivo,
+      decidido_en = .vmr_text((reg %||% list())$decidido_en %||% ""),
+      sin_motivo = !nzchar(motivo)
+    )
+  })
 }
 
 .vmr_wrap <- function(text, width = 100L) paste(strwrap(.vmr_text(text), width = width), collapse = "\n")
