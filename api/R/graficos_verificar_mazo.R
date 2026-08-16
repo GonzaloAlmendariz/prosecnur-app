@@ -70,7 +70,13 @@
   # Proporcion de texto por debajo del minimo que el aprobado se permite.
   texto_prop_max       = 0.062,
   # Cifras blancas sobre un tramo claro de la rampa. El aprobado tiene CERO.
-  texto_ilegible_max   = 0L
+  texto_ilegible_max   = 0L,
+  # Percentil 10 del aprobado. Su mediana es 4.24 cm; el motor nunca arranca
+  # tan arriba como el peor caso del modelo.
+  arranque_min_cm      = 3.53,
+  # Hueco ENTRE premisas. El aprobado separa 1.76 cm de mediana y el motor
+  # 0.97: es lo que hay detras de «se ve muy apretado».
+  hueco_premisas_min_cm = 1.40
 )
 
 .VERIF_EMU <- 914400
@@ -363,6 +369,20 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
           sprintf(">= %.2f cm", u$titulo_top_min_cm), "pegado al borde")
     }
 
+    # R8: el bloque no puede empezar pegado al logo.
+    ar <- .verif_arranque_cm(formas)
+    if (!is.na(ar) && ar < u$arranque_min_cm) {
+      add("R8 arranque vertical", i, round(ar, 3),
+          sprintf(">= %.2f cm", u$arranque_min_cm), "primera barra muy arriba")
+    }
+
+    # B2: dos premisas seguidas necesitan mas aire que dos publicos.
+    hp <- .verif_hueco_entre_premisas_cm(formas)
+    if (!is.na(hp) && hp < u$hueco_premisas_min_cm) {
+      add("B2 hueco entre premisas", i, round(hp, 3),
+          sprintf(">= %.2f cm", u$hueco_premisas_min_cm), "se ve apretado")
+    }
+
     # R9: una cifra blanca sobre un tramo claro no se lee.
     il <- .verif_texto_ilegible(formas)
     if (il > u$texto_ilegible_max) {
@@ -498,4 +518,57 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
       cx >= s$x && cx <= s$x + s$w && cy >= s$y && cy <= s$y + s$h
     }, logical(1)))
   }, logical(1)))
+}
+
+
+#' Arranque vertical del bloque de datos, en centimetros
+#'
+#' Donde empieza la primera barra. El comentario que lo motiva —«los graficos
+#' pueden estar un poquito mas abajo, la primera barra no tan cerca del logo»—
+#' apuntaba al mazo criticado; el aprobado arranca a 4.24 cm de mediana.
+#'
+#' @keywords internal
+.verif_arranque_cm <- function(formas) {
+  segs <- .verif_segmentos(formas, .VERIF_RAMPA)
+  if (!length(segs)) return(NA_real_)
+  min(vapply(segs, function(s) s$y, numeric(1))) * .VERIF_CM_POR_IN
+}
+
+
+#' Hueco entre premisas de una lamina, en centimetros
+#'
+#' Hay DOS poblaciones de hueco y confundirlas no mide nada: el que separa dos
+#' publicos de la misma premisa y el que separa dos premisas. Se distinguen por
+#' el mayor salto de la serie ordenada, no por un estadistico que las promedie
+#' —un coeficiente de variacion sobre la mezcla da falsos positivos, y ya costo
+#' una iteracion entera perseguir un alto variable que no existia—.
+#'
+#' @return Mediana del hueco ENTRE premisas, o `NA_real_` si la lamina no tiene
+#'   dos poblaciones distinguibles.
+#' @keywords internal
+.verif_hueco_entre_premisas_cm <- function(formas) {
+  segs <- .verif_segmentos(formas, .VERIF_RAMPA)
+  if (length(segs) < 4L) return(NA_real_)
+
+  filas <- list()
+  for (s in segs) filas[[as.character(round(s$y, 3))]] <- s$h
+  ys <- sort(as.numeric(names(filas)))
+  if (length(ys) < 4L) return(NA_real_)
+
+  gaps <- numeric(0)
+  for (i in seq_len(length(ys) - 1L)) {
+    g <- ys[i + 1L] - (ys[i] + filas[[as.character(ys[i])]])
+    if (is.finite(g) && g >= 0) gaps <- c(gaps, g)
+  }
+  if (length(gaps) < 3L) return(NA_real_)
+
+  sg <- sort(gaps)
+  saltos <- diff(sg)
+  if (!length(saltos)) return(NA_real_)
+  idx <- which.max(saltos)
+  # Sin un salto claro, la lamina tiene una sola poblacion: no hay «entre
+  # premisas» que medir y devolver la mediana de todo seria inventarlo.
+  if (saltos[idx] <= stats::median(sg) * 0.5) return(NA_real_)
+
+  stats::median(sg[(idx + 1L):length(sg)]) * .VERIF_CM_POR_IN
 }

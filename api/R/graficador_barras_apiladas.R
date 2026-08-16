@@ -1265,7 +1265,11 @@ graficar_barras_apiladas <- function(
     # que encogerse igual.
     titulos_grupo_alto_rel = 1,
     canvas_w_buf_grupo_etq= 0,
-    canvas_gap_grupos     = 0,
+    # Medido sobre el entregable aprobado: separa 1.76 cm entre premisas contra
+    # los 0.97 que daba el 0. La unidad son «altos de fila» y la fila mide
+    # ~1.57 cm, asi que medio alto cubre la diferencia. Es lo que hay detras de
+    # «se ve muy apretado» y «mas separacion entre pregunta y pregunta».
+    canvas_gap_grupos     = 0.5,
 
     canvas_w_etiquetas      = 0.38,
     canvas_w_buf_etq_bars   = 0.00,

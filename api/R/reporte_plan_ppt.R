@@ -5496,7 +5496,11 @@ reporte_ppt_plan <- function(
         usar_canvas            = TRUE,
         canvas_w_grupo         = if (!sin_grupo_word) 0.24 else 0,
         canvas_w_buf_grupo_etq = if (!sin_grupo_word) 0.03 else 0,
-        canvas_gap_grupos      = if (!sin_grupo_word) 0.35 else 0
+        # 0.65 y no 0.35: medido sobre el entregable aprobado, que separa
+        # 1.76 cm entre premisas contra los 0.97 que daba el 0.35. Es lo que
+        # hay detras de «se ve muy apretado» y «mas separacion entre pregunta
+        # y pregunta». La unidad son altos de fila.
+        canvas_gap_grupos      = if (!sin_grupo_word) 0.65 else 0
       )
       base_args <- .apply_top2box_alias(base_args)
 
