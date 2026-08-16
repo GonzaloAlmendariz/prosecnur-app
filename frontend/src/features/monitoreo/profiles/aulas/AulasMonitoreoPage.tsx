@@ -255,7 +255,13 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
   ];
 
   return (
-    <section className="mon-profile-panel mon-aulas-handoff-panel">
+    // El `<section>` declara su propia geometria aunque su grid interior ya
+    // declare el suyo: son dos superficies, la seccion y el grupo de tarjetas.
+    <section
+      className="mon-profile-panel mon-aulas-handoff-panel"
+      data-qa-geometry-group="monitoring-aulas-handoff-panel"
+      data-qa-geometry-contract="intrinsic"
+    >
       <div className="mon-profile-panel-head">
         <h3>Aplicación por cursos-horario</h3>
         <span>muestra, fichas QR y monitoreo</span>

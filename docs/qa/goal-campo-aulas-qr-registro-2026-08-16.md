@@ -110,7 +110,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
 | **L40** | El alto se repartía al revés del contenido. | El stack es grid y la tabla topa en `min(420px, 100vh−430px)`: dos límites pensados para **una** tabla por vista. Con tres, grid sirve enteras a las que caben y descuenta todo el faltante de la única que excede. A 1024×600 **dos de los tres paneles colapsaban a cero** — regresión que introdujo L39. | ☑ **hecho** (2026-08-16) — paneles que no se encogen; el scroll lo absorbe su dueño ya declarado. Verificado a 1440×1000 y 1024×600. |
 | **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
-| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | El stack de Agenda dispone de 325 px y su contenido pide 452. Está en `overflow: hidden`, así que el registro queda **127 px cortado sin barra ni rueda**. `scrollIntoView` sí lo alcanza —una verificación programática lo daría por visible— y el usuario no. | ☐ sin empezar — medido; tres reparaciones descartadas con evidencia. La vía identificada es scroll interno del panel. |
+| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | El stack de Agenda tiene 325 px. Franja (54) + mínimo de la agenda (180) + gaps (20) = **254**, así que al registro le quedan **71 px** y necesita ~190 para ser usable. No cabe por aritmética, no por scroll. | ⛔ **bloqueado** — depende de L26: es tu decisión de dónde vive. |
+| **L43** | Dos superficies no declaraban su geometría (C1). | «Operación del plan» en Fuentes y «Aplicación por cursos-horario» en Agenda. La segunda declaraba su grid interior de tarjetas pero no la sección que las contiene: son dos superficies, no una. | ☑ **hecho** (2026-08-16) — cero sin declarar en las cinco secciones. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -730,3 +731,38 @@ borde — dueño claro, sin cadena nueva.
 
 **Dato duro para L26**, que sigue esperando tu decisión: donde el registro vive
 hoy, **no cabe** en la viewport baja de la matriz.
+
+
+### 2026-08-16 — L42 no es un problema de scroll: es de aritmética
+
+Fui a repararlo por la vía identificada —scroll propio en el cuerpo del
+registro— y la medición cerró el caso antes de tocar CSS. El stack de Agenda
+dispone de **325 px** en 1024×600 y lo tiene comprometido:
+
+| | px |
+|---|---|
+| Franja «Aplicación por cursos-horario» | 54 |
+| Mínimo declarado de la agenda | 180 |
+| Dos gaps | 20 |
+| **Comprometido** | **254** |
+| **Queda para el registro** | **71** |
+
+El registro necesita ~190 px para ser usable, y su lista ya scrollea por dentro
+(320 px topados en `max-height: 20rem`). Bajar ese tope reduce el panel pero no
+crea espacio: aunque el registro cayera a 71 px, un formulario de cinco campos
+no cabe ahí.
+
+**Las tres superficies no caben juntas en esa altura.** Cuál cede es una
+decisión de producto, no de CSS — es exactamente **L26**, que sigue esperándote.
+L42 pasa de pendiente a **bloqueado**, y aporta el dato que le faltaba a L26: si
+eliges pestaña propia para el registro, L42 desaparece por construcción.
+
+**L43 de propina, y cerrado**: dos superficies no declaraban su geometría. La de
+Agenda declaraba su grid interior de tarjetas pero no la sección que lo
+contiene — son dos superficies distintas, y sólo una estaba declarada.
+
+**Y el test que yo mismo escribí contaba mal.** Su regex era
+`className="mon-profile-panel"` con la comilla de cierre, así que los tres
+paneles con clase modificadora —handoff, registro, operación— quedaban fuera del
+balance: justo los que podían estar sin declarar. Un control que no mira donde
+está el riesgo pasa siempre.
