@@ -263,6 +263,13 @@
       replacement_for = .collection_first_string(row, c(
         "replacement_for", "reemplazo_de", "titular_operational_code", "codigo_aula_titular"
       )),
+      # Y en que LUGAR de la cadena entra. Con cadenas de uno o dos no hacia
+      # falta; desde que el candado por facultad las deja llegar a once, seis
+      # fichas de la misma cadena decian todas «Reemplazo de AULA-01» y quien
+      # las tiene en la mano no sabia cual va primero.
+      replacement_order = .collection_first_number(row, c(
+        "replacement_order", "orden_reemplazo", "orden_de_reemplazo"
+      )),
       eligible_n = .collection_first_number(row, c(
         "eligible_n", "matriculados_poblacion", "students_n"
       )),
@@ -651,6 +658,7 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       # de reemplazos filtra por `replacement_for`, y salia vacia aunque el
       # sorteo hubiera encadenado reservas.
       replacement_for = .collection_first_string(unit$dimensions %||% list(), "replacement_for"),
+      replacement_order = .collection_first_number(unit$dimensions %||% list(), "replacement_order"),
       faculty = .collection_first_string(unit$dimensions %||% list(), "faculty"),
       course_name = .collection_first_string(unit$dimensions %||% list(), "course_name"),
       schedule = .collection_first_string(unit$dimensions %||% list(), "schedule"),

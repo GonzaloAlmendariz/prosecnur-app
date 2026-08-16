@@ -123,6 +123,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L52** | Un puntaje de **0 sobre 100** se mostraba como «Correcto». | El estado de `effective_representativity` salía sólo de `warning`, que exige 10 pp de desvío en **una** celda. Y «Score efectivo 0.0» no dice si 0 es bueno o malo. | ☑ **hecho** (2026-08-16) — el estado mira el puntaje y el aviso explica la escala. |
 | **L53** | Aulas no usaba pestañas como los otros perfiles. | De las cinco secciones sólo `avance` tenía pestañas; telefónico y acreditación las tienen en todas. Por eso tres tablas competían por un panel (L39, L40) y el registro no cabía (L42). | ☑ **hecho** (2026-08-16) — Agenda, Avance y Consultas con sus pestañas; el mecanismo dejó de estar cableado a `avance`. |
 | **L54** | «Cadena agotada: se habían usado **0**» para un aula que **nunca tuvo reserva**. | No es lo mismo una decisión del diseño muestral que un hecho del operativo. | ☑ **hecho** (2026-08-16) — hallazgo de la costura completa. |
+| **L55** | Seis fichas de la misma cadena decían **lo mismo**. | Todas: «Reemplazo de AULA-01». Quien las lleva al aula no sabía cuál entra primero. `dimensions` declaraba `replacement_for` pero no `replacement_order` — **duodécima** aparición de la lista cerrada. | ☑ **hecho** (2026-08-16) — «Reemplazo 1 de AULA-01» … «Reemplazo 6 de AULA-01». |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -629,3 +630,31 @@ defecto que hacía que la reserva de la fila 6 se llamara `R 6.1`.
 
 Con esto el rango queda cubierto de punta a punta: **1, 2, 6 y 11 eslabones**,
 construidos a mano y por la ruta real.
+
+
+### 2026-08-16 — L55: seis fichas idénticas
+
+Con cadenas de una o dos reservas, «Reemplazo de AULA-01» bastaba. Desde que el
+candado por facultad las deja llegar a once, **las seis fichas de una cadena
+decían exactamente lo mismo** en su rol, y lo único que las distinguía era el
+nombre del aula — que no dice **cuál entra primero**.
+
+| | Antes | Ahora |
+|---|---|---|
+| p2 | Reemplazo de AULA-01 | **Reemplazo 1** de AULA-01 |
+| p3 | Reemplazo de AULA-01 | **Reemplazo 2** de AULA-01 |
+| … | … | … |
+| p7 | Reemplazo de AULA-01 | **Reemplazo 6** de AULA-01 |
+
+La causa era la de siempre: `dimensions` en `collection_engine.R` declaraba
+`replacement_for` pero **no** `replacement_order`, así que el dato existía en la
+selección y moría antes de llegar a la ficha. **Duodécima aparición** del patrón
+de la lista cerrada, y la primera que se ve en papel en vez de en pantalla.
+
+La etiqueta degrada bien: sin orden dice «Reemplazo de X» como antes, sin
+titular dice «Reemplazo 2», y un orden inválido (`0`) se ignora en vez de
+imprimir «Reemplazo 0». Un rol desconocido sigue imprimiéndose tal cual —
+inventarle una etiqueta sería peor que mostrar la clave.
+
+Este ítem existe **sólo porque otra sesión cambió la profundidad de las
+cadenas**. Sin ese cambio, seis fichas iguales no habrían aparecido nunca.

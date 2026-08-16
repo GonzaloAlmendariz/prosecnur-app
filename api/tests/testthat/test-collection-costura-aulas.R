@@ -745,3 +745,49 @@ test_that("el handoff propaga la cadena entera, no solo el primer eslabon", {
   }
   expect_identical(usadas, sprintf("AULA-%02d", 11:16))
 })
+
+test_that("cada ficha de la cadena dice en que lugar entra", {
+  # Seis reservas del mismo titular tenian fichas identicas en el rol —todas
+  # «Reemplazo de AULA-01»— y quien las lleva al aula no sabia cual va primero.
+  # Con cadenas de una o dos daba igual; con once, no.
+  mk <- function(i, role, wave, repl = "", orden = NA) {
+    out <- list(
+      operational_code = sprintf("AULA-%02d", i), classroom_id = sprintf("AULA-%02d", i),
+      label = sprintf("Aula %02d", i), sample_role = role, wave = wave,
+      replacement_for = repl, facultad = "Ingenieria",
+      nombre_del_curso = sprintf("Curso %02d", i), horario = "08:00-10:00",
+      pabellon_aula = sprintf("Pabellon A - %d", i),
+      nombre_de_docente = sprintf("Docente %02d", i), matriculados_poblacion = 28 + i
+    )
+    if (!is.na(orden)) out$replacement_order <- orden
+    out
+  }
+  sel <- c(
+    list(mk(1, "titular", "M1")),
+    lapply(1:6, function(k) mk(10 + k, "chain_reserve", sprintf("M%d", k + 1), "AULA-01", k))
+  )
+  sid <- session_create()
+  session_set(sid, "estudio", list(nombre = "cadena", periodo = "Ago 2026"))
+  session_set(sid, "calc_muestra_aulas_selection", list(selection = sel))
+  sd <- collection_state_seed(sid)
+  tg <- list(provider = "kobo", base_access_url = "https://ee.kobotoolbox.org/x/aB3xY9kQ",
+             prefill_field = "collectorID", asset_type = "survey",
+             deployment_active = TRUE, asset_uid = "aSIM1")
+  pv <- collection_adapter_get("kobo_existing_v1")$preview_deployment(plan = sd$plan, target = tg)
+  pv$capability_preflight <- NULL
+  put <- collection_deployment_put(sid, pv, expected_revision = sd$state_revision)
+  prep <- collection_deployment_prepare(sid, expected_revision = put$state_revision)
+  ins <- collection_material_instance_create(sid, expected_revision = prep$state_revision)
+  sn <- collection_material_render_snapshot(sid, ins$instance$instance_id)
+  cp <- collection_material_compile(template = sn$template, instance = sn$instance,
+                                    project = sn$project, plan = sn$plan,
+                                    deployment = sn$deployment,
+                                    resolved_access = sn$resolved_access)
+
+  roles <- vapply(cp$pages, function(p) as.character(p$unit$role %||% ""), character(1))
+  expect_identical(roles[[1]], "Titular")
+  # Las seis, cada una con su lugar. Si el orden no viajara —que es lo que
+  # pasaba— estas seis cadenas serian identicas.
+  expect_identical(roles[-1], sprintf("Reemplazo %d de AULA-01", 1:6))
+  expect_identical(length(unique(roles[-1])), 6L)
+})
