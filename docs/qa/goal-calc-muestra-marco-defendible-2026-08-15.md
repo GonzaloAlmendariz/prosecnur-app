@@ -65,7 +65,6 @@ correcto que no se puede explicar tampoco está entregado.
 
 | # | Decisión | Por qué no puedo yo |
 |---|---|---|
-| L12 | Si el **anonimizador** debe traducir los criterios guardados al anonimizar, además de los valores de la base | Resuelto hoy el síntoma (el fixture ya está reparado y versionado, `6c7e8117`), no la causa: cualquier `.pulso` que se anonimice a partir de ahora vuelve a nacer con el mismo defecto. Arreglarlo toca `pulso_anonimizar.R`, que es de otro dominio y ahora mismo lo está editando la otra sesión |
 
 | L6 | Qué se hace con el test `[gated]` de la base canónica: **(a)** versionar una fixture anonimizada, **(b)** documentar `PULSO_CALC_MUESTRA_CANONICO` como gate manual y quitar el fallback muerto, o **(c)** retirar el test | Las tres son defendibles y tienen precios distintos. (a) da cobertura real en CI pero exige pasar la base por el anonimizador, que ya envenenó `hsvg2026` una vez; (c) pierde la única defensa contra la cancelación de errores. Elegir por ti sería decidir cuánta cobertura vale ese riesgo |
 
@@ -445,6 +444,35 @@ que rompen cada condición de la firma por separado (nombre fuera de catálogo,
 apellido fuera, sufijo no hex, de 2, de 4, y sin anclar al inicio).
 **Verificado con mutante**: quitando el ancla y relajando el sufijo a `{2,4}`,
 el test de la frontera cae.
+
+## L12 · la causa, no el síntoma
+
+El anonimizador reescribía los valores de las tablas y dejaba intactas las
+DECISIONES que nombran esos valores. Datos seudonimizados + criterios reales = 0
+elegibles, y el fixture incapaz de reproducir su propio marco.
+
+Ese defecto se diagnosticó **dos veces como bug del motor**: la primera sesión
+lo anotó como «limpiar criterios antes de construir» —un workaround sobre el
+síntoma— y sólo la segunda llegó hasta la anonimización. Hoy se cierra en el
+emisor: `pulso_anonimizar_criterios.R` traduce las categorías de toda suite de
+criterios usando el mismo diccionario que seudonimizó los datos.
+
+Tres decisiones de diseño que valen más que el código:
+
+- **Se busca por forma, no por ruta.** El estado guarda la suite en más de un
+  sitio (el marco construido y la config del workspace) y una lista de rutas
+  quedaría desactualizada al primer módulo que persista la suya. Mismo criterio
+  que el recorrido de tablas, que ya buscaba «todo data.frame en cualquier
+  profundidad».
+- **La traducción es por `text_key`.** El criterio guarda `ciencias_e_ingenieria`
+  y el diccionario mapea `CIENCIAS E INGENIERIA`: se normalizan los dos lados.
+- **Una categoría que el diccionario no conoce se deja intacta.** Puede ser una
+  dimensión que el anonimizador no tocó; sustituirla por nada la convertiría en
+  un criterio que no filtra, y eso cambia el marco en silencio — peor que
+  dejarla.
+
+El reporte publica `n_criterios_traducidos`, que es lo primero que hay que
+mirar cuando un fixture anonimizado no reproduce su marco.
 
 ## Ledger
 

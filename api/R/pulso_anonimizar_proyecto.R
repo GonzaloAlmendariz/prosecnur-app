@@ -191,6 +191,12 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     .pulso_anon_reescribir_xlsx(p, hojas)
   }
 
+  # Las decisiones guardadas nombran los valores que acaban de cambiar. Sin este
+  # paso el fixture queda inconsistente consigo mismo y no puede reproducir su
+  # propio marco; la lógica vive en pulso_anonimizar_criterios.R.
+  criterios <- .pulso_anon_traducir_criterios(estado, diccionario)
+  estado <- criterios$estado
+
   saveRDS(.pulso_anon_lista_como_state(estado, envuelto$era_env), state_path)
 
   # Marca de procedencia en el manifest: un fixture publicado debe declarar que
@@ -220,6 +226,12 @@ pulso_anonimizar_archivo <- function(origen, destino, sal, slug = NULL) {
     tablas = reporte_tablas,
     n_tablas_tocadas = length(reporte_tablas),
     n_nombres_seudonimizados = length(diccionario),
+    # Cuántas categorías de las decisiones guardadas se reescribieron al
+    # vocabulario nuevo. Un fixture con tablas tocadas y 0 aquí no es
+    # sospechoso por sí solo —puede que ninguna decisión nombre una dimensión
+    # anonimizada—, pero es lo primero que hay que mirar cuando un fixture
+    # anonimizado no reproduce su propio marco.
+    n_criterios_traducidos = criterios$traducidas,
     files_deduplicados = dedup$eliminados,
     gps_offset = offset
   )
