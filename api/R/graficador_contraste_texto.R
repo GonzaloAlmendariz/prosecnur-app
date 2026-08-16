@@ -19,9 +19,15 @@
 
 # Umbral de luminancia por encima del cual un fondo se considera claro.
 #
-# 0.6 y no 0.5: entre 0.5 y 0.6 viven los verdes medios de la rampa, donde el
-# blanco todavia se lee y el azul empieza a competir con el propio segmento.
-.CONTRASTE_UMBRAL <- 0.6
+# 0.52, medido contra el entregable aprobado. Con 0.6 el verde alto de la rampa
+# —`#70AD47`, luminancia 0.561— caia del lado oscuro y su cifra salia BLANCA:
+# siete en la lamina de estructura organizacional, donde el aprobado no usa
+# ninguna. El aprobado escribe azul sobre ese verde en las tres laminas
+# equivalentes, asi que el corte va por debajo de 0.561.
+#
+# No baja mas: el rojo institucional (`#CA5651`, 0.471) y el azul de cuerpo
+# (`#081F5C`, 0.122) tienen que seguir llevando cifra blanca.
+.CONTRASTE_UMBRAL <- 0.52
 
 # Color de la cifra sobre fondo claro. El azul institucional, que es el color de
 # cuerpo del mazo.
