@@ -74,6 +74,8 @@ ya existente.
 | P16 | **Dos láminas del mismo tipo no salen iguales** | reparto de alto en `multilista` | ◐ **medido**: con 3 filas el paso va de 1.40 a 2.59 cm entre láminas; con 7 filas es idéntico en las tres |
 | P15 | Cifras de un solo color por familia: blanco en dicotómica azul, azul Pulso en Likert | `.contraste_familia()` | ☑ un color por gráfico en vez de por luminancia de cada segmento; la paleta que no es de la casa la sigue decidiendo la luminancia |
 | P14 | **Las barras no tienen el mismo grosor dentro de una lámina** | `graficador_row_step.R` | ☑ **0.29 → 0.13 cm** en Mecanismos de admisión (el aprobado: 0.22). Antes: **medido**: en «Mecanismos de admisión» la escala sale a **1.19 cm** y la dicotómica a **0.90** — 0.29 de diferencia. El motor tiene 8 láminas así (peor 0.38); el aprobado 6 (peor 0.22). Regla **B3** añadida al verificador. **Reparado**: los bloques comparten paso de fila y el reparto de alto lo sigue. Coste medido: una barra de escala de esa lámina queda en 0.66 cm contra el piso de 0.77 (R1 ×1), a cambio de que las dos dejen de diferir en 0.29 |
+| P18 | **La rejilla de las tablas iba en gris claro** (hallazgo propio) | `reporte_plan_tabla_nativa.R` + `reporte_plan_ppt.R` | ☑ **248 bordes `BFBFBF` → `757070`, cero en el claro**. El aprobado declara los cuatro lados de cada celda en `757070` a 0.75 pt; el grosor ya coincidía, el color no. Hay **dos** constructores de tabla nativa y hubo que tocar los dos: cambiar solo el del plan dejaba 48 bordes claros en la ficha técnica. Los 16 bordes de 9.4 pt del índice son separadores deliberados y no se tocan |
+| P19 | **Los públicos salían en minúscula en la tabla del radar** (hallazgo propio) | `.radar_mb_nombres_tabla()` | ☑ «docentes» → «Docentes». El nombre viaja como lo nombra el estudio, y ese es el nombre de la **base**: sirve de clave, no de encabezado. Solo la inicial —capitalizar palabra a palabra convertiría «I+D+i» en «I+D+I»— y los `tabla_encabezados` declarados a mano salen literales. **La otra mitad queda para Gonzalo**: el aprobado titula la primera columna «Top Two Box» y el motor «Tema»; `tabla_titulo` ya es configurable en la UI y el motor no puede saber qué métrica grafica |
 | P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda manual de apiladas | ◐ **medido**: lám 68 usa `0.54×0.54` (ggplot, cuadrado) y lám 69 `0.40×0.29` (manual, rel 1.38). El motor es inconsistente consigo mismo. **Pero el aprobado usa `0.29×0.21`, la misma rel 1.38**: la referencia no decide, decide Gonzalo |
 
 ### El defecto que estaba detrás de varios a la vez
@@ -194,9 +196,25 @@ Tres cosas que ninguna vara miraba:
    aprobado los 12–14. Y usa **15.93 y 15.99**, dos tamaños que difieren en seis
    centésimas de punto y deberían ser uno solo —la misma dispersión que P16,
    ahora en tipografía—.
-3. **El gris de «SIN INF» aparece 2,3 veces más** que en el aprobado. Falta
-   comprobar si es que el motor lo pinta donde el aprobado no, o si el estudio
-   tiene más «sin información» del que el entregable enseñaba.
+3. **El gris `BFBFBF` aparecía 2,3 veces más.** Resuelto, y en el camino hubo
+   que **corregir mi propia caracterización**: no era «el motor pinta más gris».
+   Separando dónde vive cada uso, los 452 eran **dos poblaciones distintas**:
+
+   | | Motor | Aprobado |
+   |---|---|---|
+   | Relleno de forma (`p:spPr`) | 204 | 196 |
+   | Borde de celda de tabla (`a:lnL/R/T/B`) | **248** | **0** |
+
+   En el relleno no había apenas diferencia —43 barras grises contra 35, ocho de
+   más, coherente con que el estudio tenga algún «sin información» más—. Toda la
+   brecha estaba en los **bordes de tabla**, que es otro asunto: el aprobado sí
+   dibuja rejilla completa, pero en **`757070`** a 0.75 pt. El motor usaba el
+   gris claro, que sobre el relleno `F2F2F2` del cuerpo casi no se ve. Ya son
+   248 en `757070` y cero en `BFBFBF` (**P18**).
+
+   La lección es del método: contar ocurrencias de un color en todo el XML mezcló
+   rellenos con bordes y produjo un «2,3 veces más» que apuntaba al sitio
+   equivocado. La cifra sólo significó algo al separar **dónde** vive cada uso.
 
 ### Tres capas entre el preset y la tabla del radar (P12)
 
