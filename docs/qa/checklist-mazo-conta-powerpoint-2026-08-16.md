@@ -69,7 +69,7 @@ ya existente.
 | P9 | Barras agrupadas muestran **columna extra** y el reporte final de Contabilidad no la tiene | suelo editorial de Pulso | ☑ era la N de la base repetida **18 veces** en una lámina; el aprobado: 0 |
 | P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paleta `lst_p10` del proyecto | ☑ la 2ª pregunta salía `081F5C`+`F4B183` y su hermana `081F5C`+`9DC3E6`; el aprobado pinta las dos en celeste |
 | P11 | Estructura organizacional: porcentajes unos en blanco y otros en azul; deben ser todos azules | `graficador_contraste_texto.R` | ☑ el umbral 0.6 dejaba `#70AD47` (0.561) del lado oscuro → **7 blancas**; el aprobado usa azul ahí. Umbral a 0.52 |
-| P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `reporte_plan_tabla_nativa.R` | ◐ **el puente ya existía y nadie lo usaba con radar**: el ADR 0072 solo cubría la lámina de SOLO tabla (`tabla_nativa && ocultar_radar`). Ahora el graficador adjunta también **dónde** va (`geom_frac`) y el renderer la coloca junto al gráfico. Falta que el modo `publicos` —que compone varios sub-radares— pase por ese bloque. Antes: **medido**: el aprobado resuelve esto en **2 láminas** con `CHART` nativo + tabla nativa 7×4; el motor usa **5 láminas** con un grupo de 23/82/145/128/39 sub-formas — **417 formas a mano**. La tabla se dibuja dentro del ggplot; sacarla exige que el graficador exponga sus datos y el render emita la tabla. Unidad propia |
+| P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `reporte_plan_tabla_nativa.R` | ☑ **5 tablas nativas** (el aprobado 3), con anchos `[6.36, 2.39, 2.39, 2.39]` contra `[6.62, 2.45, 2.61, 2.32]` del aprobado. Antes: **el puente ya existía y nadie lo usaba con radar**: el ADR 0072 solo cubría la lámina de SOLO tabla (`tabla_nativa && ocultar_radar`). Ahora el graficador adjunta también **dónde** va (`geom_frac`) y el renderer la coloca junto al gráfico. Falta que el modo `publicos` —que compone varios sub-radares— pase por ese bloque. Antes: **medido**: el aprobado resuelve esto en **2 láminas** con `CHART` nativo + tabla nativa 7×4; el motor usa **5 láminas** con un grupo de 23/82/145/128/39 sub-formas — **417 formas a mano**. La tabla se dibuja dentro del ggplot; sacarla exige que el graficador exponga sus datos y el render emita la tabla. Unidad propia |
 | P16 | **Dos láminas del mismo tipo no salen iguales** | reparto de alto en `multilista` | ◐ **medido**: con 3 filas el paso va de 1.40 a 2.59 cm entre láminas; con 7 filas es idéntico en las tres |
 | P15 | Cifras de un solo color por familia: blanco en dicotómica azul, azul Pulso en Likert | `.contraste_familia()` | ☑ un color por gráfico en vez de por luminancia de cada segmento; la paleta que no es de la casa la sigue decidiendo la luminancia |
 | P14 | **Las barras no tienen el mismo grosor dentro de una lámina** | `graficador_row_step.R` | ☑ **0.29 → 0.13 cm** en Mecanismos de admisión (el aprobado: 0.22). Antes: **medido**: en «Mecanismos de admisión» la escala sale a **1.19 cm** y la dicotómica a **0.90** — 0.29 de diferencia. El motor tiene 8 láminas así (peor 0.38); el aprobado 6 (peor 0.22). Regla **B3** añadida al verificador. **Reparado**: los bloques comparten paso de fila y el reparto de alto lo sigue. Coste medido: una barra de escala de esa lámina queda en 0.66 cm contra el piso de 0.77 (R1 ×1), a cambio de que las dos dejen de diferir en 0.29 |
@@ -169,6 +169,25 @@ un bloque tiene pocas categorías con etiquetas largas —`n_categorias <= 4 &&
 max_lineas_eje_y >= 5`— y en multilista **cada bloque lo decide por su cuenta**.
 Compartirlo exige exponerlo como override y fijarlo una vez por lámina: es la
 unidad pendiente principal.
+
+### Tres capas entre el preset y la tabla del radar (P12)
+
+El puente del ADR 0072 estaba entero y aun así no salía ni una tabla. Tres cosas
+distintas lo cortaban, y cada una había que medirla aparte:
+
+1. **`emitir_nativa` exigía `ocultar_radar`**: solo cubría la lámina de solo
+   tabla, porque sin saber DÓNDE va, la única opción era el placeholder entero.
+   Se resolvió adjuntando `geom_frac`.
+2. **El modo `publicos` arma su propia tabla** con `tableGrob` y `plot_grid`, así
+   que nunca pasaba por `graficar_radar()`.
+3. **`el$tabla_nativa` era `FALSE`, no `NULL`**, así que el `%||%` jamás caía al
+   preset del proyecto. El constructor lo forzaba con `isTRUE()`; un elemento
+   tiene que poder NO opinar para que el preset decida.
+
+Y una trampa al conectar: con geometría, `.dml_o_tabla()` devuelve la imagen —la
+tabla va aparte—, pero el emisor solo está en la lámina de un gráfico. Si la
+geometría se adjuntara también al caso «solo tabla», cualquier otra disposición
+**perdería la tabla**. Se adjunta solo cuando el radar se ve.
 
 ### Dos accesores que truncaban en silencio
 
