@@ -1181,7 +1181,7 @@
     paletas = list(),
     iconos = list(),
     overrides_reusables = user_overrides %||% .OVERRIDES_DEFAULT_PULSO,
-    debug_ph = list(activo = FALSE, color = "#FF00FF", lwd = 0.6),
+    debug_ph = list(activo = FALSE, color = .GUIA_COL, lwd = .GUIA_LWD),
     view_mode = "timeline",
     inspector_tab = "content",
     density = "comfortable",
@@ -1802,19 +1802,31 @@
   }
 
   # 2) Debug placeholder: inyectar al preset base.
+  #
+  # Va a `base` Y a `base$args`. El motor hereda hacia los graficadores desde
+  # `base$args`, así que escribirlo sólo en `base` —como se hacía— dejaba la
+  # bandera en un sitio que nadie lee: encender la guía desde la config del
+  # proyecto no dibujaba ni una cota. `base` se conserva porque es donde la
+  # busca la UI.
   if (is.null(presets_json$base)) presets_json$base <- list()
+  if (!is.list(presets_json$base$args)) presets_json$base$args <- list()
+  .debug_ph_set <- function(presets_json, clave, valor) {
+    presets_json$base[[clave]] <- valor
+    presets_json$base$args[[clave]] <- valor
+    presets_json
+  }
   if (is.list(debug_ph) && isTRUE(debug_ph$activo)) {
-    presets_json$base$debug_ph_bordes <- TRUE
+    presets_json <- .debug_ph_set(presets_json, "debug_ph_bordes", TRUE)
     if (!is.null(debug_ph$color) && nzchar(as.character(debug_ph$color))) {
-      presets_json$base$debug_ph_col <- as.character(debug_ph$color)
+      presets_json <- .debug_ph_set(presets_json, "debug_ph_col", as.character(debug_ph$color))
     }
     if (!is.null(debug_ph$lwd) && is.finite(suppressWarnings(as.numeric(debug_ph$lwd)))) {
-      presets_json$base$debug_ph_lwd <- as.numeric(debug_ph$lwd)
+      presets_json <- .debug_ph_set(presets_json, "debug_ph_lwd", as.numeric(debug_ph$lwd))
     }
   } else {
     # Si no está activo, forzar FALSE por si el analista había dejado
     # debug_ph_bordes=TRUE en algún preset legacy.
-    presets_json$base$debug_ph_bordes <- FALSE
+    presets_json <- .debug_ph_set(presets_json, "debug_ph_bordes", FALSE)
   }
 
   # 3) Titulo de seccion: los divisores por seccion se leen mejor con un titulo

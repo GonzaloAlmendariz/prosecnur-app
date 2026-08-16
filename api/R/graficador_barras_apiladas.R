@@ -2792,14 +2792,19 @@ graficar_barras_apiladas <- function(
   # linea fina y cada caja con su cota en pulgadas— y no como un subrayador.
   # Antes habia que exportar y medir el XML en EMU para saber cuanto media un
   # hueco; ahora lo dice la propia caja.
-  .ph_border <- function(x, y, w, h, etiqueta = NULL, nota = NULL) {
+  # Una lamina, un registro de bandas: dos cajas que comparten borde superior
+  # escribian su nota una encima de la otra.
+  .guia_nivel <- .guia_registro_notas()
+  .ph_border <- function(x, y, w, h, etiqueta = NULL, nota = NULL,
+                         nivel_extra = 0L) {
     grobs <- .guia_ph_grobs(
       x = x, y = y, w = w, h = h,
       ancho_in = suppressWarnings(as.numeric(ancho)[1]),
       alto_in  = suppressWarnings(as.numeric(alto)[1]),
       etiqueta = etiqueta, nota = nota,
       col = debug_ph_col %||% .GUIA_COL,
-      lwd = debug_ph_lwd %||% .GUIA_LWD
+      lwd = debug_ph_lwd %||% .GUIA_LWD,
+      nivel = .guia_nivel(y + h) + nivel_extra
     )
     lapply(grobs, function(g) {
       cowplot::draw_grob(g, x = x, y = y, width = w, height = h,
@@ -3415,12 +3420,19 @@ graficar_barras_apiladas <- function(
       .ph_border(x_group0, y_main0, w_group, main_h, etiqueta = "grupo",
                  nota = .guia_nota(texto_pt = size_titulos_grupo)) +
       .ph_border(x_buf00,  y_main0, w_buf0,  main_h) +
+      # Igual que la columna extra: la primera etiqueta de categoria ocupa la
+      # linea de arriba.
       .ph_border(x_etq0,   y_main0, w_etq,   main_h, etiqueta = "eje",
+                 nivel_extra = 1L,
                  nota = .guia_nota(texto_pt = size_ejes_eff)) +
       .ph_border(x_buf10,  y_main0, w_buf1,  main_h) +
       .ph_border(x_buf20,  y_main0, w_buf2,  main_h) +
+      # Una linea mas abajo: el rotulo de la columna («TOP TWO BOX») ocupa la
+      # primera y la nota se lo comia. Al fondo tampoco cabe —ahi esta el ultimo
+      # valor—, asi que va al hueco entre el rotulo y la primera fila.
       .ph_border(x_extra0, y_main0, w_extra, main_h, etiqueta = "extra",
-                 nota = .guia_nota(texto_pt = size_barra_extra))
+                 nota = .guia_nota(texto_pt = size_barra_extra),
+                 nivel_extra = 1L)
   }
 
   # ============================================================

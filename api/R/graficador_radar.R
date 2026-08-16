@@ -291,8 +291,8 @@ graficar_radar <- function(
     centro_cowplot              = NA_real_,
 
     debug_ph_bordes = FALSE,
-    debug_ph_col    = "#FF00FF",
-    debug_ph_lwd    = 0.6,
+    debug_ph_col    = .GUIA_COL,
+    debug_ph_lwd    = .GUIA_LWD,
 
     exportar    = c("rplot", "png", "ppt", "word"),
     path_salida = NULL,

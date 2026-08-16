@@ -2076,8 +2076,8 @@
            default = FALSE,
            descripcion = "Muestra bordes de referencia alrededor de cada bloque interno del gráfico. Controlable con el botón global del encabezado."),
       list(name = "debug_ph_col",      label = "Color de los bordes", tipo_input = "string", grupo = "avanzado",
-           default = "#FF00FF",
-           descripcion = "Hex del color de los bordes de referencia. Magenta (#FF00FF) es el default porque no suele aparecer en gráficos reales."),
+           default = "#0FA3B1",
+           descripcion = "Hex del color del plano de la guía. Cian apagado: se ve sobre el blanco del canvas y sobre el azul institucional sin comerse la lámina, que es lo que hacía el magenta anterior."),
       list(name = "debug_ph_lwd",      label = "Grosor de los bordes", tipo_input = "number", grupo = "avanzado",
            default = 0.6,
            descripcion = "Grosor de las guías de layout, en puntos. Solo se dibujan con las guías encendidas.")

@@ -47,6 +47,37 @@
 .GUIA_MIN_H_COTA_CM <- 0.40
 
 
+#' Registro de bandas ocupadas por las notas de una lamina
+#'
+#' El marco de cada caja se dibuja solo, pero su nota no: las cajas de una
+#' lamina son contiguas y anidadas, y varias comparten borde superior. Con la
+#' nota siempre en la esquina de arriba, dos cajas apiladas escriben en la misma
+#' banda y el resultado es ilegible —en el mazo de Contabilidad, la nota del
+#' panel y la del area de barras se montaban una sobre otra—.
+#'
+#' Cada caja pregunta por su nivel antes de escribir: si su banda ya esta
+#' tomada, baja una linea. El registro vive en un closure porque es estado de
+#' una lamina, no del proceso: dos laminas no comparten bandas.
+#'
+#' @param tolerancia_npc Distancia por debajo de la cual dos notas se pisan.
+#' @return Funcion `nivel(top_npc)` que devuelve cuantas lineas bajar.
+#' @keywords internal
+.guia_registro_notas <- function(tolerancia_npc = 0.02) {
+  bandas <- numeric(0)
+  function(top_npc) {
+    t <- suppressWarnings(as.numeric(top_npc)[1])
+    if (!is.finite(t)) return(0L)
+    nivel <- 0L
+    while (any(abs(bandas - (t - nivel * tolerancia_npc)) < tolerancia_npc * 0.5)) {
+      nivel <- nivel + 1L
+      if (nivel > 6L) break
+    }
+    bandas <<- c(bandas, t - nivel * tolerancia_npc)
+    nivel
+  }
+}
+
+
 #' Formatea una cota en centimetros, a partir de pulgadas
 #'
 #' Dos decimales: con uno, dos huecos que difieren en un milimetro se leen
@@ -98,7 +129,8 @@
 .guia_ph_grobs <- function(x, y, w, h, ancho_in = NA_real_, alto_in = NA_real_,
                            etiqueta = NULL, nota = NULL,
                            col = .GUIA_COL, lwd = .GUIA_LWD,
-                           size_cota = .GUIA_SIZE_COTA) {
+                           size_cota = .GUIA_SIZE_COTA,
+                           nivel = 0L) {
   marco <- grid::rectGrob(
     x = 0, y = 0, width = 1, height = 1,
     just = c("left", "bottom"),
@@ -134,9 +166,17 @@
   # Arriba a la izquierda y pegada al marco: es la esquina que menos ocupan los
   # datos —las barras arrancan mas abajo y las etiquetas de eje van al otro
   # lado— y deja la caja libre para lo que se esta auditando.
+  #
+  # `nivel` baja la nota una linea por cada vecina que ya ocupa su banda (ver
+  # `.guia_registro_notas()`), y el consumidor puede sumar un salto fijo a las
+  # cajas cuya primera linea esta ocupada por contenido: la columna del Top Two
+  # Box lleva ahi su rotulo y la nota se lo comia.
+  n <- suppressWarnings(as.integer(nivel)[1])
+  if (!is.finite(n) || is.na(n) || n < 0L) n <- 0L
+  salto <- n * (size_cota * 1.5 / 72) / max(h_in, 1e-6)
   rotulo <- grid::textGrob(
     label = texto,
-    x = grid::unit(0.012, "npc"), y = grid::unit(0.985, "npc"),
+    x = grid::unit(0.012, "npc"), y = grid::unit(0.985 - salto, "npc"),
     just = c("left", "top"),
     gp = grid::gpar(col = col, fontsize = size_cota, fontface = "plain")
   )
