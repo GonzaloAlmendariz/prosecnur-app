@@ -4532,7 +4532,11 @@ reporte_ppt_plan <- function(
         base_args$top2box_labels <- el$top2box_labels
       }
       if (is.null(base_args$titulo_barra_extra) || !nzchar(base_args$titulo_barra_extra)) {
-        base_args$titulo_barra_extra <- "Top 2 Box"
+        # «TOP TWO BOX», como lo escribe el entregable aprobado en sus 41
+        # laminas. Ademas de coherencia, la forma importa para medir: buscando
+        # «Top 2 Box» el conteo sobre el aprobado devolvia 0 columnas cuando
+        # tiene 40.
+        base_args$titulo_barra_extra <- "TOP TWO BOX"
       }
       col_extra <- as.character(base_args$color_barra_extra %||% "")[1]
       if (is.na(col_extra)) col_extra <- ""
