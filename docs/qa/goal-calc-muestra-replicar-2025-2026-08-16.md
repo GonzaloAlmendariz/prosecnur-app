@@ -49,17 +49,17 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | # | Qué | Vara | Estado |
 |---|---|---|---|
 | L1 | Reunir el material de 2025 | — | ☑ **completo** (2026-08-16) · Gonzalo señaló `Historico 2025/`: la selección entera está ahí |
-| L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ · necesita una pila SIN bootstrap; la de trabajo arranca con un `.pulso` precargado (ver abajo) |
+| L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☑ **cerrado** (`75bb3bce`) · un proyecto nuevo ya no dice «reconstruye» sobre un marco que nunca existió |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ☑ **cerrado** (2026-08-16) · tabla abajo; su único pendiente era el contraste de L4, que cuadró exacto |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ☑ **cerrado** (2026-08-16) · tabla abajo; la razón duplicada se arregló en `7ab5d3ba`, con test propio |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☑ **cerrado** (2026-08-16, `7addb99c`) · el motor publica `filas_total` y cada tarjeta de criterio de alumno dice a cuántos dejó fuera; el 0 de `level` se pinta de aviso |
-| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **n planificado ENCONTRADO** (2026-08-16) · cuota 3.807 contra 3.303 logradas; falta correr el motor y contrastar |
-| L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** · el estadístico YA está justificado en la UI; lo que falta es de 2025, que nunca firmó la decisión |
+| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ☑ **cerrado** (2026-08-16) · el motor corrió sobre el proyecto real y dio 2.500 objetivo y 3.750 de sobremuestra; la brecha 3.807 → 3.303 → 2.500 queda explicada (803 recortados al azar por celda) |
+| L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ⛔ **bloqueado por la fuente** · reproduce exacto y el estadístico ya está justificado en la UI; el contraste exige la decisión de 2025, que nunca se firmó |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☑ **el patrón SÍ estaba** (2026-08-16) · 15 facultades, 194 aulas, en el histórico; contraste abajo |
-| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido y confirmado** (2026-08-16) · idéntico con y sin descuento; el contraste con 2025 sigue bloqueado |
-| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **diferencia explicada** (2026-08-16) · estaba comparando agendadas contra agendadas de n distintos; ver abajo |
+| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido; falta el contraste** (2026-08-16) · idéntico con y sin descuento. La fuente NO falta: `Historico 2025/HSVBG2025_relacion_cursos_horario_aplicados.xlsx` trae los CH aplicados. Sigue sin abrirse |
+| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **cadena dimensionada; falta conciliar** (2026-08-16) · 30 × 11 = 330. La fuente NO falta: `Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx` trae las 1.012 agendadas. Sigue sin abrirse |
 
 ## L1 · el material de 2025 (2026-08-16)
 
