@@ -24,7 +24,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | | Afirmación | Umbral medido | Aprobado | Motor |
 |---|---|---|---|---|
 | V1 | El título no va pegado al borde | ≥ 0.35 in | 0.361 | **0.370** ✓ |
-| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **9.4 %** ◐ (era 12.2) |
+| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **9.4 %** ◐ · el resto es config, no motor |
 | V3 | El extremo de la escala es naranja | sin rojo en rampa | — | naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja | — | 45 | **38** ✓ |
 | V5 | El grosor de escala no baja del piso | ≥ 0.303 in (p10) | 4 fallos | **0** ✓ |
@@ -438,14 +438,33 @@ V2 baja del 12.2 % al **9.4 %**, contra el 6.2 % del aprobado.
 | 20 × 9.48 pt | etiquetas de eje escaladas | `Graficos2` |
 | 8 × 7.39 · 6 × 8 | cifras en segmentos estrechos | residual |
 
-**Y un hallazgo nuevo que merece ítem propio, no cerrarlo a la fuerza aquí:**
-instrumentando el graficador de apiladas aparecen **180 de 238 llamadas del PPT
-—`exportar = "rplot"`, no del Word— recibiendo `size_ejes = 9`, el default de
-firma, en vez del 13 que declara el preset del proyecto.** Las otras 58 sí lo
-reciben. Puede ser que el motor mida antes de dibujar y sólo las segundas se
-rendericen, o puede ser que a la mayoría de los gráficos no le llegue su preset;
-la diferencia importa y no se resuelve mirando el archivo generado.
+### Las 180 llamadas «sin preset»: no existían
 
-Antes de eso, una corrección: en L16 atribuí esas llamadas al informe **Word**
-por el `size_texto_barras = 2.8` de `reporte_plan_word.R`. Son del PPT. La
-atribución era mía y estaba mal.
+Generando **sólo el PPT**, las llamadas al graficador de apiladas son 58 y
+**todas reciben `size_ejes = 13`**, el preset del proyecto. Cero con el default
+de firma. Las 180 restantes son del informe **Word**, que usa cuerpos menores a
+propósito porque es A4. No hay ningún agujero de presets.
+
+El artefacto salía de medir los dos motores en la misma corrida: el script
+genera PPT y Word, y `exportar = "rplot"` no distingue uno de otro —el Word
+también renderiza a objeto antes de insertar—. Me apoyé en ese campo para
+«corregirme» y la corrección iba en la dirección equivocada: **la atribución
+original al Word, en L16, era la correcta.**
+
+### Los 54 textos a 9 pt: son configuración, no motor
+
+Están en las dos únicas láminas de `p_radar`, y salen de que el preset del
+proyecto declara `tabla_body_size = 9` y `tabla_header_size = 10` para la tabla
+del radar, con `tabla_auto_fit = FALSE`. El motor los respeta, que es
+exactamente lo que se le pide desde L4.
+
+Con eso V2 queda explicada entera y **no queda nada que arreglar en el motor**:
+
+| | Qué es | Decisión |
+|---|---|---|
+| 136 × 11 pt | cuerpo secundario, a un punto del mínimo | el aprobado también los tiene (113) |
+| 54 × 9 pt | tabla del radar | declarado en el preset del proyecto |
+| 20 × 9.48 · 8 × 7.39 · 6 × 8 | residual en paneles estrechos | 34 de ~2400 |
+
+Bajar V2 de 9.4 % a 6.2 % ya no es trabajo de motor: es subir
+`tabla_body_size` en el proyecto, y eso lo decide quien firma el informe.
