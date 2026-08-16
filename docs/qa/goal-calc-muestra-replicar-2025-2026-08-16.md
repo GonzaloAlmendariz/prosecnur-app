@@ -1049,4 +1049,105 @@ Lo que cambia es **de dónde sale el número de aulas**, no cómo se sortean:
    2025 cada cupo tenía su propia cadena.
 4. **El test de `.cm_aulas_quota_by_stratum`** debe fijar primero el
    comportamiento de hoy para que el cambio sea visible en el diff, no
-   silencioso.
+   silencioso. ☑ **hecho** (2026-08-16, punto 4 cerrado) — ver abajo.
+
+---
+
+## De dónde sale la cuota: la respuesta estaba en el diseño muestral (2026-08-16)
+
+Gonzalo señaló `~/Documents/Pulso/HST UNSA/Diseño Muestral PUCP- 2 Escenarios 2
+(2025-2026)/Diseño Muestral HSyVBG PUCP 2026 - Propuesta con dos escenarios.xlsx`.
+Cuatro hojas: `Cursos-Horario` (23.133), `Estudiantes` (**136.284** — es
+exactamente nuestro marco de entrada), `TD Estudiantes` y `Diseño Muestral`.
+
+La pregunta bloqueante queda contestada, y de forma inequívoca: **la cuota de
+aulas de cada facultad sale del cálculo de alumnos por curso-horario.** La
+cadena, verificada al dígito sobre las dos tablas:
+
+```
+n_facultad → sobremuestra → aulas = ceil(sobremuestra / alumnos_por_CH_facultad)
+```
+
+| | Escenario 1 | Escenario 2 |
+|---|---|---|
+| Parámetros | **globales**: 95%, e=2,47%, p=30%, deff=2 | **por facultad**: confianza 0,90/0,95, e=0,05/0,07/0,10, p=0,2–0,6, deff=1,5 |
+| n total | 2.500 | 4.050 |
+| Afijación | proporcional a N (1.080/21.365 → 126) | **no proporcional**: cada facultad calcula su propio n |
+| Sobremuestra | ×1,5 → 3.754 | ×1,2 → 4.865 |
+| **Aulas por aplicar** | **162** | **235** |
+| Ponderación | — | columna `W` explícita (N_h/N ÷ n_h/n) |
+
+Ambas columnas de «Aulas por aplicar» reproducen exacto con
+`ceil(sobremuestra / alumnos_por_CH)`: verificado en las 15 filas de cada
+escenario. Y el N total de las dos, **21.365**, es el mismo número que ya cuadró
+en L4.
+
+También aparece la cuota por **sexo**: cada facultad trae `Mujeres (n)` y
+`Hombres (n)`, repartidos proporcionalmente dentro de la facultad en el
+escenario 1 y con el n propio en el escenario 2.
+
+### Lo que esto cambia del contrato
+
+El selector **recibe la cuota calculada**, no la calcula: el número nace en
+Cálculo de muestra (n por facultad → sobremuestra → división por alumnos/CH) y
+baja al sorteo. Las tres piezas de esa cadena ya existen por separado en el
+motor —`alumnos_por_ch` publica la media y el P25 por facultad efectiva—, pero
+nadie las encadena hasta «aulas por facultad».
+
+### Corrección al encuadre: los estratos en cero no son el problema
+
+Escribí que el reparto actual deja 54 de 84 estratos sin ninguna aula. Es
+cierto, pero **es un síntoma de un n de 30, no del reparto**. Medido sobre el
+marco real (4.343 aulas elegibles, 53 estratos facultad×tamaño):
+
+| n | entradas | estratos sin entrada | aulas con π = 0 |
+|---|---|---|---|
+| 30 | 30 | 23 | 456 de 4.343 |
+| 53 | 53 | 0 | 0 |
+| **162** (escenario 1) | 53 | 0 | 0 |
+| **235** (escenario 2) | 53 | 0 | 0 |
+
+Con el n real del diseño **ningún estrato queda fuera**. Así que la razón para
+cambiar el reparto no es la cobertura: es que **la regla de asignación es otra**.
+Hoy se reparte proporcional a `eligible_n`; el escenario 2 es deliberadamente no
+proporcional —Ciencias e Ingeniería tiene N=4.512 y recibe 17 aulas, mientras
+Arte y Diseño con N=1.021 recibe 34, porque sus parámetros de precisión son
+distintos—. Ningún reparto proporcional puede producir eso.
+
+### Punto 4 cerrado: el reparto de hoy está fijado en test
+
+`api/tests/testthat/test-calc-muestra-aulas-cuota-por-estrato.R`, 31
+expectativas. Fija cuatro cosas y la consecuencia de cada una:
+
+- con n ≥ nº estratos, reparto proporcional a `eligible_n` **con piso 1** y suma
+  exacta (comprobado también con n = 84, 100, 162, 235 y 400);
+- con n < nº estratos, los sobrantes **no quedan en 0: quedan sin entrada** —
+  medido, era la duda del tick—. Todo lo que recorre `names(quotas)` (el sorteo,
+  el aviso de cuota no factible) nunca llega a preguntar por ellos;
+- la consecuencia medible de esa ausencia: **π = 0 exacto**, no probabilidad
+  baja. Cobertura cero;
+- el peso degenerado cae a 1 y no a 0, que es lo que evita un `NaN` cuando el
+  marco entero viene sin tamaños.
+
+Verificado con cinco mutantes sobre el fuente, revertido después (control 0/31):
+
+| Mutante | Fallos |
+|---|---|
+| Los excluidos en 0 en vez de sin entrada | 5 |
+| Sin piso 1 | 8 |
+| Elige los estratos de menor peso | 5 |
+| Peso degenerado cae a 0 | 1 |
+| La suma deja de cuadrar | 7 |
+
+El cuarto mutante **no lo detectaba la primera versión del test**: con
+`na.rm = TRUE` un `NA` suelto ya suma 0, así que en el fixture original las dos
+ramas daban el mismo resultado. Hizo falta el caso con **todos** los estratos
+sin tamaño para separarlas. Un mutante que sobrevive no siempre es un mutante
+equivalente: aquí era un hueco del fixture.
+
+### Trampa: `frame_ok.rds` del scratchpad no sirve para nada por facultad
+
+Sus 18 facultades se llaman «Andres», «Karina Y Elena DE LA Jimenez.», «Ricardo
+Ricardo Gabriela». Viene del proyecto anonimizado, cuyas categóricas destruyó el
+anonimizador. Los totales agregados sí son válidos; cualquier contraste por
+facultad contra el Excel exige el `.pulso` real.
