@@ -64,7 +64,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
-| L30 | Separación entre premisas: 0.97 → 1.31 cm, faltan 0.45 | la leyenda del motor va 2.7 cm más arriba | ◐ **20 → 9** |
+| L30 | Separación entre premisas | el panel no usaba el alto del hueco | ◐ **20 → 4**; hueco 0.97 → 1.74 cm |
 | L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
@@ -925,3 +925,30 @@ arriesga pisar la base. Queda para medir aparte.
 
 Con el gap en 0.65, B2 baja de 20 a 9 y el grosor de 1.30 a 1.22 cm: es el
 estado actual y no empeora ninguna vara, pero tampoco cierra.
+
+### L30, cuarta pasada: el panel no usaba el alto que tenía
+
+Tres diagnósticos fallidos y el cuarto, medido en el sitio correcto: el canvas
+se construía con **filas × alto de fila** e ignoraba el hueco donde iba a caer.
+Con un hueco de 6.00 in, una lámina de dos premisas dejaba **3.62 in sin usar**.
+
+Ahí se perdían las dos cosas a la vez —grosor y aire—, que es por lo que
+parecían competir entre sí: no competían por el alto del panel, competían por un
+alto que el panel no estaba pidiendo.
+
+| | Antes | Ahora | Aprobado |
+|---|---|---|---|
+| Hueco entre premisas | 0.97 cm | **1.74 cm** | 1.91 cm |
+| Grosor de barra | 1.30 cm | 1.22 cm | 1.30 cm |
+| Incumplimientos B2 | 20 | **4** | 0 |
+
+Con el panel estirado, subir la separación deja de robar grosor, así que el gap
+pasa de 0.65 a 0.85. Subir el tope de estirado de 1.8 a 2.4 **no cambia nada**:
+el límite real no es ese sino el hueco menos lo que ya reservan cabecera,
+leyenda y pie —el pie se lleva 0.85 in fijos—.
+
+**Lo que costó llegar**: tres iteraciones persiguiendo explicaciones que no se
+sostenían, y la última de ellas —«sobran 1.88 cm»— salió de medir el espacio
+hasta el borde **sin comprobar qué había en medio**. Había leyenda. La medición
+buena fue instrumentar el reparto del canvas y leer sus componentes, no deducirlo
+del archivo generado.
