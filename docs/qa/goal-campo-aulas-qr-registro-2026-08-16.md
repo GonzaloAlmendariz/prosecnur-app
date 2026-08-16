@@ -24,7 +24,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V4** | La ficha dice **sin interpretación** si el aula es titular o reemplazo, y de quién es reemplazo. | Dos páginas del mismo PDF (una titular, una reserva) difieren en una marca legible; alguien que no conoce la nomenclatura acierta el rol. |
 | **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. Hoy ese endpoint tiene **0 consumidores**. |
 | **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. |
-| **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. |
+| **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
 | **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. |
 
 ---
@@ -76,7 +76,7 @@ aula con mala luz y un teléfono viejo.
 | **L6** | El registro de campo no existe como concepto: hora de inicio, aforo observado, quién aplicó. | La ficha impresa **sí** los tiene (bloque `application_log`, 3 renglones a mano). Nunca vuelven al sistema. | ☐ sin empezar |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
-| **L8** | `apiMonitoreoAulasConfig` también tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. Verificar si es capacidad muerta o pendiente de conectar antes de borrarla. | ☐ sin empezar |
+| **L8** | `apiMonitoreoAulasConfig` tiene 0 consumidores. | `frontend/src/api/monitoreo.ts`. | ☑ **hecho** (2026-08-16) — **no era limpieza: era el eslabón roto del circuito.** Su `source_mapping` es lo único que dice qué columna de Kobo lleva el id de colector, y sin UI nadie podía fijarlo. El fallback por nombres convencionales no incluía `collectorID`, que es justo el nombre que produce nuestro propio QR. Añadido a las dos listas de candidatos; el endpoint sigue sin superficie pero ya no hace falta para el caso normal. |
 | **L9** | No hay test que ate la costura completa (selección → enlaces → fichas → handoff). | `api/tests/testthat/test-collection-costura-aulas.R`. | ☑ **hecho** (2026-08-16) — 41 asertos. Controles verificados revirtiendo L1, L3 y la geometría de L7: los tres lo ponen rojo. |
 | **L10** | El QR nunca se verificó decodificándolo. | **Corregido el 2026-08-16: la premisa era inexacta.** `collection_qr_matrix_from_png()` sí relee el QR del PNG renderizado y compara la matriz módulo a módulo contra la esperada, en 5 archivos de test. Lo que falta es más estrecho: nadie **decodifica** la matriz a texto, así que un error de encoding del payload (no de dibujo) pasaría. Y ningún lector real ha visto la hoja impresa. | ◐ a medias |
 
@@ -263,3 +263,31 @@ sólo que no hubo warning. Con eso, revertir la geometría de L7 sí lo pone roj
 
 La lección se suma a las trampas: **un control que no se ejecuta no es un
 control**. Verificar el arreglo no basta; hay que verificar el verificador.
+
+### 2026-08-16 — L8 no era limpieza: era el circuito abierto
+L8 entró en la cola como «un endpoint sin consumidores, ver si es capacidad
+muerta antes de borrarla». Resultó ser lo contrario de código muerto.
+
+La cadena, entera:
+
+1. Recopiladores cuelga `d[collectorID]=` — `collectorID` es el `prefill_field`
+   por defecto del adapter y también lo que fija la ruta legacy.
+2. Kobo devuelve entonces una columna llamada **`collectorID`**.
+3. El cruce de Monitoreo la buscaba entre `collector_id`, `collector`, `link`,
+   `aula_id`, `classroom_id`. Y `.monitoreo_text_key()` **conserva el guion
+   bajo**: normaliza `collectorID` → `collectorid`, que no es `collector_id`.
+   No la encontraba.
+4. El único arreglo era `source_mapping$collector_var`, cuyo único setter es
+   `/api/monitoreo/aulas/config` — **el endpoint con cero consumidores**.
+
+O sea: el sistema generaba un identificador que él mismo no sabía leer, y la
+perilla para corregirlo no estaba al alcance de nadie. Ninguna suite lo veía
+porque ningún test recorría la vuelta completa; los fixtures existentes ya traen
+columnas llamadas `collector_id`.
+
+Arreglado añadiendo `collectorID` a las dos listas de candidatos. Un mapeo
+explícito sigue mandando sobre el fallback (probado). **V7 deja de estar rota de
+raíz**: el cruce funciona sin configurar nada. Lo que falta de V7 —el «mientras
+ocurre»— sigue dependiendo de L4.
+
+Control verificado: revertir el fallback pone el test en rojo.
