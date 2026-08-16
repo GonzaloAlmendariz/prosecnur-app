@@ -639,6 +639,10 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       label = unit$label,
       sample_role = unit$role,
       wave = unit$group,
+      # Sin esto la cadena de reemplazos es invisible en Monitoreo: la seccion
+      # de reemplazos filtra por `replacement_for`, y salia vacia aunque el
+      # sorteo hubiera encadenado reservas.
+      replacement_for = .collection_first_string(unit$dimensions %||% list(), "replacement_for"),
       faculty = .collection_first_string(unit$dimensions %||% list(), "faculty"),
       course_name = .collection_first_string(unit$dimensions %||% list(), "course_name"),
       schedule = .collection_first_string(unit$dimensions %||% list(), "schedule"),

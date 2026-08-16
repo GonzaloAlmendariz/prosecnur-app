@@ -82,6 +82,9 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L15** | El avance por aula era **siempre cero**. | El QR lleva `collection_unit_id`; las respuestas vuelven con ese id y `.monitoreo_aulas_course_status()` emparejaba sólo por `classroom_id`. Además la normalización **tiraba** `collection_unit_id`, así que el vínculo se perdía. El KPI global sí contaba las respuestas: el tablero decía «12 válidas» con las 7 aulas en 0. | ☑ **hecho** (2026-08-16) — el campo sobrevive a la normalización y el emparejamiento cae a él cuando `classroom_id` no casa. |
 | **L16** | El handoff no llevaba la **meta** del aula. | Las filas nuevas salían sin `eligible_n`, así que la brecha era 0 y ninguna aula podía llegar a «cerrando». El dato ya viajaba en la unidad del plan. | ☑ **hecho** (2026-08-16) — se copian `eligible_n`, facultad, curso, horario y docente. |
 | **L17** | Un aula con 5 de 30 se declaraba **«cerrando»**. | `application_state` comparaba `respuestas_validas >= expected_valid` sin coaccionar, y `.monitoreo_aulas_df()` deja todo como texto: `"5" >= "30"` es TRUE. La línea de `brecha` de al lado sí coaccionaba. Latente hasta ahora porque las válidas siempre eran 0. | ☑ **hecho** (2026-08-16) — comparación numérica. |
+| **L18** | Brechas, avance por estrato y reemplazos se calculaban **sobre ceros**. | El emparejamiento respuesta→aula estaba escrito **dos veces**: en `monitoreo_aulas_dashboard()` y en `.monitoreo_aulas_course_status()`. L15 arregló sólo el segundo, así que el desglose por aula quedó bien y todo lo que agrupa siguió ciego. | ☑ **hecho** (2026-08-16) — un solo helper `.monitoreo_aulas_contar_por_fila()` usado por ambos. |
+| **L19** | La cadena de reemplazos era **invisible** en Monitoreo. | El handoff no copiaba `replacement_for` a las filas nuevas, y la sección de reemplazos filtra por ese campo: salía vacía aunque el sorteo hubiera encadenado reservas. | ☑ **hecho** (2026-08-16) — el handoff lo arrastra. |
+| **L20** | Las cuotas sexo×facultad salen vacías con un plan creado por el handoff. | Los objetivos derivan de `sex_top_1`/`sex_top_2`, composición que produce Cálculo de muestra y que el plan de Recopiladores **no transporta**. | ☐ sin empezar — límite conocido: las filas que **crea** el handoff son más delgadas que las que importa Monitoreo desde calc-muestra. El flujo soportado es importar primero y entregar después; conviene decidir si el plan de Recopiladores debe llevar la composición. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
@@ -452,3 +455,36 @@ verdad destapa lo que estaba tapado, y sólo se ve corriendo la cadena entera.
 **V7 pasa a cumplirse en su mitad medible**: el cruce por `collectorID` contra
 la meta del aula funciona sin configurar nada. Lo que falta —el «mientras
 ocurre»— sigue dependiendo de L4.
+
+### 2026-08-16 — el mismo join estaba escrito dos veces
+Bajé a las secciones que **agrupan** —brechas, avance por estrato, reemplazos,
+cuotas— con un escenario real: un aula cerrada en 20/20, otra a medias en 8/20,
+una sin acceso y su reserva aportando 12.
+
+El tablero decía «40 válidas» y a la vez daba **brecha 20 para el aula que ya
+había cerrado**. La causa: el emparejamiento respuesta→aula está escrito dos
+veces, en `monitoreo_aulas_dashboard()` y en `.monitoreo_aulas_course_status()`.
+L15 arregló el segundo, así que el desglose por aula quedó correcto y **todo lo
+que agrupa siguió calculando sobre ceros**. Ahora es un helper único.
+
+| sección | antes | después |
+|---|---|---|
+| brechas | 7 entradas, todas con la meta entera | 6, con la brecha real |
+| avance por estrato | 0 válidas · brecha 140 | 40 válidas · brecha 100 · 28,6 % |
+| reemplazos | vacío | la cadena de 3 |
+
+Y **L19**: la cadena de reemplazos era invisible porque el handoff no arrastraba
+`replacement_for`, que es justo el campo por el que filtra esa sección.
+
+Queda **L20** anotado, no resuelto: las cuotas sexo×facultad siguen vacías
+porque sus objetivos derivan de la composición (`sex_top_*`) que produce Cálculo
+de muestra y el plan de Recopiladores no transporta. Es el límite general de
+este tramo: **las filas que el handoff *crea* son más delgadas que las que
+Monitoreo *importa* desde calc-muestra.** El flujo soportado es importar primero
+y entregar después; que el plan de Recopiladores lleve la composición es una
+decisión de contrato, no un arreglo.
+
+Van cuatro sitios distintos donde el mismo defecto de emparejamiento o de
+coerción estaba **arreglado en un lado y no en el otro**: el prefill del enlace,
+la coerción numérica de `brecha` vs `application_state`, este join, y el
+vocabulario de estados. Cuando algo se escribe dos veces, se arregla una.
