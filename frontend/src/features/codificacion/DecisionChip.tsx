@@ -41,19 +41,29 @@ const chipStyle: CSSProperties = {
 export default function DecisionChip({
   decision,
   motivo,
+  nota,
 }: {
   decision: CodifDecision;
   motivo?: string;
+  /** Lo que falta, en números. Nunca coincide con `motivo`: uno es de las
+      cerradas y el otro de las abiertas. */
+  nota?: string | null;
 }) {
   const meta = presentarDecision(decision);
   if (!meta) return null;
   const tono = TONOS[meta.tono];
+  // Se pintan en la misma ranura pero NO son lo mismo: el motivo explica una
+  // decisión y la nota cuenta lo que falta. Colapsarlos en una variable dejaba
+  // títulos como «Motivo: 48 sin asignar».
   const razon = motivo?.trim();
+  const pendiente = razon ? undefined : nota?.trim();
+  const coletilla = razon || pendiente;
 
   return (
     <span
       data-decision={decision}
       title={razon ? `${meta.detalle} Motivo: ${razon}` : meta.detalle}
+      data-nota={pendiente || undefined}
       style={{
         ...chipStyle,
         background: tono.bg,
@@ -63,7 +73,7 @@ export default function DecisionChip({
       }}
     >
       {meta.etiqueta}
-      {razon && (
+      {coletilla && (
         <span
           style={{
             fontWeight: 600,
@@ -74,7 +84,7 @@ export default function DecisionChip({
             maxWidth: 220,
           }}
         >
-          · {razon}
+          · {coletilla}
         </span>
       )}
     </span>

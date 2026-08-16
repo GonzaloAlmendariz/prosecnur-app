@@ -105,6 +105,28 @@ export function decisionDePregunta(p: PreguntaAbierta): CodifDecision {
 }
 
 /**
+ * Lo que le falta a una pregunta abierta, en respuestas únicas. El chip dice
+ * «A medias» y el motor sabe que son 27 de 75: sin el número, una pregunta a
+ * la que le queda una respuesta se ve igual que una en la que casi no se
+ * empezó, y la lista es justo donde se decide qué atender primero.
+ *
+ * Devuelve `null` cuando no hay nada que contar —una decisión cerrada, o un
+ * conteo que no cuadra—: un «0 sin asignar» junto a «A medias» sería peor que
+ * no decir nada.
+ */
+export function restanteDeDecision(p: PreguntaAbierta): string | null {
+  const decision = decisionDePregunta(p);
+  if (decision !== "pendiente" && decision !== "pendiente_parcial") return null;
+  const unicas = Math.max(0, Math.trunc(p.n_unicas ?? 0));
+  const hechas = Math.max(0, Math.trunc(p.n_codificadas ?? 0));
+  const faltan = unicas - hechas;
+  if (!Number.isFinite(faltan) || faltan <= 0) return null;
+  return decision === "pendiente"
+    ? `${faltan} por agrupar`
+    : `${faltan} sin asignar`;
+}
+
+/**
  * Cuántas quedan sin decidir. El backend manda el número; esto es el respaldo
  * y, sobre todo, lo que hace comparable el conteo local con el suyo.
  */
