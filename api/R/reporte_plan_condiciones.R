@@ -100,13 +100,13 @@
   tryCatch(
     impl(el),
     pulso_slide_render_error = function(cnd) {
-      warning(
-        paste0(
-          "Lamina degradada a canvas 'Sin datos': ",
-          conditionMessage(cnd)
-        ),
-        call. = FALSE
-      )
+      msg <- paste0("Lamina degradada a canvas 'Sin datos': ", conditionMessage(cnd))
+      # El `warning()` es el rastro del log; el `.pulso_aviso()` es lo que llega
+      # al analista. Sin el segundo, el mazo sale con una lamina en blanco y la
+      # razon se queda en el stderr del subproceso: el renderer se traga los
+      # `warning()` (ver jobs.R). Vara V4.
+      warning(msg, call. = FALSE)
+      .pulso_aviso(msg)
       .plan_canvas_sin_datos()
     }
   )
@@ -116,10 +116,9 @@
 #' Reemplaza 1:1 a los `stop("No se pudo renderizar ...")` historicos.
 #' @keywords internal
 .plan_canvas_render_nulo <- function(...) {
-  warning(
-    paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'."),
-    call. = FALSE
-  )
+  msg <- paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'.")
+  warning(msg, call. = FALSE)
+  .pulso_aviso(msg)
   .plan_canvas_sin_datos()
 }
 
@@ -129,11 +128,9 @@
 #' sale degradada con warning en vez de matar el deck completo.
 #' @keywords internal
 .plan_elemento_degradado <- function(...) {
-  msg <- paste0(...)
-  warning(
-    paste0(msg, " La lamina se degrada a canvas 'Sin datos'."),
-    call. = FALSE
-  )
+  msg <- paste0(paste0(...), " La lamina se degrada a canvas 'Sin datos'.")
+  warning(msg, call. = FALSE)
+  .pulso_aviso(msg)
   el <- list(
     .element_type = "canvas_degradado",
     mensaje_degradacion = msg,
@@ -154,6 +151,10 @@
   tryCatch(
     impl(el, sufijo_auto = sufijo_auto, formato = formato),
     error = function(cnd) {
+      .pulso_aviso(
+        "No se pudo calcular la base del elemento; la lamina sale sin caption: ",
+        conditionMessage(cnd)
+      )
       warning(
         paste0(
           "No se pudo calcular la base del elemento; la lamina sale sin caption: ",
