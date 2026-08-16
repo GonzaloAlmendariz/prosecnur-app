@@ -605,3 +605,47 @@ distintas.
 registros inconsistentes de 194 verificables, 3 casos con más asistentes que
 matriculados y 21 con más enviadas que asistentes. Y su propio aviso lo dice:
 `referencia_post_hoc_no_equivale_a_medicion_del_marco_vigente`.
+
+## La cadena de 11 no cabe en la mitad de las celdas (2026-08-16)
+
+Medido sobre el marco real de 2025-2, y verificado paso a paso antes de
+concluir nada:
+
+- Las reservas salen **siempre del mismo estrato** que su titular: 330 de 330.
+  Así que una celda necesita al menos 12 cursos-horario para sostener un titular
+  más sus 11 reservas.
+- De los **84 estratos, 44 no llegan a 12**. Entre los cuatro estudios que caben
+  ahí sólo hay 219 cursos-horario de los 2.468 — son celdas chicas, pero son la
+  mitad del diseño.
+- El sorteo medido no cayó en ninguna, pero **por poco**: el estrato más chico
+  que recibió titular tiene 13 CH y llenó su cadena justo, dejando uno de sobra.
+  28 de los 30 elegidos están entre los 30 más grandes, y aun así el más chico
+  quedó a uno de la línea. No es un riesgo remoto.
+
+Cuánto muerde depende de la profundidad elegida:
+
+| Reservas por titular | Celdas que no la sostienen |
+|---|---|
+| 1 | 5 de 84 |
+| 3 | 17 de 84 |
+| 5 | 22 de 84 |
+| **11** (el diseño actual) | **44 de 84** |
+
+El motor ya avisa cuando una celda queda por debajo del objetivo (`08fb3c9e`),
+pero avisa **después de sortear**. La pregunta de fondo —si el sorteo debería
+evitar las celdas que no pueden sostener la cadena, o si debe poder caer en
+ellas y quedarse corto— no la decide el motor: sesgar la selección para evitar
+celdas chicas cambia las probabilidades de inclusión, y eso es una decisión
+metodológica con consecuencias en los pesos.
+
+**Bloqueado, no pendiente.** Espera decisión de Gonzalo entre tres caminos:
+
+1. **Dejarlo como está** y confiar en el aviso posterior: el diseño acepta que
+   una celda chica se quede sin cadena completa y se cubra con la bolsa extra.
+2. **Bajar la profundidad** a una que quepa en más celdas (con 5 caen 22 en vez
+   de 44), aceptando menos colchón donde sí había sitio.
+3. **Agrupar los estratos chicos** antes de sortear, que es la misma salida que
+   ya pide el aviso de estratos inalcanzables — 84 estratos para 30 aulas.
+
+La tercera resuelve dos problemas de una vez y no toca las probabilidades del
+sorteo, pero cambia el diseño muestral y por eso no la elijo yo.
