@@ -48,14 +48,14 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 
 | # | Qué | Vara | Estado |
 |---|---|---|---|
-| L1 | Reunir el material de 2025 | — | ◐ **parcial** (2026-08-16) · bases e histórico de asistencia localizados; **falta la selección de aulas de 2025** |
+| L1 | Reunir el material de 2025 | — | ☑ **completo** (2026-08-16) · Gonzalo señaló `Historico 2025/`: la selección entera está ahí |
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ · necesita una pila SIN bootstrap; la de trabajo arranca con un `.pulso` precargado (ver abajo) |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☑ **cerrado** (2026-08-16, `7addb99c`) · el motor publica `filas_total` y cada tarjeta de criterio de alumno dice a cuántos dejó fuera; el 0 de `level` se pinta de aviso |
-| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **hay patrón LOGRADO** (2026-08-16) · 194 aulas aplicadas, 3.303 válidas; el n PLANIFICADO sigue sin patrón |
+| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **n planificado ENCONTRADO** (2026-08-16) · cuota 3.807 contra 3.303 logradas; falta correr el motor y contrastar |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** · el estadístico YA está justificado en la UI; lo que falta es de 2025, que nunca firmó la decisión |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☑ **el patrón SÍ estaba** (2026-08-16) · 15 facultades, 194 aulas, en el histórico; contraste abajo |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido y confirmado** (2026-08-16) · idéntico con y sin descuento; el contraste con 2025 sigue bloqueado |
@@ -860,3 +860,53 @@ que las devolvería.
 grano facultad × celda, sin ningún identificador de curso, horario ni aula. Así
 que L11 —contrastar el PERFIL de las aulas sorteadas contra las de 2025— sigue
 necesitando el entregable; lo que ya no necesita nada es el reparto por facultad.
+
+## La selección de 2025 existe entera: `Historico 2025/` (2026-08-16)
+
+Segunda vez en el mismo día que doy por ausente algo que estaba, y otra vez lo
+señaló Gonzalo. La carpeta `~/Documents/Pulso/HSTVG2026/Historico 2025/` tiene
+siete archivos; el central es
+**`HSVBG2025_base_historica_aulas_ADR0060.xlsx`**: 1.012 aulas × **136 columnas**,
+en cuatro hojas —Base completa (1.012), Solo aplicadas (194), No aplicadas y
+reemplazadas (36), Resumen aplicabilidad (39)— más un Diccionario de las 136
+columnas.
+
+Trae lo que este loop llevaba pidiendo: `curso_horario`, `estrato_id`,
+`posicion_cadena`, `rol_en_cadena`, `fue_titular`, `ola_muestra`, `resultado`,
+`prob_seleccion`, `peso_diseno`, `meta_cuota`, `candidatos_en_cadena`,
+`aulas_aplicadas_estrato`, `estrato_requirio_reemplazo`, y el detalle de campo
+completo por aula.
+
+### Lo medido, que corrige varias cosas que escribí
+
+| | 2025 (real) | Diseño de hoy |
+|---|---:|---:|
+| Estratos | **170** | 84 |
+| Titulares | **170** (uno por estrato) | 30 |
+| Aulas agendadas | 1.012 | 360 |
+| Cadena por titular | **3 a 12, mediana 6** | 11 fija |
+| Olas | **12** | 11 |
+| Aulas aplicadas | 194 | — |
+| **Cuota planificada** | **3.807** | — |
+| Válidas logradas | 3.303 (86,8% de la cuota) | — |
+
+**Tres correcciones a lo que este documento afirmaba:**
+
+1. **El n planificado es 3.807**, suma de `meta_cuota` por estrato. Escribí que
+   «sigue sin patrón». Lo hay, y el operativo cumplió el 86,8%.
+2. **Los titulares fueron 170, no 194.** Las 194 son aulas *aplicadas*: algunos
+   estratos aplicaron más de una. Comparar 194 con 30 titulares mezclaba dos
+   cosas.
+3. **La cadena de 2025 NO era de profundidad fija.** Iba de 3 a 12 candidatos con
+   mediana 6, adaptada a lo que cada estrato daba. El diseño de hoy usa 11
+   uniformes — y ésa es justo la rigidez que deja 44 de 84 celdas sin poder
+   sostenerla.
+
+Ese tercer punto informa directamente la decisión bloqueada de la cadena: el
+precedente de 2025 no es «11 para todos» ni «bajar a 5 para todos», sino
+**profundidad variable según lo que el estrato permite**, que es una cuarta
+opción que este loop no había considerado porque no tenía el dato.
+
+**Queda por medir** (siguiente tick): contrastar `prob_seleccion` y `peso_diseno`
+contra los π que calcula el motor, el perfil de las 170 titulares contra el
+sorteo, y por qué 170 estratos en 2025 frente a 84 hoy.
