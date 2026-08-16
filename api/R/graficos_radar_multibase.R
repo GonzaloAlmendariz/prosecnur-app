@@ -649,7 +649,10 @@ p_radar_publicos <- function(
     corte_etiqueta = NULL,
     mostrar_tabla = TRUE,
     # ADR 0072: la tabla sale como tabla de PowerPoint, no dibujada.
-    tabla_nativa  = FALSE,
+    # `NULL` y no `FALSE`: el elemento tiene que poder NO opinar para que el
+    # preset del proyecto decida. Con `FALSE` el `%||%` del render nunca caia
+    # al preset —`FALSE` no es `NULL`— y `tabla_nativa` del proyecto no llegaba.
+    tabla_nativa  = NULL,
     mostrar_valores = FALSE,
     decimales = 0L,
     eje_min = 0,
@@ -687,7 +690,7 @@ p_radar_publicos <- function(
     corte_etiqueta = as.character(corte_etiqueta %||% "")[1],
     estilo         = as.character(estilo %||% "comparativo")[1],
     mostrar_tabla  = isTRUE(mostrar_tabla),
-    tabla_nativa   = isTRUE(tabla_nativa),
+    tabla_nativa   = if (is.null(tabla_nativa)) NULL else isTRUE(tabla_nativa),
     mostrar_valores = isTRUE(mostrar_valores),
     decimales      = .radar_mb_decimales(decimales),
     eje_min        = .radar_mb_eje_min(eje_min),
@@ -746,7 +749,11 @@ p_radar_publicos <- function(
 
   tabla <- .radar_mb_tabla(datos, el$corte_etiqueta, decimales = el$decimales)
   .radar_mb_componer(g, tabla,
-                     tabla_nativa = isTRUE(el$tabla_nativa),
+                     # Mismo orden que el resto: elemento, luego preset. Leyendolo
+                     # solo del elemento, un `tabla_nativa` declarado en el
+                     # preset del proyecto no llegaba nunca.
+                     tabla_nativa = isTRUE(el$tabla_nativa %||%
+                                             preset_args$tabla_nativa),
                      titulo_tema = el$tabla_titulo,
                      encabezados = el$tabla_encabezados,
                      ancho_tema = el$tabla_ancho_tema,
@@ -886,6 +893,8 @@ p_radar_publicos <- function(
         font_family = "Arial",
         body_size = texto_pt,
         header_size = texto_pt,
+        # Aqui el radar SIEMPRE se ve —el modo `publicos` compone radar y
+        # tabla—, asi que la geometria siempre corresponde.
         geom_frac = list(x = 1 - frac_tabla, y = 0, w = frac_tabla, h = 1)
       )
     ))

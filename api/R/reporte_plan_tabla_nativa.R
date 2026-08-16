@@ -60,6 +60,14 @@
 #' @param font_family_default Tipografía de respaldo del documento.
 #' @keywords internal
 .dml_o_tabla <- function(p, font_family_default = "Aptos") {
+  # Con geometria propia la tabla NO ocupa el placeholder: va aparte, junto al
+  # grafico, y aqui tiene que salir la imagen. Sin esta salida la tabla se
+  # emitia dos veces —una en el placeholder y otra en su sitio— y la lamina del
+  # radar acababa con dos tablas.
+  nat <- .tabla_nativa_de(p)
+  if (!is.null(nat) && is.list((nat$estilo %||% list())$geom_frac)) {
+    return(rvg::dml(ggobj = p, bg = "transparent"))
+  }
   nativa <- .tabla_nativa_de(p)
   if (is.null(nativa)) return(rvg::dml(ggobj = p, bg = "transparent"))
   if (!requireNamespace("flextable", quietly = TRUE)) {
@@ -99,7 +107,24 @@
   )
 
   ft <- flextable::flextable(tabla)
-  ft <- flextable::set_table_properties(ft, layout = "autofit")
+  # `autofit` reparte por contenido y da a las cuatro columnas el mismo ancho:
+  # 1.91 cm cada una sobre un cajon de 13.52, con la caja a medias y los
+  # encabezados partidos —«docent/es», «Estados Financi/eros»—. El entregable
+  # aprobado da 6.62 cm a la columna de tema y reparte el resto, llenando su
+  # cajon entero.
+  ancho_cajon <- num("ancho_in", NA_real_)
+  if (is.finite(ancho_cajon) && ancho_cajon > 0 && ncol(tabla) >= 2L) {
+    frac_1 <- num("primera_col_frac", 0.47)
+    if (!is.finite(frac_1) || frac_1 <= 0 || frac_1 >= 0.9) frac_1 <- 0.47
+    resto <- (1 - frac_1) / (ncol(tabla) - 1L)
+    ft <- flextable::width(ft, j = 1, width = ancho_cajon * frac_1)
+    for (j in seq(2L, ncol(tabla))) {
+      ft <- flextable::width(ft, j = j, width = ancho_cajon * resto)
+    }
+    ft <- flextable::set_table_properties(ft, layout = "fixed")
+  } else {
+    ft <- flextable::set_table_properties(ft, layout = "autofit")
+  }
   ft <- flextable::font(ft, fontname = chr("font_family", font_family_default), part = "all")
   ft <- flextable::fontsize(ft, size = num("header_size", 11), part = "header")
   ft <- flextable::fontsize(ft, size = num("body_size", 11), part = "body")

@@ -8296,7 +8296,10 @@ reporte_ppt_plan <- function(
           doc <- officer::ph_with(
             doc,
             value = .tabla_nativa_flextable(
-              nativa_tab$tabla, nativa_tab$estilo,
+              nativa_tab$tabla,
+              # El ancho real del cajon: sin el, la tabla reparte por contenido
+              # y deja la caja a medias.
+              utils::modifyList(nativa_tab$estilo, list(ancho_in = geom_tab$width)),
               font_family_default = presets$base$args$font_family_ppt %||%
                 presets$base$args$font_family %||% "Arial"
             ),
