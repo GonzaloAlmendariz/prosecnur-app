@@ -41,6 +41,39 @@
   ))
 }
 
+# Por qué el marco se quedó sin ids, que es lo que decide qué puede hacer quien
+# lee el aviso. Son dos situaciones opuestas bajo el mismo síntoma:
+#
+#   - La COLUMNA no está. El marco lo construyó una versión anterior a F114, o
+#     se reabrió de un `.pulso` guardado antes de que los ids se subrogaran en
+#     vez de borrarse. Tiene arreglo: reconstruir el marco desde la base los
+#     devuelve. Verificado con el estudio real de 2025-2 —`.pulso` guardado por
+#     0.7.1 el 2026-08-06, dos días antes del arreglo—: reconstruido desde su
+#     propio archivo fuente, la columna vuelve.
+#   - La columna está y viene VACÍA. El marco es anónimo por diseño y no hay
+#     nada que recuperar; el descuento no es aplicable, no está roto.
+#
+# Decir sólo "no trae unique_student_ids parseables" deja al lector sin saber
+# en cuál de las dos está, y encima en vocabulario del motor: un nombre de
+# columna interna no le dice a nadie qué hacer a continuación.
+.cm_descuento_aviso_sin_ids <- function(aula_frame) {
+  falta_columna <- !is.data.frame(aula_frame) || !("unique_student_ids" %in% names(aula_frame))
+  if (falta_columna) {
+    return(paste(
+      "descuento_sin_ids: el marco no guarda a que alumnos comparte cada aula,",
+      "asi que el descuento secuencial de repetidos se desactivo y la seleccion",
+      "corrio sin descontarlos. Pasa con marcos construidos por una version",
+      "anterior o reabiertos de un proyecto guardado antes de que esos datos se",
+      "conservaran: reconstruir el marco desde la base los devuelve."
+    ))
+  }
+  paste(
+    "descuento_sin_ids: el marco es anonimo y no identifica alumnos, asi que no",
+    "se puede saber que aulas comparten a los mismos y el descuento secuencial",
+    "de repetidos no aplica. La seleccion corrio sin descontarlos."
+  )
+}
+
 # Estado del descuento para una corrida de selección. Fallback honesto: flag
 # ON sin ids parseables degrada a OFF con warning estructurado (código
 # descuento_sin_ids como prefijo greppeable), nunca error.
@@ -56,11 +89,7 @@
     return(list(
       requested = TRUE, applied = FALSE, sequential = FALSE,
       mode = "off", warning_code = "descuento_sin_ids",
-      warnings = paste(
-        "descuento_sin_ids: el marco no trae unique_student_ids parseables;",
-        "el descuento secuencial de repetidos se desactivo y la seleccion",
-        "corrio sin descuento."
-      )
+      warnings = .cm_descuento_aviso_sin_ids(aula_frame)
     ))
   }
   # El pool_controlado sortea sus candidatas con un engine base (cube por
