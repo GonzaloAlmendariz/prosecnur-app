@@ -36,7 +36,9 @@ decisiones de limpieza.
 | **L2** | El embudo mostraba `Reclasificadas 0` y `Pruebas retiradas 0` en un estudio sin filtro de pruebas. | `validacion_methodology_report.R` (embudo de la p. 2) | ☑ hecho — sin filtro el embudo baja a tres columnas y el separador se calcula relativo al paso |
 | **L3** | Con filtro **y** depuración a la vez, la columna de exclusiones perdía lo que no fuera rechazo y el embudo no cerraba. | mismo archivo | ☑ hecho — la columna lleva todo lo retirado que no sea prueba; se llama «Rechazos retirados» sólo cuando es lo único que hay |
 | **L4** | El script R de replicación: nivel de detalle correcto, reproduce la base exacta. | motor del script de replicación (ADR 0031) | ☑ verificado 2026-08-15 — **no tocar** |
-| **L5** | `E_NO_PLAN` al reabrir `ACNUR_V3_final.pulso`. **La premisa era falsa**: el plan sí se persiste. Lo que pasa es que recargar el instrumento borra el workspace entero y deja la promoción en pie. | `api/R/session_store.R:972` (`.invalidate_processing_state`) · disparo en `session_store.R:1136` | ⛔ bloqueado — diagnóstico cerrado, la reparación es decisión de contrato (ver abajo) |
+| **L5** | `E_NO_PLAN` al reabrir `ACNUR_V3_final.pulso`. **La premisa era falsa**: el plan sí se persiste. Lo que pasa es que recargar el instrumento borra el workspace entero y deja la promoción en pie. | `session_store.R` (`.invalidate_processing_state`) · `limpieza_decision_engine.R` | ☑ hecho — las exclusiones se conservan en cuarentena y vuelven al borrador cuando su regla reaparece; lo anclado a variables no se rehidrata (trabajo aparte, ver L14) |
+| **L14** | Rehidratar lo anclado a variables (`replace_value`, `impute_value`, `recode_map`, `nullify_fields`, `set_value`, `normalize_value`, select_multiple) exige comprobar variable por variable contra el instrumento nuevo. | mismo sitio que L5 | ☐ sin empezar — hoy se descartan; es la segunda vuelta que L5 dejó nombrada |
+| **L15** | Paso visual del aviso de exclusiones conservadas. | `LimpiezaTab.tsx` | ☐ sin empezar — reproducir el estado en la UI exige correr una auditoría completa y tomar decisiones a mano |
 | **L6** | El paquete metodológico (ZIP con PDF + R) usa el mismo modelo: confirmar que hereda la ficha y no tiene su propia ruta. | `validacion_methodology_report.R:2715` | ☑ hecho — el runner lee el mismo `model` y llama a los dos mismos renderizadores; no hay ruta paralela que arreglar |
 | **L7** | La pestaña Instrumento sólo muestra el resumen del universo si `upstream_universe.applied`; con base depurada y sin filtro no muestra nada. | `InstrumentoOperationalControls.tsx:134` vs `PromocionBase.tsx` | ☑ cerrado sin tocar código — ese aviso pertenece al filtro de pruebas, que es de lo que trata esa superficie; el hecho de la depuración ya lo declara `PromocionBase` en Limpieza, que es su dueña. Repetirlo sería duplicar información entre dimensiones |
 | **L8** | Verificar sobre proyectos reales, no sólo con universos sintéticos. | `api/inst/reference_projects/*` · `ACNUR_V3_final.pulso` | ☑ hecho — ficha correcta sobre el `.pulso` real (`103 · 2 · 101`) y sin regresión en `acnur_pdm` (`430 · 2 · 1 · 3 · 426`) |
@@ -48,9 +50,9 @@ decisiones de limpieza.
 
 ### Espera a Gonzalo
 
-| Ítem | La decisión | Por qué no puedo yo |
-|---|---|---|
-| **L5 / L10** | Al invalidar el workspace de validación de una base, ¿se revierte también la promoción de Limpieza —porque su justificación acaba de desaparecer— o las decisiones de limpieza deben sobrevivir a una recarga de instrumento? | Cambia el contrato del `.pulso`: es un ADR, no una preferencia de implementación. Las dos opciones están medidas abajo. |
+Nada bloqueado. La decisión de L5/L10 se tomó el 2026-08-15: **conservar las
+exclusiones** al recargar el instrumento, en cuarentena y con rehidratación
+condicionada a que la regla reaparezca.
 
 #### Lo que cuesta cada opción (medido el 2026-08-15)
 
@@ -82,6 +84,13 @@ invalidación de la línea 1136 no lo mira.
 Medido así, conservar parece lo correcto y revertir en silencio lo peor de los
 tres caminos; pero la comprobación de variables que exige conservar es trabajo
 nuevo y la llamada es tuya.
+
+**Resuelto** (2026-08-15, commit `c16fdf02`): se conservan las exclusiones. La
+trampa que apareció al implementarlo es que **conservar no puede ser devolver al
+borrador**: `.limpieza_simulate()` aplica todo el draft en estado `ready` sin
+mirar la cola, que se arma por regla desde el catálogo de la auditoría. Una
+decisión cuya regla desapareció se habría aplicado sin figurar en ninguna
+pantalla. Por eso van a cuarentena y sólo vuelven cuando su regla reaparece.
 
 **Lo que ya se hizo de esa lista** (2026-08-15): el caso «cambió la data» está
 cerrado —no era decisión, era bug (L11)—, y el silencio también: el cuarto
@@ -124,6 +133,12 @@ declarar lo que quedó huérfano, empezando por las exclusiones.
   auditoría. La forma de comprobarlo en un minuto es abrir el `.pulso` y leer
   `estudio$bases[[b]]$validacion$plan_result` del `state.rds`, en vez de deducir
   la causa del mensaje de error. Un `E_NO_PLAN` dice que no hay plan, no por qué.
+- **Restaurar trabajo no es devolverlo al sitio de donde salió.** El borrador de
+  limpieza no es una lista inerte: `.limpieza_simulate()` aplica todo lo que
+  esté en `ready`, sin mirar la cola. Devolver ahí una decisión conservada la
+  vuelve efectiva aunque no exista pantalla que la muestre. La cola se arma por
+  regla desde el catálogo de la auditoría, así que «se puede mostrar» y «se
+  aplica» son dos preguntas distintas y hay que responder las dos.
 - **Un aviso correcto puede ser invisible por el vecino.** El cuarto estado de
   `PromocionBase` pasó los tests de markup —tono `warn`, copia, `data-estado`—
   y en la app real desaparecía: la pestaña ya tiene una banda ámbar rutinaria
