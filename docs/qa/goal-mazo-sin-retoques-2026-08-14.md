@@ -37,8 +37,8 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L5 | Piso de grosor declarado por familia | `grosor_modo` + `grosor_barras` | ☐ |
 | L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | las **dos** plantillas | ☑ officer lo ve, 7 placeholders |
 | L7 | Contrato, constructor, render y metadata de `poblacion_3` | 6 archivos R + NAMESPACE | ☑ **lámina generada**, alto 2.08× |
-| L8 | Las otras 11 disposiciones del artefacto | ídem | ◐ **6 de 11 hechas**; faltan las 3 de población con icono y las 2 de cifras |
-| L9 | Partir la lámina cuando supera 9 premisas | motor, no graficador | ☐ |
+| L8 | Las otras 11 disposiciones del artefacto | ídem | ☑ **10 de 11**; la 11ª (`escala_continuada`) depende de L9 |
+| L9 | Partir la lámina cuando supera 9 premisas · incluye `escala_continuada` | motor, no graficador | ☐ |
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
 | L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
@@ -139,6 +139,15 @@ categorías —«90 % / 10 %»— donde la columna no aplica. El techo realista 
   recalibrar llevó el texto de barras de 15.93 a 8.53 pt —ilegible—, porque deja
   de escalar y respeta un declarado que estaba pensado para ser escalado. Los dos
   cambios van juntos: preservar + declarar el tamaño real.
+- **Las sentinelas del deck se numeran por POSICIÓN, no por orden de escritura.**
+  El test compara la lámina N con «L7-SNN-», así que insertar cuatro en medio
+  obliga a renumerar todas las que van detrás — no basta con darles el número
+  siguiente.
+- **Medir el contenido en vez del contenedor da un falso rojo.** `p_numerico`
+  centra su canvas dentro del hueco y no lo llena, así que comparar el alto
+  dibujado contra el alto del slot marca como fallidos slots correctos. El slot
+  se identifica por su ancho y su columna, que el contenido nunca cambia. Es la
+  tercera vez en este GOAL que una medición confunde las dos cosas.
 - **Un respaldo sin fecha se restaura sobre trabajo más nuevo.** Reutilizar
   `plantilla.pptx.bak` —creado antes de `poblacion_3`— para revertir un intento
   fallido borró el layout ya commiteado. Se recuperó con `git checkout`, pero el
