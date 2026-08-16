@@ -38,6 +38,23 @@ export function cuotaDelComponente(comp: CalcMuestraComponente): number | null {
   );
 }
 
+/**
+ * Meta de cuota que el usuario fijó a mano, o `null` si no fijó ninguna. Es lo
+ * que debe mostrar el campo editable: el campo escribe `meta.valor`, así que
+ * enseñar ahí la cifra derivada del motor haría creer que está fijada.
+ */
+export function metaCuotaFijada(comp: CalcMuestraComponente): number | null {
+  return cifraPositiva(comp.meta?.valor);
+}
+
+/**
+ * Cifra que el motor usará si nadie fija la meta. Sirve de sugerencia junto al
+ * campo vacío, nunca de valor precargado.
+ */
+export function sugerenciaCuota(comp: CalcMuestraComponente): number | null {
+  return cifraPositiva(comp.resultado?.n_objetivo);
+}
+
 export function criterioSalida(comp: CalcMuestraComponente): string {
   if (!comp.resultado) return "Pendiente";
   if (ACTORES_CON_REGLA_PROPIA.includes(comp.actor_categoria)) {
