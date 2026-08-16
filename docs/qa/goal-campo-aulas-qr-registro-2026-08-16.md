@@ -583,3 +583,33 @@ existía: la ruta de lectura equivocada. Las dos anteriores fueron «no es
 data.frame» leído como «vacío» y el aserto inerte del desborde. El patrón es
 mío, no del código: **ante un cero inesperado, verificar primero la forma de lo
 que estoy leyendo.**
+
+### 2026-08-16 — sospecha descartada, y L23 se abandona por esta vía
+La sospecha del tick anterior era falsa. Probado directo:
+
+```
+config de aulas creada:            enabled=TRUE  plan=7
+tras monitoreo_normalize_config:   enabled=TRUE  plan=7
+```
+
+**`monitoreo_normalize_config()` sí conserva `aulas_universitarias` con su
+plan.** No se tocó nada — y ese es el valor de haberla marcado como sospecha en
+vez de como bug: un arreglo ahí habría sido daño puro sobre código sano.
+
+Tercer intento de L23, esta vez fijando el perfil desde la UI antes de inyectar:
+el perfil sigue reportándose como `acreditacion` y el tablero devuelve su forma
+vacía. **Se abandona esta vía.** El obstáculo es el atajo sintético, no el
+producto: el plan de aulas llega en el flujo real por
+`import-from-calc-muestra`, y forzarlo desde fuera choca una y otra vez con
+piezas que asumen ese origen.
+
+**L23 queda abierto y reetiquetado**: no es «hacer una captura», es *montar un
+estudio de aulas completo desde la UI* —marco, sorteo, importar a Monitoreo,
+Recopiladores, handoff— o usar `hsvg2026` con la salvedad de que la memoria lo
+marca envenenado por el anonimizador viejo. Eso es una sesión de trabajo, no un
+tick de loop.
+
+Balance de las tres últimas iteraciones: **una produjo arreglos reales (L21,
+L22) y dos produjeron conocimiento de proceso pero ningún cambio de producto.**
+La veta de este GOAL que se puede trabajar sin decisiones de Gonzalo está
+agotada.
