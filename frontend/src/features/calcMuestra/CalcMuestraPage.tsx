@@ -109,6 +109,7 @@ import {
   classroomSelectionReady,
   frameAuditNumber,
 } from "./universidad/shared/frame";
+import { criterioSalida } from "./criterioSalida";
 import { seleccionActiva } from "./dominio/criteriosMarco";
 import { facultadesDesdeFrame } from "./dominio";
 import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
@@ -640,32 +641,6 @@ function actorVisual(comp: CalcMuestraComponente) {
     },
   };
   return meta[key] ?? meta.otros;
-}
-
-function criterioSalida(comp: CalcMuestraComponente) {
-  if (!comp.resultado) return "Pendiente";
-  if (["administrativos", "docentes", "estudiantes", "egresados"].includes(comp.actor_categoria)) {
-    if (comp.tecnica === "no_prob_cuotas") {
-      return `Cuota ${fmtInt(comp.meta.valor || comp.inferencia_acreditacion?.minimo_cuota || 150)}`;
-    }
-    if (comp.tecnica === "no_prob_conveniencia") {
-      return `Cobertura ${fmtPct(comp.parametros.cobertura_objetivo)}`;
-    }
-    if (comp.tecnica === "prob_conglomerado_multietapico") {
-      return `Sobremuestra ${fmtPct(comp.parametros.oversample_pct)}`;
-    }
-    return `Cobertura ${fmtPct(comp.parametros.cobertura_objetivo)}`;
-  }
-  if ((comp.resultado.cuotas_matriz?.length ?? 0) > 0) {
-    return "Cuotas por celda";
-  }
-  if (comp.tecnica === "intencion_censal" || comp.tecnica === "barrido") {
-    return `Cobertura ${fmtPct(comp.resultado.cobertura_objetivo)}`;
-  }
-  if (comp.tecnica === "no_prob_cuotas" || comp.tecnica === "no_prob_conveniencia") {
-    return "Cuotas";
-  }
-  return "Muestra";
 }
 
 function primaryMetric(comp: CalcMuestraComponente) {
