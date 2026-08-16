@@ -43,6 +43,11 @@
   session_set(sid, "calc_muestra_aulas_config", prepared$frame$config)
   session_set(sid, "calc_muestra_aulas_frame", prepared$frame)
   session_set(sid, "calc_muestra_aulas_criterios_contexto", prepared$context)
+  # El marco nuevo re-sella la decisión de alumnos por CH vigente: su firma lleva
+  # el frame_hash y sin esto queda stale para siempre, borrando el objetivo de
+  # cursos-horario en cada guardado. Lógica y porqué en
+  # calc_muestra_alumnos_por_ch_resello.R.
+  .cm_alumnos_por_ch_resellar(sid, prepared$frame$frame_hash)
   prepared$frame
 }
 

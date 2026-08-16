@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (reconstrucción del marco) | ⛔ **decisión de dominio** · el guard es correcto y su contrato está testeado; falta re-sellar la decisión al reconstruir, y eso exige decidir si es legítimo |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | backend (`..._resello.R`) | ☑ **hecho** (2026-08-15) · reconstruir re-sella la decisión; mutante: 2 asserts caen |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -649,7 +649,27 @@ test que lo respalda. El guard no confunde nada — distingue deliberadamente.
 
 El fix se revirtió; el contrato vuelve a 44 PASS.
 
-### Dónde está entonces el defecto
+### Resuelto: reconstruir re-sella la decisión (2026-08-15)
+
+**Decisión de dominio de Gonzalo: re-sellar es legítimo, el estadístico no
+depende del marco.** Elegir P25, mediana o media es una postura sobre cómo
+resumir la distribución, no sobre qué distribución concreta se mira;
+reconstruir cambia los valores, no la postura.
+
+`.cm_alumnos_por_ch_resellar` actualiza el `frame_hash` de la decisión vigente
+desde `.cm_criterios_frame_guardar`, que es el punto ÚNICO por donde pasa todo
+marco guardado — así vale igual para la vía síncrona y para el job de L3.
+
+Lo que no hace, y lo fija su regresión: no crea una decisión donde no la había,
+no toca el estadístico ni el reparto por facultad, y **no re-sella una decisión
+sin confirmar** —un sentinela con schema vacío tiene que seguir fallando cerrado
+en `/calcular`, no quedar bendecido por una reconstrucción—. Con ese guard
+desactivado caen 2 asserts.
+
+El guard original queda **intacto**: cambiar el estadístico sigue invalidando el
+objetivo, y el contrato HTTP que lo defiende sigue en 44 PASS.
+
+### Dónde estaba el defecto
 
 Si el guard es correcto, lo que falla es **que la decisión conserve un
 `frame_hash` viejo después de reconstruir**. El flujo obligado es:
