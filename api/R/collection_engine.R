@@ -639,6 +639,14 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       label = unit$label,
       sample_role = unit$role,
       wave = unit$group,
+      faculty = .collection_first_string(unit$dimensions %||% list(), "faculty"),
+      course_name = .collection_first_string(unit$dimensions %||% list(), "course_name"),
+      schedule = .collection_first_string(unit$dimensions %||% list(), "schedule"),
+      teacher = .collection_first_string(unit$dimensions %||% list(), "teacher"),
+      # Sin el tamano del aula, Monitoreo no tiene meta contra la que medir: la
+      # brecha sale 0 y ninguna aula llega nunca a "cerrando". El dato ya viaja
+      # en la unidad del plan, solo faltaba copiarlo a la fila.
+      eligible_n = .collection_first_number(unit$dimensions %||% list(), "eligible_n") %||% 0,
       # `planificada` es la palabra del vocabulario de Monitoreo
       # (`monitoreo_aulas_estados()`). Aqui decia "pendiente", que no esta en
       # esa lista: el plan salia del handoff con un estado que su consumidor no
