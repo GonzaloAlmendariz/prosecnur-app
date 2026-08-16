@@ -1203,6 +1203,10 @@ graficar_barras_apiladas <- function(
     etiquetas_peq_confinadas = FALSE,
     etiquetas_peq_margen_interno = 0,
     etiquetas_arriba_si_no_caben = FALSE,
+    # Paso entre filas forzado desde fuera. Lo usa `multilista` para que todos
+    # sus bloques compartan paso: sin esto cada uno lo calcula con SUS
+    # categorias y las barras salen de distinto grosor en la misma lamina.
+    row_step_forzado      = NULL,
     etiquetas_arriba_offset = 0.13,
     color_conectores_etiquetas = c("segmento", "azul_pulso"),
     posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
@@ -1797,9 +1801,14 @@ graficar_barras_apiladas <- function(
     # acababan a tres veces la distancia prevista —el espacio que faltaba luego
     # a la leyenda, que salía truncada.
     row_step_gap <- row_step_eff
-    if (n_categorias <= 4L && max_lineas_eje_y_est >= 5) {
-      row_step_eff <- max(row_step_eff, min(3.20, 1.16 + max_lineas_eje_y_est * 0.28))
-    }
+    row_step_eff <- .apiladas_row_step(
+      n_categorias, max_lineas_eje_y_est,
+      etiquetas_arriba = isTRUE(etiquetas_arriba_si_no_caben)
+    )
+    # Un paso impuesto desde fuera gana, pero nunca por debajo del que este
+    # bloque necesita para su propio texto: se toma el mayor.
+    rsf <- suppressWarnings(as.numeric(row_step_forzado %||% NA_real_)[1])
+    if (is.finite(rsf) && rsf > 0) row_step_eff <- max(row_step_eff, rsf)
 
     y_from_top <- numeric(n_categorias)
     offset_top <- 0
