@@ -201,5 +201,11 @@ Capacidad del grid: 6 → **8** filas sin careta, **7** con careta. Los anclajes
 de las indicaciones y del registro, que vivían hardcodeados dentro del
 dibujante, ahora son parte del layout: mover el cuerpo los mueve.
 
-**V3 se cumple** en lo que depende del motor. Siguen abiertos V5–V8, que son el
-registro en campo y no tienen implementación.
+**Ninguna vara nueva se cierra con esto**: L7 es calidad de la hoja y no mapea a
+una afirmación de la vara. Estado real: **V1, V2 y V4 cumplidas**; **V3 sigue
+bloqueada** tras L2 (qué identificador viaja a Kobo); **V5–V8 sin
+implementación**, que es el registro en campo.
+
+Vale anotar que la vara no cubría «la ficha está bien compuesta». No se agrega
+ahora una V9 a mitad de camino: se deja dicho que L7 y L11 miden calidad de la
+pieza, no capacidad, y que la vara mide capacidad.
