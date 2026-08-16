@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (persistencia del workspace) | ⛔ **abierto** · el cliente lo envía; el backend lo descarta al normalizar. Sospechoso: la whitelist de persistencia |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (`calc_muestra_alumnos_por_ch.R:271`) | ⛔ **culpable localizado** · un guard borra `n_aulas` al cambiar la decisión; falta confirmar que lo dispara el `frame_hash` |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -592,7 +592,38 @@ claves sin `n_aulas`**. Las dos cosas no pueden ser ciertas a la vez con el
 mismo input, así que **el `aulas_config` que llega al normalizador no es el que
 manda el cliente**: algo lo sustituye o lo poda antes.
 
-Siguiente paso, ya sin sospechoso: seguir el `aulas_config` dentro del handler
+**Culpable encontrado (2026-08-15):** `calc_muestra_alumnos_por_ch.R:271`.
+
+```r
+if (changed && is.list(current$workspace$aulas_config)) {
+  current$workspace$aulas_config$n_aulas <- NULL
+```
+
+El handler del POST normaliza bien —el workspace es whitelist-only y
+`aulas_config` está en la lista—, pero justo después
+`.cm_alumnos_por_ch_preparar_estudio_guardado` **borra el objetivo** cuando la
+decisión de Alumnos por CH cambia. Es un guard deliberado: si cambia el
+estadístico, el objetivo calculado con el anterior queda obsoleto.
+
+Y con una decisión estable **no se dispara**: probado, `changed = FALSE` y
+`n_aulas` sobrevive con valor 200. El guard no está roto en general.
+
+**La hipótesis que queda por confirmar** es por qué en la sesión real sí se
+disparaba: la firma de la decisión incluye `frame_hash`, y el flujo obligado
+—firmar la decisión, RECONSTRUIR el marco, calcular— cambia ese hash, así que la
+decisión se considera cambiada y el objetivo se borra justo después de
+calcularse. Encaja con todo lo observado, incluida la selección que se
+invalidaba sola.
+
+Si se confirma, el arreglo no es quitar el guard —protege algo real— sino
+distinguir **«cambió el estadístico»** de **«cambió el marco»**: sólo lo primero
+invalida un objetivo que se acaba de calcular sobre el marco nuevo.
+
+Cómo confirmarlo en una línea: comparar
+`.cm_alumnos_por_ch_estudio_decision(previous)` y `(current)` en un POST real
+tras reconstruir, y ver si difieren sólo en `frame_hash`.
+
+Ruta ya descartada: seguir el `aulas_config` dentro del handler
 de `POST /api/calc-muestra/estudio` desde el body parseado hasta la llamada a
 `.cm_normalize_workspace_aulas_config`, e imprimir qué recibe. La diferencia
 entre 55 y 56 claves es exactamente el campo perdido, así que el punto donde
