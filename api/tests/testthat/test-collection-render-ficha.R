@@ -144,3 +144,52 @@ test_that("un enlace largo sigue siendo dibujable", {
   leida <- collection_qr_matrix_from_png(png_path, nrow(esperada), dpi = 300)
   expect_identical(sum(leida == esperada), length(esperada))
 })
+
+# --- El rol impreso ----------------------------------------------------------
+# Titular y reemplazo salian identicos salvo el nombre del aula: el unico
+# indicio era "Muestra: M1" vs "R1", que solo entiende quien conoce la
+# nomenclatura. Entregar la ficha de un reemplazo como si fuera titular cuesta
+# una aplicacion entera.
+
+test_that("el rol se imprime en espanol y dice a quien reemplaza", {
+  expect_identical(.crf_role_label("titular"), "Titular")
+  expect_identical(.crf_role_label("chain_reserve", "CH 3"), "Reemplazo de CH 3")
+  expect_identical(.crf_role_label("chain_reserve"), "Reemplazo")
+  expect_identical(.crf_role_label("extra_reserve_pool"), "Reserva adicional")
+})
+
+test_that("la jerga del motor nunca llega al papel", {
+  # El control: con `unit.role` en crudo esto valia "chain_reserve".
+  for (role in c("titular", "chain_reserve", "extra_reserve_pool")) {
+    expect_false(grepl("_", .crf_role_label(role), fixed = TRUE), info = role)
+  }
+  # Un rol desconocido se imprime tal cual en vez de inventarle una etiqueta.
+  expect_identical(.crf_role_label("piloto_2026"), "piloto_2026")
+})
+
+test_that("una ficha de titular y una de reemplazo no se confunden", {
+  titular <- .crf_unit_context(list(
+    unit_id = "u1", label = "Aula 1", role = "titular",
+    dimensions = list(course_name = "Curso 1")
+  ))
+  reserva <- .crf_unit_context(list(
+    unit_id = "u5", label = "Aula 5", role = "chain_reserve",
+    dimensions = list(course_name = "Curso 5", replacement_for = "CH 1")
+  ))
+
+  expect_identical(titular$role, "Titular")
+  expect_identical(reserva$role, "Reemplazo de CH 1")
+  expect_false(identical(titular$role, reserva$role))
+  expect_identical(reserva$replacement_for, "CH 1")
+})
+
+test_that("la ficha built-in imprime el rol", {
+  # El registro de bindings puede permitir `unit.role` y la plantilla no usarlo:
+  # permitir no es dibujar.
+  fields <- collection_material_builtin_template()$pages[[1]]$blocks
+  grid <- Filter(function(b) identical(b$type, "field_grid"), fields)[[1]]
+  bindings <- vapply(grid$fields, function(f) as.character(f$binding %||% ""), character(1))
+
+  expect_true("unit.role" %in% bindings)
+  expect_identical(grid$fields[[which(bindings == "unit.role")]]$label, "Rol")
+})

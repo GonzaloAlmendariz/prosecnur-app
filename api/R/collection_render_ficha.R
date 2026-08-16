@@ -120,13 +120,35 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   out
 }
 
+# `titular` y `chain_reserve` son claves del motor, no espanol. Impresas en una
+# hoja que alguien lee parado en la puerta de un aula no dicen nada, y confundir
+# una ficha de reemplazo con una de titular cuesta una aplicacion entera. El
+# plan conserva la clave canonica; lo que se imprime es la frase.
+.crf_role_label <- function(role, replacement_for = "") {
+  key <- tolower(gsub("[ -]+", "_", trimws(as.character(role %||% "")[1])))
+  target <- trimws(as.character(replacement_for %||% "")[1])
+  base <- switch(
+    key,
+    titular = "Titular",
+    chain_reserve = "Reemplazo",
+    reserva = "Reemplazo",
+    extra_reserve_pool = "Reserva adicional",
+    # Un rol que no conocemos se imprime tal cual: inventarle una etiqueta
+    # seria peor que mostrar la clave.
+    trimws(as.character(role %||% "")[1])
+  )
+  if (identical(base, "Reemplazo") && nzchar(target)) paste0("Reemplazo de ", target) else base
+}
+
 .crf_unit_context <- function(unit) {
   dims <- unit$dimensions %||% list()
   scheduling <- unit$scheduling %||% list()
+  replacement_for <- .crf_txt(dims$replacement_for %||% unit$replacement_for, "")
   list(
     unit_id = .crf_txt(unit$unit_id, ""),
     label = .crf_txt(unit$label, "Unidad de aplicacion"),
-    role = .crf_txt(unit$role, ""),
+    role = .crf_role_label(unit$role, replacement_for),
+    replacement_for = replacement_for,
     group = .crf_txt(unit$group, ""),
     faculty = .crf_txt(dims$faculty %||% unit$faculty, ""),
     course_name = .crf_txt(
@@ -150,6 +172,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     "unit.unit_id" = context$unit$unit_id,
     "unit.label" = context$unit$label,
     "unit.role" = context$unit$role,
+    "unit.replacement_for" = context$unit$replacement_for,
     "unit.group" = context$unit$group,
     "unit.faculty" = context$unit$faculty,
     "unit.course_name" = context$unit$course_name,

@@ -69,7 +69,8 @@ aula con mala luz y un teléfono viejo.
 | **L1** | El parámetro del enlace va duplicado (`d[collectorID]` dos veces). | `api/R/collection_adapters.R:.ca_binding` dejaba el param dentro de `access_ref`; `api/R/collection_engine.R:.collection_access_url` volvía a colgar el `prefill`. | ☑ **hecho** (2026-08-16) — el adapter ya no arma URL: declara base en `access_ref` y personalización en `prefill`, y el resolvedor compone una sola vez. Payload de 116 → 71 chars, PDF de 244.981 → 234.937 bytes. Regresión en `test-collection-engine.R` («la costura adapter → resolvedor no duplica el parámetro»). |
 | **L1b** | SurveyMonkey recibía la sintaxis `d[]` de Kobo. | Hallazgo de propina al hacer L1: `.collection_access_url` hardcodeaba `d[%s]` para todo proveedor, así que al link de SM se le colgaba un parámetro que su formulario ignora. | ☑ **hecho** (2026-08-16) — `.collection_prefill_param()` decide por proveedor; el resolvedor recibe `deployment$target$provider`. |
 | **L2** | El valor del `collectorID` es un slug interno con hash, no el código operativo. | `.collection_stable_id()` en `collection_engine.R`; el código operativo canónico lo produce `.cm_aulas_codigo_operativo()`. Decidir cuál viaja a Kobo — afecta la reconciliación de la data que vuelve. | ⛔ bloqueado — ver «Espera al usuario» |
-| **L3** | La ficha no declara el rol: titular y reemplazo se ven iguales. | `collection_material_builtin_template()` no usa el binding `unit.role`, que **ya existe** en `COLLECTION_MATERIAL_BINDINGS`. Es agregar el campo al `field_grid` o un `status_tag`. | ☐ sin empezar |
+| **L3** | La ficha no declara el rol: titular y reemplazo se ven iguales. | `collection_material_builtin_template()` no usaba `unit.role`; y el binding devolvía la clave cruda del motor. | ☑ **hecho** (2026-08-16) — la ficha imprime «Rol: Titular» / «Rol: Reemplazo de AULA-01». `.crf_role_label()` traduce, `replacement_for` viaja al plan y existe el binding `unit.replacement_for`. Built-in a revisión 2. |
+| **L11** | Hay **dos plantillas por defecto que no coinciden**. | `collection_material_builtin_template()` (backend, `template-ficha-aplicacion-a4-v1`) y `DEFAULT_COLLECTION_TEMPLATE` (`frontend/.../MaterialsSection.tsx:80`, `template-ficha-aplicacion`) declaran bloques distintos. El editor siembra una ficha que el motor nunca produce. Hallazgo de propina al hacer L3. | ☐ sin empezar |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto: hora de inicio, aforo observado, quién aplicó. | La ficha impresa **sí** los tiene (bloque `application_log`, 3 renglones a mano). Nunca vuelven al sistema. | ☐ sin empezar |
@@ -146,3 +147,20 @@ El adapter dejó de armar URLs. Ahora declara base (`access_ref`) y personalizac
 
 Gate: 12 archivos `test-collection-*.R` + 3 de monitoreo aguas abajo, todos en
 verde. **V2 se cumple.** Siguen abiertos V3–V8.
+
+### 2026-08-16 — L3 cerrado
+La ficha ya declara el rol. `Rol: Titular` en las páginas de titular y
+`Rol: Reemplazo de AULA-01` en las de reserva, verificado en el PNG de la
+página 5. Tres piezas hacían falta, no una: el binding `unit.role` existía pero
+la plantilla no lo dibujaba, el binding devolvía `chain_reserve` en crudo, y
+`replacement_for` **ni siquiera llegaba al plan** —`.collection_legacy_unit()`
+no lo leía—, así que «de quién es reemplazo» era irrecuperable en el render.
+
+Se decidió una sola línea compuesta («Reemplazo de AULA-01») en vez de dos
+campos, porque un campo «Reemplaza a» quedaría vacío en la mayoría de las
+fichas, y un campo vacío impreso es ruido que el aplicador tiene que ignorar.
+
+Built-in a revisión 2 — las instancias vivas quedan `stale` con
+`template_changed`, que es el comportamiento correcto y ya estaba cubierto.
+
+**V4 se cumple.** Siguen abiertos V3, V5–V8.

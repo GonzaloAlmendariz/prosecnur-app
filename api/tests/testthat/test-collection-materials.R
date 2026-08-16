@@ -81,7 +81,9 @@ test_that("PUT de template usa expected_revision y marca instancias stale", {
   edited$pages[[1]]$blocks[[7]]$text <- "Escanea y sigue las indicaciones del equipo de campo."
   updated <- collection_material_template_put(fx$sid, edited, created$state_revision)
   expect_false(updated$noop)
-  expect_identical(updated$template$revision, 2L)
+  # Relativo a la built-in, no literal: lo que se prueba es que un PUT avanza la
+  # revision, no en cual arranca la plantilla de la casa.
+  expect_identical(updated$template$revision, collection_material_builtin_template()$revision + 1L)
   expect_false(identical(updated$template$template_sha256, created$instance$template_ref$sha256))
 
   state <- session_get(fx$sid)$collection_state

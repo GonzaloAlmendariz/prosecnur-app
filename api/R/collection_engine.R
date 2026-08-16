@@ -257,6 +257,12 @@
       sample_label = .collection_first_string(row, c(
         "sample_label", "historical_sample_label", "wave", "muestra", "sample_wave"
       ), "M1"),
+      # A quien reemplaza esta unidad. Sin esto la ficha de un reemplazo no
+      # puede decir de quien lo es, que es justo lo que necesita saber quien la
+      # lleva al aula.
+      replacement_for = .collection_first_string(row, c(
+        "replacement_for", "reemplazo_de", "titular_operational_code", "codigo_aula_titular"
+      )),
       eligible_n = .collection_first_number(row, c(
         "eligible_n", "matriculados_poblacion", "students_n"
       ))
