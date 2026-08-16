@@ -416,6 +416,21 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   rep_order[invalid_order] <- suppressWarnings(
     as.numeric(gsub("[^0-9]", "", out$wave[invalid_order]))
   ) - 1
+  # Ultimo recurso: la posicion DENTRO DE SU CADENA. Poner 1 a todas hacia que
+  # dos reservas del mismo titular compartieran codigo —las dos de `CH 4` se
+  # llamaban `R 4.1`—, que es peor que un vacio: son dos aulas distintas con el
+  # mismo nombre en la tabla desde la que se decide a quien activar.
+  sin_orden <- !is.finite(rep_order) | rep_order <= 0
+  # Se cuenta SOLO entre reservas: incluir al titular en su propio grupo lo hacia
+  # ocupar el puesto 1 y desplazaba a sus reservas a `R n.2` y `R n.3`.
+  reservas_sin_orden <- which(sin_orden & out$sample_role == "chain_reserve" & nzchar(out$replacement_for))
+  if (length(reservas_sin_orden)) {
+    rep_order[reservas_sin_orden] <- stats::ave(
+      seq_along(reservas_sin_orden),
+      out$replacement_for[reservas_sin_orden],
+      FUN = seq_along
+    )
+  }
   rep_order[!is.finite(rep_order) | rep_order <= 0] <- 1
   extra_index <- rep(NA_integer_, nrow(out))
   extra_rows <- which(out$sample_role == "extra_reserve_pool")
@@ -431,11 +446,18 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     replacement_order = rep_order,
     extra_index = extra_index
   )
-  titular_role <- ifelse(
-    out$sample_role %in% c("titular", "chain_reserve"),
-    "titular",
-    ""
-  )
+  # El titular de una reserva es SU titular, no el que le tocaria por posicion.
+  # `slot_number` cae a `orden` cuando el plan no trae `selection_slot_id`, asi
+  # que una reserva en la fila 6 se declaraba titular de `CH 6` aunque
+  # `replacement_for` dijera `CH 4`. El codigo inventado no queda vacio: apunta a
+  # OTRA aula real del estudio, y esa es la tabla que el equipo mira para decidir
+  # a quien activar.
+  reserva <- out$sample_role == "chain_reserve"
+  hereda <- reserva & !nzchar(out$titular_operational_code) & nzchar(out$replacement_for)
+  out$titular_operational_code[hereda] <- out$replacement_for[hereda]
+  # Una reserva sin `replacement_for` no tiene de donde: vacio es mas honesto que
+  # un `CH n` plausible. El titular de un titular si sale del slot: es el mismo.
+  titular_role <- ifelse(out$sample_role == "titular", "titular", "")
   out$titular_operational_code <- .cm_aulas_codigo_operativo(
     code = out$titular_operational_code,
     role = titular_role,
@@ -446,10 +468,18 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     "chain_reserve",
     ""
   )
+  # El mismo defecto que arriba, en la linea de al lado: la cadena `R n.k`
+  # tomaba su `n` de la posicion, asi que la reserva de `CH 4` en la fila 6 se
+  # llamaba `R 6.1`. El `n` de la cadena es el del TITULAR, que ya quedo resuelto
+  # en `titular_operational_code` unas lineas antes.
+  slot_cadena <- slot_number
+  n_titular <- suppressWarnings(as.integer(gsub("[^0-9]", "", out$titular_operational_code)))
+  hereda_slot <- out$sample_role == "chain_reserve" & is.finite(n_titular)
+  slot_cadena[hereda_slot] <- n_titular[hereda_slot]
   out$replacement_chain_code <- .cm_aulas_codigo_operativo(
     code = out$replacement_chain_code,
     role = replacement_role,
-    slot_number = slot_number,
+    slot_number = slot_cadena,
     replacement_order = rep_order
   )
   out <- out[nzchar(out$classroom_id), , drop = FALSE]
