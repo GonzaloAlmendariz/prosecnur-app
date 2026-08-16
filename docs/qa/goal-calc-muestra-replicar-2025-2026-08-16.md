@@ -982,3 +982,40 @@ multiplican: por eso el π de 2025 es veinte veces mayor y no cinco.
 lo era, replicar el diseño exige replicar también ese recorte, no sólo el n; si
 no lo era, el `prob_seleccion` del histórico mide otra cosa —π dentro del cupo,
 por ejemplo— y hay que leerlo con esa clave.
+
+## El sorteo reparte un n global hacia abajo; no suma las aulas que pide cada facultad (2026-08-16)
+
+Lo preguntó Gonzalo: si en Cálculo se define **cuántos cursos-horario hay que
+visitar por facultad**, la selección debería ir facultad por facultad hasta
+llenar ese número. **No lo hace, y va exactamente al revés.**
+
+Medido en el código y en la config del proyecto real:
+
+- El selector recibe **`n_aulas = 30`**, un número **global**. Los `strata_cols`
+  —facultad, sexo, tamaño— sirven para **balancear** el sorteo, no para fijar
+  cupos.
+- `calc_muestra_aulas.R:3298` hace
+  `quotas <- .cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)`: **deriva**
+  las cuotas por estrato **repartiendo el n global** en proporción a los
+  elegibles de cada estrato.
+- Y cuando `n_total < nº de estratos` —30 contra 84, que es el caso— el reparto
+  ni siquiera es proporcional: `order(weights, decreasing = TRUE)[seq_len(n_total)]`
+  se queda con **los 30 estratos más grandes y da 0 a los otros 54**.
+
+Esa línea es la causa mecánica de que el sorteo cubra 10 facultades y no 15: no
+es el azar del cubo, es un **corte por tamaño previo al sorteo**.
+
+**El camino que Gonzalo describe no existe hoy.** El módulo sí calcula por
+estrato lo que hace falta —el panel de Certeza publica `cuota`, `aulas_formula` y
+`aulas_certeza` por fila—, pero **ese resultado no alimenta al selector**: no hay
+ruta desde «esta facultad necesita N aulas» hacia el sorteo. Las dos mitades
+existen y no se tocan.
+
+Y es justo lo que 2025 sí hizo: **170 cupos, un titular por cupo**, con reparto
+por facultad que cubrió las 15.
+
+**BLOQUEADO — decisión de Gonzalo.** Conectar Certeza con el selector cambia el
+diseño muestral: pasar de «sortea 30 balanceadas» a «cubre la cuota de cada
+facultad» redefine las probabilidades de inclusión y, con ellas, los pesos. Es
+la misma familia de decisión que el candado de la cadena, y probablemente la
+misma respuesta: el precedente de 2025 es por cupo.
