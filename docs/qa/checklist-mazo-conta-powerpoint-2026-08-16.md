@@ -70,6 +70,7 @@ ya existente.
 | P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paleta `lst_p10` del proyecto | ☑ la 2ª pregunta salía `081F5C`+`F4B183` y su hermana `081F5C`+`9DC3E6`; el aprobado pinta las dos en celeste |
 | P11 | Estructura organizacional: porcentajes unos en blanco y otros en azul; deben ser todos azules | `graficador_contraste_texto.R` | ☑ el umbral 0.6 dejaba `#70AD47` (0.561) del lado oscuro → **7 blancas**; el aprobado usa azul ahí. Umbral a 0.52 |
 | P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `reporte_plan_tabla_nativa.R` | ☑ **5 tablas nativas** (el aprobado 3), con anchos `[6.36, 2.39, 2.39, 2.39]` contra `[6.62, 2.45, 2.61, 2.32]` del aprobado. Antes: **el puente ya existía y nadie lo usaba con radar**: el ADR 0072 solo cubría la lámina de SOLO tabla (`tabla_nativa && ocultar_radar`). Ahora el graficador adjunta también **dónde** va (`geom_frac`) y el renderer la coloca junto al gráfico. Falta que el modo `publicos` —que compone varios sub-radares— pase por ese bloque. Antes: **medido**: el aprobado resuelve esto en **2 láminas** con `CHART` nativo + tabla nativa 7×4; el motor usa **5 láminas** con un grupo de 23/82/145/128/39 sub-formas — **417 formas a mano**. La tabla se dibuja dentro del ggplot; sacarla exige que el graficador exponga sus datos y el render emita la tabla. Unidad propia |
+| P17 | **El mazo usa dos tipografías** | `graficador_radar.R` | ◐ **22 textos en `Helvetica`** en las dos láminas de radar —título, subtítulo y etiquetas de eje— contra un aprobado que usa **solo Arial**. Los `geom_text` ya declaran familia; los `cowplot::draw_text` que producen esos 22 están en otra función sin acceso a `font_family` |
 | P16 | **Dos láminas del mismo tipo no salen iguales** | reparto de alto en `multilista` | ◐ **medido**: con 3 filas el paso va de 1.40 a 2.59 cm entre láminas; con 7 filas es idéntico en las tres |
 | P15 | Cifras de un solo color por familia: blanco en dicotómica azul, azul Pulso en Likert | `.contraste_familia()` | ☑ un color por gráfico en vez de por luminancia de cada segmento; la paleta que no es de la casa la sigue decidiendo la luminancia |
 | P14 | **Las barras no tienen el mismo grosor dentro de una lámina** | `graficador_row_step.R` | ☑ **0.29 → 0.13 cm** en Mecanismos de admisión (el aprobado: 0.22). Antes: **medido**: en «Mecanismos de admisión» la escala sale a **1.19 cm** y la dicotómica a **0.90** — 0.29 de diferencia. El motor tiene 8 láminas así (peor 0.38); el aprobado 6 (peor 0.22). Regla **B3** añadida al verificador. **Reparado**: los bloques comparten paso de fila y el reparto de alto lo sigue. Coste medido: una barra de escala de esa lámina queda en 0.66 cm contra el piso de 0.77 (R1 ×1), a cambio de que las dos dejen de diferir en 0.29 |
@@ -169,6 +170,27 @@ un bloque tiene pocas categorías con etiquetas largas —`n_categorias <= 4 &&
 max_lineas_eje_y >= 5`— y en multilista **cada bloque lo decide por su cuenta**.
 Compartirlo exige exponerlo como override y fijarlo una vez por lámina: es la
 unidad pendiente principal.
+
+## Lo que encontró un barrido propio, sin que nadie lo señalara
+
+Comparando tipografías, tamaños y colores del mazo entero contra el aprobado:
+
+| | Motor | Aprobado |
+|---|---|---|
+| Tipografías | Arial 2378 · **Helvetica 22** | Arial 2331 · nada más |
+| Tamaños dominantes | **15.93 pt ×826 · 15.99 ×651** · 14 ×472 | 14 ×799 · 12 ×700 · 13 ×436 |
+| Gris `BFBFBF` | 452 | 196 |
+
+Tres cosas que ninguna vara miraba:
+
+1. **Dos tipografías** (P17), por textos que caen al default del device.
+2. **El motor escribe más grande**: su cuerpo dominante ronda los 16 pt y el del
+   aprobado los 12–14. Y usa **15.93 y 15.99**, dos tamaños que difieren en seis
+   centésimas de punto y deberían ser uno solo —la misma dispersión que P16,
+   ahora en tipografía—.
+3. **El gris de «SIN INF» aparece 2,3 veces más** que en el aprobado. Falta
+   comprobar si es que el motor lo pinta donde el aprobado no, o si el estudio
+   tiene más «sin información» del que el entregable enseñaba.
 
 ### Tres capas entre el preset y la tabla del radar (P12)
 
