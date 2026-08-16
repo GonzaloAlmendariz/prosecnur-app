@@ -1611,3 +1611,66 @@ la pregunta de fondo, que ahora es otra: **si el divisor debe seguir eligiéndos
 en «Alumnos por CH» con P25/mediana/media, o si debe ofrecer también
 `mín(mediana, media)`, que es lo que usó el diseño de 2025.** Eso lo decide
 Gonzalo.
+
+---
+
+## L19 · El proyecto real NO puede calcular (2026-08-16)
+
+Medido por la ruta real, que es la lección del tick anterior: confirmar la
+decisión de Alumnos por CH en pantalla y pulsar «Calcular muestra» sobre
+`HSVG2026.pulso`.
+
+`POST /api/calc-muestra/calcular` → **409**:
+
+```json
+{"code":"E_CALC_MUESTRA_ALUMNOS_CH_DECISION",
+ "message":"Cada componente P1/P2 debe cubrir exactamente las facultades del marco vigente.",
+ "details":{"reason":"facultades_incompletas",
+            "faltantes":["escuela_de_posgrado"],"sobrantes":[]}}
+```
+
+### La causa: dos universos que no se cortan igual
+
+- El contrato de alumnos por CH enumera las facultades con al menos **un
+  curso-horario elegible** (`.cm_alumnos_por_ch_fila_es_muestreable`).
+- Los estratos del estudio salen de las facultades con **estudiantes
+  elegibles**.
+
+Y en la pantalla se ve el caso exacto: **Escuela de Posgrado, 2 cursos-horario
+elegibles y 33 matrículas**. Pasa el primer filtro; no pasa el segundo, porque
+el estudio es de pregrado regular. `setequal(seen, contract_keys)` falla y no
+hay forma de calcular sin tocar los criterios.
+
+Lo llamativo es que **el caso opuesto ya estaba resuelto**: Escuela de Estudios
+Especiales tiene 0 cursos-horario elegibles y el motor la filtra, con este
+comentario propio: *«el contrato pedía algo imposible»*. Es el mismo problema
+por el otro lado, y ese lado no está contemplado.
+
+### Lo que el usuario ve
+
+Sólo la frase genérica: «Cada componente P1/P2 debe cubrir exactamente las
+facultades del marco vigente». El `faltantes` viaja en el payload y **no llega a
+la pantalla**, así que no hay manera de saber qué facultad falta ni por qué. Es
+otra vez el patrón de «el aviso dice el hecho, no la causa» — y aquí además deja
+al usuario bloqueado.
+
+Fijado en `api/tests/testthat/test-calc-muestra-alumnos-ch-facultad-sin-alumnos.R`
+(10 expectativas), con dos mutantes sobre el fuente y revertidos: quitar el
+filtro de CH elegibles (2 fallos) y subirlo a 5 aulas, que excluiría posgrado
+(4 fallos). Control 10/10.
+
+### La decisión, que es metodológica
+
+No la tomo yo. Son tres caminos y no dan el mismo estudio:
+
+1. **Exigir la cobertura sobre la intersección** de los dos universos: una
+   facultad sin estudiantes elegibles no puede recibir cuota, así que tampoco
+   debería exigirse. Es el arreglo mínimo y simétrico con el que ya existe.
+2. **Sacar los cursos-horario de posgrado del marco**, porque un aula cuyos
+   alumnos no son del estudio no es una unidad muestreable. Toca los criterios
+   de curso-horario, no el guard.
+3. Dejarlo como está y **hacer que el error diga la causa** —qué facultad y por
+   qué—, aceptando que el usuario tenga que ajustar los criterios a mano.
+
+Las tres son defendibles; la 1 y la 2 cambian el marco, la 3 no. Mientras no se
+decida, **el estudio real no calcula**.
