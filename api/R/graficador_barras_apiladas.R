@@ -2450,35 +2450,33 @@ graficar_barras_apiladas <- function(
   .barra_extra_minimo <- c(top2box = 3L, top3box = 4L, bottom2box = 3L)
   .barra_extra_etiquetas <- list(top2box = top2box_labels, top3box = top3box_labels,
                                  bottom2box = bottom2box_labels)
-  if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% names(.barra_extra_minimo) &&
-      !length(.barra_extra_etiquetas[[barra_extra_preset]])) {
-    minimo <- .barra_extra_minimo[[barra_extra_preset]]
-    if (length(cols_porcentaje) < minimo) {
-      # Silencio deliberado. Que un Top 2 Box no informe sobre una escala de dos
-      # es ARITMÉTICA, no un error de configuración: sumar las dos categorías da
-      # 100 % siempre. El analista enciende la columna una vez para todo el mazo
-      # —es lo correcto para sus escalas de acuerdo— y no puede hacer nada con
-      # un aviso por cada pregunta Sí/No. Eran 13 por mazo, todos pidiendo lo
-      # mismo y ninguno accionable; el ruido tapaba los avisos que sí lo son.
-      #
-      # El caso de abajo SÍ avisa, porque ahí hay algo que hacer: declarar las
-      # categorías.
-      NULL
-    } else {
-      # Sin declaracion no se adivina. La regla posicional de `.default_box_cols()`
-      # —las dos ultimas de la escala— asume un orden de peor a mejor y, cuando la
-      # escala no lo respeta, suma las dos equivocadas sin que nadie se entere. Un
-      # Top 2 Box es una decision metodologica, no una consecuencia del orden de
-      # las columnas: se declara por nombre de categoria y se declara una vez.
-      .pulso_aviso(sprintf(
-        paste0("La columna «%s» se omite: no hay categorias declaradas. Declaralas ",
-               "por nombre en Configuracion global > Estilo > Multi-apiladas; el ",
-               "motor ya no las deduce del orden de la escala."),
-        barra_extra_preset
-      ))
+  # Una sola decision, en `graficador_box_cobertura.R`: si el box no informa no
+  # se dibuja, y el motivo dice si hay algo que el analista pueda hacer.
+  if (isTRUE(mostrar_barra_extra) && barra_extra_preset %in% names(.barra_extra_minimo)) {
+    .box_dec <- .box_decidir(
+      labels           = .barra_extra_etiquetas[[barra_extra_preset]],
+      etiquetas_grupos = etiquetas_grupos,
+      cols_porcentaje  = cols_porcentaje,
+      minimo           = .barra_extra_minimo[[barra_extra_preset]]
+    )
+    if (!isTRUE(.box_dec$dibujar)) {
+      # Solo avisa lo accionable. Que un Top 2 Box no informe sobre una escala
+      # de dos es ARITMETICA: el analista enciende la columna una vez para todo
+      # el mazo —es lo correcto para sus escalas de acuerdo— y no puede hacer
+      # nada con un aviso por cada pregunta Si/No. Eran 13 por mazo, todos
+      # pidiendo lo mismo y ninguno accionable; el ruido tapaba los que si lo
+      # son.
+      if (identical(.box_dec$motivo, "sin_declaracion")) {
+        .pulso_aviso(sprintf(
+          paste0("La columna «%s» se omite: no hay categorias declaradas. Declaralas ",
+                 "por nombre en Configuracion global > Estilo > Multi-apiladas; el ",
+                 "motor ya no las deduce del orden de la escala."),
+          barra_extra_preset
+        ))
+      }
+      barra_extra_preset <- "ninguno"
+      mostrar_barra_extra <- FALSE
     }
-    barra_extra_preset <- "ninguno"
-    mostrar_barra_extra <- FALSE
   }
 
   # ---------------------------------------------------------------------------
@@ -2547,24 +2545,17 @@ graficar_barras_apiladas <- function(
       if (escala_valor == "proporcion_100") base_mat <- base_mat / 100
 
       # labels disponibles por columna: names(etiquetas_grupos)=cols, values=labels
-      .cols_from_labels <- function(labels_sel, etiquetas_grupos, cols_porcentaje) {
-        if (is.null(labels_sel) || !length(labels_sel)) return(character(0))
-        # El emparejamiento IGNORA mayusculas y tildes. En un estudio real la
-        # misma categoria convive escrita de dos formas —medido en el mazo del
-        # 10-08: «De acuerdo» y «De Acuerdo», «Si» y «SI»— porque cada lista se
-        # escribio por separado. Comparando literal, declarar una ortografia
-        # dejaba fuera a la otra EN SILENCIO: el box sumaba una columna en vez
-        # de dos y el numero salia mal sin que nadie lo notara.
-        norm <- function(x) {
-          x <- trimws(as.character(x))
-          x <- toupper(x)
-          iconv(x, to = "ASCII//TRANSLIT")
-        }
-        sel <- norm(labels_sel)
-        hit <- names(etiquetas_grupos)[norm(etiquetas_grupos) %in% sel]
-        hit <- hit[hit %in% cols_porcentaje]
-        unique(hit)
-      }
+      # El emparejamiento IGNORA mayusculas y tildes. En un estudio real la
+      # misma categoria convive escrita de dos formas —medido en el mazo del
+      # 10-08: «De acuerdo» y «De Acuerdo», «Si» y «SI»— porque cada lista se
+      # escribio por separado. Comparando literal, declarar una ortografia
+      # dejaba fuera a la otra EN SILENCIO: el box sumaba una columna en vez
+      # de dos y el numero salia mal sin que nadie lo notara.
+      #
+      # Vive en `graficador_box_cobertura.R` porque el guardia que apaga la
+      # columna necesita el MISMO emparejamiento: si uno de los dos cambia y el
+      # otro no, el guardia deja pasar lo que el selector sí suma.
+      .cols_from_labels <- .box_cols_desde_etiquetas
 
       # defaults: prioriza categorías sustantivas y excluye especiales
       .default_top2 <- function(cols_porcentaje, etiquetas_grupos) {
