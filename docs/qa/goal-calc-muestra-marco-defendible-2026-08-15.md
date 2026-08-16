@@ -56,7 +56,8 @@ correcto que no se puede explicar tampoco está entregado.
 | L5 | `composicion_na_n` y el intervalo de elegibles tienen superficie | V4 | frontend | ☑ **hecho** (2026-08-15) · mutantes: 3 de 5 y 3 de 6 tests caen |
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
-| L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **el dato ya existe** · selección real generada y persistida (30 titulares, 330 reemplazos, 2.201 de pool); falta la auditoría visual, que exige pila viva |
+| L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | frontend (`classroomHandoff.ts`) | ⛔ **decisión de contrato** · diagnosticado; ver abajo |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -66,6 +67,7 @@ correcto que no se puede explicar tampoco está entregado.
 | # | Decisión | Por qué no puedo yo |
 |---|---|---|
 
+| L14 | Cómo se cierra el traspaso del objetivo de cursos-horario: **(a)** persistir `n_aulas` al calcular —conservador, mantiene la doble llave— o **(b)** que el handoff use el objetivo del motor sin exigir copia —de raíz, pero hay que reconstruir qué caso detectaba la comparación— | La doble llave parece un guard deliberado contra corridas obsoletas. Quitarla sin saber qué protegía reabre lo que cerraba, y este módulo ya tiene historial de fixes que corrigen el feat anterior. Mientras siga así, **C5 de L8 no se puede medir** |
 | L6 | Qué se hace con el test `[gated]` de la base canónica: **(a)** versionar una fixture anonimizada, **(b)** documentar `PULSO_CALC_MUESTRA_CANONICO` como gate manual y quitar el fallback muerto, o **(c)** retirar el test | Las tres son defendibles y tienen precios distintos. (a) da cobertura real en CI pero exige pasar la base por el anonimizador, que ya envenenó `hsvg2026` una vez; (c) pierde la única defensa contra la cancelación de errores. Elegir por ti sería decidir cuánta cobertura vale ese riesgo |
 
 ## Trampas medidas (no volver a pagarlas)
@@ -473,6 +475,94 @@ Tres decisiones de diseño que valen más que el código:
 
 El reporte publica `n_criterios_traducidos`, que es lo primero que hay que
 mirar cuando un fixture anonimizado no reproduce su marco.
+
+## L14 · el objetivo del motor no llega a la Selección
+
+Encontrado al intentar cerrar L8 con dato real, y es lo que lo bloquea.
+
+Las tres superficies de Selección se quedan en «La selección existe; falta
+acreditar el objetivo» **por más que calcules**. No es un paso que falte
+recorrer: la condición es inalcanzable.
+
+| | |
+|---|---|
+| Motor: `resultado.aulas_base_total` | **200** |
+| Motor: `resultado.aulas_total` | 302 (200 base + 102 extra) |
+| `expectedTarget` derivado (`classroomHandoff.ts:291`) | **200** ✓ |
+| `aulas_config.n_aulas` persistido | **ausente** — `aulas_config` es `{}` |
+| `currentAulasTarget` resultante | **0** → bloqueo |
+
+El handoff **ya lee el objetivo del motor**, y aun así devuelve 0, porque exige
+además una copia persistida que coincida:
+
+```ts
+const persistedTarget = safeNumber(workspaceConfig?.n_aulas, 0);   // ausente -> 0
+const currentAulasTarget = persistedTarget > 0 && persistedTarget === expectedTarget
+  ? persistedTarget : 0;
+```
+
+**Y nadie escribe esa copia.** La única superficie que podría —«Cursos-horario
+requeridos»— declara *«esta vista no reconstruye estadísticas ni aulas en
+React»* y no tiene un solo botón. Así que `persistedTarget` se queda en 0 pase
+lo que pase.
+
+Es la familia de L1/L5/L10 un escalón más arriba: no es que falte mostrar un
+número, es que la cifra correcta está a un `resultado.aulas_base_total` de
+distancia y el handoff exige una llave que nadie fabrica.
+
+### Por qué no lo arreglé
+
+La lectura obvia —`persistedTarget` sobra, si `expectedTarget` ya viene del
+motor— es probablemente correcta, pero **esa doble llave parece deliberada**:
+huele a guard contra corridas obsoletas. Quitarla sin entender qué protegía
+reabre lo que ese guard cerraba, y este módulo ya tiene historial de fixes que
+corrigen el feat anterior.
+
+Dos caminos, y la diferencia es de contrato:
+
+- **Conservador**: persistir `n_aulas` al calcular. Mantiene la comprobación y
+  llena el hueco. Menor riesgo, deja la doble llave en pie.
+- **De raíz**: que el handoff use el objetivo del motor sin exigir copia. Más
+  limpio, pero hay que reconstruir primero qué caso detectaba la comparación.
+
+### Lo que sí quedó verificado de L8
+
+Con la selección real generada (2.561 filas: 30 titulares, 330 reemplazos en
+cadena, 2.201 de pool), las tres superficies pasan lo verificable sin dato:
+
+| | Titulares | Reemplazos | Sustento |
+|---|---|---|---|
+| Desborde horizontal | 0 | 0 | 0 |
+| Grupos de geometría | 1 | 1 | 6 |
+| Sin contrato declarado | **0** | **0** | **0** |
+| `data-audit-ready` | ✓ | ✓ | ✓ |
+| Vacío con causa y salida | ✓ | ✓ | ✓ |
+
+C1–C4 se cumplen. **C5 —que la superficie entregue lo que promete— sigue sin
+poder medirse**, y es exactamente lo que la trampa 9 advierte: una superficie
+sin datos se declara limpia en falso.
+
+### La cadena real del módulo, que no estaba escrita
+
+Descubierta a golpe de dos reconstrucciones de ~4 min:
+
+```
+marco → decisión de Alumnos por CH → RECONSTRUIR marco → calcular → seleccionar
+```
+
+Reconstruir el marco invalida el cálculo, así que firmar la decisión después de
+construir obliga a rehacerlo todo. El guard que lo detecta funciona bien
+(`decision_stale`), pero el orden no lo dice ninguna superficie.
+
+### Hallazgo de propina: «Cálculo completado» sobre un 409
+
+Al pulsar «Calcular muestra» con la decisión sin firmar, la pantalla mostró
+**«Cálculo completado: 2 componentes»** mientras el endpoint respondía
+`409 E_CALC_MUESTRA_ALUMNOS_CH_DECISION` y el componente quedaba con
+`resultado: null`. La franja sí marcaba «resultado inválido», así que la UI se
+contradice a sí misma en la misma pantalla. Es el hallazgo #1 del ledger v2
+—«`calcular` devuelve 200 con resultado vacío»— visto desde la UI, que es peor:
+el usuario lee éxito donde hubo error.
 
 ## Ledger
 
