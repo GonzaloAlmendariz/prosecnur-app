@@ -33,10 +33,10 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
 | V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
 | V10 | Cada comentario de Gabriela tiene regla y estado | 57 comentarios → 17 reglas | ◐ sin mapa por comentario |
-| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **6 de 10** ◐ |
+| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **8 de 10** ◐ |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
-**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 0** (con R4 y R7 ya medidas).
+**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 37** (R9 destapa cifras ilegibles).
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -64,11 +64,12 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
+| L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | color de texto por contraste | ☐ |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | doc nuevo | ☐ |
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
-| L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ◐ **R4 y R7 medidas**; faltan R6, R8, R9, R10 |
+| L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ◐ **R4, R7, R9, R10**; faltan R6 y R8 |
 | L26 | Medir las 31 disposiciones y darles celda en el recetario | recetario | ☐ |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
@@ -794,3 +795,27 @@ almohadilla mientras el XML las escribe sin ella. Di por limpio lo que no lo
 estaba y estuve a punto de buscar la causa en el default del motor. Es el mismo
 error que el `(cont.)` en minúscula: **comparar contra la forma en que yo lo
 escribo, no contra la forma en que lo guarda quien lo guarda.**
+
+### R9 destapa una regresión que introduje yo en L3
+
+El recetario había dejado R9 abierto por no poder medirlo: «el método por forma
+devuelve el color de relleno de la propia caja, no el del segmento que hay
+debajo». Se resuelve **cruzando por posición** —qué segmento contiene el centro
+de la caja de texto—, que es la única forma de saber sobre qué fondo cae.
+
+Y lo que aparece es una regresión de la receta 4, que es mía: **al cambiar el
+extremo negativo de rojo oscuro a naranja claro, las cifras blancas que se leían
+sobre el rojo dejaron de leerse sobre el naranja**. Son **37 láminas**, y el
+entregable aprobado tiene **cero**.
+
+Es el peor tipo de defecto de los que llevamos: no lo veía ninguna vara, lo
+introdujo un arreglo anterior que se dio por cerrado con evidencia —«rojo 270 →
+97, naranja 0 → 173»—, y la evidencia era cierta. Cambiar un color de fondo
+cambia qué color de texto encima se lee, y esa segunda mitad no se comprobó.
+
+Queda como **L29**: el color del texto de barra tiene que salir del contraste
+con su segmento, no ser blanco fijo.
+
+**R10 sale de pendientes con su medición hecha**, no ignorada: los tres mazos
+usan 100 % de interlineado y el recetario ya había concluido que no es la causa
+de lo que se comentó. Se declara medido.
