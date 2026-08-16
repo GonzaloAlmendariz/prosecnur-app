@@ -109,8 +109,24 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   // Métrica referencial legacy (elegibles/matrícula); NO es el criterio 8.
   min_prevalence_pct: 0.8,
   // Criterio 8 en dos pasos ordenados (reunión Ramiro 2026-07-15): primero
-  // facultad del curso, luego nivel del curso. Ambos nacen apagados.
-  require_faculty_prevalence: false,
+  // facultad del curso, luego nivel del curso.
+  //
+  // El paso 1 nace ENCENDIDO desde 2026-08-16. Nació apagado, y sobre el estudio
+  // real de HSyVBG 2026 eso dejaba en el marco cursos-horario cuyos alumnos
+  // elegibles son en su mayoría de otra facultad: un aula que no puede
+  // atribuirse a la facultad bajo la que está catalogada. Encenderlo al 80%
+  // recortó 252 CH (2.364 → 2.112) y dejó 190 titulares, cuatro menos que los
+  // 194 que el estudio de 2025 llegó a coordinar.
+  //
+  // El paso 2 (mismo nivel del curso) sigue apagado a propósito: no participó
+  // de esa medición y encender los dos a la vez confunde qué recortó qué.
+  //
+  // Alcance medido: gobierna la config con la que NACE un estudio. Un `.pulso`
+  // guardado conserva su propio valor porque el spread de `raw` pisa al default
+  // en `normalizeUniversityAulasConfig`. La excepción es un proyecto anterior a
+  // que el campo existiera —sin la clave en su `aulas_config`—, que sí heredaría
+  // este valor al abrirse.
+  require_faculty_prevalence: true,
   min_faculty_prevalence_pct: 0.8,
   min_cycle_homogeneity_pct: 0.8,
   usar_grupos_tamano: true,
