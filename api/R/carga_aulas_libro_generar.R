@@ -75,16 +75,45 @@ aulas_libro_hoja_agendadas <- function(unidades) {
         .calg_txt(u$teacher_phone), .calg_txt(u$teacher_email),
         .calg_txt(u$course_name), .calg_txt(u$faculty), .calg_txt(u$level),
         .calg_txt(u$label), .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
-        # A partir de aqui llena la PERSONA que agenda. Se dejan en blanco.
-        "", "", "", "",
-        "", "", "",
+        # A partir de aqui llena la PERSONA que agenda, pero se DEVUELVE lo que
+        # ya este registrado. Escribir vacio siempre borraba el operativo en
+        # curso: regenerar el libro de un estudio en marcha perdia los estados
+        # de agendamiento y el ciclo de contacto de todas las aulas. Un libro
+        # nuevo no trae estos campos y sale en blanco igual que antes.
+        .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
+        .calg_num_txt(u$contact_attempts), .calg_txt(u$sample_status),
+        .calg_txt(u$scheduled_date), .calg_txt(u$scheduled_day), .calg_txt(u$scheduled_time),
         .calg_txt(u$link),
-        ""
+        .calg_txt(u$notes)
       )
     }), use.names = FALSE)
     c(as.character(i), celdas)
   })
   as.data.frame(do.call(rbind, c(list(cabecera), filas)), stringsAsFactors = FALSE)
+}
+
+# Celdas del parte de campo en el orden de `.calg_titulos_campo()`. Con `parte`
+# nulo salen los dos denominadores y el resto en blanco, que es el libro nuevo.
+.cap_celdas_parte <- function(parte, unidad, titulos_campo) {
+  v <- function(x) .calg_txt((parte %||% list())[[x]])
+  n <- function(x) .calg_num_txt((parte %||% list())[[x]])
+  celdas <- c(
+    .calg_num_txt(unidad$enrolled_total), .calg_num_txt(unidad$eligible_n),
+    n("observed_students"),
+    # El porcentaje lo calcula la hoja del equipo con sus formulas.
+    "",
+    n("refusals"), n("duplicates"), n("effective_surveys"),
+    # Los nombres son los que produce el LECTOR (`carga_aulas_aplicadas.R`),
+    # que es de donde vienen los partes en un estudio real. Los alias cubren a
+    # quien los arme a mano.
+    .calg_txt((parte %||% list())$applied_by %||% (parte %||% list())$applicator),
+    v("actual_room"),
+    .calg_txt((parte %||% list())$applied_date %||% (parte %||% list())$applied_at),
+    v("applied_time"), v("application_status"), v("field_note")
+  )
+  length(celdas) <- length(titulos_campo)
+  celdas[is.na(celdas)] <- ""
+  celdas
 }
 
 .calg_titulos_campo <- function() c(
@@ -103,8 +132,18 @@ aulas_libro_hoja_agendadas <- function(unidades) {
 #' @param intentos cuantos bloques de aplicacion se dejan preparados.
 #' @return data.frame con dos filas de cabecera (grupo y campo).
 #' @export
-aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L) {
+aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list()) {
   intentos <- max(1L, as.integer(intentos))
+  # Partes ya registrados, indexados por codigo operativo e intento.
+  por_aula <- list()
+  for (pt in partes) {
+    if (!is.list(pt)) next
+    cod <- .calg_txt(pt$operational_code, .calg_txt(pt$classroom_id))
+    if (!nzchar(cod)) next
+    n <- suppressWarnings(as.integer(pt$intento %||% 1L))
+    if (!length(n) || !is.finite(n) || n < 1L) n <- 1L
+    por_aula[[sprintf("%s#%d", cod, n)]] <- pt
+  }
   titulos_agenda <- .calg_titulos_agenda()
   titulos_campo <- .calg_titulos_campo()
 
@@ -117,7 +156,17 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L) {
     campos <- c(campos, "ID MATCH", titulos_agenda, titulos_campo)
   }
 
-  titulares <- Filter(function(u) identical(.calg_txt(u$sample_role), "titular"), unidades)
+  # Titulares SIEMPRE, y ademas cualquier unidad con parte registrado: una
+  # reserva activada se aplica igual que un titular —en el estudio de 2025, 26
+  # de los 196 partes son de reservas— y filtrar por rol la borraba del libro.
+  # `names(list())` es NULL y `startsWith(NULL, ...)` lanza: sin partes —el libro
+  # nuevo, que es el caso mas comun— no hay a quien preguntar.
+  claves_parte <- names(por_aula) %||% character(0)
+  con_parte <- vapply(unidades, function(u) {
+    cod <- .calg_txt(u$operational_code)
+    nzchar(cod) && length(claves_parte) > 0L && any(startsWith(claves_parte, paste0(cod, "#")))
+  }, logical(1))
+  titulares <- unidades[vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1)) | con_parte]
   filas <- lapply(seq_along(titulares), function(i) {
     u <- titulares[[i]]
     bloque <- c(
@@ -126,14 +175,24 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L) {
       .calg_txt(u$teacher_phone), .calg_txt(u$teacher_email), .calg_txt(u$course_name),
       .calg_txt(u$faculty), .calg_txt(u$level), .calg_txt(u$label),
       .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
-      "", "", "", "", "", "", "", .calg_txt(u$link), "",
-      # Parte de campo: los dos denominadores se repiten como referencia y el
-      # resto lo llena quien supervisa.
-      .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
-      rep("", length(titulos_campo) - 2L)
+      .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
+      .calg_num_txt(u$contact_attempts), .calg_txt(u$sample_status),
+      .calg_txt(u$scheduled_date), .calg_txt(u$scheduled_day), .calg_txt(u$scheduled_time),
+      .calg_txt(u$link), .calg_txt(u$notes),
+      # Parte de campo del primer intento: los dos denominadores como referencia
+      # y lo que ya se haya registrado. Ver la nota de la hoja de agendamiento.
+      .cap_celdas_parte(por_aula[[sprintf("%s#1", .calg_txt(u$operational_code))]], u, titulos_campo)
     )
     ancho_bloque <- 1L + length(titulos_agenda) + length(titulos_campo)
-    c(bloque, rep("", ancho_bloque * (intentos - 1L)))
+    # Los reintentos tambien devuelven lo suyo: un aula que ya fue a segunda
+    # vuelta pierde ese parte si el bloque sale en blanco.
+    extra <- unlist(lapply(seq_len(intentos - 1L), function(b) {
+      pt <- por_aula[[sprintf("%s#%d", .calg_txt(u$operational_code), b + 1L)]]
+      if (is.null(pt)) return(rep("", ancho_bloque))
+      c(as.character(i), rep("", length(titulos_agenda)),
+        .cap_celdas_parte(pt, u, titulos_campo))
+    }), use.names = FALSE)
+    c(bloque, if (length(extra)) extra else rep("", ancho_bloque * (intentos - 1L)))
   })
   as.data.frame(do.call(rbind, c(list(grupo), list(campos), filas)), stringsAsFactors = FALSE)
 }
@@ -179,13 +238,13 @@ aulas_libro_hoja_control <- function(unidades) {
 #' @param path destino `.xlsx`.
 #' @return la ruta escrita.
 #' @export
-aulas_libro_generar <- function(unidades, path) {
+aulas_libro_generar <- function(unidades, path, partes = list()) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
-    `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades),
+    `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
     `Base de control` = aulas_libro_hoja_control(unidades)
   )
   openxlsx::write.xlsx(hojas, file = path, colNames = FALSE)

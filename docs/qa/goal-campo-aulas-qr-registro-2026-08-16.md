@@ -36,7 +36,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Importar el libro real deja el plan, el agendamiento y el parte de campo en el `.pulso`, y sus totales cuadran con los del Excel. |
 | **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
 | **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
-| **V12** | La app **produce** el libro que el equipo llena, y lo **vuelve a leer**. | Generar y reimportar cierra el círculo sin perder la cadena ni los enlaces; las columnas de cada rol salen vacías. |
+| **V12** | La app **produce** el libro que el equipo llena, y lo **vuelve a leer**. | Generar y reimportar cierra el círculo sin perder la cadena ni los enlaces **ni el trabajo ya hecho**: estados de agendamiento, ciclo de contacto y partes de campo. **Comprobada (2026-08-16)** con round-trip sobre un `.pulso` real. |
 
 ---
 
@@ -112,6 +112,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
 | **L42** | El **Registro de campo** es inalcanzable a 1024×600. | El stack de Agenda tiene 325 px. Franja (54) + mínimo de la agenda (180) + gaps (20) = **254**, así que al registro le quedan **71 px** y necesita ~190 para ser usable. No cabe por aritmética, no por scroll. | ⛔ **bloqueado** — depende de L26: es tu decisión de dónde vive. |
 | **L43** | Dos superficies no declaraban su geometría (C1). | «Operación del plan» en Fuentes y «Aplicación por cursos-horario» en Agenda. La segunda declaraba su grid interior de tarjetas pero no la sección que las contiene: son dos superficies, no una. | ☑ **hecho** (2026-08-16) — cero sin declarar en las cinco secciones. |
+| **L44** | Regenerar el libro **borraba el operativo en curso**. | El generador escribía las columnas de la persona siempre en blanco, así que un estudio en marcha perdía los 7 estados de agendamiento, los 7 contadores de intentos y los 3 partes de campo. Además la hoja de campo filtraba por `sample_role == "titular"`, así que el parte de una reserva activada no se escribía. | ☑ **hecho** (2026-08-16) — 3/3 partes y 7/7 estados sobreviven. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -766,3 +767,48 @@ contiene — son dos superficies distintas, y sólo una estaba declarada.
 paneles con clase modificadora —handoff, registro, operación— quedaban fuera del
 balance: justo los que podían estar sin declarar. Un control que no mira donde
 está el riesgo pasa siempre.
+
+
+### 2026-08-16 — Auditoría de la vara: V12 se cumplía a medias
+
+Sin ítems abiertos, audité las doce afirmaciones de la vara buscando cuáles se
+daban por buenas sin que nadie las hubiera ejecutado. La más expuesta era
+**V12** —«generar y reimportar cierra el círculo»—, porque el generador y el
+lector están escritos por separado y en este GOAL lo escrito dos veces ya
+divergió siete veces.
+
+El round-trip sobre el `.pulso` real: **el plan sobrevive entero** — 7 unidades,
+cadena, enlaces, docentes, denominadores, todo. La vara decía «sin perder la
+cadena ni los enlaces» y eso era cierto.
+
+**Lo que la vara no medía era el trabajo del equipo:**
+
+| | Antes | Ahora |
+|---|---|---|
+| Partes de campo | 3 → **0** | 3 → **3** |
+| Estados de agendamiento | 7 → **0** | 7 → **7** |
+| Contadores de intentos | 7 → **0** | 7 → **7** |
+
+Regenerar el libro de un estudio en marcha **borraba todo lo anotado**. La
+decisión original —«dejar en blanco lo de la persona para no inventar campo»— es
+correcta para un libro **nuevo** y destructiva para uno **en curso**. Ahora el
+generador devuelve lo que ya está registrado y sigue dejando en blanco lo que no
+existe; hay un test para cada uno de los dos casos.
+
+**Dos hallazgos dentro del hallazgo:**
+
+- La hoja de campo filtraba por `sample_role == "titular"`, así que **el parte de
+  una reserva activada no se escribía**. En el estudio de 2025, 26 de los 196
+  partes son de reservas.
+- El generador escribía `applicator`/`applied_at` y el lector lee
+  `applied_by`/`applied_date`. Octava aparición del patrón, y esta vez entre dos
+  archivos que existen justo para hablarse.
+
+**La lección sobre la vara**: V12 estaba redactada de forma que se cumplía sin
+cubrir lo importante. «Sin perder la cadena ni los enlaces» mide lo que la app
+puso; lo que hay que medir es lo que **la persona** puso. Una vara puede pasar y
+dejar pasar.
+
+**Aparte, no es de este GOAL**: `test-reporte-word-multiactor-alto.R` falla en
+main desde antes de esta sesión (verificado con `git stash`). Queda flaggeado
+como tarea propia.

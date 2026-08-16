@@ -4808,10 +4808,15 @@ mount_monitoreo <- function(pr) {
       nombre <- .export_filename(sid, "libro_aulas", "xlsx")
       dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
       destino <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))
-      aulas_libro_generar(unidades, destino)
+      # Los partes ya registrados viajan al libro: sin esto, regenerarlo a mitad
+      # de operativo devolvia la hoja de campo en blanco y borraba lo anotado.
+      partes <- s$monitoreo_aulas_partes_campo %||%
+        ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$partes_campo %||%
+        list()
+      aulas_libro_generar(unidades, destino, partes = partes)
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
       list(ok = TRUE, file_id = meta$file_id, filename = nombre,
-           unidades = length(unidades))
+           unidades = length(unidades), partes = length(partes))
     })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.
