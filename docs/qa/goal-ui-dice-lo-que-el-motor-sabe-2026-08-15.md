@@ -63,7 +63,8 @@ sabe nada que la interfaz calle.
 | **L31** | Segunda pasada sobre lo que este GOAL reparó | `filasDeFase.ts`, `marcoCartografia.ts` | ☑ hecho — dos arreglos míos tapaban un aviso más urgente. |
 | **L32** | Pasada de cierre: verificar en pantalla y auditar mis propios tests | — | ☑ hecho — los tres arreglos limpios; un test nacido neutralizado, reparado. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ☑ hecho — Gráficos en [L29], Cálculo de muestra en [L30] **sin hallazgos**. |
-| **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
+| **L19** | ~~`/api/diseno-estudio/state`~~ | — | ☑ retirado el 2026-08-16 con sus tres endpoints, tres funciones de cliente y cuatro tipos. |
+| ~~L19b~~ | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
@@ -121,6 +122,43 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L33 — L24 era un error mío: Validación sí tiene casos
+
+Al reabrir los pendientes para decidirlos, `reference_projects.R:218` delató el
+fallo: `validacion = alguna_base(function(b) lleno(b$validacion$plan_result))`.
+**El estado de validación vive por base, no en la raíz de la sesión**, y yo
+censé la raíz. Lo que medí como «cero» era mi consulta, no el corpus.
+
+Lo que hay de verdad:
+
+| Proyecto · base | Plan | Descartadas | Evaluación |
+|---|---|---|---|
+| `acnur_acg` · Monitoreo territorial | 192 reglas | — | no |
+| `acnur_pdm` · post_distribution | **192 reglas** | **2** | **sí** |
+| `acnur_pdm` · rep_servicios | — | — | no |
+| `acrconta_mazo` · 4 bases | claves creadas, vacías | — | no |
+
+Y la sección «LO QUE ESTE PLAN NO CUBRE», corrida sobre el bundle real de
+`acnur_pdm`, produce:
+
+> «2 reglas del formulario se apoyan sobre un dato externo (pulldata), que este
+> plan no puede evaluar porque el archivo de referencia no viaja con la base —
+> «telephone», «censo_2025_inei». Deben revisarse a mano.»
+
+Es exactamente el caso pulldata que antes de la compactación había dado por
+irreproducible. **Verificado sobre datos reales, sin construir nada.**
+
+Lo que sí falta, mucho más angosto que lo que L24 declaraba: **reglas
+desactivadas** y **variables excluidas** siguen en cero en las siete bases del
+corpus, así que esas dos listas del informe nunca se vieron con contenido.
+
+**La trampa, y es la tercera de la misma familia:** medir en el sitio
+equivocado produce un cero que parece un hallazgo. Ya sabía que un
+«sin hallazgos» vale lo que el fixture [L22] y que un campo sin consumidor
+puede ser una retirada [L30]; falta la tercera — **antes de declarar que algo
+no existe, verificar dónde vive**. El modelo multibase guarda por base casi
+todo lo del pipeline, y buscar en la raíz da vacío siempre.
 
 ### L32 — cierre: el GOAL convergió
 
