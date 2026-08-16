@@ -1859,3 +1859,73 @@ primer ciclo— y la hoja de `Alertas` de `relacion_cursos_horario_aplicados` so
 alertas de campo (exceso de respuestas, supera población, duración), no
 criterios de selección. Que no esté documentado no prueba que no se aplicara,
 pero tampoco hay precedente que invocar.
+
+---
+
+## L23 · El diseño ya excluía esas facultades, y la app no lo aplica a las aulas (2026-08-16)
+
+La hoja `Cursos-Horario` del Excel de diseño (23.133 filas) resultó ser el
+universo de **2026**, no de 2025: tiene **5.262 cursos-horario únicos**, que son
+los 5.263 de nuestro marco. Y tiene una columna llamada literalmente **«Facultad
+del curso»** —la distinción que costó tres ticks encontrar ya estaba nombrada en
+la fuente—.
+
+Su universo trae **18 facultades**, y las tres que la tabla de diseño no incluye
+son exactamente:
+
+| Facultad del curso | CH en el universo |
+|---|---|
+| **Escuela de Posgrado** | **773** |
+| Escuela de Estudios Especiales | 246 |
+| Consorcio de Universidades | 10 |
+
+Es decir: **quien hizo el diseño ya había decidido excluirlas.** No es una
+ambigüedad que haya que resolver ahora; es una decisión tomada, con las 15
+facultades restantes en la tabla de cuotas.
+
+### Y la app ya tiene esa lista — pero sólo se la aplica a los estudiantes
+
+En Marco › Criterios del estudiante, el criterio **Facultad** está marcado como
+`ESTRATIFICA` y tiene **15 de 18** seleccionadas: las mismas 15. La pantalla
+incluso avisa de que «dejó fuera a 0», porque Formación y Condición ya habían
+filtrado a esos estudiantes antes.
+
+Lo que no ocurre es lo otro: **esa selección de 15 no se aplica a los
+cursos-horario**. Un curso catalogado bajo una facultad excluida entra al marco
+igual, siempre que sus alumnos pasen los criterios de estudiante.
+
+### El efecto, medido sobre el marco real
+
+| Opción | CH incluidos | Caen | Facultades | ¿Desbloquea? |
+|---|---|---|---|---|
+| Hoy | 2.468 | — | 16 | no |
+| Coherencia de facultad al 0,80 | 2.112 | **356** | 15 | sí |
+| **Aplicar la lista de 15 del diseño** | **2.466** | **2** | **15** | **sí** |
+
+Los dos cursos-horario que caen son exactamente `1civ15_0001` y `1civ26_0001`,
+los de Posgrado. Ninguna otra facultad excluida tiene cursos-horario elegibles en
+este marco.
+
+### Lo que esto cambia para la decisión de Gonzalo
+
+Aparece una cuarta opción, y es la más pequeña y la única con precedente
+documentado: **aplicar a los cursos-horario la misma lista de facultades que el
+estudio ya declaró para los estudiantes.** Quita 2 aulas en vez de 356, deja el
+marco en 2.466, y no inventa un criterio nuevo: usa una selección que el usuario
+ya hizo en la pantalla.
+
+Sigue siendo decisión suya, porque las dos cosas se pueden querer a la vez —la
+lista arregla el bloqueo, y la coherencia de facultad seguiría siendo un
+criterio útil por su cuenta, dado que 107 aulas incluidas tienen
+`faculty_match_share = 0`—. Pero ya no hay que elegir entre opciones igualmente
+opinables: una de ellas es lo que el diseño hizo.
+
+### Lo que no está en ninguna fuente
+
+Cómo se llegó a los **1.097 cursos-horario del marco de 2025**. El número está
+declarado en la hoja `diseno`, pero su derivación no aparece: ni en
+`base_aplicabilidad` (su diccionario documenta que los elegibles excluyen primer
+ciclo, nada sobre el marco), ni en `relacion_cursos_horario_aplicados` (196
+aplicados y 77 alertas de campo), ni en «BD Aulas Agendadas» —que es la agenda
+operativa: hojas por día de aplicación, 26 aulas adicionales y una planilla de
+118 filas—. Queda como límite conocido, no como pendiente de buscar.
