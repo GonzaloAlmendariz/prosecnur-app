@@ -178,10 +178,11 @@ graficar_boxplot <- function(
   # Este graficador no expone args de gradiente manual: ese modo no puede
   # clasificar nada y antes mataba la lamina. Se degrada con aviso.
   if (identical(modo_semaforo, "degradado_manual")) {
-    warning(
-      "Semaforo 'degradado_manual' no esta soportado en boxplot: se usa 'degradado_automatico'.",
-      call. = FALSE
-    )
+    # El analista eligio un modo y le sale otro: si no se lo decimos, lee el
+    # resultado como si fuera lo que pidio. Vara V4.
+    msg <- "Semaforo 'degradado_manual' no esta soportado en boxplot: se usa 'degradado_automatico'."
+    warning(msg, call. = FALSE)
+    .pulso_aviso(msg)
     modo_semaforo <- "degradado_automatico"
   }
   pos_titulo  <- match.arg(pos_titulo)
