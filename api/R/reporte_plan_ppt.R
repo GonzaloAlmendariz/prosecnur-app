@@ -8068,7 +8068,30 @@ reporte_ppt_plan <- function(
         }
 
         if (is.null(txt) || !nzchar(trimws(as.character(txt)[1]))) txt <- " "
-        doc <- .ph_with_strict(doc, as.character(txt)[1], contract$slots$text)
+        # El texto se emitia crudo, asi que heredaba los 12 pt del placeholder
+        # del layout. El entregable aprobado escribe el objetivo a 20: es la
+        # lamina que declara para que se hizo el estudio y salia en cuerpo de
+        # nota al pie.
+        style_obj <- slide$style %||% slots$estilo %||% list()
+        doc <- .ph_with_strict(
+          doc,
+          officer::fpar(
+            officer::ftext(
+              as.character(txt)[1],
+              prop = officer::fp_text(
+                color = as.character(.style_value(style_obj, "text_color", "#081F5C"))[1],
+                font.size = .style_num(style_obj, "text_size", 20, min = 8),
+                font.family = as.character(
+                  style_obj$font_family %||%
+                    presets$base$args$font_family_ppt %||%
+                    presets$base$args$font_family %||% "Arial"
+                )[1]
+              )
+            ),
+            fp_p = officer::fp_par(text.align = "left", line_spacing = 1)
+          ),
+          contract$slots$text
+        )
         doc <- .ph_with_strict(
           doc,
           .dml_o_tabla(p_icon),
