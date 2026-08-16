@@ -248,6 +248,16 @@ graficar_radar <- function(
     tabla_text_blue   = "#062A63",
     tabla_font_family = "Arial",
 
+    # Familia de TODO lo que no es la tabla: titulo, subtitulo, nota, etiquetas
+    # de eje, cifras y leyenda. Existe porque no existia: los textos del canvas
+    # no declaraban familia, caian al default del device —Helvetica— y el mazo
+    # salia con dos tipografias. El parche fue escribir «Arial» literal en
+    # veinte sitios; el parametro es lo que hace que un estudio pueda cambiarla
+    # sin editar el graficador, y que no haya veinte literales que puedan
+    # divergir entre si. `tabla_font_family` sigue aparte a proposito: la tabla
+    # del radar la gobierna su propio grob.
+    font_family       = "Arial",
+
     tabla_header_size = 14,
     tabla_body_size   = 12,
     tabla_firstcol_bold = FALSE,
@@ -886,7 +896,7 @@ graficar_radar <- function(
       legend.position  = leg_pos,
       legend.title     = ggplot2::element_blank(),
       legend.text      = ggplot2::element_text(
-        family = "Arial",
+        family = font_family,
         color  = color_leyenda,
         size   = size_leyenda,
         margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
@@ -895,12 +905,12 @@ graficar_radar <- function(
       legend.key.height     = grid::unit(legend_key_cm, "cm"),
       legend.key.spacing.x  = grid::unit(legend_key_spacing_x_cm, "cm"),
       plot.title = ggplot2::element_text(
-        color = color_titulo, size = size_titulo, family = "Arial",
+        color = color_titulo, size = size_titulo, family = font_family,
         face  = if ("titulo" %in% textos_negrita) "bold" else "plain",
         hjust = hjust_titulo
       ),
       plot.subtitle = ggplot2::element_text(
-        color = color_subtitulo, size = size_subtitulo, family = "Arial",
+        color = color_subtitulo, size = size_subtitulo, family = font_family,
         face  = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
         hjust = hjust_titulo
       ),
@@ -1011,9 +1021,7 @@ graficar_radar <- function(
       data = df_val,
       ggplot2::aes(x = .data$x, y = .data$y, label = .data$.lab_val, color = .data$.grupo),
       size = size_valores,
-      # Literal por lo mismo que en las etiquetas de eje: `font_family` no esta
-      # en scope en el cuerpo de `graficar_radar()`.
-      family = "Arial",
+      family = font_family,
       fontface = "bold",
       show.legend = FALSE
     )
@@ -1053,12 +1061,11 @@ graficar_radar <- function(
       # mazo salia con dos tipografias: 22 textos en las dos laminas de radar,
       # contra un entregable aprobado que usa Arial y nada mas.
       #
-      # El literal, no la variable: el unico `font_family` del archivo es el
-      # parametro de `.make_table_grob_ttb_style()`, que aqui no esta en scope.
-      # Escrito como variable, `graficar_radar()` aborta con «object
-      # 'font_family' not found` en cuanto se le pide sin canvas —la ruta que el
-      # mazo no ejercita—. El resto del cuerpo ya usa el literal.
-      family = "Arial",
+      # `font_family` es el parametro de `graficar_radar()`, no el de
+      # `.make_table_grob_ttb_style()`: hubo un tramo en que solo existia ese
+      # segundo, y escribir la variable aqui hacia abortar la funcion con
+      # «object 'font_family' not found` en cuanto se le pedia sin canvas.
+      family = font_family,
       fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
       lineheight = 0.95
     )
@@ -1169,7 +1176,7 @@ graficar_radar <- function(
           legend.text = ggplot2::element_text(
             color  = color_leyenda,
             size   = size_leyenda,
-            family = "Arial",
+            family = font_family,
             face   = if ("leyenda" %in% textos_negrita) "bold" else "plain",
             margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
           ),
@@ -1356,7 +1363,7 @@ graficar_radar <- function(
         canvas <- canvas + cowplot::draw_text(
           titulo, x = hjust_titulo, y = y_title,
           hjust = hjust_titulo, vjust = 0.5,
-          size = size_titulo, colour = color_titulo, family = "Arial",
+          size = size_titulo, colour = color_titulo, family = font_family,
           fontface = if ("titulo" %in% textos_negrita) "bold" else "plain"
         )
       }
@@ -1365,7 +1372,7 @@ graficar_radar <- function(
           subtitulo,
           x = hjust_titulo, y = y_sub,
           hjust = hjust_titulo, vjust = 0.5,
-          size = size_subtitulo, colour = color_subtitulo, family = "Arial",
+          size = size_subtitulo, colour = color_subtitulo, family = font_family,
           fontface = if ("subtitulo" %in% textos_negrita) "bold" else "plain"
         )
       }
@@ -1428,11 +1435,7 @@ graficar_radar <- function(
             vjust = pos_k$vjust,
             size = size_ejes,
             colour = color_ejes,
-            # El literal y no `font_family`: este bloque se evalua en un entorno
-            # que no ve el parametro —«object font_family not found» degradaba
-            # las dos laminas de radar a «Sin datos»—. Arial es el default de la
-            # firma y la unica tipografia del entregable aprobado.
-            family = "Arial",
+            family = font_family,
             fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
             lineheight = 0.95
           )
@@ -1624,7 +1627,7 @@ graficar_radar <- function(
             vjust = pos_k$vjust,
             size = size_ejes,
             colour = color_ejes,
-            family = "Arial",
+            family = font_family,
             fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
             lineheight = 0.95
           )
@@ -1913,28 +1916,28 @@ graficar_radar <- function(
           legend.position  = leg_pos,
           legend.title     = ggplot2::element_blank(),
           legend.text      = ggplot2::element_text(
-            family = "Arial",
-        family = "Arial",
+            family = font_family,
+        family = font_family,
             color  = color_leyenda,
             size   = size_leyenda,
-            family = "Arial",
+            family = font_family,
             margin = ggplot2::margin(l = legend_espaciado/2, r = legend_espaciado/2, unit = "pt")
           ),
           legend.key.width      = grid::unit(legend_key_cm, "cm"),
           legend.key.height     = grid::unit(legend_key_cm, "cm"),
           legend.key.spacing.x  = grid::unit(legend_key_spacing_x_cm, "cm"),
           plot.title = ggplot2::element_text(
-            color = color_titulo, size = size_titulo, family = "Arial",
+            color = color_titulo, size = size_titulo, family = font_family,
             face  = if ("titulo" %in% textos_negrita) "bold" else "plain",
             hjust = hjust_titulo
           ),
           plot.subtitle = ggplot2::element_text(
-            color = color_subtitulo, size = size_subtitulo, family = "Arial",
+            color = color_subtitulo, size = size_subtitulo, family = font_family,
             face  = if ("subtitulo" %in% textos_negrita) "bold" else "plain",
             hjust = hjust_titulo
           ),
           plot.caption = ggplot2::element_text(
-            color = color_nota_pie, size = size_nota_pie, family = "Arial",
+            color = color_nota_pie, size = size_nota_pie, family = font_family,
             face  = if ("nota_pie" %in% textos_negrita) "bold" else "plain",
             hjust = hjust_caption
           ),
@@ -1987,7 +1990,7 @@ graficar_radar <- function(
         ggplot2::aes(x = .data$x, y = .data$y, label = .data$eje),
         size = size_ejes / 3,
         colour = color_ejes,
-        family = "Arial",
+        family = font_family,
         fontface = if ("ejes" %in% textos_negrita) "bold" else "plain",
         lineheight = 1
       )
@@ -1998,7 +2001,7 @@ graficar_radar <- function(
           ggplot2::aes(x = .data$x, y = .data$y, label = .pulso_fmt_pct_half_up(.data$.nivel, 0)),
           size = 3,
           color = "grey40",
-          family = "Arial",
+          family = font_family,
           fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
           vjust = -0.2
         )
