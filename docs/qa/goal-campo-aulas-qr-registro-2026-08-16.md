@@ -246,11 +246,6 @@ hoja basta para que la app las lea.
 
 ---
 
-## Lo que se aprendió
-
-Veinticuatro entradas cronológicas comprimidas en los patrones que las
-producían. La cronología no se recupera; lo que evita reinvestigar, sí.
-
 ### El patrón que más caro salió: la lista cerrada de campos
 
 **Once veces** un dato se perdió porque alguna función reconstruye su salida
@@ -364,6 +359,56 @@ línea** de un control invertido, se llevó por delante las dos ediciones del
 turno. Para revertir un experimento sobre trabajo vivo: copia y restaura el
 archivo.
 
+### Cuando otro trabajo mueve el suelo
+
+Mientras este GOAL avanzaba, otra sesión trabajaba **en el mismo repositorio** y
+subió `reserve_depth_target` de 1 a 6, aflojando el candado de celda a facultad.
+Las cadenas pasaron de uno o dos eslabones a **once**, y eso destapó **cuatro
+defectos** que no existían antes:
+
+| Superficie | Qué se rompía con cadenas largas |
+|---|---|
+| Handoff | Había que comprobar que propaga la cadena entera, no sólo el primer eslabón |
+| Ficha impresa | Las seis decían «Reemplazo de AULA-01»: nadie sabía cuál entra primero |
+| Tabla de reemplazos | No mostraba orden ni estado, las seis filas eran iguales |
+| Agenda | No distinguía titular de reserva |
+
+El libro Excel aguantó sin tocar nada: 7 bloques y 141 columnas, con los órdenes
+intactos al reimportar. Y la lista del registro tampoco necesitó cambio — ya
+mostraba código y estado.
+
+**La lección**: un cambio de rango en otra capa no rompe nada por sí mismo, pero
+convierte en ambiguo lo que era suficiente. Cuando un parámetro de escala se
+mueve, hay que recorrer las superficies que muestran esa escala.
+
+**Y sobre trabajar en paralelo**: los commits de ambas sesiones conviven
+intercalados y nada se pierde, pero un gate completo desde cualquiera de las dos
+mezcla el trabajo a medias de la otra. Nueve fallos que parecían deuda propia
+eran suyos.
+
+### Contratos globales que ningún gate parcial mira
+
+El gate escalado al diff es correcto para lo que el área comprueba, pero hay
+tests **globales** que ninguna corrida por área ejecuta. `test-errors-registry.R`
+es uno: exige que todo código `E_*` del backend tenga su fila en el registro, y
+esta sesión introdujo **quince** sin registrar —los lectores del libro, el
+generador, la activación y dos rutas— sin que ningún gate lo dijera.
+
+Regla que queda: **un cambio que añade códigos `E_*` corre ese test aunque el
+resto se acote.**
+
+### El aviso que culpa a lo que está bien
+
+`make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026` fallaba con «revisa
+`mapping$student_id`». El mapeo era **correcto**: la hoja trae 136 284 filas con
+29 083 códigos y la columna existe. Lo que pasa es que en un proyecto de
+referencia los ids de alumno **se subrogan** —el hash queda, los ids quedan en
+blanco— porque son PII. La siembra no puede correr ahí, y eso no es un defecto
+sino la consecuencia de anonimizar.
+
+Cuatro comprobaciones se fueron siguiendo la pista falsa que el propio mensaje
+daba. Un aviso que nombra el síntoma manda a buscar donde no es.
+
 ### Correcciones a afirmaciones propias
 Se dejan explícitas porque afectan a lo que se puede dar por cierto:
 
@@ -387,333 +432,3 @@ Se dejan explícitas porque afectan a lo que se puede dar por cierto:
 **no por pantalla**. L13 y L14 sí se confirmaron en UI real. Verlos exige montar
 un estudio de aulas completo desde la UI —tres intentos por vías sintéticas
 fallaron, y el obstáculo era el atajo, no el producto—.
-
-
-### 2026-08-16 — L6: el papel no pedía lo que el cuadre necesita
-
-El formulario impreso pedía **asistentes** y **rechazos**, pero no **duplicados**
-ni **efectivas** — justo los dos que el control de L33 comprueba y que el
-registro de la app ya captura. El aplicador no anotaba en el aula lo que después
-alguien tiene que meter en el Excel.
-
-Los cuatro van ahora en la fila de aplicadas, **no en una fila nueva**: el
-formulario está **lleno**. Su capacidad es de 7 renglones y usaba 7; una octava
-fila se recortaba con `form_lines_overflow`, y el test que mide el PNG lo
-detectó.
-
-**Cuarta vez que el instrumento me engaña**: calculé «caben 9 filas» con
-`.crf_layout(branded = TRUE)`, que es **otra plantilla**. La ficha de campo usa
-`.cfc_layout()`, con su propio `form_top`, `form_step` y `form_floor`. Dos
-layouts con nombres parecidos y capacidades distintas.
-
-**El log de la ficha está en su tope**: banda de 0.093 y paso mínimo de 0.020
-dan **exactamente 5 rótulos**, que es lo que tiene. Meter ahí los dos números
-exigiría ampliar la banda, que es tocar el reparto que L7 dejó medido.
-
-**Y no renombré nada.** «N° de encuestas aplicadas:» se quedó como está: hay un
-test que exige que la ficha calque la hoja que el equipo usa hoy, y acortar
-etiquetas para ganar sitio habría cambiado el papel que ellos ya conocen. El
-sitio salió de repartir los `span`.
-
-El riesgo de meter cuatro campos donde había dos es que se pisen, así que el
-control nuevo mide el PNG: exige **al menos cuatro bloques de tinta separados**
-en esa fila, dentro de los márgenes. Verificado revirtiendo: 3 rojos.
-
-
-### 2026-08-16 — La costura completa, de punta a punta
-
-`api/scripts/sim_aulas_qr_campo.R` cubría siete pasos —selección → plan →
-enlaces → persistir → materiales → PDF → handoff—. Ahora atraviesa **doce**, con
-los cinco que esta sesión construyó: generar el libro y releerlo, registrar el
-parte, comprobar el cuadre, activar un reemplazo y ver que el tablero lo dice.
-
-```
-enlaces personalizados por unidad ..... TRUE
-una ficha por unidad .................. TRUE
-QR distinto por unidad ................ TRUE
-reemplazos con su propio enlace ....... TRUE
-el libro va y vuelve sin perder nada .. TRUE
-el registro captura el parte entero ... TRUE
-el cuadre distingue lo que no cuadra .. TRUE
-activar un reemplazo mueve los dos .... TRUE
-sin reserva no se finge un reemplazo .. TRUE
-el tablero lo dice .................... TRUE
-
-COSTURA COMPLETA: de punta a punta
-```
-
-**Y la costura encontró L54.** El primer intento eligió a ciegas el último
-titular para tirarlo, y salió «cadena agotada: se habían usado 0». Parecía un
-defecto del motor y era la respuesta correcta — **ese titular no tiene reserva
-en el plan**. Quinta vez que el instrumento produce el hallazgo.
-
-Pero al mirarlo apareció uno de verdad: **«ya se agotó: se habían usado 0»
-confunde dos situaciones distintas**. Un aula sin reserva desde el diseño no es
-un aula cuya cadena se consumió — la primera es una decisión de la muestra, la
-segunda un hecho del operativo, y quien lee el aviso necesita saber cuál de las
-dos tiene delante. Ahora dice: «no tiene ninguna reserva en el plan: la muestra
-nunca le asignó una».
-
-La simulación comprueba **los dos casos** porque en la misma muestra conviven:
-elegir uno a ciegas es lo que produjo el falso positivo.
-
-
-### 2026-08-16 — La costura sobre el marco real, y a escala
-
-La simulación corre sobre siete aulas sintéticas. `hsvg2026` trae el marco de
-**5263 cursos-horario reales** —2373 elegibles— con sus identificadores de
-verdad: `arc226_0602`, `cce355_0603`, no `AULA-01`.
-
-El proyecto de referencia **no trae una selección hecha**, sólo el marco y la
-configuración, así que la costura se corrió tomando aulas de ese marco. Prueba
-lo que importa aquí: que el circuito aguanta datos reales, no que el cálculo de
-muestra funcione.
-
-**Sobre 12 aulas del marco real:**
-
-| | |
-|---|---|
-| El libro conserva los códigos reales | ✓ 12/12 con enlace |
-| La cadena funciona con esos códigos | ✓ `arc226_0602` → `cce355_0603` |
-| El tablero agrega sin perder aulas | ✓ 6 estratos, 12 cuotas |
-
-**A escala, con las 2373 elegibles:**
-
-| Paso | Tiempo | Resultado |
-|---|---:|---|
-| Normalizar el plan | 1,3 s | 2373 unidades |
-| Generar el libro | 1,4 s | 1,0 MB |
-| Reimportarlo | 4,6 s | 2373, códigos idénticos |
-| Tablero | 4,7 s | 15 estratos · 30 cuotas |
-
-Nada se cae y nada tarda de más: el estudio de 2025 tenía 170 titulares, así que
-2373 es un techo cómodo.
-
-**Sexta vez que el instrumento produjo la anomalía**: el tablero dio «0 cuotas»
-en la primera corrida a escala y era porque **omití `sex_top_*` en ese script**.
-Con esos campos son 30. El marco los trae como `F`/`M`.
-
-**El marco está anonimizado en los textos** —nombres de curso y facultad
-sustituidos por nombres propios repetidos— pero conserva la estructura: códigos,
-denominadores y composición por sexo. Para probar la costura basta; para juzgar
-el contenido de un informe, no.
-
-
-### 2026-08-16 — Por qué `hsvg2026` no puede sembrar una selección de aulas
-
-Existe `make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026`, la forma
-oficial de poner una selección en el proyecto de referencia. **Falla**, y el
-mensaje mandaba a revisar lo único que estaba bien:
-
-> El marco reconstruido sigue sin ids de alumno; revisa `mapping$student_id`.
-
-El mapeo es correcto. Medido: la hoja `MATRICULADO` trae **136 284 filas con
-29 083 códigos distintos**, el mapeo apunta a `Código PUCP` y esa columna existe
-y está llena. Lo que pasa es otra cosa: en un proyecto de referencia los ids de
-alumno **se subrogan** —`unique_student_hash` queda con sus 5263 valores y
-`unique_student_ids` con 5263 cadenas vacías— porque son PII y no viajan. El
-descuento secuencial los necesita, así que la siembra no puede correr ahí.
-
-**No es un defecto: es la consecuencia de anonimizar.** El defecto era el aviso,
-que ahora distingue los dos casos —anonimizado con hash, o mapeo realmente mal— y
-dice cuál tiene delante.
-
-Gasté cuatro comprobaciones siguiendo la pista falsa que el propio mensaje daba;
-por eso vale la pena que un aviso nombre la causa y no sólo el síntoma.
-
-**Consecuencia para el GOAL**: la costura sobre datos reales se corre tomando
-aulas del marco (5263 reales, 2373 elegibles), no de una selección sembrada.
-Prueba que el circuito aguanta identificadores y escala de verdad, que es lo que
-importa aquí.
-
-
-### 2026-08-16 — El gate completo, y una afirmación que tuve que corregir
-
-Lancé `test_dir` entero en background y **reporté que iba con 0 fallos**. No era
-cierto: el `exit code 0` que leí era del `tail` de mi propio comando encadenado,
-no del `Rscript`. Es exactamente la trampa que este repo ya tiene anotada —el
-código de salida de un *pipe* no es el del comando— y caí en ella igual.
-
-El gate tenía **10 fallos** (tope del reporter). De ellos:
-
-- **Quince códigos `E_*` sin registrar, todos míos.** La regla de la casa es
-  «código nuevo ⇒ fila nueva en el registro, mismo commit», y los lectores del
-  libro, el generador, la activación de reemplazos y dos rutas los habían
-  incumplido en silencio: los gates escalados por área nunca corren
-  `test-errors-registry.R`, que es global.
-- Los otros nueve son de **analítica, PPT var-cruce y graficador**, áreas que
-  esta sesión no tocó. Comprobado con `git stash`: fallan igual sin mis cambios.
-
-**El árbol tiene además modificaciones que no son mías** —`test-calc-muestra-aulas.R`
-y el ADR 0073— de la tarea que corre en paralelo sobre el mismo repo. No las
-toco ni las commiteo.
-
-**Lo que esto enseña sobre el gate escalado**: acotar por área es correcto para
-lo que el área comprueba, pero hay contratos **globales** —el registro de
-errores es uno— que ningún gate parcial mira. Un cambio que añade códigos `E_*`
-tiene que correr ese test aunque el resto se acote.
-
-
-### 2026-08-16 — Dos sesiones en el mismo árbol, y una interacción que había que probar
-
-Mientras este GOAL avanzaba, **otra sesión trabajaba en el mismo repositorio** —
-gráficos y Cálculo de muestra— y commiteó por encima. Los commits de ambas
-conviven en el historial, intercalados. Nada se perdió, pero conviene saberlo:
-parte de los fallos que aparecen en un gate completo pueden ser trabajo ajeno a
-medias, no deuda propia.
-
-Uno de sus commits toca terreno de este GOAL sin colisionar en archivos:
-
-> `feat(calc-muestra): la cadena de reemplazos se acandala por facultad, como en 2025`
-
-Sube `reserve_depth_target` de 1 a 6 y afloja el candado de celda a facultad, así
-que **las cadenas reales pasan a ser de hasta 11–12 eslabones**. Todos los tests
-de activación de este GOAL usaban cadenas de **2**.
-
-Probado: la activación consume las once en orden, sin repetir ni entrar en
-bucle, deja diez `reemplazada` y la última `agendada`, y al agotarse dice «se
-habían usado 11» —el mensaje de cadena consumida, no el de aula sin reserva—.
-Queda como test de regresión, porque es una interacción que sólo existe cuando
-los dos trabajos se juntan y ningún gate por área la vería.
-
-**Y el gate se corrió leyendo el exit code del `Rscript`**, no el de un `tail`
-encadenado: 71 archivos de las áreas de este GOAL, 0 fallos, y la costura
-completa sigue pasando de punta a punta.
-
-
-### 2026-08-16 — Cuántas reservas verá el circuito de campo, de verdad
-
-Las otras dos decisiones de la sesión paralela son de su GOAL, no de éste:
-ninguna toca L2, L12, L34 ni L46. Pero su commit declara algo que sí importa
-aquí:
-
-> Los dos defaults se mueven sólo en el frontend; los de R siguen como estaban,
-> para no reescribir marcos ya firmados.
-
-Comprobado: `api/R/calc_muestra_aulas.R` tiene `reserve_depth_target = 1.00` y
-`frontend/.../constants.ts` tiene `6`. La divergencia es deliberada.
-
-**Qué significa para este circuito**: `collection_handoff()` y la simulación
-corren por la ruta de R, así que por defecto verán cadenas de **una** reserva.
-Las de once llegarán cuando el plan venga del frontend o cuando el estudio
-declare su propio objetivo —HSyVBG 2026 trae las dos claves explícitas, así que
-conserva las suyas—.
-
-**El motor de activación no depende de ese target**: consume las reservas que
-haya. Probado en los tres tamaños que el sistema puede producir hoy —**1, 2 y
-11**— y los tres se comportan igual, incluido el mensaje final, que distingue
-«se habían usado N» de «no tiene ninguna reserva en el plan».
-
-Es la clase de dato que se pierde entre dos trabajos paralelos: uno mueve un
-default y el otro asume el rango viejo sin enterarse.
-
-
-### 2026-08-16 — El handoff propaga la cadena entera
-
-Faltaba medir el eslabón que une los dos trabajos: **si el handoff de
-Recopiladores lleva la cadena completa a Monitoreo**, o sólo su primer eslabón.
-Los tests de costura usaban una reserva por titular, así que un handoff que se
-quedara con la primera habría pasado inadvertido justo cuando las cadenas se
-vuelven profundas.
-
-Probado con un titular y **seis** reservas, por la ruta real —`collection_state_seed`
-→ adapter Kobo → `collection_deployment_put` → `collection_handoff`—:
-
-| | |
-|---|---|
-| Reservas que llegan | **6 de 6** |
-| Todas cuelgan del titular | ✓ `replacement_for = AULA-01` |
-| Códigos de cadena | `R 1.1` … `R 1.6`, bien numerados |
-| La activación las consume | `AULA-11` → … → `AULA-16`, en orden |
-
-Los códigos confirman L41 sobre el handoff real: el `n` de `R n.k` es el del
-**titular** (slot 1), no la posición de cada reserva en la lista. Ese era el
-defecto que hacía que la reserva de la fila 6 se llamara `R 6.1`.
-
-Con esto el rango queda cubierto de punta a punta: **1, 2, 6 y 11 eslabones**,
-construidos a mano y por la ruta real.
-
-
-### 2026-08-16 — L55: seis fichas idénticas
-
-Con cadenas de una o dos reservas, «Reemplazo de AULA-01» bastaba. Desde que el
-candado por facultad las deja llegar a once, **las seis fichas de una cadena
-decían exactamente lo mismo** en su rol, y lo único que las distinguía era el
-nombre del aula — que no dice **cuál entra primero**.
-
-| | Antes | Ahora |
-|---|---|---|
-| p2 | Reemplazo de AULA-01 | **Reemplazo 1** de AULA-01 |
-| p3 | Reemplazo de AULA-01 | **Reemplazo 2** de AULA-01 |
-| … | … | … |
-| p7 | Reemplazo de AULA-01 | **Reemplazo 6** de AULA-01 |
-
-La causa era la de siempre: `dimensions` en `collection_engine.R` declaraba
-`replacement_for` pero **no** `replacement_order`, así que el dato existía en la
-selección y moría antes de llegar a la ficha. **Duodécima aparición** del patrón
-de la lista cerrada, y la primera que se ve en papel en vez de en pantalla.
-
-La etiqueta degrada bien: sin orden dice «Reemplazo de X» como antes, sin
-titular dice «Reemplazo 2», y un orden inválido (`0`) se ignora en vez de
-imprimir «Reemplazo 0». Un rol desconocido sigue imprimiéndose tal cual —
-inventarle una etiqueta sería peor que mostrar la clave.
-
-Este ítem existe **sólo porque otra sesión cambió la profundidad de las
-cadenas**. Sin ese cambio, seis fichas iguales no habrían aparecido nunca.
-
-
-### 2026-08-16 — L56: lo mismo que en el papel, ahora en la tabla
-
-Tras arreglar la ficha (L55) revisé las otras superficies que muestran cadenas.
-El **libro Excel aguanta sin tocar nada**: con una cadena de seis genera 7
-bloques y 141 columnas, y al reimportarlo vuelven las 8 unidades con sus órdenes
-1–6 y sus códigos intactos.
-
-La **tabla de reemplazos de Monitoreo** no. Mostraba código, a quién reemplaza,
-rol, motivo y nivel de equivalencia — y con seis reservas del mismo titular las
-columnas 2 y 3 son idénticas en las seis filas. Faltaba justo lo que se mira
-para decidir: **cuál entra ahora y cuáles ya se gastaron**.
-
-Dos capas, como suele pasar en este GOAL:
-
-1. La tabla no pedía `replacement_order` ni `sample_status`, y el motor **sí los
-   traía** — contracara del patrón de esta sesión.
-2. El orden **derivado** se quedaba en una variable local: servía para numerar
-   el código `R n.k` y el campo seguía en 0, así que la columna nueva mostraba
-   «0» en las cuatro filas. Ahora vuelve al campo, sólo para reservas —el orden
-   de un titular es 0 por definición— y lo declarado sigue mandando sobre lo
-   derivado.
-
-En pantalla: `R 4.1` orden 1 Reemplazada · `R 4.2` orden 2 Agendada · `R 4.3` y
-`R 4.4` órdenes 3 y 4 En reserva. La cadena se lee de un vistazo.
-
-
-### 2026-08-16 — L57: la Agenda tampoco distinguía la cadena
-
-Tercera superficie de la misma revisión. La tabla de Agenda mostraba código,
-aula, curso, sección, horario, enlace, estado de ficha, responsable y origen —
-**nada que dijera si una fila es titular o reserva**, ni de quién.
-
-La tabla recorta a ocho columnas y lo declara, así que el orden de
-`preferredColumns` decide qué se ve. Rol y «reemplaza a» entran delante de
-sección, responsable y origen.
-
-En pantalla, las nueve filas del proyecto de QA:
-
-```
-CH 1  Titular
-…
-CH 5  Titular
-R 4.1 Reserva encadenada   CH 4
-R 4.2 Reserva encadenada   CH 4
-R 4.3 Reserva encadenada   CH 4
-R 4.4 Reserva encadenada   CH 4
-```
-
-**La lista del registro de campo no necesitó cambio**: cada entrada ya muestra
-su código y su estado —«Reemplazada», «Agendada», «En reserva»—, que es
-justamente lo que el coordinador necesita para saber cuál está en campo.
-
-Con esto quedan revisadas las cinco superficies que muestran cadenas: ficha
-impresa (L55), tabla de reemplazos (L56), Agenda (L57), libro Excel —que aguantó
-sin tocar nada— y la lista del registro.
