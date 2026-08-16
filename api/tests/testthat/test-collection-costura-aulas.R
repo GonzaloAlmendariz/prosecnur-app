@@ -253,3 +253,40 @@ test_that("un mapeo explicito sigue mandando sobre el fallback", {
 
   expect_identical(.monitoreo_aulas_response_classroom(respuestas, cfg), c("CH 7", "CH 8"))
 })
+
+# --- Que cuenta como respuesta valida (comportamiento ACTUAL, fijado) --------
+# Estos asertos NO declaran lo correcto: fijan lo que hoy ocurre, para que
+# cambiarlo sea una decision visible y no un efecto colateral. Ver L12 del GOAL.
+#
+# Kobo nombra su columna `_validation_status` —con guion bajo delante— y la
+# llena con `validation_status_approved` / `..._not_approved`. La lista de
+# candidatos no incluye ese nombre y la de estados validos no incluye esos
+# valores, asi que hoy pasan dos cosas encadenadas.
+
+test_that("sin columna de estado reconocible, TODA respuesta cuenta como valida", {
+  respuestas <- data.frame(
+    collectorID = c("CH 1", "CH 1"),
+    `_validation_status` = c("validation_status_approved", "validation_status_not_approved"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_aulas_default_config()
+
+  # `_validation_status` no esta entre los candidatos, asi que no se encuentra
+  # columna de estado y el filtro abre: fail-open, no fail-closed.
+  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(TRUE, TRUE))
+})
+
+test_that("apuntar al campo de Kobo a mano hoy invalidaria TODO", {
+  respuestas <- data.frame(
+    collectorID = c("CH 1", "CH 2"),
+    `_validation_status` = c("validation_status_approved", "validation_status_approved"),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  cfg <- monitoreo_aulas_default_config()
+  cfg$source_mapping$status_var <- "_validation_status"
+
+  # Ninguno de los valores de Kobo esta en `valid_statuses`
+  # (completed/complete/valid/aprobado/aplicada), asi que quien configurara el
+  # mapeo "bien" se quedaria con cero respuestas validas y sin aviso.
+  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(FALSE, FALSE))
+})

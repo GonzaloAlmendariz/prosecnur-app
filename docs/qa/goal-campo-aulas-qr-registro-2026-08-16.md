@@ -76,6 +76,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L2** | El valor del `collectorID` es un slug interno con hash, no el código operativo. | `.collection_stable_id()` en `collection_engine.R`; el código operativo canónico lo produce `.cm_aulas_codigo_operativo()`. Decidir cuál viaja a Kobo — afecta la reconciliación de la data que vuelve. | ⛔ bloqueado — ver «Espera al usuario» |
 | **L3** | La ficha no declara el rol: titular y reemplazo se ven iguales. | `collection_material_builtin_template()` no usaba `unit.role`; y el binding devolvía la clave cruda del motor. | ☑ **hecho** (2026-08-16) — la ficha imprime «Rol: Titular» / «Rol: Reemplazo de AULA-01». `.crf_role_label()` traduce, `replacement_for` viaja al plan y existe el binding `unit.replacement_for`. Built-in a revisión 2. |
 | **L11** | Hay **dos plantillas por defecto que no coinciden**. | `DEFAULT_COLLECTION_TEMPLATE` (`MaterialsSection.tsx`) declaraba otra ficha que la del backend. | ☑ **hecho** (2026-08-16) — borrada. Era **inalcanzable**: el backend siempre responde plantilla y el componente corta el render en `loading`, así que nunca se dibujó ni sirvió de fallback. Queda una semilla vacía explícita y, si el backend respondiera sin plantilla, el editor avisa en vez de inventar una receta. ⚠ verificado con typecheck + 89 tests, **sin chequeo visual**. |
+| **L12** | El filtro de «respuesta válida» no conoce los estados de Kobo, y falla abierto. | `.monitoreo_aulas_valid_response()` en `monitoreo_aulas_universitarias.R:434`. Kobo nombra su columna `_validation_status` (guion bajo delante) y la llena con `validation_status_approved`; los candidatos incluyen `validation_status` y `_status` pero **no** `_validation_status`, y `valid_statuses` (`completed`·`complete`·`valid`·`aprobado`·`aplicada`) no incluye ningún valor de Kobo. | ⛔ **bloqueado** — necesita decisión: hoy sin columna reconocible **todo cuenta como válido** (fail-open) y quien configurara el mapeo «bien» se quedaría con **cero válidas** sin aviso. Cambiar fail-open por fail-closed altera lo que cuenta en estudios vivos, así que no se toca sin tu visto bueno. Comportamiento actual **fijado con tests de caracterización** para que cambiarlo sea visible. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
@@ -354,3 +355,32 @@ medirla.
 (`zxingcpp`, `quadrangle`, `opencv`) ni en Python (`pyzbar`, `cv2`). Añadirlo es
 una dependencia nueva en `DESCRIPTION` que el CI instalaría en cada corrida — es
 decisión tuya si vale la pena para cerrar el último tramo.
+
+### 2026-08-16 — L12: el patrón de los fixtures vuelve a aparecer, y esta vez no se toca
+Perseguí a propósito el patrón que había atravesado todo el loop —fixtures y
+listas escritas mirando al consumidor y no a lo que el productor produce— y
+apareció otra vez, en el filtro que decide qué respuesta cuenta como válida.
+
+Dos capas encadenadas:
+
+1. Kobo nombra su columna **`_validation_status`**, con guion bajo delante. Los
+   candidatos son `response_status`, `validation_status`, `estado`, `status`,
+   `_status` — alguien pensó en el prefijo, pero no en este nombre. No la
+   encuentra.
+2. Cuando no encuentra columna de estado, el filtro **abre**: `rep(TRUE, n)`.
+   Todo cuenta como válido.
+
+Y el caso peligroso es el de quien intente arreglarlo: si se apunta
+`status_var = "_validation_status"`, los valores de Kobo
+(`validation_status_approved`) no están en `valid_statuses`, así que **todas las
+respuestas pasan a inválidas, en silencio y sin aviso**.
+
+**No lo arreglé.** Cambiar fail-open por fail-closed cambia lo que cuenta en
+estudios que ya están corriendo, y eso es tuyo, no mío. Lo que sí hice fue fijar
+el comportamiento actual con tests de caracterización —que declaran lo que hoy
+ocurre, no lo correcto— para que el día que se cambie sea una decisión visible y
+no un efecto colateral.
+
+Vale la pena notar que el `valid_statuses` actual (`aprobado`, `aplicada`) suena
+a vocabulario nuestro, no de Kobo: probablemente se escribió pensando en un
+estado que pone el pipeline, no la plataforma. Eso también entra en la decisión.
