@@ -241,3 +241,76 @@ test_that("deployment con remote_write TRUE no atraviesa el engine ni muta estad
   expect_identical(err$code, "E_COLLECTION_DEPLOYMENT_INVALID")
   expect_identical(session_get(sid), before)
 })
+
+# --- Composicion de la URL de acceso ------------------------------------------
+# El QR y el enlace del handoff nacen en `.collection_access_url()`. Dos capas
+# escribian el parametro de personalizacion (el adapter dentro de `access_ref` y
+# el resolvedor desde `prefill`), asi que salia duplicado: el doble de payload y
+# un QR mas denso de lo necesario justo donde se escanea peor.
+
+.collection_binding_fixture <- function(access_ref = "https://ee.example.test/x/form",
+                                        prefill = list(collectorID = "CH-1")) {
+  # Sin modifyList: recursa dentro de `prefill` y fusionaria las claves del
+  # default con las del caso, emitiendo dos parametros donde el test pide uno.
+  list(
+    access_id = "access-1",
+    logical_collector_id = "logical-1",
+    unit_id = "unit-1",
+    access_kind = "parameterized_link",
+    access_ref = access_ref,
+    prefill = prefill,
+    status = "ready"
+  )
+}
+
+test_that("el parametro de personalizacion se cuelga una sola vez", {
+  url <- .collection_access_url(.collection_binding_fixture(), "operational", "kobo")
+
+  expect_equal(url, "https://ee.example.test/x/form?d%5BcollectorID%5D=CH-1")
+  # El control: con la duplicacion vieja esto valia 2.
+  expect_equal(lengths(regmatches(url, gregexpr("collectorID", url, fixed = TRUE)))[[1]], 1L)
+})
+
+test_that("SurveyMonkey recibe su Custom Variable, no la sintaxis d[] de Kobo", {
+  url <- .collection_access_url(
+    .collection_binding_fixture(prefill = list(unit_key = "CH-1")),
+    "operational", "surveymonkey"
+  )
+
+  expect_equal(url, "https://ee.example.test/x/form?unit_key=CH-1")
+  expect_false(grepl("d%5B", url, fixed = TRUE))
+})
+
+test_that("una base que ya trae query conserva su parametro y suma el suyo", {
+  url <- .collection_access_url(
+    .collection_binding_fixture(access_ref = "https://ee.example.test/x/form?return=none"),
+    "operational", "kobo"
+  )
+
+  expect_equal(url, "https://ee.example.test/x/form?return=none&d%5BcollectorID%5D=CH-1")
+})
+
+test_that("un acceso restringido no filtra su URL al material", {
+  expect_equal(.collection_access_url(.collection_binding_fixture(), "restricted", "kobo"), "")
+})
+
+test_that("la costura adapter -> resolvedor no duplica el parametro", {
+  # El aserto de arriba no basta: con un binding limpio la version vieja de
+  # `.collection_access_url()` tambien colgaba un solo parametro. La duplicacion
+  # nacia de que el adapter YA traia el parametro dentro de `access_ref`. Este
+  # test recorre las dos capas de verdad, que es donde el defecto vivia.
+  adapter <- collection_adapter_get("kobo_existing_v1")
+  target <- list(
+    asset_uid = "aSurvey", asset_type = "survey", deployment_active = TRUE,
+    base_access_url = "https://ee.example.test/x/form", prefill_field = "collectorID"
+  )
+  plan <- list(
+    schema = "collection_plan/v1", plan_id = "plan-costura",
+    units = list(list(unit_id = "unit-1", link_key = "CH-1"))
+  )
+  deployment <- adapter$preview_deployment(plan, adapter$inspect_target(list(), target))
+  url <- .collection_access_url(deployment$bindings[[1]], "operational", "kobo")
+
+  expect_equal(url, "https://ee.example.test/x/form?d%5BcollectorID%5D=CH-1")
+  expect_equal(lengths(regmatches(url, gregexpr("collectorID", url, fixed = TRUE)))[[1]], 1L)
+})

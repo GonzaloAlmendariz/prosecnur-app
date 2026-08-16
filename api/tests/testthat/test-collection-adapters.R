@@ -156,7 +156,12 @@ test_that("Kobo existing genera d[] local sobre web form verificado", {
   expect_null(inspected$connection_ref$token)
   expect_equal(deployment$status, "prepared")
   expect_true(all(vapply(deployment$bindings, function(binding) identical(binding$access_kind, "parameterized_link"), logical(1))))
-  expect_match(utils::URLdecode(deployment$bindings[[1]]$access_ref), "d[collectorID]=opaque-1", fixed = TRUE)
+  # El adapter declara base + personalizacion por separado; NO arma la URL. Si
+  # tambien horneara el parametro en `access_ref`, `.collection_access_url()` lo
+  # colgaria una segunda vez y el QR saldria con `d[collectorID]` duplicado.
+  expect_equal(deployment$bindings[[1]]$access_ref, "https://ee.example.test/x/opaque-form")
+  expect_equal(deployment$bindings[[1]]$prefill, list(collectorID = "opaque-1"))
+  expect_false(grepl("opaque-1", deployment$bindings[[1]]$access_ref, fixed = TRUE))
   expect_equal(deployment$capabilities$remote_write, list(observed = FALSE, source = "disabled_v1"))
 })
 
@@ -187,7 +192,10 @@ test_that("SurveyMonkey Web Link exige variable declarada y nunca asume presenci
   deployment <- adapter$preview_deployment(.collection_adapter_plan(), inspected)
 
   expect_true(inspected$ok)
-  expect_match(deployment$bindings[[1]]$access_ref, "unit_key=opaque-1", fixed = TRUE)
+  # Misma separacion que en Kobo: la Custom Variable viaja en `prefill`, no
+  # pegada a la URL base.
+  expect_equal(deployment$bindings[[1]]$access_ref, "https://es.surveymonkey.com/r/shared")
+  expect_equal(deployment$bindings[[1]]$prefill, list(unit_key = "opaque-1"))
   expect_false(any(grepl("presencial", unlist(deployment, use.names = FALSE), ignore.case = TRUE)))
 })
 

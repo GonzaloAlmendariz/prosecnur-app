@@ -46,21 +46,18 @@
   ""
 }
 
-.ca_append_query <- function(url, name, value) {
-  separator <- if (grepl("?", url, fixed = TRUE)) "&" else "?"
-  paste0(
-    url,
-    separator,
-    utils::URLencode(.ca_text(name), reserved = TRUE),
-    "=",
-    utils::URLencode(.ca_text(value), reserved = TRUE)
-  )
-}
-
-.ca_prefill_url <- function(url, field, value, provider) {
-  name <- if (identical(provider, "kobo")) sprintf("d[%s]", .ca_text(field)) else .ca_text(field)
-  .ca_append_query(url, name, value)
-}
+# El adapter NO arma la URL final. Un `parameterized_link` declara su base en
+# `access_ref` y su personalizacion en `prefill`; quien las compone es
+# `.collection_access_url()`, que es el unico punto donde nace la URL que ve el
+# encuestado (payload del QR y enlace del handoff a Monitoreo).
+#
+# Antes el adapter tambien colgaba el parametro dentro de `access_ref`, asi que
+# el resolvedor lo volvia a colgar y el QR salia con `d[collectorID]` dos veces:
+# el doble de payload, un QR mas denso de lo necesario y un enlace impreso que
+# rompia en dos renglones. El contrato ya decia cual de los dos manda —un
+# `parameterized_link` sin `prefill` "no personaliza nada"
+# (`collection_contracts.R`)—, asi que la personalizacion vive en `prefill` y
+# `access_ref` queda tal como el usuario la pego, con su query si la tenia.
 
 .ca_capability <- function(provider_support, implementation, policy, evidence) {
   list(
@@ -345,7 +342,7 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
     field <- .ca_text(target$prefill_field, "collectorID")
     value <- .ca_unit_value(unit)
     if (!nzchar(.ca_url_issue(base_url)) && nzchar(value)) {
-      access_ref <- .ca_prefill_url(base_url, field, value, "kobo")
+      access_ref <- base_url
       access_kind <- "parameterized_link"
       prefill[[field]] <- value
     }
@@ -354,7 +351,7 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
     field <- .ca_text(target$custom_variable)
     value <- .ca_unit_value(unit)
     if (!nzchar(.ca_url_issue(base_url)) && nzchar(field) && nzchar(value)) {
-      access_ref <- .ca_prefill_url(base_url, field, value, "surveymonkey")
+      access_ref <- base_url
       access_kind <- "parameterized_link"
       prefill[[field]] <- value
     }
