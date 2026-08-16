@@ -45,8 +45,8 @@ sabe nada que la interfaz calle.
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
-| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y Monitoreo | ◐ a medias — **un hallazgo, reparado** (`a29629e7`). Falta confirmarlo en pantalla y barrer territorial y cursos-horario. |
-| **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación y telefónico | ☐ sin empezar — el arreglo está verificado en código, CSS y test; falta verlo. El warm start de `acrconta` no terminó en la ventana de esta tanda. |
+| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y Monitoreo | ◐ a medias — **un hallazgo, reparado y visto** (`a29629e7`). Faltan los perfiles territorial y cursos-horario. |
+| **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
 
 ### L8 — barrido de V1, completo
 
@@ -220,6 +220,17 @@ Lo que ya costó una conclusión falsa. Se lee antes de tocar nada.
     bootstrap y no la del navegador, que al abrir con `?pulso=` corre en otra
     (trampa 3, otra vez). El sid del navegador está en
     `localStorage["pulso.sessionId"]`.
+
+11. **Vite escucha en IPv6.** `http://127.0.0.1:5173` da error de conexión y
+    `http://localhost:5173` responde 200. Sondear la pila por `127.0.0.1` hizo
+    dar por muertas varias pilas que estaban vivas, y por eso un bucle de espera
+    que use `127.0.0.1` para el front no termina nunca. El backend R sí escucha
+    en 127.0.0.1.
+
+12. **El 8787 puede no ser tuyo.** La regla de la casa dice no matarlo, y hay
+    razón doble: además de ser el del usuario, en este árbol corre más de una
+    sesión. Para levantar una pila propia sin tocar nada:
+    `make dev-pulso PULSO=... PULSO_PORT=8801 VITE_DEV_PORT=5183`.
 
 ### Receta para sembrar una limpieza cerrada
 
