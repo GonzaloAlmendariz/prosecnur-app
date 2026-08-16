@@ -62,7 +62,7 @@ ya existente.
 | P2 | Separación entre cuadro y cuadro del índice (comentario de Gabriela) | `.indice_fit_layout()` | ☑ **1.19 → 1.71 cm**, el paso exacto del aprobado. La fórmula topaba en `2.34/n`, que con la quinta sección apretaba todas |
 | P3 | Objetivo: no se está siguiendo la referencia | render de `objetivo_icono` + plan | ☑ el texto se emitía **crudo** y heredaba **12 pt** del placeholder; el aprobado usa **20**. Y el contenido era más corto: ahora los 251 caracteres del aprobado |
 | P4 | **La ficha técnica desborda la lámina** | `reporte_ppt_tabla_lineas.R` + plan | ☑ el alto de fila contaba **caracteres**, no líneas: «Muestra» llevaba cuatro públicos en 1.24 cm. Y el contenido venía pegado (`…PUCPDocentes…`). Geometría y 15 pt del aprobado |
-| P5 | Escala usada y número de respuestas están puestas **como texto suelto**, no armadas como en el PPT final | plan del `.pulso` + constructor | ☐ |
+| P5 | Escala usada y número de respuestas están puestas **como texto suelto**, no armadas como en el PPT final | tabla con color por fila + plan | ◐ **escala armada**: título 0.94, texto 3.74 de 31.30×2.41 y leyenda a 6.91 de 31.29 — la geometría exacta del aprobado, pero como **tabla nativa** donde él pega una imagen. Cuadros de 0.94×0.95 cm. Falta la ilustración de «número de respuestas» |
 | P6 | La guía no acota como una regla: falta «de tal punto a tal punto, tantos cm» | `.guia_cota_grobs()` | ☑ cada caja lleva ahora **cota horizontal y vertical** con línea, topes en los extremos y la cifra en medio |
 | P7 | Perfil del docente: el título «Sexo» sale mucho más alto que «Departamento académico» | disposición de 4 paneles | ⏸ **no se reproduce midiendo**: 15.99 pt y negrita en los cuatro, tops a 3.53 vs 3.46 (0.07 cm). La caja de «Sexo» es menor (0.42 vs 0.52) sólo porque cabe en una línea. Necesita el render |
 | P8 | Perfil del egresado: «¿Se encuentra trabajando?» tiene guías distintas, sin los avances | ídem | ☐ |
@@ -94,6 +94,18 @@ cifras ilegibles.
 **Los P sin marcar siguen pendientes de verse en el PDF de PowerPoint.** Los
 cerrados se cerraron midiendo el XML contra el aprobado, que no depende del
 render.
+
+### Dos accesores que truncaban en silencio
+
+Al montar la leyenda aparecieron dos piezas que descartaban datos sin avisar, y
+las dos habían pasado desapercibidas:
+
+- **`.style_value()` devuelve `out[[1]]`**: cualquier valor vectorial declarado
+  en un estilo llega truncado a su primer elemento. Los cuatro colores de la
+  rampa llegaban como uno.
+- **`first_col_pct` tenía piso 0.14**, pensado para la columna de criterio de la
+  ficha técnica. Sobre un cajón de 31 cm eso son 4.38 cm: la primera columna no
+  podía ser nunca un cuadro de leyenda.
 
 ### Por qué el marcador de leyenda se deforma (P13)
 
