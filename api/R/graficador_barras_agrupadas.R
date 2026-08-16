@@ -780,6 +780,11 @@ graficar_barras_agrupadas <- function(
     alto_por_cat = .grosor_alto_por_categoria(alto_por_categoria),
     piso_in      = grosor_min_in
   )
+  # El techo NO se aplica aqui. Recortar la fraccion contra el alto BASE y
+  # dejar que despues el panel se comprima deja la barra por debajo del piso:
+  # medido, R5 pasaba de 0 a 11 incumplimientos y el minimo categorico caia de
+  # 0.70 a 0.34 cm. El techo se aplica donde el alto ya es el final: sobre el
+  # estirado del panel, mas abajo.
 
   size_ejes_eff <- suppressWarnings(as.numeric(size_ejes)[1])
   if (!is.finite(size_ejes_eff) || is.na(size_ejes_eff) || size_ejes_eff <= 0) {
@@ -1516,6 +1521,17 @@ graficar_barras_agrupadas <- function(
       h_total_in > 0 && h_total_in < alto_hueco) {
     panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
     panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX)
+    # El estirado engorda la barra: la fraccion no cambia, pero la fila si. Sin
+    # tope, el cuadrante de dos barras de un perfil salia a 1.68 cm y el de
+    # cinco a 0.70, sobre la misma lamina. Se limita para que la barra no pase
+    # del techo; el panel queda mas corto que su hueco, que es preferible a que
+    # dos cuadrantes hermanos no midan lo mismo.
+    if (is.finite(grosor_barras_eff) && grosor_barras_eff > 0) {
+      panel_techo <- (.GROSOR_TECHO_IN / grosor_barras_eff) * n_filas_panel
+      if (is.finite(panel_techo) && panel_techo > 0) {
+        panel_nuevo <- min(panel_nuevo, max(h_panel_in, panel_techo))
+      }
+    }
     if (is.finite(panel_nuevo) && panel_nuevo > h_panel_in) {
       alto_por_cat_eff <- panel_nuevo / n_filas_panel
       h_panel_in <- panel_nuevo
