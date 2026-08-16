@@ -461,6 +461,13 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     )
   }
   rep_order[!is.finite(rep_order) | rep_order <= 0] <- 1
+  # El orden derivado VUELVE al campo, y no se queda en esta variable local.
+  # Servia para numerar el codigo de cadena —`R n.k`— pero el campo seguia en 0,
+  # asi que la tabla de reemplazos mostraba «Orden en la cadena: 0» en las seis
+  # filas de una cadena de seis: justo la columna que dice cual entra ahora.
+  # Solo para reservas: el orden de un titular es 0 por definicion.
+  es_reserva <- out$sample_role == "chain_reserve"
+  out$replacement_order[es_reserva] <- rep_order[es_reserva]
   extra_index <- rep(NA_integer_, nrow(out))
   extra_rows <- which(out$sample_role == "extra_reserve_pool")
   if (length(extra_rows)) extra_index[extra_rows] <- seq_along(extra_rows)

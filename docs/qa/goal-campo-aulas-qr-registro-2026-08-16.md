@@ -124,6 +124,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L53** | Aulas no usaba pestañas como los otros perfiles. | De las cinco secciones sólo `avance` tenía pestañas; telefónico y acreditación las tienen en todas. Por eso tres tablas competían por un panel (L39, L40) y el registro no cabía (L42). | ☑ **hecho** (2026-08-16) — Agenda, Avance y Consultas con sus pestañas; el mecanismo dejó de estar cableado a `avance`. |
 | **L54** | «Cadena agotada: se habían usado **0**» para un aula que **nunca tuvo reserva**. | No es lo mismo una decisión del diseño muestral que un hecho del operativo. | ☑ **hecho** (2026-08-16) — hallazgo de la costura completa. |
 | **L55** | Seis fichas de la misma cadena decían **lo mismo**. | Todas: «Reemplazo de AULA-01». Quien las lleva al aula no sabía cuál entra primero. `dimensions` declaraba `replacement_for` pero no `replacement_order` — **duodécima** aparición de la lista cerrada. | ☑ **hecho** (2026-08-16) — «Reemplazo 1 de AULA-01» … «Reemplazo 6 de AULA-01». |
+| **L56** | La tabla de reemplazos no decía **cuál sigue ni cuál ya se usó**. | Con seis reservas del mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten en las seis filas. El motor traía `replacement_order` y `sample_status`; la tabla no los pedía. Y el orden **derivado** se quedaba en una variable local, así que el campo mostraba 0. | ☑ **hecho** (2026-08-16) — órdenes 1–4 y estados distintos, verificado en pantalla. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -658,3 +659,29 @@ inventarle una etiqueta sería peor que mostrar la clave.
 
 Este ítem existe **sólo porque otra sesión cambió la profundidad de las
 cadenas**. Sin ese cambio, seis fichas iguales no habrían aparecido nunca.
+
+
+### 2026-08-16 — L56: lo mismo que en el papel, ahora en la tabla
+
+Tras arreglar la ficha (L55) revisé las otras superficies que muestran cadenas.
+El **libro Excel aguanta sin tocar nada**: con una cadena de seis genera 7
+bloques y 141 columnas, y al reimportarlo vuelven las 8 unidades con sus órdenes
+1–6 y sus códigos intactos.
+
+La **tabla de reemplazos de Monitoreo** no. Mostraba código, a quién reemplaza,
+rol, motivo y nivel de equivalencia — y con seis reservas del mismo titular las
+columnas 2 y 3 son idénticas en las seis filas. Faltaba justo lo que se mira
+para decidir: **cuál entra ahora y cuáles ya se gastaron**.
+
+Dos capas, como suele pasar en este GOAL:
+
+1. La tabla no pedía `replacement_order` ni `sample_status`, y el motor **sí los
+   traía** — contracara del patrón de esta sesión.
+2. El orden **derivado** se quedaba en una variable local: servía para numerar
+   el código `R n.k` y el campo seguía en 0, así que la columna nueva mostraba
+   «0» en las cuatro filas. Ahora vuelve al campo, sólo para reservas —el orden
+   de un titular es 0 por definición— y lo declarado sigue mandando sobre lo
+   derivado.
+
+En pantalla: `R 4.1` orden 1 Reemplazada · `R 4.2` orden 2 Agendada · `R 4.3` y
+`R 4.4` órdenes 3 y 4 En reserva. La cadena se lee de un vistazo.
