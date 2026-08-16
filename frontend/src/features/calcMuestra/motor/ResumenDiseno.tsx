@@ -17,7 +17,7 @@ import {
 import { fmtInt } from "../sharedCore";
 import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
-import { frameIntegrity } from "../universidad/shared/frameIntegrity";
+import { frameIntegrity, notaEstadoDelMarco } from "../universidad/shared/frameIntegrity";
 import {
   normalizeUniversityAulasConfig,
   universityComponentForScenario,
@@ -55,7 +55,6 @@ export function ResumenDiseno({
   const frameProfile = frame?.perfil ?? null;
   const integridadFrame = frameIntegrity(frame);
   const marcoPublicable = integridadFrame.status === "consistent";
-  const marcoIncoherente = integridadFrame.status === "inconsistent";
 
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
 
@@ -82,11 +81,17 @@ export function ResumenDiseno({
   );
   const estudiantesDesactualizados = estudiantesElegibles != null && marcoDesactualizado;
   const cursosDesactualizados = cursosHorarioElegibles != null && marcoDesactualizado;
-  const notaIntegridad = marcoIncoherente
-    ? "frame incoherente · reconstruye"
-    : !marcoPublicable
-      ? "frame no verificable · reconstruye"
-      : null;
+  // Ausencia y no-verificabilidad no son lo mismo, y esta cabecera las confundía.
+  //
+  // Medido sobre un proyecto recién creado: los dos KPIs de elegibles decían
+  // «frame no verificable · reconstruye» —pidiendo REconstruir algo que nunca se
+  // construyó— porque `frameIntegrity` clasifica el marco ausente como
+  // "unverifiable", que es correcto para lo suyo: sin proyecciones no hay nada
+  // que contrastar. Pero las dos situaciones piden acciones opuestas: calcular
+  // por primera vez frente a rehacer. Es el mismo defecto que ya se reparó en
+  // Criterios del estudiante, y aquí pesa más porque esta tira acompaña a TODAS
+  // las pestañas del módulo.
+  const notaIntegridad = notaEstadoDelMarco(frame);
 
   // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
   // superficie Distribución acreditan actor, escenario, owner R y frame. Un
