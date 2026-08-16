@@ -1167,8 +1167,19 @@ graficar_barras_apiladas <- function(
     # texto del grafico; dos rutas del motor ya la subian a 11 a mano, senal de
     # que el defecto nunca sirvio. Se alinea con `size_ejes` para que la cifra
     # pese lo que pesa un rotulo de barra.
-    size_barra_extra      = 10,
-    size_titulo_extra     = 8.5,
+    # La columna extra convive con un grafico cuyo texto va a 14 pt. Con los
+    # defaults viejos —10 y 8.5— sus cifras y su titulo salian mas pequenos que
+    # todo lo demas de la lamina, y eran el residuo mas grande de tipografia del
+    # mazo: 202 cifras a 10 pt y 38 titulos a 8.5.
+    #
+    # No es que nadie los declarara: `.PRESETS_DEFAULT_PULSO` ya los pone a 16.
+    # Lo que
+    # pasa es que esa capa solo se aplica si el proyecto la trae en su config;
+    # cuando no, se cae a estos defaults de firma, que nadie habia calibrado
+    # contra el entregable. El aprobado no baja de 11 pt en ningun texto de
+    # gráfico, asi que estos tampoco.
+    size_barra_extra      = 12,
+    size_titulo_extra     = 11,
     # Comparativo interanual de la columna extra (`graficos_top2box_comparativo.R`).
     # NULL deja la columna como siempre: una sola cifra, sin rejilla ni semaforo.
     barra_extra_comparativo = NULL,
