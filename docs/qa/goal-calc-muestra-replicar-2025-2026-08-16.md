@@ -55,11 +55,11 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☑ **cerrado** (2026-08-16, `7addb99c`) · el motor publica `filas_total` y cada tarjeta de criterio de alumno dice a cuántos dejó fuera; el 0 de `level` se pinta de aviso |
-| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
+| L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **hay patrón LOGRADO** (2026-08-16) · 194 aulas aplicadas, 3.303 válidas; el n PLANIFICADO sigue sin patrón |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido y confirmado** (2026-08-16) · idéntico con y sin descuento; el contraste con 2025 sigue bloqueado |
-| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **config leída** (2026-08-16) · 30 titulares × 11 olas; diferencia de escala con 2025 sin explicar |
+| L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **diferencia explicada** (2026-08-16) · estaba comparando agendadas contra agendadas de n distintos; ver abajo |
 
 ## L1 · el material de 2025 (2026-08-16)
 
@@ -572,3 +572,36 @@ sube de 36,9 a 45,6, pero eso es sólo que cobertura y duplicación dejan de ser
 NA y entran al promedio — la selección no cambió.
 - `session_type` está vacío en todo el marco de 2025, así que esa dimensión del
   perfil no se puede contrastar con nada.
+
+## La diferencia de V8 estaba mal planteada (2026-08-16)
+
+«1.012 aulas agendadas en 2025 contra 360 en cadena» comparaba dos cosas que no
+son comparables. El histórico de asistencia que viaja en el `.pulso`
+(`calc_muestra_referencia_asistencia`, de `HSVBG2025_referencia_para_motor.xlsx`)
+lo dice entero:
+
+| 2025 | |
+|---|---|
+| Aulas **agendadas** | 1.012 |
+| Aulas **aplicadas** | **194** |
+| Matriculados en esas 194 | 7.070 |
+| Elegibles presentes | 6.232 · asistentes 4.931 (tasa 0,791) |
+| Encuestas enviadas | 3.698 (75,0% de los asistentes) |
+| Encuestas **válidas** | **3.303** (89,3% de las enviadas) |
+
+Las 1.012 agendadas sostienen **194 aulas aplicadas**: 5,22 agendadas por aula
+que efectivamente se aplicó. Este diseño reserva 12 por titular (30 titulares +
+330 en cadena), o sea que su cadena es **más conservadora**, no más corta. La
+diferencia real no está en la cadena: está en el n — 194 aulas contra 30.
+
+**Corrección a lo que anoté antes**: dije que el `.pulso` no conserva el n de
+2025 y es inexacto. Conserva el **logrado** —194 aulas, 3.303 válidas— en esta
+referencia. Lo que falta es el **planificado**, que es otra cosa y sigue
+necesitando el entregable: 194 aplicadas puede ser el objetivo cumplido o lo que
+quedó tras perder aulas por el camino, y esas dos historias piden decisiones
+distintas.
+
+**La referencia no es evangelio**: se declara `verificada: FALSE`, con 21
+registros inconsistentes de 194 verificables, 3 casos con más asistentes que
+matriculados y 21 con más enviadas que asistentes. Y su propio aviso lo dice:
+`referencia_post_hoc_no_equivale_a_medicion_del_marco_vigente`.
