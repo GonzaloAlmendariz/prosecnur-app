@@ -1547,18 +1547,38 @@ mount_validacion <- function(pr) {
 
         scope <- .get_base_scope(sid, base)
         des <- scope$reglas_desactivadas %||% character(0)
+        # Vara V5: apagar un control es una decisión metodológica, no un ajuste
+        # de preferencia. Sin motivo, quien abra el proyecto después no puede
+        # distinguir «el constraint del formulario estaba mal para esta
+        # población» de «alguien lo apagó para que el tablero saliera limpio», y
+        # el informe metodológico lista la regla desactivada sin poder decir por
+        # qué. Mismo criterio que «no categorizar» del ADR 0078.
+        motivos <- scope$reglas_desactivadas_motivo
+        if (!is.list(motivos)) motivos <- list()
         if (activa) {
           des <- setdiff(des, id_regla)
+          motivos[[id_regla]] <- NULL
         } else {
+          motivo <- trimws(as.character(parsed$motivo %||% ""))
+          if (!nzchar(motivo)) {
+            stop_api(400, "E_REGLA_MOTIVO_REQUERIDO",
+                     "Desactivar una regla exige un motivo: sin el porque no se distingue de un descuido.")
+          }
           des <- unique(c(des, id_regla))
+          motivos[[id_regla]] <- list(
+            motivo = motivo,
+            decidido_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+          )
         }
         validacion_scope_set(sid, base, "reglas_desactivadas", des)
+        validacion_scope_set(sid, base, "reglas_desactivadas_motivo", motivos)
         # Invalidar evaluación — hay que re-correr con las reglas efectivas.
         validacion_scope_set(sid, base, "evaluacion", NULL)
         .limpieza_invalidate_outputs(sid, base)
 
         list(ok = TRUE, id_regla = id_regla, activa = activa,
-             n_desactivadas = length(des))
+             n_desactivadas = length(des),
+             motivo = motivos[[id_regla]] %||% NULL)
     })) |>
 
     # --- Instrumento: editar atributos humanos de una regla ------------------

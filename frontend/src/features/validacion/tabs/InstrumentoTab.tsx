@@ -336,12 +336,12 @@ export default function InstrumentoTab() {
     setReglaDirty(false);
   }
 
-  async function onToggleReglaActiva(activa: boolean, ruleId?: string) {
+  async function onToggleReglaActiva(activa: boolean, ruleId?: string, motivo?: string) {
     const id = ruleId ?? drill?.regla.id;
     if (!id) return;
     setBusy(activa ? "Reactivando regla…" : "Ignorando regla…");
     try {
-      await apiV2InstrumentoReglaToggleActiva(id, activa, baseNombre);
+      await apiV2InstrumentoReglaToggleActiva(id, activa, baseNombre, motivo);
       if (drill && drill.regla.id === id) {
         setDrill({ ...drill, regla: { ...drill.regla, activa } });
       }

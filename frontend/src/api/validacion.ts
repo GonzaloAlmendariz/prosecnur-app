@@ -377,18 +377,28 @@ export async function apiV2InstrumentoDrill(
   );
 }
 
+// Desactivar exige `motivo` (vara V5): apagar un control es una decisión
+// metodológica y sin el porqué no se distingue de un descuido. Reactivar no lo
+// pide — volver a lo que el instrumento declara no necesita justificación.
 export async function apiV2InstrumentoReglaToggleActiva(
   id_regla: string,
   activa: boolean,
   baseNombre?: string | null,
+  motivo?: string,
 ) {
-  return handle<{ ok: true; id_regla: string; activa: boolean; n_desactivadas: number }>(
+  return handle<{
+    ok: true;
+    id_regla: string;
+    activa: boolean;
+    n_desactivadas: number;
+    motivo?: { motivo: string; decidido_en: string } | null;
+  }>(
     await apiFetch(
       `/api/validacion/v2/instrumento/regla/${encodeURIComponent(id_regla)}/activa`,
       {
         method: "PATCH",
         headers: v2Headers(baseNombre, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ activa }),
+        body: JSON.stringify({ activa, motivo }),
       },
     ),
   );
