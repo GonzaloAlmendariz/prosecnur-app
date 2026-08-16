@@ -27,7 +27,8 @@ el motor produjo.
 | | Hallazgo | Estado |
 |---|---|---|
 | C0.1 | 159 `<a:rPr>` con `<a:cs>` antes de `<a:ea>` — orden que el esquema no admite; el aprobado tiene 0 | ☑ **159 → 0** (`reporte_ppt_saneo_ooxml.R`) |
-| C0.2 | El mazo saneado **sigue abriendo como «Repaired»**: hay al menos una causa más, sin identificar | ☐ **abierto** |
+| C0.2 | El paquete declaraba 9 tipos de contenido para formatos que no contiene (`jpg` como `application/octet-stream`); el aprobado no trae ninguno | ☑ **9 → 0** |
+| C0.3 | **La plantilla misma se abría reparada**, sin una sola lámina dentro: `plantilla_16_9` y `plantilla_acnur_16_9` tenían **dos `sldLayoutId` duplicados** en el master, heredados al añadir los diez layouts nuevos. Todo mazo hecho con ellas nacía corrupto | ☑ **2 → 0** en ambas · falta la confirmación visual |
 
 Descartados con evidencia, para no volver sobre ellos:
 
@@ -42,7 +43,16 @@ Descartados con evidencia, para no volver sobre ellos:
   `zip::zip`, que marca las entradas con data descriptor y hacía que PowerPoint
   no abriera el archivo en absoluto.)
 - El recortador de láminas con `python-pptx` **corrompe**: su control —el
-  aprobado recortado— tampoco abre. La bisección necesita otro método.
+  aprobado recortado— tampoco abre. La bisección se hizo generando parciales con
+  el motor, que sí son válidos.
+- Los tipos de contenido sobrantes **no eran** la causa: con los nueve quitados,
+  un mazo de una lámina seguía reparándose.
+
+**Lo que resolvió C0.3**: un mazo de UNA lámina ya se reparaba, así que el
+defecto no estaba en ninguna lámina sino en algo común. La plantilla sola
+—98 partes, cero láminas— confirmó el origen. El `.bak` sin commitear de la
+misma plantilla dio el diff: diez layouts nuevos, dos de ellos con el id de otro
+ya existente.
 
 ## Las indicaciones, una por una
 
