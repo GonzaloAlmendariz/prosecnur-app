@@ -12,8 +12,6 @@ Son dos motores y el GOAL los mide juntos porque el hueco está en la costura:
 Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 —el campo— hoy no hay nadie.
 
----
-
 ## Vara
 
 | # | Afirmación | Cómo se mide |
@@ -157,459 +155,69 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
   `prefill` en vez de reemplazarlas, y el test emite dos parámetros donde pide
   uno. Costó un rojo que parecía del motor y era del test.
 
+- **Cuando algo se escribe dos veces, se arregla una.** Cuatro sitios de este
+  GOAL tenían el mismo defecto corregido en un lado y no en el otro: el prefill
+  del enlace (adapter vs resolvedor), la coerción numérica (`brecha` sí,
+  `application_state` no), el emparejamiento respuesta→aula (dashboard vs
+  `course_status`) y el vocabulario de estados. Al encontrar uno, buscar su
+  gemelo antes de dar el arreglo por cerrado.
+- **Los fixtures se escribían mirando al consumidor, no al productor.** Tres
+  bugs reales vivían escondidos por eso: el cruce buscaba `collector_id` cuando
+  el sistema genera `collectorID`; el QR se probaba con un enlace de 18
+  caracteres cuando produce 86; el desborde se probaba con la plantilla que sí
+  cabe. La suite estaba verde sobre un mundo que la app no genera.
+- **Los KPI globales pueden estar bien y los desgloses vacíos.** Sumar sin
+  agrupar oculta que el emparejamiento no funciona: el tablero decía «40
+  válidas» con las siete aulas en cero. Un panel coherente en los números
+  grandes no prueba nada sobre los pequeños, que son donde se decide.
+- **Ante un cero inesperado, verificar primero la forma de lo que se está
+  leyendo.** Tres veces en esta sesión un diagnóstico propio apuntó a un fallo
+  inexistente: «no es data.frame» leído como «vacío», la ruta
+  `dashboard.kpis` cuando el tablero de aulas cuelga de otra clave, y un aserto
+  inerte. El cero era del lector, no del sistema.
+
 ---
 
 ## Bitácora
 
-### 2026-08-16 — apertura
-Simulación end-to-end corrida sobre el motor real. **V1 se cumple**: de aulas
-seleccionadas sin enlaces salen 7 enlaces personalizados, 7 fichas con QR único
-y el handoff escribe los 7 enlaces al plan de Monitoreo. **V2, V3, V4 fallan** en
-el contenido del QR y de la ficha. **V5, V6, V7, V8 no tienen implementación**:
-el registro en campo no existe como superficie.
+Dieciséis iteraciones el 2026-08-16. Se conserva la medición de cada cierre; el
+relato completo está en los mensajes de commit, que son el registro largo.
 
-Respuesta corta a las dos preguntas que abrieron el GOAL: el motor de archivos QR
-**sí funciona hoy**; el registro en tiempo real desde el aula **no existe todavía**.
-
-### 2026-08-16 — L1 y L1b cerrados
-El adapter dejó de armar URLs. Ahora declara base (`access_ref`) y personalización
-(`prefill`) por separado, que es lo que el contrato ya pedía, y
-`.collection_access_url()` compone una sola vez sabiendo de qué proveedor habla.
-
-| | antes | después |
-|---|---|---|
-| payload del QR | 116 chars, `d[collectorID]` ×2 | 71 chars, ×1 |
-| PDF de 7 fichas | 244.981 bytes | 234.937 bytes |
-| enlace impreso | cortaba en dos renglones | una línea |
-| SurveyMonkey | `?unit_key=X&d[unit_key]=X` | `?unit_key=X` |
-
-Gate: 12 archivos `test-collection-*.R` + 3 de monitoreo aguas abajo, todos en
-verde. **V2 se cumple.** Siguen abiertos V3–V8.
-
-### 2026-08-16 — L3 cerrado
-La ficha ya declara el rol. `Rol: Titular` en las páginas de titular y
-`Rol: Reemplazo de AULA-01` en las de reserva, verificado en el PNG de la
-página 5. Tres piezas hacían falta, no una: el binding `unit.role` existía pero
-la plantilla no lo dibujaba, el binding devolvía `chain_reserve` en crudo, y
-`replacement_for` **ni siquiera llegaba al plan** —`.collection_legacy_unit()`
-no lo leía—, así que «de quién es reemplazo» era irrecuperable en el render.
-
-Se decidió una sola línea compuesta («Reemplazo de AULA-01») en vez de dos
-campos, porque un campo «Reemplaza a» quedaría vacío en la mayoría de las
-fichas, y un campo vacío impreso es ruido que el aplicador tiene que ignorar.
-
-Built-in a revisión 2 — las instancias vivas quedan `stale` con
-`template_changed`, que es el comportamiento correcto y ya estaba cubierto.
-
-**V4 se cumple.** Siguen abiertos V3, V5–V8.
-
-### 2026-08-16 — L7 y L7b cerrados; y una regresión propia atrapada
-Al medir la capacidad del grid apareció que **L3 había desbordado la ficha con
-careta**: le añadí «Rol» a un grid que ya tenía 6 campos y una capacidad de 6,
-así que «Estudiantes» se caía con un `field_grid_overflow` que nadie lee. No lo
-detectó ningún test —la suite pasó verde con la ficha mutilada— sino medir la
-geometría a mano.
-
-Es el mismo problema que L7: no había sitio porque el 30% de la hoja estaba
-muerto en otro lado. Cerrarlo devolvió capacidad.
-
-| | hueco interior mayor |
+| cerrado | medición |
 |---|---|
-| antes de L7 | 206 px · 11,7% del alto |
-| paso intermedio (mover anclajes) | 268 px · 15,3% — **peor** |
-| final (el grid reparte su banda) | **124 px · 7,1%** |
-
-Capacidad del grid: 6 → **8** filas sin careta, **7** con careta. Los anclajes
-de las indicaciones y del registro, que vivían hardcodeados dentro del
-dibujante, ahora son parte del layout: mover el cuerpo los mueve.
-
-**Ninguna vara nueva se cierra con esto**: L7 es calidad de la hoja y no mapea a
-una afirmación de la vara. Estado real: **V1, V2 y V4 cumplidas**; **V3 sigue
-bloqueada** tras L2 (qué identificador viaja a Kobo); **V5–V8 sin
-implementación**, que es el registro en campo.
-
-Vale anotar que la vara no cubría «la ficha está bien compuesta». No se agrega
-ahora una V9 a mitad de camino: se deja dicho que L7 y L11 miden calidad de la
-pieza, no capacidad, y que la vara mide capacidad.
-
-### 2026-08-16 — L11 cerrado, y la pregunta que importaba era otra
-L11 se abrió como «dos plantillas por defecto divergentes». La pregunta que de
-verdad importaba no era si diferían sino **cuál gana**: si el editor hacía PUT
-de la suya, todo lo arreglado en L3 y L7 sobre la plantilla del backend nunca
-llegaría al usuario.
-
-No gana. `collection_material_template_get()` siempre responde una plantilla
-—cae a `collection_material_builtin_template()`—, y el componente corta el
-render mientras carga. `DEFAULT_COLLECTION_TEMPLATE` no se dibujaba nunca y su
-rama de fallback era inalcanzable. **L3 y L7 sí llegan al usuario.**
-
-Pero por eso mismo había derivado sin que nadie lo notara: otro `template_id`,
-otra revisión, campos sin etiqueta, ni separador ni registro de aplicación. Una
-segunda fuente de verdad que nadie consulta no se sincroniza —se borra—, porque
-el día que alguien la lea va a creerle.
-
-**Verificación**: `tsc --noEmit` en 0 y 13 archivos / 89 tests del feature en
-verde. **No se hizo chequeo visual**: llegar al editor de materiales exige una
-sesión con plan y deployment, y la ruta de render no se tocó. Riesgo residual
-asumido y anotado.
-
-Con esto **se acaban los ítems no bloqueados del lado del motor.** Lo que queda
-—L6, L8, L9, L10— es menor, y las cuatro varas abiertas (V3, V5–V8) dependen de
-las dos decisiones que esperan a Gonzalo.
-
-### 2026-08-16 — L9 cerrado, y un aserto mío resultó inerte
-La simulación es ahora `test-collection-costura-aulas.R`: 41 asertos que
-recorren selección → plan → adapter → deployment → instancia → compilado →
-render → handoff, sin red y sin depender del guion narrado.
-
-Lo importante no fue escribirlo sino **probar que sirve**. Revertí cada arreglo
-y comprobé que el test se pone rojo:
-
-| control | resultado |
-|---|---|
-| revertir L1 (parámetro duplicado) | 🔴 7 fallos, uno por página |
-| revertir L3 (rol en crudo) | 🔴 4 fallos |
-| revertir `row_step` de L7 | 🟢 **verde — el aserto era inerte** |
-
-El tercero delató un aserto mío que no verificaba nada: probaba el desborde
-contra la plantilla **built-in**, que cabe en cualquier caso. La única que llegó
-a desbordarse fue la de **careta** —cabecera más baja, banda más corta y un
-campo más— y no la miraba nadie. Corregido: el test ahora hace PUT de la
-plantilla con careta y además comprueba que las 7 filas siguen en la hoja, no
-sólo que no hubo warning. Con eso, revertir la geometría de L7 sí lo pone rojo.
-
-La lección se suma a las trampas: **un control que no se ejecuta no es un
-control**. Verificar el arreglo no basta; hay que verificar el verificador.
-
-### 2026-08-16 — L8 no era limpieza: era el circuito abierto
-L8 entró en la cola como «un endpoint sin consumidores, ver si es capacidad
-muerta antes de borrarla». Resultó ser lo contrario de código muerto.
-
-La cadena, entera:
-
-1. Recopiladores cuelga `d[collectorID]=` — `collectorID` es el `prefill_field`
-   por defecto del adapter y también lo que fija la ruta legacy.
-2. Kobo devuelve entonces una columna llamada **`collectorID`**.
-3. El cruce de Monitoreo la buscaba entre `collector_id`, `collector`, `link`,
-   `aula_id`, `classroom_id`. Y `.monitoreo_text_key()` **conserva el guion
-   bajo**: normaliza `collectorID` → `collectorid`, que no es `collector_id`.
-   No la encontraba.
-4. El único arreglo era `source_mapping$collector_var`, cuyo único setter es
-   `/api/monitoreo/aulas/config` — **el endpoint con cero consumidores**.
-
-O sea: el sistema generaba un identificador que él mismo no sabía leer, y la
-perilla para corregirlo no estaba al alcance de nadie. Ninguna suite lo veía
-porque ningún test recorría la vuelta completa; los fixtures existentes ya traen
-columnas llamadas `collector_id`.
-
-Arreglado añadiendo `collectorID` a las dos listas de candidatos. Un mapeo
-explícito sigue mandando sobre el fallback (probado). **V7 deja de estar rota de
-raíz**: el cruce funciona sin configurar nada. Lo que falta de V7 —el «mientras
-ocurre»— sigue dependiendo de L4.
-
-Control verificado: revertir el fallback pone el test en rojo.
-
-### 2026-08-16 — L6: la premisa era falsa y el arreglo casi rompe la hoja
-L6 decía «el registro de campo no existe como concepto». **Existe**, y muy bien:
-`collection_material_field_form_rows()` lo define completo —facultad, aula,
-curso, docente, alumnos en aula con hombres y mujeres, encuestas aplicadas,
-rechazos, aplicador/a, fecha y hora— calcado de la hoja de papel que el equipo
-ya usaba. Vive en la ficha de campo (`ficha_campo_qr_a4_v1`).
-
-Lo real era otra cosa: la ficha **built-in** imprimía tres renglones numerados
-`1`, `2`, `3` sin etiqueta. Un segundo registro, vago, compitiendo con el bueno
-— y unas líneas en blanco sin rótulo *son* la planilla paralela que V8 quiere
-eliminar, sólo que impresa en nuestra propia hoja.
-
-Ahora ambas plantillas leen el vocabulario de **una sola función**
-(`collection_material_application_log_labels()`), recortado a lo que la ficha no
-imprime ya. Dos listas paralelas del mismo registro derivan, y después no hay
-forma de juntar lo anotado — la lección de L11 aplicada antes de cometerla.
-
-**Y volví a tropezar con lo mismo que en L3**: pasar de 3 a 5 renglones metió el
-quinto encima del pie, sobre el logo. `application_log` no tenía guardia de
-desbordamiento —el contrato admite hasta 6 filas y la banda no da para seis al
-paso cómodo— así que ni avisaba. Ahora reparte su banda y recorta con
-`application_log_overflow`, igual que el grid.
-
-Se ve en el PNG: los cinco rótulos caben y el pie queda limpio. Controles
-verificados: quitar el reparto pone el test en rojo.
-
-### 2026-08-16 — L10: lo medible hecho, lo demás bloqueado, y una corrección mía
-El fixture de QR usaba `"https://kf/x?d=A-1"`: 18 caracteres, 33 módulos. El
-enlace que el sistema produce de verdad ronda los 86 y da 49. **Se estaba
-probando un símbolo que la app no genera** — el mismo sesgo de fixture que
-escondía el bug del cruce por `collectorID` en L8. Corregido, con control.
-
-Lo que decide si una cámara mala lee el símbolo no es el número de caracteres
-sino los milímetros de cada módulo impreso:
-
-| enlace | chars | módulos | mm/módulo |
-|---|---|---|---|
-| juguete del test | 18 | 33 | 2,16 |
-| real, código operativo | 63 | 45 | 1,59 |
-| real, slug interno | 86 | 49 | 1,46 |
-| el más largo posible | 95 | 49 | 1,46 |
-
-Umbral cómodo: 0,6 mm. **Sobra holgadamente** porque el símbolo mide 71 mm de
-lado. Hay guardia con control invertido —un payload absurdo sí baja de 0,6—, de
-modo que el aserto no pasa por vacío.
-
-**Corrección de algo que afirmé el día que abrí el GOAL**: dije que el parámetro
-duplicado dejaba el QR «al doble de denso, que es lo que se paga en un aula con
-mala luz». Falso: 1,25 mm contra 1,46 mm, ambos muy por encima del umbral. El QR
-nunca estuvo en riesgo. L1 sigue valiendo por el enlace impreso y por la higiene
-del payload, no por la legibilidad. Escribí una consecuencia plausible sin
-medirla.
-
-**Decodificar a texto queda bloqueado**: no hay decodificador disponible ni en R
-(`zxingcpp`, `quadrangle`, `opencv`) ni en Python (`pyzbar`, `cv2`). Añadirlo es
-una dependencia nueva en `DESCRIPTION` que el CI instalaría en cada corrida — es
-decisión tuya si vale la pena para cerrar el último tramo.
-
-### 2026-08-16 — L12: el patrón de los fixtures vuelve a aparecer, y esta vez no se toca
-Perseguí a propósito el patrón que había atravesado todo el loop —fixtures y
-listas escritas mirando al consumidor y no a lo que el productor produce— y
-apareció otra vez, en el filtro que decide qué respuesta cuenta como válida.
-
-Dos capas encadenadas:
-
-1. Kobo nombra su columna **`_validation_status`**, con guion bajo delante. Los
-   candidatos son `response_status`, `validation_status`, `estado`, `status`,
-   `_status` — alguien pensó en el prefijo, pero no en este nombre. No la
-   encuentra.
-2. Cuando no encuentra columna de estado, el filtro **abre**: `rep(TRUE, n)`.
-   Todo cuenta como válido.
-
-Y el caso peligroso es el de quien intente arreglarlo: si se apunta
-`status_var = "_validation_status"`, los valores de Kobo
-(`validation_status_approved`) no están en `valid_statuses`, así que **todas las
-respuestas pasan a inválidas, en silencio y sin aviso**.
-
-**No lo arreglé.** Cambiar fail-open por fail-closed cambia lo que cuenta en
-estudios que ya están corriendo, y eso es tuyo, no mío. Lo que sí hice fue fijar
-el comportamiento actual con tests de caracterización —que declaran lo que hoy
-ocurre, no lo correcto— para que el día que se cambie sea una decisión visible y
-no un efecto colateral.
-
-Vale la pena notar que el `valid_statuses` actual (`aprobado`, `aplicada`) suena
-a vocabulario nuestro, no de Kobo: probablemente se escribió pensando en un
-estado que pone el pipeline, no la plataforma. Eso también entra en la decisión.
-
-### 2026-08-16 — dos bugs que rompían Monitoreo justo después de entregar a campo
-Siguiendo el mismo lente productor/consumidor aparecieron dos defectos
-encadenados en el punto exacto por el que se abrió este GOAL: entregar los
-materiales y empezar a monitorear.
-
-**L13 — reventaba.** El handoff escribía `operational_status = "pendiente"`, que
-no está en `monitoreo_aulas_estados()`. Y el normalizador resolvía el alias con
-`aliases[[key]]`: `[[` sobre un vector con nombres **lanza** `subscript out of
-bounds` con una clave desconocida, no devuelve `NULL`. El `%||%` que alguien
-puso de red nunca llegaba a actuar. Cualquier plan con vocabulario ajeno tumbaba
-la vista entera.
-
-**L14 — y multiplicaba.** Ya sin el crash, 7 aulas normalizaban a **49
-registros**, con los `classroom_id` ciclando `01..07, 01..07`. La causa:
-`orden = getn(c("orden","order"), seq_len(n))` pasa un default **vectorial**, y
-el helper hacía `rep(default, nrow(df))` — n² valores en vez de n. Al asignar
-esa columna larga, el data.frame reciclaba todas las demás. Se disparaba sólo
-cuando faltaba la columna `orden`, que es justo el caso de las filas nuevas del
-handoff.
-
-Ninguno de los dos lo veía la suite: sus fixtures traen `orden` y estados del
-vocabulario. **Tercera y cuarta vez que el sesgo de fixture esconde un bug real
-en este mismo loop.**
-
-Camino hasta encontrarlo, sin adornos: perseguí primero una hipótesis de códigos
-divergentes entre Recopiladores y Monitoreo — **falsa**, el handoff casa por
-`classroom_id`. Después mi propio diagnóstico etiquetó «no es data.frame» como
-«VACÍO» y me hizo perseguir un fantasma. El bisect por campo tampoco sirvió
-porque el mínimo ya disparaba; lo que lo resolvió fue añadir campos de uno en
-uno hasta ver que `orden` apagaba la inflación.
-
-### 2026-08-16 — la vuelta se cierra: de la respuesta al avance de su aula
-Un eslabón más allá del handoff estaba el que de verdad importa para V7. Con 12
-respuestas repartidas en 3 aulas, el tablero decía **«12 válidas» y las 7 aulas
-en cero**.
-
-**L15.** El QR cuelga `collection_unit_id` y las respuestas vuelven con ese id,
-pero `.monitoreo_aulas_course_status()` emparejaba sólo por `classroom_id` — y
-la normalización ni siquiera conservaba `collection_unit_id`, así que el vínculo
-se perdía antes de llegar al join. El KPI global contaba bien porque suma sin
-agrupar; el desglose, que es lo que se mira en campo, estaba en cero.
-
-Arreglarlo destapó dos más, en cascada:
-
-**L16.** Las aulas quedaban con meta 0, porque el handoff no copiaba
-`eligible_n` a las filas nuevas aunque el dato ya viajaba en la unidad. Sin
-meta no hay brecha, y ninguna aula puede llegar a «cerrando».
-
-**L17.** Con meta ya presente, un aula con **5 de 30** se declaraba
-**«cerrando»**. `application_state` comparaba sin coaccionar y
-`.monitoreo_aulas_df()` deja todas las columnas como texto: `"5" >= "30"` es
-TRUE en orden lexicográfico. La línea de `brecha`, justo encima, sí coaccionaba
-— alguien ya se había topado con esto y lo arregló en un sitio y no en el otro.
-Estaba latente porque las válidas siempre eran 0 y `"0" >= "30"` da FALSE.
-
-Los tres se encadenan: el primero ocultaba al segundo y el segundo al tercero.
-Es el mismo mecanismo que hace que un loop así valga la pena — arreglar de
-verdad destapa lo que estaba tapado, y sólo se ve corriendo la cadena entera.
-
-**V7 pasa a cumplirse en su mitad medible**: el cruce por `collectorID` contra
-la meta del aula funciona sin configurar nada. Lo que falta —el «mientras
-ocurre»— sigue dependiendo de L4.
-
-### 2026-08-16 — el mismo join estaba escrito dos veces
-Bajé a las secciones que **agrupan** —brechas, avance por estrato, reemplazos,
-cuotas— con un escenario real: un aula cerrada en 20/20, otra a medias en 8/20,
-una sin acceso y su reserva aportando 12.
-
-El tablero decía «40 válidas» y a la vez daba **brecha 20 para el aula que ya
-había cerrado**. La causa: el emparejamiento respuesta→aula está escrito dos
-veces, en `monitoreo_aulas_dashboard()` y en `.monitoreo_aulas_course_status()`.
-L15 arregló el segundo, así que el desglose por aula quedó correcto y **todo lo
-que agrupa siguió calculando sobre ceros**. Ahora es un helper único.
-
-| sección | antes | después |
-|---|---|---|
-| brechas | 7 entradas, todas con la meta entera | 6, con la brecha real |
-| avance por estrato | 0 válidas · brecha 140 | 40 válidas · brecha 100 · 28,6 % |
-| reemplazos | vacío | la cadena de 3 |
-
-Y **L19**: la cadena de reemplazos era invisible porque el handoff no arrastraba
-`replacement_for`, que es justo el campo por el que filtra esa sección.
-
-Queda **L20** anotado, no resuelto: las cuotas sexo×facultad siguen vacías
-porque sus objetivos derivan de la composición (`sex_top_*`) que produce Cálculo
-de muestra y el plan de Recopiladores no transporta. Es el límite general de
-este tramo: **las filas que el handoff *crea* son más delgadas que las que
-Monitoreo *importa* desde calc-muestra.** El flujo soportado es importar primero
-y entregar después; que el plan de Recopiladores lleve la composición es una
-decisión de contrato, no un arreglo.
-
-Van cuatro sitios distintos donde el mismo defecto de emparejamiento o de
-coerción estaba **arreglado en un lado y no en el otro**: el prefill del enlace,
-la coerción numérica de `brecha` vs `application_state`, este join, y el
-vocabulario de estados. Cuando algo se escribe dos veces, se arregla una.
-
-### 2026-08-16 — los dos avisos del tablero decían lo contrario de lo útil
-Última sección sin ejercitar. Los dos chequeos que miran las respuestas estaban
-invertidos respecto de lo que un estudio de aulas necesita.
-
-**L21 — el aviso que salta siempre.** «Recolectores duplicados» disparaba en
-cuanto un aula tenía dos respuestas: el mismo QR lo escanean todos los alumnos,
-así que el duplicado **es el diseño**. Sólo decía «ok» con una única respuesta,
-que es justo el caso raro. Un aviso permanentemente encendido se ignora, y con
-él se ignora el panel entero. Ahora mira el id de respuesta —`_uuid`, `_id`,
-`instanceID`— y, si la fuente no lo trae, **lo dice** en vez de callar o alarmar.
-
-**L22 — el aviso que nunca salta.** `unmapped_valid_responses` comprobaba si la
-respuesta *tenía* valor de colector, no si ese valor correspondía a un aula del
-plan. Una respuesta con un QR de otro estudio o un id mal tecleado pasaba como
-buena. Comprobarlo de verdad sólo es posible desde que el emparejamiento conoce
-`collection_unit_id` (L15).
-
-Renombrar el chequeo obligó a tocar el frontend: `aulasPresentation.ts` traduce
-los nombres a etiquetas, y dejarlo sin actualizar habría mostrado el aviso sin
-traducir — la misma clase de costura que este loop lleva persiguiendo. Gate:
-44 archivos de R, `tsc` en 0 y 17 tests del perfil de aulas.
-
-Con esto **el tablero de aulas queda recorrido entero** con datos: KPIs,
-desglose por aula, brechas, estratos, reemplazos, cuotas y validación.
-
-### 2026-08-16 — verificación visual: parcial, y por qué
-Todo lo cerrado hasta aquí estaba verificado con motor y tests, y las fichas
-miradas renderizadas — pero **la UI de Monitoreo no se había abierto ni una vez**
-en toda la sesión, y L13–L22 cambian justo lo que ese tablero muestra.
-
-Se levantó una pila propia en puertos libres (API 8795, Vite 5199) para no tocar
-la del usuario (8787 y 5173, suyos), con un `.pulso` construido desde la
-simulación vía `build_pulso()`.
-
-**Verificado end-to-end en UI real:**
-- El módulo monta con readiness `monitoreo-aulas`, sin errores de consola.
-- Un plan producido por el handoff muestra **7 cursos-horario, no 49**, y la
-  vista **no revienta**. Eso confirma **L13 y L14** en la pantalla, no sólo en
-  test.
-- Banda de KPIs, pestañas y tabla de estratos renderizan limpias a 1440×1000.
-
-**No verificado, y la razón importa:** los números de L15–L22 (avance por aula,
-brechas reales, reemplazos, avisos) **no se pudieron ver**. Un `.pulso` armado a
-mano no los transporta: la whitelist de persistencia guarda
-`monitoreo_aulas_plan` pero **no** `calc_muestra_aulas_selection`,
-`monitoreo_config$aulas_universitarias` ni las respuestas. El endpoint de
-import responde `E_NO_CALC_MUESTRA_AULAS` y el de sync no tiene config de dónde
-calcular.
-
-Verlos exige recorrer el flujo real —calc-muestra → importar a Monitoreo →
-Recopiladores → handoff— desde la UI, que es bastante más que un tick. Queda
-como **L23**, y hasta entonces esos siete arreglos están respaldados por tests y
-por la simulación, no por pantalla.
-
-De paso: una primera captura mostró lo que parecía una mancha oscura sobre la
-pestaña «Agenda». Al volver a capturar salió limpia — era un artefacto
-transitorio del render, no un defecto. Se anota porque casi se reporta como bug.
-
-### 2026-08-16 — L23 sigue abierto: el intento y dónde se atascó
-Segundo intento de ver los números de L15–L22 en pantalla, esta vez inyectando
-estado por los **endpoints reales** en vez de confiar en el `.pulso`.
-
-Lo que se aprendió del camino, que es lo que evita repetirlo:
-
-1. `POST /api/monitoreo/aulas/config` con una config **sin plan** hace
-   `session_set(sid, "monitoreo_aulas_plan", cfg$aulas_universitarias$plan)` —
-   es decir, **borra el plan que había en la sesión**. Hay que mandar siempre el
-   plan completo.
-2. Con el plan completo, la config responde 200 y devuelve las 7 filas.
-3. El tablero de aulas **no** cuelga de `dashboard.kpis`: el sync devuelve
-   directamente la forma de aulas (`brechas`, `reemplazos`,
-   `avance_por_estrato`). Leerlo por `kpis.total_aulas` da `None` y parece un
-   fallo que no lo es.
-4. **Sospecha sin confirmar**: tras el sync, `/api/monitoreo/state` muestra
-   `aulas_universitarias.enabled = FALSE` y `plan = 0`, y el perfil vuelto a
-   `acreditacion`, pese a que el POST anterior devolvió 200 con las 7 filas.
-   Apunta a que `monitoreo_normalize_config()` no conserva
-   `aulas_universitarias` — **pero puede ser un artefacto de esta ruta
-   sintética**, que no es como el plan llega en el flujo real
-   (`import-from-calc-muestra`). No se toca sin confirmarlo.
-
-**L23 sigue abierto.** La vía que queda es recorrer el flujo real desde la UI, y
-para eso hace falta un proyecto con selección de calc-muestra viva — el
-candidato es `hsvg2026`, con la salvedad de que la memoria lo marca como
-envenenado por el anonimizador viejo.
-
-Tercera vez en la sesión que un diagnóstico propio apunta a un fallo que no
-existía: la ruta de lectura equivocada. Las dos anteriores fueron «no es
-data.frame» leído como «vacío» y el aserto inerte del desborde. El patrón es
-mío, no del código: **ante un cero inesperado, verificar primero la forma de lo
-que estoy leyendo.**
-
-### 2026-08-16 — sospecha descartada, y L23 se abandona por esta vía
-La sospecha del tick anterior era falsa. Probado directo:
-
-```
-config de aulas creada:            enabled=TRUE  plan=7
-tras monitoreo_normalize_config:   enabled=TRUE  plan=7
-```
-
-**`monitoreo_normalize_config()` sí conserva `aulas_universitarias` con su
-plan.** No se tocó nada — y ese es el valor de haberla marcado como sospecha en
-vez de como bug: un arreglo ahí habría sido daño puro sobre código sano.
-
-Tercer intento de L23, esta vez fijando el perfil desde la UI antes de inyectar:
-el perfil sigue reportándose como `acreditacion` y el tablero devuelve su forma
-vacía. **Se abandona esta vía.** El obstáculo es el atajo sintético, no el
-producto: el plan de aulas llega en el flujo real por
-`import-from-calc-muestra`, y forzarlo desde fuera choca una y otra vez con
-piezas que asumen ese origen.
-
-**L23 queda abierto y reetiquetado**: no es «hacer una captura», es *montar un
-estudio de aulas completo desde la UI* —marco, sorteo, importar a Monitoreo,
-Recopiladores, handoff— o usar `hsvg2026` con la salvedad de que la memoria lo
-marca envenenado por el anonimizador viejo. Eso es una sesión de trabajo, no un
-tick de loop.
-
-Balance de las tres últimas iteraciones: **una produjo arreglos reales (L21,
-L22) y dos produjeron conocimiento de proceso pero ningún cambio de producto.**
-La veta de este GOAL que se puede trabajar sin decisiones de Gonzalo está
-agotada.
+| **L1 · L1b** parámetro duplicado y sintaxis `d[]` | payload 116 → 71 chars · PDF 244.981 → 234.937 bytes |
+| **L3** el rol en la ficha | «Rol: Titular» / «Rol: Reemplazo de AULA-01», verificado en PNG |
+| **L7 · L7b** alto en blanco y geometría del lector | hueco interior 206 → 124 px (11,7 % → 7,1 %) · capacidad 6 → 8 filas |
+| **L9** test de costura | 41 asertos · controles verificados revirtiendo L1, L3 y L7 |
+| **L8** el circuito abierto del `collectorID` | la data de Kobo reencuentra su aula sin configurar nada |
+| **L6** vocabulario del registro impreso | 3 renglones numerados → 5 rotulados, compartidos con la ficha de campo |
+| **L10** legibilidad física del QR | 1,46 mm/módulo con el enlace más largo, umbral cómodo 0,6 |
+| **L11** plantilla por defecto duplicada | borrada la del frontend; era inalcanzable |
+| **L13 · L14** crash y multiplicación n² | 7 aulas siguen siendo 7 · confirmado en pantalla |
+| **L15 · L16 · L17** avance, meta y estado | 5/4/3 atribuidas correctamente · meta presente · 5 de 30 ya no es «cerrando» |
+| **L18 · L19** agregados y cadena de reemplazos | brechas 7→6 reales · estratos 0→40 válidas · reemplazos vacío→3 |
+| **L21 · L22** los dos avisos invertidos | el que saltaba siempre ya no; el que nunca saltaba, sí |
+
+### Correcciones a afirmaciones propias
+Se dejan explícitas porque afectan a lo que se puede dar por cierto:
+
+- **El QR nunca estuvo en riesgo de no escanearse.** Al abrir el GOAL se dijo que
+  el parámetro duplicado lo dejaba «al doble de denso, que es lo que se paga en
+  un aula con mala luz». Medido: 1,25 mm contra 1,46 mm por módulo, ambos muy
+  por encima del umbral. L1 vale por el enlace impreso y la higiene del payload.
+- **L10 partía de una premisa inexacta.** El QR sí se relee del PNG y se compara
+  módulo a módulo en cinco archivos de test. Lo que falta es decodificarlo a
+  texto, que es más estrecho.
+- **L6 partía de una premisa falsa.** El vocabulario del registro de campo ya
+  existía completo en `collection_material_field_form_rows()`.
+- **L7 no cierra V3.** V3 es el identificador que viaja a Kobo (L2, bloqueado).
+  La vara mide capacidad, no compostura de la pieza.
+- **La sospecha sobre `monitoreo_normalize_config()` era falsa.** Conserva
+  `aulas_universitarias` con su plan. No se tocó — marcarla como sospecha en vez
+  de como bug evitó dañar código sano.
+
+### Deuda de verificación
+**L23**: los números de L15–L22 están respaldados por tests y por la simulación,
+**no por pantalla**. L13 y L14 sí se confirmaron en UI real. Verlos exige montar
+un estudio de aulas completo desde la UI —tres intentos por vías sintéticas
+fallaron, y el obstáculo era el atajo, no el producto—.
