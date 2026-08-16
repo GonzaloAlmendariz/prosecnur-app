@@ -54,7 +54,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
-| L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
+| L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ◐ **hallazgo** (2026-08-16) · el recorte por criterio de alumno no llega a ninguna pantalla |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
@@ -93,6 +93,42 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L7 · el recorte por criterio no llega a la pantalla (2026-08-16)
+
+**V4 falla, y en un punto muy concreto.** El motor calcula cuánto recorta cada
+criterio de alumno y lo publica:
+
+```r
+out$criterios_alumno_report <- alumno_sel$report   # calc_muestra_aulas.R:1520
+```
+
+| | |
+|---|---|
+| Lo publica el motor | ✅ |
+| Está tipado en `api/calcMuestra.ts` | ❌ **cero** |
+| Lo consume alguna superficie | ❌ **cero** |
+
+No es «viaja tipado y nadie lo lee», que es el patrón conocido: **ni siquiera
+viaja**. El cliente no declara ese campo.
+
+Lo que la UI sí muestra es el impacto **agregado** —`ImpactoStrip` con
+`estudiantesLive` / `estudiantesHard`—: cuántos estudiantes quedan en total. Y
+para los criterios de curso-horario existe `RecorteDelPaso`, que sí dice llegan
+/ deja fuera / quedan.
+
+**El hueco está en los criterios de alumno.** Puedes ver que quedan 21.365, pero
+no que `age` se llevó 12.924, `condition` 12.117 y `formation` 11.281 — que es
+justo lo que hace falta para decidir un criterio, no el total.
+
+### Y explica por qué `level` pasa desapercibido
+
+El criterio que está activo y no recorta nada sólo se detecta calculándolo a
+mano, como se hizo en L3. Con el desglose en pantalla, un `0` al lado de `level`
+lo delataría de un vistazo.
+
+Los dos hallazgos son el mismo: **la superficie no distingue un criterio que
+muerde de uno que no**, y esa distinción es la vara V3 entera.
 
 ## L10 · el reparto de aulas por facultad (2026-08-16)
 
