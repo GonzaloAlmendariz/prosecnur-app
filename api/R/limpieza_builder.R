@@ -282,8 +282,11 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
 
   # Lo que quedó en cuarentena tras una recarga de instrumento no se aplica ni
   # aparece en la cola, así que si el payload no lo declara es como si no
-  # existiera: el analista creería que perdió esas exclusiones.
+  # existiera: el analista creería que perdió ese trabajo. Y el motivo importa
+  # tanto como el número — "espera a que corras la auditoría" y "su variable ya
+  # no está en el formulario" piden cosas distintas.
   preservadas <- scope$limpieza_preservadas %||% list()
+  motivo_de <- function(d) as.character(d$preservada_motivo %||% "")[1L]
 
   list(
     progreso = list(
@@ -291,11 +294,16 @@ build_limpieza <- function(scope, sid = NULL, base_nombre = NULL, preview_overri
       auditoria_corrida = !is.null(scope$evaluacion),
       n_reglas_custom = length(scope$reglas_custom %||% list())
     ),
-    exclusiones_preservadas = list(
+    decisiones_preservadas = list(
       n = length(preservadas),
       n_casos = length(unique(unlist(lapply(preservadas, function(d) {
         as.character(unlist(d$target_case_ids %||% list(), use.names = FALSE))
-      }), use.names = FALSE)))
+      }), use.names = FALSE))),
+      # Sin auditoría todavía no hay motivo anotado: están esperando, no rotas.
+      n_sin_evaluar = sum(vapply(preservadas, function(d) !nzchar(motivo_de(d)), logical(1))),
+      n_sin_regla = sum(vapply(preservadas, function(d) identical(motivo_de(d), "regla"), logical(1))),
+      n_sin_variable = sum(vapply(preservadas, function(d) identical(motivo_de(d), "variable"), logical(1))),
+      n_sin_instrumento = sum(vapply(preservadas, function(d) identical(motivo_de(d), "instrumento"), logical(1)))
     ),
     summary = summary,
     kpis = .limpieza_kpis(scope),
