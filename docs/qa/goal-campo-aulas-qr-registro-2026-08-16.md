@@ -453,3 +453,44 @@ nunca le asignó una».
 
 La simulación comprueba **los dos casos** porque en la misma muestra conviven:
 elegir uno a ciegas es lo que produjo el falso positivo.
+
+
+### 2026-08-16 — La costura sobre el marco real, y a escala
+
+La simulación corre sobre siete aulas sintéticas. `hsvg2026` trae el marco de
+**5263 cursos-horario reales** —2373 elegibles— con sus identificadores de
+verdad: `arc226_0602`, `cce355_0603`, no `AULA-01`.
+
+El proyecto de referencia **no trae una selección hecha**, sólo el marco y la
+configuración, así que la costura se corrió tomando aulas de ese marco. Prueba
+lo que importa aquí: que el circuito aguanta datos reales, no que el cálculo de
+muestra funcione.
+
+**Sobre 12 aulas del marco real:**
+
+| | |
+|---|---|
+| El libro conserva los códigos reales | ✓ 12/12 con enlace |
+| La cadena funciona con esos códigos | ✓ `arc226_0602` → `cce355_0603` |
+| El tablero agrega sin perder aulas | ✓ 6 estratos, 12 cuotas |
+
+**A escala, con las 2373 elegibles:**
+
+| Paso | Tiempo | Resultado |
+|---|---:|---|
+| Normalizar el plan | 1,3 s | 2373 unidades |
+| Generar el libro | 1,4 s | 1,0 MB |
+| Reimportarlo | 4,6 s | 2373, códigos idénticos |
+| Tablero | 4,7 s | 15 estratos · 30 cuotas |
+
+Nada se cae y nada tarda de más: el estudio de 2025 tenía 170 titulares, así que
+2373 es un techo cómodo.
+
+**Sexta vez que el instrumento produjo la anomalía**: el tablero dio «0 cuotas»
+en la primera corrida a escala y era porque **omití `sex_top_*` en ese script**.
+Con esos campos son 30. El marco los trae como `F`/`M`.
+
+**El marco está anonimizado en los textos** —nombres de curso y facultad
+sustituidos por nombres propios repetidos— pero conserva la estructura: códigos,
+denominadores y composición por sexo. Para probar la costura basta; para juzgar
+el contenido de un informe, no.
