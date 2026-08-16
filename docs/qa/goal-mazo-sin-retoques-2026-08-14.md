@@ -527,3 +527,34 @@ quien dibuja usa sus propios tamaños, no los declarados.
 `mostrar_tabla` —así lo expone la UI— y el graficador espera
 `mostrar_tabla_derecha`. Puede ser un alias que sí se traduce, o puede ser la
 punta del hilo; no se comprobó.
+
+### Quién emitía esos shapes: `gridExtra`, con un 9 escrito a mano
+
+La tabla de las láminas de radar la dibuja
+`gridExtra::ttheme_minimal(base_size = 9)` en `graficos_radar_multibase.R:800`.
+Un literal fijo, no configurable, y **ninguna de las dos funciones de tabla del
+repositorio participa**: esta usa `gridExtra::tableGrob` directamente.
+
+Por eso `tabla_body_size` no podía cambiar nada — gobierna la tabla del radar
+clásico (`graficar_radar`), no la del radar **multibase**, que es el que atiende
+el modo `publicos` que usa este estudio.
+
+El rastro, por si vuelve a hacer falta: `p_radar` → wrapper de `p_radar_tabla`
+(`p_radar_split.R`) → modo `publicos` → `graficos_radar_multibase.R`. Ni
+`.render_radar_tabla` ni `.make_table_grob_ttb_style` ni `.dim_make_table_grob`
+llegan a ejecutarse; las tres se descartaron instrumentándolas una por una.
+
+**Dos coincidencias me hicieron perder tiempo, y las dos eran numéricas:**
+
+- El default de firma de `graficar_radar` es `tabla_body_size = 12`, que es
+  exactamente el valor que yo había puesto. Al instrumentar leí 12 y lo di por
+  «mi cambio llegó», cuando era el defecto. Lo que delataba el error estaba en
+  la misma línea: `header` salía 14 y yo había declarado 12.
+- Probé mover los campos a `$args` con un valor inconfundible —26 pt— y no
+  apareció. Esa prueba es la que descartó la hipótesis en un intento; hacerla
+  antes habría ahorrado los dos anteriores. **Un valor de prueba imposible de
+  confundir vale más que tres mediciones del valor real.**
+
+El arreglo, cuando toque, es que `base_size` salga del preset en vez de estar
+escrito. El `.pulso` quedó restaurado a su estado previo: el cambio a 12 se
+revirtió porque era inerte y el de 26 era una sonda.
