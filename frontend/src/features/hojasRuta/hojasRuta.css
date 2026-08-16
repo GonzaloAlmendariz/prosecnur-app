@@ -102,6 +102,10 @@
   row-gap: 4px;
 }
 
+/* El chip del marco comparte la pinta del aviso de fase pero no se descarta:
+   la procedencia de la cartografia es una propiedad del marco, no una
+   notificacion. Por eso no lleva boton de cerrar y admite mas ancho. */
+.hojas-ruta-marco-chip,
 .hojas-ruta-phase-notice-chip {
   min-width: 0;
   max-width: 260px;
@@ -121,10 +125,12 @@
     0 4px 10px rgba(37, 99, 235, 0.08);
 }
 
+.hojas-ruta-marco-chip > svg,
 .hojas-ruta-phase-notice-chip > svg {
   flex: 0 0 auto;
 }
 
+.hojas-ruta-marco-chip span,
 .hojas-ruta-phase-notice-chip span {
   min-width: 0;
   overflow: hidden;
@@ -134,6 +140,11 @@
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.hojas-ruta-marco-chip {
+  max-width: 340px;
+  padding-right: 9px;
 }
 
 .hojas-ruta-phase-notice-chip button {
@@ -4086,6 +4097,7 @@
     gap: 6px;
   }
 
+  .hojas-ruta-marco-chip,
   .hojas-ruta-phase-notice-chip {
     max-width: 150px;
   }

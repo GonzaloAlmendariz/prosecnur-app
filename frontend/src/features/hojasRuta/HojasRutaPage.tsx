@@ -84,6 +84,8 @@ import type {
   HojasRutaStage,
 } from "./store";
 import "./hojasRuta.css";
+import MarcoCartografiaAviso from "./MarcoCartografiaAviso";
+import { describirMarcoCartografia } from "./marcoCartografia";
 
 type GeoPosition = [number, number];
 type GeoRing = GeoPosition[];
@@ -7709,10 +7711,11 @@ export default function HojasRutaPage() {
   const visiblePhaseNotice = phaseNotice?.message && dismissedPhaseNotice !== phaseNotice.message
     ? phaseNotice.message
     : "";
-  const chromeNotices = (error || frame?.pilot || visiblePhaseNotice) ? ( // pila bajo la banda
+  const marco = describirMarcoCartografia(frame);
+  const chromeNotices = (error || marco || visiblePhaseNotice) ? ( // pila bajo la banda
     <>
       {error && <Alert kind="error">{error}</Alert>}
-      {frame?.pilot && <Alert kind="warn">{frame.note}</Alert>}
+      <MarcoCartografiaAviso frame={frame} />
       {visiblePhaseNotice ? (
         <div className="hojas-ruta-phase-notice-chip" role="status" title={visiblePhaseNotice}>
           <Info size={13} aria-hidden="true" />
