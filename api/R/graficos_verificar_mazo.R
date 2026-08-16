@@ -61,9 +61,14 @@
   grosor_categorica_cm = 0.65,
   barras_por_grafico   = 7L,
   texto_minimo_pt      = 12,
+  # El aprobado no tiene NI UNO en la rampa de escala: sus 67 rojos son todos
+  # titulos. El umbral es cero porque el modelo esta en cero.
+  rojo_en_rampa_max    = 0L,
+  # Percentil 10 del borde superior del titulo en el aprobado. La mediana es
+  # 0.90 cm; se toma el p10 para no marcar por una lamina que empieza mas arriba.
+  titulo_top_min_cm    = 0.78,
   # Proporcion de texto por debajo del minimo que el aprobado se permite.
-  texto_prop_max       = 0.062,
-  titulo_top_min_cm    = 0.89
+  texto_prop_max       = 0.062
 )
 
 .VERIF_EMU <- 914400
@@ -228,6 +233,7 @@ medir_mazo <- function(path) {
   laminas <- .verif_laminas_xml(path)
   gr_esc <- numeric(0); n_esc <- integer(0)
   gr_cat <- numeric(0); txt <- numeric(0)
+  rojo <- 0L; tops <- numeric(0)
 
   for (xml in laminas) {
     formas <- .verif_formas(xml)
@@ -239,10 +245,14 @@ medir_mazo <- function(path) {
     }
     szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
     txt <- c(txt, szs[is.finite(szs)])
+    rojo <- rojo + .verif_rojo_en_rampa(xml)
+    tt <- .verif_titulo_top_cm(xml)
+    if (!is.na(tt)) tops <- c(tops, tt)
   }
 
   list(grosor_escala = gr_esc * .VERIF_CM_POR_IN, barras_escala = n_esc,
-       grosor_categorico = gr_cat * .VERIF_CM_POR_IN, texto_pt = txt)
+       grosor_categorico = gr_cat * .VERIF_CM_POR_IN, texto_pt = txt,
+       rojo_en_rampa = rojo, titulo_top_cm = tops)
 }
 
 
@@ -277,7 +287,9 @@ calibrar_umbrales <- function(path, p = 0.10) {
     barras_por_grafico   = as.integer(max(m$barras_escala)),
     texto_minimo_pt      = round(q(m$texto_pt, p), 1),
     texto_prop_max       = round(mean(m$texto_pt < q(m$texto_pt, p)), 3),
-    titulo_top_min_cm    = .VERIF_UMBRALES$titulo_top_min_cm
+    rojo_en_rampa_max    = as.integer(m$rojo_en_rampa),
+    titulo_top_min_cm    = if (length(m$titulo_top_cm)) round(q(m$titulo_top_cm, p), 2)
+                           else .VERIF_UMBRALES$titulo_top_min_cm
   )
 }
 
@@ -340,6 +352,21 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
       }
     }
 
+      # R7: el titulo no puede pegarse al borde superior.
+    tt <- .verif_titulo_top_cm(xml)
+    if (!is.na(tt) && tt < u$titulo_top_min_cm) {
+      add("R7 posicion del titulo", i, round(tt, 3),
+          sprintf(">= %.2f cm", u$titulo_top_min_cm), "pegado al borde")
+    }
+
+    # R4: el rojo institucional es color de TITULO, no extremo de escala.
+    rr <- .verif_rojo_en_rampa(xml)
+    if (rr > u$rojo_en_rampa_max) {
+      add("R4 rojo en la rampa", i, rr,
+          sprintf("<= %d", u$rojo_en_rampa_max),
+          "el extremo negativo va naranja")
+    }
+
     # R3 se acumula y se juzga al final: ver abajo.
     szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
     texto_todo <- c(texto_todo, szs[is.finite(szs)])
@@ -377,12 +404,50 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     # Lo que este verificador NO mira. Se declara para que un informe limpio no
     # se confunda con un mazo conforme.
     no_cubierto = c(
-      "R4 color de la escala (exige distinguir rampa de titulos por vecindad)",
       "R6 circulares",
-      "R7 posicion del titulo (vive en el layout, no en la lamina)",
       "R8 arranque vertical del bloque",
       "R9 color del texto",
       "R10 interlineado"
     )
   )
+}
+
+
+#' Segmentos rojos que pertenecen a la rampa de escala
+#'
+#' El rojo institucional NO esta prohibido: es el color de los titulos, y el
+#' entregable aprobado lo usa en 67. Lo que no puede es pintar el extremo
+#' negativo de una escala. El criterio que los distingue sin ambiguedad —y que
+#' ya se uso para corregir 26 colores en 23 listas sin tocar un solo titulo— es
+#' la vecindad: es rampa cuando el color inmediatamente siguiente es el amarillo.
+#'
+#' @keywords internal
+.verif_rojo_en_rampa <- function(xml) {
+  cols <- toupper(gsub('.*val="', "", gsub('"$', "",
+    regmatches(xml, gregexpr('srgbClr val="[0-9A-Fa-f]{6}"', xml))[[1]]))) 
+  cols <- substr(gsub("[^0-9A-F]", "", cols), 1, 6)
+  if (length(cols) < 2L) return(0L)
+  rojos <- which(cols == "CA5651")
+  rojos <- rojos[rojos < length(cols)]
+  if (!length(rojos)) return(0L)
+  sum(cols[rojos + 1L] %in% c("FFD965", "FFD966"))
+}
+
+
+#' Borde superior del titulo de lamina, en centimetros
+#'
+#' El titulo es el unico texto a 24 pt de la lamina, asi que se reconoce por su
+#' cuerpo y no por su placeholder —que cambia de nombre entre plantillas—.
+#'
+#' @keywords internal
+.verif_titulo_top_cm <- function(xml) {
+  sps <- regmatches(xml, gregexpr("<p:sp>.*?</p:sp>", xml))[[1]]
+  for (sp in sps) {
+    if (!grepl('sz="2400"', sp, fixed = TRUE)) next
+    m <- regmatches(sp, regexpr('<a:off x="(-?\\d+)" y="(-?\\d+)"/>', sp))
+    if (!length(m)) next
+    nums <- as.numeric(regmatches(m, gregexpr("-?\\d+", m))[[1]])
+    if (length(nums) >= 2L) return(nums[[2]] / .VERIF_EMU * .VERIF_CM_POR_IN)
+  }
+  NA_real_
 }

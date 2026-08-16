@@ -124,3 +124,50 @@ test_that("el informe declara lo que NO mira", {
   expect_true(is.data.frame(r$hallazgos))
   expect_true(all(c("regla", "lamina", "valor", "esperado") %in% names(r$hallazgos)))
 })
+
+# --- R4: el rojo institucional es color de título, no extremo de escala -------
+
+test_that("un rojo seguido del amarillo es rampa", {
+  # El criterio es la vecindad, no el color: el mismo `#CA5651` pinta los
+  # títulos del entregable aprobado 67 veces sin ser nunca escala.
+  xml <- paste0('<a:srgbClr val="CA5651"/><a:srgbClr val="FFD965"/>')
+  expect_identical(.verif_rojo_en_rampa(xml), 1L)
+})
+
+test_that("un rojo de titulo no cuenta como rampa", {
+  xml <- '<a:srgbClr val="CA5651"/><a:srgbClr val="081F5C"/>'
+  expect_identical(.verif_rojo_en_rampa(xml), 0L)
+  # Ni el último color del XML, que no tiene vecino que lo delate.
+  expect_identical(.verif_rojo_en_rampa('<a:srgbClr val="CA5651"/>'), 0L)
+})
+
+test_that("cuenta cada rampa, no solo si hay alguna", {
+  xml <- paste(rep('<a:srgbClr val="CA5651"/><a:srgbClr val="FFD966"/>', 3), collapse = "")
+  expect_identical(.verif_rojo_en_rampa(xml), 3L)
+})
+
+# --- R7: el título no se pega al borde ---------------------------------------
+
+test_that("lee el borde superior del titulo en centimetros", {
+  # El título se reconoce por su cuerpo de 24 pt y no por el nombre de su
+  # placeholder, que cambia entre plantillas.
+  xml <- paste0('<p:sp><a:rPr sz="2400"/><a:off x="0" y="', round(0.37 * 914400),
+                '"/><a:ext cx="100" cy="100"/></p:sp>')
+  expect_equal(.verif_titulo_top_cm(xml), 0.37 * 2.54, tolerance = 1e-6)
+})
+
+test_that("una lamina sin titulo no inventa una medida", {
+  expect_true(is.na(.verif_titulo_top_cm('<p:sp><a:rPr sz="1400"/></p:sp>')))
+  expect_true(is.na(.verif_titulo_top_cm("")))
+})
+
+test_that("las dos reglas ya no figuran como no cubiertas", {
+  # Un informe que sigue declarando sin cubrir algo que ya mide se lee como si
+  # tuviera menos alcance del que tiene.
+  skip_if_not(requireNamespace("officer", quietly = TRUE))
+  pptx <- tempfile(fileext = ".pptx")
+  print(officer::read_pptx(), target = pptx)
+  nc <- verificar_mazo(pptx)$no_cubierto
+  expect_false(any(grepl("^R4|^R7", nc)))
+  expect_true(any(grepl("^R6|^R8|^R9|^R10", nc)))
+})
