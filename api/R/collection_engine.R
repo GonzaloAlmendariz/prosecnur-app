@@ -265,7 +265,15 @@
       )),
       eligible_n = .collection_first_number(row, c(
         "eligible_n", "matriculados_poblacion", "students_n"
-      ))
+      )),
+      # Composicion del aula. La produce Calculo de muestra y es de donde
+      # Monitoreo deriva los objetivos de cuota sexo x facultad; sin ella esa
+      # seccion del tablero sale vacia para todo plan creado por el handoff.
+      stratum = .collection_first_string(row, c("stratum", "estrato")),
+      sex_top_1 = .collection_first_string(row, c("sex_top_1", "sexo_principal")),
+      sex_top_1_n = .collection_first_number(row, c("sex_top_1_n", "n_sexo_principal")),
+      sex_top_2 = .collection_first_string(row, c("sex_top_2", "sexo_secundario")),
+      sex_top_2_n = .collection_first_number(row, c("sex_top_2_n", "n_sexo_secundario"))
     ),
     scheduling = list(
       wave = .collection_first_string(row, c("wave", "muestra", "sample_wave"), "M1"),
@@ -651,6 +659,11 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
       # brecha sale 0 y ninguna aula llega nunca a "cerrando". El dato ya viaja
       # en la unidad del plan, solo faltaba copiarlo a la fila.
       eligible_n = .collection_first_number(unit$dimensions %||% list(), "eligible_n") %||% 0,
+      stratum = .collection_first_string(unit$dimensions %||% list(), "stratum"),
+      sex_top_1 = .collection_first_string(unit$dimensions %||% list(), "sex_top_1"),
+      sex_top_1_n = .collection_first_number(unit$dimensions %||% list(), "sex_top_1_n") %||% 0,
+      sex_top_2 = .collection_first_string(unit$dimensions %||% list(), "sex_top_2"),
+      sex_top_2_n = .collection_first_number(unit$dimensions %||% list(), "sex_top_2_n") %||% 0,
       # `planificada` es la palabra del vocabulario de Monitoreo
       # (`monitoreo_aulas_estados()`). Aqui decia "pendiente", que no esta en
       # esa lista: el plan salia del handoff con un estado que su consumidor no
