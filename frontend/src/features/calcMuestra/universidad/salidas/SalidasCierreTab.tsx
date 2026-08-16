@@ -24,6 +24,7 @@ import { classroomMethodLabel, classroomScore, type ClassroomLabModel } from "..
 import { HistorialCorridas } from "./HistorialCorridas";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+import { profundidadReserva } from "../aulas/profundidadReservaModel";
 
 export function SalidasCierreTab({
   model,
@@ -77,6 +78,10 @@ export function SalidasCierreTab({
   // Profundidad mínima de reserva por celda (misma lectura que Aulas → Reemplazos).
   const depthRatios = reserveDepthRows.map((row) => classroomRowNumber(row, ["depth_ratio"]));
   const minDepth = depthRatios.length ? Math.min(...depthRatios) : Number.NaN;
+  // El mismo objetivo declarado que en Reemplazos y Monitoreo: tres superficies
+  // pintaban la misma cifra con umbrales propios, y la de cierre era la más
+  // laxa —cualquier valor desde 1 salía verde, sin estado intermedio—.
+  const profundidadMin = profundidadReserva(minDepth, model.config?.objective?.reserve_depth_target ?? null);
   const peorCelda = reserveDepthRows.find((row) => classroomRowNumber(row, ["depth_ratio"]) === minDepth);
 
   // Salud del diseño: veredicto derivado de las mismas cifras validadas que
@@ -199,13 +204,13 @@ export function SalidasCierreTab({
           <CifraMotor
             label="Profundidad de reserva"
             value={Number.isFinite(minDepth) ? fmtRatio(minDepth) : "pendiente"}
-            detalle={Number.isFinite(minDepth)
-              ? minDepth < 1
-                ? "hay celdas sin reserva completa"
+            detalle={profundidadMin
+              ? profundidadMin.tono === "alerta"
+                ? "hay celdas por debajo del objetivo"
                 : `mínima por celda${peorCelda ? `: ${classroomRowText(peorCelda, ["stratum"])}` : ""}`
               : "requiere simular reemplazos"}
             origen={Number.isFinite(minDepth) ? "motor" : undefined}
-            tono={Number.isFinite(minDepth) ? (minDepth < 1 ? "alerta" : "ok") : undefined}
+            tono={profundidadMin?.tono}
           />
         </CifraFila>
 

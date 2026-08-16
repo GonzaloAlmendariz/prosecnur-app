@@ -22,8 +22,12 @@ import {
 } from "../aulas/aulasParts";
 import "../../didactica/didactica.css";
 import "./salidas.css";
+import { profundidadReserva } from "../aulas/profundidadReservaModel";
 
 export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
+  // Mismo objetivo declarado que en la pestaña de reemplazos: los tonos de la
+  // misma magnitud no pueden decidirse con umbrales distintos según la pantalla.
+  const objetivoReserva = model.config?.objective?.reserve_depth_target ?? null;
   const {
     selection,
     selectionReady,
@@ -158,7 +162,7 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
                 return (
                   <span
                     key={`${classroomRowText(row, ["stratum"])}-${index}`}
-                    data-tono={ratio < 1 ? "alerta" : ratio >= 2 ? "ok" : undefined}
+                    data-tono={profundidadReserva(ratio, objetivoReserva)?.tono}
                   >
                     <b>{classroomRowText(row, ["stratum"]) || `celda ${index + 1}`}</b>
                     {fmtInt(classroomRowNumber(row, ["reservas"]))} para {fmtInt(classroomRowNumber(row, ["titulares"]))} titulares
