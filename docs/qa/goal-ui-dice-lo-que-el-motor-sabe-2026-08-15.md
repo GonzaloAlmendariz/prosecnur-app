@@ -46,7 +46,7 @@ sabe nada que la interfaz calle.
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
 | **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y los cuatro perfiles de Monitoreo | ☑ hecho — diez ejes probados, **un hallazgo** reparado y visto (`a29629e7`). **V2 se sostiene** en el resto. |
-| **L11** | Barrido V4: forzar cada rama de degradación del motor y comprobar que la superficie la nombra | vocabulario de degradación del backend | ◐ a medias — **un hallazgo, reparado** (`894bbbb0`). Faltan los otros cinco flags de degradación. |
+| **L11** | Barrido V4: forzar cada rama de degradación del motor y comprobar que la superficie la nombra | vocabulario de degradación del backend | ☑ hecho — **dos hallazgos**, reparados (`894bbbb0`, `ee4b308d`). Tres de los seis «flags» eran falsos amigos. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
 
@@ -138,7 +138,29 @@ Verificado sobre un PDF renderizado y leído con `pdftotext`, y con el control
 que le falta a la mitad de los tests visuales: el mismo informe sin nada
 descartado **no** dibuja la sección.
 
-Falta tirar de los otros cinco flags de degradación.
+**Los otros cinco flags: tres eran falsos amigos.** `degradado_manual`,
+`degradado_automatico` y `anclas_degradado` no son degradación: son el nombre
+del **gradiente de color** del semáforo en los graficadores. Queda anotado para
+no volver a perseguirlos.
+
+**El segundo hallazgo real, y el más caro.** El motor de PPT degrada bien —una
+lámina que no se puede renderizar sale como canvas «Sin datos» y el resto del
+mazo se salva— pero avisaba con `warning()`, y el propio `jobs.R` explica por
+qué eso no sirve: *el renderer se traga los `warning()`*. Para eso existe
+`.pulso_aviso()`, que viaja por `message()` con sello, lo cosecha
+`.pulso_avisos_de_job()` y `router_graficos.R` ya lo expone al cliente.
+
+El mazo salía con una lámina en blanco y la razón moría en el stderr del
+subproceso. Cinco sitios: render abortado, renderer que devuelve NULL, slot
+mangleado, caption incalculable, y el boxplot —donde el analista pedía
+`degradado_manual`, le salía `degradado_automatico` y leía el resultado como si
+fuera lo que pidió—. Reparado en `ee4b308d`; el `warning()` se conserva como
+rastro del log y el aviso se suma.
+
+**El patrón de V4, ya con dos casos**: en los dos, el motor sabía y registraba;
+lo que faltaba era el último tramo hasta la pantalla. En el plan, una lista que
+no salía del backend; en el PPT, un canal equivocado. Buscar «¿registra?» da
+falsos negativos: hay que preguntar «¿por dónde sale?».
 
 ### L9 — barrido de V2, primera pasada
 
