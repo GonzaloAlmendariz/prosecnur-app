@@ -1047,6 +1047,36 @@ graficar_barras_agrupadas <- function(
   # nulo devuelve la paleta institucional, igual que en apiladas y categóricas.
   pal_user_efectivo <- if (isTRUE(usar_color_categorias)) colores_categorias else colores_series
   pal_fill <- .graficos_mk_palette(levels(df_long$.fill_key), pal_user = pal_user_efectivo)
+
+  # Un PERFIL no es una comparacion. Cuando hay una sola columna de porcentaje,
+  # las «series» son las categorias de una misma variable —los tramos de edad,
+  # los niveles de estudio— y darle un color a cada una sugiere una comparacion
+  # entre cosas que no se comparan: son la misma medida partida.
+  #
+  # Medido sobre el entregable aprobado: sus laminas de perfil llevan 51 de 52
+  # barras en el azul institucional, monocromas. El motor las sacaba con cinco
+  # colores de la paleta generica, que es la que devuelve `.graficos_mk_palette`
+  # cuando nadie declara nada.
+  #
+  # Solo aplica si el analista NO declaro colores: declararlos es elegir, y esa
+  # eleccion manda.
+  # La declaracion solo manda si de verdad nombra los niveles que hay. El preset
+  # del estudio declara seis colores con nombres genericos («Categoria_1»…) que
+  # no coinciden con ninguna categoria real, asi que no emparejan y el motor cae
+  # a la paleta generica sin que nadie lo note: por eso el perfil salia con unos
+  # colores que no eran ni los declarados ni los institucionales.
+  declaracion_util <- {
+    decl <- if (isTRUE(usar_color_categorias)) colores_categorias else colores_series
+    !is.null(decl) && length(names(decl)) &&
+      any(names(decl) %in% levels(df_long$.fill_key))
+  }
+  # Tambien con un solo nivel: ahi la generica devuelve su PRIMER color, que
+  # tampoco es el de la casa. Un perfil de una categoria sigue siendo un perfil.
+  if (length(cols_porcentaje) == 1L && !declaracion_util && length(pal_fill) >= 1L) {
+    pal_fill <- stats::setNames(
+      rep(.PULSO_PPT_COLORS$azul, length(pal_fill)), names(pal_fill)
+    )
+  }
   p <- p + ggplot2::scale_fill_manual(values = pal_fill)
 
   if (!is.null(ancho_max_eje_y_eff)) {
