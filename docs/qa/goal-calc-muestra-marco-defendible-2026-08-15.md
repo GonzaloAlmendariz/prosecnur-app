@@ -577,7 +577,26 @@ sobrevive. No sobrevive: algo posterior lo descarta. El sospechoso es la
 whitelist de persistencia del workspace, que ya mordió antes en este repo y que
 exige registrar los campos nuevos uno a uno.
 
-Siguiente paso: encontrar esa whitelist y comprobar si `n_aulas` falta en ella.
+**La whitelist queda descartada (2026-08-15).** Probada la función aislada:
+
+```r
+.cm_normalize_workspace_aulas_config(list(n_aulas = 200))
+# -> 56 claves, n_aulas = 200
+```
+
+Conserva el campo. Y `calc_int(200, NA, min = 1, max = .Machine$integer.max)`
+devuelve 200, así que tampoco es el saneo del entero.
+
+Pero por HTTP, el mismo POST con `aulas_config = {n_aulas: 200}` responde **55
+claves sin `n_aulas`**. Las dos cosas no pueden ser ciertas a la vez con el
+mismo input, así que **el `aulas_config` que llega al normalizador no es el que
+manda el cliente**: algo lo sustituye o lo poda antes.
+
+Siguiente paso, ya sin sospechoso: seguir el `aulas_config` dentro del handler
+de `POST /api/calc-muestra/estudio` desde el body parseado hasta la llamada a
+`.cm_normalize_workspace_aulas_config`, e imprimir qué recibe. La diferencia
+entre 55 y 56 claves es exactamente el campo perdido, así que el punto donde
+cambie ese conteo es el culpable.
 Si es eso, el fix es una línea — y explica por qué el objetivo nunca llegó a la
 Selección por más que se calculara. Lo siguiente es mirar
 qué payload arma el autosave del workspace — si omite `aulas_config`, si
