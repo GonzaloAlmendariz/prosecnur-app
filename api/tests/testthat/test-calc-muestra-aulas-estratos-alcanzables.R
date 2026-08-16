@@ -101,3 +101,56 @@ test_that("roles desalineados no se creen", {
   a <- .cm_aulas_estratos_alcance(marco, sel, desalineado)
   expect_identical(a$titulares, 30L)
 })
+
+# --- Celdas por debajo del objetivo de reservas -------------------------------
+#
+# El aviso del motor compara la MEDIA de depth_ratio contra el objetivo, y una
+# media tapa un agujero. Medido en el marco real de 2025-2: de sus 84 estratos,
+# 44 tienen menos de 12 cursos-horario y no pueden llenar una cadena de 11; uno
+# tiene UNO solo, asi que si el sorteo lo toca su titular se queda sin ninguna
+# reserva. En el sorteo medido no le toco, y por eso seguia invisible.
+
+.alc_depth <- function(ratios, estratos = NULL) {
+  data.frame(
+    stratum = estratos %||% sprintf("C%02d", seq_along(ratios)),
+    depth_ratio = ratios, stringsAsFactors = FALSE
+  )
+}
+
+test_that("una celda descubierta no la tapa el promedio", {
+  # EL caso: 29 celdas a 11 y una a 0. La media da 10,63 y el aviso de
+  # profundidad calla, aunque un titular no tenga a quien llamar.
+  d <- .alc_depth(c(rep(11, 29), 0), c(sprintf("C%02d", 1:29), "GASTRONOMIA / F / G3"))
+  expect_gte(mean(d$depth_ratio), 1)  # el motor, por la media, no avisaria
+  av <- .cm_aulas_aviso_celdas_sin_reserva(d, 1)
+  expect_length(av, 1L)
+  expect_true(grepl("1 de 30 celdas", av, fixed = TRUE))
+  expect_true(grepl("SIN ninguna reserva", av, fixed = TRUE))
+  # Y dice por que el promedio no sirve aqui, que es lo accionable.
+  expect_true(grepl("en campo no se compensa", av, fixed = TRUE))
+})
+
+test_that("nombra la celda mas ajustada cuando todas tienen algo", {
+  d <- .alc_depth(c(11, 11, 0.5), c("A", "B", "ARTES ESCENICAS / M / G2"))
+  av <- .cm_aulas_aviso_celdas_sin_reserva(d, 1)
+  expect_true(grepl("ARTES ESCENICAS / M / G2", av, fixed = TRUE))
+  expect_false(grepl("SIN ninguna", av, fixed = TRUE))
+})
+
+test_that("con todas las celdas en el objetivo no hay aviso", {
+  # El sorteo real de 2025-2: las 30 celdas a 11 exactas.
+  expect_length(.cm_aulas_aviso_celdas_sin_reserva(.alc_depth(rep(11, 30)), 1), 0L)
+  expect_length(.cm_aulas_aviso_celdas_sin_reserva(.alc_depth(rep(1, 5)), 1), 0L)
+  expect_length(.cm_aulas_aviso_celdas_sin_reserva(NULL, 1), 0L)
+  expect_length(.cm_aulas_aviso_celdas_sin_reserva(data.frame(), 1), 0L)
+})
+
+test_that("el objetivo declarado manda sobre el de fabrica", {
+  # Las mismas celdas a 11 con objetivo 20 SI estan por debajo.
+  av <- .cm_aulas_aviso_celdas_sin_reserva(.alc_depth(rep(11, 30)), 20)
+  expect_true(grepl("30 de 30 celdas", av, fixed = TRUE))
+  expect_true(grepl("20.00 reservas", av, fixed = TRUE))
+  # Un objetivo no positivo cae al de fabrica en vez de no avisar nunca.
+  expect_length(.cm_aulas_aviso_celdas_sin_reserva(.alc_depth(rep(11, 3)), 0), 0L)
+  expect_true(grepl("de 3 celdas", .cm_aulas_aviso_celdas_sin_reserva(.alc_depth(c(0.5, 11, 11)), 0), fixed = TRUE))
+})

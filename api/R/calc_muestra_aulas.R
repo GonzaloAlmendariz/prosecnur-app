@@ -2991,6 +2991,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   if (is.finite(dup_loss) && dup_loss > objective$duplicate_loss_tolerance) warnings <- c(warnings, "La perdida por estudiantes repetidos supera la tolerancia configurada.")
   if (isTRUE(weight_stability$active) && is.finite(weight_stability$cv) && weight_stability$cv > objective$weight_cv_critical) warnings <- c(warnings, "CV de pesos critico; revisar probabilidades o postestratificacion.")
   if (has_reserve && is.finite(reserve_ratio) && reserve_ratio < objective$reserve_depth_target) warnings <- c(warnings, "Profundidad de reservas menor al objetivo.")
+  warnings <- c(warnings, .cm_aulas_aviso_celdas_sin_reserva(depth, objective$reserve_depth_target))
   if (!is.null(coverage_guard)) warnings <- c(warnings, coverage_guard$detalle)
   warnings <- c(warnings, .cm_aulas_aviso_estratos_inalcanzables(aula_frame, selection_df, roles))
   if (!length(warnings)) warnings <- "Sin alertas de representatividad bajo los criterios activos."

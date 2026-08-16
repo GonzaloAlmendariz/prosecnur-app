@@ -72,3 +72,58 @@
     a$estratos, a$titulares, a$inalcanzables
   )
 }
+
+# =============================================================================
+# Celdas que se quedan por debajo del objetivo de reservas
+# =============================================================================
+#
+# El aviso de profundidad compara la MEDIA de `depth_ratio` contra el objetivo,
+# y una media tapa un agujero: con 29 celdas a 11 reservas por titular y una a
+# 0, el promedio da 10,6 y el motor calla, aunque haya una celda cuyo titular no
+# tiene a quién llamar si se cae.
+#
+# No es hipotético. Medido en el marco real de 2025-2: de sus 84 estratos, 44
+# tienen menos de 12 cursos-horario y no pueden llenar una cadena de 11; uno de
+# ellos —GASTRONOMÍA, HOTELERÍA Y TURISMO / F / G3— tiene UNO solo, así que si
+# el sorteo lo toca su titular se queda sin ninguna reserva posible. En el
+# sorteo medido no le tocó, y por eso el defecto seguía invisible.
+#
+# La pantalla ya miraba el mínimo; el motor no. Las dos preguntas valen —«¿el
+# plan tiene colchón?» y «¿hay alguna celda descubierta?»— pero sólo la segunda
+# se puede responder con la media si TODAS las celdas están igual, y en cuanto
+# dejan de estarlo la media deja de ser una respuesta.
+.cm_aulas_celdas_bajo_objetivo <- function(reserve_depth, objetivo) {
+  if (!is.data.frame(reserve_depth) || !nrow(reserve_depth)) return(NULL)
+  if (!("depth_ratio" %in% names(reserve_depth))) return(NULL)
+  meta <- if (is.finite(objetivo) && objetivo > 0) objetivo else 1
+  ratio <- suppressWarnings(as.numeric(reserve_depth$depth_ratio))
+  bajo <- which(is.finite(ratio) & ratio < meta)
+  if (!length(bajo)) return(NULL)
+  peor <- bajo[which.min(ratio[bajo])]
+  list(
+    celdas = length(bajo), total = nrow(reserve_depth), objetivo = meta,
+    peor_ratio = ratio[peor],
+    peor_celda = as.character((reserve_depth$stratum %||% rep("", nrow(reserve_depth)))[peor]),
+    # Sin ninguna reserva el titular no tiene a quién llamar: es otra cosa que
+    # ir justo de colchón, y merece decirse aparte.
+    sin_ninguna = sum(is.finite(ratio) & ratio <= 0)
+  )
+}
+
+.cm_aulas_aviso_celdas_sin_reserva <- function(reserve_depth, objetivo) {
+  d <- .cm_aulas_celdas_bajo_objetivo(reserve_depth, objetivo)
+  if (is.null(d)) return(character(0))
+  detalle <- if (d$sin_ninguna > 0) {
+    sprintf("%d de ellas se quedaron SIN ninguna reserva", d$sin_ninguna)
+  } else {
+    sprintf("la mas ajustada es %s con %.2f", d$peor_celda %||% "?", d$peor_ratio)
+  }
+  sprintf(
+    paste0(
+      "%d de %d celdas quedan por debajo del objetivo de %.2f reservas por ",
+      "titular (%s). El promedio no lo dice: una celda descubierta se compensa ",
+      "en la media con las que van sobradas, y en campo no se compensa."
+    ),
+    d$celdas, d$total, d$objetivo, detalle
+  )
+}
