@@ -1134,6 +1134,55 @@ todo mazo que use ese layout: queda como **L33**, no se fuerza aquí.
 
 | L33 | R7 se aplica fuera de su población de calibración | acotar la regla o mover el placeholder | ☐ |
 
+## L33 y el estado real al pedir el cierre (2026-08-16)
+
+**L33 ☑ — R7 pasa de 2 incumplimientos a 0.** El título de las láminas de texto
+se pegaba a 0.57 cm del borde porque heredaba el placeholder del layout `Title
+and Content`. Se corrige en el motor y no en la plantilla, que la comparten
+todos los mazos: si el placeholder queda bajo el piso de 0.94 cm, el título se
+emite por coordenadas —patrón que ya usan las láminas de tabla— y si ya cumple,
+no se toca nada. `reporte_ppt_titulo_piso.R` + 6 pruebas.
+
+**El mazo queda en 9 incumplimientos**: B2 (4) y R5 (5). Ninguno es nuevo.
+
+### R5 — diagnóstico, que es lo que faltaba
+
+No se reparó, pero deja de ser un misterio. El canvas de todo gráfico se dibuja
+con **`alto = 6` pulgadas, que es el default de la firma**: el render nunca lo
+pasa. `.render_element()` ya inyecta el **ancho** físico del cajón —`ancho_slot`,
+para el wrap real— pero **no el alto**. Con una lámina de un gráfico la caja mide
+5.61 in y el piso de grosor sobrevive; con cuatro paneles mide 2.56 in y el piso
+se evapora. Los cinco incumplimientos son de láminas de cuatro paneles.
+
+Falta un dato antes de repararlo: **los gráficos de 8 barras no aparecen en el
+trace de agrupadas**, así que salen de otro graficador y no está identificado
+cuál. Pasar el alto real cambiaría el canvas de dieciséis gráficos a la vez, así
+que es su propia unidad con QA visual detrás, no un parche.
+
+### Lo que se vio al mirar las láminas, que ninguna vara mide
+
+Al renderizar la lámina 9 aparecieron tres defectos que no son de geometría y por
+eso ninguna regla los ve:
+
+| | Qué se ve |
+|---|---|
+| Cuadrante repetido | el inferior derecho **repite el gráfico de Sexo** del superior izquierdo, con otro tamaño |
+| Cuadrante sin título | y ese mismo cuadrante es el único de los cuatro sin rótulo |
+| Cifra sobre la etiqueta | `Décimo ciclo16.9%`: con barras cortas la cifra se sale y pisa la etiqueta de categoría, en cuatro filas |
+
+### La guía, evaluada sobre el mazo real
+
+Se generó el mazo entero con la guía encendida (1 005 KB, 1 647 trazos) y se
+miró. **En láminas de escala cumple**: línea fina que no tapa, cotas en cm,
+cuerpo en pt y grosor de barra por caja. **Fuera de ahí, no**:
+
+| | Qué falla |
+|---|---|
+| Notas apiladas | las cotas de bloques contiguos se escriben todas en la misma banda superior y se pisan entre sí: ilegibles |
+| Se come el rótulo | la nota del bloque extra cae encima del texto `TOP TWO BOX` |
+| Media guía en 4 paneles | en la disposición de cuatro paneles dibuja los marcos pero **ni una sola cota**: ahí sigue siendo el subrayador viejo, no el plano |
+| No se puede encender | `.enriquecer_presets()` escribe `base$debug_ph_bordes`, pero el render hereda desde **`base$args`**: por la config del proyecto la guía nunca llega al graficador |
+
 **Lo que este GOAL enseñó, más allá del mazo**: nueve trampas de medición, todas
 pagadas al menos una vez, y las tres que más costaron fueron **medir un espacio
 sin comprobar qué hay en medio**, **un literal escrito a mano en el motor que
