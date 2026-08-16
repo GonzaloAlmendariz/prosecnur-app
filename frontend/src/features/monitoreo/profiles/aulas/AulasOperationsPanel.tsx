@@ -62,7 +62,12 @@ export function AulasOperationsPanel({ config, sources, busy, onImportPlan, onSy
     },
   ];
   return (
-    <section className="mon-profile-panel aulas-ops-panel" aria-label="Operación del plan de cursos-horario">
+    <section
+      className="mon-profile-panel aulas-ops-panel"
+      aria-label="Operación del plan de cursos-horario"
+      data-qa-geometry-group="monitoring-aulas-operacion"
+      data-qa-geometry-contract="intrinsic"
+    >
       <div className="mon-profile-panel-head">
         <h3>Operación del plan</h3>
         <span>{imported ? "plan conectado" : "plan pendiente"}</span>

@@ -90,7 +90,11 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
     // lo hacía fallar al separar Avance y Consultas en paneles propios —un
     // cambio que AÑADE superficies declaradas— y no habría visto un panel nuevo
     // bautizado con otro nombre y sin declarar, que es lo que de verdad importa.
-    const paneles = aulasPage.match(/className="mon-profile-panel"/g) ?? [];
+    // `mon-profile-panel"` con la comilla de cierre contaba SOLO los paneles sin
+    // clases extra, asi que los tres que llevan modificador —handoff, registro
+    // y operacion— quedaban fuera del balance y su falta de declaracion no se
+    // veia. El limite de clase evita casar `mon-profile-panel-head`.
+    const paneles = aulasPage.match(/className="mon-profile-panel[ "]/g) ?? [];
     const intrinsecos = aulasPage.match(/data-qa-geometry-contract="intrinsic"/g) ?? [];
     expect(paneles.length).toBeGreaterThan(0);
     expect(intrinsecos).toHaveLength(paneles.length);
