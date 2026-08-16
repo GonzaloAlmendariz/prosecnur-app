@@ -1381,13 +1381,30 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     add(id, flag, id, label)
   }
   min_elig <- seleccion$minEligible
-  if (is.null(min_elig) || !is.finite(min_elig$threshold)) {
+  # ¿La suite trae SU propio umbral, o cae al del filtro legacy?
+  #
+  # Sin umbral propio, este criterio evalúa exactamente el mismo corte que
+  # `min_eligible_per_class` (línea ~959) y publicaba además su propia razón. Dos
+  # razones para un solo recorte: medido en el proyecto real de 2025-2, ambas
+  # marcaban LAS MISMAS 2.320 aulas —conjuntos idénticos, las de eligible_n < 15—
+  # con `criterios_seleccion$minEligible` vacío.
+  #
+  # Importa por lo que la pantalla dice: dos criterios donde hay uno hacen creer
+  # que se está decidiendo algo ya decidido, y mover el que no actúa no cambia
+  # nada sin que nada lo advierta. También rompe cualquier suma de recortes por
+  # razón, que cuenta esas 2.320 dos veces.
+  #
+  # El FLAG se conserva —el corte debe seguir aplicándose— y sólo se calla la
+  # razón: cuando el umbral es heredado, quien la publica es el filtro legacy,
+  # que es de quien realmente viene la decisión.
+  min_elig_propio <- !is.null(min_elig) && is.finite(min_elig$threshold)
+  if (!min_elig_propio) {
     min_elig <- list(threshold = max(1L, .cm_aulas_int(min_eligible_fallback, 1L)), byFaculty = list())
   }
   add(
     "minEligible",
     .cm_criterios_eval_min_eligible(vals$eligible_n, fac_keys, min_elig),
-    "min_eligible",
+    if (min_elig_propio) "min_eligible" else "",
     .cm_criterios_label_min_eligible(min_elig)
   )
   # Exclusión manual por curso-horario (el criterio más granular): apaga aulas
