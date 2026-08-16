@@ -473,16 +473,17 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
     }
     contract_keys <- names(rows_by_key)
     if (!setequal(seen, contract_keys)) {
+      # El mensaje nombra la facultad y su causa probable; el detalle
+      # estructurado sigue completo. Ver calc_muestra_alumnos_por_ch_cobertura.R.
+      faltantes <- setdiff(contract_keys, seen)
+      sobrantes <- setdiff(seen, contract_keys)
       .cm_alumnos_por_ch_fail(
         "facultades_incompletas",
-        paste0(
-          "Cada componente P1/P2 debe cubrir exactamente las facultades ",
-          "del marco vigente."
-        ),
+        .cm_alumnos_ch_mensaje_cobertura(faltantes, sobrantes),
         details = list(
           actor = comp$actor_id,
-          faltantes = as.list(setdiff(contract_keys, seen)),
-          sobrantes = as.list(setdiff(seen, contract_keys))
+          faltantes = as.list(faltantes),
+          sobrantes = as.list(sobrantes)
         )
       )
     }

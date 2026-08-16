@@ -1744,3 +1744,54 @@ a sus alumnos, que son 107 y no 2.
 Sigue siendo decisión de Gonzalo, porque cambia el marco: 356 cursos-horario
 menos al umbral por defecto. Pero ahora la opción está cuantificada y no exige
 tocar el motor.
+
+---
+
+## L21 · El error de cobertura ya dice su causa (2026-08-16)
+
+Medido primero quién perdía el dato: **R lo perdía**. El payload sí traía
+`faltantes` y `sobrantes` en `details`, pero el `message` era genérico, y la UI
+muestra `e.message`. Así que el arreglo va en el motor y sirve a todos los
+consumidores —pantalla, logs, cualquier otro cliente—, no sólo a esta vista.
+
+`api/R/calc_muestra_alumnos_por_ch_cobertura.R` construye el mensaje. Antes y
+después, sobre el proyecto real:
+
+> **Antes** · «Cada componente P1/P2 debe cubrir exactamente las facultades del
+> marco vigente.»
+>
+> **Ahora** · «El marco tiene cursos-horario de escuela_de_posgrado y el estudio
+> no la declara como facultad. Suele pasar cuando un curso está catalogado bajo
+> una facultad a la que no pertenece ninguno de sus alumnos elegibles: revisa el
+> criterio de coherencia de facultad en Marco › Cursos-horario, o incluye esa
+> facultad en el estudio.»
+
+Tres decisiones que el módulo documenta:
+
+- **Faltante y sobrante se dicen distinto.** Que el marco tenga aulas que el
+  estudio no cubre, y que el estudio declare una facultad sin aulas elegibles,
+  son problemas opuestos con salidas opuestas. Decir «no coinciden» manda a
+  girar la perilla equivocada la mitad de las veces.
+- **Con más de cuatro facultades el mensaje resume** («a, b, c, d y 2 más») y el
+  detalle estructurado sigue completo en `details`.
+- **Sin ninguna de las dos listas vuelve al mensaje genérico.** Ese caso no
+  debería ocurrir, y si ocurre es peor inventar una causa que quedarse en el
+  hecho.
+
+### Verificación
+
+22 expectativas nuevas, con tres mutantes sobre el fuente y revertidos: volver
+al mensaje genérico (**10 fallos**), que el sobrante suene igual que el faltante
+(2) y quitar el resumen (1). Control 22/22.
+
+Y por la **ruta real**, que es la lección de este loop: reinicié la API propia
+para que tomara el cambio, reabrí el proyecto, reconfirmé la decisión y pulsé
+«Calcular muestra». El 409 sigue —el bloqueo de fondo es una decisión de
+Gonzalo, no un bug— pero ahora la pantalla dice qué facultad y por qué.
+
+Suites del área en verde: `alumnos-por-ch` 91/91, contrato HTTP 44/44,
+`facultad-sin-alumnos` 10/10, `engine` 138/138.
+
+Una nota honesta: el ajuste de tildes del mensaje se hizo **después** de esa
+corrida, así que la captura de pantalla muestra el texto sin acentuar. El
+contenido verificado en vivo es el mismo; los acentos los cubre el test.
