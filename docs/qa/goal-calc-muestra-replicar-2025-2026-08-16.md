@@ -52,7 +52,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☐ |
-| L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ☐ |
+| L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; hallazgo de criterio duplicado |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☐ |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ☐ |
@@ -133,6 +133,45 @@ Para V3 —«los criterios se entienden solos»— este caso es el más exigente
 criterio que aparece activo y no recorta es exactamente lo que hace desconfiar
 del resto. **La UI debería decir «este criterio no está recortando» sin que haya
 que calcularlo.**
+
+## V2 · recorte de los criterios de curso-horario (medido 2026-08-16)
+
+Sobre el marco del proyecto **real** de 2025-2 (no el fixture): 5.263
+cursos-horario.
+
+| Criterio | Recorta | % del marco |
+|---|---:|---:|
+| `min_eligible` | 2.320 | 44,1 % |
+| `min_eligible_per_class` | 2.320 | 44,1 % |
+| `enrolled_total` | 1.755 | 33,3 % |
+| `session_type` | 997 | 18,9 % |
+| `modality` | 638 | 12,1 % |
+| `teacher_type` | 398 | 7,6 % |
+| **Resultado** | **2.795 excluidos** | **53,1 %** → quedan **2.468** |
+
+**Ninguno de los 2.795 excluidos queda sin razón declarada.** Es el fix de L1 del
+GOAL hermano funcionando sobre un proyecto de cliente real, no sobre el fixture.
+
+El marco de CH se recorta **más de la mitad**, y el peso está muy concentrado: el
+mínimo de elegibles por aula se lleva 44 puntos de los 53.
+
+### Hallazgo: `min_eligible` y `min_eligible_per_class` recortan exactamente lo mismo
+
+2.320 los dos, hasta la unidad. Y **son distintos por diseño**: el frontend los
+rotula aparte —«Mínimo de alumnos elegibles» y «Mínimo por aula (filtro base)»—
+precisamente porque *«aparecen juntos y con el mismo nombre eran
+indistinguibles»*.
+
+Coincidir al dígito puede significar dos cosas, y hay que decidir cuál:
+
+1. **Están configurados con el mismo umbral** en este proyecto, así que uno es
+   redundante aquí pero no en general.
+2. **Uno de los dos no muerde nunca** y su recorte es en realidad el del otro,
+   contado dos veces al leer las razones.
+
+La diferencia importa para V3: si es (2), la pantalla muestra dos criterios donde
+hay uno, y el usuario cree estar decidiendo algo que ya está decidido. Se
+distingue mirando si sus umbrales configurados difieren.
 
 ## Trampa medida: la columna se toma del mapping, no del nombre
 
