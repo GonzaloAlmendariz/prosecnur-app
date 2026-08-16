@@ -62,7 +62,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L16 | Residuo de tamaños | ubicado: defaults de firma de la columna extra | ☑ **16.8 % → 6.6 %**; quedan 123 a 9 pt |
 | L17 | Llevar los tamaños calibrados al DEFAULT del motor | firma de `graficar_barras_apiladas` | ☑ **10→12 y 8.5→11** |
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
-| L19 | Los enunciados largos se recortan | falta alto variable por premisa | ◐ **18→15**, severos 11→7, muestra 51 % |
+| L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
 | L21 | Inventario: qué familias de las 18 no tienen receta | recetario | ☐ |
 | L22 | Medir cada familia sin receta contra Contabilidad y escribirla | recetario | ☐ |
@@ -696,3 +696,34 @@ líneas —1.40 in— y su fila da 0.62. La salida es **alto variable por premis
 hay sitio: cuatro premisas de una fila ocupan 2.48 in de las 3.62 del panel, así
 que sobra un 31 %. Repartir ese sobrante entre las premisas que lo piden es un
 cambio en el reparto vertical, y toca medirlo aparte antes de tocarlo.
+
+### L19 cerrado: el aprobado no los muestra enteros, los desborda
+
+Tres mediciones, cada una desmintiendo la anterior:
+
+1. **«El alto está atado al nº de públicos.»** Falso: `alto_rel = 1.000` en 25 de
+   33 recortes.
+2. **«El aprobado usa alto variable por premisa.»** También falso, y el error
+   fue mío: medí el coeficiente de variación de los huecos entre barras, que
+   mezcla el salto *entre* grupos con el de *dentro*. Un grupo de cuatro
+   públicos junto a uno de un público ya produce huecos desiguales sin que haya
+   alto variable. Midiendo lo que importa —la dispersión del grosor dentro de
+   cada lámina— salen **0 de 38 en el aprobado y 0 de 37 en el motor**: ninguno
+   lo usa.
+3. **Lo que sí hace el aprobado**: su caja de enunciado mide **6.48 × 0.35 cm**
+   y contiene 160 caracteres a 12 pt. En 0.35 cm cabe **una línea** y el texto
+   necesita cinco. **No los ajusta: los deja desbordar la caja.**
+
+Y el motor recorta precisamente porque eso ya falló: el comentario de
+`.barras_acotar_titulo_grupo()` lo documenta —«los títulos de tres bloques
+seguidos se escribían unos encima de otros y quedaban ilegibles»—. Desbordar
+funciona cuando debajo hay hueco y produce texto encimado cuando no.
+
+**Así que no es un defecto del motor, y la premisa con la que abrí L19 era
+equivocada.** El motor elige recortar y avisar —con el enunciado completo en el
+aviso— en vez de arriesgar superposición. Lo que sí se pudo mejorar, y se hizo,
+es cuánto muestra antes de cortar: del 42 % al 51 %.
+
+Queda como decisión del analista, no del motor: acortar los enunciados —el plan
+promedia 103 caracteres contra los 90 del aprobado, y el 51 % pasa de 90— o
+aceptar el recorte, que va avisado.
