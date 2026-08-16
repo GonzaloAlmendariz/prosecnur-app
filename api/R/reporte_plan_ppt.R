@@ -5500,7 +5500,7 @@ reporte_ppt_plan <- function(
         # 1.76 cm entre premisas contra los 0.97 que daba el 0.35. Es lo que
         # hay detras de «se ve muy apretado» y «mas separacion entre pregunta
         # y pregunta». La unidad son altos de fila.
-        canvas_gap_grupos      = if (!sin_grupo_word) 0.65 else 0
+        canvas_gap_grupos      = if (!sin_grupo_word) 0.85 else 0
       )
       base_args <- .apply_top2box_alias(base_args)
 

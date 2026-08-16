@@ -162,6 +162,12 @@
   base * ifelse(has_freq, 2.40, 0.72)
 }
 
+# Cuanto puede estirarse el panel sobre su alto natural cuando sobra hueco. Sin
+# tope, una premisa sola en un hueco alto salia con la barra mas gruesa del mazo.
+# Medido: subirlo a 2.4 no cambia nada, porque el limite real no es este sino el
+# hueco disponible menos lo que ya reservan cabecera, leyenda y pie.
+.BARRAS_PANEL_ESTIRA_MAX <- 1.8
+
 .finalizar_estado_labels_apiladas <- function(df_lab,
                                              color_texto_barras,
                                              color_texto_barras_fuera,
@@ -2877,6 +2883,29 @@ graficar_barras_apiladas <- function(
   }
 
   h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
+
+  # El canvas se construia con el alto que NECESITA —filas por alto de fila— y
+  # no con el que TIENE. Medido sobre el mazo de acreditacion: con un hueco de
+  # 6.00 in, una lamina de dos premisas dejaba 3.62 in sin usar, y ahi es donde
+  # se perdian a la vez el grosor de barra y el aire entre premisas. El
+  # entregable aprobado llena su hueco: 2.18 cm por barra contra 1.86.
+  #
+  # El sobrante va al panel, que es lo unico que crece bien: header, leyenda y
+  # pie tienen su alto propio y estirarlos solo deja huecos.
+  alto_hueco <- suppressWarnings(as.numeric(alto)[1])
+  if (isTRUE(usar_canvas) && is.finite(alto_hueco) && alto_hueco > 0 &&
+      h_total_in > 0 && h_total_in < alto_hueco && n_filas_virtuales >= 1) {
+    panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
+    # Con tope: una premisa sola no puede ocupar media lamina, y sin el una
+    # dicotomica en un hueco alto salia con la barra mas gruesa del mazo.
+    panel_max <- h_panel_in * .BARRAS_PANEL_ESTIRA_MAX
+    panel_nuevo <- min(panel_disponible, panel_max)
+    if (is.finite(panel_nuevo) && panel_nuevo > h_panel_in) {
+      alto_por_cat_eff <- panel_nuevo / n_filas_virtuales
+      h_panel_in <- panel_nuevo
+      h_total_in <- h_header_in + h_panel_in + h_legend_in + h_caption_in
+    }
+  }
   if (h_total_in <= 0) h_total_in <- 1
 
   # B46/G-21: con 1-2 filas reales, estirar el canvas al alto fisico del
