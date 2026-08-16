@@ -20,6 +20,7 @@ import {
   normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
+  normalizeCalcMuestraCriteriosAlumnoReporte,
   normalizeCalcMuestraSessionTypeImpacto,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
@@ -48,6 +49,7 @@ import {
   type TipoBorradorCriterio,
 } from "./borradorCriterios";
 import { CriterioCard } from "./CriterioCard";
+import { recorteCriteriosAlumno } from "./recorteCriteriosAlumnoModel";
 import { CriterioComposicionCard } from "./CriterioComposicionCard";
 import { PresetCanonicoButton } from "./PresetCanonicoButton";
 import type { PresetCanonicoPlan } from "./presetCanonicoModel";
@@ -299,6 +301,26 @@ export function CriteriosMarcoTab({
     config,
     opcionalesActivos: opcionalesActivosMotor,
   });
+
+  /*
+   * Desglose de lo que recortó cada criterio de alumno en el marco EJECUTADO.
+   *
+   * La pantalla mostraba sólo el agregado —cuántos estudiantes quedan— y con
+   * eso un criterio declarado que no deja fuera a nadie es indistinguible de
+   * uno que muerde. En el proyecto real de 2025-2 `level` dejaba pasar las
+   * 136.284 filas y sólo se detectó calculándolo a mano.
+   */
+  const recorteAlumno = useMemo(() => {
+    if (!marcoPublicable) return null;
+    return recorteCriteriosAlumno(
+      normalizeCalcMuestraCriteriosAlumnoReporte(aulasState?.frame?.criterios_alumno_report ?? null),
+    );
+  }, [marcoPublicable, aulasState?.frame?.criterios_alumno_report]);
+  const recorteDe = useMemo(() => {
+    const porId = new Map((recorteAlumno?.criterios ?? []).map((c) => [c.id, c]));
+    return (id: string) => porId.get(id) ?? null;
+  }, [recorteAlumno]);
+
   const necesitaRecalculo = !marcoConstruido || marcoDesactualizado || !marcoPublicable || criteriosRadiografiaF1Pendiente;
   const listoParaRecalcular = Boolean(puedeReconstruir) && !reconstruyendo && totalPendientes === 0;
   // S1: el detalle de cada criterio se resuelve aquí una vez y se entrega a la
@@ -459,6 +481,8 @@ export function CriteriosMarcoTab({
                     onDescartar={() => descartarVariable(variable.id, variable.kind)}
                     radiografia={radiografiaInline.detalle(variable.id)}
                     aporte={(segmentKey) => radiografiaInline.aporte(variable.id, segmentKey)}
+                    recorteMedido={recorteDe(variable.id)}
+                    recorteDesactualizado={marcoDesactualizado}
                   />
                 ))}
               </div>

@@ -2043,3 +2043,29 @@
   font-weight: var(--pulso-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
+
+/* Lo que ESTE criterio recortó en el marco ejecutado. Vive dentro de la tarjeta
+   que lo decide: la cabecera dice qué se declaró, esta línea qué pasó. El
+   estado `inerte` es el que existe para hacer visible un criterio declarado que
+   no deja fuera a nadie, así que es el único que se pinta de aviso. */
+.cmv2-crit-recorte-medido {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+  background: color-mix(in srgb, var(--cmv2-border) 22%, transparent);
+  border-left: 3px solid var(--cmv2-border);
+}
+.cmv2-crit-recorte-medido strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-crit-recorte-medido[data-estado="inerte"] {
+  color: var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 68%, var(--pulso-surface));
+  border-left-color: var(--pulso-warn-accent);
+}
+.cmv2-crit-recorte-medido[data-estado="inerte"] strong { color: var(--pulso-warn-fg); }

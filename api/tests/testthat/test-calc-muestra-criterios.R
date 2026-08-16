@@ -238,6 +238,39 @@ test_that("capa del ciclo: 'marco' recorta A12, 'instrumento' no", {
   expect_identical(rep_marco$criterios$formation$layer, "marco")
 })
 
+test_that("el reporte de alumno publica el total sobre el que cortan", {
+  # Sin `filas_total` la pantalla no puede decir cuánto recorta cada criterio:
+  # tendría que inferir el universo del criterio que más deja pasar, y eso sólo
+  # es exacto cuando alguno no recorta. En el proyecto real de 2025-2 `level`
+  # dejaba pasar TODO —declarado y sin morder—, y ese cero es precisamente lo
+  # que el desglose existe para hacer visible.
+  fx <- .crit_gold_base()
+  frame <- calc_muestra_aulas_construir(
+    base_madre = fx$estudiantes, catalogo_curso_horario = fx$catalogo,
+    config = .crit_gold_config(nivel_layer = "marco")
+  )
+  rep <- frame$criterios_alumno_report
+  total <- rep$filas_total
+  expect_true(is.integer(total) && length(total) == 1L && total > 0L)
+  # El total es el universo: ningún criterio puede dejar pasar más filas.
+  for (id in names(rep$criterios)) {
+    expect_lte(rep$criterios[[id]]$filas_pasan, total)
+  }
+  # Y es el mismo recuento de filas que entra al motor, no una cota inferior
+  # tomada del criterio más laxo: `formation` recorta, así que un total inferido
+  # del máximo observado se quedaría corto si TODOS recortaran.
+  expect_identical(total, nrow(fx$estudiantes))
+
+  # Sin selección activa el total se publica igual: distingue "no se midió"
+  # (no hay criterios) de "midió cero".
+  legacy <- calc_muestra_aulas_construir(
+    base_madre = fx$estudiantes, catalogo_curso_horario = fx$catalogo,
+    config = .crit_gold_config(seleccion = FALSE)
+  )
+  expect_false(legacy$criterios_alumno_report$activa)
+  expect_identical(legacy$criterios_alumno_report$filas_total, nrow(fx$estudiantes))
+})
+
 # --- Nivel del curso: regla canónica "cualquier par" -------------------------
 
 test_that("nivel usa 'cualquier par' (facultad, nivel): modal falla, par pasa", {

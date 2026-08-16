@@ -1420,6 +1420,11 @@ export type CalcMuestraAulasFrame = {
    */
   criterios_radiografia?: CalcMuestraAulasCriteriosRadiografia | null;
   /**
+   * Cuánto dejó pasar cada criterio de alumno y sobre qué total. Crudo: se lee
+   * con `normalizeCalcMuestraCriteriosAlumnoReporte`.
+   */
+  criterios_alumno_report?: unknown;
+  /**
    * Impacto de los tipos de sesión EXCLUIDOS del set global, por facultad
    * (contrato congelado cm_session_type_impacto_v1): qué facultades pierden CH
    * y elegibles por cada tipo excluido, y dónde ya está exceptuado.
@@ -1915,6 +1920,13 @@ export type CalcMuestraCriterioAlumnoReporte = {
 export type CalcMuestraCriteriosAlumnoReporte = {
   /** Si hay algún criterio de alumno en la suite. Sin ella, nada recorta. */
   activa: boolean;
+  /**
+   * Filas del universo sobre el que cortan TODOS estos criterios. Sin él el
+   * recorte de cada uno sólo puede inferirse del que más pasa, y esa cota
+   * inferior únicamente es exacta cuando alguno no recorta nada; `null` cuando
+   * el frame es anterior al contrato.
+   */
+  filas_total: number | null;
   criterios: CalcMuestraCriterioAlumnoReporte[];
 };
 
@@ -1954,8 +1966,15 @@ export function normalizeCalcMuestraCriteriosAlumnoReporte(
   if (!criterios.length) return null;
 
   const activaRaw = unwrap(root.activa);
+  const totalRaw = unwrap(root.filas_total);
+  const total = typeof totalRaw === "number"
+    ? totalRaw
+    : typeof totalRaw === "string" ? Number(totalRaw.trim()) : Number.NaN;
   return {
     activa: activaRaw === true || activaRaw === "TRUE",
+    // Un total no positivo no es un universo: se trata como ausente antes que
+    // dejar que la pantalla divida por él.
+    filas_total: Number.isFinite(total) && total > 0 ? total : null,
     criterios,
   };
 }
