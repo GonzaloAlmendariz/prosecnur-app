@@ -1,0 +1,114 @@
+# L14 · Reconstruir el marco re-sella la decisión de alumnos por CH.
+#
+# La decisión se firma contra un marco concreto y su firma lleva el `frame_hash`.
+# Un guardado cuya decisión apunte a otro marco borra el objetivo de
+# cursos-horario — eso está bien y hay contrato HTTP que lo defiende.
+#
+# Lo que fallaba era la secuencia: firmar la decisión OBLIGA a reconstruir
+# (`decision_stale`), reconstruir cambia el hash, y nadie re-sellaba la decisión.
+# Quedaba stale para siempre, así que el objetivo se borraba en cada guardado y
+# Titulares, Reemplazos y Sustento no se acreditaban nunca.
+#
+# Se re-sella porque el estadístico NO depende del marco (decisión de dominio,
+# 2026-08-15): elegir P25 o mediana es una postura sobre cómo resumir la
+# distribución, no sobre qué distribución se mira.
+
+.resello_decision <- function(hash, schema = "calc_muestra_alumnos_por_ch_decision_v1",
+                              estadistico = "p25") {
+  list(
+    schema = schema,
+    estadistico_default = estadistico,
+    denominador = "elegible",
+    por_facultad = list(),
+    frame_hash = hash,
+    confirmado_at = "2026-08-15T00:00:00Z"
+  )
+}
+
+.resello_sid <- function(decision) {
+  sid <- session_create()
+  session_set(sid, "calc_muestra_estudio", list(
+    workspace = list(aulas_config = list(alumnos_por_ch_decision = decision))
+  ))
+  sid
+}
+
+.resello_leer <- function(sid) {
+  session_get(sid)$calc_muestra_estudio$workspace$aulas_config$alumnos_por_ch_decision
+}
+
+test_that("una decisión confirmada se re-sella con el marco nuevo", {
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO"))
+
+  expect_true(.cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO"))
+
+  d <- .resello_leer(sid)
+  expect_identical(d$frame_hash, "HASH_NUEVO")
+  # Lo único que cambia es el sello: el estadístico y el reparto no se tocan.
+  expect_identical(d$estadistico_default, "p25")
+  expect_identical(d$denominador, "elegible")
+  expect_identical(d$confirmado_at, "2026-08-15T00:00:00Z")
+})
+
+test_that("re-sellar deja la decisión vigente para el guard", {
+  # La propiedad que cierra L14: tras re-sellar, un guardado con el marco nuevo
+  # ya NO ve la decisión como cambiada, así que el objetivo sobrevive.
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO"))
+  .cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO")
+  d <- .resello_leer(sid)
+
+  antes <- calc_muestra_normalize_estudio(list(workspace = list(aulas_config = list(
+    alumnos_por_ch_decision = d, n_aulas = 200
+  ))))
+  despues <- antes
+
+  expect_false(.cm_alumnos_por_ch_decision_changed(antes, despues))
+  res <- .cm_alumnos_por_ch_preparar_estudio_guardado(antes, despues)
+  expect_identical(res$estudio$workspace$aulas_config$n_aulas, 200L)
+})
+
+test_that("una decisión sin confirmar no se bendice al reconstruir", {
+  # Un sentinela incompleto —schema vacío— debe seguir fallando cerrado en
+  # /calcular. Re-sellarlo lo convertiría en válido sin que nadie lo firmara.
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO", schema = ""))
+
+  expect_false(.cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO"))
+  expect_identical(.resello_leer(sid)$frame_hash, "HASH_VIEJO")
+})
+
+test_that("sin decisión, sin hash o con el mismo hash no se toca nada", {
+  sid_sin <- session_create()
+  session_set(sid_sin, "calc_muestra_estudio", list(workspace = list(aulas_config = list())))
+  expect_false(.cm_alumnos_por_ch_resellar(sid_sin, "HASH_NUEVO"))
+
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO"))
+  # Hash vacío: no hay marco nuevo que sellar.
+  expect_false(.cm_alumnos_por_ch_resellar(sid, ""))
+  expect_identical(.resello_leer(sid)$frame_hash, "HASH_VIEJO")
+
+  # Mismo hash: nada que actualizar, y se declara para no escribir en balde.
+  sid_igual <- .resello_sid(.resello_decision("HASH_A"))
+  expect_false(.cm_alumnos_por_ch_resellar(sid_igual, "HASH_A"))
+})
+
+test_that("el re-sellado no reactiva un objetivo tras cambiar el estadístico", {
+  # El guard tiene que seguir mordiendo donde importa: re-sellar actualiza el
+  # marco, no perdona un cambio de decisión.
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO", estadistico = "p25"))
+  .cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO")
+  vigente <- .resello_leer(sid)
+
+  antes <- calc_muestra_normalize_estudio(list(workspace = list(aulas_config = list(
+    alumnos_por_ch_decision = vigente, n_aulas = 200
+  ))))
+  cambiada <- vigente
+  cambiada$estadistico_default <- "mediana"
+  despues <- calc_muestra_normalize_estudio(list(workspace = list(aulas_config = list(
+    alumnos_por_ch_decision = cambiada, n_aulas = 200
+  ))))
+
+  expect_true(.cm_alumnos_por_ch_decision_changed(antes, despues))
+  expect_null(
+    .cm_alumnos_por_ch_preparar_estudio_guardado(antes, despues)$estudio$workspace$aulas_config$n_aulas
+  )
+})
