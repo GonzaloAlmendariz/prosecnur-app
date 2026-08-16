@@ -120,6 +120,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L49** | Las marcas de la activación se caían al normalizar. | `monitoreo_aulas_normalize_plan()` reconstruye la fila campo a campo con lista **cerrada**: `replaced_at`, `activated_at` y `activation_reason` no estaban declarados, así que el motor los escribía y el tablero los mostraba vacíos. | ☑ **hecho** (2026-08-16) — **décima** aparición del patrón. |
 | **L50** | El **teléfono del docente** se leía del Excel y moría por el camino. | Dos listas cerradas en serie: el registro que arma `aulas_agendadas_a_plan()` no lo emitía, y `monitoreo_aulas_normalize_plan()` no lo declaraba. El correo sí sobrevivía, y por eso la ausencia no saltaba. | ☑ **hecho** (2026-08-16) — **undécima** aparición; ahora hay un control que compara la spec del lector contra el plan. |
 | **L51** | Las **7 columnas sin nombre** de la Base de control no se avisaban. | El lector las contaba desde el principio y el dato viajaba en la respuesta del endpoint, donde nadie lo miraba. | ☑ **hecho** (2026-08-16) — control `unnamed_control_columns` en Validación, con qué hacer para arreglarlo. |
+| **L52** | Un puntaje de **0 sobre 100** se mostraba como «Correcto». | El estado de `effective_representativity` salía sólo de `warning`, que exige 10 pp de desvío en **una** celda. Y «Score efectivo 0.0» no dice si 0 es bueno o malo. | ☑ **hecho** (2026-08-16) — el estado mira el puntaje y el aviso explica la escala. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -1007,3 +1008,28 @@ tres proporciones que **suman exactamente 1** en cada fila —una partición de
 tres categorías— más la facultad bajo el grupo `CONTROL - CUOTAS`. Son datos
 reales del equipo que la app no puede interpretar sin que alguien le diga qué
 son. Ponerles nombre en el Excel basta para que entren.
+
+
+### 2026-08-16 — «Correcto: Puntaje efectivo 0.0»
+
+Era el único de los ocho controles que nunca había mirado de cerca. La escala es
+`100 − 100 × desvío_medio / 0.05`: **100 es una muestra efectiva idéntica a la
+planificada y 0 es un desvío medio de 5 pp o más** — el suelo de la escala, no
+«sin dato». El estado se derivaba sólo de `warning`, que exige 10 pp en **una**
+celda, así que el peor puntaje que la escala puede expresar salía como
+**Correcto**.
+
+Antes: `Correcto — Score efectivo 0.0`.
+Ahora: `Revisar — Puntaje 0.0 de 100: la muestra efectiva se desvía 6.2 pp en
+promedio de la planificada (100 = idéntica, 0 = 5 pp o más)`.
+
+Tercera decisión, sobre el caso sin muestra efectiva: ni «ok» —no hay nada que
+aprobar cuando no hay un solo curso-horario en campo— ni alerta de
+representatividad, porque no hay desvío sino ausencia. Queda en `review` y el
+texto lo dice.
+
+**Y un bug en mi propio helper de test**: `c(list(...), extra)` no sobreescribe,
+deja **dos claves con el mismo nombre** y `$` devuelve la primera, así que el
+`extra` del fixture no hacía nada y el caso «sin muestra efectiva» estaba
+midiendo un aula agendada. Es el mismo tropiezo que `modifyList` dio en esta
+misma sesión, por el lado contrario.

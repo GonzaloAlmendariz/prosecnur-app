@@ -39,6 +39,8 @@ aula <- function(codigo, unidad, rol, facultad, elegibles, validas_meta,
     classroom_id = codigo, collection_unit_id = unidad, operational_code = codigo,
     label = sprintf("Aula %s", codigo), course_name = sprintf("Curso %s", codigo),
     schedule = "Lun 08:00", teacher = sprintf("Docente %s", codigo),
+    teacher_phone = sprintf("9%08d", abs(sum(utf8ToInt(codigo))) * 137 %% 100000000),
+    teacher_email = sprintf("docente.%s@ejemplo.edu", tolower(gsub("[^A-Za-z0-9]", "", codigo))),
     sample_role = rol, wave = "M1", orden = orden,
     eligible_n = elegibles, expected_valid = validas_meta,
     faculty = facultad, stratum = facultad, level = "Pregrado",
@@ -115,7 +117,10 @@ session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
     # conectado. Declararlo apuntando a `_validation_status` descarta TODAS las
     # respuestas, porque Kobo deja esa columna vacia mientras nadie las revisa
     # a mano —y "" no esta entre los estados validos. Es la otra cara de L12.
-    source_mapping = list(collector_var = "collectorID")
+    source_mapping = list(collector_var = "collectorID"),
+    # Siete columnas huerfanas, como las que trae la Base de control del estudio
+    # de 2025: tienen datos y su cabecera esta vacia en la hoja.
+    control_sin_nombre = 7L
   )
 )))
 session_set(sid, "monitoreo_snapshot", list(
@@ -131,7 +136,8 @@ invisible(capture.output(build_pulso(sid, destino, project_name = "QA aulas en c
 
 tablero <- monitoreo_aulas_dashboard(plan, data, monitoreo_aulas_normalize_config(list(
   enabled = TRUE, plan = plan, partes_campo = partes,
-  source_mapping = list(collector_var = "collectorID")
+  source_mapping = list(collector_var = "collectorID"),
+  control_sin_nombre = 7L
 )))
 
 cat(sprintf("proyecto: %s (%.1f KB)\n", destino, file.size(destino) / 1024))
