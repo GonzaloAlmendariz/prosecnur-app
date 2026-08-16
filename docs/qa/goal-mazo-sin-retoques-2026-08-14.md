@@ -24,7 +24,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | | Afirmación | Umbral medido | Aprobado | Motor |
 |---|---|---|---|---|
 | V1 | El título no va pegado al borde | ≥ 0.35 in | 0.361 | **0.370** ✓ |
-| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **12.2 %** ✗ |
+| V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **9.4 %** ◐ (era 12.2) |
 | V3 | El extremo de la escala es naranja | sin rojo en rampa | — | naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja | — | 45 | **38** ✓ |
 | V5 | El grosor de escala no baja del piso | ≥ 0.303 in (p10) | 4 fallos | **0** ✓ |
@@ -34,8 +34,8 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 
 **Incumplimientos totales de `verificar_mazo()`: aprobado 6 · motor 1.**
 
-El único que queda es V2, y es el que L16 dejó a medias: 123 textos a 9 pt que
-no emite ningún graficador ni declara la plantilla.
+El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
+cerrados; lo que resta es otra cosa y está descrito abajo.
 
 ## Cola
 
@@ -414,3 +414,38 @@ El filtro «una barra de datos no lleva texto propio» estaba puesto sólo para 
 familia categórica. Con él en las dos, la mediana del aprobado sale 0.510 in
 —y el recetario, medido a mano en su día, decía 0.512—. Esa coincidencia es la
 mejor prueba de que la cadena de medición ya está bien.
+
+### Los 123 textos a 9 pt: ubicados y cerrados
+
+Era `size_barra_extra` en **barras agrupadas** —el N que la columna de totales
+repite por barra, catorce veces en una lámina de perfil— con default de firma de
+9 pt mientras el resto del gráfico iba a 14.
+
+**El mismo fallo que ya había aparecido en apiladas, en el otro graficador.** La
+capa de presets declara estos tamaños, pero sólo llega si el proyecto la trae en
+su config; cuando no, manda la firma, que nadie había calibrado. Los dos
+graficadores quedan en 12 pt con un test que lo sostiene: dos graficadores que
+comparten lámina no pueden escribir la misma cifra con cuerpos distintos.
+
+V2 baja del 12.2 % al **9.4 %**, contra el 6.2 % del aprobado.
+
+**Lo que queda, con su ubicación** (ya no hay nada «sin ubicar»):
+
+| | Qué es | Dónde |
+|---|---|---|
+| 136 × 11 pt | cuerpo secundario | a un punto del mínimo; el aprobado también los tiene (113) |
+| 54 × 9 pt | cabeceras «Tema», «Estados Financieros» | sólo en `Graficos2` |
+| 20 × 9.48 pt | etiquetas de eje escaladas | `Graficos2` |
+| 8 × 7.39 · 6 × 8 | cifras en segmentos estrechos | residual |
+
+**Y un hallazgo nuevo que merece ítem propio, no cerrarlo a la fuerza aquí:**
+instrumentando el graficador de apiladas aparecen **180 de 238 llamadas del PPT
+—`exportar = "rplot"`, no del Word— recibiendo `size_ejes = 9`, el default de
+firma, en vez del 13 que declara el preset del proyecto.** Las otras 58 sí lo
+reciben. Puede ser que el motor mida antes de dibujar y sólo las segundas se
+rendericen, o puede ser que a la mayoría de los gráficos no le llegue su preset;
+la diferencia importa y no se resuelve mirando el archivo generado.
+
+Antes de eso, una corrección: en L16 atribuí esas llamadas al informe **Word**
+por el `size_texto_barras = 2.8` de `reporte_plan_word.R`. Son del PPT. La
+atribución era mía y estaba mal.
