@@ -36,6 +36,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Importar el libro real deja el plan, el agendamiento y el parte de campo en el `.pulso`, y sus totales cuadran con los del Excel. |
 | **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
 | **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
+| **V12** | La app **produce** el libro que el equipo llena, y lo **vuelve a leer**. | Generar y reimportar cierra el círculo sin perder la cadena ni los enlaces; las columnas de cada rol salen vacías. |
 
 ---
 
@@ -107,6 +108,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L33** | Dos partes de 196 **no reconcilian**. | `asistentes − rechazos − duplicados ≠ efectivas` en `1TEA08-0401` (15−0−0, efectivas 14) y `LIN127-0203` (27−1−3, efectivas 27). El Excel no comprueba esa identidad. | ☐ sin empezar — es un control que la app **sí** puede aportar |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
+| **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
+| **L36** | El libro generado no se registra como **fuente** de Monitoreo. | En telefónico el Excel de barrido es una fuente (`kind`) que el motor consulta para decidir. Aquí el libro todavía se importa a mano. | ☐ sin empezar — es lo que cierra la analogía |
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☐ sin empezar |
 | **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☐ sin empezar — corrige lo construido hoy en L4 |
@@ -412,3 +415,35 @@ Con esto **L27, L28 y L29 quedan cerrados** del lado del motor. Falta la
 superficie que dispare la importación, y los tres ítems que el reencuadre
 destapó: L30 (dos ejes de estado), L31 (ciclo de contacto) y L32 (parte
 incompleto), que ahora sí tienen de dónde alimentarse.
+
+### 2026-08-16 — la otra mitad: la app produce el libro, no sólo lo lee
+Gonzalo precisó lo que faltaba: esos Excel **no son un insumo ajeno**, son el
+instrumento de trabajo de varios roles —quien agenda llama a los docentes sobre
+la hoja 1, quien supervisa campo llena la 2 con aplicador y conteos— y la app
+tiene que **producirlos** para que después pueda **releerlos como fuente**.
+Exactamente el papel que cumple el Excel de barrido en el modo telefónico.
+
+`aulas_libro_generar()` escribe las tres hojas con la misma spec de columnas que
+usan los lectores, así que **generador y lector no pueden divergir**: si mañana
+cambia un título, cambia en los dos a la vez.
+
+El reparto de quién llena qué es el corazón del diseño:
+
+| Lo llena la app | Lo llena la persona |
+|---|---|
+| Identidad del curso-horario, docente y contacto, los dos denominadores, **enlace de la ficha** | Medio de contacto, fecha de llamada, **intentos**, estado de muestra, agendamiento |
+| Identidad y denominadores en el parte | Asistentes, rechazos, duplicados, **efectivas**, aplicador, aula real, fecha/hora, estado |
+
+Rellenar lo de la persona sería inventar campo.
+
+**El contrato que se fija es el round-trip**: lo que la app escribe lo tiene que
+poder volver a leer. Probado: 3 unidades generadas → 3 releídas, cadena
+preservada (`ABC-02` → `ABC-01`), enlaces intactos y las columnas de cada rol en
+blanco. Sin ese test, generador y lectores derivarían en silencio y el equipo se
+enteraría cuando un libro en curso dejara de importar.
+
+También: **la profundidad de la cadena sale del plan**, no de una constante. Un
+estudio con cadenas de dos produce 41 columnas, no las 241 del de 2025.
+
+Queda **L36**: registrar el libro como *fuente* de Monitoreo, que es lo que
+cierra del todo la analogía con telefónico.

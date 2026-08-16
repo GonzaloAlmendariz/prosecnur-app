@@ -4794,6 +4794,25 @@ mount_monitoreo <- function(pr) {
       cfg <- .monitoreo_store_config(sid, cfg)
       list(ok = TRUE, config = cfg, state = .monitoreo_state_payload(sid))
     })) |>
+    # Genera el libro operativo para que cada rol lo llene: quien agenda llama a
+    # los docentes sobre la hoja 1, quien supervisa campo llena la 2, y la 3
+    # recoge el control. Es el mismo papel del Excel de barrido en telefonico.
+    plumber::pr_post("/api/monitoreo/aulas/generar-libro", wrap_endpoint(function(req, res, ...) {
+      sid <- .monitoreo_session(req, res)
+      s <- session_get(sid)
+      unidades <- s$monitoreo_aulas_plan %||% list()
+      if (!length(unidades)) {
+        stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
+                 "No hay plan de aulas del que generar el libro. Importa la seleccion de calculo de muestra primero.")
+      }
+      nombre <- .export_filename(sid, "libro_aulas", "xlsx")
+      dir.create(file.path(s$dir, "downloads"), showWarnings = FALSE, recursive = TRUE)
+      destino <- file.path(s$dir, "downloads", sprintf("%s_%s", uuid::UUIDgenerate(), nombre))
+      aulas_libro_generar(unidades, destino)
+      meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
+      list(ok = TRUE, file_id = meta$file_id, filename = nombre,
+           unidades = length(unidades))
+    })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.
     plumber::pr_post("/api/monitoreo/aulas/importar-libro", wrap_endpoint(function(req, res, ...) {
