@@ -622,7 +622,7 @@
       "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2208,
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
       "frontend/src/app/tokens.css": 553,
-      "api/R/calc_muestra_aulas.R": 5173,
+      "api/R/calc_muestra_aulas.R": 5181,
       "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3989,
       "api/R/graficador_dimensiones.R": 4948
     },

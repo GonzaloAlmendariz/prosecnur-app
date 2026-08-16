@@ -51,7 +51,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L1 | Las exclusiones del marco declaran su causa | V1 | motor R | ☑ **hecho** (2026-08-15) · mutante: 5 FAIL sin el fix |
 | L2 | Línea base de los congelados al día | V8 | `agentic/manifest.json` | ☑ **hecho** (2026-08-15) · `--audit` verde |
 | L3 | Construir el marco no congela la app | V2 | router R + motor + frontend | ☑ **hecho** (2026-08-15) · verificado en la app: 177 s de job con el backend respondiendo en 2–57 ms todo el tiempo |
-| L11 | El último hito de progreso abarca el 64 % del tiempo | V2 | motor R | ☐ **sin empezar** · hallazgo de la corrida de L3 |
+| L11 | El último hito de progreso abarca el 64 % del tiempo | V2 | motor R | ☑ **hecho** (2026-08-15) · 6 hitos → 8, repartidos por coste medido; el mayor baja de 64 % a 47,6 % |
 | L4 | El MC secuencial se mide también con `estratificado_aleatorio` | V3 | tests R | ☑ **hecho** (2026-08-15) · mutante: reintroducir el Defecto 1 tira 5 asserts |
 | L5 | `composicion_na_n` y el intervalo de elegibles tienen superficie | V4 | frontend | ☑ **hecho** (2026-08-15) · mutantes: 3 de 5 y 3 de 6 tests caen |
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
@@ -64,7 +64,8 @@ correcto que no se puede explicar tampoco está entregado.
 
 | # | Decisión | Por qué no puedo yo |
 |---|---|---|
-| L7-bis | Si el `hsvg2026` **canónico versionado** se reemplaza por el reparado, o el arreglo se queda en `outputs/`. Y si el anonimizador debe traducir los criterios al anonimizar, para que la clase entera de defecto no vuelva | El fixture canónico es read-only y versionado (8 MB); reemplazarlo es una decisión de qué se considera la referencia. El arreglo de hoy está aplicado a una copia y es reproducible con un script |
+| L12 | Si el **anonimizador** debe traducir los criterios guardados al anonimizar, además de los valores de la base | Resuelto hoy el síntoma (el fixture ya está reparado y versionado, `6c7e8117`), no la causa: cualquier `.pulso` que se anonimice a partir de ahora vuelve a nacer con el mismo defecto. Arreglarlo toca `pulso_anonimizar.R`, que es de otro dominio y ahora mismo lo está editando la otra sesión |
+| L13 | Qué se hace con el gate de PII, que lleva rojo en dos fixtures por **falsos positivos**: correos ya anonimizados y hashes SHA-256 que el detector lee como DNI. O se afinan sus reglas, o se declara una excepción por columna | Un gate que lleva tiempo rojo deja de leerse, y entonces no protege de nada. Pero relajarlo es decidir cuánto riesgo de PII real se acepta a cambio de que vuelva a ser informativo — y eso no lo elijo yo. Hoy: `hsvg2026` 5 hallazgos, `acrconta` 6, ninguno introducido por este trabajo |
 | L6 | Qué se hace con el test `[gated]` de la base canónica: **(a)** versionar una fixture anonimizada, **(b)** documentar `PULSO_CALC_MUESTRA_CANONICO` como gate manual y quitar el fallback muerto, o **(c)** retirar el test | Las tres son defendibles y tienen precios distintos. (a) da cobertura real en CI pero exige pasar la base por el anonimizador, que ya envenenó `hsvg2026` una vez; (c) pierde la única defensa contra la cancelación de errores. Elegir por ti sería decidir cuánta cobertura vale ese riesgo |
 
 ## Trampas medidas (no volver a pagarlas)
@@ -123,6 +124,12 @@ Cada una costó al menos un intento fallido en esta sesión.
     app, con su suite de nueve criterios, da **0**. La llamada directa se saltó
     justo el criterio que rompe. Un camino que nadie recorre no prueba nada — si
     el defecto se reportó desde la UI, hay que reproducirlo desde la UI.
+
+12. **El tamaño de una salida no predice su coste.** Para repartir los hitos de
+    L11 medí primero cuánto publica cada etapa: la radiografía de criterios pesa
+    19,5 MB y la del marco 0,6 MB. La cara resultó ser **la pequeña** — 95,4 s
+    contra 44,4 s. Un proxy barato puede orientar, pero el reparto se decide
+    cronometrando.
 
 11. **Este entorno de sesión no sostiene procesos de larga vida.** El backend R
     murió tres veces tras arrancar —lanzado con `make`, con background del
@@ -371,7 +378,32 @@ Transiciones de progreso observadas por el cliente:
  6/6  Radiografía por facultad         t= 63 s  →  done t=177 s
 ```
 
-### Hallazgo de la corrida (L11): el progreso está mal repartido
+### L11 · repartido por coste, medido a escala real
+
+Ocho hitos en vez de seis. El reparto ya no sale de las etapas del código sino
+del tiempo que cuesta cada una, medido sobre `hsvg2026` (5.263 CH, 200 s):
+
+| Etapa | Tiempo | % |
+|---|---:|---:|
+| 6/8 Radiografía del marco | **95,4 s** | **47,6 %** |
+| 7/8 Radiografía por criterio y facultad | 44,4 s | 22,1 % |
+| 1/8 Leyendo la base institucional | 28,3 s | 14,1 % |
+| 2/8 Depurando elegibles | 22,4 s | 11,2 % |
+| 4/8 Aplicando criterios del marco | 6,3 s | 3,2 % |
+| 5/8 Perfilando el marco | 2,5 s | 1,2 % |
+| 3/8 Agrupando cursos-horario | 1,0 s | 0,5 % |
+| 8/8 Impacto del tipo de sesión | 0,1 s | 0,0 % |
+
+El hito mayor baja del 64 % al 47,6 %, y las dos radiografías dejan de ser
+indistinguibles.
+
+**Queda margen, y está localizado:** ese 47,6 % vive entero dentro de
+`.cm_exploracion_adjuntar`. Partirlo exige instrumentar esa función por dentro
+—vive en `calc_muestra_aulas_exploracion.R`, que no está congelado— y
+propagarle el callback. Es el siguiente paso natural si la barra sigue
+pareciendo parada.
+
+### Hallazgo previo (L11): el progreso estaba mal repartido
 
 El hito **6/6 dura 114 s de los 177 — el 64 % del tiempo**, con la barra clavada
 al final. Para quien mira, la construcción parece colgada justo cuando más

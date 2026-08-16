@@ -124,12 +124,17 @@ test_that("el progreso no altera el marco ni exige callback", {
   expect_identical(con_cb$frame_hash, sin_cb$frame_hash)
 
   # Y el observador vio etapas reales, en orden y hasta el final.
+  #
+  # L11 · ocho y no seis: el reparto se hizo por COSTE, no por etapas del
+  # código. Medido a escala real (5.263 CH, 200 s), la radiografía del marco se
+  # lleva el 47,6 % y la de criterios el 22,1 %; iban juntas en un solo hito que
+  # abarcaba el 64 % del build con la barra clavada al final.
   vistos <- hitos$vistos
   expect_gt(length(vistos), 0L)
   currents <- vapply(vistos, function(h) as.integer(h$current), integer(1))
   expect_identical(currents, sort(currents))
-  expect_identical(max(currents), 6L)
-  expect_true(all(vapply(vistos, function(h) identical(as.integer(h$total), 6L), logical(1))))
+  expect_identical(max(currents), 8L)
+  expect_true(all(vapply(vistos, function(h) identical(as.integer(h$total), 8L), logical(1))))
   expect_true(all(nzchar(vapply(vistos, function(h) as.character(h$message), character(1)))))
 })
 
