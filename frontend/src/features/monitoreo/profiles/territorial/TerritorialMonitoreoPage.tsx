@@ -71,6 +71,7 @@ import {
   seccionInicialMonitoreo,
   useMonitoreoDireccion,
 } from "../../useMonitoreoDireccion";
+import { describirFilasDeFase } from "./filasDeFase";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { territorialDurationOperationalStatusFromValues } from "../../territorialDuration";
 import {
@@ -248,6 +249,10 @@ function territorialPhaseHealthForState(
 
 function territorialPhaseBadgeLabel(item: MonitoreoTerritorialPhaseCoherenceItem | null) {
   if (!item) return "Sin diagnóstico";
+  // El mismo criterio que la consola: cuando el corte de la fase deja filas
+  // fuera, el badge dice las dos cifras y no sólo la mayor.
+  const filas = describirFilasDeFase(item, item.label || "");
+  if (filas) return filas.badge;
   switch (item.status) {
     case "source_not_applied":
       return "Sin fuente";

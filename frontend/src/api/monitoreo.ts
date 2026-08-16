@@ -509,6 +509,9 @@ export type MonitoreoTerritorialPhaseCoherenceItem = {
   source_id: string;
   source_asset_uid?: string;
   local_rows: number;
+  /** Las que llegan al reporte tras el corte de la fase. El motor las manda
+      desde siempre; hasta 2026-08-16 no las leía nadie. */
+  report_rows?: number | null;
   dashboard_rows?: number | null;
   snapshot_total_rows: number;
   snapshot_synced_at: string;
