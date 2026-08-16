@@ -171,3 +171,54 @@ test_that("las dos reglas ya no figuran como no cubiertas", {
   expect_false(any(grepl("^R4|^R7", nc)))
   expect_true(any(grepl("^R6|^R8|^R9|^R10", nc)))
 })
+
+# --- R9: una cifra blanca sobre un tramo claro no se lee ---------------------
+
+.forma <- function(x, y, w, h, col, texto = "") {
+  list(x = x, y = y, w = w, h = h, col = col, texto = texto)
+}
+
+test_that("una cifra blanca sobre naranja cuenta como ilegible", {
+  # Es la regresión posible de la receta 4: al pasar el extremo negativo de rojo
+  # oscuro a naranja claro, la cifra blanca que se leía deja de leerse.
+  formas <- list(
+    .forma(1, 1, 2, 0.4, "F4B183"),
+    .forma(1.8, 1.1, 0.3, 0.2, "FFFFFF", "8%")
+  )
+  expect_identical(.verif_texto_ilegible(formas), 1L)
+})
+
+test_that("una cifra blanca sobre verde oscuro se lee", {
+  formas <- list(
+    .forma(1, 1, 2, 0.4, "70AD47"),
+    .forma(1.8, 1.1, 0.3, 0.2, "FFFFFF", "46%")
+  )
+  expect_identical(.verif_texto_ilegible(formas), 0L)
+})
+
+test_that("se cruza por POSICION, no por orden en el XML", {
+  # El método por forma devuelve el relleno de la propia caja, no el del
+  # segmento de debajo: por eso el recetario no pudo medirlo. Una cifra fuera
+  # del segmento claro no cuenta aunque esté declarada justo al lado.
+  formas <- list(
+    .forma(1, 1, 2, 0.4, "F4B183"),
+    .forma(9, 1.1, 0.3, 0.2, "FFFFFF", "8%")
+  )
+  expect_identical(.verif_texto_ilegible(formas), 0L)
+})
+
+test_that("sin tramos claros no hay nada ilegible", {
+  formas <- list(.forma(1, 1, 0.3, 0.2, "FFFFFF", "8%"))
+  expect_identical(.verif_texto_ilegible(formas), 0L)
+  expect_identical(.verif_texto_ilegible(list()), 0L)
+})
+
+test_that("cuenta cada cifra, no solo si hay alguna", {
+  formas <- list(
+    .forma(1, 1, 4, 0.4, "FFD965"),
+    .forma(1.5, 1.1, 0.3, 0.2, "FFFFFF", "8%"),
+    .forma(2.5, 1.1, 0.3, 0.2, "FFFFFF", "9%"),
+    .forma(3.5, 1.1, 0.3, 0.2, "FFFFFF", "7%")
+  )
+  expect_identical(.verif_texto_ilegible(formas), 3L)
+})
