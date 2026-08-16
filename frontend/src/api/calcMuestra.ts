@@ -1890,6 +1890,76 @@ export type CalcMuestraSessionTypeImpacto = {
  * los números pueden llegar como strings y los NA como "NA". Payload ausente o
  * sin forma reconocible ⇒ null (la tarjeta se comporta como hoy: sin aviso).
  */
+/**
+ * Recorte de cada criterio de ALUMNO, tal como lo publica el motor en
+ * `frame.criterios_alumno_report`.
+ *
+ * El motor lo calcula desde hace tiempo (`calc_muestra_aulas.R:1520`) y hasta
+ * 2026-08-16 no estaba ni tipado aquí: el desglose no llegaba a ninguna
+ * pantalla. La UI mostraba el agregado —cuántos estudiantes quedan— pero no
+ * cuánto se llevó cada criterio, que es lo que hace falta para decidir uno.
+ *
+ * Medido sobre el proyecto real de 2025-2: `age` recorta 12.924 filas,
+ * `condition` 12.117, `formation` 11.281, `faculty` 8.266 y `level` **0** — un
+ * criterio activo que no muerde y que sólo se detectaba calculándolo a mano.
+ */
+export type CalcMuestraCriterioAlumnoReporte = {
+  /** Id de la variable: `age`, `condition`, `formation`, `faculty`, `level`. */
+  id: string;
+  /** `marco` recorta la población; `instrumento`/`procesamiento` sólo se reportan. */
+  layer: string;
+  /** Filas (alumno x curso-horario) que el criterio deja pasar. */
+  filas_pasan: number;
+};
+
+export type CalcMuestraCriteriosAlumnoReporte = {
+  /** Si hay algún criterio de alumno en la suite. Sin ella, nada recorta. */
+  activa: boolean;
+  criterios: CalcMuestraCriterioAlumnoReporte[];
+};
+
+/**
+ * Normaliza el reporte. Devuelve `null` si el frame no lo trae —frames
+ * anteriores al contrato— para que la superficie distinga «no se midió» de
+ * «midió cero», que es justo la distinción que este dato existe para hacer.
+ */
+export function normalizeCalcMuestraCriteriosAlumnoReporte(
+  raw: unknown,
+): CalcMuestraCriteriosAlumnoReporte | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const unwrap = (v: unknown): unknown => (Array.isArray(v) ? (v.length > 0 ? v[0] : null) : v);
+  const root = raw as Record<string, unknown>;
+  const criteriosRaw = unwrap(root.criterios);
+  if (criteriosRaw == null || typeof criteriosRaw !== "object") return null;
+
+  const criterios: CalcMuestraCriterioAlumnoReporte[] = [];
+  for (const [id, valor] of Object.entries(criteriosRaw as Record<string, unknown>)) {
+    const fila = unwrap(valor);
+    if (fila == null || typeof fila !== "object") continue;
+    const f = fila as Record<string, unknown>;
+    const pasanRaw = unwrap(f.filas_pasan);
+    const pasan = typeof pasanRaw === "number"
+      ? pasanRaw
+      : typeof pasanRaw === "string" ? Number(pasanRaw.trim()) : Number.NaN;
+    // Sin conteo no hay recorte que mostrar: la fila se descarta en vez de
+    // publicar un 0, que afirmaría que el criterio no dejó pasar a nadie.
+    if (!Number.isFinite(pasan)) continue;
+    const layerRaw = unwrap(f.layer);
+    criterios.push({
+      id,
+      layer: typeof layerRaw === "string" && layerRaw !== "NA" ? layerRaw : "marco",
+      filas_pasan: pasan,
+    });
+  }
+  if (!criterios.length) return null;
+
+  const activaRaw = unwrap(root.activa);
+  return {
+    activa: activaRaw === true || activaRaw === "TRUE",
+    criterios,
+  };
+}
+
 export function normalizeCalcMuestraSessionTypeImpacto(
   raw: unknown,
 ): CalcMuestraSessionTypeImpacto | null {
