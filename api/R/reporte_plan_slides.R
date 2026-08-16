@@ -1349,6 +1349,203 @@ p_slide_2_graficos_asimetrico <- function(
   ))
 }
 
+#' Tres franjas + ícono (población)
+#'
+#' Ícono a la izquierda y tres franjas anchas: cuando las categorías son largas, el ancho vale más que el alto.
+#'
+#' @param superior,medio,inferior Los paneles, en el orden de los huecos del layout.
+#' @param titulo Título de la lámina. @param icono Elemento de ícono, opcional.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_poblacion_tira <- function(
+    superior,
+    medio,
+    inferior,
+    titulo = NULL,
+    icono = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior, "superior")
+  .ppt_chk_element(medio, "medio")
+  .ppt_chk_element(inferior, "inferior")
+  if (!is.null(icono)) .ppt_chk_element(icono, "icono")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "poblacion_3_tira",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      superior             = superior,
+      medio                = medio,
+      inferior             = inferior,
+      icon                 = icono,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Tres gráficos alrededor del ícono
+#'
+#' El ícono al centro y los tres alrededor: la composición dice que describen al mismo sujeto, no una secuencia.
+#'
+#' @param superior_izquierda,superior_derecha,inferior Los paneles, en el orden de los huecos del layout.
+#' @param titulo Título de la lámina. @param icono Elemento de ícono, opcional.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_poblacion_corona <- function(
+    superior_izquierda,
+    superior_derecha,
+    inferior,
+    titulo = NULL,
+    icono = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior_izquierda, "superior_izquierda")
+  .ppt_chk_element(superior_derecha, "superior_derecha")
+  .ppt_chk_element(inferior, "inferior")
+  if (!is.null(icono)) .ppt_chk_element(icono, "icono")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "poblacion_3_corona",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      superior_izquierda   = superior_izquierda,
+      superior_derecha     = superior_derecha,
+      inferior             = inferior,
+      icon                 = icono,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Tres gráficos + cifras + ícono
+#'
+#' Como la de perfil, más dos cifras sueltas bajo el ícono: el N del público, la tasa de respuesta.
+#'
+#' @param superior_izquierda,derecha,cifra_superior,inferior_izquierda,cifra_inferior Los paneles, en el orden de los huecos del layout.
+#' @param titulo Título de la lámina. @param icono Elemento de ícono, opcional.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_3_graficos_poblacion_cifras <- function(
+    superior_izquierda,
+    derecha,
+    cifra_superior,
+    inferior_izquierda,
+    cifra_inferior,
+    titulo = NULL,
+    icono = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(superior_izquierda, "superior_izquierda")
+  .ppt_chk_element(derecha, "derecha")
+  .ppt_chk_element(cifra_superior, "cifra_superior")
+  .ppt_chk_element(inferior_izquierda, "inferior_izquierda")
+  .ppt_chk_element(cifra_inferior, "cifra_inferior")
+  if (!is.null(icono)) .ppt_chk_element(icono, "icono")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "poblacion_3_cifras",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      superior_izquierda   = superior_izquierda,
+      derecha              = derecha,
+      cifra_superior       = cifra_superior,
+      inferior_izquierda   = inferior_izquierda,
+      cifra_inferior       = cifra_inferior,
+      icon                 = icono,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
+#' Banda de cifras + dos gráficos
+#'
+#' Tres cifras destacadas arriba y dos gráficos debajo, para láminas de cierre donde el titular es un número.
+#'
+#' @param cifra_izquierda,cifra_centro,cifra_derecha,grafico_izquierda,grafico_derecha Los paneles, en el orden de los huecos del layout.
+#' @param titulo Título de la lámina.
+#' @param base Nota de base, texto o elemento.
+#' @param meta Metadatos de la lámina.
+#'
+#' @family reporte
+#' @export
+p_slide_cifras_y_graficos <- function(
+    cifra_izquierda,
+    cifra_centro,
+    cifra_derecha,
+    grafico_izquierda,
+    grafico_derecha,
+    titulo = NULL,
+    base = NULL,
+    meta = list()
+) {
+  .ppt_chk_element(cifra_izquierda, "cifra_izquierda")
+  .ppt_chk_element(cifra_centro, "cifra_centro")
+  .ppt_chk_element(cifra_derecha, "cifra_derecha")
+  .ppt_chk_element(grafico_izquierda, "grafico_izquierda")
+  .ppt_chk_element(grafico_derecha, "grafico_derecha")
+  .ppt_chk_meta(meta)
+
+  titulo <- .ppt_norm_text1(titulo, blank = NULL)
+  if (!is.null(base)) {
+    .ppt_chk_element_or_text(base, "base")
+    if (is.character(base)) base <- .ppt_norm_text1(base, blank = NULL)
+  }
+
+  .ppt_as_slide(list(
+    .slide_type = "cifras_y_graficos",
+    title       = titulo,
+    slots       = list(
+      title                = titulo,
+      cifra_izquierda      = cifra_izquierda,
+      cifra_centro         = cifra_centro,
+      cifra_derecha        = cifra_derecha,
+      grafico_izquierda    = grafico_izquierda,
+      grafico_derecha      = grafico_derecha,
+      base                 = base
+    ),
+    meta = meta
+  ))
+}
+
 #' Lámina de perfil con tres gráficos: dos apilados y uno alto
 #'
 #' Dos paneles a la izquierda, uno arriba y otro abajo, y un tercero a la

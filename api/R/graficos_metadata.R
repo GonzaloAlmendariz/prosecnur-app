@@ -720,6 +720,73 @@
     ))
   ),
 
+  p_slide_3_graficos_poblacion_tira = list(
+    titulo_humano = "Tres franjas + ícono (población)",
+    descripcion   = "Ícono a la izquierda y tres franjas anchas: cuando las categorías son largas, el ancho vale más que el alto.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "poblacion",
+    render_key    = "poblacion_3_tira",
+    blueprint     = list(kind = "population3_row", ppt_layout = "poblacion_3_tira", structure_label = "Tres franjas + ícono"),
+    slot_specs    = list(
+      superior = list(role = "chart", label = "Superior"),
+      medio = list(role = "chart", label = "Medio"),
+      inferior = list(role = "chart", label = "Inferior"),
+      icono = list(role = "icon", label = "Ícono")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+  ),
+
+  p_slide_3_graficos_poblacion_corona = list(
+    titulo_humano = "Tres gráficos alrededor del ícono",
+    descripcion   = "El ícono al centro y los tres alrededor: la composición dice que describen al mismo sujeto, no una secuencia.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "poblacion",
+    render_key    = "poblacion_3_corona",
+    blueprint     = list(kind = "population3_crown", ppt_layout = "poblacion_3_corona", structure_label = "Ícono central + tres"),
+    slot_specs    = list(
+      superior_izquierda = list(role = "chart", label = "Superior izquierda"),
+      superior_derecha = list(role = "chart", label = "Superior derecha"),
+      inferior = list(role = "chart", label = "Inferior"),
+      icono = list(role = "icon", label = "Ícono")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+  ),
+
+  p_slide_3_graficos_poblacion_cifras = list(
+    titulo_humano = "Tres gráficos + cifras + ícono",
+    descripcion   = "Como la de perfil, más dos cifras sueltas bajo el ícono: el N del público, la tasa de respuesta.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "poblacion",
+    render_key    = "poblacion_3_cifras",
+    blueprint     = list(kind = "population3_kpi", ppt_layout = "poblacion_3_cifras", structure_label = "Ícono + cifras + tres"),
+    slot_specs    = list(
+      superior_izquierda = list(role = "chart", label = "Superior izquierda"),
+      derecha = list(role = "chart", label = "Derecha"),
+      cifra_superior = list(role = "chart", label = "Cifra superior"),
+      inferior_izquierda = list(role = "chart", label = "Inferior izquierda"),
+      cifra_inferior = list(role = "chart", label = "Cifra inferior"),
+      icono = list(role = "icon", label = "Ícono")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "icono", "base"))
+  ),
+
+  p_slide_cifras_y_graficos = list(
+    titulo_humano = "Banda de cifras + dos gráficos",
+    descripcion   = "Tres cifras destacadas arriba y dos gráficos debajo, para láminas de cierre donde el titular es un número.",
+    icono_ui      = "LayoutGrid",
+    categoria     = "2graficos",
+    render_key    = "cifras_y_graficos",
+    blueprint     = list(kind = "kpi_band", ppt_layout = "cifras_y_graficos", structure_label = "Banda de cifras + dos"),
+    slot_specs    = list(
+      cifra_izquierda = list(role = "chart", label = "Cifra izquierda"),
+      cifra_centro = list(role = "chart", label = "Cifra centro"),
+      cifra_derecha = list(role = "chart", label = "Cifra derecha"),
+      grafico_izquierda = list(role = "chart", label = "Grafico izquierda"),
+      grafico_derecha = list(role = "chart", label = "Grafico derecha")
+    ),
+    args = .args_slide_poblacion_basico(c("titulo", "base"))
+  ),
+
   p_slide_3_graficos_2mas1 = list(
     titulo_humano = "Tres gráficos: dos apilados + uno alto",
     descripcion   = "Dos paneles apilados a la izquierda y uno alto a la derecha, sin ícono.",

@@ -21,7 +21,11 @@
   graficos_3_fila = c("izquierda", "centro", "derecha"),
   graficos_3_1arriba = c("superior", "inferior_izquierda", "inferior_derecha"),
   graficos_2_vertical = c("superior", "inferior"),
-  graficos_2_asimetrico = c("principal", "apoyo")
+  graficos_2_asimetrico = c("principal", "apoyo"),
+  poblacion_3_tira = c("superior", "medio", "inferior"),
+  poblacion_3_corona = c("superior_izquierda", "superior_derecha", "inferior"),
+  poblacion_3_cifras = c("superior_izquierda", "derecha", "cifra_superior", "inferior_izquierda", "cifra_inferior"),
+  cifras_y_graficos = c("cifra_izquierda", "cifra_centro", "cifra_derecha", "grafico_izquierda", "grafico_derecha")
 )
 
 #' Renderiza una lámina de composición
@@ -92,6 +96,14 @@
   for (nm in nombres) {
     doc <- helpers$ph_with_strict(doc, helpers$dml_o_tabla(rendered[[nm]]),
                                   contract$slots[[nm]])
+  }
+
+  icono <- slots$icon %||% NULL
+  if (!is.null(icono) && !is.null(contract$slots$icon)) {
+    p_icon <- helpers$render_element(icono, ancho_slot = 1.9)
+    if (!is.null(p_icon)) {
+      doc <- helpers$ph_with_strict(doc, helpers$dml_o_tabla(p_icon), contract$slots$icon)
+    }
   }
 
   base <- slots$base %||% NULL
