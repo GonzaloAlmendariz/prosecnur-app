@@ -77,26 +77,25 @@ export function materialFieldCanvasLabel(field: CollectionMaterialField): string
   return field.label ? `${field.label} (${field.binding})` : field.binding;
 }
 
-export const DEFAULT_COLLECTION_TEMPLATE: CollectionMaterialTemplate = {
+// Semilla vacía: sólo ocupa el reducer hasta que resuelve el GET, y no se
+// dibuja nunca (el componente corta en `loading`).
+//
+// Aquí vivía una `DEFAULT_COLLECTION_TEMPLATE` completa que parecía la ficha de
+// la casa y no lo era: el backend siempre responde una plantilla —cae a
+// `collection_material_builtin_template()`—, así que su rama de fallback era
+// inalcanzable y nadie la mantenía. Había derivado hasta tener otro
+// `template_id`, otra revisión, campos sin etiqueta y ni separador ni registro
+// de aplicación. Una segunda fuente de verdad que nadie consulta no se
+// sincroniza: se borra, porque el día que alguien la lea va a creerle.
+const TEMPLATE_PLACEHOLDER: CollectionMaterialTemplate = {
   schema: "collection_material_template/v1",
-  template_id: "template-ficha-aplicacion",
+  template_id: "",
   revision: 1,
   preset_id: "ficha_aplicacion_a4_v1",
   material_kind: "application_sheet",
-  compatible_adapters: ["aulas_v1", "kobo_existing_v1", "manual_links_v1"],
+  compatible_adapters: [],
   page: { size: "A4", orientation: "portrait" },
-  pages: [{
-    page_id: "ficha",
-    layout_preset: "single_sheet",
-    blocks: [
-      { block_id: "brand", type: "brand_header", required: true },
-      { block_id: "title", type: "heading", text: "Ficha de aplicación" },
-      { block_id: "unit", type: "field_grid", fields: ["unit.label", "unit.schedule", "unit.venue"] },
-      { block_id: "qr", type: "access_qr", binding: "access.qr_payload", required: true },
-      { block_id: "instructions", type: "instructions", text: "Escanea el QR para responder." },
-      { block_id: "footer", type: "footer", binding: "deployment.deployment_id" },
-    ],
-  }],
+  pages: [{ page_id: "ficha", layout_preset: "single_sheet", blocks: [] }],
   brand_ref: "pulso-default",
   sensitivity_policy: "operational",
 };
@@ -148,8 +147,8 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
 }
 
 export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifact }: Props) {
-  const [history, dispatch] = useReducer(templateHistoryReducer, DEFAULT_COLLECTION_TEMPLATE, createTemplateHistory);
-  const [selectedId, setSelectedId] = useState(DEFAULT_COLLECTION_TEMPLATE.pages[0].blocks[0].block_id);
+  const [history, dispatch] = useReducer(templateHistoryReducer, TEMPLATE_PLACEHOLDER, createTemplateHistory);
+  const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [instances, setInstances] = useState<CollectionMaterialInstance[]>([]);
@@ -171,9 +170,14 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     void apiRecopiladoresMaterialTemplateGet()
       .then((result) => {
         if (!alive) return;
-        const loaded = result.template ?? DEFAULT_COLLECTION_TEMPLATE;
-        dispatch({ type: "replace", template: loaded });
-        setSelectedId(loaded.pages[0]?.blocks[0]?.block_id ?? "");
+        // Sin plantilla no se inventa una: el editor guardaría sobre el estado
+        // real una ficha que el motor nunca produjo.
+        if (!result.template) {
+          setError("El backend respondió sin plantilla; no se abre el editor para no guardar una receta inventada.");
+          return;
+        }
+        dispatch({ type: "replace", template: result.template });
+        setSelectedId(result.template.pages[0]?.blocks[0]?.block_id ?? "");
       })
       .catch((cause) => {
         if (alive) setError(cause instanceof Error ? cause.message : "No se pudo leer la plantilla.");
