@@ -26,7 +26,9 @@
        course_name = "Curso 6", teacher = "Docente 6", faculty = "Letras",
        sample_role = "chain_reserve", replacement_for = "CH 4", wave = "M1",
        orden = 6, eligible_n = 22, enrolled_total = 24, expected_valid = 16,
-       sample_status = "en_reserva", contact_attempts = 1)
+       sample_status = "en_reserva", contact_attempts = 1,
+       # El lector de «Aulas Agendadas» guarda la columna OBSERVACIONES aqui.
+       replacement_note = "El docente pidio reprogramar")
 )
 
 .rt_partes <- function() list(
@@ -105,4 +107,14 @@ test_that("un libro nuevo sigue saliendo con las columnas de la persona vacias",
   expect_length(v$partes, 0L)
   # Pero la identidad del plan sigue completa.
   expect_identical(sort(.rt_campo(v$plan, "operational_code")), c("CH 1", "CH 4", "R 4.1"))
+})
+
+test_that("las observaciones del agendamiento sobreviven al round-trip", {
+  # El lector guarda la columna OBSERVACIONES en `replacement_note` y el
+  # generador leia `notes`: 190 observaciones del estudio de 2025 se perdian en
+  # cada regeneracion. El control: leyendo solo `notes`, esto sale vacio.
+  v <- .rt_vuelta()
+  notas <- .rt_campo(v$plan, "replacement_note")
+  codigos <- .rt_campo(v$plan, "operational_code")
+  expect_identical(unname(setNames(notas, codigos)[["R 4.1"]]), "El docente pidio reprogramar")
 })

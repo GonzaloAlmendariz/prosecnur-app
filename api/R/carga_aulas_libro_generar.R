@@ -80,11 +80,14 @@ aulas_libro_hoja_agendadas <- function(unidades) {
         # curso: regenerar el libro de un estudio en marcha perdia los estados
         # de agendamiento y el ciclo de contacto de todas las aulas. Un libro
         # nuevo no trae estos campos y sale en blanco igual que antes.
+        # `notes` o `replacement_note`: el lector de «Aulas Agendadas» guarda la
+        # columna OBSERVACIONES en `replacement_note`, asi que leer solo `notes`
+        # perdia las 190 observaciones del estudio de 2025 en cada regeneracion.
         .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
         .calg_num_txt(u$contact_attempts), .calg_txt(u$sample_status),
         .calg_txt(u$scheduled_date), .calg_txt(u$scheduled_day), .calg_txt(u$scheduled_time),
         .calg_txt(u$link),
-        .calg_txt(u$notes)
+        .calg_txt(u$notes %||% u$replacement_note)
       )
     }), use.names = FALSE)
     c(as.character(i), celdas)
@@ -178,7 +181,7 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
       .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
       .calg_num_txt(u$contact_attempts), .calg_txt(u$sample_status),
       .calg_txt(u$scheduled_date), .calg_txt(u$scheduled_day), .calg_txt(u$scheduled_time),
-      .calg_txt(u$link), .calg_txt(u$notes),
+      .calg_txt(u$link), .calg_txt(u$notes %||% u$replacement_note),
       # Parte de campo del primer intento: los dos denominadores como referencia
       # y lo que ya se haya registrado. Ver la nota de la hoja de agendamiento.
       .cap_celdas_parte(por_aula[[sprintf("%s#1", .calg_txt(u$operational_code))]], u, titulos_campo)

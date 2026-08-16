@@ -33,7 +33,7 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. |
 | **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
 | **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. **Comprobada a medias (2026-08-16)**: los tres campos que faltaban ya están en la app; queda el desglose hombres/mujeres, que vive sólo en la ficha impresa. |
-| **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Importar el libro real deja el plan, el agendamiento y el parte de campo en el `.pulso`, y sus totales cuadran con los del Excel. |
+| **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Los totales del lector cuadran con un conteo independiente del Excel real. **Comprobada (2026-08-16)**: 1012 unidades, 766 enlaces, 230 estados y 190 observaciones, todos coincidentes celda a celda. |
 | **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
 | **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
 | **V12** | La app **produce** el libro que el equipo llena, y lo **vuelve a leer**. | Generar y reimportar cierra el círculo sin perder la cadena ni los enlaces **ni el trabajo ya hecho**: estados de agendamiento, ciclo de contacto y partes de campo. **Comprobada (2026-08-16)** con round-trip sobre un `.pulso` real. |
@@ -115,6 +115,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L44** | Regenerar el libro **borraba el operativo en curso**. | El generador escribía las columnas de la persona siempre en blanco, así que un estudio en marcha perdía los 7 estados de agendamiento, los 7 contadores de intentos y los 3 partes de campo. Además la hoja de campo filtraba por `sample_role == "titular"`, así que el parte de una reserva activada no se escribía. | ☑ **hecho** (2026-08-16) — 3/3 partes y 7/7 estados sobreviven. |
 | **L45** | El registro de la app capturaba **menos que el parte**. | Faltaban `duplicates`, `effective_surveys` y `actual_room`. Sin los dos primeros, el cuadre de L33 —asistentes − rechazos − duplicados = efectivas— **no se puede comprobar sobre lo que la app captura**; y «encuestas aplicadas» no es «efectivas», que es el número que manda. | ☑ **hecho** (2026-08-16) — tres campos nuevos; el backend ya los aceptaba. |
 | **L46** | El desglose **hombres/mujeres** vive sólo en la ficha impresa. | `collection_material_field_form_rows()` lo pide en papel; no está ni en el registro de la app ni en el Excel. Puede ser deliberado —el sexo se deriva de las respuestas para las cuotas— o una fuga. | ☐ sin empezar — no lo declaro defecto sin saber para qué se usa en campo. |
+| **L47** | Las **190 observaciones** del agendamiento se perdían al regenerar. | El lector guarda la columna `OBSERVACIONES` en `replacement_note` y el generador leía `notes`. Round-trip de 40 unidades del estudio real: 11 → 0. | ☑ **hecho** (2026-08-16) — 11 → 11. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -846,3 +847,40 @@ está en ningún otro sitio. Puede ser deliberado —el sexo se deriva de las
 respuestas para las cuotas sexo×facultad— o ser una fuga real. No lo declaro
 defecto sin saber para qué lo usa el equipo en campo, que es justo lo que la
 regla de este GOAL pide anotar en vez de adivinar.
+
+
+### 2026-08-16 — V9: el lector cuadra, y mi instrumento no
+
+V9 pedía que los totales del lector cuadraran con los del Excel. Medirlos con el
+propio lector sería circular, así que conté el Excel real por un camino
+independiente. **Y el que falló fue mi conteo, no el lector.**
+
+| | Conteo independiente | Lector |
+|---|---:|---:|
+| Unidades con código | 1012 | **1012** |
+| Con enlace de ficha | 766 | **766** |
+| Con estado de muestra | 230 | **230** |
+| Partes de campo | 196 | **196** |
+| Filas de control | 194 | **194** |
+
+Mi primer intento buscó el título `STATUS MUESTRA` en la fila de cabecera y dio
+**0**. El título real es `"STATUS\nMUESTRA"`: lleva un salto de línea, y el
+lector lo normaliza antes de comparar. Estuve a punto de reportar un defecto que
+era de mi regla de medición. Lo mismo con las filas de control: el conteo crudo
+dio **40 578** porque `read_excel` arrastra el rango usado entero, y el lector
+filtra bien a 194.
+
+**Pero el barrido sí encontró L47**, y es el que importaba: la columna
+`OBSERVACIONES` del agendamiento tiene **190 celdas con contenido** en el estudio
+de 2025 —«el docente pidió reprogramar», «no contesta»— y el round-trip las
+perdía todas. El lector las guarda en `replacement_note`; el generador leía
+`notes`. **Novena aparición** del patrón productor/consumidor, y la primera que
+encuentro contra datos reales en vez de contra un fixture.
+
+Es también la contracara de L44: ese arreglo devolvió el operativo al libro, y
+este cierra la última columna que seguía cayéndose por el camino.
+
+**Nota de método**: dos veces en un mismo tick di por defectuoso lo medido
+cuando el defectuoso era el instrumento. La regla que funciona es no aceptar una
+divergencia sin antes reproducirla desde el otro lado — el conteo posicional,
+que confirmó los 230.
