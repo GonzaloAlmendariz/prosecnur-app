@@ -1056,6 +1056,10 @@
 #' @param path_salida Ruta de salida para exportaciones no-`rplot`.
 #' @param ancho,alto Dimensiones (en pulgadas) para exportación.
 #' @param alto_por_categoria Altura sugerida por categoría para el cálculo de panel en canvas.
+#' @param grosor_min_in Piso de grosor de barra en PULGADAS, no en fracción de
+#'   fila. El recetario declara 0.32 in para la familia de escala; una fracción
+#'   equivalente no protege nada, porque depende de cuánto mida la fila. `0` o
+#'   `NULL` lo desactiva. Ver `graficador_grosor_piso.R`.
 #' @param dpi Resolución para PNG.
 #'
 #' @param ppt_append Si `TRUE` y el archivo existe, agrega una diapositiva; si no, crea un nuevo PPT.
@@ -1274,6 +1278,7 @@ graficar_barras_apiladas <- function(
     ancho                 = 10,
     alto                  = 6,
     alto_por_categoria    = NULL,
+    grosor_min_in         = 0.32,
     dpi                   = 300,
 
     ppt_append            = TRUE,
@@ -1781,6 +1786,18 @@ graficar_barras_apiladas <- function(
       is.finite(grosor_eff) && grosor_eff >= 0.55 && grosor_eff <= 0.85) {
     grosor_eff <- 0.95
   }
+
+  # Piso declarado en PULGADAS (ver `graficador_grosor_piso.R`). Los pisos de
+  # arriba son fracciones de fila y no dicen nada sobre lo que se ve: 0.70 de
+  # una fila corta sigue siendo una cinta. Este traduce el piso del recetario
+  # —0.32 in en escala— a la fraccion que haga falta, sabiendo cuanto mide la
+  # fila. Se aplica al final para que no pueda bajar ninguno de los anteriores.
+  alto_por_cat_grosor <- .grosor_alto_por_categoria(
+    alto_por_categoria    = alto_por_categoria,
+    needs_tall_label_slot = needs_tall_label_slot,
+    max_lineas_eje_y      = max_lineas_eje_y_est
+  )
+  grosor_eff <- .grosor_con_piso_in(grosor_eff, alto_por_cat_grosor, grosor_min_in)
 
   label_fit_scale <- 1
   if (isTRUE(usar_canvas)) {
@@ -2712,14 +2729,13 @@ graficar_barras_apiladas <- function(
     )
   }
 
-  # alturas en pulgadas
-  alto_por_cat_eff <- alto_por_categoria %||% 0.42
-  if (isTRUE(needs_tall_label_slot)) {
-    alto_por_cat_eff <- max(
-      alto_por_cat_eff,
-      if (max_lineas_eje_y_est >= 8L) 1.06 else 0.96
-    )
-  }
+  # alturas en pulgadas — mismo helper que usó el piso de grosor, para que las
+  # dos lecturas del alto de fila no puedan divergir.
+  alto_por_cat_eff <- .grosor_alto_por_categoria(
+    alto_por_categoria    = alto_por_categoria,
+    needs_tall_label_slot = needs_tall_label_slot,
+    max_lineas_eje_y      = max_lineas_eje_y_est
+  )
   n_filas_virtuales <- if (isTRUE(usar_canvas)) y_axis_max else max(1L, n_categorias)
   h_panel_in <- if (!is.null(canvas_h_panel_in) && is.finite(canvas_h_panel_in) && canvas_h_panel_in > 0) {
     canvas_h_panel_in
