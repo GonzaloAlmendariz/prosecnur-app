@@ -608,7 +608,7 @@
     "frozen_growth_baseline": {
       "api/R/monitoreo_engine.R": 39981,
       "api/R/router_monitoreo.R": 6046,
-      "api/R/reporte_plan_ppt.R": 9510,
+      "api/R/reporte_plan_ppt.R": 9514,
       "frontend/src/features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 20486,
       "frontend/src/features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 18514,
       "frontend/src/features/monitoreo/monitoreo.css": 38160,
@@ -622,8 +622,8 @@
       "frontend/src/features/recopiladores/RecopiladoresPage.tsx": 2208,
       "frontend/src/features/recopiladores/recopiladores.css": 3311,
       "frontend/src/app/tokens.css": 553,
-      "api/R/calc_muestra_aulas.R": 5161,
-      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3979,
+      "api/R/calc_muestra_aulas.R": 5173,
+      "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3989,
       "api/R/graficador_dimensiones.R": 4948
     },
     "frozen_growth_exempt": []
