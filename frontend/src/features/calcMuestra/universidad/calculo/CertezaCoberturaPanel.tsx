@@ -60,8 +60,15 @@ function fmtBrecha(value: number | null | undefined): string {
   return value > 0 ? `+${fmtInt(value)}` : fmtInt(value);
 }
 
-function FilaCerteza({ fila }: { fila: CertezaFilaVista }) {
+function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number }) {
   const texto = ESTADO_TEXTO[fila.estado];
+  // Marcar «probabilidad baja» contra un 0,95 escrito a mano decía que el nivel
+  // es 95% pase lo que pase, y el nivel lo declara el estudio: la cabecera ya
+  // muestra «Titulares para 90%» mientras la columna seguía midiendo contra 95.
+  // Con un nivel exigido más alto, filas que NO lo alcanzan salían sin marcar.
+  const bajo = typeof fila.probabilidad_formula === "number"
+    && Number.isFinite(nivel) && nivel > 0
+    && fila.probabilidad_formula < nivel;
   return (
     <tr data-estado={fila.estado}>
       <td>
@@ -75,9 +82,7 @@ function FilaCerteza({ fila }: { fila: CertezaFilaVista }) {
       <td>{fmtInt(fila.cuota)}</td>
       <td>{fmtInt(fila.disponibles)}</td>
       <td>{fmtInt(fila.aulas_formula)}</td>
-      <td className="cmv2-certeza-prob" data-bajo={
-        typeof fila.probabilidad_formula === "number" && fila.probabilidad_formula < 0.95 ? "" : undefined
-      }>
+      <td className="cmv2-certeza-prob" data-bajo={bajo ? "" : undefined}>
         {fmtPct(fila.probabilidad_formula)}
       </td>
       <td className="cmv2-certeza-minimo">
@@ -249,7 +254,7 @@ export function CertezaCoberturaPanel({
               </thead>
               <tbody>
                 {vista.filas.map((fila) => (
-                  <FilaCerteza key={fila.key} fila={fila} />
+                  <FilaCerteza key={fila.key} fila={fila} nivel={nivelMostrado} />
                 ))}
               </tbody>
             </table>
