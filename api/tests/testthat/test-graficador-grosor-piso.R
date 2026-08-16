@@ -48,3 +48,44 @@ test_that("entradas invalidas devuelven el grosor sin tocar", {
   expect_equal(.grosor_con_piso_in(0.60, NA, 0.32), 0.60)
   expect_equal(.grosor_con_piso_in(0.60, 0, 0.32), 0.60)
 })
+
+
+test_that("el techo recorta una barra que se pasa", {
+  # Cuadrante de dos barras que estira su panel: pedia 1.68 cm y el aprobado no
+  # pasa de 1.0 en ninguna lamina.
+  alto <- 2.0
+  g <- .grosor_con_techo_in(0.90, alto, techo_in = 0.394)
+  expect_equal(.grosor_en_pulgadas(g, alto), 0.394, tolerance = 1e-9)
+})
+
+
+test_that("una barra por debajo del techo no se toca", {
+  expect_equal(.grosor_con_techo_in(0.30, 0.60, techo_in = 0.394), 0.30)
+})
+
+
+test_that("el techo se cumple siempre, a diferencia del piso", {
+  # Recortar nunca crea un problema de espacio, asi que no hay caso en que el
+  # techo se quede sin aplicar.
+  for (alto in c(0.5, 1, 2, 4)) {
+    g <- .grosor_con_techo_in(0.92, alto, techo_in = 0.394)
+    expect_lte(.grosor_en_pulgadas(g, alto), 0.394 + 1e-9)
+  }
+})
+
+
+test_that("un techo invalido deja el grosor como estaba", {
+  expect_equal(.grosor_con_techo_in(0.7, 1, techo_in = NULL), 0.7)
+  expect_equal(.grosor_con_techo_in(0.7, 1, techo_in = 0), 0.7)
+  expect_equal(.grosor_con_techo_in(0.7, NA, techo_in = 0.394), 0.7)
+})
+
+
+test_that("piso y techo se pueden componer sin pelearse", {
+  alto <- 0.42
+  g <- .grosor_con_piso_in(0.30, alto, piso_in = 0.256)
+  g <- .grosor_con_techo_in(g, alto, techo_in = 0.394)
+  medido <- .grosor_en_pulgadas(g, alto)
+  expect_gte(medido, 0.256 - 1e-9)
+  expect_lte(medido, 0.394 + 1e-9)
+})

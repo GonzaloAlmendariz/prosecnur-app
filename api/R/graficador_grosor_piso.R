@@ -18,6 +18,15 @@
 # barras se tocan y el panel se lee como un bloque.
 .GROSOR_TOPE_FRACCION <- 0.92
 
+# Techo de grosor de barra en PULGADAS. 0.394 in son 1.0 cm, que es el grosor
+# mayor que usa el entregable aprobado en cualquiera de sus laminas.
+#
+# Existe por la misma razon que el piso, del otro lado: en una lamina de cuatro
+# paneles, el cuadrante con dos barras estira su panel y sale a 1.45 o 1.68 cm
+# mientras el de cinco se queda en 0.70. Medido, el motor dispersaba 0.75-0.98
+# cm dentro de una misma lamina y el aprobado 0.12-0.29.
+.GROSOR_TECHO_IN <- 0.394
+
 
 #' Alto en pulgadas de la fila de una categoria
 #'
@@ -71,6 +80,33 @@
   # pegaria las barras entre si.
   necesaria <- piso / alto
   max(g, min(tope, necesaria))
+}
+
+
+#' Recorta el grosor cuando pasa del techo declarado
+#'
+#' El piso y el techo no son simetricos: el piso es un objetivo que puede no
+#' alcanzarse —si la fila es corta, no hay grosor que la agrande sin pegar las
+#' barras—, mientras el techo si se cumple siempre, porque recortar nunca crea
+#' un problema de espacio.
+#'
+#' @param grosor_eff Grosor en unidades ggplot (fraccion de la fila).
+#' @param alto_por_cat Alto de la fila, en pulgadas.
+#' @param techo_in Techo declarado, en pulgadas. `NULL` o `<= 0` lo desactiva.
+#' @return Grosor en unidades ggplot, nunca mayor que el recibido.
+#' @keywords internal
+.grosor_con_techo_in <- function(grosor_eff, alto_por_cat,
+                                 techo_in = .GROSOR_TECHO_IN) {
+  g <- suppressWarnings(as.numeric(grosor_eff)[1])
+  if (!is.finite(g) || is.na(g) || g <= 0) return(grosor_eff)
+
+  techo <- suppressWarnings(as.numeric(techo_in %||% NA_real_)[1])
+  if (!is.finite(techo) || is.na(techo) || techo <= 0) return(g)
+
+  alto <- suppressWarnings(as.numeric(alto_por_cat)[1])
+  if (!is.finite(alto) || is.na(alto) || alto <= 0) return(g)
+
+  min(g, techo / alto)
 }
 
 
