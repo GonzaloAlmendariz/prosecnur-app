@@ -494,3 +494,31 @@ Con esos campos son 30. El marco los trae como `F`/`M`.
 sustituidos por nombres propios repetidos— pero conserva la estructura: códigos,
 denominadores y composición por sexo. Para probar la costura basta; para juzgar
 el contenido de un informe, no.
+
+
+### 2026-08-16 — Por qué `hsvg2026` no puede sembrar una selección de aulas
+
+Existe `make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026`, la forma
+oficial de poner una selección en el proyecto de referencia. **Falla**, y el
+mensaje mandaba a revisar lo único que estaba bien:
+
+> El marco reconstruido sigue sin ids de alumno; revisa `mapping$student_id`.
+
+El mapeo es correcto. Medido: la hoja `MATRICULADO` trae **136 284 filas con
+29 083 códigos distintos**, el mapeo apunta a `Código PUCP` y esa columna existe
+y está llena. Lo que pasa es otra cosa: en un proyecto de referencia los ids de
+alumno **se subrogan** —`unique_student_hash` queda con sus 5263 valores y
+`unique_student_ids` con 5263 cadenas vacías— porque son PII y no viajan. El
+descuento secuencial los necesita, así que la siembra no puede correr ahí.
+
+**No es un defecto: es la consecuencia de anonimizar.** El defecto era el aviso,
+que ahora distingue los dos casos —anonimizado con hash, o mapeo realmente mal— y
+dice cuál tiene delante.
+
+Gasté cuatro comprobaciones siguiendo la pista falsa que el propio mensaje daba;
+por eso vale la pena que un aviso nombre la causa y no sólo el síntoma.
+
+**Consecuencia para el GOAL**: la costura sobre datos reales se corre tomando
+aulas del marco (5263 reales, 2373 elegibles), no de una selección sembrada.
+Prueba que el circuito aguanta identificadores y escala de verdad, que es lo que
+importa aquí.
