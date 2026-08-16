@@ -2725,12 +2725,12 @@ graficar_barras_apiladas <- function(
   # linea fina y cada caja con su cota en pulgadas— y no como un subrayador.
   # Antes habia que exportar y medir el XML en EMU para saber cuanto media un
   # hueco; ahora lo dice la propia caja.
-  .ph_border <- function(x, y, w, h, etiqueta = NULL) {
+  .ph_border <- function(x, y, w, h, etiqueta = NULL, nota = NULL) {
     grobs <- .guia_ph_grobs(
       x = x, y = y, w = w, h = h,
       ancho_in = suppressWarnings(as.numeric(ancho)[1]),
       alto_in  = suppressWarnings(as.numeric(alto)[1]),
-      etiqueta = etiqueta,
+      etiqueta = etiqueta, nota = nota,
       col = debug_ph_col %||% .GUIA_COL,
       lwd = debug_ph_lwd %||% .GUIA_LWD
     )
@@ -3033,7 +3033,10 @@ graficar_barras_apiladas <- function(
       )
     }
 
-    if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_header0, 1, header_h)
+    if (debug_ph_bordes) {
+      canvas <- canvas + .ph_border(0, y_header0, 1, header_h, etiqueta = "cabecera",
+                                    nota = .guia_nota(texto_pt = size_titulo))
+    }
   }
 
   # TOP ROW (título extra)
@@ -3142,7 +3145,14 @@ graficar_barras_apiladas <- function(
   if (debug_ph_bordes) {
     # borde total (ya lo tienes abajo; si quieres, lo puedes dejar duplicado o remover el viejo)
     canvas <- canvas +
-      .ph_border(x_bars0, y_main0,      w_bars, main_h) +
+      # El area de barras es la unica caja que puede decir las dos cosas: el
+      # cuerpo con que se escriben las cifras dentro de la barra y el grosor de
+      # la barra misma, que es `grosor_eff` de su fila en pulgadas.
+      .ph_border(x_bars0, y_main0, w_bars, main_h, etiqueta = "barras",
+                 nota = .guia_nota(
+                   texto_pt = suppressWarnings(as.numeric(size_texto_barras)[1]) * 2.845,
+                   barra_in = grosor_eff * alto_por_cat_grosor
+                 )) +
       .ph_border(x_bars0, y_padtop0,    w_bars, h_padtop) +
       .ph_border(x_bars0, y_bars_area0, w_bars, h_bars_area) +
       .ph_border(x_bars0, y_padbot0,    w_bars, h_padbot)
@@ -3307,12 +3317,15 @@ graficar_barras_apiladas <- function(
 
   if (debug_ph_bordes) {
     canvas <- canvas +
-      .ph_border(x_group0, y_main0, w_group, main_h) +
+      .ph_border(x_group0, y_main0, w_group, main_h, etiqueta = "grupo",
+                 nota = .guia_nota(texto_pt = size_titulos_grupo)) +
       .ph_border(x_buf00,  y_main0, w_buf0,  main_h) +
-      .ph_border(x_etq0,   y_main0, w_etq,   main_h) +
+      .ph_border(x_etq0,   y_main0, w_etq,   main_h, etiqueta = "eje",
+                 nota = .guia_nota(texto_pt = size_ejes_eff)) +
       .ph_border(x_buf10,  y_main0, w_buf1,  main_h) +
       .ph_border(x_buf20,  y_main0, w_buf2,  main_h) +
-      .ph_border(x_extra0, y_main0, w_extra, main_h)
+      .ph_border(x_extra0, y_main0, w_extra, main_h, etiqueta = "extra",
+                 nota = .guia_nota(texto_pt = size_barra_extra))
   }
 
   # ============================================================

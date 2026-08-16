@@ -82,6 +82,10 @@
   max(0L, min(3L, d))
 }
 
+# Cuerpo de texto de la tabla al costado, en puntos. Es el defecto: lo pisa el
+# preset (`tabla_body_size`) y, por encima, el propio elemento.
+.RADAR_MB_TEXTO_PT <- 9
+
 # Fraccion del ancho de tabla que ocupa la primera columna. Fuera de 0.2-0.8 no
 # se acepta: por debajo el nombre del tema se parte en cinco lineas y por encima
 # las cifras se apelmazan contra el borde derecho.
@@ -562,6 +566,26 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   piso <- .radar_mb_piso(datos, eje_min)
   if (piso > 0) args$limites <- c(piso / 100, 1)
   if (length(overrides)) args <- utils::modifyList(args, overrides)
+
+  # Quedarse SOLO con lo que `graficar_radar()` acepta. El preset llega con el
+  # estilo base ya heredado —`preservar_tamanos_texto`, `size_texto_barras`,
+  # `size_titulo_slide`, `size_cuerpo_slide`—, que son de los graficadores de
+  # barras y no de este; `do.call` con una sola clave ajena aborta la llamada
+  # entera con «unused arguments».
+  #
+  # Y el fallo era invisible: el despachador reintenta sin `preset_args` cuando
+  # el renderer falla, asi que la lamina salia igual, con los defectos del
+  # graficador y sin ninguna de las catorce claves `tabla_*` que el proyecto
+  # declara. Nadie veia un error; solo una tabla que no obedecia.
+  # Una funcion con `...` acepta lo que sea, asi que no hay nada que filtrar. La
+  # distincion importa: el filtro se aplica sobre la `graficar_radar` que este
+  # visible en ese momento, y filtrar contra unos formals de `...` dejaria la
+  # llamada sin argumentos.
+  fml <- names(formals(graficar_radar))
+  if (!"..." %in% fml) {
+    desconocidas <- setdiff(names(args), fml)
+    if (length(desconocidas)) args <- args[!names(args) %in% desconocidas]
+  }
   do.call(graficar_radar, args)
 }
 
@@ -722,7 +746,12 @@ p_radar_publicos <- function(
                      titulo_tema = el$tabla_titulo,
                      encabezados = el$tabla_encabezados,
                      ancho_tema = el$tabla_ancho_tema,
-                     proporcion = el$tabla_proporcion)
+                     proporcion = el$tabla_proporcion,
+                     # El elemento manda sobre el preset, y el preset sobre el
+                     # defecto: el mismo orden que el resto del motor.
+                     texto_pt = el$tabla_texto_pt %||%
+                       preset_args$tabla_body_size %||%
+                       preset_args$tabla_texto_pt %||% .RADAR_MB_TEXTO_PT)
 }
 
 # Envuelve el texto de la primera columna para que la tabla quepa en su mitad de
@@ -759,8 +788,19 @@ p_radar_publicos <- function(
 # Etiquetar los vertices seria poner 18 numeros dentro de esa banda.
 #
 # `cowplot` y `gridExtra` ya son dependencias declaradas; no se anade ninguna.
+#' Compone el radar con su tabla al costado
+#'
+#' `texto_pt` sale del preset y no de un literal. Estuvo escrito a mano —un 9
+#' fijo en el `ttheme`— y era invisible desde fuera: subir `tabla_body_size` en
+#' el proyecto no movia un punto, porque ese parametro gobierna la tabla del
+#' radar clasico y esta es la del radar multibase, que es la que atiende el modo
+#' `publicos`. Dos tablas distintas con nombres parecidos y una sola
+#' configurable.
+#'
+#' @keywords internal
 .radar_mb_componer <- function(grafico, tabla, titulo_tema = "", encabezados = list(),
-                               ancho_tema = NA_real_, proporcion = NA_real_) {
+                               ancho_tema = NA_real_, proporcion = NA_real_,
+                               texto_pt = .RADAR_MB_TEXTO_PT) {
   if (!requireNamespace("gridExtra", quietly = TRUE) ||
       !requireNamespace("cowplot", quietly = TRUE)) {
     return(grafico)
@@ -796,8 +836,11 @@ p_radar_publicos <- function(
   # alternar celda a celda —que producia un tablero de ajedrez—.
   fill_cel  <- rep(rep_len(c("white", gris), n), times = k)
 
+  base_pt <- suppressWarnings(as.numeric(texto_pt)[1])
+  if (!is.finite(base_pt) || base_pt <= 0) base_pt <- .RADAR_MB_TEXTO_PT
+
   tema <- gridExtra::ttheme_minimal(
-    base_size = 9,
+    base_size = base_pt,
     core = list(
       fg_params = list(col = navy, hjust = hjust_cel, x = x_cel),
       bg_params = list(fill = fill_cel, col = "white", lwd = 1.2)
