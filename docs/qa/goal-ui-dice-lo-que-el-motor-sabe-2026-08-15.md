@@ -54,6 +54,7 @@ sabe nada que la interfaz calle.
 | **L20** | Barrido de Analítica y Dashboard | — | ☑ hecho — **sin hallazgos**, con una limitación de medición anotada. |
 | **L22** | Analítica sobre payload poblado (lo que L20 no pudo medir) | `coberturaVariable.ts` | ☑ hecho — «0 con dato» decía tres cosas distintas. |
 | **L23** | Recontar Validación y Codificación con el criterio de fixture de L22 | `decisionCodificacion.ts` | ☑ hecho — la única con decisión abierta era la única sin chip. |
+| **L24** | Validación no tiene ningún caso real en el corpus de referencia | ADR 0043 | ⛔ bloqueado — exige decidir si se enriquece un proyecto de referencia (necesita la sal) o se acepta que Validación es sólo de tests. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ⛔ bloqueado — los trabaja la otra sesión sobre este mismo árbol. Desbloquea: que suelte esos archivos. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -113,6 +114,29 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L24 — Validación no tiene con qué medirse
+
+El mismo censo, del lado de Validación, sobre los cuatro proyectos de
+referencia:
+
+| Fenómeno | Casos |
+|---|---|
+| Reglas custom | 0 en `acnur_acg` y `acnur_pdm`; la clave ni existe en `acrconta` ni `hsvg2026` |
+| Reglas desactivadas | 0 |
+| Variables excluidas | 0 |
+| Artefactos de limpieza | ninguno en los cuatro |
+
+Es decir: **la sección «LO QUE ESTE PLAN NO CUBRE» del PDF, la lista de reglas
+desactivadas, la de variables excluidas, la banda de impacto y el cartel de
+promoción no tienen un solo caso real en el corpus**. Todo eso está verificado
+por tests unitarios y por planes armados a mano, nunca contra un proyecto.
+
+No lo arreglo por mi cuenta: la salida es enriquecer un proyecto de referencia
+con un plan de validación de verdad, y regenerar uno exige la sal
+(ADR 0043). Es una decisión, no una tarea. La alternativa —dejarlo escrito y
+aceptar que Validación se verifica sólo con tests— también es legítima, pero
+tiene que ser deliberada y no por defecto.
 
 ### L23 — el censo de estados, y lo que destapó
 
