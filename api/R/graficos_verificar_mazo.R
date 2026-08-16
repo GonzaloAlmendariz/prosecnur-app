@@ -69,6 +69,9 @@
   titulo_top_min_cm    = 0.78,
   # Proporcion de texto por debajo del minimo que el aprobado se permite.
   texto_prop_max       = 0.062,
+  # Tolerancia de dispersion de grosor DENTRO de una lamina. 0.05 cm es medio
+  # milimetro: por debajo es redondeo del render, por encima se ve.
+  grosor_dispersion_max_cm = 0.05,
   # Cifras blancas sobre un tramo claro de la rampa. El aprobado tiene CERO.
   texto_ilegible_max   = 0L,
   # Percentil 10 del aprobado. Su mediana es 4.24 cm; el motor nunca arranca
@@ -391,6 +394,14 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
           "cifra blanca sobre tramo claro")
     }
 
+    # B3: en una misma lamina, las barras miden todas lo mismo.
+    dif <- .verif_grosores_desiguales(formas)
+    if (dif > u$grosor_dispersion_max_cm) {
+      add("B3 grosores desiguales", i, round(dif, 3),
+          sprintf("<= %.2f cm", u$grosor_dispersion_max_cm),
+          "dos bloques de la misma lamina con distinto grosor")
+    }
+
     # R4: el rojo institucional es color de TITULO, no extremo de escala.
     rr <- .verif_rojo_en_rampa(xml)
     if (rr > u$rojo_en_rampa_max) {
@@ -482,6 +493,37 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     if (length(nums) >= 2L) return(nums[[2]] / .VERIF_EMU * .VERIF_CM_POR_IN)
   }
   NA_real_
+}
+
+
+#' Grosores de barra distintos dentro de una misma lamina
+#'
+#' Una lamina que mezcla una escala con una dicotomica dibuja los dos bloques en
+#' canvas separados y `plot_grid()` los escala con alturas relativas que incluyen
+#' su cromo —titulo, leyenda, columna extra—, asi que el grosor final no coincide:
+#' en «MECANISMOS DE ADMISION» las barras de escala salen a 1.19 cm y las de
+#' Si/No a 0.90, sobre la misma lamina y sin que nadie lo pidiera.
+#'
+#' Se comparan solo barras de verdad —anchas y altas— para no contar los
+#' marcadores de leyenda, que legitimamente son mas pequenos.
+#'
+#' @param formas Formas de la lamina, ya extraidas.
+#' @return Diferencia en cm entre el grosor mayor y el menor; 0 si no hay dos.
+#' @keywords internal
+.verif_grosores_desiguales <- function(formas) {
+  # Se reusa el detector de barras ya validado en vez de filtrar por tamano:
+  # con un filtro por dimensiones entraban bandas de fondo y hasta la portada,
+  # y la regla disparaba en 61 laminas —y en 56 del entregable aprobado, que es
+  # la senal de que media otra cosa—.
+  gr <- c(
+    .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA, exigir_sin_texto = TRUE)),
+    .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))
+  )
+  if (length(gr) < 2L) return(0)
+  alt <- round(vapply(gr, function(g) g$grosor, numeric(1)) * .VERIF_CM_POR_IN, 2)
+  alt <- alt[is.finite(alt) & alt > 0]
+  if (length(alt) < 2L) return(0)
+  max(alt) - min(alt)
 }
 
 
