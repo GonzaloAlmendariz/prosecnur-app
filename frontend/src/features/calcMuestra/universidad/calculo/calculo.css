@@ -100,6 +100,43 @@
   color: var(--pulso-text);
 }
 
+/* Mismo formato que el aviso de censo, en tono de advertencia y no de peligro:
+   un resultado sin margen formal es una limitación que hay que declarar, no un
+   error que impida seguir. Comparte la geometría para que la tarjeta no cambie
+   de ritmo según cuál de los dos aparezca. */
+.cmv2-calc-sin-margen {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-warn-border);
+  border-left: 3px solid var(--pulso-warn-fg);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 65%, transparent);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.cmv2-calc-sin-margen svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-calc-sin-margen > div {
+  display: grid;
+  gap: 2px;
+}
+
+.cmv2-calc-sin-margen strong {
+  display: block;
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-calc-sin-margen span {
+  color: var(--pulso-text);
+}
+
 /* Las 4 etapas del flujo (n fórmula → aulas estimadas) deben caber sin
    recorte: en anchos ajustados envuelven a una segunda fila en lugar de
    esconder la última tarjeta tras scroll. */
