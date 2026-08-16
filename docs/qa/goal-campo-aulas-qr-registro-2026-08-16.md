@@ -110,7 +110,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
 | **L40** | El alto se repartía al revés del contenido. | El stack es grid y la tabla topa en `min(420px, 100vh−430px)`: dos límites pensados para **una** tabla por vista. Con tres, grid sirve enteras a las que caben y descuenta todo el faltante de la única que excede. A 1024×600 **dos de los tres paneles colapsaban a cero** — regresión que introdujo L39. | ☑ **hecho** (2026-08-16) — paneles que no se encogen; el scroll lo absorbe su dueño ya declarado. Verificado a 1440×1000 y 1024×600. |
 | **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
-| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | Competía con la tabla por 325 px. Con pestaña propia deja de competir y su lista es alcanzable, pero el panel pide 388 px y en esa altura hay 227: **el formulario queda 161 px por debajo del corte**. | ◐ a medias (2026-08-16) — la competencia resuelta; falta que el panel quepa. |
+| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | Competía con la tabla por 325 px, y su panel traía `align-self: start`, así que tomaba su alto de **contenido** en vez del de su pista. | ☑ **hecho** (2026-08-16) — 422 → 219 px, cabe entero y el botón de guardar es alcanzable. |
 | **L43** | Dos superficies no declaraban su geometría (C1). | «Operación del plan» en Fuentes y «Aplicación por cursos-horario» en Agenda. La segunda declaraba su grid interior de tarjetas pero no la sección que las contiene: son dos superficies, no una. | ☑ **hecho** (2026-08-16) — cero sin declarar en las cinco secciones. |
 | **L44** | Regenerar el libro **borraba el operativo en curso**. | El generador escribía las columnas de la persona siempre en blanco, así que un estudio en marcha perdía los 7 estados de agendamiento, los 7 contadores de intentos y los 3 partes de campo. Además la hoja de campo filtraba por `sample_role == "titular"`, así que el parte de una reserva activada no se escribía. | ☑ **hecho** (2026-08-16) — 3/3 partes y 7/7 estados sobreviven. |
 | **L45** | El registro de la app capturaba **menos que el parte**. | Faltaban `duplicates`, `effective_surveys` y `actual_room`. Sin los dos primeros, el cuadre de L33 —asistentes − rechazos − duplicados = efectivas— **no se puede comprobar sobre lo que la app captura**; y «encuestas aplicadas» no es «efectivas», que es el número que manda. | ☑ **hecho** (2026-08-16) — tres campos nuevos; el backend ya los aceptaba. |
@@ -1064,3 +1064,30 @@ lista ya es alcanzable y scrollea. L42 baja de bloqueado a *a medias*.
 **Un intento que empeoró y revertí**: quitarle el tope a la lista para que
 llenara la vista la hizo crecer hasta sus siete aulas y el panel pasó de 388 a
 406 px — justo lo contrario de lo buscado.
+
+
+### 2026-08-16 — L42: el culpable era `align-self: start`
+
+Con la pestaña propia el registro dejó de competir, pero **seguía midiendo
+422 px donde el stack le adjudicaba 219**. Tres intentos hasta dar con la causa,
+cada uno descartado con medición:
+
+| Intento | Qué pasó |
+|---|---|
+| `overflow-y: auto` en el cuerpo | El cuerpo recibía 354 px, todo lo que pedía: nunca llegaba a scrollear |
+| `min-height: 0` en el panel | Aplicaba (`minH: 0px` confirmado) y el panel seguía en 422 |
+| Quitarle el tope a la lista | La hizo crecer a sus siete aulas: 388 → 406 px, peor |
+
+La causa era `align-self: start`, que el panel trae para no estirarse en la
+vista con tabla: con él, un ítem de grid toma su alto de **contenido** en vez
+del de su pista, así que el `minmax(0, 1fr)` de arriba no podía encogerlo. Con
+`stretch` acepta los 219 px y el desborde lo absorbe el scroll de su cuerpo —
+dueño con borde propio, sin cadena nueva hacia el shell.
+
+| | 1024×600 | 1440×1000 |
+|---|---|---|
+| Antes | 422 px, 194 fuera del shell | ok |
+| Ahora | **219 px, cabe entero** | 497 px sin scroll |
+
+`atEnd` alcanzable y el botón «Guardar registro» visible dentro del cuerpo. La
+pestaña Agenda conserva sus 7 filas: el cambio está acotado a `is-registro`.
