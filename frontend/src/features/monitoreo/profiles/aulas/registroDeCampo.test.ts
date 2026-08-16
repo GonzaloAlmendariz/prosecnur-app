@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  monitoreoPestanaDesdeParams,
+  monitoreoSeccionDesdeParams,
+} from "../../useMonitoreoDireccion";
+
+import {
   aulaNecesitaMotivo,
   aulaPuedeReemplazarse,
   cambiosDelRegistro,
@@ -125,5 +130,31 @@ describe("ofrecer el reemplazo", () => {
   it("una unidad sin cadena no tiene a quién llamar", () => {
     expect(aulaPuedeReemplazarse("sin_acceso", fila({ sample_role: "extra_reserve_pool" }))).toBe(false);
     expect(aulaPuedeReemplazarse("sin_acceso", null)).toBe(false);
+  });
+});
+
+describe("la pestaña pedida por dirección se aplica junto con su sección", () => {
+  it("no la pisa la pestaña recordada de esa sección", () => {
+    // Al saltar de `calidad` a `?seccion=consultas&pestana=reemplazos`, la
+    // sección se aplica primero y la pestaña activa pasa a ser la RECORDADA
+    // para consultas —«brechas» si era la última vista—, que se publica en la
+    // URL y pisa la pedida. La vista quedaba alcanzable por clic y no por
+    // dirección, justo lo que el contrato v3 prohíbe.
+    //
+    // El arreglo lee la pestaña de la URL dentro de `onSeccionPedida`, así que
+    // aquí se comprueba la propiedad que lo sostiene: el lector canónico
+    // encuentra la pestaña pedida en la misma URL que trae la sección.
+    const url = "?modo=aulas&seccion=consultas&pestana=reemplazos";
+    expect(monitoreoPestanaDesdeParams(url)).toBe("reemplazos");
+    expect(monitoreoSeccionDesdeParams(url)).toBe("consultas");
+
+    // `monitoreoPestanaDesdeParams` lee SÓLO el param canónico `pestana`: los
+    // alias heredados (`tab`, `step`…) no los resuelve esta función. Medido, no
+    // supuesto — el comentario anterior afirmaba lo contrario.
+    expect(monitoreoPestanaDesdeParams("?modo=aulas&seccion=consultas&tab=reemplazos")).toBeNull();
+  });
+
+  it("una sección sin pestaña no inventa ninguna", () => {
+    expect(monitoreoPestanaDesdeParams("?modo=aulas&seccion=calidad")).toBeNull();
   });
 });
