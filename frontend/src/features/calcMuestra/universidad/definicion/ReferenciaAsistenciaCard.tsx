@@ -6,6 +6,7 @@ import type {
 } from "../../../../api/calcMuestra";
 import { fmtInt, fmtPct } from "../../sharedCore";
 import "./referenciaAsistencia.css";
+import { rendimientoAgenda } from "./rendimientoAgendaModel";
 
 function rateLabel(value: number | null) {
   return value === null ? "S/D" : fmtPct(value);
@@ -82,6 +83,10 @@ export function ReferenciaAsistenciaCard({
       .filter((row) => row.fuente_publicada !== "celda")
       .map((row) => ({ dimensionKey: dimension.dimension_key, row })),
   ) ?? [];
+  const rendimiento = rendimientoAgenda(
+    referencia?.cobertura.agendados,
+    referencia?.cobertura.aplicados,
+  );
   const warnings = referencia?.advertencias
     .map((warning) => translatedWarning(warning, referencia))
     .filter((warning): warning is string => Boolean(warning)) ?? [];
@@ -155,6 +160,19 @@ export function ReferenciaAsistenciaCard({
               <span>con asistencia disponible</span>
             </article>
           </div>
+
+          {/* El cociente, que es lo que se usa para decidir. Los tres conteos de
+              arriba obligan a dividir a mano, y así fue como se comparó mal la
+              cadena de este diseño contra la del histórico: enfrentando
+              agendadas de estudios con n distintos. */}
+          {rendimiento ? (
+            <p className="cmv2-ref-asist-rendimiento" data-qa-geometry-member>
+              Por cada aula aplicada se agendaron{" "}
+              <strong>{rendimiento.porAplicada.toFixed(1)}</strong> · llegó a
+              aplicarse el <strong>{(rendimiento.tasaAplicacion * 100).toFixed(0)}%</strong>{" "}
+              de lo agendado
+            </p>
+          ) : null}
 
           <div className="cmv2-ref-asist-chain" data-qa-geometry-member>
             <div className="cmv2-ref-asist-chain-head">

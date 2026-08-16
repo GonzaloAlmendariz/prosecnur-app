@@ -349,3 +349,18 @@
     justify-items: start;
   }
 }
+
+/* El rendimiento de la agenda: cuántas aulas hubo que agendar por cada una
+   aplicada. Cuelga de los tres conteos porque responde a la misma pregunta que
+   ellos, y va en su tipografía para no competir con las cifras que resume. */
+.cmv2-ref-asist-rendimiento {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-ref-asist-rendimiento strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}

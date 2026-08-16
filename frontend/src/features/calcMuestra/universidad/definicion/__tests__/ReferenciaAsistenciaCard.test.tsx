@@ -184,6 +184,11 @@ describe("ReferenciaAsistenciaCard", () => {
     expect(html).toContain("194 agendados");
     expect(html).toContain("192 aplicados");
     expect(html).toContain("190 observados");
+    // El cociente, que es con lo que se decide la profundidad de la cadena:
+    // los tres conteos de arriba obligaban a dividir a mano.
+    expect(html).toContain("Por cada aula aplicada se agendaron");
+    expect(html).toContain("<strong>1.0</strong>");
+    expect(html).toContain("<strong>99%</strong>");
     for (const label of ["Asistencia", "Apertura", "Efectividad"]) {
       expect(html).toContain(label);
     }
@@ -215,5 +220,27 @@ describe("ReferenciaAsistenciaCard", () => {
     expect(html).toContain("publica global");
     expect(html).toContain('role="alert"');
     expect(html).not.toContain("rango_horario:manana_especial:k_9_publica_global");
+  });
+});
+
+describe("rendimiento de la agenda", () => {
+  it("no se dibuja cuando la fuente no permite calcularlo", () => {
+    // Sin aplicadas el cociente es una división por cero, y con la fuente
+    // contradiciendose —mas aplicadas que agendadas— se leeria como que sobran
+    // aulas. En los dos casos la linea desaparece en vez de afirmar algo falso.
+    const base = referencia();
+    const sinAplicadas = {
+      ...base,
+      cobertura: { ...base.cobertura, agendados: 194, aplicados: 0, observados: 0 },
+    };
+    expect(renderToStaticMarkup(<ReferenciaAsistenciaCard referencia={sinAplicadas} />))
+      .not.toContain("Por cada aula aplicada");
+
+    const contradictoria = {
+      ...base,
+      cobertura: { ...base.cobertura, agendados: 100, aplicados: 194, observados: 190 },
+    };
+    expect(renderToStaticMarkup(<ReferenciaAsistenciaCard referencia={contradictoria} />))
+      .not.toContain("Por cada aula aplicada");
   });
 });
