@@ -50,9 +50,9 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 |---|---|---|---|
 | L1 | Reunir el material de 2025 | — | ☑ **completo** (2026-08-16) · Gonzalo señaló `Historico 2025/`: la selección entera está ahí |
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ · necesita una pila SIN bootstrap; la de trabajo arranca con un `.pulso` precargado (ver abajo) |
-| L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
+| L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ☑ **cerrado** (2026-08-16) · tabla abajo; su único pendiente era el contraste de L4, que cuadró exacto |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
-| L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
+| L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ☑ **cerrado** (2026-08-16) · tabla abajo; la razón duplicada se arregló en `7ab5d3ba`, con test propio |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☑ **cerrado** (2026-08-16, `7addb99c`) · el motor publica `filas_total` y cada tarjeta de criterio de alumno dice a cuántos dejó fuera; el 0 de `level` se pinta de aviso |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **n planificado ENCONTRADO** (2026-08-16) · cuota 3.807 contra 3.303 logradas; falta correr el motor y contrastar |
@@ -450,11 +450,16 @@ consecuencias, y la segunda es la grave:
 
 Es exactamente el defecto que V3 vigila.
 
-**Arreglado (2026-08-16).** Cuando el criterio de la suite no trae umbral propio
-y hereda el del filtro legacy, **el flag se conserva y la razón se calla**: el
-corte se sigue aplicando, pero quien lo firma es el filtro de quien realmente
-vino la decisión. Con umbral propio, la suite sí publica su razón, porque
-entonces decide algo distinto.
+**Arreglado (2026-08-16) en `7ab5d3ba`.** Cuando el criterio de la suite no trae
+umbral propio y hereda el del filtro legacy, **el flag se conserva y la razón se
+calla**: el corte se sigue aplicando, pero quien lo firma es el filtro de quien
+realmente vino la decisión. Con umbral propio, la suite sí publica su razón,
+porque entonces decide algo distinto.
+
+Lo sostiene `api/tests/testthat/test-calc-muestra-min-eligible-razon-unica.R`,
+que fija los tres casos: sin umbral propio la razón la publica sólo el legacy;
+el corte se sigue aplicando —callar la razón no es dejar pasar—; y con umbral
+propio la suite firma su recorte.
 
 Suite tras el cambio: **68 archivos · 4648 PASS · 0 FAIL**.
 
