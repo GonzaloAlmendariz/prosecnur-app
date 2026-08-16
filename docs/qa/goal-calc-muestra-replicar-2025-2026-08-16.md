@@ -54,7 +54,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☑ **cuadra exacto** (2026-08-16) · 21.365 = 21.365 |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☑ **cuadra exacto** (2026-08-16) · 2.468 = 2.468 |
-| L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ◐ **hallazgo** (2026-08-16) · el recorte por criterio de alumno no llega a ninguna pantalla |
+| L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ◐ **el dato ya cruza** (2026-08-16) · normalizador tipado con test; falta la superficie |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ◐ **calculado, sin patrón** (2026-08-16) · el `.pulso` no conserva el n de 2025 |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ◐ **reproduce exacto** (2026-08-16) · 18 facultades, 0 diferencias; falta justificar el estadístico |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ⛔ **sin patrón** (2026-08-16) · el reparto tampoco se persiste |
@@ -176,6 +176,20 @@ lo delataría de un vistazo.
 
 Los dos hallazgos son el mismo: **la superficie no distingue un criterio que
 muerde de uno que no**, y esa distinción es la vara V3 entera.
+
+### Primer paso dado: el dato ya cruza al cliente (2026-08-16)
+
+`normalizeCalcMuestraCriteriosAlumnoReporte` tipa y normaliza el reporte, con la
+regla que lo hace útil: **devuelve `null` cuando el frame no lo trae, y descarta
+un criterio cuyo conteo no venga**, en vez de publicar un `0`. Un cero afirmaría
+que el criterio no dejó pasar a nadie —lo contrario de lo que significa un
+conteo ausente—, y esa distinción entre «no se midió» y «midió cero» es
+exactamente lo que este dato existe para hacer visible.
+
+Verificado con mutante: quitando esos dos guards caen 2 de los 5 tests.
+
+**Falta la superficie**, que es donde el hallazgo se cierra de verdad: una
+columna por criterio con cuánto recorta, y un `0` visible al lado de `level`.
 
 ## L10 · el reparto de aulas por facultad (2026-08-16)
 
