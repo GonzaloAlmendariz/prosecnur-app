@@ -46,6 +46,14 @@ export function describirMarcoCartografia(frame: FrameMeta | null | undefined): 
   const piloto = Boolean(frame.pilot);
   const nota = typeof frame.note === "string" ? frame.note.trim() : "";
 
+  // En un marco piloto manda su nota, sola. Dos razones: dice que las manzanas
+  // están limitadas al piloto —lo más consecuente que hay que saber— y
+  // anteponerle la comparación la empujaba debajo de una pared de números. Y
+  // además `frame.audit` audita SIEMPRE la cartografía empaquetada completa,
+  // no el subconjunto del piloto: pegarla ahí describe un marco que no es el
+  // que está en uso.
+  if (piloto) return nota ? { resumen: nota, detalle: nota, piloto } : null;
+
   const audit = frame.audit;
   const counts = (audit?.available ? audit.status_counts : null) ?? null;
   const soloOficial = numero(counts?.official_only) ?? 0;
