@@ -45,7 +45,8 @@ sabe nada que la interfaz calle.
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
-| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y Monitoreo | ◐ a medias — seis ejes probados, ninguno colapsa. Falta el interior de los cuatro perfiles de Monitoreo, que es la superficie grande. |
+| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y Monitoreo | ◐ a medias — **un hallazgo, reparado** (`a29629e7`). Falta confirmarlo en pantalla y barrer territorial y cursos-horario. |
+| **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación y telefónico | ☐ sin empezar — el arreglo está verificado en código, CSS y test; falta verlo. El warm start de `acrconta` no terminó en la ventana de esta tanda. |
 
 ### L8 — barrido de V1, completo
 
@@ -117,11 +118,24 @@ Seis ejes probados en Carga y Monitoreo, ninguno colapsa:
 | Estado de camino de Monitoreo | `active` · `planned` | chip y tooltip distintos para cada uno |
 | Base con/sin data en Carga | binario | `Boolean(base.data_file_id)` |
 
-**Lo que falta y es lo más grande**: el interior de los cuatro perfiles de
-Monitoreo (acreditación, telefónico, territorial, cursos-horario). Cada uno
-tiene sus propios tableros y sus propias taxonomías de estado, y el histórico
-dice que ahí hubo taxonomías en conflicto —«efectivo» que es `outcome_value` y
-no un estado— así que es donde más probable es que V2 se rompa.
+**Y en los perfiles apareció el primero.** La firma dio resultado apenas se
+aplicó al interior de acreditación y telefónico:
+
+`statusTone` distingue cuatro estados —`muted` (sin meta), `complete`,
+`steady` (≥70% del objetivo) y `low` (por debajo)— y la tarjeta del panel
+Modelo los reducía a tres con un ternario local, mandando `steady` y `low` al
+mismo `is-base`, **que no tiene ninguna regla CSS**. Un actor al 95% de su meta
+y uno al 20% se veían idénticos, y el único que recibía color de alarma era el
+que no tiene meta configurada: el tono estaba invertido respecto de la urgencia.
+
+Lo que lo delata como accidente y no como decisión: la misma data se pinta con
+sus cuatro colores en `mon-actor-card`, tres mil líneas más abajo en el mismo
+archivo. Reparado en `a29629e7` pasando el tono canónico y dándole al CSS los
+acentos que faltaban, los mismos de la otra tarjeta.
+
+**Falta**: verlo en pantalla (L10) y barrer territorial y cursos-horario. El
+histórico dice que ahí hubo taxonomías en conflicto —«efectivo» que es un
+`outcome_value` y no un estado—, así que todavía hay dónde buscar.
 
 ### L7 — cómo quedó
 
