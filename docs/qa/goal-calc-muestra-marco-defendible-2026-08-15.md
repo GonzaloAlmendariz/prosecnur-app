@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | frontend (envío del workspace) | ⛔ **abierto** · causa acotada: el cliente calcula el objetivo y **no lo envía**; el backend recibe `aulas_config` vacío |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (persistencia del workspace) | ⛔ **abierto** · el cliente lo envía; el backend lo descarta al normalizar. Sospechoso: la whitelist de persistencia |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -554,8 +554,32 @@ Eso descarta también que el backend lo filtre.
 defaults; sólo devuelve `list()` cuando recibe **NULL**. Así que el backend
 nunca vio el `aulas_config`.
 
-**El defecto está en el envío, no en el cálculo ni en la persistencia del
-servidor: el cliente tiene el objetivo y no lo manda.** Lo siguiente es mirar
+**Corrección (misma sesión): el envío está bien; el defecto es del backend.**
+
+Interceptado el autosave, el POST `/api/calc-muestra/estudio` manda
+`aulas_config` con **56 claves y `n_aulas = 200`**. El cliente cumple.
+
+Prueba directa, enviando el objetivo a mano y leyendo la respuesta:
+
+| | |
+|---|---|
+| Enviado en el POST | `n_aulas = 200` |
+| Respuesta del POST | `aulas_config` con **55 claves**, `n_aulas` **AUSENTE** |
+| `GET /state` acto seguido | `aulas_config` con **0 claves** |
+
+El backend recibe el objetivo, normaliza el bloque —devuelve sus 55 claves con
+defaults— y **descarta `n_aulas` por el camino**.
+
+Ojo con la lectura ingenua del código, que me costó un turno:
+`.cm_normalize_workspace_aulas_config` (`calc_muestra_engine.R:622`) SÍ tiene una
+rama que conserva `n_aulas`, así que leerla aislada convence de que el campo
+sobrevive. No sobrevive: algo posterior lo descarta. El sospechoso es la
+whitelist de persistencia del workspace, que ya mordió antes en este repo y que
+exige registrar los campos nuevos uno a uno.
+
+Siguiente paso: encontrar esa whitelist y comprobar si `n_aulas` falta en ella.
+Si es eso, el fix es una línea — y explica por qué el objetivo nunca llegó a la
+Selección por más que se calculara. Lo siguiente es mirar
 qué payload arma el autosave del workspace — si omite `aulas_config`, si
 `setWorkspaceSiCambia` no dispara guardado, o si una escritura posterior lo pisa
 con el workspace anterior.
