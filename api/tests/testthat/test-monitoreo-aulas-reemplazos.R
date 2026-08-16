@@ -239,3 +239,39 @@ test_that("la activacion aguanta una cadena profunda de punta a punta", {
   expect_identical(fin$reservas_usadas, 11L)
   expect_match(monitoreo_aulas_activacion_texto(fin), "se habian usado 11")
 })
+
+test_that("el orden derivado vuelve al campo, no se queda en la variable local", {
+  # Servia para numerar el codigo de cadena `R n.k` pero el CAMPO seguia en 0,
+  # asi que la tabla de reemplazos mostraba «Orden en la cadena: 0» en las seis
+  # filas de una cadena de seis: justo la columna que dice cual entra ahora.
+  mk <- function(cod, rol, repl = "", i = 1, ord = NA) {
+    o <- list(classroom_id = cod, operational_code = cod, label = cod,
+              sample_role = rol, wave = "M1", orden = i, eligible_n = 28,
+              expected_valid = 20)
+    if (nzchar(repl)) o$replacement_for <- repl
+    if (!is.na(ord)) o$replacement_order <- ord
+    o
+  }
+  ordenes <- function(pl) {
+    setNames(
+      vapply(pl, function(r) as.numeric(r$replacement_order %||% NA), numeric(1)),
+      vapply(pl, function(r) as.character(r$operational_code), character(1))
+    )
+  }
+
+  sin_declarar <- monitoreo_aulas_normalize_plan(c(
+    list(mk("CH 4", "titular", i = 1)),
+    lapply(1:4, function(k) mk(sprintf("R 4.%d", k), "chain_reserve", "CH 4", 1 + k))
+  ))
+  o1 <- ordenes(sin_declarar)
+  expect_identical(unname(o1[sprintf("R 4.%d", 1:4)]), as.numeric(1:4))
+  # El titular no tiene orden en la cadena: es 0 por definicion.
+  expect_identical(unname(o1[["CH 4"]]), 0)
+
+  # Y lo declarado manda sobre lo derivado.
+  declarado <- monitoreo_aulas_normalize_plan(c(
+    list(mk("CH 4", "titular", i = 1)),
+    lapply(1:3, function(k) mk(sprintf("R 4.%d", k), "chain_reserve", "CH 4", 1 + k, ord = k * 10))
+  ))
+  expect_identical(unname(ordenes(declarado)[sprintf("R 4.%d", 1:3)]), c(10, 20, 30))
+})

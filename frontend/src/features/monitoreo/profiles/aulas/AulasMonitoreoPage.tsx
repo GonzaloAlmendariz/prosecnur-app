@@ -407,7 +407,11 @@ function renderAulasView(
           <DataTable
             rows={reemplazos}
             empty="Ningún curso-horario ha necesitado reemplazo."
-            preferredColumns={["operational_code", "replacement_for", "sample_role", "replacement_reason", "equivalence_level"]}
+            // El ORDEN y el ESTADO van delante del rol: con seis reservas del
+            // mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten
+            // en las seis filas, y lo que hay que ver es cuál sigue y cuáles ya
+            // se usaron.
+            preferredColumns={["operational_code", "replacement_for", "replacement_order", "sample_status", "sample_role", "replacement_reason"]}
           />
         </section>
         )}

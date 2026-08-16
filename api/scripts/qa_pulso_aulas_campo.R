@@ -62,10 +62,16 @@ plan <- list(
   aula("CH 3", "u-ch3", "titular", "Letras",   25, 18, "agendada", orden = 3),
   aula("CH 4", "u-ch4", "titular", "Letras",   25, 18, "reemplazada", orden = 4),
   aula("CH 5", "u-ch5", "titular", "Derecho",  40, 28, "agendada", orden = 5),
-  aula("R 4.1", "u-r41", "chain_reserve", "Letras", 22, 16, "en_reserva",
+  # Cadena de cuatro: con una sola reserva no se ve si la tabla distingue el
+  # orden ni el estado, que es justo lo que importa al decidir a quien activar.
+  aula("R 4.1", "u-r41", "chain_reserve", "Letras", 22, 16, "reemplazada",
        reemplaza = "CH 4", orden = 6),
-  aula("R 4.2", "u-r42", "chain_reserve", "Letras", 20, 14, "sin_contactar",
-       reemplaza = "CH 4", orden = 7)
+  aula("R 4.2", "u-r42", "chain_reserve", "Letras", 20, 14, "agendada",
+       reemplaza = "CH 4", orden = 7),
+  aula("R 4.3", "u-r43", "chain_reserve", "Letras", 21, 15, "en_reserva",
+       reemplaza = "CH 4", orden = 8),
+  aula("R 4.4", "u-r44", "chain_reserve", "Letras", 19, 13, "en_reserva",
+       reemplaza = "CH 4", orden = 9)
 )
 
 # --- Las respuestas ----------------------------------------------------------
