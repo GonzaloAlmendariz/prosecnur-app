@@ -64,7 +64,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
-| L30 | Separación entre premisas: 0.97 → 1.31 cm, faltan 0.45 | trade-off con el grosor | ◐ **20 → 9** |
+| L30 | Separación entre premisas: 0.97 → 1.31 cm, faltan 0.45 | **no es trade-off**: sobran 1.88 cm de panel | ◐ **20 → 9** |
 | L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
@@ -874,3 +874,28 @@ De los 8 geométricos sin cerrar: 2 son circulares (R6), 2 el arranque vertical
 (R8) y 3 la separación entre premisas (B2) —las tres reglas que el verificador
 aún no mide— y 1 es la variante de Top Two Box que suma 100 %, que es capacidad
 nueva del motor.
+
+### L30: el trade-off no existe, y las dos hipótesis eran falsas
+
+Subir el aire entre premisas bajó B2 de 20 a 9 pero encogió el grosor de 1.30 a
+1.22 cm, lo que parecía un canje inevitable: los dos se reparten el alto del
+panel. Se probaron dos explicaciones y **ninguna se sostuvo al medirla**:
+
+1. **«El aprobado tiene menos premisas por lámina.»** Falso: las distribuciones
+   son casi idénticas —mediana 4 barras por gráfico, máximo 7, en los dos—. La
+   carga es la misma, así que bajar `.PARTICION_MAX_BARRAS` no era la salida.
+2. **«Hay que elegir entre grosor y separación.»** Tampoco:
+
+| | Alto del bloque | Barras | cm por barra | Margen inferior |
+|---|---|---|---|---|
+| Aprobado | 10.26 cm | 4 | **2.18** | 3.81 cm |
+| Motor | 9.29 cm | 5 | 1.86 | **5.69 cm** |
+
+**El motor deja 1.88 cm de lámina sin usar.** Con 2.18 cm por barra caben los
+1.30 de grosor y los 0.88 de hueco a la vez; con 1.86 hay que elegir. El
+aprobado no aprieta mejor: **baja más**.
+
+Así que L30 no se cierra subiendo el gap ni partiendo antes, sino **dando al
+panel el alto que le sobra**. Es un cambio de geometría de la disposición y toca
+medirlo aparte —el margen inferior no es decorativo en todas las láminas: en las
+que llevan nota al pie o base, parte de ese espacio está ocupado.
