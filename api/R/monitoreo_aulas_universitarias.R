@@ -625,6 +625,35 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   )
 }
 
+# Estado y frase de la representatividad efectiva.
+#
+# La escala: `score = 100 - 100 * desvio_medio / 0.05`. O sea 100 es una muestra
+# efectiva identica a la planificada y 0 es un desvio medio de 5 pp o mas —el
+# tope de la escala, no «sin dato»—. El estado se derivaba solo de `warning`,
+# que exige 10 pp en UNA celda, asi que un 0 sobre 100 salia como «Correcto».
+.monitoreo_aulas_representatividad_estado <- function(rep) {
+  score <- suppressWarnings(as.numeric(rep$effective_score %||% NA_real_))
+  # Sin muestra efectiva no hay nada que aprobar: decir «Correcto» cuando no hay
+  # ni un curso-horario en campo es peor que no decir nada. Tampoco es una
+  # alerta de representatividad —no hay desvio, hay ausencia—, asi que `review`.
+  if (!is.finite(score)) return("review")
+  if (nzchar(rep$warning %||% "")) return("warning")
+  if (score < 70) "review" else "ok"
+}
+
+.monitoreo_aulas_representatividad_texto <- function(rep) {
+  score <- suppressWarnings(as.numeric(rep$effective_score %||% NA_real_))
+  dist <- suppressWarnings(as.numeric(rep$effective_distance %||% NA_real_))
+  if (!is.finite(score)) {
+    return(if (nzchar(rep$warning %||% "")) rep$warning else "Todavia no hay muestra efectiva que comparar con la planificada.")
+  }
+  base <- sprintf(
+    "Puntaje %.1f de 100: la muestra efectiva se desvia %.1f pp en promedio de la planificada (100 = identica, 0 = 5 pp o mas).",
+    score, 100 * (if (is.finite(dist)) dist else 0)
+  )
+  if (nzchar(rep$warning %||% "")) paste(base, rep$warning) else base
+}
+
 .monitoreo_aulas_effective_representativity <- function(plan_df, cfg) {
   planned <- plan_df[plan_df$wave == "M1", , drop = FALSE]
   active_status <- c("planificada", "contactada", "agendada", "en_campo", "aplicada", "parcial", "cerrada")
@@ -993,7 +1022,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       "ok",
       if (any(huerfanas)) "warning" else "ok",
       if (respuestas_repetidas > 0L) "review" else "ok",
-      if (nzchar(representativity$warning %||% "")) "warning" else "ok",
+      # El estado mira el PUNTAJE, no solo el aviso extremo. Antes solo se
+      # miraba `warning`, que exige 10 pp de desvio en una sola celda, asi que
+      # un puntaje de 0 sobre 100 —la peor representatividad que la escala puede
+      # expresar— se mostraba como «Correcto».
+      .monitoreo_aulas_representatividad_estado(representativity),
       if (length(quota_status) && any(quota_status %in% c("pendiente", "en_riesgo"))) "warning" else "ok",
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
@@ -1017,7 +1050,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       } else {
         sprintf("%d respuestas repetidas.", respuestas_repetidas)
       },
-      if (nzchar(representativity$warning %||% "")) representativity$warning else sprintf("Score efectivo %.1f.", representativity$effective_score %||% NA_real_),
+      .monitoreo_aulas_representatividad_texto(representativity),
       if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
