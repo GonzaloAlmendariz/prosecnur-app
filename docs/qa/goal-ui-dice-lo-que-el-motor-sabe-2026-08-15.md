@@ -25,7 +25,7 @@ sabe nada que la interfaz calle.
 |---|---|---|
 | **V1** | Ninguna superficie describe un estado que el motor ya cambió. | Recorrer las pestañas de Procesamiento con un proyecto real y contrastar lo que dicen contra el payload que reciben. Cero contradicciones. |
 | **V2** | Todo estado que el motor distingue, la interfaz lo distingue. | Por superficie: enumerar los estados del backend y comprobar que cada uno tiene una apariencia propia. Cuatro situaciones con la misma pinta es un fallo de C5. |
-| **V3** | Una operación que no hace nada se ve antes de hacerla, no después. | El caso canónico: recodificar a un código ya marcado. La UI lo declara en el momento de elegir destino. |
+| **V3** | Una operación que no hace nada se ve antes de hacerla, no después. ✅ **alcanzada 2026-08-15** | El caso canónico: recodificar a un código ya marcado. La UI lo declara en el momento de elegir destino. |
 | **V4** | Lo que el motor no pudo hacer se dice, no se omite. | Forzar cada rama de bloqueo (repeats en la promoción, catálogo a medias) y comprobar que la superficie la nombra con su motivo. |
 | **V5** | Una decisión metodológica deliberada tiene dónde vivir. | «No categorizar por n insuficiente» se registra con su motivo y sobrevive al `.pulso`; quien abra el proyecto después no la confunde con un olvido. |
 | **V6** | Toda vista es enlazable. ✅ **alcanzada 2026-08-15** | `?pestana=` abre la pestaña y `window.__pulsoNav.ir()` devuelve `true` para cada nodo del manifiesto. Cero `direccionPublicada: false`; el test lo exige. |
@@ -47,6 +47,7 @@ sabe nada que la interfaz calle.
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
 | **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y los cuatro perfiles de Monitoreo | ☑ hecho — diez ejes probados, **un hallazgo** reparado y visto (`a29629e7`). **V2 se sostiene** en el resto. |
 | **L11** | Barrido V4: forzar cada rama de degradación del motor y comprobar que la superficie la nombra | vocabulario de degradación del backend | ☑ hecho — **dos hallazgos**, reparados (`894bbbb0`, `ee4b308d`). Tres de los seis «flags» eran falsos amigos. |
+| **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
 | **L10** | Confirmar en pantalla el tono de la tarjeta de actor | panel Modelo de acreditación | ☑ hecho — visto en `acrconta`: Egresados y Administrativos en `is-complete` verde, Docentes (14/38) y Estudiantes (2/126) en `is-low` vino. Antes los dos últimos caían en `is-base`, sin regla. |
 
@@ -102,6 +103,29 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L13 — barrido de V3
+
+`before_after_preview` llegaba a `LimpiezaTab` en cada carga y en cada guardado
+—con filas, inconsistencias, casos excluidos y celdas corregidas— y **la
+pestaña no lo referenciaba en ninguna parte**. Se declaraban decisiones a
+ciegas: el resultado aparecía al cerrar la base, cuando ya se invalidó
+codificación y analítica.
+
+**Lo que la medición cambió respecto del plan.** Iba a avisar cuando el impacto
+fuera cero. Al sembrar el caso sobre `acrconta` —una exclusión a un uuid que no
+existe— el motor devolvió `cases_excluded: 1` con `filas_base` en **172 → 172**:
+el contador cuenta lo que el analista escribió, no lo que el motor pudo sacar.
+Una banda que leyera ese contador habría dicho «1 caso excluido» y habría dejado
+pasar justo el error de tipeo que existe para atrapar.
+
+La verdad es el delta de filas. De ahí salen los tres estados: resumen tranquilo
+con impacto real, aviso cuando nada cambia, y aviso específico —«los
+identificadores que elegiste no aparecen en la base»— cuando el problema son los
+ids. Sin decisiones listas no hay banda.
+
+**Anotado como trampa**: `impact.cases_excluded` es declarativo, no efectivo.
+Cualquier lectura que lo tome como «filas que se van» miente.
 
 ### L11 — barrido de V4, primera pasada
 
