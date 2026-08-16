@@ -910,3 +910,44 @@ opción que este loop no había considerado porque no tenía el dato.
 **Queda por medir** (siguiente tick): contrastar `prob_seleccion` y `peso_diseno`
 contra los π que calcula el motor, el perfil de las 170 titulares contra el
 sorteo, y por qué 170 estratos en 2025 frente a 84 hoy.
+
+## En 2025 el estrato era un cupo, no una celda de cruce (2026-08-16)
+
+Medido sobre las 1.012 filas. Los 170 estratos de 2025 **no son celdas de un
+cruce de atributos**: entre las 170 titulares sólo hay 42 combinaciones distintas
+de facultad × tamaño, 81 con horario y 98 añadiendo tipo de docente. Hay más
+estratos que combinaciones, así que varios comparten atributos: `estrato_id` es
+un **cupo de sorteo** correlativo (1…170), no una clave compuesta.
+
+Y el candado del reemplazo era otro:
+
+| | Candado de la cadena | Qué podía variar |
+|---|---|---|
+| **2025** | **Facultad** — 0 de 170 cadenas mezclan facultades | Tamaño: **148 de 170** cadenas mezclan tamaños |
+| **Hoy** | **La celda entera** (`strict_cell`, facultad/sexo/tamaño) desde la 2ª reserva | Sólo la 1ª reserva puede salir de la facultad |
+
+En 2025 el reemplazo tenía que ser de la misma facultad y punto; podía ser de
+otro tamaño sin problema, y en el 87% de las cadenas lo fue. Hoy el motor exige
+la celda completa a partir de la segunda reserva, y por eso 44 de 84 celdas no
+pueden llenar una cadena de 11 — no hay tantas aulas dentro de una celda tan
+fina.
+
+**Esto informa la decisión bloqueada mejor que las tres opciones que planteé.**
+El precedente real no es «bajar la profundidad» ni «agrupar los estratos», sino
+**aflojar el candado**: cadena por facultad en vez de por celda, con la
+profundidad que cada cupo permita. Con ese candado las 44 celdas cortas dejan de
+serlo, porque el pool pasa a ser la facultad entera.
+
+Sigue siendo decisión de Gonzalo —cambiar el candado cambia la equivalencia entre
+titular y reemplazo, y con ello lo que significa la sustitución—, pero ahora la
+opción está medida y tiene precedente en el operativo que se quiere replicar.
+
+**Perfil de las 170 titulares de 2025**, para el contraste de L11:
+
+| Dimensión | Reparto |
+|---|---|
+| Facultad (15) | C. e Ingeniería 39 · EG Ciencias 25 · EG Letras 19 · Derecho 16 · C. Sociales 15 |
+| Tamaño (5) | 16-25: 46 · 36-50: 42 · >50: 36 · 26-35: 31 · ≤15: 15 |
+| Bloque horario (4) | Regular tarde 65 · Regular mañana 63 · Especial mañana 34 · Especial noche 8 |
+| Tipo de docente (2) | Contratado 145 · Ordinario principal 25 |
+| Modalidad | Presencial 170 (única) |
