@@ -238,3 +238,65 @@ test_that("el lector de QR usa la geometria de la variante que dibujo la hoja", 
   expect_false(identical(.crf_layout()$qr_y, .crf_layout(branded = TRUE)$qr_y))
   expect_true("branded" %in% names(formals(collection_qr_matrix_from_png)))
 })
+
+# --- El registro de aplicacion tiene vocabulario -----------------------------
+# Tres renglones con un "1", un "2" y un "3" delante no le dicen a nadie que
+# anotar: cada aplicador escribia otra cosa, o abria su propia planilla, que es
+# justo lo que la ficha existe para evitar.
+
+.crf_log_block <- function(template) {
+  Filter(function(b) identical(b$type, "application_log"), template$pages[[1]]$blocks)[[1]]
+}
+
+test_that("las dos plantillas de la casa comparten un solo vocabulario de registro", {
+  builtin <- .crf_log_block(collection_material_builtin_template())
+  branded <- .crf_log_block(collection_material_branded_sheet_template(assets = "logo-x"))
+  canon <- collection_material_application_log_labels()
+
+  # El control: antes no habia `labels` y el bloque salia numerado.
+  expect_identical(as.character(unlist(builtin$labels)), canon)
+  # La branded toma su prefijo del mismo juego, no una lista propia que derive.
+  expect_identical(
+    as.character(unlist(branded$labels)),
+    utils::head(canon, length(unlist(branded$labels)))
+  )
+})
+
+test_that("el registro cabe encima del pie y avisa si no", {
+  L <- .crf_layout()
+  banda <- L$y_log_rows - L$y_log_floor
+  capacidad <- max(1L, as.integer(floor(banda / L$log_row_step_min)) + 1L)
+  filas <- as.integer(.crf_log_block(collection_material_builtin_template())$rows)
+  paso <- if (filas > 1L) min(L$log_row_step, banda / (filas - 1L)) else 0
+
+  expect_lte(filas, capacidad)
+  # El control: con el paso fijo de 0.032 la quinta linea caia en 0.040 y el pie
+  # vive en ~0.038 — la etiqueta se imprimia encima del logo.
+  expect_gte(L$y_log_rows - (filas - 1L) * paso, L$y_log_floor)
+})
+
+test_that("un registro mas largo que su banda se recorta con aviso, no se desborda", {
+  template <- collection_material_builtin_template()
+  bloque <- which(vapply(template$pages[[1]]$blocks, function(b) identical(b$type, "application_log"), logical(1)))
+  template$pages[[1]]$blocks[[bloque]]$rows <- 6L
+  template$pages[[1]]$blocks[[bloque]]$labels <- as.list(c(collection_material_application_log_labels(), "Observaciones:"))
+  template$template_sha256 <- NULL
+  template$template_sha256 <- collection_fingerprint(template)
+
+  L <- .crf_layout()
+  capacidad <- max(1L, as.integer(floor((L$y_log_rows - L$y_log_floor) / L$log_row_step_min)) + 1L)
+  expect_gt(6L, capacidad)
+  expect_true(collection_material_template_validate(template)$ok)
+})
+
+test_that("labels de mas que renglones no pasa la validacion", {
+  template <- collection_material_builtin_template()
+  bloque <- which(vapply(template$pages[[1]]$blocks, function(b) identical(b$type, "application_log"), logical(1)))
+  template$pages[[1]]$blocks[[bloque]]$rows <- 2L
+  template$template_sha256 <- NULL
+  template$template_sha256 <- collection_fingerprint(template)
+
+  resultado <- collection_material_template_validate(template)
+  expect_false(resultado$ok)
+  expect_true("log_labels_overflow" %in% vapply(resultado$problems, function(p) p$code, character(1)))
+})

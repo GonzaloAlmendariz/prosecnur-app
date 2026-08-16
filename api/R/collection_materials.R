@@ -117,7 +117,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
     access_qr = c("binding", "correction", "quiet_zone", "min_size_mm"),
     field_grid = c("fields"),
     instructions = c("binding", "text", "max_lines"),
-    application_log = c("rows", "text"),
+    application_log = c("rows", "text", "labels"),
     divider = character(0),
     footer = c("binding", "text"),
     character(0)
@@ -347,8 +347,60 @@ COLLECTION_MATERIAL_BINDINGS <- c(
         paste0(path, ".rows"), "bad_log_rows", "application_log admite entre 1 y 6 filas."
       )
     }
+    # `labels` convierte los renglones numerados en un registro con vocabulario.
+    # Tres lineas con un "1", un "2" y un "3" delante no le dicen a nadie que
+    # anotar, asi que cada aplicador escribe otra cosa —o abre su propia
+    # planilla, que es justo lo que la ficha existe para evitar.
+    if (!is.null(block$labels)) {
+      labels <- block$labels
+      if (!is.list(labels) && !is.character(labels)) {
+        problems[[length(problems) + 1L]] <- .cm_problem(
+          paste0(path, ".labels"), "bad_log_labels", "labels debe ser una lista de textos."
+        )
+      } else {
+        labels <- as.list(labels)
+        if (!is.na(rows) && length(labels) > rows) {
+          problems[[length(problems) + 1L]] <- .cm_problem(
+            paste0(path, ".labels"), "log_labels_overflow",
+            sprintf("Hay %d etiquetas para %d renglones.", length(labels), rows)
+          )
+        }
+        for (i in seq_along(labels)) {
+          label_path <- sprintf("%s.labels[%d]", path, i)
+          if (!.cc_is_scalar_string(labels[[i]])) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              label_path, "bad_log_label", "Cada etiqueta es un texto escalar no vacio."
+            )
+            next
+          }
+          problems <- c(problems, .cm_plain_text_problem(labels[[i]], label_path))
+        }
+      }
+    }
   }
   problems
+}
+
+#' Vocabulario del registro de aplicacion de la ficha A4.
+#'
+#' Lo que el aplicador anota en el aula y la hoja no puede saber de antemano.
+#' Sale del mismo juego que `collection_material_field_form_rows()` —la hoja de
+#' papel que el equipo ya usaba—, recortado a lo que la ficha no imprime ya:
+#' facultad, curso, horario, salon y docente van impresos arriba.
+#'
+#' Es una sola funcion y no dos listas paralelas a proposito: dos vocabularios
+#' del mismo registro derivan, y despues no hay forma de juntar lo anotado.
+#'
+#' @return vector de etiquetas, una por renglon.
+#' @export
+collection_material_application_log_labels <- function() {
+  c(
+    "Alumnos en aula:",
+    "Encuestas aplicadas:",
+    "Rechazos:",
+    "Aplicador/a:",
+    "Fecha y hora:"
+  )
 }
 
 #' Plantilla built-in que reproduce la ficha A4 de aulas.
@@ -362,7 +414,9 @@ collection_material_builtin_template <- function() {
     # r2: la ficha declara el rol. Antes titular y reemplazo salian identicos
     # salvo el nombre del aula, y el unico indicio era "Muestra: M1" vs "R1",
     # que solo entiende quien conoce la nomenclatura.
-    revision = 2L,
+    # r3: el registro de aplicacion dice que anotar, en vez de tres renglones
+    # numerados que cada aplicador rellenaba a su criterio.
+    revision = 3L,
     preset_id = "ficha_aplicacion_a4_v1",
     material_kind = "application_sheet",
     compatible_adapters = list("aulas_v1"),
@@ -394,7 +448,10 @@ collection_material_builtin_template <- function() {
           block_id = "instructions", type = "instructions",
           text = "Escanea el QR para responder. Si no abre, digita el enlace visible.", max_lines = 4L
         ),
-        list(block_id = "log", type = "application_log", text = "Registro de aplicacion", rows = 3L),
+        list(
+          block_id = "log", type = "application_log", text = "Registro de aplicacion",
+          rows = 5L, labels = as.list(collection_material_application_log_labels())
+        ),
         list(block_id = "footer", type = "footer", binding = "project.period")
       )
     )),
@@ -449,7 +506,8 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
     list(block_id = "rule", type = "divider"),
     list(block_id = "instructions", type = "instructions", text = instructions, max_lines = 4L),
     list(block_id = "log", type = "application_log", text = "Registro de aplicacion",
-         rows = as.integer(log_rows)),
+         rows = as.integer(log_rows),
+         labels = as.list(utils::head(collection_material_application_log_labels(), log_rows))),
     list(block_id = "footer", type = "footer", binding = "project.period")
   )
   if (!is.null(status_tag)) {
