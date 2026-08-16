@@ -335,8 +335,17 @@
   out
 }
 
+# El vocabulario de roles esta escrito DOS veces: aqui y en el `switch` de
+# `.monitoreo_source_role()`. Anadir uno solo en el switch no basta —este
+# guardian lo reescribe a "respuestas"— y por eso los dos viven pegados.
 .monitoreo_allowed_source_roles <- function() {
-  c("universo", "barrido", "respuestas", "avance_interno", "reporte_cliente", "hoja_ruta", "ocurrencias_campo")
+  c(
+    "universo", "barrido", "respuestas", "avance_interno", "reporte_cliente",
+    "hoja_ruta", "ocurrencias_campo",
+    # Los tres papeles del libro operativo de aulas. `parte_campo` y no
+    # "campo": ver la nota en `.monitoreo_source_role()`.
+    "agendamiento", "parte_campo", "control"
+  )
 }
 
 .monitoreo_allowed_integration_modes <- function() {
@@ -360,6 +369,21 @@
     ocurrencias_campo = "ocurrencias_campo",
     ocurrenciacampo = "ocurrencias_campo",
     ocurrencia_campo = "ocurrencias_campo",
+    # Los tres papeles del libro operativo de aulas. Coinciden con sus tres
+    # hojas y con quien las llena: quien agenda, quien supervisa campo y quien
+    # controla.
+    #
+    # OJO: el parte de campo se llama `parte_campo` y NO `campo`. Un rol
+    # llamado "campo" seria indistinguible de la ausencia de rol, porque
+    # `.monitoreo_safe_name("")` devuelve literalmente "campo" como relleno.
+    # Bautizarlo asi convertia en "campo" a toda fuente sin rol de todos los
+    # modos —telefonico y acreditacion incluidos— en silencio.
+    agendamiento = "agendamiento",
+    agenda = "agendamiento",
+    parte_campo = "parte_campo",
+    partecampo = "parte_campo",
+    aplicacion = "parte_campo",
+    control = "control",
     ""
   )
   if (!nzchar(role)) {
@@ -4215,7 +4239,11 @@ monitoreo_normalize_sources <- function(sources = list()) {
   for (src in sources) {
     if (!is.list(src)) next
     kind <- .monitoreo_scalar(src$kind, "")
-    if (!kind %in% c("kobo", "surveymonkey", "google_sheets")) next
+    # `aulas_libro` es el libro operativo de un estudio de aulas: las tres hojas
+    # que la app genera, alguien llena y la app vuelve a leer para decidir. Es
+    # el mismo papel que cumple `google_sheets` con rol `barrido` en telefonico,
+    # y por eso entra como fuente y no como import suelto.
+    if (!kind %in% c("kobo", "surveymonkey", "google_sheets", "aulas_libro")) next
     id <- .monitoreo_scalar(src$id, "")
     if (!nzchar(id)) {
       raw <- if (identical(kind, "kobo")) {

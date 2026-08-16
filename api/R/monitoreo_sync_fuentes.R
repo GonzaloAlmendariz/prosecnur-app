@@ -37,6 +37,10 @@
 #' El `!nzchar(role)` de cada rama es deliberado, igual que en el frontend: una
 #' fuente conectada antes de que el rol existiera no lo tiene guardado y no
 #' puede quedar fuera del avance por una migracion.
+# Los tres papeles del libro operativo de aulas. Coinciden con sus tres hojas y
+# con quien las llena: quien agenda, quien supervisa campo y quien controla.
+MONITOREO_AULAS_LIBRO_ROLES <- c("agendamiento", "parte_campo", "control")
+
 monitoreo_fuentes_avance <- function(sources = list(), family = "") {
   family <- .monitoreo_scalar(family, "")
   Filter(function(src) {
@@ -49,6 +53,16 @@ monitoreo_fuentes_avance <- function(sources = list(), family = "") {
       return(identical(kind, "kobo") &&
         (identical(role, "respuestas") || !nzchar(role) ||
           nzchar(.monitoreo_scalar(src$asset_uid, ""))))
+    }
+    if (identical(family, "aulas_universitarias")) {
+      # El libro operativo cuenta con cualquiera de sus tres roles; el libro
+      # entero puede vivir en Drive como un Sheet de tres pestanas, y entonces
+      # llega como `google_sheets` con el mismo rol.
+      if (kind %in% c("aulas_libro", "google_sheets")) {
+        return(role %in% MONITOREO_AULAS_LIBRO_ROLES || !nzchar(role))
+      }
+      return(kind %in% c("kobo", "surveymonkey") &&
+        (identical(role, "respuestas") || !nzchar(role)))
     }
     kind %in% c("surveymonkey", "kobo") &&
       (identical(role, "respuestas") || !nzchar(role))
