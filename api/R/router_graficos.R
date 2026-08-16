@@ -1138,6 +1138,15 @@
     }
     payload <- .as_json_list(s$payload) %||% list()
     graf_slots <- .SLIDE_REGISTRY[[tipo]]$grafs
+
+    # Coherencia entre los paneles de una misma lamina: variable repetida, base
+    # ajena o panel sin rotulo. Ver `graficos_plan_avisos_lamina.R`.
+    slots_lamina <- stats::setNames(
+      lapply(graf_slots, function(nm) .as_json_list(payload[[nm]])),
+      graf_slots
+    )
+    warns <- c(warns, .plan_avisos_lamina(slots_lamina, tag))
+
     for (slot_name in graf_slots) {
       slot <- .as_json_list(payload[[slot_name]])
       graf_name <- as.character(slot$graficador %||% "")
