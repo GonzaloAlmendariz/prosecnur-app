@@ -37,6 +37,18 @@ function referencia(agendados: number, aplicados: number): CalcMuestraReferencia
   } as unknown as CalcMuestraReferenciaAsistencia;
 }
 
+function conObjetivo(target: number): ClassroomLabModel {
+  return { ...model, config: { objective: { reserve_depth_target: target } } } as unknown as ClassroomLabModel;
+}
+
+function pintarModelo(m: ClassroomLabModel): string {
+  return renderToStaticMarkup(
+    <MemoryRouter>
+      <AulasReemplazosTab model={m} busy={null} onSimulateReplacements={() => {}} referencia={null} />
+    </MemoryRouter>,
+  );
+}
+
 function pintar(ref: CalcMuestraReferenciaAsistencia | null): string {
   // La pestaña cuelga enlaces de navegación, así que necesita un router.
   return renderToStaticMarkup(
@@ -65,5 +77,24 @@ describe("cadena de reemplazos contra el estudio previo", () => {
     // Más aplicadas que agendadas daría un rendimiento menor que 1, que se
     // leería como que en 2025 sobraban aulas.
     expect(pintar(referencia(100, 194))).not.toContain("por cada aula aplicada");
+  });
+});
+
+describe("semáforo de profundidad contra el objetivo declarado", () => {
+  it("con 11 reservas por titular y objetivo de fábrica dice holgado", () => {
+    const html = pintarModelo(conObjetivo(1));
+    expect(html).toContain("todas las celdas con colchón holgado");
+    // El objetivo de fábrica no se nombra: sería ruido en el caso normal.
+    expect(html).not.toContain("objetivo declarado");
+  });
+
+  it("con un objetivo más exigente el mismo plan deja de ser holgado", () => {
+    // 11 reservas por titular con objetivo 20: el motor ya avisaba
+    // "Profundidad de reservas menor al objetivo" y la pantalla decia holgado.
+    const html = pintarModelo(conObjetivo(20));
+    expect(html).toContain("hay celdas por debajo del objetivo");
+    expect(html).not.toContain("colchón holgado");
+    // Y nombra contra qué se está midiendo, que es lo que hace legible el tono.
+    expect(html).toContain("objetivo declarado");
   });
 });

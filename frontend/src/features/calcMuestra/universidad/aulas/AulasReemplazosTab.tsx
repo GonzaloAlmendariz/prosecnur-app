@@ -15,6 +15,7 @@ import type {
 import { CadenasReemplazoVisual } from "../../didactica/CadenasReemplazoVisual";
 import { fmtInt, fmtRatio } from "../../sharedCore";
 import { rendimientoAgenda } from "../definicion/rendimientoAgendaModel";
+import { profundidadReserva } from "./profundidadReservaModel";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { CifraFila, CifraMotor, FlujoVertical, type FlujoEtapa } from "../ui";
@@ -47,15 +48,20 @@ import "./aulas.css";
 function ReserveDepthHeader({
   model,
   referencia,
+  objetivoReserva,
 }: {
   model: ClassroomLabModel;
   referencia: CalcMuestraReferenciaAsistencia | null;
+  /** Objetivo declarado de reservas por titular; manda sobre el del semáforo. */
+  objetivoReserva: number | null;
 }) {
   const rows = model.reserveDepthRows;
   if (!rows.length) return null;
   const ratios = rows.map((row) => classroomRowNumber(row, ["depth_ratio"]));
   const minRatio = Math.min(...ratios);
-  const sinReserva = rows.filter((row) => classroomRowNumber(row, ["reservas"]) <= 0 || classroomRowNumber(row, ["depth_ratio"]) < 1);
+  const prof = profundidadReserva(minRatio, objetivoReserva);
+  const objetivo = prof?.objetivo ?? 1;
+  const sinReserva = rows.filter((row) => classroomRowNumber(row, ["reservas"]) <= 0 || classroomRowNumber(row, ["depth_ratio"]) < objetivo);
   const titulares = rows.reduce((sum, row) => sum + classroomRowNumber(row, ["titulares"]), 0);
   const reservas = rows.reduce((sum, row) => sum + classroomRowNumber(row, ["reservas"]), 0);
   const peorCelda = rows.find((row) => classroomRowNumber(row, ["depth_ratio"]) === minRatio);
@@ -79,13 +85,18 @@ function ReserveDepthHeader({
         <CifraMotor
           label="Profundidad mínima"
           value={fmtRatio(minRatio)}
-          detalle={minRatio < 1
-            ? "hay celdas sin reserva completa"
-            : minRatio >= 2
-              ? "todas las celdas con colchón holgado"
-              : `celda más ajustada: ${classroomRowText(peorCelda ?? {}, ["stratum"]) || "—"}`}
+          detalle={[
+            prof?.tono === "alerta"
+              ? "hay celdas por debajo del objetivo"
+              : prof?.tono === "ok"
+                ? "todas las celdas con colchón holgado"
+                : `celda más ajustada: ${classroomRowText(peorCelda ?? {}, ["stratum"]) || "—"}`,
+            // Un tono sólo se puede leer si se sabe contra qué se mide, y este
+            // objetivo es configurable: callarlo deja el color sin referencia.
+            prof?.objetivoExplicito ? `objetivo declarado: ${fmtRatio(objetivo)} por titular` : null,
+          ].filter(Boolean).join(" · ")}
           origen="motor"
-          tono={minRatio < 1 ? "alerta" : minRatio >= 2 ? "ok" : undefined}
+          tono={prof?.tono}
           hero
         />
         <CifraMotor
@@ -93,7 +104,7 @@ function ReserveDepthHeader({
           value={fmtInt(sinReserva.length)}
           detalle={sinReserva.length
             ? `de ${fmtInt(rows.length)} celdas: si su titular cae, se usa la reserva extra`
-            : `las ${fmtInt(rows.length)} celdas tienen al menos un reemplazo`}
+            : `las ${fmtInt(rows.length)} celdas alcanzan el objetivo`}
           origen="motor"
           tono={sinReserva.length ? "alerta" : "ok"}
         />
@@ -194,7 +205,11 @@ export function AulasReemplazosTab({
         />
       )}
 
-      <ReserveDepthHeader model={model} referencia={referencia} />
+      <ReserveDepthHeader
+        model={model}
+        referencia={referencia}
+        objetivoReserva={config?.objective?.reserve_depth_target ?? null}
+      />
 
       {!selectionReady ? (
         <section
