@@ -32,7 +32,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V7 | El grosor cae en su celda del recetario | mediana 0.512 | 0.510 | **0.486** ✓ |
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
 | V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
-| V10 | Cada comentario de Gabriela tiene regla y estado | 57 comentarios → 17 reglas | ◐ sin mapa por comentario |
+| V10 | Cada comentario tiene regla y estado | mapa de los 57, uno por uno | **20 de 28 geométricos** ✓ · 29 no son del motor |
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **8 de 10** ◐ |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
@@ -67,7 +67,7 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
-| L23 | Mapa comentario → regla → estado, los 57 uno por uno | doc nuevo | ☐ |
+| L23 | Mapa comentario → regla → estado, los 57 uno por uno | `mapa-comentarios-conta-2026-08-16.md` | ☑ |
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
 | L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ◐ **R4, R7, R9, R10**; faltan R6 y R8 |
 | L26 | Medir las 31 disposiciones y darles celda en el recetario | recetario | ☐ |
@@ -846,3 +846,30 @@ salieron degradadas a «Sin datos»**. No se vio en el archivo: se vio porque el
 mazo bajó de 931 KB a 816 y de 42 s a 24, y porque el verificador devolvió
 `grosor_med = NA`. **Un mazo roto pesa menos y se genera antes**; esas dos
 cifras valen como alarma antes de abrir nada.
+
+### V10: el mapa de los 57, y dos cosas que el resumen escondía
+
+Mapa completo en `mapa-comentarios-conta-2026-08-16.md`: cada comentario con su
+regla y su evidencia medida.
+
+**No son 57 de Gabriela.** Son **52 suyos, 4 de Renzo y 1 de Alice**. La
+diferencia importa porque los de Renzo son de datos —variables que existen en
+base pero no se preguntaron, una discrepancia con SPSS— y ninguno es de formato.
+
+**Y la mitad no los resuelve ningún preset:**
+
+| | Comentarios |
+|---|---|
+| Geométricos — los resuelve el motor | **28**, de ellos **20 cerrados** |
+| No geométricos — contenido, datos o método | **29** |
+
+Los 29 piden retirar láminas, añadir variables que no se preguntaron, corregir
+un dato contra SPSS o reescribir un título. **Contarlos dentro del avance del
+motor infla el porcentaje**: el motor puede quedar impecable y el informe seguir
+teniendo la mitad de los comentarios abiertos. Son trabajo de analista, no de
+graficador, y el mapa los marca ⛔ para que no se confundan con deuda técnica.
+
+De los 8 geométricos sin cerrar: 2 son circulares (R6), 2 el arranque vertical
+(R8) y 3 la separación entre premisas (B2) —las tres reglas que el verificador
+aún no mide— y 1 es la variante de Top Two Box que suma 100 %, que es capacidad
+nueva del motor.
