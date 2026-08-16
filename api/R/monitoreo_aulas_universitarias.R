@@ -359,8 +359,18 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   .monitoreo_aulas_records(out)
 }
 
-.monitoreo_aulas_plan_index <- function(plan_df, classroom_id = "", operational_code = "") {
+# Localiza una fila del plan por cualquiera de sus identificadores.
+#
+# `collection_unit_id` entra aqui de forma PREPARATORIA, no por un defecto
+# observado: hoy nadie llama a este indice con ese id porque la superficie que
+# registraria el estado del aula todavia no existe (L4 del GOAL). Pero es el id
+# que viaja en el QR y el que trae la data de campo, y ya hubo tres sitios en
+# este modulo donde emparejar solo por `classroom_id` dejaba ciego al consumidor.
+# Aceptarlo aqui evita el cuarto.
+.monitoreo_aulas_plan_index <- function(plan_df, classroom_id = "", operational_code = "",
+                                        collection_unit_id = "") {
   classroom_id <- .monitoreo_scalar(classroom_id, "")
+  collection_unit_id <- .monitoreo_scalar(collection_unit_id, "")
   operational_code <- .cm_aulas_codigo_operativo(
     .monitoreo_scalar(operational_code, "")
   )
@@ -369,6 +379,9 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     idx <- which(
       .cm_aulas_codigo_operativo(plan_df$operational_code) == operational_code
     )
+  }
+  if (!length(idx) && nzchar(collection_unit_id) && "collection_unit_id" %in% names(plan_df)) {
+    idx <- which(as.character(plan_df$collection_unit_id) == collection_unit_id)
   }
   idx
 }
@@ -884,14 +897,24 @@ monitoreo_aulas_update_agenda <- function(current, updates = list()) {
     if (nzchar(code_col)) names(upd_df)[names(upd_df) == code_col] <- "operational_code"
   }
   if (!"operational_code" %in% names(upd_df)) upd_df$operational_code <- ""
-  if (!any(nzchar(upd_df$classroom_id) | nzchar(upd_df$operational_code))) {
-    stop("Las actualizaciones requieren classroom_id u operational_code.", call. = FALSE)
+  # Tercer identificador admitido: el que viaja en el QR. Ver la nota de
+  # `.monitoreo_aulas_plan_index()` — es preparatorio para la superficie de
+  # registro que todavia no existe, no un arreglo de un defecto observado.
+  if (!"collection_unit_id" %in% names(upd_df)) {
+    unit_col <- .monitoreo_aulas_col(upd_df, c("unit_id", "collectorID", "collector_id"))
+    if (nzchar(unit_col)) names(upd_df)[names(upd_df) == unit_col] <- "collection_unit_id"
+  }
+  if (!"collection_unit_id" %in% names(upd_df)) upd_df$collection_unit_id <- ""
+  if (!any(nzchar(upd_df$classroom_id) | nzchar(upd_df$operational_code) |
+           nzchar(upd_df$collection_unit_id))) {
+    stop("Las actualizaciones requieren classroom_id, operational_code o collection_unit_id.", call. = FALSE)
   }
   for (i in seq_len(nrow(upd_df))) {
     cid <- .monitoreo_scalar(upd_df$classroom_id[[i]], "")
     code <- .monitoreo_scalar(upd_df$operational_code[[i]], "")
-    if (!nzchar(cid) && !nzchar(code)) next
-    idx <- .monitoreo_aulas_plan_index(plan_df, cid, code)
+    unit <- .monitoreo_scalar(upd_df$collection_unit_id[[i]], "")
+    if (!nzchar(cid) && !nzchar(code) && !nzchar(unit)) next
+    idx <- .monitoreo_aulas_plan_index(plan_df, cid, code, unit)
     if (!length(idx)) next
     row <- upd_df[i, , drop = FALSE]
     for (nm in names(row)) {
