@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | frontend | ⛔ **abierto** · vía conservadora probada y descartada; tres hipótesis acotadas abajo |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | frontend (envío del workspace) | ⛔ **abierto** · causa acotada: el cliente calcula el objetivo y **no lo envía**; el backend recibe `aulas_config` vacío |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -531,7 +531,36 @@ Se unificó a `inferDesk` en los dos call-sites, se recargó la app y se
 recalculó: **`aulas_config.n_aulas` sigue AUSENTE** con `aulas_base_total = 200`
 disponible en el resultado. El cambio se revirtió por no estar verificado.
 
-Quedan tres hipótesis, en orden de sospecha:
+**Instrumentado el 2026-08-15: es la hipótesis (2).** El log de
+`reconcileUniversityAulasTarget` durante un recálculo real:
+
+```
+[L14] {"n_componentes":2, "selected":"Muestra con representatividad a nivel universidad",
+       "hasUseful":true, "aulas_base_total":200, "target":200, "n_aulas_previo":200}
+```
+
+Todo correcto en el cliente: encuentra el componente, `hasUsefulResult` es
+`true`, calcula `target = 200` — y `n_aulas_previo` **ya vale 200**, o sea que
+el workspace en memoria lleva el objetivo bien puesto. Quedan descartadas (1) y
+(3).
+
+Y el matiz que precisa el defecto: consultado en el mismo instante,
+`GET /api/calc-muestra/state` devuelve `aulas_config` con **cero claves**. No es
+que llegue con `n_aulas` ausente: es que llega **vacío del todo**.
+
+Eso descarta también que el backend lo filtre.
+`.cm_normalize_workspace_aulas_config` (`calc_muestra_engine.R:467`) conserva
+`n_aulas` cuando viene, y ante cualquier objeto devuelve ~15 claves con sus
+defaults; sólo devuelve `list()` cuando recibe **NULL**. Así que el backend
+nunca vio el `aulas_config`.
+
+**El defecto está en el envío, no en el cálculo ni en la persistencia del
+servidor: el cliente tiene el objetivo y no lo manda.** Lo siguiente es mirar
+qué payload arma el autosave del workspace — si omite `aulas_config`, si
+`setWorkspaceSiCambia` no dispara guardado, o si una escritura posterior lo pisa
+con el workspace anterior.
+
+Hipótesis originales, conservadas para el registro:
 
 1. `universityComponentForScenario` no encuentra el componente esperado, así que
    `reconcileUniversityAulasTarget` calcula `target = undefined` y **borra**
