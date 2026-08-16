@@ -25,7 +25,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 |---|---|---|---|---|
 | V1 | El título no va pegado al borde | ≥ 0.89 cm | 0.92 | **0.94** ✓ |
 | V2 | Poco texto por debajo del cuerpo mínimo | ≤ 6.2 % bajo 12 pt | 6.2 % | **6.1 %** ✓ |
-| V3 | El extremo de la escala es naranja | sin rojo en rampa | — | naranja 173 ✓ |
+| V3 | El extremo de la escala es naranja | sin rojo en rampa | 0 | **0** ✓ (eran 19) |
 | V4 | La columna Top Two Box se dibuja | — | 45 | **38** ✓ |
 | V5 | El grosor de escala no baja del piso | ≥ 0.77 cm (p10) | 4 fallos | **0** ✓ |
 | V6 | Ningún gráfico pasa del techo de barras | ≤ 7 (máx.) | 3 fallos | **0** ✓ |
@@ -36,7 +36,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **6 de 10** ◐ |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
-**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 4** (con R4 y R7 ya medidas).
+**Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 0** (con R4 y R7 ya medidas).
 
 El único que queda es V2. Los 123 textos a 9 pt que L16 dejó sin ubicar ya están
 cerrados; lo que resta es otra cosa y está descrito abajo.
@@ -773,3 +773,24 @@ saber dónde no lo es evita perseguir una uniformidad que nadie pidió.
 
 Quedan sin cubrir R6 (circulares), R8 (arranque vertical), R9 (color del texto)
 y R10 (interlineado).
+
+### Las 4 láminas de rojo: L3 dejó 14 paletas sin corregir
+
+Medido: **14 de las 34 paletas del proyecto** seguían con `#CA5651` en su
+extremo negativo, y **las 14 son rampas de escala** —lo confirma que todas
+llevan también el amarillo—. L3 corrigió 23 listas y estas quedaron fuera.
+
+Corregidas sólo esas 14, y verificando que los `color_titulo` de los presets no
+se tocan: siguen los mismos 5 antes y después. El rojo en título es correcto
+—el entregable aprobado lo usa en 67— y el criterio que los separa es el mismo
+que ya se usó: es rampa cuando en la lista hay un amarillo.
+
+**Rojo en rampa: 19 → 0. El motor queda en 0 incumplimientos contra los 10 del
+aprobado.**
+
+**Y una comprobación mía estuvo mal antes de llegar aquí**: busqué `"CA5651"` en
+las paletas y me dio 0, porque el `.pulso` las guarda como `"#CA5651"` con
+almohadilla mientras el XML las escribe sin ella. Di por limpio lo que no lo
+estaba y estuve a punto de buscar la causa en el default del motor. Es el mismo
+error que el `(cont.)` en minúscula: **comparar contra la forma en que yo lo
+escribo, no contra la forma en que lo guarda quien lo guarda.**
