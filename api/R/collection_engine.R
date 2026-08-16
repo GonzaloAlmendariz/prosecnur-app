@@ -584,7 +584,19 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
   .collection_payload(next_state)
 }
 
-.collection_access_url <- function(binding, sensitivity) {
+# Cada proveedor nombra distinto el parametro de personalizacion: Kobo lo lee
+# como `d[campo]` (prefill de Enketo) y SurveyMonkey como `campo` a secas
+# (Custom Variable). Escribir `d[]` para todos le colgaba a SurveyMonkey un
+# parametro que su formulario ignora, asi que el proveedor entra por argumento
+# en vez de asumirse.
+.collection_prefill_param <- function(key, provider) {
+  if (identical(tolower(as.character(provider %||% "")[1]), "surveymonkey")) {
+    return(as.character(key))
+  }
+  sprintf("d[%s]", as.character(key))
+}
+
+.collection_access_url <- function(binding, sensitivity, provider = "kobo") {
   ref <- as.character(binding$access_ref %||% "")
   if (length(ref) != 1L || !nzchar(ref) || !grepl("^https?://", ref, ignore.case = TRUE) ||
       !tolower(sensitivity) %in% c("public", "operational")) return("")
@@ -592,7 +604,7 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
   if (!identical(binding$access_kind, "parameterized_link") || !length(prefill)) return(ref)
   query <- paste(vapply(names(prefill), function(key) {
     paste0(
-      utils::URLencode(sprintf("d[%s]", key), reserved = TRUE), "=",
+      utils::URLencode(.collection_prefill_param(key, provider), reserved = TRUE), "=",
       utils::URLencode(as.character(prefill[[key]]), reserved = TRUE)
     )
   }, character(1)), collapse = "&")
@@ -632,7 +644,7 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
     row$recipient_id <- binding$recipient_id
     row$operator_id <- binding$operator_id
     row$access_kind <- binding$access_kind
-    row$link <- .collection_access_url(binding, sensitivity)
+    row$link <- .collection_access_url(binding, sensitivity, deployment$target$provider)
     row$access_ref_hash <- collection_fingerprint(binding$access_ref %||% "")
     row["qr"] <- list(NULL)
     rows[[index]] <- row
