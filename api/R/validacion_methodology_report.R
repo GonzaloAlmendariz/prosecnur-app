@@ -2252,10 +2252,18 @@ validation_methodology_report_pdf <- function(model, path) {
   }
 
   grid::grid.text("Reglas aplicadas por tema", x = 0.07, y = 0.575, just = "left", gp = grid::gpar(col = theme$ink, fontsize = 12.5, fontface = "bold"))
-  grid::grid.roundrect(x = 0.5, y = 0.407, width = 0.86, height = 0.285, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$white, col = theme$line))
   family_rows <- .vmr_result_family_rows(s$by_category %||% data.frame(), max_rows = 7L)
+  # La caja se ajusta al número de familias en vez de estirar las filas: con el
+  # alto fijo de siete, tres familias quedaban separadas por huecos enormes. El
+  # paso y el borde superior son los de siempre, así que con siete el cuadro
+  # mide exactamente lo que medía.
+  fam_borde_sup <- 0.5495
+  fam_paso <- 0.036
+  fam_n <- max(1L, nrow(family_rows))
+  fam_alto <- 0.069 + (fam_n - 1L) * fam_paso
+  grid::grid.roundrect(x = 0.5, y = fam_borde_sup - fam_alto / 2, width = 0.86, height = fam_alto, r = grid::unit(3, "mm"), gp = grid::gpar(fill = theme$white, col = theme$line))
   if (nrow(family_rows)) {
-    row_y <- seq(0.515, 0.299, length.out = nrow(family_rows))
+    row_y <- fam_borde_sup - 0.0345 - (seq_len(fam_n) - 1L) * fam_paso
     max_family <- max(family_rows$evaluated)
     bar_track_width <- 0.19
     for (i in seq_len(nrow(family_rows))) {
@@ -2276,7 +2284,8 @@ validation_methodology_report_pdf <- function(model, path) {
     grid::grid.text(
       .vmr_wrap("La composición por familia estará disponible después de aplicar el plan a la base.", 72L),
       x = 0.09,
-      y = 0.415,
+      # Colgado del borde superior de la caja, que ahora es variable.
+      y = fam_borde_sup - 0.028,
       just = c("left", "top"),
       gp = grid::gpar(col = theme$muted, fontsize = 9.5, lineheight = 1.2)
     )
@@ -2317,14 +2326,25 @@ validation_methodology_report_pdf <- function(model, path) {
       base_labels <- c("Encuestas recibidas", exclusion_label, "Encuestas incluidas")
     }
   }
-  base_x <- seq(0.125, 0.875, length.out = length(base_values))
-  # El separador va a 0.6 del paso entre columnas; con cinco columnas eso da el
-  # 0.1125 de siempre, y con otro número no se descuelga.
-  divider_offset <- if (length(base_x) > 1L) (base_x[[2L]] - base_x[[1L]]) * 0.6 else 0
+  # El embudo reparte la caja en celdas iguales: cada columna se centra en la
+  # suya y los separadores caen en los bordes entre celdas. El `seq(0.125,
+  # 0.875)` anterior estaba calibrado para cinco columnas y con tres dejaba los
+  # extremos pegados al borde de la caja y las líneas descolgadas del medio.
+  celda <- 0.86 / length(base_values)
+  borde_izq <- 0.5 - 0.86 / 2
+  base_x <- borde_izq + (seq_along(base_values) - 0.5) * celda
+  # Ancho de wrapping proporcional a la celda: a 7.1 pt entran ~163 caracteres
+  # por unidad npc, que con cinco columnas devuelve los 28 de siempre.
+  etiqueta_ancho <- max(12L, as.integer(floor(celda * 163)))
   for (i in seq_along(base_x)) {
-    if (i > 1L) grid::grid.lines(x = rep(base_x[[i]] - divider_offset, 2L), y = c(0.125, 0.19), gp = grid::gpar(col = theme$line, lwd = 0.8))
+    if (i > 1L) {
+      grid::grid.lines(
+        x = rep(borde_izq + (i - 1L) * celda, 2L), y = c(0.125, 0.19),
+        gp = grid::gpar(col = theme$line, lwd = 0.8)
+      )
+    }
     grid::grid.text(fmt(base_values[[i]]), x = base_x[[i]], y = 0.165, gp = grid::gpar(col = theme$ink, fontsize = 16, fontface = "bold"))
-    grid::grid.text(.vmr_wrap(base_labels[[i]], 28L), x = base_x[[i]], y = 0.135, just = c("center", "top"), gp = grid::gpar(col = theme$muted, fontsize = 7.1, lineheight = 1.08))
+    grid::grid.text(.vmr_wrap(base_labels[[i]], etiqueta_ancho), x = base_x[[i]], y = 0.135, just = c("center", "top"), gp = grid::gpar(col = theme$muted, fontsize = 7.1, lineheight = 1.08))
   }
 
   # Base y decisiones de alcance.
