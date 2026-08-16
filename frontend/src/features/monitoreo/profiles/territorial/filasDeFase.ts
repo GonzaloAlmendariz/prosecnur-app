@@ -50,6 +50,12 @@ export function describirFilasDeFase(
   label: string,
 ): FilasDeFase | null {
   if (!item) return null;
+  // Sólo sobre la fase sana. La consola devuelve esta frase ANTES que
+  // `item.message`, y en `dashboard_stale`, `sync_error` o
+  // `source_snapshot_mismatch` el mensaje del motor es más urgente que un
+  // desglose de conteos: taparlo con «1 697 locales y 1 693 en el reporte»
+  // cambiaría un «actualiza el corte» por una aritmética.
+  if (item.status !== "source_synced_with_rows") return null;
   const locales = entero(item.local_rows);
   const enReporte = entero(item.report_rows);
   if (locales === null || enReporte === null) return null;
