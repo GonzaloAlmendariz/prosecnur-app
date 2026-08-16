@@ -58,7 +58,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ☑ **cerrado** (2026-08-16) · el motor corrió sobre el proyecto real y dio 2.500 objetivo y 3.750 de sobremuestra; la brecha 3.807 → 3.303 → 2.500 queda explicada (803 recortados al azar por celda) |
 | L9 | Decidir alumnos por CH por facultad y contrastar | V6 | ⛔ **bloqueado por la fuente** · reproduce exacto y el estadístico ya está justificado en la UI; el contraste exige la decisión de 2025, que nunca se firmó |
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☑ **el patrón SÍ estaba** (2026-08-16) · 15 facultades, 194 aulas, en el histórico; contraste abajo |
-| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ◐ **perfil medido; falta el contraste** (2026-08-16) · idéntico con y sin descuento. La fuente NO falta: `Historico 2025/HSVBG2025_relacion_cursos_horario_aplicados.xlsx` trae los CH aplicados. Sigue sin abrirse |
+| L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☑ **contrastado** (2026-08-16) · abierta la relación de aplicados: 170 titulares + 26 reemplazos = 196, 194 aplicadas. Facultad calca exacto; horario y tipo de docente difieren del otro registro (ver abajo) |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ◐ **cadena dimensionada; falta conciliar** (2026-08-16) · 30 × 11 = 330. La fuente NO falta: `Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx` trae las 1.012 agendadas. Sigue sin abrirse |
 
 ## L1 · el material de 2025 (2026-08-16)
@@ -93,6 +93,54 @@ Ojo con el `glosario_completo = FALSE`: la referencia se leyó en modo degradado
 así que su tasa de asistencia es **bruta sobre matriculados**, no sobre
 elegibles. Es la trampa del ADR 0060 y afecta a cómo se lee ese 0,791 —conviene
 releer el intervalo antes de usarlo como vara.
+
+## L11 · el perfil de 2025, contrastado contra la relación de aplicados (2026-08-16)
+
+Abierta `Historico 2025/HSVBG2025_relacion_cursos_horario_aplicados.xlsx`, que
+es la fuente que faltaba. Trae 196 filas con `es_reemplazo`, `status_muestra`,
+`prob_seleccion`, `peso_diseno` y el detalle de agenda y aplicación.
+
+| | |
+|---|---|
+| Titulares (`es_reemplazo = No`) | **170** |
+| Reemplazos usados | **26** |
+| Total en el operativo | 196 |
+| `status_aplicacion` | **194 aplicadas**, 2 no aplicadas |
+| `status_muestra` | 160 agendada · 24 en reserva 1 · **2 en reserva 2** · 10 reagendada |
+
+Los 170 titulares y las 194 aplicadas cuadran con lo que el doc ya tenía.
+
+### La facultad calca; el horario y el docente no
+
+| Dimensión | Este archivo | Lo que el doc traía | |
+|---|---|---|---|
+| C. e Ingeniería · EG Ciencias · EG Letras · Derecho · C. Sociales | 39 · 25 · 19 · 16 · 15 | 39 · 25 · 19 · 16 · 15 | ✅ exacto |
+| Modalidad | 170 presencial | 170 presencial | ✅ exacto |
+| Bloque horario | Reg. mañana 67 · Reg. tarde 62 · Esp. mañana 31 · Esp. noche 10 | Reg. tarde 65 · Reg. mañana 63 · Esp. mañana 34 · Esp. noche 8 | ⚠️ difiere |
+| Tipo de docente | Contratado 148 · Ordinario principal 22 | Contratado 145 · Ordinario principal 25 | ⚠️ difiere |
+
+**No es un error de nadie: son dos registros distintos del mismo operativo.** El
+perfil que el doc traía salió del histórico de asistencia; éste sale de la
+relación de aplicados. Coinciden donde la variable es del curso —facultad,
+modalidad— y difieren donde depende de la ejecución —qué bloque acabó
+aplicándose, qué docente atendió—. Sirve como aviso: **preguntar «el perfil de
+2025» sin decir de qué archivo devuelve dos respuestas distintas.**
+
+### Lo que de verdad sorprende: la cadena real fue de dos, no de once
+
+El operativo consumió **26 reemplazos para 170 titulares —0,153 por titular—**, y
+la reserva más profunda que llegó a usarse fue la **segunda**: 24 aulas en
+reserva 1 y 2 en reserva 2. Ninguna cadena llegó ni cerca de once.
+
+El diseño de 2026 arma **11 olas** (330 reservas para 30 titulares) y su objetivo
+de profundidad quedó en **6** tras la decisión de Gonzalo en L33, apoyada en un
+precedente de «3–12 con mediana 6» que venía de las cadenas *planificadas*. Lo
+que el campo **consumió** es otra cosa, y esta es la primera vez que se mide.
+
+No cambia nada por sí solo —planificar holgura y consumirla son cosas
+distintas, y una cadena existe justamente para no usarse—, pero el objetivo de
+profundidad se juzga contra lo que se espera consumir. Queda dicho con cifras
+para que la decisión se pueda revisar con ellas delante.
 
 ## L12 · titulares y reemplazos (2026-08-16)
 
