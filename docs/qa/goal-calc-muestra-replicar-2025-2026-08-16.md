@@ -622,6 +622,27 @@ concluir nada:
   28 de los 30 elegidos están entre los 30 más grandes, y aun así el más chico
   quedó a uno de la línea. No es un riesgo remoto.
 
+### Corrección (2026-08-16, medida): la celda corta no se queda en cero
+
+Escribí antes que una celda de un solo curso-horario dejaría a su titular «sin
+ninguna reserva posible». **Es falso**, y lo cacé leyendo el mecanismo en vez de
+suponerlo. La estrategia por defecto es `max_complete_chains_by_cell` con
+`min_replacements_per_titular = 1`, y el candado de celda —`strict_cell`— sólo
+se activa **pasada** esa primera reserva. Verificado llamando directamente al
+selector de cadena: en profundidad 1 elige un curso-horario de la misma
+**facultad** aunque sea de otro estrato; de la 2 en adelante, si no hay nada en
+su propia celda, no elige nada.
+
+Así que esa celda termina con **una** reserva, no cero. Y ahí está lo que de
+verdad preocupa: `reserve_depth_target` vale **1** de fábrica mientras el diseño
+construye cadenas de **11**. Con profundidad 1 el objetivo se cumple, así que ni
+el motor ni la pantalla dicen nada — un titular con una sola reserva, y encima
+de otra celda, pasa por conforme. El objetivo no mide lo que el diseño pretende.
+
+Esto no invalida el aviso de `08fb3c9e` —una celda en cero sigue siendo posible
+si se agota el pool entero, y el promedio seguiría tapándola—, pero sí corrige
+cuál es el caso frecuente: no es el cero, es el uno que nadie mira.
+
 Cuánto muerde depende de la profundidad elegida:
 
 | Reservas por titular | Celdas que no la sostienen |
@@ -638,7 +659,11 @@ ellas y quedarse corto— no la decide el motor: sesgar la selección para evita
 celdas chicas cambia las probabilidades de inclusión, y eso es una decisión
 metodológica con consecuencias en los pesos.
 
-**Bloqueado, no pendiente.** Espera decisión de Gonzalo entre tres caminos:
+**Bloqueado, no pendiente.** Espera decisión de Gonzalo entre tres caminos —y,
+a la luz de la corrección de arriba, con una cuarta pregunta previa: si
+`reserve_depth_target` debería seguir en 1 cuando el diseño arma cadenas de 11,
+porque mientras valga 1 ningún aviso puede detectar una cadena que se quedó a
+un décimo de lo previsto:
 
 1. **Dejarlo como está** y confiar en el aviso posterior: el diseño acepta que
    una celda chica se quede sin cadena completa y se cubra con la bolsa extra.

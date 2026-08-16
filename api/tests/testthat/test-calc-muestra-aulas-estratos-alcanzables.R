@@ -106,9 +106,19 @@ test_that("roles desalineados no se creen", {
 #
 # El aviso del motor compara la MEDIA de depth_ratio contra el objetivo, y una
 # media tapa un agujero. Medido en el marco real de 2025-2: de sus 84 estratos,
-# 44 tienen menos de 12 cursos-horario y no pueden llenar una cadena de 11; uno
-# tiene UNO solo, asi que si el sorteo lo toca su titular se queda sin ninguna
-# reserva. En el sorteo medido no le toco, y por eso seguia invisible.
+# 44 tienen menos de 12 cursos-horario y no pueden llenar una cadena de 11.
+#
+# Precision sobre COMO se llega a una celda en cero: no basta con que la celda
+# sea chica. La estrategia por defecto (`max_complete_chains_by_cell` con
+# `min_replacements_per_titular = 1`) permite que la PRIMERA reserva salga de
+# otro estrato de la misma facultad; el candado de celda solo se activa a partir
+# de la segunda. Verificado llamando al selector de cadena: en profundidad 1
+# elige un hermano de facultad, de la 2 en adelante no elige nada. Asi que una
+# celda de un solo curso-horario acaba con UNA reserva, no con ninguna, y para
+# llegar al cero hace falta que se agote tambien el pool de facultad.
+#
+# El cero sigue siendo posible y el promedio lo seguiria tapando, que es lo que
+# estos tests fijan.
 
 .alc_depth <- function(ratios, estratos = NULL) {
   data.frame(
@@ -153,4 +163,40 @@ test_that("el objetivo declarado manda sobre el de fabrica", {
   # Un objetivo no positivo cae al de fabrica en vez de no avisar nunca.
   expect_length(.cm_aulas_aviso_celdas_sin_reserva(.alc_depth(rep(11, 3)), 0), 0L)
   expect_true(grepl("de 3 celdas", .cm_aulas_aviso_celdas_sin_reserva(.alc_depth(c(0.5, 11, 11)), 0), fixed = TRUE))
+})
+
+test_that("la primera reserva puede salir de la facultad; las siguientes no", {
+  # El mecanismo que corrige la lectura ingenua «celda chica => titular sin
+  # reserva». Con `strict_cell = FALSE` (profundidad 1 bajo la estrategia por
+  # defecto) el pool cae a la facultad cuando la celda no tiene hermanos; con
+  # `strict_cell = TRUE` (de la segunda en adelante) no hay a donde caer.
+  #
+  # Es la diferencia entre una celda que acaba con UNA reserva de otra celda y
+  # una que acaba con ninguna, y de ahi depende que el aviso de profundidad
+  # tenga algo que decir.
+  tit <- list(stratum = "GASTRO / F / G3", faculty = "GASTRO")
+  cand <- list(
+    n = 3L,
+    stratum = c("GASTRO / F / G1", "GASTRO / M / G2", "OTRA / F / G1"),
+    faculty = c("GASTRO", "GASTRO", "OTRA")
+  )
+  mask <- rep(TRUE, 3)
+  score <- c(1, 2, 3)
+
+  laxo <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, strict_cell = FALSE)
+  expect_identical(cand$faculty[laxo], "GASTRO")   # cae a la facultad, no a cualquiera
+  expect_false(identical(cand$stratum[laxo], tit$stratum))
+
+  estricto <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, strict_cell = TRUE)
+  expect_true(is.na(estricto))
+
+  # Y con un hermano en la propia celda, el estricto sí elige — y prefiere la
+  # celda propia incluso cuando el laxo tendría opciones mejor puntuadas fuera.
+  cand2 <- list(
+    n = 2L,
+    stratum = c("GASTRO / F / G3", "GASTRO / M / G2"),
+    faculty = c("GASTRO", "GASTRO")
+  )
+  propio <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand2, rep(TRUE, 2), c(1, 9), TRUE, TRUE, strict_cell = FALSE)
+  expect_identical(cand2$stratum[propio], tit$stratum)
 })
