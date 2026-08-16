@@ -217,6 +217,9 @@ export type SessionState = {
   hojas_ruta_ok: boolean;
   graficos_ppt_ok: boolean;
   graficos_word_ok: boolean;
+  /** Bases del estudio sin PPT ni Word. Los dos flags de arriba son de la base
+      ACTIVA y en multibase daban la etapa por hecha con bases vacías. */
+  graficos_bases_sin_mazo?: string[];
   // --- Estudio (multi-base, v0.2+) ---
   estudio_nombre: string | null;
   /** TRUE si la sesión tiene un estudio inicializado. NO es una señal de

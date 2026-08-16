@@ -20,6 +20,7 @@ import { GlidingTabList } from "../components/GlidingTabList";
 import { ModuleCommandBar } from "../components/ModuleCommandBar";
 import { ChromeSlotHost, ModuleChromeSlotsProvider, useHayRanura } from "./ModuleChromeSlots";
 import { MultibaseReportMenu } from "../features/graficos/MultibaseReportMenu";
+import { coberturaGraficos } from "../features/graficos/coberturaBases";
 import { processingBaseScopePresentation } from "../features/procesamiento/baseScopeModel";
 import { BrandMark } from "./BrandMark";
 
@@ -98,7 +99,12 @@ function routePolicy(pathname: string): "viewport" | "legacy-scroll" {
   return "legacy-scroll";
 }
 
-type NavItem = { to: string; n: number; label: string; done?: boolean; blockedReason?: string };
+type NavItem = {
+  to: string; n: number; label: string; done?: boolean; blockedReason?: string;
+  /** Lo que le falta a una sección alcanzable. NO pinta `is-blocked`: una
+      etapa incompleta se puede abrir; una bloqueada, no. */
+  faltaReason?: string;
+};
 
 function useNavItems(): NavItem[] {
   const { state } = useSession();
@@ -133,8 +139,9 @@ function useNavItems(): NavItem[] {
       to: "/graficos",
       n: 5,
       label: "Gráficos",
-      done: !!state?.graficos_ppt_ok || !!state?.graficos_word_ok,
+      done: coberturaGraficos(state).hecho,
       blockedReason: hasAnalitica ? undefined : "Bloqueada: prepara Analítica.",
+      faltaReason: hasAnalitica ? coberturaGraficos(state).motivo ?? undefined : undefined,
     },
   ];
 }
@@ -195,8 +202,14 @@ function ProcessingPhaseDockItem({ it, active }: { it: NavItem; active: boolean 
         data-nav-shape="pill"
         data-nav-state={active ? "selected" : undefined}
         aria-current={active ? "page" : undefined}
-        title={it.blockedReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
-        aria-label={it.blockedReason ? `${it.label}. ${it.blockedReason}` : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`}
+        title={it.blockedReason ?? it.faltaReason ?? (it.done ? `${it.label}: sección lista` : `Abrir ${it.label}`)}
+        aria-label={
+          it.blockedReason
+            ? `${it.label}. ${it.blockedReason}`
+            : it.faltaReason
+              ? `${it.label}. ${it.faltaReason}`
+              : `${it.label}. ${it.done ? "Sección lista." : "Abrir sección."}`
+        }
         className={({ isActive }) => [
           "pulso-phase-pill",
           "pulso-processing-phase-link",
