@@ -45,7 +45,7 @@ sabe nada que la interfaz calle.
 | **L6** | Decidir si `recommended_file_id` se usa o se retira | `limpieza_decision_engine.R` · `validacion/types.ts` | ☑ hecho — `8bee2e76`, **se retiró**. Un productor, una declaración de tipo, cero consumidores. La decisión quedó anotada en el ADR. |
 | **L7** | Las pestañas del Dashboard no publican dirección | `catalogos/dashboard.ts` · `DashboardRuta.tsx` | ☑ hecho — `ca4fa9c6`. Ya no queda ninguna pestaña sin dirección publicada: **V6 cumplida**. |
 | **L8** | Barrido V1: contrastar lo que dice cada pestaña de Procesamiento contra su payload | las cinco secciones | ☑ hecho — las cinco barridas, cero contradicciones. **V1 se sostiene**; el detalle y el límite del método, abajo. |
-| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | empezar por Carga y Monitoreo | ☐ sin empezar — es la medición de la otra vara sin barrer. V2 es de donde salió L3, así que es donde más probable es que quede algo. |
+| **L9** | Barrido V2: por superficie, enumerar los estados que el motor distingue y comprobar que cada uno tiene apariencia propia | Carga y Monitoreo | ◐ a medias — seis ejes probados, ninguno colapsa. Falta el interior de los cuatro perfiles de Monitoreo, que es la superficie grande. |
 
 ### L8 — barrido de V1, completo
 
@@ -99,6 +99,29 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L9 — barrido de V2, primera pasada
+
+La firma que se busca es la que produjo L3: **un booleano del frontend derivado
+de un campo del backend que tiene más de dos valores**. Allí eran seis estados
+de `status` colapsados en `marcada && status !== "completo"`.
+
+Seis ejes probados en Carga y Monitoreo, ninguno colapsa:
+
+| Eje | Estados del motor | Cómo se ven |
+|---|---|---|
+| Compatibilidad data↔XLSForm | binario de verdad: `ok` ⟺ `status=="compatible"` ⟺ `n_missing==0` | el triple OR de `CargaReviewSummary.tsx:48-50` es redundante, no un colapso |
+| Severidad de calidad de campo | `bloqueante` · `advertencia` | `data-severidad="alta"｜"media"`, binario contra binario |
+| Tipo de alerta de calidad de campo | 6 (5 de `monitoreo_calidad_campo.R` + `abierta_sin_contenido` de `monitoreo_abiertas.R`) | `rotuloDeTipo` cubre los 6; el fallback genérico no se alcanza |
+| Outcomes del telefónico | ~10 en el catálogo de `monitoreo_engine.R:1538+` | cada uno trae su `label` y el front lo renderiza; no hay ids hardcodeados |
+| Estado de camino de Monitoreo | `active` · `planned` | chip y tooltip distintos para cada uno |
+| Base con/sin data en Carga | binario | `Boolean(base.data_file_id)` |
+
+**Lo que falta y es lo más grande**: el interior de los cuatro perfiles de
+Monitoreo (acreditación, telefónico, territorial, cursos-horario). Cada uno
+tiene sus propios tableros y sus propias taxonomías de estado, y el histórico
+dice que ahí hubo taxonomías en conflicto —«efectivo» que es `outcome_value` y
+no un estado— así que es donde más probable es que V2 se rompa.
 
 ### L7 — cómo quedó
 
