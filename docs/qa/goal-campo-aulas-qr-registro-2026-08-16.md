@@ -110,6 +110,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L39** | La sección **Avance** no mostraba el avance. | `AulasMonitoreoPage.tsx:387` hacía `quotaRows.length ? quotaRows : avance_por_estrato`: los dos **competían por un panel**, y como un estudio de cursos-horario siempre trae cuotas, el avance por estrato no se veía nunca. El avance por aula vivía en **Consultas**, concatenado con reemplazos y brechas en una tabla donde 7 aulas salían como 15 filas sin decir de qué lista venía cada una. | ☑ **hecho** (2026-08-16) — Avance tiene tres paneles propios y Consultas dos. |
 | **L40** | El alto se repartía al revés del contenido. | El stack es grid y la tabla topa en `min(420px, 100vh−430px)`: dos límites pensados para **una** tabla por vista. Con tres, grid sirve enteras a las que caben y descuenta todo el faltante de la única que excede. A 1024×600 **dos de los tres paneles colapsaban a cero** — regresión que introdujo L39. | ☑ **hecho** (2026-08-16) — paneles que no se encogen; el scroll lo absorbe su dueño ya declarado. Verificado a 1440×1000 y 1024×600. |
 | **L41** | Los códigos de la cadena salían de la **posición en la lista**. | `monitoreo_aulas_normalize_plan()` derivaba `titular_operational_code` y `replacement_chain_code` de `slot_number`, que cae a `orden`. Una reserva de `CH 4` en la fila 6 se declaraba titular de `CH 6` y se llamaba `R 6.1`. | ☑ **hecho** (2026-08-16) — tres derivaciones corregidas; verificado en pantalla. |
+| **L42** | El **Registro de campo** es inalcanzable a 1024×600. | El stack de Agenda dispone de 325 px y su contenido pide 452. Está en `overflow: hidden`, así que el registro queda **127 px cortado sin barra ni rueda**. `scrollIntoView` sí lo alcanza —una verificación programática lo daría por visible— y el usuario no. | ☐ sin empezar — medido; tres reparaciones descartadas con evidencia. La vía identificada es scroll interno del panel. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -691,3 +692,41 @@ aparece una cadena anidada.
 bueno un cambio que rompía el viewport bajo. La matriz de QA tiene cinco
 viewports por esto exactamente, y «se ve bien» en uno no es evidencia de nada
 sobre los otros.
+
+
+### 2026-08-16 — Barrido de las cinco secciones en la matriz
+
+Tras la regresión de L40 —que se me coló por medir en un solo viewport— recorrí
+las cinco secciones del perfil en 1440×1000 y 1024×600 con un medidor que
+reporta por cláusula.
+
+**1440×1000 está limpio.** Cero paneles colapsados, cero fuera de contenedor,
+cero tablas cortadas sin salida. Sólo dos superficies sin declarar (C1) en
+Fuentes y Agenda.
+
+**1024×600 tiene un defecto real: L42.** En Agenda, el «Registro de campo» —la
+superficie que pediste que viviera en Monitoreo— queda **127 px cortada y sin
+forma de llegar**: el stack está en `overflow: hidden`. Los otros recortes de esa
+viewport (Fuente y plan 138/163, Agenda 181/313, Validación 255/304) **sí** son
+conformes: cada tabla scrollea dentro de su propia caja.
+
+**El detalle que hace peligroso a L42**: `scrollIntoView()` sí trae el panel a la
+vista, moviendo un stack que el usuario no puede mover. Cualquier verificación
+que pregunte «¿es visible?» tras un `scrollIntoView` responde que sí. Lo que
+distingue el caso es preguntar si **el dueño de scroll declarado** puede llegar.
+
+**Tres reparaciones descartadas, cada una con su medición:**
+
+| Intento | Por qué no |
+|---|---|
+| `min-height: min(18rem, 40vh)` en el registro | El panel pide 388 px de contenido; bajar su suelo de 288 a 240 no cambia nada |
+| `grid-template-rows: auto auto auto` bajo media query | El stack tiene el alto **impuesto desde arriba** (325 px); cambiar sus filas no lo hace crecer |
+| El patrón `flex: 0 0 auto` que sí arregló Avance | El stack pasó a pedir 845 px y siguió clavado en 325. En Avance funcionó porque allí nada le imponía altura |
+
+La causa es arquitectónica: `.aulas-mon-view` es un **workbench de alto fijo**, y
+en ese layout quien scrollea debe ser una superficie interior, no el contenido.
+La vía que queda es dar al cuerpo del registro su propio scroll dentro de su
+borde — dueño claro, sin cadena nueva.
+
+**Dato duro para L26**, que sigue esperando tu decisión: donde el registro vive
+hoy, **no cabe** en la viewport baja de la matriz.
