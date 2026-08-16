@@ -52,7 +52,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ |
 | L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☐ |
-| L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; hallazgo de criterio duplicado |
+| L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ◐ **medido** (2026-08-16) · tabla abajo; razón duplicada confirmada, arreglo pendiente |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☐ |
 | L7 | Auditar que cada criterio muestra su efecto en la UI | V4 | ☐ |
 | L8 | Calcular el tamaño y contrastar n contra 2025 | V5 | ☐ |
@@ -162,16 +162,36 @@ rotula aparte —«Mínimo de alumnos elegibles» y «Mínimo por aula (filtro b
 precisamente porque *«aparecen juntos y con el mismo nombre eran
 indistinguibles»*.
 
-Coincidir al dígito puede significar dos cosas, y hay que decidir cuál:
+**Resuelto: es una razón duplicada, no dos criterios.** Medido comparando los
+conjuntos, no los totales:
 
-1. **Están configurados con el mismo umbral** en este proyecto, así que uno es
-   redundante aquí pero no en general.
-2. **Uno de los dos no muerde nunca** y su recorte es en realidad el del otro,
-   contado dos veces al leer las razones.
+```
+min_eligible           2.320
+min_eligible_per_class 2.320
+ambos a la vez         2.320
+solo uno u otro            0
+conjuntos idénticos     TRUE
+```
 
-La diferencia importa para V3: si es (2), la pantalla muestra dos criterios donde
-hay uno, y el usuario cree estar decidiendo algo que ya está decidido. Se
-distingue mirando si sus umbrales configurados difieren.
+Y esas 2.320 son exactamente las aulas con `eligible_n < 15`, que es el umbral
+de `filters$min_eligible_per_class`. Mientras tanto,
+`criterios_seleccion$minEligible` está **vacío (`{}`)**: el criterio de la suite
+no está configurado en este proyecto.
+
+Así que **actúa un solo filtro y el motor emite dos razones para él**. Dos
+consecuencias, y la segunda es la grave:
+
+1. Quien sume recortes por razón cuenta 2.320 dos veces — la suma de esta tabla
+   ya no es interpretable sin saberlo.
+2. La pantalla muestra **dos criterios donde hay uno**. El usuario cree estar
+   decidiendo algo que ya está decidido, y si mueve el que no actúa no pasa
+   nada, sin que nada se lo diga.
+
+Es exactamente el defecto que V3 vigila. **No se arregló en este tick**: tocar la
+emisión de razones afecta a lo que la UI rotula y a los tests que leen
+`exclude_reason`, y merece hacerse con la suite delante. Queda como el primer
+arreglo del próximo tick, con su regresión: un proyecto donde sólo actúa el
+filtro legacy no puede publicar la razón del criterio de la suite.
 
 ## Trampa medida: la columna se toma del mapping, no del nombre
 
