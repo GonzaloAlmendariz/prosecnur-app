@@ -125,3 +125,38 @@
   ft <- flextable::border_inner_v(ft, border = borde, part = "all")
   flextable::fix_border_issues(ft)
 }
+
+
+#' Coloca un grafico y, si trae tabla nativa con sitio propio, tambien la tabla
+#'
+#' El caso de «solo tabla» se resuelve con `.dml_o_tabla()`: la tabla ocupa el
+#' placeholder entero. Pero el entregable aprobado pone el grafico Y la tabla
+#' lado a lado, y ahi hacen falta dos formas en el mismo cajon.
+#'
+#' El graficador adjunta `geom_frac` —fracciones de SU canvas— y aqui se
+#' convierten contra el cajon real. Un grafico sin tabla, o con tabla sin
+#' geometria, no pasa por este camino.
+#'
+#' @param loc Geometria del cajon destino, en pulgadas: `list(left, top, width,
+#'   height)`.
+#' @return `TRUE` si coloco una tabla aparte.
+#' @keywords internal
+.tabla_nativa_geom <- function(p, loc) {
+  nativa <- .tabla_nativa_de(p)
+  if (is.null(nativa)) return(NULL)
+  g <- (nativa$estilo %||% list())$geom_frac
+  if (!is.list(g)) return(NULL)
+
+  v <- suppressWarnings(as.numeric(c(g$x, g$y, g$w, g$h)))
+  if (length(v) != 4L || any(!is.finite(v))) return(NULL)
+  l <- suppressWarnings(as.numeric(c(loc$left, loc$top, loc$width, loc$height)))
+  if (length(l) != 4L || any(!is.finite(l))) return(NULL)
+
+  # `y` viene desde ABAJO —convencion de cowplot— y officer mide desde arriba.
+  list(
+    left = l[[1]] + v[[1]] * l[[3]],
+    top = l[[2]] + (1 - v[[2]] - v[[4]]) * l[[4]],
+    width = v[[3]] * l[[3]],
+    height = v[[4]] * l[[4]]
+  )
+}
