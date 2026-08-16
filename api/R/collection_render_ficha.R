@@ -153,7 +153,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
 # hoja que alguien lee parado en la puerta de un aula no dicen nada, y confundir
 # una ficha de reemplazo con una de titular cuesta una aplicacion entera. El
 # plan conserva la clave canonica; lo que se imprime es la frase.
-.crf_role_label <- function(role, replacement_for = "") {
+.crf_role_label <- function(role, replacement_for = "", orden = NULL) {
   key <- tolower(gsub("[ -]+", "_", trimws(as.character(role %||% "")[1])))
   target <- trimws(as.character(replacement_for %||% "")[1])
   base <- switch(
@@ -166,7 +166,14 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     # seria peor que mostrar la clave.
     trimws(as.character(role %||% "")[1])
   )
-  if (identical(base, "Reemplazo") && nzchar(target)) paste0("Reemplazo de ", target) else base
+  if (!identical(base, "Reemplazo")) return(base)
+  # El ORDEN distingue un eslabon de otro. Con cadenas de uno o dos no hacia
+  # falta, pero desde que el candado por facultad las deja llegar a 11, seis
+  # fichas de la misma cadena decian exactamente lo mismo —«Reemplazo de
+  # AULA-01»— y quien las tiene en la mano no sabia cual entra primero.
+  n <- suppressWarnings(as.integer(orden %||% NA))
+  pos <- if (length(n) == 1L && is.finite(n) && n > 0L) sprintf(" %d", n) else ""
+  if (nzchar(target)) paste0("Reemplazo", pos, " de ", target) else paste0("Reemplazo", pos)
 }
 
 .crf_unit_context <- function(unit) {
@@ -176,7 +183,10 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   list(
     unit_id = .crf_txt(unit$unit_id, ""),
     label = .crf_txt(unit$label, "Unidad de aplicacion"),
-    role = .crf_role_label(unit$role, replacement_for),
+    role = .crf_role_label(
+      unit$role, replacement_for,
+      dims$replacement_order %||% unit$replacement_order
+    ),
     replacement_for = replacement_for,
     group = .crf_txt(unit$group, ""),
     faculty = .crf_txt(dims$faculty %||% unit$faculty, ""),
