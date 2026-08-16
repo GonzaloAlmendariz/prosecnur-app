@@ -69,6 +69,8 @@ import {
 import {
   pestanaInicialMonitoreo,
   seccionInicialMonitoreo,
+  monitoreoPestanaDesdeParams,
+  monitoreoSeccionDesdeParams,
   useMonitoreoDireccion,
 } from "../../useMonitoreoDireccion";
 import { describirFilasDeFase } from "./filasDeFase";
@@ -1384,7 +1386,23 @@ export default function TerritorialMonitoreoPage() {
     [seccionActiva],
   );
   useMonitoreoDireccion(seccionActiva, pestanaActiva, "territorial", {
-    onSeccionPedida: setActiveView,
+    onSeccionPedida: (seccion) => {
+      setActiveView(seccion);
+      // La pestaña de la URL se aplica JUNTO con su sección. Al cambiar de
+      // sección, la pestaña activa pasa a ser la recordada para esa sección y
+      // se publica, pisando la pedida: medido, `consultas/gps` desde Avance
+      // aterrizaba en `duracion` si esa era la última vista de Consultas.
+      //
+      // Se exige que la sección de la URL coincida con la que se activa: eso
+      // distingue «vengo de una dirección» de «vengo de un clic», donde la URL
+      // todavía trae la pestaña de la sección anterior.
+      if (monitoreoSeccionDesdeParams(window.location.search) !== seccion) return;
+      const pedida = monitoreoPestanaDesdeParams(window.location.search);
+      if (!pedida) return;
+      const disponibles = TERRITORIAL_LOCAL_TABS[seccion] ?? [];
+      if (!disponibles.some((tab) => tab.key === pedida)) return;
+      setActiveLocalTabs((actuales) => ({ ...actuales, [seccion]: pedida }));
+    },
     onPestanaPedida: (pestana, seccion) => {
       // Solo si esa pestaña existe en la sección destino: una dirección con
       // una pestaña ajena no debe dejar la sección sin selección válida.
