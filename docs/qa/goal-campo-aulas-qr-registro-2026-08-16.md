@@ -576,3 +576,30 @@ los dos trabajos se juntan y ningún gate por área la vería.
 **Y el gate se corrió leyendo el exit code del `Rscript`**, no el de un `tail`
 encadenado: 71 archivos de las áreas de este GOAL, 0 fallos, y la costura
 completa sigue pasando de punta a punta.
+
+
+### 2026-08-16 — Cuántas reservas verá el circuito de campo, de verdad
+
+Las otras dos decisiones de la sesión paralela son de su GOAL, no de éste:
+ninguna toca L2, L12, L34 ni L46. Pero su commit declara algo que sí importa
+aquí:
+
+> Los dos defaults se mueven sólo en el frontend; los de R siguen como estaban,
+> para no reescribir marcos ya firmados.
+
+Comprobado: `api/R/calc_muestra_aulas.R` tiene `reserve_depth_target = 1.00` y
+`frontend/.../constants.ts` tiene `6`. La divergencia es deliberada.
+
+**Qué significa para este circuito**: `collection_handoff()` y la simulación
+corren por la ruta de R, así que por defecto verán cadenas de **una** reserva.
+Las de once llegarán cuando el plan venga del frontend o cuando el estudio
+declare su propio objetivo —HSyVBG 2026 trae las dos claves explícitas, así que
+conserva las suyas—.
+
+**El motor de activación no depende de ese target**: consume las reservas que
+haya. Probado en los tres tamaños que el sistema puede producir hoy —**1, 2 y
+11**— y los tres se comportan igual, incluido el mensaje final, que distingue
+«se habían usado N» de «no tiene ninguna reserva en el plan».
+
+Es la clase de dato que se pierde entre dos trabajos paralelos: uno mueve un
+default y el otro asume el rango viejo sin enterarse.
