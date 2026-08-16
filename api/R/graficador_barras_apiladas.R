@@ -670,8 +670,15 @@
   hay <- dentro & !is.na(fill) & nzchar(fill)
   if (!any(hay)) return(df_lab)
 
-  df_lab$.col_label[hay] <- .contraste_texto(fill[hay],
-                                             sobre_oscuro = color_texto_barras)
+  # Familia primero: un color unico para todo el grafico. Solo si los rellenos
+  # no son de ninguna de las dos familias conocidas decide la luminancia,
+  # segmento a segmento. Ver `graficador_contraste_texto.R`.
+  fijo <- .contraste_familia(unname(colores_grupos))
+  df_lab$.col_label[hay] <- if (!is.null(fijo)) {
+    fijo
+  } else {
+    .contraste_texto(fill[hay], sobre_oscuro = color_texto_barras)
+  }
   df_lab
 }
 
