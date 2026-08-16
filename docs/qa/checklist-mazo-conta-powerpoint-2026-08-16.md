@@ -58,8 +58,8 @@ ya existente.
 
 | | Indicación | Dónde vive | Estado |
 |---|---|---|---|
-| P1 | El índice: comprobar que los elementos y encabezados salen bien | render de `p_slide_indice` | ☐ |
-| P2 | Separación entre cuadro y cuadro del índice (comentario de Gabriela) | ídem | ☐ |
+| P1 | El índice: comprobar que los elementos y encabezados salen bien | plan del `.pulso` | ☑ salía **solo el título**: `secciones`, `subtemas`, `subindices` e `iconos_focos` llegaban como cadena vacía. Ya lista las cinco entradas numeradas |
+| P2 | Separación entre cuadro y cuadro del índice (comentario de Gabriela) | `.indice_fit_layout()` | ☑ **1.19 → 1.71 cm**, el paso exacto del aprobado. La fórmula topaba en `2.34/n`, que con la quinta sección apretaba todas |
 | P3 | Objetivo: no se está siguiendo la referencia | `p_slide_objetivo_icono` | ☐ |
 | P4 | **La ficha técnica desborda la lámina** | `reporte_ppt_tabla_lineas.R` + plan | ☑ el alto de fila contaba **caracteres**, no líneas: «Muestra» llevaba cuatro públicos en 1.24 cm. Y el contenido venía pegado (`…PUCPDocentes…`). Geometría y 15 pt del aprobado |
 | P5 | Escala usada y número de respuestas están puestas **como texto suelto**, no armadas como en el PPT final | plan del `.pulso` + constructor | ☐ |
@@ -69,7 +69,7 @@ ya existente.
 | P9 | Barras agrupadas muestran **columna extra** y el reporte final de Contabilidad no la tiene | suelo editorial de Pulso | ☑ era la N de la base repetida **18 veces** en una lámina; el aprobado: 0 |
 | P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paleta `lst_p10` del proyecto | ☑ la 2ª pregunta salía `081F5C`+`F4B183` y su hermana `081F5C`+`9DC3E6`; el aprobado pinta las dos en celeste |
 | P11 | Estructura organizacional: porcentajes unos en blanco y otros en azul; deben ser todos azules | `graficador_contraste_texto.R` | ☑ el umbral 0.6 dejaba `#70AD47` (0.561) del lado oscuro → **7 blancas**; el aprobado usa azul ahí. Umbral a 0.52 |
-| P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `graficos_radar_multibase.R` | ☐ |
+| P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `graficador_radar.R` (`mostrar_tabla_derecha`) | ◐ **medido**: el aprobado resuelve esto en **2 láminas** con `CHART` nativo + tabla nativa 7×4; el motor usa **5 láminas** con un grupo de 23/82/145/128/39 sub-formas — **417 formas a mano**. La tabla se dibuja dentro del ggplot; sacarla exige que el graficador exponga sus datos y el render emita la tabla. Unidad propia |
 | P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda manual de apiladas | ◐ **medido**: lám 68 usa `0.54×0.54` (ggplot, cuadrado) y lám 69 `0.40×0.29` (manual, rel 1.38). El motor es inconsistente consigo mismo. **Pero el aprobado usa `0.29×0.21`, la misma rel 1.38**: la referencia no decide, decide Gonzalo |
 
 ### El defecto que estaba detrás de varios a la vez
