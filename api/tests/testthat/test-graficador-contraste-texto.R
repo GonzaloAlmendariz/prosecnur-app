@@ -80,3 +80,44 @@ test_that("sin paleta no se toca nada", {
                    stringsAsFactors = FALSE)
   expect_identical(.aplicar_contraste_labels_apiladas(df, "white", NULL)$.col_label, "white")
 })
+
+
+test_that("la dicotomica azul lleva SIEMPRE cifra blanca", {
+  # Decision de la casa: no varia segmento a segmento aunque la luminancia del
+  # celeste admita azul.
+  expect_identical(.contraste_familia(c("#081F5C", "#9DC3E6")), "white")
+  expect_identical(.contraste_familia("#081F5C"), "white")
+})
+
+
+test_that("la escala Likert lleva SIEMPRE cifra en azul Pulso", {
+  expect_identical(
+    .contraste_familia(c("#F4B183", "#FFD965", "#ADD493", "#70AD47")),
+    .CONTRASTE_SOBRE_CLARO
+  )
+})
+
+
+test_that("el gris de SIN INF acompana a la escala pero no la define", {
+  expect_identical(
+    .contraste_familia(c("#F4B183", "#70AD47", "#BFBFBF")),
+    .CONTRASTE_SOBRE_CLARO
+  )
+  # Solo gris: no hay familia que reconocer.
+  expect_null(.contraste_familia("#BFBFBF"))
+})
+
+
+test_that("una paleta que no es de la casa la sigue decidiendo la luminancia", {
+  # `NULL` significa «no impongas nada», no «usa el color por defecto».
+  expect_null(.contraste_familia(c("#123456", "#ABCDEF")))
+  expect_null(.contraste_familia(character(0)))
+  expect_null(.contraste_familia(NA))
+})
+
+
+test_that("mezclar las dos familias no impone ninguna", {
+  # Un grafico que junta azul dicotomico y rampa Likert no tiene un color
+  # unico evidente: que decida la luminancia.
+  expect_null(.contraste_familia(c("#081F5C", "#70AD47")))
+})

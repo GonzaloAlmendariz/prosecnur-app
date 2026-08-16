@@ -34,6 +34,47 @@
 .CONTRASTE_SOBRE_CLARO <- "#081F5C"
 
 
+# Familias con color de cifra FIJO, por decision de la casa.
+#
+# La luminancia decide bien cuando la paleta es libre, pero en las dos familias
+# que el mazo usa a diario la casa ya tiene criterio y no quiere que varie
+# segmento a segmento: en la dicotomica azul la cifra va SIEMPRE blanca, y en la
+# escala Likert SIEMPRE en azul Pulso. Una lamina donde unas cifras salen
+# blancas y otras azules se lee como un error aunque cada una, por separado,
+# tenga contraste suficiente.
+.CONTRASTE_FAMILIA_DICOTOMICA <- c("081F5C", "9DC3E6")
+.CONTRASTE_FAMILIA_LIKERT <- c(
+  "F4B183", "FFD965", "FFD966", "EFD25E", "ADD493", "B0D597",
+  "8FC36B", "85BB85", "70AD47", "BFBFBF"
+)
+
+
+#' Color de cifra fijo de una familia, o `NULL` si no la reconoce
+#'
+#' Devuelve `NULL` —y no un color por defecto— cuando los rellenos no son de
+#' ninguna de las dos familias: ahi sigue mandando la luminancia, que es lo
+#' correcto para una paleta que el analista invento.
+#'
+#' @param fills Colores de relleno del grafico.
+#' @return `"white"`, el azul Pulso, o `NULL`.
+#' @keywords internal
+.contraste_familia <- function(fills) {
+  f <- toupper(gsub("^#", "", as.character(fills)))
+  f <- f[!is.na(f) & nzchar(f)]
+  if (!length(f)) return(NULL)
+  u <- unique(f)
+
+  # El gris de «SIN INF» acompana a la escala pero no la define: si SOLO hay
+  # gris no se puede decidir la familia.
+  sin_gris <- setdiff(u, "BFBFBF")
+  if (!length(sin_gris)) return(NULL)
+
+  if (all(sin_gris %in% .CONTRASTE_FAMILIA_DICOTOMICA)) return("white")
+  if (all(sin_gris %in% .CONTRASTE_FAMILIA_LIKERT)) return(.CONTRASTE_SOBRE_CLARO)
+  NULL
+}
+
+
 #' Luminancia relativa de un color hexadecimal
 #'
 #' Coeficientes de percepcion (0.299 / 0.587 / 0.114): el ojo no pesa igual los
