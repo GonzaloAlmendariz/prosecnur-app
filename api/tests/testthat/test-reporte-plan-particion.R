@@ -115,6 +115,36 @@ test_that("solo la continuacion lleva la marca en el titulo", {
   }
 })
 
+test_that("la marca llega a la forma de slide que usa el motor", {
+  # El motor no pasa `payload`: sus laminas son `.slide_type`/`title`/`slots`/
+  # `meta`, y el titulo que se dibuja sale de `title`. Los slots se llaman
+  # `plot`, no `grafico`.
+  el <- .el_escala(4, 4)
+  slide <- list(
+    .slide_type = "grafico_1",
+    title = "BIENESTAR UNIVERSITARIO",
+    slots = list(title = "BIENESTAR UNIVERSITARIO", subtitle = NULL,
+                 plot = el, base = "n = 412", footer = NULL),
+    meta = list()
+  )
+  out <- .plan_particionar_escalas(list(slide), .els_de)
+
+  expect_gt(length(out), 1L)
+  expect_identical(out[[1]]$title, "BIENESTAR UNIVERSITARIO")
+  for (s in out[-1]) expect_match(s$title, "\\(cont\\.\\)$")
+  # El resto de la lamina viaja intacto en las continuaciones.
+  for (s in out) {
+    expect_identical(s$.slide_type, "grafico_1")
+    expect_identical(s$slots$base, "n = 412")
+  }
+})
+
+test_that("marcar dos veces no duplica el sufijo", {
+  expect_identical(.particion_titulo_cont("X (cont.)"), "X (cont.)")
+  expect_identical(.particion_titulo_cont("X"), "X (cont.)")
+  expect_null(.particion_titulo_cont(NULL))
+})
+
 test_that("una lamina de dos graficos se deja intacta", {
   # Partirla plantea que hacer con el grafico que si cabia; adivinar dejaria un
   # hueco o lo duplicaria.

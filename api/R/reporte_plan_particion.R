@@ -117,9 +117,35 @@
 #' Marca el titulo de una lamina de continuacion
 #' @keywords internal
 .particion_titulo_cont <- function(titulo) {
-  t <- trimws(as.character(titulo %||% "")[1])
-  if (!nzchar(t) || is.na(t)) return(titulo)
+  if (is.null(titulo)) return(NULL)
+  t <- trimws(as.character(titulo)[1])
+  if (is.na(t) || !nzchar(t)) return(titulo)
+  if (endsWith(t, .PARTICION_SUFIJO_CONT)) return(titulo)
   paste(t, .PARTICION_SUFIJO_CONT)
+}
+
+
+# Claves donde una lamina puede llevar su titulo. El motor usa `title` en la
+# lamina, pero el plan tambien lo acepta en `slots` y en `payload` segun por
+# donde haya entrado, asi que se marcan las tres: marcar solo una dejaria la
+# continuacion sin marca en el resto de los caminos.
+#
+# El titulo dibujado sale en MAYUSCULAS, asi que el sufijo se lee `(CONT.)`.
+.PARTICION_CLAVES_TITULO <- c("title", "titulo")
+
+#' Marca el titulo de una lamina alla donde viva
+#' @keywords internal
+.particion_marcar_titulo <- function(slide) {
+  for (k in .PARTICION_CLAVES_TITULO) {
+    if (!is.null(slide[[k]])) slide[[k]] <- .particion_titulo_cont(slide[[k]])
+    if (!is.null(slide$slots) && !is.null(slide$slots[[k]])) {
+      slide$slots[[k]] <- .particion_titulo_cont(slide$slots[[k]])
+    }
+    if (!is.null(slide$payload) && !is.null(slide$payload[[k]])) {
+      slide$payload[[k]] <- .particion_titulo_cont(slide$payload[[k]])
+    }
+  }
+  slide
 }
 
 
@@ -161,17 +187,16 @@
             for (k in seq_along(tandas)) {
               nueva <- slide
               nueva$slots[[slot_nm]] <- .particion_elemento(el, tandas[[k]])
-              if (k > 1L) {
-                if (!is.null(nueva$title)) {
-                  nueva$title <- .particion_titulo_cont(nueva$title)
-                }
-                if (!is.null(nueva$slots$title)) {
-                  nueva$slots$title <- .particion_titulo_cont(nueva$slots$title)
-                }
-              }
+              if (k > 1L) nueva <- .particion_marcar_titulo(nueva)
               out[[length(out) + 1L]] <- nueva
             }
             partido <- TRUE
+            .pulso_aviso(sprintf(
+              paste("Una lamina de escala se partio en %d: %d barras no caben",
+                    "legibles en una sola (el maximo es %d). Reduce publicos o",
+                    "premisas si prefieres tenerlas juntas."),
+              length(tandas), sum(tam), max_barras
+            ))
           }
         }
       }
