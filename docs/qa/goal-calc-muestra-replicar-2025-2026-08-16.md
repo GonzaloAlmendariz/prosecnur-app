@@ -2174,3 +2174,51 @@ el preset sin marco cargado, que es el estado de arranque.
 Merece arreglo cuando se toque esa tabla —una columna más, o al menos un aviso
 de que la facultad trae valores fijados—, pero no justifica abrirla ahora: el
 cálculo real no depende de ellos.
+
+---
+
+## L2 · Lo que encuentra quien empieza de cero (2026-08-16)
+
+Recorrido completo sobre una pila propia (8802/5184, sin bootstrap, ya cerrada)
+creando un `.pulso` vacío desde el gate.
+
+| Superficie | Qué dice sin datos | Veredicto |
+|---|---|---|
+| Gate de proyectos | «¿Qué proyecto quieres avanzar hoy?» · «Sin proyectos recientes — abre o crea un proyecto y aparecerá aquí» | ☑ |
+| Nuevo proyecto | «Arma tu proyecto — elige los módulos que vas a usar», carrusel con lo que hace cada uno | ☑ |
+| Cálculo, sin camino elegido | «Elige el tipo de muestra para abrir la mesa de trabajo», 4 caminos y tres preguntas de orientación (de dónde sale, qué avance se guarda, qué debe quedar listo) | ☑ |
+| **Datos** | «PRIMER PASO · ¿Con qué insumo empiezas? Todo el recorrido nace de un Excel institucional» con la opción recomendada marcada | ☑ |
+| **Marco** | «El marco ejecutado no es verificable contra su radiografía. **Reconstruye** el marco…» | ✗ **el defecto** |
+| **Cálculo** | «requiere marco validado», con la fórmula y sus parámetros a la vista | ☑ |
+| **Selección** | «pendiente» en cada indicador | ☑ |
+| **Entrega** | «en preparación», «selección pendiente», «configúralos en Entregables» | ☑ |
+
+Ocho de nueve superficies contienen su vacío y dicen el siguiente paso. La que
+fallaba pedía **reconstruir un marco que nunca existió**.
+
+### La causa, medida
+
+En un proyecto recién creado el backend serializa el marco ausente como
+**objeto vacío**: `state.aulas.frame` llega como `{}`, no como `null`. Con
+`marcoConstruido = Boolean(aulasState?.frame)` ese `{}` contaba como marco
+construido, y entonces `frameIntegrity({})` —que clasifica «sin proyecciones»
+como `unverifiable`— hacía ganar la rama equivocada de la cadena de mensajes.
+
+Y el mensaje correcto **ya estaba escrito** dos ramas más abajo: «Aún no has
+construido el marco: calcula la población y los cursos-horario elegibles».
+
+Otra vez la misma distinción que este loop lleva encontrando: **ausencia y
+no-verificabilidad no son lo mismo**, y llevan a acciones opuestas —calcular por
+primera vez contra reconstruir—.
+
+### El arreglo
+
+`marcoFueConstruido(frame)` en `universidad/shared/frameIntegrity.ts`, que exige
+un `frame_hash` textual y no vacío: el hash es la marca de que hubo una
+construcción real. Usado en las dos pestañas que tenían el mismo `Boolean`:
+`CriteriosMarcoTab` y `CursosHorarioMarcoTab`.
+
+5 expectativas con dos mutantes revertidos —volver a `Boolean(frame)` (4 fallos)
+y aceptar un hash vacío (1)—, control 5/5, `tsc` en 0 y vitest de `calcMuestra`
+en **1.324/1.324**. Verificado por la ruta real: sobre el proyecto vacío la
+pantalla ya dice «Aún no has construido el marco».
