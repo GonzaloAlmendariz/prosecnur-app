@@ -168,6 +168,12 @@
 # hueco disponible menos lo que ya reservan cabecera, leyenda y pie.
 .BARRAS_PANEL_ESTIRA_MAX <- 1.8
 
+# Rotulo de la columna extra, tal como lo escribe el entregable aprobado en sus
+# 41 laminas. La forma importa ademas de por coherencia: buscando «Top 2 Box»
+# —como lo escribia el motor— el conteo sobre el aprobado devolvia 0 columnas
+# cuando tiene 40.
+.PPT_ROTULO_TOP_TWO_BOX <- "TOP TWO BOX"
+
 .finalizar_estado_labels_apiladas <- function(df_lab,
                                              color_texto_barras,
                                              color_texto_barras_fuera,
@@ -2642,7 +2648,13 @@ graficar_barras_apiladas <- function(
         if (!length(cols_sel)) cols_sel <- .default_top2(cols_porcentaje, etiquetas_grupos)
 
         df_wide_extra$valor_extra <- rowSums(as.matrix(base_mat[, cols_sel, drop = FALSE]), na.rm = TRUE)
-        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) titulo_extra_int <- "Top 2 Box"
+        # «TOP TWO BOX» y no «Top 2 Box»: es como lo escribe el entregable
+        # aprobado en sus 40 laminas. Ademas de coherencia, la forma importa
+        # para medir: buscando «Top 2 Box» el conteo sobre el aprobado daba 0
+        # columnas cuando tiene 40.
+        if (is.null(titulo_barra_extra) || !nzchar(titulo_barra_extra)) {
+          titulo_extra_int <- .PPT_ROTULO_TOP_TWO_BOX
+        }
 
       } else if (barra_extra_preset == "top3box") {
 
