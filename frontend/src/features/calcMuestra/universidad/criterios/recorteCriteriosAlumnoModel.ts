@@ -23,14 +23,18 @@ export type RecorteCriterioAlumno = {
   pctRecorte: number | null;
   /** El criterio está activo y no deja fuera a nadie. */
   noRecorta: boolean;
+  /** Se pudo medir. Falso si su columna no trae datos. */
+  evaluable: boolean;
 };
 
 export type RecorteCriteriosAlumno = {
   total: number | null;
   /** De más a menos recorte; los que no recortan quedan al final. */
   criterios: RecorteCriterioAlumno[];
-  /** Cuántos criterios activos no están recortando nada. */
+  /** Cuántos criterios activos se midieron y no están recortando nada. */
   inertes: number;
+  /** Cuántos no se pudieron medir por falta de datos en su columna. */
+  noMedibles: number;
 };
 
 /**
@@ -68,7 +72,12 @@ export function recorteCriteriosAlumno(
       // Un criterio no recorta si deja pasar todo lo que hay. Con total
       // declarado se compara contra él; sin total, contra el que más pasa —
       // que es lo máximo que se puede afirmar sin inventar un universo.
-      noRecorta: base != null ? c.filas_pasan >= base : c.filas_pasan >= maxPasan,
+      //
+      // Uno que no se pudo medir NO cuenta como que no recorta: deja pasar a
+      // todos porque no había con qué filtrar, y llamarlo inerte afirmaría que
+      // se midió. Es la distinción entera de este modelo.
+      noRecorta: c.evaluable && (base != null ? c.filas_pasan >= base : c.filas_pasan >= maxPasan),
+      evaluable: c.evaluable,
     };
   });
 
@@ -78,5 +87,6 @@ export function recorteCriteriosAlumno(
     total,
     criterios,
     inertes: criterios.filter((c) => c.noRecorta).length,
+    noMedibles: criterios.filter((c) => !c.evaluable).length,
   };
 }

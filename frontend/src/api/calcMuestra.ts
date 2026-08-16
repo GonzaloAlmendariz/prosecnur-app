@@ -1915,6 +1915,12 @@ export type CalcMuestraCriterioAlumnoReporte = {
   layer: string;
   /** Filas (alumno x curso-horario) que el criterio deja pasar. */
   filas_pasan: number;
+  /**
+   * El criterio se pudo medir. Falso cuando su columna no trae ningún dato: sin
+   * señal la evaluación deja pasar a todo el mundo, y ese `filas_pasan` es
+   * indistinguible del de un criterio que sí se midió y no recortó.
+   */
+  evaluable: boolean;
 };
 
 export type CalcMuestraCriteriosAlumnoReporte = {
@@ -1957,10 +1963,17 @@ export function normalizeCalcMuestraCriteriosAlumnoReporte(
     // publicar un 0, que afirmaría que el criterio no dejó pasar a nadie.
     if (!Number.isFinite(pasan)) continue;
     const layerRaw = unwrap(f.layer);
+    const evaluableRaw = unwrap(f.evaluable);
     criterios.push({
       id,
       layer: typeof layerRaw === "string" && layerRaw !== "NA" ? layerRaw : "marco",
       filas_pasan: pasan,
+      // Ausente se lee como medible: los frames anteriores al contrato no traen
+      // la clave, y asumir lo contrario marcaría como no medidos criterios que
+      // sí corrieron — al revés del error que este dato existe para evitar.
+      evaluable: evaluableRaw === undefined || evaluableRaw === null
+        ? true
+        : !(evaluableRaw === false || evaluableRaw === "FALSE"),
     });
   }
   if (!criterios.length) return null;

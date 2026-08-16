@@ -74,6 +74,52 @@ describe("normalizeCalcMuestraCriteriosAlumnoReporte", () => {
       criterios: { formation: { layer: "instrumento", filas_pasan: 125003 } },
     });
 
-    expect(r?.criterios[0]).toEqual({ id: "formation", layer: "instrumento", filas_pasan: 125003 });
+    expect(r?.criterios[0]).toEqual({ id: "formation", layer: "instrumento", filas_pasan: 125003, evaluable: true });
+  });
+});
+
+describe("evaluable", () => {
+  it("lo transporta cuando el motor lo publica", () => {
+    const r = normalizeCalcMuestraCriteriosAlumnoReporte({
+      activa: true, filas_total: 100,
+      criterios: {
+        age: { layer: "marco", filas_pasan: 80, evaluable: true },
+        formation: { layer: "marco", filas_pasan: 100, evaluable: false },
+      },
+    });
+    const porId = Object.fromEntries((r?.criterios ?? []).map((c) => [c.id, c]));
+    expect(porId.age.evaluable).toBe(true);
+    expect(porId.formation.evaluable).toBe(false);
+  });
+
+  it("un frame anterior al contrato se lee como medible", () => {
+    // Asumir lo contrario marcaría como no medidos criterios que sí corrieron,
+    // que es el error opuesto al que este dato existe para evitar.
+    const r = normalizeCalcMuestraCriteriosAlumnoReporte({
+      activa: true, filas_total: 100,
+      criterios: { age: { layer: "marco", filas_pasan: 80 } },
+    });
+    expect(r?.criterios[0]?.evaluable).toBe(true);
+  });
+
+  it("lee la forma EXACTA que serializa el motor", () => {
+    // Medido contra el JSON real: `{"evaluable":[false]}`, booleano envuelto en
+    // array, no la cadena "FALSE". Fijarlo con la forma inventada y no con la
+    // que llega es como se cuela un normalizador que pasa sus tests y falla en
+    // producción.
+    const r = normalizeCalcMuestraCriteriosAlumnoReporte({
+      activa: [true], filas_total: [2],
+      criterios: { formation: { layer: ["marco"], filas_pasan: [2], evaluable: [false] } },
+    });
+    expect(r?.criterios[0]?.evaluable).toBe(false);
+    expect(r?.filas_total).toBe(2);
+  });
+
+  it("lee tambien el FALSE en texto", () => {
+    const r = normalizeCalcMuestraCriteriosAlumnoReporte({
+      activa: true, filas_total: 100,
+      criterios: { age: { layer: "marco", filas_pasan: 100, evaluable: ["FALSE"] } },
+    });
+    expect(r?.criterios[0]?.evaluable).toBe(false);
   });
 });

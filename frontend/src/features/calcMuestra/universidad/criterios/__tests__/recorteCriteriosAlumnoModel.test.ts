@@ -13,11 +13,11 @@ const REAL = {
   activa: true,
   filas_total: null,
   criterios: [
-    { id: "faculty", layer: "marco", filas_pasan: 128018 },
-    { id: "condition", layer: "marco", filas_pasan: 124167 },
-    { id: "formation", layer: "marco", filas_pasan: 125003 },
-    { id: "age", layer: "marco", filas_pasan: 123360 },
-    { id: "level", layer: "marco", filas_pasan: 136284 },
+    { id: "faculty", layer: "marco", filas_pasan: 128018, evaluable: true },
+    { id: "condition", layer: "marco", filas_pasan: 124167, evaluable: true },
+    { id: "formation", layer: "marco", filas_pasan: 125003, evaluable: true },
+    { id: "age", layer: "marco", filas_pasan: 123360, evaluable: true },
+    { id: "level", layer: "marco", filas_pasan: 136284, evaluable: true },
   ],
 };
 
@@ -74,5 +74,24 @@ describe("recorteCriteriosAlumno", () => {
   it("sin reporte no hay desglose", () => {
     expect(recorteCriteriosAlumno(null)).toBeNull();
     expect(recorteCriteriosAlumno({ activa: true, filas_total: 10, criterios: [] })).toBeNull();
+  });
+});
+
+describe("criterios que no se pudieron medir", () => {
+  it("no cuentan como inertes, se cuentan aparte", () => {
+    // `level` se midió y no recortó: eso es inerte. `formation` no se pudo
+    // medir: deja pasar a todos por falta de datos, no por no morder.
+    const r = recorteCriteriosAlumno({
+      activa: true, filas_total: 136284,
+      criterios: [
+        { id: "level", layer: "marco", filas_pasan: 136284, evaluable: true },
+        { id: "formation", layer: "marco", filas_pasan: 136284, evaluable: false },
+      ],
+    }, 136284);
+    expect(r?.inertes).toBe(1);
+    expect(r?.noMedibles).toBe(1);
+    const porId = Object.fromEntries((r?.criterios ?? []).map((c) => [c.id, c]));
+    expect(porId.level.noRecorta).toBe(true);
+    expect(porId.formation.noRecorta).toBe(false);
   });
 });
