@@ -50,6 +50,7 @@ sabe nada que la interfaz calle.
 | **L14** | Barrido V5: apagar una regla exige motivo | `router_validacion.R` · `ReglaDrillPanel.tsx` · informe | ☑ hecho — `f08ff427`. El mismo hueco del ADR 0078, en Validación. |
 | **L15** | `variables_excluidas` tampoco lleva motivo | `router_validacion.R` · `InstrumentoTab.tsx` · informe | ☑ hecho — `c695c9f1`. Motivo exigido sólo para las que se agregan. |
 | **L16** | Barrido V7: cada estado nuevo con test que lo distinga | los diez módulos y componentes que agregó este GOAL | ☑ hecho — `6a89b22f`. Cinco sin test, tres eran gaps reales. |
+| **L18** | Barrido de módulos sin tocar: Hojas de ruta y Recopiladores | `RecopiladoresShell.tsx` | ◐ a medias — **un hallazgo** (`22713e67`). Falta Bitácora; Cálculo de muestra lo trabaja la otra sesión. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
 | **L13** | Barrido V3: la operación nula se ve antes de hacerla | `impactoDecisiones.ts` · `ImpactoDecisiones.tsx` | ☑ hecho — `66982997`. La pestaña de Limpieza declara el impacto antes de cerrar, y atrapa el identificador que no existe. |
 | **L12** | El informe metodológico redacta lo no cubierto | `validacion_methodology_report.R` | ☑ hecho — `6d938bed`. Sección «LO QUE ESTE PLAN NO CUBRE», verificada sobre un PDF renderizado y leído con pdftotext, con su control. |
@@ -107,6 +108,31 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L18 — módulos que el GOAL no había tocado
+
+**Recopiladores: hallazgo de V3.** El motor declara `noop` en siete puntos
+—guardar un plan idéntico, preparar un deployment sin cambios, sembrar cuando ya
+hay estado— y el campo llegaba **tipado y normalizado** hasta el shell sin que
+ningún componente lo leyera. Guardar y que no pase nada se veía igual que
+guardar. Es el mismo patrón que `before_after_preview` en L13: el dato correcto,
+llegando bien, sin consumidor.
+
+La trampa que hace frágil el arreglo, y por eso el aviso vive en el embudo de
+mutaciones y no en el estado: `collection_state_get` **también** devuelve
+`noop: true` —leer nunca cambia nada— así que leerlo en la carga mostraría el
+aviso cada vez que entras al módulo.
+
+Hay precedente de hacerlo bien en la casa: Carga ya dice «Sin nuevas; se
+conserva la base actual» para su propio noop.
+
+**Hojas de ruta: sin hallazgo, y valió la pena descartarlo.** El payload trae
+`has_data: false` junto a `territories: 50`, que leído rápido es una
+contradicción de manual. No lo es: `has_data` habla de la data de población y
+`territories` del marco cartográfico. Anotado para no volver a levantarlo.
+
+**Cálculo de muestra queda fuera**: lo está trabajando la otra sesión sobre este
+mismo árbol. Falta Bitácora.
 
 ### L17 — las varas contra lo que el propio GOAL agregó
 
