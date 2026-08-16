@@ -70,6 +70,7 @@ ya existente.
 | P10 | Misión y propósitos sale en **durazno**; debe ir en escala de azul celeste | paleta `lst_p10` del proyecto | ☑ la 2ª pregunta salía `081F5C`+`F4B183` y su hermana `081F5C`+`9DC3E6`; el aprobado pinta las dos en celeste |
 | P11 | Estructura organizacional: porcentajes unos en blanco y otros en azul; deben ser todos azules | `graficador_contraste_texto.R` | ☑ el umbral 0.6 dejaba `#70AD47` (0.561) del lado oscuro → **7 blancas**; el aprobado usa azul ahí. Umbral a 0.52 |
 | P12 | Radar: las tablas son manuales, no **tablas nativas** de PPT, y no siguen el formato del reporte | `graficador_radar.R` (`mostrar_tabla_derecha`) | ◐ **medido**: el aprobado resuelve esto en **2 láminas** con `CHART` nativo + tabla nativa 7×4; el motor usa **5 láminas** con un grupo de 23/82/145/128/39 sub-formas — **417 formas a mano**. La tabla se dibuja dentro del ggplot; sacarla exige que el graficador exponga sus datos y el render emita la tabla. Unidad propia |
+| P14 | **Las barras no tienen el mismo grosor dentro de una lámina** | reparto de alto entre bloques de `multilista` | ◐ **medido**: en «Mecanismos de admisión» la escala sale a **1.19 cm** y la dicotómica a **0.90** — 0.29 de diferencia. El motor tiene 8 láminas así (peor 0.38); el aprobado 6 (peor 0.22). Regla **B3** añadida al verificador |
 | P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda manual de apiladas | ◐ **medido**: lám 68 usa `0.54×0.54` (ggplot, cuadrado) y lám 69 `0.40×0.29` (manual, rel 1.38). El motor es inconsistente consigo mismo. **Pero el aprobado usa `0.29×0.21`, la misma rel 1.38**: la referencia no decide, decide Gonzalo |
 
 ### El defecto que estaba detrás de varios a la vez
@@ -94,6 +95,17 @@ cifras ilegibles.
 **Los P sin marcar siguen pendientes de verse en el PDF de PowerPoint.** Los
 cerrados se cerraron midiendo el XML contra el aprobado, que no depende del
 render.
+
+### Por qué dos bloques de la misma lámina no comparten grosor (P14)
+
+Una lámina `multilista` dibuja **cada bloque en su propio canvas** y luego
+`plot_grid()` los escala con alturas relativas que **incluyen el cromo** de cada
+uno —título, filas de leyenda, columna extra—. Como el cromo no es proporcional
+al número de barras, el grosor final no puede coincidir: la guía muestra que el
+graficador pide 1.29 y 1.20 cm, casi lo mismo, y salen 1.19 y 0.90.
+
+Es el mismo defecto raíz que R5 y P13: **el grosor se decide sin saber el alto
+real del cajón**. Aquí además se decide por bloque en vez de una vez por lámina.
 
 ### Dos accesores que truncaban en silencio
 
