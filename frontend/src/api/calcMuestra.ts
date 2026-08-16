@@ -4177,7 +4177,11 @@ export async function apiCalcMuestraMarcoConstruir(payload: {
   inscripciones_sheet?: string;
   config?: Record<string, unknown>;
 }) {
-  return handle<{ ok: true; frame: CalcMuestraAulasFrame; state: CalcMuestraState }>(
+  // I21b: con bases institucionales (>= umbral del backend, default 20.000
+  // filas de entrada) el build responde { mode: "job", job_id } en vez del
+  // marco; el marco queda en la sesión al terminar. Mismo contrato que
+  // comparar-metodos y seleccionar, por eso reusa el tipo async.
+  return handle<CalcMuestraAulasAsyncResponse<{ frame: CalcMuestraAulasFrame }> & { input_rows?: number }>(
     await apiFetch("/api/calc-muestra/marco/construir", {
       method: "POST",
       headers: headers({ "Content-Type": "application/json" }),
