@@ -695,7 +695,14 @@ export type CalcMuestraWorkspaceAulasConfig = {
   simulation_runs?: number;
   mos_strategy?: string;
   coordination_mode?: string;
-  replacement_depth_strategy?: "max_complete_chains_by_cell" | string;
+  // `by_faculty` es el candado del operativo de 2025: la reserva sale de la
+  // misma facultad, y el tamaño puede variar. `by_cell` exige la celda entera
+  // (facultad × sexo × tamaño) y por eso deja cadenas cortas donde la celda es
+  // fina. Cualquier otro valor deja el pool libre tras agotar la celda.
+  replacement_depth_strategy?:
+    | "max_complete_chains_by_cell"
+    | "max_complete_chains_by_faculty"
+    | string;
   min_replacements_per_titular?: number;
   max_replacements_per_titular?: number;
   extra_pool_policy?: "leftover_after_chains" | "none" | string;

@@ -77,7 +77,17 @@ export const DEFAULT_UNIVERSITY_AULAS_OBJECTIVE: CalcMuestraAulasObjectiveConfig
   dispersion_tolerance: 0.15,
   weight_cv_warn: 0.5,
   weight_cv_critical: 1,
-  reserve_depth_target: 1,
+  // Cuántas reservas por titular tiene que haber para dar la cadena por buena.
+  //
+  // Valía 1 mientras el diseño construía cadenas de 11: con ese objetivo, un
+  // titular con una sola reserva —y encima de otra celda— pasaba por conforme,
+  // así que el aviso de profundidad no podía dispararse nunca. El objetivo no
+  // medía lo que el diseño pretende.
+  //
+  // 6 es la mediana del operativo de 2025, cuyas cadenas fueron de 3 a 12 sobre
+  // 12 olas. Es un objetivo que el candado por facultad puede sostener: con el
+  // de celda, 44 de 84 celdas no llegaban ni a 11.
+  reserve_depth_target: 6,
   missing_policy: "redistribute_active_weights",
 };
 
@@ -138,7 +148,15 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   simulation_runs: 500,
   mos_strategy: "eligible_yield_winsorized",
   coordination_mode: "permanent_random_number",
-  replacement_depth_strategy: "max_complete_chains_by_cell",
+  // Candado de la cadena de reemplazos: la reserva sale de la misma FACULTAD, y
+  // el tamaño puede variar. Es el del operativo de 2025 —de sus 170 cadenas,
+  // ninguna mezcla facultades y 148 mezclan tamaños—.
+  //
+  // El anterior, `by_cell`, exigía la celda entera desde la segunda reserva, y
+  // por eso 44 de 84 celdas no podían sostener una cadena de 11: no hay tantas
+  // aulas dentro de una celda de facultad × sexo × tamaño. Con este candado el
+  // pool es la facultad, así que la cadena llega hasta donde el cupo alcance.
+  replacement_depth_strategy: "max_complete_chains_by_faculty",
   min_replacements_per_titular: 1,
   max_replacements_per_titular: 11,
   extra_pool_policy: "leftover_after_chains",

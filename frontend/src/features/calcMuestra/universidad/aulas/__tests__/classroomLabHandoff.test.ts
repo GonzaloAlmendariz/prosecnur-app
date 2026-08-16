@@ -34,6 +34,18 @@ function comparisonSelector(
   } as AulasConfigConObjetivo);
 }
 
+/**
+ * Cómo se ve el selector que R serializa para la config VIGENTE.
+ *
+ * Se mueve con los defaults a propósito: la acreditación compara este snapshot
+ * contra el que la config actual produce, y esa comparación existe justamente
+ * para invalidar una comparación de métodos calculada con otro objetivo. Si el
+ * fixture se quedara con los valores viejos, el test dejaría de acreditar y
+ * estaría midiendo la divergencia en vez de la firma.
+ *
+ * Movidos en 2026-08-16 junto al candado por facultad y al objetivo de
+ * profundidad 6.
+ */
 function rShapedComparisonSelector(nAulas: number) {
   return {
     schema: "calc_muestra_aulas_method_comparison_selector_v1",
@@ -47,7 +59,7 @@ function rShapedComparisonSelector(nAulas: number) {
     simulation_runs: 500,
     mos_strategy: "eligible_yield_winsorized",
     coordination_mode: "permanent_random_number",
-    replacement_depth_strategy: "max_complete_chains_by_cell",
+    replacement_depth_strategy: "max_complete_chains_by_faculty",
     min_replacements_per_titular: 1,
     max_replacements_per_titular: 11,
     extra_pool_policy: "leftover_after_chains",
@@ -92,7 +104,7 @@ function rShapedComparisonSelector(nAulas: number) {
       dispersion_tolerance: 0.15,
       weight_cv_warn: 0.5,
       weight_cv_critical: 1,
-      reserve_depth_target: 1,
+      reserve_depth_target: 6,
       missing_policy: "redistribute_active_weights",
     },
   };

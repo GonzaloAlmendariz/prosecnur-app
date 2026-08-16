@@ -2284,22 +2284,54 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 # titular `i`, o NA. Opera sobre una mascara logica de disponibilidad en vez de
 # subsetear el data.frame; preserva el orden global y el tie-break which.max
 # (primer maximo = menor indice global), identico al comportamiento original.
+#
+# `candado` dice hasta donde puede abrirse el pool cuando la propia celda del
+# titular se agota:
+#
+#   "libre"    celda -> facultad -> cualquier aula disponible
+#   "facultad" celda -> facultad, y nunca fuera de ella
+#   "celda"    celda o nada
+#
+# El de en medio es el del operativo de 2025: de sus 170 cadenas, NINGUNA mezcla
+# facultades y 148 mezclan tamanos. El reemplazo tenia que ser de la misma
+# facultad y punto; el tamano podia variar, y en el 87% de los casos vario.
 .cm_aulas_pick_chain_reserve_idx <- function(i, tit_ctx, cand_ctx, avail_mask, score_vec,
-                                             has_stratum, has_faculty, strict_cell = FALSE) {
+                                             has_stratum, has_faculty, candado = "libre") {
   if (!any(avail_mask)) return(NA_integer_)
   same_stratum <- if (has_stratum) (cand_ctx$stratum == tit_ctx$stratum[[i]]) & avail_mask else rep(FALSE, cand_ctx$n)
   same_faculty <- if (has_faculty) (cand_ctx$faculty == tit_ctx$faculty[[i]]) & avail_mask else rep(FALSE, cand_ctx$n)
   pool <- if (any(same_stratum)) {
     which(same_stratum)
-  } else if (!isTRUE(strict_cell) && any(same_faculty)) {
+  } else if (!identical(candado, "celda") && any(same_faculty)) {
     which(same_faculty)
-  } else if (!isTRUE(strict_cell)) {
+  } else if (identical(candado, "libre")) {
     which(avail_mask)
   } else {
     integer(0)
   }
   if (!length(pool)) return(NA_integer_)
   pool[[which.max(score_vec[pool])]]
+}
+
+# Que candado rige en esta ola.
+#
+# Las dos estrategias con candado lo aplican SOLO pasadas las primeras
+# `min_reps` reservas: la primera siempre puede salir de la facultad, para que
+# un titular de celda chica no se quede en cero.
+#
+# `max_complete_chains_by_faculty` es el precedente de 2025 y existe porque el
+# candado de celda deja 44 de 84 celdas sin poder sostener una cadena de 11:
+# no hay tantas aulas dentro de una celda de facultad x sexo x tamano. Con el
+# candado por facultad el pool pasa a ser la facultad entera, asi que la cadena
+# llega hasta donde el cupo alcance en vez de cortarse por el ancho de la celda.
+.cm_aulas_candado_de_cadena <- function(estrategia, depth, min_reps) {
+  if (depth <= min_reps) return("libre")
+  switch(
+    .cm_aulas_scalar(estrategia, ""),
+    max_complete_chains_by_cell = "celda",
+    max_complete_chains_by_faculty = "facultad",
+    "libre"
+  )
 }
 
 .cm_aulas_build_replacement_chains <- function(aula_frame, titulars, selector, seed = NULL) {
@@ -2396,14 +2428,14 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   rows <- list()
   avail_mask <- rep(TRUE, nC)
   min_reps <- max(1L, .cm_aulas_int(selector$min_replacements_per_titular, 1L))
-  use_strict <- identical(.cm_aulas_scalar(selector$replacement_depth_strategy, ""), "max_complete_chains_by_cell")
+  estrategia <- selector$replacement_depth_strategy
   for (depth in seq_len(max_depth)) {
+    candado <- .cm_aulas_candado_de_cadena(estrategia, depth, min_reps)
     for (i in seq_len(nT)) {
       if (!any(avail_mask)) break
-      strict_cell <- use_strict && depth > min_reps
       k <- .cm_aulas_pick_chain_reserve_idx(i, tit_ctx, cand_ctx, avail_mask,
                                             score_val[[i]], has_stratum, has_faculty,
-                                            strict_cell = strict_cell)
+                                            candado = candado)
       if (!is.finite(k)) next
       titular <- titulars[i, , drop = FALSE]
       reserve <- candidates[k, , drop = FALSE]   # unica materializacion de fila
