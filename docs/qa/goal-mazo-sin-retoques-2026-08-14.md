@@ -22,7 +22,7 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | V3 | El extremo negativo de la escala es naranja, no rojo | `#CA5651` no aparece en segmentos de escala | 97 (títulos) · naranja 173 ✓ |
 | V4 | La columna Top Two Box se dibuja en las láminas de escala | nº de láminas con columna T2B | **29 de 67** ◐ (aprobado: 45 de 63) |
 | V5 | Ninguna barra por debajo de su piso | ≥ 0.32 in apilada · ≥ 0.20 categórica | 0.280 ✗ |
-| V6 | Ninguna lámina supera las 9 premisas | máx. premisas por lámina | una con 13 ✗ |
+| V6 | Ninguna lámina supera las 9 **barras** | máx. barras por lámina | **el motor parte**; dispara en 3 ✓ |
 | V7 | El grosor de barra cae en su celda de la tabla (gráficos × barras) | contra el recetario | +2 a +20 % ✓ |
 | V8 | Existe disposición declarable para 3 gráficos | `p_slide_3_*` en `.slide_names()` | **`p_slide_3_graficos_poblacion`** ✓ |
 
@@ -37,8 +37,8 @@ lo que el cliente aprobó, midiendo las dos cosas sobre el mismo archivo.
 | L5 | Piso de grosor declarado por familia | `grosor_modo` + `grosor_barras` | ☐ |
 | L6 | Layout `poblacion_3` en la plantilla (2 apilados + 1 alto) | las **dos** plantillas | ☑ officer lo ve, 7 placeholders |
 | L7 | Contrato, constructor, render y metadata de `poblacion_3` | 6 archivos R + NAMESPACE | ☑ **lámina generada**, alto 2.08× |
-| L8 | Las otras 11 disposiciones del artefacto | ídem | ☑ **10 de 11**; la 11ª (`escala_continuada`) depende de L9 |
-| L9 | Partir la lámina cuando supera 9 premisas · incluye `escala_continuada` | motor, no graficador | ☐ |
+| L8 | Las otras 11 disposiciones del artefacto | ídem | ☑ **11 de 11**; la 11ª no era disposición sino capacidad (L9) |
+| L9 | Partir la lámina cuando supera 9 **barras** · incluye `escala_continuada` | `reporte_plan_particion.R` | ☑ **3 láminas del estudio**; 34 asserts |
 | L10 | Corregir las dos erratas del plan del proyecto | plan del `.pulso` | ☑ **3 → 0** apariciones |
 | L11 | Retirar los cuatro separadores de dimensión | plan del `.pulso` | ☑ **67 → 63 láminas**, las mismas que el aprobado |
 | L12 | La guía de canvas pasa a verificar las 9 reglas | `debug_ph` | ☐ |
@@ -170,3 +170,33 @@ categorías —«90 % / 10 %»— donde la columna no aplica. El techo realista 
   greedy: deja `attrs=" /"` y produce `<a:bodyPr / anchor="ctr">`, XML inválido
   que rompe la generación entera con «error parsing attribute name». Hay que
   excluir `/` de la clase y capturarlo aparte.
+
+### L9 — lo que la vara medía mal
+
+**V6 estaba mal formulada** y por eso parecía imposible de cerrar: decía
+«9 premisas» cuando el plan del estudio no tiene ninguna lámina de más de
+**cuatro**. La lámina más apretada del mazo —13 barras a 0.221 in, contra un
+piso de 0.32— sale de cuatro premisas por cuatro públicos. Lo que adelgaza la
+barra es el producto, no el factor.
+
+El umbral no se eligió: sale de la misma medición. Si 13 barras dan 0.221 in,
+el alto útil ronda las 2.87 in, y el piso de 0.32 se cruza exactamente en **9**.
+El «9» del recetario era de barras desde el principio.
+
+**La 11ª disposición no era una disposición.** `escala_continuada` no necesita
+plantilla: la continuación usa el mismo layout con el título marcado. Lo que
+faltaba era que el motor generara **una lámina de más**, que es una capacidad.
+Por eso L8 cierra en 11 de 11 sin haber tocado ninguna plantilla.
+
+**Un test en verde certificó una función que nunca se activaba.** La primera
+versión construyó el fixture leyendo una impresión aplanada de `vars`, y dedujo
+una lista plana con nombres compuestos (`tema_11`) que el plan no usa: `vars`
+viene **anidada por premisa**. Los 24 asserts pasaron sin tocar el código que
+de verdad corre, y medido contra el estudio real el resultado era **0 láminas
+partidas** en vez de 3. El fixture ahora afirma su propia forma antes de
+afirmar nada más.
+
+Es la cuarta medición de este GOAL que confunde una cosa con su envoltorio
+—grosor medio contra moda, cajas de etiqueta contra barras, canvas contra
+hueco, y ahora dato aplanado contra estructura—. El patrón: **`print()` y
+`unlist()` mienten sobre la forma; `str()` no.**
