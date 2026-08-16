@@ -62,10 +62,25 @@ export function RecopiladoresShell() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [latestArtifact, setLatestArtifact] = useState<CollectionArtifactReceipt | null>(null);
+  const [sinCambios, setSinCambios] = useState(false);
+
+  // Vara V3: el motor ya declara `noop` cuando una mutación no cambió nada
+  // —guardar un plan idéntico, preparar un deployment que ya estaba— y ese
+  // campo llegaba tipado y normalizado hasta acá sin que nadie lo leyera.
+  // Guardar y que no pase nada se veía igual que guardar.
+  //
+  // Va sólo en este embudo, que es por donde pasan las cuatro mutaciones. El
+  // GET también devuelve `noop: true` —leer nunca cambia nada— así que leerlo
+  // en la carga mostraría el aviso siempre.
+  const aplicarMutacion = useCallback((next: CollectionStatePayload) => {
+    setPayload(next);
+    setSinCambios(next.noop === true);
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError("");
+    setSinCambios(false);
     try {
       setPayload(await apiRecopiladoresState());
     } catch (cause) {
@@ -233,11 +248,21 @@ export function RecopiladoresShell() {
               Leyendo el estado del despliegue…
             </div>
           ) : null}
+          {sinCambios ? (
+            <div
+              data-testid="recopiladores-sin-cambios"
+              role="status"
+              className="rec-sin-cambios"
+              data-qa-geometry-capacity="owned"
+            >
+              No había nada que guardar: lo que enviaste es igual a lo que ya estaba.
+            </div>
+          ) : null}
           {!loading && direction.seccion === "plan-recoleccion" ? (
-            <PlanSection payload={payload} onState={setPayload} />
+            <PlanSection payload={payload} onState={aplicarMutacion} />
           ) : null}
           {!loading && direction.seccion === "accesos" ? (
-            <AccessSection payload={payload} activeTab={direction.pestana} onState={setPayload} />
+            <AccessSection payload={payload} activeTab={direction.pestana} onState={aplicarMutacion} />
           ) : null}
           {!loading && direction.seccion === "materiales" ? (
             <MaterialsSection
@@ -248,7 +273,7 @@ export function RecopiladoresShell() {
             />
           ) : null}
           {!loading && direction.seccion === "entrega-campo" ? (
-            <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={setPayload} />
+            <DeliverySection payload={payload} latestArtifact={latestArtifact} onState={aplicarMutacion} />
           ) : null}
         </section>
       </div>

@@ -73,6 +73,22 @@
   text-align: center;
 }
 
+/* Vara V3: el motor dijo que la mutación no cambió nada. Es un aviso, no un
+   error —guardar dos veces lo mismo es legítimo— así que va en tono ámbar y
+   sin ocupar el alto de un estado vacío. */
+.rec-sin-cambios {
+  align-items: center;
+  background: var(--pulso-warn-bg);
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-panel);
+  color: var(--pulso-text);
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+}
+
 .rec-empty-state {
   background: var(--pulso-surface);
   border: 1px solid var(--pulso-border);
