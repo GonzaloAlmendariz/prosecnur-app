@@ -85,6 +85,14 @@ aulas_libro_importar_en_sesion <- function(sid, path) {
   }
   session_set(sid, "monitoreo_aulas_partes_campo", out$partes)
   session_set(sid, "monitoreo_aulas_control", out$control)
+  # El aviso entra a la config para que el tablero pueda mostrarlo: viajaba en
+  # la respuesta del endpoint y ningun consumidor lo miraba.
+  cfg <- session_get(sid)$monitoreo_config %||% list()
+  if (is.list(cfg$aulas_universitarias)) {
+    cfg$aulas_universitarias$control_sin_nombre <- length(out$control_sin_nombre)
+    cfg$aulas_universitarias$partes_campo <- out$partes
+    session_set(sid, "monitoreo_config", cfg)
+  }
   session_set(sid, "monitoreo_aulas_libro", list(
     importado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     hojas_ausentes = out$hojas_ausentes,

@@ -1465,7 +1465,9 @@ graficar_barras_agrupadas <- function(
       }
     }
   }
-  h_panel_in <- if (!is.null(canvas_h_panel_in) && is.finite(canvas_h_panel_in) && canvas_h_panel_in > 0) {
+  panel_fijado_in <- !is.null(canvas_h_panel_in) && is.finite(canvas_h_panel_in) &&
+    canvas_h_panel_in > 0
+  h_panel_in <- if (panel_fijado_in) {
     canvas_h_panel_in
   } else {
     max(1L, n_categorias) * alto_por_cat_eff
@@ -1503,9 +1505,14 @@ graficar_barras_agrupadas <- function(
   # barra ya ocupaba el 93 % de esa fila —no habia nada que engordar, faltaba
   # fila—. El entregable aprobado mete MAS barras por grafico (mediana 7 contra
   # 4) y las saca mas gruesas: su panel es mas alto.
+  #
+  # Igual que en apiladas: el estirado rige sobre el panel INTRINSECO. Un alto
+  # fijado por quien llama es un alto fijo, y estirarlo borra la proporcion que
+  # esa llamada acababa de declarar.
   alto_hueco <- suppressWarnings(as.numeric(alto)[1])
   n_filas_panel <- max(1L, n_categorias)
-  if (isTRUE(usar_canvas) && is.finite(alto_hueco) && alto_hueco > 0 &&
+  if (isTRUE(usar_canvas) && !panel_fijado_in &&
+      is.finite(alto_hueco) && alto_hueco > 0 &&
       h_total_in > 0 && h_total_in < alto_hueco) {
     panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
     panel_nuevo <- min(panel_disponible, h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX)

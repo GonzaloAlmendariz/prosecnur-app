@@ -2886,12 +2886,17 @@ graficar_barras_apiladas <- function(
     h_legend_in <- max(h_legend_in, 0.40)
   }
 
+  # Un alto de panel FIJADO por quien llama no lo toca nadie: es un alto fijo,
+  # no una sugerencia. Lo consultan los tres bloques que crecen el panel.
+  panel_fijado_in <- !is.null(canvas_h_panel_in) &&
+    is.finite(suppressWarnings(as.numeric(canvas_h_panel_in)[1])) &&
+    suppressWarnings(as.numeric(canvas_h_panel_in)[1]) > 0
+
   # El canvas se coloca conservando su proporcion, asi que un alto intrinseco
   # corto deja el resto del hueco en blanco: medido, 3.56 de 6 pulgadas. El
   # sobrante se reparte a las filas hasta un grosor maximo, y solo cuando el alto
   # del panel es el intrinseco (nadie lo fijo a mano).
-  if (is.null(canvas_h_panel_in) || !is.finite(suppressWarnings(as.numeric(canvas_h_panel_in)[1])) ||
-      suppressWarnings(as.numeric(canvas_h_panel_in)[1]) <= 0) {
+  if (!panel_fijado_in) {
     alto_por_cat_eff <- .barras_alto_fila_ajustado(
       alto_por_cat_eff, n_filas_virtuales, alto,
       alto_fijo_in = h_header_in + h_legend_in + h_caption_in)
@@ -2909,8 +2914,16 @@ graficar_barras_apiladas <- function(
   #
   # El sobrante va al panel, que es lo unico que crece bien: header, leyenda y
   # pie tienen su alto propio y estirarlos solo deja huecos.
+  #
+  # W-6 (B54): el estirado rige sobre el panel INTRINSECO, igual que el bloque
+  # de arriba. Sobre uno fijado se comia justo la proporcion que alguien acababa
+  # de declarar: en Word, dos bloques multiactor vecinos entran con panel 2.2in
+  # (4 actores) y 1.1in (2 actores) y salian con 2.69 y 1.98 —cada uno estirado
+  # contra el mismo hueco fisico—, o sea el de 2 actores con barras 44 % mas
+  # gruesas que el de 4 en la misma pagina, que es el defecto que W-6 reparo.
   alto_hueco <- suppressWarnings(as.numeric(alto)[1])
-  if (isTRUE(usar_canvas) && is.finite(alto_hueco) && alto_hueco > 0 &&
+  if (isTRUE(usar_canvas) && !panel_fijado_in &&
+      is.finite(alto_hueco) && alto_hueco > 0 &&
       h_total_in > 0 && h_total_in < alto_hueco && n_filas_virtuales >= 1) {
     panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
     # Con tope: una premisa sola no puede ocupar media lamina, y sin el una
@@ -2934,9 +2947,7 @@ graficar_barras_apiladas <- function(
   pad_flex_h <- 0
   alto_fisico <- suppressWarnings(as.numeric(alto)[1])
   if (is.finite(alto_fisico) && alto_fisico > 0 &&
-      n_categorias <= 2L &&
-      (is.null(canvas_h_panel_in) || !is.finite(suppressWarnings(as.numeric(canvas_h_panel_in)[1])) ||
-         suppressWarnings(as.numeric(canvas_h_panel_in)[1]) <= 0)) {
+      n_categorias <= 2L && !panel_fijado_in) {
     # Piso fisico del panel: el area de barras real descuenta el pad interno
     # que protege etiquetas de eje altas (B48: con una etiqueta de 5+ lineas
     # el pad llegaba a 0.63in por lado y la banda quedaba en 0.29in aunque
