@@ -14,7 +14,14 @@
  * constante.
  */
 import { describe, expect, it } from "vitest";
-import { criterioSalida, cuotaDelComponente } from "../criterioSalida";
+import { renderToStaticMarkup } from "react-dom/server";
+import {
+  criterioSalida,
+  cuotaDelComponente,
+  metaCuotaFijada,
+  sugerenciaCuota,
+} from "../criterioSalida";
+import { NumberCell } from "../universidad/aulas/NumberCell";
 import type { CalcMuestraComponente } from "../../../api/client";
 
 function egresados(
@@ -80,5 +87,43 @@ describe("criterio de salida de un componente de cuotas", () => {
       actor_categoria: "otros",
     });
     expect(criterioSalida(otros)).toBe("Cuotas por celda");
+  });
+});
+
+describe("campo editable de la meta de cuota", () => {
+  /**
+   * La MISMA cadena `meta.valor || minimo_cuota || 150` estaba en dos
+   * superficies: la tabla y el campo editable de `AcreditacionTargetCell`. En
+   * el campo era peor: precargaba 150 sobre una meta que nadie fijó, y basta
+   * con guardar para convertir esa invención en la meta del estudio.
+   */
+  it("no precarga ninguna cifra cuando el usuario no fijó meta", () => {
+    expect(metaCuotaFijada(egresados({ n_objetivo: 20 }, { valor: 0 }))).toBeNull();
+    expect(metaCuotaFijada(egresados({ n_objetivo: 20 }, {}))).toBeNull();
+  });
+
+  it("muestra la meta que el usuario sí fijó", () => {
+    expect(metaCuotaFijada(egresados({ n_objetivo: 90 }, { valor: 90 }))).toBe(90);
+  });
+
+  it("la sugerencia es la cifra del motor, nunca una constante", () => {
+    expect(sugerenciaCuota(egresados({ n_objetivo: 20 }))).toBe(20);
+    expect(sugerenciaCuota(egresados({}))).toBeNull();
+    expect(sugerenciaCuota(egresados({ n_objetivo: 20 }))).not.toBe(150);
+  });
+
+  it("el campo queda vacío con la sugerencia como placeholder", () => {
+    // Contrato de NumberCell: `null` pinta el campo vacío, y la cifra del motor
+    // viaja como sugerencia sin quedar fijada.
+    const comp = egresados({ n_objetivo: 20 }, { valor: 0 });
+    const html = renderToStaticMarkup(
+      <NumberCell
+        value={metaCuotaFijada(comp)}
+        placeholder={String(sugerenciaCuota(comp))}
+        onChange={() => {}}
+      />,
+    );
+    expect(html).toContain('value=""');
+    expect(html).toContain('placeholder="20"');
   });
 });

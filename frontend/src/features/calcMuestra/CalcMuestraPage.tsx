@@ -109,7 +109,7 @@ import {
   classroomSelectionReady,
   frameAuditNumber,
 } from "./universidad/shared/frame";
-import { criterioSalida } from "./criterioSalida";
+import { criterioSalida, metaCuotaFijada, sugerenciaCuota } from "./criterioSalida";
 import { seleccionActiva } from "./dominio/criteriosMarco";
 import { facultadesDesdeFrame } from "./dominio";
 import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
@@ -3225,10 +3225,17 @@ function AcreditacionTargetCell({
   comp: CalcMuestraComponente;
   onComponente: (id: string, patch: ComponentePatch) => void;
 }) {
+  const sugerido = sugerenciaCuota(comp);
   if (comp.tecnica === "no_prob_cuotas") {
     return (
       <NumberCell
-        value={comp.meta.valor || comp.inferencia_acreditacion?.minimo_cuota || 150}
+        value={metaCuotaFijada(comp)}
+        placeholder={sugerido == null ? undefined : String(sugerido)}
+        title={
+          sugerido == null
+            ? "Cuota sin fijar."
+            : `Sin fijar. El motor aplica ${sugerido}.`
+        }
         onChange={(v) => onComponente(comp.id, { meta: { valor: Math.round(v), tipo: "cuota" } })}
       />
     );
