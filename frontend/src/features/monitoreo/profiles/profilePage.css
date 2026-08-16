@@ -13153,16 +13153,32 @@
   transform: translateY(-1px);
 }
 
-.mon-acr-model-actor.is-warning {
+/* Los cuatro estados que distingue `statusTone`, con los mismos acentos que
+   `mon-actor-card` para que la misma data no se lea distinto en dos lugares.
+   Antes sólo existían dos reglas y `steady`/`low` caían en un `is-base` sin
+   estilo: al 95% y al 20% de la meta la tarjeta se veía igual. */
+.mon-acr-model-actor.is-muted {
   --model-accent: var(--pulso-warn-accent);
   --model-accent-soft: var(--pulso-warn-bg);
   border-color: color-mix(in srgb, var(--pulso-warn-border) 82%, var(--pulso-border));
 }
 
-.mon-acr-model-actor.is-ready {
+.mon-acr-model-actor.is-complete {
   --model-accent: var(--pulso-success-fg);
   --model-accent-soft: var(--pulso-success-bg);
   border-color: color-mix(in srgb, var(--pulso-success-border) 80%, var(--pulso-border));
+}
+
+.mon-acr-model-actor.is-steady {
+  --model-accent: #b59b18;
+  --model-accent-soft: rgba(181, 155, 24, 0.13);
+  border-color: color-mix(in srgb, #b59b18 42%, var(--pulso-border));
+}
+
+.mon-acr-model-actor.is-low {
+  --model-accent: #b83255;
+  --model-accent-soft: rgba(184, 50, 85, 0.12);
+  border-color: color-mix(in srgb, #b83255 46%, var(--pulso-border));
 }
 
 .mon-acr-model-actor-head {
@@ -13212,16 +13228,30 @@
   white-space: nowrap;
 }
 
-.mon-acr-model-actor.is-warning .mon-acr-model-actor-head em {
+.mon-acr-model-actor.is-muted .mon-acr-model-actor-head em {
   border-color: var(--pulso-warn-border);
   background: color-mix(in srgb, var(--pulso-warn-bg) 58%, #fff 42%);
   color: var(--pulso-warn-fg);
 }
 
-.mon-acr-model-actor.is-ready .mon-acr-model-actor-head em {
+.mon-acr-model-actor.is-complete .mon-acr-model-actor-head em {
   border-color: var(--pulso-success-border);
   background: color-mix(in srgb, var(--pulso-success-bg) 58%, #fff 42%);
   color: var(--pulso-success-fg);
+}
+
+.mon-acr-model-actor.is-steady .mon-acr-model-actor-head em {
+  border-color: color-mix(in srgb, #b59b18 46%, var(--pulso-border));
+  background: color-mix(in srgb, rgba(181, 155, 24, 0.13) 58%, #fff 42%);
+  color: #7a660b;
+}
+
+/* «Requiere impulso» es el estado accionable: es el que hay que poder
+   encontrar de un vistazo en una grilla de tarjetas. */
+.mon-acr-model-actor.is-low .mon-acr-model-actor-head em {
+  border-color: color-mix(in srgb, #b83255 48%, var(--pulso-border));
+  background: color-mix(in srgb, rgba(184, 50, 85, 0.12) 58%, #fff 42%);
+  color: #8d2440;
 }
 
 .mon-acr-model-actor.is-editing-meta .mon-acr-model-actor-head em {

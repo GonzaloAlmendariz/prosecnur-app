@@ -280,7 +280,12 @@ function AcreditacionModelActorSummaryCard({
     const label = acreditacionChannelLabel(item.channel);
     return label === "Sin canal" ? item.role : label;
   }).filter(Boolean)));
-  const statusTone = card.meta == null ? "warning" : card.statusTone === "complete" ? "ready" : "base";
+  // ADR-less, vara V2 del GOAL de UI: `card.statusTone` ya distingue cuatro
+  // estados —muted, complete, steady, low— y esta línea los reducía a tres,
+  // mandando `steady` y `low` al mismo `base`, que además no tiene regla CSS.
+  // Una tarjeta al 95% de su meta y una al 20% se veían idénticas, mientras la
+  // misma data se pinta con sus cuatro colores en `mon-actor-card`.
+  const statusTone = card.statusTone;
   const metaPct = card.meta != null && card.universe > 0
     ? Math.round((card.meta / card.universe) * 1000) / 10
     : null;
