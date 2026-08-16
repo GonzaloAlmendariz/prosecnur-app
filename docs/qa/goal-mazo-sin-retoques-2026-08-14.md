@@ -493,3 +493,37 @@ valor concreto no viaje.
 
 Queda abierto. El cambio del `.pulso` se deja puesto porque es inocuo y correcto
 en su intención; hay copia en `v5_Conta 14-08 equivalencias.ANTES-tabla12.pulso`.
+
+### Por qué subir el tamaño no cambió nada: la tabla no es la que creíamos
+
+Establecido con medición, en este orden:
+
+1. Las láminas 50 y 51 del mazo **son** las 43 y 44 del plan, y son `p_radar`.
+2. `graficar_radar()` corre dos veces y **recibe `tabla_body_size = 12`**: el
+   cambio del `.pulso` llega hasta el graficador.
+3. Pero el flujo **nunca alcanza la línea que decide dibujar la tabla**
+   (`if (isTRUE(mostrar_tabla_derecha))`), ni la que construye su grob
+   (`.make_table_grob_ttb_style`). Dos instrumentaciones independientes, ninguna
+   emitió una sola línea.
+4. `.dim_make_table_grob`, la otra función de tabla del repo, **tampoco corre**.
+5. Y sin embargo la tabla **está en la lámina**: «Tema» y «% De acuerdo +
+   Totalmente de Acuerdo» a 9 pt, la primera columna a 9.48.
+
+**La tabla que se ve no la dibuja ninguna de las dos funciones de tabla del
+repositorio.** Eso explica el resultado nulo sin necesidad de más aritmética:
+`tabla_body_size` gobierna una tabla que no es la que se está dibujando, así que
+podía subirse a 12, a 20 o a 40 sin que se moviera un punto.
+
+Descartado antes de llegar aquí: no es el auto-fit (`scale_tab` se queda en 1),
+no es un reescalado del grupo (escala 1.000 sobre 12.51 in, lámina completa), y
+no es que el grob ignore el tamaño (lo aplica como `gpar(fontsize = ...)`).
+
+Pista para retomarlo: los tres tamaños salen desalineados de una misma escala
+—9.0 para cabecera y cuerpo, 9.48 para la primera columna— y 9.48/11 = 0.862,
+que no explica los otros dos. Una escala única no produce ese reparto, así que
+quien dibuja usa sus propios tamaños, no los declarados.
+
+**Y el nombre del interruptor tampoco coincide**: el plan declara
+`mostrar_tabla` —así lo expone la UI— y el graficador espera
+`mostrar_tabla_derecha`. Puede ser un alias que sí se traduce, o puede ser la
+punta del hilo; no se comprobó.
