@@ -363,3 +363,68 @@ test_that("un default vectorial se ajusta a las filas en vez de repetirse", {
   # Y un default escalar sigue rellenando todas las filas.
   expect_identical(.monitoreo_aulas_values(df, "ausente", "-"), rep("-", 3L))
 })
+
+# --- La vuelta completa: de la respuesta al avance de SU aula ----------------
+
+.costura_respuestas <- function(unit_ids, reparto = c(5L, 4L, 3L)) {
+  data.frame(
+    collectorID = unlist(mapply(rep, unit_ids[seq_along(reparto)], reparto, SIMPLIFY = FALSE)),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("cada respuesta suma al avance del aula cuyo QR se escaneo", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+  plan <- ho$monitoring_rows
+
+  unit_ids <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+  respuestas <- .costura_respuestas(unit_ids)
+  cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, plan = plan))
+  d <- monitoreo_aulas_dashboard(plan, respuestas, cfg)
+
+  validas <- vapply(d$course_status, function(r) as.integer(r$respuestas_validas %||% 0L), integer(1))
+  codigos <- vapply(d$course_status, function(r) as.character(r$operational_code %||% ""), character(1))
+  por_aula <- stats::setNames(validas, codigos)
+
+  # El control: emparejando solo por `classroom_id` esto valia 0 en TODAS las
+  # aulas mientras el KPI global si contaba las 12 respuestas.
+  expect_identical(sum(validas), 12L)
+  expect_identical(unname(por_aula[["AULA-01"]]), 5L)
+  expect_identical(unname(por_aula[["AULA-02"]]), 4L)
+  expect_identical(unname(por_aula[["AULA-03"]]), 3L)
+  expect_identical(sum(validas > 0L), 3L)
+})
+
+test_that("el handoff deja la meta del aula, no solo su enlace", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+
+  metas <- vapply(ho$monitoring_rows, function(r) as.numeric(r$eligible_n %||% 0), numeric(1))
+  # Sin meta, la brecha sale 0 y ninguna aula llega nunca a "cerrando".
+  expect_true(all(metas > 0))
+})
+
+test_that("un aula lejos de su meta no se declara cerrando", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fx <- .costura_sesion(sid)
+  ho <- collection_handoff(sid, fx$instance$state_revision)
+  unit_ids <- vapply(fx$seeded$plan$units, function(u) u$unit_id, character(1))
+  cfg <- monitoreo_aulas_normalize_config(list(enabled = TRUE, plan = ho$monitoring_rows))
+  d <- monitoreo_aulas_dashboard(ho$monitoring_rows, .costura_respuestas(unit_ids), cfg)
+
+  estados <- stats::setNames(
+    vapply(d$course_status, function(r) as.character(r$application_state %||% ""), character(1)),
+    vapply(d$course_status, function(r) as.character(r$operational_code %||% ""), character(1))
+  )
+
+  # El control: comparando como TEXTO, "5" >= "30" es TRUE y esta aula se
+  # declaraba "cerrando" con 5 de 30.
+  expect_identical(unname(estados[["AULA-01"]]), "en_aplicacion")
+  expect_identical(unname(estados[["AULA-04"]]), "pendiente")
+})

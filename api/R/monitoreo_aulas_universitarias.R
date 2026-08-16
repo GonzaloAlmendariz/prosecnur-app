@@ -249,6 +249,11 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     package_label = get(c("package_label", "selection_label", "seleccion", "muestra"), ""),
     package_status = get(c("package_status", "estado_paquete"), ""),
     collector_id = get(c("collector_id", "collector", "collectorId"), ""),
+    # Identificador que Recopiladores cuelga del QR (`d[collectorID]=`). Es el
+    # que vuelve dentro de la data de Kobo, y no tiene por que coincidir con
+    # `classroom_id`: hoy es un slug interno. Si la normalizacion lo tira, el
+    # avance por aula no puede emparejar una sola respuesta.
+    collection_unit_id = get(c("collection_unit_id", "unit_id"), ""),
     responsible = get(c("responsible", "responsable"), ""),
     operational_status = get(c("operational_status", "estado", "estado_operativo"), "planificada"),
     replacement_for = get(c("replacement_for", "reemplazo_de"), ""),
@@ -518,18 +523,36 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   rejected_counts <- .monitoreo_aulas_named_counts(response_classroom, !filter_passed & nzchar(response_classroom))
 
   rows <- plan_df
-  rows$responses_total <- as.integer(total_counts[rows$classroom_id])
-  rows$responses_total[is.na(rows$responses_total)] <- 0L
-  rows$respuestas_validas <- as.integer(valid_counts[rows$classroom_id])
-  rows$respuestas_validas[is.na(rows$respuestas_validas)] <- 0L
-  rows$filter_passed <- as.integer(passed_counts[rows$classroom_id])
-  rows$filter_passed[is.na(rows$filter_passed)] <- 0L
-  rows$filter_rejected <- as.integer(rejected_counts[rows$classroom_id])
-  rows$filter_rejected[is.na(rows$filter_rejected)] <- 0L
-  rows$brecha <- pmax(0, suppressWarnings(as.numeric(rows$expected_valid)) - rows$respuestas_validas)
+  # Una respuesta se atribuye por el identificador que viajo en su QR, que no
+  # tiene por que ser `classroom_id`: Recopiladores cuelga `collection_unit_id`
+  # y ese es el que vuelve en la data. Emparejar solo por `classroom_id` dejaba
+  # el avance de TODAS las aulas en cero mientras el KPI global si contaba las
+  # respuestas — el tablero decia "12 validas" y ninguna aula con avance.
+  contar <- function(counts) {
+    por_aula <- as.integer(counts[rows$classroom_id])
+    if ("collection_unit_id" %in% names(rows)) {
+      por_unidad <- as.integer(counts[rows$collection_unit_id])
+      por_aula[is.na(por_aula)] <- por_unidad[is.na(por_aula)]
+    }
+    por_aula[is.na(por_aula)] <- 0L
+    por_aula
+  }
+  rows$responses_total <- contar(total_counts)
+  rows$respuestas_validas <- contar(valid_counts)
+  rows$filter_passed <- contar(passed_counts)
+  rows$filter_rejected <- contar(rejected_counts)
+  # `expected_valid` puede llegar como TEXTO: `.monitoreo_aulas_df()` convierte
+  # todas las columnas a character, y este plan hace ese viaje de ida y vuelta.
+  # La linea de `brecha` ya lo coaccionaba; la de `application_state` no, asi
+  # que comparaba lexicograficamente: "5" >= "30" es TRUE, y un aula con 5 de 30
+  # se declaraba "cerrando". No se veia porque hasta ahora las validas eran
+  # siempre 0 y "0" >= "30" da FALSE.
+  meta <- suppressWarnings(as.numeric(rows$expected_valid))
+  meta[!is.finite(meta)] <- 0
+  rows$brecha <- pmax(0, meta - rows$respuestas_validas)
   rows$brecha[!is.finite(rows$brecha)] <- 0
   rows$application_state <- ifelse(
-    rows$operational_status %in% c("aplicada", "cerrada") | rows$respuestas_validas >= rows$expected_valid & rows$expected_valid > 0,
+    rows$operational_status %in% c("aplicada", "cerrada") | (rows$respuestas_validas >= meta & meta > 0),
     "cerrando",
     ifelse(rows$responses_total > 0 | rows$operational_status %in% c("en_campo", "parcial"), "en_aplicacion",
            ifelse(rows$operational_status %in% c("agendada", "contactada"), "lista", "pendiente"))

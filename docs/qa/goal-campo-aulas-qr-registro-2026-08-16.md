@@ -79,6 +79,9 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L12** | El filtro de «respuesta válida» no conoce los estados de Kobo, y falla abierto. | `.monitoreo_aulas_valid_response()` en `monitoreo_aulas_universitarias.R:434`. Kobo nombra su columna `_validation_status` (guion bajo delante) y la llena con `validation_status_approved`; los candidatos incluyen `validation_status` y `_status` pero **no** `_validation_status`, y `valid_statuses` (`completed`·`complete`·`valid`·`aprobado`·`aplicada`) no incluye ningún valor de Kobo. | ⛔ **bloqueado** — necesita decisión: hoy sin columna reconocible **todo cuenta como válido** (fail-open) y quien configurara el mapeo «bien» se quedaría con **cero válidas** sin aviso. Cambiar fail-open por fail-closed altera lo que cuenta en estudios vivos, así que no se toca sin tu visto bueno. Comportamiento actual **fijado con tests de caracterización** para que cambiarlo sea visible. |
 | **L13** | Tras el handoff, abrir Monitoreo **reventaba**. | `.monitoreo_aulas_status()` resolvía el alias con `aliases[[key]]`, que **lanza** `subscript out of bounds` con una clave desconocida en vez de devolver NULL: el `%||%` que hacía de red nunca actuaba. Y el handoff escribía `operational_status = "pendiente"`, palabra fuera de `monitoreo_aulas_estados()`. | ☑ **hecho** (2026-08-16) — el handoff escribe `planificada`, `pendiente` entra como alias, y ambos normalizadores caen al default con `[` en vez de romper. |
 | **L14** | El plan entregado se **multiplicaba n²**: 7 aulas salían como 49. | `.monitoreo_aulas_values()` / `.monitoreo_aulas_num_values()` hacían `rep(default, nrow(df))`, y `orden = getn(c("orden","order"), seq_len(n))` pasa un default **vectorial**. Al asignar esa columna de n² valores, el data.frame reciclaba todas las demás. Se disparaba sólo cuando faltaba la columna `orden` — el caso exacto de las filas que crea el handoff. | ☑ **hecho** (2026-08-16) — `rep_len` en vez de `rep`, en los dos helpers. Verificado de 1 a 20 filas. |
+| **L15** | El avance por aula era **siempre cero**. | El QR lleva `collection_unit_id`; las respuestas vuelven con ese id y `.monitoreo_aulas_course_status()` emparejaba sólo por `classroom_id`. Además la normalización **tiraba** `collection_unit_id`, así que el vínculo se perdía. El KPI global sí contaba las respuestas: el tablero decía «12 válidas» con las 7 aulas en 0. | ☑ **hecho** (2026-08-16) — el campo sobrevive a la normalización y el emparejamiento cae a él cuando `classroom_id` no casa. |
+| **L16** | El handoff no llevaba la **meta** del aula. | Las filas nuevas salían sin `eligible_n`, así que la brecha era 0 y ninguna aula podía llegar a «cerrando». El dato ya viajaba en la unidad del plan. | ☑ **hecho** (2026-08-16) — se copian `eligible_n`, facultad, curso, horario y docente. |
+| **L17** | Un aula con 5 de 30 se declaraba **«cerrando»**. | `application_state` comparaba `respuestas_validas >= expected_valid` sin coaccionar, y `.monitoreo_aulas_df()` deja todo como texto: `"5" >= "30"` es TRUE. La línea de `brecha` de al lado sí coaccionaba. Latente hasta ahora porque las válidas siempre eran 0. | ☑ **hecho** (2026-08-16) — comparación numérica. |
 | **L4** | No existe superficie para registrar el estado operativo de un aula. | `apiMonitoreoAulasAgenda` (`frontend/src/api/monitoreo.ts:4286`) tiene **0 consumidores**. El backend `/api/monitoreo/aulas/agenda` + `monitoreo_aulas_update_agenda()` ya funcionan. Falta decidir **dónde vive**: el comentario de `AulasOperationsPanel.tsx:1-7` dice que la agenda pertenece a Recopiladores, no a Monitoreo. | ⛔ bloqueado — necesita decisión de ubicación (¿ADR?) |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
@@ -417,3 +420,35 @@ divergentes entre Recopiladores y Monitoreo — **falsa**, el handoff casa por
 «VACÍO» y me hizo perseguir un fantasma. El bisect por campo tampoco sirvió
 porque el mínimo ya disparaba; lo que lo resolvió fue añadir campos de uno en
 uno hasta ver que `orden` apagaba la inflación.
+
+### 2026-08-16 — la vuelta se cierra: de la respuesta al avance de su aula
+Un eslabón más allá del handoff estaba el que de verdad importa para V7. Con 12
+respuestas repartidas en 3 aulas, el tablero decía **«12 válidas» y las 7 aulas
+en cero**.
+
+**L15.** El QR cuelga `collection_unit_id` y las respuestas vuelven con ese id,
+pero `.monitoreo_aulas_course_status()` emparejaba sólo por `classroom_id` — y
+la normalización ni siquiera conservaba `collection_unit_id`, así que el vínculo
+se perdía antes de llegar al join. El KPI global contaba bien porque suma sin
+agrupar; el desglose, que es lo que se mira en campo, estaba en cero.
+
+Arreglarlo destapó dos más, en cascada:
+
+**L16.** Las aulas quedaban con meta 0, porque el handoff no copiaba
+`eligible_n` a las filas nuevas aunque el dato ya viajaba en la unidad. Sin
+meta no hay brecha, y ninguna aula puede llegar a «cerrando».
+
+**L17.** Con meta ya presente, un aula con **5 de 30** se declaraba
+**«cerrando»**. `application_state` comparaba sin coaccionar y
+`.monitoreo_aulas_df()` deja todas las columnas como texto: `"5" >= "30"` es
+TRUE en orden lexicográfico. La línea de `brecha`, justo encima, sí coaccionaba
+— alguien ya se había topado con esto y lo arregló en un sitio y no en el otro.
+Estaba latente porque las válidas siempre eran 0 y `"0" >= "30"` da FALSE.
+
+Los tres se encadenan: el primero ocultaba al segundo y el segundo al tercero.
+Es el mismo mecanismo que hace que un loop así valga la pena — arreglar de
+verdad destapa lo que estaba tapado, y sólo se ve corriendo la cadena entera.
+
+**V7 pasa a cumplirse en su mitad medible**: el cruce por `collectorID` contra
+la meta del aula funciona sin configurar nada. Lo que falta —el «mientras
+ocurre»— sigue dependiendo de L4.
