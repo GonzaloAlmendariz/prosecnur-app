@@ -3,9 +3,11 @@
  *
  * El motor publica cuántas filas deja pasar cada criterio; la pantalla mostraba
  * sólo el agregado —cuántos estudiantes quedan— y no el desglose. Sin él, un
- * criterio activo que no recorta nada es indistinguible de uno que sí muerde:
- * medido en el proyecto real de 2025-2, `level` dejaba pasar las 136.284 filas y
- * sólo se detectó calculándolo a mano.
+ * criterio activo que no recorta nada es indistinguible de uno que sí muerde, y
+ * tampoco se ve cuál pesa: medido en el proyecto real de 2025-2, sobre 136.284
+ * filas los cinco criterios recortan cantidades muy distintas —`level` deja
+ * fuera 35.364 y `faculty` sólo 9.747— y esa diferencia no llegaba a ninguna
+ * pantalla.
  *
  * El modelo vive aparte del render porque aquí está la decisión —cuál no
  * recorta, y sobre qué total se dice— y eso es lo que puede equivocarse.

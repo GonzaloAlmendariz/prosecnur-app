@@ -1439,10 +1439,11 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
   seleccion <- .cm_criterios_normalize_seleccion(criterios_seleccion)
   # `filas_total` es el universo sobre el que cortan TODOS estos criterios, y va
   # aquí porque sin él `filas_pasan` no dice cuánto recorta cada uno: la pantalla
-  # tendría que inferir el total del criterio que más pasa, que sólo es exacto
-  # cuando alguno no recorta nada. Medido en el proyecto real de 2025-2, `level`
-  # dejaba pasar las 136.284 filas —estaba declarado y no filtraba— y el
-  # desglose es justo lo que hace visible ese cero.
+  # tendría que inferir el total del criterio que más pasa, y esa cota sólo es
+  # exacta cuando alguno no recorta nada. Medido en el proyecto real de 2025-2
+  # los cinco criterios recortan —el que menos, `faculty`, deja pasar 126.537 de
+  # 136.284—, así que ahí el total inferido se habría quedado corto en casi
+  # 10.000 filas y cada recorte se habría publicado inflado.
   report <- list(activa = FALSE, filas_total = as.integer(n), criterios = list())
   # `marco_razon` acompaña a `marco_ok` fila a fila: sin ella, una fila que solo
   # cae por un criterio de alumno se publica en `exclusions` con exclude_reason
@@ -1466,6 +1467,8 @@ calc_muestra_aulas_criterios_alumno <- function(criterios_seleccion, filas) {
     # no recorto, y la pantalla acaba afirmando "esta declarado y no filtra a
     # nadie" cuando la verdad es que no habia con que filtrar. Medido en una
     # pila limpia: `formation` sobre una base sin esa columna publicaba 4 de 4.
+    # En el proyecto real de 2025-2 no se da —los cinco criterios se miden y
+    # recortan—, asi que este caso se detecto construyendo desde cero.
     #
     # El predicado es "no trae señal", no "la columna no existe": `filas` es una
     # lista de seis vectores que el motor arma SIEMPRE desde el mapeo, asi que

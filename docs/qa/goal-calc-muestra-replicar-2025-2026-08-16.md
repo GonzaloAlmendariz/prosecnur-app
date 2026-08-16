@@ -342,15 +342,21 @@ Sobre el fixture reparado, 136.284 filas de la hoja `MATRICULADO`:
 
 | Criterio | Pasan | Recorta | % | Capa |
 |---|---:|---:|---:|---|
-| `faculty` | 128.018 | 8.266 | 6,1 % | marco |
+| `faculty` | 126.537 | 9.747 | 7,2 % | marco |
 | `condition` | 124.167 | 12.117 | 8,9 % | marco |
 | `formation` | 125.003 | 11.281 | 8,3 % | marco |
 | `age` | 123.360 | 12.924 | 9,5 % | marco |
-| `level` | 136.284 | **0** | **0,0 %** | marco |
+| `level` | 100.920 | 35.364 | 25,9 % | **instrumento** |
 | **Todos (capa marco)** | **106.013** | **30.271** | **22,2 %** | |
 
 Las 30.271 cuadran con las exclusiones que publica el marco construido, así que
 la medición es consistente con el motor.
+
+> **Corregido el 2026-08-16.** Esta tabla llegó a publicar `level` con recorte 0
+> en capa marco y `faculty` con 128.018. Las cifras buenas son las de arriba,
+> leídas del `criterios_alumno_report` que el propio proyecto trae guardado:
+> `level` es el que MÁS recorta y su capa es `instrumento`. Detalle al final del
+> documento.
 
 **La suma de los recortes individuales (44.588) supera al conjunto (30.271)**
 porque muchas filas caen por más de un criterio a la vez — se ve en las razones
