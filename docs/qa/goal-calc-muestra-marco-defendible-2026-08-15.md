@@ -57,7 +57,7 @@ correcto que no se puede explicar tampoco está entregado.
 | L6 | El test de la base canónica deja de fingir cobertura | V5 | tests R | ⛔ **bloqueado** · ver tabla de decisiones |
 | L7 | El marco de referencia reconstruye con elegibles > 0 | V6 | **fixture** (no el motor) | ☑ **hecho** (2026-08-15) · criterio reparado: `faculty` pasa de 0 a 128.018 filas y el marco da **21.362 elegibles** |
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **C1–C4 verificados en vacío** · las tres declaran su vacío con causa y salida, 0 desbordes, geometría 100 % declarada. **C5 bloqueado por L14** |
-| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (`calc_muestra_alumnos_por_ch.R:192`) | ⛔ **diagnóstico cerrado** · el guard confunde «cambió el marco» con «cambió la decisión»; arreglo propuesto y regresión definida |
+| L14 | El objetivo de cursos-horario no llega nunca a la Selección | V7 | **backend** (reconstrucción del marco) | ⛔ **decisión de dominio** · el guard es correcto y su contrato está testeado; falta re-sellar la decisión al reconstruir, y eso exige decidir si es legítimo |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
 | L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
@@ -631,7 +631,47 @@ facultad. Se consideran «cambiadas» sólo porque el marco se reconstruyó.
 
 El paso 2 es obligatorio, así que el paso 4 siempre lo deshace.
 
-### El arreglo propuesto
+### El arreglo propuesto era erróneo (2026-08-15)
+
+Se aplicó —ignorar `frame_hash` en `.cm_alumnos_por_ch_decision_changed`— y
+**rompió cuatro asserts** de `test-http-contract-calc-muestra-alumnos-ch.R:204`,
+que prueban exactamente lo contrario:
+
+```r
+stale_study$workspace$aulas_config$alumnos_por_ch_decision$frame_hash <- "frame-anterior"
+stale_study$workspace$aulas_config$n_aulas <- 17L
+# espera: n_aulas borrado, resultados limpiados, reporte en 409
+```
+
+**Y el contrato tiene razón.** Una decisión firmada contra un marco anterior no
+puede acreditar un objetivo: el `frame_hash` está en la firma a propósito y con
+test que lo respalda. El guard no confunde nada — distingue deliberadamente.
+
+El fix se revirtió; el contrato vuelve a 44 PASS.
+
+### Dónde está entonces el defecto
+
+Si el guard es correcto, lo que falla es **que la decisión conserve un
+`frame_hash` viejo después de reconstruir**. El flujo obligado es:
+
+1. Firmar la decisión → queda sellada con `HASH_A`.
+2. El motor exige reconstruir (`decision_stale`) → el marco pasa a `HASH_B`.
+3. La decisión **sigue sellada con `HASH_A`** y nadie la re-sella.
+4. Cualquier guardado posterior la ve stale y borra el objetivo. Para siempre.
+
+El eslabón que falta no es relajar la comparación: es que **reconstruir el marco
+re-selle la decisión vigente** cuando el usuario no cambió nada de ella, o que
+la UI obligue a re-confirmarla. Lo primero es coherente con el paso 2, que es el
+propio motor quien lo exige.
+
+Antes de implementarlo hay que responder una pregunta de dominio: **¿re-sellar
+automáticamente es legítimo?** Una decisión se toma mirando una distribución; si
+el marco cambia, esa distribución cambia, y puede que el usuario quisiera
+revisarla. Si la respuesta es que sí —el estadístico elegido no depende del
+marco—, el re-sellado es correcto y el fix vive en la reconstrucción, no en el
+guard.
+
+### El arreglo que se propuso (superado por lo de arriba)
 
 El guard mezcla dos preguntas bajo una sola firma: **«¿cambió lo que el usuario
 decidió?»** y **«¿se reconstruyó el marco?»**. La primera debe invalidar un
