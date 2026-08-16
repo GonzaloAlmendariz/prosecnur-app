@@ -26,10 +26,17 @@ fixture_o_skip <- function(slug) {
 #
 # Cada slug sale de esta lista en cuanto se regenere. Si la lista queda vacía,
 # se borra: no es un mecanismo permanente, es una deuda con nombre y fecha.
-FIXTURES_PENDIENTES_DE_REGENERAR <- c(
-  hsvg2026 = "204.928 correos seudónimos con dominio real (2026-08-14)",
-  acrconta = "842 correos seudónimos con dominio real (2026-08-14)"
-)
+# Vacía desde el 2026-08-15. Sus dos entradas —`hsvg2026` con 204.928 correos y
+# `acrconta` con 842— eran seudónimos emitidos antes de que el anonimizador
+# marcara el dominio con `.example.test`: PII falsa que mantenía el gate rojo y
+# obligaba a exentar dos fixtures enteros. El detector reconoce ahora esos
+# seudónimos por su local-part, así que no hay nada que exentar.
+#
+# El mecanismo se conserva a propósito: un fixture puede volver a quedar
+# pendiente de regenerar, y entonces esto documenta por qué se le perdona el
+# gate. Lo que no debe pasar es que una entrada sobreviva a su motivo — de eso
+# se encarga el test de abajo, que exige que cada exento SIGA fallando.
+FIXTURES_PENDIENTES_DE_REGENERAR <- character(0)
 
 test_that("todo fixture instalado pasa el gate de PII y de cobertura", {
   instalados <- Filter(function(s) file.exists(reference_project_path(s)),
@@ -51,6 +58,10 @@ test_that("los fixtures pendientes de regenerar siguen fallando por el motivo de
   # taparlo TODO —incluida PII real— y nadie lo notaría. Aquí se comprueba que
   # cada exento falla exactamente por lo que dice su motivo, y que su PII son
   # correos y no otra cosa.
+  testthat::skip_if(
+    length(FIXTURES_PENDIENTES_DE_REGENERAR) == 0,
+    "no hay fixtures exentos del gate de PII"
+  )
   for (slug in names(FIXTURES_PENDIENTES_DE_REGENERAR)) {
     if (!file.exists(reference_project_path(slug))) next
     hallazgos <- pulso_detectar_pii(reference_project_path(slug))

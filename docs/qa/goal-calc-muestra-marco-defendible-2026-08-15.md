@@ -59,13 +59,14 @@ correcto que no se puede explicar tampoco está entregado.
 | L8 | Titulares, Reemplazos y Sustento auditados con selección real | V7 | frontend + corrida | ◐ **el dato ya existe** · selección real generada y persistida (30 titulares, 330 reemplazos, 2.201 de pool); falta la auditoría visual, que exige pila viva |
 | L9 | ~~El impacto de los criterios opcionales no se pinta~~ | V4 | — | ✗ **retirado** · la premisa era falsa, ver abajo |
 | L10 | La tasa de Asistencia del agregado es un techo y se lee como observación | V4 | frontend | ☑ **hecho** (2026-08-15) · mutante: 5 de 7 tests caen |
+| L13 | El gate de PII lleva rojo por falsos positivos | — | ☑ **hecho** (2026-08-15) · los 5 fixtures pasan; la lista de exentos queda vacía |
 
 ### Lo que espera a Gonzalo
 
 | # | Decisión | Por qué no puedo yo |
 |---|---|---|
 | L12 | Si el **anonimizador** debe traducir los criterios guardados al anonimizar, además de los valores de la base | Resuelto hoy el síntoma (el fixture ya está reparado y versionado, `6c7e8117`), no la causa: cualquier `.pulso` que se anonimice a partir de ahora vuelve a nacer con el mismo defecto. Arreglarlo toca `pulso_anonimizar.R`, que es de otro dominio y ahora mismo lo está editando la otra sesión |
-| L13 | Qué se hace con el gate de PII, que lleva rojo en dos fixtures por **falsos positivos**: correos ya anonimizados y hashes SHA-256 que el detector lee como DNI. O se afinan sus reglas, o se declara una excepción por columna | Un gate que lleva tiempo rojo deja de leerse, y entonces no protege de nada. Pero relajarlo es decidir cuánto riesgo de PII real se acepta a cambio de que vuelva a ser informativo — y eso no lo elijo yo. Hoy: `hsvg2026` 5 hallazgos, `acrconta` 6, ninguno introducido por este trabajo |
+
 | L6 | Qué se hace con el test `[gated]` de la base canónica: **(a)** versionar una fixture anonimizada, **(b)** documentar `PULSO_CALC_MUESTRA_CANONICO` como gate manual y quitar el fallback muerto, o **(c)** retirar el test | Las tres son defendibles y tienen precios distintos. (a) da cobertura real en CI pero exige pasar la base por el anonimizador, que ya envenenó `hsvg2026` una vez; (c) pierde la única defensa contra la cancelación de errores. Elegir por ti sería decidir cuánta cobertura vale ese riesgo |
 
 ## Trampas medidas (no volver a pagarlas)
@@ -413,6 +414,37 @@ de polling (2 s), lo cual es correcto y no es defecto.
 El reparto de hitos se eligió por **etapas del código**, no por **coste**. La
 radiografía por facultad es, con diferencia, la más cara, y merece subdividirse.
 Queda como L11.
+
+## L13 · el gate de PII vuelve a ser informativo
+
+Llevaba rojo en dos fixtures por **PII falsa**: `hsvg2026` con 204.928 correos y
+`acrconta` con 842, todos seudónimos emitidos antes de que el anonimizador
+marcara el dominio con `.example.test`. Tenían forma de correo real
+(`carla.valdiviaf4f@pucp.edu.pe`) y el detector no podía distinguirlos, así que
+había dos fixtures **exentos del gate entero** por una lista de excepciones.
+
+Lo que los distingue es el **local-part**, que no cambió entre versiones del
+anonimizador: `nombre.apellido` + 3 hex, con nombre y apellido de dos catálogos
+**cerrados** (32 × 26). No es una heurística de forma sino la firma del propio
+emisor, y la regla se construye desde sus catálogos —no desde una copia—, así
+que si mañana se amplían, los sigue.
+
+**Lo que no afloja:** la comprobación es por valor, no por columna. Un correo
+real que sobreviva entre seudónimos no lleva esa firma y se marca igual — que es
+exactamente el caso que el detector existe para atrapar, y el que una exención
+por columna habría dejado pasar.
+
+| | Antes | Después |
+|---|---:|---:|
+| Fixtures que pasan el gate | 3 de 5 | **5 de 5** |
+| Fixtures exentos del gate | 2 | **0** |
+
+Tres regresiones fijan la frontera: que los seudónimos de ambas épocas se
+reconozcan, que un correo real mezclado con ellos se siga marcando, y seis casos
+que rompen cada condición de la firma por separado (nombre fuera de catálogo,
+apellido fuera, sufijo no hex, de 2, de 4, y sin anclar al inicio).
+**Verificado con mutante**: quitando el ancla y relajando el sufijo a `{2,4}`,
+el test de la frontera cae.
 
 ## Ledger
 
