@@ -33,7 +33,7 @@ aprobó»**, que es lo que el encargo pedía desde el principio.
 | V8 | Existe disposición para 3 gráficos | — | — | ✓ |
 | V9 | Cada familia que el modelo usa tiene su receta medida | familias de Contabilidad | **3 de 3** ✓ |
 | V10 | Cada comentario tiene regla y estado | mapa de los 57, uno por uno | **20 de 28 geométricos** ✓ · 29 no son del motor |
-| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **8 de 10** ◐ |
+| V11 | El verificador cubre las reglas medibles del recetario | reglas medidas / totales | **10 de 11** ✓ (falta R6) |
 | V12 | Cada disposición declarable tiene su celda en el recetario | 31 `render_key` | ◐ sin medir |
 
 **Incumplimientos de `verificar_mazo()`: aprobado 10 · motor 0** (con ocho reglas medidas).
@@ -64,12 +64,13 @@ cerrados; lo que resta es otra cosa y está descrito abajo.
 | L18 | Que el modo `multilista` dibuje la columna Top Two Box | herencia en `reporte_plan_slides.R` | ☑ **29 → 39**; 0 degeneradas |
 | L19 | Los enunciados largos se recortan | el aprobado no los muestra: los desborda | ☑ **18→15**, muestra 51 %; no es defecto |
 | L20 | El rótulo de la columna dice «Top 2 Box»; el aprobado, «TOP TWO BOX» | preset | ☐ |
+| L30 | Separación entre premisas: 0.97 → 1.31 cm, faltan 0.45 | trade-off con el grosor | ◐ **20 → 9** |
 | L29 | 37 láminas con cifras blancas sobre naranja: regresión de L3 | `graficador_contraste_texto.R` | ☑ **134 → 0** ilegibles |
 | L21 | Inventario: qué familias no tienen receta | recetario | ☑ el modelo usa 3 y las 3 la tienen |
 | L22 | Las 14 familias sin modelo en Contabilidad | necesitan otro estudio de referencia | ⛔ |
 | L23 | Mapa comentario → regla → estado, los 57 uno por uno | `mapa-comentarios-conta-2026-08-16.md` | ☑ |
 | L24 | Inventario: qué del reporte final el motor aún no sabe declarar | doc nuevo | ☐ |
-| L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ◐ **R4, R7, R9, R10**; faltan R6 y R8 |
+| L25 | Ampliar `verificar_mazo()` a las reglas sin cubrir | verificador | ☑ **R4, R7, R8, R9, R10, B2**; R6 sin material |
 | L26 | Medir las 31 disposiciones y darles celda en el recetario | recetario | ☐ |
 | L27 | Familias de gráfico nuevas que el estándar máximo pide | motor | ☐ |
 | L28 | Disposiciones nuevas que el estándar máximo pide | plantillas + motor | ☐ |
