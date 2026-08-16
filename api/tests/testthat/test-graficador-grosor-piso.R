@@ -89,3 +89,38 @@ test_that("piso y techo se pueden componer sin pelearse", {
   expect_gte(medido, 0.256 - 1e-9)
   expect_lte(medido, 0.394 + 1e-9)
 })
+
+
+test_that("la rejilla colapsa los grosores casi iguales", {
+  # 1.17, 1.16 y 1.19 cm salian de laminas del mismo tipo y se veian como tres
+  # geometrias distintas. A rejilla de milimetro son la misma.
+  cm <- function(x) x / 2.54
+  a <- .grosor_a_rejilla(cm(1.17)) * 2.54
+  b <- .grosor_a_rejilla(cm(1.16)) * 2.54
+  c0 <- .grosor_a_rejilla(cm(1.19)) * 2.54
+  expect_equal(a, b, tolerance = 1e-6)
+  expect_equal(a, c0, tolerance = 1e-6)
+})
+
+
+test_that("la rejilla no mueve un grosor mas de medio milimetro", {
+  for (x in seq(0.6, 2.0, by = 0.07)) {
+    ajustado <- .grosor_a_rejilla(x / 2.54) * 2.54
+    expect_lt(abs(ajustado - x), 0.051)
+  }
+})
+
+
+test_that("grosores de verdad distintos siguen distintos", {
+  # La rejilla iguala lo que ya era casi igual; no aplana el mazo.
+  expect_false(isTRUE(all.equal(
+    .grosor_a_rejilla(0.65 / 2.54), .grosor_a_rejilla(2.02 / 2.54)
+  )))
+})
+
+
+test_that("un grosor ilegible no se toca", {
+  expect_equal(.grosor_a_rejilla(NA), NA)
+  expect_equal(.grosor_a_rejilla(0), 0)
+  expect_equal(.grosor_a_rejilla(0.4, rejilla = 0), 0.4)
+})
