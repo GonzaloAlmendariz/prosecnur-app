@@ -111,9 +111,9 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
 | **L36** | El libro generado no se registra como **fuente** de Monitoreo. | En telefónico el Excel de barrido es una fuente que el motor consulta. | ☑ **hecho** (2026-08-16) — `kind = aulas_libro` y los roles `agendamiento` · `parte_campo` · `control`. El mismo libro en Drive entra como `google_sheets` con esos roles. Los otros tres modos no cambian. |
 | **L37** | Un rol llamado `campo` es **indistinguible de la ausencia de rol**. | `.monitoreo_safe_name("")` devuelve literalmente `"campo"` como relleno. Declararlo rol válido convertía en «campo» a **toda fuente sin rol de todos los modos**. | ☑ **hecho** (2026-08-16) — el rol se llama `parte_campo`; hay test que fija por qué no puede llamarse `campo`. |
-| **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☐ sin empezar — afecta a lo construido en L4 |
-| **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☐ sin empezar |
-| **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☐ sin empezar — corrige lo construido hoy en L4 |
+| **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☑ **hecho** (2026-08-16) — `sample_status` y `application_status` son campos propios, cada uno con su vocabulario. `operational_status` se queda como estaba. |
+| **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☑ **hecho** (2026-08-16) — `contact_medium`, `contact_date` y `contact_attempts` llegan al plan. En el estudio real: **232 aulas con intentos, hasta 7 llamadas**. |
+| **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☑ **hecho** (2026-08-16) — `duplicates`, `effective_surveys` y `actual_room` completan el parte. |
 | **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
@@ -473,3 +473,40 @@ de sus avances. Lo atraparon tres tests existentes, no yo.
 
 Se renombró a `parte_campo` y hay test que fija **por qué** no puede llamarse
 `campo`, porque el siguiente que lo intente va a encontrar el mismo muro.
+
+### 2026-08-16 — L30, L31 y L32: los dos ejes, por fin separados
+Los tres salían del mismo reencuadre y eran el mismo cambio. El plan normalizado
+gana lo que el estudio real ya distinguía:
+
+- **Eje de agendamiento** — `sample_status` con su propio vocabulario:
+  `agendada` · `reagendada` · `en_reserva` · `reemplazada` · `sin_contactar`.
+- **Eje de aplicación** — `application_status`: `aplicada` · `no_aplicada` ·
+  `pendiente`.
+- **Ciclo de contacto** — `contact_medium`, `contact_date` y sobre todo
+  `contact_attempts`.
+- **Parte completo** — `duplicates`, `effective_surveys` y `actual_room`.
+
+Sobre el estudio real, los dos ejes conviven sin pisarse:
+
+| eje de agendamiento | |
+|---|---|
+| agendada | 160 |
+| reemplazada | 34 |
+| en_reserva | 26 |
+| reagendada | 10 |
+| **sin_contactar** | **782** |
+
+Y el ciclo de contacto ya se ve: **232 aulas con intentos registrados, hasta 7
+llamadas a un mismo docente**. Eso es exactamente lo que faltaba para poder
+decir *por qué* un aula sigue sin agendar.
+
+Dos decisiones al normalizar:
+
+- **`EN RESERVA 1` y `EN RESERVA 2` colapsan a `en_reserva`.** El número es la
+  profundidad de la cadena y ya vive en `replacement_order`; duplicarlo aquí
+  crearía tantas categorías como eslabones tenga el estudio.
+- **Lo vacío es `sin_contactar`, que es información**, no ausencia: 782 de 1012
+  unidades son cadena que nunca se llegó a llamar.
+
+Hay test que fija que los campos nuevos **no multiplican el plan** — el defecto
+del n² vivía en defaults vectoriales y estos son escalares.
