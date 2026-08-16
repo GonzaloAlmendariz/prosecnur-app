@@ -978,6 +978,18 @@ graficar_barras_agrupadas <- function(
       pmin(0.34, pmax(0.20, label_chars * 0.030)),
       pmin(0.18, pmax(0.075, label_chars * 0.012))
     )
+    # En un panel angosto la constante por caracter subestima el texto y la
+    # cifra se sale de la barra hasta pisar la etiqueta de la categoria. Con el
+    # ancho fisico del cajon se mide de verdad. Ver `graficador_ancho_etiqueta.R`.
+    ancho_fisico_etq <- .ancho_etiqueta_por_fisica(
+      label_chars,
+      size_texto_pt = size_texto_barras_eff,
+      ancho_cajon_in = ancho,
+      w_etiquetas = canvas_w_etiquetas
+    )
+    if (!is.null(ancho_fisico_etq)) {
+      ancho_texto_estimado <- pmax(ancho_texto_estimado, ancho_fisico_etq)
+    }
     margen_texto_inside <- ifelse(label_con_n, 0.030, 0.018)
     umbral_inside <- if (identical(orientacion, "horizontal")) {
       pmax(umbral_posicion_eff, umbral_por_texto)
@@ -990,6 +1002,11 @@ graficar_barras_agrupadas <- function(
 
     ancho_texto_datos <- ancho_texto_estimado * base_max
     margen_texto_datos <- ifelse(label_con_n, 0.030, 0.014) * base_max
+    # Una cifra que ocupa la barra entera «cabe» y aun asi se lee pegada a sus
+    # dos bordes. Con la medida fisica delante se le exige respiro.
+    if (!is.null(ancho_fisico_etq)) {
+      margen_texto_datos <- pmax(margen_texto_datos, 0.024 * base_max)
+    }
     min_inside_con_n <- if (isTRUE(usar_canvas) && identical(orientacion, "horizontal")) 0.36 else 0.30
     min_inside_sin_n <- if (isTRUE(usar_canvas) && identical(orientacion, "horizontal")) 0.15 else 0.13
     cabe_texto_inside <- identical(orientacion, "horizontal") &
