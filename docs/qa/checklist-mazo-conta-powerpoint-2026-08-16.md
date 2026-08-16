@@ -96,6 +96,22 @@ cifras ilegibles.
 cerrados se cerraron midiendo el XML contra el aprobado, que no depende del
 render.
 
+### El texto más pequeño del mazo, y por qué R3 no lo veía
+
+El mínimo del motor era **7.39 pt** —cifras blancas dentro de los segmentos de
+pie en los cuadrantes de perfil, `31% (56)`— contra los **8.0 pt** que el
+aprobado nunca baja. El piso vivía en `max(2.6, ...)` del graficador de pie:
+2.6 unidades ggplot son exactamente 7.39 pt.
+
+**R3 no lo detectaba** y no lo detectará: mide la PROPORCIÓN de texto bajo 12 pt,
+y ocho textos sobre 2459 no la mueven. De hecho R3 sigue marcando 7.8 % contra
+el 6.2 % del aprobado por una razón que no es tipográfica: el motor tiene **2459
+textos y el aprobado 4186**, con un número parecido de pies «Base: …» a 11 pt.
+Menos texto total, misma cantidad de texto pequeño, peor proporción.
+
+Por eso el piso lleva su propio test que lee el literal del archivo: una
+regresión ahí sería invisible para la vara.
+
 ### Por qué dos bloques de la misma lámina no comparten grosor (P14)
 
 Una lámina `multilista` dibuja **cada bloque en su propio canvas** y luego
@@ -106,6 +122,13 @@ graficador pide 1.29 y 1.20 cm, casi lo mismo, y salen 1.19 y 0.90.
 
 Es el mismo defecto raíz que R5 y P13: **el grosor se decide sin saber el alto
 real del cajón**. Aquí además se decide por bloque en vez de una vez por lámina.
+
+Medido al detalle: arriba la fracción es 1.19/3.61 = **0.33** y abajo
+0.90/3.43 = **0.26**. La diferencia viene de `row_step_eff`, que se infla cuando
+un bloque tiene pocas categorías con etiquetas largas —`n_categorias <= 4 &&
+max_lineas_eje_y >= 5`— y en multilista **cada bloque lo decide por su cuenta**.
+Compartirlo exige exponerlo como override y fijarlo una vez por lámina: es la
+unidad pendiente principal.
 
 ### Dos accesores que truncaban en silencio
 
