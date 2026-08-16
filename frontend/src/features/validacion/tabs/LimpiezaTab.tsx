@@ -1845,7 +1845,10 @@ export function describirDecisionesPreservadas(
     const cuantos = casos === 1 ? "1 caso" : `${casos} casos`;
     return {
       tone: "success",
-      texto: `Se conservaron ${cuantas} (${cuantos}) del instrumento anterior. Vuelven a la cola al correr la auditoría, si su regla y su variable siguen existiendo.`,
+      texto:
+        `Se guardaron ${cuantas} de limpieza (${cuantos}) que habías tomado con el formulario anterior. ` +
+        `Corre la auditoría para recuperarlas: volverán a la cola las que sigan teniendo su regla y su ` +
+        `variable en el formulario nuevo.`,
     };
   }
 
@@ -1853,12 +1856,20 @@ export function describirDecisionesPreservadas(
   const sinRegla = preservadas?.n_sin_regla ?? 0;
   const sinVariable = preservadas?.n_sin_variable ?? 0;
   const sinInstrumento = preservadas?.n_sin_instrumento ?? 0;
-  if (sinRegla > 0) motivos.push(`${sinRegla} sin su regla`);
-  if (sinVariable > 0) motivos.push(`${sinVariable} sin su variable`);
-  if (sinInstrumento > 0) motivos.push(`${sinInstrumento} sin poder leer el formulario`);
+  if (sinRegla > 0) {
+    motivos.push(`${sinRegla} porque la regla que las originó ya no existe`);
+  }
+  if (sinVariable > 0) {
+    motivos.push(`${sinVariable} porque su variable ya no está en el formulario`);
+  }
+  if (sinInstrumento > 0) {
+    motivos.push(`${sinInstrumento} porque no se pudo leer el formulario`);
+  }
   return {
     tone: "warn",
-    texto: `${cuantas} del instrumento anterior no volvieron a la cola: ${motivos.join(", ")}. Siguen guardadas y no se aplican.`,
+    texto:
+      `${cuantas} de limpieza que habías tomado con el formulario anterior no se pudieron recuperar: ` +
+      `${motivos.join(", y ")}. Siguen guardadas, pero no se aplican a la base.`,
   };
 }
 

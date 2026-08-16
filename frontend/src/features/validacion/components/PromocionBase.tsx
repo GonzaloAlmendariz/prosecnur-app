@@ -73,6 +73,11 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
   const sinRespaldo = rige && promocion.sin_respaldo === true;
   const antes = asCount(promocion.n_casos_antes);
   const despues = asCount(promocion.n_casos_despues);
+  // La pregunta que la superficie tiene que contestar sola es de dónde salieron
+  // los casos que faltan: no se perdieron al cargar la data, los excluyó el
+  // analista al cerrar la base. Decir el salto sin decir cuántos salieron deja
+  // al lector calculándolo.
+  const excluidos = antes !== null && despues !== null ? antes - despues : null;
 
   const tone: Tone = sinRespaldo ? "danger" : bloqueo ? "warn" : rige ? "success" : "neutral";
   const colors = TONES[tone];
@@ -82,7 +87,7 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
   const titulo = bloqueo
     ? "La depuración no llegó a la base del estudio"
     : sinRespaldo
-      ? "La base depurada rige, pero ya no puede explicarse"
+      ? "La base depurada sigue vigente, pero ya no hay registro de por qué"
       : rige
         ? "La base del estudio quedó depurada"
         : "Volviste a la base anterior";
@@ -118,27 +123,30 @@ export default function PromocionBase({ promocion, busy = false, onRevertir }: P
           <div style={{ fontSize: 12, color: "var(--pulso-text)", lineHeight: 1.45 }}>
             {sinRespaldo ? (
               <>
-                Pasó de <Cifra n={antes} /> a <Cifra n={despues} /> casos y los entregables usan esta base,
-                pero el plan y las decisiones que lo justifican se borraron al recargar el instrumento. Sin
-                ellos no sale el informe metodológico ni el Excel de decisiones: vuelve a construir el plan,
-                o revierte a <Cifra n={antes} /> casos.
+                Al recargar el formulario se borraron el plan de validación y las decisiones de limpieza
+                que explicaban por qué la base pasó de <Cifra n={antes} /> a <Cifra n={despues} /> casos.
+                Los entregables siguen usando los <Cifra n={despues} />, pero mientras falte ese registro
+                no se puede generar el informe metodológico ni el Excel de decisiones. Vuelve a construir
+                el plan y correr la auditoría, o revierte a los <Cifra n={antes} /> casos originales.
               </>
             ) : rige ? (
               <>
-                Pasó de <Cifra n={antes} /> a <Cifra n={despues} /> casos
+                Tus decisiones de limpieza excluyeron <Cifra n={excluidos} />{" "}
+                {excluidos === 1 ? "caso" : "casos"}: la base del estudio pasó de <Cifra n={antes} /> a{" "}
+                <Cifra n={despues} />
                 {promocion.applied_at ? ` el ${formatDateTime(promocion.applied_at)}` : ""}. Codificación,
-                Analítica y los entregables ya usan esta base.
+                Analítica y los entregables ya usan esta versión.
               </>
             ) : bloqueo ? (
               <>
-                {bloqueo} La base del estudio sigue con <Cifra n={antes} /> casos: lo que excluiste está
-                registrado, pero no llegó a Codificación ni a los entregables.
+                {bloqueo} Tus exclusiones quedaron registradas, pero la base del estudio sigue con{" "}
+                <Cifra n={antes} /> casos, y eso es lo que llega a Codificación y a los entregables.
               </>
             ) : (
               <>
-                La base del estudio tiene <Cifra n={antes} /> casos
-                {promocion.reverted_at ? ` desde el ${formatDateTime(promocion.reverted_at)}` : ""}. Tus
-                decisiones siguen guardadas: vuelve a cerrar la base para que rijan.
+                La base del estudio volvió a tener <Cifra n={antes} /> casos
+                {promocion.reverted_at ? `, desde el ${formatDateTime(promocion.reverted_at)}` : ""}. Tus
+                decisiones de limpieza siguen guardadas: vuelve a cerrar la base para que se apliquen.
               </>
             )}
           </div>
@@ -192,11 +200,13 @@ function formatCount(value: number | null): string {
   return value === null ? "—" : String(value);
 }
 
-// `hourCycle: h23` a propósito: el formato de 12 h de es-PE termina en "p. m."
-// y la frase que lo contiene cierra con punto, así que quedaría "12:35 p. m..".
-const dateTimeFormatter = new Intl.DateTimeFormat("es-PE", {
-  day: "2-digit",
-  month: "short",
+// Fecha y hora por separado y unidas a mano: el formato combinado de es-PE
+// devuelve "15-ago., 11:20", que dentro de una frase lee como una etiqueta y no
+// como una fecha. `hourCycle: h23` a propósito: el formato de 12 h termina en
+// "p. m." y la frase que lo contiene cierra con punto, así que quedaría
+// "12:35 p. m..".
+const dateFormatter = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "long" });
+const timeFormatter = new Intl.DateTimeFormat("es-PE", {
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
@@ -205,7 +215,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("es-PE", {
 function formatDateTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return dateTimeFormatter.format(date);
+  return `${dateFormatter.format(date)} a las ${timeFormatter.format(date)}`;
 }
 
 const buttonBase: CSSProperties = {
