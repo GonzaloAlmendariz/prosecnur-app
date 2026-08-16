@@ -55,6 +55,8 @@ sabe nada que la interfaz calle.
 | **L22** | Analítica sobre payload poblado (lo que L20 no pudo medir) | `coberturaVariable.ts` | ☑ hecho — «0 con dato» decía tres cosas distintas. |
 | **L23** | Recontar Validación y Codificación con el criterio de fixture de L22 | `decisionCodificacion.ts` | ☑ hecho — la única con decisión abierta era la única sin chip. |
 | **L24** | Validación no tiene ningún caso real en el corpus de referencia | ADR 0043 | ⛔ bloqueado — exige decidir si se enriquece un proyecto de referencia (necesita la sal) o se acepta que Validación es sólo de tests. |
+| **L25** | Barrido de Hojas de ruta | `marcoCartografia.ts` | ☑ hecho — la auditoría del marco contra la cartografía oficial no tenía consumidor. |
+| **L26** | Recopiladores no tiene ningún caso en el corpus | ADR 0043 | ⛔ bloqueado — cero claves de recopiladores en los cuatro proyectos; misma decisión que L24. |
 | **L21** | Barrer Gráficos y Cálculo de muestra | — | ⛔ bloqueado — los trabaja la otra sesión sobre este mismo árbol. Desbloquea: que suelte esos archivos. |
 | **L19** | `/api/diseno-estudio/state`: usarlo o retirarlo | `router_diseno_estudio.R` · `api/disenoEstudio.ts` | ⛔ **te espera** — el ADR 0029 ya retiró lo que ese endpoint sirve, y nadie lo llama. Retirarlo es implementar el ADR, pero borrar un endpoint pide tu visto bueno. |
 | **L17** | Pasar las varas por lo que este GOAL agregó | las diez superficies nuevas | ☑ hecho — `3aa93906`. **Un hallazgo, contra mi propio arreglo de V4.** |
@@ -114,6 +116,47 @@ concreto: una superficie que afirme o derive por su cuenta un estado que el
 payload ya declara distinto. No es un recorrido visual exhaustivo de cada
 superficie con cada combinación de datos. V1 se sostiene contra ese patrón, que
 es el que produjo los hallazgos de L1, L3 y L5.
+
+### L25 — la auditoría del marco estaba registrada y callada
+
+El censo primero. De los cuatro proyectos de referencia, tres tienen estado de
+Hojas de ruta y sólo `acnur_acg` lo tiene rico: dos corridas (piloto y campo),
+cuatro salidas y una auditoría del marco. Los otros dos tienen config y una
+corrida vacía. Otra vez: medir sobre el proyecto equivocado habría dado verde.
+
+Dos hallazgos, ambos del patrón conocido.
+
+**La nota que sólo se veía en piloto.** `frame_meta.note` explica qué
+cartografía está activa y que la oficial INEI 2017 queda disponible para
+auditoría. Se renderizaba dentro de `{frame?.pilot && …}`, y en cualquier
+proyecto normal `pilot` es falso: la nota **no aparecía nunca**.
+
+**La auditoría sin consumidor.** Los doce campos de `frame_meta.audit` estaban
+declarados en `api/hojasRuta.ts` y no los leía nadie. Sobre 118 410 filas:
+
+| | Manzanas | Viviendas | Población |
+|---|---|---|---|
+| Marco activo | 117 409 | 2 626 758 | 9 031 584 |
+| Cartografía oficial | 118 408 | 2 880 173 | 9 045 962 |
+| Coinciden | 117 352 | | |
+| Sólo en la oficial | **1 056** | | |
+| Sólo en la activa | 2 | | |
+
+El propio motor lo resume como «diferencias registradas sin bloquear el
+motor». Registradas se quedaban. Es material de defensa del marco: quien
+sustente la muestra debería poder citarlo sin abrir un CSV de 118 410 filas.
+
+**La trampa**, y esta la puso la casa: `HojasRutaPage.tsx` está congelado a
+crecimiento y el gate lo atrapó en 9003 sobre 9001. Extraer el aviso a
+componente propio no fue una concesión al gate —es lo que la regla pide— y de
+paso dejó el chip testeable por separado.
+
+### L26 — Recopiladores tampoco tiene con qué medirse
+
+Cero claves de recopiladores en los cuatro proyectos de referencia:
+`collection_state`, deployment, materiales y handoff no existen en ninguno. El
+módulo entero está fuera del corpus, igual que Validación en [L24]. Misma
+decisión pendiente y por eso nace bloqueado.
 
 ### L24 — Validación no tiene con qué medirse
 
