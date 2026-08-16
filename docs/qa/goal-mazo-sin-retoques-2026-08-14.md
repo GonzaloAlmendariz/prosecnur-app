@@ -1098,6 +1098,42 @@ Lo que queda abierto, y por qué no se hizo:
 | L27 · L28 | familias y disposiciones nuevas | no tienen vara: son ampliación, no conformidad |
 | 29 comentarios | contenido, datos y método | no los resuelve ningún preset; son trabajo de analista |
 
+## L24 — las metodológicas están en el plan (2026-08-16)
+
+El inventario bajó de cinco láminas a **tres**: la explicación del Top Two Box ya
+existía —el motor la emitía y yo la conté como faltante— y el separador
+`PRINCIPALES RESULTADOS` no falta, difiere: el motor pone diez separadores de
+dimensión donde el aprobado pone tres de bloque. Eso es criterio editorial, no
+una carencia del motor.
+
+Las tres que sí faltaban están declaradas en el plan del `.pulso` y salen en el
+mazo, en el mismo orden que el aprobado:
+
+| | Motor | Aprobado |
+|---|---|---|
+| Ficha técnica cuantitativa | lám 4 | lám 4 |
+| Escala usada en los cuestionarios | lám 5 | lám 5 |
+| Número de respuestas | lám 6 | lám 7 |
+| Top Two Box *(ya existía)* | lám 7 | lám 6 |
+
+**Dos tropiezos, los dos por el mismo malentendido**: el plan guarda
+`{id, tipo, payload}` y no objetos `ppt_slide` ya construidos. El primer intento
+pasó los objetos construidos y el segundo dejó basura en el `.pulso` porque el
+filtro de limpieza buscaba `inherits(s, "ppt_slide")` —clase que **se pierde al
+serializar**—, así que las láminas malformadas sobrevivieron y se acumularon:
+63 → 66 → 69. Se limpia por `id` y por la firma del formato equivocado.
+
+**Hallazgo nuevo, sin tapar**: las dos láminas de texto añadidas incumplen R7
+—título a 0.57 cm contra el mínimo de 0.78— y el mazo pasa de 9 a **11
+incumplimientos**. No es una regresión del motor: el 0.57 es la posición del
+placeholder en la plantilla, y **el aprobado incumple ahí también** (su ficha
+técnica está a 0.57; movió a mano las otras dos a 0.94). O sea que R7 se calibró
+sobre láminas de gráfico y ahora se aplica a un tipo de lámina que no estaba en
+su población. Corregirlo exige mover el placeholder de la plantilla, que afecta a
+todo mazo que use ese layout: queda como **L33**, no se fuerza aquí.
+
+| L33 | R7 se aplica fuera de su población de calibración | acotar la regla o mover el placeholder | ☐ |
+
 **Lo que este GOAL enseñó, más allá del mazo**: nueve trampas de medición, todas
 pagadas al menos una vez, y las tres que más costaron fueron **medir un espacio
 sin comprobar qué hay en medio**, **un literal escrito a mano en el motor que
