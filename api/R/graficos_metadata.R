@@ -3584,9 +3584,9 @@
     size_subtitulo_slide = 16,
     size_cuerpo_slide = 16,
     size_leyenda      = 16,
-    size_ejes         = 16,
+    size_ejes         = 12,
     size_nota_pie     = 14,
-    size_texto_barras = 5.6,
+    size_texto_barras = 4.92,
     slide_1_plot_height_cm = 14.00,
     slide_1_narrativo_plot_top_cm = 3.10,
     slide_1_narrativo_plot_height_cm = 12.50,
@@ -3656,8 +3656,8 @@
     legend_n_por_fila        = 6,
     legend_gap_npc           = 0.012,
 
-    size_texto_barras        = 5.6,
-    size_texto_barras_peq    = 5.6,
+    size_texto_barras        = 4.92,
+    size_texto_barras_peq    = 4.92,
     size_leyenda             = 16,
     size_barra_extra         = 16,
     size_titulo_extra        = 16,
@@ -3719,12 +3719,12 @@
     # el propio preset; el preset del indicador tiene que estar puesto para que
     # encenderla muestre lo que se espera y no el N.
     barra_extra_preset       = "top2box",
-    size_texto_barras        = 5.6,
-    size_texto_barras_peq    = 5.6,
+    size_texto_barras        = 4.92,
+    size_texto_barras_peq    = 4.92,
     size_titulo_extra        = 16,
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
-    size_ejes                = 16,
+    size_ejes                = 12,
     size_leyenda             = 16,
     size_barra_extra         = 16,
     # B45: opt-in, igual que en apiladas.
@@ -3814,7 +3814,7 @@
     formato_valor             = "porcentaje",
     mostrar_frecuencia        = FALSE,
     decimales                 = 0,
-    size_texto_barras         = 5.6,
+    size_texto_barras         = 4.92,
     color_texto_barras        = .PULSO_PPT_COLORS$azul,
 
     mostrar_promedio          = FALSE,
@@ -3842,7 +3842,7 @@
     size_titulo               = 16,
     size_subtitulo            = 12,
     size_nota_pie             = 12,
-    size_ejes                 = 16,
+    size_ejes                 = 12,
 
     grosor_barras             = 0.76,
     limite_y                  = NULL,
