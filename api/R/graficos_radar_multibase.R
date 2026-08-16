@@ -783,8 +783,27 @@ p_radar_publicos <- function(
 # Las columnas de publico se renombran por clave, y la clave es el nombre de la
 # base tal como llega del estudio: «docentes», no «Docentes». Lo que no se
 # nombra se queda como esta.
+#
+# Y se capitalizan. La clave de base viaja en minuscula porque asi la nombra el
+# estudio, pero un encabezado de tabla no es una clave: el entregable aprobado
+# escribe «Docentes», «Estudiantes» y «Egresados» y el motor sacaba las tres en
+# minuscula. Solo la inicial —el resto se deja intacto para no destrozar siglas
+# como «I+D+i» ni un «PUCP» a media frase—, y solo cuando la palabra empieza en
+# minuscula: un nombre ya capitalizado no se toca.
+.radar_mb_capitalizar <- function(x) {
+  x <- as.character(x)
+  primera <- substr(x, 1, 1)
+  hay <- !is.na(x) & nzchar(x) & primera != toupper(primera)
+  x[hay] <- paste0(toupper(primera[hay]), substring(x[hay], 2))
+  x
+}
+
+
 .radar_mb_nombres_tabla <- function(tabla, titulo_tema = "", encabezados = list()) {
-  nombres <- names(tabla)
+  # La capitalizacion se aplica a los nombres crudos, ANTES de los overrides:
+  # un `tabla_encabezados` declarado a mano es una decision explicita y sale
+  # literal, aunque el autor lo escriba en minuscula.
+  nombres <- .radar_mb_capitalizar(names(tabla))
   titulo_tema <- trimws(as.character(titulo_tema %||% "")[1])
   if (nzchar(titulo_tema)) nombres[1] <- titulo_tema
   for (clave in names(encabezados %||% list())) {
