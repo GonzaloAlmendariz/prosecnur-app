@@ -50,7 +50,7 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 |---|---|---|---|
 | L1 | Reunir el material de 2025: marco, criterios aplicados, cuotas, aulas seleccionadas | — | ☐ **sin empezar** · es el patrón de comparación; sin esto el loop no puede medir nada |
 | L2 | Arrancar un proyecto **vacío** y cargar sólo las bases | V1 | ☐ |
-| L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ☐ |
+| L3 | Aplicar criterios de alumno uno a uno, midiendo el recorte de cada uno | V1, V3 | ◐ **medido** (2026-08-16) · tabla abajo; falta el contraste con 2025 (L4, bloqueado) |
 | L4 | Contrastar elegibles contra 2025 y explicar toda diferencia | V1 | ☐ |
 | L5 | Aplicar criterios de curso-horario, mismo método | V2, V3 | ☐ |
 | L6 | Contrastar CH elegibles contra 2025 | V2 | ☐ |
@@ -60,6 +60,56 @@ y cobertura, el mecanismo sirve; si sistemáticamente sobrerrepresenta algo que
 | L10 | Obtener aulas por facultad y contrastar el reparto | V7 | ☐ |
 | L11 | Sortear con el cubo y comparar el perfil con la muestra de 2025 | V8 | ☐ |
 | L12 | Verificar que titulares y reemplazos sirven en campo | V8 | ☐ |
+
+## V1 · recorte de cada criterio de alumno (medido 2026-08-16)
+
+Sobre el fixture reparado, 136.284 filas de la hoja `MATRICULADO`:
+
+| Criterio | Pasan | Recorta | % | Capa |
+|---|---:|---:|---:|---|
+| `faculty` | 128.018 | 8.266 | 6,1 % | marco |
+| `condition` | 124.167 | 12.117 | 8,9 % | marco |
+| `formation` | 125.003 | 11.281 | 8,3 % | marco |
+| `age` | 123.360 | 12.924 | 9,5 % | marco |
+| `level` | 136.284 | **0** | **0,0 %** | marco |
+| **Todos (capa marco)** | **106.013** | **30.271** | **22,2 %** | |
+
+Las 30.271 cuadran con las exclusiones que publica el marco construido, así que
+la medición es consistente con el motor.
+
+**La suma de los recortes individuales (44.588) supera al conjunto (30.271)**
+porque muchas filas caen por más de un criterio a la vez — se ve en las razones
+combinadas que publica el marco (`age|condition`, `condition|formation`…). Eso
+significa que **el recorte de un criterio no se puede leer aislado**: quitarlo no
+devuelve sus 12.000 filas, devuelve sólo las que no caían también por otro.
+
+### Hallazgo: `level` está activo y no recorta nada
+
+Es un criterio de capa marco, declarado, con `kind = ordinal` y **`fromValue =
+NA`**. Deja pasar las 136.284 filas.
+
+Tres lecturas posibles, y hay que decidir cuál antes de tocar nada:
+
+1. **Correcto y deliberado**: en 2025 no se filtró por ciclo, y el criterio está
+   presente sólo para dejar constancia de que se consideró.
+2. **Configurado a medias**: alguien lo activó y no fijó el umbral, así que
+   parece que filtra y no filtra.
+3. **Perdido en la anonimización**, como pasó con `faculty`.
+
+Para V3 —«los criterios se entienden solos»— este caso es el más exigente: un
+criterio que aparece activo y no recorta es exactamente lo que hace desconfiar
+del resto. **La UI debería decir «este criterio no está recortando» sin que haya
+que calcularlo.**
+
+## Trampa medida: la columna se toma del mapping, no del nombre
+
+Primera medición de esta tabla dio `level` recortando el **100 %**. El error era
+mío: elegí la columna a ojo (`Ciclo (2025-I)`) cuando el mapping del proyecto
+apunta a `Nivel curricular`. Dos columnas plausibles, y la equivocada convierte
+un criterio inocuo en uno que vacía la base.
+
+Vale para todo este loop: **las columnas se resuelven por
+`frame$config$mapping`, nunca por el nombre que parece.**
 
 ## Reglas de este loop
 
