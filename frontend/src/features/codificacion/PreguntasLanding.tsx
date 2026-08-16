@@ -48,7 +48,7 @@ import { FilterChip } from "../../components/FilterChip";
 import { PairingDialog, PairingResult } from "./PairingDialog";
 import DecisionChip from "./DecisionChip";
 import NoCategorizarAction from "./NoCategorizarAction";
-import { contarSinDecidir, decisionDePregunta, frasePendientes, presentarDecision } from "./decisionCodificacion";
+import { contarSinDecidir, decisionDePregunta, frasePendientes, presentarDecision, restanteDeDecision } from "./decisionCodificacion";
 import { RelationDialog, RelationResult } from "./RelationDialog";
 import { RelationTargetDialog } from "./RelationTargetDialog";
 
@@ -977,7 +977,9 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
   // para saber si le queda trabajo. Una marcada sin respuestas ya no se ve
   // igual que una marcada sin categorías.
   const decision = decisionDePregunta(p);
-  const decisionChip = <DecisionChip decision={decision} motivo={p.no_categorizar?.motivo} />;
+  const decisionChip = (
+    <DecisionChip decision={decision} motivo={p.no_categorizar?.motivo} nota={restanteDeDecision(p)} />
+  );
 
   const stats = (
     <div style={{ fontSize: 12, color: "var(--pulso-text-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -1181,6 +1183,13 @@ function PreguntaCard({ p, onPair, onUnpair, busy, dragActive, adoptedBy, recent
         </div>
         {label}
         {tipoRow}
+        {/* La emparejada era la única variante que no montaba `stats`, y por
+            tanto la única sin chip de decisión. En acnur_acg eso dejaba a
+            D1_information —la única con decisión abierta de las 30— mostrando
+            un «En codificación automáticamente» en verde y nada más: el
+            contador del encabezado decía «1 sin decidir» y ninguna card decía
+            cuál. */}
+        {stats}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 16px 1fr", alignItems: "center", gap: 6, marginTop: 4 }}>
           <PairedSide
             title={p.parent}

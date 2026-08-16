@@ -6,6 +6,7 @@ import {
   decisionDePregunta,
   frasePendientes,
   presentarDecision,
+  restanteDeDecision,
 } from "./decisionCodificacion";
 
 function preg(over: Partial<PreguntaAbierta>): PreguntaAbierta {
@@ -109,5 +110,53 @@ describe("frasePendientes", () => {
     expect(frasePendientes(1)).toBe("1 variable marcada sin decidir");
     expect(frasePendientes(0)).toBe("Sin variables pendientes de decidir");
     expect(frasePendientes(3)).not.toMatch(/%/);
+  });
+});
+
+describe("restanteDeDecision", () => {
+  it("«A medias» lleva cuántas faltan", () => {
+    // El caso real: D1_information en acnur_acg, 27 de 75 asignadas. Sin el
+    // número, una pregunta a la que le queda una se ve igual que ésta.
+    const nota = restanteDeDecision(preg({
+      decision: "pendiente_parcial", n_respuestas: 560, n_unicas: 75, n_codificadas: 27,
+    }));
+    expect(nota).toBe("48 sin asignar");
+  });
+
+  it("una sin catálogo cuenta todas sus únicas, y con otro verbo", () => {
+    // «Sin asignar» supone que hay catálogo. En `pendiente` no lo hay todavía,
+    // y el trabajo pendiente es agrupar, no asignar.
+    expect(restanteDeDecision(preg({
+      decision: "pendiente", n_respuestas: 300, n_unicas: 75, n_codificadas: 0,
+    }))).toBe("75 por agrupar");
+  });
+
+  it("no cuenta sobre estados que ya están cerrados", () => {
+    // El control: una categorizada o una decidida no tienen cola. Un número
+    // ahí invitaría a seguir trabajando sobre algo que ya se cerró.
+    for (const decision of ["categorizada", "no_categorizar", "sin_material", "sin_marcar"] as const) {
+      expect(restanteDeDecision(preg({ decision, n_unicas: 75, n_codificadas: 3 }))).toBeNull();
+    }
+  });
+
+  it("calla cuando el conteo no cuadra en vez de decir cero", () => {
+    // Si n_codificadas alcanzara a n_unicas el estado sería `completo`; que
+    // llegue así es un payload raro. «A medias · 0 sin asignar» se contradice
+    // a sí mismo, y es peor que no decir nada.
+    expect(restanteDeDecision(preg({
+      decision: "pendiente_parcial", n_unicas: 20, n_codificadas: 20,
+    }))).toBeNull();
+    expect(restanteDeDecision(preg({
+      decision: "pendiente_parcial", n_unicas: 20, n_codificadas: 99,
+    }))).toBeNull();
+  });
+
+  it("deriva el estado igual que la lista cuando el backend no manda `decision`", () => {
+    // Un .pulso viejo no trae `decision`. Si esta función mirara sólo el
+    // campo, la nota desaparecería justo en las bases que llevan más tiempo
+    // abiertas.
+    expect(restanteDeDecision(preg({
+      status: "en-curso", marcada: true, n_unicas: 40, n_codificadas: 10,
+    }))).toBe("30 sin asignar");
   });
 });
