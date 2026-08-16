@@ -32,6 +32,11 @@ monitoreo_aulas_estados_aplicacion <- function() {
 #' @export
 monitoreo_aulas_estado_muestra <- function(x) {
   key <- .monitoreo_text_key(.monitoreo_scalar(x, ""))
+  # El guion bajo pasa a ESPACIO, no se borra. Borrandolo, `en_reserva` —el
+  # valor canonico que devuelve esta misma funcion— quedaba en "enreserva" y no
+  # casaba con "en reserva": la funcion no reconocia su propia salida y degradaba
+  # la reserva a `sin_contactar` en cada vuelta de normalizacion.
+  key <- gsub("_", " ", key, fixed = TRUE)
   key <- gsub("[^a-z ]", "", key)
   key <- trimws(gsub("[[:space:]]+", " ", key))
   if (!nzchar(key)) return("sin_contactar")

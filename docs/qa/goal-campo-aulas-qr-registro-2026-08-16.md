@@ -116,6 +116,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L45** | El registro de la app capturaba **menos que el parte**. | Faltaban `duplicates`, `effective_surveys` y `actual_room`. Sin los dos primeros, el cuadre de L33 —asistentes − rechazos − duplicados = efectivas— **no se puede comprobar sobre lo que la app captura**; y «encuestas aplicadas» no es «efectivas», que es el número que manda. | ☑ **hecho** (2026-08-16) — tres campos nuevos; el backend ya los aceptaba. |
 | **L46** | El desglose **hombres/mujeres** vive sólo en la ficha impresa. | `collection_material_field_form_rows()` lo pide en papel; no está ni en el registro de la app ni en el Excel. Puede ser deliberado —el sexo se deriva de las respuestas para las cuotas— o una fuga. | ☐ sin empezar — no lo declaro defecto sin saber para qué se usa en campo. |
 | **L47** | Las **190 observaciones** del agendamiento se perdían al regenerar. | El lector guarda la columna `OBSERVACIONES` en `replacement_note` y el generador leía `notes`. Round-trip de 40 unidades del estudio real: 11 → 0. | ☑ **hecho** (2026-08-16) — 11 → 11. |
+| **L48** | `monitoreo_aulas_estado_muestra()` **no reconocía su propia salida**. | Borraba el guion bajo en vez de convertirlo en espacio, así que `en_reserva` quedaba en `enreserva`, no casaba con `en reserva` y **degradaba a `sin_contactar`** en cada vuelta de normalización. | ☑ **hecho** (2026-08-16) — los tres vocabularios son idempotentes. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ☐ sin empezar — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -124,7 +125,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L30** | El modelo mezcla **dos ejes de estado** en uno. | `operational_status` junta agendamiento y aplicación. En el estudio real son columnas distintas y una fila puede estar `REEMPLAZADA` en muestra y `APLICADA` en campo. | ☑ **hecho** (2026-08-16) — `sample_status` y `application_status` son campos propios, cada uno con su vocabulario. `operational_status` se queda como estaba. |
 | **L31** | Falta el **ciclo de contacto**. | `MEDIO DE CONTACTO`, `FECHA DE LLAMADA` y `NÚMERO DE INTENTOS` no existen en el modelo. Sin ellos no se explica por qué un aula sigue sin agendar. | ☑ **hecho** (2026-08-16) — `contact_medium`, `contact_date` y `contact_attempts` llegan al plan. En el estudio real: **232 aulas con intentos, hasta 7 llamadas**. |
 | **L32** | El parte de campo está **incompleto**. | Faltan `DUPLICADOS (YA RESPONDIERON)`, `CANTIDAD DE EFECTIVAS` —que es el número que manda, no «encuestas aplicadas»— y el **aula real** donde se aplicó, que puede no ser la planificada. | ☑ **hecho** (2026-08-16) — `duplicates`, `effective_surveys` y `actual_room` completan el parte. |
-| **L5** | Activar un reemplazo no es un gesto de la app. | El modelo ya tiene `replacement_for`, `replacement_reason`, `replacement_chain_code`, `chain_depth` y la taxonomía `reemplazo_pendiente`. Falta la acción y su registro. | ☐ sin empezar (depende de L4) |
+| **L5** | Activar un reemplazo no es un gesto de la app. | El modelo tenía el vocabulario; faltaba la acción. | ◐ a medias (2026-08-16) — motor `monitoreo_aulas_activar_reemplazo()` + endpoint `POST /api/monitoreo/aulas/activar-reemplazo`, con 9 tests. Falta el botón en la UI. |
 | **L6** | El registro de campo no existe como concepto. | **Premisa corregida (2026-08-16): sí existe.** `collection_material_field_form_rows()` lo define entero, calcado de la hoja de papel en uso. | ◐ a medias — la ficha built-in ya imprime el vocabulario canónico («Alumnos en aula», «Encuestas aplicadas», «Rechazos», «Aplicador/a», «Fecha y hora») en vez de tres renglones numerados. Lo que falta es sólo la **vuelta**: teclearlo de regreso, que depende de L4. |
 | **L7** | La ficha desperdicia alto en blanco y el enlace impreso corta a media palabra. | `collection_render_ficha.R`, layout `single_sheet`. | ☑ **hecho** (2026-08-16) — hueco interior mayor de 206 px a 124 px (11,7% → 7,1% del alto). El grid reparte su banda en vez de amontonarse; capacidad 6 → 8 filas (7 con careta). El corte del enlace ya lo había resuelto L1. |
 | **L7b** | El lector de QR asumía la geometría de la ficha **sin** careta. | `collection_qr_matrix_from_png()` pedía `.crf_layout()` sin `branded`; funcionaba solo porque ambas variantes coincidían en `qr_y`. Hallazgo de propina al hacer L7. | ☑ **hecho** (2026-08-16) — el lector recibe `branded`. |
@@ -884,3 +885,39 @@ este cierra la última columna que seguía cayéndose por el camino.
 cuando el defectuoso era el instrumento. La regla que funciona es no aceptar una
 divergencia sin antes reproducirla desde el otro lado — el conteo posicional,
 que confirmó los 230.
+
+
+### 2026-08-16 — L5: el gesto existe, y de paso salió L48
+
+Activar un reemplazo ya no es una decisión de chat. `monitoreo_aulas_activar_reemplazo()`
+mueve la caída a `reemplazada`, entra su siguiente reserva como `agendada`, y
+deja el motivo y la marca de tiempo en las dos. El endpoint
+`POST /api/monitoreo/aulas/activar-reemplazo` lo expone y persiste en el `.pulso`.
+
+Tres decisiones sobre qué **no** hace:
+
+- **No toca `activation_weight_status`.** Ese campo dice que el peso de una
+  reserva es condicional *por diseño muestral*, y el relato de Cálculo de
+  muestra lo explica así. La activación es un hecho operativo; que el peso se
+  active lo deriva el ponderador al ver una reserva condicional ya agendada.
+- **Con la cadena agotada, no marca la caída como reemplazada.** No lo está.
+  Decir que sí la sacaría del avance sin que nadie cubra su meta. Devuelve
+  `agotada` y cuántas reservas se habían usado.
+- **Nunca toma una reserva de otra cadena**, aunque esté libre.
+
+La cadena encadenada funciona porque `replacement_for` de `R 4.2` apunta al
+**titular** `CH 4`, no a `R 4.1`: buscar «reservas de R 4.1» no encontraría
+ninguna. Es la misma propiedad que L41 dejó correcta hace tres ítems.
+
+**L48, encontrado por el test que comprueba que la brecha se mueve**: el
+tablero convertía `en_reserva` en `sin_contactar`. La causa es de manual —
+`gsub("[^a-z ]", "", key)` **borraba** el guion bajo en vez de convertirlo en
+espacio, así que `en_reserva` quedaba en `enreserva` y ya no empezaba por
+`en reserva`. **La función no reconocía el valor que ella misma devuelve**, y
+degradaba la reserva en cada vuelta: cargar, guardar, reimportar. De los tres
+vocabularios, `en_reserva` es el único con guion bajo en una expresión de dos
+palabras — por eso era el único afectado. Ahora hay un test que exige que los
+tres sean idempotentes.
+
+Falta el botón: la UI todavía no ofrece el gesto. **V6 sigue sin cumplirse del
+todo**, y es lo único de la vara que queda.
