@@ -3048,6 +3048,28 @@ p_reset <- function(
 # la banda solo abria 0.34-0.85in de aire muerto dentro del PNG entre el
 # grafico y su Base. Con word_render = TRUE la reserva no se impone; una
 # nota_pie o una reserva explicita del analista siguen mandando.
+# Reserva de pie para las laminas de escala multibase, cuyo texto de Base va
+# prorrateado ("Base: 47 docentes, 128 estudiantes, ...") y envuelve a dos
+# lineas. Las tres llamadas del renderer pasaban 0.85 sin justificacion escrita.
+#
+# Medido: el placeholder del grafico acaba en 6.72 in y la Base empieza en 6.93
+# —0.22 in de aire, en las 49 laminas del mazo—, asi que la banda protegia de un
+# choque que la geometria ya impide. El coste estaba en el otro lado: con 0.85 el
+# contenido moria al 85.7 % de la zona util contra el 96.5 % del aprobado.
+#
+# Con 0.5: vara 21 -> 18 (B2 «hueco entre premisas» se cierra entera), el
+# contenido sube al 89.0 % y el hueco entre grafico y pie baja de 1.28 in de
+# mediana a 0.98 —el aprobado tiene 0.78—. Comprobado en el render que la
+# leyenda no roza la Base.
+#
+# Se probo 0.4: MISMA vara (18) y algo mejor de relleno (89.9 %, hueco 0.82 de
+# media contra las 0.83 del aprobado), con el mismo numero de laminas por debajo
+# de 0.15 in de separacion. Se descarta por margen, no por medicion: 0.5 es el
+# valor que el propio helper documenta para una Base de dos lineas, y una Base de
+# tres —que este mazo no tiene y no se puede medir aqui— se comeria el sobrante.
+# Quien quiera apurarlo tiene la medida hecha.
+.PLAN_RESERVA_PIE_MULTI_IN <- 0.5
+
 .reservar_pie_para_base_slide <- function(args, min_in = 0.34, word_render = FALSE) {
   if (!is.list(args)) return(args)
   if (isTRUE(word_render)) return(args)
