@@ -144,7 +144,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
 | **L74** | **Avance tiene que mostrar las cuotas** de forma sencilla y dinámica. | El tablero decía «2/12 celdas», que no distingue faltar una respuesta de faltar doscientas. | ◐ a medias (2026-08-17) — las tres lecturas en personas: total, por facultad y por sexo. Falta la parte «dinámica». |
-| **L75** | **Consultas tiene que contar la historia de la cadena.** | Había una tabla de 26 filas y un histograma de consumo: dicen cuánta reserva se gastó, no cómo se llegó. | ◐ a medias (2026-08-17) — la secuencia por cadena con su desenlace. El caso «cerró en el reemplazo» sólo está probado por test: el fixture no tiene ninguno. |
+| **L75** | **Consultas tiene que contar la historia de la cadena.** | Había una tabla de 26 filas y un histograma de consumo: dicen cuánta reserva se gastó, no cómo se llegó. | ☑ **hecho** (2026-08-17) — la secuencia por cadena con su desenlace, y el cierre **verificado en pantalla** tras arreglar el fixture que no tenía el caso. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -1276,3 +1276,41 @@ nada—. La unión se revirtió: era complejidad sobre un diagnóstico equivocad
 «cerró R n.1» —el que Gonzalo pregunta— sólo está verificado por test unitario, no
 en pantalla. Es la misma clase de límite que ya costó una conclusión falsa: un
 sin-hallazgos vale lo que el fixture.
+
+
+### 2026-08-17 — el fixture no tenía el caso, y era de construcción
+
+Dejé declarado que «cerró R n.1» sólo estaba probado por test. Al ir a cerrar esa
+deuda apareció **por qué** faltaba, y no era casualidad:
+
+```r
+collectorID = sprintf("CH %d", 25 + (seq_len(n) %% 145))
+```
+
+Las 3700 respuestas iban **todas** a `CH 25`..`CH 169`, y las cadenas son
+`CH 1`..`CH 24` con sus reservas. **Por construcción ninguna reserva recibía una
+sola respuesta**, así que las 24 cadenas salían «0 de N» y el caso que el
+operativo pregunta no existía en el fixture.
+
+Corregido el sembrador: las últimas 92 respuestas se reparten entre tres reservas
+activas, con sus metas calculadas para que cierren. Verificado en pantalla:
+
+```
+CH 1  Estudios Generales Letras   cerró R 1.2
+      CH 1 titular 0 de 15 → R 1.1 en reserva 1 0 de 29 → R 1.2 en reserva 2 29 de 28 ✓cumple
+CH 3  Arquitectura                cerró R 3.1
+      CH 3 titular 0 de 16 → R 3.1 en reserva 1 31 de 30 ✓cumple
+CH 4  Educacion                   cerró R 4.1
+      CH 4 titular 0 de 17 → R 4.1 en reserva 1 32 de 31 ✓cumple
+```
+
+Recuento: **0 cerraron con el titular · 3 con un reemplazo · 21 sin cerrar · 146
+no necesitaron reemplazo**.
+
+`CH 1` es el caso que valía la pena ver: cerró con la **segunda** reserva, que es
+justo la profundidad que el operativo real de 2025 llegó a consumir.
+
+**La lección, novena aparición y la más concreta hasta ahora**: el fixture no
+«resultó» no tener el caso — lo excluía una línea. Un verde sobre él no decía
+nada sobre la pregunta de Gonzalo, y la única forma de saberlo fue mirar cómo se
+generan los datos, no cuántos hay.
