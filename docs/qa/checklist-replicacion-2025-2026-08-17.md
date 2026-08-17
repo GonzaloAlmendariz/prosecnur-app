@@ -943,6 +943,58 @@ la exención se quedaba sin marco es ahora la que mejor coincide.
   de 2025 **sin τ**; los parámetros del componente siguen en τ = 0,53,
   sobremuestra 20 %, p 0,5 y deff 1,5.
 
+## R22 — `excluded_faculties` no alcanza a la etiqueta del aula. CONFIRMADO
+
+Con `ESCUELA DE ESTUDIOS ESPECIALES` y `ESCUELA DE POSGRADO` en la lista
+—verificado que **la lista sí se guarda** en el config del motor— el aula
+`soc254_0731` (curso «Cultura y sociedad», programa de movilidad estudiantil
+internacional) **sigue dentro del marco** con 12 elegibles.
+
+Confirmado con una marca: se mandó `min_eligible_per_class = 11` junto con las
+exclusiones, la marca llegó al config y el marco bajó de 2.361 a **2.317**. El
+frame se rehizo de verdad, así que no es una lectura de un estado viejo — que es
+el error que cometí dos veces antes en esta misma sesión.
+
+El filtro `.cm_aulas_facultad_excluida()` opera sobre la facultad **del alumno**;
+la etiqueta `faculty` del aula es otra cosa. Es el mismo patrón que ya nos costó
+el criterio de nivel: **la facultad del ALUMNO, la del CURSO y la del AULA son
+tres cosas distintas con el mismo nombre**, y cada regla tiene que declarar cuál
+usa. «Esta unidad no participa del estudio» es una afirmación sobre la unidad,
+no sólo sobre sus matriculados.
+
+Escribí el filtro por etiqueta y lo **reverti**: su mutante sobrevive —en un
+fixture sin catálogo los alumnos de esa facultad ya la excluyen por la vía de
+siempre, y con catálogo no conseguí que la etiqueta del aula difiera de la modal
+de sus alumnos—. Queda pendiente reponerlo con una prueba que reproduzca el caso.
+
+Sí quedaron tres tests que fijan lo que hoy funciona (`67b9abdc`), incluido el
+control sin el cual el primero pasaría sin medir nada.
+
+### Estado del marco con la configuración objetivo
+
+2.317 aulas (con el mínimo en 11 de la prueba). Aulas con p25 y la regla de 2025:
+
+| Facultad | elegibles | p25 | aulas |
+|---|---|---|---|
+| CIENCIAS E INGENIERIA | 570 | 22 | 36 |
+| EE.GG. CIENCIAS | 341 | 26 | 23 |
+| EE.GG. LETRAS | 368 | 28 | 21 |
+| DERECHO | 339 | 37 | 15 |
+| CIENCIAS SOCIALES | 119 | 19 | 12 |
+| ARTE Y DISEÑO | 59 | 16 | 12 |
+| ARQUITECTURA | 37 | 20 | 10 |
+| ARTES ESCÉNICAS | 81 | 12 | 9 |
+| GESTIÓN | 83 | 23 | 8 |
+| CIENCIAS Y ARTES COMUN. | 138 | 19 | 8 |
+| PSICOLOGÍA | 88 | 23 | 6 |
+| LETRAS Y C. HUMANAS | 32 | 12 | 4 |
+| EDUCACIÓN | 25 | 14 | 3 |
+| CONTABLES | 18 | 21 | 2 |
+| GASTRONOMÍA | 18 | 15 | 2 |
+| **TOTAL** | | | **171** |
+
+**171 aulas**, dentro de la banda. Con el mínimo en 10 —el de 2025— eran 176.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
