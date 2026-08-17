@@ -63,3 +63,71 @@ test_that("el alias en castellano tambien se acepta", {
   ))
   expect_equal(unlist(cfg$filters$excluded_faculties, use.names = FALSE), "ESCUELA DE POSGRADO")
 })
+
+# --- Efecto end-to-end -------------------------------------------------------
+# Los tests de arriba cubren el helper y la config. El mutante que quitaba
+# `faculty_ok` de `eligible_student` SOBREVIVIA a todos ellos, porque ninguno
+# construia un marco. Estos si.
+
+fex_base <- function(por_aula = 20L) {
+  filas <- lapply(seq_len(6L), function(i) {
+    facultad <- if (i <= 3L) "DERECHO" else "ESCUELA DE POSGRADO"
+    inicio <- (i - 1L) * por_aula + 1L
+    data.frame(
+      student_id = paste0("e", seq(inicio, inicio + por_aula - 1L)),
+      aula_id = sprintf("A%02d", i),
+      curso_id = paste0("C", i),
+      curso = paste("Curso", i),
+      horario = "L 8",
+      facultad = facultad,
+      programa = "P1",
+      sexo = "F",
+      edad = 20,
+      condicion = "regular",
+      nivel = "pregrado",
+      modalidad = "presencial",
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, filas)
+}
+
+fex_frame <- function(excluidas = list()) {
+  calc_muestra_aulas_construir(
+    base_madre = fex_base(),
+    config = list(filters = list(excluded_faculties = excluidas, min_eligible_per_class = 5L))
+  )
+}
+
+test_that("sin lista, las dos facultades entran al marco", {
+  # Control imprescindible: si el marco ya viniera vacio, el test de abajo
+  # pasaria sin medir nada.
+  af <- fex_frame()$aula_frame
+  expect_equal(sum(af$included %in% TRUE & af$faculty == "DERECHO"), 3L)
+  expect_equal(sum(af$included %in% TRUE & af$faculty == "ESCUELA DE POSGRADO"), 3L)
+})
+
+test_that("la facultad excluida sale del marco con cero aulas y cero elegibles", {
+  af <- fex_frame(list("ESCUELA DE POSGRADO"))$aula_frame
+  posg <- af[af$faculty == "ESCUELA DE POSGRADO", , drop = FALSE]
+  expect_equal(sum(posg$included %in% TRUE), 0L)
+  expect_equal(sum(suppressWarnings(as.numeric(posg$eligible_n))), 0)
+  # Y la otra facultad no se ve arrastrada.
+  expect_equal(sum(af$included %in% TRUE & af$faculty == "DERECHO"), 3L)
+})
+
+test_that("la exclusion dice su nombre, no se disfraza de aula pequeña", {
+  af <- fex_frame(list("ESCUELA DE POSGRADO"))$aula_frame
+  posg <- af[af$faculty == "ESCUELA DE POSGRADO", , drop = FALSE]
+  expect_true(all(grepl("faculty_excluida", posg$exclude_reason, fixed = TRUE)))
+})
+
+test_that("la poblacion del marco baja al excluir la facultad", {
+  # `population_n` es el conteo de alumnos unicos: 120 con las dos, 60 con una.
+  metrica <- function(fr) {
+    a <- fr$audit
+    suppressWarnings(as.numeric(a$value[a$metric == "population_n"]))
+  }
+  expect_equal(metrica(fex_frame()), 120)
+  expect_equal(metrica(fex_frame(list("ESCUELA DE POSGRADO"))), 60)
+})
