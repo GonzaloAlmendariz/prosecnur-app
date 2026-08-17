@@ -204,10 +204,10 @@ test_that("el payload de estado publica la referencia de criterios", {
   # payload, la UI no la vería y los tests de arriba seguirían verdes.
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
-  expect_null(.cm_state_payload(sid)$referencia_criterios)
+  expect_null(.cm_state_payload(sid)$aulas$referencia_criterios)
   session_set(sid, "calc_muestra_referencia_criterios",
               calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), .rc_diseno()))
-  pub <- .cm_state_payload(sid)$referencia_criterios
+  pub <- .cm_state_payload(sid)$aulas$referencia_criterios
   expect_equal(pub$schema, "calc_muestra_referencia_criterios_v1")
   expect_equal(length(pub$por_facultad), 3L)
 })
@@ -222,5 +222,5 @@ test_that("guardar NO borra la referencia previa cuando la nueva viene vacia", {
   st <- session_get(sid)
   .cm_criterios_referencia_guardar(sid, st, list(schema = "x"), FALSE, NULL, NULL,
                                    referencia_criterios = NULL)
-  expect_equal(length(.cm_state_payload(sid)$referencia_criterios$por_facultad), 3L)
+  expect_equal(length(.cm_state_payload(sid)$aulas$referencia_criterios$por_facultad), 3L)
 })

@@ -9,6 +9,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import {
+  normalizeCalcMuestraReferenciaCriterios,
   normalizeCalcMuestraSexoPorFacultad,
   type CalcMuestraAulasState,
   type CalcMuestraAlumnosPorChDecision,
@@ -46,6 +47,9 @@ import { ExploradorBasesTab } from "./definicion/ExploradorBasesTab";
 import { DefHistoricoTab } from "./definicion/DefHistoricoTab";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
+import { CriteriosGeneralesCard, type CriterioGeneralFila } from "./criterios/CriteriosGeneralesCard";
+import { FichaPorFacultadCard } from "./criterios/FichaPorFacultadCard";
+import { fichaDeFacultad, claveFicha } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import {
   AulasAuditoriaTab,
@@ -373,6 +377,55 @@ export function UniversidadDesk({
     }
     return null;
   }, [estudio.componentes]);
+  const referenciaCriterios = useMemo(
+    () => normalizeCalcMuestraReferenciaCriterios(aulasState?.referencia_criterios ?? null),
+    [aulasState?.referencia_criterios],
+  );
+  // Las cuentas por facultad salen del marco vigente; el histórico las enfrenta.
+  const fichasFacultad = useMemo(() => {
+    const af = aulasState?.frame?.aula_frame ?? [];
+    const catalogo = new Map<string, number>();
+    const elegibles = new Map<string, number>();
+    const plazas = new Map<string, number[]>();
+    for (const row of af as Array<Record<string, unknown>>) {
+      const k = claveFicha(String(row.faculty ?? ""));
+      if (!k) continue;
+      catalogo.set(k, (catalogo.get(k) ?? 0) + 1);
+      if (row.included === true) {
+        elegibles.set(k, (elegibles.get(k) ?? 0) + 1);
+        const n = Number(row.eligible_n);
+        if (Number.isFinite(n)) plazas.set(k, [...(plazas.get(k) ?? []), n]);
+      }
+    }
+    return (margenFilas ?? []).map((fila) => {
+      const k = claveFicha(fila.estrato);
+      const v = [...(plazas.get(k) ?? [])].sort((a, b) => a - b);
+      // El estadístico que dimensiona es el que R aplicó; si no lo publicó, no
+      // se inventa uno distinto.
+      const est = Number.isFinite(fila.avg_conglomerado) ? fila.avg_conglomerado : null;
+      return fichaDeFacultad(
+        fila,
+        catalogo.get(k) ?? null,
+        elegibles.get(k) ?? (v.length || null),
+        est,
+        referenciaCriterios,
+      );
+    });
+  }, [aulasState?.frame?.aula_frame, margenFilas, referenciaCriterios]);
+  const criteriosGenerales = useMemo<CriterioGeneralFila[]>(() => {
+    const fila = (margenFilas ?? [])[0];
+    const cuotaTotal = (margenFilas ?? []).reduce(
+      (acc, f) => acc + (Number.isFinite(f.cuota) ? f.cuota : 0), 0,
+    );
+    return [
+      { concepto: "Muestra de diseño", hoy: cuotaTotal ? String(cuotaTotal) : "", claveHistorica: "muestra" },
+      { concepto: "Ratio de sobremuestra", hoy: "1.5", claveHistorica: "ratio_sobremuestra" },
+      { concepto: "Factor de asistencia (τ)", hoy: fila?.tau != null ? String(fila.tau) : "", claveHistorica: "tasa_respuesta_asumida" },
+      { concepto: "Método de selección", hoy: "cube balanceado", claveHistorica: "metodo_seleccion" },
+      { concepto: "Aulas del marco", hoy: String((aulasState?.frame?.aula_frame ?? []).filter((r) => (r as Record<string, unknown>).included === true).length || ""), claveHistorica: "aulas_marco" },
+      { concepto: "Aulas a visitar", hoy: String((margenFilas ?? []).reduce((a, f) => a + (f.margen?.aulas_requeridas ?? 0), 0) || ""), claveHistorica: "aulas_dimensionadas" },
+    ];
+  }, [margenFilas, aulasState?.frame?.aula_frame]);
   const sexoBalance = useMemo(
     () => normalizeCalcMuestraSexoPorFacultad(
       (aulasState?.selection as { sexo_por_facultad?: unknown } | null)?.sexo_por_facultad ?? null,
@@ -482,6 +535,18 @@ export function UniversidadDesk({
         {selectedSection === "marco" && (
           <div ref={activePanelRef} id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("marco-criterios-alumno") && <div id="cmv2-local-marco-criterios-alumno">
+              {/* Gonzalo pidió separarlos: lo que rige para TODAS las facultades
+                  arriba, y debajo la ficha de cada una con sus cuentas. Las dos
+                  con la columna del estudio anterior, porque el comparativo es
+                  «no sólo de números sino de método». */}
+              <CriteriosGeneralesCard
+                filas={criteriosGenerales}
+                referencia={referenciaCriterios}
+              />
+              <FichaPorFacultadCard
+                fichas={fichasFacultad}
+                periodo={referenciaCriterios?.periodo ?? ""}
+              />
               <CriteriosMarcoTab
                 scope="alumno"
                 workspace={syncedWorkspace}
