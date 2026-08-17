@@ -5,16 +5,40 @@
 # - Wrapper radar+tabla, sin tablas nativas de PowerPoint
 # =============================================================================
 
+#' Envuelve un bloque de dimensiones con el plano de la guia
+#'
+#' Este archivo tenia el TERCER sistema de guia del paquete: dibujaba el marco
+#' —ya con el color y el grosor de la guia— pero sin una sola cota, mientras
+#' barras, pie y radar acotaban cada caja. Un marco sin medida no deja comprobar
+#' nada, que es justo lo que la guia viene a permitir.
+#'
+#' Ahora delega en `.guia_envolver_bloque()`. Sin `ancho_in`/`alto_in` no hay
+#' cota posible y sale solo el marco, que es el comportamiento de antes: por eso
+#' los dos llamadores que envuelven el canvas ENTERO —y que no saben su tamaño
+#' en pulgadas— siguen funcionando sin tocarlos.
+#'
+#' @param g Bloque de `cowplot`/`ggplot`.
+#' @param debug_ph_bordes Si `FALSE`, devuelve el bloque intacto.
+#' @param debug_ph_col,debug_ph_lwd Estilo.
+#' @param etiqueta,nota Ver `.guia_ph_grobs()`.
+#' @param ancho_in,alto_in Tamaño FISICO del bloque, en pulgadas.
+#' @param cota_ancho,rotulo_derecha Ver `.guia_ph_grobs()`.
 #' @keywords internal
-.dim_wrap_debug_canvas <- function(g, debug_ph_bordes = FALSE, debug_ph_col = .GUIA_COL, debug_ph_lwd = .GUIA_LWD) {
+.dim_wrap_debug_canvas <- function(g, debug_ph_bordes = FALSE,
+                                   debug_ph_col = .GUIA_COL,
+                                   debug_ph_lwd = .GUIA_LWD,
+                                   etiqueta = NULL, nota = NULL,
+                                   ancho_in = NA_real_, alto_in = NA_real_,
+                                   cota_ancho = TRUE, rotulo_derecha = FALSE) {
   if (!isTRUE(debug_ph_bordes)) return(g)
-  cowplot::ggdraw(g) +
-    cowplot::draw_grob(
-      grid::rectGrob(
-        gp = grid::gpar(col = debug_ph_col, fill = NA, lwd = debug_ph_lwd)
-      ),
-      x = 0, y = 0, width = 1, height = 1
-    )
+  .guia_envolver_bloque(
+    g,
+    ancho_in = ancho_in, alto_in = alto_in,
+    etiqueta = etiqueta, nota = nota,
+    col = debug_ph_col %||% .GUIA_COL,
+    lwd = debug_ph_lwd %||% .GUIA_LWD,
+    cota_ancho = cota_ancho, rotulo_derecha = rotulo_derecha
+  )
 }
 
 #' @keywords internal
@@ -1729,11 +1753,28 @@ graficar_heatmap_dimensiones <- function(
   h_caption <- if (!is.null(nota_pie) && nzchar(nota_pie)) canvas_h_caption else 0.01
   h_panel   <- max(0.01, 1 - (h_title + h_legend + h_caption) - canvas_pad_top)
 
+  # Tamaño fisico del canvas: lo que convierte el npc de cada banda en
+  # pulgadas para su cota.
+  .dim_w_in <- suppressWarnings(as.numeric(ancho)[1])
+  .dim_h_in <- suppressWarnings(as.numeric(alto)[1])
+
   canvas <- cowplot::plot_grid(
-    .dim_wrap_debug_canvas(title_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd),
-    .dim_wrap_debug_canvas(p_panel, debug_ph_bordes, debug_ph_col, debug_ph_lwd),
-    .dim_wrap_debug_canvas(legend_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd),
-    .dim_wrap_debug_canvas(caption_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd),
+    # Las bandas van a todo el ancho: la cota horizontal seria la misma cuatro
+    # veces, y lo que varia entre ellas es el alto.
+    .dim_wrap_debug_canvas(title_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "cabecera", .guia_nota(size_titulo),
+                           .dim_w_in, .dim_h_in * h_title,
+                           cota_ancho = FALSE, rotulo_derecha = TRUE),
+    .dim_wrap_debug_canvas(p_panel, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "panel", NULL, .dim_w_in, .dim_h_in * h_panel,
+                           cota_ancho = FALSE),
+    .dim_wrap_debug_canvas(legend_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "leyenda", .guia_nota(size_leyenda),
+                           .dim_w_in, .dim_h_in * h_legend, cota_ancho = FALSE),
+    .dim_wrap_debug_canvas(caption_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "pie", .guia_nota(size_nota_pie),
+                           .dim_w_in, .dim_h_in * h_caption,
+                           cota_ancho = FALSE, rotulo_derecha = TRUE),
     ncol = 1,
     rel_heights = c(h_title, h_panel, h_legend, h_caption)
   )
@@ -4922,11 +4963,29 @@ graficar_foda_dimensiones <- function(
   h_caption <- if (!is.null(nota_pie) && nzchar(nota_pie)) canvas_h_caption else 0.01
   h_panel   <- max(0.01, 1 - (h_title + h_legend + h_caption) - canvas_pad_top)
 
+  # Tamaño fisico del canvas: lo que convierte el npc de cada banda en
+  # pulgadas para su cota.
+  .dim_w_in <- suppressWarnings(as.numeric(ancho)[1])
+  .dim_h_in <- suppressWarnings(as.numeric(alto)[1])
+
   canvas <- cowplot::plot_grid(
-    .dim_wrap_debug_canvas(title_block,   debug_ph_bordes, debug_ph_col, debug_ph_lwd),
-    .dim_wrap_debug_canvas(p_panel,       debug_ph_bordes, debug_ph_col, debug_ph_lwd),
-    .dim_wrap_debug_canvas(legend_block,  debug_ph_bordes, debug_ph_col, debug_ph_lwd),
-    .dim_wrap_debug_canvas(caption_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd),
+    # Las bandas van a todo el ancho: la cota horizontal seria la misma cuatro
+    # veces, y lo que varia entre ellas es el alto.
+    .dim_wrap_debug_canvas(title_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "cabecera", .guia_nota(size_titulo),
+                           .dim_w_in, .dim_h_in * h_title,
+                           cota_ancho = FALSE, rotulo_derecha = TRUE),
+    .dim_wrap_debug_canvas(p_panel, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "panel", NULL, .dim_w_in, .dim_h_in * h_panel,
+                           cota_ancho = FALSE),
+    .dim_wrap_debug_canvas(legend_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           # Este canvas no declara `size_leyenda`: su leyenda son iconos, no texto.
+                                                  "leyenda", NULL,
+                           .dim_w_in, .dim_h_in * h_legend, cota_ancho = FALSE),
+    .dim_wrap_debug_canvas(caption_block, debug_ph_bordes, debug_ph_col, debug_ph_lwd,
+                           "pie", .guia_nota(size_nota_pie),
+                           .dim_w_in, .dim_h_in * h_caption,
+                           cota_ancho = FALSE, rotulo_derecha = TRUE),
     ncol = 1,
     rel_heights = c(h_title, h_panel, h_legend, h_caption)
   )

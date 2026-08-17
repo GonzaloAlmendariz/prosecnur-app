@@ -159,3 +159,39 @@ test_that("graficar_radar_tabla_dimensiones: end-to-end con data sintética devu
   )
   expect_s3_class(g, "ggplot")
 })
+
+
+# --- P35: el tercer sistema de guia -----------------------------------------
+#
+# Este archivo dibujaba el marco —ya con el color y el grosor de la guia— pero
+# SIN una sola cota, mientras barras, pie y radar acotaban cada caja. Un marco
+# sin medida no deja comprobar nada, que es lo que la guia viene a permitir.
+
+test_that("apagada, la guia devuelve el bloque intacto", {
+  g <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) + ggplot2::geom_point()
+  expect_identical(.dim_wrap_debug_canvas(g, debug_ph_bordes = FALSE), g)
+})
+
+
+test_that("con el tamaño fisico del bloque la guia acota; sin el, solo enmarca", {
+  # `.guia_ph_grobs()` no puede convertir npc a centimetros sin saber cuanto
+  # mide la caja: sin ese dato sale el marco a secas, que es el comportamiento
+  # de antes. Por eso los dos llamadores que envuelven el canvas ENTERO siguen
+  # funcionando sin tocarlos.
+  skip_if_not_installed("cowplot")
+  g <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) + ggplot2::geom_point()
+  con <- .dim_wrap_debug_canvas(g, TRUE, etiqueta = "panel",
+                                ancho_in = 8.5, alto_in = 5)
+  sin <- .dim_wrap_debug_canvas(g, TRUE, etiqueta = "panel")
+  expect_s3_class(con, "ggplot")
+  expect_s3_class(sin, "ggplot")
+  # El acotado suma mas capas: marco + rotulo + las cotas.
+  expect_gt(length(con$layers), length(sin$layers))
+})
+
+
+test_that("la guia de dimensiones no inventa un color propio", {
+  # Era el TERCER sistema del paquete; el color ya coincidia y las cotas no.
+  expect_equal(eval(formals(.dim_wrap_debug_canvas)$debug_ph_col), .GUIA_COL)
+  expect_equal(eval(formals(.dim_wrap_debug_canvas)$debug_ph_lwd), .GUIA_LWD)
+})
