@@ -122,22 +122,26 @@
   # 3.2 in. O sea que su regla no es «tantas lineas por fila» sino «el canal que
   # el texto necesite, y si hace falta un punto menos de cuerpo».
   #
-  # PISTA FUERTE PARA LA REPARACION, sin comprobar todavia. En el canvas de 12.5
-  # in de la lamina 41, 1.492 in es **0.119** del ancho. El preset multiactor
-  # declara `canvas_w_grupo = 0.20` —y el plan de equivalencias, 0.22— pero el
-  # camino generico del graficador NORMALIZA los pesos: `w_group <- w_group /
-  # w_sum`, y con `w_sum` en torno a 1.85 el 0.22 declarado aterriza justo en
-  # 0.119. Con el resolvedor multiactor —donde las barras son EL RESTO y la suma
-  # cierra en 1— el mismo 0.20 daria 2.50 in, que es practicamente el canal del
-  # aprobado.
+  # CAUSA LOCALIZADA, TRAZANDO EL REPARTO. Y NO ES LA QUE PARECIA: la hipotesis
+  # anotada aqui antes —que `w_group / w_sum` encogia el canal declarado— era
+  # falsa. Trazado el reparto de `graficador_barras_apiladas.R:3089`, la lamina
+  # 41 llega con `canvas_w_grupo = 0.22`, `w_sum = 1.02` y fraccion **0.2157**;
+  # el «0.22 / 1.85 = 0.119» era coincidencia aritmetica, no mecanismo. Y el
+  # 1.492 in medido en el XML tampoco es el canal: es la caja del TEXTO, que
+  # `draw_text` ajusta a lo dibujado.
   #
-  # Asi que antes de tocar constantes hay que responder una sola pregunta: **¿la
-  # lamina 41 llega al resolvedor multiactor o se queda en el reparto generico
-  # normalizado?** Es la misma forma de P42 —la capacidad existe y la lamina no
-  # la alcanza—, y el renderer ya pre-envuelve el tema con
-  # `.multiactor_wrap_tema()` sobre el ancho multiactor, asi que si el graficador
-  # luego reparte con otro ancho, el texto viene envuelto para un canal que no
-  # recibe.
+  # LO QUE SI FALLA: **`ancho` llega valiendo 10**, que es el default de la firma
+  # de `graficar_barras_apiladas()`, mientras la lamina se dibuja a **12.511 in**.
+  # Contadas las llamadas de la pasada de PPT: **20 con `ancho = 10`**, 13 con
+  # 12.5, 37 con 12.511 y 35 con 6.1. Asi que el canal para envolver se calcula
+  # como `0.2157 * 10 - 0.06 = 2.097 in` cuando el canal real es
+  # `0.2157 * 12.511 = 2.699 in`: **el enunciado se envuelve un 22 % mas
+  # estrecho que el sitio que tiene**, pide mas lineas de las necesarias, y
+  # entonces el cupo de aqui lo recorta.
+  #
+  # Es la misma forma que P42 pero sobre el otro eje: un parametro que no viaja
+  # hace mentir a todo lo que dependa de el. La reparacion es que esas 20
+  # llamadas reciban su ancho real, no subir constantes.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
