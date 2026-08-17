@@ -1271,16 +1271,25 @@ graficar_radar <- function(
     y_legend0  <- y_panel0  - legend_h
     y_caption0 <- y_legend0 - caption_h
 
-    .ph_border <- function(x, y, w, h) {
-      cowplot::draw_grob(
-        grid::rectGrob(
-          x = 0, y = 0, width = 1, height = 1,
-          just = c("left","bottom"),
-          gp = grid::gpar(col = debug_ph_col, fill = NA, lwd = debug_ph_lwd)
-        ),
-        x = x, y = y, width = w, height = h,
-        hjust = 0, vjust = 0
+    # La guia del radar es la MISMA que la de barras y la del pie: un plano con
+    # la cota de cada caja, no un rectangulo suelto. Antes dibujaba el marco y
+    # nada mas: el color ya era el de la guia, pero sin una sola medida no se
+    # podia comprobar por que dos radares de la misma lamina salen distintos.
+    #
+    # Devuelve una LISTA de capas, porque `.guia_ph_grobs()` da varios grobs
+    # —marco, rotulo y las dos cotas— y `ggdraw() + list(...)` los suma todos.
+    .ph_border <- function(x, y, w, h, etiqueta = NULL, nota = NULL) {
+      grobs <- .guia_ph_grobs(
+        x = x, y = y, w = w, h = h,
+        ancho_in = suppressWarnings(as.numeric(ancho)[1]),
+        alto_in  = suppressWarnings(as.numeric(alto)[1]),
+        etiqueta = etiqueta, nota = nota,
+        col = debug_ph_col %||% .GUIA_COL,
+        lwd = debug_ph_lwd %||% .GUIA_LWD
       )
+      lapply(grobs, function(gr) cowplot::draw_grob(
+        gr, x = x, y = y, width = w, height = h, hjust = 0, vjust = 0
+      ))
     }
 
     .measure_label_npc <- function(label, panel_w_npc, panel_h_npc) {
@@ -1426,7 +1435,8 @@ graficar_radar <- function(
           fontface = if ("subtitulo" %in% textos_negrita) "bold" else "plain"
         )
       }
-      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_header0, 1, header_h)
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_header0, 1, header_h,
+                                                    "cabecera", .guia_nota(size_titulo))
     }
 
     # Panel: radar + tabla
@@ -1465,7 +1475,9 @@ graficar_radar <- function(
           x = 0, y = y_panel0, width = w_radar, height = panel_h,
           hjust = 0, vjust = 0
         )
-        if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_panel0, w_radar, panel_h)
+        if (debug_ph_bordes) canvas <- canvas + .ph_border(
+          0, y_panel0, w_radar, panel_h, "panel",
+          .guia_nota_radar(length(ejes), wrap_ejes))
       }
 
       if (!isTRUE(ocultar_radar) && draw_axis_labels_external && nrow(lab_axes_text)) {
@@ -1649,7 +1661,8 @@ graficar_radar <- function(
         scale = scale_tab
       )
 
-      if (debug_ph_bordes) canvas <- canvas + .ph_border(x_tab, y_tab, w_tab, h_tab)
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(x_tab, y_tab, w_tab, h_tab,
+                                                    "tabla nativa")
 
     } else {
       panel_draw <- .wrap_clip(ggplot2::ggplotGrob(p_panel))
@@ -1658,7 +1671,9 @@ graficar_radar <- function(
         x = 0, y = y_panel0, width = 1, height = panel_h,
         hjust = 0, vjust = 0
       )
-      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_panel0, 1, panel_h)
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(
+        0, y_panel0, 1, panel_h, "panel",
+        .guia_nota_radar(length(ejes), wrap_ejes))
 
       if (draw_axis_labels_external && nrow(lab_axes_text)) {
         for (k in seq_len(nrow(lab_axes_text))) {
@@ -1725,7 +1740,8 @@ graficar_radar <- function(
     )
 
     if (debug_ph_bordes) {
-      canvas <- canvas + .ph_border(legend_ph_x, y_legend0, legend_ph_w, legend_h)
+      canvas <- canvas + .ph_border(legend_ph_x, y_legend0, legend_ph_w, legend_h,
+                                    "leyenda", .guia_nota(size_leyenda))
     }
   }
 
@@ -1774,7 +1790,8 @@ graficar_radar <- function(
         colour = color_nota_pie,
         fontface = if ("nota_pie" %in% textos_negrita) "bold" else "plain"
       )
-      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_caption0, 1, caption_h)
+      if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_caption0, 1, caption_h,
+                                                    "pie", .guia_nota(size_nota_pie))
     }
 
     # -------------------------------------------------------------------------
