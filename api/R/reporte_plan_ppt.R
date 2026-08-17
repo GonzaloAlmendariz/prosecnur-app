@@ -5639,12 +5639,29 @@ reporte_ppt_plan <- function(
         # 0.26-0.92 el aprobado, y grandes entre bloques, 1.61-3.50 contra
         # 1.65-2.84—: lo que difiere es cuantos caen en el grupo grande.
         #
-        # OJO AL BAJARLO: el 1.76 cm que justifico subirlo era el hueco ENTRE
-        # BLOQUES del aprobado, o sea su cola alta, y se aplico a TODOS los
-        # huecos. Compararlo con la mediana es comparar dos cosas distintas. Si
-        # se toca, se mide la mediana de las dos partes antes y despues, y se
-        # comprueba en el render que las premisas de un mismo bloque no se
-        # peguen —que es lo que se estaba reparando cuando se subio—.
+        # Y CLASIFICADOS LOS HUECOS, ESE 1.77 CONTRA 0.92 NO DICE LO QUE PARECIA.
+        # `canvas_gap_grupos` solo separa BLOQUES, asi que dentro de una lamina
+        # los huecos pequenos son el paso de fila y los grandes llevan el gap
+        # encima. Partiendo cada lamina por su propio corte —1.5x su hueco
+        # minimo, porque el paso de fila cambia de lamina a lamina—:
+        #
+        #   dentro de bloque   motor mediana 0.37 cm (n=27)
+        #                      aprobado      0.62 cm (n=18)
+        #   entre bloques      motor mediana 1.77 cm (n=15)
+        #                      aprobado      2.14 cm (n=18)
+        #
+        # O sea que el motor NO separa el doble: separa MENOS que el aprobado en
+        # las dos partes. La mediana global —1.77 contra 0.92— era un artefacto
+        # de composicion: el motor tiene proporcionalmente mas huecos grandes
+        # porque tiene mas bloques de una sola fila, 15 de 42 contra 18 de 36.
+        #
+        # DESCARTADO, ENTONCES, bajar este 0.85 para sacarle alto a los
+        # enunciados que aun se cortan (P46): iria en direccion contraria a la
+        # vara. Medido sobre `p48.pptx` contra el entregable aprobado.
+        #
+        # Y OJO AL SUBIRLO: el 1.76 cm que lo justifico era el hueco ENTRE
+        # BLOQUES del aprobado —su cola alta— aplicado a TODOS los huecos. Da la
+        # cifra correcta para la parte de arriba y no dice nada de la de abajo.
         canvas_gap_grupos      = if (!sin_grupo_word) 0.85 else 0
       )
       base_args <- .apply_top2box_alias(base_args)
