@@ -58,3 +58,54 @@ NULL
   if (!length(p)) return(NULL)
   max(p)
 }
+
+
+# Piso editorial de un bloque de UNA fila. Existe porque una barra sola bajo
+# filas virtuales salia a ~22 % del panel —«muy delgada y poco profesional»— y
+# se sube a ~35 %. La banda [0.55, 0.85] es la de los defaults: un grosor
+# explicito fuera de ella es intencion del analista y no se pisa.
+.APILADAS_GROSOR_UNA_FILA <- 0.95
+
+
+#' Un bloque de una fila, ¿debe recibir el piso editorial?
+#'
+#' Solo si esta SOLO en su lamina. El piso se penso para la lamina de un unico
+#' bloque, donde la barra no tiene con que compararse; en una multilista la
+#' barra sola esta al lado de otras, y subirla al 0.95 mientras sus vecinas van
+#' al 0.78 produce dos defectos a la vez:
+#'
+#' - dentro de la lamina, dos bloques con distinto grosor (regla B3);
+#' - entre laminas, dos gemelas que no salen iguales (regla B4), porque una
+#'   tiene un bloque de una fila y la otra no.
+#'
+#' Es el hermano de `.apiladas_row_step_comun()`: aquel unifico el PASO entre
+#' bloques y este el GROSOR, que era la mitad que quedo suelta.
+#'
+#' NO ESTA ENGANCHADO, y el motivo importa. Se escribio contra la hipotesis de
+#' que el salto de 1.20x entre laminas gemelas —0.980 contra 1.173 cm en las
+#' `rampa:7`, 1.694 contra 2.068 en las `rampa:3`— venia de este piso, porque
+#' 0.95/0.78 da exactamente ese cociente. Enganchado en los DOS sitios donde
+#' vive el piso, la vara no se movio ni una decima: 22 hallazgos antes y
+#' despues, 22 grosores distintos, ratio 2.98 en ambos.
+#'
+#' La razon: el preset declara `grosor_modo = "manual"`, asi que
+#' `.auto_bar_width_apiladas()` no llega a llamarse y la fraccion es 0.7 fija.
+#' Lo que varia es el ALTO DE FILA, y los numeros cuadran exactos:
+#' 0.55 x 0.7 = 0.978 cm, 0.651 x 0.7 = 1.19, 0.74 x 0.7 = 1.36 —los tres
+#' valores que el verificador mide—. La reparacion esta en igualar
+#' `alto_por_categoria` entre laminas de la misma familia, no en el grosor.
+#'
+#' El helper se conserva con sus tests porque el razonamiento sigue siendo
+#' correcto para un mazo en modo `auto`, y porque la medicion que lo descarta
+#' aqui vale mas escrita que reaprendida.
+#'
+#' @param n_bloques Bloques de la lamina.
+#' @return `TRUE` si el piso editorial procede.
+#' @keywords internal
+.apiladas_piso_una_fila_procede <- function(n_bloques) {
+  n <- suppressWarnings(as.numeric(n_bloques)[1])
+  # Sin dato, se conserva el comportamiento previo: el piso se aplica. Quitarlo
+  # por no saber cuantos bloques hay devolveria la barra enclenque de B36/G-2.
+  if (!is.finite(n)) return(TRUE)
+  n <= 1
+}
