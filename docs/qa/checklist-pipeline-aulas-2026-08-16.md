@@ -7,6 +7,12 @@ problemas. Empezar desde la base y subir; en cada etapa, comprobar que
 
 **Cuándo**: al cerrar M17 del loop de mejora continua.
 
+**VARA TRANSVERSAL — POR FACULTAD** (Gonzalo, 2026-08-16): «el cálculo es por
+facultad, eso debe quedar clarísimo; si necesitamos X alumnos por facultad
+tenemos que tener aulas que respondan a ese X». **Toda etapa se verifica
+facultad por facultad, no en agregado.** Un total que cuadra puede esconder una
+facultad sin aulas. El recorrido se reinicia desde E1 con esta vara.
+
 **Vara**: la etapa pasa cuando su salida se puede *medir* sobre un proyecto real
 —no cuando la pantalla la muestra sin error—. Un cero puede ser correcto; hay
 que saber por qué. La última etapa es la que Gonzalo nombra dos veces: que cada
@@ -191,6 +197,45 @@ el ajuste ofrecido y no pedido (M4/M10).
 **Lo que falta en el producto**: hoy nadie avisa de que 110 de 190 aulas irían a
 campo con la cadena corta. Ese aviso es el candidato número uno de reparación en
 cuanto E8 confirme la escala.
+
+## E1 POR FACULTAD (2026-08-16) — la vara nueva cambia el diagnóstico
+
+| Facultad | Aulas | Incluidas | Elegibles | Mediana/aula |
+|---|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 849 | 592 | 18.963 | 32 |
+| DERECHO | 575 | 440 | 16.846 | 41 |
+| ESTUDIOS GENERALES LETRAS | 482 | 330 | 14.347 | 46 |
+| ESTUDIOS GENERALES CIENCIAS | 496 | 319 | 13.056 | 40 |
+| CIENCIAS SOCIALES | 236 | 169 | 4.726 | 28 |
+| GESTIÓN Y ALTA DIRECCIÓN | 184 | 119 | 3.948 | 36 |
+| CIENCIAS Y ARTES DE LA COMUN. | 210 | 162 | 3.546 | 22,5 |
+| PSICOLOGÍA | 131 | 100 | 2.425 | 25 |
+| ARQUITECTURA Y URBANISMO | 144 | 56 | 1.973 | 28 |
+| ARTE Y DISEÑO | 320 | 63 | 1.554 | 21 |
+| ARTES ESCÉNICAS | 454 | 45 | 921 | 17 |
+| CIENCIAS CONTABLES | 44 | 19 | 527 | 27 |
+| EDUCACION | 73 | 19 | 443 | 23 |
+| GASTRONOMÍA, HOTELERÍA Y TURISMO | 54 | 17 | 346 | 19 |
+| LETRAS Y CIENCIAS HUMANAS | 149 | 16 | 263 | 16 |
+| ESCUELA DE POSGRADO | 852 | **2** | 33 | 16,5 |
+| **ESCUELA DE ESTUDIOS ESPECIALES** | 10 | **0** | **0** | — |
+
+Total: 5.263 aulas · 2.468 incluidas · **83.917 elegibles en aulas incluidas**
+(no los 106.013 del marco: la diferencia vive en aulas descartadas).
+
+**Tres cosas que sólo se ven por facultad:**
+
+1. **ESCUELA DE ESTUDIOS ESPECIALES se queda sin nada**: 10 aulas, **0
+   incluidas**. Si el diseño le asigna cuota es imposible de cumplir, y nadie lo
+   dice. Candidato a aviso del producto.
+2. **Dos aulas de posgrado se colaron**: ESCUELA DE POSGRADO pasa de 852 a 2
+   incluidas, lo cual es casi correcto —los criterios excluyen posgrado— pero
+   deberían ser **cero**. Candidato de defecto para E3.
+3. **Desequilibrio de dos órdenes de magnitud**: 18.963 elegibles en CIENCIAS E
+   INGENIERIA frente a 263 en LETRAS Y CIENCIAS HUMANAS. Con cuota por facultad
+   las grandes sobran y las chicas van al límite: LETRAS tiene 16 aulas de
+   mediana 16, así que juntar ~200 alumnos exigiría 13 de sus 16 aulas y **no
+   quedarían reservas** — el mismo agotamiento por celda ya medido a escala.
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
