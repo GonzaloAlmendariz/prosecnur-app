@@ -560,6 +560,33 @@ filas juntas sin decir a qué capa pertenece cada una, y
 esa pantalla lleva a creer que el elegible sale de las cinco. Candidato de
 mejora: mostrar la capa junto a cada criterio y qué hace cada capa.
 
+## H5 y H8 — barrido de mejoras después del recorrido (2026-08-17)
+
+**H5 · cerrado, no había defecto.** La geometría de la tarjeta de facultades
+excluidas nunca se había medido porque el viewport reportaba 0×0. La causa era
+la instrumentación: el dev server de Gonzalo escucha en **IPv6**, así que
+`127.0.0.1:5183` no conecta y `localhost:5183` sí. Medida sobre la pila viva con
+el proyecto real: 1156×172 a 1280×720 y 900×202 a 1024×600, sin desbordes y sin
+scroll horizontal de documento. Los quince nombres refluyen solos.
+
+**H8 · reparado (`df7a9aba`) — la capa se podía leer pero no cambiar.** El motor
+distingue tres capas y sólo `marco` recorta el universo; el catálogo publica
+`defaultLayer` por variable y el dominio del front ya tenía `capaDe` y `setLayer`
+**con tests**. Nadie llamaba a `setLayer` desde producción: la capa de cada
+criterio era la que trajera el proyecto y no había mando para moverla. En
+HSVG2026: «Ciclo o nivel curricular» en `instrumento` deja pasar 100.920 de
+136.284 y no recorta; las otras cuatro en `marco` sí. Si el estudio quisiera
+sacar del marco a los de primer ciclo —no preguntarles y descartarlos después,
+sino no muestrearlos— no podía decirlo. Ahora cada tarjeta de criterio de alumno
+trae el selector, con una línea de qué hace la capa vigente.
+
+Es el mismo patrón que H6, H1 y H2 con una vuelta más: no es que el motor
+callara, es que **la capacidad existía completa y sin consumidor**.
+
+Sin cubrir y anotado en el commit: `seleccionInicial` y `seleccionCanonica`
+siguen fijando `marco` para todo criterio de alumno. Es deliberado —retro-compat
+con el path legacy— y hoy ninguna tiene consumidor en producción.
+
 ## Estado final del recorrido (2026-08-16)
 
 Las once etapas cerradas. Lo que el recorrido destapó y quedó reparado:
@@ -573,6 +600,8 @@ Las once etapas cerradas. Lo que el recorrido destapó y quedó reparado:
 | E11 | Nada protegía que un criterio de una facultad no se filtrara a las demás | `505c5043` |
 | H1 y H2 | El motor sabía que una facultad se queda sin reemplazos y no lo decía | `c3e17367` |
 | H3 | Falsa alarma: dos capas, no una contradicción | — |
+| H5 | Falsa alarma: la tarjeta no desborda; el 0×0 era la instrumentación (IPv6) | — |
+| H8 | La capa del criterio se podía leer pero no cambiar: `setLayer` sin consumidor | `df7a9aba` |
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
