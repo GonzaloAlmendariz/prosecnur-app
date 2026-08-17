@@ -156,8 +156,20 @@ if (ESCALA_2025) {
   # ancho de una base de verdad: 43 columnas, no dos.
   set.seed(1)
   n <- 3700L
+  # Las respuestas iban TODAS a `CH 25`..`CH 169`, y las cadenas son `CH 1`..
+  # `CH 24` con sus reservas: por construccion ninguna reserva recibia una sola
+  # respuesta, asi que la vista de cadenas mostraba «0 de N» en las 24 y el caso
+  # que el operativo pregunta —cual reemplazo llego a la meta— no existia en el
+  # fixture. Las ultimas 92 se reparten entre tres reservas activas para que dos
+  # cadenas CIERREN en su reemplazo y se pueda verificar en pantalla.
+  #
+  # Metas de esas tres, por `expected_valid = round(eligible * 0.7)`:
+  #   R 3.1 -> 30 · R 4.1 -> 31 · R 1.2 -> 28
+  cierres <- c(rep("R 3.1", 31), rep("R 4.1", 32), rep("R 1.2", 29))
+  destinos <- sprintf("CH %d", 25 + (seq_len(n) %% 145))
+  destinos[seq(n - length(cierres) + 1L, n)] <- cierres
   data <- data.frame(
-    collectorID = sprintf("CH %d", 25 + (seq_len(n) %% 145)),
+    collectorID = destinos,
     sexo = rep(c("F", "M"), length.out = n),
     `_submission_time` = format(as.POSIXct("2026-08-01") + (seq_len(n) * 300), "%Y-%m-%dT%H:%M:%S"),
     check.names = FALSE, stringsAsFactors = FALSE)
