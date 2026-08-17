@@ -114,10 +114,30 @@
   # hasta **6.675 in a 13 pt** (su lamina 35, ocho lineas sin recortar). Mas de
   # cuatro veces el ancho, y un punto menos de cuerpo.
   #
-  # El consejo de abajo es correcto pero se lo lleva el analista: `canvas_w_grupo`
-  # es global a todas las multi-apiladas. Lo que falta es que el motor ensanche
-  # el canal cuando el enunciado no cabe, igual que P43 hizo con la etiqueta de
-  # eje — con `.chars_que_caben()` ya disponible para decidirlo midiendo.
+  # EL MISMO ENUNCIADO, LOS DOS MAZOS, MEDIDO. «La Unidad facilita los medios
+  # necesarios para que…» sale en la lamina 39 del aprobado en un canal de
+  # **2.678 in a 13 pt, seis lineas, entero**; en la 41 del motor, en **1.492 in
+  # a 14 pt, recortado**. Y el aprobado no tiene tope de lineas por fila: su
+  # lamina 29 llega a **nueve y hasta doce lineas a 12 pt** en canales de 2.4 a
+  # 3.2 in. O sea que su regla no es «tantas lineas por fila» sino «el canal que
+  # el texto necesite, y si hace falta un punto menos de cuerpo».
+  #
+  # PISTA FUERTE PARA LA REPARACION, sin comprobar todavia. En el canvas de 12.5
+  # in de la lamina 41, 1.492 in es **0.119** del ancho. El preset multiactor
+  # declara `canvas_w_grupo = 0.20` —y el plan de equivalencias, 0.22— pero el
+  # camino generico del graficador NORMALIZA los pesos: `w_group <- w_group /
+  # w_sum`, y con `w_sum` en torno a 1.85 el 0.22 declarado aterriza justo en
+  # 0.119. Con el resolvedor multiactor —donde las barras son EL RESTO y la suma
+  # cierra en 1— el mismo 0.20 daria 2.50 in, que es practicamente el canal del
+  # aprobado.
+  #
+  # Asi que antes de tocar constantes hay que responder una sola pregunta: **¿la
+  # lamina 41 llega al resolvedor multiactor o se queda en el reparto generico
+  # normalizado?** Es la misma forma de P42 —la capacidad existe y la lamina no
+  # la alcanza—, y el renderer ya pre-envuelve el tema con
+  # `.multiactor_wrap_tema()` sobre el ancho multiactor, asi que si el graficador
+  # luego reparte con otro ancho, el texto viene envuelto para un canal que no
+  # recibe.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
