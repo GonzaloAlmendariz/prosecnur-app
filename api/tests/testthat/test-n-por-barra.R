@@ -137,3 +137,35 @@ test_that("una fila sin N no se anota aunque su pregunta salte", {
 test_that("vectores que no casan devuelven FALSE en vez de reciclar", {
   expect_false(any(.n_barra_procede_por_pregunta(c(1, 2), c(3), c("a", "b"))))
 })
+
+
+test_that("la base de un publico se deduce de sus preguntas", {
+  # Las cuatro bases de la lamina 18 del aprobado —«52 docentes, 172
+  # estudiantes, 178 egresados y 15 administrativos»— salen exactas del maximo
+  # de cada publico entre sus preguntas: una pregunta sin salto la responde su
+  # publico completo.
+  n <- c(47, 52, 160, 172, 143, 178, 15, 15)
+  pub <- rep(c("Docentes", "Estudiantes", "Egresados", "Administrativos"), each = 2)
+  base <- .n_barra_base_por_publico(n, pub)
+  expect_equal(unique(base[pub == "Docentes"]), 52)
+  expect_equal(unique(base[pub == "Estudiantes"]), 172)
+  expect_equal(unique(base[pub == "Egresados"]), 178)
+  expect_equal(unique(base[pub == "Administrativos"]), 15)
+})
+
+
+test_that("con un solo dato por publico la base es ese dato", {
+  # Es el caso que hace inutil deducirla desde el graficador: se le llama una
+  # vez por PREGUNTA, cada publico aparece una sola vez y su maximo es su propia
+  # N. Sin salto posible. La deduccion necesita ver la lamina entera.
+  base <- .n_barra_base_por_publico(c(47, 128), c("Docentes", "Estudiantes"))
+  expect_equal(base, c(47, 128))
+  expect_false(any(.n_barra_procede_por_pregunta(
+    c(47, 128), base, c("p1", "p1")
+  )))
+})
+
+
+test_that("vectores que no casan devuelven NA en vez de reciclar", {
+  expect_true(all(is.na(.n_barra_base_por_publico(c(1, 2), c("a")))))
+})

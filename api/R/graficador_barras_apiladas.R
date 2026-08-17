@@ -2490,8 +2490,8 @@ graficar_barras_apiladas <- function(
       )
   }
 
-  # La N por barra NO se engancha aqui: ver `graficador_n_por_barra.R`, que
-  # guarda la medicion que lo descarta.
+  # La N por barra NO se engancha aqui: el graficador ve UNA pregunta por
+  # llamada y no puede deducir la base. Ver `graficador_n_por_barra.R`.
 
   n_items_leyenda <- length(niveles_leyenda)
   n_por_fila <- as.integer(legend_n_por_fila)
