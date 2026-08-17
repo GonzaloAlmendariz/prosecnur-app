@@ -4916,8 +4916,11 @@ mount_monitoreo <- function(pr) {
           stop_api(404, "E_AULAS_LIBRO_FILE_ID", "El file_id no corresponde a un archivo de la sesion.")
         }
         ruta <- as.character(meta$path)
-      } else {
+      } else if (!nzchar(ruta)) {
         # Solo en desarrollo: permite apuntar a un libro del disco sin subirlo.
+        # El `else` era incondicional y PISABA la ruta que acababa de dejar la
+        # rama multipart con la cadena vacia de `parsed$path`, asi que un archivo
+        # bien recibido moria con «indica el file_id».
         ruta <- .monitoreo_scalar(parsed$path, "")
       }
       if (!nzchar(ruta)) {

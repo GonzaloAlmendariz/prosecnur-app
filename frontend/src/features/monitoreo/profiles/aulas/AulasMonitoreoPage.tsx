@@ -16,6 +16,7 @@ import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel"
 import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
+import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
@@ -678,7 +679,13 @@ export default function AulasMonitoreoPage() {
     setMutating(true);
     setError("");
     try {
-      const res = await apiMonitoreoAulasImportarLibro(archivo);
+      // Dos pasos a propósito. Mandar el xlsx directo a `importar-libro`
+      // no funciona: con `parsers = multi` el archivo llega pero plumber
+      // muere parseando el xlsx de dentro, y con `octet` deja de llegar.
+      // `/api/files/upload` ya sabe guardar binarios y devuelve el `file_id`
+      // que el endpoint acepta desde el primer día.
+      const subido = await apiUpload(archivo, "aulas_libro");
+      const res = await apiMonitoreoAulasImportarLibro({ file_id: subido.file_id });
       setState(res.state);
       // Lo que NO venía se dice, en vez de mostrar ceros silenciosos.
       if (res.hojas_ausentes?.length) {

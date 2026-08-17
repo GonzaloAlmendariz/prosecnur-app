@@ -81,7 +81,13 @@ aulas_libro_importar <- function(path) {
 aulas_libro_importar_en_sesion <- function(sid, path) {
   out <- aulas_libro_importar(path)
   if (length(out$plan)) {
-    session_set(sid, "monitoreo_aulas_plan", out$plan)
+    # FUSION, no reemplazo. El libro no lleva la composicion muestral —es un
+    # artefacto de campo— asi que sobrescribir el plan entero dejaba las cuotas
+    # sexo x facultad en cero celdas: 12 antes de releer el libro, 0 despues.
+    previo <- session_get(sid)$monitoreo_aulas_plan %||% list()
+    fusion <- aulas_libro_fusionar_plan(previo, out$plan)
+    session_set(sid, "monitoreo_aulas_plan", fusion$plan)
+    out$fusion <- fusion[c("actualizadas", "nuevas", "intactas")]
   }
   session_set(sid, "monitoreo_aulas_partes_campo", out$partes)
   session_set(sid, "monitoreo_aulas_control", out$control)
