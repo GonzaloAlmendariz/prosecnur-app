@@ -37,6 +37,8 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 | **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
 | **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
 | **V12** | La app **produce** el libro que el equipo llena, y lo **vuelve a leer**. | Generar y reimportar cierra el círculo sin perder la cadena ni los enlaces **ni el trabajo ya hecho**: estados de agendamiento, ciclo de contacto y partes de campo. **Comprobada (2026-08-16)** con round-trip sobre un `.pulso` real. |
+| **V13** | El avance de aulas **se ve**, no sólo se lee en tablas. | Hay gráficos propios del contexto de aulas —no copiados de telefónico— y usan el mismo lenguaje visual que los otros perfiles: `PlotlyChart`, `coloresDeResultado`, `MarcoDeEjesSiHaceFalta`. |
+| **V14** | El monitoreo aguanta **3700 registros** de Kobo. | Sincronizar, graficar, mostrar y gestionar esa cantidad sin degradarse: medido en tiempo de sincronización, de tablero y de render. |
 
 ---
 
@@ -131,6 +133,9 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
+| **L63** | **Aulas no tiene ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`: acreditación tiene ritmo diario y tendencia telefónica (`AcreditacionAdvanceDailyMini`, `ritmoDiario.ts` con cortes diarios y semanales, calendario expandido y ejes con padding); telefónico tiene embudo en franja y barras apiladas. Aulas sólo muestra tablas. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
+| **L64** | Qué gráfico es **propio del contexto de aulas**. | No vale copiar el ritmo diario de telefónico: en aulas la unidad es el curso-horario con su aforo y su meta, y lo que importa es la brecha por aula, el avance por estrato/facultad, la cuota sexo×facultad y el consumo de la cadena de reemplazos. | ☐ sin empezar — decidir el catálogo antes de dibujar. |
+| **L65** | El circuito no se ha probado con **3700 registros**. | Lo medido llega a 600 respuestas sobre 196 aulas. El estudio real llega a 3700 desde Kobo: hay que medir sincronización, tablero, tablas y gráficos a esa escala. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -652,3 +657,31 @@ supuesto:
 La vía del `file_id` sí funciona. El botón «Leer libro llenado» queda visible y
 **deshabilitado con su motivo en el tooltip**, no escondido: el ciclo tiene dos
 mitades y conviene que se vea cuál falta.
+
+
+### 2026-08-16 — La vara se amplía: ver el avance, y aguantar 3700 registros
+
+Gonzalo pide dos cosas que el GOAL no cubría:
+
+**1. Gráficos propios del contexto de aulas.** Revisado cómo lo hacen los otros
+perfiles, que es el vocabulario disponible:
+
+| Perfil | Qué grafica | Con qué |
+|---|---|---|
+| Acreditación | Ritmo diario del avance, tendencia telefónica | `PlotlyChart` · `ritmoDiario.ts` (cortes diarios y semanales, calendario expandido, ejes con padding) · `coloresDeResultado` · `MarcoDeEjesSiHaceFalta` |
+| Telefónico | Embudo en franja, barras apiladas | mismo lenguaje, CSS propio |
+| **Aulas** | **nada** | — |
+
+El lenguaje visual está y es compartido; lo que falta es decidir **qué** graficar
+para aulas. La unidad aquí no es la llamada ni el actor: es el curso-horario con
+su aforo y su meta. Copiar el ritmo diario de telefónico sería traer una
+pregunta que en aulas no se hace igual.
+
+**2. Escala real de 3700 registros.** Lo medido en esta sesión llega a **600
+respuestas sobre 196 aulas**. El estudio real sube a 3700 desde Kobo, y hay que
+medir la sincronización, el tablero, las tablas y —cuando existan— los gráficos
+a esa escala. El recorte de filas ya dio un susto a 196; a 3700 hay que
+comprobar qué se recorta y qué se degrada.
+
+Queda anotado como **V13**, **V14** y los ítems **L63–L65**. La cola vuelve a
+tener trabajo abierto.
