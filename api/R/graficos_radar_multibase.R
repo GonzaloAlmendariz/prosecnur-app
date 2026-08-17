@@ -904,8 +904,18 @@ p_radar_publicos <- function(
   # entraba por el camino de `graficar_radar()`, aunque el puente ya existiera.
   if (isTRUE(tabla_nativa)) {
     frac_tabla <- rel / (1.35 + rel)
-    canvas <- cowplot::plot_grid(grafico, NULL, ncol = 2,
-                                 rel_widths = c(1.35, rel))
+    # El canvas NO reserva hueco para la tabla. Lo hacia —un `NULL` de ancho
+    # `rel` al lado del radar— y el sitio quedaba reservado DOS veces: el canvas
+    # dejaba su parte derecha en blanco Y el renderer colocaba la tabla en el
+    # mismo cajon via `geom_frac`. En la lamina se veia el radar encogido a la
+    # izquierda, un cuadro vacio en medio y la tabla al final.
+    #
+    # `geom_frac` SE CONSERVA: es lo que le dice al renderer donde va la tabla,
+    # y sin el cae al camino de «solo tabla» y el radar desaparece entero —
+    # medido, en un intento anterior la lamina salio con la tabla y nada mas—.
+    # Quien deja de solapar es el GRAFICO: el renderer recorta su slot a
+    # `1 - frac_tabla` al ver esa misma geometria.
+    canvas <- grafico
     return(.tabla_nativa_adjuntar(
       canvas, fmt,
       estilo = list(
