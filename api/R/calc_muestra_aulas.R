@@ -372,6 +372,7 @@ calc_muestra_aulas_default_config <- function() {
       require_in_person = TRUE,
       exclude_modality_patterns = as.list(c("virtual", "remoto", "online", "distancia", "asincron")),
       exclude_session_patterns = list(),
+      excluded_faculties = list(),
       min_eligible_per_class = 15L
     ), .cm_criterios_default_filters()),
     selector = list(
@@ -488,6 +489,7 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       require_in_person = .cm_aulas_bool(filters$require_in_person %||% filters$solo_presencial, defaults$filters$require_in_person),
       exclude_modality_patterns = as.list(.cm_aulas_chr_vec(filters$exclude_modality_patterns %||% defaults$filters$exclude_modality_patterns)),
       exclude_session_patterns = as.list(.cm_aulas_chr_vec(filters$exclude_session_patterns %||% filters$excluir_tipos_sesion %||% defaults$filters$exclude_session_patterns)),
+      excluded_faculties = as.list(.cm_aulas_chr_vec(filters$excluded_faculties %||% filters$facultades_excluidas %||% defaults$filters$excluded_faculties)),
       min_eligible_per_class = max(1L, .cm_aulas_int(filters$min_eligible_per_class %||% filters$min_elegibles_aula %||% config$min_elegibles_aula, defaults$filters$min_eligible_per_class))
     ), .cm_criterios_normalize_filters(filters)),
     selector = list(
@@ -1172,7 +1174,13 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     session_ok <- .cm_criterios_session_excepciones(session_ok, faculty, session_type, cfg$filters$session_type_excepciones)
   }
   classroom_ok <- nzchar(classroom_id)
-  eligible_student <- sid_ok & age_ok & condition_ok & level_ok
+  # Facultades excluidas por diseño (ADR pendiente): la unidad academica no
+  # participa del estudio, asi que sus filas no son poblacion ni muestra. NO se
+  # apaga con suite activa —una exclusion de diseño no la revoca una suite— y
+  # compara por nombre normalizado de facultad, no por patron sobre `level`,
+  # que en las bases reales es un numero de ciclo.
+  faculty_ok <- !.cm_aulas_facultad_excluida(faculty, cfg$filters$excluded_faculties)
+  eligible_student <- sid_ok & age_ok & condition_ok & level_ok & faculty_ok
   # Criterios de alumno por categoría (scope alumno): con capa "marco"
   # restringen la población objetivo N. Sin selección, marco_ok es todo TRUE
   # (retro-compat bit a bit). Lógica en calc_muestra_aulas_criterios.R.
@@ -1184,7 +1192,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   eligible_student <- eligible_student & alumno_sel$marco_ok
   eligible_row <- eligible_student & modality_ok & session_ok & classroom_ok
 
-  reason_rows <- mapply(function(a, b, c, d, e, f, g) {
+  reason_rows <- mapply(function(a, b, c, d, e, f, g, h) {
     .cm_aulas_reason(c(
       student_id = a,
       age = b,
@@ -1192,9 +1200,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       level = d,
       modality = e,
       session_type = f,
-      classroom_id = g
+      classroom_id = g,
+      faculty_excluida = h
     ))
-  }, sid_ok, age_ok, condition_ok, level_ok, modality_ok, session_ok, classroom_ok, USE.NAMES = FALSE)
+  }, sid_ok, age_ok, condition_ok, level_ok, modality_ok, session_ok, classroom_ok, faculty_ok, USE.NAMES = FALSE)
   # `eligible_row` incluye alumno_sel$marco_ok, así que la razón también debe:
   # sin esta línea toda fila que solo recorta un criterio de alumno se publicaba
   # excluida y muda, y el marco no podía declarar su propia causa.
@@ -1346,7 +1355,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       condicion_curso = condicion_curso,
       campus = campus,
       eligible_row = eligible_row,
-      row_base_ok = sid_ok & age_ok & condition_ok & level_ok & modality_ok &
+      row_base_ok = sid_ok & age_ok & condition_ok & level_ok & faculty_ok & modality_ok &
         session_ok & classroom_ok,
       alumno_marco_ok = alumno_sel$marco_ok
     ),
