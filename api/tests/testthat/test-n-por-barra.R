@@ -169,3 +169,17 @@ test_that("con un solo dato por publico la base es ese dato", {
 test_that("vectores que no casan devuelven NA en vez de reciclar", {
   expect_true(all(is.na(.n_barra_base_por_publico(c(1, 2), c("a")))))
 })
+
+
+test_that("`Inf` como base significa «ya vienen filtradas»", {
+  # Lo usa quien ya decidio con `.n_barra_procede_por_pregunta()` y solo quiere
+  # dibujar. Sin este caso, el `is.finite()` las rechazaba TODAS y la capa salia
+  # vacia: cero anotaciones con el mapa de bases llegando bien.
+  expect_true(all(.n_barra_procede(c(47, 128, 139), n_base = Inf)))
+  expect_s3_class(.n_barra_capa(c(1, 2), c(47, 128), n_base = Inf), "Layer")
+})
+
+
+test_that("`-Inf` no cuela como «sin filtro»", {
+  expect_false(any(.n_barra_procede(c(47, 128), n_base = -Inf)))
+})
