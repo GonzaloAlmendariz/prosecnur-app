@@ -49,3 +49,30 @@ test_that("sin pasos utilizables no se fuerza nada", {
   expect_null(.apiladas_row_step_comun(c(NA, NA)))
   expect_null(.apiladas_row_step_comun(c(0, -1)))
 })
+
+
+test_that("el piso de una fila procede solo si el bloque esta solo", {
+  # El piso editorial sube al 0.95 la barra de un bloque de una fila, que sin el
+  # sale al ~22 % del panel. Correcto cuando esa barra es lo unico de la lamina;
+  # en una multilista la deja gorda al lado de vecinas al 0.78.
+  expect_true(.apiladas_piso_una_fila_procede(1))
+  expect_false(.apiladas_piso_una_fila_procede(2))
+  expect_false(.apiladas_piso_una_fila_procede(4))
+})
+
+
+test_that("sin dato de bloques se conserva el comportamiento previo", {
+  # Quitar el piso por no saber cuantos bloques hay devolveria la barra
+  # enclenque que ese piso vino a arreglar.
+  expect_true(.apiladas_piso_una_fila_procede(NULL))
+  expect_true(.apiladas_piso_una_fila_procede(NA))
+  expect_true(.apiladas_piso_una_fila_procede("x"))
+})
+
+
+test_that("el salto que produce el piso es el 1.20x medido", {
+  # Los grosores fisicos del mazo son las combinaciones de los tres altos de
+  # fila declarados por las DOS fracciones. Ese cociente es lo que separa las
+  # laminas gemelas: 0.980 contra 1.173 cm, y 1.694 contra 2.068.
+  expect_equal(.APILADAS_GROSOR_UNA_FILA / 0.78, 1.218, tolerance = 0.01)
+})
