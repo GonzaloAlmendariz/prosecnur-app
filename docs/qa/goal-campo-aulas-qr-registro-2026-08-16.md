@@ -136,7 +136,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ☑ **hecho** (2026-08-16) — los **cinco** del catálogo: estado del circuito, cobertura por aula, brecha por estrato, consumo de cadena y cuota sexo×facultad. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
-| **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias eran el plan declarado (`config…plan` y `dashboard.agenda`); la tercera estaba escondida: **`brechas` era un clon completo del plan** con sus ~40 columnas. | ◐ a medias (2026-08-16) — **1377 → 1045 → 934 KB** y **2,4 → 1,8 s**. Quedan las dos copias declaradas, que tienen consumidores distintos. |
+| **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias declaradas y una escondida: `brechas` era un clon completo del plan. | ☑ **hecho** (2026-08-16) — **1377 → 934 → 601 KB** y **2,4 → 1,6 s**. Queda una sola copia, `dashboard.agenda`, que es superconjunto de la que se fue. |
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
@@ -1089,3 +1089,41 @@ sin snapshot —es de donde el Registro de campo lee antes de que llegue la prim
 respuesta— y `dashboard.agenda` es la versión normalizada que consumen la agenda,
 el corte y el gráfico de cadena. Unificarlas exige decidir cuál manda antes del
 primer sync, que es un cambio con riesgo propio y merece su propio turno.
+
+
+### 2026-08-16 — L66 cerrado: de tres copias a una
+
+La segunda mitad salió de comprobar la premisa que me había frenado. Yo había
+escrito que las dos copias restantes «tienen consumidores distintos» y que
+unificarlas exigía decidir cuál manda antes del primer sync. **Las dos cosas
+resultaron falsas al mirarlas:**
+
+- **`dashboard.agenda` es un superconjunto estricto** de
+  `config.aulas_universitarias.plan`: las mismas 196 filas, los **mismos 80
+  campos**, más `respuestas_validas` y `brecha`. Ninguno sólo en la config.
+- **No depende de que haya snapshot.** El tablero de aulas se **reconstruye en
+  cada petición** desde `s$monitoreo_aulas_plan` (`router_monitoreo.R`), así que
+  el Registro de campo lo tiene desde antes de la primera respuesta. Mi
+  «riesgo» era una suposición sobre un código que no había leído.
+
+Así que la copia de la config se fue. Sólo quedaba una pregunta que era
+legítimamente suya —**cuántas unidades hay**, que es lo que habilita «Generar
+libro»— y para eso viaja `plan_rows`: un entero en vez de 333 KB.
+
+El recorrido completo del ítem, medido sobre el mismo proyecto de 196 aulas:
+
+| | payload | petición |
+|---|---|---|
+| al empezar | 1377 KB | 2,9 s |
+| quitando la copia idéntica de `state` | 1045 KB | — |
+| recortando `brechas` a sus columnas | 934 KB | 1,8 s |
+| **quitando el plan de `config`** | **601 KB** | **1,6 s** |
+
+**56 % menos de payload.** Verificado en pantalla después del recorte: el
+Registro de campo sigue listando sus 196 cursos-horario y «Generar libro» sigue
+habilitado, que son los dos consumidores que tocaba el cambio.
+
+La lección para la sección de trampas: **«tienen consumidores distintos» era una
+suposición mía que sobrevivió dos turnos porque nunca la comprobé.** Bastaron dos
+consultas —comparar los juegos de campos y leer de dónde sale el tablero— para
+tirarla. Igual que L23, donde la premisa falsa era la persistencia del `.pulso`.

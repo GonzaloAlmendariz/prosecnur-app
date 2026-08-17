@@ -868,7 +868,11 @@ export default function AulasMonitoreoPage() {
                 onIrAFuentes={() => setActiveView("fuentes")}
               />,
               <RegistroDeCampo
-                agenda={aulasConfig?.plan ?? []}
+                // Del TABLERO, no de la config: el plan dejo de viajar ahi y
+                // `agenda` es un superconjunto suyo —mismos campos mas
+                // `respuestas_validas` y `brecha`— que ademas se reconstruye en
+                // cada peticion, tambien antes de la primera respuesta.
+                agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
                 onGuardado={() => { void loadView(seccionActiva, true); }}
               />,
               pestanaActiva,

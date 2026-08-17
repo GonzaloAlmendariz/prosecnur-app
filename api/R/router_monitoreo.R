@@ -1121,10 +1121,29 @@
     tryCatch(.monitoreo_mark_project_dirty_if_open(sid), error = function(e) NULL)
   }
   include_snapshot_artifacts <- isTRUE(include_reports) && !identical(family, "territorial")
+  # El plan tampoco viaja dentro de `config`. Medido sobre 196 aulas: 333 KB de
+  # un payload de 934, y `dashboard$aulas_universitarias_reports$agenda` es un
+  # SUPERCONJUNTO estricto de esa copia —las mismas 196 filas con los mismos 80
+  # campos, mas `respuestas_validas` y `brecha`—, asi que no se pierde nada.
+  #
+  # Y esta siempre: el tablero de aulas se reconstruye en cada peticion desde
+  # `s$monitoreo_aulas_plan`, no depende de que exista snapshot, asi que el
+  # registro de campo lo tiene desde antes de la primera respuesta.
+  #
+  # Queda `plan_rows` porque hay una pregunta que sigue siendo de la config:
+  # cuantas unidades hay, que es lo que decide si se puede generar el libro.
+  # Mandar 333 KB para contar 196 filas es el intercambio que se deshace aqui.
+  cfg_payload <- cfg
+  if (is.list(cfg_payload$aulas_universitarias)) {
+    au <- cfg_payload$aulas_universitarias
+    au$plan_rows <- as.integer(length(au$plan %||% list()))
+    au$plan <- NULL
+    cfg_payload$aulas_universitarias <- au
+  }
   list(
     ok = TRUE,
     sources = sources,
-    config = cfg,
+    config = cfg_payload,
     monitoreo_profile = cfg$monitoreo_profile %||% monitoreo_normalize_profile(list()),
     has_snapshot = nrow(display_data) > 0L || (identical(family, "aulas_universitarias") && length((cfg$aulas_universitarias %||% list())$plan %||% list()) > 0L),
     synced_at = snapshot$synced_at %||% "",
