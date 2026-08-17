@@ -18025,7 +18025,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
     inFlightScopeRef.current.clear();
   }, []);
 
-  const loadView = useCallback(async (view: MonitoreoSeccion, force = false) => {
+  const loadView = useCallback(async (view: MonitoreoSeccion, force = false, silencioso = false) => { // `silencioso` no toca `loading`: la vista se pinta tras `seccionCargando` y encenderlo DESMONTA lo que la acción acaba de responder.
     const seq = ++loadSeqRef.current;
     const reportScope = scopeForView(view, route.family);
     if (force) {
@@ -18041,7 +18041,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
         return;
       }
     }
-    setLoading(true);
+    if (!silencioso) setLoading(true);
     try {
       const next = await apiMonitoreoState({
         includeReports: true,
@@ -18059,7 +18059,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
       if (seq !== loadSeqRef.current || view !== activeViewRef.current) return;
       setError((e as Error).message);
     } finally {
-      if (seq === loadSeqRef.current && view === activeViewRef.current) setLoading(false);
+      if (!silencioso && seq === loadSeqRef.current && view === activeViewRef.current) setLoading(false);
     }
   }, [clearScopeStateCache, prefetchBackgroundScopes, route.family]);
 
@@ -18085,7 +18085,7 @@ export function AcreditacionProfilePage({ mode = "acreditacion" }: { mode?: Acre
   // que sí es válida en los dos modos.
 
   const refreshCurrentView = useCallback(() => {
-    void loadView(seccionActiva, true);
+    void loadView(seccionActiva, true, true); // Silencioso: publicar deja «N pestañas actualizadas» y el id del spreadsheet, y un remontaje se los lleva.
   }, [seccionActiva, loadView]);
   const applyStateChange = useCallback((nextState: MonitoreoState) => {
     clearScopeStateCache();
