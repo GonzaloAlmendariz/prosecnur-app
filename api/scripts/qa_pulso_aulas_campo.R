@@ -216,14 +216,59 @@ if (ESCALA_2025) {
   for (k in 1:40) data[[sprintf("p%02d", k)]] <- rep(1:5, length.out = n)
 }
 
+# «Base de control» del libro: el control de calidad que el equipo calcula en su
+# Excel. Se siembra sobre las aulas que ya se aplicaron y se deja a un tercio SIN
+# llenar, que es como llega un libro a mitad de operativo — y es justo el caso
+# que la vista tiene que saber distinguir de un control en cero.
+control <- lapply(seq_along(aplicadas), function(i) {
+  u <- aplicadas[[i]]
+  base <- list(
+    operational_code = as.character(u$operational_code),
+    classroom_id = as.character(u$operational_code),
+    wave = "M1", course_name = as.character(u$course_name),
+    room = as.character(u$label), schedule = as.character(u$schedule),
+    enrolled_total = as.numeric(u$eligible_n) + 10,
+    eligible_n = as.numeric(u$eligible_n),
+    applied_by = sprintf("Equipo %d", 1 + (i %% 6)),
+    application_status = "APLICADA"
+  )
+  if (i %% 3 == 0) return(base)
+  enviadas <- as.numeric(u$eligible_n) - (i %% 5)
+  mujeres <- floor(enviadas * 0.6)
+  c(base, list(
+    sent_total = enviadas,
+    sent_vs_total = round(enviadas / (as.numeric(u$eligible_n) + 10), 3),
+    sent_vs_population = round(enviadas / as.numeric(u$eligible_n), 3),
+    validator_1 = i %% 2, validator_2 = 0, validator_3 = i %% 3,
+    short_total = i %% 4, short_vs_total = round((i %% 4) / max(enviadas, 1), 3),
+    long_total = i %% 3, long_vs_total = round((i %% 3) / max(enviadas, 1), 3),
+    threshold_total = round(0.7 * (as.numeric(u$eligible_n) + 10)),
+    threshold_population = round(0.7 * as.numeric(u$eligible_n)),
+    valid_total = if (enviadas >= 0.7 * (as.numeric(u$eligible_n) + 10)) 1 else 0,
+    valid_population = if (enviadas >= 0.7 * as.numeric(u$eligible_n)) 1 else 0,
+    last_response_day = sprintf("2026-08-%02d", 10 + (i %% 10)),
+    observed_students = as.numeric(u$eligible_n),
+    non_respondents = i %% 5,
+    attendance_pct = round(as.numeric(u$eligible_n) / (as.numeric(u$eligible_n) + 10), 3),
+    quota_pct = round(enviadas / as.numeric(u$eligible_n), 3),
+    quota_missing = max(0, as.numeric(u$eligible_n) - enviadas),
+    women_n = mujeres, men_n = enviadas - mujeres,
+    women_pct = round(mujeres / max(enviadas, 1), 3),
+    men_pct = round((enviadas - mujeres) / max(enviadas, 1), 3),
+    schedule_norm = as.character(u$scheduled_time %||% "08:00"),
+    schedule_range = if (i %% 7 == 0) "FUERA DE RANGO" else "EN RANGO"
+  ))
+})
+
 sid <- session_create()
 session_set(sid, "monitoreo_aulas_plan", plan)
+session_set(sid, "monitoreo_aulas_control", control)
 session_set(sid, "monitoreo_aulas_partes_campo", partes)
 session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
   monitoreo_profile = list(family = "aulas_universitarias", variant = "multi_actor",
                            status = "active", route_selected = TRUE),
   aulas_universitarias = list(
-    enabled = TRUE, plan = plan, partes_campo = partes,
+    enabled = TRUE, plan = plan, partes_campo = partes, control = control,
     # SIN `status_var`: es lo que hace hoy un estudio real de Kobo recien
     # conectado. Declararlo apuntando a `_validation_status` descarta TODAS las
     # respuestas, porque Kobo deja esa columna vacia mientras nadie las revisa
@@ -246,7 +291,7 @@ session_set(sid, "monitoreo_sources", list(list(
 invisible(capture.output(build_pulso(sid, destino, project_name = "QA aulas en campo")))
 
 tablero <- monitoreo_aulas_dashboard(plan, data, monitoreo_aulas_normalize_config(list(
-  enabled = TRUE, plan = plan, partes_campo = partes,
+  enabled = TRUE, plan = plan, partes_campo = partes, control = control,
   source_mapping = list(collector_var = "collectorID"),
   control_sin_nombre = 7L
 )))

@@ -24,6 +24,7 @@ import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
+import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
 import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
@@ -411,7 +412,10 @@ function renderAulasView(
   if (view === "calidad") {
     const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
     const summary = summarizeAulasValidation(rows);
+    const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
+    const controlResumen = (dashboard.control_calidad_resumen ?? null) as ResumenDeControl | null;
     return (
+      <div className="mon-profile-stack aulas-tablas-apiladas">
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-table"
@@ -428,6 +432,24 @@ function renderAulasView(
             usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
         <AulasControles filas={rows} />
       </section>
+      {/* La tercera hoja del operativo. Los dos paneles son control de calidad y
+          por eso comparten sección, pero no son la misma medida: arriba lo que
+          deriva el motor, aquí lo que el equipo calcula en su Excel. Separarlos
+          evita que una fila parezca respaldar a la otra. */}
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
+              buscarlo en su libro. */}
+          <h3>Base de control</h3>
+          <span>{control.length ? `${fmt(control.length)} aulas` : "Sin datos"}</span>
+        </div>
+        <AulasControlDelLibro filas={control} resumen={controlResumen} />
+      </section>
+      </div>
     );
   }
   if (view === "consultas") {

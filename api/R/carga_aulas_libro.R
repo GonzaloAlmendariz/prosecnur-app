@@ -97,6 +97,11 @@ aulas_libro_importar_en_sesion <- function(sid, path) {
   if (is.list(cfg$aulas_universitarias)) {
     cfg$aulas_universitarias$control_sin_nombre <- length(out$control_sin_nombre)
     cfg$aulas_universitarias$partes_campo <- out$partes
+    # Mismo camino que los partes: sin esta linea las filas de «Base de control»
+    # se quedaban en `monitoreo_aulas_control` y no las leia NADIE —ni el motor
+    # ni la UI—, asi que sus 25 campos propios de control de calidad no existian
+    # para la app. Ver `monitoreo_aulas_control.R`.
+    cfg$aulas_universitarias$control <- out$control
     session_set(sid, "monitoreo_config", cfg)
   }
   session_set(sid, "monitoreo_aulas_libro", list(

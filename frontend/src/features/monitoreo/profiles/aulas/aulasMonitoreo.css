@@ -647,6 +647,14 @@
   .mon-profile-stack.aulas-tablas-apiladas {
   display: flex;
   flex-direction: column;
+  /* Aquí nace el desborde horizontal, no en el panel. El stack es ítem de un
+   * grid y su mínimo automático es su contenido: una tabla ancha lo estira y
+   * arrastra al panel con él. Medido con las 27 columnas de «Base de control» a
+   * 1440: la vista media 1 316 px y el stack 2 057, y el recorte lo acababa
+   * absorbiendo un ancestro, de modo que las últimas columnas eran inalcanzables
+   * (C4). Con este mínimo el ancho lo manda la pista y el scroll queda donde
+   * tiene dueño declarado: el envoltorio de la tabla. */
+  min-width: 0;
 }
 
 .mon-profile-page.is-aulas-flow
@@ -654,6 +662,15 @@
   .mon-profile-stack.aulas-tablas-apiladas
   > .mon-profile-panel {
   flex: 0 0 auto;
+  /* El gemelo horizontal del `min-height: 0` del registro de campo, y falla
+   * igual de callado: el tamaño mínimo automático de un ítem flex es su
+   * CONTENIDO, así que una tabla ancha estira el panel en vez de activar el
+   * `overflow-x: auto` de su envoltorio. Medido con las 27 columnas de «Base de
+   * control» a 1440: el panel salía en 2 057 px dentro de una ventana de 1 440 y
+   * la página NO desbordaba —el ancestro recortaba—, así que las últimas
+   * columnas existían en el DOM y no había forma de llegar a ellas (C4). Con
+   * este mínimo el panel acepta su pista y el scroll vive donde tiene dueño. */
+  min-width: 0;
 }
 
 /* ACTUALIZADO 2026-08-17: la tabla vuelve a topar, y por tanto a scrollear
@@ -693,6 +710,19 @@
   overflow: auto;
 }
 
+
+/* «Base de control»: el bloque de la tercera hoja del libro.
+ *
+ * Tercer eslabón del mismo mínimo automático —stack, panel y ahora este bloque—.
+ * Es ítem del grid del panel, así que sin `min-width: 0` su suelo vuelve a ser
+ * el ancho de la tabla y el desborde reaparece un nivel más abajo. Se arreglan
+ * los tres o no se arregla ninguno: basta con que un eslabón de la cadena crezca
+ * para que el envoltorio nunca llegue a topar. */
+.aulas-control-libro {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
 
 /* El gráfico de cobertura reserva su alto.
  *

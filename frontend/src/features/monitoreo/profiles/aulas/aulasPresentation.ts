@@ -38,6 +38,37 @@ const FIELD_LABELS: Record<string, string> = {
   size_group: "Tamaño de aula",
   modality: "Modalidad",
   session_type: "Tipo de sesión",
+  // «Base de control» (L29): el control de calidad por aula. Ninguno de estos
+  // campos tenía rótulo porque ninguno llegaba a una pantalla — se leían del
+  // libro y morían en la sesión. Los nombres son los de la hoja, incluidos los
+  // dos que el equipo escribe como código: `70T` y `70P` son los umbrales del
+  // 70 % contra cada denominador, y así los pide en voz alta.
+  room: "Aula",
+  sent_total: "Total enviadas",
+  sent_vs_total: "vs Total",
+  sent_vs_population: "vs Población",
+  validator_1: "Validador 1",
+  validator_2: "Validador 2",
+  validator_3: "Validador 3",
+  short_total: "Total cortas",
+  short_vs_total: "Cortas vs total",
+  long_total: "Total largas",
+  long_vs_total: "Largas vs total",
+  threshold_total: "70T",
+  threshold_population: "70P",
+  valid_total: "Válido total",
+  valid_population: "Válido población",
+  last_response_day: "Último día de respuesta",
+  non_respondents: "Asistentes que no respondieron",
+  attendance_pct: "% Asistencia",
+  quota_pct: "Cuota",
+  quota_missing: "Faltantes cuota",
+  women_n: "N.º mujeres",
+  men_n: "N.º hombres",
+  women_pct: "% Mujeres",
+  men_pct: "% Hombres",
+  schedule_norm: "Norm - horario",
+  schedule_range: "Rango - horario",
   // Trazabilidad y diseño muestral.
   collection_unit_id: "ID de unidad de recolección",
   selection_run_id: "Corrida de selección",
