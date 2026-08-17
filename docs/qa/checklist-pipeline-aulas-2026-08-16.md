@@ -494,6 +494,46 @@ significa nada sin su desglose. La cifra honesta es la tabla de 15 filas —
 Derecho 46 aulas para 483 encuestas, Gastronomía 10 para 105, Letras y Ciencias
 Humanas 16 para 163—. El 177 es sólo su suma.
 
+## H6 — la reparación NO es auto-confirmar: es hacer visible lo pendiente
+
+Al ir a implementar el default apareció una guarda que cambia la naturaleza del
+arreglo. `calc_muestra_alumnos_por_ch_resolver_estudio` exige `confirmado_at` no
+vacío y falla con **`sin_confirmacion` — «Confirma la decisión de alumnos por CH
+antes de calcular»**, además de exigir `denominador == "elegible"` y un
+estadístico de la whitelist.
+
+O sea: el contrato pide **deliberadamente que una persona firme** esa decisión
+metodológica. Hacer que un estudio nazca con `confirmado_at` puesto sería
+**firmar por el analista** una decisión que cambia el número de aulas de cada
+facultad. No se hace.
+
+**El defecto real, entonces, no es que falte el default: es el SILENCIO.**
+Cuando `alumnos_por_ch_decision` es `NULL`, el resolutor devuelve el estudio
+intacto —compatibilidad con proyectos previos al contrato v1— y el motor calcula
+con el `avg_conglomerado` global **sin avisar de nada**. El analista no se entera
+de que hay una decisión pendiente que decide, facultad por facultad, cuántas
+aulas necesita.
+
+**Reparación en dos piezas**, para el siguiente tick:
+
+1. Que el estudio nazca con la decisión **propuesta y sin confirmar**:
+   `denominador = "elegible"`, `estadistico_default = "min_mediana_media"`
+   —la elección de Gonzalo, y la que aplicó el diseño de 2025—, `por_facultad`
+   vacío para que cada facultad herede y pueda sobreescribirse, y
+   `confirmado_at` VACÍO.
+2. Que la falta de confirmación **se vea**: hoy el path `NULL` es mudo. O el
+   resultado publica un aviso de que se está usando el promedio global en vez de
+   la cifra por facultad, o la UI pide la confirmación antes de dar el cálculo
+   por bueno. Sin esto, el arreglo del punto 1 sólo cambia dónde está el
+   silencio.
+
+Guardas completas del resolutor, para no romperlas: `frame_mode ==
+"opinion_universitaria"`; `decision NULL` → devuelve intacto; schema distinto →
+`schema_invalido`; `confirmado_at` vacío → `sin_confirmacion`; denominador o
+estadístico inválidos → `decision_incompleta`; frame ausente o con schema
+distinto de `calc_muestra_aulas_frame_v1` → `frame_ausente`; y compara el
+`frame_hash` del contrato con el del frame.
+
 ## Lo que ya sabemos, para no reinvestigarlo
 
 - En el proyecto de referencia la selección trae **30 titulares y 330 reservas,
