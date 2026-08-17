@@ -143,7 +143,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab`; aulas usaba un `GlidingTabList` superior. | ☑ **hecho** (2026-08-17) — rail montado con el chrome compartido; navegación y URL enlazable verificadas. |
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
-| **L74** | **Avance tiene que mostrar las cuotas, de forma sencilla y dinámica.** | Cómo vamos completando **cuotas por facultad**, **cuotas a nivel general** y **cuotas desagregadas por sexo**. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L74** | **Avance tiene que mostrar las cuotas** de forma sencilla y dinámica. | El tablero decía «2/12 celdas», que no distingue faltar una respuesta de faltar doscientas. | ◐ a medias (2026-08-17) — las tres lecturas en personas: total, por facultad y por sexo. Falta la parte «dinámica». |
 | **L75** | **Consultas tiene que contar la historia de la cadena.** | Si estamos cumpliendo con los **titulares**; cómo nos fue en el titular, luego en su reemplazo; y **cuál fue la cadena que nos permitió llegar a la meta**. | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
@@ -1201,3 +1201,44 @@ evita que un turno futuro «termine el trabajo» rompiendo algo—:
 
 Verificado en pantalla a 3700: la tabla de Avance dice «Status de aplicación» y
 la de Agenda conserva sus columnas.
+
+
+### 2026-08-17 — L74: la cuota, en personas y no en celdas
+
+Gonzalo pidió ver «cómo vamos completando las cuotas por facultad, cómo van las
+cuotas a nivel general, cómo van las cuotas a nivel desagregado por sexo». Las
+tres salen del mismo dato que ya viajaba; lo que faltaba era **contarlas en
+personas**. El KPI decía `2/12 celdas` y doce celdas pueden estar a una respuesta
+o a doscientas.
+
+Medido sobre las 196 aulas con 3700 respuestas:
+
+```
+Cuota del estudio   ████████████████████░░  694 por recoger
+                    3 700 de 4 376 personas · 2 de 12 celdas cumplidas
+
+POR FACULTAD                        POR SEXO
+Gestión                152          F   584
+Estudios Grales Letras 131          M   110
+Ciencias e Ingeniería  109
+Educación              107
+Arquitectura           100
+Derecho                 95
+```
+
+**La lectura por sexo es la que no existía en ninguna parte**: faltan 584 mujeres
+y 110 hombres. Repartido por facultad, ninguna pasa de 152 y parecería un
+operativo parejo; cruzado por sexo, el 84 % de lo que falta es de un solo grupo.
+
+Una decisión con su test: **pasarse en una celda no cubre lo que falta en otra**.
+Restar totales daría 0 donde una facultad va sobrada y otra corta; la cuota se
+cumple celda a celda y por eso lo que falta se suma así.
+
+**Y un contraste que conviene tener presente**: al estudio le faltan **3776
+respuestas** para llenar las metas por aula y **694 personas** para llenar la
+cuota sexo×facultad. No es contradicción —una es restricción de volumen y la otra
+de composición— pero explica por qué el equipo puede ir «bien de cuota» y mal de
+avance.
+
+Queda la parte **«dinámica»** del pedido, que aún no está: hoy son tres lecturas
+fijas y él pidió también poder moverse por ellas.

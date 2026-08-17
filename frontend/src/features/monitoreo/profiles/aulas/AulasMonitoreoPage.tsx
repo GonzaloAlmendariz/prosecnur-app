@@ -21,6 +21,7 @@ import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasCuotasChart } from "./AulasCuotasChart";
+import { AulasCuotasResumen } from "./AulasCuotasResumen";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
@@ -550,6 +551,10 @@ function renderAulasView(
           <h3>Cuota sexo por facultad</h3>
           <span>{fmt(quotaRows.length)} filas</span>
         </div>
+        {/* Primero la cuota en PERSONAS —total, por facultad y por sexo—, que es
+            lo que se pregunta en campo: «2/12 celdas» no distingue faltar una
+            respuesta de faltar doscientas. Debajo, el detalle celda a celda. */}
+        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
         {/* El eje es el CUMPLIMIENTO y no el volumen: cada celda tiene su propia
             meta, así que 40 de 50 y 4 de 5 son el mismo problema resuelto en la
             misma proporción, y la tabla obliga a dividir de cabeza para verlo. */}
