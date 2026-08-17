@@ -17,6 +17,7 @@ import type { AporteCategoria } from "./controles";
 import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import { resumenVariable, seleccionVariable, unidadCriterio } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
+import { CapaCriterio } from "./CapaCriterio";
 import { CondicionCursoAviso } from "./CondicionCursoAviso";
 import { ControlFlat, ControlHierarchical, ControlNumeric, ControlOrdinal } from "./controles";
 import { ControlRange, type FacultadRef } from "./facultades";
@@ -247,6 +248,7 @@ export function CriterioCard({
 
       <div className="cmv2-crit-card-body">
         <RecorteMedido recorte={recorteMedido ?? null} desactualizado={Boolean(recorteDesactualizado)} />
+        <CapaCriterio variable={variable} sel={sel} onSel={onSel} />
         {variable.id === "condicion_curso" ? <CondicionCursoAviso variable={variable} /> : null}
         {variable.kind === "flat" && <ControlFlat variable={variable} sel={sel} onSel={onSel} aporte={aporte} />}
         {variable.kind === "hierarchical" && (
