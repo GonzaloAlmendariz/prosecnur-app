@@ -14,7 +14,7 @@ import { estadoDeAplicacion } from "./estadoDeAplicacion";
  * empezar», que la cobertura mete en el mismo saco.
  */
 export function AulasEstadoChart({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const { estados, desconocidas, total, sinEmpezar } = useMemo(
+  const { estados, desconocidas, total, sinSalirACampo } = useMemo(
     () => estadoDeAplicacion(filas),
     [filas],
   );
@@ -61,8 +61,11 @@ export function AulasEstadoChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
         config={{ displayModeBar: false, responsive: true }}
       />
       <p className="mon-profile-table-recorte">
-        {sinEmpezar
-          ? `${sinEmpezar} de ${total} cursos-horario no han recibido ni una respuesta.`
+        {sinSalirACampo
+          // El pie de ESTE gráfico habla de su propio eje. Decía «no han
+          // recibido ni una respuesta» y contaba agendamiento: 14 aquí contra
+          // los 48 que el panel de cobertura mostraba un dedo más abajo.
+          ? `${sinSalirACampo} de ${total} cursos-horario todavía no salen a campo.`
           : `Los ${total} cursos-horario ya recibieron respuestas.`}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}

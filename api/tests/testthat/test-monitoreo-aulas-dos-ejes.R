@@ -74,3 +74,42 @@ test_that("los campos nuevos no multiplican el plan", {
     expect_length(monitoreo_aulas_normalize_plan(lapply(seq_len(n), fila)), n)
   }
 })
+
+test_that("una reserva del banco NO es un aula sin agendar", {
+  # `grepl("^en reserva", muestra)` estaba escrito en el motor y no podia casar
+  # nunca: el normalizador ya habia convertido «EN RESERVA 1» en `en_reserva`,
+  # con guion bajo. La regla existia y no se aplicaba, asi que las reservas
+  # libres caian en «pendiente» —que la vista rotula «Sin agendar»— y le pedian
+  # al coordinador que agendara aulas que no debe tocar salvo que caiga su
+  # titular. Medido sobre el operativo: las 8 que decian «Sin agendar» eran las
+  # 8 reservas del banco, con fecha en la fila ademas.
+  plan <- list(
+    list(classroom_id = "CH 1", operational_code = "CH 1", eligible_n = 30,
+         expected_valid = 20, sample_role = "titular", sample_status = "AGENDADA"),
+    list(classroom_id = "R 1.1", operational_code = "R 1.1", eligible_n = 28,
+         expected_valid = 20, sample_role = "chain_reserve", replacement_for = "CH 1",
+         sample_status = "EN RESERVA 1"),
+    # Esta si esta sin agendar: nadie la ha contactado y no es reserva.
+    list(classroom_id = "CH 2", operational_code = "CH 2", eligible_n = 30,
+         expected_valid = 20, sample_role = "titular", sample_status = "")
+  )
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list())
+  estado <- function(cod) {
+    fila <- Filter(function(r) identical(as.character(r$operational_code), cod), d$course_status)[[1]]
+    as.character(fila$application_state)
+  }
+
+  expect_identical(estado("R 1.1"), "en_reserva")
+  # El control: la que SI esta sin agendar sigue estandolo. Sin este aserto, un
+  # arreglo que mande todo a «en_reserva» pasaria igual.
+  expect_identical(estado("CH 2"), "pendiente")
+  expect_identical(estado("CH 1"), "lista")
+})
+
+test_that("el normalizador entrega `en_reserva` con guion bajo, no con espacio", {
+  # El aserto que explica por que la regla vieja estaba muerta. Si alguien
+  # cambia el normalizador para conservar el espacio, este test lo dice antes de
+  # que el tramo vuelva a fallar en silencio.
+  expect_identical(monitoreo_aulas_estado_muestra("EN RESERVA 1"), "en_reserva")
+  expect_identical(monitoreo_aulas_estado_muestra("En reserva 2"), "en_reserva")
+})
