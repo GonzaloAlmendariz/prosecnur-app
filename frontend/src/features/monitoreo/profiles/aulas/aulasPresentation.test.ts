@@ -150,6 +150,28 @@ describe("los vocabularios cerrados no derivan entre R y la UI", () => {
     expect(faltan, `checks del motor sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
   });
 
+  it("traduce las columnas de las dos tablas que el usuario lee", () => {
+    // Tercer vocabulario cerrado. Medido antes: de las 93 columnas que emite el
+    // tablero, 38 no tenían etiqueta y habrían salido en pantalla como jerga en
+    // inglés —«Contact medium», «Effective surveys»—, justo los campos que L31 y
+    // L32 acababan de añadir.
+    //
+    // El guard se ata a los DOS vectores literales del motor que alimentan las
+    // tablas que se leen: el `course_status` de Avance y las columnas publicadas
+    // de brechas. No a las 93: varias son internas y nunca llegan a una tabla, y
+    // exigir etiqueta para todas sería pedirla donde no se ve.
+    const vectores = [
+      motor.match(/cols <- intersect\(c\(([\s\S]*?)\), names\(rows\)\)/)?.[1],
+      motor.match(/BRECHAS_COLUMNAS_PUBLICADAS <- c\(([\s\S]*?)\n\)/)?.[1],
+    ];
+    expect(vectores.filter(Boolean).length, "no se encontraron los vectores del motor").toBe(2);
+    const columnas = [...new Set(vectores.flatMap((v) => literalesDe(v)))];
+    expect(columnas.length).toBeGreaterThan(15);
+    const etiquetadas = clavesDelDiccionario("FIELD_LABELS");
+    const faltan = columnas.filter((c) => !etiquetadas.has(c));
+    expect(faltan, `columnas del motor sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
+  });
+
   it("traduce todos los estados operativos que el motor declara", () => {
     const bloque = motor.match(/monitoreo_aulas_estados <- function\(\) \{\s*c\(([^)]*)\)/);
     expect(bloque, "no se encontró `monitoreo_aulas_estados()` en el motor").toBeTruthy();
