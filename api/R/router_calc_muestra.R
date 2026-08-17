@@ -299,6 +299,10 @@
   list(
     estudio = estudio,
     referencia_asistencia = s$calc_muestra_referencia_asistencia %||% NULL,
+    # Histórico de CRITERIOS del estudio anterior: método general + cuentas por
+    # facultad. Es lo que permite comparar «si se aplicaron los mismos
+    # criterios» y no sólo si salen los mismos números.
+    referencia_criterios = s$calc_muestra_referencia_criterios %||% NULL,
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
@@ -747,8 +751,21 @@ mount_calc_muestra <- function(pr) {
         )
       })
 
+      # El histórico de CRITERIOS sale de las mismas dos hojas que este endpoint
+      # ya lee —`cuotas` y `diseno`—, no de una entrada nueva.
+      referencia_criterios <- tryCatch(
+        calc_muestra_referencia_criterios_desde_base(
+          cuotas_de_la_base,
+          diseno = diseno_de_la_base,
+          periodo = .cm_aulas_scalar(referencia$estudio$periodo, ""),
+          estudio = .cm_aulas_scalar(referencia$estudio$label, "")
+        ),
+        error = function(e) NULL
+      )
+
       .cm_criterios_referencia_guardar(
-        sid, s, referencia, has_workspace, estudio_actualizado, reporte_actualizado
+        sid, s, referencia, has_workspace, estudio_actualizado, reporte_actualizado,
+        referencia_criterios = referencia_criterios
       )
 
       state <- .cm_state_payload(sid)

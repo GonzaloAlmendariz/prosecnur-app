@@ -168,3 +168,60 @@ calc_muestra_referencia_criterios_comparar <- function(actuales, referencia = NU
     filas = filas
   )
 }
+
+#' Construye la referencia de criterios desde las hojas que la base ya trae
+#'
+#' Gonzalo, textual: «el histórico sale de la base, ya tenemos todo un mecanismo
+#' que lo asimila». Es cierto: `POST /api/calc-muestra/asistencia/referencia` ya
+#' lee del libro del estudio anterior las hojas **`cuotas`** —facultad con su
+#' cuota total y por sexo— y **`diseno`** —las cifras únicas del estudio—, y hoy
+#' sólo conserva la parte de asistencia. Esta función aprovecha esas mismas dos
+#' lecturas en vez de pedir otra fuente.
+#'
+#' `diseno` viene como pares campo/valor, así que el método viaja tal cual: sin
+#' interpretarlo no se puede comparar «si se aplicaron los mismos criterios», que
+#' es justo la mitad que faltaba.
+#'
+#' @param cuotas Hoja `cuotas`: una fila por facultad.
+#' @param diseno Hoja `diseno`: pares campo/valor del estudio anterior.
+#' @param periodo Periodo del estudio anterior, si se conoce.
+#' @param estudio Etiqueta de la fuente.
+#' @return Referencia normalizada, o `NULL` si no hay cuotas utilizables.
+#' @keywords internal
+calc_muestra_referencia_criterios_desde_base <- function(cuotas, diseno = NULL,
+                                                         periodo = "", estudio = "") {
+  if (is.data.frame(cuotas)) {
+    cuotas <- lapply(seq_len(nrow(cuotas)), function(i) as.list(cuotas[i, , drop = FALSE]))
+  }
+  if (!is.list(cuotas) || !length(cuotas)) return(NULL)
+  # Los nombres de la hoja no son los del schema: `cuota_total` es la cuota y
+  # `cuota_mujeres`/`cuota_hombres` el reparto por sexo. Se traducen aquí y no en
+  # el normalizador, que no debe conocer el formato de ninguna hoja.
+  filas <- lapply(cuotas, function(f) {
+    if (!is.list(f) && !is.data.frame(f)) return(NULL)
+    list(
+      facultad = .cm_aulas_scalar(f$facultad %||% f$Facultad %||% f$FACULTAD, ""),
+      cuota = f$cuota_total %||% f$cuota %||% f$meta_muestra,
+      cuota_mujeres = f$cuota_mujeres %||% f$meta_mujeres,
+      cuota_hombres = f$cuota_hombres %||% f$meta_hombres,
+      poblacion = f$poblacion %||% f$N,
+      aulas_titulares = f$aulas_titulares %||% f$titulares,
+      sobremuestra = f$sobremuestra %||% f$meta_sobremuestra,
+      efectivas_logradas = f$efectivas_logradas %||% f$efectivas
+    )
+  })
+  general <- list()
+  if (is.data.frame(diseno) && nrow(diseno) && ncol(diseno) >= 2L) {
+    claves <- .cm_aulas_text_key(as.character(diseno[[1]]))
+    valores <- as.character(diseno[[2]])
+    for (i in seq_along(claves)) {
+      if (nzchar(claves[[i]])) general[[claves[[i]]]] <- valores[[i]]
+    }
+  } else if (is.list(diseno) && length(diseno)) {
+    general <- diseno
+  }
+  calc_muestra_referencia_criterios_normalizar(list(
+    periodo = periodo, estudio = estudio,
+    general = general, por_facultad = filas
+  ))
+}

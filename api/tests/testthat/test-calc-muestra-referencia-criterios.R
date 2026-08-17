@@ -129,3 +129,98 @@ test_that("CONTROL: dos facultades distintas no se funden", {
   d <- vapply(cmp$filas, function(z) z$campos$cuota$delta, 1)
   expect_setequal(round(d), c(-46, -31))
 })
+
+# La referencia sale de la BASE, no de una entrada nueva.
+#
+# Gonzalo, textual: «el histórico sale de la base, ya tenemos todo un mecanismo
+# que lo asimila». Es `POST /api/calc-muestra/asistencia/referencia`, que ya lee
+# del libro del estudio anterior las hojas `cuotas` —facultad con su cuota total
+# y por sexo— y `diseno` —las cifras únicas del estudio—, y hasta ahora sólo
+# conservaba la parte de asistencia.
+
+.rc_cuotas <- function() data.frame(
+  facultad = c("ARQUITECTURA Y URBANISMO", "ARTE Y DISEÑO", "CIENCIAS E INGENIERIA"),
+  cuota_total = c(123, 117, 523),
+  cuota_mujeres = c(84, 91, 130),
+  cuota_hombres = c(39, 26, 393),
+  stringsAsFactors = FALSE
+)
+
+.rc_diseno <- function() data.frame(
+  campo = c("poblacion_objetivo", "muestra", "ratio_sobremuestra", "metodo_seleccion"),
+  valor = c("22234", "2500", "1.5", "Sistemático sobre el marco"),
+  stringsAsFactors = FALSE
+)
+
+test_that("la hoja `cuotas` se traduce a las filas por facultad", {
+  # Los nombres de la hoja no son los del schema: `cuota_total` es la cuota.
+  r <- calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), .rc_diseno(), "2025-2", "libro")
+  expect_equal(length(r$por_facultad), 3L)
+  f <- .cm_ref_crit_buscar(r, "CIENCIAS E INGENIERIA")
+  expect_equal(f$cuota, 523)
+  expect_equal(f$cuota_mujeres, 130)
+  expect_equal(f$cuota_hombres, 393)
+  # Lo que la hoja no trae sigue siendo NA, no 0.
+  expect_true(is.na(f$aulas_titulares))
+})
+
+test_that("la hoja `diseno` viaja como el METODO general", {
+  # Sin el método no se puede comparar «si se aplicaron los mismos criterios»,
+  # que es la mitad que faltaba.
+  r <- calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), .rc_diseno())
+  expect_equal(r$general$poblacion_objetivo, "22234")
+  expect_equal(r$general$muestra, "2500")
+  expect_equal(r$general$metodo_seleccion, "Sistemático sobre el marco")
+})
+
+test_that("sin hoja de cuotas no se inventa una referencia", {
+  # Un libro sin `cuotas` no debe producir una comparación vacía que se lea como
+  # «comparado y sin diferencias».
+  expect_null(calc_muestra_referencia_criterios_desde_base(NULL))
+  expect_null(calc_muestra_referencia_criterios_desde_base(data.frame()))
+  expect_null(calc_muestra_referencia_criterios_desde_base(list()))
+})
+
+test_that("sin hoja de diseno la referencia sigue siendo util", {
+  # Las cuentas por facultad valen aunque falte el método.
+  r <- calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), NULL)
+  expect_equal(length(r$por_facultad), 3L)
+  expect_equal(length(r$general), 0L)
+})
+
+test_that("acepta los nombres alternativos de la hoja de metas", {
+  # El libro de metas usa `meta_muestra`/`meta_mujeres` en vez de `cuota_total`.
+  metas <- data.frame(facultad = "EDUCACION", meta_muestra = 26, meta_mujeres = 21,
+                      meta_hombres = 5, aulas_titulares = 4, stringsAsFactors = FALSE)
+  r <- calc_muestra_referencia_criterios_desde_base(metas)
+  f <- r$por_facultad[[1]]
+  expect_equal(f$cuota, 26)
+  expect_equal(f$cuota_mujeres, 21)
+  expect_equal(f$aulas_titulares, 4)
+})
+
+test_that("el payload de estado publica la referencia de criterios", {
+  # Un test del helper no protege la APLICACION: si nadie la colgara del
+  # payload, la UI no la vería y los tests de arriba seguirían verdes.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  expect_null(.cm_state_payload(sid)$referencia_criterios)
+  session_set(sid, "calc_muestra_referencia_criterios",
+              calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), .rc_diseno()))
+  pub <- .cm_state_payload(sid)$referencia_criterios
+  expect_equal(pub$schema, "calc_muestra_referencia_criterios_v1")
+  expect_equal(length(pub$por_facultad), 3L)
+})
+
+test_that("guardar NO borra la referencia previa cuando la nueva viene vacia", {
+  # Un libro sin hoja `cuotas` no debe llevarse por delante la comparación que
+  # ya estaba.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  previa <- calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), .rc_diseno())
+  session_set(sid, "calc_muestra_referencia_criterios", previa)
+  st <- session_get(sid)
+  .cm_criterios_referencia_guardar(sid, st, list(schema = "x"), FALSE, NULL, NULL,
+                                   referencia_criterios = NULL)
+  expect_equal(length(.cm_state_payload(sid)$referencia_criterios$por_facultad), 3L)
+})

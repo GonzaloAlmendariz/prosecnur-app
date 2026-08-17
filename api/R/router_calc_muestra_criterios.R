@@ -20,7 +20,8 @@
 }
 
 .cm_criterios_referencia_guardar <- function(sid, state, referencia,
-                                               has_workspace, estudio, reporte) {
+                                               has_workspace, estudio, reporte,
+                                               referencia_criterios = NULL) {
   updates <- if (has_workspace) {
     list(
       calc_muestra_estudio = estudio,
@@ -36,6 +37,13 @@
   }
   if (length(updates)) session_set_many(sid, updates)
   session_set(sid, "calc_muestra_referencia_asistencia", referencia)
+  # La referencia de CRITERIOS viaja por el mismo camino: sale de las hojas
+  # `cuotas` y `diseno` que este endpoint ya lee, no de una entrada nueva. Sólo
+  # se pisa la guardada cuando la nueva trae algo: un libro sin hoja `cuotas` no
+  # debe borrar la comparación que ya estaba.
+  if (!is.null(referencia_criterios)) {
+    session_set(sid, "calc_muestra_referencia_criterios", referencia_criterios)
+  }
 }
 
 .cm_criterios_frame_guardar <- function(sid, frame, referencia = NULL) {
