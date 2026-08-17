@@ -21,8 +21,8 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R2 | Con qué criterios | ☑ |
 | R3 | Qué parámetros de diseño usó | ☑ |
 | R4 | ¿La regla declarada reproduce sus propias 170 aulas? | **✗ NO — 133 de 170** |
-| R4b | Apareció la plantilla de cálculo, y es de **2026**: 189 objetivo / 203 a visitar | ☑ |
-| R5 | Marco 2026 con los criterios de 2025 | pendiente |
+| R4b | La plantilla de Kamila: 189 objetivo / 203 a visitar, sobre la MISMA base | ☑ |
+| R5 | **1.097 (2025) contra 2.468 (motor): el tipo de curso NO lo explica** | **abierto — lo siguiente** |
 | R6 | Alumnos elegibles por CH por facultad | pendiente |
 | R7 | Aulas por facultad: **motor 478 vs plantilla 189** | ☑ medido, explicado a medias |
 | R9 | Por qué el universo de aulas por facultad no se parece | **abierto — lo siguiente** |
