@@ -3583,7 +3583,7 @@
     size_subtitulo    = 16,
     size_subtitulo_slide = 16,
     size_cuerpo_slide = 16,
-    size_leyenda      = 16,
+    size_leyenda      = 12,
     size_ejes         = 12,
     size_nota_pie     = 14,
     size_texto_barras = 4.92,
@@ -3658,7 +3658,7 @@
 
     size_texto_barras        = 4.92,
     size_texto_barras_peq    = 4.92,
-    size_leyenda             = 16,
+    size_leyenda             = 12,
     size_barra_extra         = 16,
     size_titulo_extra        = 16,
     # 22 partia las preguntas largas en 6+ lineas (feedback directo B36).
@@ -3725,7 +3725,7 @@
     color_texto_barras_fuera = .PULSO_PPT_COLORS$azul,
     size_titulos_grupo       = 14,
     size_ejes                = 12,
-    size_leyenda             = 16,
+    size_leyenda             = 12,
     size_barra_extra         = 16,
     # B45: opt-in, igual que en apiladas.
     etiquetas_arriba_si_no_caben = FALSE,

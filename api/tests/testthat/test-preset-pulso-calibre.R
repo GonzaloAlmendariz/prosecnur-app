@@ -36,3 +36,24 @@ test_that("el calibre es uno solo en todas las familias que lo comparten", {
     if (!is.null(e)) expect_equal(e, 12, info = f)
   }
 })
+
+
+test_that("la leyenda sale a 12 pt, como las etiquetas", {
+  # El defecto mas visible del render de PowerPoint: la leyenda no cabia en su
+  # caja en 48 de 48 laminas —contra 8 de 53 del aprobado— y se partia encima
+  # del enunciado y de las etiquetas de eje. La causa estaba en la columna del
+  # tamano: 15.99 pt contra los 12.0 del aprobado. Al bajar `size_ejes` en el
+  # calibre anterior, `size_leyenda` se quedo atras.
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 12)
+  for (f in c("barras_apiladas", "multi_apiladas")) {
+    v <- .PRESETS_DEFAULT_PULSO[[f]]$size_leyenda
+    if (!is.null(v)) expect_equal(v, 12, info = f)
+  }
+})
+
+
+test_that("las leyendas con calibre propio conservan el suyo", {
+  # `histograma` (10) y `pie` (12) no valian 16: no entran en el reemplazo.
+  expect_equal(.PRESETS_DEFAULT_PULSO$histograma$size_leyenda, 10)
+  expect_equal(.PRESETS_DEFAULT_PULSO$pie$size_leyenda, 12)
+})
