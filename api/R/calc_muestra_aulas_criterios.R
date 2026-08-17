@@ -171,7 +171,14 @@
     entry <- x[[i]]
     if (!is.list(entry)) next
     op <- .cm_aulas_text_key(entry$op %||% "add")
-    if (!op %in% c("add", "replace")) op <- "add"
+    # `exenta`: el criterio NO APLICA en esa facultad. Gonzalo, sobre el nivel
+    # del curso: «los criterios los sigue aplicando de forma general (…) en los
+    # estudios generales letras y ciencias no deberia tenerlos». Con `replace`
+    # habria que enumerar TODAS las categorias validas a mano, y una categoria
+    # nueva quedaria fuera en silencio; con `exenta` la facultad pasa entera,
+    # que es lo que de verdad se quiere decir. Medido: el criterio de nivel se
+    # llevaba el 94 % de las aulas de EE.GG. LETRAS.
+    if (!op %in% c("add", "replace", "exenta")) op <- "add"
     out[[fac]] <- list(
       categories = .cm_aulas_text_key(.cm_aulas_chr_vec(entry$categories)),
       op = op
@@ -1175,7 +1182,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   if (!(crit$kind %in% c("flat", "hierarchical"))) return(TRUE)
   if (length(.cm_aulas_chr_vec(crit$categories))) return(TRUE)
   excepciones <- crit$exceptions %||% list()
-  any(vapply(excepciones, function(x) length(.cm_aulas_chr_vec(x$categories)) > 0L, logical(1)))
+  # Una exencion SI hace accionable el criterio: recorta en todas las facultades
+  # menos en las exentas, y ocultar ese paso escondería el recorte que sí ocurre.
+  any(vapply(
+    excepciones,
+    function(x) identical(x$op, "exenta") || length(.cm_aulas_chr_vec(x$categories)) > 0L,
+    logical(1)
+  ))
 }
 
 # Set efectivo de categorías para una facultad: base + excepción (add|replace).
@@ -1183,6 +1196,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   cats <- crit$categories
   ex <- crit$exceptions[[faculty_key]]
   if (!is.null(ex)) {
+    # `exenta` devuelve el set VACIO, que en el evaluador significa «sin set
+    # efectivo → pasa». No es lo mismo que un `replace` con las categorias de
+    # hoy: eso congelaria la lista y una categoria nueva quedaria fuera.
+    if (identical(ex$op, "exenta")) return(character(0))
     if (identical(ex$op, "replace")) cats <- ex$categories
     else cats <- unique(c(cats, ex$categories))
   }
