@@ -26,6 +26,8 @@ export type CorteDeCuota = {
   /** Celdas del corte y cuántas alcanzaron su meta. */
   celdas: number;
   celdasCumplidas: number;
+  /** El mismo corte partido por la otra dimensión; vacío si no se pidió. */
+  desglose?: CorteDeCuota[];
 };
 
 function numero(valor: unknown): number {
@@ -61,7 +63,20 @@ function corte(etiqueta: string, filas: ReadonlyArray<MonitoreoRow>): CorteDeCuo
   };
 }
 
-function agrupar(filas: ReadonlyArray<MonitoreoRow>, clave: (fila: MonitoreoRow) => string) {
+function agrupar(
+  filas: ReadonlyArray<MonitoreoRow>,
+  clave: (fila: MonitoreoRow) => string,
+  /**
+   * La otra dimensión de la celda. Con ella cada grupo trae su desglose: la
+   * facultad dice cuánto le falta **de cada sexo**, que es la pregunta que ni la
+   * lista por facultad ni la lista por sexo contestan —son dos marginales, y
+   * saber que faltan 167 en Gestión y 584 mujeres en todo el estudio no dice
+   * cuántas de esas 167 son mujeres—.
+   */
+  subclave?: (fila: MonitoreoRow) => string,
+  // El tipo se anota porque `agrupar` se llama a sí misma para el desglose y sin
+  // anotación TypeScript no puede inferirla.
+): CorteDeCuota[] {
   const grupos = new Map<string, MonitoreoRow[]>();
   for (const fila of filas) {
     const k = clave(fila);
@@ -71,7 +86,12 @@ function agrupar(filas: ReadonlyArray<MonitoreoRow>, clave: (fila: MonitoreoRow)
     else grupos.set(k, [fila]);
   }
   return [...grupos.entries()]
-    .map(([etiqueta, propias]) => corte(etiqueta, propias))
+    .map(([etiqueta, propias]) => ({
+      ...corte(etiqueta, propias),
+      // El desglose sale de las MISMAS celdas que el grupo, así que sus partes
+      // suman el grupo por construcción.
+      desglose: subclave ? agrupar(propias, subclave) : [],
+    }))
     // Primero lo que más falta: es el orden con el que se decide dónde insistir.
     .sort((a, b) => b.faltan - a.faltan || a.etiqueta.localeCompare(b.etiqueta, "es"));
 }
@@ -86,8 +106,8 @@ export function cuotasResumen(filas: ReadonlyArray<MonitoreoRow>) {
   const conMeta = filas.filter((fila) => numero(fila.target) > 0);
   return {
     general: corte("Total", conMeta),
-    porFacultad: agrupar(conMeta, (fila) => texto(fila.faculty)),
-    porSexo: agrupar(conMeta, (fila) => texto(fila.sex)),
+    porFacultad: agrupar(conMeta, (fila) => texto(fila.faculty), (fila) => texto(fila.sex)),
+    porSexo: agrupar(conMeta, (fila) => texto(fila.sex), (fila) => texto(fila.faculty)),
     sinMeta: filas.length - conMeta.length,
   };
 }

@@ -13,21 +13,46 @@ import { cuotasResumen, type CorteDeCuota } from "./cuotasResumen";
  */
 
 /** Una barra de cumplimiento con su cifra al lado. */
-function Barra({ corte, destacado = false, onElegir, activo = false }: {
+function Barra({ corte, destacado = false, onElegir, activo = false, conDesglose = false }: {
   corte: CorteDeCuota;
   destacado?: boolean;
   /** Si viene, la fila es un control: elegir ese corte enfoca el detalle. */
   onElegir?: () => void;
   activo?: boolean;
+  /**
+   * Si la fila muestra de qué sexo es lo que le falta. Sólo la lista por
+   * facultad: en la lista por sexo el desglose sería la lista de facultades
+   * entera, que ya está a la izquierda, escrita en una línea.
+   */
+  conDesglose?: boolean;
 }) {
   // Se recorta al 100 % sólo para pintar: la cifra sigue diciendo la verdad.
   const ancho = Math.min(100, corte.avance);
   const tono = corte.faltan === 0
     ? COLOR_RESULTADO.efectiva
     : corte.avance >= 50 ? COLOR_RESULTADO.parcial : COLOR_RESULTADO.pendiente;
+  // Cuánto de lo que falta es de cada sexo. La lista por facultad y la lista por
+  // sexo son dos marginales —«faltan 167 en Gestión» y «faltan 584 mujeres»— y
+  // ninguna dice cuántas de esas 167 son mujeres, que es lo que decide a quién
+  // buscar en esa facultad.
+  //
+  // Se muestra aunque quede una sola parte: que las 130 que faltan en Letras
+  // sean TODAS mujeres no es redundante, es la respuesta. Esconderlo por
+  // «tener un solo elemento» borraba justo el caso más claro.
+  const desglose = conDesglose ? (corte.desglose ?? []).filter((parte) => parte.faltan > 0) : [];
   const contenido = (
     <>
-      <span className="aulas-cuota-etiqueta">{corte.etiqueta}</span>
+      <span className="aulas-cuota-etiqueta">
+        {/* En su propio `span`: el nombre sí puede recortarse con elipsis y el
+            desglose no, y para eso tienen que ser dos elementos. */}
+        <span>{corte.etiqueta}</span>
+        {desglose.length ? (
+          <em className="aulas-cuota-desglose">
+            {desglose.map((parte) => `${parte.etiqueta} ${parte.faltan.toLocaleString("es-PE")}`).join(" · ")}
+            {desglose.length === 1 ? " — todo lo que falta" : ""}
+          </em>
+        ) : null}
+      </span>
       <span className="aulas-cuota-pista" role="img" aria-label={`${corte.avance}% de la cuota`}>
         <span style={{ width: `${ancho}%`, background: tono }} />
       </span>
@@ -99,6 +124,7 @@ export function AulasCuotasResumen({ filas, foco, onFoco }: {
             <Barra
               key={corte.etiqueta}
               corte={corte}
+              conDesglose
               activo={foco?.tipo === "facultad" && foco.valor === corte.etiqueta}
               onElegir={() => onFoco(
                 foco?.tipo === "facultad" && foco.valor === corte.etiqueta
