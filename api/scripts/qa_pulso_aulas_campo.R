@@ -133,6 +133,9 @@ if (ESCALA_2025) {
   # 196 veces. Con la fecha constante, cualquier lectura por dia sale degenerada
   # —un solo dia con todo dentro— y el fixture excluiria por construccion el
   # caso que la seccion Agenda existe para mostrar.
+  # Los motivos que el equipo declara al dar de baja un aula. Son los de
+  # `monitoreo_aulas_motivos_reemplazo()`: uno inventado se normaliza a «otro».
+  MOTIVOS <- c("docente_no_autoriza", "aula_no_existe", "horario_cambio", "baja_asistencia")
   dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes")
   horas <- c("08:00", "10:00", "12:00", "14:00", "16:00", "18:00")
   base <- function(cod, rol, fac, i, repl = NULL, ord = NULL, est = "agendada") {
@@ -164,7 +167,12 @@ if (ESCALA_2025) {
       o$analysis_weight_warning <- paste(
         "Reserva condicional: usar peso analitico final solo si se activa en campo",
         "y se ajusta no respuesta.")
+      # El motivo de la ACTIVACION vive en la reserva; el del REEMPLAZO, en la
+      # que cayo. Sin sembrar los dos, la columna «Motivo» de la cadena sale
+      # vacia y no se puede ver que cada fila lo saca de su propio campo.
+      if (identical(est, "agendada")) o$activation_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
     }
+    if (identical(est, "reemplazada")) o$replacement_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
     o
   }
   plan <- c(

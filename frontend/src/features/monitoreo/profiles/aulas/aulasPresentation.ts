@@ -25,6 +25,11 @@ const FIELD_LABELS: Record<string, string> = {
   applied_at: "Aplicada el",
   applied_by: "Aplicada por",
   field_note: "Nota de campo",
+  // Por qué esta fila está en la cadena. Lo compone el motor a partir del campo
+  // que corresponde al papel de la fila: la que cae lleva su motivo de
+  // reemplazo y la que entra el de activación. Un solo rótulo porque es una
+  // sola pregunta.
+  motivo: "Motivo",
   // Activación de reemplazos (L5/L49).
   activated_at: "Activada el",
   activation_reason: "Motivo de activación",
@@ -244,6 +249,39 @@ export function presentDetail(value: unknown) {
     .replace(/\bsexo\s+x\s+facultad\b/gi, "sexo por facultad");
 }
 
+/**
+ * Por qué cae un aula, en el idioma del equipo.
+ *
+ * Vivía dentro de `RegistroDeCampo`, que es quien la ofrece en un select, y por
+ * eso la tabla de la cadena no la alcanzaba: mostraba `docente_no_autoriza` en
+ * crudo. La jerga del motor no viaja a la pantalla, y una lista de vocabulario
+ * con dos dueños termina divergiendo —ya pasó con los tramos de aplicación—.
+ *
+ * Los valores son los de `monitoreo_aulas_motivos_reemplazo()` en R: si el
+ * motor añade uno, aquí sale su clave cruda y se ve que falta el rótulo.
+ */
+export const MOTIVOS_DE_REEMPLAZO: Array<{ value: string; label: string }> = [
+  { value: "docente_no_autoriza", label: "El docente no autoriza" },
+  { value: "aula_no_existe", label: "El aula no existe" },
+  { value: "horario_cambio", label: "Cambió el horario" },
+  { value: "virtual_no_presencial", label: "Es virtual, no presencial" },
+  { value: "baja_asistencia", label: "Muy baja asistencia" },
+  { value: "cruce_logistico", label: "Cruce logístico" },
+  { value: "aula_ya_aplicada", label: "El aula ya se aplicó" },
+  { value: "incidencia_etica", label: "Incidencia ética" },
+  { value: "otro", label: "Otro" },
+];
+
+const MOTIVO_LABELS: Record<string, string> = Object.fromEntries(
+  MOTIVOS_DE_REEMPLAZO.map((m) => [m.value, m.label]),
+);
+
+export function aulasMotivoLabel(motivo: unknown) {
+  const key = normalizedKey(motivo);
+  if (!key) return "";
+  return MOTIVO_LABELS[key] ?? fallbackLabel(String(motivo));
+}
+
 export function aulasFieldLabel(field: string) {
   return FIELD_LABELS[field] ?? fallbackLabel(field);
 }
@@ -277,6 +315,11 @@ function presentValue(field: string, value: unknown) {
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);
   if (field === "campo") return aulasFieldLabel(String(value));
+  // Los tres campos de motivo comparten vocabulario: `motivo` lo compone el
+  // motor según el papel de la fila, y los otros dos son de dónde lo saca.
+  if (field === "motivo" || field === "replacement_reason" || field === "activation_reason") {
+    return aulasMotivoLabel(value);
+  }
   if (
     field === "status"
     || field.endsWith("_status")

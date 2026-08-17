@@ -20,6 +20,7 @@ import {
   apiMonitoreoAulasAgenda,
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
+import { MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
 import "./registroDeCampo.css";
 
 // El vocabulario es el del motor (`monitoreo_aulas_estados()`), traducido una
@@ -38,17 +39,10 @@ const ESTADOS: Array<{ value: string; label: string }> = [
   { value: "cerrada", label: "Cerrada" },
 ];
 
-const MOTIVOS: Array<{ value: string; label: string }> = [
-  { value: "docente_no_autoriza", label: "El docente no autoriza" },
-  { value: "aula_no_existe", label: "El aula no existe" },
-  { value: "horario_cambio", label: "Cambió el horario" },
-  { value: "virtual_no_presencial", label: "Es virtual, no presencial" },
-  { value: "baja_asistencia", label: "Muy baja asistencia" },
-  { value: "cruce_logistico", label: "Cruce logístico" },
-  { value: "aula_ya_aplicada", label: "El aula ya se aplicó" },
-  { value: "incidencia_etica", label: "Incidencia ética" },
-  { value: "otro", label: "Otro" },
-];
+// El vocabulario vive en `aulasPresentation`, que es donde están todos los
+// rótulos: aquí se ofrecía en un select y la tabla de la cadena no lo alcanzaba,
+// así que pintaba `docente_no_autoriza` en crudo.
+const MOTIVOS = MOTIVOS_DE_REEMPLAZO;
 
 // El motivo sólo se pide cuando el estado lo justifica. Pedirlo siempre sería
 // ruido; no pedirlo nunca deja sin explicar por qué cayó un aula.

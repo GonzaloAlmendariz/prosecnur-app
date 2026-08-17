@@ -1135,7 +1135,36 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # ve fallar, en vez de recibir NULL en silencio —que es el patron que ya costo
   # doce items de esta cola—.
   brechas <- brechas[, intersect(BRECHAS_COLUMNAS_PUBLICADAS, names(brechas)), drop = FALSE]
-  replacements <- tracked_df[nzchar(tracked_df$replacement_for) | tracked_df$operational_status %in% c("reemplazada", "reemplazo_pendiente"), , drop = FALSE]
+  # La cadena de reemplazos son las reservas Y las aulas que cayeron.
+  #
+  # Faltaba el eje de MUESTRA, que es donde vive el reemplazo. Con solo
+  # `operational_status` —el eje de la aplicacion, que llena el registro de
+  # campo— un aula marcada `REEMPLAZADA` en STATUS MUESTRA no entraba: medido
+  # sobre el operativo, 24 titulares caidos y CERO de ellos en la tabla, que
+  # mostraba 26 filas y las 26 eran reservas. La consulta se llama «cadena» y no
+  # se podia ver junto a que reserva cayo cada aula. Mismo defecto que «Sin
+  # agendar»: el rotulo promete un eje y el filtro lee el otro.
+  replacements <- tracked_df[
+    nzchar(tracked_df$replacement_for)
+    | tracked_df$operational_status %in% c("reemplazada", "reemplazo_pendiente")
+    | tracked_df$sample_status %in% "reemplazada", , drop = FALSE]
+  # Por que esta cada fila en esta lista, en UNA columna.
+  #
+  # El motivo vive en un campo distinto segun el papel —`replacement_reason` en
+  # la que cae, `activation_reason` en la que entra— y la tabla mostraba solo el
+  # primero: sobre filas de reserva, una columna que NUNCA puede llenarse. Se
+  # resuelve aqui y no en la vista para que las dos superficies que lo lean
+  # digan lo mismo.
+  if (nrow(replacements)) {
+    cae <- replacements$sample_status %in% "reemplazada" |
+      replacements$operational_status %in% c("reemplazada", "reemplazo_pendiente")
+    replacements$motivo <- ifelse(
+      cae,
+      as.character(replacements$replacement_reason %||% ""),
+      as.character(replacements$activation_reason %||% "")
+    )
+    replacements$motivo[is.na(replacements$motivo)] <- ""
+  }
   representativity <- .monitoreo_aulas_effective_representativity(tracked_df, cfg)
 
   collector_col <- .monitoreo_aulas_col(responses, c(

@@ -504,7 +504,12 @@ function renderAulasView(
             // mismo titular, «reemplaza a CH 1» y «Reserva encadenada» se repiten
             // en las seis filas, y lo que hay que ver es cuál sigue y cuáles ya
             // se usaron.
-            preferredColumns={["operational_code", "replacement_for", "replacement_order", "sample_status", "sample_role", "replacement_reason"]}
+            // `motivo` y no `replacement_reason`: el motivo vive en un campo
+            // distinto según el papel de la fila —la que cae lo lleva en
+            // `replacement_reason` y la que entra en `activation_reason`—, así
+            // que sobre las 26 filas de reserva esa columna era estructuralmente
+            // vacía. El motor lo resuelve en una sola columna.
+            preferredColumns={["operational_code", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
           />
         </section>
         )}
