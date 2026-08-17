@@ -51,10 +51,16 @@
 #
 # Y AUN ASI SIGUE EN 7. Subirlo a 12 se probo y se descarto con dos medidas:
 #
-#   - La vara subio de 21 a 22. Aparece `R2 barras por grafico`, y con razon:
-#     el aprobado pone doce barras en una lamina como TRES bloques de cuatro,
-#     con su separacion y su leyenda cada uno. El motor las junta en UN bloque
-#     de doce, que es algo que el aprobado no hace en ninguna lamina.
+#   - La vara subio de 21 a 22. Aparece `R2 barras por grafico`.
+#
+#     OJO, CORRECCION: aqui se escribio que el motor «junta las doce en un
+#     bloque». ES FALSO, y se comprobo mirando el render: el motor compone TRES
+#     bloques con su enunciado, su separacion y su leyenda, igual que el
+#     aprobado. Lo que dispara R2 es otra cosa —una lamina de escala cuyo
+#     grafico de RAMPA pasa de siete barras—, y ahi la regla tiene razon: el
+#     aprobado nunca pasa de siete en rampa. En azul dicotomico si llega a ocho
+#     (su lamina 18), pero `calibrar_umbrales()` solo mira la rampa, asi que ese
+#     techo no esta calibrado para las dos paletas.
 #   - Y no arreglo lo que apuntaba. El mazo bajo de 73 laminas a 69, pero el
 #     contenido paso de morir al 85.7 % de la zona util a morir al 86.2 %, con
 #     el 71 % de sus laminas por debajo del 90 % contra el 73 % de antes. La
@@ -62,9 +68,16 @@
 #     igual que con doce, asi que el panel no llena su hueco pase lo que pase
 #     con cuantas filas tenga.
 #
+# REPETIDO con la reserva de pie ya reparada (0.5 en vez de 0.85), por si las
+# dos cosas interactuaban: vara 18 -> 19 y el contenido subio del 89.0 % al
+# 89.2 % de la zona util. Sigue sin compensar, pero ahora el unico incumplimiento
+# nuevo es ese R2 de rampa.
+#
 # Lo que falta para llegar a las laminas de 8 a 12 barras del aprobado —nueve de
-# las suyas— no es techo: es que una lamina componga VARIOS bloques de hasta
-# siete, que es una capacidad que el motor no tiene.
+# las suyas— NO es una capacidad que el motor no tenga: ya compone varios bloques
+# bien. Es que el techo sea POR PALETA, como lo es en el aprobado —hasta doce por
+# lamina en dicotomicas azules, siete por grafico en rampa—, en vez de un solo
+# numero para las dos.
 .PARTICION_MAX_BARRAS <- 7L
 
 # Sufijo del titulo de las laminas de continuacion.
