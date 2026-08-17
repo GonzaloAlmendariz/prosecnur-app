@@ -136,7 +136,6 @@ export function CargaPlanOverview({
     <section
       className="pulso-carga-plan-overview"
       data-carga-surface="plan"
-      data-audit-ready="carga-plan"
       aria-labelledby="carga-plan-title"
     >
       <div className="pulso-carga-plan-topology" data-carga-plan-region="topology">
