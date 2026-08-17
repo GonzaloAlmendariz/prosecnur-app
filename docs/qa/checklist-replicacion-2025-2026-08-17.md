@@ -22,7 +22,7 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R3 | Qué parámetros de diseño usó | ☑ |
 | R4 | ¿La regla declarada reproduce sus propias 170 aulas? | **✗ NO — 133 de 170** |
 | R4b | La plantilla de Kamila: 189 objetivo / 203 a visitar, sobre la MISMA base | ☑ |
-| R5 | **1.097 (2025) contra 2.468 (motor): el tipo de curso NO lo explica** | **abierto — lo siguiente** |
+| R5 | **Las 1.097 no son el marco, son lo sorteado; el marco eran ~2.931** | ☑ |
 | R6 | Alumnos elegibles por CH por facultad | pendiente |
 | R7 | Aulas por facultad: **motor 478 vs plantilla 189** | ☑ medido, explicado a medias |
 | R9 | Por qué el universo de aulas por facultad no se parece | **abierto — lo siguiente** |
@@ -219,6 +219,81 @@ Cruzando nuestras 5.263 aulas contra el catálogo completo de 23.133 —join por
    frecuentes son apellidos. El catálogo tiene `Tipo de docente` como columna 19.
 3. Además, **ESCUELA DE POSGRADO conserva 2 aulas incluidas** pese a la exclusión
    por facultad.
+
+## R5 · **Las 1.097 no son el marco: son lo sorteado** · resuelto
+
+El diseño 2025 llama «Marco de aulas 1.097» a lo que en realidad es el **pool
+sorteado** —170 titulares + 1.012 candidatos en cadena + 85 nunca seleccionadas—.
+El universo elegible del que salieron es mucho mayor.
+
+La prueba es la tasa de paso por facultad. Partiendo del catálogo de
+**5.262 cursos-horario únicos** (las 23.133 filas del libro son sesiones, no
+aulas), el pool que cumple los criterios de 2025 es de **3.046**, y de ahí
+entraron 1.097. Si un criterio los separara, la tasa variaría por facultad; es
+**uniforme**:
+
+| Facultad | En el pool | Dentro de las 1.097 | % |
+|---|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 655 | 231 | 35 |
+| EG LETRAS | 470 | 181 | 39 |
+| DERECHO | 395 | 184 | 47 |
+| EG CIENCIAS | 352 | 111 | 32 |
+| **ESCUELA DE ESTUDIOS ESPECIALES** | **179** | **61** | **34** |
+| CIENCIAS Y ARTES COMUN. | 168 | 63 | 38 |
+| CIENCIAS SOCIALES | 139 | 52 | 37 |
+| ARTES ESCÉNICAS | 115 | 43 | 37 |
+| **ESCUELA DE POSGRADO** | **115** | **0** | **0** |
+| GESTIÓN | 101 | 26 | 26 |
+| PSICOLOGÍA | 90 | 39 | 43 |
+| ARTE Y DISEÑO | 83 | 33 | 40 |
+| ARQUITECTURA | 64 | 29 | 45 |
+| LETRAS Y CIENCIAS HUMANAS | 40 | 9 | 22 |
+| GASTRONOMÍA | 33 | 17 | 52 |
+| EDUCACION | 25 | 8 | 32 |
+| CONTABLES | 16 | 8 | 50 |
+| CONSORCIO DE UNIVERSIDADES | 6 | 2 | 33 |
+| **Total** | **3.046** | **1.097** | **36** |
+
+Entre 26 % y 52 % en todas —dispersión de sorteo— **salvo ESCUELA DE POSGRADO,
+que pasa 0 de 115**. Ésa sí es una exclusión declarada.
+
+### Los criterios de 2025, ahora exactos
+
+Aplicados al catálogo de 5.262, reproducen un universo del mismo orden que el
+nuestro:
+
+| Paso | Aulas |
+|---|---:|
+| Catálogo de cursos-horario únicos | 5.262 |
+| + presencial | 4.624 |
+| + tipo teórico | 3.699 |
+| + **nivel del curso fuera de {1, 11, 12}** | 3.539 |
+| + **matriculados ≥ 10** | 3.046 |
+| + sin ESCUELA DE POSGRADO | **2.931** |
+| *(nuestro marco incluido hoy)* | *2.468* |
+
+- **Nivel 1: 119 en el pool, 0 en las 1.097.** Los niveles 11 y 12 (41 aulas)
+  tampoco entran. El nivel 1 del CURSO sí se excluyó del marco.
+- **Matriculados**: dentro el mínimo es 10 y fuera es 1; mediana 34 contra 25.
+- El **tipo de docente NO es criterio**: entre las 1.097 hay 12 asociados,
+  7 auxiliares, 35 jefes de práctica y 1 visitante. (El libro de 2025 sólo
+  publica dos categorías para esas mismas aulas: sus dos fuentes discrepan.)
+- La **condición del curso** viene vacía en el 98 % del catálogo.
+
+### Contradicción con un criterio que ya implementamos
+
+Gonzalo indicó que «posgrado y escuela de estudios especiales se excluyen por
+completo», y así está hoy en `excluded_faculties`. Pero **2025 excluyó sólo
+Posgrado**: la ESCUELA DE ESTUDIOS ESPECIALES aportó **61 aulas** al pool
+sorteado, al mismo 34 % que las demás. Si el criterio de 2026 debe coincidir con
+2025, esa segunda exclusión sobra; si es una decisión nueva, entonces la
+comparación con 2025 no puede cerrar por ahí. **Es decisión de Gonzalo.**
+
+### Lo que sigue sin cerrar
+
+Con el marco corregido a 2.931 la regla `CEIL(sobremuestra / mín(mediana, media))`
+sigue dando **126 aulas contra las 170 reales**, exactas en 5 de 15. R4 continúa
+abierto: ni el marco de 1.097 ni el de 2.931 lo explican.
 
 ## R4b · La plantilla de cálculo de Kamila
 
