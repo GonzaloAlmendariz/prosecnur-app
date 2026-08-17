@@ -205,6 +205,30 @@
   # Quien lo reintente tiene que resolver ESO primero: decidir cuerpo y lineas
   # en una sola pasada, no en dos que se alimentan. Medido sobre `p49.pptx`
   # contra `p48.pptx`.
+  #
+  # UNIFICADAS LAS DOS CUENTAS, Y SIGUE SOLAPANDO. Segundo intento, tambien
+  # revertido: `.titulo_grupo_ajuste()` decidia cuerpo y lineas en una pasada
+  # —para cada cuerpo candidato envolvia, contaba lineas reales y comprobaba que
+  # cupieran— con el invariante «lo autorizado cabe» probado sobre un barrido de
+  # altos. Los truncados bajaron de **10 a CERO**, igual que el aprobado… y el
+  # render seguia con enunciados encima unos de otros en las laminas 25, 38 y 69.
+  #
+  # POR QUE, y es lo que hay que resolver antes de un tercer intento: el alto
+  # que se le pasaba era una ESTIMACION —`n_cat * alto_fila + medio hueco`— y el
+  # texto se dibuja centrado en `mean(y_min, y_max)` del bloque, que son los
+  # centros de la primera y la ultima categoria, NO sus bordes. Dos bloques
+  # vecinos de distinto numero de filas no tienen sus centros equidistantes del
+  # hueco que comparten, asi que «media parte para cada uno» no reparte el
+  # espacio real.
+  #
+  # LA VIA QUE QUEDA: usar la geometria REAL que el graficador ya tiene en
+  # `group_df$y_min` / `$y_max` —la distancia entre el centro de este bloque y
+  # el del vecino— y no dejar que el texto pase de la mitad de esa distancia.
+  # Nada de estimar el alto a partir del numero de filas.
+  #
+  # Y el coste tambien subio: la corrida paso de 154 s a 384 s, porque cada
+  # bloque prueba sus candidatos. Habra que memoizar tambien la cuenta de lineas
+  # por `(texto, pt)`.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
