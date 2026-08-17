@@ -639,6 +639,96 @@ secciones más pequeñas.
 de nuestro marco. Con eso se puede reconstruir el embudo completo y comprobar
 qué recorta cada criterio, que es lo que R5 y R6 necesitan.
 
+## R6 — el estadístico por facultad. CERRADO
+
+La comparación con 2025 se rescató del propio `.pulso` de Gonzalo (`73f3a0f8`):
+la dimensión `facultad` de su referencia de asistencia guarda las aulas medidas
+y sus matriculados, y de ahí sale el **alumnos por curso-horario de 2025**. Al
+enfrentarlo con nuestro marco aparecieron cuatro divergencias grandes. Ninguna
+era un defecto del motor: **eran dos errores de comparación míos**.
+
+### Primer error: su media contra nuestra mediana
+
+2025 publica `matriculados ÷ aulas medidas`, que es una **media**. Yo lo
+comparaba contra nuestra **mediana**. Con media contra media, dos de las cuatro
+divergencias se caen solas:
+
+| Facultad | 2025 | nuestra mediana | Δ | nuestra media | Δ |
+|---|---|---|---|---|---|
+| ARQUITECTURA | 38,1 | 28,0 | −10,1 | 35,2 | **−2,9** |
+| ARTE Y DISEÑO | 27,2 | 21,0 | −6,2 | 24,7 | **−2,5** |
+
+### Segundo error: sus matriculados contra nuestros elegibles
+
+Quedaban los dos Estudios Generales, y la explicación es que 2025 promedia
+**matriculados** mientras nosotros promediamos **elegibles** —que descuentan el
+traslape—. Medido en las quince facultades, desvío medio absoluto contra 2025:
+
+- sobre **matriculados**: **2,41** alumnos por aula (sesgo +1,27)
+- sobre **elegibles**: 3,12 (sesgo −2,51)
+
+EE.GG. Ciencias pasa de −19,0 a **−4,2** y EE.GG. Letras de −11,5 a **+1,8**.
+
+El ajuste no es uniforme: en las facultades chicas —EDUCACIÓN +7,7, GASTRONOMÍA
++6,1 sobre matriculados— el que acierta es el de elegibles. Es coherente: donde
+casi no hay traslape ambas cifras convergen, y donde lo hay, 2025 estaba
+contando gente que ya no era encuestable. **No es que un estimador sea el
+correcto: son dos magnitudes distintas**, y el de 2025 es optimista en las
+facultades grandes.
+
+### Lo que queda dicho para R4
+
+2025 dimensionó sobre matriculados y nosotros sobre elegibles. Con la misma
+cuota, elegibles siempre exige MÁS aulas — que es la dirección exacta del
+478 contra 189.
+
+## El primer cuartil da 193 aulas
+
+Gonzalo: «usamos por defecto el primer cuartil, lo cual no me parece una mala
+indicación, tengo entendido que nos da aproximadamente 194 cursos-horario».
+Medido sobre su marco, con cuota proporcional de 2.500 y τ = 0,53:
+
+| Estadístico | Aulas |
+|---|---|
+| **p25** | **193** |
+| mín(mediana, media) | 159 |
+| media | 155 |
+| mediana | 154 |
+
+Su cifra era exacta, y 193 cae dentro de la banda que él fijó —«entre 170 y 210,
+en principio no más»—, junto a las **194 aulas aplicadas** de 2025 y a las
+**203 a visitar** de la plantilla de Kamila. Los otros tres estadísticos se
+quedan cortos.
+
+Por facultad, contra el objetivo de la plantilla de Kamila:
+
+| Facultad | p25 | aulas p25 | Kamila |
+|---|---|---|---|
+| CIENCIAS E INGENIERIA | 24 | 42 | 37 |
+| EE.GG. CIENCIAS | 27 | 28 | 21 |
+| EE.GG. LETRAS | 34 | 22 | 24 |
+| DERECHO | 37 | 18 | 21 |
+| CIENCIAS SOCIALES | 21 | 14 | 13 |
+| ARTE Y DISEÑO | 18 | 13 | 14 |
+| ARQUITECTURA | 22 | 11 | 11 |
+| CIENCIAS Y ARTES COMUN. | 20 | 10 | 10 |
+| ARTES ESCÉNICAS | 16 | 9 | 7 |
+| GESTIÓN | 29 | 8 | 8 |
+| PSICOLOGÍA | 23 | 7 | 7 |
+| LETRAS Y C. HUMANAS | 15 | 4 | 5 |
+| EDUCACIÓN | 17 | 3 | 6 |
+| CONTABLES | 23 | 2 | 3 |
+| GASTRONOMÍA | 18 | 2 | 2 |
+| **TOTAL** | | **193** | **189** |
+
+Once de quince quedan a una aula o menos. Las que se separan son EE.GG. Ciencias
+(+7), CIENCIAS E INGENIERIA (+5) y EDUCACIÓN (−3).
+
+**PENDIENTE**: comprobar qué estadístico usa hoy el motor por defecto. Las
+cifras del recorrido —avg 28 en el componente universidad y avg 20 en el de
+facultad— no son p25, así que o el default es otro o la configuración vigente lo
+sobreescribe.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
