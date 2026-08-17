@@ -263,20 +263,24 @@ test_that("un mapeo explicito sigue mandando sobre el fallback", {
 # candidatos no incluye ese nombre y la de estados validos no incluye esos
 # valores, asi que hoy pasan dos cosas encadenadas.
 
-test_that("sin columna de estado reconocible, TODA respuesta cuenta como valida", {
+test_that("`_validation_status` de Kobo se reconoce y discrimina", {
+  # Este test AFIRMABA lo contrario y era correcto hacerlo: documentaba que
+  # `_validation_status` no estaba entre los candidatos, asi que no se
+  # encontraba columna de estado y el filtro abria —contaba las dos, incluida la
+  # NO aprobada—. Reparado en L12: ahora se encuentra y separa.
   respuestas <- data.frame(
     collectorID = c("CH 1", "CH 1"),
     `_validation_status` = c("validation_status_approved", "validation_status_not_approved"),
     check.names = FALSE, stringsAsFactors = FALSE
   )
   cfg <- monitoreo_aulas_default_config()
-
-  # `_validation_status` no esta entre los candidatos, asi que no se encuentra
-  # columna de estado y el filtro abre: fail-open, no fail-closed.
-  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(TRUE, TRUE))
+  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(TRUE, FALSE))
 })
 
-test_that("apuntar al campo de Kobo a mano hoy invalidaria TODO", {
+test_that("apuntar al campo de Kobo a mano ya NO invalida todo", {
+  # El otro lado del mismo defecto: ninguno de los valores de Kobo estaba en
+  # `valid_statuses`, asi que quien configurara el mapeo «bien» se quedaba con
+  # cero validas y sin aviso. El vocabulario de Kobo ya entra.
   respuestas <- data.frame(
     collectorID = c("CH 1", "CH 2"),
     `_validation_status` = c("validation_status_approved", "validation_status_approved"),
@@ -284,11 +288,17 @@ test_that("apuntar al campo de Kobo a mano hoy invalidaria TODO", {
   )
   cfg <- monitoreo_aulas_default_config()
   cfg$source_mapping$status_var <- "_validation_status"
+  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(TRUE, TRUE))
+})
 
-  # Ninguno de los valores de Kobo esta en `valid_statuses`
-  # (completed/complete/valid/aprobado/aplicada), asi que quien configurara el
-  # mapeo "bien" se quedaria con cero respuestas validas y sin aviso.
-  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(FALSE, FALSE))
+test_that("`_status` de Kobo no se toma por estado de validacion", {
+  # Es el caso grave que ninguno de los dos tests anteriores cubria: Kobo manda
+  # `_status = submitted_via_web` en TODAS las filas de su export, y tomarlo por
+  # estado ponia el avance del estudio entero en cero, en silencio.
+  respuestas <- data.frame(collectorID = c("CH 1", "CH 2"), stringsAsFactors = FALSE)
+  respuestas[["_status"]] <- c("submitted_via_web", "submitted_via_web")
+  cfg <- monitoreo_aulas_default_config()
+  expect_identical(.monitoreo_aulas_valid_response(respuestas, cfg), c(TRUE, TRUE))
 })
 
 # --- Monitoreo abre despues del handoff --------------------------------------

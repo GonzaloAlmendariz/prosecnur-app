@@ -88,7 +88,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L2** | El valor del `collectorID` es un slug interno con hash, no el código operativo. | `.collection_stable_id()` en `collection_engine.R`; el código operativo canónico lo produce `.cm_aulas_codigo_operativo()`. Decidir cuál viaja a Kobo — afecta la reconciliación de la data que vuelve. | ⛔ bloqueado — ver «Espera al usuario» |
 | **L3** | La ficha no declara el rol: titular y reemplazo se ven iguales. | `collection_material_builtin_template()` no usaba `unit.role`; y el binding devolvía la clave cruda del motor. | ☑ **hecho** (2026-08-16) — la ficha imprime «Rol: Titular» / «Rol: Reemplazo de AULA-01». `.crf_role_label()` traduce, `replacement_for` viaja al plan y existe el binding `unit.replacement_for`. Built-in a revisión 2. |
 | **L11** | Hay **dos plantillas por defecto que no coinciden**. | `DEFAULT_COLLECTION_TEMPLATE` (`MaterialsSection.tsx`) declaraba otra ficha que la del backend. | ☑ **hecho** (2026-08-16) — borrada. Era **inalcanzable**: el backend siempre responde plantilla y el componente corta el render en `loading`, así que nunca se dibujó ni sirvió de fallback. Queda una semilla vacía explícita y, si el backend respondiera sin plantilla, el editor avisa en vez de inventar una receta. ⚠ verificado con typecheck + 89 tests, **sin chequeo visual**. |
-| **L12** | El filtro de «respuesta válida» no conoce los estados de Kobo, y falla abierto. | `.monitoreo_aulas_valid_response()` en `monitoreo_aulas_universitarias.R:434`. Kobo nombra su columna `_validation_status` (guion bajo delante) y la llena con `validation_status_approved`; los candidatos incluyen `validation_status` y `_status` pero **no** `_validation_status`, y `valid_statuses` (`completed`·`complete`·`valid`·`aprobado`·`aplicada`) no incluye ningún valor de Kobo. | ⛔ **bloqueado** — necesita decisión: hoy sin columna reconocible **todo cuenta como válido** (fail-open) y quien configurara el mapeo «bien» se quedaría con **cero válidas** sin aviso. Cambiar fail-open por fail-closed altera lo que cuenta en estudios vivos, así que no se toca sin tu visto bueno. Comportamiento actual **fijado con tests de caracterización** para que cambiarlo sea visible. |
+| **L12** | El filtro de «respuesta válida» no conocía los estados de Kobo, y fallaba abierto **y cerrado**. | `.monitoreo_aulas_valid_response()`. | ◐ **reparado el defecto** (2026-08-16) — `_status` ya no decide, entra el vocabulario de Kobo y el español, y el tablero **dice qué criterio aplicó**. Sigue siendo tuya la decisión de qué estados cuentan en TU estudio. |
 | **L13** | Tras el handoff, abrir Monitoreo **reventaba**. | `.monitoreo_aulas_status()` resolvía el alias con `aliases[[key]]`, que **lanza** `subscript out of bounds` con una clave desconocida en vez de devolver NULL: el `%||%` que hacía de red nunca actuaba. Y el handoff escribía `operational_status = "pendiente"`, palabra fuera de `monitoreo_aulas_estados()`. | ☑ **hecho** (2026-08-16) — el handoff escribe `planificada`, `pendiente` entra como alias, y ambos normalizadores caen al default con `[` en vez de romper. |
 | **L14** | El plan entregado se **multiplicaba n²**: 7 aulas salían como 49. | `.monitoreo_aulas_values()` / `.monitoreo_aulas_num_values()` hacían `rep(default, nrow(df))`, y `orden = getn(c("orden","order"), seq_len(n))` pasa un default **vectorial**. Al asignar esa columna de n² valores, el data.frame reciclaba todas las demás. Se disparaba sólo cuando faltaba la columna `orden` — el caso exacto de las filas que crea el handoff. | ☑ **hecho** (2026-08-16) — `rep_len` en vez de `rep`, en los dos helpers. Verificado de 1 a 20 filas. |
 | **L15** | El avance por aula era **siempre cero**. | El QR lleva `collection_unit_id`; las respuestas vuelven con ese id y `.monitoreo_aulas_course_status()` emparejaba sólo por `classroom_id`. Además la normalización **tiraba** `collection_unit_id`, así que el vínculo se perdía. El KPI global sí contaba las respuestas: el tablero decía «12 válidas» con las 7 aulas en 0. | ☑ **hecho** (2026-08-16) — el campo sobrevive a la normalización y el emparejamiento cae a él cuando `classroom_id` no casa. |
@@ -1198,3 +1198,52 @@ equipo. A favor, todo lo de arriba. En contra, lo único que queda en pie: el
 código operativo es del **plan**, así que si rehaces la muestra el mismo `CH 1`
 puede designar otra aula —pero, como acabo de medir, el slug tampoco protege de
 eso—.
+
+
+### 2026-08-16 — L12: había un defecto debajo de la decisión
+
+Preparando L12 como preparé L2 —medir para que decidir salga barato— apareció que
+no todo era decisión tuya. Medido sobre 4 respuestas, **antes**:
+
+| Lo que trae la base | Válidas |
+|---|---|
+| `_status = submitted_via_web` (Kobo lo manda **siempre**) | **0 de 4** |
+| `validation_status = validation_status_approved` | **0 de 4** |
+| `estado = «completa»` (un estudio en español) | **0 de 4** |
+| `_validation_status` (el nombre real de Kobo) | 4 de 4 — no lo encontraba |
+
+**El primero es el grave**: bastaba sincronizar un export completo de Kobo para
+que el avance del estudio entero cayera a **cero, en silencio**. `_status` dice
+*cómo llegó* el formulario, no si la respuesta vale, y estaba en la lista de
+candidatos a columna de estado.
+
+Reparado lo que no requiere decisión tuya:
+
+- **`_status` sale de los candidatos.** No es un estado de validación.
+- **`_validation_status` entra**, con su propio vocabulario
+  (`validation_status_approved`).
+- **El vocabulario admite español** —«completa», «válida», «aprobada»— que es
+  como lo escriben los estudios de la casa.
+- **El tablero dice qué criterio aplicó**, en vez de resolverlo en silencio:
+  «Cuentan las respuestas cuyo `estado` está en la lista: 3 de 5». Y marca
+  `review` en los dos casos que conviene mirar: cuando **no hay columna** —y por
+  tanto cuenta todo— y cuando el estudio **declara una columna que la base no
+  trae**, que hasta hoy pasaba por criterio deliberado en vez de por error de
+  tipeo.
+
+**Y la cadena de whitelists volvió a morder.** Amplié la lista de estados válidos
+y no cambió nada: la lista viaja por **dos** sitios —el default de la función y
+el de `monitoreo_aulas_default_config()`— y el normalizador siempre rellena desde
+el segundo. El primero no corre nunca. Es el mismo patrón que ya costó una
+iteración en Gráficos; ahora los dos salen de una constante.
+
+**Dos tests existentes tuvieron que invertirse**, y eso es una buena señal: no
+afirmaban la conducta deseada sino que **documentaban el defecto** —sus propios
+comentarios decían «fail-open, no fail-closed» y «quien configurara el mapeo bien
+se quedaría con cero válidas y sin aviso»—. Se reescriben afirmando lo reparado y
+conservando en el comentario qué estaba mal. Se añadió además el caso que ninguno
+cubría: `_status`.
+
+Lo que sigue siendo tuyo: **qué estados cuentan como válida en tu estudio**. La
+diferencia es que ahora el tablero te dice cuál está aplicando y a cuántas
+respuestas afecta, en vez de que lo descubras porque el avance no cuadra.
