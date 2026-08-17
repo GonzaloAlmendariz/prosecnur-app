@@ -19,6 +19,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
+import { AulasCuotasChart } from "./AulasCuotasChart";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
@@ -547,6 +548,10 @@ function renderAulasView(
           <h3>Cuota sexo por facultad</h3>
           <span>{fmt(quotaRows.length)} filas</span>
         </div>
+        {/* El eje es el CUMPLIMIENTO y no el volumen: cada celda tiene su propia
+            meta, así que 40 de 50 y 4 de 5 son el mismo problema resuelto en la
+            misma proporción, y la tabla obliga a dividir de cabeza para verlo. */}
+        <AulasCuotasChart filas={quotaRows as MonitoreoRow[]} />
         <DataTable rows={quotaRows} empty="El plan no declara composición por sexo para estos cursos-horario." />
       </section>
       )}
