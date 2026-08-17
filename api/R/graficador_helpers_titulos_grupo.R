@@ -102,6 +102,22 @@
   # `canvas_w_grupo` solo vive en el preset `multi_apiladas`, o sea es global a
   # todas las multi-apiladas del mazo. Mandar al analista a un control que no
   # existe es peor que no decir nada.
+  # P46, MEDIDO Y ABIERTO. Este recorte NO es un caso raro: en el mazo de Conta
+  # de hoy (`p45.pptx`) hay **22 textos truncados en 16 laminas de 66**, y el
+  # entregable aprobado tiene **CERO**. Una de cada cuatro laminas entrega una
+  # pregunta cortada a media frase.
+  #
+  # Y la causa no es el wrap —`.barras_wrap_titulo_grupo()` ya mide con
+  # `textGrob`, no estima—: es el ANCHO del canal. Medido en el XML de la lamina
+  # 41, «La Unidad facilita los medios necesarios…» vive en una caja de
+  # **1.492 in a 14 pt**; el aprobado pone sus enunciados largos en cajas de
+  # hasta **6.675 in a 13 pt** (su lamina 35, ocho lineas sin recortar). Mas de
+  # cuatro veces el ancho, y un punto menos de cuerpo.
+  #
+  # El consejo de abajo es correcto pero se lo lleva el analista: `canvas_w_grupo`
+  # es global a todas las multi-apiladas. Lo que falta es que el motor ensanche
+  # el canal cuando el enunciado no cabe, igual que P43 hizo con la etiqueta de
+  # eje — con `.chars_que_caben()` ya disponible para decidirlo midiendo.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
