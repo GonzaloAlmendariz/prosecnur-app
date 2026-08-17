@@ -17,6 +17,7 @@ import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
+import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { MODULE_TONES } from "../../../../lib/modules";
@@ -409,7 +410,7 @@ function renderAulasView(
     const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
     return (
-      <div className="mon-profile-stack">
+      <div className="mon-profile-stack aulas-tablas-apiladas">
         {pestana === "brechas" ? null : (
         <section
           className="mon-profile-panel"
@@ -420,6 +421,11 @@ function renderAulasView(
             <h3>Cadena de reemplazos</h3>
             <span>{fmt(reemplazos.length)} filas</span>
           </div>
+          {/* Sale del PLAN entero, no de `reemplazos`: esa lista sólo trae
+              reservas y caídas, así que un titular sin ninguna reserva —el caso
+              de L54— no aparecería y el gráfico diría que el plan tiene un
+              colchón que no tiene. */}
+          <AulasCadenaChart filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
           <DataTable
             rows={reemplazos}
             empty="Ningún curso-horario ha necesitado reemplazo."
