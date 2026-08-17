@@ -22,8 +22,8 @@ titular tenga su cadena completa.
 | E6 | **Cuota general por facultad** | Coherente con E5: la general no contradice el desglose por sexo | idem | ☐ |
 | E7 | **Alumnos elegibles por curso-horario** | El elegible por CH es calculable y trazable a E2 | `calc_muestra_aulas.R` | ☐ |
 | E8 | **Cuántos CH hacen falta por facultad** | Se deriva de E6 ÷ E7 y queda explícito | idem | ☐ |
-| E9 | **Selección de aulas** | Cumple las requeridas por facultad de E8, facultad por facultad | `calc_muestra_aulas.R` selector | ☐ |
-| E10 | **Titulares y sus reemplazos** | Cada titular tiene su cadena **completa**; ninguno se queda sin ella | selección + `chain_reserve` | ☐ |
+| E9 | **Selección de aulas** | Cumple las requeridas por facultad de E8, facultad por facultad | `calc_muestra_aulas.R` selector | ◐ **genera bien; falta contrastar con E8** |
+| E10 | **Titulares y sus reemplazos** | Cada titular tiene su cadena **completa**; ninguno se queda sin ella | selección + `chain_reserve` | ☑ **pasa** |
 
 ## E1 — Base · **pasa** (2026-08-16, sobre `hsvg2026.pulso`)
 
@@ -102,6 +102,39 @@ docente no viene informado— y sin embargo `teacher_type` **sí excluye aulas**
 
 Anotado: `require_faculty_prevalence` está en `FALSE` en este proyecto, anterior
 al cambio de default a `true`.
+
+## E9 y E10 — La prueba de fuego, GENERADA de verdad (2026-08-16)
+
+Gonzalo autorizó duplicar su `.pulso` y editarlo. Se generó la selección con el
+motor sobre la base **real**, en una copia de trabajo del scratchpad; su archivo
+original no se tocó.
+
+| Prueba | Resultado |
+|---|---|
+| Generar la selección | **1,9 segundos**, motor `cube_balanceado` |
+| Titulares | 30, los pedidos por `n_aulas` |
+| Cadenas | **los 30 con cadena; ninguno sin ella** |
+| Reservas por titular | **11 exactas** (min = mediana = max = 11) |
+| Equivalencia | las 330 son `misma_celda` |
+| Facultad | **330 de 330** reservas en la misma facultad que su titular |
+| Total | 30 + 330 + 2.108 pool = **2.468** = aulas incluidas |
+| Escribir al `.pulso` y releer | **18,8 MB, las 30 cadenas de 11 sobreviven** |
+
+Reparto de los 30 titulares en 10 facultades: CIENCIAS SOCIALES 5 · CIENCIAS E
+INGENIERIA 4 · DERECHO 4 · ESTUDIOS GENERALES LETRAS 4 · CIENCIAS Y ARTES DE LA
+COMUN. 3 · ESTUDIOS GENERALES CIENCIAS 3 · ARQUITECTURA Y URBANISMO 2 · ARTE Y
+DISEÑO 2 · GESTIÓN Y ALTA DIRECCIÓN 2 · PSICOLOGÍA 1.
+
+**E10 pasa.** La pregunta de Gonzalo —«¿ya podemos generar todas las aulas y los
+reemplazos de cada titular sin problemas?»— tiene respuesta afirmativa medida.
+
+**E9 queda a medias por lo que falta, no por un fallo**: el selector genera,
+respeta la celda y llena las once reservas, pero contrastar si esos 30 y ese
+reparto son *los requeridos por facultad* exige E5–E8, aún sin medir.
+
+Config del selector en el proyecto real: `n_aulas` 30, `replacement_waves` 11,
+`selector_engine` cube_balanceado, min/max reemplazos por titular 1/11,
+`replacement_depth_strategy` max_complete_chains_by_cell.
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
