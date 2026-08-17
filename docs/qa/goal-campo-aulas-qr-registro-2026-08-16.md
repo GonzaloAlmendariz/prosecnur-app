@@ -136,7 +136,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ☑ **hecho** (2026-08-16) — los **cinco** del catálogo: estado del circuito, cobertura por aula, brecha por estrato, consumo de cadena y cuota sexo×facultad. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
-| **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
+| **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias eran el plan declarado (`config…plan` y `dashboard.agenda`); la tercera estaba escondida: **`brechas` era un clon completo del plan** con sus ~40 columnas. | ◐ a medias (2026-08-16) — **1377 → 1045 → 934 KB** y **2,4 → 1,8 s**. Quedan las dos copias declaradas, que tienen consumidores distintos. |
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
@@ -1048,3 +1048,44 @@ puede haberla añadido alguien en campo.
 
 Verificado sobre el proyecto de 196 aulas: **12 celdas de cuota y 95 % de
 representatividad antes y después** de un ciclo completo generar → subir → releer.
+
+
+### 2026-08-16 — L66: la tercera copia estaba escondida en `brechas`
+
+Al medir el payload en vez de suponerlo apareció lo que no había visto: de
+1220 KB, **1007 eran las mismas 196 filas tres veces**.
+
+| | KB | filas |
+|---|---|---|
+| `config.aulas_universitarias.plan` | 333 | 196 |
+| `dashboard.agenda` | 337 | 196 |
+| **`dashboard.brechas`** | **337** | **196** |
+
+`brechas` no es una copia declarada: es un **reporte** que salía con las ~40
+columnas de `tracked_df` porque nadie le puso límite. Y con 196 aulas todas con
+brecha abierta el primer día, «las aulas con brecha» son *todas* las aulas.
+
+Su tabla muestra ocho columnas y la publicación a Sheets toma diez. Ahora viaja
+con la **unión de lo que sus dos consumidores piden**, doce columnas, fijada por
+test en las dos direcciones: que no vuelva a engordar y que no adelgace por
+debajo de lo que alguien usa.
+
+Medido sobre el mismo proyecto de 196 aulas, tres peticiones promediadas:
+
+| | antes | después |
+|---|---|---|
+| payload | 1220 KB | **934 KB** |
+| `brechas` | 337 KB | **50 KB** |
+| tiempo de la petición | 2433 ms | **1802 ms** |
+| filas en la tabla | 196 | 196 |
+
+**Y no era sólo peso.** Entre las columnas que se colaban iban `teacher_email` y
+`teacher_phone`. Que los datos de contacto del docente salgan en un reporte que
+se **publica a Sheets** no es un problema de tamaño: es exposición. El test lo
+fija explícitamente.
+
+Las otras dos copias se quedan por ahora y no por descuido: `config…plan` existe
+sin snapshot —es de donde el Registro de campo lee antes de que llegue la primera
+respuesta— y `dashboard.agenda` es la versión normalizada que consumen la agenda,
+el corte y el gráfico de cadena. Unificarlas exige decidir cuál manda antes del
+primer sync, que es un cambio con riesgo propio y merece su propio turno.
