@@ -24,8 +24,8 @@ titular tenga su cadena completa.
 | E2 | **Criterios de alumnos** | Filtran a quien deben; el elegible sale de aplicarlos, no de un default | `calc_muestra_aulas.R` · pestaña Criterios | ◐ **con observación** |
 | E3 | **Criterios de curso-horario** | **Que funcionen de verdad** — Gonzalo lo subraya | `calc_muestra_aulas_catalogo*` · `FacultadDecisionBloque` | ☐ |
 | E4 | **Cálculo de la muestra** | El n sale de la fórmula declarada y coincide con lo que publica la UI | `calc_muestra_engine.R` · `CalculoPropuestasTab` | ☑ **pasa** |
-| E5 | **Cuotas de hombres y mujeres por facultad** | Se calculan por facultad y suman lo que deben | `calc_muestra_aulas.R` · `CursosHorarioSexo` | ☐ |
-| E6 | **Cuota general por facultad** | Coherente con E5: la general no contradice el desglose por sexo | idem | ☐ |
+| E5 | **Cuotas de hombres y mujeres por facultad** | Se calculan por facultad y suman lo que deben | `calc_muestra_aulas.R` · `CursosHorarioSexo` | ☑ **pasa** |
+| E6 | **Cuota general por facultad** | Coherente con E5: la general no contradice el desglose por sexo | idem | ☑ **pasa** |
 | E7 | **Alumnos elegibles por curso-horario** | El elegible por CH es calculable y trazable a E2 | `calc_muestra_aulas.R` | ☐ |
 | E8 | **Cuántos CH hacen falta por facultad** | Se deriva de E6 ÷ E7 y queda explícito | idem | ☐ |
 | E9 | **Selección de aulas** | Cumple las requeridas por facultad de E8, facultad por facultad | `calc_muestra_aulas.R` selector | ◐ **genera bien; falta contrastar con E8** |
@@ -338,6 +338,52 @@ para 14 titulares, muy por debajo de las 11 reservas por titular del diseño.
 Esto explica desde arriba lo que se midió desde abajo: la cadena se rompía a 190
 titulares no por falta global de aulas, sino porque **las facultades chicas se
 agotan**. Ahora se sabe cuáles y cuánto.
+
+## E5 y E6 — Cuotas por facultad y sexo · **pasan las dos**
+
+La cuota por sexo SÍ existe: los dos componentes declaran
+`meta$variable_control = "facultad_sexo"` y el resultado la trae en
+`distribucion_sub` —30 entradas = 15 facultades × 2 sexos, con N y n cada una—.
+`cuotas_matriz` está vacía, pero no es donde vive esto.
+
+Componente por facultad (n = 4.986):
+
+| Facultad | N_M | n_M | N_F | n_F | n | %F |
+|---|---:|---:|---:|---:|---:|---:|
+| ARQUITECTURA Y URBANISMO | 336 | 117 | 744 | 259 | 376 | 69 % |
+| ARTE Y DISEÑO | 229 | 83 | 792 | 286 | 369 | 78 % |
+| ARTES ESCÉNICAS | 283 | 140 | 307 | 152 | 292 | 52 % |
+| CIENCIAS CONTABLES | 87 | 67 | 96 | 73 | 140 | 52 % |
+| CIENCIAS E INGENIERIA | 3.385 | 384 | 1.127 | 128 | 512 | 25 % |
+| CIENCIAS SOCIALES | 598 | 185 | 689 | 214 | 399 | 54 % |
+| CIENCIAS Y ARTES DE LA COMUN. | 301 | 123 | 531 | 218 | 341 | 64 % |
+| DERECHO | 1.036 | 169 | 1.933 | 314 | 483 | 65 % |
+| EDUCACION | 39 | 29 | 158 | 118 | 147 | 80 % |
+| EG CIENCIAS | 2.404 | 353 | 951 | 139 | 492 | 28 % |
+| EG LETRAS | 1.395 | 206 | 1.932 | 286 | 492 | 58 % |
+| GASTRONOMÍA, HOTELERÍA Y TURISMO | 48 | 39 | 80 | 66 | 105 | 63 % |
+| GESTIÓN Y ALTA DIRECCIÓN | 412 | 152 | 574 | 212 | 364 | 58 % |
+| LETRAS Y CIENCIAS HUMANAS | 97 | 70 | 128 | 93 | 163 | 57 % |
+| PSICOLOGÍA | 177 | 82 | 496 | 229 | 311 | 74 % |
+| **SUMA** | **21.365** | | | | **4.986** | |
+
+**Las dos sumas cuadran exactas** —2.500 y 4.986— y la población por sexo suma
+los 21.365 alumnos. El reparto respeta la composición real de cada facultad:
+Ingeniería 25 % mujeres, Educación 80 %.
+
+**E6 queda resuelta con E5**: la cuota general por facultad es la columna `n` y
+es exactamente la suma de sus dos sexos, por construcción.
+
+**La superficie existe y no recorta**: `didactica/DistribucionFacultadSexo`,
+montada en `universidad/salidas/SalidasResultadosTab`, deriva las series de los
+`sub` presentes y pinta todas las categorías; el helper
+`universityDistributionRows` (`shared/study.ts`) arma cuota, sexo, error y p.
+Sin `slice` ni topes, a diferencia de las cinco superficies de la familia de
+recortes.
+
+Trampa de instrumentación pagada: los `sub` del motor son **«M» y «F»**
+—masculino y femenino—, no «H» y «M». Filtrar por «H» da 100 % en las quince
+filas; ese fue el síntoma.
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
