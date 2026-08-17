@@ -1343,3 +1343,31 @@ todas en castellano.
 Con esto son **tres los vocabularios cerrados que cruzan R → UI y ahora tienen
 guard**: los controles de validación, los estados operativos y las columnas de las
 tablas. Los tres estaban rotos o a punto, y ninguno de los tres fallaba.
+
+
+### 2026-08-16 — el barrido a acreditación: 0 hallazgos, y la razón importa
+
+Recorridas **las 28 direcciones** del perfil de acreditación sobre `acrconta`,
+recogiendo cada cabecera de tabla: **37 distintas, ninguna con jerga cruda**.
+Todas en castellano —«Base reportada», «Casos No contesta», «% no barrido»—.
+
+El cero no es «no miré bien»: es un resultado con causa, y la causa es la que
+conviene retener.
+
+> **Acreditación declara sus columnas; aulas renderiza lo que llegue.**
+
+Las tablas de acreditación se construyen con una lista explícita de columnas en
+el frontend, así que una columna nueva del motor **no aparece sola**: alguien
+tiene que añadirla, y al añadirla escribe su etiqueta. El `DataTable` de aulas,
+en cambio, saca las columnas de `Object.keys(row)` y pinta lo que venga —por eso
+las 38 columnas nuevas se colaron sin que nadie las escribiera y sin que nada
+fallara—.
+
+De ahí la regla para la próxima superficie: **una tabla que refleja las claves de
+sus filas necesita un diccionario atado al productor; una que declara sus
+columnas, no**. El guard va donde la tabla es genérica. Ponerlo en las otras
+sería pedir etiqueta para columnas que nunca se pintan solas.
+
+Con esto el barrido de esta familia de defectos queda cerrado: tres vocabularios
+cerrados con guard en aulas, y comprobado que los otros perfiles no comparten la
+condición que los hacía posibles.
