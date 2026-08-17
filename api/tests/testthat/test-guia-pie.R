@@ -69,3 +69,34 @@ test_that("el envoltorio devuelve el bloque cuando no hay cotas que poner", {
   out <- .guia_envolver_bloque(g, ancho_in = 6, alto_in = 3, etiqueta = "panel")
   expect_s3_class(out, "ggplot")
 })
+
+
+# --- El recetario por graficador ---------------------------------------------
+#
+# Inventario medido: de los 17 archivos que definen un `graficar_*`, solo OCHO
+# componen canvas con `cowplot`. Los otros nueve devuelven un ggplot suelto y no
+# tienen bandas donde poner una cota. De esos ocho, cuatro dibujaban su guia con
+# color propio.
+
+test_that("las barras numericas dejan su morado propio", {
+  # Era `#8A2BE2` con grosor 2, un tercer estilo distinto del de barras y del
+  # del pie.
+  f <- formals(graficar_barras_numericas)
+  expect_equal(eval(f$debug_color_borde), .GUIA_COL)
+  expect_equal(eval(f$debug_lwd), .GUIA_LWD)
+})
+
+
+test_that("el boxplot compone su guia con el color de la guia", {
+  f <- formals(graficar_boxplot)
+  expect_equal(eval(f$debug_ph_col), .GUIA_COL)
+})
+
+
+test_that("el envoltorio acepta un ggplot corriente, no solo un bloque cowplot", {
+  # El boxplot no tiene bandas: se le envuelve el canvas entero.
+  skip_if_not_installed("cowplot")
+  g <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) + ggplot2::geom_point()
+  out <- .guia_envolver_bloque(g, ancho_in = 6, alto_in = 3, etiqueta = "canvas")
+  expect_s3_class(out, "ggplot")
+})
