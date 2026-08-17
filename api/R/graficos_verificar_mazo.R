@@ -681,6 +681,30 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
   # con un filtro por dimensiones entraban bandas de fondo y hasta la portada,
   # y la regla disparaba en 61 laminas —y en 56 del entregable aprobado, que es
   # la senal de que media otra cosa—.
+  #
+  # ESTA CUENTA MEZCLA DOS COSAS DISTINTAS, y separarlas cambia el diagnostico.
+  # Medido sobre `p45.pptx` contra el entregable aprobado, partiendo las laminas
+  # con dos o mas graficos en dos grupos:
+  #
+  #   laminas con RAMPA y AZUL a la vez
+  #     motor    7 laminas, 5 sobre umbral, max 0.424 cm, suma 0.841
+  #     aprobado 10 laminas, 2 sobre umbral, max 0.150 cm, suma 0.201
+  #
+  #   laminas de una sola paleta
+  #     motor    5 laminas, 3 sobre umbral, max 0.279 cm, suma 0.676
+  #     aprobado 5 laminas, 4 sobre umbral, max 0.221 cm, suma 0.706
+  #
+  # O sea que en las laminas de una paleta el motor ya iguala o gana —tres
+  # hallazgos contra cuatro, y menos suma—, y todo el desnivel esta en las
+  # MIXTAS: un bloque de escala y un bloque de barras simples en la misma
+  # lamina no se ponen de acuerdo en el grosor. El aprobado los mantiene a 1.5
+  # mm de diferencia como mucho; el motor llega a 4.2 mm (lamina 41: rampa
+  # 1.041 cm con dos barras contra azul 1.466 cm con tres).
+  #
+  # Por eso NO se persigue la lamina 9 —0.073 cm, 0.23 mm por encima de un
+  # umbral de 0.05—: es del grupo donde el motor ya va mejor que la vara. Lo que
+  # falta es que los dos graficos de una lamina mixta decidan su grosor juntos,
+  # y eso no se arregla dentro de un graficador porque ninguno ve al otro.
   gr <- c(
     .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA, exigir_sin_texto = TRUE)),
     .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))
