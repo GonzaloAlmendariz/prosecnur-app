@@ -13,14 +13,20 @@ import { cuotasResumen, type CorteDeCuota } from "./cuotasResumen";
  */
 
 /** Una barra de cumplimiento con su cifra al lado. */
-function Barra({ corte, destacado = false }: { corte: CorteDeCuota; destacado?: boolean }) {
+function Barra({ corte, destacado = false, onElegir, activo = false }: {
+  corte: CorteDeCuota;
+  destacado?: boolean;
+  /** Si viene, la fila es un control: elegir ese corte enfoca el detalle. */
+  onElegir?: () => void;
+  activo?: boolean;
+}) {
   // Se recorta al 100 % sólo para pintar: la cifra sigue diciendo la verdad.
   const ancho = Math.min(100, corte.avance);
   const tono = corte.faltan === 0
     ? COLOR_RESULTADO.efectiva
     : corte.avance >= 50 ? COLOR_RESULTADO.parcial : COLOR_RESULTADO.pendiente;
-  return (
-    <div className={`aulas-cuota-fila${destacado ? " es-total" : ""}`}>
+  const contenido = (
+    <>
       <span className="aulas-cuota-etiqueta">{corte.etiqueta}</span>
       <span className="aulas-cuota-pista" role="img" aria-label={`${corte.avance}% de la cuota`}>
         <span style={{ width: `${ancho}%`, background: tono }} />
@@ -30,11 +36,40 @@ function Barra({ corte, destacado = false }: { corte: CorteDeCuota; destacado?: 
           ? "cumplida"
           : <><strong>{corte.faltan.toLocaleString("es-PE")}</strong> por recoger</>}
       </span>
-    </div>
+    </>
+  );
+  const clase = `aulas-cuota-fila${destacado ? " es-total" : ""}${activo ? " es-activa" : ""}`;
+  // Con `onElegir` la fila es un botón de verdad —foco, teclado y estado
+  // anunciado—; sin él, un div. Un `div` con `onClick` no lo alcanza quien
+  // navega con teclado.
+  return onElegir ? (
+    <button type="button" className={clase} onClick={onElegir} aria-pressed={activo}>
+      {contenido}
+    </button>
+  ) : (
+    <div className={clase}>{contenido}</div>
   );
 }
 
-export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRow> }) {
+export type FocoDeCuota = { tipo: "facultad" | "sexo"; valor: string } | null;
+
+/** Serializa el foco para la URL: `facultad:Derecho`, `sexo:F`. */
+export function focoDesdeTexto(bruto: string | null): FocoDeCuota {
+  const [tipo, ...resto] = (bruto ?? "").split(":");
+  const valor = resto.join(":").trim();
+  if (!valor || (tipo !== "facultad" && tipo !== "sexo")) return null;
+  return { tipo, valor };
+}
+
+export function textoDesdeFoco(foco: FocoDeCuota) {
+  return foco ? `${foco.tipo}:${foco.valor}` : "";
+}
+
+export function AulasCuotasResumen({ filas, foco, onFoco }: {
+  filas: ReadonlyArray<MonitoreoRow>;
+  foco: FocoDeCuota;
+  onFoco: (foco: FocoDeCuota) => void;
+}) {
   const { general, porFacultad, porSexo, sinMeta } = useMemo(() => cuotasResumen(filas), [filas]);
 
   if (!general.celdas) {
@@ -60,11 +95,33 @@ export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRo
       <div className="aulas-cuotas-cortes">
         <section>
           <h4>Por facultad</h4>
-          {porFacultad.map((corte) => <Barra key={corte.etiqueta} corte={corte} />)}
+          {porFacultad.map((corte) => (
+            <Barra
+              key={corte.etiqueta}
+              corte={corte}
+              activo={foco?.tipo === "facultad" && foco.valor === corte.etiqueta}
+              onElegir={() => onFoco(
+                foco?.tipo === "facultad" && foco.valor === corte.etiqueta
+                  ? null
+                  : { tipo: "facultad", valor: corte.etiqueta },
+              )}
+            />
+          ))}
         </section>
         <section>
           <h4>Por sexo</h4>
-          {porSexo.map((corte) => <Barra key={corte.etiqueta} corte={corte} />)}
+          {porSexo.map((corte) => (
+            <Barra
+              key={corte.etiqueta}
+              corte={corte}
+              activo={foco?.tipo === "sexo" && foco.valor === corte.etiqueta}
+              onElegir={() => onFoco(
+                foco?.tipo === "sexo" && foco.valor === corte.etiqueta
+                  ? null
+                  : { tipo: "sexo", valor: corte.etiqueta },
+              )}
+            />
+          ))}
         </section>
       </div>
     </div>
