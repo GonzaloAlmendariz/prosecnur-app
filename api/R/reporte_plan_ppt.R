@@ -4642,6 +4642,35 @@ reporte_ppt_plan <- function(
         preset_args_single$ancho_max_eje_y %||% preset_args_single$wrap_y %||% 50
       block_wrap <- suppressWarnings(as.numeric(block_wrap)[1])
       if (!is.finite(block_wrap) || is.na(block_wrap) || block_wrap < 10) block_wrap <- 50
+      # P45, MEDIDO: ESTE 50 ES LA MITAD DEL ANCHO REAL, y de ahi sale que al
+      # bloque que mas alto necesita se le de menos.
+      #
+      # `block_wrap` decide cuantas lineas cuenta este estimador para el
+      # enunciado, y con eso se reparte la altura de la lamina entre sus
+      # bloques. Pero 50 no es el ancho del canal del enunciado: el canal real
+      # da entre 23 y 30 caracteres. Medido sobre «La Unidad facilita los medios
+      # necesarios para que los estudiantes realicen actividades
+      # extracurriculares…», el de la lamina 41:
+      #
+      #   wrap 50 -> 4 lineas      wrap 30 -> 7 lineas
+      #   wrap 38 -> 5 lineas      wrap 23 -> 9 lineas
+      #
+      # O sea que cuenta la MITAD de las lineas que el enunciado ocupa de
+      # verdad, y el bloque acaba con la mitad del alto que pedia. Se ve en el
+      # reparto: en la lamina 41 el bloque de rampa —dos filas y un enunciado de
+      # seis lineas— recibe **1.019 in** y el azul —tres filas, enunciado
+      # corto—, **2.055**. Proporcion 1:2 cuando sus filas son 2:3. El
+      # entregable aprobado hace lo contrario en su lamina 39: 1.622 al de dos
+      # filas contra 2.052 al de tres, o sea 1:1.27.
+      #
+      # Y ademas los `%||%` de arriba caen en `ancho_max_eje_y` / `wrap_y`, que
+      # son el envoltorio del EJE, no el del enunciado: dos magnitudes distintas
+      # con el mismo nombre de idea.
+      #
+      # Lo que toca es medirlo con `.barras_wrap_titulo_grupo()` —que ya mide
+      # con `grid::textGrob` y va memoizada— en vez de este 50. Antes de
+      # cambiarlo hay que ver el efecto en el reparto de las mixtas Y en la
+      # vara, porque mover la altura de los bloques mueve el grosor, que es B3.
 
       n_rows <- 1L
       title_lines <- 0L
