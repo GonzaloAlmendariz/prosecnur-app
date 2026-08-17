@@ -918,15 +918,27 @@ graficar_barras_agrupadas <- function(
     # alto de fila; aqui la fila la fija el panel y no se puede crecer, asi que
     # lo que cede es el CUERPO: si las lineas que el envoltorio va a producir no
     # caben en la fila, el texto baja hasta que quepan.
-    # MEDIDO Y TODAVIA SIN EFECTO, con la razon. Trazado sobre la lamina 13:
-    # llega `canvas=TRUE orient=horizontal ncat=6 wrap=38 forzar=FALSE alto=6`.
-    # Con esas cifras la cuenta de abajo dice que las dos lineas CABEN —0.43 in
-    # de texto en una fila de 0.62— y no encoge nada; y en el render se solapan
-    # igual. O sea que la fila REAL mide menos que `alto * frac_panel / n_cat`:
-    # falta medir el paso de fila de verdad —la expansion de la escala y lo que
-    # se lleva la cabecera— en vez de estimarlo. Hasta entonces esto no muerde,
-    # y se deja porque la parte medible —cuantas lineas produce el envoltorio y
-    # que cuerpo cabe en una fila dada— ya esta fijada con tests.
+    # MEDIDO, SIN EFECTO TODAVIA, Y CON LA CAUSA LOCALIZADA FUERA DE AQUI.
+    #
+    # Trazado sobre la lamina 13 llega `canvas=TRUE orient=horizontal ncat=6
+    # wrap=38 forzar=FALSE alto=6`, y con esas cifras la cuenta de abajo dice
+    # que las dos lineas CABEN —0.43 in de texto en una fila de 0.62— mientras
+    # en el render se solapan. Medido el paso de fila en el PNG: ~0.35 in, un
+    # 57 % de lo estimado.
+    #
+    # LA CAUSA: ese `alto = 6` es el DEFAULT DE LA FIRMA, no el alto del cajon.
+    # `reporte_plan_ppt.R` tiene `.render_element(el, ancho_slot)`, que inyecta
+    # `overrides$ancho` con el ancho fisico del cajon —eso es H22, y lo usan 25
+    # llamadas—, pero NO EXISTE un `alto_slot`: el alto nunca viaja. En una
+    # lamina de cuatro paneles el graficador cree tener seis pulgadas de alto
+    # donde tiene tres, asi que CUALQUIER cuenta vertical suya se equivoca por
+    # ese factor.
+    #
+    # Repararlo es simetrico a H22 —anadir `alto_slot` al lado de `ancho_slot`—
+    # pero toca un archivo congelado a crecimiento, asi que exige subir su linea
+    # base de forma deliberada. Hasta entonces esto no muerde, y se deja porque
+    # la parte medible —cuantas lineas produce el envoltorio y que cuerpo cabe
+    # en una fila DADA— ya esta fijada con tests.
     filas_eje <- .agrupadas_lineas_eje(cat_lvls, ancho_max_eje_y_eff)
     size_ejes_eff <- .agrupadas_size_que_cabe(
       size_ejes_eff, filas_eje, n_categorias,
