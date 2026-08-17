@@ -140,8 +140,32 @@
   # entonces el cupo de aqui lo recorta.
   #
   # Es la misma forma que P42 pero sobre el otro eje: un parametro que no viaja
-  # hace mentir a todo lo que dependa de el. La reparacion es que esas 20
-  # llamadas reciban su ancho real, no subir constantes.
+  # hace mentir a todo lo que dependa de el. REPARADO en `8fa60752` con
+  # `.multilista_heredar_cajon()`: el enunciado de la lamina 41 pasa de una caja
+  # de 1.492 in a una de 1.794, un 20 %.
+  #
+  # Y NO BASTA: los truncados bajan solo de 22 a 21. Trazado ESTE cupo sobre la
+  # corrida entera —191 llamadas, 21 recortes—, el cuadro es este:
+  #
+  #   · casi todos son bloques de UNA fila con el enunciado pidiendo de 4 a 11
+  #     lineas y un cupo de 2 a 6. La fila mide de 0.40 a 1.17 in y una linea a
+  #     14 pt con interlineado 0.86 ocupa 0.167, asi que fisicamente no caben.
+  #   · el cuerpo que SI las haria caber, calculado bloque a bloque:
+  #     13.6 · 12.1 · 12.1 · 11.8 · 11.5 · 10.9 · 10.1 · 9.8 · 9.6 · 9.1 · 9.1 ·
+  #     8.7 · 8.7 · 8.4 · 8.4 · 7.8 · 7.6 · 6.7 · 6.6 · 6.6 · 6.6 pt.
+  #     Con piso de 12 pt se salvan 3 de 21; con 11, cinco; con 10, siete.
+  #
+  # O sea que la palanca del aprobado —«y si hace falta, un punto menos de
+  # cuerpo»: sus enunciados largos van a 12 y 13 pt donde el motor pone 14—
+  # existe y alcanza para una parte. La cuenta de arriba la SUBESTIMA, porque
+  # supone que el numero de lineas no cambia: a 11 pt cada linea lleva ~27 % mas
+  # texto, asi que un enunciado de nueve lineas baja a siete. Hay que medirlo
+  # re-envolviendo a cada tamano candidato, no con la cuenta estatica.
+  #
+  # Es la tercera vez que aparece la misma forma —`.agrupadas_size_que_cabe()`
+  # ya la resuelve para la etiqueta de eje—, asi que pide un helper y no un
+  # parche. Y el tamano se decide POR LAMINA, no por bloque: el aprobado usa un
+  # solo cuerpo en toda su lamina 29 (12 pt para sus cuatro enunciados).
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
