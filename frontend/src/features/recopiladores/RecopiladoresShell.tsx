@@ -60,6 +60,11 @@ export function RecopiladoresShell() {
   const direction = resolverDireccion(params.get("seccion"), params.get("pestana"));
   const [payload, setPayload] = useState<CollectionStatePayload | null>(null);
   const [loading, setLoading] = useState(true);
+  // Una sección puede seguir cargando lo suyo cuando el shell ya tiene el plan.
+  // `auditReady` prometía que la vista era juzgable y no lo era: el QA visual de
+  // Materiales llevaba midiendo su esqueleto de carga —124 px de vacío y el
+  // texto «Leyendo plantilla semántica…»— en cada corrida.
+  const [seccionCargando, setSeccionCargando] = useState(false);
   const [error, setError] = useState("");
   const [latestArtifact, setLatestArtifact] = useState<CollectionArtifactReceipt | null>(null);
   const [sinCambios, setSinCambios] = useState(false);
@@ -161,7 +166,7 @@ export function RecopiladoresShell() {
       bodyMode="fill"
       headerMode="sr-only"
       resetScrollKey={`${direction.seccion}/${direction.pestana}`}
-      auditReady={loading ? false : `recopiladores/${direction.seccion}/${direction.pestana}`}
+      auditReady={loading || seccionCargando ? false : `recopiladores/${direction.seccion}/${direction.pestana}`}
       className="rec-page"
       chrome={(
         <ModuleCommandBar
@@ -270,6 +275,7 @@ export function RecopiladoresShell() {
               activeTab={direction.pestana}
               onStateRefresh={refresh}
               onArtifact={setLatestArtifact}
+              onCargando={setSeccionCargando}
             />
           ) : null}
           {!loading && direction.seccion === "entrega-campo" ? (
