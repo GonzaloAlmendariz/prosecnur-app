@@ -220,8 +220,11 @@ graficar_barras_numericas <- function(
 
     # DEBUG
     debug_ph_bordes      = FALSE,
-    debug_color_borde    = "#8A2BE2",
-    debug_lwd            = 2,
+    # Antes: morado #8A2BE2 y grosor 2, propios de este graficador. Tres
+    # graficadores dibujaban su guia de tres formas distintas y lo que las
+    # diferenciaba no era el diseño sino quien las dibujaba.
+    debug_color_borde    = .GUIA_COL,
+    debug_lwd            = .GUIA_LWD,
 
     exportar             = c("rplot", "png", "ppt", "word"),
     path_salida          = NULL,
@@ -718,11 +721,28 @@ graficar_barras_numericas <- function(
       )
     }
 
-    .wrap_debug <- function(g) {
+    # La guia es la MISMA que la de barras apiladas, el pie y el radar: un plano
+    # con la cota de cada caja (`.guia_envolver_bloque()` en
+    # `graficador_guia_arquitectonica.R`), no un rectangulo suelto.
+    # `frac_w`/`frac_h` son la porcion del canvas que le toca a este bloque, que
+    # es lo que convierte su npc en pulgadas.
+    .canvas_w_in <- suppressWarnings(as.numeric(ancho)[1])
+    .canvas_h_in <- suppressWarnings(as.numeric(alto)[1])
+    .wrap_debug <- function(g, etiqueta = NULL, nota = NULL,
+                            frac_w = 1, frac_h = 1, rotulo_derecha = FALSE) {
       if (!isTRUE(debug_ph_bordes)) return(g)
-      cowplot::ggdraw() +
-        cowplot::draw_plot(g, 0, 0, 1, 1) +
-        cowplot::draw_grob(.rect_grob(), 0, 0, 1, 1)
+      .guia_envolver_bloque(
+        cowplot::ggdraw() + cowplot::draw_plot(g, 0, 0, 1, 1),
+        ancho_in = .canvas_w_in * frac_w,
+        alto_in  = .canvas_h_in * frac_h,
+        etiqueta = etiqueta, nota = nota,
+        col = debug_color_borde %||% .GUIA_COL,
+        lwd = debug_lwd %||% .GUIA_LWD,
+        # Las bandas a todo el ancho repetirian la misma cota horizontal una vez
+        # por banda; lo que varia entre ellas es el alto.
+        cota_ancho = frac_w < 0.999,
+        rotulo_derecha = rotulo_derecha
+      )
     }
 
     # Leyenda aparte
@@ -801,37 +821,53 @@ graficar_barras_numericas <- function(
       )
 
     legend_block <- if (!is.null(leg)) cowplot::ggdraw(leg) else cowplot::ggdraw() + cowplot::theme_nothing()
-    panel_block <- if (!is.null(leg) && legend_is_side) {
-      if (identical(leyenda_posicion, "izquierda")) {
-        cowplot::plot_grid(.wrap_debug(legend_block), .wrap_debug(p_panel), ncol = 2, rel_widths = c(0.22, 0.78))
-      } else {
-        cowplot::plot_grid(.wrap_debug(p_panel), .wrap_debug(legend_block), ncol = 2, rel_widths = c(0.78, 0.22))
-      }
-    } else {
-      .wrap_debug(p_panel)
-    }
 
-    # Alturas (panel absorbe el resto)
+    # Alturas (panel absorbe el resto). Se calculan ANTES de envolver, porque la
+    # cota de cada banda necesita saber que porcion del canvas ocupa.
     h_title   <- canvas_h_title
     h_legend  <- if (!is.null(leg) && !legend_is_side) canvas_h_legend else 0.01
     h_caption <- if (!is.null(nota_pie) && nzchar(nota_pie)) canvas_h_caption else 0.01
     h_panel   <- max(0.01, 1 - (h_title + h_legend + h_caption) - canvas_pad_top)
 
+    panel_block <- if (!is.null(leg) && legend_is_side) {
+      w_leg <- 0.22
+      izq <- identical(leyenda_posicion, "izquierda")
+      cowplot::plot_grid(
+        if (izq) .wrap_debug(legend_block, "leyenda", .guia_nota(size_leyenda),
+                             frac_w = w_leg, frac_h = h_panel)
+        else .wrap_debug(p_panel, "panel", NULL, frac_w = 1 - w_leg, frac_h = h_panel),
+        if (izq) .wrap_debug(p_panel, "panel", NULL,
+                             frac_w = 1 - w_leg, frac_h = h_panel)
+        else .wrap_debug(legend_block, "leyenda", .guia_nota(size_leyenda),
+                         frac_w = w_leg, frac_h = h_panel),
+        ncol = 2,
+        rel_widths = if (izq) c(w_leg, 1 - w_leg) else c(1 - w_leg, w_leg)
+      )
+    } else {
+      .wrap_debug(p_panel, "panel", NULL, frac_h = h_panel)
+    }
+
+    .banda_titulo <- function() .wrap_debug(title_block, "cabecera",
+                                            .guia_nota(size_titulo),
+                                            frac_h = h_title, rotulo_derecha = TRUE)
+    .banda_leyenda <- function() .wrap_debug(legend_block, "leyenda",
+                                             .guia_nota(size_leyenda), frac_h = h_legend)
+    .banda_pie <- function() .wrap_debug(caption_block, "pie",
+                                         .guia_nota(size_nota_pie),
+                                         frac_h = h_caption, rotulo_derecha = TRUE)
+
     if (!is.null(leg) && legend_is_top && !legend_is_side) {
       p_final <- cowplot::plot_grid(
-        .wrap_debug(title_block),
-        .wrap_debug(legend_block),
-        panel_block,
-        .wrap_debug(caption_block),
+        .banda_titulo(), .banda_leyenda(), panel_block, .banda_pie(),
         ncol = 1,
         rel_heights = c(h_title, h_legend, h_panel, h_caption)
       )
     } else {
       p_final <- cowplot::plot_grid(
-        .wrap_debug(title_block),
+        .banda_titulo(),
         panel_block,
-        if (!legend_is_side) .wrap_debug(legend_block) else cowplot::ggdraw() + cowplot::theme_nothing(),
-        .wrap_debug(caption_block),
+        if (!legend_is_side) .banda_leyenda() else cowplot::ggdraw() + cowplot::theme_nothing(),
+        .banda_pie(),
         ncol = 1,
         rel_heights = c(h_title, h_panel, h_legend, h_caption)
       )

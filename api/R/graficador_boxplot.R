@@ -558,12 +558,19 @@ graficar_boxplot <- function(
   }
 
   if (isTRUE(debug_ph_bordes)) {
-    p_out <- p_out +
-      ggplot2::theme(
-        plot.background = ggplot2::element_rect(
-          fill = NA, colour = debug_ph_col, linewidth = debug_ph_lwd
-        )
-      )
+    # Un marco sin medida no deja comprobar nada. Este graficador solo enmarca
+    # el CONJUNTO —no tiene un `.wrap_debug` por banda como el pie o las barras
+    # numericas—, asi que de momento lleva la cota del canvas entero. Acotar sus
+    # `pieces` una a una queda pendiente: hay que rehacer su `plot_grid()` para
+    # que cada pieza sepa que porcion ocupa.
+    p_out <- .guia_envolver_bloque(
+      p_out,
+      ancho_in = suppressWarnings(as.numeric(ancho)[1]),
+      alto_in  = suppressWarnings(as.numeric(alto)[1]),
+      etiqueta = "canvas",
+      col = debug_ph_col %||% .GUIA_COL,
+      lwd = debug_ph_lwd %||% .GUIA_LWD
+    )
   }
 
   if (identical(exportar, "rplot")) return(p_out)
