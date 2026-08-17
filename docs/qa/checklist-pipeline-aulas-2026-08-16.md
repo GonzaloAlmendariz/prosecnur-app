@@ -443,15 +443,46 @@ bloque `alumnos_por_ch` con referencia, `frame_hash`, denominador,
 exactamente los que nombra Gonzalo: **`media`, `mediana`, `p25` y
 `min_mediana_media`**.
 
-**Y NO LA LLAMA NADIE EN PRODUCCIÓN.** Ningún router, ningún endpoint: el único
-código que la invoca son sus tests. Capacidad completa, probada, con contrato de
-trazabilidad, sin consumidor.
+**CORRECCIÓN (mismo día)**: dije que no la llamaba nadie en producción y **era
+falso**. La cadena SÍ está conectada: `POST /api/calc-muestra/calcular`
+(`router_calc_muestra.R:423`) llama a
+`calc_muestra_alumnos_por_ch_calcular_estudio`, que encadena
+`resolver_estudio` → `calcular_estudio` → `adjuntar_auditoria` →
+`distribucion_adjuntar` → `comparacion_adjuntar`. Mi grep buscó
+`_resolver_estudio` y `_adjuntar_auditoria` y no el envoltorio, que es el que
+llama el router.
+
+**La causa real es otra y es un DEFAULT**: el resolutor devuelve sin tocar nada
+cuando `alumnos_por_ch_decision` es `NULL` —compatibilidad explícita con
+proyectos previos al contrato v1— y en el proyecto real está vacía. No es que
+nadie llame al motor: **es que nadie ha tomado la decisión**, y sin decisión el
+motor se queda con el `avg_conglomerado` global. El «por facultad» no llega al
+número de aulas por omisión, no por incapacidad.
 
 Por eso las quince facultades comparten un único `avg_conglomerado` —20 o 28
 según el componente—. No es que el motor no sepa distinguir Derecho de
 Gastronomía: **sabe hacerlo y nadie se lo pide**. Y por eso
 `alumnos_por_ch_decision` está vacía en el proyecto real: no hay ruta que la
 escriba ni que la aplique.
+
+### Decisión de Gonzalo: `min_mediana_media` por defecto, cambiable por facultad
+
+El mecanismo de override por facultad YA EXISTE
+(`calc_muestra_alumnos_por_ch.R` ~514): `method <- if (is.null(override))
+decision$estadistico_default else override`, con `override =
+decision$por_facultad[[faculty_key]]` y validación contra la whitelist de los
+cuatro métodos. Lo que falta es que un estudio nuevo **nazca con la decisión
+tomada** en vez de con `alumnos_por_ch_decision` vacía.
+
+El propio archivo documenta que **`min_mediana_media` es el estadístico que
+aplicó el diseño de 2025** —la hoja «TD Estudiantes» lo llama «Mínimo entre
+mediana y media»—, así que el default que pidió Gonzalo coincide con el
+precedente.
+
+**Trampa de nombres, ya documentada en el código**: el estadístico de
+conglomerado del Recorrido llama `min_media_mediana` a lo mismo, con los dos
+términos invertidos. Son contratos distintos y ninguno lee la whitelist del
+otro.
 
 Guardas del resolutor, para la reparación: exige
 `workspace$frame_mode == "opinion_universitaria"`, devuelve sin tocar nada si
