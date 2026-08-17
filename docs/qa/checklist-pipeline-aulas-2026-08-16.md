@@ -237,6 +237,41 @@ Total: 5.263 aulas · 2.468 incluidas · **83.917 elegibles en aulas incluidas**
    mediana 16, así que juntar ~200 alumnos exigiría 13 de sus 16 aulas y **no
    quedarían reservas** — el mismo agotamiento por celda ya medido a escala.
 
+## E3 — DEFECTO VIVO: la exclusión de posgrado no la hace ningún criterio
+
+Gonzalo: «Posgrado y escuela de estudios especiales no están, se excluyen por
+completo». El motor **no lo garantiza**; hoy se cumple de casualidad.
+
+Las 2 aulas de ESCUELA DE POSGRADO que entraron al marco son de INGENIERÍA
+CIVIL —«ESTRUCTURAS METÁLICAS AVANZADAS» y «DINÁMICA DE ESTRUCTURAS»—,
+presenciales, con 17 y 16 elegibles, y su `exclude_reason` viene **vacía**.
+
+**Causa**: `exclude_level_patterns` busca las palabras *posgrado, postgrado,
+maestria, master, doctorado* dentro de la columna `level`. En esta base `level`
+es un **número de ciclo** ("1".."9"), nunca un texto. El patrón no coincide
+jamás: **el filtro de posgrado no excluye ni una sola aula**.
+
+Lo que excluyó a las otras 850 de posgrado fue, por accidente,
+`min_eligible_per_class = 15` — las aulas de posgrado son pequeñas—. Las dos que
+superaban el umbral pasaron sin que nada las parara.
+
+Idéntico con ESCUELA DE ESTUDIOS ESPECIALES: sus 10 aulas se excluyen **todas
+por `min_eligible_per_class`**, no por ser estudios especiales.
+
+**Riesgo**: bajar el mínimo de elegibles, o un programa de posgrado con aulas
+grandes, mete posgrado en el marco y puede sacarlo sorteado.
+
+**Reparación pendiente**: la exclusión de unidad académica debe evaluarse contra
+la columna que la nombra —`faculty`, y/o `program`/`course_name`— y no contra un
+`level` numérico. Y debe existir un criterio explícito de facultades excluidas,
+no una consecuencia de otro filtro.
+
+### Corrección a E1 por facultad
+
+ESCUELA DE ESTUDIOS ESPECIALES con 0 aulas incluidas **NO es un problema**: está
+excluida por diseño. El universo real son **15 facultades**, no 17. La tabla de
+E1 se lee sin esas dos filas.
+
 ## Lo que ya sabemos, para no reinvestigarlo
 
 - En el proyecto de referencia la selección trae **30 titulares y 330 reservas,
