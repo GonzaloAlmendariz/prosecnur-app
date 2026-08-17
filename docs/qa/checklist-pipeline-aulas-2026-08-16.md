@@ -159,6 +159,39 @@ Consecuencias para el recorrido:
   incluidas, así que ahí la holgura se acaba—. Ese es el riesgo real que la
   prueba de 30 no llegó a tocar.
 
+## HALLAZGO — la cadena de 11 no se sostiene a la escala real (2026-08-16)
+
+Gonzalo dio libertad para duplicar y editar el proyecto, así que se regeneró la
+selección subiendo `n_aulas` a la escala que él anticipa para E8.
+
+| | n = 30 | n = 190 | n = 200 |
+|---|---|---|---|
+| Titulares con cadena | 30 / 30 | 190 / 190 | 200 / 200 |
+| Reservas por titular | **11 · 11 · 11** | min **1** · mediana 10 · max 11 | min **1** · mediana 9 · max 11 |
+| **Con menos de 11** | **0** | **110 (58 %)** | **120 (60 %)** |
+| Reservas totales | 330 | 1.631 | 1.674 |
+| Facultades cubiertas | 10 | 16 de 17 | 16 de 17 |
+
+**A la escala real la promesa de 11 reservas por titular se rompe para más de la
+mitad, y alguno recibe una sola.** El motor no falla ni avisa: devuelve una
+selección de aspecto correcto con cadenas mutiladas.
+
+**No es falta de aulas.** 190 titulares necesitan 2.090 reservas y quedan 2.278
+aulas disponibles tras apartar los titulares. Sobran en total pero faltan
+*dentro de la celda de cada titular*: con `replacement_depth_strategy =
+max_complete_chains_by_cell` cada cadena sólo bebe de su propia celda y esa
+celda se agota. De las 1.631 reservas, 1.630 son `misma_celda` y sólo 1 bajó a
+`celda_equivalente`.
+
+Enlaza con **M10**, la decisión pendiente de Gonzalo: `reserve_depth_target = 6`
+y las 11 olas son alcanzables con 30 titulares y **físicamente imposibles con
+190** bajo candado por celda. Con candado por facultad probablemente sí — que es
+el ajuste ofrecido y no pedido (M4/M10).
+
+**Lo que falta en el producto**: hoy nadie avisa de que 110 de 190 aulas irían a
+campo con la cadena corta. Ese aviso es el candidato número uno de reparación en
+cuanto E8 confirme la escala.
+
 ## Lo que ya sabemos, para no reinvestigarlo
 
 - En el proyecto de referencia la selección trae **30 titulares y 330 reservas,
