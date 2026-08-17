@@ -124,3 +124,42 @@ test_that("un grosor ilegible no se toca", {
   expect_equal(.grosor_a_rejilla(0), 0)
   expect_equal(.grosor_a_rejilla(0.4, rejilla = 0), 0.4)
 })
+
+
+# --- P38: el techo pasa a vivir donde vive el piso ---------------------------
+#
+# `.grosor_con_techo_in()` estuvo sin consumidor mientras se intentaba
+# engancharlo en el bloque de estirado, mil lineas mas abajo, donde recorta el
+# PANEL en vez de la fraccion y devuelve el hueco vacio de P23. Aplicado junto
+# al piso, con el mismo alto de fila, el p90 del grosor azul del mazo cae de
+# 2.20 a 1.51 cm —el aprobado esta en 1.43— sin mover ninguna regla.
+
+test_that("piso y techo NO pueden cruzarse", {
+  # Es lo que permite aplicarlos seguidos sin que el segundo deshaga al primero:
+  # el piso del recetario (0.32 in en escala) es siempre menor que el techo
+  # (0.7087 in), asi que ninguna fila puede exigir a la vez mas del techo y
+  # menos del piso.
+  expect_lt(0.32, .GROSOR_TECHO_IN)
+  for (alto in c(0.4, 0.8, 1.5, 3.0)) {
+    g <- .grosor_con_piso_in(0.70, alto, 0.32)
+    g2 <- .grosor_con_techo_in(g, alto)
+    expect_gte(g2 * alto, 0.32 - 1e-9)
+    expect_lte(g2 * alto, .GROSOR_TECHO_IN + 1e-9)
+  }
+})
+
+
+test_that("una fila alta ve recortada su fraccion, no su altura", {
+  # 0.95 de una fila de 1.2 in son 1.14 in de barra, muy por encima del techo.
+  # La fila sigue midiendo 1.2 —el panel no se toca, que es lo que devolvia el
+  # hueco de P23— y lo que baja es la fraccion.
+  g <- .grosor_con_techo_in(0.95, 1.2)
+  expect_lt(g, 0.95)
+  expect_equal(g * 1.2, .GROSOR_TECHO_IN, tolerance = 1e-9)
+})
+
+
+test_that("una fila corta no toca su fraccion", {
+  # 0.70 de una fila de 0.6 in son 0.42 in: por debajo del techo, se respeta.
+  expect_equal(.grosor_con_techo_in(0.70, 0.6), 0.70)
+})
