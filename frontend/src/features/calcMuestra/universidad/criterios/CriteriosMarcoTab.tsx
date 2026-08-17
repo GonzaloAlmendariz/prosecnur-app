@@ -490,6 +490,19 @@ export function CriteriosMarcoTab({
             </section>
           )}
 
+          {/* Excluir una facultad no es un criterio de alumno ni de aula: es una
+              decisión sobre el marco entero, así que vive fuera de los dos
+              bloques de criterios y se muestra siempre. Estaba dentro del
+              bloque de aula y no llegaba a pintarse nunca, porque la pestaña
+              que se usa monta esta vista con scope de alumno. */}
+          {showAlumno && (
+            <FacultadesExcluidasCard
+              config={config}
+              facultades={facultadesMin}
+              onPatch={patchAulasConfig}
+            />
+          )}
+
           {showAula && aula.length > 0 && (
             <section className="cmv2-crit-section" data-scope="aula">
               <header className="cmv2-crit-scope-head" data-scope="aula">
@@ -540,12 +553,6 @@ export function CriteriosMarcoTab({
                   onTasa={editarTasaAsistencia}
                   onConfirmar={() => confirmarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
                   onDescartar={() => descartarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
-                />
-
-                <FacultadesExcluidasCard
-                  config={config}
-                  facultades={facultadesMin}
-                  onPatch={patchAulasConfig}
                 />
 
                 <CriterioComposicionCard config={config} onPatch={patchAulasConfig} />
