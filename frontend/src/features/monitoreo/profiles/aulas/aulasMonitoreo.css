@@ -1355,3 +1355,82 @@
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-falta::before { background: #7a8796; }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-excedente::before { background: #b97611; }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-meta::before { background: var(--pulso-border); }
+
+/* ── Por facultad ────────────────────────────────────────────────────────────
+   El carril de cada facultad mide SU meta contra la meta más alta, y el relleno
+   lo cubierto: una facultad grande a medias se ve distinta de una pequeña
+   vacía sin leer una cifra. Barras en CSS, como el resto de la sección. */
+.mon-profile-page.is-aulas-flow .aulas-facultades {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultades-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultades-lista {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultades-lista li {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-nombre {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-nombre em {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-carril {
+  display: block;
+  height: 16px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-carril i {
+  display: block;
+  height: 100%;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-cifra em {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-cifra .es-cumplida {
+  color: #168a55;
+}

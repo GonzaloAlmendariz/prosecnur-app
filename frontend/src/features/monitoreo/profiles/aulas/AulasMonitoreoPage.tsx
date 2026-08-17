@@ -23,6 +23,7 @@ import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCadenaChart } from "./AulasCadenaChart";
+import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
@@ -600,6 +601,23 @@ function renderAulasView(
           <span>{fmt(aulaRows.length)} cursos-horario</span>
         </div>
         <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+      </section>
+      )}
+      {pestana !== "resumen" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* La tercera pregunta de la sección, después del total y del estado:
+              a dónde va el equipo mañana. El denominador es la meta del PLAN,
+              no la cuota de sexo por facultad —esa vive en su pestaña— y por eso
+              el rótulo lo dice. */}
+          <h3>Por facultad</h3>
+          <span>contra la meta del plan</span>
+        </div>
+        <AulasPerfilPorFacultad filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
       )}
       {pestana !== "resumen" ? null : (
