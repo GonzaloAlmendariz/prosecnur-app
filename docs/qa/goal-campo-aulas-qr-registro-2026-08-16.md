@@ -133,7 +133,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
-| **L63** | **Aulas no tiene ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`: acreditación tiene ritmo diario y tendencia telefónica (`AcreditacionAdvanceDailyMini`, `ritmoDiario.ts` con cortes diarios y semanales, calendario expandido y ejes con padding); telefónico tiene embudo en franja y barras apiladas. Aulas sólo muestra tablas. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
+| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujado el primero del catálogo, el histograma de cobertura. Faltan los otros cuatro. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
@@ -784,3 +784,39 @@ respuestas: es lo que el coordinador planifica.
 Los cinco salen de datos que el tablero **ya produce**, así que ninguno exige
 tocar el motor. Y el lenguaje visual es el compartido: `PlotlyChart`,
 `coloresDeResultado`, `MarcoDeEjesSiHaceFalta`.
+
+
+### 2026-08-16 — L63: el primer gráfico, y el que sólo existe aquí
+
+Dibujado el #3 del catálogo, que es el que justifica tener gráficos propios: la
+**distribución de cobertura por curso-horario**. Sobre las 196 aulas del
+operativo con 3700 respuestas:
+
+```
+Sin respuestas   ███████████████ 51
+1–25 %                            0
+26–50 %                           0
+51–99 %          ████████ 40
+Meta cumplida    ████████████████████████ 105
+```
+
+Un promedio diría «avance del 76 %» y escondería que **51 aulas no se han
+abierto** mientras 105 ya no necesitan nada. Son dos trabajos distintos y el
+gráfico los separa de un vistazo.
+
+Tres decisiones sobre cómo cuenta, cada una con su test:
+
+- **«Sin respuestas» no es «poquísimas»**: el 0 va siempre a su tramo aunque la
+  razón lo pusiera en el primero. Es lo que dice si el aula ni se abrió.
+- **Pasarse de la meta cuenta como cumplida**: operativamente ya no hay nada que
+  hacer ahí.
+- **Un aula sin meta se cuenta aparte**, no se fuerza al 0 % ni al 100 % —serían
+  dos mentiras distintas— y su número se dice bajo el gráfico.
+
+**Y el mismo tropiezo de layout por tercera vez**: el panel del gráfico medía
+**26 px** —sólo su cabecera— y el gráfico se dibujaba encima de la tabla. El
+stack de Avance había perdido su clase `aulas-tablas-apiladas` al insertar el
+panel nuevo, y sin ella es grid: asigna **0 px** a la fila cuyo contenido no la
+empuja. Con la clase pasa a flex con hijos que no se encogen. Ya lo arreglé en
+L40 y L42; **conviene recordar que cualquier panel nuevo en ese stack necesita
+la clase**.
