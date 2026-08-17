@@ -79,6 +79,15 @@ describe("la banda de KPIs", () => {
     expect(kpi?.value).toBe("1");
   });
 
+  it("toda tarjeta lleva ícono", () => {
+    // En una banda que cambia por sección, el ícono es lo que deja reconocer de
+    // qué habla la cifra sin releer el rótulo. Una tarjeta sin él rompería la
+    // rejilla de las otras.
+    const sinIcono = SECCIONES.flatMap((s) => aulasKpis(tablero(), s))
+      .filter((k) => typeof k.icono !== "function" && typeof k.icono !== "object");
+    expect(sinIcono.map((k) => k.label)).toEqual([]);
+  });
+
   it("ninguna sección se queda sin banda", () => {
     // Un `seccion` que no case con ningún `if` devolvería la de Avance por
     // defecto; lo que no puede pasar es una sección vacía, que dejaría la franja

@@ -1,5 +1,19 @@
 import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoRow } from "../../../../api/monitoreo";
 import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import {
+  AlertCircle,
+  CalendarRange,
+  CheckCircle2,
+  ClipboardCheck,
+  Link2,
+  Link2Off,
+  RefreshCw,
+  ShieldAlert,
+  Table2,
+  Target,
+  Users,
+  type LucideIcon,
+} from "../../../../vendor/lucide-react";
 import { pct } from "../../core/formatoComun";
 import { summarizeAulasValidation } from "./aulasPresentation";
 import { cuotasResumen } from "./cuotasResumen";
@@ -39,6 +53,13 @@ export type AulasKpi = {
    * llega de Kobo.
    */
   pista: string;
+  /**
+   * El ícono de la tarjeta, como en `.mon-clarity-card`. No es adorno: en una
+   * banda que cambia por sección es lo que deja reconocer de un vistazo si la
+   * cifra habla del plan, de lo recogido, de la cadena o de una alerta, sin
+   * releer el rótulo. Siempre por el shim de lucide.
+   */
+  icono: LucideIcon;
   /** Lectura larga del mismo dato; va al `title`, así que no ocupa alto (C2). */
   detalle?: string;
 };
@@ -71,6 +92,7 @@ function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
   return {
     label: "Cuota por recoger",
+    icono: Users,
     value: cuota.celdas ? fmt(cuota.faltan) : "S/D",
     pista: cuota.celdas ? "personas de sexo por facultad" : "el plan no declara cuotas",
     tone: cuota.faltan ? "warn" : "neutral",
@@ -89,6 +111,7 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const total = Number(dashboard?.kpis?.total_aulas ?? 0);
   return {
     label: "Cursos-horario",
+    icono: CalendarRange,
     value: fmt(total),
     pista: "titulares y reservas del plan",
     tone: total ? "neutral" : "warn",
@@ -107,6 +130,7 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
 function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   return {
     label: "Aplicadas",
+    icono: ClipboardCheck,
     value: fmt(dashboard?.kpis?.aulas_aplicadas),
     pista: "declaradas en el registro de campo",
     detalle: "Las declara el aplicador al registrar la aplicación; no se derivan de las respuestas recibidas.",
@@ -117,6 +141,7 @@ function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const brechas = Number(dashboard?.kpis?.brechas ?? 0);
   return {
     label: "Brechas",
+    icono: AlertCircle,
     value: fmt(brechas),
     pista: "cursos-horario por debajo de su meta",
     tone: brechas ? "warn" : "neutral",
@@ -126,6 +151,7 @@ function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
 function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   return {
     label: "Válidas",
+    icono: CheckCircle2,
     value: fmt(dashboard?.kpis?.respuestas_validas),
     pista: "respuestas de Kobo que pasan el filtro",
   };
@@ -152,11 +178,13 @@ export function aulasKpis(
       planKpi(dashboard),
       {
         label: "Respuestas leídas",
+        icono: Table2,
         value: fmt(kpis?.respuestas_total),
         pista: "filas que llegaron de la plataforma",
       },
       {
         label: "Corte",
+        icono: RefreshCw,
         value: sello ? "Listo" : "Pendiente",
         pista: sello || "todavía sin tablero generado",
         tone: sello ? "neutral" : "warn",
@@ -173,6 +201,7 @@ export function aulasKpis(
       registroKpi(dashboard),
       {
         label: "Sin empezar",
+        icono: AlertCircle,
         value: fmt(estado.sinEmpezar),
         pista: "no han recibido ni una respuesta",
         tone: estado.sinEmpezar ? "warn" : "neutral",
@@ -184,15 +213,17 @@ export function aulasKpis(
     const controles = (dashboard?.validation ?? []) as Array<Record<string, unknown>>;
     const alertas = summarizeAulasValidation(controles);
     return [
-      { label: "Controles", value: fmt(controles.length), pista: "reglas evaluadas sobre este corte" },
+      { label: "Controles", icono: ClipboardCheck, value: fmt(controles.length), pista: "reglas evaluadas sobre este corte" },
       {
         label: "Alertas",
+        icono: ShieldAlert,
         value: fmt(alertas.count),
         pista: "controles que no pasan",
         tone: alertas.count ? "warn" : "neutral",
       },
       {
         label: "Representatividad",
+        icono: Target,
         value: pct(kpis?.representativity_effective_score),
         pista: "la muestra efectiva contra la planificada",
         detalle: "100 % es una muestra efectiva idéntica a la planificada; 0 % es un desvío medio de 5 puntos o más.",
@@ -213,11 +244,13 @@ export function aulasKpis(
         // panel de al lado decía «3 cerraron con un reemplazo». Es la misma
         // contradicción que tenía la cuota, y se cierra igual.
         label: "Cerraron con reemplazo",
+        icono: Link2,
         value: fmt(cadenas.cerraronEnReemplazo),
         pista: "la reserva alcanzó la meta del titular",
       },
       {
         label: "Cadenas sin cerrar",
+        icono: Link2Off,
         value: fmt(cadenas.abiertas),
         pista: "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
@@ -235,6 +268,7 @@ export function aulasKpis(
     validasKpi(dashboard),
     {
       label: "Cumplen",
+      icono: Target,
       value: fmt(cumplen),
       pista: "cursos-horario que llegaron a su meta",
     },
