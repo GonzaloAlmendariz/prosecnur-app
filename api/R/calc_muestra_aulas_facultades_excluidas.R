@@ -47,3 +47,26 @@ NULL
   if (!length(claves)) return(rep(FALSE, length(faculty)))
   .cm_aulas_facultad_clave(faculty) %in% claves
 }
+
+#' Facultad y programa que ETIQUETAN al aula.
+#'
+#' La modal se toma de los alumnos ELEGIBLES, no de todos los matriculados.
+#'
+#' Medido en HSVG2026: el aula `soc254_0731` («Cultura y sociedad», movilidad
+#' estudiantil internacional) tiene 23 matriculados — **11 de CIENCIAS SOCIALES,
+#' 11 de ESCUELA DE ESTUDIOS ESPECIALES y 1 de EE.GG. LETRAS**. Con Estudios
+#' Especiales excluida, sus 11 dejan de ser elegibles y el aula entra al marco
+#' con los 12 restantes, que es correcto. Pero la etiqueta salía de los 23, y el
+#' empate 11–11 la rotulaba con la facultad EXCLUIDA: el analista veía en su
+#' marco una unidad que había pedido sacar, y esas 12 personas contaban para una
+#' facultad que no es la suya.
+#'
+#' Etiquetar por los elegibles no cambia qué aulas entran —ni una— pero cambia a
+#' qué facultad se atribuyen, que es de lo que cuelgan las cuotas por facultad.
+#'
+#' Si no hay elegibles el aula no participa igual; se conserva la modal de todos
+#' para no perder la etiqueta de una fila que sigue en el frame como excluida.
+.cm_aulas_etiqueta_facultad <- function(faculty, program, idx_elegibles, idx_todos) {
+  idx <- if (length(idx_elegibles)) idx_elegibles else idx_todos
+  .cm_aulas_mode_pair(faculty[idx], program[idx], "", "")
+}
