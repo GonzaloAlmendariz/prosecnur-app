@@ -978,3 +978,37 @@ Y de propina, una inconsistencia del contrato sin resolver: **quince sitios
 escriben `data-audit-ready="true"`**, un booleano, mientras que el runner trata el
 valor como el **nombre** de la superficie. No he demostrado que rompa nada —queda
 anotado, no vendido como defecto—.
+
+
+### 2026-08-17 — corrección: los «cero grupos» eran del proyecto, no del código
+
+Dije el turno anterior que Carga, Validación y Cálculo de muestra **no declaran ni
+un grupo de geometría**. Falso, y la comprobación era una línea:
+
+```
+carga: 3 de 47 archivos declaran geometría
+```
+
+`CargaPlanOverview` declara `carga-base-assets` con su contrato y sus miembros —
+completo. Lo que pasa es que la declaración cuelga **dentro de `rows.map(...)`**:
+
+```tsx
+{rows.length > 0 ? rows.map((row) => (
+  <li data-qa-geometry-group="carga-base-assets" data-qa-geometry-contract="equal">
+```
+
+Con `qa_2025.pulso` —un proyecto de aulas, sin bases de datos cargadas— `rows`
+viene vacío, así que **no hay grupo que medir**. El `geometryGroups=0` describía mi
+fixture, no el código.
+
+Medida la cobertura real por módulo: **87 de 525 archivos** de features declaran
+geometría (~17 %), y todos los módulos declaran algo. Aulas es de los más densos.
+
+Es la sexta versión del mismo error en esta sesión, y ya merece enunciarse como
+regla: **un veredicto del runner habla del fixture tanto como del código.** Antes
+fue un `filter` que daba verde donde `test_file` daba rojo, un fixture sin casos
+de los tres estados, y una comparación entre corridas con distinta línea de
+comando. Aquí, un proyecto sin las filas que la declaración necesita.
+
+Antes de leer un cero como ausencia hay que preguntarse **si el proyecto tenía de
+qué**.
