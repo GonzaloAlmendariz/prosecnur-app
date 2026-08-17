@@ -703,3 +703,91 @@
 /* La nota del gráfico hereda de `profilePage.css`, donde vive el aviso de
    recorte. Antes se fijaba aquí porque la regla compartida no llegaba a esta
    página; ahora sí, y duplicarla sólo crearía dos verdades. */
+
+/* ── Cuota del estudio, en personas ──────────────────────────────────────
+   Tres lecturas del mismo dato: el total, por facultad y por sexo. Barras
+   simples en vez de un gráfico: la pregunta es «cuánto falta» y una pista con
+   su cifra al lado la contesta sin que haya que leer ejes. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cuotas-resumen {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-fila {
+  display: grid;
+  grid-template-columns: minmax(96px, 168px) minmax(0, 1fr) minmax(104px, auto);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-etiqueta {
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-fila.es-total .aulas-cuota-etiqueta {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-pista {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #fff);
+  border: 1px solid var(--pulso-border);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-fila.es-total .aulas-cuota-pista {
+  height: 16px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-pista > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-cifra {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuota-lectura {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuotas-cortes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuotas-cortes h4 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cuotas-cortes section {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+}
