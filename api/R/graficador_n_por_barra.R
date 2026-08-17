@@ -34,8 +34,22 @@
 # aprobado anota es la fila cuya N es menor que LA BASE DE SU PROPIO PUBLICO.
 #
 # Esa base existe en el motor de plan —`.reporte_plan_base_na_reducida()` ya
-# decide si una base esta reducida— pero no viaja al graficador. Hacerla llegar
-# es el trabajo que falta; el helper de aqui esta listo para consumirla.
+# decide si una base esta reducida— pero no viaja al graficador.
+#
+# SEGUNDO INTENTO, tambien medido y descartado: deducir la base de la propia
+# lamina, tomando por publico su mayor numero de respuestas entre las preguntas.
+# El criterio es correcto —comprobado contra la lamina 18 del aprobado, cuyas
+# cuatro bases declaradas (52, 172, 178 y 15) salen exactas— pero el graficador
+# NO ve la lamina: se le llama UNA VEZ POR PREGUNTA. Trazado, cada llamada
+# recibe cuatro filas con `.group_id` constante —`tema_1`— y un publico distinto
+# en cada una, asi que el maximo por publico es su propia N y no hay salto
+# posible. Resultado: cero anotaciones.
+#
+# Quien SI ve todos los bloques es el renderer de multilista, que ya los recorre
+# entero para calcular el paso de fila comun (P14). Ahi se puede calcular la
+# base por publico y pasarla; son unas seis lineas en `reporte_plan_ppt.R`, que
+# esta 11 lineas sobre su linea base y exige subirla deliberadamente. Ese es el
+# trabajo que queda, y es de gobierno antes que de codigo.
 
 # Cuerpo de la anotacion, en puntos. El aprobado usa 8: es una acotacion, no un
 # dato de la lamina, y a 10 compite con las cifras de dentro de la barra.
@@ -161,4 +175,38 @@
   # Y se anota la pregunta entera en cuanto una de sus filas salta.
   preguntas_con_salto <- unique(g[salta])
   g %in% preguntas_con_salto & is.finite(n) & n > 0
+}
+
+
+#' Base de cada publico deducida de la propia lamina
+#'
+#' El graficador no conoce el pie —quien lo compone es el motor de plan, y esa
+#' cifra no viaja hasta aqui—, pero SI ve la lamina entera: todas las preguntas
+#' de todos los publicos. La base de un publico es el mayor numero de respuestas
+#' que da en cualquiera de esas preguntas, porque una pregunta sin salto la
+#' responde su publico completo.
+#'
+#' Comprobado contra la lamina 18 del entregable aprobado, cuya base declara
+#' «52 docentes, 172 estudiantes, 178 egresados y 15 administrativos»: sus filas
+#' tienen 47 y 52 en docentes, 160 y 172 en estudiantes, 143 y 178 en egresados,
+#' 15 y 15 en administrativos. Los maximos son 52, 172, 178 y 15 — las cuatro
+#' bases, exactas.
+#'
+#' LIMITE, y se prefiere a no tener nada: si TODAS las preguntas de un publico
+#' en esa lamina tuvieran salto, su maximo seria menor que su base real y esa
+#' fila no se anotaria. El coste es una anotacion de menos, nunca una de mas ni
+#' una equivocada.
+#'
+#' @param n_por_fila N de cada fila.
+#' @param publico Publico de cada fila.
+#' @return Base deducida, una por fila.
+#' @keywords internal
+.n_barra_base_por_publico <- function(n_por_fila, publico) {
+  n <- suppressWarnings(as.numeric(n_por_fila))
+  p <- as.character(publico)
+  if (!length(n) || length(p) != length(n)) return(rep(NA_real_, length(n)))
+  maximos <- tapply(n, p, function(v) suppressWarnings(max(v, na.rm = TRUE)))
+  out <- as.numeric(maximos[p])
+  out[!is.finite(out)] <- NA_real_
+  out
 }
