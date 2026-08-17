@@ -124,3 +124,41 @@
     family = "Arial"
   )
 }
+
+
+#' Que filas anotar cuando las barras se agrupan por pregunta
+#'
+#' La unidad NO es la fila: es la PREGUNTA. Medido sobre la lamina 18 del
+#' entregable aprobado, cuya base declara «52 docentes, 172 estudiantes, 178
+#' egresados y 15 administrativos», las siete N anotadas son 47, 160, 172, 15,
+#' 30, 143 y 15 — y tres de ellas **coinciden con la base de su publico**.
+#'
+#' Si el criterio fuera fila a fila, esas tres no estarian. Estan porque su
+#' PREGUNTA tiene algun publico con salto, y entonces se anotan todos: decir
+#' «N = 143» solo en egresados deja al lector sin saber cuantos son los demas, y
+#' la comparacion entre publicos —que es para lo que existe la lamina— se vuelve
+#' una adivinanza.
+#'
+#' @param n_por_fila N de cada fila.
+#' @param base_por_fila Base del publico de cada fila.
+#' @param pregunta Identificador de la pregunta de cada fila.
+#' @param tolerancia Diferencia por debajo de la cual no cuenta como salto.
+#' @return Vector logico, uno por fila.
+#' @keywords internal
+.n_barra_procede_por_pregunta <- function(n_por_fila, base_por_fila, pregunta,
+                                          tolerancia = .N_BARRA_TOLERANCIA) {
+  n <- suppressWarnings(as.numeric(n_por_fila))
+  base <- suppressWarnings(as.numeric(base_por_fila))
+  g <- as.character(pregunta)
+  if (!length(n) || length(base) != length(n) || length(g) != length(n)) {
+    return(rep(FALSE, max(1L, length(n))))
+  }
+  tol <- suppressWarnings(as.numeric(tolerancia)[1])
+  if (!is.finite(tol) || tol < 0) tol <- 0
+
+  # Una fila «salta» si su N queda por debajo de la base de SU publico.
+  salta <- is.finite(n) & is.finite(base) & base > 0 & n > 0 & (base - n) > tol
+  # Y se anota la pregunta entera en cuanto una de sus filas salta.
+  preguntas_con_salto <- unique(g[salta])
+  g %in% preguntas_con_salto & is.finite(n) & n > 0
+}

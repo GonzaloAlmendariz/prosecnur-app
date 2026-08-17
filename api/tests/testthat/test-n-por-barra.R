@@ -89,3 +89,51 @@ test_that("la capa lleva el cuerpo y la cursiva del aprobado", {
 test_that("posiciones y enes que no casan no producen capa", {
   expect_null(.n_barra_capa(c(1, 2), c(178, 12, 4), n_base = 178))
 })
+
+
+test_that("la unidad es la PREGUNTA, no la fila", {
+  # Medido sobre la lamina 18 del aprobado: tres de sus siete N anotadas
+  # coinciden con la base de su publico. Estan porque su pregunta tiene otro
+  # publico con salto, y entonces se anotan todas.
+  procede <- .n_barra_procede_por_pregunta(
+    n_por_fila    = c(52, 172,  47, 172),
+    base_por_fila = c(52, 172,  52, 172),
+    pregunta      = c("p1", "p1", "p2", "p2")
+  )
+  # p1 no salta en ninguna fila: ninguna se anota.
+  expect_equal(procede[1:2], c(FALSE, FALSE))
+  # p2 salta en docentes (47 de 52): se anotan LAS DOS, incluida la que cuadra.
+  expect_equal(procede[3:4], c(TRUE, TRUE))
+})
+
+
+test_that("decir la N de uno y no la de los otros deja una adivinanza", {
+  # Es la razon del criterio: sin la N de los demas publicos no se puede
+  # comparar, y comparar publicos es para lo que existe la lamina.
+  procede <- .n_barra_procede_por_pregunta(
+    n_por_fila    = c(143, 178, 15),
+    base_por_fila = c(178, 178, 15),
+    pregunta      = rep("p1", 3)
+  )
+  expect_true(all(procede))
+})
+
+
+test_that("sin ningun salto no se anota nada", {
+  expect_false(any(.n_barra_procede_por_pregunta(
+    c(52, 172), c(52, 172), c("p1", "p1")
+  )))
+})
+
+
+test_that("una fila sin N no se anota aunque su pregunta salte", {
+  procede <- .n_barra_procede_por_pregunta(
+    c(47, NA, 52), c(52, 172, 52), rep("p1", 3)
+  )
+  expect_equal(procede, c(TRUE, FALSE, TRUE))
+})
+
+
+test_that("vectores que no casan devuelven FALSE en vez de reciclar", {
+  expect_false(any(.n_barra_procede_por_pregunta(c(1, 2), c(3), c("a", "b"))))
+})
