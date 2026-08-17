@@ -893,6 +893,56 @@ criterios flat/jerárquicos, pero `course_level` es `kind = "range"` y no pasa p
 ahí. Falta que la exención valga también para el rango, y decidido contra la
 facultad del aula.
 
+## R21 — la exención funciona: 176 aulas con la configuración objetivo. MEDIDO
+
+Reparado el defecto (`46f7c206`) y reconstruido el marco en el duplicado con la
+configuración objetivo completa. **Las quince facultades llegan al motor** —antes
+guardaba trece— y la exención se aplica:
+
+| | antes | ahora |
+|---|---|---|
+| EE.GG. LETRAS | 60 | **379** |
+| EE.GG. CIENCIAS | 23 | **344** |
+| marco total | 1.721 | **2.361** |
+
+### Aulas por facultad, con p25 y la regla de 2025
+
+| Facultad | elegibles | p25 | cuota | aulas | Kamila |
+|---|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 573 | 22 | 792 | 36 | 37 |
+| EE.GG. LETRAS | 379 | 24 | 584 | 25 | 24 |
+| EE.GG. CIENCIAS | 344 | 26 | 589 | 23 | 21 |
+| DERECHO | 339 | 37 | 521 | 15 | 21 |
+| CIENCIAS SOCIALES | 122 | 19 | 226 | 12 | 13 |
+| ARTE Y DISEÑO | 64 | 15 | 179 | 12 | 14 |
+| ARQUITECTURA | 37 | 20 | 190 | 10 | 11 |
+| ARTES ESCÉNICAS | 90 | 11 | 104 | 10 | 7 |
+| GESTIÓN | 83 | 23 | 173 | 8 | 8 |
+| CIENCIAS Y ARTES COMUN. | 140 | 19 | 146 | 8 | 10 |
+| PSICOLOGÍA | 89 | 23 | 118 | 6 | 7 |
+| LETRAS Y C. HUMANAS | 34 | 11 | 39 | 4 | 5 |
+| EDUCACIÓN | 28 | 13 | 35 | 3 | 6 |
+| CONTABLES | 18 | 21 | 32 | 2 | 3 |
+| GASTRONOMÍA | 20 | 15 | 22 | 2 | 2 |
+| **TOTAL** | | | | **176** | **189** |
+
+**176 aulas**, dentro de la banda «entre 170 y 210» que fijó Gonzalo. Ninguna
+facultad se queda sin marco y ninguna pide más aulas de las que tiene. Trece de
+quince quedan a dos aulas o menos del objetivo de la plantilla de Kamila; se
+separan DERECHO (−6) y EDUCACIÓN (−3), y ARTES ESCÉNICAS pide 3 más.
+
+EE.GG. LETRAS pasa a **25 aulas contra las 24 de Kamila** — la facultad que sin
+la exención se quedaba sin marco es ahora la que mejor coincide.
+
+### Lo que queda fuera de la cuenta
+
+- **ESCUELA DE ESTUDIOS ESPECIALES** sigue colándose con 1 aula pese a mandar
+  `excluded_faculties`: esa clave también se pierde en el camino, probablemente
+  por una causa parecida a la del marcador de exención.
+- El cálculo usa la cuota proporcional de 2.500 con sobremuestra ×1,5 y la regla
+  de 2025 **sin τ**; los parámetros del componente siguen en τ = 0,53,
+  sobremuestra 20 %, p 0,5 y deff 1,5.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
