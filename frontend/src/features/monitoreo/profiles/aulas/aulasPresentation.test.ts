@@ -112,31 +112,51 @@ describe("aulasPresentation", () => {
   });
 });
 
-describe("el diccionario de checks no deriva del motor", () => {
-  // El motor emite los `check` y este diccionario los traduce. Eran dos listas
-  // que nadie ataba: al añadir `valid_response_criterion` en R, la pantalla de
-  // Validación habría mostrado la clave técnica cruda —«valid response
-  // criterion»— sin que nada fallara. Es el mismo patrón de lista cerrada que
-  // costó doce ítems del GOAL de campo, aquí entre capas.
+describe("los vocabularios cerrados no derivan entre R y la UI", () => {
+  // El motor declara vocabularios CERRADOS —los `check` de validación y los
+  // estados operativos— y la UI los traduce con diccionarios a mano que nadie
+  // ataba a ellos. Al añadir `valid_response_criterion` en R, la pantalla habría
+  // mostrado la clave cruda sin que nada fallara; y los estados estaban
+  // completos por suerte, no por construcción. Es el patrón de lista cerrada del
+  // GOAL de campo, aquí entre capas.
+  //
+  // Se comparan las LISTAS de los dos lados, no la salida de la función: mi
+  // primer intento infería «no hay entrada» de que la etiqueta coincidiera con
+  // el fallback, y marcaba como ausentes los once estados cuya etiqueta correcta
+  // ES la clave capitalizada. El instrumento producía el hallazgo.
   const aqui = path.dirname(fileURLToPath(import.meta.url));
-  const motor = fs.readFileSync(
-    path.join(aqui, "..", "..", "..", "..", "..", "..", "api", "R", "monitoreo_aulas_universitarias.R"),
-    "utf8",
-  );
+  const raiz = path.join(aqui, "..", "..", "..", "..", "..", "..");
+  const motor = fs.readFileSync(path.join(raiz, "api", "R", "monitoreo_aulas_universitarias.R"), "utf8");
+  const fuente = fs.readFileSync(path.join(aqui, "aulasPresentation.ts"), "utf8");
 
-  it("traduce todos los checks que el motor declara", () => {
+  /** Claves declaradas en un diccionario `const NOMBRE: Record<...> = { ... }`. */
+  function clavesDelDiccionario(nombre: string) {
+    const bloque = fuente.match(new RegExp(`const ${nombre}: Record<string, string> = \\{([\\s\\S]*?)\\n\\};`));
+    expect(bloque, `no se encontró el diccionario ${nombre}`).toBeTruthy();
+    return new Set([...(bloque?.[1] ?? "").matchAll(/^\s{2}([a-z_]+):/gm)].map((m) => m[1]));
+  }
+
+  function literalesDe(texto: string | undefined) {
+    return [...(texto ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+  }
+
+  it("traduce todos los checks de validación que el motor declara", () => {
     const bloque = motor.match(/check = c\(([^)]*)\)/);
     expect(bloque, "no se encontró el vector `check = c(...)` en el motor").toBeTruthy();
-    const claves = [...(bloque?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    const claves = literalesDe(bloque?.[1]);
     expect(claves.length).toBeGreaterThan(5);
-    const sinEtiqueta = claves.filter((c) => aulasCheckLabel(c) === fallbackEsperado(c));
-    expect(sinEtiqueta, `checks del motor sin etiqueta: ${sinEtiqueta.join(", ")}`).toEqual([]);
+    const etiquetadas = clavesDelDiccionario("CHECK_LABELS");
+    const faltan = claves.filter((c) => !etiquetadas.has(c));
+    expect(faltan, `checks del motor sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
   });
 
-  // El fallback convierte `foo_bar` en «Foo bar»: si la etiqueta coincide con
-  // eso, es que no hay entrada en el diccionario.
-  function fallbackEsperado(clave: string) {
-    const texto = clave.replace(/_/g, " ");
-    return texto.charAt(0).toUpperCase() + texto.slice(1);
-  }
+  it("traduce todos los estados operativos que el motor declara", () => {
+    const bloque = motor.match(/monitoreo_aulas_estados <- function\(\) \{\s*c\(([^)]*)\)/);
+    expect(bloque, "no se encontró `monitoreo_aulas_estados()` en el motor").toBeTruthy();
+    const estados = literalesDe(bloque?.[1]);
+    expect(estados.length).toBeGreaterThan(8);
+    const etiquetados = clavesDelDiccionario("STATUS_LABELS");
+    const faltan = estados.filter((e) => !etiquetados.has(e));
+    expect(faltan, `estados del motor sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
+  });
 });
