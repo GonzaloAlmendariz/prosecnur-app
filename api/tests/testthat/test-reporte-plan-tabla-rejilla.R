@@ -57,3 +57,34 @@ test_that("la ficha tecnica usa la misma rejilla que el resto", {
   expect_length(linea, 1L)
   expect_true(grepl("#757070", linea, fixed = TRUE))
 })
+
+
+test_that("la primera columna deja sitio a los encabezados de datos", {
+  # Con `0.47` la columna de tema se llevaba 6.36 cm de 13.53 y las tres de
+  # datos quedaban en 2.39: «Estudiantes» y «Egresados» se partian en dos
+  # lineas. Con `0.40` suben a 2.70 y solo sigue partiendose «Estudiantes».
+  #
+  # Medido en el render de LibreOffice sobre la lamina 53: encabezados partidos
+  # 2 -> 1. El aprobado usa [6.62, 2.45, 2.61, 2.32] sobre un cajon MAS ancho
+  # (14.0 cm contra 13.53), asi que su columna de tema puede permitirse mas.
+  f <- readLines(
+    testthat::test_path("..", "..", "R", "reporte_plan_tabla_nativa.R"),
+    warn = FALSE
+  )
+  linea <- grep('num("primera_col_frac"', f, fixed = TRUE, value = TRUE)
+  expect_length(linea, 1L)
+  expect_true(grepl("0.40", linea, fixed = TRUE))
+})
+
+
+test_that("el reparto entre columnas de datos sigue siendo IGUAL", {
+  # Se probo repartirlo en proporcion a la longitud del encabezado —para dar
+  # mas a «Estudiantes»— y REVERTIDO: ensancharla encogia «Docentes» a 2.20 y
+  # pasaban a partirse las TRES en vez de dos. Mover el problema de columna no
+  # es resolverlo; lo que faltaba era ancho, no reparto.
+  f <- readLines(
+    testthat::test_path("..", "..", "R", "reporte_plan_tabla_nativa.R"),
+    warn = FALSE
+  )
+  expect_length(grep("resto <- (1 - frac_1) / (ncol(tabla) - 1L)", f, fixed = TRUE), 1L)
+})

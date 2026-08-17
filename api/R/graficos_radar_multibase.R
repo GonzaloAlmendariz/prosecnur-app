@@ -528,9 +528,26 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
   # quedaba sin una sola fila valida.
   niveles <- .radar_mb_recortar_eje(levels(datos$eje))
   datos$eje <- factor(niveles[as.integer(datos$eje)], levels = niveles)
+
+  # La leyenda sale capitalizada: «Docentes», no «docentes». El nombre del grupo
+  # es el nombre de la BASE tal como lo declara el estudio —sirve de clave— y en
+  # la leyenda es un rotulo. Es el mismo defecto que P19 arreglo en la tabla, con
+  # la misma funcion.
+  #
+  # Se capitaliza SOLO la copia que va al graficador y NO en el origen
+  # (`.radar_mb_datos()`), porque de esos niveles cuelgan dos cosas mas: los
+  # nombres de columna de la tabla —que `.radar_mb_tabla()` toma de
+  # `levels(datos$grupo)`— y, sobre ellos, los overrides de `tabla_encabezados`,
+  # que casan por clave con `match()`. Capitalizar arriba dejaria un
+  # `docentes = "Docentes (n=51)"` declarado por el analista sin columna que
+  # renombrar, en silencio.
+  datos_graf <- datos
+  lv <- levels(datos_graf$grupo)
+  levels(datos_graf$grupo) <- .radar_mb_capitalizar(lv)
+
   args <- utils::modifyList(
     list(
-      data = datos,
+      data = datos_graf,
       var_eje = "eje", var_grupo = "grupo", var_valor = "valor",
       escala_valor = "proporcion_100",
       limites = c(0, 100),

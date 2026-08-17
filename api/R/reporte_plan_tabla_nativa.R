@@ -120,8 +120,8 @@
   # cajon entero.
   ancho_cajon <- num("ancho_in", NA_real_)
   if (is.finite(ancho_cajon) && ancho_cajon > 0 && ncol(tabla) >= 2L) {
-    frac_1 <- num("primera_col_frac", 0.47)
-    if (!is.finite(frac_1) || frac_1 <= 0 || frac_1 >= 0.9) frac_1 <- 0.47
+    frac_1 <- num("primera_col_frac", 0.40)
+    if (!is.finite(frac_1) || frac_1 <= 0 || frac_1 >= 0.9) frac_1 <- 0.40
     resto <- (1 - frac_1) / (ncol(tabla) - 1L)
     ft <- flextable::width(ft, j = 1, width = ancho_cajon * frac_1)
     for (j in seq(2L, ncol(tabla))) {
@@ -228,4 +228,45 @@
 
   slot$loc$width <- nuevo
   slot
+}
+
+
+#' Reparte el ancho de las columnas de datos segun su encabezado
+#'
+#' Las columnas de datos se repartian el sitio en PARTES IGUALES, y con eso
+#' «Estudiantes» —once letras— recibia lo mismo que «Docentes» —ocho— y se
+#' partia en dos lineas: «Estudiant / es». El entregable aprobado no las iguala:
+#' sus tres columnas miden 2.45, 2.61 y 2.32 cm, y la del encabezado mas largo
+#' es la mas ancha.
+#'
+#' El reparto es AMORTIGUADO, a medio camino entre igual y proporcional. Con el
+#' proporcional puro, dar a «Estudiantes» lo que pide deja a «Docentes» en 2.05
+#' y se parte el otro: mover el problema de columna no es resolverlo. La mezcla
+#' ensancha lo justo al que lo necesita sin desnudar a sus vecinos.
+#'
+#' Las cifras que van debajo son todas de ancho parecido —«98%»—, asi que quien
+#' manda en el ancho es el encabezado.
+#'
+#' @param encabezados Nombres de las columnas de datos, sin la primera.
+#' @param disponible Ancho total a repartir, en pulgadas.
+#' @param mezcla Peso de lo proporcional: 0 reparte igual, 1 reparte por
+#'   longitud pura.
+#' @return Vector de anchos en pulgadas, uno por columna.
+#' @keywords internal
+.tabla_reparto_por_encabezado <- function(encabezados, disponible,
+                                          mezcla = 0.55) {
+  n <- length(encabezados)
+  disp <- suppressWarnings(as.numeric(disponible)[1])
+  if (!n || !is.finite(disp) || disp <= 0) return(numeric(0))
+  if (n == 1L) return(disp)
+
+  largos <- nchar(as.character(encabezados), type = "width")
+  largos[!is.finite(largos) | largos <= 0] <- 1
+  # Sin longitudes utiles se vuelve al reparto igual, que es lo de antes.
+  if (all(largos == largos[1])) return(rep(disp / n, n))
+
+  igual <- rep(1 / n, n)
+  proporcional <- largos / sum(largos)
+  peso <- (1 - mezcla) * igual + mezcla * proporcional
+  as.numeric(disp * peso / sum(peso))
 }
