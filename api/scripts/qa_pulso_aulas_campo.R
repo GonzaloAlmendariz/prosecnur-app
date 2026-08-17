@@ -144,6 +144,11 @@ if (ESCALA_2025) {
               sex_top_1 = "F", sex_top_1_n = 11 + (i %% 8),
               sex_top_2 = "M", sex_top_2_n = 9 + (i %% 6),
               link = sprintf("https://ee.kobotoolbox.org/x/abc?d[collectorID]=%s", cod))
+    # Los tres estados de la ficha, que el motor DERIVA de los materiales. Con
+    # enlace en todas y PDF en ninguna, el fixture sólo producía uno de los tres
+    # y los otros dos no se podían ver en pantalla.
+    if (i %% 11 == 0) o$link <- ""                              # sin enlace todavía
+    if (i %% 5 == 0 && nzchar(o$link)) o$pdf_link <- sprintf("/fichas/%s.pdf", gsub(" ", "_", cod))
     if (!is.null(repl)) { o$replacement_for <- repl; o$replacement_order <- ord }
     o
   }

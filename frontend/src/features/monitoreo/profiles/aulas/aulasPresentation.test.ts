@@ -108,7 +108,13 @@ describe("aulasPresentation", () => {
       { check: "anonymous_responses", status: "" },
       { check: "student_id_required", status: "estado_nuevo" },
     ])).toEqual({ label: "2 alertas", count: 2 });
-    expect(aulasStatusLabel("")).toBe("Por revisar");
+    // Un estado vacio NO es «Por revisar»: esa palabra ya la usa el estado
+    // `review` de un control, y la misma palabra para un hallazgo y para la
+    // ausencia de dato hacia que las 196 aulas dijeran «Estado de ficha: Por
+    // revisar» con `package_status` vacio en las 196. El conteo de arriba SI se
+    // conserva: un control sin estado sigue contando como alerta.
+    expect(aulasStatusLabel("")).toBe("—");
+    expect(aulasStatusLabel("review")).toBe("Revisar");
   });
 
   it("conecta la presentación pura con las tablas y el resumen de calidad", () => {

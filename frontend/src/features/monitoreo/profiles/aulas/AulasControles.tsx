@@ -60,7 +60,13 @@ export function controlesDeAulas(filas: ReadonlyArray<Record<string, unknown>>) 
       // presentación.
       control: aulasCheckLabel(fila.check ?? fila.control),
       detalle: presentDetail(fila.detail ?? fila.detalle ?? ""),
-      estado: aulasStatusLabel(fila.status),
+      // Un control SIN estado legible sí es algo que revisar: el control existe
+      // y no se pudo leer su veredicto. `aulasStatusLabel` devuelve «—» para el
+      // vacío porque en una tabla eso significa «no hay dato»; aquí significa
+      // otra cosa, y lo dice quien conoce el contexto. La misma palabra servía
+      // para las dos y por eso las 196 aulas decían «Estado de ficha: Por
+      // revisar» sin que hubiera una sola ficha.
+      estado: estado ? aulasStatusLabel(fila.status) : "Por revisar",
       // Lista cerrada con salida declarada: si el engine emite un estado nuevo,
       // se ve como advertencia en vez de desaparecer en silencio.
       severidad: SEVERIDAD[estado] ?? "advertencia",
