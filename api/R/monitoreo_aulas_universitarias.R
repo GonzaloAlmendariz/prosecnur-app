@@ -249,7 +249,11 @@ monitoreo_aulas_default_config <- function() {
       link_var = "",
       date_var = "",
       status_var = "",
-      valid_statuses = as.list(c("completed", "complete", "valid", "aprobado", "aplicada"))
+      # De la constante, no de una copia. La lista viajaba por DOS sitios —aqui y
+      # el default de `.monitoreo_aulas_valid_response()`— y el normalizador
+      # siempre rellena desde este, asi que ampliar el otro no cambiaba nada:
+      # el mismo patron de cadena de whitelists que ya mordio en Graficos.
+      valid_statuses = as.list(MONITOREO_AULAS_ESTADOS_VALIDOS)
     ),
     plan = list(),
     # Partes de campo de la hoja «Aulas Aplicadas». Viven junto al plan y no
@@ -705,11 +709,85 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   mapping <- cfg$source_mapping %||% list()
   status_col <- .monitoreo_scalar(mapping$status_var, "")
   if (!nzchar(status_col) || !status_col %in% names(data)) {
-    status_col <- .monitoreo_aulas_col(data, c("response_status", "validation_status", "estado", "status", "_status"))
+    # `_status` NO entra. Kobo lo manda en TODAS las filas de su export con el
+    # valor `submitted_via_web`, que dice como llego el formulario, no si la
+    # respuesta vale. Como ese valor no esta en ninguna lista de validos, el
+    # avance del estudio entero caia a CERO en silencio en cuanto alguien
+    # sincronizaba un export completo de Kobo. Medido: 0 de 6.
+    #
+    # `_validation_status` SI es un estado de validacion y ahora se reconoce
+    # —antes no, porque el guion bajo inicial no casaba y por eso «fallaba
+    # abierto»: contaba todo—.
+    status_col <- .monitoreo_aulas_col(data, c(
+      "response_status", "_validation_status", "validation_status", "estado"
+    ))
   }
   if (!nzchar(status_col) || !status_col %in% names(data)) return(rep(TRUE, nrow(data)))
-  valid <- .monitoreo_text_key(.monitoreo_chr_vec(mapping$valid_statuses %||% c("completed", "complete", "valid", "aprobado")))
+  valid <- .monitoreo_text_key(.monitoreo_chr_vec(
+    mapping$valid_statuses %||% MONITOREO_AULAS_ESTADOS_VALIDOS
+  ))
   .monitoreo_text_key(data[[status_col]]) %in% valid
+}
+
+#' Estados que cuentan como respuesta valida cuando el estudio no declara los suyos.
+#'
+#' La lista traia solo vocabulario en ingles, asi que un estudio con su columna
+#' `estado` en espanol —«completa»— daba CERO validas, y el propio vocabulario de
+#' Kobo (`validation_status_approved`) tampoco entraba. Medido: 0 de 4 en los dos
+#' casos. Un estudio puede seguir declarando `valid_statuses` y esta lista no se
+#' usa; es el defecto por defecto, no una imposicion.
+#' @export
+MONITOREO_AULAS_ESTADOS_VALIDOS <- c(
+  "completed", "complete", "valid", "aprobado",
+  # Espanol, que es como lo escriben los estudios de la casa.
+  "completa", "completo", "valida", "valido", "aprobada", "aplicada",
+  # Vocabulario propio de Kobo en `_validation_status`.
+  "validation_status_approved", "approved"
+)
+
+#' Que criterio de validez se aplico, para poder decirlo.
+#'
+#' El criterio se resolvia en silencio: nadie sabia si el tablero contaba TODO
+#' —porque no habia columna de estado— o si estaba filtrando por una columna que
+#' quiza no era la correcta. Las dos cosas producen numeros muy distintos y
+#' ninguna se anunciaba.
+#' @export
+monitoreo_aulas_criterio_validez <- function(data, cfg = list()) {
+  if (!is.data.frame(data) || !nrow(data)) {
+    return(list(columna = "", modo = "sin_datos", validas = 0L, total = 0L))
+  }
+  mapping <- cfg$source_mapping %||% list()
+  declarada <- .monitoreo_scalar(mapping$status_var, "")
+  col <- if (nzchar(declarada) && declarada %in% names(data)) declarada else
+    .monitoreo_aulas_col(data, c("response_status", "_validation_status", "validation_status", "estado"))
+  validas <- sum(.monitoreo_aulas_valid_response(data, cfg))
+  modo <- if (nzchar(declarada) && !declarada %in% names(data)) {
+    # El estudio declaro una columna que no existe. Antes se caia al detector
+    # automatico sin decir nada, asi que un error de tipeo en la config pasaba
+    # por criterio deliberado.
+    "declarada_ausente"
+  } else if (!nzchar(col)) "sin_columna" else "por_columna"
+  list(columna = col, modo = modo, declarada = declarada,
+       validas = as.integer(validas), total = as.integer(nrow(data)))
+}
+
+#' Frase que explica el criterio sin jerga.
+#' @export
+monitoreo_aulas_criterio_texto <- function(crit) {
+  total <- as.integer(crit$total %||% 0L)
+  validas <- as.integer(crit$validas %||% 0L)
+  switch(crit$modo %||% "sin_datos",
+    sin_datos = "Todavia no hay respuestas que contar.",
+    declarada_ausente = sprintf(
+      "El estudio declara la columna de estado '%s' y la base no la trae, asi que se conto por '%s': %d de %d respuestas.",
+      crit$declarada %||% "", crit$columna %||% "(ninguna)", validas, total),
+    sin_columna = sprintf(
+      "La base no trae columna de estado, asi que cuentan las %d respuestas. Si el formulario marca incompletas, declara cual es esa columna.",
+      total),
+    por_columna = sprintf(
+      "Cuentan las respuestas cuyo '%s' esta en la lista de estados validos: %d de %d.",
+      crit$columna %||% "", validas, total)
+  )
 }
 
 .monitoreo_aulas_response_classroom <- function(data, cfg) {
@@ -1046,9 +1124,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   partes_campo <- cfg$partes_campo %||% list()
   descuadres <- monitoreo_aulas_reconciliacion_partes(partes_campo)
 
+  # El criterio de validez se resolvia en silencio, y contar TODO o filtrar por
+  # una columna equivocada dan numeros muy distintos.
+  criterio <- monitoreo_aulas_criterio_validez(responses, cfg)
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "unnamed_control_columns"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "unnamed_control_columns", "valid_response_criterion"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
@@ -1067,7 +1148,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # Columnas de «Base de control» con datos que la cabecera no bautiza. No
       # es un fallo del lector —adivinar seria peor— pero es informacion del
       # equipo que no entra, y hasta ahora nadie lo decia.
-      if ((cfg$control_sin_nombre %||% 0L) > 0L) "review" else "ok"
+      if ((cfg$control_sin_nombre %||% 0L) > 0L) "review" else "ok",
+      # Que criterio de validez se aplico. `review` cuando el estudio declaro
+      # una columna que la base no trae —un error de tipeo en la config pasaba
+      # por criterio deliberado— y cuando no hay columna y por tanto cuenta
+      # TODO, que es una decision que conviene tomar a sabiendas.
+      switch(criterio$modo, declarada_ausente = "review", sin_columna = "review", "ok")
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
@@ -1098,7 +1184,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         )
       } else {
         "Todas las columnas con datos de la Base de control tienen nombre."
-      }
+      },
+      monitoreo_aulas_criterio_texto(criterio)
     ),
     stringsAsFactors = FALSE,
     check.names = FALSE
