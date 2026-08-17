@@ -192,7 +192,15 @@ function fallbackLabel(value: string) {
   return label ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : value;
 }
 
-function presentDetail(value: unknown) {
+/**
+ * El detalle de un control, con el vocabulario de la casa.
+ *
+ * Exportado porque la tabla ya no es el único consumidor: los controles de
+ * Validación se leen como avisos y necesitan la misma traducción. Pintarlos sin
+ * pasar por aquí devolvía «El tablero agrega por aula/collector/link» a la
+ * pantalla, que es justo la jerga del motor que este helper existe para tapar.
+ */
+export function presentDetail(value: unknown) {
   return String(value ?? "")
     .replaceAll("aula/collector/link", "curso-horario, origen y enlace")
     .replaceAll("Score efectivo", "Puntaje efectivo")
