@@ -147,3 +147,98 @@
   }
   hijo
 }
+
+
+#' Cuerpo del enunciado de bloque que cabe en toda la lamina
+#'
+#' P46. `.barras_acotar_titulo_grupo()` recorta cuando el texto pide mas lineas
+#' de las que su bloque sostiene, y marca el corte con «…». Medido sobre el mazo
+#' de Conta: **21 enunciados truncados en 16 laminas de 66**, y el entregable
+#' aprobado **cero**.
+#'
+#' Trazado el cupo en la corrida entera —191 llamadas—, casi todos los recortes
+#' son bloques de UNA fila pidiendo de 4 a 11 lineas contra un cupo de 2 a 6. La
+#' fila mide de 0.40 a 1.17 in y una linea a 14 pt con interlineado 0.86 ocupa
+#' 0.167: no caben, y ensanchar el canal no basta —eso ya se hizo y los
+#' truncados solo bajaron de 22 a 21—.
+#'
+#' La palanca que si usa el aprobado es el CUERPO: sus enunciados largos van a
+#' **12 pt** (lamina 29, con nueve y doce lineas) y **13 pt** (laminas 35 y 39)
+#' donde el motor pone 14. Esto hace lo mismo: baja el cuerpo hasta que el texto
+#' cabe, con piso.
+#'
+#' DOS DECISIONES, las dos medidas:
+#'
+#' · **Se re-envuelve a cada tamano candidato, no se escala la cuenta.** A 11 pt
+#'   cada linea lleva ~27 % mas texto, asi que un enunciado de nueve lineas baja
+#'   a siete. La cuenta estatica —cuerpo = alto / (lineas x interlineado)—
+#'   subestima el remedio porque supone que el numero de lineas no cambia.
+#' · **El tamano es UNO POR LAMINA, no uno por bloque.** El aprobado usa un solo
+#'   cuerpo en toda su lamina 29, 12 pt para sus cuatro enunciados. Mezclar
+#'   tamanos entre bloques vecinos no lo hace nadie y se ve.
+#'
+#' Es la tercera aparicion de la forma «baja el cuerpo hasta que quepa»
+#' —`.agrupadas_size_que_cabe()` la resuelve para la etiqueta de eje—, y por eso
+#' vive aqui y no como un parche del graficador.
+#'
+#' @param textos Enunciados de los bloques de la lamina.
+#' @param altos_in Alto disponible de cada bloque, en pulgadas. Mismo largo.
+#' @param wrap_fun Funcion `(texto, size_pt) -> ancho de wrap en caracteres`.
+#'   Se inyecta para que el llamador use su propio medidor —el graficador ya
+#'   tiene `.barras_wrap_titulo_grupo()`, que mide con `grid::textGrob`— sin que
+#'   este helper tenga que conocer el reparto de columnas.
+#' @param size_pt Cuerpo declarado. Es el techo: nunca se sube.
+#' @param interlinea Interlineado del enunciado.
+#' @param minimo_pt Piso. Por debajo el enunciado deja de leerse, que es peor
+#'   que verlo cortado.
+#' @param paso_pt Salto entre candidatos.
+#' @return El mayor cuerpo <= `size_pt` con el que TODOS los bloques caben, o
+#'   `minimo_pt` si ninguno lo consigue.
+#' @keywords internal
+.titulo_grupo_size_que_cabe <- function(textos, altos_in, wrap_fun, size_pt,
+                                        interlinea = .BARRAS_INTERLINEA_TITULO,
+                                        minimo_pt = 11, paso_pt = 1) {
+  t <- as.character(textos)
+  a <- suppressWarnings(as.numeric(altos_in))
+  s <- suppressWarnings(as.numeric(size_pt)[1])
+  lo <- suppressWarnings(as.numeric(minimo_pt)[1])
+  li <- suppressWarnings(as.numeric(interlinea)[1])
+  if (!length(t) || length(a) != length(t)) return(s)
+  if (!is.finite(s) || s <= 0 || !is.finite(lo) || lo <= 0 || !is.finite(li) || li <= 0) return(s)
+  if (!is.function(wrap_fun)) return(s)
+  if (lo >= s) return(s)
+
+  ok <- !is.na(t) & nzchar(trimws(t)) & is.finite(a) & a > 0
+  if (!any(ok)) return(s)
+  t <- t[ok]; a <- a[ok]
+
+  # Cuantas lineas produce el envoltorio REAL a ese cuerpo. No se estima:
+  # envolver por palabras no reparte a partes iguales y una cuenta por
+  # caracteres se equivoca en los dos sentidos.
+  lineas_a <- function(x, pt) {
+    if (!requireNamespace("stringr", quietly = TRUE)) return(NA_integer_)
+    w <- tryCatch(wrap_fun(x, pt), error = function(e) NA_real_)
+    w <- suppressWarnings(as.numeric(w)[1])
+    if (!is.finite(w) || w < 1) return(NA_integer_)
+    length(strsplit(stringr::str_wrap(gsub("\n", " ", x, fixed = TRUE), width = w),
+                    "\n", fixed = TRUE)[[1]])
+  }
+
+  candidatos <- seq(s, lo, by = -abs(paso_pt))
+  if (!length(candidatos) || candidatos[length(candidatos)] > lo) {
+    candidatos <- c(candidatos, lo)
+  }
+  for (pt in candidatos) {
+    alto_linea <- (pt / 72) * li
+    if (!is.finite(alto_linea) || alto_linea <= 0) next
+    cabe <- TRUE
+    for (k in seq_along(t)) {
+      n_lin <- lineas_a(t[k], pt)
+      # Sin medicion no se decide a ciegas: se deja el cuerpo declarado.
+      if (!is.finite(n_lin)) return(s)
+      if (n_lin * alto_linea > a[k] + 1e-9) { cabe <- FALSE; break }
+    }
+    if (cabe) return(pt)
+  }
+  lo
+}

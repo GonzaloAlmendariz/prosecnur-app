@@ -3381,6 +3381,28 @@ graficar_barras_apiladas <- function(
       )
 
     x_group_txt <- x_group0 + (w_group * 0.5)
+
+    # P46: el cuerpo del enunciado se decide UNA VEZ para toda la lamina, antes
+    # de envolver, acotar y dibujar. Si el declarado no deja caber algun bloque,
+    # baja hasta que quepan todos —que es lo que hace el entregable aprobado:
+    # 12 pt donde el motor pone 14—. Sin esto el cupo de mas abajo corta y marca
+    # con «…»: 21 enunciados truncados en 16 laminas contra CERO del aprobado.
+    size_titulos_grupo <- .titulo_grupo_size_que_cabe(
+      textos   = as.character(group_df$.group_title),
+      # El alto que sostiene cada bloque, en pulgadas: sus filas por el alto
+      # real de fila, por la porcion de lamina que le toca. Es el mismo trio con
+      # el que `.barras_acotar_titulo_grupo()` calcula su cupo.
+      altos_in = group_df$n_cat * suppressWarnings(as.numeric(alto_por_cat_eff)[1]) *
+        min(1, suppressWarnings(as.numeric(titulos_grupo_alto_rel)[1])),
+      wrap_fun = function(x, pt) .barras_wrap_titulo_grupo(x, w_group, ancho, pt, font_family),
+      size_pt  = size_titulos_grupo
+    )
+
+    # P46: el cuerpo del enunciado se decide UNA VEZ para toda la lamina, antes
+    # de envolver, acotar y dibujar. Si el declarado no deja caber algun bloque,
+    # baja hasta que quepan todos —que es lo que hace el entregable aprobado:
+    # 12 pt donde el motor pone 14—. Sin esto el cupo de mas abajo corta y marca
+    # con «…»: 21 enunciados truncados en 16 laminas contra CERO del aprobado.
     # El titulo se dibuja centrado en su bloque, y `draw_text` no recorta: un
     # titulo mas alto que su bloque invade los vecinos. Con enunciados completos
     # como nombre de tema —el caso de la matriz de equivalencias— los titulos de
