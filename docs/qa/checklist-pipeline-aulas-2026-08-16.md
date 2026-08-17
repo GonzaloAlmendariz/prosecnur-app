@@ -21,14 +21,14 @@ titular tenga su cadena completa.
 | # | Etapa | Qué hay que comprobar | Dónde vive | Estado |
 |---|---|---|---|---|
 | E1 | **Base** | El marco carga y sus filas son las que deben ser | `carga_aulas_libro.R` (ajeno: sólo leer) · `calc_muestra_aulas_frame` | ☑ **pasa** |
-| E2 | **Criterios de alumnos** | Filtran a quien deben; el elegible sale de aplicarlos, no de un default | `calc_muestra_aulas.R` · pestaña Criterios | ◐ **con observación** |
-| E3 | **Criterios de curso-horario** | **Que funcionen de verdad** — Gonzalo lo subraya | `calc_muestra_aulas_catalogo*` · `FacultadDecisionBloque` | ☐ |
+| E2 | **Criterios de alumnos** | Filtran a quien deben; el elegible sale de aplicarlos, no de un default | `calc_muestra_aulas.R` · pestaña Criterios | ☑ **pasa** (H3 resuelto: son dos capas) |
+| E3 | **Criterios de curso-horario** | **Que funcionen de verdad** — Gonzalo lo subraya | `calc_muestra_aulas_catalogo*` · `FacultadDecisionBloque` | ☑ **pasa** |
 | E4 | **Cálculo de la muestra** | El n sale de la fórmula declarada y coincide con lo que publica la UI | `calc_muestra_engine.R` · `CalculoPropuestasTab` | ☑ **pasa** |
 | E5 | **Cuotas de hombres y mujeres por facultad** | Se calculan por facultad y suman lo que deben | `calc_muestra_aulas.R` · `CursosHorarioSexo` | ☑ **pasa** |
 | E6 | **Cuota general por facultad** | Coherente con E5: la general no contradice el desglose por sexo | idem | ☑ **pasa** |
 | E7 | **Alumnos elegibles por curso-horario** | El elegible por CH es calculable y trazable a E2 | `calc_muestra_aulas.R` | ☑ **pasa, con hallazgo H6** |
 | E8 | **Cuántos CH hacen falta por facultad** | Se deriva de E6 ÷ E7 y queda explícito | idem | ☑ **pasa — fórmula exacta 15/15** |
-| E9 | **Selección de aulas** | Cumple las requeridas por facultad de E8, facultad por facultad | `calc_muestra_aulas.R` selector | ◐ **genera bien; falta contrastar con E8** |
+| E9 | **Selección de aulas** | Cumple las requeridas por facultad de E8, facultad por facultad | `calc_muestra_aulas.R` selector | ☑ **pasa** — con margen publicado |
 | E10 | **Titulares y sus reemplazos** | Cada titular tiene su cadena **completa**; ninguno se queda sin ella | selección + `chain_reserve` | ☑ **pasa** |
 
 ## E1 — Base · **pasa** (2026-08-16, sobre `hsvg2026.pulso`)
@@ -533,6 +533,46 @@ Guardas completas del resolutor, para no romperlas: `frame_mode ==
 estadístico inválidos → `decision_incompleta`; frame ausente o con schema
 distinto de `calc_muestra_aulas_frame_v1` → `frame_ausente`; y compara el
 `frame_hash` del contrato con el del frame.
+
+## H3 — RESUELTO: no hay contradicción, hay dos capas
+
+`criterios_alumno_report$criterios$level` dice `filas_pasan: 100920` mientras el
+elegible del marco es 106.013, **mayor**. Parecía imposible. No lo es: **cada
+criterio de alumno lleva una CAPA** y sólo una recorta N.
+
+`api/R/calc_muestra_aulas_criterios.R` lo dice en el propio código: «"marco"
+reduce N; "instrumento" se aplica al cuestionario; "procesamiento" se aplica
+post-campo». Y en el evaluador (~1500): **«Solo la capa "marco" recorta N, así
+que solo ella justifica una exclusión: instrumento/procesamiento se reportan
+pero no sacan a nadie del marco»**, con `marco_ok <- marco_ok & flag` dentro de
+`if (identical(layer, "marco"))`.
+
+`level` tiene `defaultLayer = "instrumento"` (línea 58, «Ciclo o nivel
+curricular»), y el comentario nombra el caso: **el «ciclo 1 → instrumento» de
+HST**. En este estudio el ciclo no saca a nadie del marco: decide qué se le
+pregunta a quién. Los 106.013 salen de los cuatro criterios de capa `marco`
+—age, formation, condition, faculty—, cuya intersección es ≤ 123.360.
+
+**El motor está bien. Lo que falta es claridad**: la pestaña presenta las cinco
+filas juntas sin decir a qué capa pertenece cada una, y
+`frontend/src/features/calcMuestra/dominio/criteriosMarco.ts:116` reconoce que
+«la UI todavía no expone un selector de capa». Por eso una lectura razonable de
+esa pantalla lleva a creer que el elegible sale de las cinco. Candidato de
+mejora: mostrar la capa junto a cada criterio y qué hace cada capa.
+
+## Estado final del recorrido (2026-08-16)
+
+Las once etapas cerradas. Lo que el recorrido destapó y quedó reparado:
+
+| Hallazgo | Qué era | Commits |
+|---|---|---|
+| Familia de recortes | El mismo tope en **cinco superficies**: dos en el panel de rutas, las tarjetas de titular, el export a Excel y la tabla de sugerencias | `4c2114e8` … `438f2e2b` |
+| E3 | `exclude_level_patterns` no excluía **ni una** aula: buscaba «posgrado» en un campo numérico | `e8b06e7b` … `2e6684eb` |
+| H7 | El proyecto real **no podía calcular**: 409 por una decisión con los seis campos vacíos | `afdd7c0f` |
+| H6 | Un solo «alumnos por CH» para quince facultades, y la decisión sin firmar era muda | `f8507a32`, `5b051d70` |
+| E11 | Nada protegía que un criterio de una facultad no se filtrara a las demás | `505c5043` |
+| H1 y H2 | El motor sabía que una facultad se queda sin reemplazos y no lo decía | `c3e17367` |
+| H3 | Falsa alarma: dos capas, no una contradicción | — |
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
