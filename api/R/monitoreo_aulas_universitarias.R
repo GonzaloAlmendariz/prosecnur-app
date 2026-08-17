@@ -262,6 +262,7 @@ monitoreo_aulas_default_config <- function() {
     # nada que comprobar.
     partes_campo = list(),
     control_sin_nombre = 0L,
+    control = list(),
     quotas = list(),
     variables_control = list(),
     methodology = list(),
@@ -310,6 +311,13 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     partes_campo = {
       pc <- config$partes_campo %||% config$partes %||% defaults$partes_campo
       if (is.list(pc)) unname(Filter(is.list, pc)) else list()
+    },
+    # Las filas de «Base de control». Mismo tratamiento que los partes: se
+    # conservan como vienen del lector y el motor las publica sin recalcular
+    # nada, porque las formulas de control son del equipo, no de la app.
+    control = {
+      ct <- config$control %||% config$base_control %||% defaults$control
+      if (is.list(ct)) unname(Filter(is.list, ct)) else list()
     },
     quotas = config$quotas %||% config$cuotas %||% defaults$quotas,
     variables_control = config$variables_control %||% config$variablesControl %||% defaults$variables_control,
@@ -1250,6 +1258,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # en ninguna tabla. La resta la calcula el mismo helper que decide el
     # descuadre, asi que la tabla y el aviso no pueden discrepar.
     partes_campo = monitoreo_aulas_partes_publicados(partes_campo),
+    # La tercera hoja del operativo. Viajaba de la importacion a la sesion y ahi
+    # moria: sus 25 campos propios —validadores, cortas y largas, umbrales 70T y
+    # 70P, cuota por sexo del aula, rango horario— no llegaban a ninguna
+    # superficie. El resumen acompana a las filas para que la vista pueda decir
+    # que grupo del control viene vacio en vez de pintar ceros medidos.
+    control_calidad = monitoreo_aulas_control_publicado(cfg$control %||% list()),
+    control_calidad_resumen = monitoreo_aulas_control_resumen(cfg$control %||% list()),
     representativity = representativity,
     validation = .monitoreo_aulas_records(validation)
   )

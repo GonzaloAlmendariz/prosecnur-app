@@ -769,6 +769,17 @@ export type MonitoreoAulasDashboard = {
 	  reemplazos: MonitoreoRow[];
 	  /** El parte de campo de cada aula, con su resta ya hecha por el motor. */
 	  partes_campo?: MonitoreoRow[];
+	  /**
+	   * «Base de control»: el control de calidad por aula que el equipo lleva en
+	   * su Excel. Los valores llegan tal como los trae la hoja —las fórmulas son
+	   * del equipo— y el resumen dice qué grupo del control viene lleno, para
+	   * distinguir un aula sin revisar de un aula con el control en cero.
+	   */
+	  control_calidad?: MonitoreoRow[];
+	  control_calidad_resumen?: {
+	    aulas: number;
+	    grupos: Array<{ clave: string; etiqueta: string; campos: number; aulas_con_dato: number }>;
+	  };
 	  representativity?: {
 	    planned_score?: number;
 	    effective_score?: number;
