@@ -60,6 +60,22 @@
   grosor_escala_cm     = 0.77,
   grosor_categorica_cm = 0.65,
   barras_por_grafico   = 7L,
+  # LA VARA MEDIA UNA PALETA Y EL MAZO TIENE DOS. `barras_por_grafico` sale de
+  # `barras_escala`, que solo cuenta la rampa; el techo se aplicaba luego a las
+  # dos. Medido sobre el aprobado con el mismo filtro que usa la regla: sus
+  # graficos AZULES llegan a 8 barras por grafico y a 1.80 cm de grosor, y nada
+  # de eso lo miraba nadie.
+  #
+  # Los dos son TECHOS y van al MAXIMO del aprobado, no a su p90 —igual que
+  # `barras_por_grafico`, que tambien sale de un `max()`—. Medido: con el p90
+  # el techo de grosor marcaba 3 de los 25 graficos del PROPIO aprobado, y un
+  # techo que la referencia no cumple no mide conformidad. El maximo se redondea
+  # hacia ARRIBA para que su propio extremo no caiga fuera por el decimal.
+  barras_por_grafico_categorico = 8L,
+  # 1.81 y no 1.80: el valor exacto es 1.8049 y a dos decimales hacia abajo el
+  # PROPIO aprobado incumplia su techo por cinco milesimas. Un techo que la
+  # referencia no cumple no mide conformidad.
+  grosor_categorico_max_cm      = 1.81,
   texto_minimo_pt      = 12,
   # El aprobado no tiene NI UNO en la rampa de escala: sus 67 rojos son todos
   # titulos. El umbral es cero porque el modelo esta en cero.
@@ -250,7 +266,7 @@
 medir_mazo <- function(path) {
   laminas <- .verif_laminas_xml(path)
   gr_esc <- numeric(0); n_esc <- integer(0)
-  gr_cat <- numeric(0); txt <- numeric(0)
+  gr_cat <- numeric(0); n_cat <- integer(0); txt <- numeric(0)
   rojo <- 0L; tops <- numeric(0); ilegible <- 0L
 
   for (xml in laminas) {
@@ -259,7 +275,7 @@ medir_mazo <- function(path) {
       gr_esc <- c(gr_esc, g$grosor); n_esc <- c(n_esc, g$n)
     }
     for (g in .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))) {
-      gr_cat <- c(gr_cat, g$grosor)
+      gr_cat <- c(gr_cat, g$grosor); n_cat <- c(n_cat, g$n)
     }
     szs <- as.numeric(gsub('\\D', "", regmatches(xml, gregexpr('sz="\\d+"', xml))[[1]])) / 100
     txt <- c(txt, szs[is.finite(szs)])
@@ -270,7 +286,8 @@ medir_mazo <- function(path) {
   }
 
   list(grosor_escala = gr_esc * .VERIF_CM_POR_IN, barras_escala = n_esc,
-       grosor_categorico = gr_cat * .VERIF_CM_POR_IN, texto_pt = txt,
+       grosor_categorico = gr_cat * .VERIF_CM_POR_IN, barras_categorico = n_cat,
+       texto_pt = txt,
        rojo_en_rampa = rojo, titulo_top_cm = tops, texto_ilegible = ilegible)
 }
 
@@ -304,6 +321,12 @@ calibrar_umbrales <- function(path, p = 0.10) {
     # que el entregable no partia. Medido: con el percentil 90 (seis barras) el
     # mazo pasaba de 63 a 73 laminas.
     barras_por_grafico   = as.integer(max(m$barras_escala)),
+    # Techos de la paleta AZUL, que hasta P36 no medía nadie. Al maximo del
+    # aprobado y no a su p90: con el p90 el de grosor marcaba 3 de los 25
+    # graficos del propio aprobado. El redondeo va hacia ARRIBA por la misma
+    # razon —su extremo no puede quedar fuera por un decimal—.
+    barras_por_grafico_categorico = as.integer(max(m$barras_categorico)),
+    grosor_categorico_max_cm      = ceiling(max(m$grosor_categorico) * 100) / 100,
     texto_minimo_pt      = round(q(m$texto_pt, p), 1),
     texto_prop_max       = round(mean(m$texto_pt < q(m$texto_pt, p)), 3),
     rojo_en_rampa_max    = as.integer(m$rojo_en_rampa),
@@ -370,6 +393,22 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
         add("R5 grosor categorico", i, round(g$grosor * .VERIF_CM_POR_IN, 3),
             sprintf(">= %.2f cm", u$grosor_categorica_cm),
             sprintf("%d barras", g$n))
+      }
+      # R10 y R11: los techos de la azul. R5 mira que la barra no sea DEMASIADO
+      # FINA; nadie miraba que no fuera demasiado gruesa ni que cupieran
+      # demasiadas, aunque el aprobado tiene su limite en las dos cosas.
+      if (!is.null(u$grosor_categorico_max_cm) &&
+          g$grosor * .VERIF_CM_POR_IN > u$grosor_categorico_max_cm) {
+        add("R10 grosor categorico excesivo", i,
+            round(g$grosor * .VERIF_CM_POR_IN, 3),
+            sprintf("<= %.2f cm", u$grosor_categorico_max_cm),
+            sprintf("%d barras estirandose en un hueco alto", g$n))
+      }
+      if (!is.null(u$barras_por_grafico_categorico) &&
+          g$n > u$barras_por_grafico_categorico) {
+        add("R11 barras por grafico categorico", i, g$n,
+            sprintf("<= %d", u$barras_por_grafico_categorico),
+            "la lamina deberia partirse")
       }
     }
 
