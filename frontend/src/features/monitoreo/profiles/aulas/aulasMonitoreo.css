@@ -1770,3 +1770,32 @@
 .mon-profile-page.is-aulas-flow .aulas-cadenas-lista.es-compacta .aulas-cadena {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* ── El dueño del scroll en las tablas apiladas (C4) ─────────────────────────
+   `mon-profile-table-wrap` lleva `max-height: none` y `height: 100%` para llenar
+   el panel, y eso funciona donde el stack le da alto definido —Avance, Agenda—.
+   En Consultas el stack es flex con hijos que no se encogen, así que `height:
+   100%` no resuelve a nada y la tabla crece libre: medido, **5 662 px** en Parte
+   de campo.
+
+   La consecuencia no es el largo, que el contenedor de contenido absorbe: es que
+   el `thead` está declarado `position: sticky; top: 0` y NO se pega, porque
+   sticky mide contra el ancestro que scrollea y aquí scrollea el contenedor, no
+   el wrap. Medido: al bajar 1 200 px la cabecera se iba a −806. Con 170 filas de
+   asistentes, rechazos, duplicados y efectivas, perder los encabezados es perder
+   la tabla.
+
+   Se acota a los stacks de UNA sola tabla —`:has(> .mon-profile-panel:only-child)`—
+   porque el `max-height: none` de arriba NO es un descuido: su comentario
+   documenta que con tres tablas apiladas en Avance el grid aplastaba a la más
+   larga (61 px de 313, medido) y que la solución fue dejar el scroll al
+   contenedor. Aquí sólo hay un panel, así que el tope no reintroduce aquel
+   problema y devuelve la cabecera pegajosa donde de verdad hace falta. */
+.mon-profile-page.is-aulas-flow
+  .aulas-tablas-apiladas:has(> .mon-profile-panel:only-child)
+  .mon-profile-table-wrap {
+  height: auto;
+  max-height: calc(100vh - 360px);
+  min-height: 220px;
+  overflow: auto;
+}
