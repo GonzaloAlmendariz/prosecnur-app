@@ -136,7 +136,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L63** | **Aulas no tiene ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`: acreditación tiene ritmo diario y tendencia telefónica (`AcreditacionAdvanceDailyMini`, `ritmoDiario.ts` con cortes diarios y semanales, calendario expandido y ejes con padding); telefónico tiene embudo en franja y barras apiladas. Aulas sólo muestra tablas. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | No vale copiar el ritmo diario de telefónico: en aulas la unidad es el curso-horario con su aforo y su meta, y lo que importa es la brecha por aula, el avance por estrato/facultad, la cuota sexo×facultad y el consumo de la cadena de reemplazos. | ☐ sin empezar — decidir el catálogo antes de dibujar. |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
-| **L66** | El **plan viaja tres veces** en cada petición de estado. | De 1377 KB: `config.aulas_universitarias.plan` 366 · `aulas_universitarias.plan` 356 —**idénticos byte a byte**, 196×80— y `dashboard.agenda` 337 (196×82). Más de la mitad del payload es el mismo plan repetido. | ☐ sin empezar — medido con 3700 registros. |
+| **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -722,3 +722,34 @@ el mismo plan repetido**, y el frontend pide estado en cada cambio de sección.
 Con nueve aulas esto no se veía: el payload rondaba los 60 KB y la duplicación
 era invisible. Es el mismo patrón que el recorte de filas — un problema que sólo
 existe a la escala en que el estudio ocurre de verdad.
+
+
+### 2026-08-16 — L66: fuera la copia que no defendía nadie
+
+De las tres copias del plan en el payload, una era **indefendible**:
+`aulas_universitarias.plan` en la raíz del estado, idéntica byte a byte a la de
+`config` y con **cero consumidores** en el frontend — el único lector es
+`state.config.aulas_universitarias`. Comprobado antes de tocarla, y sin tests
+que la miraran.
+
+| | Antes | Ahora |
+|---|---:|---:|
+| Payload total | 1377 KB | **1045 KB** |
+| `aulas_universitarias` en raíz | 356 KB | 24 KB |
+| Unidades del plan ahí | 196 | **0** |
+
+Se conserva el resto de esa config —`enabled`, mapeos, cuotas— por si algo la
+lee; lo único que se quitó es el duplicado grande.
+
+**Las otras dos copias no son duplicación**: `config…plan` (80 campos) alimenta
+el registro de campo y `dashboard.agenda` (82) alimenta la tabla. Tienen
+consumidores distintos y formas distintas. Unificarlas es una decisión de
+diseño —hacer que el registro lea la agenda— y no un arreglo.
+
+**El tiempo no bajó en proporción**: sigue en ~2,8 s. Así que el cuello no es
+sólo el tamaño; hay ~500 ms de cálculo en el backend (`derived=miss`) y el resto
+se va en serializar y parsear un JSON de 1 MB. Bajar el peso ayuda pero no es la
+única palanca.
+
+Verificado tras el cambio: registro con sus 196 aulas, agenda con 196, avance
+con 196 y brechas con 91.
