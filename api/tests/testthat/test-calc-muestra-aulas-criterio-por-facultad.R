@@ -88,3 +88,53 @@ test_that("una excepcion de una facultad que no existe no altera el marco", {
   expect_equal(n("DERECHO", "TALLER"), 0L)
   expect_equal(n("ARTES ESCENICAS", "TALLER"), 0L)
 })
+
+# `exenta`: el criterio NO APLICA en esa facultad.
+#
+# Gonzalo, textual: «siento que los criterios los sigue aplicando de forma
+# general, por ejemplo creo que perdemos muchas aulas con el criterio de nivel;
+# al 80 % en los estudios generales letras y ciencias no deberia tenerlos».
+# Medido en HSVG2026: el criterio de nivel del curso se llevaba el **94 %** de
+# las aulas de EE.GG. LETRAS (455 de 482) y esa facultad se quedaba con 20 aulas
+# elegibles necesitando 35.
+#
+# Con `replace` se podria imitar enumerando TODAS las categorias validas, pero
+# eso congela la lista: una categoria nueva quedaria fuera en silencio, y el
+# analista no escribio «solo estas», escribio «aqui no aplica».
+
+test_that("`exenta` deja pasar la facultad entera y no toca a las demas", {
+  n <- .cpf_tabla(.cpf_frame(list(
+    artes_escenicas = list(op = "exenta")
+  )))
+  # La facultad exenta conserva TODO, incluido lo que el criterio general excluye.
+  expect_equal(n("ARTES ESCENICAS", "TALLER"), 2L)
+  expect_equal(n("ARTES ESCENICAS", "TEORICO"), 2L)
+  # Y el criterio general sigue recortando en la otra: una exencion no es un
+  # apagado global.
+  expect_equal(n("DERECHO", "TALLER"), 0L)
+  expect_equal(n("DERECHO", "TEORICO"), 2L)
+})
+
+test_that("`exenta` NO necesita declarar categorias", {
+  # Es la diferencia con `replace`: decir «aqui no aplica» sin enumerar nada.
+  sin_cats <- .cpf_tabla(.cpf_frame(list(artes_escenicas = list(op = "exenta"))))
+  con_cats <- .cpf_tabla(.cpf_frame(list(
+    artes_escenicas = list(op = "exenta", categories = "teorico")
+  )))
+  # Las categorias declaradas se ignoran: exenta es exenta.
+  expect_equal(sin_cats("ARTES ESCENICAS", "TALLER"), 2L)
+  expect_equal(con_cats("ARTES ESCENICAS", "TALLER"), 2L)
+})
+
+test_that("un `op` desconocido cae a `add`, nunca a exenta", {
+  # Un typo no puede desactivar un criterio en silencio: seria el fallo mas caro
+  # posible de esta funcion.
+  n <- .cpf_tabla(.cpf_frame(list(
+    artes_escenicas = list(op = "exsenta", categories = "taller")
+  )))
+  expect_equal(n("ARTES ESCENICAS", "TALLER"), 2L)
+  expect_equal(n("ARTES ESCENICAS", "TEORICO"), 2L)
+  # CONTROL: sin categorias, un op desconocido no exime a nadie.
+  m <- .cpf_tabla(.cpf_frame(list(artes_escenicas = list(op = "apagado"))))
+  expect_equal(m("ARTES ESCENICAS", "TALLER"), 0L)
+})
