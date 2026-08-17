@@ -144,7 +144,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
 | **L74** | **Avance tiene que mostrar las cuotas** de forma sencilla y dinámica. | El tablero decía «2/12 celdas», que no distingue faltar una respuesta de faltar doscientas. | ◐ a medias (2026-08-17) — las tres lecturas en personas: total, por facultad y por sexo. Falta la parte «dinámica». |
-| **L75** | **Consultas tiene que contar la historia de la cadena.** | Si estamos cumpliendo con los **titulares**; cómo nos fue en el titular, luego en su reemplazo; y **cuál fue la cadena que nos permitió llegar a la meta**. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L75** | **Consultas tiene que contar la historia de la cadena.** | Había una tabla de 26 filas y un histograma de consumo: dicen cuánta reserva se gastó, no cómo se llegó. | ◐ a medias (2026-08-17) — la secuencia por cadena con su desenlace. El caso «cerró en el reemplazo» sólo está probado por test: el fixture no tiene ninguno. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -1242,3 +1242,37 @@ avance.
 
 Queda la parte **«dinámica»** del pedido, que aún no está: hoy son tres lecturas
 fijas y él pidió también poder moverse por ellas.
+
+
+### 2026-08-17 — L75: la cadena se lee de izquierda a derecha
+
+Cada cadena es ahora una línea con sus eslabones en orden y el desenlace en la
+franja izquierda:
+
+```
+CH 1   Estudios Generales Letras   sin cerrar
+       CH 1  titular  0 de 15 → R 1.1  en reserva 1  0 de 29 → R 1.2  en reserva 2  0 de 28
+```
+
+Contesta las tres preguntas en el orden en que se hacen: si cumplimos con el
+titular, cómo fue su reemplazo, y cuál cerró. Y encabeza con el recuento:
+**0 cerraron con el titular · 0 con un reemplazo · 24 sin cerrar · 146 no
+necesitaron reemplazo**.
+
+«en reserva n» sale de `EN RESERVA n`, que es como el Excel numera el eslabón.
+
+Una decisión con su test: **el cierre no se acumula entre eslabones**. 20 + 20
+con meta 30 no cierran nada, porque cada aula lleva **su propio** aforo elegible;
+sumarlos diría que la cadena cumplió cuando ninguna aula llegó.
+
+**Y un diagnóstico mío que era falso.** Al ver «0 de 15» en los 26 eslabones con
+3700 respuestas en la base, di por hecho que `agenda` no traía
+`respuestas_validas` y añadí una unión con `course_status`. Comprobado: la agenda
+**sí** trae el campo y **coincide** con `course_status`. El cero era el valor
+real —las aulas que necesitaron reemplazo son precisamente las que no recogieron
+nada—. La unión se revirtió: era complejidad sobre un diagnóstico equivocado.
+
+**Deuda declarada**: en este fixture **ninguna cadena cerró**, así que el caso
+«cerró R n.1» —el que Gonzalo pregunta— sólo está verificado por test unitario, no
+en pantalla. Es la misma clase de límite que ya costó una conclusión falsa: un
+sin-hallazgos vale lo que el fixture.

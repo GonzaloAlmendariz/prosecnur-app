@@ -791,3 +791,100 @@
   align-content: start;
   min-width: 0;
 }
+
+/* ── Historia de la cadena ───────────────────────────────────────────────
+   Cada cadena es una fila con sus eslabones en línea: titular → en reserva 1 →
+   en reserva 2, y el que cerró marcado. Se lee de izquierda a derecha como
+   ocurrió, que es lo que una tabla de 26 filas no deja ver. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cadenas {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lectura {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadenas-lista {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+  min-height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-left: 3px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+/* La franja izquierda dice el desenlace sin leer nada. */
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-titular { border-left-color: var(--pulso-state-ok-fg, #168a55); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-reemplazo { border-left-color: var(--pulso-state-partial-fg); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left-color: var(--pulso-danger-fg, #a61d4f); }
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-head {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-head strong { font-size: 13px; }
+.mon-profile-page.is-aulas-flow .aulas-cadena-head span,
+.mon-profile-page.is-aulas-flow .aulas-cadena-head em {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-eslabon {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-surface-2) 55%, #fff);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-eslabon.es-cierre {
+  border-color: color-mix(in srgb, var(--pulso-state-ok-fg, #168a55) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-state-ok-fg, #168a55) 8%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-eslabon-codigo { font-weight: var(--pulso-weight-black); }
+.mon-profile-page.is-aulas-flow .aulas-eslabon-rol { color: var(--pulso-text-soft); }
+.mon-profile-page.is-aulas-flow .aulas-eslabon-cifra { color: var(--pulso-text); }
+.mon-profile-page.is-aulas-flow .aulas-eslabon-sello {
+  font-weight: var(--pulso-weight-black);
+  color: var(--pulso-state-ok-fg, #168a55);
+}
