@@ -4752,6 +4752,24 @@ reporte_ppt_plan <- function(
       alturas_bloque <- lapply(bloques, .multilista_block_height)
       rel_heights_plan <- vapply(alturas_bloque, function(a) as.numeric(a)[1], numeric(1))
 
+      # Base por publico de TODA la lamina: el graficador ve una pregunta por
+      # llamada y no puede deducirla. Ver `graficador_n_por_barra.R`.
+      n_obs <- numeric(0); n_pub <- character(0)
+      for (bq in bloques) {
+        for (r in .extract_ref_values(bq$vars %||% character(0))) {
+          ctx <- tryCatch(.resolve_ref(r, arg_name = "var"), error = function(e) NULL)
+          if (is.null(ctx)) next
+          tb <- tryCatch(.tab_freq(r, filtros = bq$filtros %||% list(), source = ctx$source),
+                         error = function(e) NULL)
+          if (is.null(tb) || !all(c("Opciones", "n") %in% names(tb))) next
+          it <- which(tb$Opciones == "Total")
+          if (!length(it)) next
+          n_obs <- c(n_obs, suppressWarnings(as.numeric(tb$n[it[1]])))
+          n_pub <- c(n_pub, as.character(ctx$source))
+        }
+      }
+      bases_publico <- .n_barra_bases_de_lamina(n_obs, n_pub)
+
       # Paso de fila COMUN. Cada bloque lo calculaba con SUS categorias, asi que
       # en una lamina con un bloque de escala y otro dicotomico las barras
       # salian a 1.19 y 0.90 cm —la fraccion era 0.33 contra 0.26—. Se toma el
@@ -4814,6 +4832,11 @@ reporte_ppt_plan <- function(
         if (!is.null(row_step_comun) &&
             is.null(block_render$overrides$row_step_forzado)) {
           block_render$overrides$row_step_forzado <- row_step_comun
+        }
+        # La base por publico viaja al graficador para que pueda anotar la N de
+        # las preguntas con salto de cuestionario.
+        if (length(bases_publico)) {
+          block_render$overrides$bases_publico <- bases_publico
         }
         if (is.null(block_render$overrides$legend_key_aspect_yx)) {
           block_aspect_yx <- parent_aspect_yx * (rel_heights_plan[[idx_block]] / rel_total)

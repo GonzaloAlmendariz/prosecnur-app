@@ -71,6 +71,13 @@
 .n_barra_procede <- function(n_por_fila, n_base, tolerancia = .N_BARRA_TOLERANCIA) {
   n <- suppressWarnings(as.numeric(n_por_fila))
   base <- suppressWarnings(as.numeric(n_base)[1])
+  # `Inf` significa «ya vienen filtradas, dejalas pasar»: lo usa quien decidio
+  # con `.n_barra_procede_por_pregunta()` y solo quiere dibujar. Sin este caso,
+  # el `is.finite()` de abajo las rechazaba TODAS y la capa salia vacia — cero
+  # anotaciones con el mapa de bases ya llegando bien.
+  if (length(n) && is.infinite(base) && base > 0) {
+    return(is.finite(n) & n > 0)
+  }
   if (!length(n) || !is.finite(base) || base <= 0) {
     return(rep(FALSE, max(1L, length(n))))
   }
@@ -207,6 +214,48 @@
   if (!length(n) || length(p) != length(n)) return(rep(NA_real_, length(n)))
   maximos <- tapply(n, p, function(v) suppressWarnings(max(v, na.rm = TRUE)))
   out <- as.numeric(maximos[p])
+  out[!is.finite(out)] <- NA_real_
+  out
+}
+
+
+#' Base por publico a partir de las N observadas en toda la lamina
+#'
+#' Gemela de `.n_barra_base_por_publico()`, pero para quien SI ve la lamina
+#' entera: el renderer de multilista. Recibe una N por (publico, pregunta) y
+#' devuelve el mapa `publico -> base`, que es su mayor observacion.
+#'
+#' Vive aqui y no en el renderer porque ese archivo esta congelado a
+#' crecimiento: alli queda solo el bucle que recoge las N, que necesita
+#' `.tab_freq()` y es local suyo.
+#'
+#' @param n Vector de N observadas.
+#' @param publico Publico de cada observacion.
+#' @return Vector nombrado `publico -> base`.
+#' @keywords internal
+.n_barra_bases_de_lamina <- function(n, publico) {
+  v <- suppressWarnings(as.numeric(n))
+  p <- as.character(publico)
+  ok <- is.finite(v) & v > 0 & !is.na(p) & nzchar(p)
+  if (!any(ok)) return(setNames(numeric(0), character(0)))
+  tapply(v[ok], p[ok], max)
+}
+
+
+#' Base de cada fila, buscando su publico en el mapa de la lamina
+#'
+#' El `.cat_id` del layout llega prefijado —«tema_1__2__estudiantes»— porque el
+#' renderer necesita que sea unico por fila. El publico es lo que va detras del
+#' ultimo separador doble.
+#'
+#' @param cat_id Identificadores de fila del layout.
+#' @param bases Mapa `publico -> base`.
+#' @return Base de cada fila, `NA` si su publico no esta en el mapa.
+#' @keywords internal
+.n_barra_base_de_fila <- function(cat_id, bases) {
+  ids <- as.character(cat_id)
+  pub <- sub("^.*__", "", ids)
+  out <- suppressWarnings(as.numeric(bases[pub]))
   out[!is.finite(out)] <- NA_real_
   out
 }

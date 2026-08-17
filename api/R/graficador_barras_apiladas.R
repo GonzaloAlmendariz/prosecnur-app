@@ -1214,6 +1214,9 @@ graficar_barras_apiladas <- function(
     # sus bloques compartan paso: sin esto cada uno lo calcula con SUS
     # categorias y las barras salen de distinto grosor en la misma lamina.
     row_step_forzado      = NULL,
+    # Mapa `publico -> base` de la lamina entera, que el renderer de multilista
+    # calcula recorriendo todos los bloques. Ver `graficador_n_por_barra.R`.
+    bases_publico         = NULL,
     etiquetas_arriba_offset = 0.13,
     color_conectores_etiquetas = c("segmento", "azul_pulso"),
     posicion_conector_etiquetas = c("centro", "izquierda", "derecha"),
@@ -2490,8 +2493,28 @@ graficar_barras_apiladas <- function(
       )
   }
 
-  # La N por barra NO se engancha aqui: el graficador ve UNA pregunta por
-  # llamada y no puede deducir la base. Ver `graficador_n_por_barra.R`.
+  # La N baja al grafico en las preguntas con salto de cuestionario. El
+  # graficador ve UNA pregunta por llamada, asi que la base por publico se la
+  # pasa el renderer de multilista, que si recorre todos los bloques.
+  if (!is.null(bases_publico) && length(bases_publico) &&
+      !is.null(cat_layout$.n_cat)) {
+    base_fila <- .n_barra_base_de_fila(cat_layout$.cat_id, bases_publico)
+    procede_n <- .n_barra_procede_por_pregunta(
+      n_por_fila = cat_layout$.n_cat,
+      base_por_fila = base_fila,
+      pregunta = rep("lamina", length(base_fila))
+    )
+    if (any(procede_n)) {
+      capa_n <- .n_barra_capa(
+        y_pos = cat_layout$.y_plot[procede_n],
+        n_por_fila = cat_layout$.n_cat[procede_n],
+        n_base = Inf,
+        x = 1.01,
+        color = color_ejes
+      )
+      if (!is.null(capa_n)) p_bars <- p_bars + capa_n
+    }
+  }
 
   n_items_leyenda <- length(niveles_leyenda)
   n_por_fila <- as.integer(legend_n_por_fila)
