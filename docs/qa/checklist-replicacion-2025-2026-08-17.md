@@ -21,9 +21,11 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R2 | Con qué criterios | ☑ |
 | R3 | Qué parámetros de diseño usó | ☑ |
 | R4 | ¿La regla declarada reproduce sus propias 170 aulas? | **✗ NO — 133 de 170** |
+| R4b | Apareció la plantilla de cálculo, y es de **2026**: 189 objetivo / 203 a visitar | ☑ |
 | R5 | Marco 2026 con los criterios de 2025 | pendiente |
-| R6 | Alumnos elegibles por CH por facultad, 2025 vs 2026 | pendiente |
-| R7 | Aulas requeridas por facultad, 2025 vs 2026 | **bloqueado por R4** |
+| R6 | Alumnos elegibles por CH por facultad | pendiente |
+| R7 | Aulas por facultad: **motor 478 vs plantilla 189** | ☑ medido, explicado a medias |
+| R9 | Por qué el universo de aulas por facultad no se parece | **abierto — lo siguiente** |
 | R8 | Características de la selección, 2025 vs 2026 | pendiente |
 
 ## R1 · Las 170 aulas titulares de 2025, por facultad
@@ -167,6 +169,72 @@ Para el mismo `est`, el motor de hoy pide **1/0,53 ÷ 1,5 = 1,26 veces** más au
 que la regla declarada de 2025 — y resulta que 170/133 = **1,28**. La coincidencia
 es notable y merece comprobarse: puede que τ = 0,53 ya esté absorbiendo el
 ingrediente que falta en el papel de 2025.
+
+## R4b · Apareció la plantilla de cálculo — y es de **2026**, no de 2025
+
+`~/Documents/Pulso/HSTVG2026/Informe completo - Kamila/Calculos Muestrales.xlsx`
+es la plantilla de dimensionamiento hecha a mano con la metodología de 2025,
+pero **aplicada al universo de 2026**. Lo confirma su hoja `1_Parametros`:
+población total **21.365**, que es exactamente nuestra cifra; y su hoja
+`4_Muestra_Aulas` reproduce las quince facultades con las mismas poblaciones por
+sexo que mide nuestro motor (Arquitectura 744 M / 336 H, Arte y Diseño 792 / 229,
+Ciencias e Ingeniería 1.127 / 3.385, Derecho 1.933 / 1.036, EE.GG. Ciencias
+951 / 2.404, EE.GG. Letras 1.932 / 1.395 — coincidencia exacta en las quince).
+
+**De aquí salen las «~190 aulas»**: `Aulas_objetivo` suma **189** y
+`Aulas_a_visitar` suma **203**. No son las 170 de 2025, que es otro año y otro
+universo.
+
+| Facultad | Población | Muestra | Sobremuestra | Aulas del universo | **Objetivo** | **A visitar** | est implícito | **Motor hoy** |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 4.512 | 528 | 792 | 104 | 37 | 38 | 21,4 | 49 |
+| EG LETRAS | 3.327 | 389 | 584 | 444 | 24 | 25 | 24,3 | 47 |
+| DERECHO | 2.969 | 347 | 521 | 112 | 21 | 22 | 24,8 | 46 |
+| EG CIENCIAS | 3.355 | 392 | 589 | 355 | 21 | 22 | 28,0 | 47 |
+| ARTE Y DISEÑO | 1.021 | 120 | 179 | 15 | 14 | 15 | 12,8 | 35 |
+| CIENCIAS SOCIALES | 1.287 | 151 | 226 | 27 | 13 | 14 | 17,4 | 38 |
+| ARQUITECTURA | 1.080 | 126 | 190 | 34 | 11 | 12 | 17,3 | 36 |
+| CIENCIAS Y ARTES COMUN. | 832 | 97 | 146 | 45 | 10 | 11 | 14,6 | 33 |
+| GESTIÓN | 986 | 115 | 173 | 16 | 8 | 9 | 21,6 | 35 |
+| ARTES ESCÉNICAS | 590 | 69 | 104 | 27 | 7 | 8 | 14,9 | 28 |
+| PSICOLOGÍA | 673 | 79 | 118 | 28 | 7 | 8 | 16,9 | 30 |
+| EDUCACION | 197 | 24 | 35 | 6 | 6 | 6 | 5,8 | 14 |
+| LETRAS Y CIENCIAS HUMANAS | 225 | 26 | 39 | 42 | 5 | 6 | 7,8 | 16 |
+| CONTABLES | 183 | 21 | 32 | 7 | 3 | 4 | 10,7 | 14 |
+| GASTRONOMÍA | 128 | 16 | 22 | 8 | 2 | 3 | 11,0 | 10 |
+| **Total** | **21.365** | **2.500** | **3.750** | **1.270** | **189** | **203** | | **478** |
+
+### Las dos divergencias que esto destapa
+
+**1. El motor pide 478 aulas donde la plantilla pide 189** — dos veces y media.
+No es un error de ninguno de los dos: son **dos diseños distintos**. La plantilla
+reparte **un solo n de universidad (2.500) proporcionalmente** entre las quince
+facultades; nuestro componente «por facultad» dimensiona **cada facultad como
+estrato propio con su propio margen de error**, y por eso su n sube a 4.986.
+El componente de universidad de nuestro motor, que sí es comparable, pide
+**177 aulas base** contra las 189 de la plantilla — 6 % de diferencia.
+
+**2. El universo de aulas por facultad no se parece.** La plantilla cuenta 1.270
+aulas y nosotros 2.468 incluidas, pero lo llamativo no es el total sino el
+reparto: para la plantilla, EE.GG. Letras y EE.GG. Ciencias son el **63 %** del
+universo (444 y 355); para nuestro marco son el 26 % (330 y 319), y mandan
+Ciencias e Ingeniería (592) y Derecho (440). Al revés en las chicas: Gestión
+tiene 16 aulas para la plantilla y 119 para nosotros; Letras y Ciencias Humanas
+42 para la plantilla y 16 para nosotros. **Es un problema de atribución de
+facultad, no de filtros**, y es lo siguiente que hay que explicar.
+
+El estadístico implícito de la plantilla —sobremuestra ÷ objetivo— queda en
+0,5–0,7 veces la mediana de nuestro marco, lo que encaja con que el
+mín(mediana, media) se calculara sobre un conjunto de aulas más grande y con
+secciones más pequeñas.
+
+### Y aparece el catálogo completo
+
+`Informe completo - Kamila/Muestreo Hostigamiento.xlsx` trae la hoja
+`CURSO Y HORARIO` con **23.133 cursos-horario** —el catálogo sin filtrar— y
+`MATRICULADO` con **136.284 filas**, que es exactamente el número de matrículas
+de nuestro marco. Con eso se puede reconstruir el embudo completo y comprobar
+qué recorta cada criterio, que es lo que R5 y R6 necesitan.
 
 ## Reglas de este análisis
 
