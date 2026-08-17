@@ -62,3 +62,36 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     expect(page).toContain('from "../../../../vendor/lucide-react"');
   });
 });
+
+/**
+ * El mismo defecto vivía en telefónico y en acreditación.
+ *
+ * Los dos se pintan tras `seccionCargando = loading || …` y los dos hacían
+ * `onPublished: refreshCurrentView` → `loadView(view, true)` → `setLoading(true)`,
+ * así que publicar a Sheets desmontaba el workbench con su «N pestañas
+ * actualizadas» y el id del spreadsheet dentro. Territorial no tiene compuerta
+ * de carga y por eso no aparece aquí: comprobado, no omitido.
+ *
+ * Las dos páginas están **congeladas a crecimiento** (`agentic/manifest.json`),
+ * así que la reparación no añadió ni una línea: el tercer parámetro y las dos
+ * guardas caben en las líneas que ya existían. Este archivo es donde vive la
+ * explicación que allí no cabía.
+ */
+const otrosPerfiles = [
+  { nombre: "telefónico", ruta: "../telefonico/TelefonicoMonitoreoPage.tsx" },
+  { nombre: "acreditación", ruta: "../acreditacion/AcreditacionMonitoreoPage.tsx" },
+];
+
+describe.each(otrosPerfiles)("$nombre publica sin perder su confirmación", ({ ruta }) => {
+  const fuente = fs.readFileSync(path.join(dir, ruta), "utf8");
+
+  it("acepta el tercer parámetro y lo respeta en las dos guardas", () => {
+    expect(fuente).toContain("force = false, silencioso = false");
+    expect(fuente).toContain("if (!silencioso) setLoading(true);");
+    expect(fuente).toContain("if (!silencioso && seq === loadSeqRef.current");
+  });
+
+  it("la recarga que sigue a publicar es silenciosa", () => {
+    expect(fuente).toContain("void loadView(seccionActiva, true, true);");
+  });
+});
