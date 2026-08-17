@@ -270,7 +270,7 @@
     # columna que el usuario eligió a propósito. Los roles que NO vienen en el
     # mapping conservan `defaults[[nm]]` (retrocompat: goldens y proyecto de
     # referencia sin mapeo manual siguen resolviendo por fuzzy).
-    if (length(custom)) out[[nm]] <- custom
+    if (length(custom) && !.cm_aulas_mapeo_es_copia_de_defaults(custom, out[[nm]])) out[[nm]] <- custom
   }
   out
 }
