@@ -1567,3 +1567,104 @@
 .mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-sin-cuota.es-izquierda {
   justify-content: flex-end;
 }
+
+/* ── Jerarquía y material, 2026-08-17 ────────────────────────────────────────
+   Diagnóstico medido antes de tocar nada: TODO el módulo vivía entre 10 y 13 px
+   —el título de un panel era 13/700 y su contenido 12, o sea cero escalones de
+   diferencia— y en una misma pantalla convivían cinco tratamientos de caja: la
+   banda con gradiente, sombra y radio 16; los paneles planos con radio 14; los
+   avisos con borde izquierdo de color; los contadores como pastillas con fondo;
+   y la franja de flujo con su propio marco de acento.
+
+   Cinco materiales y ningún escalón tipográfico es exactamente lo que se lee
+   como «no del todo profesional»: nada dice qué mirar primero, así que la
+   pantalla se lee entera o no se lee.
+
+   Lo que se conserva: el tono crimson del módulo, los colores de resultado, los
+   datos y la gramática de navegación. Lo que cambia: un solo material de panel
+   y dos escalones de tipo entre el título y su contenido. El acento deja de ser
+   decoración de contenedor y queda para lo que pide decisión. */
+
+/* Un escalón real: 15/700 contra los 12 del cuerpo. */
+.mon-profile-page.is-aulas-flow .mon-profile-panel > .mon-profile-panel-head h3 {
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+/* El contador de la cabecera era una pastilla con fondo —un material más para
+   decir «26 filas»—. Como texto a media tinta dice lo mismo y deja de competir
+   con el título que tiene al lado. */
+.mon-profile-page.is-aulas-flow .mon-profile-panel > .mon-profile-panel-head > span {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* La banda toma el material del panel. El gradiente, la sombra y el radio
+   distinto la hacían la caja más llamativa de la pantalla para contener las
+   cifras más pequeñas; el acento de módulo ya vive en el hairline de cada
+   tarjeta, que es donde significa algo. */
+.mon-profile-page.is-aulas-flow .aulas-kpi-band {
+  border-color: var(--pulso-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+
+/* Dentro de la banda, las tarjetas dejan de repetir el borde del contenedor:
+   con el marco exterior ya delimitado, seis cajas dentro de una caja son
+   ruido. Se separan con un filete y su hairline de acento. */
+.mon-profile-page.is-aulas-flow .aulas-kpi {
+  border-color: transparent;
+  border-radius: 10px;
+  background: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--pulso-warn-bg) 55%, #fff);
+}
+
+/* Sin borde propio las tarjetas flotaban dentro de la banda. Un filete entre
+   ellas —no una caja alrededor de cada una— es lo que las separa sin volver a
+   dibujar seis marcos dentro de un marco. */
+.mon-profile-page.is-aulas-flow .aulas-kpi + .aulas-kpi {
+  box-shadow: inset 1px 0 0 var(--pulso-border);
+}
+
+/* La tarjeta que avisa se separa por su fondo, así que el filete sobra. */
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn,
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn + .aulas-kpi {
+  box-shadow: none;
+}
+
+/* En la rejilla de dos filas (≤1180 px) el filete de la primera columna de la
+   segunda fila cortaría en el aire. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-kpi:nth-child(3n + 1) {
+    box-shadow: none;
+  }
+}
+
+/* La banda tiene tres tarjetas en casi todas las secciones y cuatro en Avance.
+   Con tres columnas fijas, las cuatro de Avance quedaban 3 + 1 y la huérfana
+   —teñida de ámbar— parecía un bloque suelto. Se reparten dos y dos. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow
+    .aulas-kpi-band:has(.aulas-kpi:nth-child(4)):not(:has(.aulas-kpi:nth-child(5))) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Con dos columnas el filete va en la segunda de cada fila, no en la tercera. */
+  .mon-profile-page.is-aulas-flow
+    .aulas-kpi-band:has(.aulas-kpi:nth-child(4)):not(:has(.aulas-kpi:nth-child(5)))
+    .aulas-kpi:nth-child(2n + 1) {
+    box-shadow: none;
+  }
+}
