@@ -193,9 +193,15 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-/* Fuentes: operación del plan (auto) + metadatos (1fr) */
+/* Fuentes: operación del plan y la lista de fuentes, las dos intrínsecas.
+   El `1fr` de antes existía para una tabla que scrollea dentro; la lista de
+   fuentes son dos o tres tarjetas y estirar su panel dejaba media pantalla de
+   hueco DENTRO del marco, que es exactamente el vacío sin dueño que el contrato
+   rechaza (C3). Intrínsecas, el resto del alto queda en el contenedor de
+   contenido, que sí lo declara como capacidad suya. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack.aulas-fuentes-stack {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: start;
   gap: 12px;
 }
 
@@ -1050,4 +1056,117 @@
   font-size: 12px;
   line-height: 1.4;
   text-wrap: pretty;
+}
+
+/* ── De dónde salen las respuestas ───────────────────────────────────────────
+   Reemplaza la tabla campo/valor de Fuentes. Mismo orden de lectura que el
+   resumen de fuentes de acreditación: nombre humano arriba, servicio y papel
+   debajo, y el enlace con la última lectura al pie. */
+.mon-profile-page.is-aulas-flow .aulas-fuentes {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuentes-lista {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente i {
+  display: block;
+  margin-top: 1px;
+  color: #168a55;
+}
+
+/* Una fuente apagada no se esconde: sigue declarada y se lee en gris. */
+.mon-profile-page.is-aulas-flow .aulas-fuente.es-apagada {
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente.es-apagada i {
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-titulo span {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-servicio {
+  margin: 2px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 6px 0 0;
+  font-size: 11px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-sync a,
+.mon-profile-page.is-aulas-flow .aulas-fuente-sin-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-sync a {
+  color: var(--pulso-module-monitoring);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-sin-enlace {
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-fuente-sync em {
+  color: var(--pulso-text-soft);
+  font-style: normal;
+}
+
+/* La regla de atribución: sale de `anonymous_responses` y condiciona cómo se
+   lee todo conteo de la sección siguiente. */
+.mon-profile-page.is-aulas-flow .aulas-fuentes-regla {
+  margin: 0;
+  padding: 8px 11px;
+  border-left: 3px solid color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, transparent);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
 }

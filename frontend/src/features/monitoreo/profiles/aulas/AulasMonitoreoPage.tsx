@@ -11,6 +11,7 @@ import {
   type MonitoreoAulasDashboard,
   type MonitoreoAulasPlanRow,
   type MonitoreoRow,
+  type MonitoreoSource,
   type MonitoreoState,
 } from "../../../../api/client";
 import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel";
@@ -21,6 +22,7 @@ import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasControles } from "./AulasControles";
+import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasCuotasChart } from "./AulasCuotasChart";
@@ -321,6 +323,8 @@ function renderAulasView(
   operations: ReactNode,
   vacioSinTablero: ReactNode,
   registro: ReactNode,
+  /** Las fuentes del estudio; Fuentes es la sección que promete decir cuáles son. */
+  fuentes: ReadonlyArray<MonitoreoSource>,
   pestana: string,
   /** Corte elegido en el resumen de cuotas; vive en la URL, no en un estado suelto. */
   foco: FocoDeCuota,
@@ -329,33 +333,25 @@ function renderAulasView(
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
     // sin dashboard: importar el plan es justamente la acción de arranque.
-    const rows: MonitoreoRow[] = dashboard
-      ? [
-        { campo: "corrida", valor: dashboard.selection_run_id ?? "S/D" },
-        { campo: "marco", valor: dashboard.frame_hash ?? "S/D" },
-        { campo: "anonimas", valor: Boolean(dashboard.anonymous_responses) },
-        { campo: "generado", valor: dashboard.generated_at },
-      ]
-      : [];
     return (
       <div className="mon-profile-stack aulas-fuentes-stack">
         {operations}
         <section
           className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-group="monitoring-aulas-fuentes"
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
-            {/* Se queda: la corrida, el marco y el sello de generación no son
-                columnas del libro ni hoja suya, los pone el cálculo de muestra
-                al entregar el plan. */}
-            <h3>Fuente y plan</h3>
-            <span>{fmt(rows.length)} campos</span>
+            {/* Antes decía «Fuente y plan» y era una tabla campo/valor que
+                repetía la corrida y el marco —ya son tarjetas de «Operación del
+                plan», justo arriba— y el sello de generación, que es el «Corte»
+                de la banda. Lo que faltaba era esto: qué se está leyendo. */}
+            <h3>De dónde salen las respuestas</h3>
+            <span>{fuentes.length === 1 ? "1 fuente" : `${fmt(fuentes.length)} fuentes`}</span>
           </div>
-          <DataTable
-            rows={rows as Array<Record<string, unknown>>}
-            empty="No hay metadatos del plan de cursos-horario. Importa el plan desde el cálculo de muestra."
-            preferredColumns={["campo", "valor"]}
+          <AulasFuentesDelEstudio
+            fuentes={fuentes}
+            anonimas={Boolean(dashboard?.anonymous_responses)}
           />
         </section>
       </div>
@@ -926,6 +922,7 @@ export default function AulasMonitoreoPage() {
                 agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
                 onGuardado={() => { void loadView(seccionActiva, true); }}
               />,
+              state?.sources ?? [],
               pestanaActiva,
               foco,
               cambiarFoco,
