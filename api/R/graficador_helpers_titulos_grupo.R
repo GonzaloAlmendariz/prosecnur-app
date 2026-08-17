@@ -166,6 +166,29 @@
   # ya la resuelve para la etiqueta de eje—, asi que pide un helper y no un
   # parche. Y el tamano se decide POR LAMINA, no por bloque: el aprobado usa un
   # solo cuerpo en toda su lamina 29 (12 pt para sus cuatro enunciados).
+  # HECHO: los truncados bajaron de 21 a 10.
+  #
+  # DE LOS 10 QUE QUEDAN, DOS SALIDAS DESCARTADAS Y UNA VIVA, todas medidas:
+  #
+  # · Bajar el piso de 11 pt. NO: piden entre 6.6 y 8.7 pt y serian ilegibles.
+  # · Sacar alto del hueco entre bloques. NO: clasificados los huecos, el motor
+  #   separa MENOS que el aprobado en las dos partes —0.37 contra 0.62 cm dentro
+  #   de bloque, 1.77 contra 2.14 entre bloques—. Anotado en `reporte_plan_ppt.R`
+  #   junto a `canvas_gap_grupos`.
+  # · Poner el enunciado a ancho completo. NO: contados sobre el aprobado, **106
+  #   de sus enunciados van en canal lateral y solo 7 a ancho completo**, y esos
+  #   siete son sus laminas 3, 5, 6 y 7 —objetivo, ficha tecnica, escala, numero
+  #   de respuestas—, o sea texto metodologico y no enunciado de bloque.
+  #
+  # LA VIVA, y sale de la misma medicion: el aprobado mete **doce lineas a 12 pt
+  # en su lamina 29**, o sea ~1.72 in de texto, en bloques cuyo paso de fila
+  # ronda 0.9. No le caben en su bloque: **DESBORDA hacia el hueco vecino**, que
+  # el tiene en 2.14 cm. El cupo de aqui, en cambio, encierra el enunciado en su
+  # bloque, y por eso corta. La hipotesis a probar es darle su bloque MAS medio
+  # hueco a cada lado: con los 1.77 cm del motor son +0.70 in, y un bloque de
+  # 0.65 pasaria a 1.35 —de cuatro lineas a diez, a 11 pt—. Antes de tocarlo hay
+  # que comprobar EN EL RENDER que dos bloques vecinos con enunciado largo no se
+  # pisen, que es justo lo que este cupo existe para evitar.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
