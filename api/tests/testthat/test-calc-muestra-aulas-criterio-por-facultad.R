@@ -216,3 +216,54 @@ test_that("la etiqueta del paso NOMBRA a las facultades exentas", {
   )
   expect_true(grepl("exenta", et, fixed = TRUE))
 })
+
+test_that("la exencion sobrevive a normalizar DOS veces", {
+  # El config se normaliza mas de una vez —el router y el constructor lo hacen
+  # por separado— y el centinela tiene que reconocerse a si mismo. Sin esto la
+  # segunda pasada no lo veia como exencion, no le encontraba min/max y la clave
+  # DESAPARECIA del mapa; y sin rango declarado el evaluador EXCLUYE, asi que
+  # declarar una exencion borraba la facultad. Medido contra HSVG2026: mande 15
+  # facultades y el motor guardo 13.
+  una <- .cm_criterios_normalize_nivel_por_unidad(list(egl = "exenta"))
+  dos <- .cm_criterios_normalize_nivel_por_unidad(una)
+  tres <- .cm_criterios_normalize_nivel_por_unidad(dos)
+  expect_equal(length(una), 1L)
+  expect_equal(length(dos), 1L)
+  expect_equal(length(tres), 1L)
+  expect_true(.cm_criterios_es_rango_exento(tres$egl))
+  # CONTROL: un rango normal tambien sobrevive, y sigue siendo un rango.
+  rr <- .cm_criterios_normalize_nivel_por_unidad(
+    .cm_criterios_normalize_nivel_por_unidad(list(derecho = list(list(min = 2, max = 10))))
+  )
+  expect_false(.cm_criterios_es_rango_exento(rr$derecho))
+  expect_equal(rr$derecho[[1]]$max, 10)
+})
+
+test_that("EXTREMO A EXTREMO: la facultad exenta conserva su primer ciclo", {
+  # Gonzalo: «los niveles en todas las facultades deben ser de dos a 10, no ciclo
+  # 1 ni 11 u 12» pero «en los estudios generales letras y ciencias no deberia
+  # tenerlos». Es la unica prueba que atraviesa el constructor entero, que es
+  # donde se perdia: el evaluador aislado ya daba TRUE mientras el marco real
+  # dejaba a EE.GG. LETRAS en cero.
+  base <- do.call(rbind, lapply(1:4, function(i) do.call(rbind, lapply(1:12, function(j) data.frame(
+    student_id = paste0("e", i, "_", j), aula_id = sprintf("A%02d", i),
+    curso_id = paste0("C", i), curso = paste("Curso", i), horario = "L 8",
+    facultad = if (i <= 2L) "ESTUDIOS GENERALES LETRAS" else "DERECHO",
+    programa = "P1", sexo = "F", edad = 20, condicion = "regular",
+    nivel = "pregrado", modalidad = "presencial", tipo_sesion = "TEORICO",
+    nivel_curso = if (i %% 2L == 0L) 1 else 5, stringsAsFactors = FALSE
+  )))))
+  af <- calc_muestra_aulas_construir(base_madre = base, config = list(
+    mapping = list(session_type = "tipo_sesion", course_level = "nivel_curso"),
+    filters = list(min_eligible_per_class = 5L),
+    criterios_seleccion = list(courseLevelRanges = list(
+      derecho = list(list(min = 2, max = 10)),
+      estudios_generales_letras = "exenta"
+    ))
+  ))$aula_frame
+  inc <- function(id) af$included[af$classroom_id == id]
+  expect_true(inc("A01"))   # EE.GG. nivel 5
+  expect_true(inc("A02"))   # EE.GG. nivel 1 — el que la exencion salva
+  expect_true(inc("A03"))   # Derecho nivel 5, dentro de su rango
+  expect_false(inc("A04"))  # Derecho nivel 1 — el criterio SIGUE recortando
+})

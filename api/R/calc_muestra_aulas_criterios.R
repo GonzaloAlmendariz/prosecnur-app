@@ -330,6 +330,14 @@
 }
 
 .cm_criterios_rango_es_exencion <- function(entrada) {
+  # IDEMPOTENCIA: el config se normaliza MAS DE UNA VEZ —el router y el
+  # constructor lo hacen por separado— y el centinela ya normalizado tiene que
+  # reconocerse a si mismo. Sin esto, la segunda pasada no lo veia como
+  # exencion, `.cm_criterios_normalize_rangos` no le encontraba min/max y la
+  # clave DESAPARECIA del mapa; sin rango declarado el evaluador excluye, asi
+  # que declarar una exencion borraba la facultad. Medido en HSVG2026: mande 15
+  # facultades y el motor guardo 13.
+  if (.cm_criterios_es_rango_exento(entrada)) return(TRUE)
   if (is.character(entrada)) {
     return(any(.cm_aulas_text_key(entrada) %in% c("exenta", "exento", "no_aplica")))
   }

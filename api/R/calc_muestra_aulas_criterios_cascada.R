@@ -632,8 +632,12 @@ calc_muestra_aulas_criterios_totales <- function(context) {
     applies <- length(selection$courseLevelRanges %||% list()) > 0L
     return(list(
       flag = if (applies) {
+        # La facultad DEL AULA va tambien aqui para que el PREVIEW cuente lo
+        # mismo que el marco: esta es la segunda llamada al evaluador y sin ella
+        # la UI mostraria un recorte que el constructor no aplica. SIN COBERTURA
+        # todavia: quitar este argumento no mata ningun test, comprobado.
         .cm_criterios_eval_course_ranges(
-          values$course_pairs, selection$courseLevelRanges
+          values$course_pairs, selection$courseLevelRanges, values$faculty_aula
         )
       } else rep(TRUE, n),
       applies = applies
