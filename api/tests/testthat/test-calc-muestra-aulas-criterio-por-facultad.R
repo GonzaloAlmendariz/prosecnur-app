@@ -138,3 +138,81 @@ test_that("un `op` desconocido cae a `add`, nunca a exenta", {
   m <- .cpf_tabla(.cpf_frame(list(artes_escenicas = list(op = "apagado"))))
   expect_equal(m("ARTES ESCENICAS", "TALLER"), 0L)
 })
+
+# Exencion del criterio de NIVEL DEL CURSO, que es `kind = "range"` y no pasa por
+# `byVariable`.
+#
+# Gonzalo: «los niveles en todas las facultades deben ser de dos a 10, no ciclo 1
+# ni 11 u 12» — pero «en los estudios generales letras y ciencias no deberia
+# tenerlos». Medido en HSVG2026: declarada la exencion de EE.GG. LETRAS con el
+# rango 1-99, la facultad quedaba igual con 63 de 482 aulas y `course_level` como
+# razon en 316. La causa son DOS universos de «facultad» con el mismo nombre: la
+# regla se declara contra la facultad DEL AULA —la que muestra la UI— y el
+# evaluador la juzgaba contra los pares (facultad del CURSO en el catalogo,
+# nivel); un curso de Estudios Generales esta catalogado bajo la facultad de
+# DESTINO del alumno, asi que la regla de EE.GG. no llegaba a aplicarse.
+
+.clr_pairs <- function(fac_curso, nivel) {
+  paste0(fac_curso, .cm_catalogo_pair_fld, nivel)
+}
+
+test_that("una facultad EXENTA pasa aunque su curso este catalogado en otra", {
+  # El aula es de EE.GG. LETRAS y su curso figura bajo DERECHO con nivel 1, que
+  # el rango de Derecho (2-10) rechaza. La exencion del AULA manda.
+  ranges <- list(derecho = list(list(min = 2, max = 10)),
+                 estudios_generales_letras = .cm_criterios_rango_exento)
+  ok <- .cm_criterios_eval_course_ranges(
+    course_pairs = c(.clr_pairs("DERECHO", 1), .clr_pairs("DERECHO", 1)),
+    ranges = ranges,
+    faculty_keys = c("ESTUDIOS GENERALES LETRAS", "DERECHO")
+  )
+  expect_true(ok[[1]])
+  # CONTROL: la de Derecho sigue recortada. Una exencion no es un apagado global.
+  expect_false(ok[[2]])
+})
+
+test_that("sin exencion el rango rige por la facultad del CURSO", {
+  # Es el comportamiento previo y no debe cambiar.
+  ranges <- list(derecho = list(list(min = 2, max = 10)))
+  ok <- .cm_criterios_eval_course_ranges(
+    course_pairs = c(.clr_pairs("DERECHO", 1), .clr_pairs("DERECHO", 5)),
+    ranges = ranges,
+    faculty_keys = c("DERECHO", "DERECHO")
+  )
+  expect_false(ok[[1]])
+  expect_true(ok[[2]])
+})
+
+test_that("el marcador de exencion se acepta en las tres formas", {
+  for (entrada in list("exenta", list("exenta"), list(exenta = TRUE))) {
+    r <- .cm_criterios_normalize_nivel_por_unidad(list(estudios_generales_letras = entrada))
+    expect_true(.cm_criterios_es_rango_exento(r$estudios_generales_letras))
+  }
+  # CONTROL: un rango normal NO se lee como exencion.
+  r <- .cm_criterios_normalize_nivel_por_unidad(list(derecho = list(list(min = 2, max = 10))))
+  expect_false(.cm_criterios_es_rango_exento(r$derecho))
+  expect_equal(r$derecho[[1]]$min, 2)
+})
+
+test_that("una exencion NO se confunde con «sin rango declarado»", {
+  # Sin rango la facultad se EXCLUYE (comportamiento vigente); exenta PASA. Si el
+  # centinela fuera una lista vacia, las dos cosas serian la misma y una
+  # exencion borraria la facultad en vez de salvarla.
+  ok <- .cm_criterios_eval_course_ranges(
+    course_pairs = c(.clr_pairs("GASTRONOMIA", 1), .clr_pairs("GASTRONOMIA", 1)),
+    ranges = list(derecho = list(list(min = 2, max = 10)),
+                  gastronomia = .cm_criterios_rango_exento),
+    faculty_keys = c("SIN DECLARAR", "GASTRONOMIA")
+  )
+  expect_false(ok[[1]])
+  expect_true(ok[[2]])
+})
+
+test_that("la etiqueta del paso NOMBRA a las facultades exentas", {
+  # Si el criterio no juzga a una facultad, quien lee el paso debe enterarse.
+  et <- .cm_criterios_label_course_level(
+    list(estudios_generales_letras = .cm_criterios_rango_exento),
+    list(label = "Nivel del curso")
+  )
+  expect_true(grepl("exenta", et, fixed = TRUE))
+})
