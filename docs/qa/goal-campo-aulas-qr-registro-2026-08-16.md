@@ -1277,3 +1277,36 @@ checks del motor sin etiqueta: valid_response_criterion
 Sin ese control invertido el test estaría en verde por la razón equivocada, que
 es exactamente lo que pasó con los dos tests de L12 que documentaban el defecto
 en vez de afirmar la conducta.
+
+
+### 2026-08-16 — el barrido a los otros perfiles, y el segundo vocabulario
+
+Cuando un defecto apareció en los cuatro perfiles a la vez (L60), la lección fue
+barrer antes de darlo por local. Hecho: **el patrón no se repite fuera de aulas**,
+y conviene decir por qué para no cargar el guard donde estaría mal.
+
+- **Sólo aulas emite un vector `check = c(...)`.** Ningún otro motor declara un
+  vocabulario cerrado de controles.
+- Los diccionarios de telefónico, acreditación y territorial traducen **conjuntos
+  abiertos** —nombres de columna del propio estudio, dimensiones—, y ahí el
+  fallback `key.replaceAll("_", " ")` es la conducta correcta: no se puede
+  enumerar cómo bautizó sus columnas un cliente.
+
+Pero el barrido sí encontró un **segundo vocabulario cerrado en aulas**:
+`STATUS_LABELS` traduce los once estados de `monitoreo_aulas_estados()` y hoy
+estaba completo **por suerte, no por construcción**. Nada los ataba: un estado
+número doce en R habría salido en pantalla como su clave cruda. Es «verde por
+ausencia» exacto —sin fallo porque todavía no derivó—. Ahora los dos están bajo
+guard, y **los dos verificados invirtiéndolos**:
+
+```
+quitando valid_response_criterion -> checks del motor sin etiqueta: valid_response_criterion
+quitando reemplazo_pendiente      -> estados del motor sin etiqueta: reemplazo_pendiente
+```
+
+**Y el instrumento produjo un hallazgo falso por el camino.** Mi primera versión
+del guard infería «no hay entrada» de que la etiqueta coincidiera con el fallback,
+y marcó como ausentes **los once estados** —cuya etiqueta correcta *es* la clave
+capitalizada—. Comparar las dos listas leyendo las fuentes, en vez de deducirlo de
+la salida de la función, es lo que lo arregló. Van once trampas de medición en
+este GOAL y todas tienen la misma forma: **el instrumento cambia lo medido**.
