@@ -428,12 +428,30 @@ export type CalcMuestraAulasEstrato = {
   /** Método y valor que R resolvió desde la decisión vigente de Marco. */
   estadistico_usado?: CalcMuestraAlumnosPorChDecision["estadistico_default"];
   alumnos_por_ch?: {
-    referencia: "marco_ejecutado";
-    frame_hash: string;
-    denominador: "elegible";
-    faculty_key: string;
-    estadistico: CalcMuestraAlumnosPorChDecision["estadistico_default"];
-    valor: number;
+    /** `sin_decision`: la fila se calculó con el promedio GLOBAL porque la
+     *  decisión de alumnos por CH no está firmada. No es un detalle: la
+     *  cantidad de aulas de cada facultad depende de cuántos elegibles hay por
+     *  curso-horario ALLÍ, de 16 a 46 según la facultad. */
+    estado?: "sin_decision";
+    aviso?: string;
+    referencia: "marco_ejecutado" | "promedio_global";
+    frame_hash?: string;
+    denominador?: "elegible";
+    faculty_key?: string;
+    estadistico?: CalcMuestraAlumnosPorChDecision["estadistico_default"];
+    valor?: number;
+  };
+  /** Cuántas aulas HAY frente a las que la facultad necesita. El motor sabía
+   *  cuántas pedía y no decía cuántas existen: LETRAS Y CIENCIAS HUMANAS
+   *  requiere 16 y tiene 16, así que ninguna queda para reemplazar. */
+  margen?: {
+    aulas_disponibles: number | null;
+    aulas_requeridas: number | null;
+    aulas_sobrantes: number | null;
+    reservas_sostenibles: number | null;
+    reservas_pedidas: number | null;
+    estado: "insuficiente" | "sin_reservas" | "reservas_cortas" | "holgado" | "desconocido";
+    aviso: string;
   };
 };
 
@@ -2082,8 +2100,83 @@ export type CalcMuestraAulasFrameFiltersEcho = {
   min_cycle_homogeneity_pct?: number;
 };
 
+/**
+ * Balance de sexo de la selección, POR FACULTAD.
+ *
+ * El informe de representatividad publica el eje sexo en UNA fila —53,8 % de
+ * mujeres en el marco contra 52,1 % en lo elegido, dentro de tolerancia— y ese
+ * agregado cuadra mientras esconde que ARTE Y DISEÑO ofrece 62 % donde su cuota
+ * pide 76 %. Se mide sobre las TITULARES, que son las que se visitan.
+ *
+ * `veredicto: "ninguno"` es deliberado: con dos aulas ninguna selección cae
+ * dentro de una tolerancia pensada para el agregado, así que marcarlas como
+ * incumplidas sería un aviso falso.
+ */
+export type CalcMuestraSexoPorFacultadFila = {
+  faculty_key: string;
+  facultad: string;
+  aulas_titulares: number;
+  marco_prop_mujeres: number | null;
+  titulares_prop_mujeres: number | null;
+  brecha_pp: number | null;
+  estado: "medido" | "sin_dato";
+  aviso: string;
+};
+
+export type CalcMuestraSexoPorFacultad = {
+  schema: "calc_muestra_aulas_sexo_por_facultad_v1";
+  base: string;
+  tolerancia: number | null;
+  /** Ordenadas de la peor brecha a la mejor. */
+  filas: CalcMuestraSexoPorFacultadFila[];
+};
+
+export function normalizeCalcMuestraSexoPorFacultad(
+  raw: unknown,
+): CalcMuestraSexoPorFacultad | null {
+  const asText = (v: unknown): string => {
+    const x = Array.isArray(v) ? v[0] : v;
+    return typeof x === "string" ? x.trim() : typeof x === "number" ? String(x) : "";
+  };
+  const asNum = (v: unknown): number | null => {
+    const x = Array.isArray(v) ? v[0] : v;
+    const n = typeof x === "number" ? x : typeof x === "string" ? Number(x) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+  const asList = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
+  const asRecord = (v: unknown): Record<string, unknown> =>
+    v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  const r = asRecord(raw);
+  const filas = asList(r.filas)
+    .map((rawFila): CalcMuestraSexoPorFacultadFila | null => {
+      const f = asRecord(rawFila);
+      const facultad = asText(f.facultad);
+      if (!facultad) return null;
+      return {
+        faculty_key: asText(f.faculty_key),
+        facultad,
+        aulas_titulares: asNum(f.aulas_titulares) ?? 0,
+        marco_prop_mujeres: asNum(f.marco_prop_mujeres),
+        titulares_prop_mujeres: asNum(f.titulares_prop_mujeres),
+        brecha_pp: asNum(f.brecha_pp),
+        estado: asText(f.estado) === "medido" ? "medido" : "sin_dato",
+        aviso: asText(f.aviso),
+      };
+    })
+    .filter((f): f is CalcMuestraSexoPorFacultadFila => f != null);
+  if (!filas.length) return null;
+  return {
+    schema: "calc_muestra_aulas_sexo_por_facultad_v1",
+    base: asText(r.base) || "titulares",
+    tolerancia: asNum(r.tolerancia),
+    filas,
+  };
+}
+
 export type CalcMuestraAulasSelection = {
   schema: "calc_muestra_aulas_selection_v1" | string;
+  /** Balance de sexo por facultad; derivado al servir, puede no venir. */
+  sexo_por_facultad?: unknown;
   selection_run_id: string;
   generated_at: string;
   frame_hash: string;

@@ -9,6 +9,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import {
+  normalizeCalcMuestraSexoPorFacultad,
   type CalcMuestraAulasState,
   type CalcMuestraAlumnosPorChDecision,
   type CalcMuestraComponente,
@@ -362,6 +363,22 @@ export function UniversidadDesk({
     onInvalidateAulasArtifacts();
     useMotorStore.getState().invalidarCursosHorario();
   }
+  // Bloques que R deriva al servir y que hasta ahora sólo vivían en el payload:
+  // el margen de aulas por facultad viaja en `aulas_por_estrato` del componente
+  // que dimensiona por facultad, y el balance de sexo en la selección.
+  const margenFilas = useMemo(() => {
+    for (const comp of estudio.componentes ?? []) {
+      const filas = comp.resultado?.aulas_por_estrato ?? [];
+      if (filas.some((f) => f.margen != null)) return filas;
+    }
+    return null;
+  }, [estudio.componentes]);
+  const sexoBalance = useMemo(
+    () => normalizeCalcMuestraSexoPorFacultad(
+      (aulasState?.selection as { sexo_por_facultad?: unknown } | null)?.sexo_por_facultad ?? null,
+    ),
+    [aulasState?.selection],
+  );
   const labModel = useMemo(
     () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado }),
     [syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado],
@@ -537,6 +554,8 @@ export function UniversidadDesk({
                 onSimulateReplacements={onSimularReemplazos}
                 onNavigate={onNavigate}
                 certeza={aulasState?.certeza ?? null}
+                margenFilas={margenFilas}
+                sexoBalance={sexoBalance}
               />
             )}
             {activeLabTab === "perfil" && (

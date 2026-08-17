@@ -28,9 +28,13 @@ function filaAcreditada(
     audit?.referencia === "marco_ejecutado" &&
     audit.frame_hash === frameHash &&
     audit.denominador === "elegible" &&
-    audit.faculty_key.trim() &&
+    // Con la decisión sin firmar, R publica `estado: "sin_decision"` y
+    // `referencia: "promedio_global"` SIN faculty_key ni valor: la fila se
+    // calculó con el promedio global y no está acreditada por facultad. El
+    // guard de arriba ya la descarta; estos campos son opcionales por eso.
+    Boolean(audit.faculty_key?.trim()) &&
     audit.estadistico === fila.estadistico_usado &&
-    Number.isFinite(audit.valor) && audit.valor > 0 &&
+    Number.isFinite(audit.valor) && (audit.valor ?? 0) > 0 &&
     audit.valor === fila.avg_conglomerado
   );
 }
