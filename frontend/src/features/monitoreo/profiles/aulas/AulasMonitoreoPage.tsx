@@ -293,7 +293,12 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
       data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">
-        <h3>Aplicación por cursos-horario</h3>
+        {/* No sale de ninguna hoja del libro: es la cadena que deja el plan
+            listo para salir a campo. Se llamaba «Aplicación por cursos-horario»
+            y eso ya nombra DOS cosas —el perfil entero y la hoja «Aulas
+            Aplicadas (Campo)»—, así que el mismo rótulo señalaba tres
+            superficies distintas. */}
+        <h3>Preparación de campo</h3>
         <span>muestra, fichas QR y monitoreo</span>
       </div>
       <div
@@ -344,6 +349,9 @@ function renderAulasView(
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
+            {/* Se queda: la corrida, el marco y el sello de generación no son
+                columnas del libro ni hoja suya, los pone el cálculo de muestra
+                al entregar el plan. */}
             <h3>Fuente y plan</h3>
             <span>{fmt(rows.length)} campos</span>
           </div>
@@ -374,7 +382,10 @@ function renderAulasView(
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
-            <h3>Agenda de cursos-horario</h3>
+            {/* La hoja del libro se llama así y estas son sus filas: las
+                escribe `aulas_libro_hoja_agendadas()` y las vuelve a leer
+                `aulas_agendadas_leer()`. */}
+            <h3>Aulas agendadas</h3>
             <span>{fmt(dashboard.agenda?.length ?? 0)} cursos-horario</span>
           </div>
           <DataTable
@@ -401,6 +412,8 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
+          {/* Se queda: los controles los deriva el motor —el libro no trae hoja
+              de validación—, así que no hay encabezado que copiar. */}
           <h3>Validación de cursos-horario</h3>
           <span>{summary.label}</span>
         </div>
@@ -427,6 +440,9 @@ function renderAulasView(
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
+            {/* Se queda: el libro no tiene hoja de cadena, la expresa por
+                bloques —«APLICACIÓN DE REEMPLAZO n»— y por el valor «EN RESERVA
+                n» de STATUS MUESTRA. El nombre de la vista es nuestro. */}
             <h3>Cadena de reemplazos</h3>
             <span>{fmt(reemplazos.length)} filas</span>
           </div>
@@ -457,6 +473,8 @@ function renderAulasView(
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
+            {/* Se queda: la brecha la calcula el motor contra la meta; ninguna
+                columna del libro la trae escrita. */}
             <h3>Cursos-horario con brecha</h3>
             <span>{fmt(brechas.length)} filas</span>
           </div>
