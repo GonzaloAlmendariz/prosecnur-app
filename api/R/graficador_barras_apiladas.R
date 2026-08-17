@@ -166,6 +166,13 @@
 # tope, una premisa sola en un hueco alto salia con la barra mas gruesa del mazo.
 # Medido: subirlo a 2.4 no cambia nada, porque el limite real no es este sino el
 # hueco disponible menos lo que ya reservan cabecera, leyenda y pie.
+#
+# CONFIRMADO en 2.6 sobre el mazo de Conta, persiguiendo la mitad inferior vacia
+# (P23): el contenido paso de morir al 85.7 % de la zona util a morir al 86.2 %
+# —la mediana no se movio— y la vara subio de 21 a 22 con una B3 mas. Trazado el
+# presupuesto vertical de sus 25 graficos, el canvas YA llena su hueco: mediana
+# 97.2 %. Lo que queda vacio no es hueco sin repartir, es la reserva de pie
+# DENTRO del canvas. No volver a subir este tope por ese sintoma.
 .BARRAS_PANEL_ESTIRA_MAX <- 1.8
 
 # Rotulo de la columna extra, tal como lo escribe el entregable aprobado en sus
