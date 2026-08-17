@@ -779,6 +779,17 @@ export type MonitoreoAulasDashboard = {
 	  control_calidad_resumen?: {
 	    aulas: number;
 	    grupos: Array<{ clave: string; etiqueta: string; campos: number; aulas_con_dato: number }>;
+	    /**
+	     * «Aula efectiva» = alcanzó el 70 % contra los DOS denominadores. Las
+	     * cuatro cuentas son excluyentes y suman `aulas`; `indeterminadas` son
+	     * las que el libro no permite evaluar, que no es lo mismo que fallar.
+	     */
+	    veredicto?: {
+	      efectivas: number;
+	      cumple_una: number;
+	      no_efectivas: number;
+	      indeterminadas: number;
+	    };
 	  };
 	  representativity?: {
 	    planned_score?: number;

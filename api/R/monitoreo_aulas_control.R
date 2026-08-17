@@ -73,10 +73,67 @@ MONITOREO_AULAS_CONTROL_GRUPOS <- list(
   TRUE
 }
 
+# --- El veredicto del aula ----------------------------------------------------
+#
+# Gonzalo (2026-08-17) explico que es lo que la hoja decide con `70T` y `70P`:
+# si en el aula aplicada se llego al 70 % de los ASISTENTES elegibles y al 70 %
+# de los ALUMNOS elegibles —hayan asistido o no—. **Los dos**, no uno: eso es lo
+# que declaraba si el aula habia sido efectiva.
+#
+# Lo que NO se supo medir es la codificacion de la hoja: si «VALIDO TOTAL» viene
+# como 1/0, como SI/NO o como texto, y si los porcentajes van en 0-1 o en 0-100.
+# El unico libro real lleno lleva datos personales de docentes y no entra al
+# repo. Asi que el veredicto se resuelve en tres pasos, del mas fiable al menos,
+# y **cuando ninguno alcanza se declara indeterminado en vez de suponerse**: un
+# aula que nadie ha evaluado no puede leerse igual que una que no llego.
+
+# Lee el veredicto de la hoja admitiendo las formas en que un equipo lo escribe.
+.mac_verdict <- function(valor) {
+  if (!.mac_con_dato(valor)) return(NA)
+  v <- valor[[1]]
+  if (is.logical(v)) return(as.logical(v))
+  if (is.numeric(v)) return(v >= 1)
+  txt <- toupper(trimws(as.character(v)))
+  if (txt %in% c("1", "SI", "SÍ", "TRUE", "V", "VALIDO", "VÁLIDO", "CUMPLE", "OK")) return(TRUE)
+  if (txt %in% c("0", "NO", "FALSE", "F", "INVALIDO", "INVÁLIDO", "NO CUMPLE")) return(FALSE)
+  NA
+}
+
+.mac_num <- function(valor) {
+  if (!.mac_con_dato(valor)) return(NA_real_)
+  v <- suppressWarnings(as.numeric(valor[[1]]))
+  if (length(v) != 1L || !is.finite(v)) NA_real_ else v
+}
+
+#' Si el aula alcanzo uno de los dos umbrales del 70 %.
+#'
+#' @param fila fila de «Base de control».
+#' @param campo_verdict nombre del campo de veredicto de la hoja.
+#' @param campo_umbral nombre del campo con el umbral ya calculado.
+#' @return `TRUE`, `FALSE` o `NA` si no hay con que decidirlo.
+#' @export
+monitoreo_aulas_control_umbral <- function(fila, campo_verdict, campo_umbral) {
+  # 1. El veredicto que la hoja ya escribio. Es el que manda: lo decide el
+  #    equipo con su formula y la app no esta para corregirlo.
+  v <- .mac_verdict(fila[[campo_verdict]])
+  if (!is.na(v)) return(v)
+  # 2. Sin veredicto legible, se compara lo enviado contra el umbral que la
+  #    propia hoja calculo. Asi da igual de que denominador salio ese umbral
+  #    —asistentes o matriculados—: la cuenta ya viene hecha y no hay que
+  #    adivinar cual de los dos uso el equipo en cada columna.
+  enviadas <- .mac_num(fila[["sent_total"]])
+  umbral <- .mac_num(fila[[campo_umbral]])
+  # Un umbral menor o igual a 1 es un porcentaje escrito como proporcion, no un
+  # numero de encuestas; compararlo con las enviadas daria «cumple» siempre.
+  if (is.finite(enviadas) && is.finite(umbral) && umbral > 1) return(enviadas >= umbral)
+  # 3. Indeterminado. No se inventa.
+  NA
+}
+
 #' Filas de «Base de control» listas para publicar.
 #'
 #' @param control lista de filas del lector de la hoja.
-#' @return lista de filas con sus campos y `grupos_con_dato`.
+#' @return lista de filas con sus campos, `grupos_con_dato` y el veredicto.
 #' @export
 monitoreo_aulas_control_publicado <- function(control = list()) {
   if (!length(control)) return(list())
@@ -93,6 +150,15 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
       if (hay) llenos <- c(llenos, grupo$clave)
     }
     fila$grupos_con_dato <- as.list(llenos)
+    # El veredicto por aula. `efectiva` exige los DOS umbrales, que es como lo
+    # declara el operativo; si alguno queda indeterminado, la efectividad
+    # tambien lo queda —no se resuelve a FALSE, que seria acusar a un aula de no
+    # llegar cuando lo que pasa es que nadie la evaluo.
+    cumple_t <- monitoreo_aulas_control_umbral(fila, "valid_total", "threshold_total")
+    cumple_p <- monitoreo_aulas_control_umbral(fila, "valid_population", "threshold_population")
+    fila$cumple_total <- cumple_t
+    fila$cumple_poblacion <- cumple_p
+    fila$efectiva <- if (is.na(cumple_t) || is.na(cumple_p)) NA else (cumple_t && cumple_p)
     out[[length(out) + 1L]] <- fila
   }
   out
@@ -122,8 +188,30 @@ monitoreo_aulas_control_resumen <- function(control = list()) {
       aulas_con_dato = as.integer(con)
     )
   })
+  # El veredicto agregado: es LA pregunta que esta hoja contesta. Las cuatro
+  # cuentas son excluyentes y suman `aulas`, para que la lectura no pueda decir
+  # mas ni menos aulas de las que hay.
+  ef <- vapply(filas, function(f) {
+    v <- f$efectiva
+    if (is.null(v) || !length(v) || is.na(v[[1]])) NA else as.logical(v[[1]])
+  }, logical(1))
+  solo_una <- vapply(filas, function(f) {
+    t <- f$cumple_total; p <- f$cumple_poblacion
+    if (is.null(t) || is.null(p) || is.na(t[[1]]) || is.na(p[[1]])) return(FALSE)
+    xor(as.logical(t[[1]]), as.logical(p[[1]]))
+  }, logical(1))
+
   list(
     aulas = length(filas),
-    grupos = unname(Filter(Negate(is.null), grupos))
+    grupos = unname(Filter(Negate(is.null), grupos)),
+    veredicto = list(
+      efectivas = as.integer(sum(ef %in% TRUE)),
+      # «Cumple uno de los dos» se cuenta aparte porque es donde esta la
+      # decision: al aula que fallo los dos ya no hay nada que hacerle, y a la
+      # que fallo uno el equipo puede volver.
+      cumple_una = as.integer(sum(solo_una)),
+      no_efectivas = as.integer(sum(ef %in% FALSE) - sum(solo_una)),
+      indeterminadas = as.integer(sum(is.na(ef)))
+    )
   )
 }

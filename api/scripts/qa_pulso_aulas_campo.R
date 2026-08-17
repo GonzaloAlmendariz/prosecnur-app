@@ -233,7 +233,11 @@ control <- lapply(seq_along(aplicadas), function(i) {
     application_status = "APLICADA"
   )
   if (i %% 3 == 0) return(base)
-  enviadas <- as.numeric(u$eligible_n) - (i %% 5)
+  # Una de cada siete se queda MUY corta: sin ella ninguna aula falla los dos
+  # umbrales a la vez y el veredicto «no alcanza ninguno» no existiria en el
+  # fixture, que es justo el caso que el operativo va a buscar primero.
+  enviadas <- if (i %% 7 == 1) round(as.numeric(u$eligible_n) * 0.4)
+              else as.numeric(u$eligible_n) - (i %% 5)
   mujeres <- floor(enviadas * 0.6)
   c(base, list(
     sent_total = enviadas,

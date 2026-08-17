@@ -26,10 +26,63 @@ export type GrupoDeControl = {
   aulas_con_dato: number;
 };
 
+export type VeredictoDeControl = {
+  efectivas: number;
+  cumple_una: number;
+  no_efectivas: number;
+  indeterminadas: number;
+};
+
 export type ResumenDeControl = {
   aulas: number;
   grupos: GrupoDeControl[];
+  veredicto?: VeredictoDeControl;
 };
+
+/**
+ * Lo que esta hoja contesta, en una línea.
+ *
+ * Gonzalo lo dijo así: un aula es efectiva si llegó al 70 % de los asistentes
+ * elegibles **y** al 70 % de los alumnos elegibles, hayan asistido o no. Los
+ * dos umbrales, no uno. Esa es la pregunta que el equipo le hace al libro, y
+ * hasta ahora había que leer veintisiete columnas para contestarla.
+ *
+ * «Cumple uno» va separado de «no cumple ninguno» porque es donde queda
+ * decisión: al aula que falló los dos ya no hay nada que hacerle.
+ * «Sin evaluar» no se suma a las que fallaron: nadie las miró todavía.
+ */
+function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
+  const pct = aulas > 0 ? Math.round((v.efectivas / aulas) * 100) : 0;
+  return (
+    <div className="aulas-control-veredicto">
+      <p className="aulas-control-titular">
+        <strong>{v.efectivas}</strong> de {aulas} aulas efectivas
+        <span> · {pct} %</span>
+      </p>
+      <p className="mon-profile-muted">
+        Alcanzaron el 70 % contra los dos denominadores: asistentes elegibles y alumnos elegibles.
+      </p>
+      <ul className="aulas-control-desglose">
+        {v.cumple_una > 0 ? (
+          <li>
+            <strong>{v.cumple_una}</strong> cumplen sólo uno de los dos
+          </li>
+        ) : null}
+        {v.no_efectivas > 0 ? (
+          <li>
+            <strong>{v.no_efectivas}</strong> no alcanzan ninguno
+          </li>
+        ) : null}
+        {v.indeterminadas > 0 ? (
+          <li>
+            {/* Distinto de «no llegó»: es que el libro no trae con qué decidirlo. */}
+            <strong>{v.indeterminadas}</strong> sin evaluar en el libro
+          </li>
+        ) : null}
+      </ul>
+    </div>
+  );
+}
 
 /**
  * El nombre visible de cada grupo.
@@ -103,6 +156,11 @@ export function AulasControlDelLibro({
 
   return (
     <div className="aulas-control-libro">
+      {/* Primero el veredicto, después de qué está hecho y sólo al final el
+          detalle fila a fila. Es el orden del histórico del cálculo de muestra
+          (ADR 0060): se narra en el orden en que se decide, y la tabla cruda
+          queda de respaldo para quien vaya a por un aula concreta. */}
+      {resumen?.veredicto ? <Veredicto v={resumen.veredicto} aulas={aulas} /> : null}
       <p className="aulas-cadenas-lectura">
         <strong>{aulas}</strong> {aulas === 1 ? "aula" : "aulas"} en la hoja
         {conDato.map((g) => (

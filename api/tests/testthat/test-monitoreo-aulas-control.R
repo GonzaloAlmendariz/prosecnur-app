@@ -97,3 +97,68 @@ test_that("la importacion deja el control donde el tablero lo busca", {
   expect_length(cfg$control, 1L)
   expect_identical(cfg$control[[1]]$operational_code, "CH 1")
 })
+
+# --- El veredicto del aula ----------------------------------------------------
+# Gonzalo (2026-08-17): «aula efectiva» = llego al 70 % de asistentes elegibles
+# Y al 70 % de alumnos elegibles. Los dos.
+
+test_that("el veredicto de la hoja manda sobre la cuenta de la app", {
+  # Si la hoja dice que NO cumple, la app no la asciende aunque las enviadas
+  # superen el umbral: la formula es del equipo.
+  fila <- list(operational_code = "CH 1", valid_total = 0,
+               sent_total = 99, threshold_total = 21)
+  expect_false(monitoreo_aulas_control_umbral(fila, "valid_total", "threshold_total"))
+})
+
+test_that("sin veredicto legible se decide con el umbral que la hoja calculo", {
+  expect_true(monitoreo_aulas_control_umbral(
+    list(sent_total = 25, threshold_population = 21), "valid_population", "threshold_population"))
+  expect_false(monitoreo_aulas_control_umbral(
+    list(sent_total = 18, threshold_population = 21), "valid_population", "threshold_population"))
+  # Un umbral escrito como proporcion no es un numero de encuestas. Sin este
+  # corte, 25 >= 0.7 daria «cumple» en todas las aulas del estudio.
+  expect_true(is.na(monitoreo_aulas_control_umbral(
+    list(sent_total = 25, threshold_population = 0.7), "valid_population", "threshold_population")))
+})
+
+test_that("el veredicto textual del equipo se entiende en sus formas", {
+  for (si in list("SI", "Sí", "VÁLIDO", "cumple", TRUE, 1)) {
+    expect_true(monitoreo_aulas_control_umbral(list(valid_total = si), "valid_total", "threshold_total"))
+  }
+  for (no in list("NO", "no cumple", FALSE, 0)) {
+    expect_false(monitoreo_aulas_control_umbral(list(valid_total = no), "valid_total", "threshold_total"))
+  }
+})
+
+test_that("efectiva exige los dos umbrales y no se resuelve a FALSE por falta de dato", {
+  pub <- monitoreo_aulas_control_publicado(list(
+    list(operational_code = "A", valid_total = 1, valid_population = 1),
+    list(operational_code = "B", valid_total = 1, valid_population = 0),
+    list(operational_code = "C", valid_total = 0, valid_population = 0),
+    # Nadie la evaluo. Acusarla de no llegar seria inventar el veredicto.
+    list(operational_code = "D", sent_total = 25)
+  ))
+
+  expect_true(pub[[1]]$efectiva)
+  expect_false(pub[[2]]$efectiva)
+  expect_false(pub[[3]]$efectiva)
+  expect_true(is.na(pub[[4]]$efectiva))
+})
+
+test_that("las cuatro cuentas del veredicto son excluyentes y suman las aulas", {
+  res <- monitoreo_aulas_control_resumen(list(
+    list(operational_code = "A", valid_total = 1, valid_population = 1),
+    list(operational_code = "B", valid_total = 1, valid_population = 0),
+    list(operational_code = "C", valid_total = 0, valid_population = 0),
+    list(operational_code = "D", sent_total = 25)
+  ))
+  v <- res$veredicto
+
+  expect_identical(v$efectivas, 1L)
+  expect_identical(v$cumple_una, 1L)
+  expect_identical(v$no_efectivas, 1L)
+  expect_identical(v$indeterminadas, 1L)
+  # El aserto que atrapa el doble conteo: si «cumple una» no se restara de las
+  # no efectivas, la suma daria 5 sobre 4 aulas.
+  expect_identical(v$efectivas + v$cumple_una + v$no_efectivas + v$indeterminadas, res$aulas)
+})

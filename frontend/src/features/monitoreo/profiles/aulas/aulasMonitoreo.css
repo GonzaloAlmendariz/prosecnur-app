@@ -724,6 +724,45 @@
   gap: 8px;
 }
 
+/* El veredicto es la respuesta y por eso es lo único con peso tipográfico aquí.
+ * El resto del bloque —cobertura y tabla— es el respaldo de esta cifra. */
+.aulas-control-titular {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--pulso-text);
+  letter-spacing: -0.01em;
+}
+
+.aulas-control-titular span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-control-veredicto > .mon-profile-muted {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+/* En línea y no en lista vertical: son tres cifras cortas, y apiladas ocupaban
+ * más alto del que el panel puede gastar antes de la tabla. */
+.aulas-control-desglose {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-control-desglose strong {
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
 /* El gráfico de cobertura reserva su alto.
  *
  * `.mon-profile-panel` es grid y el div que Plotly monta no empuja su fila:
