@@ -261,10 +261,31 @@ por `min_eligible_per_class`**, no por ser estudios especiales.
 **Riesgo**: bajar el mínimo de elegibles, o un programa de posgrado con aulas
 grandes, mete posgrado en el marco y puede sacarlo sorteado.
 
-**Reparación pendiente**: la exclusión de unidad académica debe evaluarse contra
-la columna que la nombra —`faculty`, y/o `program`/`course_name`— y no contra un
-`level` numérico. Y debe existir un criterio explícito de facultades excluidas,
-no una consecuencia de otro filtro.
+### DECISIÓN DE GONZALO (2026-08-16): lista explícita, editable en la UI
+
+> «Una lista explícita de facultades excluidas, editable en la UI»
+
+Especificación para implementar entera —backend **y** UI, porque una capacidad
+sin consumidor no existe—:
+
+1. **Config**: filtro nuevo `excluded_faculties` en `config$filters`, lista de
+   nombres de facultad. Default: vacío (no cambia el comportamiento de nadie),
+   y que este proyecto lo pueble con ESCUELA DE POSGRADO y ESCUELA DE ESTUDIOS
+   ESPECIALES.
+2. **Aplicación**: en `calc_muestra_aulas.R` ~1149, donde hoy vive `level_ok`,
+   que es un chequeo **por fila de alumno** —no por aula—, junto a
+   `modality_ok` y `session_ok`. Comparación por nombre normalizado de
+   `faculty`, no por patrón sobre `level`.
+3. **Motivo propio**: `exclude_reason = "faculty_excluida"`, para que la
+   exclusión sea legible y no se confunda con `min_eligible_per_class`.
+4. **UI**: control editable en la pestaña de Criterios, alimentado por las
+   facultades presentes en el marco, con el conteo de aulas que cada exclusión
+   descarta.
+5. **Evidencia**: test que fije que una facultad listada sale con 0 aulas y con
+   motivo `faculty_excluida`, mutante que quite la comparación, y gate.
+
+El filtro viejo `exclude_level_patterns` se mantiene —no rompe nada— pero deja
+de ser lo que sostiene la exclusión de posgrado.
 
 ### Corrección a E1 por facultad
 
