@@ -1,11 +1,11 @@
 const FIELD_LABELS: Record<string, string> = {
   // Ciclo de contacto (L31): por que un aula no esta agendada todavia.
   contact_medium: "Medio de contacto",
-  contact_date: "Fecha de contacto",
-  contact_attempts: "Intentos de contacto",
+  contact_date: "Fecha de llamada",
+  contact_attempts: "Número de intentos",
   scheduled_date: "Fecha agendada",
-  scheduled_day: "Día agendado",
-  scheduled_time: "Hora agendada",
+  scheduled_day: "Día",
+  scheduled_time: "Hora",
   // Parte de campo (L32/L45): lo que el equipo anota en el aula.
   actual_room: "Aula real",
   observed_students: "Estudiantes en el aula",
@@ -28,7 +28,7 @@ const FIELD_LABELS: Record<string, string> = {
   sex_top_1_n: "Estudiantes del sexo mayoritario",
   sex_top_2: "Sexo minoritario",
   sex_top_2_n: "Estudiantes del sexo minoritario",
-  enrolled_total: "Matriculados",
+  enrolled_total: "Matriculados total DTI",
   size_group: "Tamaño de aula",
   modality: "Modalidad",
   session_type: "Tipo de sesión",
@@ -43,8 +43,12 @@ const FIELD_LABELS: Record<string, string> = {
   representativity_score: "Puntaje de representatividad",
   representativity_distance: "Distancia de representatividad",
   methodological_warning: "Advertencia metodológica",
-  teacher_phone: "Teléfono docente",
-  operational_code: "Código de ficha",
+  teacher_phone: "Teléfono de docente",
+  // El Excel llama `CURSO-HORARIO` al CÓDIGO y `SESIONES Y AULA` al texto
+  // descriptivo. Yo los tenía cruzados: el código salía como «Código de ficha»
+  // —que en realidad es el material QR— y el descriptivo se quedaba con
+  // «Curso-horario». Con los nombres del equipo cada columna dice lo suyo.
+  operational_code: "Curso-horario",
   titular_operational_code: "Código titular",
   replacement_chain_code: "Cadena de reemplazo",
   operational_sequence: "Secuencia operativa",
@@ -53,24 +57,26 @@ const FIELD_LABELS: Record<string, string> = {
   // `STATUS MUESTRA` en «Aulas Agendadas»: AGENDADA · REAGENDADA · EN RESERVA n
   // · REEMPLAZADA. El rótulo es la columna.
   sample_status: "Status de muestra",
-  wave: "Ola",
+  // `MUESTRA` es como el Excel rotula la ola (M1, M2). Se usa su palabra
+  // aunque «muestra» tambien nombre el diseño: es la que lee el equipo.
+  wave: "Muestra",
   replacement_order: "Orden en la cadena",
   orden: "Orden",
   classroom_id: "ID de curso-horario",
-  label: "Curso-horario",
+  label: "Sesiones y aula",
   course_id: "ID de curso",
-  course_name: "Curso",
+  course_name: "Nombre del curso",
   section: "Sección",
   schedule: "Horario",
-  teacher: "Docente",
-  teacher_email: "Correo docente",
+  teacher: "Nombre de docente",
+  teacher_email: "Correo PUCP docente",
   faculty: "Facultad",
   program: "Carrera",
-  level: "Nivel",
+  level: "Nivel del curso",
   stratum: "Estrato",
-  eligible_n: "Estudiantes elegibles",
+  eligible_n: "Matriculados población",
   expected_valid: "Válidas esperadas",
-  link: "Enlace Kobo",
+  link: "Enlace de la ficha",
   qr: "Código QR",
   word_link: "Ficha Word",
   pdf_link: "Ficha PDF",
