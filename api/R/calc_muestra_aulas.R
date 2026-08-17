@@ -1285,7 +1285,10 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     # evaluación por curso-horario vive en .cm_criterios_evaluar_aula(). Sin
     # minEligible explícito se conserva el fallback legacy bit a bit.
     included <- if (min_suite_explicito) TRUE else eligible_n >= .cm_criterios_min_eligible_efectivo(cfg)
-    faculty_program <- .cm_aulas_mode_pair(faculty[idx_all], program[idx_all], "", "")
+    # La etiqueta sale de los ELEGIBLES, no de todos los matriculados: con una
+    # facultad excluida, la modal de todos podia rotular el aula con la unidad
+    # que el diseño saco. Ver calc_muestra_aulas_facultades_excluidas.R.
+    faculty_program <- .cm_aulas_etiqueta_facultad(faculty, program, idx, idx_all)
     data.frame(
       classroom_id = cid,
       label = .cm_aulas_mode(classroom_label[idx_all], cid),

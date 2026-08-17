@@ -185,3 +185,69 @@ test_that("el emparejamiento es por nombre normalizado, no por parecido", {
   af2 <- .fex_frame(list("Escuela de Estudios Especiales"))
   expect_false(af2$included[af2$faculty == "ESCUELA DE ESTUDIOS ESPECIALES"])
 })
+
+# La ETIQUETA del aula sale de los alumnos ELEGIBLES, no de todos.
+#
+# Caso real de HSVG2026, reproducido con sus cifras: el aula `soc254_0731`
+# —curso «Cultura y sociedad», programa de movilidad estudiantil internacional—
+# tiene 23 matriculados: **11 de CIENCIAS SOCIALES, 11 de ESCUELA DE ESTUDIOS
+# ESPECIALES y 1 de EE.GG. LETRAS**. Con Estudios Especiales excluida sus 11
+# dejan de ser elegibles y el aula entra con los 12 restantes, que es CORRECTO
+# —hay doce personas encuestables—. Pero la etiqueta salia de los 23 y el empate
+# 11-11 la rotulaba con la facultad EXCLUIDA: el analista veia en su marco la
+# unidad que habia pedido sacar, y esas doce personas contaban para una facultad
+# que no es la suya.
+#
+# Esto NO cambia que aulas entran —ni una— pero si a que facultad se atribuyen,
+# que es de lo que cuelgan las cuotas por facultad.
+
+.fex_mixta <- function() {
+  mk <- function(fac, n) do.call(rbind, lapply(seq_len(n), function(j) data.frame(
+    student_id = paste0(substr(fac, 1, 3), j), aula_id = "A01", curso_id = "C1",
+    curso = "Cultura y sociedad", horario = "L 8", facultad = fac,
+    programa = "MOVILIDAD ESTUDIANTIL INTERNACIONAL", sexo = "F", edad = 20,
+    condicion = "regular", nivel = "pregrado", modalidad = "presencial",
+    tipo_sesion = "TEORICO", stringsAsFactors = FALSE)))
+  # La excluida es MAYORIA entre los matriculados (12) y minoria entre los
+  # elegibles (0): asi la etiqueta cambia de verdad segun de donde se calcule.
+  # Con un empate 11-11 el desempate coincide y el test no mediria nada —lo
+  # comprobe: el mutante sobrevivia—.
+  rbind(mk("CIENCIAS SOCIALES", 11L), mk("ESCUELA DE ESTUDIOS ESPECIALES", 12L),
+        mk("ESTUDIOS GENERALES LETRAS", 1L))
+}
+
+.fex_mixta_frame <- function(excluidas) calc_muestra_aulas_construir(
+  base_madre = .fex_mixta(),
+  config = list(mapping = list(session_type = "tipo_sesion"),
+                filters = list(min_eligible_per_class = 5L, excluded_faculties = excluidas))
+)$aula_frame
+
+test_that("un aula no se etiqueta con la facultad que el diseño excluyo", {
+  af <- .fex_mixta_frame(list("ESCUELA DE ESTUDIOS ESPECIALES"))
+  expect_false(identical(af$faculty, "ESCUELA DE ESTUDIOS ESPECIALES"))
+  expect_equal(af$faculty, "CIENCIAS SOCIALES")
+  # Y sigue entrando: hay doce personas encuestables, el aula es legitima.
+  expect_true(af$included)
+  expect_equal(af$eligible_n, 12)
+})
+
+test_that("la etiqueta describe a quien SI se va a encuestar", {
+  # Sin exclusiones los 23 son elegibles y la modal de los elegibles manda
+  # igual; el empate 11-11 lo rompe el mismo criterio en los dos casos, asi que
+  # la etiqueta es estable.
+  # Sin exclusiones los 24 son elegibles y la modal de los elegibles ES la
+  # excluida: la etiqueta refleja a quien se va a encuestar, sea quien sea.
+  af <- .fex_mixta_frame(list())
+  expect_equal(af$eligible_n, 24)
+  expect_equal(af$faculty, "ESCUELA DE ESTUDIOS ESPECIALES")
+})
+
+test_that("sin ningun elegible el aula conserva su etiqueta", {
+  # El aula sigue en el frame como excluida y tiene que poder nombrarse: una
+  # etiqueta vacia dejaria una fila sin facultad en los conteos.
+  af <- .fex_mixta_frame(list("CIENCIAS SOCIALES", "ESCUELA DE ESTUDIOS ESPECIALES",
+                              "ESTUDIOS GENERALES LETRAS"))
+  expect_equal(af$eligible_n, 0)
+  expect_false(af$included)
+  expect_true(nzchar(af$faculty))
+})
