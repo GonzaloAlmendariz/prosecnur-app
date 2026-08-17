@@ -3382,6 +3382,23 @@ graficar_barras_apiladas <- function(
 
     x_group_txt <- x_group0 + (w_group * 0.5)
 
+    # P46: cuerpo y lineas se deciden JUNTOS y sobre el alto REAL. Dos intentos
+    # anteriores fallaron por estimar ese alto como `n_cat * alto_fila`: el
+    # texto se dibuja centrado en `mean(y_min, y_max)`, asi que lo que de verdad
+    # tiene cada bloque es la mitad de la distancia a cada vecino.
+    .centros_blq <- (group_df$y_min + group_df$y_max) / 2
+    .alto_disp <- .barras_alto_disponible_real(
+      .centros_blq, suppressWarnings(as.numeric(alto)[1]),
+      borde_inf = y_bars_area0, borde_sup = y_bars_area0 + h_bars_area
+    )
+    .ajuste_tit <- .titulo_grupo_ajuste(
+      textos   = as.character(group_df$.group_title),
+      altos_in = .alto_disp,
+      wrap_fun = function(x, pt) .barras_wrap_titulo_grupo(x, w_group, ancho, pt, font_family),
+      size_pt  = size_titulos_grupo
+    )
+    size_titulos_grupo <- .ajuste_tit$size_pt
+
     # P46: el cuerpo del enunciado se decide UNA VEZ para toda la lamina, antes
     # de envolver, acotar y dibujar. Si el declarado no deja caber algun bloque,
     # baja hasta que quepan todos —que es lo que hace el entregable aprobado:
@@ -3428,7 +3445,8 @@ graficar_barras_apiladas <- function(
         alto_rel = titulos_grupo_alto_rel,
         # El alto de fila que de verdad se dibujo, no el de por defecto.
         alto_fila_in = alto_por_cat_eff,
-        cuerpo_pt = size_titulos_grupo
+        cuerpo_pt = size_titulos_grupo,
+        cupo_forzado = .ajuste_tit$cupos[i]
       )
       canvas <- canvas + cowplot::draw_text(
         text     = title_i,
