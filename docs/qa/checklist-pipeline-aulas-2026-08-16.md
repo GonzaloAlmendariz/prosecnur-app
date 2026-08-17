@@ -26,8 +26,8 @@ titular tenga su cadena completa.
 | E4 | **Cálculo de la muestra** | El n sale de la fórmula declarada y coincide con lo que publica la UI | `calc_muestra_engine.R` · `CalculoPropuestasTab` | ☑ **pasa** |
 | E5 | **Cuotas de hombres y mujeres por facultad** | Se calculan por facultad y suman lo que deben | `calc_muestra_aulas.R` · `CursosHorarioSexo` | ☑ **pasa** |
 | E6 | **Cuota general por facultad** | Coherente con E5: la general no contradice el desglose por sexo | idem | ☑ **pasa** |
-| E7 | **Alumnos elegibles por curso-horario** | El elegible por CH es calculable y trazable a E2 | `calc_muestra_aulas.R` | ☐ |
-| E8 | **Cuántos CH hacen falta por facultad** | Se deriva de E6 ÷ E7 y queda explícito | idem | ☐ |
+| E7 | **Alumnos elegibles por curso-horario** | El elegible por CH es calculable y trazable a E2 | `calc_muestra_aulas.R` | ☑ **pasa, con hallazgo H6** |
+| E8 | **Cuántos CH hacen falta por facultad** | Se deriva de E6 ÷ E7 y queda explícito | idem | ☑ **pasa — fórmula exacta 15/15** |
 | E9 | **Selección de aulas** | Cumple las requeridas por facultad de E8, facultad por facultad | `calc_muestra_aulas.R` selector | ◐ **genera bien; falta contrastar con E8** |
 | E10 | **Titulares y sus reemplazos** | Cada titular tiene su cadena **completa**; ninguno se queda sin ella | selección + `chain_reserve` | ☑ **pasa** |
 
@@ -384,6 +384,45 @@ recortes.
 Trampa de instrumentación pagada: los `sub` del motor son **«M» y «F»**
 —masculino y femenino—, no «H» y «M». Filtrar por «H» da 100 % en las quince
 filas; ese fue el síntoma.
+
+## E7 y E8 — **pasan**, y la fórmula se reconstruye exacta
+
+`aulas_base = ⌈ cuota ÷ (alumnos_por_CH × τ) ⌉`, con τ = 0,53 de tasa de
+respuesta esperada. **Falla en 0 de 15** facultades, en los dos componentes.
+Los campos viven en `resultado$aulas_por_estrato`: `cuota`, `avg_conglomerado`,
+`estadistico_usado`, `tau`, `aulas_base`, `aulas_reemplazo`,
+`aulas_extra_operativas`, `aulas_total`, `tipo_aula`, `precision_e`.
+
+| | Componente universidad | Componente facultad |
+|---|---:|---:|
+| Alumnos por CH usados | **28,0** | **20,0** |
+| Aulas base | **177** | 478 |
+| Aulas total | 269 | 478 |
+
+**Las ~190 aulas de Gonzalo son las 177 base del componente universidad.**
+
+### H6 — un solo «alumnos por CH» para las quince facultades
+
+El motor usa **un único `avg_conglomerado`** —28 o 20 según el componente— para
+todas. Pero el elegible real por aula va de **16 (LETRAS Y CIENCIAS HUMANAS) a
+46 (EG LETRAS)**. Aplicar 20 a las dos deja corta a una y sobra en la otra.
+
+Y **`alumnos_por_ch_decision` está SIN CONFIRMAR**: `denominador`,
+`estadistico_default` y `confirmado_at` vacíos, `por_facultad` con **0
+entradas**, pese a que `frame$alumnos_por_ch` SÍ trae la tabla por facultad con
+`media`, `p25` y `p50` para las 18 categorías. **La capacidad de decidir el
+estadístico por facultad existe en los datos y no se está usando.**
+
+Consecuencia medida: el uso de aulas por facultad va del **7 % al 100 %**.
+LETRAS Y CIENCIAS HUMANAS necesita las 16 que tiene porque se le asignan 20
+alumnos por aula; con su mediana real de 16 necesitaría **20 aulas, más de las
+que existen**.
+
+Uso por facultad en el componente de facultad: LETRAS Y CIENCIAS HUMANAS 100 % ·
+CONTABLES 74 % · EDUCACION 74 % · ARQUITECTURA 64 % · ARTES ESCÉNICAS 62 % ·
+GASTRONOMÍA 59 % · ARTE Y DISEÑO 56 % · PSICOLOGÍA 30 % · GESTIÓN 29 % ·
+CIENCIAS SOCIALES 22 % · CIENCIAS Y ARTES COMUN. 20 % · EG CIENCIAS 15 % ·
+EG LETRAS 14 % · DERECHO 10 % · CIENCIAS E INGENIERIA 8 %.
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
