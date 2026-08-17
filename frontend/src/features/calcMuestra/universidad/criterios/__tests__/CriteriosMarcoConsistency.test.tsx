@@ -439,3 +439,85 @@ describe("publicación de la radiografía según integridad", () => {
     expect(criterios).not.toContain("Suma de matrículas elegibles");
   });
 });
+
+describe("la tarjeta de facultades excluidas, montada en la pestaña", () => {
+  /**
+   * Tercera vez que el montaje se escapa de la cobertura. La tarjeta se
+   * alimentaba del catálogo de la variable `faculty`, que tiene
+   * `scope: "alumno"`: su campo `aulas` cuenta pares alumno-aula por la
+   * facultad DEL ALUMNO —sumaba 29.090 sobre un marco de 5.263 aulas— y traía
+   * CONSORCIO DE UNIVERSIDADES, alumnos de otras casas que llevan cursos aquí y
+   * que no es una facultad del marco. En pantalla se leía «ESTUDIOS GENERALES
+   * LETRAS · 4.869 aulas» donde hay 482, y salían 18 filas para 17 facultades.
+   *
+   * Los tests de la tarjeta suelta no podían verlo: el mutante que devuelve
+   * `facultades={facRefs}` a `facultades={facultadesMin}` COMPILA, porque
+   * `FacultadMinRef` es asignable a `FacultadRef`. Sólo montando la pestaña se
+   * distingue una fuente de la otra.
+   */
+  const CATALOGO_ENVENENADO = {
+    ...aulasState,
+    frame: {
+      ...(aulasState as unknown as { frame: Record<string, unknown> }).frame,
+      criterios_catalogo: {
+        variables: [
+          {
+            id: "faculty",
+            label: "Facultad",
+            scope: "alumno",
+            categories: [
+              { key: "EG_LETRAS", label: "ESTUDIOS GENERALES LETRAS", aulas: 4869 },
+              { key: "CONSORCIO", label: "CONSORCIO DE UNIVERSIDADES", aulas: 40 },
+            ],
+          },
+        ],
+      },
+    },
+  } as unknown as CalcMuestraAulasState;
+
+  /**
+   * Sólo la sección de la tarjeta. La pestaña monta ADEMÁS la tarjeta de
+   * criterios de la variable `faculty`, que sí sale del catálogo de alumno y
+   * etiqueta su cifra como «estudiantes en la base» —correcto ahí—. Asertar
+   * sobre el HTML entero confundiría una tarjeta con la otra.
+   */
+  function seccionTarjeta(html: string): string {
+    const i = html.indexOf('data-criterio="facultades-excluidas"');
+    return i < 0 ? "" : html.slice(i, html.indexOf("</section>", i));
+  }
+
+  function pintarConMarco(): string {
+    return renderToStaticMarkup(
+      <CriteriosMarcoTab
+        workspace={workspace}
+        aulasState={CATALOGO_ENVENENADO}
+        facultades={["DERECHO", "PSICOLOGÍA"]}
+        onWorkspace={() => {}}
+        onReconstruir={() => {}}
+        puedeReconstruir
+        scope="alumno"
+      />,
+    );
+  }
+
+  it("se monta en la pestaña que el usuario abre", () => {
+    // Control imprescindible: si la tarjeta no se montara, los dos tests de
+    // abajo pasarían sin medir nada. Ya ocurrió: estaba dentro del bloque de
+    // criterios de aula y con `scope="alumno"` no llegaba a pintarse.
+    expect(pintarConMarco()).toContain('data-criterio="facultades-excluidas"');
+  });
+
+  it("lista las facultades DEL MARCO, no las del catálogo de alumno", () => {
+    const html = seccionTarjeta(pintarConMarco());
+    expect(html).toContain("DERECHO");
+    expect(html).toContain("PSICOLOGÍA");
+    // La categoría que sólo existe en el catálogo de alumno no es una facultad
+    // del marco y no debe aparecer.
+    expect(html).not.toContain("CONSORCIO DE UNIVERSIDADES");
+  });
+
+  it("no publica una cifra de aulas que no puede garantizar", () => {
+    // El 4.869 del catálogo no son aulas. Ninguna cifra seguida de «aulas».
+    expect(pintarConMarco()).not.toMatch(/[0-9][0-9.,  ]*\s*aulas/);
+  });
+});
