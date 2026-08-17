@@ -1310,7 +1310,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
       sex_top_2_n = if (length(sex_tab) >= 2L) as.integer(sex_tab[[2]]) else 0L,
       eligible_ratio = if (enrolled_total > 0) round(eligible_n / enrolled_total, 4) else NA_real_,
       included = included,
-      exclude_reason = if (included) "" else "min_eligible_per_class",
+      # Una facultad excluida por diseño no es un aula chica: si TODAS sus filas
+      # cayeron por la lista, el motivo lo dice. Sin esto la exclusion se
+      # disfrazaba de `min_eligible_per_class` y era indistinguible de un aula
+      # que simplemente no llego al minimo.
+      exclude_reason = if (included) "" else if (!any(faculty_ok[idx_all])) "faculty_excluida" else "min_eligible_per_class",
       stringsAsFactors = FALSE,
       check.names = FALSE
     )
