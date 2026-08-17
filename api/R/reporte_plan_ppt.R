@@ -1817,7 +1817,13 @@ reporte_ppt_plan <- function(
   }
 
   .top_two_parse_colors <- function(style, n) {
-    default <- c("#D8504F", "#FFD966", "#B7D7A8", "#70AD47")
+    # El extremo negativo va NARANJA y no rojo. Es la misma regla que el
+    # verificador aplica al resto del mazo —R4, «el rojo institucional es color
+    # de titulo, no extremo de escala»— y que el entregable aprobado cumple: su
+    # lamina de top two box arranca en `F4B183` y en todo el mazo no tiene un
+    # solo rojo en una rampa. Esta lamina se habia quedado fuera de esa regla y
+    # era el unico sitio donde el motor pintaba un segmento de escala en rojo.
+    default <- c("#F4B183", "#FFD966", "#B7D7A8", "#70AD47")
     raw <- style[["colores"]] %||% style[["colores_escala"]] %||% default
     if (is.list(raw) && !is.data.frame(raw)) {
       raw <- unlist(raw, recursive = TRUE, use.names = FALSE)
