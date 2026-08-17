@@ -472,8 +472,8 @@ Sobre el operativo real de **196 aulas y 3700 respuestas**:
 | | |
 |---|---|
 | Motor del tablero | **0,71 s** — escala con las *aulas*, no con las respuestas |
-| Payload del estado | 1377 → **601 KB** (56 % menos) |
-| Petición de estado | 2,9 → **1,6 s** |
+| Payload del estado | 1377 → **579 KB** (58 % menos), medido dos veces a 3700 respuestas |
+| Petición de estado | 2,9 → **2,08 s** a 3700 respuestas (el 1,6 s era a 600) |
 | `.pulso` | 0,29 s guardar · 0,62 s abrir |
 
 **El cuello nunca fue el cálculo: fue el transporte.** El plan viajaba **tres
@@ -1012,3 +1012,43 @@ comando. Aquí, un proyecto sin las filas que la declaración necesita.
 
 Antes de leer un cero como ausencia hay que preguntarse **si el proyecto tenía de
 qué**.
+
+
+### 2026-08-17 — E1: hsvg2026 no servía, y una cifra mía estaba mal comparada
+
+**E1 no se pudo correr como estaba escrito.** `hsvg2026` es el **marco del
+sorteo**, no un proyecto de monitoreo: 0 filas de plan de aulas y 0 respuestas.
+Lo elegí porque el mapa del repo lo describe como «marco de aulas a escala» y
+supuse que eso incluía el operativo. El sembrador tampoco parte de un marco real:
+construye su propio plan.
+
+Así que se midió lo que de verdad faltaba: **el payload después de los ocho
+commits**, sembrando el operativo a escala con
+`qa_pulso_aulas_campo.R --escala 2025` → 196 aulas y **3700 respuestas**.
+
+Y ahí salió el error. **Las cifras intermedias que vengo repitiendo comparaban
+escalas distintas**: el 1377 KB original se midió a 3700 respuestas, pero los
+934 y 601 KB se midieron sobre `qa_2025`, que tiene **600**. Comparar 601 contra
+1377 mezclaba dos cosas.
+
+Medido ahora, las dos puntas **a la misma escala de 3700**:
+
+| | antes | después |
+|---|---|---|
+| Payload | 1377 KB | **579 KB** (58 % menos) |
+| Petición | 2,9 s | **2,08 s** (28 % menos) |
+
+La conclusión del payload aguanta y mejora; **la del tiempo no**: dije «2,9 →
+1,6 s» y el 1,6 era a 600 respuestas. A la escala real la mejora es de 2,9 a
+2,08 s. Corregido aquí, en la memoria y en lo que te reporté.
+
+Es la **séptima** vez que este error aparece en la sesión y la primera que
+contamina una cifra publicada en un mensaje de commit. La regla ya no basta con
+enunciarla: **toda cifra de antes/después lleva su escala escrita al lado**, y
+las de este doc ya la llevan.
+
+Lo que sí quedó verificado a 3700: los cinco gráficos dibujan —51 sin agendar,
+40 en aplicación, 105 con meta cumplida, y la cobertura da los mismos tres
+números desde otro cálculo—, el aviso de recorte sale con su estilo
+(«Mostrando 8 de 82 columnas») y el criterio de validez se anuncia solo en el
+informe del sembrador.
