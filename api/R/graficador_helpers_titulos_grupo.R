@@ -189,6 +189,22 @@
   # 0.65 pasaria a 1.35 —de cuatro lineas a diez, a 11 pt—. Antes de tocarlo hay
   # que comprobar EN EL RENDER que dos bloques vecinos con enunciado largo no se
   # pisen, que es justo lo que este cupo existe para evitar.
+  # PROBADO Y REVERTIDO, con la medicion que lo descarta. Implementado el
+  # desbordamiento —medio hueco por cada lado con vecino, +0.55 in por bloque
+  # con `canvas_gap_grupos = 0.85` y una fila de 0.65— los truncados bajaban de
+  # **10 a 6**… **y aparecia el solape que este cupo existe para evitar**: en la
+  # lamina 25 tres enunciados escritos unos encima de otros, y en la 69 dos.
+  #
+  # LA CAUSA DEL FALLO, y es la parte que hay que recordar: **los dos ajustes se
+  # retroalimentan**. `.titulo_grupo_size_que_cabe()` decide el cuerpo con el
+  # alto disponible, y el cupo decide las lineas con ese mismo alto. Al sumarle
+  # el hueco, el primero deja de necesitar encoger —vuelve a 14 pt— y entonces
+  # el segundo autoriza diez lineas que a 14 pt miden 1.67 in en un sitio de
+  # 1.35. Cada cuenta es correcta por separado y juntas se pasan.
+  #
+  # Quien lo reintente tiene que resolver ESO primero: decidir cuerpo y lineas
+  # en una sola pasada, no en dos que se alimentan. Medido sobre `p49.pptx`
+  # contra `p48.pptx`.
   .pulso_aviso(sprintf(
     paste0("Enunciado recortado a %d linea(s): «%s». El bloque tiene %d fila(s) ",
            "y el texto necesita %d lineas. Ensancha «Columna de grupo» en ",
