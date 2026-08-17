@@ -137,7 +137,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias declaradas y una escondida: `brechas` era un clon completo del plan. | ☑ **hecho** (2026-08-16) — **1377 → 934 → 601 KB** y **2,4 → 1,6 s**. Queda una sola copia, `dashboard.agenda`, que es superconjunto de la que se fue. |
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
-| **L68** | El gate visual del contrato **nunca miró los cinco gráficos**. | Al pasarlo: 4 `capacity-drift` (C3) en los paneles de Avance, en los dos viewports. | ◐ a medias (2026-08-16) — los paneles de gráfico ya son intrínsecos y el gate baja de **4 a 2**. Queda «Estado del circuito», con la medición hecha y la causa sin encontrar. |
+| **L68** | El gate visual del contrato **nunca miró los cinco gráficos**. | Al pasarlo: 4 `capacity-drift` (C3) en los paneles de Avance. | ◐ a medias (2026-08-16) — **la parte de los gráficos está cerrada**: 155 → 129 px, hueco 16 → **0**. Queda 3–4 px en `.mon-profile-panel-head`, chrome compartido de todo Monitoreo. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -681,3 +681,36 @@ fila resuelve a **51 px para una nota de 19**, que es lo contrario de lo que
 ojo en cuatro turnos distintos —capturas, comprobación de superposición, dos
 viewports— y **ninguna de esas comprobaciones las vio**. Miraban si el gráfico se
 dibujaba encima de la tabla; el contrato mide si el vacío tiene dueño.
+
+
+### 2026-08-16 — L68 cerrado por mi lado: era el margen de la nota, no el grid
+
+Dos turnos teorizando sobre `1fr auto`, y la causa no tenía nada que ver con el
+grid. La medición que la encontró fue mirar el **estilo computado de la nota**:
+
+```
+declarado en monitoreo.css   margin: 6px 0 0
+computado en pantalla        margin: 16px 0
+                             16 + 19 (la nota) + 16 = 51  ← la fila exacta
+```
+
+Una regla genérica de `p` de una hoja que carga **después** ganaba la cascada —el
+orden real de las hojas ya había mordido antes en este repo—. Los 16 px de abajo
+eran el `capacity-drift` que vio el gate; los 16 de arriba **despegaban la nota
+del gráfico que describe**, un defecto visual que nadie había mirado.
+
+Fijado en la hoja del feature, que va última: **155 → 129 px, hueco 16 → 0**, y la
+fila resuelve a `104px 25px` —la nota y su margen, exactamente—.
+
+Del gate quedan 4 hallazgos, pero **ya no son los mismos**: antes cada uno listaba
+la cabecera (4 px) *y* el envoltorio del gráfico (16 px); ahora sólo la cabecera.
+Esos 3–4 px viven en `.mon-profile-panel-head`, chrome compartido por todo
+Monitoreo, y aparecen porque Avance ahora declara tres paneles en un mismo grupo
+—los expuse, no los causé—. Tocar el chrome común excede este ítem.
+
+**Y una trampa de instrumento nueva, la trece**: la corrida intermedia informó
+`geometryGroups=5` y la final `8`. El runner **captura en estados de render
+distintos**, así que el «bajó de 4 a 2» del turno anterior comparaba dos
+fotografías que no medían lo mismo. Sus conteos sólo son comparables si el número
+de grupos coincide; si no, hay que mirar los **miembros** de cada hallazgo, que es
+lo que aquí demostró el avance real.
