@@ -615,3 +615,13 @@
   grid-template-rows: 1fr auto;
   min-width: 0;
 }
+
+/* Misma razón que `.aulas-cobertura-chart`: el div que monta Plotly no empuja
+   su fila del grid, así que sin un alto reservado el panel colapsa a su
+   cabecera y el gráfico se dibuja encima de lo que venga debajo. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-estado-chart {
+  min-height: 104px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+}

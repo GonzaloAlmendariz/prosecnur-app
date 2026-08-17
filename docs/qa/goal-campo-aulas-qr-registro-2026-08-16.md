@@ -133,7 +133,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
-| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujados **dos de cinco**: cobertura por aula y brecha por estrato. Faltan estado apilado, cuota sexo×facultad y consumo de cadena. |
+| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujados **tres de cinco**: estado del circuito, cobertura por aula y brecha por estrato. Faltan cuota sexo×facultad y consumo de cadena. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
@@ -870,3 +870,41 @@ eje encimadas —parecía un defecto de ancho y no lo era—. Medir el SVG lo
 desmintió: 1208 px y las barras al 95 % del área. **Una captura de un Plotly
 recién montado no es evidencia**; hay que esperar su segundo pase, igual que ya
 pasó con el barrido de 1250 ms.
+
+
+### 2026-08-16 — L63: el estado del circuito, y el eje que la cobertura no ve
+
+Dibujado el #1 del catálogo, en Avance › Resumen. Sobre las 196 aulas:
+
+```
+Sin agendar  Agendada   En aplicación            Meta alcanzada
+████████ 51     – 0     ██████████████ 145              – 0
+```
+
+Parece redundante con el histograma de cobertura y no lo es: **son los dos ejes
+independientes de L30**. La cobertura reparte por `válidas / meta`; ésta por el
+punto del circuito. La diferencia que sólo se ve aquí es **«sin agendar» contra
+«agendada y aún sin empezar»** —la cobertura mete las dos en «sin respuestas»— y
+es la que dice si lo que falta es trabajo de teléfono o trabajo de campo.
+
+Los dos gráficos se **verifican entre sí**: el circuito dice 145 en aplicación y
+la cobertura dice 122 + 23 = 145 aulas con al menos una respuesta. Que dos
+cálculos distintos del mismo tablero coincidan es más evidencia que cualquiera de
+los dos por separado.
+
+Dos decisiones con su test:
+
+- **El azul de «Agendada» no sale de `COLOR_RESULTADO`.** Esa paleta son los
+  *desenlaces de una encuesta*, y «agendada, aún sin empezar» no es ninguno: es
+  un estado del aula. Pintarla de granate (`rechazo`) diría que alguien declinó,
+  que es falso. Se toma el azul de marca, y un test comprueba que no invade la
+  lista de exclusivos.
+- **Un estado que el motor no declare se cuenta, no se descarta.** Es el control
+  invertido del patrón que ya costó doce ítems de esta cola: una lista cerrada
+  que se traga en silencio lo que no reconoce. Si el engine añade un quinto
+  estado, el gráfico lo dirá en vez de perder aulas.
+
+**Y una corrección de C1 sobre la marcha**: los dos gráficos entraron primero en
+el mismo panel, titulado «Cobertura de la meta» —que ya no describía lo que
+contenía—. Cada uno tiene su panel y su título, porque una superficie declara qué
+es.

@@ -18,6 +18,7 @@ import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
+import { AulasEstadoChart } from "./AulasEstadoChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
   MONITOREO_PESTANAS,
@@ -471,11 +472,28 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
+          <h3>Estado del circuito</h3>
+          <span>{fmt(aulaRows.length)} cursos-horario</span>
+        </div>
+        {/* Los dos ejes van en paneles propios porque contestan preguntas
+            distintas y cada superficie declara qué es (C1): éste dice en qué
+            punto del circuito está cada aula —y cuántas ni se han agendado—, el
+            de abajo cuánto lleva recogido cada una. Los dos van ANTES de la
+            tabla: la tabla dice aula por aula y esto dice la forma del
+            conjunto. */}
+        <AulasEstadoChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+      </section>
+      )}
+      {pestana !== "resumen" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
           <h3>Cobertura de la meta</h3>
           <span>{fmt(aulaRows.length)} cursos-horario</span>
         </div>
-        {/* Va ANTES de la tabla: la tabla dice aula por aula y esto dice la
-            forma del conjunto, que es lo que decide dónde insistir. */}
         <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
       )}
