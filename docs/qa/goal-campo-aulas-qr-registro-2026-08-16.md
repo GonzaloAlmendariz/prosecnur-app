@@ -139,7 +139,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L68** | El gate visual del contrato **nunca miró los cinco gráficos**, y al mirarlo apareció que **aulas no importaba `monitoreo.css`**. | 4 `capacity-drift` (C3); el aviso de recorte salía como texto de cuerpo en todo el perfil. | ☑ **hecho** (2026-08-16) — la regla se muda a `profilePage.css`, que sí ven los cuatro perfiles. Queda 3–4 px de `.mon-profile-panel-head`, chrome compartido que este ítem no causó. |
 | **L69** | **Materiales se declaraba lista mientras cargaba.** Es la superficie donde se producen las fichas QR del circuito. | `RecopiladoresShell` derivaba `auditReady` de **su** `loading` —el del plan— y `MaterialsSection` tiene el suyo para la plantilla. Todo QA visual de esa vista medía el esqueleto: 124 px de vacío y «Leyendo plantilla semántica…». | ☑ **hecho** (2026-08-16) — la sección avisa su carga al shell. Gate de `ok=false` a **`ok=true`**, verificado invirtiéndolo. |
-| **L70** | **El lenguaje no es el del equipo.** «Estado del circuito» y otras expresiones son mías, no del operativo. | Ya existe un lenguaje referencial en los Excels —`STATUS MUESTRA`, `STATUS DE APLICACIÓN`, `VALIDO TOTAL`, `CANTIDAD DE EFECTIVAS`, `DUPLICADOS (YA RESPONDIERON)`, `NÚMERO DE INTENTOS`— y hay que mantener esa línea. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L70** | **El lenguaje no es el del equipo.** | «Estado del circuito», «En aplicación», «Meta alcanzada», «Recogidas» son míos. | ◐ a medias (2026-08-17) — sustituidos los del gráfico de aplicación por sus columnas del Excel; falta barrer los ~110 rótulos de `aulasPresentation.ts` y los títulos de las otras secciones. |
 | **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab`; aulas usaba un `GlidingTabList` superior. | ☑ **hecho** (2026-08-17) — rail montado con el chrome compartido; navegación y URL enlazable verificadas. |
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
@@ -1150,3 +1150,28 @@ empezar por el resumen de algo que aún no se ha mirado. Alineado.
 espera 207 nodos y hay 213; `modulesNavigation.test.ts` espera 69 pestañas y hay
 75. Comprobado con el cambio guardado y sin él: **idénticos**. Vienen del trabajo
 sin commitear de otra sesión que hay en el árbol. Mi área sigue en 782/782.
+
+
+### 2026-08-17 — L70: cada rótulo, con la columna de la que sale
+
+Regla que me impuse antes de tocar nada: **un rótulo sólo cambia si puedo decir
+de qué columna del Excel sale**. Lo demás se queda hasta tener con qué
+justificarlo.
+
+| Antes (mío) | Ahora | De dónde sale |
+|---|---|---|
+| «Estado del circuito» | **Status de aplicación** | la columna `STATUS DE APLICACIÓN` |
+| «En aplicación» | **Aplicada** | `APLICADA`, valor de esa columna |
+| «Meta alcanzada» | **Cumple** | `CUMPLE`, valor de `VALIDO TOTAL` |
+| «Recogidas» | **Efectivas** | `CANTIDAD DE EFECTIVAS`, del parte de campo |
+
+«Sin agendar» y «Agendada» se quedan: la segunda es literal de `STATUS MUESTRA` y
+la primera su negación, que es como se dice.
+
+Verificado en pantalla a 3700 respuestas: el panel dice «Status de aplicación» y
+la leyenda **Sin agendar · Agendada · Aplicada · Cumple**.
+
+**Queda lo grueso**: `aulasPresentation.ts` tiene ~110 rótulos de campo, control y
+estado —ya con guard contra el motor, así que renombrarlos es seguro— y los
+títulos de las demás secciones. Se hace por tandas, cada una con su justificación,
+en vez de un renombrado masivo que nadie pueda revisar.

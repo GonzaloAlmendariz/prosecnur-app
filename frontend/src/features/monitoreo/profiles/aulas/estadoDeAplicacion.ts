@@ -31,12 +31,25 @@ export type EstadoDeAplicacion = {
   color: string;
 };
 
-/** Los cuatro estados en orden de circuito, de sin tocar a cerrada. */
+/**
+ * Los cuatro estados, con el nombre que el equipo ya usa en su Excel.
+ *
+ * Cada rótulo sale de una columna, no de una invención mía:
+ *
+ *   Sin agendar  ← la negación de `AGENDADA` en **STATUS MUESTRA**
+ *   Agendada     ← `AGENDADA` en **STATUS MUESTRA**
+ *   Aplicada     ← `APLICADA` en **STATUS DE APLICACIÓN**
+ *   Cumple       ← `CUMPLE` en **VALIDO TOTAL**, que es la columna con la que el
+ *                  Excel marca si el aula llegó a su umbral
+ *
+ * Antes decían «En aplicación» y «Meta alcanzada», que describen lo mismo con
+ * palabras que no están en ninguna parte del operativo.
+ */
 const ESTADOS = [
   { clave: "pendiente", etiqueta: "Sin agendar", color: COLOR_RESULTADO.pendiente },
   { clave: "lista", etiqueta: "Agendada", color: COLOR_AULA_LISTA },
-  { clave: "en_aplicacion", etiqueta: "En aplicación", color: COLOR_RESULTADO.parcial },
-  { clave: "cerrando", etiqueta: "Meta alcanzada", color: COLOR_RESULTADO.efectiva },
+  { clave: "en_aplicacion", etiqueta: "Aplicada", color: COLOR_RESULTADO.parcial },
+  { clave: "cerrando", etiqueta: "Cumple", color: COLOR_RESULTADO.efectiva },
 ] as const;
 
 /**

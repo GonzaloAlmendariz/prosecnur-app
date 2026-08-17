@@ -6,7 +6,7 @@ import { COLOR_SEPARADOR_BARRA } from "../../coloresDeResultado";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
 
 /**
- * El circuito entero en una barra: cuántas cerradas y cuántas ni se han tocado.
+ * El STATUS DE APLICACIÓN en una barra: cuántas cumplen y cuántas ni se han tocado.
  *
  * Va antes que la cobertura porque contesta la pregunta anterior. La cobertura
  * dice cuánto lleva recogido cada aula; ésta dice **cuántas aulas hay en cada
@@ -46,7 +46,7 @@ export function AulasEstadoChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
       <PlotlyChart
         data={data}
         height={104}
-        ariaLabel="Cursos-horario por estado del circuito"
+        ariaLabel="Cursos-horario por status de aplicación"
         layout={{
           barmode: "stack",
           margin: { l: 8, r: 8, t: 30, b: 8 },

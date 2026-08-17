@@ -481,7 +481,7 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
-          <h3>Estado del circuito</h3>
+          <h3>Status de aplicación</h3>
           <span>{fmt(aulaRows.length)} cursos-horario</span>
         </div>
         {/* Los dos ejes van en paneles propios porque contestan preguntas
