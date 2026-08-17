@@ -38,11 +38,13 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
     {
       type: "bar",
       orientation: "h",
-      name: "Recogidas",
+      // `CANTIDAD DE EFECTIVAS` es la columna del parte de campo; «Recogidas»
+      // era mío.
+      name: "Efectivas",
       y: orden.map((e) => e.estrato),
       x: orden.map((e) => e.validas),
       marker: { color: COLOR_RESULTADO.efectiva },
-      hovertemplate: "%{y}: %{x} válidas<extra></extra>",
+      hovertemplate: "%{y}: %{x} efectivas<extra></extra>",
     },
     {
       type: "bar",
