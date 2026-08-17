@@ -85,6 +85,9 @@ const CHECK_LABELS: Record<string, string> = {
   unnamed_control_columns: "Columnas sin nombre en la Base de control",
   effective_representativity: "Representatividad efectiva",
   sex_faculty_quota: "Cuota por sexo y facultad",
+  // Qué se está contando como respuesta válida. Se resolvía en silencio, y
+  // contar TODO o filtrar por una columna equivocada dan números muy distintos.
+  valid_response_criterion: "Criterio de respuesta válida",
 };
 
 const STATUS_LABELS: Record<string, string> = {

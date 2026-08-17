@@ -111,3 +111,32 @@ describe("aulasPresentation", () => {
     expect(page).not.toMatch(/\{fmt\(rows\.length\)\} alertas/);
   });
 });
+
+describe("el diccionario de checks no deriva del motor", () => {
+  // El motor emite los `check` y este diccionario los traduce. Eran dos listas
+  // que nadie ataba: al añadir `valid_response_criterion` en R, la pantalla de
+  // Validación habría mostrado la clave técnica cruda —«valid response
+  // criterion»— sin que nada fallara. Es el mismo patrón de lista cerrada que
+  // costó doce ítems del GOAL de campo, aquí entre capas.
+  const aqui = path.dirname(fileURLToPath(import.meta.url));
+  const motor = fs.readFileSync(
+    path.join(aqui, "..", "..", "..", "..", "..", "..", "api", "R", "monitoreo_aulas_universitarias.R"),
+    "utf8",
+  );
+
+  it("traduce todos los checks que el motor declara", () => {
+    const bloque = motor.match(/check = c\(([^)]*)\)/);
+    expect(bloque, "no se encontró el vector `check = c(...)` en el motor").toBeTruthy();
+    const claves = [...(bloque?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+    expect(claves.length).toBeGreaterThan(5);
+    const sinEtiqueta = claves.filter((c) => aulasCheckLabel(c) === fallbackEsperado(c));
+    expect(sinEtiqueta, `checks del motor sin etiqueta: ${sinEtiqueta.join(", ")}`).toEqual([]);
+  });
+
+  // El fallback convierte `foo_bar` en «Foo bar»: si la etiqueta coincide con
+  // eso, es que no hay entrada en el diccionario.
+  function fallbackEsperado(clave: string) {
+    const texto = clave.replace(/_/g, " ");
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+});

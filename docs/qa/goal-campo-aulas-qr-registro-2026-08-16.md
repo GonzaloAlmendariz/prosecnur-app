@@ -1247,3 +1247,33 @@ cubría: `_status`.
 Lo que sigue siendo tuyo: **qué estados cuentan como válida en tu estudio**. La
 diferencia es que ahora el tablero te dice cuál está aplicando y a cuántas
 respuestas afecta, en vez de que lo descubras porque el avance no cuadra.
+
+
+### 2026-08-16 — el aviso llega a la pantalla, y el diccionario deja de derivar
+
+Comprobado lo que el turno anterior sólo había dejado en el motor. En
+**Validación** aparece la fila nueva, con su etiqueta en castellano y no la clave
+técnica:
+
+> **Criterio de respuesta válida** · Revisar · «La base no trae columna de
+> estado, asi que cuentan las 600 respuestas. Si el formulario marca
+> incompletas, declara cual es esa columna.»
+
+Pero al cablearlo apareció el defecto de fondo: **el motor emite los `check` y el
+frontend los traduce con un diccionario que nadie ataba a él**. Al añadir
+`valid_response_criterion` en R, la pantalla habría mostrado «Valid response
+criterion» —la clave cruda con la primera letra en mayúscula— y ningún test
+habría fallado. Es el patrón de lista cerrada del GOAL entero, esta vez **entre
+capas**.
+
+Ahora hay guard: el test lee el vector `check = c(...)` del propio motor y exige
+que cada clave tenga etiqueta. **Verificado invirtiéndolo** —quitar la entrada
+del diccionario pone el test en rojo con el nombre del culpable:
+
+```
+checks del motor sin etiqueta: valid_response_criterion
+```
+
+Sin ese control invertido el test estaría en verde por la razón equivocada, que
+es exactamente lo que pasó con los dos tests de L12 que documentaban el defecto
+en vez de afirmar la conducta.
