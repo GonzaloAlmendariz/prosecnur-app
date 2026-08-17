@@ -18,14 +18,41 @@
 # barras se tocan y el panel se lee como un bloque.
 .GROSOR_TOPE_FRACCION <- 0.92
 
-# Techo de grosor de barra en PULGADAS. 0.394 in son 1.0 cm, que es el grosor
-# mayor que usa el entregable aprobado en cualquiera de sus laminas.
+# Techo de grosor de barra en PULGADAS.
 #
 # Existe por la misma razon que el piso, del otro lado: en una lamina de cuatro
 # paneles, el cuadrante con dos barras estira su panel y sale a 1.45 o 1.68 cm
 # mientras el de cinco se queda en 0.70. Medido, el motor dispersaba 0.75-0.98
 # cm dentro de una misma lamina y el aprobado 0.12-0.29.
-.GROSOR_TECHO_IN <- 0.394
+#
+# CORRECCION DE LA CIFRA. Este comentario decia que 0.394 in —1.0 cm— era «el
+# grosor mayor que usa el entregable aprobado en cualquiera de sus laminas». Es
+# FALSO, y sostuvo el valor durante todo el recorrido. Medido con `medir_mazo()`
+# sobre los dos mazos, escala y categoricas juntas:
+#
+#                      maximo    p90     barras sobre 1.0 cm
+#   entregable aprobado  1.801   1.400   38 de 64  (59 %)
+#   motor                2.545   2.054   46 de 65  (71 %)
+#
+# El aprobado pasa de 1.0 cm en mas de la mitad de sus barras, asi que un techo
+# ahi recortaria al modelo. El valor pasa a 1.80 cm —su maximo—, que es el
+# criterio conservador: «el motor no pasa de lo que el modelo hace».
+#
+# APLICARLO, EN CAMBIO, SE MIDIO Y SE DESCARTO. Este techo sigue SIN CONSUMIDOR
+# a proposito. Se probo a traducirlo a un tope del panel dentro del bloque de
+# estirado de `graficador_barras_apiladas.R` —el unico sitio donde puede actuar,
+# porque el estirado ocurre despues de la fraccion y la superaria—:
+#
+#   maximo   2.545 -> 2.319 cm   (el aprobado esta en 1.801)
+#   p90      2.054 -> 1.928
+#   valores      22 -> 22
+#   VARA         22 -> 23        <- aparece R5 grosor categorico
+#
+# Recorta poco y rompe una regla: el techo adelgaza barras que R5 ya vigilaba
+# por abajo, y ese cruce es el mismo que hizo saltar R5 de 0 a 11 en un intento
+# anterior. El grosor no se arregla recortando el estirado; se arregla en lo que
+# el estirado viene a compensar, que es el hueco vacio de la lamina (P23).
+.GROSOR_TECHO_IN <- 0.7087
 
 # Rejilla del grosor de barra, en pulgadas. 0.0394 in = 1 mm.
 #
