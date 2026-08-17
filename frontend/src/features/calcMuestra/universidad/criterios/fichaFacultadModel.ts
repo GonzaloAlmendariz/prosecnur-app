@@ -28,15 +28,106 @@ export type PasoFicha = {
   detalle: string;
 };
 
+/**
+ * Una regla que rige SÓLO en esta facultad.
+ *
+ * Gonzalo: «los criterios no son generales, son por facultad». Dos cosas se
+ * declaran por facultad hoy: su **mínimo de elegibles propio**
+ * (`minEligible.byFaculty`) y sus **excepciones de tipo de sesión**
+ * (`byVariable.<var>.exceptions`, con `add` que suma categorías a las generales
+ * y `replace` que las sustituye). Sin verlas, la ficha muestra cuentas sin decir
+ * de qué reglas salen.
+ */
+export type CriterioPropio = {
+  clase: "minimo" | "excepcion";
+  etiqueta: string;
+  detalle: string;
+};
+
 export type FichaFacultad = {
   facultad: string;
   pasos: PasoFicha[];
+  /** Reglas que rigen SÓLO en esta facultad. Vacío = usa las generales. */
+  criteriosPropios: CriterioPropio[];
   /** Reservas por titular que la facultad puede sostener, y las que pide el
    *  diseño. `null` cuando el motor no publicó el margen. */
   reservasSostenibles: number | null;
   reservasPedidas: number | null;
   aviso: string;
 };
+
+/**
+ * Clave de facultad en el formato del MOTOR (`.cm_criterios_fac_key`):
+ * minúsculas, sin acentos, la ñ a n, apóstrofes BORRADOS —no convertidos en
+ * guion bajo— y todo lo demás a guion bajo. Es la que indexa
+ * `minEligible.byFaculty` y `exceptions`; usar otra deja los criterios propios
+ * invisibles sin que nada falle.
+ *
+ * El motor convierte la ñ con un `gsub` explícito porque su
+ * `iconv(ASCII//TRANSLIT)` no la resuelve igual en toda plataforma; acá
+ * `normalize("NFD")` ya la descompone, así que no hace falta el paso aparte.
+ */
+export function claveMotor(valor: string): string {
+  return valor
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[`'\u00b4\u2019]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+/** Reglas que rigen sólo en esta facultad, leídas de la suite de criterios. */
+export function criteriosPropiosDeFacultad(
+  facultad: string,
+  criteriosSeleccion: unknown,
+  minimoGeneral: number | null,
+): CriterioPropio[] {
+  const sel = (criteriosSeleccion ?? {}) as Record<string, unknown>;
+  const k = claveMotor(facultad);
+  const out: CriterioPropio[] = [];
+
+  const minElig = (sel.minEligible ?? {}) as Record<string, unknown>;
+  const byFaculty = (minElig.byFaculty ?? {}) as Record<string, unknown>;
+  const propio = Number(byFaculty[k]);
+  if (Number.isFinite(propio)) {
+    out.push({
+      clase: "minimo",
+      etiqueta: `Mínimo propio: ${propio} elegibles`,
+      detalle:
+        minimoGeneral != null && minimoGeneral !== propio
+          ? `el general es ${minimoGeneral}`
+          : "declarado para esta facultad",
+    });
+  }
+
+  const byVariable = (sel.byVariable ?? {}) as Record<string, unknown>;
+  for (const varId of Object.keys(byVariable)) {
+    const crit = (byVariable[varId] ?? {}) as Record<string, unknown>;
+    const exc = (crit.exceptions ?? {}) as Record<string, unknown>;
+    const propia = exc[k] as Record<string, unknown> | undefined;
+    if (!propia) continue;
+    const cats = Array.isArray(propia.categories)
+      ? (propia.categories as unknown[]).map(String)
+      : propia.categories != null
+        ? [String(propia.categories)]
+        : [];
+    if (!cats.length) continue;
+    const op = String(propia.op ?? "add");
+    out.push({
+      clase: "excepcion",
+      etiqueta:
+        op === "replace"
+          ? `${varId}: sólo ${cats.join(", ")}`
+          : `${varId}: además ${cats.join(", ")}`,
+      detalle:
+        op === "replace"
+          ? "sustituye a las categorías generales"
+          : "se suman a las categorías generales",
+    });
+  }
+  return out;
+}
 
 /** Misma normalización que el motor: sin acentos, sin mayúsculas, sin espacios. */
 export function claveFicha(valor: string): string {
@@ -63,12 +154,15 @@ export function fichaDeFacultad(
   aulasElegibles: number | null,
   alumnosPorCh: number | null,
   referencia: CalcMuestraReferenciaCriterios | null,
+  criteriosSeleccion: unknown = null,
+  minimoGeneral: number | null = null,
 ): FichaFacultad {
   const h = buscarHistorico(referencia, fila.estrato);
   const m = fila.margen ?? null;
   const cuota = Number.isFinite(fila.cuota) ? fila.cuota : null;
   return {
     facultad: fila.estrato,
+    criteriosPropios: criteriosPropiosDeFacultad(fila.estrato, criteriosSeleccion, minimoGeneral),
     reservasSostenibles: m?.reservas_sostenibles ?? null,
     reservasPedidas: m?.reservas_pedidas ?? null,
     aviso: m?.aviso ?? "",

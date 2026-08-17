@@ -54,8 +54,28 @@ function Ficha({ ficha, periodo }: { ficha: FichaFacultad; periodo: string }) {
           ) : null}
         </span>
       </button>
+      {/* Las reglas que rigen SÓLO aquí van FUERA del colapso: son lo que
+          distingue a esta facultad de las demás y hay que verlas recorriendo la
+          lista, sin abrir quince fichas. Dentro queda sólo la nota de que no
+          tiene ninguna, que es detalle. */}
+      {ficha.criteriosPropios.length ? (
+        <p className="cmv2-ficha-propios">
+          <span className="cmv2-ficha-propios-titulo">Criterios propios:</span>{" "}
+          {ficha.criteriosPropios.map((c, i) => (
+            <span key={c.etiqueta} className="cmv2-ficha-propio" data-clase={c.clase}>
+              {i > 0 ? " · " : null}
+              {c.etiqueta} <small>({c.detalle})</small>
+            </span>
+          ))}
+        </p>
+      ) : null}
       {abierta ? (
         <>
+          {ficha.criteriosPropios.length ? null : (
+            <p className="cmv2-ficha-propios cmv2-ficha-propios-vacio">
+              Sin criterios propios: usa los generales.
+            </p>
+          )}
           <div className="cmv2-ficha-wrap">
             <table className="cmv2-ficha-tabla">
               <thead>

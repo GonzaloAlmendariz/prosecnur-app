@@ -2406,3 +2406,32 @@
   line-height: 1.45;
   color: var(--pulso-warn-fg);
 }
+
+/* Las reglas que rigen sólo en una facultad. Van fuera del colapso: recorrer la
+   lista tiene que bastar para ver cuáles se apartan de los criterios generales. */
+.cmv2-ficha-propios {
+  margin: 0;
+  padding: 0 10px 8px 34px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-ficha-propios-titulo {
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+}
+
+.cmv2-ficha-propio small {
+  color: var(--pulso-text-muted);
+}
+
+/* Una excepción cambia QUÉ aulas entran; un mínimo propio sólo mueve el corte. */
+.cmv2-ficha-propio[data-clase="excepcion"] {
+  color: var(--pulso-accent-violet);
+}
+
+.cmv2-ficha-propios-vacio {
+  color: var(--pulso-text-muted);
+  font-style: italic;
+}

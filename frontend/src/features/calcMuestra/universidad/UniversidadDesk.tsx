@@ -377,6 +377,18 @@ export function UniversidadDesk({
     }
     return null;
   }, [estudio.componentes]);
+  // Las reglas propias de cada facultad viven en la suite de criterios del
+  // config vigente, indexadas por la clave normalizada del motor.
+  const criteriosSeleccionVigente =
+    (syncedWorkspace.aulas_config as { criterios_seleccion?: unknown } | undefined)
+      ?.criterios_seleccion ?? null;
+  const minimoGeneral = (() => {
+    const cfg = syncedWorkspace.aulas_config as
+      | { filters?: { min_eligible_per_class?: unknown } }
+      | undefined;
+    const n = Number(cfg?.filters?.min_eligible_per_class);
+    return Number.isFinite(n) ? n : null;
+  })();
   const referenciaCriterios = useMemo(
     () => normalizeCalcMuestraReferenciaCriterios(aulasState?.referencia_criterios ?? null),
     [aulasState?.referencia_criterios],
@@ -409,9 +421,11 @@ export function UniversidadDesk({
         elegibles.get(k) ?? (v.length || null),
         est,
         referenciaCriterios,
+        criteriosSeleccionVigente,
+        minimoGeneral,
       );
     });
-  }, [aulasState?.frame?.aula_frame, margenFilas, referenciaCriterios]);
+  }, [aulasState?.frame?.aula_frame, margenFilas, referenciaCriterios, criteriosSeleccionVigente, minimoGeneral]);
   const criteriosGenerales = useMemo<CriterioGeneralFila[]>(() => {
     const fila = (margenFilas ?? [])[0];
     const cuotaTotal = (margenFilas ?? []).reduce(
