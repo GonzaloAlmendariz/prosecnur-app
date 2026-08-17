@@ -19,6 +19,7 @@ import {
   planCursosHorarioPublicado,
 } from "./cursosHorarioResultadoModel";
 import "./calculo.css";
+import { SinDecisionAlumnosChAviso } from "./SinDecisionAlumnosChAviso";
 
 export function CalculoCursosHorarioFacultadTab({
   componentes,
@@ -63,6 +64,12 @@ export function CalculoCursosHorarioFacultadTab({
     if (confirmado && !estado.vigente) confirmar(null);
   }, [confirmado, confirmar, estado.vigente]);
 
+  // Cuando la decisión de alumnos por CH no está firmada, R marca cada fila con
+  // `sin_decision` y calcula las quince facultades con UN promedio global. Va
+  // aquí arriba, y también en el estado sin modelo, porque es justo el caso en
+  // que la pantalla no puede mostrar el detalle por facultad.
+  const filasSinDecision = componentes.flatMap((c) => c.resultado?.aulas_por_estrato ?? []);
+
   if (!model) {
     return (
       <div
@@ -73,6 +80,7 @@ export function CalculoCursosHorarioFacultadTab({
         data-qa-geometry-group="calc-muestra/calculo-cursos-horario"
         data-qa-geometry-contract="intrinsic"
       >
+        <SinDecisionAlumnosChAviso filas={filasSinDecision} />
         <section className="cmv2-panel" data-qa-geometry-member>
           <EmptyState
             icon={<Grid3X3 size={20} />}
@@ -95,6 +103,7 @@ export function CalculoCursosHorarioFacultadTab({
       data-qa-geometry-group="calc-muestra/calculo-cursos-horario"
       data-qa-geometry-contract="intrinsic"
     >
+      <SinDecisionAlumnosChAviso filas={filasSinDecision} />
       {resultadoDesactualizado && (
         <AvisoModulo tone="warn" role="status">
           {marcoDesactualizado

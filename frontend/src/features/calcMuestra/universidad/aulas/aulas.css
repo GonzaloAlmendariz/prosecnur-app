@@ -1864,3 +1864,89 @@
   font-size: 11px;
   color: var(--pulso-text-muted);
 }
+
+/* Margen de aulas y balance por sexo, los dos POR FACULTAD. Van arriba de la
+   selección porque condicionan cómo se lee todo lo de abajo: una facultad no
+   puede dar reservas que no tiene, y un agregado de sexo que cuadra puede
+   esconder una facultad a 14 puntos de su cuota. */
+.cmv2-margen-card,
+.cmv2-sexo-card {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+.cmv2-margen-card > header,
+.cmv2-sexo-card > header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+.cmv2-margen-card > header strong,
+.cmv2-sexo-card > header strong { font-size: 13px; color: var(--pulso-text); }
+.cmv2-margen-card > header span,
+.cmv2-sexo-card > header span {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-margen-card strong,
+.cmv2-sexo-card strong { font-variant-numeric: tabular-nums; }
+
+/* Regla No Scroll Jail: la tabla scrollea dentro de su caja, no la página. */
+.cmv2-margen-wrap,
+.cmv2-sexo-wrap { overflow-x: auto; min-width: 0; }
+.cmv2-margen-tabla,
+.cmv2-sexo-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-margen-tabla th,
+.cmv2-margen-tabla td,
+.cmv2-sexo-tabla th,
+.cmv2-sexo-tabla td {
+  padding: 4px 8px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 50%, transparent);
+}
+.cmv2-margen-tabla thead th,
+.cmv2-sexo-tabla thead th {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cmv2-margen-tabla tbody th[scope="row"],
+.cmv2-sexo-tabla tbody th[scope="row"],
+.cmv2-margen-tabla thead th:first-child,
+.cmv2-sexo-tabla thead th:first-child {
+  text-align: left;
+  white-space: normal;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+/* Sólo se tiñen los dos estados que dejan a la facultad sin margen real. */
+.cmv2-margen-tabla tr[data-estado="insuficiente"] td,
+.cmv2-margen-tabla tr[data-estado="insuficiente"] th,
+.cmv2-margen-tabla tr[data-estado="sin_reservas"] td,
+.cmv2-margen-tabla tr[data-estado="sin_reservas"] th,
+.cmv2-sexo-tabla tr[data-aviso="true"] td,
+.cmv2-sexo-tabla tr[data-aviso="true"] th {
+  color: var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 40%, transparent);
+}
+.cmv2-margen-de { color: var(--pulso-text-muted); }
+.cmv2-margen-aviso,
+.cmv2-sexo-aviso {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-warn-fg);
+}

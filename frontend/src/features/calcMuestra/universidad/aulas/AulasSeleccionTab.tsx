@@ -8,9 +8,13 @@
 import { useState } from "react";
 import type {
   CalcMuestraAulasCerteza,
+  CalcMuestraAulasEstrato,
+  CalcMuestraSexoPorFacultad,
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
+import { MargenPorFacultadCard } from "./MargenPorFacultadCard";
+import { SexoPorFacultadCard } from "./SexoPorFacultadCard";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
@@ -52,12 +56,19 @@ export function AulasSeleccionTab({
   onSimulateReplacements,
   onNavigate,
   certeza = null,
+  margenFilas = null,
+  sexoBalance = null,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
   busy: string | null;
   /** Certeza medida en Cálculo; nombra las facultades que no sostienen cuota. */
   certeza?: CalcMuestraAulasCerteza | null;
+  /** Filas de `aulas_por_estrato` con su bloque `margen`: cuántas aulas tiene
+   *  cada facultad frente a las que necesita. */
+  margenFilas?: CalcMuestraAulasEstrato[] | null;
+  /** Balance de sexo por facultad de la selección vigente. */
+  sexoBalance?: CalcMuestraSexoPorFacultad | null;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
@@ -110,6 +121,11 @@ export function AulasSeleccionTab({
 
   return (
     <div className="cmv2-aulas-stack">
+      {/* Lo que el motor sabía y no decía: cuántas aulas tiene cada facultad
+          frente a las que necesita, y qué composición por sexo ofrecen. Van
+          arriba porque condicionan cómo se lee la selección de abajo. */}
+      <MargenPorFacultadCard filas={margenFilas} />
+      <SexoPorFacultadCard balance={sexoBalance} />
       {stageNotice && (
         <AulasStageNotice
           notice={stageNotice}
