@@ -17,6 +17,8 @@ import { describe, expect, it } from "vitest";
 import {
   ClassroomReplacementChainPanel,
   profundidadCadenaPedida,
+  ClassroomReplacementTables,
+  ClassroomReplacementBlueprintPanel,
 } from "../ClassroomReplacementPanels";
 
 const PROFUNDIDAD_REAL = 11;
@@ -176,5 +178,60 @@ describe("cuántos titulares reciben tarjeta de ruta", () => {
     );
     expect(html).toContain("<strong>30</strong>");
     expect(html).not.toContain("<strong>24</strong>");
+  });
+});
+
+describe("tabla de reemplazos sugeridos", () => {
+  /**
+   * Medido generando la simulación real con
+   * `calc_muestra_aulas_simular_reemplazos` sobre el proyecto de referencia: 90
+   * sugerencias, 3 por cada uno de los 30 titulares. La tabla cortaba en 18, o
+   * sea 6 titulares × 3: enseñaba las sugerencias de seis titulares y NINGUNA de
+   * los otros veinticuatro. No era una muestra, era un truncado.
+   */
+  function simulacionCon(n: number) {
+    return {
+      suggestions: Array.from({ length: n }, (_, i) => ({
+        titular_classroom_id: `CH-${Math.floor(i / 3) + 1}`,
+        titular_label: `Titular ${Math.floor(i / 3) + 1}`,
+        reserve_classroom_id: `R-${i + 1}`,
+        reserve_label: `Sugerencia ${i + 1}`,
+        rank: (i % 3) + 1,
+        match_level: "misma_celda",
+      })),
+    } as unknown as Parameters<typeof ClassroomReplacementTables>[0]["simulation"];
+  }
+
+  it("trae las noventa sugerencias de la simulación", () => {
+    const html = renderToStaticMarkup(
+      <ClassroomReplacementTables simulation={simulacionCon(90)} />,
+    );
+    const filas = html.match(/<tr><td/g) ?? [];
+    expect(filas).toHaveLength(90);
+  });
+
+  it("la sugerencia 19 ya no se pierde", () => {
+    // EL defecto: de la 19 a la 90 no llegaban a pintarse.
+    const html = renderToStaticMarkup(
+      <ClassroomReplacementTables simulation={simulacionCon(90)} />,
+    );
+    expect(html).toContain("Sugerencia 19");
+    expect(html).toContain("Sugerencia 90");
+  });
+});
+
+describe("ejemplo de cadena del estado vacío", () => {
+  it("ilustra la longitud que el estudio configuró", () => {
+    // Estaba clavado en 5 con `bolsas_reemplazo` en 11.
+    const html = renderToStaticMarkup(
+      <ClassroomReplacementBlueprintPanel
+        depth={11}
+        titularCount={0}
+        reserveCount={0}
+        extraReserveCount={0}
+      />,
+    );
+    expect(html).toContain("R 5.11");
+    expect(html).toContain("R 5.6");
   });
 });

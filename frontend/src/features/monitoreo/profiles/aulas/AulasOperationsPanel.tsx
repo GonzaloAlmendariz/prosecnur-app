@@ -5,7 +5,8 @@
 // muestra y recalcular el corte de campo (/api/monitoreo/aulas/sync).
 // La agenda y las fichas QR siguen viviendo en Recopiladores: ese flujo
 // pertenece al módulo de fichas y este monitoreo solo lo lee.
-import { Download, FileCheck2, Link2, Loader2, RefreshCw, Target } from "lucide-react";
+import { useRef } from "react";
+import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
 
 // Movido del monolito (aulasShortId): compacta hashes/run-ids largos.
@@ -20,15 +21,36 @@ export function aulasPlanImported(config: MonitoreoAulasConfig | null | undefine
   return Boolean(config?.enabled && config?.selection_run_id);
 }
 
+/**
+ * Si hay plan del que producir el libro.
+ *
+ * NO es `aulasPlanImported`: eso exige `selection_run_id`, que sólo trae un plan
+ * venido del cálculo de muestra. Un plan que llegó por el propio libro Excel no
+ * lo tiene, así que exigirlo dejaba el ciclo cerrado sobre sí mismo — importas
+ * 196 aulas y no puedes regenerar el libro—. Para producir el Excel basta con
+ * que haya unidades.
+ */
+export function aulasHayPlan(config: MonitoreoAulasConfig | null | undefined) {
+  return Boolean(config?.enabled && (config?.plan?.length ?? 0) > 0);
+}
+
 export type AulasOperationsPanelProps = {
   config: MonitoreoAulasConfig | null;
   sources: MonitoreoSource[];
   busy: boolean;
   onImportPlan: () => void;
   onSyncField: () => void;
+  /** Produce el libro que el equipo llena en Excel y lo descarga. */
+  onGenerarLibro: () => void;
+  /** Relee el libro que alguien llenó. */
+  onImportarLibro: (archivo: File) => void;
 };
 
-export function AulasOperationsPanel({ config, sources, busy, onImportPlan, onSyncField }: AulasOperationsPanelProps) {
+export function AulasOperationsPanel({
+  config, sources, busy, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
+}: AulasOperationsPanelProps) {
+  const entradaLibro = useRef<HTMLInputElement | null>(null);
+  const hayPlan = aulasHayPlan(config);
   const imported = aulasPlanImported(config);
   const methodologyReady = Boolean(config?.frame_hash || Object.keys(config?.methodology ?? {}).length);
   const activeSources = sources.filter((source) => source.enabled);
@@ -111,6 +133,45 @@ export function AulasOperationsPanel({ config, sources, busy, onImportPlan, onSy
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
           <span>Sincronizar campo</span>
         </button>
+        {/* El ciclo del libro: la app lo produce, alguien lo llena en Excel y la
+            app lo relee. Sin estos dos botones sólo se podía cerrar por API. */}
+        <button
+          type="button"
+          onClick={onGenerarLibro}
+          disabled={busy || !hayPlan}
+          title={hayPlan
+            ? "Generar el Excel de tres hojas para que el equipo lo llene"
+            : "Primero importa el plan de cursos-horario"}
+        >
+          {busy ? <Loader2 size={14} className="pulso-spin" /> : <FileSpreadsheet size={14} />}
+          <span>Generar libro</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => entradaLibro.current?.click()}
+          // Deshabilitado a propósito: el endpoint lee el libro por `file_id`,
+          // pero la subida directa desde el navegador todavía no funciona —el
+          // parser multipart de plumber no digiere el .xlsx—. Se deja visible
+          // para que se vea que el ciclo tiene dos mitades, no escondido.
+          disabled
+          title="Todavía no: la lectura del libro se hace por API mientras se resuelve la subida desde el navegador"
+        >
+          {busy ? <Loader2 size={14} className="pulso-spin" /> : <Upload size={14} />}
+          <span>Leer libro llenado</span>
+        </button>
+        <input
+          ref={entradaLibro}
+          type="file"
+          accept=".xlsx,.xls,.xlsm"
+          hidden
+          onChange={(event) => {
+            const archivo = event.target.files?.[0];
+            // El valor se limpia para que elegir el MISMO archivo dos veces
+            // vuelva a disparar el cambio.
+            event.target.value = "";
+            if (archivo) onImportarLibro(archivo);
+          }}
+        />
         <em>{activeSources.length ? `${activeSources.length} fuentes activas · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
     </section>
