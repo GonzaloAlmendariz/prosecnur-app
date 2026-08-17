@@ -132,11 +132,12 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L59** | Una pestaña era alcanzable **por clic pero no por dirección**. | Al saltar de otra sección, la sección se aplica primero y la pestaña **recordada** se publica en la URL, pisando la pedida: `?seccion=consultas&pestana=reemplazos` aterrizaba en `brechas`. Lo introdujo la memoria por sección de L53. | ☑ **hecho** (2026-08-16) — la pestaña de la URL se aplica junto con su sección. |
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
-| **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
+| **L62** | Los endpoints del libro **no los llamaba nadie**, y la subida desde el navegador no funcionaba. | La subida multipart al propio endpoint moría en el parser de plumber. | ☑ **hecho** (2026-08-16) — sube por `/api/files/upload`, que ya digiere binarios, y el endpoint recibe el `file_id` que acepta desde el primer día. Verificado end-to-end en el navegador. |
 | **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ☑ **hecho** (2026-08-16) — los **cinco** del catálogo: estado del circuito, cobertura por aula, brecha por estrato, consumo de cadena y cuota sexo×facultad. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
+| **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -998,3 +999,52 @@ fue importar ese token —la línea es **cromo, no un dato**, y pintarla del gri
 «pendiente» diría que es una serie más— sino usar el gris de `revision`, que es
 el de las etiquetas de eje y por eso está deliberadamente fuera de la lista
 vigilada.
+
+
+### 2026-08-16 — L62 cerrado, y lo que apareció al cerrarlo
+
+**La subida del libro ya funciona desde el navegador**, y el arreglo fue dejar de
+pelearse con el parser: el `.xlsx` sube por `/api/files/upload` —que digiere
+binarios desde siempre— y al endpoint le llega el `file_id` que aceptaba desde el
+primer día. Dos pasos en vez de uno, cero parsers nuevos.
+
+Control invertido, medido en el mismo navegador y con el mismo archivo:
+
+| Vía | Resultado |
+|---|---|
+| El `.xlsx` directo al endpoint (la de antes) | `400 E_AULAS_LIBRO_BAD_FILE` — «El libro subido llego vacio» |
+| Subir y pasar `file_id` (la nueva) | `200` · 196 unidades · 170 titulares · 170 partes · 170 filas de control |
+
+De paso, un defecto latente en esa ruta: el `else` que permite apuntar a un libro
+del disco era **incondicional**, así que **pisaba con una cadena vacía la ruta que
+la rama multipart acababa de dejar bien**. Aunque el archivo hubiera llegado, la
+petición moría con «indica el file_id».
+
+**Y al poder usar el ciclo entero desde la UI apareció L67, que es lo grave.**
+Releer el libro dejaba las cuotas sexo×facultad en **0 celdas de 12** y la
+representatividad en **100 %** —no porque mejorara, sino porque sin composición no
+hay desviación que calcular—. La causa: la importación **reemplazaba** el plan por
+el del libro, y el libro no lleva la composición muestral.
+
+Es el reflejo exacto de **L44** —donde el *generador* escribía en blanco lo que el
+operativo ya tenía— en la dirección contraria: ahora era el *lector* el que
+borraba lo que no sabe escribir.
+
+La reparación es una fusión por código operativo, y la decisión de fondo la
+corrigió su propio test:
+
+> **La protección es por declaración, no por heurística.** Mi primera versión
+> decía «si el libro trae algo, manda», y falló: el lector emite
+> `sex_top_1_n = 0` porque su plantilla **no pregunta** por la composición, no
+> porque el aula tenga cero mujeres. Ese cero seguía borrando la muestra. La
+> versión buena declara `AULAS_LIBRO_CAMPOS_PROPIOS` —lo que las tres hojas
+> realmente preguntan— y sólo esos campos pueden pisar. Así `effective_surveys = 0`
+> sí sobrescribe, porque el parte sí lo pregunta.
+
+Dos decisiones más con su test: **un aula que el libro no menciona se conserva**
+—el libro es un registro de campo, no la fuente de la muestra, así que su ausencia
+significa que alguien borró la fila— y **un aula nueva del libro entra**, porque
+puede haberla añadido alguien en campo.
+
+Verificado sobre el proyecto de 196 aulas: **12 celdas de cuota y 95 % de
+representatividad antes y después** de un ciclo completo generar → subir → releer.

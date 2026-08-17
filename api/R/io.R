@@ -1,7 +1,14 @@
 allowed_upload_kinds <- c("xlsform", "data", "sav", "sav_bundle", "plan_limpieza",
                           "plantilla_codif", "universo_muestra", "graficos_share",
                           "monitoreo_operational_package", "monitoreo_reference_drift",
-                          "plan_trabajo", "equivalencias", "brand_logo")
+                          "plan_trabajo", "equivalencias", "brand_logo",
+                          # El libro de aulas se sube por aqui y NO por su propio
+                          # endpoint: `importar-libro` con `parsers = multi` recibia
+                          # el archivo pero plumber moria al parsear el xlsx de
+                          # dentro, y añadir `octet` hacia que dejara de llegar.
+                          # Esta ruta ya sabe guardar binarios y devuelve un
+                          # `file_id`, que es lo que el endpoint acepta.
+                          "aulas_libro")
 
 ext_for_kind <- function(kind, original_name) {
   name <- trimws(as.character(original_name %||% ""))

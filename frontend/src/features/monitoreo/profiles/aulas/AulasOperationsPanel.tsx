@@ -149,12 +149,13 @@ export function AulasOperationsPanel({
         <button
           type="button"
           onClick={() => entradaLibro.current?.click()}
-          // Deshabilitado a propósito: el endpoint lee el libro por `file_id`,
-          // pero la subida directa desde el navegador todavía no funciona —el
-          // parser multipart de plumber no digiere el .xlsx—. Se deja visible
-          // para que se vea que el ciclo tiene dos mitades, no escondido.
-          disabled
-          title="Todavía no: la lectura del libro se hace por API mientras se resuelve la subida desde el navegador"
+          // Ya funciona: el archivo sube por `/api/files/upload`, que digiere
+          // binarios sin pelearse con el parser multipart, y al endpoint le
+          // llega el `file_id` que acepta desde el primer día.
+          disabled={busy || !hayPlan}
+          title={hayPlan
+            ? "Lee un libro llenado y actualiza el operativo con lo que traiga"
+            : "Primero importa el plan de cursos-horario"}
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <Upload size={14} />}
           <span>Leer libro llenado</span>
