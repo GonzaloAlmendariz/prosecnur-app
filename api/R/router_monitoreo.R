@@ -1162,7 +1162,16 @@
       internal_last_sheets = .monitoreo_last_publication_event(s$monitoreo_publication_sheet_events_internal %||% list())
     ),
     acreditacion = cfg$acreditacion %||% monitoreo_normalize_acreditacion(list()),
-    aulas_universitarias = cfg$aulas_universitarias %||% monitoreo_aulas_default_config(),
+    # El PLAN no viaja aqui: ya va en `config$aulas_universitarias$plan`, que es
+    # de donde lo lee la app. Medido con 3700 respuestas sobre 196 aulas, esta
+    # copia pesaba 356 KB de los 1377 del payload y era identica byte a byte a
+    # la otra. Se conserva el resto de la config —enabled, mapeos, cuotas— por
+    # si algo la lee: lo unico que se quita es el duplicado grande.
+    aulas_universitarias = {
+      au <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+      if (is.list(au)) au$plan <- NULL
+      au
+    },
     errors = snapshot$errors %||% list()
   )
 }
