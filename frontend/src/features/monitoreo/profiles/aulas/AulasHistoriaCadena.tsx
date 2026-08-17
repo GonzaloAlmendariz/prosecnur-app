@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { historiaDeCadena, type EslabonDeCadena } from "./historiaDeCadena";
+import { historiaDeCadena, type EslabonDeCadena, type HistoriaDeCadena } from "./historiaDeCadena";
 
 /**
  * Cómo llegó cada cadena a su meta —o por qué sigue abierta.
@@ -25,6 +25,29 @@ function Eslabon({ eslabon, cerro }: { eslabon: EslabonDeCadena; cerro: boolean 
       {cerro ? <span className="aulas-eslabon-sello">cumple</span> : null}
     </li>
   );
+}
+
+/**
+ * Una cadena abierta, en una línea.
+ *
+ * Sus eslabones no cuentan una historia: todos se quedaron cortos, y en el
+ * operativo real casi todos en cero. Lo que sí decide algo es cuánta reserva
+ * lleva consumida y si alguno llegó a moverse.
+ */
+function resumenAbierta(historia: HistoriaDeCadena) {
+  const eslabones = historia.eslabones.length;
+  const reservas = eslabones - 1;
+  const cuantos = reservas === 1 ? "1 reserva" : `${reservas} reservas`;
+  if (!historia.validas) {
+    // «Ninguno recibió una respuesta» es un caso distinto de «se quedó cerca»,
+    // y en el fixture es el de las veintiuna: decirlo evita leer el «0 de 15»
+    // de cada eslabón para llegar a la misma conclusión.
+    return `${cuantos} · sin una sola respuesta`;
+  }
+  const mejor = historia.eslabones.reduce((a, b) => (
+    (b.meta > 0 ? b.validas / b.meta : 0) > (a.meta > 0 ? a.validas / a.meta : 0) ? b : a
+  ));
+  return `${cuantos} · lo más cerca, ${mejor.codigo} con ${mejor.validas} de ${mejor.meta}`;
 }
 
 /**
@@ -77,7 +100,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
               {grupo.titulo}
               <span>{propias.length}</span>
             </h4>
-            <ol className="aulas-cadenas-lista">
+            <ol className={`aulas-cadenas-lista${grupo.desenlace === "abierta" ? " es-compacta" : ""}`}>
               {propias.map((historia) => (
                 <li key={historia.titular} className={`aulas-cadena es-${historia.desenlace}`}>
                   <div className="aulas-cadena-head">
@@ -86,9 +109,16 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
                     {/* El desenlace ya lo dice el grupo; en la fila sólo hace
                         falta CUÁL cerró, que es lo que cambia de una a otra. */}
                     {historia.cerro ? <em>cerró {historia.cerro}</em> : null}
+                    {/* Una cadena abierta no tiene historia que contar: sus tres
+                        eslabones dicen lo mismo. Se resume en una línea y el
+                        detalle queda para las que cerraron, que sí la cuentan.
+                        Eran 21 cajas de 59 px repitiendo «0 de N» tres veces. */}
+                    {grupo.desenlace === "abierta" ? (
+                      <em className="aulas-cadena-resumen">{resumenAbierta(historia)}</em>
+                    ) : null}
                   </div>
                   <ul className="aulas-cadena-eslabones">
-                    {historia.eslabones.map((eslabon) => (
+                    {grupo.desenlace === "abierta" ? null : historia.eslabones.map((eslabon) => (
                       <Eslabon
                         key={eslabon.codigo}
                         eslabon={eslabon}
