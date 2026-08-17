@@ -27,6 +27,7 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R7 | Aulas por facultad: **motor 478 vs plantilla 189** | ☑ medido, explicado a medias |
 | R9 | Por qué el universo de aulas por facultad no se parece | abierto |
 | R10 | **La vara de 170–210 aulas: sólo p25 la cumple (193)** | ☑ medido |
+| R11 | **Comparativo histórico por facultad, de números y de MÉTODO** | ☑ |
 | R8 | Características de la selección, 2025 vs 2026 | pendiente |
 
 ## R1 · Las 170 aulas titulares de 2025, por facultad
@@ -363,6 +364,91 @@ Y dos criterios que él considera de distinto rango:
   lee (`98784020`).
 - **Descarte fino curso-horario a curso-horario** —los talleres de tesis, que son
   presenciales pero difusos—: por comprobar si existe como superficie.
+
+## R11 · Comparativo histórico por facultad — de NÚMEROS y de MÉTODO
+
+**Encargo de Gonzalo (2026-08-17), textual**: las fichas por facultad «son
+información fundamental» y hay que llevarlas a la UI, pero **antes** de
+implementarlas hay que complementarlas «con el comparativo histórico del estudio
+pasado, porque nos permite ver si estos criterios daban lo mismo ese año (o si se
+aplicaron los mismos criterios también). **Es un comparativo no sólo de números
+sino de método**».
+
+### El método, criterio a criterio
+
+Esta tabla es la que faltaba: sin ella una diferencia de aulas parece un error
+del motor cuando es una decisión distinta.
+
+| Decisión | 2025 ejecutado | 2026 hoy | ¿Coinciden? |
+|---|---|---|---|
+| Modalidad | presencial, 100 % del pool | presencial | **sí** |
+| Tipo de curso | teórico, 100 % del pool | teórico | **sí**, pero recién declarable (`98784020`) |
+| Tipo de docente | **NO fue criterio**: en las 1.097 hay 12 asociados, 7 auxiliares, 35 jefes de práctica y 1 visitante | criterio **general** por decisión de Gonzalo | **no** |
+| Nivel / ciclo | del **CURSO**, fuera de {1, 11, 12} | del **ALUMNO**, capa marco | **no** — y es lo que hunde a EE.GG. Letras |
+| Mínimo por aula | **matriculados ≥ 10** | **elegibles ≥ 15**, y ahora declarable por facultad | **no** — 449 aulas de diferencia |
+| Posgrado | excluido | 0 aulas incluidas, pero **`excluded_faculties` está vacío**: sale por rebote, no declarado (H11) | de hecho sí, de derecho no |
+| Estudios Especiales | **incluida**, 61 aulas al pool | **excluida** por decisión de 2026 | **no**, deliberado |
+| Estadístico por CH | mín(mediana, media) **con el factor de respuesta ya dentro** | **p25** con τ = 0,53 **fuera** | equivalente en forma, distinto en valor |
+| n de diseño | 2.500 **fijada** (fórmula 2.381) | 2.500 **fijada** (fórmula 2.304) | **sí**, mismo redondeo hacia arriba |
+| Sobremuestra | ×1,5 = 3.750 | ×1,5 = 3.750 | **sí** |
+| Selección | **sistemático, k = N/n** | **cube balanceado** (`balanced_probability`) | **no** |
+| Reservas | Titular + hasta 11, pero **sólo 16 estratos de 170 llegaron a la 11** | 11 pedidas a todas por igual | **no** — es M10 |
+
+### Los números, quince filas
+
+`cuo` = cuota · `pool25` = aulas del sorteo 2025 · `elig26` = aulas que pasan los
+criterios hoy · `med25` = mediana de elegibles en las titulares de 2025 ·
+`p25` = primer cuartil de hoy · `tit` = aulas titulares.
+
+| Facultad | cuo 25 | cuo 26 | pool 25 | elig 26 | med 25 | p25 26 | tit 25 | tit 26 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 523 | 530 | 271 | 571 | 28,0 | 24 | 39 | 42 |
+| EG CIENCIAS | 424 | 393 | 80 | 278 | 39,0 | 24 | 25 | 31 |
+| **EG LETRAS** | 435 | 389 | 135 | **12** | 48,0 | 15 | 19 | **49** |
+| DERECHO | 286 | 347 | 203 | 422 | 41,0 | 35 | 16 | 19 |
+| CIENCIAS SOCIALES | 148 | 151 | 79 | 145 | 30,0 | 20 | 15 | 15 |
+| ARQUITECTURA | 123 | 126 | 31 | 50 | 34,5 | 24 | 6 | 10 |
+| ARTE Y DISEÑO | 117 | 119 | 34 | 55 | 18,0 | 17 | 9 | 14 |
+| GESTIÓN | 114 | 115 | 40 | 102 | 33,0 | 26 | 6 | 9 |
+| CIENCIAS Y ARTES COMUN. | 95 | 97 | 76 | 150 | 24,0 | 20 | 10 | 10 |
+| PSICOLOGÍA | 77 | 79 | 45 | 87 | 24,5 | 23 | 6 | 7 |
+| ARTES ESCÉNICAS | 70 | 69 | 44 | 38 | 15,0 | 15 | 7 | 9 |
+| LETRAS Y CIENCIAS HUMANAS | 25 | 26 | 12 | 12 | 12,5 | 15 | 4 | 4 |
+| EDUCACION | 26 | 23 | 14 | 13 | 14,0 | 19 | 4 | 3 |
+| CONTABLES | 21 | 21 | 13 | 15 | 27,0 | 22 | 2 | 2 |
+| GASTRONOMÍA | 16 | 15 | 20 | 11 | 17,0 | 15 | 2 | 2 |
+| **Total** | **2.500** | **2.500** | **1.097** | **1.961** | | | **170** | **226** |
+
+**Lo que dice la comparación.** El reparto de la cuota es casi el mismo —las dos
+suman 2.500 y trece de quince facultades quedan a ±5— así que **la afijación
+proporcional por facultad × sexo reproduce 2025 sin tocar nada**. Las tres que se
+mueven son EE.GG. Letras (435 → 389), EE.GG. Ciencias (424 → 393) y Derecho
+(286 → 347), y salen de que la población de cada facultad cambió entre semestres,
+no del método.
+
+En titulares, **170 contra 226**. Pero 49 de esos 226 son EE.GG. Letras con un
+marco de 12 aulas: **sin esa fila el total es 177**, dentro de la vara de 170–210
+y a siete aulas de las 170 de 2025. La diferencia real del recorrido no es el
+cálculo: es el criterio de primer ciclo.
+
+### La ficha por facultad, seis pasos
+
+Es lo que hay que llevar a la UI, con la columna de 2025 al lado de cada paso.
+Medida para LETRAS Y CIENCIAS HUMANAS sobre el marco reconstruido:
+
+1. **Población** — N = 225 alumnos únicos (97 hombres, 128 mujeres).
+2. **Muestra** — cuota 26 (11 H, 15 M) · sobremuestra ×1,5 = 39.
+3. **Aulas del marco** — 149 en el catálogo → **12 pasan los criterios**.
+4. **Alumnos por curso-horario** — p25 = 15 · mediana 16 · mín(md,me) 16 · 198
+   plazas.
+5. **Aulas necesarias** — **4** con τ sobre la cuota; **3** contra la sobremuestra
+   sin τ. *(Los dos caminos son defendibles y dan distinto: hay que fijar cuál es
+   el oficial.)*
+6. **Margen** — 12 − 4 = 8 sobrantes → **2 reservas por titular**.
+
+Contraste: CIENCIAS E INGENIERIA da 42 titulares y **12 reservas** por titular;
+EE.GG. LETRAS necesitaría 49 y tiene 12 aulas, **−37**: no le alcanza ni para los
+titulares.
 
 ## R6 · Nuestro embudo contra el de 2025 · las 511 que faltan, explicadas
 
