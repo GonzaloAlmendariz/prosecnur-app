@@ -1175,3 +1175,29 @@ la leyenda **Sin agendar · Agendada · Aplicada · Cumple**.
 estado —ya con guard contra el motor, así que renombrarlos es seguro— y los
 títulos de las demás secciones. Se hace por tandas, cada una con su justificación,
 en vez de un renombrado masivo que nadie pueda revisar.
+
+
+### 2026-08-17 — L70, segunda tanda: y lo que NO se traduce
+
+Cuatro rótulos más, cada uno con su columna:
+
+| Antes | Ahora | Columna |
+|---|---|---|
+| «Estado de muestra» | **Status de muestra** | `STATUS MUESTRA` |
+| «Estado de aplicación» | **Status de aplicación** | `STATUS DE APLICACIÓN` |
+| «Encuestas efectivas» | **Cantidad de efectivas** | `CANTIDAD DE EFECTIVAS` |
+| «Ya habían respondido» | **Duplicados (ya respondieron)** | `DUPLICADOS (YA RESPONDIERON)`, con su paréntesis |
+
+**Y dos que se quedan, anotados en el código con el motivo** —que es la parte que
+evita que un turno futuro «termine el trabajo» rompiendo algo—:
+
+- **«Respuestas válidas» NO pasa a «efectivas»** aunque suene igual. Las válidas
+  las cuenta el sistema sobre lo que llegó de Kobo; las efectivas las cuenta el
+  encuestador en el aula. **Que no cuadren es justo lo que detecta el cuadre del
+  parte** (L33): llamarlas igual borraría la comparación.
+- **«Estado operativo» se queda**: `operational_status` lo deriva el motor
+  —planificada, contactada, en campo— y no hay columna que lo nombre. `STATUS
+  MUESTRA` ya lo usa `sample_status`, que es el otro eje de L30.
+
+Verificado en pantalla a 3700: la tabla de Avance dice «Status de aplicación» y
+la de Agenda conserva sus columnas.

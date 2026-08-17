@@ -10,9 +10,11 @@ const FIELD_LABELS: Record<string, string> = {
   actual_room: "Aula real",
   observed_students: "Estudiantes en el aula",
   applied_surveys: "Encuestas aplicadas",
-  effective_surveys: "Encuestas efectivas",
+  // `CANTIDAD DE EFECTIVAS`: el número que manda en el parte de campo.
+  effective_surveys: "Cantidad de efectivas",
   refusals: "Rechazos",
-  duplicates: "Ya habían respondido",
+  // `DUPLICADOS (YA RESPONDIERON)`, con el paréntesis del propio Excel.
+  duplicates: "Duplicados (ya respondieron)",
   application_status: "Estado de aplicación",
   applied_at: "Aplicada el",
   applied_by: "Aplicada por",
@@ -48,7 +50,9 @@ const FIELD_LABELS: Record<string, string> = {
   operational_sequence: "Secuencia operativa",
   selection_slot_id: "Posición de muestra",
   sample_role: "Rol de muestra",
-  sample_status: "Estado de muestra",
+  // `STATUS MUESTRA` en «Aulas Agendadas»: AGENDADA · REAGENDADA · EN RESERVA n
+  // · REEMPLAZADA. El rótulo es la columna.
+  sample_status: "Status de muestra",
   wave: "Ola",
   replacement_order: "Orden en la cadena",
   orden: "Orden",
@@ -74,6 +78,9 @@ const FIELD_LABELS: Record<string, string> = {
   package_status: "Estado de ficha",
   collector_id: "Origen",
   responsible: "Responsable",
+  // Se queda: `operational_status` es el estado que deriva el motor —planificada,
+  // contactada, en campo…— y no hay columna del Excel que lo nombre. `STATUS
+  // MUESTRA` ya está usado por `sample_status`, que es el otro eje (L30).
   operational_status: "Estado operativo",
   replacement_for: "Reemplaza a",
   replacement_reason: "Motivo de reemplazo",
@@ -85,11 +92,16 @@ const FIELD_LABELS: Record<string, string> = {
   analysis_weight_warning: "Advertencia de ponderación",
   updated_at: "Actualizado",
   responses_total: "Respuestas totales",
+  // NO se traduce a «efectivas» aunque suene parecido: las válidas las cuenta
+  // el sistema sobre lo que llegó de Kobo y las efectivas las cuenta el
+  // encuestador en el aula. Que no cuadren es justo lo que detecta el cuadre del
+  // parte (L33), así que llamarlas igual borraría la comparación.
   respuestas_validas: "Respuestas válidas",
   filter_passed: "Filtros aprobados",
   filter_rejected: "Filtros rechazados",
   brecha: "Brecha",
-  application_state: "Estado de aplicación",
+  // `STATUS DE APLICACIÓN` en «Aulas Aplicadas (Campo)».
+  application_state: "Status de aplicación",
   aulas: "Cursos-horario",
   aulas_aplicadas: "Cursos-horario aplicados",
   avance_aulas_pct: "Avance de cursos-horario",
