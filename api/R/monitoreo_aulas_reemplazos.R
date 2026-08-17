@@ -114,7 +114,19 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
   list(plan = plan,
        activada = .mar_txt(plan[[pos_reserva]]$operational_code),
        reemplazada = codigo, agotada = FALSE,
-       restantes = as.integer(length(disponibles) - 1L))
+       restantes = as.integer(length(disponibles) - 1L),
+       # La advertencia de ponderacion de la reserva que ENTRA. La escribe
+       # Calculo de muestra —«usar peso analitico final solo si se activa en
+       # campo y se ajusta no respuesta»— y esta redactada para este momento
+       # exacto: el de la activacion. Viajaba en el plan y quien pulsa el boton
+       # no la veia nunca.
+       #
+       # Se DEVUELVE, no se mezcla en el texto: la consecuencia operativa
+       # —cuantas reservas quedan— y la metodologica son dos lecturas distintas
+       # y una frase sola las aplasta. Y sigue sin tocarse
+       # `activation_weight_status`, que es la decision de la cabecera de este
+       # modulo: mostrar no es mutar.
+       advertencia_peso = .mar_txt(plan[[pos_reserva]]$analysis_weight_warning))
 }
 
 #' Frase que explica una activacion sin jerga.

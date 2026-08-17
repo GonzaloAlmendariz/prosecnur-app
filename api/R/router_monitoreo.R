@@ -4863,6 +4863,10 @@ mount_monitoreo <- function(pr) {
       list(ok = TRUE, activada = out$activada, reemplazada = out$reemplazada,
            agotada = isTRUE(out$agotada),
            mensaje = monitoreo_aulas_activacion_texto(out),
+           # La advertencia de ponderacion de la reserva que entra, aparte del
+           # mensaje operativo. La escribio Calculo de muestra para el momento
+           # de la activacion y no llegaba a quien activa.
+           advertencia_peso = out$advertencia_peso %||% "",
            state = .monitoreo_state_payload(sid))
     })) |>
     plumber::pr_post("/api/monitoreo/aulas/generar-libro", wrap_endpoint(function(req, res, ...) {

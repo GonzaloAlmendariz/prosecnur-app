@@ -14,7 +14,7 @@
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
 import { useMemo, useState } from "react";
-import { ArrowRightLeft, ClipboardCheck, Loader2 } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
 import {
   apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
@@ -178,6 +178,10 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
   const [activando, setActivando] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+  // La advertencia de ponderación de la reserva activada. Vive aparte de `ok`
+  // porque no es el resultado de la acción: es lo que la activación OBLIGA a
+  // hacer después, y no se limpia con el mismo gesto.
+  const [avisoPeso, setAvisoPeso] = useState("");
 
   const filas = useMemo(
     () => agenda.filter((r) => String(r.sample_role ?? "") !== "extra_reserve_pool"),
@@ -206,6 +210,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
     setActivando(true);
     setError("");
     setOk("");
+    setAvisoPeso("");
     try {
       // El motivo del formulario viaja con la activación: quien mire la reserva
       // después necesita saber POR QUÉ está en campo, no sólo que lo está.
@@ -221,6 +226,13 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
       // muestra tal cual en vez de resumirlo aquí.
       if (res.agotada) setError(res.mensaje);
       else setOk(res.mensaje);
+      // La consecuencia METODOLÓGICA, aparte del mensaje operativo. La escribió
+      // Cálculo de muestra para este momento —«usar peso analítico final sólo
+      // si se activa en campo y se ajusta no respuesta»— y viajaba en el plan
+      // sin que quien pulsa el botón la viera nunca. Va en su propio renglón:
+      // «quedan 2 reservas» y «esta reserva cambia la ponderación» son dos
+      // lecturas distintas y una frase sola las aplasta.
+      setAvisoPeso(String(res.advertencia_peso ?? "").trim());
       onGuardado();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo activar el reemplazo.");
@@ -429,6 +441,12 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                   {ok ? <span className="registro-campo-ok">{ok}</span> : null}
                   {error ? <span className="registro-campo-error">{error}</span> : null}
                 </div>
+                {avisoPeso ? (
+                  <p className="registro-campo-peso">
+                    <TriangleAlert size={13} aria-hidden="true" />
+                    {avisoPeso}
+                  </p>
+                ) : null}
               </>
             )}
           </div>

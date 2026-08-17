@@ -4407,6 +4407,14 @@ export async function apiMonitoreoAulasActivarReemplazo(payload: {
     reemplazada: string;
     agotada: boolean;
     mensaje: string;
+    /**
+     * La advertencia de ponderación de la reserva que entra, si el plan la
+     * trae. La escribe Cálculo de muestra para el momento de la activación
+     * —«usar peso analítico final sólo si se activa en campo»— y va aparte del
+     * `mensaje` porque la consecuencia operativa y la metodológica son dos
+     * lecturas distintas.
+     */
+    advertencia_peso?: string;
     state: MonitoreoState;
   }>(
     await apiFetch("/api/monitoreo/aulas/activar-reemplazo", {

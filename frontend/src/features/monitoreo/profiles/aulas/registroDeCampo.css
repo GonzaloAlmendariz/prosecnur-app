@@ -182,6 +182,33 @@
   color: var(--pulso-danger-fg);
 }
 
+/* La consecuencia metodologica de activar una reserva.
+ *
+ * En su propio renglon y no junto al mensaje operativo: «quedan 2 reservas en
+ * la cadena» y «el peso de esta reserva es condicional» son dos lecturas
+ * distintas, y en la misma linea la segunda se lee como una coletilla de la
+ * primera. Material de aviso, no de error: activar la reserva es lo correcto;
+ * lo que dice es que queda una obligacion pendiente al ponderar. */
+.registro-campo-peso {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--pulso-text);
+}
+
+.registro-campo-peso svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--pulso-warn-fg);
+}
+
 /* El vacío vive DENTRO del panel, con su propia caja (C3). */
 .registro-campo-vacio {
   margin: 0;

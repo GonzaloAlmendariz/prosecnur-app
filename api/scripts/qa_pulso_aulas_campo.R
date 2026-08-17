@@ -59,6 +59,15 @@ aula <- function(codigo, unidad, rol, facultad, elegibles, validas_meta,
     link = sprintf("https://ee.kobotoolbox.org/x/abc123?d[collectorID]=%s", codigo)
   )
   if (!is.null(reemplaza)) out$replacement_for <- reemplaza
+  # Las reservas llegan de Calculo de muestra con su advertencia de ponderacion,
+  # que es la que la app tiene que enseniar al activarlas. Sin ella el fixture no
+  # produce el caso y el aviso no se puede ver en pantalla.
+  if (identical(rol, "chain_reserve")) {
+    out$activation_weight_status <- "reserve_conditional"
+    out$analysis_weight_warning <- paste(
+      "Reserva condicional: usar peso analitico final solo si se activa en campo",
+      "y se ajusta no respuesta.")
+  }
   out
 }
 
@@ -150,6 +159,12 @@ if (ESCALA_2025) {
     if (i %% 11 == 0) o$link <- ""                              # sin enlace todavía
     if (i %% 5 == 0 && nzchar(o$link)) o$pdf_link <- sprintf("/fichas/%s.pdf", gsub(" ", "_", cod))
     if (!is.null(repl)) { o$replacement_for <- repl; o$replacement_order <- ord }
+    if (identical(rol, "chain_reserve")) {
+      o$activation_weight_status <- "reserve_conditional"
+      o$analysis_weight_warning <- paste(
+        "Reserva condicional: usar peso analitico final solo si se activa en campo",
+        "y se ajusta no respuesta.")
+    }
     o
   }
   plan <- c(
@@ -157,9 +172,14 @@ if (ESCALA_2025) {
                                    est = if (i <= 24) "reemplazada" else "agendada")),
     lapply(1:24, function(k) base(sprintf("R %d.1", k), "chain_reserve", facs[[1 + (k %% 6)]],
                                   170 + k, repl = sprintf("CH %d", k), ord = 1,
-                                  est = if (k <= 2) "reemplazada" else "agendada")),
+                                  est = if (k <= 2) "reemplazada" else if (k %% 3 == 0) "en_reserva" else "agendada")),
+    # `en_reserva` y no `agendada`: una reserva agendada YA esta en campo y no
+    # esta disponible. Con todas agendadas, NINGUNA cadena tenia reserva libre y
+    # activar un reemplazo devolvia siempre «cadena agotada» — el camino que la
+    # accion existe para recorrer no se podia probar en pantalla.
     lapply(1:2, function(k) base(sprintf("R %d.2", k), "chain_reserve", facs[[1 + (k %% 6)]],
-                                 194 + k, repl = sprintf("CH %d", k), ord = 2))
+                                 194 + k, repl = sprintf("CH %d", k), ord = 2,
+                                 est = "en_reserva"))
   )
   aplicadas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
   partes <- lapply(seq_along(aplicadas), function(i) {

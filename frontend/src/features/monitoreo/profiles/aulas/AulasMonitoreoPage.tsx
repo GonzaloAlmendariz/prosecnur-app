@@ -799,8 +799,21 @@ export default function AulasMonitoreoPage() {
     ? "Recalcular el corte de campo de cursos-horario con el snapshot y la agenda locales"
     : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
 
-  const loadView = useCallback(async (view: MonitoreoSeccion, force = false) => {
-    setLoading(true);
+  /**
+   * Relee el estado del proyecto.
+   *
+   * `silencioso` NO toca `loading`, y eso no es un detalle de parpadeo: la vista
+   * se pinta como `{loading ? <EmptyPanel/> : <RegistroDeCampo/>}`, así que
+   * cualquier recarga DESMONTA el registro de campo y se lleva por delante su
+   * estado —la selección, el formulario y el mensaje de la acción que acaba de
+   * ocurrir—. Medido: al activar un reemplazo, el motor devuelve «CH 3 pasa a
+   * reemplazada y entra R 3.1 en su lugar. Quedan 1 reservas en la cadena» y
+   * quien pulsó el botón no lo llegaba a leer nunca: la respuesta llegaba y el
+   * componente se desmontaba en el mismo tic. Se refresca en silencio, llegan
+   * los datos nuevos por props y lo que la acción dijo sigue en pantalla.
+   */
+  const loadView = useCallback(async (view: MonitoreoSeccion, force = false, silencioso = false) => {
+    if (!silencioso) setLoading(true);
     try {
       const next = await apiMonitoreoState({
         includeReports: true,
@@ -813,7 +826,7 @@ export default function AulasMonitoreoPage() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }, []);
 
@@ -1040,7 +1053,7 @@ export default function AulasMonitoreoPage() {
                 // `respuestas_validas` y `brecha`— que ademas se reconstruye en
                 // cada peticion, tambien antes de la primera respuesta.
                 agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
-                onGuardado={() => { void loadView(seccionActiva, true); }}
+                onGuardado={() => { void loadView(seccionActiva, true, true); }}
               />,
               state?.sources ?? [],
               pestanaActiva,
