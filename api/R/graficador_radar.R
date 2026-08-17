@@ -709,7 +709,35 @@ graficar_radar <- function(
   if (!nrow(df0)) stop("`data` no tiene filas válidas para radar.", call. = FALSE)
 
   df0$.valor[!is.finite(df0$.valor) | is.na(df0$.valor)] <- 0
-  if (escala_valor == "proporcion_100") df0$.valor <- df0$.valor / 100
+
+  # Una proporcion no pasa de 1. Si se declara `proporcion_1` y los datos
+  # llegan por encima, no son proporciones: son porcentajes, y el `pmin(1, .)`
+  # de abajo los aplasta TODOS al tope sin decir nada.
+  #
+  # Es el defecto que dejaba las dos laminas de radar del mazo con un hexagono
+  # perfecto pegado al borde y sus tres series superpuestas: la tabla al lado
+  # decia 98, 96, 91… y el radar recibia 90.83 a 98.14 declarados como
+  # proporcion, o sea 100 % en los dieciocho vertices. No era un problema de
+  # grosor de linea —eso se probo y no cambiaba nada—: era que el radar no
+  # estaba dibujando los datos.
+  #
+  # El umbral es 1.5 y no 1: un valor de 1.0 exacto es una proporcion legitima
+  # —el 100 %— y algun redondeo puede dejarlo en 1.01. Por encima de 1.5 ya no
+  # hay lectura posible como proporcion.
+  esc <- as.character(escala_valor)[1]
+  max_val <- suppressWarnings(max(df0$.valor, na.rm = TRUE))
+  if (identical(esc, "proporcion_1") && is.finite(max_val) && max_val > 1.5) {
+    .pulso_aviso(sprintf(
+      paste0("El radar recibio valores de hasta %.1f declarados como ",
+             "proporcion (0 a 1). Se leen como porcentaje: sin esto los %d ",
+             "vertices saldrian todos al 100 %%. Declara ",
+             "`escala_valor = \"proporcion_100\"` para quitar este aviso."),
+      max_val, nrow(df0)
+    ))
+    esc <- "proporcion_100"
+  }
+
+  if (esc == "proporcion_100") df0$.valor <- df0$.valor / 100
   df0$.valor <- pmax(0, pmin(1, df0$.valor))
 
   if (!is.null(etiquetas_series) && length(etiquetas_series) > 0) {
@@ -724,6 +752,28 @@ graficar_radar <- function(
 
   if (length(ejes) < 3) stop("Radar requiere al menos 3 ejes.", call. = FALSE)
   if (length(grupos) < 1) stop("Radar requiere al menos 1 grupo.", call. = FALSE)
+
+  # La linea se acota si las series se pisan. Con tres publicos cuyos valores
+  # van de 91 a 98, la linea de 1.2 que declara el estudio funde las tres
+  # telaranas en una banda y la lamina promete tres series que solo son una.
+  # Medido renderizando los mismos datos: a 1.2 se funden, a 0.6 se distinguen.
+  # El entregable aprobado dibuja sus tres series con lineas visiblemente mas
+  # finas y ahi si se ven.
+  #
+  # VA AQUI Y NO EN EL LLAMADOR. Se engancho primero en `.radar_mb_componer()`
+  # y se aplicaba sin cambiar el dibujo: trazando la ENTRADA de esta funcion se
+  # vio que las dos laminas de radar del mazo —«FORMULACION DEL PERFIL DE
+  # EGRESO», 18 y 15 filas— llegan con `size_linea = 1.2`, el valor crudo del
+  # proyecto, o sea por OTRO camino (`p_radar` -> `radar_tabla`). Aqui pasan
+  # todas las llamadas, vengan de donde vengan.
+  #
+  # `.valor` ya esta normalizado a 0-1, asi que el rango del eje es 1.
+  size_linea <- .radar_mb_linea_legible(
+    size_linea,
+    data.frame(eje = df0$.eje, grupo = df0$.grupo, valor = df0$.valor,
+               stringsAsFactors = FALSE),
+    limites = c(0, 1)
+  )
 
   # Serie unica sintetica: una leyenda que solo dice "Total" no informa nada
   # (paridad con el auto-hide de la serie "Porcentaje" en barras agrupadas).
