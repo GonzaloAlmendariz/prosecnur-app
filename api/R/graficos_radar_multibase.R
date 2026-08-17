@@ -562,6 +562,7 @@ ave_seq <- function(x) ave(seq_along(x), x, FUN = seq_along)
     ),
     .radar_mb_estilo_args(estilo)
   )
+
   # Lo que el analista declara pisa al estilo: el estilo es un punto de partida,
   # no un candado.
   if (!is.null(mostrar_valores)) {
@@ -948,4 +949,75 @@ p_radar_publicos <- function(
 
   cowplot::plot_grid(grafico, cowplot::ggdraw(grob),
                      ncol = 2, rel_widths = c(1.35, rel))
+}
+
+
+# Grosor maximo de linea, en unidades de ggplot, cuando varias series comparten
+# el radar. Medido sobre la lamina 53 del mazo, con tres publicos cuyos valores
+# van de 91 a 98: a 1.2 las tres telaranas se funden en una banda y solo se ve
+# la ultima dibujada; a 0.6 se distinguen las tres. El entregable aprobado
+# dibuja lineas visiblemente mas finas y ahi si se ven sus tres series.
+.RADAR_MB_LINEA_MAX_MULTISERIE <- 0.6
+
+
+#' Acota el grosor de linea cuando las series se pisan
+#'
+#' Un radar de una serie puede permitirse la linea que quiera. Con varias, el
+#' grosor compite con la distancia entre ellas: si dos publicos difieren en dos
+#' puntos porcentuales y la linea ocupa mas que eso sobre el radio, la de arriba
+#' tapa a la de abajo y la lamina promete tres series que no se ven.
+#'
+#' El criterio es la separacion MINIMA observada, no la media: basta un eje
+#' donde dos series casi coincidan para que ahi se pisen, y ese es justo el
+#' punto que el lector mira.
+#'
+#' No sube el grosor, solo lo baja. Un valor fino declarado por el analista es
+#' una decision y se respeta.
+#'
+#' NO ESTA ENGANCHADO. Se probo en `.radar_mb_componer()`, justo despues de
+#' `.radar_mb_estilo_args()`, y se descarto con medicion: el tope SI se aplica
+#' —trazado, `size_linea` sale de 1.1 a 0.6 en las seis llamadas del mazo— y el
+#' dibujo de las laminas 53 y 54 NO cambia ni una decima, ni con 0.6 ni con
+#' 0.35. Luego el `size_linea` de esa llamada no es el que pinta esas laminas:
+#' hay otro camino de dibujo, y encontrarlo es el siguiente paso de P29a.
+#'
+#' El helper se conserva porque el criterio es correcto y esta medido: con tres
+#' series de 91 a 98 sobre un eje 0-100, a 1.2 se funden y a 0.6 se distinguen
+#' —comprobado renderizando los tres grosores por separado—.
+#'
+#' @param size_linea Grosor declarado.
+#' @param datos Datos del radar, con `grupo` y `valor`.
+#' @param limites Rango del eje radial.
+#' @return El grosor, acotado si procede.
+#' @keywords internal
+.radar_mb_linea_legible <- function(size_linea, datos, limites = c(0, 100)) {
+  sz <- suppressWarnings(as.numeric(size_linea)[1])
+  if (!is.finite(sz) || sz <= 0) return(size_linea)
+
+  n_series <- length(unique(stats::na.omit(as.character(datos$grupo))))
+  if (n_series < 2L) return(sz)
+
+  rango <- suppressWarnings(diff(range(as.numeric(limites), na.rm = TRUE)))
+  if (!is.finite(rango) || rango <= 0) return(sz)
+
+  # Separacion minima entre series, eje por eje, como fraccion del radio.
+  sep <- vapply(split(datos$valor, datos$eje), function(v) {
+    v <- sort(suppressWarnings(as.numeric(v)))
+    v <- v[is.finite(v)]
+    if (length(v) < 2L) return(NA_real_)
+    min(diff(v))
+  }, numeric(1))
+  sep <- sep[is.finite(sep)]
+  if (!length(sep)) return(sz)
+
+  sep_min <- min(sep) / rango
+  # Dos series que coinciden EXACTAMENTE en un eje se pisan ahi hagas lo que
+  # hagas; lo que se protege es que no se pisen en todo el recorrido.
+  if (sep_min <= 0) sep_min <- min(sep[sep > 0], na.rm = TRUE) / rango
+  if (!is.finite(sep_min) || sep_min <= 0) return(min(sz, .RADAR_MB_LINEA_MAX_MULTISERIE))
+
+  # Por debajo del 5 % del radio de separacion, la linea gruesa funde las
+  # series: es el caso medido —91 a 98 sobre 0-100, o sea 1 a 7 %—.
+  if (sep_min >= 0.05) return(sz)
+  min(sz, .RADAR_MB_LINEA_MAX_MULTISERIE)
 }
