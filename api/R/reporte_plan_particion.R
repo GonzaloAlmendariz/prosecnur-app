@@ -93,7 +93,21 @@
 # Una barra dicotomica aguanta mas filas porque no tiene que repartir su ancho
 # entre cuatro o cinco segmentos con su cifra dentro: lo que la hace ilegible es
 # el grosor, no el numero de tramos.
-.PARTICION_MAX_BARRAS_DICOTOMICA <- 12L
+#
+# 8 Y NO 12, y el 12 era otra vez la unidad equivocada. Se puso midiendo las
+# barras POR LAMINA del aprobado, donde llega a doce —su lamina 18—; pero esas
+# doce son OCHO azules mas CUATRO de rampa, dos paletas en una misma lamina. Un
+# elemento dicotomico suyo no pasa NUNCA de ocho, que es lo que mide la regla
+# `R11 barras por grafico categorico`.
+#
+# Medido al bajarlo de 12 a 8 sobre el mazo de Conta:
+#
+#   R11   2 -> 0   (desaparece entera)
+#   R10   4 -> 2
+#   VARA 23 -> 20
+#   contenido de la zona util 89.2 % -> 89.1 %, mismas 70 laminas: no reabre
+#   el hueco de P23.
+.PARTICION_MAX_BARRAS_DICOTOMICA <- 8L
 
 # Sufijo del titulo de las laminas de continuacion.
 .PARTICION_SUFIJO_CONT <- "(cont.)"

@@ -246,3 +246,37 @@ test_that("una escala de ocho barras si se sigue partiendo", {
   el <- structure(list(top2box = TRUE), class = "ppt_element")
   expect_length(.particion_repartir(tam, .particion_max_barras_de(el)), 2L)
 })
+
+
+test_that("el techo de dicotomicas es POR GRAFICO, no por lamina", {
+  # 8 y no 12. El 12 salio de medir las barras POR LAMINA del aprobado, donde
+  # llega a doce —su lamina 18—, pero esas doce son OCHO azules mas CUATRO de
+  # rampa: dos paletas en una misma lamina. Un elemento dicotomico suyo no pasa
+  # nunca de ocho, que es lo que mide `R11 barras por grafico categorico`.
+  expect_equal(.PARTICION_MAX_BARRAS_DICOTOMICA, 8L)
+  expect_equal(.PARTICION_MAX_BARRAS_DICOTOMICA,
+               .VERIF_UMBRALES$barras_por_grafico_categorico)
+})
+
+
+test_that("una dicotomica de nueve barras se parte", {
+  # Era el caso real: un elemento de 13 barras en grupos de 4-4-4-1 se repartia
+  # en 9 + 4 con el techo en 12, y ese 9 disparaba R11 dos veces en el mazo.
+  el <- structure(list(top2box = FALSE), class = "ppt_element")
+  tam <- c(4L, 4L, 4L, 1L)
+  tandas <- .particion_repartir(tam, .particion_max_barras_de(el))
+  barras <- vapply(tandas, function(ix) sum(tam[ix]), integer(1))
+  # Lo que importa no es en cuantas se parte —aqui salen dos, 8 y 5— sino que
+  # NINGUNA pase de ocho.
+  expect_true(all(barras <= 8L))
+  expect_gt(length(tandas), 1L)
+  # Con el techo viejo cabian las nueve en una.
+  expect_true(any(vapply(.particion_repartir(tam, 12L),
+                         function(ix) sum(tam[ix]), integer(1)) > 8L))
+})
+
+
+test_that("una dicotomica de ocho sigue cabiendo entera", {
+  el <- structure(list(top2box = FALSE), class = "ppt_element")
+  expect_length(.particion_repartir(c(4L, 4L), .particion_max_barras_de(el)), 1L)
+})
