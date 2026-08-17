@@ -20191,3 +20191,18 @@ button.mon-acr-requirement-metric:active {
     overflow: hidden;
   }
 }
+
+/* Aviso de recorte de tabla.
+   Vivía sólo en `monitoreo.css`, que importan telefónico, acreditación y
+   territorial pero NO aulas —su página arrancó del refactor y se quedó con las
+   hojas del perfil—. Resultado medido: en aulas la clase no aplicaba nada y el
+   aviso salía como texto de cuerpo, 16 px normal en negro, en vez del pie
+   pequeño y ámbar que es. Un `<p>` inyectado a mano en esa página confirmaba
+   los defaults del navegador.
+   Vive aquí porque `profilePage.css` sí la ven los cuatro. */
+.mon-profile-table-recorte {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pulso-state-partial-fg);
+}
