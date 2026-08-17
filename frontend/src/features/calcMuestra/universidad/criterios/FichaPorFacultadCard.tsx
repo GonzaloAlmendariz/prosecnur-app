@@ -23,7 +23,15 @@ function delta(hoy: number | null, antes: number | null): string {
   return `${d > 0 ? "+" : ""}${fmtInt(d)}`;
 }
 
-function Ficha({ ficha, periodo }: { ficha: FichaFacultad; periodo: string }) {
+function Ficha({
+  ficha,
+  periodo,
+  comparando,
+}: {
+  ficha: FichaFacultad;
+  periodo: string;
+  comparando: boolean;
+}) {
   const [abierta, setAbierta] = useState(false);
   const paso5 = ficha.pasos.find((p) => p.n === 5);
   const paso3 = ficha.pasos.find((p) => p.n === 3);
@@ -82,8 +90,12 @@ function Ficha({ ficha, periodo }: { ficha: FichaFacultad; periodo: string }) {
                 <tr>
                   <th scope="col">Paso</th>
                   <th scope="col">Este estudio</th>
-                  <th scope="col">{periodo || "Anterior"}</th>
-                  <th scope="col">Δ</th>
+                  {comparando ? (
+                    <>
+                      <th scope="col">{periodo || "Anterior"}</th>
+                      <th scope="col">Δ</th>
+                    </>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -94,8 +106,12 @@ function Ficha({ ficha, periodo }: { ficha: FichaFacultad; periodo: string }) {
                       <small>{p.detalle}</small>
                     </th>
                     <td>{p.hoy != null ? fmtInt(p.hoy) : "—"}</td>
-                    <td>{p.antes != null ? fmtInt(p.antes) : "—"}</td>
-                    <td>{delta(p.hoy, p.antes) || "—"}</td>
+                    {comparando ? (
+                      <>
+                        <td>{p.antes != null ? fmtInt(p.antes) : "—"}</td>
+                        <td>{delta(p.hoy, p.antes) || "—"}</td>
+                      </>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -132,6 +148,9 @@ export function FichaPorFacultadCard({
     );
   }
   const sinMargen = fichas.filter((f) => f.reservasSostenibles === 0).length;
+  // Igual que en la tarjeta general: sin ninguna cifra del estudio anterior, sus
+  // dos columnas son noventa celdas vacias.
+  const comparando = fichas.some((f) => f.pasos.some((p) => p.antes != null));
 
   return (
     <section className="cmv2-ficha-card" aria-label="Ficha por facultad">
@@ -151,7 +170,7 @@ export function FichaPorFacultadCard({
       </header>
       <ul className="cmv2-ficha-lista">
         {fichas.map((f) => (
-          <Ficha key={f.facultad} ficha={f} periodo={periodo} />
+          <Ficha key={f.facultad} ficha={f} periodo={periodo} comparando={comparando} />
         ))}
       </ul>
     </section>

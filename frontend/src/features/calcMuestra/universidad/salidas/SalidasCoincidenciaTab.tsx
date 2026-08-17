@@ -27,16 +27,11 @@ export function SalidasCoincidenciaTab({
   fichas: FichaFacultad[];
   referencia: CalcMuestraReferenciaCriterios | null;
 }) {
+  // Sin encabezado propio: la barra de pestañas ya dice «Coincidencia · criterios
+  // y cuentas contra el estudio anterior», y repetirlo debajo con un parrafo mas
+  // largo es texto que nadie lee dos veces.
   return (
     <section className="cmv2-coincidencia" aria-label="Coincidencia con el estudio anterior">
-      <header className="cmv2-coincidencia-head">
-        <h3>¿Coincide con el estudio anterior?</h3>
-        <p>
-          Lo que decidimos y lo que salió, enfrentado con {referencia?.periodo || "el estudio anterior"}
-          {referencia ? "" : " (todavía sin cargar)"}. El comparativo es de números y de método:
-          una diferencia de aulas parece un error del motor hasta que se ve que la regla era otra.
-        </p>
-      </header>
       <CriteriosGeneralesCard filas={criteriosGenerales} referencia={referencia} />
       <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
     </section>

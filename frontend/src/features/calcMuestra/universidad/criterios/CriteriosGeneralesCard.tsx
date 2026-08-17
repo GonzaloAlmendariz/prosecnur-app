@@ -52,6 +52,10 @@ export function CriteriosGeneralesCard({
   });
   const distintas = resueltas.filter((f) => f.igual === false).length;
   const comparables = resueltas.filter((f) => f.igual !== null).length;
+  // Sin nada con que comparar, las dos columnas del anterior son quince filas de
+  // «sin referencia» y quince guiones: ruido que tapa la columna que si tiene
+  // datos. El encabezado ya dice que no hay historico.
+  const comparando = comparables > 0;
 
   return (
     <section className="cmv2-generales-card" aria-label="Criterios generales del estudio">
@@ -78,8 +82,12 @@ export function CriteriosGeneralesCard({
             <tr>
               <th scope="col">Decisión</th>
               <th scope="col">Este estudio</th>
-              <th scope="col">{referencia?.periodo || "Estudio anterior"}</th>
-              <th scope="col">¿Igual?</th>
+              {comparando ? (
+                <>
+                  <th scope="col">{referencia?.periodo || "Estudio anterior"}</th>
+                  <th scope="col">¿Igual?</th>
+                </>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -87,8 +95,12 @@ export function CriteriosGeneralesCard({
               <tr key={f.concepto} data-igual={f.igual === null ? "sin-dato" : String(f.igual)}>
                 <th scope="row">{f.concepto}</th>
                 <td>{f.hoy || "—"}</td>
-                <td>{f.antes || <span className="cmv2-generales-vacio">sin referencia</span>}</td>
-                <td>{f.igual === null ? "—" : f.igual ? "sí" : "no"}</td>
+                {comparando ? (
+                  <>
+                    <td>{f.antes || <span className="cmv2-generales-vacio">sin referencia</span>}</td>
+                    <td>{f.igual === null ? "—" : f.igual ? "sí" : "no"}</td>
+                  </>
+                ) : null}
               </tr>
             ))}
           </tbody>
