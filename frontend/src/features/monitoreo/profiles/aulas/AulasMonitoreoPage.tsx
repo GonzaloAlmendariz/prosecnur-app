@@ -21,6 +21,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
+import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasControles } from "./AulasControles";
 import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
@@ -552,6 +553,23 @@ function renderAulasView(
     // y el gráfico se dibujaba encima de la tabla—. La clase lo pasa a flex con
     // hijos que no se encogen, que es lo que ya arregló el reparto de alto.
     <div className="mon-profile-stack aulas-tablas-apiladas">
+      {pestana !== "resumen" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* Abre la sección porque es su primera pregunta —¿se está
+              cumpliendo?— y es la única lectura en la unidad en que está
+              escrita la meta: respuestas. Los dos gráficos de abajo cuentan
+              cursos-horario, que es otra cosa. */}
+          <h3>Cumplimiento de la meta</h3>
+          <span>en respuestas</span>
+        </div>
+        <AulasAvanceEnRespuestas filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+      </section>
+      )}
       {pestana !== "resumen" ? null : (
       <section
         className="mon-profile-panel"
