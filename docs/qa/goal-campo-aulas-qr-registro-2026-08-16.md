@@ -813,3 +813,37 @@ y subir el contenido para llenarlo sería inflar un título por complacer una
 métrica. Queda **declarado y medido**: un residuo de 3 px en `.mon-profile-panel-head`,
 de todo Monitoreo, que pide una decisión sobre la tolerancia del contrato o sobre
 la métrica de la cabecera —no un parche en aulas—.
+
+
+### 2026-08-16 — el gate más limpio es el del perfil que no declara nada
+
+Fui a comprobar si el residuo de la cabecera también enrojece a los otros
+perfiles. La respuesta es más interesante que un sí o un no.
+
+| Perfil | Grupos de geometría declarados | Cabeceras que usa | Gate |
+|---|---|---|---|
+| **aulas** | **16** | 13 | 1 hallazgo |
+| acreditación | 13 | 26 | ✅ 0 |
+| **telefónico** | **0** | **26** | ✅ 0 |
+| territorial | 2 | 0 | — |
+
+Telefónico no declara **ni un** grupo en su propio código: el único que el runner
+encuentra viene del workbench compartido, sobre el `main`. Sus 26 cabeceras de
+panel están dentro de él y ninguna se declara como colección de hermanos, así que
+el chequeo **nunca las mira**. Y `geometryCoverageMisses=0` dice que la inferencia
+tampoco las propone.
+
+Es decir: **su verde significa «no se declaró nada y no se infirió nada», no
+«todo está bien»**. Exactamente el «verde por ausencia» que el Contrato prohíbe,
+y aquí medido en números.
+
+Y con eso hay que **corregir lo que escribí el turno anterior**. Dije que los 3 px
+de la cabecera eran «chrome compartido por todo Monitoreo». Lo medido dice menos:
+sólo **aparecen** en aulas, porque aulas es el único perfil que declara sus
+paneles como hermanos. Si telefónico tiene los mismos 3 px no lo sé, y **nadie lo
+sabe**, porque nada los mide.
+
+La lección incómoda: **declarar produce hallazgos**. El perfil que hizo el trabajo
+de declarar dieciséis grupos sale con un hallazgo, y el que no declaró ninguno
+sale impecable. Un ranking por número de hallazgos premiaría exactamente al que
+no se dejó medir.
