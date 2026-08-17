@@ -7996,6 +7996,10 @@ reporte_ppt_plan <- function(
         }
       }
 
+      # Diagrama opcional bajo el texto (`reporte_ppt_numero_respuestas.R`):
+      # decide y coloca alli, aqui solo se le pasa lo que ve esta lamina.
+      doc <- .nresp_colocar(doc, slots, style, solo_lista = solo_lista)
+
       log_rows[[length(log_rows) + 1]] <- tibble::tibble(
         slide_i    = i,
         slide_type = "text_slide",

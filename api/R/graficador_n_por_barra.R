@@ -21,35 +21,21 @@
 # cursiva, pegada al final del area de barras, una por fila, con el `top`
 # siguiendo a su barra.
 
-# NO ESTA ENGANCHADO, y la razon es lo que hay que resolver antes.
+# COMO SE RESOLVIO, y los dos intentos que costo.
 #
-# Se probo colgando la capa en `graficador_barras_apiladas.R` con la base
-# tomada como la MAYOR N de la lamina —el graficador no conoce el pie—. Medido
-# tras regenerar: 146 anotaciones contra las 11 del aprobado.
+# 1. Enganchado en el graficador con la base tomada como la MAYOR N de la
+#    lamina: 146 anotaciones contra las 11 del aprobado. El criterio confundia
+#    publico pequeno con salto de cuestionario — en una lamina de 52 docentes,
+#    172 estudiantes y 15 administrativos anotaba los tres.
+# 2. Deduciendo la base de la lamina: el criterio es correcto —las cuatro bases
+#    de la lamina 18 salen exactas— pero el graficador NO ve la lamina, se le
+#    llama UNA VEZ POR PREGUNTA. Cada llamada trae un publico por fila, asi que
+#    su maximo es su propia N y no hay salto posible. Cero anotaciones.
 #
-# El criterio confunde dos cosas que no son la misma. En una lamina con tres
-# publicos —52 docentes, 172 estudiantes, 15 administrativos— los dos pequenos
-# quedan por debajo del mayor y se anotan los tres, cuando ninguno tiene salto
-# de cuestionario: simplemente son publicos de distinto tamano. Lo que el
-# aprobado anota es la fila cuya N es menor que LA BASE DE SU PROPIO PUBLICO.
-#
-# Esa base existe en el motor de plan —`.reporte_plan_base_na_reducida()` ya
-# decide si una base esta reducida— pero no viaja al graficador.
-#
-# SEGUNDO INTENTO, tambien medido y descartado: deducir la base de la propia
-# lamina, tomando por publico su mayor numero de respuestas entre las preguntas.
-# El criterio es correcto —comprobado contra la lamina 18 del aprobado, cuyas
-# cuatro bases declaradas (52, 172, 178 y 15) salen exactas— pero el graficador
-# NO ve la lamina: se le llama UNA VEZ POR PREGUNTA. Trazado, cada llamada
-# recibe cuatro filas con `.group_id` constante —`tema_1`— y un publico distinto
-# en cada una, asi que el maximo por publico es su propia N y no hay salto
-# posible. Resultado: cero anotaciones.
-#
-# Quien SI ve todos los bloques es el renderer de multilista, que ya los recorre
-# entero para calcular el paso de fila comun (P14). Ahi se puede calcular la
-# base por publico y pasarla; son unas seis lineas en `reporte_plan_ppt.R`, que
-# esta 11 lineas sobre su linea base y exige subirla deliberadamente. Ese es el
-# trabajo que queda, y es de gobierno antes que de codigo.
+# La base la calcula ahora el renderer de multilista, que si recorre todos los
+# bloques —ya lo hacia para el paso de fila comun de P14—, y la pasa como
+# `bases_publico`. Resultado medido: 4 anotaciones en la lamina 17, las cuatro
+# filas cuyo N no cuadra con la base de su publico.
 
 # Cuerpo de la anotacion, en puntos. El aprobado usa 8: es una acotacion, no un
 # dato de la lamina, y a 10 compite con las cifras de dentro de la barra.
