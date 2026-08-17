@@ -179,8 +179,35 @@ if (ESCALA_2025) {
   # Metas de esas tres, por `expected_valid = round(eligible * 0.7)`:
   #   R 3.1 -> 30 · R 4.1 -> 31 · R 1.2 -> 28
   cierres <- c(rep("R 3.1", 31), rep("R 4.1", 32), rep("R 1.2", 29))
-  destinos <- sprintf("CH %d", 25 + (seq_len(n) %% 145))
-  destinos[seq(n - length(cierres) + 1L, n)] <- cierres
+  # El reparto NO es round-robin. Lo era —cada aula recibia las mismas ~25
+  # respuestas— y con metas entre 14 y 31 eso dejaba solo dos resultados
+  # posibles: cumplida, o entre el 51 % y el 99 %. Las bandas «1-25 %» y
+  # «26-50 %» del grafico de cobertura salian VACIAS por construccion, y ese
+  # grafico y el de estado partian los mismos 196 en los mismos tres grupos: uno
+  # parecia repetir al otro cuando en realidad era el fixture el que no tenia
+  # nada que distinguir.
+  #
+  # Un operativo real reparte de todo: aulas donde el docente dejo pasar cinco
+  # minutos al final, aulas a medias y aulas que se pasan de su meta. El factor
+  # se asigna por posicion para que sea reproducible sin depender del sorteo.
+  codigos <- sprintf("CH %d", 25:169)
+  elegibles <- 20 + ((25:169) %% 25)
+  metas <- pmax(1, round(elegibles * 0.7))
+  factor <- vapply(25:169, function(k) switch(as.character(k %% 12),
+    "0" = 0.08,   # apenas se empezo
+    "1" = 0.22,
+    "2" = 0.45,
+    "3" = 0.72,
+    1.06          # el resto llega o se pasa
+  ), numeric(1))
+  deseado <- pmax(0L, as.integer(round(metas * factor)))
+  # Se escala para que el total siga siendo exactamente 3700 con los 92 cierres
+  # aparte: la escala del fixture es parte de lo que se prueba.
+  restantes <- n - length(cierres)
+  deseado <- as.integer(round(deseado * restantes / sum(deseado)))
+  sobra <- restantes - sum(deseado)
+  if (sobra != 0L) deseado[[which.max(deseado)]] <- deseado[[which.max(deseado)]] + sobra
+  destinos <- c(rep(codigos, times = deseado), cierres)
   data <- data.frame(
     collectorID = destinos,
     sexo = rep(c("F", "M"), length.out = n),
