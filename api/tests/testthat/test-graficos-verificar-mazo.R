@@ -256,3 +256,42 @@ test_that("con menos de cuatro barras no se mide el hueco", {
   xml <- .lamina(.barra(y = 1.0, h = 0.30), .barra(y = 1.5, h = 0.30))
   expect_true(is.na(.verif_hueco_entre_premisas_cm(.verif_formas(xml))))
 })
+
+
+# --- P36: la vara medía una paleta y el mazo tiene dos -----------------------
+#
+# `barras_por_grafico` sale de `barras_escala`, que sólo cuenta la RAMPA, y el
+# techo se aplicaba luego a las dos paletas. Los graficos AZULES del aprobado
+# llegan a 8 barras y a 1.8049 cm de grosor, y nada de eso lo miraba nadie.
+# Medido con las reglas nuevas: el aprobado da CERO —cumple sus propios techos
+# por construccion— y el motor daba SEIS, invisibles hasta ahora.
+
+test_that("los techos de la azul existen y son los del aprobado", {
+  expect_equal(.VERIF_UMBRALES$barras_por_grafico_categorico, 8L)
+  expect_equal(.VERIF_UMBRALES$grosor_categorico_max_cm, 1.81)
+})
+
+
+test_that("el techo de grosor NO se redondea hacia abajo", {
+  # El valor exacto del aprobado es 1.8049. A dos decimales hacia abajo, la
+  # PROPIA referencia incumplia su techo por cinco milesimas, y un techo que la
+  # referencia no cumple no mide conformidad.
+  expect_gt(.VERIF_UMBRALES$grosor_categorico_max_cm, 1.8049)
+})
+
+
+test_that("los techos de la azul son techos, no pisos", {
+  # `grosor_categorica_cm` es el PISO —que la barra no salga demasiado fina— y
+  # `grosor_categorico_max_cm` el techo. Confundirlos invierte la regla.
+  expect_lt(.VERIF_UMBRALES$grosor_categorica_cm,
+            .VERIF_UMBRALES$grosor_categorico_max_cm)
+})
+
+
+test_that("el techo de la azul es MAS ancho que el de la rampa", {
+  # Una barra dicotomica aguanta mas filas: no reparte su ancho entre cuatro
+  # tramos con su cifra dentro. Es la misma medicion que gobierna
+  # `.PARTICION_MAX_BARRAS_DICOTOMICA`.
+  expect_gt(.VERIF_UMBRALES$barras_por_grafico_categorico,
+            .VERIF_UMBRALES$barras_por_grafico)
+})
