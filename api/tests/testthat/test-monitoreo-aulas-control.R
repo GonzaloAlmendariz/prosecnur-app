@@ -162,3 +162,47 @@ test_that("las cuatro cuentas del veredicto son excluyentes y suman las aulas", 
   # no efectivas, la suma daria 5 sobre 4 aulas.
   expect_identical(v$efectivas + v$cumple_una + v$no_efectivas + v$indeterminadas, res$aulas)
 })
+
+# --- El recibo del libro ------------------------------------------------------
+# De que libro salen las cifras y que hojas trajo. Vivia en `monitoreo_aulas_libro`
+# y era otra clave escrita y nunca leida: el aviso de la importacion lo decia una
+# vez y desaparecia al recargar.
+
+test_that("el recibo nombra las tres hojas y marca la que falto", {
+  r <- monitoreo_aulas_libro_recibo(list(
+    importado_en = "2026-08-17T09:30:00Z",
+    hojas_ausentes = list("Base de control"),
+    control_sin_nombre = as.list(seq_len(7L)),
+    resumen = list(unidades = 196L)
+  ))
+
+  expect_length(r$hojas, 3L)
+  vinieron <- vapply(r$hojas, function(h) h$vino, logical(1))
+  expect_identical(sum(!vinieron), 1L)
+  falta <- Filter(function(h) !h$vino, r$hojas)
+  expect_identical(falta[[1]]$hoja, "Base de control")
+  # El invariante del que depende el rotulo «N de 3 hojas» de la vista: si
+  # `hojas_ausentes` y las marcadas discreparan, la tarjeta diria una cosa y
+  # la lista mostraria otra.
+  expect_identical(r$hojas_ausentes, sum(!vinieron))
+  expect_identical(r$control_sin_nombre, 7L)
+})
+
+test_that("un estudio sin libro importado no finge tener uno", {
+  # `NULL` y no una lista vacia de hojas: la vista distingue «nunca se importo»
+  # de «se importo y no traia nada», y son situaciones distintas.
+  expect_null(monitoreo_aulas_libro_recibo(NULL))
+  expect_null(monitoreo_aulas_libro_recibo(list()))
+})
+
+test_that("el recibo viaja al payload del tablero", {
+  d <- monitoreo_aulas_dashboard(
+    list(list(classroom_id = "CH 1", operational_code = "CH 1", eligible_n = 30)),
+    data.frame(),
+    list(libro = list(importado_en = "2026-08-17T09:30:00Z", hojas_ausentes = list()))
+  )
+
+  expect_false(is.null(d$libro))
+  expect_length(d$libro$hojas, 3L)
+  expect_identical(d$libro$hojas_ausentes, 0L)
+})

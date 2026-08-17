@@ -724,6 +724,28 @@
   gap: 8px;
 }
 
+/* Las tres hojas del libro, en línea. No es una tabla: son tres nombres con su
+ * estado, y lo que se lee de un vistazo es cuál falta. */
+.aulas-libro-hojas {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+
+.aulas-libro-hojas li span {
+  margin-left: 5px;
+  color: var(--pulso-state-ready-fg);
+}
+
+.aulas-libro-hojas li.es-falta span {
+  color: var(--pulso-danger-fg);
+}
+
 /* El veredicto es la respuesta y por eso es lo único con peso tipográfico aquí.
  * El resto del bloque —cobertura y tabla— es el respaldo de esta cifra. */
 .aulas-control-titular {

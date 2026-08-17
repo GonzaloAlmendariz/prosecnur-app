@@ -25,7 +25,7 @@ import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
-import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
+import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
@@ -352,11 +352,18 @@ function renderAulasView(
                 plan», justo arriba— y el sello de generación, que es el «Corte»
                 de la banda. Lo que faltaba era esto: qué se está leyendo. */}
             <h3>De dónde salen las respuestas</h3>
-            <span>{fuentes.length === 1 ? "1 fuente" : `${fmt(fuentes.length)} fuentes`}</span>
+            {/* El libro cuenta como fuente: de él salen el plan, el parte de
+                campo y el control. Si no se contara, la cuenta diría una menos
+                de las que la lista enseña. */}
+            <span>{(() => {
+              const n = fuentes.length + (dashboard?.libro ? 1 : 0);
+              return n === 1 ? "1 fuente" : `${fmt(n)} fuentes`;
+            })()}</span>
           </div>
           <AulasFuentesDelEstudio
             fuentes={fuentes}
             anonimas={Boolean(dashboard?.anonymous_responses)}
+            libro={(dashboard?.libro ?? null) as ReciboDelLibro | null}
           />
         </section>
       </div>
