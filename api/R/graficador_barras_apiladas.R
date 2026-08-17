@@ -3270,10 +3270,22 @@ graficar_barras_apiladas <- function(
       # El area de barras es la unica caja que puede decir las dos cosas: el
       # cuerpo con que se escriben las cifras dentro de la barra y el grosor de
       # la barra misma, que es `grosor_eff` de su fila en pulgadas.
+      #
+      # `alto_por_cat_eff` y NO `alto_por_cat_grosor`: el segundo es el alto
+      # NOMINAL, el que se uso para calibrar la fraccion, y el panel se estira
+      # despues para llenar el hueco —el bloque de «el sobrante va al panel»—.
+      # Con el nominal la guia cantaba 1.29 cm en casi todas las laminas
+      # mientras el mazo dibujaba de 0.693 a 2.068. Es el mismo alto que usa
+      # `.barras_acotar_titulo_grupo()` unas lineas mas abajo, con el comentario
+      # «el alto de fila que de verdad se dibujo».
+      #
+      # Importa mas que un decimal: la guia es con lo que se verifica el mazo, y
+      # una cota que no mide lo dibujado convierte la herramienta de medir en
+      # una fuente de ruido.
       .ph_border(x_bars0, y_main0, w_bars, main_h, etiqueta = "barras",
                  nota = .guia_nota(
                    texto_pt = suppressWarnings(as.numeric(size_texto_barras)[1]) * 2.845,
-                   barra_in = grosor_eff * alto_por_cat_grosor
+                   barra_in = grosor_eff * alto_por_cat_eff
                  )) +
       .ph_border(x_bars0, y_padtop0,    w_bars, h_padtop) +
       .ph_border(x_bars0, y_bars_area0, w_bars, h_bars_area) +
