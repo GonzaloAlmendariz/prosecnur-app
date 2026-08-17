@@ -51,7 +51,8 @@
 .barras_acotar_titulo_grupo <- function(titulo, n_filas,
                                         lineas_por_fila = .BARRAS_LINEAS_POR_FILA,
                                         alto_rel = 1,
-                                        alto_fila_in = NULL, cuerpo_pt = NULL) {
+                                        alto_fila_in = NULL, cuerpo_pt = NULL,
+                                        cupo_forzado = NULL) {
   titulo <- as.character(titulo)[1]
   if (is.na(titulo) || !nzchar(trimws(titulo))) return("")
   lineas <- strsplit(titulo, "\n", fixed = TRUE)[[1]]
@@ -83,6 +84,10 @@
     }
   }
   cupo <- max(1L, as.integer(floor(n_filas * lpf * min(1, alto_rel))))
+  # Cuando `.titulo_grupo_ajuste()` ya decidio cuerpo y lineas en la MISMA
+  # pasada y sobre el alto REAL, manda su cupo.
+  cf <- suppressWarnings(as.integer(cupo_forzado %||% NA_integer_)[1])
+  if (is.finite(cf) && cf >= 1L) cupo <- cf
   if (length(lineas) <= cupo) return(titulo)
 
   entero <- paste(trimws(lineas), collapse = " ")

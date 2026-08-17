@@ -242,3 +242,121 @@
   }
   lo
 }
+
+
+#' Alto de verdad que tiene el enunciado de cada bloque, en pulgadas
+#'
+#' P46, tercer intento. Los dos anteriores estimaban ese alto como
+#' `n_cat * alto_fila` mas medio hueco, y los dos solaparon: el texto se dibuja
+#' centrado en `mean(y_min, y_max)`, que son los CENTROS de la primera y la
+#' ultima categoria del bloque, no sus bordes. Dos bloques vecinos con distinto
+#' numero de filas no tienen sus centros equidistantes del hueco que comparten,
+#' asi que «media parte para cada uno» repartia un espacio que no era el real.
+#'
+#' Aqui no se estima nada: se toman los centros reales en coordenadas del canvas
+#' —`group_df$y_min` y `$y_max`, que el graficador ya calcula— y cada bloque
+#' recibe **la mitad de la distancia a cada vecino**. Dos contiguos se
+#' encuentran exactamente en el punto medio, que es lo que impide el solape por
+#' construccion. En los extremos el limite es el borde del area de barras.
+#'
+#' @param centros Centro de cada bloque, en npc del canvas.
+#' @param alto_in Alto del canvas en pulgadas.
+#' @param borde_inf,borde_sup Limites del area util, en npc.
+#' @return Alto disponible de cada bloque, en pulgadas, en el orden de entrada.
+#' @keywords internal
+.barras_alto_disponible_real <- function(centros, alto_in,
+                                         borde_inf = 0, borde_sup = 1) {
+  c0 <- suppressWarnings(as.numeric(centros))
+  a <- suppressWarnings(as.numeric(alto_in)[1])
+  lo <- suppressWarnings(as.numeric(borde_inf)[1])
+  hi <- suppressWarnings(as.numeric(borde_sup)[1])
+  n <- length(c0)
+  if (!n || !is.finite(a) || a <= 0) return(rep(NA_real_, max(1L, n)))
+  if (!is.finite(lo) || !is.finite(hi) || hi <= lo) { lo <- 0; hi <- 1 }
+  if (any(!is.finite(c0))) return(rep(NA_real_, n))
+
+  ord <- order(c0)
+  cs <- c0[ord]
+  arriba <- c(diff(cs) / 2, hi - cs[n])          # hacia el vecino de arriba
+  abajo  <- c(cs[1] - lo, diff(cs) / 2)          # hacia el de abajo
+  disp <- (pmax(0, arriba) + pmax(0, abajo)) * a
+  out <- numeric(n)
+  out[ord] <- disp
+  out
+}
+
+
+#' Cuerpo Y lineas de los enunciados de una lamina, EN UNA SOLA PASADA
+#'
+#' P46. Separar las dos decisiones —una elegia el cuerpo y otra las lineas— las
+#' hacia retroalimentarse: al dar mas alto, el cuerpo dejaba de encoger y con el
+#' cuerpo grande las lineas autorizadas ya no cabian. Aqui van juntas: para cada
+#' cuerpo candidato se envuelve, se cuentan las lineas REALES y se comprueba que
+#' quepan. Se elige el mayor cuerpo con el que TODOS los bloques caben enteros;
+#' si ninguno lo consigue, el piso, y el cupo que se devuelve es el de ESE
+#' cuerpo. Asi el numero de lineas nunca se decide con un cuerpo distinto del
+#' que se dibuja.
+#'
+#' El alto que recibe tiene que ser el REAL —`.barras_alto_disponible_real()`—,
+#' no `n_cat * alto_fila`: con el estimado esta funcion es correcta y el render
+#' solapa igual.
+#'
+#' @param textos Enunciados de los bloques.
+#' @param altos_in Alto disponible de cada bloque, en pulgadas.
+#' @param wrap_fun Funcion `(texto, size_pt) -> ancho de wrap en caracteres`.
+#' @param size_pt Cuerpo declarado; es el techo.
+#' @param interlinea,minimo_pt,paso_pt Igual que en el resto de la familia.
+#' @return Lista con `size_pt` —uno para toda la lamina— y `cupos`.
+#' @keywords internal
+.titulo_grupo_ajuste <- function(textos, altos_in, wrap_fun, size_pt,
+                                 interlinea = .BARRAS_INTERLINEA_TITULO,
+                                 minimo_pt = 11, paso_pt = 1) {
+  t <- as.character(textos)
+  a <- suppressWarnings(as.numeric(altos_in))
+  s <- suppressWarnings(as.numeric(size_pt)[1])
+  lo <- suppressWarnings(as.numeric(minimo_pt)[1])
+  li <- suppressWarnings(as.numeric(interlinea)[1])
+  nulo <- list(size_pt = s, cupos = NULL)
+  if (!length(t) || length(a) != length(t)) return(nulo)
+  if (!is.finite(s) || s <= 0 || !is.finite(li) || li <= 0) return(nulo)
+  if (!is.function(wrap_fun)) return(nulo)
+  if (!is.finite(lo) || lo <= 0 || lo > s) lo <- s
+
+  memo <- new.env(parent = emptyenv())
+  lineas_a <- function(x, pt) {
+    k <- paste(x, pt, sep = "\r")
+    if (!is.null(h <- memo[[k]])) return(h)
+    if (!requireNamespace("stringr", quietly = TRUE)) return(NA_integer_)
+    w <- tryCatch(wrap_fun(x, pt), error = function(e) NA_real_)
+    w <- suppressWarnings(as.numeric(w)[1])
+    v <- if (!is.finite(w) || w < 1) NA_integer_ else {
+      length(strsplit(stringr::str_wrap(gsub("\n", " ", x, fixed = TRUE), width = w),
+                      "\n", fixed = TRUE)[[1]])
+    }
+    assign(k, v, envir = memo)
+    v
+  }
+  caben_en <- function(alto, pt) {
+    al <- (pt / 72) * li
+    if (!is.finite(al) || al <= 0 || !is.finite(alto) || alto <= 0) return(NA_integer_)
+    max(1L, as.integer(floor(alto / al + .BARRAS_TOL_LINEA)))
+  }
+
+  ok <- !is.na(t) & nzchar(trimws(t)) & is.finite(a) & a > 0
+  if (!any(ok)) return(nulo)
+  candidatos <- seq(s, lo, by = -abs(paso_pt))
+  if (candidatos[length(candidatos)] > lo) candidatos <- c(candidatos, lo)
+
+  ultimo <- NULL
+  for (pt in candidatos) {
+    pide <- rep(NA_integer_, length(t)); cupos <- rep(NA_integer_, length(t))
+    for (k in which(ok)) {
+      pide[k] <- lineas_a(t[k], pt)
+      cupos[k] <- caben_en(a[k], pt)
+    }
+    if (any(is.na(pide[ok]))) return(nulo)
+    ultimo <- list(size_pt = pt, cupos = cupos)
+    if (all(pide[ok] <= cupos[ok])) return(ultimo)
+  }
+  ultimo %||% nulo
+}
