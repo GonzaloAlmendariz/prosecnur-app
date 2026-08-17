@@ -424,6 +424,45 @@ GASTRONOMÍA 59 % · ARTE Y DISEÑO 56 % · PSICOLOGÍA 30 % · GESTIÓN 29 % ·
 CIENCIAS SOCIALES 22 % · CIENCIAS Y ARTES COMUN. 20 % · EG CIENCIAS 15 % ·
 EG LETRAS 14 % · DERECHO 10 % · CIENCIAS E INGENIERIA 8 %.
 
+## H6 — el motor SÍ sabe hacerlo por facultad, y nadie se lo pide
+
+Gonzalo: «el número de alumnos por curso-horario nuevamente es por facultad.
+Repítelo conmigo, POR FACULTAD. No es lo mismo una facultad de Derecho que
+tiene muchos más estudiantes que una de Gastronomía que tiene muchos menos. La
+cantidad de aulas que vamos a requerir responde a cuál es la cuota que tenemos
+que llegar por facultad de hombres y mujeres, y a cuántos alumnos hay en
+promedio por curso-horario —ese promedio puede ser el mínimo entre la media y la
+mediana, el cuartil más pequeño; hay varias formas».
+
+**La capacidad existe entera.** `calc_muestra_alumnos_por_ch_resolver_estudio`
+(`api/R/calc_muestra_alumnos_por_ch.R`) resuelve el estadístico POR FACULTAD, y
+`calc_muestra_alumnos_por_ch_adjuntar_auditoria` (~613) sobreescribe el
+`avg_conglomerado` y el `estadistico_usado` de cada estrato con el suyo, más un
+bloque `alumnos_por_ch` con referencia, `frame_hash`, denominador,
+`faculty_key`, estadístico y valor. Los cuatro estadísticos que admite son
+exactamente los que nombra Gonzalo: **`media`, `mediana`, `p25` y
+`min_mediana_media`**.
+
+**Y NO LA LLAMA NADIE EN PRODUCCIÓN.** Ningún router, ningún endpoint: el único
+código que la invoca son sus tests. Capacidad completa, probada, con contrato de
+trazabilidad, sin consumidor.
+
+Por eso las quince facultades comparten un único `avg_conglomerado` —20 o 28
+según el componente—. No es que el motor no sepa distinguir Derecho de
+Gastronomía: **sabe hacerlo y nadie se lo pide**. Y por eso
+`alumnos_por_ch_decision` está vacía en el proyecto real: no hay ruta que la
+escriba ni que la aplique.
+
+Guardas del resolutor, para la reparación: exige
+`workspace$frame_mode == "opinion_universitaria"`, devuelve sin tocar nada si
+`alumnos_por_ch_decision` es `NULL` —compatibilidad con proyectos previos al
+contrato v1— y falla con `schema_invalido` si el schema no cuadra.
+
+**Corrección de encuadre**: decir «177 aulas base» es una cifra agregada y no
+significa nada sin su desglose. La cifra honesta es la tabla de 15 filas —
+Derecho 46 aulas para 483 encuestas, Gastronomía 10 para 105, Letras y Ciencias
+Humanas 16 para 163—. El 177 es sólo su suma.
+
 ## Lo que ya sabemos, para no reinvestigarlo
 
 - En el proyecto de referencia la selección trae **30 titulares y 330 reservas,
