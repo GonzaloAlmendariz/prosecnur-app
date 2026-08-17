@@ -252,7 +252,11 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
       data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">
-        <h3>Registro de campo</h3>
+        {/* Es la hoja «Aulas Aplicadas (Campo)» del libro, llenada aquí en vez
+            de en Excel: asistentes, rechazos, duplicados, efectivas, aplicador,
+            aula y momento son sus columnas. La pestaña sigue diciendo «Registro
+            de campo» —lo que se hace—; el panel dice qué se está llenando. */}
+        <h3>Aulas aplicadas (campo)</h3>
         <span>{filas.length ? `${filas.length} cursos-horario` : "sin agenda"}</span>
       </div>
 
@@ -298,6 +302,11 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                 </p>
 
                 <label className="registro-campo-campo">
+                  {/* NO es `STATUS DE APLICACION` del libro, aunque se parezca:
+                      esa columna dice si el aula se aplicó, y este estado es el
+                      operativo —lo deriva el motor y mueve los denominadores
+                      del avance—. Ponerle el nombre de la columna haría creer
+                      que se escribe en ella. */}
                   <span>Estado</span>
                   <select value={form.estado} onChange={(e) => set("estado", e.target.value)}>
                     {ESTADOS.map((e) => (
@@ -320,13 +329,15 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
 
                 <div className="registro-campo-numeros">
                   <label className="registro-campo-campo">
-                    <span>Alumnos en aula</span>
+                    <span>Cantidad de asistentes</span>
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.aforo} onChange={(e) => set("aforo", e.target.value)}
                     />
                   </label>
                   <label className="registro-campo-campo">
+                    {/* Se queda: el libro no tiene columna de repartidas. Sólo
+                        cuenta asistentes, rechazos, duplicados y efectivas. */}
                     <span>Encuestas aplicadas</span>
                     <input
                       type="number" min={0} inputMode="numeric"
@@ -334,7 +345,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                     />
                   </label>
                   <label className="registro-campo-campo">
-                    <span>Rechazos</span>
+                    <span>Cantidad de rechazos</span>
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.rechazos} onChange={(e) => set("rechazos", e.target.value)}
@@ -344,20 +355,23 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
 
                 <div className="registro-campo-numeros">
                   <label className="registro-campo-campo">
-                    <span>Ya respondieron</span>
+                    <span>Duplicados (ya respondieron)</span>
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.duplicados} onChange={(e) => set("duplicados", e.target.value)}
                     />
                   </label>
                   <label className="registro-campo-campo">
-                    <span>Efectivas</span>
+                    <span>Cantidad de efectivas</span>
                     <input
                       type="number" min={0} inputMode="numeric"
                       value={form.efectivas} onChange={(e) => set("efectivas", e.target.value)}
                     />
                   </label>
                   <label className="registro-campo-campo">
+                    {/* La columna se llama `AULA` a secas, pero aquí «aula» ya
+                        nombra la unidad entera: sin el «real» se leería como el
+                        aula planificada, que es justo la que puede no ser. */}
                     <span>Aula real</span>
                     <input
                       type="text" value={form.aulaReal}
@@ -368,6 +382,9 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
 
                 <div className="registro-campo-numeros">
                   <label className="registro-campo-campo">
+                    {/* La columna es `APLICADOR` a secas; la app mantiene la
+                        forma inclusiva, que es la única desviación deliberada
+                        del vocabulario del libro. */}
                     <span>Aplicador/a</span>
                     <input
                       type="text" value={form.aplicador}
@@ -375,7 +392,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                     />
                   </label>
                   <label className="registro-campo-campo">
-                    <span>Fecha y hora</span>
+                    <span>Fecha y hora de aplicación</span>
                     <input
                       type="text" placeholder="2026-08-16 10:15" value={form.momento}
                       onChange={(e) => set("momento", e.target.value)}
@@ -384,7 +401,8 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                 </div>
 
                 <label className="registro-campo-campo">
-                  <span>Nota</span>
+                  {/* `OBSERVACIONES SOBRE APLICACIONES` en el libro. */}
+                  <span>Observaciones</span>
                   <input
                     type="text" value={form.nota}
                     onChange={(e) => set("nota", e.target.value)}
