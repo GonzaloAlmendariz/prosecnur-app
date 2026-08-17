@@ -213,7 +213,17 @@
                            etiqueta = NULL, nota = NULL,
                            col = .GUIA_COL, lwd = .GUIA_LWD,
                            size_cota = .GUIA_SIZE_COTA,
-                           nivel = 0L) {
+                           nivel = 0L,
+                           # Bandas apiladas a todo el ancho repiten la MISMA
+                           # cota horizontal una vez por banda —cinco «15.75 cm»
+                           # identicos en un pie—, y lo que varia entre ellas es
+                           # el alto. Quien apila a todo el ancho la apaga.
+                           cota_ancho = TRUE,
+                           # El rotulo va arriba a la izquierda, que es la
+                           # esquina libre en un grafico de barras. En una banda
+                           # de titulo o de pie el texto empieza justo ahi y se
+                           # pisan; esas mandan el rotulo al otro lado.
+                           rotulo_derecha = FALSE) {
   marco <- grid::rectGrob(
     x = 0, y = 0, width = 1, height = 1,
     just = c("left", "bottom"),
@@ -259,8 +269,9 @@
   salto <- n * (size_cota * 1.5 / 72) / max(h_in, 1e-6)
   rotulo <- grid::textGrob(
     label = texto,
-    x = grid::unit(0.012, "npc"), y = grid::unit(0.985 - salto, "npc"),
-    just = c("left", "top"),
+    x = grid::unit(if (isTRUE(rotulo_derecha)) 0.988 else 0.012, "npc"),
+    y = grid::unit(0.985 - salto, "npc"),
+    just = c(if (isTRUE(rotulo_derecha)) "right" else "left", "top"),
     gp = grid::gpar(col = col, fontsize = size_cota, fontface = "plain")
   )
 
@@ -276,7 +287,7 @@
   if (is.null(etiqueta) || !nzchar(etiqueta)) return(list(marco, rotulo))
 
   cotas <- c(
-    .guia_cota_grobs(
+    if (isTRUE(cota_ancho)) .guia_cota_grobs(
       0.02, 0.98, 0.022, 0.022,
       sprintf("%.2f cm", w_in * .GUIA_CM_POR_IN),
       col = col, lwd = lwd, size_cota = size_cota
@@ -289,6 +300,72 @@
   )
 
   c(list(marco, rotulo), cotas)
+}
+
+
+#' Nota de un pie o un donut: su radio
+#'
+#' La cota de la caja dice cuanto mide el hueco; en un pie lo que hay que poder
+#' comprobar es el CIRCULO, que no ocupa la caja entera —se inscribe en su lado
+#' corto—. Sin esta nota, dos pies de la misma lamina con cajas distintas se ven
+#' distintos y la guia no dice por que.
+#'
+#' @param ancho_in,alto_in Caja del panel, en pulgadas.
+#' @param hueco Fraccion del agujero (0 en un pie macizo, 0.55 en un donut).
+#' @return Cadena para `.guia_ph_grobs(nota = )`, o `""`.
+#' @keywords internal
+.guia_nota_pie <- function(ancho_in, alto_in, hueco = 0) {
+  w <- suppressWarnings(as.numeric(ancho_in)[1])
+  h <- suppressWarnings(as.numeric(alto_in)[1])
+  if (!is.finite(w) || !is.finite(h) || w <= 0 || h <= 0) return("")
+  r <- min(w, h) / 2
+  hk <- suppressWarnings(as.numeric(hueco)[1])
+  partes <- sprintf("radio %.2f cm", r * .GUIA_CM_POR_IN)
+  if (is.finite(hk) && hk > 0) {
+    partes <- c(partes, sprintf("hueco %.2f cm", r * hk * .GUIA_CM_POR_IN))
+  }
+  paste(partes, collapse = "  ")
+}
+
+
+#' Envuelve un bloque de `cowplot` con su marco y su cota
+#'
+#' La guia arquitectonica vivia dentro de `graficador_barras_apiladas.R` y
+#' `graficador_barras_agrupadas.R` —dos de los ~20 graficadores del paquete—.
+#' Los demas se quedaban con un rectangulo suelto y sin una sola medida: el pie
+#' lo dibujaba ademas en morado grueso, asi que dos paneles de la MISMA lamina
+#' salian con guias distintas y lo que las diferenciaba no era el diseño sino
+#' quien las dibujaba (lo vio Gonzalo en «Perfil del egresado»).
+#'
+#' Esta funcion es el enganche para cualquier graficador compuesto con
+#' `cowplot`: recibe el bloque y su tamaño FISICO, y devuelve el bloque con el
+#' plano encima.
+#'
+#' @param g Bloque de `cowplot`/`ggplot`.
+#' @param ancho_in,alto_in Tamaño fisico del bloque, en pulgadas.
+#' @param etiqueta,nota Ver `.guia_ph_grobs()`.
+#' @param col,lwd,size_cota Estilo; por defecto el de la guia, no el del
+#'   graficador que llame.
+#' @return El bloque envuelto, o el bloque tal cual si no hay `cowplot`.
+#' @keywords internal
+.guia_envolver_bloque <- function(g, ancho_in = NA_real_, alto_in = NA_real_,
+                                  etiqueta = NULL, nota = NULL,
+                                  col = .GUIA_COL, lwd = .GUIA_LWD,
+                                  size_cota = .GUIA_SIZE_COTA,
+                                  cota_ancho = TRUE, rotulo_derecha = FALSE) {
+  if (!requireNamespace("cowplot", quietly = TRUE)) return(g)
+  grobs <- .guia_ph_grobs(
+    x = 0, y = 0, w = 1, h = 1,
+    ancho_in = ancho_in, alto_in = alto_in,
+    etiqueta = etiqueta, nota = nota,
+    col = col, lwd = lwd, size_cota = size_cota,
+    cota_ancho = cota_ancho, rotulo_derecha = rotulo_derecha
+  )
+  out <- cowplot::ggdraw(g)
+  for (gr in grobs) {
+    out <- out + cowplot::draw_grob(gr, x = 0, y = 0, width = 1, height = 1)
+  }
+  out
 }
 
 
