@@ -30,23 +30,62 @@ function tablero(extra: Record<string, unknown> = {}): MonitoreoAulasDashboard {
 }
 
 function cuotaKpi(tab: MonitoreoAulasDashboard) {
-  return aulasKpis(tab).find((k) => k.label.toLowerCase().includes("cuota"));
+  return aulasKpis(tab, "avance").find((k) => k.label.toLowerCase().includes("cuota"));
 }
 
+const SECCIONES = ["fuentes", "modelo", "calidad", "consultas", "avance"] as const;
+
 describe("la banda de KPIs", () => {
-  it("cada cifra dice de dónde sale o sobre qué se cuenta", () => {
+  it("cada cifra dice de dónde sale o sobre qué se cuenta, en las cinco secciones", () => {
     // El patrón viene de telefónico y acreditación, cuyas tarjetas llevan
     // `hint`. Sin él, «Aplicadas 0» al lado de «Válidas 3 700» se lee como app
     // rota, cuando son dos fuentes distintas: una la declara el aplicador y la
     // otra llega de Kobo.
-    const sinPista = aulasKpis(tablero()).filter((k) => !k.pista?.trim());
+    const sinPista = SECCIONES.flatMap((s) => aulasKpis(tablero(), s))
+      .filter((k) => !k.pista?.trim());
     expect(sinPista.map((k) => k.label)).toEqual([]);
   });
 
   it("«Aplicadas» dice que la declara el registro, no las respuestas", () => {
-    const aplicadas = aulasKpis(tablero()).find((k) => k.label === "Aplicadas");
+    const aplicadas = aulasKpis(tablero(), "modelo").find((k) => k.label === "Aplicadas");
     expect(aplicadas?.value).toBe("0");
     expect(aplicadas?.pista).toContain("registro de campo");
+  });
+
+  it("contesta la pregunta de SU sección y no la de otra", () => {
+    // La banda mostraba las mismas seis tarjetas en las cinco secciones: en
+    // Fuentes presidía la pantalla un «Cuota por recoger» que no decide nada
+    // ahí, y en Consultas no había ni una cifra de reemplazos.
+    const etiquetas = (s: (typeof SECCIONES)[number]) => aulasKpis(tablero(), s).map((k) => k.label);
+    expect(etiquetas("fuentes")).toContain("Respuestas leídas");
+    expect(etiquetas("fuentes")).not.toContain("Cuota por recoger");
+    expect(etiquetas("consultas")).toContain("Cerraron con reemplazo");
+    expect(etiquetas("consultas")).toContain("Cadenas sin cerrar");
+    expect(etiquetas("calidad")).toContain("Alertas");
+    expect(etiquetas("avance")).toContain("Cuota por recoger");
+    expect(etiquetas("avance")).toContain("Cumplen");
+  });
+
+  it("las cadenas se cuentan con la misma función que las cuenta abajo", () => {
+    // `reemplazos_usados` del motor decía «0» —cuenta reservas cuyo estado
+    // operativo salió de «planificada», o sea depende del registro de campo—
+    // mientras el panel de al lado decía «3 cerraron con un reemplazo».
+    const agenda = [
+      { operational_code: "CH 1", sample_role: "titular", faculty: "Derecho", respuestas_validas: 2, expected_valid: 30 },
+      { operational_code: "R 1.1", sample_role: "chain_reserve", replacement_for: "CH 1", replacement_order: 1, respuestas_validas: 31, expected_valid: 30 },
+    ];
+    const kpi = aulasKpis(tablero({ agenda, kpis: { reemplazos_usados: 0 } }), "consultas")
+      .find((k) => k.label === "Cerraron con reemplazo");
+    expect(kpi?.value).toBe("1");
+  });
+
+  it("ninguna sección se queda sin banda", () => {
+    // Un `seccion` que no case con ningún `if` devolvería la de Avance por
+    // defecto; lo que no puede pasar es una sección vacía, que dejaría la franja
+    // superior como un marco sin contenido.
+    for (const s of SECCIONES) {
+      expect(aulasKpis(tablero(), s).length, `sección ${s}`).toBeGreaterThanOrEqual(3);
+    }
   });
 });
 
