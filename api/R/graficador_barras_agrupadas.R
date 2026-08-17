@@ -900,8 +900,20 @@ graficar_barras_agrupadas <- function(
     if (!forzar_ancho_max_eje_y && is.finite(ancho_dev) && ancho_dev > 0 && ancho_dev < 9) {
       w_eti <- suppressWarnings(as.numeric(canvas_w_etiquetas)[1])
       if (!is.finite(w_eti) || w_eti <= 0 || w_eti >= 1) w_eti <- 0.45
-      char_in <- size_ejes_eff * 0.55 / 72
-      chars_fit <- max(10L, as.integer(floor((ancho_dev * w_eti - 0.12) / char_in)))
+      ancho_columna_in <- ancho_dev * w_eti - 0.12
+      # P43: primero se MIDE. El estimado de 0.55 em por caracter rechazaba
+      # «Entre 1500 y 3000 soles» —2.28 in calculados contra 2.22 disponibles—
+      # cuando su ancho real en Arial 13 pt es 1.958 in y sobraba un cuarto de
+      # pulgada. `.chars_que_caben()` devuelve el largo entero de la etiqueta
+      # cuando cabe, o sea que no envuelve; y si no cabe, deriva el presupuesto
+      # del ancho medido de la peor etiqueta.
+      chars_fit <- .chars_que_caben(cat_lvls, ancho_columna_in, size_ejes_eff)
+      if (is.na(chars_fit)) {
+        # Sin `systemfonts` se conserva el estimado historico tal cual: mejor el
+        # comportamiento de siempre que uno nuevo sin medir.
+        char_in <- size_ejes_eff * .ANCHO_CHAR_EM_ESTIMADO / 72
+        chars_fit <- max(10L, as.integer(floor(ancho_columna_in / char_in)))
+      }
       ancho_max_eje_y_eff <- if (is.null(ancho_max_eje_y_eff)) chars_fit else {
         min(suppressWarnings(as.numeric(ancho_max_eje_y_eff)[1]), chars_fit)
       }
