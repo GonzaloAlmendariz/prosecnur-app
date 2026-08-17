@@ -44,7 +44,15 @@ test_that("el tablero agrega el estudio entero sin perder aulas", {
   # desgloses vacios con los KPI correctos, que es como se han escondido antes.
   expect_length(d$avance_por_estrato %||% list(), 6L)
   expect_length(d$quotas_sex_faculty %||% list(), 12L)
-  expect_length(d$reemplazos %||% list(), 26L)
+  # 50 y no 26: la cadena son las 26 reservas MAS los 24 titulares que cayeron.
+  # El 26 de antes fijaba el defecto —el filtro miraba `operational_status`, que
+  # en un titular caido por STATUS MUESTRA sigue en `planificada`, asi que no
+  # entraba ninguno—. Se comprueban los dos papeles para que el numero no vuelva
+  # a cuadrar por el motivo equivocado.
+  expect_length(d$reemplazos %||% list(), 50L)
+  roles <- table(vapply(d$reemplazos, function(r) as.character(r$sample_role), character(1)))
+  expect_identical(as.integer(roles[["titular"]]), 24L)
+  expect_identical(as.integer(roles[["chain_reserve"]]), 26L)
 })
 
 test_that("el cuadre encuentra los descuadres entre 170 partes", {
