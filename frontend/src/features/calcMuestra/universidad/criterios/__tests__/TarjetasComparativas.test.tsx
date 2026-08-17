@@ -15,7 +15,12 @@ import {
 } from "../../../../../api/calcMuestra";
 import { CriteriosGeneralesCard } from "../CriteriosGeneralesCard";
 import { FichaPorFacultadCard } from "../FichaPorFacultadCard";
-import { fichaDeFacultad, claveFicha } from "../fichaFacultadModel";
+import {
+  claveFicha,
+  claveMotor,
+  criteriosPropiosDeFacultad,
+  fichaDeFacultad,
+} from "../fichaFacultadModel";
 
 /** Cifras reales del libro de referencia de 2025. */
 const REF_CRUDO = {
@@ -185,5 +190,85 @@ describe("contrato: las dos tarjetas están cableadas en el desk", () => {
     // Vive dentro de `aulas` y no al lado de `referencia_asistencia` porque
     // `CalcMuestraPage.tsx` está congelada y no debe crecer para pasar una prop.
     expect(fuente).toContain("aulasState?.referencia_criterios");
+  });
+});
+
+/**
+ * Los criterios que rigen SÓLO en una facultad.
+ *
+ * Gonzalo: «los criterios no son generales, son por facultad». Dos cosas se
+ * declaran así hoy: el mínimo de elegibles propio y las excepciones de tipo de
+ * sesión —«en arquitectura y arte y diseño el taller tiene muchas más clases con
+ * muchos más alumnos»—. Sin verlas, la ficha muestra cuentas sin decir de qué
+ * reglas salen.
+ */
+describe("criterios propios de una facultad", () => {
+  const SUITE = {
+    minEligible: { threshold: 15, byFaculty: { arte_y_diseno: 10 } },
+    byVariable: {
+      session_type: {
+        scope: "aula", categories: ["teorico"],
+        exceptions: {
+          arte_y_diseno: { categories: ["taller"], op: "add" },
+          artes_escenicas: { categories: ["taller"], op: "replace" },
+        },
+      },
+    },
+  };
+
+  it("lee el mínimo propio y dice cuál es el general", () => {
+    const c = criteriosPropiosDeFacultad("ARTE Y DISEÑO", SUITE, 15);
+    const min = c.find((x) => x.clase === "minimo");
+    expect(min?.etiqueta).toBe("Mínimo propio: 10 elegibles");
+    expect(min?.detalle).toBe("el general es 15");
+  });
+
+  it("distingue una excepción que SUMA de una que SUSTITUYE", () => {
+    const suma = criteriosPropiosDeFacultad("ARTE Y DISEÑO", SUITE, 15)
+      .find((x) => x.clase === "excepcion");
+    expect(suma?.etiqueta).toBe("session_type: además taller");
+    expect(suma?.detalle).toContain("se suman");
+
+    const sustituye = criteriosPropiosDeFacultad("ARTES ESCÉNICAS", SUITE, 15)
+      .find((x) => x.clase === "excepcion");
+    expect(sustituye?.etiqueta).toBe("session_type: sólo taller");
+    expect(sustituye?.detalle).toContain("sustituye");
+  });
+
+  it("CONTROL: una facultad sin reglas propias no inventa ninguna", () => {
+    expect(criteriosPropiosDeFacultad("DERECHO", SUITE, 15)).toHaveLength(0);
+    expect(criteriosPropiosDeFacultad("ARTE Y DISEÑO", null, 15)).toHaveLength(0);
+  });
+
+  it("la clave usa el formato del MOTOR, con la ñ a n", () => {
+    // Con otra normalización los criterios propios quedarían invisibles sin que
+    // nada fallara.
+    expect(claveMotor("ARTE Y DISEÑO")).toBe("arte_y_diseno");
+    expect(claveMotor("GASTRONOMÍA, HOTELERÍA Y TURISMO")).toBe(
+      "gastronomia_hoteleria_y_turismo",
+    );
+    // El apóstrofe se BORRA, no se vuelve guion bajo: el motor hace lo mismo en
+    // una línea aparte, y `d_onofrio` no indexaría nada.
+    expect(claveMotor("D'ONOFRIO")).toBe("donofrio");
+    // CONTROL: dos facultades parecidas no colapsan.
+    expect(claveMotor("ESTUDIOS GENERALES LETRAS")).not.toBe(
+      claveMotor("ESTUDIOS GENERALES CIENCIAS"),
+    );
+  });
+
+  it("la ficha los pinta, y dice cuándo no hay", () => {
+    const con = fichaDeFacultad(
+      { ...FILA, estrato: "ARTE Y DISEÑO" } as unknown as CalcMuestraAulasEstrato,
+      320, 55, 17, null, SUITE, 15,
+    );
+    const html = renderToStaticMarkup(<FichaPorFacultadCard fichas={[con]} />);
+    expect(html).toContain("Criterios propios:");
+    expect(html).toContain("Mínimo propio: 10 elegibles");
+    expect(html).toContain("session_type: además taller");
+
+    // CONTROL: una facultad sin reglas propias no anuncia ninguna.
+    const sin = fichaDeFacultad(FILA, 149, 12, 16, null, SUITE, 15);
+    const htmlSin = renderToStaticMarkup(<FichaPorFacultadCard fichas={[sin]} />);
+    expect(htmlSin).not.toContain("Criterios propios:");
   });
 });
