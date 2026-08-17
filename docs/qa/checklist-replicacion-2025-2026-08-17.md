@@ -729,6 +729,64 @@ cifras del recorrido —avg 28 en el componente universidad y avg 20 en el de
 facultad— no son p25, así que o el default es otro o la configuración vigente lo
 sobreescribe.
 
+## R16 — la vara definitiva de Gonzalo, y qué falta para cumplirla
+
+Textual: «para mi proyecto yo necesito aplicar los mismos criterios que en 2025
+en prácticamente todo, con la diferencia del cálculo de alumnos elegibles por
+curso-horario, que sí usamos el primer cuartil».
+
+Eso deja de ser una comparación y pasa a ser una **configuración objetivo**.
+Medida contra lo que su proyecto tiene hoy:
+
+| Decisión | 2025 | Su proyecto hoy | ¿Coincide? |
+|---|---|---|---|
+| Estadístico por curso-horario | mín(mediana, media) | media | **p25 — la diferencia querida** |
+| Muestra n | 2.500 fijada | — | por fijar |
+| Sobremuestra | ×1,5 (50 %) | 20 % | **no** |
+| p | 0,30 | 0,5 | **no** |
+| Error e | 2,46 % | 5 % | **no** |
+| deff | 2,0 | 1,5 | **no** |
+| Método de selección | sistemático k = N/n | cube balanceado | **no** |
+| Presencial | sí | sí | sí |
+| Tipo de sesión teórico | sí | **imposible: columna vacía** | **bloqueado** |
+| Nivel del curso fuera de {1,11,12} | sí | no recorta el marco | **no** |
+| Matriculados ≥ 10 | sí | mínimo de elegibles 15 | **no** |
+| Sin posgrado | sí | sí | sí |
+| Tipo de docente | **no fue criterio** | contratado/ordinario | **no** |
+
+### El bloqueo: el criterio que definía el marco de 2025 no se puede declarar
+
+Al reconstruir el embudo de 2025 sobre su marco, el paso de «teórico» da **cero
+aulas**. No es que no haya teóricos: `session_type` llega **vacía en las 5.263
+filas**. Su `.pulso` tiene congelado el mapeo viejo —`session_type, tipo_sesion,
+tipo_clase, actividad`— y el catálogo trae la columna **`Tipo de curso`**.
+
+Es exactamente la causa raíz reparada en `9125e39f`: el `.pulso` guarda la lista
+de candidatos por defecto del motor **como si fuera un mapeo del usuario**, así
+que ampliar los defaults nunca alcanzaba a los proyectos ya creados.
+
+**Verificado que la reparación lo desbloquea**: `.cm_aulas_mapeo_es_copia_de_defaults`
+devuelve `TRUE` para los dos mapeos guardados de su proyecto, y
+`.cm_aulas_config_mapping` con las columnas del catálogo real resuelve
+`session_type → …, tipo_curso, tipo_de_curso, tipo de curso`. **Falta
+reconstruir el marco** para que la columna se pueble.
+
+Segundo mapeo tomado: `teacher_type` trae **nombres de docente** en 4.979 de
+5.263 filas. Como en 2025 el tipo de docente **no fue criterio**, esto no bloquea
+la replicación, pero sí invalida cualquier filtro por tipo de docente mientras
+siga así.
+
+### Embudo medido sobre su marco, hasta donde se puede
+
+| Paso | 2025 | Su marco hoy |
+|---|---|---|
+| catálogo | 5.262 | 5.263 |
+| presencial | 4.624 | 5.136 |
+| + teórico | 3.699 | **0 — columna vacía** |
+
+La diferencia en presencial —5.136 contra 4.624— también pide explicación: 2025
+excluía más modalidades de las que excluimos hoy.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
