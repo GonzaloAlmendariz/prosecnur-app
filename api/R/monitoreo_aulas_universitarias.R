@@ -93,6 +93,20 @@ monitoreo_aulas_motivos_reemplazo <- function() {
   as.data.frame(x, stringsAsFactors = FALSE, check.names = FALSE)
 }
 
+#' Columnas que viajan en el reporte de brechas.
+#'
+#' Union de lo que piden sus dos consumidores: la tabla de Consultas > Brechas
+#' (`operational_code`, `label`, `respuestas_validas`, `expected_valid`,
+#' `brecha`, `operational_status`) y la publicacion a Sheets
+#' (`.monitoreo_publication_aulas_model_frames`, que ademas toma `classroom_id`,
+#' `faculty`, `program`, `level`, `stratum` y `wave`).
+#' @export
+BRECHAS_COLUMNAS_PUBLICADAS <- c(
+  "operational_code", "classroom_id", "label", "faculty", "program", "level",
+  "stratum", "wave", "operational_status", "respuestas_validas",
+  "expected_valid", "brecha"
+)
+
 .monitoreo_aulas_records <- function(df, max_rows = Inf) {
   if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(list())
   if (is.finite(max_rows)) df <- utils::head(df, max_rows)
@@ -973,6 +987,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   advance$avance_respuestas_pct <- ifelse((advance$respuestas_validas + advance$brecha) > 0, round(100 * advance$respuestas_validas / (advance$respuestas_validas + advance$brecha), 1), NA_real_)
 
   brechas <- tracked_df[tracked_df$brecha > 0 | tracked_df$operational_status %in% c("sin_acceso", "cancelada", "reemplazo_pendiente"), , drop = FALSE]
+  # `brechas` es un REPORTE, no una tercera copia del plan. Salia con las ~40
+  # columnas de `tracked_df`, asi que con 196 aulas —todas con brecha abierta el
+  # primer dia— pesaba 337 KB de un payload de 1220: tanto como el plan entero,
+  # que ademas ya viaja dos veces. Su tabla muestra ocho columnas y la
+  # publicacion a Sheets toma diez.
+  #
+  # Las columnas son la UNION de lo que sus dos consumidores piden, y estan
+  # cubiertas por test: un consumidor nuevo que necesite otra la añade aqui y lo
+  # ve fallar, en vez de recibir NULL en silencio —que es el patron que ya costo
+  # doce items de esta cola—.
+  brechas <- brechas[, intersect(BRECHAS_COLUMNAS_PUBLICADAS, names(brechas)), drop = FALSE]
   replacements <- tracked_df[nzchar(tracked_df$replacement_for) | tracked_df$operational_status %in% c("reemplazada", "reemplazo_pendiente"), , drop = FALSE]
   representativity <- .monitoreo_aulas_effective_representativity(tracked_df, cfg)
 
