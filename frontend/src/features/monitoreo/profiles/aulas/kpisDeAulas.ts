@@ -17,6 +17,15 @@ export type AulasKpi = {
   label: string;
   value: string;
   tone?: "neutral" | "warn";
+  /**
+   * De dónde sale la cifra o sobre qué se cuenta. Es el patrón que telefónico y
+   * acreditación ya resolvieron: sus tarjetas llevan `hint` —«de la base», «del
+   * universo», «pasan filtro»— porque un número sin denominador ni fuente se
+   * lee mal. Aquí «Aplicadas 0» junto a «Válidas 3 700» parecía app rota, y en
+   * realidad son dos fuentes distintas: una la declara el aplicador, la otra
+   * llega de Kobo.
+   */
+  pista: string;
   /** Lectura larga del mismo dato; va al `title`, así que no ocupa alto (C2). */
   detalle?: string;
 };
@@ -42,15 +51,36 @@ export function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[]
   // vacía en Fuentes ni en Agenda, que piden ese scope.
   const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
   return [
-    { label: "Cursos-horario", value: fmt(kpis?.total_aulas) },
-    { label: "Aplicadas", value: fmt(kpis?.aulas_aplicadas) },
-    { label: "Válidas", value: fmt(kpis?.respuestas_validas) },
-    { label: "Representatividad", value: pct(kpis?.representativity_effective_score) },
+    { label: "Cursos-horario", value: fmt(kpis?.total_aulas), pista: "titulares y reservas del plan" },
+    {
+      // El 0 que parecía un error. Cuenta `operational_status` en «aplicada» o
+      // «cerrada», o sea lo que el aplicador declaró en el registro de campo;
+      // no cuenta respuestas. Con el registro vacío y 3 700 respuestas
+      // recogidas, un «Aplicadas 0» sin pista se lee como app rota. Es la misma
+      // distinción que telefónico resolvió nombrando la fuente: «Declaradas
+      // efectivas» (la hoja) frente a «Efectivas Kobo» (la plataforma).
+      label: "Aplicadas",
+      value: fmt(kpis?.aulas_aplicadas),
+      pista: "declaradas en el registro de campo",
+      detalle: "Las declara el aplicador al registrar la aplicación; no se derivan de las respuestas recibidas.",
+    },
+    {
+      label: "Válidas",
+      value: fmt(kpis?.respuestas_validas),
+      pista: "respuestas de Kobo que pasan el filtro",
+    },
+    {
+      label: "Representatividad",
+      value: pct(kpis?.representativity_effective_score),
+      pista: "la muestra efectiva contra la planificada",
+      detalle: "100 % es una muestra efectiva idéntica a la planificada; 0 % es un desvío medio de 5 puntos o más.",
+    },
     {
       // En personas, que es la unidad del operativo: doce celdas pueden estar a
       // una respuesta o a doscientas y el contador de celdas se ve igual.
       label: "Cuota por recoger",
       value: cuota.celdas ? fmt(cuota.faltan) : "S/D",
+      pista: cuota.celdas ? "personas de sexo por facultad" : "el plan no declara cuotas",
       tone: cuota.faltan ? "warn" : "neutral",
       // La última frase contesta la resta que no cuadra: 4 376 − 3 700 son 676
       // y el KPI dice 701. No es un error —lo que falta se suma celda a celda,
@@ -60,6 +90,11 @@ export function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[]
         ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} celdas cumplidas · lo que falta se suma celda a celda`
         : "el plan no declara cuotas de sexo por facultad",
     },
-    { label: "Brechas", value: fmt(kpis?.brechas), tone: brechas ? "warn" : "neutral" },
+    {
+      label: "Brechas",
+      value: fmt(kpis?.brechas),
+      pista: "cursos-horario por debajo de su meta",
+      tone: brechas ? "warn" : "neutral",
+    },
   ];
 }

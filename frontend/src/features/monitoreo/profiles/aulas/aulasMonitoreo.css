@@ -88,6 +88,28 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Con seis tarjetas, `auto-fit` reparte 5 arriba y deja una huérfana abajo en
+   cuanto el ancho baja de ~1100 px. Tres y tres se lee como una decisión; cinco
+   y una, como un accidente. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-kpi-band {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* La pista: de dónde sale la cifra o sobre qué se cuenta. Misma función que el
+   `small` de `.mon-clarity-card` en telefónico y acreditación, con la tipografía
+   de esta banda. No se recorta con elipsis: si no cabe, envuelve — el marco lo
+   comparten las seis tarjetas, así que crece parejo (C2) y una pista cortada
+   sería justo la mitad que explica el número. */
+.mon-profile-page.is-aulas-flow .aulas-kpi small {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-kpi--warn {
   border-color: var(--pulso-warn-border);
   background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #fff);

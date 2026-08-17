@@ -33,6 +33,23 @@ function cuotaKpi(tab: MonitoreoAulasDashboard) {
   return aulasKpis(tab).find((k) => k.label.toLowerCase().includes("cuota"));
 }
 
+describe("la banda de KPIs", () => {
+  it("cada cifra dice de dónde sale o sobre qué se cuenta", () => {
+    // El patrón viene de telefónico y acreditación, cuyas tarjetas llevan
+    // `hint`. Sin él, «Aplicadas 0» al lado de «Válidas 3 700» se lee como app
+    // rota, cuando son dos fuentes distintas: una la declara el aplicador y la
+    // otra llega de Kobo.
+    const sinPista = aulasKpis(tablero()).filter((k) => !k.pista?.trim());
+    expect(sinPista.map((k) => k.label)).toEqual([]);
+  });
+
+  it("«Aplicadas» dice que la declara el registro, no las respuestas", () => {
+    const aplicadas = aulasKpis(tablero()).find((k) => k.label === "Aplicadas");
+    expect(aplicadas?.value).toBe("0");
+    expect(aplicadas?.pista).toContain("registro de campo");
+  });
+});
+
 describe("el KPI de cuota", () => {
   it("cuenta personas, no celdas", () => {
     const kpi = cuotaKpi(tablero());
