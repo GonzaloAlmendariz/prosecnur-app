@@ -259,3 +259,16 @@
   if (!is.finite(g) || !is.finite(a)) return(NA_real_)
   g * a
 }
+
+
+# Alto fisico del cajon de cada panel en una lamina de CUATRO, en pulgadas.
+#
+# Medido en el XML del mazo de Conta: los cuatro cajones de la lamina 13 son
+# 5.17 x 2.56 in. El graficador recibia `ancho_slot = 6.1` y ningun alto, asi
+# que se quedaba con el default de su firma —seis pulgadas—: creia tener mas del
+# doble del alto real, y por eso sus cuentas verticales daban por bueno lo que
+# se solapaba (P42, etiqueta de eje de dos lineas sobre la fila vecina).
+#
+# Vive aqui y no en `reporte_plan_ppt.R` porque ese archivo esta congelado a
+# crecimiento: alli queda solo el paso del valor.
+.PANELES_4_ALTO_SLOT_IN <- 2.56

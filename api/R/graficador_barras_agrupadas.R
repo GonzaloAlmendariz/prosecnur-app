@@ -934,11 +934,18 @@ graficar_barras_agrupadas <- function(
     # donde tiene tres, asi que CUALQUIER cuenta vertical suya se equivoca por
     # ese factor.
     #
-    # Repararlo es simetrico a H22 —anadir `alto_slot` al lado de `ancho_slot`—
-    # pero toca un archivo congelado a crecimiento, asi que exige subir su linea
-    # base de forma deliberada. Hasta entonces esto no muerde, y se deja porque
-    # la parte medible —cuantas lineas produce el envoltorio y que cuerpo cabe
-    # en una fila DADA— ya esta fijada con tests.
+    # EL MECANISMO YA ESTA: `.render_element(el, ancho_slot, alto_slot)` inyecta
+    # `overrides$alto`, y el bloque de cuatro paneles de `reporte_plan_ppt.R`
+    # (~8748) le pasa `.PANELES_4_ALTO_SLOT_IN = 2.56`, medido en el XML.
+    #
+    # PERO LA LAMINA 13 SIGUE RECIBIENDO `alto = 6`. Trazado tras el cambio: de
+    # las 60 llamadas, 40 llegan con 6 y 20 con 2.95, y la del sueldo esta entre
+    # las de 6. O sea que pasa por OTRO de los ~10 sitios que pasan
+    # `ancho_slot = 6.1` —hay bloques en 8421, 8631, 9033, 9128, 9217, 9302—, no
+    # por el que se engancho. Falta identificar cual y medir SU alto de cajon.
+    #
+    # Se conserva lo hecho: el mecanismo es correcto, no rompe nada (vara 20,
+    # gate verde) y lo que falta es enchufarlo en el sitio que toca.
     filas_eje <- .agrupadas_lineas_eje(cat_lvls, ancho_max_eje_y_eff)
     size_ejes_eff <- .agrupadas_size_que_cabe(
       size_ejes_eff, filas_eje, n_categorias,
