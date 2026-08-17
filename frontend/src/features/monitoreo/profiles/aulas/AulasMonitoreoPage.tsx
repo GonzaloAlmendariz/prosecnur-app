@@ -105,7 +105,10 @@ function compactColumns(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
+function AulasKpiBand({ dashboard, seccion }: {
+  dashboard: MonitoreoAulasDashboard | null;
+  seccion: MonitoreoSeccion;
+}) {
   return (
     <div
       className="aulas-kpi-band"
@@ -114,7 +117,7 @@ function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null
       data-qa-geometry-group="monitoring-aulas-kpis"
       data-qa-geometry-contract="equal"
     >
-      {aulasKpis(dashboard).map((kpi) => (
+      {aulasKpis(dashboard, seccion).map((kpi) => (
         <div
           key={kpi.label}
           className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
@@ -854,7 +857,7 @@ export default function AulasMonitoreoPage() {
         )}
       >
 
-          <AulasKpiBand dashboard={dashboard} />
+          <AulasKpiBand dashboard={dashboard} seccion={seccionActiva} />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
               tone="monitoreo"
