@@ -299,10 +299,6 @@
   list(
     estudio = estudio,
     referencia_asistencia = s$calc_muestra_referencia_asistencia %||% NULL,
-    # Histórico de CRITERIOS del estudio anterior: método general + cuentas por
-    # facultad. Es lo que permite comparar «si se aplicaron los mismos
-    # criterios» y no sólo si salen los mismos números.
-    referencia_criterios = s$calc_muestra_referencia_criterios %||% NULL,
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
@@ -316,6 +312,12 @@
       # Salud de los criterios de AULA: cuáles no pueden evaluarse porque su
       # columna llega vacía o porque ninguna categoría declarada existe en la
       # base. También se deriva al servir, por lo mismo que el bloque de arriba.
+      # Histórico de CRITERIOS del estudio anterior: método general + cuentas
+      # por facultad. Es lo que permite comparar «si se aplicaron los mismos
+      # criterios» y no sólo si salen los mismos números. Va DENTRO de `aulas`
+      # —y no al lado de `referencia_asistencia`— porque es la referencia de los
+      # criterios del marco de aulas y ahí la consumen las tarjetas.
+      referencia_criterios = s$calc_muestra_referencia_criterios %||% NULL,
       salud_criterios = calc_muestra_aulas_salud_criterios(
         s$calc_muestra_aulas_frame %||% NULL,
         s$calc_muestra_aulas_config %||% NULL

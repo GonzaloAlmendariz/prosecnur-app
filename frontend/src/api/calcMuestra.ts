@@ -2485,6 +2485,102 @@ export type CalcMuestraAulasCerteza = {
   };
 };
 
+export const CALC_MUESTRA_REFERENCIA_CRITERIOS_SCHEMA =
+  "calc_muestra_referencia_criterios_v1" as const;
+
+/**
+ * Histórico de CRITERIOS del estudio anterior: el método general y las cuentas
+ * por facultad.
+ *
+ * El proyecto ya ingería una referencia del estudio previo, pero es la de
+ * ASISTENCIA. Para comparar criterios no servía: de las 269 anclas de
+ * `criterios_anclas_historicas` —grano criterio × facultad— 252 decían
+ * «incompatible» y sólo 17 traían dato, todas de un mismo criterio. La
+ * estantería estaba y el dato no.
+ *
+ * Sale de las hojas `cuotas` y `diseno` del mismo libro que el endpoint de
+ * referencia ya leía. Lo que la hoja no trae viaja como `null`, nunca 0.
+ */
+export type CalcMuestraReferenciaCriteriosFila = {
+  faculty_key: string;
+  facultad: string;
+  poblacion: number | null;
+  cuota: number | null;
+  cuota_mujeres: number | null;
+  cuota_hombres: number | null;
+  sobremuestra: number | null;
+  aulas_universo: number | null;
+  aulas_sorteadas: number | null;
+  aulas_titulares: number | null;
+  alumnos_por_ch: number | null;
+  piso_matriculados: number | null;
+  efectivas_logradas: number | null;
+};
+
+export type CalcMuestraReferenciaCriterios = {
+  schema: typeof CALC_MUESTRA_REFERENCIA_CRITERIOS_SCHEMA;
+  periodo: string;
+  estudio: string;
+  /** Pares campo/valor del diseño anterior, tal cual: es lo que permite
+   *  comparar MÉTODO y no sólo números. */
+  general: Record<string, string>;
+  por_facultad: CalcMuestraReferenciaCriteriosFila[];
+};
+
+export function normalizeCalcMuestraReferenciaCriterios(
+  raw: unknown,
+): CalcMuestraReferenciaCriterios | null {
+  const asText = (v: unknown): string => {
+    const x = Array.isArray(v) ? v[0] : v;
+    return typeof x === "string" ? x.trim() : typeof x === "number" ? String(x) : "";
+  };
+  const asNum = (v: unknown): number | null => {
+    const x = Array.isArray(v) ? v[0] : v;
+    const n = typeof x === "number" ? x : typeof x === "string" ? Number(x) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+  const asList = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
+  const asRecord = (v: unknown): Record<string, unknown> =>
+    v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  const r = asRecord(raw);
+  const filas = asList(r.por_facultad)
+    .map((rawFila): CalcMuestraReferenciaCriteriosFila | null => {
+      const f = asRecord(rawFila);
+      const facultad = asText(f.facultad);
+      if (!facultad) return null;
+      return {
+        faculty_key: asText(f.faculty_key),
+        facultad,
+        poblacion: asNum(f.poblacion),
+        cuota: asNum(f.cuota),
+        cuota_mujeres: asNum(f.cuota_mujeres),
+        cuota_hombres: asNum(f.cuota_hombres),
+        sobremuestra: asNum(f.sobremuestra),
+        aulas_universo: asNum(f.aulas_universo),
+        aulas_sorteadas: asNum(f.aulas_sorteadas),
+        aulas_titulares: asNum(f.aulas_titulares),
+        alumnos_por_ch: asNum(f.alumnos_por_ch),
+        piso_matriculados: asNum(f.piso_matriculados),
+        efectivas_logradas: asNum(f.efectivas_logradas),
+      };
+    })
+    .filter((f): f is CalcMuestraReferenciaCriteriosFila => f != null);
+  if (!filas.length) return null;
+  const generalRaw = asRecord(r.general);
+  const general: Record<string, string> = {};
+  for (const k of Object.keys(generalRaw)) {
+    const v = asText(generalRaw[k]);
+    if (v) general[k] = v;
+  }
+  return {
+    schema: CALC_MUESTRA_REFERENCIA_CRITERIOS_SCHEMA,
+    periodo: asText(r.periodo),
+    estudio: asText(r.estudio),
+    general,
+    por_facultad: filas,
+  };
+}
+
 export const CALC_MUESTRA_SALUD_CRITERIOS_SCHEMA =
   "calc_muestra_aulas_salud_criterios_v1" as const;
 
@@ -2608,6 +2704,9 @@ export type CalcMuestraAulasState = {
   frame?: CalcMuestraAulasFrame | null;
   /** Salud de los criterios de aula; derivada al servir, puede no venir. */
   salud_criterios?: CalcMuestraSaludCriterios | null;
+  /** Histórico de CRITERIOS del estudio anterior. Crudo: se normaliza en la
+   *  superficie que lo consume. */
+  referencia_criterios?: unknown;
   selection?: CalcMuestraAulasSelection | null;
   method_comparison?: CalcMuestraAulasMethodComparison | null;
   certeza?: CalcMuestraAulasCerteza | null;
