@@ -1156,3 +1156,45 @@ consecuencias sobre los enlaces ya impresos.
 Con eso, el estado del GOAL es: **todo lo que dependía de mí está hecho y
 medido**; lo que queda son cinco decisiones —L2, L10, L12, L34, L46— y una de
 ellas, L2, es la que separa la vara de estar completa.
+
+
+### 2026-08-16 — L2 preparado: la decisión, con sus costos medidos
+
+Sin cola libre, el trabajo es dejar la decisión barata. **No la tomo yo** —es qué
+identificador quieres que viaje— pero sí puedo medir qué cuesta cada opción, que
+es lo que la hacía cara.
+
+| | slug de hoy | código operativo |
+|---|---|---|
+| Lo que viaja | `unit-aulas-aula-01-fd6e0ab1ee` | `CH 1` |
+| URL | 86 caracteres | **63** |
+| QR | 49×49 módulos | **45×45** |
+| Lo que ve quien mira una respuesta en Kobo | nada reconocible | el aula |
+
+**Lo que creía un obstáculo y no lo es:**
+
+- **El emparejamiento ya funciona con el código, sin tocar el motor.**
+  `.monitoreo_aulas_contar_por_fila()` prueba primero `classroom_id` y luego
+  `collection_unit_id`. En el plan real **`classroom_id == operational_code` en
+  las 196 filas**, así que un QR con `CH 1` resolvería hoy mismo.
+- **Las dos generaciones conviven por construcción.** Las respuestas ya recogidas
+  con el slug siguen resolviendo por `collection_unit_id`, que es el segundo
+  intento. **No hay que reimprimir nada ni migrar nada** para no perder lo ya
+  recogido: los enlaces viejos y los nuevos funcionan a la vez.
+- **El código es clave válida**: 196 códigos únicos de 196, cero colisiones.
+- **El espacio no rompe nada.** Los 196 códigos lo llevan; la URL lo codifica
+  como `%20` y el QR sale bien. Probado con `CH 1` y con `R 1.2`.
+
+**Y una suposición mía que se cae al mirarla.** Yo daba por hecho que el hash del
+slug daba unicidad entre estudios —que dos corridas distintas no chocarían—. No
+es así: `.collection_stable_id(prefix, value)` hashea **el propio valor**, y su
+firma no recibe ni corrida ni estudio. El hash es un **dígito de control del
+valor, no un espacio de nombres**. Dos estudios con la misma aula producirían el
+mismo slug, exactamente igual que producirían el mismo código. Ese argumento para
+conservar el slug **no existe**.
+
+Lo que sigue siendo tuyo: si el valor legible en Kobo debe ser el código del
+equipo. A favor, todo lo de arriba. En contra, lo único que queda en pie: el
+código operativo es del **plan**, así que si rehaces la muestra el mismo `CH 1`
+puede designar otra aula —pero, como acabo de medir, el slug tampoco protege de
+eso—.
