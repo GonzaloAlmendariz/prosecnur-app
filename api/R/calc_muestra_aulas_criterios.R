@@ -1114,6 +1114,12 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   }
   base_cl <- if (length(base_course_level_num) == n) base_course_level_num else rep(NA_real_, n)
   faculty <- pick_chr("faculty_curso", "faculty")
+  # La facultad DEL AULA, sin el override del catalogo: es la que muestra la UI
+  # y contra la que el analista declara sus reglas por facultad. `faculty` de
+  # arriba es la EFECTIVA del CH —la del curso cuando el catalogo la trae— y en
+  # Estudios Generales esa es la facultad de DESTINO del alumno, que es otra
+  # cosa. Confundirlas dejaba a EE.GG. CIENCIAS con 23 de sus 496 aulas.
+  faculty_aula <- .cm_aulas_values(aula_frame, "faculty", "")
   course_level <- pick_num("course_level", base_cl)
   # SET de pares (facultad del curso, nivel) por aula para la regla canónica
   # "cualquier par" de nivel. Del catálogo cuando existe; fallback al par modal
@@ -1131,6 +1137,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     enrolled_total = pick_num("enrolled_total", .cm_aulas_num_values(aula_frame, "enrolled_total", NA_real_)),
     eligible_n = .cm_aulas_num_values(aula_frame, "eligible_n", 0),
     faculty = faculty,
+    faculty_aula = faculty_aula,
     condicion_curso = pick_chr("condicion_curso", "condicion_curso"),
     campus = pick_chr("campus", "campus")
   )
@@ -1431,7 +1438,7 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
         add(
           "course_level",
           .cm_criterios_eval_course_ranges(
-            vals$course_pairs, seleccion$courseLevelRanges, vals$faculty
+            vals$course_pairs, seleccion$courseLevelRanges, vals$faculty_aula
           ),
           "course_level",
           .cm_criterios_label_course_level(seleccion$courseLevelRanges, registry$course_level)
