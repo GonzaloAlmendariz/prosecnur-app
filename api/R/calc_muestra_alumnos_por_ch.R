@@ -591,7 +591,12 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
 # modifica cifras: `aulas_por_estrato` y `aulas_base_total` ya nacieron del
 # engine con los valores resueltos arriba.
 calc_muestra_alumnos_por_ch_adjuntar_auditoria <- function(estudio, auditoria) {
-  if (!is.list(auditoria) || !is.list(auditoria$componentes)) return(estudio)
+  # Sin auditoria el motor calculo con el promedio GLOBAL. Antes se salia en
+  # silencio y el resultado no lo mencionaba en ninguna parte; ahora cada fila
+  # de `aulas_por_estrato` dice que su cifra no sale de su facultad.
+  if (!is.list(auditoria) || !is.list(auditoria$componentes)) {
+    return(.cm_alumnos_por_ch_marcar_sin_decision(estudio))
+  }
   for (i in seq_along(estudio$componentes)) {
     comp <- estudio$componentes[[i]]
     actor_id <- .cm_aulas_scalar(comp$actor_id, "")
