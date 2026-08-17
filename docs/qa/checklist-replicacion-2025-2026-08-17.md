@@ -25,7 +25,8 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R5 | **Las 1.097 no son el marco, son lo sorteado; el marco eran ~2.931** | ☑ |
 | R6 | Nuestro embudo contra el de 2025: 2.420 comunes, 511 explicadas | ☑ |
 | R7 | Aulas por facultad: **motor 478 vs plantilla 189** | ☑ medido, explicado a medias |
-| R9 | Por qué el universo de aulas por facultad no se parece | **abierto — lo siguiente** |
+| R9 | Por qué el universo de aulas por facultad no se parece | abierto |
+| R10 | **La vara de 170–210 aulas: sólo p25 la cumple (193)** | ☑ medido |
 | R8 | Características de la selección, 2025 vs 2026 | pendiente |
 
 ## R1 · Las 170 aulas titulares de 2025, por facultad
@@ -294,6 +295,74 @@ comparación con 2025 no puede cerrar por ahí. **Es decisión de Gonzalo.**
 Con el marco corregido a 2.931 la regla `CEIL(sobremuestra / mín(mediana, media))`
 sigue dando **126 aulas contra las 170 reales**, exactas en 5 de 15. R4 continúa
 abierto: ni el marco de 1.097 ni el de 2.931 lo explican.
+
+## R10 · La vara de 170–210 aulas · **sólo p25 la cumple**
+
+**Encargo de Gonzalo (2026-08-17), textual**: «teniendo todos estos criterios, lo
+normal es que salgan entre **ciento setenta a doscientos diez aulas**, en
+principio no más. Eso es lo primero que quiero comprobar ahora que se puede
+hacer, y que la interfaz muestra también».
+
+Medido sobre el proyecto real con la cuota de universidad (2.500) y el
+estadístico **truncado hacia abajo**, como pide: `aulas = ⌈cuota / (⌊est⌋ × τ)⌉`
+con τ = 0,53.
+
+| Facultad | Disponibles | Elegibles | Cuota | media | mediana | mín(md,me) | p25 | → media | → mediana | → mín | → **p25** |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 849 | 592 | 530 | 32 | 32 | 32 | 24 | 32 | 32 | 32 | **42** |
+| EG CIENCIAS | 496 | 319 | 393 | 40 | 40 | 40 | 27 | 19 | 19 | 19 | **28** |
+| EG LETRAS | 482 | 330 | 389 | 43 | 46 | 43 | 34 | 18 | 16 | 18 | **22** |
+| DERECHO | 575 | 440 | 347 | 38 | 41 | 38 | 37 | 18 | 16 | 18 | **18** |
+| CIENCIAS SOCIALES | 236 | 169 | 151 | 27 | 28 | 27 | 21 | 11 | 11 | 11 | **14** |
+| ARQUITECTURA | 144 | 56 | 126 | 35 | 28 | 28 | 22 | 7 | 9 | 9 | **11** |
+| ARTE Y DISEÑO | 320 | 63 | 119 | 24 | 21 | 21 | 18 | 10 | 11 | 11 | **13** |
+| GESTIÓN | 184 | 119 | 115 | 33 | 36 | 33 | 29 | 7 | 7 | 7 | **8** |
+| CIENCIAS Y ARTES COMUN. | 210 | 162 | 97 | 21 | 22 | 21 | 20 | 9 | 9 | 9 | **10** |
+| PSICOLOGÍA | 131 | 100 | 79 | 24 | 25 | 24 | 23 | 7 | 6 | 7 | **7** |
+| ARTES ESCÉNICAS | 454 | 45 | 69 | 20 | 17 | 17 | 16 | 7 | 8 | 8 | **9** |
+| LETRAS Y CIENCIAS HUMANAS | 149 | 16 | 26 | 16 | 16 | 16 | 15 | 4 | 4 | 4 | **4** |
+| EDUCACION | 73 | 19 | 23 | 23 | 23 | 23 | 17 | 2 | 2 | 2 | **3** |
+| CONTABLES | 44 | 19 | 21 | 27 | 27 | 27 | 23 | 2 | 2 | 2 | **2** |
+| GASTRONOMÍA | 54 | 17 | 15 | 20 | 19 | 19 | 18 | 2 | 2 | 2 | **2** |
+| **Total** | | | **2.500** | | | | | **155** | **154** | **159** | **193** |
+
+**Respuesta**: con los criterios de hoy la vara **sí se puede cumplir, pero sólo
+con p25 (193 aulas)**. Los otros tres métodos se quedan cortos —media 155,
+mediana 154, mín(mediana, media) **159**—, por debajo del piso de 170. La
+elección de método no es un detalle: mueve el total un **21 %**.
+
+ESCUELA DE POSGRADO aparte: **852 aulas disponibles y 2 elegibles**, o sea la
+exclusión por facultad sigue dejando pasar dos.
+
+### Lo que falta para cumplir el encargo completo
+
+Gonzalo pidió cinco cosas explícitas «tanto en la interfaz usuaria como ahora»:
+
+1. **Aulas disponibles por facultad** — el motor las tiene; la UI no las publica
+   junto a las elegibles.
+2. **Aulas elegibles por facultad** — se ven en el marco, pero no al lado de las
+   disponibles ni del resto de la cadena.
+3. **Cuántos hombres y mujeres por facultad** — existe en `distribucion_sub`;
+   sin superficie propia (es la deuda de UI ya anotada).
+4. **Tabla comparativa de métodos** para elegir el estadístico — **no existe ni
+   en el motor ni en la UI**. Es la tabla de arriba y hay que construirla.
+5. **Aulas requeridas con el estadístico truncado y entero** — el truncado lo
+   apliqué yo a mano en esta medición; **queda por verificar si el motor trunca
+   o redondea**, y forzarlo si no.
+
+Y dos criterios que él considera de distinto rango:
+
+- **Generales para todas las facultades**: presencialidad y **tipo de docente**.
+  Retiro mi recomendación anterior de quitar el criterio de tipo de docente: lo
+  que hay que arreglar es que hoy guarda **nombres** en 4.979 de 5.263 aulas.
+- **Variables por facultad**: el **tipo de sesión**, porque en Arquitectura y
+  Arte y Diseño el taller concentra más clases y más alumnos, y hay que quedarse
+  con los cursos con más probabilidad de tener alumnos presentes. Ese mecanismo
+  **ya existe** —`exceptions` por facultad con `add`/`replace`, cerrado en E11
+  (`505c5043`)— y ahora se puede declarar de verdad porque `session_type` ya se
+  lee (`98784020`).
+- **Descarte fino curso-horario a curso-horario** —los talleres de tesis, que son
+  presenciales pero difusos—: por comprobar si existe como superficie.
 
 ## R6 · Nuestro embudo contra el de 2025 · las 511 que faltan, explicadas
 
