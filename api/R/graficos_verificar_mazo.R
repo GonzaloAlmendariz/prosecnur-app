@@ -630,6 +630,19 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #' @param gem Lista de salidas de `.verif_grosores_de_lamina()`.
 #' @return `data.frame` con una fila por grupo de gemelas que dispersa.
 #' @keywords internal
+# LO QUE B4 CUENTA SON GRUPOS DE FIRMA, NO LAMINAS, y eso hace que dos mazos no
+# se puedan comparar por su numero de hallazgos. Medido sobre Conta:
+#
+#              grupos   max     media   mediana
+#   aprobado      5     1.013   0.597   0.485
+#   motor         8     0.879   0.391   0.305
+#
+# El motor sale PEOR en la cuenta y MEJOR en las tres medidas de dispersion, que
+# son las comparables. La diferencia es de composicion: 70 laminas con mas
+# variedad de firmas contra 63. Un mazo con mas tipos distintos de lamina recibe
+# mas hallazgos a igualdad de calidad, asi que perseguir el 8 hasta el 5 seria
+# perseguir un artefacto. Lo que si es real es la dispersion DENTRO de un grupo.
+#
 .verif_gemelas_desiguales <- function(gem) {
   gem <- Filter(Negate(is.null), gem)
   vacio <- data.frame(firma = character(0), dif = numeric(0),
