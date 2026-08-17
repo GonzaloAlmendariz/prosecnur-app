@@ -24,6 +24,7 @@ import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasCuotasChart } from "./AulasCuotasChart";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
@@ -75,12 +76,6 @@ function primeraPestana(seccion: MonitoreoSeccion) {
   return pestanasDe(seccion)[0]?.key ?? "";
 }
 
-function fmt(value: unknown, fallback = "0") {
-  if (value == null || value === "") return fallback;
-  const n = Number(value);
-  if (Number.isFinite(n)) return new Intl.NumberFormat("es-PE").format(n);
-  return String(value);
-}
 
 
 function scopeForView(view: MonitoreoSeccion): MonitoreoReportScope {
@@ -107,27 +102,8 @@ function compactColumns(
   return keys.slice(0, maxColumns);
 }
 
-type AulasKpi = { label: string; value: string; tone?: "neutral" | "warn" };
-
-// Banda canonica: unifica los KPIs que antes estaban repartidos entre la
-// cabecera (3) y la fila de stats de avance (5). El color semantico (warn)
-// se reserva para brechas/cuotas con deficit real; el resto queda neutral
-// para no meter ruido verde en conteos que aun estan en 0.
-function aulasKpis(dashboard: MonitoreoAulasDashboard | null): AulasKpi[] {
-  const kpis = dashboard?.kpis;
-  const quotaOk = Number(kpis?.quota_cells_ok ?? 0);
-  const quotaAll = Number(kpis?.quota_cells ?? 0);
-  const quotaPending = Number(kpis?.quota_cells_pending ?? 0);
-  const brechas = Number(kpis?.brechas ?? 0);
-  return [
-    { label: "Cursos-horario", value: fmt(kpis?.total_aulas) },
-    { label: "Aplicadas", value: fmt(kpis?.aulas_aplicadas) },
-    { label: "Válidas", value: fmt(kpis?.respuestas_validas) },
-    { label: "Representatividad", value: pct(kpis?.representativity_effective_score) },
-    { label: "Cuotas sexo/facultad", value: `${fmt(quotaOk)}/${fmt(quotaAll)}`, tone: quotaPending ? "warn" : "neutral" },
-    { label: "Brechas", value: fmt(kpis?.brechas), tone: brechas ? "warn" : "neutral" },
-  ];
-}
+// La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
+// panel de Avance y así se puede probar sin montar la página.
 
 function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null }) {
   return (
@@ -139,7 +115,12 @@ function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null
       data-qa-geometry-contract="equal"
     >
       {aulasKpis(dashboard).map((kpi) => (
-        <div key={kpi.label} className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}>
+        <div
+          key={kpi.label}
+          className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
+          title={kpi.detalle}
+          aria-label={kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
+        >
           <span>{kpi.label}</span>
           <strong>{kpi.value}</strong>
         </div>
