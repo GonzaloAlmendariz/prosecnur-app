@@ -191,3 +191,41 @@
     height = v[[4]] * l[[4]]
   )
 }
+
+
+#' Recorta el slot del grafico hasta donde empieza su tabla
+#'
+#' Cuando el graficador adjunta una tabla con geometria propia, las dos piezas
+#' comparten cajon: el grafico entero y la tabla en su fraccion derecha. Sin
+#' recortar, la tabla se dibuja ENCIMA del canvas.
+#'
+#' El canvas llego a reservar el hueco por su cuenta —un panel vacio al lado del
+#' grafico— y el sitio quedaba pedido dos veces: el radar se encogia a la
+#' izquierda, quedaba un cuadro vacio en medio y la tabla al final, fuera del
+#' marco. Reservarlo aqui, en el slot, es lo que hace que sean piezas contiguas
+#' y no superpuestas.
+#'
+#' @param slot Slot del grafico, con `$loc` en pulgadas.
+#' @param geom_tab Salida de `.tabla_nativa_geom()`, o `NULL`.
+#' @return El slot, recortado si procede.
+#' @keywords internal
+.plot_slot_recortado_por_tabla <- function(slot, geom_tab) {
+  if (is.null(geom_tab) || is.null(slot)) return(slot)
+  loc <- slot$loc
+  if (is.null(loc)) return(slot)
+
+  izq <- suppressWarnings(as.numeric(loc$left)[1])
+  ancho <- suppressWarnings(as.numeric(loc$width)[1])
+  tab_izq <- suppressWarnings(as.numeric(geom_tab$left)[1])
+  if (!is.finite(izq) || !is.finite(ancho) || !is.finite(tab_izq)) return(slot)
+
+  nuevo <- tab_izq - izq
+  # Un recorte que deja al grafico sin sitio no es un recorte: es borrarlo. Por
+  # debajo de un tercio del cajon se prefiere el solape, que al menos deja ver
+  # las dos piezas.
+  if (!is.finite(nuevo) || nuevo <= ancho / 3) return(slot)
+  if (nuevo >= ancho) return(slot)
+
+  slot$loc$width <- nuevo
+  slot
+}

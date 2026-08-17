@@ -8285,17 +8285,23 @@ reporte_ppt_plan <- function(
         }
 
         plot_slot <- .plot_slot_for_rendered_plot(contract$slots$plot, p)
-        doc <- .ph_with_strict(
-          doc,
-          .dml_o_tabla(p),
-          plot_slot
-        )
 
         # Grafico Y tabla en el mismo cajon: el aprobado pone el radar a la
         # izquierda y su tabla a la derecha, las dos como formas propias. Si el
         # graficador adjunto la geometria de su tabla, se emite aqui como tabla
         # nativa. Ver `reporte_plan_tabla_nativa.R`.
         geom_tab <- .tabla_nativa_geom(p, plot_slot$loc %||% contract$slots$plot$loc)
+
+        # Y el grafico se aparta: sin esto los dos ocupan el mismo cajon y la
+        # tabla se dibuja ENCIMA del canvas. El canvas ya no reserva hueco
+        # —dejaba un cuadro vacio en medio—, asi que quien tiene que estrecharse
+        # es su slot. Se recorta hasta donde empieza la tabla.
+        plot_slot <- .plot_slot_recortado_por_tabla(plot_slot, geom_tab)
+        doc <- .ph_with_strict(
+          doc,
+          .dml_o_tabla(p),
+          plot_slot
+        )
         if (!is.null(geom_tab)) {
           nativa_tab <- .tabla_nativa_de(p)
           doc <- officer::ph_with(
