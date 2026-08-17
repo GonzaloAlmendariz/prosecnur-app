@@ -545,10 +545,9 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #'   numero de `lamina`; `NULL` si no hay barras que comparar.
 #' @keywords internal
 .verif_grosores_de_lamina <- function(formas, lamina) {
-  gr <- c(
-    .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA, exigir_sin_texto = TRUE)),
-    .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))
-  )
+  rampa <- .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA, exigir_sin_texto = TRUE))
+  azul  <- .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))
+  gr <- c(rampa, azul)
   if (!length(gr)) return(NULL)
   alt <- vapply(gr, function(g) g$grosor, numeric(1)) * .VERIF_CM_POR_IN
   ok <- is.finite(alt) & alt > 0
@@ -559,10 +558,19 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
   # solo esos metia en el mismo grupo cualquier lamina de un grafico —la
   # mayoria del mazo, que no son gemelas de nada— y producia una dispersion de
   # 1.75 cm que no era de nadie.
+  #
+  # Y lleva la PALETA, porque cada familia declara su propio alto de fila —el
+  # preset da 0.54 in a apiladas, 0.58 a multi-apiladas y 0.64 a agrupadas— y la
+  # barra es una fraccion de ese alto: dos familias distintas tienen distinto
+  # grosor POR DISENO. Sin la paleta, el grupo de «6 barras» juntaba cinco
+  # multi-apiladas con un RADAR y marcaba como defecto esa diferencia. La paleta
+  # no es la familia, pero es lo que el XML deja distinguir.
+  paleta <- c(rep("rampa", length(rampa)), rep("azul", length(azul)))[ok]
   barras <- vapply(gr, function(g) g$n, integer(1))[ok]
+  orden <- order(paleta, barras)
   list(
     lamina = lamina,
-    firma = paste(sort(barras), collapse = "-"),
+    firma = paste(paleta[orden], barras[orden], sep = ":", collapse = "-"),
     grosor = stats::median(alt[ok])
   )
 }
