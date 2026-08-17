@@ -52,6 +52,27 @@
 # por abajo, y ese cruce es el mismo que hizo saltar R5 de 0 a 11 en un intento
 # anterior. El grosor no se arregla recortando el estirado; se arregla en lo que
 # el estirado viene a compensar, que es el hueco vacio de la lamina (P23).
+#
+# REPETIDO EN P37 con OTRO estado —reserva de pie ya reparada a 0.5 y la paleta
+# azul ya medida con R10/R11—, porque un descarte vale solo para el estado en
+# que se midio. El resultado no cambia y ahora se sabe POR QUE:
+#
+#   maximo azul  2.751 -> 2.551 cm   (el aprobado esta en 1.805)
+#   p90 azul     2.20  -> 2.08
+#   R10              4 -> 4          <- NO QUITA NI UNO
+#   VARA            23 -> 24         <- aparece R5, otra vez
+#
+# La razon estructural: la barra sale gruesa porque su FRACCION de fila
+# (`grosor_eff`) es alta, no porque la fila sea alta. Recortar el panel acorta
+# la fila —y devuelve el hueco vacio de P23— sin bajar la fraccion, asi que el
+# grosor cede una decima parte y sigue al doble del techo. El unico lever que
+# funcionaria es `grosor_eff`, y el `geom_col(width = grosor_eff)` se construye
+# ANTES de que se conozca el alto fisico de la fila: el graficador decide la
+# fraccion sin saber cuantos centimetros mide lo que dibuja.
+#
+# Arreglarlo de verdad exige REORDENAR —calcular el alto del canvas antes de
+# construir el geom—, no ajustar una constante. No volver a intentarlo con un
+# tope.
 .GROSOR_TECHO_IN <- 0.7087
 
 # Rejilla del grosor de barra, en pulgadas. 0.0394 in = 1 mm.
