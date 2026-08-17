@@ -275,3 +275,39 @@ test_that("el orden derivado vuelve al campo, no se queda en la variable local",
   ))
   expect_identical(unname(ordenes(declarado)[sprintf("R 4.%d", 1:3)]), c(10, 20, 30))
 })
+
+test_that("la activacion devuelve la advertencia de ponderacion de la reserva que entra", {
+  # La escribe Calculo de muestra y esta redactada para ESTE momento —«usar peso
+  # analitico final solo si se activa en campo»—. Viajaba en el plan y quien
+  # pulsa el boton no la veia nunca.
+  aviso <- "Reserva condicional: usar peso analitico final solo si se activa en campo."
+  plan <- list(
+    list(operational_code = "CH 4", classroom_id = "CH 4", sample_role = "titular",
+         sample_status = "agendada", replacement_for = ""),
+    list(operational_code = "R 4.1", classroom_id = "R 4.1", sample_role = "chain_reserve",
+         sample_status = "en_reserva", replacement_for = "CH 4", replacement_order = 1,
+         analysis_weight_warning = aviso)
+  )
+  res <- monitoreo_aulas_activar_reemplazo(plan, "CH 4", motivo = "docente_no_autoriza")
+
+  expect_identical(res$activada, "R 4.1")
+  expect_identical(res$advertencia_peso, aviso)
+  # Y NO se toca `activation_weight_status`: mostrar no es mutar. Es la decision
+  # de la cabecera del modulo y este aserto la sostiene.
+  reserva <- Filter(function(r) identical(r$operational_code, "R 4.1"), res$plan)[[1]]
+  expect_null(reserva$activation_weight_status)
+})
+
+test_that("una reserva sin advertencia devuelve cadena vacia, no NULL ni NA", {
+  # La UI decide mostrar el renglon con `if (avisoPeso)`. Un NULL serializado
+  # como `null` y un NA como `"NA"` pintarian un aviso con texto basura.
+  plan <- list(
+    list(operational_code = "CH 5", classroom_id = "CH 5", sample_role = "titular",
+         sample_status = "agendada", replacement_for = ""),
+    list(operational_code = "R 5.1", classroom_id = "R 5.1", sample_role = "chain_reserve",
+         sample_status = "en_reserva", replacement_for = "CH 5", replacement_order = 1)
+  )
+  res <- monitoreo_aulas_activar_reemplazo(plan, "CH 5", motivo = "aula_cerrada")
+
+  expect_identical(res$advertencia_peso, "")
+})
