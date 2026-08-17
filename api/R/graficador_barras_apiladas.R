@@ -3721,7 +3721,20 @@ graficar_barras_apiladas <- function(
       # BARRAS. Repararlo pide centrar en `w_etq + (1 - w_etq) / 2` y pasarle esa
       # anchura a `.barras_leyenda_filas()` para que envuelva dentro de ella; el
       # riesgo a medir es que gane una fila y le quite alto al panel (P23/B3).
-      pos_leyenda_x <- 0.5
+      # Centrada sobre el AREA DE BARRAS, no sobre el canvas. El 0.5 de antes la
+      # metia 1.50 in dentro de la columna de etiquetas —lamina 60 del mazo de
+      # Conta, cuya cuarta premisa ocupa cuatro lineas y quedaba pisada—. El
+      # aprobado la centra sobre sus barras: las suyas arrancan en 5.50 in y su
+      # leyenda en 6.98, a la derecha. No era problema de ancho: la leyenda mide
+      # 9.28 in de las 13.33 del canvas.
+      #
+      # Se toca SOLO el centro y no el ancho que se le pasa a
+      # `.barras_leyenda_filas()`: cambiar ese ancho le haria ganar una fila y
+      # comerle alto al panel, que es territorio de P23 y B3.
+      pos_leyenda_x <- x_bars0 + (w_bars / 2)
+      if (!is.finite(pos_leyenda_x) || pos_leyenda_x <= 0 || pos_leyenda_x >= 1) {
+        pos_leyenda_x <- 0.5
+      }
       if (!is.na(centro_cowplot) && is.finite(centro_cowplot)) pos_leyenda_x <- centro_cowplot
 
       y_legend_center <- y_legend0 + (legend_h * 0.5)

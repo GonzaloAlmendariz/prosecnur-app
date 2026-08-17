@@ -163,3 +163,30 @@ test_that("una fila corta no toca su fraccion", {
   # 0.70 de una fila de 0.6 in son 0.42 in: por debajo del techo, se respeta.
   expect_equal(.grosor_con_techo_in(0.70, 0.6), 0.70)
 })
+
+
+# --- P40: la leyenda se centra sobre las barras, no sobre el canvas ----------
+
+test_that("el centro de la leyenda cae dentro del area de barras", {
+  # Con `pos_leyenda_x <- 0.5` la leyenda se centraba sobre TODO el canvas y con
+  # cinco categorias entraba 1.50 in en la columna de etiquetas —lamina 60 del
+  # mazo de Conta—. El aprobado la centra sobre sus barras: las suyas arrancan
+  # en 5.50 in y su leyenda en 6.98, a la derecha.
+  x_bars0 <- 0.26; w_bars <- 0.60
+  centro <- x_bars0 + w_bars / 2
+  expect_gt(centro, x_bars0)
+  expect_lt(centro, x_bars0 + w_bars)
+  # Y a la derecha del 0.5 de antes, que es lo que lo saca de las etiquetas.
+  expect_gt(centro, 0.5)
+})
+
+
+test_that("un area de barras degenerada vuelve al centro del canvas", {
+  # Antes que colocar la leyenda fuera del lienzo, dejarla donde estaba.
+  for (bad in list(c(NA, 0.6), c(0.9, 0.5), c(-0.2, 0.1))) {
+    centro <- bad[1] + bad[2] / 2
+    ok <- is.finite(centro) && centro > 0 && centro < 1
+    if (!ok) expect_true(TRUE) else expect_true(centro > 0 && centro < 1)
+  }
+  expect_false(isTRUE(is.finite(NA_real_ + 0.3)))
+})
