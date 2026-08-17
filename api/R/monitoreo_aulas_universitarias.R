@@ -1226,6 +1226,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     quotas_sex_faculty = quotas_sex_faculty,
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
+    # El parte de campo entero, no solo lo que no cuadra. El control de
+    # Validacion nombraba las aulas descuadradas y no habia donde ir a mirarlas;
+    # y lo que el equipo anota en la hoja «Aulas Aplicadas (Campo)» no se veia
+    # en ninguna tabla. La resta la calcula el mismo helper que decide el
+    # descuadre, asi que la tabla y el aviso no pueden discrepar.
+    partes_campo = monitoreo_aulas_partes_publicados(partes_campo),
     representativity = representativity,
     validation = .monitoreo_aulas_records(validation)
   )

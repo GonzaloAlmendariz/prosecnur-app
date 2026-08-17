@@ -220,6 +220,7 @@ export const MONITOREO_PESTANAS = {
     consultas: [
       pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
       pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
+      pestana("aulas", "consultas", "parte", "Parte de campo", "Lo que se anotó en cada aula", ClipboardCheck),
     ],
   },
 } as const satisfies Record<

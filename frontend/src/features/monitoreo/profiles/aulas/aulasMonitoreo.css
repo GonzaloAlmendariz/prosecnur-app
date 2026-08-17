@@ -1250,3 +1250,23 @@
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel {
   grid-template-rows: auto auto minmax(0, 1fr);
 }
+
+/* El aviso del parte: cuántos no cuadran. Es el destino que le faltaba al
+   control «Cuadre del parte de campo», así que se pinta con la severidad de una
+   revisión, no como una nota más. */
+.mon-profile-page.is-aulas-flow .aulas-parte-aviso {
+  margin: 0;
+  padding: 8px 11px;
+  border-left: 3px solid color-mix(in srgb, #a61d4f 60%, var(--pulso-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #a61d4f 5%, #fff);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Cabecera + aviso + tabla: tres filas declaradas. Con dos, el aviso se dibuja
+   encima de la tabla —el mismo tropiezo de la agenda por día—. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(.aulas-parte-aviso) {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
