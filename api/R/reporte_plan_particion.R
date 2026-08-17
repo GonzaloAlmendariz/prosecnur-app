@@ -80,8 +80,57 @@
 # numero para las dos.
 .PARTICION_MAX_BARRAS <- 7L
 
+# Techo para las laminas DICOTOMICAS, las de dos categorias por barra.
+#
+# El aprobado trata las dos familias distinto y la constante de arriba las
+# trataba igual. Medido con la maquinaria de `.verif_graficos()` sobre sus dos
+# paletas: en rampa no pasa nunca de siete barras por grafico, pero en azul
+# dicotomico llega a ocho (su lamina 18) y a doce por lamina. Y el techo unico
+# salia de `calibrar_umbrales()`, que deriva `barras_por_grafico` de
+# `barras_escala` — solo la rampa—: un umbral calibrado sobre media muestra
+# aplicado a las dos.
+#
+# Una barra dicotomica aguanta mas filas porque no tiene que repartir su ancho
+# entre cuatro o cinco segmentos con su cifra dentro: lo que la hace ilegible es
+# el grosor, no el numero de tramos.
+.PARTICION_MAX_BARRAS_DICOTOMICA <- 12L
+
 # Sufijo del titulo de las laminas de continuacion.
 .PARTICION_SUFIJO_CONT <- "(cont.)"
+
+
+#' Techo de barras que le toca a un elemento por su familia
+#'
+#' `top2box` es la senal disponible en el plan: una lamina de escala declara su
+#' top two box, y una dicotomica no puede tenerlo —no hay dos categorias
+#' superiores que sumar en un si/no—. Comprobado sobre el plan de Conta: sus
+#' tres elementos con `top2box = FALSE` son exactamente los tres dicotomicos, de
+#' 8, 13 y 13 barras.
+#'
+#' Solo un `FALSE` EXPLICITO abre el techo. Ausente se trata como escala, que es
+#' el techo estrecho: si la ausencia ensanchara, un plan viejo que no declara el
+#' campo —o un elemento armado a mano— empezaria a juntar doce barras sin que
+#' nadie lo pidiera, y el ensanchado tiene que ser una declaracion, no un
+#' descuido. Tres tests de esta misma suite lo cazaron cuando el default era el
+#' contrario.
+#'
+#' LIMITE, y se prefiere a un techo unico: una escala de cuatro categorias a la
+#' que el analista le declarara `top2box = FALSE` se leeria aqui como dicotomica
+#' y se le dejarian pasar doce barras. El coste esta acotado y es visible —la
+#' regla `R2 barras por grafico` mide justo eso—, mientras que el techo unico
+#' parte laminas que el entregable aprobado no parte.
+#'
+#' @param el Elemento de escala.
+#' @param max_barras Techo de las laminas de escala.
+#' @param max_dicotomica Techo de las dicotomicas.
+#' @return El techo aplicable.
+#' @keywords internal
+.particion_max_barras_de <- function(el,
+                                     max_barras = .PARTICION_MAX_BARRAS,
+                                     max_dicotomica = .PARTICION_MAX_BARRAS_DICOTOMICA) {
+  if (!identical(el$top2box, FALSE)) return(max_barras)
+  max(max_barras, max_dicotomica)
+}
 
 
 #' Indica si un elemento es una escala particionable
@@ -232,8 +281,10 @@
     if (length(graficables) == 1L && .particion_es_escala(graficables[[1]])) {
       el <- graficables[[1]]
       tam <- .particion_tam_grupos(el)
-      if (!is.null(tam) && sum(tam) > max_barras) {
-        tandas <- .particion_repartir(tam, max_barras)
+      # El techo no es uno solo: una dicotomica aguanta mas filas que una escala.
+      techo <- .particion_max_barras_de(el, max_barras)
+      if (!is.null(tam) && sum(tam) > techo) {
+        tandas <- .particion_repartir(tam, techo)
         if (length(tandas) > 1L) {
           # El slot que hay que reemplazar es el que contiene la escala.
           slot_nm <- NULL
@@ -252,7 +303,7 @@
               paste("Una lamina de escala se partio en %d: %d barras no caben",
                     "legibles en una sola (el maximo es %d). Reduce publicos o",
                     "premisas si prefieres tenerlas juntas."),
-              length(tandas), sum(tam), max_barras
+              length(tandas), sum(tam), techo
             ))
           }
         }

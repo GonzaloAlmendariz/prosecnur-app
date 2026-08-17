@@ -185,3 +185,64 @@ test_that("no se parte si titulos_grupo y vars no van a la par", {
   out <- .plan_particionar_escalas(list(.slide_con(el)), .els_de)
   expect_length(out, 1L)
 })
+
+
+# --- Techo por familia ------------------------------------------------------
+#
+# El aprobado trata las dos paletas distinto y la constante las trataba igual.
+# Medido con `.verif_graficos()` sobre sus dos paletas: en rampa no pasa nunca de
+# siete barras por grafico, pero en azul dicotomico llega a ocho —su lamina 18—
+# y a doce por lamina. El techo unico salia de `calibrar_umbrales()`, que deriva
+# `barras_por_grafico` de `barras_escala`: solo la rampa.
+
+test_that("una escala conserva el techo de siete", {
+  el <- structure(list(top2box = TRUE), class = "ppt_element")
+  expect_equal(.particion_max_barras_de(el), .PARTICION_MAX_BARRAS)
+})
+
+
+test_that("una dicotomica aguanta hasta doce", {
+  # Una barra de si/no no reparte su ancho entre cuatro tramos con su cifra
+  # dentro: lo que la hace ilegible es el grosor, no el numero de segmentos.
+  el <- structure(list(top2box = FALSE), class = "ppt_element")
+  expect_equal(.particion_max_barras_de(el), .PARTICION_MAX_BARRAS_DICOTOMICA)
+  expect_gt(.PARTICION_MAX_BARRAS_DICOTOMICA, .PARTICION_MAX_BARRAS)
+})
+
+
+test_that("sin `top2box` declarado NO se ensancha el techo", {
+  # El ensanchado tiene que ser una declaracion, no un descuido: un plan viejo
+  # que no trae el campo, o un elemento armado a mano, se sigue partiendo como
+  # antes. Con el default contrario, tres tests de esta misma suite empezaron a
+  # ver doce barras donde exigian siete.
+  el <- structure(list(), class = "ppt_element")
+  expect_equal(.particion_max_barras_de(el), .PARTICION_MAX_BARRAS)
+  expect_equal(.particion_max_barras_de(structure(list(top2box = NULL),
+                                                 class = "ppt_element")),
+               .PARTICION_MAX_BARRAS)
+})
+
+
+test_that("el techo de dicotomica nunca queda por debajo del de escala", {
+  # Si alguien bajara la constante de dicotomicas, una dicotomica se partiria
+  # antes que la escala que aguanta menos filas — al reves de lo medido.
+  el <- structure(list(top2box = FALSE), class = "ppt_element")
+  expect_gte(.particion_max_barras_de(el, max_barras = 20L, max_dicotomica = 12L), 20L)
+})
+
+
+test_that("una dicotomica de ocho barras YA NO se parte", {
+  # Es la lamina 15 del plan de Conta, y el aprobado la lleva entera.
+  tam <- c(4L, 4L)
+  el <- structure(list(top2box = FALSE), class = "ppt_element")
+  expect_length(.particion_repartir(tam, .particion_max_barras_de(el)), 1L)
+  # Con el techo unico se partia en dos.
+  expect_length(.particion_repartir(tam, .PARTICION_MAX_BARRAS), 2L)
+})
+
+
+test_that("una escala de ocho barras si se sigue partiendo", {
+  tam <- c(4L, 4L)
+  el <- structure(list(top2box = TRUE), class = "ppt_element")
+  expect_length(.particion_repartir(tam, .particion_max_barras_de(el)), 2L)
+})
