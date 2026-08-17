@@ -904,15 +904,34 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # Las reemplazadas tampoco pertenecen a ese eje: no es que falte agendarlas, es
   # que cayeron y su reserva tomo el relevo. Tienen tramo propio.
   muestra <- tolower(trimws(as.character(rows$sample_status %||% "")))
-  agendada_en_muestra <- muestra %in% c("agendada", "reagendada") |
-    grepl("^en reserva", muestra)
+  # `grepl("^en reserva", ...)` estaba aqui y NO PODIA CASAR NUNCA: el
+  # normalizador convierte «EN RESERVA 1» en `en_reserva`, con guion bajo. Era
+  # una regla escrita que no se aplicaba, y las reservas caian en «pendiente».
+  #
+  # Y tratarlas como agendadas tampoco era lo correcto: una reserva en el banco
+  # NO esta agendada ni hay que agendarla. Contarla entre las pendientes le dice
+  # al coordinador que salga a agendar ocho aulas que no debe tocar salvo que
+  # caiga su titular. Medido: las 8 que decian «Sin agendar» eran las 8 reservas
+  # libres, y ademas con fecha en la fila. Tramo propio, como las reemplazadas.
+  agendada_en_muestra <- muestra %in% c("agendada", "reagendada")
+  # MISMA definicion que `monitoreo_aulas_reservas_disponibles()`: una reserva
+  # que el motor considera disponible es la que esta en el banco. Si las dos
+  # divergen, el tramo dira que hay reservas que la activacion ya no ofrece.
+  #
+  # El rol es imprescindible: `sin_contactar` —que es a lo que el normalizador
+  # manda el vacio— en un TITULAR si es «Sin agendar». Meterlo sin mirar el rol
+  # mandaba al banco a todo titular sin estado, y el aserto de control lo cazo.
+  rol <- tolower(trimws(as.character(rows$sample_role %||% "")))
+  en_reserva <- muestra %in% "en_reserva" |
+    (rol %in% "chain_reserve" & muestra %in% c("en_reserva", "sin_contactar", ""))
   rows$application_state <- ifelse(
     rows$operational_status %in% c("aplicada", "cerrada") | (rows$respuestas_validas >= meta & meta > 0),
     "cerrando",
     ifelse(rows$responses_total > 0 | rows$operational_status %in% c("en_campo", "parcial"), "en_aplicacion",
            ifelse(muestra == "reemplazada", "reemplazada",
                   ifelse(rows$operational_status %in% c("agendada", "contactada") | agendada_en_muestra,
-                         "lista", "pendiente")))
+                         "lista",
+                         ifelse(en_reserva, "en_reserva", "pendiente"))))
   )
   cols <- intersect(c(
     "operational_code", "titular_operational_code", "wave", "classroom_id",

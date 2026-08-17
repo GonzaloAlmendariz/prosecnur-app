@@ -202,9 +202,9 @@ export function aulasKpis(
       {
         label: "Sin empezar",
         icono: AlertCircle,
-        value: fmt(estado.sinEmpezar),
-        pista: "no han recibido ni una respuesta",
-        tone: estado.sinEmpezar ? "warn" : "neutral",
+        value: fmt(estado.sinSalirACampo),
+        pista: "agendadas que aún no salen a campo",
+        tone: estado.sinSalirACampo ? "warn" : "neutral",
       },
     ];
   }

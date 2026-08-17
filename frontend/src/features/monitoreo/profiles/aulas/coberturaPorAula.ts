@@ -62,5 +62,18 @@ export function coberturaPorAula(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     tramos[indice < 0 ? TRAMOS.length - 1 : indice].aulas += 1;
   }
 
-  return { tramos, sinMeta, total: filas.length };
+  return {
+    tramos,
+    sinMeta,
+    total: filas.length,
+    /**
+     * Las que no han recibido NI UNA respuesta.
+     *
+     * Se publica para que nadie la vuelva a derivar por su cuenta: el pie del
+     * gráfico de estados la sacaba sumando los dos primeros tramos DE OTRO eje
+     * —el de agendamiento, y por posición— y decía 14 mientras este panel, un
+     * dedo más abajo, decía 48. El eje del agendamiento no sabe de respuestas.
+     */
+    sinRespuestas: tramos[0].aulas,
+  };
 }

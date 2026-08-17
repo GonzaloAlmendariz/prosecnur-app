@@ -21,6 +21,16 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
  */
 export const COLOR_AULA_LISTA = "#002457";
 
+/**
+ * El banco de reservas: existe, cuesta, y todavía no está en juego.
+ *
+ * Ni `pendiente` —que ya es «Sin agendar» y volvería a mezclarlas— ni un color
+ * de desenlace: una reserva sin activar no es un resultado de encuesta. Se toma
+ * el azul de marca aclarado, que en el resto de la app significa «declarado
+ * pero inactivo».
+ */
+export const COLOR_AULA_EN_RESERVA = "#8fa3bf";
+
 export type EstadoDeAplicacion = {
   /** Clave tal como la emite `course_status.application_state`. */
   clave: string;
@@ -57,6 +67,17 @@ export const TRAMOS_DE_APLICACION = [
   // «Sin agendar», 26 eran éstas y 22 estaban agendadas con fecha —ni una sola
   // estaba realmente sin agendar—.
   { clave: "reemplazada", etiqueta: "Reemplazada", color: COLOR_RESULTADO.revision },
+  // `EN RESERVA n` en **STATUS MUESTRA**. Tampoco pertenece al eje de
+  // agendamiento: una reserva del banco no está sin agendar, es que NO hay que
+  // agendarla salvo que caiga su titular. Contarla entre las pendientes le
+  // pedía al coordinador que saliera a agendar ocho aulas que no debía tocar.
+  //
+  // El motor tenía escrita la regla —`grepl("^en reserva", …)`— y no podía casar
+  // nunca: el normalizador ya había convertido «EN RESERVA 1» en `en_reserva`,
+  // con guion bajo. Una regla muerta que documentaba un criterio inexistente.
+  // Gris de marca y no el `pendiente` de «Sin agendar»: son estados distintos y
+  // compartir color los volvería a mezclar, que es de lo que veníamos.
+  { clave: "en_reserva", etiqueta: "En reserva", color: COLOR_AULA_EN_RESERVA },
 ] as const;
 
 /**
@@ -84,7 +105,17 @@ export function estadoDeAplicacion(filas: ReadonlyArray<MonitoreoAulasPlanRow>) 
     estados,
     desconocidas,
     total: filas.length,
-    /** Las que aún no han recibido ni una respuesta: sin agendar más agendadas. */
-    sinEmpezar: estados[0].aulas + estados[1].aulas,
+    /**
+     * Las que todavía no han salido a campo: sin agendar más agendadas.
+     *
+     * NO es «sin respuestas», que es lo que decía y contaba por POSICIÓN
+     * —`estados[0] + estados[1]`—. Dos problemas a la vez: el eje del
+     * agendamiento no sabe de respuestas, y al entrar el sexto tramo los
+     * índices dejaron de señalar lo que el comentario prometía. Quien quiera
+     * las aulas sin una sola respuesta usa `coberturaPorAula().sinRespuestas`,
+     * que sale del eje que sí las cuenta.
+     */
+    sinSalirACampo: estados.filter((e) => e.clave === "pendiente" || e.clave === "lista")
+      .reduce((total, e) => total + e.aulas, 0),
   };
 }
