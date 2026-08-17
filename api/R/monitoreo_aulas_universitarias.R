@@ -384,6 +384,9 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),
     pdf_link = get(c("pdf_link", "pdf_url", "pdf", "ficha_pdf"), ""),
     package_label = get(c("package_label", "selection_label", "seleccion", "muestra"), ""),
+    # Se DERIVA mas abajo cuando el plan no lo trae. Nada lo escribia nunca:
+    # medido, 196 de 196 vacio, y la vista lo pintaba como «Por revisar», que
+    # invita a revisar una ficha que no existe.
     package_status = get(c("package_status", "estado_paquete"), ""),
     collector_id = get(c("collector_id", "collector", "collectorId"), ""),
     # Identificador que Recopiladores cuelga del QR (`d[collectorID]=`). Es el
@@ -461,6 +464,27 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   out$sample_status <- vapply(out$sample_status, monitoreo_aulas_estado_muestra, character(1))
   out$application_status <- vapply(out$application_status, monitoreo_aulas_estado_aplicacion, character(1))
   out$replacement_reason <- vapply(out$replacement_reason, function(x) if (nzchar(x)) .monitoreo_aulas_reason(x) else "", character(1))
+  # El estado de la ficha del aula, DERIVADO de los materiales que existen.
+  #
+  # `package_status` es un campo que ningun proceso escribia —medido: vacio en
+  # las 196 del operativo— y la vista lo rotulaba «Por revisar», que suena a que
+  # hay una ficha esperando revision cuando lo que pasa es que no hay ninguna.
+  # El vocabulario de estos estados ya existia en la capa de presentacion
+  # (`pendiente_enlace`, `listo_para_pdf`, `pdf_preparado`); lo que faltaba era
+  # que alguien los emitiera.
+  #
+  # Se deriva SOLO cuando el plan no trae valor: si un dia Recopiladores empieza
+  # a escribirlo, ese valor manda.
+  materiales <- !nzchar(out$package_status)
+  if (any(materiales)) {
+    tiene <- function(col) nzchar(out[[col]]) & materiales
+    out$package_status[materiales] <- "pendiente_enlace"
+    # El enlace es la condicion de todo lo demas: sin el, el QR no lleva a
+    # ninguna parte y la ficha impresa no sirve.
+    con_enlace <- (tiene("link") | tiene("qr"))
+    out$package_status[con_enlace] <- "listo_para_pdf"
+    out$package_status[tiene("pdf_link") | tiene("word_link")] <- "pdf_preparado"
+  }
   out$sex_top_1_n[!is.finite(out$sex_top_1_n)] <- 0
   out$sex_top_2_n[!is.finite(out$sex_top_2_n)] <- 0
   out$enrolled_total[!is.finite(out$enrolled_total)] <- 0

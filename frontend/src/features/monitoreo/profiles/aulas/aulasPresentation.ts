@@ -253,9 +253,22 @@ export function aulasCheckLabel(check: unknown) {
   return CHECK_LABELS[key] ?? fallbackLabel(String(check ?? ""));
 }
 
+/**
+ * El nombre de un estado.
+ *
+ * Un estado VACÍO ya no dice «Por revisar». Decía eso, y a dos renglones de
+ * distancia el estado `review` de un control dice «Revisar»: la misma palabra
+ * para un hallazgo del control y para la ausencia de dato, que son lo contrario
+ * uno del otro. Medido sobre el operativo: las 196 aulas mostraban «Estado de
+ * ficha: Por revisar» con `package_status` vacío en las 196 —no había ninguna
+ * ficha que revisar—.
+ *
+ * Un guion largo no es un hueco: es la forma en que una tabla dice «aquí no hay
+ * dato» sin fingir que lo hay.
+ */
 export function aulasStatusLabel(status: unknown) {
   const key = normalizedKey(status);
-  return STATUS_LABELS[key] ?? (key ? fallbackLabel(String(status)) : "Por revisar");
+  return STATUS_LABELS[key] ?? (key ? fallbackLabel(String(status)) : "—");
 }
 
 function presentValue(field: string, value: unknown) {
