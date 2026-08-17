@@ -224,3 +224,156 @@ test_that("guardar NO borra la referencia previa cuando la nueva viene vacia", {
                                    referencia_criterios = NULL)
   expect_equal(length(.cm_state_payload(sid)$aulas$referencia_criterios$por_facultad), 3L)
 })
+
+# El rescate: una sesion que cargo el historico ANTES de que este bloque
+# existiera se quedaba sin comparacion para siempre.
+#
+# Gonzalo, con HSVG2026 abierto y el libro de 2025 ya cargado: «¿por que dice
+# todavia sin cargar si ya lo cargamos?». El dato estaba, en la referencia de
+# ASISTENCIA que el mismo endpoint escribe.
+
+.rc_asist <- function(filas = NULL, estudio = list(periodo = "2025-2", label = "HSVBG 2025")) {
+  list(
+    estudio = estudio,
+    cuotas = list(
+      unidad = "cumplimiento_de_cuota",
+      filas = filas %||% list(
+        list(facultad = "CIENCIAS E INGENIERIA", aulas = 231L, cuota_total = 523,
+             cuota_mujeres = 130, cuota_hombres = 393, logradas = 512),
+        list(facultad = "EDUCACION", aulas = 8L, cuota_total = 26,
+             cuota_mujeres = 21, cuota_hombres = 5, logradas = 24)
+      )
+    )
+  )
+}
+
+test_that("la referencia se rescata de la asistencia ya guardada", {
+  r <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist())
+  expect_equal(r$schema, "calc_muestra_referencia_criterios_v1")
+  expect_equal(r$periodo, "2025-2")
+  expect_equal(length(r$por_facultad), 2L)
+  f <- .cm_ref_crit_buscar(r, "CIENCIAS E INGENIERIA")
+  expect_equal(f$cuota, 523)
+  expect_equal(f$cuota_mujeres, 130)
+  expect_equal(f$efectivas_logradas, 512)
+})
+
+test_that("las aulas de la asistencia son las SORTEADAS, no los titulares", {
+  # Llamarlas titulares inventaria una cifra que el libro no publica: en 2025 el
+  # pool sorteado fue 1.097 y los titulares 170.
+  f <- .cm_ref_crit_buscar(
+    calc_muestra_referencia_criterios_desde_asistencia(.rc_asist()),
+    "CIENCIAS E INGENIERIA"
+  )
+  expect_equal(f$aulas_sorteadas, 231)
+  expect_true(is.na(f$aulas_titulares))
+  # Lo que la asistencia no guarda sigue siendo NA, jamas 0.
+  expect_true(is.na(f$piso_matriculados))
+  expect_true(is.na(f$poblacion))
+})
+
+test_that("no se rescata un metodo general que nadie leyo", {
+  # Publicar un metodo inventado haria que la tarjeta dijera «si, igual» sobre
+  # decisiones que la asistencia no guarda.
+  r <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist())
+  expect_equal(length(r$general), 0L)
+})
+
+test_that("sin cuotas en la asistencia NO se inventa una referencia", {
+  # `.cm_asist_cuotas` publica NA cuando el bloque no existe.
+  expect_null(calc_muestra_referencia_criterios_desde_asistencia(list(cuotas = NA)))
+  expect_null(calc_muestra_referencia_criterios_desde_asistencia(list()))
+  expect_null(calc_muestra_referencia_criterios_desde_asistencia(NULL))
+  expect_null(calc_muestra_referencia_criterios_desde_asistencia(
+    list(cuotas = list(filas = list()))))
+  # Una fila sin nombre de facultad no cuenta.
+  expect_null(calc_muestra_referencia_criterios_desde_asistencia(
+    .rc_asist(filas = list(list(aulas = 3L, cuota_total = 10)))))
+})
+
+test_that("el payload RESCATA la referencia cuando solo esta la de asistencia", {
+  # Es la aplicacion, no el helper: si nadie lo colgara del payload la sesion de
+  # Gonzalo seguiria diciendo «todavia sin cargar» y los tests de arriba
+  # seguirian verdes.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  expect_null(.cm_state_payload(sid)$aulas$referencia_criterios)
+  session_set(sid, "calc_muestra_referencia_asistencia", .rc_asist())
+  pub <- .cm_state_payload(sid)$aulas$referencia_criterios
+  expect_equal(pub$schema, "calc_muestra_referencia_criterios_v1")
+  expect_equal(length(pub$por_facultad), 2L)
+  expect_equal(pub$periodo, "2025-2")
+})
+
+test_that("la referencia GUARDADA gana sobre el rescate", {
+  # El rescate es un piso, no un reemplazo: la que salio de las hojas `cuotas` y
+  # `diseno` trae el metodo general, y perderlo seria una regresion.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "calc_muestra_referencia_asistencia", .rc_asist())
+  session_set(sid, "calc_muestra_referencia_criterios",
+              calc_muestra_referencia_criterios_desde_base(.rc_cuotas(), .rc_diseno()))
+  pub <- .cm_state_payload(sid)$aulas$referencia_criterios
+  expect_equal(length(pub$por_facultad), 3L)
+  expect_equal(pub$general$metodo_seleccion, "Sistemático sobre el marco")
+})
+
+# Segundo piso del rescate: la referencia de HSVG2026 es de un schema ANTERIOR y
+# no tiene el bloque `cuotas` —tampoco `serie_campo` ni `cadenas_reemplazo`—.
+# Lo que si sobrevivio son las quince filas de la dimension `facultad`.
+
+.rc_asist_vieja <- function() list(
+  estudio = list(periodo = "", label = "HSVBG2025_referencia_para_motor.xlsx"),
+  dimensiones = list(
+    list(dimension_key = "rango_horario", filas = list(list(celda_label = "Mañana", k = 4))),
+    list(dimension_key = "facultad", dimension_label = "Facultad", filas = list(
+      list(celda_key = "arquitectura_y_urbanismo", celda_label = "ARQUITECTURA Y URBANISMO",
+           k = 7, matriculados = 267, asistentes = 215),
+      list(celda_key = "estudios_generales_letras", celda_label = "ESTUDIOS GENERALES LETRAS",
+           k = 23, matriculados = 1264, asistentes = 801)
+    ))
+  )
+)
+
+test_that("sin bloque `cuotas` el rescate cae a la dimension `facultad`", {
+  r <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_vieja())
+  expect_equal(length(r$por_facultad), 2L)
+  f <- .cm_ref_crit_buscar(r, "ARQUITECTURA Y URBANISMO")
+  # 267 matriculados en 7 aulas medidas.
+  expect_equal(round(f$alumnos_por_ch, 2), round(267 / 7, 2))
+})
+
+test_that("la `k` de la dimension NO se publica como aulas de ninguna clase", {
+  # Son las aulas donde se MIDIO asistencia: en 2025 el pool sorteado fue 1.097,
+  # los titulares 170 y las aplicadas 194. Ninguna de las tres es `k`.
+  f <- .cm_ref_crit_buscar(
+    calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_vieja()),
+    "ESTUDIOS GENERALES LETRAS"
+  )
+  expect_true(is.na(f$aulas_sorteadas))
+  expect_true(is.na(f$aulas_titulares))
+  expect_true(is.na(f$aulas_universo))
+  # Y los matriculados de las aulas medidas NO son la poblacion de la facultad.
+  expect_true(is.na(f$poblacion))
+})
+
+test_that("el bloque `cuotas` GANA sobre la dimension cuando ambos estan", {
+  # El primer piso trae cuotas y efectivas; caer al segundo teniendo el primero
+  # perderia datos sin avisar.
+  mixta <- .rc_asist_vieja()
+  mixta$cuotas <- .rc_asist()$cuotas
+  r <- calc_muestra_referencia_criterios_desde_asistencia(mixta)
+  expect_equal(length(r$por_facultad), 2L)
+  expect_equal(.cm_ref_crit_buscar(r, "CIENCIAS E INGENIERIA")$cuota, 523)
+})
+
+test_that("una dimension `facultad` sin k utilizable no produce filas", {
+  # Un k de 0 daria una division por cero disfrazada de estadistico.
+  vacia <- .rc_asist_vieja()
+  vacia$dimensiones[[2]]$filas <- list(
+    list(celda_label = "EDUCACION", k = 0, matriculados = 100),
+    list(celda_label = "", k = 5, matriculados = 100),
+    list(celda_label = "DERECHO", k = 5)
+  )
+  expect_null(calc_muestra_referencia_criterios_desde_asistencia(vacia))
+})
