@@ -129,6 +129,31 @@ export function criteriosPropiosDeFacultad(
   return out;
 }
 
+/**
+ * De qué componente salen las cuentas por facultad.
+ *
+ * Medido contra HSVG2026: exigir que las filas trajeran `margen` —un campo que R
+ * publica desde hace poco— dejaba la tarjeta en CERO facultades para cualquier
+ * estudio calculado antes, aunque `aulas_por_estrato` viniera completo. El
+ * margen es UNO de los seis pasos, no la condición para mostrar los otros cinco.
+ *
+ * Y POR FACULTAD: cuando ningún componente publica margen, las filas salen del
+ * que dimensiona por facultad, jamás del total.
+ */
+type ConEstratos<T> = { resultado?: { aulas_por_estrato?: T[] } | null } | null | undefined;
+
+export function filasParaFichas<T extends { margen?: unknown }>(
+  componentes: ReadonlyArray<ConEstratos<T>>,
+  facultyComp: ConEstratos<T>,
+): T[] | null {
+  const conMargen = componentes.find((c) =>
+    (c?.resultado?.aulas_por_estrato ?? []).some((f) => f.margen != null),
+  );
+  if (conMargen) return conMargen?.resultado?.aulas_por_estrato ?? null;
+  const filas = facultyComp?.resultado?.aulas_por_estrato ?? [];
+  return filas.length ? filas : null;
+}
+
 /** Misma normalización que el motor: sin acentos, sin mayúsculas, sin espacios. */
 export function claveFicha(valor: string): string {
   return valor
