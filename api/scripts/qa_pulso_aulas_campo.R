@@ -120,9 +120,22 @@ partes <- list(
 if (ESCALA_2025) {
   facs <- c("Ciencias e Ingenieria", "Estudios Generales Letras", "Gestion",
             "Arquitectura", "Educacion", "Derecho")
+  # Una agenda real ocupa dos semanas de campo, no un solo «Lun 08:00» repetido
+  # 196 veces. Con la fecha constante, cualquier lectura por dia sale degenerada
+  # —un solo dia con todo dentro— y el fixture excluiria por construccion el
+  # caso que la seccion Agenda existe para mostrar.
+  dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes")
+  horas <- c("08:00", "10:00", "12:00", "14:00", "16:00", "18:00")
   base <- function(cod, rol, fac, i, repl = NULL, ord = NULL, est = "agendada") {
+    dia_i <- 1L + (i %% 10L)
+    fecha <- format(as.Date("2026-08-10") + (dia_i - 1L) + (2L * ((dia_i - 1L) %/% 5L)), "%Y-%m-%d")
+    hora <- horas[[1L + (i %% length(horas))]]
     o <- list(classroom_id = cod, operational_code = cod, label = paste("Aula", cod),
-              course_name = paste("Curso", cod), schedule = "Lun 08:00",
+              course_name = paste("Curso", cod),
+              scheduled_date = fecha,
+              scheduled_day = dias[[1L + ((dia_i - 1L) %% 5L)]],
+              scheduled_time = hora,
+              schedule = sprintf("%s %s", substr(dias[[1L + ((dia_i - 1L) %% 5L)]], 1, 3), hora),
               teacher = paste("Docente", cod), teacher_phone = sprintf("9%08d", i * 137 %% 1e8),
               faculty = fac, stratum = fac, level = "Pregrado", sample_role = rol,
               wave = if (rol == "titular") "M1" else sprintf("M%d", (ord %||% 1) + 1),

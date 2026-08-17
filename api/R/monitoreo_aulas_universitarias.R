@@ -867,6 +867,12 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   cols <- intersect(c(
     "operational_code", "titular_operational_code", "wave", "classroom_id",
     "course_name", "section", "schedule", "faculty", "program", "level",
+    # La fecha agendada viaja con el estado. `schedule` es el texto corto que se
+    # imprime en la ficha —«Lun 08:00»—; para agrupar por dia hace falta la
+    # FECHA, que es lo que trae `FECHA DE APLICACION` del libro. Sin ella la
+    # vista de agenda tendria que unir dos listas por codigo para saber que dia
+    # es cada aula.
+    "scheduled_date", "scheduled_day", "scheduled_time",
     "responsible", "collector_id", "operational_status", "application_state",
     "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
     "filter_passed", "filter_rejected", "brecha", "link", "updated_at"
