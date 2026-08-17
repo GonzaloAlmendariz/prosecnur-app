@@ -1573,7 +1573,10 @@ graficar_barras_apiladas <- function(
       .group_id = if (!is.null(var_grupo_id)) as.character(.data[[var_grupo_id]]) else NA_character_,
       .group_title = if (!is.null(var_grupo_titulo)) as.character(.data[[var_grupo_titulo]]) else NA_character_
     ) |>
-    dplyr::select(".cat_id", ".cat_label", ".group_id", ".group_title") |>
+    # `.n_cat` viaja con el layout para que la anotacion de N por barra pueda
+    # colgarse de la fila: ver `graficador_n_por_barra.R`.
+    dplyr::mutate(.n_cat = suppressWarnings(as.numeric(.data[[var_n]]))) |>
+    dplyr::select(".cat_id", ".cat_label", ".group_id", ".group_title", ".n_cat") |>
     dplyr::distinct(.data$.cat_id, .keep_all = TRUE)
 
   # ---------------------------------------------------------------------------
@@ -2486,6 +2489,9 @@ graficar_barras_apiladas <- function(
         labels = labels_leyenda
       )
   }
+
+  # La N por barra NO se engancha aqui: ver `graficador_n_por_barra.R`, que
+  # guarda la medicion que lo descarta.
 
   n_items_leyenda <- length(niveles_leyenda)
   n_por_fila <- as.integer(legend_n_por_fila)
