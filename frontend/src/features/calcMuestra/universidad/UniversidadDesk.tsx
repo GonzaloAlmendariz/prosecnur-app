@@ -48,6 +48,7 @@ import { DefHistoricoTab } from "./definicion/DefHistoricoTab";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
 import { type CriterioGeneralFila } from "./criterios/CriteriosGeneralesCard";
+import { criteriosGeneralesDeEstudio } from "./criterios/criteriosGeneralesModel";
 import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
@@ -429,20 +430,19 @@ export function UniversidadDesk({
       );
     });
   }, [aulasState?.frame?.aula_frame, margenFilas, referenciaCriterios, criteriosSeleccionVigente, minimoGeneral]);
-  const criteriosGenerales = useMemo<CriterioGeneralFila[]>(() => {
-    const fila = (margenFilas ?? [])[0];
-    const cuotaTotal = (margenFilas ?? []).reduce(
-      (acc, f) => acc + (Number.isFinite(f.cuota) ? f.cuota : 0), 0,
-    );
-    return [
-      { concepto: "Muestra de diseño", hoy: cuotaTotal ? String(cuotaTotal) : "", claveHistorica: "muestra" },
-      { concepto: "Ratio de sobremuestra", hoy: "1.5", claveHistorica: "ratio_sobremuestra" },
-      { concepto: "Factor de asistencia (τ)", hoy: fila?.tau != null ? String(fila.tau) : "", claveHistorica: "tasa_respuesta_asumida" },
-      { concepto: "Método de selección", hoy: "cube balanceado", claveHistorica: "metodo_seleccion" },
-      { concepto: "Aulas del marco", hoy: String((aulasState?.frame?.aula_frame ?? []).filter((r) => (r as Record<string, unknown>).included === true).length || ""), claveHistorica: "aulas_marco" },
-      { concepto: "Aulas a visitar", hoy: String((margenFilas ?? []).reduce((a, f) => a + (f.margen?.aulas_requeridas ?? 0), 0) || ""), claveHistorica: "aulas_dimensionadas" },
-    ];
-  }, [margenFilas, aulasState?.frame?.aula_frame]);
+  const criteriosGenerales = useMemo<CriterioGeneralFila[]>(
+    () =>
+      criteriosGeneralesDeEstudio({
+        parametros: facultyComp?.parametros as Record<string, unknown> | undefined,
+        selector: syncedWorkspace.aulas_config as Record<string, unknown> | undefined,
+        aulasMarco:
+          (aulasState?.frame?.aula_frame ?? []).filter(
+            (r) => (r as Record<string, unknown>).included === true,
+          ).length || null,
+        filas: margenFilas,
+      }),
+    [margenFilas, aulasState?.frame?.aula_frame, facultyComp, syncedWorkspace.aulas_config],
+  );
   const sexoBalance = useMemo(
     () => normalizeCalcMuestraSexoPorFacultad(
       (aulasState?.selection as { sexo_por_facultad?: unknown } | null)?.sexo_por_facultad ?? null,

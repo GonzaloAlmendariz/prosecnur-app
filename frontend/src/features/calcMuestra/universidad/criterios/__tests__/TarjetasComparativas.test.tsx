@@ -13,7 +13,12 @@ import {
   normalizeCalcMuestraReferenciaCriterios,
   type CalcMuestraAulasEstrato,
 } from "../../../../../api/calcMuestra";
-import { CriteriosGeneralesCard } from "../CriteriosGeneralesCard";
+import { CriteriosGeneralesCard, type CriterioGeneralFila } from "../CriteriosGeneralesCard";
+import {
+  criteriosGeneralesDeEstudio,
+  fmtCifra,
+  fmtPorcentaje,
+} from "../criteriosGeneralesModel";
 import { FichaPorFacultadCard } from "../FichaPorFacultadCard";
 import {
   claveFicha,
@@ -88,13 +93,18 @@ describe("tarjeta de criterios generales", () => {
     expect(html).toContain("2025-2");
   });
 
-  it("sin histórico lo dice en vez de dejar la columna en blanco", () => {
-    // Un hueco se lee como «igual».
+  it("sin histórico lo dice ARRIBA y retira las dos columnas vacías", () => {
+    // Un hueco se lee como «igual», pero quince filas de «sin referencia» y
+    // quince guiones tapan la única columna que sí tiene datos. El aviso del
+    // encabezado dice lo mismo una vez.
     const html = renderToStaticMarkup(
       <CriteriosGeneralesCard filas={FILAS} referencia={null} />,
     );
     expect(html).toContain("Sin histórico cargado");
-    expect(html).toContain("sin referencia");
+    expect(html).not.toContain("sin referencia");
+    expect(html).not.toContain("¿Igual?");
+    // CONTROL: la columna de este estudio sigue entera.
+    expect(html).toContain("Este estudio");
     expect(html).not.toContain('data-igual="true"');
   });
 });
@@ -216,6 +226,17 @@ describe("contrato: las dos tarjetas están cableadas en Entrega", () => {
     expect(marco).not.toContain("<CriteriosGeneralesCard");
   });
 
+  it("las decisiones generales se leen del ESTUDIO, no de literales", () => {
+    // El mutante que importa: pasar `undefined` como parámetros deja la columna
+    // de este estudio en blanco sin que nada mas falle.
+    expect(desk).toContain('from "./criterios/criteriosGeneralesModel"');
+    expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?parametros: facultyComp\?\.parametros/);
+    expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?selector: syncedWorkspace\.aulas_config/);
+    // CONTROL: ningun valor de la tabla vuelve a estar escrito a mano.
+    expect(desk).not.toContain('hoy: "1.5"');
+    expect(desk).not.toContain('hoy: "cube balanceado"');
+  });
+
   it("la referencia se lee del bloque `aulas` del payload", () => {
     // Vive dentro de `aulas` y no al lado de `referencia_asistencia` porque
     // `CalcMuestraPage.tsx` está congelada y no debe crecer para pasar una prop.
@@ -332,5 +353,108 @@ describe("qué filas alimentan las fichas", () => {
   it("CONTROL: sin filas por facultad devuelve null, no una lista vacía disfrazada", () => {
     expect(filasParaFichas([comp("total", [])], comp("facultad", []))).toBeNull();
     expect(filasParaFichas([], null)).toBeNull();
+  });
+});
+
+/**
+ * Las decisiones generales, leídas de donde viven.
+ *
+ * Gonzalo las vio en su pantalla: la tarjeta decía «Ratio de sobremuestra 1.5»
+ * mientras su estudio estaba configurado con 0,2. Estaba escrito a mano en el
+ * código, igual que el método de selección. Una tarjeta cuyo trabajo es decir si
+ * este estudio coincide con el anterior no puede inventar la mitad de la columna
+ * de este estudio.
+ */
+describe("criterios generales del estudio", () => {
+  const PARAMS = {
+    oversample_pct: 0.2, tau: 0.53, deff: 1.5,
+    estadistico_conglomerado: "media", promedio_conglomerado: 20,
+  };
+  const SELECTOR = { selector_engine: "cube_balanceado", method_family: "balanced_probability" };
+  const FILAS_EST = [
+    { cuota: 512, aulas_base: 49, margen: { aulas_requeridas: 49 } },
+    { cuota: 483, aulas_base: 46, margen: null },
+  ];
+  const busca = (fs: CriterioGeneralFila[], c: string) => fs.find((f) => f.concepto === c)?.hoy;
+
+  it("la sobremuestra sale de los PARÁMETROS, no de un literal", () => {
+    const fs = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, selector: SELECTOR, aulasMarco: 2112, filas: FILAS_EST,
+    });
+    expect(busca(fs, "Sobremuestra")).toBe("20 %");
+    // CONTROL: con otro estudio cambia. El literal «1.5» no cambiaba nunca.
+    const otro = criteriosGeneralesDeEstudio({
+      parametros: { ...PARAMS, oversample_pct: 0.5 }, selector: SELECTOR,
+      aulasMarco: null, filas: null,
+    });
+    expect(busca(otro, "Sobremuestra")).toBe("50 %");
+  });
+
+  it("publica el ESTADÍSTICO, que es lo que decide cuántas aulas hacen falta", () => {
+    const fs = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, selector: SELECTOR, aulasMarco: 2112, filas: FILAS_EST,
+    });
+    expect(busca(fs, "Estadístico por curso-horario")).toBe("media");
+    const p25 = criteriosGeneralesDeEstudio({
+      parametros: { ...PARAMS, estadistico_conglomerado: "p25" },
+      selector: SELECTOR, aulasMarco: null, filas: null,
+    });
+    expect(busca(p25, "Estadístico por curso-horario")).toBe("primer cuartil (p25)");
+  });
+
+  it("el método de selección sale del config, anidado o plano", () => {
+    // El motor lo anida bajo `selector`; el workspace del front lo trae plano.
+    // Medido: leyendo sólo la forma anidada, la fila salía «—» en la app real.
+    const plano = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, selector: { selector_engine: "sistematico" },
+      aulasMarco: null, filas: null,
+    });
+    expect(busca(plano, "Método de selección")).toBe("sistemático");
+
+    const anidado = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, selector: { selector: { selector_engine: "cube_balanceado" } },
+      aulasMarco: null, filas: null,
+    });
+    expect(busca(anidado, "Método de selección")).toBe("cube balanceado");
+
+    // El workspace trae además `selector` como string suelto.
+    const texto = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, selector: { selector: "cube_balanceado" },
+      aulasMarco: null, filas: null,
+    });
+    expect(busca(texto, "Método de selección")).toBe("cube balanceado");
+  });
+
+  it("las aulas a visitar caen a `aulas_base` cuando no hay margen", () => {
+    // Dejarlo en «—» teniendo la cifra escondía justo el número que la tarjeta
+    // existe para dar.
+    const fs = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, selector: SELECTOR, aulasMarco: 2112, filas: FILAS_EST,
+    });
+    expect(busca(fs, "Aulas a visitar")).toBe("95");
+    expect(busca(fs, "Muestra de diseño")).toBe("995");
+  });
+
+  it("CONTROL: lo no declarado queda VACÍO, nunca con un valor inventado", () => {
+    const fs = criteriosGeneralesDeEstudio({
+      parametros: null, selector: null, aulasMarco: null, filas: null,
+    });
+    for (const f of fs) expect(f.hoy).toBe("");
+  });
+
+  it("las cifras se formatean, y un AUSENTE nunca se vuelve «0»", () => {
+    expect(fmtCifra(21365)).toMatch(/^21.365$/);
+    expect(fmtCifra(0.53, 2)).toContain("53");
+    expect(fmtPorcentaje(0.2)).toBe("20 %");
+    // `Number(null)` y `Number("")` valen 0: sin filtro, un dato que falta se
+    // pintaría «0» y se leería como medido.
+    expect(fmtCifra(null)).toBe("");
+    expect(fmtCifra("")).toBe("");
+    expect(fmtCifra(undefined)).toBe("");
+    expect(fmtPorcentaje(null)).toBe("");
+    expect(fmtPorcentaje(undefined)).toBe("");
+    // CONTROL: un cero DECLARADO sí se pinta.
+    expect(fmtCifra(0)).toBe("0");
+    expect(fmtPorcentaje(0)).toBe("0 %");
   });
 });
