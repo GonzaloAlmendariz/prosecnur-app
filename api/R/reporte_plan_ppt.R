@@ -1816,13 +1816,8 @@ reporte_ppt_plan <- function(
     x
   }
 
+  # Extremo negativo NARANJA, no rojo (regla R4). Ver `reporte_ppt_numero_respuestas.R`.
   .top_two_parse_colors <- function(style, n) {
-    # El extremo negativo va NARANJA y no rojo. Es la misma regla que el
-    # verificador aplica al resto del mazo —R4, «el rojo institucional es color
-    # de titulo, no extremo de escala»— y que el entregable aprobado cumple: su
-    # lamina de top two box arranca en `F4B183` y en todo el mazo no tiene un
-    # solo rojo en una rampa. Esta lamina se habia quedado fuera de esa regla y
-    # era el unico sitio donde el motor pintaba un segmento de escala en rojo.
     default <- c("#F4B183", "#FFD966", "#B7D7A8", "#70AD47")
     raw <- style[["colores"]] %||% style[["colores_escala"]] %||% default
     if (is.list(raw) && !is.data.frame(raw)) {
@@ -1835,9 +1830,8 @@ reporte_ppt_plan <- function(
     raw <- trimws(raw)
     raw <- raw[nzchar(raw)]
     if (!length(raw)) raw <- default
-    # Interpolar, no reciclar: con n > 4 el reciclado repetia rojo/amarillo en
-    # el extremo positivo de la escala (H18). El gradiente conserva la
-    # semantica negativo->positivo de la paleta declarada.
+    # Interpolar, no reciclar: con n > 4 el reciclado repetia naranja/amarillo
+    # en el extremo positivo (H18).
     raw <- if (length(raw) < n) grDevices::colorRampPalette(raw)(n) else raw[seq_len(n)]
     fallback <- if (n > length(default)) grDevices::colorRampPalette(default)(n) else rep(default, length.out = n)
     vapply(seq_len(n), function(i) .indice_sanitize_fill(raw[[i]], fallback[[i]]), character(1))
