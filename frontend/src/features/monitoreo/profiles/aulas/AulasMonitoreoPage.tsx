@@ -20,6 +20,7 @@ import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "
 import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
+import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasControles } from "./AulasControles";
 import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
@@ -370,7 +371,12 @@ function renderAulasView(
         {pestana === "registro" ? registro : null}
         {pestana === "registro" ? null : (
         <section
-          className="mon-profile-panel"
+          // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
+          // por día y tabla— y la regla común declara dos. Un hijo de más se
+          // lleva una fila declarada y se dibuja encima del siguiente; medido:
+          // los días se pintaban sobre la tabla. Es el mismo tropiezo que ya
+          // costó el reparto de alto del banner de KPIs.
+          className="mon-profile-panel aulas-agenda-panel"
           data-qa-geometry-group="monitoring-aulas-table"
           data-qa-geometry-contract="intrinsic"
         >
@@ -381,6 +387,10 @@ function renderAulasView(
             <h3>Aulas agendadas</h3>
             <span>{fmt(dashboard.agenda?.length ?? 0)} cursos-horario</span>
           </div>
+          {/* Primero cuándo se aplica cada cosa —que es lo que se pregunta al
+              entrar a Agenda— y después la tabla, que es donde se busca un
+              curso-horario concreto. La tabla NO se va: en esta sección sirve. */}
+          <AulasAgendaPorDia filas={(dashboard.course_status ?? []) as MonitoreoAulasPlanRow[]} />
           <DataTable
             rows={agendaRows(dashboard)}
             empty="No hay agenda importada para cursos-horario."
