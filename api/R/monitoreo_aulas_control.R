@@ -164,6 +164,36 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
   out
 }
 
+#' El recibo del libro importado.
+#'
+#' De que libro salen estos numeros, cuando se leyo, cuales de las tres hojas
+#' trajo y cuales no. La informacion existia desde el principio —el lector la
+#' compone y la deja en `monitoreo_aulas_libro`— pero solo se veia en el aviso
+#' de la importacion: un mensaje de un momento que desaparecia al recargar. Un
+#' estudio se opera durante semanas y quien lo abre el martes tiene derecho a
+#' saber de donde vienen las cifras que esta mirando.
+#'
+#' @param libro lo que la importacion dejo en la sesion.
+#' @return lista con `importado_en`, `hojas` (nombre y si vino) y `resumen`, o
+#'   `NULL` si en este estudio nunca se importo un libro.
+#' @export
+monitoreo_aulas_libro_recibo <- function(libro = NULL) {
+  if (!is.list(libro) || !length(libro)) return(NULL)
+  ausentes <- unlist(libro$hojas_ausentes %||% list(), use.names = FALSE)
+  hojas <- lapply(AULAS_LIBRO_HOJAS, function(h) list(
+    hoja = h$hoja,
+    # `vino` y no `ausente`: la vista pregunta que hay, no que falta.
+    vino = !(h$hoja %in% ausentes)
+  ))
+  list(
+    importado_en = as.character(libro$importado_en %||% ""),
+    hojas = hojas,
+    hojas_ausentes = length(ausentes),
+    control_sin_nombre = length(unlist(libro$control_sin_nombre %||% list(), use.names = FALSE)),
+    resumen = libro$resumen %||% list()
+  )
+}
+
 #' Cuanto del control de calidad trae realmente el libro.
 #'
 #' Sirve para que la vista pueda decir «esta hoja no trae cuotas» en vez de

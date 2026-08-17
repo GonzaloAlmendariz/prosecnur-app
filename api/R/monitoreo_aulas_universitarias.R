@@ -319,6 +319,9 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       ct <- config$control %||% config$base_control %||% defaults$control
       if (is.list(ct)) unname(Filter(is.list, ct)) else list()
     },
+    # El recibo de la importacion. Se conserva tal cual: no es configuracion
+    # editable, es el sello de que libro se leyo y cuando.
+    libro = if (is.list(config$libro)) config$libro else NULL,
     quotas = config$quotas %||% config$cuotas %||% defaults$quotas,
     variables_control = config$variables_control %||% config$variablesControl %||% defaults$variables_control,
     methodology = config$methodology %||% config$metodologia %||% defaults$methodology,
@@ -1265,6 +1268,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # que grupo del control viene vacio en vez de pintar ceros medidos.
     control_calidad = monitoreo_aulas_control_publicado(cfg$control %||% list()),
     control_calidad_resumen = monitoreo_aulas_control_resumen(cfg$control %||% list()),
+    # De que libro salen estas cifras y que hojas trajo. `NULL` cuando el
+    # estudio nunca importo uno, que es distinto de un libro sin hojas.
+    libro = monitoreo_aulas_libro_recibo(cfg$libro),
     representativity = representativity,
     validation = .monitoreo_aulas_records(validation)
   )

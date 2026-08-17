@@ -775,6 +775,18 @@ export type MonitoreoAulasDashboard = {
 	   * del equipo— y el resumen dice qué grupo del control viene lleno, para
 	   * distinguir un aula sin revisar de un aula con el control en cero.
 	   */
+	  /**
+	   * El recibo del libro importado: cuándo se leyó y cuáles de las tres hojas
+	   * trajo. Ausente cuando el estudio nunca importó uno, que no es lo mismo
+	   * que un libro sin hojas.
+	   */
+	  libro?: {
+	    importado_en: string;
+	    hojas: Array<{ hoja: string; vino: boolean }>;
+	    hojas_ausentes: number;
+	    control_sin_nombre: number;
+	    resumen?: Record<string, number>;
+	  };
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

@@ -267,12 +267,23 @@ control <- lapply(seq_along(aplicadas), function(i) {
 sid <- session_create()
 session_set(sid, "monitoreo_aulas_plan", plan)
 session_set(sid, "monitoreo_aulas_control", control)
+# El recibo del libro, como lo deja `aulas_libro_importar_en_sesion`. Sin el, la
+# tarjeta del libro en Fuentes no existe en el fixture y no habria como verla.
+# Se declara «Base de control» presente y las 7 columnas sin nombre del 2025.
+libro_recibo <- list(
+  importado_en = "2026-08-17T09:30:00Z",
+  hojas_ausentes = list(),
+  control_sin_nombre = as.list(seq_len(7L)),
+  resumen = list(unidades = length(plan), titulares = 170L,
+                 partes_de_campo = length(partes), filas_de_control = length(control))
+)
+session_set(sid, "monitoreo_aulas_libro", libro_recibo)
 session_set(sid, "monitoreo_aulas_partes_campo", partes)
 session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
   monitoreo_profile = list(family = "aulas_universitarias", variant = "multi_actor",
                            status = "active", route_selected = TRUE),
   aulas_universitarias = list(
-    enabled = TRUE, plan = plan, partes_campo = partes, control = control,
+    enabled = TRUE, plan = plan, partes_campo = partes, control = control, libro = libro_recibo,
     # SIN `status_var`: es lo que hace hoy un estudio real de Kobo recien
     # conectado. Declararlo apuntando a `_validation_status` descarta TODAS las
     # respuestas, porque Kobo deja esa columna vacia mientras nadie las revisa
@@ -295,7 +306,7 @@ session_set(sid, "monitoreo_sources", list(list(
 invisible(capture.output(build_pulso(sid, destino, project_name = "QA aulas en campo")))
 
 tablero <- monitoreo_aulas_dashboard(plan, data, monitoreo_aulas_normalize_config(list(
-  enabled = TRUE, plan = plan, partes_campo = partes, control = control,
+  enabled = TRUE, plan = plan, partes_campo = partes, control = control, libro = libro_recibo,
   source_mapping = list(collector_var = "collectorID"),
   control_sin_nombre = 7L
 )))

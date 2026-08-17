@@ -1086,6 +1086,17 @@
   }
   if (identical(family, "aulas_universitarias")) {
     aulas_cfg <- cfg$aulas_universitarias %||% monitoreo_aulas_default_config()
+    # Las tres hojas del libro viven en la sesion y la config guarda su copia.
+    # Se leen con el mismo `%||%` que ya usa el generador para los partes: si el
+    # proyecto se abrio de un `.pulso` viejo, la config puede no traerlas y la
+    # sesion si —o al reves—. Sin esta linea `monitoreo_aulas_control` era una
+    # clave escrita y jamas leida, que es como la Base de control estuvo un dia
+    # entero marcada como hecha.
+    aulas_cfg$control <- aulas_cfg$control %||% s$monitoreo_aulas_control %||% list()
+    # El recibo del libro: cuando se leyo, que hojas trajo y cuales no. Viajaba
+    # solo en la respuesta de la importacion, asi que era un aviso de un momento
+    # —al recargar la app, nadie sabia de que libro salian estos numeros—.
+    aulas_cfg$libro <- aulas_cfg$libro %||% s$monitoreo_aulas_libro %||% NULL
     aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
     aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
     if (is.null(dashboard) || !is.list(dashboard)) {

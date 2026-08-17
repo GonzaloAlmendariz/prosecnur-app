@@ -51,18 +51,37 @@ export function textoDeAlias(alias: string, nombreEnPlataforma: string) {
  * (`Snapshot local listo`, `Metadata real lista`, `ÚLTIMO SYNC`) y que además
  * no dicen *cuándo*, que es lo único que se quiere saber.
  */
-export function textoDeActualizacion(fecha: string | null | undefined) {
+function fechaCorta(fecha: string | null | undefined) {
   const valor = String(fecha ?? "").trim();
-  if (!valor) return "Sin actualizar";
+  if (!valor) return "";
   const parsed = new Date(valor);
-  if (Number.isNaN(parsed.getTime())) return "Sin actualizar";
-  return `Actualizada ${parsed.toLocaleString("es-PE", {
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString("es-PE", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  })}`;
+  });
+}
+
+export function textoDeActualizacion(fecha: string | null | undefined) {
+  const cuando = fechaCorta(fecha);
+  return cuando ? `Actualizada ${cuando}` : "Sin actualizar";
+}
+
+/**
+ * Fecha en que se leyó un archivo que alguien entregó.
+ *
+ * No es «Actualizada»: una fuente conectada se sincroniza sola y puede volver a
+ * hacerlo, y un archivo se importó una vez. Usar el mismo verbo para las dos
+ * cosas haría creer que el libro del operativo se refresca solo, que es
+ * justamente lo contrario de cómo funciona —lo llena el equipo en Excel y la
+ * app lo lee cuando se lo dan—.
+ */
+export function textoDeImportacion(fecha: string | null | undefined) {
+  const cuando = fechaCorta(fecha);
+  return cuando ? `Importado ${cuando}` : "Sin importar";
 }
 
 /**
