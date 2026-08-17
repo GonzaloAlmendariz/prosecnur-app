@@ -307,10 +307,39 @@
   for (i in seq_along(x)) {
     unidad <- .cm_aulas_scalar(nms[[i]], "")
     if (!nzchar(unidad)) next
+    # Marcador de EXENCION: esta unidad no se juzga por nivel. Gonzalo, sobre los
+    # dos Estudios Generales: «los criterios los sigue aplicando de forma general
+    # (…) en los estudios generales letras y ciencias no deberia tenerlos». Se
+    # acepta como `"exenta"`, `list("exenta")` o `list(exenta = TRUE)`.
+    if (.cm_criterios_rango_es_exencion(x[[i]])) {
+      out[[unidad]] <- .cm_criterios_rango_exento
+      next
+    }
     rangos <- .cm_criterios_normalize_rangos(x[[i]])
     if (length(rangos)) out[[unidad]] <- rangos
   }
   out
+}
+
+# Centinela de exencion. Es una lista con una marca, NO una lista vacia: una
+# lista vacia se confundiria con «no declarado», que hoy EXCLUYE.
+.cm_criterios_rango_exento <- list(list(exenta = TRUE))
+
+.cm_criterios_es_rango_exento <- function(rr) {
+  length(rr) == 1L && is.list(rr[[1L]]) && isTRUE(rr[[1L]]$exenta)
+}
+
+.cm_criterios_rango_es_exencion <- function(entrada) {
+  if (is.character(entrada)) {
+    return(any(.cm_aulas_text_key(entrada) %in% c("exenta", "exento", "no_aplica")))
+  }
+  if (is.list(entrada)) {
+    if (isTRUE(entrada$exenta)) return(TRUE)
+    if (length(entrada) == 1L && is.character(entrada[[1L]])) {
+      return(.cm_aulas_text_key(entrada[[1L]]) %in% c("exenta", "exento", "no_aplica"))
+    }
+  }
+  FALSE
 }
 
 # Normaliza los rangos de una unidad a list(list(min=int, max=int), ...).
@@ -1143,7 +1172,11 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 
 .cm_criterios_label_course_level <- function(ranges, meta) {
   piezas <- unlist(lapply(names(ranges), function(fac) {
-    vapply(ranges[[fac]], function(r) sprintf("%s: %s–%s", fac, r$min, r$max), character(1))
+    rr <- ranges[[fac]]
+    # Una facultad exenta se NOMBRA en la etiqueta: si el criterio no la juzga,
+    # quien lee el paso tiene que enterarse ahi mismo.
+    if (.cm_criterios_es_rango_exento(rr)) return(sprintf("%s: exenta", fac))
+    vapply(rr, function(r) sprintf("%s: %s–%s", fac, r$min, r$max), character(1))
   }), use.names = FALSE)
   if (!length(piezas)) return(sprintf("%s · Sin rango", meta$label))
   detalle <- if (length(piezas) <= 2L) paste(piezas, collapse = "; ") else sprintf("%s unidades con rango", length(ranges))
@@ -1309,11 +1342,19 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 # leak que hacía cuadrar un embudo con acentos rotos y nivel-NA permisivo.
 # `course_pairs` es el SET de pares por aula ("FAC<US>NIV<RS>FAC<US>NIV") que
 # emite el catálogo; sin catálogo trae el par modal único (retro de la regla).
-.cm_criterios_eval_course_ranges <- function(course_pairs, ranges) {
+.cm_criterios_eval_course_ranges <- function(course_pairs, ranges, faculty_keys = NULL) {
   n <- length(course_pairs)
   if (!length(ranges)) return(rep(TRUE, n))
   claves <- .cm_criterios_fac_key(names(ranges))
+  # La EXENCION se decide contra la facultad DEL AULA, no contra la del curso.
+  # Medido en HSVG2026: un curso de Estudios Generales esta catalogado bajo la
+  # facultad de DESTINO del alumno, asi que juzgando por la del curso la regla
+  # de EE.GG. no llegaba a aplicarse nunca y esa facultad se quedaba con 63 de
+  # sus 482 aulas pese a estar declarada exenta.
+  exentas <- claves[vapply(ranges, .cm_criterios_es_rango_exento, logical(1))]
+  fac_aula <- if (length(faculty_keys) == n) .cm_criterios_fac_key(faculty_keys) else rep("", n)
   vapply(seq_len(n), function(i) {
+    if (nzchar(fac_aula[[i]]) && fac_aula[[i]] %in% exentas) return(TRUE)
     pares <- strsplit(course_pairs[[i]], .cm_catalogo_pair_rec, fixed = TRUE)[[1]]
     for (p in pares) {
       kv <- strsplit(p, .cm_catalogo_pair_fld, fixed = TRUE)[[1]]
@@ -1323,6 +1364,11 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       nivel <- .cm_criterios_parse_nivel(if (length(kv) >= 2L) kv[[2]] else "")
       if (!is.finite(nivel)) next
       rr <- ranges[[hit[[1]]]]
+      # Una facultad exenta no aporta criterio a NADIE: exime a sus propias aulas
+      # (resuelto arriba, por la facultad del aula) pero no libra a un aula ajena
+      # sólo porque uno de sus cursos este catalogado ahi. Ese par simplemente no
+      # decide.
+      if (.cm_criterios_es_rango_exento(rr)) next
       if (any(vapply(rr, function(r) nivel >= r$min && nivel <= r$max, logical(1)))) return(TRUE)
     }
     FALSE
@@ -1384,7 +1430,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       if (length(seleccion$courseLevelRanges)) {
         add(
           "course_level",
-          .cm_criterios_eval_course_ranges(vals$course_pairs, seleccion$courseLevelRanges),
+          .cm_criterios_eval_course_ranges(
+            vals$course_pairs, seleccion$courseLevelRanges, vals$faculty
+          ),
           "course_level",
           .cm_criterios_label_course_level(seleccion$courseLevelRanges, registry$course_level)
         )
