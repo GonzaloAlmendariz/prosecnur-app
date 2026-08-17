@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { AlertCircle, CalendarRange, CheckCircle2 } from "lucide-react";
+// Por el shim, que es la regla de la casa: los imports directos de
+// `lucide-react` arrastran el barrel entero al bundle. Este archivo se lo
+// saltaba desde antes; se corrige al pasar por aquí.
+import { AlertCircle, CalendarRange, CheckCircle2, Info } from "../../../../vendor/lucide-react";
 import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasImportarLibro,
@@ -765,6 +768,12 @@ export default function AulasMonitoreoPage() {
   );
   const [loading, setLoading] = useState(true);
   const [mutating, setMutating] = useState(false);
+  // Los AVISOS no son errores y por eso no comparten estado con ellos. Importar
+  // un libro al que le falta una hoja es una importación que FUNCIONÓ, y decirlo
+  // en rojo la lee como un fallo. Además `loadView` limpia `error` cuando la
+  // recarga sale bien —así que el aviso duraba lo que tardaba la petición
+  // siguiente, que es la que el propio import dispara—.
+  const [aviso, setAviso] = useState("");
   const [error, setError] = useState("");
 
   const activeDef = useMemo(
@@ -857,6 +866,7 @@ export default function AulasMonitoreoPage() {
   const importarLibro = useCallback(async (archivo: File) => {
     setMutating(true);
     setError("");
+    setAviso("");
     try {
       // Dos pasos a propósito. Mandar el xlsx directo a `importar-libro`
       // no funciona: con `parsers = multi` el archivo llega pero plumber
@@ -868,9 +878,11 @@ export default function AulasMonitoreoPage() {
       setState(res.state);
       // Lo que NO venía se dice, en vez de mostrar ceros silenciosos.
       if (res.hojas_ausentes?.length) {
-        setError(`El libro no traía ${res.hojas_ausentes.join(" ni ")}. Lo demás se leyó.`);
+        // Y dice dónde queda escrito: la tarjeta del libro en Fuentes lo
+        // conserva, así que el aviso no es el único registro de que faltó algo.
+        setAviso(`El libro no traía ${res.hojas_ausentes.join(" ni ")}. Lo demás se leyó; queda anotado en Fuentes.`);
       }
-      await loadView(seccionActiva, true);
+      await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");
     } finally {
@@ -1013,6 +1025,9 @@ export default function AulasMonitoreoPage() {
             aria-labelledby={pestanaActiva ? `aulas-mon-tab-${pestanaActiva}` : undefined}
           >
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
+            {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
+                de pasar no puede vivir dentro de lo que la acción remonta. */}
+            {aviso ? <div className="aulas-aviso"><Info size={16} /> {aviso}</div> : null}
             {loading ? (
               <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
             ) : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
@@ -1027,7 +1042,12 @@ export default function AulasMonitoreoPage() {
                 internalSheets={state?.publication?.internal_last_sheets ?? null}
                 corte={corte}
                 syncedAt={state?.synced_at ?? ""}
-                onPublished={() => { void loadView(seccionActiva, true); }}
+                // Silencioso: el workbench acaba de escribir «N pestañas
+                // actualizadas» con el id del spreadsheet, y una recarga que
+                // encienda `loading` lo desmonta con su mensaje dentro. Publicar
+                // a Sheets sin confirmación es peor que no confirmarlo: el id es
+                // lo único que dice DÓNDE quedó publicado.
+                onPublished={() => { void loadView(seccionActiva, true, true); }}
               />
             ) : renderAulasView(
               seccionActiva,
