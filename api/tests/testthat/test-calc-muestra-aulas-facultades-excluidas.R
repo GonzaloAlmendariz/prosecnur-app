@@ -131,3 +131,57 @@ test_that("la poblacion del marco baja al excluir la facultad", {
   expect_equal(metrica(fex_frame()), 120)
   expect_equal(metrica(fex_frame(list("ESCUELA DE POSGRADO"))), 60)
 })
+
+# Una unidad excluida tampoco entra con la ETIQUETA del aula.
+#
+# `excluded_faculties` filtraba ALUMNOS. Pero un aula se etiqueta con la
+# facultad modal de su curso-horario, y esa puede ser una excluida aunque sus
+# elegibles vengan de otras unidades. Medido en HSVG2026: con `ESCUELA DE
+# ESTUDIOS ESPECIALES` en la lista, el aula `soc254_0731` —curso «Cultura y
+# sociedad», programa de movilidad estudiantil internacional— seguia entrando al
+# marco con 12 elegibles y la etiqueta de la facultad excluida. Para el analista
+# eso es una contradiccion visible: pidio que esa unidad no participara y la ve.
+#
+# Es la misma confusion que costo el criterio de nivel: la facultad del ALUMNO y
+# la del AULA son cosas distintas.
+
+.fex_base <- function() rbind(
+  do.call(rbind, lapply(1:12, function(j) data.frame(
+    student_id = paste0("x", j), aula_id = "A01", curso_id = "C1", curso = "Cultura",
+    horario = "L 8", facultad = "ESCUELA DE ESTUDIOS ESPECIALES", programa = "MOVILIDAD",
+    sexo = "F", edad = 20, condicion = "regular", nivel = "pregrado",
+    modalidad = "presencial", tipo_sesion = "TEORICO", stringsAsFactors = FALSE))),
+  do.call(rbind, lapply(1:12, function(j) data.frame(
+    student_id = paste0("y", j), aula_id = "A02", curso_id = "C2", curso = "Penal",
+    horario = "L 8", facultad = "DERECHO", programa = "P1",
+    sexo = "F", edad = 20, condicion = "regular", nivel = "pregrado",
+    modalidad = "presencial", tipo_sesion = "TEORICO", stringsAsFactors = FALSE))))
+
+.fex_frame <- function(excluidas = list()) calc_muestra_aulas_construir(
+  base_madre = .fex_base(),
+  config = list(mapping = list(session_type = "tipo_sesion"),
+                filters = list(min_eligible_per_class = 5L, excluded_faculties = excluidas))
+)$aula_frame
+
+test_that("el aula de una facultad excluida NO entra al marco", {
+  af <- .fex_frame(list("ESCUELA DE ESTUDIOS ESPECIALES"))
+  expect_false(af$included[af$faculty == "ESCUELA DE ESTUDIOS ESPECIALES"])
+  # Y la exclusion no alcanza a las demas: no es un apagado global.
+  expect_true(af$included[af$faculty == "DERECHO"])
+})
+
+test_that("CONTROL: sin lista de exclusion las dos entran", {
+  # Si esto ya excluyera algo, el test de arriba pasaria sin medir nada.
+  af <- .fex_frame(list())
+  expect_true(all(af$included))
+})
+
+test_that("el emparejamiento es por nombre normalizado, no por parecido", {
+  # Una abreviatura NO es la misma unidad: excluir por parecido borraria
+  # facultades que nadie pidio sacar.
+  af <- .fex_frame(list("ESC. DE ESTUDIOS ESPECIALES"))
+  expect_true(af$included[af$faculty == "ESCUELA DE ESTUDIOS ESPECIALES"])
+  # Pero mayusculas y minusculas si son la misma.
+  af2 <- .fex_frame(list("Escuela de Estudios Especiales"))
+  expect_false(af2$included[af2$faculty == "ESCUELA DE ESTUDIOS ESPECIALES"])
+})
