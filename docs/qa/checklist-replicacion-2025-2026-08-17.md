@@ -170,11 +170,62 @@ que la regla declarada de 2025 — y resulta que 170/133 = **1,28**. La coincide
 es notable y merece comprobarse: puede que τ = 0,53 ya esté absorbiendo el
 ingrediente que falta en el papel de 2025.
 
-## R4b · Apareció la plantilla de cálculo — y es de **2026**, no de 2025
+## Corrección de Gonzalo (2026-08-17) — todo corre sobre la MISMA base
+
+Textual: «todo lo que ahorita se llama 2026 igual sólo se está basando en la base
+del 2025, porque todavía no nos dan la base de 2026 como tal. Servía como un
+referente sobre cómo lo haríamos este año, mas no es la base de 2026, **por lo
+que si seguimos los mismos criterios en principio debería coincidir con la de
+2025**».
+
+Eso convierte las tres cifras en directamente comparables, y la pregunta deja de
+ser «por qué difieren dos años» para ser **por qué difieren tres lecturas del
+mismo dato**:
+
+| | Población | Aulas del marco | Aulas titulares |
+|---|---:|---:|---:|
+| Estudio 2025, ejecutado | 22.234 | **1.097** | **170** |
+| Plantilla de Kamila | 21.365 | 1.270 | 189 objetivo / 203 a visitar |
+| Nuestro motor | 21.365 | **2.468** | 177 (universidad) / 478 (por facultad) |
+
+**La divergencia que manda es el marco: 1.097 contra 2.468.**
+
+### Lo medido sobre esa divergencia
+
+Cruzando nuestras 5.263 aulas contra el catálogo completo de 23.133 —join por
+`Curso-Horario` normalizado a mayúsculas sin separadores; con el id crudo cruzan
+**0**, con el normalizado **5.262 de 5.263**:
+
+- Presenciales: **4.624**. Presenciales **y** teóricas: **3.699**.
+- **Las 2.468 incluidas de hoy son TODAS presenciales y teóricas.** Así que el
+  filtro de tipo de curso no es lo que nos separa de las 1.097: 2025 aplicó algo
+  más que recortó 3.699 → 1.097, y eso sigue **abierto**.
+- Pista: 2025 cubría 34.541 elegibles-plaza sobre 22.234 personas, **1,55 aulas
+  por alumno**; nosotros cubrimos 83.917 sobre 21.365, **3,93 aulas por alumno**.
+  Nuestro marco solapa dos veces y media más, con un tamaño medio de aula
+  parecido (31,5 contra 34). Apunta a una de-duplicación por curso o por alumno
+  que 2025 hizo y nosotros no.
+
+### Dos defectos de mapeo, encontrados de paso
+
+1. **`session_type` no se mapea nunca.** El catálogo trae `Tipo de curso` con
+   TEORICO 16.973, LABORATORIO 2.523, TALLER 2.117, SEMINARIO 928, ACTIVIDAD 180,
+   ASESORÍA 166, ARTISTICO 106, CURSO DE INVESTIGACIÓN 96 y TRABAJO DE TESIS 36.
+   Nuestro `mapping$session_type` busca `session_type, tipo_sesion, tipo_clase,
+   actividad` — **ninguno es «Tipo de curso»**—, así que la columna llega vacía en
+   las 5.263 y el criterio de tipo de curso **no se puede declarar**, aunque hoy
+   no cambie el resultado. Es el criterio que en 2025 definía el marco.
+2. **`teacher_type_top` contiene nombres de docente**, no tipos: los valores más
+   frecuentes son apellidos. El catálogo tiene `Tipo de docente` como columna 19.
+3. Además, **ESCUELA DE POSGRADO conserva 2 aulas incluidas** pese a la exclusión
+   por facultad.
+
+## R4b · La plantilla de cálculo de Kamila
 
 `~/Documents/Pulso/HSTVG2026/Informe completo - Kamila/Calculos Muestrales.xlsx`
-es la plantilla de dimensionamiento hecha a mano con la metodología de 2025,
-pero **aplicada al universo de 2026**. Lo confirma su hoja `1_Parametros`:
+es la plantilla de dimensionamiento hecha a mano con la metodología de 2025 para
+planificar 2026 — **sobre la misma base de 2025**, según la corrección de arriba.
+Lo confirma su hoja `1_Parametros`:
 población total **21.365**, que es exactamente nuestra cifra; y su hoja
 `4_Muestra_Aulas` reproduce las quince facultades con las mismas poblaciones por
 sexo que mide nuestro motor (Arquitectura 744 M / 336 H, Arte y Diseño 792 / 229,
@@ -182,8 +233,8 @@ Ciencias e Ingeniería 1.127 / 3.385, Derecho 1.933 / 1.036, EE.GG. Ciencias
 951 / 2.404, EE.GG. Letras 1.932 / 1.395 — coincidencia exacta en las quince).
 
 **De aquí salen las «~190 aulas»**: `Aulas_objetivo` suma **189** y
-`Aulas_a_visitar` suma **203**. No son las 170 de 2025, que es otro año y otro
-universo.
+`Aulas_a_visitar` suma **203**, contra las **170** que ejecutó 2025 sobre el
+mismo dato. Tres lecturas del mismo semestre que deberían coincidir.
 
 | Facultad | Población | Muestra | Sobremuestra | Aulas del universo | **Objetivo** | **A visitar** | est implícito | **Motor hoy** |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
