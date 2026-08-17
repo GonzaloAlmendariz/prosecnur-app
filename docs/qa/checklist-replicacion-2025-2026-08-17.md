@@ -849,6 +849,50 @@ facultad se queda sin marco**.
 
 Estado guardado en `scratchpad/HSVG2026_marco2025.pulso`.
 
+## R20 — configuración objetivo aplicada, y el criterio de nivel no obedece
+
+Aplicada entera sobre el duplicado por API (`POST /api/calc-muestra/marco/construir`
+con el config mutado) y reconstruido el marco. Resultado: **2.015 aulas
+incluidas**.
+
+| Decisión | Estado |
+|---|---|
+| Presencial estricto | **ya se cumplía** — las incluidas son 100 % PRESENCIAL |
+| Teórico | **ya se cumplía** — 100 % TEORICO |
+| Matriculados ≥ 10 | aplicado (`min_eligible_per_class` 15 → 10) |
+| Tipo de docente fuera | aplicado — ya no aparece en ninguna razón de exclusión |
+| Estadístico p25 | sellado, método aplicado P25 en el total y en las 15 |
+| Nivel exento en los dos EE.GG. | **declarado y NO obedecido** |
+
+### El defecto: dos universos de «facultad» con el mismo nombre
+
+La configuración llegó intacta al motor —`estudios_generales_letras:
+[{min: 1, max: 99}]`— y aun así EE.GG. LETRAS quedó con **63 de 482** aulas, con
+`course_level` como razón en 316 de ellas. De sus aulas de nivel 1, **44 entraron
+y 411 salieron**.
+
+La causa: la excepción se declara contra la facultad **del aula** —la que la UI
+muestra, modal de su alumnado— pero `.cm_criterios_eval_course_ranges` la evalúa
+contra los pares **(facultad del CURSO en el catálogo, nivel)**. Un curso de
+Estudios Generales está catalogado bajo la facultad de destino del alumno, así
+que el rango que rige no es el de EE.GG. sino el de esa otra facultad, donde el
+nivel 1 no pasa. Las 44 que sí entraron son las que conservan un par con EE.GG.
+LETRAS como facultad del curso.
+
+**Y hay una segunda trampa encima**: cuando ninguno de los pares de un aula
+figura en `courseLevelRanges`, el evaluador devuelve `FALSE` — la excluye. No
+declarar una facultad no significa «aquí no aplica»: significa «fuera». Un
+nombre mal escrito en la configuración borra una facultad entera en silencio.
+
+### Lo que falta para poder decir lo que Gonzalo quiere
+
+«En los estudios generales letras y ciencias no debería tenerlos» es una regla
+sobre la facultad **del aula**, y hoy el criterio de nivel sólo sabe hablar de la
+facultad **del curso**. El `op = "exenta"` de `81d84306` resuelve el caso de los
+criterios flat/jerárquicos, pero `course_level` es `kind = "range"` y no pasa por
+ahí. Falta que la exención valga también para el rango, y decidido contra la
+facultad del aula.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
