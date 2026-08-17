@@ -142,7 +142,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L70** | **El lenguaje no es el del equipo.** «Estado del circuito» y otras expresiones son mías, no del operativo. | Ya existe un lenguaje referencial en los Excels —`STATUS MUESTRA`, `STATUS DE APLICACIÓN`, `VALIDO TOTAL`, `CANTIDAD DE EFECTIVAS`, `DUPLICADOS (YA RESPONDIERON)`, `NÚMERO DE INTENTOS`— y hay que mantener esa línea. | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab`; aulas usaba un `GlidingTabList` superior. | ☑ **hecho** (2026-08-17) — rail montado con el chrome compartido; navegación y URL enlazable verificadas. |
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
-| **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | El **avance va al final**; **consultas no va al final**. Fuentes y agenda al principio está bien. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
 | **L74** | **Avance tiene que mostrar las cuotas, de forma sencilla y dinámica.** | Cómo vamos completando **cuotas por facultad**, **cuotas a nivel general** y **cuotas desagregadas por sexo**. | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L75** | **Consultas tiene que contar la historia de la cadena.** | Si estamos cumpliendo con los **titulares**; cómo nos fue en el titular, luego en su reemplazo; y **cuál fue la cadena que nos permitió llegar a la meta**. | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
@@ -1127,3 +1127,26 @@ escrita en el `className` de un `<section>`— y ahora la aplica el chrome por
 `contentClassName`. La intención que protege —que el modificador sea exclusivo de
 Fuentes— sigue comprobada, y se le añadió la protección nueva: que el contenido
 **no cuente filas**, que es lo que se acaba de romper.
+
+
+### 2026-08-17 — L73: el orden ya existía y aulas era la excepción
+
+Gonzalo pidió «el avance es una cuestión que va al final, consultas no suele ir
+al final como sección». Al ir a cambiarlo resultó que **no había que decidir
+nada**: el orden ya está en los otros perfiles y aulas era el único fuera.
+
+| Perfil | Orden |
+|---|---|
+| Telefónico | fuentes · modelo · llamadas · **consultas · avance** |
+| Territorial | fuentes · modelo · calidad · **consultas · avance** |
+| **Aulas (antes)** | fuentes · modelo · **avance** · calidad · **consultas** |
+| **Aulas (ahora)** | fuentes · modelo · calidad · **consultas · avance** |
+
+Y una segunda excepción que apareció mirando: **aulas aterrizaba en `avance` y
+los otros tres en `fuentes`**. Con Avance al final, aterrizar ahí era además
+empezar por el resumen de algo que aún no se ha mirado. Alineado.
+
+**Los tres fallos de contrato que aparecieron no son míos.** `manifiesto.test.ts`
+espera 207 nodos y hay 213; `modulesNavigation.test.ts` espera 69 pestañas y hay
+75. Comprobado con el cambio guardado y sin él: **idénticos**. Vienen del trabajo
+sin commitear de otra sesión que hay en el árbol. Mi área sigue en 782/782.
