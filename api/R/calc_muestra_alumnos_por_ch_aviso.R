@@ -51,3 +51,34 @@ NULL
   }
   estudio
 }
+
+#' ¿La decisión está en blanco, es decir, nunca se tocó?
+#'
+#' El proyecto real de HSVG2026 guarda `alumnos_por_ch_decision` con los seis
+#' campos vacíos: `schema`, `frame_hash`, `denominador`, `estadistico_default` y
+#' `confirmado_at` en `""`, y `por_facultad` en `list()`. Es la forma que deja un
+#' `.pulso` cuando la estructura se creó pero nadie decidió nada.
+#'
+#' Como el objeto EXISTE, no caía en la rama de compatibilidad —pensada para el
+#' `NULL` de los proyectos previos al contrato v1— y el resolutor lo trataba como
+#' una decisión CORRUPTA: 409 `schema_invalido`, «La decisión de alumnos por CH
+#' está incompleta o usa un schema desconocido». El estudio no se podía calcular
+#' y el mensaje no decía cómo salir de ahí.
+#'
+#' Una decisión en blanco es indistinguible de una ausente y se trata como tal:
+#' el cálculo sigue con el promedio global y con el aviso `sin_decision` en cada
+#' facultad, que sí dice qué hacer. Una decisión a MEDIO llenar es otra cosa
+#' —alguien empezó a decidir— y sigue siendo un 409, que es lo correcto.
+#'
+#' @keywords internal
+.cm_alumnos_por_ch_decision_en_blanco <- function(decision) {
+  if (is.null(decision)) return(TRUE)
+  if (!is.list(decision)) return(FALSE)
+  textos <- c("schema", "frame_hash", "denominador", "estadistico_default", "confirmado_at")
+  for (campo in textos) {
+    if (nzchar(.cm_aulas_scalar(decision[[campo]], ""))) return(FALSE)
+  }
+  mapa <- decision$por_facultad
+  if (!is.null(mapa) && length(mapa)) return(FALSE)
+  TRUE
+}
