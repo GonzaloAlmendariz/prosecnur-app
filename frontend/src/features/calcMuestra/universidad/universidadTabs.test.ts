@@ -52,6 +52,7 @@ describe("universitySidebarTabs — Salida", () => {
     });
 
     expect(tabs?.map(({ id, status }) => `${id}:${status}`)).toEqual([
+      "salidas-coincidencia:ready",
       "salidas-guia:pending",
       "salidas-resultados:ready",
       "salidas-entregables:pending",

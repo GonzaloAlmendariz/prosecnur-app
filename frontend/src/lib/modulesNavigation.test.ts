@@ -338,7 +338,7 @@ describe("manifiesto primario de navegación", () => {
     // están hechas las aulas elegidas. 26 → 27.
     // (2026-08-07, ADR 0067): Selección gana «Relato» (`aulas-relato`), el
     // sustento narrado de la corrida persistida, junto a Sustento. 27 → 28.
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(28);
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(29);
     expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.aulas.map((tab) => tab.id)).toEqual([
       "objetivo",
       "metodo",

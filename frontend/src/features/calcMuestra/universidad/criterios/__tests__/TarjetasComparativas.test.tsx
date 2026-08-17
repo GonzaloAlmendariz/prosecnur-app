@@ -20,6 +20,7 @@ import {
   claveMotor,
   criteriosPropiosDeFacultad,
   fichaDeFacultad,
+  filasParaFichas,
 } from "../fichaFacultadModel";
 
 /** Cifras reales del libro de referencia de 2025. */
@@ -177,26 +178,48 @@ describe("ficha por facultad", () => {
  * Es más débil que renderizar, pero mata al mutante: si alguien quita el
  * montaje, este test cae.
  */
-describe("contrato: las dos tarjetas están cableadas en el desk", () => {
-  const fuente = readFileSync(
-    new URL("../../UniversidadDesk.tsx", import.meta.url),
+describe("contrato: las dos tarjetas están cableadas en Entrega", () => {
+  const desk = readFileSync(new URL("../../UniversidadDesk.tsx", import.meta.url), "utf8");
+  const tab = readFileSync(
+    new URL("../../salidas/SalidasCoincidenciaTab.tsx", import.meta.url),
     "utf8",
   );
 
-  it("la tarjeta de criterios generales se importa y se pinta", () => {
-    expect(fuente).toContain('from "./criterios/CriteriosGeneralesCard"');
-    expect(fuente).toMatch(/<CriteriosGeneralesCard[\s\S]*?referencia=\{referenciaCriterios\}/);
+  // La cadena tiene DOS eslabones desde que las tarjetas se mudaron a Entrega:
+  // el desk monta la pestaña, y la pestaña pinta las tarjetas. Cubrir sólo uno
+  // deja vivo el mutante que ya sobrevivió tres veces en este trabajo.
+  it("el desk monta la pestaña de Entrega con las tres piezas", () => {
+    expect(desk).toContain('from "./salidas/SalidasCoincidenciaTab"');
+    // Anclado al `{` de apertura: con `toMatch` suelto, un `{false && …` deja
+    // el texto intacto y el mutante sobrevive. Lo comprobé.
+    expect(desk).toContain('{showLocalTab("salidas-coincidencia") && <div id="cmv2-local-salidas-coincidencia">');
+    expect(desk).toMatch(/<SalidasCoincidenciaTab[\s\S]*?criteriosGenerales=\{criteriosGenerales\}/);
+    expect(desk).toMatch(/<SalidasCoincidenciaTab[\s\S]*?fichas=\{fichasFacultad\}/);
+    expect(desk).toMatch(/<SalidasCoincidenciaTab[\s\S]*?referencia=\{referenciaCriterios\}/);
   });
 
-  it("la ficha por facultad se importa y se pinta", () => {
-    expect(fuente).toContain('from "./criterios/FichaPorFacultadCard"');
-    expect(fuente).toMatch(/<FichaPorFacultadCard[\s\S]*?fichas=\{fichasFacultad\}/);
+  it("la pestaña pinta las dos tarjetas", () => {
+    expect(tab).toContain('from "../criterios/CriteriosGeneralesCard"');
+    expect(tab).toContain('from "../criterios/FichaPorFacultadCard"');
+    expect(tab).toMatch(/<CriteriosGeneralesCard[\s\S]*?referencia=\{referencia\}/);
+    expect(tab).toMatch(/<FichaPorFacultadCard[\s\S]*?fichas=\{fichas\}/);
+  });
+
+  it("CONTROL: ya NO viven en Marco, donde no hay estratos resueltos", () => {
+    // Gonzalo: «no sé qué hace en Marco cuando aún ni definimos los criterios de
+    // estudiantes o de cursos horarios». Medido: ahí las fichas salían vacías.
+    const marco = desk.slice(
+      desk.indexOf('id="cmv2-local-marco-criterios-alumno"'),
+      desk.indexOf('id="cmv2-local-marco-alumnos-ch"'),
+    );
+    expect(marco).not.toContain("<FichaPorFacultadCard");
+    expect(marco).not.toContain("<CriteriosGeneralesCard");
   });
 
   it("la referencia se lee del bloque `aulas` del payload", () => {
     // Vive dentro de `aulas` y no al lado de `referencia_asistencia` porque
     // `CalcMuestraPage.tsx` está congelada y no debe crecer para pasar una prop.
-    expect(fuente).toContain("aulasState?.referencia_criterios");
+    expect(desk).toContain("aulasState?.referencia_criterios");
   });
 });
 
@@ -277,5 +300,37 @@ describe("criterios propios de una facultad", () => {
     const sin = fichaDeFacultad(FILA, 149, 12, 16, null, SUITE, 15);
     const htmlSin = renderToStaticMarkup(<FichaPorFacultadCard fichas={[sin]} />);
     expect(htmlSin).not.toContain("Criterios propios:");
+  });
+});
+
+/**
+ * De qué componente salen las cuentas — el defecto que Gonzalo vio en su propio
+ * proyecto: «con todos los E que hicimos, todos los cálculos ya deberían estar
+ * hechos», y la tarjeta mostraba cero facultades.
+ */
+describe("qué filas alimentan las fichas", () => {
+  const fila = (estrato: string, margen: unknown = undefined) =>
+    ({ estrato, N: 100, cuota: 20, aulas_base: 3, ...(margen === undefined ? {} : { margen }) });
+  const comp = (id: string, filas: unknown[]) =>
+    ({ actor_id: id, resultado: { aulas_por_estrato: filas } }) as never;
+
+  it("prefiere el componente que SÍ publicó margen", () => {
+    const sinM = comp("total", [fila("TOTAL")]);
+    const conM = comp("facultad", [fila("DERECHO", { aulas_requeridas: 46 })]);
+    expect(filasParaFichas([sinM, conM], conM)?.[0]).toMatchObject({ estrato: "DERECHO" });
+  });
+
+  it("sin margen en ningún componente usa el de FACULTAD, no el total", () => {
+    // Es el caso de un estudio calculado antes de que R publicara `margen`.
+    const total = comp("total", [fila("TOTAL")]);
+    const fac = comp("facultad", [fila("DERECHO"), fila("EDUCACION")]);
+    const filas = filasParaFichas([total, fac], fac);
+    expect(filas).toHaveLength(2);
+    expect(filas?.map((f) => (f as { estrato: string }).estrato)).toEqual(["DERECHO", "EDUCACION"]);
+  });
+
+  it("CONTROL: sin filas por facultad devuelve null, no una lista vacía disfrazada", () => {
+    expect(filasParaFichas([comp("total", [])], comp("facultad", []))).toBeNull();
+    expect(filasParaFichas([], null)).toBeNull();
   });
 });

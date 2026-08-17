@@ -22,8 +22,8 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 28 pestañas vivas de Muestra universitaria con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(28);
+  it("fija las 29 pestañas vivas de Muestra universitaria con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(29);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
@@ -69,6 +69,9 @@ describe("catálogos canónicos de pestañas", () => {
       "auditoria:Sustento técnico",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas)).toEqual([
+      // Primera y con protagonismo propio: es la pregunta con la que se cierra
+      // el diseño, y sus cuentas por facultad no existen antes de Entrega.
+      "salidas-coincidencia:Coincidencia",
       "salidas-guia:Cierre",
       "salidas-resultados:Tablas",
       "salidas-entregables:Entregables",

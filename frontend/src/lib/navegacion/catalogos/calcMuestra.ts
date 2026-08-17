@@ -12,6 +12,7 @@ import {
   History,
   PieChart,
   RefreshCw,
+  Scale,
   Search,
   Send,
   Settings2,
@@ -131,6 +132,10 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestanaAula("auditoria", "Sustento técnico", "Campos, pesos y fuentes", FileText),
   ],
   salidas: [
+    // Primera de Entrega y con su propio protagonismo: es la pregunta con la que
+    // se cierra el diseño —«¿esto coincide con el estudio anterior?»— y hasta
+    // aquí no existen las cuentas por facultad que la contestan.
+    pestana("salidas", "salidas-coincidencia", "Coincidencia", "criterios y cuentas contra el estudio anterior", Scale, { targetId: "cmv2-local-salidas-coincidencia" }),
     pestana("salidas", "salidas-guia", "Cierre", "ficha ejecutiva del diseño", FileCheck2, { targetId: "cmv2-local-salidas-guia" }),
     pestana("salidas", "salidas-resultados", "Tablas", "cuotas finales por facultad y sexo", BarChart3, { targetId: "cmv2-local-salidas-resultados" }),
     pestana("salidas", "salidas-entregables", "Entregables", "Excel, Sheets y privacidad", FileText, { targetId: "cmv2-local-salidas-entregables" }),

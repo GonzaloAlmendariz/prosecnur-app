@@ -321,8 +321,12 @@ export function universitySidebarTabs({
   }
   if (activeSection === "salidas") {
     const deliverablesReady = selectedResultReady && selectionReady && publicationConfigured;
-    const [guiaTab, resultadosTab, entregablesTab, monitoreoTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
+    const [coincidenciaTab, guiaTab, resultadosTab, entregablesTab, monitoreoTab] =
+      CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas;
     return [
+      // La comparación con el estudio anterior vive de las cuentas POR FACULTAD,
+      // así que está lista cuando lo está el resultado seleccionado.
+      { ...coincidenciaTab, status: guideStatus(selectedResultReady, effectiveMarcoReady) },
       { ...guiaTab, status: guideStatus(selectedResultReady && selectionReady && replacementReady, effectiveMarcoReady) },
       { ...resultadosTab, status: guideStatus(selectedResultReady) },
       { ...entregablesTab, status: guideStatus(deliverablesReady, selectedResultReady && selectionReady) },

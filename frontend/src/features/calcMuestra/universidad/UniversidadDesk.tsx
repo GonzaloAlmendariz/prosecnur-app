@@ -47,9 +47,9 @@ import { ExploradorBasesTab } from "./definicion/ExploradorBasesTab";
 import { DefHistoricoTab } from "./definicion/DefHistoricoTab";
 import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
-import { CriteriosGeneralesCard, type CriterioGeneralFila } from "./criterios/CriteriosGeneralesCard";
-import { FichaPorFacultadCard } from "./criterios/FichaPorFacultadCard";
-import { fichaDeFacultad, claveFicha } from "./criterios/fichaFacultadModel";
+import { type CriterioGeneralFila } from "./criterios/CriteriosGeneralesCard";
+import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
+import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import {
   AulasAuditoriaTab,
@@ -370,13 +370,16 @@ export function UniversidadDesk({
   // Bloques que R deriva al servir y que hasta ahora sólo vivían en el payload:
   // el margen de aulas por facultad viaja en `aulas_por_estrato` del componente
   // que dimensiona por facultad, y el balance de sexo en la selección.
-  const margenFilas = useMemo(() => {
-    for (const comp of estudio.componentes ?? []) {
-      const filas = comp.resultado?.aulas_por_estrato ?? [];
-      if (filas.some((f) => f.margen != null)) return filas;
-    }
-    return null;
-  }, [estudio.componentes]);
+  //
+  // Exigir `margen` para aceptar las filas era un error medido contra HSVG2026:
+  // ese campo lo publica R desde hace poco, así que un estudio calculado ANTES
+  // trae `aulas_por_estrato` completo —estrato, N, cuota, aulas_base— y aun así
+  // la tarjeta se caía entera y mostraba CERO facultades. El margen es UNO de
+  // los seis pasos; su ausencia se pinta como «—», no borra los otros cinco.
+  const margenFilas = useMemo(
+    () => filasParaFichas(estudio.componentes ?? [], facultyComp),
+    [estudio.componentes, facultyComp],
+  );
   // Las reglas propias de cada facultad viven en la suite de criterios del
   // config vigente, indexadas por la clave normalizada del motor.
   const criteriosSeleccionVigente =
@@ -549,18 +552,9 @@ export function UniversidadDesk({
         {selectedSection === "marco" && (
           <div ref={activePanelRef} id="cmv2-section-university-marco" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
             {showLocalTab("marco-criterios-alumno") && <div id="cmv2-local-marco-criterios-alumno">
-              {/* Gonzalo pidió separarlos: lo que rige para TODAS las facultades
-                  arriba, y debajo la ficha de cada una con sus cuentas. Las dos
-                  con la columna del estudio anterior, porque el comparativo es
-                  «no sólo de números sino de método». */}
-              <CriteriosGeneralesCard
-                filas={criteriosGenerales}
-                referencia={referenciaCriterios}
-              />
-              <FichaPorFacultadCard
-                fichas={fichasFacultad}
-                periodo={referenciaCriterios?.periodo ?? ""}
-              />
+              {/* Las tarjetas comparativas VIVEN EN ENTREGA, no acá: en Marco
+                  todavía no hay estratos resueltos y salían vacías. Ver
+                  `SalidasCoincidenciaTab`. */}
               <CriteriosMarcoTab
                 scope="alumno"
                 workspace={syncedWorkspace}
@@ -704,6 +698,13 @@ export function UniversidadDesk({
 
         {selectedSection === "salidas" && (
           <div ref={activePanelRef} id="cmv2-section-university-salidas" className="cmv2-tab-panel" role="tabpanel" aria-labelledby={activeContextTabId}>
+            {showLocalTab("salidas-coincidencia") && <div id="cmv2-local-salidas-coincidencia">
+              <SalidasCoincidenciaTab
+                criteriosGenerales={criteriosGenerales}
+                fichas={fichasFacultad}
+                referencia={referenciaCriterios}
+              />
+            </div>}
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
               <SalidasCierreTab model={labModel} workspace={syncedWorkspace} />
             </div>}
