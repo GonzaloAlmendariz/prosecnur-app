@@ -655,7 +655,15 @@ calc_muestra_alumnos_por_ch_calcular_estudio <- function(estudio, frame = NULL) 
     calculado,
     decision_resuelta$auditoria
   )
-  con_distribucion <- calc_muestra_distribucion_adjuntar_estudio(auditado, frame)
+  # El margen de aulas por facultad: cuantas hay frente a cuantas se necesitan.
+  # El motor sabia cuantas requeria cada una y nunca decia cuantas HABIA.
+  con_margen <- calc_muestra_aulas_adjuntar_margen(
+    auditado, frame,
+    profundidad = (calc_muestra_aulas_normalize_config(
+      (estudio$workspace %||% list())$aulas_config %||% list()
+    )$selector %||% list())$replacement_waves
+  )
+  con_distribucion <- calc_muestra_distribucion_adjuntar_estudio(con_margen, frame)
   # I20: el snapshot de comparación P1↔P2 se construye una vez y se estampa
   # idéntico en ambos resultados (calc_muestra_comparacion_escenarios.R).
   calc_muestra_comparacion_adjuntar_estudio(con_distribucion, frame)
