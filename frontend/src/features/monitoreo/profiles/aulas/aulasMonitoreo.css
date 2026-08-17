@@ -1270,3 +1270,88 @@
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(.aulas-parte-aviso) {
   grid-template-rows: auto auto minmax(0, 1fr);
 }
+
+/* ── Cumplimiento de la meta, en respuestas ──────────────────────────────────
+   Barra en CSS. La meta es el carril entero; el excedente se dibuja PEGADO a
+   su derecha y fuera de ella, porque no cubre nada: es la misma gramática con
+   la que el histórico del cálculo de muestra separa merma de descuento. */
+.mon-profile-page.is-aulas-flow .aulas-avance-respuestas {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-titular {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-pct {
+  color: var(--pulso-text);
+  font-size: 15px;
+  font-weight: var(--pulso-weight-black);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-carril {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-meta {
+  display: flex;
+  flex: 1 1 auto;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-meta i {
+  display: block;
+}
+
+/* El excedente: rayado y a media tinta. No es avance y no debe leerse como tal. */
+.mon-profile-page.is-aulas-flow .aulas-avance-excedente {
+  flex: none;
+  height: 20px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, #b97611 40%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+  border: 1px dashed color-mix(in srgb, #b97611 55%, transparent);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas li {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-cubierto::before { background: #168a55; }
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-falta::before { background: #7a8796; }
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-excedente::before { background: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-meta::before { background: var(--pulso-border); }
