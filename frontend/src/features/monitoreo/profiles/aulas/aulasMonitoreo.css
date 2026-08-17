@@ -625,3 +625,11 @@
   grid-template-rows: 1fr auto;
   min-width: 0;
 }
+
+/* Ver `.aulas-cobertura-chart`: el alto se reserva o el panel colapsa. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cadena-chart {
+  min-height: 200px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+}

@@ -133,7 +133,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
-| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujados **tres de cinco**: estado del circuito, cobertura por aula y brecha por estrato. Faltan cuota sexo×facultad y consumo de cadena. |
+| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujados **cuatro de cinco**: estado del circuito, cobertura por aula, brecha por estrato y consumo de cadena. Falta cuota sexo×facultad. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
@@ -908,3 +908,46 @@ Dos decisiones con su test:
 el mismo panel, titulado «Cobertura de la meta» —que ya no describía lo que
 contenía—. Cada uno tiene su panel y su título, porque una superficie declara qué
 es.
+
+
+### 2026-08-16 — L63: el consumo de cadena, y una alarma real del operativo
+
+Dibujado el #5, en Consultas › Reemplazos. Sobre el plan de 170 titulares:
+
+```
+Sin gastar   1 reemplazo   2 reemplazos   3 o más
+    0        ████████ 22   █ 2               0
+```
+
+**El gráfico reprodujo solo la verdad conocida de 2025**: 22 cadenas con un
+reemplazo más 2 con dos son **26 reemplazos sobre 170 titulares**, que es
+exactamente la cifra que Gonzalo corrigió en su momento —las cadenas planificadas
+llegan a once eslabones, las **consumidas** fueron dos—. Que un cálculo escrito
+sin mirar ese dato caiga en el mismo número es la mejor verificación que puede
+tener esta vista.
+
+Y dice dos cosas que ninguna tabla decía:
+
+> **26 reservas gastadas y 0 todavía en el banco. 146 titulares no tienen ninguna
+> reserva, así que sus metas quedan sin cubrir si caen.**
+
+No es una advertencia decorativa: si una de esas 146 aulas cae, el operativo no
+tiene con qué cubrirla. La tabla de reemplazos tiene los mismos 26 registros y no
+puede decirlo, porque lo que falta no está en ella.
+
+Dos decisiones con su test:
+
+- **«Nunca tuvo reserva» no cae en «sin gastar»** (L54 otra vez, ahora en el
+  gráfico): la primera es una decisión del diseño muestral y la segunda un hecho
+  del operativo. Juntarlas diría que el plan tiene un colchón de 146 cadenas que
+  no existe.
+- **La cadena vacía cuenta como libre, igual que en el motor.** El conjunto de
+  estados libres es literalmente el de
+  `monitoreo_aulas_reservas_disponibles()`: si divergen, el gráfico ofrece
+  reservas que el motor ya no da, o al revés. Y un plan recién importado no trae
+  `sample_status`, así que contarlo como gastado diría que el operativo empezó
+  consumido.
+
+**Sale del plan entero, no de `dashboard.reemplazos`**: esa lista sólo trae
+reservas y caídas, así que los 146 titulares sin reserva —justo los que producen
+la alarma— no aparecerían.
