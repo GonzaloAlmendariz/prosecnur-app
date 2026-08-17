@@ -611,7 +611,7 @@
     "frozen_growth_baseline": {
       "api/R/monitoreo_engine.R": 39981,
       "api/R/router_monitoreo.R": 6046,
-      "api/R/reporte_plan_ppt.R": 9713,
+      "api/R/reporte_plan_ppt.R": 9716,
       "frontend/src/features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx": 20486,
       "frontend/src/features/monitoreo/profiles/acreditacion/AcreditacionMonitoreoPage.tsx": 18514,
       "frontend/src/features/monitoreo/monitoreo.css": 38160,
@@ -627,7 +627,7 @@
       "frontend/src/app/tokens.css": 553,
       "api/R/calc_muestra_aulas.R": 5183,
       "frontend/src/features/calcMuestra/CalcMuestraPage.tsx": 3989,
-      "api/R/graficador_dimensiones.R": 4948
+      "api/R/graficador_dimensiones.R": 5007
     },
     "frozen_growth_exempt": []
   }

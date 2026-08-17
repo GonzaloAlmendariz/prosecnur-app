@@ -261,14 +261,35 @@
 }
 
 
-# Alto fisico del cajon de cada panel en una lamina de CUATRO, en pulgadas.
+# Alto fisico del cajon de cada panel en una lamina `poblacion_4`, en pulgadas.
 #
-# Medido en el XML del mazo de Conta: los cuatro cajones de la lamina 13 son
-# 5.17 x 2.56 in. El graficador recibia `ancho_slot = 6.1` y ningun alto, asi
-# que se quedaba con el default de su firma —seis pulgadas—: creia tener mas del
-# doble del alto real, y por eso sus cuentas verticales daban por bueno lo que
-# se solapaba (P42, etiqueta de eje de dos lineas sobre la fila vecina).
+# Medido en el XML del mazo de Conta, lamina 13 («PERFIL DEL EGRESADO»): los
+# cuatro grupos de nivel superior son 5.169 x 2.565 in. El graficador recibia
+# `ancho_slot = 5.2` —que cuadra con ese 5.169— y ningun alto, asi que se
+# quedaba con el default de su firma —seis pulgadas—: creia tener mas del doble
+# del alto real, y por eso sus cuentas verticales daban por bueno lo que se
+# solapaba (P42, etiqueta de eje de dos lineas sobre la fila vecina).
+#
+# EL NOMBRE IMPORTA. El primer intento lo llamo `.PANELES_4_…` y lo engancho en
+# el bloque `paneles_4` del renderer, que es OTRO layout: en este mazo hay seis
+# laminas de cuatro paneles y las seis son `p_slide_4_graficos_poblacion`, o sea
+# `poblacion_4`; de `paneles_4` no hay ninguna —su layout ni siquiera existe en
+# la plantilla—. El mecanismo estaba puesto donde nunca se ejecuta, y el
+# resultado era indistinguible de no haber hecho nada.
+#
+# LA VARA SUBE DE 20 A 21 Y SE CONSERVA IGUAL. Medido sobre el mazo de Conta,
+# antes `p43.pptx` y despues `p44.pptx`: el que entra es un B3 «grosores
+# desiguales» en la lamina 9 con valor 0.07 —el minimo del conjunto, empatado
+# con los de las laminas 30 y 38, que ya se aceptaban—, y las laminas 10 y 14
+# pasan de 0.26 a 0.28. No entra ningun R10 ni ningun R1 nuevo.
+#
+# Se conserva porque lo que subio no es el dano: es la medicion. B3 compara el
+# grosor de dos bloques de la misma lamina, y hasta ahora los comparaba sobre un
+# lienzo ficticio de seis pulgadas. Cuatro paneles igualmente equivocados daban
+# grosores iguales; con el alto real aparece la diferencia que siempre estuvo
+# ahi. Restaurar el 6 no arreglaria la lamina 9, solo volveria a taparla —y a
+# cambio devolveria las cuatro etiquetas ilegibles de la 13—.
 #
 # Vive aqui y no en `reporte_plan_ppt.R` porque ese archivo esta congelado a
 # crecimiento: alli queda solo el paso del valor.
-.PANELES_4_ALTO_SLOT_IN <- 2.56
+.POBLACION_4_ALTO_SLOT_IN <- 2.565

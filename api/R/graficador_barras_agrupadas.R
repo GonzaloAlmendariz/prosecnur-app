@@ -918,34 +918,25 @@ graficar_barras_agrupadas <- function(
     # alto de fila; aqui la fila la fija el panel y no se puede crecer, asi que
     # lo que cede es el CUERPO: si las lineas que el envoltorio va a producir no
     # caben en la fila, el texto baja hasta que quepan.
-    # MEDIDO, SIN EFECTO TODAVIA, Y CON LA CAUSA LOCALIZADA FUERA DE AQUI.
+    # LA CAUSA ESTABA FUERA DE AQUI, en la entrada. Trazado antes del arreglo, a
+    # la lamina 13 llegaba `canvas=TRUE orient=horizontal ncat=6 wrap=38
+    # forzar=FALSE alto=6`, y con esas cifras la cuenta de abajo decia que las
+    # dos lineas CABEN —0.43 in de texto en una fila de 0.62— mientras en el
+    # render se solapaban. Medido el paso de fila en el PNG: ~0.35 in, un 57 %
+    # de lo estimado. Ese `alto = 6` era el DEFAULT DE LA FIRMA: el renderer
+    # inyectaba el ancho del cajon (`ancho_slot`, H22) y el alto no viajaba, asi
+    # que el graficador creia tener seis pulgadas donde tiene 2.565.
     #
-    # Trazado sobre la lamina 13 llega `canvas=TRUE orient=horizontal ncat=6
-    # wrap=38 forzar=FALSE alto=6`, y con esas cifras la cuenta de abajo dice
-    # que las dos lineas CABEN —0.43 in de texto en una fila de 0.62— mientras
-    # en el render se solapan. Medido el paso de fila en el PNG: ~0.35 in, un
-    # 57 % de lo estimado.
+    # RESUELTO: `.render_element(el, ancho_slot, alto_slot)` inyecta tambien
+    # `overrides$alto`, y el bloque `poblacion_4` pasa `2.565`, medido en el XML
+    # de la lamina 13. Comprobado en el render: las seis etiquetas de «Sueldo
+    # mensual bruto» se leen enteras, y el cuerpo baja de 13 a 7.99 pt.
     #
-    # LA CAUSA: ese `alto = 6` es el DEFAULT DE LA FIRMA, no el alto del cajon.
-    # `reporte_plan_ppt.R` tiene `.render_element(el, ancho_slot)`, que inyecta
-    # `overrides$ancho` con el ancho fisico del cajon —eso es H22, y lo usan 25
-    # llamadas—, pero NO EXISTE un `alto_slot`: el alto nunca viaja. En una
-    # lamina de cuatro paneles el graficador cree tener seis pulgadas de alto
-    # donde tiene tres, asi que CUALQUIER cuenta vertical suya se equivoca por
-    # ese factor.
-    #
-    # EL MECANISMO YA ESTA: `.render_element(el, ancho_slot, alto_slot)` inyecta
-    # `overrides$alto`, y el bloque de cuatro paneles de `reporte_plan_ppt.R`
-    # (~8748) le pasa `.PANELES_4_ALTO_SLOT_IN = 2.56`, medido en el XML.
-    #
-    # PERO LA LAMINA 13 SIGUE RECIBIENDO `alto = 6`. Trazado tras el cambio: de
-    # las 60 llamadas, 40 llegan con 6 y 20 con 2.95, y la del sueldo esta entre
-    # las de 6. O sea que pasa por OTRO de los ~10 sitios que pasan
-    # `ancho_slot = 6.1` —hay bloques en 8421, 8631, 9033, 9128, 9217, 9302—, no
-    # por el que se engancho. Falta identificar cual y medir SU alto de cajon.
-    #
-    # Se conserva lo hecho: el mecanismo es correcto, no rompe nada (vara 20,
-    # gate verde) y lo que falta es enchufarlo en el sitio que toca.
+    # LO QUE ESTE ARREGLO NO CIERRA, y esta medido: el aprobado resuelve la
+    # MISMA lamina sin envolver ni una etiqueta —«Entre 3001 y 4500 soles» en
+    # una sola linea a 13 pt—. O sea que su columna de etiquetas es mas ancha,
+    # no su texto mas pequeno. Encoger es correcto como ultimo recurso, pero el
+    # primero deberia ser ensanchar la columna. Eso es P43, no esto.
     filas_eje <- .agrupadas_lineas_eje(cat_lvls, ancho_max_eje_y_eff)
     size_ejes_eff <- .agrupadas_size_que_cabe(
       size_ejes_eff, filas_eje, n_categorias,
