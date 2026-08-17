@@ -107,6 +107,9 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   exclude_session_patterns: [],
   exclude_modality_patterns: ["virtual", "remoto", "online", "distancia", "asincron"],
   exclude_level_patterns: ["posgrado", "postgrado", "maestria", "master", "doctorado"],
+  // Nace vacía: la exclusión de una unidad académica es una decisión del
+  // estudio, no un default que Prosecnur pueda suponer.
+  excluded_faculties: [],
   require_stable_teacher: false,
   accepted_teacher_type_patterns: ["contratado", "ordinario"],
   // H7: el criterio de pregrado opera sobre la columna de formación real

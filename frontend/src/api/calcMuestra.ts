@@ -648,6 +648,8 @@ export type CalcMuestraWorkspaceAulasConfig = {
   exclude_session_patterns?: string[];
   exclude_modality_patterns?: string[];
   exclude_level_patterns?: string[];
+  /** Facultades excluidas del estudio por decisión de diseño (no por tamaño). */
+  excluded_faculties?: string[];
   /** Criterios del marco (espejo calc_muestra_aulas_config_v1); todos nacen apagados. */
   require_stable_teacher?: boolean;
   accepted_teacher_type_patterns?: string[];

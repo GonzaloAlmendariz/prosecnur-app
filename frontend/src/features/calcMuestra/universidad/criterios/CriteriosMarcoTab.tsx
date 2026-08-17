@@ -54,6 +54,7 @@ import { CriterioComposicionCard } from "./CriterioComposicionCard";
 import { PresetCanonicoButton } from "./PresetCanonicoButton";
 import type { PresetCanonicoPlan } from "./presetCanonicoModel";
 import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
+import { FacultadesExcluidasCard } from "./FacultadesExcluidasCard";
 import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
 import {
@@ -539,6 +540,12 @@ export function CriteriosMarcoTab({
                   onTasa={editarTasaAsistencia}
                   onConfirmar={() => confirmarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
                   onDescartar={() => descartarVariable(ELEGIBLES_POR_AULA_ID, "minEligible")}
+                />
+
+                <FacultadesExcluidasCard
+                  config={config}
+                  facultades={facultadesMin}
+                  onPatch={patchAulasConfig}
                 />
 
                 <CriterioComposicionCard config={config} onPatch={patchAulasConfig} />

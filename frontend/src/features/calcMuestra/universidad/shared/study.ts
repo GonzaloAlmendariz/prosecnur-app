@@ -166,6 +166,14 @@ export function normalizeUniversityAulasConfig(config?: CalcMuestraWorkspace["au
     exclude_session_patterns: normalizePatternList(raw.exclude_session_patterns, DEFAULT_UNIVERSITY_AULAS_CONFIG.exclude_session_patterns ?? []),
     exclude_modality_patterns: normalizePatternList(raw.exclude_modality_patterns, DEFAULT_UNIVERSITY_AULAS_CONFIG.exclude_modality_patterns ?? []),
     exclude_level_patterns: normalizePatternList(raw.exclude_level_patterns, DEFAULT_UNIVERSITY_AULAS_CONFIG.exclude_level_patterns ?? []),
+    // NO usa `normalizePatternList`: ese normalizador pasa a minusculas porque
+    // sirve para patrones de texto («virtual», «posgrado»). El nombre de una
+    // facultad no es un patron, es un nombre propio, y el usuario tiene que
+    // leerlo tal como lo escribio. La comparacion la hace el motor, que ya
+    // normaliza acentos y mayusculas por su cuenta.
+    excluded_faculties: Array.isArray(raw.excluded_faculties)
+      ? raw.excluded_faculties.map((x) => String(x).trim()).filter((x) => x.length > 0)
+      : (DEFAULT_UNIVERSITY_AULAS_CONFIG.excluded_faculties ?? []),
     // Criterios nuevos del marco (espejo calc_muestra_aulas_config_v1): nacen apagados.
     require_stable_teacher: raw.require_stable_teacher ?? false,
     accepted_teacher_type_patterns: normalizePatternList(
@@ -324,6 +332,9 @@ export function filtrosLegacyPayload(
       exclude_session_patterns: [],
       exclude_modality_patterns: [],
       exclude_level_patterns: [],
+      // La exclusión por diseño NO se apaga con la suite: si el estudio dice
+      // que una facultad no participa, no participa.
+      excluded_faculties: config.excluded_faculties ?? [],
       session_type_excepciones: {},
       require_stable_teacher: false,
       accepted_teacher_type_patterns: [],
@@ -348,6 +359,7 @@ export function filtrosLegacyPayload(
     exclude_session_patterns: config.exclude_session_patterns ?? [],
     exclude_modality_patterns: config.exclude_modality_patterns,
     exclude_level_patterns: config.exclude_level_patterns,
+    excluded_faculties: config.excluded_faculties ?? [],
     // H9: excepciones de tipo de sesión por unidad (viaja junto a los patrones que exime).
     session_type_excepciones: config.session_type_excepciones ?? {},
     require_stable_teacher: config.require_stable_teacher ?? false,
