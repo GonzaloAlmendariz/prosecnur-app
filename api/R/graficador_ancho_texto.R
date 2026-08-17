@@ -109,3 +109,41 @@
   if (!is.finite(por_char) || por_char <= 0) return(NA_integer_)
   as.integer(max(minimo, floor(a / por_char)))
 }
+
+
+#' El subbloque hereda el cajon de su lamina
+#'
+#' P46. `.render_element()` inyecta `ancho` y `alto` en el elemento que
+#' renderiza, pero una lamina `multilista` compone VARIOS subbloques y cada uno
+#' es un `ppt_element` propio que se renderiza sin volver a pasar por ahi. El
+#' padre sabia el tamano de su cajon y los hijos no.
+#'
+#' Medido sobre el mazo de Conta, pasada de PPT: **20 llamadas llegaban con
+#' `ancho = 10`** —el default de la firma de `graficar_barras_apiladas()`—
+#' mientras la lamina se dibuja a **12.511 in**. Con `canvas_w_grupo = 0.22`,
+#' `w_sum = 1.02` y fraccion 0.2157, el canal para envolver salia
+#' `0.2157 * 10 - 0.06 = 2.097 in` cuando el real es
+#' `0.2157 * 12.511 = 2.699 in`: el enunciado se envolvia un **22 % mas
+#' estrecho que su sitio**, pedia mas lineas de las necesarias y el cupo de
+#' `.barras_acotar_titulo_grupo()` lo recortaba. Veintidos enunciados truncados
+#' en dieciseis laminas; el entregable aprobado, cero.
+#'
+#' Vive aqui y no en `reporte_plan_ppt.R` porque ese archivo esta congelado a
+#' crecimiento: alli queda solo la llamada.
+#'
+#' El alto viaja igual que el ancho por simetria y porque su ausencia es el
+#' mismo defecto —P42 lo pago en el otro eje—; un subbloque que declare el suyo
+#' manda, que es la regla de siempre de los `overrides`.
+#'
+#' @param hijo Overrides del subbloque.
+#' @param padre Overrides de la lamina.
+#' @return Los overrides del subbloque con el cajon heredado.
+#' @keywords internal
+.multilista_heredar_cajon <- function(hijo, padre) {
+  hijo  <- hijo  %||% list()
+  padre <- padre %||% list()
+  for (k in c("ancho", "alto")) {
+    if (is.null(hijo[[k]]) && !is.null(padre[[k]])) hijo[[k]] <- padre[[k]]
+  }
+  hijo
+}

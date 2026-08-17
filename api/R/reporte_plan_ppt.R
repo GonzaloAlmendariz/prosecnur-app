@@ -4846,6 +4846,14 @@ reporte_ppt_plan <- function(
         if (length(bases_publico)) {
           block_render$overrides$bases_publico <- bases_publico
         }
+        # Y el tamano del cajon tambien: `.render_element()` se lo inyecto al
+        # elemento PADRE, pero cada subbloque es un `ppt_element` propio que se
+        # renderiza sin pasar por ahi. Sin esto el graficador se queda con el
+        # default de su firma —diez pulgadas— y envuelve el enunciado contra un
+        # canal que no es el suyo (P46). Ver `.multilista_heredar_cajon()`.
+        block_render$overrides <- .multilista_heredar_cajon(
+          block_render$overrides, el$overrides %||% list()
+        )
         if (is.null(block_render$overrides$legend_key_aspect_yx)) {
           block_aspect_yx <- parent_aspect_yx * (rel_heights_plan[[idx_block]] / rel_total)
           block_render$overrides[c("legend_key_aspect_yx", "titulos_grupo_alto_rel")] <- list(max(0.08, min(parent_aspect_yx, block_aspect_yx)), rel_heights_plan[[idx_block]] / rel_total)
