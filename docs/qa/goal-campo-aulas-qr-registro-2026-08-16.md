@@ -134,7 +134,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
 | **L63** | **Aulas no tiene ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`: acreditación tiene ritmo diario y tendencia telefónica (`AcreditacionAdvanceDailyMini`, `ritmoDiario.ts` con cortes diarios y semanales, calendario expandido y ejes con padding); telefónico tiene embudo en franja y barras apiladas. Aulas sólo muestra tablas. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
-| **L64** | Qué gráfico es **propio del contexto de aulas**. | No vale copiar el ritmo diario de telefónico: en aulas la unidad es el curso-horario con su aforo y su meta, y lo que importa es la brecha por aula, el avance por estrato/facultad, la cuota sexo×facultad y el consumo de la cadena de reemplazos. | ☐ sin empezar — decidir el catálogo antes de dibujar. |
+| **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
@@ -753,3 +753,34 @@ se va en serializar y parsear un JSON de 1 MB. Bajar el peso ayuda pero no es la
 
 Verificado tras el cambio: registro con sus 196 aulas, agenda con 196, avance
 con 196 y brechas con 91.
+
+
+### 2026-08-16 — L64: el catálogo, decidido antes de dibujar
+
+Lo que distingue a aulas de telefónico y acreditación: **la unidad tiene aforo y
+meta propios**, y su campo es una sesión única, no un flujo de reintentos. Eso
+descarta copiar el ritmo diario y habilita preguntas que en los otros perfiles
+no existen.
+
+| # | Pregunta del operativo | Gráfico | De dónde sale |
+|---|---|---|---|
+| 1 | ¿Cuántas aulas están cerradas y cuántas ni se han tocado? | Barra apilada por estado de aplicación | `course_status.application_state` |
+| 2 | ¿A qué facultad mando el equipo mañana? | Barras por estrato: válidas y brecha | `avance_por_estrato` |
+| 3 | **¿Están muchas aulas a medias o pocas sin tocar?** | Histograma de cobertura por aula (`válidas / meta`) | `course_status.respuestas_validas` ÷ `expected_valid` |
+| 4 | ¿La composición por sexo aguanta? | Observado vs meta por celda | `quotas_sex_faculty` |
+| 5 | ¿Cuánta reserva llevo gastada? | Conteo de cadena: sin reemplazo · 1 · 2+ | `reemplazos` + `sample_status` |
+
+**El 3 es el que sólo tiene sentido aquí.** En telefónico la unidad es una
+llamada y no tiene meta propia; en aulas cada curso-horario tiene la suya, así
+que la *distribución* de coberturas dice algo que ningún promedio dice: 60 aulas
+al 50% y 60 aulas al 100% dan el mismo avance global que 120 al 75%, y exigen
+decisiones opuestas —insistir donde ya hay tracción, o abrir aulas nuevas—.
+
+**Lo que no entra, y por qué**: el ritmo diario tal como lo hace telefónico
+—respuestas por día— mide un flujo que en aulas no existe. Si algún día hace
+falta un eje temporal, la unidad natural es **aulas cerradas por día**, no
+respuestas: es lo que el coordinador planifica.
+
+Los cinco salen de datos que el tablero **ya produce**, así que ninguno exige
+tocar el motor. Y el lenguaje visual es el compartido: `PlotlyChart`,
+`coloresDeResultado`, `MarcoDeEjesSiHaceFalta`.
