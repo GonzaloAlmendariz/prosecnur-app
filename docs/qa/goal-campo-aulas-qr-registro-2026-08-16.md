@@ -137,6 +137,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias declaradas y una escondida: `brechas` era un clon completo del plan. | ☑ **hecho** (2026-08-16) — **1377 → 934 → 601 KB** y **2,4 → 1,6 s**. Queda una sola copia, `dashboard.agenda`, que es superconjunto de la que se fue. |
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
+| **L68** | El gate visual del contrato **nunca miró los cinco gráficos**. | Al pasarlo: 4 `capacity-drift` (C3) en los paneles de Avance, en los dos viewports. | ◐ a medias (2026-08-16) — los paneles de gráfico ya son intrínsecos y el gate baja de **4 a 2**. Queda «Estado del circuito», con la medición hecha y la causa sin encontrar. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -647,3 +648,36 @@ Todas tienen la misma forma: **el instrumento cambia lo medido**.
   leyendo el `0` de un `tail`.
 - **El `cd` de una llamada persiste en la siguiente.** Reporté un vitest rojo que
   era `frontend/frontend`.
+
+
+### 2026-08-16 — L68: el gate visual de los gráficos sale rojo (a medias)
+
+Los cinco gráficos entraron sin que ninguna corrida del contrato los mirara.
+Pasado `ui-quick-check --require-geometry` sobre las 196 aulas: **`ok=false`, 4
+`capacity-drift`** —C3, vacío interior sin dueño— en los dos paneles de Avance y
+en los dos viewports.
+
+Medido, no supuesto:
+
+```
+envoltorio del gráfico   155 px   contenido  139 px
+filas del envoltorio     104px 51px   ← la nota mide 19 y su fila 51
+la nota queda centrada: 16 px arriba, 16 abajo
+```
+
+Reparado **la mitad**: `.mon-profile-panel` reparte `auto minmax(0,1fr)` porque su
+caso normal es una tabla, que sí debe llenar lo que le den. Un gráfico no puede
+—Plotly fija su alto por prop— así que el sobrante caía dentro del envoltorio.
+Los paneles de gráfico se declaran intrínsecos y los envoltorios
+`align-self: start`. **Cobertura pasa a hueco 0** y el gate baja de **4 a 2**.
+
+**El de «Estado del circuito» sigue, y su causa no está encontrada**: con el panel
+ya intrínseco, el envoltorio sigue midiendo 155 para 139 de contenido y su segunda
+fila resuelve a **51 px para una nota de 19**, que es lo contrario de lo que
+`1fr auto` debería dar. Queda abierto con la medición hecha, en vez de forzar un
+`min-height` que taparía el síntoma sin explicar la fila.
+
+**Y el gate se ganó su sitio**: estas superficies pasaron por revisión visual a
+ojo en cuatro turnos distintos —capturas, comprobación de superposición, dos
+viewports— y **ninguna de esas comprobaciones las vio**. Miraban si el gráfico se
+dibujaba encima de la tabla; el contrato mide si el vacío tiene dueño.

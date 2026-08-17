@@ -610,6 +610,13 @@
  * dibujándose encima de la tabla siguiente. El alto va aquí y no en el panel
  * porque es propiedad de ESTE contenido, no del marco. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cobertura-chart {
+  /* Intrínseco, no estirado. El envoltorio tomaba el alto del panel —medido: 155
+     px para 139 de contenido— y el sobrante caía como hueco muerto DENTRO de él:
+     `capacity-drift` de 16 px en el gate del contrato (C3). Plotly no crece con
+     su fila porque su alto lo fija la prop, así que absorber holgura que no puede
+     usar sólo produce vacío sin dueño. Con `start` la holgura se queda en el
+     panel, que sí tiene borde visible y por tanto la posee. */
+  align-self: start;
   min-height: 220px;
   display: grid;
   grid-template-rows: 1fr auto;
@@ -620,6 +627,13 @@
    su fila del grid, así que sin un alto reservado el panel colapsa a su
    cabecera y el gráfico se dibuja encima de lo que venga debajo. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-estado-chart {
+  /* Intrínseco, no estirado. El envoltorio tomaba el alto del panel —medido: 155
+     px para 139 de contenido— y el sobrante caía como hueco muerto DENTRO de él:
+     `capacity-drift` de 16 px en el gate del contrato (C3). Plotly no crece con
+     su fila porque su alto lo fija la prop, así que absorber holgura que no puede
+     usar sólo produce vacío sin dueño. Con `start` la holgura se queda en el
+     panel, que sí tiene borde visible y por tanto la posee. */
+  align-self: start;
   min-height: 104px;
   display: grid;
   grid-template-rows: 1fr auto;
@@ -628,6 +642,13 @@
 
 /* Ver `.aulas-cobertura-chart`: el alto se reserva o el panel colapsa. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cadena-chart {
+  /* Intrínseco, no estirado. El envoltorio tomaba el alto del panel —medido: 155
+     px para 139 de contenido— y el sobrante caía como hueco muerto DENTRO de él:
+     `capacity-drift` de 16 px en el gate del contrato (C3). Plotly no crece con
+     su fila porque su alto lo fija la prop, así que absorber holgura que no puede
+     usar sólo produce vacío sin dueño. Con `start` la holgura se queda en el
+     panel, que sí tiene borde visible y por tanto la posee. */
+  align-self: start;
   min-height: 200px;
   display: grid;
   grid-template-rows: 1fr auto;
@@ -636,8 +657,29 @@
 
 /* Ver `.aulas-cobertura-chart`: el alto se reserva o el panel colapsa. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cuotas-chart {
+  /* Intrínseco, no estirado. El envoltorio tomaba el alto del panel —medido: 155
+     px para 139 de contenido— y el sobrante caía como hueco muerto DENTRO de él:
+     `capacity-drift` de 16 px en el gate del contrato (C3). Plotly no crece con
+     su fila porque su alto lo fija la prop, así que absorber holgura que no puede
+     usar sólo produce vacío sin dueño. Con `start` la holgura se queda en el
+     panel, que sí tiene borde visible y por tanto la posee. */
+  align-self: start;
   min-height: 200px;
   display: grid;
   grid-template-rows: 1fr auto;
   min-width: 0;
+}
+
+/* Un panel que contiene un GRÁFICO es intrínseco, no `1fr`.
+   `.mon-profile-panel` reparte `auto minmax(0,1fr)` porque su caso normal es una
+   tabla, que sí debe llenar lo que le den. Un gráfico no puede: Plotly fija su
+   alto por prop, así que el sobrante del `1fr` caía como hueco muerto dentro del
+   envoltorio —medido: fila de 155 px para 139 de contenido, y la nota centrada
+   dejando 16 px arriba y 16 abajo—. Es `capacity-drift` (C3): vacío sin dueño.
+   Declarándolo intrínseco la holgura vuelve al stack, cuyo gutter sí la posee. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-estado-chart),
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cobertura-chart),
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cadena-chart),
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cuotas-chart) {
+  grid-template-rows: auto auto;
 }
