@@ -28,7 +28,7 @@ import { AulasControles } from "./AulasControles";
 import { AulasFuentesDelEstudio } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
-import { AulasCuotasChart } from "./AulasCuotasChart";
+import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
@@ -670,10 +670,12 @@ function renderAulasView(
             abajo, y el foco viaja en la URL (`?foco=facultad:Derecho`) para que
             la vista siga siendo enlazable. */}
         <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} foco={foco} onFoco={onFoco} />
-        {/* El eje es el CUMPLIMIENTO y no el volumen: cada celda tiene su propia
-            meta, así que 40 de 50 y 4 de 5 son el mismo problema resuelto en la
-            misma proporción, y la tabla obliga a dividir de cabeza para verlo. */}
-        <AulasCuotasChart filas={quotaEnFoco as MonitoreoRow[]} />
+        {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
+            contra SU propia meta. La lista ordenada por cumplimiento contestaba
+            «qué celda se va a incumplir» y dejaba las dos celdas de una misma
+            facultad lejos una de otra; enfrentadas se ve de qué lado va corta
+            cada facultad, que es la pregunta con la que se sale a campo. */}
+        <AulasPiramideCuota filas={quotaEnFoco as MonitoreoRow[]} />
         <DataTable rows={quotaRows} empty="El plan no declara composición por sexo para estos cursos-horario." />
       </section>
       )}

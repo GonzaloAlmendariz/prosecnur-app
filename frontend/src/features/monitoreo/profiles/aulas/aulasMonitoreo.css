@@ -1451,3 +1451,119 @@
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra .es-cumplida {
   color: #168a55;
 }
+
+/* ── Pirámide de cuota ───────────────────────────────────────────────────────
+   Una facultad por fila, un sexo a cada lado, cada uno contra SU propia meta.
+   El carril mide la meta del lado contra la meta más alta —una facultad grande
+   se ve grande— y el relleno, lo observado dentro de esa meta. */
+.mon-profile-page.is-aulas-flow .aulas-piramide {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-ejes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px minmax(0, 1fr);
+  align-items: baseline;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-ejes > :first-child { text-align: right; }
+.mon-profile-page.is-aulas-flow .aulas-piramide-ejes > :last-child { text-align: left; }
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-ejes em {
+  font-size: 10px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lista {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 168px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* El nombre va al centro, entre los dos lados: es el eje de la pirámide. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-facultad {
+  color: var(--pulso-text);
+  font-size: 12px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda {
+  flex-direction: row-reverse;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-derecha {
+  flex-direction: row;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-carril {
+  display: block;
+  flex: none;
+  height: 16px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--pulso-surface-2);
+}
+
+/* El relleno crece desde el centro hacia afuera, que es lo que hace que las dos
+   mitades se lean como una pirámide y no como dos listas pegadas. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda .aulas-piramide-carril {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-carril i {
+  display: block;
+  height: 100%;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-cifra {
+  flex: none;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Sin cuota declarada no es lo mismo que cuota en cero. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-sin-cuota {
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-sin-cuota.es-izquierda {
+  justify-content: flex-end;
+}
