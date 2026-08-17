@@ -79,7 +79,14 @@
   arranque_min_cm      = 3.53,
   # Hueco ENTRE premisas. El aprobado separa 1.76 cm de mediana y el motor
   # 0.97: es lo que hay detras de «se ve muy apretado».
-  hueco_premisas_min_cm = 1.40
+  hueco_premisas_min_cm = 1.40,
+  # Dispersion de grosor ENTRE laminas gemelas —mismo numero de barras—. Es el
+  # eje de «dos laminas del mismo tipo no salen iguales», y ninguna regla lo
+  # media: B3 mira DENTRO de una lamina y no ve que la de al lado saque otro
+  # grosor. Medido: el motor dispersa 0.01 cm entre gemelas y el aprobado 0.17,
+  # asi que aqui el motor es el mejor de los dos y el umbral se pone donde
+  # protege lo ganado, no donde el modelo llega.
+  grosor_gemelas_max_cm = 0.10
 )
 
 .VERIF_EMU <- 914400
@@ -333,6 +340,7 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 
   n_graf_escala <- 0L; n_graf_cat <- 0L
   texto_todo <- numeric(0)
+  gem <- list()
 
   for (i in seq_along(laminas)) {
     xml <- laminas[[i]]
@@ -402,6 +410,10 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
           "dos bloques de la misma lamina con distinto grosor")
     }
 
+    # B4 se acumula y se juzga al final: comparar una lamina con su gemela exige
+    # tenerlas todas. Ver abajo.
+    gem[[length(gem) + 1L]] <- .verif_grosores_de_lamina(formas, i)
+
     # R4: el rojo institucional es color de TITULO, no extremo de escala.
     rr <- .verif_rojo_en_rampa(xml)
     if (rr > u$rojo_en_rampa_max) {
@@ -427,6 +439,16 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
           sprintf("<= %.1f %%", 100 * u$texto_prop_max),
           sprintf("%.1f %% por debajo de %g pt", 100 * prop, u$texto_minimo_pt))
     }
+  }
+
+  # B4 tambien es de MAZO: una lamina no puede saber si su gemela salio igual.
+  gemelas <- .verif_gemelas_desiguales(gem)
+  for (r in seq_len(nrow(gemelas))) {
+    if (gemelas$dif[r] <= u$grosor_gemelas_max_cm) next
+    add("B4 gemelas desiguales", NA_integer_, round(gemelas$dif[r], 3),
+        sprintf("<= %.2f cm", u$grosor_gemelas_max_cm),
+        sprintf("laminas de firma %s salen a distinto grosor: %s",
+                gemelas$firma[r], gemelas$laminas[r]))
   }
 
   hallazgos <- data.frame(
@@ -510,6 +532,81 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #' @param formas Formas de la lamina, ya extraidas.
 #' @return Diferencia en cm entre el grosor mayor y el menor; 0 si no hay dos.
 #' @keywords internal
+#' Grosor tipico de una lamina y cuantas barras tiene
+#'
+#' Reusa el mismo detector que B3 —el validado— porque un filtro por
+#' dimensiones metia bandas de fondo y hasta la portada. Devuelve la MEDIANA y
+#' no la media: una barra suelta de otro tamano no debe mover la firma de la
+#' lamina, que es justo lo que B3 ya mide por su cuenta.
+#'
+#' @param formas Formas de la lamina, ya extraidas.
+#' @param lamina Numero de lamina, para poder senalarla.
+#' @return Lista con la `firma` de la lamina, su `grosor` mediano en cm y el
+#'   numero de `lamina`; `NULL` si no hay barras que comparar.
+#' @keywords internal
+.verif_grosores_de_lamina <- function(formas, lamina) {
+  gr <- c(
+    .verif_graficos(.verif_segmentos(formas, .VERIF_RAMPA, exigir_sin_texto = TRUE)),
+    .verif_graficos(.verif_segmentos(formas, .VERIF_AZUL, exigir_sin_texto = TRUE))
+  )
+  if (!length(gr)) return(NULL)
+  alt <- vapply(gr, function(g) g$grosor, numeric(1)) * .VERIF_CM_POR_IN
+  ok <- is.finite(alt) & alt > 0
+  if (!any(ok)) return(NULL)
+
+  # La firma son los graficos de la lamina Y las barras de cada uno, no el
+  # numero de graficos a secas: `.verif_graficos()` devuelve GRAFICOS, y contar
+  # solo esos metia en el mismo grupo cualquier lamina de un grafico —la
+  # mayoria del mazo, que no son gemelas de nada— y producia una dispersion de
+  # 1.75 cm que no era de nadie.
+  barras <- vapply(gr, function(g) g$n, integer(1))[ok]
+  list(
+    lamina = lamina,
+    firma = paste(sort(barras), collapse = "-"),
+    grosor = stats::median(alt[ok])
+  )
+}
+
+
+#' Laminas gemelas que no salen iguales
+#'
+#' Dos laminas con la MISMA firma son gemelas: mismos graficos y mismas barras
+#' en cada uno. Nada justifica entonces que una saque la barra a 0.36 cm y la
+#' otra a 0.46. Es el eje de «dos laminas del mismo tipo no salen iguales», y B3
+#' no lo ve porque mira dentro de una sola.
+#'
+#' La firma tiene que ser fina o el grupo deja de significar nada: agrupar por
+#' «numero de filas» mezclaba una lamina de tres filas en un bloque con otra de
+#' tres repartidas en cuatro, y contar solo GRAFICOS metia junta media baraja.
+#' Las dos versiones producian una dispersion que no era de ninguna lamina.
+#'
+#' @param gem Lista de salidas de `.verif_grosores_de_lamina()`.
+#' @return `data.frame` con una fila por grupo de gemelas que dispersa.
+#' @keywords internal
+.verif_gemelas_desiguales <- function(gem) {
+  gem <- Filter(Negate(is.null), gem)
+  vacio <- data.frame(firma = character(0), dif = numeric(0),
+                      laminas = character(0), stringsAsFactors = FALSE)
+  if (length(gem) < 2L) return(vacio)
+
+  fir <- vapply(gem, function(g) g$firma, character(1))
+  gro <- vapply(gem, function(g) g$grosor, numeric(1))
+  lam <- vapply(gem, function(g) g$lamina, integer(1))
+
+  out <- vacio
+  for (k in unique(fir)) {
+    idx <- which(fir == k)
+    if (length(idx) < 2L) next   # sin gemela no hay con que comparar
+    out <- rbind(out, data.frame(
+      firma = k, dif = max(gro[idx]) - min(gro[idx]),
+      laminas = paste(lam[idx], collapse = ", "),
+      stringsAsFactors = FALSE
+    ))
+  }
+  out
+}
+
+
 .verif_grosores_desiguales <- function(formas) {
   # Se reusa el detector de barras ya validado en vez de filtrar por tamano:
   # con un filtro por dimensiones entraban bandas de fondo y hasta la portada,
