@@ -135,7 +135,8 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
 | **L63** | **Aulas no tiene ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`: acreditación tiene ritmo diario y tendencia telefónica (`AcreditacionAdvanceDailyMini`, `ritmoDiario.ts` con cortes diarios y semanales, calendario expandido y ejes con padding); telefónico tiene embudo en franja y barras apiladas. Aulas sólo muestra tablas. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | No vale copiar el ritmo diario de telefónico: en aulas la unidad es el curso-horario con su aforo y su meta, y lo que importa es la brecha por aula, el avance por estrato/facultad, la cuota sexo×facultad y el consumo de la cadena de reemplazos. | ☐ sin empezar — decidir el catálogo antes de dibujar. |
-| **L65** | El circuito no se ha probado con **3700 registros**. | Lo medido llega a 600 respuestas sobre 196 aulas. El estudio real llega a 3700 desde Kobo: hay que medir sincronización, tablero, tablas y gráficos a esa escala. | ☐ sin empezar — pedido por Gonzalo el 2026-08-16. |
+| **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
+| **L66** | El **plan viaja tres veces** en cada petición de estado. | De 1377 KB: `config.aulas_universitarias.plan` 366 · `aulas_universitarias.plan` 356 —**idénticos byte a byte**, 196×80— y `dashboard.agenda` 337 (196×82). Más de la mitad del payload es el mismo plan repetido. | ☐ sin empezar — medido con 3700 registros. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -685,3 +686,39 @@ comprobar qué se recorta y qué se degrada.
 
 Queda anotado como **V13**, **V14** y los ítems **L63–L65**. La cola vuelve a
 tener trabajo abierto.
+
+
+### 2026-08-16 — L65: el motor aguanta 3700; el transporte no
+
+Medido con 3700 respuestas de 43 columnas sobre 196 aulas, que es la escala del
+estudio real:
+
+| | Tiempo |
+|---|---:|
+| Tablero completo | **0,71 s** |
+| Guardar el `.pulso` | 0,29 s (0,07 MB) |
+| Abrirlo | 0,62 s |
+
+**El motor no se inmuta**, y la razón es estructural: el trabajo escala con el
+número de **aulas** (196), no con el de respuestas — éstas se agregan una vez y
+se olvidan. Pasar de 600 a 3700 no cambió el tiempo del tablero.
+
+**Lo que sí duele es el payload**: cada petición de estado pesa **1,3 MB** y
+tarda **2,9 s** en el navegador. Y la composición dice por qué (L66):
+
+| Parte | KB |
+|---|---:|
+| `config.aulas_universitarias.plan` | 366 |
+| `aulas_universitarias.plan` | 356 |
+| `dashboard.agenda` | 337 |
+| `dashboard.brechas` | 157 |
+| `dashboard.course_status` | 103 |
+| `dashboard.reemplazos` | 45 |
+
+Los dos primeros son **idénticos byte a byte** —196 aulas × 80 campos, dos
+veces— y el tercero es el mismo plan con dos campos más. **722 KB de 1377 son
+el mismo plan repetido**, y el frontend pide estado en cada cambio de sección.
+
+Con nueve aulas esto no se veía: el payload rondaba los 60 KB y la duplicación
+era invisible. Es el mismo patrón que el recorte de filas — un problema que sólo
+existe a la escala en que el estudio ocurre de verdad.

@@ -152,9 +152,16 @@ if (ESCALA_2025) {
          observed_students = asist, refusals = rech, duplicates = dup,
          effective_surveys = efec, applied_by = sprintf("Equipo %d", 1 + (i %% 6)))
   })
-  data <- do.call(rbind, lapply(seq_len(600), function(i) data.frame(
-    collectorID = sprintf("CH %d", 25 + (i %% 145)), sexo = if (i %% 2) "F" else "M",
-    stringsAsFactors = FALSE)))
+  # 3700 respuestas, que es a lo que llega el estudio real desde Kobo, con el
+  # ancho de una base de verdad: 43 columnas, no dos.
+  set.seed(1)
+  n <- 3700L
+  data <- data.frame(
+    collectorID = sprintf("CH %d", 25 + (seq_len(n) %% 145)),
+    sexo = rep(c("F", "M"), length.out = n),
+    `_submission_time` = format(as.POSIXct("2026-08-01") + (seq_len(n) * 300), "%Y-%m-%dT%H:%M:%S"),
+    check.names = FALSE, stringsAsFactors = FALSE)
+  for (k in 1:40) data[[sprintf("p%02d", k)]] <- rep(1:5, length.out = n)
 }
 
 sid <- session_create()
