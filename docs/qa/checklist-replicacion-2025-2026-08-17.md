@@ -787,6 +787,68 @@ siga así.
 La diferencia en presencial —5.136 contra 4.624— también pide explicación: 2025
 excluía más modalidades de las que excluimos hoy.
 
+## R17 — el marco reconstruido, y las 195 aulas. DESBLOQUEADO
+
+Reconstruido el marco en el duplicado con el código actual: **`session_type`
+pasó de 0 a 5.263 de 5.263** filas con dato —TEORICO 4.265, TALLER 315,
+SEMINARIO 273, LABORATORIO 205, CURSO DE INVESTIGACIÓN 65, ASESORÍA 62,
+ACTIVIDAD 34, ARTISTICO 22—. La reparación `9125e39f` sí alcanza a un proyecto
+ya creado en cuanto se reconstruye el marco. El marco vigente pasó de 2.468 a
+**2.364** cursos-horario elegibles.
+
+### El embudo de 2025, ahora comparable paso a paso
+
+| Paso | 2025 | Nosotros | Δ |
+|---|---|---|---|
+| catálogo | 5.262 | 5.263 | +1 |
+| presencial | 4.624 | 5.136 | **+512** |
+| + teórico | 3.699 | 4.151 | +452 |
+| + nivel fuera de {1,11,12} | 3.539 | 3.361 | −178 |
+| + matriculados ≥ 10 | 3.046 | 2.716 | −330 |
+| + sin posgrado | 2.931 | 2.519 | −412 |
+
+La primera diferencia se explica sola: nuestro filtro deja pasar
+**SEMIPRESENCIAL** (219 aulas). Con presencial estricto quedan 4.917, a 293 de
+2025. El resto de la brecha viaja arrastrada desde ahí.
+
+### Con los criterios de 2025 y p25: **195 aulas**
+
+Cuota proporcional de 2.500 con sobremuestra ×1,5, y la regla de 2025
+—`CEIL(sobremuestra / estadístico)`, **sin τ**—:
+
+| Facultad | elegibles | p25 | cuota | aulas |
+|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 697 | 20 | 792 | 40 |
+| EE.GG. LETRAS | **20** | 17 | 584 | **35 — no alcanzan** |
+| EE.GG. CIENCIAS | 300 | 26 | 589 | 23 |
+| DERECHO | 423 | 31 | 521 | 17 |
+| CIENCIAS SOCIALES | 198 | 18 | 226 | 13 |
+| ARTE Y DISEÑO | 92 | 14 | 179 | 13 |
+| ARQUITECTURA | 60 | 20 | 190 | 10 |
+| ARTES ESCÉNICAS | 115 | 11 | 104 | 10 |
+| GESTIÓN | 151 | 24 | 173 | 8 |
+| CIENCIAS Y ARTES COMUN. | 185 | 19 | 146 | 8 |
+| PSICOLOGÍA | 114 | 23 | 118 | 6 |
+| LETRAS Y C. HUMANAS | 52 | 11 | 39 | 4 |
+| EDUCACIÓN | 49 | 11 | 35 | 4 |
+| CONTABLES | 37 | 20 | 32 | 2 |
+| GASTRONOMÍA | 22 | 12 | 22 | 2 |
+| **TOTAL** | | | | **195** |
+
+**195** contra las **194 aulas aplicadas** de 2025 y las **203 a visitar** de la
+plantilla de Kamila, dentro de la banda que fijó Gonzalo. La misma cuenta **con
+τ = 0,53 da 360**, muy fuera de banda: para replicar 2025 hay que usar su regla,
+sin τ.
+
+### Lo único que no cierra: EE.GG. LETRAS
+
+Con el criterio de nivel de 2025 le quedan **20 aulas elegibles** y necesita
+**35**. Es exactamente la decisión que Gonzalo tiene pendiente sobre el primer
+ciclo, y ahora tiene su cifra: no es que el marco quede chico, es que **esa
+facultad se queda sin marco**.
+
+Estado guardado en `scratchpad/HSVG2026_marco2025.pulso`.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
