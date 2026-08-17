@@ -774,3 +774,42 @@ Con esto son **cuatro** los contratos que atan producción y consumo en este
 perfil: los controles de validación, los estados operativos, las columnas de
 tabla y ahora las hojas de estilo. Los cuatro nacieron del mismo patrón —dos
 listas que nadie ataba— y ninguno de los cuatro fallaba antes de atarlo.
+
+
+### 2026-08-16 — las otras cuatro secciones, y qué es realmente el residuo de 3 px
+
+Sólo había medido Avance. Pasadas las cuatro restantes por el contrato:
+
+| Sección | Resultado |
+|---|---|
+| Agenda (modelo) | ✅ `ok=true` |
+| Validación | ✅ `ok=true` |
+| Consultas › Reemplazos | ✅ `ok=true` |
+| Fuentes | 1 `capacity-drift` — **el mismo `.mon-profile-panel-head`** |
+
+**Y eso zanja la duda que dejé abierta**: el hallazgo de Fuentes es sobre
+«Operación del plan», un panel que existía mucho antes de los gráficos. Los 3–4
+px de la cabecera **no los causó este ítem**; son chrome compartido por todo
+Monitoreo.
+
+Medido en pantalla:
+
+```
+cabecera            alto 32 px   ·  min-height 32 px  ·  padding 1/1/6
+hijo más alto       20 px, termina en 23
+```
+
+O sea: la cabecera declara un **alto mínimo** para que todos los paneles tengan
+la misma banda de título, y su contenido —título de 15 px y contador de 20—
+nunca lo llena. Los ~3 px que sobran son la holgura de centrar 20 en 25.
+
+**Es una tensión real entre dos cláusulas del propio contrato, no un descuido**:
+el `min-height` que hace cumplir **C2** —marcos iguales entre paneles hermanos—
+es exactamente lo que produce la holgura interior que **C3** señala, y cae 1 px
+por encima de la tolerancia de 2.
+
+Por eso **no lo toco**. Bajarlo desalinearía las cabeceras de los cuatro perfiles,
+y subir el contenido para llenarlo sería inflar un título por complacer una
+métrica. Queda **declarado y medido**: un residuo de 3 px en `.mon-profile-panel-head`,
+de todo Monitoreo, que pide una decisión sobre la tolerancia del contrato o sobre
+la métrica de la cabecera —no un parche en aulas—.
