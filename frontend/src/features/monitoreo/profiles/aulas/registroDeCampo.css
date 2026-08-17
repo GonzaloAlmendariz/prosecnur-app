@@ -41,13 +41,13 @@
   min-height: 8rem;
   max-height: 20rem;
   overflow-y: auto;
-  border: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--pulso-border);
   border-radius: 10px;
-  background: var(--pulso-surface-sunken, transparent);
+  background: var(--pulso-surface-2);
 }
 
 .registro-campo-lista > li + li {
-  border-top: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.06));
+  border-top: 1px solid var(--pulso-border);
 }
 
 .registro-campo-item {
@@ -60,38 +60,38 @@
   border: 0;
   text-align: left;
   cursor: pointer;
-  color: var(--pulso-text-primary, inherit);
+  color: var(--pulso-text);
 }
 
 .registro-campo-item:hover {
-  background: var(--pulso-surface-hover, rgba(0, 0, 0, 0.03));
+  background: var(--pulso-surface-2);
 }
 
 .registro-campo-item.is-activa {
-  background: var(--pulso-module-monitoreo-soft, rgba(0, 0, 0, 0.06));
-  box-shadow: inset 2px 0 0 var(--pulso-module-monitoreo, currentColor);
+  background: var(--pulso-module-monitoring-soft);
+  box-shadow: inset 2px 0 0 var(--pulso-module-monitoring);
 }
 
 .registro-campo-item-titulo {
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 500;
   /* Dato operativo: no se recorta con elipsis (C4). */
   overflow-wrap: anywhere;
 }
 
 .registro-campo-estado {
-  font-size: 0.7rem;
-  color: var(--pulso-text-muted, rgba(0, 0, 0, 0.55));
+  font-size: 11px;
+  color: var(--pulso-text-soft);
 }
 
 .registro-campo-estado.is-sin_acceso,
 .registro-campo-estado.is-cancelada {
-  color: var(--pulso-danger-text, #a3352a);
+  color: var(--pulso-danger-fg);
 }
 
 .registro-campo-estado.is-aplicada,
 .registro-campo-estado.is-cerrada {
-  color: var(--pulso-success-text, #2f6b45);
+  color: var(--pulso-success-fg);
 }
 
 .registro-campo-form {
@@ -103,9 +103,9 @@
 
 .registro-campo-contexto {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--pulso-text-primary, inherit);
+  color: var(--pulso-text);
 }
 
 .registro-campo-campo {
@@ -116,19 +116,19 @@
 }
 
 .registro-campo-campo > span {
-  font-size: 0.72rem;
-  color: var(--pulso-text-muted, rgba(0, 0, 0, 0.55));
+  font-size: 11px;
+  color: var(--pulso-text-soft);
 }
 
 .registro-campo-campo input,
 .registro-campo-campo select {
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 13px;
   padding: 6px 8px;
   border-radius: 8px;
-  border: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.14));
-  background: var(--pulso-surface-raised, transparent);
-  color: var(--pulso-text-primary, inherit);
+  border: 1px solid var(--pulso-border);
+  background: #fff;
+  color: var(--pulso-text);
   min-width: 0;
 }
 
@@ -150,12 +150,12 @@
   align-items: center;
   gap: 6px;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 13px;
   padding: 7px 12px;
-  border-radius: 9px;
-  border: 1px solid var(--pulso-border-subtle, rgba(0, 0, 0, 0.14));
-  background: var(--pulso-module-monitoreo-soft, transparent);
-  color: var(--pulso-text-primary, inherit);
+  border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-text);
   cursor: pointer;
 }
 
@@ -173,21 +173,21 @@
 }
 
 .registro-campo-ok {
-  font-size: 0.76rem;
-  color: var(--pulso-success-text, #2f6b45);
+  font-size: 12px;
+  color: var(--pulso-success-fg);
 }
 
 .registro-campo-error {
-  font-size: 0.76rem;
-  color: var(--pulso-danger-text, #a3352a);
+  font-size: 12px;
+  color: var(--pulso-danger-fg);
 }
 
 /* El vacío vive DENTRO del panel, con su propia caja (C3). */
 .registro-campo-vacio {
   margin: 0;
   padding: var(--pulso-space-4, 16px);
-  font-size: 0.8rem;
-  color: var(--pulso-text-muted, rgba(0, 0, 0, 0.55));
+  font-size: 13px;
+  color: var(--pulso-text-soft);
 }
 
 /* La seccion Agenda vive en una vista de alto fijo que RECORTA (`overflow:
@@ -219,13 +219,13 @@
  * no un borrado. */
 .registro-campo-acciones button.registro-campo-reemplazo {
   background: transparent;
-  color: var(--pulso-text-strong, #1f2430);
-  border: 1px solid var(--pulso-border, rgba(0, 0, 0, 0.14));
+  color: var(--pulso-text);
+  border: 1px solid var(--pulso-border);
 }
 
 .registro-campo-acciones button.registro-campo-reemplazo:hover:not(:disabled) {
-  background: var(--pulso-surface-sunken, rgba(0, 0, 0, 0.04));
-  border-color: var(--pulso-border-strong, rgba(0, 0, 0, 0.24));
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border-strong);
 }
 
 /* Con el registro en su propia pestaña ya no compite con la tabla, así que el
