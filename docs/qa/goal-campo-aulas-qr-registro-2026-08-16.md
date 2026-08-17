@@ -847,3 +847,26 @@ La lección incómoda: **declarar produce hallazgos**. El perfil que hizo el tra
 de declarar dieciséis grupos sale con un hallazgo, y el que no declaró ninguno
 sale impecable. Un ranking por número de hallazgos premiaría exactamente al que
 no se dejó medir.
+
+
+### 2026-08-16 — gate ancho de R, y la memoria puesta al día
+
+Toda la sesión corrí `test_file` sobre archivos sueltos, que es lo que manda el
+gate escalado al diff. Con seis commits de R encima —fusión del libro, criterio
+de validez, columnas de brechas, payload del estado— tocaba el paso siguiente sin
+llegar a la suite entera de una hora:
+
+```
+test_dir --filter "^(monitoreo|carga-aulas|collection)"
+57 archivos · 0 fallos · 0 errores
+```
+
+Y la costura completa, verde de punta a punta.
+
+**La memoria estaba desfasada de una forma que engaña.** Su descripción seguía
+diciendo «motor QR OK; el registro en campo NO existe» —cierto el primer día del
+GOAL y falso desde hace veinte ítems—. Una memoria que describe el estado inicial
+de un trabajo terminado es peor que no tenerla: la sesión siguiente arrancaría
+buscando algo que ya está. Reescrita con el estado real, más dos entradas nuevas:
+la decisión de L2 con sus costos medidos, y el patrón de la lista cerrada, que es
+lo que de verdad se aprendió aquí.
