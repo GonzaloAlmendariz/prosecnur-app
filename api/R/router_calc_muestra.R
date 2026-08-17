@@ -309,6 +309,13 @@
         s$calc_muestra_aulas_selection %||% NULL,
         s$calc_muestra_aulas_frame %||% NULL
       ),
+      # Salud de los criterios de AULA: cuáles no pueden evaluarse porque su
+      # columna llega vacía o porque ninguna categoría declarada existe en la
+      # base. También se deriva al servir, por lo mismo que el bloque de arriba.
+      salud_criterios = calc_muestra_aulas_salud_criterios(
+        s$calc_muestra_aulas_frame %||% NULL,
+        s$calc_muestra_aulas_config %||% NULL
+      ),
       method_comparison = s$calc_muestra_aulas_method_comparison %||% NULL,
       certeza = s$calc_muestra_aulas_certeza %||% NULL,
       replacement_simulation = s$calc_muestra_aulas_replacement_simulation %||% NULL,
