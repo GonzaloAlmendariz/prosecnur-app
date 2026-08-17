@@ -955,3 +955,99 @@
   color: var(--pulso-text);
   font-weight: var(--pulso-weight-black);
 }
+
+/* ── Controles de Validación ─────────────────────────────────────────────────
+   Avisos, no tabla. Mismo lenguaje que `CalidadDeCampo`, el bloque compartido
+   que el chrome pone justo encima en esta sección: severidad al frente, título
+   corto y el detalle entero debajo. */
+.mon-profile-page.is-aulas-flow .aulas-controles {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-controles-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-controles-lista {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--pulso-border);
+  border-left-width: 3px;
+  border-radius: var(--pulso-radius-card);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control svg {
+  margin-top: 1px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control.es-correcto {
+  border-left-color: color-mix(in srgb, #168a55 55%, var(--pulso-border));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control.es-correcto svg {
+  color: #168a55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control.es-advertencia {
+  border-left-color: color-mix(in srgb, #b97611 65%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 32%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control.es-advertencia svg {
+  color: #b97611;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control.es-revisar {
+  border-left-color: color-mix(in srgb, #a61d4f 60%, var(--pulso-border));
+  background: color-mix(in srgb, #a61d4f 5%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control.es-revisar svg {
+  color: #a61d4f;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12px;
+  font-weight: var(--pulso-weight-black);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-titulo span {
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* El detalle es lo que dice qué hacer: entero, sin elipsis (C4). */
+.mon-profile-page.is-aulas-flow .aulas-control-detalle {
+  margin: 3px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}

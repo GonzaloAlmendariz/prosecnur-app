@@ -20,6 +20,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCadenaChart } from "./AulasCadenaChart";
+import { AulasControles } from "./AulasControles";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasCuotasChart } from "./AulasCuotasChart";
@@ -413,11 +414,10 @@ function renderAulasView(
           <h3>Validación de cursos-horario</h3>
           <span>{summary.label}</span>
         </div>
-        <DataTable
-          rows={rows}
-          empty="No hay controles de validación para este corte."
-          preferredColumns={["check", "status", "detail"]}
-        />
+        {/* Avisos y no tabla: el detalle de un control es una frase entera y en
+            una celda de tres columnas se lee mal. Es además el lenguaje que ya
+            usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
+        <AulasControles filas={rows} />
       </section>
     );
   }
