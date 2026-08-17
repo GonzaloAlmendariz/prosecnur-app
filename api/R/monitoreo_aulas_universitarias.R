@@ -858,11 +858,26 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   meta[!is.finite(meta)] <- 0
   rows$brecha <- pmax(0, meta - rows$respuestas_validas)
   rows$brecha[!is.finite(rows$brecha)] <- 0
+  # El escalon de agendamiento sale de STATUS MUESTRA, no del estado operativo.
+  #
+  # Antes solo miraba `operational_status`, y como ese lo llena el registro de
+  # campo, un aula con `STATUS MUESTRA = AGENDADA` y fecha de aplicacion caia en
+  # «pendiente», que la vista rotula «Sin agendar». Medido sobre el estudio de
+  # 196: de las 48 que decian «Sin agendar», **22 estaban agendadas con fecha** y
+  # las otras 26 estaban REEMPLAZADAS. Ni una sola estaba sin agendar.
+  #
+  # Las reemplazadas tampoco pertenecen a ese eje: no es que falte agendarlas, es
+  # que cayeron y su reserva tomo el relevo. Tienen tramo propio.
+  muestra <- tolower(trimws(as.character(rows$sample_status %||% "")))
+  agendada_en_muestra <- muestra %in% c("agendada", "reagendada") |
+    grepl("^en reserva", muestra)
   rows$application_state <- ifelse(
     rows$operational_status %in% c("aplicada", "cerrada") | (rows$respuestas_validas >= meta & meta > 0),
     "cerrando",
     ifelse(rows$responses_total > 0 | rows$operational_status %in% c("en_campo", "parcial"), "en_aplicacion",
-           ifelse(rows$operational_status %in% c("agendada", "contactada"), "lista", "pendiente"))
+           ifelse(muestra == "reemplazada", "reemplazada",
+                  ifelse(rows$operational_status %in% c("agendada", "contactada") | agendada_en_muestra,
+                         "lista", "pendiente")))
   )
   cols <- intersect(c(
     "operational_code", "titular_operational_code", "wave", "classroom_id",
@@ -873,7 +888,10 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     # vista de agenda tendria que unir dos listas por codigo para saber que dia
     # es cada aula.
     "scheduled_date", "scheduled_day", "scheduled_time",
-    "responsible", "collector_id", "operational_status", "application_state",
+    # `sample_status` viaja con el estado porque el escalon de agendamiento sale
+    # de el: sin publicarlo, la vista no puede explicar por que un aula esta en
+    # «Agendada» o en «Reemplazada».
+    "responsible", "collector_id", "sample_status", "operational_status", "application_state",
     "eligible_n", "expected_valid", "responses_total", "respuestas_validas",
     "filter_passed", "filter_rejected", "brecha", "link", "updated_at"
   ), names(rows))
