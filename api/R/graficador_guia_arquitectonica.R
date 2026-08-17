@@ -404,6 +404,59 @@
 }
 
 
+#' Acota las bandas de un canvas armado con `plot_grid(plotlist, rel_heights)`
+#'
+#' `boxplot` y `media_rango` componen igual: acumulan `pieces` y `relh` y los
+#' apilan de una sola vez. Un `.wrap_debug` por banda como el del pie exigiria
+#' tocar cada sitio donde se empuja una pieza; esta funcion envuelve la lista
+#' entera al final, que es un solo punto de cambio y ademas les da la cota que
+#' hasta ahora no tenian —los dos se conformaban con un marco alrededor del
+#' conjunto—.
+#'
+#' Las bandas van a todo el ancho, asi que la cota horizontal seria la misma
+#' repetida una vez por banda: se apaga y queda la del alto, que es lo que
+#' distingue una banda de otra.
+#'
+#' @param pieces Lista de bloques.
+#' @param relh Alturas relativas, en el mismo orden.
+#' @param ancho_in,alto_in Tamaño FISICO del canvas, en pulgadas.
+#' @param etiquetas Nombre de cada banda; se recicla a `NA` si viene corta.
+#' @param notas Nota de cada banda; misma regla.
+#' @param col,lwd Estilo.
+#' @return La lista de bloques, cada uno con su plano encima.
+#' @keywords internal
+.guia_envolver_bandas <- function(pieces, relh, ancho_in = NA_real_,
+                                  alto_in = NA_real_, etiquetas = NULL,
+                                  notas = NULL, col = .GUIA_COL,
+                                  lwd = .GUIA_LWD) {
+  n <- length(pieces)
+  if (!n || length(relh) != n) return(pieces)
+  # Una etiqueta o una nota que no llegue a todas las bandas no invalida el
+  # resto: la banda sin nombre se queda con su marco y su medida.
+  eti <- rep(NA_character_, n)
+  if (length(etiquetas)) eti[seq_len(min(n, length(etiquetas)))] <-
+    as.character(etiquetas)[seq_len(min(n, length(etiquetas)))]
+  not <- rep(NA_character_, n)
+  if (length(notas)) not[seq_len(min(n, length(notas)))] <-
+    as.character(notas)[seq_len(min(n, length(notas)))]
+
+  h <- suppressWarnings(as.numeric(relh))
+  total <- sum(h[is.finite(h)])
+  if (!is.finite(total) || total <= 0) return(pieces)
+
+  lapply(seq_len(n), function(i) {
+    .guia_envolver_bloque(
+      pieces[[i]],
+      ancho_in = ancho_in,
+      alto_in = suppressWarnings(as.numeric(alto_in)[1]) * h[[i]] / total,
+      etiqueta = if (is.na(eti[[i]])) NULL else eti[[i]],
+      nota = if (is.na(not[[i]])) NULL else not[[i]],
+      col = col, lwd = lwd, cota_ancho = FALSE
+    )
+  })
+}
+
+
 # Dispersion minima entre barras para que la regla aparezca, en centimetros.
 # Mismo valor que `grosor_dispersion_max_cm` de la regla B3 del verificador:
 # medio milimetro. Por debajo es redondeo del render y por encima se ve.

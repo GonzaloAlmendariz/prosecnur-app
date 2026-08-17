@@ -1147,10 +1147,13 @@ graficar_media_rango <- function(
 
     pieces <- list()
     relh <- numeric(0)
+    # Nombre de cada banda, en paralelo a `pieces`, para su cota.
+    .eti <- character(0)
 
     if (h_pad > 0) {
       pieces[[length(pieces) + 1]] <- cowplot::ggdraw()
       relh <- c(relh, h_pad)
+      .eti <- c(.eti, "aire")
     }
 
     if (.has_title) {
@@ -1162,6 +1165,7 @@ graficar_media_rango <- function(
         face_bottom = .graficos_face_legado(textos_negrita, "subtitulo", "plain")
       )
       relh <- c(relh, h_title)
+      .eti <- c(.eti, "cabecera")
     }
 
     if (.has_legend) {
@@ -1176,11 +1180,14 @@ graficar_media_rango <- function(
       p_panel <- p_core + ggplot2::theme(legend.position = "none")
       pieces[[length(pieces) + 1]] <- p_panel
       relh <- c(relh, h_panel)
+      .eti <- c(.eti, "panel")
       pieces[[length(pieces) + 1]] <- cowplot::ggdraw(leg)
       relh <- c(relh, h_legend)
+      .eti <- c(.eti, "leyenda")
     } else {
       pieces[[length(pieces) + 1]] <- p_core
       relh <- c(relh, h_panel)
+      .eti <- c(.eti, "panel")
     }
 
     if (.has_caption) {
@@ -1191,19 +1198,27 @@ graficar_media_rango <- function(
         face_top = .graficos_face_legado(textos_negrita, "nota_pie", "plain")
       )
       relh <- c(relh, h_caption)
+      .eti <- c(.eti, "pie")
     }
 
+    # Cada banda con su cota, no un marco alrededor del conjunto: el canvas
+    # entero ya se veia, y lo que hay que poder comprobar es cuanto se lleva
+    # cada una. Ver `.guia_envolver_bandas()`.
+    if (isTRUE(debug_ph_bordes)) {
+      pieces <- .guia_envolver_bandas(
+        pieces, relh,
+        ancho_in = suppressWarnings(as.numeric(ancho)[1]),
+        alto_in  = suppressWarnings(as.numeric(alto)[1]),
+        etiquetas = .eti,
+        col = debug_ph_col %||% .GUIA_COL,
+        lwd = debug_ph_lwd %||% .GUIA_LWD
+      )
+    }
     p_out <- cowplot::plot_grid(plotlist = pieces, ncol = 1, rel_heights = relh, align = "v")
   }
 
-  if (isTRUE(debug_ph_bordes)) {
-    p_out <- p_out +
-      ggplot2::theme(
-        plot.background = ggplot2::element_rect(
-          fill = NA, colour = debug_ph_col, linewidth = debug_ph_lwd
-        )
-      )
-  }
+  # Las bandas ya llevan su cota (ver arriba); un marco mas alrededor del
+  # conjunto solo añadiria una linea que no mide nada nuevo.
 
   if (identical(exportar, "rplot")) return(p_out)
 
