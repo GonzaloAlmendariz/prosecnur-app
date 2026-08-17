@@ -20,10 +20,10 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R1 | Qué aulas seleccionó 2025, por facultad | ☑ |
 | R2 | Con qué criterios | ☑ |
 | R3 | Qué parámetros de diseño usó | ☑ |
-| R4 | ¿La regla declarada reproduce sus propias 170 aulas? | **✗ NO — 133 de 170** |
+| R4 | **Por qué ~130 y no ~170: el `est` de 2025 ya lleva el factor que llamamos τ** | ☑ |
 | R4b | La plantilla de Kamila: 189 objetivo / 203 a visitar, sobre la MISMA base | ☑ |
 | R5 | **Las 1.097 no son el marco, son lo sorteado; el marco eran ~2.931** | ☑ |
-| R6 | Alumnos elegibles por CH por facultad | pendiente |
+| R6 | Nuestro embudo contra el de 2025: 2.420 comunes, 511 explicadas | ☑ |
 | R7 | Aulas por facultad: **motor 478 vs plantilla 189** | ☑ medido, explicado a medias |
 | R9 | Por qué el universo de aulas por facultad no se parece | **abierto — lo siguiente** |
 | R8 | Características de la selección, 2025 vs 2026 | pendiente |
@@ -294,6 +294,79 @@ comparación con 2025 no puede cerrar por ahí. **Es decisión de Gonzalo.**
 Con el marco corregido a 2.931 la regla `CEIL(sobremuestra / mín(mediana, media))`
 sigue dando **126 aulas contra las 170 reales**, exactas en 5 de 15. R4 continúa
 abierto: ni el marco de 1.097 ni el de 2.931 lo explican.
+
+## R6 · Nuestro embudo contra el de 2025 · las 511 que faltan, explicadas
+
+Reconstruido el embudo de 2025 sobre el catálogo y cruzado con nuestro marco:
+**2.420 aulas están en los dos**, 511 nos faltan y 48 nos sobran.
+
+| Facultad (del curso) | 2025 | Nuestro | Ambos | Faltan | Sobran |
+|---|---:|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 655 | 550 | 550 | 105 | 0 |
+| EG LETRAS | 470 | 369 | 369 | 101 | 0 |
+| DERECHO | 395 | 396 | 381 | 14 | 15 |
+| EG CIENCIAS | 352 | 343 | 318 | 34 | 25 |
+| ESCUELA DE ESTUDIOS ESPECIALES | 179 | 135 | 135 | 44 | 0 |
+| CIENCIAS Y ARTES COMUN. | 168 | 150 | 150 | 18 | 0 |
+| CIENCIAS SOCIALES | 139 | 115 | 115 | 24 | 0 |
+| ARTES ESCÉNICAS | 115 | 49 | 49 | 66 | 0 |
+| GESTIÓN | 101 | 94 | 94 | 7 | 0 |
+| PSICOLOGÍA | 90 | 82 | 82 | 8 | 0 |
+| ARTE Y DISEÑO | 83 | 60 | 60 | 23 | 0 |
+| ARQUITECTURA | 64 | 58 | 53 | 11 | 5 |
+| LETRAS Y CIENCIAS HUMANAS | 40 | 14 | 14 | 26 | 0 |
+| GASTRONOMÍA | 33 | 20 | 20 | 13 | 0 |
+| EDUCACION | 25 | 10 | 10 | 15 | 0 |
+| CONTABLES | 16 | 14 | 14 | 2 | 0 |
+| CONSORCIO DE UNIVERSIDADES | 6 | 6 | 6 | 0 | 0 |
+| **Total** | **2.931** | **2.465** | **2.420** | **511** | **45** |
+
+**Las 511 tienen dos causas y ninguna es un misterio**, leídas del propio
+`exclude_reason`:
+
+- **449 por el mínimo de elegibles**: nuestro `min_eligible_per_class` es **15** y
+  2025 usó **matriculados ≥ 10**. De ellas, **308 caen justo en la franja 10–14**.
+- **80 por el criterio de tipo de docente**, que **2025 no tenía**.
+
+Las 45 que nos sobran son de Derecho, EE.GG. Ciencias y Arquitectura, y salen de
+que nuestro marco atribuye la facultad por otra vía (R9).
+
+## R4 · **Por qué salen ~130 y no ~170** · mecanismo identificado
+
+La regla declarada es `CEIL(sobremuestra / estudiantes_por_aula)`. Aplicándola
+con el mín(mediana, media) **crudo** de elegibles salen 133 (marco de 1.097) o
+126 (marco de 2.931). Faltan ~40.
+
+La plantilla de Kamila permite ver por qué, porque tiene las dos cifras juntas:
+su `Aulas_objetivo` por facultad y los `Alumnos_elegibles` reales de las aulas
+que eligió. El `est` que su propia regla usa es **la mitad** de los elegibles que
+esas aulas tienen de verdad:
+
+| Facultad | Objetivo | Sobremuestra | est implícito | Elegibles reales por aula | **Factor** |
+|---|---:|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 37 | 792 | 21,4 | 41,0 | **0,52** |
+| DERECHO | 21 | 521 | 24,8 | 42,7 | **0,58** |
+| EG LETRAS | 24 | 584 | 24,3 | 54,4 | **0,45** |
+| EG CIENCIAS | 21 | 589 | 28,0 | 57,3 | **0,49** |
+| ARQUITECTURA | 11 | 190 | 17,3 | 45,6 | 0,38 |
+| CIENCIAS Y ARTES COMUN. | 10 | 146 | 14,6 | 26,2 | **0,56** |
+| CIENCIAS SOCIALES | 13 | 226 | 17,4 | 39,9 | 0,44 |
+| PSICOLOGÍA | 7 | 118 | 16,9 | 25,0 | 0,68 |
+
+**Mediana ≈ 0,5 — y nuestro τ es 0,53.** Es decir: el `estudiantes_por_aula` de
+la regla de 2025 **ya lleva dentro un factor de respuesta/asistencia**, y nuestro
+motor lo saca fuera y lo llama τ. Mi replicación daba 133 porque aplicaba la
+regla con la cifra bruta, sin ese factor. **La fórmula del motor y la de 2025 son
+la misma**; lo que cambia es dónde vive el factor.
+
+Queda una diferencia real que no es de fórmula: **la selección ejecutada supera
+al objetivo calculado, y más en las facultades grandes.** En la propia plantilla
+de Kamila, sobre la misma base: 200 titulares elegidos contra 189 de objetivo, y
+por facultad Derecho **33 contra 21**, Ciencias e Ingeniería **42 contra 37**,
+mientras Arte y Diseño se queda en **5 contra 14** y Educación en **2 contra 6**.
+Su hoja nombra parte del mecanismo: hay una etapa marcada
+**«censo: pool < objetivo»** —cuando el pool de una facultad no alcanza el
+objetivo se toman todas— que produce 21 titulares y 63 reemplazos.
 
 ## R4b · La plantilla de cálculo de Kamila
 
