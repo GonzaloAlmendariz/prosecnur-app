@@ -2392,9 +2392,129 @@ export type CalcMuestraAulasCerteza = {
   };
 };
 
+export const CALC_MUESTRA_SALUD_CRITERIOS_SCHEMA =
+  "calc_muestra_aulas_salud_criterios_v1" as const;
+
+/**
+ * Estado de salud de un criterio de AULA sobre el marco vigente.
+ *
+ * `sin_senal` es el que importa: la columna del criterio llega vacía, así que
+ * deja pasar a todos y **no es que no recorte**. Esa distinción es la que faltó
+ * cuatro veces —`exclude_level_patterns` buscando «posgrado» en un número de
+ * ciclo, `session_type` vacío en las 5.263 aulas, `teacher_type` con nombres
+ * propios como categorías— y en las cuatro el marco se publicó igual.
+ */
+export type CalcMuestraSaludCriterioEstado =
+  | "sin_senal"
+  | "sin_coincidencia"
+  | "sin_categorias"
+  | "parcial"
+  | "ok"
+  | "desconocido";
+
+export type CalcMuestraSaludCriterioFacultad = {
+  facultad: string;
+  aulas: number;
+  con_valor: number;
+};
+
+export type CalcMuestraSaludCriterioFila = {
+  criterion_id: string;
+  label: string;
+  columna: string;
+  columna_en_el_marco: boolean;
+  aulas: number;
+  aulas_con_valor: number;
+  kind: string;
+  categorias_declaradas: number;
+  categorias_presentes: number;
+  categorias_ausentes: string[];
+  estado: CalcMuestraSaludCriterioEstado;
+  aviso: string;
+  /** Ordenado de la facultad peor cubierta a la mejor. */
+  por_facultad: CalcMuestraSaludCriterioFacultad[];
+};
+
+export type CalcMuestraSaludCriterios = {
+  schema: typeof CALC_MUESTRA_SALUD_CRITERIOS_SCHEMA;
+  grain: "criterio";
+  unit: string;
+  momento: string;
+  filas: CalcMuestraSaludCriterioFila[];
+};
+
+const SALUD_ESTADOS: readonly CalcMuestraSaludCriterioEstado[] = [
+  "sin_senal", "sin_coincidencia", "sin_categorias", "parcial", "ok", "desconocido",
+];
+
+/**
+ * Normalizador defensivo: R serializa un escalar como array de uno y una lista
+ * vacía como `{}`. Una fila sin `criterion_id` se descarta en vez de pintarse
+ * con el nombre en blanco.
+ */
+export function normalizeCalcMuestraSaludCriterios(
+  raw: unknown,
+): CalcMuestraSaludCriterios | null {
+  // Los helpers viven dentro de cada normalizador en este módulo; se repiten
+  // aquí por la misma razón: R serializa un escalar como array de uno.
+  const asText = (v: unknown): string => {
+    const x = Array.isArray(v) ? v[0] : v;
+    return typeof x === "string" ? x.trim() : typeof x === "number" ? String(x) : "";
+  };
+  const asNum = (v: unknown): number | null => {
+    const x = Array.isArray(v) ? v[0] : v;
+    const n = typeof x === "number" ? x : typeof x === "string" ? Number(x) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+  const asList = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
+  const asRecord = (v: unknown): Record<string, unknown> =>
+    v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  const r = asRecord(raw);
+  const filas = asList(r.filas)
+    .map((rawFila): CalcMuestraSaludCriterioFila | null => {
+      const f = asRecord(rawFila);
+      const id = asText(f.criterion_id);
+      if (!id) return null;
+      const estadoText = asText(f.estado) as CalcMuestraSaludCriterioEstado;
+      return {
+        criterion_id: id,
+        label: asText(f.label) || id,
+        columna: asText(f.columna),
+        columna_en_el_marco: f.columna_en_el_marco === true,
+        aulas: asNum(f.aulas) ?? 0,
+        aulas_con_valor: asNum(f.aulas_con_valor) ?? 0,
+        kind: asText(f.kind),
+        categorias_declaradas: asNum(f.categorias_declaradas) ?? 0,
+        categorias_presentes: asNum(f.categorias_presentes) ?? 0,
+        categorias_ausentes: asList(f.categorias_ausentes).map(asText).filter(Boolean),
+        estado: SALUD_ESTADOS.includes(estadoText) ? estadoText : "desconocido",
+        aviso: asText(f.aviso),
+        por_facultad: asList(f.por_facultad)
+          .map((rawFac) => {
+            const p = asRecord(rawFac);
+            const facultad = asText(p.facultad);
+            if (!facultad) return null;
+            return { facultad, aulas: asNum(p.aulas) ?? 0, con_valor: asNum(p.con_valor) ?? 0 };
+          })
+          .filter((p): p is CalcMuestraSaludCriterioFacultad => p != null),
+      };
+    })
+    .filter((f): f is CalcMuestraSaludCriterioFila => f != null);
+  if (!filas.length) return null;
+  return {
+    schema: CALC_MUESTRA_SALUD_CRITERIOS_SCHEMA,
+    grain: "criterio",
+    unit: asText(r.unit) || "curso_horario",
+    momento: asText(r.momento) || "marco_ejecutado",
+    filas,
+  };
+}
+
 export type CalcMuestraAulasState = {
   config?: Record<string, unknown>;
   frame?: CalcMuestraAulasFrame | null;
+  /** Salud de los criterios de aula; derivada al servir, puede no venir. */
+  salud_criterios?: CalcMuestraSaludCriterios | null;
   selection?: CalcMuestraAulasSelection | null;
   method_comparison?: CalcMuestraAulasMethodComparison | null;
   certeza?: CalcMuestraAulasCerteza | null;

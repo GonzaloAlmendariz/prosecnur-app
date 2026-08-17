@@ -19,6 +19,7 @@ import { GraduationCap, Loader2, RefreshCw, School, SlidersHorizontal } from "lu
 import {
   normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
+  normalizeCalcMuestraSaludCriterios,
   normalizeCalcMuestraAulasParticularidades,
   normalizeCalcMuestraCriteriosAlumnoReporte,
   normalizeCalcMuestraSessionTypeImpacto,
@@ -55,6 +56,7 @@ import { PresetCanonicoButton } from "./PresetCanonicoButton";
 import type { PresetCanonicoPlan } from "./presetCanonicoModel";
 import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
 import { FacultadesExcluidasCard } from "./FacultadesExcluidasCard";
+import { SaludCriteriosCard } from "./SaludCriteriosCard";
 import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
 import {
@@ -118,6 +120,10 @@ export function CriteriosMarcoTab({
   const marcoPublicable = integridadFrame.status === "consistent";
   const marcoIncoherente = integridadFrame.status === "inconsistent";
   const exploracion = marcoPublicable ? exploracionNormalizada : null;
+  const saludCriterios = useMemo(
+    () => normalizeCalcMuestraSaludCriterios(aulasState?.salud_criterios ?? null),
+    [aulasState?.salud_criterios],
+  );
   const criteriosRadiografiaNormalizada = useMemo(
     () => normalizeCalcMuestraAulasCriteriosRadiografia(aulasState?.frame?.criterios_radiografia ?? null),
     [aulasState?.frame?.criterios_radiografia],
@@ -417,6 +423,13 @@ export function CriteriosMarcoTab({
           </CifraFila>
         </div>
       )}
+
+      {/* Qué criterios de aula NO pueden evaluarse sobre el marco vigente.
+          Va ANTES del estado vacío a propósito: cuando el catálogo no está, el
+          aviso de que un criterio no puede filtrar es justo lo que explica por
+          qué. Un criterio sin señal deja pasar a todos y eso NO es lo mismo que
+          uno que se midió y no recortó. */}
+      <SaludCriteriosCard salud={saludCriterios} />
 
       {!ready ? (
         <div className="cmv2-crit-empty">
