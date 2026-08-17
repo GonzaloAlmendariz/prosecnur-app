@@ -907,3 +907,33 @@ traspaso— salen limpias.
 listar las disponibles con un grep me devolví **mi propia cadena de la línea de
 error**, así que por un momento creí que sí existía. La lista buena sale de leer
 sólo lo que va tras «Disponibles:».
+
+
+### 2026-08-16 — el barrido de readiness: no se repite
+
+Si una vista mentía al declararse lista, la pregunta es cuántas más. Barridos los
+otros declaradores de `auditReady` —Bitácora, Carga, Validación, Cálculo de
+muestra— con el proyecto de 196 aulas:
+
+| Vista | Gate | Marca de readiness | ¿Texto de carga en pantalla? |
+|---|---|---|---|
+| Bitácora | ✅ | `bitacora-bitacora` | no |
+| Procesamiento › Carga | ✅ | `carga-plan` | no |
+| Procesamiento › Validación | ✅ | `validacion-explorar` | no |
+| Cálculo de muestra | ✅ | `calc-muestra` | no |
+
+**El defecto de Materiales no se repite**, y la razón estructural también se
+midió: ninguna de esas páginas monta secciones hijas con carga propia. Materiales
+era el único caso de un shell que declara por una carga y una sección que tiene
+la suya.
+
+**Con una limitación que conviene decir**: aquí el criterio fue buscar palabras de
+carga en el `textSample` del reporte, que viene truncado. Es más débil que el caso
+de Materiales, donde la etiqueta del propio hallazgo de geometría traía
+«Leyendo plantilla semántica…». Un cero por este método significa «no se vio», no
+«se comprobó exhaustivamente».
+
+Y una observación sin cerrar, anotada para no perderla: Carga informa su marca
+**dos veces** (`['carga-plan', 'carga-plan']`) con un solo `PageFrame` en su
+página. No rompe nada y no sé por qué pasa; queda como cosa a mirar, no como
+defecto.
