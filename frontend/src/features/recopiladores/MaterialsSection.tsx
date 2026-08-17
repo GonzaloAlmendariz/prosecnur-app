@@ -44,6 +44,10 @@ type Props = {
   activeTab: RecopiladoresPestana;
   onStateRefresh: () => Promise<void>;
   onArtifact: (artifact: CollectionArtifactReceipt | null) => void;
+  /** Avisa al shell mientras la plantilla no está: sin esto la página se
+      declaraba lista con el panel aún en «Leyendo plantilla semántica…», y el QA
+      visual medía el esqueleto. */
+  onCargando?: (cargando: boolean) => void;
 };
 
 const BLOCK_LABELS: Record<CollectionBlockType, string> = {
@@ -146,7 +150,7 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
   );
 }
 
-export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifact }: Props) {
+export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifact, onCargando }: Props) {
   const [history, dispatch] = useReducer(templateHistoryReducer, TEMPLATE_PLACEHOLDER, createTemplateHistory);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -157,6 +161,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [jobFormat, setJobFormat] = useState<"png" | "pdf" | "bundle" | null>(null);
   const [renderResult, setRenderResult] = useState<CollectionMaterialRenderResult | null>(null);
   const [error, setError] = useState("");
+  useEffect(() => { onCargando?.(loading); }, [loading, onCargando]);
   const template = history.present;
   const blocks = template.pages[0]?.blocks ?? [];
   const selected = blocks.find((block) => block.block_id === selectedId) ?? blocks[0] ?? null;

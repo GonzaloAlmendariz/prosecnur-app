@@ -138,6 +138,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias declaradas y una escondida: `brechas` era un clon completo del plan. | ☑ **hecho** (2026-08-16) — **1377 → 934 → 601 KB** y **2,4 → 1,6 s**. Queda una sola copia, `dashboard.agenda`, que es superconjunto de la que se fue. |
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L68** | El gate visual del contrato **nunca miró los cinco gráficos**, y al mirarlo apareció que **aulas no importaba `monitoreo.css`**. | 4 `capacity-drift` (C3); el aviso de recorte salía como texto de cuerpo en todo el perfil. | ☑ **hecho** (2026-08-16) — la regla se muda a `profilePage.css`, que sí ven los cuatro perfiles. Queda 3–4 px de `.mon-profile-panel-head`, chrome compartido que este ítem no causó. |
+| **L69** | **Materiales se declaraba lista mientras cargaba.** Es la superficie donde se producen las fichas QR del circuito. | `RecopiladoresShell` derivaba `auditReady` de **su** `loading` —el del plan— y `MaterialsSection` tiene el suyo para la plantilla. Todo QA visual de esa vista medía el esqueleto: 124 px de vacío y «Leyendo plantilla semántica…». | ☑ **hecho** (2026-08-16) — la sección avisa su carga al shell. Gate de `ok=false` a **`ok=true`**, verificado invirtiéndolo. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -870,3 +871,39 @@ de un trabajo terminado es peor que no tenerla: la sesión siguiente arrancaría
 buscando algo que ya está. Reescrita con el estado real, más dos entradas nuevas:
 la decisión de L2 con sus costos medidos, y el patrón de la lista cerrada, que es
 lo que de verdad se aprendió aquí.
+
+
+### 2026-08-16 — L69: la vista decía estar lista y no lo estaba
+
+Con la cola sin ítems libres fui a las superficies vecinas del circuito.
+**Recopiladores › Materiales es donde se producen las fichas QR**, así que
+pertenece a este GOAL aunque viva en otro módulo.
+
+El gate salió rojo, y el hallazgo era un panel de carga:
+
+```
+capacity-drift · rec-loading · 124 px sin usar
+label: «Leyendo plantilla semántica…»
+ready: ['recopiladores/materiales/vista']   ← la vista SÍ se declaraba lista
+```
+
+No era el instrumento capturando temprano: **la vista mentía**.
+`RecopiladoresShell` deriva `auditReady` de **su** `loading` —el del plan de
+recolección— y `MaterialsSection` tiene el suyo, para la plantilla semántica. El
+shell decía «lista» en cuanto tenía el plan, con el panel todavía cargando.
+
+La consecuencia va más allá del gate: **todo QA visual de Materiales ha estado
+midiendo un esqueleto**. Cualquier verde anterior en esa superficie no medía nada
+—es el mismo «verde por ausencia», pero disfrazado de conformidad—.
+
+Reparado con la sección avisando su carga al shell. De `ok=false` a `ok=true`, y
+**verificado invirtiéndolo**: al quitar la condición el hallazgo vuelve.
+
+Las otras direcciones de Recopiladores —accesos, vinculación, entrega-campo,
+traspaso— salen limpias.
+
+**Y de propina, dos trampas de instrumento propias.** Pedí
+`recopiladores/entrega`, que no existe —la dirección es `entrega-campo`— y al
+listar las disponibles con un grep me devolví **mi propia cadena de la línea de
+error**, así que por un momento creí que sí existía. La lista buena sale de leer
+sólo lo que va tras «Disponibles:».
