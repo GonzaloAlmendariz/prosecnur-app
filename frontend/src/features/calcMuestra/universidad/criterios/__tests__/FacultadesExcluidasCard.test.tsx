@@ -20,10 +20,18 @@ import {
   normalizeUniversityAulasConfig,
 } from "../../shared/study";
 
+/**
+ * Facultades DEL MARCO, como las entrega el perfil del motor. La tarjeta se
+ * alimentaba del catálogo de la variable `faculty`, que tiene `scope: "alumno"`:
+ * su campo `aulas` cuenta pares alumno-aula por la facultad DEL ALUMNO —sumaba
+ * 29.090 sobre un marco de 5.263 aulas— y traía una categoría de más,
+ * CONSORCIO DE UNIVERSIDADES, que no es una facultad del marco. En pantalla eso
+ * se leía como «ESTUDIOS GENERALES LETRAS · 4.869 aulas» donde hay 482.
+ */
 const FACULTADES = [
-  { key: "der", label: "DERECHO", aulas: 440 },
-  { key: "pos", label: "ESCUELA DE POSGRADO", aulas: 852 },
-  { key: "psi", label: "PSICOLOGÍA", aulas: 100 },
+  { key: "der", label: "DERECHO" },
+  { key: "pos", label: "ESCUELA DE POSGRADO" },
+  { key: "psi", label: "PSICOLOGÍA" },
 ];
 
 function pintar(excluidas: string[]): string {
@@ -54,11 +62,19 @@ describe("clave de comparación", () => {
 });
 
 describe("tarjeta de facultades excluidas", () => {
-  it("lista las facultades del marco con sus aulas", () => {
+  it("lista las facultades del marco", () => {
     const html = pintar([]);
     expect(html).toContain("DERECHO");
     expect(html).toContain("ESCUELA DE POSGRADO");
-    expect(html).toContain("852 aulas");
+    expect(html).toContain("PSICOLOGÍA");
+  });
+
+  it("no publica un conteo de aulas que no puede garantizar", () => {
+    // EL defecto visto en pantalla: la cifra venía del catálogo de alumno y no
+    // eran aulas. Mejor sin cifra que con una falsa.
+    const html = pintar(["ESCUELA DE POSGRADO"]);
+    // Ninguna CIFRA seguida de «aulas»; el subtítulo sí puede nombrarlas.
+    expect(html).not.toMatch(/[0-9][0-9.,]*\s*aulas/);
   });
 
   it("sin exclusiones lo dice, en vez de dejar el hueco mudo", () => {
@@ -71,18 +87,19 @@ describe("tarjeta de facultades excluidas", () => {
     expect(html).toContain("checked");
   });
 
-  it("cuenta cuántas aulas quedan fuera del marco", () => {
-    // Lo que importa no es cuántas facultades marcaste, sino cuánto marco
-    // pierdes: 852 aulas es una decisión grande.
-    const html = pintar(["ESCUELA DE POSGRADO"]);
-    expect(html).toContain("1 facultad excluida");
-    expect(html).toContain("852 aulas fuera del marco");
+  it("dice cuántas facultades quedan fuera", () => {
+    expect(pintar(["ESCUELA DE POSGRADO"])).toContain("1 facultad excluida del marco");
+    expect(pintar(["ESCUELA DE POSGRADO", "PSICOLOGÍA"])).toContain(
+      "2 facultades excluidas del marco",
+    );
   });
 
-  it("suma las aulas de varias exclusiones", () => {
-    const html = pintar(["ESCUELA DE POSGRADO", "PSICOLOGÍA"]);
-    expect(html).toContain("2 facultades excluidas");
-    expect(html).toContain("952 aulas fuera del marco");
+  it("no inventa filas que el marco no declara", () => {
+    // El catálogo de alumno traía 18 categorías para 17 facultades: la de más
+    // era CONSORCIO DE UNIVERSIDADES, alumnos de otras casas que llevan cursos
+    // aquí. Las filas salen del perfil del marco, así que son las que hay.
+    const html = pintar([]);
+    expect((html.match(/<li/g) ?? []).length).toBe(FACULTADES.length);
   });
 
   it("sin marco construido invita a construirlo, no miente con una lista vacía", () => {

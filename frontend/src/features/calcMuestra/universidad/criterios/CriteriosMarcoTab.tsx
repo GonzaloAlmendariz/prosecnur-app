@@ -498,7 +498,7 @@ export function CriteriosMarcoTab({
           {showAlumno && (
             <FacultadesExcluidasCard
               config={config}
-              facultades={facultadesMin}
+              facultades={facRefs}
               onPatch={patchAulasConfig}
             />
           )}
