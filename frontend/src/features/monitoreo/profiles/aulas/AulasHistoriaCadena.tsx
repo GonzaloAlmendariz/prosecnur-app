@@ -63,16 +63,18 @@ const GRUPOS = [
 ];
 
 export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const { historias, sinMovimiento, cerraronEnTitular, cerraronEnReemplazo, abiertas } =
+  const { historias, sinReserva, cerraronEnTitular, cerraronEnReemplazo, abiertas } =
     useMemo(() => historiaDeCadena(filas), [filas]);
 
   if (!historias.length) {
     return (
       <p className="mon-profile-muted">
-        {sinMovimiento
-          // No es lo mismo «no hay plan» que «ningún curso-horario necesitó
-          // reemplazo», que es la mejor noticia posible del operativo.
-          ? `Ninguno de los ${sinMovimiento} cursos-horario titulares necesitó reemplazo.`
+        {sinReserva
+          // No es lo mismo «no hay plan» que «el diseño no asignó reservas».
+          // Decía «ninguno necesitó reemplazo», que suena a la mejor noticia
+          // posible y es justo lo contrario: son las aulas que, si caen, no
+          // tienen con qué cubrirse.
+          ? `Ninguno de los ${sinReserva} cursos-horario titulares tiene reserva asignada.`
           : "El plan todavía no declara cadenas de reemplazo."}
       </p>
     );
@@ -84,7 +86,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
         <strong>{cerraronEnTitular}</strong> cerraron con el titular ·{" "}
         <strong>{cerraronEnReemplazo}</strong> con un reemplazo ·{" "}
         <strong>{abiertas}</strong> sin cerrar
-        {sinMovimiento ? ` · ${sinMovimiento} no necesitaron reemplazo` : ""}
+        {sinReserva ? ` · ${sinReserva} sin reserva asignada` : ""}
       </p>
       {/* Agrupadas por desenlace. Eran 24 cajas idénticas en 1 554 px de alto:
           las tres que cerraron —la respuesta a «cuál fue la cadena que nos

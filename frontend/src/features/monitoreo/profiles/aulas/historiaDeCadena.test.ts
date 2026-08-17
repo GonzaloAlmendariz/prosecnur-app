@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { historiaDeCadena } from "./historiaDeCadena";
+import { consumoDeCadena } from "./consumoDeCadena";
 
 function titular(codigo: string, validas: number, meta: number, facultad = "Derecho"): MonitoreoAulasPlanRow {
   return {
@@ -71,7 +72,7 @@ describe("historiaDeCadena", () => {
       reserva("R 7.1", "CH 7", 1, 31, 30),
     ]);
     expect(res.historias).toHaveLength(1);
-    expect(res.sinMovimiento).toBe(2);
+    expect(res.sinReserva).toBe(2);
   });
 
   test("las abiertas van primero: son las que piden decisión", () => {
@@ -82,5 +83,39 @@ describe("historiaDeCadena", () => {
     expect(res.historias[0].titular).toBe("CH 2");
     expect(res.historias[0].desenlace).toBe("abierta");
     expect(res.abiertas).toBe(1);
+  });
+});
+
+describe("las tres superficies de la cadena cuentan lo mismo", () => {
+  // La historia, el gráfico de consumo y el contador de la cabecera hablan del
+  // mismo hecho. Medido el 2026-08-17: la cabecera decía «50 filas» y la lectura
+  // «3 con un reemplazo · 21 sin cerrar», que suman 24; y el mismo 146 salía como
+  // «no necesitaron reemplazo» en la lectura y como «no tienen ninguna reserva,
+  // sus metas quedan sin cubrir si caen» en el pie del gráfico. Números que
+  // coinciden pueden estar contando cosas opuestas.
+  const plan = [
+    // Cadena con reserva: entra en `historias` y en el gráfico.
+    { operational_code: "CH 1", sample_role: "titular", eligible_n: 30, expected_valid: 20, respuestas_validas: 0 },
+    { operational_code: "R 1.1", sample_role: "chain_reserve", replacement_for: "CH 1",
+      sample_status: "agendada", eligible_n: 28, expected_valid: 20, respuestas_validas: 20 },
+    // Titulares SIN reserva: el conjunto que las dos frases leían al revés.
+    { operational_code: "CH 2", sample_role: "titular", eligible_n: 30, expected_valid: 20, respuestas_validas: 0 },
+    { operational_code: "CH 3", sample_role: "titular", eligible_n: 30, expected_valid: 20, respuestas_validas: 0 },
+  ] as unknown as Parameters<typeof historiaDeCadena>[0];
+
+  test("la historia y el consumo cuentan el MISMO conjunto sin reserva", () => {
+    const h = historiaDeCadena(plan);
+    const c = consumoDeCadena(plan);
+    expect(h.sinReserva).toBe(2);
+    // El aserto que ata las dos superficies: si una cambia su criterio, la otra
+    // lo dice. Antes coincidían por casualidad y se describían al revés.
+    expect(c.sinReserva).toBe(h.sinReserva);
+  });
+
+  test("la cabecera cuenta CADENAS, la unidad de la lectura", () => {
+    const h = historiaDeCadena(plan);
+    // 1 cadena con reserva; los 2 titulares pelados no son cadenas.
+    expect(h.historias.length).toBe(1);
+    expect(h.cerraronEnTitular + h.cerraronEnReemplazo + h.abiertas).toBe(h.historias.length);
   });
 });

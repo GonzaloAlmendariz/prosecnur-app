@@ -30,6 +30,7 @@ import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
+import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
@@ -469,6 +470,13 @@ function renderAulasView(
     const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
     const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[]);
+    // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también
+    // los titulares que nunca necesitaron reserva, porque «146 no necesitaron
+    // reemplazo» es parte de la respuesta.
+    const agendaFilas = (dashboard.agenda ?? []) as MonitoreoAulasPlanRow[];
+    // La MISMA función que escribe la lectura: el contador de la cabecera y el
+    // renglón de abajo no pueden salir de dos cuentas distintas.
+    const cadenas = historiaDeCadena(agendaFilas);
     // Cada pestaña muestra SU panel. Con dos bastaba negar la otra; con tres,
     // negar dos deja que «parte» pinte los otros dos encima.
     const enParte = pestana === "parte";
@@ -486,17 +494,31 @@ function renderAulasView(
                 bloques —«APLICACIÓN DE REEMPLAZO n»— y por el valor «EN RESERVA
                 n» de STATUS MUESTRA. El nombre de la vista es nuestro. */}
             <h3>Cadena de reemplazos</h3>
-            <span>{fmt(reemplazos.length)} filas</span>
+            {/* En CADENAS, que es la unidad de la lectura de abajo. Decía «50
+                filas» dos renglones encima de «3 con un reemplazo · 21 sin
+                cerrar», que suman 24: el mismo panel daba dos números para lo
+                que se lee como la misma cosa. La cuenta sale de la MISMA función
+                que escribe la lectura. */}
+            <span>{(() => {
+              const n = cadenas.historias.length;
+              return n === 1 ? "1 cadena" : `${fmt(n)} cadenas`;
+            })()}</span>
           </div>
           {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
               lo que se pregunta al cerrar el operativo; después cuánta reserva
               se gastó. La tabla de abajo queda como el detalle fila a fila. */}
-          <AulasHistoriaCadena filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
+          <AulasHistoriaCadena filas={agendaFilas} />
           {/* Sale del PLAN entero, no de `reemplazos`: esa lista sólo trae
               reservas y caídas, así que un titular sin ninguna reserva —el caso
               de L54— no aparecería y el gráfico diría que el plan tiene un
               colchón que no tiene. */}
-          <AulasCadenaChart filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
+          <AulasCadenaChart filas={agendaFilas} />
+          {/* La tabla cambia de unidad y lo dice: la lectura cuenta cadenas y
+              aquí va cada aula de esas cadenas, la que cayó y sus reservas. Sin
+              este renglón, 24 arriba y 50 abajo se leen como una contradicción. */}
+          <p className="mon-profile-muted">
+            Cada cadena, aula por aula: la que cayó y sus reservas.
+          </p>
           <DataTable
             rows={reemplazos}
             empty="Ningún curso-horario ha necesitado reemplazo."
