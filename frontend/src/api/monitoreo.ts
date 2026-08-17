@@ -767,6 +767,8 @@ export type MonitoreoAulasDashboard = {
 	  quotas_sex_faculty?: MonitoreoRow[];
 	  brechas: MonitoreoRow[];
 	  reemplazos: MonitoreoRow[];
+	  /** El parte de campo de cada aula, con su resta ya hecha por el motor. */
+	  partes_campo?: MonitoreoRow[];
 	  representativity?: {
 	    planned_score?: number;
 	    effective_score?: number;

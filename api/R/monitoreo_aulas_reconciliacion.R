@@ -69,6 +69,55 @@ monitoreo_aulas_reconciliacion_partes <- function(partes = list(), tolerancia = 
   out
 }
 
+#' Los partes de campo, listos para publicarse en el tablero.
+#'
+#' Hasta ahora del parte solo salia del motor lo que NO cuadraba: el control de
+#' Validacion nombraba `CH 31` y `CH 112` y no habia donde ir a mirarlos. Lo que
+#' el equipo anota en la hoja «Aulas Aplicadas (Campo)» —asistentes, rechazos,
+#' duplicados, efectivas, quien aplico, en que aula y cuando— no se veia en
+#' ninguna tabla de la aplicacion.
+#'
+#' La resta se calcula AQUI, con la misma funcion que decide el descuadre. Si la
+#' hiciera el frontend habria dos reglas para la misma identidad y bastaria con
+#' que una cambiara para que la tabla y el aviso dijeran cosas distintas.
+#'
+#' @param partes lista de partes de campo.
+#' @param tolerancia diferencia absoluta que se considera cuadrada.
+#' @return lista de filas con los campos del parte mas `esperado`,
+#'   `diferencia` y `cuadra`.
+#' @export
+monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5) {
+  if (!length(partes)) return(list())
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(x %||% NA))
+    if (length(v) != 1L || !is.finite(v)) NA_real_ else v
+  }
+  txt <- function(x) as.character(x %||% "")
+  out <- list()
+  for (p in partes) {
+    if (!is.list(p)) next
+    d <- monitoreo_aulas_parte_descuadre(p)
+    out[[length(out) + 1L]] <- list(
+      operational_code = txt(p$operational_code %||% p$classroom_id),
+      observed_students = num(p$observed_students),
+      refusals = num(p$refusals),
+      duplicates = num(p$duplicates),
+      effective_surveys = num(p$effective_surveys),
+      # `esperado` es la cuenta que implican los otros tres numeros; sin los dos
+      # imprescindibles no hay identidad que comprobar y se publica vacio en vez
+      # de un cero que parecerian datos.
+      esperado = if (is.null(d)) NA_real_ else d$esperado,
+      diferencia = if (is.null(d)) NA_real_ else d$diferencia,
+      cuadra = if (is.null(d)) NA else abs(d$diferencia) <= tolerancia,
+      applied_by = txt(p$applied_by %||% p$applicator),
+      actual_room = txt(p$actual_room),
+      applied_at = txt(p$applied_at %||% paste(txt(p$applied_date), txt(p$applied_time))),
+      field_note = txt(p$field_note %||% p$observaciones)
+    )
+  }
+  out
+}
+
 #' Frase que explica un descuadre sin jerga.
 #'
 #' @param hallazgo un elemento de `monitoreo_aulas_reconciliacion_partes()`.

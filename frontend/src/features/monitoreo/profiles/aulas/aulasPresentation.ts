@@ -8,11 +8,17 @@ const FIELD_LABELS: Record<string, string> = {
   scheduled_time: "Hora",
   // Parte de campo (L32/L45): lo que el equipo anota en el aula.
   actual_room: "Aula real",
-  observed_students: "Estudiantes en el aula",
+  // `CANTIDAD DE ASISTENTES` en el libro; el registro ya lo dice así.
+  observed_students: "Cantidad de asistentes",
   applied_surveys: "Encuestas aplicadas",
   // `CANTIDAD DE EFECTIVAS`: el número que manda en el parte de campo.
   effective_surveys: "Cantidad de efectivas",
-  refusals: "Rechazos",
+  // `CANTIDAD DE RECHAZOS`.
+  refusals: "Cantidad de rechazos",
+  // Las dos columnas de la resta, que el libro NO trae: las calcula el motor
+  // con la identidad asistentes − rechazos − duplicados = efectivas.
+  esperado: "Efectivas que implican",
+  diferencia: "Diferencia",
   // `DUPLICADOS (YA RESPONDIERON)`, con el paréntesis del propio Excel.
   duplicates: "Duplicados (ya respondieron)",
   application_status: "Estado de aplicación",

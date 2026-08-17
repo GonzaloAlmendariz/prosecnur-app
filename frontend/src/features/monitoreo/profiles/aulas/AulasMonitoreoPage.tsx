@@ -49,6 +49,7 @@ import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail } from "../../components";
 import { railDeAulas } from "./railDeAulas";
+import { parteDeCampo } from "./parteDeCampo";
 import {
   aulasFieldLabel,
   presentAulasRow,
@@ -433,9 +434,14 @@ function renderAulasView(
     // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
     const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
+    const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[]);
+    // Cada pestaña muestra SU panel. Con dos bastaba negar la otra; con tres,
+    // negar dos deja que «parte» pinte los otros dos encima.
+    const enParte = pestana === "parte";
+    const enBrechas = pestana === "brechas";
     return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
-        {pestana === "brechas" ? null : (
+        {enBrechas || enParte ? null : (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-consultas"
@@ -468,7 +474,7 @@ function renderAulasView(
           />
         </section>
         )}
-        {pestana === "reemplazos" ? null : (
+        {enBrechas ? (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-consultas"
@@ -486,7 +492,43 @@ function renderAulasView(
             preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
           />
         </section>
-        )}
+        ) : null}
+        {enParte ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-consultas"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* «Partes de campo» y no «Aulas aplicadas (campo)», que es como se
+                llama el panel del registro en Agenda: son dos superficies
+                distintas sobre la misma hoja —allí se llena un parte, aquí se
+                leen todos— y el guard de títulos rechaza que compartan nombre.
+                Lo pilló al escribirlo. */}
+            <h3>Partes de campo</h3>
+            <span>{cuadre.label}</span>
+          </div>
+          {/* La resta ya viene hecha del motor —el mismo helper que decide el
+              descuadre—, así que esta línea y el aviso de Validación no pueden
+              discrepar. Es el destino que le faltaba a «Cuadre del parte de
+              campo», que nombraba las aulas sin dar dónde mirarlas. */}
+          {cuadre.descuadrados ? (
+            <p className="aulas-parte-aviso">
+              <strong>{fmt(cuadre.descuadrados)}</strong>{" "}
+              {cuadre.descuadrados === 1 ? "parte no cuadra" : "partes no cuadran"}: asistentes
+              menos rechazos y duplicados no dan las efectivas declaradas. Se ven primero.
+            </p>
+          ) : null}
+          <DataTable
+            rows={cuadre.filas}
+            empty="Todavía no se ha registrado ningún parte de campo."
+            // SÓLO las columnas del parte, más el código para saber de qué aula
+            // es. Añadir facultad, curso u horario la convertiría en una segunda
+            // Agenda, y de eso ya hay una.
+            preferredColumns={["operational_code", "observed_students", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
+          />
+        </section>
+        ) : null}
       </div>
     );
   }
