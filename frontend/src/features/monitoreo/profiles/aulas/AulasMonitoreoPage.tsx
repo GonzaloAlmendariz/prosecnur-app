@@ -19,6 +19,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCadenaChart } from "./AulasCadenaChart";
+import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasCuotasChart } from "./AulasCuotasChart";
 import { AulasCuotasResumen } from "./AulasCuotasResumen";
@@ -425,6 +426,10 @@ function renderAulasView(
             <h3>Cadena de reemplazos</h3>
             <span>{fmt(reemplazos.length)} filas</span>
           </div>
+          {/* Primero CÓMO se llegó —titular, su reemplazo, cuál cerró—, que es
+              lo que se pregunta al cerrar el operativo; después cuánta reserva
+              se gastó. La tabla de abajo queda como el detalle fila a fila. */}
+          <AulasHistoriaCadena filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
           {/* Sale del PLAN entero, no de `reemplazos`: esa lista sólo trae
               reservas y caídas, así que un titular sin ninguna reserva —el caso
               de L54— no aparecería y el gráfico diría que el plan tiene un
