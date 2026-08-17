@@ -328,6 +328,41 @@
 }
 
 
+#' Nota de un radar: cuantos ejes reparten su tela
+#'
+#' Un radar de cinco ejes y otro de nueve en la misma lamina se ven distintos
+#' por eso y no por su diseño, y la cota de la caja no lo dice.
+#'
+#' NO DICE EL RADIO, y el primer intento si lo decia: `min(w, h) / 2`, o sea el
+#' radio INSCRITO EN LA CAJA. Medido sobre el render, el poligono no se inscribe
+#' —en una caja de 14.48 x 6.04 cm la nota anunciaba «tela 3.02 cm» y el
+#' pentagono dibujado medía la mitad—, porque su tamaño sale de `radar_scale` y
+#' de la expansion de la escala, en coordenadas de datos que esta funcion no ve.
+#' Es el mismo defecto que P24: una cota que mide el nominal y no lo dibujado.
+#' Antes que una cifra falsa, ninguna. Para recuperarla habria que sacar el
+#' rango del panel ya construido, no estimarlo desde la caja.
+#'
+#' El pie SI la dice porque ahi el circulo si se inscribe en el lado corto, y
+#' eso esta comprobado en su render.
+#'
+#' @param n_ejes Numero de ejes de la tela.
+#' @param wrap_ejes Ancho de envoltura de las etiquetas de eje, en caracteres.
+#' @return Cadena para `.guia_ph_grobs(nota = )`, o `""`.
+#' @keywords internal
+.guia_nota_radar <- function(n_ejes = NA_integer_, wrap_ejes = NA_integer_) {
+  partes <- character(0)
+  n <- suppressWarnings(as.integer(n_ejes)[1])
+  if (is.finite(n) && !is.na(n) && n > 0) {
+    partes <- c(partes, sprintf("%d ejes", n))
+  }
+  w <- suppressWarnings(as.integer(wrap_ejes)[1])
+  if (is.finite(w) && !is.na(w) && w > 0) {
+    partes <- c(partes, sprintf("etiqueta %d car.", w))
+  }
+  paste(partes, collapse = "  ")
+}
+
+
 #' Envuelve un bloque de `cowplot` con su marco y su cota
 #'
 #' La guia arquitectonica vivia dentro de `graficador_barras_apiladas.R` y
