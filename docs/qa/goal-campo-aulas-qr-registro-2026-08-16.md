@@ -937,3 +937,44 @@ Y una observación sin cerrar, anotada para no perderla: Carga informa su marca
 **dos veces** (`['carga-plan', 'carga-plan']`) con un solo `PageFrame` en su
 página. No rompe nada y no sé por qué pasa; queda como cosa a mirar, no como
 defecto.
+
+
+### 2026-08-17 — el barrido del turno anterior corrió sin el flag que importa
+
+Fui a cerrar la observación de la marca duplicada de Carga y salió otra cosa.
+
+**La marca duplicada es benigna**, y se puede afirmar leyendo el runner:
+`geometryRoots` recoge todos los `[data-audit-ready]`, pero comparte un
+`scannedParents` entre raíces, así que el subárbol de una raíz anidada no se
+recorre dos veces. Duplicaba el informe, no la medición. Aun así se quitó la de
+`CargaPlanOverview` —el `PageFrame` ya la declara— y `ready` pasa de
+`['carga-plan','carga-plan']` a `['carga-plan']`.
+
+**Pero al medir después vi `ok=false` y estuve a punto de atribuírmelo.** El
+control lo desmintió: con el árbol sin mi cambio, **el mismo número**. La causa
+era mía de otra manera: **el barrido del turno anterior corrió sin
+`--require-geometry`**, y ese flag es el que comprueba si algo se declaró.
+
+Repetido con el flag:
+
+| Vista | Con el flag |
+|---|---|
+| Bitácora | ✅ 1 grupo declarado |
+| **Procesamiento › Carga** | ❌ **0 grupos** — «sin grupos geométricos medidos» |
+| **Procesamiento › Validación** | ❌ **0 grupos** |
+| **Cálculo de muestra** | ❌ **0 grupos** |
+
+Así que la tabla del turno anterior —«las cuatro limpias»— **era verde por el
+flag que faltaba**, no por conformidad. Tres de los cuatro módulos no declaran ni
+un grupo de geometría, igual que telefónico.
+
+Es la tercera vez en esta sesión que el mismo error cambia de disfraz: comparar
+dos corridas que no midieron lo mismo. Antes fue `geometryGroups=5` contra `8`;
+ahora, un flag de más. **La regla que queda**: dos números del runner sólo se
+comparan si la línea de comando es idéntica; si no, no son antes y después,
+son dos cosas distintas.
+
+Y de propina, una inconsistencia del contrato sin resolver: **quince sitios
+escriben `data-audit-ready="true"`**, un booleano, mientras que el runner trata el
+valor como el **nombre** de la superficie. No he demostrado que rompa nada —queda
+anotado, no vendido como defecto—.
