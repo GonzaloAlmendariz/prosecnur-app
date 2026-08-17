@@ -888,3 +888,31 @@
   font-weight: var(--pulso-weight-black);
   color: var(--pulso-state-ok-fg, #168a55);
 }
+
+/* La fila del corte es un botón cuando enfoca: se resetea el chrome nativo y se
+   conserva la rejilla, y el activo se marca con la franja de módulo. */
+.mon-profile-page.is-aulas-flow button.aulas-cuota-fila {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.mon-profile-page.is-aulas-flow button.aulas-cuota-fila:hover {
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow button.aulas-cuota-fila.es-activa {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 38%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 8%, #fff);
+}
+
+.mon-profile-page.is-aulas-flow button.aulas-cuota-fila.es-activa .aulas-cuota-etiqueta {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-black);
+}

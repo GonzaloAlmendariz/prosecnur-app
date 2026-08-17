@@ -143,7 +143,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab`; aulas usaba un `GlidingTabList` superior. | ☑ **hecho** (2026-08-17) — rail montado con el chrome compartido; navegación y URL enlazable verificadas. |
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
-| **L74** | **Avance tiene que mostrar las cuotas** de forma sencilla y dinámica. | El tablero decía «2/12 celdas», que no distingue faltar una respuesta de faltar doscientas. | ◐ a medias (2026-08-17) — las tres lecturas en personas: total, por facultad y por sexo. Falta la parte «dinámica». |
+| **L74** | **Avance tiene que mostrar las cuotas** de forma sencilla y dinámica. | El tablero decía «2/12 celdas». | ☑ **hecho** (2026-08-17) — tres lecturas en personas y el corte elegido **enfoca** el detalle, con el foco en la URL. |
 | **L75** | **Consultas tiene que contar la historia de la cadena.** | Había una tabla de 26 filas y un histograma de consumo: dicen cuánta reserva se gastó, no cómo se llegó. | ☑ **hecho** (2026-08-17) — la secuencia por cadena con su desenlace, y el cierre **verificado en pantalla** tras arreglar el fixture que no tenía el caso. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
@@ -1314,3 +1314,31 @@ justo la profundidad que el operativo real de 2025 llegó a consumir.
 «resultó» no tener el caso — lo excluía una línea. Un verde sobre él no decía
 nada sobre la pregunta de Gonzalo, y la única forma de saberlo fue mirar cómo se
 generan los datos, no cuántos hay.
+
+
+### 2026-08-17 — L74: la parte «dinámica», con la dirección intacta
+
+Faltaba poder **moverse** por las tres lecturas. Una sola interacción, hecha
+entera: **elegir un corte enfoca el detalle de abajo**.
+
+```
+sin foco              12 celdas
+clic en «F»            6 celdas · ?foco=sexo:F
+clic en «Derecho»      2 celdas · ?foco=facultad:Derecho
+```
+
+Tres decisiones que valen más que la interacción:
+
+- **El foco vive en la URL, no en un `useState`.** Comprobado en los dos
+  sentidos: al elegir, la barra pasa a `?foco=facultad:Derecho`; al **pedir esa
+  dirección**, la vista restituye el corte y el detalle baja a sus dos celdas.
+  Sin eso, «filtré por Derecho» no se puede pegar en un chat.
+- **Se escribe por el router**, no con `replaceState`: `useLocation` se quedaría
+  con el `search` viejo y la vista rebotaría —es la trampa que ya está
+  documentada en `useMonitoreoDireccion`—.
+- **La fila enfocable es un `<button>`, no un `div` con `onClick`.** Así la
+  alcanza el teclado y anuncia su estado con `aria-pressed`; un `div` clicable
+  deja fuera a quien no usa ratón.
+
+Volver a elegir el mismo corte lo quita: no hace falta un botón «limpiar» que
+sólo existe para deshacer.

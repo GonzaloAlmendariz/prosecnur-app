@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, CalendarRange, CheckCircle2 } from "lucide-react";
 import {
@@ -22,7 +23,7 @@ import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasCuotasChart } from "./AulasCuotasChart";
-import { AulasCuotasResumen } from "./AulasCuotasResumen";
+import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
@@ -319,6 +320,9 @@ function renderAulasView(
   vacioSinTablero: ReactNode,
   registro: ReactNode,
   pestana: string,
+  /** Corte elegido en el resumen de cuotas; vive en la URL, no en un estado suelto. */
+  foco: FocoDeCuota,
+  onFoco: (foco: FocoDeCuota) => void,
 ) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -472,6 +476,12 @@ function renderAulasView(
   // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
   // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
   const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+  // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
+  // doce celdas; con foco, sólo las de esa facultad o ese sexo.
+  const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (
+    foco.tipo === "facultad" ? String(fila.faculty ?? "") === foco.valor
+      : String(fila.sex ?? "") === foco.valor
+  ));
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   return (
@@ -558,12 +568,14 @@ function renderAulasView(
         </div>
         {/* Primero la cuota en PERSONAS —total, por facultad y por sexo—, que es
             lo que se pregunta en campo: «2/12 celdas» no distingue faltar una
-            respuesta de faltar doscientas. Debajo, el detalle celda a celda. */}
-        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
+            respuesta de faltar doscientas. Elegir un corte ENFOCA el detalle de
+            abajo, y el foco viaja en la URL (`?foco=facultad:Derecho`) para que
+            la vista siga siendo enlazable. */}
+        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} foco={foco} onFoco={onFoco} />
         {/* El eje es el CUMPLIMIENTO y no el volumen: cada celda tiene su propia
             meta, así que 40 de 50 y 4 de 5 son el mismo problema resuelto en la
             misma proporción, y la tabla obliga a dividir de cabeza para verlo. */}
-        <AulasCuotasChart filas={quotaRows as MonitoreoRow[]} />
+        <AulasCuotasChart filas={quotaEnFoco as MonitoreoRow[]} />
         <DataTable rows={quotaRows} empty="El plan no declara composición por sexo para estos cursos-horario." />
       </section>
       )}
@@ -631,6 +643,19 @@ export default function AulasMonitoreoPage() {
     [seccionActiva],
   );
   const dashboard = dashboardFromState(state);
+  // El foco de cuotas vive en la URL, como el resto de la dirección: así la
+  // vista sigue siendo enlazable y el botón Atrás la deshace. Se escribe POR EL
+  // ROUTER —`replaceState` deja a `useLocation` con el search viejo y la vista
+  // rebota, que es la trampa ya documentada en `useMonitoreoDireccion`.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const foco = focoDesdeTexto(searchParams.get("foco"));
+  const cambiarFoco = useCallback((siguiente: FocoDeCuota) => {
+    const params = new URLSearchParams(searchParams);
+    const texto = textoDesdeFoco(siguiente);
+    if (texto) params.set("foco", texto);
+    else params.delete("foco");
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
   const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
   const imported = aulasPlanImported(aulasConfig);
@@ -888,6 +913,8 @@ export default function AulasMonitoreoPage() {
                 onGuardado={() => { void loadView(seccionActiva, true); }}
               />,
               pestanaActiva,
+              foco,
+              cambiarFoco,
             )}
           </div>
       </MonitoreoWorkbenchChrome>
