@@ -5624,6 +5624,27 @@ reporte_ppt_plan <- function(
         # 1.76 cm entre premisas contra los 0.97 que daba el 0.35. Es lo que
         # hay detras de «se ve muy apretado» y «mas separacion entre pregunta
         # y pregunta». La unidad son altos de fila.
+        #
+        # REMEDIDO CONTRA EL APROBADO, y hoy este 0.85 es LA HOLGURA de donde
+        # puede salir el alto que les falta a los enunciados que aun se cortan
+        # (P46, 10 en 8 laminas). Medidos los huecos entre filas de barras sobre
+        # las mismas familias de lamina —30 huecos del motor contra 29 del
+        # aprobado, mismo denominador—:
+        #
+        #   motor     mediana 1.77 cm   max 3.50
+        #   aprobado  mediana 0.92 cm   max 3.43
+        #
+        # O sea que el motor separa CASI EL DOBLE. Los extremos coinciden —los
+        # dos tienen huecos pequenos dentro de un bloque, 0.32-0.41 el motor y
+        # 0.26-0.92 el aprobado, y grandes entre bloques, 1.61-3.50 contra
+        # 1.65-2.84—: lo que difiere es cuantos caen en el grupo grande.
+        #
+        # OJO AL BAJARLO: el 1.76 cm que justifico subirlo era el hueco ENTRE
+        # BLOQUES del aprobado, o sea su cola alta, y se aplico a TODOS los
+        # huecos. Compararlo con la mediana es comparar dos cosas distintas. Si
+        # se toca, se mide la mediana de las dos partes antes y despues, y se
+        # comprueba en el render que las premisas de un mismo bloque no se
+        # peguen —que es lo que se estaba reparando cuando se subio—.
         canvas_gap_grupos      = if (!sin_grupo_word) 0.85 else 0
       )
       base_args <- .apply_top2box_alias(base_args)
