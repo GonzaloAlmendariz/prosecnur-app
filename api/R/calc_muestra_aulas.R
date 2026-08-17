@@ -134,7 +134,7 @@
   for (cand in cand_key[nzchar(cand_key)]) {
     reverse_hit <- vapply(
       nms_key,
-      function(nm) nzchar(nm) && grepl(nm, cand, fixed = TRUE),
+      function(nm) nzchar(nm) && !.cm_aulas_par_prohibido(nm, cand) && grepl(nm, cand, fixed = TRUE),
       logical(1)
     )
     hit <- which(grepl(cand, nms_key, fixed = TRUE) | reverse_hit)
@@ -215,7 +215,7 @@
     schedule = c("schedule", "horario", "dia_hora", "hora", "turno"),
     classroom_label = c("classroom_label", "sesiones_y_aula", "sesiones y aula", "aula", "salon", "ambiente", "local_aula"),
     modality = c("modality", "modalidad", "tipo_modalidad"),
-    session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad"),
+    session_type = c("session_type", "tipo_sesion", "tipo_clase", "actividad", "tipo_curso", "tipo_de_curso", "tipo de curso"),
     teacher = c("teacher", "nombre_de_docente", "nombre_del_docente", "nombre de docente", "nombre del docente", "docente", "profesor", "profesora"),
     teacher_email = c("teacher_email", "correo_pucp_docente", "correo pucp docente", "correo_docente", "email_docente", "correo_docente_pucp", "correo_docente_agora"),
     teacher_type = c("teacher_type", "tipo_docente", "tipo_de_docente", "tipo de docente", "categoria_docente", "categoría docente", "condicion_docente", "regimen_docente"),
