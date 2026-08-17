@@ -133,7 +133,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
 | **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
-| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujado el primero del catálogo, el histograma de cobertura. Faltan los otros cuatro. |
+| **L63** | **Aulas no tenía ni un gráfico.** | Los otros perfiles grafican con `PlotlyChart`; aulas sólo mostraba tablas. | ◐ a medias (2026-08-16) — dibujados **dos de cinco**: cobertura por aula y brecha por estrato. Faltan estado apilado, cuota sexo×facultad y consumo de cadena. |
 | **L64** | Qué gráfico es **propio del contexto de aulas**. | Decidido el catálogo: cinco, cada uno atado a una pregunta del operativo y a un dato que el tablero ya produce. | ☑ **hecho** (2026-08-16) — catálogo abajo; queda dibujarlos (L63). |
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | `config.aulas_universitarias.plan` 366 KB · `aulas_universitarias.plan` 356 KB —idénticos byte a byte— y `dashboard.agenda` 337 KB. | ◐ a medias (2026-08-16) — quitada la copia idéntica: **1377 → 1045 KB**. Las otras dos tienen consumidores distintos. |
@@ -820,3 +820,53 @@ panel nuevo, y sin ella es grid: asigna **0 px** a la fila cuyo contenido no la
 empuja. Con la clase pasa a flex con hijos que no se encogen. Ya lo arreglé en
 L40 y L42; **conviene recordar que cualquier panel nuevo en ese stack necesita
 la clase**.
+
+
+### 2026-08-16 — L63: la brecha por estrato, o a dónde va el equipo mañana
+
+Dibujado el #2 del catálogo, en Avance › Estratos. Sobre el mismo operativo:
+
+```
+                        recogidas          faltan
+Gestion                 ████ 100    ████████████████ 665
+Estudios Grales Letras  ████ 103    ████████████████ 657
+Educacion               ████  99    ███████████████  621
+Arquitectura            ████ 100    ███████████████  613
+Ciencias e Ingenieria   ████  99    ███████████████  612
+Derecho                 ████  99    ███████████████  608
+```
+
+Los mismos números ya estaban en la tabla de `avance_por_estrato`, pero
+contestaba mal la pregunta del día siguiente: hay que leer seis filas y restar
+de cabeza. La decisión de diseño es **ordenar por brecha absoluta**, no por
+porcentaje de avance:
+
+> Un estrato al 50 % con 4 pendientes se cierra en una mañana. Uno al 90 % con
+> 200 pendientes es la semana entera. Ordenar por avance manda al equipo al sitio
+> equivocado —y ése es el control invertido del test: si el criterio fuera el
+> porcentaje, `ordena por lo que falta, no por lo que ya se hizo` falla.
+
+Tres decisiones más, cada una con su test:
+
+- **A igualdad de brecha adelanta el que más lleva recogido**: está más cerca de
+  cerrar.
+- **El recorte se declara con su brecha**: por encima de doce estratos el eje se
+  vuelve ilegible, y decir sólo «no se dibujan 3» dejaría leer la última barra
+  como «lo demás está cerrado».
+- **Un valor no numérico cuenta como cero, no como `NaN`**: sin la coacción la
+  barra desaparece sin decir por qué, que es peor que dibujarla en cero — el
+  estrato existe y sigue teniendo aulas.
+
+Y **la leyenda hubo que encenderla a mano**: `PlotlyChart` trae
+`showlegend: false` por defecto —casi todos sus usos tienen una sola serie— así
+que la barra apilada salía sin explicar el verde y se leía como una sola
+magnitud. Con `traceorder: normal` además, porque apilado Plotly la invierte y
+la dejaba al revés de como se lee la barra.
+
+**Trampa de instrumento (la segunda del mismo tipo)**: la captura inmediata tras
+montar o redimensionar coge a Plotly **antes de su relayout**. La primera imagen
+mostraba las barras aplastadas en 90 px de un panel de 1208 y las etiquetas del
+eje encimadas —parecía un defecto de ancho y no lo era—. Medir el SVG lo
+desmintió: 1208 px y las barras al 95 % del área. **Una captura de un Plotly
+recién montado no es evidencia**; hay que esperar su segundo pase, igual que ya
+pasó con el barrido de 1250 ms.

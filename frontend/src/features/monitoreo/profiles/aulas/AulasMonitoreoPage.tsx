@@ -16,6 +16,7 @@ import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel"
 import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
+import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
@@ -505,6 +506,10 @@ function renderAulasView(
           <h3>Avance por estrato</h3>
           <span>{fmt(estratoRows.length)} filas</span>
         </div>
+        {/* El gráfico va antes que la tabla por la misma razón que en Resumen:
+            contesta la pregunta del día siguiente —a dónde mando el equipo— que
+            la tabla obliga a resolver restando de cabeza. */}
+        <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
         <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
       </section>
       )}
