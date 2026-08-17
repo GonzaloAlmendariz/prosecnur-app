@@ -15,8 +15,18 @@ const featureDir = path.dirname(fileURLToPath(import.meta.url));
 describe("aulasPresentation", () => {
   it("presenta los campos operativos principales en español de Perú", () => {
     expect(aulasFieldLabel("titular_operational_code")).toBe("Código titular");
-    expect(aulasFieldLabel("wave")).toBe("Ola");
+    // `MUESTRA` es como el Excel del equipo rotula la ola. El rótulo dejó de ser
+    // «Ola» —palabra mía— para usar la columna, que es lo que ellos leen.
+    expect(aulasFieldLabel("wave")).toBe("Muestra");
+    // Y esta NO se traduce a «efectivas»: las válidas las cuenta el sistema
+    // desde Kobo y las efectivas el encuestador en el aula. Que no cuadren es lo
+    // que detecta el cuadre del parte, así que igualar los nombres borraría la
+    // comparación.
     expect(aulasFieldLabel("respuestas_validas")).toBe("Respuestas válidas");
+    // El código lo llama `CURSO-HORARIO` y al descriptivo `SESIONES Y AULA`:
+    // estaban cruzados.
+    expect(aulasFieldLabel("operational_code")).toBe("Curso-horario");
+    expect(aulasFieldLabel("label")).toBe("Sesiones y aula");
   });
 
   it("presenta los seis controles técnicos con etiquetas operativas", () => {

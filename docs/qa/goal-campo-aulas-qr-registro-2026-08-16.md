@@ -139,7 +139,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L68** | El gate visual del contrato **nunca miró los cinco gráficos**, y al mirarlo apareció que **aulas no importaba `monitoreo.css`**. | 4 `capacity-drift` (C3); el aviso de recorte salía como texto de cuerpo en todo el perfil. | ☑ **hecho** (2026-08-16) — la regla se muda a `profilePage.css`, que sí ven los cuatro perfiles. Queda 3–4 px de `.mon-profile-panel-head`, chrome compartido que este ítem no causó. |
 | **L69** | **Materiales se declaraba lista mientras cargaba.** Es la superficie donde se producen las fichas QR del circuito. | `RecopiladoresShell` derivaba `auditReady` de **su** `loading` —el del plan— y `MaterialsSection` tiene el suyo para la plantilla. Todo QA visual de esa vista medía el esqueleto: 124 px de vacío y «Leyendo plantilla semántica…». | ☑ **hecho** (2026-08-16) — la sección avisa su carga al shell. Gate de `ok=false` a **`ok=true`**, verificado invirtiéndolo. |
-| **L70** | **El lenguaje no es el del equipo.** | «Estado del circuito», «En aplicación», «Meta alcanzada», «Recogidas» son míos. | ◐ a medias (2026-08-17) — sustituidos los del gráfico de aplicación por sus columnas del Excel; falta barrer los ~110 rótulos de `aulasPresentation.ts` y los títulos de las otras secciones. |
+| **L70** | **El lenguaje no es el del equipo.** | «Estado del circuito», «En aplicación», «Código de ficha» y otros eran míos. | ◐ a medias (2026-08-17) — tres tandas; los rótulos de la agenda ya salen de las columnas reales del Excel. Faltan los títulos de panel de Fuentes/Validación/Consultas. |
 | **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab`; aulas usaba un `GlidingTabList` superior. | ☑ **hecho** (2026-08-17) — rail montado con el chrome compartido; navegación y URL enlazable verificadas. |
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | Aulas tenía Avance tercero y Consultas al final; telefónico y territorial ya ponen **Avance al final y Consultas antes**. | ☑ **hecho** (2026-08-17) — Fuentes · Agenda · Validación · Consultas · Avance, y aterriza en Fuentes como los otros tres perfiles. |
@@ -1342,3 +1342,43 @@ Tres decisiones que valen más que la interacción:
 
 Volver a elegir el mismo corte lo quita: no hace falta un botón «limpiar» que
 sólo existe para deshacer.
+
+
+### 2026-08-17 — L70, tercera tanda: los encabezados reales, y dos cruzados
+
+Esta vez no partí del Excel de memoria sino de **lo que el lector reconoce**, que
+es la lista de encabezados de verdad:
+
+```
+MUESTRA · CURSO-HORARIO · NOMBRE DE DOCENTE · TELEFONO DE DOCENTE ·
+CORREO PUCP DOCENTE · NOMBRE DEL CURSO · FACULTAD · NIVEL DEL CURSO ·
+SESIONES Y AULA · MATRICULADOS TOTAL DTI · MATRICULADOS POBLACION ·
+MEDIO DE CONTACTO · FECHA DE LLAMADA · NUMERO DE INTENTOS · STATUS MUESTRA ·
+FECHA DE APLICACION · DIA · HORA · ENLACE DE LA FICHA · OBSERVACIONES
+```
+
+**Y ahí apareció que yo tenía dos cruzados.** El Excel llama `CURSO-HORARIO` al
+**código** y `SESIONES Y AULA` al **texto descriptivo**; yo mostraba el código
+como «Código de ficha» —que en realidad es el material QR, otra cosa— y el
+descriptivo se quedaba con «Curso-horario». Corregido, cada columna dice lo suyo.
+
+Quince rótulos alineados, entre ellos:
+
+| Antes (mío) | Ahora | Columna |
+|---|---|---|
+| «Código de ficha» | **Curso-horario** | `CURSO-HORARIO` |
+| «Curso-horario» | **Sesiones y aula** | `SESIONES Y AULA` |
+| «Estudiantes elegibles» | **Matriculados población** | `MATRICULADOS POBLACION` |
+| «Matriculados» | **Matriculados total DTI** | `MATRICULADOS TOTAL DTI` |
+| «Fecha de contacto» | **Fecha de llamada** | `FECHA DE LLAMADA` |
+| «Intentos de contacto» | **Número de intentos** | `NUMERO DE INTENTOS` |
+| «Enlace Kobo» | **Enlace de la ficha** | `ENLACE DE LA FICHA` |
+| «Ola» | **Muestra** | `MUESTRA` |
+
+Verificado en pantalla: la tabla de Agenda muestra «Curso-horario · Rol de
+muestra · Reemplaza a · Sesiones y aula · Nombre del curso · Horario · Enlace de
+la ficha · Estado de ficha».
+
+El test que fijaba «Ola» se actualizó —el rótulo cambió a propósito— y de paso
+se le añadieron los dos cruzados, para que si alguien los vuelve a intercambiar
+el test lo diga.
