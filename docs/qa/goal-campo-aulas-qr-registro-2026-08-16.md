@@ -25,21 +25,20 @@ Recopiladores produce los materiales, Monitoreo lee el resultado, y en el medio
 
 | # | Afirmación | Cómo se mide |
 |---|---|---|
-| **V1** | De una selección de aulas (titulares + reemplazos) **sin enlaces**, el motor produce un enlace personalizado por unidad sin que nadie pegue links a mano. | La simulación `sim_qr_aulas.R` da cobertura `prepared` con `units_missing_access = 0`. |
-| **V2** | El QR codifica el enlace **mínimo**: base + un parámetro, una sola vez. | El `qr_payload` compilado no repite ningún nombre de parámetro. |
-| **V3** | El identificador que viaja en el QR es el **código operativo** del equipo (`CH 1`, `R 1.2`), no un slug interno con hash. | El `d[collectorID]` de la ficha de `CH 1` es literalmente `CH 1` (o su forma URL-safe estable), y la data que vuelve de Kobo se reconcilia sin tabla de traducción. |
-| **V4** | La ficha dice **sin interpretación** si el aula es titular o reemplazo, y de quién es reemplazo. | Dos páginas del mismo PDF (una titular, una reserva) difieren en una marca legible; alguien que no conoce la nomenclatura acierta el rol. |
-| **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. **Cumplida (2026-08-16)**: `RegistroDeCampo` en Monitoreo > Agenda. |
-| **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. **Cumplida (2026-08-16)**: botón en Registro de campo, verificado end-to-end en el navegador. |
-| **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. |
+| **V1** | De una selección de aulas (titulares + reemplazos) **sin enlaces**, el motor produce un enlace personalizado por unidad sin que nadie pegue links a mano. | La simulación `sim_qr_aulas.R` da cobertura `prepared` con `units_missing_access = 0`. **Cumplida (2026-08-16)**: la simulación de 12 etapas da 7/7 filas con enlace personalizado, sin pegar ninguno a mano. |
+| **V2** | El QR codifica el enlace **mínimo**: base + un parámetro, una sola vez. | El `qr_payload` compilado no repite ningún nombre de parámetro. **Cumplida (2026-08-16)**: medido sobre las 7 URLs del simulador, cada una lleva `collectorID` **exactamente una vez**. |
+| **V3** | El identificador que viaja en el QR es el **código operativo** del equipo (`CH 1`, `R 1.2`), no un slug interno con hash. | El `d[collectorID]` de la ficha de `CH 1` es literalmente `CH 1` (o su forma URL-safe estable), y la data que vuelve de Kobo se reconcilia sin tabla de traducción. ⛔ **NO cumplida**: lo que viaja sigue siendo `unit-aulas-aula-01-fd6e0ab1ee`, un slug con hash, no `CH 1`. Es el único criterio de la vara que el motor no alcanza, y depende de L2 —tu decisión—. |
+| **V4** | La ficha dice **sin interpretación** si el aula es titular o reemplazo, y de quién es reemplazo. | Dos páginas del mismo PDF (una titular, una reserva) difieren en una marca legible; alguien que no conoce la nomenclatura acierta el rol. **Cumplida (2026-08-16)**: el simulador escribe p1 titular y p5 reemplazo distinguibles, y la ficha dice «Reemplazo 3 de AULA-01» (L55). |
+| **V5** | El coordinador registra desde la app el **estado real** de cada aula (agendada · en aplicación · aplicada · parcial · sin acceso · cancelada) con su motivo, y eso queda en el `.pulso`. | Existe una superficie que llama a `/api/monitoreo/aulas/agenda`. **Cumplida (2026-08-16)**: `RegistroDeCampo` en Monitoreo > Agenda. **Cumplida (2026-08-16)**: el simulador registra 22 asistentes, 1 rechazo, 1 duplicado, 20 efectivas y aula real H-203, y sobreviven al `.pulso`. |
+| **V6** | **Activar un reemplazo es un gesto de la app**, no una decisión en un chat. | Desde el aula caída se activa su cadena `R n.k`; el motivo queda registrado y el avance recalcula denominadores solo. **Cumplida (2026-08-16)**: botón en Registro de campo, verificado end-to-end en el navegador. **Cumplida (2026-08-16)**: el simulador activa la cadena y además distingue el aula que **nunca tuvo reserva** de la que la agotó (L54). |
+| **V7** | Lo que pasa en el aula se ve **contra la meta de esa aula, mientras ocurre**. | El avance por aula cruza respuestas de Kobo por `collectorID` contra `expected_valid` sin que nadie re-sincronice a mano. **Parcial (2026-08-16)**: el cruce por `collectorID` ya funciona sin configurar nada (L8); falta el «mientras ocurre», que depende de L4. **Cumplida (2026-08-16)**: el tablero del simulador cruza por `collectorID` contra `expected_valid` sin resincronizar. |
 | **V8** | Nada de lo anterior exige una planilla paralela. | Ningún campo del registro de campo vive sólo en papel o en Excel. **Comprobada a medias (2026-08-16)**: los tres campos que faltaban ya están en la app; queda el desglose hombres/mujeres, que vive sólo en la ficha impresa. |
 | **V9** | La app **lee** las tres hojas del estudio sin que nadie retranscriba. | Los totales del lector cuadran con un conteo independiente del Excel real. **Comprobada (2026-08-16)**: 1012 unidades, 766 enlaces, 230 estados y 190 observaciones, todos coincidentes celda a celda. |
-| **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. |
-| **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. |
+| **V10** | El **agendamiento** y la **aplicación** se miden por separado. | `STATUS MUESTRA` (AGENDADA · REAGENDADA · EN RESERVA n · REEMPLAZADA) y `STATUS DE APLICACIÓN` (APLICADA · NO APLICADA) viven en campos distintos; hoy la app los mezcla en un solo `operational_status`. **Cumplida (2026-08-16)**: medido contra el motor — la misma aula sale con `operational_status = agendada` y `application_state = lista`. |
+| **V11** | Se sabe **por qué** un aula no está agendada todavía. | El ciclo de contacto —medio, fecha de llamada y **número de intentos**— llega al modelo y se ve por aula. **Cumplida (2026-08-16)**: medido contra el motor — medio, fecha e **intentos** llegan a la agenda por aula. |
 | **V12** | La app **produce** el libro que el equipo llena, y lo **vuelve a leer**. | Generar y reimportar cierra el círculo sin perder la cadena ni los enlaces **ni el trabajo ya hecho**: estados de agendamiento, ciclo de contacto y partes de campo. **Comprobada (2026-08-16)** con round-trip sobre un `.pulso` real. |
-| **V13** | El avance de aulas **se ve**, no sólo se lee en tablas. | Hay gráficos propios del contexto de aulas —no copiados de telefónico— y usan el mismo lenguaje visual que los otros perfiles: `PlotlyChart`, `coloresDeResultado`, `MarcoDeEjesSiHaceFalta`. |
-| **V14** | El monitoreo aguanta **3700 registros** de Kobo. | Sincronizar, graficar, mostrar y gestionar esa cantidad sin degradarse: medido en tiempo de sincronización, de tablero y de render. |
-
+| **V13** | El avance de aulas **se ve**, no sólo se lee en tablas. | Hay gráficos propios del contexto de aulas —no copiados de telefónico— y usan el mismo lenguaje visual que los otros perfiles: `PlotlyChart`, `coloresDeResultado`, `MarcoDeEjesSiHaceFalta`. **Cumplida (2026-08-16)**: cinco gráficos propios verificados en pantalla a 1440×1000 y 1024×600, con `PlotlyChart` y la paleta compartida. |
+| **V14** | El monitoreo aguanta **3700 registros** de Kobo. | Sincronizar, graficar, mostrar y gestionar esa cantidad sin degradarse: medido en tiempo de sincronización, de tablero y de render. **Cumplida (2026-08-16)**: motor 0,71 s con 3700 respuestas, y el transporte —que era el cuello— de 1377 a **601 KB** y de 2,9 a **1,6 s**. |
 ---
 
 ## Medición de partida (2026-08-16)
@@ -1127,3 +1126,33 @@ La lección para la sección de trampas: **«tienen consumidores distintos» era
 suposición mía que sobrevivió dos turnos porque nunca la comprobé.** Bastaron dos
 consultas —comparar los juegos de campos y leer de dónde sale el tablero— para
 tirarla. Igual que L23, donde la premisa falsa era la persistencia del `.pulso`.
+
+
+### 2026-08-16 — la vara, sellada: 11 de 14, y una que no se alcanza
+
+Con la cola sin ítems desbloqueados, el trabajo del turno era el que el propio
+loop tenía pendiente: **nueve de los catorce criterios de la vara no tenían marca
+de comprobación**. Cerrar cola sin volver a medir la vara es exactamente el
+«verde por ausencia» que el Contrato prohíbe: nadie había dicho que V1 se
+cumpliera, sólo que sus ítems estaban hechos.
+
+La costura completa corre en verde de punta a punta —**exit 0, los diez
+veredictos en TRUE**— y de ahí salen siete sellos. Dos más se midieron contra el
+motor en este turno (V10 y V11). Los otros ya estaban.
+
+| | Estado |
+|---|---|
+| Cumplidas | **11** |
+| A medias | **1** — V8, falta el desglose hombres/mujeres (L46, tu decisión) |
+| No cumplidas | **1** — V3 |
+
+**V3 es la única que el motor no alcanza**, y conviene decirlo sin rodeos: lo que
+viaja en el QR sigue siendo `unit-aulas-aula-01-fd6e0ab1ee`. La vara pedía el
+código operativo del equipo, `CH 1`, para que quien mire una respuesta suelta en
+Kobo sepa de qué aula es sin cruzar tablas. No es un defecto pendiente de
+reparar: es **L2**, una decisión tuya sobre qué identificador debe viajar, con
+consecuencias sobre los enlaces ya impresos.
+
+Con eso, el estado del GOAL es: **todo lo que dependía de mí está hecho y
+medido**; lo que queda son cinco decisiones —L2, L10, L12, L34, L46— y una de
+ellas, L2, es la que separa la vara de estar completa.
