@@ -2194,3 +2194,96 @@
   margin: 10px 0 0;
   white-space: normal;
 }
+
+/* Salud de los criterios de aula. Va arriba de las tarjetas porque cambia cómo
+   se lee todo lo de abajo: un criterio sin señal deja pasar a todos y eso NO es
+   lo mismo que uno que se midió y no recortó. Sólo se pinta de aviso cuando hay
+   algo que corregir; el caso sano se resume en una línea con su cifra. */
+.cmv2-salud-card {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cmv2-border);
+  background: color-mix(in srgb, var(--cmv2-border) 16%, transparent);
+}
+.cmv2-salud-card[data-estado="alerta"] {
+  border-color: var(--pulso-warn-accent);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 60%, var(--pulso-surface));
+}
+.cmv2-salud-card > header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.cmv2-salud-card > header strong { font-size: 13px; color: var(--pulso-text); }
+.cmv2-salud-card[data-estado="alerta"] > header strong { color: var(--pulso-warn-fg); }
+.cmv2-salud-card > header span,
+.cmv2-salud-card > p {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+  margin: 0;
+}
+.cmv2-salud-card strong { font-variant-numeric: tabular-nums; }
+
+.cmv2-salud-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cmv2-salud-crit {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  border-left: 3px solid var(--pulso-warn-accent);
+  min-width: 0;
+}
+.cmv2-salud-crit[data-estado="parcial"] { border-left-color: var(--cmv2-border); }
+.cmv2-salud-crit-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cmv2-salud-crit-head strong { font-size: 12px; }
+.cmv2-salud-crit-estado {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-warn-fg);
+}
+.cmv2-salud-crit-cifra,
+.cmv2-salud-crit-aviso,
+.cmv2-salud-crit-ausentes {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+.cmv2-salud-crit-cifra { font-variant-numeric: tabular-nums; margin-left: auto; }
+.cmv2-salud-crit-aviso { margin: 6px 0 0; }
+.cmv2-salud-crit-ausentes { margin: 4px 0 0; font-style: italic; }
+.cmv2-salud-crit-mas {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 4px 0 0;
+  font-size: 11px;
+  color: var(--cmv2-accent-fg);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.cmv2-salud-crit-facs {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2px 14px;
+  min-width: 0;
+}
+.cmv2-salud-crit-facs li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
