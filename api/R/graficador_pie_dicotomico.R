@@ -200,8 +200,12 @@ graficar_pie <- function(
 
     # Debug
     debug_ph_bordes = FALSE,
-    debug_ph_col     = "#8A2BE2",
-    debug_ph_lwd        = 2.8,
+    # Antes: morado #8A2BE2 y 2.8 de grosor, propios de este graficador. Dos
+    # paneles de la MISMA lamina salian con guias distintas —el pie en morado
+    # grueso sin una sola cota, las barras con el plano turquesa fino— y lo que
+    # las diferenciaba no era el diseño sino quien las dibujaba.
+    debug_ph_col     = .GUIA_COL,
+    debug_ph_lwd     = .GUIA_LWD,
     font_family = "Arial",
 
     # Exportación
@@ -506,15 +510,27 @@ graficar_pie <- function(
       canvas_h_title <- canvas_title_height_eff
     }
 
-    .wrap_debug <- function(g) {
+    # La guia del pie es la MISMA que la de barras: un plano con la cota de cada
+    # caja (`.guia_envolver_bloque()` en `graficador_guia_arquitectonica.R`), no
+    # un rectangulo suelto. `frac_w`/`frac_h` son la porcion del canvas que le
+    # toca a este bloque, que es lo que convierte su npc en pulgadas.
+    .canvas_w_in <- suppressWarnings(as.numeric(ancho)[1])
+    .canvas_h_in <- suppressWarnings(as.numeric(alto)[1])
+    .wrap_debug <- function(g, etiqueta = NULL, nota = NULL,
+                            frac_w = 1, frac_h = 1, rotulo_derecha = FALSE) {
       if (!isTRUE(debug_ph_bordes)) return(g)
-      cowplot::ggdraw(g) +
-        cowplot::draw_grob(
-          grid::rectGrob(
-            gp = grid::gpar(col = debug_ph_col, fill = NA, lwd = debug_ph_lwd)
-          ),
-          x = 0, y = 0, width = 1, height = 1
-        )
+      .guia_envolver_bloque(
+        g,
+        ancho_in = .canvas_w_in * frac_w,
+        alto_in  = .canvas_h_in * frac_h,
+        etiqueta = etiqueta, nota = nota,
+        col = debug_ph_col %||% .GUIA_COL,
+        lwd = debug_ph_lwd %||% .GUIA_LWD,
+        # Las bandas a todo el ancho repetirian la misma cota horizontal una vez
+        # por banda; lo que varia entre ellas es el alto.
+        cota_ancho = frac_w < 0.999,
+        rotulo_derecha = rotulo_derecha
+      )
     }
 
     .x_hjust <- function(pos) {
@@ -625,23 +641,27 @@ graficar_pie <- function(
 
     if (leyenda_posicion == "derecha") {
 
+      h_mid_r <- max(0.01, 1 - (canvas_h_title + canvas_h_caption) - canvas_pad_top)
+      w_panel <- 1 - canvas_w_legend_right
       row_mid <- cowplot::plot_grid(
-        .wrap_debug(panel_no_leg),
-        .wrap_debug(legend_block),
+        .wrap_debug(panel_no_leg, "panel",
+                    .guia_nota_pie(.canvas_w_in * w_panel, .canvas_h_in * h_mid_r,
+                                   if (identical(tipo_pie, "donut")) donut_hole else 0),
+                    frac_w = w_panel, frac_h = h_mid_r),
+        .wrap_debug(legend_block, "leyenda", .guia_nota(size_leyenda),
+                    frac_w = canvas_w_legend_right, frac_h = h_mid_r),
         nrow = 1,
-        rel_widths = c(1 - canvas_w_legend_right, canvas_w_legend_right)
+        rel_widths = c(w_panel, canvas_w_legend_right)
       )
 
       p_final <- cowplot::plot_grid(
-        .wrap_debug(title_block),
-        .wrap_debug(row_mid),
-        .wrap_debug(caption_block),
+        .wrap_debug(title_block, "cabecera", .guia_nota(size_titulo),
+                    frac_h = canvas_h_title, rotulo_derecha = TRUE),
+        row_mid,
+        .wrap_debug(caption_block, "pie", .guia_nota(size_nota_pie),
+                    frac_h = canvas_h_caption, rotulo_derecha = TRUE),
         ncol = 1,
-        rel_heights = c(
-          canvas_h_title,
-          max(0.01, 1 - (canvas_h_title + canvas_h_caption) - canvas_pad_top),
-          canvas_h_caption
-        )
+        rel_heights = c(canvas_h_title, h_mid_r, canvas_h_caption)
       )
 
     } else {
@@ -658,10 +678,16 @@ graficar_pie <- function(
       h_mid <- max(0.01, 1 - (canvas_h_title + h_leg + canvas_h_caption) - canvas_pad_top)
 
       p_final <- cowplot::plot_grid(
-        .wrap_debug(title_block),
-        .wrap_debug(panel_no_leg),
-        .wrap_debug(legend_block),
-        .wrap_debug(caption_block),
+        .wrap_debug(title_block, "cabecera", .guia_nota(size_titulo),
+                    frac_h = canvas_h_title, rotulo_derecha = TRUE),
+        .wrap_debug(panel_no_leg, "panel",
+                    .guia_nota_pie(.canvas_w_in, .canvas_h_in * h_mid,
+                                   if (identical(tipo_pie, "donut")) donut_hole else 0),
+                    frac_h = h_mid),
+        .wrap_debug(legend_block, "leyenda", .guia_nota(size_leyenda),
+                    frac_h = h_leg),
+        .wrap_debug(caption_block, "pie", .guia_nota(size_nota_pie),
+                    frac_h = canvas_h_caption, rotulo_derecha = TRUE),
         ncol = 1,
         rel_heights = c(canvas_h_title, h_mid, h_leg, canvas_h_caption)
       )
