@@ -638,7 +638,16 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #   motor         8     0.879   0.391   0.305
 #
 # El motor sale PEOR en la cuenta y MEJOR en las tres medidas de dispersion, que
-# son las comparables. La diferencia es de composicion: 70 laminas con mas
+# son las comparables.
+#
+# Y LA DISPERSION QUE QUEDA TIENE CAUSA LEGITIMA. Medido el peor grupo del motor
+# —`rampa:4`, siete laminas de 1.32 a 2.20 cm—: las siete tienen EXACTAMENTE la
+# misma geometria de lamina (placeholder en 1.21 con 5.51 de alto, pie en 6.93,
+# titulo en 0.37) y exactamente un grafico de cuatro barras sin azul. Lo que
+# cambia es el ALTO DE LA ETIQUETA DE EJE: las de 1.32 y 1.52 llevan cuatro
+# premisas con enunciados de cuatro lineas, y el graficador les baja la fraccion
+# para dejar aire entre barras. El aprobado hace lo mismo y con mas amplitud
+# —su peor grupo dispersa 1.013—. La diferencia es de composicion: 70 laminas con mas
 # variedad de firmas contra 63. Un mazo con mas tipos distintos de lamina recibe
 # mas hallazgos a igualdad de calidad, asi que perseguir el 8 hasta el 5 seria
 # perseguir un artefacto. Lo que si es real es la dispersion DENTRO de un grupo.
