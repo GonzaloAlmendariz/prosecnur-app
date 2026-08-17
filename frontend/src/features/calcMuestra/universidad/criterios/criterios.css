@@ -2435,3 +2435,9 @@
   color: var(--pulso-text-muted);
   font-style: italic;
 }
+
+/* Sin estratos calculados la tarjeta se queda, sólo con su encabezado: el vacío
+   se explica en vez de desaparecer. */
+.cmv2-ficha-card-vacia header span {
+  color: var(--pulso-text-muted);
+}

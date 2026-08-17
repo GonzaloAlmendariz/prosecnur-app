@@ -115,7 +115,22 @@ export function FichaPorFacultadCard({
   fichas: FichaFacultad[];
   periodo?: string;
 }) {
-  if (!fichas.length) return null;
+  // C3: la superficie contiene su propio vacío. Medido contra HSVG2026 abierto:
+  // sin estratos calculados la tarjeta desaparecía entera, y desde la pestaña no
+  // se distingue «todavía no corriste el cálculo» de «esta tarjeta no existe».
+  if (!fichas.length) {
+    return (
+      <section className="cmv2-ficha-card cmv2-ficha-card-vacia" aria-label="Ficha por facultad">
+        <header>
+          <strong>Cada facultad, paso a paso</strong>
+          <span>
+            Todavía no hay estratos calculados: las fichas por facultad aparecen
+            cuando el motor resuelve la muestra en la sección <strong>Cálculo</strong>.
+          </span>
+        </header>
+      </section>
+    );
+  }
   const sinMargen = fichas.filter((f) => f.reservasSostenibles === 0).length;
 
   return (

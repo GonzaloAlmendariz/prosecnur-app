@@ -154,7 +154,14 @@ describe("ficha por facultad", () => {
   });
 
   it("sin fichas no dibuja nada", () => {
-    expect(renderToStaticMarkup(<FichaPorFacultadCard fichas={[]} />)).toBe("");
+    // Sin fichas la tarjeta NO desaparece: dice por qué está vacía. Medido con
+    // HSVG2026 abierto, donde el marco existe pero los estratos aún no, y la
+    // pestaña no dejaba distinguir eso de una tarjeta inexistente.
+    const vacia = renderToStaticMarkup(<FichaPorFacultadCard fichas={[]} />);
+    expect(vacia).toContain("Todavía no hay estratos calculados");
+    expect(vacia).toContain("Cálculo");
+    // CONTROL: no finge una lista.
+    expect(vacia).not.toContain("cmv2-ficha-lista");
   });
 });
 
