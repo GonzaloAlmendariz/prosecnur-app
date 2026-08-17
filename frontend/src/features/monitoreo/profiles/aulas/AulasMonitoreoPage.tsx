@@ -123,6 +123,10 @@ function AulasKpiBand({ dashboard }: { dashboard: MonitoreoAulasDashboard | null
         >
           <span>{kpi.label}</span>
           <strong>{kpi.value}</strong>
+          {/* La pista es el patrón de telefónico y acreditación: cada cifra dice
+              de dónde sale o sobre qué se cuenta. Va en las SEIS tarjetas, así
+              que el marco crece para todo el grupo y C2 se mantiene. */}
+          <small>{kpi.pista}</small>
         </div>
       ))}
     </div>
