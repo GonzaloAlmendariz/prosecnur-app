@@ -69,6 +69,42 @@ describe("cuotasResumen", () => {
     expect(res.porFacultad).toHaveLength(1);
   });
 
+  test("cada facultad dice de qué sexo es lo que le falta", () => {
+    // Las dos listas son marginales: «faltan 167 en Gestión» y «faltan 584
+    // mujeres» no dicen cuántas de esas 167 son mujeres, que es lo que decide a
+    // quién buscar en esa facultad.
+    const { porFacultad } = cuotasResumen([
+      celda("Gestion", "F", 424, 310),
+      celda("Gestion", "M", 341, 288),
+      celda("Letras", "F", 444, 314),
+      celda("Letras", "M", 290, 290),
+    ]);
+    const gestion = porFacultad.find((c) => c.etiqueta === "Gestion");
+    expect(gestion?.desglose?.map((d) => [d.etiqueta, d.faltan])).toEqual([["F", 114], ["M", 53]]);
+    // Las partes suman el grupo por construcción: salen de las mismas celdas.
+    expect(gestion?.desglose?.reduce((s, d) => s + d.faltan, 0)).toBe(gestion?.faltan);
+  });
+
+  test("una facultad a la que sólo le falta un sexo conserva su parte", () => {
+    // Es el caso más claro —«los 130 que faltan son todos mujeres»— y filtrarlo
+    // por «tener un solo elemento» borraría justo la respuesta.
+    const { porFacultad } = cuotasResumen([
+      celda("Letras", "F", 444, 314),
+      celda("Letras", "M", 290, 290),
+    ]);
+    const conFalta = porFacultad[0].desglose?.filter((d) => d.faltan > 0);
+    expect(conFalta?.map((d) => d.etiqueta)).toEqual(["F"]);
+    expect(conFalta?.[0].faltan).toBe(130);
+  });
+
+  test("el corte por sexo trae su propio desglose por facultad", () => {
+    const { porSexo } = cuotasResumen([
+      celda("Gestion", "F", 424, 310),
+      celda("Letras", "F", 444, 314),
+    ]);
+    expect(porSexo[0].desglose?.map((d) => d.etiqueta)).toEqual(["Letras", "Gestion"]);
+  });
+
   test("sin celdas no divide por cero", () => {
     const res = cuotasResumen([]);
     expect(res.general).toMatchObject({ meta: 0, logrado: 0, faltan: 0, avance: 0 });
