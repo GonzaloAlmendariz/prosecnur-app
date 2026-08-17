@@ -4191,9 +4191,17 @@ reporte_ppt_plan <- function(
   # `pulso_slide_render_error` a canvas "Sin datos" (reporte_plan_condiciones.R)
   # para que un fallo por-lamina no mate el deck completo.
   # ancho_slot: ancho fisico (in) del cajon destino, para el wrap real (H22).
-  .render_element <- function(el, ancho_slot = NULL) {
+  # alto_slot: idem para el ALTO (P42). Sin el, el graficador se queda con el
+  # default de su firma —seis pulgadas— y en una lamina de cuatro paneles cree
+  # tener el doble de alto del que tiene: cualquier cuenta vertical suya se
+  # equivoca por ese factor y las etiquetas de eje de dos lineas se montan sobre
+  # la fila vecina. Medidos en el XML, esos cajones son 5.17 x 2.56 in.
+  .render_element <- function(el, ancho_slot = NULL, alto_slot = NULL) {
     if (!is.null(ancho_slot) && inherits(el, "ppt_element") && is.null((el$overrides %||% list())$ancho)) {
       el$overrides$ancho <- ancho_slot
+    }
+    if (!is.null(alto_slot) && inherits(el, "ppt_element") && is.null((el$overrides %||% list())$alto)) {
+      el$overrides$alto <- alto_slot
     }
     .plan_render_element_degradable(.render_element_impl, el)
   }
@@ -8737,10 +8745,14 @@ reporte_ppt_plan <- function(
       el_ur <- .inject_var_titulo(el_ur)
       el_bl <- .inject_var_titulo(el_bl)
       el_br <- .inject_var_titulo(el_br)
-      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 6.1)
-      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 6.1)
-      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 6.1)
-      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 6.1)
+      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 6.1,
+                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
+      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 6.1,
+                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
+      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 6.1,
+                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
+      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 6.1,
+                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
 
       if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_left.")
       if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_right.")
