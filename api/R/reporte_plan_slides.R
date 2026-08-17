@@ -277,11 +277,43 @@ p_slide_seccion <- function(titulo, subtitulo = NULL, introduccion_word = NULL, 
 #' @return Objeto con clase `"ppt_slide"`.
 #' @family reporte
 #' @export
+#' Que diagrama le toca a una lamina de texto por su titulo
+#'
+#' Los planes ya guardados en los `.pulso` no traen `diagrama`: se escribieron
+#' cuando la unica forma de esta lamina era el parrafo. Reconocerla por su
+#' titulo es lo que hace que el diagrama aparezca sin que nadie tenga que
+#' reeditar su plan, igual que el usuario espera al abrir un proyecto de hace
+#' meses.
+#'
+#' Deliberadamente ESTRECHO: solo el titulo canonico de la lamina metodologica.
+#' Un detector generoso convertiria en diagrama cualquier lamina que hable de
+#' respuestas, y una lamina de texto que de pronto dibuja algo es peor que una
+#' que no dibuja nada. Pasar `diagrama = ""` lo apaga.
+#'
+#' @param titulo Titulo de la lamina.
+#' @return `"numero_respuestas"`, o `NULL`.
+#' @keywords internal
+.slide_texto_diagrama_auto <- function(titulo) {
+  t <- toupper(trimws(as.character(titulo %||% "")[1]))
+  # Sin tildes, que el mismo titulo viaja escrito de las dos formas.
+  t <- gsub("\u00da", "U", gsub("\u00c1|\u00c9|\u00cd|\u00d3", "", t))
+  t <- iconv(t, to = "ASCII//TRANSLIT")
+  if (!is.na(t) && grepl("^N[U]?MERO DE RESPUESTAS$", t)) return("numero_respuestas")
+  NULL
+}
+
+
 p_slide_texto <- function(
     titulo,
     texto = NULL,
     bullets = NULL,
     base = NULL,
+    # Diagrama opcional bajo el texto. Hoy solo «numero_respuestas», que recrea
+    # la lamina metodologica del entregable aprobado en vez de describirla; ver
+    # `reporte_ppt_numero_respuestas.R`. `NULL` deja la lamina como estaba.
+    diagrama = NULL,
+    ejemplos = NULL,
+    base_texto = NULL,
     meta = list()
 ) {
   titulo <- .ppt_norm_text1(titulo)
@@ -305,7 +337,11 @@ p_slide_texto <- function(
     slots       = list(
       title = titulo,
       text  = body_text,
-      base  = body_base
+      base  = body_base,
+      diagrama = .ppt_norm_text1(diagrama %||% .slide_texto_diagrama_auto(titulo),
+                               blank = NULL),
+      ejemplos = ejemplos,
+      base_texto = .ppt_norm_text1(base_texto, blank = NULL)
     ),
     meta = meta
   ))
