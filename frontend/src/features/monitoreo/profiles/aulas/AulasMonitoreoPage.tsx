@@ -8,6 +8,7 @@ import {
   apiMonitoreoAulasSync,
   apiMonitoreoState,
   type MonitoreoAulasDashboard,
+  type MonitoreoAulasPlanRow,
   type MonitoreoRow,
   type MonitoreoState,
 } from "../../../../api/client";
@@ -15,6 +16,7 @@ import { AulasOperationsPanel, aulasPlanImported } from "./AulasOperationsPanel"
 import { VacioSinTablero } from "./VacioSinTablero";
 import { AULAS_SAMPLE_ROUTE, AulasApplicationFlow, type AulasFlowMetric } from "../../../aulasFlow/AulasApplicationFlow";
 import { RegistroDeCampo } from "./RegistroDeCampo";
+import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
   MONITOREO_PESTANAS,
@@ -456,7 +458,26 @@ function renderAulasView(
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   return (
-    <div className="mon-profile-stack">
+    // `aulas-tablas-apiladas`: sin ella el stack es grid y asigna 0 px a la fila
+    // cuyo contenido no la empuja —medido: el panel del gráfico quedaba en 26 px
+    // y el gráfico se dibujaba encima de la tabla—. La clase lo pasa a flex con
+    // hijos que no se encogen, que es lo que ya arregló el reparto de alto.
+    <div className="mon-profile-stack aulas-tablas-apiladas">
+      {pestana !== "resumen" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Cobertura de la meta</h3>
+          <span>{fmt(aulaRows.length)} cursos-horario</span>
+        </div>
+        {/* Va ANTES de la tabla: la tabla dice aula por aula y esto dice la
+            forma del conjunto, que es lo que decide dónde insistir. */}
+        <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+      </section>
+      )}
       {pestana !== "resumen" ? null : (
       <section
         className="mon-profile-panel"

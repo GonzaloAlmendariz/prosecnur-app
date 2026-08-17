@@ -601,3 +601,17 @@
   .mon-profile-table-wrap {
   max-height: none;
 }
+
+
+/* El gráfico de cobertura reserva su alto.
+ *
+ * `.mon-profile-panel` es grid y el div que Plotly monta no empuja su fila:
+ * medido, el panel quedaba en 26 px —sólo la cabecera— con el gráfico de 220
+ * dibujándose encima de la tabla siguiente. El alto va aquí y no en el panel
+ * porque es propiedad de ESTE contenido, no del marco. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cobertura-chart {
+  min-height: 220px;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+}
