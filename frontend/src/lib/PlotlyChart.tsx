@@ -17,6 +17,19 @@ type PlotlyData = unknown;
 type PlotlyLayout = Record<string, unknown>;
 type PlotlyConfig = Record<string, unknown>;
 
+/**
+ * Valor de un token `--pulso-*` del documento, con su respaldo.
+ *
+ * Se lee en tiempo de dibujo y no se copia como literal: así el gráfico sigue
+ * al tema en vez de quedarse con el color que tenía el día que se escribió.
+ * El respaldo cubre el render de servidor y los tests, donde no hay documento.
+ */
+function token(nombre: string, respaldo: string) {
+  if (typeof document === "undefined") return respaldo;
+  const valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  return valor || respaldo;
+}
+
 // Guardia defensiva de memoización: varios callers (Monitoreo sobre todo)
 // construyen data/layout/config inline en cada render, así que las REFERENCIAS
 // cambian aunque el contenido sea idéntico y cada setState del padre relanzaba
@@ -127,14 +140,29 @@ export function PlotlyChart({
         cleanup = onReady?.(ref.current);
         return;
       }
+      // Plotly trae sus propios neutros —`#444` para el texto y `#eee` para la
+      // rejilla— y son los únicos grises de la app que no salen del sistema de
+      // tokens. Medido: `--pulso-text-soft` es `#474f5b` y `--pulso-border`
+      // `#e2e7f0`, los dos con una dominante azul que `#444` y `#eee` no
+      // tienen; al lado de una tabla o de una barra en CSS, el gráfico se veía
+      // sucio sin que nada estuviera mal. Se leen del documento en vez de
+      // copiarse para que un cambio de tema —o el modo oscuro— llegue solo.
+      const tinta = token("--pulso-text-soft", "#474f5b");
+      const filete = token("--pulso-border", "#e2e7f0");
+      // Los ejes se MEZCLAN, no se reemplazan: quien llama pasa su `xaxis`
+      // entero —título, `fixedrange`, `zeroline`— y con un spread normal ese
+      // objeto borraría estos colores.
+      const eje = { gridcolor: filete, linecolor: filete, zerolinecolor: filete };
       const finalLayout: PlotlyLayout = {
         margin: { t: 0, r: 18, b: 0, l: 0 },
-        font: { family: "system-ui, -apple-system, sans-serif", size: 11 },
+        font: { family: "system-ui, -apple-system, sans-serif", size: 11, color: tinta },
         paper_bgcolor: "transparent",
         plot_bgcolor: "transparent",
         showlegend: false,
         dragmode: false,
         ...(layout ?? {}),
+        xaxis: { ...eje, ...((layout?.xaxis as object) ?? {}) },
+        yaxis: { ...eje, ...((layout?.yaxis as object) ?? {}) },
       };
       const finalConfig: PlotlyConfig = {
         displayModeBar: false,

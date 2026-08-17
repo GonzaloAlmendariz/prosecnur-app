@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, CalendarRange, CheckCircle2 } from "lucide-react";
 import {
@@ -44,6 +43,7 @@ import {
   monitoreoSeccionDesdeParams,
   pestanaInicialDeSeccion,
   seccionInicialMonitoreo,
+  useFocoMonitoreo,
   useMonitoreoDireccion,
 } from "../../useMonitoreoDireccion";
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
@@ -744,18 +744,19 @@ export default function AulasMonitoreoPage() {
   );
   const dashboard = dashboardFromState(state);
   // El foco de cuotas vive en la URL, como el resto de la dirección: así la
-  // vista sigue siendo enlazable y el botón Atrás la deshace. Se escribe POR EL
-  // ROUTER —`replaceState` deja a `useLocation` con el search viejo y la vista
-  // rebota, que es la trampa ya documentada en `useMonitoreoDireccion`.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const foco = focoDesdeTexto(searchParams.get("foco"));
-  const cambiarFoco = useCallback((siguiente: FocoDeCuota) => {
-    const params = new URLSearchParams(searchParams);
-    const texto = textoDesdeFoco(siguiente);
-    if (texto) params.set("foco", texto);
-    else params.delete("foco");
-    setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
+  // vista sigue siendo enlazable y el botón Atrás la deshace.
+  //
+  // Lo lee y lo escribe `useFocoMonitoreo`, no la página. Hacerlo aquí con
+  // `useSearchParams` convertía a este archivo en el séptimo lector de la
+  // dirección a mano, y el contrato de `lectoresDeDireccion` sólo tolera los
+  // seis heredados —lo detectó su test, que llevaba rojo desde que el foco pasó
+  // a la URL—.
+  const [focoTexto, escribirFoco] = useFocoMonitoreo();
+  const foco = focoDesdeTexto(focoTexto);
+  const cambiarFoco = useCallback(
+    (siguiente: FocoDeCuota) => escribirFoco(textoDesdeFoco(siguiente) || null),
+    [escribirFoco],
+  );
   const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
   const imported = aulasPlanImported(aulasConfig);

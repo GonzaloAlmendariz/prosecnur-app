@@ -16,7 +16,7 @@
 // no corresponde al proyecto aterriza igual en el modo real: el param informa,
 // no manda.
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PARAMS_DIRECCION, PARAMS_PROYECTO } from "../../lib/navegacion/direccion";
 import type { MonitoreoSeccion } from "./core/monitoreoRegistry";
@@ -273,4 +273,37 @@ export function useMonitoreoDireccion(
     location.search,
     navigate,
   ]);
+}
+
+/**
+ * El `foco` de la dirección: qué entidad está seleccionada dentro de la vista.
+ *
+ * Vive aquí y no en la página por el contrato de `lectoresDeDireccion`: leer la
+ * dirección a mano —`useSearchParams` incluido— está reservado a los seis
+ * lectores heredados, y este archivo es uno de ellos. La página de aulas lo
+ * hacía por su cuenta desde que el foco de cuotas pasó a la URL, y eso la
+ * convertía en el séptimo lector, que es justo lo que el contrato existe para
+ * impedir.
+ *
+ * `foco` es ortogonal a los cinco niveles —no lo escribe `irA`, que sólo mueve
+ * modo, sección, pestaña y panel— y por eso necesita su propio par de accesos.
+ * Se escribe con `replace`: elegir un corte no es navegar, y no debe llenar el
+ * historial con un paso por cada click.
+ */
+export function useFocoMonitoreo(): [string | null, (valor: string | null) => void] {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const params = new URLSearchParams(location.search);
+  const foco = params.get(PARAMS_DIRECCION.foco);
+
+  const escribir = useCallback((valor: string | null) => {
+    const siguientes = new URLSearchParams(location.search);
+    if (valor) siguientes.set(PARAMS_DIRECCION.foco, valor);
+    else siguientes.delete(PARAMS_DIRECCION.foco);
+    const query = siguientes.toString();
+    navigate(`${location.pathname}${query ? `?${query}` : ""}`, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+
+  return [foco && foco.trim() ? foco : null, escribir];
 }
