@@ -63,9 +63,16 @@ function esReserva(fila: MonitoreoAulasPlanRow) {
 /**
  * Arma la historia de cada cadena que tuvo movimiento.
  *
- * **Sólo las cadenas con reserva**: un titular que nunca necesitó reemplazo no
- * tiene historia que contar y llenaría la vista con 170 filas de una sola línea.
- * El conteo de esos va aparte, en `sinMovimiento`.
+ * **Sólo las cadenas con reserva**: un titular sin ninguna reserva no tiene
+ * historia que contar y llenaría la vista con 170 filas de una sola línea. El
+ * conteo de esos va aparte, en `sinReserva`.
+ *
+ * `sinReserva` cuenta titulares a los que el diseño muestral NO asignó reserva.
+ * Se llamaba `sinMovimiento` y se leía como «no necesitaron reemplazo», que es
+ * otra afirmación y tranquilizadora: el dato no dice si la necesitaron, dice que
+ * si caen no hay con qué cubrirlas. El pie del gráfico de consumo —que cuenta
+ * exactamente el mismo conjunto en `consumoDeCadena.sinReserva`— ya lo decía
+ * así, y las dos frases se contradecían a dos renglones de distancia.
  */
 export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   // `agenda` basta: trae la estructura de la cadena Y las cuentas
@@ -83,10 +90,10 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   }
 
   const historias: HistoriaDeCadena[] = [];
-  let sinMovimiento = 0;
+  let sinReserva = 0;
 
   for (const [titular, propias] of porCadena) {
-    if (!propias.some(esReserva)) { sinMovimiento += 1; continue; }
+    if (!propias.some(esReserva)) { sinReserva += 1; continue; }
     const eslabones = propias
       .map((fila) => {
         const codigo = texto(fila.operational_code);
@@ -124,7 +131,7 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
 
   return {
     historias,
-    sinMovimiento,
+    sinReserva,
     cerraronEnTitular: historias.filter((h) => h.desenlace === "titular").length,
     cerraronEnReemplazo: historias.filter((h) => h.desenlace === "reemplazo").length,
     abiertas: historias.filter((h) => h.desenlace === "abierta").length,

@@ -254,7 +254,7 @@ export function aulasKpis(
         value: fmt(cadenas.abiertas),
         pista: "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
-        detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinMovimiento)} no necesitaron reemplazo`,
+        detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinReserva)} sin reserva asignada`,
       },
       brechasKpi(dashboard),
     ];
