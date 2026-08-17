@@ -45,3 +45,29 @@ test_that("`tabla_titulo` sigue mandando sobre la primera columna", {
     "Top Two Box"
   )
 })
+
+
+test_that("la LEYENDA del radar tambien sale capitalizada", {
+  # P19 capitalizo la tabla y la leyenda se quedo en «docentes», «estudiantes»,
+  # «egresados». Visible en las laminas 53 y 54 del PDF.
+  f <- readLines(
+    testthat::test_path("..", "..", "R", "graficos_radar_multibase.R"),
+    warn = FALSE
+  )
+  i <- grep("levels(datos_graf$grupo) <- .radar_mb_capitalizar", f, fixed = TRUE)
+  expect_length(i, 1L)
+})
+
+
+test_that("el origen NO se capitaliza: de ahi cuelgan las claves", {
+  # `.radar_mb_tabla()` toma los nombres de columna de `levels(datos$grupo)` y
+  # `tabla_encabezados` casa por clave con `match()`. Capitalizar arriba dejaria
+  # un `docentes = "Docentes (n=51)"` sin columna que renombrar, en silencio.
+  f <- readLines(
+    testthat::test_path("..", "..", "R", "graficos_radar_multibase.R"),
+    warn = FALSE
+  )
+  origen <- grep("out$grupo <- factor(out$grupo", f, fixed = TRUE)
+  expect_length(origen, 1L)
+  expect_false(grepl("capitalizar", f[origen], fixed = TRUE))
+})
