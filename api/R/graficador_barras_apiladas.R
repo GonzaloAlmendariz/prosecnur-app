@@ -3706,6 +3706,21 @@ graficar_barras_apiladas <- function(
       }
       if (debug_ph_bordes) canvas <- canvas + .ph_border(0, y_legend0, 1, legend_h)
     } else {
+      # P40, MEDIDO Y SIN REPARAR TODAVIA: este 0.5 centra la leyenda sobre TODO
+      # el canvas, y con cinco categorias es lo bastante ancha para meterse en la
+      # columna de etiquetas. En la lamina 60 del mazo de Conta —«Vinculacion con
+      # el medio»— su cuarta premisa ocupa cuatro lineas y la leyenda se le monta
+      # encima. Medido en el render:
+      #
+      #              barras arrancan   leyenda arranca
+      #   aprobado        5.50 in          6.98 in    (a la DERECHA de las barras)
+      #   motor           3.45 in          1.95 in    (1.50 in DENTRO de las etiquetas)
+      #
+      # La leyenda cabe en el canvas —mide 9.28 in de 13.33—, asi que no es un
+      # problema de ancho: es de centro. El aprobado la centra sobre el AREA DE
+      # BARRAS. Repararlo pide centrar en `w_etq + (1 - w_etq) / 2` y pasarle esa
+      # anchura a `.barras_leyenda_filas()` para que envuelva dentro de ella; el
+      # riesgo a medir es que gane una fila y le quite alto al panel (P23/B3).
       pos_leyenda_x <- 0.5
       if (!is.na(centro_cowplot) && is.finite(centro_cowplot)) pos_leyenda_x <- centro_cowplot
 
