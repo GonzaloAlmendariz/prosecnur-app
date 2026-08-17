@@ -70,6 +70,23 @@
   opacity: 0.55;
 }
 
+/* El ícono va en la línea del rótulo, alineado con él y a media tinta: la cifra
+   sigue siendo lo primero que se ve. */
+.mon-profile-page.is-aulas-flow .aulas-kpi-rotulo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi-rotulo svg {
+  flex: none;
+  color: color-mix(in srgb, var(--pulso-module-monitoring) 70%, var(--pulso-text-soft));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-kpi--warn .aulas-kpi-rotulo svg {
+  color: var(--pulso-warn-fg);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-kpi span {
   min-height: 22px;
   color: var(--pulso-text-soft);

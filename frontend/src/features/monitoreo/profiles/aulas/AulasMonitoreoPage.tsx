@@ -117,21 +117,29 @@ function AulasKpiBand({ dashboard, seccion }: {
       data-qa-geometry-group="monitoring-aulas-kpis"
       data-qa-geometry-contract="equal"
     >
-      {aulasKpis(dashboard, seccion).map((kpi) => (
-        <div
-          key={kpi.label}
-          className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
-          title={kpi.detalle}
-          aria-label={kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
-        >
-          <span>{kpi.label}</span>
-          <strong>{kpi.value}</strong>
-          {/* La pista es el patrón de telefónico y acreditación: cada cifra dice
-              de dónde sale o sobre qué se cuenta. Va en las SEIS tarjetas, así
-              que el marco crece para todo el grupo y C2 se mantiene. */}
-          <small>{kpi.pista}</small>
-        </div>
-      ))}
+      {aulasKpis(dashboard, seccion).map((kpi) => {
+        const Icono = kpi.icono;
+        return (
+          <div
+            key={kpi.label}
+            className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
+            title={kpi.detalle}
+            aria-label={kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
+          >
+            {/* Ícono y pista son el patrón de telefónico y acreditación: cada
+                cifra se reconoce de un vistazo y dice de dónde sale. Los llevan
+                TODAS las tarjetas, así que el marco crece parejo y C2 aguanta.
+                El ícono es decorativo —el rótulo ya nombra la cifra—, así que se
+                oculta a lectores de pantalla. */}
+            <span className="aulas-kpi-rotulo">
+              <Icono size={13} aria-hidden="true" />
+              {kpi.label}
+            </span>
+            <strong>{kpi.value}</strong>
+            <small>{kpi.pista}</small>
+          </div>
+        );
+      })}
     </div>
   );
 }
