@@ -160,6 +160,49 @@
 }
 
 
+#' Ancla el grosor al alto NOMINAL de fila cuando el panel viene impuesto
+#'
+#' El grosor se decide como fraccion de una fila que se supone de
+#' `alto_por_categoria` pulgadas —0.42 por defecto—, y esa calibracion es la que
+#' fija cuanto mide la barra. Pero el panel no siempre reparte ese alto: cuando
+#' llega un `canvas_h_panel_in` declarado, la fila real pasa a medir
+#' `panel / filas`, y la misma fraccion produce otro grosor fisico.
+#'
+#' Ese es el mecanismo detras de B4. Dos laminas de la misma firma —mismos
+#' graficos, mismas barras— reciben distinto alto de panel segun lo que les deje
+#' el cromo: un titulo de dos lineas, una leyenda, una nota al pie. La fraccion
+#' es la misma en las dos y el grosor fisico no. Medido sobre el mazo: en las
+#' siete laminas de firma 6, cuatro salen a 1.057 cm y las otras a 0.978, 1.148
+#' y 1.354.
+#'
+#' La correccion es una regla de tres: para conservar el grosor fisico que se
+#' decidio contra la fila nominal, la fraccion se multiplica por
+#' `nominal / real`. Con el panel mas alto la fraccion baja, con el panel mas
+#' bajo sube, y la barra mide lo mismo en las dos laminas.
+#'
+#' Se acota al tope de fraccion por el mismo motivo que el piso: pasado ahi las
+#' barras se tocan, y una lamina apretada es peor que una barra que no cuadra al
+#' milimetro con su gemela.
+#'
+#' @param grosor_eff Grosor en unidades ggplot (fraccion de la fila).
+#' @param alto_nominal_in Alto de fila con el que se calibro, en pulgadas.
+#' @param alto_real_in Alto de fila que el panel va a repartir de verdad.
+#' @param tope Fraccion maxima de la fila.
+#' @return Grosor en unidades ggplot; el recibido si falta algun dato.
+#' @keywords internal
+.grosor_anclado_al_nominal <- function(grosor_eff, alto_nominal_in, alto_real_in,
+                                       tope = .GROSOR_TOPE_FRACCION) {
+  g <- suppressWarnings(as.numeric(grosor_eff)[1])
+  if (!is.finite(g) || is.na(g) || g <= 0) return(grosor_eff)
+
+  nom  <- suppressWarnings(as.numeric(alto_nominal_in %||% NA_real_)[1])
+  real <- suppressWarnings(as.numeric(alto_real_in %||% NA_real_)[1])
+  if (!is.finite(nom) || !is.finite(real) || nom <= 0 || real <= 0) return(g)
+
+  min(tope, g * nom / real)
+}
+
+
 #' Grosor resultante en pulgadas, para verificar
 #' @keywords internal
 .grosor_en_pulgadas <- function(grosor_eff, alto_por_cat) {

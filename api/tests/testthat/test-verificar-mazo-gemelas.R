@@ -69,3 +69,27 @@ test_that("tres gemelas se juzgan por el rango, no por pares", {
   expect_equal(nrow(out), 1L)
   expect_equal(out$dif, 0.838, tolerance = 1e-6)
 })
+
+
+test_that("la firma separa paletas: un radar no es gemelo de una apilada", {
+  # Cada familia declara su propio alto de fila —el preset da 0.54 in a
+  # apiladas, 0.58 a multi-apiladas y 0.64 a agrupadas— y la barra es una
+  # fraccion de ese alto, asi que dos familias tienen distinto grosor POR
+  # DISENO. La primera version de la firma contaba solo barras y metia cinco
+  # multi-apiladas junto a un radar en el grupo de «6», marcando como defecto
+  # esa diferencia.
+  out <- .verif_gemelas_desiguales(list(
+    .gem(1, "rampa:6", 1.057),
+    .gem(2, "azul:6",  1.354)
+  ))
+  expect_equal(nrow(out), 0L)
+})
+
+
+test_that("dentro de la misma paleta si se comparan", {
+  out <- .verif_gemelas_desiguales(list(
+    .gem(1, "rampa:4", 1.05),
+    .gem(2, "rampa:4", 1.90)
+  ))
+  expect_equal(nrow(out), 1L)
+})
