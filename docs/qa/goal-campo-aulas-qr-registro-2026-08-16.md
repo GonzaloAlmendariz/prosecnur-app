@@ -749,3 +749,28 @@ aplican—. El fallo: un selector agrupado tiene todo el listado en `selectorTex
 así que la igualdad exacta nunca casa. Estuve a punto de reportar «monitoreo.css
 no se carga». Lo que lo resolvió fue **dejar de interrogar a la hoja y preguntarle
 al elemento**: inyectar un nodo con la clase y leer su estilo computado.
+
+
+### 2026-08-16 — el barrido de hojas: cero, y ahora con guard
+
+Si una clase compartida no llegaba a la página de aulas, lo raro sería que fuera
+la única. Barrido a **la página y los 24 componentes que importa**: 128 clases
+pintadas, y **ninguna otra** vive sólo en el monolito que esa página no importa.
+
+El cero vale porque el barrido está **verificado contra el árbol de antes**: allí
+señala exactamente `mon-profile-table-recorte`, la que ya conocíamos. Un
+instrumento que no encuentra el defecto conocido no puede afirmar que no hay más.
+
+Convertido en guard permanente (`hojasDeEstiloAlcanzables.test.ts`), y el guard
+también verificado al revés —quitar la regla de `profilePage.css` lo pone rojo
+nombrando la clase—:
+
+```
+clases declaradas sólo en monitoreo.css, que esta página no importa:
+  mon-profile-table-recorte
+```
+
+Con esto son **cuatro** los contratos que atan producción y consumo en este
+perfil: los controles de validación, los estados operativos, las columnas de
+tabla y ahora las hojas de estilo. Los cuatro nacieron del mismo patrón —dos
+listas que nadie ataba— y ninguno de los cuatro fallaba antes de atarlo.
