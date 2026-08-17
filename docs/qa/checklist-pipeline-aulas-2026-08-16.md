@@ -15,7 +15,7 @@ titular tenga su cadena completa.
 | # | Etapa | Qué hay que comprobar | Dónde vive | Estado |
 |---|---|---|---|---|
 | E1 | **Base** | El marco carga y sus filas son las que deben ser | `carga_aulas_libro.R` (ajeno: sólo leer) · `calc_muestra_aulas_frame` | ☑ **pasa** |
-| E2 | **Criterios de alumnos** | Filtran a quien deben; el elegible sale de aplicarlos, no de un default | `calc_muestra_aulas.R` · pestaña Criterios | ☐ |
+| E2 | **Criterios de alumnos** | Filtran a quien deben; el elegible sale de aplicarlos, no de un default | `calc_muestra_aulas.R` · pestaña Criterios | ◐ **con observación** |
 | E3 | **Criterios de curso-horario** | **Que funcionen de verdad** — Gonzalo lo subraya | `calc_muestra_aulas_catalogo*` · `FacultadDecisionBloque` | ☐ |
 | E4 | **Cálculo de la muestra** | El n sale de la fórmula declarada y coincide con lo que publica la UI | `calc_muestra_engine.R` · `CalculoPropuestasTab` | ☐ |
 | E5 | **Cuotas de hombres y mujeres por facultad** | Se calculan por facultad y suman lo que deben | `calc_muestra_aulas.R` · `CursosHorarioSexo` | ☐ |
@@ -57,6 +57,51 @@ puede juzgar con este fixture es si un reparto tiene sentido sustantivo. Esa
 capa exige correr el recorrido sobre un proyecto real, no anonimizado.
 
 Anotado menor: `catalog_unmatched_base_classrooms = 1` (match 0,9998).
+
+## Cambio de fixture (2026-08-16, pedido de Gonzalo)
+
+El recorrido pasa a correr sobre el proyecto **real**
+`~/Documents/Pulso/HSTVG2026/HSVG2026.pulso` (se lee, no se copia). Con él las
+facultades son las reales de la PUCP —ARQUITECTURA Y URBANISMO, DERECHO,
+ESTUDIOS GENERALES LETRAS…—, así que E5, E6, E8 y E9 **sí serán juzgables**.
+
+Diferencias con el anonimizado: mismas 5.263 aulas, mismas 136.284 matrículas y
+106.013 elegibles, pero **2.468 aulas incluidas** (no 2.561), 157 programas
+(no 142) y 21.365 alumnos (no 21.362).
+
+**El proyecto real NO TIENE SELECCIÓN GENERADA**: `calc_muestra_aulas_selection`
+es `NULL`. E9 y E10 no podrán leerla — habrá que **generarla**, que es
+exactamente lo que Gonzalo quiere saber que funciona.
+
+## E2 — Criterios de alumnos · **con observación**
+
+Los cinco criterios están declarados y **ninguno es letra muerta**; todos
+descartan filas reales sobre las 136.284 matrículas:
+
+| Criterio | Capa | Filas que pasan | Descarta |
+|---|---|---|---|
+| `level` | **instrumento** | 100.920 | 35.364 |
+| `age` (≥18) | marco | 123.360 | 12.924 |
+| `formation` (pregrado) | marco | 125.003 | 11.281 |
+| `condition` (regular) | marco | 124.167 | 12.117 |
+| `faculty` | marco | 126.537 | 9.747 |
+
+Los 21 filtros están poblados con valores sensatos: adulto ≥18, pregrado,
+condición regular, presencial, mínimo 15 elegibles por aula, y exclusión por
+patrón de posgrado/maestría/doctorado y de virtual/remoto/online.
+
+**Lo que falta explicar**: `level` deja pasar 100.920 pero el elegible final es
+106.013, **mayor**. Si `level` alimentara el elegible sería imposible. La
+hipótesis es que sólo los cuatro criterios de capa `marco` lo alimentan (su
+intersección es ≤ 123.360 y 106.013 encaja) y que `instrumento` es otra capa.
+Hipótesis, no medición: confirmarlo antes de dar E2 por cerrado.
+
+Anotado para E3: **`teacher` tiene un solo valor único** en toda la base —el
+docente no viene informado— y sin embargo `teacher_type` **sí excluye aulas**
+(62 solas más varias combinaciones), así que se deriva de otra columna.
+
+Anotado: `require_faculty_prevalence` está en `FALSE` en este proyecto, anterior
+al cambio de default a `true`.
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
