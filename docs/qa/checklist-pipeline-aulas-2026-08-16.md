@@ -136,6 +136,29 @@ Config del selector en el proyecto real: `n_aulas` 30, `replacement_waves` 11,
 `selector_engine` cube_balanceado, min/max reemplazos por titular 1/11,
 `replacement_depth_strategy` max_complete_chains_by_cell.
 
+## Vara de E7/E8 dada por Gonzalo (2026-08-16)
+
+> «si empieza a hacer E7 y E8 no creo que lleguemos a 30 aulas, probablemente
+> lleguemos a 190 o 200, para que lo tomes en cuenta»
+
+**Esto es la vara de E8, y reencuadra E9.** La config del proyecto real trae
+`n_aulas = 30`. Si el cálculo de elegibles por curso-horario (E7) y el de CH
+necesarios por facultad (E8) arrojan **190–200**, entonces la selección de 30
+está corta por un factor de ~6,5: el motor generó correctamente *lo que se le
+pidió*, pero se le estaría pidiendo mal.
+
+Consecuencias para el recorrido:
+
+- E7 y E8 **se miden sin mirar `n_aulas`**, para que la cifra salga del cálculo
+  y no del parámetro. Recién después se contrasta.
+- Si E8 da ~190–200, **E9 no pasa con 30 titulares** por mucho que el sorteo sea
+  impecable: el hallazgo sería que `n_aulas` no se deriva de las cuotas.
+- Conviene además regenerar la selección con el `n_aulas` que salga de E8 y
+  comprobar que el motor **también sostiene 11 cadenas completas a esa escala**
+  —con 190 titulares hacen falta ~2.090 reservas y sólo hay 2.468 aulas
+  incluidas, así que ahí la holgura se acaba—. Ese es el riesgo real que la
+  prueba de 30 no llegó a tocar.
+
 ## Lo que ya sabemos, para no reinvestigarlo
 
 - En el proyecto de referencia la selección trae **30 titulares y 330 reservas,
