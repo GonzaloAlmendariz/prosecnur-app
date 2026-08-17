@@ -82,6 +82,8 @@ ya existente.
 | P23 | **La mitad inferior de muchas láminas queda vacía** (hallazgo del render) | reparto vertical | ⏸ visible en el PDF: en láminas de dos bloques el contenido ocupa la mitad superior y el resto queda en blanco. Ninguna regla lo mide |
 | P24 | **La cota de la guía medía el alto nominal, no el dibujado** (hallazgo propio) | `graficador_barras_apiladas.R` ~3276 | ☑ reportaba `grosor_eff × alto_por_cat_grosor` cuando el panel **se estira después** para llenar el hueco. Cruzando lo que canta contra lo que mide el detector en 53 láminas: correlación **−0.353 → +0.588** —era **negativa**, la guía cantaba al revés— y el rango del ratio 0.507→0.912 por abajo. Antes cantaba 1.29 cm en casi todas mientras el mazo iba de 0.693 a 2.068; ahora canta 19 valores contra 22 reales. **Verificado con control**: revertida la línea, la correlación vuelve a −0.353. Explica «no sé si te estás guiando de ellas» |
 | P25 | **`.grosor_con_techo_in()` no lo llama nadie** (hallazgo propio) | `graficador_grosor_piso.R` | ☐ existe, tiene tests y **cero consumidores**. Se escribió para P8, que se resolvió por otro camino. Y su comentario declara una cifra **falsa**: dice que 1.0 cm es «el grosor mayor que usa el entregable aprobado» — medido, el aprobado llega a **1.80 cm** y supera ese techo en el **59 %** de sus barras (el motor en el **71 %**, máximo 2.55). La diferencia real motor/aprobado es **2.55 vs 1.80 cm** |
+| P27 | **Las metodológicas salen como texto, no recreadas** | plan + renderer | ☐ **inventariado**. El aprobado las **arma**: su «TOP TWO BOX» (lám 6) usa **11 formas y 2 grupos** con un ejemplo visual —«35% + 55% → 90%» sobre la rampa de 4 colores, con la escala 1-2-3-4—, y su «Número de respuestas» (lám 7) usa **56 formas y 3 grupos** con un mini-gráfico real («Conoce el Plan de Estudios», 92%/8%, base 12 egresados). El motor las despacha con **2 y 3 formas**: título más párrafo. Y su lámina de top two box **se titula «N»** |
+| P28 | **El radar sale con un cuadro vacío y la tabla fuera** (señalado por Gonzalo) | `graficos_radar_multibase.R` ~905 | ☐ **el sitio se reserva DOS veces**: el canvas deja un `NULL` de ancho `rel` al lado del radar *y* el renderer coloca la tabla en un cajón propio (`left = 19.14 cm`, pegada al borde). Resultado: cuadro vacío entre radar y tabla, y el radar encogido a la mitad izquierda de su marco. **Remedio probado y REVERTIDO**: quitar el hueco del canvas hace **desaparecer el radar entero** —queda sólo la tabla—, porque `.tabla_nativa_adjuntar()` sobre el gráfico solo no compone las dos piezas. La reparación tiene que venir del lado del renderer, no del canvas. Defectos hermanos en la misma lámina: **sólo se ve una de las tres series** (los valores 96/96/93 se solapan y la última tapa), la **leyenda va en minúscula** (P19 capitalizó la tabla, no la leyenda) y los encabezados se parten («Estudiant/es») |
 | P13 | Resultados I+D+i: leyenda comprimida y sus cuadros de color **rectangulares**; deben ser más cuadrados | leyenda manual de apiladas | ◐ **medido**: lám 68 usa `0.54×0.54` (ggplot, cuadrado) y lám 69 `0.40×0.29` (manual, rel 1.38). El motor es inconsistente consigo mismo. **Pero el aprobado usa `0.29×0.21`, la misma rel 1.38**: la referencia no decide, decide Gonzalo |
 
 ### El defecto que estaba detrás de varios a la vez
@@ -263,6 +265,10 @@ cajón. Repararlo de fondo es la unidad grande que sigue pendiente.
 
 ## Lo aprendido
 
+- **Revisar lámina por lámina el render encuentra lo que ninguna vara mira.** El
+  radar salía con un cuadro vacío, la tabla fuera del marco y una sola serie
+  visible, con la vara en 22 y sin marcar nada de eso. Lo vio Gonzalo mirando el
+  PDF.
 - **Una herramienta de medir que no mide lo dibujado es peor que no tenerla.**
   La cota de la guía correlacionaba **negativamente** con el grosor real: no
   daba un valor impreciso, daba el contrario. Toda «medición» hecha mirando la
