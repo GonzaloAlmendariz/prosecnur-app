@@ -302,7 +302,13 @@
     aulas = list(
       config = s$calc_muestra_aulas_config %||% calc_muestra_aulas_default_config(),
       frame = s$calc_muestra_aulas_frame %||% NULL,
-      selection = s$calc_muestra_aulas_selection %||% NULL,
+      # El balance de sexo por facultad se deriva al servir, no se persiste: es
+      # aditivo y así no puede quedar desfasado de la selección vigente. Punto
+      # único — el sync y el job pasan los dos por este payload.
+      selection = calc_muestra_aulas_adjuntar_sexo_facultad(
+        s$calc_muestra_aulas_selection %||% NULL,
+        s$calc_muestra_aulas_frame %||% NULL
+      ),
       method_comparison = s$calc_muestra_aulas_method_comparison %||% NULL,
       certeza = s$calc_muestra_aulas_certeza %||% NULL,
       replacement_simulation = s$calc_muestra_aulas_replacement_simulation %||% NULL,
