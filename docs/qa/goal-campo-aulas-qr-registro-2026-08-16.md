@@ -139,6 +139,12 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
 | **L68** | El gate visual del contrato **nunca miró los cinco gráficos**, y al mirarlo apareció que **aulas no importaba `monitoreo.css`**. | 4 `capacity-drift` (C3); el aviso de recorte salía como texto de cuerpo en todo el perfil. | ☑ **hecho** (2026-08-16) — la regla se muda a `profilePage.css`, que sí ven los cuatro perfiles. Queda 3–4 px de `.mon-profile-panel-head`, chrome compartido que este ítem no causó. |
 | **L69** | **Materiales se declaraba lista mientras cargaba.** Es la superficie donde se producen las fichas QR del circuito. | `RecopiladoresShell` derivaba `auditReady` de **su** `loading` —el del plan— y `MaterialsSection` tiene el suyo para la plantilla. Todo QA visual de esa vista medía el esqueleto: 124 px de vacío y «Leyendo plantilla semántica…». | ☑ **hecho** (2026-08-16) — la sección avisa su carga al shell. Gate de `ok=false` a **`ok=true`**, verificado invirtiéndolo. |
+| **L70** | **El lenguaje no es el del equipo.** «Estado del circuito» y otras expresiones son mías, no del operativo. | Ya existe un lenguaje referencial en los Excels —`STATUS MUESTRA`, `STATUS DE APLICACIÓN`, `VALIDO TOTAL`, `CANTIDAD DE EFECTIVAS`, `DUPLICADOS (YA RESPONDIERON)`, `NÚMERO DE INTENTOS`— y hay que mantener esa línea. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab` (`key, label, detail, icon, badge, estado`); aulas usa un `GlidingTabList` superior. **Es criterio de toda la app y lo rompí yo.** | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | El **avance va al final**; **consultas no va al final**. Fuentes y agenda al principio está bien. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L74** | **Avance tiene que mostrar las cuotas, de forma sencilla y dinámica.** | Cómo vamos completando **cuotas por facultad**, **cuotas a nivel general** y **cuotas desagregadas por sexo**. | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L75** | **Consultas tiene que contar la historia de la cadena.** | Si estamos cumpliendo con los **titulares**; cómo nos fue en el titular, luego en su reemplazo; y **cuál fue la cadena que nos permitió llegar a la meta**. | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -1052,3 +1058,33 @@ Lo que sí quedó verificado a 3700: los cinco gráficos dibujan —51 sin agend
 números desde otro cálculo—, el aviso de recorte sale con su estilo
 («Mostrando 8 de 82 columnas») y el criterio de validez se anuncia solo en el
 informe del sembrador.
+
+
+### 2026-08-17 — Gonzalo redirige el loop: lenguaje, rail, orden y expresividad
+
+Seis ítems nuevos, y **uno es un error mío que él detectó**: las pestañas de
+aulas son píldoras arriba (`GlidingTabList`) cuando el patrón de la casa es un
+**rail lateral con íconos** (`MonitoreoWorkbenchRailTab`, con `icon`, `detail`,
+`badge` y `estado`). Cuando me dijo «funciona con sección y pestaña como los
+otros monitoreos» implementé la **gramática** —módulo/modo/sección/pestaña— y no
+el **patrón visual** que la acompaña. Verificado en telefónico y acreditación
+antes de aceptarlo.
+
+Sus palabras, que son la vara de estos seis:
+
+> «tenemos que mejorar el lenguaje. Ya hay un lenguaje referencial de los Excels,
+> entonces puedes utilizar el mismo lenguaje» · «tiene que tener mucha mayor
+> expresividad visual» · «el avance es una cuestión que va al final, consultas no
+> suele ir al final» · «cómo vamos completando las cuotas por facultad, cómo van
+> las cuotas a nivel general, cómo van las cuotas a nivel desagregado por sexo» ·
+> «ver si estamos cumpliendo con los titulares y cuál es la cadena… cuál fue la
+> cadena que nos permitió llegar a la meta»
+
+El lenguaje del Excel ya está leído y disponible: `STATUS MUESTRA` (AGENDADA ·
+REAGENDADA · EN RESERVA n · REEMPLAZADA), `STATUS DE APLICACIÓN` (APLICADA · NO
+APLICADA), `VALIDO TOTAL`, `CANTIDAD DE EFECTIVAS`, `DUPLICADOS (YA
+RESPONDIERON)`, `MEDIO DE CONTACTO`, `NÚMERO DE INTENTOS`, `OBSERVACIONES`. Mi
+«Estado del circuito» no existe en ninguna parte del operativo.
+
+**El loop pasa a iterar sobre esto**, que es trabajo de producto, en vez de
+seguir barriendo módulos vecinos.
