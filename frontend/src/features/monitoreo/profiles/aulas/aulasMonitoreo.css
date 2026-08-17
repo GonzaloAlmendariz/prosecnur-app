@@ -1699,3 +1699,35 @@
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── La franja de flujo, con el material del perfil ──────────────────────────
+   `AulasApplicationFlow` es COMPARTIDA: la usan también Salidas y la auditoría
+   de aulas del cálculo de muestra, y esa sesión está editando esos archivos
+   ahora mismo. Así que la variante se aplica desde aquí y no en su hoja: el
+   componente sigue viéndose igual en su casa.
+
+   Medido antes: fondo con gradiente, borde teñido de crimson, radio 8 y padding
+   8 —contra el 14 y el 12 de todos los paneles de la sección—, y un eyebrow de
+   10 px en mayúsculas crimson sobre un título que repite el nombre del perfil.
+   Cuatro discrepancias en una sola caja. */
+.mon-profile-page.is-aulas-flow .aulas-flow {
+  border-color: var(--pulso-border);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+/* El eyebrow deja de gritar: el acento del módulo ya vive en el hairline de la
+   banda y en el rail, que es donde distingue algo. Aquí sólo repetía en crimson
+   el nombre del perfil, encima de un título que dice lo mismo. */
+.mon-profile-page.is-aulas-flow .aulas-flow-copy > :first-child {
+  color: var(--pulso-text-soft);
+}
+
+/* Último resto de la revisión de materiales: la banda tenía 8 px de padding
+   contra los 12 de todos los paneles. Con el mismo borde, el mismo radio y el
+   mismo fondo, el padding distinto era lo único que seguía delatando que no
+   era un panel. */
+.mon-profile-page.is-aulas-flow .aulas-kpi-band {
+  padding: 12px;
+}
