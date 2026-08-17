@@ -30,17 +30,32 @@
 # Rejilla del grosor de barra, en pulgadas. 0.0394 in = 1 mm.
 #
 # Dos laminas del mismo tipo salian con grosores que solo diferian en decimas
-# de milimetro —1.17 y 1.16 y 1.19 cm— porque el reparto de alto depende del
-# cromo de cada bloque. Medido sobre el mazo: 22 grosores distintos en 411
-# barras, contra 17 en 408 del entregable aprobado, que ademas concentra 153
-# barras en un solo valor.
+# de milimetro porque el reparto de alto depende del cromo de cada bloque.
 #
-# MEDIDO Y DESCARTADO como remedio: aplicada a todo el mazo, la rejilla bajo de
-# 22 grosores distintos a 21. La dispersion no es de redondeo —no hay valores
-# casi iguales que colapsar—, son grosores GENUINAMENTE distintos que salen del
-# reparto de alto: 0.65, 1.09, 1.65 y 2.02 cm en laminas de tres filas. El
-# helper se conserva porque la funcion es correcta y el dato de que no sirve
-# vale mas escrito que reaprendido, pero no se aplica.
+# MEDIDO Y DESCARTADO como remedio, dos veces y por razones opuestas:
+#
+# 1. Primera medicion (mazo de 411 barras, antes del techo de grosor y del paso
+#    de fila comun): la rejilla bajaba de 22 grosores distintos a 21. La
+#    dispersion no era de redondeo sino GENUINA —0.65, 1.09, 1.65 y 2.02 cm en
+#    laminas de tres filas—, asi que cuantizar no colapsaba nada.
+#
+# 2. Segunda medicion (mazo de 2349 barras, ya con techo y paso comun): la
+#    dispersion genuina desaparecio y la rejilla SI colapsaria —de 52 valores a
+#    13—. Pero ya no hace falta, porque el problema que venia a resolver esta
+#    resuelto por otro lado. Medido contra el entregable aprobado:
+#
+#                                        motor    aprobado
+#      dispersion entre laminas gemelas   0.01 cm   0.17 cm
+#      grosores distintos                 52        61
+#      barras en la banda 0.35-0.50 cm    62 %      70 %
+#      valores cuantizados al milimetro   13        14
+#
+#    El motor iguala o supera al aprobado en tres de los cuatro ejes, y el
+#    aprobado TAMPOCO esta cuantizado: tiene la misma dispersion fina. Aplicar
+#    la rejilla seria imponer una regularidad que la referencia no tiene.
+#
+# El helper se conserva porque la funcion es correcta y porque las dos
+# mediciones valen mas escritas que reaprendidas, pero no se aplica.
 .GROSOR_REJILLA_IN <- 0.0394
 
 
