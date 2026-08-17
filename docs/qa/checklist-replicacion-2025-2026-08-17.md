@@ -394,6 +394,55 @@ del motor cuando es una decisión distinta.
 | Selección | **sistemático, k = N/n** | **cube balanceado** (`balanced_probability`) | **no** |
 | Reservas | Titular + hasta 11, pero **sólo 16 estratos de 170 llegaron a la 11** | 11 pedidas a todas por igual | **no** — es M10 |
 
+### ¿2025 aplicó criterios distintos POR FACULTAD?
+
+Gonzalo, textual: «esta tabla que me muestras es general, y los criterios no son
+generales, son por facultad». Medido sobre el pool de 2025, facultad a facultad:
+
+| Facultad | Sorteadas | Universo | Piso real | Bajo el piso | % perdido |
+|---|---:|---:|---:|---:|---:|
+| CIENCIAS E INGENIERIA | 231 | 697 | 10 | 42 | 6 |
+| DERECHO | 184 | 399 | 11 | 5 | 1 |
+| EG LETRAS | 181 | 478 | 11 | 10 | 2 |
+| EG CIENCIAS | 111 | 354 | 11 | 2 | 1 |
+| CIENCIAS Y ARTES COMUN. | 63 | 178 | 13 | 15 | 8 |
+| ESTUDIOS ESPECIALES | 61 | 199 | 12 | 28 | 14 |
+| CIENCIAS SOCIALES | 52 | 148 | 10 | 9 | 6 |
+| **ARTES ESCÉNICAS** | 43 | 323 | 10 | **208** | **64** |
+| PSICOLOGÍA | 39 | 92 | 11 | 2 | 2 |
+| ARTE Y DISEÑO | 33 | 90 | 10 | 7 | 8 |
+| ARQUITECTURA | 29 | 66 | 16 | 5 | 8 |
+| GESTIÓN | 26 | 103 | 19 | 9 | 9 |
+| **GASTRONOMÍA** | 17 | 51 | 10 | 18 | **35** |
+| **LETRAS Y CIENCIAS HUMANAS** | 9 | 85 | 10 | **45** | **53** |
+| CONTABLES | 8 | 16 | 21 | 2 | 12 |
+| **EDUCACION** | 8 | 39 | 11 | 15 | **38** |
+| CONSORCIO DE UNIVERSIDADES | 2 | 7 | 21 | 1 | 14 |
+
+`piso real` = el aula más pequeña que entró · `bajo el piso` = aulas del universo
+comparable por debajo de ese piso que nunca entraron.
+
+**Conclusión, y hay que decirla con cuidado.** El piso *declarado* de 2025 parece
+haber sido **uno solo: 10**. Once de diecisiete facultades tienen su aula más
+chica entre 10 y 13, y las cuatro que aparecen más arriba —Arquitectura 16,
+Gestión 19, Contables 21, Consorcio 21— tienen muy pocas aulas por debajo (5, 9,
+2 y 1) sobre 29, 26, 8 y 2 sorteadas: **es compatible con el azar del sorteo, no
+con un umbral propio**. Un piso alto observado en una facultad chica no prueba
+un criterio; probarlo exigiría el papel de 2025, que no lo declara.
+
+**Pero el dato que importa es el otro, y respalda la decisión de Gonzalo**: un
+piso general de 10 tiene un efecto **radicalmente distinto** en cada facultad. Se
+lleva el **64 %** del universo de Artes Escénicas, el **53 %** de Letras y
+Ciencias Humanas, el **38 %** de Educación y el **35 %** de Gastronomía — contra
+el **1 %** de Derecho y EE.GG. Ciencias. La misma regla arrasa a unas y no toca a
+otras. Ésa es la razón operativa de que el mínimo tenga que declararse por
+facultad, y no una preferencia de estilo.
+
+**Tipo de sesión**: en 2025 el pool es teórico al **100 % en todas las
+facultades**, así que ahí **no hubo excepciones por facultad**. La necesidad de
+abrir taller en Arquitectura y Arte y Diseño es una decisión **nueva** de 2026,
+no una réplica.
+
 ### Los números, quince filas
 
 `cuo` = cuota · `pool25` = aulas del sorteo 2025 · `elig26` = aulas que pasan los
