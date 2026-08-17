@@ -23,7 +23,7 @@ titular tenga su cadena completa.
 | E1 | **Base** | El marco carga y sus filas son las que deben ser | `carga_aulas_libro.R` (ajeno: sólo leer) · `calc_muestra_aulas_frame` | ☑ **pasa** |
 | E2 | **Criterios de alumnos** | Filtran a quien deben; el elegible sale de aplicarlos, no de un default | `calc_muestra_aulas.R` · pestaña Criterios | ◐ **con observación** |
 | E3 | **Criterios de curso-horario** | **Que funcionen de verdad** — Gonzalo lo subraya | `calc_muestra_aulas_catalogo*` · `FacultadDecisionBloque` | ☐ |
-| E4 | **Cálculo de la muestra** | El n sale de la fórmula declarada y coincide con lo que publica la UI | `calc_muestra_engine.R` · `CalculoPropuestasTab` | ☐ |
+| E4 | **Cálculo de la muestra** | El n sale de la fórmula declarada y coincide con lo que publica la UI | `calc_muestra_engine.R` · `CalculoPropuestasTab` | ☑ **pasa** |
 | E5 | **Cuotas de hombres y mujeres por facultad** | Se calculan por facultad y suman lo que deben | `calc_muestra_aulas.R` · `CursosHorarioSexo` | ☐ |
 | E6 | **Cuota general por facultad** | Coherente con E5: la general no contradice el desglose por sexo | idem | ☐ |
 | E7 | **Alumnos elegibles por curso-horario** | El elegible por CH es calculable y trazable a E2 | `calc_muestra_aulas.R` | ☐ |
@@ -292,6 +292,52 @@ de ser lo que sostiene la exclusión de posgrado.
 ESCUELA DE ESTUDIOS ESPECIALES con 0 aulas incluidas **NO es un problema**: está
 excluida por diseño. El universo real son **15 facultades**, no 17. La tabla de
 E1 se lee sin esas dos filas.
+
+## E4 — Cálculo de la muestra · **pasa**, y el reparto por facultad existe
+
+El estudio real tiene **dos componentes**, ambos con las 15 facultades como
+estratos, y cada uno reparte:
+
+| | Universidad (conglomerado) | Facultad (estratificado independiente) |
+|---|---:|---:|
+| n objetivo | 2.500 | 4.986 |
+| n operativo | 3.750 | 5.984 |
+| **Aulas** | **177 base + 92 extra = 269** | **478** |
+
+La estimación de Gonzalo —«190 o 200»— encaja con la variante de universidad,
+que pide **177 aulas base**.
+
+**Aviso de instrumentación**: el reparto NO vive en `resultado$estratos` —ese
+campo no existe— sino en `distribucion_estratos` y `aulas_por_estrato`. Mi
+primera medición dio NA en las 15 por buscar donde no era.
+
+### El cruce que importa: requeridas contra existentes (variante por facultad)
+
+| Facultad | Requiere | Tiene (E1) | Consume |
+|---|---:|---:|---:|
+| **LETRAS Y CIENCIAS HUMANAS** | **16** | **16** | **100 %** |
+| CIENCIAS CONTABLES | 14 | 19 | 74 % |
+| EDUCACION | 14 | 19 | 74 % |
+| ARQUITECTURA Y URBANISMO | 36 | 56 | 64 % |
+| ARTES ESCÉNICAS | 28 | 45 | 62 % |
+| GASTRONOMÍA, HOTELERÍA Y TURISMO | 10 | 17 | 59 % |
+| ARTE Y DISEÑO | 35 | 63 | 56 % |
+| GESTIÓN Y ALTA DIRECCIÓN | 35 | 119 | 29 % |
+| PSICOLOGÍA | 30 | 100 | 30 % |
+| CIENCIAS SOCIALES | 38 | 169 | 22 % |
+| CIENCIAS Y ARTES DE LA COMUN. | 33 | 162 | 20 % |
+| ESTUDIOS GENERALES CIENCIAS | 47 | 319 | 15 % |
+| ESTUDIOS GENERALES LETRAS | 47 | 330 | 14 % |
+| DERECHO | 46 | 440 | 10 % |
+| CIENCIAS E INGENIERIA | 49 | 592 | 8 % |
+
+**LETRAS Y CIENCIAS HUMANAS necesita las 16 aulas que tiene**: todas titulares,
+**cero reemplazos posibles**. CONTABLES y EDUCACIÓN quedan con 5 aulas de margen
+para 14 titulares, muy por debajo de las 11 reservas por titular del diseño.
+
+Esto explica desde arriba lo que se midió desde abajo: la cadena se rompía a 190
+titulares no por falta global de aulas, sino porque **las facultades chicas se
+agotan**. Ahora se sabe cuáles y cuánto.
 
 ## Lo que ya sabemos, para no reinvestigarlo
 
