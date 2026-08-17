@@ -563,11 +563,11 @@ function renderAulasView(
 
 export default function AulasMonitoreoPage() {
   const [state, setState] = useState<MonitoreoState | null>(null);
-  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS));
+  const [seccionActiva, setActiveView] = useState<MonitoreoSeccion>(() => seccionInicialMonitoreo("fuentes", AULAS_WORKBENCH_VIEWS));
   // Una pestaña activa POR SECCIÓN: volver a una sección la reencuentra donde
   // se dejó, en vez de reiniciarla.
   const [pestanaPorSeccion, setPestanaPorSeccion] = useState<Record<string, string>>(() => {
-    const inicial = seccionInicialMonitoreo("avance", AULAS_WORKBENCH_VIEWS);
+    const inicial = seccionInicialMonitoreo("fuentes", AULAS_WORKBENCH_VIEWS);
     const mapa: Record<string, string> = {};
     for (const def of AULAS_WORKBENCH_VIEWS) {
       const claves = pestanasDe(def.key).map((item) => item.key);

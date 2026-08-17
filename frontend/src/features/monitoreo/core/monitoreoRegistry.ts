@@ -173,12 +173,16 @@ export const TERRITORIAL_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "ocurrencias", label: "Ocurrencias de campo", shortLabel: "Ocurrencias", desc: "Estados y UMP", icon: ClipboardCheck },
 ];
 
+// El orden es el del trabajo, y es el mismo de telefónico y territorial: de
+// dónde viene el dato, cómo se organizó el campo, si lo recogido está bien, qué
+// hay que revisar caso a caso y, AL FINAL, cómo vamos. Aulas era la excepción
+// —tenía Avance tercero y Consultas al final— y esa excepción no la pedía nada.
 export const AULAS_WORKBENCH_VIEWS: MonitoreoSeccionDefinicion[] = [
   { key: "fuentes", label: "Fuentes", shortLabel: "Fuentes", desc: "Plan, agenda y respuestas", icon: PlugZap },
   { key: "modelo", label: "Agenda de cursos-horario", shortLabel: "Agenda", desc: "Horario, responsable, enlaces y QR", icon: CalendarRange },
-  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cursos-horario aplicados, cuotas y brechas", icon: BarChart3 },
   { key: "calidad", label: "Validación", shortLabel: "Validación", desc: "Recolector, curso-horario, horarios y duplicados", icon: ShieldAlert },
   { key: "consultas", label: "Consultas", shortLabel: "Consultas", desc: "Trazabilidad por curso-horario", icon: Search },
+  { key: "avance", label: "Avance", shortLabel: "Avance", desc: "Cursos-horario aplicados, cuotas y brechas", icon: BarChart3 },
 ];
 
 export const PESTANAS_MODELO_OPERATIVO: PestanaModeloOperativoDefinicion[] = [
