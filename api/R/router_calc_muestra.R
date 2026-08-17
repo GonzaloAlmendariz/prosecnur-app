@@ -317,7 +317,14 @@
       # criterios» y no sólo si salen los mismos números. Va DENTRO de `aulas`
       # —y no al lado de `referencia_asistencia`— porque es la referencia de los
       # criterios del marco de aulas y ahí la consumen las tarjetas.
-      referencia_criterios = s$calc_muestra_referencia_criterios %||% NULL,
+      # Si la sesion cargo el historico ANTES de que existiera este bloque, la
+      # referencia de criterios no esta guardada aunque el dato SI viaje en la
+      # de asistencia. Se rescata al servir; ver
+      # calc_muestra_referencia_criterios_rescate.R.
+      referencia_criterios = s$calc_muestra_referencia_criterios %||%
+        calc_muestra_referencia_criterios_desde_asistencia(
+          s$calc_muestra_referencia_asistencia
+        ),
       salud_criterios = calc_muestra_aulas_salud_criterios(
         s$calc_muestra_aulas_frame %||% NULL,
         s$calc_muestra_aulas_config %||% NULL
