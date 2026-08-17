@@ -140,7 +140,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L68** | El gate visual del contrato **nunca miró los cinco gráficos**, y al mirarlo apareció que **aulas no importaba `monitoreo.css`**. | 4 `capacity-drift` (C3); el aviso de recorte salía como texto de cuerpo en todo el perfil. | ☑ **hecho** (2026-08-16) — la regla se muda a `profilePage.css`, que sí ven los cuatro perfiles. Queda 3–4 px de `.mon-profile-panel-head`, chrome compartido que este ítem no causó. |
 | **L69** | **Materiales se declaraba lista mientras cargaba.** Es la superficie donde se producen las fichas QR del circuito. | `RecopiladoresShell` derivaba `auditReady` de **su** `loading` —el del plan— y `MaterialsSection` tiene el suyo para la plantilla. Todo QA visual de esa vista medía el esqueleto: 124 px de vacío y «Leyendo plantilla semántica…». | ☑ **hecho** (2026-08-16) — la sección avisa su carga al shell. Gate de `ok=false` a **`ok=true`**, verificado invirtiéndolo. |
 | **L70** | **El lenguaje no es el del equipo.** «Estado del circuito» y otras expresiones son mías, no del operativo. | Ya existe un lenguaje referencial en los Excels —`STATUS MUESTRA`, `STATUS DE APLICACIÓN`, `VALIDO TOTAL`, `CANTIDAD DE EFECTIVAS`, `DUPLICADOS (YA RESPONDIERON)`, `NÚMERO DE INTENTOS`— y hay que mantener esa línea. | ☐ **pedido de Gonzalo (2026-08-17)** |
-| **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab` (`key, label, detail, icon, badge, estado`); aulas usa un `GlidingTabList` superior. **Es criterio de toda la app y lo rompí yo.** | ☐ **pedido de Gonzalo (2026-08-17)** |
+| **L71** | **Las pestañas son un rail lateral con íconos, no píldoras arriba.** | Telefónico y acreditación usan `MonitoreoWorkbenchRailTab`; aulas usaba un `GlidingTabList` superior. | ☑ **hecho** (2026-08-17) — rail montado con el chrome compartido; navegación y URL enlazable verificadas. |
 | **L72** | **Falta expresividad visual.** Las tablas están bien pero la vista no expresa. | Pedido textual: «tiene que tener mucha mayor expresividad visual, algo que de momento no lo tiene». | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L73** | **El orden de las secciones no sigue la lógica del trabajo.** | El **avance va al final**; **consultas no va al final**. Fuentes y agenda al principio está bien. | ☐ **pedido de Gonzalo (2026-08-17)** |
 | **L74** | **Avance tiene que mostrar las cuotas, de forma sencilla y dinámica.** | Cómo vamos completando **cuotas por facultad**, **cuotas a nivel general** y **cuotas desagregadas por sexo**. | ☐ **pedido de Gonzalo (2026-08-17)** |
@@ -1088,3 +1088,42 @@ RESPONDIERON)`, `MEDIO DE CONTACTO`, `NÚMERO DE INTENTOS`, `OBSERVACIONES`. Mi
 
 **El loop pasa a iterar sobre esto**, que es trabajo de producto, en vez de
 seguir barriendo módulos vecinos.
+
+
+### 2026-08-17 — L71: el rail, y dos cosas que sólo se ven al montarlo
+
+Las pestañas de aulas ya son el **rail lateral con íconos** de la casa. Tres
+piezas, y las dos últimas no estaban previstas:
+
+1. **`railDeAulas.ts`** construye las pestañas desde el catálogo de navegación,
+   que ya trae `key`, `label`, `detail` e `icon`. Sólo se añade lo que depende de
+   los datos. Duplicar los rótulos habría creado una segunda verdad.
+2. **El rail no se coloca solo.** Puesto como hermano dentro del `<main>` propio
+   de aulas cayó como columna **encima** del contenido. Quien lo coloca es
+   `MonitoreoWorkbenchChrome`, que es lo que usan los otros perfiles. Al adoptarlo
+   se hereda además el bloque «Cómo se está trabajando», que aulas no tenía.
+3. **El chrome antepone un hijo y el grid contaba filas.** `.mon-profile-content`
+   declaraba `auto minmax(0,1fr)`; con el bloque de calidad delante, el banner de
+   KPIs perdió su fila y **la cabecera del primer panel quedó solapada sobre los
+   KPIs**. Ahora es columna flexible: el número de hijos deja de importar.
+
+**Y el `badge` significaba otra cosa.** Le puse el total de filas y el rail lo
+lee como «casos pendientes» —así lo documenta `ContextTabRail` y así lo anuncia:
+«196 pendientes» en una pestaña donde no falta nada—. Corregido a lo que de
+verdad queda por hacer, que además es el lenguaje correcto:
+
+```
+Resumen   · 91 pendientes   (cursos-horario bajo su meta)
+Estratos  ·  6 pendientes   (estratos con brecha)
+Cuotas    · 10 pendientes   (celdas que no llegaron)
+```
+
+Verificado en pantalla a 3700 respuestas: el rail a la izquierda, clic en Cuotas
+mueve la dirección a `monitoreo/aulas/avance/cuotas` y la URL sigue siendo
+`?modo=aulas&seccion=avance&pestana=cuotas`.
+
+Un test de contrato tuvo que actualizarse: comprobaba **el mecanismo** —la clase
+escrita en el `className` de un `<section>`— y ahora la aplica el chrome por
+`contentClassName`. La intención que protege —que el modificador sea exclusivo de
+Fuentes— sigue comprobada, y se le añadió la protección nueva: que el contenido
+**no cuente filas**, que es lo que se acaba de romper.
