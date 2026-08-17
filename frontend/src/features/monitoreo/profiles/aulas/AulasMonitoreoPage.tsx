@@ -39,7 +39,8 @@ import {
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
-import { GlidingTabList } from "../../../../components/GlidingTabList";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail } from "../../components";
+import { railDeAulas } from "./railDeAulas";
 import {
   aulasFieldLabel,
   presentAulasRow,
@@ -770,23 +771,51 @@ export default function AulasMonitoreoPage() {
         }}
       />
 
-      <main className="mon-profile-workbench">
-        <aside className="mon-profile-sidebar">
-          <div className="mon-profile-context">
-            <span>SECCIÓN ACTIVA</span>
-            <strong>Cursos-horario</strong>
-            <small>{activeDef.label}</small>
-          </div>
-          <div className="mon-profile-readiness">
-            <span>{dashboard ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}</span>
-            <div>
-              <strong>{dashboard ? "Vista lista" : "Preparando vista"}</strong>
-              <small>{dashboard?.schema ?? "Memoria local"}</small>
-            </div>
-          </div>
-        </aside>
+      {/* Las pestañas viven en el RAIL lateral con íconos, no en píldoras
+          arriba: es el patrón de telefónico y acreditación y criterio de toda la
+          app. Aulas tenía la gramática correcta —módulo → modo → sección →
+          pestaña— con el patrón visual equivocado. Los rótulos y los íconos
+          salen del catálogo de navegación; el rail sólo añade contador y estado.
 
-        <section className={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}>
+          El chrome compartido es quien coloca el rail a la izquierda: con un
+          `<main>` propio el rail caía como columna encima del contenido. Se le
+          pasan las clases de aulas (`mainClassName`/`contentClassName`) para no
+          perder la hoja del perfil, que gobierna stacks, tablas y gráficos. */}
+      <MonitoreoWorkbenchChrome
+        seccionActiva={seccionActiva}
+        ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
+        className="is-aulas"
+        mainClassName="mon-profile-workbench"
+        contentClassName={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}
+        contentRole="tabpanel"
+        contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
+        scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
+        head={null}
+        rail={(
+          <MonitoreoWorkbenchRail
+          pestanaActiva={pestanaActiva}
+          activeSection={{ label: activeDef.label, desc: activeDef.desc ?? "Vista operativa", icon: activeDef.icon }}
+          seccionActiva={seccionActiva}
+          ariaLabel={`Mesa de trabajo de cursos-horario: ${activeDef.label}`}
+          className="is-aulas"
+          emptyDetail={activeDef.desc ?? "Vista operativa"}
+          iconOnlyTabs
+          localTabs={railDeAulas(seccionActiva, dashboard)}
+          modeCountLabel={`${pestanasDe(seccionActiva).length || 1} pestañas`}
+          routeLabel="Cursos-horario"
+          routeSectionLabel="Cursos-horario · sección"
+          routeShortLabel="Cursos-horario"
+          statusAriaLabel="Última actualización del monitoreo"
+          statusItems={[{
+            label: "Última actualización",
+            value: state?.synced_at || "Sin actualización",
+            ready: Boolean(state?.synced_at),
+          }]}
+          onCambioPestana={(key) => elegirPestana(seccionActiva, key)}
+        />
+        )}
+      >
+
           <AulasKpiBand dashboard={dashboard} />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
@@ -806,33 +835,6 @@ export default function AulasMonitoreoPage() {
             aria-labelledby={pestanaActiva ? `aulas-mon-tab-${pestanaActiva}` : undefined}
           >
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
-            {pestanasDe(seccionActiva).length ? (
-              <GlidingTabList
-                activeKey={pestanaActiva}
-                className="aulas-mon-tabs"
-                role="tablist"
-                aria-label={`Pestañas de ${activeDef.label}`}
-              >
-                {pestanasDe(seccionActiva).map((pestana) => (
-                  <button
-                    key={pestana.key}
-                    id={`aulas-mon-tab-${pestana.key}`}
-                    type="button"
-                    role="tab"
-                    aria-controls={`aulas-mon-panel-${pestana.key}`}
-                    data-gliding-key={pestana.key}
-                    data-nav-item=""
-                    data-nav-shape="pill"
-                    data-nav-state={pestanaActiva === pestana.key ? "selected" : undefined}
-                    aria-selected={pestanaActiva === pestana.key}
-                    className={pestanaActiva === pestana.key ? "is-active" : ""}
-                    onClick={() => elegirPestana(seccionActiva, pestana.key)}
-                  >
-                    {pestana.label}
-                  </button>
-                ))}
-              </GlidingTabList>
-            ) : null}
             {loading ? (
               <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
             ) : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
@@ -878,8 +880,7 @@ export default function AulasMonitoreoPage() {
               pestanaActiva,
             )}
           </div>
-        </section>
-      </main>
+      </MonitoreoWorkbenchChrome>
     </div>
   );
 }

@@ -7,8 +7,24 @@
    ganar en igualdad de especificidad. */
 
 .mon-profile-page.is-aulas-flow .mon-profile-content {
-  grid-template-rows: auto minmax(0, 1fr);
+  /* Flex, no grid de filas contadas. El chrome compartido puede anteponer un
+     hijo —el bloque de calidad de campo— y con `auto minmax(0,1fr)` ese hijo se
+     llevaba la fila del banner de KPIs: medido, la cabecera del primer panel
+     quedaba solapada sobre los KPIs. En columna flexible cada bloque toma lo
+     suyo y el último crece, sin depender de cuántos hijos haya. */
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .mon-profile-content > * {
+  flex: 0 0 auto;
+}
+
+/* El último bloque —la superficie de datos— es el que se queda el resto. */
+.mon-profile-page.is-aulas-flow .mon-profile-content > .aulas-mon-view {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .mon-profile-page.is-aulas-flow .mon-profile-content.has-aulas-flow {

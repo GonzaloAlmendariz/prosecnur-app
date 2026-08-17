@@ -130,12 +130,19 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
 
   test("reserva el diagrama general para Fuentes y entrega las demás secciones a sus datos", () => {
     expect(aulasPage).toMatch(/seccionActiva\s*===\s*"fuentes"\s*\?\s*\(\s*<AulasApplicationFlow/);
-    expect(aulasPage).toContain('className={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}');
+    // La clase la aplica ahora el chrome compartido por `contentClassName`: el
+    // mecanismo cambió al mover las pestañas al rail lateral, la intención no
+    // —el modificador sigue siendo exclusivo de Fuentes—.
+    expect(aulasPage).toContain('contentClassName={`mon-profile-content${seccionActiva === "fuentes" ? " has-aulas-flow" : ""}`}');
+    // Y el contenido dejó de contar filas: el chrome puede anteponer un hijo
+    // —el bloque de calidad de campo— y con `auto minmax(0,1fr)` ese hijo se
+    // llevaba la fila del banner de KPIs. En columna flexible el número de hijos
+    // deja de importar, que es justo lo que este test tiene que proteger.
     expect(aulasCss).toMatch(
-      /\.mon-profile-page\.is-aulas-flow \.mon-profile-content\s*\{[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/s,
+      /\.mon-profile-page\.is-aulas-flow \.mon-profile-content\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s,
     );
     expect(aulasCss).toMatch(
-      /\.mon-profile-page\.is-aulas-flow \.mon-profile-content\.has-aulas-flow\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\);/s,
+      /\.mon-profile-page\.is-aulas-flow \.mon-profile-content > \.aulas-mon-view\s*\{[^}]*flex:\s*1 1 auto;/s,
     );
   });
 
