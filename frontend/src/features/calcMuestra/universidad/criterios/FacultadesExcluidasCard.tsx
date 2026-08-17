@@ -14,12 +14,13 @@
  */
 import { useMemo } from "react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/calcMuestra";
-import type { FacultadMinRef } from "./MinElegiblesCard";
+import type { FacultadRef } from "./facultades";
 import { fmtInt } from "../../sharedCore";
 
 export type FacultadesExcluidasCardProps = {
   config: CalcMuestraWorkspaceAulasConfig;
-  facultades: FacultadMinRef[];
+  /** Facultades DEL MARCO (perfil del motor), no del catálogo de alumno. */
+  facultades: FacultadRef[];
   onPatch: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
 };
 
@@ -52,15 +53,12 @@ export function FacultadesExcluidasCard({
   const filas = useMemo(
     () =>
       facultades.map((f) => ({
-        ...f,
+        key: f.key,
+        label: f.label,
         excluida: estaExcluida(f.label, excluidas),
       })),
     [facultades, excluidas],
   );
-
-  const aulasFuera = filas
-    .filter((f) => f.excluida)
-    .reduce((suma, f) => suma + (f.aulas ?? 0), 0);
 
   function alternar(label: string, excluir: boolean) {
     const resto = excluidas.filter((nombre: string) => claveFacultad(nombre) !== claveFacultad(label));
@@ -95,7 +93,6 @@ export function FacultadesExcluidasCard({
                   />
                   <span>{f.label}</span>
                 </label>
-                <small>{f.aulas == null ? "sin aulas contadas" : `${fmtInt(f.aulas)} aulas`}</small>
               </li>
             ))}
           </ul>
@@ -103,8 +100,10 @@ export function FacultadesExcluidasCard({
             {excluidas.length === 0
               ? "Ninguna facultad excluida: el marco las considera todas."
               : `${fmtInt(excluidas.length)} ${
-                  excluidas.length === 1 ? "facultad excluida" : "facultades excluidas"
-                }, ${fmtInt(aulasFuera)} aulas fuera del marco.`}
+                  excluidas.length === 1
+                    ? "facultad excluida del marco"
+                    : "facultades excluidas del marco"
+                }.`}
           </p>
         </>
       )}
