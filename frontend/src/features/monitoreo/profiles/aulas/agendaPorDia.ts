@@ -1,6 +1,6 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { COLOR_AULA_LISTA } from "./estadoDeAplicacion";
+import { TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
 
 /**
  * La agenda leída como agenda: qué día se aplica cada curso-horario.
@@ -15,8 +15,9 @@ import { COLOR_AULA_LISTA } from "./estadoDeAplicacion";
  * estado— y las barras son CSS, sin Plotly, porque esta sección no debe
  * arrastrar el bundle de gráficos.
  *
- * **Los cuatro tramos son los mismos de Avance** (`estadoDeAplicacion`), con el
- * mismo color: dos lecturas del mismo hecho no pueden pintar distinto.
+ * **Los tramos son los mismos de Avance** —se IMPORTAN de `estadoDeAplicacion`,
+ * no se copian—: dos lecturas del mismo hecho no pueden pintar distinto ni
+ * conocer vocabularios diferentes.
  */
 
 export type TramoDelDia = {
@@ -39,12 +40,10 @@ export type DiaDeAgenda = {
   sinEmpezar: number;
 };
 
-const TRAMOS = [
-  { clave: "pendiente", etiqueta: "Sin agendar", color: COLOR_RESULTADO.pendiente },
-  { clave: "lista", etiqueta: "Agendada", color: COLOR_AULA_LISTA },
-  { clave: "en_aplicacion", etiqueta: "Aplicada", color: COLOR_RESULTADO.parcial },
-  { clave: "cerrando", etiqueta: "Cumple", color: COLOR_RESULTADO.efectiva },
-] as const;
+// Los tramos NO se declaran aquí: son los mismos de Avance y duplicarlos ya
+// costó lo suyo. Al añadir «Reemplazada» al motor, esta copia no la conocía y
+// la vista mostraba «Sin clasificar 2» — la salida declarada hizo su trabajo y
+// no perdió las aulas, pero el vocabulario tenía dos dueños. Ahora uno.
 
 const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
@@ -90,11 +89,11 @@ export function agendaPorDia(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   }
 
   const dias: DiaDeAgenda[] = [...porFecha.entries()].map(([fecha, propias]) => {
-    const tramos: TramoDelDia[] = TRAMOS.map((t) => ({ ...t, aulas: 0 }));
+    const tramos: TramoDelDia[] = TRAMOS_DE_APLICACION.map((t) => ({ ...t, aulas: 0 }));
     let desconocidas = 0;
     for (const fila of propias) {
       const clave = texto(fila.application_state);
-      const indice = TRAMOS.findIndex((t) => t.clave === clave);
+      const indice = TRAMOS_DE_APLICACION.findIndex((t) => t.clave === clave);
       // Misma salida declarada que en Avance: un estado nuevo del motor se
       // cuenta aparte en vez de desaparecer del reparto.
       if (indice < 0) desconocidas += 1;
