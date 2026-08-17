@@ -68,3 +68,51 @@ test_that("un estudio sin aulas por estrato no revienta ni inventa filas", {
   expect_null(out$componentes[[1]]$resultado$aulas_por_estrato)
   expect_equal(calc_muestra_alumnos_por_ch_adjuntar_auditoria(list(), NULL), list())
 })
+
+# --- Decision en blanco vs decision a medias ---------------------------------
+# El proyecto real de HSVG2026 guarda la decision con los SEIS campos vacios.
+# Como el objeto EXISTE no caia en la rama de compatibilidad y el resolutor lo
+# trataba como CORRUPTO: 409 `schema_invalido`, «La decision de alumnos por CH
+# esta incompleta o usa un schema desconocido». El estudio no se podia calcular
+# y el mensaje no decia como salir.
+
+.apcha_blanco <- function() list(
+  schema = "", frame_hash = "", denominador = "",
+  estadistico_default = "", por_facultad = list(), confirmado_at = ""
+)
+
+test_that("la decision del proyecto real se reconoce EN BLANCO", {
+  expect_true(.cm_alumnos_por_ch_decision_en_blanco(.apcha_blanco()))
+  expect_true(.cm_alumnos_por_ch_decision_en_blanco(NULL))
+  expect_true(.cm_alumnos_por_ch_decision_en_blanco(list()))
+})
+
+test_that("una decision A MEDIAS no es una decision en blanco", {
+  # Alguien empezo a decidir: eso SI debe seguir dando 409, no colarse como
+  # ausente. Es la diferencia entre «no tocado» y «mal llenado».
+  for (campo in c("schema", "frame_hash", "denominador", "estadistico_default", "confirmado_at")) {
+    parcial <- .apcha_blanco()
+    parcial[[campo]] <- "algo"
+    expect_false(
+      .cm_alumnos_por_ch_decision_en_blanco(parcial),
+      info = paste("campo con contenido:", campo)
+    )
+  }
+  con_facultad <- .apcha_blanco()
+  con_facultad$por_facultad <- list(derecho = "p25")
+  expect_false(.cm_alumnos_por_ch_decision_en_blanco(con_facultad))
+})
+
+test_that("un estudio con la decision en blanco CALCULA en vez de fallar", {
+  # El desbloqueo end-to-end: antes esto lanzaba 409.
+  estudio <- list(
+    workspace = list(
+      frame_mode = "opinion_universitaria",
+      aulas_config = list(alumnos_por_ch_decision = .apcha_blanco())
+    ),
+    componentes = list()
+  )
+  resuelto <- calc_muestra_alumnos_por_ch_resolver_estudio(estudio)
+  expect_null(resuelto$auditoria)
+  expect_true(is.list(resuelto$estudio))
+})

@@ -389,8 +389,13 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
     return(list(estudio = estudio, auditoria = NULL))
   }
   decision <- (workspace$aulas_config %||% list())$alumnos_por_ch_decision
-  # Compatibilidad explícita con proyectos previos al contrato v1.
-  if (is.null(decision)) return(list(estudio = estudio, auditoria = NULL))
+  # Compatibilidad explícita con proyectos previos al contrato v1, y con los que
+  # guardan la estructura EN BLANCO sin haber decidido nada: una decisión con
+  # los seis campos vacíos es indistinguible de una ausente, y tratarla como
+  # corrupta dejaba el estudio sin poder calcularse.
+  if (.cm_alumnos_por_ch_decision_en_blanco(decision)) {
+    return(list(estudio = estudio, auditoria = NULL))
+  }
   decision <- .cm_alumnos_por_ch_normalize_decision(decision)
 
   if (!identical(decision$schema, .cm_alumnos_por_ch_decision_schema)) {
