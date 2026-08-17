@@ -22,16 +22,49 @@
 
 # Barras por lamina a partir de las cuales se parte.
 #
-# Sale de medir el entregable aprobado, no de un calculo propio: ninguno de sus
-# graficos pasa de siete barras. El 9 anterior lo habia derivado del piso de
-# grosor —2.87 in utiles entre 0.32— y ese piso tambien era inventado: el
-# aprobado no lo cumple.
+# Sale de medir el entregable aprobado, no de un calculo propio. El 9 original
+# lo habia derivado de un piso de grosor —2.87 in utiles entre 0.32— que era
+# inventado y que el aprobado no cumple.
 #
-# Se usa su MAXIMO y no su percentil alto: con seis, el mazo pasaba de 63 a 73
-# laminas, partiendo lo que el entregable no partia. Un techo por debajo de lo
-# que hace la referencia deja de medir conformidad.
+# EL 7 MEDIA OTRA COSA. `calibrar_umbrales()` devuelve
+# `barras_por_grafico = 7`, y ese 7 es el maximo del aprobado POR GRAFICO:
+# `medir_mazo()` agrupa barras contiguas de una misma paleta. Pero esta
+# constante se aplica POR LAMINA, sobre `sum(tam)` de todas las premisas. Una
+# lamina del aprobado como «Bienestar universitario» lleva TRES bloques de
+# cuatro publicos —doce barras—, y cada bloque cuenta como un grafico de cuatro.
+# Un maximo por grafico usado como techo por lamina parte lo que la referencia
+# no parte.
 #
-# Ver `calibrar_umbrales()` en `graficos_verificar_mazo.R`.
+# Medido sobre el aprobado contando TODAS sus filas de barra por lamina, con la
+# maquinaria de `.verif_graficos()` sobre las dos paletas: maximo 12, y NUEVE de
+# sus laminas llevan ocho o mas (2 con 8, 3 con 10, 1 con 11, 3 con 12).
+#
+# El coste del 7 estaba medido y no atribuido: el mazo generado salia con 73
+# laminas contra las 63 del aprobado, su moda era de cuatro barras por lamina, y
+# el contenido moria al 85.7 % de la zona util contra el 96.5 % del aprobado
+# —73 % de sus laminas dejaban mas de un decimo del alto muerto abajo, contra el
+# 8 % de la referencia—. Con menos barras en el mismo panel, cada barra engorda:
+# de ahi tambien parte de B3 y B4.
+#
+# Se usa su MAXIMO y no su percentil alto: un techo por debajo de lo que hace la
+# referencia deja de medir conformidad.
+#
+# Y AUN ASI SIGUE EN 7. Subirlo a 12 se probo y se descarto con dos medidas:
+#
+#   - La vara subio de 21 a 22. Aparece `R2 barras por grafico`, y con razon:
+#     el aprobado pone doce barras en una lamina como TRES bloques de cuatro,
+#     con su separacion y su leyenda cada uno. El motor las junta en UN bloque
+#     de doce, que es algo que el aprobado no hace en ninguna lamina.
+#   - Y no arreglo lo que apuntaba. El mazo bajo de 73 laminas a 69, pero el
+#     contenido paso de morir al 85.7 % de la zona util a morir al 86.2 %, con
+#     el 71 % de sus laminas por debajo del 90 % contra el 73 % de antes. La
+#     mitad inferior vacia NO la causa el techo: sobra sitio con cuatro barras
+#     igual que con doce, asi que el panel no llena su hueco pase lo que pase
+#     con cuantas filas tenga.
+#
+# Lo que falta para llegar a las laminas de 8 a 12 barras del aprobado —nueve de
+# las suyas— no es techo: es que una lamina componga VARIOS bloques de hasta
+# siete, que es una capacidad que el motor no tiene.
 .PARTICION_MAX_BARRAS <- 7L
 
 # Sufijo del titulo de las laminas de continuacion.
