@@ -711,6 +711,31 @@
 }
 
 
+/* Aviso de la vista: algo que pasó y conviene saber, sin ser un fallo.
+ *
+ * Material propio y NO el de `.mon-profile-error`: importar un libro al que le
+ * falta una hoja es una importación que funcionó, y pintarla en rojo la lee como
+ * un error. Mismo radio y borde que el resto del perfil; el tono lo pone sólo el
+ * ícono. */
+.aulas-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 14px;
+  background: var(--pulso-surface-2);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--pulso-text);
+}
+
+.aulas-aviso svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--pulso-warn-fg);
+}
+
 /* «Base de control»: el bloque de la tercera hoja del libro.
  *
  * Tercer eslabón del mismo mínimo automático —stack, panel y ahora este bloque—.
