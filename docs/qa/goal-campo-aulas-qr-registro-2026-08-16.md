@@ -137,7 +137,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L65** | El circuito no se ha probado con **3700 registros**. | Medido: el motor aguanta —tablero 0,71 s, `.pulso` 0,29 s para guardar y 0,62 s para abrir— porque el trabajo escala con las **aulas**, no con las respuestas. Lo que no aguanta es el **payload**: 1,3 MB y 2,9 s por petición de estado. | ◐ a medias (2026-08-16) — motor medido y holgado; el transporte es el cuello. |
 | **L66** | El **plan viajaba tres veces** en cada petición de estado. | Dos copias declaradas y una escondida: `brechas` era un clon completo del plan. | ☑ **hecho** (2026-08-16) — **1377 → 934 → 601 KB** y **2,4 → 1,6 s**. Queda una sola copia, `dashboard.agenda`, que es superconjunto de la que se fue. |
 | **L67** | Releer el libro **borraba la composición muestral**. | La importación hacía `session_set("monitoreo_aulas_plan", out$plan)`: el plan del libro **reemplazaba** al de la muestra, y el libro no lleva `sex_top_*` porque es un artefacto de campo. Medido: **12 celdas de cuota antes, 0 después**, y la representatividad saltaba a 100 % por no poder calcular desviación. | ☑ **hecho** (2026-08-16) — fusión por código con lista de campos **propios del libro**. Verificado: 12 celdas antes y 12 después. |
-| **L68** | El gate visual del contrato **nunca miró los cinco gráficos**. | Al pasarlo: 4 `capacity-drift` (C3) en los paneles de Avance. | ◐ a medias (2026-08-16) — **la parte de los gráficos está cerrada**: 155 → 129 px, hueco 16 → **0**. Queda 3–4 px en `.mon-profile-panel-head`, chrome compartido de todo Monitoreo. |
+| **L68** | El gate visual del contrato **nunca miró los cinco gráficos**, y al mirarlo apareció que **aulas no importaba `monitoreo.css`**. | 4 `capacity-drift` (C3); el aviso de recorte salía como texto de cuerpo en todo el perfil. | ☑ **hecho** (2026-08-16) — la regla se muda a `profilePage.css`, que sí ven los cuatro perfiles. Queda 3–4 px de `.mon-profile-panel-head`, chrome compartido que este ítem no causó. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -714,3 +714,38 @@ distintos**, así que el «bajó de 4 a 2» del turno anterior comparaba dos
 fotografías que no medían lo mismo. Sus conteos sólo son comparables si el número
 de grupos coincide; si no, hay que mirar los **miembros** de cada hallazgo, que es
 lo que aquí demostró el avance real.
+
+
+### 2026-08-16 — el hueco era una hoja que aulas nunca importó
+
+El rastro completo, y cada paso corrigió al anterior:
+
+1. El gate marcó `capacity-drift` de 16 px en los paneles de gráfico.
+2. Teoricé dos turnos sobre `grid-template-rows: 1fr auto`. **Falso**: el grid no
+   tenía nada que ver.
+3. La nota computaba `margin: 16px 0` contra los `6px 0 0` declarados. Lo tapé en
+   la hoja de aulas y el hueco se fue.
+4. Al buscar quién pisaba el margen: **nadie**. Eran los defaults del navegador
+   para un `<p>`. La nota también salía a **16 px y peso 400**, no a 11/600.
+5. Un `<p class="mon-profile-table-recorte">` inyectado a mano en esa página
+   recibía los mismos defaults. La regla **no aplicaba en absoluto**.
+6. La causa: `.mon-profile-table-recorte` vive en `monitoreo.css`, que importan
+   telefónico, acreditación y territorial —y **no aulas**, cuya página nació del
+   refactor y se quedó sólo con las hojas del perfil—.
+
+Así que no era un defecto de mis gráficos: **todos los avisos de recorte del
+perfil de aulas** —los que dicen «se recortaron N filas / N columnas», que
+existen justamente para que nada desaparezca en silencio— se venían pintando como
+texto de cuerpo en negro. Un aviso que no parece un aviso.
+
+La regla se muda a `profilePage.css`, que sí importan los cuatro. Medido después:
+**11 px, peso 600, margen 6**, y el envoltorio del gráfico en **123 px con hueco
+0** —de los 155 iniciales—.
+
+**Y una trampa de instrumento más, la catorce.** Para saber si la regla llegaba al
+navegador recorrí `document.styleSheets` comparando `selectorText` exacto, y me
+dijo que **ninguna** regla de Monitoreo existía —incluidas las que obviamente
+aplican—. El fallo: un selector agrupado tiene todo el listado en `selectorText`,
+así que la igualdad exacta nunca casa. Estuve a punto de reportar «monitoreo.css
+no se carga». Lo que lo resolvió fue **dejar de interrogar a la hoja y preguntarle
+al elemento**: inyectar un nodo con la clase y leer su estilo computado.

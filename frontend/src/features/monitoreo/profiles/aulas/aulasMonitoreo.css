@@ -684,16 +684,6 @@
   grid-template-rows: auto auto;
 }
 
-/* La nota del gráfico, pegada a su gráfico.
-   `.mon-profile-table-recorte` declara `margin: 6px 0 0` en `monitoreo.css`,
-   pero lo medido en pantalla es `16px 0`: una regla genérica de `p` de una hoja
-   que carga DESPUÉS gana la cascada —el orden real ya mordió antes en este
-   repo—. Los 16 px de abajo son el `capacity-drift` que vio el gate, y los 16 de
-   arriba despegaban la nota del gráfico que describe. Se fija aquí, que es la
-   hoja del feature y va última. */
-.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-estado-chart > .mon-profile-table-recorte,
-.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cobertura-chart > .mon-profile-table-recorte,
-.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cadena-chart > .mon-profile-table-recorte,
-.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cuotas-chart > .mon-profile-table-recorte {
-  margin: 6px 0 0;
-}
+/* La nota del gráfico hereda de `profilePage.css`, donde vive el aviso de
+   recorte. Antes se fijaba aquí porque la regla compartida no llegaba a esta
+   página; ahora sí, y duplicarla sólo crearía dos verdades. */
