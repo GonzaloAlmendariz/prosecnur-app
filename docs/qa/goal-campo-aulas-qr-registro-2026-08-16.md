@@ -163,8 +163,8 @@ una dependencia que el CI tendría que instalar, no un juicio tuyo.)
 
 | Ítem | Qué hay que decidir | Lo aprendido sin tocarlo |
 |---|---|---|
-| **L2** | Cuál es el identificador de campo que viaja a Kobo | **No es un solo productor.** El adapter usa `.ca_unit_value()`, que prefiere `link_key` → `prefill_value` → `logical_collector_id` → `unit_id`: **el plan ya puede decidirlo** poniendo `link_key`, sin tocar `.collection_stable_id()`. Pero la ruta legacy fuerza `prefill = list(collectorID = unit_id)` con el slug interno **aunque el enlace pegado ya traiga `OP-01`**. Hay dos caminos que eligen distinto y el legacy pisa al operador. Cerrar L2 es unificarlos. |
-| **L12** | Qué cuenta como respuesta válida | Falla **abierto** cuando no hay columna de estado —todo cuenta— y **cerrado y en silencio** cuando la hay: declarar `status_var = "_validation_status"` descarta **todas** las respuestas de Kobo, porque Kobo deja esa columna vacía mientras nadie las revisa y `""` no está entre los estados válidos. |
+| **L2** | Cuál es el identificador de campo que viaja a Kobo | **Ya está medido** (ver «La decisión de L2»): con el código operativo la URL baja de 86 a 63 caracteres y el QR de 49×49 a 45×45; el emparejamiento **ya funciona** con él sin tocar el motor; las dos generaciones **conviven**, así que no hay que reimprimir nada; y el hash del slug **no da unicidad entre estudios**, que era el único argumento para conservarlo. |
+| **L12** | Qué estados cuentan como válida en **tu** estudio | **El defecto que había debajo ya está reparado** (ver «Un export de Kobo ponía el avance en cero»): `_status` ya no decide, entra el vocabulario de Kobo y el español, y el tablero **anuncia qué criterio aplicó y a cuántas afecta**. Lo que queda es tuyo: cuál es el correcto para este estudio. |
 | **L34** | Si `VALIDO TOTAL = NO CUMPLE` en **149 de 194 aulas** (77%) es el criterio o el operativo | Lo calcula el propio Excel contra los umbrales 70T/70P. Llevarlo a la app sin saber cuál de los dos falla convertiría un criterio discutible en una alerta permanente. |
 | **L46** | Para qué se usa el conteo **hombres/mujeres** en el aula | Se pide **en papel** (`collection_material_field_form_rows()`) y no está ni en la app ni en el Excel. Puede ser deliberado —el sexo se deriva de las respuestas para las cuotas— o una fuga real. |
 
@@ -451,923 +451,199 @@ Se dejan explícitas porque afectan a lo que se puede dar por cierto:
   de como bug evitó dañar código sano.
 
 ### Deuda de verificación
-**L23**: los números de L15–L22 están respaldados por tests y por la simulación,
-**no por pantalla**. L13 y L14 sí se confirmaron en UI real. Verlos exige montar
-un estudio de aulas completo desde la UI —tres intentos por vías sintéticas
-fallaron, y el obstáculo era el atajo, no el producto—.
 
+Ya no queda: los números de L15–L22 nacieron respaldados sólo por tests y por la
+simulación, y desde entonces el operativo de **196 aulas** se ha recorrido en
+pantalla repetidas veces —avance, cuotas, brechas, reemplazos, registro de campo,
+validación y los cinco gráficos, a 1440×1000 y 1024×600—. Lo que sigue sin
+comprobarse en pantalla es lo que **espera una decisión tuya**, no lo que está
+hecho.
 
-### 2026-08-16 — El circuito contra el operativo real, no contra el extremo
+### Lo medido de punta a punta
 
-Todo lo anterior se probó con cadenas sueltas: una, dos, seis, once. Faltaba el
-estudio **entero**, con la forma que el operativo tuvo de verdad — 170 titulares
-y 26 reemplazos consumidos, 24 en reserva 1 y 2 en reserva 2.
+La costura corre en un simulador de **12 etapas** (`api/scripts/sim_aulas_qr_campo.R`)
+que sale con **exit 0 y sus diez veredictos en TRUE**: selección → enlaces →
+fichas → handoff → libro → registro → cuadre → activación → tablero.
 
-| Paso | Tiempo | Resultado |
-|---|---:|---|
-| Normalizar el plan | 0,2 s | **196 unidades** |
-| Tablero | 0,7 s | 6 estratos · 12 cuotas · 26 reemplazos |
-| Libro ida y vuelta | 0,9 s | 196 → 196, códigos idénticos |
-| Cuadre sobre 170 partes | — | los **2** sembrados, ni uno más |
+Sobre el operativo real de **196 aulas y 3700 respuestas**:
 
-Las 196 unidades coinciden con los 196 partes que el Excel de 2025 tiene. Buena
-señal de que la forma es la correcta.
-
-Dos comprobaciones que sólo tienen sentido a esta escala:
-
-- **Los desgloses no se vacían.** Seis facultades y doce celdas de cuota con
-  196 aulas: sumar sin agrupar habría dado KPI correctos y desgloses vacíos, que
-  es exactamente como se escondió un defecto antes en este GOAL.
-- **El cuadre no genera falsos.** Dos descuadres sembrados entre 170 partes, y
-  encuentra dos: ni uno de más por redondeo, ni uno de menos.
-
-Y el caso **dominante**: en 2025, 146 de 170 titulares no consumieron ningún
-reemplazo. Que el aviso distinga «nunca tuvo reserva» de «se agotó la cadena»
-importa más aquí que en el caso raro — es lo que verá la mayoría de las aulas.
-
-
-### 2026-08-16 — 196 aulas en pantalla, y lo que sólo se ve ahí
-
-El QA visual había mirado nueve aulas. `--escala 2025` en el sembrador pone las
-**196** del operativo real, con sus 26 reservas y 600 respuestas.
-
-Lo primero que apareció: la Agenda mostraba `CH 1` a `CH 80` y **cero reservas**.
-La tabla recorta a 80 filas —y lo declara, «Mostrando 80 de 196»— pero el plan
-ordena las reservas al final, así que el rol y el «reemplaza a» que L57 añadió
-**no se veían nunca** en un estudio de verdad.
-
-El tope existía para no reventar el DOM. Medido: **196 filas con scroll interno
-no lo revientan**, la vista responde igual y se llega al final —las últimas son
-`R 23.1`, `R 24.1`, `R 1.2`, `R 2.2`, cada una con su titular—. Subido a 400,
-que cubre un estudio entero y sigue declarando el recorte si algún día se pasa.
-
-**La lección**: un recorte declarado no es un engaño, pero tampoco es inocuo. Si
-lo que queda fuera es sistemáticamente el mismo tipo de fila —aquí, todas las
-reservas, porque van al final por construcción— el recorte deja de ser un límite
-de tamaño y pasa a ser un filtro que nadie eligió.
-
-Con esto la escala real queda vista en pantalla: 196 cursos-horario, 600
-respuestas, representatividad 95%, 12 celdas de cuota y las 26 reservas
-alcanzables.
-
-
-### 2026-08-16 — L59: alcanzable por clic, no por dirección
-
-El barrido a escala 196 lo destapó: `consultas/reemplazos` salía con **0 filas y
-sin título**, y `consultas/brechas` bien. No era timing —lo comprobé pidiéndola
-sola, tres veces—: **la URL nunca llegaba a `reemplazos`**.
-
-El clic en la pestaña sí funcionaba, y mostraba sus 26 reservas. Eso acota el
-defecto: la vista existe y es correcta; **lo que fallaba era llegar a ella por
-dirección**, que es exactamente lo que el contrato v3 prohíbe.
-
-La causa la introdujo la memoria por sección de L53. Al pedir
-`?seccion=consultas&pestana=reemplazos` estando en `calidad`:
-
-1. la sección pedida difiere → se aplica primero, y la pestaña llega «en el
-   siguiente paso»;
-2. al activar `consultas`, la pestaña activa pasa a ser la **recordada**
-   —`brechas`— y se publica en la URL;
-3. el segundo paso no llega: la URL ya dice `brechas` y no hay diferencia que
-   seguir.
-
-La memoria por sección es útil —volver a una sección la reencuentra donde se
-dejó— pero **no puede ganarle a una dirección explícita**. Ahora `onSeccionPedida`
-lee la pestaña de la misma URL y la aplica junto con su sección.
-
-**Y un aserto mío que afirmaba de más**: escribí que el lector canónico resuelve
-los alias heredados (`tab`, `step`). No los resuelve — lee sólo `pestana`. El
-test lo dice ahora medido en vez de supuesto.
-
-
-### 2026-08-16 — L60: el defecto no era sólo de aulas
-
-Tras reparar L59 quedaba la pregunta obvia: telefónico y acreditación usan el
-mismo hook y también recuerdan pestaña por sección. **No lo di por hecho: lo
-medí** levantando `acrconta`, el proyecto de referencia de acreditación.
-
-- Carga directa por URL: **correcta** — `?seccion=avance&pestana=actores`
-  aterriza en «actores».
-- Salto desde otra sección: **falla** — pedir `avance/detalle` desde Consultas
-  aterriza en `resumen`.
-
-Así que el defecto **no lo introdujo la memoria por sección de L53**: es anterior
-y afecta a dos perfiles que llevan mucho más tiempo en uso que el de aulas.
-
-La reparación va dentro de `navigateSection`, no en un envoltorio del callback,
-porque hay un **test de contrato que analiza el AST** y exige que
-`onSeccionPedida` llame directamente a `setActiveView`, `loadView` y mueva
-`activeViewRef`. Envolverlo lo puso rojo — el contrato existe para que una
-navegación externa cargue el scope, y tenía razón.
-
-Dos detalles que la reparación necesita:
-
-- **La sección de la URL debe coincidir** con la que se activa. Eso distingue
-  «vengo de una dirección» de «vengo de un clic», donde la URL todavía trae la
-  pestaña de la sección anterior y aplicarla sería incorrecto.
-- `changeLocalTab` se declara **después** de `navigateSection`, así que la
-  llamada va por una ref que se rellena tras su declaración. Sin eso, TypeScript
-  rechaza el uso antes de la declaración.
-
-Verificado en pantalla: `?seccion=avance&pestana=detalle` desde Consultas
-selecciona la cuarta pestaña, que es la pedida.
-
-
-### 2026-08-16 — Los cuatro perfiles, no uno
-
-Territorial cerraba el barrido. Medido sobre `acnur_acg`, con sus 1693
-respuestas: pedir `consultas/gps` desde Avance aterrizaba en `duracion` — la
-pestaña recordada de Consultas.
-
-| Perfil | Carga directa | Salto entre secciones |
-|---|---|---|
-| Aulas | ✓ | **fallaba** |
-| Acreditación | ✓ | **fallaba** |
-| Telefónico | ✓ | **fallaba** |
-| Territorial | ✓ | **fallaba** |
-
-Los cuatro comparten la misma forma: memoria de pestaña por sección más un
-`onSeccionPedida` que sólo activa la sección. La pestaña activa de la sección
-nueva se publica en la URL antes de que llegue el segundo paso, y pisa la
-pedida.
-
-**Lo que hace que sea un defecto y no una preferencia**: la carga directa
-funcionaba en los cuatro. Un enlace pegado en frío abría la vista correcta; el
-mismo enlace seguido desde dentro de la app, no. Esa asimetría es la que
-convierte «recordar dónde estabas» en «ignorar lo que te piden».
-
-La condición que evita el falso positivo es la misma en los cuatro: **la sección
-de la URL debe coincidir con la que se activa**, porque en un clic de sección la
-URL todavía trae la pestaña de la anterior.
-
-
-### 2026-08-16 — L61: el contrato que faltaba, y el hueco que encontró
-
-Un defecto presente en **los cuatro perfiles a la vez**, que nadie notó y que
-sólo cubría mi verificación manual, necesita un guard permanente.
-`MonitoringDireccionPestanaContract.test.ts` exige dos propiedades en los
-cuatro:
-
-1. **Leer la pestaña de la URL** al cambiar de sección — sin eso, la recordada
-   de la sección destino la pisa.
-2. **Exigir que la sección de la URL coincida** con la que se activa — sin eso,
-   un clic de sección aplicaría la pestaña que la URL todavía trae de la
-   anterior: válida por casualidad si comparten nombre, equivocada siempre.
-
-**Y el guard encontró un hueco al escribirlo**: aulas cumplía la primera y no la
-segunda. En aulas el clic de sección no pasa por ese callback, así que
-*funcionaba*, pero depender de eso es suponer quién dispara qué. Ahora la
-condición es explícita y la misma en los cuatro.
-
-Control invertido: quitar las dos lecturas en territorial pone 2 en rojo;
-restaurarlas, 8 en verde.
-
-**Por qué este test mira el código y no el comportamiento**: reproducir el
-defecto exige montar el perfil, cargar un proyecto real y navegar entre
-secciones — lo que hice a mano cuatro veces. El guard comprueba la propiedad que
-lo sostiene, que es lo que se puede verificar en cada corrida sin un navegador.
-
-
-### 2026-08-16 — L62: el ciclo del libro llega a la app, a medias
-
-Ocho ítems construyendo el libro operativo, y **ningún botón lo llamaba**. Los
-dos endpoints tenían **cero consumidores** en el frontend: el ciclo que pediste
-—la app produce el Excel, alguien lo llena, la app lo relee— sólo se podía
-cerrar con `curl`. Es exactamente el patrón que este repo ya tiene anotado: una
-capacidad existe sólo si alguien la consume.
-
-**Lo que quedó funcionando**, verificado end-to-end: «Generar libro» en Fuentes
-produce el Excel de tres hojas y lo descarga. Con el proyecto de QA:
-`qa_aulas_libro_aulas_16_08_26.xlsx`, 9 unidades y 3 partes.
-
-**Y un defecto de propina, reparado**: el botón exigía `aulasPlanImported()`,
-que pide `selection_run_id` —presente sólo en planes venidos del cálculo de
-muestra—. Un plan que llegó **por el propio libro** no lo tiene, así que el
-ciclo quedaba cerrado sobre sí mismo: importas 196 aulas y no puedes regenerar
-el libro. Para producir el Excel basta con que haya unidades.
-
-**Lo que no quedó**: la subida directa desde el navegador. Diagnosticado, no
-supuesto:
-
-| Parsers | Qué pasa |
+| | |
 |---|---|
-| por defecto | `E_BAD_JSON` — intenta parsear el multipart como JSON |
-| `multi, json` | el `file` **llega**, pero plumber muere al parsear la parte interna: «No suitable parser found to handle request body type application/vnd.openxmlformats-officedocument…» |
-| `multi, octet, json` | el `file` deja de llegar |
+| Motor del tablero | **0,71 s** — escala con las *aulas*, no con las respuestas |
+| Payload del estado | 1377 → **601 KB** (56 % menos) |
+| Petición de estado | 2,9 → **1,6 s** |
+| `.pulso` | 0,29 s guardar · 0,62 s abrir |
 
-La vía del `file_id` sí funciona. El botón «Leer libro llenado» queda visible y
-**deshabilitado con su motivo en el tooltip**, no escondido: el ciclo tiene dos
-mitades y conviene que se vea cuál falta.
+**El cuello nunca fue el cálculo: fue el transporte.** El plan viajaba **tres
+veces** —dos copias declaradas y una escondida en `brechas`, que no es una copia
+sino un *reporte* que salía con las ~40 columnas del plan porque nadie le puso
+límite—. Y con 196 aulas todas con brecha abierta el primer día, «las aulas con
+brecha» son *todas*.
 
+Dos aprendizajes que valen más que los números:
 
-### 2026-08-16 — La vara se amplía: ver el avance, y aguantar 3700 registros
+- **La premisa que me frenó dos turnos era falsa.** Escribí que las copias
+  «tienen consumidores distintos» y que unificarlas exigía decidir cuál manda
+  antes del primer sync. Al mirarlo: `dashboard.agenda` es un **superconjunto
+  estricto** —mismas 196 filas, mismos 80 campos, más dos— y **no depende de que
+  haya snapshot**, porque el tablero se reconstruye en cada petición. Dos
+  consultas tiraron la suposición.
+- **No era sólo peso.** Entre las columnas que se colaban en `brechas` iban
+  `teacher_email` y `teacher_phone`. En un reporte que se **publica a Sheets**
+  eso no es tamaño: es exposición.
 
-Gonzalo pide dos cosas que el GOAL no cubría:
+### Los cinco gráficos, y qué contesta cada uno
 
-**1. Gráficos propios del contexto de aulas.** Revisado cómo lo hacen los otros
-perfiles, que es el vocabulario disponible:
+Aulas no tenía ninguno. El catálogo se decidió **antes** de dibujar, atando cada
+uno a una pregunta del operativo y a un dato que el tablero ya produce.
 
-| Perfil | Qué grafica | Con qué |
+| Gráfico | La pregunta | Lo que destapó |
 |---|---|---|
-| Acreditación | Ritmo diario del avance, tendencia telefónica | `PlotlyChart` · `ritmoDiario.ts` (cortes diarios y semanales, calendario expandido, ejes con padding) · `coloresDeResultado` · `MarcoDeEjesSiHaceFalta` |
-| Telefónico | Embudo en franja, barras apiladas | mismo lenguaje, CSS propio |
-| **Aulas** | **nada** | — |
-
-El lenguaje visual está y es compartido; lo que falta es decidir **qué** graficar
-para aulas. La unidad aquí no es la llamada ni el actor: es el curso-horario con
-su aforo y su meta. Copiar el ritmo diario de telefónico sería traer una
-pregunta que en aulas no se hace igual.
-
-**2. Escala real de 3700 registros.** Lo medido en esta sesión llega a **600
-respuestas sobre 196 aulas**. El estudio real sube a 3700 desde Kobo, y hay que
-medir la sincronización, el tablero, las tablas y —cuando existan— los gráficos
-a esa escala. El recorte de filas ya dio un susto a 196; a 3700 hay que
-comprobar qué se recorta y qué se degrada.
-
-Queda anotado como **V13**, **V14** y los ítems **L63–L65**. La cola vuelve a
-tener trabajo abierto.
-
-
-### 2026-08-16 — L65: el motor aguanta 3700; el transporte no
-
-Medido con 3700 respuestas de 43 columnas sobre 196 aulas, que es la escala del
-estudio real:
-
-| | Tiempo |
-|---|---:|
-| Tablero completo | **0,71 s** |
-| Guardar el `.pulso` | 0,29 s (0,07 MB) |
-| Abrirlo | 0,62 s |
-
-**El motor no se inmuta**, y la razón es estructural: el trabajo escala con el
-número de **aulas** (196), no con el de respuestas — éstas se agregan una vez y
-se olvidan. Pasar de 600 a 3700 no cambió el tiempo del tablero.
-
-**Lo que sí duele es el payload**: cada petición de estado pesa **1,3 MB** y
-tarda **2,9 s** en el navegador. Y la composición dice por qué (L66):
-
-| Parte | KB |
-|---|---:|
-| `config.aulas_universitarias.plan` | 366 |
-| `aulas_universitarias.plan` | 356 |
-| `dashboard.agenda` | 337 |
-| `dashboard.brechas` | 157 |
-| `dashboard.course_status` | 103 |
-| `dashboard.reemplazos` | 45 |
-
-Los dos primeros son **idénticos byte a byte** —196 aulas × 80 campos, dos
-veces— y el tercero es el mismo plan con dos campos más. **722 KB de 1377 son
-el mismo plan repetido**, y el frontend pide estado en cada cambio de sección.
-
-Con nueve aulas esto no se veía: el payload rondaba los 60 KB y la duplicación
-era invisible. Es el mismo patrón que el recorte de filas — un problema que sólo
-existe a la escala en que el estudio ocurre de verdad.
-
-
-### 2026-08-16 — L66: fuera la copia que no defendía nadie
-
-De las tres copias del plan en el payload, una era **indefendible**:
-`aulas_universitarias.plan` en la raíz del estado, idéntica byte a byte a la de
-`config` y con **cero consumidores** en el frontend — el único lector es
-`state.config.aulas_universitarias`. Comprobado antes de tocarla, y sin tests
-que la miraran.
-
-| | Antes | Ahora |
-|---|---:|---:|
-| Payload total | 1377 KB | **1045 KB** |
-| `aulas_universitarias` en raíz | 356 KB | 24 KB |
-| Unidades del plan ahí | 196 | **0** |
-
-Se conserva el resto de esa config —`enabled`, mapeos, cuotas— por si algo la
-lee; lo único que se quitó es el duplicado grande.
-
-**Las otras dos copias no son duplicación**: `config…plan` (80 campos) alimenta
-el registro de campo y `dashboard.agenda` (82) alimenta la tabla. Tienen
-consumidores distintos y formas distintas. Unificarlas es una decisión de
-diseño —hacer que el registro lea la agenda— y no un arreglo.
-
-**El tiempo no bajó en proporción**: sigue en ~2,8 s. Así que el cuello no es
-sólo el tamaño; hay ~500 ms de cálculo en el backend (`derived=miss`) y el resto
-se va en serializar y parsear un JSON de 1 MB. Bajar el peso ayuda pero no es la
-única palanca.
-
-Verificado tras el cambio: registro con sus 196 aulas, agenda con 196, avance
-con 196 y brechas con 91.
-
-
-### 2026-08-16 — L64: el catálogo, decidido antes de dibujar
-
-Lo que distingue a aulas de telefónico y acreditación: **la unidad tiene aforo y
-meta propios**, y su campo es una sesión única, no un flujo de reintentos. Eso
-descarta copiar el ritmo diario y habilita preguntas que en los otros perfiles
-no existen.
-
-| # | Pregunta del operativo | Gráfico | De dónde sale |
-|---|---|---|---|
-| 1 | ¿Cuántas aulas están cerradas y cuántas ni se han tocado? | Barra apilada por estado de aplicación | `course_status.application_state` |
-| 2 | ¿A qué facultad mando el equipo mañana? | Barras por estrato: válidas y brecha | `avance_por_estrato` |
-| 3 | **¿Están muchas aulas a medias o pocas sin tocar?** | Histograma de cobertura por aula (`válidas / meta`) | `course_status.respuestas_validas` ÷ `expected_valid` |
-| 4 | ¿La composición por sexo aguanta? | Observado vs meta por celda | `quotas_sex_faculty` |
-| 5 | ¿Cuánta reserva llevo gastada? | Conteo de cadena: sin reemplazo · 1 · 2+ | `reemplazos` + `sample_status` |
-
-**El 3 es el que sólo tiene sentido aquí.** En telefónico la unidad es una
-llamada y no tiene meta propia; en aulas cada curso-horario tiene la suya, así
-que la *distribución* de coberturas dice algo que ningún promedio dice: 60 aulas
-al 50% y 60 aulas al 100% dan el mismo avance global que 120 al 75%, y exigen
-decisiones opuestas —insistir donde ya hay tracción, o abrir aulas nuevas—.
-
-**Lo que no entra, y por qué**: el ritmo diario tal como lo hace telefónico
-—respuestas por día— mide un flujo que en aulas no existe. Si algún día hace
-falta un eje temporal, la unidad natural es **aulas cerradas por día**, no
-respuestas: es lo que el coordinador planifica.
-
-Los cinco salen de datos que el tablero **ya produce**, así que ninguno exige
-tocar el motor. Y el lenguaje visual es el compartido: `PlotlyChart`,
-`coloresDeResultado`, `MarcoDeEjesSiHaceFalta`.
-
-
-### 2026-08-16 — L63: el primer gráfico, y el que sólo existe aquí
-
-Dibujado el #3 del catálogo, que es el que justifica tener gráficos propios: la
-**distribución de cobertura por curso-horario**. Sobre las 196 aulas del
-operativo con 3700 respuestas:
-
-```
-Sin respuestas   ███████████████ 51
-1–25 %                            0
-26–50 %                           0
-51–99 %          ████████ 40
-Meta cumplida    ████████████████████████ 105
-```
-
-Un promedio diría «avance del 76 %» y escondería que **51 aulas no se han
-abierto** mientras 105 ya no necesitan nada. Son dos trabajos distintos y el
-gráfico los separa de un vistazo.
-
-Tres decisiones sobre cómo cuenta, cada una con su test:
-
-- **«Sin respuestas» no es «poquísimas»**: el 0 va siempre a su tramo aunque la
-  razón lo pusiera en el primero. Es lo que dice si el aula ni se abrió.
-- **Pasarse de la meta cuenta como cumplida**: operativamente ya no hay nada que
-  hacer ahí.
-- **Un aula sin meta se cuenta aparte**, no se fuerza al 0 % ni al 100 % —serían
-  dos mentiras distintas— y su número se dice bajo el gráfico.
-
-**Y el mismo tropiezo de layout por tercera vez**: el panel del gráfico medía
-**26 px** —sólo su cabecera— y el gráfico se dibujaba encima de la tabla. El
-stack de Avance había perdido su clase `aulas-tablas-apiladas` al insertar el
-panel nuevo, y sin ella es grid: asigna **0 px** a la fila cuyo contenido no la
-empuja. Con la clase pasa a flex con hijos que no se encogen. Ya lo arreglé en
-L40 y L42; **conviene recordar que cualquier panel nuevo en ese stack necesita
-la clase**.
-
-
-### 2026-08-16 — L63: la brecha por estrato, o a dónde va el equipo mañana
-
-Dibujado el #2 del catálogo, en Avance › Estratos. Sobre el mismo operativo:
-
-```
-                        recogidas          faltan
-Gestion                 ████ 100    ████████████████ 665
-Estudios Grales Letras  ████ 103    ████████████████ 657
-Educacion               ████  99    ███████████████  621
-Arquitectura            ████ 100    ███████████████  613
-Ciencias e Ingenieria   ████  99    ███████████████  612
-Derecho                 ████  99    ███████████████  608
-```
-
-Los mismos números ya estaban en la tabla de `avance_por_estrato`, pero
-contestaba mal la pregunta del día siguiente: hay que leer seis filas y restar
-de cabeza. La decisión de diseño es **ordenar por brecha absoluta**, no por
-porcentaje de avance:
-
-> Un estrato al 50 % con 4 pendientes se cierra en una mañana. Uno al 90 % con
-> 200 pendientes es la semana entera. Ordenar por avance manda al equipo al sitio
-> equivocado —y ése es el control invertido del test: si el criterio fuera el
-> porcentaje, `ordena por lo que falta, no por lo que ya se hizo` falla.
-
-Tres decisiones más, cada una con su test:
-
-- **A igualdad de brecha adelanta el que más lleva recogido**: está más cerca de
-  cerrar.
-- **El recorte se declara con su brecha**: por encima de doce estratos el eje se
-  vuelve ilegible, y decir sólo «no se dibujan 3» dejaría leer la última barra
-  como «lo demás está cerrado».
-- **Un valor no numérico cuenta como cero, no como `NaN`**: sin la coacción la
-  barra desaparece sin decir por qué, que es peor que dibujarla en cero — el
-  estrato existe y sigue teniendo aulas.
-
-Y **la leyenda hubo que encenderla a mano**: `PlotlyChart` trae
-`showlegend: false` por defecto —casi todos sus usos tienen una sola serie— así
-que la barra apilada salía sin explicar el verde y se leía como una sola
-magnitud. Con `traceorder: normal` además, porque apilado Plotly la invierte y
-la dejaba al revés de como se lee la barra.
-
-**Trampa de instrumento (la segunda del mismo tipo)**: la captura inmediata tras
-montar o redimensionar coge a Plotly **antes de su relayout**. La primera imagen
-mostraba las barras aplastadas en 90 px de un panel de 1208 y las etiquetas del
-eje encimadas —parecía un defecto de ancho y no lo era—. Medir el SVG lo
-desmintió: 1208 px y las barras al 95 % del área. **Una captura de un Plotly
-recién montado no es evidencia**; hay que esperar su segundo pase, igual que ya
-pasó con el barrido de 1250 ms.
-
-
-### 2026-08-16 — L63: el estado del circuito, y el eje que la cobertura no ve
-
-Dibujado el #1 del catálogo, en Avance › Resumen. Sobre las 196 aulas:
-
-```
-Sin agendar  Agendada   En aplicación            Meta alcanzada
-████████ 51     – 0     ██████████████ 145              – 0
-```
-
-Parece redundante con el histograma de cobertura y no lo es: **son los dos ejes
-independientes de L30**. La cobertura reparte por `válidas / meta`; ésta por el
-punto del circuito. La diferencia que sólo se ve aquí es **«sin agendar» contra
-«agendada y aún sin empezar»** —la cobertura mete las dos en «sin respuestas»— y
-es la que dice si lo que falta es trabajo de teléfono o trabajo de campo.
-
-Los dos gráficos se **verifican entre sí**: el circuito dice 145 en aplicación y
-la cobertura dice 122 + 23 = 145 aulas con al menos una respuesta. Que dos
-cálculos distintos del mismo tablero coincidan es más evidencia que cualquiera de
-los dos por separado.
-
-Dos decisiones con su test:
-
-- **El azul de «Agendada» no sale de `COLOR_RESULTADO`.** Esa paleta son los
-  *desenlaces de una encuesta*, y «agendada, aún sin empezar» no es ninguno: es
-  un estado del aula. Pintarla de granate (`rechazo`) diría que alguien declinó,
-  que es falso. Se toma el azul de marca, y un test comprueba que no invade la
-  lista de exclusivos.
-- **Un estado que el motor no declare se cuenta, no se descarta.** Es el control
-  invertido del patrón que ya costó doce ítems de esta cola: una lista cerrada
-  que se traga en silencio lo que no reconoce. Si el engine añade un quinto
-  estado, el gráfico lo dirá en vez de perder aulas.
-
-**Y una corrección de C1 sobre la marcha**: los dos gráficos entraron primero en
-el mismo panel, titulado «Cobertura de la meta» —que ya no describía lo que
-contenía—. Cada uno tiene su panel y su título, porque una superficie declara qué
-es.
-
-
-### 2026-08-16 — L63: el consumo de cadena, y una alarma real del operativo
-
-Dibujado el #5, en Consultas › Reemplazos. Sobre el plan de 170 titulares:
-
-```
-Sin gastar   1 reemplazo   2 reemplazos   3 o más
-    0        ████████ 22   █ 2               0
-```
-
-**El gráfico reprodujo solo la verdad conocida de 2025**: 22 cadenas con un
-reemplazo más 2 con dos son **26 reemplazos sobre 170 titulares**, que es
-exactamente la cifra que Gonzalo corrigió en su momento —las cadenas planificadas
-llegan a once eslabones, las **consumidas** fueron dos—. Que un cálculo escrito
-sin mirar ese dato caiga en el mismo número es la mejor verificación que puede
-tener esta vista.
-
-Y dice dos cosas que ninguna tabla decía:
-
-> **26 reservas gastadas y 0 todavía en el banco. 146 titulares no tienen ninguna
-> reserva, así que sus metas quedan sin cubrir si caen.**
-
-No es una advertencia decorativa: si una de esas 146 aulas cae, el operativo no
-tiene con qué cubrirla. La tabla de reemplazos tiene los mismos 26 registros y no
-puede decirlo, porque lo que falta no está en ella.
-
-Dos decisiones con su test:
-
-- **«Nunca tuvo reserva» no cae en «sin gastar»** (L54 otra vez, ahora en el
-  gráfico): la primera es una decisión del diseño muestral y la segunda un hecho
-  del operativo. Juntarlas diría que el plan tiene un colchón de 146 cadenas que
-  no existe.
-- **La cadena vacía cuenta como libre, igual que en el motor.** El conjunto de
-  estados libres es literalmente el de
-  `monitoreo_aulas_reservas_disponibles()`: si divergen, el gráfico ofrece
-  reservas que el motor ya no da, o al revés. Y un plan recién importado no trae
-  `sample_status`, así que contarlo como gastado diría que el operativo empezó
-  consumido.
-
-**Sale del plan entero, no de `dashboard.reemplazos`**: esa lista sólo trae
-reservas y caídas, así que los 146 titulares sin reserva —justo los que producen
-la alarma— no aparecerían.
-
-
-### 2026-08-16 — L63 cerrado: la cuota, y lo que destapó
-
-Dibujado el #4, en Avance › Cuotas. Doce celdas, la peor arriba:
-
-```
-Estudios Generales Letras · F  ████ 50 de 444          ┊
-Ciencias e Ingenieria · F      ████ 51 de 421          ┊ 100 %
-Arquitectura · F               ████ 48 de 393          ┊
-Gestion · F                    ████ 52 de 424          ┊
-Derecho · F                    ████ 48 de 371          ┊
-Educacion · F                  ████ 51 de 381          ┊
-Gestion · M                    ████ 48 de 341          ┊
-…                                                      ┊
-```
-
-**Las seis celdas F están todas por debajo de las seis M.** No porque se recojan
-menos respuestas de mujeres —los observados son casi idénticos, 48–53 en las
-doce— sino porque **sus metas son mayores**: 444 contra 316 en Estudios
-Generales. La tabla tenía los mismos números y no lo dejaba ver, porque exige
-dividir doce veces de cabeza.
-
-Por eso el eje es el **cumplimiento y no el volumen**: cada celda tiene su propia
-meta, así que 40 de 50 y 4 de 5 son el mismo problema resuelto en la misma
-proporción. Ordenar por lo que falta en absoluto —como sí hace el gráfico de
-estratos, donde la unidad es común— pondría la celda grande arriba y diría que va
-peor.
-
-Tercer chequeo cruzado que sale solo: **faltan 3776 respuestas**, exactamente el
-mismo total que da la brecha por estrato. Dos agrupaciones independientes del
-mismo déficit coinciden.
-
-Dos decisiones más con su test:
-
-- **El color sale del veredicto del motor** (`status`), no de recalcularlo aquí.
-  Es la lección de L52: si esta vista decidiera por su cuenta cuándo algo está
-  «cumplido», dos superficies del mismo tablero podrían contradecirse.
-- **Una celda sin meta no se fuerza a 0 % ni a 100 %** —serían dos mentiras
-  distintas— y se dice bajo el gráfico. Mismo criterio que en cobertura.
-
-**Y el guard de colores hizo su trabajo**: escribí a mano `#7a8796` para la línea
-del 100 % y el test lo rechazó por ser el hex de `pendiente`. La reparación no
-fue importar ese token —la línea es **cromo, no un dato**, y pintarla del gris de
-«pendiente» diría que es una serie más— sino usar el gris de `revision`, que es
-el de las etiquetas de eje y por eso está deliberadamente fuera de la lista
-vigilada.
-
-
-### 2026-08-16 — L62 cerrado, y lo que apareció al cerrarlo
-
-**La subida del libro ya funciona desde el navegador**, y el arreglo fue dejar de
-pelearse con el parser: el `.xlsx` sube por `/api/files/upload` —que digiere
-binarios desde siempre— y al endpoint le llega el `file_id` que aceptaba desde el
-primer día. Dos pasos en vez de uno, cero parsers nuevos.
-
-Control invertido, medido en el mismo navegador y con el mismo archivo:
-
-| Vía | Resultado |
+| Estado del circuito | ¿Cuántas cerradas, cuántas sin tocar? | 51 de 196 sin una sola respuesta |
+| Cobertura por aula | ¿Muchas a medias o pocas sin tocar? | El promedio decía 76 % y escondía las dos poblaciones |
+| Brecha por estrato | ¿A dónde mando el equipo mañana? | Faltan 3776 respuestas, y dónde |
+| Consumo de cadena | ¿Cuánta reserva llevo gastada? | **0 en el banco y 146 titulares sin reserva** |
+| Cuota sexo×facultad | ¿Qué celda voy a incumplir? | **Las seis celdas F por debajo de las seis M** |
+
+Los dos hallazgos en negrita son del operativo, no del código, y ninguna tabla
+los decía: si una de esas 146 aulas cae, no hay con qué cubrirla; y las mujeres
+van más lejos de su cuota **no porque se recojan menos respuestas** —48–53 en las
+doce celdas— sino porque **sus metas son mayores**, 444 contra 316.
+
+**Y los gráficos se verifican entre sí.** El circuito dice 145 en aplicación y la
+cobertura dice 122 + 23 = 145. La brecha por estrato y las cuotas dan las mismas
+3776 respuestas faltantes desde agrupaciones distintas. Que dos cálculos
+independientes del mismo tablero coincidan vale más que cualquiera por separado.
+
+**El consumo de cadena reprodujo solo la verdad conocida de 2025**: 22 cadenas
+con un reemplazo más 2 con dos son 26 sobre 170 titulares —la cifra real, con las
+cadenas planificadas llegando a once y las consumidas quedándose en dos—.
+
+Decisiones de cómo cuentan, cada una con test:
+
+- **Ordenar por lo que falta, no por lo que se hizo** —y en cuotas, por
+  *cumplimiento* y no por volumen: 40 de 50 y 4 de 5 son el mismo problema—.
+- **El cero tiene tramo propio**: «sin respuestas» no es «poquísimas».
+- **Lo que no tiene meta se cuenta aparte**, no se fuerza al 0 % ni al 100 %.
+- **«Nunca tuvo reserva» no es «no la ha gastado»** (L54, ahora en el gráfico).
+- **El color sale del veredicto del motor**, no de recalcularlo aquí.
+- **Ningún recorte en silencio**: se dice cuántos no se dibujan y cuánto suman.
+
+### El ciclo del libro se cierra, y casi borra la muestra
+
+La subida desde el navegador se resolvió **dejando de pelearse con el parser**:
+el `.xlsx` sube por `/api/files/upload` —que digiere binarios desde siempre— y al
+endpoint le llega el `file_id` que aceptaba desde el primer día.
+
+| Vía | Mismo archivo, mismo navegador |
 |---|---|
-| El `.xlsx` directo al endpoint (la de antes) | `400 E_AULAS_LIBRO_BAD_FILE` — «El libro subido llego vacio» |
-| Subir y pasar `file_id` (la nueva) | `200` · 196 unidades · 170 titulares · 170 partes · 170 filas de control |
+| El `.xlsx` directo al endpoint | `400` — «El libro subido llego vacio» |
+| Subir y pasar `file_id` | `200` · 196 unidades · 170 titulares · 170 partes |
 
-De paso, un defecto latente en esa ruta: el `else` que permite apuntar a un libro
-del disco era **incondicional**, así que **pisaba con una cadena vacía la ruta que
-la rama multipart acababa de dejar bien**. Aunque el archivo hubiera llegado, la
-petición moría con «indica el file_id».
+**Y al poder usar el ciclo entero apareció lo grave**: releer el libro dejaba las
+cuotas en **0 celdas de 12** y la representatividad en **100 %** —no por mejorar,
+sino porque sin composición no hay desviación que calcular—. La importación
+**reemplazaba** el plan por el del libro, y el libro no lleva la composición
+muestral porque es un artefacto de campo.
 
-**Y al poder usar el ciclo entero desde la UI apareció L67, que es lo grave.**
-Releer el libro dejaba las cuotas sexo×facultad en **0 celdas de 12** y la
-representatividad en **100 %** —no porque mejorara, sino porque sin composición no
-hay desviación que calcular—. La causa: la importación **reemplazaba** el plan por
-el del libro, y el libro no lleva la composición muestral.
+Es el reflejo exacto de L44 —donde el *generador* escribía en blanco lo que el
+operativo ya tenía— en la dirección contraria: ahora el *lector* borraba lo que no
+sabe escribir.
 
-Es el reflejo exacto de **L44** —donde el *generador* escribía en blanco lo que el
-operativo ya tenía— en la dirección contraria: ahora era el *lector* el que
-borraba lo que no sabe escribir.
+> **La protección es por declaración, no por heurística.** Mi primera fusión decía
+> «si el libro trae algo, manda» y falló: el lector emite `sex_top_1_n = 0` porque
+> su plantilla **no pregunta** por la composición, no porque el aula tenga cero
+> mujeres. La versión buena declara qué campos posee el libro; así
+> `effective_surveys = 0` sí sobrescribe, porque el parte sí lo pregunta.
 
-La reparación es una fusión por código operativo, y la decisión de fondo la
-corrigió su propio test:
+### Un export de Kobo ponía el avance en cero, en silencio
 
-> **La protección es por declaración, no por heurística.** Mi primera versión
-> decía «si el libro trae algo, manda», y falló: el lector emite
-> `sex_top_1_n = 0` porque su plantilla **no pregunta** por la composición, no
-> porque el aula tenga cero mujeres. Ese cero seguía borrando la muestra. La
-> versión buena declara `AULAS_LIBRO_CAMPOS_PROPIOS` —lo que las tres hojas
-> realmente preguntan— y sólo esos campos pueden pisar. Así `effective_surveys = 0`
-> sí sobrescribe, porque el parte sí lo pregunta.
+Preparando L12 —medir para que la decisión salga barata— apareció que no todo era
+decisión del usuario. Medido sobre 4 respuestas, **antes**:
 
-Dos decisiones más con su test: **un aula que el libro no menciona se conserva**
-—el libro es un registro de campo, no la fuente de la muestra, así que su ausencia
-significa que alguien borró la fila— y **un aula nueva del libro entra**, porque
-puede haberla añadido alguien en campo.
-
-Verificado sobre el proyecto de 196 aulas: **12 celdas de cuota y 95 % de
-representatividad antes y después** de un ciclo completo generar → subir → releer.
-
-
-### 2026-08-16 — L66: la tercera copia estaba escondida en `brechas`
-
-Al medir el payload en vez de suponerlo apareció lo que no había visto: de
-1220 KB, **1007 eran las mismas 196 filas tres veces**.
-
-| | KB | filas |
-|---|---|---|
-| `config.aulas_universitarias.plan` | 333 | 196 |
-| `dashboard.agenda` | 337 | 196 |
-| **`dashboard.brechas`** | **337** | **196** |
-
-`brechas` no es una copia declarada: es un **reporte** que salía con las ~40
-columnas de `tracked_df` porque nadie le puso límite. Y con 196 aulas todas con
-brecha abierta el primer día, «las aulas con brecha» son *todas* las aulas.
-
-Su tabla muestra ocho columnas y la publicación a Sheets toma diez. Ahora viaja
-con la **unión de lo que sus dos consumidores piden**, doce columnas, fijada por
-test en las dos direcciones: que no vuelva a engordar y que no adelgace por
-debajo de lo que alguien usa.
-
-Medido sobre el mismo proyecto de 196 aulas, tres peticiones promediadas:
-
-| | antes | después |
-|---|---|---|
-| payload | 1220 KB | **934 KB** |
-| `brechas` | 337 KB | **50 KB** |
-| tiempo de la petición | 2433 ms | **1802 ms** |
-| filas en la tabla | 196 | 196 |
-
-**Y no era sólo peso.** Entre las columnas que se colaban iban `teacher_email` y
-`teacher_phone`. Que los datos de contacto del docente salgan en un reporte que
-se **publica a Sheets** no es un problema de tamaño: es exposición. El test lo
-fija explícitamente.
-
-Las otras dos copias se quedan por ahora y no por descuido: `config…plan` existe
-sin snapshot —es de donde el Registro de campo lee antes de que llegue la primera
-respuesta— y `dashboard.agenda` es la versión normalizada que consumen la agenda,
-el corte y el gráfico de cadena. Unificarlas exige decidir cuál manda antes del
-primer sync, que es un cambio con riesgo propio y merece su propio turno.
-
-
-### 2026-08-16 — L66 cerrado: de tres copias a una
-
-La segunda mitad salió de comprobar la premisa que me había frenado. Yo había
-escrito que las dos copias restantes «tienen consumidores distintos» y que
-unificarlas exigía decidir cuál manda antes del primer sync. **Las dos cosas
-resultaron falsas al mirarlas:**
-
-- **`dashboard.agenda` es un superconjunto estricto** de
-  `config.aulas_universitarias.plan`: las mismas 196 filas, los **mismos 80
-  campos**, más `respuestas_validas` y `brecha`. Ninguno sólo en la config.
-- **No depende de que haya snapshot.** El tablero de aulas se **reconstruye en
-  cada petición** desde `s$monitoreo_aulas_plan` (`router_monitoreo.R`), así que
-  el Registro de campo lo tiene desde antes de la primera respuesta. Mi
-  «riesgo» era una suposición sobre un código que no había leído.
-
-Así que la copia de la config se fue. Sólo quedaba una pregunta que era
-legítimamente suya —**cuántas unidades hay**, que es lo que habilita «Generar
-libro»— y para eso viaja `plan_rows`: un entero en vez de 333 KB.
-
-El recorrido completo del ítem, medido sobre el mismo proyecto de 196 aulas:
-
-| | payload | petición |
-|---|---|---|
-| al empezar | 1377 KB | 2,9 s |
-| quitando la copia idéntica de `state` | 1045 KB | — |
-| recortando `brechas` a sus columnas | 934 KB | 1,8 s |
-| **quitando el plan de `config`** | **601 KB** | **1,6 s** |
-
-**56 % menos de payload.** Verificado en pantalla después del recorte: el
-Registro de campo sigue listando sus 196 cursos-horario y «Generar libro» sigue
-habilitado, que son los dos consumidores que tocaba el cambio.
-
-La lección para la sección de trampas: **«tienen consumidores distintos» era una
-suposición mía que sobrevivió dos turnos porque nunca la comprobé.** Bastaron dos
-consultas —comparar los juegos de campos y leer de dónde sale el tablero— para
-tirarla. Igual que L23, donde la premisa falsa era la persistencia del `.pulso`.
-
-
-### 2026-08-16 — la vara, sellada: 11 de 14, y una que no se alcanza
-
-Con la cola sin ítems desbloqueados, el trabajo del turno era el que el propio
-loop tenía pendiente: **nueve de los catorce criterios de la vara no tenían marca
-de comprobación**. Cerrar cola sin volver a medir la vara es exactamente el
-«verde por ausencia» que el Contrato prohíbe: nadie había dicho que V1 se
-cumpliera, sólo que sus ítems estaban hechos.
-
-La costura completa corre en verde de punta a punta —**exit 0, los diez
-veredictos en TRUE**— y de ahí salen siete sellos. Dos más se midieron contra el
-motor en este turno (V10 y V11). Los otros ya estaban.
-
-| | Estado |
+| Lo que trae la base | Válidas |
 |---|---|
-| Cumplidas | **11** |
-| A medias | **1** — V8, falta el desglose hombres/mujeres (L46, tu decisión) |
-| No cumplidas | **1** — V3 |
+| `_status = submitted_via_web` (Kobo lo manda **siempre**) | **0 de 4** |
+| `validation_status_approved` (su propio vocabulario) | **0 de 4** |
+| `estado = «completa»` (un estudio en español) | **0 de 4** |
+| `_validation_status` (el nombre real de Kobo) | 4 de 4 — no lo encontraba |
 
-**V3 es la única que el motor no alcanza**, y conviene decirlo sin rodeos: lo que
-viaja en el QR sigue siendo `unit-aulas-aula-01-fd6e0ab1ee`. La vara pedía el
-código operativo del equipo, `CH 1`, para que quien mire una respuesta suelta en
-Kobo sepa de qué aula es sin cruzar tablas. No es un defecto pendiente de
-reparar: es **L2**, una decisión tuya sobre qué identificador debe viajar, con
-consecuencias sobre los enlaces ya impresos.
+Bastaba sincronizar un export completo de Kobo para que el avance del estudio
+entero cayera a cero sin decir nada. `_status` dice *cómo llegó* el formulario.
 
-Con eso, el estado del GOAL es: **todo lo que dependía de mí está hecho y
-medido**; lo que queda son cinco decisiones —L2, L10, L12, L34, L46— y una de
-ellas, L2, es la que separa la vara de estar completa.
+Reparado lo que no exige decisión: `_status` fuera, `_validation_status` dentro
+con su vocabulario, el español admitido, y **el tablero dice qué criterio
+aplicó** —marcando `review` cuando no hay columna y cuenta todo, y cuando el
+estudio declara una columna que la base no trae, que pasaba por criterio
+deliberado en vez de por error de tipeo—.
 
+**Dos tests existentes tuvieron que invertirse, y es buena señal**: no afirmaban
+la conducta deseada sino que **documentaban el defecto** —sus comentarios decían
+«fail-open, no fail-closed»—.
 
-### 2026-08-16 — L2 preparado: la decisión, con sus costos medidos
+### Tres vocabularios cerrados que cruzaban R → UI sin atar
 
-Sin cola libre, el trabajo es dejar la decisión barata. **No la tomo yo** —es qué
-identificador quieres que viaje— pero sí puedo medir qué cuesta cada opción, que
-es lo que la hacía cara.
+| Vocabulario | Estado al mirarlo |
+|---|---|
+| Controles de validación (`check`) | Roto: el check nuevo habría salido como clave cruda |
+| Estados operativos | Completo **por suerte**, no por construcción |
+| Columnas de tabla | **38 de 93 sin etiqueta**, en inglés en pantalla |
+
+Las 38 no son cualquiera: son **justo los campos que L31 y L32 acababan de
+añadir**. Cada vez que el motor aprendió algo, la pantalla se quedó atrás sin que
+nada fallara. Los tres tienen guard ahora, los tres verificados invirtiéndolos.
+
+**El barrido a los otros perfiles dio cero, y la razón importa más que el cero:**
+
+> **Acreditación declara sus columnas; aulas renderiza lo que llegue.**
+
+Recorridas las 28 direcciones de acreditación: 37 cabeceras, ninguna con jerga.
+Sus tablas se construyen con una lista explícita, así que una columna nueva del
+motor **no aparece sola**. El `DataTable` de aulas saca las columnas de
+`Object.keys(row)`. De ahí la regla: **una tabla que refleja las claves de sus
+filas necesita diccionario atado al productor; una que declara sus columnas, no.**
+El guard va donde la tabla es genérica; en las otras sería pedir etiqueta para
+columnas que nunca se pintan solas.
+
+### La dirección: alcanzable por clic, no por dirección
+
+Cargar la URL directa funcionaba; **saltar entre secciones, no**: la sección se
+aplicaba primero y la pestaña **recordada** pisaba la pedida. Estaba en **los
+cuatro perfiles** y era anterior a los cambios de aulas — sólo lo cubría una
+verificación manual, así que nadie lo notó. Reparado y con contrato que lo fija.
+
+### La decisión de L2, ya medida
 
 | | slug de hoy | código operativo |
 |---|---|---|
 | Lo que viaja | `unit-aulas-aula-01-fd6e0ab1ee` | `CH 1` |
 | URL | 86 caracteres | **63** |
 | QR | 49×49 módulos | **45×45** |
-| Lo que ve quien mira una respuesta en Kobo | nada reconocible | el aula |
+| Quien mira una respuesta en Kobo | no reconoce nada | ve el aula |
 
-**Lo que creía un obstáculo y no lo es:**
+Tres obstáculos que parecían reales y no lo son: **el emparejamiento ya funciona
+con el código** —el conteo prueba `classroom_id` antes que `collection_unit_id`, y
+en el plan real son iguales en las 196 filas—; **las dos generaciones conviven por
+construcción**, así que no hay que reimprimir ni migrar nada; y **el espacio no
+rompe** —los 196 códigos lo llevan, la URL lo codifica, el QR sale bien—.
 
-- **El emparejamiento ya funciona con el código, sin tocar el motor.**
-  `.monitoreo_aulas_contar_por_fila()` prueba primero `classroom_id` y luego
-  `collection_unit_id`. En el plan real **`classroom_id == operational_code` en
-  las 196 filas**, así que un QR con `CH 1` resolvería hoy mismo.
-- **Las dos generaciones conviven por construcción.** Las respuestas ya recogidas
-  con el slug siguen resolviendo por `collection_unit_id`, que es el segundo
-  intento. **No hay que reimprimir nada ni migrar nada** para no perder lo ya
-  recogido: los enlaces viejos y los nuevos funcionan a la vez.
-- **El código es clave válida**: 196 códigos únicos de 196, cero colisiones.
-- **El espacio no rompe nada.** Los 196 códigos lo llevan; la URL lo codifica
-  como `%20` y el QR sale bien. Probado con `CH 1` y con `R 1.2`.
+Y una suposición mía que se cae: `.collection_stable_id(prefix, value)` hashea
+**el propio valor** y su firma no recibe corrida ni estudio. Es un dígito de
+control, **no un espacio de nombres**: el slug no protege de que dos estudios
+reusen un código, que era el único argumento para conservarlo.
 
-**Y una suposición mía que se cae al mirarla.** Yo daba por hecho que el hash del
-slug daba unicidad entre estudios —que dos corridas distintas no chocarían—. No
-es así: `.collection_stable_id(prefix, value)` hashea **el propio valor**, y su
-firma no recibe ni corrida ni estudio. El hash es un **dígito de control del
-valor, no un espacio de nombres**. Dos estudios con la misma aula producirían el
-mismo slug, exactamente igual que producirían el mismo código. Ese argumento para
-conservar el slug **no existe**.
+### Trampas de instrumento (van doce)
 
-Lo que sigue siendo tuyo: si el valor legible en Kobo debe ser el código del
-equipo. A favor, todo lo de arriba. En contra, lo único que queda en pie: el
-código operativo es del **plan**, así que si rehaces la muestra el mismo `CH 1`
-puede designar otra aula —pero, como acabo de medir, el slug tampoco protege de
-eso—.
+Todas tienen la misma forma: **el instrumento cambia lo medido**.
 
-
-### 2026-08-16 — L12: había un defecto debajo de la decisión
-
-Preparando L12 como preparé L2 —medir para que decidir salga barato— apareció que
-no todo era decisión tuya. Medido sobre 4 respuestas, **antes**:
-
-| Lo que trae la base | Válidas |
-|---|---|
-| `_status = submitted_via_web` (Kobo lo manda **siempre**) | **0 de 4** |
-| `validation_status = validation_status_approved` | **0 de 4** |
-| `estado = «completa»` (un estudio en español) | **0 de 4** |
-| `_validation_status` (el nombre real de Kobo) | 4 de 4 — no lo encontraba |
-
-**El primero es el grave**: bastaba sincronizar un export completo de Kobo para
-que el avance del estudio entero cayera a **cero, en silencio**. `_status` dice
-*cómo llegó* el formulario, no si la respuesta vale, y estaba en la lista de
-candidatos a columna de estado.
-
-Reparado lo que no requiere decisión tuya:
-
-- **`_status` sale de los candidatos.** No es un estado de validación.
-- **`_validation_status` entra**, con su propio vocabulario
-  (`validation_status_approved`).
-- **El vocabulario admite español** —«completa», «válida», «aprobada»— que es
-  como lo escriben los estudios de la casa.
-- **El tablero dice qué criterio aplicó**, en vez de resolverlo en silencio:
-  «Cuentan las respuestas cuyo `estado` está en la lista: 3 de 5». Y marca
-  `review` en los dos casos que conviene mirar: cuando **no hay columna** —y por
-  tanto cuenta todo— y cuando el estudio **declara una columna que la base no
-  trae**, que hasta hoy pasaba por criterio deliberado en vez de por error de
-  tipeo.
-
-**Y la cadena de whitelists volvió a morder.** Amplié la lista de estados válidos
-y no cambió nada: la lista viaja por **dos** sitios —el default de la función y
-el de `monitoreo_aulas_default_config()`— y el normalizador siempre rellena desde
-el segundo. El primero no corre nunca. Es el mismo patrón que ya costó una
-iteración en Gráficos; ahora los dos salen de una constante.
-
-**Dos tests existentes tuvieron que invertirse**, y eso es una buena señal: no
-afirmaban la conducta deseada sino que **documentaban el defecto** —sus propios
-comentarios decían «fail-open, no fail-closed» y «quien configurara el mapeo bien
-se quedaría con cero válidas y sin aviso»—. Se reescriben afirmando lo reparado y
-conservando en el comentario qué estaba mal. Se añadió además el caso que ninguno
-cubría: `_status`.
-
-Lo que sigue siendo tuyo: **qué estados cuentan como válida en tu estudio**. La
-diferencia es que ahora el tablero te dice cuál está aplicando y a cuántas
-respuestas afecta, en vez de que lo descubras porque el avance no cuadra.
-
-
-### 2026-08-16 — el aviso llega a la pantalla, y el diccionario deja de derivar
-
-Comprobado lo que el turno anterior sólo había dejado en el motor. En
-**Validación** aparece la fila nueva, con su etiqueta en castellano y no la clave
-técnica:
-
-> **Criterio de respuesta válida** · Revisar · «La base no trae columna de
-> estado, asi que cuentan las 600 respuestas. Si el formulario marca
-> incompletas, declara cual es esa columna.»
-
-Pero al cablearlo apareció el defecto de fondo: **el motor emite los `check` y el
-frontend los traduce con un diccionario que nadie ataba a él**. Al añadir
-`valid_response_criterion` en R, la pantalla habría mostrado «Valid response
-criterion» —la clave cruda con la primera letra en mayúscula— y ningún test
-habría fallado. Es el patrón de lista cerrada del GOAL entero, esta vez **entre
-capas**.
-
-Ahora hay guard: el test lee el vector `check = c(...)` del propio motor y exige
-que cada clave tenga etiqueta. **Verificado invirtiéndolo** —quitar la entrada
-del diccionario pone el test en rojo con el nombre del culpable:
-
-```
-checks del motor sin etiqueta: valid_response_criterion
-```
-
-Sin ese control invertido el test estaría en verde por la razón equivocada, que
-es exactamente lo que pasó con los dos tests de L12 que documentaban el defecto
-en vez de afirmar la conducta.
-
-
-### 2026-08-16 — el barrido a los otros perfiles, y el segundo vocabulario
-
-Cuando un defecto apareció en los cuatro perfiles a la vez (L60), la lección fue
-barrer antes de darlo por local. Hecho: **el patrón no se repite fuera de aulas**,
-y conviene decir por qué para no cargar el guard donde estaría mal.
-
-- **Sólo aulas emite un vector `check = c(...)`.** Ningún otro motor declara un
-  vocabulario cerrado de controles.
-- Los diccionarios de telefónico, acreditación y territorial traducen **conjuntos
-  abiertos** —nombres de columna del propio estudio, dimensiones—, y ahí el
-  fallback `key.replaceAll("_", " ")` es la conducta correcta: no se puede
-  enumerar cómo bautizó sus columnas un cliente.
-
-Pero el barrido sí encontró un **segundo vocabulario cerrado en aulas**:
-`STATUS_LABELS` traduce los once estados de `monitoreo_aulas_estados()` y hoy
-estaba completo **por suerte, no por construcción**. Nada los ataba: un estado
-número doce en R habría salido en pantalla como su clave cruda. Es «verde por
-ausencia» exacto —sin fallo porque todavía no derivó—. Ahora los dos están bajo
-guard, y **los dos verificados invirtiéndolos**:
-
-```
-quitando valid_response_criterion -> checks del motor sin etiqueta: valid_response_criterion
-quitando reemplazo_pendiente      -> estados del motor sin etiqueta: reemplazo_pendiente
-```
-
-**Y el instrumento produjo un hallazgo falso por el camino.** Mi primera versión
-del guard infería «no hay entrada» de que la etiqueta coincidiera con el fallback,
-y marcó como ausentes **los once estados** —cuya etiqueta correcta *es* la clave
-capitalizada—. Comparar las dos listas leyendo las fuentes, en vez de deducirlo de
-la salida de la función, es lo que lo arregló. Van once trampas de medición en
-este GOAL y todas tienen la misma forma: **el instrumento cambia lo medido**.
-
-
-### 2026-08-16 — el tercer vocabulario: 38 columnas hablaban inglés
-
-De las **93 columnas** que emite el tablero de aulas, **38 no tenían etiqueta** y
-habrían salido en pantalla como jerga cruda: «Contact medium», «Effective
-surveys», «Scheduled date». No es casualidad cuáles: son **justo los campos que
-L31 y L32 acababan de añadir** —el ciclo de contacto y el parte de campo—. Cada
-vez que el motor aprendió algo nuevo, la pantalla se quedó atrás sin que nada
-fallara.
-
-Escritas las 38 en castellano, agrupadas por lo que son: ciclo de contacto, parte
-de campo, activación de reemplazos, composición muestral y trazabilidad.
-
-Y el guard, con una decisión deliberada sobre **hasta dónde llega**: se ata a los
-dos vectores literales del motor que alimentan las tablas que se leen —el
-`course_status` de Avance y `BRECHAS_COLUMNAS_PUBLICADAS`—, **no a las 93**.
-Varias de esas columnas son internas y nunca llegan a una tabla; exigir etiqueta
-para todas sería pedirla donde no se ve, que es la otra forma de que un gate deje
-de significar algo.
-
-Verificado invirtiéndolo:
-
-```
-quitando filter_passed -> columnas del motor sin etiqueta: filter_passed
-```
-
-Y comprobado en pantalla: las ocho columnas de Avance y las ocho de Brechas salen
-todas en castellano.
-
-Con esto son **tres los vocabularios cerrados que cruzan R → UI y ahora tienen
-guard**: los controles de validación, los estados operativos y las columnas de las
-tablas. Los tres estaban rotos o a punto, y ninguno de los tres fallaba.
-
-
-### 2026-08-16 — el barrido a acreditación: 0 hallazgos, y la razón importa
-
-Recorridas **las 28 direcciones** del perfil de acreditación sobre `acrconta`,
-recogiendo cada cabecera de tabla: **37 distintas, ninguna con jerga cruda**.
-Todas en castellano —«Base reportada», «Casos No contesta», «% no barrido»—.
-
-El cero no es «no miré bien»: es un resultado con causa, y la causa es la que
-conviene retener.
-
-> **Acreditación declara sus columnas; aulas renderiza lo que llegue.**
-
-Las tablas de acreditación se construyen con una lista explícita de columnas en
-el frontend, así que una columna nueva del motor **no aparece sola**: alguien
-tiene que añadirla, y al añadirla escribe su etiqueta. El `DataTable` de aulas,
-en cambio, saca las columnas de `Object.keys(row)` y pinta lo que venga —por eso
-las 38 columnas nuevas se colaron sin que nadie las escribiera y sin que nada
-fallara—.
-
-De ahí la regla para la próxima superficie: **una tabla que refleja las claves de
-sus filas necesita un diccionario atado al productor; una que declara sus
-columnas, no**. El guard va donde la tabla es genérica. Ponerlo en las otras
-sería pedir etiqueta para columnas que nunca se pintan solas.
-
-Con esto el barrido de esta familia de defectos queda cerrado: tres vocabularios
-cerrados con guard en aulas, y comprobado que los otros perfiles no comparten la
-condición que los hacía posibles.
+- **Una captura de un Plotly recién montado no es evidencia.** La primera imagen
+  mostraba las barras aplastadas en 90 px de un panel de 1208 y las etiquetas
+  encimadas —parecía un defecto de ancho—. Medir el SVG lo desmintió: 1208 px y
+  las barras al 95 %. Hay que esperar su segundo pase.
+- **Inferir «no hay entrada» de que la etiqueta coincida con el fallback** marcó
+  como ausentes los once estados cuya etiqueta correcta *es* la clave
+  capitalizada. Se comparan las **listas** leyendo las fuentes, no la salida.
+- **El exit code de un pipe no es el del comando.** Reporté un gate en verde
+  leyendo el `0` de un `tail`.
+- **El `cd` de una llamada persiste en la siguiente.** Reporté un vitest rojo que
+  era `frontend/frontend`.
