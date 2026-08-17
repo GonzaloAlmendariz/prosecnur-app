@@ -214,8 +214,29 @@
 #' @param minimo Piso en caracteres: por debajo, el titulo se parte en jirones.
 #' @return Numero de caracteres por linea.
 #' @keywords internal
+# Cache del envoltorio. `.barras_wrap_titulo_grupo()` es una funcion PURA de sus
+# argumentos y cada llamada baja de uno en uno midiendo con `grid::textGrob`, que
+# es lo caro. Sin cache, el mismo enunciado se mide una y otra vez: una por cada
+# cuerpo candidato que prueba `.titulo_grupo_size_que_cabe()`, otra al envolver
+# de verdad, y todas otra vez en la pasada de Word.
+#
+# Medido sobre el mazo de Conta: sin cache la corrida pasaba de ~235 s a
+# **1.054 s** —PPT 347, Word 707—. Es el mismo `(texto, columna, ancho, cuerpo,
+# tipografia)` repetido, asi que memorizarlo no cambia ni un pixel.
+.BARRAS_WRAP_CACHE <- new.env(parent = emptyenv())
+
 .barras_wrap_titulo_grupo <- function(texto, w_npc, ancho_in, size_pt,
                                       family = "", minimo = 10L) {
+  clave <- paste(texto, w_npc, ancho_in, size_pt, family, minimo, sep = "\r")
+  if (!is.null(hit <- .BARRAS_WRAP_CACHE[[clave]])) return(hit)
+  out <- .barras_wrap_titulo_grupo_calc(texto, w_npc, ancho_in, size_pt,
+                                        family = family, minimo = minimo)
+  assign(clave, out, envir = .BARRAS_WRAP_CACHE)
+  out
+}
+
+.barras_wrap_titulo_grupo_calc <- function(texto, w_npc, ancho_in, size_pt,
+                                           family = "", minimo = 10L) {
   texto <- as.character(texto)[1]
   if (is.na(texto) || !nzchar(texto)) return(as.integer(minimo))
 
