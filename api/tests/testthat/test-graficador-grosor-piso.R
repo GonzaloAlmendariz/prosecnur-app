@@ -190,3 +190,23 @@ test_that("un area de barras degenerada vuelve al centro del canvas", {
   }
   expect_false(isTRUE(is.finite(NA_real_ + 0.3)))
 })
+
+
+test_that("la leyenda centrada nunca se sale de la lamina", {
+  # Una leyenda mas ancha que su area vuelve a apoyarse en el borde antes que
+  # desbordar: centrar sobre las barras no puede empujarla fuera del lienzo.
+  centrar <- function(x_bars0, w_bars, row_w) {
+    c0 <- x_bars0 + w_bars / 2
+    if (!is.finite(c0) || c0 <= 0 || c0 >= 1) c0 <- 0.5
+    max(0, min(c0 - row_w / 2, 1 - row_w))
+  }
+  # Caso del mazo: barras de 0.26 a 0.86, leyenda que ocupa el 70 %.
+  x <- centrar(0.26, 0.60, 0.70)
+  expect_gte(x, 0)
+  expect_lte(x + 0.70, 1)
+  # Una leyenda casi tan ancha como la lamina se apoya en el borde izquierdo.
+  expect_equal(centrar(0.26, 0.60, 0.99), 0.01, tolerance = 1e-9)
+  # Y un area degenerada no la manda fuera.
+  expect_gte(centrar(NA, 0.6, 0.5), 0)
+  expect_lte(centrar(NA, 0.6, 0.5) + 0.5, 1)
+})

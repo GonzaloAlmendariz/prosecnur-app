@@ -3654,7 +3654,24 @@ graficar_barras_apiladas <- function(
         row_w <- sum(item_w, na.rm = TRUE) + slot_gap * max(0L, n_row - 1L)
         if (is.finite(legend_ancho_rel)) row_w <- max(row_w, legend_ancho_rel)
         row_w <- max(0.12, min(0.98, row_w))
-        x_origin <- 0.5 - row_w / 2
+        # Centrada sobre el AREA DE BARRAS, no sobre el canvas. Con el 0.5 la
+        # leyenda de cinco categorias entraba 1.50 in en la columna de
+        # etiquetas —lamina 60 del mazo de Conta, cuya cuarta premisa ocupa
+        # cuatro lineas y quedaba pisada—. El aprobado la centra sobre sus
+        # barras: las suyas arrancan en 5.50 in y su leyenda en 6.98.
+        #
+        # ESTA es la rama viva: el mazo compone su leyenda item a item aqui, y
+        # el `pos_leyenda_x` de mas abajo —donde se probo primero— vive en el
+        # `else`, que este mazo no toma. Trazado: 232 llamadas con
+        # `canvas=TRUE leyenda=TRUE pos=abajo` y CERO en la otra rama.
+        .centro_barras <- x_bars0 + (w_bars / 2)
+        if (!is.finite(.centro_barras) || .centro_barras <= 0 || .centro_barras >= 1) {
+          .centro_barras <- 0.5
+        }
+        x_origin <- .centro_barras - row_w / 2
+        # Sin salirse por ningun lado: una leyenda mas ancha que su area vuelve
+        # a apoyarse en el borde antes que desbordar la lamina.
+        x_origin <- max(0, min(x_origin, 1 - row_w))
         y_row <- y_legend0 + legend_h - ((r - 0.5) * row_h) + dy_leg
         x_offsets <- c(0, cumsum(item_w + slot_gap))
         for (j in seq_along(idx_row)) {
