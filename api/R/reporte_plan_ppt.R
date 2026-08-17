@@ -8745,14 +8745,12 @@ reporte_ppt_plan <- function(
       el_ur <- .inject_var_titulo(el_ur)
       el_bl <- .inject_var_titulo(el_bl)
       el_br <- .inject_var_titulo(el_br)
-      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 6.1,
-                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
-      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 6.1,
-                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
-      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 6.1,
-                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
-      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 6.1,
-                              alto_slot = .PANELES_4_ALTO_SLOT_IN)
+      # Sin `alto_slot`: el cajon de ESTE layout no esta medido. El 2.565 que
+      # sale en `poblacion_4` es de aquella plantilla, no de esta.
+      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 6.1)
+      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 6.1)
+      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 6.1)
+      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 6.1)
 
       if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_left.")
       if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("paneles_4: no se pudo renderizar up_right.")
@@ -8918,10 +8916,15 @@ reporte_ppt_plan <- function(
       el_ur <- .base_por_grafico(el_ur, presets, .base_auto_from_element)
       el_bl <- .base_por_grafico(el_bl, presets, .base_auto_from_element)
       el_br <- .base_por_grafico(el_br, presets, .base_auto_from_element)
-      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 5.2)
-      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 5.2)
-      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 5.2)
-      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 5.2)
+      # 5.2 de ancho y 2.565 de alto: los dos medidos en el XML de la lamina 13.
+      pUL <- .render_element(.inject_title_override(el_ul), ancho_slot = 5.2,
+                              alto_slot = .POBLACION_4_ALTO_SLOT_IN)
+      pUR <- .render_element(.inject_title_override(el_ur), ancho_slot = 5.2,
+                              alto_slot = .POBLACION_4_ALTO_SLOT_IN)
+      pBL <- .render_element(.inject_title_override(el_bl), ancho_slot = 5.2,
+                              alto_slot = .POBLACION_4_ALTO_SLOT_IN)
+      pBR <- .render_element(.inject_title_override(el_br), ancho_slot = 5.2,
+                              alto_slot = .POBLACION_4_ALTO_SLOT_IN)
 
       if (is.null(pUL)) pUL <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar up_left (",      el_ul$.element_type %||% "<NA>", ").")
       if (is.null(pUR)) pUR <- .plan_canvas_render_nulo("poblacion_4: no se pudo renderizar up_right (",     el_ur$.element_type %||% "<NA>", ").")
