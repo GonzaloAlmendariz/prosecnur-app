@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { AlertCircle, CalendarRange, CheckCircle2 } from "lucide-react";
 import {
+  apiMonitoreoAulasGenerarLibro,
+  apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportFromCalcMuestra,
   apiMonitoreoAulasSync,
   apiMonitoreoState,
@@ -593,6 +595,49 @@ export default function AulasMonitoreoPage() {
     }
   }, []);
 
+  // El ciclo del libro operativo. Generar lo descarga; leer lo vuelve a meter
+  // en la sesión. Los endpoints existían desde hace rato y no los llamaba nadie:
+  // el ciclo sólo se podía cerrar por API.
+  const generarLibro = useCallback(async () => {
+    setMutating(true);
+    setError("");
+    try {
+      const res = await apiMonitoreoAulasGenerarLibro();
+      // La descarga la dispara un enlace efímero: no hay dónde «guardar» un
+      // Excel operativo dentro del proyecto, y sacarlo es justo el punto.
+      const a = document.createElement("a");
+      a.href = res.download_url;
+      a.download = res.filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo generar el libro.");
+    } finally {
+      setMutating(false);
+    }
+  }, []);
+
+  const importarLibro = useCallback(async (archivo: File) => {
+    setMutating(true);
+    setError("");
+    try {
+      const res = await apiMonitoreoAulasImportarLibro(archivo);
+      setState(res.state);
+      // Lo que NO venía se dice, en vez de mostrar ceros silenciosos.
+      if (res.hojas_ausentes?.length) {
+        setError(`El libro no traía ${res.hojas_ausentes.join(" ni ")}. Lo demás se leyó.`);
+      }
+      await loadView(seccionActiva, true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");
+    } finally {
+      setMutating(false);
+    }
+  }, [loadView, seccionActiva]);
+
+
   useEffect(() => {
     void loadView(seccionActiva);
   }, [seccionActiva, loadView]);
@@ -751,6 +796,8 @@ export default function AulasMonitoreoPage() {
                 busy={busy}
                 onImportPlan={() => { void importPlan(); }}
                 onSyncField={() => { void syncField(); }}
+                onGenerarLibro={() => { void generarLibro(); }}
+                onImportarLibro={(archivo) => { void importarLibro(archivo); }}
               />,
               <VacioSinTablero
                 planImportado={imported}

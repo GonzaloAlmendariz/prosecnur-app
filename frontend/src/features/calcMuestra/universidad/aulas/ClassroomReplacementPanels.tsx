@@ -261,7 +261,11 @@ export function ClassroomReplacementChainPanel({
 }
 
 export function ClassroomReplacementTables({ simulation }: { simulation: CalcMuestraAulasReplacementSimulation }) {
-  const suggestions = rowsFrom<CalcMuestraAulasReplacementSuggestion>(simulation?.suggestions).slice(0, 18);
+  // La tabla trae todas las sugerencias de la simulación. Estaba cortada en 18
+  // mientras el motor emite 3 por titular: sobre la selección de referencia son
+  // 90, así que se veían las de 6 titulares y ninguna de los otros 24. La tabla
+  // ya vive dentro de `cmv2-classroom-table-wrap`, que le da su propio scroll.
+  const suggestions = rowsFrom<CalcMuestraAulasReplacementSuggestion>(simulation?.suggestions);
   if (!suggestions.length) {
     return (
       <ClassroomEmptyState
@@ -364,7 +368,10 @@ export function ClassroomReplacementBlueprintPanel({
   reserveCount: number;
   extraReserveCount: number;
 }) {
-  const routeDepth = Math.max(1, Math.min(5, depth || 3));
+  // El ejemplo ilustra la cadena que el estudio va a obtener, así que su
+  // longitud es la configurada. Estaba clavado en 5 con `bolsas_reemplazo` en
+  // 11: quien mira este estado vacío se hacía una idea a menos de la mitad.
+  const routeDepth = profundidadCadenaPedida(depth);
   const replacementCodes = Array.from({ length: routeDepth }, (_, index) => `R 5.${index + 1}`);
   return (
     <div className="cmv2-classroom-replacement-blueprint">

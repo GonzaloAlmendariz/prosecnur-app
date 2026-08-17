@@ -4313,6 +4313,52 @@ export async function apiMonitoreoAulasAgenda(updates: Partial<MonitoreoAulasPla
  * `agotada: true` significa que la cadena se acabó: la caída NO queda marcada
  * como reemplazada, porque no lo está, y su meta se queda sin cubrir.
  */
+/**
+ * Genera el libro operativo del estudio: las tres hojas que el equipo llena en
+ * Excel, con lo que la app ya sabe y las columnas de cada rol vacías —o con lo
+ * ya registrado, si el operativo está en marcha—.
+ */
+export async function apiMonitoreoAulasGenerarLibro() {
+  const result = await handle<{
+    ok: true; file_id: string; filename: string; unidades: number; partes: number;
+  }>(
+    await apiFetch("/api/monitoreo/aulas/generar-libro", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+  return { ...result, download_url: downloadUrl(result.file_id) };
+}
+
+/**
+ * Relee el libro que alguien llenó. `hojas_ausentes` dice cuáles de las tres no
+ * venían: el resultado no finge que estaban vacías.
+ */
+export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: string }) {
+  const esArchivo = origen instanceof File;
+  const cuerpo = esArchivo
+    ? (() => { const fd = new FormData(); fd.append("file", origen); return fd; })()
+    : JSON.stringify({ file_id: origen.file_id });
+  return handle<{
+    ok: true;
+    resumen: {
+      unidades: number; titulares: number; contactadas: number;
+      partes_de_campo: number; filas_de_control: number;
+    };
+    hojas_ausentes: string[];
+    control_sin_nombre: number[];
+    state: MonitoreoState;
+  }>(
+    // Sin `Content-Type` cuando va `FormData`: el navegador pone el boundary.
+    await apiFetch("/api/monitoreo/aulas/importar-libro", {
+      method: "POST",
+      headers: esArchivo ? headers() : headers({ "Content-Type": "application/json" }),
+      body: cuerpo,
+    }),
+  );
+}
+
 export async function apiMonitoreoAulasActivarReemplazo(payload: {
   operational_code: string;
   motivo?: string;

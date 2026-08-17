@@ -130,6 +130,7 @@ Dos defectos en una sola línea: el parámetro va **duplicado**, y su valor es u
 | **L59** | Una pestaña era alcanzable **por clic pero no por dirección**. | Al saltar de otra sección, la sección se aplica primero y la pestaña **recordada** se publica en la URL, pisando la pedida: `?seccion=consultas&pestana=reemplazos` aterrizaba en `brechas`. Lo introdujo la memoria por sección de L53. | ☑ **hecho** (2026-08-16) — la pestaña de la URL se aplica junto con su sección. |
 | **L60** | El mismo defecto de dirección estaba en **los cuatro perfiles**. | No lo introdujo L53: es anterior. Medido en `acrconta` y `acnur_acg` — `avance/detalle` desde Consultas aterrizaba en `resumen`; `consultas/gps` desde Avance, en `duracion`. | ☑ **hecho** (2026-08-16) — aulas, acreditación, telefónico y territorial. |
 | **L61** | El defecto de dirección no tenía guard. | Cuatro perfiles lo tuvieron a la vez y nadie lo notó: sólo lo cubría una verificación manual. | ☑ **hecho** (2026-08-16) — `MonitoringDireccionPestanaContract.test.ts` sobre los cuatro; el guard encontró un hueco en aulas al escribirlo. |
+| **L62** | Los endpoints del libro **no los llamaba nadie**. | `importar-libro` y `generar-libro` existían desde hace ocho ítems con **cero consumidores** en el frontend: el ciclo «la app genera, alguien llena, la app relee» sólo se podía cerrar con `curl`. | ◐ a medias (2026-08-16) — «Generar libro» funciona end-to-end; «Leer libro llenado» queda deshabilitado con su motivo a la vista. |
 | **L29** | La app no lee «Base de control». | Seis grupos de control por aula. | ☑ **hecho** (2026-08-16) — lector + endpoint. **194 filas, 36 campos**; las 7 columnas sin nombre de la cabecera se reportan. |
 | **L34** | `VALIDO TOTAL` dice **NO CUMPLE en 149 de 194 aulas**. | Lo calcula el propio Excel contra los umbrales 70T/70P. | ⛔ **bloqueado** — hay que entender si es el criterio o el operativo antes de llevarlo a ningún tablero. |
 | **L35** | La app no **generaba** el libro, sólo lo leía. | Sin generarlo, cada estudio arranca copiando el del anterior y los encabezados derivan hasta que dejan de leerse. | ☑ **hecho** (2026-08-16) — `aulas_libro_generar()` + `POST /api/monitoreo/aulas/generar-libro`. Round-trip probado: lo que escribe lo vuelve a leer. |
@@ -619,3 +620,35 @@ restaurarlas, 8 en verde.
 defecto exige montar el perfil, cargar un proyecto real y navegar entre
 secciones — lo que hice a mano cuatro veces. El guard comprueba la propiedad que
 lo sostiene, que es lo que se puede verificar en cada corrida sin un navegador.
+
+
+### 2026-08-16 — L62: el ciclo del libro llega a la app, a medias
+
+Ocho ítems construyendo el libro operativo, y **ningún botón lo llamaba**. Los
+dos endpoints tenían **cero consumidores** en el frontend: el ciclo que pediste
+—la app produce el Excel, alguien lo llena, la app lo relee— sólo se podía
+cerrar con `curl`. Es exactamente el patrón que este repo ya tiene anotado: una
+capacidad existe sólo si alguien la consume.
+
+**Lo que quedó funcionando**, verificado end-to-end: «Generar libro» en Fuentes
+produce el Excel de tres hojas y lo descarga. Con el proyecto de QA:
+`qa_aulas_libro_aulas_16_08_26.xlsx`, 9 unidades y 3 partes.
+
+**Y un defecto de propina, reparado**: el botón exigía `aulasPlanImported()`,
+que pide `selection_run_id` —presente sólo en planes venidos del cálculo de
+muestra—. Un plan que llegó **por el propio libro** no lo tiene, así que el
+ciclo quedaba cerrado sobre sí mismo: importas 196 aulas y no puedes regenerar
+el libro. Para producir el Excel basta con que haya unidades.
+
+**Lo que no quedó**: la subida directa desde el navegador. Diagnosticado, no
+supuesto:
+
+| Parsers | Qué pasa |
+|---|---|
+| por defecto | `E_BAD_JSON` — intenta parsear el multipart como JSON |
+| `multi, json` | el `file` **llega**, pero plumber muere al parsear la parte interna: «No suitable parser found to handle request body type application/vnd.openxmlformats-officedocument…» |
+| `multi, octet, json` | el `file` deja de llegar |
+
+La vía del `file_id` sí funciona. El botón «Leer libro llenado» queda visible y
+**deshabilitado con su motivo en el tooltip**, no escondido: el ciclo tiene dos
+mitades y conviene que se vea cuál falta.
