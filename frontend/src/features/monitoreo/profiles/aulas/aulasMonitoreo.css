@@ -895,7 +895,7 @@
 }
 
 /* La franja izquierda dice el desenlace sin leer nada. */
-.mon-profile-page.is-aulas-flow .aulas-cadena.es-titular { border-left-color: var(--pulso-state-ok-fg, #168a55); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-titular { border-left-color: var(--pulso-state-ready-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-reemplazo { border-left-color: var(--pulso-state-partial-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left-color: var(--pulso-danger-fg, #a61d4f); }
 
@@ -939,8 +939,8 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-eslabon.es-cierre {
-  border-color: color-mix(in srgb, var(--pulso-state-ok-fg, #168a55) 45%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-state-ok-fg, #168a55) 8%, #fff);
+  border-color: color-mix(in srgb, var(--pulso-state-ready-fg) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-state-ready-fg) 8%, #fff);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-eslabon-codigo { font-weight: var(--pulso-weight-black); }
@@ -948,7 +948,7 @@
 .mon-profile-page.is-aulas-flow .aulas-eslabon-cifra { color: var(--pulso-text); }
 .mon-profile-page.is-aulas-flow .aulas-eslabon-sello {
   font-weight: var(--pulso-weight-black);
-  color: var(--pulso-state-ok-fg, #168a55);
+  color: var(--pulso-state-ready-fg);
 }
 
 /* La fila del corte es un botón cuando enfoca: se resetea el chrome nativo y se
