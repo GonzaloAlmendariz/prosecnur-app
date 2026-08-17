@@ -3285,11 +3285,36 @@ graficar_barras_apiladas <- function(
       .ph_border(x_bars0, y_main0, w_bars, main_h, etiqueta = "barras",
                  nota = .guia_nota(
                    texto_pt = suppressWarnings(as.numeric(size_texto_barras)[1]) * 2.845,
-                   barra_in = grosor_eff * alto_por_cat_eff
+                   # El MISMO calculo que la regla barra por barra de mas
+                   # abajo, y no `grosor_eff * alto_por_cat_eff`: ese daba 1.48
+                   # cm donde la regla medía 1.36 sobre la misma lamina, y dos
+                   # cifras distintas para lo mismo es exactamente lo que hace
+                   # criptica a una guia. La regla lee la POSICION real en el
+                   # canvas, que es la que se dibuja.
+                   barra_in = (grosor_eff / den) * h_bars_area *
+                     suppressWarnings(as.numeric(alto)[1])
                  )) +
       .ph_border(x_bars0, y_padtop0,    w_bars, h_padtop) +
       .ph_border(x_bars0, y_bars_area0, w_bars, h_bars_area) +
       .ph_border(x_bars0, y_padbot0,    w_bars, h_padbot)
+
+    # Y la regla barra por barra. La nota de arriba canta UN grosor, y una cifra
+    # unica no puede desmentirse a si misma: si dos barras de la lamina difieren
+    # —que es justo lo que hay que poder ver— la nota sigue cantando un solo
+    # numero. Esta acota CADA barra con su medida propia, leida de su posicion
+    # real en el canvas.
+    grosor_npc_barra <- (grosor_eff / den) * h_bars_area
+    reglas <- .guia_regla_por_barra(
+      y_centros = cat_layout$.y_abs,
+      grosor_npc = grosor_npc_barra,
+      alto_in = suppressWarnings(as.numeric(alto)[1]),
+      x = x_bars0 + 0.006,
+      col = debug_ph_col %||% .GUIA_COL,
+      lwd = debug_ph_lwd %||% .GUIA_LWD
+    )
+    for (g in reglas) {
+      canvas <- canvas + cowplot::draw_grob(g, x = 0, y = 0, width = 1, height = 1)
+    }
   }
 
   if (usar_grupos_canvas && w_group > 0) {

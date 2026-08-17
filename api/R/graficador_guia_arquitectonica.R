@@ -290,3 +290,125 @@
 
   c(list(marco, rotulo), cotas)
 }
+
+
+# Dispersion minima entre barras para que la regla aparezca, en centimetros.
+# Mismo valor que `grosor_dispersion_max_cm` de la regla B3 del verificador:
+# medio milimetro. Por debajo es redondeo del render y por encima se ve.
+.GUIA_REGLA_DISPERSION_MIN_CM <- 0.05
+
+
+#' Regla que acota BARRA POR BARRA
+#'
+#' Las cotas de `.guia_ph_grobs()` miden la CAJA: dicen que el area de barras
+#' mide tanto de alto, y una sola nota arriba dice el grosor teorico. Eso no
+#' sirve para lo que hace falta comprobar —«todas estas barras no tienen el
+#' mismo grosor»—, porque una cifra unica no puede desmentirse a si misma: si
+#' dos barras de la lamina difieren, la nota de arriba sigue cantando un solo
+#' numero.
+#'
+#' Esta regla pone una cota A CADA BARRA, con su medida propia leida de su
+#' posicion real en el canvas. Dos barras distintas cantan cifras distintas, que
+#' es justo lo que se quiere poder ver de un vistazo.
+#'
+#' Va pegada al borde izquierdo del area de barras y hacia dentro, donde no hay
+#' dato: a la izquierda estan las etiquetas de eje, que son texto y no se
+#' comparan entre laminas.
+#'
+#' @param y_centros Centro de cada barra, en npc del canvas.
+#' @param grosor_npc Grosor de cada barra, en npc del canvas. Escalar o vector.
+#' @param alto_in Alto del canvas en pulgadas, para pasar npc a centimetros.
+#' @param x Posicion horizontal de la regla, en npc.
+#' @param ancho Largo de cada cota, en npc.
+#' @param col,lwd,size_cota Estilo, como el resto de la guia.
+#' @return Lista de grobs; vacia si no hay nada acotable.
+#' @keywords internal
+.guia_regla_por_barra <- function(y_centros, grosor_npc, alto_in,
+                                  x = 0.012, ancho = 0.055,
+                                  col = .GUIA_COL, lwd = .GUIA_LWD,
+                                  size_cota = .GUIA_SIZE_COTA) {
+  y <- suppressWarnings(as.numeric(y_centros))
+  g <- suppressWarnings(as.numeric(grosor_npc))
+  a <- suppressWarnings(as.numeric(alto_in)[1])
+  if (!length(y) || !length(g) || !is.finite(a) || a <= 0) return(list())
+  if (length(g) == 1L) g <- rep(g, length(y))
+  if (length(g) != length(y)) return(list())
+
+  ok <- is.finite(y) & is.finite(g) & g > 0
+  if (!any(ok)) return(list())
+  y <- y[ok]; g <- g[ok]
+
+  # La regla aparece SOLO si hay algo que ver. Con todas las barras al mismo
+  # grosor, la nota de la caja ya lo dice con una cifra y repetirla cinco veces
+  # sobre los porcentajes es ruido: la guia estorba en vez de medir. Cuando
+  # difieren —que es lo que hay que poder detectar de un vistazo— cada barra
+  # canta la suya y la diferencia salta sola.
+  #
+  # El umbral es el mismo que usa la regla B3 del verificador: medio milimetro.
+  # Por debajo es redondeo del render y por encima se ve.
+  if (length(g) > 1L) {
+    disp_cm <- (max(g) - min(g)) * a * .GUIA_CM_POR_IN
+    if (!is.finite(disp_cm) || disp_cm <= .GUIA_REGLA_DISPERSION_MIN_CM) {
+      return(list())
+    }
+  }
+
+  # Con muchas barras las cifras se montarian unas sobre otras y la regla
+  # dejaria de leerse, que es lo contrario de lo que viene a hacer. El limite
+  # sale del cuerpo de la cifra: dos cotas necesitan al menos su alto de
+  # separacion.
+  alto_cifra_npc <- size_cota / 72 / a
+  if (length(y) > 1L) {
+    paso <- min(diff(sort(y)))
+    if (is.finite(paso) && paso < alto_cifra_npc * 1.15) return(list())
+  }
+
+  out <- list()
+  for (i in seq_along(y)) {
+    y0 <- y[i] - g[i] / 2
+    y1 <- y[i] + g[i] / 2
+    # La cota: linea vertical con topes, como en un plano.
+    out <- c(out, list(
+      grid::linesGrob(
+        x = grid::unit(c(x, x), "npc"),
+        y = grid::unit(c(y0, y1), "npc"),
+        gp = grid::gpar(col = col, lwd = lwd)
+      ),
+      grid::segmentsGrob(
+        x0 = grid::unit(c(x - ancho / 2, x - ancho / 2), "npc"),
+        x1 = grid::unit(c(x + ancho / 2, x + ancho / 2), "npc"),
+        y0 = grid::unit(c(y0, y1), "npc"),
+        y1 = grid::unit(c(y0, y1), "npc"),
+        gp = grid::gpar(col = col, lwd = lwd)
+      )
+    ))
+
+    # La cifra va HORIZONTAL y a la derecha de la cota, no rotada dentro de
+    # ella. Rotada y a cuerpo de cota era ilegible: es una medida que se compara
+    # de un vistazo con la de la barra de al lado, y para eso hay que poder
+    # leerla sin girar la cabeza. Con halo, porque cae sobre la barra.
+    # La cifra va a la DERECHA de la cota y horizontal. Se probo a la izquierda,
+    # en el canal entre las etiquetas de eje y las barras, para no pisar el
+    # porcentaje: ahi la tapan las propias etiquetas y no se lee ninguna, que es
+    # peor. A la derecha pisa un poco el primer segmento, y ese es el precio.
+    etq <- sprintf("%.2f", g[i] * a * .GUIA_CM_POR_IN)
+    out <- c(out, list(
+      grid::roundrectGrob(
+        x = grid::unit(x + ancho * 0.75, "npc"), y = grid::unit(y[i], "npc"),
+        width = grid::unit(nchar(etq) * size_cota * 1.35, "points"),
+        height = grid::unit(size_cota * 1.45, "points"),
+        just = c("left", "centre"), r = grid::unit(1, "pt"),
+        gp = grid::gpar(fill = .GUIA_HALO_FILL, col = NA)
+      ),
+      grid::textGrob(
+        etq,
+        x = grid::unit(x + ancho * 0.75 + 0.004, "npc"),
+        y = grid::unit(y[i], "npc"),
+        just = c("left", "centre"), rot = 0,
+        gp = grid::gpar(col = col, fontsize = size_cota * 1.25,
+                        fontface = "bold")
+      )
+    ))
+  }
+  out
+}
