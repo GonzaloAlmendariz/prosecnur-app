@@ -1899,6 +1899,21 @@ graficar_barras_apiladas <- function(
     max_lineas_eje_y      = max_lineas_eje_y_est
   )
   grosor_eff <- .grosor_con_piso_in(grosor_eff, alto_por_cat_grosor, grosor_min_in)
+  # Y el TECHO en el mismo sitio, con el mismo alto de fila. El piso evita la
+  # cinta; el techo evita el ladrillo. Que estuvieran separados era la razon de
+  # que el techo no tuviera consumidor: se habia intentado enganchar en el
+  # bloque de estirado, 1000 lineas mas abajo, donde recorta el PANEL en vez de
+  # la fraccion y devuelve el hueco vacio de P23.
+  #
+  # Medido sobre el mazo de Conta al ponerlo aqui: el p90 del grosor azul cae de
+  # 2.20 a 1.51 cm —el aprobado esta en 1.43— sin que se mueva ninguna regla, y
+  # sin que aparezca ni un R5: piso y techo no pueden cruzarse, porque 0.32 in
+  # es siempre menor que 0.7087.
+  #
+  # LIMITE, medido: el maximo sigue en 2.75. Ese sale del ESTIRADO, que ocurre
+  # despues y no ve esta fraccion —es el mismo diagnostico de `.GROSOR_TECHO_IN`
+  # y los dos R10 que quedan viven ahi—.
+  grosor_eff <- .grosor_con_techo_in(grosor_eff, alto_por_cat_grosor)
 
   label_fit_scale <- 1
   if (isTRUE(usar_canvas)) {
