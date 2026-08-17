@@ -1310,3 +1310,36 @@ y marcó como ausentes **los once estados** —cuya etiqueta correcta *es* la cl
 capitalizada—. Comparar las dos listas leyendo las fuentes, en vez de deducirlo de
 la salida de la función, es lo que lo arregló. Van once trampas de medición en
 este GOAL y todas tienen la misma forma: **el instrumento cambia lo medido**.
+
+
+### 2026-08-16 — el tercer vocabulario: 38 columnas hablaban inglés
+
+De las **93 columnas** que emite el tablero de aulas, **38 no tenían etiqueta** y
+habrían salido en pantalla como jerga cruda: «Contact medium», «Effective
+surveys», «Scheduled date». No es casualidad cuáles: son **justo los campos que
+L31 y L32 acababan de añadir** —el ciclo de contacto y el parte de campo—. Cada
+vez que el motor aprendió algo nuevo, la pantalla se quedó atrás sin que nada
+fallara.
+
+Escritas las 38 en castellano, agrupadas por lo que son: ciclo de contacto, parte
+de campo, activación de reemplazos, composición muestral y trazabilidad.
+
+Y el guard, con una decisión deliberada sobre **hasta dónde llega**: se ata a los
+dos vectores literales del motor que alimentan las tablas que se leen —el
+`course_status` de Avance y `BRECHAS_COLUMNAS_PUBLICADAS`—, **no a las 93**.
+Varias de esas columnas son internas y nunca llegan a una tabla; exigir etiqueta
+para todas sería pedirla donde no se ve, que es la otra forma de que un gate deje
+de significar algo.
+
+Verificado invirtiéndolo:
+
+```
+quitando filter_passed -> columnas del motor sin etiqueta: filter_passed
+```
+
+Y comprobado en pantalla: las ocho columnas de Avance y las ocho de Brechas salen
+todas en castellano.
+
+Con esto son **tres los vocabularios cerrados que cruzan R → UI y ahora tienen
+guard**: los controles de validación, los estados operativos y las columnas de las
+tablas. Los tres estaban rotos o a punto, y ninguno de los tres fallaba.
