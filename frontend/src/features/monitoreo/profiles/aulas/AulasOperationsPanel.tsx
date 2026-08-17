@@ -31,7 +31,12 @@ export function aulasPlanImported(config: MonitoreoAulasConfig | null | undefine
  * que haya unidades.
  */
 export function aulasHayPlan(config: MonitoreoAulasConfig | null | undefined) {
-  return Boolean(config?.enabled && (config?.plan?.length ?? 0) > 0);
+  // `plan_rows` en vez de `plan.length`: el plan dejo de viajar en la config
+  // —333 KB de 934 para responder «cuantas unidades hay»— y el backend manda el
+  // conteo. El `plan?.length` se conserva de respaldo porque otras respuestas
+  // (import-from-calc-muestra, config) si devuelven la config con su plan.
+  const filas = config?.plan_rows ?? config?.plan?.length ?? 0;
+  return Boolean(config?.enabled && filas > 0);
 }
 
 export type AulasOperationsPanelProps = {

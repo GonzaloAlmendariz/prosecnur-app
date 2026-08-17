@@ -711,6 +711,8 @@ export type MonitoreoAulasPlanRow = {
 };
 
 export type MonitoreoAulasConfig = {
+  /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
+  plan_rows?: number;
   schema: "monitoreo_aulas_universitarias_v1" | string;
   enabled: boolean;
   selection_run_id: string;
