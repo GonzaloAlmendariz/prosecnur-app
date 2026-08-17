@@ -112,8 +112,10 @@ export function clavesDeVariable(variable: CriterioVariable): string[] {
  * Selección inicial: por defecto TODO incluido (población y marco sin filtrar,
  * retro-compat con el path legacy). El match de una variable jerárquica nace en
  * "any" (un aula pasa si ≥1 de sus valores cae en el set). Todo criterio de
- * alumno se aplica SIEMPRE al marco (recorta la población N): la UI ya no expone
- * un selector de capa, así que la selección fija `layer: "marco"`.
+ * alumno nace aplicado al marco (recorta la población N) por retro-compat con
+ * el path legacy, que no conocía capas. Desde la tarjeta se puede mover a
+ * `instrumento` o `procesamiento` (ver `CapaCriterio`); esto sólo fija el punto
+ * de partida de un catálogo sin selección previa.
  */
 export function seleccionInicial(catalogo: CriteriosCatalogo | null | undefined): CriteriosSeleccionMarco {
   const byVariable: Record<string, CriterioSeleccion> = {};

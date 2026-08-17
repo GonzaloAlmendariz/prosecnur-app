@@ -2076,6 +2076,65 @@
 }
 .cmv2-crit-recorte-medido[data-estado="no-medible"] strong { color: var(--pulso-warn-fg); }
 
+/* Dónde se aplica el criterio. Sólo `marco` recorta el universo, así que es la
+   única capa que se pinta con el acento: las otras dos declaran cuándo se
+   comprueba algo que no cambia el N. */
+.cmv2-crit-capa {
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cmv2-border) 16%, transparent);
+  border: 1px solid var(--cmv2-border);
+}
+.cmv2-crit-capa-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cmv2-crit-capa-label {
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cmv2-crit-capa-opciones {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  border: 1px solid var(--cmv2-border);
+}
+.cmv2-crit-capa-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font-size: 11.5px;
+  font-weight: var(--pulso-weight-medium);
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cmv2-crit-capa-btn:hover { color: var(--pulso-text); }
+.cmv2-crit-capa-btn[data-activa="true"] {
+  background: var(--cmv2-accent-soft);
+  color: var(--cmv2-accent-fg);
+  font-weight: var(--pulso-weight-semibold);
+}
+.cmv2-crit-capa-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--cmv2-accent) 60%, transparent);
+  outline-offset: 1px;
+}
+.cmv2-crit-capa-efecto {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
 /* Facultades excluidas por diseño. La lista es densa a propósito: son 15-17
    nombres y el analista los revisa de un vistazo, no de uno en uno. */
 .cmv2-facultades-excluidas-lista {
