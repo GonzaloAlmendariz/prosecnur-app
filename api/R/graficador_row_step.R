@@ -88,12 +88,21 @@ NULL
 #' vive el piso, la vara no se movio ni una decima: 22 hallazgos antes y
 #' despues, 22 grosores distintos, ratio 2.98 en ambos.
 #'
-#' La razon: el preset declara `grosor_modo = "manual"`, asi que
-#' `.auto_bar_width_apiladas()` no llega a llamarse y la fraccion es 0.7 fija.
-#' Lo que varia es el ALTO DE FILA, y los numeros cuadran exactos:
-#' 0.55 x 0.7 = 0.978 cm, 0.651 x 0.7 = 1.19, 0.74 x 0.7 = 1.36 —los tres
-#' valores que el verificador mide—. La reparacion esta en igualar
-#' `alto_por_categoria` entre laminas de la misma familia, no en el grosor.
+#' La razon la dio una traza sobre las llamadas REALES, separando el PPT del
+#' Word —el generador corre los dos y sus cifras se mezclaban—:
+#'
+#'   lo que produce el graficador   3 grosores: 1.29 (x52), 1.466 (x2), 1.571 (x4)
+#'   lo que acaba en el PPT        22 grosores, de 0.693 a 2.068 cm
+#'   factor implicito              0.54x a 1.60x
+#'
+#' **El graficador ya es consistente.** La dispersion la introduce el escalado
+#' del canvas al cajon del slide, que comprime o estira cada lamina segun cuanto
+#' contenido lleve. Por eso ningun arreglo dentro del graficador movio la aguja:
+#' los tres altos de fila que se veian llegar tampoco eran el problema —0.651 es
+#' el preset del proyecto, 0.74 un override deliberado de la lamina 15, y 0.55
+#' es del preset de WORD y no entra al PPT—.
+#'
+#' La reparacion vive en el paso que encaja el canvas en el cajon.
 #'
 #' El helper se conserva con sus tests porque el razonamiento sigue siendo
 #' correcto para un mazo en modo `auto`, y porque la medicion que lo descarta
