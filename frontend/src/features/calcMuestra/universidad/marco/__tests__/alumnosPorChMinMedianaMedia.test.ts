@@ -78,8 +78,11 @@ describe("el método se ofrece y se persiste", () => {
   it("está entre las opciones que la superficie publica", () => {
     const ids = ALUMNOS_POR_CH_METHODS.map((method) => method.id);
     expect(ids).toContain("min_mediana_media");
-    // P25 sigue siendo el recomendado: ofrecerlo no es cambiar la recomendación.
-    expect(metodoAlumnosPorChInicial(undefined)).toBe("p25");
+    // La recomendación pasó a `min_mediana_media` por decisión de Gonzalo —«usa
+    // mín(mediana, media) por defecto y déjalo cambiable por facultad»— y porque
+    // es el estadístico que aplicó el diseño de 2025. Antes se proponía `p25`,
+    // y este test fijaba esa recomendación anterior.
+    expect(metodoAlumnosPorChInicial(undefined)).toBe("min_mediana_media");
     expect(metodoAlumnosPorChInicial("min_mediana_media")).toBe("min_mediana_media");
     expect(esMetodoAlumnosPorChValido("min_mediana_media")).toBe(true);
   });
