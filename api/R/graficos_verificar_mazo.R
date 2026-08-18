@@ -2203,10 +2203,40 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #'
 #' CONSUMIDOR NATURAL, no enchufado: el generador del mazo, que SI tiene plan y
 #' fuentes, avisando por `.pulso_avisos_de_job()`. Queda pendiente porque el
-#' sitio donde colgarlo esta en `reporte_plan_ppt.R`, congelado a crecimiento, y
-#' porque hoy NINGUN aviso del motor llega ahi —las dos laminas de escala
-#' partida y las cuatro de radar tampoco—: enchufar este solo taparia medio
-#' hueco. Mientras tanto se llama a mano sobre el plan de un `.pulso`.
+#' sitio donde colgarlo esta en `reporte_plan_ppt.R`, congelado a crecimiento.
+#' Mientras tanto se llama a mano sobre el plan de un `.pulso`.
+#'
+#' CORRECCION DE UNA AFIRMACION PROPIA. Esta nota decia ademas que «hoy NINGUN
+#' aviso del motor llega ahi —las dos laminas de escala partida y las cuatro de
+#' radar tampoco—». Es FALSO, y era la premisa de una etapa entera del recorrido.
+#' Medido sobre una generacion completa del mazo de Contabilidad, capturando el
+#' stderr:
+#'
+#'   lineas de stderr                                27
+#'   lineas con el sello `[PULSO-AVISO]`             24
+#'   avisos distintos tras deduplicar                 6
+#'
+#' Los seis son: dos de escala partida (13 barras, maximos 8 y 7), dos de radar
+#' (valores hasta 100.0 y 98.1 leidos como porcentaje) —justo los que se daban
+#' por perdidos— y dos de iconos. El canal existe entero y funciona:
+#' `.pulso_aviso()` sella en `jobs.R:405`, **16 sitios** lo llaman, y
+#' `.pulso_avisos_de_job()` recoge del `.err` en tres rutas de
+#' `router_graficos.R`. Ocho suites de test ya lo cubren. **Antes de declarar un
+#' hueco, busca su test.**
+#'
+#' LO QUE SI SE PIERDE, y es lo unico: los cuatro
+#' `message("\u26a0\ufe0f .render_*(): ", conditionMessage(e))` de
+#' `reporte_plan_ppt.R` —lineas 6360, 6534, 6746 y 6857—, que es un grafico que
+#' revento y devolvio NULL sin decirselo a nadie. Es peor que un aviso de
+#' formato y esta sin sello. **LATENTE EN ESTE MAZO**: los 68 elementos del plan
+#' son 42 multiapiladas, 20 agrupadas, 4 pie y 2 radar; **cero** pasan por
+#' boxplot, media_rango, numerico o histograma. El sitio esta congelado, asi que
+#' aqui queda medido y nombrado, no reparado.
+#'
+#' Y un dato que NO es un aviso perdido aunque lo parezca: la generacion emite
+#' «There were 50 or more warnings». Con `options(warn = 1)` resultan ser **155
+#' identicos** de `grid.Call` —«font family 'Arial' not found in PostScript font
+#' database»—, ruido del device, no algo que el analista deba leer.
 #' @keywords internal
 .verif_plan_etiqueta_truncada <- function(plan, surveys, limite_bytes = 256L) {
   vacio <- data.frame(lamina = integer(0), ruta = character(0),
