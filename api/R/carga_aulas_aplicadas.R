@@ -108,6 +108,14 @@ aulas_aplicadas_a_partes <- function(df, titulos) {
         classroom_id = code,
         intento = b,
         observed_students = asistentes,
+        # `% ASISTENCIA` era el unico de los once campos de la hoja que estaba
+        # DECLARADO en `AULAS_APLICADAS_CAMPO`, se le resolvia la columna en
+        # `.cap_mapa()` y despues no se escribia aqui: medio camino hecho. Es el
+        # porcentaje que el equipo pone a mano, no un derivado —por eso se lee
+        # en vez de calcularse—, y es el numero que explica si el 70 % del
+        # padron era siquiera alcanzable: con 55 % de asistencia no se llega ni
+        # respondiendo todos los presentes.
+        attendance_pct = num("attendance_pct"),
         refusals = num("refusals"),
         duplicates = num("duplicates"),
         effective_surveys = num("effective_surveys"),

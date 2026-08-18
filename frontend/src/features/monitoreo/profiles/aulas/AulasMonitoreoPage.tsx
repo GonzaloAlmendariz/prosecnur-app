@@ -601,7 +601,13 @@ function renderAulasView(
             // SÓLO las columnas del parte, más el código para saber de qué aula
             // es. Añadir facultad, curso u horario la convertiría en una segunda
             // Agenda, y de eso ya hay una.
-            preferredColumns={["operational_code", "observed_students", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
+            // Nueve y no ocho: `% Asistencia` va pegada a los asistentes que
+            // califica. Es el único de los once campos de la hoja que se leía y
+            // no llegaba a ninguna pantalla, y es el número que dice si el 70 %
+            // del padrón era alcanzable —con 55 % de asistencia no se llega ni
+            // respondiendo todos los presentes—.
+            maxColumns={9}
+            preferredColumns={["operational_code", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
           />
         </section>
         ) : null}

@@ -100,6 +100,12 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
     out[[length(out) + 1L]] <- list(
       operational_code = txt(p$operational_code %||% p$classroom_id),
       observed_students = num(p$observed_students),
+      # El `% ASISTENCIA` que el equipo escribe a mano en la hoja. Se publica
+      # tal cual —no se deriva de `observed_students`— porque el numerador y el
+      # denominador que uso el equipo son suyos, y porque un porcentaje que no
+      # cuadra con los asistentes que la misma fila declara es en si mismo un
+      # hallazgo del cuadre.
+      attendance_pct = num(p$attendance_pct),
       refusals = num(p$refusals),
       duplicates = num(p$duplicates),
       effective_surveys = num(p$effective_surveys),

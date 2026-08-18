@@ -25,8 +25,9 @@
   "FECHA DE APLICACIÓN", "HORA DE APLICACIÓN", "STATUS DE APLICACIÓN",
   "OBSERVACIONES SOBRE APLICACIONES"
 )
-.cap_campo <- function(asist, rech, dup, efec, estado = "APLICADA", con_aula = TRUE, aula = "J309") {
-  c("40", "35", as.character(asist), "0.5", as.character(rech), as.character(dup),
+.cap_campo <- function(asist, rech, dup, efec, estado = "APLICADA", con_aula = TRUE,
+                       aula = "J309", asistencia = "0.5") {
+  c("40", "35", as.character(asist), as.character(asistencia), as.character(rech), as.character(dup),
     as.character(efec), "Bryan Robles",
     if (con_aula) aula else NULL,
     "2025-09-17", "15:00", estado, "todo bien")
@@ -77,6 +78,23 @@ test_that("el parte trae los cuatro numeros que definen el resultado", {
   # `effective_surveys` es el numero que manda; no es "encuestas aplicadas".
   expect_equal(p$effective_surveys, 23)
   expect_identical(p$actual_room, "J309")
+})
+
+test_that("el porcentaje de asistencia llega al parte y no se recalcula", {
+  # Era el unico de los once campos de la hoja que estaba declarado en
+  # `AULAS_APLICADAS_CAMPO`, se le resolvia la columna y no se escribia en el
+  # parte. La hoja trae 40 matriculados y 27 asistentes —que darian 0.675— y el
+  # equipo escribio 0.62: se publica LO QUE ESCRIBIO. El control esta puesto asi
+  # a proposito; con un valor coherente, un `attendance_pct` derivado a mano
+  # pasaria este test igual que uno leido.
+  h <- .cap_hoja(list(list(code = "ABC-01", campo = .cap_campo(27, 1, 3, 23, asistencia = "0.62"))))
+  p <- aulas_aplicadas_a_partes(h$df, h$titulos)[[1]]
+  expect_equal(p$attendance_pct, 0.62)
+
+  # Y viaja hasta el payload, que es donde la vista lo busca. Un lector que lo
+  # lee y un publicador que lo tira dejarian este campo a medio camino otra vez.
+  pub <- monitoreo_aulas_partes_publicados(list(p))[[1]]
+  expect_equal(pub$attendance_pct, 0.62)
 })
 
 test_that("un bloque sin estado ni asistentes no produce parte", {
