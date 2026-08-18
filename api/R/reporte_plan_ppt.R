@@ -4629,6 +4629,38 @@ reporte_ppt_plan <- function(
       }
     }
 
+    # Las lineas que ocupa un ENUNCIADO de grupo, medidas en su canal real.
+    #
+    # P45. El estimador de altura contaba estos enunciados con el mismo
+    # `block_wrap` que las etiquetas del eje, y ahi hay dos magnitudes
+    # distintas bajo la misma idea: `ancho_max_eje_y`/`wrap_y` son el
+    # envoltorio del EJE, y el enunciado vive en el canal lateral, que es mas
+    # estrecho. Con el 50 de reserva contaba 4 lineas donde el canal da 6, y el
+    # bloque acababa con la mitad del alto que pedia. El detalle medido esta
+    # anotado en `.multilista_block_height()`.
+    #
+    # Aqui se mide con `.barras_wrap_titulo_grupo()`, que es lo mismo que usa
+    # el graficador al dibujarlos. Se mide al cuerpo DECLARADO: si luego el
+    # graficador lo achica para que quepa (P46), el reparto ya le habra dado
+    # sitio de sobra, que es la direccion segura.
+    #
+    # El estimador viejo queda de respaldo para cuando no haya canal declarado.
+    .multilista_lineas_enunciado <- function(x, wrap_respaldo, block_overrides) {
+      w <- block_overrides$canvas_w_grupo %||%
+        preset_args_multi$canvas_w_grupo %||%
+        preset_args_single$canvas_w_grupo
+      a <- (el$overrides %||% list())$ancho
+      s <- block_overrides$size_titulos_grupo %||%
+        preset_args_multi$size_titulos_grupo %||%
+        preset_args_single$size_titulos_grupo %||% 14
+      fam <- block_overrides$font_family %||%
+        preset_args_multi$font_family %||%
+        preset_args_single$font_family %||% ""
+      n <- .multilista_lineas_medidas(x, w, a, s, fam)
+      if (is.na(n)) return(.multilista_wrap_lines(x, max(12, floor(wrap_respaldo * 0.8))))
+      n
+    }
+
     .multilista_block_height <- function(block_el) {
       if (!is.null(block_el$altura_rel)) {
         h <- suppressWarnings(as.numeric(block_el$altura_rel)[1])
@@ -4712,10 +4744,7 @@ reporte_ppt_plan <- function(
           lines_group <- 0L
           for (nm in names(block_el$vars)) {
             ttl <- .named_lookup(tg, nm, default = nm)
-            lines_group <- lines_group + .multilista_wrap_lines(
-              ttl,
-              max(12, floor(block_wrap * 0.8))
-            )
+            lines_group <- lines_group + .multilista_lineas_enunciado(ttl, block_wrap, block_overrides)
           }
           title_lines <- lines_group
         } else {
@@ -4733,10 +4762,7 @@ reporte_ppt_plan <- function(
           title_lines <- 0L
           for (v in block_el$vars) {
             ttl <- .named_lookup(tg, v, default = .title_of_var(v))
-            title_lines <- title_lines + .multilista_wrap_lines(
-              ttl,
-              max(12, floor(block_wrap * 0.8))
-            )
+            title_lines <- title_lines + .multilista_lineas_enunciado(ttl, block_wrap, block_overrides)
           }
         }
       }
