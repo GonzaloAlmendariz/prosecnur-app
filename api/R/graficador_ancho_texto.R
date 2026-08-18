@@ -360,3 +360,55 @@
   }
   ultimo %||% nulo
 }
+
+
+#' Cuantas lineas ocupan unos enunciados en su canal REAL
+#'
+#' P45. `.multilista_block_height()` reparte la altura de una lamina entre sus
+#' bloques contando las lineas de cada enunciado, y las contaba con un
+#' `block_wrap` de **50 caracteres** cuando el canal real da entre 23 y 30.
+#' Medido sobre el enunciado de la lamina 41 del mazo de Conta: wrap 50 da
+#' **cuatro** lineas, wrap 30 da **siete** y wrap 23 da **nueve**. Contaba menos
+#' de la mitad, y el bloque acababa con la mitad del alto que pedia — en esa
+#' lamina, 1.019 in para el bloque de dos filas con enunciado de seis lineas
+#' contra 2.055 para el de tres filas con enunciado corto, o sea 1:2 donde sus
+#' filas son 2:3. El entregable aprobado hace 1:1.27 en la equivalente.
+#'
+#' Aqui se mide: `.barras_wrap_titulo_grupo()` calcula el envoltorio real con
+#' `grid::textGrob` —y va memoizada, asi que repetirlo no cuesta—.
+#'
+#' El ancho que se le pasa es el DECLARADO del canal. El graficador lo normaliza
+#' luego por la suma de columnas (~1.02), asi que el canal efectivo es un 2 % mas
+#' estrecho: dentro del margen de una cuenta de lineas, y preferible a introducir
+#' aqui una copia de esa normalizacion que habria que mantener sincronizada.
+#'
+#' @param textos Enunciados de los bloques.
+#' @param w_npc Fraccion declarada de la columna del tema.
+#' @param ancho_in Ancho del canvas, en pulgadas.
+#' @param size_pt Cuerpo del enunciado.
+#' @param family Tipografia.
+#' @return Numero total de lineas, o `NA_integer_` si no se pudo medir.
+#' @keywords internal
+.multilista_lineas_medidas <- function(textos, w_npc, ancho_in, size_pt,
+                                       family = "") {
+  t <- as.character(textos)
+  t <- t[!is.na(t) & nzchar(trimws(t))]
+  if (!length(t)) return(0L)
+  if (!requireNamespace("stringr", quietly = TRUE)) return(NA_integer_)
+  w <- suppressWarnings(as.numeric(w_npc)[1])
+  a <- suppressWarnings(as.numeric(ancho_in)[1])
+  s <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(w) || w <= 0 || !is.finite(a) || a <= 0 || !is.finite(s) || s <= 0) {
+    return(NA_integer_)
+  }
+  n <- 0L
+  for (x in t) {
+    ww <- tryCatch(.barras_wrap_titulo_grupo(x, w, a, s, family),
+                   error = function(e) NA_real_)
+    ww <- suppressWarnings(as.numeric(ww)[1])
+    if (!is.finite(ww) || ww < 1) return(NA_integer_)
+    n <- n + length(strsplit(stringr::str_wrap(gsub("\n", " ", x, fixed = TRUE),
+                                               width = ww), "\n", fixed = TRUE)[[1]])
+  }
+  as.integer(n)
+}
