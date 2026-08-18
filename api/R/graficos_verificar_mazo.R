@@ -243,6 +243,51 @@
 # otra manera.
 #
 # LECCION: una hoja de contacto a 55 dpi basta para SOSPECHAR, no para AFIRMAR.
+
+# P53, MEDIDO Y ABIERTO: **el motor rotula segmentos con «0%» y el aprobado no
+# rotula ninguno**. Medido sobre `p54.pptx` contra el entregable aprobado,
+# contando el texto literal de las etiquetas de dato en el XML de cada lamina:
+#
+#   motor      8 etiquetas «0%» sobre 1.098 etiquetas de porcentaje
+#              laminas 26, 27, 40, 45, 61, 65 y 68
+#   aprobado   0 etiquetas «0%» sobre 1.019
+#
+# El cero del aprobado NO es un filtro mal puesto —el mismo medidor encuentra
+# sus 1.019 etiquetas— y tampoco es «ahi no hay ceros en el dato»: puesta la
+# MISMA pregunta lado a lado, el aprobado tiene el mismo cero y lo calla.
+#
+#   motor    lamina 65   0% · 2% · 37% · 52% · 10%
+#   aprobado lamina 57         2% · 36% · 52% · 10%
+#
+# (La diferencia 37 contra 36 es el redondeo ya conocido, no es esto.)
+#
+# La GEOMETRIA esta bien: el segmento sale con `cx` exactamente 0 EMU, o sea
+# que no se dibuja. Lo que sobra es solo el rotulo, que ademas queda flotando
+# sobre el segmento vecino. Y contradice lo que este mismo motor ya declara mas
+# arriba en `graficador_barras_apiladas.R`: «un segmento que se rotularia 0 %
+# NO se dibuja (decision de Gonzalo, 2026-08-14)».
+#
+# DE DONDE NO SALE, medido, para no volver a mirarlo:
+#
+#   - NO es `mostrar_categorias_en_cero`, que es el escape declarado para verlos
+#     con su frecuencia al lado: su default es FALSE y NADIE lo enciende (cero
+#     consumidores fuera de `graficos_metadata.R`).
+#   - NO son las dos ramas de etiquetado del graficador de apiladas: las dos
+#     guardan contra el valor cero —`.mostrar = .valor_plot > umbral` en la
+#     uniforme y `.valor_plot <= umbral ~ "ninguna"` mas su `filter()` en la
+#     otra— y con umbral 0 por defecto ninguna dejaria pasar un cero.
+#   - NO es el CIERRE EXACTO A 1 volcando su residuo sobre el nivel aplanado,
+#     que era la hipotesis mas prometedora porque `tail(niveles_stack, 1)` es
+#     justo «Totalmente en desacuerdo», el segmento izquierdo que aparece
+#     rotulado. Reproducida en frio la cadena aplanar -> recomprimir -> cerrar
+#     con los conteos REALES de esa fila (0/1/19/27/5 sobre 52, reconstruidos
+#     desde los anchos medidos y exactos a cuatro decimales), el `delta` sale
+#     **0,000e+00**; y en un barrido de 400 repartos con cero en el nivel
+#     objetivo solo **2** lo resucitan (0,5 %). Explica un camino raro, no este.
+#
+# LECCION: dos hipotesis caidas seguidas dicen que el problema es el metodo. El
+# siguiente paso NO es seguir leyendo codigo, es instrumentar la fuente con
+# `PULSO_TRAZA_*` y ver que fila llega al `geom_text` con su `lab` y su valor.
 # Aqui la sospecha costo una medicion y salio falsa.
 #
 # Colores de la rampa de escala (dos paletas: la del entregable y la del motor).
