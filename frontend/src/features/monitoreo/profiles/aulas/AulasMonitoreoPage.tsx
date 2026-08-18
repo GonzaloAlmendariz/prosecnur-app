@@ -27,6 +27,7 @@ import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
 import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
+import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
@@ -718,6 +719,9 @@ function renderAulasView(
             De la hoja «Aulas Aplicadas (Campo)» del libro: lo que anotó quien
             estuvo en el aula.
           </p>
+          {/* La cadena del parte, SUMADA. Fila a fila no se ve que los
+              duplicados pesen más que los rechazos. */}
+          <AulasEmbudoDelAula filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]} />
           {/* La resta ya viene hecha del motor —el mismo helper que decide el
               descuadre—, así que esta línea y el aviso de Validación no pueden
               discrepar. Es el destino que le faltaba a «Cuadre del parte de
