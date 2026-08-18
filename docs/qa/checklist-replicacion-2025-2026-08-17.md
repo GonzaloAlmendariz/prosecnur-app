@@ -3243,3 +3243,34 @@ evento registrado. No se implementa nada hasta su visto bueno.
 |---|---|---|
 | Tandas I/J/K · D1–D5 · menores 1–3 | ☑ |
 | ADR 0079 resello entero del workspace | ⛔ BLOQUEADO — decisión de Gonzalo |
+
+### R4 CERRADO — las 170 titulares de 2025 no son un cálculo: son la agenda
+
+**La cadena causal completa, medida en las fuentes** (solo lectura):
+
+1. La plantilla de Kamila (`Calculos Muestrales.xlsx`) diseñó **189
+   objetivo / 203 a visitar** y su hoja `6_Seleccion_Aulas` sorteó
+   **200 titulares** + 157 Reemplazo_1 + 166 Reemplazo_2.
+2. La BD operativa (`…BD Aulas Agendadas-6.xlsx`, hoja «Muestra - Full
+   Data», 1.097 filas) fijó **otra** distribución por facultad, de 170,
+   y la replicó **idéntica en tres olas** (Muestra 01 = 02 = 03:
+   39/25/19/16/15/10/9/7/6/6/6/4/4/2/2), luego olas menguantes 04–12 y
+   85 «No Seleccionado» (los 85 nunca-seleccionados ya medidos).
+3. La Muestra 01 ES el ejecutado (calca la referencia titular por
+   titular por facultad). Contra la plantilla: DERECHO 33→16 (−17),
+   ARQ 12→6 (−6), EGL 24→19 (−5), C&I 42→39 (−3) · CCSS 9→15 (+6),
+   A&D 5→9 (+4), EGC 23→25 (+2), EDU 2→4 (+2). Neto −30.
+
+**Por eso ninguna fórmula lo reproducía** (1.097→133, 2.931→126,
+ninguna transformación monótona): el 170 no salió de un marco — es la
+distribución **ajustada a mano en agenda** que Gonzalo ya había
+descrito («las facultades grandes se ajustaron a mano en agenda»),
+ahora con sus números. Y la convergencia que valida el motor 2026: la
+plantilla decía **a visitar 203** y el motor de hoy, con su regla
+declarada y por facultad, da **203**.
+
+| # | Cola | Estado |
+|---|---|---|
+| Tandas I/J/K · D1–D5 · menores 1–3 · R4 | ☑ |
+| ADR 0079 resello entero del workspace | ⛔ BLOQUEADO — decisión de Gonzalo |
+| PSI·hombres 0.86× (botón en pantalla como mitigación) | ⛔ decisión de Gonzalo |
