@@ -21,6 +21,7 @@ import {
   Route,
   ShieldAlert,
   SlidersHorizontal,
+  Building2,
   Table2,
   Target,
   Trash2,
@@ -210,6 +211,12 @@ export const MONITOREO_PESTANAS = {
     modelo: [
       pestana("aulas", "modelo", "agenda", "Agenda", "Plan y enlaces por curso-horario", Table2),
       pestana("aulas", "modelo", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
+      // La agenda ordenada por curso-horario sirve para BUSCAR una fila cuando
+      // ya se sabe el código; la pregunta de campo es la contraria —«hoy toca
+      // esta facultad, ¿qué aulas son, a qué hora y en qué pabellón?»— y
+      // contestarla obligaba a rastrear las 196 filas y rehacer el grupo a mano,
+      // una vez por facultad y por día.
+      pestana("aulas", "modelo", "facultad", "Por facultad", "A dónde hay que ir cada día", Building2),
     ],
     avance: [
       pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),

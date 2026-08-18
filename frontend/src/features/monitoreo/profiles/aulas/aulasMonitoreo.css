@@ -2946,3 +2946,139 @@
   margin: 2px 0 0;
   font-size: 11px;
 }
+
+/* Ruta por facultad: a dónde hay que ir. 20 facultades y 196 aulas. */
+.mon-profile-page.is-aulas-flow .aulas-ruta {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+/* El dueño del scroll es ESTA lista y no la página: con las 20 facultades
+   abiertas son ~2 400 px, y dejar que empujen la página entera manda el resto
+   del panel fuera de vista. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-lista {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad {
+  border: 1px solid var(--pulso-border-soft);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-nombre {
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-cuenta,
+.mon-profile-page.is-aulas-flow .aulas-ruta-desde {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-cuenta em {
+  color: var(--pulso-text-faint);
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0 10px 8px;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > ul > li {
+  display: grid;
+  /* Cuándo · código · dónde · docente · estado. «Dónde» y «docente» ceden
+     ancho; las otras tres tienen el suyo para que se lean en columna. */
+  grid-template-columns: 108px 74px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  border-top: 1px solid var(--pulso-border-subtle, var(--pulso-border-soft));
+  min-width: 0;
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-cuando {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-cuando em {
+  color: var(--pulso-text-soft);
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-codigo {
+  color: var(--pulso-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* El pabellón y el salón NO se recortan con elipsis: es dato operativo, y un
+   «A10…» no lleva a nadie a ninguna parte. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-donde {
+  min-width: 0;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-docente {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta-estado {
+  justify-self: end;
+}
+
+/* El panel de la ruta: cabecera fija y la lista se queda con TODO el resto.
+   Sin las dos filas explícitas, el grid mide la lista por su contenido —5 538 px
+   con las 20 facultades abiertas— y la empuja fuera del panel. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
