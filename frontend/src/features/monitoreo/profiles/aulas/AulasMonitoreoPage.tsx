@@ -33,6 +33,7 @@ import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
+import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
@@ -910,6 +911,30 @@ function renderAulasView(
           })()}</span>
         </div>
         <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />
+      </section>
+      )}
+      {pestana !== "resumen" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* El perfil sabía por separado las dos mitades —la agenda tiene la
+              fecha de cada aula, la hoja de partes dice cuáles se llenaron— y
+              nadie las cruzaba. Los demás paneles de Avance contestan cuánto se
+              lleva; éste, qué se quedó atrás. */}
+          <h3>Lo que se quedó atrás</h3>
+          <span>contra la fecha del corte</span>
+        </div>
+        <AulasFrenteDelOperativo
+          filas={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
+          partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
+          // El día del corte y NO `new Date()`: un panel que lee el reloj da un
+          // resultado distinto cada vez que se abre y no hay forma de fijarlo en
+          // un test ni de reproducir lo que vio el usuario.
+          corte={String(dashboard?.generated_at ?? "").slice(0, 10)}
+        />
       </section>
       )}
       {pestana !== "resumen" ? null : (

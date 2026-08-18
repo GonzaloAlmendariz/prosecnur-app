@@ -3082,3 +3082,73 @@
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
 }
+
+/* Lo que se quedó atrás: aulas vencidas sin parte. */
+.mon-profile-page.is-aulas-flow .aulas-frente { display: grid; gap: 7px; min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-frente-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-carril {
+  display: flex;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-carril i { display: block; }
+
+.mon-profile-page.is-aulas-flow .aulas-frente-lista {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  /* Dueño de su propio recorrido: con medio operativo caído son cien filas y
+     empujarían el resto de Avance fuera de la pantalla. */
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-lista > li {
+  display: grid;
+  grid-template-columns: 68px 74px minmax(0, 1.2fr) 116px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-left: 3px solid var(--pulso-danger-fg);
+  border-radius: 4px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-dias {
+  color: var(--pulso-danger-fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-codigo {
+  color: var(--pulso-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-facultad,
+.mon-profile-page.is-aulas-flow .aulas-frente-donde {
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-cuando {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-frente-cuando em { font-style: normal; }
