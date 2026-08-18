@@ -495,7 +495,8 @@ function renderAulasView(
             // responsable: con una cadena de seis, las siete filas del mismo
             // titular sólo se distinguían por su código. La tabla recorta a
             // ocho columnas y lo declara, así que el orden decide qué se ve.
-            preferredColumns={["operational_code", "sample_role", "replacement_for", "label", "course_name", "schedule", "link", "package_status"]}
+            maxColumns={9}
+            preferredColumns={["operational_code", "faculty", "sample_role", "replacement_for", "label", "course_name", "schedule", "link", "package_status"]}
           />
         </section>
         )}
@@ -551,7 +552,7 @@ function renderAulasView(
     // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
     const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
-    const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[]);
+    const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[], (dashboard.agenda ?? []) as MonitoreoRow[]);
     // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también
     // los titulares que nunca necesitaron reserva, porque «146 no necesitaron
     // reemplazo» es parte de la respuesta.
@@ -618,7 +619,7 @@ function renderAulasView(
             // `replacement_reason` y la que entra en `activation_reason`—, así
             // que sobre las 26 filas de reserva esa columna era estructuralmente
             // vacía. El motor lo resuelve en una sola columna.
-            preferredColumns={["operational_code", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
+            preferredColumns={["operational_code", "faculty", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
           />
         </section>
         ) : null}
@@ -683,8 +684,8 @@ function renderAulasView(
             // no llegaba a ninguna pantalla, y es el número que dice si el 70 %
             // del padrón era alcanzable —con 55 % de asistencia no se llega ni
             // respondiendo todos los presentes—.
-            maxColumns={9}
-            preferredColumns={["operational_code", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
+            maxColumns={10}
+            preferredColumns={["operational_code", "faculty", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
           />
         </section>
         ) : null}
@@ -872,7 +873,7 @@ function renderAulasView(
         <DataTable
           rows={aulaRows}
           empty="Todavía no hay respuestas que atribuir a un curso-horario."
-          preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
+          preferredColumns={["operational_code", "faculty", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
         />
       </section>
       )}
