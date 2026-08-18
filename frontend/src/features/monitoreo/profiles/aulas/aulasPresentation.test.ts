@@ -196,6 +196,7 @@ describe("los vocabularios cerrados no derivan entre R y la UI", () => {
   const raiz = path.join(aqui, "..", "..", "..", "..", "..", "..");
   const motor = fs.readFileSync(path.join(raiz, "api", "R", "monitoreo_aulas_universitarias.R"), "utf8");
   const fuente = fs.readFileSync(path.join(aqui, "aulasPresentation.ts"), "utf8");
+  const fuente2 = (nombre: string) => fs.readFileSync(path.join(aqui, nombre), "utf8");
 
   /** Claves declaradas en un diccionario `const NOMBRE: Record<...> = { ... }`. */
   function clavesDelDiccionario(nombre: string) {
@@ -238,6 +239,40 @@ describe("los vocabularios cerrados no derivan entre R y la UI", () => {
     const etiquetadas = clavesDelDiccionario("FIELD_LABELS");
     const faltan = columnas.filter((c) => !etiquetadas.has(c));
     expect(faltan, `columnas del motor sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
+  });
+
+  it("y las de las otras DOS tablas que también se leen", () => {
+    // El guard de arriba se ató a los vectores del motor que alimentaban las
+    // tablas «que se leen», y era cierto al escribirlo. Después llegaron dos
+    // tablas más —Partes de campo y Base de control— y el guard no las siguió:
+    // cubría 2 de 4. Medido al descubrirlo: las 49 columnas visibles estaban
+    // todas etiquetadas, así que no había defecto vivo; lo que faltaba era la
+    // red para el día que alguien publique una columna nueva ahí, que saldría
+    // en inglés sin que nada fallara. Es justo lo que este archivo cuenta que
+    // ya pasó una vez con 38 columnas.
+    //
+    // Éstas se atan a lo que la VISTA pide —las listas de columnas de la página
+    // y los campos por grupo del libro— y no a otro vector del motor. Un vector
+    // del motor puede publicar columnas que ninguna tabla muestra; lo que hay
+    // que etiquetar es lo que se ve.
+    const pagina = fuente2("AulasMonitoreoPage.tsx");
+    const libro = fuente2("AulasControlDelLibro.tsx");
+    const pedidas = [...pagina.matchAll(/preferredColumns=\{\[([^\]]*)\]/g)]
+      .flatMap((m) => literalesDe(m[1]));
+    const porGrupo = libro.match(/const CAMPOS_POR_GRUPO: Record<string, string\[\]> = \{([\s\S]*?)\n\};/);
+    expect(porGrupo, "no se encontró CAMPOS_POR_GRUPO en el libro").toBeTruthy();
+    const columnas = [...new Set([
+      ...pedidas,
+      ...literalesDe(porGrupo?.[1]),
+      "operational_code",
+    ])];
+
+    // Si este número baja, el guard dejó de ver una tabla: es el fallo que
+    // tuvo el de arriba y que sólo se nota contando.
+    expect(columnas.length).toBeGreaterThan(40);
+    const etiquetadas = clavesDelDiccionario("FIELD_LABELS");
+    const faltan = columnas.filter((c) => !etiquetadas.has(c));
+    expect(faltan, `columnas visibles sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
   });
 
   it("traduce todos los estados operativos que el motor declara", () => {
