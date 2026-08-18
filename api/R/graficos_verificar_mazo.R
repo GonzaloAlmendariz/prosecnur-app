@@ -2120,3 +2120,41 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # lo ESCRIBE? y ¿quien lo RESUELVE?—. Aqui el que escribe (`.make_title_txt`)
 # no resuelve nada, y el que resuelve (`.title_of_var`) no se llama. El defecto
 # vive en el hueco entre los dos: en quien rellena `entry$title` antes.
+
+
+# P49 — CERRADO: EL ENUNCIADO TRUNCADO **ESTA ESCRITO EN EL PLAN**.
+#
+# Antes de gastar otra traza de 160 s, la pregunta barata: ¿trae el `.pulso` el
+# texto ya escrito? Recorrido el plan entero buscando el ancla:
+#
+#     plan[21]$grafico$args$titulos_grupo$tema_2   **256 B**   «…Consejo de D»
+#     coincidencias en TODO el plan: **1**
+#
+# Ahi acaba la cadena. El enunciado del **Grafico Nº 46** no lo resuelve el
+# motor: **viene guardado truncado en `titulos_grupo`**, que es un override
+# explicito del plan. `entry$title` lo toma de `merged_args$titulo` y
+# `.title_of_var()` —el respaldo— nunca se llama. Todo lo medido encaja:
+# `.lookup_variable_label()` recibe 58 llamadas y ninguna es `p13_3`, el arreglo
+# no llega, y no llegaria desde ningun punto del motor, **porque el motor esta
+# haciendo lo correcto: respetar lo que el plan le dice**.
+#
+# **P49 SE CIERRA** como «el titulo es del PLAN, no del motor». La reparacion
+# del caso de Conta es del `.pulso` —reescribir ese `titulos_grupo$tema_2` con
+# los 291 B del XLSForm de administrativos— y **es decision de Gonzalo**.
+#
+# EL ARREGLO SE QUEDA, con su alcance dicho: `.etiqueta_sin_truncar()` cubre la
+# clase de defecto en la ruta que SI pasa por `.lookup_variable_label()` —58
+# llamadas de 232 renders—, tiene 17 asserts vistos rojos y su efecto medido
+# sobre este mazo es **cero**. No repara este caso porque este caso no es suyo.
+#
+# LO QUE SI QUEDA COMO TRABAJO NUESTRO, y es un DETECTOR —la misma forma que
+# B5/B6—: **un `titulos_grupo` de exactamente 256 bytes cuyo `survey` de fuente
+# tenga una etiqueta mas larga que lo contenga es un truncamiento de SPSS
+# guardado en el plan**, y el motor puede decirlo en vez de dibujarlo callando.
+# Sobre `p55` dispararia **una vez**. Es barato y avisa de una clase de error
+# que hoy sale al entregable sin que nadie se entere.
+#
+# LECCION: la pregunta mas barata iba primero y la hice la ultima. Cuatro ticks
+# persiguiendo quien RESUELVE el texto, cuando bastaba preguntar **si alguien lo
+# habia escrito ya**. Cuando un texto sale mal, mirar la CONFIGURACION antes que
+# el motor —y es la tercera vez en este loop que la respuesta estaba ahi—.
