@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import {
+  normalizeCalcMuestraCertificacionFacultad,
   normalizeCalcMuestraReferenciaCriterios,
   normalizeCalcMuestraSexoPorFacultad,
   type CalcMuestraAulasState,
@@ -492,6 +493,15 @@ export function UniversidadDesk({
     ),
     [aulasState?.selection],
   );
+  // La certificación por facultad de la selección (Gonzalo: «tiene que
+  // certificarse de esa forma»): derivada al servir por el motor, la UI solo
+  // la normaliza y la muestra.
+  const certificacionFacultad = useMemo(
+    () => normalizeCalcMuestraCertificacionFacultad(
+      (aulasState?.selection as { certificacion_facultad?: unknown } | null)?.certificacion_facultad ?? null,
+    ),
+    [aulasState?.selection],
+  );
   const labModel = useMemo(
     () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado }),
     [syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado],
@@ -672,6 +682,7 @@ export function UniversidadDesk({
                 certeza={aulasState?.certeza ?? null}
                 margenFilas={margenFilas}
                 sexoBalance={sexoBalance}
+                certificacion={certificacionFacultad}
               />
             )}
             {activeLabTab === "perfil" && (
