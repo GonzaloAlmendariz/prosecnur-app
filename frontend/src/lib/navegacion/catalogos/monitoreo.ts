@@ -217,7 +217,20 @@ export const MONITOREO_PESTANAS = {
       pestana("aulas", "avance", "cuotas", "Cuotas", "Sexo por facultad", Target),
       pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
     ],
-    calidad: [],
+    // Validación tenía las dos superficies apiladas y la hoja quedaba enterrada
+    // bajo los avisos: para llegar a la «Base de control» —210 filas y 26
+    // columnas— había que pasar seis alertas, un banner y tres KPIs. Es la misma
+    // razón por la que Agenda se partió en dos: apiladas compiten por el alto y
+    // una de las dos deja de existir en la práctica.
+    //
+    // Siguen en la MISMA sección porque las dos son control de calidad; lo que
+    // cambia es que cada una recibe la vista entera. Y no son la misma medida:
+    // arriba lo que deriva el motor, en la hoja lo que el equipo calcula en su
+    // Excel.
+    calidad: [
+      pestana("aulas", "calidad", "controles", "Controles", "Lo que el motor deriva del corte", ShieldAlert),
+      pestana("aulas", "calidad", "base", "Base de control", "La hoja que llena el equipo", Table2),
+    ],
     consultas: [
       pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
       pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),

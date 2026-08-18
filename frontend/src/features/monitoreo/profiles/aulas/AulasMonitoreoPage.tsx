@@ -542,8 +542,13 @@ function renderAulasView(
     const summary = summarizeAulasValidation(rows);
     const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
     const controlResumen = (dashboard.control_calidad_resumen ?? null) as ResumenDeControl | null;
+    // Cada pestaña muestra SU panel, y el reparto es POSITIVO —«¿es ésta?»— y no
+    // por negación de la otra: con dos bastaría negar, pero en Consultas la
+    // negación ya falló al llegar la cuarta y no hay razón para repetirla acá.
+    const enBase = pestana === "base";
     return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
+      {enBase ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-table"
@@ -560,10 +565,13 @@ function renderAulasView(
             usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
         <AulasControles filas={rows} plan={(dashboard.agenda ?? []) as Array<Record<string, unknown>>} />
       </section>
+      )}
       {/* La tercera hoja del operativo. Los dos paneles son control de calidad y
           por eso comparten sección, pero no son la misma medida: arriba lo que
           deriva el motor, aquí lo que el equipo calcula en su Excel. Separarlos
-          evita que una fila parezca respaldar a la otra. */}
+          evita que una fila parezca respaldar a la otra, y ahora además cada uno
+          recibe la vista entera en vez de competir por el alto. */}
+      {enBase ? (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-table"
@@ -582,6 +590,7 @@ function renderAulasView(
         </div>
         <AulasControlDelLibro filas={control} resumen={controlResumen} />
       </section>
+      ) : null}
       </div>
     );
   }
