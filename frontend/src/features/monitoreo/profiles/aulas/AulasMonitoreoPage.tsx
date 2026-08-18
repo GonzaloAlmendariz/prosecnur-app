@@ -253,7 +253,7 @@ function DataTable({
       <table className="mon-profile-table">
         <thead>
           <tr>{columns.map((column) => (
-            <th key={column} className={cifras.has(column) ? "es-cifra" : undefined}>
+            <th key={column} scope="col" className={cifras.has(column) ? "es-cifra" : undefined}>
               {aulasFieldLabel(column)}
             </th>
           ))}</tr>
