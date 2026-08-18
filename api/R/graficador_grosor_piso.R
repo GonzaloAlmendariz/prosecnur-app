@@ -113,6 +113,15 @@
 #' distintos: cuando se decide el grosor y, mucho despues, cuando se calcula el
 #' alto del panel. Dos copias del mismo calculo divergen en cuanto una se toca.
 #'
+#' Y EL GROSOR NO ES EL CULPABLE, MEDIDO CON TRAZA SOBRE LA CORRIDA ENTERA:
+#' `grosor_eff` sale **0.7800** en las 31 laminas de cuatro categorias del mazo,
+#' con `min_filas_layout = 1` y `n_categorias_grosor = 4`. Ni las filas
+#' virtuales ni `.auto_bar_width_apiladas()` —acotada a [0.40, 0.85], no puede
+#' devolver 0.27— explican que la barra de la 16 se dibuje al 27 % de su fila.
+#' La fraccion que el graficador decide es la misma antes y despues de P45; lo
+#' que cambio esta DESPUES, en como esa fraccion se convierte en pulgadas: el
+#' alto del panel contra el tramo del eje. Queda ahi el siguiente paso.
+#'
 #' MEDIDO EN LA LAMINA 16 DEL MAZO DE CONTA (P48, contra `p51`/`p52`): este
 #' alto es el DECLARADO —0.42, o 0.96/1.06 con etiqueta alta—, no el que la fila
 #' acaba teniendo. En esa lamina la fila real pasó de 0.554 a 0.693 in y la
