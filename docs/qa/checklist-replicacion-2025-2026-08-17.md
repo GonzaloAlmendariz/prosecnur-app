@@ -1647,6 +1647,54 @@ porque el p25 apenas cambia: las no obligatorias no eran sistemáticamente más
 grandes ni más chicas. **El criterio depura el marco sin encarecer el trabajo de
 campo**, que es el mejor resultado posible para un filtro de este tipo.
 
+## R39 — el ciclo 0 era la marca de EE.GG. Letras, y explica la exención
+
+En el pool de 2025 hay 135 aulas de nivel 0. Medido:
+
+| | |
+|---|---|
+| Facultad de esas 135 | **EE.GG. LETRAS, las 135** |
+| Nivel 0 en cualquier otra facultad | **0 aulas** |
+| Niveles de EE.GG. LETRAS en el pool | **sólo el 0** — no hay ninguna otra |
+| Niveles de EE.GG. CIENCIAS en el pool | 2 (42), 3 (19), 4 (19) |
+| Matriculados de las de nivel 0 | mediana **46**, de 10 a 65 |
+
+Sus cursos son los típicos de estudios generales: Argumentación (15),
+Investigación Académica (12), Historia del Perú (8), Narrativa, Ética, Lógica,
+Lenguaje y Sociedad, Temas de Filosofía Antigua. Y sus alumnos vienen de las
+carreras de destino —Gestión 22, Comunicación Audiovisual 15, Economía 14,
+Contabilidad 12—, coherente con lo ya verificado: en Estudios Generales el
+alumno figura con su facultad actual aunque su carrera esté declarada.
+
+**El «nivel 0» no era un ciclo: era la marca de que el curso es de Estudios
+Generales Letras y no pertenece a la malla de una especialidad.**
+
+### Por qué esto valida la exención
+
+En 2025, el criterio «fuera los niveles 1, 11 y 12» **no tocaba a EE.GG. Letras**
+porque toda esa facultad estaba en 0. En nuestra base los mismos cursos están
+codificados como **nivel 1** —455 de sus 482 aulas, el 94 %— así que el mismo
+criterio, aplicado literalmente, la aniquila.
+
+De las 135 de 2025 sólo quedan **17 en nivel 0** en nuestro catálogo, todas de
+EE.GG. LETRAS: el resto migró al 1.
+
+Así que la exención de los dos EE.GG. **no es una desviación del criterio de
+2025: es lo que hace falta para que el criterio signifique lo mismo**. Sin ella
+estaríamos aplicando la misma regla sobre una codificación distinta y obteniendo
+el resultado contrario.
+
+Para EE.GG. CIENCIAS el efecto es menor —en 2025 sus cursos ya tenían niveles 2 a
+4, y hoy sólo el 24 % de sus aulas son nivel 1— pero la exención es igual de
+coherente.
+
+### Lo que queda por decidir
+
+Nuestro rango es 2–10 y deja fuera el 0. Con la exención de EE.GG. da lo mismo
+—esas 17 aulas ya pasan por exentas— pero si alguna vez se retira la exención, el
+rango debería ser **0–10** para no perder los cursos sin ciclo. Es una línea de
+defensa barata.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
