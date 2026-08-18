@@ -2670,3 +2670,23 @@ gane por ruido (22 descartadas, contadas).
 | I2 | Sustento técnico (con J3: «por qué 190 y no 170») | ☐ SIGUIENTE |
 | I5 · I3 · I8 | Perfil de la muestra · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 | Validez backend 4 sorteos · τ por facultad en dimensionamiento | ☐ tras Tanda I |
+
+### I15 ampliado — sexo previsto y sexo que respondió (`e9c5e693`)
+
+Textual: «también deben mapear cuántos hombres y mujeres se tenían previstos
+a nivel de elegibles y cuántos respondieron». Dos columnas con fuente
+declarada: «Resp. M·H» (2025, por escalón, 194/194) y «Eleg. hoy M·H» (marco
+vigente, los sex_top de la certificación). **Límite del dato, dicho en la
+tarjeta**: la base 2025 no trae el denominador por sexo por aula — el lector
+del libro lo documenta («nadie observa» ese denominador) — así que la única
+previsión por sexo veraz es la del marco de HOY; no se fabrica una tasa de
+respuesta por sexo que no existe.
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I9 · I10 · I11 · I12 · I13 · I14 · I15(+sexo) | cerrados | ☑ |
+| — | Radiografía nivel · oráculo · bundle i18b · scroll jail | ☑ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I2+J3 | Sustento: «por qué 190 y no 170» (medir τ primero) | ☐ SIGUIENTE |
+| I5 · I3 · I8 | Perfil de la muestra · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 | Validez backend 4 sorteos · τ por facultad en dimensionamiento | ☐ tras Tanda I |
