@@ -489,3 +489,44 @@
 # `alto_por_cat_eff`. Ahi el grosor NO se reancla, y es deliberado —lo dice su
 # propio comentario, apoyado en el ADR 0065: una barra mide lo mismo en toda la
 # presentacion—. Queda fuera del alcance de P48.
+
+
+# P48/P37 — EL MOVIMIENTO SE HIZO Y SE REVIRTIO: NO CAMBIA NADA
+#
+# Ejecutado el movimiento que el inventario de arriba autorizaba, contra el
+# estado `50d6790a`: `caption_text` (11 lineas) y la unidad de altura completa
+# (125 lineas, con sus DOS estirados) adelantadas delante del
+# `p_bars <- ggplot2::ggplot(`, y detras el anclaje
+# `grosor_eff <- .grosor_anclado_al_nominal(grosor_eff, alto_por_cat_grosor,
+# alto_por_cat_eff)`. El orden resultante era el buscado y verificado:
+# `alto_por_cat_grosor` 1904 -> `caption_text` 1965 -> unidad 1974-2098 ->
+# anclaje 2108 -> `p_bars` 2111 -> `geom_col` 2119.
+#
+# Regenerado el mazo entero y medido `p56.pptx` contra `p55.pptx`:
+#
+#   grosor fisico   944 rects de barra y 82 altos distintos en LOS DOS, con la
+#                   misma distribucion exacta: 0.2122 (135) · 0.5084 (75) ·
+#                   0.4483 (61) · 0.4358 (48) · 0.4066 (48) · 0.0792 (39) ·
+#                   0.4078 (29) · 0.5823 (25) · 0.4960 (22) · 0.8757 (21)
+#   vara            25 -> 25, misma distribucion, mismas seis laminas B3
+#   los dos R10     siguen ahi (laminas 48 y 54)
+#   etiquetas «0%»  0 -> 0, universo 1.090 -> 1.090
+#
+# O sea que el anclaje es un NO-OP en este mazo: la barra mide exactamente lo
+# mismo antes y despues. Como el remedio no mejora, se revierte —el estado
+# bueno vuelve a ser el de `d988a9fb`— y queda el respaldo del intento en el
+# scratchpad como `apiladas.CON_P48MOV.R`.
+#
+# LO QUE NO SE MIDIO, y es la pregunta del proximo intento: POR QUE es no-op.
+# La sospecha —SOSPECHA, no medicion— es que `alto_por_cat_eff` sale de
+# `.grosor_alto_por_categoria()` con los MISMOS argumentos que
+# `alto_por_cat_grosor`, o sea que empieza igual, y que los dos estirados no
+# llegan a moverlo: los dos estan guardados tras `!panel_fijado_in`, y si el
+# plan declara `canvas_h_panel_in` no corre ninguno y la razon nominal/real es
+# exactamente 1. Se comprueba trazando `alto_por_cat_grosor`,
+# `alto_por_cat_eff` y `panel_fijado_in` en los 232 renders, que es lo que ya
+# cerro P53 cuando leer codigo no bastaba.
+#
+# Y si esa sospecha se confirma, el defecto de los 0.5500 contra 0.6510 NO esta
+# en el estirado: esta en que dos laminas reciben distinto `canvas_h_panel_in`
+# desde el plan, que es el mecanismo de B4 y no el de P48.
