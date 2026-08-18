@@ -654,6 +654,9 @@ export type CalcMuestraWorkspaceAulasConfig = {
   selector: CalcMuestraWorkspaceAulasSelector;
   /** Cursos-horario titulares calculados por R para el escenario elegido. */
   n_aulas?: number;
+  /** Afijación del diseño: facultad → aulas titulares (el motor la respeta en
+   *  el sorteo; ver calc_muestra_aulas_afijacion.R y afijacionTargets.ts). */
+  faculty_targets?: Record<string, number>;
   selector_engine?: CalcMuestraWorkspaceAulasSelector | string;
   method_family?: string;
   min_elegibles_aula: number;
