@@ -1810,3 +1810,60 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # deje escrito QUE se midio y CON QUE cifras, para que el turno siguiente no las
 # vuelva a correr. Y cuando el sintoma solo lo observa una persona, el trabajo
 # no es adivinar: es preguntarle.
+
+
+# P49 — LA ETIQUETA ENTERA SI EXISTE, PERO EL ARREGLO QUE SE HABIA PLANEADO
+# HABRIA PUESTO LA DE OTRO PUBLICO. HALLAZGO NUEVO: EL `.pulso` GUARDA UN SOLO
+# INSTRUMENTO Y EL ESTUDIO TIENE CUATRO.
+#
+# El plan era: cuando la etiqueta del `.sav` sea PREFIJO de la del instrumento,
+# preferir la del instrumento. Medido antes de tocar nada, y menos mal.
+#
+# LO QUE SE MIDIO, sobre el `.pulso` real de Conta:
+#   - En el universo real de 99 enunciados hay **UNO** de 256 bytes exactos —el
+#     limite de SPSS—: «Existen mecanismos claros y permanentes de evaluacion de
+#     la gestion de las autoridades de la Unidad (…Consejo de D».
+#   - Contra `state$instrumento$survey` (167 filas, 138 etiquetas distintas):
+#     **cero** etiquetas mas largas que lo tengan por prefijo. Aflojado el
+#     filtro —prefijo comun mas largo con CUALQUIERA de las 138—: **19 de 252
+#     caracteres**. No esta.
+#   - Pero SI esta en los ARCHIVOS del `.pulso`: **291 bytes**, en `survey$label`
+#     fila 47 de `…d4d1fea2…instrumento_adaptado_09_08_26.xlsx`, con
+#     `name = p13_3`, y tambien en la plantilla de codificacion y en el export de
+#     Administrativos.
+#   - **Y aqui esta el problema**: ese mismo `p13_3`, en el instrumento CARGADO,
+#     es **«Actividades culturales»** (22 bytes). No es la misma pregunta.
+#
+# LA CAUSA, medida sobre los cuatro XLSForm del `.pulso`:
+#     164d9b98  131 filas   (egresados)
+#     176f76a8  137 filas   (estudiantes)
+#     5f20dcb9  167 filas   (docentes, y de la version 03-08, no la 09-08)
+#     d4d1fea2   67 filas   (administrativos)
+#     CARGADO   167 filas   == 5f20dcb9
+#   Los nombres de variable **COLISIONAN entre publicos con significados
+#   distintos**: de los 52 `name` comunes entre egresados y estudiantes, **50**
+#   tienen etiqueta distinta; entre egresados y docentes, **54 de 63**. `p6` es
+#   «¿Cual es su año de egreso?» en egresados y «Indique su maximo grado
+#   alcanzado:» en docentes; `p4` es la edad en egresados y el genero en
+#   administrativos.
+#
+# POR ESO EL ARREGLO PLANEADO ERA PEOR QUE EL DEFECTO: resolver la etiqueta «del
+# instrumento» por `name` habria pegado la pregunta de DOCENTES en un grafico de
+# egresados. La regla del prefijo no lo habria frenado —lo que frena hoy es que
+# el prefijo no casa, y no casa porque el instrumento cargado es el equivocado—.
+#
+# LO QUE **NO** SE HA MEDIDO, y hay que decirlo: **si el motor usa
+# `state$instrumento` para resolver los enunciados del mazo**. Si no lo usa —si
+# cada base tira de su propio `.sav`—, el riesgo de arriba es teorico y lo unico
+# vivo es que P49 no tiene arreglo por esta via. Comprobarlo es el paso
+# siguiente, y es barato: `grep` de `instrumento` en la cadena que resuelve el
+# titulo.
+#
+# ESTADO DE P49: **la reparacion queda descartada tal como estaba planteada**.
+# Si se retoma, la etiqueta entera tiene que venir del instrumento **DE SU
+# PROPIA BASE**, y hoy el `.pulso` solo conserva uno de los cuatro cargado.
+#
+# LECCION: la premisa de un hallazgo tambien se mide. «La entera esta en el
+# instrumento» era cierta a medias —esta en un ARCHIVO del `.pulso`, no en el
+# instrumento cargado— y esa media verdad escondia un defecto mayor que el que
+# se iba a arreglar.
