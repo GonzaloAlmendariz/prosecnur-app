@@ -1817,33 +1817,12 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 }
 
 .cm_aulas_balance_matrix <- function(df, vars, pik = NULL) {
-  vars <- intersect(.cm_aulas_chr_vec(vars), names(df))
-  out <- if (!length(vars)) {
-    matrix(1, nrow = nrow(df), ncol = 1, dimnames = list(NULL, "intercept"))
-  } else {
-    data <- df[, vars, drop = FALSE]
-    for (nm in names(data)) {
-      if (is.numeric(data[[nm]])) {
-        data[[nm]][!is.finite(data[[nm]])] <- 0
-      } else {
-        values <- .cm_aulas_values(data, nm, "sin_dato")
-        values[!nzchar(values)] <- "sin_dato"
-        data[[nm]] <- factor(values)
-      }
-    }
-    mm <- tryCatch(stats::model.matrix(~ . - 1, data = data), error = function(e) NULL)
-    if (is.null(mm) || !nrow(mm)) {
-      matrix(1, nrow = nrow(df), ncol = 1, dimnames = list(NULL, "intercept"))
-    } else {
-      cbind(intercept = 1, mm)
-    }
-  }
-  # D2 (Deville-Tille): pik como PRIMERA columna de balance fija el tamano de
-  # muestra del cube (sum(pik_k/pik_k) = n sobre la muestra); sin ella
-  # samplecube/lcube pueden entregar n != cuota y el ajuste posterior altera
-  # la muestra del diseno.
-  if (!is.null(pik)) out <- cbind(pik = as.numeric(pik), out)
-  out
+  # Saneo POR COLUMNA en calc_muestra_aulas_balance_saneo.R (hallazgo J1,
+  # checklist ae8e7845): dentro de un estrato las vars que lo definen son
+  # constantes, y una sola constante tumbaba model.matrix ENTERO — el cubo
+  # quedaba pi-only sin aviso. Ahora las que varian sobreviven y las
+  # descartadas viajan declaradas en attr "balance_vars_descartadas".
+  .cm_aulas_balance_matrix_saneada(df, vars, pik = pik)
 }
 
 # Devuelve la seleccion cuadrada a la cuota MAS la metadata del ajuste
