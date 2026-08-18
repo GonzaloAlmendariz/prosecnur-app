@@ -29,6 +29,10 @@ de 1.012 candidatos) y `HSVBG2025_base_aplicabilidad_cursos_horario.xlsx`.
 | R10 | **La vara de 170–210 aulas: sólo p25 la cumple (193)** | ☑ medido |
 | R11 | **Comparativo histórico por facultad, de números y de MÉTODO** | ☑ |
 | R8 | Características de la selección, 2025 vs 2026 | pendiente |
+| S1 | **Criterio de nivel declarado POR FACULTAD (12 rangos + 3 exentas), marco 2.426 idéntico al bloque** | ☑ 2026-08-18 |
+| S2 | **La config no sobrevivía: R y UI hablaban shapes distintos de courseLevelRanges** | ☑ reparado `4a1d1266` |
+| S2b | La copia de sesión de `alumnos_por_ch_decision` queda en centinela; la decisión VIVE en el estudio | ☑ diagnosticado, deuda menor |
+| S3 | Coincidencia sin gráficos: reutilizar los bloques del histórico | pendiente |
 
 ## R1 · Las 170 aulas titulares de 2025, por facultad
 
@@ -1760,3 +1764,58 @@ causa.
   agregado.
 - Lo que no cierra se marca como no cerrado, con las hipótesis que quedan.
 - Sólo Gonzalo da el análisis por terminado.
+
+## S1 · El criterio de nivel, declarado POR FACULTAD · ☑ 2026-08-18
+
+Declarado con las etiquetas EXACTAS del marco: rangos `[{0,0},{2,10}]` (fuera
+de 1, 11 y 12) en las 12 facultades donde el criterio recorta algo — CIENCIAS
+E INGENIERIA (4), DERECHO (47), ESTUDIOS GENERALES CIENCIAS (97), ARTES
+ESCÉNICAS (19), ARTE Y DISEÑO (10), CIENCIAS SOCIALES (3), CIENCIAS Y ARTES
+DE LA COMUN. (1), LETRAS Y CIENCIAS HUMANAS (1), ARQUITECTURA Y URBANISMO
+(27), PSICOLOGÍA (2), EDUCACION (6), GASTRONOMÍA, HOTELERÍA Y TURISMO (3) — y
+`exenta` en las 3 donde no hay nada que recortar o Gonzalo lo pidió textual:
+ESTUDIOS GENERALES LETRAS (1 aula de 481, «no tendría que hacer ningún tipo de
+filtro»), GESTIÓN Y ALTA DIRECCIÓN (0) y CIENCIAS CONTABLES (0). ESCUELA DE
+POSGRADO y ESCUELA DE ESTUDIOS ESPECIALES quedan FUERA del mapa (el mapa es
+whitelist de unidades objetivo: ausente = excluida).
+
+**Resultado: marco 2.426 de 5.263 — IDÉNTICO al de la aplicación en bloque,
+facultad por facultad.** La única aula que la exención de EGL salva del filtro
+de nivel cae igual por otros criterios. La declaración por facultad no mueve
+el número: deja la ficha honesta, que es lo que exige la vara 3.
+
+Nota: el hallazgo (b) del encargo quedó OBSOLETO — `session_type` ya viene
+poblado (4.265 TEORICO(...), 315 TALLER, 273 SEMINARIO, 205 LABORATORIO…) y
+el criterio está declarado (include teórico) y excluyendo cientos de aulas.
+Lo que sigue vivo de esa familia es (c): la excepción de TALLER en Artes y
+Arquitectura, que hoy NO está declarada (el include teórico rige global).
+
+## S2 · La config no sobrevivía al `.pulso` · ☑ reparado `4a1d1266`
+
+**Dónde vivía**: no era la whitelist de persistencia (la clave es
+literal/persistible en `session_schema.R`) — el `state.rds` ya llegaba vacío
+al guardado. La causa: **R y la UI hablan shapes distintos de
+`courseLevelRanges`**. R emite `Array<{min,max}>` con etiquetas del marco; el
+TS lo declara `Array<[min,max]>` y lo indexa por slug.
+`.cm_criterios_normalize_rangos` solo leía `$min/$max`: todo par posicional
+daba NA y se descartaba EN SILENCIO (medido: las tres variantes de parseo →
+0 facultades sobreviven; el shape canónico → sobrevive). En sentido inverso
+la UI hacía `r[0]` sobre `{min,max}` y mostraba undefined. Ciclo completo del
+síntoma: el analista aplica rangos por API → la UI no los ve → cualquier
+re-post de la UI los borra → el guardado persiste `[]` → al reabrir no están.
+Seis consumidores del defecto (UI de criterios, criteriosImpacto, POST de
+config, persistencia, cascada/radiografía, presets).
+
+Reparado en ambos lados (lector tolerante en R; embudo `rangosNivel.ts` en
+TS con clave canónica y exención legible). Evidencia: 15 tests R + 10 vitest,
+tres mutantes muertos, y el ciclo aplicar→guardar→releer verificado sobre el
+`.pulso` de trabajo: las 15 facultades vuelven intactas (12 rangos + 3
+`[{exenta:TRUE}]`).
+
+**S2b — la decisión NO se pierde**: `alumnos_por_ch_decision` confirmada
+(p25, sellada 2026-08-18T01:24Z) vive en `calc_muestra_estudio$workspace$
+aulas_config` y el resello de `.cm_criterios_frame_guardar` la mantiene al
+reconstruir. Lo que queda en centinela vacío es la COPIA de sesión
+(`calc_muestra_aulas_config`), que nadie mantiene: deuda de duplicación
+confusa (R19 se explica por esto), no pérdida de trabajo. El assert
+`E_CALC_MUESTRA_ALUMNOS_CH_DECISION` falla cerrado, como debe.
