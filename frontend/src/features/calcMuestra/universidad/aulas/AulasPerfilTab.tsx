@@ -39,7 +39,13 @@ const CRITERIOS: { campos: string[]; label: string }[] = [
   { campos: ["size_group", "grupo_tamano"], label: "Grupo de tamaño" },
   { campos: ["session_type", "tipo_sesion", "tipo_de_curso"], label: "Tipo de sesión" },
   { campos: ["condicion_curso", "condicion"], label: "Condición del curso" },
-  { campos: ["course_level_num", "nivel_curso", "level"], label: "Nivel del curso" },
+  /* SIN `level` como fallback: es el CICLO DEL ALUMNO, no el nivel del curso.
+     Medido (2026-08-18): la selección viajaba sin `course_level_num` por la
+     lista cerrada `public_cols` del motor, el fallback caía a `level` y el
+     gráfico pintaba «Nivel del curso 1..12» en EE.GG. Letras — que por nivel
+     del CURSO es 449/481 nivel 0. Gonzalo lo detectó a ojo. Sin dato real,
+     mejor «Sin dato» que un dato de otra pregunta. */
+  { campos: ["course_level_num", "nivel_curso"], label: "Nivel del curso" },
   { campos: ["teacher_type", "tipo_docente"], label: "Tipo de docente" },
   { campos: ["modality", "modalidad"], label: "Modalidad" },
   { campos: ["rango_horario", "bloque_horario"], label: "Rango horario" },
@@ -78,7 +84,7 @@ export function AulasPerfilTab({
   const { manejadores, tooltip } = useTooltipGrafico();
 
   const facultadDe = (fila: Record<string, unknown>) =>
-    texto(fila, ["faculty", "facultad", "stratum"]) || "Sin facultad";
+    texto(fila, ["faculty_aula", "faculty", "facultad", "stratum"]) || "Sin facultad";
   const elegiblesDe = (fila: Record<string, unknown>) => numero(fila, ["eligible_n", "elegibles"]);
 
   const composiciones = useMemo(() => {
