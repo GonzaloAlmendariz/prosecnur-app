@@ -120,6 +120,27 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
     );
   });
 
+  test("las secciones apiladas miden por contenido y dejan el scroll en el contenedor", () => {
+    // El grid de relleno se queda para las superficies que scrollean por
+    // dentro (agenda, registro, Salidas): ahí el padre da altura definida y el
+    // `1fr` estira — No Scroll Jail.
+    expect(aulasCss).toMatch(
+      /\.mon-profile-page\.is-aulas-flow \.aulas-mon-view\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\);/s,
+    );
+    // Las apiladas renuncian a él: con la altura de la vista indefinida,
+    // `minmax(0, 1fr)` resolvía el track a 0px y el stack quedaba con
+    // clientHeight 0 —los paneles se pintaban por overflow y el runner
+    // fabricaba un `scroll-unreachable` (QA 2026-08-18, hsvg2026, 1024x600)—.
+    const gate = aulasCss.match(
+      /\.aulas-mon-view:has\(> \.mon-profile-stack\.aulas-tablas-apiladas\),[^{]*\.aulas-mon-view:has\(> \.mon-profile-stack\.aulas-fuentes-stack\)\s*\{([^}]*)\}/,
+    )?.[1] ?? "";
+    expect(gate).toMatch(/flex:\s*0 0 auto;/);
+    expect(gate).toMatch(/grid-template-rows:\s*auto;/);
+    // Las reglas `:has(.aulas-mon-tabs)` que competían por este grid ya no
+    // existen: la clase dejó de pintarse cuando las pestañas se fueron al rail.
+    expect(aulasCss).not.toMatch(/:has\(\.aulas-mon-tabs\)/);
+  });
+
   test("mantiene completo el traspaso operativo antes de la agenda en altura corta", () => {
     const handoff = shortAulasRuleBody(
       ".mon-profile-page.is-aulas-flow .aulas-mon-view .mon-aulas-handoff-panel",
