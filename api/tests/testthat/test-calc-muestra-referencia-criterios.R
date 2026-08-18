@@ -377,3 +377,17 @@ test_that("una dimension `facultad` sin k utilizable no produce filas", {
   )
   expect_null(calc_muestra_referencia_criterios_desde_asistencia(vacia))
 })
+
+test_that("la `k` de la dimension se publica como aulas APLICADAS", {
+  # 2025 declaro 170 titulares y APLICO 194: la diferencia son reemplazos. `k`
+  # es lo aplicado, y publicarlo con su nombre propio es lo que permite comparar
+  # contra lo que de verdad se hizo — contra el objetivo de la plantilla DERECHO
+  # parecia -6 y contra lo aplicado es -1.
+  r <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_vieja())
+  f <- .cm_ref_crit_buscar(r, "ARQUITECTURA Y URBANISMO")
+  expect_equal(f$aulas_aplicadas, 7)
+  expect_equal(f$asistentes, 215)
+  # Y NO se disfraza de titulares ni de sorteadas, que son otras dos cifras.
+  expect_true(is.na(f$aulas_titulares))
+  expect_true(is.na(f$aulas_sorteadas))
+})

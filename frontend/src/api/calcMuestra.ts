@@ -2512,9 +2512,13 @@ export type CalcMuestraReferenciaCriteriosFila = {
   aulas_universo: number | null;
   aulas_sorteadas: number | null;
   aulas_titulares: number | null;
+  /** Aulas donde el estudio anterior APLICÓ la encuesta. 2025 declaró 170
+   *  titulares y aplicó 194: la diferencia son los reemplazos. */
+  aulas_aplicadas: number | null;
   alumnos_por_ch: number | null;
   piso_matriculados: number | null;
   efectivas_logradas: number | null;
+  asistentes: number | null;
 };
 
 export type CalcMuestraReferenciaCriterios = {
@@ -2559,9 +2563,11 @@ export function normalizeCalcMuestraReferenciaCriterios(
         aulas_universo: asNum(f.aulas_universo),
         aulas_sorteadas: asNum(f.aulas_sorteadas),
         aulas_titulares: asNum(f.aulas_titulares),
+        aulas_aplicadas: asNum(f.aulas_aplicadas),
         alumnos_por_ch: asNum(f.alumnos_por_ch),
         piso_matriculados: asNum(f.piso_matriculados),
         efectivas_logradas: asNum(f.efectivas_logradas),
+        asistentes: asNum(f.asistentes),
       };
     })
     .filter((f): f is CalcMuestraReferenciaCriteriosFila => f != null);

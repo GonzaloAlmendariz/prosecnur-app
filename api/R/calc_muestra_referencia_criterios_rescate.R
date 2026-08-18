@@ -57,7 +57,17 @@
     k <- suppressWarnings(as.numeric(f$k %||% NA)[1L])
     matriculados <- suppressWarnings(as.numeric(f$matriculados %||% NA)[1L])
     if (!isTRUE(is.finite(k)) || k <= 0 || !isTRUE(is.finite(matriculados))) return(NULL)
-    list(facultad = facultad, alumnos_por_ch = matriculados / k)
+    # `k` son las aulas donde el estudio anterior APLICO la encuesta. No son sus
+    # titulares —2025 declaro 170 y aplico 194, la diferencia son reemplazos— ni
+    # el pool sorteado, que fue 1.097. Publicarla con su nombre propio permite
+    # comparar contra lo que de verdad se hizo, que es la vara mas util: contra
+    # el objetivo de la plantilla DERECHO parecia -6 y contra lo aplicado es -1.
+    list(
+      facultad = facultad,
+      alumnos_por_ch = matriculados / k,
+      aulas_aplicadas = k,
+      asistentes = suppressWarnings(as.numeric(f$asistentes %||% NA)[1L])
+    )
   })
   Filter(Negate(is.null), filas)
 }
