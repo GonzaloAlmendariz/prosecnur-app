@@ -17,6 +17,8 @@ import type {
 import { MargenPorFacultadCard } from "./MargenPorFacultadCard";
 import { CertificacionFacultadCard } from "./CertificacionFacultadCard";
 import { SexoPorFacultadCard } from "./SexoPorFacultadCard";
+import { EmbudoComparadoFacultades } from "../salidas/EmbudoComparadoFacultades";
+import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
@@ -62,6 +64,8 @@ export function AulasSeleccionTab({
   sexoBalance = null,
   certificacion = null,
   onAgregarAula,
+  fichas = null,
+  periodoAnterior = "",
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
@@ -75,6 +79,10 @@ export function AulasSeleccionTab({
   sexoBalance?: CalcMuestraSexoPorFacultad | null;
   certificacion?: CalcMuestraCertificacionFacultad | null;
   onAgregarAula?: (facultad: string, aulasActuales: number) => void;
+  /** Fichas hoy/antes por facultad para el embudo comparado (Gonzalo: «el
+   *  embudo de facultad por facultad debería estar en selección»). */
+  fichas?: FichaFacultad[] | null;
+  periodoAnterior?: string;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
@@ -132,6 +140,11 @@ export function AulasSeleccionTab({
           arriba porque condicionan cómo se lee la selección de abajo. */}
       <MargenPorFacultadCard filas={margenFilas} />
       <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
+      {/* El embudo comparado aterriza aquí en el paso 7 (titulares vs el
+          estudio anterior): es la comparación que se decide en esta pestaña. */}
+      {fichas && fichas.length ? (
+        <EmbudoComparadoFacultades fichas={fichas} periodo={periodoAnterior} pasoInicial={7} />
+      ) : null}
       <SexoPorFacultadCard balance={sexoBalance} />
       {stageNotice && (
         <AulasStageNotice

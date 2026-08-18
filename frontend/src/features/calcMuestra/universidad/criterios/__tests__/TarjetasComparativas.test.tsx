@@ -75,7 +75,7 @@ describe("normalizador de la referencia histórica de criterios", () => {
 describe("tarjeta de criterios generales", () => {
   const FILAS = [
     { concepto: "Muestra de diseño", hoy: "2500", claveHistorica: "muestra" },
-    { concepto: "Método de selección", hoy: "cube balanceado", claveHistorica: "metodo_seleccion" },
+    { concepto: "Método de selección", hoy: "cubo balanceado", claveHistorica: "metodo_seleccion" },
     { concepto: "Aulas a visitar", hoy: "226", claveHistorica: "aulas_dimensionadas" },
   ];
 
@@ -251,7 +251,7 @@ describe("contrato: las dos tarjetas están cableadas en Entrega", () => {
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?selector: syncedWorkspace\.aulas_config/);
     // CONTROL: ningun valor de la tabla vuelve a estar escrito a mano.
     expect(desk).not.toContain('hoy: "1.5"');
-    expect(desk).not.toContain('hoy: "cube balanceado"');
+    expect(desk).not.toContain('hoy: "cubo balanceado"');
   });
 
   it("la referencia se lee del bloque `aulas` del payload", () => {
@@ -453,14 +453,14 @@ describe("criterios generales del estudio", () => {
       parametros: PARAMS, selector: { selector: { selector_engine: "cube_balanceado" } },
       aulasMarco: null, filas: null,
     });
-    expect(busca(anidado, "Método de selección")).toBe("cube balanceado");
+    expect(busca(anidado, "Método de selección")).toBe("cubo balanceado");
 
     // El workspace trae además `selector` como string suelto.
     const texto = criteriosGeneralesDeEstudio({
       parametros: PARAMS, selector: { selector: "cube_balanceado" },
       aulasMarco: null, filas: null,
     });
-    expect(busca(texto, "Método de selección")).toBe("cube balanceado");
+    expect(busca(texto, "Método de selección")).toBe("cubo balanceado");
   });
 
   it("las aulas a visitar caen a `aulas_base` cuando no hay margen", () => {

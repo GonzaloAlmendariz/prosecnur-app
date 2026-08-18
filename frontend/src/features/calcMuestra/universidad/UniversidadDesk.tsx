@@ -699,6 +699,8 @@ export function UniversidadDesk({
                 sexoBalance={sexoBalance}
                 certificacion={certificacionFacultad}
                 onAgregarAula={onAgregarAulaFacultad}
+                fichas={fichasFacultad}
+                periodoAnterior={referenciaCriterios?.periodo ?? ""}
               />
             )}
             {activeLabTab === "perfil" && (
