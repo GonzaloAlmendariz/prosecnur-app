@@ -204,7 +204,9 @@ export function AulasObjetivoTab({
 
       <section className="cmv2-panel cmv2-aulas-panel">
         <div className="cmv2-subhead">
-          <strong>Criterios de selección</strong>
+          {/* K2: «Criterios de selección» colisionaba con los criterios del
+              Marco; esto son los PESOS del sorteo. */}
+          <strong>Parámetros del sorteo</strong>
         </div>
         <div
           className="cmv2-classroom-control-grid"

@@ -208,6 +208,19 @@ export function AulasSimulacionTab({
       {(metodosListos || evidenciaSimulacion) && (
         <div className="cmv2-classroom-lab-grid">
           <div className="cmv2-classroom-lab-main">
+            {/* K2 (censo f224af2d): primero CÓMO se movió la simulación
+                (estabilidad/evidencia), después QUÉ salió (resultados). El
+                orden inverso hacía leer conclusiones antes que el proceso. */}
+            {evidenciaSimulacion && (
+              <div
+                className="cmv2-aulas-evidence-stack"
+                data-qa-geometry-group="aulas-simulacion-evidencia"
+                data-qa-geometry-contract="intrinsic"
+              >
+                <WeightStabilityBlock model={model} />
+                <PiMonteCarloHistogram model={model} />
+              </div>
+            )}
             <div className="cmv2-subhead">
               <strong>Resultados de la simulación</strong>
             </div>
@@ -218,16 +231,6 @@ export function AulasSimulacionTab({
                 )}
                 <RepresentativityMetricGrid metrics={comparisonMetrics.filter((metric) => metric.method_id === recommendedMethodId)} />
               </>
-            )}
-            {evidenciaSimulacion && (
-              <div
-                className="cmv2-aulas-evidence-stack"
-                data-qa-geometry-group="aulas-simulacion-evidencia"
-                data-qa-geometry-contract="intrinsic"
-              >
-                <WeightStabilityBlock model={model} />
-                <PiMonteCarloHistogram model={model} />
-              </div>
             )}
           </div>
           <aside className="cmv2-classroom-lab-side">
