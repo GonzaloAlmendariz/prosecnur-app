@@ -1819,3 +1819,22 @@ reconstruir. Lo que queda en centinela vacío es la COPIA de sesión
 (`calc_muestra_aulas_config`), que nadie mantiene: deuda de duplicación
 confusa (R19 se explica por esto), no pérdida de trabajo. El assert
 `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` falla cerrado, como debe.
+
+## S3 · Coincidencia gana el embudo comparado · ◐ 2026-08-18, commit `cdc9f7d7`
+
+Primera pieza entregada: **el embudo comparado 2025↔hoy facultad por
+facultad** (`salidas/EmbudoComparadoFacultades.tsx` + modelo puro + css),
+montado en Coincidencia entre los criterios y las fichas. Lenguaje visual del
+histórico (TooltipGrafico compartido, barras a escala común, ausencia dicha
+con palabras). Verificado en vivo: 15 filas, paso Muestra (DERECHO +61,
+EGL −46), y la banda superior ya muestra **202 a visitar contra 170 de 2025**
+— VARA 2 en rango.
+
+**S4 · HALLAZGO QUE LO LIMITA — el siguiente ítem**: el selector de pasos
+sólo ofrece «2. Muestra» porque `referencia_criterios.por_facultad` trae
+únicamente `cuota`: `poblacion`, `aulas_sorteadas`, `aulas_titulares`,
+`aulas_aplicadas` y `alumnos_por_ch` llegan **NA en las 15 filas**, aunque
+esos números existen medidos (titulares 39|25|19|16… y las celdas de
+`referencia_asistencia`). El loader que arma `referencia_criterios` nunca los
+puebla. Repararlo enciende de golpe los pasos 1, 3, 4 y 5 del embudo
+comparado y la columna «antes» de las fichas — un fix, seis consumidores.
