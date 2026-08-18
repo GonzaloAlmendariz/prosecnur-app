@@ -2745,3 +2745,35 @@ mínimo por aula.
 | I3 · I8 | Relato · embudo más nítido | ☐ SIGUIENTE |
 | J1 | Auditoría de corrección del backend de los 4 sorteos | ☐ |
 | J2 | τ por facultad en el dimensionamiento | ⛔ BLOQUEADO (decisión) |
+
+### Tanda I — I3 diagnosticado: el relato está APTO; lo enfermo era la copia (dibujo entero)
+
+**I3 ☑ (diagnóstico + reparación de datos)**: el relato de Selección está
+bien construido — 6 escenas (El marco → … → El cierre) con player, lente por
+facultad, corrida/semilla/motor/firma y «sin advertencias críticas». Lo que
+lo tenía MUDO era la QUINTA mordida de la familia de copias: el
+`workspace.aulas_config` guardaba `n_aulas=202` y `simulation_runs=500`
+mientras la corrida vigente es 203 con MC 0 — la firma nunca podía acreditar
+y el gate quedaba perpetuo. Reparado el DATO por la vía de la UI (POST
+/api/calc-muestra/estudio), firma verificada (`matches: true, difs: []`),
+proyecto guardado, relato vivo con captura.
+
+**Dos mejoras anotadas, no ejecutadas** (exigen decisión/diseño):
+1. El gate decía «vuelve a comparar» cuando re-comparar NO podía arreglarlo
+   (el desajuste era workspace↔corrida, no comparación↔corrida). El aviso
+   debe DECIR EL CAMPO que difiere («el objetivo del workspace es 202 y la
+   corrida 203») — regla de la casa: los avisos dicen la causa.
+2. La familia de copias ya mordió cinco veces (resello de decisión, S2b,
+   I12 criterios, bundle i18b-workspace… y ahora n_aulas/simulation_runs).
+   Cada sync puntual tapa un campo y el siguiente muerde por otro. Candidato
+   a política única: el workspace se resella ENTERO en cada momento de
+   verdad (construir marco / calcular / seleccionar), no clave por clave.
+   Es un cambio de contrato R↔UI: para la rama Gobernar (posible ADR).
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1–I15(+sexo) · I2+J3 · I5 · I3 · radiografía · oráculo · i18b · scroll jail | cerrados | ☑ |
+| I4 · I8 | Cadena (estético) · embudo más nítido | ◐ SIGUIENTE |
+| — | Aviso del gate con el campo que difiere · resello entero del workspace (ADR) | ☐ anotados |
+| J1 | Auditoría de corrección del backend de los 4 sorteos | ☐ |
+| J2 | τ por facultad en el dimensionamiento | ⛔ BLOQUEADO (decisión) |
