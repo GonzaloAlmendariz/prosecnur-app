@@ -743,7 +743,19 @@ function renderAulasView(
           reparte los cursos-horario por cuánto cubren y el otro dice dónde
           falta. Bajo 1180 px vuelven a apilarse. */}
       {pestana !== "resumen" ? null : (
-      <div className="aulas-avance-pareja" data-qa-geometry-group="monitoring-aulas-pareja" data-qa-geometry-contract="equal">
+      <div
+        className="aulas-avance-pareja"
+        data-qa-geometry-group="monitoring-aulas-pareja"
+        /* `intrinsic` y no `equal`, y la diferencia importa: son dos secciones
+           INDEPENDIENTES —una reparte cursos-horario por cobertura y la otra
+           dice dónde falta— que comparten fila por composición, no un par de
+           variantes del mismo componente. Cuando comparten fila el grid las
+           estira y salen idénticas (652×311 a 1440); cuando se apilan bajo
+           1180 px cada una vuelve a su alto propio, y medí 307 contra 274. Con
+           `equal` declarado esos 33 px serían un incumplimiento del contrato
+           que yo mismo escribí de más, no un defecto. */
+        data-qa-geometry-contract="intrinsic"
+      >
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
