@@ -363,7 +363,15 @@ calibrar_umbrales <- function(path, p = 0.10) {
 # acabado en elipsis.
 #
 # El detector de truncados busca justamente eso, la elipsis, asi que da CERO
-# mientras hay un corte en seco. Lo que P46 cerro sigue cerrado —los 22 cortes
+# mientras hay un corte en seco.
+#
+# Y CONTARLOS BIEN NO ES INMEDIATO, medido: comparar el render contra el texto
+# del PLAN da 16 cortes concatenando toda la lamina y 2 agrupando por caja
+# `<p:sp>`, y las dos cifras contradicen el render. La causa esta medida: la
+# lamina 16 tiene **101 cajas** y la primera linea de su enunciado vive sola en
+# la suya (`['¿Conoce los propositos']`), o sea que rvg emite UNA CAJA POR LINEA
+# DIBUJADA. Para reconstruir un enunciado hay que agrupar por columna y
+# adyacencia vertical, con la geometria que `.verif_formas()` ya devuelve. Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
 
