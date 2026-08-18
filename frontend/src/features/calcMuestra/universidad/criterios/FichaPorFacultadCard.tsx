@@ -16,6 +16,7 @@
  * que se desplomaron significan cosas distintas, y sólo se distinguen mirando
  * el paso donde ocurren.
  */
+import { useState } from "react";
 import type { FichaFacultad } from "./fichaFacultadModel";
 import { fmtInt } from "../../sharedCore";
 
@@ -143,6 +144,11 @@ export function FichaPorFacultadCard({
   // Igual que en la tarjeta general: sin ninguna cifra del estudio anterior, sus
   // dos columnas son noventa celdas vacias.
   const comparando = fichas.some((f) => f.pasos.some((p) => p.antes != null));
+  // K3 (censo f224af2d): con 15 fichas la tarjeta mide ~5.300px y domina la
+  // pestaña. El lente deja ver UNA facultad sin perder el «todas» como
+  // default; es filtro efimero de lectura, no navegacion (por eso useState).
+  const [lente, setLente] = useState("");
+  const visibles = lente ? fichas.filter((f) => f.facultad === lente) : fichas;
 
   return (
     <section className="cmv2-ficha-card" aria-label="Ficha por facultad">
@@ -159,9 +165,20 @@ export function FichaPorFacultadCard({
             </>
           ) : null}
         </span>
+        {fichas.length > 1 ? (
+          <label className="cmv2-ficha-lente">
+            <span>Ver</span>
+            <select value={lente} onChange={(e) => setLente(e.currentTarget.value)}>
+              <option value="">Todas las facultades</option>
+              {fichas.map((f) => (
+                <option key={f.facultad} value={f.facultad}>{f.facultad}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </header>
-      <ul className="cmv2-ficha-lista">
-        {fichas.map((f) => (
+      <ul className="cmv2-ficha-lista" data-lente={lente ? "una" : undefined}>
+        {visibles.map((f) => (
           <Ficha key={f.facultad} ficha={f} periodo={periodo} comparando={comparando} />
         ))}
       </ul>

@@ -2455,3 +2455,25 @@
 .cmv2-ficha-card-vacia header span {
   color: var(--pulso-text-muted);
 }
+
+/* K3 · El lente de las fichas: filtro de lectura, no navegación. */
+.cmv2-ficha-lente {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+.cmv2-ficha-lente select {
+  max-width: 240px;
+  font-size: 11.5px;
+  padding: 3px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+/* Con el lente en una facultad, su ficha ocupa el ancho completo. */
+.cmv2-ficha-lista[data-lente="una"] { grid-template-columns: minmax(0, 1fr); }
