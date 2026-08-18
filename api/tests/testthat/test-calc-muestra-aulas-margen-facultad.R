@@ -26,8 +26,12 @@ test_that("los cuatro estados distinguen situaciones distintas", {
   expect_equal(.cm_aulas_estado_margen(10, 16, 11), "insuficiente")
   # Exactamente las de los titulares: no sobra NI UNA.
   expect_equal(.cm_aulas_estado_margen(16, 16, 11), "sin_reservas")
-  # Sobran, pero por debajo de lo pedido.
+  # Sobran 20, pero ni una POR TITULAR (floor(20/36)=0): el unico corto real.
   expect_equal(.cm_aulas_estado_margen(56, 36, 11), "reservas_cortas")
+  # Gonzalo (2026-08-18): la profundidad de la cadena (11) NO es un
+  # requerimiento — sostener menos de 11 ya no fabrica alerta. DERECHO
+  # sostiene 8 y esta HOLGADO.
+  expect_equal(.cm_aulas_estado_margen(440, 46, 11), "holgado")
   expect_equal(.cm_aulas_estado_margen(592, 49, 11), "holgado")
   expect_equal(.cm_aulas_estado_margen(NA, 16, 11), "desconocido")
 })
@@ -47,11 +51,14 @@ test_that("`sin_reservas` no se confunde con `reservas_cortas`", {
 
 test_that("cada aviso lleva las cifras que lo justifican", {
   # Un aviso sin cifras es una impresion; con ellas el analista decide.
-  expect_true(grepl("11", .cm_aulas_aviso_margen(
-    "reservas_cortas", "DERECHO", 440, 46, 8L, 11), fixed = TRUE))
-  expect_true(grepl("8", .cm_aulas_aviso_margen(
-    "reservas_cortas", "DERECHO", 440, 46, 8L, 11), fixed = TRUE))
-  # Una facultad holgada no genera ruido.
+  corto <- .cm_aulas_aviso_margen("reservas_cortas", "ARQUITECTURA", 56, 36, 0L, 11)
+  expect_true(grepl("56", corto, fixed = TRUE))
+  expect_true(grepl("las 20 que sobran", corto, fixed = TRUE))
+  # La profundidad de la cadena NO es meta: el aviso ya no dice «pide el
+  # diseño» ni compara contra 11.
+  expect_false(grepl("pide el dise", corto, fixed = TRUE))
+  # Una facultad holgada no genera ruido, sostenga 8 u 11.
+  expect_equal(.cm_aulas_aviso_margen("holgado", "DERECHO", 440, 46, 8L, 11), "")
   expect_equal(.cm_aulas_aviso_margen("holgado", "CIENCIAS", 592, 49, 11L, 11), "")
 })
 

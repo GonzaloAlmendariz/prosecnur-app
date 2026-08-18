@@ -69,7 +69,10 @@ describe("margen de aulas por facultad", () => {
     expect(html).toContain("todas son titulares");
     expect(html).toContain("no queda ninguna para reemplazar");
     // La cifra que lo justifica, no sólo el estado.
-    expect(html).toContain("El diseño pide 11 reservas por titular");
+    // Gonzalo: «nunca ha habido un requerimiento de 11 reservas a más». El
+    // techo de la cadena se declara como capacidad, jamás como meta.
+    expect(html).toContain("admite hasta 11 posiciones por titular; no es una meta");
+    expect(html).not.toContain("El diseño pide");
   });
 
   it("pone primero la facultad sin margen, no la holgada", () => {

@@ -158,7 +158,10 @@ describe("ficha por facultad", () => {
     );
     expect(html).toContain("necesita 4");
     expect(html).toContain("tiene 12");
-    expect(html).toContain("2 reservas por titular de 11");
+    // Gonzalo: la profundidad de la cadena (11) NO es un requerimiento — el
+    // «de 11» se retiró para no vender el techo operativo como meta.
+    expect(html).toContain("2 reservas por titular");
+    expect(html).not.toContain("reservas por titular de");
     expect(html).toContain('data-alcanza="true"');
   });
 
