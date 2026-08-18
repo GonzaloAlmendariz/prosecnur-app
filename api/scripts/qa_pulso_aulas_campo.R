@@ -266,27 +266,41 @@ control <- lapply(seq_along(aplicadas), function(i) {
     application_status = "APLICADA"
   )
   if (i %% 3 == 0) return(base)
-  # Una de cada siete se queda MUY corta: sin ella ninguna aula falla los dos
-  # umbrales a la vez y el veredicto «no alcanza ninguno» no existiria en el
-  # fixture, que es justo el caso que el operativo va a buscar primero.
-  enviadas <- if (i %% 7 == 1) round(as.numeric(u$eligible_n) * 0.4)
-              else as.numeric(u$eligible_n) - (i %% 5)
+  # Los DOS denominadores del 70 %, y en la relacion que tienen de verdad.
+  #
+  # Antes 70T salia de `eligible_n + 10` y 70P de `eligible_n`, o sea el umbral
+  # de asistentes por ENCIMA del de matriculados. Con esa relacion, cumplir 70T
+  # implica cumplir 70P y el caso «llego al de asistentes y no al de
+  # matriculados» no puede existir: las 39 aulas que cumplian uno solo eran las
+  # 39 el mismo caso. Y es al reves de como ocurre — a clase va menos gente de
+  # la matriculada, asi que el umbral de asistentes es normalmente el mas bajo.
+  #
+  # Ahora la asistencia manda: `asistentes = matriculados x asistencia`, 70T
+  # sale de los asistentes y 70P de los matriculados elegibles. Una de cada
+  # once tiene MAS presentes que elegibles —oyentes y alumnos de otra seccion,
+  # que asisten pero no estan en el padron—: es el unico modo de que la rama
+  # contraria tambien exista, y ocurre en campo.
+  matriculados <- as.numeric(u$eligible_n)
+  asistencia <- if (i %% 11 == 0) 1.2 else c(0.55, 0.7, 0.85, 0.95)[[1 + (i %% 4)]]
+  asistentes <- max(1, round(matriculados * asistencia))
+  enviadas <- if (i %% 7 == 1) round(matriculados * 0.4)
+              else max(1, round(asistentes * c(0.75, 0.9, 0.65)[[1 + (i %% 3)]]))
   mujeres <- floor(enviadas * 0.6)
   c(base, list(
     sent_total = enviadas,
-    sent_vs_total = round(enviadas / (as.numeric(u$eligible_n) + 10), 3),
-    sent_vs_population = round(enviadas / as.numeric(u$eligible_n), 3),
+    sent_vs_total = round(enviadas / asistentes, 3),
+    sent_vs_population = round(enviadas / matriculados, 3),
     validator_1 = i %% 2, validator_2 = 0, validator_3 = i %% 3,
     short_total = i %% 4, short_vs_total = round((i %% 4) / max(enviadas, 1), 3),
     long_total = i %% 3, long_vs_total = round((i %% 3) / max(enviadas, 1), 3),
-    threshold_total = round(0.7 * (as.numeric(u$eligible_n) + 10)),
-    threshold_population = round(0.7 * as.numeric(u$eligible_n)),
-    valid_total = if (enviadas >= 0.7 * (as.numeric(u$eligible_n) + 10)) 1 else 0,
-    valid_population = if (enviadas >= 0.7 * as.numeric(u$eligible_n)) 1 else 0,
+    threshold_total = round(0.7 * asistentes),
+    threshold_population = round(0.7 * matriculados),
+    valid_total = if (enviadas >= 0.7 * asistentes) 1 else 0,
+    valid_population = if (enviadas >= 0.7 * matriculados) 1 else 0,
     last_response_day = sprintf("2026-08-%02d", 10 + (i %% 10)),
-    observed_students = as.numeric(u$eligible_n),
+    observed_students = asistentes,
     non_respondents = i %% 5,
-    attendance_pct = round(as.numeric(u$eligible_n) / (as.numeric(u$eligible_n) + 10), 3),
+    attendance_pct = round(asistentes / as.numeric(base$enrolled_total), 3),
     quota_pct = round(enviadas / as.numeric(u$eligible_n), 3),
     quota_missing = max(0, as.numeric(u$eligible_n) - enviadas),
     women_n = mujeres, men_n = enviadas - mujeres,

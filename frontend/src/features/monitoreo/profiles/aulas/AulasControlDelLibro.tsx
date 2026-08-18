@@ -29,6 +29,10 @@ export type GrupoDeControl = {
 export type VeredictoDeControl = {
   efectivas: number;
   cumple_una: number;
+  /** De `cumple_una`: llegó al 70 % de los asistentes y no al de los matriculados. */
+  solo_asistentes?: number;
+  /** De `cumple_una`: llegó al de los matriculados y no al de los asistentes. */
+  solo_poblacion?: number;
   no_efectivas: number;
   indeterminadas: number;
 };
@@ -63,7 +67,28 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
         Alcanzaron el 70 % contra los dos denominadores: asistentes elegibles y alumnos elegibles.
       </p>
       <ul className="aulas-control-desglose">
-        {v.cumple_una > 0 ? (
+        {/* «Cumplen sólo uno» valía igual para dos diagnósticos opuestos, y la
+            hoja ya sabía cuál era cada uno. Se desglosa porque de eso depende
+            si volver al aula sirve de algo: si sobró aplicación y faltó gente
+            en clase, no se arregla volviendo a la misma sesión. Los dos suman
+            `cumple_una`; si el desglose no llega —motor viejo— se enseña el
+            total, que es lo que había. */}
+        {v.cumple_una > 0 && (v.solo_asistentes ?? 0) + (v.solo_poblacion ?? 0) === v.cumple_una ? (
+          <>
+            {v.solo_asistentes ? (
+              <li>
+                <strong>{v.solo_asistentes}</strong> llegaron al 70 % de los asistentes y no al de los matriculados
+                <span className="mon-profile-muted"> · fue poca gente a clase; volver a esa sesión no la trae</span>
+              </li>
+            ) : null}
+            {v.solo_poblacion ? (
+              <li>
+                <strong>{v.solo_poblacion}</strong> llegaron al 70 % de los matriculados y no al de los asistentes
+                <span className="mon-profile-muted"> · había más presentes que elegibles y parte no respondió</span>
+              </li>
+            ) : null}
+          </>
+        ) : v.cumple_una > 0 ? (
           <li>
             <strong>{v.cumple_una}</strong> cumplen sólo uno de los dos
           </li>

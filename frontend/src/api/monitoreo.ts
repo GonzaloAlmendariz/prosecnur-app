@@ -799,6 +799,15 @@ export type MonitoreoAulasDashboard = {
 	    veredicto?: {
 	      efectivas: number;
 	      cumple_una: number;
+	      /**
+	       * El desglose de `cumple_una`, que suman entre los dos. No es un
+	       * matiz: `solo_asistentes` es un aula a la que fue poca gente —el
+	       * aplicador hizo su trabajo y volver a esa sesión no trae más
+	       * alumnos— y `solo_poblacion` una con más presentes que elegibles
+	       * donde parte no respondió.
+	       */
+	      solo_asistentes?: number;
+	      solo_poblacion?: number;
 	      no_efectivas: number;
 	      indeterminadas: number;
 	    };

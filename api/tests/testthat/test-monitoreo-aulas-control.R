@@ -130,37 +130,82 @@ test_that("el veredicto textual del equipo se entiende en sus formas", {
   }
 })
 
-test_that("efectiva exige los dos umbrales y no se resuelve a FALSE por falta de dato", {
-  pub <- monitoreo_aulas_control_publicado(list(
-    list(operational_code = "A", valid_total = 1, valid_population = 1),
-    list(operational_code = "B", valid_total = 1, valid_population = 0),
-    list(operational_code = "C", valid_total = 0, valid_population = 0),
-    # Nadie la evaluo. Acusarla de no llegar seria inventar el veredicto.
-    list(operational_code = "D", sent_total = 25)
-  ))
+.mac_cuatro <- function() list(
+  list(operational_code = "A", valid_total = 1, valid_population = 1),
+  list(operational_code = "B", valid_total = 1, valid_population = 0),
+  list(operational_code = "C", valid_total = 0, valid_population = 0),
+  # Nadie la evaluo. Acusarla de no llegar seria inventar el veredicto.
+  list(operational_code = "D", sent_total = 25),
+  # La rama contraria a B: llego al de matriculados y no al de asistentes.
+  list(operational_code = "E", valid_total = 0, valid_population = 1)
+)
 
-  expect_true(pub[[1]]$efectiva)
-  expect_false(pub[[2]]$efectiva)
-  expect_false(pub[[3]]$efectiva)
-  expect_true(is.na(pub[[4]]$efectiva))
+# Por codigo y no por posicion: el publicador ORDENA, asi que indexar por
+# posicion probaria el orden creyendo que prueba el veredicto —y al reves, un
+# cambio de orden tumbaria un test que no habla de orden.
+.mac_por_codigo <- function(pub) {
+  stats::setNames(pub, vapply(pub, function(f) as.character(f$operational_code), character(1)))
+}
+
+test_that("efectiva exige los dos umbrales y no se resuelve a FALSE por falta de dato", {
+  pub <- .mac_por_codigo(monitoreo_aulas_control_publicado(.mac_cuatro()))
+
+  expect_true(pub[["A"]]$efectiva)
+  expect_false(pub[["B"]]$efectiva)
+  expect_false(pub[["C"]]$efectiva)
+  expect_true(is.na(pub[["D"]]$efectiva))
+  expect_false(pub[["E"]]$efectiva)
+})
+
+test_that("la tabla del control abre por donde queda decision, no por el orden de la hoja", {
+  # El orden de entrada ya empieza por la efectiva y termina por las dos que
+  # cumplen uno: si el publicador no ordenara, la tabla abriria por el aula que
+  # no hay que revisar. El caso esta puesto para que «abre bien» no pueda ser
+  # coincidencia del orden de entrada.
+  pub <- monitoreo_aulas_control_publicado(.mac_cuatro())
+  codigos <- vapply(pub, function(f) as.character(f$operational_code), character(1))
+
+  # 1-2 cumplen uno · 3 sin evaluar · 4 no alcanza ninguno · 5 efectiva.
+  expect_identical(codigos, c("B", "E", "D", "C", "A"))
 })
 
 test_that("las cuatro cuentas del veredicto son excluyentes y suman las aulas", {
-  res <- monitoreo_aulas_control_resumen(list(
-    list(operational_code = "A", valid_total = 1, valid_population = 1),
-    list(operational_code = "B", valid_total = 1, valid_population = 0),
-    list(operational_code = "C", valid_total = 0, valid_population = 0),
-    list(operational_code = "D", sent_total = 25)
-  ))
+  res <- monitoreo_aulas_control_resumen(.mac_cuatro())
   v <- res$veredicto
 
   expect_identical(v$efectivas, 1L)
-  expect_identical(v$cumple_una, 1L)
+  expect_identical(v$cumple_una, 2L)
   expect_identical(v$no_efectivas, 1L)
   expect_identical(v$indeterminadas, 1L)
   # El aserto que atrapa el doble conteo: si «cumple una» no se restara de las
-  # no efectivas, la suma daria 5 sobre 4 aulas.
+  # no efectivas, la suma daria mas aulas de las que hay.
   expect_identical(v$efectivas + v$cumple_una + v$no_efectivas + v$indeterminadas, res$aulas)
+})
+
+test_that("el veredicto dice CUAL de los dos umbrales fallo", {
+  # «Cumplen solo uno» valia igual para dos diagnosticos opuestos. B llego al de
+  # asistentes y no al de matriculados —fue poca gente a clase—; E al reves. La
+  # hoja lo sabia por aula y el resumen no lo decia.
+  v <- monitoreo_aulas_control_resumen(.mac_cuatro())$veredicto
+
+  expect_identical(v$solo_asistentes, 1L)
+  expect_identical(v$solo_poblacion, 1L)
+  # El desglose no puede decir mas ni menos aulas que el total del que sale.
+  expect_identical(v$solo_asistentes + v$solo_poblacion, v$cumple_una)
+})
+
+test_that("un desglose que solo tiene una rama no la reparte con la otra", {
+  # El control del aserto de arriba: con las dos ramas a 1 cada una, una
+  # implementacion que contara «cumple una» en las DOS claves daria 1 y 1
+  # igual. Aqui solo existe la rama de asistentes, asi que la otra tiene que
+  # quedarse en cero.
+  v <- monitoreo_aulas_control_resumen(list(
+    list(operational_code = "B", valid_total = 1, valid_population = 0),
+    list(operational_code = "B2", valid_total = 1, valid_population = 0)
+  ))$veredicto
+
+  expect_identical(v$solo_asistentes, 2L)
+  expect_identical(v$solo_poblacion, 0L)
 })
 
 # --- El recibo del libro ------------------------------------------------------
