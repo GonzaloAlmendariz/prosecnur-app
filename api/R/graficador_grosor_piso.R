@@ -575,3 +575,50 @@
 # «el cambio no hace nada» y «el cambio no esta aqui»— y la segunda se descarta
 # antes que la primera, porque es la barata: un `diff` de las entradas del zip
 # cuesta segundos y separa las dos.
+
+
+# P48/P37 — EL MOVIMIENTO SI FUNCIONA. LA DECISION YA NO ES TECNICA.
+#
+# Rehecho el movimiento y regenerado el mazo con el `.pptx` BORRADO ANTES, esta
+# vez si entro en el artefacto: `p57.pptx` difiere de `p55.pptx` en **34
+# entradas del zip, 33 de ellas laminas** (18, 20-23, 25, 26, 28, 30-36, 38, 40,
+# 41, 44-46, 48, 52, 54, 59-61, 63, 65, 66, 68-70).
+#
+# POR QUE FALLARON LOS DOS INTENTOS ANTERIORES: la corrida se lanzaba con
+# `(Rscript ... ) &` ADEMAS del backgrounding de la herramienta. Ese `&` de mas
+# desprende el proceso de lo que la herramienta vigila, la corrida se da por
+# terminada y R queda cortado antes de escribir. El `mazo.pptx` viejo sobrevive
+# y se copia como si fuera nuevo. **Se lanza sin `&`, y se borra el .pptx antes
+# para que su ausencia delate una corrida truncada.**
+#
+# MEDIDO, `p57` contra `p55`:
+#
+#   grosor fisico   altos distintos **82 -> 75**, y aparece un modo dominante
+#                   de **0.4699 in en 173 rects** donde antes habia dispersion
+#                   (el 0.5084 x75 desaparece). Rects 944 -> 961.
+#   R10 grosor categorico excesivo   **2 -> 0**   <- el objetivo de P37
+#   B4 gemelas desiguales            **8 -> 4**
+#   R8 arranque vertical             **2 -> 1**
+#   R1 grosor de escala              **3 -> 7**
+#   R5 grosor categorico             **2 -> 5**
+#   B3, R3, R7                       6, 1, 1 sin cambio
+#   VARA TOTAL                       **25 -> 25** (el aprobado tambien 25)
+#   etiquetas «0%»                   0 -> 0, universo 1.090
+#
+# O sea que el anclaje hace exactamente lo que se le pedia —unifica el grosor
+# fisico y borra los dos R10— y a cambio engorda R1 y R5. La cuenta total no se
+# mueve. **Cambiar ocho incumplimientos por otros ocho no lo decide una regla:
+# lo decide Gonzalo**, que es quien sabe si prefiere barras homogeneas con mas
+# incumplimientos de umbral de escala, o al reves.
+#
+# El arbol se queda en el estado bueno (`d988a9fb`) hasta que lo diga. El
+# movimiento entero esta en el scratchpad como `apiladas.CON_P48MOV2.R` —un
+# `cp` lo reaplica— y su test de contrato como
+# `test-grosor-anclado-antes-del-geom.R.PENDIENTE`: **12 asserts, 6 rojos** sin
+# el movimiento (comprobado restaurando el PRE y volviendo a poner el CON).
+#
+# QUEDA SIN MEDIR, y es lo primero cuando se decida: cortes y solapes de `p57`.
+#
+# LECCION: un backgrounding redundante puede cortar la corrida sin dar error, y
+# el artefacto viejo se hace pasar por nuevo. Borrar la salida antes de generar
+# convierte ese fallo silencioso en un fallo ruidoso.
