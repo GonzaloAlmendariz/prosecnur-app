@@ -607,3 +607,31 @@ test_that("las cadenas aportan las aulas TITULARES por facultad", {
   # Y las facultades siguen siendo las de cuotas (nada se anexa).
   expect_equal(length(r$por_facultad), 2L)
 })
+
+test_that("la poblacion por facultad se deriva de la afijacion proporcional", {
+  # 2025 declara afijacion proporcional, N=22234 y n=2500: la poblacion de
+  # cada facultad es aritmetica (cuota x N/n) — deshacer la division que el
+  # propio diseño declaro. ARQ: 123 x 22234/2500 = 1094.
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2",
+    general = list(afijacion = "Proporcional por facultad y sexo",
+                   poblacion_objetivo = "22234", muestra = "2500"),
+    por_facultad = list(
+      list(facultad = "ARQUITECTURA Y URBANISMO", cuota = 123),
+      list(facultad = "CON POBLACION PROPIA", cuota = 100, poblacion = 999)
+    )
+  ))
+  f <- calc_muestra_referencia_criterios_fusionar(libro, NULL)
+  filas <- setNames(f$por_facultad, vapply(f$por_facultad, `[[`, "", "faculty_key"))
+  expect_equal(filas$arquitectura_y_urbanismo$poblacion, 1094)
+  # Una poblacion YA declarada no se pisa.
+  expect_equal(filas$con_poblacion_propia$poblacion, 999)
+  # Sin afijacion proporcional NO se deriva: seguiria NA.
+  libro2 <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2",
+    general = list(afijacion = "Optima de Neyman", poblacion_objetivo = "22234", muestra = "2500"),
+    por_facultad = list(list(facultad = "X", cuota = 100))
+  ))
+  f2 <- calc_muestra_referencia_criterios_fusionar(libro2, NULL)
+  expect_true(is.na(f2$por_facultad[[1]]$poblacion))
+})
