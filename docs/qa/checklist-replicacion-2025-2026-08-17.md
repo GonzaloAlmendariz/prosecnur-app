@@ -1861,3 +1861,24 @@ EGL 34 vs 55. Siguen NA con honestidad: `aulas_titulares` (viviría en
 task-notification de un `sleep` en background; ni cron ni ScheduleWakeup
 disparan aquí (16+4 aceptados, 0 ticks). Memoria
 `feedback_reloj_del_loop_tarea_de_fondo` actualizada con el protocolo.
+
+## (c) · Talleres en Artes y Arquitectura, declarados donde muerden · ☑ 2026-08-18
+
+Textual de Gonzalo: «en 2025, en Artes y en Arquitectura se aplicaron
+talleres, porque eran tipos de cursos-horario que tenían bastantes alumnos…
+más que servir a nivel numérico son una cuestión de criterio».
+
+**Medición previa (vara 3), TALLER por facultad** (talleres | caen SÓLO por
+tipo de sesión | mediana alumnos): ARTE Y DISEÑO 186|146|18 · ARQUITECTURA
+58|46|19 · EE.GG. LETRAS 27|2|24 · **ARTES ESCÉNICAS 14|0|12 (mediana 1
+elegible: declararla ahí no recorta nada)** · PSICOLOGÍA 7|4|25 · resto ≤4.
+«Artes y Arquitectura» = Arte y Diseño + Arquitectura, y la medición lo
+confirma: bastantes alumnos (medianas 18–19) y volumen real.
+
+**Declarado**: `byVariable.session_type.exceptions` con `op:"add"` y
+categoría `taller` SÓLO en ARTE Y DISEÑO y ARQUITECTURA Y URBANISMO.
+**Resultado medido**: A&D 78→222 (+144), ARQ 55→100 (+45), **las otras
+quince filas +0 exactas**. Marco 2.426→**2.615** de 5.263. La decisión p25
+se reselló sola contra el frame nuevo (`8f676b56…`). Config guardada en la
+copia de trabajo; la ficha de cada facultad declara «session_type: además
+taller». Sin cambios de código: fue configuración + medición.
