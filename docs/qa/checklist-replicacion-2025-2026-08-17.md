@@ -2329,3 +2329,29 @@ H1 ☑ decisiones registradas · H2 ☑ mejora real de UI · H3 ◐ medido con d
 roturas documentadas y chip para la banda de monitoreo (task_0bbf95f9).
 El loop vuelve a holds hasta instrucción nueva o hasta que el chip se
 arranque.
+
+## TANDA I · Mejoras de UI de la instrucción 2026-08-18 (tarde)
+
+Textual de Gonzalo: «hay una forma válida de mostrarlo. Es una pregunta»
+(el botón +1 aula) · «el sustento técnico, el relato, la cadena de
+reemplazos todavía no se ve bien, el perfil de la muestra (…) cursos
+horarios titulares, creo que también podrías mejorarlo bastante» · «quedan
+un montón de cosas donde sale que no hay referencias cuando deberían haber
+referencias» · «el embudo de facultad por facultad debería estar en
+selección» · «estos gráficos deberían centrarse más en la diferencia entre
+este estudio y el anterior, no necesariamente dos mil veinticinco» · «que
+el embudo de criterios de cursos horarios se vea mejor, más consistente,
+más nítido (…) superprofesional».
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| I1 | El botón «+1 aula» formulado como pregunta | CertificacionFacultadCard | ☐ |
+| I6a | El embudo facultad-por-facultad TAMBIÉN en Selección | AulasSeleccionTab + EmbudoComparadoFacultades | ☐ |
+| I7a | «Sin referencia» donde SÍ hay referencia — medir cuáles y rellenar | CriteriosGeneralesCard / criteriosGeneralesModel + referencia | ☐ |
+| I7b | Lenguaje «este estudio vs el anterior» (no «2025» fijo) | etiquetas de Coincidencia/embudo (periodo dinámico) | ☐ |
+| I7c | Gráficos de Coincidencia centrados en la DIFERENCIA | EmbudoComparadoFacultades (delta como protagonista) | ☐ |
+| I4 | La cadena de reemplazos «no se ve bien» | AulasReemplazosTab / MatrizCadenas | ☐ |
+| I5 | Perfil de la muestra | AulasPerfilTab | ☐ |
+| I2 | Sustento técnico | SalidasCierreTab / paquete de defensa | ☐ |
+| I3 | El relato | aulas/relato/RelatoTab | ☐ |
+| I8 | Embudo de criterios de cursos-horario más nítido | radiografía/cascada de criterios (Marco) | ☐ |
