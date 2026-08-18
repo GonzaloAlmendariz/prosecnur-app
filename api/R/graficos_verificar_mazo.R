@@ -880,6 +880,22 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
     # tenerlas todas. Ver abajo.
     gem[[length(gem) + 1L]] <- .verif_grosores_de_lamina(formas, i)
 
+    # B5 y B6: las laminas de VARIOS cuadrantes. Nadie miraba que dos
+    # cuadrantes dibujaran lo mismo ni que uno declarara otro publico, y el
+    # mazo de Conta entrego las dos cosas: la 9 repite su grafico de Sexo y la
+    # 14 —«PERFIL DEL PERSONAL ADMINISTRATIVO»— tiene un cuadrante con «Base:
+    # 52 docentes» donde sus tres vecinos dicen «Base: 15 administrativos».
+    cuads <- .verif_cuadrantes(xml)
+    for (r in .verif_cuadrantes_repetidos(cuads)) {
+      add("B5 grafico repetido", i, r$textos, "cuadrantes distintos",
+          sprintf("los cuadrantes %d y %d dibujan lo mismo: %s",
+                  r$i, r$j, r$muestra))
+    }
+    for (r in .verif_cuadrantes_publico_cruzado(cuads)) {
+      add("B6 publico cruzado", i, r$n, sprintf("todos de %s", r$mayoria),
+          sprintf("%d cuadrante(s) con base de «%s» donde %d dicen «%s»",
+                  r$n, r$publico, r$n_mayoria, r$mayoria))
+    }
     # R4: el rojo institucional es color de TITULO, no extremo de escala.
     rr <- .verif_rojo_en_rampa(xml)
     if (rr > u$rojo_en_rampa_max) {
@@ -1611,3 +1627,127 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # camino fue el par minimo — la MISMA variable dibujada dos veces en la misma
 # lamina con dos grosores. Cuando dos objetos que deberian ser identicos no lo
 # son, lo que los separa esta en la CONFIGURACION, no en el motor.
+
+
+#' Grupos de canvas de una lamina
+#'
+#' El grupo del canvas se reconoce por el `<a:xfrm>` que trae `chExt`. Una
+#' lamina puede tener varios —las de poblacion tienen cuatro—, y el ICONO es
+#' tambien un grupo, pero CUADRADO y pequeno: no es un grafico y no entra.
+#'
+#' @keywords internal
+.verif_grupos_canvas <- function(xml) {
+  bloques <- regmatches(xml, gregexpr("<a:xfrm[^>]*>.*?</a:xfrm>", xml))[[1]]
+  out <- list()
+  for (t in bloques) {
+    if (!grepl("chExt", t, fixed = TRUE)) next
+    o <- regmatches(t, regexpr('<a:off x="(-?\\d+)" y="(-?\\d+)"/>', t))
+    e <- regmatches(t, regexpr('<a:ext cx="(\\d+)" cy="(\\d+)"/>', t))
+    if (!length(o) || !length(e)) next
+    no <- as.numeric(regmatches(o, gregexpr("-?\\d+", o))[[1]])
+    ne <- as.numeric(regmatches(e, gregexpr("-?\\d+", e))[[1]])
+    if (length(no) < 2L || length(ne) < 2L || ne[[2]] <= 0) next
+    w <- ne[[1]] / .VERIF_EMU
+    h <- ne[[2]] / .VERIF_EMU
+    if (abs(w - h) < 0.05 && w < 2.5) next          # el icono
+    out[[length(out) + 1L]] <- list(x = no[[1]] / .VERIF_EMU,
+                                    y = no[[2]] / .VERIF_EMU, w = w, h = h)
+  }
+  out
+}
+
+
+#' Contenido de cada cuadrante de una lamina de varios graficos
+#'
+#' Devuelve, por cuadrante, el conjunto ORDENADO de sus textos —que es su firma
+#' de contenido— y el publico que declara su «Base: N <publico>». La Base se
+#' separa de la serie a proposito: dos cuadrantes que dibujan lo mismo lo hacen
+#' con la misma Base, asi que meterla dentro no distingue nada, y sacarla deja
+#' la comparacion de publicos limpia.
+#'
+#' @keywords internal
+.verif_cuadrantes <- function(xml) {
+  grupos <- .verif_grupos_canvas(xml)
+  if (length(grupos) < 2L) return(list())
+  tx <- Filter(function(f) nzchar(trimws(f$texto %||% "")), .verif_formas(xml))
+  out <- lapply(grupos, function(g) list(series = character(0),
+                                         publico = NA_character_))
+  for (f in tx) {
+    for (k in seq_along(grupos)) {
+      g <- grupos[[k]]
+      dentro <- f$x >= g$x - 0.02 && f$y >= g$y - 0.02 &&
+        f$x + f$w <= g$x + g$w + 0.02 && f$y + f$h <= g$y + g$h + 0.02
+      if (!dentro) next
+      base <- regmatches(f$texto, regexpr(
+        "[Bb]ase\\s*:\\s*[0-9.,[:space:]]+[[:alpha:]]+", f$texto))
+      if (length(base)) {
+        out[[k]]$publico <- tolower(sub(".*[^[:alpha:]]", "", base[[1]]))
+      } else {
+        out[[k]]$series <- c(out[[k]]$series, trimws(f$texto))
+      }
+      break
+    }
+  }
+  lapply(out, function(q) { q$series <- sort(unique(q$series)); q })
+}
+
+
+#' B5 — dos cuadrantes de la misma lamina dibujan lo mismo
+#'
+#' No se piden conjuntos IDENTICOS, se pide CONTENCION. Medido sobre la lamina 9
+#' del mazo de Conta: el cuadrante bueno dice
+#' `Sexo / Masculino / 52% / 48% / Femenino` y el huerfano dice lo mismo SIN el
+#' titulo, porque justamente lo que le falta es la configuracion. Exigir
+#' igualdad dejaba escapar el unico caso real que hay en el mazo.
+#'
+#' `min_textos` evita el emparejado trivial —dos cuadrantes con una etiqueta
+#' suelta coincidirian por casualidad— y la exigencia de una CIFRA evita que dos
+#' dicotomicas distintas se emparejen por sus «Si» y «No».
+#'
+#' @keywords internal
+.verif_cuadrantes_repetidos <- function(cuads, min_textos = 3L) {
+  n <- length(cuads)
+  if (n < 2L) return(list())
+  tiene_cifra <- function(x) any(grepl("[0-9]", x))
+  out <- list()
+  for (i in seq_len(n - 1L)) {
+    for (j in (i + 1L):n) {
+      a <- cuads[[i]]$series; b <- cuads[[j]]$series
+      chico <- if (length(a) <= length(b)) a else b
+      grande <- if (length(a) <= length(b)) b else a
+      if (length(chico) < min_textos) next
+      if (!all(chico %in% grande)) next
+      if (!tiene_cifra(chico)) next
+      out[[length(out) + 1L]] <- list(
+        i = i, j = j, textos = length(chico),
+        muestra = paste(utils::head(chico, 4), collapse = " / "))
+    }
+  }
+  out
+}
+
+
+#' B6 — un cuadrante declara un publico distinto al de sus vecinos
+#'
+#' Se marca la MINORIA, no la mayoria: en una lamina de perfil, el publico de la
+#' lamina es el que repiten sus cuadrantes, y el que se sale es el intruso. Con
+#' menos de dos Bases legibles no hay comparacion y no se marca nada.
+#'
+#' @keywords internal
+.verif_cuadrantes_publico_cruzado <- function(cuads) {
+  ps <- vapply(cuads, function(q) as.character(q$publico %||% NA_character_)[1],
+               character(1))
+  ps <- ps[!is.na(ps) & nzchar(ps)]
+  if (length(ps) < 2L) return(list())
+  tb <- table(ps)
+  if (length(tb) < 2L) return(list())
+  mayoria <- names(tb)[which.max(tb)]
+  out <- list()
+  for (p in names(tb)) {
+    if (identical(p, mayoria)) next
+    out[[length(out) + 1L]] <- list(publico = p, n = as.integer(tb[[p]]),
+                                    mayoria = mayoria,
+                                    n_mayoria = as.integer(max(tb)))
+  }
+  out
+}
