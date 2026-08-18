@@ -3051,3 +3051,48 @@ paso: regla muerta cmv2-margen-de fuera (el contrato de huérfanos la atrapó).
 | K3 mejorar y AMPLIAR visualizaciones | ☐ tras K1 |
 
 Cola D viva: D4 fila estadístico al libro (aprobada) · D2 τ sexo referencial · D5 extracción del congelado.
+
+## K1 · CENSO de Selección y Entrega — entregable (2026-08-18, medido en vivo)
+
+Cada pestaña con sus bloques EN ORDEN VISUAL actual y su alto en px (estado
+completo: marco+diseño+selección+simulación+comparación).
+
+**SELECCIÓN (sección aulas, 8 pestañas)**
+
+| Pestaña | Bloques (orden actual · alto px) | Diagnóstico de orden conceptual |
+|---|---|---|
+| Objetivo | Objetivo vigente 172 · Conversión N→CH 926 · «Criterios de selección»+Pesos 976 | Coherente. DEFECTO DE NOMBRE: «Criterios de selección» aquí son los PESOS del sorteo — colisiona con los criterios del Marco. Renombrar («Parámetros del sorteo»). |
+| Método | Cuatro maneras 888 · Riesgos · Dos formas medidas 1444 | Coherente. «Riesgos» se repite en Laboratorio. |
+| Laboratorio | Resultados de la simulación 888 · Estabilidad de pesos · Riesgos | Resultados ANTES que Estabilidad invierte la lectura (primero cómo se movió, después qué salió). |
+| **Titulares (seleccion)** | Margen 516 · Sustento 903 · Certificación 510 · Embudo 585 · Sexo 521 · Cobertura 61 · Selección vigente 172 · ACCIONES 50 · Defendible 1009 · Mapa 676 · Selección propuesta 4792 | **La que Gonzalo nombró y la más rota**: (a) mezcla dos preguntas — «¿el diseño pide bien?» (margen/sustento, pre-sorteo) y «¿qué salió y es defendible?» (certificación/defendible/mapa/tabla); (b) la ACCIÓN está enterrada (bloque 8 de 11, 50px); (c) «Selección propuesta» = 4.792px al final; (d) 11 bloques ≈ 9.800px sin jerarquía de lectura. |
+| Reemplazos | notice 96 · KPIs 171 · Plan B 701 · Efecto esperado 1539 | Coherente. |
+| Perfil | Lo que va a campo 400 · De qué está hecha 1109 · Mujeres y hombres 400 · Año pasado 225 | Coherente (recién trabajada). |
+| Relato | Relato 683 | Coherente. |
+| Auditoría | notice · «Fórmulas del diseño» 2504 · respaldo | Un solo bloque de 2.500px: pide anclas/índice interno. |
+
+**ENTREGA (sección salidas, 5 pestañas)**
+
+| Pestaña | Bloques (orden · alto) | Diagnóstico |
+|---|---|---|
+| Coincidencia | Lo que rige 363 · Criterios del marco 289 · Embudo 585 · Certificación 498 · Cada facultad paso a paso 5356 | Coherente de general→detalle; las fichas (5.356px) dominan — ganarían un lente/filtro por facultad. |
+| Guía | Ficha ejecutiva 662 · avanzado 160 | Chica y sana. |
+| Resultados | Distribución por facultad y sexo 550 · Nivel universidad 1461 | Por-facultad primero ✓ (vara 1). |
+| Entregables | Reporte metodológico 171 · **Privacidad 163** · Excel local 373 · avanzado · **Paquete de defensa 131 (último)** | La privacidad INTERRUMPE entre reporte y Excel; el Paquete de defensa —quizá lo más importante— está al final y mínimo. Reorden: Reporte → Defensa → Excel → privacidad al pie. |
+| Monitoreo | Qué recibe 444 · Flujo 250 · tabla 520 · Reservas 955 · Cierre 78 | Coherente. |
+
+**Duplicaciones deliberadas detectadas** (eco de lectura, no defecto):
+certificación y embudo viven en Titulares Y Coincidencia; «Riesgos» en
+Método y Laboratorio (este segundo sí es candidato a unificar).
+
+**CONTRATO PARA K2 (orden propuesto, pestaña por pestaña en ticks):**
+1. **Titulares** (primero, la nombrada): estado+ACCIÓN arriba → Certificación
+   (el veredicto) → Margen+Sustento (el porqué del pedido) → Embudo+Sexo
+   (comparaciones) → Defendible+Mapa → tabla al final con su buscador.
+2. Entregables: Reporte → Defensa → Excel → privacidad al pie.
+3. Laboratorio: Estabilidad → Resultados → Riesgos (o fundir Riesgos con Método).
+4. Objetivo: renombrar «Criterios de selección» → «Parámetros del sorteo».
+5. Auditoría: anclas internas en «Fórmulas del diseño».
+
+**K3 (ampliar visualizaciones — candidatos):** lente por facultad en
+Coincidencia; distribución de scores del sorteo en Titulares; serie de
+estabilidad en Laboratorio; mini-mapa de calor cuota vs sexo en Resultados.
