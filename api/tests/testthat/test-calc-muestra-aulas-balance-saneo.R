@@ -93,3 +93,20 @@ test_that("un method_id no reconocido ya no cae en silencio al cubo", {
   expect_identical(.cm_aulas_engine_key("no_existe_tal_motor", default = ""), "")
   expect_identical(.cm_aulas_engine_key("cube_balanceado", default = ""), "cube_balanceado")
 })
+
+test_that("el score del pool etiqueta su fuente y la degradacion se declara", {
+  df <- data.frame(
+    classroom_id = c("A", "B"), stratum = "S", eligible_n = c(10, 20),
+    unique_student_ids = c("s1|s2", "s3"), duplicate_overlap = c(0, 0),
+    unique_added = c(2, 1), stringsAsFactors = FALSE
+  )
+  sel <- list(balance_vars = list(), n_aulas = 1)
+  # Camino sano: el objetivo evalua y la fuente lo dice.
+  sano <- .cm_aulas_candidate_score(df, df, sel, objective = NULL)
+  expect_identical(attr(sano, "score_fuente", exact = TRUE), "representatividad")
+  # Camino degradado (aula_frame invalido tumba el objetivo): heuristico
+  # ETIQUETADO, con el valor exacto de la formula de cobertura/duplicados.
+  degradado <- .cm_aulas_candidate_score(df, NULL, sel, objective = NULL)
+  expect_identical(attr(degradado, "score_fuente", exact = TRUE), "heuristico")
+  expect_equal(as.numeric(degradado), 3 + 0.15 * (log1p(10) + log1p(20)), tolerance = 1e-9)
+})
