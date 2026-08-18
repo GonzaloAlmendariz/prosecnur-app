@@ -2652,3 +2652,21 @@ criterios generales del estudio.»
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
+
+### Tanda I — I15 cerrado (dibujo entero)
+
+**I15 ☑ (`2c1ee69b`)**: el Histórico rankea las 3 mejores aulas aplicadas de
+2025 por facultad — tipo, ciclo, alumnos, % asistencia y semana de campo. El
+vivo obligó a tres honestidades: el join 2025↔catálogo normaliza guion vs
+guion bajo (0→194 de 194), los desbordes (>100% de asistencia, ADR 0060) no
+compiten y se declaran, y el mínimo de 15 elegibles evita que un aula chica
+gane por ruido (22 descartadas, contadas).
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I9 · I10 · I11 · I12 · I13 · I14 · I15 | cerrados | ☑ |
+| — | Radiografía nivel · oráculo · bundle i18b · scroll jail | ☑ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I2 | Sustento técnico (con J3: «por qué 190 y no 170») | ☐ SIGUIENTE |
+| I5 · I3 · I8 | Perfil de la muestra · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 | Validez backend 4 sorteos · τ por facultad en dimensionamiento | ☐ tras Tanda I |
