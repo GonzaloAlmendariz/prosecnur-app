@@ -137,9 +137,35 @@
 # —se construye en tiempo de ejecucion, no esta escrita como constante—. Que un
 # `grep` no la encuentre no significaba que no existiera.
 #
-# QUEDA: encontrar quien arma `colores_grupos` para esos 15 renders y por que lo
-# invierte. Ahi si hay que reparar, con test que exija que el color siga a la
-# ETIQUETA y cinco colores distintos.
+# ACOTADO UN PASO MAS. `colores_grupos` se asigna en `reporte_plan_ppt.R` desde
+# tres sitios —4428/4954/5133 con `.paleta_auto()`, y 4451/5006/5169 con
+# `.reporte_plan_palette_for_levels()`—, y ninguno la INVENTA:
+#
+# - `.reporte_plan_palette_for_levels()` (`reporte_plan_opciones.R:317`) mapea
+#   por NOMBRE contra un `palette` recibido, con respaldo POSICIONAL para los
+#   que no casan. No puede producir `BFBFBF` dos veces salvo que el `palette`
+#   que recibe ya lo traiga repetido.
+# - `.reporte_plan_pulso_palette_for_levels()` (misma, 388) usa OTROS hexes
+#   —`CA5651`, `E4A34C`, `85BB85`, `4F8A3E`—, que no son los del mazo.
+# - `.paleta_auto()` (`reporte_plan_ppt.R:3384`) **no construye**: busca un
+#   objeto llamado `paleta_<list_name>` en `env_diapos` y exige que venga CON
+#   NOMBRES (`if (is.null(names(pal))) return(NULL)`).
+#
+# Y LA PALETA ROTA NO ESTA GUARDADA EN EL `.pulso`: recorrido entero
+# `graficos_config`, el UNICO vector hex que existe es
+# `F4B183 FFD965 ADD493 70AD47` en `plan$slides$5$payload$estilo$
+# first_col_fill_by_row`, sin nombres y en orden CANONICO. (El buscador se
+# verifico aflojando el filtro: encuentra ese y sólo ese, asi que el cero no es
+# del filtro.)
+#
+# CONCLUSION: la paleta rota es un objeto `paleta_<algo>` **nombrado**, vivo en
+# el entorno de generacion del mazo. Si sus nombres estan emparejados con los
+# colores equivocados, el mapeo por etiqueta la propaga tal cual y nadie miente:
+# cada pieza hace su trabajo sobre una entrada ya mal formada.
+#
+# SIGUIENTE Y ULTIMO PASO: trazar el retorno de `.paleta_auto()` —una sola
+# funcion, `reporte_plan_ppt.R:3384`— con su `list_name`, para ver QUE objeto
+# encuentra y con que pares nombre→color. Ahi esta el origen.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
