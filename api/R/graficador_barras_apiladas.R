@@ -1756,6 +1756,14 @@ graficar_barras_apiladas <- function(
     dplyr::ungroup() |>
     dplyr::select(-.sum1, -.delta, -.sum2)
 
+  # P53. El cierre de arriba devuelve el residuo (1,11e-16) al ultimo nivel del
+  # stack, y cuando ese nivel es uno de los que se aplanaron por rotularse 0 %
+  # lo resucita: cruza la guarda `.valor_plot > 0` de las etiquetas y sale un
+  # «0%» dibujado sobre un segmento de ancho 0 EMU. Se reafirma la invariante
+  # aqui, que es donde se rompia. Medido: 22 renders y 24 etiquetas de 232.
+  df_long$.valor_plot <- .barras_reaplanar_cifras_cero(
+    df_long$.valor_plot, df_long$.pct_units, mostrar_categorias_en_cero)
+
   # ---------------------------------------------------------------------------
   # 1.1) ORDEN MASTER de categorías (FIJO)
   # ---------------------------------------------------------------------------
