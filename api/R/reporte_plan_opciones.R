@@ -352,6 +352,21 @@
   pal <- pal[nzchar(names(pal))]
   pal <- pal[!duplicated(names(pal))]
 
+  # P51. El emparejado de abajo era LITERAL, y una paleta guardada con otra
+  # capitalizacion no casaba: en el mazo de Contabilidad `lst_p14` guarda
+  # «De Acuerdo» y los datos dicen «De acuerdo». Los cuatro niveles de escala
+  # caian entonces al respaldo POSICIONAL, que reparte los colores en el orden
+  # en que la paleta esta GUARDADA —y esa esta al reves, con «SIN INF» primero—,
+  # asi que el gris encabezaba la rampa, el naranja quedaba quinto y no se
+  # dibujaba nunca, y «Totalmente en desacuerdo» acababa compartiendo gris con
+  # «SIN INF»: dos categorias indistinguibles en la lamina. Medido en `p52.pptx`:
+  # 15 de 232 renders recibian `BFBFBF 70AD47 ADD493 FFD965 BFBFBF`.
+  # `.reporte_plan_ascii_lower()` ya vivia en este archivo sin usarse aqui.
+  pal_norm <- pal
+  names(pal_norm) <- .reporte_plan_ascii_lower(names(pal))
+  pal_norm <- pal_norm[nzchar(names(pal_norm))]
+  pal_norm <- pal_norm[!duplicated(names(pal_norm))]
+
   choices_levels <- .reporte_plan_choice_levels_for_list(list_name, choices_use)
   out <- rep(NA_character_, length(levels))
   names(out) <- levels
@@ -368,6 +383,10 @@
     candidates <- candidates[nzchar(candidates)]
     hit <- pal[candidates]
     hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
+    if (!length(hit) && length(pal_norm)) {
+      hit <- pal_norm[.reporte_plan_ascii_lower(candidates)]
+      hit <- hit[!is.na(hit) & nzchar(trimws(hit))]
+    }
     if (length(hit)) out[level] <- unname(hit[1])
   }
 
