@@ -2397,15 +2397,35 @@
  * la izquierda: se lee al pasar y no compite con la tarjeta que introduce.
  */
 .cmv2-chfp-llegan {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+  display: grid;
+  gap: 3px;
   margin: 10px 0 2px;
   padding-left: 10px;
   border-left: 2px solid var(--cmv2-accent-border);
   font-size: 11.5px;
   line-height: 1.4;
   color: var(--pulso-text-muted);
+}
+.cmv2-chfp-llegan-texto {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+/* I8 · La pista proporcional: el embudo se VE angostarse entre criterio y
+   criterio, en vez de leerse solo como un porcentaje suelto a la derecha. */
+.cmv2-chfp-llegan-track {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+  overflow: hidden;
+}
+.cmv2-chfp-llegan-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--cmv2-accent-fg);
 }
 .cmv2-chfp-llegan strong {
   font-size: 13px;

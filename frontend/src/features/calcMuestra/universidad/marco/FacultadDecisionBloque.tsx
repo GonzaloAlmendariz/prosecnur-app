@@ -253,8 +253,16 @@ function LleganAlCriterio({ llegan, universo }: { llegan: number | null; univers
   const pct = Math.round((llegan / universo) * 100);
   return (
     <p className="cmv2-chfp-llegan" role="note">
-      <strong>{fmtInt(llegan)}</strong> de {fmtInt(universo)} cursos-horario llegan a este criterio
-      <span className="cmv2-chfp-llegan-pct">{pct}%</span>
+      <span className="cmv2-chfp-llegan-texto">
+        <strong>{fmtInt(llegan)}</strong> de {fmtInt(universo)} cursos-horario llegan a este criterio
+        <span className="cmv2-chfp-llegan-pct">{pct}%</span>
+      </span>
+      {/* I8 · Gonzalo: «que el embudo de criterios se vea mejor». El texto solo
+          no deja VER el embudo angostarse: la pista proporcional sí, y hace
+          comparables los saltos entre criterios de un vistazo. */}
+      <span className="cmv2-chfp-llegan-track" aria-hidden="true">
+        <span style={{ width: `${Math.max(0, Math.min(100, (llegan / universo) * 100))}%` }} />
+      </span>
     </p>
   );
 }
