@@ -231,6 +231,42 @@ export function classroomComparisonMatchesConfig(
     JSON.stringify(stableComparisonValue(classroomComparisonSelectorSnapshot(config)));
 }
 
+/**
+ * Los campos en los que la corrida guardada difiere de la firma vigente, con
+ * ambos valores. El match booleano decide; esto EXPLICA. La quinta mordida de
+ * la familia de copias (workspace n_aulas 202 / MC 500 contra la corrida
+ * 203 / 0) fue indiagnosticable desde la UI porque el aviso decía «vuelve a
+ * comparar» sin decir qué campo — y re-comparar no reparaba el workspace.
+ */
+export function classroomComparisonConfigDiff(
+  comparison: CalcMuestraAulasMethodComparison | null | undefined,
+  config: CalcMuestraWorkspaceAulasConfig,
+): string[] {
+  const selector = comparison?.selector;
+  if (!selector) return [];
+  if (selector.schema !== CLASSROOM_COMPARISON_SELECTOR_SCHEMA) {
+    return [`schema (corrida ${String(selector.schema ?? "—")} · vigente ${CLASSROOM_COMPARISON_SELECTOR_SCHEMA})`];
+  }
+  const esperado = classroomComparisonSelectorSnapshot(config);
+  const corrida = selector as unknown as Record<string, unknown>;
+  const compacto = (value: unknown): string => {
+    const stable = stableComparisonValue(value);
+    if (stable === undefined || stable === null || stable === "") return "—";
+    const texto = typeof stable === "object" ? JSON.stringify(stable) : String(stable);
+    return texto.length > 48 ? `${texto.slice(0, 45)}…` : texto;
+  };
+  const claves = [...new Set([...Object.keys(esperado), ...Object.keys(corrida)])].sort();
+  const diferencias: string[] = [];
+  for (const clave of claves) {
+    const enCorrida = JSON.stringify(stableComparisonValue(corrida[clave]));
+    const vigente = JSON.stringify(stableComparisonValue(esperado[clave]));
+    if (enCorrida !== vigente) {
+      diferencias.push(`${clave} (corrida ${compacto(corrida[clave])} · vigente ${compacto(esperado[clave])})`);
+    }
+  }
+  return diferencias;
+}
+
 export function resolveClassroomHandoff({
   workspaceConfig,
   runConfig,
@@ -316,6 +352,12 @@ export function resolveClassroomArtifactStatus({
     marcoDesactualizado: artifactMarcoDesactualizado,
     ...handoff,
     comparisonReady,
+    // Vacío cuando la comparación acredita (o no existe): con contenido, el
+    // aviso de la superficie puede decir QUÉ campo difiere en vez de mandar
+    // a re-comparar a ciegas.
+    comparisonConfigDiff: comparisonReady
+      ? []
+      : classroomComparisonConfigDiff(comparison, handoff.config),
     selectionReady,
     replacementReady,
   };

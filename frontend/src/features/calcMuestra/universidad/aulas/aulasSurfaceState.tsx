@@ -125,7 +125,14 @@ export function resolveAulasStageNotice(
       detail: partialSimulation
         ? "La estabilidad de pesos o las probabilidades Monte Carlo sí están acreditadas y se muestran abajo. Compara métodos para completar el resumen sin ocultar esa evidencia."
         : stored
-        ? "Existe una corrida previa, pero su comparación no coincide con el objetivo o la firma vigente. Vuelve a comparar sin publicar esa evidencia como actual."
+        /* El aviso dice la causa, no solo el hecho: la mordida del workspace
+           (n_aulas 202/MC 500 contra la corrida 203/0) fue indiagnosticable
+           porque este texto mandaba a re-comparar sin decir qué campo — y
+           re-comparar no reparaba el workspace. Sin diff (difiere el marco o
+           el objetivo, no la config), el texto genérico sigue siendo veraz. */
+        ? (model.comparisonConfigDiff?.length
+          ? `Existe una corrida previa, pero difiere de la firma vigente en: ${model.comparisonConfigDiff.join("; ")}. Vuelve a comparar sin publicar esa evidencia como actual.`
+          : "Existe una corrida previa, pero su comparación no coincide con el objetivo o la firma vigente. Vuelve a comparar sin publicar esa evidencia como actual.")
         : "Compara representatividad, balance, cobertura, repetidos y riesgos sobre el marco y el objetivo vigentes.",
       actionLabel: stage === "metodo" || stage === "laboratorio"
         ? "Comparar métodos"
