@@ -3224,3 +3224,22 @@ a `sel_aulas_20260818150453`.
 | D5 extracción del congelado (+59 sobre base) | ☐ SIGUIENTE |
 | Menores: test REST 400 · aviso-con-causa relato · scroll-jail otras pestañas | ☐ |
 | Candidato ADR: resello entero del workspace (5 mordidas de copias) | ☐ |
+
+### Menores cerrados y el ADR del resello, redactado
+
+**Menor 1 ☑** (`76faddb8`): 400 de motor por el wire. **Menor 2 ☑**
+(`8961ede3`): el aviso de comparación no vigente nombra el campo con
+corrida·vigente. **Menor 3 ☑** (`2eb04a98`): barrido No Scroll Jail —
+tres bloques de página encadenan, cuatro superficies conservan contain
+con el porqué anotado.
+
+**ADR 0079 redactado — ⛔ BLOQUEADO esperando decisión de Gonzalo**: «el
+workspace se resella entero, no campo a campo». Propone que aceptar una
+corrida reselle `workspace.aulas_config` completo desde el snapshot (las
+5 mordidas de la familia de copias como evidencia), con el resello como
+evento registrado. No se implementa nada hasta su visto bueno.
+
+| # | Cola | Estado |
+|---|---|---|
+| Tandas I/J/K · D1–D5 · menores 1–3 | ☑ |
+| ADR 0079 resello entero del workspace | ⛔ BLOQUEADO — decisión de Gonzalo |
