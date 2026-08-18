@@ -2084,3 +2084,39 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # participa. Dos ticks apuntaron a ramas distintas de `.lookup_variable_label()`
 # —el `df` y luego `orders_list`— cuando la medicion que faltaba era la mas
 # simple: **¿esta variable pasa por aqui alguna vez?** La respuesta era no.
+
+
+# P49 — LOCALIZADO EL SITIO DEL WORD: `entry$title` LLEGA YA COCINADO.
+#
+# El rotulo «Grafico Nº 46. <SECCION> — <enunciado>» lo compone
+# **`.make_title_txt(entry$title, g_i)`** en `reporte_plan_word.R:460`; el
+# prefijo sale de `presets_word$figure_numbering` («Grafico», «Nº », «. ») y
+# **el enunciado viene entero en `entry$title`**, o sea que el Word NO resuelve
+# nada: recibe el texto ya hecho.
+#
+# Y `entry$title` se cocina en `reporte_plan_ppt.R` con un patron que se repite
+# —`:2753` y `:2908`—:
+#
+#     title <- merged_args$titulo %||% el$title_slide %||% NULL
+#     if (is.null(title) || !nzchar(trimws(title))) {
+#       title <- .word_clean_inferred_title(.title_of_var(var, source = ctx$source))
+#     }
+#     title <- title %||% ctx$var_requested
+#
+# **El override manda y `.title_of_var()` es sólo el respaldo.** Eso encaja con
+# la traza: `.lookup_variable_label()` recibe 58 llamadas y ninguna es `p13_3`,
+# porque para esa premisa el titulo **ya venia dado** y el respaldo no se pisa.
+#
+# LO QUE FALTA, y es UNA medicion: **de donde sale ese `title` para la premisa
+# `administrativos$p13_3`**. Los candidatos son `merged_args$titulo`,
+# `el$title_slide` y —en multi-lista— `titulos_grupo`, que el motor calcula
+# aguas arriba. Trazar `entry$title` justo antes del `list(...)` de `:2761` y
+# `:2913` —emitiendo `var`, de que campo salio y sus bytes— lo resuelve en una
+# corrida. **Si sale de `titulos_grupo`, ahi esta el punto donde preferir la
+# etiqueta del instrumento; si sale de `merged_args$titulo`, el texto lo puso
+# el analista y P49 se cierra como «el titulo es del plan, no del motor».**
+#
+# LECCION: cuando un texto sale mal, hay dos preguntas y en este orden —¿quien
+# lo ESCRIBE? y ¿quien lo RESUELVE?—. Aqui el que escribe (`.make_title_txt`)
+# no resuelve nada, y el que resuelve (`.title_of_var`) no se llama. El defecto
+# vive en el hueco entre los dos: en quien rellena `entry$title` antes.
