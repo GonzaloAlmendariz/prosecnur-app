@@ -353,6 +353,13 @@ function renderAulasView(
   /** Corte elegido en el resumen de cuotas; vive en la URL, no en un estado suelto. */
   foco: FocoDeCuota,
   onFoco: (foco: FocoDeCuota) => void,
+  /**
+   * Cuánto trajo la plataforma: `n_rows` y `variables` del ESTADO, no del
+   * tablero. Se pasan porque esta función no ve el estado —recibe sólo el
+   * dashboard—, y sin ellos la tarjeta de la fuente describía igual una base de
+   * 3 700 filas y 43 columnas que una de 3 700 y dos.
+   */
+  volumen: { filas?: number; columnas?: number } = {},
 ) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -383,6 +390,8 @@ function renderAulasView(
             fuentes={fuentes}
             anonimas={Boolean(dashboard?.anonymous_responses)}
             libro={(dashboard?.libro ?? null) as ReciboDelLibro | null}
+            filas={volumen.filas}
+            columnas={volumen.columnas}
           />
         </section>
       </div>
@@ -1159,6 +1168,10 @@ export default function AulasMonitoreoPage() {
               pestanaActiva,
               foco,
               cambiarFoco,
+              {
+                filas: Number(state?.n_rows ?? 0) || undefined,
+                columnas: (state?.variables ?? []).length || undefined,
+              },
             )}
           </div>
       </MonitoreoWorkbenchChrome>

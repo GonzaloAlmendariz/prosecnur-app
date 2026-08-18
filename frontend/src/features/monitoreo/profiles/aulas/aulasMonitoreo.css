@@ -2026,3 +2026,30 @@
   font-size: inherit;
   line-height: inherit;
 }
+
+/* Cuánto trajo cada fuente. Sin esto, una base de 3 700 filas y 43 columnas y
+   otra de 3 700 y 2 se describían con las mismas dos líneas. */
+.mon-profile-page.is-aulas-flow .aulas-fuente-volumen {
+  display: block;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Qué trajo el libro, hoja a hoja. `resumen` llegaba en el recibo desde el
+   primer día y no lo consumía nadie: la tarjeta decía «3 de 3 hojas» y ahí se
+   quedaba. */
+.mon-profile-page.is-aulas-flow .aulas-libro-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-libro-cifras strong {
+  color: var(--pulso-text);
+  font-weight: 700;
+}
