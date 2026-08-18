@@ -111,11 +111,35 @@
 # (`FFD966`/`B7D7A8`). O sea que **los colores del mazo NO coinciden con ninguna
 # constante declarada del motor**: algo los transforma antes de escribirlos.
 #
-# CONSECUENCIA PARA EL METODO: perseguir la paleta por `grep` de hex es un
-# callejon, y comparar un hex del XML contra una constante del fuente da falsos
-# negativos. El siguiente paso es TRAZAR —loguear `levels_cat` y los colores
-# resueltos por lamina en el sitio donde se construye la escala de relleno— y
-# leer cuales salen con el gris duplicado. No hay atajo por lectura de codigo.
+# TRAZADO, Y EL GRAFICADOR ES INOCENTE. Instrumentado `colores_efectivos` en
+# `graficador_barras_apiladas.R` para volcar por render `niveles_leyenda`, el
+# `colores_grupos` de ENTRADA y el vector resuelto. Sobre los **232 renders**
+# del mazo:
+#
+#   entrada == salida en los 232        `.graficos_mk_palette()` es paso directo
+#   150 renders  #F4B183 #FFD965 #ADD493 #70AD47 #BFBFBF   (la correcta)
+#    15 renders  #BFBFBF #70AD47 #ADD493 #FFD965 #BFBFBF   (la rota)
+#    54 renders  #081F5C #9DC3E6                            (dicotomicas)
+#
+# En los 15 rotos `niveles_leyenda` llega en orden CANONICO —«Totalmente en
+# desacuerdo | En desacuerdo | De acuerdo | Totalmente de acuerdo | SIN INF»— y
+# aun asi el color sale mal, porque **`colores_grupos` YA LLEGA ROTO**: la
+# entrada es identica a la salida. El defecto esta AGUAS ARRIBA de
+# `graficar_barras_apiladas()`, en quien construye ese vector.
+#
+# La rota es la canonica con **los cuatro de escala INVERTIDOS y el gris
+# anadido al final**: `rev(F4B183, FFD965, ADD493, 70AD47)` + `BFBFBF`. Por eso
+# el naranja se cae —queda fuera de los cuatro primeros— y el gris entra al
+# frente. 15 renders = las 2 laminas PPT mas sus gemelas de Word.
+#
+# Y OJO CON EL CALLEJON DE ANTES: la paleta correcta `#F4B183 #FFD965 #ADD493
+# #70AD47 #BFBFBF` coincide EXACTAMENTE con los hexes del XML, asi que si existe
+# —se construye en tiempo de ejecucion, no esta escrita como constante—. Que un
+# `grep` no la encuentre no significaba que no existiera.
+#
+# QUEDA: encontrar quien arma `colores_grupos` para esos 15 renders y por que lo
+# invierte. Ahi si hay que reparar, con test que exija que el color siga a la
+# ETIQUETA y cinco colores distintos.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
