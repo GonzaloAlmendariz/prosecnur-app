@@ -190,14 +190,33 @@ if (ESCALA_2025) {
                                  est = "en_reserva"))
   )
   aplicadas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
+  # Cuanta gente hubo de verdad en cada aula. Vive AQUI porque el parte de campo
+  # es quien la cuenta —el aplicador, en el momento— y la Base de control la
+  # copia despues. Sembrarla dos veces con formulas distintas dejaba las dos
+  # hojas contando la misma aula y discrepando en las 114 comparables.
+  .asistentes <- function(i, u) {
+    asistencia <- if (i %% 11 == 0) 1.2 else c(0.55, 0.7, 0.85, 0.95)[[1 + (i %% 4)]]
+    max(1, round(as.numeric(u$eligible_n) * asistencia))
+  }
   partes <- lapply(seq_along(aplicadas), function(i) {
-    u <- aplicadas[[i]]; asist <- as.numeric(u$eligible_n); rech <- i %% 3; dup <- i %% 4
+    u <- aplicadas[[i]]; asist <- .asistentes(i, u); rech <- i %% 3; dup <- i %% 4
     efec <- asist - rech - dup
     if (i %in% c(7L, 88L)) efec <- efec - 1
     list(operational_code = as.character(u$operational_code), intento = 1L,
          observed_students = asist, refusals = rech, duplicates = dup,
-         effective_surveys = efec, applied_by = sprintf("Equipo %d", 1 + (i %% 6)))
+         effective_surveys = efec, applied_by = sprintf("Equipo %d", 1 + (i %% 6)),
+         # El porcentaje que el equipo escribe a mano en la hoja, sobre el total
+         # de matriculados. En dos aulas se siembra INCOHERENTE con los
+         # asistentes que la misma fila declara: es el caso que un cuadre entre
+         # las dos hojas tiene que encontrar, y sin el, cero discrepancias
+         # significaria «coinciden» y no «no se comprobo».
+         attendance_pct = round(asist / (as.numeric(u$eligible_n) + 10), 3) *
+           (if (i %in% c(12L, 140L)) 0.5 else 1))
   })
+  asistentes_del_parte <- stats::setNames(
+    lapply(partes, function(p) p$observed_students),
+    vapply(partes, function(p) as.character(p$operational_code), character(1))
+  )
   # 3700 respuestas, que es a lo que llega el estudio real desde Kobo, con el
   # ancho de una base de verdad: 43 columnas, no dos.
   set.seed(1)
@@ -281,8 +300,10 @@ control <- lapply(seq_along(aplicadas), function(i) {
   # que asisten pero no estan en el padron—: es el unico modo de que la rama
   # contraria tambien exista, y ocurre en campo.
   matriculados <- as.numeric(u$eligible_n)
-  asistencia <- if (i %% 11 == 0) 1.2 else c(0.55, 0.7, 0.85, 0.95)[[1 + (i %% 4)]]
-  asistentes <- max(1, round(matriculados * asistencia))
+  # Los asistentes NO se recalculan: los conto el aplicador en el parte de
+  # campo y esta hoja los copia. Dos formulas para la misma aula dejaban las
+  # dos hojas discrepando en las 114 comparables, que es ruido y no senal.
+  asistentes <- as.numeric(asistentes_del_parte[[as.character(u$operational_code)]] %||% matriculados)
   enviadas <- if (i %% 7 == 1) round(matriculados * 0.4)
               else max(1, round(asistentes * c(0.75, 0.9, 0.65)[[1 + (i %% 3)]]))
   mujeres <- floor(enviadas * 0.6)
