@@ -1409,6 +1409,7 @@ sospecha.
 | L92 | `9c9e56ed` | Cada burbuja de eslabón medía según su texto —129, 166, 222 px—, así que el tercer eslabón de una cadena caía donde el segundo de otra y comparar profundidades exigía contarlas una por una. |
 | L93 | `94dca941` | Cuatro barras de Plotly en 200 px con DOS en cero: media lámina en blanco, y lo que esas barras vacías decían —que ninguna cadena pasó del primer reemplazo— no se leía en ninguna parte. Franja repartida + los cuatro tramos con sus ceros; el bloque baja a 80 px. |
 | L94 | `6fa3a28e` | El plural iba fijo en once rótulos: «1 fuentes activas», y «1 pestañas» seguro —el rótulo usa `length \|\| 1`, así que una sección sin pestañas lo mostraba siempre—. Todos pasan ya por `contar()`, que existía. Tres de ellos los ven los cuatro perfiles. |
+| L95 | `f86ceb7a` | En la agenda por día, el total y los que no empezaron iban pegados en el texto: «19» y «3» daban «193 sin empezar». El `gap` del flex los separaba a la vista pero no en el texto, que es lo que lee un lector de pantalla. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
