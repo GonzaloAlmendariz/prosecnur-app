@@ -2543,3 +2543,46 @@ matriz con 18 filas, embudo 5.263→4.264→3.004→…→2.615 exacto.
 |---|---|---|---|
 | I13 | «propio» no comunica nada: la celda del Panorama debe decir LA REGLA («≥ 20», «niveles 0 y 2–10», «sólo TEORICO…») donde es propia, y la leyenda explicar el punto | `PanoramaCursosHorario.tsx` | ☐ SIGUIENTE |
 | I14 | Cifras recortadas por el scroll: «571 de 907» se lee «1 de 907» porque las celdas se deslizan BAJO la columna sticky opaca sin borde/sombra; y el thead de Facultad no es sticky-left («cultad») | `panoramaCursosHorario.css` | ☐ SIGUIENTE |
+
+## I15 · Ranking de desempeño de cursos-horario 2025 por facultad (Histórico de Datos) — ☐ en cola
+
+Textual de Gonzalo (2026-08-18): «en el histórico que está en Datos, quizás
+podríamos tener la relación de cuáles fueron los cursos-horario que tuvieron
+mejor desempeño el año pasado POR FACULTAD (…) lógicamente fueron los
+obligatorios, pero ¿de qué ciclo?, ¿cuántos alumnos tenían?, ¿cuánto fue su
+porcentaje de asistencia? (…) pero también importante si fueron en la primera
+semana, en la segunda semana, en la tercera semana — como tener claridad en
+eso también». Pedido explícito: entra al checklist SIN dañar el flujo — la
+cola vigente (I13+I14 → I9+I10) no se altera.
+
+**Dónde vive**: pestaña Histórico de Datos
+(`universidad/definicion/HistoricoEstudioPanel.tsx`, 1.663 líneas — el
+ranking va en COMPONENTE NUEVO en archivo propio, ese panel no crece). Los
+datos ya viajan en `referencia_asistencia`: cadenas por aula (facultad, tipo
+de curso, nivel/ciclo, matriculados, elegibles, efectivas → tasa por aula) y
+semanas de campo (`CalcMuestraReferenciaAsistenciaSemana[]`,
+`k_con_semana`). **Advertencia medida que la vista debe declarar**: no todas
+las aulas están fechadas («Aulas con fecha: k_con_semana de k» ya se muestra
+en VentanaCampo) — el corte por semana se etiqueta con su cobertura, no se
+presenta como censal.
+
+**Forma sugerida** (a validar con Gonzalo al construirla): tabla top-N por
+facultad — curso-horario · tipo · ciclo · alumnos · % asistencia · semana de
+campo — con orden por tasa y filtro de mínimo de elegibles para que un aula
+de 5 alumnos no «gane» por ruido. VARA 1 aplica: por facultad, nunca sólo el
+agregado.
+
+### Cola vigente de la Tanda I (dibujo entero)
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 · I12 | pregunta · embudo en Selección · referencia 8/8 · delta protagonista · elegibles 2025 · chip honesto | ☑ |
+| — | Radiografía del nivel INVALIDO (`433314ab`) · oráculo rebendecido (`7cd86828`) · bundle i18b revive (`206a7cc8`) | ☑ |
+| I13 | La celda «propio» del Panorama dice LA REGLA | ☐ SIGUIENTE |
+| I14 | Cifras recortadas bajo la columna sticky («1 de 907») | ☐ SIGUIENTE |
+| I9 | Fichas como tarjetas (dos por fila) | ☐ |
+| I10 | Reformular «sin criterios propios» | ☐ (mismo archivo que I9) |
+| I15 | Ranking de desempeño CH 2025 por facultad en Histórico | ☐ nuevo |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad en dimensionamiento · «190 vs 170» didáctico | ☐ tras Tanda I |
