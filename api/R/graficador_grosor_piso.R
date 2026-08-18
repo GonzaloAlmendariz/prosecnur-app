@@ -491,7 +491,7 @@
 # presentacion—. Queda fuera del alcance de P48.
 
 
-# P48/P37 — EL MOVIMIENTO SE HIZO Y SE REVIRTIO: NO CAMBIA NADA
+# P48/P37 — EL MOVIMIENTO SE HIZO Y SE REVIRTIO (LECTURA CORREGIDA ABAJO)
 #
 # Ejecutado el movimiento que el inventario de arriba autorizaba, contra el
 # estado `50d6790a`: `caption_text` (11 lineas) y la unidad de altura completa
@@ -530,3 +530,48 @@
 # Y si esa sospecha se confirma, el defecto de los 0.5500 contra 0.6510 NO esta
 # en el estirado: esta en que dos laminas reciben distinto `canvas_h_panel_in`
 # desde el plan, que es el mecanismo de B4 y no el de P48.
+
+
+# P48/P37 — CORRECCION: «no cambia nada» NO estaba probado
+#
+# La nota de arriba concluyo que adelantar la unidad de altura y anclar el
+# grosor era un NO-OP, y se apoyaba en que `p56.pptx` traia los mismos 944
+# rects con la misma distribucion de altos que `p55.pptx`. Comparados despues
+# los dos mazos entrada por entrada: **IDENTICOS BYTE A BYTE en las 249
+# entradas del zip**, laminas incluidas. Los 203 bytes de diferencia de tamano
+# eran metadatos de compresion, no contenido.
+#
+# Un artefacto identico al anterior no dice que el cambio no sirva: dice que el
+# cambio NO ESTA en ese artefacto. Y lo segundo esta medido: instrumentada la
+# fuente con `PULSO_TRAZA_GROSOR` sobre los 232 renders, volcando el alto de
+# fila NOMINAL (`alto_por_cat_grosor`) contra el REAL (`alto_por_cat_eff`) al
+# terminar los dos estirados:
+#
+#   panel_fijado_in      TRUE en 122 renders · FALSE en 110
+#   canvas_h_panel_in    declarado en 122 · NULO en 110
+#   nominal == real      140 renders
+#   nominal != real      **92 renders**, con razones nominal/real de hasta
+#                        **0.493**; las mas frecuentes x0.493 (22), x0.556 (16),
+#                        x0.924 (6), x0.703 (6)
+#   grosor_eff           0.78 en 168 renders y 0.95 en 64
+#
+# Con `.GROSOR_TOPE_FRACCION = 0.92`, el anclaje `min(tope, g * nom/real)`
+# habria bajado un `grosor_eff` de 0.78 a ~0.385 en los renders de razon 0.493.
+# O sea que el anclaje **no es estructuralmente un no-op**: tiene 92 renders
+# sobre los que actuar.
+#
+# Queda descartada tambien la sospecha que dejo la nota anterior: NO es que
+# `panel_fijado_in` apague los dos estirados y la razon sea 1. Lo es en 140
+# renders, pero en 92 no.
+#
+# LO QUE HAY QUE HACER en el proximo intento, y por que fallo la medicion: el
+# mazo se copia de `entregables_v5/mazo.pptx`, y ese archivo SOBREVIVE a una
+# corrida que no llegue a escribirlo. **Borrar el .pptx antes de lanzar** y
+# comprobar que reaparece, en vez de fiarse del timestamp; `generar_mazo.R`
+# carga con `pkgload::load_all` desde fuente, asi que el codigo editado SI se
+# usa —la traza lo demuestra: 232 lineas salidas de una edicion en la fuente—.
+#
+# LECCION: comparar dos artefactos y encontrarlos iguales tiene DOS lecturas —
+# «el cambio no hace nada» y «el cambio no esta aqui»— y la segunda se descarta
+# antes que la primera, porque es la barata: un `diff` de las entradas del zip
+# cuesta segundos y separa las dos.
