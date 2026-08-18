@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { piramideDeCuota, type LadoDeCuota } from "./piramideDeCuota";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * La cuota de sexo por facultad, enfrentada como una pirámide.
@@ -53,11 +54,28 @@ function Lado({ lado, tope, hacia }: {
   );
 }
 
-export function AulasPiramideCuota({ filas }: { filas: ReadonlyArray<MonitoreoRow> }) {
+export function AulasPiramideCuota({ filas, foco, onFoco }: {
+  filas: ReadonlyArray<MonitoreoRow>;
+  /** El corte enfocado; la fila enfocada se marca y filtra el detalle. */
+  foco: FocoDeCuota;
+  onFoco: (foco: FocoDeCuota) => void;
+}) {
   const { facultades, izquierda, derecha, otros, tope, sinMeta } = useMemo(
     () => piramideDeCuota(filas),
     [filas],
   );
+  // El marginal de cada sexo: lo que falta sumando todas las facultades de ese
+  // lado. Vivía en una lista de barras aparte —«Por sexo»— que repetía el mismo
+  // cruce en otro formato. Se lee donde el ojo ya busca de qué lado es cada
+  // columna: en el propio eje.
+  const faltanPorLado = useMemo(() => {
+    const suma = { izquierda: 0, derecha: 0 };
+    for (const fila of facultades) {
+      suma.izquierda += fila.izquierda?.faltan ?? 0;
+      suma.derecha += fila.derecha?.faltan ?? 0;
+    }
+    return suma;
+  }, [facultades]);
 
   if (!facultades.length || !izquierda) {
     return (
@@ -72,18 +90,37 @@ export function AulasPiramideCuota({ filas }: { filas: ReadonlyArray<MonitoreoRo
   return (
     <div className="aulas-piramide">
       <p className="aulas-piramide-ejes">
-        <span>{izquierda}</span>
-        <em>cada lado contra su propia meta</em>
-        <span>{derecha}</span>
+        <span>
+          {izquierda}
+          <em>{faltanPorLado.izquierda ? `${fmt(faltanPorLado.izquierda)} por recoger` : "cumplida"}</em>
+        </span>
+        <em className="aulas-piramide-regla">cada lado contra su propia meta</em>
+        <span>
+          {derecha}
+          <em>{faltanPorLado.derecha ? `${fmt(faltanPorLado.derecha)} por recoger` : "cumplida"}</em>
+        </span>
       </p>
       <ol className="aulas-piramide-lista">
-        {facultades.map((fila) => (
-          <li key={fila.facultad}>
-            <Lado lado={fila.izquierda} tope={tope} hacia="izquierda" />
-            <span className="aulas-piramide-facultad">{fila.facultad}</span>
-            <Lado lado={fila.derecha} tope={tope} hacia="derecha" />
-          </li>
-        ))}
+        {facultades.map((fila) => {
+          const activo = foco?.tipo === "facultad" && foco.valor === fila.facultad;
+          return (
+            // Botón de verdad —foco, teclado y `aria-pressed`—: el control por
+            // facultad vivía en la lista que se retiró, y una capacidad no se
+            // borra al reordenar la vista, se muda.
+            <li key={fila.facultad}>
+              <button
+                type="button"
+                className={`aulas-piramide-fila${activo ? " es-activa" : ""}`}
+                aria-pressed={activo}
+                onClick={() => onFoco(activo ? null : { tipo: "facultad", valor: fila.facultad })}
+              >
+                <Lado lado={fila.izquierda} tope={tope} hacia="izquierda" />
+                <span className="aulas-piramide-facultad">{fila.facultad}</span>
+                <Lado lado={fila.derecha} tope={tope} hacia="derecha" />
+              </button>
+            </li>
+          );
+        })}
       </ol>
       {otros.length ? (
         // Lista cerrada con salida declarada: una pirámide tiene dos lados y un

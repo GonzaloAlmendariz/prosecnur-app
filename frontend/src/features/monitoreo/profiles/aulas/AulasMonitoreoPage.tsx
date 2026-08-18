@@ -721,21 +721,38 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           <h3>Cuota sexo por facultad</h3>
-          <span>{fmt(quotaRows.length)} filas</span>
+          {/* En CELDAS, que es la unidad del cruce sexo × facultad y la que usa
+              la lectura de abajo («5 de 12 celdas cumplidas»). «Filas» nombraba
+              la tabla, que ahora puede ir filtrada. */}
+          <span>{fmt(quotaRows.length)} celdas</span>
         </div>
-        {/* Primero la cuota en PERSONAS —total, por facultad y por sexo—, que es
-            lo que se pregunta en campo: «2/12 celdas» no distingue faltar una
-            respuesta de faltar doscientas. Elegir un corte ENFOCA el detalle de
-            abajo, y el foco viaja en la URL (`?foco=facultad:Derecho`) para que
-            la vista siga siendo enlazable. */}
-        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} foco={foco} onFoco={onFoco} />
+        {/* La cuota del estudio en PERSONAS: «2/12 celdas» no distingue faltar
+            una respuesta de faltar doscientas. Sólo el total y su lectura — los
+            dos desagregados que había aquí decían lo mismo que la pirámide, y
+            dos gráficos del mismo cruce le quitaban protagonismo al que sí
+            contesta la pregunta. */}
+        <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
         {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
-            contra SU propia meta. La lista ordenada por cumplimiento contestaba
-            «qué celda se va a incumplir» y dejaba las dos celdas de una misma
-            facultad lejos una de otra; enfrentadas se ve de qué lado va corta
-            cada facultad, que es la pregunta con la que se sale a campo. */}
-        <AulasPiramideCuota filas={quotaEnFoco as MonitoreoRow[]} />
-        <DataTable rows={quotaRows} empty="El plan no declara composición por sexo para estos cursos-horario." />
+            contra SU propia meta. Se ve de qué lado va corta cada facultad, que
+            es la pregunta con la que se sale a campo, y es además quien lleva el
+            foco: elegir una facultad enfoca el detalle de abajo y el foco viaja
+            en la URL (`?foco=facultad:Derecho`) para que la vista siga siendo
+            enlazable.
+
+            Recibe TODAS las filas, no las enfocadas: es el control, y filtrada
+            se quedaría en una sola fila sin forma de elegir otra ni de soltar el
+            foco. Quien se filtra es la tabla, que es el detalle. */}
+        <AulasPiramideCuota filas={quotaRows as MonitoreoRow[]} foco={foco} onFoco={onFoco} />
+        {/* La tabla filtrada lo dice: la cabecera del panel cuenta las 12 celdas
+            del estudio y con un foco puesto abajo se ven dos. Un contador que no
+            cuadra con lo que hay debajo es lo que llevo el día arreglando. */}
+        {foco ? (
+          <p className="mon-profile-muted">
+            Detalle de <strong>{foco.valor}</strong> · {quotaEnFoco.length} de {quotaRows.length} celdas.
+            Vuelve a pulsar su fila en la pirámide para ver todas.
+          </p>
+        ) : null}
+        <DataTable rows={quotaEnFoco} empty="El plan no declara composición por sexo para estos cursos-horario." />
       </section>
       )}
     </div>
