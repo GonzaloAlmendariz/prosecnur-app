@@ -1695,6 +1695,64 @@ Nuestro rango es 2–10 y deja fuera el 0. Con la exención de EE.GG. da lo mism
 rango debería ser **0–10** para no perder los cursos sin ciclo. Es una línea de
 defensa barata.
 
+## R40 — el nivel del curso NO se está leyendo del curso. DEFECTO ABIERTO
+
+Gonzalo, textual: «no entiendo, ¿por qué una característica migra? Si EE.GG.
+Letras tenía ciclo 0 en la base debería quedarse como 0, ¿no? El criterio por
+facultad se mueve, no editamos la data real».
+
+Tenía razón y mi explicación anterior era falsa: **nada migra**. Fui al catálogo
+del propio proyecto —la hoja `CURSO Y HORARIO` que el `.pulso` guarda— y dice
+**0**.
+
+### La prueba, con un aula concreta
+
+| | |
+|---|---|
+| Aula | `PSI125-0201` — NEUROCIENCIAS, EE.GG. LETRAS |
+| «Nivel del curso» en el catálogo | **0** |
+| `course_level_num` en nuestro frame | **1** |
+| `level_reference` que publica el motor | **«curso»** |
+
+El motor afirma que ese nivel viene del curso, y no viene: el catálogo dice 0.
+
+### Y no es un caso suelto
+
+| | |
+|---|---|
+| Aulas donde `course_level_num` == `level` (el ciclo del ALUMNO) | **5.251 de 5.263** |
+| EE.GG. LETRAS en el catálogo, por nivel del curso | **473 en 0, 295 sin dato, ninguna en 1** |
+| EE.GG. LETRAS en nuestro frame | **450 en nivel 1**, 17 en 0 |
+| `level_reference` = «curso» | 5.167 aulas |
+
+Las dos columnas son el mismo dato en el 99,8 % de las aulas. **El criterio de
+nivel del curso está operando sobre el ciclo del ALUMNO** mientras declara que
+usa el del curso.
+
+### Por qué importa tanto
+
+Es el criterio que motivó la exención de los Estudios Generales. Si el nivel
+correcto de EE.GG. LETRAS es 0 —como dice el catálogo y como decía 2025—, esa
+facultad **nunca debió caer** por el criterio «fuera 1, 11 y 12», y la exención
+que le pusimos estaría tapando un defecto de lectura en vez de una diferencia de
+codificación. Lo que escribí en R39 —«la codificación cambió entre semestres»— es
+incorrecto: la codificación es la misma, la lectura no.
+
+También explica el nivel 0 «desaparecido»: no desapareció, se sobrescribió.
+
+### Lo que falta
+
+Encontrar dónde se pierde. Pistas: el catálogo trae la misma aula repetida con
+facultades distintas y con 0 y NA mezclados —`PSI125-0201` aparece bajo EE.GG.
+LETRAS, ARTES ESCÉNICAS y CONSORCIO—, así que la moda por clave
+(`.cm_catalogo_modal_by_key`) y el fallback de `pick_num` en
+`.cm_criterios_valores_aula` son los dos sitios donde mirar. `.cm_criterios_parse_nivel("0")`
+devuelve 0 correctamente, así que el parseo no es.
+
+**No se toca nada hasta encontrarlo**: cambiar el rango a 0–10 o quitar la
+exención sobre una lectura equivocada arreglaría el síntoma y escondería la
+causa.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
