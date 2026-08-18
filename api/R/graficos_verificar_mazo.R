@@ -1309,7 +1309,7 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 }
 
 
-# P16 — HAY UNA ESCALA DE COLOCACION ENTRE EL PLOT Y LA LAMINA
+# P16 — LA ESCALA DE COLOCACION: HIPOTESIS RETRACTADA MAS ABAJO
 #
 # Instrumentada la fuente con `PULSO_TRAZA_GROSOR` sobre los 232 renders,
 # volcando ademas el producto `grosor_eff * alto_por_cat_eff`, que es lo que el
@@ -1351,3 +1351,50 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #
 # LECCION: un correlador tambien es una hipotesis. «El grosor fisico identifica
 # el render» parecia no necesitar comprobacion y fallo en los 232.
+
+
+# P16 — LA ESCALA DE COLOCACION NO EXISTE. EL CULPABLE ES B46/G-21.
+#
+# Retractada la nota de arriba, y medida sobre las SIETE laminas de `rampa:4`
+# —no sobre una—: en `p55.pptx` cada una trae **un solo grupo con `chExt`**, y
+# en las siete `ext` es identico a `chExt`:
+#
+#   laminas 21, 23, 34, 40, 44, 60, 65   ->   12.5115 x 5.5118 in, escala
+#                                             1.00000 en ancho y en alto
+#
+# O sea que el canvas se coloca **1:1** y no hay ningun factor de colocacion. La
+# cuarta candidata cae con las otras tres.
+#
+# LO QUE SI EXPLICA EL DESFASE, y es de estructura, no de sospecha: **el punto
+# de traza esta en la linea 3014 de `graficador_barras_apiladas.R` y el bloque
+# **B46/G-21 empieza en la 3016**. B46 sube `h_panel_in` hasta un piso
+# (`panel_floor_in`) y NO toca `grosor_eff` —lo dice su propio comentario,
+# apoyado en el ADR 0065—. Como el grosor fisico es
+# `grosor_eff * h_panel_in / n_filas_virtuales`, subir el panel DESPUES de la
+# traza cambia la barra sin que la traza se entere. Por eso los valores salian
+# **cerca pero nunca iguales**: 0.8503 contra 0.8427/0.8696 · 0.7024 contra
+# 0.6987 · 0.5976 contra 0.5967 · 0.5201 contra 0.5225. Comprobado ademas que
+# `alto_por_cat_eff` YA ES `h_panel_in / n_filas_virtuales` en ese punto:
+# recalcular con el cociente da exactamente los mismos 232 valores.
+#
+# Y B46 **solo dispara con `n_categorias <= 2`**, que es justo donde vive el par
+# minimo: la 21, la 23 y la 44 traen OCHO segmentos al modo, o sea dos filas de
+# cuatro niveles. Las otras cuatro del grupo tienen 10-13 segmentos y no entran
+# en B46.
+#
+# ESA ES LA QUINTA CANDIDATA Y LA PRIMERA QUE SEPARA EL PAR: `panel_floor_in`
+# sale de `max(2.2 o 2.8, area_deseada + 2 * pad_est_in)`, y `pad_est_in` crece
+# con `max_lineas_eje_y_est * size_ejes` cuando `needs_tall_label_slot`. O sea
+# que el alto de la etiqueta SI entra —como decia la nota vieja— pero **por B46
+# y solo en laminas de una o dos filas**, no por los estirados ni en general.
+# Eso explica que no ordenara las siete: no aplica a cuatro de ellas.
+#
+# LO SIGUIENTE: mover el punto de traza DESPUES de B46 —tras la linea ~3054, ya
+# calculados `pad_flex_h` y el `h_panel_in` definitivo— y volcar ademas
+# `panel_floor_in`, `pad_est_in` y `needs_tall_label_slot`. Con eso el grosor
+# trazado deberia casar con el del XML, y ahi se ve si la 44 recibe otro piso
+# que la 21 y la 23.
+#
+# LECCION: cuando una medicion sale «cerca pero nunca igual», sospecha de un
+# paso que corre DESPUES de donde mides. No es ruido: es un tramo del calculo
+# que no estas viendo.
