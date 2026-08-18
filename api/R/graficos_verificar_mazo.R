@@ -1091,8 +1091,47 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # el ALTO DE LA ETIQUETA DE EJE y describe el grupo como «un grafico de cuatro
 # barras». La cuenta de segmentos de arriba no encaja con esa descripcion —8, 8,
 # 12, 13, 8, 10, 11—, asi que la explicacion NO esta comprobada sobre el par
-# minimo. Comprobarlo es el siguiente paso: medir las etiquetas de eje de 21, 23
-# y 44 y ver si el alto las separa.
+# minimo.
+#
+# MEDIDO: EL ALTO DE LA ETIQUETA NO EXPLICA EL PAR, NI EL GRUPO.
+#
+# Sacada la anatomia de las laminas de `rampa:4` en `p55.pptx` —banda de barras,
+# cajas de texto a la izquierda del arranque y sus lineas—:
+#
+#   lamina   cajas de eje   max lineas por etiqueta   grosor
+#      23          7                  1               0.8503
+#      21         11                  1               0.8503
+#      40         11                  1               0.7024
+#      44         17                  2               0.7024
+#      65         17                  1               0.5976
+#      60         19                  2               0.5201
+#
+# Las tres candidatas caen:
+#   - MAX LINEAS POR ETIQUETA no ordena: la 40 y la 65 tienen TODAS sus
+#     etiquetas a UNA linea y salen finas; la 44 tiene una de dos y sale igual
+#     que la 40.
+#   - NUMERO DE CAJAS tampoco: la 21 y la 40 tienen las mismas ONCE y difieren
+#     en 0.1479 in; la 44 y la 65 tienen las mismas DIECISIETE y difieren en
+#     0.1048.
+#   - NUMERO DE FILAS ya estaba descartado mas arriba.
+#
+# Y las tres del par minimo comparten banda: 1.600-7.370 in la 21 y la 23,
+# 1.578-7.370 la 44. Mismo hueco, mismos ocho segmentos, distinto grosor.
+#
+# O sea que la explicacion por «alto de la etiqueta de eje» de la nota de abajo
+# NO queda confirmada sobre el grupo. Tampoco refutada del todo —la 44 y la 60,
+# las dos con etiqueta de dos lineas, si son de las finas—, pero no basta para
+# ordenar siete laminas, y una explicacion que no ordena no es la causa.
+#
+# LO BARATO ESTA AGOTADO. Lo que queda es instrumentar: `PULSO_TRAZA_GROSOR` ya
+# vuelca `alto_por_cat_grosor`, `alto_por_cat_eff`, `panel_fijado_in`,
+# `canvas_h_panel_in` y `grosor_eff`; hay que anadirle el numero de lamina y
+# leer las siete.
+#
+# LIMITE DEL MEDIDOR, anotado para no confundirlo con un dato: en la lamina 34
+# no encuentra etiquetas de eje —su banda de barras arranca en x=3.959 y el
+# filtro «texto a la izquierda del arranque» se queda vacio—, asi que esa
+# lamina no entra en la tabla.
 #
 # LO QUE CUENTA B4 SON GRUPOS DE FIRMA, NO LAMINAS, y eso hace que dos mazos no
 # se puedan comparar por su numero de hallazgos. Medido sobre Conta:
