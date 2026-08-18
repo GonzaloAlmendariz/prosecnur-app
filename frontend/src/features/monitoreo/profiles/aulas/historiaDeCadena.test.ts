@@ -13,7 +13,7 @@ function titular(codigo: string, validas: number, meta: number, facultad = "Dere
 
 function reserva(codigo: string, de: string, orden: number, validas: number, meta: number): MonitoreoAulasPlanRow {
   return {
-    operational_code: codigo, sample_role: "chain_reserve", replacement_for: de,
+    operational_code: codigo, sample_role: "chain_reserve", replacement_for: de, titular_operational_code: de,
     replacement_order: orden, respuestas_validas: validas, expected_valid: meta,
     sample_status: "agendada",
   } as unknown as MonitoreoAulasPlanRow;
@@ -96,7 +96,7 @@ describe("las tres superficies de la cadena cuentan lo mismo", () => {
   const plan = [
     // Cadena con reserva: entra en `historias` y en el gráfico.
     { operational_code: "CH 1", sample_role: "titular", eligible_n: 30, expected_valid: 20, respuestas_validas: 0 },
-    { operational_code: "R 1.1", sample_role: "chain_reserve", replacement_for: "CH 1",
+    { operational_code: "R 1.1", sample_role: "chain_reserve", replacement_for: "CH 1", titular_operational_code: "CH 1",
       sample_status: "agendada", eligible_n: 28, expected_valid: 20, respuestas_validas: 20 },
     // Titulares SIN reserva: el conjunto que las dos frases leían al revés.
     { operational_code: "CH 2", sample_role: "titular", eligible_n: 30, expected_valid: 20, respuestas_validas: 0 },
@@ -129,9 +129,9 @@ test("la meta de una cadena es la del titular y no la suma de sus eslabones", ()
   const { historias } = historiaDeCadena([
     { operational_code: "CH 4", sample_role: "titular", faculty: "Letras",
       expected_valid: 15, respuestas_validas: 0, sample_status: "reemplazada" },
-    { operational_code: "R 4.1", sample_role: "chain_reserve", replacement_for: "CH 4",
+    { operational_code: "R 4.1", sample_role: "chain_reserve", replacement_for: "CH 4", titular_operational_code: "CH 4",
       replacement_order: 1, expected_valid: 12, respuestas_validas: 0, sample_status: "agendada" },
-    { operational_code: "R 4.2", sample_role: "chain_reserve", replacement_for: "CH 4",
+    { operational_code: "R 4.2", sample_role: "chain_reserve", replacement_for: "CH 4", titular_operational_code: "CH 4",
       replacement_order: 2, expected_valid: 13, respuestas_validas: 0, sample_status: "en_reserva" },
   ] as never);
 
@@ -146,7 +146,7 @@ test("los codigos se ordenan como numeros y no como texto", () => {
   const fila = (code: string) => ([
     { operational_code: code, sample_role: "titular", faculty: "Letras",
       expected_valid: 10, respuestas_validas: 0, sample_status: "reemplazada" },
-    { operational_code: `R ${code}`, sample_role: "chain_reserve", replacement_for: code,
+    { operational_code: `R ${code}`, sample_role: "chain_reserve", replacement_for: code, titular_operational_code: code,
       replacement_order: 1, expected_valid: 10, respuestas_validas: 0, sample_status: "agendada" },
   ]);
   const { historias } = historiaDeCadena(

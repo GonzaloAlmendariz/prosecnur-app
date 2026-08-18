@@ -38,9 +38,28 @@
 
 # Cuantos eslabones de cadena se escriben por fila. Sale del plan, no de una
 # constante: un estudio con cadenas de tres no debe llevar doce columnas vacias.
+# El titular de una fila, en el idioma del libro: codigos operativos.
+#
+# `replacement_for` NO sirve para esto y es el error que costo el mapeo entero:
+# tanto `calc_muestra_aulas.R` como `monitoreo_aulas_apply_replacement()` lo
+# escriben con el `classroom_id` del titular —`arc232_0905`—, que es su clave
+# interna y no un codigo operativo. Medido sobre HSVG2026 (2 615 filas): de los
+# 202 `replacement_for` distintos, CERO coincidian con un titular y ninguno
+# existia siquiera como fila, asi que la cadena se escribia en 202 grupos
+# huerfanos —sin su titular dentro— aparte de los 202 grupos de titulares: el
+# libro daba 1 043 filas cuando el estudio tiene 202 cadenas y 639 del banco.
+#
+# `titular_operational_code` si habla ese idioma: 1 774 de 1 774 reservas
+# encadenadas caen en su titular, y `monitoreo_aulas_normalize_plan()` ya lo
+# repara antes de entregarlo.
+.calg_titular <- function(u) {
+  toc <- .calg_txt(u$titular_operational_code)
+  if (nzchar(toc)) toc else .calg_txt(u$operational_code)
+}
+
 .calg_profundidad <- function(unidades) {
   if (!length(unidades)) return(1L)
-  por_titular <- table(vapply(unidades, function(u) .calg_txt(u$replacement_for, .calg_txt(u$operational_code)), character(1)))
+  por_titular <- table(vapply(unidades, .calg_titular, character(1)))
   max(1L, as.integer(max(por_titular)))
 }
 
@@ -52,11 +71,8 @@
 aulas_libro_hoja_agendadas <- function(unidades) {
   titulos_bloque <- .calg_titulos_agenda()
   # Agrupa por titular: cada fila del Excel es un titular con su cadena al lado.
-  clave <- function(u) {
-    rf <- .calg_txt(u$replacement_for)
-    if (nzchar(rf)) rf else .calg_txt(u$operational_code)
-  }
-  grupos <- split(unidades, vapply(unidades, clave, character(1)))
+  # Por `titular_operational_code` y no por `replacement_for` — ver `.calg_titular`.
+  grupos <- split(unidades, vapply(unidades, .calg_titular, character(1)))
   profundidad <- max(1L, max(vapply(grupos, length, integer(1)), 1L))
 
   cabecera <- c("ID MATCH", rep(titulos_bloque, profundidad))

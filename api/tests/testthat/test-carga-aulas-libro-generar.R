@@ -4,8 +4,16 @@
 # Sin ese round-trip el generador y los lectores derivan en silencio y el equipo
 # se entera cuando el libro de un estudio en curso deja de importar.
 
+# `titular_operational_code` acompaña SIEMPRE a `replacement_for`, porque asi
+# llega del normalizador: son dos campos con dos idiomas. `replacement_for`
+# lleva el `classroom_id` del titular —lo escriben asi `calc_muestra_aulas.R` y
+# `monitoreo_aulas_apply_replacement()`— y `titular_operational_code` el codigo
+# operativo. El fixture ponia solo el primero con un `CH n` dentro, y esa
+# mentira tapaba que agrupar la cadena por `replacement_for` no funciona: sobre
+# HSVG2026, 0 de 202 valores coincidian con un titular.
 .calg_unidad <- function(code, role = "titular", rf = "", orden = NULL) list(
   operational_code = code, sample_role = role, replacement_for = rf,
+  titular_operational_code = rf,
   replacement_order = orden, wave = "Muestra 01", teacher = "Docente Demo",
   teacher_phone = "999", teacher_email = "d@x.test", course_name = "Curso Demo",
   faculty = "SOCIALES", level = "3", label = "LUN A101", schedule = "LUN 08:00",
@@ -72,4 +80,34 @@ test_that("generar sin plan se rechaza con su codigo", {
   err <- tryCatch(aulas_libro_generar(list(), tempfile(fileext = ".xlsx")), error = function(e) e)
   expect_s3_class(err, "api_error")
   expect_identical(err$code, "E_AULAS_LIBRO_SIN_PLAN")
+})
+
+test_that("la cadena se agrupa aunque replacement_for traiga el classroom_id", {
+  # El fixture REALISTA, tomado de HSVG2026: `replacement_for` no lleva «CH 1»
+  # sino «arc232_0905», el `classroom_id` del titular. Es lo que escriben sus
+  # dos escritores y por tanto lo que llega de verdad.
+  #
+  # Con el generador agrupando por ese campo, el titular quedaba en un grupo y
+  # sus dos reservas en otro, bajo una clave que no existe como fila: tres
+  # filas de Excel para una sola cadena. Este aserto es el que lo caza — si se
+  # vuelve a agrupar por `replacement_for`, `nrow` sube de 2 a 3.
+  unidades <- list(
+    list(operational_code = "CH 1", sample_role = "titular",
+         titular_operational_code = "CH 1", replacement_for = ""),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve",
+         titular_operational_code = "CH 1", replacement_for = "arc232_0905",
+         replacement_order = 1),
+    list(operational_code = "R 1.2", sample_role = "chain_reserve",
+         titular_operational_code = "CH 1", replacement_for = "arc232_0905",
+         replacement_order = 2)
+  )
+  hoja <- aulas_libro_hoja_agendadas(unidades)
+
+  # Cabecera + UNA fila: la cadena entera vive en su titular.
+  expect_identical(nrow(hoja), 2L)
+  # Y los tres eslabones salen en orden dentro de esa fila.
+  fila <- as.character(hoja[2, ])
+  expect_true(all(c("CH 1", "R 1.1", "R 1.2") %in% fila))
+  expect_lt(which(fila == "R 1.1"), which(fila == "R 1.2"))
+  expect_lt(which(fila == "CH 1"), which(fila == "R 1.1"))
 })

@@ -24,7 +24,9 @@
        sample_status = "reemplazada", contact_attempts = 3),
   list(classroom_id = "A-06", operational_code = "R 4.1", label = "Aula 106",
        course_name = "Curso 6", teacher = "Docente 6", faculty = "Letras",
-       sample_role = "chain_reserve", replacement_for = "CH 4", wave = "M1",
+       sample_role = "chain_reserve", replacement_for = "CH 4",
+       # Ver `test-carga-aulas-libro-generar.R`: los dos campos viajan juntos.
+       titular_operational_code = "CH 4", wave = "M1",
        orden = 6, eligible_n = 22, enrolled_total = 24, expected_valid = 16,
        sample_status = "en_reserva", contact_attempts = 1,
        # El lector de «Aulas Agendadas» guarda la columna OBSERVACIONES aqui.

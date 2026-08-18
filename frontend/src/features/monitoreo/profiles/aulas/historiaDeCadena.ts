@@ -58,10 +58,20 @@ function numero(valor: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** El titular de una fila: su `replacement_for` si es reserva, si no su código. */
+/**
+ * El titular de una fila, en códigos operativos.
+ *
+ * Por `titular_operational_code` y NO por `replacement_for`, que es el error
+ * que rompía la cadena entera: ese campo lleva el `classroom_id` del titular
+ * —`arc232_0905`— porque así lo escriben sus dos escritores, `calc_muestra_aulas.R`
+ * y `monitoreo_aulas_apply_replacement()`; ahí es su clave interna, no un código
+ * operativo. Medido sobre HSVG2026 (2 615 filas): de los 202 `replacement_for`
+ * distintos, CERO coincidían con un titular y ninguno existía siquiera como
+ * fila, así que cada reserva formaba una cadena huérfana con un titular que no
+ * existe. `titular_operational_code` sí mapea: 1 774 de 1 774.
+ */
 function titularDe(fila: MonitoreoAulasPlanRow): string {
-  return texto(fila.replacement_for)
-    || texto(fila.titular_operational_code)
+  return texto(fila.titular_operational_code)
     || texto(fila.operational_code);
 }
 
