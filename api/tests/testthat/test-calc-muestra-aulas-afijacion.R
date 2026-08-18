@@ -125,3 +125,40 @@ test_that("un estrato que cruza facultades falla FUERTE, no aplica al azar", {
     "UNA facultad"
   )
 })
+
+test_that("el sello vale para los CUATRO métodos: todos respetan la afijación", {
+  # Gonzalo, textual: «todos los mecanismos que ofrecemos deben ofrecer el
+  # mismo sello de calidad». pool_controlado genera candidatos por el mismo
+  # camino que los demás; este test lo vuelve contrato para los cuatro.
+  alumnos <- function(fac, n_aulas, alumnos_por_aula, pref) {
+    do.call(rbind, lapply(seq_len(n_aulas), function(i) data.frame(
+      student_id = paste0(pref, i, "_", seq_len(alumnos_por_aula)),
+      aula_id = paste0(pref, i), curso_id = paste0("C", pref, i),
+      curso = paste("Curso", pref, i), horario = paste("L", i),
+      facultad = fac, programa = "P1",
+      sexo = rep(c("F", "M"), length.out = alumnos_por_aula),
+      edad = 20, condicion = "regular", nivel = "pregrado",
+      modalidad = "presencial", stringsAsFactors = FALSE
+    )))
+  }
+  base <- rbind(alumnos("FACULTAD GRANDE", 10, 12, "G"), alumnos("FACULTAD CHICA", 10, 3, "H"))
+  for (engine in c("cube_balanceado", "sistematico_pps", "estratificado_aleatorio", "pool_controlado")) {
+    cfg <- calc_muestra_aulas_normalize_config(list(
+      filters = list(min_eligible_per_class = 1L),
+      selector = list(
+        seed = 42L, n_aulas = 10L, replacement_waves = 0L,
+        selector_engine = engine,
+        simulation_runs = 0L, monte_carlo_n = 0L,
+        candidate_pool_size = 5L,
+        strata_cols = list("faculty"),
+        faculty_targets = list("FACULTAD GRANDE" = 3, "FACULTAD CHICA" = 7)
+      )
+    ))
+    frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+    selection <- calc_muestra_aulas_seleccionar(frame, cfg)
+    m1 <- selection$selection[selection$selection$wave == "M1", ]
+    conteo <- table(m1$faculty)
+    expect_identical(as.integer(conteo[["FACULTAD GRANDE"]]), 3L, label = paste(engine, "GRANDE"))
+    expect_identical(as.integer(conteo[["FACULTAD CHICA"]]), 7L, label = paste(engine, "CHICA"))
+  }
+})
