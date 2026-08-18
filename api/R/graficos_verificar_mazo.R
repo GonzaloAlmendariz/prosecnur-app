@@ -163,9 +163,40 @@
 # colores equivocados, el mapeo por etiqueta la propaga tal cual y nadie miente:
 # cada pieza hace su trabajo sobre una entrada ya mal formada.
 #
-# SIGUIENTE Y ULTIMO PASO: trazar el retorno de `.paleta_auto()` —una sola
-# funcion, `reporte_plan_ppt.R:3384`— con su `list_name`, para ver QUE objeto
-# encuentra y con que pares nombre→color. Ahi esta el origen.
+# ENCONTRADO, SIN TRAZAR. Las paletas SI estan en el `.pulso`: en
+# `graficos_config$paletas`, **34 paletas** nombradas `lst_pNN`, cada una una
+# LISTA de pares etiqueta→color. La busqueda anterior no las vio porque sólo
+# inspeccionaba vectores `character`, y son listas: **el «cero» de antes era del
+# filtro, otra vez** —y esta vez el aflojado del patron no bastó, porque lo que
+# fallaba era el TIPO, no el patron—.
+#
+# LA CULPABLE ES `lst_p14`, guardada AL REVES y con otra capitalizacion:
+#
+#   SIN INF                   #BFBFBF
+#   Totalmente de Acuerdo     #70AD47
+#   De Acuerdo                #ADD493
+#   En Desacuerdo             #FFD965
+#   Totalmente en Desacuerdo  #F4B183
+#
+# El mecanismo encaja exacto con lo medido. `.reporte_plan_palette_for_levels()`
+# casa primero por NOMBRE: «SIN INF» es identico y se lleva su `BFBFBF`. Los
+# otros cuatro NO casan —los datos dicen «De acuerdo» y la paleta «De Acuerdo»,
+# con A mayuscula— y caen al respaldo POSICIONAL, que toma los primeros de `pal`
+# **en su orden guardado**: `BFBFBF 70AD47 ADD493 FFD965`. El naranja queda
+# quinto y nunca se usa. Resultado `BFBFBF · 70AD47 · ADD493 · FFD965 · BFBFBF`,
+# que es exactamente el vector que la traza vio llegar a los 15 renders.
+#
+# NO ES LA UNICA GUARDADA RARA, y conviene mirarlas al reparar: `lst_p20` esta
+# tambien invertida (Muy satisfecho primero), `lst_p16` tiene «De acuerdo» y
+# «Totalmente de acuerdo» cambiados de sitio, y `lst_p10` pinta «Totalmente en
+# Desacuerdo» con `#9DC3E6`, el celeste de las dicotomias.
+#
+# LA REPARACION es en el motor, no en el dato: el emparejado por nombre debe ser
+# **insensible a mayusculas y acentos** —`.preset_acrd_clave()` ya lo hace en el
+# preset—. Asi una paleta guardada con otra capitalizacion casa por etiqueta y el
+# respaldo posicional deja de disparar. Test: `.reporte_plan_palette_for_levels()`
+# con la paleta nombrada «De Acuerdo» y el nivel «De acuerdo» tiene que devolver
+# el color de la paleta, no el posicional, y **rojear al revertir**.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
