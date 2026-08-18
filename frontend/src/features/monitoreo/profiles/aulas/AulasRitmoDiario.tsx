@@ -91,7 +91,14 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
       </ol>
       {falta > 0 ? (
         <p className="mon-profile-table-recorte">
-          Faltan <strong>{fmt(falta)}</strong> para la meta de {fmt(meta)}
+          {/* «para la meta TOTAL». Sin esa palabra, este pie dice «faltan 43» a
+              dos dedos de un panel que dice «3 743 faltan», y los dos hablan de
+              la meta de 3 743. Las dos son ciertas y de granos distintos: acá se
+              cuentan las respuestas del estudio entero, y allá sólo las que se
+              pueden colgar de un aula —que sobre este corte son cero, porque
+              llegan sin identificar su curso-horario—. Una de las dos tenía que
+              decir cuál es la suya. */}
+          Faltan <strong>{fmt(falta)}</strong> para la meta total de {fmt(meta)}
           {diasAlRitmo
             ? ` · ${diasAlRitmo} ${diasAlRitmo === 1 ? "día más" : "días más"} al ritmo de estos ${fmt(conCampo)}`
             : ""}
