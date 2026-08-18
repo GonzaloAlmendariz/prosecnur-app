@@ -21,7 +21,7 @@ Tres ideas sostienen todo el sistema:
 flowchart TB
   subgraph FUENTE["FUENTE CANÓNICA — se edita a mano"]
     I["AGENTS.md · CLAUDE.md<br/>docs/loops-reparacion.md"]
-    S[".claude/skills/*/SKILL.md<br/>16 skills"]
+    S[".claude/skills/*/SKILL.md<br/>18 skills"]
     A[".claude/agents/*.md<br/>13 agentes"]
     M["agentic/manifest.json<br/>rutas · perfiles · límites · política"]
   end
@@ -130,7 +130,7 @@ escribe cada salida mediante archivo temporal + rename atómico.
 El Agentic OS local no es reemplazado por el catálogo global definido en el
 [ADR 0039](adrs/0039-agentic-os-multirepo-provider-neutral.md). El núcleo
 provider-neutral vive en un checkout independiente y aporta disponibilidad.
-Las instrucciones y overlays de producto permanecen locales: 16 skills en
+Las instrucciones y overlays de producto permanecen locales: 18 skills en
 `.claude/skills/` y 13 agentes en `.claude/agents/`, materializados para Codex
 solo mediante adaptadores generados. Los únicos skills externos permitidos son
 `emil-design-eng` y `govern-visual-harmony`, métodos transversales de diseño;

@@ -65,10 +65,14 @@ test('genera adaptadores y el grafo agentic exacto; check es reproducible', () =
   const root = fixture()
   const write = run(root, '--write')
   assert.equal(write.status, 0, write.stderr)
-  assert.equal(generatedAgents(root).length, 13)
-  assert.equal(generatedAgenticDocs(root, 'skills').length, 16)
-  assert.equal(generatedAgenticDocs(root, 'agentes').length, 13)
-  assert.equal(generatedAgenticDocs(root, 'ramas').length, 8)
+  // Los conteos salen del manifiesto, no de un número escrito acá: la copia en
+  // prosa se quedó en 16 mientras el inventario ya iba por 17.
+  const inventario = readManifest(root)
+  assert.ok(inventario.skills.length > 0 && inventario.agents.length > 0)
+  assert.equal(generatedAgents(root).length, inventario.agents.length)
+  assert.equal(generatedAgenticDocs(root, 'skills').length, inventario.skills.length)
+  assert.equal(generatedAgenticDocs(root, 'agentes').length, inventario.agents.length)
+  assert.equal(generatedAgenticDocs(root, 'ramas').length, Object.keys(inventario.routes).length)
   assert.ok(fs.existsSync(path.join(root, 'docs/sistema/agentic/README.md')))
   assert.equal(run(root, '--check').status, 0)
 })
