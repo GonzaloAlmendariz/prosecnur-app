@@ -113,7 +113,12 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     label: "Cursos-horario",
     icono: CalendarRange,
     value: fmt(total),
-    pista: "titulares y reservas del plan",
+    // «reservas del plan» era ambiguo y producia dos cifras sin explicacion en la
+    // misma pantalla: este KPI dice 196 y la tarjeta del libro 236. La
+    // diferencia son las aulas EXTRA —las que no cuelgan de ningun titular—, que
+    // tambien son reservas pero no forman cadena y viven en su propia pestaña.
+    // El rotulo dice ahora cual de las dos cuenta.
+    pista: "titulares y sus reservas encadenadas",
     tone: total ? "neutral" : "warn",
   };
 }
