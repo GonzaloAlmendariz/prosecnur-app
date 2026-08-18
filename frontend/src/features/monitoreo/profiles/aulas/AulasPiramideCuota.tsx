@@ -19,9 +19,24 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
+/**
+ * El color dice el ESTADO de la celda, no lo lejos que está: eso ya lo dice el
+ * largo de la barra.
+ *
+ * Tenía un corte inventado en el 50 % que pintaba de gris todo lo que no
+ * llegara —y `pendiente` es, por definición de la paleta, «del universo,
+ * todavía sin trabajar»—. Así, Ciencias e Ingeniería F, con 191 de 421
+ * recogidas, salía del color que significa «nadie la ha tocado» y se leía como
+ * la MENOS urgente siendo la que va más atrás.
+ *
+ * Los tres estados son los que el motor ya decide en `.monitoreo_aulas_quota`:
+ * cumplida cuando llega, pendiente cuando no se ha recogido NADA, y en riesgo
+ * en medio. Aquí se reproduce esa misma regla —`observadas === 0`— en vez de
+ * inventar un umbral propio.
+ */
 function tono(lado: LadoDeCuota) {
   if (lado.cumple) return COLOR_RESULTADO.efectiva;
-  return lado.avance >= 50 ? COLOR_RESULTADO.parcial : COLOR_RESULTADO.pendiente;
+  return lado.observadas > 0 ? COLOR_RESULTADO.parcial : COLOR_RESULTADO.pendiente;
 }
 
 /** Un lado de la fila; `hacia` decide de qué borde crece la barra. */
