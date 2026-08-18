@@ -2106,14 +2106,21 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     error = function(e) NULL
   )
   if (!is.null(obj) && is.finite(obj$representativity_score)) {
-    return(obj$representativity_score - 2 * sum(df$duplicate_overlap, na.rm = TRUE))
+    return(structure(
+      obj$representativity_score - 2 * sum(df$duplicate_overlap, na.rm = TRUE),
+      score_fuente = "representatividad"
+    ))
   }
   duplicate_penalty <- .cm_aulas_num(selector$duplicate_penalty, 1.25)
   coverage_weight <- .cm_aulas_num(selector$coverage_weight, 1)
   pps_weight <- .cm_aulas_num(selector$pps_weight, 0.15)
-  coverage_weight * sum(df$unique_added, na.rm = TRUE) -
-    duplicate_penalty * sum(df$duplicate_overlap, na.rm = TRUE) +
-    pps_weight * sum(log1p(suppressWarnings(as.numeric(df$eligible_n))), na.rm = TRUE)
+  # J1: la degradacion al heuristico se ETIQUETA para que el pool la declare.
+  structure(
+    coverage_weight * sum(df$unique_added, na.rm = TRUE) -
+      duplicate_penalty * sum(df$duplicate_overlap, na.rm = TRUE) +
+      pps_weight * sum(log1p(suppressWarnings(as.numeric(df$eligible_n))), na.rm = TRUE),
+    score_fuente = "heuristico"
+  )
 }
 
 .cm_aulas_select_once_pool <- function(aula_frame, selector, seed = NULL, objective = NULL) {
@@ -2130,6 +2137,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   for (i in seq_len(pool)) {
     cand <- .cm_aulas_select_once_engine(aula_frame, selector, pool_engine, seed = if (is.null(seed)) NULL else seed + i)
     score <- .cm_aulas_candidate_score(cand, aula_frame, selector, objective)
+    if (identical(attr(score, "score_fuente", exact = TRUE), "heuristico")) {
+      warnings <- c(warnings, "El score de representatividad no se pudo evaluar para candidatos del pool; se optimizo con el heuristico de cobertura y duplicados.")
+    }
     warnings <- c(warnings, attr(cand, "warnings") %||% character(0))
     used <- c(used, attr(cand, "engine_used") %||% pool_engine)
     if (is.null(best) || score > best_score) {
