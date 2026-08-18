@@ -2438,3 +2438,21 @@ de criterios/orden/filtros da igualdad exacta); diagnosticar el comparador.
 | I12 | Chip «criterios cambiados» falso tras reconstruir | ☐ diagnosticar |
 | I9 | Fichas como TARJETAS (dos por fila), no acordeones | ☐ |
 | I10 | Reformular «sin criterios propios, usa los generales» (jerga confusa) | ☐ |
+
+### Tanda I — I11 cerrado (dibujo entero)
+
+**I11 ☑ (`d8b08b47`)**: el paso 3 compara contra el marco ELEGIBLE del
+estudio anterior. Los criterios 2025 viajan como DATOS en
+`config$referencia_marco` (registrados en el .pulso), el construir publica
+`universo_referencia` (2.931 exacto), la referencia sirve `aulas_universo`
+15/15 y la ficha de C&I dice «571 | 655 | −84». El embudo comparado paso 3
+hereda la cifra correcta automáticamente (misma fuente).
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 | pregunta · embudo en Selección · referencia 8/8 · delta protagonista · elegibles 2025 reales | ☑ |
+| I12 | Chip «criterios cambiados» falso tras reconstruir | ☐ SIGUIENTE |
+| I9 | Fichas como tarjetas (dos por fila) | ☐ |
+| I10 | Reformular «sin criterios propios» | ☐ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento · relato · embudo de criterios | ☐ |
