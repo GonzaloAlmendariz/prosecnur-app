@@ -219,6 +219,32 @@
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
 #
+# P52, DESCARTADO POR MEDICION. Se sospecho que los radares de las laminas 50 y
+# 51 dibujaban el poligono ENCOGIDO cerca del centro pese a que su tabla dice
+# 92-100 %. Medidos los radios de sus poligonos en el XML de `p54.pptx`,
+# normalizados contra el anillo mayor:
+#
+#   lamina 50   rejilla 1.000 · 0.800 · 0.600 · 0.400 · 0.200 · 0.000
+#               series  0.962 · 0.952 · 0.946
+#   lamina 51   rejilla 1.000 · 0.800 · 0.600 · 0.400 · 0.200 · 0.000
+#               series  0.975 · 0.962 · 0.955
+#
+# Las tres series estan CASI PEGADAS al anillo exterior, que es justo lo que
+# corresponde a un 92-100 % sobre un eje 0-100 con anillos cada 20. **El radar
+# esta bien.** Lo que se leyo como «un hexagono pequeno en el centro» era el
+# anillo INTERIOR de la rejilla (r/R 0.200) visto a 55 dpi, mientras las series
+# casi coinciden con el borde y se confunden con el.
+#
+# Queda anotado un detalle inofensivo: cada radar trae **un poligono
+# DEGENERADO** —todos sus puntos en (0,0) y `ext` 0x0—, que es el anillo de la
+# rejilla en el valor 0. No pinta nada y no es un defecto; sirve para no volver
+# a asustarse al verlo. Y el APROBADO no puede arbitrar esto: sus laminas de
+# radar no traen NINGUNA forma de >=4 puntos, o sea que dibuja sus radares de
+# otra manera.
+#
+# LECCION: una hoja de contacto a 55 dpi basta para SOSPECHAR, no para AFIRMAR.
+# Aqui la sospecha costo una medicion y salio falsa.
+#
 # Colores de la rampa de escala (dos paletas: la del entregable y la del motor).
 .VERIF_RAMPA <- c("F4B183", "FFD965", "FFD966", "ADD493", "B0D597",
                   "70AD47", "8FC36B", "CA5651")
