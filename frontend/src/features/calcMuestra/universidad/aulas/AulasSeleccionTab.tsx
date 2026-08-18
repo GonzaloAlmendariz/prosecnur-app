@@ -16,6 +16,7 @@ import type {
 } from "../../../../api/client";
 import { MargenPorFacultadCard } from "./MargenPorFacultadCard";
 import { CertificacionFacultadCard } from "./CertificacionFacultadCard";
+import { SustentoDimensionamientoCard } from "./SustentoDimensionamientoCard";
 import { SexoPorFacultadCard } from "./SexoPorFacultadCard";
 import { EmbudoComparadoFacultades } from "../salidas/EmbudoComparadoFacultades";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
@@ -139,6 +140,9 @@ export function AulasSeleccionTab({
           frente a las que necesita, y qué composición por sexo ofrecen. Van
           arriba porque condicionan cómo se lee la selección de abajo. */}
       <MargenPorFacultadCard filas={margenFilas} />
+      {/* I2+J3 · La cuenta abierta ANTES del sello: primero por qué se piden
+          estas aulas, después si la selección las garantiza. */}
+      <SustentoDimensionamientoCard filas={margenFilas} />
       <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
       {/* El embudo comparado aterriza aquí en el paso 7 (titulares vs el
           estudio anterior): es la comparación que se decide en esta pestaña. */}
