@@ -42,6 +42,18 @@ export type PasoComparado = {
  *  menos una facultad. El paso 6 («Aulas que sobran») no tiene histórico por
  *  diseño y se excluye siempre. */
 export function pasosComparables(fichas: FichaFacultad[]): Array<{ n: number; titulo: string }> {
+  return pasosDelEmbudo(fichas)
+    .filter((p) => p.comparable)
+    .map(({ n, titulo }) => ({ n, titulo }));
+}
+
+/** Todos los pasos, cada uno declarando si es comparable. Existe porque la
+ *  exclusión del paso sin histórico era honesta en el modelo pero muda en la
+ *  superficie: el selector saltaba «5 → 7» y la pregunta inmediata de quien
+ *  lee es dónde quedó el 6. El hueco se declara donde se ve (C3). */
+export function pasosDelEmbudo(
+  fichas: FichaFacultad[],
+): Array<{ n: number; titulo: string; comparable: boolean }> {
   const vistos = new Map<number, { titulo: string; conAntes: boolean }>();
   for (const ficha of fichas) {
     for (const paso of ficha.pasos) {
@@ -53,9 +65,8 @@ export function pasosComparables(fichas: FichaFacultad[]): Array<{ n: number; ti
     }
   }
   return [...vistos.entries()]
-    .filter(([, v]) => v.conAntes)
     .sort(([a], [b]) => a - b)
-    .map(([n, v]) => ({ n, titulo: v.titulo }));
+    .map(([n, v]) => ({ n, titulo: v.titulo, comparable: v.conAntes }));
 }
 
 export function pasoComparado(fichas: FichaFacultad[], n: number): PasoComparado {

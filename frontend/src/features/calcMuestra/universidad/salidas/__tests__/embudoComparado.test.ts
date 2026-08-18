@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { pasoComparado, pasosComparables } from "../embudoComparadoModel";
+import { pasoComparado, pasosComparables, pasosDelEmbudo } from "../embudoComparadoModel";
 import type { FichaFacultad } from "../../criterios/fichaFacultadModel";
 
 // El embudo comparado de Coincidencia proyecta las cifras hoy/antes que
@@ -119,5 +119,20 @@ describe("paso 7 — titulares seleccionados", () => {
     const fila = pasoComparado(fichas, 7).filas[0];
     expect(fila.hoy).toBeNull();
     expect(fila.delta).toBeNull();
+  });
+});
+
+describe("pasosDelEmbudo", () => {
+  it("declara el paso sin histórico en su lugar en vez de saltárselo", () => {
+    const todos = pasosDelEmbudo(FICHAS);
+    // El comparable sigue ahí…
+    expect(todos.some((p) => p.n === 3 && p.comparable)).toBe(true);
+    // …y el que no tiene histórico aparece DECLARADO, no desaparecido: el
+    // selector que salta «5 → 7» hace preguntar dónde quedó el 6.
+    const sinHistorico = todos.filter((p) => !p.comparable);
+    for (const p of sinHistorico) {
+      expect(pasosComparables(FICHAS).some((c) => c.n === p.n)).toBe(false);
+    }
+    expect(todos.map((p) => p.n)).toEqual([...todos.map((p) => p.n)].sort((a, b) => a - b));
   });
 });
