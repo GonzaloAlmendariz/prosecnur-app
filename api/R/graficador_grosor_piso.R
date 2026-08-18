@@ -622,3 +622,29 @@
 # LECCION: un backgrounding redundante puede cortar la corrida sin dar error, y
 # el artefacto viejo se hace pasar por nuevo. Borrar la salida antes de generar
 # convierte ese fallo silencioso en un fallo ruidoso.
+
+# P48 — LO QUE QUEDABA SIN MEDIR: CORTES Y SOLAPES DE `p57`. NO SE MUEVEN.
+#
+# Medido sobre los dos artefactos ya generados, sin volver a renderizar:
+#
+#   CORTES (`p57g.R`, universo real de 99 enunciados sacados de la traza)
+#     p55   universo 99 | completos 97 | CORTADOS **2** | ausentes 0
+#     p57   universo 99 | completos 97 | CORTADOS **2** | ausentes 0
+#     Los dos cortes son los MISMOS: lamina 59, «El Departamento de Ciencias
+#     Contables fomenta...» (llega a 155 de 175) y «Los estudiantes reciben
+#     informacion sobre be...» (llega a 20 de 133).
+#
+#   SOLAPES (`p57o.R`, mismo bucket de columna, dy < media altura de linea)
+#     p55   **1** solape — lamina 59, dy 0.0041, «Los estudiantes reciben»
+#           sobre «redes colaborativas.»
+#     p57   **1** solape — la MISMA lamina, el MISMO dy, el MISMO par.
+#
+# Con esto el expediente de P48 esta completo y la decision de Gonzalo ya no
+# tiene incognitas: el movimiento cambia SOLO lo que cambiaba —R10 2->0, B4
+# 8->4, R8 2->1 contra R1 3->7 y R5 2->5, vara 25->25— y no toca la
+# legibilidad del texto. Los dos defectos de la 59 son de P50, viven en el
+# reparto de altura del enunciado y ninguno de los dos estados los mejora.
+#
+# LECCION: cuando un trabajo queda bloqueado a una decision ajena, lo que si se
+# puede hacer es cerrarle los huecos de medicion, para que la decision se tome
+# sobre el efecto completo y no sobre la mitad que se midio primero.
