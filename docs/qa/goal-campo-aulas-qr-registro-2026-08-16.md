@@ -1599,3 +1599,30 @@ sobre `profiles/` dijo que `mon-calidad` sólo la usa aulas (la pinta el chrome
 para los cuatro). Dos medidas de altura salieron falsas por tomarlas antes de
 que asentara el layout. Y la primera expresión para extraer columnas cogió el
 bloque del cuadre interno y campos de un grupo que la tabla no muestra.
+
+### 2026-08-18 — límite declarado: el perfil de aulas no tiene proyecto de referencia
+
+Todo lo verificado en esta tanda —los cinco gates, las 24 capturas del gate
+visual, el cuadre entre hojas, el ritmo diario— está medido sobre **un solo
+fixture**, `/tmp/cierres.pulso`, que produce `api/scripts/qa_pulso_aulas_campo.R`
+y que he editado cinco veces hoy.
+
+Intenté una segunda opinión sobre `hsvg2026` y **el verde no valía**: el runner
+devolvió `ok=true` con `geometryIssues=0`, pero mirando qué había capturado, la
+pantalla era la de elección de modo —«¿Qué tipo de estudio vas a monitorear?»—.
+`hsvg2026` es el proyecto de **cálculo de muestra** de aulas a escala, no un
+estudio con monitoreo configurado, así que la dirección aterrizaba en la
+pregunta de modo y el gate medía una página ajena a este trabajo. Los dos
+grupos de geometría en vez de cuatro fueron la señal que lo delató.
+
+**Ninguno de los cinco proyectos de referencia tiene el perfil de aulas en
+Monitoreo**: `acnur_pdm` es telefónico, `acrconta` acreditación, `acnur_acg`
+pipeline y `hsvg2026` cálculo de muestra. El ADR 0043 los creó para reproducir
+bugs sobre estado real, y este perfil —cinco secciones, doce direcciones, tres
+hojas de Excel— no tiene ninguno.
+
+**Decisión para Gonzalo:** ¿se anonimiza un estudio real de aulas con
+`api/scripts/pulso_anonimizar.R` y entra como sexto proyecto de referencia? Sin
+él, todo lo que este perfil afirma se apoya en un fixture que escribimos
+nosotros — y esta misma tanda lleva **diez** casos en que ese fixture excluía
+por construcción justo lo que la vista existe para mostrar.
