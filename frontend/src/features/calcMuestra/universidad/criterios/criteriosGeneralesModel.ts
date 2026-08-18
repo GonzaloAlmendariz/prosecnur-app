@@ -46,7 +46,7 @@ const ETIQUETA_ESTADISTICO: Record<string, string> = {
 };
 
 const ETIQUETA_SELECTOR: Record<string, string> = {
-  cube_balanceado: "cube balanceado",
+  cube_balanceado: "cubo balanceado",
   balanced_probability: "probabilidad balanceada",
   sistematico: "sistemático",
 };

@@ -129,13 +129,27 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
   }
   cuotas_sexo <- .cm_certificacion_cuotas_sexo(estudio)
 
-  tasa <- .cm_certificacion_tasa(referencia_asistencia)
+  # La tasa que certifica es la τ DEL PROPIO DISEÑO (cada estrato la lleva en
+  # aulas_por_estrato$tau): certificar con la tasa observada de 2025 (0,7038)
+  # cuando el diseño asumió 0,53 seria sellar con un supuesto mas optimista
+  # que el que dimensiono las aulas. La referencia 2025 queda como fallback
+  # para estudios sin τ declarada, y la fuente viaja en el payload.
+  tasa_referencia <- .cm_certificacion_tasa(referencia_asistencia)
+  taus_disenio <- vapply(filas_estudio, function(f) {
+    if (!is.list(f)) return(NA_real_)
+    t <- suppressWarnings(as.numeric(.cm_aulas_scalar(f$tau, NA)))
+    if (length(t) == 1L && is.finite(t) && t > 0 && t <= 1) t else NA_real_
+  }, numeric(1))
+  usa_tau_disenio <- any(is.finite(taus_disenio))
+  tasa_fuente <- if (usa_tau_disenio) "tau_disenio" else if (is.finite(tasa_referencia)) "referencia" else "sin_tasa"
   fmt1 <- function(x) format(round(x, 1), trim = TRUE, scientific = FALSE, big.mark = " ")
   filas <- list()
   certificadas <- 0L
   evaluables <- 0L
-  for (f in filas_estudio) {
+  for (fi in seq_along(filas_estudio)) {
+    f <- filas_estudio[[fi]]
     if (!is.list(f)) next
+    tasa <- if (is.finite(taus_disenio[[fi]])) taus_disenio[[fi]] else tasa_referencia
     etiqueta <- .cm_aulas_scalar(f$estrato, "")
     if (!nzchar(etiqueta)) next
     k <- .cm_aulas_scalar(.cm_criterios_fac_key(etiqueta), "")
@@ -161,12 +175,16 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
     }
     aviso <- switch(estado,
       certificada = sprintf(
-        "Sus %d titulares cargan %s elegibles; con la tasa esperada de %s %% rinden %s efectivas para una cuota de %s.",
-        aulas, fmt1(elegibles), fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota)
+        "Sus %d titulares cargan %s elegibles; con la tasa de rendimiento %s de %s %% rinden %s efectivas para una cuota de %s.",
+        aulas, fmt1(elegibles),
+        if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
+        fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota)
       ),
       no_cubre = sprintf(
-        "NO CUBRE: sus %d titulares cargan %s elegibles y con la tasa esperada de %s %% rinden %s efectivas, por debajo de la cuota de %s. Faltan %s.",
-        aulas, fmt1(elegibles), fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
+        "NO CUBRE: sus %d titulares cargan %s elegibles y con la tasa de rendimiento %s de %s %% rinden %s efectivas, por debajo de la cuota de %s. Faltan %s.",
+        aulas, fmt1(elegibles),
+        if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
+        fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
       ),
       sin_titulares = "El sorteo vigente no le asignó titulares: no hay con qué certificar.",
       sin_tasa = "El diseño no declara la tasa de asistencia esperada: los elegibles están medidos pero la certificación no se puede afirmar.",
@@ -206,6 +224,7 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
       margen = if (is.finite(margen)) round(margen, 2) else NA_real_,
       estado = estado,
       aviso = aviso,
+      tasa = if (is.finite(tasa)) round(tasa, 4) else NA_real_,
       sexo = sexo_filas
     )
   }
@@ -216,7 +235,12 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
     owner = "calc_muestra_aulas_selection.certificacion",
     momento = "derivado_al_servir",
     grain = "facultad",
-    tasa_esperada = if (is.finite(tasa)) round(tasa, 4) else NA_real_,
+    tasa_esperada = {
+      usadas <- unique(round(vapply(filas, function(x) x$tasa %||% NA_real_, numeric(1)), 4))
+      usadas <- usadas[is.finite(usadas)]
+      if (length(usadas) == 1L) usadas else NA_real_
+    },
+    tasa_fuente = tasa_fuente,
     certificadas = certificadas,
     evaluables = evaluables,
     total = length(filas),

@@ -112,3 +112,25 @@ test_that("las cuotas de hombre y mujer se certifican por celda", {
   # Facultad sin distribucion_sub: sin bloque de sexo, no un bloque en cero.
   expect_length(filas$facultad_chica$sexo, 0L)
 })
+
+test_that("la certificación prefiere la τ del PROPIO diseño sobre la referencia", {
+  # Certificar con la tasa observada de 2025 cuando el diseño asumió otra
+  # sería sellar con un supuesto distinto del que dimensionó las aulas. El
+  # fixture rompe el empate: con la referencia (0.8) GRANDE certificaría
+  # (150×0.8=120≥100); con su τ (0.5) queda corta (75<100).
+  estudio <- .cert_estudio()
+  for (i in seq_along(estudio$componentes[[1]]$resultado$aulas_por_estrato)) {
+    estudio$componentes[[1]]$resultado$aulas_por_estrato[[i]]$tau <- 0.5
+  }
+  out <- calc_muestra_aulas_adjuntar_certificacion(.cert_seleccion(), estudio, .cert_referencia())
+  cert <- out$certificacion_facultad
+  expect_identical(cert$tasa_fuente, "tau_disenio")
+  expect_equal(cert$tasa_esperada, 0.5)
+  filas <- setNames(cert$filas, vapply(cert$filas, `[[`, "", "faculty_key"))
+  expect_identical(filas$facultad_grande$estado, "no_cubre")
+  expect_equal(filas$facultad_grande$efectivas_esperadas, 75)
+  expect_match(filas$facultad_grande$aviso, "diseño")
+  # Sin τ en el diseño, el fallback a la referencia queda DECLARADO.
+  out2 <- calc_muestra_aulas_adjuntar_certificacion(.cert_seleccion(), .cert_estudio(), .cert_referencia())
+  expect_identical(out2$certificacion_facultad$tasa_fuente, "referencia")
+})
