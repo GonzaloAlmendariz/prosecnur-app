@@ -116,3 +116,30 @@
 .cmv2-embcmp-delta[data-signo="mas"] { color: var(--pulso-success-fg); }
 .cmv2-embcmp-delta[data-signo="menos"] { color: var(--pulso-warn-fg); }
 .cmv2-embcmp-delta[data-signo="igual"] { color: var(--pulso-text-muted); }
+
+/* I7c — la diferencia protagonista: mini barra divergente bajo la cifra. */
+.cmv2-embcmp-delta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.cmv2-embcmp-delta-barra {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+  direction: rtl;
+}
+
+.cmv2-embcmp-delta-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.cmv2-embcmp-delta-barra > span[data-signo="mas"] { background: var(--pulso-success-fg); }
+.cmv2-embcmp-delta-barra > span[data-signo="menos"] { background: var(--pulso-warn-fg); }

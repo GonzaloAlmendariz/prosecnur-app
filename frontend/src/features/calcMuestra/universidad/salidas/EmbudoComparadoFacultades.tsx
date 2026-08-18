@@ -48,8 +48,17 @@ export function EmbudoComparadoFacultades({
       <header>
         <strong>El embudo, facultad por facultad</strong>
         <span>
-          hoy contra {etiquetaAntes} a la misma escala; {fmtInt(paso.comparables)} de{" "}
-          {fmtInt(paso.filas.length)} facultades con ambas cifras
+          hoy contra {etiquetaAntes}, ordenado por la diferencia;{" "}
+          {paso.difieren > 0 ? (
+            <>
+              <b>{fmtInt(paso.difieren)}</b> de {fmtInt(paso.comparables)} facultades difieren
+              {paso.deltaNeto !== 0
+                ? ` (saldo ${paso.deltaNeto > 0 ? "+" : ""}${fmtInt(paso.deltaNeto)})`
+                : " y el saldo neto es cero"}
+            </>
+          ) : (
+            <>las {fmtInt(paso.comparables)} facultades comparables coinciden</>
+          )}
         </span>
       </header>
       <nav className="cmv2-embcmp-pasos" aria-label="Paso del embudo">
@@ -105,7 +114,17 @@ export function EmbudoComparadoFacultades({
                 className="cmv2-embcmp-delta"
                 data-signo={f.delta == null ? undefined : f.delta > 0 ? "mas" : f.delta < 0 ? "menos" : "igual"}
               >
-                {f.delta == null ? "" : f.delta > 0 ? `+${fmtInt(f.delta)}` : fmtInt(f.delta)}
+                {f.delta != null && f.delta !== 0 && paso.escalaDelta > 0 ? (
+                  <span className="cmv2-embcmp-delta-barra" aria-hidden="true">
+                    <span
+                      data-signo={f.delta > 0 ? "mas" : "menos"}
+                      style={{ width: `${(Math.abs(f.delta) / paso.escalaDelta) * 100}%` }}
+                    />
+                  </span>
+                ) : null}
+                <span className="cmv2-embcmp-delta-cifra">
+                  {f.delta == null ? "" : f.delta > 0 ? `+${fmtInt(f.delta)}` : f.delta === 0 ? "=" : fmtInt(f.delta)}
+                </span>
               </span>
             </li>
           );

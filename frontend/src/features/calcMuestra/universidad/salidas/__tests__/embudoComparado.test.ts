@@ -46,8 +46,18 @@ describe("pasosComparables", () => {
 describe("pasoComparado", () => {
   const paso = pasoComparado(FICHAS, 3);
 
-  it("ordena por HOY descendente con los sin-cifra al final", () => {
+  it("ordena por |delta| descendente — la diferencia primero, sin-cifra al final", () => {
+    // DERECHO delta 379, EGC delta 274: manda la diferencia, no el tamaño.
     expect(paso.filas.map((f) => f.facultad)).toEqual(["DERECHO", "EE.GG. CIENCIAS", "SIN MEDIR"]);
+    // Con el delta invertido el orden cambia: la protagonista es la diferencia.
+    const invertido = pasoComparado([
+      ficha("GRANDE IGUAL", [[3, "Aulas que pasan los criterios", 500, 500]]),
+      ficha("CHICA DISTINTA", [[3, "Aulas que pasan los criterios", 10, 40]]),
+    ], 3);
+    expect(invertido.filas[0].facultad).toBe("CHICA DISTINTA");
+    expect(invertido.difieren).toBe(1);
+    expect(invertido.deltaNeto).toBe(-30);
+    expect(invertido.escalaDelta).toBe(30);
   });
 
   it("la escala es el máximo de AMBAS series — aquí lo pone un antes (480)", () => {

@@ -30,6 +30,12 @@ export type PasoComparado = {
   escala: number;
   /** Cuántas facultades tienen ambas cifras (las comparables de verdad). */
   comparables: number;
+  /** Cuántas comparables DIFIEREN (delta ≠ 0) — la cifra que ordena la vista. */
+  difieren: number;
+  /** Suma de los deltas de las comparables: el saldo neto hoy − anterior. */
+  deltaNeto: number;
+  /** Máximo |delta|; la barra divergente de cada fila se escala contra esto. */
+  escalaDelta: number;
 };
 
 /** Pasos que vale la pena comparar: los que tienen columna de 2025 en al
@@ -66,18 +72,29 @@ export function pasoComparado(fichas: FichaFacultad[], n: number): PasoComparado
       delta: paso.hoy != null && paso.antes != null ? paso.hoy - paso.antes : null,
     });
   }
-  // Orden por la cifra de HOY, y las facultades sin cifra al final: el lector
-  // ve primero lo que existe y al fondo lo que falta por medir.
-  filas.sort((a, b) => (b.hoy ?? -1) - (a.hoy ?? -1));
+  // La DIFERENCIA es la protagonista (Gonzalo: «estos gráficos deberían
+  // centrarse más en la diferencia entre este estudio y el anterior»): las
+  // filas se ordenan por |delta| descendente — lo que más difiere, primero —,
+  // las iguales después por tamaño, y las sin cifra al final.
+  filas.sort((a, b) => {
+    const da = a.delta == null ? -1 : Math.abs(a.delta);
+    const db = b.delta == null ? -1 : Math.abs(b.delta);
+    if (db !== da) return db - da;
+    return (b.hoy ?? -1) - (a.hoy ?? -1);
+  });
   const escala = filas.reduce(
     (max, f) => Math.max(max, f.hoy ?? 0, f.antes ?? 0),
     0,
   );
+  const conDelta = filas.filter((f) => f.delta != null);
   return {
     n,
     titulo,
     filas,
     escala,
-    comparables: filas.filter((f) => f.delta != null).length,
+    comparables: conDelta.length,
+    difieren: conDelta.filter((f) => f.delta !== 0).length,
+    deltaNeto: conDelta.reduce((acc, f) => acc + (f.delta ?? 0), 0),
+    escalaDelta: conDelta.reduce((max, f) => Math.max(max, Math.abs(f.delta ?? 0)), 0),
   };
 }
