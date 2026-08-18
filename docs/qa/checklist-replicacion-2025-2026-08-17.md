@@ -2144,3 +2144,27 @@ SexoPorFacultadCard) y su eco en Coincidencia.
   (p25, afijación, exenciones, tasa) se explica en lenguaje del analista;
   la jerga del motor no viaja a la UI.
 - **G4 mejoras UI medidas**: siempre algo que mejorar, nada «por las dudas».
+
+## G5 · El sello vale para los CUATRO métodos · ☑ contrato, commit `c95e0278`
+
+Gonzalo, textual: «todos los mecanismos que ofrecemos deben ofrecer el mismo
+sello de calidad (…) el sello de calidad tiene que ser de los cuatro
+métodos, pero sí es cierto de que ahora estamos validando el cubo
+balanceado, porque básicamente es el que estamos utilizando».
+
+Medido: `pool_controlado` genera candidatos por el mismo camino que los
+otros tres → **los cuatro respetan la afijación por construcción**, ahora
+fijado como contrato (8 asserts, cuatro engines, empate roto 8:1). La
+certificación por facultad es agnóstica del motor. El cubo sigue siendo el
+método validado en profundidad (es el que se usa); la validación honda de
+los otros tres queda como meta del G2 rotativo.
+
+## G6 · Certificación por SEXO — trazada, con dependencia · ☐
+
+Gonzalo: «aulas que nos garanticen llegar a ese número de cuotas de hombre y
+mujer por sexo». Medido: el diseño VIGENTE no publica cuotas M/H por
+facultad (sólo la referencia 2025 las trae; el componente del cálculo trae
+`cuota` total). Dos etapas: **G6a** el cálculo publica cuota_mujeres/
+cuota_hombres por facultad (afijación facultad × sexo, como 2025) · **G6b**
+la certificación evalúa la composición por sexo de las titulares contra esas
+cuotas. G6a es motor de cálculo; va antes que G6b.
