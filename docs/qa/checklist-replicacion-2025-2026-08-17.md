@@ -1392,6 +1392,57 @@ gana 103 aulas y **1.060 alumnos elegibles** (de 80.835 a 81.895).
   aulas elegibles con p25 más bajo significa más aulas a visitar en esa
   facultad**. Es el precio y hay que mirarlo junto a la cuota.
 
+## R33 — mínimos por facultad aplicados: 2.466 aulas de marco y 202 a visitar
+
+Aplicada la escala en el duplicado. Dos cosas que sólo se ven al aplicarla:
+
+**Había un segundo umbral escondido.** Con `minEligible.byFaculty` puesto pero
+`enrolled_total ≥ 15` intacto, Artes Escénicas subió de 44 a 57 en vez de a 103:
+las aulas que el mínimo relajado dejaba entrar seguían cayendo por matriculados.
+Bajado ese umbral a 10 —el de 2025—, el marco llega a **2.466 aulas**, contra las
+2.467 previstas contando sobre el frame.
+
+**Y el criterio de matriculados es ahora redundante**: con estos umbrales,
+**ninguna aula del marco cae sólo por matriculados** (0 de 5.263). Es geometría,
+no casualidad: los elegibles nunca superan a los matriculados —comprobado, 0
+casos—, así que exigir 15 elegibles ya implica 15 matriculados. El umbral de
+matriculados sólo muerde cuando el de elegibles baja por debajo de él.
+
+### Aulas a visitar, con p25 sellado
+
+| Facultad | p25 | aulas | aplicadas 2025 | Δ |
+|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 24 | 42 | 40 | +2 |
+| EE.GG. CIENCIAS | 27 | 28 | 26 | +2 |
+| EE.GG. LETRAS | 34 | 22 | 23 | −1 |
+| DERECHO | 38 | 18 | 16 | +2 |
+| ARQUITECTURA | 16 | **15** | 7 | **+8** |
+| ARTE Y DISEÑO | 15 | 15 | 12 | +3 |
+| CIENCIAS SOCIALES | 22,5 | 13 | 17 | −4 |
+| ARTES ESCÉNICAS | 11 | 12 | 11 | +1 |
+| CIENCIAS Y ARTES COMUN. | 19,75 | 10 | 11 | −1 |
+| GESTIÓN | 29 | 8 | 9 | −1 |
+| PSICOLOGÍA | 23 | 7 | 6 | +1 |
+| LETRAS Y C. HUMANAS | 11 | 5 | 4 | +1 |
+| EDUCACIÓN | 15,25 | 3 | 7 | −4 |
+| GASTRONOMÍA | 15 | 2 | 3 | −1 |
+| CONTABLES | 22,5 | 2 | 2 | 0 |
+| **TOTAL** | | **202** | **194** | **+8** |
+
+**202 aulas**, dentro de la banda de 170–210. Once de quince facultades quedan a
+dos aulas o menos de lo que 2025 aplicó.
+
+### El precio se materializó, y es de una sola facultad
+
+El saldo neto por relajar el mínimo es **+9 aulas** sobre las 193 anteriores, y
+casi todo viene de **ARQUITECTURA: de 11 a 15**, porque su p25 bajó a 16 al
+entrar aulas más chicas. Artes Escénicas, en cambio, pasó de 9 a 12 acercándose a
+sus 11 reales, y Letras de 4 a 5 con 4 reales.
+
+Es exactamente el efecto anticipado —más aulas elegibles con p25 más bajo piden
+más visitas— pero concentrado donde el marco era más escaso. Arquitectura ya era
+la única facultad que se pasaba de las tres varas antes de tocar nada.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
