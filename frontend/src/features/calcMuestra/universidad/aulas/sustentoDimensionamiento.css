@@ -21,37 +21,12 @@
 
 .cmv2-sustento-wrap { overflow-x: auto; overscroll-behavior-x: contain; min-width: 0; }
 
-.cmv2-sustento-tabla {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.cmv2-sustento-tabla th,
-.cmv2-sustento-tabla td {
-  padding: 5px 10px;
-  text-align: left;
-  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
-  white-space: nowrap;
-}
-.cmv2-sustento-tabla thead th {
-  font-size: 10px;
-  color: var(--pulso-text-muted);
-  font-weight: var(--pulso-weight-semibold);
-}
+/* Base en shared/tablas.css (gramática única); aquí solo lo propio. */
 .cmv2-sustento-tabla tbody th[scope="row"] {
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text);
   white-space: normal;
   max-width: 220px;
 }
 .cmv2-sustento-tabla tbody td strong { color: var(--cmv2-accent-fg); }
-.cmv2-sustento-tabla tfoot th,
-.cmv2-sustento-tabla tfoot td {
-  border-bottom: 0;
-  border-top: 2px solid var(--cmv2-border);
-  font-weight: var(--pulso-weight-semibold);
-}
 
 /* Una fila fijada a mano no se camufla: es una decisión registrada. */
 .cmv2-sustento-tabla tr[data-ajustada] > * {

@@ -18,6 +18,7 @@ import {
   construirRankingDesempeno,
   type AulaFrameRowLike,
 } from "./rankingDesempenoModel";
+import "../shared/tablas.css";
 import "./rankingDesempeno.css";
 
 function pctTxt(v: number | null): string {
@@ -94,17 +95,17 @@ export function RankingDesempenoCard({
               <strong>{grupo.facultad}</strong>
               <span>{fmtInt(grupo.consideradas)} aulas compiten</span>
             </header>
-            <table>
+            <table className="cmv2-tabla">
               <thead>
                 <tr>
                   <th scope="col">Curso-horario</th>
                   <th scope="col">Tipo</th>
-                  <th scope="col">Ciclo</th>
-                  <th scope="col">Alumnos</th>
-                  <th scope="col">Asistencia</th>
-                  <th scope="col">Resp. M·H</th>
-                  <th scope="col">Eleg. hoy M·H</th>
-                  <th scope="col">Semana</th>
+                  <th scope="col" className="cmv2-num">Ciclo</th>
+                  <th scope="col" className="cmv2-num">Alumnos</th>
+                  <th scope="col" className="cmv2-num">Asistencia</th>
+                  <th scope="col" className="cmv2-num">Resp. M·H</th>
+                  <th scope="col" className="cmv2-num">Eleg. hoy M·H</th>
+                  <th scope="col" className="cmv2-num">Semana</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,14 +119,14 @@ export function RankingDesempenoCard({
                       </small>
                     </th>
                     <td>{fila.tipo ? fila.tipo.toLowerCase() : "—"}</td>
-                    <td className="cmv2-rankdes-num">{fila.ciclo == null ? "—" : fmtInt(fila.ciclo)}</td>
-                    <td className="cmv2-rankdes-num">{fmtInt(fila.elegibles)}</td>
-                    <td className="cmv2-rankdes-num">
+                    <td className="cmv2-num">{fila.ciclo == null ? "—" : fmtInt(fila.ciclo)}</td>
+                    <td className="cmv2-num">{fmtInt(fila.elegibles)}</td>
+                    <td className="cmv2-num">
                       <strong>{pctTxt(fila.rendimiento)}</strong>
                     </td>
-                    <td className="cmv2-rankdes-num">{parSexo(fila.efectivasMujeres, fila.efectivasHombres)}</td>
-                    <td className="cmv2-rankdes-num">{parSexo(fila.elegiblesHoyMujeres, fila.elegiblesHoyHombres)}</td>
-                    <td className="cmv2-rankdes-num">{fila.semana == null ? "—" : fmtInt(fila.semana)}</td>
+                    <td className="cmv2-num">{parSexo(fila.efectivasMujeres, fila.efectivasHombres)}</td>
+                    <td className="cmv2-num">{parSexo(fila.elegiblesHoyMujeres, fila.elegiblesHoyHombres)}</td>
+                    <td className="cmv2-num">{fila.semana == null ? "—" : fmtInt(fila.semana)}</td>
                   </tr>
                 ))}
               </tbody>

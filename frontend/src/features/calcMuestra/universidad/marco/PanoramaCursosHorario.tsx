@@ -1,5 +1,6 @@
 import { fmtDec, fmtInt } from "../../sharedCore";
 import type { FacultadBloque, ResumenDecisionFacultad } from "./facultadDecisionModel";
+import "../shared/tablas.css";
 import "./panoramaCursosHorario.css";
 
 /**
@@ -66,12 +67,12 @@ export function PanoramaCursosHorario({
       </header>
 
       <div className="cmv2-panorama-scroll" tabIndex={0}>
-        <table className="cmv2-panorama-table">
+        <table className="cmv2-tabla cmv2-panorama-table">
           <thead>
             <tr>
               <th scope="col">Facultad</th>
               <th scope="col">CH elegibles del total</th>
-              <th scope="col">Mediana</th>
+              <th scope="col" className="cmv2-num">Mediana</th>
               {/* Sin `title`: repetía exactamente el texto visible y la cabecera
                   no trunca, así que el tooltip no aportaba nada. Un `title`
                   redundante es ruido que además compite con los que sí explican
@@ -116,7 +117,7 @@ export function PanoramaCursosHorario({
                       <strong>{fmtInt(fac.ch_elegibles)}</strong> de {fmtInt(fac.ch_total)}
                     </span>
                   </td>
-                  <td className="cmv2-panorama-num">
+                  <td className="cmv2-num cmv2-panorama-num">
                     {fac.est_aula_mediana == null ? "—" : fmtDec(fac.est_aula_mediana, 0)}
                   </td>
                   {criterios.map((criterio) => {

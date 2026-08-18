@@ -1942,7 +1942,6 @@
   color: var(--pulso-warn-fg);
   background: color-mix(in srgb, var(--pulso-warn-bg) 40%, transparent);
 }
-.cmv2-margen-de { color: var(--pulso-text-muted); }
 .cmv2-margen-aviso,
 .cmv2-sexo-aviso {
   margin: 8px 0 0;

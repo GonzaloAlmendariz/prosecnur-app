@@ -1,0 +1,66 @@
+/* =============================================================================
+ * Gramática ÚNICA de tablas de Cálculo de muestra.
+ *
+ * Gonzalo (2026-08-18): «todas las tablas están bastante bien pero pueden
+ * verse aún mejor y más profesionales». La dirección congelada:
+ *   1. Cabeceras eyebrow: mayúsculas pequeñas, espaciadas, muted, con regla
+ *      inferior FIRME (1px sólido) — la tabla anuncia sus columnas.
+ *   2. Números a la DERECHA con dígitos tabulares (`cmv2-num`): las unidades
+ *      se alinean y las magnitudes se comparan por longitud, como en toda
+ *      tabla financiera seria. Texto queda a la izquierda.
+ *   3. Filas con filete fino (55% del borde) y hover sutil: escaneable sin
+ *      rayado pesado.
+ *   4. El pie (tfoot) separado con regla fuerte y en semibold: es el total,
+ *      no una fila más.
+ * Cada tabla la adopta con `class="cmv2-tabla"` y puede sumar sus reglas
+ * locales encima; esta hoja no conoce features.
+ * ========================================================================== */
+
+.cmv2-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cmv2-tabla th,
+.cmv2-tabla td {
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: baseline;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
+}
+
+.cmv2-tabla thead th {
+  /* Calibrado al patrón que margen/fichas/certificación ya usaban: la
+     gramática codifica lo mejor de la casa, no inventa otro estilo. */
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+  border-bottom: 1px solid var(--cmv2-border);
+  white-space: nowrap;
+}
+
+.cmv2-tabla tbody th[scope="row"] {
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+}
+
+.cmv2-tabla tbody tr:hover > * {
+  background: color-mix(in srgb, var(--cmv2-accent-fg) 4%, transparent);
+}
+
+.cmv2-tabla tfoot th,
+.cmv2-tabla tfoot td {
+  border-bottom: 0;
+  border-top: 2px solid var(--cmv2-border);
+  font-weight: var(--pulso-weight-semibold);
+}
+
+/* Números: derecha + tabulares. Se pone en el th de cabecera Y en sus td. */
+.cmv2-tabla .cmv2-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
