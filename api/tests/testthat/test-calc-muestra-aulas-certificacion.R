@@ -79,3 +79,36 @@ test_that("una tasa fuera de (0, 1] se trata como no declarada", {
                     vapply(out$certificacion_facultad$filas, `[[`, "", "faculty_key"))
   expect_identical(filas$facultad_grande$estado, "sin_tasa")
 })
+
+test_that("las cuotas de hombre y mujer se certifican por celda", {
+  # El engine ya sub-distribuye la cuota por sexo (distribucion_sub); la
+  # certificación la lee de ahí y la enfrenta a los elegibles por sexo de las
+  # titulares (sex_top_*). El fixture rompe el empate: GRANDE cubre el total
+  # pero su celda de MUJERES queda corta.
+  estudio <- .cert_estudio()
+  estudio$componentes[[1]]$resultado$distribucion_sub <- list(
+    list(estrato = "FACULTAD GRANDE", sub = "F", N = 700, n = 70),
+    list(estrato = "FACULTAD GRANDE", sub = "M", N = 300, n = 30)
+  )
+  sel <- .cert_seleccion()
+  sel$selection$sex_top_1 <- c("F", "F", "F", "F", "F")
+  sel$selection$sex_top_1_n <- c(20, 20, 20, 10, 10)
+  sel$selection$sex_top_2 <- c("M", "M", "M", "M", "M")
+  sel$selection$sex_top_2_n <- c(30, 30, 30, 5, 5)
+  out <- calc_muestra_aulas_adjuntar_certificacion(sel, estudio, .cert_referencia())
+  filas <- setNames(out$certificacion_facultad$filas,
+                    vapply(out$certificacion_facultad$filas, `[[`, "", "faculty_key"))
+  g <- filas$facultad_grande
+  # Total: 150 x 0.8 = 120 >= 100, certificada…
+  expect_identical(g$estado, "certificada")
+  # …pero MUJERES: 60 elegibles x 0.8 = 48 < 70 -> la celda NO cubre.
+  sx <- setNames(g$sexo, vapply(g$sexo, `[[`, "", "sexo"))
+  expect_false(sx$F$cubre)
+  expect_equal(sx$F$esperadas, 48)
+  expect_equal(sx$F$margen, 0.69)
+  # HOMBRES: 90 x 0.8 = 72 >= 30, cubre con margen 2.4.
+  expect_true(sx$M$cubre)
+  expect_equal(sx$M$margen, 2.4)
+  # Facultad sin distribucion_sub: sin bloque de sexo, no un bloque en cero.
+  expect_length(filas$facultad_chica$sexo, 0L)
+})
