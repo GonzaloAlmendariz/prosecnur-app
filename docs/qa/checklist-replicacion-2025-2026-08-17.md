@@ -1935,3 +1935,21 @@ respuesta es sí, R4 se cierra como «fórmula + engorde operativo» y el motor
 NO debe imitar el engorde: la vara es su propia fórmula con p25 (hoy 202 a
 visitar, dentro del rango 170–210 de la vara 2). Si es no, falta una fuente
 que no está en Historico 2025/ ni en la plantilla de Kamila.
+
+## (f) · Las tres capacidades YA tienen consumidor — hallazgo stale · ☑ 2026-08-18
+
+Medido antes de construir nada (el grep original buscaba los nombres
+snake_case de R; los consumidores usan camelCase): **`margen`** →
+`fichaFacultadModel` → `FichaPorFacultadCard` (reservas por titular) +
+`criteriosGeneralesModel` · **`sin_decision`** → `SinDecisionAlumnosChAviso`
+montado dos veces en `CalculoCursosHorarioFacultadTab` + tipado en el API ·
+**`sexo_por_facultad`** → `UniversidadDesk` → `AulasSeleccionTab` →
+`SexoPorFacultadCard`, con normalizador y schema propios. Nada que
+construir; construirlo habría duplicado superficies.
+
+## S4b · Los titulares por facultad, desde las cadenas · ☑ 2026-08-18, commit `30c0a1df`
+
+Tercer piso del rescate: el conteo de cadenas por facultad reproduce EXACTO
+las quince metas del histórico (170/170). La referencia por facultad queda
+**7 de 8 campos poblados en las 15 filas** — de 1 campo hace dos ticks a 7.
+Sólo `poblacion` sigue NA (vive únicamente en el libro externo).
