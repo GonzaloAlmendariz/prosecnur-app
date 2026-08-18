@@ -2053,3 +2053,31 @@
   color: var(--pulso-text);
   font-weight: 700;
 }
+
+/* La leyenda de la agenda. Las barras del periodo se pintaban con seis colores
+   y el único modo de saber cuál era cuál era pasar el ratón por cada segmento:
+   un gráfico que sólo se entiende con el cursor encima no se entiende. */
+.mon-profile-page.is-aulas-flow .aulas-agenda-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 10px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--pulso-border);
+  list-style: none;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-agenda-leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-agenda-leyenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-agenda-leyenda strong { color: var(--pulso-text); }

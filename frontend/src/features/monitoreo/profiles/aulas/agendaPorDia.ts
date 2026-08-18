@@ -123,6 +123,26 @@ export function agendaPorDia(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   const conFecha = dias.filter((d) => d.fecha);
   return {
     dias,
+    /**
+     * Los tramos que aparecen en ALGUNA barra, con su total del periodo.
+     *
+     * Es la leyenda: las barras se pintaban con seis colores y el único modo de
+     * saber cuál era cuál era pasar el ratón segmento a segmento. Sale de aquí
+     * y no del componente para que use exactamente los mismos colores y
+     * etiquetas que los tramos —dueño único, `estadoDeAplicacion`— y para que
+     * un tramo que no ocurre en este estudio no ocupe sitio en la leyenda.
+     */
+    leyenda: TRAMOS_DE_APLICACION
+      .map((t) => ({
+        clave: t.clave,
+        etiqueta: t.etiqueta,
+        color: t.color,
+        aulas: dias.reduce(
+          (suma, d) => suma + (d.tramos.find((x) => x.clave === t.clave)?.aulas ?? 0),
+          0,
+        ),
+      }))
+      .filter((t) => t.aulas > 0),
     /** Días de campo con al menos un curso-horario agendado. */
     diasDeCampo: conFecha.length,
     /** El día más cargado marca la escala de las barras. */
