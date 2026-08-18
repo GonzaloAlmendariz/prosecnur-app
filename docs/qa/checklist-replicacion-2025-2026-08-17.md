@@ -1559,6 +1559,94 @@ deliberadas de Gonzalo (nivel con exención, mínimo sobre elegibles, exclusión
 Estudios Especiales, p25) o decisiones pendientes (sobremuestra, método de
 selección, τ).
 
+## R37 — el libro histórico llena la columna; el binding estaba vacío
+
+Gonzalo: «si ya este excel es capaz precisamente de tener toda esta información,
+¿por qué en Coincidencia sigue saliendo sin referencia? En todo caso hay que
+corregirlo ahora».
+
+La causa era simple: **el libro nunca se cargó como archivo en el proyecto**. Su
+binding `referencia_asistencia` tiene `file_id` vacío, y la referencia que había
+llegó por otra vía sin el bloque de diseño.
+
+Cargado en el duplicado, la tarjeta compara de verdad — «Comparado con 2025-2:
+**6 de 7 decisiones cambiaron**»:
+
+| Decisión | Este estudio | 2025-2 | ¿Igual? |
+|---|---|---|---|
+| Muestra de diseño | 2.500 | 2500 | **sí** |
+| Sobremuestra | 20 % | 1,5 | no |
+| Factor de asistencia (τ) | 0,53 | 0,7038 | no |
+| Efecto de diseño | 1,5 | 2 | no |
+| Método de selección | cube balanceado | Sistemático sobre el marco | no |
+| Aulas del marco | 2.466 | 1.097 | no |
+| Aulas a visitar | 202 | 170 | no |
+| Aulas efectivamente aplicadas | — | 194 | — |
+| Aulas agendadas con reemplazos | — | 1.012 | — |
+| Encuestas válidas logradas | — | 3.303 | — |
+| Asistencia observada | — | 69,7 % | — |
+
+Y al cargarlo aparecieron dos huecos nuevos: el libro **sustituía** al rescate y
+se perdían las 1.012 agendadas y el 69,7 %, que la hoja `diseno` no recoge. Ahora
+se fusionan —el libro manda, el rescate rellena— y sólo queda sin referencia el
+**estadístico**, que el libro no declara.
+
+## R38 — la condición del curso, por facultad
+
+Gonzalo me corrigió: «entiendo que en estudios generales ese criterio esté
+corrupto, pero en el resto de facultades no lo está (…) ¿por qué sería un
+problema que una facultad tenga ese criterio corrupto si las demás no lo
+tienen?». Mi objeción había sido generalista, que es justo lo que él critica.
+
+Medido, y el problema es aún más acotado de lo que ninguno de los dos pensaba:
+
+| Facultad | incluidas | con OBLIGATORIO | % | categorías dominantes |
+|---|---|---|---|---|
+| EDUCACIÓN · GASTRONOMÍA · CONTABLES | 22 · 20 · 15 | 22 · 20 · 15 | **100 %** | OBLIGATORIO |
+| PSICOLOGÍA | 89 | 82 | 92 % | OBLIGATORIO |
+| **EE.GG. CIENCIAS** | 320 | 290 | **91 %** | OBLIGATORIO |
+| DERECHO | 404 | 354 | 88 % | OBLIGATORIO |
+| CIENCIAS E INGENIERIA | 571 | 493 | 86 % | OBLIGATORIO |
+| LETRAS Y C. HUMANAS · ARTE Y DISEÑO · ARTES ESCÉNICAS | 41 · 79 · 103 | 35 · 66 · 87 | 84–85 % | OBLIGATORIO |
+| CIENCIAS Y ARTES COMUN. | 168 | 137 | 82 % | OBLIGATORIO |
+| GESTIÓN | 102 | 77 | 75 % | OBLIGATORIO |
+| ARQUITECTURA | 64 | 45 | 70 % | OBLIGATORIO |
+| CIENCIAS SOCIALES | 139 | 95 | 68 % | OBLIGATORIO |
+| **EE.GG. LETRAS** | 329 | **18** | **5 %** | ESTRATEGIAS PARA LA INVESTIGACIÓN, REQUISITO PARA EGRESO DE EEGG, ARTES |
+
+**Sólo EE.GG. LETRAS tiene el campo corrupto.** EE.GG. Ciencias, que yo daba por
+perdida junto a ella, tiene 91 % de OBLIGATORIO. Las catorce restantes lo usan
+como condición de verdad.
+
+### Aplicado: exigir obligatorio con EE.GG. LETRAS exenta
+
+Marco: **2.466 → 2.134** aulas (−332). EE.GG. LETRAS conserva sus 329 gracias a
+la exención. Y las aulas a visitar:
+
+| Facultad | p25 | aulas | aplicadas 2025 | Δ |
+|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 24 | 42 | 40 | +2 |
+| EE.GG. CIENCIAS | 27 | 28 | 26 | +2 |
+| EE.GG. LETRAS | 34 | 22 | 23 | −1 |
+| DERECHO | 38,5 | 18 | 16 | +2 |
+| ARQUITECTURA | 16 | 15 | 7 | +8 |
+| ARTE Y DISEÑO | 15,25 | 15 | 12 | +3 |
+| CIENCIAS SOCIALES | 22,5 | 13 | 17 | −4 |
+| ARTES ESCÉNICAS | 11 | 12 | 11 | +1 |
+| CIENCIAS Y ARTES COMUN. | 19 | 10 | 11 | −1 |
+| GESTIÓN | 27 | 9 | 9 | **0** |
+| PSICOLOGÍA | 23 | 7 | 6 | +1 |
+| LETRAS Y C. HUMANAS | 11 | 5 | 4 | +1 |
+| EDUCACIÓN | 15,25 | 3 | 7 | −4 |
+| CONTABLES | 22,5 | 2 | 2 | **0** |
+| GASTRONOMÍA | 15 | 2 | 3 | −1 |
+| **TOTAL** | | **203** | **194** | **+9** |
+
+Quitar 332 aulas del marco casi no mueve las aulas a visitar —de 202 a 203—
+porque el p25 apenas cambia: las no obligatorias no eran sistemáticamente más
+grandes ni más chicas. **El criterio depura el marco sin encarecer el trabajo de
+campo**, que es el mejor resultado posible para un filtro de este tipo.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
