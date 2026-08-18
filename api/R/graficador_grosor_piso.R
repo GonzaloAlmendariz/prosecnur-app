@@ -160,6 +160,22 @@
 #' antes de la linea 1962. Es un reordenamiento del graficador, no una llamada,
 #' y es el mismo trabajo que piden los dos R10 que quedan abiertos.
 #'
+#' Y ESE REORDENAMIENTO ES VIABLE, comprobado leyendo las dependencias. El alto
+#' del cromo —`h_header_in`, `h_legend_in`, `h_caption_in`, en 2916-2953— es lo
+#' unico que le falta a `.barras_alto_fila_ajustado()` para poder llamarse
+#' antes, y todo lo que ese calculo necesita ya existe mucho antes de 1962:
+#'
+#'    legend_is_side          1415        niveles_leyenda    1698
+#'    y_axis_max              <=1862      n_categorias       <=1862
+#'    needs_tall_label_slot   <=1897      max_lineas_eje_y_est <=1897
+#'    titulo/subtitulo/nota_pie/size_*/canvas_h_*   son parametros
+#'
+#' Cruzados los simbolos que el bloque del cromo usa contra los que se definen
+#' entre 1700 y 2782, los unicos con dependencia real hacia abajo son `p_bars` y
+#' `p_bars_panel`, y esos aparecen en el ENSAMBLADO del grafico (2796, 2848),
+#' no en el calculo de los tres altos. O sea que los tres altos se pueden
+#' extraer a un helper y llamarlos hacia 1900.
+#'
 #' CAUSA IDENTIFICADA, cruzando contra el PLAN. La lamina 16 es
 #' `plan$slides[[16]]`, «MISION Y PROPOSITOS INSTITUCIONALES», un
 #' `p_slide_1_grafico` con dos bloques `var_cruce` de cuatro publicos cada uno,
