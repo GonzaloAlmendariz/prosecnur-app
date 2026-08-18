@@ -502,3 +502,44 @@ describe("la ficha compara contra las aulas aplicadas", () => {
     expect(r?.por_facultad[0].asistentes).toBe(215);
   });
 });
+
+describe("el encabezado dice lo que el histórico SÍ trae", () => {
+  const SOLO_EJECUTADO = {
+    schema: "calc_muestra_referencia_criterios_v1", periodo: "2025-2", estudio: "x",
+    general: { aulas_dimensionadas: "194", aulas_agendadas: "1012", efectivas_logradas: "3303" },
+    por_facultad: [{ faculty_key: "derecho", facultad: "DERECHO", cuota: 25 }],
+  };
+
+  it("con cifras ejecutadas NO dice que el histórico no trae nada", () => {
+    // Medido en HSVG2026: el proyecto guarda 194 aulas aplicadas, 1.012
+    // agendadas y 3.303 encuestas válidas, pero ninguna decisión de diseño.
+    // Decir «no trae ninguna» con esas tres en pantalla es engañoso.
+    const filas: CriterioGeneralFila[] = [
+      { concepto: "Aulas a visitar", hoy: "", claveHistorica: "aulas_dimensionadas" },
+      { concepto: "Aulas agendadas con reemplazos", hoy: "", claveHistorica: "aulas_agendadas" },
+    ];
+    const html = renderToStaticMarkup(
+      <CriteriosGeneralesCard
+        filas={filas}
+        referencia={normalizeCalcMuestraReferenciaCriterios(SOLO_EJECUTADO)}
+      />,
+    );
+    expect(html).not.toContain("no trae ninguna de estas decisiones");
+    expect(html).toContain("sólo consta lo que se ejecutó");
+    // «De el estudio anterior» no existe en castellano.
+    expect(html).not.toContain("De el estudio");
+    expect(html).toContain("<strong>2</strong>");
+    // Y las columnas del anterior aparecen, porque hay con qué llenarlas.
+    expect(html).toContain("194");
+  });
+
+  it("CONTROL: sin ninguna cifra sigue diciendo que no trae nada", () => {
+    const html = renderToStaticMarkup(
+      <CriteriosGeneralesCard
+        filas={[{ concepto: "Sobremuestra", hoy: "20 %", claveHistorica: "ratio_sobremuestra" }]}
+        referencia={normalizeCalcMuestraReferenciaCriterios(SOLO_EJECUTADO)}
+      />,
+    );
+    expect(html).toContain("no trae ninguna de estas decisiones");
+  });
+});

@@ -391,3 +391,50 @@ test_that("la `k` de la dimension se publica como aulas APLICADAS", {
   expect_true(is.na(f$aulas_titulares))
   expect_true(is.na(f$aulas_sorteadas))
 })
+
+# El bloque general se llena con lo que el estudio anterior HIZO.
+#
+# Su diseño en papel —n, deff, p, error, metodo de seleccion— no vive en el
+# proyecto sino en el libro de calculo, asi que no se puede rescatar. Lo que si
+# guarda la referencia de asistencia es lo ejecutado: `cobertura` trae las aulas
+# agendadas y las aplicadas, y `global` las encuestas validas y la tasa.
+#
+# Medido en HSVG2026: 1.012 agendadas, 194 aplicadas, 3.303 validas, 69,7 %.
+
+.rc_asist_ejecutada <- function(...) {
+  base <- .rc_asist_vieja()
+  base$cobertura <- list(agendados = 1012, aplicados = 194, observados = 194)
+  base$global <- list(k = 194, matriculados = 7070, asistentes = 4931,
+                      enviadas = 3698, validas = 3303, tasa = 0.697454031117397)
+  modifyList(base, list(...))
+}
+
+test_that("el general trae lo ejecutado, con su nombre propio", {
+  g <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())$general
+  expect_equal(g$aulas_dimensionadas, "194")
+  expect_equal(g$aulas_agendadas, "1012")
+  expect_equal(g$efectivas_logradas, "3303")
+  expect_equal(g$tasa_asistencia, "69.7 %")
+})
+
+test_that("NO se rellenan las decisiones de diseño con un resultado", {
+  # Llamar «muestra» a las 3.303 encuestas logradas seria bautizar una cifra con
+  # el nombre de otra — el error que este trabajo ya cometio dos veces.
+  g <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())$general
+  for (k in c("muestra", "ratio_sobremuestra", "deff", "estadistico", "metodo_seleccion",
+              "aulas_marco", "tasa_respuesta_asumida")) {
+    expect_null(g[[k]])
+  }
+})
+
+test_that("sin cobertura ni global el general queda VACIO, no con ceros", {
+  g <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_vieja())$general
+  expect_equal(length(g), 0L)
+})
+
+test_that("las aulas aplicadas caen a `global$k` si no hay cobertura", {
+  sin_cob <- .rc_asist_ejecutada(cobertura = NULL)
+  g <- calc_muestra_referencia_criterios_desde_asistencia(sin_cob)$general
+  expect_equal(g$aulas_dimensionadas, "194")
+  expect_null(g$aulas_agendadas)
+})

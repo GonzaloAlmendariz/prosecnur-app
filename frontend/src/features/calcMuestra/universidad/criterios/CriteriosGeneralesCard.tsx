@@ -51,11 +51,14 @@ export function CriteriosGeneralesCard({
     return { ...f, antes, igual: coinciden(f.hoy, antes) };
   });
   const distintas = resueltas.filter((f) => f.igual === false).length;
-  const comparables = resueltas.filter((f) => f.igual !== null).length;
+  // Una fila sin valor de hoy —las de resultados de campo— no es una decisión
+  // que pueda «coincidir»: cuenta como histórico disponible, no como comparable.
+  const comparables = resueltas.filter((f) => f.igual !== null && f.hoy).length;
   // Sin nada con que comparar, las dos columnas del anterior son quince filas de
   // «sin referencia» y quince guiones: ruido que tapa la columna que si tiene
   // datos. El encabezado ya dice que no hay historico.
-  const comparando = comparables > 0;
+  const comparando = resueltas.some((f) => f.antes);
+  const conDato = resueltas.filter((f) => f.antes).length;
 
   return (
     <section className="cmv2-generales-card" aria-label="Criterios generales del estudio">
@@ -67,6 +70,18 @@ export function CriteriosGeneralesCard({
               <>
                 Comparado con {referencia.periodo || "el estudio anterior"}:{" "}
                 <strong>{distintas}</strong> de {comparables} decisiones cambiaron.
+              </>
+            ) : conDato > 0 ? (
+              // Decir «no trae nada» cuando sí trae cifras es tan engañoso como
+              // dejar la columna en blanco: el histórico de este proyecto guarda
+              // lo que se EJECUTÓ, no las decisiones de diseño.
+              <>
+                {/* «De el» no existe: sin periodo la frase arranca con la
+                    contracción. */}
+                {referencia.periodo ? `De ${referencia.periodo}` : "Del estudio anterior"}{" "}
+                sólo consta lo que se ejecutó: <strong>{conDato}</strong>{" "}
+                {conDato === 1 ? "cifra" : "cifras"}. Sus decisiones de diseño no
+                están en el proyecto.
               </>
             ) : (
               <>El histórico no trae ninguna de estas decisiones.</>
