@@ -2235,3 +2235,13 @@ hallazgos). DOS hallazgos, ambos reparados:
 Lección de gate: contar ERRORES además de fails (3 errores de un sprintf
 habrían pasado con un conteo de solo-fails). Pendiente G3: barrido de las
 pestañas restantes (Selección ya vista, Datos/Entrega parcial).
+
+## G4 · C1–C4 de las superficies nuevas en viewports angostos · ☑ conforme, 2026-08-18
+
+Medido en 1366×768 y 1280×720 sobre la tarjeta de certificación (9 columnas)
+y el embudo comparado: **sin scroll jail de página en ninguno**, la tabla
+cabe entera (1.126 px en 1.126 px de wrap; su overflow-x auto queda de
+reserva), filas del embudo sin desborde y un solo nombre elidido con su
+texto completo en el tooltip (por diseño). La τ del diseño ya es visible en
+el resumen («…con la tasa de asistencia esperada de 53,0 %»), y DERECHO
+muestra su 1,01× al filo. **Verde por conformidad medida, no por ausencia.**
