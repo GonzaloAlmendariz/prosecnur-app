@@ -72,6 +72,11 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
     );
   }
 
+  // Los elegibles que ninguna de las dos categorías de sexo cubre. Nunca
+  // negativo: si un dato viniera inconsistente, la línea calla en vez de
+  // enseñar un «-12 sin sexo declarado» que no significa nada.
+  const resto = Math.max(0, banco.elegibles - banco.mujeres - banco.hombres);
+
   return (
     <div className="aulas-banco">
       <p className="aulas-cadenas-lectura">
@@ -81,6 +86,20 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
         <strong>{fmt(banco.elegibles)}</strong> alumnos ·{" "}
         <strong>{fmt(banco.mujeres)}</strong> mujeres y{" "}
         <strong>{fmt(banco.hombres)}</strong> hombres
+        {/* El resto, DICHO. La línea enseñaba «1 345 alumnos · 580 mujeres y
+            460 hombres» y quien resta encuentra 305 que no están en ninguno de
+            los dos, sin nada que los explique. No es un error de cuenta: los
+            alumnos son TODOS los elegibles del aula y mujeres/hombres salen de
+            las dos categorías de sexo más frecuentes de esa aula, así que lo
+            que caiga fuera de esas dos no aparece.
+            Y aquí importa especialmente: el banco existe para cerrar la cuota
+            de hombres y mujeres, o sea que los alumnos sin sexo declarado son
+            justo los que limitan cuánto puede ayudar. Enseñar los dos primeros
+            números y callar el tercero deja creer que el banco cubre más de lo
+            que puede. */}
+        {resto > 0 ? (
+          <> · <strong>{fmt(resto)}</strong> sin sexo declarado</>
+        ) : null}
       </p>
 
       {/* Las facultades como filtro Y como resumen a la vez: la misma fila dice
