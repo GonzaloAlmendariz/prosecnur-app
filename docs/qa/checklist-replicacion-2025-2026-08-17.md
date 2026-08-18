@@ -2316,3 +2316,16 @@ momento); la ficha QR lleva el enlace + id del colector + URL de respaldo.
 (task_0bbf95f9, «Llevar cuotas del diseño y certificación al monitoreo»)
 con el diagnóstico completo, los file:line y el diseño del fix — registrado
 en la aplicación, como pide Gonzalo, sin pisar trabajo ajeno.
+
+## H2 · El sello en Coincidencia, modo lectura · ☑ 2026-08-18, commit `7c5f3708`
+
+La Entrega ahora cuenta el relato completo: coincide con 2025 (embudo
+comparado, cinco pasos) Y cumple sus propias metas (sello 15/15 con la τ
+del diseño), con las fichas al detalle debajo. Sin la acción «+1 aula» — el
+eco es lectura; decidir se decide en Selección. Verificado en vivo.
+
+**LOS TRES FRENTES DE LA INSTRUCCIÓN, CERRADOS EN SU PARTE PROPIA**:
+H1 ☑ decisiones registradas · H2 ☑ mejora real de UI · H3 ◐ medido con dos
+roturas documentadas y chip para la banda de monitoreo (task_0bbf95f9).
+El loop vuelve a holds hasta instrucción nueva o hasta que el chip se
+arranque.
