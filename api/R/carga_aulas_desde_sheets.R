@@ -66,3 +66,45 @@ aulas_libro_desde_valores <- function(values, hoja = c("agendadas", "aplicadas",
     control = base_control_a_filas(cuerpo, titulos)
   )
 }
+
+# El rol de la fuente decide QUE hoja es. `monitoreo_sync_fuentes.R` ya declara
+# los tres —`MONITOREO_AULAS_LIBRO_ROLES`— y su comentario ya anticipaba este
+# caso: «el libro entero puede vivir en Drive como un Sheet de tres pestanas, y
+# entonces llega como `google_sheets` con el mismo rol». Lo que faltaba era
+# justo esta traduccion: sin ella, una pestaña del libro se leia como una tabla
+# de respuestas cualquiera.
+AULAS_LIBRO_HOJA_POR_ROL <- c(
+  agendamiento = "agendadas",
+  parte_campo  = "aplicadas",
+  control      = "control"
+)
+
+#' La hoja del libro que corresponde a un rol de fuente.
+#'
+#' @param rol uno de `MONITOREO_AULAS_LIBRO_ROLES`.
+#' @return `"agendadas"`, `"aplicadas"`, `"control"`, o `""` si no es del libro.
+#' @export
+aulas_libro_hoja_por_rol <- function(rol) {
+  clave <- tolower(trimws(as.character(rol %||% "")[1]))
+  if (is.na(clave) || !nzchar(clave)) return("")
+  # `[[` con un nombre que no esta LANZA, no devuelve NULL, asi que el `%||%`
+  # nunca llegaba a correr: un rol desconocido reventaba en vez de contestar
+  # «esta fuente no es del libro». Lo caza el test del rol «respuestas».
+  if (!clave %in% names(AULAS_LIBRO_HOJA_POR_ROL)) return("")
+  unname(AULAS_LIBRO_HOJA_POR_ROL[[clave]])
+}
+
+#' Filas del plan a partir de una pestaña de Sheets y el rol de su fuente.
+#'
+#' @param values filas crudas de la API.
+#' @param rol rol declarado en la fuente.
+#' @return filas de plan, o `list()` si el rol no es de una hoja del libro.
+#' @export
+aulas_libro_desde_fuente <- function(values, rol) {
+  hoja <- aulas_libro_hoja_por_rol(rol)
+  # Un rol que no es del libro NO se adivina: devolver «agendadas» por defecto
+  # leeria una tabla de respuestas como si fuera la agenda y produciria filas de
+  # plan inventadas.
+  if (!nzchar(hoja)) return(list())
+  aulas_libro_desde_valores(values, hoja)
+}
