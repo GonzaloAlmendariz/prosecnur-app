@@ -1530,3 +1530,36 @@ cada pasada deja una mejora visual con captura antes/después, o no cuenta.
 - **Mirar el fixture antes que el producto.** Dos veces esta tanda el defecto
   visible era del dato de prueba, y arreglar el producto habría borrado
   capacidad real.
+
+### 2026-08-18 — el perfil pasa entero el gate visual del proyecto
+
+`ui-quick-check --require-geometry` **nunca se había pasado sobre aulas**. Al
+correrlo por primera vez dio `ok=false` con dos `capacity-drift`, y tirando de
+ese hilo salió algo mucho mayor que los 16 px que marcaba: **`.mon-workbench-head`
+se estiliza en `monitoreo.css` y aulas no importa ese archivo**, así que el
+encabezado se pintaba en `display: block`, sin una sola regla, con el icono y el
+título apilados. No era un encabezado mal ajustado; era un encabezado sin estilo
+—y explica los 142 px que medí al ponerlo y que me llevaron a recortarle el
+`detail` por «caro»: no era caro, estaba roto. Con el material del perfil son
+**64 px**.
+
+**Cobertura, y su matiz.** La primera tanda cubría las cinco secciones, pero el
+runner aterriza en la pestaña de entrada de cada una: las otras cinco pestañas
+—Cuotas, Estratos, Brechas, Parte de campo y Registro— quedaban fuera. Decirlo
+y cerrarlo después es la diferencia entre cobertura y verde compuesto.
+
+Estado final, **12 direcciones × 2 viewports = 24 capturas**:
+
+| | |
+|---|---|
+| `ok` | true en las doce |
+| `geometryIssues` | 0 |
+| `geometryCoverageMisses` | 0 — conformidad, no ausencia |
+| `scrollJails` · `overflow` · errores de página/API/recursos | 0 |
+
+Y lo que hizo falta para llegar: declarar el dueño del vacío en los cinco
+contenedores de lista del perfil (ninguno lo tenía, ni los previos ni el ritmo
+que añadí), y **no** declararlo en los dos gráficos de Plotly —medido sobre los
+otros tres perfiles: 16 declaraciones de capacidad y ninguna en un archivo con
+`PlotlyChart`, porque un gráfico llena su caja y no tiene vacío interior que
+poseer—.
