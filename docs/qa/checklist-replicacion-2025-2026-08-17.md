@@ -2276,3 +2276,19 @@ por sexo con τ del diseño (motor+tarjeta), cuatro métodos validados en vivo,
 C1–C4 conforme, cinco superficies bien explicadas, granos verificados.
 Abiertos para Gonzalo: PSI·hombres 0,86× (¿aula extra o tasa observada?) y
 la τ diferencial por sexo. El loop pasa a holds hasta su instrucción.
+
+## H1 · «+1 aula» disponible y registrado en la UI · ☑ 2026-08-18, commit `210ee746`
+
+Gonzalo: «nada puede ser manual y todo tiene que estar registrado». Medido:
+la cañería existía (engine respeta `aulas_base_fijas`, la afijación la
+hereda) pero ninguna superficie la editaba. Ahora las filas comprometidas de
+la certificación (no cubre · celda de sexo corta · margen ≤1,05×) ofrecen
+«+1 aula»: fija el override en el estrato del estudio vía `onComponente`,
+invalida artefactos y los banners guían recalcular → seleccionar. En vivo:
+DERECHO (1,01×) y PSICOLOGÍA (celda H) muestran el botón. **NUEVOS GOLES DE
+LA INSTRUCCIÓN**: H2 mejoras reales de UI (en rotación) · **H3 cableado
+calc-muestra ↔ fichas QR ↔ monitoreo: los tres módulos de aulas deben hablar
+el mismo idioma** (siguiente: medir la cadena de identificadores y metas —
+qué viaja hoy del sorteo afijado a las fichas y al monitoreo, dónde se
+rompe el idioma; monitoreo/** es zona de otra sesión: medir sin tocar,
+arreglar del lado calc-muestra/handoff).
