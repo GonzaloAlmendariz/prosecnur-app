@@ -1426,6 +1426,16 @@
   font-style: italic;
 }
 
+/* La facultad dentro del chip del aula: mas pequeña y en el tono suave, para
+   que el codigo siga siendo lo que se lee primero. */
+.mon-profile-page.is-aulas-flow .aulas-control-caso em {
+  margin-left: 5px;
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: var(--pulso-weight-medium);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-control-caso {
   padding: 1px 6px;
   border: 1px solid var(--pulso-chart-chip-border);

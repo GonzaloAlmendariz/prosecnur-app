@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { controlesDeAulas, tramosDeControl } from "./AulasControles";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { AulasControles, controlesDeAulas, tramosDeControl } from "./AulasControles";
 
 /**
  * Los controles de Validación se leen como avisos, no como filas de tabla.
@@ -87,5 +89,40 @@ describe("tramosDeControl", () => {
   it("no tabula un caso suelto", () => {
     const texto = "CH 31: 25 asistentes menos 1 rechazos dan 24.";
     expect(tramosDeControl(texto)).toHaveLength(1);
+  });
+});
+
+/**
+ * Cada incidencia dice de qué facultad es.
+ *
+ * Los controles nombran las aulas por código —«CH 31: 25 asistentes…»— y el
+ * operativo se dirige por facultad: sin ella hay que ir a otra pestaña a saber
+ * si esa incidencia es de Derecho o de Arquitectura.
+ */
+describe("AulasControles y la facultad de cada caso", () => {
+  const filas = [{
+    check: "field_report_reconciliation",
+    status: "review",
+    detail: "CH 31: no cuadra por 1. CH 85: no cuadra por 2.",
+  }];
+
+  it("pone la facultad junto al código del aula", () => {
+    const html = renderToStaticMarkup(
+      <AulasControles
+        filas={filas}
+        plan={[
+          { operational_code: "CH 31", faculty: "PSICOLOGIA" },
+          { operational_code: "CH 85", faculty: "DERECHO" },
+        ]}
+      />,
+    );
+    expect(html).toContain("PSICOLOGIA");
+    expect(html).toContain("DERECHO");
+  });
+
+  it("se calla cuando el plan no la trae, en vez de inventar «Sin facultad»", () => {
+    const html = renderToStaticMarkup(<AulasControles filas={filas} />);
+    expect(html).toContain("CH 31");
+    expect(html).not.toContain("Sin facultad");
   });
 });

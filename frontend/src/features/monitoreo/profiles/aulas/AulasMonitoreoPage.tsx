@@ -524,7 +524,7 @@ function renderAulasView(
         {/* Avisos y no tabla: el detalle de un control es una frase entera y en
             una celda de tres columnas se lee mal. Es además el lenguaje que ya
             usa `CalidadDeCampo` justo arriba, en esta misma sección. */}
-        <AulasControles filas={rows} />
+        <AulasControles filas={rows} plan={(dashboard.agenda ?? []) as Array<Record<string, unknown>>} />
       </section>
       {/* La tercera hoja del operativo. Los dos paneles son control de calidad y
           por eso comparten sección, pero no son la misma medida: arriba lo que
