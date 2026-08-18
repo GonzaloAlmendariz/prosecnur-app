@@ -1483,3 +1483,62 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # LECCION: un punto del tablero puede estar mal ENUNCIADO, y medirlo es lo que
 # lo destapa. «Queda llenarla» describia una intencion contraria a la del codigo
 # que la creo.
+
+# P23 — CERRADO: EL CRUCE QUE FALTABA, Y DOS DE LAS TRES OCUPACIONES ERAN
+# ARTEFACTO DEL MEDIDOR.
+#
+# El cruce pendiente era «que laminas declaran `nota_pie`». Respuesta medida
+# sobre el `.pulso` real (`unzip` + `readRDS(state.rds)`, sin `load_pulso()`):
+# **NINGUNA**. En el plan de 66 laminas el unico campo `pie` con texto esta en
+# la lamina 5, que es `p_slide_tabla_tecnica` —es el pie de la TABLA, no el
+# caption de un grafico—. Y ni `presets`, ni `w_presets`, ni
+# `overrides_reusables`, ni `scope_rules` traen texto de `nota_pie`: solo
+# `size_nota_pie`, `color_nota_pie` y `canvas_h_caption_in`. El motor ademas
+# pone `nota_pie = NULL` a proposito en los dos sitios de render principales
+# (`reporte_plan_ppt.R:4502` y `:5959`, «reactivable via overrides$nota_pie»).
+# TRAMPA: `presets$pie` es el preset del grafico de TARTA, no un pie de pagina.
+#
+# Con eso, las 14 «ocupadas» del tick anterior se reparten en tres cosas
+# distintas —y solo la tercera es contenido en la banda:
+#
+#   1. FALSO POSITIVO (lamina 3). No es una lamina de canvas: es OBJETIVO, su
+#      grupo va de 2.0714 a 3.9634 in y lo que contaba el medidor eran formas
+#      ALTAS que cruzan la banda (una de h=2.29 que empieza en 1.8774), no
+#      contenido posado en ella.
+#   2. CAPTION LEGITIMO (laminas 9-14, las de poblacion). Tienen CUATRO grupos
+#      y el medidor miraba el ultimo; lo que hay dentro son los «Base: 172
+#      estudiantes» de cada panel, que salen de `.format_n_caption()` en
+#      `.render_barras_categoricas()` y `.render_pie()`. Esos renderers NO
+#      llaman a la reserva, y hacen bien: ya tienen caption.
+#   3. LA LEYENDA DENTRO DE LA BANDA — el unico hallazgo real, y son SIETE.
+#
+# LA MEDICION LIMPIA (`p23g.py`, solo laminas de UN canvas, n = 48): distancia
+# del ultimo texto del canvas a su fondo.
+#     min **0.1819** · mediana **0.5866** · max 1.1589 in
+#     dentro de los 0.34 de reserva: **7 de 48** — 16, 30, 38, 41, 50, 51, 57
+# En las siete el invasor es la LEYENDA, no un dato: «Totalmente en desacuerdo»
+# y «SIN INF» en la 16, «Si»/«No» en la 30, 38 y 41, «Egresados / Docentes /
+# Estudiantes» en la 50. Es exactamente contra lo que la reserva se escribio.
+#
+# PERO NO ROMPE NADA, y esto tambien se mide: el peor caso acaba en 6.5364 in,
+# el canvas acaba en 6.7183 y la Base del template vive en 6.93 — **0.39 in de
+# aire**. La reserva aguanta en 41 de 48 con 0.59 in de mediana, y en las siete
+# que la invaden la leyenda sigue sin tocar la Base. **P23 se cierra como «la
+# reserva funciona»**, con la salvedad nombrada: garantiza el aire hasta la
+# Base, no garantiza que la banda quede libre.
+#
+# LO QUE LA VARA NO PUEDE ARBITRAR AQUI: el aprobado solo tiene **3** laminas
+# de un unico canvas con este patron (sus graficos no son grupos rvg), asi que
+# sus 0.1285 in de mediana son una muestra de tres y NO sostienen «el motor
+# desaprovecha 0.46 in mas que el aprobado». Lo que si queda vivo es lo ya
+# anotado arriba: los 0.05 in de la Base y el ~10 % del alto util que se come
+# el pie. Medido contra `p55.pptx` y contra el plan del `.pulso` de Conta.
+#
+# ENTRADA DEL MEDIDOR COMPROBADA: `chOff == off` y `chExt == ext` en TODOS los
+# grupos de las 70 laminas, asi que las `y` de los hijos SI son comparables con
+# el fondo del canvas. Sin eso, toda esta medicion seria de otra cosa.
+#
+# LECCION: una ocupacion contada no es una ocupacion causada. Tres laminas del
+# mismo recuento resultaron ser un falso positivo geometrico, un caption
+# legitimo y el defecto de verdad — y solo mirar el TEXTO de lo que cae dentro
+# las separo.
