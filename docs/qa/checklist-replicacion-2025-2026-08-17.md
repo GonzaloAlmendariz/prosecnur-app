@@ -995,6 +995,61 @@ control sin el cual el primero pasaría sin medir nada.
 
 **171 aulas**, dentro de la banda. Con el mínimo en 10 —el de 2025— eran 176.
 
+## R23 — la etiqueta se repara y la configuración objetivo cierra en 177 aulas
+
+`excluded_faculties` **no estaba roto**. Fui a la base de matrícula y el aula
+`soc254_0731` tiene 23 alumnos: **11 de CIENCIAS SOCIALES, 11 de ESCUELA DE
+ESTUDIOS ESPECIALES y 1 de EE.GG. LETRAS**. Con la unidad excluida, sus once
+dejan de ser elegibles y el aula entra con los doce restantes — exactamente los
+doce que se veían—. El aula es legítima: hay doce personas encuestables.
+
+Lo que estaba mal era la **etiqueta**, que salía de los 23 matriculados; el
+empate 11–11 la rotulaba con la facultad que el diseño acababa de sacar. Ahora
+sale de los **elegibles** (`6789d49e`). No cambia qué aulas entran —ni una— pero
+sí a qué facultad se atribuyen, que es de lo que cuelgan las cuotas.
+
+Estuve a punto de «arreglarlo» excluyendo el aula por su etiqueta: habría
+borrado un aula con doce alumnos encuestables. El mutante que sobrevivió fue lo
+que impidió commitearlo.
+
+### La duda de Gonzalo sobre Estudios Generales
+
+«¿Están en estudios generales estos estudiantes? Porque si siguen en estudios
+generales son estudiantes de generales, no de la facultad a la que van luego».
+Verificado: **la base ya lo distingue**. 9.734 alumnos figuran con Facultad =
+Estudios Generales aunque su carrera de destino esté declarada (1.682 Derecho,
+1.019 Ingeniería Civil, 964 Informática). Los once de este caso tienen Facultad =
+CIENCIAS SOCIALES y carrera Sociología: ya salieron de generales. La atribución
+es por facultad **actual**, que es la correcta.
+
+### Configuración objetivo completa: 177 aulas
+
+Marco de **2.362** aulas, con las quince facultades declaradas, las dos escuelas
+excluidas y el mínimo en 10. **Ninguna aula rotulada con una facultad excluida.**
+
+| Facultad | elegibles | p25 | aulas | Kamila |
+|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 573 | 22 | 36 | 37 |
+| EE.GG. CIENCIAS | 345 | 26 | 23 | 21 |
+| EE.GG. LETRAS | 377 | 26 | 23 | 24 |
+| DERECHO | 339 | 37 | 15 | 21 |
+| CIENCIAS SOCIALES | 123 | 18 | 13 | 13 |
+| ARQUITECTURA | 38 | 16 | 12 | 11 |
+| ARTE Y DISEÑO | 64 | 15 | 12 | 14 |
+| ARTES ESCÉNICAS | 90 | 11 | 10 | 7 |
+| GESTIÓN | 83 | 23 | 8 | 8 |
+| CIENCIAS Y ARTES COMUN. | 140 | 19 | 8 | 10 |
+| PSICOLOGÍA | 89 | 23 | 6 | 7 |
+| LETRAS Y C. HUMANAS | 34 | 11 | 4 | 5 |
+| EDUCACIÓN | 28 | 13 | 3 | 6 |
+| CONTABLES | 18 | 21 | 2 | 3 |
+| GASTRONOMÍA | 21 | 15 | 2 | 2 |
+| **TOTAL** | | | **177** | **189** |
+
+**177 aulas**, dentro de la banda «entre 170 y 210». Doce de quince quedan a dos
+aulas o menos del objetivo de la plantilla de Kamila; se separan DERECHO (−6),
+EDUCACIÓN (−3) y ARTES ESCÉNICAS (+3).
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
