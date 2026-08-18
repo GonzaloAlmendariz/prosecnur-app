@@ -2168,3 +2168,27 @@
 .mon-profile-page.is-aulas-flow .aulas-ritmo-cifra strong { color: var(--pulso-text); }
 /* El acumulado va más callado que el día: es contexto, no el dato de la fila. */
 .mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado { color: var(--pulso-border-strong); }
+
+/* El encabezado compartido dentro de la reja de aulas.
+   `mon-workbench-main` aporta FILAS —`auto auto minmax(0,1fr)`— y la clase
+   propia del perfil, `mon-profile-workbench`, aporta COLUMNAS —`210px
+   minmax(0,1fr)`—, así que el elemento tiene las dos rejas a la vez. Un hijo
+   nuevo cae por auto-placement en la primera celda, que es la columna de 210 px
+   del rail: medido a 1024, el encabezado quedaba en 0 de alto con su texto
+   desbordando por debajo del panel.
+   No basta con darle toda la fila: al hacerlo el contenido pasa a la fila 2, que
+   es `auto`, y se queda sin el `minmax(0,1fr)` que le da su alto. Van las dos
+   cosas juntas — la fila del encabezado y el reparto de filas — porque por
+   separado cada una arregla la mitad y rompe la otra. */
+.mon-profile-page.is-aulas-flow .mon-profile-workbench {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.mon-profile-page.is-aulas-flow .mon-profile-workbench > .mon-workbench-head {
+  grid-column: 1 / -1;
+}
+
+.mon-profile-page.is-aulas-flow .mon-profile-workbench > .mon-workbench-content {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
