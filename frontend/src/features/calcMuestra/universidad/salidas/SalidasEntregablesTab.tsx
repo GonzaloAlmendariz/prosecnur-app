@@ -235,81 +235,10 @@ export function SalidasEntregablesTab({
         </AvisoModulo>
       )}
 
-      <section className="cmv2-panel cmv2-sal-panel" aria-label="Política de privacidad de los entregables">
-        <div className="cmv2-panel-head">
-          <strong>Privacidad</strong>
-          <Popover
-            ariaLabel="Columnas que entran o salen según la política"
-            maxWidth={430}
-            trigger={
-              <button type="button" className="cmv2-ghost cmv2-sal-pii-help">
-                <CircleHelp size={13} /> ¿Qué columnas entran?
-              </button>
-            }
-          >
-            <div className="cmv2-sal-pii-pop">
-              <strong>Columnas por entregable según la política</strong>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Entregable</th>
-                    <th data-activa={pii === "sin_pii_cliente" || undefined}>Cliente sin identificadores</th>
-                    <th data-activa={pii === "interno_trazabilidad" || undefined}>Trazabilidad interna</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {PII_MATRIX.map((row) => (
-                    <tr key={row.entregable}>
-                      <td>{row.entregable}</td>
-                      <td data-activa={pii === "sin_pii_cliente" || undefined}>{row.cliente}</td>
-                      <td data-activa={pii === "interno_trazabilidad" || undefined}>{row.interno}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p>En ninguna política se publican nombres ni datos personales de estudiantes: los identificadores internos son códigos de curso-horario y de selección.</p>
-            </div>
-          </Popover>
-        </div>
-        <GlidingTabList
-          activeKey={pii}
-          mode="tabs"
-          className="pulso-segmented cmv2-sal-pii-segment"
-          role="radiogroup"
-          aria-label="Política de identificadores"
-          data-pii={pii}
-        >
-          {PII_OPTIONS.map((option, index) => (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              data-gliding-key={option.id}
-              className={pii === option.id ? "is-active" : ""}
-              aria-checked={pii === option.id}
-              onClick={() => updateConfig({ pii_policy: option.id })}
-              onKeyDown={(event) => {
-                const targetIndex = event.key === "Home"
-                  ? 0
-                  : event.key === "End"
-                    ? PII_OPTIONS.length - 1
-                    : event.key === "ArrowRight"
-                      ? (index + 1) % PII_OPTIONS.length
-                      : event.key === "ArrowLeft"
-                        ? (index - 1 + PII_OPTIONS.length) % PII_OPTIONS.length
-                        : -1;
-                if (targetIndex < 0) return;
-                updateConfig({ pii_policy: PII_OPTIONS[targetIndex].id });
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </GlidingTabList>
-        <p className="cmv2-sal-nota cmv2-uni-swap" data-cambiando={notaPiiCambiando || undefined}>
-          {PII_OPTIONS.find((option) => option.id === pii)?.detail}
-        </p>
-      </section>
+      {/* K2 (censo f224af2d): el Paquete de defensa estaba al FINAL y mínimo
+          siendo la pieza que defiende el diseño; sube junto al reporte. */}
+      {paquete && <PaqueteDefensaCard paquete={paquete} />}
+
 
       <div className="cmv2-sal-destinos cmv2-uni-stagger" aria-label="Destinos de publicación">
         <article className={`cmv2-sal-destino ${workbookOn ? "is-on" : ""}`}>
@@ -436,7 +365,83 @@ export function SalidasEntregablesTab({
         </div>
       </PanelAvanzado>
 
-      {paquete && <PaqueteDefensaCard paquete={paquete} />}
+      {/* K2: la privacidad al pie — es una POLÍTICA transversal, no un paso
+          entre el reporte y el Excel; interrumpía el flujo de generación. */}
+      <section className="cmv2-panel cmv2-sal-panel" aria-label="Política de privacidad de los entregables">
+        <div className="cmv2-panel-head">
+          <strong>Privacidad</strong>
+          <Popover
+            ariaLabel="Columnas que entran o salen según la política"
+            maxWidth={430}
+            trigger={
+              <button type="button" className="cmv2-ghost cmv2-sal-pii-help">
+                <CircleHelp size={13} /> ¿Qué columnas entran?
+              </button>
+            }
+          >
+            <div className="cmv2-sal-pii-pop">
+              <strong>Columnas por entregable según la política</strong>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Entregable</th>
+                    <th data-activa={pii === "sin_pii_cliente" || undefined}>Cliente sin identificadores</th>
+                    <th data-activa={pii === "interno_trazabilidad" || undefined}>Trazabilidad interna</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PII_MATRIX.map((row) => (
+                    <tr key={row.entregable}>
+                      <td>{row.entregable}</td>
+                      <td data-activa={pii === "sin_pii_cliente" || undefined}>{row.cliente}</td>
+                      <td data-activa={pii === "interno_trazabilidad" || undefined}>{row.interno}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p>En ninguna política se publican nombres ni datos personales de estudiantes: los identificadores internos son códigos de curso-horario y de selección.</p>
+            </div>
+          </Popover>
+        </div>
+        <GlidingTabList
+          activeKey={pii}
+          mode="tabs"
+          className="pulso-segmented cmv2-sal-pii-segment"
+          role="radiogroup"
+          aria-label="Política de identificadores"
+          data-pii={pii}
+        >
+          {PII_OPTIONS.map((option, index) => (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              data-gliding-key={option.id}
+              className={pii === option.id ? "is-active" : ""}
+              aria-checked={pii === option.id}
+              onClick={() => updateConfig({ pii_policy: option.id })}
+              onKeyDown={(event) => {
+                const targetIndex = event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? PII_OPTIONS.length - 1
+                    : event.key === "ArrowRight"
+                      ? (index + 1) % PII_OPTIONS.length
+                      : event.key === "ArrowLeft"
+                        ? (index - 1 + PII_OPTIONS.length) % PII_OPTIONS.length
+                        : -1;
+                if (targetIndex < 0) return;
+                updateConfig({ pii_policy: PII_OPTIONS[targetIndex].id });
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </GlidingTabList>
+        <p className="cmv2-sal-nota cmv2-uni-swap" data-cambiando={notaPiiCambiando || undefined}>
+          {PII_OPTIONS.find((option) => option.id === pii)?.detail}
+        </p>
+      </section>
     </div>
   );
 }
