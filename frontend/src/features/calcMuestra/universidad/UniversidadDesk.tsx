@@ -6,7 +6,7 @@
  * navegación (sección, pestaña local y pestaña del laboratorio) sigue viviendo
  * en la página contenedora.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import {
   normalizeCalcMuestraReferenciaCriterios,
@@ -64,6 +64,7 @@ import {
   buildClassroomLabModel,
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
+import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -463,6 +464,14 @@ export function UniversidadDesk({
       }),
     [margenFilas, aulasState?.frame?.aula_frame, facultyComp, syncedWorkspace.aulas_config],
   );
+  // La afijación del diseño viaja en el config del seleccionar: sin esto el
+  // sorteo reparte por masa de elegibles e ignora el aulas_base por facultad
+  // que el propio cálculo publicó (medido: desvío 68/202 en HSVG2026).
+  const onSeleccionarAulasConAfijacion = useCallback(
+    (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) =>
+      onSeleccionarAulas(conAfijacionDelEstudio(config, margenFilas), methodId),
+    [onSeleccionarAulas, margenFilas],
+  );
   const sexoBalance = useMemo(
     () => normalizeCalcMuestraSexoPorFacultad(
       (aulasState?.selection as { sexo_por_facultad?: unknown } | null)?.sexo_por_facultad ?? null,
@@ -631,7 +640,7 @@ export function UniversidadDesk({
                 busy={busy}
                 onWorkspace={onWorkspace}
                 onCompare={onCompararAulas}
-                onSelectMethod={onSeleccionarAulas}
+                onSelectMethod={onSeleccionarAulasConAfijacion}
                 onNavigate={onNavigate}
               />
             )}
@@ -643,7 +652,7 @@ export function UniversidadDesk({
                 workspace={syncedWorkspace}
                 model={labModel}
                 busy={busy}
-                onSelectMethod={onSeleccionarAulas}
+                onSelectMethod={onSeleccionarAulasConAfijacion}
                 onSimulateReplacements={onSimularReemplazos}
                 onNavigate={onNavigate}
                 certeza={aulasState?.certeza ?? null}
