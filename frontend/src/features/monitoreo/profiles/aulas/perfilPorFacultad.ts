@@ -58,3 +58,54 @@ export function perfilPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     cumplidas: facultades.filter((f) => f.falta === 0 && f.meta > 0).length,
   };
 }
+
+/** Una fila de `avance_por_facultad` tal como la publica el motor. */
+export type FilaDeFacultadDelMotor = {
+  faculty?: unknown;
+  aulas?: unknown;
+  meta?: unknown;
+  brecha?: unknown;
+  respuestas_validas?: unknown;
+};
+
+/**
+ * El perfil por facultad a partir del bloque que YA agrega el motor.
+ *
+ * Antes se calculaba en la vista sobre `course_status`, y ese bloque viaja
+ * recortado a 500 filas de 2 615 y ademas incluye las reservas dormidas de cada
+ * cadena: el panel que contesta «¿cómo va Derecho?» medía un subconjunto
+ * arbitrario. El motor lo agrega sobre el mismo conjunto que las demás cifras de
+ * avance —un aula por slot, sin banco— así que las cuatro cuentan lo mismo.
+ */
+export function perfilDesdeElMotor(filas: ReadonlyArray<FilaDeFacultadDelMotor>) {
+  const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  const facultades = filas
+    .map((f) => {
+      const meta = num(f.meta);
+      const validas = num(f.respuestas_validas);
+      const falta = Math.max(0, num(f.brecha));
+      const cubierto = Math.max(0, meta - falta);
+      return {
+        facultad: String(f.faculty ?? "").trim() || "Sin facultad",
+        aulas: num(f.aulas),
+        meta,
+        validas,
+        cubierto,
+        excedente: Math.max(0, validas - cubierto),
+        falta,
+        aulasConBrecha: falta > 0 ? 1 : 0,
+        avance: meta ? Math.round((100 * cubierto) / meta) : 0,
+        sinMeta: 0,
+      };
+    })
+    .filter((f) => f.meta > 0 || f.aulas > 0);
+
+  return {
+    facultades,
+    // El motor no publica las aulas sin facultad por separado; el bloque ya las
+    // agrupa bajo su propio nombre vacío, que arriba se rotula «Sin facultad».
+    sinFacultad: 0,
+    tope: facultades.reduce((max, f) => Math.max(max, f.meta), 0),
+    cumplidas: facultades.filter((f) => !f.falta).length,
+  };
+}

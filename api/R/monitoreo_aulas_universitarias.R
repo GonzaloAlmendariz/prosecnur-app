@@ -1162,6 +1162,29 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # otra vez, y en la unica cifra que se lee sin bajar la vista.
   quotas_sex_faculty <- .monitoreo_aulas_quota_sex_faculty(tracked_df, responses, cfg, valid_response, response_classroom)
 
+  # POR FACULTAD, en el motor y no en la vista.
+  #
+  # El perfil por facultad se calculaba en el frontend sobre `course_status`, que
+  # viaja RECORTADO a 500 filas de 2 615 y ademas incluye las reservas dormidas:
+  # el panel que contesta «¿como va Derecho?» estaba midiendo un subconjunto
+  # arbitrario. Aqui sale del mismo `tracked_df` que las demas cifras de avance
+  # —un aula por slot, sin banco—, asi que las cuatro cuentan lo mismo.
+  #
+  # Es la unidad con la que se dirige el operativo: «todo debe ser por facultad».
+  # El estrato —facultad/sexo/tamaño— sigue publicandose aparte porque es la
+  # unidad del DISEÑO, y no son la misma pregunta.
+  avance_por_facultad <- stats::aggregate(
+    cbind(aulas = rep(1L, nrow(tracked_df)),
+          respuestas_validas = tracked_df$respuestas_validas,
+          brecha = tracked_df$brecha,
+          meta = suppressWarnings(as.numeric(tracked_df$expected_valid))) ~ faculty,
+    data = tracked_df,
+    FUN = function(x) sum(x, na.rm = TRUE)
+  )
+  # La que mas lejos esta de su meta primero: es a donde va el equipo mañana.
+  avance_por_facultad <- avance_por_facultad[order(-avance_por_facultad$brecha,
+                                                   avance_por_facultad$faculty), , drop = FALSE]
+
   advance <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)), respuestas_validas = tracked_df$respuestas_validas, brecha = tracked_df$brecha) ~ stratum,
     data = tracked_df,
@@ -1432,6 +1455,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # primero: «¿de esta facultad me queda algo, y con cuantas mujeres?».
     banco_extras = monitoreo_aulas_banco_extras(plan),
     avance_por_estrato = .monitoreo_aulas_records(advance),
+    avance_por_facultad = .monitoreo_aulas_records(avance_por_facultad),
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload.

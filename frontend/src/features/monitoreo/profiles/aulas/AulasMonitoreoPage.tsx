@@ -852,7 +852,10 @@ function renderAulasView(
           <h3>Dónde falta más</h3>
           <span>contra la meta del plan</span>
         </div>
-        <AulasPerfilPorFacultad filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+        <AulasPerfilPorFacultad
+          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
+          resumen={(dashboard.avance_por_facultad ?? []) as never}
+        />
       </section>
       </div>
       )}

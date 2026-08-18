@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { perfilPorFacultad } from "./perfilPorFacultad";
+import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } from "./perfilPorFacultad";
 
 /**
  * Cada facultad contra su meta, ordenadas por lo que falta.
@@ -17,10 +17,18 @@ import { perfilPorFacultad } from "./perfilPorFacultad";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasPerfilPorFacultad({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+export function AulasPerfilPorFacultad({ filas, resumen }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /** `avance_por_facultad` del motor. Cuando llega, MANDA. */
+  resumen?: ReadonlyArray<FilaDeFacultadDelMotor>;
+}) {
   const { facultades, sinFacultad, tope, cumplidas } = useMemo(
-    () => perfilPorFacultad(filas),
-    [filas],
+    // El bloque del motor manda porque agrega sobre el conjunto correcto: un
+    // aula por slot y sin banco. Calcularlo aquí sobre `course_status` medía
+    // 500 filas de 2 615, reservas dormidas incluidas. El cálculo local se
+    // queda como respaldo para un payload viejo que aún no traiga el bloque.
+    () => (resumen?.length ? perfilDesdeElMotor(resumen) : perfilPorFacultad(filas)),
+    [filas, resumen],
   );
 
   if (!facultades.length) {

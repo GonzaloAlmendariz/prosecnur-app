@@ -756,6 +756,12 @@ export type MonitoreoAulasDashboard = {
    * en pantalla como «el estudio tiene 500 aulas».
    */
   course_status_total?: number;
+  /**
+   * Avance agregado POR FACULTAD, calculado en el motor sobre el mismo conjunto
+   * que las demás cifras —un aula por slot, sin banco—. La vista lo calculaba
+   * sobre `course_status`, que viaja recortado y con las reservas dormidas.
+   */
+  avance_por_facultad?: Array<Record<string, unknown>>;
   selection_run_id?: string;
   frame_hash?: string;
   anonymous_responses?: boolean;
