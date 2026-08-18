@@ -2033,3 +2033,12 @@ copia. PENDIENTE UI (siguiente): el frontend aún no declara los targets al
 seleccionar — cablear `faculty_targets` desde el margen del estudio para que
 el analista no dependa de un POST manual; y el audit de congelados sigue
 rojo por +72 PREVIOS a este trabajo (decisión de línea base para el curador).
+
+## AFIJACIÓN UI · El circuito cerrado · ☑ 2026-08-18, commit `f76eee01`
+
+`aulas/afijacionTargets.ts` arma `faculty_targets` desde los estratos que R
+publicó (`margen.aulas_requeridas` con fallback a `aulas_base`, null nunca
+degrada a 0) y los DOS `onSelectMethod` del Desk pasan por el wrapper. El
+analista que aprieta «seleccionar» en la UI ahora obtiene el reparto del
+diseño sin saber que existe un mapa de targets. 7 vitest + mutante muerto +
+224 del área verdes + tsc limpio.
