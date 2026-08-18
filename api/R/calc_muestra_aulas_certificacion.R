@@ -35,6 +35,53 @@
   else con_filas[[1]]$resultado$aulas_por_estrato
 }
 
+# Cuotas por facultad × sexo del diseño: el engine del cálculo YA las
+# sub-distribuye (proporcional a la población de cada sexo en la facultad) y
+# las publica en `distribucion_sub`; aquí sólo se leen. Devuelve
+# fac_key -> list(F = cuota, M = cuota) con claves de sexo normalizadas.
+.cm_certificacion_cuotas_sexo <- function(estudio) {
+  if (!is.list(estudio)) return(list())
+  componentes <- estudio$componentes
+  if (!is.list(componentes)) return(list())
+  sub <- NULL
+  for (comp in componentes) {
+    if (is.list(comp) && is.list(comp$resultado) && length(comp$resultado$distribucion_sub)) {
+      sub <- comp$resultado$distribucion_sub
+      break
+    }
+  }
+  if (!length(sub)) return(list())
+  out <- list()
+  for (fila in sub) {
+    if (!is.list(fila)) next
+    k <- .cm_aulas_scalar(.cm_criterios_fac_key(fila$estrato %||% ""), "")
+    sexo <- toupper(.cm_aulas_scalar(fila$sub, ""))
+    n <- suppressWarnings(as.numeric(.cm_aulas_scalar(fila$n, NA)))
+    if (!nzchar(k) || !sexo %in% c("F", "M") || !is.finite(n)) next
+    if (is.null(out[[k]])) out[[k]] <- list()
+    out[[k]][[sexo]] <- n
+  }
+  out
+}
+
+# Elegibles por sexo en las titulares de una facultad, desde las columnas
+# sex_top_* de la selección (con dos sexos, top-1 y top-2 son el split
+# completo del aula).
+.cm_certificacion_elegibles_sexo <- function(titulares, fac_keys, k) {
+  filas <- titulares[fac_keys == k, , drop = FALSE]
+  acc <- c(F = 0, M = 0)
+  if (!nrow(filas)) return(acc)
+  for (lado in c("sex_top_1", "sex_top_2")) {
+    col_n <- paste0(lado, "_n")
+    if (!lado %in% names(filas) || !col_n %in% names(filas)) next
+    sexo <- toupper(as.character(filas[[lado]]))
+    n <- suppressWarnings(as.numeric(filas[[col_n]]))
+    n[!is.finite(n)] <- 0
+    for (sx in c("F", "M")) acc[[sx]] <- acc[[sx]] + sum(n[sexo == sx])
+  }
+  acc
+}
+
 .cm_certificacion_tasa <- function(referencia_asistencia) {
   if (!is.list(referencia_asistencia)) return(NA_real_)
   d <- referencia_asistencia$diseno
@@ -68,17 +115,19 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
   }
   eleg_por_fac <- list()
   aulas_por_fac <- list()
+  titulares_fk <- character(0)
   if (nrow(titulares) && "faculty" %in% names(titulares)) {
-    fk <- .cm_criterios_fac_key(as.character(titulares$faculty))
+    titulares_fk <- .cm_criterios_fac_key(as.character(titulares$faculty))
     el <- suppressWarnings(as.numeric(titulares$eligible_n))
     el[!is.finite(el)] <- 0
-    for (i in seq_along(fk)) {
-      k <- fk[[i]]
+    for (i in seq_along(titulares_fk)) {
+      k <- titulares_fk[[i]]
       if (!nzchar(k)) next
       eleg_por_fac[[k]] <- (eleg_por_fac[[k]] %||% 0) + el[[i]]
       aulas_por_fac[[k]] <- (aulas_por_fac[[k]] %||% 0L) + 1L
     }
   }
+  cuotas_sexo <- .cm_certificacion_cuotas_sexo(estudio)
 
   tasa <- .cm_certificacion_tasa(referencia_asistencia)
   fmt1 <- function(x) format(round(x, 1), trim = TRUE, scientific = FALSE, big.mark = " ")
@@ -123,6 +172,30 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
       sin_tasa = "El diseño no declara la tasa de asistencia esperada: los elegibles están medidos pero la certificación no se puede afirmar.",
       sin_cuota = "El diseño no le trazó cuota: no hay meta que certificar."
     )
+    # Cuotas de hombre y mujer (Gonzalo: «aulas que nos garanticen llegar a
+    # ese número de cuotas de hombre y mujer por sexo»). El estado por sexo
+    # es informativo por celda; no tumba la certificación de la facultad —
+    # la composición de un aula mixta no se controla en el sorteo, y un
+    # roll-up estricto marcaría en rojo selecciones operativamente sanas.
+    sexo_filas <- list()
+    cuotas_sx <- cuotas_sexo[[k]]
+    if (is.list(cuotas_sx) && length(cuotas_sx) && estado %in% c("certificada", "no_cubre")) {
+      eleg_sx <- .cm_certificacion_elegibles_sexo(titulares, titulares_fk, k)
+      for (sx in c("F", "M")) {
+        cuota_sx <- suppressWarnings(as.numeric(cuotas_sx[[sx]] %||% NA))
+        if (!is.finite(cuota_sx) || cuota_sx <= 0) next
+        el_sx <- eleg_sx[[sx]]
+        esp_sx <- if (is.finite(tasa)) el_sx * tasa else NA_real_
+        sexo_filas[[length(sexo_filas) + 1L]] <- list(
+          sexo = sx,
+          cuota = round(cuota_sx),
+          elegibles = round(el_sx),
+          esperadas = if (is.finite(esp_sx)) round(esp_sx) else NA_real_,
+          margen = if (is.finite(esp_sx) && cuota_sx > 0) round(esp_sx / cuota_sx, 2) else NA_real_,
+          cubre = if (is.finite(esp_sx)) esp_sx >= cuota_sx else NA
+        )
+      }
+    }
     filas[[length(filas) + 1L]] <- list(
       faculty_key = k,
       facultad = etiqueta,
@@ -132,7 +205,8 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
       efectivas_esperadas = if (is.finite(esperadas)) round(esperadas) else NA_real_,
       margen = if (is.finite(margen)) round(margen, 2) else NA_real_,
       estado = estado,
-      aviso = aviso
+      aviso = aviso,
+      sexo = sexo_filas
     )
   }
   if (!length(filas)) return(selection)
