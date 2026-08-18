@@ -205,7 +205,12 @@ export function fichaDeFacultad(
       },
       {
         n: 3, titulo: "Aulas que pasan los criterios",
-        hoy: aulasElegibles, antes: h?.aulas_sorteadas ?? null,
+        // El «antes» correcto es el MARCO ELEGIBLE del estudio anterior
+        // (aulas_universo, derivado exacto del catálogo con sus criterios) —
+        // comparar contra las sorteadas era peras con manzanas (C&I: 571 vs
+        // 40 cuando su universo 2025 era 655). Sorteadas queda de fallback
+        // para referencias sin universo derivado.
+        hoy: aulasElegibles, antes: h?.aulas_universo ?? h?.aulas_sorteadas ?? null,
         detalle: aulasDelCatalogo != null ? `de ${aulasDelCatalogo} en el catálogo` : "en el marco",
       },
       {

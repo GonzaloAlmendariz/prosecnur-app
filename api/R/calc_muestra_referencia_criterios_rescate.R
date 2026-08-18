@@ -251,6 +251,21 @@ calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
   })
 }
 
+#' Rellena `aulas_universo` de la referencia con el universo derivado del
+#' catalogo (frame$universo_referencia, I11). El universo del estudio
+#' anterior es el denominador correcto del paso 3 de la ficha: comparar los
+#' elegibles de HOY contra las SORTEADAS de ayer era peras con manzanas.
+calc_muestra_referencia_criterios_con_universo <- function(referencia, frame = NULL) {
+  if (!is.list(referencia)) return(referencia)
+  bloque <- if (is.list(frame)) frame$universo_referencia else NULL
+  filas_universo <- if (is.list(bloque)) bloque$filas else NULL
+  if (!length(filas_universo)) return(referencia)
+  referencia$por_facultad <- .cm_ref_crit_rellenar_filas(
+    referencia$por_facultad, filas_universo
+  )
+  referencia
+}
+
 #' Rellena los NA de `base` con lo que `relleno` sepa de la MISMA facultad.
 #'
 #' La politica de toda la referencia: la fila base manda campo a campo y el

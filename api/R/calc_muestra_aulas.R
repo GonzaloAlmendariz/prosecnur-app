@@ -540,6 +540,9 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     teacher_type_orden = .cm_criterios_normalize_teacher_orden(
       config$teacher_type_orden %||% config$orden_tipo_docente
     ),
+    # I11: spec del marco del estudio anterior — datos del estudio, no codigo.
+    # Se conserva tal cual; la validacion vive en .cm_universo_ref_spec.
+    referencia_marco = config$referencia_marco %||% config$marco_referencia %||% NULL,
     # Particularidades del marco (asesoría 2026-07-15 §12): decisiones
     # manuales por curso-horario (incluir/excluir/revisado + nota).
     # Normalización defensiva en calc_muestra_aulas_particularidades.R;
@@ -1460,6 +1463,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     # marco en la UI). Ver .cm_aulas_filters_echo.
     filters_echo = .cm_aulas_filters_echo(cfg),
     frame_hash = .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters)),
+    # I11: universo del estudio anterior por facultad, derivado del catalogo
+    # con el spec de config (calc_muestra_aulas_universo_referencia.R).
+    universo_referencia = calc_muestra_aulas_universo_referencia(catalogo_curso_horario, cfg),
     population = population,
     population_pool = population_pool,
     aula_frame = aula_frame,
