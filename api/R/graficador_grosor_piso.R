@@ -146,6 +146,23 @@
 #' (`.barras_alto_fila_ajustado()`). Que una configuracion «aparezca dos veces»
 #' no dice nada, entonces: pasa siempre.
 #'
+#' CAUSA IDENTIFICADA, cruzando contra el PLAN. La lamina 16 es
+#' `plan$slides[[16]]`, «MISION Y PROPOSITOS INSTITUCIONALES», un
+#' `p_slide_1_grafico` con dos bloques `var_cruce` de cuatro publicos cada uno,
+#' y declara en sus overrides **`wrap_y = 90`**. Antes de P45 el estimador de
+#' altura envolvia el ENUNCIADO con `max(12, floor(90 * 0.8)) = 72` caracteres
+#' —el mas generoso de todo el mazo, porque ese 90 es el envoltorio del EJE—.
+#' Medido sobre sus dos enunciados:
+#'
+#'    wrap 72 -> 2 lineas    canal real 0.22 -> 5 lineas
+#'    wrap 72 -> 3 lineas    canal real 0.22 -> 6 lineas
+#'
+#' De cinco lineas contadas a once: es la lamina donde la correccion de P45
+#' pega mas fuerte de todo el mazo, y de ahi salen su `y_axis_max = 9.52` y sus
+#' barras de 0.190. P45 cuenta bien —el enunciado ocupa esas once lineas—; lo
+#' que falta es que ese alto extra vaya a la BANDA DE TEXTO y no a filas
+#' virtuales del eje, que es lo que adelgaza la barra.
+#'
 #' IDENTIFICADOR ENCONTRADO (tercera clave probada): `plot_cat_lvls` no son las
 #' etiquetas visibles sino las REFERENCIAS de variable —`tema_1__1__docentes`,
 #' `tema_1__2__estudiantes`…—, y esas si distinguen un render de otro. La 16
