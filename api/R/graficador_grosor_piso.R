@@ -160,6 +160,22 @@
 #' antes de la linea 1962. Es un reordenamiento del graficador, no una llamada,
 #' y es el mismo trabajo que piden los dos R10 que quedan abiertos.
 #'
+#' CORRECCION AL PLAN: HAY DOS ESTIRADOS, NO UNO. Al ir a implementarlo apareci
+#' un segundo: el de **2967** (`.barras_alto_fila_ajustado()`, reparte el hueco
+#' a las filas) y el de **~3001** (W-6/B54, `panel_nuevo / n_filas_virtuales`,
+#' acotado por `.BARRAS_PANEL_ESTIRA_MAX`), y los DOS reescriben
+#' `alto_por_cat_eff`. Anclar despues del primero seguiria dejando fuera al
+#' segundo, asi que el anclaje tiene que ver el alto de fila FINAL, no el del
+#' primer estirado.
+#'
+#' Y el bloque a mover no son los tres altos sueltos: es la unidad **2884-3005**
+#' —`alto_por_cat_eff` (2884), `n_filas_virtuales` (2889), `h_panel_in` (2890),
+#' `panel_min` (2897), `titulo_canvas` (2902), el cromo (2912-2955),
+#' `panel_fijado_in` (2958), los dos estirados— mas el `caption_text` de 2783.
+#' Todas sus entradas siguen estando disponibles antes de 1962; lo que cambia es
+#' el TAMAÑO del movimiento, que es un refactor con su propia sesion y su propio
+#' gate, no un apaño de un tick.
+#'
 #' Y ESE REORDENAMIENTO ES VIABLE, comprobado leyendo las dependencias. El alto
 #' del cromo —`h_header_in`, `h_legend_in`, `h_caption_in`, en 2916-2953— es lo
 #' unico que le falta a `.barras_alto_fila_ajustado()` para poder llamarse
