@@ -1112,7 +1112,25 @@
   min-height: 0;
 }
 
+/* La reja se queda PEGADA al bajar. El panel mide mas que el canvas y no se
+   puede acotar sin tocar una regla compartida por todas las tablas apiladas
+   —ver la nota de arriba—, pero el problema real no era el alto: era perder de
+   vista el filtro justo cuando miras lo filtrado. Pegada, filtras por Derecho y
+   sigues viendo que estas en Derecho. Es el mismo patron que ya usan las
+   cabeceras de tabla del perfil. */
 .mon-profile-page.is-aulas-flow .aulas-banco-facultades {
+  position: sticky;
+  top: 0;
+  /* Por ENCIMA de la cabecera pegajosa de la tabla, que tambien es sticky con
+     `z-index: 1`: al empatar, la cabecera se pintaba a traves de la reja y se
+     leian «CURSO-HORARIO / FACULTAD / ALUMNOS» entre las tarjetas. Dos
+     superficies pegajosas en el mismo panel tienen que declarar quien va
+     delante, y delante va el filtro. */
+  z-index: 2;
+  /* Fondo propio: sin el, las filas de la tabla se leen POR DEBAJO de las
+     tarjetas al desplazarse. */
+  background: var(--pulso-surface);
+  padding-bottom: 6px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   /* Todas las filas al alto de la mas alta. Con veinte facultades hay nombres
