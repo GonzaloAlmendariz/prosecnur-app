@@ -41,7 +41,11 @@ export function AulasCoberturaChart({ filas }: { filas: ReadonlyArray<MonitoreoA
     // El envoltorio reserva el alto: el panel es un grid y el div que Plotly
     // monta no empuja su fila, así que sin esto el panel medía 26 px —sólo su
     // cabecera— y el gráfico se dibujaba encima de la tabla de abajo.
-    <div className="aulas-cobertura-chart">
+    // C1: quién posee el espacio interior del panel. Sin declararlo, el gate
+    // cae a la cabecera como dueña y reporta sus 4-5 px de holgura como
+    // `capacity-drift`, que es un diagnóstico sobre el sitio equivocado: el
+    // panel sólo tiene 1 px libre abajo y el hueco está dentro del head.
+    <div className="aulas-cobertura-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <PlotlyChart
         data={data}
         height={220}
