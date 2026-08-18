@@ -3145,3 +3145,18 @@ facultad a ancho completo, «todas» default; verificado en vivo).
 | K3 · scores del sorteo en Titulares · serie de estabilidad · calor cuota×sexo en Resultados | ☐ |
 
 Cola D: D4 libro (aprobada) ☐ SIGUIENTE · D2 τ sexo ☐ · D5 extracción ☐ · menores ☐.
+
+### D4 cerrado (`el commit de arriba`) · dibujo entero
+
+La referencia gana `alumnos_por_ch` por facultad: mediana de elegibles de
+los TITULARES con dato (cadenas ANTES que dimensión — la media de
+matriculados era otra población). Servido en vivo: ARQ 34.5 · EGL 48 ·
+GAS 17 · LyCH 12.5, calcando 2025. El paso 4 de las fichas ya compara.
+
+| # | Cola | Estado |
+|---|---|---|
+| D1 τ facultad ref. · D4 fila estadístico · Tandas I/J/K0-K2 · K3 lente | ☑ |
+| K3 restantes (scores sorteo · serie estabilidad · calor cuota×sexo) | ☐ SIGUIENTE |
+| D2 τ sexo referencial | ☐ |
+| D5 extracción del congelado (+59 sobre base) | ☐ |
+| Menores: test REST 400 · aviso-con-causa relato · scroll-jail otras pestañas | ☐ |
