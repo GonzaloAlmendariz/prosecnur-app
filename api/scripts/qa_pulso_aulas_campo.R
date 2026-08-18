@@ -161,8 +161,24 @@ partes <- list(
 )
 
 if (ESCALA_2025) {
-  facs <- c("Ciencias e Ingenieria", "Estudios Generales Letras", "Gestion",
-            "Arquitectura", "Educacion", "Derecho")
+  # El reparto usa `length(facs)` y NO un `%% 6` a mano. Con el numero fijo, la
+  # lista podia crecer a veinte y seguian saliendo seis: el fixture ignoraba en
+  # silencio lo que se le añadia, que es la peor forma de no cubrir un caso.
+  # VEINTE facultades, que es el techo del rango real: los estudios de este tipo
+  # manejan de 11 a 20, y el estudio de 2026 trae 15. El fixture tenia SEIS, asi
+  # que ninguna vista por facultad podia enseñar como se comporta a escala —ni
+  # la reja de tarjetas de Extras, ni la lista de avance, ni el compacto de
+  # 1024x600—. Los nombres son los reales del estudio, sin tildes por el locale
+  # del generador.
+  facs <- c(
+    "Ciencias e Ingenieria", "Estudios Generales Letras", "Gestion",
+    "Arquitectura y Urbanismo", "Educacion", "Derecho",
+    "Estudios Generales Ciencias", "Arte y Diseño", "Ciencias Sociales",
+    "Ciencias y Artes de la Comunicacion", "Artes Escenicas", "Psicologia",
+    "Letras y Ciencias Humanas", "Ciencias Contables", "Administracion",
+    "Trabajo Social", "Publicidad", "Ingenieria Industrial",
+    "Ingenieria de Minas", "Ciencias de la Informacion"
+  )
   # Una agenda real ocupa dos semanas de campo, no un solo «Lun 08:00» repetido
   # 196 veces. Con la fecha constante, cualquier lectura por dia sale degenerada
   # —un solo dia con todo dentro— y el fixture excluiria por construccion el
@@ -235,23 +251,26 @@ if (ESCALA_2025) {
     o
   }
   plan <- c(
-    lapply(1:170, function(i) base(sprintf("CH %d", i), "titular", facs[[1 + (i %% 6)]], i,
+    lapply(1:170, function(i) base(sprintf("CH %d", i), "titular", facs[[1 + (i %% length(facs))]], i,
                                    est = if (i <= 24) "reemplazada" else "agendada")),
-    lapply(1:24, function(k) base(sprintf("R %d.1", k), "chain_reserve", facs[[1 + (k %% 6)]],
+    lapply(1:24, function(k) base(sprintf("R %d.1", k), "chain_reserve", facs[[1 + (k %% length(facs))]],
                                   170 + k, repl = sprintf("CH %d", k), ord = 1,
                                   est = if (k <= 2) "reemplazada" else if (k %% 3 == 0) "en_reserva" else "agendada")),
     # `en_reserva` y no `agendada`: una reserva agendada YA esta en campo y no
     # esta disponible. Con todas agendadas, NINGUNA cadena tenia reserva libre y
     # activar un reemplazo devolvia siempre «cadena agotada» — el camino que la
     # accion existe para recorrer no se podia probar en pantalla.
-    lapply(1:2, function(k) base(sprintf("R %d.2", k), "chain_reserve", facs[[1 + (k %% 6)]],
+    lapply(1:2, function(k) base(sprintf("R %d.2", k), "chain_reserve", facs[[1 + (k %% length(facs))]],
                                  194 + k, repl = sprintf("CH %d", k), ord = 2,
                                  est = "en_reserva")),
     # El BANCO: reservas sueltas que no cuelgan de ningun titular. El estudio
     # real lleva 639 contra 202 titulares, asi que no es un caso de borde; aqui
     # bastan unas pocas para que las vistas de cadena puedan ejercitarlo.
-    lapply(1:6, function(k) base(sprintf("EXTRA %d", k), "extra_reserve_pool",
-                                 facs[[1 + (k %% 6)]], 210 + k, est = "en_reserva"))
+    # Cuarenta extras, dos por facultad: la reja de tarjetas de la pestaña se
+    # dibuja con una por facultad, asi que con seis no se veia como se comporta
+    # a veinte —que es el techo del rango real—.
+    lapply(1:40, function(k) base(sprintf("EXTRA %d", k), "extra_reserve_pool",
+                                  facs[[1 + (k %% length(facs))]], 210 + k, est = "en_reserva"))
   )
   aplicadas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
   # Cuanta gente hubo de verdad en cada aula. Vive AQUI porque el parte de campo

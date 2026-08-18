@@ -1079,14 +1079,25 @@
 .mon-profile-page.is-aulas-flow .aulas-banco-facultades {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  /* Todas las filas al alto de la mas alta. Con veinte facultades hay nombres
+     de una linea y de dos, y sin esto las tarjetas salian de 47 y 62 px: el
+     marco cambiaba segun el largo del nombre, que es justo lo que C2 prohibe.
+     El hueco que queda dentro de una tarjeta corta es capacidad legitima —tiene
+     borde y dueño—, no vacio suelto. */
+  grid-auto-rows: 1fr;
   gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades li {
+  display: grid;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-banco-facultades button {
   display: grid;
+  align-content: start;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 2px 8px;
@@ -1111,10 +1122,17 @@
   background: var(--pulso-module-monitoring-soft);
 }
 
+/* El nombre ENVUELVE. Hereda `white-space: nowrap` —del reset del botón— y con
+   veinte facultades reales eso rompe: «Ciencias y Artes de la Comunicación»
+   ocupa 227 px en una columna de 171 y se desbordaba sobre la cifra de al lado.
+   Un nombre de facultad recortado es un dato operativo recortado: es con lo que
+   se elige (C4). Dos líneas caben; la reja iguala el alto de su fila. */
 .mon-profile-page.is-aulas-flow .aulas-banco-nombre {
   min-width: 0;
+  white-space: normal;
   font-size: 12px;
   font-weight: var(--pulso-weight-black);
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
@@ -1750,6 +1768,11 @@
 
 .mon-profile-page.is-aulas-flow .aulas-facultades-lista {
   display: grid;
+  /* Todas las filas al alto de la mas alta. Los estudios de este tipo manejan
+     de 11 a 20 facultades y algunos nombres —«Ciencias y Artes de la
+     Comunicación»— envuelven a dos lineas: sin esto las filas salian de 27 y 41
+     px y el marco cambiaba segun el largo del nombre (C2). */
+  grid-auto-rows: 1fr;
   gap: 5px;
   margin: 0;
   padding: 0;
