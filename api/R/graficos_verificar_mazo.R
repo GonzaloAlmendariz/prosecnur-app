@@ -2158,3 +2158,102 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # persiguiendo quien RESUELVE el texto, cuando bastaba preguntar **si alguien lo
 # habia escrito ya**. Cuando un texto sale mal, mirar la CONFIGURACION antes que
 # el motor —y es la tercera vez en este loop que la respuesta estaba ahi—.
+
+
+#' Textos del plan que traen una etiqueta truncada por SPSS
+#'
+#' B7. SPSS corta la etiqueta de variable en **256 bytes**. Cuando el analista
+#' fija un enunciado en el plan —`titulos_grupo`, `titulo`, `etiquetas_vars`— y
+#' ese texto vino del `.sav`, el corte **se guarda en el proyecto** y el motor lo
+#' dibuja tal cual: hace bien, es un override explicito. Pero entonces el
+#' entregable sale con una frase a medias y **nadie avisa**. Medido en el mazo
+#' de Contabilidad: `plan[21]$grafico$args$titulos_grupo$tema_2`, **256 B**,
+#' acabando en «…Consejo de D», teniendo el XLSForm de administrativos los
+#' **291** completos.
+#'
+#' La regla es deliberadamente estrecha: **exactamente `limite_bytes`** y
+#' **prefijo estricto** de alguna etiqueta del instrumento. Las dos condiciones
+#' juntas son casi imposibles por casualidad —un texto que mide 256 bytes justos
+#' Y que ademas es el principio de otro mas largo del propio proyecto—.
+#'
+#' NO se exige que la etiqueta larga sea de la MISMA fuente. Saber la fuente de
+#' un `titulos_grupo$tema_N` obliga a casar ese `N` con el orden de las `vars`
+#' del mismo `args`, un acoplamiento fragil que no hace falta: para AVISAR basta
+#' con que el texto entero exista en algun instrumento del proyecto. Quien lea
+#' el aviso mira la lamina y decide.
+#'
+#' @param plan Plan del `.pulso` (`graficos_config$plan`).
+#' @param surveys Lista de `survey` (o de instrumentos con `$survey`), uno por
+#'   fuente; se usan todas sus etiquetas como universo.
+#' @param limite_bytes Limite del formato. 256 es el de SPSS.
+#' @return `data.frame` con `lamina`, `ruta`, `bytes`, `bytes_entera`, `texto`.
+#'
+#' MEDIDO sobre el `.pulso` de Contabilidad (`v5_Conta 14-08 equivalencias`), 8
+#' `survey` en `files/` y 66 laminas de plan: **dispara UNA vez**, la predicha.
+#' Y el control da la razon de ser de la segunda condicion: el plan tiene **DOS**
+#' textos de 256 bytes exactos, y el otro —`plan[3]$texto`, el objetivo del
+#' estudio, redactado a mano y terminado en punto— **no es un truncamiento**. Sin
+#' la regla del prefijo, la mitad de los avisos de este mazo serian falsos.
+#'
+#' NO ENTRA EN `verificar_mazo()` y no suma a la vara. Esa mide el XML de un
+#' `.pptx` ya escrito y no tiene el plan a mano; esta regla es del PLAN, y el
+#' defecto que persigue —una frase a medias— se ve igual de bien en un mazo
+#' impecable. Meterla ahi obligaria a pasarle el `.pulso` a una funcion que hoy
+#' recibe una ruta, y a mezclar dos varas distintas en una cuenta.
+#'
+#' CONSUMIDOR NATURAL, no enchufado: el generador del mazo, que SI tiene plan y
+#' fuentes, avisando por `.pulso_avisos_de_job()`. Queda pendiente porque el
+#' sitio donde colgarlo esta en `reporte_plan_ppt.R`, congelado a crecimiento, y
+#' porque hoy NINGUN aviso del motor llega ahi —las dos laminas de escala
+#' partida y las cuatro de radar tampoco—: enchufar este solo taparia medio
+#' hueco. Mientras tanto se llama a mano sobre el plan de un `.pulso`.
+#' @keywords internal
+.verif_plan_etiqueta_truncada <- function(plan, surveys, limite_bytes = 256L) {
+  vacio <- data.frame(lamina = integer(0), ruta = character(0),
+                      bytes = integer(0), bytes_entera = integer(0),
+                      texto = character(0), stringsAsFactors = FALSE)
+  sl <- plan$slides
+  if (!length(sl)) return(vacio)
+
+  # Universo de etiquetas: cualquier `label` de cualquier survey recibido.
+  if (is.data.frame(surveys)) surveys <- list(surveys)
+  largas <- unlist(lapply(surveys, function(s) {
+    if (is.list(s) && !is.data.frame(s) && !is.null(s$survey)) s <- s$survey
+    if (!is.data.frame(s) || !("label" %in% names(s))) return(character(0))
+    as.character(s$label)
+  }), use.names = FALSE)
+  largas <- unique(largas[!is.na(largas) & nzchar(largas)])
+  if (!length(largas)) return(vacio)
+  norm <- function(x) trimws(gsub("[[:space:]]+", " ", x))
+  largas_n <- norm(largas)
+
+  out <- vacio
+  rec <- function(x, ruta, i) {
+    if (is.character(x) || is.factor(x)) {
+      v <- as.character(x)
+      for (k in seq_along(v)) {
+        t <- v[[k]]
+        if (is.na(t) || nchar(t, "bytes") != limite_bytes) next
+        tn <- norm(t)
+        hit <- largas_n[nchar(largas_n) > nchar(tn) & startsWith(largas_n, tn)]
+        if (!length(hit)) next
+        out <<- rbind(out, data.frame(
+          lamina = i,
+          ruta = if (length(v) > 1) paste0(ruta, "[[", k, "]]") else ruta,
+          bytes = nchar(t, "bytes"),
+          bytes_entera = max(nchar(hit, "bytes")),
+          texto = t, stringsAsFactors = FALSE))
+      }
+      return(invisible(NULL))
+    }
+    if (!is.list(x)) return(invisible(NULL))
+    nm <- names(x)
+    if (is.null(nm)) nm <- rep("", length(x))
+    for (k in seq_along(x)) {
+      r <- if (nzchar(nm[k])) paste0(ruta, "$", nm[k]) else paste0(ruta, "[[", k, "]]")
+      rec(x[[k]], r, i)
+    }
+  }
+  for (i in seq_along(sl)) rec(sl[[i]]$payload, "", i)
+  out
+}
