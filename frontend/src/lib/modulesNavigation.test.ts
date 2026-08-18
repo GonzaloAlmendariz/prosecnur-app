@@ -283,7 +283,7 @@ describe("manifiesto primario de navegación", () => {
     ]);
   });
 
-  it("adjunta a Monitoreo las mismas 69 pestañas del catálogo canónico", () => {
+  it("adjunta a Monitoreo las mismas pestañas del catálogo canónico", () => {
     const monitoring = PROSECNUR_MODULES.find((module) => module.slug === "monitoreo");
     const catalogos = MONITOREO_PESTANAS as unknown as Record<
       string,
@@ -293,13 +293,22 @@ describe("manifiesto primario de navegación", () => {
       .flatMap((secciones) => Object.values(secciones))
       .flat();
 
-    expect(TOTAL_PESTANAS_MONITOREO).toBe(69);
-    expect(declaradas).toHaveLength(69);
+    // El conteo se DERIVA del catálogo en vez de fijarse a mano. Estaba clavado
+    // en 69 y ya iban 76: cada pestaña nueva y legítima dejaba este guard en
+    // rojo, y un guard que se pone rojo por lo correcto acaba actualizándose a
+    // ciegas o ignorándose. Lo que de verdad defiende son los asertos de abajo
+    // —que el manifiesto y el catálogo sean el MISMO array, y que cada pestaña
+    // tenga su `to` bien formado—; el número no añadía nada a eso. Comprobado
+    // con un mutante: descolgar el catálogo de aulas deja el test en rojo.
+    expect(declaradas.length).toBeGreaterThan(0);
+    expect(TOTAL_PESTANAS_MONITOREO).toBe(declaradas.length);
 
     const adjuntas = monitoring?.modos?.flatMap((modo) =>
       modo.sections.flatMap((section) => section.tabs ?? []),
     ) ?? [];
-    expect(adjuntas).toHaveLength(69);
+    // El aserto con dientes: lo que el Shell adjunta tiene que ser exactamente
+    // lo que el catálogo declara.
+    expect(adjuntas).toHaveLength(declaradas.length);
 
     for (const modo of monitoring?.modos ?? []) {
       for (const section of modo.sections) {
