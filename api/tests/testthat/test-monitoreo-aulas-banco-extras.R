@@ -93,3 +93,22 @@ test_that("el banco no cuenta como aulas por debajo de su meta", {
   # Y el banco no esta en ninguno de los dos.
   expect_identical(db$kpis$brechas, 1L)
 })
+
+test_that("el recorte de course_status se declara", {
+  # Recortaba 500 filas en silencio. Sobre un plan de 2 615 eso son 2 115 aulas
+  # que no llegaban a la pantalla, y una vista por facultad se quedaria sin
+  # facultades enteras sin que nada lo dijera.
+  filas <- lapply(seq_len(3), function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("u%d", i),
+    collection_unit_id = sprintf("u%d", i), label = "A",
+    course_name = sprintf("C%d", i), faculty = "DERECHO", stratum = "DERECHO / F / G4",
+    sample_role = "titular", eligible_n = 30, expected_valid = 21,
+    sample_status = "agendada"))
+  plan <- monitoreo_aulas_normalize_plan(filas)
+  db <- monitoreo_aulas_dashboard(plan, data.frame(), list(enabled = TRUE, plan = plan))
+
+  # Sin recorte el total coincide con lo publicado; el aserto que importa es que
+  # el campo EXISTA y diga la verdad, para que la vista pueda declararlo.
+  expect_identical(db$course_status_total, length(db$course_status))
+  expect_gt(db$course_status_total, 0L)
+})

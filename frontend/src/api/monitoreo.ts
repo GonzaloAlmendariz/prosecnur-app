@@ -750,6 +750,12 @@ export type MonitoreoAulasDashboard = {
    * agotaba entera no había de dónde leer qué queda en ese estrato.
    */
   banco_extras?: BancoDeExtras | null;
+  /**
+   * Cuántos cursos-horario hay DE VERDAD. `course_status` viaja recortado por
+   * el tamaño del payload —500 filas— y sin este campo un plan de 2 615 se leía
+   * en pantalla como «el estudio tiene 500 aulas».
+   */
+  course_status_total?: number;
   selection_run_id?: string;
   frame_hash?: string;
   anonymous_responses?: boolean;

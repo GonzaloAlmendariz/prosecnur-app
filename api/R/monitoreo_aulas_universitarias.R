@@ -101,6 +101,10 @@ monitoreo_aulas_motivos_reemplazo <- function() {
 #' (`.monitoreo_publication_aulas_model_frames`, que ademas toma `classroom_id`,
 #' `faculty`, `program`, `level`, `stratum` y `wave`).
 #' @export
+# Cuantas filas de `course_status` viajan al cliente. No es un numero magico:
+# es el tope del payload, y lo que deja fuera se declara con `course_status_total`.
+MONITOREO_AULAS_COURSE_STATUS_TOPE <- 500L
+
 BRECHAS_COLUMNAS_PUBLICADAS <- c(
   "operational_code", "classroom_id", "label", "faculty", "program", "level",
   "stratum", "wave", "operational_status", "respuestas_validas",
@@ -961,7 +965,14 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   priority <- match(out$application_state, c("en_aplicacion", "lista", "pendiente", "cerrando"), nomatch = 5L)
   out <- out[order(priority, -out$brecha, out$faculty, out$schedule,
                    monitoreo_aulas_rango_codigo(out$operational_code)), , drop = FALSE]
-  .monitoreo_aulas_records(out, max_rows = 500L)
+  # El tope existe por el tamaño del payload —1,3 MB ya hoy— pero DECLARA lo que
+  # deja fuera. Recortaba 500 en silencio: sobre un plan de 2 615 filas eso son
+  # 2 115 aulas que no llegaban a la pantalla, y con la vista por facultad que
+  # el estudio necesita faltarian facultades enteras sin que nada lo dijera.
+  # El total viaja como atributo para que la vista pueda decir «500 de 2 615».
+  recortado <- .monitoreo_aulas_records(out, max_rows = MONITOREO_AULAS_COURSE_STATUS_TOPE)
+  attr(recortado, "total") <- nrow(out)
+  recortado
 }
 
 .monitoreo_aulas_quota_source_df <- function(cfg) {
@@ -1410,6 +1421,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     ),
     agenda = .monitoreo_aulas_records(plan_df),
     course_status = course_status,
+    # Cuantas hay DE VERDAD. Sin esto, `course_status` de 500 sobre un plan de
+    # 2 615 se leia como «el estudio tiene 500 aulas».
+    course_status_total = as.integer(attr(course_status, "total") %||% length(course_status)),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una
