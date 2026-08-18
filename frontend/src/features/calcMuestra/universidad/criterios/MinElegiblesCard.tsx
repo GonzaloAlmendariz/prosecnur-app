@@ -15,6 +15,7 @@ import { IconConfirm, IconSuccess, IconUndo } from "../../../../lib/icons";
 import { minEligibleThreshold } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import {
+  avisoMatriculados,
   minimoFacultad,
   minimoSugerido,
   presentesEsperados,
@@ -58,6 +59,7 @@ export function MinElegiblesCard({
   const umbral = minEligibleThreshold(seleccion, fallbackUmbral);
   const tasa = tasaAsistencia(seleccion);
   const overrides = facultades.filter((fac) => minimoFacultad(seleccion, fac.key) != null).length;
+  const avisoMatric = avisoMatriculados(seleccion, facultades, umbral);
   const sugeridoGeneral = minimoSugerido(umbral, tasa);
   const presentesGeneral = presentesEsperados(umbral, tasa);
   const tasaPct = tasa == null ? null : Math.round(tasa * 100);
@@ -124,6 +126,24 @@ export function MinElegiblesCard({
           tiene uno propio). Referencia de estudios previos: facultades grandes como Ciencias e Ingeniería o Derecho
           suelen usar 20–25; unidades pequeñas como Arte y Diseño, 8–12.
         </span>
+
+        {/* El OTRO umbral. Hay dos mínimos sobre magnitudes anidadas —elegibles
+            ≤ matriculados siempre— y sólo éste se ve; el de matriculados manda
+            en cuanto una facultad baja por debajo de él, y hasta entonces es
+            invisible porque no recorta nada. Medido: Artes Escénicas con mínimo
+            10 y matriculados en 15 subió a 57 en vez de a 103. */}
+        {avisoMatric ? (
+          <div className="cmv2-crit-sug" role="note" data-tone="warn">
+            <Lightbulb size={14} aria-hidden="true" />
+            <p className="cmv2-crit-sug-copy">
+              Hay además un mínimo de <strong>{fmtInt(avisoMatric.umbral)} matriculados</strong> por
+              curso-horario. Manda sobre el de elegibles en{" "}
+              {avisoMatric.tapadas.length === 1 ? "la facultad" : "las facultades"} que piden menos:{" "}
+              {avisoMatric.tapadas.map((f) => `${f.label} (${fmtInt(f.minimo)})`).join(", ")}. Ahí el
+              recorte lo hace el de matriculados, no el que ves aquí.
+            </p>
+          </div>
+        ) : null}
 
         {tasa != null && sugeridoGeneral != null ? (
           <div className="cmv2-crit-sug" role="note">

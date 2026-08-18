@@ -90,3 +90,39 @@ export function presentesEsperados(minimo: number, tasa: number | null): number 
   if (!Number.isFinite(minimo) || minimo <= 0) return null;
   return Math.round(minimo * tasa);
 }
+
+/**
+ * El otro umbral: matriculados por curso-horario.
+ *
+ * Hay DOS mínimos sobre magnitudes anidadas —elegibles ≤ matriculados siempre—
+ * y sólo uno se ve en pantalla. Mientras el de elegibles sea el mayor, el de
+ * matriculados no recorta nada: exigir 15 elegibles ya implica 15 matriculados.
+ * Medido en HSVG2026 con ambos en 15: **ninguna** de las 5.263 aulas cayó sólo
+ * por matriculados.
+ *
+ * Pero en cuanto una facultad baja su mínimo por debajo de él —Artes Escénicas a
+ * 10 con matriculados en 15— el invisible pasa a mandar: allí subió de 44 a 57
+ * en vez de a las 103 que el mínimo relajado prometía. Sin este aviso, el
+ * analista mueve una perilla y otra que no ve se come el efecto.
+ */
+export type AvisoMatriculados = {
+  umbral: number;
+  /** Facultades cuyo mínimo propio queda POR DEBAJO del umbral de matriculados. */
+  tapadas: { key: string; label: string; minimo: number }[];
+};
+
+export function avisoMatriculados(
+  seleccion: CriteriosSeleccionMarco | null | undefined,
+  facultades: { key: string; label: string }[],
+  umbralGeneral: number,
+): AvisoMatriculados | null {
+  const thr = seleccion?.byVariable?.enrolled_total?.threshold;
+  const umbral = typeof thr?.min === "number" && Number.isFinite(thr.min) ? Math.round(thr.min) : null;
+  if (umbral == null || umbral <= 0) return null;
+  const tapadas = facultades
+    .map((f) => ({ ...f, minimo: minimoFacultad(seleccion, f.key) ?? Math.round(umbralGeneral) }))
+    .filter((f) => f.minimo < umbral)
+    .sort((a, b) => a.minimo - b.minimo);
+  if (!tapadas.length) return null;
+  return { umbral, tapadas };
+}

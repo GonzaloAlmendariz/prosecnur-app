@@ -1443,6 +1443,73 @@ Es exactamente el efecto anticipado —más aulas elegibles con p25 más bajo pi
 más visitas— pero concentrado donde el marco era más escaso. Arquitectura ya era
 la única facultad que se pasaba de las tres varas antes de tocar nada.
 
+## R34 — el umbral invisible, y los talleres por facultad
+
+### El segundo criterio no estaba en ninguna pantalla
+
+Gonzalo: «me comentas de que aquí hay un umbral de matriculados ≥ 15, pero el que
+yo recuerde eso no se debió aplicar en ningún curso-horario porque ya teníamos el
+criterio de elegibles».
+
+Tenía razón. La UI tiene su tarjeta de **mínimo de elegibles con overrides por
+facultad**, pero el mínimo de **matriculados** no aparece en ninguna parte. Y
+mientras el de elegibles sea el mayor, no recorta nada —los elegibles nunca
+superan a los matriculados—, así que su ausencia no se nota. En cuanto una
+facultad baja por debajo de él, manda en silencio: Artes Escénicas con mínimo 10
+y matriculados en 15 subió a 57 en vez de a las 103 prometidas.
+
+Reparado con un aviso que sólo aparece cuando de verdad tapa, nombra las
+facultades afectadas y dice cuál de los dos recorta allí. Tres mutantes: avisar
+siempre, ignorar el umbral general de las que heredan, y perder el orden por
+agresividad.
+
+### Los talleres, medidos por facultad
+
+Gonzalo: «en 2025, en arquitectura se aplicaron talleres, porque eran tipos de
+cursos-horario que tenían bastantes alumnos y que en otras facultades no era así.
+Ésa es una de las razones por las cuales los criterios siempre son a nivel de
+facultad».
+
+**En el pool de 2025 no hay ni un aula de tipo TALLER**: las 1.097 son
+`TEORICO(TEORICO-PRACTICO, TEORICO-LABORATORIO)`. Los 31 «talleres» de ese pool
+lo son por el nombre del curso, y están en DERECHO (9), GESTIÓN (7), CIENCIAS Y
+ARTES (6), CIENCIAS E INGENIERIA (4), EE.GG. LETRAS (4) y EDUCACIÓN (1) — no en
+Arquitectura ni en Arte y Diseño.
+
+Pero la intuición de fondo sí se sostiene, y con fuerza. En nuestro catálogo hay
+**315 aulas de tipo TALLER** y se concentran justo donde él decía:
+
+| Facultad | talleres | mediana de matriculados |
+|---|---|---|
+| **ARTE Y DISEÑO** | **186** | 18 |
+| **ARQUITECTURA** | **58** | 19 |
+| EE.GG. LETRAS | 27 | 24 |
+| ARTES ESCÉNICAS | 14 | 14 |
+| ESCUELA DE POSGRADO | 8 | 6 |
+| PSICOLOGÍA | 7 | 25 |
+
+Y no son marginales: 18–19 matriculados de mediana, comparable a las teóricas de
+esas mismas facultades. Si el criterio de tipo de sesión admitiera TALLER allí
+—que es exactamente lo que permite `op: "add"` por facultad—:
+
+| Excepción | entrarían | hoy tiene | p25 de las nuevas |
+|---|---|---|---|
+| ARTE Y DISEÑO + taller | **147** | 79 | 13 |
+| ARQUITECTURA + taller | **52** | 64 | 15 |
+| EE.GG. CIENCIAS + laboratorio | 26 | 320 | 32 |
+| DERECHO + seminario | 25 | 404 | 20 |
+| CIENCIAS E INGENIERIA + laboratorio | 18 | 571 | 17 |
+| ARTES ESCÉNICAS + taller | 0 | 103 | — |
+
+Arte y Diseño casi triplicaría su marco y Arquitectura lo duplicaría. Es la
+decisión más grande que queda abierta, y es de facultad, no general — que es
+justo el argumento de Gonzalo.
+
+**Ojo con el precio, ya conocido**: el p25 de las nuevas es 13 en Arte y Diseño,
+por debajo de su p25 actual de 15, así que su estadístico bajaría y pediría más
+aulas. En EE.GG. Ciencias pasa lo contrario: las de laboratorio tienen p25 32
+contra su 27 actual y lo subirían.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
