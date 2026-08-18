@@ -140,20 +140,11 @@ export function AulasSeleccionTab({
 
   return (
     <div className="cmv2-aulas-stack">
-      {/* Lo que el motor sabía y no decía: cuántas aulas tiene cada facultad
-          frente a las que necesita, y qué composición por sexo ofrecen. Van
-          arriba porque condicionan cómo se lee la selección de abajo. */}
-      <MargenPorFacultadCard filas={margenFilas} />
-      {/* I2+J3 · La cuenta abierta ANTES del sello: primero por qué se piden
-          estas aulas, después si la selección las garantiza. */}
-      <SustentoDimensionamientoCard filas={margenFilas} referencia={referencia ?? null} />
-      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
-      {/* El embudo comparado aterriza aquí en el paso 7 (titulares vs el
-          estudio anterior): es la comparación que se decide en esta pestaña. */}
-      {fichas && fichas.length ? (
-        <EmbudoComparadoFacultades fichas={fichas} periodo={periodoAnterior} pasoInicial={7} />
-      ) : null}
-      <SexoPorFacultadCard balance={sexoBalance} />
+      {/* K2 (censo f224af2d): la pestaña contaba dos historias entreveradas y
+          la ACCIÓN quedaba enterrada en el bloque 8 de 11. Orden contratado:
+          1 estado+acción · 2 el veredicto (certificación) · 3 el porqué del
+          pedido (margen+sustento) · 4 comparaciones (embudo+sexo) · 5 lo
+          defendible y el mapa · 6 la tabla al final con su buscador. */}
       {stageNotice && (
         <AulasStageNotice
           notice={stageNotice}
@@ -171,11 +162,8 @@ export function AulasSeleccionTab({
           }
         />
       )}
-
       {!selectionReady ? (
-        <section
-          className="cmv2-panel cmv2-aulas-panel"
-        >
+        <section className="cmv2-panel cmv2-aulas-panel">
           <div className="cmv2-subhead">
             <strong>Preparación de la selección</strong>
           </div>
@@ -241,7 +229,25 @@ export function AulasSeleccionTab({
             onSelectMethod={onSelectMethod}
             onSimulateReplacements={onSimulateReplacements}
           />
+        </>
+      )}
 
+      {/* 2 · El veredicto: ¿la selección garantiza la meta, por facultad y sexo? */}
+      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
+
+      {/* 3 · El porqué del pedido: cuántas aulas hay y de dónde sale cada titular. */}
+      <MargenPorFacultadCard filas={margenFilas} />
+      <SustentoDimensionamientoCard filas={margenFilas} referencia={referencia ?? null} />
+
+      {/* 4 · Comparaciones: contra el estudio anterior y la oferta por sexo. */}
+      {fichas && fichas.length ? (
+        <EmbudoComparadoFacultades fichas={fichas} periodo={periodoAnterior} pasoInicial={7} />
+      ) : null}
+      <SexoPorFacultadCard balance={sexoBalance} />
+
+      {/* 5-6 · Lo defendible, el mapa y la tabla, solo con selección corrida. */}
+      {selectionReady ? (
+        <>
           <SeleccionAulasVisual
             seleccion={selection}
             nObjetivo={targetForDisplay || null}
@@ -313,7 +319,7 @@ export function AulasSeleccionTab({
             </aside>
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }
