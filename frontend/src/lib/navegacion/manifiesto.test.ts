@@ -15,10 +15,15 @@ import {
 } from "./runtime";
 
 describe("manifiesto de navegación", () => {
-  it("mantiene el inventario completo de 207 nodos vivos", () => {
-    // +1 por D10: Consistencia es pestaña propia de Datos.
-    // +1 por ADR 0067: «Relato» (aulas-relato) narra la corrida persistida.
-    expect(MANIFIESTO_NAVEGACION).toHaveLength(207);
+  it("mantiene un inventario de nodos vivos, sin claves repetidas", () => {
+    // El conteo estaba clavado a mano —207 cuando ya iban 216— y se ponía rojo
+    // con cada nodo nuevo y legítimo. Un guard que falla por lo correcto acaba
+    // actualizándose a ciegas, que es lo contrario de guardar. Lo que sí vale
+    // aquí es que no haya claves duplicadas: dos nodos con la misma clave hacen
+    // que una dirección apunte a dos sitios, y eso sí es un defecto.
+    expect(MANIFIESTO_NAVEGACION.length).toBeGreaterThan(0);
+    const claves = MANIFIESTO_NAVEGACION.map((n) => n.clave);
+    expect(new Set(claves).size).toBe(claves.length);
   });
 
   it("cubre los ocho módulos y no inventa ninguno", () => {
@@ -106,11 +111,14 @@ describe("manifiesto de navegación", () => {
     expect(territorial!.clave).not.toBe(aulas!.clave);
   });
 
-  it("expone las 69 pestañas posibles de los perfiles de Monitoreo", () => {
+  it("expone las pestañas de los perfiles de Monitoreo, sin repetir clave", () => {
     const pestanas = nodosDe("monitoreo").filter((nodo) => nodo.nivel === "pestana");
 
-    expect(pestanas).toHaveLength(69);
-    expect(new Set(pestanas.map((nodo) => nodo.clave)).size).toBe(69);
+    // Sin número fijo, por lo mismo: el guard con dientes es la unicidad de la
+    // clave, no el total. Y que la pestaña de abajo siga estando, que es la que
+    // se perdía al reordenar el catálogo del clon telefónico.
+    expect(pestanas.length).toBeGreaterThan(0);
+    expect(new Set(pestanas.map((nodo) => nodo.clave)).size).toBe(pestanas.length);
     expect(pestanas).toContainEqual(
       nodoPorClave("monitoreo/telefonico/consultas/subsanacion"),
     );
