@@ -60,6 +60,7 @@ import { railDeAulas } from "./railDeAulas";
 import { parteDeCampo } from "./parteDeCampo";
 import {
   aulasFieldLabel,
+  escalaDeProporciones,
   presentAulasRow,
   summarizeAulasValidation,
 } from "./aulasPresentation";
@@ -196,7 +197,11 @@ function DataTable({
   // reservas al final del plan, la Agenda no mostraba NI UNA—. El tope existe
   // para no reventar el DOM; 400 filas con scroll interno no lo revientan y
   // cubren un estudio entero. Sigue declarándose cuando recorta.
-  const recorteFilas = recorteTabla(rows.map(presentAulasRow), 400);
+  // La escala se decide sobre TODAS las filas, no sobre las 400 que se pintan:
+  // si el recorte dejara fuera justo la que pasa de 1, la misma columna se
+  // formatearía distinto según cuántas filas quepan.
+  const enProporcion = escalaDeProporciones(rows);
+  const recorteFilas = recorteTabla(rows.map((row) => presentAulasRow(row, enProporcion)), 400);
   const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   return (
     <div

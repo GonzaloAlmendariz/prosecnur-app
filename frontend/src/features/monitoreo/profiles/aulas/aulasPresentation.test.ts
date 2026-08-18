@@ -6,6 +6,7 @@ import {
   aulasCheckLabel,
   aulasFieldLabel,
   aulasStatusLabel,
+  escalaDeProporciones,
   presentAulasRow,
   summarizeAulasValidation,
 } from "./aulasPresentation";
@@ -117,10 +118,61 @@ describe("aulasPresentation", () => {
     expect(aulasStatusLabel("review")).toBe("Revisar");
   });
 
+  it("una proporción se enseña como el porcentaje que su rótulo promete", () => {
+    const filas = [
+      { operational_code: "CH 1", attendance_pct: 0.694, sent_vs_population: 0.98 },
+      { operational_code: "CH 2", attendance_pct: 0.367, sent_vs_population: 1.083 },
+    ];
+    const escala = escalaDeProporciones(filas);
+    const [primera, segunda] = filas.map((f) => presentAulasRow(f, escala));
+
+    expect(primera.attendance_pct).toBe("69.4 %");
+    // El excedente sigue siendo excedente: 1.083 es el 108.3 % de su meta, no
+    // el 1.1 %. Una regla por VALOR —«≤ 1 es proporción»— lo habría hundido
+    // mientras su vecina de 0.98 se pintaba «98 %», así que la escala se decide
+    // por columna y este caso es el que las distingue. El separador decimal es
+    // el punto porque el locale del módulo es `es-PE`.
+    expect(segunda.sent_vs_population).toBe("108.3 %");
+  });
+
+  it("no convierte lo que no es una proporción aunque viva en la misma hoja", () => {
+    // El control de la regla anterior. `threshold_total` son ENCUESTAS —medidas
+    // entre 8 y 34 en el operativo— y `valid_total` un veredicto 0/1: una
+    // detección que mirase sólo la forma del número los pintaría «2400 %» y
+    // «100 %». Sólo se convierte lo que la lista cerrada declara.
+    const filas = [{ threshold_total: 24, valid_total: 1, valid_population: 0, women_n: 12 }];
+    const [fila] = filas.map((f) => presentAulasRow(f, escalaDeProporciones(filas)));
+
+    expect(fila.threshold_total).toBe(24);
+    expect(fila.valid_total).toBe(1);
+    expect(fila.valid_population).toBe(0);
+    expect(fila.women_n).toBe(12);
+  });
+
+  it("una columna que ya viene en 0-100 no se multiplica otra vez", () => {
+    // El libro real puede traer estas razones en cualquiera de las dos escalas
+    // y el motor no las normaliza a propósito. Sin este caso, «detectar» y
+    // «suponer que siempre es 0-1» pasarían el mismo test.
+    const filas = [
+      { women_pct: 62.5, men_pct: 37.5 },
+      { women_pct: 48, men_pct: 52 },
+    ];
+    const [fila] = filas.map((f) => presentAulasRow(f, escalaDeProporciones(filas)));
+
+    // Sin multiplicar, pero con la unidad que el rótulo promete: la lista dice
+    // que la columna ES un porcentaje, y la escala sólo decide si hay que
+    // escalarla. `progress_pct` de la tabla de cuotas es el caso real: el motor
+    // ya la calcula en 0-100 y se leía «62.3» a secas.
+    expect(fila.women_pct).toBe("62.5 %");
+    expect(fila.men_pct).toBe("37.5 %");
+  });
+
   it("conecta la presentación pura con las tablas y el resumen de calidad", () => {
     const page = fs.readFileSync(path.join(featureDir, "AulasMonitoreoPage.tsx"), "utf8");
 
-    expect(page).toContain("rows.map(presentAulasRow)");
+    expect(page).toContain("presentAulasRow(row, enProporcion)");
+    // La escala sale de TODAS las filas, no de las que sobreviven al recorte.
+    expect(page).toContain("escalaDeProporciones(rows)");
     expect(page).toContain("aulasFieldLabel(column)");
     expect(page).toContain("const summary = summarizeAulasValidation(rows)");
     expect(page).toContain("<span>{summary.label}</span>");
