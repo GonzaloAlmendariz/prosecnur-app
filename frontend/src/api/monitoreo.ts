@@ -787,6 +787,14 @@ export type MonitoreoAulasDashboard = {
 	    control_sin_nombre: number;
 	    resumen?: Record<string, number>;
 	  };
+	  /** Serie temporal de la recolección: el eje que el perfil no tenía. */
+	  ritmo_diario?: {
+	    dias: Array<{ fecha: string; validas: number; acumulado: number }>;
+	    dias_con_campo: number;
+	    mejor_dia?: { fecha: string; validas: number } | null;
+	    media_diaria: number;
+	    meta: number;
+	  };
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

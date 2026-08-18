@@ -2124,3 +2124,47 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Ritmo de la recolección: el eje de tiempo que el perfil no tenía.
+   Barras en CSS como la agenda por día — son los días de un operativo, no una
+   serie larga, y esta pestaña ya carga bastante. */
+.mon-profile-page.is-aulas-flow .aulas-ritmo-dias {
+  display: grid;
+  gap: 3px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-dias > li {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 52px 60px;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-fecha { white-space: nowrap; }
+.mon-profile-page.is-aulas-flow .aulas-ritmo-barra {
+  display: block;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-barra > i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+/* Un día sin campo no se disimula: su fila queda apagada y el hueco de la barra
+   se ve, porque saber que ese día no se trabajó es parte de leer el ritmo. */
+.mon-profile-page.is-aulas-flow .aulas-ritmo-dias > li.es-sin-campo { opacity: 0.55; }
+.mon-profile-page.is-aulas-flow .aulas-ritmo-cifra,
+.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmo-cifra strong { color: var(--pulso-text); }
+/* El acumulado va más callado que el día: es contexto, no el dato de la fila. */
+.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado { color: var(--pulso-border-strong); }

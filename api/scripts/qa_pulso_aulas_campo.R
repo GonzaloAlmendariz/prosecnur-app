@@ -274,10 +274,33 @@ if (ESCALA_2025) {
   sobra <- restantes - sum(deseado)
   if (sobra != 0L) deseado[[which.max(deseado)]] <- deseado[[which.max(deseado)]] + sobra
   destinos <- c(rep(codigos, times = deseado), cierres)
+  # La marca de envio es el DIA EN QUE SE APLICO ESA AULA, no una progresion.
+  #
+  # Antes salia de `2026-08-01 + 300s` por fila, y eso producia dos cosas que el
+  # panel de ritmo dejo a la vista: trece dias practicamente identicos —287,
+  # 288, 288…—, que no se parecen a ningun operativo, y un calendario del 1 al 13
+  # de agosto cuando la agenda del plan va del 10 al 21. O sea, respuestas
+  # llegando antes de que las aulas estuvieran agendadas.
+  #
+  # Una encuesta de aula se contesta EN la clase, asi que su fecha es la de la
+  # sesion. Con eso el ritmo hereda la forma real de la agenda —los dias con mas
+  # aulas rinden mas, y el fin de semana queda en cero— sin inventar nada.
+  fecha_de_unidad <- stats::setNames(
+    vapply(plan, function(u) as.character(u$scheduled_date %||% ""), character(1)),
+    vapply(plan, function(u) as.character(u$operational_code %||% ""), character(1))
+  )
+  dia_destino <- unname(fecha_de_unidad[destinos])
+  dia_destino[is.na(dia_destino) | !nzchar(dia_destino)] <- "2026-08-10"
+  # Dentro del dia, repartidas por la sesion: la hora exacta no la mira nadie,
+  # pero un lote entero a las 00:00 haria que cualquier lectura por hora saliera
+  # degenerada.
+  minuto <- (seq_len(n) * 7L) %% 300L
   data <- data.frame(
     collectorID = destinos,
     sexo = rep(c("F", "M"), length.out = n),
-    `_submission_time` = format(as.POSIXct("2026-08-01") + (seq_len(n) * 300), "%Y-%m-%dT%H:%M:%S"),
+    `_submission_time` = format(
+      as.POSIXct(paste0(dia_destino, " 08:00:00"), tz = "UTC") + (minuto * 60L),
+      "%Y-%m-%dT%H:%M:%S"),
     check.names = FALSE, stringsAsFactors = FALSE)
   for (k in 1:40) data[[sprintf("p%02d", k)]] <- rep(1:5, length.out = n)
 }

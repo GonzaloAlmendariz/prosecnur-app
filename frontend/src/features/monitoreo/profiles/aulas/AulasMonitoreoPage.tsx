@@ -37,6 +37,7 @@ import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
+import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import {
   MONITOREO_PESTANAS,
@@ -713,6 +714,22 @@ function renderAulasView(
           <span>meta {fmt(avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta)}</span>
         </div>
         <AulasAvanceEnRespuestas filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+      </section>
+      )}
+      {/* Va justo después del cumplimiento: primero CUÁNTO se lleva y en
+          seguida CÓMO se llegó. Separarlos con el estado de aplicación en medio
+          obligaba a recordar la cifra mientras se baja. */}
+      {pestana !== "resumen" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Ritmo de la recolección</h3>
+          <span>{fmt((dashboard?.ritmo_diario?.dias ?? []).length)} días</span>
+        </div>
+        <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />
       </section>
       )}
       {pestana !== "resumen" ? null : (
