@@ -31,6 +31,7 @@ import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
+import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
@@ -482,10 +483,43 @@ function renderAulasView(
       // La franja de traza acompaña a las dos pestañas: dice de dónde viene el
       // plan, y eso importa igual consultándolo que registrando sobre él. Lo que
       // ya no compite es la tabla contra el registro.
+      // El reparto es POSITIVO —«¿es esta pestaña?»— desde que son tres. Con dos
+      // bastaba negar la otra; al llegar la tercera, «no es registro» incluye
+      // «por facultad» y la agenda se pintaba también ahí. Es literalmente el
+      // mismo tropiezo que ya costó el reparto de Consultas al llegar su cuarta
+      // pestaña, y por eso acá se escribe positivo desde el principio.
       <div className={`mon-profile-stack aulas-agenda-stack${pestana === "registro" ? " is-registro" : ""}`}>
         <HandoffTracePanel dashboard={dashboard} />
         {pestana === "registro" ? registro : null}
-        {pestana === "registro" ? null : (
+        {pestana === "facultad" ? (
+        <section
+          // `mon-profile-panel` a secas y NO `aulas-agenda-panel`: aquella clase
+          // tiene su grid afinado a TRES hijos —cabecera, banda de días y
+          // tabla— y este panel tiene dos. Reusándola, la lista recibía la fila
+          // del medio —118 px para 5 538 de contenido, cuatro filas visibles— y
+          // quedaban 223 px muertos debajo. Medido antes de cambiarla.
+          className="mon-profile-panel aulas-ruta-panel"
+          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* «Ruta por facultad» terminaba igual que «Cuota sexo por
+                facultad» y el guard de títulos lo tumbó. El nombre dice ahora lo
+                que la vista CONTESTA —a dónde hay que ir cada día—; que sea por
+                facultad ya lo dice la pestaña. */}
+            <h3>A dónde ir cada día</h3>
+            {/* La MISMA fuente que la tabla de la pestaña de al lado: si cada
+                una sacara sus filas por su cuenta, las dos vistas de la misma
+                agenda podrían enseñar cuentas distintas. */}
+            <span>{(() => {
+              const n = agendaRows(dashboard).length;
+              return n ? `${n.toLocaleString("es-PE")} cursos-horario` : "sin agenda";
+            })()}</span>
+          </div>
+          <AulasAgendaPorFacultad filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+        </section>
+        ) : null}
+        {pestana === "agenda" || (pestana !== "registro" && pestana !== "facultad") ? (
         <section
           // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
           // por día y tabla— y la regla común declara dos. Un hijo de más se
@@ -533,7 +567,7 @@ function renderAulasView(
             preferredColumns={["operational_code", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
           />
         </section>
-        )}
+        ) : null}
       </div>
     );
   }
