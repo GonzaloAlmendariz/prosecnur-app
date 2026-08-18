@@ -1093,6 +1093,53 @@ Es el único caso donde nuestra cuenta se separa de las tres referencias a la ve
 EDUCACIÓN sigue corta (3 contra 7 realizadas, 4 titulares) y tiene sólo 28 aulas
 elegibles: ahí el límite es el marco, no la regla.
 
+## R28 — Coincidencia, llena y funcionando
+
+Corrido el cálculo en el duplicado, la pestaña deja de estar a medias.
+
+**Lo que rige para todas las facultades**
+
+| Decisión | Este estudio | Estudio anterior | ¿Igual? |
+|---|---|---|---|
+| Muestra de diseño | 2.500 | sin referencia | — |
+| Estadístico por curso-horario | media | sin referencia | — |
+| Sobremuestra | 20 % | sin referencia | — |
+| Factor de asistencia (τ) | 0,53 | sin referencia | — |
+| Efecto de diseño | 1,5 | sin referencia | — |
+| Método de selección | cube balanceado | sin referencia | — |
+| Aulas del marco | 2.364 | sin referencia | — |
+| **Aulas a visitar** | **153** | **194** | **no** |
+| Aulas agendadas con reemplazos | — | 1.012 | — |
+| Encuestas válidas logradas | — | 3.303 | — |
+| Asistencia observada | — | 69,7 % | — |
+
+**Una ficha, entera** (DERECHO: «necesita 18 · tiene 423 · 22 reservas por
+titular de 11»):
+
+| Paso | Este estudio | Anterior | Δ |
+|---|---|---|---|
+| 1 Población | 2.969 | — | — |
+| 2 Muestra | 347 | — | — |
+| 3 Aulas que pasan los criterios | 423 de 575 | — | — |
+| 4 Alumnos por curso-horario | 38 | 40 | −2 |
+| **5 Aulas necesarias** | **18** | **16** | **+2** |
+| 6 Aulas que sobran | 405 | — | — |
+
+Los pasos 4 y 5 comparan de verdad: el estadístico contra el de 2025 y las aulas
+contra las que se aplicaron. Los pasos 1, 2, 3 y 6 quedan sin columna anterior
+porque el histórico del proyecto no guarda población ni cuota por facultad — sólo
+lo ejecutado.
+
+### Una discrepancia que el motor destapa solo
+
+El total dice **153 aulas a visitar** mientras mi cuenta manual con p25 daba
+**177**. No es un error de ninguna de las dos: el motor sigue aplicando su
+configuración vigente —`estadistico_conglomerado = "media"` y τ = 0,53— mientras
+mi cuenta usa p25 y la regla de 2025 sin τ. La tarjeta lo enseña sin que nadie
+lo pregunte: «Estadístico por curso-horario: media» en la fila de arriba.
+
+Es exactamente para lo que sirve la pestaña.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
