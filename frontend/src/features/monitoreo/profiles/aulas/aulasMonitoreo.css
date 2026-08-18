@@ -2961,20 +2961,36 @@
   font-size: 12px;
 }
 
-/* La lista NO es dueña de scroll: crece y la página la recorre.
-   La primera versión le puso `overflow-y: auto`, y el gate lo tumbó con razón.
-   Con una sola facultad abierta, el último contenido que el contrato cuenta
-   está arriba —dentro de esa facultad—, así que al bajar al final del recorrido
-   interno se iba por encima del borde: a −108 px en 1024x600. Un scroll cuyo
-   final NO enseña el último contenido es `scroll-unreachable` (C4), y además
-   anidaba un segundo dueño dentro del de la página.
-   Con la primera abierta y las demás cerradas la lista mide ~941 px, que la
-   página recorre sin problema; al abrir más, crece y sigue habiendo UN solo
-   dueño. */
+/* La lista SÍ es dueña de su scroll, y tiene que serlo.
+   Se lo quité una pasada —«que crezca y la página la recorra»— y estaba mal: la
+   sección declara `layoutPolicy: "viewport"`, o sea que el contenido NO puede
+   crecer por encima de la pantalla y cada panel administra el suyo, que es
+   justo por lo que la tabla de la agenda tiene scroll interno. Sin dueño, la
+   lista de 941 px quedaba metida en 198 y desbordaba invisible: medido a
+   1366x768, el contenido acababa en −69 px mientras el recorrido del workbench
+   seguía hasta 811, o sea 823 px de scroll en vacío.
+   Y las facultades van TODAS abiertas: con una sola abierta, el último
+   contenido que el contrato cuenta está arriba y el final del recorrido no lo
+   enseña —`scroll-unreachable` a −108 px—. Abiertas, el último contenido está
+   abajo y el recorrido termina en él. */
 .mon-profile-page.is-aulas-flow .aulas-ruta-lista {
   display: grid;
   gap: 6px;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* El nombre de la facultad se queda pegado mientras se recorren sus aulas: sin
+   esto, a la tercera fila ya no se sabe de qué facultad son. Es lo que sustituye
+   al plegado —la vista se abrió para contestar «a dónde voy hoy», y para eso el
+   rótulo tiene que estar siempre a la vista—. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-facultad > summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pulso-surface);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ruta-facultad {
@@ -3079,13 +3095,17 @@
   justify-self: end;
 }
 
-/* El panel de la ruta crece con su contenido: dos filas intrínsecas y ninguna
-   que reparta un alto fijo. Existía para dar a la lista el resto del panel
-   cuando la lista era dueña de scroll; ya no lo es. */
+/* Cabecera fija y la lista con TODO el resto, que es lo que pide una sección de
+   política `viewport`. */
 .mon-profile-page.is-aulas-flow .aulas-ruta-panel {
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ruta {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 /* Lo que se quedó atrás: aulas vencidas sin parte. */
@@ -3113,14 +3133,6 @@
   padding: 0;
   list-style: none;
   min-width: 0;
-  /* NO es dueña de scroll. Le puse `max-height` + `overflow-y` por la misma
-     razón que a la ruta por facultad —«cien filas empujarían el resto de
-     Avance»— y es el mismo error: a 1024x600 la pantalla quedaba con TRES
-     dueños anidados —el del workbench, el de la tabla y éste—, y el contrato
-     pide uno. Medido: 2 740 px de excedente en el workbench, 9 311 en la tabla
-     y 117 acá. Arreglé la otra lista y dejé ésta, que es como se copian los
-     defectos. Con 18 pendientes son ~380 px que la página recorre sin
-     problema. */
 }
 
 .mon-profile-page.is-aulas-flow .aulas-frente-lista > li {
@@ -3161,3 +3173,4 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-frente-cuando em { font-style: normal; }
+
