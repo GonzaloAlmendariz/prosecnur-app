@@ -1,0 +1,50 @@
+/* Histograma del aporte por titular (K3). Owner local. */
+.cmv2-aporte {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+.cmv2-aporte-head { display: grid; gap: 4px; }
+.cmv2-aporte-head h4 { margin: 0; font-size: 14px; color: var(--pulso-text); }
+.cmv2-aporte-head p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-aporte-hist {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  align-items: end;
+  height: 96px;
+  padding-top: 4px;
+}
+.cmv2-aporte-bin {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  justify-items: stretch;
+  min-width: 0;
+  height: 100%;
+}
+.cmv2-aporte-bin > span {
+  display: block;
+  border-radius: 4px 4px 0 0;
+  background: var(--cmv2-accent-fg);
+  min-height: 2px;
+}
+.cmv2-aporte-bin > small {
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--cmv2-border);
+  padding-top: 2px;
+}

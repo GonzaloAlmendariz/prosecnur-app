@@ -22,6 +22,7 @@ import { SexoPorFacultadCard } from "./SexoPorFacultadCard";
 import { EmbudoComparadoFacultades } from "../salidas/EmbudoComparadoFacultades";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
+import { AporteTitularesCard } from "./AporteTitularesCard";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
 import { classroomMetricValue } from "../shared/frame";
@@ -253,6 +254,9 @@ export function AulasSeleccionTab({
             nObjetivo={targetForDisplay || null}
             totalFacultades={model.facultades.length || null}
           />
+          {/* K3 · La distribución del aporte: ¿la muestra es pareja o unas
+              pocas aulas grandes cargan con todo? */}
+          <AporteTitularesCard filas={m1Rows} />
           <ClassroomSelectionMapWorkspace
             selectionRows={selectionRows}
             simulation={replacementSimulation}
