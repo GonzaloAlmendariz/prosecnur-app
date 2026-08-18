@@ -331,6 +331,13 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                   {activa.eligible_n ? ` · ${activa.eligible_n} matriculados` : ""}
                 </p>
 
+                {/* Estado y motivo comparten fila. Sueltos eran dos `label` de
+                    bloque, así que cada uno ocupaba los 1 034 px del formulario
+                    para un desplegable de once opciones cortas —medido—, y el
+                    campo más ancho de la vista era el que menos texto lleva. Y
+                    van juntos porque son una sola decisión: el motivo sólo se
+                    pide cuando el estado lo justifica. */}
+                <div className="registro-campo-decision">
                 <label className="registro-campo-campo">
                   {/* NO es `STATUS DE APLICACION` del libro, aunque se parezca:
                       esa columna dice si el aula se aplicó, y este estado es el
@@ -356,6 +363,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
                     </select>
                   </label>
                 ) : null}
+                </div>
 
                 <div className="registro-campo-numeros">
                   <label className="registro-campo-campo">
