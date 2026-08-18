@@ -161,7 +161,35 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
     fila$efectiva <- if (is.na(cumple_t) || is.na(cumple_p)) NA else (cumple_t && cumple_p)
     out[[length(out) + 1L]] <- fila
   }
-  out
+  .mac_ordenar(out)
+}
+
+# El orden de la tabla es el que promete la cabecera del panel: el veredicto.
+#
+# Sin esto la hoja se lee en el orden en que el equipo la escribio —por codigo—,
+# que es el mismo defecto que tenia la lista de brechas: abria por la menor. El
+# panel encabeza con «58 de 170 efectivas» y dice cual es la decision, asi que la
+# tabla abre por donde queda decision:
+#
+# 1. Cumple uno de los dos. Al aula que fallo un solo umbral el equipo todavia
+#    puede volver, y saber CUAL fallo dice si volver sirve de algo.
+# 2. Sin evaluar. Nadie la miro; el trabajo pendiente es de gabinete, no de campo.
+# 3. No alcanza ninguno. Diagnostico cerrado.
+# 4. Efectivas. Estan hechas; van al final porque no se consultan.
+#
+# Desempate por codigo para que dos aulas del mismo grupo no bailen entre
+# corridas.
+.mac_ordenar <- function(filas) {
+  if (length(filas) < 2L) return(filas)
+  rango <- vapply(filas, function(f) {
+    t <- f$cumple_total; p <- f$cumple_poblacion
+    if (is.na(t) || is.na(p)) return(2L)
+    if (xor(t, p)) return(1L)
+    if (t && p) return(4L)
+    3L
+  }, integer(1))
+  codigo <- vapply(filas, function(f) as.character(f$operational_code %||% ""), character(1))
+  filas[order(rango, codigo)]
 }
 
 #' El recibo del libro importado.
@@ -225,11 +253,30 @@ monitoreo_aulas_control_resumen <- function(control = list()) {
     v <- f$efectiva
     if (is.null(v) || !length(v) || is.na(v[[1]])) NA else as.logical(v[[1]])
   }, logical(1))
-  solo_una <- vapply(filas, function(f) {
+  # Cual de los dos umbrales fallo. No es un matiz: son dos diagnosticos
+  # opuestos y la accion que sigue a cada uno es distinta.
+  #
+  # - Llego al de ASISTENTES y no al de matriculados: de los que estaban en el
+  #   aula respondio la mayoria, pero a clase fue poca gente. El aplicador hizo
+  #   su trabajo; lo que falta son alumnos, y volver a la misma sesion no los
+  #   trae. Se reagenda otra sesion del mismo curso o se acepta el tope.
+  # - Llego al de MATRICULADOS y no al de asistentes: habia mas presentes que
+  #   elegibles —oyentes, alumnos de otra seccion— y una parte no respondio. La
+  #   cobertura del padron esta cubierta; el margen esta en la aplicacion.
+  #
+  # La pantalla decia «39 cumplen solo uno de los dos» y ese numero valia igual
+  # para los dos casos. La hoja ya sabia cual era y no lo decia.
+  solo_t <- vapply(filas, function(f) {
     t <- f$cumple_total; p <- f$cumple_poblacion
     if (is.null(t) || is.null(p) || is.na(t[[1]]) || is.na(p[[1]])) return(FALSE)
-    xor(as.logical(t[[1]]), as.logical(p[[1]]))
+    isTRUE(as.logical(t[[1]])) && !isTRUE(as.logical(p[[1]]))
   }, logical(1))
+  solo_p <- vapply(filas, function(f) {
+    t <- f$cumple_total; p <- f$cumple_poblacion
+    if (is.null(t) || is.null(p) || is.na(t[[1]]) || is.na(p[[1]])) return(FALSE)
+    isTRUE(as.logical(p[[1]])) && !isTRUE(as.logical(t[[1]]))
+  }, logical(1))
+  solo_una <- solo_t | solo_p
 
   list(
     aulas = length(filas),
@@ -240,6 +287,10 @@ monitoreo_aulas_control_resumen <- function(control = list()) {
       # decision: al aula que fallo los dos ya no hay nada que hacerle, y a la
       # que fallo uno el equipo puede volver.
       cumple_una = as.integer(sum(solo_una)),
+      # Y el desglose de ese mismo numero, que es lo que dice si volver sirve.
+      # Suman `cumple_una`: la vista no puede decir mas ni menos aulas.
+      solo_asistentes = as.integer(sum(solo_t)),
+      solo_poblacion = as.integer(sum(solo_p)),
       no_efectivas = as.integer(sum(ef %in% FALSE) - sum(solo_una)),
       indeterminadas = as.integer(sum(is.na(ef)))
     )
