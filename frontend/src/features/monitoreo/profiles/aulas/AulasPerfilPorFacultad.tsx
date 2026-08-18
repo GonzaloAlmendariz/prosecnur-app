@@ -56,7 +56,9 @@ export function AulasPerfilPorFacultad({ filas, resumen }: {
               {f.facultad}
               {/* Con una sola aula la tasa es un caso, no una tendencia: se
                   dice, en vez de dejar que se lea como perfil de la facultad. */}
-              <em>{f.aulas === 1 ? "1 curso-horario" : `${fmt(f.aulas)} cursos-horario`}</em>
+              {/* Con espacio: el nombre y su cuenta salian pegados —«Gestion14
+                  cursos-horario»— porque el `gap` del flex no viaja al texto. */}
+              <em>{" "}{f.aulas === 1 ? "1 curso-horario" : `${fmt(f.aulas)} cursos-horario`}</em>
             </span>
             <span
               className="aulas-facultad-carril"
@@ -75,7 +77,11 @@ export function AulasPerfilPorFacultad({ filas, resumen }: {
               {f.falta ? (
                 <>
                   <strong>{fmt(f.falta)}</strong>
-                  <em>faltan · {f.avance}%</em>
+                  {/* Con espacio de verdad: el `gap` del flex separaba a la
+                      vista pero el texto decía «287faltan», y eso es lo que lee
+                      un lector de pantalla. Mismo defecto que la agenda por día
+                      tenía con «19 3 sin empezar». */}
+                  <em>{" "}faltan · {f.avance}%</em>
                 </>
               ) : (
                 <em className="es-cumplida">meta cumplida</em>
