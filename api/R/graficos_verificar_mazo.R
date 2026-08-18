@@ -1057,7 +1057,44 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 #' @param gem Lista de salidas de `.verif_grosores_de_lamina()`.
 #' @return `data.frame` con una fila por grupo de gemelas que dispersa.
 #' @keywords internal
-# LO QUE B4 CUENTA SON GRUPOS DE FIRMA, NO LAMINAS, y eso hace que dos mazos no
+# P16, MEDIDO POR LAMINA: LAS LAMINAS DE B4 SI SE PUEDEN NOMBRAR, Y HAY UN PAR
+# MINIMO QUE NINGUNA ARITMETICA EXCUSA.
+#
+# El campo `lamina` de B4 va `NA_integer_` A PROPOSITO —B4 juzga un GRUPO, no
+# una lamina— pero los numeros SI estan: viajan en el texto de `detalle`. Con
+# eso el peor grupo del motor queda nombrado. Medido el grosor fisico lamina a
+# lamina de `rampa:4` sobre `p55.pptx` (modo del alto de los rects de barra):
+#
+#   lamina 21   0.8503 in   8 segmentos al modo
+#   lamina 23   0.8503      8
+#   lamina 34   0.8659     12
+#   lamina 40   0.7024     13
+#   lamina 44   0.7024      8
+#   lamina 60   0.5201     10
+#   lamina 65   0.5976     11
+#
+# El rango 0.5201-0.8659 in son los 0.879 cm que reporta B4: el medidor de
+# laminas y el de mazo coinciden, asi que se pueden usar juntos.
+#
+# LO QUE MATA UNA HIPOTESIS COMODA: se penso que la dispersion era aritmetica
+# —mas filas en el mismo panel dan barras mas finas— y NO lo es. La 34 tiene
+# DOCE segmentos y es la MAS GRUESA; la 44 tiene los mismos OCHO que la 21 y la
+# 23 y sale mas fina. El numero de filas no ordena nada.
+#
+# EL PAR MINIMO, que es lo que faltaba para poder mirar algo: **21 y 23 a 0.8503
+# contra 44 a 0.7024**, misma firma y mismo numero de segmentos, **0.1479 in de
+# diferencia (0.376 cm)**. Ahi no hay excusa de composicion ni de conteo: es el
+# caso mas pequeno de «dos laminas del mismo tipo no salen iguales» y es por
+# donde hay que entrar.
+#
+# SALVEDAD, y va marcada como tal: la nota de abajo explica esta dispersion por
+# el ALTO DE LA ETIQUETA DE EJE y describe el grupo como «un grafico de cuatro
+# barras». La cuenta de segmentos de arriba no encaja con esa descripcion —8, 8,
+# 12, 13, 8, 10, 11—, asi que la explicacion NO esta comprobada sobre el par
+# minimo. Comprobarlo es el siguiente paso: medir las etiquetas de eje de 21, 23
+# y 44 y ver si el alto las separa.
+#
+# LO QUE CUENTA B4 SON GRUPOS DE FIRMA, NO LAMINAS, y eso hace que dos mazos no
 # se puedan comparar por su numero de hallazgos. Medido sobre Conta:
 #
 #              grupos   max     media   mediana
