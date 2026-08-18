@@ -76,10 +76,30 @@
 #      por etiqueta, invirtiendo colores cuando el factor esta en orden distinto
 #      al del override»), asi que este defecto es una recaida de algo ya visto.
 #
-# PARA CERRARLO hace falta el `colores_grupos` y el `etiquetas_grupos` REALES de
-# ese bloque, que solo salen cargando el plan del `.pulso` (`p48plan*.R`) o
-# trazando. NO lo des por diagnosticado antes: la combinacion exacta que produce
-# «gris al frente y naranja ausente» todavia no se ha reproducido.
+# LOS DOS SITIOS DE ARRIBA PARTIAN DE UNA PREMISA FALSA, y esta medida: **el
+# plan NO declara colores en ningun sitio**. Cargado el `.pulso` y recorridas
+# sus 66 laminas, la unica clave de color/orden que existe en todo el plan es un
+# `border_color`; no hay `colores_grupos`, ni `paleta`, ni `invertir_segmentos`,
+# ni `orden_categorias` (los titulos de lamina tambien vienen VACIOS). Asi que
+# `pal_user` no llega del plan y la rampa se resuelve en otro lado.
+#
+# DONDE SE RESUELVE DE VERDAD: `graficos_preset_acreditacion.R`, con
+# `.PRESET_ACRD_RAMPA` (cuatro colores) y `.PRESET_ACRD_FUERA_ESCALA` (el gris).
+# `.preset_acreditacion_colores()` busca cada etiqueta en `.PRESET_ACRD_ESCALA`
+# y arma el color por POSICION:
+#
+#   out <- ifelse(is.na(pos), .PRESET_ACRD_FUERA_ESCALA, .PRESET_ACRD_RAMPA[pos])
+#
+# o sea que **una etiqueta que no reconoce se convierte en el gris de «fuera de
+# escala», que es el MISMO gris de SIN INF, y sin avisar**. Ese es el patron que
+# ya mordio antes en este repo: una lista cerrada se traga en silencio lo que no
+# reconoce.
+#
+# El mapeo observado en la 28 —`NA, 4, 3, 2`— dice que una etiqueta no se
+# reconoce y las otras tres caen en posiciones INVERTIDAS. QUEDA POR HACER, y es
+# una sola llamada: imprimir `.PRESET_ACRD_ESCALA` y correr
+# `.preset_acreditacion_colores()` con las etiquetas EXACTAS de la 28. Eso lo
+# reproduce en frio o lo desmiente.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
