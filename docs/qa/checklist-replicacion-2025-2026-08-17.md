@@ -1050,6 +1050,49 @@ excluidas y el mínimo en 10. **Ninguna aula rotulada con una facultad excluida.
 aulas o menos del objetivo de la plantilla de Kamila; se separan DERECHO (−6),
 EDUCACIÓN (−3) y ARTES ESCÉNICAS (+3).
 
+## R24 — contra lo que 2025 REALMENTE hizo
+
+La plantilla de Kamila es un objetivo de diseño; 2025 declaró **170 titulares** y
+terminó **aplicando 194 aulas**. Ésas son las tres varas, y conviene mirarlas
+juntas:
+
+| Facultad | realizadas | titulares | nosotros | Kamila | Δ real | Δ titul |
+|---|---|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 40 | 39 | 36 | 37 | −4 | −3 |
+| EE.GG. CIENCIAS | 26 | 25 | 23 | 21 | −3 | −2 |
+| EE.GG. LETRAS | 23 | 19 | 23 | 24 | **0** | +4 |
+| CIENCIAS SOCIALES | 17 | 15 | 13 | 13 | −4 | −2 |
+| DERECHO | 16 | 16 | 15 | 21 | **−1** | −1 |
+| ARTE Y DISEÑO | 12 | 9 | 12 | 14 | **0** | +3 |
+| CIENCIAS Y ARTES COMUN. | 11 | 10 | 8 | 10 | −3 | −2 |
+| ARTES ESCÉNICAS | 11 | 7 | 10 | 7 | **−1** | +3 |
+| GESTIÓN | 9 | 6 | 8 | 8 | −1 | +2 |
+| ARQUITECTURA | 7 | 6 | 12 | 11 | **+5** | +6 |
+| EDUCACIÓN | 7 | 4 | 3 | 6 | −4 | −1 |
+| PSICOLOGÍA | 6 | 6 | 6 | 7 | **0** | 0 |
+| LETRAS Y C. HUMANAS | 4 | 4 | 4 | 5 | **0** | 0 |
+| GASTRONOMÍA | 3 | 2 | 2 | 2 | −1 | 0 |
+| CONTABLES | 2 | 2 | 2 | 3 | **0** | 0 |
+| **TOTAL** | **194** | **170** | **177** | **189** | **−17** | **+7** |
+
+Nuestras 177 caen **entre los 170 titulares y las 194 realizadas**. Desvío medio
+absoluto por facultad: **1,80 aulas** contra las realizadas y **1,93** contra los
+titulares; nueve y diez facultades respectivamente quedan a dos aulas o menos.
+
+### Dos lecturas que cambian el diagnóstico anterior
+
+**DERECHO deja de ser un problema.** Contra la plantilla parecía un −6 (15 frente
+a 21), pero 2025 declaró 16 titulares y aplicó 16: nuestra cifra es −1. El
+desajuste estaba en el objetivo de la plantilla, no en el motor.
+
+**ARQUITECTURA es la única que se pasa de verdad.** Pedimos 12 donde 2025 aplicó
+7, y la plantilla preveía 11. Su p25 cayó a 16 en el marco reconstruido —era 20
+antes de la exención—, y con una cuota de 190 eso empuja las aulas hacia arriba.
+Es el único caso donde nuestra cuenta se separa de las tres referencias a la vez.
+
+EDUCACIÓN sigue corta (3 contra 7 realizadas, 4 titulares) y tiene sólo 28 aulas
+elegibles: ahí el límite es el marco, no la regla.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
