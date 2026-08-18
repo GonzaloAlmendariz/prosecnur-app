@@ -2191,3 +2191,14 @@ cubre por celda F/M, leyendo los elegibles por sexo de `sex_top_*`).
 punto más ajustado es PSICOLOGÍA·hombres (1,14×). El estado por celda es
 informativo y no tumba la facultad (un aula mixta no se controla en el
 sorteo). Pendiente G6b-UI: las celdas de sexo en la tarjeta.
+
+## G6b-UI · Las celdas de sexo, visibles · ☑ 2026-08-18, commit `e8f6b066`
+
+Columnas Mujeres/Hombres en la tarjeta de certificación con el margen por
+celda como badge y el detalle en el title. En vivo: 30 celdas en verde;
+PSICOLOGÍA 1,52× / 1,14× — la celda más ajustada, visible de un vistazo.
+**G6 COMPLETO de motor a pantalla. El sello de calidad que pidió Gonzalo
+—aulas que garanticen las cuotas de alumnos, por facultad y por sexo, con
+cualquier método— está entero: afijación + certificación total + celdas
+M/H + tarjeta.** Siguiente: rotación G2 (foco 1: validar hondo
+sistemático/estratificado/pool con el patrón del cubo).
