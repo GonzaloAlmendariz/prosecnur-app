@@ -2119,3 +2119,28 @@ resuelve en la fórmula por facultad.
 
 **El tablero R1–R40 + S1–S4b + afijación queda COMPLETO.** Único abierto
 no computable: el audit de congelados (+72 previos al loop, curador).
+
+## G1 · LA CERTIFICACIÓN POR FACULTAD — el loop pasa a modo activo · ◐ 2026-08-18, commit `ff5241df`
+
+Gonzalo reorienta el loop (textual): «tener todo esto no de forma manual,
+sino de la forma más robusta a nivel estadístico. Y bien explicada»; «esperas
+un resultado y te detienes cuando podrías mejorar todo lo que ya tenemos, o
+sea, trazarte nuevos goles»; «la selección de aulas tiene que ser por
+facultad, o sea, tiene que certificarse de esa forma»; «tenemos que tener la
+libertad de mejorar todo lo que consideres necesario».
+
+**G1 motor ☑**: `certificacion_facultad` derivada al servir — por facultad:
+cuota, elegibles en titulares, efectivas esperadas (× tasa del diseño),
+margen, estado y aviso que explica la cadena. En vivo: **15/15 certificadas,
+tasa 0,7038, márgenes 1,35×–3,34×**. 19 tests, 2 mutantes muertos.
+**G1b UI ☐ SIGUIENTE**: tarjeta de certificación en Selección (junto a
+SexoPorFacultadCard) y su eco en Coincidencia.
+
+**GOLES NUEVOS DEL LOOP (trazados por la instrucción)**:
+- **G2 revisión completa recurrente**: cada ~6 ticks, barrido rotativo con
+  foco (motor R → UI → metodología → explicaciones), siempre con hallazgo
+  medible o constancia de conformidad.
+- **G3 «bien explicado»**: auditar que cada decisión estadística visible
+  (p25, afijación, exenciones, tasa) se explica en lenguaje del analista;
+  la jerga del motor no viaja a la UI.
+- **G4 mejoras UI medidas**: siempre algo que mejorar, nada «por las dudas».
