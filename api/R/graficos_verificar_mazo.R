@@ -442,6 +442,35 @@ calibrar_umbrales <- function(path, p = 0.10) {
 # bytes en vez de la del instrumento, y cuando un texto no cabe lo recorta a
 # mitad de palabra, sin elipsis y sin nota.
 #
+# LOS «CUATRO CORTES DE RENDER» TAMPOCO ERAN CORTES. Volcada la geometria cruda
+# de sus laminas, el XML tiene los cuatro textos ENTEROS. Eran dos artefactos
+# distintos del contador:
+#
+# - Laminas 31 y 43: su ULTIMA linea («carrera.», «carrera.») quedaba fuera del
+#   grupo por 0.0034 in. El umbral salia de la `h` de la linea ANTERIOR, y una
+#   linea corta sin ascendentes ni descendentes mide 0.0828 donde sus hermanas
+#   miden 0.1112: el corte se desplomaba con ella (0.1112 x 2.2 = 0.2446 contra
+#   un hueco de 0.248). Con la MEDIANA de la lamina como escala, ambas cierran.
+# - Lamina 59: los dos enunciados salian ENTRELAZADOS en el bloque, y ninguno
+#   cabia entero en ningun grupo.
+#
+# Recontado con la mediana: 99 enunciados, **97 completos, 0 cortes de render**.
+# Los dos que quedan marcados son el par de la 59, y no son un corte:
+#
+# ES UN SOLAPE, Y SE VE. La lamina 59 dibuja «Los estudiantes reciben» en
+# y 4.9134 y «redes colaborativas.» en y 4.9175 —**0.0041 in**, la misma columna
+# y la misma altura—, o sea la primera linea del tercer enunciado impresa ENCIMA
+# de la ultima del segundo. Comprobado en el PDF: las dos palabras se pisan y no
+# se lee ninguna. Contra la vara: motor **1 solape**, aprobado **4**, y los
+# cuatro del aprobado tienen `dy` EXACTAMENTE 0.0000 porque son titulos de
+# paneles contiguos a la misma altura en laminas de cuatro cuadros —texto al
+# lado de texto, no encima—. El unico solape de verdad en los dos mazos es el del
+# motor.
+#
+# AL MEDIR SOLAPE, exige el MISMO bucket de columna, no «cx parecido»: comparar
+# cajas a los dos lados del borde del redondeo daba `dy` negativos y **208
+# solapes falsos** en el aprobado.
+#
 # Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
