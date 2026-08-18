@@ -111,3 +111,38 @@ test_that("la cadena se agrupa aunque replacement_for traiga el classroom_id", {
   expect_lt(which(fila == "R 1.1"), which(fila == "R 1.2"))
   expect_lt(which(fila == "CH 1"), which(fila == "R 1.1"))
 })
+
+test_that("el libro sale con desplegables, panel congelado y anchos", {
+  # El libro se generaba con `openxlsx::write.xlsx()`: un volcado. Medido sobre
+  # el de HSVG2026 antes de esto —842 x 241, 204 x 102 y 204 x 39—: CERO
+  # validaciones, cero paneles, cero anchos, cero proteccion. Sin desplegable,
+  # `STATUS MUESTRA` se escribe a mano 2 040 veces y llegan cuatro grafias del
+  # mismo estado.
+  unidades <- list(
+    list(operational_code = "CH 1", sample_role = "titular", titular_operational_code = "CH 1"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve",
+         titular_operational_code = "CH 1", replacement_order = 1)
+  )
+  path <- tempfile(fileext = ".xlsx")
+  aulas_libro_generar(unidades, path)
+
+  hojas <- openxlsx::getSheetNames(path)
+  expect_true("Listas" %in% hojas)
+  expect_true(all(c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control") %in% hojas))
+
+  xml <- paste(readLines(unz(path, "xl/worksheets/sheet1.xml"), warn = FALSE), collapse = "")
+  # Las validaciones con formula a otra hoja las escribe `openxlsx` en el
+  # namespace de extension `x14`, NO como `<dataValidation `. Buscar la etiqueta
+  # simple daba CERO sobre un libro que si las llevaba, y con ese cero casi
+  # declaro rota una funcion que funcionaba.
+  expect_match(xml, "dataValidation")
+  expect_match(xml, "<pane ")
+
+  # Una validacion POR COLUMNA, no un rectangulo: los eslabones estan a 20
+  # columnas de distancia y `cols = <vector>` produce `P2:IB842`, que dejaba el
+  # desplegable de estados sobre el nombre del docente y el enlace.
+  sqrefs <- regmatches(xml, gregexpr("<xm:sqref>[^<]+</xm:sqref>", xml))[[1]]
+  expect_gt(length(sqrefs), 0)
+  columna_unica <- grepl("^<xm:sqref>([A-Z]+)[0-9]+:\\1[0-9]+</xm:sqref>$", sqrefs)
+  expect_true(all(columna_unica))
+})
