@@ -2857,3 +2857,20 @@ por 529 Overloaded del servidor — reintentar el próximo tick.
 
 Al cerrar la ronda: recorrer cube_balanceado de nuevo y GUARDAR (el proyecto
 debe quedar en su método elegido, no en el último auditado).
+
+### J1 — BATERÍA EMPÍRICA COMPLETA: los 4 engines pasan 5/5 (dibujo entero)
+
+| Engine | Duplicados | Afijación 15/15 | Pertenencia | π (ADR 0066) | Reproducible |
+|---|---|---|---|---|---|
+| cube_balanceado | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ 64b9772a (×3 corridas idénticas) |
+| sistematico_pps | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ 337f5453 (×2) |
+| estratificado_aleatorio | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ 3511e1b1 (×2) |
+| pool_controlado | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ 437eaba6 (×2) |
+
+El proyecto quedó restaurado en cube_balanceado (tercera corrida idéntica al
+hash original) y GUARDADO. El sello empírico de los cuatro métodos, sobre la
+selección real de HSVG2026, está completo.
+
+Pendiente de J1: barrido de código de fallas silenciosas (tercer agente en
+curso; dos caídas previas por 529) · identidad Σπ por facultad a nivel test
+de R · verificación adversarial de los hallazgos del barrido cuando llegue.
