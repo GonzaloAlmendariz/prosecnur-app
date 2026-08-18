@@ -3181,3 +3181,46 @@ por construcción (titulares aplicados).
 | K3 restantes (scores sorteo · serie estabilidad · calor cuota×sexo) | ☐ SIGUIENTE |
 | D5 extracción del congelado | ☐ |
 | Menores: test REST 400 · aviso-con-causa relato · scroll-jail otras | ☐ |
+
+### El perfil mentía el nivel del curso (detectado por Gonzalo a ojo) · K3 cerrado entero
+
+**Nivel del curso en la selección ☑ (`f0158c27`)**: «¿EGL no era todo
+ciclo 0?» — sí, y el gráfico decía otra cosa porque pintaba el ciclo del
+ALUMNO. La lista cerrada `public_cols` del motor (y su gemela del import
+histórico) publicaba `level` y omitía `course_level_num`: CUARTO
+consumidor del defecto de `ea62de2d`. Reparado en las tres listas + el
+fallback difuso del perfil retirado; test con CONTROL curso-3/alumno-7
+(8/0, mutante 2 rojos); re-selección con la misma seed guardada: EGL
+21/22 titulares en nivel 0, global 55 donde la leyenda decía 1.
+`faculty_aula` añadida a las listas pero INERTE (el frame aún no la
+publica; candidato a anclarla al construir).
+
+**K3(a) histograma del aporte ☑ (`f820136c`)**: top 20% de titulares
+pone el 34% de 6.655 alumnos; mediana 30; 7 scores negativos.
+`representativity_*` son constantes por corrida — descartadas con nota.
+
+**K3(b) serie de estabilidad ✗ DESCARTADA CON MEDICIÓN**: la premisa
+(«los pesos por corrida ya viajan») es falsa por partida doble —
+`simulation_runs_executed = 0` («Simulación no solicitada», decisión ya
+registrada al reparar el workspace) y `weight_stability` es UNA fila
+agregada (CV 0.55 · n_eff 156.1/203 · score 90.1) que el Laboratorio ya
+pinta (micro-barra n_eff) y la Auditoría ya cifra. Dibujar la serie
+exigiría pedir corridas MC nuevas: decisión de Gonzalo, no un gráfico.
+
+**K3(c) calor cuota×sexo ✗ DESCARTADO — DUPLICA**: la cuota asignada ya
+la dan las barras validadas del motor (`DistribucionFacultadSexo`), el
+cumplimiento por facultad/sexo las celdas M/H de la certificación (D2,
+con 2025 al pie) y la composición el bloque de sexo del perfil (I5).
+«Nada por las dudas.»
+
+**Simulación de reemplazos RE-ACREDITADA y guardada**: la re-selección
+del nivel la invalidó (correcto: depende del run); re-corrida y anclada
+a `sel_aulas_20260818150453`.
+
+| # | Cola | Estado |
+|---|---|---|
+| D1 · D2 · D4 · Tandas I/J/K COMPLETAS (K3: a ☑ · b/c descartadas con medición) | ☑ |
+| Nivel del curso en la selección (`f0158c27`) + fallback del perfil | ☑ |
+| D5 extracción del congelado (+59 sobre base) | ☐ SIGUIENTE |
+| Menores: test REST 400 · aviso-con-causa relato · scroll-jail otras pestañas | ☐ |
+| Candidato ADR: resello entero del workspace (5 mordidas de copias) | ☐ |
