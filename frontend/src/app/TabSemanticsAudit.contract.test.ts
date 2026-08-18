@@ -368,12 +368,14 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     rootMarker: 'className="mon-gs-report-tabs"',
     relationStem: "mon-gs-report",
   },
-  {
-    name: "B08 Aulas · avance",
-    file: "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx",
-    rootMarker: 'className="aulas-mon-tabs"',
-    relationStem: "aulas-mon",
-  },
+  // B08 auditaba `aulas-mon-tabs` en AulasMonitoreoPage.tsx, pero ecbb059e
+  // movió las pestañas de aulas al rail lateral compartido
+  // (MonitoreoWorkbenchRail): el marcador ya no existe en la página y esta
+  // entrada fallaba buscándolo. La semántica del rail vivo la audita
+  // MonitoreoNavigationSemantics.test.ts RENDERIZANDO el componente (exige
+  // role="tablist" y aria-selected), que es más fuerte que este escaneo de
+  // fuente. Se retira la entrada igual que B13: sin superficie propia que
+  // auditar aquí.
   {
     name: "B09 Telefonico · consultas",
     file: "features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx",
