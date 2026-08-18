@@ -793,6 +793,32 @@
 # —`h_legend_in` por numero de series, o `alto_por_cat_eff` por etiquetas de dos
 # lineas—, y eso ya pide una traza de cuatro numeros sobre esta unica lamina.
 #
+# P8D — EL PAR MINIMO PERFECTO, LEIDO DEL PLAN. Vistos los `overrides` de los
+# cuatro cuadrantes de la lamina 9:
+#
+#   superior_izquierda   estudiantes$p5         6 overrides   titulo «Sexo»
+#   superior_derecha     estudiantes$p6         5 overrides   titulo «Nivel curricular»
+#   inferior_izquierda   estudiantes$p3_recod   5 overrides   titulo «Rango de edades»
+#   inferior_derecha     estudiantes$p5         **0 overrides, sin titulo**
+#
+# `superior_izquierda` e `inferior_derecha` son **LA MISMA VARIABLE**
+# —`estudiantes$p5`— con **los mismos datos** y **el mismo tipo de cajon**. Lo
+# unico que cambia entre ellos son los overrides, y salen a **1.0942 contra
+# 1.4496 cm: 0.3554 de diferencia**. Es el par mas limpio que va a dar este
+# mazo, y de paso explica el B5 de esta lamina: el huerfano REPITE el Sexo que
+# ya sale arriba a la izquierda.
+#
+# LA CUENTA NO CIERRA SOLO CON EL HEADER, y por eso falta la traza: sin titulo,
+# `h_header_in` cede **0.26 in**, que con n = 2 y `grosor_barras_eff = 0.6`
+# valen 0.078 in = **0.198 cm** de barra. Medido hay **0.3554**. Sobran 0.157 cm,
+# asi que hay una segunda entrada —`h_header_in` REAL por encima de su minimo
+# (es `max(canvas_h_header_in, min_header)`), o `textos_negrita`, que solo
+# declara `superior_izquierda`—. La traza son cuatro numeros sobre esta lamina.
+#
+# LECCION: el mejor par minimo no se busca en la geometria sino en la
+# CONFIGURACION — dos slots con la misma variable y distinta config valen mas
+# que dos slots parecidos con datos distintos.
+#
 # LECCION: una cifra heredada de un mazo viejo no describe el vigente, y el
 # instrumento que la produjo tampoco se hereda: aqui el filtro daba al aprobado
 # una dispersion de 1.6974 —peor que el motor— hasta que se le exigio que una
