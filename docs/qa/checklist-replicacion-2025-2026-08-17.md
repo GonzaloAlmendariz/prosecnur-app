@@ -1838,3 +1838,26 @@ esos números existen medidos (titulares 39|25|19|16… y las celdas de
 `referencia_asistencia`). El loader que arma `referencia_criterios` nunca los
 puebla. Repararlo enciende de golpe los pasos 1, 3, 4 y 5 del embudo
 comparado y la columna «antes» de las fichas — un fix, seis consumidores.
+
+## S4 · La referencia por facultad, rescatada entera · ☑ 2026-08-18, commit `1080c916`
+
+Dos descartes en serie: la fusión libro↔rescate sólo unía `general` (el
+`por_facultad` del rescate se perdía entero), y dentro del rescate los dos
+pisos eran excluyentes — con `cuotas` presente, la dimensión `facultad`
+(matriculados/k → `alumnos_por_ch`, `aulas_aplicadas`, `asistentes`) no se
+leía nunca. Una sola política en las tres costuras
+(`.cm_ref_crit_rellenar_filas`): la base manda campo a campo, el relleno
+cubre NA, las facultades son las de la base, NA jamás degrada a 0.
+
+**Medido en vivo**: `por_facultad` pasó de 1 campo poblado a **6 de 8 en las
+15 filas**; el embudo comparado pasó de un paso a **cuatro** (Muestra ·
+Aulas que pasan · Alumnos por CH · Aulas necesarias). El paso 4 ya enseña la
+diferencia metodológica declarada: DERECHO 38 hoy (p25) vs 40 (media 2025),
+EGL 34 vs 55. Siguen NA con honestidad: `aulas_titulares` (viviría en
+`cadenas_reemplazo` de la asistencia, extracción futura) y `poblacion`
+(sólo el libro la sabría).
+
+**Nota del loop (2026-08-18)**: el reloj real de la sesión es la
+task-notification de un `sleep` en background; ni cron ni ScheduleWakeup
+disparan aquí (16+4 aceptados, 0 ticks). Memoria
+`feedback_reloj_del_loop_tarea_de_fondo` actualizada con el protocolo.
