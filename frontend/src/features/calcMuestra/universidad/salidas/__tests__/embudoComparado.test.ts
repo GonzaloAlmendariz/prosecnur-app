@@ -74,6 +74,13 @@ describe("montaje en Coincidencia", () => {
     "utf8",
   );
 
+  it("Coincidencia muestra el sello en modo lectura (la acción vive en Selección)", () => {
+    expect(src).toContain('from "../aulas/CertificacionFacultadCard"');
+    expect(src).toMatch(/<CertificacionFacultadCard certificacion=\{certificacion\} \/>/);
+    // Sin onAgregarAula: el eco no ofrece la acción.
+    expect(src).not.toMatch(/CertificacionFacultadCard[^/]*onAgregarAula/);
+  });
+
   it("Coincidencia monta el embudo comparado con las fichas y el periodo", () => {
     expect(src).toContain('from "./EmbudoComparadoFacultades"');
     expect(src).toMatch(/<EmbudoComparadoFacultades[\s\S]*?fichas=\{fichas\}/);
