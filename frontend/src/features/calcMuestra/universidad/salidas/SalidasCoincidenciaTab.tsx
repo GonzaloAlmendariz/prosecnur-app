@@ -13,9 +13,10 @@
  * para todas las facultades; debajo la ficha de cada una con sus criterios
  * propios y sus seis cuentas. Las dos con la columna de 2025 al lado.
  */
-import type { CalcMuestraReferenciaCriterios } from "../../../../api/calcMuestra";
+import type { CalcMuestraCertificacionFacultad, CalcMuestraReferenciaCriterios } from "../../../../api/calcMuestra";
 import { CriteriosGeneralesCard, type CriterioGeneralFila } from "../criterios/CriteriosGeneralesCard";
 import { EmbudoComparadoFacultades } from "./EmbudoComparadoFacultades";
+import { CertificacionFacultadCard } from "../aulas/CertificacionFacultadCard";
 import { FichaPorFacultadCard } from "../criterios/FichaPorFacultadCard";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 
@@ -24,11 +25,15 @@ export function SalidasCoincidenciaTab({
   criteriosMarco,
   fichas,
   referencia,
+  certificacion = null,
 }: {
   criteriosGenerales: CriterioGeneralFila[];
   criteriosMarco: CriterioGeneralFila[];
   fichas: FichaFacultad[];
   referencia: CalcMuestraReferenciaCriterios | null;
+  /** El sello de la selección vigente, en modo lectura: la Entrega muestra
+   *  la garantía junto a la coincidencia (la ACCIÓN vive en Selección). */
+  certificacion?: CalcMuestraCertificacionFacultad | null;
 }) {
   // Sin encabezado propio: la barra de pestañas ya dice «Coincidencia · criterios
   // y cuentas contra el estudio anterior», y repetirlo debajo con un parrafo mas
@@ -48,6 +53,10 @@ export function SalidasCoincidenciaTab({
           misma escala y paso por paso. Va antes de las fichas porque es el
           vistazo; la ficha es el detalle de una facultad. */}
       <EmbudoComparadoFacultades fichas={fichas} periodo={referencia?.periodo ?? ""} />
+      {/* La garantía de la selección vigente cierra el relato: coincide con
+          2025 Y cumple sus propias metas. Solo lectura — la acción «+1 aula»
+          vive en Selección, donde se decide. */}
+      <CertificacionFacultadCard certificacion={certificacion} />
       <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
     </section>
   );
