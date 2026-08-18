@@ -2456,3 +2456,19 @@ hereda la cifra correcta automáticamente (misma fuente).
 | I10 | Reformular «sin criterios propios» | ☐ |
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento · relato · embudo de criterios | ☐ |
+
+### Tanda I — I12 cerrado (dibujo entero)
+
+**I12 ☑ (`3a3fc589`)**: el chip ámbar era la TERCERA mordida de la familia
+de copias duplicadas — la UI compara contra el workspace y las configs por
+API nunca aterrizaban ahí. Política calcada del resello: construir el marco
+sincroniza sus criterios al workspace. En vivo: 0 «criterios cambiados»,
+2 «marco vigente».
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 · I12 | pregunta · embudo en Selección · referencia 8/8 · delta protagonista · elegibles 2025 · chip honesto | ☑ |
+| I9 | Fichas como tarjetas (dos por fila) | ☐ SIGUIENTE |
+| I10 | Reformular «sin criterios propios» | ☐ (mismo archivo que I9) |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento · relato · embudo de criterios | ☐ |
