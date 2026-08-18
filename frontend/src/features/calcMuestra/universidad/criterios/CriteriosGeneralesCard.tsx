@@ -41,9 +41,14 @@ function coinciden(hoy: string, antes: string): boolean | null {
 export function CriteriosGeneralesCard({
   filas,
   referencia,
+  titulo = "Lo que rige para todas las facultades",
+  subtitulo,
 }: {
   filas: CriterioGeneralFila[];
   referencia: CalcMuestraReferenciaCriterios | null;
+  /** La misma tabla sirve para el diseño y para los criterios del marco. */
+  titulo?: string;
+  subtitulo?: string;
 }) {
   if (!filas.length) return null;
   const resueltas = filas.map((f) => {
@@ -63,8 +68,9 @@ export function CriteriosGeneralesCard({
   return (
     <section className="cmv2-generales-card" aria-label="Criterios generales del estudio">
       <header>
-        <strong>Lo que rige para todas las facultades</strong>
+        <strong>{titulo}</strong>
         <span>
+          {subtitulo ? <>{subtitulo}. </> : null}
           {referencia ? (
             comparables > 0 ? (
               <>

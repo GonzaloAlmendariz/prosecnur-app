@@ -49,6 +49,7 @@ import { applyAlumnosPorChDecision } from "./marco/alumnosPorChDecisionHandoff";
 import { CriteriosMarcoTab } from "./criterios";
 import { type CriterioGeneralFila } from "./criterios/CriteriosGeneralesCard";
 import { criteriosGeneralesDeEstudio } from "./criterios/criteriosGeneralesModel";
+import { criteriosMarcoDeEstudio } from "./criterios/criteriosMarcoModel";
 import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
@@ -430,6 +431,22 @@ export function UniversidadDesk({
       );
     });
   }, [aulasState?.frame?.aula_frame, margenFilas, referenciaCriterios, criteriosSeleccionVigente, minimoGeneral]);
+  // Los criterios que deciden qué aulas entran. Se leen del config QUE PRODUJO
+  // EL MARCO (`aulasState.config`), no del workspace: son dos copias distintas y
+  // la del workspace puede ir por detrás. Medido en HSVG2026 con el marco
+  // reconstruido: el workspace decía «nivel: no se aplica» y «facultades
+  // excluidas: ninguna» mientras el motor tenía los rangos y las dos escuelas
+  // fuera.
+  const criteriosMarco = useMemo<CriterioGeneralFila[]>(() => {
+    const delMotor = aulasState?.config as
+      | { criterios_seleccion?: unknown; filters?: Record<string, unknown> }
+      | undefined;
+    return criteriosMarcoDeEstudio(
+      delMotor?.criterios_seleccion ?? criteriosSeleccionVigente,
+      delMotor?.filters ??
+        (syncedWorkspace.aulas_config as { filters?: Record<string, unknown> } | undefined)?.filters,
+    );
+  }, [aulasState?.config, criteriosSeleccionVigente, syncedWorkspace.aulas_config]);
   const criteriosGenerales = useMemo<CriterioGeneralFila[]>(
     () =>
       criteriosGeneralesDeEstudio({
@@ -704,6 +721,7 @@ export function UniversidadDesk({
             {showLocalTab("salidas-coincidencia") && <div id="cmv2-local-salidas-coincidencia">
               <SalidasCoincidenciaTab
                 criteriosGenerales={criteriosGenerales}
+                criteriosMarco={criteriosMarco}
                 fichas={fichasFacultad}
                 referencia={referenciaCriterios}
               />

@@ -232,6 +232,11 @@ describe("contrato: las dos tarjetas están cableadas en Entrega", () => {
     expect(desk).toContain('from "./criterios/criteriosGeneralesModel"');
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?parametros: facultyComp\?\.parametros/);
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?decision:/);
+    // Los criterios del marco se leen del config QUE PRODUJO EL MARCO, no del
+    // workspace: son dos copias y la del workspace va por detrás.
+    expect(desk).toContain('from "./criterios/criteriosMarcoModel"');
+    expect(desk).toMatch(/const delMotor = aulasState\?\.config/);
+    expect(desk).toMatch(/<SalidasCoincidenciaTab[\s\S]*?criteriosMarco=\{criteriosMarco\}/);
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?selector: syncedWorkspace\.aulas_config/);
     // CONTROL: ningun valor de la tabla vuelve a estar escrito a mano.
     expect(desk).not.toContain('hoy: "1.5"');
