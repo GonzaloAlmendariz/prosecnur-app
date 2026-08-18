@@ -171,7 +171,12 @@ calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
 #' rellena huecos.
 calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
   if (!is.list(libro)) return(rescate)
-  if (!is.list(rescate)) return(libro)
+  if (!is.list(rescate)) {
+    # Sin rescate igual se deriva lo derivable del propio libro (p. ej. la
+    # poblacion por facultad desde la afijacion proporcional).
+    libro$por_facultad <- .cm_ref_crit_derivar_poblacion(libro$por_facultad, libro$general)
+    return(libro)
+  }
   g_libro <- if (is.list(libro$general)) libro$general else list()
   g_rescate <- if (is.list(rescate$general)) rescate$general else list()
   for (k in names(g_rescate)) {
@@ -195,7 +200,34 @@ calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
       filas_rescate
     )
   }
+  libro$por_facultad <- .cm_ref_crit_derivar_poblacion(libro$por_facultad, libro$general)
   libro
+}
+
+#' Deriva la población por facultad del estudio anterior desde su afijación.
+#'
+#' Cuando el diseño anterior declara afijación PROPORCIONAL y publica su
+#' población objetivo y su muestra, la población de cada facultad es
+#' aritmética: `poblacion = cuota × N / n` (la cuota ES n × N_fac/N). No es
+#' un invento: es deshacer la misma división que el diseño declaró — y solo
+#' se aplica cuando las tres cifras existen y la afijación lo dice. Sin esas
+#' condiciones la celda queda NA, que sigue siendo lo honesto.
+.cm_ref_crit_derivar_poblacion <- function(filas, general) {
+  if (!is.list(filas) || !length(filas)) return(filas)
+  g <- if (is.list(general)) general else list()
+  afijacion <- tolower(.cm_aulas_scalar(g$afijacion, ""))
+  if (!grepl("proporcional", afijacion, fixed = TRUE)) return(filas)
+  N <- suppressWarnings(as.numeric(.cm_aulas_scalar(g$poblacion_objetivo, NA)))
+  n <- suppressWarnings(as.numeric(.cm_aulas_scalar(g$muestra, NA)))
+  if (!is.finite(N) || !is.finite(n) || n <= 0) return(filas)
+  lapply(filas, function(f) {
+    if (!is.list(f)) return(f)
+    ya <- suppressWarnings(as.numeric(.cm_aulas_scalar(f$poblacion, NA)))
+    cuota <- suppressWarnings(as.numeric(.cm_aulas_scalar(f$cuota, NA)))
+    if (is.finite(ya) || !is.finite(cuota)) return(f)
+    f$poblacion <- round(cuota * N / n)
+    f
+  })
 }
 
 #' Aulas titulares por facultad, contadas de las cadenas de reemplazo.
