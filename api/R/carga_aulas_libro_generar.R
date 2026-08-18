@@ -266,6 +266,51 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
     `Base de control` = aulas_libro_hoja_control(unidades)
   )
-  openxlsx::write.xlsx(hojas, file = path, colNames = FALSE)
+
+  # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
+  # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver
+  # `carga_aulas_libro_formato.R` para el porque de cada vocabulario.
+  wb <- openxlsx::createWorkbook()
+  for (nombre in names(hojas)) {
+    openxlsx::addWorksheet(wb, nombre)
+    openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
+  }
+
+  profundidad <- .calg_profundidad(unidades)
+  listas <- list(
+    `STATUS MUESTRA` = aulas_libro_status_muestra(profundidad),
+    `MEDIO DE CONTACTO` = AULAS_LIBRO_MEDIO_CONTACTO,
+    `DÍA` = AULAS_LIBRO_DIA,
+    `STATUS DE APLICACIÓN` = AULAS_LIBRO_STATUS_APLICACION
+  )
+  hoja_listas <- "Listas"
+
+  # Las columnas del desplegable se derivan de la POSICION del campo en el
+  # bloque, no de un numero a mano: si manana el bloque gana una columna, esto
+  # sigue apuntando al campo correcto.
+  idx <- function(campo) which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo == campo, logical(1)))
+  col_en_bloque <- function(campo, b) 1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + idx(campo)
+  bloques <- seq_len(profundidad)
+  filas_agenda <- nrow(hojas[["Aulas Agendadas"]]) - 1L
+
+  validaciones <- list(
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("sample_status", b), integer(1)),
+         rango = .calf_rango(hoja_listas, 1L, length(listas[[1]]))),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("contact_medium", b), integer(1)),
+         rango = .calf_rango(hoja_listas, 2L, length(listas[[2]]))),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("scheduled_day", b), integer(1)),
+         rango = .calf_rango(hoja_listas, 3L, length(listas[[3]])))
+  )
+
+  aulas_libro_aplicar_formato(
+    wb,
+    filas_cabecera = list(`Aulas Agendadas` = 1L, `Aulas Aplicadas (Campo)` = 2L, `Base de control` = 2L),
+    validaciones = validaciones,
+    listas = listas
+  )
+  openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
 }
