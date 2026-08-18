@@ -56,6 +56,8 @@ export function AulasOperationsPanel({
 }: AulasOperationsPanelProps) {
   const entradaLibro = useRef<HTMLInputElement | null>(null);
   const hayPlan = aulasHayPlan(config);
+  // Cuántas trae ese plan, para poder decir de dónde salió cuando no hay corrida.
+  const filasDelPlan = config?.plan_rows ?? config?.plan?.length ?? 0;
   const imported = aulasPlanImported(config);
   const methodologyReady = Boolean(config?.frame_hash || Object.keys(config?.methodology ?? {}).length);
   const activeSources = sources.filter((source) => source.enabled);
@@ -68,7 +70,18 @@ export function AulasOperationsPanel({
       value: imported ? "Conectada" : "Pendiente",
       // Sin corrida, aquí se leía «selection_run_id»: el nombre del campo del
       // backend, no algo que el usuario pueda accionar.
-      hint: config?.selection_run_id ? aulasOpsShortId(config.selection_run_id) : "sin corrida importada",
+      //
+      // Y «sin corrida importada» a secas, con las 196 aulas del plan en el KPI
+      // de dos dedos más arriba, se lee como que la vista se contradice. No se
+      // contradice: hay plan y NO hay corrida, porque un plan puede llegar por
+      // dos caminos y el del libro no trae `selection_run_id` —la distinción ya
+      // está escrita en `aulasHayPlan` y no llegaba a la pantalla—. Decir por
+      // cuál llegó es lo que convierte el hueco en información.
+      hint: config?.selection_run_id
+        ? aulasOpsShortId(config.selection_run_id)
+        : hayPlan
+          ? `${filasDelPlan} del libro · sin corrida de cálculo`
+          : "sin corrida importada",
       ready: imported,
     },
     {
