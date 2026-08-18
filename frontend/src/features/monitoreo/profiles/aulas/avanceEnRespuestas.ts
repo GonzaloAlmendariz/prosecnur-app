@@ -69,6 +69,13 @@ export function avanceEnRespuestas(
     // enseñaba «meta 4 476» arriba y «la meta de 4 336» dos paneles más abajo.
     // Medido sobre el fixture: 4 476 con banco, 4 336 sin él, 140 de banco.
     if (texto(fila.sample_role) === "extra_reserve_pool") continue;
+    // Y sólo el eslabón EN JUEGO de cada cadena. Un slot es la cadena entera y
+    // en cada momento una sola de sus aulas es a la que hay que ir; sumar las
+    // dormidas cuenta el mismo slot tantas veces como respaldos tenga. El motor
+    // publica el dato en `course_status` para no duplicar aquí su lógica.
+    // Medido: sin esto el panel pedía 4 336 mientras el ritmo y la cuota decían
+    // 3 743 en la misma pantalla.
+    if (fila.en_juego === false) continue;
     const objetivo = numero(fila.expected_valid);
     const recogidas = numero(fila.respuestas_validas);
     validas += recogidas;

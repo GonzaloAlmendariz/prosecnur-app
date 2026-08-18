@@ -87,3 +87,45 @@ describe("avanceEnRespuestas y el banco", () => {
     expect(res.aulasConBrecha).toBe(2);
   });
 });
+
+/**
+ * Sólo el eslabón en juego.
+ *
+ * Un slot es la cadena entera y en cada momento una sola de sus aulas es a la
+ * que hay que ir. Sumar las dormidas cuenta el mismo slot tantas veces como
+ * respaldos tenga: el panel pedía 4 336 mientras el ritmo y la cuota decían
+ * 3 743 en la misma pantalla.
+ */
+describe("avanceEnRespuestas y el eslabón en juego", () => {
+  const fila = (rol: string, meta: number, enJuego: boolean) => ({
+    operational_code: `${rol}-${meta}`,
+    sample_role: rol,
+    expected_valid: meta,
+    respuestas_validas: 0,
+    en_juego: enJuego,
+  } as unknown as MonitoreoAulasPlanRow);
+
+  it("la reserva dormida no suma a la meta", () => {
+    const res = avanceEnRespuestas([
+      fila("titular", 100, true),
+      fila("chain_reserve", 90, false),
+      fila("chain_reserve", 80, false),
+    ]);
+    expect(res.meta).toBe(100);
+  });
+
+  it("cuando la reserva entra, es ella la que cuenta", () => {
+    const res = avanceEnRespuestas([
+      fila("titular", 100, false),
+      fila("chain_reserve", 90, true),
+    ]);
+    expect(res.meta).toBe(90);
+  });
+
+  it("un payload viejo sin el campo cuenta como antes", () => {
+    // `en_juego` ausente no puede significar «fuera»: un motor que aún no lo
+    // publique dejaría la meta en cero y la pantalla diría que no falta nada.
+    const sinCampo = { operational_code: "CH 1", expected_valid: 100, respuestas_validas: 0 };
+    expect(avanceEnRespuestas([sinCampo as never]).meta).toBe(100);
+  });
+});

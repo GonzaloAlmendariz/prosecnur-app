@@ -937,7 +937,20 @@ monitoreo_aulas_criterio_texto <- function(crit) {
                          "lista",
                          ifelse(en_reserva, "en_reserva", "pendiente"))))
   )
+  # Si esta fila es el eslabon EN JUEGO de su cadena. Sin este campo la vista no
+  # puede contar por slot y acaba sumando las reservas dormidas: el panel de
+  # cumplimiento pedia 4 336 mientras el ritmo y la cuota —que salen de
+  # `tracked_df`— decian 3 743. Se publica el dato en vez de duplicar la logica
+  # de `monitoreo_aulas_en_juego()` en el frontend.
+  # El banco fuera: `course_status` trae el plan ENTERO, y sin excluirlo cada
+  # aula extra forma su propia «cadena» y sale en juego. Medido: 210 en juego de
+  # 236 —170 titulares mas 40 del banco— y una meta de 4 684 donde el motor dice
+  # 3 743. Es el mismo conjunto que `tracked_df`, dicho fila a fila.
+  rows$en_juego <- monitoreo_aulas_en_juego(rows) &
+    as.character(rows$sample_role %||% "") != "extra_reserve_pool"
+
   cols <- intersect(c(
+    "en_juego",
     # `sample_role` viaja con el estado por la misma razon que `sample_status`:
     # sin el, la vista no puede distinguir un titular de una reserva del banco.
     # Y lo necesita: `course_status` trae las 202 filas del plan, banco incluido,
