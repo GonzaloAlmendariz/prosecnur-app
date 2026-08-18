@@ -1563,3 +1563,39 @@ que añadí), y **no** declararlo en los dos gráficos de Plotly —medido sobre
 otros tres perfiles: 16 declaraciones de capacidad y ninguna en un archivo con
 `PlotlyChart`, porque un gráfico llena su caja y no tiene vacío interior que
 poseer—.
+
+### 2026-08-18 — auditoría de guards: ¿ve cada uno lo que dice vigilar?
+
+La pregunta no es «¿pasa el test?» sino **«¿el test puede ver lo que dice
+vigilar?»**. Aplicada a los cinco guards de los que depende este trabajo:
+
+| Guard | ¿Cubre lo que declara? |
+|---|---|
+| Títulos de panel | **sí** — ve el panel nuevo, y no hay ningún `<h3>` del perfil fuera de los tres archivos que lee |
+| Vocabulario de controles R↔UI | **sí** — extrae los diez `check` del motor, el nuevo incluido |
+| Columnas de tabla | **no** — cubría 2 de las 4 tablas que hoy se leen (`c4a30528`) |
+| Resultados de acción | **sí** — lee los tres perfiles por ruta y revienta si se mueven |
+| Geometría (`ui-quick-check --require-geometry`) | **nunca se había pasado** sobre aulas (`3daef3c9`) |
+
+**Dos de cinco no cubrían lo que decían, y en ninguno de los dos casos fue por
+descuido**: el guard se escribió bien y **el perfil creció por debajo**. El de
+columnas se ató a «las tablas que se leen» cuando eran dos; después llegaron
+Partes de campo y Base de control y siguió en dos. Ésa es la forma en que un
+test envejece **sin ponerse rojo nunca**.
+
+Lo que distingue a los que aguantaron: **fallan ruidosamente al crecer**. El de
+resultados de acción lee sus archivos por ruta, así que mover uno revienta el
+`readFileSync`. El de columnas usaba un regex que, al no casar, simplemente
+devolvía menos columnas en silencio — de ahí el `expect(columnas.length)
+.toBeGreaterThan(40)` que lleva ahora: si ese número baja es que dejó de ver una
+tabla, y eso sólo se nota contando.
+
+**Y comprobar que un guard nuevo CAZA, no sólo que pasa.** El de columnas
+ampliado se verificó retirando la etiqueta de `attendance_pct`: rojo con el
+mensaje correcto, y verde al restaurarla.
+
+**El instrumento produce el hallazgo — tres veces en esta tanda.** Un `grep`
+sobre `profiles/` dijo que `mon-calidad` sólo la usa aulas (la pinta el chrome
+para los cuatro). Dos medidas de altura salieron falsas por tomarlas antes de
+que asentara el layout. Y la primera expresión para extraer columnas cogió el
+bloque del cuadre interno y campos de un grupo que la tabla no muestra.
