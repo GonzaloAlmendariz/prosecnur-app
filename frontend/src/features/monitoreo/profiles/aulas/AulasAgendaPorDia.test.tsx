@@ -59,3 +59,29 @@ describe("AulasAgendaPorDia", () => {
     expect(plano).toContain(" · ");
   });
 });
+
+/**
+ * La franja se pliega, y plegada sigue diciendo lo que resume.
+ *
+ * En pantalla corta el panel baja a 180 px y no caben los diez días y una tabla
+ * usable: la tabla se quedaba en tres filas de 236 cursos-horario. El contrato
+ * reconoce el `details` cerrado —lo que cuelga de él no es contenido
+ * inalcanzable, porque se abre— pero el `summary` tiene que seguir diciendo
+ * algo, o cerrar equivale a perder.
+ */
+describe("AulasAgendaPorDia plegable", () => {
+  it("el resumen conserva los días de campo y el rango", () => {
+    const html = renderToStaticMarkup(
+      <AulasAgendaPorDia
+        filas={[aula("2026-08-10", "lista"), aula("2026-08-11", "agendada")] as never}
+      />,
+    );
+    const plano = texto(html);
+
+    expect(html).toContain("<details");
+    expect(html).toContain("<summary");
+    // Lo que se lee con la franja cerrada.
+    expect(plano).toMatch(/\d+ días de campo/);
+    expect(plano).toContain("de Lunes 10/08 a Martes 11/08");
+  });
+});

@@ -1594,6 +1594,38 @@
   line-height: 1.4;
 }
 
+/* La franja de días, plegable. Cerrada en pantalla corta —donde no cabe junto a
+   una tabla usable— y abierta en escritorio. El `summary` conserva la lectura,
+   así que cerrada sigue diciendo cuántos días y de cuándo a cuándo. */
+.mon-profile-page.is-aulas-flow .aulas-agenda-detalle {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 7px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agenda-detalle > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+/* El triángulo nativo de Safari/WebKit, fuera: el patrón de la casa marca lo
+   plegable con el propio texto, no con un glifo del sistema. */
+.mon-profile-page.is-aulas-flow .aulas-agenda-detalle > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agenda-detalle > summary::after {
+  content: "▾";
+  margin-left: 6px;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-agenda-detalle:not([open]) > summary::after {
+  content: "▸";
+}
+
 /* ── La agenda, día por día ──────────────────────────────────────────────────
    Barras en CSS, sin Plotly: es una lectura de diez filas y la sección no debe
    arrastrar el bundle de gráficos. Mismos colores que los tramos de Avance. */
@@ -1684,6 +1716,14 @@
    ventana; los días scrollean dentro de la suya. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel {
   grid-template-rows: auto minmax(0, 0.9fr) minmax(200px, 1fr);
+}
+
+/* Plegada, la franja solo necesita su resumen: pista `auto` en vez de la
+   fraccion, o el carril se queda en CERO y desaparece tambien el «10 días de
+   campo · de Lunes 10/08 a Viernes 21/08», que es lo unico que quedaba dicho.
+   Cerrar algo no puede significar perderlo de vista. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel:has(.aulas-agenda-detalle:not([open])) {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 /* PENDIENTE de decision de layout, no de una regla mas.
