@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { controlesDeAulas } from "./AulasControles";
+import { controlesDeAulas, tramosDeControl } from "./AulasControles";
 
 /**
  * Los controles de Validación se leen como avisos, no como filas de tabla.
@@ -52,5 +52,40 @@ describe("los controles de Validación", () => {
     const cuota = controles.find((c) => c.severidad === "advertencia");
     expect(cuota?.detalle).toContain("sexo por facultad");
     expect(cuota?.estado).toBe("Advertencia");
+  });
+});
+
+/**
+ * El detalle de un control enumera casos, y se leían como un párrafo corrido.
+ *
+ * El control que de verdad importa es el ÚLTIMO aserto: la cola —«Y 1
+ * discrepancia más.»— iba pegada al último caso, así que el texto decía que esa
+ * aula tenía una discrepancia más, cuando habla del conjunto. Si el parser
+ * dejara de separarla, ese aserto es el único que se pondría rojo.
+ */
+describe("tramosDeControl", () => {
+  it("parte la enumeración por aula y deja la cola aparte", () => {
+    const tramos = tramosDeControl(
+      "CH 71: el parte de campo pone 39 en los asistentes y la Base de control pone 36. " +
+        "CH 71: el parte de campo pone 76.5 % en el % de asistencia y la Base de control pone 70.6 %. " +
+        "CH 85: el parte de campo pone Equipo 2 en quién aplicó y la Base de control pone Equipo 9. " +
+        "Y 1 discrepancia más.",
+    );
+
+    expect(tramos.map((t) => t.codigo)).toEqual(["CH 71", "CH 71", "CH 85", ""]);
+    // El decimal NO parte la frase: «76.5 %» vive dentro de su caso.
+    expect(tramos[1].texto).toContain("76.5 %");
+    expect(tramos[2].texto).toBe("el parte de campo pone Equipo 2 en quién aplicó y la Base de control pone Equipo 9.");
+    expect(tramos[3].texto).toBe("Y 1 discrepancia más.");
+  });
+
+  it("deja entera una frase que no enumera casos", () => {
+    const texto = "7 columnas de la Base de control tienen datos pero se quedaron sin nombre.";
+    expect(tramosDeControl(texto)).toEqual([{ codigo: "", texto }]);
+  });
+
+  it("no tabula un caso suelto", () => {
+    const texto = "CH 31: 25 asistentes menos 1 rechazos dan 24.";
+    expect(tramosDeControl(texto)).toHaveLength(1);
   });
 });
