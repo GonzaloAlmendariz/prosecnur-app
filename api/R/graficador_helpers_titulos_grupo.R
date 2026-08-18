@@ -34,6 +34,41 @@
 
 # Interlineado del enunciado de bloque. Es el mismo que usa el eje Y, y sirve
 # para pasar de «cuantas pulgadas mide la fila» a «cuantas lineas caben».
+#
+# P50, MEDIDO Y ABIERTO: **0.86 esta por debajo del interlineado REAL en las 33
+# laminas del mazo de Conta que se pudieron medir**, y esta constante es la que
+# convierte pulgadas en cupo de lineas (`caben_en()` en `.titulo_grupo_ajuste()`
+# y el `lpf` de `.barras_acotar_titulo_grupo()` mas abajo). Si subestima el alto
+# de una linea, el cupo autoriza mas lineas de las que caben y el bloque invade
+# a su vecino.
+#
+# La medicion, sobre `p52.pptx`: paso mediano entre lineas de la columna del
+# enunciado contra el cuerpo de la lamina. Interlineado real min **1.126**,
+# p25 **1.143**, mediana **1.436**, max **2.266**. LIMITE DE ESA MEDICION: el
+# cuerpo usado es el MODAL DE LA LAMINA —14 pt en 28 de 33, que son las
+# etiquetas de porcentaje—, no el del enunciado, asi que el factor exacto NO
+# esta medido; el signo y el orden de magnitud si. En la unica lamina donde el
+# cuerpo del enunciado se leyo directo del XML —la **59**, 11 pt, paso
+# **0.2200 in**— el interlineado real es **1.44**: el motor cree que caben
+# **1.67x** mas lineas de las que caben.
+#
+# Y ahi esta el solape: la 59 dibuja su bloque 2 de 3.4571 a 5.0275 y el 3 de
+# 4.8034 a 6.0930, con centros en 4.2423 y 5.4482. El punto medio cae en
+# **4.8453**; el de arriba lo pasa en **+0.182** y el de abajo sube **+0.042**.
+# Se pisan **0.224 in = exactamente una linea**.
+#
+# POR QUE SOLO UNA LAMINA DE 66 SOLAPA si la constante falla en todas: el cupo
+# generoso solo muerde cuando el enunciado es lo bastante largo para agotarlo.
+# La mayoria no lo agota, asi que el defecto queda latente.
+#
+# NO SE TOCA A CIEGAS. `test-titulo-grupo-geometria.R` comprueba que el helper
+# es coherente CON ESTA CONSTANTE (`ocupa <- cupos * (size_pt/72) * .BARRAS_
+# INTERLINEA_TITULO`), o sea que no puede atrapar que la constante misma este
+# mal: una suite verde no cubre lo que ninguna prueba enciende. Y bajarla
+# encoge el cupo en todo el mazo, que es justo lo que P46 subio para llevar los
+# cortes a cero. Antes de moverla hay que leer el cuerpo del ENUNCIADO —no el
+# modal de la lamina— emparejando cada caja con su `<a:rPr sz>`, y medir el
+# factor de verdad.
 .BARRAS_INTERLINEA_TITULO <- 0.86
 
 # Margen al contar lineas que caben. Ver `.barras_acotar_titulo_grupo()`.
