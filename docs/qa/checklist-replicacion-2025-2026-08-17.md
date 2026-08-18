@@ -3160,3 +3160,24 @@ GAS 17 · LyCH 12.5, calcando 2025. El paso 4 de las fichas ya compara.
 | D2 τ sexo referencial | ☐ |
 | D5 extracción del congelado (+59 sobre base) | ☐ |
 | Menores: test REST 400 · aviso-con-causa relato · scroll-jail otras pestañas | ☐ |
+
+### D2 cerrado · dibujo entero — y la pregunta del titular sin elegibles, respondida
+
+**D2 ☑**: cada celda M/H de la certificación lleva al pie el cumplimiento
+2025 de esa facultad/sexo (referencial, agregado — el único nivel que la
+base observa), con EE.GG. Letras·H 0,92× como única corta, en ámbar. 30
+celdas verificadas en vivo.
+
+**PREGUNTA DE GONZALO («¿por qué habría un titular sin elegibles?») —
+MEDIDA**: los 39 titulares de C&I son 28 APLICADOS + 11 que CAYERON, y los
+11 sin elegibles son EXACTAMENTE los caídos (0 aplicados sin dato). Un
+titular caído nunca se encuestó → sus elegibles presentes nunca se
+observaron: el dato no falta, no existe. La mediana de D4 queda correcta
+por construcción (titulares aplicados).
+
+| # | Cola | Estado |
+|---|---|---|
+| D1 · D2 · D4 · Tandas I/J/K0-K2 · K3 lente | ☑ |
+| K3 restantes (scores sorteo · serie estabilidad · calor cuota×sexo) | ☐ SIGUIENTE |
+| D5 extracción del congelado | ☐ |
+| Menores: test REST 400 · aviso-con-causa relato · scroll-jail otras | ☐ |
