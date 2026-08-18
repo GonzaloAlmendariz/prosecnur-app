@@ -1882,3 +1882,30 @@ quince filas +0 exactas**. Marco 2.426→**2.615** de 5.263. La decisión p25
 se reselló sola contra el frame nuevo (`8f676b56…`). Config guardada en la
 copia de trabajo; la ficha de cada facultad declara «session_type: además
 taller». Sin cambios de código: fue configuración + medición.
+
+## R4 · El origen de las 170 — acorralado con las metas exactas · ◐ 2026-08-18
+
+**Fuente nueva decisiva**: `HSVBG2025_base_historica_aulas_ADR0060.xlsx` hoja
+«0 · Metas por facultad» trae las QUINCE sobremuestras exactas de 2025 (suman
+3.750) y los titulares reales (suman 170). Con ellas la regla documentada
+(«aulas = CEIL(sobremuestra / mín(mediana, media) de elegibles)», hoja
+«0 · Diseño 2025») reproduce EXACTO en seis facultades (ARQ 6, GES 6, PSI 6,
+CONT 2, GAS 2 y ±1 en A&D/AE/EDU/LyCH) y falla SOLO en las grandes:
+**C&I 26 vs 39 (−13) · EGC 17 vs 25 (−8) · CCSS 9 vs 15 (−6) · DERECHO 12
+vs 16 (−4) · EGL 16 vs 19 (−3)**. Total fórmula ~126–133 vs 170.
+
+**Pista con número**: el traslape 2025 documentado es 1,55 aulas/alumno, y
+mín(mediana,media) de C&I ÷ 1,55 = 31,1/1,55 = **20,1 = exactamente el
+divisor implícito de C&I** (784/39). Hipótesis falsable: `estudiantes_por_
+aula` se calculó sobre elegibles SIN traslape (únicos por aula), y el
+traslape varía por facultad (ARQ mono-carrera ~1,0 → reproduce exacto; las
+grandes con cross-listing alto → déficit grande). SIGUIENTE PASO: derivar
+elegibles únicos por aula desde la base alumno×curso (136.284 filas, misma
+base 2025) por facultad y re-correr la regla. Alternativa si no cuadra:
+engorde operativo en agenda (las metas citan «BD Agenda - Matriz» como
+fuente, no una fórmula).
+
+Descartado además hoy: divisor sobre MATRICULADOS TOTAL DTI, CEIL por celda
+facultad×sexo (aporta ≤+1), cobertura constante de elegibles (los ratios
+van de 0,94 a 1,98). Trampa de cruce: «CIENCIAS Y ARTES DE LA COMUN.» vs
+«…COMUNICACIÓN» no casan con la normalización simple.
