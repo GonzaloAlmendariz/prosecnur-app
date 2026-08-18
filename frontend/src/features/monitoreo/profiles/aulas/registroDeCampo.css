@@ -335,3 +335,18 @@
 /* La lista CONSERVA su tope y su scroll: quitárselo la hacía crecer hasta su
  * contenido —siete aulas— y el panel pasaba de 388 a 406 px. Medido: empeoraba
  * justo lo que se pretendía arreglar. */
+
+/* Estado y motivo, en fila. Sueltos eran dos `label` de bloque y cada uno se
+   llevaba los 1 034 px del formulario para un desplegable de once opciones
+   cortas: el campo más ancho de la vista era el que menos texto lleva, y las
+   cifras de debajo iban en columnas de 337. Van juntos además porque son una
+   sola decisión — el motivo sólo se pide cuando el estado lo justifica. */
+.registro-campo-decision {
+  display: grid;
+  /* El tope por COLUMNA y no por la reja entera: con `1fr` y un tope global, un
+     campo solo se estiraba igual —672 px medidos contra los 337 de las cifras
+     de debajo—. Acotando la columna, el desplegable queda del ancho de sus
+     vecinos y la fila crece añadiendo el motivo, no ensanchando el estado. */
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 21rem));
+  gap: var(--pulso-space-3, 12px);
+}
