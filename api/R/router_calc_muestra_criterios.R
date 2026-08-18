@@ -56,6 +56,11 @@
   # cursos-horario en cada guardado. Lógica y porqué en
   # calc_muestra_alumnos_por_ch_resello.R.
   .cm_alumnos_por_ch_resellar(sid, prepared$frame$frame_hash)
+  # Y los criterios que CONSTRUYERON este marco aterrizan en la copia del
+  # workspace que la UI compara: sin esto, una config aplicada por API dejaba
+  # el chip «criterios cambiados» en ámbar perpetuo. Porqué en
+  # calc_muestra_criterios_sync_workspace.R.
+  .cm_criterios_sincronizar_workspace(sid, prepared$frame$config)
   prepared$frame
 }
 
