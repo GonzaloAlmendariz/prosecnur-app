@@ -2822,3 +2822,125 @@
   font-size: 11px;
   color: var(--pulso-text-soft);
 }
+
+/* Colchón de reservas por facultad — de 11 a 20 líneas es lo normal. */
+.mon-profile-page.is-aulas-flow .aulas-colchon {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 6px 0 2px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-lectura {
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-lista {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-lista > li {
+  display: grid;
+  /* La columna de la barra es la que cede: los tres números tienen ancho fijo
+     para que se lean en columna entre facultades. */
+  grid-template-columns: minmax(130px, 1.2fr) minmax(0, 2fr) 78px 78px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-cabecera {
+  padding-bottom: 2px;
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-cabecera > span:nth-child(n + 3) {
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-lista > li.es-riesgo {
+  border-left-color: var(--pulso-danger-fg);
+  background: var(--pulso-surface-sunken);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-lista > li.es-cubierta {
+  border-left-color: var(--pulso-success-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-nombre {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-nombre em {
+  color: var(--pulso-text-faint);
+  font-size: 10.5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 16px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 100%;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 10.5px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra em {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-riesgo,
+.mon-profile-page.is-aulas-flow .aulas-colchon-sindotar {
+  text-align: right;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-riesgo strong {
+  color: var(--pulso-danger-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-riesgo em,
+.mon-profile-page.is-aulas-flow .aulas-colchon-sindotar em {
+  color: var(--pulso-text-faint);
+  font-style: normal;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-colchon-pie {
+  margin: 2px 0 0;
+  font-size: 11px;
+}

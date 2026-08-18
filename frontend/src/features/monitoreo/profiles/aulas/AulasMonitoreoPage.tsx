@@ -32,6 +32,7 @@ import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { AulasCadenaChart } from "./AulasCadenaChart";
+import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
@@ -646,6 +647,10 @@ function renderAulasView(
               de L54— no aparecería y el gráfico diría que el plan tiene un
               colchón que no tiene. */}
           <AulasCadenaChart filas={agendaFilas} />
+          {/* Y DÓNDE aguanta. El consumo de arriba es del operativo entero; la
+              cuota, en cambio, es por facultad: veinte reservas libres no
+              sirven si la facultad que perdió un aula tiene cero. */}
+          <AulasColchonPorFacultad filas={agendaFilas} />
           {/* La tabla cambia de unidad y lo dice: la lectura cuenta cadenas y
               aquí va cada aula de esas cadenas, la que cayó y sus reservas. Sin
               este renglón, 24 arriba y 50 abajo se leen como una contradicción. */}
