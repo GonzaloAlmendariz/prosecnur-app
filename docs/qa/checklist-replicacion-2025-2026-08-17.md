@@ -2874,3 +2874,44 @@ selección real de HSVG2026, está completo.
 Pendiente de J1: barrido de código de fallas silenciosas (tercer agente en
 curso; dos caídas previas por 529) · identidad Σπ por facultad a nivel test
 de R · verificación adversarial de los hallazgos del barrido cuando llegue.
+
+## J1 · HALLAZGO MAYOR — el cubo NO está balanceando dentro de los estratos (silencioso)
+
+**Qué pasa**: el sorteo corre POR ESTRATO (facultad × sexo × tamaño, p.ej.
+«ARQUITECTURA Y URBANISMO / F / G1») y tres de las cinco `balance_vars` del
+diseño (faculty, sex_top_1, size_group) son CONSTANTES dentro de cada
+estrato. `model.matrix` falla ENTERO ante un factor de un solo nivel
+(«contrasts can be applied only to factors with 2 or more levels»), el
+`tryCatch` de `.cm_aulas_balance_matrix` (calc_muestra_aulas.R:1834) degrada
+TODO a matriz intercepto+pik, y las dos variables que SÍ varían (program,
+level) se pierden con las constantes. **El «cubo balanceado» queda como
+sorteo π-only por estrato, sin ningún aviso.**
+
+**Evidencia reproducida con el paquete real** (estrato sintético de 8 aulas,
+facultad/sexo/tamaño constantes, programa y nivel variando):
+- matriz con las 5 vars del diseño → columnas `pik, intercept` (¡solo eso!)
+- CONTROL con solo (program, level) → 7 columnas, balancea bien.
+
+**Alcance**: toda corrida del cubo con estratos que fijan alguna balance_var
+— es decir, el diseño vigente de HSVG2026 completo (15 facultades × sexo ×
+tamaño). Las cuotas se cumplen igual (vienen de la estratificación) y por
+eso nada se veía mal; lo ausente es el balance prometido por programa/nivel.
+Los invariantes 5/5 de la batería siguen válidos (miden otra cosa).
+
+**Reparación diseñada (siguiente tick)**: saneador POR COLUMNA en archivo
+NUEVO (`calc_muestra_aulas_balance_saneo.R`): descartar solo las variables
+de un nivel, conservar las que varían, y DECLARAR las descartadas (warning
+que viaja). `calc_muestra_aulas.R` está congelado: el rewire debe ser neto
+≤0 líneas (el cuerpo actual del builder se reemplaza por la llamada). Test
+rojo→verde con el caso control; re-batería del cubo (el hash CAMBIARÁ — el
+balance por fin ocurre) y comparación de representatividad antes/después.
+
+**Hallazgos menores del barrido manual** (verificados, en cola):
+- `.cm_aulas_engine_key(x, default="cube_balanceado")` (línea 434): un
+  method_id no reconocido cae al cubo SIN aviso (el resuelto sí se ecoa).
+  Leve: warning o 400 en el router.
+- Score del pool (línea 2122): si el objetivo de representatividad falla,
+  cae a un score heurístico sin declararlo. Leve-moderado.
+- JUSTIFICADOS: el fallback de motor (lcube→samplecube→PPS→weighted_random)
+  SÍ declara warning y propaga engine_used; los ajustes de tamaño (D2/H4)
+  viajan como dato.
