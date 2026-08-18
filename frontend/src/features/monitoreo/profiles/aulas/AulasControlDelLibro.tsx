@@ -171,9 +171,15 @@ function Veredicto1o0({ valor }: { valor: unknown }) {
   if (!txt) return <span className="mon-profile-muted">—</span>;
   const si = ["1", "SI", "SÍ", "TRUE", "V", "VALIDO", "VÁLIDO", "CUMPLE", "OK"]
     .includes(txt.toUpperCase());
+  // El NO CUMPLE se dibujaba «·». Medido sobre HSVG2026: en «Válido población»
+  // 103 filas decían no cumple con ese punto y otras 70 decían «sin dato» con
+  // un «—», las dos grises y del mismo peso. Un ojo que recorre la columna no
+  // distingue el veredicto negativo de la ausencia de veredicto, que son cosas
+  // opuestas —una es un resultado del aula y la otra un hueco de la hoja—, y
+  // encima la marca más callada de la tabla era la del caso mayoritario.
   return (
     <span className={`aulas-control-marca${si ? " es-si" : " es-no"}`} title={si ? "Válido" : "No válido"}>
-      {si ? "✓" : "·"}
+      {si ? "✓" : "✗"}
     </span>
   );
 }
