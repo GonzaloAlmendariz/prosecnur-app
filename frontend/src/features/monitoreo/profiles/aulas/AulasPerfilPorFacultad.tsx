@@ -41,7 +41,7 @@ export function AulasPerfilPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
         <strong>{fmt(cumplidas)}</strong> con su meta cumplida
         {sinFacultad ? <> · {fmt(sinFacultad)} cursos-horario sin facultad declarada</> : null}
       </p>
-      <ol className="aulas-facultades-lista">
+      <ol className="aulas-facultades-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((f) => (
           <li key={f.facultad}>
             <span className="aulas-facultad-nombre">
