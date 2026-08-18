@@ -3130,3 +3130,18 @@ COMPLETO 1.537/1.537.
 | K3 · visualizaciones nuevas (lente por facultad en Coincidencia · scores del sorteo · serie de estabilidad · calor cuota×sexo) | ☐ |
 
 Cola D: D4 libro (aprobada) · D2 τ sexo · D5 extracción congelado · menores.
+
+### Tanda K — K2 COMPLETO y K3 arrancado (`b9cef3da`) · dibujo entero
+
+K2-Auditoría cerrado por diagnóstico revisado: el bloque de 2.504px son solo
+CUATRO fórmulas — un índice de anclas sería decoración; conforme. K3 abre
+con el lente por facultad en las fichas de Coincidencia (16 opciones, una
+facultad a ancho completo, «todas» default; verificado en vivo).
+
+| # | Tanda K | Estado |
+|---|---|---|
+| K0 gramática · K1 censo · K2 (5/5 pestañas) | ☑ |
+| K3 · lente por facultad en Coincidencia | ☑ `b9cef3da` |
+| K3 · scores del sorteo en Titulares · serie de estabilidad · calor cuota×sexo en Resultados | ☐ |
+
+Cola D: D4 libro (aprobada) ☐ SIGUIENTE · D2 τ sexo ☐ · D5 extracción ☐ · menores ☐.
