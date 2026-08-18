@@ -118,3 +118,26 @@ describe("superficie Aulas — causa compartida por etapa", () => {
     expect(fmtPct(Number.POSITIVE_INFINITY)).toBe("—");
   });
 });
+
+describe("el aviso de comparación no vigente dice la causa", () => {
+  it("con diff de config nombra el campo y ambos valores en el detail", () => {
+    const notice = resolveAulasStageNotice(model({
+      comparisonReady: false,
+      hasStoredComparison: true,
+      simulationRows: [],
+      comparisonConfigDiff: ["n_aulas (corrida 202 · vigente 203)"],
+    }), "seleccion");
+    expect(notice?.kind).toBe("missing-comparison");
+    expect(notice?.detail).toContain("n_aulas (corrida 202 · vigente 203)");
+  });
+
+  it("sin diff (difiere el marco, no la config) conserva el texto genérico veraz", () => {
+    const notice = resolveAulasStageNotice(model({
+      comparisonReady: false,
+      hasStoredComparison: true,
+      simulationRows: [],
+      comparisonConfigDiff: [],
+    }), "seleccion");
+    expect(notice?.detail).toContain("no coincide con el objetivo o la firma vigente");
+  });
+});

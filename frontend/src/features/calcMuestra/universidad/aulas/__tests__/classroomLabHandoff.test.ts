@@ -8,7 +8,7 @@ import type {
 import { defaultComponente } from "../../../sharedCore";
 import { universityDefaultWorkspace } from "../../shared/study";
 import { buildClassroomLabModel } from "../aulasParts";
-import { classroomComparisonSelectorSnapshot } from "../classroomHandoff";
+import { classroomComparisonConfigDiff, classroomComparisonSelectorSnapshot } from "../classroomHandoff";
 import { classroomRiskRows } from "../ClassroomRiskList";
 import {
   UNIVERSITY_FACULTY_COMPONENT_ID,
@@ -729,5 +729,33 @@ describe("classroomRiskRows", () => {
       title: "Auditoría pendiente",
     });
     expect(classroomRiskRows([], true)[0]).toMatchObject({ code: "sin_alertas", severity: "ok" });
+  });
+});
+
+describe("classroomComparisonConfigDiff", () => {
+  const configVigente = (nAulas: number, overrides: Partial<AulasConfigConObjetivo> = {}) => ({
+    ...universityDefaultWorkspace().aulas_config,
+    n_aulas: nAulas,
+    ...overrides,
+  } as AulasConfigConObjetivo);
+
+  it("nombra el campo que difiere con ambos valores — la mordida del workspace era indiagnosticable sin esto", () => {
+    const config = configVigente(203, { simulation_runs: 0 });
+    const corrida = { ...classroomComparisonSelectorSnapshot(config), n_aulas: 202, simulation_runs: 500, monte_carlo_n: 500 };
+    const diff = classroomComparisonConfigDiff({ selector: corrida } as never, config);
+    expect(diff.some((linea) => linea.includes("n_aulas") && linea.includes("202") && linea.includes("203"))).toBe(true);
+    expect(diff.some((linea) => linea.includes("simulation_runs") && linea.includes("500") && linea.includes("0"))).toBe(true);
+    // Solo los campos que difieren: declarar donde no muerde ensucia el aviso.
+    expect(diff.some((linea) => linea.startsWith("seed"))).toBe(false);
+  });
+
+  it("con la corrida calcada a la firma no inventa diferencias", () => {
+    const config = configVigente(203);
+    const corrida = classroomComparisonSelectorSnapshot(config);
+    expect(classroomComparisonConfigDiff({ selector: corrida } as never, config)).toEqual([]);
+  });
+
+  it("sin corrida guardada devuelve vacío: no hay nada que explicar", () => {
+    expect(classroomComparisonConfigDiff(null, configVigente(203))).toEqual([]);
   });
 });

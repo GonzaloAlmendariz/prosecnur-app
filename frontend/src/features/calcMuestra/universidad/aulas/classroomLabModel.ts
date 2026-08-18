@@ -69,6 +69,7 @@ export function buildClassroomLabModel({
     frameReady,
     marcoDesactualizado: artifactMarcoDesactualizado,
     comparisonReady,
+    comparisonConfigDiff,
     selectionReady,
     replacementReady,
   } = resolveClassroomArtifactStatus({
@@ -159,6 +160,7 @@ export function buildClassroomLabModel({
     frameReady,
     marcoDesactualizado: artifactMarcoDesactualizado,
     comparisonReady,
+    comparisonConfigDiff,
     selectionReady,
     replacementReady,
     framePopulationCount,
