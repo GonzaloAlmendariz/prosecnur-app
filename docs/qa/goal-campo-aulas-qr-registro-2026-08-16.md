@@ -1414,6 +1414,11 @@ sospecha.
 | L97 | `8202f724` · `81f11eb0` | El libro salía sin formato ninguno: 0 validaciones, 0 paneles, 0 anchos, 0 protección. Ahora 36 desplegables con el vocabulario medido de 2025, cabecera, panel congelado y las columnas de la app teñidas. |
 | L98 | `95623b38` · `68d87931` | El libro sólo entraba por `.xlsx`. Ahora también por una pestaña de Sheets, con el rol de la fuente decidiendo qué hoja es. La API devuelve filas dentadas y sin rectangularizar el lector leía `HORA` donde hay `DÍA`. |
 | L99 | `6e544d51` · `44604dbd` | El banco de reservas sueltas contado como cadenas: 639 del pool se leían como 639 cadenas y 639 titulares sin reserva. El fixture no tenía ni una fila de banco ni `classroom_id` distinto del código operativo. |
+| L100 | `44604dbd` · `6db870b3` | El fixture tenía 6 facultades y el reparto usaba un `%% 6` a mano: la lista podía crecer a 20 y seguían saliendo 6. Con 20 salieron tres defectos —el nombre no envolvía y se desbordaba 227 px sobre la cifra, los marcos se desigualaron (47/62 y 27/41) y dos textos pegados—. |
+| L101 | `c2f9a906` · `3337620d` | El avance se contaba por fila del plan y no por slot: 84 110 respuestas donde el estudio pide 6 901, y 1 976 «por debajo de su meta» donde los slots son 202. Los extras salen a su propia pestaña: no reemplazan, son aulas adicionales para cerrar la cuota H/M por facultad. |
+| L102 | `e95bb6de` | `course_status` se recortaba a 500 filas en silencio: 2 115 aulas de 2 615 no llegaban a la pantalla, y con la vista por facultad faltarían facultades enteras sin avisar. |
+| L103 | `054c86c5` · `a092e41e` · `d362c2ea` · `3064d288` | «Todo por facultad» en las cinco secciones. El perfil por facultad se calculaba en la vista sobre el bloque recortado; ahora lo agrega el motor sobre el mismo conjunto que las demás cifras. |
+| L104 | `25615b3d` · `9e29c5e1` | La tabla de la agenda tenía 88 px —tres filas de 236— porque la franja de días se llevaba 260 de 430. Acotar el elemento no sirve: la pista del grid sigue midiendo su contenido. La franja pasa a `details` plegable y la tabla a seis filas. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
