@@ -2355,3 +2355,18 @@ más nítido (…) superprofesional».
 | I2 | Sustento técnico | SalidasCierreTab / paquete de defensa | ☐ |
 | I3 | El relato | aulas/relato/RelatoTab | ☐ |
 | I8 | Embudo de criterios de cursos-horario más nítido | radiografía/cascada de criterios (Marco) | ☐ |
+
+### Tanda I — estado tras el primer tick (dibujo entero)
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| I1 | El botón «+1 aula» como pregunta («¿un aula más?») | CertificacionFacultadCard | ☑ `49695556` |
+| I6a | El embudo facultad-por-facultad TAMBIÉN en Selección (paso 7) | AulasSeleccionTab | ☑ `49695556` |
+| I7a | «Sin referencia» donde SÍ hay referencia | criteriosGeneralesModel + referencia | ☐ SIGUIENTE |
+| I7b | «Este estudio vs el anterior» (periodo dinámico, no «2025» fijo) | etiquetas — ya dinámicas en embudo/fichas; barrer el resto | ◐ |
+| I7c | Los gráficos centrados en la DIFERENCIA | EmbudoComparadoFacultades | ☐ |
+| I4 | La cadena de reemplazos «no se ve bien» | AulasReemplazosTab / MatrizCadenas | ☐ |
+| I5 | Perfil de la muestra | AulasPerfilTab | ☐ |
+| I2 | Sustento técnico | SalidasCierreTab / paquete defensa | ☐ |
+| I3 | El relato | aulas/relato/RelatoTab | ☐ |
+| I8 | Embudo de criterios más nítido | radiografía/cascada (Marco) | ☐ |
