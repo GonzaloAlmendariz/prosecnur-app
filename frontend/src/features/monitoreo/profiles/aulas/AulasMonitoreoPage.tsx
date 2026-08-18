@@ -161,10 +161,19 @@ function DataTable({
   rows,
   empty,
   preferredColumns = [],
+  maxColumns = 8,
 }: {
   rows: Array<Record<string, unknown>>;
   empty: string;
   preferredColumns?: string[];
+  /**
+   * Cuántas columnas caben. Por defecto ocho, y lo que sobra hasta ocho lo
+   * rellena el payload en su propio orden — que es como la tabla de brechas
+   * acabó mostrando «Curso-horario» e «ID de curso-horario», dos columnas con
+   * el mismo valor en las 86 filas. Una tabla que pide menos de ocho puede
+   * decirlo y quedarse con las suyas.
+   */
+  maxColumns?: number;
 }) {
   if (!rows.length) {
     return (
@@ -181,7 +190,7 @@ function DataTable({
   // pide nueve: origen y recopilador desaparecían de la vista sin dejar rastro.
   // Ahora todo recorte se declara.
   const todasLasColumnas = compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER);
-  const recorteColumnas = recorteTabla(todasLasColumnas, 8, "columna");
+  const recorteColumnas = recorteTabla(todasLasColumnas, maxColumns, "columna");
   const columns = recorteColumnas.visibles;
   // 80 filas dejaban fuera 116 de las 196 de un operativo real —y con las
   // reservas al final del plan, la Agenda no mostraba NI UNA—. El tope existe
@@ -551,7 +560,12 @@ function renderAulasView(
           <DataTable
             rows={brechas}
             empty="Ningún curso-horario tiene brecha abierta."
-            preferredColumns={["operational_code", "label", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
+            // Siete y se declaran: la octava la rellenaba el payload con
+            // `classroom_id`, que en las 86 filas vale lo mismo que
+            // `operational_code`. `faculty` entra a mano porque es el corte con
+            // el que se reparte el trabajo, no porque toque por orden.
+            preferredColumns={["operational_code", "label", "faculty", "respuestas_validas", "expected_valid", "brecha", "operational_status"]}
+            maxColumns={7}
           />
         </section>
         ) : null}

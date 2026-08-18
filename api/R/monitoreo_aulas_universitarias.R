@@ -1154,6 +1154,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # ve fallar, en vez de recibir NULL en silencio —que es el patron que ya costo
   # doce items de esta cola—.
   brechas <- brechas[, intersect(BRECHAS_COLUMNAS_PUBLICADAS, names(brechas)), drop = FALSE]
+  # POR BRECHA, de mayor a menor. El filtro nunca ordenaba, asi que la lista
+  # salia en el orden del plan —CH 1, CH 2, CH 3…— y el panel existe para decir
+  # a quien ir primero. Medido sobre el operativo: abria con 15, 15, 16, 17 y la
+  # mayor de todas, 31, estaba en la fila 24.
+  #
+  # `course_status` YA se ordena por `-brecha`: el mismo hecho estaba ordenado en
+  # un bloque y sin ordenar en el otro.
+  if (nrow(brechas)) {
+    orden <- order(-brechas$brecha, brechas$operational_code)
+    brechas <- brechas[orden, , drop = FALSE]
+  }
   # La cadena de reemplazos son las reservas Y las aulas que cayeron.
   #
   # Faltaba el eje de MUESTRA, que es donde vive el reemplazo. Con solo
