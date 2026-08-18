@@ -753,7 +753,10 @@ function renderAulasView(
           <h3>Cumplimiento en respuestas</h3>
           <span>meta {fmt(avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta)}</span>
         </div>
-        <AulasAvanceEnRespuestas filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+        <AulasAvanceEnRespuestas
+          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
+          validasTotales={Number(dashboard.kpis?.respuestas_validas ?? 0) || 0}
+        />
       </section>
       )}
       {/* Va justo después del cumplimiento: primero CUÁNTO se lleva y en
