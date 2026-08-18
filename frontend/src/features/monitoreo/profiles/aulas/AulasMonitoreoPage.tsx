@@ -699,7 +699,10 @@ function renderAulasView(
                 `wave = "Extra"`. La descripción dice para qué sirven, que es lo
                 que no se deduce del nombre —y que yo tenía mal: no reemplazan
                 a nadie—. */}
-            <h3>Aulas extra por facultad</h3>
+            {/* NO «… por facultad»: choca con «Cuota sexo por facultad» y el
+                guard de títulos lo caza. Dos paneles que terminan igual se
+                confunden en el rail y en el historial de navegación. */}
+            <h3>Aulas extra disponibles</h3>
             <span>{fmt(dashboard.banco_extras?.total ?? 0)} extras</span>
           </div>
           <p className="mon-profile-muted">
