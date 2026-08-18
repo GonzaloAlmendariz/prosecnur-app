@@ -1419,6 +1419,7 @@ sospecha.
 | L102 | `e95bb6de` | `course_status` se recortaba a 500 filas en silencio: 2 115 aulas de 2 615 no llegaban a la pantalla, y con la vista por facultad faltarían facultades enteras sin avisar. |
 | L103 | `054c86c5` · `a092e41e` · `d362c2ea` · `3064d288` | «Todo por facultad» en las cinco secciones. El perfil por facultad se calculaba en la vista sobre el bloque recortado; ahora lo agrega el motor sobre el mismo conjunto que las demás cifras. |
 | L104 | `25615b3d` · `9e29c5e1` | La tabla de la agenda tenía 88 px —tres filas de 236— porque la franja de días se llevaba 260 de 430. Acotar el elemento no sirve: la pista del grid sigue midiendo su contenido. La franja pasa a `details` plegable y la tabla a seis filas. |
+| L105 | `c443daf4` | El gate visual, corrido con `--post-click-wait-selector` —el flag que verifica el DESTINO, no la página de entrada—, encontró 380 px de vacío en la pareja de Avance: el markup declaraba `intrinsic` y el CSS imponía `equal`. Queda medido y NO reparado: a 1024 hay dos dueños de scroll anidados (canvas + tabla), que el contrato prohíbe; el contenido SÍ se alcanza desplazando los dos, así que la etiqueta `scroll-unreachable` exagera. Es la misma decisión estructural del compacto. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
