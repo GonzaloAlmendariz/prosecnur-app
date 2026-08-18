@@ -143,7 +143,16 @@ export function criteriosGeneralesDeEstudio({
       claveHistorica: "metodo_seleccion",
     },
     { concepto: "Aulas del marco", hoy: fmtCifra(aulasMarco || null), claveHistorica: "aulas_marco" },
-    { concepto: "Aulas a visitar", hoy: fmtCifra(aVisitar || null), claveHistorica: "aulas_dimensionadas" },
+    {
+      concepto: "Aulas a visitar",
+      hoy: fmtCifra(aVisitar || null),
+      claveHistorica: "aulas_dimensionadas",
+      /* R4 (checklist 2026-08-18): el 170 histórico NO es lo que su diseño
+         dimensionó — es la ola de agenda fijada tras ajuste manual (tres olas
+         idénticas sobre el pool). Sin la nota, el «no» de esta fila se lee
+         como si los dos diseños difirieran, que es lo contrario de lo medido. */
+      notaHistorica: "ejecutado tras ajuste manual de agenda; no es el dimensionamiento de su diseño",
+    },
     // Lo que el estudio anterior HIZO. Su columna «este estudio» queda vacía a
     // propósito: son resultados de campo, y este estudio todavía no salió. Están
     // aquí porque son la única parte del histórico que el proyecto guarda, y sin
