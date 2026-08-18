@@ -21,24 +21,12 @@ import {
   apiMonitoreoAulasAgenda,
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
-import { MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
+import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
 import "./registroDeCampo.css";
 
-// El vocabulario es el del motor (`monitoreo_aulas_estados()`), traducido una
-// sola vez aquí. La clave viaja; la etiqueta se queda en la pantalla.
-const ESTADOS: Array<{ value: string; label: string }> = [
-  { value: "planificada", label: "Planificada" },
-  { value: "contactada", label: "Contactada" },
-  { value: "agendada", label: "Agendada" },
-  { value: "en_campo", label: "En campo" },
-  { value: "aplicada", label: "Aplicada" },
-  { value: "parcial", label: "Parcial" },
-  { value: "sin_acceso", label: "Sin acceso" },
-  { value: "cancelada", label: "Cancelada" },
-  { value: "reemplazo_pendiente", label: "Reemplazo pendiente" },
-  { value: "reemplazada", label: "Reemplazada" },
-  { value: "cerrada", label: "Cerrada" },
-];
+// Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
+// alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
+const ESTADOS = ESTADOS_OPERATIVOS;
 
 // El vocabulario vive en `aulasPresentation`, que es donde están todos los
 // rótulos: aquí se ofrecía en un select y la tabla de la cadena no lo alcanzaba,
