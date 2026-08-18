@@ -2936,3 +2936,21 @@ Proyecto GUARDADO con la selección re-balanceada.
 | Menor: score del pool degrada sin declarar | ☐ |
 | Identidad Σπ por facultad (test R) | ☐ |
 | J2 τ por facultad | ⛔ BLOQUEADO (decisión de Gonzalo) |
+
+### J1 — remate de menores (`43af6290`) · dibujo entero
+
+| # | Ítem de J1 | Estado |
+|---|---|---|
+| Batería empírica 4 engines × 5 invariantes | ☑ (cubo re-verificado tras el fix del balance) |
+| HALLAZGO MAYOR: balance intra-estrato | ☑ REPARADO `051ed312` |
+| Declaración de descartadas al payload | ☑ `43af6290` (un warning, no ochenta; mutante 2 rojos) |
+| engine_key: pedido explícito no reconocido → 400 | ☑ `43af6290` (E_CALC_MUESTRA_AULAS_ENGINE registrado; test REST del endpoint = deuda menor anotada) |
+| Identidad Σπ (ADR 0066) con test | ☑ `43af6290` (13/0: suma exacta, certezas redistribuidas, cuota/N, certezas puras) |
+| Score del pool degrada sin declarar | ☐ (menor, en cola) |
+| J2 τ por facultad | ⛔ BLOQUEADO (decisión de Gonzalo) |
+
+**J1 queda CERRADO en lo sustantivo**: backend de los 4 sorteos auditado
+empíricamente (4×5/5), barrido de fallas silenciosas hecho, el hallazgo
+mayor reparado y verificado a escala real, las fallas ahora se declaran, y
+la identidad estadística con test. Restan dos menores anotados (score del
+pool, test REST del 400) que no bloquean el veredicto.
