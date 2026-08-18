@@ -60,17 +60,9 @@
   outline-offset: 2px;
 }
 
-.cmv2-panorama-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-
+/* Base en shared/tablas.css; aquí lo propio: sticky y celdas medias. */
 .cmv2-panorama-table th,
 .cmv2-panorama-table td {
-  padding: 6px 9px;
-  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 62%, transparent);
-  text-align: left;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -80,9 +72,6 @@
   top: 0;
   z-index: 1;
   background: var(--pulso-surface-2);
-  color: var(--pulso-text-muted);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
 }
 
 /* La cabecera de Facultad también es sticky-left: sin esto, al scrollear se
@@ -192,9 +181,7 @@
   color: var(--pulso-text);
 }
 
-.cmv2-panorama-num {
-  font-variant-numeric: tabular-nums;
-}
+
 
 .cmv2-panorama-estado {
   color: var(--pulso-text-muted);

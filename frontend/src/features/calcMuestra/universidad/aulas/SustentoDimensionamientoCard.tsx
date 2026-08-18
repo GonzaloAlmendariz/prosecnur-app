@@ -14,6 +14,7 @@ import type {
 } from "../../../../api/calcMuestra";
 import { fmtInt } from "../../sharedCore";
 import { construirSustento } from "./sustentoDimensionamientoModel";
+import "../shared/tablas.css";
 import "./sustentoDimensionamiento.css";
 
 export function SustentoDimensionamientoCard({
@@ -65,30 +66,30 @@ export function SustentoDimensionamientoCard({
         </p>
       </header>
       <div className="cmv2-sustento-wrap">
-        <table className="cmv2-sustento-tabla">
+        <table className="cmv2-tabla cmv2-sustento-tabla">
           <thead>
             <tr>
               <th scope="col">Facultad</th>
-              <th scope="col">Cuota</th>
-              <th scope="col">÷ alumnos/aula</th>
-              <th scope="col">× respuesta</th>
-              <th scope="col">= titulares</th>
-              <th scope="col">+ reservas</th>
-              <th scope="col">a coordinar</th>
+              <th scope="col" className="cmv2-num">Cuota</th>
+              <th scope="col" className="cmv2-num">÷ alumnos/aula</th>
+              <th scope="col" className="cmv2-num">× respuesta</th>
+              <th scope="col" className="cmv2-num">= titulares</th>
+              <th scope="col" className="cmv2-num">+ reservas</th>
+              <th scope="col" className="cmv2-num">a coordinar</th>
               {/* Decisión de Gonzalo: el τ propio es REFERENCIAL — se muestra,
                   no redimensiona. Sale de las aulas aplicadas 2025 de la
                   facultad (Σefectivas/Σelegibles, k ≥ 12). */}
-              <th scope="col" className="cmv2-sustento-ref">τ propio 2025 (ref.)</th>
+              <th scope="col" className="cmv2-num cmv2-sustento-ref">τ propio 2025 (ref.)</th>
             </tr>
           </thead>
           <tbody>
             {sustento.filas.map((fila) => (
               <tr key={fila.facultad} data-ajustada={fila.ajustadaAMano || undefined}>
                 <th scope="row">{fila.facultad}</th>
-                <td>{fmtInt(fila.cuota)}</td>
-                <td>{fila.estadisticoValor == null ? "—" : fmtInt(fila.estadisticoValor)}</td>
-                <td>{fila.tau == null ? "—" : `${Math.round(fila.tau * 100)}%`}</td>
-                <td>
+                <td className="cmv2-num">{fmtInt(fila.cuota)}</td>
+                <td className="cmv2-num">{fila.estadisticoValor == null ? "—" : fmtInt(fila.estadisticoValor)}</td>
+                <td className="cmv2-num">{fila.tau == null ? "—" : `${Math.round(fila.tau * 100)}%`}</td>
+                <td className="cmv2-num">
                   <strong>{fmtInt(fila.aulasBase)}</strong>
                   {fila.ajustadaAMano ? (
                     <small className="cmv2-sustento-ajuste">
@@ -96,9 +97,9 @@ export function SustentoDimensionamientoCard({
                     </small>
                   ) : null}
                 </td>
-                <td>{fmtInt(fila.reservas)}</td>
-                <td>{fmtInt(fila.aCoordinar)}</td>
-                <td className="cmv2-sustento-ref">
+                <td className="cmv2-num">{fmtInt(fila.reservas)}</td>
+                <td className="cmv2-num">{fmtInt(fila.aCoordinar)}</td>
+                <td className="cmv2-num cmv2-sustento-ref">
                   {fila.tauPropio == null ? (
                     <span title="Menos de 12 aulas aplicadas en 2025: un τ propio sería ruido.">— (k&lt;12)</span>
                   ) : (
@@ -113,12 +114,12 @@ export function SustentoDimensionamientoCard({
           <tfoot>
             <tr>
               <th scope="row">Todas las facultades</th>
-              <td>{fmtInt(totales.cuota)}</td>
-              <td>—</td>
-              <td>{tauGlobal == null ? "varía" : `${Math.round(tauGlobal * 100)}%`}</td>
-              <td><strong>{fmtInt(totales.aulasBase)}</strong></td>
-              <td>{fmtInt(totales.reservas)}</td>
-              <td>{fmtInt(totales.aCoordinar)}</td>
+              <td className="cmv2-num">{fmtInt(totales.cuota)}</td>
+              <td className="cmv2-num">—</td>
+              <td className="cmv2-num">{tauGlobal == null ? "varía" : `${Math.round(tauGlobal * 100)}%`}</td>
+              <td className="cmv2-num"><strong>{fmtInt(totales.aulasBase)}</strong></td>
+              <td className="cmv2-num">{fmtInt(totales.reservas)}</td>
+              <td className="cmv2-num">{fmtInt(totales.aCoordinar)}</td>
               <td className="cmv2-sustento-ref">referencial</td>
             </tr>
           </tfoot>

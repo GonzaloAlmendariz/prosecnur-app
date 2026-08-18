@@ -57,29 +57,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.cmv2-rankdes-fac table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-.cmv2-rankdes-fac th,
-.cmv2-rankdes-fac td {
-  padding: 5px 10px;
-  text-align: left;
-  vertical-align: baseline;
-  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
-}
-.cmv2-rankdes-fac thead th {
-  border-top: 0;
-  font-size: 10px;
-  color: var(--pulso-text-muted);
-  font-weight: var(--pulso-weight-semibold);
-}
-.cmv2-rankdes-fac tbody th[scope="row"] {
-  font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text);
-  min-width: 0;
-}
+/* Base en shared/tablas.css; aquí solo lo propio de la tarjeta. */
+.cmv2-rankdes-fac tbody th[scope="row"] { min-width: 0; }
 .cmv2-rankdes-curso {
   display: block;
   overflow: hidden;
@@ -93,5 +72,4 @@
   color: var(--pulso-text-muted);
   font-weight: var(--pulso-weight-regular);
 }
-.cmv2-rankdes-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.cmv2-rankdes-num strong { color: var(--cmv2-accent-fg); }
+.cmv2-rankdes-fac .cmv2-num strong { color: var(--cmv2-accent-fg); }
