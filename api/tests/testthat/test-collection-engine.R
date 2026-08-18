@@ -314,3 +314,28 @@ test_that("la costura adapter -> resolvedor no duplica el parametro", {
   expect_equal(url, "https://ee.example.test/x/form?d%5BcollectorID%5D=CH-1")
   expect_equal(lengths(regmatches(url, gregexpr("collectorID", url, fixed = TRUE)))[[1]], 1L)
 })
+
+test_that("un valor de personalizacion vacio o NA no produce enlace", {
+  # Un QR con `d[collectorID]=` escanea bien, abre el formulario bien y llega
+  # SIN identificador: la respuesta entra anonima y no se descubre hasta el
+  # analisis. El NA es peor: `d[collectorID]=NA` si lleva identificador —la
+  # cadena «NA»— y acumula todas las unidades sin codigo en un colector
+  # inventado que parece legitimo.
+  url <- get(".collection_access_url", envir = asNamespace("prosecnurapp"))
+  base <- list(
+    access_ref = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    access_kind = "parameterized_link"
+  )
+  for (malo in list("", NA, NA_character_, "   ")) {
+    binding <- base
+    binding$prefill <- list(collectorID = malo)
+    expect_identical(url(binding, "public", "kobo"), "")
+  }
+  # El caso bueno sigue saliendo entero, con el valor escapado.
+  binding <- base
+  binding$prefill <- list(collectorID = "CH 31")
+  expect_identical(
+    url(binding, "public", "kobo"),
+    "https://ee-eu.kobotoolbox.org/single/ccIcHAqm?d%5BcollectorID%5D=CH%2031"
+  )
+})
