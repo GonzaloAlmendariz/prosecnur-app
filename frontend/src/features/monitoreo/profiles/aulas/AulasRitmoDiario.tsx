@@ -68,7 +68,12 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
         {dias.map((d) => (
           <li key={d.fecha} className={d.validas ? "" : "es-sin-campo"}>
             <span className="aulas-ritmo-fecha">{etiquetaDeDia(d.fecha)}</span>
-            <span className="aulas-ritmo-barra">
+            {/* Decorativa: las dos cifras de la fila —las del día y el
+                acumulado— ya son texto en las celdas de al lado, así que un
+                lector de pantalla tiene el dato sin la barra. La agenda por día
+                SÍ etiqueta las suyas porque allí la barra reparte tramos que no
+                están escritos en ninguna otra parte de la fila. */}
+            <span className="aulas-ritmo-barra" aria-hidden="true">
               <i
                 style={{
                   width: `${tope ? Math.max(d.validas ? 2 : 0, (100 * d.validas) / tope) : 0}%`,
