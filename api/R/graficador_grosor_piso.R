@@ -122,12 +122,28 @@
 #' su unidad en los dos casos; lo que cambia es cuanto vale esa unidad en
 #' pulgadas.
 #'
-#' La pista concreta para el siguiente paso: en las sanas `canvas_h_panel_in`
-#' viene DECLARADO (2.2, 2.96) y en la 16 viene `NA`, asi que el panel se
-#' calcula como `n_filas_virtuales * alto_por_cat_eff` — 9.52 x 0.651. En la
-#' corrida, 144 de 232 renders tienen `y_axis_max` mayor que su numero de
-#' categorias, asi que el eje inflado es el caso NORMAL de las mixtas, no una
-#' anomalia de esta lamina; lo anomalo es cuanto.
+#' CORREGIDO — ese «declarado contra NA» NO separaba laminas sanas de enfermas,
+#' separaba WORD de PPT. Los valores declarados salen todos de
+#' `.word_escalar_panel_multi()` (`reporte_plan_helpers.R`), que es un helper
+#' SOLO de Word: `max(1.1, 0.55 * n_actores)`. Contado en la traza, cuadra
+#' exacto — 1.1 con una y dos categorias, 1.65 con tres, 2.2 con cuatro. En PPT
+#' `canvas_h_panel_in` llega `NULL` SIEMPRE, asi que el `NA` de la 16 no la
+#' distingue de nada. Y como la traza no llevaba identificador de lamina, que la
+#' pareja `y_axis_max = 9.52 / h_panel = 6.1975` sea la 16 tampoco esta
+#' establecido: aparecia dos veces, que es justo lo que hace cada lamina al
+#' renderizarse para PPT y para Word.
+#'
+#' Lo que si vale de esa traza: 144 de 232 renders tienen `y_axis_max` mayor que
+#' su numero de categorias, asi que el eje largo es el caso NORMAL de las
+#' mixtas y no una anomalia.
+#'
+#' Y una pieza que ya existe y conviene mirar antes de escribir otra:
+#' `.grosor_anclado_al_nominal()`, mas abajo en este archivo, reancla la
+#' fraccion cuando el panel viene impuesto —`fraccion * nominal / real`—. En el
+#' camino de PPT el panel NO viene impuesto y el codigo estira
+#' `alto_por_cat_eff` para llenar el hueco (`.barras_alto_fila_ajustado()`, en
+#' el bloque `if (!panel_fijado_in)`), que es otra forma de imponer una fila
+#' distinta de la nominal, y ahi no reancla nadie. Sin medir.
 #'
 #' Y EL GROSOR NO ES EL CULPABLE, MEDIDO CON TRAZA SOBRE LA CORRIDA ENTERA:
 #' `grosor_eff` sale **0.7800** en las 31 laminas de cuatro categorias del mazo,
