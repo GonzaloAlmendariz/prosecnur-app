@@ -3839,7 +3839,7 @@ calc_muestra_aulas_comparar_metodos <- function(frame_result, config = list(), m
 .cm_aulas_selection_private <- function(selection_result, aula_frame) {
   public <- .cm_aulas_as_df(selection_result$selection, "selection")
   if (!nrow(public)) return(public)
-  lookup_cols <- intersect(c("classroom_id", "unique_student_ids", "eligible_n", "faculty", "program", "level", "schedule", "size_group"), names(aula_frame))
+  lookup_cols <- intersect(c("classroom_id", "unique_student_ids", "eligible_n", "faculty", "faculty_aula", "program", "level", "course_level_num", "schedule", "size_group"), names(aula_frame))
   lookup <- aula_frame[, lookup_cols, drop = FALSE]
   merge(public, lookup, by = "classroom_id", all.x = TRUE, sort = FALSE, suffixes = c("", "_frame"))
 }
@@ -4252,7 +4252,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "selection_slot_id", "sample_role", "wave", "replacement_order",
     "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
-    "teacher_email", "faculty", "program", "level", "eligible_n", "enrolled_total",
+    "teacher_email", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
@@ -4989,7 +4989,7 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     "selection_slot_id", "sample_role", "wave", "replacement_order",
     "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
-    "teacher_email", "faculty", "program", "level", "eligible_n", "enrolled_total",
+    "teacher_email", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "historical_sample_label", "operation_status", "field_status",
     "scheduled_date", "scheduled_time", "applied_date", "applied_time",
