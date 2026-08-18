@@ -1916,3 +1916,51 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # «El `.pulso` guarda un instrumento para cuatro publicos» describia el `state`
 # y no el motor; bastaba leer la firma de `reporte_ppt_plan()` para verlo. Antes
 # de declarar que algo falta, comprobar donde vive.
+
+
+# P49 — EL MEDIDOR DEL WORD ESTABA ROTO, Y AL ARREGLARLO EL CASO CAMBIA DE
+# SIGNO: EL ENUNCIADO ES DE ADMINISTRATIVOS, LA UNICA FUENTE QUE **SI** TIENE
+# LA ETIQUETA ENTERA. EL ARREGLO DEBERIA HABER FUNCIONADO Y NO LO HIZO.
+#
+# La nota anterior decia «sale en el Word, en un `<w:t>` de 1312 bytes». Ese
+# 1312 no era texto: la regex `<w:t[^>]*>(.*?)</w:t>` con `re.S` **capturaba a
+# traves del marcado** y devolvia trozos de XML crudo —`</w:r></w:p><w:p>…`—.
+# Con un parser de verdad (`p49w2.py`, recorriendo el arbol y tomando el `.text`
+# de cada `w:t` en su namespace) el documento tiene **463 nodos** y el mas largo
+# mide **315 B**, no 1312.
+#
+# Y con el medidor arreglado aparece lo que importa, que estaba TAPADO:
+#
+#     [132] Grafico Nº 45. ESTRUCTURA ORGANIZACIONAL DE GOBIERNO — Las autoridades…
+#     [133] Base: 178 egresados
+#     [135] Grafico Nº 46 … «Existen mecanismos claros y permanentes …Consejo de D»   315 B
+#     [136] **Base: 15 administrativos**
+#     [138] Grafico Nº 47 … Los docentes que ocupan p…
+#
+# **El enunciado truncado es de ADMINISTRATIVOS.** Y administrativos es
+# exactamente la fuente cuyo XLSForm (`d4d1fea2`, 67 filas) **SI trae los 291
+# bytes** en `survey$label` fila 47, `name = p13_3`. Los 315 B del nodo son el
+# titulo completo del grafico —«Grafico Nº 46. <SECCION> — » delante del
+# enunciado de 256—, no otro texto.
+#
+# LUEGO EL ARREGLO DEBERIA HABER DISPARADO AHI Y NO LO HIZO. Eso **retira** la
+# explicacion comoda del tick anterior («el `survey` de esa fuente tampoco trae
+# la entera»): la trae. Queda un tercer eslabon sin medir, y las candidatas son
+# concretas:
+#   (a) la ruta del Word no pasa por `.lookup_variable_label()`;
+#   (b) `labels_override` —el paso 1, antes que el `df`— responde primero;
+#   (c) el `name` de esa variable en el `.sav` de administrativos no es `p13_3`,
+#       o el `survey` que llega como `dic_vars` para esa fuente no es
+#       `d4d1fea2`. Ojo: `p13_3` en el instrumento del EDITOR es «Actividades
+#       culturales», asi que ese `name` esta reusado entre publicos.
+#
+# **P49 NO se revierte todavia.** El criterio del encargo —«si el remedio no
+# mejora, revertir»— se aplica cuando el remedio esta descartado; aqui lo que
+# hay es un arreglo correcto con una hipotesis VIVA de por que no llega. Las
+# suites que lo rodean estan verdes con el puesto: `select-multiple` **38** y
+# `apiladas-frecuencia-etiquetas` **11**, ademas de sus propios **17**.
+#
+# LECCION: **un medidor que devuelve marcado no esta midiendo texto.** El 1312
+# B tenia que haber chirriado —ningun enunciado mide eso— y en su lugar sirvio
+# para sostener una conclusion. La cifra rara es la que hay que perseguir, no la
+# que se acomoda a la hipotesis.
