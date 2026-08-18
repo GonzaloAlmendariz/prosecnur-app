@@ -934,6 +934,14 @@ monitoreo_aulas_criterio_texto <- function(crit) {
                          ifelse(en_reserva, "en_reserva", "pendiente"))))
   )
   cols <- intersect(c(
+    # `sample_role` viaja con el estado por la misma razon que `sample_status`:
+    # sin el, la vista no puede distinguir un titular de una reserva del banco.
+    # Y lo necesita: `course_status` trae las 202 filas del plan, banco incluido,
+    # asi que el panel de cumplimiento sumaba una meta de 4 476 mientras el del
+    # ritmo —que sale de `tracked_df`, donde el banco NO esta— decia 4 336. Dos
+    # metas distintas en la misma pantalla, y la vista sin forma de saber cual
+    # fila sobraba. El banco eran esos 140.
+    "sample_role",
     "operational_code", "titular_operational_code", "wave", "classroom_id",
     "course_name", "section", "schedule", "faculty", "program", "level",
     # La fecha agendada viaja con el estado. `schedule` es el texto corto que se
@@ -1366,6 +1374,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     ),
     agenda = .monitoreo_aulas_records(plan_df),
     course_status = course_status,
+    # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
+    # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
+    # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una
+    # cadena se agotaba entera nadie sabia de donde sacar sin descuadrar la
+    # composicion. Agregado por facultad porque esa es la pregunta que se hace
+    # primero: «¿de esta facultad me queda algo, y con cuantas mujeres?».
+    banco_extras = monitoreo_aulas_banco_extras(plan),
     avance_por_estrato = .monitoreo_aulas_records(advance),
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
