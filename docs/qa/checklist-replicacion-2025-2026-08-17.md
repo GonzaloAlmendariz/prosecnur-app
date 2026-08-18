@@ -2101,3 +2101,21 @@ guardar→reabrir** — el fix S2 aguanta con todo el estado real encima.
 
 **El loop pasa a HOLDS ligeros**: todo lo computable está cerrado; quedan
 R4 (bloqueado en la pregunta a Gonzalo) y el audit de congelados (curador).
+
+## R4 · CERRADO — Gonzalo confirma el engorde manual · ☑ 2026-08-18
+
+Gonzalo, textual: «sí, en 2025 las facultades grandes se ajustaron a mano en
+agenda». Con eso las 170 titulares de 2025 quedan explicadas por completo:
+**fórmula (~133, exacta en las facultades chicas) + ajuste manual en el
+agendamiento** concentrado en las grandes (C&I +13, EGC +8, CCSS +6,
+DERECHO +4, EGL +3). No falta ninguna fuente.
+
+**Implicación operativa, ya implementada**: el motor NO imita el engorde —
+dimensiona con su propia fórmula (p25) y la afijación viaja a la selección
+(`a8d329c6`/`f76eee01`): 202 a visitar, dentro de la vara 170–210, con el
+reparto del diseño respetado al desvío cero. La diferencia con 2025 es
+deliberada y superior: donde 2025 corrigió a mano, el diseño de hoy lo
+resuelve en la fórmula por facultad.
+
+**El tablero R1–R40 + S1–S4b + afijación queda COMPLETO.** Único abierto
+no computable: el audit de congelados (+72 previos al loop, curador).
