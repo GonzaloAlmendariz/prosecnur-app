@@ -738,9 +738,18 @@ export type MonitoreoAulasConfig = {
   [key: string]: unknown;
 };
 
+import type { BancoDeExtras } from "../features/monitoreo/profiles/aulas/AulasBancoExtras";
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
+  /**
+   * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
+   * por facultad con su composición por sexo. Es el segundo nivel de respaldo
+   * del diseño y no aparecía en el payload, así que cuando una cadena se
+   * agotaba entera no había de dónde leer qué queda en ese estrato.
+   */
+  banco_extras?: BancoDeExtras | null;
   selection_run_id?: string;
   frame_hash?: string;
   anonymous_responses?: boolean;
