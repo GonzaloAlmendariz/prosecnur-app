@@ -37,6 +37,10 @@
   border: 1px solid var(--cmv2-border);
   border-radius: 8px;
   background: color-mix(in srgb, var(--cmv2-border) 10%, transparent);
+  /* Con 8 columnas la tabla puede exceder la media tarjeta: el desborde es
+     HORIZONTAL y de la tarjeta (regla de la casa), nunca de la página. */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .cmv2-rankdes-fac > header {

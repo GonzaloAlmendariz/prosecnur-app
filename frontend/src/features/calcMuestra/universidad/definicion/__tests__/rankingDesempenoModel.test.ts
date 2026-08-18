@@ -43,7 +43,10 @@ function cadena(over: Record<string, unknown>): CalcMuestraReferenciaAsistenciaC
 }
 
 const MARCO = [
-  { classroom_id: "CH-1", condicion_curso: "OBLIGATORIO", course_level_num: 6 },
+  {
+    classroom_id: "CH-1", condicion_curso: "OBLIGATORIO", course_level_num: 6,
+    sex_top_1: "F", sex_top_1_n: 20, sex_top_2: "M", sex_top_2_n: 8,
+  },
   { classroom_id: "ch-2", condicion_curso: "ELECTIVO", course_level_num: 3 },
 ];
 
@@ -72,8 +75,16 @@ describe("construirRankingDesempeno", () => {
     });
     // El join es case-insensitive (los códigos reales mezclan mayúsculas).
     expect(derecho.filas[1]).toMatchObject({ cursoHorario: "CH-1", tipo: "OBLIGATORIO", ciclo: 6 });
-    // CH-9 no existe en el marco vigente: tipo/ciclo null, no inventados.
-    expect(ranking!.grupos[1]!.filas[0]).toMatchObject({ tipo: null, ciclo: null, semana: null });
+    // Los sexos: quiénes respondieron (2025, del escalón) y los elegibles de
+    // HOY (sex_top del marco) — la base 2025 no trae el denominador por sexo.
+    expect(derecho.filas[1]).toMatchObject({
+      elegiblesHoyMujeres: 20, elegiblesHoyHombres: 8,
+    });
+    // CH-9 no existe en el marco vigente: tipo/ciclo/sexo null, no inventados.
+    expect(ranking!.grupos[1]!.filas[0]).toMatchObject({
+      tipo: null, ciclo: null, semana: null,
+      elegiblesHoyMujeres: null, elegiblesHoyHombres: null,
+    });
     // La cobertura declara el join y el fechado: 3 aplicadas, 2 con semana, 2 en el catálogo.
     expect(ranking!.cobertura).toMatchObject({ aplicadas: 3, conSemana: 2, conJoin: 2 });
   });
@@ -146,6 +157,19 @@ describe("construirRankingDesempeno", () => {
     expect(construirRankingDesempeno(
       [cadena({ escalones: [escalon({ estado: "reserva" })] })], MARCO,
     )).toBeNull();
+  });
+
+  it("los que respondieron por sexo salen del escalón 2025, no del marco", () => {
+    const ranking = construirRankingDesempeno(
+      [cadena({
+        escalones: [escalon({ efectivas_mujeres: 12, efectivas_hombres: 8 })],
+      })],
+      MARCO,
+    );
+    expect(ranking!.grupos[0]!.filas[0]).toMatchObject({
+      efectivasMujeres: 12, efectivasHombres: 8,
+      elegiblesHoyMujeres: 20, elegiblesHoyHombres: 8,
+    });
   });
 
   it("respeta el tope por facultad con desempate estable", () => {

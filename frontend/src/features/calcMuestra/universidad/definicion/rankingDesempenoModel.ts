@@ -38,6 +38,16 @@ export type FilaRankingDesempeno = {
   /** Del marco VIGENTE (join por código); null si el curso ya no existe hoy. */
   tipo: string | null;
   ciclo: number | null;
+  /** Quiénes RESPONDIERON en 2025, por sexo. El motor lo publica por escalón. */
+  efectivasMujeres: number | null;
+  efectivasHombres: number | null;
+  /** Elegibles por sexo del marco VIGENTE (los sex_top de la certificación).
+   *  La base 2025 NO trae el denominador por sexo por aula —el propio lector
+   *  del libro lo documenta: «nadie observa» ese denominador—, así que la
+   *  previsión por sexo que se puede decir con verdad es la de HOY, y se
+   *  etiqueta como tal. null si el curso no existe hoy o no declara el sexo. */
+  elegiblesHoyMujeres: number | null;
+  elegiblesHoyHombres: number | null;
 };
 
 export type GrupoRankingDesempeno = {
@@ -87,14 +97,37 @@ export function claveCursoHorario(codigo: unknown): string {
 /** Índice tipo/ciclo del marco vigente por código de curso-horario. */
 export function indiceMarcoVigente(
   aulaFrame: ReadonlyArray<AulaFrameRowLike> | null | undefined,
-): Map<string, { tipo: string | null; ciclo: number | null }> {
-  const out = new Map<string, { tipo: string | null; ciclo: number | null }>();
+): Map<string, {
+  tipo: string | null;
+  ciclo: number | null;
+  mujeres: number | null;
+  hombres: number | null;
+}> {
+  const out = new Map<string, {
+    tipo: string | null; ciclo: number | null;
+    mujeres: number | null; hombres: number | null;
+  }>();
   for (const row of aulaFrame ?? []) {
     const id = claveCursoHorario(row.classroom_id);
     if (!id) continue;
+    // El sexo viaja como top-2 categorías («F»/«M» + su n). Sólo se lee lo
+    // observado: si una celda no aparece queda null, nunca se deriva por resta
+    // (eligible_n puede incluir sexo sin declarar).
+    let mujeres: number | null = null;
+    let hombres: number | null = null;
+    for (const [cat, n] of [
+      [row.sex_top_1, row.sex_top_1_n],
+      [row.sex_top_2, row.sex_top_2_n],
+    ] as const) {
+      const clave = texto(cat).toUpperCase();
+      if (clave === "F") mujeres = num(n);
+      else if (clave === "M") hombres = num(n);
+    }
     out.set(id, {
       tipo: texto(row.condicion_curso) || null,
       ciclo: num(row.course_level_num),
+      mujeres,
+      hombres,
     });
   }
   return out;
@@ -156,6 +189,10 @@ export function construirRankingDesempeno(
         rendimiento,
         tipo: vigente?.tipo ?? null,
         ciclo: vigente?.ciclo ?? null,
+        efectivasMujeres: num(escalon.efectivas_mujeres),
+        efectivasHombres: num(escalon.efectivas_hombres),
+        elegiblesHoyMujeres: vigente?.mujeres ?? null,
+        elegiblesHoyHombres: vigente?.hombres ?? null,
       });
       porFacultad.set(facultad, grupo);
     }

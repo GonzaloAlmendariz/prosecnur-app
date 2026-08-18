@@ -24,6 +24,14 @@ function pctTxt(v: number | null): string {
   return v == null ? "—" : `${Math.round(v * 100)}%`;
 }
 
+/** «9 · 7» (mujeres · hombres); un lado sin dato va como guion, nunca como 0. */
+function parSexo(mujeres: number | null, hombres: number | null): string {
+  if (mujeres == null && hombres == null) return "—";
+  const m = mujeres == null ? "—" : fmtInt(mujeres);
+  const h = hombres == null ? "—" : fmtInt(hombres);
+  return `${m} · ${h}`;
+}
+
 export function RankingDesempenoCard({
   referencia,
   aulaFrame,
@@ -72,7 +80,11 @@ export function RankingDesempenoCard({
           ). De las {fmtInt(cobertura.aplicadas)} aulas aplicadas,{" "}
           {fmtInt(cobertura.conSemana)} traen semana de campo y{" "}
           {fmtInt(cobertura.conJoin)} existen en el catálogo vigente — de ahí
-          salen tipo y ciclo; un guion es un curso que ya no se dicta.
+          salen tipo, ciclo y los elegibles por sexo; un guion es un curso que
+          ya no se dicta. <strong>M·H</strong>: quiénes respondieron en el
+          estudio anterior y quiénes son elegibles HOY — la base anterior no
+          trae elegibles por sexo por aula, así que la previsión por sexo que
+          se puede decir con verdad es la del marco vigente.
         </p>
       </header>
       <ul className="cmv2-rankdes-grid">
@@ -90,6 +102,8 @@ export function RankingDesempenoCard({
                   <th scope="col">Ciclo</th>
                   <th scope="col">Alumnos</th>
                   <th scope="col">Asistencia</th>
+                  <th scope="col">Resp. M·H</th>
+                  <th scope="col">Eleg. hoy M·H</th>
                   <th scope="col">Semana</th>
                 </tr>
               </thead>
@@ -109,6 +123,8 @@ export function RankingDesempenoCard({
                     <td className="cmv2-rankdes-num">
                       <strong>{pctTxt(fila.rendimiento)}</strong>
                     </td>
+                    <td className="cmv2-rankdes-num">{parSexo(fila.efectivasMujeres, fila.efectivasHombres)}</td>
+                    <td className="cmv2-rankdes-num">{parSexo(fila.elegiblesHoyMujeres, fila.elegiblesHoyHombres)}</td>
                     <td className="cmv2-rankdes-num">{fila.semana == null ? "—" : fmtInt(fila.semana)}</td>
                   </tr>
                 ))}
