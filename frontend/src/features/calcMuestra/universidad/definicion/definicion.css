@@ -766,7 +766,8 @@
   padding-top: 7px;
   max-height: 132px;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* Sin overscroll contain: bloque de página, no overlay — con contain la
+     rueda moría sobre los chips al agotar sus 132px (No Scroll Jail). */
 }
 
 .cmv2-defi-upload-cols-list span {

@@ -837,7 +837,10 @@
 .cmv2-did-chain-list.is-expandida {
   max-height: min(480px, 58vh);
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* SIN overscroll-behavior: contain — a 58vh este panel queda bajo la rueda
+     casi siempre y con contain la rueda MORÍA al agotar su scroll (No Scroll
+     Jail, mismo caso medido del panorama). Encadenamiento nativo: el panel
+     scrollea lo suyo y devuelve la rueda a la página. */
   padding-right: 4px;
 }
 
@@ -1094,6 +1097,8 @@
   align-content: start;
   padding: 11px 12px 12px;
   overflow-y: auto;
+  /* contain SE QUEDA: el inspector es superficie efímera (overlay); atrapar
+     la rueda dentro es el comportamiento correcto (barrido No Scroll Jail). */
   overscroll-behavior: contain;
 }
 
