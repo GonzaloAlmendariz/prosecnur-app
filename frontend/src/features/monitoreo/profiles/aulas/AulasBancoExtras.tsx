@@ -1,18 +1,19 @@
 import { useMemo, useState } from "react";
 
 /**
- * El banco de reservas extra, por facultad.
+ * Las aulas extra, por facultad.
  *
- * El diseño da dos niveles de respaldo y hasta ahora sólo se veía uno. Primero
- * la cadena propia del curso-horario —`CH 6` → `R 6.1` → `R 6.2`—, que vive en
- * Reemplazos. Y después el banco: reservas que **no cuelgan de ningún titular**,
- * repartidas por estrato. En el estudio de 2026 son 639 contra 202 titulares.
+ * NO son reemplazos y conviene decirlo, porque yo lo entendí al revés: un
+ * curso-horario que se cae lo cubre su propia cadena —`CH 6` → `R 6.1` →
+ * `R 6.2`—, y ahí se acaba el reemplazo. Los extras son **aulas adicionales**
+ * que existen para cerrar la cuota de hombres y mujeres por facultad. Por eso
+ * no cuelgan de ningún titular: no vienen a sustituir a nadie, vienen a aportar
+ * gente del perfil que falta.
  *
- * La pregunta que esta vista contesta, dicha por quien la pidió: «necesitamos
- * bastantes mujeres en determinada facultad, esta cadena no funcionó, ¿qué
- * extra me garantiza tantos hombres y tantas mujeres?». Por eso abre por
- * facultad y no por código, y por eso el desglose por sexo va en la misma fila
- * que el aula: es el dato con el que se elige.
+ * De ahí la forma de la vista. La pregunta que contesta es «me faltan mujeres
+ * en esta facultad, ¿qué aula extra me las aporta?», así que abre por facultad
+ * y el desglose por sexo va en la misma fila que el aula: es el dato con el que
+ * se elige. En el estudio de 2026 son 639 extras contra 202 titulares.
  */
 
 export type ExtraDeBanco = {
@@ -65,8 +66,8 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
       // Vacío legítimo: hay estudios cuyo diseño no dotó banco, y eso es una
       // decisión de la muestra, no un fallo de la vista.
       <p className="mon-profile-muted">
-        El plan de este estudio no declara reservas extra: cada curso-horario
-        cuenta sólo con su propia cadena de reemplazos.
+        El plan de este estudio no declara aulas extra: la cuota por facultad
+        se cubre sólo con los cursos-horario de la muestra y sus cadenas.
       </p>
     );
   }
@@ -74,7 +75,7 @@ export function AulasBancoExtras({ banco }: { banco: BancoDeExtras | null }) {
   return (
     <div className="aulas-banco">
       <p className="aulas-cadenas-lectura">
-        <strong>{fmt(banco.total)}</strong> reservas sueltas en{" "}
+        <strong>{fmt(banco.total)}</strong> aulas extra en{" "}
         <strong>{fmt(banco.por_facultad.length)}</strong>{" "}
         {banco.por_facultad.length === 1 ? "facultad" : "facultades"} ·{" "}
         <strong>{fmt(banco.elegibles)}</strong> alumnos ·{" "}

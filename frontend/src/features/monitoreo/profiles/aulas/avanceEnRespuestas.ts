@@ -38,6 +38,10 @@ export type AvanceEnRespuestas = {
   sinMeta: number;
 };
 
+function texto(valor: unknown) {
+  return typeof valor === "string" ? valor.trim() : "";
+}
+
 function numero(valor: unknown) {
   const n = Number(valor);
   return Number.isFinite(n) ? n : 0;
@@ -55,6 +59,16 @@ export function avanceEnRespuestas(
   let sinMeta = 0;
 
   for (const fila of filas) {
+    // El banco fuera del denominador. `extra_reserve_pool` son reservas sueltas
+    // que el diseño no colgó de ningún titular: traen `expected_valid` porque
+    // es lo que rendirían SI se activaran, no lo que el operativo pide hoy.
+    //
+    // Esto no elige política —si el banco debe contar o no para el estudio
+    // sigue siendo una decisión abierta—: quita una contradicción. El motor ya
+    // lo excluye (`tracked_df`) y esta vista no, así que la misma pantalla
+    // enseñaba «meta 4 476» arriba y «la meta de 4 336» dos paneles más abajo.
+    // Medido sobre el fixture: 4 476 con banco, 4 336 sin él, 140 de banco.
+    if (texto(fila.sample_role) === "extra_reserve_pool") continue;
     const objetivo = numero(fila.expected_valid);
     const recogidas = numero(fila.respuestas_validas);
     validas += recogidas;

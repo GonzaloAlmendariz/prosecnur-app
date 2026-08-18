@@ -1131,10 +1131,25 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   meta_plan[!is.finite(meta_plan)] <- 0
   plan_df$brecha <- pmax(0, meta_plan - plan_df$respuestas_validas)
   plan_df$brecha[!is.finite(plan_df$brecha)] <- 0
-  tracked_df <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
-  if (!nrow(tracked_df)) tracked_df <- plan_df
+  # El plan SEGUIDO: un aula por slot, no una por fila.
+  #
+  # Fuera el banco —los extras no reemplazan a nadie, son aulas adicionales para
+  # cerrar la cuota por facultad— y fuera los eslabones dormidos de cada cadena:
+  # de `CH 5` -> `R 5.1` -> `R 5.2` solo una esta en juego a la vez. Contarlas
+  # todas contaba el mismo slot tantas veces como respaldos tuviera. Medido sobre
+  # HSVG2026: 2 615 filas -> 1 976 sin banco -> 202 en juego, y la meta pasa de
+  # 84 110 a 6 901, que es lo que el estudio pide de verdad.
+  seguidas <- plan_df[plan_df$sample_role != "extra_reserve_pool", , drop = FALSE]
+  if (!nrow(seguidas)) seguidas <- plan_df
+  tracked_df <- seguidas[monitoreo_aulas_en_juego(seguidas), , drop = FALSE]
+  if (!nrow(tracked_df)) tracked_df <- seguidas
   course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom)
-  quotas_sex_faculty <- .monitoreo_aulas_quota_sex_faculty(plan_df, responses, cfg, valid_response, response_classroom)
+  # Sobre `tracked_df`, no sobre el plan entero: la cuota cuenta las PERSONAS que
+  # hay que recoger, y las del banco no se van a recoger —son respaldo del
+  # estrato—. Con el plan entero, la tarjeta «Cuota por recoger» presidia Avance
+  # con 4 476 mientras los dos paneles de debajo decian 4 336: los 140 del banco,
+  # otra vez, y en la unica cifra que se lee sin bajar la vista.
+  quotas_sex_faculty <- .monitoreo_aulas_quota_sex_faculty(tracked_df, responses, cfg, valid_response, response_classroom)
 
   advance <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)), respuestas_validas = tracked_df$respuestas_validas, brecha = tracked_df$brecha) ~ stratum,
@@ -1191,10 +1206,15 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # mostraba 26 filas y las 26 eran reservas. La consulta se llama «cadena» y no
   # se podia ver junto a que reserva cayo cada aula. Mismo defecto que «Sin
   # agendar»: el rotulo promete un eje y el filtro lee el otro.
-  replacements <- tracked_df[
-    nzchar(tracked_df$replacement_for)
-    | tracked_df$operational_status %in% c("reemplazada", "reemplazo_pendiente")
-    | tracked_df$sample_status %in% "reemplazada", , drop = FALSE]
+  # La lista de reemplazos sale de `seguidas` y NO de `tracked_df`: son dos
+  # preguntas distintas sobre el mismo plan. Contar quiere UNA fila por slot —el
+  # eslabon en juego—; contar la HISTORIA de un reemplazo quiere las dos, el
+  # aula que cayo y la que entro. Al armar las dos desde `tracked_df`, el aula
+  # caida desaparecia de su propia cadena y el guard lo cazo.
+  replacements <- seguidas[
+    nzchar(seguidas$replacement_for)
+    | seguidas$operational_status %in% c("reemplazada", "reemplazo_pendiente")
+    | seguidas$sample_status %in% "reemplazada", , drop = FALSE]
   # Por que esta cada fila en esta lista, en UNA columna.
   #
   # El motivo vive en un campo distinto segun el papel —`replacement_reason` en
@@ -1212,7 +1232,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     )
     replacements$motivo[is.na(replacements$motivo)] <- ""
   }
-  representativity <- .monitoreo_aulas_effective_representativity(tracked_df, cfg)
+  # Sobre `seguidas`: la representatividad compara la muestra efectiva con la
+  # planificada, y la planificada incluye las reservas que el diseño compro.
+  representativity <- .monitoreo_aulas_effective_representativity(seguidas, cfg)
 
   collector_col <- .monitoreo_aulas_col(responses, c(
     cfg$source_mapping$collector_var,
@@ -1356,11 +1378,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     frame_hash = cfg$frame_hash,
     anonymous_responses = isTRUE(cfg$anonymous_responses),
     kpis = list(
-      total_aulas = as.integer(nrow(tracked_df)),
-      aulas_titulares = as.integer(sum(tracked_df$wave == "M1")),
-      aulas_aplicadas = as.integer(sum(tracked_df$operational_status %in% c("aplicada", "cerrada"))),
-      aulas_parciales = as.integer(sum(tracked_df$operational_status == "parcial")),
-      reemplazos_usados = as.integer(sum(nzchar(tracked_df$replacement_for) & tracked_df$operational_status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
+      # INVENTARIO, no conteo de slots: la tarjeta dice «titulares y reservas del
+      # plan» y eso es lo que cuenta. Un slot con once respaldos sigue siendo un
+      # slot para la meta, pero el plan tiene doce aulas y decir 1 seria mentir
+      # sobre lo que se compro. Las cifras que miden AVANCE —brechas, metas,
+      # cuota, ritmo— si van por slot, sobre `tracked_df`.
+      total_aulas = as.integer(nrow(seguidas)),
+      aulas_titulares = as.integer(sum(seguidas$wave == "M1")),
+      aulas_aplicadas = as.integer(sum(seguidas$operational_status %in% c("aplicada", "cerrada"))),
+      aulas_parciales = as.integer(sum(seguidas$operational_status == "parcial")),
+      # Reemplazos GASTADOS: cuenta reservas que entraron, asi que necesita ver
+      # la cadena entera y no solo el eslabon en juego.
+      reemplazos_usados = as.integer(sum(nzchar(seguidas$replacement_for) & seguidas$operational_status %in% c("agendada", "en_campo", "aplicada", "cerrada", "parcial"))),
       respuestas_validas = as.integer(sum(valid_response)),
       respuestas_total = as.integer(length(response_classroom)),
       filter_passed = as.integer(sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE)),
