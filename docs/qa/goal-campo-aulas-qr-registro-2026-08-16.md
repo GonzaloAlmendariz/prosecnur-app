@@ -1382,3 +1382,80 @@ la ficha · Estado de ficha».
 El test que fijaba «Ola» se actualizó —el rótulo cambió a propósito— y de paso
 se le añadieron los dos cruzados, para que si alguien los vuelve a intercambiar
 el test lo diga.
+
+### 2026-08-17 — L77 a L89, la tanda de las tres hojas
+
+Trece ítems que el doc no recogía. Cada uno vive entero en su commit; aquí queda
+el defecto en una frase y el puntero, que es lo que evita reabrirlos por
+sospecha.
+
+| Ítem | Commit | El defecto, en una frase |
+|---|---|---|
+| L77 | `31ef4ebe` | El recibo del libro se escribía en la sesión y no lo leía nadie: 5 de 100 claves de `api/R` estaban así, y una era mía. |
+| L78 | `8568aac1` | «Estado de ficha» decía «Por revisar» en las 196 aulas sin existir una sola ficha. |
+| L79 | `0fb249cf` · `714751ea` · `e98c9386` | Toda vista tras `{loading ? … : …}` pierde el estado de sus hijos al recargar: el mensaje de una acción moría antes de leerse, en los cuatro perfiles. |
+| L80 | `3bef4d99` | La cadena no listaba ni una aula caída: el filtro miraba `operational_status` y el reemplazo vive en `sample_status`. |
+| L81 | `8feff91c` | El mismo 146 contado como buena noticia y como riesgo; `sinMovimiento` → `sinReserva`. |
+| L82 | `30f844cf` | Ocho aulas con fecha rotuladas «Sin agendar», y las ocho eran reservas del banco: `grepl("^en reserva", …)` no podía casar nunca. |
+| L83 | `3f2aa458` | Dos gráficos del mismo cruce sexo × facultad; se queda la pirámide y el foco **se muda** a ella. |
+| L84 | `69e83bde` | Dos paneles vecinos casi con el mismo nombre y la unidad escondida en un contador de 11 px. |
+| L85 | `d5bcd58e` | La lista de brechas abría por la MENOR: el filtro nunca ordenaba y la mayor —31— estaba en la fila 24. |
+| L86 | `8366089f` | «39 cumplen sólo uno de los dos» valía igual para dos diagnósticos opuestos, y la hoja lo sabía por aula. |
+| L87 | `73d479eb` | El `% ASISTENCIA` estaba declarado en el lector, con su columna resuelta, y no se escribía en el parte. |
+| L88 | `7d0c22a7` | Nueve columnas con rótulo «%» enseñaban proporciones: «0.694» bajo «% Asistencia». |
+| L89 | `29aeff93` | Las dos hojas del libro cuentan la misma aula y nunca se comparaban entre sí. |
+
+**Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
+
+- **El fixture excluyó por construcción diez veces** lo que la vista existe para
+  mostrar. Ya no basta con que el motor sepa hacer algo: hay que sembrar el caso.
+- **Medir antes de opinar corrigió el propio encargo dos veces**: daba
+  `threshold_total` y `threshold_population` por porcentajes cuando son conteos
+  de encuestas, y daba por cruzables tres campos que están vacíos en una de las
+  dos hojas.
+- **La escala de una columna se decide sobre la columna entera**, nunca valor a
+  valor: una cobertura del 108 % y una del 98 % conviven en la misma columna.
+
+### 2026-08-17 — L90: el barrido de `frontend/src/api/`, y por qué un cero no es deuda
+
+Medido sobre 41 archivos y **581 exports de valor** (`export function` y
+`export const`). Con `\b` a los dos lados, porque un grep de prefijo cuenta de
+más.
+
+**129 tienen cero usos fuera de `src/api/`.** Ese número solo no dice nada, y
+por eso se parte en dos con la pregunta que sí decide: *¿lo usa al menos otro
+archivo de la carpeta?*
+
+| Montón | Cuántos | Qué son |
+|---|---|---|
+| Primitiva interna de la capa | **30** | `apiFetch`, `SESSION_KEY`, `downloadFailedMessage`… Se exportan porque los módulos hermanos los necesitan. Su cero es **correcto**, no deuda. |
+| Exportado y usado sólo en su propio archivo | **99** | Nadie los importa, ni fuera ni dentro. Éstos son los candidatos. |
+
+De los 99, **50 viven en `calcMuestra*` y `hojasRuta.ts`**, que es territorio de
+la otra sesión y está en obra: declararlos muertos pisaría trabajo en curso. Los
+49 restantes se reparten sobre todo entre `codificacion.ts` (11), `monitoreo.ts`
+(8), `xlsformEditor.ts` (8) y `validacion.ts` (5).
+
+**Los ocho de Monitoreo, con su endpoint comprobado en R:**
+
+| Función | Endpoint | Existe en R |
+|---|---|---|
+| `apiMonitoreoSheetsList` | `/api/monitoreo/sheets/list` | sí (`router_monitoreo.R:2912`) |
+| `apiMonitoreoSheetsStatus` | `/api/monitoreo/sheets/status` | sí (`:2900`) |
+| `apiMonitoreoSheetsSync` | `/api/monitoreo/sheets/sync` | sí (`:2937`) |
+| `apiMonitoreoAulasConfig` | `/api/monitoreo/aulas/config` | sí (`:5017`) |
+| `apiMonitoreoExport` | `/api/monitoreo/export` | sí |
+| `apiMonitoreoProcessingHandoffPromote` | `/api/monitoreo/processing-handoff/promote` | sí |
+| `apiMonitoreoSupervisionSample` · `apiMonitoreoTerritorialEnumeratorCodeReconciliation` | — | por comprobar |
+
+Lo que se ve al mirarlos juntos: **las tres de Sheets son una generación
+anterior**. La UI publica con `apiMonitoreoPublicationSheetsPublish`
+(`MonitoreoOutputsWorkbench.tsx:1024`) y conecta con `apiMonitoreoSheetsInspect`
+y `apiMonitoreoSheetsSource` (`ConectarFuente.tsx`). Conviven dos familias para
+lo mismo y sólo una está viva.
+
+**No se retira nada en esta pasada, y el motivo importa**: un endpoint de R que
+sigue en pie con su envoltorio muerto puede ser una retirada a medias o una
+capacidad esperando superficie —L29 fue exactamente eso al revés— y la
+diferencia no se decide con un `grep`. Queda medido y con nombres, que es lo que
+cuesta caro; retirarlo es una decisión aparte.
