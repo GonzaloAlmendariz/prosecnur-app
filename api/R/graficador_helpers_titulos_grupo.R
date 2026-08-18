@@ -79,6 +79,31 @@
 # cortes a cero. Antes de moverla hay que leer el cuerpo del ENUNCIADO —no el
 # modal de la lamina— emparejando cada caja con su `<a:rPr sz>`, y medir el
 # factor de verdad.
+# REMEDIO PROBADO Y REVERTIDO, con su medicion. Subida a **1.44** y regenerado
+# el mazo entero (`p53.pptx`, 251 s), contra el estado de `p52.pptx`:
+#
+#   solapes   1 -> **0**      (hace lo suyo: la 59 deja de pisarse)
+#   cortes    0 -> **8**      (laminas 59, 60, 65, 69 y otras cuatro)
+#   vara     25 -> **25**     (identica: B4 8 · B3 6 · R1 3 · R10 2 · R5 2 ·
+#                              R8 2 · R3 1 · R7 1, mismas laminas de B3)
+#
+# O sea que cambia un solape ilegible por ocho recortes declarados con «…», y
+# eso empeora justo la vara que P46 llevo a cero. Revertido a 0.86.
+#
+# PERO LA MEDICION DEJA ALGO QUE VALE MAS QUE EL REMEDIO: esos ocho no aparecen,
+# se REVELAN. Con el interlineado correcto, **nueve bloques del mazo piden mas
+# alto del que su reparto les da** —los ocho recortados mas el de la 59—; hoy
+# los nueve se dibujan enteros y solo uno choca con un vecino lo bastante cerca
+# como para verse. El defecto no es «una lamina solapa», es «nueve bloques
+# desbordan y uno se nota».
+#
+# Y por eso subir la constante no puede ser la reparacion completa: con la
+# geometria respetada, un texto que no cabe hay que **acortarlo**, y el motor
+# solo sabe recortar con «…» tras haber encogido la letra hasta su piso de
+# 11 pt —en la 59 ya esta en 11—. El aprobado resuelve ese mismo caso de otra
+# manera: corta en limite SEMANTICO y lo declara al pie («Se redujo el texto
+# debido a que era muy largo», su lamina 23). Esa es decision de Gonzalo, no del
+# motor.
 .BARRAS_INTERLINEA_TITULO <- 0.86
 
 # Margen al contar lineas que caben. Ver `.barras_acotar_titulo_grupo()`.
