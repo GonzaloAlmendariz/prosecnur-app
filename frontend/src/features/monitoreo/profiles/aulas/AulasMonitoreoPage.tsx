@@ -511,8 +511,17 @@ function renderAulasView(
             // responsable: con una cadena de seis, las siete filas del mismo
             // titular sólo se distinguían por su código. La tabla recorta a
             // ocho columnas y lo declara, así que el orden decide qué se ve.
-            maxColumns={9}
-            preferredColumns={["operational_code", "faculty", "sample_role", "replacement_for", "label", "course_name", "schedule", "link", "package_status"]}
+            // La AGENDA enseña lo que la agenda recoge. Medido: la hoja «Aulas
+            // Agendadas» trae 20 campos por eslabón —el ciclo de contacto
+            // entero: a quién se llama, por qué medio, qué día, cuántos
+            // intentos, en qué quedó y para cuándo— y la tabla no mostraba NI
+            // UNO: enseñaba curso, facultad, rol, a quién reemplaza, sesiones,
+            // nombre del curso, horario, ficha y estado de ficha. Todo eso se
+            // puede mirar en otras superficies; el ciclo de contacto sólo vive
+            // aquí. El orden es el de quien agenda: a quién llamo, cómo, cuándo
+            // llamé, cuántas veces, en qué quedó, para cuándo quedó.
+            maxColumns={12}
+            preferredColumns={["operational_code", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
           />
         </section>
         )}
