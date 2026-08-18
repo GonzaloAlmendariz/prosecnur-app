@@ -44,6 +44,33 @@ aulas_libro_status_muestra <- function(profundidad = 1L) {
   c(AULAS_LIBRO_STATUS_MUESTRA_BASE, reservas)
 }
 
+# Que campos del bloque de agenda llena la PERSONA y cuales trae la app.
+#
+# Sale de la misma spec que los titulos, por nombre de campo y no por posicion:
+# si manana el bloque gana una columna, esto sigue apuntando a los mismos.
+# La frontera ya estaba escrita en un comentario del generador —«a partir de
+# aqui llena la persona que agenda»— pero no se veia en la hoja: las veinte
+# columnas salian identicas y quien agenda tenia que adivinar donde escribir.
+# `link` es la excepcion dentro del tramo de la persona: lo produce la app.
+AULAS_LIBRO_CAMPOS_DE_LA_PERSONA <- c(
+  "contact_medium", "contact_date", "contact_attempts", "sample_status",
+  "scheduled_date", "scheduled_day", "scheduled_time", "notes"
+)
+
+#' Las columnas de una hoja de bloques que llena la app, por bloque.
+#'
+#' @param campos nombres de campo del bloque, en orden.
+#' @param de_la_persona nombres que llena la persona.
+#' @param bloques cuantos bloques tiene la hoja.
+#' @param ancho columnas por bloque.
+#' @param desplazamiento columnas antes del primer bloque.
+#' @export
+aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
+                                           ancho = length(campos), desplazamiento = 1L) {
+  propias <- which(!(campos %in% de_la_persona))
+  unlist(lapply(seq_len(bloques), function(b) desplazamiento + (b - 1L) * ancho + propias))
+}
+
 # Hoja de listas: una columna por vocabulario, con su titulo en la fila 1.
 .calf_hoja_listas <- function(wb, listas, hoja = "Listas") {
   openxlsx::addWorksheet(wb, hoja)
@@ -67,8 +94,10 @@ aulas_libro_status_muestra <- function(profundidad = 1L) {
 #' @param filas_cabecera cuantas filas de cabecera tiene cada hoja, por nombre.
 #' @param validaciones lista de `list(hoja, cols, lista, filas)`.
 #' @param listas vocabularios, en el orden de las columnas de la hoja «Listas».
+#' @param columnas_app lista `hoja -> columnas` que llena la app, para teñirlas.
 #' @export
-aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(), listas = list()) {
+aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(),
+                                        listas = list(), columnas_app = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -77,10 +106,14 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   hojas <- names(filas_cabecera)
   if (length(listas)) .calf_hoja_listas(wb, listas)
 
+  # Las dimensiones se leen UNA vez por hoja: `readWorkbook` sobre la de agenda
+  # —842 x 241— no es gratis y se necesitaba en dos sitios.
+  filas_datos <- list()
   for (hoja in hojas) {
     n_cab <- filas_cabecera[[hoja]]
     dims <- dim(openxlsx::readWorkbook(wb, sheet = hoja, colNames = FALSE, skipEmptyRows = FALSE, skipEmptyCols = FALSE))
     n_col <- if (is.null(dims)) 1L else dims[[2]]
+    filas_datos[[hoja]] <- if (is.null(dims)) n_cab else dims[[1]]
     openxlsx::addStyle(wb, hoja, cabecera, rows = seq_len(n_cab), cols = seq_len(n_col),
                        gridExpand = TRUE, stack = TRUE)
     # El panel congela las cabeceras Y la primera columna: en una hoja de 241
@@ -88,6 +121,20 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     openxlsx::freezePane(wb, hoja, firstActiveRow = n_cab + 1L, firstActiveCol = 2L)
     openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col), widths = 18)
     openxlsx::setColWidths(wb, hoja, cols = 1, widths = 10)
+  }
+
+  # Lo que trae la app va teñido; lo que llena la persona queda en blanco. Es
+  # la unica pista de donde se escribe, y hasta ahora las veinte columnas del
+  # bloque salian identicas.
+  de_la_app <- openxlsx::createStyle(fgFill = "#F2F4F7", fontColour = "#5B6472")
+  for (hoja in names(columnas_app)) {
+    cols <- columnas_app[[hoja]]
+    n_cab <- filas_cabecera[[hoja]]
+    if (!length(cols)) next
+    ultima <- max(n_cab + 1L, filas_datos[[hoja]] %||% (n_cab + 1L))
+    filas <- (n_cab + 1L):ultima
+    openxlsx::addStyle(wb, hoja, de_la_app, rows = filas, cols = cols,
+                       gridExpand = TRUE, stack = TRUE)
   }
 
   for (v in validaciones) {

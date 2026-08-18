@@ -305,11 +305,16 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
          rango = .calf_rango(hoja_listas, 3L, length(listas[[3]])))
   )
 
+  campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
     wb,
     filas_cabecera = list(`Aulas Agendadas` = 1L, `Aulas Aplicadas (Campo)` = 2L, `Base de control` = 2L),
     validaciones = validaciones,
-    listas = listas
+    listas = listas,
+    columnas_app = list(`Aulas Agendadas` = aulas_libro_columnas_de_la_app(
+      campos_bloque, AULAS_LIBRO_CAMPOS_DE_LA_PERSONA, profundidad,
+      ancho = AULAS_AGENDADAS_ANCHO_BLOQUE, desplazamiento = 1L
+    ))
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
