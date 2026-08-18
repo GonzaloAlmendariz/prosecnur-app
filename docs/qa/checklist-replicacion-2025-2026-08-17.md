@@ -2986,3 +2986,20 @@ pool, test REST del 400) que no bloquean el veredicto.
 | Menor: test REST del 400 de engine | ☐ |
 | Mejora I3: aviso del gate con el campo que difiere | ☐ |
 | Scroll-jail en otras pestañas | ☐ |
+
+### D1 cerrado — τ por facultad referencial (`b1971fb7`) · dibujo entero
+
+La columna «τ propio 2025 (ref.)» vive en el sustento: Σefectivas/Σelegibles
+de las aulas aplicadas de cada facultad (el MISMO tipo de tasa que el τ del
+diseño — la asistencia bruta de la dimensión tiene otro denominador y no se
+usa), solo con k≥12, con el «qué daría la fórmula» al lado y el diseño de
+203 INTACTO. En vivo: C&I 54%→42 (coincide con el diseño), EGC 43%→33
+(vs 27), Derecho 56%→17 (vs 18); 9 facultades «— (k<12)» declaradas.
+
+| # | Cola implementable | Estado |
+|---|---|---|
+| D1 τ por facultad referencial | ☑ `b1971fb7` |
+| D4 fila estadístico al libro (aprobada) | ☐ SIGUIENTE |
+| D2 τ por sexo referencial | ☐ |
+| D5 extracción del congelado | ☐ |
+| Menores: test REST 400 · aviso-con-causa del relato · scroll-jail otras pestañas | ☐ |
