@@ -313,6 +313,23 @@ export function aulasStatusLabel(status: unknown) {
 }
 
 /**
+ * Compara dos códigos de curso-horario como los lee el ojo.
+ *
+ * `localeCompare` a secas ordena «CH 10» ANTES que «CH 2», porque compara
+ * carácter a carácter, y así se veían las 24 cadenas en pantalla: CH 2, CH 10,
+ * CH 11 … CH 24, CH 5, CH 6. Un desorden sin explicación posible para quien lo
+ * lee, porque el código lleva un número dentro y se lee como número.
+ *
+ * `numeric: true` es exactamente esta regla y además resuelve las reservas
+ * encadenadas —`R 4.1` antes que `R 4.2`— sin partir la cadena a mano.
+ * Cualquier lista del perfil que desempate por código usa ESTE comparador; el
+ * motor hace lo mismo en `monitoreo_aulas_orden_codigo()`.
+ */
+export function comparaCodigos(a: string, b: string) {
+  return a.localeCompare(b, "es", { numeric: true, sensitivity: "base" });
+}
+
+/**
  * Las columnas del libro que son una PROPORCIÓN, y sólo ésas.
  *
  * La lista es cerrada a propósito. Deducir «esto parece un porcentaje» del

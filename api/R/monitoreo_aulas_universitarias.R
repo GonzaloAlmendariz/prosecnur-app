@@ -951,7 +951,8 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   ), names(rows))
   out <- rows[, cols, drop = FALSE]
   priority <- match(out$application_state, c("en_aplicacion", "lista", "pendiente", "cerrando"), nomatch = 5L)
-  out <- out[order(priority, -out$brecha, out$faculty, out$schedule, out$operational_code), , drop = FALSE]
+  out <- out[order(priority, -out$brecha, out$faculty, out$schedule,
+                   monitoreo_aulas_rango_codigo(out$operational_code)), , drop = FALSE]
   .monitoreo_aulas_records(out, max_rows = 500L)
 }
 
@@ -1162,7 +1163,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # `course_status` YA se ordena por `-brecha`: el mismo hecho estaba ordenado en
   # un bloque y sin ordenar en el otro.
   if (nrow(brechas)) {
-    orden <- order(-brechas$brecha, brechas$operational_code)
+    # Desempate por codigo NATURAL: como texto, «CH 10» iba antes que «CH 2».
+    orden <- order(-brechas$brecha, monitoreo_aulas_rango_codigo(brechas$operational_code))
     brechas <- brechas[orden, , drop = FALSE]
   }
   # La cadena de reemplazos son las reservas Y las aulas que cayeron.

@@ -160,3 +160,50 @@ monitoreo_aulas_cruce_texto <- function(hallazgo) {
     valor(hallazgo$en_control)
   )
 }
+
+# --- Orden natural de los codigos de curso-horario ----------------------------
+#
+# `CH 10` va DESPUES de `CH 2`, no antes. Ordenar los codigos como texto los
+# deja en orden alfabetico —CH 2, CH 10, CH 11 … CH 24, CH 5, CH 6— y asi es
+# como se veian las 24 cadenas en pantalla: un desorden que no tiene explicacion
+# para quien lo lee, porque el codigo LLEVA un numero y el ojo lo lee como
+# numero. El mismo defecto estaba en las brechas, en el control y en el avance,
+# porque los cuatro desempatan por `operational_code`.
+#
+# La clave es (prefijo, numero, resto): asi `R 4.1` y `R 4.2` tambien quedan en
+# su orden, y un codigo sin numero conserva el alfabetico entre los suyos.
+
+#' Clave de orden natural para un vector de codigos.
+#'
+#' @param codigos vector de codigos operativos.
+#' @return `order()` aplicable, o el orden alfabetico si no hay numeros.
+#' @export
+monitoreo_aulas_orden_codigo <- function(codigos) {
+  txt <- as.character(codigos %||% character(0))
+  txt[is.na(txt)] <- ""
+  # Prefijo: todo lo anterior al primer digito. `CH 10` -> «CH », `R 4.1` -> «R ».
+  prefijo <- sub("[0-9].*$", "", txt)
+  resto <- substring(txt, nchar(prefijo) + 1L)
+  primero <- suppressWarnings(as.numeric(sub("^([0-9]+).*$", "\\1", resto)))
+  # Segundo numero para las reservas encadenadas (`R 4.1` frente a `R 4.2`).
+  segundo <- suppressWarnings(as.numeric(sub("^[0-9]+[^0-9]+([0-9]+).*$", "\\1", resto)))
+  primero[!is.finite(primero)] <- Inf
+  segundo[!is.finite(segundo)] <- 0
+  order(prefijo, primero, segundo, txt)
+}
+
+#' Rango de orden natural, para usar DENTRO de un `order()` con mas criterios.
+#'
+#' `order()` no compone: pasarle otro `order()` como columna ordenaria por la
+#' posicion y no por el codigo. Esto devuelve el puesto de cada codigo, que si
+#' se puede usar como una columna mas del desempate.
+#'
+#' @param codigos vector de codigos operativos.
+#' @return vector de enteros con el puesto de cada codigo.
+#' @export
+monitoreo_aulas_rango_codigo <- function(codigos) {
+  o <- monitoreo_aulas_orden_codigo(codigos)
+  r <- integer(length(o))
+  r[o] <- seq_along(o)
+  r
+}

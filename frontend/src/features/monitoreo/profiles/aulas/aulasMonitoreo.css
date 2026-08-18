@@ -1921,43 +1921,22 @@
   padding: 12px;
 }
 
-/* Las cadenas abiertas van en una línea: sus eslabones repetían «0 de N» tres
-   veces por fila y no cuentan ninguna historia. El detalle queda para las que
-   cerraron, que sí la cuentan. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-lista.es-compacta {
-  gap: 2px;
-}
 
-.mon-profile-page.is-aulas-flow .aulas-cadenas-lista.es-compacta .aulas-cadena {
-  padding: 6px 10px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadenas-lista.es-compacta .aulas-cadena-eslabones {
-  display: none;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cadena-resumen {
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-style: normal;
+/* Las cadenas abiertas, en tabla. Eran veintiuna tarjetas idénticas —borde,
+   radio de tarjeta y franja de color— repitiendo la misma frase: un muro donde
+   no se distingue una fila de otra. En columnas alineadas se comparan, que es
+   lo que la sección Consultas pide. Las cifras van tabulares y a la derecha
+   para que el ojo baje por la columna sin releer. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-tabla th.es-cifra,
+.mon-profile-page.is-aulas-flow .aulas-cadenas-tabla td.es-cifra {
+  text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-/* En compacto la cabecera va en UNA línea: apilada en tres seguía ocupando
-   43 px de los 57 de la fila, así que esconder los eslabones apenas bajaba dos
-   píxeles. Medido: 57 px por fila apilada contra ~28 en línea. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-lista.es-compacta .aulas-cadena-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
+/* El envoltorio de esta tabla vive dentro del panel de cadenas, que ya reparte
+   su alto; sin esto heredaría el `calc(100vh - 360px)` del resto y empujaría
+   los dos grupos de abajo fuera de la vista. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas .mon-profile-table-wrap {
+  max-height: min(46vh, 420px);
 }
-
-/* Con los eslabones escondidos, la fila seguía siendo un grid de dos columnas y
-   la cabecera se quedaba en la suya —220 px medidos—, así que envolvía en dos
-   líneas y el ahorro se perdía. En compacto la fila es una sola columna. */
-.mon-profile-page.is-aulas-flow .aulas-cadenas-lista.es-compacta .aulas-cadena {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-
