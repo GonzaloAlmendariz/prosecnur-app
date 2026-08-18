@@ -1176,6 +1176,7 @@ export default function AulasMonitoreoPage() {
             icon={activeDef.icon}
             eyebrow="Cursos-horario"
             title={activeDef.label}
+            detail={activeDef.desc}
             pestanaLabel={pestanaActivaLabel}
           />
           )
