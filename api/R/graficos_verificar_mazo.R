@@ -1542,3 +1542,72 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # mismo recuento resultaron ser un falso positivo geometrico, un caption
 # legitimo y el defecto de verdad — y solo mirar el TEXTO de lo que cae dentro
 # las separo.
+
+
+# P8 — PERSIGUIENDO EL GROSOR APARECIO ALGO PEOR: TRES CUADRANTES DE POBLACION
+# ESTAN MAL, Y UNO ENSEÑA EL PUBLICO EQUIVOCADO.
+#
+# El tick anterior midio que los cuadrantes de las laminas 9-14 dispersan
+# **0.8141 cm** contra los 0.2931 del aprobado, con un maximo de **1.4853**
+# donde el aprobado corta en 1.0000. Al buscar de donde salia ese 1.4853, el par
+# minimo lo resolvio de golpe: en la **lamina 9**, el cuadrante superior
+# izquierdo y el inferior derecho dibujan **la MISMA variable**
+# (`estudiantes$p5`) con distinto grosor —1.0942 contra 1.4853—, y lo unico que
+# los distingue es que **el inferior derecho no tiene NINGUN override**:
+#
+#     canvas_w_bars           0.7  ->  <ausente>   (default 0.52)
+#     canvas_w_etiquetas      0.45 ->  <ausente>
+#     canvas_w_extra          0    ->  <ausente>
+#     canvas_w_buf_bars_extra 0    ->  <ausente>
+#     textos_negrita          ...  ->  <ausente>
+#     titulo                  Sexo ->  <ausente>
+#
+# Los TRES cuadrantes de todo el mazo que llegan a 1.4853 son exactamente los
+# tres sin overrides: lamina 9 inferior derecha, 13 inferior derecha y 14
+# inferior derecha. **El grosor no es el defecto: es el sintoma.**
+#
+# LO QUE SALE EN EL ENTREGABLE, leido del XML de `p55.pptx`:
+#   lamina  9 «PERFIL DEL ESTUDIANTE»       cuad. 0  Sexo · 52 % / 48 % · Base 172 estudiantes
+#                                           cuad. 3  **el mismo Sexo, los mismos 52 / 48, la misma
+#                                                    base — y SIN TITULO**
+#   lamina 13 «PERFIL DEL EGRESADO»         cuad. 3  Sexo de egresados, 44 / 56, Base 178 egresados,
+#                                                    **sin titulo** — y el sexo del egresado ya sale
+#                                                    en la lamina 11
+#   lamina 14 «PERFIL DEL PERSONAL ADMINISTRATIVO»
+#                                           cuad. 0-2  Base **15 administrativos**
+#                                           cuad. 3    **Base 52 DOCENTES** — publico equivocado
+#                                                      dentro de la lamina de administrativos
+#
+# El de la 14 no es un desajuste de formato: es un dato de otro publico en una
+# lamina que promete administrativos, y ademas contradice a sus tres vecinos en
+# la misma lamina. Con la vara puesta en el entregable aprobado, esto no se ve:
+# **la vara mide geometria y este defecto es de CONTENIDO**.
+#
+# DE QUIEN ES EL ARREGLO: del `.pulso`, no del motor. Los cuadrantes salen del
+# plan (`payload$inferior_derecha$args$var` + `overrides`), asi que **la
+# reparacion es una decision de Gonzalo** —que grafico va en ese cuarto
+# cuadrante de las tres laminas— y no se toca su proyecto por iniciativa propia.
+#
+# DE QUIEN SI ES EL ARREGLO: **del detector**. El motor entrego una lamina con
+# un publico ajeno y nada se quejo. La regla que lo habria cazado es barata y
+# se mide sobre el XML que ya leemos:
+#   (a) dos cuadrantes de la misma lamina con la MISMA serie de etiquetas y los
+#       MISMOS porcentajes -> grafico repetido;
+#   (b) un cuadrante cuya «Base: N <publico>» nombra un publico distinto al de
+#       sus vecinos -> publico cruzado.
+# Sobre `p55` la (a) dispara en la lamina 9 y la (b) en la 14. Anadir una regla
+# SUBE la cuenta de la vara, y eso no es empeorar: es la excepcion (a) del
+# encargo —la cuenta sube porque se añadio una regla—.
+#
+# EL TECHO DE 1.0 cm SIGUE SIENDO OTRA COSA, y conviene no mezclarlo: aun
+# poniendo overrides a los tres cuadrantes huerfanos, las laminas 10 y 11
+# —donde los cuatro SI los tienen— dispersan **0.4231** contra los 0.2931 del
+# aprobado. O sea que la configuracion explica el maximo de 1.4853 pero **no**
+# toda la dispersion. La prediccion del techo anotada en
+# `graficador_grosor_piso.R` se juzga aparte, y ahora se sabe que su universo
+# util son las laminas ya bien configuradas.
+#
+# LECCION: perseguir un defecto de formato destapo uno de contenido, y el
+# camino fue el par minimo — la MISMA variable dibujada dos veces en la misma
+# lamina con dos grosores. Cuando dos objetos que deberian ser identicos no lo
+# son, lo que los separa esta en la CONFIGURACION, no en el motor.
