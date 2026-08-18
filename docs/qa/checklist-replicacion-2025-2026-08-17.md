@@ -2391,3 +2391,18 @@ poblaciones del paso 1. Derivadas de la afijación proporcional declarada
 | I2 | Sustento técnico | ☐ |
 | I3 | El relato | ☐ |
 | I8 | Embudo de criterios más nítido | ☐ |
+
+### Tanda I — I7c cerrado (dibujo entero)
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 | Botón como pregunta | ☑ `49695556` |
+| I6a | Embudo en Selección (paso 7) | ☑ `49695556` |
+| I7a | «Sin referencia» falsos → referencia 8/8 | ☑ `9e336c87` |
+| I7b | «Este estudio vs el anterior» dinámico | ☑ de facto — el periodo viaja dinámico en embudo/fichas/tarjetas; sin «2025» fijo en superficies |
+| I7c | La DIFERENCIA protagonista (orden por |delta|, barra divergente, saldo en el header) | ☑ `fd6dca61` — y el paso 1 Población encendido |
+| I4 | Cadena de reemplazos «no se ve bien» | ☐ SIGUIENTE |
+| I5 | Perfil de la muestra | ☐ |
+| I2 | Sustento técnico | ☐ |
+| I3 | El relato | ☐ |
+| I8 | Embudo de criterios más nítido | ☐ |
