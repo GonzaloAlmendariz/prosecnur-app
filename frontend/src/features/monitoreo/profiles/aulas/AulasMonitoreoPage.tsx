@@ -697,13 +697,14 @@ function renderAulasView(
           <div className="mon-profile-panel-head">
             {/* «Extras» es el nombre del dato: el plan las trae con
                 `wave = "Extra"`. La descripción dice para qué sirven, que es lo
-                que no se deduce del nombre. */}
-            <h3>Reservas extra del estrato</h3>
-            <span>{fmt(dashboard.banco_extras?.total ?? 0)} sueltas</span>
+                que no se deduce del nombre —y que yo tenía mal: no reemplazan
+                a nadie—. */}
+            <h3>Aulas extra por facultad</h3>
+            <span>{fmt(dashboard.banco_extras?.total ?? 0)} extras</span>
           </div>
           <p className="mon-profile-muted">
-            No cuelgan de ningún curso-horario: son el respaldo del estrato para
-            cuando una cadena de reemplazos se agota entera.
+            No reemplazan a ningún curso-horario: son aulas adicionales para
+            cerrar la cuota de hombres y mujeres de cada facultad.
           </p>
           <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
         </section>

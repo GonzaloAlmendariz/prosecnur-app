@@ -57,3 +57,33 @@ describe("el avance en respuestas", () => {
     expect(a.avance).toBe(0);
   });
 });
+
+/**
+ * El banco no entra en el denominador.
+ *
+ * `extra_reserve_pool` trae `expected_valid` porque es lo que rendiría SI se
+ * activara, no lo que el operativo pide hoy. El motor ya lo excluye y esta
+ * vista no, así que la misma pantalla enseñaba «meta 4 476» arriba y «la meta
+ * de 4 336» dos paneles más abajo. Medido: el banco eran esos 140.
+ */
+describe("avanceEnRespuestas y el banco", () => {
+  const fila = (rol: string, meta: number, validas: number) => ({
+    operational_code: `${rol}-${meta}`,
+    sample_role: rol,
+    expected_valid: meta,
+    respuestas_validas: validas,
+  } as unknown as MonitoreoAulasPlanRow);
+
+  it("las reservas sueltas no inflan la meta ni la brecha", () => {
+    const res = avanceEnRespuestas([
+      fila("titular", 100, 40),
+      fila("chain_reserve", 30, 10),
+      fila("extra_reserve_pool", 140, 0),
+    ]);
+
+    // 100 + 30, sin los 140 del banco.
+    expect(res.meta).toBe(130);
+    // Y su aula no cuenta como una que no llegó a su meta.
+    expect(res.aulasConBrecha).toBe(2);
+  });
+});
