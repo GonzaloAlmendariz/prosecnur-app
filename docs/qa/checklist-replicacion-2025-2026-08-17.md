@@ -2810,3 +2810,29 @@ el embudo se VE angostarse entre criterio y criterio.
 **Siguiente: TANDA J** — J1 auditoría de corrección del backend de los 4
 sorteos (el pedido grande) · J2 ⛔ bloqueado (τ por facultad, decisión) ·
 J3 ☑ (integrado al sustento).
+
+## TANDA J · J1 — primera batería EMPÍRICA sobre el cubo balanceado (dibujo entero)
+
+Cinco invariantes medidos contra la selección REAL de HSVG2026 (203
+titulares + 1.791 cadena + 621 pool = 2.615 filas):
+
+| Invariante | Resultado |
+|---|---|
+| I1 · Sin classroom_id duplicado entre titulares/cadena/pool | ☑ 0 duplicados en 2.615 |
+| I2 · Titulares == faculty_targets, POR FACULTAD | ☑ 15/15 exacto, 0 desvíos, 0 facultades fuera |
+| I3 · Toda fila pertenece al marco INCLUIDO | ☑ 0 fuera de 2.615 |
+| I4 · Probabilidades ADR 0066 en el payload | ☑ 203/203 π∈(0,1], pi_base=pi_design=pi_final, fuente «prescribed_design» con el porqué del MC omitido |
+| I5 · Reproducibilidad misma semilla | ☑ dos corridas → selección COMPLETA idéntica (roles + orden de reemplazo), hash 64b9772a en ambas |
+
+Pendiente de J1: (a) la misma batería para sistematico_pps,
+estratificado_aleatorio y pool_controlado; (b) el barrido de código de
+fallas silenciosas en los 4 engines (agente en curso); (c) la identidad
+Σπ sobre el marco completo por facultad (nivel test de R, no payload).
+
+| # | Ítem | Estado |
+|---|---|---|
+| TANDA I completa · bundle i18b · scroll jail · radiografía · oráculo | ☑ |
+| J1 · cubo balanceado, batería empírica | ☑ 5/5 |
+| J1 · otros 3 engines + barrido de código + Σπ | ☐ SIGUIENTE |
+| J2 · τ por facultad en dimensionamiento | ⛔ BLOQUEADO (decisión) |
+| J3 · «190 vs 170» didáctico | ☑ (en el sustento) |
