@@ -162,6 +162,20 @@ describe("ficha por facultad", () => {
     expect(html).toContain('data-alcanza="true"');
   });
 
+  it("los siete pasos se ven sin abrir nada: la ficha es tarjeta, no acordeón", () => {
+    // Gonzalo: «pueden estar en tarjetas, dos por cada fila y que se vea todo
+    // más claro, no comprimen y descomprimen». renderToStaticMarkup es el
+    // estado inicial: si la tabla exigiera un click, estos pasos no saldrían.
+    const html = renderToStaticMarkup(
+      <FichaPorFacultadCard fichas={[ficha(REF_CRUDO)]} periodo="2025-2" />,
+    );
+    expect(html).toContain("Población");
+    expect(html).toContain("Aulas que sobran");
+    expect(html).toContain("Titulares seleccionados");
+    // CONTROL: ya no hay botón de plegado en la ficha.
+    expect(html).not.toContain("aria-expanded");
+  });
+
   it("marca la facultad a la que NO le alcanzan las aulas", () => {
     const corta = fichaDeFacultad(
       { ...FILA, estrato: "ESTUDIOS GENERALES LETRAS", cuota: 389,
@@ -334,10 +348,13 @@ describe("criterios propios de una facultad", () => {
     expect(html).toContain("Mínimo propio: 10 elegibles");
     expect(html).toContain("session_type: además taller");
 
-    // CONTROL: una facultad sin reglas propias no anuncia ninguna.
+    // CONTROL: una facultad sin reglas propias no anuncia ninguna; dice la
+    // CAUSA en lenguaje del analista (I10: «sin criterios propios» era jerga).
     const sin = fichaDeFacultad(FILA, 149, 12, 16, null, SUITE, 15);
     const htmlSin = renderToStaticMarkup(<FichaPorFacultadCard fichas={[sin]} />);
     expect(htmlSin).not.toContain("Criterios propios:");
+    expect(htmlSin).not.toContain("Sin criterios propios");
+    expect(htmlSin).toContain("Se rige por los criterios generales del estudio.");
   });
 });
 

@@ -1,18 +1,21 @@
 /**
- * La ficha de cada facultad: los seis pasos y la columna del estudio anterior.
+ * La ficha de cada facultad: los siete pasos y la columna del estudio anterior,
+ * como TARJETA — sin acordeón.
  *
- * Es la cadena entera que Gonzalo pidió ver: cuántos alumnos se calcularon para
- * la muestra, cuánta es la muestra, cuántas aulas del catálogo pasan los
+ * Gonzalo: «no sé por qué las facultades están como en acordeones cuando pueden
+ * estar en tarjetas, puede haber dos tarjetas por cada fila y que se vea todo
+ * más claro, no comprimen y descomprimen». Con 17 facultades, el acordeón
+ * obligaba a abrir, recordar y cerrar; la grilla de dos por fila deja los siete
+ * pasos de dos facultades lado a lado, que es como se comparan.
+ *
+ * Es la cadena entera que pidió ver: cuántos alumnos se calcularon para la
+ * muestra, cuánta es la muestra, cuántas aulas del catálogo pasan los
  * criterios, cuántos alumnos hay por curso-horario, cuántas aulas hacen falta y
- * si quedan reemplazos para cada titular — «no tiene que ser la misma cantidad
- * de reemplazos que en otras facultades con más aulas, pero al menos debería
- * tener reemplazos».
- *
- * La columna de 2025 va **en cada paso**, no en un resumen aparte: una cuota que
- * cambió y unas aulas que se desplomaron significan cosas distintas, y sólo se
- * distinguen mirando el paso donde ocurren.
+ * si quedan reemplazos para cada titular. La columna del estudio anterior va
+ * **en cada paso**, no en un resumen aparte: una cuota que cambió y unas aulas
+ * que se desplomaron significan cosas distintas, y sólo se distinguen mirando
+ * el paso donde ocurren.
  */
-import { useState } from "react";
 import type { FichaFacultad } from "./fichaFacultadModel";
 import { fmtInt } from "../../sharedCore";
 
@@ -32,21 +35,15 @@ function Ficha({
   periodo: string;
   comparando: boolean;
 }) {
-  const [abierta, setAbierta] = useState(false);
   const paso5 = ficha.pasos.find((p) => p.n === 5);
   const paso3 = ficha.pasos.find((p) => p.n === 3);
-  // Lo que se lee de un vistazo antes de abrir: si le alcanzan las aulas.
+  // Lo que se lee de un vistazo: si le alcanzan las aulas.
   const alcanza =
     paso5?.hoy != null && paso3?.hoy != null ? paso3.hoy >= paso5.hoy : null;
 
   return (
     <li className="cmv2-ficha" data-alcanza={alcanza == null ? "sin-dato" : String(alcanza)}>
-      <button
-        type="button"
-        className="cmv2-ficha-head"
-        aria-expanded={abierta}
-        onClick={() => setAbierta((v) => !v)}
-      >
+      <header className="cmv2-ficha-head">
         <strong>{ficha.facultad}</strong>
         <span className="cmv2-ficha-resumen">
           {paso5?.hoy != null ? <>necesita {fmtInt(paso5.hoy)}</> : null}
@@ -61,11 +58,11 @@ function Ficha({
             </>
           ) : null}
         </span>
-      </button>
-      {/* Las reglas que rigen SÓLO aquí van FUERA del colapso: son lo que
-          distingue a esta facultad de las demás y hay que verlas recorriendo la
-          lista, sin abrir quince fichas. Dentro queda sólo la nota de que no
-          tiene ninguna, que es detalle. */}
+      </header>
+      {/* Las reglas que rigen SÓLO aquí, arriba del detalle: son lo que
+          distingue a esta facultad de las demás. Sin reglas propias se dice la
+          CAUSA en lenguaje del analista — «sin criterios propios» sonaba a
+          jerga del motor y Gonzalo pidió reformularlo. */}
       {ficha.criteriosPropios.length ? (
         <p className="cmv2-ficha-propios">
           <span className="cmv2-ficha-propios-titulo">Criterios propios:</span>{" "}
@@ -76,50 +73,45 @@ function Ficha({
             </span>
           ))}
         </p>
-      ) : null}
-      {abierta ? (
-        <>
-          {ficha.criteriosPropios.length ? null : (
-            <p className="cmv2-ficha-propios cmv2-ficha-propios-vacio">
-              Sin criterios propios: usa los generales.
-            </p>
-          )}
-          <div className="cmv2-ficha-wrap">
-            <table className="cmv2-ficha-tabla">
-              <thead>
-                <tr>
-                  <th scope="col">Paso</th>
-                  <th scope="col">Este estudio</th>
-                  {comparando ? (
-                    <>
-                      <th scope="col">{periodo || "Anterior"}</th>
-                      <th scope="col">Δ</th>
-                    </>
-                  ) : null}
-                </tr>
-              </thead>
-              <tbody>
-                {ficha.pasos.map((p) => (
-                  <tr key={p.n}>
-                    <th scope="row">
-                      <span className="cmv2-ficha-n">{p.n}</span> {p.titulo}
-                      <small>{p.detalle}</small>
-                    </th>
-                    <td>{p.hoy != null ? fmtInt(p.hoy) : "—"}</td>
-                    {comparando ? (
-                      <>
-                        <td>{p.antes != null ? fmtInt(p.antes) : "—"}</td>
-                        <td>{delta(p.hoy, p.antes) || "—"}</td>
-                      </>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {ficha.aviso ? <p className="cmv2-ficha-aviso">{ficha.aviso}</p> : null}
-        </>
-      ) : null}
+      ) : (
+        <p className="cmv2-ficha-propios cmv2-ficha-propios-vacio">
+          Se rige por los criterios generales del estudio.
+        </p>
+      )}
+      <div className="cmv2-ficha-wrap">
+        <table className="cmv2-ficha-tabla">
+          <thead>
+            <tr>
+              <th scope="col">Paso</th>
+              <th scope="col">Este estudio</th>
+              {comparando ? (
+                <>
+                  <th scope="col">{periodo || "Anterior"}</th>
+                  <th scope="col">Δ</th>
+                </>
+              ) : null}
+            </tr>
+          </thead>
+          <tbody>
+            {ficha.pasos.map((p) => (
+              <tr key={p.n}>
+                <th scope="row">
+                  <span className="cmv2-ficha-n">{p.n}</span> {p.titulo}
+                  <small>{p.detalle}</small>
+                </th>
+                <td>{p.hoy != null ? fmtInt(p.hoy) : "—"}</td>
+                {comparando ? (
+                  <>
+                    <td>{p.antes != null ? fmtInt(p.antes) : "—"}</td>
+                    <td>{delta(p.hoy, p.antes) || "—"}</td>
+                  </>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {ficha.aviso ? <p className="cmv2-ficha-aviso">{ficha.aviso}</p> : null}
     </li>
   );
 }
