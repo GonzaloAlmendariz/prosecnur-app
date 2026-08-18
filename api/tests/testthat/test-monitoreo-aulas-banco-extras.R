@@ -112,3 +112,28 @@ test_that("el recorte de course_status se declara", {
   expect_identical(db$course_status_total, length(db$course_status))
   expect_gt(db$course_status_total, 0L)
 })
+
+test_that("el recibo del libro dice cuantas facultades cubre", {
+  # La tarjeta decia cursos-horario, titulares, partes y filas de control, y
+  # ninguna contesta la pregunta con la que se dirige el operativo: «¿cubre las
+  # facultades que tengo que cubrir?». Un estudio de este tipo maneja de 11 a 20,
+  # asi que un libro de 15 y uno de 6 son cosas muy distintas aunque traigan las
+  # mismas filas. Sale del PLAN: el libro trae filas, la facultad la pone la
+  # muestra.
+  plan <- list(
+    list(operational_code = "CH 1", faculty = "DERECHO"),
+    list(operational_code = "CH 2", faculty = "DERECHO"),
+    list(operational_code = "CH 3", faculty = "ARQUITECTURA"),
+    list(operational_code = "CH 4", faculty = "")
+  )
+  r <- monitoreo_aulas_libro_recibo(list(importado_en = "2026-08-18", resumen = list(unidades = 4)), plan)
+
+  expect_identical(r$resumen$facultades, 2L)
+  # Y no pisa lo que ya traia el recibo.
+  expect_identical(r$resumen$unidades, 4)
+
+  # Sin plan, el recibo sale como antes: sin el campo, no con un cero que
+  # diria «este libro no cubre ninguna facultad».
+  sin_plan <- monitoreo_aulas_libro_recibo(list(importado_en = "2026-08-18"))
+  expect_null(sin_plan$resumen$facultades)
+})
