@@ -2836,3 +2836,24 @@ fallas silenciosas en los 4 engines (agente en curso); (c) la identidad
 | J1 · otros 3 engines + barrido de código + Σπ | ☐ SIGUIENTE |
 | J2 · τ por facultad en dimensionamiento | ⛔ BLOQUEADO (decisión) |
 | J3 · «190 vs 170» didáctico | ☑ (en el sustento) |
+
+### J1 — tres de cuatro engines pasan la batería completa (dibujo entero)
+
+| Engine | Duplicados | Afijación 15/15 | Pertenencia | π (ADR 0066) | Reproducible (2 corridas) |
+|---|---|---|---|---|---|
+| cube_balanceado | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ hash 64b9772a |
+| sistematico_pps | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ hash 337f5453 |
+| estratificado_aleatorio | ☑ 0/2.615 | ☑ exacta | ☑ | ☑ 203/203 | ☑ hash 3511e1b1 |
+| pool_controlado | ◐ corriendo (el engine pesado; vigía armado, tope 30 min) | | | | |
+
+**Trampa de medición atrapada en el acto**: la primera «batería del pool»
+dio hash IDÉNTICO al estratificado — la espera había expirado y el estado
+capturado era del engine anterior. Una batería vale lo que su captura:
+verificar SIEMPRE el `selector_engine` del payload antes de puntuar.
+Invalidada y rehecha con vigía que espera el engine correcto.
+
+**Barrido de código (fallas silenciosas)**: dos intentos de agente caídos
+por 529 Overloaded del servidor — reintentar el próximo tick.
+
+Al cerrar la ronda: recorrer cube_balanceado de nuevo y GUARDAR (el proyecto
+debe quedar en su método elegido, no en el último auditado).
