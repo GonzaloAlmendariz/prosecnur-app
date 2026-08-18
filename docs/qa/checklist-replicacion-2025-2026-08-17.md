@@ -2168,3 +2168,14 @@ facultad (sólo la referencia 2025 las trae; el componente del cálculo trae
 cuota_hombres por facultad (afijación facultad × sexo, como 2025) · **G6b**
 la certificación evalúa la composición por sexo de las titulares contra esas
 cuotas. G6a es motor de cálculo; va antes que G6b.
+
+## G1b · La tarjeta de certificación, viva en Selección · ☑ 2026-08-18, commit `567ab761`
+
+«La selección, certificada facultad por facultad — 15 de 15 facultades
+garantizan la cuota de alumnos que el diseño les trazó, con la tasa de
+asistencia esperada de 70,4 %.» Quince filas con cuota, titulares,
+elegibles, esperadas, margen (1,35×–3,34×) y badge de estado; el aviso
+completo en el title. Montada junto al balance de sexo en la pestaña
+Selección del laboratorio, verificada en vivo. **G1 COMPLETO de motor a
+pantalla.** Siguiente de la cola: G6a (el cálculo publica cuotas M/H por
+facultad) y la rotación G2.
