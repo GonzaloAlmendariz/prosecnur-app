@@ -626,7 +626,19 @@
   claves_propias <- .cm_aulas_text_key(.cm_aulas_chr_vec(mapping$course_level))
   if (.cm_aulas_text_key(col) %in% claves_propias) return(col)
   ocupadas <- c(.cm_aulas_col(raw, mapping$course_id), .cm_aulas_col(raw, mapping$course_name))
-  if (col %in% ocupadas[nzchar(ocupadas)]) return("")
+  if (col %in% ocupadas[nzchar(ocupadas)]) {
+    # La columna que el fuzzy eligió es en realidad el código o el NOMBRE del
+    # curso, así que no sirve. Antes de rendirse hay que mirar la sintética del
+    # catálogo: `.cm_aulas_col` la ignora porque devuelve el primer candidato que
+    # calza —«curso» calza con «nivel_curso» por substring— y nunca llega a ella.
+    #
+    # Sin este segundo intento el nivel del curso se quedaba sin columna y el
+    # frame caía al ciclo del ALUMNO publicando `level_reference = "curso"`.
+    # Medido en HSVG2026: `PSI125-0201` (NEUROCIENCIAS, EE.GG. LETRAS) tiene
+    # nivel 0 en el catálogo y salía como 1, y `course_level_num` era idéntico a
+    # `level` en 5.251 de las 5.263 aulas.
+    return(.cm_criterios_col_exacta(raw, "course_level"))
+  }
   col
 }
 
