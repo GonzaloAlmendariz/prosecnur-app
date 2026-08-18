@@ -15,7 +15,7 @@ import { agendaPorDia } from "./agendaPorDia";
  * de muestra.
  */
 export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const { dias, diasDeCampo, tope, sinFecha, desde, hasta } = useMemo(
+  const { dias, diasDeCampo, tope, sinFecha, desde, hasta, leyenda } = useMemo(
     () => agendaPorDia(filas),
     [filas],
   );
@@ -68,6 +68,20 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
           </li>
         ))}
       </ol>
+      {/* La leyenda va DEBAJO de las barras y no encima: primero se ve la forma
+          del periodo y sólo después se pregunta qué es cada color. Lleva el
+          total de cada tramo, así que además de descifrar las barras es la
+          lectura del periodo entero. */}
+      {leyenda.length > 1 ? (
+        <ul className="aulas-agenda-leyenda">
+          {leyenda.map((t) => (
+            <li key={t.clave}>
+              <i aria-hidden="true" style={{ background: t.color }} />
+              {t.etiqueta} <strong>{t.aulas}</strong>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
