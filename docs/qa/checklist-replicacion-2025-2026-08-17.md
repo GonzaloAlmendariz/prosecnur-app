@@ -2690,3 +2690,29 @@ respuesta por sexo que no existe.
 | I2+J3 | Sustento: «por qué 190 y no 170» (medir τ primero) | ☐ SIGUIENTE |
 | I5 · I3 · I8 | Perfil de la muestra · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 | Validez backend 4 sorteos · τ por facultad en dimensionamiento | ☐ tras Tanda I |
+
+### Tanda I/J — I2+J3 cerrados y el hallazgo J2 BLOQUEADO (dibujo entero)
+
+**I2+J3 ☑ (`60302732`)**: la tarjeta «La cuenta del dimensionamiento» en
+Selección abre la fórmula del motor por facultad — cuota ÷ alumnos/aula
+(p25, nombrado) × tasa de respuesta = titulares, +50% reservas — con el pie
+2.500 → 203 + 105 = 308 y la nota del porqué vs 2025 (170 = mediana sin τ
+explícito + ajuste manual confirmado). Las filas fijadas a mano se marcan
+con la cifra de la fórmula.
+
+**HALLAZGO J2 — τ ES GLOBAL, medido — ⛔ BLOQUEADO (decisión de Gonzalo)**:
+en el diseño vivo τ = 0.53 idéntico en las 15 facultades. El motor SÍ
+soporta τ por estrato (`e$tau`, engine línea 1343) y el Histórico SÍ publica
+asistencia por facultad (con suficiencia/cobertura por celda) — nadie los
+conecta. Conectarlos cambia el dimensionamiento (una facultad con asistencia
+baja pediría MÁS aulas con la misma cuota): es decisión de diseño, no un
+fix. Además ya estaba pendiente la variante τ por sexo. Ambas esperan tu
+palabra; la tarjeta mientras tanto declara «hoy es una sola para todas».
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1–I15 (+sexo) · radiografía · oráculo · bundle i18b · scroll jail · I2+J3 | cerrados | ☑ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I3 · I8 | Perfil de la muestra · relato · embudo más nítido | ☐ SIGUIENTE / ◐ |
+| J1 | Auditoría de corrección del backend de los 4 sorteos | ☐ tras Tanda I |
+| J2 | τ por facultad en el dimensionamiento | ⛔ BLOQUEADO (decisión) |
