@@ -356,8 +356,27 @@
 # enteros del JSON llegan como double (gotcha conocido del repo) — se
 # redondean. min > max se corrige con swap; entradas sin ambos extremos
 # parseables se descartan.
+#
+# Además del shape canónico {min,max}, se aceptan los PARES POSICIONALES
+# [min, max] que emite el frontend (CriteriosSeleccionMarco.courseLevelRanges
+# es Record<string, Array<[number, number]>>). jsonlite los entrega como
+# matriz (simplificado), como lista de listas sin nombres o como lista de
+# vectores. Antes esta función solo leía $min/$max: TODO par posicional daba
+# NA y se descartaba en silencio, la facultad desaparecía del mapa y el
+# evaluador con mapa vacío deja pasar todo — el criterio de nivel configurado
+# en la UI nunca llegó a filtrar y el .pulso guardaba courseLevelRanges = [].
 .cm_criterios_normalize_rangos <- function(entrada) {
   if (is.null(entrada)) return(list())
+  if (is.matrix(entrada) && ncol(entrada) >= 2L) {
+    # [[a,b],[c,d]] simplificado por jsonlite: una fila por rango.
+    entrada <- lapply(seq_len(nrow(entrada)), function(i) {
+      list(min = entrada[i, 1L], max = entrada[i, 2L])
+    })
+  }
+  if (is.numeric(entrada) && length(entrada) == 2L) {
+    # Un par suelto [min, max] sin anidar.
+    entrada <- list(list(min = entrada[[1L]], max = entrada[[2L]]))
+  }
   if (is.data.frame(entrada)) entrada <- .cm_aulas_records(entrada)
   if (!is.list(entrada)) return(list())
   if (!is.null(names(entrada)) && any(c("min", "max") %in% names(entrada))) {
@@ -365,6 +384,13 @@
   }
   out <- list()
   for (r in entrada) {
+    if (is.null(names(r)) && length(r) == 2L) {
+      # Par posicional [min, max]: list(a, b) o c(a, b).
+      par <- suppressWarnings(as.numeric(unlist(r, use.names = FALSE)))
+      if (length(par) == 2L && all(is.finite(par))) {
+        r <- list(min = par[[1L]], max = par[[2L]])
+      }
+    }
     if (!is.list(r)) next
     minimo <- .cm_aulas_num(r$min, NA_real_)
     maximo <- .cm_aulas_num(r$max, NA_real_)

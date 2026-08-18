@@ -1214,8 +1214,18 @@ export type CriterioSeleccion = {
 export type CriteriosSeleccionMarco = {
   /** modality, session_type, teacher_type, ... */
   byVariable: Record<string, CriterioSeleccion>;
-  /** facultad -> rangos [min,max] admitidos del nivel del curso. */
-  courseLevelRanges?: Record<string, Array<[number, number]>>;
+  /** Facultad -> rangos admitidos del nivel del curso. La clave puede ser la
+   *  etiqueta del marco («EE.GG. LETRAS», como la guarda el motor) o el slug
+   *  de la UI; se comparan canonicalizadas. El valor viaja en dos shapes: la
+   *  UI emite pares [min, max] y el motor R emite objetos {min, max} más el
+   *  centinela de exención [{exenta: true}] («esta facultad no se juzga por
+   *  nivel»). Leer SIEMPRE vía rangosFacultad/rangosDesdeMapa
+   *  (dominio/rangosNivel.ts), que normalizan ambos; el motor también acepta
+   *  ambos desde .cm_criterios_normalize_rangos. */
+  courseLevelRanges?: Record<
+    string,
+    Array<[number, number] | { min?: number; max?: number; exenta?: boolean }>
+  >;
   /** Umbral de elegibles por aula (flexeable por facultad). `attendance_rate`
    *  es la tasa de asistencia esperada (proporción 0–1): informativa, alimenta
    *  la SUGERENCIA de mínimos (ceil(mínimo/tasa)) pero NO altera el umbral

@@ -27,6 +27,7 @@ import type {
   CriteriosCatalogo,
   CriteriosSeleccionMarco,
 } from "../../../api/client";
+import { borrarClaveCanonica, rangosDesdeMapa } from "./rangosNivel";
 
 /** Estado de marca de un grupo jerárquico respecto de sus hijos. */
 export type EstadoGrupo = "all" | "some" | "none";
@@ -496,24 +497,29 @@ export function resumenVariable(
 // range (nivel de curso por facultad) y umbral de elegibles
 // ---------------------------------------------------------------------------
 
-/** Rangos de nivel admitidos para una facultad (range var course_level). */
+/** Rangos de nivel admitidos para una facultad (range var course_level).
+ *  Acepta los DOS shapes de alambre —pares [min,max] de la UI y objetos
+ *  {min,max} del motor— y busca la facultad por clave canónica (etiqueta del
+ *  marco o slug). Ver dominio/rangosNivel.ts. */
 export function rangosFacultad(
   seleccion: CriteriosSeleccionMarco | null | undefined,
   facultad: string,
 ): Array<[number, number]> {
-  return (seleccion?.courseLevelRanges?.[facultad] ?? []).map((r) => [r[0], r[1]] as [number, number]);
+  return rangosDesdeMapa(seleccion?.courseLevelRanges, facultad);
 }
 
-/** Fija (reemplaza) los rangos de nivel de una facultad de forma inmutable. */
+/** Fija (reemplaza) los rangos de nivel de una facultad de forma inmutable.
+ *  El reemplazo borra por clave canónica: si el motor guardó la facultad con
+ *  su etiqueta («EE.GG. LETRAS») y la UI escribe con slug, no deben quedar
+ *  las dos entradas conviviendo. */
 export function setRangosFacultad(
   seleccion: CriteriosSeleccionMarco,
   facultad: string,
   rangos: Array<[number, number]>,
 ): CriteriosSeleccionMarco {
   const courseLevelRanges = { ...(seleccion.courseLevelRanges ?? {}) };
-  if (rangos.length === 0) {
-    delete courseLevelRanges[facultad];
-  } else {
+  borrarClaveCanonica(courseLevelRanges, facultad);
+  if (rangos.length > 0) {
     courseLevelRanges[facultad] = rangos.map((r) => [r[0], r[1]] as [number, number]);
   }
   return {

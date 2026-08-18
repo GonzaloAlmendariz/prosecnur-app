@@ -44,9 +44,12 @@ export function copiarVariableCriterio(
       ...destino,
       courseLevelRanges: fuente.courseLevelRanges
         ? Object.fromEntries(
+            // Copia profunda preservando el shape de alambre (pares de la UI,
+            // {min,max} o exención del motor); normalizar aquí rompería la
+            // exención. La lectura normaliza vía rangosFacultad.
             Object.entries(fuente.courseLevelRanges).map(([facultad, rangos]) => [
               facultad,
-              rangos.map(([min, max]) => [min, max] as [number, number]),
+              rangos.map((r) => (Array.isArray(r) ? ([r[0], r[1]] as [number, number]) : { ...r })),
             ]),
           )
         : undefined,
