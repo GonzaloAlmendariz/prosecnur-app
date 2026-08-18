@@ -296,8 +296,18 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
   );
 }
 
+/**
+ * Las filas de la AGENDA: el plan sin el banco.
+ *
+ * Las aulas extra no cuelgan de ningún titular, no tienen fecha y no están
+ * agendadas —son respaldo del estrato para cerrar la cuota, y tienen su propia
+ * pestaña—. Metidas aquí añadían 40 filas sin fecha a una tabla de 196 que sí
+ * importan, y hacían que el panel dijera «236 cursos-horario» dos dedos debajo
+ * de un KPI que decía 196: la misma palabra con dos cifras.
+ */
 function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
-  return (dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>;
+  return ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
+    .filter((fila) => String(fila.sample_role ?? "") !== "extra_reserve_pool");
 }
 
 function cleanCell(value: unknown) {
@@ -482,12 +492,18 @@ function renderAulasView(
                 escribe `aulas_libro_hoja_agendadas()` y las vuelve a leer
                 `aulas_agendadas_leer()`. */}
             <h3>Aulas agendadas</h3>
-            <span>{fmt(dashboard.agenda?.length ?? 0)} cursos-horario</span>
+            {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. */}
+            <span>{fmt(agendaRows(dashboard).length)} cursos-horario</span>
           </div>
           {/* Primero cuándo se aplica cada cosa —que es lo que se pregunta al
               entrar a Agenda— y después la tabla, que es donde se busca un
               curso-horario concreto. La tabla NO se va: en esta sección sirve. */}
-          <AulasAgendaPorDia filas={(dashboard.course_status ?? []) as MonitoreoAulasPlanRow[]} />
+          {/* Sin el banco, por lo mismo: un aula sin fecha no tiene día en el
+              que contarse, y las 40 caían en el tramo «sin fecha». */}
+          <AulasAgendaPorDia
+            filas={((dashboard.course_status ?? []) as MonitoreoAulasPlanRow[])
+              .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool")}
+          />
           <DataTable
             rows={agendaRows(dashboard)}
             empty="No hay agenda importada para cursos-horario."
@@ -556,7 +572,14 @@ function renderAulasView(
     // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también
     // los titulares que nunca necesitaron reserva, porque «146 no necesitaron
     // reemplazo» es parte de la respuesta.
-    const agendaFilas = (dashboard.agenda ?? []) as MonitoreoAulasPlanRow[];
+    // El BANCO fuera de la agenda. Las aulas extra no cuelgan de ningún titular,
+    // no tienen fecha y no están agendadas: son respaldo del estrato para cerrar
+    // la cuota, y desde hace poco tienen su propia pestaña. Metidas aquí añadían
+    // 40 filas sin fecha a una tabla de 196 que sí importan, y hacían que el
+    // panel dijera «236 cursos-horario» dos dedos debajo de un KPI que decía
+    // 196: la misma palabra con dos cifras.
+    const agendaFilas = ((dashboard.agenda ?? []) as MonitoreoAulasPlanRow[])
+      .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool");
     // La MISMA función que escribe la lectura: el contador de la cabecera y el
     // renglón de abajo no pueden salir de dos cuentas distintas.
     const cadenas = historiaDeCadena(agendaFilas);
