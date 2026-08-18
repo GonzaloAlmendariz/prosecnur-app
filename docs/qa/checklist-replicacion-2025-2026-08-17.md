@@ -2641,3 +2641,53 @@ y sin scroll en toda la matriz QA. En vivo a 1024×600 y desktop.
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
+
+## Chip task_ce08ab8d · Los agregados miden contra la cuota del diseño — ☑ 2026-08-18
+
+La segunda mitad de H3, cerrada con **ADR 0079** («El cumplimiento se mide
+contra la cuota del diseño»). Bloque `avance_cuota` en el dashboard de aulas
+(archivo propio `monitoreo_aulas_avance_cuota.R`): denominador =
+`design_targets$cuota`/`total_cuota`; numerador = todo lo recogido válido de la
+facultad (reservas y banco suman al activarse, el denominador no crece);
+huérfanas, duplicados y «fuera de universo» declarados aparte; vigencia por
+sello (run_id y frame_hash POR SEPARADO), degradación declarada con motivo;
+**la `cuota_sexo` del diseño manda** sobre la derivación por frame (fuente
+`design_cuota_sexo`, invariante |F+M−cuota|≤1, residual «sin sexo» publicado);
+atribución respuesta→plan unificada entre cumplimiento y celdas; el ritmo mide
+contra la misma cifra. Consumidor de UI: panel «Cumplimiento contra el diseño»
+en Avance › cuotas con chip de procedencia veraz. `.monitoreo_aulas_quota_sex_faculty`
+retirada (sin consumidores tras el reemplazo por celdas normalizadas).
+
+Gate (verificador, 2026-08-18): suite R del área 19 archivos 0 fail (avance-cuota
+120, metas-diseno 57 INTACTO, costura 111) · vitest COMPLETO 552 archivos /
+4.492 tests 0 fallos · tsc 0 · QA visual en vivo APTO (A1/A2 geometría conforme
+con capacidad declarada, paridad exacta con el hermano) · los 6 invariantes del
+ADR con correlato test por test.
+
+**De paso, en la misma sesión**: fix del 500 al declarar el modo de Monitoreo
+(partial matching de `$` pescaba `plan_rows`; acceso exacto + contrato en
+`test-monitoreo-aulas-config-exacto.R`, 9/9) · contratos de readiness de
+Recopiladores al día (`seccionCargando` deliberado; B08 retirado hacia su
+guardián vivo) · audit de congelados en verde (líneas base 8994/5263 subidas
+deliberadamente; 18 skills contadas).
+
+**Deuda declarada**: (1) estados poblado/vigente del panel sin fixture vivo —
+cierre: proyecto de referencia de aulas con `design_targets` re-importado +
+`make reference-project-visual-matrix`; (2) falso positivo `scroll-unreachable`
+del terreno `.aulas-mon-view` h=0 (chip task_c0991b03) — mantiene rojo el
+`--fail-on-issues` de la ruta hasta repararse.
+
+### Cola vigente tras el cierre del chip (dibujo entero)
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 · I12 | pregunta · embudo en Selección · referencia 8/8 · delta · elegibles 2025 · chip honesto | ☑ |
+| — | Radiografía nivel (`433314ab`) · oráculo (`7cd86828`) · bundle i18b (`206a7cc8`) | ☑ |
+| I13 · I14 | Panorama con reglas · cifras sin recorte | ☑ `2df12e57` |
+| — | Chip task_ce08ab8d: agregados contra la cuota del diseño + consumo UI (ADR 0079) | ☑ 2026-08-18 |
+| I9 | Fichas como tarjetas (dos por fila) | ☐ SIGUIENTE |
+| I10 | Reformular «sin criterios propios» | ☐ (mismo archivo que I9) |
+| I15 | Ranking de desempeño CH 2025 por facultad en Histórico | ☐ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
