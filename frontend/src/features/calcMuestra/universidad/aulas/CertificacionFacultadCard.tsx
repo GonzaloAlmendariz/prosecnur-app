@@ -127,7 +127,7 @@ export function CertificacionFacultadCard({
                       title={`Fija ${f.aulas_titulares + 1} titulares para ${f.facultad} en el estudio; recalcula y vuelve a seleccionar para aplicarlo.`}
                       onClick={() => onAgregarAula(f.facultad, f.aulas_titulares)}
                     >
-                      +1 aula
+                      ¿un aula más?
                     </button>
                   ) : null}
                 </td>

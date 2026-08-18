@@ -23,13 +23,17 @@ const PASO_INICIAL = 3; // «Aulas que pasan los criterios»: el corazón de la 
 export function EmbudoComparadoFacultades({
   fichas,
   periodo,
+  pasoInicial = PASO_INICIAL,
 }: {
   fichas: FichaFacultad[];
   periodo: string;
+  /** Paso donde aterriza el selector: Coincidencia abre en el marco (3) y
+   *  Selección en los titulares (7), que es lo que ahí se decide. */
+  pasoInicial?: number;
 }) {
   const pasos = pasosComparables(fichas);
   const [pasoN, setPasoN] = useState(
-    pasos.some((p) => p.n === PASO_INICIAL) ? PASO_INICIAL : (pasos[0]?.n ?? PASO_INICIAL),
+    pasos.some((p) => p.n === pasoInicial) ? pasoInicial : (pasos[0]?.n ?? pasoInicial),
   );
   const { manejadores, tooltip } = useTooltipGrafico();
   if (!fichas.length || !pasos.length) return null;
