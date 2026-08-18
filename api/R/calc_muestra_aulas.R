@@ -1903,17 +1903,28 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (!requireNamespace("BalancedSampling", quietly = TRUE)) return(NULL)
   vars <- unique(c(.cm_aulas_chr_vec(selector$spread_vars), .cm_aulas_chr_vec(selector$balance_vars)))
   x <- .cm_aulas_balance_matrix(df, vars, pik = pik)
-  out <- tryCatch({
-    if (exists("lcube", where = asNamespace("BalancedSampling"), inherits = FALSE)) {
-      get("lcube", envir = asNamespace("BalancedSampling"))(pik, x)
-    } else if (exists("lpm2", where = asNamespace("BalancedSampling"), inherits = FALSE)) {
-      get("lpm2", envir = asNamespace("BalancedSampling"))(pik, x)
-    } else {
-      NULL
-    }
-  }, error = function(e) NULL)
+  # lcube en BalancedSampling >= 2.x es lcube(prob, Xspread, Xbal): la llamada
+  # de dos argumentos ERRABA SIEMPRE, el tryCatch la tragaba y el else-if
+  # encadenaba por EXISTENCIA (lcube existe -> nunca se intentaba lpm2, que si
+  # funciona). Resultado medido: el pivotal local jamas corrio — todo estrato
+  # con sorteo caia a cubo y el motor declaraba «equivalente». Se encadena por
+  # EXITO, con la firma documentada; sin adivinar firmas legadas invirtiendo
+  # argumentos (un orden errado puede correr sin error y sortear basura).
+  ns <- asNamespace("BalancedSampling")
+  out <- NULL
+  if (exists("lcube", where = ns, inherits = FALSE)) {
+    out <- tryCatch(get("lcube", envir = ns)(pik, x, x), error = function(e) NULL)
+  }
+  if (is.null(out) && exists("lpm2", where = ns, inherits = FALSE)) {
+    out <- tryCatch(get("lpm2", envir = ns)(pik, x), error = function(e) NULL)
+  }
   if (is.null(out)) return(NULL)
-  which(as.numeric(out) > 0)
+  # 2.x devuelve INDICES de las unidades muestreadas; 1.x devolvia el vector
+  # indicador 0/1 de largo n. Distinguirlos por forma evita leer indices como
+  # indicadores (todo >0 habria seleccionado el estrato entero).
+  out <- as.numeric(out)
+  if (length(out) == length(pik) && all(out %in% c(0, 1))) return(which(out > 0))
+  sort(unique(as.integer(out[is.finite(out) & out >= 1 & out <= length(pik)])))
 }
 
 .cm_aulas_pick_indices <- function(df, quota, selector, engine, seed = NULL) {
