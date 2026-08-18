@@ -38,12 +38,18 @@
 # resto del mazo corre de desacuerdo a acuerdo. **El entregable aprobado tiene
 # CERO** —31 de 31 en orden canonico—, asi que contra la vara son 2 contra 0.
 #
-# El texto de la leyenda va en orden canonico en las dos, asi que el lector
-# puede decodificar el color; lo que se rompe es la DIRECCION, que es lo que se
-# lee de un vistazo al comparar laminas. NO ESTA MEDIDO todavia si los cuadros
-# de la leyenda llevan el color que les toca —el filtro de segmentos los
-# descarta por tamano—: si tambien estuvieran invertidos, la lamina mentiria en
-# vez de solo ir al reves.
+# MEDIDA YA LA LEYENDA, ES PEOR QUE UNA INVERSION. Sus cuadros llevan el mismo
+# orden que las barras, asi que son coherentes entre si; el problema es cual se
+# perdio. Emparejando cada cuadro con la etiqueta que tiene a su derecha:
+#
+#   lamina 24 y 27 (sanas)   F4B183 · FFD965 · ADD493 · 70AD47 · BFBFBF
+#   lamina 28 y 30           BFBFBF · 70AD47 · ADD493 · FFD965 · BFBFBF
+#
+# La inversion se comio el NARANJA y puso el gris al frente, asi que quedan
+# **cuatro colores para cinco categorias** y **BFBFBF esta asignado dos veces**:
+# a «Totalmente en desacuerdo» y a «SIN INF». En esas dos laminas esas dos
+# categorias son INDISTINGUIBLES, en la leyenda y en las barras. No es que la
+# lamina vaya al reves: es que no se puede leer.
 #
 # Las dos son de bloques de un solo publico (la 28, «15 administrativos»). La
 # sospecha a falsar primero es el orden de niveles ordinales, que ya mordio
