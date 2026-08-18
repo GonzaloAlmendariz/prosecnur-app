@@ -635,3 +635,33 @@ test_that("la poblacion por facultad se deriva de la afijacion proporcional", {
   f2 <- calc_muestra_referencia_criterios_fusionar(libro2, NULL)
   expect_true(is.na(f2$por_facultad[[1]]$poblacion))
 })
+
+test_that("D4: el rescate deriva la mediana de alumnos por aula de los titulares con dato", {
+  asistencia <- list(cadenas_reemplazo = list(filas = list(
+    list(facultad = "DERECHO", escalones = list(
+      list(posicion = 1, elegibles = 30),
+      list(posicion = 2, elegibles = 99)  # reemplazo: NO entra a la mediana
+    )),
+    list(facultad = "DERECHO", escalones = list(
+      list(posicion = 1, elegibles = 50)
+    )),
+    list(facultad = "DERECHO", escalones = list(
+      list(posicion = 1)  # titular SIN dato: no entra, no revienta
+    )),
+    list(facultad = "GESTIÓN", escalones = list())
+  )))
+  filas <- .cm_ref_crit_desde_cadenas(asistencia)
+  derecho <- Filter(function(f) identical(f$facultad, "DERECHO"), filas)[[1]]
+  expect_identical(derecho$aulas_titulares, 3L)
+  expect_equal(derecho$alumnos_por_ch, 40)  # mediana(30, 50)
+  gestion <- Filter(function(f) identical(f$facultad, "GESTIÓN"), filas)[[1]]
+  expect_null(gestion$alumnos_por_ch)  # sin dato: NULL, jamas un 0 que parezca medido
+})
+
+test_that("D4: el rescate SOLO rellena huecos — un libro que declara la fila manda", {
+  base <- list(list(facultad = "DERECHO", alumnos_por_ch = 41))
+  relleno <- list(list(facultad = "DERECHO", alumnos_por_ch = 40, aulas_titulares = 3L))
+  out <- .cm_ref_crit_rellenar_filas(base, relleno)
+  expect_equal(out[[1]]$alumnos_por_ch, 41)
+  expect_equal(out[[1]]$aulas_titulares, 3)
+})
