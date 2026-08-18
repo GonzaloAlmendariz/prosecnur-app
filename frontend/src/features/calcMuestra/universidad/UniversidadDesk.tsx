@@ -701,6 +701,7 @@ export function UniversidadDesk({
                 onAgregarAula={onAgregarAulaFacultad}
                 fichas={fichasFacultad}
                 periodoAnterior={referenciaCriterios?.periodo ?? ""}
+                referencia={referenciaAsistencia}
               />
             )}
             {activeLabTab === "perfil" && (
