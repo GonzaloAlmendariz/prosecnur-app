@@ -2432,16 +2432,20 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  align-items: stretch;
+  /* `start` y no `stretch`. El markup declara el contrato `intrinsic` —son dos
+     secciones INDEPENDIENTES: una reparte cursos-horario por cobertura y la otra
+     dice dónde falta— y este CSS imponía `equal` por su cuenta: estiraba el
+     gráfico, de 619 px de contenido, hasta los 999 de su pareja. El gate lo
+     marcó como `capacity-drift` de 380 px, y con razón: markup y hoja decían
+     cosas distintas del mismo grupo. Manda el markup, que es lo que se midió
+     —a 1024 apiladas medían 307 y 274, así que `equal` era una promesa que la
+     pareja no podía cumplir—. */
+  align-items: start;
   flex: none;
 }
 
-/* El contrato `equal` de la pareja: mismo marco pase lo que pase con los datos
-   de cada uno. El alto lo marca el más alto de los dos y el otro contiene su
-   propio vacío, que es lo que pide C2. */
 .mon-profile-page.is-aulas-flow .aulas-avance-pareja > .mon-profile-panel {
   min-width: 0;
-  height: 100%;
 }
 
 /* Bajo 1180 px vuelven a la columna: dos gráficos de barras a media anchura no
