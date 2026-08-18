@@ -1062,14 +1062,41 @@
   white-space: nowrap;
 }
 
+/* Los eslabones en COLUMNAS, no en una fila que se ajusta al texto.
+   Cada burbuja medía según su contenido —129 px la del titular, 166 la de una
+   reserva sin sello y 222 con «cumple»—, así que el tercer eslabón de una
+   cadena caía justo donde el segundo de la de al lado y no se podía comparar
+   de un vistazo cuántos reemplazos necesitó cada una. Con la reja, la columna
+   n.º 2 es la columna n.º 2 para todas, y una cadena que cerró antes deja su
+   última columna vacía: ese hueco ES el dato —cerró en dos y no en tres—, no
+   un vacío sin dueño (C3). */
 .mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(var(--aulas-eslabones, 3), minmax(0, 1fr));
   gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
   min-width: 0;
+}
+
+/* En compacto la reja aprieta demasiado: tres columnas de ~90 px parten
+   «en reserva 2» en dos líneas. Ahí vuelve a la fila que se ajusta, donde el
+   texto manda y la comparación entre cadenas se pierde a cambio de leerse. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-cadena-eslabones {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+/* La reja da la COLUMNA; la burbuja no la rellena. Estirada a los 341 px de
+   la columna quedaba con la mitad del ancho en hueco: alineaba, sí, pero a
+   cambio de tres cajas medio vacías. Anclada al inicio, los códigos siguen
+   cayendo uno bajo otro —que es lo que permite comparar— y cada burbuja mide
+   lo que dice. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-eslabones > .aulas-eslabon {
+  justify-self: start;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-eslabon {

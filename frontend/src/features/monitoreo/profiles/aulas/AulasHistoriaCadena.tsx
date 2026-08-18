@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { CSSProperties } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { historiaDeCadena, type EslabonDeCadena, type HistoriaDeCadena } from "./historiaDeCadena";
@@ -147,6 +148,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
       {GRUPOS.map((grupo) => {
         const propias = historias.filter((h) => h.desenlace === grupo.desenlace);
         if (!propias.length) return null;
+        const maxEslabones = propias.reduce((max, h) => Math.max(max, h.eslabones.length), 1);
         return (
           <section key={grupo.desenlace} className="aulas-cadenas-grupo">
             <h4>
@@ -158,7 +160,16 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
                 abiertas se compara —quién tiene margen— y en las cerradas se
                 lee una historia de tres eslabones. */}
             {grupo.desenlace === "abierta" ? <CadenasAbiertas historias={propias} /> : (
-            <ol className="aulas-cadenas-lista">
+            <ol
+              className="aulas-cadenas-lista"
+              /* Cuántos eslabones tiene la cadena más larga de ESTE grupo. Con
+                 él, el eslabón n.º 2 de una cadena cae bajo el n.º 2 de la de
+                 al lado, y la profundidad —cuántos reemplazos hizo falta— se
+                 ve por POSICIÓN en vez de leerse contando burbujas. Antes cada
+                 burbuja medía según su texto —129, 166 y 222 px— así que el
+                 tercero de una cadena caía donde el segundo de otra. */
+              style={{ "--aulas-eslabones": maxEslabones } as CSSProperties}
+            >
               {propias.map((historia) => (
                 <li key={historia.titular} className={`aulas-cadena es-${historia.desenlace}`}>
                   <div className="aulas-cadena-head">
