@@ -52,6 +52,18 @@
 .cm_catalogo_rellenar_rol <- function(raw, catalogo, mapping, raw_key, catalog_key, rol, concat = FALSE) {
   col_raw <- if (identical(rol, "teacher_type")) {
     .cm_criterios_col_teacher_type(raw, mapping)
+  } else if (identical(rol, "course_level")) {
+    # Con la MISMA guarda anti-colisión que usa el evaluador. Sin ella,
+    # `.cm_aulas_col` resolvía `course_level` contra la columna «curso» —el
+    # NOMBRE del curso, que casa por fuzzy con «nivel_curso»— y como esa columna
+    # tiene valores, esta función concluía «la base ya trae señal» y NO
+    # rellenaba desde el catálogo. El nivel del curso se quedaba sin número y el
+    # frame caía al ciclo del ALUMNO, publicando `level_reference = "curso"`.
+    #
+    # Medido en HSVG2026: `PSI125-0201` (NEUROCIENCIAS, EE.GG. LETRAS) tiene
+    # nivel 0 en el catálogo y salía como 1, y `course_level_num` era idéntico a
+    # `level` en 5.251 de las 5.263 aulas.
+    .cm_criterios_col_course_level(raw, mapping)
   } else {
     .cm_aulas_col(raw, mapping[[rol]])
   }
