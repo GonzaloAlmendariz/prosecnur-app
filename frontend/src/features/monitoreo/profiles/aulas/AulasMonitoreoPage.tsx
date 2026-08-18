@@ -56,7 +56,7 @@ import {
 import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
-import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchRail } from "../../components";
+import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
 import { railDeAulas } from "./railDeAulas";
 import { parteDeCampo } from "./parteDeCampo";
 import {
@@ -905,6 +905,9 @@ export default function AulasMonitoreoPage() {
     return mapa;
   });
   const pestanaActiva = pestanaPorSeccion[seccionActiva] ?? primeraPestana(seccionActiva);
+  // El nombre de la pestaña activa, para el encabezado. Sale del mismo registro
+  // que dibuja el rail, así que no puede desincronizarse con lo que se ve.
+  const pestanaActivaLabel = pestanasDe(seccionActiva).find((p) => p.key === pestanaActiva)?.label ?? "";
   const elegirPestana = (seccion: MonitoreoSeccion, clave: string) =>
     setPestanaPorSeccion((prev) => ({ ...prev, [seccion]: clave }));
 
@@ -1154,7 +1157,29 @@ export default function AulasMonitoreoPage() {
         contentRole="tabpanel"
         contentAriaLabelledBy={`monitoreo-${seccionActiva}-tab-${pestanaActiva}`}
         scrollResetKey={`${seccionActiva}/${pestanaActiva}`}
-        head={null}
+        head={
+          /* Aulas era el ÚNICO de los cuatro perfiles con `head={null}`, y el
+            componente existe justo para lo que a aulas le faltaba: su propio
+            comentario lo dice —«el rail es icon-only y su cuadrante no lleva
+            rótulo, así que el nombre de dónde estás vive acá»—. Medido en
+            Avance > Resumen: el rail tiene cuatro botones, el activo no lleva
+            texto ni `title`, y la palabra «Resumen» no aparecía en ninguna
+            parte de la pantalla. Se estaba en una pestaña y nada decía cuál.
+
+            Sin `pills`: la franja de arriba ya lleva estado, registros y corte,
+             y repetirlos aquí sería decir dos veces lo mismo a dos dedos. Y sin
+             `detail`: con la descripción de la sección el encabezado medía
+             177 px, y esa frase ya la dice el rail al pasar por su icono. Lo
+             que aquí no estaba en ninguna parte es el nombre de la pestaña. */
+          (
+          <MonitoreoWorkbenchHead
+            icon={activeDef.icon}
+            eyebrow="Cursos-horario"
+            title={activeDef.label}
+            pestanaLabel={pestanaActivaLabel}
+          />
+          )
+        }
         rail={(
           <MonitoreoWorkbenchRail
           pestanaActiva={pestanaActiva}
