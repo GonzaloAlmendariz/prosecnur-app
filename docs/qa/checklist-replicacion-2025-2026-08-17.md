@@ -2292,3 +2292,27 @@ el mismo idioma** (siguiente: medir la cadena de identificadores y metas —
 qué viaja hoy del sorteo afijado a las fichas y al monitoreo, dónde se
 rompe el idioma; monitoreo/** es zona de otra sesión: medir sin tocar,
 arreglar del lado calc-muestra/handoff).
+
+## H3 · El cableado de los tres módulos de aulas — medido · ◐ 2026-08-18
+
+**Lo que YA habla el mismo idioma**: la cadena calc-muestra → monitoreo
+existe y es trazable (`monitoreo_aulas_from_calc`: selection_run_id +
+frame_hash + plan del sorteo + metodología con source="calc-muestra"); el
+emparejamiento de identificadores QR↔monitoreo ya está tendido
+(`collection_unit_id` de Recopiladores ∨ `classroom_id`, reparado en su
+momento); la ficha QR lleva el enlace + id del colector + URL de respaldo.
+
+**Dos roturas de idioma, con cifra**:
+- **H3-a**: la meta por aula del monitoreo es `expected_valid = eligible_n`
+  CRUDO (línea 381) — el campo se mediría contra el 100 % de elegibles
+  cuando el diseño asume τ=0,53 (las esperadas del sello).
+- **H3-b**: `selection$quotas` son AULAS por estrato del sorteo (medido en
+  vivo: {ARQ/F/G1: 2 aulas…}); las CUOTAS DE ALUMNOS facultad×sexo del
+  diseño (suman 2.500 + 30 celdas de distribucion_sub) y la certificación
+  NO viajan — el bundle lleva composición poblacional, no metas.
+
+**El consumo vive en zona de otra sesión** (monitoreo_aulas_universitarias.R
+/ frontend monitoreo): hallazgos documentados y **chip de tarea creado**
+(task_0bbf95f9, «Llevar cuotas del diseño y certificación al monitoreo»)
+con el diagnóstico completo, los file:line y el diseño del fix — registrado
+en la aplicación, como pide Gonzalo, sin pisar trabajo ajeno.
