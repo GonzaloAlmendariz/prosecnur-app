@@ -2186,10 +2186,95 @@ export function normalizeCalcMuestraSexoPorFacultad(
   };
 }
 
+export type CalcMuestraCertificacionFacultadFila = {
+  faculty_key: string;
+  facultad: string;
+  cuota: number | null;
+  aulas_titulares: number;
+  elegibles_titulares: number | null;
+  efectivas_esperadas: number | null;
+  margen: number | null;
+  estado: "certificada" | "no_cubre" | "sin_titulares" | "sin_tasa" | "sin_cuota";
+  aviso: string;
+};
+
+/** Certificación por facultad de la selección (Gonzalo: «la selección de
+ *  aulas tiene que certificarse de esa forma»): ¿las titulares cargan los
+ *  ALUMNOS que la cuota exige, con la tasa esperada? Derivada al servir en
+ *  calc_muestra_aulas_certificacion.R. */
+export type CalcMuestraCertificacionFacultad = {
+  schema: "calc_muestra_aulas_certificacion_facultad_v1";
+  tasa_esperada: number | null;
+  certificadas: number;
+  evaluables: number;
+  total: number;
+  ok: boolean;
+  filas: CalcMuestraCertificacionFacultadFila[];
+};
+
+const CERT_ESTADOS = ["certificada", "no_cubre", "sin_titulares", "sin_tasa", "sin_cuota"] as const;
+
+export function normalizeCalcMuestraCertificacionFacultad(
+  raw: unknown,
+): CalcMuestraCertificacionFacultad | null {
+  const asText = (v: unknown): string => {
+    const x = Array.isArray(v) ? v[0] : v;
+    return typeof x === "string" ? x.trim() : typeof x === "number" ? String(x) : "";
+  };
+  const asNum = (v: unknown): number | null => {
+    const x = Array.isArray(v) ? v[0] : v;
+    const n = typeof x === "number" ? x : typeof x === "string" ? Number(x) : NaN;
+    return Number.isFinite(n) ? n : null;
+  };
+  const asBool = (v: unknown): boolean => {
+    const x = Array.isArray(v) ? v[0] : v;
+    return x === true;
+  };
+  const asList = (v: unknown): unknown[] => (Array.isArray(v) ? v : v == null ? [] : [v]);
+  const asRecord = (v: unknown): Record<string, unknown> =>
+    v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  const r = asRecord(raw);
+  if (asText(r.schema) !== "calc_muestra_aulas_certificacion_facultad_v1") return null;
+  const filas = asList(r.filas)
+    .map((rawFila): CalcMuestraCertificacionFacultadFila | null => {
+      const f = asRecord(rawFila);
+      const facultad = asText(f.facultad);
+      if (!facultad) return null;
+      const estadoRaw = asText(f.estado);
+      const estado = (CERT_ESTADOS as readonly string[]).includes(estadoRaw)
+        ? (estadoRaw as CalcMuestraCertificacionFacultadFila["estado"])
+        : "sin_cuota";
+      return {
+        faculty_key: asText(f.faculty_key),
+        facultad,
+        cuota: asNum(f.cuota),
+        aulas_titulares: asNum(f.aulas_titulares) ?? 0,
+        elegibles_titulares: asNum(f.elegibles_titulares),
+        efectivas_esperadas: asNum(f.efectivas_esperadas),
+        margen: asNum(f.margen),
+        estado,
+        aviso: asText(f.aviso),
+      };
+    })
+    .filter((f): f is CalcMuestraCertificacionFacultadFila => f != null);
+  if (!filas.length) return null;
+  return {
+    schema: "calc_muestra_aulas_certificacion_facultad_v1",
+    tasa_esperada: asNum(r.tasa_esperada),
+    certificadas: asNum(r.certificadas) ?? 0,
+    evaluables: asNum(r.evaluables) ?? 0,
+    total: asNum(r.total) ?? filas.length,
+    ok: asBool(r.ok),
+    filas,
+  };
+}
+
 export type CalcMuestraAulasSelection = {
   schema: "calc_muestra_aulas_selection_v1" | string;
   /** Balance de sexo por facultad; derivado al servir, puede no venir. */
   sexo_por_facultad?: unknown;
+  /** Certificación por facultad; derivada al servir, puede no venir. */
+  certificacion_facultad?: unknown;
   selection_run_id: string;
   generated_at: string;
   frame_hash: string;

@@ -1,0 +1,88 @@
+/* Certificación por facultad de la selección. Misma familia visual que las
+ * tarjetas de criterios (.cmv2-generales-card) y la de sexo. */
+
+.cmv2-cert-card {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cmv2-border);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+
+.cmv2-cert-card[data-ok="no"] {
+  border-color: color-mix(in srgb, var(--pulso-warn-fg) 45%, transparent);
+}
+
+.cmv2-cert-card > header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.cmv2-cert-card > header strong { font-size: 13px; color: var(--pulso-text); }
+
+.cmv2-cert-card > header span {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-cert-card > header b[data-tono="bien"] { color: var(--pulso-success-fg); }
+.cmv2-cert-card > header b[data-tono="mal"] { color: var(--pulso-warn-fg); }
+
+.cmv2-cert-wrap { overflow-x: auto; min-width: 0; }
+
+.cmv2-cert-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-cert-tabla th,
+.cmv2-cert-tabla td {
+  text-align: right;
+  padding: 5px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
+  white-space: nowrap;
+}
+
+.cmv2-cert-tabla th[scope="col"]:first-child,
+.cmv2-cert-tabla th[scope="row"] {
+  text-align: left;
+  font-weight: 500;
+  color: var(--pulso-text);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-cert-tabla thead th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--pulso-text-muted);
+  font-weight: 600;
+}
+
+.cmv2-cert-estado {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 10%, transparent);
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-cert-estado[data-estado="certificada"] {
+  background: color-mix(in srgb, var(--pulso-success-fg) 12%, transparent);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-cert-estado[data-estado="no_cubre"] {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 14%, transparent);
+  color: var(--pulso-warn-fg);
+}
