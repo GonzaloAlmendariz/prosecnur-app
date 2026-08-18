@@ -1188,6 +1188,78 @@ por curso-horario: **media**». Leía el parámetro del componente, que el motor
 deja en «media» a propósito. Ahora la **decisión sellada manda** y la tarjeta
 dice «primer cuartil (p25)».
 
+## R30 — cursos-horario elegibles por facultad, y los talleres de tesis
+
+### Nuestro marco contra el de 2025, facultad por facultad
+
+El marco elegible de 2025 —tras presencial, teórico, nivel y matriculados ≥ 10—
+tenía 2.746 aulas en estas quince facultades. El nuestro tiene 2.364: **el 86 %**.
+Pero el promedio esconde lo que importa:
+
+| Facultad | nuestro | 2025 | Δ | % |
+|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 571 | 655 | −84 | 87 % |
+| DERECHO | 423 | 395 | **+28** | 107 % |
+| EE.GG. LETRAS | 330 | 470 | −140 | **70 %** |
+| EE.GG. CIENCIAS | 319 | 352 | −33 | 91 % |
+| CIENCIAS Y ARTES COMUN. | 157 | 168 | −11 | 93 % |
+| CIENCIAS SOCIALES | 150 | 139 | **+11** | 108 % |
+| GESTIÓN | 102 | 101 | +1 | 101 % |
+| PSICOLOGÍA | 89 | 90 | −1 | 99 % |
+| ARTE Y DISEÑO | 62 | 83 | −21 | 75 % |
+| ARQUITECTURA | 52 | 64 | −12 | 81 % |
+| ARTES ESCÉNICAS | 44 | 115 | −71 | **38 %** |
+| EDUCACIÓN | 19 | 25 | −6 | 76 % |
+| GASTRONOMÍA | 16 | 33 | −17 | **48 %** |
+| LETRAS Y C. HUMANAS | 15 | 40 | −25 | **38 %** |
+| CONTABLES | 15 | 16 | −1 | 94 % |
+| **TOTAL** | **2.364** | **2.746** | −382 | 86 % |
+
+Seis facultades quedan al 99–108 % —ahí el marco se reprodujo—. Las que se
+desploman son **ARTES ESCÉNICAS y LETRAS Y CIENCIAS HUMANAS (38 %)**,
+**GASTRONOMÍA (48 %)** y **EE.GG. LETRAS (70 %)**, y son justo las que tienen
+pocas aulas: perder veinte allí cambia el estudio, perder ochenta en Ciencias e
+Ingeniería no.
+
+### ¿2025 filtró los talleres de tesis a mano? NO, según sus propios datos
+
+| | pool sorteado (1.097) | aplicadas (194) | tasa |
+|---|---|---|---|
+| TRABAJO DE TESIS | 2 | **0** | 0 % |
+| TALLER … | 31 | 4 | 13 % |
+| INVESTIGACIÓN … | 52 | 12 | 23 % |
+| PROYECTO … | 39 | 6 | 15 % |
+| SEMINARIO … | 1 | 0 | 0 % |
+| *base de comparación* | | | *17,7 %* |
+
+Los talleres de tesis **entraron al sorteo de 2025**: no hubo filtro en el marco.
+Las dos que salieron sorteadas no llegaron a aplicarse, pero con dos casos eso es
+indistinguible del azar —con una tasa base del 17,7 %, que ninguna de las dos
+caiga es lo más probable—. Los talleres pasan al 13 % y los cursos de
+investigación al 23 %: nada que sugiera un descarte deliberado.
+
+### Qué costaría filtrarlos hoy
+
+En nuestro marco, por nombre de curso (con solapamientos):
+
+| Patrón | aulas | mediana de elegibles | media |
+|---|---|---|---|
+| INVESTIGACIÓN… | 103 | 25 | 36 |
+| PROYECTO… | 66 | 28 | 32 |
+| TALLER… | 64 | **20** | 21 |
+| TESIS | 20 | 26 | 26 |
+| SEMINARIO… | 9 | 33 | 52 |
+| ASESORÍA… | 2 | 156 | 153 |
+| *marco entero* | 2.364 | **33** | |
+
+El dato matiza la intuición: **las de tesis no son marginales** —mediana de 26
+elegibles contra 33 del marco—, y las verdaderamente pequeñas son los talleres
+(mediana 20). Las muy chicas ya salieron por el mínimo de matriculados.
+
+Así que excluirlas no es una decisión de tamaño sino de **criterio**: si en un
+taller de tesis la dinámica no es de clase y aplicar allí no tiene sentido, se
+excluye por eso, no porque haya poca gente. Es de Gonzalo.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
