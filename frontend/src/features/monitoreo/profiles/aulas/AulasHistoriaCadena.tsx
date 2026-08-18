@@ -57,12 +57,16 @@ function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCad
       <table className="mon-profile-table aulas-cadenas-tabla">
         <thead>
           <tr>
-            <th>Curso-horario</th>
-            <th>Facultad</th>
-            <th className="es-cifra">Reservas</th>
-            <th className="es-cifra">Válidas</th>
-            <th className="es-cifra">Meta</th>
-            <th>Lo más cerca</th>
+            {/* `scope="col"` en todas: la tabla del control ya lo declaraba y
+                éstas no, así que el perfil tenía dos tablas de datos con dos
+                criterios. Sin él, un lector de pantalla no sabe qué encabezado
+                gobierna cada celda salvo que lo adivine. */}
+            <th scope="col">Curso-horario</th>
+            <th scope="col">Facultad</th>
+            <th scope="col" className="es-cifra">Reservas</th>
+            <th scope="col" className="es-cifra">Válidas</th>
+            <th scope="col" className="es-cifra">Meta</th>
+            <th scope="col">Lo más cerca</th>
           </tr>
         </thead>
         <tbody>
