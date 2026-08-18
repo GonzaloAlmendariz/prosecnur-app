@@ -2011,3 +2011,25 @@ a crecimiento) con una cuota en dos niveles: primero POR FACULTAD según
 `aulas_base` del estudio, luego dentro de la facultad por masa de elegibles
 (sex×size). Sin targets declarados, comportamiento actual intacto. Test con
 las quince filas del diseño + mutante que anule el primer nivel.
+
+## AFIJACIÓN · El diseño viaja a la selección · ☑ 2026-08-18, commit `a8d329c6`
+
+`calc_muestra_aulas_afijacion.R` (archivo nuevo; el engine está congelado):
+`selector$faculty_targets` activa el reparto en dos niveles — la facultad
+respeta su target capado a lo disponible, dentro va por masa como siempre;
+sin targets, byte-idéntico al histórico; estrato que cruce facultades falla
+FUERTE. Suite nueva de 16 (incluye end-to-end construir→seleccionar y el
+guard del normalizador contra el patrón S2); mutante del nivel facultad
+muere con 10 rojos; los 140 de aulas y los 45 de criterio-por-facultad
+siguen verdes.
+
+**Verificado en vivo sobre HSVG2026**: selección con los 15 `aulas_base` del
+diseño como targets → **desvío absoluto 0 en las quince filas** (antes 68 de
+202): C&I 42 · EGC 28 · EGL 22 · DERECHO 18 · ARQ 15 · A&D 15 · CCSS 13 ·
+AE 12 · CyA 10 · GES 8 · PSI 7 · LyCH 5 · EDU 3 · CONT 2 · GAS 2 = 202.
+**(d) queda RESUELTO por construcción**: ARQ recibe sus 15, sostenibles
+porque los talleres (c) le dieron 100 elegibles. Config guardada en la
+copia. PENDIENTE UI (siguiente): el frontend aún no declara los targets al
+seleccionar — cablear `faculty_targets` desde el margen del estudio para que
+el analista no dependa de un POST manual; y el audit de congelados sigue
+rojo por +72 PREVIOS a este trabajo (decisión de línea base para el curador).
