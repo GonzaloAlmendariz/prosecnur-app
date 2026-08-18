@@ -1408,6 +1408,7 @@ sospecha.
 | L91 | `d398abca` | Una columna vacía en las 50 filas —«Corrida de selección»— gastaba ancho y desplazaba a «Cadena de reemplazo», que sí lleva dato. `compactColumns` descartaba la clave inexistente pero no la que existe vacía. |
 | L92 | `9c9e56ed` | Cada burbuja de eslabón medía según su texto —129, 166, 222 px—, así que el tercer eslabón de una cadena caía donde el segundo de otra y comparar profundidades exigía contarlas una por una. |
 | L93 | `94dca941` | Cuatro barras de Plotly en 200 px con DOS en cero: media lámina en blanco, y lo que esas barras vacías decían —que ninguna cadena pasó del primer reemplazo— no se leía en ninguna parte. Franja repartida + los cuatro tramos con sus ceros; el bloque baja a 80 px. |
+| L94 | `6fa3a28e` | El plural iba fijo en once rótulos: «1 fuentes activas», y «1 pestañas» seguro —el rótulo usa `length \|\| 1`, así que una sección sin pestañas lo mostraba siempre—. Todos pasan ya por `contar()`, que existía. Tres de ellos los ven los cuatro perfiles. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
