@@ -1909,3 +1909,29 @@ Descartado además hoy: divisor sobre MATRICULADOS TOTAL DTI, CEIL por celda
 facultad×sexo (aporta ≤+1), cobertura constante de elegibles (los ratios
 van de 0,94 a 1,98). Trampa de cruce: «CIENCIAS Y ARTES DE LA COMUN.» vs
 «…COMUNICACIÓN» no casan con la normalización simple.
+
+## R4 · La hipótesis del traslape, refutada — R4 pasa a BLOQUEADO · 2026-08-18
+
+**La prueba**: se reprodujo la definición de elegible 2025 al alumno
+(pregrado + 18 + condición regular = 34.541 EXACTO contra el marco,
+correlación 1, diferencia mediana 0 por aula) y se corrió la regla con
+elegibles ÚNICOS por facultad. **Refutada por exceso: total 246 vs 170**
+(DERECHO +21, C&I +14, EGL +10). El «20,1 = 31,1/1,55» de C&I era
+coincidencia: su traslape real por facultad es 2,08 (el 1,55 es global) —
+un número que calza no es un mecanismo.
+
+**Dónde queda R4**: la regla documentada con sobremuestras exactas da 133 y
+reproduce EXACTO las facultades chicas (ARQ, GES, PSI, CONT, GAS, ±1 en
+cuatro más); los únicos dan 246; 2025 aplicó 170, en medio, con los deltas
+concentrados en las grandes y SIN mecanismo constante (probados y
+descartados: total DTI, celda×sexo, cobertura constante, únicos,
+traslape global). La fuente misma de las metas cita «BD Agenda - Matriz»
+—la agenda ejecutada—, no una fórmula.
+
+**BLOQUEADO — pregunta para Gonzalo**: ¿los titulares de las facultades
+grandes de 2025 (C&I 39, EGC 25, EGL 19, DERECHO 16, CCSS 15) se ajustaron
+a mano en el agendamiento por encima de la fórmula (~133 → 170)? Si la
+respuesta es sí, R4 se cierra como «fórmula + engorde operativo» y el motor
+NO debe imitar el engorde: la vara es su propia fórmula con p25 (hoy 202 a
+visitar, dentro del rango 170–210 de la vara 2). Si es no, falta una fuente
+que no está en Historico 2025/ ni en la plantilla de Kamila.
