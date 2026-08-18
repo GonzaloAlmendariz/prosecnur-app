@@ -16,7 +16,15 @@ import { avanceEnRespuestas } from "./avanceEnRespuestas";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasAvanceEnRespuestas({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+export function AulasAvanceEnRespuestas({ filas, validasTotales = 0 }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * Las respuestas válidas del corte, del KPI. Sirve para explicar el hueco
+   * entre «3 700 válidas» y «0 de 3 743»: sin ella, la pantalla enseña las dos
+   * cifras juntas y se lee como una avería.
+   */
+  validasTotales?: number;
+}) {
   const a = useMemo(() => avanceEnRespuestas(filas), [filas]);
 
   if (!a.meta) {
@@ -41,6 +49,18 @@ export function AulasAvanceEnRespuestas({ filas }: { filas: ReadonlyArray<Monito
         <strong>{fmt(a.cubierto)}</strong> de <strong>{fmt(a.meta)}</strong> respuestas que pide
         el plan · <span className="aulas-avance-pct">{a.avance}%</span>
       </p>
+      {/* El hueco entre lo recogido y lo atribuido, DICHO. Hay estudios donde
+          llegan miles de respuestas y ninguna se puede colgar de un aula
+          —vienen anónimas, sin el enlace que las ata a su curso-horario— y esta
+          pantalla enseñaba «3 700 válidas» arriba y «0 de 3 743» aquí, sin nada
+          en medio. Se lee como una avería y no lo es: es una propiedad de la
+          fuente, y el panel la sabe. */}
+      {validasTotales > 0 && a.validas === 0 ? (
+        <p className="aulas-avance-sin-atribuir">
+          Las <strong>{fmt(validasTotales)}</strong> respuestas del corte llegan sin identificar
+          su curso-horario, así que ninguna cuenta para la meta de un aula.
+        </p>
+      ) : null}
       <div className="aulas-avance-carril" role="img" aria-label={`${a.avance}% de la meta cubierta`}>
         <span className="aulas-avance-meta">
           <i style={{ width: `${anchoCubierto}%`, background: COLOR_RESULTADO.efectiva }} />

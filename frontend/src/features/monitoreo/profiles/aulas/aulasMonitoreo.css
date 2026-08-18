@@ -1778,6 +1778,19 @@
   gap: 8px;
 }
 
+/* El aviso de que nada se pudo atribuir. Tono de advertencia y no de error: no
+   hay nada roto, es como llega la fuente. */
+.mon-profile-page.is-aulas-flow .aulas-avance-sin-atribuir {
+  margin: 4px 0 0;
+  padding: 6px 9px;
+  border-left: 3px solid color-mix(in srgb, var(--pulso-warn-fg) 55%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 40%, transparent);
+  color: var(--pulso-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-avance-titular {
   margin: 0;
   color: var(--pulso-text);

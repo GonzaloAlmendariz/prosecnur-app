@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 
 /**
@@ -127,5 +130,45 @@ describe("avanceEnRespuestas y el eslabón en juego", () => {
     // publique dejaría la meta en cero y la pantalla diría que no falta nada.
     const sinCampo = { operational_code: "CH 1", expected_valid: 100, respuestas_validas: 0 };
     expect(avanceEnRespuestas([sinCampo as never]).meta).toBe(100);
+  });
+});
+
+/**
+ * El hueco entre lo recogido y lo atribuido, dicho.
+ *
+ * Hay estudios donde llegan miles de respuestas y ninguna se puede colgar de un
+ * aula —vienen anónimas, sin el enlace que las ata a su curso-horario—. La
+ * pantalla enseñaba «3 700 válidas» arriba y «0 de 3 743» abajo, sin nada en
+ * medio: se lee como una avería y no lo es.
+ */
+describe("AulasAvanceEnRespuestas y las respuestas sin atribuir", () => {
+  const conMeta = [{
+    operational_code: "CH 1", expected_valid: 100, respuestas_validas: 0, en_juego: true,
+  } as unknown as MonitoreoAulasPlanRow];
+
+  it("lo dice cuando hay respuestas pero ninguna se atribuye", () => {
+    const html = renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={conMeta} validasTotales={3700} />,
+    );
+    expect(html).toContain("sin identificar");
+    expect(html).toContain("3,700");
+  });
+
+  it("se calla cuando sí hay respuestas atribuidas", () => {
+    const conRespuestas = [{
+      operational_code: "CH 1", expected_valid: 100, respuestas_validas: 40, en_juego: true,
+    } as unknown as MonitoreoAulasPlanRow];
+    const html = renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={conRespuestas} validasTotales={3700} />,
+    );
+    expect(html).not.toContain("sin identificar");
+  });
+
+  it("se calla cuando el corte todavía no trae respuestas", () => {
+    // Cero y cero no es un hueco: es un estudio que no ha empezado.
+    const html = renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={conMeta} validasTotales={0} />,
+    );
+    expect(html).not.toContain("sin identificar");
   });
 });
