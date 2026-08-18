@@ -2042,3 +2042,14 @@ degrada a 0) y los DOS `onSelectMethod` del Desk pasan por el wrapper. El
 analista que aprieta «seleccionar» en la UI ahora obtiene el reparto del
 diseño sin saber que existe un mapa de targets. 7 vitest + mutante muerto +
 224 del área verdes + tsc limpio.
+
+## S3 · Paso 7 en la ficha y el embudo: titulares seleccionados vs 2025 · ◐→ ☑ 2026-08-18, commit `35b6bbe5`
+
+Un cambio en `fichaFacultadModel` (paso 7, hoy = M1 del sorteo vigente,
+antes = titulares 2025 de las cadenas) alimenta la tabla de fichas Y el
+selector del embudo comparado. Verificado en vivo: ARQ 15 vs 6 (+9),
+DERECHO 18 vs 16 (+2), C&I 42 vs 39 (+3) — la selección afijada contra el
+2025 real, quince filas. Con esto Coincidencia tiene: criterios generales y
+del marco, embudo comparado con CINCO pasos (2, 3, 4, 5 y 7) y las fichas.
+Queda opcional la dispersión de tamaños (estilo `DispersionTasa`); el resto
+del S3 original está cubierto.
