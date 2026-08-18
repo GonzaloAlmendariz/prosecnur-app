@@ -305,9 +305,17 @@
       # El balance de sexo por facultad se deriva al servir, no se persiste: es
       # aditivo y así no puede quedar desfasado de la selección vigente. Punto
       # único — el sync y el job pasan los dos por este payload.
-      selection = calc_muestra_aulas_adjuntar_sexo_facultad(
-        s$calc_muestra_aulas_selection %||% NULL,
-        s$calc_muestra_aulas_frame %||% NULL
+      # …y la CERTIFICACIÓN por facultad (Gonzalo: «la selección de aulas
+      # tiene que certificarse de esa forma»): ¿las titulares cargan los
+      # alumnos que la cuota de cada facultad exige, con la tasa esperada?
+      # También derivada al servir, por lo mismo.
+      selection = calc_muestra_aulas_adjuntar_certificacion(
+        calc_muestra_aulas_adjuntar_sexo_facultad(
+          s$calc_muestra_aulas_selection %||% NULL,
+          s$calc_muestra_aulas_frame %||% NULL
+        ),
+        s$calc_muestra_estudio %||% NULL,
+        s$calc_muestra_referencia_asistencia %||% NULL
       ),
       # Salud de los criterios de AULA: cuáles no pueden evaluarse porque su
       # columna llega vacía o porque ninguna categoría declarada existe en la
