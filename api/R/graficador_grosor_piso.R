@@ -113,6 +113,22 @@
 #' distintos: cuando se decide el grosor y, mucho despues, cuando se calcula el
 #' alto del panel. Dos copias del mismo calculo divergen en cuanto una se toca.
 #'
+#' DONDE SI ESTA, MEDIDO CON UNA SEGUNDA TRAZA (232 renders): el eje y el panel.
+#' La lamina 16 construye su grafico con `y_axis_max = 9.52` y
+#' `h_panel_in = 6.1975 in` teniendo CUATRO categorias, mientras una lamina sana
+#' de cuatro categorias usa `y_axis_max = 4` y `h_panel_in = 2.2`. El eje es 2.4
+#' veces mas largo y el panel 2.8 veces mas alto para el mismo numero de barras,
+#' y luego todo eso entra en la misma banda de la lamina. La barra mide 0.78 de
+#' su unidad en los dos casos; lo que cambia es cuanto vale esa unidad en
+#' pulgadas.
+#'
+#' La pista concreta para el siguiente paso: en las sanas `canvas_h_panel_in`
+#' viene DECLARADO (2.2, 2.96) y en la 16 viene `NA`, asi que el panel se
+#' calcula como `n_filas_virtuales * alto_por_cat_eff` — 9.52 x 0.651. En la
+#' corrida, 144 de 232 renders tienen `y_axis_max` mayor que su numero de
+#' categorias, asi que el eje inflado es el caso NORMAL de las mixtas, no una
+#' anomalia de esta lamina; lo anomalo es cuanto.
+#'
 #' Y EL GROSOR NO ES EL CULPABLE, MEDIDO CON TRAZA SOBRE LA CORRIDA ENTERA:
 #' `grosor_eff` sale **0.7800** en las 31 laminas de cuatro categorias del mazo,
 #' con `min_filas_layout = 1` y `n_categorias_grosor = 4`. Ni las filas
