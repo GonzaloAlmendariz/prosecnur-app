@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorDia } from "./agendaPorDia";
@@ -14,7 +14,22 @@ import { agendaPorDia } from "./agendaPorDia";
  * por una lectura de diez filas. Es la misma decisión del histórico del cálculo
  * de muestra.
  */
+/** Alto por debajo del cual la franja de días no cabe junto a una tabla usable. */
+const ALTO_COMPACTO = 820;
+
 export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+  // Se mide una vez y se escucha el cambio: el usuario redimensiona la ventana
+  // y la franja tiene que abrirse o cerrarse con ella.
+  const [compacto, setCompacto] = useState(
+    () => typeof window !== "undefined" && window.innerHeight <= ALTO_COMPACTO,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-height: ${ALTO_COMPACTO}px)`);
+    const alCambiar = () => setCompacto(mq.matches);
+    alCambiar();
+    mq.addEventListener("change", alCambiar);
+    return () => mq.removeEventListener("change", alCambiar);
+  }, []);
   const { dias, diasDeCampo, tope, sinFecha, desde, hasta, leyenda } = useMemo(
     () => agendaPorDia(filas),
     [filas],
@@ -35,11 +50,19 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
 
   return (
     <div className="aulas-agenda-dias">
-      <p className="aulas-agenda-lectura">
-        <strong>{diasDeCampo}</strong> {diasDeCampo === 1 ? "día de campo" : "días de campo"}
-        {desde ? <> · de {desde} a {hasta}</> : null}
-        {sinFecha ? <> · <strong>{sinFecha}</strong> sin fecha</> : null}
-      </p>
+      {/* La franja va en un `details` y no suelta: en pantalla corta el panel
+          baja a 180 px y no caben los diez días Y una tabla usable, así que
+          antes la tabla se quedaba en tres filas de 236. Cerrado, el `summary`
+          sigue diciendo lo que resume —cuántos días y de cuándo a cuándo— y el
+          contrato reconoce el patrón: lo que cuelga de un `details` cerrado no
+          cuenta como contenido inalcanzable, porque se abre. Se abre solo en
+          escritorio, donde sí cabe. */}
+      <details className="aulas-agenda-detalle" open={!compacto}>
+        <summary className="aulas-agenda-lectura">
+          <strong>{diasDeCampo}</strong> {diasDeCampo === 1 ? "día de campo" : "días de campo"}
+          {desde ? <> · de {desde} a {hasta}</> : null}
+          {sinFecha ? <> · <strong>{sinFecha}</strong> sin fecha</> : null}
+        </summary>
       <ol className="aulas-agenda-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {dias.map((dia) => (
           <li key={dia.fecha || "sin-fecha"} className={dia.fecha ? "" : "es-sin-fecha"}>
@@ -71,6 +94,7 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
           </li>
         ))}
       </ol>
+      </details>
       {/* La leyenda va DEBAJO de las barras y no encima: primero se ve la forma
           del periodo y sólo después se pregunta qué es cada color. Lleva el
           total de cada tramo, así que además de descifrar las barras es la
