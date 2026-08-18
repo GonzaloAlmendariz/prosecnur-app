@@ -10,6 +10,7 @@ Cambio de código: **sí**.
 - [goal](../skills/goal.md)
 - [cerrar-trabajo](../skills/cerrar-trabajo.md)
 - [publicar](../skills/publicar.md)
+- [preparar-loop-indefinido](../skills/preparar-loop-indefinido.md)
 - [preparar-release](../skills/preparar-release.md)
 - [notas-parche](../skills/notas-parche.md)
 - [auditoria-deuda](../skills/auditoria-deuda.md)

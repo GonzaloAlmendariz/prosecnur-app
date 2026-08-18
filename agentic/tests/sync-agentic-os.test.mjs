@@ -66,7 +66,10 @@ test('genera adaptadores y el grafo agentic exacto; check es reproducible', () =
   const write = run(root, '--write')
   assert.equal(write.status, 0, write.stderr)
   assert.equal(generatedAgents(root).length, 13)
-  assert.equal(generatedAgenticDocs(root, 'skills').length, 16)
+  // 18 desde 2026-08-18: los merges de goal y preparar-loop-indefinido suman
+  // dos skills de producto; este literal existe para que sumar una skill sea
+  // un acto deliberado que pasa por aquí.
+  assert.equal(generatedAgenticDocs(root, 'skills').length, 18)
   assert.equal(generatedAgenticDocs(root, 'agentes').length, 13)
   assert.equal(generatedAgenticDocs(root, 'ramas').length, 8)
   assert.ok(fs.existsSync(path.join(root, 'docs/sistema/agentic/README.md')))
