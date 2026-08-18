@@ -48,10 +48,23 @@ function CeldaSexo({
   );
 }
 
+/** Una fila está comprometida si no cubre, si alguna celda de sexo no cubre,
+ *  o si el margen queda al filo (≤ 1,05×): son las que piden decisión. */
+function filaComprometida(f: CalcMuestraCertificacionFacultad["filas"][number]): boolean {
+  if (f.estado === "no_cubre") return true;
+  if (f.sexo.some((c) => c.cubre === false)) return true;
+  return f.margen != null && f.margen <= 1.05;
+}
+
 export function CertificacionFacultadCard({
   certificacion,
+  onAgregarAula,
 }: {
   certificacion: CalcMuestraCertificacionFacultad | null;
+  /** Acción REGISTRADA: fija los titulares de la facultad en (actuales + 1)
+   *  en el estrato del estudio; el recálculo la aplica. Sin callback, la
+   *  tarjeta es solo lectura (p. ej. en superficies de eco). */
+  onAgregarAula?: (facultad: string, aulasActuales: number) => void;
 }) {
   if (!certificacion || !certificacion.filas.length) return null;
   const { certificadas, evaluables, tasa_esperada, ok } = certificacion;
@@ -107,6 +120,16 @@ export function CertificacionFacultadCard({
                   <span className="cmv2-cert-estado" data-estado={f.estado}>
                     {ESTADO_LABEL[f.estado] ?? f.estado}
                   </span>
+                  {onAgregarAula && filaComprometida(f) ? (
+                    <button
+                      type="button"
+                      className="cmv2-cert-accion"
+                      title={`Fija ${f.aulas_titulares + 1} titulares para ${f.facultad} en el estudio; recalcula y vuelve a seleccionar para aplicarlo.`}
+                      onClick={() => onAgregarAula(f.facultad, f.aulas_titulares)}
+                    >
+                      +1 aula
+                    </button>
+                  ) : null}
                 </td>
               </tr>
             ))}
