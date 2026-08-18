@@ -1467,6 +1467,23 @@
   text-transform: uppercase;
 }
 
+/* El chip de estado de las tablas. Mismo material que los chips de estado de
+   los otros perfiles —borde teñido por `color-mix`, radio de chip, peso alto y
+   cuerpo pequeño— y el acento lo pone cada estado con su color de la franja
+   por día. */
+.mon-profile-page.is-aulas-flow .aulas-estado-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--aulas-estado) 34%, var(--pulso-border));
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--aulas-estado) 12%, #fff);
+  color: color-mix(in srgb, var(--aulas-estado) 78%, var(--pulso-text));
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+  white-space: nowrap;
+}
+
 /* Los casos del detalle, uno por renglón y con su aula por delante.
    El párrafo corrido obligaba a contar comas para saber cuántas aulas fallan;
    con el código en su propia columna, el conteo se ve. El ancho de la columna

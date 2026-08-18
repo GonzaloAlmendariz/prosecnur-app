@@ -25,6 +25,7 @@ import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasBancoExtras } from "./AulasBancoExtras";
+import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
@@ -272,7 +273,12 @@ function DataTable({
             <tr key={index}>
               {columns.map((column) => (
                 <td key={column} className={cifras.has(column) ? "es-cifra" : undefined}>
-                  {String(row[column] ?? "")}
+                  {/* Un estado se pinta como chip de color; el resto, texto.
+                      Los colores son los de la franja por día: la misma aula
+                      tiene que verse igual en su barra y en su fila. */}
+                  {COLUMNAS_DE_ESTADO.has(column)
+                    ? <EstadoEnCelda valor={String(row[column] ?? "")} />
+                    : String(row[column] ?? "")}
                 </td>
               ))}
             </tr>
