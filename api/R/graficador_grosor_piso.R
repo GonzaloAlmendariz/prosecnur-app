@@ -146,6 +146,20 @@
 #' (`.barras_alto_fila_ajustado()`). Que una configuracion «aparezca dos veces»
 #' no dice nada, entonces: pasa siempre.
 #'
+#' EL REMEDIO ESTA BLOQUEADO POR EL ORDEN, y es el mismo bloqueo que ya tenia
+#' el techo. En `graficador_barras_apiladas.R` el grosor se consume en
+#' `geom_col(width = grosor_eff)` en la linea **1962**, y el ESTIRADO que cambia
+#' `alto_por_cat_eff` de 0.55 a 0.651 ocurre en **~2965**, mil lineas despues:
+#' cuando la fila real cambia, el grafico ya esta construido. Llamar aqui a
+#' `.grosor_anclado_al_nominal()` despues del estirado no puede funcionar —es
+#' literalmente el diagnostico que ya estaba escrito para `.GROSOR_TECHO_IN`,
+#' «se habia intentado enganchar en el bloque de estirado, 1000 lineas mas
+#' abajo, donde recorta el PANEL en vez de la fraccion»—.
+#'
+#' Para que el anclaje llegue, el alto de fila ESTIRADO tiene que conocerse
+#' antes de la linea 1962. Es un reordenamiento del graficador, no una llamada,
+#' y es el mismo trabajo que piden los dos R10 que quedan abiertos.
+#'
 #' CAUSA IDENTIFICADA, cruzando contra el PLAN. La lamina 16 es
 #' `plan$slides[[16]]`, «MISION Y PROPOSITOS INSTITUCIONALES», un
 #' `p_slide_1_grafico` con dos bloques `var_cruce` de cuatro publicos cada uno,
