@@ -1459,3 +1459,74 @@ sigue en pie con su envoltorio muerto puede ser una retirada a medias o una
 capacidad esperando superficie —L29 fue exactamente eso al revés— y la
 diferencia no se decide con un `grep`. Queda medido y con nombres, que es lo que
 cuesta caro; retirarlo es una decisión aparte.
+
+## 2026-08-17 — Gonzalo redirige el loop: «no vas a mejorar la interfaz de fondo»
+
+Su mensaje, textual y entero, porque es la instrucción que manda sobre todo lo
+anterior:
+
+> «Lo que más me sorprende es que ya lleves por el Loop noventa y uno y hayan
+> cosas que todavía se sigan viendo mal. O sea, tú vas a validación y es una
+> tabla de control feísima sin ningún tipo de formato, tremendamente horrible.
+> No entiendo fuentes también, no tienen ni ninguna pestaña, no hay ningún tipo
+> de detalle. En agenda todo está mal distribuido, consultas también se ve fatal,
+> tiene unas burbujas de cadenas de reemplazo que francamente no entiendo por qué
+> se tienen que ver así tan mal, está desordenado, tienes el curso horario dos y
+> luego el diez y luego el trece, no tiene sentido. El avance tiene gráficos,
+> pero se sigue viendo vacío, crudo, en verdad. Yo no entiendo francamente para
+> qué vas a tener tantos loops, si en cada loop no vas a mejorar la interfaz de
+> fondo.»
+
+**Tenía razón, y el diagnóstico de por qué es lo que importa.** Llevaba veinte
+pasadas arreglando lo que las superficies **dicen** —rótulos, unidades, órdenes,
+cuadres, capacidades sin consumir— y llamándolo producto. Todo eso era cierto y
+ninguno era mentira, pero **cómo se ven** no se había movido. La regla nueva:
+cada pasada deja una mejora visual con captura antes/después, o no cuenta.
+
+### Sus cinco superficies, cerradas
+
+| Superficie | Lo que estaba mal, medido | Commit |
+|---|---|---|
+| Consultas | Orden **alfabético** en los cuatro sitios que desempataban por código (`CH 2, CH 10, CH 11 … CH 24, CH 5`) y 21 tarjetas idénticas con borde, radio y franja diciendo la misma frase | `d198d67e` |
+| Validación | 27 columnas alineadas a la izquierda con «91.7 %» partido en dos líneas · **tres alturas de fila** (98 a 33 px, 56 a 36, 16 a 47) porque «FUERA DE RANGO» envolvía · los cuatro grupos del libro sin corte · veredictos como `1`/`0` | `84876b7a` |
+| Fuentes | `resumen` del libro llegaba **en el tipo** y no lo consumía nadie; `n_rows`/`variables` viven en el estado y la vista sólo recibía el tablero | `3d49b0e1` |
+| Agenda | Barras de **seis colores sin leyenda**: el único modo de saber qué era cada segmento era pasar el ratón | `136a627f` |
+| Avance | No era relleno —el padding era el del sistema—: **1 636 px de columna con el ancho sin usar**, cuatro gráficos cortos apilados | `ddbdc536` |
+
+### Lo que salió al barrer el resto
+
+- **`188244f3`** — el gris de la pirámide significa «todavía sin trabajar» y se
+  usaba para todo lo que bajara del 50 %: una celda con 191 de 421 recogidas se
+  pintaba como la menos urgente siendo la que iba más atrás.
+- **`417a4b4d`** — en el mismo panel, el gráfico de estratos iba por brecha y su
+  tabla por alfabético.
+- **`e1a160e0`** — «Sesiones y aula» decía «Aula CH 24» junto a «CH 24»: parecía
+  redundante y **era del fixture**, no del producto. Mirarlo antes evitó borrar
+  una columna real del Excel.
+- **`99aaedf3`** — las cifras se alineaban en **una** tabla de seis; las otras
+  cinco pasan por `DataTable`, que lo ponía todo a la izquierda.
+- **`fe5bb237`** — el registro de campo dejaba **1 030 × 436 px** sin nada hasta
+  elegir un aula, con una línea de 13 px en la esquina.
+- **`c57794be`** — el desplegable con menos texto de la vista era el campo más
+  ancho: 1 034 px para once opciones cortas.
+- **`0465df5c`** — la pareja de Avance declaraba contrato `equal` y al apilarse a
+  1024 medía 307 contra 274. La declaración estaba de más, no la vista.
+- **`173e9fc2`** — **el perfil no tenía eje de tiempo.** Acreditación y
+  telefónico llevan ritmo diario desde hace tiempo. Al construirlo aparecieron
+  dos incoherencias del fixture invisibles sin él: marcas de envío en progresión
+  aritmética (trece días de 288) y un calendario del 1 al 13 cuando la agenda va
+  del 10 al 21 — respuestas antes de que las aulas estuvieran agendadas.
+
+### Lo que esta tanda enseñó
+
+- **Arreglar lo que una superficie dice no la hace verse bien.** Son dos trabajos
+  distintos y el segundo no sale del primero.
+- **Leer el `innerText` no es mirar la pantalla.** Dos roturas de esta tanda
+  —`state is not defined` y un `)}` huérfano— las vio el navegador antes que el
+  typecheck, que todavía corría.
+- **Una celda que envuelve desalinea la fila entera**, y con ella la tabla.
+- **Un vacío y un hueco de maquetación se ven igual** si nadie los distingue: 56
+  filas de guiones se leían como una franja en blanco.
+- **Mirar el fixture antes que el producto.** Dos veces esta tanda el defecto
+  visible era del dato de prueba, y arreglar el producto habría borrado
+  capacidad real.
