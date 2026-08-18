@@ -1246,8 +1246,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # una columna equivocada dan numeros muy distintos.
   criterio <- monitoreo_aulas_criterio_validez(responses, cfg)
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
+  # Las dos hojas del libro cuentan la misma aula en dos momentos y nadie las
+  # comparaba: el cuadre de arriba mira la aritmetica DENTRO del parte.
+  cruce <- monitoreo_aulas_cruce_hojas(partes_campo, cfg$control %||% list())
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "unnamed_control_columns", "valid_response_criterion"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "valid_response_criterion"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
@@ -1263,6 +1266,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
       if (length(descuadres)) "review" else "ok",
+      # El cruce entre las dos hojas. `ok` cuando coinciden Y cuando no hay con
+      # que comparar no se finge que cuadran: eso se dice en el detalle.
+      if (length(cruce$hallazgos)) "review" else "ok",
       # Columnas de «Base de control» con datos que la cabecera no bautiza. No
       # es un fallo del lector —adivinar seria peor— pero es informacion del
       # equipo que no entra, y hasta ahora nadie lo decia.
@@ -1294,6 +1300,23 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         "Los numeros de cada parte de campo cuadran."
       } else {
         "No hay partes de campo que comprobar."
+      },
+      if (length(cruce$hallazgos)) {
+        sprintf(
+          "%s%s",
+          paste(vapply(utils::head(cruce$hallazgos, 3), monitoreo_aulas_cruce_texto, character(1)), collapse = " "),
+          if (length(cruce$hallazgos) > 3L) {
+            restantes <- length(cruce$hallazgos) - 3L
+            sprintf(" Y %d discrepancia%s mas.", restantes, if (restantes == 1L) "" else "s")
+          } else ""
+        )
+      } else if (cruce$comparables > 0L) {
+        sprintf(
+          "Las %d aulas que estan en las dos hojas dicen lo mismo en asistentes, %% de asistencia y quien aplico.",
+          cruce$comparables
+        )
+      } else {
+        "Ninguna aula esta en las dos hojas a la vez, asi que no hay nada que cruzar."
       },
       if ((cfg$control_sin_nombre %||% 0L) > 0L) {
         sprintf(

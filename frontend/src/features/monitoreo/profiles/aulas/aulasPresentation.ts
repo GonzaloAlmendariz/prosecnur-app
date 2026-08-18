@@ -183,6 +183,9 @@ const CHECK_LABELS: Record<string, string> = {
   // El Excel no comprueba que asistentes − rechazos − duplicados cuadre con las
   // efectivas; la app sí.
   field_report_reconciliation: "Cuadre del parte de campo",
+  // Distinto del de arriba, y por eso el nombre dice ENTRE QUÉ: aquél cuadra la
+  // aritmética dentro del parte y éste compara el parte con la Base de control.
+  book_sheets_cross_check: "Cuadre entre las dos hojas",
   // El lector no adivina qué es una columna sin nombre —sería peor—, pero sí
   // dice cuántas se quedaron fuera.
   unnamed_control_columns: "Columnas sin nombre en la Base de control",
