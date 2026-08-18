@@ -2357,26 +2357,38 @@
 }
 .cmv2-generales-vacio { color: var(--pulso-text-muted); font-style: italic; }
 
-.cmv2-ficha-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+/* Tarjetas en grilla de dos por fila — Gonzalo: «pueden estar en tarjetas,
+   dos tarjetas por cada fila y que se vea todo más claro, no comprimen y
+   descomprimen». En angosto (≤1279px de ventana: el 1280 de la matriz QA ya
+   monta dos) cae a una columna para que la tabla de pasos no se estruje. */
+.cmv2-ficha-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1279px) {
+  .cmv2-ficha-lista { grid-template-columns: minmax(0, 1fr); }
+}
 .cmv2-ficha {
   border-radius: 8px;
   border: 1px solid var(--cmv2-border);
   background: color-mix(in srgb, var(--cmv2-border) 12%, transparent);
   min-width: 0;
+  /* La tarjeta es una unidad: el aviso de abajo no debe flotar despegado
+     cuando la vecina de fila es más alta. */
+  display: flex;
+  flex-direction: column;
 }
 .cmv2-ficha[data-alcanza="false"] { border-color: var(--pulso-warn-accent); }
 .cmv2-ficha-head {
-  width: 100%;
-  appearance: none;
-  border: 0;
-  background: transparent;
   display: flex;
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
   padding: 8px 10px;
-  cursor: pointer;
-  text-align: left;
 }
 .cmv2-ficha-head strong { font-size: 12px; color: var(--pulso-text); }
 .cmv2-ficha-resumen {
@@ -2411,7 +2423,9 @@
    lista tiene que bastar para ver cuáles se apartan de los criterios generales. */
 .cmv2-ficha-propios {
   margin: 0;
-  padding: 0 10px 8px 34px;
+  /* Alineado al encabezado: el sangrado de 34px existía para despejar el
+     chevron del acordeón, que ya no existe. */
+  padding: 0 10px 8px;
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--pulso-text-muted);
