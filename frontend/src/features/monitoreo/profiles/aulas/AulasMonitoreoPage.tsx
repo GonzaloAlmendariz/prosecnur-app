@@ -24,6 +24,7 @@ import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
+import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
@@ -621,11 +622,13 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           {/* Abre la sección porque es su primera pregunta —¿se está
-              cumpliendo?— y es la única lectura en la unidad en que está
-              escrita la meta: respuestas. Los dos gráficos de abajo cuentan
-              cursos-horario, que es otra cosa. */}
-          <h3>Cumplimiento de la meta</h3>
-          <span>en respuestas</span>
+              cumpliendo?—. La unidad va en el TÍTULO y no en el contador: se
+              llamaba «Cumplimiento de la meta» y dos paneles más abajo estaba
+              «Cobertura de la meta», que cuenta cursos-horario. Dos nombres casi
+              iguales para dos unidades distintas, con la distinción escondida en
+              un contador de 11 px —y en un comentario de código—. */}
+          <h3>Cumplimiento en respuestas</h3>
+          <span>meta {fmt(avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta)}</span>
         </div>
         <AulasAvanceEnRespuestas filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
@@ -656,7 +659,13 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
-          <h3>Cobertura de la meta</h3>
+          {/* El nombre dice la unidad —lo que reparte son AULAS según cuánto
+              cubren de su propia meta— y el de arriba mide la misma meta en
+              respuestas. Primer intento fue «Cobertura por curso-horario» y el
+              guard lo tumbó en el acto: terminaba igual que «Avance por
+              curso-horario», la tabla del mismo stack. Cambiar un choque por
+              otro no es renombrar. */}
+          <h3>Cursos-horario por cobertura</h3>
           <span>{fmt(aulaRows.length)} cursos-horario</span>
         </div>
         <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
@@ -670,10 +679,12 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           {/* La tercera pregunta de la sección, después del total y del estado:
-              a dónde va el equipo mañana. El denominador es la meta del PLAN,
-              no la cuota de sexo por facultad —esa vive en su pestaña— y por eso
-              el rótulo lo dice. */}
-          <h3>Por facultad</h3>
+              a dónde va el equipo mañana. El título es esa pregunta; «Por
+              facultad» a secas no decía QUÉ por facultad y además terminaba
+              igual que «Cuota sexo por facultad», que mide otra cosa en otra
+              pestaña. El denominador es la meta del PLAN, no la cuota de sexo, y
+              por eso el contador lo dice. */}
+          <h3>Dónde falta más</h3>
           <span>contra la meta del plan</span>
         </div>
         <AulasPerfilPorFacultad filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
