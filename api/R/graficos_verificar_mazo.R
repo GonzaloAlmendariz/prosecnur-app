@@ -1441,3 +1441,45 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # LECCION: cuando dos intentos seguidos de medir fallan por la MISMA razon
 # —aqui, no poder identificar el objeto—, el trabajo siguiente no es otra
 # hipotesis: es arreglar el instrumento.
+
+
+# P23 — LA RESERVA DE PIE: MEDIDA, Y EL PUNTO ESTABA MAL PLANTEADO.
+#
+# El tablero traia P23 como «la reserva ya reparada, queda LLENARLA». Medido el
+# artefacto, esa forma de plantearlo no se sostiene: la banda esta pensada para
+# quedar VACIA. Lo dice el propio motor en `.reservar_pie_para_base_slide()`
+# (`reporte_plan_helpers.R:3073`): reserva **0.34 in** —**0.5** en multiapiladas
+# multibase, `.PLAN_RESERVA_PIE_MULTI_IN`— «para que la leyenda no choque con el
+# texto de Base», y solo cuando la lamina NO trae `nota_pie` propia, y nunca en
+# Word. Llenarla seria deshacer el arreglo.
+#
+# LO QUE SI SE MIDE, sobre `p55.pptx` (55 laminas con canvas; 15 sin canvas):
+#
+#   banda de reserva (ultimos 0.34 in del canvas)
+#     VACIA     en **41** laminas
+#     OCUPADA   en **14** — 3, 9, 10, 11, 12, 13, 14, 16, 30, 38, 41, 50 y dos
+#               mas; las de poblacion (9-14) meten entre 8 y 15 formas
+#
+#   distancia del texto de «Base:» al fondo del canvas
+#     motor      min -0.1853 · mediana **0.2157** · max 0.2157   (54 laminas)
+#     aprobado   min -0.3214 · mediana **0.1646** · max 3.7580   (51 laminas)
+#     El motor cae DENTRO del canvas en 6 laminas —las de poblacion— y el
+#     aprobado en 5 (7, 10, 40, 45, 50).
+#
+# DOS LECTURAS, y hay que separarlas antes de tocar nada:
+#   1. Que la banda este OCUPADA en 14 laminas puede ser correcto: si esas
+#      traen `nota_pie` propia, el helper no pide reserva y no hay nada que
+#      respetar. **Sin medir cuales tienen `nota_pie`, esas 14 no son un
+#      hallazgo.**
+#   2. Lo que si es comparable contra la vara: el motor pone su Base **0.05 in
+#      mas abajo** que el aprobado (0.2157 contra 0.1646 de mediana). Sumado a
+#      los 0.34 de banda, el pie del motor se come ~0.56 in de los 5.512
+#      utiles, un **10 %**, donde el aprobado se come ~0.50.
+#
+# LO SIGUIENTE, si se retoma: sacar del plan que laminas declaran `nota_pie` y
+# cruzarlo con las 14 ocupadas. Si coinciden, P23 se cierra como «la reserva
+# funciona» y lo unico vivo es esos 0.05 in de mas.
+#
+# LECCION: un punto del tablero puede estar mal ENUNCIADO, y medirlo es lo que
+# lo destapa. «Queda llenarla» describia una intencion contraria a la del codigo
+# que la creo.
