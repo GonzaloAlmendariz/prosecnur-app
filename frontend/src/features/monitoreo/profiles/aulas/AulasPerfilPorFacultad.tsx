@@ -81,7 +81,15 @@ export function AulasPerfilPorFacultad({ filas, resumen }: {
                       vista pero el texto decía «287faltan», y eso es lo que lee
                       un lector de pantalla. Mismo defecto que la agenda por día
                       tenía con «19 3 sin empezar». */}
-                  <em>{" "}faltan · {f.avance}%</em>
+                  {/* «respuestas» DICHO. La fila pone «9 cursos-horario» y
+                      «232 faltan» pegados, con dos unidades distintas y sólo
+                      una nombrada: el número grande son RESPUESTAS y la palabra
+                      no aparecía en ninguna parte de la fila. No cabe en el
+                      título —«Dónde faltan más respuestas» terminaría igual que
+                      «Cumplimiento en respuestas», que es el choque que el
+                      guard de títulos ya tumbó una vez—, así que va donde vive
+                      la ambigüedad. */}
+                  <em>{" "}respuestas faltan · {f.avance}%</em>
                 </>
               ) : (
                 <em className="es-cumplida">meta cumplida</em>
