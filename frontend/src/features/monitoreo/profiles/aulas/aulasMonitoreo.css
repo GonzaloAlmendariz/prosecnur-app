@@ -2560,7 +2560,9 @@
   line-height: 1;
 }
 .mon-profile-page.is-aulas-flow .aulas-control-marca.es-si { color: var(--pulso-state-ready-fg); }
-.mon-profile-page.is-aulas-flow .aulas-control-marca.es-no { color: var(--pulso-text-soft); }
+/* El veredicto negativo es un RESULTADO y se pinta como tal; el gris queda
+   reservado para el «—» de sin dato, que es lo único que de verdad calla. */
+.mon-profile-page.is-aulas-flow .aulas-control-marca.es-no { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-control-libro th.es-marca,
 .mon-profile-page.is-aulas-flow .aulas-control-libro td.es-marca { text-align: center; }
 
