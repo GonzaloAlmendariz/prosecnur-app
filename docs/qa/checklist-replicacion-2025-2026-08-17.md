@@ -2053,3 +2053,25 @@ DERECHO 18 vs 16 (+2), C&I 42 vs 39 (+3) — la selección afijada contra el
 del marco, embudo comparado con CINCO pasos (2, 3, 4, 5 y 7) y las fichas.
 Queda opcional la dispersión de tamaños (estilo `DispersionTasa`); el resto
 del S3 original está cubierto.
+
+## R8 · Re-perfil con el reparto corregido — CERRADO · ☑ 2026-08-18
+
+Con la afijación, la selección del motor calca el perfil 2025 facultad por
+facultad: medianas de tamaño DERECHO 41 vs 41 · A&D 18 vs 18 · GES 33 vs 33
+· CCSS 30 vs 30 · PSI 24 vs 24,5 · ARQ 36 vs 34,5 · EGL 46,5 vs 48; global
+mediana 32,5 vs 29 (el p25 y los talleres del marco suben levemente el
+tamaño típico). 17 talleres en M1, SOLO en ARQ (8) y A&D (9) — donde se
+declararon. **El motor selecciona aulas que se parecen a las de 2025, en las
+proporciones del diseño.**
+
+**Barrido de cierre del día**: 493 tests R en las ocho suites del área +
+1.502 vitest en los 174 archivos de calcMuestra + tsc, TODO VERDE; el
+working tree sólo carga cambios ajenos. Los diez commits del día conviven.
+**Dispersión de tamaños (opcional de S3): descartada con criterio** — las
+fichas y los cinco pasos comparables ya cuentan esa historia; construir más
+sin feedback de Gonzalo sería adorno (memoria: nada «por las dudas»).
+
+**SIGUIENTE FRENTE**: los REEMPLAZOS. El diseño publica `aulas_reemplazo`
+por estrato (C&I 42+? · …) y las cadenas se construyen por equivalencia —
+medir si el dimensionamiento de reservas por facultad respeta el diseño o
+arrastra la familia del defecto de afijación.
