@@ -1367,6 +1367,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     agenda = .monitoreo_aulas_records(plan_df),
     course_status = course_status,
     avance_por_estrato = .monitoreo_aulas_records(advance),
+    # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
+    # hace tiempo. La meta viaja con la serie para que la vista no tenga que
+    # recomponerla desde otro bloque del payload.
+    ritmo_diario = monitoreo_aulas_ritmo_diario(
+      responses, valid_response,
+      meta = sum(suppressWarnings(as.numeric(tracked_df$expected_valid)), na.rm = TRUE)
+    ),
     quotas_sex_faculty = quotas_sex_faculty,
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
