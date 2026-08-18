@@ -1404,6 +1404,7 @@ sospecha.
 | L87 | `73d479eb` | El `% ASISTENCIA` estaba declarado en el lector, con su columna resuelta, y no se escribía en el parte. |
 | L88 | `7d0c22a7` | Nueve columnas con rótulo «%» enseñaban proporciones: «0.694» bajo «% Asistencia». |
 | L89 | `29aeff93` | Las dos hojas del libro cuentan la misma aula y nunca se comparaban entre sí. |
+| L90 | `ef1b8d0e` | La evidencia de Validación salía en prosa corrida: los casos que el motor ya enumera —«CH 71: … CH 85: …»— aplastados en un párrafo, y la cola del conjunto pegada al último caso, diciendo que esa aula tenía una discrepancia más. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
