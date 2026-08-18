@@ -1747,3 +1747,48 @@ operativo vaya bien. Es la undécima vez en esta serie que el fixture excluye po
 construcción una rama que la vista existe para mostrar, y refuerza la decisión
 pendiente de Gonzalo — **anonimizar un estudio real de aulas como sexto proyecto
 de referencia**.
+
+
+## 2026-08-18 — El gate visual, corrido de verdad sobre las cuatro superficies nuevas
+
+Once problemas reales, **nueve míos**, y ninguno se veía en el typecheck ni en
+los 1 123 tests.
+
+| Dirección | antes | después | lo que queda |
+|---|---|---|---|
+| `modelo/facultad` | 5 | **1** | `capacity-drift` de 5 px en «Preparación de campo», anterior |
+| `avance/resumen` | 5 | **1** | `scroll-unreachable` a 1024×600, deuda L105 del compacto |
+| `calidad/base` | 6 recortes | **0** a 1440 | — |
+| `consultas/reemplazos` | 0 | **0** | limpio de entrada |
+
+### Lo que encontró, uno por uno
+
+- **La ruta por facultad era dueña de un scroll que no le tocaba.** Con una sola
+  facultad abierta, el último contenido que el contrato cuenta está ARRIBA, así
+  que al bajar al final del recorrido interno se iba por encima del borde: base a
+  259 px en 1440×1000 y a **−108 px** en 1024×600. Un scroll cuyo final no
+  enseña el último contenido es `scroll-unreachable`, y encima anidaba un
+  segundo dueño. La lista pasa a crecer y la página la recorre: ~941 px con la
+  primera abierta, un solo dueño.
+- **Los dos paneles de gráfico de Avance no declaraban capacidad (C1).** El gate
+  cae a la cabecera como dueña y reporta sus 4–5 px de holgura. Diagnóstico
+  sobre el sitio equivocado: los paneles tienen 1 px libre abajo. **Falsa
+  hipótesis descartada midiendo**: creí que era el contador que alargué hoy, y
+  las cabeceras miden 32 px en los cuatro paneles, incluido uno que también
+  alargué y que no salía marcado.
+- **Tres cabeceras de la Base de control se recortaban sin `title`.** El recorte
+  a 130 px es deliberado —esos rótulos ocupaban tres líneas— y el contrato
+  acepta elipsis en una etiqueta. Lo que faltaba es lo que el propio comentario
+  daba por hecho: «con elipsis, el nombre entero queda en el `title`». **El
+  atributo no estaba** en ninguna de las 26.
+
+### La trampa, otra vez, y cómo se detecta
+
+La primera corrida dio **`ok=true`, 0 issues, 2 grupos**: estaba midiendo la
+página de ATERRIZAJE. `--wait-selector` se comprueba antes de que `--ir`
+navegue; el que verifica el destino es **`--post-click-wait-selector`**. Con él
+aparecieron 10 grupos y los 5 problemas.
+
+**La señal que lo delata es el número de grupos**: 2 contra 10. Si el gate
+devuelve un verde con menos grupos de los que la vista tiene paneles, midió otra
+pantalla.
