@@ -70,3 +70,9 @@
   line-height: 1.5;
   color: var(--pulso-text-muted);
 }
+
+/* Columna referencial del τ propio: lectura, nunca diseño. */
+.cmv2-sustento-ref {
+  color: var(--pulso-text-muted);
+  font-style: italic;
+}

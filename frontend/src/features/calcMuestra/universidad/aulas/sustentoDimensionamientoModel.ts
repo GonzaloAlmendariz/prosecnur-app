@@ -25,7 +25,10 @@
  *   J2 medido en HSVG2026 (0.53 en las 15 facultades, aunque el motor soporta
  *   τ por estrato y la referencia publica asistencia por facultad).
  */
-import type { CalcMuestraAulasEstrato } from "../../../../api/calcMuestra";
+import type {
+  CalcMuestraAulasEstrato,
+  CalcMuestraReferenciaAsistenciaCadenaSeleccion,
+} from "../../../../api/calcMuestra";
 
 export type FilaSustento = {
   facultad: string;
@@ -33,6 +36,16 @@ export type FilaSustento = {
   estadisticoValor: number | null;
   estadisticoNombre: string;
   tau: number | null;
+  /** REFERENCIAL (decisión de Gonzalo: «debe ser referencial y no cambiar la
+   *  cantidad de aulas ya calculadas»): el τ PROPIO de la facultad, medido de
+   *  las aulas aplicadas del estudio anterior (Σefectivas/Σelegibles — el
+   *  MISMO tipo de tasa que el τ del diseño, no la asistencia bruta), solo
+   *  cuando k ≥ 12 aulas (el umbral de suficiencia de la casa). */
+  tauPropio: number | null;
+  kPropio: number | null;
+  /** Cuántas aulas daría la MISMA fórmula con el τ propio. Nunca entra al
+   *  diseño: es lectura. */
+  aulasConTauPropio: number | null;
   /** Lo que da la fórmula del motor con estos insumos. */
   aulasFormula: number | null;
   /** Lo publicado. Si difiere de la fórmula, alguien la fijó a mano. */
@@ -66,10 +79,59 @@ function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+/** Clave de facultad tolerante a acentos/puntuación, para el join con 2025. */
+function claveFac(x: unknown): string {
+  return String(x ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+/** Umbral de suficiencia de la casa (referencia: insuficiente_max = 11). */
+const K_MINIMO_TAU_PROPIO = 12;
+
+/**
+ * τ propio por facultad, medido de las aulas APLICADAS del estudio anterior:
+ * Σefectivas/Σelegibles — el MISMO tipo de tasa que el τ del diseño (no la
+ * asistencia bruta, que tiene otro denominador). Solo publica facultades con
+ * k ≥ 12 aulas; con menos, el τ propio sería ruido y se queda en null.
+ */
+export function tauPropioPorFacultad(
+  cadenas: ReadonlyArray<CalcMuestraReferenciaAsistenciaCadenaSeleccion> | null | undefined,
+): Map<string, { tau: number; k: number }> {
+  const acc = new Map<string, { efectivas: number; elegibles: number; k: number }>();
+  for (const cadena of cadenas ?? []) {
+    const clave = claveFac(cadena.facultad);
+    if (!clave) continue;
+    for (const escalon of cadena.escalones) {
+      if (escalon.estado !== "aplicado") continue;
+      const efectivas = num(escalon.efectivas);
+      const elegibles = num(escalon.elegibles);
+      if (efectivas == null || elegibles == null || elegibles <= 0) continue;
+      const previo = acc.get(clave) ?? { efectivas: 0, elegibles: 0, k: 0 };
+      previo.efectivas += efectivas;
+      previo.elegibles += elegibles;
+      previo.k += 1;
+      acc.set(clave, previo);
+    }
+  }
+  const out = new Map<string, { tau: number; k: number }>();
+  for (const [clave, { efectivas, elegibles, k }] of acc) {
+    if (k >= K_MINIMO_TAU_PROPIO && elegibles > 0) {
+      out.set(clave, { tau: efectivas / elegibles, k });
+    }
+  }
+  return out;
+}
+
 export function construirSustento(
   filas: ReadonlyArray<CalcMuestraAulasEstrato> | null | undefined,
+  cadenasReferencia: ReadonlyArray<CalcMuestraReferenciaAsistenciaCadenaSeleccion> | null = null,
 ): SustentoDimensionamiento | null {
   if (!filas?.length) return null;
+  const tausPropios = tauPropioPorFacultad(cadenasReferencia);
   const out: FilaSustento[] = [];
   const taus = new Set<number>();
   for (const fila of filas) {
@@ -86,12 +148,18 @@ export function construirSustento(
       ? Math.ceil(cuota / (Math.max(avg, 1) * Math.max(tau, 0.01)))
       : null;
     const reservas = num(raw.aulas_reemplazo) ?? 0;
+    const propio = tausPropios.get(claveFac(fila.estrato)) ?? null;
     out.push({
       facultad: String(fila.estrato ?? ""),
       cuota,
       estadisticoValor: avg,
       estadisticoNombre: nombreEstadistico(raw.estadistico_usado),
       tau,
+      tauPropio: propio?.tau ?? null,
+      kPropio: propio?.k ?? null,
+      aulasConTauPropio: propio != null && avg != null
+        ? Math.ceil(cuota / (Math.max(avg, 1) * Math.max(propio.tau, 0.01)))
+        : null,
       aulasFormula,
       aulasBase,
       ajustadaAMano: aulasFormula != null && aulasFormula !== aulasBase,

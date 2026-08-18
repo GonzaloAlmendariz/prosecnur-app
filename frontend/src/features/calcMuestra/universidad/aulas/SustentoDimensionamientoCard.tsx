@@ -8,17 +8,23 @@
  * una en cada facultad. Las filas fijadas a mano (botón «¿un aula más?») se
  * marcan con la cifra que daría la fórmula: nada manual sin registrar.
  */
-import type { CalcMuestraAulasEstrato } from "../../../../api/calcMuestra";
+import type {
+  CalcMuestraAulasEstrato,
+  CalcMuestraReferenciaAsistencia,
+} from "../../../../api/calcMuestra";
 import { fmtInt } from "../../sharedCore";
 import { construirSustento } from "./sustentoDimensionamientoModel";
 import "./sustentoDimensionamiento.css";
 
 export function SustentoDimensionamientoCard({
   filas,
+  referencia = null,
 }: {
   filas: CalcMuestraAulasEstrato[] | null;
+  /** El estudio anterior, SOLO para la lectura referencial del τ propio. */
+  referencia?: CalcMuestraReferenciaAsistencia | null;
 }) {
-  const sustento = construirSustento(filas);
+  const sustento = construirSustento(filas, referencia?.cadenas_reemplazo?.filas ?? null);
   if (!sustento) return null;
   const { tauGlobal, totales } = sustento;
   const estadisticoNombres = [...new Set(sustento.filas.map((f) => f.estadisticoNombre))];
@@ -39,10 +45,10 @@ export function SustentoDimensionamientoCard({
           {tauGlobal != null ? (
             <>
               ; la tasa de respuesta ({Math.round(tauGlobal * 100)}%, la
-              realizada por el estudio anterior){" "}
-              <strong>hoy es una sola para todas las facultades</strong> — la
-              asistencia por facultad del Histórico permitiría afinarla, y esa
-              es una decisión de diseño pendiente
+              realizada por el estudio anterior) es{" "}
+              <strong>una sola para todas las facultades por decisión de
+              diseño</strong> — el τ propio de cada una se muestra al final
+              como referencia, sin redimensionar nada
             </>
           ) : (
             <>; la tasa de respuesta es propia de cada facultad</>
@@ -69,6 +75,10 @@ export function SustentoDimensionamientoCard({
               <th scope="col">= titulares</th>
               <th scope="col">+ reservas</th>
               <th scope="col">a coordinar</th>
+              {/* Decisión de Gonzalo: el τ propio es REFERENCIAL — se muestra,
+                  no redimensiona. Sale de las aulas aplicadas 2025 de la
+                  facultad (Σefectivas/Σelegibles, k ≥ 12). */}
+              <th scope="col" className="cmv2-sustento-ref">τ propio 2025 (ref.)</th>
             </tr>
           </thead>
           <tbody>
@@ -88,6 +98,15 @@ export function SustentoDimensionamientoCard({
                 </td>
                 <td>{fmtInt(fila.reservas)}</td>
                 <td>{fmtInt(fila.aCoordinar)}</td>
+                <td className="cmv2-sustento-ref">
+                  {fila.tauPropio == null ? (
+                    <span title="Menos de 12 aulas aplicadas en 2025: un τ propio sería ruido.">— (k&lt;12)</span>
+                  ) : (
+                    <span title={`Con el τ propio de la facultad (${Math.round(fila.tauPropio * 100)}%, de ${fila.kPropio} aulas aplicadas en 2025) la misma fórmula daría ${fila.aulasConTauPropio} titulares. Referencial: no cambia el diseño.`}>
+                      {Math.round(fila.tauPropio * 100)}% → {fila.aulasConTauPropio == null ? "—" : fmtInt(fila.aulasConTauPropio)}
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -100,12 +119,16 @@ export function SustentoDimensionamientoCard({
               <td><strong>{fmtInt(totales.aulasBase)}</strong></td>
               <td>{fmtInt(totales.reservas)}</td>
               <td>{fmtInt(totales.aCoordinar)}</td>
+              <td className="cmv2-sustento-ref">referencial</td>
             </tr>
           </tfoot>
         </table>
       </div>
       <p className="cmv2-sustento-nota">
-        El estudio anterior declaró 170 titulares: su fórmula —con la mediana y
+        La columna «τ propio 2025» es <strong>referencial</strong>: muestra qué
+        daría la misma fórmula con la tasa de respuesta que esa facultad
+        realizó el año pasado (solo facultades con 12+ aulas aplicadas), sin
+        cambiar el diseño vigente. El estudio anterior declaró 170 titulares: su fórmula —con la mediana y
         sin tasa de respuesta explícita— daba alrededor de 133, y las
         facultades grandes se ajustaron a mano en agenda. Este diseño publica
         la cuenta entera, con cada factor a la vista y los ajustes marcados.

@@ -76,3 +76,56 @@ describe("construirSustento", () => {
     expect(nombreEstadistico("")).toBe("estadístico del diseño");
   });
 });
+
+describe("τ propio referencial (decisión de Gonzalo: mostrar, no redimensionar)", () => {
+  const escalon = (curso: string, efectivas: number, elegibles: number) => ({
+    posicion: 1, semana: 1, rol: "Titular", curso_horario: curso,
+    estado: "aplicado", efectivas, efectivas_mujeres: null, efectivas_hombres: null,
+    elegibles, rendimiento: efectivas / elegibles, motivo: null, motivo_codigo: null,
+  });
+  const cadenaDe = (facultad: string, n: number, efectivas: number, elegibles: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      cadena: i + 1, facultad, titular: `CH-${i}`, nombre_curso: "X", horario: "0101",
+      efectivas_mujeres: null, efectivas_hombres: null,
+      escalones: [escalon(`CH-${facultad}-${i}`, efectivas, elegibles)],
+      escalones_trabajados: 1, aplicados: 1, resuelta_en: 1,
+      semana_inicio: 1, semana_fin: 1, efectivas, elegibles,
+      rendimiento: efectivas / elegibles,
+    })) as never;
+
+  it("con k>=12 publica el τ propio y la cifra referencial; con menos, null declarado", () => {
+    const cadenas = [
+      ...cadenaDe("CIENCIAS E INGENIERIA", 12, 15, 30), // τ propio 0.5, k=12
+      ...cadenaDe("GASTRONOMÍA", 2, 20, 20),            // k=2: insuficiente
+    ];
+    const s = construirSustento(
+      [
+        fila({}),
+        fila({ estrato: "GASTRONOMÍA", cuota: 15, avg_conglomerado: 17, aulas_base: 2, aulas_reemplazo: 1, aulas_total: 3 }),
+      ],
+      cadenas,
+    );
+    const ci = s!.filas.find((f) => f.facultad === "CIENCIAS E INGENIERIA")!;
+    expect(ci.tauPropio).toBeCloseTo(0.5, 9);
+    expect(ci.kPropio).toBe(12);
+    // ceil(530 / (24 × 0.5)) = 45 — referencial: el diseño sigue en 42.
+    expect(ci.aulasConTauPropio).toBe(45);
+    expect(ci.aulasBase).toBe(42);
+    const gas = s!.filas.find((f) => f.facultad === "GASTRONOMÍA")!;
+    expect(gas.tauPropio).toBeNull();
+    expect(gas.aulasConTauPropio).toBeNull();
+  });
+
+  it("el join tolera acentos y puntuación de la facultad", () => {
+    const s = construirSustento(
+      [fila({ estrato: "GASTRONOMÍA, HOTELERÍA Y TURISMO", cuota: 15, avg_conglomerado: 17, aulas_base: 2, aulas_reemplazo: 1, aulas_total: 3 })],
+      cadenaDe("GASTRONOMIA HOTELERIA Y TURISMO", 12, 10, 20),
+    );
+    expect(s!.filas[0]!.tauPropio).toBeCloseTo(0.5, 9);
+  });
+
+  it("sin cadenas, las columnas referenciales quedan nulas y nada revienta", () => {
+    const s = construirSustento([fila({})], null);
+    expect(s!.filas[0]!.tauPropio).toBeNull();
+  });
+});

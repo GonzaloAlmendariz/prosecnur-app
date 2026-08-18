@@ -10,6 +10,7 @@ import type {
   CalcMuestraAulasCerteza,
   CalcMuestraAulasEstrato,
   CalcMuestraCertificacionFacultad,
+  CalcMuestraReferenciaAsistencia,
   CalcMuestraSexoPorFacultad,
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
@@ -67,6 +68,7 @@ export function AulasSeleccionTab({
   onAgregarAula,
   fichas = null,
   periodoAnterior = "",
+  referencia = null,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
@@ -84,6 +86,8 @@ export function AulasSeleccionTab({
    *  embudo de facultad por facultad debería estar en selección»). */
   fichas?: FichaFacultad[] | null;
   periodoAnterior?: string;
+  /** El estudio anterior, para la lectura REFERENCIAL del τ propio. */
+  referencia?: CalcMuestraReferenciaAsistencia | null;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
@@ -142,7 +146,7 @@ export function AulasSeleccionTab({
       <MargenPorFacultadCard filas={margenFilas} />
       {/* I2+J3 · La cuenta abierta ANTES del sello: primero por qué se piden
           estas aulas, después si la selección las garantiza. */}
-      <SustentoDimensionamientoCard filas={margenFilas} />
+      <SustentoDimensionamientoCard filas={margenFilas} referencia={referencia ?? null} />
       <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
       {/* El embudo comparado aterriza aquí en el paso 7 (titulares vs el
           estudio anterior): es la comparación que se decide en esta pestaña. */}
