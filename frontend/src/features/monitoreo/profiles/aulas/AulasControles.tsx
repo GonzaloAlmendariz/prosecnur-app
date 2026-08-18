@@ -41,9 +41,56 @@ function clave(valor: unknown) {
   return typeof valor === "string" ? valor.trim().toLowerCase() : "";
 }
 
+/**
+ * Los casos que trae un detalle, uno por fila.
+ *
+ * El motor escribe la evidencia como prosa corrida: «CH 31: 25 asistentes menos
+ * 1 rechazos y 3 duplicados de 21, pero el parte declara 20 efectivas (faltan
+ * 1). CH 112: 38 asistentes…». Son datos tabulares —un aula, una cuenta, una
+ * discrepancia— aplastados en una oración, y es literalmente lo que se ve
+ * «sin ningún tipo de formato»: para saber cuántas aulas fallan hay que leer el
+ * párrafo entero contando comas.
+ *
+ * Esto NO inventa ni deriva nada: parte la MISMA frase por donde el motor ya
+ * separa los casos, que es el código de aula seguido de dos puntos.
+ */
+const CODIGO_DE_CASO = /([A-ZÁÉÍÓÚÑ]{1,4}\s?\d+[A-Za-z0-9._-]*)\s*:\s+/g;
+
+export type TramoDeControl = { codigo: string; texto: string };
+
+export function tramosDeControl(detalle: string): TramoDeControl[] {
+  const texto = (detalle ?? "").trim();
+  if (!texto) return [];
+  const marcas = [...texto.matchAll(CODIGO_DE_CASO)];
+  // Con un solo caso no hay nada que tabular y partir la frase sólo añade
+  // ruido; con ninguno, el detalle es una frase de verdad y se deja entera.
+  if (marcas.length < 2) return [{ codigo: "", texto }];
+
+  const tramos: TramoDeControl[] = [];
+  const preambulo = texto.slice(0, marcas[0].index ?? 0).trim();
+  if (preambulo) tramos.push({ codigo: "", texto: preambulo });
+  marcas.forEach((marca, i) => {
+    const desde = (marca.index ?? 0) + marca[0].length;
+    const hasta = i + 1 < marcas.length ? marcas[i + 1].index ?? texto.length : texto.length;
+    tramos.push({ codigo: marca[1].replace(/\s+/g, " "), texto: texto.slice(desde, hasta).trim() });
+  });
+
+  // La cola —«Y 1 discrepancia más.»— habla del conjunto, no del último caso.
+  // Pegada a él decía que ESA aula tenía una discrepancia más, que es falso.
+  const ultimo = tramos[tramos.length - 1];
+  const cola = /\s(Y\s\d+\s[^.]*\.)\s*$/.exec(ultimo.texto);
+  if (cola) {
+    ultimo.texto = ultimo.texto.slice(0, cola.index).trim();
+    tramos.push({ codigo: "", texto: cola[1] });
+  }
+  return tramos;
+}
+
 export type ControlDeAulas = {
   control: string;
   detalle: string;
+  /** El detalle partido por caso; un solo tramo cuando es una frase corrida. */
+  tramos: TramoDeControl[];
   estado: string;
   /** Un estado que el motor añada mañana no se pierde: cae en «advertencia». */
   severidad: Severidad;
@@ -60,6 +107,7 @@ export function controlesDeAulas(filas: ReadonlyArray<Record<string, unknown>>) 
       // presentación.
       control: aulasCheckLabel(fila.check ?? fila.control),
       detalle: presentDetail(fila.detail ?? fila.detalle ?? ""),
+      tramos: tramosDeControl(presentDetail(fila.detail ?? fila.detalle ?? "")),
       // Un control SIN estado legible sí es algo que revisar: el control existe
       // y no se pudo leer su veredicto. `aulasStatusLabel` devuelve «—» para el
       // vacío porque en una tabla eso significa «no hay dato»; aquí significa
@@ -111,8 +159,22 @@ export function AulasControles({ filas }: { filas: ReadonlyArray<Record<string, 
                   <span>{control.estado}</span>
                 </p>
                 {/* Sin recorte: el detalle es la mitad que dice qué hacer, y un
-                    dato operativo cortado es un rechazo del contrato (C4). */}
-                {control.detalle ? <p className="aulas-control-detalle">{control.detalle}</p> : null}
+                    dato operativo cortado es un rechazo del contrato (C4). Lo
+                    que cambia es la FORMA: cuando el motor enumera casos, cada
+                    uno ocupa su renglón con el aula por delante, que es como se
+                    lee una lista de incidencias en el resto del perfil. */}
+                {control.tramos.length > 1 ? (
+                  <ul className="aulas-control-casos">
+                    {control.tramos.map((tramo, i) => (
+                      <li key={`${tramo.codigo}-${i}`} className={tramo.codigo ? "" : "es-nota"}>
+                        {tramo.codigo ? <span className="aulas-control-caso">{tramo.codigo}</span> : null}
+                        <span>{tramo.texto}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : control.detalle ? (
+                  <p className="aulas-control-detalle">{control.detalle}</p>
+                ) : null}
               </div>
             </li>
           );

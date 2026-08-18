@@ -1212,6 +1212,51 @@
   text-transform: uppercase;
 }
 
+/* Los casos del detalle, uno por renglón y con su aula por delante.
+   El párrafo corrido obligaba a contar comas para saber cuántas aulas fallan;
+   con el código en su propia columna, el conteo se ve. El ancho de la columna
+   lo fija el código más largo del control, no un valor fijo: «CH 7» y «CH 112»
+   conviven sin que ninguno quede suelto. */
+.mon-profile-page.is-aulas-flow .aulas-control-casos {
+  display: grid;
+  gap: 4px;
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-casos li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+/* El preámbulo y la cola («Y 1 discrepancia más.») no son un caso: hablan del
+   conjunto, así que no llevan código ni se alinean bajo la columna de códigos. */
+.mon-profile-page.is-aulas-flow .aulas-control-casos li.es-nota {
+  grid-template-columns: minmax(0, 1fr);
+  color: var(--pulso-text-faint);
+  font-style: italic;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-caso {
+  padding: 1px 6px;
+  border: 1px solid var(--pulso-chart-chip-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-chart-chip-bg);
+  color: var(--pulso-text);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-black);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* El detalle es lo que dice qué hacer: entero, sin elipsis (C4). */
 .mon-profile-page.is-aulas-flow .aulas-control-detalle {
   margin: 3px 0 0;

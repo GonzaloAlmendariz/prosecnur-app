@@ -94,10 +94,23 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
     // clases extra, asi que los tres que llevan modificador —handoff, registro
     // y operacion— quedaban fuera del balance y su falta de declaracion no se
     // veia. El limite de clase evita casar `mon-profile-panel-head`.
-    const paneles = aulasPage.match(/className="mon-profile-panel[ "]/g) ?? [];
-    const intrinsecos = aulasPage.match(/data-qa-geometry-contract="intrinsic"/g) ?? [];
+    // Igualar los dos CONTEOS daba por hecho que todo contrato pertenece a un
+    // panel, y no es cierto: el envoltorio que agrupa Cobertura y Brechas
+    // declara `intrinsic` sin ser un panel —son dos secciones independientes
+    // que comparten fila por composición—. El guard se ponía rojo por un
+    // contrato de más que estaba bien puesto. Lo que hay que exigir es lo otro:
+    // que NINGÚN panel se quede sin declarar. Se comprueba panel por panel, así
+    // que un contrato sobrante ya no puede tapar a un panel que falte.
+    const paneles = [...aulasPage.matchAll(/className="mon-profile-panel[ "]/g)];
     expect(paneles.length).toBeGreaterThan(0);
-    expect(intrinsecos).toHaveLength(paneles.length);
+    const sinDeclarar = paneles.filter((panel) => {
+      const desde = panel.index ?? 0;
+      // La apertura de la etiqueta: hasta el `>` que la cierra, nunca más allá,
+      // para no adoptar el contrato del elemento siguiente.
+      const apertura = aulasPage.slice(desde, aulasPage.indexOf(">", desde));
+      return !apertura.includes("data-qa-geometry-contract=");
+    });
+    expect(sinDeclarar).toHaveLength(0);
     expect(aulasPage).not.toContain('if (!rows.length) return <p className="mon-profile-muted">');
     expect(aulasCss).toMatch(
       /\.aulas-mon-view \.mon-profile-table-wrap > \.mon-profile-muted\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;/s,
