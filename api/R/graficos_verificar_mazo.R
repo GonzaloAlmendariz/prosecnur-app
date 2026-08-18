@@ -1867,3 +1867,52 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # instrumento» era cierta a medias —esta en un ARCHIVO del `.pulso`, no en el
 # instrumento cargado— y esa media verdad escondia un defecto mayor que el que
 # se iba a arreglar.
+
+
+# P49 — CORRECCION DE MI PROPIO HALLAZGO: EL MOTOR **SI** ES MULTIBASE, Y EL
+# ARREGLO TIENE SITIO EXACTO Y ES SEGURO.
+#
+# La nota anterior avisaba de que resolver etiquetas «contra el instrumento»
+# podia pegar la pregunta de otro publico, porque `state$instrumento` guarda uno
+# solo. **Medido el motor, esa alarma se retira**:
+#
+#   - `reporte_ppt_plan()` acepta `instrumento` como **lista nombrada por
+#     fuente** (`.normalize_named_sources()`, `instrument_sources`) y **aborta**
+#     si a una fuente de `data` le falta su instrumento (`reporte_plan_ppt.R`
+#     ~156). Con cuatro bases y un solo instrumento el mazo no se habria
+#     generado: luego el llamador SI pasa uno por base.
+#   - `.title_of_var(var, source)` (`:2400`) resuelve con `.resolve_ref()` y usa
+#     **`ctx$survey` y `ctx$data` DE ESA FUENTE**. No hay instrumento global en
+#     la cadena del titulo.
+#   - En el `.pulso`, `rp_inst_sources` y `analitica_rp_inst_sources` estan
+#     **vacios a proposito** —son cache derivable, se reconstruyen al cargar
+#     desde los ficheros de `files/`, y el proyecto guarda sus fids
+#     (`codif_inst_adaptado_fid`)—. `state$instrumento` es el del editor, no la
+#     fuente de verdad del mazo. Y `inst_estructura_por_base` trae **cuatro**
+#     entradas: `default`, `docentes`, `estudiantes`, `egresados`.
+#
+# LO QUE SI ES EL DEFECTO, y ahora tiene sitio exacto:
+# **`.lookup_variable_label()` en `api/R/reporte_frecuencias.R` consulta el DATO
+# ANTES que el instrumento.** Su orden es
+#     1. `labels_override`
+#     2. **`df` — la etiqueta del `.sav`, truncada a 256 bytes por SPSS**
+#     3. `orders_list`
+#     4. **`dic_vars` — el survey de la fuente, donde esta la entera (291 B)**
+# El `.sav` responde primero y nadie mira mas abajo. Por eso la lamina 25 sale
+# con «…Consejo de D».
+#
+# EL ARREGLO, y ahora es SEGURO: entre el paso 2 y el 4, **cuando la etiqueta del
+# dato sea PREFIJO ESTRICTO de la del instrumento DE SU MISMA FUENTE, preferir
+# la del instrumento**. Sigue siendo prefijo y no «la mas larga»: si el analista
+# acorto un enunciado a mano en el `.sav`, la del instrumento no lo contiene y
+# hay que respetar la corta. Y ya no cabe el cruce de publicos que temia la nota
+# anterior, porque `dic_vars` ES el survey de la fuente.
+#
+# PREDICCION, para juzgarlo con un numero: de los **99** enunciados del universo,
+# **UNO** cambia —el de 256 bytes pasa a 291— y **98 se quedan igual**. Si
+# cambia mas de uno, la regla del prefijo esta mal escrita.
+#
+# LECCION: un descarte tambien se equivoca, y corregirlo es trabajo del loop.
+# «El `.pulso` guarda un instrumento para cuatro publicos» describia el `state`
+# y no el motor; bastaba leer la firma de `reporte_ppt_plan()` para verlo. Antes
+# de declarar que algo falta, comprobar donde vive.
