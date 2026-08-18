@@ -415,6 +415,19 @@ export function UniversidadDesk({
         if (Number.isFinite(n)) plazas.set(k, [...(plazas.get(k) ?? []), n]);
       }
     }
+    // M1 del sorteo vigente, por facultad: alimenta el paso 7 de la ficha
+    // («Titulares seleccionados» contra los titulares 2025 de la referencia).
+    // Sin selección corrida el mapa queda vacío y el paso viaja null, no 0.
+    const titularesM1 = new Map<string, number>();
+    const seleccionFilas = (aulasState?.selection as { selection?: unknown } | null)?.selection;
+    if (Array.isArray(seleccionFilas)) {
+      for (const raw of seleccionFilas) {
+        const r = raw as { wave?: unknown; faculty?: unknown };
+        if (r?.wave !== "M1" || typeof r.faculty !== "string") continue;
+        const k = claveFicha(r.faculty);
+        titularesM1.set(k, (titularesM1.get(k) ?? 0) + 1);
+      }
+    }
     return (margenFilas ?? []).map((fila) => {
       const k = claveFicha(fila.estrato);
       const v = [...(plazas.get(k) ?? [])].sort((a, b) => a - b);
@@ -429,9 +442,10 @@ export function UniversidadDesk({
         referenciaCriterios,
         criteriosSeleccionVigente,
         minimoGeneral,
+        titularesM1.size ? (titularesM1.get(k) ?? null) : null,
       );
     });
-  }, [aulasState?.frame?.aula_frame, margenFilas, referenciaCriterios, criteriosSeleccionVigente, minimoGeneral]);
+  }, [aulasState?.frame?.aula_frame, aulasState?.selection, margenFilas, referenciaCriterios, criteriosSeleccionVigente, minimoGeneral]);
   // Los criterios que deciden qué aulas entran. Se leen del config QUE PRODUJO
   // EL MARCO (`aulasState.config`), no del workspace: son dos copias distintas y
   // la del workspace puede ir por detrás. Medido en HSVG2026 con el marco

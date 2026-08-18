@@ -181,6 +181,7 @@ export function fichaDeFacultad(
   referencia: CalcMuestraReferenciaCriterios | null,
   criteriosSeleccion: unknown = null,
   minimoGeneral: number | null = null,
+  titularesSeleccionados: number | null = null,
 ): FichaFacultad {
   const h = buscarHistorico(referencia, fila.estrato);
   const m = fila.margen ?? null;
@@ -227,6 +228,15 @@ export function fichaDeFacultad(
         n: 6, titulo: "Aulas que sobran",
         hoy: m?.aulas_sobrantes ?? null, antes: null,
         detalle: "de ellas salen los reemplazos",
+      },
+      {
+        n: 7, titulo: "Titulares seleccionados",
+        // El sorteo VIGENTE de esta facultad contra los titulares que 2025
+        // dimensionó (rescatados de las cadenas de la asistencia). Sin
+        // selección corrida viaja null y la ficha lo dice — un 0 se leería
+        // como «se sorteó y no le tocó ninguna».
+        hoy: titularesSeleccionados, antes: h?.aulas_titulares ?? null,
+        detalle: "M1 del sorteo vigente",
       },
     ],
   };
