@@ -2370,3 +2370,24 @@ más nítido (…) superprofesional».
 | I2 | Sustento técnico | SalidasCierreTab / paquete defensa | ☐ |
 | I3 | El relato | aulas/relato/RelatoTab | ☐ |
 | I8 | Embudo de criterios más nítido | radiografía/cascada (Marco) | ☐ |
+
+### Tanda I — I7a cerrado (dibujo entero)
+
+Medido en vivo: en toda Coincidencia quedaba UN «sin referencia» (el
+estadístico, VERAZ: el libro no lo declara — decisión para Gonzalo si lo
+añade a la hoja diseno de la copia) y el hueco real eran las QUINCE
+poblaciones del paso 1. Derivadas de la afijación proporcional declarada
+(cuota × N/n): **referencia 8/8 completa** (`9e336c87`).
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 | Botón como pregunta | ☑ `49695556` |
+| I6a | Embudo en Selección (paso 7) | ☑ `49695556` |
+| I7a | «Sin referencia» falsos | ☑ `9e336c87` — referencia 8/8; queda 1 veraz (estadístico, decisión de Gonzalo) |
+| I7b | «Este estudio vs el anterior» dinámico | ◐ |
+| I7c | Gráficos centrados en la DIFERENCIA | ☐ SIGUIENTE |
+| I4 | Cadena de reemplazos | ☐ |
+| I5 | Perfil de la muestra | ☐ |
+| I2 | Sustento técnico | ☐ |
+| I3 | El relato | ☐ |
+| I8 | Embudo de criterios más nítido | ☐ |
