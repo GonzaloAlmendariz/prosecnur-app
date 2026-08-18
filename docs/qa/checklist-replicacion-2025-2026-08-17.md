@@ -2519,3 +2519,27 @@ interacciones que ya tenemos pendientes» — la Tanda I termina primero.
 | J1 | Auditoría de CORRECCIÓN del backend de los 4 mecanismos (fallas declaradas u ocultas, consistencia interna) | `calc_muestra_aulas.R` + engines de sorteo + `revisor-metodologico` | ☐ tras Tanda I |
 | J2 | El τ de asistencia POR FACULTAD en el DIMENSIONAMIENTO — medir dónde entra hoy (¿q1/mediana solamente? ¿τ global?) y qué haría falta para que sea por facultad | `calc_muestra_engine.R` (aulas_requeridas) vs certificación (que ya usa τ por diseño) | ☐ tras Tanda I |
 | J3 | «Por qué 190 y no 170» explicado didáctico con gráficos profesionales: qué parte pone el estadístico, qué parte el ratio, qué parte la sobremuestra | superficie nueva en Selección (junto a I2 sustento técnico) | ☐ con I2 |
+
+## INTERRUPCIÓN 2026-08-18 (2) · «el embudo no avisa cuántos quedan» + panorama ilegible
+
+Gonzalo, señalando el Panorama y un criterio: «esta matriz de criterios no se
+entiende en absoluto, ¿cómo que "propio"? y los criterios no tienen arriba el
+panorama de cuántos nos quedan de cuántos».
+
+**Lo reparado (commit `206a7cc8`)**: las barras «llegan N de M», el cierre y
+la matriz de cascada llevaban 29 commits muertos por DOS defectos de la
+familia «lista cerrada»: (1) el paso `faculty_curso` del constructor (999 CH)
+no tenía spec en la cascada y la validación la anulaba EN SILENCIO — ahora
+los pasos sin spec se declaran como operativos, la divergencia se publica
+como warning con cifras, y el TS acepta operativos con forma vigilada;
+(2) 2 filas de anclas de CONSORCIO (request a medio formar) tumbaban las 269
+y con ellas el bundle entero — el contrato TS ahora es espejo exacto del
+motor. En vivo: 9 barras por facultad, cierre «quedan 554 de 798 (69%)»,
+matriz con 18 filas, embudo 5.263→4.264→3.004→…→2.615 exacto.
+
+**Pendiente de esa misma queja — SIGUIENTE (I13+I14)**:
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| I13 | «propio» no comunica nada: la celda del Panorama debe decir LA REGLA («≥ 20», «niveles 0 y 2–10», «sólo TEORICO…») donde es propia, y la leyenda explicar el punto | `PanoramaCursosHorario.tsx` | ☐ SIGUIENTE |
+| I14 | Cifras recortadas por el scroll: «571 de 907» se lee «1 de 907» porque las celdas se deslizan BAJO la columna sticky opaca sin borde/sombra; y el thead de Facultad no es sticky-left («cultad») | `panoramaCursosHorario.css` | ☐ SIGUIENTE |
