@@ -16,7 +16,39 @@ function filas() {
   return [
     {
       bloque: { excKey: "derecho", facLabel: "Derecho", fac: { facultad: "Derecho", ch_elegibles: 40, ch_total: 60, est_aula_mediana: 30 } },
-      resumen: { minPropio: false, detalles: [{ variableId: "modality", propia: false }, { variableId: "session_type", propia: true }] },
+      resumen: {
+        minPropio: true,
+        minRegla: "≥ 20",
+        nivelRegla: "niveles 0 y 2–10",
+        detalles: [
+          { variableId: "modality", propia: false, regla: null },
+          { variableId: "session_type", propia: true, regla: "además TALLER" },
+        ],
+      },
+    },
+    {
+      bloque: { excKey: "gestion", facLabel: "Gestión", fac: { facultad: "Gestión", ch_elegibles: 10, ch_total: 20, est_aula_mediana: 12 } },
+      resumen: {
+        minPropio: false,
+        minRegla: null,
+        nivelRegla: "exenta",
+        detalles: [
+          { variableId: "modality", propia: false, regla: null },
+          { variableId: "session_type", propia: false, regla: null },
+        ],
+      },
+    },
+    {
+      bloque: { excKey: "psicologia", facLabel: "Psicología", fac: { facultad: "Psicología", ch_elegibles: 8, ch_total: 15, est_aula_mediana: 10 } },
+      resumen: {
+        minPropio: false,
+        minRegla: null,
+        nivelRegla: null,
+        detalles: [
+          { variableId: "modality", propia: false, regla: null },
+          { variableId: "session_type", propia: false, regla: null },
+        ],
+      },
     },
   ] as never;
 }
@@ -34,17 +66,31 @@ describe("PanoramaCursosHorario", () => {
     expect(html).not.toContain(">global<");
   });
 
-  it("nombra sólo lo que se aparta, y explica el resto sin ocupar la celda", () => {
+  it("la celda dice LA REGLA, no la palabra «propio»", () => {
+    // Gonzalo, sobre la matriz: «¿cómo que "propio"?». La palabra sola no
+    // comunica qué decide la facultad; la celda dice la regla en corto y el
+    // `title` la frase entera.
     const html = renderToStaticMarkup(
       <PanoramaCursosHorario filas={filas()} criterios={criterios} facultadAbierta={null} onAbrirFacultad={vi.fn()} />,
     );
-    // Dentro de la celda, no en cualquier parte: «propio» aparece también en los
-    // títulos de las celdas heredadas («aplica el criterio general»… no, pero sí
-    // en «criterio propio» del `title`), así que la aserción suelta no probaría
-    // que la CELDA lo dice.
-    expect(html).toContain('data-propia="true"');
-    expect(/data-propia="true"[^>]*>\s*propio/.test(html)).toBe(true);
+    expect(html).toContain("además TALLER");
+    expect(html).toContain("≥ 20");
+    expect(/data-propia="true"[^>]*>\s*propio</.test(html)).toBe(false);
     // Lo heredado sigue siendo legible para quien lo necesite: título y aria.
     expect(html).toContain("aplica el criterio general");
+    // Y el punto se explica en la cabecera, no sólo al pasar el cursor.
+    expect(html).toContain("hereda la regla general del estudio");
+  });
+
+  it("el nivel del curso tiene columna: rangos y exenciones se ven", () => {
+    // El panorama existe para ver quién se aparta y omitía el criterio donde
+    // más facultades se apartan (12 con rango y 3 exentas en HSVG2026).
+    const html = renderToStaticMarkup(
+      <PanoramaCursosHorario filas={filas()} criterios={criterios} facultadAbierta={null} onAbrirFacultad={vi.fn()} />,
+    );
+    expect(html).toContain("Nivel del curso");
+    expect(html).toContain("niveles 0 y 2–10");
+    expect(html).toContain("exenta");
+    expect(html).toContain("admite todos los niveles");
   });
 });

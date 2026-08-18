@@ -225,7 +225,9 @@ export function CursosHorarioMarcoTab({
   const panoramaFilas = useMemo(
     () => bloques.map((bloque) => ({
       bloque,
-      resumen: resumenDecisionFacultad(borrador, aulaToggle, bloque.excKey, bloque.minKey),
+      resumen: resumenDecisionFacultad(
+        borrador, aulaToggle, bloque.excKey, bloque.minKey, bloque.facLabel,
+      ),
     })),
     [bloques, borrador, aulaToggle],
   );
