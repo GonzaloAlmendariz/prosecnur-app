@@ -1623,6 +1623,24 @@
 .mon-profile-page.is-aulas-flow .aulas-piramide-ejes > :first-child { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-piramide-ejes > :last-child { text-align: left; }
 
+/* El marginal de cada sexo, debajo de su letra. Era una lista de barras aparte
+ * —«Por sexo»— que repetía el mismo cruce en otro formato; aquí se lee donde el
+ * ojo ya busca de qué lado es cada columna. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-ejes > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-ejes > span em {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  letter-spacing: 0;
+  text-transform: none;
+  font-style: normal;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-piramide-ejes em {
   font-size: 10px;
   font-style: normal;
@@ -1640,12 +1658,37 @@
   list-style: none;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-piramide-lista li {
+/* La rejilla se muda de `li` al BOTÓN: la fila es ahora un control —el foco por
+ * facultad vivía en la lista de barras que se retiró— y si el grid se queda en
+ * el `li`, el botón se convierte en un único hijo que aplasta los tres. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-lista li { min-width: 0; }
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 168px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   min-width: 0;
+  width: 100%;
+  padding: 3px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-piramide-fila:hover {
+  background: var(--pulso-surface-2);
+}
+
+/* La fila enfocada se marca con borde y fondo, no con color de barra: el color
+ * de las barras ya significa cumplimiento y teñirlo diría otra cosa. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-fila.es-activa {
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border-strong);
 }
 
 /* El nombre va al centro, entre los dos lados: es el eje de la pirámide. */
