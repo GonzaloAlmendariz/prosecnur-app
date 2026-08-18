@@ -12,6 +12,12 @@ function reserva(codigo: string, de: string, estado: string): MonitoreoAulasPlan
     operational_code: codigo,
     sample_role: "chain_reserve",
     replacement_for: de,
+    // El payload real SIEMPRE trae los dos: `monitoreo_aulas_normalize_plan()`
+    // resuelve `titular_operational_code` y lo hereda de `replacement_for`
+    // cuando falta. El fixture sólo ponía el segundo, y eso escondía que
+    // `replacement_for` lleva el `classroom_id` del titular —no su código
+    // operativo—: medido sobre HSVG2026, 0 de 202 coincidían con un titular.
+    titular_operational_code: de,
     sample_status: estado,
   } as unknown as MonitoreoAulasPlanRow;
 }
