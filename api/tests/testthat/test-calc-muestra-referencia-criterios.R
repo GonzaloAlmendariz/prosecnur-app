@@ -438,3 +438,65 @@ test_that("las aulas aplicadas caen a `global$k` si no hay cobertura", {
   expect_equal(g$aulas_dimensionadas, "194")
   expect_null(g$aulas_agendadas)
 })
+
+# El libro y el rescate saben cosas distintas, y hay que quedarse con las dos.
+#
+# El libro `HSVBG2025_referencia_para_motor` trae las VEINTE decisiones de diseño
+# que el rescate no puede conocer; el rescate trae lo EJECUTADO —aulas agendadas,
+# tasa de asistencia— que la hoja `diseno` no recoge. Medido al cargar el libro
+# en HSVG2026: la columna paso de cuatro cifras a veinte pero PERDIO las dos del
+# rescate, porque una referencia sustituia a la otra.
+
+test_that("el libro manda y el rescate rellena los huecos", {
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2", general = list(muestra = "2500", deff = "2"),
+    por_facultad = list(list(facultad = "DERECHO", cuota = 347))
+  ))
+  rescate <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())
+  f <- calc_muestra_referencia_criterios_fusionar(libro, rescate)
+  # Del libro, intactas.
+  expect_equal(f$general$muestra, "2500")
+  expect_equal(f$general$deff, "2")
+  # Del rescate, las que el libro no trae.
+  expect_equal(f$general$aulas_agendadas, "1012")
+  expect_equal(f$general$tasa_asistencia, "69.7 %")
+  # Y las facultades siguen siendo las del libro.
+  expect_equal(length(f$por_facultad), 1L)
+})
+
+test_that("el rescate NO pisa lo que el libro ya declara", {
+  # `aulas_dimensionadas` vale 170 en el libro (lo que el diseño mandaba visitar)
+  # y 194 en el rescate (lo aplicado). Son cifras distintas y manda la del libro.
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2", general = list(aulas_dimensionadas = "170"),
+    por_facultad = list(list(facultad = "DERECHO", cuota = 347))
+  ))
+  f <- calc_muestra_referencia_criterios_fusionar(
+    libro, calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())
+  )
+  expect_equal(f$general$aulas_dimensionadas, "170")
+})
+
+test_that("con una sola de las dos, esa se devuelve entera", {
+  rescate <- calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())
+  expect_equal(calc_muestra_referencia_criterios_fusionar(NULL, rescate), rescate)
+  expect_null(calc_muestra_referencia_criterios_fusionar(NULL, NULL))
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    general = list(muestra = "2500"), por_facultad = list(list(facultad = "X", cuota = 1))))
+  expect_equal(calc_muestra_referencia_criterios_fusionar(libro, NULL)$general$muestra, "2500")
+})
+
+test_that("el payload publica la FUSION, no una sola", {
+  # Es la aplicacion: si el router se quedara con una, los tests de arriba
+  # seguirian verdes y la columna perderia cifras igual.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "calc_muestra_referencia_asistencia", .rc_asist_ejecutada())
+  session_set(sid, "calc_muestra_referencia_criterios",
+              calc_muestra_referencia_criterios_normalizar(list(
+                periodo = "2025-2", general = list(muestra = "2500"),
+                por_facultad = list(list(facultad = "DERECHO", cuota = 347)))))
+  g <- .cm_state_payload(sid)$aulas$referencia_criterios$general
+  expect_equal(g$muestra, "2500")
+  expect_equal(g$aulas_agendadas, "1012")
+})

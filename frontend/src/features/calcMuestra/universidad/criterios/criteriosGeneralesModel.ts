@@ -148,6 +148,9 @@ export function criteriosGeneralesDeEstudio({
     // propósito: son resultados de campo, y este estudio todavía no salió. Están
     // aquí porque son la única parte del histórico que el proyecto guarda, y sin
     // ellas la comparación no tiene con qué llenarse.
+    // Las que el estudio anterior APLICÓ, que no son las que su diseño mandaba
+    // visitar: 194 contra 170, y la diferencia son los reemplazos.
+    { concepto: "Aulas efectivamente aplicadas", hoy: "", claveHistorica: "aulas_aplicadas" },
     { concepto: "Aulas agendadas con reemplazos", hoy: "", claveHistorica: "aulas_agendadas" },
     { concepto: "Encuestas válidas logradas", hoy: "", claveHistorica: "efectivas_logradas" },
     { concepto: "Asistencia observada", hoy: "", claveHistorica: "tasa_asistencia" },

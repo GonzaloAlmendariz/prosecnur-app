@@ -321,10 +321,12 @@
       # referencia de criterios no esta guardada aunque el dato SI viaje en la
       # de asistencia. Se rescata al servir; ver
       # calc_muestra_referencia_criterios_rescate.R.
-      referencia_criterios = s$calc_muestra_referencia_criterios %||%
+      referencia_criterios = calc_muestra_referencia_criterios_fusionar(
+        s$calc_muestra_referencia_criterios,
         calc_muestra_referencia_criterios_desde_asistencia(
           s$calc_muestra_referencia_asistencia
-        ),
+        )
+      ),
       salud_criterios = calc_muestra_aulas_salud_criterios(
         s$calc_muestra_aulas_frame %||% NULL,
         s$calc_muestra_aulas_config %||% NULL
