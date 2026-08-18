@@ -191,12 +191,30 @@
 # «Totalmente de acuerdo» cambiados de sitio, y `lst_p10` pinta «Totalmente en
 # Desacuerdo» con `#9DC3E6`, el celeste de las dicotomias.
 #
-# LA REPARACION es en el motor, no en el dato: el emparejado por nombre debe ser
-# **insensible a mayusculas y acentos** —`.preset_acrd_clave()` ya lo hace en el
-# preset—. Asi una paleta guardada con otra capitalizacion casa por etiqueta y el
-# respaldo posicional deja de disparar. Test: `.reporte_plan_palette_for_levels()`
-# con la paleta nombrada «De Acuerdo» y el nivel «De acuerdo» tiene que devolver
-# el color de la paleta, no el posicional, y **rojear al revertir**.
+# REPARADO Y MEDIDO (`66c3a72d`). El emparejado por nombre de
+# `.reporte_plan_palette_for_levels()` ahora prueba el nombre EXACTO y, solo si
+# no casa, el normalizado sin acentos ni mayusculas con
+# `.reporte_plan_ascii_lower()` —que ya vivia en ese archivo sin usarse ahi—.
+# Medido sobre `p54.pptx`, regenerado con el arreglo:
+#
+#   fuera de canon   2 -> **0**   (motor 35 de 35; aprobado 31 de 31)
+#   leyenda de la 28 F4B183 · FFD965 · ADD493 · 70AD47 · BFBFBF, **cinco
+#                    colores distintos**, en orden y con el naranja de vuelta
+#   vara            25 -> **25**, distribucion IDENTICA
+#   cortes           2, los mismos (el par entrelazado de la 59)
+#   solapes          1, el mismo (la 59)
+#
+# O sea que arregla lo suyo y no mueve nada mas. **P51 CERRADO.**
+#
+# Y LA SALVEDAD QUE SE LEVANTO NO SE SOSTIENE, tambien medida: se dijo que
+# `lst_p10` —que pinta «Totalmente en Desacuerdo» con `#9DC3E6`, el celeste de
+# las dicotomias— quedaba sin cubrir. Buscadas todas las laminas cuya leyenda es
+# de ESCALA y llevan azul de dicotomia en sus cuadros: **CERO**, ni en `p54` ni
+# en `p52`. El buscador se verifico aflojando el filtro y encuentra **42**
+# laminas de escala, asi que el cero es real. Ese par mal guardado **no llega al
+# mazo**: es un riesgo latente del dato, no un defecto del entregable. Quedan
+# igual anotadas `lst_p20` (invertida) y `lst_p16` (dos niveles cambiados de
+# sitio), que el arreglo si neutraliza porque su fallo era de capitalizacion.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
