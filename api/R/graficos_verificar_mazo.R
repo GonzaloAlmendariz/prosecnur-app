@@ -285,9 +285,35 @@
 #     **0,000e+00**; y en un barrido de 400 repartos con cero en el nivel
 #     objetivo solo **2** lo resucitan (0,5 %). Explica un camino raro, no este.
 #
-# LECCION: dos hipotesis caidas seguidas dicen que el problema es el metodo. El
-# siguiente paso NO es seguir leyendo codigo, es instrumentar la fuente con
-# `PULSO_TRAZA_*` y ver que fila llega al `geom_text` con su `lab` y su valor.
+# P53 CERRADO. Instrumentada la fuente con `PULSO_TRAZA_CERO` en los dos
+# `geom_text` del graficador de apiladas y en el punto donde nace `lab`, sobre
+# los 232 renders del mazo: **22 renders con fuga y 24 etiquetas**, TODAS con
+# exactamente `.valor_plot = 1,11022e-16`, `.pct_units = 0` y
+# `.valor_pct_real = 0`. La rama uniforme (`SITIO=A`) no corre nunca en este
+# mazo; las 232 pasan por la otra.
+#
+# O sea que **el descarte anterior estaba MAL**: el residuo del CIERRE EXACTO A
+# 1 si era la fuente. Se descarto por medir una sola fila —la de la lamina 65,
+# donde el `delta` daba 0,000e+00— y generalizar de ahi. El caso que fuga no es
+# ese; el residuo aparece en los repartos que no cierran limpio, y basta
+# 1,11e-16 para cruzar la guarda `.valor_plot > 0`.
+#
+# REPARADO en `graficador_umbral_etiquetas.R` con
+# `.barras_reaplanar_cifras_cero()`, llamada JUSTO DESPUES del cierre: reafirma
+# la invariante donde se rompia, sin tocar ni el cierre ni las guardas. El
+# faltante que deja es del orden del residuo que el cierre venia a tapar.
+# Test `test-cifra-cero-no-se-rotula.R`, **12 asserts, 8 rojos sin el arreglo**.
+#
+# MEDIDO tras reparar (`p55.pptx` contra `p54.pptx`): etiquetas «0%» **8 -> 0**
+# y el universo de porcentajes **1.098 -> 1.090**, o sea que se fueron las ocho
+# y nada mas. Vara **25 -> 25** con distribucion identica y las mismas seis
+# laminas B3. Aprobado sigue en 0 de 1.019.
+#
+# LECCION: una hipotesis no se descarta con UN caso. La del residuo encajaba,
+# se probo sobre la fila mas a mano, dio cero y se archivo como falsa; el
+# barrido de 400 repartos que la acompano tampoco valia, porque reproducia el
+# redondeo con `round()` y no con el metodo real del motor. Descartar exige la
+# misma exigencia de muestra que confirmar.
 # Aqui la sospecha costo una medicion y salio falsa.
 #
 # Colores de la rampa de escala (dos paletas: la del entregable y la del motor).

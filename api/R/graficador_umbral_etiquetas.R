@@ -38,3 +38,51 @@
   if (!is.finite(u) || is.na(u) || u <= 0) return(0)
   u
 }
+
+
+# =============================================================================
+# P53 — el residuo de coma flotante resucitaba el segmento aplanado
+# =============================================================================
+#
+# `graficador_barras_apiladas.R` aplana a 0 todo segmento cuya CIFRA es 0 %
+# —«un segmento que se rotularia 0 % NO se dibuja», decision de Gonzalo del
+# 2026-08-14— y luego, mas abajo, recomprime la barra y la CIERRA EXACTAMENTE
+# A 1 sumando `delta = 1 - suma` al ultimo nivel del stack. Ese cierre nacio
+# para tapar residuo numerico, y cuando el ultimo nivel es justo uno de los
+# aplanados le devuelve el residuo: `.valor_plot` pasa de 0 a **1,11022e-16**.
+#
+# Con eso basta. La guarda de la etiqueta es `.valor_plot > umbral` con umbral
+# 0 por defecto, asi que 1,11e-16 la cruza y el rotulo «0%» sale dibujado sobre
+# un segmento de ancho 0 EMU, flotando encima del vecino. El aprobado no rotula
+# ninguno: 0 sobre 1.019 etiquetas contra 8 sobre 1.098 del motor.
+#
+# MEDIDO con traza en la fuente sobre el mazo de Contabilidad, 232 renders:
+# **22 renders con fuga y 24 etiquetas**, TODAS con exactamente
+# `.valor_plot = 1,11022e-16`, `.pct_units = 0` y `.valor_pct_real = 0`.
+#
+# La reparacion no toca ni el cierre ni las guardas: reafirma la invariante
+# despues del cierre, que es donde se rompia. La cifra manda sobre la
+# geometria, igual que ya manda para elegir el texto del rotulo.
+
+#' Vuelve a aplanar los segmentos cuya cifra es 0 %.
+#'
+#' Se aplica DESPUES del cierre exacto a 1. El faltante que deja es del orden
+#' del residuo que el cierre venia a tapar (1e-16), invisible en el render.
+#'
+#' @param valor_plot Anchos en proporcion, ya cerrados a 1.
+#' @param pct_units Unidades enteras de porcentaje de cada segmento, que son
+#'   las que se rotulan.
+#' @param mostrar_ceros Interruptor `mostrar_categorias_en_cero`. Cuando esta
+#'   encendido el analista PIDIO ver los ceros con su piso y su frecuencia al
+#'   lado, y entonces esto no toca nada.
+#' @return `valor_plot` con un 0 exacto donde la cifra es 0 %.
+#' @keywords internal
+.barras_reaplanar_cifras_cero <- function(valor_plot, pct_units,
+                                          mostrar_ceros = FALSE) {
+  if (isTRUE(mostrar_ceros)) return(valor_plot)
+  v <- suppressWarnings(as.numeric(valor_plot))
+  u <- suppressWarnings(as.numeric(pct_units))
+  if (!length(v) || length(u) != length(v)) return(valor_plot)
+  v[!is.na(u) & u == 0] <- 0
+  v
+}
