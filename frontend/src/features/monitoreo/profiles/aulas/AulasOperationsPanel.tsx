@@ -88,8 +88,18 @@ export function AulasOperationsPanel({
       key: "marco",
       icon: Link2,
       label: "Marco institucional",
-      value: config?.frame_hash ? "Hash listo" : "Sin hash",
-      hint: config?.frame_hash ? aulasOpsShortId(config.frame_hash) : "requiere marco",
+      // «Hash listo» / «Sin hash» era jerga del backend en pantalla: `hash` es
+      // cómo la app guarda la huella del marco, no algo que el equipo diga en
+      // voz alta. La tarjeta de al lado ya había dejado de enseñar
+      // `selection_run_id` por la misma razón y ésta se quedó atrás.
+      //
+      // Lo que el marco institucional ES para quien mira: el padrón de
+      // matrícula contra el que se armó la muestra. O está registrado —y
+      // entonces se puede comprobar que nadie lo cambió por el camino— o no.
+      value: config?.frame_hash ? "Registrado" : "Sin registrar",
+      hint: config?.frame_hash
+        ? aulasOpsShortId(config.frame_hash)
+        : "falta el padrón contra el que se armó la muestra",
       ready: Boolean(config?.frame_hash),
     },
     {
