@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalcMuestraReferenciaAsistenciaCadenaSeleccion } from "../../../../../api/calcMuestra";
-import { construirRankingDesempeno } from "../rankingDesempenoModel";
+import { construirRankingDesempeno, type AulaFrameRowLike } from "../rankingDesempenoModel";
 
 function escalon(over: Record<string, unknown>) {
   return {
@@ -42,7 +42,7 @@ function cadena(over: Record<string, unknown>): CalcMuestraReferenciaAsistenciaC
   } as CalcMuestraReferenciaAsistenciaCadenaSeleccion;
 }
 
-const MARCO = [
+const MARCO: AulaFrameRowLike[] = [
   {
     classroom_id: "CH-1", condicion_curso: "OBLIGATORIO", course_level_num: 6,
     sex_top_1: "F", sex_top_1_n: 20, sex_top_2: "M", sex_top_2_n: 8,
