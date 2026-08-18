@@ -15,6 +15,7 @@
  */
 import type { CalcMuestraReferenciaCriterios } from "../../../../api/calcMuestra";
 import { CriteriosGeneralesCard, type CriterioGeneralFila } from "../criterios/CriteriosGeneralesCard";
+import { EmbudoComparadoFacultades } from "./EmbudoComparadoFacultades";
 import { FichaPorFacultadCard } from "../criterios/FichaPorFacultadCard";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 
@@ -43,6 +44,10 @@ export function SalidasCoincidenciaTab({
         filas={criteriosMarco}
         referencia={referencia}
       />
+      {/* El gráfico que faltaba: las quince facultades, hoy contra 2025, a la
+          misma escala y paso por paso. Va antes de las fichas porque es el
+          vistazo; la ficha es el detalle de una facultad. */}
+      <EmbudoComparadoFacultades fichas={fichas} periodo={referencia?.periodo ?? ""} />
       <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
     </section>
   );
