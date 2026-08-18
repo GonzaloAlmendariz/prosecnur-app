@@ -116,8 +116,12 @@ export function AulasOperationsPanel({
     <section
       className="mon-profile-panel aulas-ops-panel"
       aria-label="Operación del plan de cursos-horario"
-      data-qa-geometry-group="monitoring-aulas-operacion"
-      data-qa-geometry-contract="intrinsic"
+      // Sin grupo en el `section`: con él, la CABECERA entra como miembro y sus
+      // 5 px de holgura se leen como `capacity-drift` del panel. Es la trampa
+      // que la norma describe —declarar el grupo en el `section` en vez del
+      // wrapper de datos hace que el padding del encabezado se lea como
+      // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
+      // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
     >
       <div className="mon-profile-panel-head">
         <h3>Operación del plan</h3>

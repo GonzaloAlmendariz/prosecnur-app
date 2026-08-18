@@ -276,8 +276,12 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
   return (
     <section
       className="mon-profile-panel registro-campo"
-      data-qa-geometry-group="monitoring-aulas-registro"
-      data-qa-geometry-contract="intrinsic"
+      // Sin grupo en el `section`: con él, la CABECERA entra como miembro y sus
+      // 5 px de holgura se leen como `capacity-drift` del panel. Es la trampa
+      // que la norma describe —declarar el grupo en el `section` en vez del
+      // wrapper de datos hace que el padding del encabezado se lea como
+      // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
+      // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
     >
       <div className="mon-profile-panel-head">
         {/* Es la hoja «Aulas Aplicadas (Campo)» del libro, llenada aquí en vez
