@@ -1317,6 +1317,81 @@ protege el rendimiento de cada visita a costa de un marco más chico y más
 sesgado hacia las facultades grandes. Él ya dijo que el mínimo **depende de cada
 facultad**; esto le da la cifra por facultad para decidirlo.
 
+## R32 — mínimos de elegibles calibrados por facultad
+
+Gonzalo, textual: «no te digo que repliquemos exactamente el criterio del año
+pasado, que era mínimo de matriculados. Nosotros tenemos un criterio que yo
+considero mejor, que es el mínimo de alumnos elegibles, pero sí tratemos de
+diferenciar mínimos más o menos agresivos por facultades pequeñas, de tal forma
+que no perdamos tantos alumnos y que nos garantice números bastante parecidos de
+cursos-horario elegibles por facultad».
+
+Es un problema de calibración: conservar la magnitud —elegibles— y mover el
+umbral facultad por facultad.
+
+### El umbral que igualaría a 2025 en cada facultad
+
+| Facultad | 2025 | hoy (15) | umbral que iguala | conteo |
+|---|---|---|---|---|
+| ARTES ESCÉNICAS | 115 | 44 | **9** | 116 |
+| LETRAS Y C. HUMANAS | 40 | 15 | **11** | 39 |
+| ARQUITECTURA | 64 | 52 | **10** | 64 |
+| ARTE Y DISEÑO | 83 | 62 | **9** | 85 |
+| CIENCIAS Y ARTES COMUN. | 168 | 157 | **12** | 168 |
+| EDUCACIÓN | 25 | 19 | **13** | 23 |
+| CONTABLES | 16 | 15 | **14** | 16 |
+| PSICOLOGÍA | 90 | 89 | 16 | 89 |
+| GESTIÓN | 101 | 102 | 19 | 101 |
+| CIENCIAS SOCIALES | 139 | 150 | **17** | 137 |
+| DERECHO | 395 | 423 | **20** | 402 |
+| EE.GG. CIENCIAS | 352 | 319 | 9 | 328 |
+| CIENCIAS E INGENIERIA | 655 | 571 | 5 | 656 |
+| EE.GG. LETRAS | 470 | 330 | 5 | 397 |
+| GASTRONOMÍA | 33 | 16 | 5 | 34 |
+
+**Las tres últimas avisan de otra cosa.** Ciencias e Ingeniería, EE.GG. Letras y
+Gastronomía sólo alcanzan su cifra de 2025 bajando a **5 elegibles**, y aun así
+EE.GG. Letras se queda en 397 de 470. Ahí no falta laxitud: falta marco por otro
+motivo, y bajar el umbral sería comprar aulas de cinco personas.
+
+### Propuesta: 15 por defecto, relajado hasta 10 donde escasea, subido donde sobra
+
+Con piso en **10** —por debajo entran aulas sin masa para encuestar—:
+
+| Facultad | umbral | hoy | propuesta | 2025 | % | p25 resultante |
+|---|---|---|---|---|---|---|
+| CIENCIAS E INGENIERIA | 15 | 571 | 571 | 655 | 87 % | 24 |
+| EE.GG. LETRAS | 15 | 330 | 330 | 470 | 70 % | 34 |
+| DERECHO | **20** | 423 | 402 | 395 | 102 % | 38 |
+| EE.GG. CIENCIAS | 15 | 319 | 319 | 352 | 91 % | 27 |
+| CIENCIAS Y ARTES COMUN. | **12** | 157 | 168 | 168 | 100 % | 19 |
+| CIENCIAS SOCIALES | **17** | 150 | 137 | 139 | 99 % | 23 |
+| ARTES ESCÉNICAS | **10** | 44 | 103 | 115 | 90 % | 11 |
+| GESTIÓN | 15 | 102 | 102 | 101 | 101 % | 29 |
+| PSICOLOGÍA | 15 | 89 | 89 | 90 | 99 % | 23 |
+| ARTE Y DISEÑO | **10** | 62 | 80 | 83 | 96 % | 15 |
+| ARQUITECTURA | **10** | 52 | 64 | 64 | 100 % | 16 |
+| LETRAS Y C. HUMANAS | **10** | 15 | 43 | 40 | 108 % | 11 |
+| GASTRONOMÍA | **10** | 16 | 20 | 33 | 61 % | 15 |
+| EDUCACIÓN | **13** | 19 | 23 | 25 | 92 % | 15 |
+| CONTABLES | **14** | 15 | 16 | 16 | 100 % | 21 |
+| **TOTAL** | | **2.364** | **2.467** | **2.746** | **90 %** | |
+
+Diez de quince facultades quedan entre 90 y 108 % de 2025, contra las seis de
+antes. **Artes Escénicas pasa de 44 a 103 aulas y Letras de 15 a 43.** El marco
+gana 103 aulas y **1.060 alumnos elegibles** (de 80.835 a 81.895).
+
+### Lo que la propuesta NO arregla, y hay que decirlo
+
+- **EE.GG. LETRAS (70 %)** y **CIENCIAS E INGENIERIA (87 %)** no mejoran: su
+  umbral se queda en 15 porque relajarlo no las acerca sin bajar a 5.
+- **GASTRONOMÍA (61 %)** es la peor incluso relajada: con 54 aulas en catálogo y
+  20 sobre el umbral de 10, su marco es real y pequeño.
+- El p25 resultante baja donde se relaja —11 en Artes Escénicas y en Letras,
+  contra 33 del marco entero—, y el p25 es el estadístico que dimensiona: **más
+  aulas elegibles con p25 más bajo significa más aulas a visitar en esa
+  facultad**. Es el precio y hay que mirarlo junto a la cuota.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
