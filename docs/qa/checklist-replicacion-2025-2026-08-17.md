@@ -2406,3 +2406,35 @@ poblaciones del paso 1. Derivadas de la afijación proporcional declarada
 | I2 | Sustento técnico | ☐ |
 | I3 | El relato | ☐ |
 | I8 | Embudo de criterios más nítido | ☐ |
+
+## TANDA I ampliada — la interrupción de Gonzalo (2026-08-18 noche)
+
+**LA TEORÍA DE GONZALO SOBRE EL PASO 3 ERA CORRECTA** (textual: «no es que
+se haya dicho que solo estos cuarenta son cursos horarios elegibles (…) hay
+una base que ya filtra la base de datos para solo coger los cursos horarios
+elegibles»): el «antes» del paso 3 usa `aulas_sorteadas` (las ~40 ATRIBUIDAS
+de C&I) cuando debe usar los ELEGIBLES 2025. **Validado y computado exacto**:
+el embudo 2025 reproducido al número en sus cuatro escalones (3.699 → 3.539
+→ 3.046 → 2.931) da los elegibles por facultad: C&I 655 · EGL 470 · DERECHO
+395 · EGC 352 · EE.ESP 179 · CyA 168 · CCSS 139 · AE 115 · GES 101 · PSI 90
+· A&D 83 · ARQ 64 · LyCH 40 · GAS 33 · EDU 25 · CONT 16. La comparación
+correcta de C&I es 571 hoy vs 655 en 2025 (−84: nuestros mínimos son más
+estrictos). La base de aplicabilidad de la carpeta es la cadena de 1.012,
+no el marco elegible — el marco se deriva exacto del catálogo con los
+criterios documentados.
+
+**Banda amarilla, medio resuelta por el flujo propio**: reconstruir marco →
+recalcular → re-sortear dejó MUESTRA OBJETIVO 2.500 y SOBREMUESTRA 3.750
+visibles con «frame vigente» (antes «—» y «frame anterior»); el diseño
+recalculado sobre el marco 2.615 da **203 titulares** (vara ✓; A&D sube a
+17 porque los talleres bajaron su p25), sello 15/15 con τ propia, 29/30
+celdas. PENDIENTE: el chip «criterios cambiados · reconstruye» PERSISTE
+tras reconstruir con la misma config — falso positivo del detector (diff
+de criterios/orden/filtros da igualdad exacta); diagnosticar el comparador.
+
+| # | Ítem nuevo | Estado |
+|---|---|---|
+| I11 | Paso 3 «antes» = ELEGIBLES 2025 (no sorteadas); cifras computadas arriba, falta cablear a la referencia (`aulas_universo`) | ☐ SIGUIENTE |
+| I12 | Chip «criterios cambiados» falso tras reconstruir | ☐ diagnosticar |
+| I9 | Fichas como TARJETAS (dos por fila), no acordeones | ☐ |
+| I10 | Reformular «sin criterios propios, usa los generales» (jerga confusa) | ☐ |
