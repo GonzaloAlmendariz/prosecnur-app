@@ -319,6 +319,41 @@ calc_muestra_aulas_criterios_totales <- function(context) {
     gate = TRUE,
     entry = entry
   ))
+  # Los pasos que el constructor ejecuto y la radiografia NO publica como gate
+  # tambien son parte del embudo. Medido en HSVG2026: `faculty_curso` (las
+  # facultades declaradas recortan las aulas, ec1d5446) corto 101 CH, no tenia
+  # spec, y la validacion final `current == included` anulaba la cascada ENTERA
+  # en silencio — sin barras de «llegan N de M» ni matriz en la UI. El replay
+  # usa el flag GUARDADO del paso (components ya lo trae), asi que basta con
+  # declararlo aqui; van justo antes del primer criterio de aula, que es donde
+  # el constructor los corre.
+  pasos <- (context$criterios$seleccion_aula %||% list())$pasos %||% list()
+  conocidos <- vapply(specs, function(s) .cm_aulas_scalar(s$criterion_id, ""), character(1))
+  extras <- list()
+  for (paso in pasos) {
+    pid <- .cm_aulas_scalar(paso$id, "")
+    if (!nzchar(pid) || pid %in% conocidos) next
+    conocidos <- c(conocidos, pid)
+    extras[[length(extras) + 1L]] <- list(
+      criterion_id = pid,
+      card_id = pid,
+      label = .cm_aulas_scalar(paso$label, pid),
+      scope = "aula",
+      # gate = FALSE como las exclusiones manuales: el contrato del frontend
+      # acredita que los GATES sean exactamente el inventario de la radiografia
+      # (accreditCalcMuestraCriteriosI18bInventory falla cerrado), y estos
+      # pasos no tienen entrada ahi. La matriz los pinta igual (G7: todos los
+      # pasos, los operativos marcados como tales) y el embudo los descuenta.
+      gate = FALSE,
+      entry = NULL
+    )
+  }
+  if (length(extras)) {
+    scopes <- vapply(specs, function(s) .cm_aulas_scalar(s$scope, ""), character(1))
+    corte <- match("aula", scopes)
+    if (is.na(corte)) corte <- length(specs) + 1L
+    specs <- append(specs, extras, after = corte - 1L)
+  }
   specs[[length(specs) + 1L]] <- list(
     criterion_id = "manual_excluded",
     card_id = "manual_excluded",
@@ -522,7 +557,7 @@ calc_muestra_aulas_criterios_totales <- function(context) {
   )
 }
 
-.cm_criterios_cascada_ejecutada <- function(context) {
+.cm_criterios_cascada_ejecutada <- function(context, diag = NULL) {
   n <- nrow(context$aula_frame)
   specs <- .cm_criterios_step_specs(context)
   faculties <- .cm_criterios_facultades(context)
@@ -564,6 +599,19 @@ calc_muestra_aulas_criterios_totales <- function(context) {
   }
   target <- context$aula_frame$included %in% TRUE
   if (length(current) != length(target) || !isTRUE(all(current == target))) {
+    # La divergencia se DECLARA, no se traga: quien llama puede publicar un
+    # aviso con la causa. Sin esto, el fallo era invisible — la cascada
+    # desaparecia y la UI decia «reconstruye el marco», que no lo arregla.
+    if (is.environment(diag)) {
+      spec_ids <- vapply(specs, function(s) .cm_aulas_scalar(s$criterion_id, ""), character(1))
+      comp_ids <- vapply(components, function(componente) .cm_aulas_scalar(componente$id, ""), character(1))
+      diag$divergencia <- list(
+        marco = sum(target),
+        reproducidas = sum(current),
+        filas_divergentes = sum(current != target),
+        pasos_sin_spec = setdiff(unique(comp_ids[nzchar(comp_ids)]), spec_ids)
+      )
+    }
     return(NULL)
   }
   .cm_criterios_cascade_root(
@@ -634,13 +682,25 @@ calc_muestra_aulas_criterios_totales <- function(context) {
       flag = if (applies) {
         # La facultad DEL AULA va tambien aqui para que el PREVIEW cuente lo
         # mismo que el marco: esta es la segunda llamada al evaluador y sin ella
-        # la UI mostraria un recorte que el constructor no aplica. SIN COBERTURA
-        # todavia: quitar este argumento no mata ningun test, comprobado.
+        # la UI mostraria un recorte que el constructor no aplica. Cobertura:
+        # test-calc-muestra-criterio-radiografia-nivel-exencion.R.
         .cm_criterios_eval_course_ranges(
           values$course_pairs, selection$courseLevelRanges, values$faculty_aula
         )
       } else rep(TRUE, n),
       applies = applies
+    ))
+  }
+  if (identical(id, "faculty_curso")) {
+    # El paso del constructor que recorta aulas por la facultad DEL CURSO
+    # (facultades declaradas del estudio). El preview lo reevalua con la
+    # seleccion NUEVA, igual que el constructor lo hara al reconstruir.
+    crit <- .cm_criterios_facultad_curso_regla(selection)
+    return(list(
+      flag = if (is.null(crit)) rep(TRUE, n) else {
+        .cm_criterios_facultad_curso_flag(values$faculty %||% rep("", n), crit)
+      },
+      applies = !is.null(crit)
     ))
   }
   criterion <- (selection$byVariable %||% list())[[id]]
@@ -798,7 +858,27 @@ calc_muestra_aulas_criterios_preview <- function(
   context <- .cm_criterios_contexto_construir(out, criterios)
   attr(out$criterios_radiografia, .cm_criterios_indice_attr) <- NULL
   out$criterios_totales <- calc_muestra_aulas_criterios_totales(context)
-  out$criterios_cascada <- .cm_criterios_cascada_ejecutada(context)
+  diag <- new.env(parent = emptyenv())
+  out$criterios_cascada <- .cm_criterios_cascada_ejecutada(context, diag)
+  if (is.null(out$criterios_cascada) && is.list(diag$divergencia)) {
+    # Un motor que no puede reproducir su propio marco lo DICE con la cifra y
+    # el sospechoso, en vez de esconder la cascada y culpar al usuario.
+    div <- diag$divergencia
+    sospechosos <- if (length(div$pasos_sin_spec)) {
+      paste0(" Pasos sin declarar en la cascada: ", paste(div$pasos_sin_spec, collapse = ", "), ".")
+    } else ""
+    out$warnings <- c(
+      out$warnings %||% character(0),
+      sprintf(
+        paste0(
+          "La cascada de criterios no reproduce el marco ejecutado (%d CH por ",
+          "criterios vs %d incluidas; %d filas divergen), asi que no se publica.%s ",
+          "Es un defecto del motor, no de la configuracion."
+        ),
+        div$reproducidas, div$marco, div$filas_divergentes, sospechosos
+      )
+    )
+  }
   attr(out, .cm_criterios_contexto_attr) <- context
   out
 }

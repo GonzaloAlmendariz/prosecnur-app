@@ -203,6 +203,44 @@ describe("contratos I18b de criterios", () => {
     expect(normalizeCalcMuestraCriteriosCascada(withoutManual)).toBeNull();
   });
 
+  it("acepta pasos operativos del constructor en medio del embudo", () => {
+    // faculty_curso (las facultades declaradas recortan las aulas) corre en el
+    // constructor sin gate en la radiografía. La versión anterior del contrato
+    // solo admitía manual_excluded como operativo, y ese cierre se tragó la
+    // cascada ENTERA en HSVG2026: 101 CH cortadas y la UI sin barras ni matriz.
+    const withOperational = structuredClone(cascadeRaw);
+    withOperational.steps = [
+      {
+        ...structuredClone(withOperational.steps[0]!),
+        order: 1,
+        criterion_id: "faculty_curso",
+        card_id: "faculty_curso",
+        label: "Facultad del curso: sólo 15 facultad(es) del estudio",
+        gate: false,
+      },
+      { ...structuredClone(withOperational.steps[0]!), order: 2 },
+      { ...structuredClone(withOperational.steps[1]!), order: 3 },
+    ];
+    const result = normalizeCalcMuestraCriteriosCascada(withOperational);
+    expect(result?.steps.map((step) => step.criterion_id)).toEqual([
+      "faculty_curso", "session_type", "manual_excluded",
+    ]);
+    expect(result?.steps[0]).toMatchObject({ gate: false, applies: true });
+
+    // La forma sigue vigilada: un operativo con card ajena no pasa…
+    const rogue = structuredClone(withOperational);
+    rogue.steps[0]!.card_id = "session_type";
+    expect(normalizeCalcMuestraCriteriosCascada(rogue)).toBeNull();
+
+    // …y el cierre tampoco se negocia: manual_excluded fuera del final, nulo.
+    const manualEnMedio = structuredClone(withOperational);
+    manualEnMedio.steps = [
+      { ...structuredClone(manualEnMedio.steps[2]!), order: 1 },
+      { ...structuredClone(manualEnMedio.steps[1]!), order: 2 },
+    ];
+    expect(normalizeCalcMuestraCriteriosCascada(manualEnMedio)).toBeNull();
+  });
+
   it("normaliza anclas publicables y rechaza exacta con k/IC imposibles", () => {
     const result = normalizeCalcMuestraCriteriosAnclasHistoricas(anchorsRaw);
     expect(result?.reference_hash).toBe("reference-1");
@@ -225,6 +263,47 @@ describe("contratos I18b de criterios", () => {
     const inferred = structuredClone(anchorsRaw);
     inferred.rows[0]!.match_level = "nearest_inferido";
     expect(normalizeCalcMuestraCriteriosAnclasHistoricas(inferred)).toBeNull();
+  });
+
+  it("acepta incompatible con request a medio formar, como lo emite el motor", () => {
+    // R marca incompatible cuando `!nzchar(dimension) || !nzchar(key)` y
+    // publica la mitad del request que sí tenía. Exigir el request todo-nulo
+    // invalidaba las 269 anclas del estudio real por 2 filas de facultades
+    // fuera del estudio (CONSORCIO), y con anchors nulo caía el bundle entero.
+    const media = structuredClone(anchorsRaw);
+    media.rows[0] = {
+      ...media.rows[0]!,
+      requested_dimension: "tipo_sesion",
+      requested_key: null as unknown as string,
+      requested_label: null as unknown as string,
+      matched_dimension: null as unknown as string,
+      matched_key: null as unknown as string,
+      matched_label: null as unknown as string,
+      match_level: "incompatible",
+      k: null as unknown as number,
+      tasa: null as unknown as number,
+      ic_low: null as unknown as number,
+      ic_high: null as unknown as number,
+      metodo_ic: "no_aplica",
+      suficiencia: "vacia",
+      warning: "El criterio no comparte una caracteristica compatible con la referencia.",
+    };
+    const result = normalizeCalcMuestraCriteriosAnclasHistoricas(media);
+    expect(result?.rows[0]).toMatchObject({
+      match_level: "incompatible",
+      requested_dimension: "tipo_sesion",
+      requested_key: null,
+      k: null,
+    });
+
+    // El bug del motor sigue fallando cerrado: request COMPLETO e incompatible.
+    const contradictorio = structuredClone(media);
+    contradictorio.rows[0]! = {
+      ...contradictorio.rows[0]!,
+      requested_key: "teorico",
+      requested_label: "Teórico",
+    };
+    expect(normalizeCalcMuestraCriteriosAnclasHistoricas(contradictorio)).toBeNull();
   });
 
   it("acredita los tres siblings solo contra el frame visible", () => {

@@ -531,7 +531,15 @@ export function normalizeCalcMuestraCriteriosCascada(
       facultiesRaw === null || !total || orders.has(order) ||
       criterionIds.has(criterionId) || order <= previousOrder ||
       order !== steps.length + 1 ||
-      (gate === false && (criterionId !== "manual_excluded" || cardId !== "manual_excluded")) ||
+      // Un paso operativo (gate false) es uno que el constructor ejecutó sin
+      // gate en el inventario de la radiografía. Antes SOLO manual_excluded
+      // podía serlo, y esa lista cerrada se tragó la cascada ENTERA cuando el
+      // motor añadió `faculty_curso` (las facultades declaradas recortan las
+      // aulas): 101 CH cortadas, cascada nula, y la UI sin barras ni matriz
+      // diciendo «reconstruye el marco». Lo que se exige ahora es la FORMA
+      // (card = criterio) y el cierre (manual_excluded al final, más abajo),
+      // no una nómina de ids.
+      (gate === false && cardId !== criterionId) ||
       (gate === true && criterionId === "manual_excluded")
     ) return null;
     orders.add(order);
@@ -584,13 +592,14 @@ export function normalizeCalcMuestraCriteriosCascada(
       total,
     });
   }
-  const operationalIndexes = steps
-    .map((step, index) => step.gate ? -1 : index)
-    .filter((index) => index >= 0);
-  if (
-    operationalIndexes.length !== 1 ||
-    operationalIndexes[0] !== steps.length - 1
-  ) return null;
+  // El cierre del embudo sigue siendo innegociable: el último paso es
+  // manual_excluded y es operativo. Los demás operativos pueden ir en medio
+  // (faculty_curso corre antes del primer criterio de aula, como en el
+  // constructor); manual_excluded repetido lo bloquea el Set de ids.
+  const lastStep = steps.at(-1);
+  if (!lastStep || lastStep.gate || lastStep.criterion_id !== "manual_excluded") {
+    return null;
+  }
   for (let index = 1; index < steps.length; index += 1) {
     const previous = steps[index - 1]!;
     const current = steps[index]!;
@@ -693,9 +702,15 @@ function anchorEstimateIsCoherent({
   return k === null && tasa === null && icLow === null && icHigh === null &&
     metodoIc === "no_aplica" && suficiencia === "vacia" &&
     matchedDimension === null && matchedKey === null && matchedLabel === null &&
-    (matchLevel !== "incompatible" || (
-      requestedDimension === null && requestedKey === null && requestedLabel === null
-    ));
+    // Espejo EXACTO del motor: R marca incompatible cuando el request quedó a
+    // medio formar (`!nzchar(dimension) || !nzchar(key)`) y PUBLICA la mitad
+    // que sí tenía — decir qué dimensión intentó es información, no un bug.
+    // Exigir el request todo-nulo invalidaba las 269 anclas del estudio real
+    // por 2 filas de facultades fuera del estudio (CONSORCIO), y con anchors
+    // nulo caía el bundle i18b ENTERO: sin barras, sin matriz, sin anclas.
+    // Lo que sigue siendo un bug del motor —request completo y aun así
+    // incompatible— sigue fallando cerrado.
+    (matchLevel !== "incompatible" || requestedDimension === null || requestedKey === null);
 }
 
 export function normalizeCalcMuestraCriteriosAnclasHistoricas(
