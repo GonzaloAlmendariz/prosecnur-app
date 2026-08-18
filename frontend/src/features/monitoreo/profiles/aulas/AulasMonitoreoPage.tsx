@@ -801,6 +801,21 @@ function renderAulasView(
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
+  // Cuántas de esas filas son EXTRAS del banco. Avance cuenta 236 donde Fuentes
+  // cuenta 196 «titulares y sus reservas encadenadas», y la diferencia son los
+  // 40 extras: la misma palabra con dos cifras y nada que explique el salto.
+  // Aquí el 236 es correcto —los extras se aplican y traen respuestas— así que
+  // lo que faltaba no era la cuenta sino decir qué entra en ella.
+  const aulasExtra = aulaRows.reduce(
+    (n, row) => (String(row.sample_role ?? "") === "extra_reserve_pool" ? n + 1 : n),
+    0,
+  );
+  const contadorDeAulas = (visibles: number) => {
+    const base = totalAulas > visibles
+      ? `${fmt(visibles)} de ${fmt(totalAulas)} cursos-horario`
+      : `${fmt(visibles)} cursos-horario`;
+    return aulasExtra ? `${base} · ${fmt(aulasExtra)} del banco` : base;
+  };
   return (
     // `aulas-tablas-apiladas`: sin ella el stack es grid y asigna 0 px a la fila
     // cuyo contenido no la empuja —medido: el panel del gráfico quedaba en 26 px
@@ -857,11 +872,7 @@ function renderAulasView(
               suyo, pero éste ocurre antes de que la tabla vea nada: el motor
               manda 500 filas de las 2 615 del plan, y sin decirlo la pantalla
               afirmaba que el estudio tiene 500 aulas. */}
-          <span>
-            {totalAulas > aulaRows.length
-              ? `${fmt(aulaRows.length)} de ${fmt(totalAulas)} cursos-horario`
-              : `${fmt(aulaRows.length)} cursos-horario`}
-          </span>
+          <span>{contadorDeAulas(aulaRows.length)}</span>
         </div>
         {/* Los dos ejes van en paneles propios porque contestan preguntas
             distintas y cada superficie declara qué es (C1): éste dice en qué
@@ -907,7 +918,7 @@ function renderAulasView(
               curso-horario», la tabla del mismo stack. Cambiar un choque por
               otro no es renombrar. */}
           <h3>Cursos-horario por cobertura</h3>
-          <span>{fmt(aulaRows.length)} cursos-horario</span>
+          <span>{contadorDeAulas(aulaRows.length)}</span>
         </div>
         <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
