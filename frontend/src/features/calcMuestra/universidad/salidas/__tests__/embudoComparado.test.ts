@@ -85,3 +85,22 @@ describe("montaje en Coincidencia", () => {
     expect(src).not.toMatch(/\{\s*false\s*&&/);
   });
 });
+
+describe("paso 7 — titulares seleccionados", () => {
+  it("entra al embudo comparado cuando hay selección y referencia", () => {
+    const fichas: FichaFacultad[] = [
+      ficha("DERECHO", [[7, "Titulares seleccionados", 18, 16]]),
+      ficha("ARQUITECTURA Y URBANISMO", [[7, "Titulares seleccionados", 15, 6]]),
+    ];
+    expect(pasosComparables(fichas)).toEqual([{ n: 7, titulo: "Titulares seleccionados" }]);
+    const paso = pasoComparado(fichas, 7);
+    expect(paso.filas.find((f) => f.facultad === "ARQUITECTURA Y URBANISMO")?.delta).toBe(9);
+  });
+
+  it("sin selección corrida el hoy viaja null, jamás 0", () => {
+    const fichas: FichaFacultad[] = [ficha("DERECHO", [[7, "Titulares seleccionados", null, 16]])];
+    const fila = pasoComparado(fichas, 7).filas[0];
+    expect(fila.hoy).toBeNull();
+    expect(fila.delta).toBeNull();
+  });
+});

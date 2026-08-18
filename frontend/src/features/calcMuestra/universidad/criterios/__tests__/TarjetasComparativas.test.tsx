@@ -113,15 +113,26 @@ describe("ficha por facultad", () => {
   const ficha = (ref: unknown) =>
     fichaDeFacultad(FILA, 149, 12, 16, normalizeCalcMuestraReferenciaCriterios(ref));
 
-  it("arma los seis pasos con su columna del estudio anterior", () => {
+  it("arma los siete pasos con su columna del estudio anterior", () => {
     const f = ficha(REF_CRUDO);
-    expect(f.pasos).toHaveLength(6);
+    expect(f.pasos).toHaveLength(7);
     expect(f.pasos[0]).toMatchObject({ n: 1, hoy: 225, antes: 225 });
     expect(f.pasos[1]).toMatchObject({ n: 2, hoy: 26, antes: 25 });
     expect(f.pasos[2]).toMatchObject({ n: 3, hoy: 12, antes: 9 });
     expect(f.pasos[4]).toMatchObject({ n: 5, hoy: 4, antes: 4 });
+    // Paso 7: sin selección corrida el hoy es null (jamás 0); el antes son
+    // los titulares del histórico si la referencia los trae.
+    expect(f.pasos[6]).toMatchObject({ n: 7, hoy: null });
     expect(f.reservasSostenibles).toBe(2);
     expect(f.reservasPedidas).toBe(11);
+  });
+
+  it("el paso 7 lleva la selección vigente cuando se le pasa", () => {
+    const f = fichaDeFacultad(
+      FILA, 149, 12, 16, normalizeCalcMuestraReferenciaCriterios(REF_CRUDO),
+      null, null, 5,
+    );
+    expect(f.pasos[6]).toMatchObject({ n: 7, hoy: 5 });
   });
 
   it("sin histórico la columna anterior es null, no 0", () => {
