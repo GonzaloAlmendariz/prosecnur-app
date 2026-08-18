@@ -1423,6 +1423,10 @@ sospecha.
 | L106 | `b1392119` | Avance enseñaba «3 700 válidas» y «0 de 3 743 · 0%» sin nada en medio: las respuestas llegan anónimas y ninguna se atribuye a un aula. La pantalla lo sabía —lo dice un control de Validación— y no lo decía ahí. |
 | L107 | `3026f38b` · varios | **Una palabra para dos cosas**, cuatro veces: `brechas` con dos denominadores, «la meta» con tres valores, «cursos-horario» 196 vs 236, «aulas» 210 de la hoja vs 196 del plan. El banco sale de la agenda y los rótulos dicen de qué hablan. |
 | L108 | `267db02f` | **Las tres dimensiones del libro, medidas campo a campo.** Agenda recogía 20 por eslabón y no enseñaba NINGUNO suyo —el ciclo de contacto entero: a quién se llama, por qué medio, qué día, cuántos intentos—. Campo enseñaba la aritmética del cuadre y no lo reportado —aula real, fecha, estado, observación—. **Control ya estaba bien** y era el modelo: agrupa lo que tiene y declara lo que no («Sin llenar en el libro: Duración»). El fixture escondía las dos primeras: sembraba 8 de los 14 campos del parte y ninguno del ciclo de contacto. |
+| L109 | `29fcab4c` | **Los dos umbrales, como matriz.** El criterio que decide el estudio —70 % de asistentes **y** 70 % de matriculados— se leía como lista de frases; en celdas se ve cuántas quedaron a UN solo umbral y por cuál. Sobre el fixture: 31 los dos · 33 sólo asistentes · 6 sólo matriculados · 70 ninguno · 70 indeterminadas. Las 33 fallaron por el lado de los asistentes —fue poca gente a clase— y volver a esa sesión no las trae; las 6 del otro lado sí. Las frases se QUEDAN: dicen qué hacer con cada caso. Las indeterminadas van aparte, no dentro de «ninguno». |
+| L110 | `6c35399b` | **El colchón de reservas, facultad por facultad.** Reemplazos tenía la historia de cada cadena y el consumo del operativo entero; ninguna dice DÓNDE se rompe, y la cuota es por facultad. Tres decisiones medidas: la reserva se atribuye a la facultad de su TITULAR —sólo repone esa cuota—; **«sin colchón» eran dos cosas** y partirlas cambió «20 de 20 facultades en riesgo» —que no discrimina— por «14 agotaron reserva» (operativo, corregible) y «146 cursos-horario nunca la tuvieron» (diseño muestral), y ese 146 coincide con el `sinReserva` que ya calculaba `consumoDeCadena` por otra vía; y la columna de extras **se retiró antes de nacer** porque no podía llenarse nunca —la vista filtra el banco a propósito desde `8feff91c`—. |
+| L111 | `7b7860b5` | **El color se buscaba por rótulo cruzando vocabularios.** `colorDeEstado` comparaba contra los tramos de `application_state` y acertaba en `sample_status` por **pura coincidencia de rótulos** —«Agendada», «Reemplazada», «En reserva» existen en los dos—; en `operational_status`, cuyos once estados no comparten ninguno, fallaba entero: **0 de 168** celdas de Brechas con chip, en la misma pantalla donde otra tabla sí coloreaba. Un acierto por coincidencia se ve igual que uno de verdad hasta que cambia el dato. Ahora los once estados van a cinco familias de desenlace, el vocabulario se muda a `aulasPresentation` —estaba en `RegistroDeCampo` sirviendo sólo a un select— y un test recorre los DOS vocabularios enteros exigiendo color, más el aserto de que un rótulo compartido da el MISMO color. Verificado quitando `contactada`: rojo y nombra al culpable. 168 de 168 después. |
+| L112 | `740dd85a` | **El veredicto que falla parecía ausencia.** `VALIDO TOTAL` y `VALIDO POBLACION` dibujaban el no cumple «·» y el sin dato «—»: dos marcas grises del mismo peso para cosas opuestas, y la más callada era la del caso MAYORITARIO. Medido en «Válido población», 210 filas: 103 no cumplen · 37 cumplen · 70 sin dato — la columna se leía como «casi todo vacío». El negativo pasa a ✗ en granate y el gris queda sólo para lo que de verdad calla. |
 | — | (sin commit) | **Dos avisos del gate medidos y descartados**, para no reinvestigarlos: el `scroll-unreachable` de Avance a 1024 es una cadena de scroll anidada —el contenido SÍ se alcanza desplazando canvas y tabla—; y los 16 `overflow-x` de «Base de control» en Validación son columnas fuera de la ventana en una tabla de 2 674 px con `overflow-x: auto` propio, alcanzables y sin desbordar la página. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
@@ -1646,3 +1650,35 @@ hojas de Excel— no tiene ninguno.
 él, todo lo que este perfil afirma se apoya en un fixture que escribimos
 nosotros — y esta misma tanda lleva **diez** casos en que ese fixture excluía
 por construcción justo lo que la vista existe para mostrar.
+
+
+## 2026-08-18 — Dos trampas de medición nuevas, de la misma tanda
+
+**`ir()` con una clave de sección inexistente no navega ni avisa.** Las secciones
+del perfil son `fuentes` · `modelo` · `avance` · `calidad` · `consultas`; barrí
+con `monitoreo/aulas/agenda` y `monitoreo/aulas/validacion`, que no existen, y
+el puente se quedó donde estaba. La sonda leyó la tabla de la página anterior y
+la reporté como si fuera de Agenda. **La clave se saca de
+`__pulsoNav.manifiesto`, nunca del nombre visible de la pestaña**, y la
+dirección observada se comprueba contra la pedida antes de leer nada.
+
+**`querySelectorAll('thead th')` no sirve en una tabla con cabecera agrupada.**
+La Base de control aparentaba 30 encabezados contra 26 celdas, con «N.º mujeres»
+lleno de horas: parecía un desalineamiento grave. El `thead` tiene DOS filas
+—grupos «Cuenta» ×14, «Cuotas» ×9, «Rango horario» ×2— y la sonda las aplanó en
+una sola lista. Leídas bien, las 26 columnas casan una a una: **la tabla estaba
+correcta**. Es la tercera vez en la serie que una sospecha se disuelve al leer
+la superficie entera en vez del trozo que confirmaba la sospecha.
+
+## 2026-08-18 — Estado del barrido de tablas
+
+| Sección | Tablas | Estado |
+|---|---|---|
+| Fuentes | 0 | son tarjetas; Gonzalo ya la había exceptuado |
+| Modelo · Agenda | 1, 196 filas | 196 chips de estado, conforme |
+| Calidad · Validación | 1, 210 filas | sin columna de estado —correcto—; veredicto reparado en L112 |
+| Consultas | 4 | conforme tras L111 |
+
+**Declarado y no reparado:** la columna «Cuadra» (Sí/No) del parte de campo, 21
+descuadres sobre 210. No es un estado del vocabulario sino un veredicto por
+fila, y darle color pide decidir antes si un descuadre se pinta como fallo.
