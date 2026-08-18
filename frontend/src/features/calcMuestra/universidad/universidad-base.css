@@ -766,16 +766,6 @@
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.045);
 }
 
-.cmv2-replacement-chain-panel .cmv2-subhead small {
-  display: block;
-  max-width: 760px;
-  margin-top: 2px;
-  color: var(--pulso-text-soft);
-  font-size: 11px;
-  font-weight: var(--pulso-weight-bold);
-  line-height: 1.35;
-}
-
 .cmv2-selection-rationale-grid .cmv2-plot-card {
   min-height: 300px;
 }
