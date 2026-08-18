@@ -601,3 +601,36 @@ describe("el encabezado dice lo que el histórico SÍ trae", () => {
     expect(html).toContain("no trae ninguna de estas decisiones");
   });
 });
+
+describe("la nota histórica dice qué ES la cifra que engaña (R4)", () => {
+  it("pinta la nota bajo el valor del estudio anterior cuando la fila la trae", () => {
+    const html = renderToStaticMarkup(
+      <CriteriosGeneralesCard
+        filas={[{
+          concepto: "Aulas a visitar",
+          hoy: "203",
+          claveHistorica: "aulas_dimensionadas",
+          notaHistorica: "ejecutado tras ajuste manual de agenda; no es el dimensionamiento de su diseño",
+        }]}
+        referencia={normalizeCalcMuestraReferenciaCriterios(REF_CRUDO)}
+      />,
+    );
+    expect(html).toContain("ejecutado tras ajuste manual de agenda");
+    expect(html).toContain("cmv2-generales-nota");
+  });
+
+  it("sin valor histórico la nota NO se pinta: explicaría una cifra que no está", () => {
+    const html = renderToStaticMarkup(
+      <CriteriosGeneralesCard
+        filas={[{
+          concepto: "Aulas a visitar",
+          hoy: "203",
+          claveHistorica: "clave_inexistente",
+          notaHistorica: "ejecutado tras ajuste manual de agenda",
+        }]}
+        referencia={normalizeCalcMuestraReferenciaCriterios(REF_CRUDO)}
+      />,
+    );
+    expect(html).not.toContain("cmv2-generales-nota");
+  });
+});

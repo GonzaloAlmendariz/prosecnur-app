@@ -25,6 +25,9 @@ export type CriterioGeneralFila = {
   claveHistorica?: string;
   /** Valor del estudio anterior cuando no sale de una clave directa. */
   antesFijo?: string;
+  /** Qué ES el valor histórico cuando su nombre engaña (p. ej. un ejecutado
+   *  que se compara contra un diseño). Se pinta bajo la cifra del anterior. */
+  notaHistorica?: string;
 };
 
 /** Compara dos valores ya normalizados a texto comparable. */
@@ -118,7 +121,12 @@ export function CriteriosGeneralesCard({
                 <td>{f.hoy || "—"}</td>
                 {comparando ? (
                   <>
-                    <td>{f.antes || <span className="cmv2-generales-vacio">sin referencia</span>}</td>
+                    <td>
+                      {f.antes || <span className="cmv2-generales-vacio">sin referencia</span>}
+                      {f.antes && f.notaHistorica ? (
+                        <small className="cmv2-generales-nota">{f.notaHistorica}</small>
+                      ) : null}
+                    </td>
                     <td>{f.igual === null ? "—" : f.igual ? "sí" : "no"}</td>
                   </>
                 ) : null}

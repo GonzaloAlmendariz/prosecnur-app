@@ -2357,6 +2357,18 @@
 }
 .cmv2-generales-vacio { color: var(--pulso-text-muted); font-style: italic; }
 
+/* La nota que dice qué ES la cifra histórica cuando su nombre engaña (R4:
+   un ejecutado de agenda comparado contra un diseño). Bajo la cifra, en el
+   ramp de apoyo, para que el «no» de la fila no se lea como dos diseños. */
+.cmv2-generales-nota {
+  display: block;
+  max-width: 260px;
+  margin-top: 2px;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+
 /* Tarjetas en grilla de dos por fila — Gonzalo: «pueden estar en tarjetas,
    dos tarjetas por cada fila y que se vea todo más claro, no comprimen y
    descomprimen». En angosto (≤1279px de ventana: el 1280 de la matriz QA ya
