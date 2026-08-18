@@ -86,3 +86,24 @@
   background: color-mix(in srgb, var(--pulso-warn-fg) 14%, transparent);
   color: var(--pulso-warn-fg);
 }
+
+.cmv2-cert-sexo {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.cmv2-cert-sexo[data-cubre="si"] {
+  background: color-mix(in srgb, var(--pulso-success-fg) 10%, transparent);
+  color: var(--pulso-success-fg);
+}
+
+.cmv2-cert-sexo[data-cubre="no"] {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 14%, transparent);
+  color: var(--pulso-warn-fg);
+}
+
+.cmv2-cert-sexo[data-cubre="sin_tasa"] { color: var(--pulso-text-muted); }

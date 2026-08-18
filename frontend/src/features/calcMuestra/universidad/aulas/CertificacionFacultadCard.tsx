@@ -26,6 +26,28 @@ const ESTADO_LABEL: Record<string, string> = {
   sin_cuota: "Sin cuota trazada",
 };
 
+/** Celda compacta de la cuota de un sexo: margen y si cubre; el detalle
+ *  (cuota → esperadas) viaja en el title. Sin celda para esta facultad → «—»,
+ *  jamás un 0. */
+function CeldaSexo({
+  fila,
+  sexo,
+}: {
+  fila: CalcMuestraCertificacionFacultad["filas"][number];
+  sexo: "F" | "M";
+}) {
+  const celda = fila.sexo.find((c) => c.sexo === sexo);
+  if (!celda || celda.margen == null) return <td>—</td>;
+  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"} · ${celda.elegibles ?? "—"} elegibles · ${celda.esperadas ?? "—"} esperadas`;
+  return (
+    <td title={detalle}>
+      <span className="cmv2-cert-sexo" data-cubre={celda.cubre === true ? "si" : celda.cubre === false ? "no" : "sin_tasa"}>
+        {celda.margen.toFixed(2).replace(".", ",")}×
+      </span>
+    </td>
+  );
+}
+
 export function CertificacionFacultadCard({
   certificacion,
 }: {
@@ -65,6 +87,8 @@ export function CertificacionFacultadCard({
               <th scope="col">Elegibles</th>
               <th scope="col">Esperadas</th>
               <th scope="col">Margen</th>
+              <th scope="col">Mujeres</th>
+              <th scope="col">Hombres</th>
               <th scope="col">Estado</th>
             </tr>
           </thead>
@@ -77,6 +101,8 @@ export function CertificacionFacultadCard({
                 <td>{f.elegibles_titulares != null ? fmtInt(f.elegibles_titulares) : "—"}</td>
                 <td>{f.efectivas_esperadas != null ? fmtInt(f.efectivas_esperadas) : "—"}</td>
                 <td>{f.margen != null ? `${f.margen.toFixed(2).replace(".", ",")}×` : "—"}</td>
+                <CeldaSexo fila={f} sexo="F" />
+                <CeldaSexo fila={f} sexo="M" />
                 <td>
                   <span className="cmv2-cert-estado" data-estado={f.estado}>
                     {ESTADO_LABEL[f.estado] ?? f.estado}
