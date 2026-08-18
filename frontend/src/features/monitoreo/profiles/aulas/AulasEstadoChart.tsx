@@ -42,7 +42,11 @@ export function AulasEstadoChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
   }));
 
   return (
-    <div className="aulas-estado-chart">
+    // C1: quién posee el espacio interior del panel. Sin declararlo, el gate
+    // cae a la cabecera como dueña y reporta sus 4-5 px de holgura como
+    // `capacity-drift`, que es un diagnóstico sobre el sitio equivocado: el
+    // panel sólo tiene 1 px libre abajo y el hueco está dentro del head.
+    <div className="aulas-estado-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <PlotlyChart
         data={data}
         height={104}
