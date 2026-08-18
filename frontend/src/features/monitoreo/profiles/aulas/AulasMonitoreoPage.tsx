@@ -963,6 +963,14 @@ function renderAulasView(
           <h3>Avance por curso-horario</h3>
           <span>{fmt(aulaRows.length)} filas</span>
         </div>
+        {/* El orden, DICHO. La tabla no abre por código ni alfabéticamente: la
+            ordena el motor por dónde está el aula en el circuito —en campo,
+            lista, planificada— y dentro de cada tramo por brecha. Sin decirlo,
+            «CH 74, CH 99, CH 49» se lee como desorden y el lector busca un
+            control de orden que no existe. */}
+        <p className="mon-profile-muted">
+          Primero las que están en campo y con más brecha; el banco y las reservas dormidas, al final.
+        </p>
         <DataTable
           rows={aulaRows}
           empty="Todavía no hay respuestas que atribuir a un curso-horario."
