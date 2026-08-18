@@ -30,6 +30,8 @@ import {
   type ComposicionDatos,
 } from "../shared/graficos/PrimitivasGrafico";
 import { tip, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
+import { PerfilSexoBloque } from "./PerfilSexoBloque";
+import { construirPerfilSexo } from "./perfilSexoModel";
 import "./perfilMuestra.css";
 
 /** Los ejes con los que Marco decide qué aulas entran, en el orden en que se deciden. */
@@ -221,6 +223,10 @@ Aulas y estudiantes elegibles no van juntos: una facultad puede tener pocas aula
           ))}
         </div>
       ) : null}
+
+      {/* 2b · I5: el sexo, la dimensión que el estudio certifica por celda y
+          este perfil callaba mientras enseñaba tamaño, sesión y nivel. */}
+      <PerfilSexoBloque perfil={construirPerfilSexo(titulares, marco)} />
 
       {/* 3 · El año pasado, como lectura al pie y nunca como protagonista. */}
       {referencia?.cadena ? (
