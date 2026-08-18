@@ -648,3 +648,61 @@
 # LECCION: cuando un trabajo queda bloqueado a una decision ajena, lo que si se
 # puede hacer es cerrarle los huecos de medicion, para que la decision se tome
 # sobre el efecto completo y no sobre la mitad que se midio primero.
+
+
+# P8 — REABIERTO CON MEDICION FRESCA: LOS CUADRANTES DE POBLACION DISPERSAN
+# 0.8141 cm CONTRA LOS 0.2931 DEL APROBADO, Y EL TECHO QUE LO ARREGLA YA EXISTE.
+#
+# El tablero traia P8 como «medido y mejorado: con techo, maximo 0.90 y peor
+# dispersion 0.29 (aprobado 0.22)». **Esas cifras son de un mazo viejo.** Medido
+# hoy sobre `p55.pptx` —las laminas 9 a 14, las unicas de CUATRO grupos de
+# canvas, todos de 5.17 x 2.56 in— contra el aprobado con el MISMO instrumento:
+#
+#   grosor de barra por cuadrante (cm), mediana de cada cuadrante
+#     motor      lam  9  1.0942 · 0.7444 · 0.6712 · 1.4853   -> entre 0.8141
+#                lam 10  1.0942 · 0.6712 · 0.6712 · 0.9503   -> entre 0.4231
+#                lam 11  1.0942 · 0.7138 · 0.6712 · 1.0942   -> entre 0.4231
+#                lam 12          0.7138 · 0.7138            -> entre 0.0000
+#                lam 13          0.7444 ·          1.4853   -> entre 0.7409
+#                lam 14  1.0942 · 0.9503 · 0.6712 · 1.4853   -> entre 0.8141
+#       maximo **1.4853** · minimo 0.6712 · PEOR DISPERSION **0.8141**
+#     aprobado   maximo **1.0000** · minimo 0.4629 · peor dispersion **0.2931**
+#                (por lamina: 0.2916 · 0.2696 · 0.2931 · 0.1654 · 0 · 0.1225)
+#
+# Dentro de cada cuadrante el grosor es UNIFORME en los dos mazos (0.000 de
+# spread): el defecto es ENTRE cuadrantes de la misma lamina, que es justo lo
+# que se ve al mirarla.
+#
+# EL INSTRUMENTO SE TUVO QUE CORREGIR ANTES DE CREERSELO. El filtro heredado
+# —forma sin texto, mas ancha que alta, alto 0.05-1.5 in— se tragaba los
+# CONTENEDORES del panel: en la lamina 9 del aprobado, dos rects de **3.8086 cm
+# SIN color**, y la mediana de [3.81, 3.81, 1.00, 1.00] daba **2.4043**, con lo
+# que el aprobado salia PEOR que el motor (1.6974 de dispersion). Una barra
+# tiene RELLENO: exigiendo `<a:solidFill><a:srgbClr` el aprobado vuelve a sus
+# 0.12-0.29 historicos, que es la comprobacion de que el medidor mide lo mismo
+# que se midio en su dia. Tambien se excluye el grupo cuadrado de ~1.90 in: es
+# el ICONO, no un grafico.
+#
+# EL REMEDIO YA ESTA ESCRITO Y SIN ENCHUFAR AQUI. El aprobado corta en
+# **1.0000 cm exactos** en estas laminas —numero redondo, o sea techo
+# deliberado— y `.grosor_con_techo_in()` existe para eso; sus propios tests lo
+# ejercitan con `techo_in = 0.394` (= 1.0 cm), que es la cifra de ESTE caso.
+# Hoy solo lo llama `graficador_barras_apiladas.R:1924`, con el techo GLOBAL
+# `.GROSOR_TECHO_IN = 0.7087 in` (1.80 cm, el maximo del aprobado en TODO el
+# mazo). Los cuadrantes de poblacion no pasan por ahi: son categoricas y tarta.
+#
+# PREDICCION, para que el arreglo se verifique contra un numero y no contra una
+# impresion: con techo de 0.394 in en la ruta de los cuadrantes, el maximo baja
+# de 1.4853 a **1.0000** y la peor dispersion de 0.8141 a **~0.3288** (lam 9 y
+# 14: 1.0 · 0.7444 · 0.6712 · 1.0), contra los 0.2931 del aprobado. Si sale
+# otra cosa, la hipotesis era falsa y se documenta aqui.
+#
+# DE PASO, UNA CORRECCION AL TABLERO: P25 dice que `.grosor_con_techo_in()`
+# tiene **cero consumidores**. Ya no: `graficador_barras_apiladas.R:1924` lo
+# llama. Lo que sigue siendo cierto es que NADIE lo llama con el techo de 1.0 cm
+# para el que se escribio.
+#
+# LECCION: una cifra heredada de un mazo viejo no describe el vigente, y el
+# instrumento que la produjo tampoco se hereda: aqui el filtro daba al aprobado
+# una dispersion de 1.6974 —peor que el motor— hasta que se le exigio que una
+# barra tuviera color.
