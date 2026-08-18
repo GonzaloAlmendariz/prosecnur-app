@@ -28,6 +28,10 @@ const CRUDO = {
       aulas_titulares: [5], elegibles_titulares: [90],
       efectivas_esperadas: [63], margen: [0.8], estado: ["no_cubre"],
       aviso: ["NO CUBRE: faltan 16."],
+      sexo: [
+        { sexo: ["F"], cuota: [58], elegibles: [60], esperadas: [42], margen: [0.72], cubre: [false] },
+        { sexo: ["M"], cuota: [21], elegibles: [30], esperadas: [21], margen: [1.0], cubre: [true] },
+      ],
     },
   ],
 };
@@ -41,6 +45,10 @@ describe("normalizeCalcMuestraCertificacionFacultad", () => {
     expect(c?.ok).toBe(false);
     expect(c?.filas[1]).toMatchObject({ estado: "no_cubre", margen: 0.8 });
     expect(c?.filas[1].aviso).toContain("faltan 16");
+    // Celdas de sexo: desenboxadas, con cubre booleano y sin degradar a 0.
+    expect(c?.filas[1].sexo).toHaveLength(2);
+    expect(c?.filas[1].sexo[0]).toMatchObject({ sexo: "F", cubre: false, margen: 0.72 });
+    expect(c?.filas[0].sexo).toEqual([]);
   });
 
   it("un schema ajeno o sin filas degrada a null, no a una tarjeta vacía", () => {

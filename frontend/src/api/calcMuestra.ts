@@ -2186,6 +2186,16 @@ export function normalizeCalcMuestraSexoPorFacultad(
   };
 }
 
+export type CalcMuestraCertificacionSexoCelda = {
+  sexo: "F" | "M";
+  cuota: number | null;
+  elegibles: number | null;
+  esperadas: number | null;
+  margen: number | null;
+  /** null cuando la tasa no está declarada: la celda queda medida, no afirmada. */
+  cubre: boolean | null;
+};
+
 export type CalcMuestraCertificacionFacultadFila = {
   faculty_key: string;
   facultad: string;
@@ -2196,6 +2206,8 @@ export type CalcMuestraCertificacionFacultadFila = {
   margen: number | null;
   estado: "certificada" | "no_cubre" | "sin_titulares" | "sin_tasa" | "sin_cuota";
   aviso: string;
+  /** Cuotas de hombre y mujer por celda (distribucion_sub del cálculo). */
+  sexo: CalcMuestraCertificacionSexoCelda[];
 };
 
 /** Certificación por facultad de la selección (Gonzalo: «la selección de
@@ -2244,6 +2256,22 @@ export function normalizeCalcMuestraCertificacionFacultad(
       const estado = (CERT_ESTADOS as readonly string[]).includes(estadoRaw)
         ? (estadoRaw as CalcMuestraCertificacionFacultadFila["estado"])
         : "sin_cuota";
+      const sexo = asList(f.sexo)
+        .map((rawCelda): CalcMuestraCertificacionSexoCelda | null => {
+          const c = asRecord(rawCelda);
+          const sx = asText(c.sexo).toUpperCase();
+          if (sx !== "F" && sx !== "M") return null;
+          const cubreRaw = Array.isArray(c.cubre) ? c.cubre[0] : c.cubre;
+          return {
+            sexo: sx,
+            cuota: asNum(c.cuota),
+            elegibles: asNum(c.elegibles),
+            esperadas: asNum(c.esperadas),
+            margen: asNum(c.margen),
+            cubre: typeof cubreRaw === "boolean" ? cubreRaw : null,
+          };
+        })
+        .filter((c): c is CalcMuestraCertificacionSexoCelda => c != null);
       return {
         faculty_key: asText(f.faculty_key),
         facultad,
@@ -2254,6 +2282,7 @@ export function normalizeCalcMuestraCertificacionFacultad(
         margen: asNum(f.margen),
         estado,
         aviso: asText(f.aviso),
+        sexo,
       };
     })
     .filter((f): f is CalcMuestraCertificacionFacultadFila => f != null);
