@@ -46,8 +46,13 @@ NULL
   # titulares» ahi seria falso: a Arquitectura le sobran 20 de 56.
   if (d == r) return("sin_reservas")
   sostenibles <- .cm_aulas_reservas_sostenibles(d, r)
-  p <- suppressWarnings(as.numeric(profundidad))
-  if (is.finite(p) && p > 0 && sostenibles < p) return("reservas_cortas")
+  # Gonzalo (2026-08-18, textual): «nunca ha habido un requerimiento de que
+  # todas tengan 11 reservas a más, no es un requerimiento». La profundidad
+  # de la cadena (R1-R11) es su CAPACIDAD MAXIMA operativa, no una meta:
+  # compararla contra las sostenibles fabricaba un estado de alerta
+  # (reservas_cortas) para casi toda facultad sana. El unico corto real es
+  # sostener CERO: sobran aulas pero ni una reserva por titular.
+  if (identical(sostenibles, 0L)) return("reservas_cortas")
   "holgado"
 }
 
@@ -70,16 +75,11 @@ NULL
             "ninguna para reemplazar a la que se caiga en campo."),
       facultad, format(requeridas), format(disponibles)
     ),
-    reservas_cortas = if (identical(sostenibles, 0L)) sprintf(
+    reservas_cortas = sprintf(
       paste("%s usa %s de sus %s aulas: las %s que sobran no alcanzan para dar",
             "ni una reserva a cada titular."),
       facultad, format(requeridas), format(disponibles),
       format(as.integer(disponibles) - as.integer(requeridas))
-    ) else sprintf(
-      paste("%s sostiene %s reservas por titular con %s aulas para %s titulares,",
-            "por debajo de las %s que pide el diseño."),
-      facultad, format(sostenibles), format(disponibles), format(requeridas),
-      format(profundidad)
     ),
     ""
   )
@@ -89,7 +89,7 @@ NULL
 #'
 #' @param estudio Estudio ya calculado.
 #' @param frame Marco de aulas; de ahí salen las aulas incluidas por facultad.
-#' @param profundidad Reservas por titular que pide el diseño (`bolsas_reemplazo`).
+#' @param profundidad Capacidad maxima de la cadena (`bolsas_reemplazo`, R1-Rn). NO es una meta: viaja como referencia (`reservas_pedidas`) y no fabrica estados de alerta.
 #' @return El estudio con `margen` en cada fila de `aulas_por_estrato`.
 #' @keywords internal
 calc_muestra_aulas_adjuntar_margen <- function(estudio, frame = NULL, profundidad = NA) {

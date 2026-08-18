@@ -56,7 +56,9 @@ export function MargenPorFacultadCard({
           ) : (
             <>Todas dejan aulas libres para reemplazar.</>
           )}
-          {pedidas != null ? <> El diseño pide {fmtInt(pedidas)} reservas por titular.</> : null}
+          {/* Gonzalo: «nunca ha habido un requerimiento de 11 reservas a más».
+              La profundidad de la cadena es su capacidad MÁXIMA, no una meta. */}
+          {pedidas != null ? <> La cadena de reemplazos admite hasta {fmtInt(pedidas)} posiciones por titular; no es una meta.</> : null}
         </span>
       </header>
       <div className="cmv2-margen-wrap">
@@ -82,7 +84,6 @@ export function MargenPorFacultadCard({
                   <td>{m.aulas_sobrantes != null ? fmtInt(m.aulas_sobrantes) : "—"}</td>
                   <td>
                     {m.reservas_sostenibles != null ? fmtInt(m.reservas_sostenibles) : "—"}
-                    {pedidas != null ? <span className="cmv2-margen-de"> de {fmtInt(pedidas)}</span> : null}
                   </td>
                   <td>{ETIQUETA[m.estado] ?? m.estado}</td>
                 </tr>

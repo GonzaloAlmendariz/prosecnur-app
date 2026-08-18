@@ -51,10 +51,10 @@ function Ficha({
           {ficha.reservasSostenibles != null ? (
             <>
               {" · "}
+              {/* Sin «de 11»: la profundidad de la cadena no es una meta. */}
               {ficha.reservasSostenibles === 0
                 ? "sin reservas"
                 : `${fmtInt(ficha.reservasSostenibles)} reservas por titular`}
-              {ficha.reservasPedidas != null ? ` de ${fmtInt(ficha.reservasPedidas)}` : null}
             </>
           ) : null}
         </span>
