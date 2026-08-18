@@ -151,10 +151,15 @@ function formDesdeFila(row: MonitoreoAulasPlanRow | null): RegistroForm {
 
 type Props = {
   agenda: MonitoreoAulasPlanRow[];
+  /**
+   * La hoja de partes del libro, sólo para decir cuántas aulas YA lo tienen.
+   * El registro no la edita: la escribe fila a fila con el formulario.
+   */
+  partes?: ReadonlyArray<Record<string, unknown>>;
   onGuardado: () => void;
 };
 
-export function RegistroDeCampo({ agenda, onGuardado }: Props) {
+export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
   const [seleccion, setSeleccion] = useState<string>("");
   const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
@@ -182,13 +187,26 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
     [filas, seleccion],
   );
 
-  // Un aula «planificada» es la que todavía no salió a campo: no tiene parte.
-  // Sale del MISMO campo y del mismo valor por defecto que ya usa la lista de
-  // abajo, para que las dos no puedan discrepar.
-  const conRegistro = useMemo(
-    () => filas.filter((r) => (String(r.operational_status ?? "") || "planificada") !== "planificada").length,
-    [filas],
-  );
+  // Cuántas de estas aulas YA tienen parte en el libro.
+  //
+  // Se cuenta contra la hoja de partes y NO contra `operational_status`, que fue
+  // el primer intento y estaba mal: ese campo lo mueve esta misma pantalla al
+  // guardar, así que sobre un libro importado se queda en «planificada» aunque
+  // el parte exista. El contador decía «0 con parte» a la vez que Consultas
+  // enseñaba «210 partes» — dos superficies del mismo hecho con cero y 210.
+  //
+  // La clave es `operational_code`, la misma con la que el parte se une al plan
+  // en `parteDeCampo`: si cada superficie uniera por su cuenta podrían discrepar
+  // en qué aula tiene parte.
+  const conRegistro = useMemo(() => {
+    const conParte = new Set<string>();
+    for (const fila of partes) {
+      const codigo = String((fila as { operational_code?: unknown }).operational_code ?? "").trim();
+      if (codigo) conParte.add(codigo);
+    }
+    if (!conParte.size) return 0;
+    return filas.filter((r) => conParte.has(String(r.operational_code ?? "").trim())).length;
+  }, [filas, partes]);
 
   const elegir = (row: MonitoreoAulasPlanRow) => {
     const clave = String(row.operational_code ?? row.classroom_id);
@@ -274,7 +292,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
             el panel lista otra cosa. El contador lo zanja con dato: dice cuánto
             de la hoja está lleno, que además es lo que se viene a saber. */}
         <span>{filas.length
-          ? `${filas.length} cursos-horario · ${conRegistro} con parte`
+          ? `${filas.length} cursos-horario · ${conRegistro} con parte en el libro`
           : "sin agenda"}</span>
       </div>
 

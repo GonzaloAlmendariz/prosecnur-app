@@ -1468,6 +1468,9 @@ export default function AulasMonitoreoPage() {
                 // `respuestas_validas` y `brecha`— que ademas se reconstruye en
                 // cada peticion, tambien antes de la primera respuesta.
                 agenda={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
+                // La hoja de partes, sólo para el contador: sin ella el panel
+                // decía «0 con parte» mientras Consultas enseñaba «210 partes».
+                partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
                 onGuardado={() => { void loadView(seccionActiva, true, true); }}
               />,
               state?.sources ?? [],
