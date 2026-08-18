@@ -140,6 +140,13 @@ calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
   piso_dimension <- .cm_ref_crit_desde_dimension_facultad(asistencia)
   filas <- if (!length(filas)) piso_dimension else .cm_ref_crit_rellenar_filas(filas, piso_dimension)
   if (!length(filas)) return(NULL)
+  # Tercer piso: las CADENAS de reemplazo. Cada fila de `cadenas_reemplazo` es
+  # un estrato con su titular y su facultad, asi que el conteo por facultad SON
+  # las aulas titulares del estudio anterior — la unica de las tres fuentes que
+  # las conoce (verificado en HSVG2026: 170 cadenas y el conteo reproduce las
+  # quince filas de «0 · Metas por facultad» exactas). Mismo contrato: solo
+  # rellena huecos de filas ya existentes.
+  filas <- .cm_ref_crit_rellenar_filas(filas, .cm_ref_crit_desde_cadenas(asistencia))
 
   estudio <- if (is.list(asistencia$estudio)) asistencia$estudio else list()
   calc_muestra_referencia_criterios_normalizar(list(
@@ -189,6 +196,27 @@ calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
     )
   }
   libro
+}
+
+#' Aulas titulares por facultad, contadas de las cadenas de reemplazo.
+#'
+#' Una fila de `cadenas_reemplazo$filas` = un estrato titular con su facultad;
+#' el conteo por facultad son los titulares del estudio anterior. No se toma
+#' ninguna otra cifra de aqui: `elegibles`/`efectivas` por cadena ya viajan
+#' agregadas en los otros pisos con sus propios nombres.
+.cm_ref_crit_desde_cadenas <- function(asistencia) {
+  cad <- asistencia$cadenas_reemplazo
+  if (!is.list(cad) || !length(cad$filas)) return(list())
+  conteo <- list()
+  for (f in cad$filas) {
+    if (!is.list(f)) next
+    fac <- .cm_aulas_scalar(f$facultad, "")
+    if (!nzchar(fac)) next
+    conteo[[fac]] <- (conteo[[fac]] %||% 0L) + 1L
+  }
+  lapply(names(conteo), function(fac) {
+    list(facultad = fac, aulas_titulares = conteo[[fac]])
+  })
 }
 
 #' Rellena los NA de `base` con lo que `relleno` sepa de la MISMA facultad.

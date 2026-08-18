@@ -583,3 +583,27 @@ test_that("los dos pisos del rescate se COMBINAN cuando comparten facultad", {
   # Y las facultades siguen siendo las del piso de cuotas.
   expect_equal(length(r$por_facultad), 2L)
 })
+
+test_that("las cadenas aportan las aulas TITULARES por facultad", {
+  # Cada fila de cadenas es un estrato titular; el conteo por facultad son los
+  # titulares — la unica fuente que los conoce (los otros pisos traen cuotas,
+  # sorteadas, aplicadas). Verificado en HSVG2026: 170 cadenas reproducen las
+  # quince metas exactas.
+  mixta <- .rc_asist()
+  mixta$cadenas_reemplazo <- list(filas = list(
+    list(cadena = 1, facultad = "CIENCIAS E INGENIERIA", titular = "MAT146-0205"),
+    list(cadena = 2, facultad = "CIENCIAS E INGENIERIA", titular = "FIS248-0561"),
+    list(cadena = 3, facultad = "EDUCACION", titular = "EDU101-0101"),
+    list(cadena = 4, facultad = "", titular = "sin-facultad-se-salta")
+  ))
+  r <- calc_muestra_referencia_criterios_desde_asistencia(mixta)
+  f <- .cm_ref_crit_buscar(r, "CIENCIAS E INGENIERIA")
+  expect_equal(f$aulas_titulares, 2)
+  # Titulares NO pisan lo que el piso de cuotas ya declara.
+  expect_equal(f$cuota, 523)
+  expect_equal(f$aulas_sorteadas, 231)
+  # EDUCACION existe en cuotas y gana su titular.
+  expect_equal(.cm_ref_crit_buscar(r, "EDUCACION")$aulas_titulares, 1)
+  # Y las facultades siguen siendo las de cuotas (nada se anexa).
+  expect_equal(length(r$por_facultad), 2L)
+})
