@@ -41,3 +41,20 @@ test_that("una pestaña con solo cabecera no es un error", {
   expect_identical(aulas_libro_desde_valores(list(as.list(c("ID MATCH", titulos))), "agendadas"), list())
   expect_identical(aulas_libro_desde_valores(list(), "agendadas"), list())
 })
+
+test_that("el rol de la fuente decide que hoja es", {
+  expect_identical(aulas_libro_hoja_por_rol("agendamiento"), "agendadas")
+  expect_identical(aulas_libro_hoja_por_rol("parte_campo"), "aplicadas")
+  expect_identical(aulas_libro_hoja_por_rol("control"), "control")
+  # Los tres roles del libro son los que declara `monitoreo_sync_fuentes.R`: si
+  # alli se añade uno y aqui no, este aserto lo dice.
+  expect_setequal(names(AULAS_LIBRO_HOJA_POR_ROL), MONITOREO_AULAS_LIBRO_ROLES)
+})
+
+test_that("un rol que no es del libro no se adivina", {
+  # Devolver «agendadas» por defecto leeria una tabla de respuestas como si
+  # fuera la agenda, y saldrian filas de plan inventadas.
+  expect_identical(aulas_libro_hoja_por_rol("respuestas"), "")
+  expect_identical(aulas_libro_hoja_por_rol(""), "")
+  expect_identical(aulas_libro_desde_fuente(list(list("a"), list("b")), "respuestas"), list())
+})
