@@ -1831,3 +1831,30 @@ otro**; ahora el siguiente copiará el bueno.
 **Un verde con menos grupos de los que la vista tiene paneles no es un verde.**
 La primera corrida de la sesión dio `ok=true`, 0 issues y **2 grupos**; con el
 flag correcto, **10 grupos y 5 problemas**.
+
+
+## 2026-08-18 — El `scroll-unreachable` de Avance a 1024×600, resuelto y explicado
+
+Era la última deuda estructural declarada (L105). Medida entera, se parte en dos
+cosas distintas.
+
+**Una era real y mía.** A 1024×600 la pantalla tenía **TRES dueños de scroll**:
+el del workbench (2 740 px de excedente), el de la tabla (9 311) y
+`aulas-frente-lista` (117). El tercero se lo puse yo con un `max-height` +
+`overflow-y`, por la misma razón que se lo había puesto a la ruta por facultad
+—«cien filas empujarían el resto de Avance»—. **Arreglé aquélla y dejé ésta**,
+que es exactamente cómo se copian los defectos. Retirado: quedan dos dueños, y
+el de la tabla es el aceptado.
+
+**La otra es una limitación del runner, ahora medida y no opinada.** El
+`lastContent` que exige ver al final del recorrido es un `<small>` con
+«cursos-horario por debajo de su meta», que vive en el **`header`** del
+workbench —por ENCIMA del dueño de scroll—, así que no puede estar visible a
+`maxScroll`: nunca. Medido en el navegador a 1024×600: el dueño llega al final
+(`atEnd`), los **siete paneles se alcanzan** y el último —«Avance por
+curso-horario»— queda con su base exactamente en el borde inferior, visible.
+
+**El contenido SÍ se alcanza.** La etiqueta `scroll-unreachable` no describe un
+contenido inalcanzable sino un elemento fijo que su heurística espera abajo. Se
+declara como falso positivo **con la evidencia**, no como pendiente, para que
+nadie lo reabra por sospecha.

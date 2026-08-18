@@ -3113,10 +3113,14 @@
   padding: 0;
   list-style: none;
   min-width: 0;
-  /* Dueño de su propio recorrido: con medio operativo caído son cien filas y
-     empujarían el resto de Avance fuera de la pantalla. */
-  max-height: 260px;
-  overflow-y: auto;
+  /* NO es dueña de scroll. Le puse `max-height` + `overflow-y` por la misma
+     razón que a la ruta por facultad —«cien filas empujarían el resto de
+     Avance»— y es el mismo error: a 1024x600 la pantalla quedaba con TRES
+     dueños anidados —el del workbench, el de la tabla y éste—, y el contrato
+     pide uno. Medido: 2 740 px de excedente en el workbench, 9 311 en la tabla
+     y 117 acá. Arreglé la otra lista y dejé ésta, que es como se copian los
+     defectos. Con 18 pendientes son ~380 px que la página recorre sin
+     problema. */
 }
 
 .mon-profile-page.is-aulas-flow .aulas-frente-lista > li {
