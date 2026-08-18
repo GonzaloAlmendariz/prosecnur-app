@@ -2202,3 +2202,20 @@ PSICOLOGÍA 1,52× / 1,14× — la celda más ajustada, visible de un vistazo.
 cualquier método— está entero: afijación + certificación total + celdas
 M/H + tarjeta.** Siguiente: rotación G2 (foco 1: validar hondo
 sistemático/estratificado/pool con el patrón del cubo).
+
+## G2 foco 1 · Los CUATRO métodos, validados en vivo · ☑ 2026-08-18
+
+Cada método corrido sobre HSVG2026 con la afijación del diseño (n=202, MC
+apagado, decisión p25 vigente; pool con 50 candidatos, declarado):
+
+| Método | M1 | Desvío afijación | Certificación | Margen mín. | Celdas M/H |
+|---|---|---|---|---|---|
+| cube_balanceado | 202 | 0 | 15/15 | 1,35× | 30/30 |
+| sistematico_pps | 202 | 0 | 15/15 | 1,37× | 30/30 |
+| estratificado_aleatorio | 202 | 0 | 15/15 | 1,49× | 30/30 |
+| pool_controlado | 202 | 0 | 15/15 | 1,36× | 30/30 |
+
+**El sello de calidad es real en los cuatro mecanismos sobre los datos
+reales** — no sólo en el test sintético del contrato. La sesión quedó
+restaurada al cubo canónico (certificación 15/15) y guardada. G2 sigue como
+rotación permanente; próximo foco: G3 «bien explicado».
