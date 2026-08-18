@@ -14,7 +14,7 @@
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
 import { useMemo, useState } from "react";
-import { ArrowRightLeft, ClipboardCheck, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
 import {
   apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
@@ -181,6 +181,13 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
     () => agenda.filter((r) => String(r.sample_role ?? "") !== "extra_reserve_pool"),
     [agenda],
   );
+  // Cuántas siguen sin pasar por aquí. Es lo que viene a saber quien abre la
+  // pestaña, y sale de la misma lista que tiene al lado: `planificada` es el
+  // estado con el que nacen y del que sólo salen al registrarlas.
+  const porRegistrar = useMemo(
+    () => filas.filter((r) => (String(r.operational_status ?? "") || "planificada") === "planificada").length,
+    [filas],
+  );
   const activa = useMemo(
     () => filas.find((r) => String(r.operational_code ?? r.classroom_id) === seleccion) ?? null,
     [filas, seleccion],
@@ -297,9 +304,26 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
 
           <div className="registro-campo-form">
             {!activa ? (
-              <p className="registro-campo-vacio">
-                Elige un curso-horario de la lista para registrar cómo fue su aplicación.
-              </p>
+              // Un estado vacío de verdad y no una frase suelta arriba a la
+              // izquierda: medido a 1440, este panel deja 1 030 px de ancho por
+              // 436 de alto sin nada dentro hasta que se elige un aula, y una
+              // línea de 13 px en la esquina de ese hueco se lee como que la
+              // vista no cargó. Lleva además cuántas faltan por registrar, que
+              // es lo que quien abre esta pestaña viene a saber y ya está en la
+              // misma lista que tiene al lado.
+              <div className="registro-campo-vacio">
+                <ClipboardList size={22} aria-hidden="true" />
+                <strong>Elige un curso-horario de la lista</strong>
+                <p>
+                  Aquí se registra cómo fue su aplicación: asistentes, rechazos,
+                  duplicados y efectivas.
+                </p>
+                {porRegistrar ? (
+                  <p className="registro-campo-vacio-cifra">
+                    <strong>{porRegistrar}</strong> de {filas.length} todavía sin registrar
+                  </p>
+                ) : null}
+              </div>
             ) : (
               <>
                 <p className="registro-campo-contexto">

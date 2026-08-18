@@ -210,12 +210,32 @@
 }
 
 /* El vacío vive DENTRO del panel, con su propia caja (C3). */
+/* El vacío del registro, construido.
+   Medido a 1440: este panel deja 1 030 x 436 px sin nada dentro hasta que se
+   elige un aula, y ahí había una sola línea de 13 px pegada a la esquina
+   superior izquierda — que a ese tamaño no se lee como «elige uno», se lee como
+   que la vista no cargó. Centrado y con su ícono, el hueco pasa a ser una
+   superficie que dice qué hacer y cuánto falta. */
 .registro-campo-vacio {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  height: 100%;
+  min-height: 220px;
   margin: 0;
   padding: var(--pulso-space-4, 16px);
-  font-size: 13px;
+  text-align: center;
   color: var(--pulso-text-soft);
 }
+.registro-campo-vacio > svg { color: var(--pulso-border-strong); }
+.registro-campo-vacio > strong { font-size: 14px; color: var(--pulso-text); }
+.registro-campo-vacio > p { margin: 0; font-size: 12px; max-width: 42ch; }
+.registro-campo-vacio-cifra {
+  margin-top: 4px !important;
+  font-variant-numeric: tabular-nums;
+}
+.registro-campo-vacio-cifra strong { color: var(--pulso-text); }
 
 /* La seccion Agenda vive en una vista de alto fijo que RECORTA (`overflow:
  * hidden`). Con dos paneles cabian; al entrar el registro de campo como tercero
