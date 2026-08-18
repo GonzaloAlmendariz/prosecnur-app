@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { contar } from "../../fuentes/vocabulario";
 import type { CSSProperties, ReactNode } from "react";
 // Por el shim, que es la regla de la casa: los imports directos de
 // `lucide-react` arrastran el barrel entero al bundle. Este archivo se lo
@@ -352,7 +353,7 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
     {
       label: "Fichas PDF",
       value: handoff.pdf ? coverageLabel(handoff.pdf, handoff.total, "fichas") : handoff.linked ? "listas para preparar" : "pendiente",
-      detail: handoff.word ? `${fmt(handoff.word)} fichas Word enlazadas` : "QR, Word y PDF se preparan desde Fichas QR",
+      detail: handoff.word ? `${contar(handoff.word, "ficha Word enlazada", "fichas Word enlazadas")}` : "QR, Word y PDF se preparan desde Fichas QR",
       tone: handoff.pdf ? "ready" : handoff.linked ? "current" : "waiting",
     },
     {
@@ -536,7 +537,7 @@ function renderAulasView(
           {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
               buscarlo en su libro. */}
           <h3>Base de control</h3>
-          <span>{control.length ? `${fmt(control.length)} aulas` : "Sin datos"}</span>
+          <span>{control.length ? contar(control.length, "aula", "aulas") : "Sin datos"}</span>
         </div>
         <AulasControlDelLibro filas={control} resumen={controlResumen} />
       </section>
@@ -1198,7 +1199,7 @@ export default function AulasMonitoreoPage() {
           emptyDetail={activeDef.desc ?? "Vista operativa"}
           iconOnlyTabs
           localTabs={railDeAulas(seccionActiva, dashboard)}
-          modeCountLabel={`${pestanasDe(seccionActiva).length || 1} pestañas`}
+          modeCountLabel={contar(pestanasDe(seccionActiva).length || 1, "pestaña", "pestañas")}
           routeLabel="Cursos-horario"
           routeSectionLabel="Cursos-horario · sección"
           routeShortLabel="Cursos-horario"

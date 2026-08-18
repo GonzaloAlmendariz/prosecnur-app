@@ -14,6 +14,7 @@
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
 import { useMemo, useState } from "react";
+import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
 import {
   apiMonitoreoAulasActivarReemplazo,
@@ -328,7 +329,7 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
               <>
                 <p className="registro-campo-contexto">
                   {etiquetaDeAula(activa)}
-                  {activa.eligible_n ? ` · ${activa.eligible_n} matriculados` : ""}
+                  {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
                 </p>
 
                 {/* Estado y motivo comparten fila. Sueltos eran dos `label` de

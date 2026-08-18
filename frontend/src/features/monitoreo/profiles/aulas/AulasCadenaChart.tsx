@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { contar } from "../../fuentes/vocabulario";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
@@ -91,7 +92,7 @@ export function AulasCadenaChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
       </p>
       <p className="mon-profile-table-recorte">
         {reservasGastadas
-          ? `${reservasGastadas} reservas gastadas y ${reservasLibres} todavía en el banco.`
+          ? `${contar(reservasGastadas, "reserva gastada", "reservas gastadas")} y ${reservasLibres} todavía en el banco.`
           : `Ninguna reserva gastada: las ${reservasLibres} del plan siguen en el banco.`}
         {sinReserva
           ? ` ${sinReserva} ${sinReserva === 1 ? "titular no tiene" : "titulares no tienen"} ninguna reserva, así que ${sinReserva === 1 ? "su meta queda" : "sus metas quedan"} sin cubrir si ${sinReserva === 1 ? "cae" : "caen"}.`

@@ -13,6 +13,7 @@
 // `title` que sólo se ve al pasar por encima.
 
 import { CalendarRange, RefreshCw } from "../../../../vendor/lucide-react";
+import { contar } from "../../fuentes/vocabulario";
 import { VacioConSalida } from "../../core/VacioConSalida";
 
 export function VacioSinTablero({
@@ -31,7 +32,7 @@ export function VacioSinTablero({
       icon={planImportado ? RefreshCw : CalendarRange}
       titulo={planImportado ? "Falta sincronizar el campo" : "Falta importar el plan"}
       dato={planImportado
-        ? `${fuentesActivas} de ${fuentesDeclaradas} fuentes activas`
+        ? `${fuentesActivas} de ${contar(fuentesDeclaradas, "fuente activa", "fuentes activas")}`
         : "El plan de cursos-horario sale del cálculo de muestra"}
       accion={onIrAFuentes ? { label: "Ir a Fuentes", onClick: onIrAFuentes } : undefined}
     />

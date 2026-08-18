@@ -4,6 +4,7 @@
 // los botones Avance/Todo del chrome (% real + shimmer, var --mon-sync-progress).
 
 import { useEffect, useState } from "react";
+import { contar } from "../fuentes/vocabulario";
 import type { CSSProperties } from "react";
 import { ClipboardCheck, Layers3, Loader2, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -104,7 +105,10 @@ export function monitoreoSourceSyncActionItems(options: {
     {
       key: "sheets",
       label: "Sheets",
-      title: options.sheetCount ? `${options.sheetCount} fuentes Sheets activas` : "Sin fuentes Sheets activas",
+      // `contar` ya resuelve el cero como «Sin …», que es lo que decía el
+      // ternario a mano. El plural fijo hacía que una sola fuente —el caso
+      // corriente— se anunciara como «1 fuentes Sheets activas».
+      title: contar(options.sheetCount, "fuente Sheets activa", "fuentes Sheets activas"),
       icon: Layers3,
       disabled: !options.sheetCount,
       onRun: options.onSyncSheets,
@@ -113,7 +117,11 @@ export function monitoreoSourceSyncActionItems(options: {
       key: "external",
       label: territorial ? "Kobo" : "SurveyMonkey",
       title: externalCount
-        ? `${externalCount} ${territorial ? "fuentes Kobo activas" : "encuestas activas"}`
+        ? contar(
+          externalCount,
+          territorial ? "fuente Kobo activa" : "encuesta activa",
+          territorial ? "fuentes Kobo activas" : "encuestas activas",
+        )
         : territorial ? "Sin fuentes Kobo activas" : "Sin encuestas SurveyMonkey activas",
       icon: ClipboardCheck,
       disabled: !externalCount,
@@ -122,7 +130,7 @@ export function monitoreoSourceSyncActionItems(options: {
     {
       key: "all",
       label: "Todo",
-      title: options.totalCount ? `${options.totalCount} fuentes activas` : "Sin fuentes activas",
+      title: contar(options.totalCount, "fuente activa", "fuentes activas"),
       icon: RefreshCw,
       disabled: !options.totalCount,
       primary: true,

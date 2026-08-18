@@ -6,6 +6,7 @@
 // La agenda y las fichas QR siguen viviendo en Recopiladores: ese flujo
 // pertenece al módulo de fichas y este monitoreo solo lo lee.
 import { useRef } from "react";
+import { contar } from "../../fuentes/vocabulario";
 import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
 
@@ -155,7 +156,7 @@ export function AulasOperationsPanel({
           onClick={onSyncField}
           disabled={busy || !imported}
           title={imported
-            ? `Recalcular el corte de campo (${activeSources.length} fuentes activas: ${sourceKinds})`
+            ? `Recalcular el corte de campo (${contar(activeSources.length, "fuente activa", "fuentes activas")}: ${sourceKinds})`
             : "Primero importa el plan de cursos-horario"}
         >
           {busy ? <Loader2 size={14} className="pulso-spin" /> : <RefreshCw size={14} />}
@@ -201,7 +202,9 @@ export function AulasOperationsPanel({
             if (archivo) onImportarLibro(archivo);
           }}
         />
-        <em>{activeSources.length ? `${activeSources.length} fuentes activas · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
+        {/* El plural iba fijo, y con una sola fuente —el caso corriente de un
+            estudio de aulas— la barra decía «1 fuentes activas». */}
+        <em>{activeSources.length ? `${contar(activeSources.length, "fuente activa", "fuentes activas")} · ${sourceKinds}` : "Sin fuentes activas conectadas"}</em>
       </div>
     </section>
   );
