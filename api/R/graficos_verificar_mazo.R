@@ -302,6 +302,24 @@ medir_mazo <- function(path) {
 #' Se toma un percentil bajo y no el minimo: el minimo de un mazo de sesenta
 #' laminas es un caso aislado, y calibrar contra el deja pasar cualquier cosa.
 #'
+#' CONSECUENCIA QUE HAY QUE TENER PRESENTE AL LEER LA CUENTA: si el piso es el
+#' percentil 10 de la referencia, la referencia lo incumple ~10 % de las veces
+#' POR CONSTRUCCION. R1, R5 y R8 son pisos —`>=`, barra demasiado FINA o
+#' arranque demasiado ALTO—, no techos, y el aprobado los incumple diez veces
+#' entre los tres. Que el motor empiece a incumplirlos no significa que haya
+#' empeorado: significa que ya tiene cola donde antes no tenia ninguna.
+#'
+#' Medido tras P45, en tasa y no en cuenta (motor `p52` contra el aprobado):
+#'
+#'   grosor de escala      8.1 % bajo el piso  contra 10.3 %   (min 0.483 / 0.488)
+#'   grosor categorico     4.0 %               contra  4.0 %   (mediana 0.826 / 0.876)
+#'   arranque vertical     5.1 %               contra  9.3 %   (mediana 3.938 / 4.240)
+#'
+#' Antes de P45 el motor iba en 2.7 / 0.0 / 0.0 %: sin cola, con la mediana mas
+#' gruesa que el aprobado. La cuenta subio de 21 a 25 —la del aprobado— porque
+#' la distribucion se le acerco, no porque el mazo salga peor. Comparar TASAS y
+#' no cuentas es lo unico que distingue esos dos casos.
+#'
 #' @param path Ruta al `.pptx` de referencia.
 #' @param p Percentil inferior que se acepta como piso.
 #'
