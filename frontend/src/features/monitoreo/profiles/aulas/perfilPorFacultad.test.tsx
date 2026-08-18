@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
+import { perfilDesdeElMotor } from "./perfilPorFacultad";
 import { perfilPorFacultad } from "./perfilPorFacultad";
 
 /**
@@ -89,5 +93,67 @@ describe("el perfil por facultad", () => {
     const res = perfilPorFacultad(plan);
     expect(res.cumplidas).toBe(1);
     expect(res.tope).toBe(60);
+  });
+});
+
+/**
+ * El bloque del motor manda sobre el cálculo local.
+ *
+ * La vista calculaba el perfil sobre `course_status`, que viaja recortado a 500
+ * filas de 2 615 y además incluye las reservas dormidas de cada cadena: el
+ * panel que contesta «¿cómo va Derecho?» medía un subconjunto arbitrario.
+ */
+describe("perfilDesdeElMotor", () => {
+  it("deriva lo cubierto de la meta y la brecha, no de las respuestas", () => {
+    // Las respuestas pueden pasarse de la meta en un aula y no cubrir otra, así
+    // que `cubierto` sale de meta − brecha y no de `respuestas_validas`.
+    const [derecho] = perfilDesdeElMotor([
+      { faculty: "DERECHO", aulas: 18, meta: 664, brecha: 164, respuestas_validas: 700 },
+    ]).facultades;
+
+    expect(derecho.meta).toBe(664);
+    expect(derecho.falta).toBe(164);
+    expect(derecho.cubierto).toBe(500);
+    expect(derecho.avance).toBe(75);
+  });
+
+  it("una facultad sin nombre se rotula, no se descarta", () => {
+    const { facultades } = perfilDesdeElMotor([{ faculty: "", aulas: 3, meta: 60, brecha: 60 }]);
+    expect(facultades).toHaveLength(1);
+    expect(facultades[0].facultad).toBe("Sin facultad");
+  });
+
+  it("cuenta como cumplida la que no tiene brecha", () => {
+    const r = perfilDesdeElMotor([
+      { faculty: "A", aulas: 2, meta: 40, brecha: 0 },
+      { faculty: "B", aulas: 2, meta: 40, brecha: 5 },
+    ]);
+    expect(r.cumplidas).toBe(1);
+    expect(r.tope).toBe(40);
+  });
+});
+
+/**
+ * Y que el COMPONENTE lo use.
+ *
+ * El cálculo bueno no sirve de nada si la vista sigue llamando al local: un
+ * mutante que devolvía `perfilPorFacultad(filas)` dejaba los 161 tests del
+ * perfil en verde. Este guard es el que lo caza.
+ */
+describe("AulasPerfilPorFacultad y el bloque del motor", () => {
+  it("cuando llega el resumen del motor, manda sobre las filas", () => {
+    // Las filas dicen una cosa y el resumen otra, a propósito: si el componente
+    // vuelve al cálculo local, sale «CIENCIAS» y este aserto cae.
+    const html = renderToStaticMarkup(
+      <AulasPerfilPorFacultad
+        filas={[
+          { faculty: "CIENCIAS", expected_valid: 10, respuestas_validas: 0 },
+        ] as unknown as MonitoreoAulasPlanRow[]}
+        resumen={[{ faculty: "DERECHO", aulas: 18, meta: 664, brecha: 164 }]}
+      />,
+    );
+
+    expect(html).toContain("DERECHO");
+    expect(html).not.toContain("CIENCIAS");
   });
 });
