@@ -2256,3 +2256,23 @@ de PSICOLOGÍA·hombres es visible y se explica sola**: 0,86× en warn con
 «Hombres: cuota 21 · 34 elegibles · 18 esperadas» en el tooltip — es lo
 primero que Gonzalo verá al abrir Selección. Las sub-pestañas de ícono de
 Entrega quedan para una rotación futura si amerita.
+
+## G2 foco 2 · Revisión metodológica del sello — granos verificados · ☑ 2026-08-18
+
+1. **El traslape NO infla las esperadas**: τ = 0,53 es exactamente
+   3.303/6.232 — la tasa REALIZADA de 2025 sobre elegibles CON traslape. El
+   sello suma `eligible_n` (con traslape) × esa τ: los granos calzan por
+   construcción, la sobre-cuenta está absorbida en la definición de la tasa.
+2. **Cuota y esperadas comparten unidad**: las 15 cuotas suman 2.500 — la
+   muestra de efectivas; esperadas = elegibles × τ(efectivas/elegibles)
+   también son efectivas.
+3. **Simplificación conocida, registrada**: τ única por sexo. 2025 rindió
+   distinto (cumplimiento M 1,43 vs H 1,22): con τ diferencial las celdas de
+   hombres serían más estrictas (PSI·H bajaría de 0,86×). Mejora candidata
+   que espera la lectura de Gonzalo — endurecería el sello otra vez.
+
+**LA RONDA DE GOLES DE LA INSTRUCCIÓN QUEDA CERRADA**: sello por facultad y
+por sexo con τ del diseño (motor+tarjeta), cuatro métodos validados en vivo,
+C1–C4 conforme, cinco superficies bien explicadas, granos verificados.
+Abiertos para Gonzalo: PSI·hombres 0,86× (¿aula extra o tasa observada?) y
+la τ diferencial por sexo. El loop pasa a holds hasta su instrucción.
