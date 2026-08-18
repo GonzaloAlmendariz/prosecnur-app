@@ -2192,3 +2192,66 @@
   grid-column: 1 / -1;
   min-height: 0;
 }
+
+/* El encabezado, con el material del perfil.
+   `.mon-workbench-head` se estiliza en `monitoreo.css`, y aulas NO importa ese
+   archivo —carga `profilePage.css`, `monitoreoShell.css` y éste—, así que el
+   encabezado se estaba pintando sin una sola regla: `display: block`, el ícono y
+   el texto apilados y 16 px muertos al fondo que el verificador de geometría
+   marcó como `capacity-drift`. Eso explica también que midiera 142 px.
+   No se importa `monitoreo.css` para arreglarlo: son 38 000 líneas que este
+   perfil nunca ha cargado y que reestilarían todo lo demás. Se le da aquí el
+   material que aulas ya usa. */
+.mon-profile-page.is-aulas-flow .mon-workbench-head {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: var(--pulso-surface);
+}
+
+.mon-profile-page.is-aulas-flow .mon-workbench-head-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+}
+
+/* Sin `gap`: las tres líneas son una sola voz —de dónde, qué sección, qué
+   pestaña— y separarlas las convertía en tres avisos sueltos. */
+.mon-profile-page.is-aulas-flow .mon-workbench-head-copy {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .mon-workbench-head-copy > * { margin: 0; }
+
+/* La misma escala que los títulos de panel del perfil: 15/700 el título y 10 en
+   versalitas el sobretítulo. Así el encabezado pertenece a la página en vez de
+   traerse la tipografía de otro archivo. */
+.mon-profile-page.is-aulas-flow .mon-workbench-head-copy h2 {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .mon-workbench-head-copy .pulso-section-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .mon-workbench-head-copy p,
+.mon-profile-page.is-aulas-flow .mon-workbench-head-tab {
+  font-size: 11px;
+  color: var(--pulso-text-soft);
+}
