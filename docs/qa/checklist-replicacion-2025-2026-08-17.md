@@ -1977,3 +1977,37 @@ ciegas usaría `selector.n_aulas = 30` (stale) con `simulation_runs = 500`
 seleccionar` dimensiona (¿usa el margen por estrato o `n_aulas`?), correr
 con `simulation_runs = 0` y el tamaño del diseño (202), y comparar perfil
 contra la tabla de arriba, quince filas.
+
+## R8 · La selección del motor, medida — y el DEFECTO DE FONDO del reparto · 2026-08-18
+
+**La corrida** (cube_balanceado, semilla 20260619, MC apagado —el MC sólo
+estima π, no cambia el sorteo—, n=202 del diseño, decisión p25 vigente):
+202 titulares M1 en ~30 s. Perfil global: 194 teóricos + **8 talleres (6 en
+A&D, 2 en ARQ — la excepción (c) funcionando en la selección)**; tamaños
+p25 25 · mediana 38 · media 37,3 (2025: mediana 29 · media 31,3 — el p25 y
+los talleres suben el tamaño típico del aula seleccionada).
+
+**EL HALLAZGO — la selección ignora la afijación de su propio diseño.** El
+cálculo publica `aulas_base` POR FACULTAD (las 202 = C&I 42 · EGC 28 ·
+EGL 22 · DERECHO 18 · ARQ 15 · A&D 15 · CCSS 13 · AE 12 · CyA 10 · GES 8 ·
+PSI 7 · LyCH 5 · EDU 3 · CONT 2 · GAS 2), pero `.cm_aulas_quota_by_stratum`
+(calc_muestra_aulas.R:1570) reparte `n_aulas` proporcional a la MASA DE
+ELEGIBLES del estrato (faculty×sex×size_group) y la afijación nunca llega al
+selector. Resultado medido: **DERECHO diseño 18 → sorteo 36 (+18) · EGL 22
+→ 31 (+9) · ARQ 15 → 7 (−8) · A&D 15 → 9 (−6) · AE 12 → 7 (−5) · CCSS 13
+→ 8 (−5). Desvío absoluto 68 de 202 (34 %).**
+
+**Esto explica (d)**: «ARQUITECTURA pide 15 y 2025 aplicó 7» — nuestro motor
+también le da 7, porque igual que 2025 sigue la masa de elegibles y no la
+afijación. Y reencuadra R7 (motor 478 vs plantilla): son dos repartos, no
+sólo dos totales. Consumidores del defecto: la selección, las cadenas de
+reemplazo (dimensionadas sobre el reparto torcido), la entrega a campo y el
+cumplimiento de cuotas por facultad (a DERECHO le sobrarían aulas mientras
+ARQ no llega a su cuota).
+
+**FIX PROPUESTO (siguiente)**: la afijación del diseño viaja a la selección
+— archivo nuevo (`calc_muestra_aulas_afijacion.R`; el engine está congelado
+a crecimiento) con una cuota en dos niveles: primero POR FACULTAD según
+`aulas_base` del estudio, luego dentro de la facultad por masa de elegibles
+(sex×size). Sin targets declarados, comportamiento actual intacto. Test con
+las quince filas del diseño + mutante que anule el primer nivel.
