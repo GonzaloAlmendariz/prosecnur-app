@@ -1260,6 +1260,63 @@ Así que excluirlas no es una decisión de tamaño sino de **criterio**: si en u
 taller de tesis la dinámica no es de clase y aplicar allí no tiene sentido, se
 excluye por eso, no porque haya poca gente. Es de Gonzalo.
 
+## R31 — el criterio que se lleva Artes Escénicas y Letras es EL MÍNIMO
+
+Razones de exclusión en las cuatro facultades que no se reprodujeron (un aula
+puede caer por varias):
+
+| Facultad | catálogo | incluidas | mínimo de elegibles | matriculados | modalidad | tipo de sesión |
+|---|---|---|---|---|---|---|
+| ARTES ESCÉNICAS | 454 | 44 | **405** | 390 | 117 | 10 |
+| LETRAS Y C. HUMANAS | 149 | 15 | **131** | 121 | — | 47 |
+| GASTRONOMÍA | 54 | 16 | **36** | 30 | — | 10 |
+| EE.GG. LETRAS | 482 | 330 | **134** | 9 | — | 58 |
+
+No es el nivel del curso, ni el tipo de sesión, ni la modalidad: es **el umbral
+de tamaño**, y arrastra por sí solo el 89 % de las exclusiones de Artes
+Escénicas.
+
+### Son dos diferencias con 2025, no una
+
+2025 pedía **matriculados ≥ 10**. Nosotros pedimos **elegibles ≥ 15** — un
+umbral más alto **y** sobre otra magnitud, porque los elegibles descuentan el
+traslape. Aplicando el criterio literal de 2025 sobre las aulas que ya pasan
+todo lo demás:
+
+| Facultad | hoy | con matriculados ≥ 10 | 2025 | % |
+|---|---|---|---|---|
+| ARTES ESCÉNICAS | 44 | **112** | 115 | 97 % |
+| CIENCIAS E INGENIERIA | 571 | 629 | 655 | 96 % |
+| EE.GG. LETRAS | 330 | 419 | 470 | 89 % |
+| CIENCIAS Y ARTES COMUN. | 157 | 173 | 168 | 103 % |
+| ARTE Y DISEÑO | 62 | 87 | 83 | 105 % |
+| GESTIÓN | 102 | 107 | 101 | 106 % |
+| EE.GG. CIENCIAS | 319 | 377 | 352 | 107 % |
+| PSICOLOGÍA | 89 | 97 | 90 | 108 % |
+| ARQUITECTURA | 52 | 71 | 64 | 111 % |
+| CONTABLES | 15 | 18 | 16 | 113 % |
+| DERECHO | 423 | 450 | 395 | 114 % |
+| LETRAS Y C. HUMANAS | 15 | **48** | 40 | 120 % |
+| CIENCIAS SOCIALES | 150 | 170 | 139 | 122 % |
+| EDUCACIÓN | 19 | 42 | 25 | 168 % |
+| GASTRONOMÍA | 16 | 24 | 33 | **73 %** |
+| **TOTAL** | **2.364** | **2.824** | **2.746** | **103 %** |
+
+**Artes Escénicas pasa de 44 a 112 contra sus 115.** Letras y Ciencias Humanas
+de 15 a 48. El marco entero pasa del 86 % al 103 % del de 2025, y trece de
+quince facultades caen en la banda 89–122 %.
+
+La única que sigue corta es **GASTRONOMÍA (24 contra 33)** y la que más se pasa
+es **EDUCACIÓN (42 contra 25)**: ésas ya no se explican por el umbral.
+
+### La decisión, que es de Gonzalo
+
+Bajar el mínimo a 10 y medirlo sobre matriculados **reproduce el marco de 2025**,
+pero mete al sorteo aulas con menos de quince personas encuestables. Subirlo
+protege el rendimiento de cada visita a costa de un marco más chico y más
+sesgado hacia las facultades grandes. Él ya dijo que el mínimo **depende de cada
+facultad**; esto le da la cifra por facultad para decidirlo.
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
