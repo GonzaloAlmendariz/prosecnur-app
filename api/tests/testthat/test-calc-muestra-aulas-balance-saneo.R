@@ -110,3 +110,48 @@ test_that("el score del pool etiqueta su fuente y la degradacion se declara", {
   expect_identical(attr(degradado, "score_fuente", exact = TRUE), "heuristico")
   expect_equal(as.numeric(degradado), 3 + 0.15 * (log1p(10) + log1p(20)), tolerance = 1e-9)
 })
+
+# --- El pivotal local corre DE VERDAD (lcube 2.x: lcube(prob, Xspread, Xbal)) --
+#
+# Medido en HSVG2026: la llamada de dos argumentos erraba SIEMPRE en
+# BalancedSampling 2.1.1, el tryCatch la tragaba y el else-if por EXISTENCIA
+# nunca intentaba lpm2 -> el pivotal local jamas corrio; todo estrato con
+# sorteo caia a cubo y el sello "de los cuatro metodos" comparaba tres.
+
+.snl_frame <- function(n = 20L) {
+  data.frame(
+    classroom_id = paste0("A", seq_len(n)),
+    faculty = rep(c("F1", "F2"), length.out = n),
+    level = rep(c("1", "2", "3", "4"), length.out = n),
+    eligible_n = 10 + seq_len(n),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("pick_local devuelve una muestra valida con BalancedSampling instalada", {
+  skip_if_not_installed("BalancedSampling")
+  df <- .snl_frame()
+  pik <- .cm_aulas_inclusion_probabilities(df$eligible_n, 5L)
+  sel <- list(balance_vars = list("faculty", "level"), spread_vars = list())
+  picked <- .cm_aulas_pick_local(df, pik, sel, seed = 77L)
+  # El defecto exacto: aqui venia NULL y el motor caia a cubo declarando
+  # «equivalente».
+  expect_false(is.null(picked))
+  expect_true(all(picked >= 1L & picked <= nrow(df)))
+  expect_length(picked, 5L)
+})
+
+test_that("pick_local sortea de verdad: no son siempre las primeras filas", {
+  skip_if_not_installed("BalancedSampling")
+  # Si los INDICES de 2.x se leyeran como indicadores (which(out > 0)), toda
+  # semilla devolveria 1..quota. Dos semillas distintas deben poder diferir y
+  # ninguna debe ser mecanicamente el prefijo.
+  df <- .snl_frame(24L)
+  pik <- .cm_aulas_inclusion_probabilities(df$eligible_n, 6L)
+  sel <- list(balance_vars = list("faculty", "level"), spread_vars = list())
+  muestras <- lapply(c(11L, 22L, 33L, 44L), function(s) .cm_aulas_pick_local(df, pik, sel, seed = s))
+  expect_true(all(!vapply(muestras, is.null, logical(1))))
+  prefijos <- vapply(muestras, function(m) identical(sort(m), seq_len(6L)), logical(1))
+  expect_false(all(prefijos))
+  expect_gt(length(unique(vapply(muestras, function(m) paste(sort(m), collapse = ","), character(1)))), 1L)
+})
