@@ -1,0 +1,52 @@
+/* Bloque de sexo del perfil de la muestra (I5). Owner local. */
+.cmv2-psx-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.cmv2-psx-lista > li {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.cmv2-psx-nombre {
+  font-size: 11px;
+  color: var(--pulso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* La barra es la muestra (mujeres a la izquierda, hombres el resto); la marca
+   vertical es la proporción de mujeres del marco de esa facultad. */
+.cmv2-psx-track {
+  position: relative;
+  display: block;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cmv2-accent-fg) 22%, var(--pulso-surface-2));
+  overflow: hidden;
+  min-width: 0;
+}
+.cmv2-psx-mujeres {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--cmv2-accent-fg);
+}
+.cmv2-psx-ref {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--pulso-text);
+  opacity: 0.55;
+}
+.cmv2-psx-cifras {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
