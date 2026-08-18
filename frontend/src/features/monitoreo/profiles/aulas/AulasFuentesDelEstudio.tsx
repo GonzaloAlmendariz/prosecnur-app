@@ -25,7 +25,14 @@ const PAPEL: Record<string, string> = {
   barrido: "Barrido",
 };
 
-function Fuente({ source }: { source: MonitoreoSource }) {
+function Fuente({ source, filas, columnas }: {
+  source: MonitoreoSource;
+  /** Filas que trajo la plataforma, del estado; sólo para la fuente activa. */
+  filas?: number;
+  /** Columnas de esa base. Una fuente de 3 700 filas y 43 columnas no se
+   *  parece en nada a una de 3 700 y 2, y la tarjeta decía lo mismo de ambas. */
+  columnas?: number;
+}) {
   const enlace = enlaceDeFuente(source);
   const activa = source.enabled !== false;
   const papel = PAPEL[String(source.role ?? "")] ?? "Respuestas de campo";
@@ -43,6 +50,12 @@ function Fuente({ source }: { source: MonitoreoSource }) {
         </p>
         <p className="aulas-fuente-servicio">
           {servicioDeFuente(source)} · {papel}
+          {filas ? (
+            <span className="aulas-fuente-volumen">
+              {new Intl.NumberFormat("es-PE").format(filas)} filas
+              {columnas ? ` · ${new Intl.NumberFormat("es-PE").format(columnas)} columnas` : ""}
+            </span>
+          ) : null}
         </p>
         <p className="aulas-fuente-sync">
           {enlace.estado === "enlace" ? (
@@ -109,6 +122,29 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
             </li>
           ))}
         </ul>
+        {/* Qué trajo cada hoja. `resumen` llegaba en el tipo desde el primer
+            día y NO lo usaba nadie: la tarjeta decía «3 de 3 hojas» y se
+            quedaba ahí, así que quien abre Fuentes no sabía si esas tres hojas
+            traían diez filas o mil. Son las cifras del propio recibo; ninguna
+            se calcula aquí. */}
+        {recibo.resumen ? (
+          <ul className="aulas-libro-cifras">
+            {([
+              ["unidades", "cursos-horario"],
+              ["titulares", "titulares"],
+              ["partes_de_campo", "partes de campo"],
+              ["filas_de_control", "filas de control"],
+            ] as const).map(([clave, rotulo]) => {
+              const n = recibo.resumen?.[clave];
+              if (n == null) return null;
+              return (
+                <li key={clave}>
+                  <strong>{new Intl.NumberFormat("es-PE").format(n)}</strong> {rotulo}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
         <p className="aulas-fuente-sync">
           <em>{cuando}</em>
           {recibo.control_sin_nombre ? (
@@ -122,12 +158,15 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
   );
 }
 
-export function AulasFuentesDelEstudio({ fuentes, anonimas, libro }: {
+export function AulasFuentesDelEstudio({ fuentes, anonimas, libro, filas, columnas }: {
   fuentes: ReadonlyArray<MonitoreoSource>;
   /** `anonymous_responses` del tablero: cómo se atribuye lo que llega. */
   anonimas: boolean;
   /** El recibo de la importación, o `null` si nunca se importó un libro. */
   libro?: ReciboDelLibro | null;
+  /** `n_rows` y `variables` del estado: cuánto trajo la plataforma. */
+  filas?: number;
+  columnas?: number;
 }) {
   if (!fuentes.length && !libro) {
     return (
@@ -141,7 +180,17 @@ export function AulasFuentesDelEstudio({ fuentes, anonimas, libro }: {
   return (
     <div className="aulas-fuentes">
       <div className="aulas-fuentes-lista">
-        {fuentes.map((source) => <Fuente key={source.id} source={source} />)}
+        {/* El volumen se le da a la ÚNICA fuente activa: `n_rows` es del estado
+            entero, así que repartirlo entre dos fuentes diría de cada una lo
+            que trajeron las dos juntas. */}
+        {fuentes.map((source) => (
+          <Fuente
+            key={source.id}
+            source={source}
+            filas={fuentes.length === 1 ? filas : undefined}
+            columnas={fuentes.length === 1 ? columnas : undefined}
+          />
+        ))}
         {/* Después de las fuentes de respuestas: primero de dónde llega lo que
             se cuenta, y luego de dónde llega con qué se compara. */}
         {libro ? <LibroDelOperativo recibo={libro} /> : null}
