@@ -393,7 +393,22 @@ calibrar_umbrales <- function(path, p = 0.10) {
 # ninguno. `titulos_grupo` solo existe cuando alguien lo escribio a mano; en el
 # resto el graficador cae en `.title_of_var(v)` —la ETIQUETA DE LA VARIABLE en
 # el instrumento—, que es la fuente contra la que hay que comparar para contar
-# el mazo entero. Lo que P46 cerro sigue cerrado —los 22 cortes
+# el mazo entero.
+#
+# CONTADO YA, con el universo sacado por TRAZA —`.title_of_var()` y
+# `.named_lookup()` viven dentro del renderer y no se pueden llamar desde
+# fuera—: **universo 99, completos 95, CORTADOS 4, ausentes 0**, contra los 16
+# que salian del plan. Los cuatro, sin elipsis:
+#
+#   lamina 31   55 de  66    «Estoy satisfecho(a) con la calidad de enseñanza…»
+#   lamina 43   40 de  52    «La infraestructura se adecua a las necesidades…»
+#   lamina 59  155 de 175    «El Departamento de Ciencias Contables fomenta…»
+#   lamina 59   20 de 133    «Los estudiantes reciben información sobre be…»
+#
+# El ultimo dibuja 20 caracteres de 133. ALCANCE: la traza cubrio UN sitio de
+# resolucion de los cuatro (`ttl <-` en 4746, 4764, 5394 y 5552 de
+# `reporte_plan_ppt.R`), asi que **4 es un piso, no el total** — el corte de la
+# lamina 25 sale por otra rama y no esta en esa lista. Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
 
