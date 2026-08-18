@@ -137,6 +137,24 @@
 #' su numero de categorias, asi que el eje largo es el caso NORMAL de las
 #' mixtas y no una anomalia.
 #'
+#' Y UNA ESTRUCTURA QUE HAY QUE TENER EN CUENTA ANTES DE LEER CUALQUIER TRAZA
+#' (medido marcando el destino en una tercera corrida): de los 232 renders,
+#' **110 son de PPT y 122 de Word**, y los de PPT vienen EMPAREJADOS — 54 con
+#' `alto_por_cat_eff = 0.5500` y 54 con **0.6510**, el mismo `y_axis_max` en
+#' cada pareja. O sea que el mismo grafico se construye dos veces dentro del
+#' PPT, una con el alto de fila NOMINAL y otra con el ESTIRADO
+#' (`.barras_alto_fila_ajustado()`). Que una configuracion «aparezca dos veces»
+#' no dice nada, entonces: pasa siempre.
+#'
+#' La unica configuracion de cuatro categorias cuyas DOS lineas son identicas
+#' —`y_axis_max = 9.52`, `alto_cat_eff = 0.651`, `h_panel = 6.1975`— es la
+#' compatible con lo medido en el XML de la lamina 16, donde sus dos bloques dan
+#' exactamente el mismo grosor 0.190; en todas las demas las dos lineas difieren
+#' en el alto de fila. Es consistente, NO es identificacion: para eso hay que
+#' trazar `plot_cat_lvls`, que son las etiquetas de fila y si aparecen en el
+#' XML. `titulo` y `caption_text` llegan VACIOS en las multiapiladas y no
+#' sirven de clave — probados los dos.
+#'
 #' Y una pieza que ya existe y conviene mirar antes de escribir otra:
 #' `.grosor_anclado_al_nominal()`, mas abajo en este archivo, reancla la
 #' fraccion cuando el panel viene impuesto —`fraccion * nominal / real`—. En el
