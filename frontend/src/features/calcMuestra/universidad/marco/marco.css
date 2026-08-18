@@ -2610,8 +2610,11 @@
   padding: 4px;
   display: grid;
   gap: 2px;
-  max-height: 320px;
-  overflow-y: auto;
+  /* Sin ventana de 320px: la lista real mide ~1.380px y la ventana atrapaba
+     1.000px de rueda en mitad de la página — la cárcel que Gonzalo señaló
+     («scrollear aquí es muy complicado por los contenedores»). El dueño del
+     scroll de esta pestaña es el tab-panel (regla No Scroll Jail); una lista
+     larga se recorre con la página, no contra ella. */
   border: 1px solid var(--cmv2-border);
   border-radius: 10px;
   background: var(--pulso-surface);

@@ -45,7 +45,14 @@
   min-width: 0;
   max-height: 60vh;
   overflow: auto;
-  overscroll-behavior: contain;
+  /* SIN overscroll-behavior: contain. Gonzalo: «scrollear aquí es muy
+     complicado por los contenedores». Medido: este panel mide ~592px de alto
+     (casi toda la ventana), así que la rueda cae sobre él casi siempre; con
+     `contain`, al agotar su scroll interno la rueda MORÍA en vez de continuar
+     la página — la cárcel exacta de la regla No Scroll Jail. Con
+     encadenamiento nativo, el panel scrollea lo suyo y le devuelve la rueda a
+     la página. El contain horizontal de otras tablas (`-inline`/`-x`) no
+     jaula la rueda vertical y se queda. */
 }
 
 .cmv2-panorama-scroll:focus-visible {
