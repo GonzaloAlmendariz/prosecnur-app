@@ -2179,3 +2179,15 @@ completo en el title. Montada junto al balance de sexo en la pestaña
 Selección del laboratorio, verificada en vivo. **G1 COMPLETO de motor a
 pantalla.** Siguiente de la cola: G6a (el cálculo publica cuotas M/H por
 facultad) y la rotación G2.
+
+## G6 · Cuotas de hombre y mujer, certificadas por celda · ☑ motor 2026-08-18, commit `66bd7f7a`
+
+**G6a resultó ya resuelto**: el engine sub-distribuye la cuota por sexo en
+`distribucion_sub` (mi «ausencia» era por mirar sólo aulas_por_estrato —
+la lección de verificar dónde vive, otra vez). **G6b motor ☑**: cada fila
+de la certificación gana su bloque `sexo` (cuota/elegibles/esperadas/margen/
+cubre por celda F/M, leyendo los elegibles por sexo de `sex_top_*`).
+**Medido en vivo: 30 de 30 celdas facultad × sexo cubren su cuota**; el
+punto más ajustado es PSICOLOGÍA·hombres (1,14×). El estado por celda es
+informativo y no tumba la facultad (un aula mixta no se controla en el
+sorteo). Pendiente G6b-UI: las celdas de sexo en la tarjeta.
