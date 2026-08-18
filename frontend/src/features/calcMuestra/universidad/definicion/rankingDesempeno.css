@@ -1,0 +1,93 @@
+/* Ranking de desempeño de CH del estudio anterior (I15). Owner local. */
+.cmv2-rankdes {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+
+.cmv2-rankdes-head { display: grid; gap: 4px; min-width: 0; }
+.cmv2-rankdes-head h4 { margin: 0; font-size: 14px; color: var(--pulso-text); }
+.cmv2-rankdes-head p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dos facultades por fila, como las fichas: comparar es ponerlas lado a lado. */
+.cmv2-rankdes-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 1279px) {
+  .cmv2-rankdes-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cmv2-rankdes-fac {
+  min-width: 0;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--cmv2-border) 10%, transparent);
+}
+
+.cmv2-rankdes-fac > header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 10px 4px;
+}
+.cmv2-rankdes-fac > header strong { font-size: 12px; color: var(--pulso-text); }
+.cmv2-rankdes-fac > header span {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-rankdes-fac table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.cmv2-rankdes-fac th,
+.cmv2-rankdes-fac td {
+  padding: 5px 10px;
+  text-align: left;
+  vertical-align: baseline;
+  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 55%, transparent);
+}
+.cmv2-rankdes-fac thead th {
+  border-top: 0;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-semibold);
+}
+.cmv2-rankdes-fac tbody th[scope="row"] {
+  font-weight: var(--pulso-weight-medium);
+  color: var(--pulso-text);
+  min-width: 0;
+}
+.cmv2-rankdes-curso {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+.cmv2-rankdes-fac tbody th small {
+  display: block;
+  font-size: 10px;
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-regular);
+}
+.cmv2-rankdes-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cmv2-rankdes-num strong { color: var(--cmv2-accent-fg); }
