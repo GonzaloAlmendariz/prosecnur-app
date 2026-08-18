@@ -1046,7 +1046,17 @@ mount_calc_muestra <- function(pr) {
       .cm_aulas_assert_decision_vigente(s, config)
       method_id <- calc_str(body$method_id %||% body$selector_engine %||% body$comparison_method %||% "", "")
       if (nzchar(method_id)) {
-        config$selector$selector_engine <- .cm_aulas_engine_key(method_id)
+        # J1: un method_id no reconocido caia en silencio al default
+        # (cube_balanceado) y el caller creia haber corrido OTRO motor. Un
+        # pedido explicito que no se entiende se rechaza, no se adivina.
+        engine_resuelto <- .cm_aulas_engine_key(method_id, default = "")
+        if (!nzchar(engine_resuelto)) {
+          stop_api(
+            400, "E_CALC_MUESTRA_AULAS_ENGINE",
+            sprintf("Motor de seleccion no reconocido: %s.", method_id)
+          )
+        }
+        config$selector$selector_engine <- engine_resuelto
         config$selector$method_family <- .cm_aulas_method_family(config$selector$selector_engine)
       }
 

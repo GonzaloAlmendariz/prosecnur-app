@@ -74,3 +74,22 @@ test_that("el sorteo del cubo en un estrato con constantes queda balanceado por 
   if (is.null(picked)) skip("BalancedSampling no disponible en esta maquina")
   expect_length(unique(picked), 4L)
 })
+
+test_that("la perdida de balance SE DECLARA en el warning del pick", {
+  df <- .bs_estrato()
+  df$stratum <- "DERECHO / F / G2"
+  sel <- list(balance_vars = .bs_vars, spread_vars = list(), n_aulas = 4)
+  picked <- .cm_aulas_pick_indices(df, 4L, sel, "cube_balanceado", seed = 42)
+  expect_true(any(grepl("sin variacion dentro del estrato", picked$warning)))
+  expect_true(any(grepl("faculty, sex_top_1, size_group", picked$warning)))
+  # CONTROL: un engine sin balance no declara nada de esto.
+  picked_pps <- .cm_aulas_pick_indices(df, 4L, sel, "sistematico_pps", seed = 42)
+  expect_false(any(grepl("sin variacion", picked_pps$warning)))
+})
+
+test_that("un method_id no reconocido ya no cae en silencio al cubo", {
+  # El router rechaza con 400; a nivel de engine, el default centinela lo
+  # delata: la resolucion con default vacio devuelve vacio.
+  expect_identical(.cm_aulas_engine_key("no_existe_tal_motor", default = ""), "")
+  expect_identical(.cm_aulas_engine_key("cube_balanceado", default = ""), "cube_balanceado")
+})

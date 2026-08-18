@@ -2000,6 +2000,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (is.list(recorrido)) {
     recorrido$ajustado_despues <- fixed$added_n > 0L || fixed$removed_n > 0L
   }
+  # J1: si el balance perdio variables en el estrato, se DECLARA (helper en
+  # calc_muestra_aulas_balance_saneo.R; mensajes identicos colapsan en unique).
+  warnings <- c(warnings, .cm_aulas_balance_descartadas_warning(df, selector, engine_used))
   list(
     indices = fixed$indices, pik = pik, engine_used = engine_used,
     warning = unique(warnings),
