@@ -520,6 +520,8 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       # (por default 0 corridas: pi_final = pi_design es exacta sin simular).
       mc_prescribed_transparency = .cm_aulas_bool(selector$mc_prescribed_transparency %||% selector$mc_transparencia_prescrita %||% config$mc_prescribed_transparency, FALSE),
       nonresponse_policy = .cm_aulas_scalar(selector$nonresponse_policy %||% selector$politica_no_respuesta %||% config$nonresponse_policy, defaults$selector$nonresponse_policy),
+      # Afijación del diseño (calc_muestra_aulas_afijacion.R): mapa facultad→n.
+      faculty_targets = .cm_afijacion_normalize_targets(selector$faculty_targets %||% selector$afijacion_facultades %||% config$faculty_targets),
       replacement_policy = .cm_aulas_scalar(selector$replacement_policy %||% selector$politica_reemplazos %||% config$replacement_policy, defaults$selector$replacement_policy)
     ),
     objective = .cm_aulas_normalize_objective(objective_input),
@@ -2050,7 +2052,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 .cm_aulas_select_once_engine <- function(aula_frame, selector, engine, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   n_total <- min(nrow(aula_frame), max(1L, .cm_aulas_int(selector$n_aulas, 1L)))
-  quotas <- .cm_aulas_quota_by_stratum(aula_frame, n_total)
+  quotas <- .cm_aulas_quota_estratos(aula_frame, n_total, selector)
   # Descuento secuencial de repetidos (asesoría muestral 2026-07-15 §10):
   # estado del flag para esta corrida; la lógica vive en
   # calc_muestra_aulas_descuento.R. Con OFF el path es byte-idéntico.
@@ -2566,7 +2568,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 .cm_aulas_design_probabilities <- function(aula_frame, selector, engine) {
   engine <- .cm_aulas_engine_key(engine)
   n_total <- min(nrow(aula_frame), max(1L, .cm_aulas_int(selector$n_aulas, 1L)))
-  quotas <- .cm_aulas_quota_by_stratum(aula_frame, n_total)
+  quotas <- .cm_aulas_quota_estratos(aula_frame, n_total, selector)
   out <- stats::setNames(rep(0, nrow(aula_frame)), aula_frame$classroom_id)
   for (st in names(quotas)) {
     idx <- which(aula_frame$stratum == st)
@@ -3363,7 +3365,7 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
       check.names = FALSE
     )
   }
-  quotas <- .cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)
+  quotas <- .cm_aulas_quota_estratos(aula_frame, selector$n_aulas, selector)
   for (st in names(quotas)) {
     available <- sum(aula_frame$stratum == st)
     if (quotas[[st]] > available) {
@@ -4354,7 +4356,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     # y sin publicarlo el Relato no puede contar la cadena sin inventarla.
     # Con otros engines viaja `aplicable = FALSE`: no hubo caminata.
     recorrido_sorteo = recorrido_sorteo %||% .cm_aulas_recorrido_por_estrato(list()),
-    quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)), n_aulas = as.integer(.cm_aulas_quota_by_stratum(aula_frame, selector$n_aulas)), stringsAsFactors = FALSE)),
+    quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_estratos(aula_frame, selector$n_aulas, selector)), n_aulas = as.integer(.cm_aulas_quota_estratos(aula_frame, selector$n_aulas, selector)), stringsAsFactors = FALSE)),
     summary = summary,
     diagnostics = list(
       probabilities = probabilities,
@@ -5060,7 +5062,7 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     representativity_score = representativity$representativity_score,
     representativity_distance = representativity$weighted_distance,
     selection = selection_public,
-    quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_by_stratum(rows, cfg$selector$n_aulas)), n_aulas = as.integer(.cm_aulas_quota_by_stratum(rows, cfg$selector$n_aulas)), stringsAsFactors = FALSE)),
+    quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_estratos(rows, cfg$selector$n_aulas, cfg$selector)), n_aulas = as.integer(.cm_aulas_quota_estratos(rows, cfg$selector$n_aulas, cfg$selector)), stringsAsFactors = FALSE)),
     summary = summary_df,
     diagnostics = list(
       probabilities = selection_public[, intersect(c("selection_run_id", "wave", "classroom_id", "stratum", "eligible_n", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source", "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student", "weight_warning"), names(selection_public)), drop = FALSE],
