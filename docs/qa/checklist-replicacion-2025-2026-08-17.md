@@ -2219,3 +2219,19 @@ apagado, decisión p25 vigente; pool con 50 candidatos, declarado):
 reales** — no sólo en el test sintético del contrato. La sesión quedó
 restaurada al cubo canónico (certificación 15/15) y guardada. G2 sigue como
 rotación permanente; próximo foco: G3 «bien explicado».
+
+## G3 barrido + refinamiento del sello · ◐ 2026-08-18, commit `6721d2bb`
+
+Barrido de «bien explicado» por Cálculo/Marco/Coincidencia: las superficies
+están limpias de jerga (τ y p25 se explican donde aparecen; Marco sin
+hallazgos). DOS hallazgos, ambos reparados:
+1. **La certificación sellaba con la tasa de 2025 (0,7038) cuando el diseño
+   asume τ=0,53** — más optimista que el propio supuesto. Ahora sella con la
+   τ del estrato, fallback declarado a la referencia, `tasa_fuente` en el
+   payload. **Con la τ propia: DERECHO al filo (1,01×) y PSICOLOGÍA·hombres
+   NO cubre (0,86×)** — hallazgo accionable para Gonzalo: esa celda pide un
+   aula más o la decisión explícita de aceptar la tasa observada.
+2. Etiqueta «cube balanceado» → «cubo balanceado».
+Lección de gate: contar ERRORES además de fails (3 errores de un sprintf
+habrían pasado con un conteo de solo-fails). Pendiente G3: barrido de las
+pestañas restantes (Selección ya vista, Datos/Entrega parcial).
