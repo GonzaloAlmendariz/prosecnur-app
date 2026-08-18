@@ -855,7 +855,16 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           <h3>Ritmo de la recolección</h3>
-          <span>{fmt((dashboard?.ritmo_diario?.dias ?? []).length)} días</span>
+          {/* «12 días» a secas contradecía la lectura de dentro —«en 10 días
+              de campo»— y el pie —«al ritmo de estos 10»—: el mismo panel daba
+              dos cifras para la misma palabra. Los 12 son corridos y 2 son fin
+              de semana sin campo; el contador lo dice en vez de elegir uno. */}
+          <span>{(() => {
+            const dias = (dashboard?.ritmo_diario?.dias ?? []) as Array<{ validas?: unknown }>;
+            const conCampo = dias.filter((d) => Number(d?.validas ?? 0) > 0).length;
+            const base = `${fmt(dias.length)} ${dias.length === 1 ? "día" : "días"}`;
+            return conCampo && conCampo !== dias.length ? `${base} · ${fmt(conCampo)} con campo` : base;
+          })()}</span>
         </div>
         <AulasRitmoDiario ritmo={(dashboard?.ritmo_diario ?? null) as RitmoDiario | null} />
       </section>
