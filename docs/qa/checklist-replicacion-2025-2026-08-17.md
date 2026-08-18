@@ -3003,3 +3003,33 @@ usa), solo con k≥12, con el «qué daría la fórmula» al lado y el diseño d
 | D2 τ por sexo referencial | ☐ |
 | D5 extracción del congelado | ☐ |
 | Menores: test REST 400 · aviso-con-causa del relato · scroll-jail otras pestañas | ☐ |
+
+## CORRECCIÓN DE GONZALO — las 11 reservas NO son un requerimiento · ☑ `ea5e6aee`
+
+Textual: «nunca ha habido un requerimiento de que todas tengan de 11
+reservas a más, no es un requerimiento». Tres superficies vendían la
+capacidad de la cadena (R1-R11) como meta: el estado `reservas_cortas` del
+motor (alertaba a casi toda facultad sana; ahora solo alerta sostener CERO),
+el aviso «por debajo de las 11 que pide el diseño» (retirado) y los «N de
+11» del margen y las fichas (ahora capacidad declarada una vez, «no es una
+meta»). Gates: margen 32/0, vitest 218/218.
+
+## TANDA K · Revamp de las pestañas de Selección y Entrega (2026-08-18)
+
+Textual de Gonzalo: «la pestaña cursos-horario titulares tiene muchos
+elementos súper útiles pero creo que pueden disponerse mejor, tener mejor
+orden lógico, y lo mismo aplica para todas las pestañas de Selección y de
+Entrega: creo que todas se pueden ver mucho mejor afinando su distribución,
+su lugar a nivel conceptual, y mejorando los gráficos y visualizaciones que
+tienen y ampliándolas aún más». Y antes: «todas las tablas están bastante
+bien pero pueden verse aún mejor y más profesionales».
+
+| # | Ítem | Estado |
+|---|---|---|
+| K0 | Gramática ÚNICA de tablas (`shared/tablas.css`: cabeceras eyebrow, números a la DERECHA tabulares, filetes finos, hover, pie con regla fuerte) | ◐ sustento aplicado; faltan ranking, panorama, fichas, certificación, margen |
+| K1 | CENSO de las pestañas de Selección (titulares, método, laboratorio, reemplazos, perfil, relato) y Entrega: inventario de elementos + diagnóstico del orden conceptual | ☐ |
+| K2 | Reorden lógico por pestaña (qué va arriba, qué se agrupa, qué sobra) | ☐ tras K1 |
+| K3 | Mejorar y AMPLIAR los gráficos/visualizaciones | ☐ tras K1 |
+
+La cola D sigue viva: D4 fila estadístico al libro (aprobada) · D2 τ por
+sexo referencial · D5 extracción del congelado.
