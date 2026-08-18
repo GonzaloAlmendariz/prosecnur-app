@@ -281,7 +281,10 @@ control <- lapply(seq_along(aplicadas), function(i) {
     room = as.character(u$label), schedule = as.character(u$schedule),
     enrolled_total = as.numeric(u$eligible_n) + 10,
     eligible_n = as.numeric(u$eligible_n),
-    applied_by = sprintf("Equipo %d", 1 + (i %% 6)),
+    # Normalmente el mismo equipo que firmo el parte. En UNA aula se siembra
+    # distinto: es una de las tres ramas del cuadre entre las dos hojas, y sin
+    # ella esa rama no aparece nunca en pantalla aunque el motor la sepa hacer.
+    applied_by = if (i == 61L) "Equipo 9" else sprintf("Equipo %d", 1 + (i %% 6)),
     application_status = "APLICADA"
   )
   if (i %% 3 == 0) return(base)
@@ -304,6 +307,11 @@ control <- lapply(seq_along(aplicadas), function(i) {
   # campo y esta hoja los copia. Dos formulas para la misma aula dejaban las
   # dos hojas discrepando en las 114 comparables, que es ruido y no senal.
   asistentes <- as.numeric(asistentes_del_parte[[as.character(u$operational_code)]] %||% matriculados)
+  # Y en UNA el revisor corrigio la cuenta del aplicador. Es lo que un cuadre
+  # entre las dos hojas existe para encontrar; con las 114 coincidiendo, esa
+  # rama no se veria nunca. Va DESPUES de copiar del parte para que se lea que
+  # es una excepcion deliberada y no otra formula paralela.
+  if (i == 47L) asistentes <- asistentes - 3
   enviadas <- if (i %% 7 == 1) round(matriculados * 0.4)
               else max(1, round(asistentes * c(0.75, 0.9, 0.65)[[1 + (i %% 3)]]))
   mujeres <- floor(enviadas * 0.6)
