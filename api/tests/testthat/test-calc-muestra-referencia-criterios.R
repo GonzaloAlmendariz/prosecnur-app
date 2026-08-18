@@ -500,3 +500,86 @@ test_that("el payload publica la FUSION, no una sola", {
   expect_equal(g$muestra, "2500")
   expect_equal(g$aulas_agendadas, "1012")
 })
+
+# La fusion tambien rige POR FACULTAD, con la misma politica que `general`.
+#
+# Antes el `por_facultad` del rescate se descartaba ENTERO: el libro de
+# HSVG2026 solo declara la cuota por facultad, asi que `alumnos_por_ch`,
+# `aulas_aplicadas` y `asistentes` —que el rescate SI deriva de la dimension
+# facultad— llegaban NA en las quince filas, y con ellos se apagaban la
+# columna «antes» de las fichas y los pasos 4 y 5 del embudo comparado.
+
+test_that("el rescate rellena los NA de la fila de su facultad", {
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2", general = list(muestra = "2500"),
+    por_facultad = list(list(facultad = "ARQUITECTURA Y URBANISMO", cuota = 123))
+  ))
+  f <- calc_muestra_referencia_criterios_fusionar(
+    libro, calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())
+  )
+  fila <- .cm_ref_crit_buscar(f, "ARQUITECTURA Y URBANISMO")
+  # Lo del libro, intacto.
+  expect_equal(fila$cuota, 123)
+  # Lo del rescate, rellenado: 267 matriculados en 7 aulas aplicadas.
+  expect_equal(round(fila$alumnos_por_ch, 2), round(267 / 7, 2))
+  expect_equal(fila$aulas_aplicadas, 7)
+  expect_equal(fila$asistentes, 215)
+  # Y lo que NADIE midio sigue NA, no 0.
+  expect_true(is.na(fila$aulas_titulares))
+  expect_true(is.na(fila$poblacion))
+})
+
+test_that("en la fila el libro MANDA sobre el rescate campo a campo", {
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2", general = list(),
+    por_facultad = list(list(
+      facultad = "ARQUITECTURA Y URBANISMO", cuota = 123, aulas_aplicadas = 6
+    ))
+  ))
+  f <- calc_muestra_referencia_criterios_fusionar(
+    libro, calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())
+  )
+  fila <- .cm_ref_crit_buscar(f, "ARQUITECTURA Y URBANISMO")
+  # El 6 del libro no se pisa con el 7 del rescate.
+  expect_equal(fila$aulas_aplicadas, 6)
+  # Los huecos si se rellenan.
+  expect_equal(fila$asistentes, 215)
+})
+
+test_that("una facultad que solo el rescate conoce NO se anexa", {
+  # Puede ser la misma facultad con la etiqueta historica corta; anexarla
+  # duplicaria la fila ante .cm_ref_crit_buscar. Las facultades son las del
+  # libro — contrato ya fijado arriba.
+  libro <- calc_muestra_referencia_criterios_normalizar(list(
+    periodo = "2025-2", general = list(),
+    por_facultad = list(list(facultad = "DERECHO", cuota = 347))
+  ))
+  f <- calc_muestra_referencia_criterios_fusionar(
+    libro, calc_muestra_referencia_criterios_desde_asistencia(.rc_asist_ejecutada())
+  )
+  expect_equal(length(f$por_facultad), 1L)
+  expect_equal(f$por_facultad[[1]]$facultad, "DERECHO")
+})
+
+test_that("los dos pisos del rescate se COMBINAN cuando comparten facultad", {
+  # `cuotas` sabe cuota/aulas/logradas y la dimension sabe matriculados/k. En
+  # HSVG2026 ambos existen y eran excluyentes: alumnos_por_ch, aulas_aplicadas
+  # y asistentes llegaban NA en las quince filas con el dato guardado al lado.
+  mixta <- .rc_asist()
+  mixta$dimensiones <- list(list(
+    dimension_key = "facultad", filas = list(
+      list(celda_label = "CIENCIAS E INGENIERIA", k = 39, matriculados = 1150, asistentes = 900)
+    )
+  ))
+  r <- calc_muestra_referencia_criterios_desde_asistencia(mixta)
+  f <- .cm_ref_crit_buscar(r, "CIENCIAS E INGENIERIA")
+  # Del piso de cuotas, intacto.
+  expect_equal(f$cuota, 523)
+  expect_equal(f$aulas_sorteadas, 231)
+  # Del piso de la dimension, rellenado.
+  expect_equal(f$aulas_aplicadas, 39)
+  expect_equal(round(f$alumnos_por_ch, 2), round(1150 / 39, 2))
+  expect_equal(f$asistentes, 900)
+  # Y las facultades siguen siendo las del piso de cuotas.
+  expect_equal(length(r$por_facultad), 2L)
+})

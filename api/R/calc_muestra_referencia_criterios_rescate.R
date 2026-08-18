@@ -130,9 +130,15 @@ calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
     )
   })
   filas <- Filter(Negate(is.null), filas)
-  # Segundo piso: si el bloque `cuotas` no existe —referencia de un schema
-  # anterior, que es el caso de HSVG2026— todavia queda la dimension `facultad`.
-  if (!length(filas)) filas <- .cm_ref_crit_desde_dimension_facultad(asistencia)
+  # Segundo piso: la dimension `facultad` de la referencia. Si el bloque
+  # `cuotas` no existe —schema anterior— es la unica fuente; y cuando AMBOS
+  # existen se COMBINAN, porque saben cosas distintas: `cuotas` trae cuota por
+  # sexo, aulas y logradas, y la dimension trae matriculados/k —de donde salen
+  # `alumnos_por_ch`, `aulas_aplicadas` y `asistentes`—. Antes eran excluyentes
+  # («cuotas GANA») y en HSVG2026 esos tres campos llegaban NA en las quince
+  # filas con el dato guardado en la MISMA referencia.
+  piso_dimension <- .cm_ref_crit_desde_dimension_facultad(asistencia)
+  filas <- if (!length(filas)) piso_dimension else .cm_ref_crit_rellenar_filas(filas, piso_dimension)
   if (!length(filas)) return(NULL)
 
   estudio <- if (is.list(asistencia$estudio)) asistencia$estudio else list()
@@ -167,5 +173,56 @@ calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
     }
   }
   libro$general <- g_libro
+
+  # POR FACULTAD, misma politica que `general`: el libro manda campo a campo y
+  # el rescate solo rellena los NA. Antes este bloque no existia y el
+  # `por_facultad` del rescate se descartaba ENTERO: el libro de HSVG2026 solo
+  # declara la cuota por facultad, asi que `alumnos_por_ch`, `aulas_aplicadas`
+  # y `asistentes` —que el rescate SI deriva de la dimension facultad de la
+  # asistencia— llegaban NA en las quince filas, y con ellos se apagaban la
+  # columna «antes» de las fichas y los pasos 4 y 5 del embudo comparado.
+  filas_rescate <- if (is.list(rescate$por_facultad)) rescate$por_facultad else list()
+  if (length(filas_rescate)) {
+    libro$por_facultad <- .cm_ref_crit_rellenar_filas(
+      if (is.list(libro$por_facultad)) libro$por_facultad else list(),
+      filas_rescate
+    )
+  }
   libro
+}
+
+#' Rellena los NA de `base` con lo que `relleno` sepa de la MISMA facultad.
+#'
+#' La politica de toda la referencia: la fila base manda campo a campo y el
+#' relleno solo cubre huecos. Las facultades siguen siendo las de `base` — una
+#' fila que solo el relleno conoce NO se anexa: puede ser la misma facultad con
+#' la etiqueta historica corta, y anexarla duplicaria la fila ante
+#' `.cm_ref_crit_buscar`. Sirve igual para filas crudas (solo sus campos) y
+#' normalizadas (todos los campos, NA donde no hay dato).
+.cm_ref_crit_rellenar_filas <- function(base, relleno) {
+  if (!length(base) || !length(relleno)) return(base)
+  clave_de <- function(fila) {
+    k <- .cm_aulas_scalar(fila$faculty_key, "")
+    if (nzchar(k)) k else .cm_aulas_scalar(.cm_criterios_fac_key(fila$facultad %||% ""), "")
+  }
+  idx <- list()
+  for (i in seq_along(base)) {
+    k <- clave_de(base[[i]])
+    if (nzchar(k) && is.null(idx[[k]])) idx[[k]] <- i
+  }
+  for (fr in relleno) {
+    if (!is.list(fr)) next
+    k <- clave_de(fr)
+    if (!nzchar(k)) next
+    pos <- idx[[k]]
+    if (is.null(pos)) next
+    fl <- base[[pos]]
+    for (campo in .cm_ref_crit_campos) {
+      if (is.finite(.cm_ref_crit_num(fl[[campo]]))) next
+      v <- .cm_ref_crit_num(fr[[campo]])
+      if (is.finite(v)) fl[[campo]] <- v
+    }
+    base[[pos]] <- fl
+  }
+  base
 }
