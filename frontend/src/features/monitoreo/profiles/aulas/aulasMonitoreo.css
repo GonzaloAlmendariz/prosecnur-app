@@ -2081,3 +2081,34 @@
   flex: none;
 }
 .mon-profile-page.is-aulas-flow .aulas-agenda-leyenda strong { color: var(--pulso-text); }
+
+/* Los dos paneles gemelos de Avance, en pareja.
+   Medido a 1440: la sección sumaba 1 636 px de columna para cuatro lecturas
+   cortas —68, 123, 239 y 206 px de contenido— cada una sola en una caja de
+   1 316 de ancho. El aire no sobraba (36 px de padding, el del sistema): lo que
+   sobraba era ANCHO sin usar, y eso es lo que se lee como vacío. Los dos que se
+   parecen comparten fila; los otros dos siguen a lo ancho porque su contenido
+   lo pide. */
+.mon-profile-page.is-aulas-flow .aulas-avance-pareja {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+  flex: none;
+}
+
+/* El contrato `equal` de la pareja: mismo marco pase lo que pase con los datos
+   de cada uno. El alto lo marca el más alto de los dos y el otro contiene su
+   propio vacío, que es lo que pide C2. */
+.mon-profile-page.is-aulas-flow .aulas-avance-pareja > .mon-profile-panel {
+  min-width: 0;
+  height: 100%;
+}
+
+/* Bajo 1180 px vuelven a la columna: dos gráficos de barras a media anchura no
+   se leen, y el perfil ya usa ese corte para la banda de KPIs. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-avance-pareja {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

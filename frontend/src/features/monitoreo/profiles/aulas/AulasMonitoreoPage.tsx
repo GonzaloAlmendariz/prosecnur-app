@@ -686,7 +686,16 @@ function renderAulasView(
         <AulasEstadoChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
       )}
+      {/* Los dos que se parecen, en pareja. Medido a 1440: cobertura ocupa 239 px
+          de alto y «Dónde falta más» 206, cada uno solo en una caja de 1 316 de
+          ancho, y la sección entera sumaba 1 636 px de columna para cuatro
+          lecturas pequeñas. Eso es lo que se lee como «vacío y crudo»: no es
+          relleno de más —el padding es el del sistema— sino cuatro gráficos
+          cortos apilados sin usar el ancho. Son además la pareja natural: uno
+          reparte los cursos-horario por cuánto cubren y el otro dice dónde
+          falta. Bajo 1180 px vuelven a apilarse. */}
       {pestana !== "resumen" ? null : (
+      <div className="aulas-avance-pareja" data-qa-geometry-group="monitoring-aulas-pareja" data-qa-geometry-contract="equal">
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -704,8 +713,6 @@ function renderAulasView(
         </div>
         <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
-      )}
-      {pestana !== "resumen" ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -723,6 +730,7 @@ function renderAulasView(
         </div>
         <AulasPerfilPorFacultad filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
       </section>
+      </div>
       )}
       {pestana !== "resumen" ? null : (
       <section
