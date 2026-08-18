@@ -2044,3 +2044,43 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # LECCION: el par minimo funciona tambien DENTRO de una traza. Dos variables de
 # la misma lamina, una llega y la otra no: lo que las separa no es la lamina ni
 # el graficador, es la fuente — y eso apunta al dato, no al render.
+
+
+# P49 — `orders_list` QUEDA DESCARTADO, Y CON EL LA FUNCION ENTERA: EL TITULO
+# DEL GRAFICO Nº 46 **NO PASA POR `.lookup_variable_label()`**.
+#
+# Instrumentadas las CUATRO ramas de `.lookup_variable_label()` —override, df,
+# orders_list y dic_vars— emitiendo SIEMPRE al responder, y regenerado el mazo
+# entero (PPT + Word):
+#
+#     llamadas totales                 **58**
+#     por la rama `df`                 **58**
+#     por `orders_list` o `dic_vars`   **0**
+#     con `var = p13_3`                **0** — ni ninguna `p13_*`
+#
+# O sea: **la funcion nunca llega a `orders_list`** —la sospecha del tick
+# anterior— porque quien la llama ya filtra: en las 58 el dato responde. Y el
+# enunciado que nos interesa **no la visita**.
+#
+# CONCLUSION, y cierra la cadena de eslabones: **el titulo del Gráfico Nº 46 se
+# resuelve por OTRA ruta**, la de la multi-lista (`titulos_grupo`,
+# `.multilista_*`, el enunciado del bloque), no por `titulo_var()`. Por eso el
+# arreglo no llega, y por eso **no llegaria aunque se moviera de rama dentro de
+# esta funcion**: el problema no es el ORDEN dentro de `.lookup_variable_label()`
+# —como se penso en `1b5f3e4f`—, es que esa funcion no participa.
+#
+# QUE PASA CON EL ARREGLO. **Se queda**, y con su medicion al lado: es correcto,
+# tiene 17 asserts vistos rojos, cubre la clase de defecto para las 58 llamadas
+# que si pasan por aqui, y su efecto medido sobre el artefacto es **cero** —no
+# degrada nada—. Lo que NO hace es reparar el caso de Conta.
+#
+# LO SIGUIENTE, si se retoma: seguir el enunciado de una premisa de multi-lista
+# hasta su origen —`titulos_grupo` y `.multilista_lineas_enunciado()` son los
+# dos nombres a mirar— y comprobar si ahi hay un punto donde preferir la
+# etiqueta del instrumento. **Antes de escribir nada, la misma traza**: emitir
+# al entrar y ver si `p13_3` aparece.
+#
+# LECCION: perseguir el ORDEN dentro de una funcion presupone que la funcion
+# participa. Dos ticks apuntaron a ramas distintas de `.lookup_variable_label()`
+# —el `df` y luego `orders_list`— cuando la medicion que faltaba era la mas
+# simple: **¿esta variable pasa por aqui alguna vez?** La respuesta era no.
