@@ -31,6 +31,18 @@ if (is.na(destino) || !nzchar(destino)) {
 # reparto de alto se ponen a prueba; con nueve no se ve nada de eso.
 ESCALA_2025 <- any(args == "--escala") && any(args == "2025")
 
+# El modo pequeño —sin `--escala 2025`— NO esta implementado entero: `partes`,
+# `asistentes_del_parte` y `data` solo se construyen dentro de la rama grande, y
+# el script moria mas abajo con «object 'aplicadas' not found» sin decir por que.
+# Un fallo temprano y con nombre vale mas que uno profundo y mudo. Revivirlo
+# significa escribir el equivalente pequeño de esas tres cosas.
+if (!ESCALA_2025) {
+  stop(paste(
+    "Este generador solo esta implementado para `--escala 2025`.",
+    "Uso: Rscript api/scripts/qa_pulso_aulas_campo.R <destino.pulso> --escala 2025"
+  ), call. = FALSE)
+}
+
 # --- El plan -----------------------------------------------------------------
 # Cinco titulares y dos reservas encadenadas. Cada aula tiene un papel:
 #
@@ -39,10 +51,21 @@ ESCALA_2025 <- any(args == "--escala") && any(args == "2025")
 #   CH 3  sin una sola respuesta        -> brecha entera (L18)
 #   CH 4  caida, con su cadena activa   -> la cadena se ve (L19)
 #   CH 5  agendada y sin campo aun      -> estado de muestra distinto del de aplicacion (L30)
+# El `classroom_id` NO es el codigo operativo, y esa diferencia es la que hacia
+# invisible un defecto entero. En un estudio real el aula se llama `arc232_0905`
+# en el marco de la universidad y `CH 1` en el operativo; aqui valian lo mismo,
+# asi que `replacement_for` —que guarda el classroom_id del titular— coincidia
+# por accidente con el codigo operativo y la cadena se agrupaba bien de casualidad.
+# Sobre HSVG2026, donde no coinciden, 0 de 202 apuntaban a un titular.
+.qa_classroom_id <- function(codigo) {
+  limpio <- tolower(gsub("[^A-Za-z0-9]", "", codigo))
+  sprintf("aul%s_%04d", limpio, abs(sum(utf8ToInt(codigo))) %% 10000)
+}
+
 aula <- function(codigo, unidad, rol, facultad, elegibles, validas_meta,
                  estado_muestra, reemplaza = NULL, orden = 1, s1 = "Mujer", s2 = "Hombre") {
   out <- list(
-    classroom_id = codigo, collection_unit_id = unidad, operational_code = codigo,
+    classroom_id = .qa_classroom_id(codigo), collection_unit_id = unidad, operational_code = codigo,
     label = sprintf("Aula %s", codigo), course_name = sprintf("Curso %s", codigo),
     schedule = "Lun 08:00", teacher = sprintf("Docente %s", codigo),
     teacher_phone = sprintf("9%08d", abs(sum(utf8ToInt(codigo))) * 137 %% 100000000),
@@ -58,7 +81,12 @@ aula <- function(codigo, unidad, rol, facultad, elegibles, validas_meta,
     sex_top_2 = s2, sex_top_2_n = elegibles - ceiling(elegibles * 0.55),
     link = sprintf("https://ee.kobotoolbox.org/x/abc123?d[collectorID]=%s", codigo)
   )
-  if (!is.null(reemplaza)) out$replacement_for <- reemplaza
+  if (!is.null(reemplaza)) {
+    # Como lo escribe el motor de verdad: el CLASSROOM_ID del titular, no su
+    # codigo operativo. El codigo operativo del titular viaja aparte.
+    out$replacement_for <- .qa_classroom_id(reemplaza)
+    out$titular_operational_code <- reemplaza
+  }
   # Las reservas llegan de Calculo de muestra con su advertencia de ponderacion,
   # que es la que la app tiene que enseniar al activarlas. Sin ella el fixture no
   # produce el caso y el aviso no se puede ver en pantalla.
@@ -86,7 +114,13 @@ plan <- list(
   aula("R 4.3", "u-r43", "chain_reserve", "Letras", 21, 15, "en_reserva",
        reemplaza = "CH 4", orden = 8),
   aula("R 4.4", "u-r44", "chain_reserve", "Letras", 19, 13, "en_reserva",
-       reemplaza = "CH 4", orden = 9)
+       reemplaza = "CH 4", orden = 9),
+  # El BANCO: reservas que el diseño dejo sueltas, sin colgar de ningun titular.
+  # El fixture no tenia ni una y por eso las dos vistas de cadena podian contar
+  # cada aula del banco como su propia cadena sin que nada se pusiera rojo. En
+  # HSVG2026 son 639 contra 202 titulares, asi que no es un caso de borde.
+  aula("EXTRA 1", "u-x1", "extra_reserve_pool", "Ciencias", 28, 19, "en_reserva", orden = 10),
+  aula("EXTRA 2", "u-x2", "extra_reserve_pool", "Derecho",  32, 22, "en_reserva", orden = 11)
 )
 
 # --- Las respuestas ----------------------------------------------------------
@@ -147,7 +181,12 @@ if (ESCALA_2025) {
     # «CH 24», la tabla de brechas ensenaba dos columnas que parecian la misma y
     # el panel se veia redundante por culpa del dato de prueba, no del producto.
     pabellon <- c("A", "H", "L", "N", "V", "Z")[[1L + (i %% 6L)]]
-    o <- list(classroom_id = cod, operational_code = cod,
+    # El `classroom_id` NO es el codigo operativo, y esa diferencia es la que
+    # hacia invisible un defecto entero: valiendo lo mismo, `replacement_for`
+    # —que guarda el classroom_id del titular— coincidia por accidente con el
+    # codigo operativo y la cadena se agrupaba bien de casualidad. Sobre
+    # HSVG2026, donde no coinciden, 0 de 202 apuntaban a un titular.
+    o <- list(classroom_id = .qa_classroom_id(cod), operational_code = cod,
               label = sprintf("%s %s %s%d",
                               toupper(substr(dias[[1L + ((dia_i - 1L) %% 5L)]], 1, 3)),
                               hora, pabellon, 100L + (i %% 40L)),
@@ -175,7 +214,13 @@ if (ESCALA_2025) {
     # y los otros dos no se podían ver en pantalla.
     if (i %% 11 == 0) o$link <- ""                              # sin enlace todavía
     if (i %% 5 == 0 && nzchar(o$link)) o$pdf_link <- sprintf("/fichas/%s.pdf", gsub(" ", "_", cod))
-    if (!is.null(repl)) { o$replacement_for <- repl; o$replacement_order <- ord }
+    if (!is.null(repl)) {
+      # Como lo escribe el motor de verdad: el CLASSROOM_ID del titular. El
+      # codigo operativo del titular viaja aparte, en su propio campo.
+      o$replacement_for <- .qa_classroom_id(repl)
+      o$titular_operational_code <- repl
+      o$replacement_order <- ord
+    }
     if (identical(rol, "chain_reserve")) {
       o$activation_weight_status <- "reserve_conditional"
       o$analysis_weight_warning <- paste(
@@ -201,7 +246,12 @@ if (ESCALA_2025) {
     # accion existe para recorrer no se podia probar en pantalla.
     lapply(1:2, function(k) base(sprintf("R %d.2", k), "chain_reserve", facs[[1 + (k %% 6)]],
                                  194 + k, repl = sprintf("CH %d", k), ord = 2,
-                                 est = "en_reserva"))
+                                 est = "en_reserva")),
+    # El BANCO: reservas sueltas que no cuelgan de ningun titular. El estudio
+    # real lleva 639 contra 202 titulares, asi que no es un caso de borde; aqui
+    # bastan unas pocas para que las vistas de cadena puedan ejercitarlo.
+    lapply(1:6, function(k) base(sprintf("EXTRA %d", k), "extra_reserve_pool",
+                                 facs[[1 + (k %% 6)]], 210 + k, est = "en_reserva"))
   )
   aplicadas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
   # Cuanta gente hubo de verdad en cada aula. Vive AQUI porque el parte de campo
