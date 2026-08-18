@@ -20,10 +20,12 @@ import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 
 export function SalidasCoincidenciaTab({
   criteriosGenerales,
+  criteriosMarco,
   fichas,
   referencia,
 }: {
   criteriosGenerales: CriterioGeneralFila[];
+  criteriosMarco: CriterioGeneralFila[];
   fichas: FichaFacultad[];
   referencia: CalcMuestraReferenciaCriterios | null;
 }) {
@@ -33,6 +35,14 @@ export function SalidasCoincidenciaTab({
   return (
     <section className="cmv2-coincidencia" aria-label="Coincidencia con el estudio anterior">
       <CriteriosGeneralesCard filas={criteriosGenerales} referencia={referencia} />
+      {/* Los criterios del MARCO, que son los que deciden qué aulas entran. La
+          tarjeta de arriba compara el DISEÑO; esto es el método. */}
+      <CriteriosGeneralesCard
+        titulo="Los criterios que arman el marco"
+        subtitulo="qué aulas entran: modalidad, sesión, nivel, mínimo y exclusiones"
+        filas={criteriosMarco}
+        referencia={referencia}
+      />
       <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
     </section>
   );
