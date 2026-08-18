@@ -3096,3 +3096,22 @@ Método y Laboratorio (este segundo sí es candidato a unificar).
 **K3 (ampliar visualizaciones — candidatos):** lente por facultad en
 Coincidencia; distribución de scores del sorteo en Titulares; serie de
 estabilidad en Laboratorio; mini-mapa de calor cuota vs sexo en Resultados.
+
+### Tanda K — K2·Titulares cerrado (`bb0c3302`) · dibujo entero
+
+La pestaña que Gonzalo nombró abre ahora con su historia: cobertura →
+selección vigente → ACCIÓN (antes enterrada en el bloque 8/11) → el
+veredicto de la certificación → el porqué (margen+sustento) → comparaciones
+(embudo+sexo) → defendible+mapa → tabla al final. Outline vivo calca el
+contrato; 1024×600 sin desborde; 218/218.
+
+| # | Tanda K | Estado |
+|---|---|---|
+| K0 gramática de tablas | ☑ `ab85d979` |
+| K1 censo + contrato | ☑ `f224af2d` |
+| K2 · Titulares | ☑ `bb0c3302` |
+| K2 · Entregables (Reporte→Defensa→Excel→privacidad al pie) | ☐ SIGUIENTE |
+| K2 · Laboratorio (Estabilidad→Resultados→Riesgos) · Objetivo (renombre) · Auditoría (anclas) | ☐ |
+| K3 visualizaciones nuevas | ☐ |
+
+Cola D: D4 libro (aprobada) · D2 τ sexo · D5 extracción congelado.
