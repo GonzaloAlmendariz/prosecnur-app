@@ -119,3 +119,39 @@ describe("las tres superficies de la cadena cuentan lo mismo", () => {
     expect(h.cerraronEnTitular + h.cerraronEnReemplazo + h.abiertas).toBe(h.historias.length);
   });
 });
+
+test("la meta de una cadena es la del titular y no la suma de sus eslabones", () => {
+  // El control: si se sumaran, esta cadena diria 40 —15 + 12 + 13— donde el
+  // plan pide 15. Reemplazar un aula no multiplica lo que el estudio pide; la
+  // reserva entra a cubrir la misma meta que dejo el titular. La columna «Meta»
+  // de la tabla de cadenas abiertas sale de aqui, y salio VACIA en las 21
+  // porque el campo no existia y el componente lo leia igual.
+  const { historias } = historiaDeCadena([
+    { operational_code: "CH 4", sample_role: "titular", faculty: "Letras",
+      expected_valid: 15, respuestas_validas: 0, sample_status: "reemplazada" },
+    { operational_code: "R 4.1", sample_role: "chain_reserve", replacement_for: "CH 4",
+      replacement_order: 1, expected_valid: 12, respuestas_validas: 0, sample_status: "agendada" },
+    { operational_code: "R 4.2", sample_role: "chain_reserve", replacement_for: "CH 4",
+      replacement_order: 2, expected_valid: 13, respuestas_validas: 0, sample_status: "en_reserva" },
+  ] as never);
+
+  expect(historias).toHaveLength(1);
+  expect(historias[0].meta).toBe(15);
+});
+
+test("los codigos se ordenan como numeros y no como texto", () => {
+  // «CH 10» salia ANTES que «CH 2» y asi se veian las 24 cadenas en pantalla:
+  // CH 2, CH 10, CH 11 … CH 24, CH 5, CH 6. El caso esta puesto para que
+  // «ordenada» no pueda confundirse con el alfabetico, que aqui da otro orden.
+  const fila = (code: string) => ([
+    { operational_code: code, sample_role: "titular", faculty: "Letras",
+      expected_valid: 10, respuestas_validas: 0, sample_status: "reemplazada" },
+    { operational_code: `R ${code}`, sample_role: "chain_reserve", replacement_for: code,
+      replacement_order: 1, expected_valid: 10, respuestas_validas: 0, sample_status: "agendada" },
+  ]);
+  const { historias } = historiaDeCadena(
+    [...fila("CH 10"), ...fila("CH 2"), ...fila("CH 5")] as never,
+  );
+
+  expect(historias.map((h) => h.titular)).toEqual(["CH 2", "CH 5", "CH 10"]);
+});

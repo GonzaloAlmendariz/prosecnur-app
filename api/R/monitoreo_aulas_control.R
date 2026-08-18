@@ -189,7 +189,8 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
     3L
   }, integer(1))
   codigo <- vapply(filas, function(f) as.character(f$operational_code %||% ""), character(1))
-  filas[order(rango, codigo)]
+  # Natural y no alfabetico: «CH 10» iba antes que «CH 2» en las 170 filas.
+  filas[order(rango, monitoreo_aulas_rango_codigo(codigo))]
 }
 
 #' El recibo del libro importado.

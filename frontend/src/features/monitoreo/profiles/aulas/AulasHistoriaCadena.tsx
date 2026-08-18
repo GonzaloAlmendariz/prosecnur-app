@@ -28,26 +28,67 @@ function Eslabon({ eslabon, cerro }: { eslabon: EslabonDeCadena; cerro: boolean 
 }
 
 /**
- * Una cadena abierta, en una línea.
- *
- * Sus eslabones no cuentan una historia: todos se quedaron cortos, y en el
- * operativo real casi todos en cero. Lo que sí decide algo es cuánta reserva
- * lleva consumida y si alguno llegó a moverse.
+ * Lo más cerca que llegó una cadena abierta, o nada si nadie se movió.
  */
-function resumenAbierta(historia: HistoriaDeCadena) {
-  const eslabones = historia.eslabones.length;
-  const reservas = eslabones - 1;
-  const cuantos = reservas === 1 ? "1 reserva" : `${reservas} reservas`;
-  if (!historia.validas) {
-    // «Ninguno recibió una respuesta» es un caso distinto de «se quedó cerca»,
-    // y en el fixture es el de las veintiuna: decirlo evita leer el «0 de 15»
-    // de cada eslabón para llegar a la misma conclusión.
-    return `${cuantos} · sin una sola respuesta`;
-  }
-  const mejor = historia.eslabones.reduce((a, b) => (
+function loMasCerca(historia: HistoriaDeCadena) {
+  if (!historia.validas) return null;
+  return historia.eslabones.reduce((a, b) => (
     (b.meta > 0 ? b.validas / b.meta : 0) > (a.meta > 0 ? a.validas / a.meta : 0) ? b : a
   ));
-  return `${cuantos} · lo más cerca, ${mejor.codigo} con ${mejor.validas} de ${mejor.meta}`;
+}
+
+/**
+ * Las cadenas abiertas, en TABLA.
+ *
+ * Eran veintiuna tarjetas con borde, radio de tarjeta y franja de color, todas
+ * diciendo «1 reserva · sin una sola respuesta»: un muro de cápsulas idénticas
+ * en el que no se distingue una fila de otra ni se puede comparar nada. Y es
+ * justo la sección donde Gonzalo pidió tablas —«mira cómo los demás monitoreos
+ * usan tablas en consultas y en lo demás usan cosas más visuales»—.
+ *
+ * En columnas alineadas la lista vuelve a ser legible: el ojo baja por
+ * «Reservas» y por «Lo más cerca» y ve dónde queda margen sin leer veintiún
+ * párrafos. Las que SÍ cerraron conservan su forma narrada, porque ahí cada
+ * cadena cuenta algo distinto y son tres, no veintiuna.
+ */
+function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCadena> }) {
+  return (
+    <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+      <table className="mon-profile-table aulas-cadenas-tabla">
+        <thead>
+          <tr>
+            <th>Curso-horario</th>
+            <th>Facultad</th>
+            <th className="es-cifra">Reservas</th>
+            <th className="es-cifra">Válidas</th>
+            <th className="es-cifra">Meta</th>
+            <th>Lo más cerca</th>
+          </tr>
+        </thead>
+        <tbody>
+          {historias.map((historia) => {
+            const mejor = loMasCerca(historia);
+            return (
+              <tr key={historia.titular}>
+                <td><strong>{historia.titular}</strong></td>
+                <td>{historia.facultad}</td>
+                <td className="es-cifra">{historia.eslabones.length - 1}</td>
+                <td className="es-cifra">{historia.validas}</td>
+                <td className="es-cifra">{historia.meta}</td>
+                <td>
+                  {/* «—» y no una frase: en el operativo real casi ninguna
+                      cadena abierta recibió respuestas, y repetir veintiuna
+                      veces «nadie recibió respuestas» grita más que el dato.
+                      El hecho se dice UNA vez, en la lectura de arriba. */}
+                  {mejor ? `${mejor.codigo}, ${mejor.validas} de ${mejor.meta}` : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 /**
@@ -65,6 +106,9 @@ const GRUPOS = [
 export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
   const { historias, sinReserva, cerraronEnTitular, cerraronEnReemplazo, abiertas } =
     useMemo(() => historiaDeCadena(filas), [filas]);
+  // Se dice aquí y no en cada fila: es la misma frase para casi todas.
+  const sinRespuestaAlguna = historias
+    .filter((h) => h.desenlace === "abierta" && !h.validas).length;
 
   if (!historias.length) {
     return (
@@ -87,6 +131,9 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
         <strong>{cerraronEnReemplazo}</strong> con un reemplazo ·{" "}
         <strong>{abiertas}</strong> sin cerrar
         {sinReserva ? ` · ${sinReserva} sin reserva asignada` : ""}
+        {sinRespuestaAlguna
+          ? ` · ${sinRespuestaAlguna} de las abiertas no han recibido ni una respuesta`
+          : ""}
       </p>
       {/* Agrupadas por desenlace. Eran 24 cajas idénticas en 1 554 px de alto:
           las tres que cerraron —la respuesta a «cuál fue la cadena que nos
@@ -102,7 +149,12 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
               {grupo.titulo}
               <span>{propias.length}</span>
             </h4>
-            <ol className={`aulas-cadenas-lista${grupo.desenlace === "abierta" ? " es-compacta" : ""}`}>
+            {/* Las abiertas van en tabla y las cerradas narradas: no es una
+                inconsistencia, es que son dos preguntas distintas. En las
+                abiertas se compara —quién tiene margen— y en las cerradas se
+                lee una historia de tres eslabones. */}
+            {grupo.desenlace === "abierta" ? <CadenasAbiertas historias={propias} /> : (
+            <ol className="aulas-cadenas-lista">
               {propias.map((historia) => (
                 <li key={historia.titular} className={`aulas-cadena es-${historia.desenlace}`}>
                   <div className="aulas-cadena-head">
@@ -115,12 +167,9 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
                         eslabones dicen lo mismo. Se resume en una línea y el
                         detalle queda para las que cerraron, que sí la cuentan.
                         Eran 21 cajas de 59 px repitiendo «0 de N» tres veces. */}
-                    {grupo.desenlace === "abierta" ? (
-                      <em className="aulas-cadena-resumen">{resumenAbierta(historia)}</em>
-                    ) : null}
                   </div>
                   <ul className="aulas-cadena-eslabones">
-                    {grupo.desenlace === "abierta" ? null : historia.eslabones.map((eslabon) => (
+                    {historia.eslabones.map((eslabon) => (
                       <Eslabon
                         key={eslabon.codigo}
                         eslabon={eslabon}
@@ -131,6 +180,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
                 </li>
               ))}
             </ol>
+            )}
           </section>
         );
       })}

@@ -152,7 +152,13 @@ if (ESCALA_2025) {
               faculty = fac, stratum = fac, level = "Pregrado", sample_role = rol,
               wave = if (rol == "titular") "M1" else sprintf("M%d", (ord %||% 1) + 1),
               orden = i, eligible_n = 20 + (i %% 25), enrolled_total = 25 + (i %% 25),
-              expected_valid = max(1, round((20 + (i %% 25)) * 0.7)), sample_status = est,
+              # Dos aulas SIN meta declarada. Ocurre de verdad —una reserva que
+              # entra al plan sin que nadie le fije cuantas validas se le piden—
+              # y con las 196 declarando meta, las dos superficies que avisan de
+              # ello (`AulasAvanceEnRespuestas` y `AulasCoberturaChart`) no se
+              # ven NUNCA aunque esten escritas.
+              expected_valid = if (i %in% c(58L, 133L)) 0 else max(1, round((20 + (i %% 25)) * 0.7)),
+              sample_status = est,
               sex_top_1 = "F", sex_top_1_n = 11 + (i %% 8),
               sex_top_2 = "M", sex_top_2_n = 9 + (i %% 6),
               link = sprintf("https://ee.kobotoolbox.org/x/abc?d[collectorID]=%s", cod))
@@ -326,7 +332,11 @@ control <- lapply(seq_along(aplicadas), function(i) {
     threshold_population = round(0.7 * matriculados),
     valid_total = if (enviadas >= 0.7 * asistentes) 1 else 0,
     valid_population = if (enviadas >= 0.7 * matriculados) 1 else 0,
-    last_response_day = sprintf("2026-08-%02d", 10 + (i %% 10)),
+    # «Control - duracion» se deja SIN LLENAR entero, que es como llega un
+    # libro a media faena: el equipo cierra Cuenta primero y el ultimo dia de
+    # respuesta lo anota al final. Sin esto, los cuatro grupos venian llenos y
+    # la linea «Sin llenar en el libro: …» no aparecia nunca.
+    last_response_day = "",
     observed_students = asistentes,
     non_respondents = i %% 5,
     attendance_pct = round(asistentes / as.numeric(base$enrolled_total), 3),

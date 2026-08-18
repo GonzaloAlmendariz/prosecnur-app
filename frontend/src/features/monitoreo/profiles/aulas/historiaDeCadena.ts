@@ -1,4 +1,5 @@
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
+import { comparaCodigos } from "./aulasPresentation";
 
 /**
  * Cómo llegó cada cadena a su meta —o por qué no llegó.
@@ -38,6 +39,14 @@ export type HistoriaDeCadena = {
   desenlace: "titular" | "reemplazo" | "abierta";
   /** Respuestas válidas sumadas de toda la cadena. */
   validas: number;
+  /**
+   * La meta que la cadena tiene que alcanzar, que es la del TITULAR.
+   *
+   * No se suman las de los eslabones: reemplazar un aula no multiplica lo que
+   * el estudio pide, la reserva entra a cubrir la misma meta que dejó el
+   * titular. Sumarlas daría 30 donde el plan pide 15.
+   */
+  meta: number;
 };
 
 function texto(valor: unknown): string {
@@ -110,7 +119,7 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
           cumple: meta > 0 && validas >= meta,
         };
       })
-      .sort((a, b) => a.orden - b.orden || a.codigo.localeCompare(b.codigo, "es"));
+      .sort((a, b) => a.orden - b.orden || comparaCodigos(a.codigo, b.codigo));
 
     const queCerro = eslabones.find((eslabon) => eslabon.cumple);
     historias.push({
@@ -120,6 +129,7 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
       cerro: queCerro?.codigo ?? "",
       desenlace: !queCerro ? "abierta" : queCerro.orden === 0 ? "titular" : "reemplazo",
       validas: eslabones.reduce((suma, e) => suma + e.validas, 0),
+      meta: eslabones.find((e) => e.orden === 0)?.meta ?? eslabones[0]?.meta ?? 0,
     });
   }
 
@@ -127,7 +137,7 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   const peso = { abierta: 0, reemplazo: 1, titular: 2 } as const;
   historias.sort((a, b) => peso[a.desenlace] - peso[b.desenlace]
     || b.eslabones.length - a.eslabones.length
-    || a.titular.localeCompare(b.titular, "es"));
+    || comparaCodigos(a.titular, b.titular));
 
   return {
     historias,
