@@ -66,6 +66,7 @@ import {
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
+import { estratosConAulaExtra } from "./aulas/certificacionAcciones";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -496,6 +497,20 @@ export function UniversidadDesk({
   // La certificación por facultad de la selección (Gonzalo: «tiene que
   // certificarse de esa forma»): derivada al servir por el motor, la UI solo
   // la normaliza y la muestra.
+  // Acción REGISTRADA desde la certificación: «darle un aula más» a una
+  // facultad fija sus titulares en el estrato del estudio (aulas_base_fijas);
+  // invalidar los artefactos deja los banners existentes guiando el
+  // recalcular → seleccionar que la aplica. Nada manual.
+  const onAgregarAulaFacultad = useCallback(
+    (facultad: string, aulasActuales: number) => {
+      if (!facultyComp) return;
+      const nuevos = estratosConAulaExtra(facultyComp.marco?.estratos ?? null, facultad, aulasActuales);
+      if (!nuevos) return;
+      onComponente(facultyComp.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [facultyComp, onComponente, onInvalidateAulasArtifacts],
+  );
   const certificacionFacultad = useMemo(
     () => normalizeCalcMuestraCertificacionFacultad(
       (aulasState?.selection as { certificacion_facultad?: unknown } | null)?.certificacion_facultad ?? null,
@@ -683,6 +698,7 @@ export function UniversidadDesk({
                 margenFilas={margenFilas}
                 sexoBalance={sexoBalance}
                 certificacion={certificacionFacultad}
+                onAgregarAula={onAgregarAulaFacultad}
               />
             )}
             {activeLabTab === "perfil" && (

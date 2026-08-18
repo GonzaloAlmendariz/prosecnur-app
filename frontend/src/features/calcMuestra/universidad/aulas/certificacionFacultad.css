@@ -107,3 +107,19 @@
 }
 
 .cmv2-cert-sexo[data-cubre="sin_tasa"] { color: var(--pulso-text-muted); }
+
+.cmv2-cert-accion {
+  margin-inline-start: 6px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-fg) 45%, transparent);
+  background: transparent;
+  color: var(--pulso-warn-fg);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cmv2-cert-accion:hover {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 12%, transparent);
+}

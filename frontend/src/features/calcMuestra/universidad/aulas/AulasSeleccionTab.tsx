@@ -61,6 +61,7 @@ export function AulasSeleccionTab({
   margenFilas = null,
   sexoBalance = null,
   certificacion = null,
+  onAgregarAula,
 }: {
   workspace: CalcMuestraWorkspace;
   model: ClassroomLabModel;
@@ -73,6 +74,7 @@ export function AulasSeleccionTab({
   /** Balance de sexo por facultad de la selección vigente. */
   sexoBalance?: CalcMuestraSexoPorFacultad | null;
   certificacion?: CalcMuestraCertificacionFacultad | null;
+  onAgregarAula?: (facultad: string, aulasActuales: number) => void;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
@@ -129,7 +131,7 @@ export function AulasSeleccionTab({
           frente a las que necesita, y qué composición por sexo ofrecen. Van
           arriba porque condicionan cómo se lee la selección de abajo. */}
       <MargenPorFacultadCard filas={margenFilas} />
-      <CertificacionFacultadCard certificacion={certificacion} />
+      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
       <SexoPorFacultadCard balance={sexoBalance} />
       {stageNotice && (
         <AulasStageNotice
