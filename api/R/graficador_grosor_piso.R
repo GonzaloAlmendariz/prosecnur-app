@@ -697,6 +697,60 @@
 # 14: 1.0 · 0.7444 · 0.6712 · 1.0), contra los 0.2931 del aprobado. Si sale
 # otra cosa, la hipotesis era falsa y se documenta aqui.
 #
+# ------------------------------------------------------------------------
+# COMPROBADO, Y CON UNA CORRECCION QUE CAMBIA EL PUNTO ENTERO.
+#
+# 1) La aritmetica del techo confirma la prediccion **exacta**. Recortando a
+#    1.0 cm las medianas ya medidas de las laminas 9-14:
+#
+#      lam  sin techo                      disp   | con techo 1.0            disp
+#       9   1.0942 0.7444 0.6712 1.4853   0.8141  | 1.0 0.7444 0.6712 1.0   0.3288
+#      10   1.0942 0.6712 0.6712 0.9503   0.4230  | 1.0 0.6712 0.6712 0.9503 0.3288
+#      11   1.0942 0.7138 0.6712 1.0942   0.4230  | 1.0 0.7138 0.6712 1.0   0.3288
+#      12   0.7138 0.7138                 0.0000  | igual                   0.0000
+#      13   0.7444 1.4853                 0.7409  | 0.7444 1.0              0.2556
+#      14   1.0942 0.9503 0.6712 1.4853   0.8141  | 1.0 0.9503 0.6712 1.0   0.3288
+#
+#    maximo **1.4853 -> 1.0000** · peor dispersion **0.8141 -> 0.3288**, contra
+#    el 1.0000 y 0.2931 del aprobado. La dispersion residual **ya no la fija el
+#    techo sino el PISO**: 1.0000 - 0.6712.
+#
+# 2) Y ESTA NOTA DECIA QUE «los cuadrantes de poblacion no pasan por ahi: son
+#    categoricas y tarta». **ES FALSO.** Censado el plan por su campo
+#    `graficador`, los 68 elementos son **42 multiapiladas, 20 agrupadas, 4 pie
+#    y 2 radar**; los cuadrantes de 9-14 son **agrupadas** y tarta, no
+#    categoricas. Y `graficador_barras_agrupadas.R` **YA APLICA UN TECHO**, en su
+#    bloque de estirado (~1647), sin pasar por `.grosor_con_techo_in()`:
+#
+#      panel_techo <- (.GROSOR_TECHO_IN / grosor_barras_eff) * n_filas_panel
+#      panel_nuevo <- min(panel_nuevo, max(h_panel_in, panel_techo))
+#
+#    Su propio comentario nombra este caso: «el cuadrante de dos barras de un
+#    perfil salia a 1.68 cm y el de cinco a 0.70, sobre la misma lamina».
+#
+# 3) Asi que el defecto NO es que falte el techo: es que el que hay usa
+#    `.GROSOR_TECHO_IN` = **0.7087 in (1.80 cm)**, el maximo del aprobado en
+#    TODO el mazo, cuando el de las laminas de poblacion es **0.394 in (1.0 cm)**.
+#    Por eso 1.4853 pasa entero: **esta por debajo del techo global**. El
+#    remedio no es enchufar nada nuevo, es **bajar el techo de esta ruta**.
+#
+# 4) Lo que queda por resolver, y no es aritmetica: `graficar_barras_agrupadas()`
+#    no sabe si dibuja un cuadrante o una lamina entera, y su llamador vive en
+#    `reporte_plan_ppt.R`, CONGELADO, asi que no puede recibir un argumento
+#    nuevo. El techo tendria que derivarse de lo que la funcion ya ve —el
+#    `alto_hueco`, que en un cuadrante es un cuarto de lamina—. Eso es diseno y
+#    se mide antes de escribirlo.
+#
+#    Dato que lo habilita: `canvas_h_panel_in` **no aparece ni una vez** en
+#    `reporte_plan_ppt.R`, luego `panel_fijado_in` es FALSE en la ruta de PPT y
+#    el bloque de estirado SI corre. Encaja con lo ya medido —TRUE en 122,
+#    FALSE en 110— y **los 110 son exactamente los renders de PPT**: en PPT el
+#    panel nunca se fija; los 122 fijados son los del Word.
+#
+# LECCION: un techo puede existir, estar enchufado y aun asi no morder, porque
+# la constante que usa es de otra escala. «Sin consumidor» y «con el consumidor
+# equivocado» se parecen mucho desde fuera y se arreglan distinto.
+#
 # DE PASO, UNA CORRECCION AL TABLERO: P25 dice que `.grosor_con_techo_in()`
 # tiene **cero consumidores**. Ya no: `graficador_barras_apiladas.R:1924` lo
 # llama. Lo que sigue siendo cierto es que NADIE lo llama con el techo de 1.0 cm
