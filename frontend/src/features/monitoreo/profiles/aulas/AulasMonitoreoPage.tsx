@@ -229,7 +229,6 @@ function DataTable({
       <div
         className="mon-profile-table-wrap"
         data-qa-geometry-capacity="owned"
-        data-qa-geometry-member
       >
         <p className="mon-profile-muted">{empty}</p>
       </div>
@@ -391,8 +390,14 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
     // declare el suyo: son dos superficies, la seccion y el grupo de tarjetas.
     <section
       className="mon-profile-panel mon-aulas-handoff-panel"
-      data-qa-geometry-group="monitoring-aulas-handoff-panel"
-      data-qa-geometry-contract="intrinsic"
+      // Sin grupo en el `section`. Lo tenía —«monitoring-aulas-handoff-panel»,
+      // intrinsic— y con él la CABECERA entraba como miembro, así que sus 5 px
+      // de holgura se leían como `capacity-drift` del panel. Es exactamente la
+      // trampa que la norma describe: declarar el grupo en el `section` en vez
+      // del wrapper de datos hace que el padding del encabezado se lea como
+      // capacidad inflada. El contenedor de datos —la rejilla de tarjetas— ya
+      // declara su propio grupo `equal` justo debajo, que es lo que hay que
+      // vigilar aquí.
     >
       <div className="mon-profile-panel-head">
         {/* No sale de ninguna hoja del libro: es la cadena que deja el plan
@@ -407,6 +412,9 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
         className="mon-aulas-handoff-grid"
         data-qa-geometry-group="monitoring-aulas-handoff"
         data-qa-geometry-contract="equal"
+        // C1: la rejilla es el contenedor visible de datos y la dueña de su
+        // espacio interior.
+        data-qa-geometry-capacity="owned"
       >
         {cards.map((card) => (
           <article key={card.label} className={`is-${card.tone}`}>
@@ -448,8 +456,12 @@ function renderAulasView(
         {operations}
         <section
           className="mon-profile-panel"
-          data-qa-geometry-group="monitoring-aulas-fuentes"
-          data-qa-geometry-contract="intrinsic"
+          // Sin grupo en el `section`: con él, la CABECERA entra como miembro y sus
+          // 5 px de holgura se leen como `capacity-drift` del panel. Es la trampa
+          // que la norma describe —declarar el grupo en el `section` en vez del
+          // wrapper de datos hace que el padding del encabezado se lea como
+          // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
+          // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
         >
           <div className="mon-profile-panel-head">
             {/* Antes decía «Fuente y plan» y era una tabla campo/valor que

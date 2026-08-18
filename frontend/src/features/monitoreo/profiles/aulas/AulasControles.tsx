@@ -161,7 +161,10 @@ export function AulasControles({ filas, plan = [] }: {
   }
 
   return (
-    <div className="aulas-controles">
+    // C1: los avisos son el contenido de datos de este panel y su dueño de
+    // capacidad. Sin declararlo el gate culpaba a la cabecera de 5 px que no
+    // son suyos.
+    <div className="aulas-controles" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-controles-lectura">
         <strong>{revisar}</strong> piden revisión · <strong>{advertencias}</strong>{" "}
         {advertencias === 1 ? "advertencia" : "advertencias"} ·{" "}
