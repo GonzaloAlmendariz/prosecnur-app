@@ -2112,3 +2112,15 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Las cifras de TODAS las tablas del perfil, no sólo las de la Base de control.
+   `DataTable` las pintaba a la izquierda, así que en Partes de campo convivían
+   «25», «69.4 %», «1», «20» y «−1» pegados al borde, cada uno empezando a una
+   altura distinta según su ancho: una columna de números que no se puede
+   recorrer con el ojo no es una columna, es una lista. */
+.mon-profile-page.is-aulas-flow .mon-profile-table th.es-cifra,
+.mon-profile-page.is-aulas-flow .mon-profile-table td.es-cifra {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
