@@ -2586,3 +2586,24 @@ agregado.
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad en dimensionamiento · «190 vs 170» didáctico | ☐ tras Tanda I |
+
+### Tanda I — I13+I14 cerrados (dibujo entero)
+
+**I13+I14 ☑ (`2df12e57`)**: la celda del Panorama dice LA REGLA («además
+TALLER», «≥ 20», y la columna nueva de Nivel con «niveles 0 y 2–10» /
+«exenta» — la VARA 3 dibujada: 12 facultades con rango y 3 exentas a la
+vista); y el «1 de 907» era el scroll deslizando celdas bajo la columna
+sticky sin filo — cabecera sticky-left, filo dibujado, nombres que envuelven
+y sin scroll en toda la matriz QA. En vivo a 1024×600 y desktop.
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 · I12 | pregunta · embudo en Selección · referencia 8/8 · delta · elegibles 2025 · chip honesto | ☑ |
+| — | Radiografía nivel (`433314ab`) · oráculo (`7cd86828`) · bundle i18b (`206a7cc8`) | ☑ |
+| I13 · I14 | Panorama con reglas · cifras sin recorte | ☑ `2df12e57` |
+| I9 | Fichas como tarjetas (dos por fila) | ☐ SIGUIENTE |
+| I10 | Reformular «sin criterios propios» | ☐ (mismo archivo que I9) |
+| I15 | Ranking de desempeño CH 2025 por facultad en Histórico | ☐ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
