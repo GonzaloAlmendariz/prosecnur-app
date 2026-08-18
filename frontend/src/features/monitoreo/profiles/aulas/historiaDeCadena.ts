@@ -103,6 +103,13 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
   for (const fila of filas) {
     const cadena = titularDe(fila);
     if (!cadena) continue;
+    // El banco fuera. `extra_reserve_pool` son reservas sueltas sin titular al
+    // que volver: no forman cadena. Aquí no llegaban a dibujar una tarjeta
+    // —caen en la rama «sin reserva» y se saltan— pero SÍ engordaban ese
+    // contador, que es el que alimenta «ninguno de los N cursos-horario
+    // titulares tiene reserva asignada». Sobre HSVG2026 esa frase pasaba a
+    // hablar de 639 aulas que no son titulares de nada.
+    if (texto(fila.sample_role) === "extra_reserve_pool") continue;
     const actual = porCadena.get(cadena);
     if (actual) actual.push(fila);
     else porCadena.set(cadena, [fila]);

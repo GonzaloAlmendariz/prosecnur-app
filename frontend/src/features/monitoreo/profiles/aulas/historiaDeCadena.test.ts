@@ -155,3 +155,28 @@ test("los codigos se ordenan como numeros y no como texto", () => {
 
   expect(historias.map((h) => h.titular)).toEqual(["CH 2", "CH 5", "CH 10"]);
 });
+
+/**
+ * El banco no cuenta como titular sin reserva.
+ *
+ * Las filas de `extra_reserve_pool` no dibujaban tarjeta —caen en la rama «sin
+ * reserva»— pero sí engordaban ese contador, y es el que alimenta la frase
+ * «ninguno de los N cursos-horario titulares tiene reserva asignada». Sobre el
+ * estudio real, esa N pasaba a incluir 639 aulas que no son titulares de nada.
+ */
+describe("historiaDeCadena y el banco", () => {
+  test("las reservas sueltas no cuentan como titulares sin reserva", () => {
+    const banco = (codigo: string) => ({
+      operational_code: codigo,
+      sample_role: "extra_reserve_pool",
+    } as unknown as MonitoreoAulasPlanRow);
+
+    const res = historiaDeCadena([
+      { operational_code: "CH 9", sample_role: "titular" } as unknown as MonitoreoAulasPlanRow,
+      banco("EXTRA 1"), banco("EXTRA 2"), banco("EXTRA 3"),
+    ]);
+
+    // Un titular sin reserva, no cuatro.
+    expect(res.sinReserva).toBe(1);
+  });
+});
