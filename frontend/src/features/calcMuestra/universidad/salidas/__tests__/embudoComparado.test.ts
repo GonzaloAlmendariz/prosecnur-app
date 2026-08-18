@@ -86,7 +86,7 @@ describe("montaje en Coincidencia", () => {
 
   it("Coincidencia muestra el sello en modo lectura (la acción vive en Selección)", () => {
     expect(src).toContain('from "../aulas/CertificacionFacultadCard"');
-    expect(src).toMatch(/<CertificacionFacultadCard certificacion=\{certificacion\} \/>/);
+    expect(src).toMatch(/<CertificacionFacultadCard certificacion=\{certificacion\} referencia=\{referenciaAsistencia\} \/>/);
     // Sin onAgregarAula: el eco no ofrece la acción.
     expect(src).not.toMatch(/CertificacionFacultadCard[^/]*onAgregarAula/);
   });

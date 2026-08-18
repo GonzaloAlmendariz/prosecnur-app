@@ -778,6 +778,7 @@ export function UniversidadDesk({
                 fichas={fichasFacultad}
                 referencia={referenciaCriterios}
                 certificacion={certificacionFacultad}
+                referenciaAsistencia={referenciaAsistencia}
               />
             </div>}
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
