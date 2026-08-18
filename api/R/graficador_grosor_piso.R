@@ -437,3 +437,55 @@
 # Vive aqui y no en `reporte_plan_ppt.R` porque ese archivo esta congelado a
 # crecimiento: alli queda solo el paso del valor.
 .POBLACION_4_ALTO_SLOT_IN <- 2.565
+
+
+# =============================================================================
+# P48/P37 — INVENTARIO DEL MOVIMIENTO, hecho antes de mover
+# =============================================================================
+#
+# El grosor se decide ANTES de que se sepa cuanto mide la fila. En
+# `graficador_barras_apiladas.R`, `grosor_eff` queda fijado alrededor de la
+# 1924 y entra al `geom_col` de la 1970 como FRACCION de fila; el alto de fila
+# de verdad se calcula mucho mas abajo, y ahi lo estiran DOS veces. Por eso una
+# misma barra sale a 0,5500 in en 54 renders y a 0,6510 in en otros 54, y por
+# eso quedan dos R10 (laminas 48 y 54, 2.751).
+#
+# `.grosor_anclado_al_nominal()` —mas arriba en este archivo— es la regla de
+# tres que lo corrige, pero **no se puede llamar donde esta el grosor**: en esa
+# linea `alto_por_cat_eff` todavia no existe. De ahi el movimiento. Y de ahi
+# tambien que anclar DESPUES del estirado ya se descartara dos veces (`b9982cdb`
+# y `4d462d55`): el problema es de ORDEN, no de logica.
+#
+# EL MOVIMIENTO, medido sobre el estado de `d988a9fb`:
+#
+#   BLOQUE A   `caption_text`, lineas 2789-2797
+#   BLOQUE B   la unidad de altura, 2890-3014 —desde el comentario «alturas en
+#              pulgadas» hasta `if (h_total_in <= 0) h_total_in <- 1`, con los
+#              DOS estirados dentro (2975 y 3009)
+#   DESTINO    justo antes de `p_bars <- ggplot2::ggplot(` en la 1962, primero A
+#              y luego B, y detras el anclaje:
+#                grosor_eff <- .grosor_anclado_al_nominal(
+#                  grosor_eff, alto_por_cat_grosor, alto_por_cat_eff)
+#
+# POR QUE ES SEGURO, las dos direcciones medidas:
+#
+#   LO QUE LEE.  Todo lo que el bloque B necesita nace ANTES de la 1962:
+#     `niveles_leyenda` 1698 · `legend_is_side` 1415 · `n_categorias` 1775 ·
+#     `max_lineas_eje_y_est` 1804 · `needs_tall_label_slot` 1806 ·
+#     `y_axis_max` 1818/1858/1870 · `alto_por_cat_grosor` 1904 ·
+#     `grosor_eff` 1878-1924. El resto son PARAMETROS de la funcion.
+#     La UNICA excepcion es `caption_text` (2791), y por eso viaja con el; sus
+#     dos insumos, `nota_pie` y `nota_pie_derecha`, tambien son parametros.
+#
+#   LO QUE ESCRIBE.  Ninguna de sus DIECISEIS salidas se reasigna entre la 1962
+#     y la 2890, que es lo que convertiria el adelanto en un cambio de
+#     comportamiento. Las unicas asignaciones fuera del bloque son
+#     `h_panel_in` en 3044 y `h_total_in` en 3043/3048, las tres dentro del
+#     bloque B46/G-21 (3016-3054), que se queda donde esta y sigue corriendo
+#     despues.
+#
+# LO QUE EL MOVIMIENTO NO ARREGLA, dicho para no confundirlo con un fallo: el
+# bloque B46 sube `h_panel_in` a un piso cuando hay 1-2 filas, sin tocar
+# `alto_por_cat_eff`. Ahi el grosor NO se reancla, y es deliberado —lo dice su
+# propio comentario, apoyado en el ADR 0065: una barra mide lo mismo en toda la
+# presentacion—. Queda fuera del alcance de P48.
