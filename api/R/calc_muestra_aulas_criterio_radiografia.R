@@ -862,7 +862,12 @@ calc_muestra_aulas_criterios_radiografia <- function(
     signal <- suppressWarnings(as.numeric(valores$course_level))
     activa <- length(ranges) > 0L
     actual_flag <- if (activa) {
-      .cm_criterios_eval_course_ranges(valores$course_pairs, ranges)
+      # La facultad DEL AULA decide la exencion; el constructor y el preview la
+      # pasan y omitirla aqui recalculaba un flag distinto en cada aula exenta:
+      # la reconstruccion divergia y el gate entero salia "invalido".
+      .cm_criterios_eval_course_ranges(
+        valores$course_pairs, ranges, valores$faculty_aula
+      )
     } else {
       rep(TRUE, n)
     }
