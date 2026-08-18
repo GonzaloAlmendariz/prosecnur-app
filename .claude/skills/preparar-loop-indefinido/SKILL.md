@@ -1,83 +1,113 @@
 ---
 name: preparar-loop-indefinido
-description: Arma, actualiza y rearma el encargo de un /loop indefinido - el prompt que se vuelve a disparar en cada tick y es la única memoria que sobrevive a la compactación. Usar cuando el usuario pida "déjalo en loop", "sigue sin detenerte", "prepara un loop indefinido", al armar el cron del loop, o al retomar un loop abierto en otra sesión.
+description: Arma, actualiza y rearma el encargo de un /loop indefinido - el archivo de encargo que cada tick vuelve a abrir y es la única memoria que sobrevive a la compactación. Usar cuando el usuario pida "déjalo en loop", "sigue sin detenerte", "prepara un loop indefinido", al armar el reloj del loop, o al retomar un loop abierto en otra sesión.
 ---
 
 # Loop indefinido — preparar el encargo
 
 Un `/loop` indefinido no se detiene hasta que el usuario lo diga. Entre tick y
 tick el contexto se compacta: **lo único que llega entero al turno siguiente es
-el prompt que le pasas al cron que dispara el loop**. Ese prompt no es un recordatorio de
-la tarea, es el estado del trabajo. Todo lo que cueste más de un minuto
-reconstruir —una cifra ya medida, el motivo por el que una etapa está cerrada,
-el nombre exacto de un helper— vive ahí o se pierde.
+la notificación del reloj (que sólo trae una línea) y el archivo de encargo al
+que esa línea apunta**. Ese archivo no es un recordatorio de la tarea, es el
+estado del trabajo. Todo lo que cueste más de un minuto reconstruir —una cifra
+ya medida, el motivo por el que una etapa está cerrada, el nombre exacto de un
+helper— vive ahí o se pierde.
 
 De ahí la regla que gobierna todo lo demás: **el encargo se reescribe cada
-turno**, no se reenvía intacto. `/loop` es built-in y no se puede editar; estas
+turno**, no se relee intacto. `/loop` es built-in y no se puede editar; estas
 reglas viven acá.
 
-## Cadencia y rearme
+## El reloj: una tarea de fondo, no un programador
 
-- **El disparador es `CronCreate({cron:"*/5 * * * *", recurring:true, prompt:…})`,
-  NUNCA `ScheduleWakeup`.** Medido el 2026-08-17 en dos sesiones distintas:
-  `ScheduleWakeup` responde «Next wakeup scheduled for HH:MM:SS» y **no ejecuta
-  nada** —quince llamadas aceptadas, cero ticks—, porque lo que crea de verdad es
-  un one-shot pinchado a una hora que sólo corre si la sesión está ociosa en ese
-  instante. El recurrente sí dispara, y perder un tick por sesión ocupada no lo
-  mata: el siguiente llega en cinco minutos. La avería es INVISIBLE desde dentro
-  —el registro se ve sano turno tras turno— y sólo se detecta por el hueco de
-  horas sin ticks, o porque el usuario escribe «nunca empezaste».
-- Tres límites que hay que avisar siempre: el cron sólo dispara con la sesión
-  ociosa, muere al cerrar la sesión y los recurrentes **caducan a los 7 días**.
-- **Cinco minutos exactos**, y la cadencia la fija el usuario. No los
-  1200–1800 s que sugiere la herramienta: esa guía razona sobre coste de tokens,
-  y acá la cadencia la fija el usuario para poder seguir y redirigir el trabajo.
-- **El encargo se reescribe al cerrar CADA turno** —`CronDelete` del anterior y
-  `CronCreate` con el estado nuevo—, incluidos los turnos que sólo atendieron una
-  interrupción suya. El cron recurrente sobrevive por sí solo, pero un encargo sin
-  actualizar hace que el tick siguiente repita lo ya hecho y lo reporte como nuevo.
-- **Sólo se borra el cron si el usuario lo pide.** «El trabajo terminó de verdad» no
-  es motivo: igual que un GOAL, un loop indefinido lo cierra sólo él. Cerrar una
-  etapa no cierra el loop.
-- Un solo disparador: comprueba con `CronList` antes de crear, y si ya hay un
-  `*/5` no crees otro. Si quedó un `ScheduleWakeup` vivo, ciérralo con `stop`.
-- Los waits de shell del turno van **con tope** (`timeout N` o contador máximo);
-  un `until … sleep` sin tope sobrevive al loop y gira en vacío durante horas.
+- **El disparador es el fin de una tarea de fondo**:
+
+  `Bash({run_in_background: true, command: "sleep 300", description: "TICK DEL LOOP <tema> — retoma <scratchpad>/ENCARGO_LOOP.md"})`
+
+  Al terminar el `sleep` llega la `<task-notification>` y con ella el turno
+  siguiente. Sólo el `sleep` en foreground está bloqueado; en background corre.
+  **NO montes el reloj sobre `ScheduleWakeup` ni sobre `CronCreate`.**
+- Por qué, con las cifras de las cinco sesiones con loop de agosto 2026 (auditoría
+  del 2026-08-18 sobre los transcripts): **los dos programadores disparan a
+  rachas y mueren a rachas, por sesión.** `ScheduleWakeup` disparó 446 de 569
+  rearmes — un loop vivió 55 horas con él — pero los fallos no se reparten al
+  azar: se concentran en **ventanas muertas de horas** (8 rearmes seguidos
+  aceptados y cero ticks en una sesión, de 03:32 a 10:56, mientras OTRA sesión
+  disparaba puntual a las mismas horas). `CronCreate` igual: ~21 ticks seguidos
+  una tarde y esa misma noche un cron aceptado que pasó 103 minutos con la
+  sesión ociosa sin disparar — ése es el «Te detuviste cuando te dije
+  explícitamente que no lo hagas». La avería es invisible desde dentro: el
+  resultado de la herramienta dice exactamente lo mismo («Next wakeup
+  scheduled…») en la racha sana y en la muerta.
+- El reloj de fondo no tiene esa avería medida: ~100 notificaciones en dos
+  sesiones de 8–9 horas corridas, cero muertes silenciosas, y sobrevivió
+  compactaciones. Además tiene la propiedad que a los programadores les falta:
+  **un tick que cae con el turno ocupado se encola y llega al cerrar el turno;
+  el del programador se descarta sin reintento.** Por eso los wakeups morían
+  justo en las fases de turnos largos: el rearme se hacía a mitad del trabajo,
+  la hora del tick caía dentro del turno y el tick se perdía sin dejar rastro.
+- **Cinco minutos** (`sleep 300`), y la cadencia la fija el usuario, no el
+  cálculo de eficiencia. La cadencia efectiva será 5 min + lo que dure el turno
+  (mediana medida: ~7 min entre ticks); no compensarlo acortando el sleep.
+- **El encargo vive en `<scratchpad>/ENCARGO_LOOP.md`** (o la ruta que el loop
+  declare), no en el prompt del reloj: la notificación sólo trae el
+  `description`. Cada turno reescribe el archivo y relanza el ticker.
+- **Un solo reloj.** Antes de lanzar, mira las tareas de fondo activas
+  (`TaskList`): si ya hay un TICK corriendo, no lances otro — dos relojes dan
+  ticks dobles. Si quedó vivo un cron o un wakeup de una encarnación anterior
+  del loop, elimínalos (`CronDelete`, `ScheduleWakeup({stop: true})`); no
+  conviven dos disparadores.
+- Dos límites que hay que avisar al usuario siempre: el ticker es un proceso
+  hijo de la app — **cerrar la app mata el reloj** y nada dentro de la sesión
+  sobrevive a eso; la **suspensión del equipo** lo pausa y el tick llega tarde,
+  pero llega (el one-shot de un programador cuya hora pasa durante la
+  suspensión, en cambio, no dispara nunca).
+- Los waits de shell del turno van **con tope** (`timeout N` o contador
+  máximo); un `until … sleep` sin tope sobrevive al loop y gira en vacío
+  durante horas.
 
 ## El rearme va ANTES del cierre
 
-Ésta es la regla que mantiene vivo el loop, y sale de haber medido tres loops
-muertos en los transcripts. En los tres, el rearme se aceptó decenas de veces
-—40, 119 y 187 llamadas, todas con su `Next wakeup scheduled for …`— y el loop
-murió igual. El turno que lo mató siempre tenía la misma forma:
+Ésta es la regla que mantiene vivo el loop, y sale de haber medido los loops
+muertos en los transcripts. El reloj puede ser perfecto y el loop muere igual si
+un turno cierra sin relanzarlo. El turno que mata siempre tiene la misma forma:
 
 > tick disparado → trabajo real (leer, editar, correr tests, commitear) →
 > **un cierre largo y satisfactorio** (el tablero entero, el checklist, el
 > resumen de lo avanzado) → fin del turno. Sin rearme.
 
-Los turnos que sobrevivieron cerraban con una línea corta —«Loop rearmado.»—
+Los turnos que sobrevivieron cerraban con una línea corta —«Reloj corriendo.»—
 **después** de la llamada. Los que murieron cerraron con 1.100 a 3.300
 caracteres de resumen y ya no llamaron a nada. El texto de cierre es lo que hace
 que el turno se sienta terminado; escribirlo primero se lleva puesto el rearme.
 
 De ahí tres reglas mecánicas:
 
-1. **La reescritura del encargo (`CronDelete` + `CronCreate`) es la última
-   llamada a herramienta del turno y va antes de
-   escribir el cierre.** Si ya estás redactando el tablero, te lo saltaste:
-   detente, llama, y sigue redactando.
+1. **Reescribir `ENCARGO_LOOP.md` y relanzar el ticker es lo último que hace el
+   turno, justo antes de redactar el cierre.** Si ya estás redactando el
+   tablero, te lo saltaste: detente, llama, y sigue redactando. No relances el
+   reloj al principio del turno «para no olvidarlo» y sigas trabajando: con el
+   ticker eso sólo adelanta el tick, pero es la disciplina de rearme-al-final
+   la que el turno siguiente va a imitar.
 2. **El disparador es la forma del turno, no el reloj.** En cuanto vayas a
    escribir un tablero, un checklist entero o un resumen de lo avanzado, ése es
    el momento de rearmar. Son turnos con forma de final.
-3. **El cierre termina con el sello del disparador**, con el id que devolvió la
-   herramienta: `⟳ tick de 5 min activo (cron 4b640895)`. No se puede escribir el
-   id sin haber llamado, así que la omisión deja de ser invisible — para ti
-   mientras redactas y para el usuario al leer.
+3. **El cierre termina con el sello del reloj**, con el task-id que devolvió la
+   herramienta: `⟳ reloj bwyrim2w2 corriendo — notifica ~HH:MM:SS`. No se puede
+   escribir el id sin haber llamado, así que la omisión deja de ser invisible —
+   para ti mientras redactas y para el usuario al leer. Un cierre sellado con
+   un mecanismo que nunca has visto disparar es una promesa, no evidencia.
 
 Los dos turnos con más riesgo son justo los que más se parecen a un final: el
 que cierra una etapa con su tablero, y el que atiende una interrupción del
 usuario y la resuelve bien. En los transcripts, los cierres sin rearme se
-repartían exactamente entre esos dos.
+repartían exactamente entre esos dos. **El rearme aplica a CADA turno**,
+incluidos los que sólo contestaron una pregunta suya: si él interrumpe con una
+tarea nueva y la resuelves sin relanzar el reloj, el loop se muere por omisión
+y parece que el skill está roto.
+
+Y la contracara: si un turno arranca (por el motivo que sea) y `TaskList` no
+muestra ningún TICK corriendo, el reloj murió —app reiniciada, ticker olvidado—
+y ese turno lo relanza de inmediato, antes de trabajar.
 
 ## Abrir uno
 
@@ -91,14 +121,15 @@ repartían exactamente entre esos dos.
    (`<nombre>_trabajo.pulso`), nunca el original del cliente, nunca fuentes de
    cliente dentro del repo. Verificación activa: correr el motor, cambiar la
    config, regenerar — no leer código y opinar.
-4. **Escribe el encargo completo** con los bloques de abajo, aunque la mitad
-   estén vacíos, y rearma.
+4. **Escribe `ENCARGO_LOOP.md` completo** con los bloques de abajo, aunque la
+   mitad estén vacíos, lanza el ticker y avisa los dos límites (app cerrada,
+   suspensión).
 
 ## Anatomía del encargo
 
 | # | Bloque | Qué lleva | Por qué |
 |---|---|---|---|
-| 0 | **Cómo se mantiene vivo, en la PRIMERA línea** | «Lo dispara un cron recurrente `*/5 * * * *`. NO llames a `ScheduleWakeup`: acepta y nunca dispara. Comprueba con `CronList` y no crees un segundo cron» | Iba al final y los tres loops murieron igual: la última línea de un encargo largo es justo la que se hojea. Va arriba, donde se lee. |
+| 0 | **Cómo se mantiene vivo, en la PRIMERA línea** | «Lo dispara el fin de una tarea de fondo `sleep 300`. Al cerrar CADA turno: reescribe este archivo y relanza el ticker (`TaskList` primero: un solo TICK). NO montes el reloj en `ScheduleWakeup` ni `CronCreate`: se aceptan y tienen ventanas de horas sin disparar» | Iba al final y los loops murieron igual: la última línea de un encargo largo es justo la que se hojea. Va arriba, donde se lee. |
 | 1 | Encabezado | `/loop <MODO> sobre <objeto real>, encargo de <quién>` | El turno siguiente sabe en una línea qué hace y para quién. |
 | 2 | Instrucciones acumuladas | Cada indicación vigente del usuario, **entre comillas y textual** | Parafrasear degrada: «por facultad» se vuelve «revisar facultades» y a los tres ticks ya no es una vara. |
 | 3 | Vara | La afirmación comprobable que decide si el trabajo está bien | Es lo que distingue avanzar de moverse. |
@@ -112,7 +143,7 @@ repartían exactamente entre esos dos.
 | 11 | Zonas prohibidas e higiene | Archivos que no se tocan, congelados a crecimiento, `git status`/`git diff` antes de commitear porque otras sesiones commitean sin avisar | Evita pisar trabajo ajeno y reescribir historia. |
 | 12 | Gate | Las suites del área tocada **con sus conteos esperados** | Un gate sin cifra previa no distingue «pasa» de «pasa menos que ayer». |
 | 13 | Lecciones · evidencia falsa · trampas | Tres listas separadas | Lección metodológica ≠ cómo no engañarse ≠ trampa técnica del entorno. |
-| 14 | Cierre | La misma orden de rearme del bloque 0, repetida | Redundancia barata: si el turno leyó el encargo de arriba abajo, lo ve dos veces. |
+| 14 | Cierre | La misma orden de rearme del bloque 0, repetida | Redundancia barata: si el turno leyó el encargo de arriba abajo, la ve dos veces. |
 
 ## Reglas de escritura
 
@@ -134,21 +165,31 @@ repartían exactamente entre esos dos.
   instrucciones textuales, las cifras que no guarda nadie más, las prohibiciones
   y las trampas.
 - Cuando el encargo deje de poder releerse de un vistazo, el bloque duradero baja
-  a `docs/qa/goal-<tema>-<fecha>.md` (skill `/goal`) y el prompt lleva el puntero
-  **más el tablero**. El tablero nunca se sustituye por un puntero: se dibuja
-  siempre en el prompt.
+  a `docs/qa/goal-<tema>-<fecha>.md` (skill `/goal`) y el encargo lleva el
+  puntero **más el tablero**. El tablero nunca se sustituye por un puntero: se
+  dibuja siempre en el encargo.
 
-## Anti-patrones — cada uno costó un tick
+## Anti-patrones — cada uno costó un tick o mató un loop
 
-- **Escribir el cierre y después acordarse del rearme.** Es el que mató los tres
-  loops medidos, y no avisa: la última llamada aceptada dice «Next wakeup
-  scheduled», así que el registro se ve sano hasta el turno en que ya no hay
-  llamada. Se detecta sólo por el hueco —tres horas de silencio hasta que el
-  usuario vuelve a escribir.
-- Rearmar con el prompt del tick anterior sin actualizarlo: el turno repite lo
+- **Escribir el cierre y después acordarse del rearme.** Es el que mató los
+  loops medidos, y no avisa: el registro se ve sano hasta el turno en que ya no
+  hay llamada. Se detecta sólo por el hueco — horas de silencio hasta que el
+  usuario vuelve a escribir «Nunca empezaste» o «Te detuviste».
+- **Sellar el cierre con un mecanismo que nunca has visto disparar.** «⟳ cron
+  activo» con 31 crons aceptados y 0 ticks entregados es lo que rompió la
+  confianza del usuario. Una herramienta que responde «programado» no prueba
+  que se ejecute: el único sello válido es el reloj cuyo disparo ya presenciaste
+  en esta sesión.
+- **Cambiar de mecanismo a mitad del loop porque un tick no llegó**, sin mirar
+  primero `TaskList`: si el ticker sigue corriendo, el tick viene en camino
+  (encolado tras un turno largo); si no está, se relanza el mismo mecanismo. El
+  bandazo wakeup→cron→otro deja disparadores huérfanos conviviendo.
+- Rearmar con el encargo del tick anterior sin actualizarlo: el turno repite lo
   ya hecho y lo reporta como nuevo.
 - Cerrar el turno sin rearmar después de una interrupción del usuario.
-- `stop: true` porque la etapa quedó cerrada y el turno «terminó bien».
+- Declarar el loop terminado porque la etapa quedó cerrada y el turno «terminó
+  bien». Igual que un GOAL, un loop indefinido lo cierra sólo el usuario;
+  cerrar una etapa no cierra el loop.
 - Un «siguiente» difuso («seguir revisando X»).
 - **Cerrar una etapa con los datos cómodos**: la cadena era perfecta a `n=30` y a
   190 el 58 % recibía menos reemplazos de los pedidos. La etapa se cierra a la
@@ -159,12 +200,17 @@ repartían exactamente entre esos dos.
 - Dar por medido lo que no se midió: lo que quedó sin cubrir se dice en el
   commit y se cierra después.
 
-## Plantilla
+## Plantilla de `ENCARGO_LOOP.md`
 
 ```text
-TICK DEL LOOP — lo dispara un cron recurrente `*/5 * * * *` creado en esta
-sesión. NO llames a `ScheduleWakeup`: acepta la llamada y NUNCA dispara. NO crees
-un segundo cron: comprueba con `CronList`. Sólo <quién> detiene el loop.
+TICK DEL LOOP — lo dispara el fin de una tarea de fondo `sleep 300` lanzada con
+`run_in_background`. AL CERRAR CADA TURNO, y como última llamada antes del
+cierre: reescribe este archivo y relanza el ticker con el description
+«TICK DEL LOOP <tema> — retoma <esta ruta>». Antes de lanzar, `TaskList`: un
+solo TICK corriendo. NO montes el reloj en `ScheduleWakeup` ni `CronCreate`
+(se aceptan y tienen ventanas de horas sin disparar; medido). Si un turno
+arranca y no hay TICK en `TaskList`, relanza el reloj ANTES de trabajar.
+Sólo <quién> detiene el loop.
 <MODO> sobre <objeto real>, encargo de <quién>.
 Instrucciones suyas acumuladas: «…»; «…»; **«<la vara, textual>»**.
 SIGUIENTE: <E_n> — <qué medir, con qué función y sobre qué dato>. Si <X> no
@@ -182,8 +228,8 @@ NO TOQUES: <archivos>. Otras sesiones commitean sin avisar: `git status` y
 GATE: <suite> <conteo>, <suite> <conteo>. Suites del área tocada, nunca la
 completa.
 LECCIONES: <…>  ·  EVIDENCIA FALSA: <…>  ·  TRAMPAS: <…>
-Cierra sólo lo que tú levantes. Rearma ANTES del cierre y termina con
-`⟳ próximo tick HH:MM:SS`.
+Reescribe este archivo y relanza el ticker ANTES de redactar el cierre; el
+cierre termina con `⟳ reloj <task-id> corriendo — notifica ~HH:MM:SS`.
 ```
 
 Y el turno se cierra así:
@@ -191,5 +237,5 @@ Y el turno se cierra así:
 ```text
 <el tablero / el resumen del turno>
 
-⟳ próximo tick 03:24:00
+⟳ reloj bwyrim2w2 corriendo — notifica ~03:24:00
 ```

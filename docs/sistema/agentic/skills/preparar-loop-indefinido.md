@@ -2,7 +2,7 @@
 
 # Skill · preparar-loop-indefinido
 
-Arma, actualiza y rearma el encargo de un /loop indefinido - el prompt que se vuelve a disparar en cada tick y es la única memoria que sobrevive a la compactación. Usar cuando el usuario pida "déjalo en loop", "sigue sin detenerte", "prepara un loop indefinido", al armar el cron del loop, o al retomar un loop abierto en otra sesión.
+Arma, actualiza y rearma el encargo de un /loop indefinido - el archivo de encargo que cada tick vuelve a abrir y es la única memoria que sobrevive a la compactación. Usar cuando el usuario pida "déjalo en loop", "sigue sin detenerte", "prepara un loop indefinido", al armar el reloj del loop, o al retomar un loop abierto en otra sesión.
 
 Fuente canónica: `.claude/skills/preparar-loop-indefinido/SKILL.md`.
 

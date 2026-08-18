@@ -30,6 +30,7 @@
 - [notas-parche](skills/notas-parche.md)
 - [nucleo-metodologico](skills/nucleo-metodologico.md)
 - [orquestar-trabajo](skills/orquestar-trabajo.md)
+- [preparar-loop-indefinido](skills/preparar-loop-indefinido.md)
 - [preparar-release](skills/preparar-release.md)
 - [publicar](skills/publicar.md)
 - [revamp-visual](skills/revamp-visual.md)

@@ -66,7 +66,7 @@ Rutas legacy (`/diseno-estudio`, `/plan-trabajo`, `/diseno-muestra`, `/muestra-a
 
 ## Enrutamiento del agentic OS
 
-Las 16 skills de producto en `.claude/skills/` y los 13 agentes en
+Las 18 skills de producto en `.claude/skills/` y los 13 agentes en
 `.claude/agents/` son overlays locales y fuentes canónicas. Codex los consume
 mediante adaptadores generados en `.agents/skills/` y `.codex/agents/`; nunca
 se editan esos adaptadores a mano. Los únicos skills externos autorizados son
@@ -116,7 +116,7 @@ commitear un `.pulso` de cliente sin pasarlo por
 Electron, R embebido, asociación `.pulso`, instaladores, updater y workflows → `desktop-packaging` + revisiones aplicables → `verificador`. Construir no autoriza firmar, publicar, taggear ni subir.
 
 **Rama 7 — Operar el repo**
-Working tree grande / fin de sesión → `/cerrar-trabajo` · push o diagnóstico de CI → `/publicar` (pre-flight local espejo del CI + monitoreo + auto-diagnóstico) · corte de versión → `/preparar-release` · notas de versión (in-app + doc + GitHub) y versiones sin mapear → `/notas-parche` · salud del código (mensual) → `/auditoria-deuda` · commits sueltos → agente `curador-commits`.
+Working tree grande / fin de sesión → `/cerrar-trabajo` · push o diagnóstico de CI → `/publicar` (pre-flight local espejo del CI + monitoreo + auto-diagnóstico) · corte de versión → `/preparar-release` · notas de versión (in-app + doc + GitHub) y versiones sin mapear → `/notas-parche` · salud del código (mensual) → `/auditoria-deuda` · trabajo de fondo que no cabe en una sesión y se deja corriendo → `/preparar-loop-indefinido` (arma el encargo que cada tick del reloj de fondo vuelve a abrir) · commits sueltos → agente `curador-commits`.
 
 **Rama 8 — Gobernar (decisiones)**
 Arquitectura/ADRs → documentación local + `guardian-contratos`; mapa de dominio
