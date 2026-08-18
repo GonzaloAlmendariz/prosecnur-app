@@ -1093,8 +1093,20 @@
 /* El banco de extras. Las facultades son filtro Y resumen a la vez: la misma
    fila dice cuánto queda ahí y sirve para entrar. Dos superficies —una tabla de
    resumen y un selector aparte— repetirían el mismo cruce. */
+/* PENDIENTE, y se declara en vez de apilarle reglas: el panel de Extras mide
+   1 037 px en un canvas de 746, asi que la reja de facultades —que es el
+   filtro— se va de la pantalla al bajar a la tabla. Probé acotarlo por las
+   filas del grid y por `flex` del item: las dos pierden contra
+   `.aulas-tablas-apiladas > .mon-profile-panel { flex: 0 0 auto }`, que vive
+   dentro de una media query y existe por una razon buena —evita que una tabla
+   ancha estire el panel y deje columnas inalcanzables—. Cambiarla afecta a
+   todas las tablas apiladas del perfil, asi que es una decision de layout y no
+   un parche local. Nada queda inalcanzable mientras tanto: el canvas scrollea.
+*/
 .mon-profile-page.is-aulas-flow .aulas-banco {
   display: grid;
+  /* La lectura y la reja a su alto; la tabla se queda el resto y scrollea. */
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
   min-width: 0;
   min-height: 0;
