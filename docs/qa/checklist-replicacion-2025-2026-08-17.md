@@ -2607,3 +2607,31 @@ y sin scroll en toda la matriz QA. En vivo a 1024×600 y desktop.
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
+
+## INTERRUPCIÓN 2026-08-18 (3) · «scrollear aquí es muy complicado» — ☑ reparado
+
+Textual: «scrollear aquí es muy complicado por los contenedores, trata de
+pensar en una mejor forma». Era la cárcel de la regla No Scroll Jail
+(`docs/ui-layout-grammar.md`): el tab-panel es el dueño (13.400px) pero el
+Panorama (592px de alto con `overscroll-behavior: contain` — la rueda MORÍA
+en sus bordes) y la lista de aulas finales (1.380px en ventana de 320) lo
+secuestraban. Reparado en `fefebfdf`: el contain vertical se retira (el
+Panorama encadena), la lista fluye con la página. Queda UNA ventana delegada
+con cabeceras sticky y cero callejones.
+
+**Deuda anotada, no ejecutada**: el mismo patrón (`overscroll-behavior:
+contain` vertical en ventanas internas) existe en `calcMuestra.css` (2710,
+2818), `definicion.css` (769) y `aulas.css` (840, 1097) — barrerlos cuando
+el loop pase por esas pestañas, con la misma vara: contain vertical solo si
+la superficie es efímera (popover/dialog), nunca en flujo de página.
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 · I12 · I13 · I14 | cerrados (ver arriba) | ☑ |
+| — | Radiografía nivel · oráculo · bundle i18b · scroll jail | ☑ |
+| I9 | Fichas como tarjetas (dos por fila) | ☐ SIGUIENTE |
+| I10 | Reformular «sin criterios propios» | ☐ (mismo archivo) |
+| I15 | Ranking de desempeño CH 2025 por facultad en Histórico | ☐ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
