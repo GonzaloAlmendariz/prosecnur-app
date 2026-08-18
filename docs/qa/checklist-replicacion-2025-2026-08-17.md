@@ -2716,3 +2716,32 @@ palabra; la tarjeta mientras tanto declara «hoy es una sola para todas».
 | I5 · I3 · I8 | Perfil de la muestra · relato · embudo más nítido | ☐ SIGUIENTE / ◐ |
 | J1 | Auditoría de corrección del backend de los 4 sorteos | ☐ tras Tanda I |
 | J2 | τ por facultad en el dimensionamiento | ⛔ BLOQUEADO (decisión) |
+
+### Tanda I — I5 cerrado + la pregunta del aula «efectiva» 2025, respondida con datos
+
+**I5 ☑ (`f3937c65`)**: el perfil de la muestra gana el bloque «Mujeres y
+hombres — a quiénes alcanza la muestra, por facultad» (elegibles por sexo de
+las titulares con la proporción del marco como marca; aulas sin sexo
+declarado contadas). En vivo: 3.338 M · 3.548 H (48% de mujeres). De paso el
+tick corrió y guardó la selección que faltaba en la sesión (203 titulares).
+
+**PREGUNTA DE GONZALO (2026-08-18): «¿cuándo un aula se consideraba efectiva
+en 2025?» — MEDIDO del histórico**: efectiva = SE PUDO APLICAR, sin ningún
+umbral de asistencia. Evidencia: (1) las 36 caídas son 100% operativas —
+sin contacto con el docente 21, otro motivo 7, declinó por tiempo 4, cambió
+de docente 2, ya tenía encuesta 1, dejó de ser presencial 1 — NINGUNA por
+asistencia baja; (2) las 194 aplicadas contaron TODAS: rendimiento mín 10%,
+p25 40%, mediana 56%, p75 75% — 80 de 194 (41%) bajo el 50% y 11 bajo el
+25%, y aun así contaron; (3) los «umbrales» de la referencia (12/30) son de
+SUFICIENCIA ESTADÍSTICA para publicar tasas, no de validez del aula. La
+asistencia entra DESPUÉS y agregada: es el τ (53% por elegible) del
+dimensionamiento — por eso el diseño multiplica por τ en vez de exigir
+mínimo por aula.
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1–I15(+sexo) · I2+J3 · I5 · radiografía · oráculo · bundle i18b · scroll jail | cerrados | ☑ |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I3 · I8 | Relato · embudo más nítido | ☐ SIGUIENTE |
+| J1 | Auditoría de corrección del backend de los 4 sorteos | ☐ |
+| J2 | τ por facultad en el dimensionamiento | ⛔ BLOQUEADO (decisión) |
