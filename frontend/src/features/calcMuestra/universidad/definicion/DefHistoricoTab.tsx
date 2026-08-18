@@ -24,6 +24,7 @@ import type {
 } from "../../../../api/client";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { HistoricoEstudioPanel } from "./HistoricoEstudioPanel";
+import { RankingDesempenoCard } from "./RankingDesempenoCard";
 
 export function DefHistoricoTab({
   aulasState,
@@ -43,6 +44,15 @@ export function DefHistoricoTab({
       aria-label="Base histórica de referencia"
     >
       {referencia ? <HistoricoEstudioPanel referencia={referencia} /> : null}
+      {/* I15 · El ranking va como HERMANO del panel, no dentro: ese archivo
+          tiene 1.663 líneas y no crece. El join de tipo/ciclo lee el marco
+          vigente, que esta pestaña ya recibe. */}
+      {referencia ? (
+        <RankingDesempenoCard
+          referencia={referencia}
+          aulaFrame={aulasState?.frame?.aula_frame ?? null}
+        />
+      ) : null}
       {!referencia ? (
         // C3: sin base cargada la pestaña dice dónde se carga, en vez de
         // ofrecer un segundo uploader que compita con Fuentes.
