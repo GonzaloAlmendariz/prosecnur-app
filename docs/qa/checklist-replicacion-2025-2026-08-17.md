@@ -1953,3 +1953,27 @@ Tercer piso del rescate: el conteo de cadenas por facultad reproduce EXACTO
 las quince metas del histórico (170/170). La referencia por facultad queda
 **7 de 8 campos poblados en las 15 filas** — de 1 campo hace dos ticks a 7.
 Sólo `poblacion` sigue NA (vive únicamente en el libro externo).
+
+## R8 · Características de la selección — la mitad 2025, medida · ◐ 2026-08-18
+
+**Perfil de los 170 titulares 2025** (de «Muestra - Full Data», muestra = M01):
+- **Tipo: los 170 son TEÓRICOS.** Los talleres de Artes/Arquitectura de los
+  que habló Gonzalo NO estaban en el marco 2025 ni en sus titulares:
+  entraron como **aulas adicionales en campo** (la hoja «aulas adicionales»
+  trae 26, con TÉCNICA DE DANZA, mecánica, etc.). Nuestra decisión (c) de
+  declararlos EN el marco para A&D/ARQ es más limpia metodológicamente y es
+  la «cuestión de criterio» pedida — pero que quede dicho: 2025 los sumó por
+  fuera, no por diseño.
+- **Nivel**: 0×19 · 2×23 · 3×9 · 4×10 · 5×28 · 6×33 · 7×16 · 8×25 · 9×5 · 10×2.
+- **Tamaño (elegibles/aula)**: min 10 · p25 20 · mediana 29 · media 31,3 · p75 41 · max 64.
+- **Por facultad (titulares | mediana tamaño | % nivel≤4)**: C&I 39|28|0% ·
+  EGC 25|39|100% · EGL 19|48|100% · DERECHO 16|41|0% · CCSS 15|30|0% ·
+  CyA 10|24|0% · A&D 9|18|44% · AE 7|15|71% · ARQ 6|34,5|50% · GES 6|33|0% ·
+  PSI 6|24,5|0% · EDU 4|14|75% · LyCH 4|12,5|0% · CONT 2|27|0% · GAS 2|17|100%.
+
+**Falta la mitad HOY**: la sesión no tiene selección vigente y lanzarla a
+ciegas usaría `selector.n_aulas = 30` (stale) con `simulation_runs = 500`
+(la trampa de ~80 min). SIGUIENTE PASO: leer cómo `calc_muestra_aulas_
+seleccionar` dimensiona (¿usa el margen por estrato o `n_aulas`?), correr
+con `simulation_runs = 0` y el tamaño del diseño (202), y comparar perfil
+contra la tabla de arriba, quince filas.
