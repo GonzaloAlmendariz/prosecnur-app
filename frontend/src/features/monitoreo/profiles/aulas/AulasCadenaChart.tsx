@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { consumoDeCadena } from "./consumoDeCadena";
 
@@ -12,6 +11,8 @@ const TONOS = [
   COLOR_RESULTADO.rechazo,
   COLOR_RESULTADO.rechazo,
 ];
+
+const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /**
  * Cuánta reserva lleva gastada el operativo.
@@ -39,32 +40,55 @@ export function AulasCadenaChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
     );
   }
 
-  const data = [{
-    type: "bar",
-    x: tramos.map((t) => t.etiqueta),
-    y: tramos.map((t) => t.cadenas),
-    marker: { color: TONOS },
-    text: tramos.map((t) => (t.cadenas ? String(t.cadenas) : "")),
-    textposition: "outside",
-    cliponaxis: false,
-    hovertemplate: "%{x}: %{y} cadenas<extra></extra>",
-  }];
+  const total = tramos.reduce((suma, t) => suma + t.cadenas, 0);
+  // El tramo más profundo que de verdad ocurrió. Con él se puede decir en
+  // palabras lo que dos barras en cero decían en blanco.
+  const masProfundo = tramos.reduce(
+    (max, t, i) => (t.cadenas ? i : max),
+    0,
+  );
 
   return (
     <div className="aulas-cadena-chart">
-      <PlotlyChart
-        data={data}
-        height={200}
-        ariaLabel="Cadenas de reemplazo por reservas consumidas"
-        layout={{
-          margin: { l: 40, r: 12, t: 20, b: 40 },
-          xaxis: { fixedrange: true },
-          yaxis: { title: { text: "cadenas" }, zeroline: false, fixedrange: true, rangemode: "tozero" },
-          showlegend: false,
-          bargap: 0.4,
-        }}
-        config={{ displayModeBar: false, responsive: true }}
-      />
+      {/* Una franja y no cuatro barras: eran 200 px de tela para cuatro
+          categorías de las que DOS venían en cero, así que media lámina salía
+          en blanco sin que el blanco dijera nada. Repartidas en una sola barra
+          se lee de un golpe la proporción —dos tercios de las cadenas ya
+          gastaron una reserva— y caben los ceros escritos debajo, que es donde
+          por fin se leen. */}
+      <div
+        className="aulas-consumo-franja"
+        role="img"
+        aria-label={`Cadenas por reservas consumidas: ${tramos.map((t) => `${t.etiqueta}, ${t.cadenas}`).join("; ")}`}
+      >
+        {tramos.map((tramo, i) => (
+          tramo.cadenas ? (
+            <span
+              key={tramo.etiqueta}
+              style={{ flexGrow: tramo.cadenas, background: TONOS[i] }}
+              title={`${tramo.etiqueta}: ${fmt(tramo.cadenas)}`}
+            />
+          ) : null
+        ))}
+      </div>
+      {/* Los cuatro tramos, con sus ceros. Un tramo vacío NO desaparece: que
+          ninguna cadena llegara al segundo reemplazo es un resultado medido, y
+          borrarlo dejaría la franja diciendo lo mismo que si el tramo no
+          existiera (verde por conformidad, no por ausencia). */}
+      <ul className="aulas-consumo-leyenda">
+        {tramos.map((tramo, i) => (
+          <li key={tramo.etiqueta} className={tramo.cadenas ? "" : "es-cero"}>
+            <i aria-hidden="true" style={{ background: TONOS[i] }} />
+            {tramo.etiqueta}
+            <strong>{fmt(tramo.cadenas)}</strong>
+          </li>
+        ))}
+      </ul>
+      <p className="aulas-cadenas-lectura">
+        {masProfundo === 0
+          ? `Ninguna de las ${fmt(total)} cadenas ha gastado reserva.`
+          : `Ninguna cadena pasó de ${tramos[masProfundo].etiqueta.toLowerCase()}.`}
+      </p>
       <p className="mon-profile-table-recorte">
         {reservasGastadas
           ? `${reservasGastadas} reservas gastadas y ${reservasLibres} todavía en el banco.`

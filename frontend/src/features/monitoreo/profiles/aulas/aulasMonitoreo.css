@@ -856,9 +856,13 @@
      usar sólo produce vacío sin dueño. Con `start` la holgura se queda en el
      panel, que sí tiene borde visible y por tanto la posee. */
   align-self: start;
-  min-height: 200px;
+  /* Sin `min-height`. Reservaba 200 px porque ése era el alto que Plotly fijaba
+     por prop; al cambiar las cuatro barras por la franja, el contenido pasó a
+     ~100 px y esos 200 px se convirtieron en el mismo hueco muerto que el
+     comentario de arriba existe para evitar —sólo que ahora dentro del propio
+     envoltorio—. El alto lo pone el contenido. */
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto auto;
   min-width: 0;
 }
 
@@ -1060,6 +1064,70 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* El consumo de la reserva, en una franja.
+   Eran cuatro barras de Plotly en 200 px de alto con DOS en cero: media lámina
+   en blanco, y el blanco no decía que ninguna cadena hubiera pasado del primer
+   reemplazo —eso hay que escribirlo—. Repartidos en una sola barra, los tramos
+   se comparan por proporción y el bloque entero cabe en ~70 px. */
+.mon-profile-page.is-aulas-flow .aulas-consumo-franja {
+  display: flex;
+  gap: 2px;
+  height: 26px;
+  border-radius: var(--pulso-radius-chip);
+  overflow: hidden;
+}
+
+/* El segmento es sólo proporción: su cifra vive en la leyenda, que las lleva
+   las cuatro y no depende de que el tramo dé ancho para leerla. Escribirla
+   además dentro obligaba a texto blanco sobre color, y no hay token para eso:
+   habría entrado otro hex a mano en una hoja que ya arrastra 35. */
+.mon-profile-page.is-aulas-flow .aulas-consumo-franja > span {
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un tramo en cero se apaga pero NO se esconde: que ninguna cadena llegara al
+   segundo reemplazo es un resultado, y sin la entrada la franja se leería igual
+   que si el tramo no existiera. */
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda li.es-cero {
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda li.es-cero strong {
+  color: var(--pulso-text-faint);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-consumo-leyenda li.es-cero i {
+  opacity: 0.35;
 }
 
 /* Los eslabones en COLUMNAS, no en una fila que se ajusta al texto.
