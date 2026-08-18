@@ -2777,3 +2777,36 @@ proyecto guardado, relato vivo con captura.
 | — | Aviso del gate con el campo que difiere · resello entero del workspace (ADR) | ☐ anotados |
 | J1 | Auditoría de corrección del backend de los 4 sorteos | ☐ |
 | J2 | τ por facultad en el dimensionamiento | ⛔ BLOQUEADO (decisión) |
+
+## TANDA I — COMPLETA (dibujo entero, cierre 2026-08-18)
+
+**I4 ☑ (diagnóstico conforme)**: la cadena de reemplazos, con la simulación
+re-acreditada contra la selección vigente (203 titulares), se lee conforme
+al patrón de la casa — KPIs con sellos y ámbar honesto (2 celdas sin
+reserva; profundidad mínima ×0.0 explicada), Plan B por CH con chips
+R n.1/R n.2 y deltas de score, y la comparación con 2025 (×8.8 reservas por
+titular vs 5.2 agendadas). El defecto original (gate falso) cayó en la
+serie G; lo restante era re-simular, hecho y GUARDADO.
+
+**I8 ☑ (`0ff330af`)**: las barras «llegan N de M» ganan pista proporcional —
+el embudo se VE angostarse entre criterio y criterio.
+
+| # | Ítem de la Tanda I | Estado |
+|---|---|---|
+| I1 pregunta «¿un aula más?» | ☑ |
+| I2 sustento técnico (con J3) | ☑ `60302732` |
+| I3 relato | ☑ diagnóstico + dato reparado |
+| I4 cadena de reemplazos | ☑ diagnóstico conforme |
+| I5 perfil de la muestra (sexo) | ☑ `f3937c65` |
+| I6a embudo en Selección | ☑ |
+| I7a/b/c referencia 8/8 · delta protagonista | ☑ |
+| I8 embudo de criterios nítido | ☑ `0ff330af` |
+| I9+I10 fichas tarjetas + causa | ☑ `e558b326` |
+| I11 elegibles 2025 reales | ☑ `d8b08b47` |
+| I12 chip honesto | ☑ `3a3fc589` |
+| I13+I14 panorama con reglas e íntegro | ☑ `2df12e57` |
+| I15 ranking CH 2025 (+sexo) | ☑ `2c1ee69b` `e9c5e693` |
+
+**Siguiente: TANDA J** — J1 auditoría de corrección del backend de los 4
+sorteos (el pedido grande) · J2 ⛔ bloqueado (τ por facultad, decisión) ·
+J3 ☑ (integrado al sustento).
