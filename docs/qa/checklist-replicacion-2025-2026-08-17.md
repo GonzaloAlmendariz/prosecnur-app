@@ -2293,7 +2293,7 @@ qué viaja hoy del sorteo afijado a las fichas y al monitoreo, dónde se
 rompe el idioma; monitoreo/** es zona de otra sesión: medir sin tocar,
 arreglar del lado calc-muestra/handoff).
 
-## H3 · El cableado de los tres módulos de aulas — medido · ◐ 2026-08-18
+## H3 · El cableado de los tres módulos de aulas — reparado · ☑ 2026-08-18, commit `3e2a8373`
 
 **Lo que YA habla el mismo idioma**: la cadena calc-muestra → monitoreo
 existe y es trazable (`monitoreo_aulas_from_calc`: selection_run_id +
@@ -2302,20 +2302,53 @@ emparejamiento de identificadores QR↔monitoreo ya está tendido
 (`collection_unit_id` de Recopiladores ∨ `classroom_id`, reparado en su
 momento); la ficha QR lleva el enlace + id del colector + URL de respaldo.
 
-**Dos roturas de idioma, con cifra**:
-- **H3-a**: la meta por aula del monitoreo es `expected_valid = eligible_n`
-  CRUDO (línea 381) — el campo se mediría contra el 100 % de elegibles
-  cuando el diseño asume τ=0,53 (las esperadas del sello).
-- **H3-b**: `selection$quotas` son AULAS por estrato del sorteo (medido en
-  vivo: {ARQ/F/G1: 2 aulas…}); las CUOTAS DE ALUMNOS facultad×sexo del
-  diseño (suman 2.500 + 30 celdas de distribucion_sub) y la certificación
-  NO viajan — el bundle lleva composición poblacional, no metas.
+**Las dos roturas de idioma, reparadas** (el chip task_0bbf95f9 se arrancó:
+worktree great-hypatia, dos writers con globs disjuntos, dos revisiones
+independientes y verificador APTO; el frontend de monitoreo no se tocó):
 
-**El consumo vive en zona de otra sesión** (monitoreo_aulas_universitarias.R
-/ frontend monitoreo): hallazgos documentados y **chip de tarea creado**
-(task_0bbf95f9, «Llevar cuotas del diseño y certificación al monitoreo»)
-con el diagnóstico completo, los file:line y el diseño del fix — registrado
-en la aplicación, como pide Gonzalo, sin pisar trabajo ajeno.
+- **H3-a reparada**: al importar desde calc-muestra, `expected_valid` deja
+  de ser el 100 % de elegibles y pasa a `round(eligible_n × τ_facultad)`
+  con la τ del propio diseño (`aulas_por_estrato$tau`), SOLO donde era el
+  valor de fallback (`== eligible_n`); una meta declarada propia se respeta
+  (T7) y una facultad fuera del diseño conserva el crudo (T9). `eligible_n`
+  queda intacto: dos cifras con nombre propio.
+- **H3-b reparada**: las cuotas de ALUMNOS del diseño ahora viajan en
+  `cfg$design_targets` (schema `monitoreo_aulas_design_targets_v1`, archivo
+  nuevo `api/R/monitoreo_aulas_metas_diseno.R` que reusa los helpers de la
+  certificación en vez de un segundo parser): cuota por facultad (las que
+  suman 2.500), `cuota_sexo` de `distribucion_sub` (30 celdas), τ por
+  facultad, `tasa_fuente`, la certificación (la adjunta tal cual; la
+  derivada al importar se re-estampa `derivado_al_importar` /
+  `monitoreo_aulas_config.design_targets`) y el sello
+  `selection_run_id`/`frame_hash` para detectar un bloque stale. Declarado
+  en la lista cerrada del normalizador (default + passthrough): sin eso el
+  segundo pase se lo tragaba (T5 lo fija). `cfg$quotas` no cambió de forma.
+
+**Evidencia**: `test-monitoreo-aulas-metas-diseno.R` (9 tests, 57
+aserciones) verde; mutante sombreado desde HEAD → FAIL 47 / PASS 10 (los
+10 passes son exactamente las aserciones de preservación); subset vecino de
+16 archivos con 0 fallos; guardián COMPATIBLE (round-trip
+config→.pulso→reload confirmado; el `.pulso` canónico de auditoría no
+cambia ni un byte: el estudio de referencia es censal y no publica
+`aulas_por_estrato`); metodólogo APROBADO CON SUPUESTOS con sus tres
+exigencias aplicadas (T9, comentario de la divergencia sin-τ, sello).
+
+**Lo aprendido que queda anotado** (para no reinvestigarlo):
+- Los AGREGADOS del monitoreo siguen sumando metas de titulares Y reservas
+  (≈2× la cuota; avance `:~1158`, ritmo `:~1389`, KPI brechas `:~1374`,
+  expected_by_faculty `:~1029`) y `design_targets` aún no tiene consumidor
+  — es la siguiente unidad, **chip task_ce08ab8d** con los file:line y la
+  decisión pendiente de qué fuente manda para el target por sexo.
+- Preexistente, no de esta unidad: una columna `expected_valid` con celdas
+  NA se vuelve meta 0 «declarada» (caso vivo: aula añadida a mano al libro,
+  `carga_aulas_libro_fusion.R:82-87`).
+- Asumido por diseño: meta declarada igual al aforo es indistinguible del
+  fallback; y un estudio SIN τ declarada da meta cruda por esta puerta pero
+  meta ×tasa-referencia-2025 si llega la selección servida con certificación
+  adjunta (divergencia declarada en el comentario del archivo nuevo; los
+  diseños vigentes declaran τ).
+- Sin assert todavía: `frame_hash` del sello (la fixture no viaja frame) y
+  el redondeo a 4 dec de `tasa_esperada` con τ de más decimales.
 
 ## H2 · El sello en Coincidencia, modo lectura · ☑ 2026-08-18, commit `7c5f3708`
 
@@ -2325,10 +2358,11 @@ del diseño), con las fichas al detalle debajo. Sin la acción «+1 aula» — e
 eco es lectura; decidir se decide en Selección. Verificado en vivo.
 
 **LOS TRES FRENTES DE LA INSTRUCCIÓN, CERRADOS EN SU PARTE PROPIA**:
-H1 ☑ decisiones registradas · H2 ☑ mejora real de UI · H3 ◐ medido con dos
-roturas documentadas y chip para la banda de monitoreo (task_0bbf95f9).
-El loop vuelve a holds hasta instrucción nueva o hasta que el chip se
-arranque.
+H1 ☑ decisiones registradas · H2 ☑ mejora real de UI · H3 ☑ cableado
+reparado (commit `3e2a8373`: meta τ por aula + `design_targets` con cuotas
+facultad×sexo y certificación). El chip task_0bbf95f9 se arrancó y cerró;
+el siguiente eslabón (agregados contra la cuota del diseño + consumo UI de
+`design_targets`) quedó en el chip task_ce08ab8d.
 
 ## TANDA I · Mejoras de UI de la instrucción 2026-08-18 (tarde)
 

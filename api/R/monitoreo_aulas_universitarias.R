@@ -271,6 +271,8 @@ monitoreo_aulas_default_config <- function() {
     variables_control = list(),
     methodology = list(),
     representativity = list(),
+    # Metas del diseño importadas de calc-muestra (ver monitoreo_aulas_metas_diseno.R).
+    design_targets = list(),
     alerts = list(
       min_valid_per_class = 1L,
       warn_partial_under_valid = 5L
@@ -330,6 +332,9 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     variables_control = config$variables_control %||% config$variablesControl %||% defaults$variables_control,
     methodology = config$methodology %||% config$metodologia %||% defaults$methodology,
     representativity = config$representativity %||% config$representatividad %||% defaults$representativity,
+    # Esta lista es CERRADA y el engine re-normaliza la config en cada pase:
+    # sin este passthrough las metas del diseño se tragaban en el segundo pase.
+    design_targets = config$design_targets %||% config$metas_diseno %||% defaults$design_targets,
     alerts = list(
       min_valid_per_class = max(1L, .monitoreo_int(alerts$min_valid_per_class %||% alerts$min_validas_aula, defaults$alerts$min_valid_per_class)),
       warn_partial_under_valid = max(1L, .monitoreo_int(alerts$warn_partial_under_valid %||% alerts$alerta_parcial_menor_a, defaults$alerts$warn_partial_under_valid))
@@ -642,6 +647,20 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     source = "calc-muestra"
   )
   cfg$representativity <- selection$representativity %||% cfg$representativity
+  # Metas del DISEÑO, no del sorteo: `quotas$strata` son aulas por estrato y no
+  # dicen cuántos alumnos se trazó cada facultad ni con qué τ de rendimiento.
+  # Ver `monitoreo_aulas_metas_diseno.R`. Se pasa `selection` completo —no
+  # `sel`— porque la certificación adjunta cuelga del sobre, no del data.frame.
+  metas <- .monitoreo_aulas_metas_diseno(estudio, .monitoreo_aulas_df(plan, "plan"), selection)
+  if (length(metas$facultades %||% list())) {
+    # El sello del import viaja EN el bloque: sin run/hash, un design_targets
+    # viejo que sobrevive el passthrough junto a un plan nuevo no es detectable
+    # como stale.
+    metas$selection_run_id <- cfg$selection_run_id
+    metas$frame_hash <- cfg$frame_hash
+    cfg$design_targets <- metas
+    cfg$plan <- .monitoreo_aulas_aplicar_meta_tau(cfg$plan, metas)
+  }
   if (is.list(estudio)) {
     cfg$study_title <- .monitoreo_scalar(estudio$titulo %||% estudio$title, "")
     cfg$study_macro_family <- .monitoreo_scalar(estudio$macro_familia, "")
