@@ -2075,3 +2075,16 @@ sin feedback de Gonzalo sería adorno (memoria: nada «por las dudas»).
 por estrato (C&I 42+? · …) y las cadenas se construyen por equivalencia —
 medir si el dimensionamiento de reservas por facultad respeta el diseño o
 arrastra la familia del defecto de afijación.
+
+## REEMPLAZOS · Las cadenas heredan la afijación — sin defecto · ☑ 2026-08-18
+
+Medido antes de tocar (la premisa podía ser falsa, y lo era): las cadenas se
+construyen POR TITULAR (una por estrato M1), así que el reparto por facultad
+se hereda de la selección afijada automáticamente. Profundidad: mínimo
+pedido 1 por titular → **0 de 202 titulares por debajo**; 119/202 con las 11
+olas completas; los más cortos (profundidad 1–3: 23 titulares, en facultades
+chicas) dentro de contrato. El `aulas_reemplazo` del diseño (104) es otro
+concepto —extra operativas del cálculo— y las reservas reales (1.774 M2+ +
+639 extra) lo exceden en todas las facultades, consistente con los 1.012
+candidatos de 2025. NADA QUE REPARAR — el fix de afijación no se propaga
+porque no hace falta.
