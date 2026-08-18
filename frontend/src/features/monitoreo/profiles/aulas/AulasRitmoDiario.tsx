@@ -41,10 +41,16 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
       // El vacío dice de dónde saldría el dato: sin marca de envío no hay
       // calendario, y eso es una propiedad de la fuente, no un fallo de la
       // vista. Inventar un solo día con todo dentro sería peor que no dibujar.
-      <p className="mon-profile-muted">
-        Las respuestas de este estudio no traen fecha de envío, así que no se
-        puede reconstruir el día a día de la recolección.
-      </p>
+      // Va dentro de `.mon-profile-table-wrap` y no como `p` suelto: es la
+      // anatomía del vacío del perfil (precedente en `AulasAvanceCuota`) — el
+      // wrap exento declara su capacidad y las reglas del perfil matan el
+      // margen del `p`, en cualquier pestaña donde este componente se monte.
+      <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <p className="mon-profile-muted">
+          Las respuestas de este estudio no traen fecha de envío, así que no se
+          puede reconstruir el día a día de la recolección.
+        </p>
+      </div>
     );
   }
 

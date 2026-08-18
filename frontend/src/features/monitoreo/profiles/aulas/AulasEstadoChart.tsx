@@ -20,7 +20,13 @@ export function AulasEstadoChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
   );
 
   if (!total) {
-    return <p className="mon-profile-muted">Todavía no hay cursos-horario en el plan.</p>;
+    return (
+      // La anatomía del vacío del perfil (precedente en `AulasAvanceCuota`):
+      // el wrap exento declara su capacidad y sus reglas ciñen el `p`.
+      <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <p className="mon-profile-muted">Todavía no hay cursos-horario en el plan.</p>
+      </div>
+    );
   }
 
   const data = estados.map((estado) => ({
