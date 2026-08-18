@@ -408,7 +408,16 @@ calibrar_umbrales <- function(path, p = 0.10) {
 # El ultimo dibuja 20 caracteres de 133. ALCANCE: la traza cubrio UN sitio de
 # resolucion de los cuatro (`ttl <-` en 4746, 4764, 5394 y 5552 de
 # `reporte_plan_ppt.R`), asi que **4 es un piso, no el total** — el corte de la
-# lamina 25 sale por otra rama y no esta en esa lista. Lo que P46 cerro sigue cerrado —los 22 cortes
+# lamina 25 sale por otra rama y no esta en esa lista.
+#
+# CORREGIDO: trazados los CUATRO sitios, el universo es IDENTICO al de uno solo
+# —99 enunciados, `diff` vacio—, asi que 4 no era un piso sino el total DE ESE
+# METODO. Y ahi esta el fallo: el enunciado que la lamina 25 corta en «de D» SI
+# esta en el universo y el contador lo da por COMPLETO. Contra el render, que
+# manda, es un FALSO NEGATIVO — el agrupamiento por centro y adyacencia une
+# lineas de textos distintos y encuentra la cola pegada a otra cosa. Para
+# apretarlo: exigir que las lineas compartan tambien ancho de caja o cuerpo, y
+# revalidar contra la 25, que es el caso de prueba. Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
 
