@@ -50,7 +50,7 @@ export function AulasAvanceEnRespuestas({ filas }: { filas: ReadonlyArray<Monito
           <span className="aulas-avance-excedente" style={{ width: `${anchoExcedente}%` }} />
         ) : null}
       </div>
-      <ul className="aulas-avance-mermas">
+      <ul className="aulas-avance-mermas" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <li className="es-cubierto">
           <strong>{fmt(a.cubierto)}</strong> cubren meta
         </li>

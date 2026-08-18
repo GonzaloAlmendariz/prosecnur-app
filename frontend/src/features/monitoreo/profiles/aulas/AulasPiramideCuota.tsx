@@ -115,7 +115,7 @@ export function AulasPiramideCuota({ filas, foco, onFoco }: {
           <em>{faltanPorLado.derecha ? `${fmt(faltanPorLado.derecha)} por recoger` : "cumplida"}</em>
         </span>
       </p>
-      <ol className="aulas-piramide-lista">
+      <ol className="aulas-piramide-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((fila) => {
           const activo = foco?.tipo === "facultad" && foco.valor === fila.facultad;
           return (

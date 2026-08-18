@@ -40,7 +40,7 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
         {desde ? <> · de {desde} a {hasta}</> : null}
         {sinFecha ? <> · <strong>{sinFecha}</strong> sin fecha</> : null}
       </p>
-      <ol className="aulas-agenda-lista">
+      <ol className="aulas-agenda-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {dias.map((dia) => (
           <li key={dia.fecha || "sin-fecha"} className={dia.fecha ? "" : "es-sin-fecha"}>
             <span className="aulas-agenda-dia">{dia.etiqueta}</span>

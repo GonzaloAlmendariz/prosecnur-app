@@ -64,7 +64,7 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
         {media > 0 ? <> · {fmt(media)} al día</> : null}
         {mejor ? <> · el mejor, {etiquetaDeDia(mejor.fecha)} con <strong>{fmt(mejor.validas)}</strong></> : null}
       </p>
-      <ol className="aulas-ritmo-dias">
+      <ol className="aulas-ritmo-dias" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {dias.map((d) => (
           <li key={d.fecha} className={d.validas ? "" : "es-sin-campo"}>
             <span className="aulas-ritmo-fecha">{etiquetaDeDia(d.fecha)}</span>
