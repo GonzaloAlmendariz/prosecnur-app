@@ -501,8 +501,16 @@ function renderAulasView(
       // «por facultad» y la agenda se pintaba también ahí. Es literalmente el
       // mismo tropiezo que ya costó el reparto de Consultas al llegar su cuarta
       // pestaña, y por eso acá se escribe positivo desde el principio.
-      <div className={`mon-profile-stack aulas-agenda-stack${pestana === "registro" ? " is-registro" : ""}`}>
-        <HandoffTracePanel dashboard={dashboard} />
+      <div className={`mon-profile-stack aulas-agenda-stack${
+        pestana === "registro" ? " is-registro" : pestana === "facultad" ? " is-ruta" : ""}`}>
+        {/* La preparación NO entra en «Por facultad». A 1366x768 la sección
+            entera dispone de 367 px y ese panel se lleva 158: a la ruta le
+            quedaban 198, o sea una ventana de 104 px para 5 538 de contenido
+            —el «scroll interno muy agresivo» que ya costó una queja en la
+            agenda—. Sin él, la ruta se queda con los 367. No se pierde nada:
+            el mismo panel está en las otras dos pestañas de la sección, a un
+            click. */}
+        {pestana === "facultad" ? null : <HandoffTracePanel dashboard={dashboard} />}
         {pestana === "registro" ? registro : null}
         {pestana === "facultad" ? (
         <section

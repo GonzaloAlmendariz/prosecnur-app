@@ -48,15 +48,17 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
         {facultades.length === 1 ? "facultad" : "facultades"}, por el día en que empieza cada una
         {sinFecha ? <> · <strong>{fmt(sinFecha)}</strong> sin fecha, al final de su facultad</> : null}
       </p>
-      {/* Abierta la PRIMERA y cerradas las demás. Con las 20 abiertas la lista
-          mide 5 538 px y hay que recorrerla entera para encontrar la facultad
-          que toca; cerradas todas, la vista abre sin un solo dato y obliga a un
-          click para ver cualquier cosa. Abriendo la primera —la del día que
-          viene antes— se entra viendo trabajo real y el resto queda como índice
-          de una pantalla. */}
+      {/* TODAS abiertas, y se pueden cerrar. Probé con sólo la primera abierta
+          —la lista pasa de 5 538 px a 941— y el contrato lo tumba: el último
+          contenido que cuenta queda entonces ARRIBA, dentro de la única
+          facultad abierta, así que el final del recorrido no lo enseña
+          (`scroll-unreachable`, medido a −108 px). Abiertas, el recorrido
+          termina en el último dato. Lo que sustituye al plegado es el rótulo
+          pegajoso: la facultad se queda a la vista mientras se recorren sus
+          aulas. */}
       <div className="aulas-ruta-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        {facultades.map((f, i) => (
-          <details key={f.facultad} open={i === 0} className="aulas-ruta-facultad">
+        {facultades.map((f) => (
+          <details key={f.facultad} open className="aulas-ruta-facultad">
             <summary>
               <span className="aulas-ruta-nombre">{f.facultad}</span>
               <span className="aulas-ruta-cuenta">
