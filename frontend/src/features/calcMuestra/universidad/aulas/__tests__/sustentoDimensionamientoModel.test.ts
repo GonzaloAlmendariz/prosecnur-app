@@ -147,3 +147,28 @@ describe("cumplimiento por sexo 2025 (D2, referencial)", () => {
     expect(cumplimientoSexo2025(null).size).toBe(0);
   });
 });
+
+describe("aporte de los titulares (K3)", () => {
+  it("binnea, mide concentración y cuenta scores negativos", async () => {
+    const { construirAporteTitulares } = await import("../aporteTitularesModel");
+    const filas = [10, 10, 10, 10, 20, 20, 20, 20, 80, 80].map((v, i) => ({
+      aporte_neto: v,
+      selector_score: i === 0 ? -5 : 10,
+    }));
+    const a = construirAporteTitulares(filas, 7)!;
+    expect(a.titulares).toBe(10);
+    expect(a.total).toBe(280);
+    // top 20% = 2 titulares (80+80) => 160/280
+    expect(a.concentracionTop20).toBeCloseTo(160 / 280, 9);
+    expect(a.mediana).toBe(20);
+    expect(a.scoreNegativo).toBe(1);
+    expect(a.bins.reduce((s, b) => s + b.n, 0)).toBe(10);
+  });
+
+  it("sin señal (constante o pocas filas) devuelve null — un histograma de una constante es decoración", async () => {
+    const { construirAporteTitulares } = await import("../aporteTitularesModel");
+    expect(construirAporteTitulares([{ aporte_neto: 5 }, { aporte_neto: 5 }, { aporte_neto: 5 }, { aporte_neto: 5 }])).toBeNull();
+    expect(construirAporteTitulares([{ aporte_neto: 1 }])).toBeNull();
+    expect(construirAporteTitulares(null)).toBeNull();
+  });
+});
