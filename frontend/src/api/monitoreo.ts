@@ -740,6 +740,59 @@ export type MonitoreoAulasConfig = {
 
 import type { BancoDeExtras } from "../features/monitoreo/profiles/aulas/AulasBancoExtras";
 
+/** El total del bloque `avance_cuota`, ya agregado por el motor. */
+export type MonitoreoAulasAvanceCuotaTotal = {
+  /** `null` cuando el motor no puede afirmar una cuota total (NA). */
+  cuota: number | null;
+  respuestas_validas: number;
+  brecha: number | null;
+  /** Puede superar 100 y se muestra sin cap; `null` sin denominador. */
+  avance_pct: number | null;
+  fuera_universo: number;
+  /** Respuestas sin aula del plan a la que atribuirse. */
+  huerfanas: number;
+};
+
+export type MonitoreoAulasAvanceCuotaFacultad = {
+  facultad: string;
+  faculty_key: string;
+  /** `null` = facultad del plan sin cuota en el diseño: no hay denominador. */
+  cuota: number | null;
+  respuestas_validas: number;
+  /** `null` en las filas sin cuota: sin denominador no hay resta. */
+  brecha: number | null;
+  avance_pct: number | null;
+  fuente_fila: "diseno" | "plan" | "sin_cuota";
+  /**
+   * `sin_aulas_en_plan` = facultad del diseño sin aulas sorteadas: hueco
+   * estructural del sorteo, no retraso de campo.
+   */
+  estado: "ok" | "sin_aulas_en_plan" | "sin_cuota";
+  fuera_universo: number;
+  respuestas_sin_sexo: number;
+};
+
+/**
+ * Cumplimiento contra la cuota de ALUMNOS del diseño, por facultad. Contrato
+ * congelado con el motor: la UI lo proyecta sin recalcular sumas ni
+ * porcentajes. El denominador es la cuota del diseño —no la meta del plan,
+ * que suma `expected_valid` por aula y es más alta por diseño—; en
+ * degradación (`vigencia` obsoleta o sin diseño) cae a la meta del plan y
+ * `fuente` lo declara.
+ */
+export type MonitoreoAulasAvanceCuota = {
+  schema: "monitoreo_aulas_avance_cuota_v1" | string;
+  fuente: "design_targets" | "plan_expected";
+  vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
+  /** `""` o el porqué de la degradación, con sellos. */
+  motivo: string;
+  /** τ compartida; `null` cuando difiere por facultad. */
+  tasa_esperada: number | null;
+  tasa_fuente: "tau_disenio" | "certificacion" | "sin_tasa" | "";
+  total: MonitoreoAulasAvanceCuotaTotal;
+  facultades: MonitoreoAulasAvanceCuotaFacultad[];
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
@@ -762,6 +815,13 @@ export type MonitoreoAulasDashboard = {
    * sobre `course_status`, que viaja recortado y con las reservas dormidas.
    */
   avance_por_facultad?: Array<Record<string, unknown>>;
+  /**
+   * Cumplimiento contra la cuota de alumnos del DISEÑO por facultad
+   * (`monitoreo_aulas_avance_cuota_v1`). Numerador: todo lo recogido válido de
+   * la facultad, titulares caídos y reservas incluidos. Ausente en payloads
+   * anteriores al bloque.
+   */
+  avance_cuota?: MonitoreoAulasAvanceCuota | null;
   selection_run_id?: string;
   frame_hash?: string;
   anonymous_responses?: boolean;

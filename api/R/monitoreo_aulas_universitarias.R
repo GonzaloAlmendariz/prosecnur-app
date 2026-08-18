@@ -1037,7 +1037,18 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   agg
 }
 
+# Dictamen 2026-08-18: cuando el bloque de metas del diseño está vigente y trae
+# `cuota_sexo`, ESA cuota manda sobre la proyección del marco/plan. El overlay
+# vive en monitoreo_aulas_avance_cuota.R; aquí solo se le entrega el fallback
+# de siempre, que sigue cubriendo a las facultades sin diseño vigente.
 .monitoreo_aulas_quota_targets <- function(plan_df, cfg) {
+  .monitoreo_aulas_sexo_targets_con_diseno(
+    plan_df, cfg,
+    fallback = .monitoreo_aulas_quota_targets_fallback(plan_df, cfg)
+  )
+}
+
+.monitoreo_aulas_quota_targets_fallback <- function(plan_df, cfg) {
   quota_df <- .monitoreo_aulas_quota_source_df(cfg)
   if (nrow(quota_df)) {
     faculty_col <- .monitoreo_aulas_col(quota_df, c("primary_raw", "faculty", "facultad"))
@@ -1077,12 +1088,18 @@ monitoreo_aulas_criterio_texto <- function(crit) {
 .monitoreo_aulas_response_faculty_values <- function(responses, plan_df, response_classroom) {
   if (!is.data.frame(responses) || !nrow(responses)) return(character(0))
   faculty_col <- .monitoreo_aulas_col(responses, c("faculty", "facultad", "unidad", "escuela"))
-  faculty <- if (nzchar(faculty_col)) .monitoreo_aulas_values(responses, faculty_col, "") else rep("", nrow(responses))
+  propia <- if (nzchar(faculty_col)) .monitoreo_aulas_values(responses, faculty_col, "") else rep("", nrow(responses))
+  faculty <- rep("", nrow(responses))
   if (is.data.frame(plan_df) && nrow(plan_df) && length(response_classroom)) {
     # Tercera copia del mismo emparejamiento: la respuesta se identifica por el
     # id que viajo en su QR (`collection_unit_id`), no por `classroom_id`.
     # Indexar solo por aula dejaba sin facultad a toda respuesta que llegara con
     # el id del colector, y con ella el cruce de cuotas sexo x facultad ciego.
+    #
+    # El PLAN manda y la columna de la respuesta solo RELLENA cuando no hay
+    # match (dictamen 2026-08-18): es la misma regla con la que el tablero
+    # atribuye el numerador de cumplimiento, y con la precedencia invertida
+    # las celdas F+M no cuadraban con el total de su facultad.
     valores <- as.character(plan_df$faculty %||% plan_df$stratum %||% "")
     lookup <- stats::setNames(valores, as.character(plan_df$classroom_id %||% ""))
     if ("collection_unit_id" %in% names(plan_df)) {
@@ -1090,50 +1107,18 @@ monitoreo_aulas_criterio_texto <- function(crit) {
       por_unidad <- por_unidad[nzchar(names(por_unidad))]
       lookup <- c(lookup, por_unidad[!names(por_unidad) %in% names(lookup)])
     }
-    missing <- !nzchar(faculty) & nzchar(response_classroom)
-    faculty[missing] <- as.character(lookup[response_classroom[missing]] %||% "")
+    con_id <- nzchar(response_classroom)
+    faculty[con_id] <- as.character(lookup[response_classroom[con_id]] %||% "")
     faculty[is.na(faculty)] <- ""
   }
+  sin_plan <- !nzchar(faculty)
+  faculty[sin_plan] <- propia[sin_plan]
   faculty
-}
-
-.monitoreo_aulas_quota_sex_faculty <- function(plan_df, responses, cfg, valid_response, response_classroom) {
-  targets <- .monitoreo_aulas_quota_targets(plan_df, cfg)
-  if (!is.data.frame(targets) || !nrow(targets)) return(list())
-  sex_col <- .monitoreo_aulas_col(responses, c("sex", "sexo", "genero", "género", "gender"))
-  faculty <- .monitoreo_aulas_response_faculty_values(responses, plan_df, response_classroom)
-  sex <- if (nzchar(sex_col)) .monitoreo_aulas_values(responses, sex_col, "") else character(0)
-  if (!length(sex)) {
-    observed <- data.frame(faculty = character(0), sex = character(0), observed = integer(0), stringsAsFactors = FALSE)
-  } else {
-    keep <- valid_response %in% TRUE & nzchar(faculty) & nzchar(sex)
-    observed <- if (any(keep)) {
-      stats::aggregate(rep(1L, sum(keep)), by = list(faculty = faculty[keep], sex = sex[keep]), FUN = sum)
-    } else {
-      # La columna se llama `observed` DESDE AQUI. Nombrarla `x` y renombrarla
-      # despues dejaba el caso vacio sin renombrar —el `if` de abajo pide filas—,
-      # asi que el merge salia sin columna `observed` y la linea siguiente
-      # asignaba `integer(0)` a un data.frame con filas: 500 al abrir Monitoreo.
-      # Se veia el primer dia de campo, con envios que aun no pasan el filtro.
-      data.frame(faculty = character(0), sex = character(0), observed = integer(0), stringsAsFactors = FALSE)
-    }
-    if (nrow(observed)) names(observed)[names(observed) == "x"] <- "observed"
-  }
-  out <- merge(targets, observed, by = c("faculty", "sex"), all.x = TRUE, sort = FALSE)
-  out$observed[is.na(out$observed)] <- 0L
-  target_num <- suppressWarnings(as.numeric(out$target))
-  target_num[!is.finite(target_num)] <- 0
-  out$target <- as.integer(pmax(0L, round(target_num)))
-  out$missing <- as.integer(pmax(0L, out$target - out$observed))
-  out$progress_pct <- ifelse(out$target > 0L, round(100 * out$observed / out$target, 1), NA_real_)
-  out$status <- ifelse(out$target <= 0L, "sin_meta", ifelse(out$observed >= out$target, "cumplida", ifelse(out$observed > 0L, "en_riesgo", "pendiente")))
-  out <- out[order(out$status != "en_riesgo", out$status != "pendiente", -out$missing, out$faculty, out$sex), , drop = FALSE]
-  .monitoreo_aulas_records(out, max_rows = 240L)
 }
 
 monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), config = list()) {
   cfg <- monitoreo_aulas_normalize_config(config)
-  plan_df <- .monitoreo_aulas_df(plan %||% cfg$plan, "plan")
+  plan_df <- .monitoreo_aulas_df(plan %||% cfg[["plan"]], "plan")
   if (!nrow(plan_df)) {
     return(list(
       schema = "monitoreo_aulas_dashboard_v1",
@@ -1141,6 +1126,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       kpis = list(total_aulas = 0L, aulas_aplicadas = 0L, respuestas_validas = 0L, brechas = 0L),
       agenda = list(),
       avance_por_estrato = list(),
+      # El marco del avance contra cuota es ESTABLE: viaja tambien sin plan,
+      # con sus ceros declarados (y las huerfanas contadas, si ya hay data).
+      avance_cuota = .monitoreo_aulas_avance_cuota(
+        plan_df, plan_df, responses, cfg,
+        .monitoreo_aulas_valid_response(responses, cfg),
+        .monitoreo_aulas_response_classroom(responses, cfg)
+      ),
       brechas = list(),
       reemplazos = list(),
       validation = list()
@@ -1178,12 +1170,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   tracked_df <- seguidas[monitoreo_aulas_en_juego(seguidas), , drop = FALSE]
   if (!nrow(tracked_df)) tracked_df <- seguidas
   course_status <- .monitoreo_aulas_course_status(plan_df, responses, cfg, valid_response, response_classroom)
-  # Sobre `tracked_df`, no sobre el plan entero: la cuota cuenta las PERSONAS que
-  # hay que recoger, y las del banco no se van a recoger —son respaldo del
-  # estrato—. Con el plan entero, la tarjeta «Cuota por recoger» presidia Avance
-  # con 4 476 mientras los dos paneles de debajo decian 4 336: los 140 del banco,
-  # otra vez, y en la unica cifra que se lee sin bajar la vista.
-  quotas_sex_faculty <- .monitoreo_aulas_quota_sex_faculty(tracked_df, responses, cfg, valid_response, response_classroom)
+  # Los TARGETS sobre `tracked_df`, no sobre el plan entero: la cuota cuenta las
+  # PERSONAS que hay que recoger, y las del banco no se van a recoger —son
+  # respaldo del estrato—. Con el plan entero, la tarjeta «Cuota por recoger»
+  # presidia Avance con 4 476 mientras los dos paneles de debajo decian 4 336.
+  # Lo OBSERVADO va sobre `plan_df` entero con la atribucion unificada del
+  # dictamen 2026-08-18 (ver monitoreo_aulas_avance_cuota.R): toda respuesta
+  # recogida cuenta a la facultad del aula donde se recogio.
+  quotas_sex_faculty <- .monitoreo_aulas_cuotas_sexo_celdas(plan_df, tracked_df, responses, cfg, valid_response, response_classroom)
+  # El avance contra la CUOTA del diseño: numerador sobre el plan entero,
+  # denominador del bloque de metas mientras su sello siga vigente, y meta del
+  # plan —declarada como tal— cuando no lo este.
+  avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom)
 
   # POR FACULTAD, en el motor y no en la vista.
   #
@@ -1479,12 +1477,21 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     banco_extras = monitoreo_aulas_banco_extras(plan),
     avance_por_estrato = .monitoreo_aulas_records(advance),
     avance_por_facultad = .monitoreo_aulas_records(avance_por_facultad),
+    # El avance contra la cuota del diseño (dictamen 2026-08-18). Los agregados
+    # por facultad y global miden contra `design_targets`; el resto del payload
+    # sigue midiendo el operativo aula a aula contra la meta del plan.
+    avance_cuota = avance_cuota,
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
-    # recomponerla desde otro bloque del payload.
+    # recomponerla desde otro bloque del payload. Es el denominador global de
+    # `avance_cuota`: la cuota del diseño vigente, o la meta del plan en
+    # degradacion —que es exactamente la conducta que esta linea ya tenia.
     ritmo_diario = monitoreo_aulas_ritmo_diario(
       responses, valid_response,
-      meta = sum(suppressWarnings(as.numeric(tracked_df$expected_valid)), na.rm = TRUE)
+      meta = {
+        m <- suppressWarnings(as.numeric(avance_cuota$total$cuota))
+        if (length(m) == 1L && is.finite(m)) m else 0
+      }
     ),
     quotas_sex_faculty = quotas_sex_faculty,
     brechas = .monitoreo_aulas_records(brechas),
