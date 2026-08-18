@@ -1481,7 +1481,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     control_calidad_resumen = monitoreo_aulas_control_resumen(cfg$control %||% list()),
     # De que libro salen estas cifras y que hojas trajo. `NULL` cuando el
     # estudio nunca importo uno, que es distinto de un libro sin hojas.
-    libro = monitoreo_aulas_libro_recibo(cfg$libro),
+    libro = monitoreo_aulas_libro_recibo(cfg$libro, plan),
     representativity = representativity,
     validation = .monitoreo_aulas_records(validation)
   )

@@ -141,6 +141,30 @@
   color: color-mix(in srgb, var(--pulso-warn-fg) 82%, var(--pulso-text));
 }
 
+/* Agenda: el panel de la tabla se queda el resto del canvas.
+   La clase `aulas-agenda-stack` existia en el markup y NO tenia regla, asi que
+   el stack se dimensionaba al contenido: en un canvas de 746 px ocupaba 599 y
+   dejaba 147 sin usar, y dentro del panel la franja de dias se llevaba 260 de
+   430. A la tabla le quedaban 88 px —TRES filas de 236—, que es lo que se
+   sentia como «scroll interno muy agresivo»: no es que el scroll corriera
+   mucho, es que la ventana por la que se mira era diminuta. */
+.mon-profile-page.is-aulas-flow .mon-profile-stack.aulas-agenda-stack {
+  /* SIN `> ` desde `.aulas-mon-view`: el stack cuelga de
+     `div#aulas-mon-panel-agenda`, no de la vista, asi que el combinador de hijo
+     directo no casaba y la regla no se aplicaba —medido: el stack seguia en
+     `158px 430px`—. */
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+}
+
+/* Un operativo mas largo scrollea DENTRO de su franja en vez de empujar la
+   tabla. Diez dias caben; veinte se recorren ahi mismo. */
+.mon-profile-page.is-aulas-flow .aulas-agenda-panel .aulas-agenda-dias {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* ── La vista de seccion ocupa el canvas restante ───────────────────────── */
 .mon-profile-page.is-aulas-flow .aulas-mon-view {
   min-height: 0;
@@ -1649,26 +1673,27 @@
 
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:
    con `auto minmax(0,1fr)` el tercer hijo cae en una fila implícita y se dibuja
-   ENCIMA de la tabla —medido—. La tabla sigue siendo la que se queda el resto y
-   scrollea dentro. */
+   ENCIMA de la tabla —medido—.
+   Y la del medio se ACOTA. Con `auto`, la franja de días medía lo que mide su
+   contenido —260 px de 430— y a la tabla le quedaban 88: TRES filas de 236.
+   Eso es lo que se siente como «scroll interno muy agresivo»: no es que el
+   scroll corra mucho, es que la ventana por la que se mira es una rendija.
+   Acotar el ELEMENTO no sirve —lo probé: se encoge a 120 y la pista sigue en
+   260, dejando 140 px muertos dentro del panel—; hay que acotar la PISTA.
+   La tabla lleva suelo propio para que ninguna franja larga la deje sin
+   ventana; los días scrollean dentro de la suya. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 0.9fr) minmax(200px, 1fr);
 }
 
-/* El aviso del parte: cuántos no cuadran. Es el destino que le faltaba al
-   control «Cuadre del parte de campo», así que se pinta con la severidad de una
-   revisión, no como una nota más. */
-.mon-profile-page.is-aulas-flow .aulas-parte-aviso {
-  margin: 0;
-  padding: 8px 11px;
-  border-left: 3px solid color-mix(in srgb, #a61d4f 60%, var(--pulso-border));
-  border-radius: 8px;
-  background: color-mix(in srgb, #a61d4f 5%, #fff);
-  color: var(--pulso-text-soft);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
+/* PENDIENTE de decision de layout, no de una regla mas.
+   A 1024x600 el panel se queda en 180 px y no caben la franja de dias (260) y
+   una tabla usable. Probé una media query que devolvia las tres filas a su alto
+   natural: el contenido vuelve a verse pero el panel queda RECORTADO y nada
+   scrollea, porque `mon-workbench-main` lleva `overflow-y: hidden` mas arriba.
+   Dejar contenido inalcanzable (C4) es peor que dejarlo pequeño, asi que la
+   media query se retira. Lo que hace falta es estructural —la franja de dias
+   plegable, o en su propia pestaña— y eso se decide, no se parchea. */
 /* Cabecera + aviso + tabla: tres filas declaradas. Con dos, el aviso se dibuja
    encima de la tabla —el mismo tropiezo de la agenda por día—. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(.aulas-parte-aviso) {

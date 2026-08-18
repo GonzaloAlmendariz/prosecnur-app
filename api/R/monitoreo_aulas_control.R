@@ -206,8 +206,19 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
 #' @return lista con `importado_en`, `hojas` (nombre y si vino) y `resumen`, o
 #'   `NULL` si en este estudio nunca se importo un libro.
 #' @export
-monitoreo_aulas_libro_recibo <- function(libro = NULL) {
+monitoreo_aulas_libro_recibo <- function(libro = NULL, plan = list()) {
   if (!is.list(libro) || !length(libro)) return(NULL)
+  # Cuantas FACULTADES cubre el libro. El recibo decia cursos-horario, titulares,
+  # partes y filas de control, y ninguna de esas cifras contesta la pregunta con
+  # la que se dirige el operativo: «¿cubre las que tengo que cubrir?». Un estudio
+  # de este tipo maneja de 11 a 20, asi que 15 y 6 son libros muy distintos.
+  # Sale del PLAN y no del libro: el libro trae filas, la facultad la pone la
+  # muestra.
+  facultades <- unique(Filter(nzchar, vapply(
+    plan %||% list(),
+    function(u) trimws(as.character(u$faculty %||% "")),
+    character(1)
+  )))
   ausentes <- unlist(libro$hojas_ausentes %||% list(), use.names = FALSE)
   hojas <- lapply(AULAS_LIBRO_HOJAS, function(h) list(
     hoja = h$hoja,
@@ -219,7 +230,10 @@ monitoreo_aulas_libro_recibo <- function(libro = NULL) {
     hojas = hojas,
     hojas_ausentes = length(ausentes),
     control_sin_nombre = length(unlist(libro$control_sin_nombre %||% list(), use.names = FALSE)),
-    resumen = libro$resumen %||% list()
+    resumen = c(
+      libro$resumen %||% list(),
+      if (length(facultades)) list(facultades = length(facultades)) else list()
+    )
   )
 }
 

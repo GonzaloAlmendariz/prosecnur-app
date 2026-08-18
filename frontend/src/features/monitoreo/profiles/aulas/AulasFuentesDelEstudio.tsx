@@ -84,7 +84,14 @@ export type ReciboDelLibro = {
   hojas: Array<{ hoja: string; vino: boolean }>;
   hojas_ausentes: number;
   control_sin_nombre: number;
-  resumen?: { unidades?: number; titulares?: number; partes_de_campo?: number; filas_de_control?: number };
+  resumen?: {
+    unidades?: number;
+    /** Cuántas facultades cubre el libro: un libro de 15 y uno de 6 son cosas distintas. */
+    facultades?: number;
+    titulares?: number;
+    partes_de_campo?: number;
+    filas_de_control?: number;
+  };
 };
 
 /**
@@ -132,6 +139,10 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
           <ul className="aulas-libro-cifras">
             {([
               ["unidades", "cursos-horario"],
+              // Las facultades PRIMERO entre las cifras de reparto: es la
+              // unidad con la que se dirige el operativo, y un libro de 15 y
+              // uno de 6 son cosas muy distintas aunque traigan las mismas filas.
+              ["facultades", "facultades"],
               ["titulares", "titulares"],
               ["partes_de_campo", "partes de campo"],
               ["filas_de_control", "filas de control"],
