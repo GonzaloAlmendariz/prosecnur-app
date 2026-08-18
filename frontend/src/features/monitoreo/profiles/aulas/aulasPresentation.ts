@@ -272,6 +272,29 @@ export function presentDetail(value: unknown) {
  * Los valores son los de `monitoreo_aulas_motivos_reemplazo()` en R: si el
  * motor añade uno, aquí sale su clave cruda y se ve que falta el rótulo.
  */
+/**
+ * Los estados operativos de un aula, con su rótulo.
+ *
+ * El vocabulario es el del motor (`monitoreo_aulas_estados()`), traducido una
+ * sola vez. La clave viaja; la etiqueta se queda en la pantalla.
+ *
+ * Vive acá y no en `RegistroDeCampo`, que era donde estaba: ahí sólo servía al
+ * select del registro, y la tabla que pinta esa misma columna no lo alcanzaba.
+ */
+export const ESTADOS_OPERATIVOS: Array<{ value: string; label: string }> = [
+  { value: "planificada", label: "Planificada" },
+  { value: "contactada", label: "Contactada" },
+  { value: "agendada", label: "Agendada" },
+  { value: "en_campo", label: "En campo" },
+  { value: "aplicada", label: "Aplicada" },
+  { value: "parcial", label: "Parcial" },
+  { value: "sin_acceso", label: "Sin acceso" },
+  { value: "cancelada", label: "Cancelada" },
+  { value: "reemplazo_pendiente", label: "Reemplazo pendiente" },
+  { value: "reemplazada", label: "Reemplazada" },
+  { value: "cerrada", label: "Cerrada" },
+];
+
 export const MOTIVOS_DE_REEMPLAZO: Array<{ value: string; label: string }> = [
   { value: "docente_no_autoriza", label: "El docente no autoriza" },
   { value: "aula_no_existe", label: "El aula no existe" },
