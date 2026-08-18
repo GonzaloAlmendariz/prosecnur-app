@@ -1467,6 +1467,59 @@
   text-transform: uppercase;
 }
 
+/* «¿Hay atajo?» — la concentración de la brecha, en Consultas.
+   Tres carriles y una frase; ni Plotly ni ejes: son tres cifras y lo que se
+   compara es cuánto avanza cada carril, no su valor exacto. Mismo criterio que
+   la franja de consumo de reserva y que el ritmo diario. */
+.mon-profile-page.is-aulas-flow .aulas-concentracion {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-tramos {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-tramos li {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr) minmax(120px, auto);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-rotulo strong,
+.mon-profile-page.is-aulas-flow .aulas-concentracion-cifra strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-carril {
+  display: block;
+  height: 12px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-carril i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-concentracion-cifra em {
+  font-size: 11px;
+  font-style: normal;
+}
+
 /* El chip de estado de las tablas. Mismo material que los chips de estado de
    los otros perfiles —borde teñido por `color-mix`, radio de chip, peso alto y
    cuerpo pequeño— y el acento lo pone cada estado con su color de la franja

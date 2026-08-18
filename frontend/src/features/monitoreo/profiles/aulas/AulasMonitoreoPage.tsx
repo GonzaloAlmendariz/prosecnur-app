@@ -26,6 +26,7 @@ import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
+import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
@@ -678,6 +679,9 @@ function renderAulasView(
             <h3>Cursos-horario con brecha</h3>
             <span>{fmt(brechas.length)} filas</span>
           </div>
+          {/* ¿Hay atajo? Una lista ordenada por brecha SUGIERE que las primeras
+              concentran lo que falta, y puede ser al revés. Esto lo dice. */}
+          <AulasConcentracionBrecha filas={(dashboard.brechas ?? []) as MonitoreoRow[]} />
           <DataTable
             rows={brechas}
             empty="Ningún curso-horario tiene brecha abierta."
