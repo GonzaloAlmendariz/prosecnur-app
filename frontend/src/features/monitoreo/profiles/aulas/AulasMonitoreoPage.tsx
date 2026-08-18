@@ -721,8 +721,13 @@ function renderAulasView(
             // no llegaba a ninguna pantalla, y es el número que dice si el 70 %
             // del padrón era alcanzable —con 55 % de asistencia no se llega ni
             // respondiendo todos los presentes—.
-            maxColumns={10}
-            preferredColumns={["operational_code", "faculty", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
+            // El parte dice DOS cosas y la tabla solo enseñaba una: la
+            // aritmetica del cuadre. Lo otro —si se aplico, en que aula de
+            // verdad, que dia y quien estuvo— es lo que el aplicador reporta y
+            // solo vive en esta hoja. Va primero porque es lo que se pregunta
+            // antes de mirar si las cuentas cuadran.
+            maxColumns={13}
+            preferredColumns={["operational_code", "faculty", "application_status", "actual_room", "applied_date", "applied_by", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia"]}
           />
         </section>
         ) : null}
