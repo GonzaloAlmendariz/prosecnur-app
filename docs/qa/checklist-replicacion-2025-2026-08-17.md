@@ -2088,3 +2088,16 @@ concepto —extra operativas del cálculo— y las reservas reales (1.774 M2+ +
 639 extra) lo exceden en todas las facultades, consistente con los 1.012
 candidatos de 2025. NADA QUE REPARAR — el fix de afijación no se propaga
 porque no hace falta.
+
+## CICLO DEL ANALISTA · Reapertura fría verificada · ☑ 2026-08-18
+
+Pila reiniciada, `.pulso` reabierto en sesión nueva, NUEVE chequeos verdes:
+marco 2.615 · selección afijada M1=202 con sus 17 talleres sólo en ARQ/A&D ·
+courseLevelRanges 15 facultades · excepciones taller · minEligible byFaculty
+10 · decisión p25 vigente en el estudio · referencia con titulares 15/15 y
+7/8 campos completos · y la UI fría renderiza Coincidencia con los cinco
+pasos (ARQ 15 vs 6 en el paso 7). **El día entero sobrevive el ciclo
+guardar→reabrir** — el fix S2 aguanta con todo el estado real encima.
+
+**El loop pasa a HOLDS ligeros**: todo lo computable está cerrado; quedan
+R4 (bloqueado en la pregunta a Gonzalo) y el audit de congelados (curador).
