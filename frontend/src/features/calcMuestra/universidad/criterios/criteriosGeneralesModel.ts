@@ -133,5 +133,12 @@ export function criteriosGeneralesDeEstudio({
     },
     { concepto: "Aulas del marco", hoy: fmtCifra(aulasMarco || null), claveHistorica: "aulas_marco" },
     { concepto: "Aulas a visitar", hoy: fmtCifra(aVisitar || null), claveHistorica: "aulas_dimensionadas" },
+    // Lo que el estudio anterior HIZO. Su columna «este estudio» queda vacía a
+    // propósito: son resultados de campo, y este estudio todavía no salió. Están
+    // aquí porque son la única parte del histórico que el proyecto guarda, y sin
+    // ellas la comparación no tiene con qué llenarse.
+    { concepto: "Aulas agendadas con reemplazos", hoy: "", claveHistorica: "aulas_agendadas" },
+    { concepto: "Encuestas válidas logradas", hoy: "", claveHistorica: "efectivas_logradas" },
+    { concepto: "Asistencia observada", hoy: "", claveHistorica: "tasa_asistencia" },
   ];
 }

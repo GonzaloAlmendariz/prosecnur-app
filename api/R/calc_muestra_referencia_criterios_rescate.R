@@ -72,6 +72,39 @@
   Filter(Negate(is.null), filas)
 }
 
+#' Lo que el estudio anterior HIZO, para el bloque general.
+#'
+#' No es su diseño en papel —n, deff, p, error y metodo de seleccion no viven en
+#' el proyecto, viven en el libro de calculo— sino lo que quedo ejecutado, que la
+#' referencia de asistencia si guarda: `cobertura` trae las aulas agendadas y las
+#' aplicadas, y `global` las encuestas validas y la tasa de asistencia.
+#'
+#' Se publican con la clave que la tarjeta ya busca (`aulas_dimensionadas`) o con
+#' una propia, y NUNCA se rellenan las decisiones de diseño con un resultado:
+#' llamar «muestra de diseño» a las 3.303 encuestas logradas seria bautizar una
+#' cifra con el nombre de otra, que es el error que este trabajo ya cometio dos
+#' veces.
+.cm_ref_crit_general_desde_asistencia <- function(asistencia) {
+  cob <- asistencia$cobertura
+  glob <- asistencia$global
+  out <- list()
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(x %||% NA)[1L])
+    if (isTRUE(is.finite(v))) v else NULL
+  }
+  ent <- function(v) format(round(v), trim = TRUE, scientific = FALSE)
+
+  aplicadas <- num(if (is.list(cob)) cob$aplicados else NULL) %||% num(if (is.list(glob)) glob$k else NULL)
+  if (!is.null(aplicadas)) out$aulas_dimensionadas <- ent(aplicadas)
+  agendadas <- num(if (is.list(cob)) cob$agendados else NULL)
+  if (!is.null(agendadas)) out$aulas_agendadas <- ent(agendadas)
+  validas <- num(if (is.list(glob)) glob$validas else NULL)
+  if (!is.null(validas)) out$efectivas_logradas <- ent(validas)
+  tasa <- num(if (is.list(glob)) glob$tasa else NULL)
+  if (!is.null(tasa)) out$tasa_asistencia <- paste0(format(round(tasa * 100, 1), trim = TRUE), " %")
+  out
+}
+
 calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
   if (!is.list(asistencia)) return(NULL)
   cuotas <- asistencia$cuotas
@@ -106,9 +139,7 @@ calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
   calc_muestra_referencia_criterios_normalizar(list(
     periodo = .cm_aulas_scalar(estudio$periodo, ""),
     estudio = .cm_aulas_scalar(estudio$label, ""),
-    # El metodo general no se rescata: la asistencia no lo guarda, y afirmar que
-    # coincide sin haberlo leido es peor que decir «sin referencia».
-    general = list(),
+    general = .cm_ref_crit_general_desde_asistencia(asistencia),
     por_facultad = filas
   ))
 }
