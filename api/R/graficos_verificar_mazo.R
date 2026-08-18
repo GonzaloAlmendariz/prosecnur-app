@@ -2003,3 +2003,44 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # dos candidatas de tres en un par de lecturas del plan. La que queda es
 # justo la que necesitaba el instrumento caro — pero ahora se sabe POR QUE, y
 # la traza va a responder una pregunta concreta en vez de mirar a ver.
+
+
+# P49 — LA TRAZA RESPONDE: AL HELPER NO LE LLEGA `p13_3`. Y EL SOSPECHOSO
+# NUEVO ES EL PASO QUE VA JUSTO ANTES DEL INSTRUMENTO: `orders_list`.
+#
+# Instrumentado `.etiqueta_sin_truncar()` con `PULSO_TRAZA_P49` y regenerado el
+# mazo entero (PPT + Word):
+#
+#     llamadas al helper                     **58**
+#     `var` distintas                        **30**
+#     llamadas con `var = p13_3`             **CERO**
+#     `var` que llegan CUALIFICADAS (`a$b`)  **0** — llegan desnudas, ya
+#                                            resueltas por `.resolve_ref()`
+#
+# Y el par minimo lo afina: **`p21_2` SI llega** —es la primera `var` de la
+# misma lamina 21— y **`p13_3` no**. Las dos estan en la misma lamina; lo que
+# las separa es la FUENTE: `p21_2` es de egresados y `p13_3` de administrativos.
+#
+# QUE SIGNIFICA. El helper cuelga de la rama del `df` de
+# `.lookup_variable_label()`: sólo se llama cuando **el dato tiene esa columna
+# con etiqueta no vacia**. Que no se llame para `p13_3` quiere decir que en esa
+# fuente el `df` NO responde… y entonces el lookup sigue a `orders_list` y
+# despues a `dic_vars`. Si acabara en `dic_vars` saldria la entera de 291 B. Sale
+# la truncada de 256.
+#
+# **LUEGO QUIEN RESPONDE ES `orders_list`**, que es el paso 3 —justo ANTES de
+# `dic_vars` y justo DESPUES de donde puse el arreglo—. `orders_list` sale de la
+# analitica/codificacion y arrastra la etiqueta del `.sav`, o sea la truncada.
+#
+# Es, otra vez, **un remedio bloqueado por el ORDEN y no por la logica**: el
+# helper esta bien escrito y colgado del sitio equivocado. Lo que hay que medir
+# ahora es UNA cosa —¿tiene `orders_list[["p13_3"]]$label` los 256 B?— y si es
+# que si, el arreglo se mueve o se duplica en esa rama, con su prediccion nueva.
+#
+# LO QUE LA TRAZA TAMBIEN DEJA CLARO, y conviene no perderlo: **58 llamadas
+# para 232 renders**. La mayoria de los titulos NO pasan por esta funcion, asi
+# que cualquier arreglo aqui tiene por definicion un alcance pequeño.
+#
+# LECCION: el par minimo funciona tambien DENTRO de una traza. Dos variables de
+# la misma lamina, una llega y la otra no: lo que las separa no es la lamina ni
+# el graficador, es la fuente — y eso apunta al dato, no al render.
