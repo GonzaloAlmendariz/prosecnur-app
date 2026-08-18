@@ -144,6 +144,39 @@ const CAMPOS_POR_GRUPO: Record<string, string[]> = {
   horario: ["schedule_norm", "schedule_range"],
 };
 
+/**
+ * Qué es cada columna al pintarla, que es distinto de qué significa.
+ *
+ * Sin esto la tabla salía con las 27 columnas alineadas a la izquierda —«92.3 %»
+ * pegado al borde y «91.7 %» partido en dos líneas porque la columna es
+ * estrecha—, así que ninguna se podía recorrer con el ojo. Las cifras van a la
+ * derecha, tabulares y sin partirse; los dos veredictos se pintan como marca,
+ * porque un `1` y un `0` en una tabla de números no se leen como sí y no.
+ */
+const COLUMNAS_DE_CIFRA = new Set([
+  "sent_total", "sent_vs_total", "sent_vs_population",
+  "validator_1", "validator_2", "validator_3",
+  "short_total", "short_vs_total", "long_total", "long_vs_total",
+  "threshold_total", "threshold_population",
+  "observed_students", "non_respondents", "attendance_pct",
+  "quota_pct", "quota_missing", "women_n", "men_n", "women_pct", "men_pct",
+]);
+
+/** `VALIDO TOTAL` y `VALIDO POBLACION`: el veredicto del equipo, en 1/0. */
+const COLUMNAS_DE_VEREDICTO = new Set(["valid_total", "valid_population"]);
+
+function Veredicto1o0({ valor }: { valor: unknown }) {
+  const txt = String(valor ?? "").trim();
+  if (!txt) return <span className="mon-profile-muted">—</span>;
+  const si = ["1", "SI", "SÍ", "TRUE", "V", "VALIDO", "VÁLIDO", "CUMPLE", "OK"]
+    .includes(txt.toUpperCase());
+  return (
+    <span className={`aulas-control-marca${si ? " es-si" : " es-no"}`} title={si ? "Válido" : "No válido"}>
+      {si ? "✓" : "·"}
+    </span>
+  );
+}
+
 function texto(valor: unknown) {
   if (valor === null || valor === undefined) return "";
   if (typeof valor === "number") return Number.isFinite(valor) ? String(valor) : "";
@@ -177,7 +210,19 @@ export function AulasControlDelLibro({
   const vacios = grupos.filter((g) => g.aulas_con_dato === 0);
   // Las columnas que se muestran salen de los grupos que tienen dato: enseñar
   // catorce columnas vacías porque la hoja las declara no informa de nada.
-  const columnas = ["operational_code", ...conDato.flatMap((g) => CAMPOS_POR_GRUPO[g.clave] ?? [])];
+  // Las columnas se agrupan como en el libro. La fila 1 del Excel declara
+  // «Control - cuenta», «- duracion», «- cuotas» y «- rango horario», y sin esa
+  // banda las 27 columnas iban seguidas: no se veia donde acababa un bloque y
+  // empezaba el siguiente, que es lo que convertia la tabla en un muro.
+  const bloques = conDato.map((g) => ({
+    clave: g.clave,
+    nombre: nombreDeGrupo(g),
+    campos: CAMPOS_POR_GRUPO[g.clave] ?? [],
+  })).filter((b) => b.campos.length);
+  const columnas = ["operational_code", ...bloques.flatMap((b) => b.campos)];
+  // Que columna abre cada bloque, para pintarle la linea divisoria y que el ojo
+  // encuentre el corte sin leer la cabecera de arriba.
+  const abreBloque = new Set(bloques.map((b) => b.campos[0]));
   // Esta tabla pinta sus celdas por su cuenta —no pasa por `DataTable`— y por
   // eso enseñaba «0.909» bajo un rótulo que dice «vs Total». La conversión es
   // de la capa de presentación, la misma que ya traduce estados y motivos, y la
@@ -209,12 +254,56 @@ export function AulasControlDelLibro({
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <table className="mon-profile-table">
           <thead>
-            <tr>{columnas.map((c) => <th key={c}>{aulasFieldLabel(c)}</th>)}</tr>
+            <tr className="aulas-control-bloques">
+              <th aria-hidden="true" />
+              {bloques.map((b) => (
+                <th key={b.clave} colSpan={b.campos.length} scope="colgroup">{b.nombre}</th>
+              ))}
+            </tr>
+            <tr>
+              {columnas.map((c) => (
+                <th
+                  key={c}
+                  scope="col"
+                  className={[
+                    COLUMNAS_DE_CIFRA.has(c) ? "es-cifra" : "",
+                    COLUMNAS_DE_VEREDICTO.has(c) ? "es-marca" : "",
+                    abreBloque.has(c) ? "es-corte" : "",
+                  ].filter(Boolean).join(" ")}
+                >
+                  {aulasFieldLabel(c)}
+                </th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {presentadas.map((fila, i) => (
-              <tr key={texto(fila.operational_code) || i}>
-                {columnas.map((c) => <td key={c}>{texto(fila[c])}</td>)}
+              // Un aula que nadie ha evaluado es un código seguido de veintiséis
+              // guiones, y a tamaño de tabla eso se lee como una franja en
+              // blanco: 56 de las 170. La fila lo DICE con su fondo en vez de
+              // parecer un hueco. El dato sale de `grupos_con_dato`, que el
+              // motor ya publica por aula, y se lee de la fila CRUDA porque la
+              // presentación no arrastra listas.
+              <tr
+                key={texto(fila.operational_code) || i}
+                className={((filas[i]?.grupos_con_dato as unknown[] | undefined)?.length ?? 0) === 0
+                  ? "es-sin-evaluar"
+                  : undefined}
+              >
+                {columnas.map((c) => (
+                  <td
+                    key={c}
+                    className={[
+                      COLUMNAS_DE_CIFRA.has(c) ? "es-cifra" : "",
+                      COLUMNAS_DE_VEREDICTO.has(c) ? "es-marca" : "",
+                      abreBloque.has(c) ? "es-corte" : "",
+                    ].filter(Boolean).join(" ")}
+                  >
+                    {COLUMNAS_DE_VEREDICTO.has(c)
+                      ? <Veredicto1o0 valor={fila[c]} />
+                      : texto(fila[c]) || <span className="mon-profile-muted">—</span>}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

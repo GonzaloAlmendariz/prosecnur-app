@@ -1940,3 +1940,89 @@
 .mon-profile-page.is-aulas-flow .aulas-cadenas .mon-profile-table-wrap {
   max-height: min(46vh, 420px);
 }
+
+/* --- «Base de control»: 170 filas x 27 columnas, legibles -------------------
+   Gonzalo: «una tabla de control feísima sin ningún tipo de formato,
+   tremendamente horrible». Lo era, y por cuatro cosas medidas en pantalla: las
+   cifras alineadas a la izquierda, «91.7 %» partido en dos líneas porque la
+   columna es estrecha, los cuatro grupos del libro seguidos sin corte, y los
+   veredictos como `1` y `0` en medio de una fila de números. */
+
+/* Las cifras se recorren con el ojo por la columna: a la derecha, tabulares y
+   sin partirse nunca. Es lo que hace que 27 columnas dejen de ser un muro. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro th.es-cifra,
+.mon-profile-page.is-aulas-flow .aulas-control-libro td.es-cifra {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La banda de grupos, que es la fila 1 del propio Excel. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro .aulas-control-bloques th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+/* El corte entre bloques: una línea, no un hueco. Un separador de ancho vacío
+   habría desalineado las cifras que acabamos de alinear. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro th.es-corte,
+.mon-profile-page.is-aulas-flow .aulas-control-libro td.es-corte {
+  border-left: 1px solid var(--pulso-border);
+}
+
+/* Cabeceras de una sola línea: «CANTIDAD DE ASISTENTES» ocupaba tres y dejaba
+   la banda de cabecera con los rótulos a distinta altura. Con elipsis, el
+   nombre entero queda en el `title`. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro thead tr:last-child th {
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El veredicto del equipo, como marca. Un `1` y un `0` entre veinte números no
+   se leen como sí y no; se leen como dos números más. */
+.mon-profile-page.is-aulas-flow .aulas-control-marca {
+  display: inline-block;
+  min-width: 16px;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1;
+}
+.mon-profile-page.is-aulas-flow .aulas-control-marca.es-si { color: var(--pulso-state-ready-fg); }
+.mon-profile-page.is-aulas-flow .aulas-control-marca.es-no { color: var(--pulso-text-soft); }
+.mon-profile-page.is-aulas-flow .aulas-control-libro th.es-marca,
+.mon-profile-page.is-aulas-flow .aulas-control-libro td.es-marca { text-align: center; }
+
+/* Ninguna celda envuelve: «FUERA DE RANGO» en la última columna estiraba SU
+   fila a 47 px contra las 33 de las demás, y como el alto lo hereda la fila
+   entera, la tabla salía con tres alturas distintas y huecos irregulares.
+   Medido: 98 filas a 33 px, 56 a 36 y 16 a 47. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro td {
+  white-space: nowrap;
+}
+
+/* Las aulas que nadie ha evaluado: el fondo dice que la fila está vacía a
+   propósito. Sin esto eran una franja en blanco entre filas con datos, y
+   «vacío» y «hueco de maquetación» se ven igual. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro tbody tr.es-sin-evaluar {
+  background: var(--pulso-surface-2);
+}
+.mon-profile-page.is-aulas-flow .aulas-control-libro tbody tr.es-sin-evaluar td {
+  color: var(--pulso-text-soft);
+}
+
+/* El guion del vacío no cambia la métrica de su fila: `mon-profile-muted` trae
+   su propio tamaño y dejaba las 56 filas sin evaluar 3 px más altas que las
+   114 con datos. El color ya lo pone la fila. */
+.mon-profile-page.is-aulas-flow .aulas-control-libro td .mon-profile-muted {
+  font-size: inherit;
+  line-height: inherit;
+}
