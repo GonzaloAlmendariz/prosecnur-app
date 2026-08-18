@@ -55,6 +55,15 @@ export type EntradaCriteriosGenerales = {
   /** `parametros` del componente que dimensiona por facultad. */
   parametros: Record<string, unknown> | null | undefined;
   /**
+   * `alumnos_por_ch_decision` del config. MANDA sobre
+   * `parametros.estadistico_conglomerado`: al sellar la decisión, el motor
+   * resuelve el estadístico por estrato y deja el parámetro en «media» a
+   * propósito, porque el valor ya viene calculado. Leer el parámetro hacía que
+   * la tarjeta dijera «media» mientras el estudio dimensionaba con p25 — medido
+   * en HSVG2026, con la decisión sellada en p25 y 193 aulas en pantalla.
+   */
+  decision?: Record<string, unknown> | null;
+  /**
    * El config de aulas. El motor lo anida bajo `selector` y el workspace del
    * front lo trae plano —`selector_engine` al primer nivel, y `selector` como
    * un string—; se aceptan las dos formas porque una tarjeta que muestra «—»
@@ -73,6 +82,7 @@ export type EntradaCriteriosGenerales = {
 
 export function criteriosGeneralesDeEstudio({
   parametros,
+  decision,
   selector,
   aulasMarco,
   filas,
@@ -93,7 +103,8 @@ export function criteriosGeneralesDeEstudio({
     return acc + (Number.isFinite(v) ? (v as number) : 0);
   }, 0);
 
-  const estadistico = String(p.estadistico_conglomerado ?? "");
+  const sellado = String((decision ?? {}).estadistico_default ?? "");
+  const estadistico = sellado || String(p.estadistico_conglomerado ?? "");
   const anidado = (s.selector ?? {}) as Record<string, unknown> | string;
   const desdeAnidado =
     typeof anidado === "object" && anidado !== null

@@ -231,6 +231,7 @@ describe("contrato: las dos tarjetas están cableadas en Entrega", () => {
     // de este estudio en blanco sin que nada mas falle.
     expect(desk).toContain('from "./criterios/criteriosGeneralesModel"');
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?parametros: facultyComp\?\.parametros/);
+    expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?decision:/);
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?selector: syncedWorkspace\.aulas_config/);
     // CONTROL: ningun valor de la tabla vuelve a estar escrito a mano.
     expect(desk).not.toContain('hoy: "1.5"');
@@ -388,6 +389,27 @@ describe("criterios generales del estudio", () => {
       aulasMarco: null, filas: null,
     });
     expect(busca(otro, "Sobremuestra")).toBe("50 %");
+  });
+
+  it("la DECISIÓN sellada manda sobre el parámetro del componente", () => {
+    // Al sellar la decisión, el motor resuelve el estadístico por estrato y deja
+    // `estadistico_conglomerado` en «media» A PROPÓSITO, porque el valor ya
+    // viene calculado. Medido en HSVG2026: con p25 sellado y 193 aulas en
+    // pantalla, la tarjeta decía «media».
+    const fs = criteriosGeneralesDeEstudio({
+      parametros: PARAMS,                       // dice "media"
+      decision: { estadistico_default: "p25" }, // pero se selló p25
+      selector: SELECTOR, aulasMarco: null, filas: null,
+    });
+    expect(busca(fs, "Estadístico por curso-horario")).toBe("primer cuartil (p25)");
+  });
+
+  it("CONTROL: sin decisión sellada se usa el parámetro", () => {
+    const fs = criteriosGeneralesDeEstudio({
+      parametros: PARAMS, decision: { estadistico_default: "" },
+      selector: SELECTOR, aulasMarco: null, filas: null,
+    });
+    expect(busca(fs, "Estadístico por curso-horario")).toBe("media");
   });
 
   it("publica el ESTADÍSTICO, que es lo que decide cuántas aulas hacen falta", () => {
