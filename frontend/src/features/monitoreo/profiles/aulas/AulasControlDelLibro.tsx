@@ -238,7 +238,9 @@ export function AulasControlDelLibro({
           queda de respaldo para quien vaya a por un aula concreta. */}
       {resumen?.veredicto ? <Veredicto v={resumen.veredicto} aulas={aulas} /> : null}
       <p className="aulas-cadenas-lectura">
-        <strong>{aulas}</strong> {aulas === 1 ? "aula" : "aulas"} en la hoja
+        {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el
+            plan sigue, y llamarlas igual confundía dos denominadores. */}
+        <strong>{aulas}</strong> {aulas === 1 ? "fila" : "filas"} en la hoja
         {conDato.map((g) => (
           <span key={g.clave}>
             {" · "}

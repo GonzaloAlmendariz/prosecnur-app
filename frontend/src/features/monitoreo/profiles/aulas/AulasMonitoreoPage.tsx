@@ -555,7 +555,12 @@ function renderAulasView(
           {/* El nombre de la hoja, tal cual, porque es a lo que el equipo va a
               buscarlo en su libro. */}
           <h3>Base de control</h3>
-          <span>{control.length ? contar(control.length, "aula", "aulas") : "Sin datos"}</span>
+          {/* «filas de la hoja» y no «aulas»: son las que trae el libro que llena
+              el equipo, y no tienen por qué ser las del plan —aquí 210 contra
+              196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
+              perfil cuya unidad es el curso-horario. El recibo del libro ya usa
+              este mismo lenguaje: «210 filas de control». */}
+          <span>{control.length ? contar(control.length, "fila de la hoja", "filas de la hoja") : "Sin datos"}</span>
         </div>
         <AulasControlDelLibro filas={control} resumen={controlResumen} />
       </section>
