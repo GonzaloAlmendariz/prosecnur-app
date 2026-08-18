@@ -371,7 +371,20 @@ calibrar_umbrales <- function(path, p = 0.10) {
 # lamina 16 tiene **101 cajas** y la primera linea de su enunciado vive sola en
 # la suya (`['¿Conoce los propositos']`), o sea que rvg emite UNA CAJA POR LINEA
 # DIBUJADA. Para reconstruir un enunciado hay que agrupar por columna y
-# adyacencia vertical, con la geometria que `.verif_formas()` ya devuelve. Lo que P46 cerro sigue cerrado —los 22 cortes
+# adyacencia vertical, con la geometria que `.verif_formas()` ya devuelve.
+#
+# HECHO Y VALIDADO (`p49c.R`), con dos detalles que costaron un intento cada
+# uno: se agrupa por el CENTRO de la linea (`x + w/2`) y no por su `x` —el
+# enunciado va centrado, asi que cada linea arranca distinto—, y el grupo se
+# corta cuando el salto vertical pasa de ~2.2 alturas de linea. Con `x` a secas
+# daba «completos 0», que contradecia el render; con el centro, la lamina 16
+# sale con sus dos enunciados completos, que es lo que se ve.
+#
+# LO QUE FALTA ES EL MAPEO: `plan$slides[[i]]` NO corresponde a `slide<i>.xml`
+# en cuanto el motor PARTE una lamina. Medido: los enunciados que el plan pone
+# en `plan$slides[[26]]` estan dibujados en la lamina 30 del mazo, +4, y los
+# demas desfases caen en 29, 34, 37, 53 y 62 —todas posteriores a una
+# particion—. Sin resolver eso, cualquier conteo mide en la lamina equivocada. Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
 
