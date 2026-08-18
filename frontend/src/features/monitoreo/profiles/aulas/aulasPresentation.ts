@@ -96,6 +96,10 @@ const FIELD_LABELS: Record<string, string> = {
   operational_sequence: "Secuencia operativa",
   selection_slot_id: "Posición de muestra",
   sample_role: "Rol de muestra",
+  // Cuál de los eslabones de la cadena está cubriendo el slot ahora mismo. Es
+  // la pregunta con la que se decide a quién visitar —«CH 5 no se pudo, entra
+  // R 5.1»— y sin etiqueta llegaba a la pantalla como `en_juego`.
+  en_juego: "En juego",
   // `STATUS MUESTRA` en «Aulas Agendadas»: AGENDADA · REAGENDADA · EN RESERVA n
   // · REEMPLAZADA. El rótulo es la columna.
   sample_status: "Status de muestra",
