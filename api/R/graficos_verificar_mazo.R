@@ -355,6 +355,18 @@ calibrar_umbrales <- function(path, p = 0.10) {
 }
 
 
+# EL CERO DE TRUNCADOS ES EL DE LOS CORTES MARCADOS, NO EL DE LOS CORTES.
+# Medido en el render de `p52`, lamina 25 («ESTRUCTURA ORGANIZACIONAL DE
+# GOBIERNO»): su segundo enunciado termina en «de D» y el `<a:t>` siguiente ya
+# es del bloque de al lado —«Los docentes que ocupan puestos»—, o sea que la
+# frase se corta a media palabra. Y en toda esa lamina no hay un solo `<a:t>`
+# acabado en elipsis.
+#
+# El detector de truncados busca justamente eso, la elipsis, asi que da CERO
+# mientras hay un corte en seco. Lo que P46 cerro sigue cerrado —los 22 cortes
+# CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
+# los cortes silenciosos vale solo para la mitad marcada.
+
 #' Verifica un mazo contra el recetario
 #'
 #' Las reglas que se comprueban son las medibles sobre el archivo. Las que no
