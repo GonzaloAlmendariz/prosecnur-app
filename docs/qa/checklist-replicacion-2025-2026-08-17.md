@@ -2915,3 +2915,24 @@ balance por fin ocurre) y comparación de representatividad antes/después.
 - JUSTIFICADOS: el fallback de motor (lcube→samplecube→PPS→weighted_random)
   SÍ declara warning y propaga engine_used; los ajustes de tamaño (D2/H4)
   viajan como dato.
+
+### J1 — HALLAZGO MAYOR REPARADO (`051ed312`) · dibujo entero
+
+El cubo vuelve a balancear dentro de los estratos: saneo POR COLUMNA en
+archivo nuevo (el congelado delega y ENCOGE 21 líneas), constantes
+descartadas Y DECLARADAS (attr `balance_vars_descartadas`), test 12/0/0
+(rojo previo 5F+3E, mutante 6 rojos), suite aulas 140/0/0. Re-batería del
+cubo reparado: 5/5 de nuevo, reproducible a doble corrida, y el hash CAMBIÓ
+(64b9772a → 659b003e) — la prueba de que el balance ahora decide el sorteo.
+Proyecto GUARDADO con la selección re-balanceada.
+
+| # | Ítem de J1 | Estado |
+|---|---|---|
+| Batería empírica 4 engines × 5 invariantes | ☑ (cubo re-verificado tras el fix) |
+| Barrido de fallas silenciosas (manual) | ☑ 1 mayor + 2 menores + 2 justificados |
+| HALLAZGO MAYOR: cubo sin balance intra-estrato | ☑ REPARADO `051ed312` |
+| Menor: declaración de descartadas al payload de warnings | ☐ (junto al engine_key) |
+| Menor: engine_key default silencioso → warning/400 | ☐ |
+| Menor: score del pool degrada sin declarar | ☐ |
+| Identidad Σπ por facultad (test R) | ☐ |
+| J2 τ por facultad | ⛔ BLOQUEADO (decisión de Gonzalo) |
