@@ -10,6 +10,41 @@
 # Tope de estirado del panel en agrupadas. Ver el bloque que lo usa.
 .AGRUPADAS_PANEL_ESTIRA_MAX <- 2.6
 
+# P8B — INTENTADO, MEDIDO Y REVERTIDO. Se probo a bajar el techo del bloque de
+# estirado de abajo cuando el hueco declarado es pequeno: un escalon
+# —`0.394 in (1.0 cm)` si `alto < 4`, el global `.GROSOR_TECHO_IN` si no—, que
+# los datos separaban limpio, porque `poblacion_4` inyecta
+# `overrides$alto = 2.565` (`reporte_plan_ppt.R:9022-9028`) y todo lo demas se
+# queda con el 6 del default de la firma.
+#
+# Medido sobre el mazo de Contabilidad regenerado con el cambio (`p59`) contra
+# el vigente (`p55`):
+#
+#                          p55        p59       prediccion escrita
+#   maximo de cuadrante   1.4853     1.4496        1.0000
+#   peor dispersion       0.8141     0.7784        0.3288
+#   VARA TOTAL              27         27          (sin prediccion)
+#   cortes                   2          2
+#
+# **La prediccion falla y la razon esta dos lineas mas abajo**: el techo entra
+# como `min(panel_nuevo, max(h_panel_in, panel_techo))`, y ese `max` es
+# deliberado —un alto que la funcion ya tenia no se recorta—. O sea que el techo
+# **limita cuanto puede ESTIRARSE el panel, no cuanto puede medir**. El 1.4853
+# no nace del estirado sino del panel intrinseco, asi que bajar este techo solo
+# le quita los 0.0357 cm que el estirado le anadia: un 7 % de los 0.4853 que
+# sobran. La vara no se movio en ningun sentido.
+#
+# LO QUE ESTO DEJA CLARO PARA EL SIGUIENTE INTENTO: recortar el grosor de un
+# cuadrante exige actuar donde NACE `h_panel_in`, no donde se estira. Y ahi ya
+# hay una decision tomada en contra —las quince notas de P48 en
+# `graficador_grosor_piso.R` midieron y descartaron anclar el grosor antes del
+# geom— asi que el siguiente paso no es reintentar por la brava sino medir de
+# donde sale el panel intrinseco de un cuadrante de dos barras.
+#
+# LECCION: un techo puesto DESPUES de que el valor nazca solo puede impedir que
+# crezca, no hacerlo menguar. Antes de calibrar una cota, mira si el camino que
+# vigila es el que produce el numero.
+
 .barras_agrupadas_grosor_eff <- function(n_categorias, grosor_barras,
                                          canvas_min_filas, usar_canvas = TRUE) {
   grosor_base <- suppressWarnings(as.numeric(grosor_barras)[1])
