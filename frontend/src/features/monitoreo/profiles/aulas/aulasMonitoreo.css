@@ -1467,6 +1467,62 @@
   text-transform: uppercase;
 }
 
+/* El embudo del parte: tres pasos que angostan. Misma reja que la
+   concentración de brecha —rótulo, carril, cifra— para que las dos lecturas
+   visuales del perfil se lean igual. */
+.mon-profile-page.is-aulas-flow .aulas-embudo {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin-bottom: 4px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-pasos {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-pasos li {
+  display: grid;
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr) minmax(96px, auto);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-carril {
+  display: block;
+  height: 12px;
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2);
+  overflow: hidden;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-carril i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-cifra strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lo que se pierde va en el tono de aviso: es la cifra que decide si hay algo
+   que corregir en campo. */
+.mon-profile-page.is-aulas-flow .aulas-embudo-cifra em {
+  color: var(--pulso-warn-fg);
+  font-size: 11px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
 /* «¿Hay atajo?» — la concentración de la brecha, en Consultas.
    Tres carriles y una frase; ni Plotly ni ejes: son tres cifras y lo que se
    compara es cuánto avanza cada carril, no su valor exacto. Mismo criterio que
