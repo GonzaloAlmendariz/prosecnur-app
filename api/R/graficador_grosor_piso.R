@@ -756,6 +756,43 @@
 # llama. Lo que sigue siendo cierto es que NADIE lo llama con el techo de 1.0 cm
 # para el que se escribio.
 #
+# ------------------------------------------------------------------------
+# P8C — DE DONDE NACE EL GROSOR, LEIDO SIN TRAZA. La cadena entera esta en
+# `graficador_barras_agrupadas.R` y se sigue a ojo:
+#
+#   alto_por_cat_eff <- alto_por_categoria %||% 0.42          (~1610)
+#     ...y SUBE si la etiqueta del eje ocupa mas de una linea
+#   h_panel_in       <- n_categorias * alto_por_cat_eff       (~1630, intrinseco)
+#   panel_disponible <- alto_hueco - h_header_in - h_legend_in - h_caption_in
+#   panel_nuevo      <- min(panel_disponible, h_panel_in * 2.6, panel_techo)
+#   grosor fisico    ~ grosor_barras_eff * (panel_nuevo / n_categorias)
+#
+# EL PAR MINIMO DE LA LAMINA 9 DESCARTA DOS ENTRADAS DE GOLPE. Sus cuadrantes
+# `superior_izquierda`, `inferior_izquierda` e `inferior_derecha` tienen **los
+# tres n = 2** y **el mismo hueco de 2.565 in**, y salen a **1.0942 · 0.6712 ·
+# 1.4496 cm**. Con `n` igual, `.barras_agrupadas_grosor_eff(2, 0.6, ...)`
+# devuelve lo mismo para los tres, y `h_panel_in` intrinseco tambien. Asi que la
+# diferencia **no esta en el numero de barras ni en el grosor nominal**: sale de
+# `panel_disponible`, es decir de **`h_header_in`, `h_legend_in` o
+# `h_caption_in`**, o de `alto_por_cat_eff` por etiquetas de dos lineas.
+#
+# Y HAY UNA CORRELACION QUE SE MIDE SOLA: los TRES cuadrantes mas gruesos del
+# mazo —9, 13 y 14 `inferior_derecha`, los tres a 1.4496— son **exactamente los
+# tres que P8 tiene marcados como SIN CONFIGURAR**, sin `titulo` ni overrides.
+# Sin titulo, `has_header` es FALSE y `h_header_in` vale **0**: el cuadrante
+# dispone de mas alto que sus hermanos y el estirado se lo come. Tres de tres.
+#
+# LO QUE ESTO CAMBIA: el grosor desbocado **puede no ser un defecto de calculo
+# sino la consecuencia geometrica de que a ese cuadrante le falta el titulo** —
+# el mismo dato que Gonzalo tiene que decidir. Si es asi, configurarlo lo
+# arregla solo y no hay nada que tocar en el motor.
+#
+# LO QUE NO EXPLICA, y es lo que falta medir: `superior_izquierda` **si** tiene
+# titulo y aun asi sale a 1.0942 contra los 0.6712 de `inferior_izquierda`, con
+# el mismo `n` y el mismo hueco. Queda al menos una variable mas
+# —`h_legend_in` por numero de series, o `alto_por_cat_eff` por etiquetas de dos
+# lineas—, y eso ya pide una traza de cuatro numeros sobre esta unica lamina.
+#
 # LECCION: una cifra heredada de un mazo viejo no describe el vigente, y el
 # instrumento que la produjo tampoco se hereda: aqui el filtro daba al aprobado
 # una dispersion de 1.6974 —peor que el motor— hasta que se le exigio que una
