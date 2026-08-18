@@ -138,15 +138,18 @@ calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
   # («cuotas GANA») y en HSVG2026 esos tres campos llegaban NA en las quince
   # filas con el dato guardado en la MISMA referencia.
   piso_dimension <- .cm_ref_crit_desde_dimension_facultad(asistencia)
+  # Las CADENAS van ANTES que la dimension (D4): para `alumnos_por_ch`, la
+  # mediana de elegibles de los TITULARES es la medida fiel al estadistico que
+  # dimensiona (hoy p25/mediana de ELEGIBLES); la dimension trae matriculados/k
+  # de las aulas visitadas — otra poblacion y otro promedio — y solo debe tapar
+  # lo que las cadenas no saben. Medido en HSVG2026: con el orden viejo ARQ
+  # publicaba 38.1 (media de matriculados) donde la mediana titular es 34.5.
+  # Las cadenas ademas son la unica fuente de `aulas_titulares` (170 cadenas
+  # reproducen las quince filas de «0 · Metas por facultad» exactas).
+  filas_cadenas <- .cm_ref_crit_desde_cadenas(asistencia)
+  filas <- if (!length(filas)) filas_cadenas else .cm_ref_crit_rellenar_filas(filas, filas_cadenas)
   filas <- if (!length(filas)) piso_dimension else .cm_ref_crit_rellenar_filas(filas, piso_dimension)
   if (!length(filas)) return(NULL)
-  # Tercer piso: las CADENAS de reemplazo. Cada fila de `cadenas_reemplazo` es
-  # un estrato con su titular y su facultad, asi que el conteo por facultad SON
-  # las aulas titulares del estudio anterior — la unica de las tres fuentes que
-  # las conoce (verificado en HSVG2026: 170 cadenas y el conteo reproduce las
-  # quince filas de «0 · Metas por facultad» exactas). Mismo contrato: solo
-  # rellena huecos de filas ya existentes.
-  filas <- .cm_ref_crit_rellenar_filas(filas, .cm_ref_crit_desde_cadenas(asistencia))
 
   estudio <- if (is.list(asistencia$estudio)) asistencia$estudio else list()
   calc_muestra_referencia_criterios_normalizar(list(
@@ -240,14 +243,30 @@ calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
   cad <- asistencia$cadenas_reemplazo
   if (!is.list(cad) || !length(cad$filas)) return(list())
   conteo <- list()
+  elegibles <- list()
   for (f in cad$filas) {
     if (!is.list(f)) next
     fac <- .cm_aulas_scalar(f$facultad, "")
     if (!nzchar(fac)) next
     conteo[[fac]] <- (conteo[[fac]] %||% 0L) + 1L
+    # D4 (aprobado por Gonzalo): el estadistico de alumnos por aula del
+    # estudio anterior — mediana de `elegibles` de los TITULARES (posicion 1
+    # de cada cadena) que traen dato. Llena el paso 4 de las fichas, que
+    # decia «—» contra 2025. La cobertura es la del libro: los titulares sin
+    # elegibles registrados no entran a la mediana (en HSVG2026, C&I tiene
+    # 28 de 39 con dato), y como todo rescate SOLO rellena huecos — un libro
+    # que ya declare la fila manda.
+    for (e in f$escalones %||% list()) {
+      if (!identical(suppressWarnings(as.integer(.cm_aulas_scalar(e$posicion, NA))), 1L)) next
+      el <- suppressWarnings(as.numeric(.cm_aulas_scalar(e$elegibles, NA)))
+      if (is.finite(el)) elegibles[[fac]] <- c(elegibles[[fac]] %||% numeric(0), el)
+    }
   }
   lapply(names(conteo), function(fac) {
-    list(facultad = fac, aulas_titulares = conteo[[fac]])
+    fila <- list(facultad = fac, aulas_titulares = conteo[[fac]])
+    els <- elegibles[[fac]]
+    if (length(els)) fila$alumnos_por_ch <- stats::median(els)
+    fila
   })
 }
 
