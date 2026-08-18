@@ -3033,3 +3033,21 @@ bien pero pueden verse aún mejor y más profesionales».
 
 La cola D sigue viva: D4 fila estadístico al libro (aprobada) · D2 τ por
 sexo referencial · D5 extracción del congelado.
+
+### Tanda K — K0 cerrado (`ab85d979`) · dibujo entero
+
+Gramática única de tablas en `shared/tablas.css`, calibrada al patrón que la
+casa ya usaba en sus mejores tablas (margen/fichas/certificación): números a
+la DERECHA con dígitos tabulares, cabeceras en versalitas con regla firme,
+filetes finos, hover, tfoot fuerte. Sustento, ranking y panorama la adoptan
+(eran las tres sin el patrón); el CSS local queda solo con lo propio. De
+paso: regla muerta cmv2-margen-de fuera (el contrato de huérfanos la atrapó).
+
+| # | Tanda K | Estado |
+|---|---|---|
+| K0 gramática de tablas | ☑ `ab85d979` |
+| K1 CENSO de pestañas de Selección y Entrega + diagnóstico de orden conceptual | ☐ SIGUIENTE |
+| K2 reorden lógico por pestaña | ☐ tras K1 |
+| K3 mejorar y AMPLIAR visualizaciones | ☐ tras K1 |
+
+Cola D viva: D4 fila estadístico al libro (aprobada) · D2 τ sexo referencial · D5 extracción del congelado.
