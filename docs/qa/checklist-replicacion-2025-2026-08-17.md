@@ -2954,3 +2954,35 @@ empíricamente (4×5/5), barrido de fallas silenciosas hecho, el hallazgo
 mayor reparado y verificado a escala real, las fallas ahora se declaran, y
 la identidad estadística con test. Restan dos menores anotados (score del
 pool, test REST del 400) que no bloquean el veredicto.
+
+## DECISIONES DE GONZALO (2026-08-18) — las cinco respondidas · dibujo entero
+
+1. **τ por facultad: SÍ, pero REFERENCIAL** — «no cambiar la cantidad de
+   aulas ya calculadas». → El sustento gana una lectura referencial («con el
+   τ propio de esta facultad serían N aulas»), el diseño de 203 NO se toca.
+   J2 pasa de ⛔ a ☐ implementable con ese contrato.
+2. **τ por sexo: también referencial.** Misma vara: mostrar, no redimensionar.
+3. **PSI·hombres 0.86 — «¿es normal? ¿pasaba en 2025?»: MEDIDO.** En 2025,
+   de 30 celdas facultad×sexo, exactamente UNA no llegó: EE.GG. Letras ·
+   hombres, 166/180 (92,2%); las otras 29 cumplieron. O sea: pasar, pasaba,
+   pero era raro (1/30) y 2025 no tenía aviso previo — la certificación de
+   hoy lo marca ANTES de campo, que es la mejora. El 0.86× de PSI·hombres es
+   más ajustado que la peor celda realizada de 2025 (0.922): el botón «¿un
+   aula más?» es la mitigación registrada si se quiere holgura.
+4. **Fila del estadístico al libro: APROBADA.** → La referencia gana la fila
+   de alumnos-por-aula 2025 por facultad (derivable de las cadenas) y el
+   paso 4 de las fichas deja de decir «—».
+5. **Congelados: extraer contenido sin romper.** → Refactor de bloques
+   auto-contenidos de calc_muestra_aulas.R a archivos propios hasta volver a
+   la línea base (hoy +64 tras los fixes de J1 netos), con las suites como
+   red (aulas 140, afijación 24, saneo 20).
+
+| # | Cola implementable | Estado |
+|---|---|---|
+| D1 τ por facultad referencial en el sustento | ☐ SIGUIENTE |
+| D2 τ por sexo referencial | ☐ |
+| D4 fila estadístico al libro | ☐ |
+| D5 extracción del congelado | ☐ |
+| Menor: test REST del 400 de engine | ☐ |
+| Mejora I3: aviso del gate con el campo que difiere | ☐ |
+| Scroll-jail en otras pestañas | ☐ |
