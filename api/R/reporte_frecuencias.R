@@ -338,6 +338,58 @@
 }
 
 #' @noRd
+#' Recupera el enunciado entero cuando el dato lo trae truncado
+#'
+#' P49. SPSS corta la etiqueta de variable en **256 bytes**, y el motor consulta
+#' el DATO antes que el instrumento (ver el orden de `.lookup_variable_label()`),
+#' asi que el enunciado llega cortado aunque el XLSForm tenga el entero. En el
+#' mazo de Contabilidad pasa con uno de los 99 enunciados: sale
+#' «...Consejo de D» teniendo 291 bytes en `survey$label`.
+#'
+#' La condicion es **PREFIJO ESTRICTO**, no «la mas larga»: si el analista
+#' acorto un enunciado a mano en el `.sav`, la del instrumento NO lo contiene y
+#' hay que respetar la corta —esa es una decision suya, no un truncamiento—.
+#'
+#' Es seguro en multibase porque `dic_vars` es el `survey` DE LA MISMA FUENTE:
+#' `.title_of_var(var, source)` resuelve con `.resolve_ref()` y pasa
+#' `ctx$survey`. Los cuatro XLSForm de un estudio multipublico reusan los mismos
+#' `name` con significados distintos, asi que buscar en «el instrumento» a secas
+#' habria pegado la pregunta de otro publico.
+#'
+#' @param lab_dato Etiqueta que trae el dato (la del `.sav`).
+#' @param dic_vars `survey` de la fuente, con `name` y `label`.
+#' @param var Nombre de la variable.
+#' @return La del instrumento si la del dato es su prefijo estricto; si no, la
+#'   del dato sin tocar.
+#' @keywords internal
+.etiqueta_sin_truncar <- function(lab_dato, dic_vars = NULL, var = NULL) {
+  dato <- as.character(lab_dato)[1]
+  if (is.na(dato) || !nzchar(dato)) return(lab_dato)
+  if (is.null(dic_vars) || !is.data.frame(dic_vars)) return(dato)
+  if (!all(c("name", "label") %in% names(dic_vars))) return(dato)
+
+  v <- as.character(var)[1]
+  if (is.na(v) || !nzchar(v)) return(dato)
+  cand <- as.character(dic_vars$label[as.character(dic_vars$name) %in% v])
+  cand <- cand[!is.na(cand) & nzchar(cand)]
+  if (!length(cand)) return(dato)
+
+  # Se compara con los espacios normalizados —un `\n` del XLSForm no es una
+  # diferencia de contenido— pero se DEVUELVE la etiqueta tal cual esta en el
+  # instrumento.
+  norm <- function(x) trimws(gsub("[[:space:]]+", " ", x))
+  d <- norm(dato)
+  n <- norm(cand)
+  mas_larga <- nchar(n) > nchar(d) & startsWith(n, d)
+  if (!any(mas_larga)) return(dato)
+
+  # Varias filas con el mismo `name` es raro pero posible; se toma la mas
+  # completa, que sigue teniendo a la del dato por prefijo.
+  cand <- cand[mas_larga]
+  cand[[which.max(nchar(norm(cand)))]]
+}
+
+
 .lookup_variable_label <- function(var, dic_vars = NULL, labels_override = NULL,
                                    orders_list = NULL, df = NULL) {
   if (!is.null(labels_override) && var %in% names(labels_override)) {
@@ -346,7 +398,9 @@
 
   if (!is.null(df) && var %in% names(df)) {
     vl <- attr(df[[var]], "label", exact = TRUE)
-    if (!is.null(vl) && nzchar(as.character(vl))) return(as.character(vl))
+    if (!is.null(vl) && nzchar(as.character(vl))) {
+      return(.etiqueta_sin_truncar(as.character(vl)[1], dic_vars, var))
+    }
   }
 
   if (!is.null(orders_list) && var %in% names(orders_list)) {
