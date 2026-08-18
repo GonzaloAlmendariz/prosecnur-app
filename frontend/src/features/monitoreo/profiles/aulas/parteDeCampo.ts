@@ -15,15 +15,39 @@ function numero(valor: unknown) {
   return Number.isFinite(n) ? n : null;
 }
 
-export function parteDeCampo(filas: ReadonlyArray<MonitoreoRow>) {
-  const conDiferencia = filas.map((fila) => ({
+export function parteDeCampo(
+  filas: ReadonlyArray<MonitoreoRow>,
+  /**
+   * El plan, para traer la FACULTAD de cada aula.
+   *
+   * El parte se conserva tal como llega del lector —las fórmulas de control son
+   * del equipo, no de la app— y la hoja «Aulas Aplicadas (Campo)» no tiene
+   * columna de facultad. Pero el operativo se dirige por facultad, así que se
+   * une por el código, que es la clave que las dos comparten. No se recalcula
+   * nada del parte: sólo se le acompaña su facultad.
+   */
+  plan: ReadonlyArray<MonitoreoRow> = [],
+) {
+  const facultadPorCodigo = new Map<string, string>();
+  for (const fila of plan) {
+    const codigo = String(fila.operational_code ?? "").trim();
+    const facultad = String(fila.faculty ?? "").trim();
+    if (codigo && facultad && !facultadPorCodigo.has(codigo)) facultadPorCodigo.set(codigo, facultad);
+  }
+
+  const conDiferencia = filas.map((original) => {
+    const codigo = String(original.operational_code ?? "").trim();
+    const facultad = String(original.faculty ?? "").trim() || facultadPorCodigo.get(codigo) || "";
+    const fila = facultad ? { ...original, faculty: facultad } : original;
+    return {
     fila,
     // `cuadra` viene del motor y puede ser nulo: un parte sin asistentes ni
     // efectivas no tiene identidad que comprobar, y tratarlo como descuadre
     // inventaría un problema que nadie declaró.
     descuadra: fila.cuadra === false,
     magnitud: Math.abs(numero(fila.diferencia) ?? 0),
-  }));
+    };
+  });
 
   const ordenadas = [...conDiferencia].sort((a, b) => {
     if (a.descuadra !== b.descuadra) return a.descuadra ? -1 : 1;

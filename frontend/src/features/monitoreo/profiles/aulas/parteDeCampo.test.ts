@@ -75,3 +75,36 @@ describe("el parte de campo", () => {
     expect(res.label).toBe("sin partes");
   });
 });
+
+/**
+ * El parte se lee por facultad, como todo lo demás.
+ *
+ * La hoja «Aulas Aplicadas (Campo)» no trae columna de facultad —el parte se
+ * conserva tal como llega del lector, porque las fórmulas de control son del
+ * equipo— pero el operativo se dirige por facultad. Se une por el código, que
+ * es la clave que las dos comparten.
+ */
+describe("parteDeCampo y la facultad", () => {
+  it("trae la facultad del plan cuando el parte no la declara", () => {
+    const { filas } = parteDeCampo(
+      [{ operational_code: "CH 31", cuadra: true, diferencia: 0 }] as never,
+      [{ operational_code: "CH 31", faculty: "PSICOLOGIA" }] as never,
+    );
+    expect(filas[0].faculty).toBe("PSICOLOGIA");
+  });
+
+  it("no pisa la facultad que el parte ya trae", () => {
+    // Si mañana la hoja gana esa columna, manda la hoja: es el dato de campo.
+    const { filas } = parteDeCampo(
+      [{ operational_code: "CH 31", faculty: "LA DEL PARTE", cuadra: true }] as never,
+      [{ operational_code: "CH 31", faculty: "LA DEL PLAN" }] as never,
+    );
+    expect(filas[0].faculty).toBe("LA DEL PARTE");
+  });
+
+  it("sin plan, el parte sale igual que antes", () => {
+    const { filas } = parteDeCampo([{ operational_code: "CH 31", cuadra: true }] as never);
+    expect(filas).toHaveLength(1);
+    expect(filas[0].faculty ?? "").toBe("");
+  });
+});
