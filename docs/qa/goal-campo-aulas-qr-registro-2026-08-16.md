@@ -1858,3 +1858,33 @@ curso-horario»— queda con su base exactamente en el borde inferior, visible.
 contenido inalcanzable sino un elemento fijo que su heurística espera abajo. Se
 declara como falso positivo **con la evidencia**, no como pendiente, para que
 nadie lo reabra por sospecha.
+
+
+## 2026-08-18 — La matriz de viewports sobre «A dónde ir cada día»
+
+Medida con el navegador sobre la pila propia, sin levantar más runners (los del
+gate saturaron la máquina: load 28,45 con seis `launch.R`).
+
+| Viewport | Ventana de la lista | Scroll vacío | Dueños | Llega al final | Última fila visible | Recortes sin `title` | Desborde X |
+|---|---|---|---|---|---|---|---|
+| 1710×1107 | 612 px | 0 | 1 | sí | sí | 0 | no |
+| 1366×768 | 273 px | 0 | 1 | sí | sí | 0 | no |
+| 1280×720 | 251 px | 0 | 1 | sí | sí | 0 | no |
+| 1024×600 | **131 px** | 0 | 1 | sí | sí | 0 | no |
+
+Los cuatro conformes. **A 1024×600 la ventana es de 131 px —unas cuatro filas—**:
+apretado, y es la restricción de alto del PERFIL en compacto, no de este panel
+—el KPI band se lleva 111 px de los ~370 disponibles—. Queda declarado, no
+reparado: mejorarlo exige decidir qué cede en compacto para todo el perfil, y
+esa decisión no es de una pasada visual.
+
+Para comparar: la tabla de la agenda llegó a tener 88 px por el mismo motivo
+antes de L104.
+
+### Lo que enseñó esta medición
+
+**`layoutPolicy` decide si un panel puede crecer o debe poseer su scroll, y
+cambiarlo mirando un solo viewport ancho no se nota.** A 1440×1000 la versión sin
+dueño se veía perfecta; a 1366×768 dejaba 823 px de scroll en vacío con el
+contenido desbordando invisible. La matriz de viewports no es burocracia: es el
+único sitio donde ese error aparece.
