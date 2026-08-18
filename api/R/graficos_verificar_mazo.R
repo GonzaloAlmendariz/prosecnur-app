@@ -1964,3 +1964,42 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # B tenia que haber chirriado —ningun enunciado mide eso— y en su lugar sirvio
 # para sostener una conclusion. La cifra rara es la que hay que perseguir, no la
 # que se acomoda a la hipotesis.
+
+
+# P49 — DOS DE LAS TRES CANDIDATAS CAEN: EL `var` ES EL BUENO Y NO HAY OVERRIDE.
+# QUEDA UNA, Y ES LA QUE EXPLICA EL SILENCIO.
+#
+#   (c) el `name` o el `dic_vars` — **CAE por el lado del `var`**. El plan
+#       declara en su lamina 21 (`ESTRUCTURA ORGANIZACIONAL DE GOBIERNO`)
+#       `vars = egresados$p21_2, **administrativos$p13_3**, administrativos$p13_4`.
+#       El ref viene CUALIFICADO con su fuente, asi que `.resolve_ref()` tiene
+#       que resolver contra administrativos, que es quien tiene los 291 B.
+#   (b) `labels_override` — **CAE**. Ni esa lamina ni la 20 traen `titulo` de
+#       variable ni `etiquetas_vars`; el `$titulo` que si esta es el titulo de
+#       la LAMINA, no el enunciado de la premisa.
+#   Y por si el prefijo fallaba por un caracter —una comilla curva, una tilde
+#   compuesta—, se comparo **caracter a caracter**: la truncada mide **252
+#   chars / 256 B**, la entera **287 / 291**, y **es PREFIJO EXACTO hasta el
+#   caracter 252**. `startsWith()` casa. El helper, si lo llaman con ese
+#   `dic_vars`, devuelve la entera.
+#
+# LUEGO EL SILENCIO SOLO PUEDE VENIR DE (a): **lo que llega como `dic_vars` en
+# esa llamada no es el `survey` del XLSForm de administrativos**. Y hay una
+# razon estructural para sospecharlo: `ctx$survey` NO es el fichero crudo, es el
+# instrumento **RECONSTRUIDO** en `rp_inst_sources` —que en el `.pulso` va
+# vacio a proposito y se rehace al cargar, pasando por codificacion y
+# adaptacion—. Ese paso puede quedarse con la etiqueta del DATO, y entonces
+# `dic_vars` trae los mismos 256 B que el `.sav` y no hay nada mas largo que
+# preferir.
+#
+# **Esto ya no se decide leyendo: se decide con traza.** Instrumentar
+# `.etiqueta_sin_truncar()` con `Sys.getenv("PULSO_TRAZA_P49")` —cuantas veces
+# la llaman, con que `var`, si `dic_vars` tiene ese `name`, y cuantos bytes
+# miden las dos etiquetas—, regenerar (PPT ~70 s + Word 92 s) y leerla. Es el
+# unico camino que distingue «no la llaman» de «la llaman y `dic_vars` ya viene
+# truncado».
+#
+# LECCION: descartar por ESTRUCTURA es mas barato que por traza, y aqui tumbo
+# dos candidatas de tres en un par de lecturas del plan. La que queda es
+# justo la que necesitaba el instrumento caro — pero ahora se sabe POR QUE, y
+# la traza va a responder una pregunta concreta en vez de mirar a ver.
