@@ -158,9 +158,31 @@
   height: 100%;
 }
 
-/* Un operativo mas largo scrollea DENTRO de su franja en vez de empujar la
-   tabla. Diez dias caben; veinte se recorren ahi mismo. */
+/* El scroll vive en la LISTA, no en el bloque que la contiene.
+   Con `overflow-y: auto` en el bloque, la lista crecia por dentro sin recortarse
+   —su `details` decia 97 px de alto y sus filas llegaban a 813— y las ultimas se
+   pintaban ENCIMA de la leyenda: «Lunes 17/08 160» con los chips «Reemplazada ·
+   En reserva» superpuestos. Recortando la lista, la leyenda siempre queda
+   debajo y los dias se recorren dentro de su carril. */
 .mon-profile-page.is-aulas-flow .aulas-agenda-panel .aulas-agenda-dias {
+  /* La franja reparte en DOS filas: la plegable se queda el alto disponible y
+     la leyenda el suyo. Sin declararlas, las dos se dimensionaban por contenido
+     y la lista de días —que llegaba a 813 px— se pintaba ENCIMA de la leyenda.
+     El scroll vive en la lista, que es el único elemento que puede crecer. */
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: visible;
+}
+
+/* El `details` se queda el alto disponible y SCROLLEA dentro.
+   El recorrido hasta aqui, por si vuelve: primero puse el scroll en el bloque
+   exterior y la lista se salia por abajo, pintandose encima de la leyenda —su
+   pista media 97 px y la lista 196—. Despues le puse `overflow: hidden` al
+   `details`: el solape desaparecio pero se veian 4 de 10 dias y los otros 6
+   quedaban INALCANZABLES, que es peor. Con `auto` el recorte se vuelve
+   recorrido, y la leyenda tiene su propia fila —declarada arriba— asi que ya no
+   puede ser tapada. */
+.mon-profile-page.is-aulas-flow .aulas-agenda-panel .aulas-agenda-detalle {
   min-height: 0;
   overflow-y: auto;
 }
