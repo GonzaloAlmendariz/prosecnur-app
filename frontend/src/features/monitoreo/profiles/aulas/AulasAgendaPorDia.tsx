@@ -63,7 +63,10 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
             </span>
             <span className="aulas-agenda-cifra">
               <strong>{dia.aulas}</strong>
-              {dia.sinEmpezar ? <em>{dia.sinEmpezar} sin empezar</em> : <em>todas con respuestas</em>}
+              {/* El punto es un carácter de verdad y no un `::before`: el total
+                  del día y los que no empezaron quedaban pegados —«19» y «3»—
+                  y el texto se leía «193 sin empezar». */}
+              <em>{" · "}{dia.sinEmpezar ? `${dia.sinEmpezar} sin empezar` : "todas con respuestas"}</em>
             </span>
           </li>
         ))}

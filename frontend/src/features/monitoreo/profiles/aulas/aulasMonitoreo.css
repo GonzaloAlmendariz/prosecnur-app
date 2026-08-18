@@ -1540,11 +1540,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* El punto medio que separa las dos cifras va en el MARKUP, no aquí. Probado
+   como `::before`: separaba a la vista pero el texto seguía siendo «193 sin
+   empezar», así que un lector de pantalla leía un número de tres dígitos que
+   no existe. Un separador decorativo no arregla un dato. */
 .mon-profile-page.is-aulas-flow .aulas-agenda-cifra em {
   color: var(--pulso-text-soft);
   font-size: 11px;
   font-style: normal;
 }
+
 
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:
    con `auto minmax(0,1fr)` el tercer hijo cae en una fila implícita y se dibuja
