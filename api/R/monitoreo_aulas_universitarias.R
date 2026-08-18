@@ -302,7 +302,11 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       status_var = .monitoreo_scalar(mapping$status_var %||% mapping$estado_var, defaults$source_mapping$status_var),
       valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses))
     ),
-    plan = monitoreo_aulas_normalize_plan(config$plan %||% config$agenda %||% defaults$plan),
+    # Acceso EXACTO, no `$`: desde 6172e406 el payload de estado viaja con
+    # `plan_rows` (entero) y SIN `plan`, y el partial matching de `$` pescaba
+    # `plan_rows` — un 0 llegaba a `.monitoreo_aulas_df()` y elegir un modo en
+    # /monitoreo respondia 500 E_INTERNAL.
+    plan = monitoreo_aulas_normalize_plan(config[["plan"]] %||% config[["agenda"]] %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no
     # tenia nada que comprobar.
