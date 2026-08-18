@@ -23,6 +23,11 @@ const FIELD_LABELS: Record<string, string> = {
   duplicates: "Duplicados (ya respondieron)",
   application_status: "Estado de aplicación",
   applied_at: "Aplicada el",
+  // El parte trae la fecha y la hora SEPARADAS —son dos columnas de su hoja— y
+  // ademas `applied_at`, que es la marca compuesta. Sin etiqueta propia,
+  // `applied_date` llegaba a la tabla como jerga en cuanto se pidio mostrarla.
+  applied_date: "Fecha de aplicación",
+  applied_time: "Hora de aplicación",
   applied_by: "Aplicada por",
   field_note: "Nota de campo",
   // Por qué esta fila está en la cadena. Lo compone el motor a partir del campo

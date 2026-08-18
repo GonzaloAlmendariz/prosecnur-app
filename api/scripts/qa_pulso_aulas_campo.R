@@ -304,7 +304,22 @@ if (ESCALA_2025) {
          # las dos hojas tiene que encontrar, y sin el, cero discrepancias
          # significaria «coinciden» y no «no se comprobo».
          attendance_pct = round(asist / (as.numeric(u$eligible_n) + 10), 3) *
-           (if (i %in% c(12L, 140L)) 0.5 else 1))
+           (if (i %in% c(12L, 140L)) 0.5 else 1),
+         # Lo que el parte DICE QUE PASO, que es su razon de ser y no se sembraba:
+         # en que aula se aplico de verdad, cuando, en que estado quedo y que
+         # anoto quien estuvo. Sin estos cinco, la dimension CAMPO llegaba a la
+         # pantalla como pura aritmetica del cuadre.
+         #
+         # El aula REAL suele ser la agendada, y a veces no: es justo el dato por
+         # el que existe una columna «AULA» en la hoja de campo separada de la
+         # del plan. Una de cada siete se movio.
+         actual_room = if (i %% 7 == 0) sprintf("%s (cambio)", as.character(u$label)) else as.character(u$label),
+         applied_date = as.character(u$scheduled_date %||% ""),
+         applied_time = as.character(u$scheduled_time %||% ""),
+         # Una de cada trece no se pudo aplicar. Con todas en «APLICADA» la
+         # columna no distingue nada y da igual mostrarla que no.
+         application_status = if (i %% 13 == 0) "NO APLICADA" else "APLICADA",
+         field_note = if (i %% 9 == 0) "El docente pidio empezar al final de la clase" else "")
   })
   asistentes_del_parte <- stats::setNames(
     lapply(partes, function(p) p$observed_students),
