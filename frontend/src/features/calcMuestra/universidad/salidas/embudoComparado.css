@@ -1,0 +1,118 @@
+/* Embudo comparado 2025↔hoy de Coincidencia. Misma gramática visual que el
+ * histórico (barras horizontales, fondo neutro al 8 %, tabular-nums); la
+ * tarjeta reusa .cmv2-generales-card de criterios.css. */
+
+.cmv2-embcmp-pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.cmv2-embcmp-pasos button {
+  border: 1px solid var(--cmv2-border);
+  background: transparent;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cmv2-embcmp-pasos button[data-activo="si"] {
+  background: color-mix(in srgb, var(--pulso-success-fg) 12%, transparent);
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 45%, transparent);
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.cmv2-embcmp-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cmv2-embcmp-lista li {
+  display: grid;
+  grid-template-columns: minmax(120px, 190px) 1fr 72px 44px;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.cmv2-embcmp-nombre {
+  font-size: 11px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-embcmp-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cmv2-embcmp-track {
+  display: block;
+  height: 9px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+  position: relative;
+}
+
+.cmv2-embcmp-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 320ms var(--cmv2-ease-out, ease);
+}
+
+.cmv2-embcmp-track[data-serie="hoy"] > span { background: var(--pulso-success-fg); }
+
+.cmv2-embcmp-track[data-serie="antes"] > span {
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
+}
+
+/* Un hueco sin dato lo dice con palabras dentro del carril, no con barra 0:
+ * la ausencia y el cero son cosas distintas (C3: la superficie contiene su
+ * propio vacío). */
+.cmv2-embcmp-track > i {
+  position: absolute;
+  inset: 0;
+  font-style: normal;
+  font-size: 8.5px;
+  line-height: 9px;
+  padding-inline-start: 4px;
+  color: color-mix(in srgb, var(--pulso-text-muted) 70%, transparent);
+}
+
+.cmv2-embcmp-cifras {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.cmv2-embcmp-cifras b { font-size: 11px; color: var(--pulso-text); }
+.cmv2-embcmp-cifras span { font-size: 10px; color: var(--pulso-text-muted); }
+
+.cmv2-embcmp-delta {
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cmv2-embcmp-delta[data-signo="mas"] { color: var(--pulso-success-fg); }
+.cmv2-embcmp-delta[data-signo="menos"] { color: var(--pulso-warn-fg); }
+.cmv2-embcmp-delta[data-signo="igual"] { color: var(--pulso-text-muted); }
