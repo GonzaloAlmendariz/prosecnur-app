@@ -2245,3 +2245,14 @@ reserva), filas del embudo sin desborde y un solo nombre elidido con su
 texto completo en el tooltip (por diseño). La τ del diseño ya es visible en
 el resumen («…con la tasa de asistencia esperada de 53,0 %»), y DERECHO
 muestra su 1,01× al filo. **Verde por conformidad medida, no por ausencia.**
+
+## G3 · Barrido «bien explicado» COMPLETO · ☑ 2026-08-18
+
+Cinco superficies barridas (Cálculo, Marco, Coincidencia, Datos, Selección):
+limpias de jerga de motor — τ y p25 se explican donde aparecen, sin
+frame_hash/deff/engine crudos, sin undefined/NaN. Reparados en el camino:
+el sello con τ del diseño (`6721d2bb`) y «cubo balanceado». **La celda warn
+de PSICOLOGÍA·hombres es visible y se explica sola**: 0,86× en warn con
+«Hombres: cuota 21 · 34 elegibles · 18 esperadas» en el tooltip — es lo
+primero que Gonzalo verá al abrir Selección. Las sub-pestañas de ícono de
+Entrega quedan para una rotación futura si amerita.
