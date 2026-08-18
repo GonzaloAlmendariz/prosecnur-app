@@ -116,6 +116,44 @@ function compactColumns(
   return keys.slice(0, maxColumns);
 }
 
+/**
+ * Qué columnas de una tabla son cifra, para alinearlas a la derecha.
+ *
+ * `DataTable` pintaba las 196 filas con todo a la izquierda, así que ninguna
+ * columna de números se podía recorrer con el ojo: en Partes de campo convivían
+ * «25», «69.4 %», «1», «3», «20», «21» y «−1» pegados al borde izquierdo, cada
+ * uno empezando a una altura distinta según su ancho. Es el mismo arreglo que
+ * la Base de control ya tenía por su cuenta, y aquí sirve para las cinco tablas
+ * que comparten este componente.
+ *
+ * Se decide por la COLUMNA entera y sobre los valores YA presentados —que es
+ * donde `69.4 %` existe como tal—: basta un código como «CH 31» para que la
+ * columna no sea cifra, y así ninguna de identificador se alinea por error.
+ * Una columna vacía tampoco cuenta: sin un solo número, alinearla a la derecha
+ * movería sus guiones sin motivo.
+ */
+function columnasDeCifra(
+  filas: ReadonlyArray<Record<string, unknown>>,
+  columnas: ReadonlyArray<string>,
+) {
+  const cifra = new Set<string>();
+  for (const columna of columnas) {
+    let vistos = 0;
+    let todas = true;
+    for (const fila of filas) {
+      const texto = String(fila[columna] ?? "").trim();
+      if (!texto || texto === "—") continue;
+      vistos += 1;
+      // Se admite el « %» que pone la capa de presentación y el separador de
+      // millares de `es-PE`; lo demás tiene que ser un número.
+      const crudo = texto.replace(/\s*%$/, "").replace(/,/g, "");
+      if (!/^-?\d+(\.\d+)?$/.test(crudo)) { todas = false; break; }
+    }
+    if (vistos && todas) cifra.add(columna);
+  }
+  return cifra;
+}
+
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
@@ -203,6 +241,8 @@ function DataTable({
   const enProporcion = escalaDeProporciones(rows);
   const recorteFilas = recorteTabla(rows.map((row) => presentAulasRow(row, enProporcion)), 400);
   const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
+  // Sobre las filas ya presentadas y ya recortadas: son las que se pintan.
+  const cifras = columnasDeCifra(recorteFilas.visibles, columns);
   return (
     <div
       className="mon-profile-table-wrap"
@@ -211,12 +251,20 @@ function DataTable({
     >
       <table className="mon-profile-table">
         <thead>
-          <tr>{columns.map((column) => <th key={column}>{aulasFieldLabel(column)}</th>)}</tr>
+          <tr>{columns.map((column) => (
+            <th key={column} className={cifras.has(column) ? "es-cifra" : undefined}>
+              {aulasFieldLabel(column)}
+            </th>
+          ))}</tr>
         </thead>
         <tbody>
           {recorteFilas.visibles.map((row, index) => (
             <tr key={index}>
-              {columns.map((column) => <td key={column}>{String(row[column] ?? "")}</td>)}
+              {columns.map((column) => (
+                <td key={column} className={cifras.has(column) ? "es-cifra" : undefined}>
+                  {String(row[column] ?? "")}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
