@@ -412,12 +412,37 @@ calibrar_umbrales <- function(path, p = 0.10) {
 #
 # CORREGIDO: trazados los CUATRO sitios, el universo es IDENTICO al de uno solo
 # —99 enunciados, `diff` vacio—, asi que 4 no era un piso sino el total DE ESE
-# METODO. Y ahi esta el fallo: el enunciado que la lamina 25 corta en «de D» SI
-# esta en el universo y el contador lo da por COMPLETO. Contra el render, que
-# manda, es un FALSO NEGATIVO — el agrupamiento por centro y adyacencia une
-# lineas de textos distintos y encuentra la cola pegada a otra cosa. Para
-# apretarlo: exigir que las lineas compartan tambien ancho de caja o cuerpo, y
-# revalidar contra la 25, que es el caso de prueba. Lo que P46 cerro sigue cerrado —los 22 cortes
+# METODO.
+#
+# Y LA LAMINA 25 NO ERA UN FALLO DEL CONTADOR. Se acuso al agrupamiento de unir
+# lineas de textos distintos; medida la geometria cruda de esa lamina, los separa
+# bien: sus tres enunciados viven en el mismo centro (cx 1.6965) con huecos de
+# 0.589 y 0.481 entre ellos y de 0.252 como mucho dentro de uno, con `h` 0.14, de
+# modo que el corte a 2.2 alturas cae justo en medio. El contador decia
+# «completo» porque LO ESTA: el XML reproduce exactamente el texto que recibio.
+#
+# EL CORTE ES ANTERIOR AL MOTOR, y esta medido en el `.pulso` de Contabilidad:
+#
+#   xlsform_forms$…$survey$rows$44          287 chars / 291 bytes  «…Jefe de Departamento).»
+#   codif_por_base$…$parent_label           287 chars              integro
+#   equivalencias_publicos$filas$41$
+#     etiqueta_estandar                     252 chars / 256 BYTES  «…Consejo de D»
+#   graficos_config$plan$…$titulos_grupo    252 chars              heredado del anterior
+#
+# 256 bytes exactos es el tope de etiqueta de variable de SPSS: la etiqueta entro
+# por el `.sav` y no por el instrumento, que la tiene entera y la contiene como
+# prefijo. De 153 filas de equivalencias SOLO la 41 llega a 256 bytes y NINGUNA
+# los pasa. No hay `substr` culpable en el motor: no lo busques otra vez.
+#
+# QUE HACE EL APROBADO CON ESE MISMO ENUNCIADO (su lamina 23, medido): no arrastra
+# el truncado de SPSS. Corta en un limite SEMANTICO —«…de la gestion de las
+# autoridades de la Unidad», soltando el parentesis entero—, pone un marcador «1»
+# y declara al pie «Se redujo el texto debido a que era muy largo». Contra la
+# vara, entonces, el defecto del motor es doble: hereda una etiqueta cortada por
+# bytes en vez de la del instrumento, y cuando un texto no cabe lo recorta a
+# mitad de palabra, sin elipsis y sin nota.
+#
+# Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
 
