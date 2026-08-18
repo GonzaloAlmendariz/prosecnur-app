@@ -70,3 +70,26 @@ test_that("el dashboard publica el banco", {
   expect_identical(db$banco_extras$por_facultad[[1]]$faculty, "DERECHO")
   expect_identical(db$banco_extras$mujeres, 28L)
 })
+
+test_that("el banco no cuenta como aulas por debajo de su meta", {
+  # Eran DOS denominadores para la misma palabra: el KPI contaba sobre el plan
+  # entero y la lista que ese KPI resume sobre el plan seguido. Sobre el estudio
+  # real la diferencia eran las 639 del banco —2 615 contra 1 976—, que son
+  # respaldo del estrato y no aulas que alguien vaya a visitar.
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "CH 1", classroom_id = "u1", collection_unit_id = "u1",
+         label = "A", course_name = "C1", faculty = "DERECHO", stratum = "DERECHO / F / G4",
+         sample_role = "titular", eligible_n = 30, expected_valid = 21, sample_status = "agendada"),
+    list(operational_code = "EXTRA 1", classroom_id = "u2", collection_unit_id = "u2",
+         label = "B", course_name = "C2", faculty = "DERECHO", stratum = "DERECHO / F / G4",
+         sample_role = "extra_reserve_pool", eligible_n = 40, expected_valid = 28,
+         sample_status = "en_reserva")
+  ))
+  db <- monitoreo_aulas_dashboard(plan, data.frame(), list(enabled = TRUE, plan = plan))
+
+  # El KPI y la lista que resume tienen que decir lo MISMO. Ese es el aserto que
+  # se pone rojo si alguien vuelve a contar sobre el plan entero.
+  expect_identical(db$kpis$brechas, length(db$brechas))
+  # Y el banco no esta en ninguno de los dos.
+  expect_identical(db$kpis$brechas, 1L)
+})

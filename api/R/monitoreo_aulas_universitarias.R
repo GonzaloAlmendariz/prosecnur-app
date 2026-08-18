@@ -1365,7 +1365,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       respuestas_total = as.integer(length(response_classroom)),
       filter_passed = as.integer(sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE)),
       filter_rejected = as.integer(max(0L, length(response_classroom) - sum(.monitoreo_aulas_filter_passed(responses, valid_response), na.rm = TRUE))),
-      brechas = as.integer(sum(plan_df$brecha > 0)),
+      # Sobre `tracked_df` y no sobre `plan_df`, que es el plan ENTERO. Eran dos
+      # denominadores para la misma palabra: este KPI contaba 2 615 sobre el
+      # estudio real mientras la lista `brechas` que resume —construida unas
+      # lineas mas abajo, sobre `tracked_df`— traia 1 976. La diferencia son las
+      # 639 reservas del BANCO, que no cuelgan de ningun titular y son respaldo
+      # del estrato, no aulas que alguien vaya a visitar: contarlas como aulas
+      # por debajo de su meta convertia el banco en deuda.
+      brechas = as.integer(sum(tracked_df$brecha > 0)),
       quota_cells = as.integer(length(quotas_sex_faculty)),
       quota_cells_ok = as.integer(sum(quota_status == "cumplida")),
       quota_cells_pending = as.integer(sum(quota_status %in% c("pendiente", "en_riesgo"))),
