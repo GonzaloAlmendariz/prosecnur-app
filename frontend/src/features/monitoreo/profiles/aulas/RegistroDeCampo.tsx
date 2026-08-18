@@ -182,6 +182,14 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
     [filas, seleccion],
   );
 
+  // Un aula «planificada» es la que todavía no salió a campo: no tiene parte.
+  // Sale del MISMO campo y del mismo valor por defecto que ya usa la lista de
+  // abajo, para que las dos no puedan discrepar.
+  const conRegistro = useMemo(
+    () => filas.filter((r) => (String(r.operational_status ?? "") || "planificada") !== "planificada").length,
+    [filas],
+  );
+
   const elegir = (row: MonitoreoAulasPlanRow) => {
     const clave = String(row.operational_code ?? row.classroom_id);
     setSeleccion(clave);
@@ -259,7 +267,15 @@ export function RegistroDeCampo({ agenda, onGuardado }: Props) {
             aula y momento son sus columnas. La pestaña sigue diciendo «Registro
             de campo» —lo que se hace—; el panel dice qué se está llenando. */}
         <h3>Aulas aplicadas (campo)</h3>
-        <span>{filas.length ? `${filas.length} cursos-horario` : "sin agenda"}</span>
+        {/* Cuántas de esas filas YA tienen registro. El panel se llama como su
+            hoja —«Aulas Aplicadas (Campo)»— y sobre este corte enseña 196 aulas
+            en «Planificada»: el nombre promete aplicadas y la lista entrega
+            ninguna, y quien mira no sabe si es que no se ha aplicado nada o si
+            el panel lista otra cosa. El contador lo zanja con dato: dice cuánto
+            de la hoja está lleno, que además es lo que se viene a saber. */}
+        <span>{filas.length
+          ? `${filas.length} cursos-horario · ${conRegistro} con parte`
+          : "sin agenda"}</span>
       </div>
 
       {filas.length === 0 ? (
