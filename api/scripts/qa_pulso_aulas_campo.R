@@ -142,7 +142,15 @@ if (ESCALA_2025) {
     dia_i <- 1L + (i %% 10L)
     fecha <- format(as.Date("2026-08-10") + (dia_i - 1L) + (2L * ((dia_i - 1L) %/% 5L)), "%Y-%m-%d")
     hora <- horas[[1L + (i %% length(horas))]]
-    o <- list(classroom_id = cod, operational_code = cod, label = paste("Aula", cod),
+    # `SESIONES Y AULA` del Excel es un texto DESCRIPTIVO —«LUN 08:00 A101»—, no
+    # el codigo con un prefijo. Sembrandolo como «Aula CH 24» junto a la columna
+    # «CH 24», la tabla de brechas ensenaba dos columnas que parecian la misma y
+    # el panel se veia redundante por culpa del dato de prueba, no del producto.
+    pabellon <- c("A", "H", "L", "N", "V", "Z")[[1L + (i %% 6L)]]
+    o <- list(classroom_id = cod, operational_code = cod,
+              label = sprintf("%s %s %s%d",
+                              toupper(substr(dias[[1L + ((dia_i - 1L) %% 5L)]], 1, 3)),
+                              hora, pabellon, 100L + (i %% 40L)),
               course_name = paste("Curso", cod),
               scheduled_date = fecha,
               scheduled_day = dias[[1L + ((dia_i - 1L) %% 5L)]],
