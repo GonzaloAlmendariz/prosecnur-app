@@ -46,6 +46,27 @@ describe("los títulos de panel del perfil de aulas", () => {
     expect(todos, `un panel se llama igual que el perfil («${perfil}»)`).not.toContain(perfil);
   });
 
+  it("no hay dos que se distingan sólo por la primera palabra", () => {
+    // El duplicado exacto no era la única forma de colisionar. Medido en
+    // pantalla el 2026-08-17: «Cumplimiento de la meta» y «Cobertura de la
+    // meta», dos paneles del MISMO stack, medían cosas distintas —respuestas y
+    // cursos-horario— y la distinción vivía en un contador de 11 px. Terminar
+    // igual que el vecino es llamarse casi igual.
+    const cola = (t: string) => t.toLowerCase().split(/\s+/).slice(-2).join(" ");
+    // Excepción declarada, no silencio: viven en secciones distintas —Agenda y
+    // Consultas— y sus sujetos no se confunden. Si aparece una pareja nueva, o
+    // se renombra o se añade aquí con su motivo.
+    const permitidas = [["Preparación de campo", "Partes de campo"]];
+    const permitida = (a: string, b: string) => permitidas.some(
+      ([x, y]) => (a === x && b === y) || (a === y && b === x),
+    );
+    const choques: string[] = [];
+    todos.forEach((a, i) => todos.slice(i + 1).forEach((b) => {
+      if (cola(a) === cola(b) && !permitida(a, b)) choques.push(`«${a}» ↔ «${b}»`);
+    }));
+    expect(choques, `terminan igual: ${choques.join(" · ")}`).toEqual([]);
+  });
+
   it("los dos paneles que SÍ son hojas del libro las nombran", () => {
     // Agenda y registro no son vistas nuestras: son las dos hojas que el equipo
     // llena en Excel, traídas a la app. Que se llamen como la hoja es lo que
