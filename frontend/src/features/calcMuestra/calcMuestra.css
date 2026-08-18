@@ -2497,6 +2497,20 @@
   font-weight: var(--pulso-weight-bold);
 }
 
+/* El subtítulo va DEBAJO del título, siempre. Medido (2026-08-18): la regla
+   vivía scopeada a .cmv2-replacement-chain-panel y los demás subheads con
+   <strong>+<small> corrían en línea («Mapa completo de la muestraCada CH
+   conserva…»). Un arreglo de un solo consumidor es la familia de copias. */
+.cmv2-subhead small {
+  display: block;
+  max-width: 760px;
+  margin-top: 2px;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-bold);
+  line-height: 1.35;
+}
+
 .cmv2-calc-card-head,
 .cmv2-result-head {
   display: flex;
