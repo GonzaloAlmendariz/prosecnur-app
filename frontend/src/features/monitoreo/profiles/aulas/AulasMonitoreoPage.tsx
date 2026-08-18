@@ -699,6 +699,15 @@ function renderAulasView(
             <h3>Partes de campo</h3>
             <span>{cuadre.label}</span>
           </div>
+          {/* De qué hoja sale. Las otras dos superficies del libro llevan el
+              nombre EXACTO de la suya —«Aulas agendadas» y «Base de control»,
+              que es a lo que el equipo va a buscarlas—; ésta se llama «partes de
+              campo», que es como se dice, y la hoja se llama «Aulas Aplicadas
+              (Campo)». Sin decirlo, quien busca en su libro no sabe cuál abrir. */}
+          <p className="mon-profile-muted">
+            De la hoja «Aulas Aplicadas (Campo)» del libro: lo que anotó quien
+            estuvo en el aula.
+          </p>
           {/* La resta ya viene hecha del motor —el mismo helper que decide el
               descuadre—, así que esta línea y el aviso de Validación no pueden
               discrepar. Es el destino que le faltaba a «Cuadre del parte de
