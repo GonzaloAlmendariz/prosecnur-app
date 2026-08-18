@@ -66,3 +66,36 @@
   attr(out, "balance_vars_descartadas") <- unique(descartadas)
   out
 }
+
+#' Warning declarable cuando el balance del cubo perdió variables en el estrato.
+#'
+#' Se recalcula barato (conteo de valores únicos, sin model.matrix) porque el
+#' attr de la matriz muere dentro del sampler. El mensaje NO nombra el estrato
+#' a propósito: con ~80 estratos que descartan el mismo set (las vars que los
+#' definen), mensajes idénticos colapsan en el unique() del caller y viaja UNO.
+#' @keywords internal
+.cm_aulas_balance_descartadas_warning <- function(df, selector, engine_used) {
+  if (!engine_used %in% c("cube_balanceado", "local_pivotal_balanceado")) {
+    return(character(0))
+  }
+  vars <- unique(c(
+    .cm_aulas_chr_vec(selector$spread_vars), .cm_aulas_chr_vec(selector$balance_vars)
+  ))
+  vars <- intersect(vars, names(df))
+  if (!length(vars)) return(character(0))
+  sin_variacion <- vars[vapply(vars, function(nm) {
+    valores <- df[[nm]]
+    if (!is.numeric(valores)) {
+      valores <- .cm_aulas_values(df, nm, "sin_dato")
+      valores[!nzchar(valores)] <- "sin_dato"
+    }
+    length(unique(valores)) < 2L
+  }, logical(1))]
+  if (!length(sin_variacion)) return(character(0))
+  vivas <- setdiff(vars, sin_variacion)
+  sprintf(
+    "Balance del sorteo: %s sin variacion dentro del estrato (definen la estratificacion o son constantes); se balancea con %s.",
+    paste(sin_variacion, collapse = ", "),
+    if (length(vivas)) paste(vivas, collapse = ", ") else "solo las probabilidades de inclusion"
+  )
+}
