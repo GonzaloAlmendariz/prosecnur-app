@@ -1792,3 +1792,42 @@ aparecieron 10 grupos y los 5 problemas.
 **La señal que lo delata es el número de grupos**: 2 contra 10. Si el gate
 devuelve un verde con menos grupos de los que la vista tiene paneles, midió otra
 pantalla.
+
+
+## 2026-08-18 — Las doce direcciones del perfil, medidas
+
+Barrido completo con `--require-geometry` y **`--post-click-wait-selector` en
+todas**, que es lo único que distingue medir el destino de medir el aterrizaje.
+
+| Dirección | |
+|---|---|
+| `fuentes` · `modelo/agenda` · `modelo/facultad` · `modelo/registro` | ✅ |
+| `calidad/controles` · `calidad/base` | ✅ |
+| `consultas/reemplazos` · `brechas` · `extras` · `parte` | ✅ |
+| `avance/resumen` | 1 — `scroll-unreachable` a 1024×600, deuda L105 |
+
+**Once de doce en verde por conformidad comprobada.**
+
+### El defecto sistémico: cinco paneles culpaban a su cabecera
+
+`capacity-drift` de 5 px atribuido a `mon-profile-panel-head` en «Preparación de
+campo», «Operación del plan», «De dónde salen las respuestas», «Aulas aplicadas
+(campo)» y los dos gráficos de Avance. Es **la trampa que la norma describe**:
+con el grupo declarado en el `section`, la cabecera entra como miembro y su
+holgura se contabiliza como espacio muerto — cuando el panel tiene 1 px libre
+abajo, medido.
+
+**Probado antes de dar la explicación por buena**: declarar la capacidad en el
+contenedor interior NO bastaba, porque el miembro marcado pertenece al grupo
+exterior. Sólo retirar el grupo del `section` lo resuelve. En los dos gráficos
+la vía fue la otra —declarar `data-qa-geometry-capacity` en el contenedor del
+gráfico— porque ahí el grupo sí envuelve los datos.
+
+Que el mismo error esté en cinco paneles significa que **se copió de uno a
+otro**; ahora el siguiente copiará el bueno.
+
+### Regla nueva para el gate
+
+**Un verde con menos grupos de los que la vista tiene paneles no es un verde.**
+La primera corrida de la sesión dio `ok=true`, 0 issues y **2 grupos**; con el
+flag correcto, **10 grupos y 5 problemas**.
