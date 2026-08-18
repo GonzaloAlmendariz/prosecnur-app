@@ -45,10 +45,12 @@
   margin: 8px 0 0;
   padding: 0;
   list-style: none;
-  /* ~3 filas de 148px visibles; el resto se alcanza desplazando aquí dentro. */
+  /* ~3 filas de 148px visibles; el resto se alcanza desplazando aquí dentro.
+     Sin overscroll contain: es un bloque de página (486px ≈ toda la ventana a
+     1024×600) y con contain la rueda moría al agotar su scroll — No Scroll
+     Jail. El encadenamiento nativo devuelve la rueda a la página. */
   max-height: 486px;
   overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 .cmv2-discount-step-list > li {

@@ -94,6 +94,9 @@
   height: min(54vh, 560px);
   min-height: 320px;
   overflow: auto;
+  /* contain SE QUEDA: viewport de mapa con pan 2D propio; que la rueda se
+     escape a la página en pleno paneo rompería la interacción (barrido No
+     Scroll Jail). */
   overscroll-behavior: contain;
   border: 1px solid var(--pulso-border);
   border-radius: var(--pulso-radius-card);

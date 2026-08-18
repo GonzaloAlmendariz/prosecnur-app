@@ -2707,6 +2707,8 @@
 .cmv2-rail {
   min-height: 0;
   overflow: auto;
+  /* contain SE QUEDA: panel de workbench — la página no scrollea, no hay
+     cadena que devolver (barrido No Scroll Jail). */
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   padding: 10px;
@@ -2815,6 +2817,9 @@
 .cmv2-section-sidebar:hover .cmv2-section-sidebar-shell,
 .cmv2-section-sidebar:focus-within .cmv2-section-sidebar-shell {
   overflow-y: auto;
+  /* contain SE QUEDA: expansión efímera por hover/focus; si la rueda se
+     encadenara a la página, el sidebar colapsaría a mitad de scroll
+     (barrido No Scroll Jail). */
   overscroll-behavior: contain;
   border-color: color-mix(in srgb, var(--cmv2-border) 78%, transparent);
   background:
