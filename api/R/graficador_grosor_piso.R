@@ -815,6 +815,34 @@
 # (es `max(canvas_h_header_in, min_header)`), o `textos_negrita`, que solo
 # declara `superior_izquierda`—. La traza son cuatro numeros sobre esta lamina.
 #
+# P8E — LAS DOS CANDIDATAS, RESUELTAS SIN TRAZA, Y LA ARITMETICA DE ARRIBA
+# ESTABA MAL PLANTEADA.
+#
+# (a) `textos_negrita` **queda descartado por lectura**: en
+#     `graficador_barras_agrupadas.R` aparece en once sitios y **todos** son
+#     `fontface` o `face` —porcentajes, barra_extra, leyenda, titulo,
+#     subtitulo—. Ninguno toca una altura. Una opcion de estilo que no entra en
+#     la geometria no puede mover el grosor.
+#
+# (b) `h_header_in` **no cede 0.26 in, cede 0.75**. El 0.26 que use arriba es el
+#     `min_header`, no el valor: la expresion es
+#     `max(canvas_h_header_in, min_header)` y **`canvas_h_header_in` trae
+#     `0.75` de default en la firma** (`:474`; `canvas_h_legend_in` 0.75 y
+#     `canvas_h_caption_in` 0.40 estan al lado). Con n = 2 y
+#     `grosor_barras_eff = 0.6`, esos 0.75 in valen **0.5715 cm** de barra.
+#
+# ASI QUE LA PREGUNTA SE DA LA VUELTA: el header no se queda corto, **se pasa**.
+# Explicaria 0.5715 cm y la diferencia medida es **0.3554**. Lo que falta por
+# medir ya no es «que entrada suma» sino **que tope recorta**: los candidatos
+# son `h_panel_in * .AGRUPADAS_PANEL_ESTIRA_MAX` —con `h_panel_in` intrinseco
+# de 2 x 0.42 = 0.84 in, el tope sale **2.184 in**— y `panel_techo`
+# —`(0.7087 / 0.6) * 2 = **2.362 in**—, mas los valores REALES de
+# `h_legend_in` y `h_caption_in`, que no se pueden suponer.
+#
+# LECCION: **el minimo de una expresion `max()` no es su valor**. Tomar el
+# minimo por el valor invirtio el signo del problema —de «falta explicacion» a
+# «sobra»— y costo un tick entero de aritmetica sobre una cifra que no era.
+#
 # LECCION: el mejor par minimo no se busca en la geometria sino en la
 # CONFIGURACION — dos slots con la misma variable y distinta config valen mas
 # que dos slots parecidos con datos distintos.
