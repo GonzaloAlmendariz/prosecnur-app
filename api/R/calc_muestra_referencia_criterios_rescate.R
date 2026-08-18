@@ -143,3 +143,29 @@ calc_muestra_referencia_criterios_desde_asistencia <- function(asistencia) {
     por_facultad = filas
   ))
 }
+
+#' Une la referencia del LIBRO con la rescatada de la asistencia.
+#'
+#' Las dos saben cosas que la otra no. El libro `HSVBG2025_referencia_para_motor`
+#' trae las VEINTE decisiones de diseño —n, deff, p, error, método de selección,
+#' afijación— que el rescate no puede conocer. El rescate trae lo que quedó
+#' EJECUTADO —aulas agendadas con reemplazos, tasa de asistencia observada— que
+#' la hoja `diseno` no recoge.
+#'
+#' Medido al cargar el libro en HSVG2026: la columna del estudio anterior pasó de
+#' cuatro cifras a veinte, pero perdió las dos del rescate porque una referencia
+#' sustituía a la otra. El libro MANDA en lo que ambas declaran; el rescate sólo
+#' rellena huecos.
+calc_muestra_referencia_criterios_fusionar <- function(libro, rescate) {
+  if (!is.list(libro)) return(rescate)
+  if (!is.list(rescate)) return(libro)
+  g_libro <- if (is.list(libro$general)) libro$general else list()
+  g_rescate <- if (is.list(rescate$general)) rescate$general else list()
+  for (k in names(g_rescate)) {
+    if (is.null(g_libro[[k]]) || !nzchar(.cm_aulas_scalar(g_libro[[k]], ""))) {
+      g_libro[[k]] <- g_rescate[[k]]
+    }
+  }
+  libro$general <- g_libro
+  libro
+}
