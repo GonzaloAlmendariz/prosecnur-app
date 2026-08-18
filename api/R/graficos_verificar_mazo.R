@@ -1751,3 +1751,62 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
   }
   out
 }
+
+
+# C0 — POR QUE POWERPOINT REPARA EL ARCHIVO: OCHO COMPROBACIONES, TODAS LIMPIAS
+# Y TODAS IGUALES A LAS DEL APROBADO. EL PUNTO QUEDA BLOQUEADO, Y SE DICE EN QUE.
+#
+# Medido sobre `p55.pptx` (70 laminas, 249 partes) contra el entregable aprobado
+# (63 laminas, 252 partes), con `c0a.py`, `c0b.py`, `c0c.py`, `c0d.py` y
+# `c0e.py`. Las causas clasicas de que PowerPoint ofrezca reparar:
+#
+#   1. partes del zip SIN `Content_Type`            motor 0   ·  aprobado 0
+#   2. `r:id`/`r:embed` usados SIN `Relationship`   motor 0   ·  aprobado 0
+#   3. `Relationship` a un `Target` inexistente     motor 0   ·  aprobado 0
+#   4. `id` de `<p:cNvPr>` repetido en una lamina   motor 0/70·  aprobado 0/63
+#      (y `id="0"`, que tampoco es valido)          motor 0   ·  aprobado 0
+#   5. XML mal formado en cualquier parte           motor 0   ·  aprobado 0
+#      `.rels` con `Id` duplicado                   motor 0   ·  aprobado 0
+#      entradas duplicadas o con `\` en el zip      motor 0   ·  aprobado 0
+#   6. `<p:sldId>` duplicado o por debajo de 256    motor 0   ·  aprobado 0
+#      (rango 256-325 en el motor, 256-418 en el aprobado)
+#   7. valores fuera de rango: `<a:ext>` negativo   motor 0   ·  aprobado 0
+#      `sz` fuera de [100, 400000]                  motor 0   ·  aprobado 0
+#      caracteres de control C0 en el XML           motor 0   ·  aprobado 0
+#   8. **SVG como blip PRIMARIO** —la causa clasica de reparacion cuando un
+#      motor mete un `.svg` donde va un raster—: los TRES SVG del motor
+#      (laminas 2, 6 y 7) entran por `<asvg:svgBlip>`, que es lo correcto,
+#      igual que el unico del aprobado.
+#
+# LAS DOS UNICAS DIFERENCIAS que aparecieron, y ninguna es ilegal:
+#   - El motor nombra 11 de sus 19 medias por HASH
+#     (`ppt/media/1bd51735…png`) en vez de `imageN.png`. Comprobado: las 19
+#     estan referenciadas exactamente una vez —salvo `image6.png`, 31 veces, que
+#     es el logo—, sus extensiones estan declaradas por `Default` y los nombres
+#     son legales. OOXML no exige `imageN`.
+#   - El motor tiene 4 `<a:t>` vacios y el aprobado 0; el aprobado tiene 5
+#     `<a:off>` negativos y el motor 0. Ninguno de los dos repara por eso.
+#
+# LO QUE FALTA, Y ES EL BLOQUEO: **no puedo ver el dialogo de reparacion**.
+# PowerPoint no corre aqui y el sintoma solo lo observa Gonzalo. La ultima vez
+# que se vio fue sobre un mazo ANTERIOR a C0.1-C0.3, asi que **cabe que el punto
+# ya este arreglado y el tablero este desactualizado** —no seria la primera vez
+# que un punto sobrevive a su propia reparacion—. Sin esa confirmacion no se
+# puede ni cerrar ni seguir: cualquier hipotesis nueva seria a ciegas.
+#
+# LO SIGUIENTE, cuando Gonzalo diga si sigue pasando:
+#   - si SIGUE: validar contra los XSD de OOXML (no basta `xmllint --noout`, que
+#     solo mira que este bien formado; hacen falta los esquemas), y mirar el
+#     `docProps/app0.xml` —una parte no estandar que, ojo, **tambien tiene el
+#     aprobado**, asi que por si sola no explica nada—;
+#   - si NO: C0 se cierra y el tablero pierde su ultimo punto de arranque.
+#
+# LIMITE DEL MEDIDOR, anotado junto al dato: el chequeo de «partes huerfanas» de
+# `c0b.py` resuelve mal el `_rels/.rels` de la raiz del paquete y da 5 falsos
+# huerfanos (`presentation.xml` y los cuatro `docProps/`). Da los MISMOS 5 en
+# los dos mazos, asi que la comparacion vale; la cifra absoluta no.
+#
+# LECCION: agotar las hipotesis medibles tambien es un resultado, siempre que se
+# deje escrito QUE se midio y CON QUE cifras, para que el turno siguiente no las
+# vuelva a correr. Y cuando el sintoma solo lo observa una persona, el trabajo
+# no es adivinar: es preguntarle.
