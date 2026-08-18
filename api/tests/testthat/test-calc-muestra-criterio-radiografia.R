@@ -1161,7 +1161,17 @@ test_that("índice alumno×CH se construye una vez por radiografía", {
     #      los unicos campos implicados `hist_breaks`, `hist_counts` y
     #      `n_fuera_por_corte`. El reconstruido reprodujo exactamente el hash de
     #      G38. Enumerar rutas dice QUE cambio; podar solo dice si algo cambio.
-    "1463aa1a15462192fe5e6b33d1daed83ccacdba8754e9ec291ad51a4589a24fc"
+    #   6. ec1d5446 añadio `facultades_excluidas` declaradas al contrato del
+    #      config, y eso mueve el `frame_hash` que la radiografia ECOA en su
+    #      raiz y en `matriz_embudo`. **Cuarta vez del mismo fallo (F71, F114,
+    #      G39): el commit del motor no corrio esta suite** y el rojo se
+    #      descubrio veintinueve commits despues, al correrla por otro defecto.
+    #      El confinamiento se probo por bisect en worktree (el culpable exacto)
+    #      mas diff de rutas del payload completo entre el bless y el culpable:
+    #      **cambian exactamente 2 rutas de todas — los dos ecos de
+    #      `frame_hash` — y cero filas o campos de datos**; del culpable a HEAD
+    #      el payload es identico byte a byte.
+    "0a7a5b0162583d203982d08eebc0b7520333ff0039dc62f28cfbf98b2f4b6018"
   )
 })
 

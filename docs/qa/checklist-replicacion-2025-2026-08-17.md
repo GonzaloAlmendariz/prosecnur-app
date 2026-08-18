@@ -2472,3 +2472,50 @@ sincroniza sus criterios al workspace. En vivo: 0 «criterios cambiados»,
 | I10 | Reformular «sin criterios propios» | ☐ (mismo archivo que I9) |
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento · relato · embudo de criterios | ☐ |
+
+## INTERRUPCIÓN 2026-08-18 · la radiografía del nivel salía INVALIDO — ☑ reparado
+
+Gonzalo, señalando la tarjeta en vivo: «No has validado que la radiografía
+esté bien y que el embudo vaya avisando cómo vamos entre categoría y
+categoría». Tenía razón dos veces:
+
+1. **El gate `course_level` de la radiografía publicaba `invalido`** en las
+   15 fichas de nivel. Causa: la radiografía recalculaba el flag con
+   `.cm_criterios_eval_course_ranges(course_pairs, ranges)` SIN el tercer
+   argumento `faculty_keys` — la exención (EE.GG. Letras, Gestión,
+   Contables) se decide por la facultad DEL AULA, así que el flag
+   recalculado difería del guardado y la reconstrucción caía. Tercer
+   consumidor del mismo defecto (constructor y preview sí lo pasaban); el
+   comentario del cascada ya avisaba «SIN COBERTURA: quitar este argumento
+   no mata ningún test». Test rojo→verde en
+   `test-calc-muestra-criterio-radiografia-nivel-exencion.R` (6 pass).
+2. **El oráculo sha256 de la suite estaba ROJO desde `ec1d5446`** (29
+   commits antes) y nadie lo miraba — cuarta vez del patrón que el propio
+   test documenta. Bisect en worktree: el culpable exacto es `ec1d5446`
+   (facultades excluidas declaradas), y el diff de rutas del payload
+   completo muestra que cambiaron EXACTAMENTE 2 rutas — los dos ecos de
+   `frame_hash` — y cero datos. Rebendecido como razón 6 en el test.
+
+Gate: suite radiografía 295 pass / 0 fail / 0 error · test nuevo 6/0/0.
+
+## TANDA J · La validez del sorteo y el porqué del dimensionamiento (2026-08-18 noche)
+
+Textual de Gonzalo: «la validez de los mecanismos de sorteo o selección de
+aulas (…) no voy al tema de que si son pertinentes, voy al tema de que si su
+backend funciona correctamente (…) si no hay ninguna falla interna que nos
+esté declarando o que esté oculta»; «pareciera que el ratio de asistencia es
+casi global cuando ya hemos dejado claro que debería ser por facultad»; «por
+qué vamos a ciento noventa y no a ciento setenta finalmente (…) ¿es
+exclusivamente por el estadístico del primer cuartil, o también tiene algo
+que ver el ratio de asistencia? (…) tienen que estar claras y no lo están»;
+«no solo profundizar, sino explicar de forma didáctica a través de gráficos
+y visualizaciones profesionales».
+
+Timing declarado por él: «luego de los últimos pasos de toda la cadena de
+interacciones que ya tenemos pendientes» — la Tanda I termina primero.
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| J1 | Auditoría de CORRECCIÓN del backend de los 4 mecanismos (fallas declaradas u ocultas, consistencia interna) | `calc_muestra_aulas.R` + engines de sorteo + `revisor-metodologico` | ☐ tras Tanda I |
+| J2 | El τ de asistencia POR FACULTAD en el DIMENSIONAMIENTO — medir dónde entra hoy (¿q1/mediana solamente? ¿τ global?) y qué haría falta para que sea por facultad | `calc_muestra_engine.R` (aulas_requeridas) vs certificación (que ya usa τ por diseño) | ☐ tras Tanda I |
+| J3 | «Por qué 190 y no 170» explicado didáctico con gráficos profesionales: qué parte pone el estadístico, qué parte el ratio, qué parte la sobremuestra | superficie nueva en Selección (junto a I2 sustento técnico) | ☐ con I2 |
