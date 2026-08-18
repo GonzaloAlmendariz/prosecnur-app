@@ -32,8 +32,9 @@ CALC_MUESTRA_REFERENCIA_CRITERIOS_SCHEMA <- "calc_muestra_referencia_criterios_v
 #' @keywords internal
 .cm_ref_crit_campos <- c(
   "poblacion", "cuota", "cuota_mujeres", "cuota_hombres", "sobremuestra",
-  "aulas_universo", "aulas_sorteadas", "aulas_titulares",
-  "alumnos_por_ch", "piso_matriculados", "efectivas_logradas"
+  "aulas_universo", "aulas_sorteadas", "aulas_titulares", "aulas_aplicadas",
+  "alumnos_por_ch", "piso_matriculados", "efectivas_logradas",
+  "asistentes"
 )
 
 #' Número declarado, o NA

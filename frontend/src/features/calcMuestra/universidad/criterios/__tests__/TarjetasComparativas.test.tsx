@@ -458,3 +458,47 @@ describe("criterios generales del estudio", () => {
     expect(fmtPorcentaje(0)).toBe("0 %");
   });
 });
+
+/**
+ * El paso de aulas se compara contra lo que el estudio anterior APLICÓ.
+ *
+ * 2025 declaró 170 titulares y aplicó 194: la diferencia son los reemplazos.
+ * Comparar contra una u otra cifra cambia el diagnóstico — en DERECHO, contra el
+ * objetivo de la plantilla nuestra cuenta parecía −6 y contra lo aplicado es −1.
+ */
+describe("la ficha compara contra las aulas aplicadas", () => {
+  const conAplicadas = (extra: Record<string, unknown>) =>
+    normalizeCalcMuestraReferenciaCriterios({
+      ...REF_CRUDO,
+      por_facultad: [{
+        faculty_key: "letras_y_ciencias_humanas",
+        facultad: "LETRAS Y CIENCIAS HUMANAS",
+        ...extra,
+      }],
+    });
+
+  it("prefiere las APLICADAS sobre los titulares", () => {
+    const ref = conAplicadas({ aulas_titulares: 4, aulas_aplicadas: 7 });
+    const paso = fichaDeFacultad(FILA, 149, 12, 16, ref).pasos.find((p) => p.n === 5);
+    expect(paso?.antes).toBe(7);
+  });
+
+  it("cae a los titulares cuando no hay aplicadas", () => {
+    // Un histórico que sólo trae el diseño sigue sirviendo para comparar.
+    const ref = conAplicadas({ aulas_titulares: 4 });
+    const paso = fichaDeFacultad(FILA, 149, 12, 16, ref).pasos.find((p) => p.n === 5);
+    expect(paso?.antes).toBe(4);
+  });
+
+  it("CONTROL: sin ninguna de las dos, el paso queda en blanco y no en 0", () => {
+    const ref = conAplicadas({ cuota: 25 });
+    const paso = fichaDeFacultad(FILA, 149, 12, 16, ref).pasos.find((p) => p.n === 5);
+    expect(paso?.antes).toBeNull();
+  });
+
+  it("el normalizador conserva aplicadas y asistentes", () => {
+    const r = conAplicadas({ aulas_aplicadas: 7, asistentes: 215 });
+    expect(r?.por_facultad[0].aulas_aplicadas).toBe(7);
+    expect(r?.por_facultad[0].asistentes).toBe(215);
+  });
+});

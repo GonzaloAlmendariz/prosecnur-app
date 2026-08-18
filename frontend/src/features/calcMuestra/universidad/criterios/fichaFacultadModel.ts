@@ -215,7 +215,12 @@ export function fichaDeFacultad(
       {
         n: 5, titulo: "Aulas necesarias",
         hoy: m?.aulas_requeridas ?? (Number.isFinite(fila.aulas_base) ? fila.aulas_base : null),
-        antes: h?.aulas_titulares ?? null,
+        // Contra las aulas que el estudio anterior APLICÓ, no contra sus
+        // titulares: 2025 declaró 170 y aplicó 194 —la diferencia son los
+        // reemplazos—, y comparar contra lo que de verdad se hizo cambia el
+        // diagnóstico. En DERECHO, contra el objetivo de la plantilla nuestra
+        // cifra parecía −6 y contra lo aplicado es −1.
+        antes: h?.aulas_aplicadas ?? h?.aulas_titulares ?? null,
         detalle: "titulares que hay que visitar",
       },
       {
