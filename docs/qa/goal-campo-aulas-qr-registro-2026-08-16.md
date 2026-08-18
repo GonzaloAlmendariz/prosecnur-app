@@ -1704,3 +1704,46 @@ en disco. Lo dice la consola —«[vite] Failed to reload … 500»— y se arre
 **Un typecheck verde no garantiza que lo que ves en pantalla sea tu código.** Si
 una medición en el navegador contradice lo que acabas de escribir, lee la
 consola antes de dudar del código.
+
+
+## 2026-08-18 — C5 categoría 2: lo que el fixture NO puede enseñar
+
+Barrido de los estados vacíos y avisos de los paneles del perfil. **84 ramas**
+en total; la clasificación deja dos grupos que el fixture `/tmp/cierres.pulso`
+**no puede producir**, y por razones opuestas.
+
+### 19 ramas de «sin dato» — el fixture tiene datos en todo
+
+| Panel | Rama |
+|---|---|
+| `AulasAgendaPorDia` | «Ninguno de los N cursos-horario tiene fecha de aplicación» |
+| `AulasAgendaPorFacultad` | «No hay agenda de cursos-horario» |
+| `AulasAvanceEnRespuestas` | «El plan todavía no declara metas» · «Ninguno declara cuántas espera» |
+| `AulasBrechaEstratoChart` | «El plan no declara estratos que comparar» |
+| `AulasCadenaChart` · `AulasHistoriaCadena` | «El plan todavía no declara cadenas» · «Ninguno tiene reserva» |
+| `AulasControles` | «No hay controles de validación para este corte» |
+| `AulasFrenteDelOperativo` | «La agenda todavía no declara fechas» · «Ninguno tiene fecha agendada» |
+| `AulasPerfilPorFacultad` | «Ninguno de los N declara facultad» |
+| `RegistroDeCampo` | «No hay agenda de cursos-horario» |
+| Tablas de la página | agenda sin importar · avance por estrato · composición por sexo · «Sin datos» del control |
+| `VacioSinTablero` | el perfil sin tablero |
+
+Sólo salen en un proyecto **recién abierto o a medio configurar**, que es
+justamente el estado en que un usuario nuevo encuentra la app.
+
+### Las ramas de «buena noticia» — el fixture está roto a propósito en todo
+
+| Panel | Rama que nunca aparece | Lo que el fixture fuerza |
+|---|---|---|
+| `AulasFrenteDelOperativo` | «Todavía no vence ningún curso-horario» y «los N vencidos tienen su parte» | 18 de 119 sin parte |
+| `AulasColchonPorFacultad` | «Ninguna facultad ha agotado la reserva» | 14 de 20 agotaron |
+| `AulasPerfilPorFacultad` | «meta cumplida» por facultad | 0 de 20 la cumplen |
+| `AulasMatrizUmbrales` | las tres celdas sin desglose | el motor siempre trae los dos umbrales |
+| `AulasAvanceEnRespuestas` | el tramo de excedente | 0 respuestas atribuidas |
+
+**Deuda declarada, no arreglo (C5 categoría 2).** No se fabrican datos para
+llenarlas y no se tocan los componentes: lo que falta es un proyecto donde el
+operativo vaya bien. Es la undécima vez en esta serie que el fixture excluye por
+construcción una rama que la vista existe para mostrar, y refuerza la decisión
+pendiente de Gonzalo — **anonimizar un estudio real de aulas como sexto proyecto
+de referencia**.
