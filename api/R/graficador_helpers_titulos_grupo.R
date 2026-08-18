@@ -42,15 +42,25 @@
 # de una linea, el cupo autoriza mas lineas de las que caben y el bloque invade
 # a su vecino.
 #
-# La medicion, sobre `p52.pptx`: paso mediano entre lineas de la columna del
-# enunciado contra el cuerpo de la lamina. Interlineado real min **1.126**,
-# p25 **1.143**, mediana **1.436**, max **2.266**. LIMITE DE ESA MEDICION: el
-# cuerpo usado es el MODAL DE LA LAMINA —14 pt en 28 de 33, que son las
-# etiquetas de porcentaje—, no el del enunciado, asi que el factor exacto NO
-# esta medido; el signo y el orden de magnitud si. En la unica lamina donde el
-# cuerpo del enunciado se leyo directo del XML —la **59**, 11 pt, paso
-# **0.2200 in**— el interlineado real es **1.44**: el motor cree que caben
-# **1.67x** mas lineas de las que caben.
+# MEDIDO CON EL CUERPO DEL PROPIO ENUNCIADO —cada `<p:sp>` lleva su offset, su
+# extent y el `sz` de su `<a:rPr>` en el MISMO nodo, asi que se emparejan sin
+# suponer nada— sobre las 32 laminas medibles de `p52.pptx`. El resultado es
+# uniforme: min **1.422**, p25 **1.440**, MEDIANA **1.440**, p75 **1.448**, y
+# 30 de 32 entre 1.42 y 1.45 con cuerpos de 11, 12, 13 y 14 pt mezclados. O sea
+# **factor 1.674x constante**, no variable: el motor cree que caben un 67 % mas
+# de lineas de las que caben. (Las dos de 2.266 son las laminas 11 y 12, de
+# cuatro paneles, donde la columna elegida no es un enunciado unico.)
+#
+# Un primer barrido dio mediana 1.436 con dispersion 1.126–2.266, pero usaba el
+# cuerpo MODAL DE LA LAMINA —14 pt en 28 de 33, que son las etiquetas de
+# porcentaje— y no el del enunciado: un cociente vale lo que su denominador. La
+# dispersion era del denominador, no del interlineado.
+#
+# EL APROBADO NO PUEDE ARBITRAR ESTO y no hay que intentarlo: PowerPoint guarda
+# cada enunciado en UNA caja con varias lineas dentro, mientras que rvg emite
+# una caja por linea. Medido, solo 5 de sus laminas califican y sus pasos
+# (2.244, 3.508) no son interlineados. El 1.440 es una propiedad de NUESTRO
+# renderer y contra el se calibra.
 #
 # Y ahi esta el solape: la 59 dibuja su bloque 2 de 3.4571 a 5.0275 y el 3 de
 # 4.8034 a 6.0930, con centros en 4.2423 y 5.4482. El punto medio cae en
