@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BarChart3,
   BarChartBig,
+  Boxes,
   CalendarRange,
   ClipboardCheck,
   Clock,
@@ -221,6 +222,12 @@ export const MONITOREO_PESTANAS = {
       pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),
       pestana("aulas", "consultas", "brechas", "Brechas", "Cursos-horario por debajo de su meta", AlertCircle),
       pestana("aulas", "consultas", "parte", "Parte de campo", "Lo que se anotó en cada aula", ClipboardCheck),
+      // El segundo nivel de respaldo del diseño. La cadena de un curso-horario
+      // puede agotarse entera; cuando pasa, hay que sacar de las reservas
+      // sueltas DE SU ESTRATO para no descuadrar la composición. Estaban en el
+      // plan —639 en el estudio de 2026 contra 202 titulares— y no se veían en
+      // ninguna pantalla.
+      pestana("aulas", "consultas", "extras", "Extras", "Reservas sueltas por facultad", Boxes),
     ],
   },
 } as const satisfies Record<

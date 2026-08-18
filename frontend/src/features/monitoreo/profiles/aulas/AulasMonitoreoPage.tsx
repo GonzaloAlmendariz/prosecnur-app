@@ -24,6 +24,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
+import { AulasBancoExtras } from "./AulasBancoExtras";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
@@ -558,13 +559,18 @@ function renderAulasView(
     // La MISMA función que escribe la lectura: el contador de la cabecera y el
     // renglón de abajo no pueden salir de dos cuentas distintas.
     const cadenas = historiaDeCadena(agendaFilas);
-    // Cada pestaña muestra SU panel. Con dos bastaba negar la otra; con tres,
-    // negar dos deja que «parte» pinte los otros dos encima.
+    // Cada pestaña muestra SU panel, y el reparto es POSITIVO. Con dos bastaba
+    // negar la otra; con tres hubo que negar dos; con la cuarta —Extras— la
+    // negación volvía a fallar y la cadena se pintaba encima. Preguntar «¿es
+    // esta pestaña?» en vez de «¿no es ninguna de las otras?» hace que la
+    // siguiente pestaña que se añada no herede el panel de nadie.
     const enParte = pestana === "parte";
     const enBrechas = pestana === "brechas";
+    const enExtras = pestana === "extras";
+    const enCadena = !enParte && !enBrechas && !enExtras;
     return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
-        {enBrechas || enParte ? null : (
+        {enCadena ? (
         <section
           className="mon-profile-panel"
           data-qa-geometry-group="monitoring-aulas-consultas"
@@ -615,7 +621,7 @@ function renderAulasView(
             preferredColumns={["operational_code", "replacement_for", "replacement_order", "sample_status", "sample_role", "motivo"]}
           />
         </section>
-        )}
+        ) : null}
         {enBrechas ? (
         <section
           className="mon-profile-panel"
@@ -680,6 +686,26 @@ function renderAulasView(
             maxColumns={9}
             preferredColumns={["operational_code", "observed_students", "attendance_pct", "refusals", "duplicates", "effective_surveys", "esperado", "diferencia", "applied_by"]}
           />
+        </section>
+        ) : null}
+        {enExtras ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-extras"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* «Extras» es el nombre del dato: el plan las trae con
+                `wave = "Extra"`. La descripción dice para qué sirven, que es lo
+                que no se deduce del nombre. */}
+            <h3>Reservas extra del estrato</h3>
+            <span>{fmt(dashboard.banco_extras?.total ?? 0)} sueltas</span>
+          </div>
+          <p className="mon-profile-muted">
+            No cuelgan de ningún curso-horario: son el respaldo del estrato para
+            cuando una cadena de reemplazos se agota entera.
+          </p>
+          <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
         </section>
         ) : null}
       </div>

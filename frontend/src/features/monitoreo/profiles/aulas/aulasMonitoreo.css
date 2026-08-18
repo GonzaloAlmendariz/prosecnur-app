@@ -1066,6 +1066,74 @@
   white-space: nowrap;
 }
 
+/* El banco de extras. Las facultades son filtro Y resumen a la vez: la misma
+   fila dice cuánto queda ahí y sirve para entrar. Dos superficies —una tabla de
+   resumen y un selector aparte— repetirían el mismo cruce. */
+.mon-profile-page.is-aulas-flow .aulas-banco {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades button:hover {
+  border-color: var(--pulso-module-monitoring-soft);
+}
+
+/* La activa se marca con el tono del módulo, no con un color propio. */
+.mon-profile-page.is-aulas-flow .aulas-banco-facultades button.es-activa {
+  border-color: var(--pulso-module-monitoring);
+  background: var(--pulso-module-monitoring-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-banco-nombre {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-black);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-banco-cuenta {
+  font-size: 13px;
+  font-weight: var(--pulso-weight-black);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El desglose por sexo ocupa las dos columnas: es lo que se compara entre
+   facultades cuando falta un perfil concreto, así que va en su propio renglón
+   y no compitiendo con el nombre. */
+.mon-profile-page.is-aulas-flow .aulas-banco-sexos {
+  grid-column: 1 / -1;
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* El consumo de la reserva, en una franja.
    Eran cuatro barras de Plotly en 200 px de alto con DOS en cero: media lámina
    en blanco, y el blanco no decía que ninguna cadena hubiera pasado del primer

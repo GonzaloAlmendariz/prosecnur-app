@@ -48,6 +48,7 @@ export { default as BookOpenCheck } from "lucide-react/dist/esm/icons/book-open-
 export { default as BookText } from "lucide-react/dist/esm/icons/book-text.mjs";
 export { default as Box } from "lucide-react/dist/esm/icons/box.mjs";
 export { default as BoxSelect } from "lucide-react/dist/esm/icons/square-dashed.mjs";
+export { default as Boxes } from "lucide-react/dist/esm/icons/boxes.mjs";
 export { default as BriefcaseBusiness } from "lucide-react/dist/esm/icons/briefcase-business.mjs";
 export { default as Building2 } from "lucide-react/dist/esm/icons/building-2.mjs";
 export { default as Calculator } from "lucide-react/dist/esm/icons/calculator.mjs";
