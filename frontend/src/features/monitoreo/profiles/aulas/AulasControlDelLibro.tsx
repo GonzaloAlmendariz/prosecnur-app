@@ -288,6 +288,13 @@ export function AulasControlDelLibro({
                     COLUMNAS_DE_VEREDICTO.has(c) ? "es-marca" : "",
                     abreBloque.has(c) ? "es-corte" : "",
                   ].filter(Boolean).join(" ")}
+                  // El nombre entero, que la elipsis se lleva. La regla que
+                  // recorta a 130 px lo daba por hecho —«con elipsis, el nombre
+                  // entero queda en el `title`»— y el atributo no estaba: medido
+                  // sobre las 26 columnas, tres se cortan («Asistentes que no
+                  // respondieron» pide 231 px) y las tres tenían `title` nulo,
+                  // así que el rótulo se perdía sin forma de recuperarlo.
+                  title={aulasFieldLabel(c)}
                 >
                   {aulasFieldLabel(c)}
                 </th>
