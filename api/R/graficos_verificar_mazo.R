@@ -27,6 +27,31 @@
 # - Y se mide POR GRAFICO, no por lamina: una lamina de dos graficos con 7 y 6
 #   barras no es "un grafico de 13 barras finisimas".
 
+# P51, MEDIDO Y ABIERTO: **dos laminas apilan la escala AL REVES**. El orden
+# canonico de izquierda a derecha es
+#
+#   F4B183 (Totalmente en desacuerdo) > FFD965 > ADD493 > 70AD47 > BFBFBF (SIN INF)
+#
+# y lo cumplen 33 de las 35 laminas medibles de `p52.pptx`. Las laminas **28 y
+# 30** dibujan `BFBFBF > 70AD47 > ADD493 > FFD965`, o sea la canonica invertida
+# con el gris al frente: sus barras corren de acuerdo a desacuerdo mientras el
+# resto del mazo corre de desacuerdo a acuerdo. **El entregable aprobado tiene
+# CERO** —31 de 31 en orden canonico—, asi que contra la vara son 2 contra 0.
+#
+# El texto de la leyenda va en orden canonico en las dos, asi que el lector
+# puede decodificar el color; lo que se rompe es la DIRECCION, que es lo que se
+# lee de un vistazo al comparar laminas. NO ESTA MEDIDO todavia si los cuadros
+# de la leyenda llevan el color que les toca —el filtro de segmentos los
+# descarta por tamano—: si tambien estuvieran invertidos, la lamina mentiria en
+# vez de solo ir al reves.
+#
+# Las dos son de bloques de un solo publico (la 28, «15 administrativos»). La
+# sospecha a falsar primero es el orden de niveles ordinales, que ya mordio
+# antes: cuando no se resuelve por diccionario cae a frecuencia o alfabetico.
+#
+# El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
+# no salta en una hoja de contacto: se ve bien, solo esta al reves.
+#
 # Colores de la rampa de escala (dos paletas: la del entregable y la del motor).
 .VERIF_RAMPA <- c("F4B183", "FFD965", "FFD966", "ADD493", "B0D597",
                   "70AD47", "8FC36B", "CA5651")
