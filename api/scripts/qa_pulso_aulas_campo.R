@@ -247,6 +247,16 @@ if (ESCALA_2025) {
       # vacia y no se puede ver que cada fila lo saca de su propio campo.
       if (identical(est, "agendada")) o$activation_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
     }
+    # El CICLO DE CONTACTO, que es la razon de ser de la hoja «Aulas Agendadas»:
+    # a quien se llama, por que medio, que dia y cuantas veces. El fixture no lo
+    # sembraba a esta escala, asi que las tres columnas salian vacias y la tabla
+    # —con razon— las descartaba: la dimension AGENDA se veia sin lo unico que
+    # solo ella recoge. Los medios son los observados en el estudio de 2025:
+    # Llamada (123) y Correo Electronico (33).
+    o$contact_medium <- c("Llamada", "Correo Electrónico")[[1L + (i %% 2L)]]
+    o$contact_date <- format(as.Date("2026-08-03") + (i %% 5L), "%Y-%m-%d")
+    # Quien costo mas intentos es a quien hay que mirar: por eso no es constante.
+    o$contact_attempts <- 1L + (i %% 4L)
     if (identical(est, "reemplazada")) o$replacement_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
     o
   }
