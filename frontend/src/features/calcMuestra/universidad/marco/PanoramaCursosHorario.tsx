@@ -60,7 +60,8 @@ export function PanoramaCursosHorario({
       <header className="cmv2-panorama-head">
         <h3>Panorama por facultad</h3>
         <p className="cmv2-panorama-escala">
-          {filas.length} facultades · barra sobre escala común 0 – {fmtInt(escala)} CH
+          {filas.length} facultades · barra sobre escala común 0 – {fmtInt(escala)} CH ·
+          el punto (·) hereda la regla general del estudio
         </p>
       </header>
 
@@ -78,6 +79,11 @@ export function PanoramaCursosHorario({
               {criterios.map((criterio) => (
                 <th key={criterio.id} scope="col">{criterio.label}</th>
               ))}
+              {/* El nivel del curso ES decidible por facultad (rangos +
+                  exenciones) y el panorama lo omitía: la vista que existe para
+                  ver quién se aparta callaba el criterio donde más facultades
+                  se apartan (12 con rango y 3 exentas en HSVG2026). */}
+              <th scope="col">Nivel del curso</th>
               <th scope="col">Mínimo</th>
             </tr>
           </thead>
@@ -116,32 +122,46 @@ export function PanoramaCursosHorario({
                   {criterios.map((criterio) => {
                     const detalle = resumen.detalles.find((d) => d.variableId === criterio.id);
                     const propia = Boolean(detalle?.propia);
+                    /* ADR 0057 evolucionado · Lo informativo es quién se APARTA
+                       y QUÉ decide. «propio» a secas tampoco informaba —Gonzalo:
+                       «¿cómo que "propio"?»— así que la celda dice la regla en
+                       corto («además TALLER», «sólo TEORICO +2»). Heredar sigue
+                       siendo un punto: es el caso normal y no compite. */
+                    const regla = detalle?.regla ?? "propio";
                     return (
-                      /* ADR 0057 · Lo informativo es quién se APARTA.
-                         Medido: «global» aparecía 56 veces en una pantalla —una
-                         palabra que se repite en casi todas las celdas no dice
-                         nada y tapa las pocas que sí—. Heredar es el caso normal
-                         y se marca con un punto; apartarse se nombra. */
                       <td
                         key={criterio.id}
                         className="cmv2-panorama-estado"
                         data-propia={propia ? "true" : "false"}
                         title={propia
-                          ? `${fac.facultad}: criterio propio en ${criterio.label}`
+                          ? `${fac.facultad}: en ${criterio.label} decide ${regla}`
                           : `${fac.facultad}: aplica el criterio general en ${criterio.label}`}
                       >
-                        {propia ? "propio" : <span aria-label="aplica el criterio general">·</span>}
+                        {propia ? regla : <span aria-label="aplica el criterio general">·</span>}
                       </td>
                     );
                   })}
                   <td
                     className="cmv2-panorama-estado"
+                    data-propia={resumen.nivelRegla ? "true" : "false"}
+                    title={resumen.nivelRegla
+                      ? `${fac.facultad}: ${resumen.nivelRegla === "exenta"
+                        ? "exenta del criterio de nivel"
+                        : `admite ${resumen.nivelRegla}`}`
+                      : `${fac.facultad}: admite todos los niveles`}
+                  >
+                    {resumen.nivelRegla ?? <span aria-label="admite todos los niveles">·</span>}
+                  </td>
+                  <td
+                    className="cmv2-panorama-estado"
                     data-propia={resumen.minPropio ? "true" : "false"}
                     title={resumen.minPropio
-                      ? `${fac.facultad}: mínimo propio`
+                      ? `${fac.facultad}: exige ${resumen.minRegla ?? "un mínimo propio"} elegibles por curso-horario`
                       : `${fac.facultad}: aplica el mínimo general`}
                   >
-                    {resumen.minPropio ? "propio" : <span aria-label="aplica el mínimo general">·</span>}
+                    {resumen.minPropio
+                      ? (resumen.minRegla ?? "propio")
+                      : <span aria-label="aplica el mínimo general">·</span>}
                   </td>
                 </tr>
               );

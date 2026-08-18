@@ -78,6 +78,13 @@
   font-weight: var(--pulso-weight-semibold);
 }
 
+/* La cabecera de Facultad también es sticky-left: sin esto, al scrollear se
+   leía «cultad» mientras las filas de abajo sí conservaban su nombre. */
+.cmv2-panorama-table thead th:first-child {
+  left: 0;
+  z-index: 3;
+}
+
 /* La facultad ancla la lectura de su fila cuando la tabla se desplaza. */
 .cmv2-panorama-table tbody th {
   position: sticky;
@@ -85,6 +92,24 @@
   z-index: 1;
   background: var(--pulso-surface);
   font-weight: var(--pulso-weight-semibold);
+  /* El nombre puede envolver a dos líneas: con nowrap, los nombres largos
+     («GASTRONOMÍA, HOTELERÍA Y TURISMO») forzaban scroll horizontal incluso a
+     1200 px de ancho, y el scroll es el que producía la lectura recortada. */
+  min-width: 128px;
+  max-width: 176px;
+  white-space: normal;
+}
+
+/* El filo de la oclusión se DIBUJA. Medido en la pantalla de Gonzalo: al
+   scrollear, las celdas se deslizan POR DEBAJO de la columna sticky opaca y
+   «571 de 907» se leía «1 de 907» — un número a medias que parece entero es
+   peor que uno oculto. El borde + la sombra hacen que lo tapado se lea como
+   corte, no como dato. */
+.cmv2-panorama-table thead th:first-child,
+.cmv2-panorama-table tbody th {
+  border-right: 1px solid var(--cmv2-border);
+  box-shadow: 6px 0 8px -6px color-mix(in srgb, var(--pulso-text) 22%, transparent);
+  clip-path: inset(0 -14px 0 0);
 }
 
 .cmv2-panorama-table tbody th button {
@@ -95,6 +120,12 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  /* El reset global de botones pone nowrap + inline-flex: el nombre largo no
+     envolvía, derramaba centrado fuera de la celda y el recorte del filo se
+     comía la primera letra («STUDIOS GENERALES…»). Medido a 1024×600. */
+  display: block;
+  width: 100%;
+  white-space: normal;
 }
 
 .cmv2-panorama-table tbody th button:hover {
@@ -113,9 +144,12 @@
 
 /* Barra sobre escala común: la capa de fondo es el total de CH de la facultad
    y la de acento, los elegibles. Comparar entre facultades es el único motivo
-   por el que esta vista existe, así que la escala nunca es local. */
+   por el que esta vista existe, así que la escala nunca es local.
+   150px y no 190: con 190 quedaban 47px de scroll horizontal a 1024×600 (el
+   piso de la matriz QA) y el scroll es lo que deslizaba las cifras bajo la
+   columna sticky. Sin scroll no hay oclusión que leer mal. */
 .cmv2-panorama-barra-celda {
-  min-width: 190px;
+  min-width: 150px;
 }
 
 .cmv2-panorama-barra {
@@ -158,6 +192,11 @@
 .cmv2-panorama-estado {
   color: var(--pulso-text-muted);
   font-size: 10px;
+  /* La regla va en corto y con tope: una excepción de tres categorías no
+     puede ensanchar la columna de todas; el `title` lleva la frase entera. */
+  max-width: 148px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cmv2-panorama-estado[data-propia="true"] {

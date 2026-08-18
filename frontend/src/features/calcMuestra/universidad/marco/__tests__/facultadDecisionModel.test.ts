@@ -10,6 +10,8 @@ import { toggleTipoEnFacultad } from "../../criterios/tipoSesionModel";
 import { setMinimoFacultad } from "../../criterios/minElegiblesModel";
 import {
   facultadesBloque,
+  reglaDecisionPropia,
+  reglaNivelFacultad,
   resumenDecisionFacultad,
   slugFacultad,
   tieneDecisionPropia,
@@ -166,5 +168,42 @@ describe("tieneDecisionPropia / resumenDecisionFacultad", () => {
     const r = resumenDecisionFacultad(conMin, [SESSION, CONDICION], ciencias.excKey, ciencias.minKey);
     expect(r.minPropio).toBe(true);
     expect(r.propias).toBe(1);
+    // La regla se dice en corto: la celda del Panorama la pinta tal cual.
+    expect(r.minRegla).toBe("≥ 25");
+  });
+});
+
+describe("reglas en corto para el Panorama", () => {
+  // Gonzalo: «¿cómo que "propio"?» — la celda tiene que decir QUÉ decide la
+  // facultad, no que decide algo.
+  it("una excepción add/replace se dice con sus categorías", () => {
+    const sel: CriteriosSeleccionMarco = {
+      byVariable: {
+        session_type: {
+          mode: "include",
+          categories: ["teorico"],
+          exceptions: {
+            derecho: { op: "add", categories: ["taller"] },
+            gestion: { op: "replace", categories: ["teorico", "seminario", "laboratorio"] },
+          },
+        } as CriterioSeleccion,
+      },
+    };
+    expect(reglaDecisionPropia(sel, "session_type", "derecho")).toBe("además TALLER");
+    expect(reglaDecisionPropia(sel, "session_type", "gestion")).toBe("sólo TEORICO, SEMINARIO +1");
+    expect(reglaDecisionPropia(sel, "session_type", "psicologia")).toBeNull();
+  });
+
+  it("el nivel dice su rango, su exención o nada, buscando por clave canónica", () => {
+    const sel = {
+      courseLevelRanges: {
+        // Shape del motor ({min,max} + centinela) con clave de etiqueta.
+        "CIENCIAS E INGENIERIA": [{ min: 0, max: 0 }, { min: 2, max: 10 }],
+        "ESTUDIOS GENERALES LETRAS": [{ exenta: true }],
+      },
+    } as unknown as CriteriosSeleccionMarco;
+    expect(reglaNivelFacultad(sel, "Ciencias e Ingeniería")).toBe("niveles 0 y 2–10");
+    expect(reglaNivelFacultad(sel, "ESTUDIOS GENERALES LETRAS")).toBe("exenta");
+    expect(reglaNivelFacultad(sel, "DERECHO")).toBeNull();
   });
 });
