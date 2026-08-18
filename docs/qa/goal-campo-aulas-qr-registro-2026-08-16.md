@@ -1407,6 +1407,7 @@ sospecha.
 | L90 | `ef1b8d0e` | La evidencia de Validación salía en prosa corrida: los casos que el motor ya enumera —«CH 71: … CH 85: …»— aplastados en un párrafo, y la cola del conjunto pegada al último caso, diciendo que esa aula tenía una discrepancia más. |
 | L91 | `d398abca` | Una columna vacía en las 50 filas —«Corrida de selección»— gastaba ancho y desplazaba a «Cadena de reemplazo», que sí lleva dato. `compactColumns` descartaba la clave inexistente pero no la que existe vacía. |
 | L92 | `9c9e56ed` | Cada burbuja de eslabón medía según su texto —129, 166, 222 px—, así que el tercer eslabón de una cadena caía donde el segundo de otra y comparar profundidades exigía contarlas una por una. |
+| L93 | `94dca941` | Cuatro barras de Plotly en 200 px con DOS en cero: media lámina en blanco, y lo que esas barras vacías decían —que ninguna cadena pasó del primer reemplazo— no se leía en ninguna parte. Franja repartida + los cuatro tramos con sus ceros; el bloque baja a 80 px. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
