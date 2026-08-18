@@ -1,4 +1,5 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
+import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -236,7 +237,16 @@ export function AulasControlDelLibro({
           detalle fila a fila. Es el orden del histórico del cálculo de muestra
           (ADR 0060): se narra en el orden en que se decide, y la tabla cruda
           queda de respaldo para quien vaya a por un aula concreta. */}
-      {resumen?.veredicto ? <Veredicto v={resumen.veredicto} aulas={aulas} /> : null}
+      {resumen?.veredicto ? (
+        <>
+          {/* Los cuatro casos, en dos ejes. La lista de frases obliga a
+              reconstruir de cabeza cuántas quedaron a un solo umbral y por
+              cuál; la matriz lo enseña. Las frases se quedan porque dicen qué
+              hacer con cada caso, que un número no dice. */}
+          <AulasMatrizUmbrales v={resumen.veredicto} aulas={aulas} />
+          <Veredicto v={resumen.veredicto} aulas={aulas} />
+        </>
+      ) : null}
       <p className="aulas-cadenas-lectura">
         {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el
             plan sigue, y llamarlas igual confundía dos denominadores. */}
