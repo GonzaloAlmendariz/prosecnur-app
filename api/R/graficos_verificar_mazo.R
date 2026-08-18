@@ -95,11 +95,27 @@
 # ya mordio antes en este repo: una lista cerrada se traga en silencio lo que no
 # reconoce.
 #
-# El mapeo observado en la 28 —`NA, 4, 3, 2`— dice que una etiqueta no se
-# reconoce y las otras tres caen en posiciones INVERTIDAS. QUEDA POR HACER, y es
-# una sola llamada: imprimir `.PRESET_ACRD_ESCALA` y correr
-# `.preset_acreditacion_colores()` con las etiquetas EXACTAS de la 28. Eso lo
-# reproduce en frio o lo desmiente.
+# LO DESMIENTE. Corrida en frio `.preset_acreditacion_colores()` con las
+# etiquetas EXACTAS de la 28 —«Totalmente en desacuerdo», «En desacuerdo», «De
+# acuerdo», «Totalmente de acuerdo», «SIN INF»—, devuelve la rampa CANONICA y
+# con cinco colores distintos:
+#
+#   F4B183 · FFD966 · B0D597 · 8FC36B · BFBFBF
+#
+# `.preset_acrd_clave()` normaliza las cinco sin problema y las cuatro de escala
+# se reconocen. **El preset NO es el culpable.**
+#
+# Y la misma corrida destapa algo mas util: **esos hexes no son los del mazo**.
+# El XML dibuja `FFD965` y `ADD493`, que no estan ni en `.PRESET_ACRD_RAMPA`
+# (`FFD966`/`B0D597`) ni en el default de `reporte_plan_ppt.R:1821`
+# (`FFD966`/`B7D7A8`). O sea que **los colores del mazo NO coinciden con ninguna
+# constante declarada del motor**: algo los transforma antes de escribirlos.
+#
+# CONSECUENCIA PARA EL METODO: perseguir la paleta por `grep` de hex es un
+# callejon, y comparar un hex del XML contra una constante del fuente da falsos
+# negativos. El siguiente paso es TRAZAR —loguear `levels_cat` y los colores
+# resueltos por lamina en el sitio donde se construye la escala de relleno— y
+# leer cuales salen con el gris duplicado. No hay atajo por lectura de codigo.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
