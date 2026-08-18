@@ -23,6 +23,7 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
+import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
 import { AulasCadenaChart } from "./AulasCadenaChart";
@@ -229,7 +230,13 @@ function DataTable({
   // La tabla recortaba a ocho columnas y ochenta filas sin decirlo, y Agenda
   // pide nueve: origen y recopilador desaparecían de la vista sin dejar rastro.
   // Ahora todo recorte se declara.
-  const todasLasColumnas = compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER);
+  // Y una columna sin un solo dato no gasta ancho ni cuenta para el recorte:
+  // no se «recorta», es que no tiene nada que enseñar. Declararla como recorte
+  // diría que hay algo escondido detrás, y no lo hay.
+  const todasLasColumnas = columnasConDato(
+    rows,
+    compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER),
+  );
   const recorteColumnas = recorteTabla(todasLasColumnas, maxColumns, "columna");
   const columns = recorteColumnas.visibles;
   // 80 filas dejaban fuera 116 de las 196 de un operativo real —y con las
