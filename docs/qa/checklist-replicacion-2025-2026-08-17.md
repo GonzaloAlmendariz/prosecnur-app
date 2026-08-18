@@ -1510,6 +1510,55 @@ por debajo de su p25 actual de 15, así que su estadístico bajaría y pediría 
 aulas. En EE.GG. Ciencias pasa lo contrario: las de laboratorio tienen p25 32
 contra su 27 actual y lo subirían.
 
+## R35 — criterio por criterio contra 2025
+
+Lo que Gonzalo llamó «un comparativo no sólo de números sino de método». Todo
+verificado contra las 1.097 aulas de su pool sorteado, no contra el diseño en
+papel.
+
+| # | Criterio | 2025 | Nosotros | ¿Igual? |
+|---|---|---|---|---|
+| 1 | Modalidad | presencial — **1.097 de 1.097** | presencial estricto | **sí** |
+| 2 | Tipo de sesión | teórico — **1.097 de 1.097** | teórico | **sí** |
+| 3 | Nivel del curso | sin 1, 11 ni 12; **sí admite el 0** (135 aulas) | 2–10, con los dos EE.GG. exentos | **no** — decisión suya |
+| 4 | Mínimo por aula | **≥ 10 sobre `matriculados_poblacion`**, no sobre el total | ≥ 15 elegibles, 10–20 por facultad | **no** — decisión suya |
+| 5 | Posgrado | excluido | excluido **+ Estudios Especiales** | más estricto |
+| 6 | Tipo de docente | su pool sólo trae *contratado* (902) y *ordinario-principal* (195) | sin filtro | **ambiguo** — ver abajo |
+| 7 | Condición del curso | columna **vacía** en su pool | no se usa | sin dato |
+| 8 | Estadístico | mín(mediana, media) | **p25** | **no** — decisión suya |
+| 9 | Sobremuestra | ×1,5 | 20 % | **no** — pendiente |
+| 10 | Método de selección | sistemático k = N/n | cube balanceado | **no** |
+| 11 | Factor de asistencia | **sin τ** | τ = 0,53 | **no** |
+
+### Tres matices que cambian la lectura
+
+**El mínimo de 2025 no era sobre matriculados brutos.** Su libro trae dos
+columnas: `matriculados_total` (mediana 34) y `matriculados_poblacion` (mediana
+30), y el mínimo de 10 aplica sobre la **segunda** — su valor mínimo en el pool
+es exactamente 10. O sea que ya descontaban algo antes de contar, igual que
+nosotros descontamos el traslape. Su criterio y el nuestro están más cerca de lo
+que parecía: la diferencia es cuánto se descuenta y dónde se pone el corte.
+
+**El nivel 0.** El pool de 2025 tiene 135 aulas de nivel 0 y nuestro rango 2–10
+las dejaría fuera. En nuestro catálogo sólo hay **17**, todas de EE.GG. LETRAS y
+10 ya incluidas por la exención. La diferencia 135 → 17 no es de criterio: es que
+la codificación del nivel cambió entre semestres.
+
+**El tipo de docente sigue sin resolverse.** Su pool tiene exactamente las dos
+categorías que nosotros usábamos como filtro —contratado y ordinario— lo cual es
+compatible con que sí filtraran. Pero otra fuente del mismo estudio atribuye a
+esas mismas aulas asociados, auxiliares y jefes de práctica. **Dos fuentes del
+mismo año se contradicen**, así que no se puede afirmar ni lo uno ni lo otro. Lo
+dejamos sin filtro, que es la opción que no inventa.
+
+### Dónde estamos
+
+Coinciden los dos criterios que definen el universo —presencial y teórico— y
+ésos son los que más recortan. Las cinco diferencias restantes son decisiones
+deliberadas de Gonzalo (nivel con exención, mínimo sobre elegibles, exclusión de
+Estudios Especiales, p25) o decisiones pendientes (sobremuestra, método de
+selección, τ).
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
