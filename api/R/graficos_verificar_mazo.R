@@ -384,7 +384,16 @@ calibrar_umbrales <- function(path, p = 0.10) {
 # en cuanto el motor PARTE una lamina. Medido: los enunciados que el plan pone
 # en `plan$slides[[26]]` estan dibujados en la lamina 30 del mazo, +4, y los
 # demas desfases caen en 29, 34, 37, 53 y 62 —todas posteriores a una
-# particion—. Sin resolver eso, cualquier conteo mide en la lamina equivocada. Lo que P46 cerro sigue cerrado —los 22 cortes
+# particion—. Sin resolver eso, cualquier conteo mide en la lamina equivocada.
+#
+# EL INDICE SE ESQUIVA buscando cada enunciado en TODO el mazo (`p49d.R`), y
+# asi el metodo cierra: 16 declarados, 16 completos, 0 cortados. PERO ESA CIFRA
+# CUBRE MUY POCO: el plan entero tiene **18 bloques y solo 13 con
+# `titulos_grupo`**, y el enunciado que la lamina 25 corta en «de D» no esta en
+# ninguno. `titulos_grupo` solo existe cuando alguien lo escribio a mano; en el
+# resto el graficador cae en `.title_of_var(v)` —la ETIQUETA DE LA VARIABLE en
+# el instrumento—, que es la fuente contra la que hay que comparar para contar
+# el mazo entero. Lo que P46 cerro sigue cerrado —los 22 cortes
 # CON elipsis se fueron y no han vuelto—, pero un «cero truncados» sin cubrir
 # los cortes silenciosos vale solo para la mitad marcada.
 
