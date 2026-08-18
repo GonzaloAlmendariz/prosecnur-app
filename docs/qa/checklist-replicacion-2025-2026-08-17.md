@@ -3115,3 +3115,18 @@ contrato; 1024×600 sin desborde; 218/218.
 | K3 visualizaciones nuevas | ☐ |
 
 Cola D: D4 libro (aprobada) · D2 τ sexo · D5 extracción congelado.
+
+### Tanda K — K2 casi completo (`22aba5e4`) · dibujo entero
+
+Entregables (defensa junto al reporte, privacidad al pie), Laboratorio
+(evidencia antes que resultados) y Objetivo (renombre «Parámetros del
+sorteo») al orden del censo. Outlines vivos verificados; vitest calcMuestra
+COMPLETO 1.537/1.537.
+
+| # | Tanda K | Estado |
+|---|---|---|
+| K0 gramática · K1 censo · K2 Titulares/Entregables/Laboratorio/Objetivo | ☑ `ab85d979` `f224af2d` `bb0c3302` `22aba5e4` |
+| K2 · Auditoría (anclas en «Fórmulas del diseño», 2.504px) | ☐ SIGUIENTE |
+| K3 · visualizaciones nuevas (lente por facultad en Coincidencia · scores del sorteo · serie de estabilidad · calor cuota×sexo) | ☐ |
+
+Cola D: D4 libro (aprobada) · D2 τ sexo · D5 extracción congelado · menores.
