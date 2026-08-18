@@ -113,6 +113,15 @@
 #' distintos: cuando se decide el grosor y, mucho despues, cuando se calcula el
 #' alto del panel. Dos copias del mismo calculo divergen en cuanto una se toca.
 #'
+#' MEDIDO EN LA LAMINA 16 DEL MAZO DE CONTA (P48, contra `p51`/`p52`): este
+#' alto es el DECLARADO —0.42, o 0.96/1.06 con etiqueta alta—, no el que la fila
+#' acaba teniendo. En esa lamina la fila real pasó de 0.554 a 0.693 in y la
+#' barra, en vez de engordar, cayó de 0.432 a 0.190 in: la fraccion de fila se
+#' desplomó de 0.78 a 0.27. El piso de 0.32 in no lo atrapó porque mide contra
+#' este alto declarado y no contra los 0.693 reales, asi que se dió por
+#' satisfecho con una barra de 0.190. Un piso que no ve la fila que protege sólo
+#' protege de casos que ya estaban bien.
+#'
 #' @param alto_por_categoria Alto declarado, o `NULL` para el de por defecto.
 #' @param needs_tall_label_slot `TRUE` si las etiquetas piden fila alta.
 #' @param max_lineas_eje_y Lineas de la etiqueta mas larga.
