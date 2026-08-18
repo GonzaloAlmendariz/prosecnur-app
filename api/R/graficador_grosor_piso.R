@@ -146,6 +146,19 @@
 #' (`.barras_alto_fila_ajustado()`). Que una configuracion «aparezca dos veces»
 #' no dice nada, entonces: pasa siempre.
 #'
+#' IDENTIFICADOR ENCONTRADO (tercera clave probada): `plot_cat_lvls` no son las
+#' etiquetas visibles sino las REFERENCIAS de variable —`tema_1__1__docentes`,
+#' `tema_1__2__estudiantes`…—, y esas si distinguen un render de otro. La 16
+#' muestra en pantalla «Docentes / Estudiantes / Egresados / Administrativos»,
+#' que no aparecen en la traza: la clave hay que cruzarla contra el PLAN, no
+#' contra el XML.
+#'
+#' Y una asimetria medida que si singulariza la configuracion sospechosa: en
+#' PPT los renders se reparten 54 con `alto_por_cat_eff` nominal (0.5500) y 54
+#' con el estirado (0.6510), y CADA configuracion de cuatro categorias aparece
+#' una vez con cada uno —salvo la de `y_axis_max = 9.52`, cuyas dos lineas van
+#' las DOS al estirado 0.651—. Es la unica que no tiene contraparte nominal.
+#'
 #' La unica configuracion de cuatro categorias cuyas DOS lineas son identicas
 #' —`y_axis_max = 9.52`, `alto_cat_eff = 0.651`, `h_panel = 6.1975`— es la
 #' compatible con lo medido en el XML de la lamina 16, donde sus dos bloques dan
