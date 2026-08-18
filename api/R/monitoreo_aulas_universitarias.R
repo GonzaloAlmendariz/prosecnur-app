@@ -1142,6 +1142,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   names(advance)[names(advance) == "aplicada"] <- "aulas_aplicadas"
   advance$avance_aulas_pct <- ifelse(advance$aulas > 0, round(100 * advance$aulas_aplicadas / advance$aulas, 1), NA_real_)
   advance$avance_respuestas_pct <- ifelse((advance$respuestas_validas + advance$brecha) > 0, round(100 * advance$respuestas_validas / (advance$respuestas_validas + advance$brecha), 1), NA_real_)
+  # POR BRECHA, igual que su grafico. `aggregate()` devuelve los estratos en
+  # orden alfabetico, asi que el panel salia con el GRAFICO ordenado por lo que
+  # falta —Ciencias 438, Letras 375, Gestion 336…— y la TABLA de debajo por
+  # nombre —Arquitectura, Ciencias, Derecho…—. Dos ordenes para las mismas seis
+  # filas en el mismo panel obligan a rebuscar cada estrato al pasar de uno a
+  # otra. El grafico manda porque es lo que el panel promete: donde falta mas.
+  advance <- advance[order(-advance$brecha, advance$stratum), , drop = FALSE]
 
   brechas <- tracked_df[tracked_df$brecha > 0 | tracked_df$operational_status %in% c("sin_acceso", "cancelada", "reemplazo_pendiente"), , drop = FALSE]
   # `brechas` es un REPORTE, no una tercera copia del plan. Salia con las ~40

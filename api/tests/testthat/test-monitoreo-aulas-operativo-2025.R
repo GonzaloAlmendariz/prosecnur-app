@@ -99,3 +99,29 @@ test_that("un titular sin reserva es el caso dominante y se dice bien", {
   expect_identical(res$reservas_usadas, 0L)
   expect_match(monitoreo_aulas_activacion_texto(res), "no tiene ninguna reserva en el plan")
 })
+
+test_that("el avance por estrato sale ordenado por brecha, como su grafico", {
+  # El panel dibuja el grafico por lo que FALTA y la tabla salia por nombre,
+  # porque `aggregate()` devuelve los grupos en orden alfabetico. Dos ordenes
+  # para las mismas seis filas en el mismo panel.
+  #
+  # El caso esta construido para que los dos ordenes NO coincidan: por brecha
+  # sale Gestion, Derecho, Arquitectura y por nombre Arquitectura, Derecho,
+  # Gestion — exactamente al reves. Con estratos cuya brecha creciera con el
+  # alfabeto, «ordenada» y «casualidad» se verian igual.
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "CH 1", classroom_id = "CH 1", label = "A", course_name = "C1",
+         faculty = "Arquitectura", stratum = "Arquitectura", sample_role = "titular",
+         eligible_n = 20, expected_valid = 10, sample_status = "agendada"),
+    list(operational_code = "CH 2", classroom_id = "CH 2", label = "B", course_name = "C2",
+         faculty = "Derecho", stratum = "Derecho", sample_role = "titular",
+         eligible_n = 40, expected_valid = 20, sample_status = "agendada"),
+    list(operational_code = "CH 3", classroom_id = "CH 3", label = "C", course_name = "C3",
+         faculty = "Gestion", stratum = "Gestion", sample_role = "titular",
+         eligible_n = 60, expected_valid = 30, sample_status = "agendada")
+  ))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list(enabled = TRUE, plan = plan))
+  estratos <- vapply(d$avance_por_estrato, function(r) as.character(r$stratum), character(1))
+
+  expect_identical(estratos, c("Gestion", "Derecho", "Arquitectura"))
+})
