@@ -51,9 +51,35 @@
 # categorias son INDISTINGUIBLES, en la leyenda y en las barras. No es que la
 # lamina vaya al reves: es que no se puede leer.
 #
-# Las dos son de bloques de un solo publico (la 28, «15 administrativos»). La
-# sospecha a falsar primero es el orden de niveles ordinales, que ya mordio
-# antes: cuando no se resuelve por diccionario cae a frecuencia o alfabetico.
+# EL NARANJA NO SE DIBUJA POCO: NO SE DIBUJA NUNCA. Contadas las ocurrencias de
+# `<a:srgbClr>` de la rampa en cada lamina:
+#
+#   lamina 24 (sana)   F4B183 8 · FFD965 8 · ADD493 8 · 70AD47 16 · BFBFBF 8
+#   lamina 27 (sana)   7 · 7 · 7 · 14 · 7
+#   lamina 28          **F4B183 0** · 8 · 8 · 16 · **BFBFBF 16**
+#   lamina 30          **0** · 3 · 3 · 6 · **6**
+#
+# El gris aparece EXACTAMENTE EL DOBLE, que es la firma de estar sirviendo a dos
+# series. Asi que no es que el nivel «Totalmente en desacuerdo» no tenga casos
+# —si los tuviera, seguiria en la leyenda con su color—: es que su color se
+# perdio y el gris ocupo su lugar.
+#
+# DOS SITIOS PUEDEN PRODUCIRLO, los dos localizados:
+#
+#   1. `graficador_barras_apiladas.R:1697-1698` — `niveles_stack` y
+#      `niveles_leyenda` se invierten segun `invertir_segmentos` /
+#      `invertir_leyenda`, y de ahi sale el `levels_cat` de la paleta.
+#   2. `graficador_paleta.R:110` — la rama POSICIONAL de
+#      `.graficos_mk_palette()`: `pal_user[seq_along(levels_cat)]`, que asigna
+#      por posicion. El propio archivo ya avisa del riesgo unas lineas antes
+#      («caeria al branch posicional y asignaria el color por posicion en vez de
+#      por etiqueta, invirtiendo colores cuando el factor esta en orden distinto
+#      al del override»), asi que este defecto es una recaida de algo ya visto.
+#
+# PARA CERRARLO hace falta el `colores_grupos` y el `etiquetas_grupos` REALES de
+# ese bloque, que solo salen cargando el plan del `.pulso` (`p48plan*.R`) o
+# trazando. NO lo des por diagnosticado antes: la combinacion exacta que produce
+# «gris al frente y naranja ausente» todavia no se ha reproducido.
 #
 # El barrido VISUAL de P41 habia dado la 30 por limpia. Una inversion de rampa
 # no salta en una hoja de contacto: se ve bien, solo esta al reves.
