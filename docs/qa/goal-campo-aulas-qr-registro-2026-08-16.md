@@ -1405,6 +1405,7 @@ sospecha.
 | L88 | `7d0c22a7` | Nueve columnas con rótulo «%» enseñaban proporciones: «0.694» bajo «% Asistencia». |
 | L89 | `29aeff93` | Las dos hojas del libro cuentan la misma aula y nunca se comparaban entre sí. |
 | L90 | `ef1b8d0e` | La evidencia de Validación salía en prosa corrida: los casos que el motor ya enumera —«CH 71: … CH 85: …»— aplastados en un párrafo, y la cola del conjunto pegada al último caso, diciendo que esa aula tenía una discrepancia más. |
+| L91 | `d398abca` | Una columna vacía en las 50 filas —«Corrida de selección»— gastaba ancho y desplazaba a «Cadena de reemplazo», que sí lleva dato. `compactColumns` descartaba la clave inexistente pero no la que existe vacía. |
 
 **Lo que estos trece dejaron como método** —y es lo que de verdad se reutiliza—:
 
