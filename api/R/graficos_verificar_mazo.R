@@ -1398,3 +1398,46 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 # LECCION: cuando una medicion sale «cerca pero nunca igual», sospecha de un
 # paso que corre DESPUES de donde mides. No es ruido: es un tramo del calculo
 # que no estas viendo.
+
+
+# P16 — B46 TAMPOCO. QUINTA CANDIDATA CAIDA, Y EL BLOQUEO ES OTRO.
+#
+# Movido el punto de traza DESPUES del bloque B46/G-21 —justo antes de
+# `header_h <- h_header_in / h_total_in`— y volcados ademas `panel_floor_in`,
+# `pad_est_in`, `needs_tall_label_slot`, `n_categorias`, `pad_flex_h` y
+# `h_total_in`. Corrido sobre los 232 renders:
+#
+#   B46 DISPARA en **24 de 232** renders, y si mueve valores: el 0.8705 baja de
+#   x17 a x13 y aparece un 1.0920 x6 que antes no estaba.
+#
+#   Y AUN ASI, **cero coincidencias** con los cinco grosores del XML, con los
+#   MISMOS vecinos mas cercanos que antes de mover la traza:
+#     0.8503 -> 0.8427 · 0.8696      0.8659 -> 0.8696
+#     0.7024 -> 0.6987               0.5976 -> 0.5967
+#     0.5201 -> 0.5225
+#
+# La quinta candidata cae con las otras cuatro. Y que los vecinos NO cambien al
+# mover el punto de traza dice que el desfase **no lo produce B46**: es algo que
+# pasa entre el ultimo calculo del graficador y el EMU, y que ni la escala de
+# colocacion (medida 1:1 en las siete) ni el piso de B46 explican.
+#
+# EL BLOQUEO REAL, y hay que decirlo con su nombre: **no se puede casar una
+# linea de traza con su lamina**. Sin eso, cada medicion sobre los 232 renders
+# es una distribucion contra otra distribucion, y de ahi no sale una causa. Se
+# han intentado dos atajos —el grosor fisico como clave, y mover el punto de
+# medicion— y los dos han fallado. El siguiente intento tiene que empezar por
+# **un contador global que el renderer incremente y que viaje a la traza**, no
+# por otra hipotesis sobre el grosor.
+#
+# P16 QUEDA BLOQUEADO tras cinco candidatas medidas y caidas: numero de filas,
+# maximo de lineas por etiqueta, numero de cajas de eje, escala de colocacion y
+# piso de B46. Lo que SI queda establecido y sirve:
+#   - las laminas de B4 se pueden nombrar (viven en `detalle`);
+#   - el par minimo es 21 y 23 a 0.8503 contra 44 a 0.7024, misma firma y mismo
+#     numero de segmentos, 0.376 cm;
+#   - el motor tiene MAS grupos que el aprobado (8 contra 5) y MENOS dispersion
+#     (max 0.879 contra 1.013), que es la comparacion que vale.
+#
+# LECCION: cuando dos intentos seguidos de medir fallan por la MISMA razon
+# —aqui, no poder identificar el objeto—, el trabajo siguiente no es otra
+# hipotesis: es arreglar el instrumento.
