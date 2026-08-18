@@ -434,6 +434,9 @@ export function UniversidadDesk({
     () =>
       criteriosGeneralesDeEstudio({
         parametros: facultyComp?.parametros as Record<string, unknown> | undefined,
+        decision: (syncedWorkspace.aulas_config as
+          { alumnos_por_ch_decision?: Record<string, unknown> } | undefined)
+          ?.alumnos_por_ch_decision,
         selector: syncedWorkspace.aulas_config as Record<string, unknown> | undefined,
         aulasMarco:
           (aulasState?.frame?.aula_frame ?? []).filter(

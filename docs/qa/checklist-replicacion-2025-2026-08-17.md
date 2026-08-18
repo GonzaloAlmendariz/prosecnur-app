@@ -1140,6 +1140,54 @@ lo pregunte: «Estadístico por curso-horario: media» en la fila de arriba.
 
 Es exactamente para lo que sirve la pestaña.
 
+## R29 — con p25 el motor da 193 aulas contra las 194 de 2025
+
+La discrepancia de 153 contra 177 se cerró, y no era un defecto: el motor
+dimensionaba con **media** porque la decisión de «Alumnos por CH» nunca se había
+sellado en ese proyecto.
+
+Primer intento fallido, anotado para no repetirlo: escribí `p25` en
+`parametros.estadistico_conglomerado` de los dos componentes, el endpoint
+devolvió 200 y el valor volvió a salir «media». La causa está en el propio
+motor y es deliberada: al sellar la decisión, `calc_muestra_alumnos_por_ch.R`
+resuelve el estadístico **por estrato**, escribe el valor ya calculado y deja el
+parámetro en «media» a propósito. El estadístico no se configura en el
+componente; se sella en la decisión del marco.
+
+Sellada p25 y recalculado, el componente de universidad da **193 aulas**:
+
+| Facultad | motor con p25 | aplicadas 2025 | Δ |
+|---|---|---|---|
+| CIENCIAS E INGENIERIA | 42 | 40 | +2 |
+| EE.GG. CIENCIAS | 28 | 26 | +2 |
+| EE.GG. LETRAS | 22 | 23 | −1 |
+| DERECHO | 18 | 16 | +2 |
+| CIENCIAS SOCIALES | 14 | 17 | −3 |
+| ARTE Y DISEÑO | 13 | 12 | +1 |
+| ARQUITECTURA | 11 | 7 | +4 |
+| CIENCIAS Y ARTES COMUN. | 10 | 11 | −1 |
+| ARTES ESCÉNICAS | 9 | 11 | −2 |
+| GESTIÓN | 8 | 9 | −1 |
+| PSICOLOGÍA | 7 | 6 | +1 |
+| LETRAS Y C. HUMANAS | 4 | 4 | 0 |
+| EDUCACIÓN | 3 | 7 | −4 |
+| GASTRONOMÍA | 2 | 3 | −1 |
+| CONTABLES | 2 | 2 | 0 |
+| **TOTAL** | **193** | **194** | **−1** |
+
+**193 contra 194.** Desvío medio absoluto por facultad: **1,67 aulas**, el mejor
+de todas las comparaciones hechas. Y el motor llega ahí aplicando τ = 0,53,
+mientras mi cuenta manual daba 177 sin τ: sus p25 por facultad no son los míos
+—usa interpolación (23,75; 22,5; 17,5) y su propio conjunto—, y la diferencia se
+compensa con τ.
+
+### Un defecto que esto destapó
+
+Con p25 sellado y 193 aulas en pantalla, la tarjeta seguía diciendo «Estadístico
+por curso-horario: **media**». Leía el parámetro del componente, que el motor
+deja en «media» a propósito. Ahora la **decisión sellada manda** y la tarjeta
+dice «primer cuartil (p25)».
+
 ## Reglas de este análisis
 
 - Las fuentes del cliente se leen; no se copian al repo ni se modifican.
