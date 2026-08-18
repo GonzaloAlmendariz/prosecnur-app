@@ -1307,3 +1307,47 @@ verificar_mazo <- function(path, umbrales = .VERIF_UMBRALES) {
 
   stats::median(sg[(idx + 1L):length(sg)]) * .VERIF_CM_POR_IN
 }
+
+
+# P16 — HAY UNA ESCALA DE COLOCACION ENTRE EL PLOT Y LA LAMINA
+#
+# Instrumentada la fuente con `PULSO_TRAZA_GROSOR` sobre los 232 renders,
+# volcando ademas el producto `grosor_eff * alto_por_cat_eff`, que es lo que el
+# graficador cree que va a medir la barra. La idea era casar cada render con su
+# lamina por ese numero, sin necesidad de un identificador.
+#
+# NO CASA NINGUNO. De los cinco grosores medidos en el XML de `rampa:4`
+# —0.8503, 0.8659, 0.7024, 0.5976, 0.5201 in— **cero** aparecen en la traza con
+# tolerancia 0.0006. Lo que la traza da:
+#
+#   rango    0.4290 - 1.1132
+#   modas    0.4290 (x64) · 0.5225 (x56) · 0.8705 (x17) · 0.5078 (x16) ·
+#            0.9140 (x12) · 0.5494, 0.6100 (x6)
+#   lo mas cercano a 0.8503:  0.8427 · 0.8696 · 0.8705 · 0.8764
+#
+# Cerca pero nunca igual, y las razones rondan 0.98-1.06. O sea que **entre lo
+# que el graficador calcula y lo que sale en EMU hay un factor de colocacion**:
+# el canvas se coloca en su placeholder conservando la proporcion, asi que la
+# barra fisica es `grosor_eff * alto_por_cat_eff * escala_de_colocacion`. La
+# traza mide el lado del plot; el XML mide DESPUES de colocar.
+#
+# DOS CONSECUENCIAS:
+#
+#   1. El atajo de casar por grosor NO sirve. Para seguir P16 hace falta un
+#      identificador de lamina de verdad en la traza —o medir la escala—.
+#   2. **La escala de colocacion es una CUARTA candidata** para B4, y ninguna de
+#      las tres caidas la cubria: dos laminas con el MISMO `grosor_eff` y el
+#      MISMO alto de fila pueden salir a distinto grosor fisico si sus canvas se
+#      colocan con distinta escala. Encaja con que el numero de filas, el numero
+#      de cajas y el maximo de lineas no ordenen nada.
+#
+# LO SIGUIENTE, y es barato: medir la escala por lamina comparando el `ext` del
+# `<p:graphicFrame>` (o del grupo que envuelve al canvas) contra el `ancho`/
+# `alto` declarados al graficador. Si las siete de `rampa:4` traen escalas
+# distintas, P16 deja de ser del graficador y pasa a ser de la COLOCACION.
+#
+# Confirmado de paso, y sin cambio respecto de la traza de P48:
+# `panel_fijado_in` TRUE en 122 renders y FALSE en 110.
+#
+# LECCION: un correlador tambien es una hipotesis. «El grosor fisico identifica
+# el render» parecia no necesitar comprobacion y fallo en los 232.
