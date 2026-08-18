@@ -83,3 +83,24 @@ describe("la pirámide de cuota", () => {
     expect(res.sinMeta).toBe(1);
   });
 });
+
+it("el gris es para la celda sin recoger, no para la que va atrasada", () => {
+  // El control del defecto: la primera celda va al 45 % y la segunda al 56 %.
+  // Con el corte inventado en el 50 % la primera salia del color que la paleta
+  // define como «todavia sin trabajar» —y tiene 191 respuestas recogidas—, asi
+  // que la que iba mas atrasada se leia como la menos urgente. Las dos estan en
+  // marcha y las dos tienen que verse igual; el largo de la barra ya dice cual
+  // va mas lejos.
+  const { facultades } = piramideDeCuota([
+    { faculty: "Ciencias", sex: "F", target: 421, observed: 191 },
+    { faculty: "Letras", sex: "F", target: 431, observed: 243 },
+    { faculty: "Gestion", sex: "F", target: 100, observed: 0 },
+  ] as never);
+
+  const lado = (f: string) => facultades.find((x) => x.facultad === f)?.izquierda;
+  expect(lado("Ciencias")?.observadas).toBe(191);
+  expect(lado("Ciencias")?.cumple).toBe(false);
+  expect(lado("Letras")?.cumple).toBe(false);
+  // La unica que merece el gris es la que no ha recogido nada.
+  expect(lado("Gestion")?.observadas).toBe(0);
+});
