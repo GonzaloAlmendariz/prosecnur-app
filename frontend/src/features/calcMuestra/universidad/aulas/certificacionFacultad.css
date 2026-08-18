@@ -123,3 +123,14 @@
 .cmv2-cert-accion:hover {
   background: color-mix(in srgb, var(--pulso-warn-fg) 12%, transparent);
 }
+
+/* D2 · El cumplimiento 2025 por sexo, referencial: lectura al pie de la
+   celda, nunca parte del veredicto de hoy. */
+.cmv2-cert-sexo-ref {
+  display: block;
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-cert-sexo-ref[data-corto] { color: var(--pulso-warn-fg); }

@@ -14,9 +14,46 @@
  * «certificada» dicen la CAUSA (no cubre, sin tasa, sin titulares): un
  * hueco jamás se pinta como un cero medido.
  */
-import type { CalcMuestraCertificacionFacultad } from "../../../../api/calcMuestra";
+import type {
+  CalcMuestraCertificacionFacultad,
+  CalcMuestraReferenciaAsistencia,
+} from "../../../../api/calcMuestra";
 import { fmtInt } from "../../sharedCore";
 import "./certificacionFacultad.css";
+
+/** Clave tolerante para el join con las cuotas 2025. */
+function claveFac(x: unknown): string {
+  return String(x ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+/**
+ * D2 (decisión de Gonzalo: «también debe ser mostrado de forma referencial»):
+ * el cumplimiento por sexo que 2025 REALIZÓ, por facultad, desde las cuotas
+ * de la referencia. Límite del dato, declarado: la base 2025 no trae el
+ * denominador por sexo POR AULA («nadie observa»), así que lo referencial
+ * honesto es el agregado por facultad — logradas/cuota de cada sexo. En
+ * HSVG2026 la única celda < 1 fue EE.GG. Letras · hombres (0,92).
+ */
+export function cumplimientoSexo2025(
+  referencia: CalcMuestraReferenciaAsistencia | null | undefined,
+): Map<string, { F: number | null; M: number | null }> {
+  const out = new Map<string, { F: number | null; M: number | null }>();
+  for (const fila of referencia?.cuotas?.filas ?? []) {
+    const clave = claveFac((fila as Record<string, unknown>).facultad);
+    if (!clave) continue;
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    out.set(clave, {
+      F: num((fila as Record<string, unknown>).cumplimiento_mujeres),
+      M: num((fila as Record<string, unknown>).cumplimiento_hombres),
+    });
+  }
+  return out;
+}
 
 const ESTADO_LABEL: Record<string, string> = {
   certificada: "Certificada",
@@ -32,18 +69,27 @@ const ESTADO_LABEL: Record<string, string> = {
 function CeldaSexo({
   fila,
   sexo,
+  ref2025 = null,
 }: {
   fila: CalcMuestraCertificacionFacultad["filas"][number];
   sexo: "F" | "M";
+  /** Cumplimiento que 2025 realizó en este sexo (referencial, agregado por
+   *  facultad — el único nivel que la base anterior observa). */
+  ref2025?: number | null;
 }) {
   const celda = fila.sexo.find((c) => c.sexo === sexo);
   if (!celda || celda.margen == null) return <td>—</td>;
-  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"} · ${celda.elegibles ?? "—"} elegibles · ${celda.esperadas ?? "—"} esperadas`;
+  const detalle = `${sexo === "F" ? "Mujeres" : "Hombres"}: cuota ${celda.cuota ?? "—"} · ${celda.elegibles ?? "—"} elegibles · ${celda.esperadas ?? "—"} esperadas${ref2025 != null ? ` · 2025 realizó ${ref2025.toFixed(2).replace(".", ",")}× (referencial, agregado por facultad)` : ""}`;
   return (
     <td title={detalle}>
       <span className="cmv2-cert-sexo" data-cubre={celda.cubre === true ? "si" : celda.cubre === false ? "no" : "sin_tasa"}>
         {celda.margen.toFixed(2).replace(".", ",")}×
       </span>
+      {ref2025 != null ? (
+        <small className="cmv2-cert-sexo-ref" data-corto={ref2025 < 1 || undefined}>
+          2025 {ref2025.toFixed(2).replace(".", ",")}×
+        </small>
+      ) : null}
     </td>
   );
 }
@@ -59,14 +105,18 @@ function filaComprometida(f: CalcMuestraCertificacionFacultad["filas"][number]):
 export function CertificacionFacultadCard({
   certificacion,
   onAgregarAula,
+  referencia = null,
 }: {
   certificacion: CalcMuestraCertificacionFacultad | null;
   /** Acción REGISTRADA: fija los titulares de la facultad en (actuales + 1)
    *  en el estrato del estudio; el recálculo la aplica. Sin callback, la
    *  tarjeta es solo lectura (p. ej. en superficies de eco). */
   onAgregarAula?: (facultad: string, aulasActuales: number) => void;
+  /** El estudio anterior, SOLO para el cumplimiento por sexo referencial. */
+  referencia?: CalcMuestraReferenciaAsistencia | null;
 }) {
   if (!certificacion || !certificacion.filas.length) return null;
+  const ref2025 = cumplimientoSexo2025(referencia);
   const { certificadas, evaluables, tasa_esperada, ok } = certificacion;
 
   return (
@@ -114,8 +164,8 @@ export function CertificacionFacultadCard({
                 <td>{f.elegibles_titulares != null ? fmtInt(f.elegibles_titulares) : "—"}</td>
                 <td>{f.efectivas_esperadas != null ? fmtInt(f.efectivas_esperadas) : "—"}</td>
                 <td>{f.margen != null ? `${f.margen.toFixed(2).replace(".", ",")}×` : "—"}</td>
-                <CeldaSexo fila={f} sexo="F" />
-                <CeldaSexo fila={f} sexo="M" />
+                <CeldaSexo fila={f} sexo="F" ref2025={ref2025.get(claveFac(f.facultad))?.F ?? null} />
+                <CeldaSexo fila={f} sexo="M" ref2025={ref2025.get(claveFac(f.facultad))?.M ?? null} />
                 <td>
                   <span className="cmv2-cert-estado" data-estado={f.estado}>
                     {ESTADO_LABEL[f.estado] ?? f.estado}

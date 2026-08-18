@@ -233,7 +233,7 @@ export function AulasSeleccionTab({
       )}
 
       {/* 2 · El veredicto: ¿la selección garantiza la meta, por facultad y sexo? */}
-      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} />
+      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} referencia={referencia ?? null} />
 
       {/* 3 · El porqué del pedido: cuántas aulas hay y de dónde sale cada titular. */}
       <MargenPorFacultadCard filas={margenFilas} />

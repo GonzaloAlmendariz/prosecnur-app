@@ -129,3 +129,21 @@ describe("τ propio referencial (decisión de Gonzalo: mostrar, no redimensionar
     expect(s!.filas[0]!.tauPropio).toBeNull();
   });
 });
+
+describe("cumplimiento por sexo 2025 (D2, referencial)", () => {
+  it("lee las cuotas de la referencia con clave tolerante y nulls honestos", async () => {
+    const { cumplimientoSexo2025 } = await import("../CertificacionFacultadCard");
+    const ref = {
+      cuotas: {
+        filas: [
+          { facultad: "ESTUDIOS GENERALES LETRAS", cumplimiento_mujeres: 1.08, cumplimiento_hombres: 0.922 },
+          { facultad: "GESTIÓN Y ALTA DIRECCIÓN", cumplimiento_mujeres: null, cumplimiento_hombres: 1.1 },
+        ],
+      },
+    } as never;
+    const m = cumplimientoSexo2025(ref);
+    expect(m.get("estudios_generales_letras")).toEqual({ F: 1.08, M: 0.922 });
+    expect(m.get("gestion_y_alta_direccion")).toEqual({ F: null, M: 1.1 });
+    expect(cumplimientoSexo2025(null).size).toBe(0);
+  });
+});

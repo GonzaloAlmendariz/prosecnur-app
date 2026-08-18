@@ -13,7 +13,11 @@
  * para todas las facultades; debajo la ficha de cada una con sus criterios
  * propios y sus seis cuentas. Las dos con la columna de 2025 al lado.
  */
-import type { CalcMuestraCertificacionFacultad, CalcMuestraReferenciaCriterios } from "../../../../api/calcMuestra";
+import type {
+  CalcMuestraCertificacionFacultad,
+  CalcMuestraReferenciaAsistencia,
+  CalcMuestraReferenciaCriterios,
+} from "../../../../api/calcMuestra";
 import { CriteriosGeneralesCard, type CriterioGeneralFila } from "../criterios/CriteriosGeneralesCard";
 import { EmbudoComparadoFacultades } from "./EmbudoComparadoFacultades";
 import { CertificacionFacultadCard } from "../aulas/CertificacionFacultadCard";
@@ -26,11 +30,14 @@ export function SalidasCoincidenciaTab({
   fichas,
   referencia,
   certificacion = null,
+  referenciaAsistencia = null,
 }: {
   criteriosGenerales: CriterioGeneralFila[];
   criteriosMarco: CriterioGeneralFila[];
   fichas: FichaFacultad[];
   referencia: CalcMuestraReferenciaCriterios | null;
+  /** El estudio anterior (asistencia), para el cumplimiento por sexo ref. */
+  referenciaAsistencia?: CalcMuestraReferenciaAsistencia | null;
   /** El sello de la selección vigente, en modo lectura: la Entrega muestra
    *  la garantía junto a la coincidencia (la ACCIÓN vive en Selección). */
   certificacion?: CalcMuestraCertificacionFacultad | null;
@@ -56,7 +63,7 @@ export function SalidasCoincidenciaTab({
       {/* La garantía de la selección vigente cierra el relato: coincide con
           2025 Y cumple sus propias metas. Solo lectura — la acción «+1 aula»
           vive en Selección, donde se decide. */}
-      <CertificacionFacultadCard certificacion={certificacion} />
+      <CertificacionFacultadCard certificacion={certificacion} referencia={referenciaAsistencia} />
       <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
     </section>
   );
