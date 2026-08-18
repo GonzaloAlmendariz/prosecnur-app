@@ -2635,3 +2635,20 @@ la superficie es efímera (popover/dialog), nunca en flujo de página.
 | I4 | Cadena de reemplazos (estético) | ◐ |
 | I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
 | J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
+
+### Tanda I — I9+I10 cerrados (dibujo entero)
+
+**I9+I10 ☑ (`e558b326`)**: las fichas por facultad son tarjetas en grilla de
+dos por fila, sin acordeón — los 7 pasos, los criterios propios y el aviso
+siempre visibles; a ≤1279px cae a una columna (verificado a 1024×600 sin
+desborde). Y la facultad sin reglas propias dice la causa: «Se rige por los
+criterios generales del estudio.»
+
+| # | Ítem | Estado |
+|---|---|---|
+| I1 · I6a · I7a/b/c · I11 · I12 · I13 · I14 · I9 · I10 | cerrados | ☑ |
+| — | Radiografía nivel · oráculo · bundle i18b · scroll jail | ☑ |
+| I15 | Ranking de desempeño CH 2025 por facultad en Histórico | ☐ SIGUIENTE |
+| I4 | Cadena de reemplazos (estético) | ◐ |
+| I5 · I2 · I3 · I8 | Perfil · sustento (con J3) · relato · embudo más nítido | ☐ / ◐ |
+| J1 · J2 · J3 | Validez backend 4 sorteos · τ por facultad · «190 vs 170» didáctico | ☐ tras Tanda I |
