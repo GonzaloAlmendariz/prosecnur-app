@@ -130,11 +130,31 @@ export function controlesDeAulas(filas: ReadonlyArray<Record<string, unknown>>) 
   };
 }
 
-export function AulasControles({ filas }: { filas: ReadonlyArray<Record<string, unknown>> }) {
+export function AulasControles({ filas, plan = [] }: {
+  filas: ReadonlyArray<Record<string, unknown>>;
+  /**
+   * El plan, para poner la FACULTAD junto a cada aula citada.
+   *
+   * Los controles nombran las aulas por código —«CH 31: 25 asistentes…»— y el
+   * operativo se dirige por facultad: sin ella hay que ir a otra pestaña a
+   * averiguar si esa incidencia es de Derecho o de Arquitectura. Se une por el
+   * código, que es la clave que las dos listas comparten.
+   */
+  plan?: ReadonlyArray<Record<string, unknown>>;
+}) {
   const { controles, revisar, advertencias, correctos } = useMemo(
     () => controlesDeAulas(filas),
     [filas],
   );
+  const facultadPorCodigo = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const fila of plan) {
+      const codigo = String(fila.operational_code ?? "").trim();
+      const facultad = String(fila.faculty ?? "").trim();
+      if (codigo && facultad && !mapa.has(codigo)) mapa.set(codigo, facultad);
+    }
+    return mapa;
+  }, [plan]);
 
   if (!controles.length) {
     return <p className="mon-profile-muted">No hay controles de validación para este corte.</p>;
@@ -167,7 +187,18 @@ export function AulasControles({ filas }: { filas: ReadonlyArray<Record<string, 
                   <ul className="aulas-control-casos">
                     {control.tramos.map((tramo, i) => (
                       <li key={`${tramo.codigo}-${i}`} className={tramo.codigo ? "" : "es-nota"}>
-                        {tramo.codigo ? <span className="aulas-control-caso">{tramo.codigo}</span> : null}
+                        {tramo.codigo ? (
+                          <span className="aulas-control-caso">
+                            {tramo.codigo}
+                            {/* La facultad, cuando se sabe. Va DENTRO del chip
+                                del aula porque es de esa aula, no del texto de
+                                al lado, y se calla cuando el plan no la trae:
+                                inventar «Sin facultad» aquí sería ruido. */}
+                            {facultadPorCodigo.get(tramo.codigo)
+                              ? <em>{facultadPorCodigo.get(tramo.codigo)}</em>
+                              : null}
+                          </span>
+                        ) : null}
                         <span>{tramo.texto}</span>
                       </li>
                     ))}
