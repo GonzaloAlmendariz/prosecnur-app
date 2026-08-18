@@ -14,7 +14,7 @@
 import { useState } from "react";
 import { fmtInt } from "../../sharedCore";
 import { tip, tipAria, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
-import { pasoComparado, pasosComparables } from "./embudoComparadoModel";
+import { pasoComparado, pasosComparables, pasosDelEmbudo } from "./embudoComparadoModel";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import "./embudoComparado.css";
 
@@ -32,6 +32,7 @@ export function EmbudoComparadoFacultades({
   pasoInicial?: number;
 }) {
   const pasos = pasosComparables(fichas);
+  const todos = pasosDelEmbudo(fichas);
   const [pasoN, setPasoN] = useState(
     pasos.some((p) => p.n === pasoInicial) ? pasoInicial : (pasos[0]?.n ?? pasoInicial),
   );
@@ -62,7 +63,7 @@ export function EmbudoComparadoFacultades({
         </span>
       </header>
       <nav className="cmv2-embcmp-pasos" aria-label="Paso del embudo">
-        {pasos.map((p) => (
+        {todos.map((p) => p.comparable ? (
           <button
             key={p.n}
             type="button"
@@ -70,6 +71,15 @@ export function EmbudoComparadoFacultades({
             onClick={() => setPasoN(p.n)}
           >
             {p.n}. {p.titulo}
+          </button>
+        ) : (
+          <button
+            key={p.n}
+            type="button"
+            disabled
+            title={`${p.titulo}: sin histórico por diseño — no hay con qué comparar`}
+          >
+            {p.n}. {p.titulo} · sin histórico
           </button>
         ))}
       </nav>
