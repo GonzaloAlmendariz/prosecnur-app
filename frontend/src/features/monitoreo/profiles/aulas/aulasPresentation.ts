@@ -309,8 +309,80 @@ export function aulasStatusLabel(status: unknown) {
   return STATUS_LABELS[key] ?? (key ? fallbackLabel(String(status)) : "—");
 }
 
-function presentValue(field: string, value: unknown) {
+/**
+ * Las columnas del libro que son una PROPORCIÓN, y sólo ésas.
+ *
+ * La lista es cerrada a propósito. Deducir «esto parece un porcentaje» del
+ * dato acabaría formateando lo que no lo es: en la Base de control conviven
+ * `threshold_total` y `threshold_population` —que son NÚMEROS DE ENCUESTAS,
+ * medidos entre 8 y 34— y `valid_total` / `valid_population`, que son
+ * veredictos 0/1 y se leerían como «0 %» y «100 %». Sólo entra lo que el Excel
+ * declara como razón entre dos cantidades.
+ *
+ * `attendance_pct` está en las dos hojas —el parte y el control— con el mismo
+ * significado, así que una sola entrada cubre las dos tablas.
+ */
+const COLUMNAS_DE_PORCENTAJE = new Set([
+  "sent_vs_total",
+  "sent_vs_population",
+  "short_vs_total",
+  "long_vs_total",
+  "attendance_pct",
+  "quota_pct",
+  "women_pct",
+  "men_pct",
+  // De la tabla de cuotas, y el motor ya la calcula en 0-100. Entra igual: lo
+  // que la lista decide es que la columna ES un porcentaje, no en qué escala
+  // viene. Sin ella, «Avance» enseñaba «62.3» a secas.
+  "progress_pct",
+]);
+
+/**
+ * En qué escala viene cada columna de proporción, decidido sobre la COLUMNA
+ * ENTERA y no valor a valor.
+ *
+ * El motor no recalcula lo que el Excel calcula, y el libro real puede traer
+ * estas razones en 0-1 o ya en 0-100 —está anotado en `monitoreo_aulas_control.R`
+ * que esa escala no se pudo medir sin un libro lleno—. Así que la escala se
+ * detecta, pero por columna: una regla por valor rompería justo donde importa,
+ * porque una cobertura del 108 % (`sent_vs_population` llega a 1,083 en el
+ * fixture) pasaría de `1,083` a «1,1 %» mientras su vecina de 0,98 se pinta
+ * «98 %». El corte en 1,5 y no en 1 deja pasar esos excedentes: una columna
+ * escrita en 0-100 donde TODAS las aulas estuvieran por debajo del 1,5 % no
+ * describe ningún operativo.
+ */
+export function escalaDeProporciones(
+  rows: ReadonlyArray<Readonly<Record<string, unknown>>>,
+): Set<string> {
+  const enProporcion = new Set<string>();
+  for (const columna of COLUMNAS_DE_PORCENTAJE) {
+    let vistos = 0;
+    let maximo = 0;
+    for (const row of rows) {
+      const n = Number(row[columna]);
+      if (!Number.isFinite(n)) continue;
+      vistos += 1;
+      maximo = Math.max(maximo, Math.abs(n));
+    }
+    if (vistos && maximo <= 1.5) enProporcion.add(columna);
+  }
+  return enProporcion;
+}
+
+/**
+ * Un porcentaje con su signo. Multiplica sólo si la columna venía en 0-1; la
+ * que ya está en 0-100 se queda como está y sólo gana la unidad que le falta.
+ */
+function comoPorcentaje(value: unknown, hayQueEscalar: boolean) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  const escalado = hayQueEscalar ? n * 100 : n;
+  return `${new Intl.NumberFormat("es-PE", { maximumFractionDigits: 1 }).format(escalado)} %`;
+}
+
+function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<string>) {
   if (value == null) return "";
+  if (COLUMNAS_DE_PORCENTAJE.has(field)) return comoPorcentaje(value, Boolean(enProporcion?.has(field)));
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);
@@ -333,9 +405,12 @@ function presentValue(field: string, value: unknown) {
   return value;
 }
 
-export function presentAulasRow(row: Readonly<Record<string, unknown>>) {
+export function presentAulasRow(
+  row: Readonly<Record<string, unknown>>,
+  enProporcion?: ReadonlySet<string>,
+) {
   return Object.fromEntries(
-    Object.entries(row).map(([field, value]) => [field, presentValue(field, value)]),
+    Object.entries(row).map(([field, value]) => [field, presentValue(field, value, enProporcion)]),
   );
 }
 

@@ -1,4 +1,4 @@
-import { aulasFieldLabel } from "./aulasPresentation";
+import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -178,6 +178,12 @@ export function AulasControlDelLibro({
   // Las columnas que se muestran salen de los grupos que tienen dato: enseñar
   // catorce columnas vacías porque la hoja las declara no informa de nada.
   const columnas = ["operational_code", ...conDato.flatMap((g) => CAMPOS_POR_GRUPO[g.clave] ?? [])];
+  // Esta tabla pinta sus celdas por su cuenta —no pasa por `DataTable`— y por
+  // eso enseñaba «0.909» bajo un rótulo que dice «vs Total». La conversión es
+  // de la capa de presentación, la misma que ya traduce estados y motivos, y la
+  // escala se decide sobre la columna entera.
+  const enProporcion = escalaDeProporciones(filas);
+  const presentadas = filas.map((fila) => presentAulasRow(fila, enProporcion));
 
   return (
     <div className="aulas-control-libro">
@@ -206,7 +212,7 @@ export function AulasControlDelLibro({
             <tr>{columnas.map((c) => <th key={c}>{aulasFieldLabel(c)}</th>)}</tr>
           </thead>
           <tbody>
-            {filas.map((fila, i) => (
+            {presentadas.map((fila, i) => (
               <tr key={texto(fila.operational_code) || i}>
                 {columnas.map((c) => <td key={c}>{texto(fila[c])}</td>)}
               </tr>
