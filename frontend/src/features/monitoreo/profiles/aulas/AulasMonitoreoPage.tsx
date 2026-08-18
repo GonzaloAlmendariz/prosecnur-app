@@ -726,6 +726,7 @@ function renderAulasView(
   ));
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
+  const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
   return (
     // `aulas-tablas-apiladas`: sin ella el stack es grid y asigna 0 px a la fila
     // cuyo contenido no la empuja —medido: el panel del gráfico quedaba en 26 px
@@ -775,7 +776,15 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           <h3>Status de aplicación</h3>
-          <span>{fmt(aulaRows.length)} cursos-horario</span>
+          {/* El recorte del PAYLOAD se declara aquí. La tabla ya declara el
+              suyo, pero éste ocurre antes de que la tabla vea nada: el motor
+              manda 500 filas de las 2 615 del plan, y sin decirlo la pantalla
+              afirmaba que el estudio tiene 500 aulas. */}
+          <span>
+            {totalAulas > aulaRows.length
+              ? `${fmt(aulaRows.length)} de ${fmt(totalAulas)} cursos-horario`
+              : `${fmt(aulaRows.length)} cursos-horario`}
+          </span>
         </div>
         {/* Los dos ejes van en paneles propios porque contestan preguntas
             distintas y cada superficie declara qué es (C1): éste dice en qué
