@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { contar } from "../../fuentes/vocabulario";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
@@ -90,7 +91,7 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
         {cerrados ? ` ${cerrados} ${cerrados === 1 ? "estrato ya alcanzó" : "estratos ya alcanzaron"} su meta.` : ""}
         {/* El recorte se declara con su brecha: sin decir cuánto suman, la
             última barra se leería como «lo demás está cerrado». */}
-        {omitidos ? ` No se dibujan ${omitidos} estratos con menos brecha, que suman ${brechaOmitida}.` : ""}
+        {omitidos ? ` No se dibujan ${contar(omitidos, "estrato", "estratos")} con menos brecha, que suman ${brechaOmitida}.` : ""}
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import { CheckCircle2, ExternalLink, Link2Off, CircleOff } from "../../../../vendor/lucide-react";
+import { contar } from "../../fuentes/vocabulario";
 import type { MonitoreoSource } from "../../../../api/monitoreo";
 import { enlaceDeFuente, nombreDeFuente, servicioDeFuente } from "../../fuentes/enlacesDeFuente";
 import { textoDeActualizacion, textoDeImportacion } from "../../fuentes/vocabulario";
@@ -53,7 +54,7 @@ function Fuente({ source, filas, columnas }: {
           {filas ? (
             <span className="aulas-fuente-volumen">
               {new Intl.NumberFormat("es-PE").format(filas)} filas
-              {columnas ? ` · ${new Intl.NumberFormat("es-PE").format(columnas)} columnas` : ""}
+              {columnas ? ` · ${contar(columnas, "columna", "columnas")}` : ""}
             </span>
           ) : null}
         </p>
