@@ -146,3 +146,25 @@ test_that("el libro sale con desplegables, panel congelado y anchos", {
   columna_unica <- grepl("^<xm:sqref>([A-Z]+)[0-9]+:\\1[0-9]+</xm:sqref>$", sqrefs)
   expect_true(all(columna_unica))
 })
+
+test_that("se distingue lo que trae la app de lo que llena la persona", {
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
+  cols <- aulas_libro_columnas_de_la_app(
+    campos, AULAS_LIBRO_CAMPOS_DE_LA_PERSONA, bloques = 2L,
+    ancho = AULAS_AGENDADAS_ANCHO_BLOQUE, desplazamiento = 1L
+  )
+
+  # Ni una columna de la persona teñida: si `sample_status` saliera gris, quien
+  # agenda leeria «esto ya viene puesto» justo en la columna que mas se llena.
+  idx <- function(campo) 1L + which(campos == campo)
+  for (campo in AULAS_LIBRO_CAMPOS_DE_LA_PERSONA) {
+    expect_false(idx(campo) %in% cols, info = campo)
+    # Y lo mismo en el segundo bloque, que es donde falla un calculo por
+    # posicion: el desplazamiento del bloque tiene que entrar en la cuenta.
+    expect_false((idx(campo) + AULAS_AGENDADAS_ANCHO_BLOQUE) %in% cols, info = campo)
+  }
+
+  # El enlace SI lo trae la app aunque viva en el tramo de la persona.
+  expect_true(idx("link") %in% cols)
+  expect_true(idx("operational_code") %in% cols)
+})
