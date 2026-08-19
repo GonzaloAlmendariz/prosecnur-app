@@ -1292,6 +1292,9 @@ function renderAulasView(
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           clave="applied_by"
           unidad="Aplicador"
+          /* Las columnas ya las explica «Qué está rindiendo más», dos paneles
+             más arriba y en esta misma pantalla. */
+          explicaLasColumnas={false}
         />
       </section>
       )}
@@ -1317,6 +1320,7 @@ function renderAulasView(
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           clave="franja"
           unidad="Franja"
+          explicaLasColumnas={false}
         />
       </section>
       )}
