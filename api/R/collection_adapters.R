@@ -306,7 +306,7 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
     target = .ca_target_ref(target_ref, c(
       "provider", "asset_uid", "version_id", "deployment_active", "asset_type", "auth_policy",
       "collector_id", "id", "type", "status", "base_access_url", "survey_url",
-      "url", "weblink_url", "prefill_field", "custom_variable", "custom_variables",
+      "url", "weblink_url", "prefill_field", "return_url", "custom_variable", "custom_variables",
       "recipients", "links"
     )),
     preflight = preflight,
