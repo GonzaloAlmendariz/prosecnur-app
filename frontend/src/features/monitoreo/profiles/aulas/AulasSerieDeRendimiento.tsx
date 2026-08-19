@@ -187,9 +187,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       : aplicadas.map((_, i) => facultades.reduce((n, f) => n + (f.dias[i]?.efectivasAcumuladas ?? 0), 0));
     if (!observadas.length) return null;
     const ultimo = observadas[observadas.length - 1];
-    const meta = elegida && proyectada
-      ? proyectada.cuotas.reduce((n, c) => n + c.meta, 0)
-      : cuotas.reduce((n, c) => n + Number(c.target ?? 0), 0);
+    // **La meta con la que se puede comparar el parte es la del PLAN**, no la
+    // cuota por sexo: las dos primeras salen de plan+parte y la tercera de
+    // respuestas atribuidas. Compararlas fue lo que hizo que el gráfico dijera
+    // «llegamos» junto a un «0 de 196», y por eso el acumulado se estaba
+    // ocultando entero. Ocultarlo no era la reparación: era quitar el gráfico que
+    // Gonzalo había pedido. La reparación es medir contra lo comparable.
+    const meta = elegida
+      ? elegida.metaDeLoVisitado
+      : facultades.reduce((n, f) => n + f.metaDeLoVisitado, 0);
     const proyectadas = proyectada ? proyectada.dias.map((d) => ultimo + d.acumuladas) : [];
     const techo = Math.max(ultimo, meta, sobremuestra ?? 0, ...proyectadas, 1);
     const tope = Math.ceil(techo / 50) * 50 || 50;
@@ -245,8 +251,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         };
       });
     const repartoObservado = baseSexo > 0;
-    // Sin nada atribuido, el acumulado no tiene nada que comparar con la cuota.
-    if (!hayObservadasPorSexo && metaSexo > 0) return null;
+    // Ya no se oculta: el acumulado compara parte contra meta del plan, que son
+    // la misma familia de cifras. Lo que aparece **sólo con atribución** son las
+    // dos líneas de sexo y sus cuotas, que sí necesitan la otra fuente.
     // Nunca un agregado sin su desglose: «faltan 232» no dice a quién hay que ir
     // a buscar. Se acompaña siempre del reparto por sexo.
     const desglose = (total: number) => cuotasVisibles.length
@@ -262,15 +269,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       : "";
     // La cifra que manda es la de la CUOTA, no la del parte: es la que decide si
     // el estudio llega. La del parte se dice aparte y con su nombre.
-    const conseguidasCuota = cuotasVisibles.reduce((n, c) => n + c.observadas, 0);
-    const alCerrarCuota = conseguidasCuota + (alCerrar - ultimo);
     const lectura = meta > 0
-      ? `${fmt(Math.round(conseguidasCuota))}${desglose(conseguidasCuota)} de ${fmt(meta)} de cuota · ${
-          alCerrarCuota >= meta
-            ? "con lo agendado se llega a la meta"
-            : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrarCuota))}, ${fmt(Math.ceil(meta - alCerrarCuota))} por debajo`
-        } · ${fmt(Math.round(ultimo))} encuestas en el parte`
-      : `${fmt(Math.round(ultimo))} encuestas del parte · sin meta declarada`;
+      ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de las aulas visitadas · ${
+          alCerrar >= meta
+            ? "con lo agendado se pasa de esa meta"
+            : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
+        }`
+      : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esas aulas`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
     const metasSeñaladas = cuotasVisibles
@@ -345,15 +350,6 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           mientras el texto decía «0 de 196». Es la misma contradicción de fuentes
           de antes, reaparecida en forma de dibujo, y un gráfico que se contradice
           con su propio pie es peor que no estar. */}
-      {!acumulado && cuotasVisibles.some((c) => c.meta > 0) ? (
-        <p className="aulas-serie-aviso">
-          Todavía no se puede dibujar el avance contra la cuota: ninguna respuesta
-          está atribuida a un curso-horario, así que la cuota va en cero mientras el
-          parte declara {fmt(Math.round(elegida?.efectivas ?? facultades.reduce((n, f) => n + f.efectivas, 0)))} encuestas.
-          Son dos cifras de fuentes distintas y superponerlas diría que se llegó.
-        </p>
-      ) : null}
-
       {/* EL ACUMULADO, arriba y con más peso. Gonzalo: «lo que nos importa es si
           llegamos a la meta y cuánto estamos avanzando [...] sobre todo, cómo
           vamos a seguir, y a este ritmo, ¿cuándo llegamos?».
@@ -403,14 +399,19 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   stroke={se.color} strokeWidth="1.2" strokeDasharray="4 4"
                   vectorEffect="non-scaling-stroke" opacity="0.75" />
               ))}
-              {/* El total, en gris: es la suma, y la suma no tiene sexo. */}
-              <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.revision}
-                strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
-                vectorEffect="non-scaling-stroke" opacity="0.45" />
+              {/* El area bajo el acumulado. Una linea sola sobre un fondo vacio se
+                  lee como un trazo; con el area debajo se lee como un volumen que
+                  crece, que es lo que un acumulado es. */}
+              <polygon
+                points={`${MARGEN},${MARGEN + UTIL} ${acumulado.observado} ${x(corte)},${MARGEN + UTIL}`}
+                fill={COLOR_RESULTADO.efectiva} opacity="0.09" />
+              <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.efectiva}
+                strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
+                vectorEffect="non-scaling-stroke" />
               {acumulado.inferido ? (
-                <polyline points={acumulado.inferido} fill="none" stroke={COLOR_RESULTADO.revision}
-                  strokeWidth="1.8" strokeDasharray="6 4" strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke" opacity="0.45" />
+                <polyline points={acumulado.inferido} fill="none" stroke={COLOR_RESULTADO.parcial}
+                  strokeWidth="2.5" strokeDasharray="6 4" strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke" />
               ) : null}
               {/* Y las dos que importan: hombres y mujeres, en el mismo gráfico y
                   con el par de colores de Cálculo de muestra. */}
