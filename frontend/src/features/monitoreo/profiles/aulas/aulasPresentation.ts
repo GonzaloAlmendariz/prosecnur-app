@@ -203,6 +203,9 @@ const CHECK_LABELS: Record<string, string> = {
   // El lector no adivina qué es una columna sin nombre —sería peor—, pero sí
   // dice cuántas se quedaron fuera.
   unnamed_control_columns: "Columnas sin nombre en la Base de control",
+  // El rotulo nombra la CONSECUENCIA y no el mecanismo: «Estados no
+  // reconocidos» obliga a abrir el detalle para saber si eso importa.
+  unknown_sample_status: "Aulas contadas como sin contactar sin estarlo",
   effective_representativity: "Representatividad efectiva",
   sex_faculty_quota: "Cuota por sexo y facultad",
   // Qué se está contando como respuesta válida. Se resolvía en silencio, y
