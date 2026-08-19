@@ -426,15 +426,28 @@ export function escalaDeProporciones(
 ): Set<string> {
   const enProporcion = new Set<string>();
   for (const columna of COLUMNAS_DE_PORCENTAJE) {
-    let vistos = 0;
-    let maximo = 0;
+    const valores: number[] = [];
     for (const row of rows) {
       const n = Number(row[columna]);
-      if (!Number.isFinite(n)) continue;
-      vistos += 1;
-      maximo = Math.max(maximo, Math.abs(n));
+      if (Number.isFinite(n)) valores.push(Math.abs(n));
     }
-    if (vistos && maximo <= 1.5) enProporcion.add(columna);
+    if (!valores.length) continue;
+    // La MEDIANA, no el máximo. Con el máximo, una sola fila que se pasa de su
+    // meta —23 conseguidas de 21 pedidas, 1.095— no cambiaba nada, pero una que
+    // duplicara la cuota tumbaba la columna ENTERA a «0.8 %» en vez de «80 %».
+    // Y pasarse de la meta es normal: `% Cuota` es lo conseguido sobre lo que el
+    // plan pide, así que puede superar el 100 %.
+    //
+    // Las dos escalas se separan por el grueso de la columna, no por su tope:
+    // una que viene en 0-1 tiene mediana bajo 1, y una que ya viene en 0-100 la
+    // tiene en las decenas. La distancia entre las dos es enorme; la del máximo
+    // la decidía un solo dato.
+    valores.sort((x, y) => x - y);
+    const medio = Math.floor(valores.length / 2);
+    const mediana = valores.length % 2
+      ? valores[medio]
+      : (valores[medio - 1] + valores[medio]) / 2;
+    if (mediana <= 1.5) enProporcion.add(columna);
   }
   return enProporcion;
 }

@@ -317,3 +317,43 @@ describe("una columna de porcentaje lo dice en su rótulo", () => {
     expect(aulasFieldLabel("quota_missing")).toBe("Faltantes cuota");
   });
 });
+
+describe("la escala de una columna la decide su grueso, no su tope", () => {
+  // `% Cuota` es lo conseguido sobre lo que el plan pide, así que pasarse del
+  // 100 % es normal. Con la regla del máximo, una sola fila que doblara su
+  // cuota (2.0) tumbaba la columna ENTERA: las 140 filas pasaban de «80 %» a
+  // «0.8 %». La mediana no se mueve por un dato.
+
+  it("con dos datos y uno pasado no se puede decidir, y no se decide", () => {
+    // Honestidad del método: la mediana de [0.8, 2.4] es 1.6. Con dos
+    // observaciones no hay grueso que mirar, y la columna no se escala.
+    expect(escalaDeProporciones([{ quota_pct: 0.8 }, { quota_pct: 2.4 }]).has("quota_pct")).toBe(false);
+  });
+
+  it("una columna en 0-1 con una fila que se pasa sigue siendo proporción", () => {
+    const filas = [
+      { quota_pct: 0.8 }, { quota_pct: 0.6 }, { quota_pct: 0.9 },
+      { quota_pct: 0.7 }, { quota_pct: 2.4 },
+    ];
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(true);
+  });
+
+  it("una columna que ya viene en 0-100 NO se vuelve a multiplicar", () => {
+    const filas = [
+      { quota_pct: 80 }, { quota_pct: 60 }, { quota_pct: 90 },
+      { quota_pct: 70 }, { quota_pct: 240 },
+    ];
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(false);
+  });
+
+  it("la regla vieja del máximo fallaba en el primer caso", () => {
+    // El control del control: con el máximo estas cinco filas NO eran
+    // proporción y las cinco se imprimían divididas por cien.
+    const filas = [
+      { quota_pct: 0.8 }, { quota_pct: 0.6 }, { quota_pct: 0.9 },
+      { quota_pct: 0.7 }, { quota_pct: 2.4 },
+    ];
+    expect(Math.max(...filas.map((f) => f.quota_pct))).toBeGreaterThan(1.5);
+    expect(escalaDeProporciones(filas).has("quota_pct")).toBe(true);
+  });
+});
