@@ -27,6 +27,7 @@ import {
   localProviderBlocking,
 } from "./providerRules";
 import type { RecopiladoresPestana } from "./navegacion";
+import { TableScroll } from "./TableScroll";
 import "./styles/access.css";
 
 type Props = {
@@ -340,13 +341,13 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         ) : (
           <>
             {candidate?.bindings.length ? (
-              <div className="rec-table-scroll">
+              <TableScroll>
                 <table><thead><tr><th>Unidad</th><th>Tipo</th><th>Identidad lógica</th><th>Estado</th></tr></thead>
                   <tbody>{candidate.bindings.map((binding) => (
                     <tr key={binding.access_id}><td><strong>{binding.unit_id}</strong><small>{binding.access_id}</small></td><td>{accessKindLabel(binding.access_kind)}</td><td>{binding.logical_collector_id}</td><td><span className={`rec-state is-${binding.status}`}>{bindingStatusLabel(binding.status)}</span></td></tr>
                   ))}</tbody>
                 </table>
-              </div>
+              </TableScroll>
             ) : <div className="rec-contained-empty">La vista previa todavía no produjo bindings. Los recipient links solo aparecen si ya llegaron del proveedor.</div>}
           </>
         )}

@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "../../vendor/lucide-react";
 import { COLLECTION_ADAPTER_LABELS } from "./providerRules";
+import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 
 type Props = {
@@ -135,7 +136,7 @@ export function PlanSection({ payload, onState }: Props) {
       >
         {plan.units.length ? (
           <>
-            <div className="rec-table-scroll" data-qa-geometry-capacity="owned">
+            <TableScroll data-qa-geometry-capacity="owned">
               <table>
                 <thead><tr><th>Unidad</th><th>Rol</th><th>Grupo</th><th>Programación</th></tr></thead>
                 <tbody>
@@ -149,7 +150,7 @@ export function PlanSection({ payload, onState }: Props) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableScroll>
             <nav className="rec-plan-pagination" aria-label="Páginas del plan">
               <span aria-live="polite">Página {pagination.page + 1} de {pagination.totalPages}</span>
               <div>
