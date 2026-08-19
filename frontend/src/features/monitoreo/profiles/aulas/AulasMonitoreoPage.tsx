@@ -902,10 +902,16 @@ function renderAulasView(
               iguales para dos unidades distintas, con la distinción escondida en
               un contador de 11 px —y en un comentario de código—. */}
           <h3>Cumplimiento en respuestas</h3>
-          <span>meta {fmt(avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta)}</span>
+          {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
+              recortado a 500 filas. */}
+          <span>meta {fmt(
+            Number(dashboard?.cumplimiento_respuestas?.meta)
+            || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
+          )}</span>
         </div>
         <AulasAvanceEnRespuestas
           filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
+          resumen={dashboard?.cumplimiento_respuestas ?? null}
           validasTotales={Number(dashboard.kpis?.respuestas_validas ?? 0) || 0}
         />
       </section>
