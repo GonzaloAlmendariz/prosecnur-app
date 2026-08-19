@@ -3863,3 +3863,20 @@ alumnos por CH en los tres a la vez. Cada mordida de esta serie (10,
 11, 12, resello x3) es el mismo defecto de fondo: NINGUNA fuente es
 canonica. Un ADR «un solo dueño para la config de aulas» cerraria la
 familia entera en vez de sellar copia por copia.
+
+### La cadena 2026 corrio ENTERA sin 409 y la app ya compara 2025↔2026
+
+**Seleccion 2026 (dry-run con las reglas vigentes, guardada en
+marco2026.pulso)**: 190 titulares, REPARTO EXACTO 15/15, 0 docentes
+repetidos, 3.086 efectivas esperadas. Cadena completa en la app:
+construir → comparar 4 motores (665s) → seleccionar → simular (470s),
+sin un solo 409 — el resello de las TRES copias de la decision
+(2cd5431d + 4d425187 + 2a87578c) quedo demostrado de punta a punta.
+
+**Coincidencia comparara el rendimiento (pedido de Gonzalo)**: tarjeta
+nueva «La seleccion nueva contra lo aplicado» — titulares hoy vs aulas
+APLICADAS 2025-2, esperadas hoy (tasas 2025) vs efectivas reales, 15
+filas + totales (190 vs 194 · 3.086 vs 3.303), denominadores rotulados
+y «—» honesto si una facultad no existe en la referencia. Verificada en
+vivo sobre el estudio real (screenshot en la sesion). El Vite 5191
+murio con la suspension y se relanzo.
