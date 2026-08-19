@@ -41,47 +41,50 @@
   estado <- session_get(sid, required = FALSE)
   if (!is.list(estado)) return(FALSE)
 
-  # El workspace vive dentro del estudio; es de donde el guardado del autosave
-  # lee la decisión que después compara.
-  estudio <- estado$calc_muestra_estudio
-  if (!is.list(estudio)) return(FALSE)
-  ws <- estudio$workspace
-  if (!is.list(ws)) return(FALSE)
-  cfg <- ws$aulas_config
-  if (!is.list(cfg)) return(FALSE)
-  decision <- cfg$alumnos_por_ch_decision
-  if (!is.list(decision)) return(FALSE)
-
   # Sólo se re-sella una decisión CONFIRMADA. Un sentinela incompleto —schema
-  # vacío -- debe seguir fallando cerrado en /calcular, no quedar bendecido por
-  # una reconstrucción.
-  firma <- .cm_alumnos_por_ch_decision_signature(decision)
-  if (!is.list(firma) || !identical(firma$schema, .cm_alumnos_por_ch_decision_schema)) {
-    return(FALSE)
-  }
-  if (identical(.cm_aulas_scalar(decision$frame_hash, ""), hash)) return(FALSE)
-
-  decision$frame_hash <- hash
-  cfg$alumnos_por_ch_decision <- decision
-  ws$aulas_config <- cfg
-  estudio$workspace <- ws
-  session_set(sid, "calc_muestra_estudio", estudio)
-  # Espejo obligatorio: el guard de los artefactos de Aulas compara la firma
-  # del ESTUDIO contra la de calc_muestra_aulas_config, y el guardado del
-  # marco REEMPLAZA esa config por la del frame construido — que carga el
-  # hash del marco ANTERIOR. Resellar solo el estudio dejaba las firmas
-  # divergentes y un 409 decision_stale eterno tras cada reconstruccion
-  # (medido 2026-08-19: estudio 3644ce7a…, config 8f676b56…).
-  aulas_cfg <- estado$calc_muestra_aulas_config
-  if (is.list(aulas_cfg) && is.list(aulas_cfg$alumnos_por_ch_decision)) {
-    espejo <- aulas_cfg$alumnos_por_ch_decision
-    firma_espejo <- .cm_alumnos_por_ch_decision_signature(espejo)
-    if (is.list(firma_espejo) &&
-        identical(firma_espejo$schema, .cm_alumnos_por_ch_decision_schema)) {
-      espejo$frame_hash <- hash
-      aulas_cfg$alumnos_por_ch_decision <- espejo
-      session_set(sid, "calc_muestra_aulas_config", aulas_cfg)
+  # vacío— debe seguir fallando cerrado en /calcular, no quedar bendecido por
+  # una reconstrucción. Devuelve la decisión sellada o NULL si no procede.
+  sellar <- function(decision) {
+    if (!is.list(decision)) return(NULL)
+    firma <- .cm_alumnos_por_ch_decision_signature(decision)
+    if (!is.list(firma) || !identical(firma$schema, .cm_alumnos_por_ch_decision_schema)) {
+      return(NULL)
     }
+    if (identical(.cm_aulas_scalar(decision$frame_hash, ""), hash)) return(NULL)
+    decision$frame_hash <- hash
+    decision
   }
-  TRUE
+
+  hubo <- FALSE
+
+  # Copia 1: el workspace del estudio, de donde el autosave lee la decisión.
+  estudio <- estado$calc_muestra_estudio
+  ws <- if (is.list(estudio)) estudio$workspace else NULL
+  cfg <- if (is.list(ws)) ws$aulas_config else NULL
+  sellada <- sellar(if (is.list(cfg)) cfg$alumnos_por_ch_decision else NULL)
+  if (!is.null(sellada)) {
+    cfg$alumnos_por_ch_decision <- sellada
+    ws$aulas_config <- cfg
+    estudio$workspace <- ws
+    session_set(sid, "calc_muestra_estudio", estudio)
+    hubo <- TRUE
+  }
+
+  # Copia 2 (espejo): calc_muestra_aulas_config. El guard de los artefactos de
+  # Aulas compara la firma del ESTUDIO contra la de esta config, y el guardado
+  # del marco la REEMPLAZA por la del frame construido — que carga el hash del
+  # marco anterior. Cada copia se sella POR SU CUENTA: la primera versión de
+  # este espejo colgaba del sellado del estudio y el early-return «el estudio
+  # ya está al día» lo saltaba — 409 decision_stale eterno cuando el hash del
+  # marco es estable entre builds (medido 2026-08-19: estudio 3644ce7a…,
+  # config 8f676b56…, dos builds seguidos).
+  aulas_cfg <- estado$calc_muestra_aulas_config
+  espejo <- sellar(if (is.list(aulas_cfg)) aulas_cfg$alumnos_por_ch_decision else NULL)
+  if (!is.null(espejo)) {
+    aulas_cfg$alumnos_por_ch_decision <- espejo
+    session_set(sid, "calc_muestra_aulas_config", aulas_cfg)
+    hubo <- TRUE
+  }
+
+  hubo
 }
