@@ -134,3 +134,19 @@ describe("dos cifras vecinas del mismo hecho no se llaman igual", () => {
     expect(fuente).not.toMatch(/universo[^"`\n]{0,20}sin efectiva/);
   });
 });
+
+describe("el agregado no se llama igual que el individual", () => {
+  // En «Modelo > Modelo operativo» el tile de cabecera decía «Mínimo actor 287»
+  // —la suma de los cuatro— mientras cada tarjeta rotulaba «Mínimo actor» con el
+  // suyo: 108, 15, 38 y 126. Ningún actor tiene 287.
+
+  test("el tile de cabecera dice «Suma de mínimos»", () => {
+    expect(fuente).toContain('<AcreditacionActorDashboardTile label="Suma de mínimos"');
+  });
+
+  test("«Mínimo actor» queda sólo para el nodo de cada tarjeta", () => {
+    const usos = fuente.match(/label="Mínimo actor"/g) ?? [];
+    expect(usos.length).toBe(1);
+    expect(fuente).toMatch(/<AcreditacionActorFlowNode label="Mínimo actor"/);
+  });
+});

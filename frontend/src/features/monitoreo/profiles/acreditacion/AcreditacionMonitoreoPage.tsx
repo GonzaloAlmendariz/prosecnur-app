@@ -1306,7 +1306,11 @@ function AcreditacionCanonicalModelWorkbench({
             </>
           ) : (
             <>
-              <AcreditacionActorDashboardTile label="Mínimo actor" value={metaTotal ? fmt(metaTotal) : "Pendiente"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
+              {/* «Suma de mínimos» y no «Mínimo actor»: es el total de los
+                  cuatro (108+15+38+126 = 287 en acrconta) y en la misma
+                  pantalla cada tarjeta rotula «Mínimo actor» con el suyo.
+                  Ningún actor tiene 287. */}
+              <AcreditacionActorDashboardTile label="Suma de mínimos" value={metaTotal ? fmt(metaTotal) : "Pendiente"} hint={goalSummary.missingMeta ? `${fmt(goalSummary.missingMeta)} pendientes` : "configuradas"} tone={goalSummary.missingMeta ? "warning" : "target"} />
               <AcreditacionActorDashboardTile label="Campo" value={scheduleWindow} hint={reportWeekdayLabel === "Sin reporte" ? "reporte pendiente" : `reporte ${reportWeekdayLabel.toLowerCase()}`} tone={scheduleDraft.reportWeekday ? "ready" : "warning"} />
             </>
           )}
