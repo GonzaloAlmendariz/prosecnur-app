@@ -299,5 +299,58 @@ todo2 <- xpath_ok && returnurl_ok && xpath_en_link_ok && con_link2 == length(sel
 say("")
 say("COSTURA XPATH+RETURNURL: %s", if (todo2) "de punta a punta" else "HAY UN ESLABON ROTO")
 
-todo <- todo && todo2
+# --- 14. Round-trip real: guardar el .pulso, cerrar la sesion, reabrirlo ----
+# V2 (durabilidad) se confirmo leyendo codigo (test "V2 durabilidad..." en
+# test-collection-engine.R): .collection_access_url() no depende de `sid`.
+# Esto lo prueba con un ciclo real -no la misma sesion reusada-: guardar a
+# disco, CERRAR la sesion por completo (session_delete), y abrir una sesion
+# NUEVA desde ese archivo. Es la unica forma de probar "sigue funcionando un
+# mes despues" sin esperar un mes.
+enlace_antes <- rows2[[1]]$link
+unit_id_prueba <- rows2[[1]]$collection_unit_id
+
+pulso_path <- file.path(OUT, "sim_roundtrip.pulso")
+invisible(build_pulso(sid2, pulso_path, project_name = "SIM Roundtrip", allow_empty_overwrite = TRUE))
+say("[14] .pulso guardado: %s (%d bytes)", basename(pulso_path), file.info(pulso_path)$size)
+
+invisible(session_delete(sid2))
+say("     sesion original cerrada (sid2 ya no existe)")
+
+reabierto <- load_pulso(pulso_path)
+sid3 <- reabierto$session_id
+say("     reabierto en sesion nueva: %s", substr(sid3, 1, 8))
+
+estado3 <- collection_state_get(sid3)
+binding3 <- Filter(function(b) identical(b$unit_id, unit_id_prueba), estado3$deployment$bindings)[[1]]
+enlace_despues <- .collection_access_url(
+  binding3, estado3$deployment$sensitivity$access_urls %||% "restricted",
+  estado3$deployment$target$provider, estado3$deployment$target$return_url
+)
+
+say("     enlace antes de guardar:  %s", enlace_antes)
+say("     enlace despues de abrir:  %s", enlace_despues)
+enlace_identico <- identical(enlace_antes, enlace_despues)
+say("     enlace identico tras el round-trip .................. %s", enlace_identico)
+
+# El handoff YA se hizo en sid2 (seccion 13, para poder leer rows2) antes de
+# guardar: repetirlo en sid3 es correctamente un no-op (mismo fingerprint,
+# "handoff repetido es no-op..." en test-collection-engine.R) y NO trae
+# monitoring_rows -no es el camino para probar esto-. Lo que si prueba el
+# round-trip es que la PROYECCION que ese primer handoff ya escribio
+# (monitoreo_aulas_plan, lo que Monitoreo de verdad lee) sobrevivio el
+# guardado con sus links intactos, sin volver a llamar collection_handoff().
+plan_reabierto <- session_get(sid3)$monitoreo_aulas_plan
+handoff_ok <- length(plan_reabierto) == length(rows2) &&
+  all(vapply(plan_reabierto, function(r) nzchar(as.character(r$link %||% "")), logical(1))) &&
+  identical(
+    sort(vapply(plan_reabierto, function(r) as.character(r$link), character(1))),
+    sort(vapply(rows2, function(r) as.character(r$link), character(1)))
+  )
+say("     proyeccion a Monitoreo sobrevive el round-trip, links iguales .. %s", handoff_ok)
+
+todo3 <- enlace_identico && handoff_ok
+say("")
+say("COSTURA ROUND-TRIP (.pulso real): %s", if (todo3) "de punta a punta" else "HAY UN ESLABON ROTO")
+
+todo <- todo && todo2 && todo3
 if (!todo) quit(status = 1L)
