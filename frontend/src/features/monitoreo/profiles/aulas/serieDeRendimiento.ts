@@ -68,6 +68,20 @@ export type DiaDeRendimiento = {
    */
   elegibles: number;
   efectivas: number;
+  /**
+   * Las efectivas de ese día repartidas por sexo, cuando la Base de control las
+   * declara aula por aula (`women_n` / `men_n`).
+   *
+   * Sale de la MISMA familia que el total —plan, parte y libro— y por eso se
+   * puede dibujar junto a él. La cuota por sexo, en cambio, se mide sobre
+   * respuestas atribuidas a un curso-horario, que es otra fuente: mezclarlas fue
+   * el defecto que hizo que el gráfico dijera «llegamos» junto a un «0 de 196».
+   *
+   * `null` cuando el libro no trae el reparto: entonces no hay serie por sexo que
+   * dibujar y se dice, en vez de repartir el total por una proporción inventada.
+   */
+  mujeres: number | null;
+  hombres: number | null;
   /** Lo observado ESE día. `null` si la facultad no visitó ninguna aula. */
   porAula: number | null;
   aulasAcumuladas: number;
@@ -118,6 +132,8 @@ export function serieDeRendimiento(
   partes: ReadonlyArray<MonitoreoRow>,
   /** El plan, sólo para los elegibles de cada aula: el parte no los trae. */
   plan: ReadonlyArray<MonitoreoRow> = [],
+  /** La Base de control del libro, que trae el reparto por sexo de cada aula. */
+  control: ReadonlyArray<MonitoreoRow> = [],
 ): {
   facultades: RendimientoDiarioDeFacultad[];
   fechas: string[];
@@ -125,8 +141,17 @@ export function serieDeRendimiento(
   mediaDelEstudio: number;
 } {
   const fechas = new Set<string>();
-  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number }>>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number }>>();
   const metaVisitadaPorFacultad = new Map<string, number>();
+  // El reparto por sexo, aula por aula, tal como lo declara la Base de control.
+  const sexoPorCodigo = new Map<string, { mujeres: number; hombres: number }>();
+  for (const fila of control) {
+    const codigo = texto(fila.operational_code);
+    if (!codigo) continue;
+    const m = numero(fila.women_n);
+    const h = numero(fila.men_n);
+    if (m || h) sexoPorCodigo.set(codigo, { mujeres: m, hombres: h });
+  }
   const totalPorFecha = new Map<string, { aulas: number; efectivas: number }>();
 
   // Los elegibles viven en el plan, no en el parte. Se busca por
@@ -155,10 +180,16 @@ export function serieDeRendimiento(
     fechas.add(fecha);
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0 };
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0 };
     dia.aulas += 1;
     dia.elegibles += elegibles;
     dia.efectivas += efectivas;
+    const sexo = sexoPorCodigo.get(codigo);
+    if (sexo) {
+      dia.mujeres += sexo.mujeres;
+      dia.hombres += sexo.hombres;
+      dia.conSexo += 1;
+    }
     dias.set(fecha, dia);
     const total = totalPorFecha.get(fecha) ?? { aulas: 0, efectivas: 0 };
     total.aulas += 1;
@@ -185,7 +216,7 @@ export function serieDeRendimiento(
     let aulasAcum = 0;
     let efectivasAcum = 0;
     const serie = orden.map((fecha) => {
-      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0 };
+      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0 };
       aulasAcum += dia.aulas;
       efectivasAcum += dia.efectivas;
       const media = mediaHasta.get(fecha) ?? 0;
@@ -194,6 +225,11 @@ export function serieDeRendimiento(
         aulas: dia.aulas,
         elegibles: dia.elegibles,
         efectivas: dia.efectivas,
+        // `null` y no 0 cuando NINGUNA aula del día trae reparto: un cero diría
+        // que ese día no respondió ninguna mujer, y lo que pasa es que el libro
+        // no lo dice.
+        mujeres: dia.conSexo ? dia.mujeres : null,
+        hombres: dia.conSexo ? dia.hombres : null,
         porAula: dia.aulas ? redondea(dia.efectivas / dia.aulas) : null,
         aulasAcumuladas: aulasAcum,
         efectivasAcumuladas: efectivasAcum,
