@@ -98,7 +98,17 @@ export function AulasFiltrosDeEfectiva({
         {criterio ? <> Ahora mismo: {criterio}</> : null}
       </p>
 
-      <ul className="aulas-efectiva-lista">
+      {/* **C1: se declara, o el gate no lo mide.** Con dos condiciones el runner
+          no lo tomaba como coleccion candidata —ni siquiera lo marcaba como no
+          declarado— asi que daba verde sin haber auditado la unica geometria que
+          este panel tiene. Las condiciones son **variantes repetidas del mismo
+          rol**, o sea `equal`: cambian de contenido, no de marco. */}
+      <ul
+        className="aulas-efectiva-lista"
+        data-qa-geometry-group="monitoring-aulas-efectiva"
+        data-qa-geometry-contract="equal"
+        data-qa-geometry-capacity="owned"
+      >
         {filtros.map((f, i) => (
           <li key={i}>
             <label>
