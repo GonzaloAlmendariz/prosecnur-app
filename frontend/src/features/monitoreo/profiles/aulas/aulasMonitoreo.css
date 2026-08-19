@@ -3331,7 +3331,13 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista { margin: 0; padding: 0; list-style: none; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
-  display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px auto;
+  /* Cada fila es su propia grilla, asi que la ultima columna NO puede ser
+     `auto`: se dimensiona con el texto de ESA fila y arrastra a las numericas.
+     Medido con la columna «Cuando» llevando fechas, «Pedir» empezaba en cuatro
+     x distintas —736, 727, 756 y 703— y los numeros dejaban de estar bajo su
+     cabecera. Con `auto` no se notaba solo porque todas las filas decian la
+     misma palabra. 92px es «antes del 21/08» a 11.5px sin recorte. */
+  display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px 92px;
   gap: 8px; align-items: center; padding: 4px 6px;
   border-bottom: 1px solid var(--pulso-border); font-size: 11.5px;
   font-variant-numeric: tabular-nums;
@@ -3348,6 +3354,7 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-pedir strong { font-size: 13px; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:last-child { white-space: nowrap; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-ya { color: #a61d4f; font-weight: 650; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-pie { margin: 2px 0 0; font-size: 11px; }
 

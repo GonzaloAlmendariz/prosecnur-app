@@ -3,43 +3,56 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import {
   DIAS_DE_ANTICIPACION,
-  TASA_DE_CAIDA,
+  type AlertaDeFacultad,
   alertaDeAnticipacion,
 } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 
 /**
- * A quién hay que salir a agendar, cuántas aulas y hasta cuándo se puede esperar.
+ * A quién hay que salir a agendar, cuántas aulas y hasta qué día se puede esperar.
  *
  * El resto del perfil dice cómo va el campo; esto dice **qué hacer hoy con el
  * teléfono**. Por eso no es un gráfico: es una lista de facultades ordenada por
  * urgencia, con el número de aulas a pedir en cada una.
  *
- * Los dos umbrales van visibles en el pie **con su origen**. Una alerta que no
- * dice de dónde salen sus números no se puede discutir, y ésta pide trabajo a
- * gente: tiene que poder defenderse.
+ * La columna «Cuándo» lleva una **fecha**, no un adjetivo. Un «hay margen» no se
+ * puede agendar; un «antes del 24/08» sí, y es lo que pidió Gonzalo al decir que
+ * hay que poder predecirlo con antelación.
  */
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], diasRestantes = null }: {
+/** `2026-08-24` → `24/08`. En UTC: con hora local sale el día anterior. */
+function diaCorto(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}` : iso;
+}
+
+/** Lo que se lee en la columna «Cuándo» para cada facultad. */
+function cuando(f: AlertaDeFacultad): string {
+  if (f.urgencia === "sin agenda") return "sin agenda";
+  if (f.urgencia === "pedir ahora") return "ahora";
+  return f.pedirAntesDe ? `antes del ${diaCorto(f.pedirAntesDe)}` : "hay margen";
+}
+
+export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [] }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
-  /** Días de campo que quedan. `null` si el estudio no declara fecha de cierre. */
-  diasRestantes?: number | null;
 }) {
   const filas = useMemo(
-    () => alertaDeAnticipacion(proyeccionPorAgenda(agenda, partes, cuotas), diasRestantes),
-    [agenda, partes, cuotas, diasRestantes],
+    () => alertaDeAnticipacion(proyeccionPorAgenda(agenda, partes, cuotas)),
+    [agenda, partes, cuotas],
   );
 
   const conBrecha = filas.filter((f) => f.urgencia !== "sin brecha");
   const aulasTotales = conBrecha.reduce((n, f) => n + f.aulasAPedir, 0);
-  // Cuando todas las facultades comparten urgencia, la columna «Cuándo» es la
+  const paradas = conBrecha.filter((f) => f.urgencia === "sin agenda").length;
+  // Cuando todas las facultades dicen lo mismo en «Cuándo», la columna es la
   // misma palabra veinte veces: ruido que empuja al resto. Se dice una vez en la
-  // lectura y la columna desaparece.
-  const urgenciasDistintas = new Set(conBrecha.map((f) => f.urgencia)).size > 1;
+  // lectura y la columna desaparece. Se compara el TEXTO y no la urgencia,
+  // porque dos facultades con margen distinto llevan fechas distintas.
+  const cuandos = new Set(conBrecha.map(cuando));
 
   if (!filas.length) {
     return (
@@ -57,21 +70,18 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], di
     );
   }
 
-  // **El dueño del vacío es la LISTA, no este envoltorio.** Los dos declaraban
-  // `capacity="owned"` y el gate marcó `capacity-drift`: los 61 px entre ambos
-  // —la cabecera y la lectura— se leían como capacidad interior sin usar. La
-  // cláusula limita la declaración al contenedor visible de DATOS, y un
-  // envoltorio que además lleva texto no lo es.
   return (
     <div className="aulas-anticipacion">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(conBrecha.length)}</strong>{" "}
         {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} aulas nuevas ·
         hay que pedir <strong>{fmt(aulasTotales)}</strong> en total
-        {diasRestantes == null ? " · el estudio no declara fecha de cierre" : ""}
-        {!urgenciasDistintas && conBrecha[0]?.urgencia === "pedir ahora"
-          ? " · todas hay que pedirlas ahora"
-          : ""}
+        {/* Las paradas van en la lectura y no sólo en la tabla: son las que
+            tienen días de campo perdiéndose ahora mismo. */}
+        {paradas > 0
+          ? <> · <strong>{fmt(paradas)}</strong> ya {paradas === 1 ? "está" : "están"} sin agenda</>
+          : null}
+        {cuandos.size === 1 ? ` · todas: ${[...cuandos][0]}` : ""}
       </p>
 
       <ul className="aulas-anticipacion-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -85,10 +95,10 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], di
           <span>Pedir</span>
           <span>Cubren</span>
           <span>Faltan</span>
-          {urgenciasDistintas ? <span>Cuándo</span> : null}
+          {cuandos.size > 1 ? <span>Cuándo</span> : null}
         </li>
         {conBrecha.map((f) => (
-          <li key={f.facultad} className={f.urgencia === "pedir ahora" ? "es-urgente" : ""}>
+          <li key={f.facultad} className={f.urgencia === "hay margen" ? "" : "es-urgente"}>
             <span className="aulas-anticipacion-nombre" title={f.facultad}>{f.facultad}</span>
             <span className="aulas-anticipacion-pedir">
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
@@ -98,9 +108,9 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], di
                 aparecer como un número inflado sin explicación. */}
             <span>{f.aulasNecesarias ? fmt(f.aulasNecesarias) : "S/D"}</span>
             <span>{fmt(f.faltan)}</span>
-            {urgenciasDistintas ? (
-              <span className={f.urgencia === "pedir ahora" ? "aulas-anticipacion-ya" : ""}>
-                {f.urgencia === "pedir ahora" ? "ahora" : "hay margen"}
+            {cuandos.size > 1 ? (
+              <span className={f.urgencia === "hay margen" ? "" : "aulas-anticipacion-ya"}>
+                {cuando(f)}
               </span>
             ) : null}
           </li>
@@ -114,12 +124,10 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], di
             necesita redondeo. */}
         Se piden más aulas de las que cubren la brecha porque una parte no llega a
         aplicarse: en el operativo de 2025, <strong>40 de cada 170</strong>{" "}
-        titulares acabaron necesitando reemplazo. Y «ahora» significa
-        que queda menos margen que los <strong>{DIAS_DE_ANTICIPACION} días</strong> que
-        pasaron de mediana entre llamar a un aula y aplicarla, también en 2025.
-        {diasRestantes == null
-          ? " Sin fecha de cierre declarada no se puede calcular margen, así que toda brecha se trata como urgente."
-          : ""}
+        titulares acabaron necesitando reemplazo. La fecha es el último día para
+        llamar sin que la facultad se quede parada: se cuenta desde el día en que
+        se le acaba la agenda, restando los <strong>{DIAS_DE_ANTICIPACION} días</strong>{" "}
+        que pasaron de mediana entre llamar a un aula y aplicarla, también en 2025.
       </p>
     </div>
   );
