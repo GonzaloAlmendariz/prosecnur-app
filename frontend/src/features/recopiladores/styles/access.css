@@ -10,13 +10,13 @@
 /* Mismo recipe glass que .pulso-panel (theme.css) — Recopiladores tenía su
    propio recipe plano (surface + borde + shadow-low, sin hover) que nunca
    se alineó con el resto de la app. Se reusa el token/valor exacto, no una
-   variante nueva. rec-package-card/rec-render-card salieron de esta lista
-   en E10: ahora usan el componente <Panel> compartido, que trae su propia
-   superficie — dejarlas acá sería un recipe duplicado y muerto. */
+   variante nueva. rec-package-card/rec-render-card/rec-handoff-card/
+   rec-receipt-card salieron de esta lista en E10: ahora usan el componente
+   <Panel> compartido, que trae su propia superficie — dejarlas acá sería un
+   recipe duplicado y muerto. Solo quedan rec-target-panel/rec-access-result
+   (AccessSection, sin migrar todavía). */
 .rec-target-panel,
-.rec-access-result,
-.rec-handoff-card,
-.rec-receipt-card {
+.rec-access-result {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
     color-mix(in srgb, var(--pulso-surface) 92%, transparent);
@@ -34,9 +34,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .rec-target-panel:hover,
-  .rec-access-result:hover,
-  .rec-handoff-card:hover,
-  .rec-receipt-card:hover {
+  .rec-access-result:hover {
     border-color: color-mix(in srgb, var(--pulso-primary-border) 44%, var(--pulso-border));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.78),
@@ -52,9 +50,7 @@
 }
 
 .rec-target-panel header,
-.rec-access-result > header,
-.rec-handoff-card header,
-.rec-receipt-card > header {
+.rec-access-result > header {
   align-items: center;
   display: flex;
   gap: 9px;
@@ -62,18 +58,14 @@
 }
 
 .rec-target-panel header > div,
-.rec-access-result header > div,
-.rec-handoff-card header > div,
-.rec-receipt-card header > div {
+.rec-access-result header > div {
   flex: 1;
 }
 
 /* Insignia del ícono de cabecera: antes viajaba suelto junto al texto, sin
    ningún tratamiento — el mismo patrón que ya usa pulso-catalogchip-icon. */
 .rec-target-panel header > svg:first-child,
-.rec-access-result header > svg:first-child,
-.rec-handoff-card header > svg:first-child,
-.rec-receipt-card header > svg:first-child {
+.rec-access-result header > svg:first-child {
   background: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
   border-radius: var(--pulso-radius-chip);
   color: var(--pulso-primary-strong);
@@ -82,9 +74,7 @@
 }
 
 .rec-target-panel header span,
-.rec-access-result header span,
-.rec-handoff-card header span,
-.rec-receipt-card header span {
+.rec-access-result header span {
   color: var(--pulso-text-faint);
   font-size: 11px;
   font-weight: var(--pulso-weight-semibold);
@@ -93,9 +83,7 @@
 }
 
 .rec-target-panel h2,
-.rec-access-result h2,
-.rec-handoff-card h2,
-.rec-receipt-card h2 {
+.rec-access-result h2 {
   font-size: 16px;
   margin: 2px 0 0;
 }

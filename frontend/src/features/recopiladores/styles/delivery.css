@@ -1,8 +1,18 @@
+/* rec-handoff-card/rec-receipt-card: desde E10 usan <Panel> (recipe glass y
+   header viven ahí). Solo queda el layout de contenido y el ícono inline
+   de cada título, acotado a .pulso-panel-title para no recolorear los
+   íconos de los botones/artefactos de más abajo. */
 .rec-handoff-card,
 .rec-receipt-card {
   align-content: start;
   display: grid;
   gap: 14px;
+}
+
+.rec-handoff-card .pulso-panel-title svg,
+.rec-receipt-card .pulso-panel-title svg {
+  color: var(--rec-accent);
+  flex-shrink: 0;
 }
 
 .rec-handoff-status {
