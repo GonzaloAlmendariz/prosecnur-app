@@ -1,4 +1,5 @@
 import type {
+  CollectionAccessBinding,
   CollectionAdapterId,
   CollectionDeployment,
   CollectionDeploymentPreview,
@@ -27,6 +28,33 @@ const DEPLOYMENT_STATUS_LABELS: Record<CollectionDeployment["status"], string> =
 
 export function deploymentStatusLabel(status: string): string {
   return DEPLOYMENT_STATUS_LABELS[status as CollectionDeployment["status"]] ?? status;
+}
+
+// `access_kind` es un union type cerrado de 4 valores (api/recopiladores.ts).
+const ACCESS_KIND_LABELS: Record<CollectionAccessBinding["access_kind"], string> = {
+  parameterized_link: "Enlace personalizado",
+  provider_collector: "Collector del proveedor",
+  recipient_link: "Enlace de destinatario",
+  manual_handoff: "Entrega manual",
+};
+
+export function accessKindLabel(kind: string): string {
+  return ACCESS_KIND_LABELS[kind as CollectionAccessBinding["access_kind"]] ?? kind;
+}
+
+// `binding.status` llega tipado como `string` suelto (no un union cerrado),
+// pero el motor solo produce estos dos valores: `.ca_binding()` en
+// api/R/collection_adapters.R (~línea 398) —
+// `status = if (...) "ready" else "missing"`. Si el motor agrega un tercer
+// valor algún día, esta tabla queda corta y cae al string crudo, pero no
+// rompe.
+const BINDING_STATUS_LABELS: Record<string, string> = {
+  ready: "Listo",
+  missing: "Falta enlace",
+};
+
+export function bindingStatusLabel(status: string): string {
+  return BINDING_STATUS_LABELS[status] ?? status;
 }
 
 export function adapterOperation(adapterId: CollectionAdapterId) {

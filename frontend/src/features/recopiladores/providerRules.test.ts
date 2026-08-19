@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accessKindLabel,
   adapterOperation,
+  bindingStatusLabel,
   deploymentFromPreview,
   deploymentStatusLabel,
   localProviderBlocking,
@@ -65,5 +67,15 @@ describe("reglas capability-driven de adapters", () => {
     // RecopiladoresShell.tsx cuando no hay deployment — no son un estado del
     // backend, tienen que pasar intactos.
     expect(deploymentStatusLabel("sin deployment")).toBe("sin deployment");
+  });
+
+  it("traduce el tipo y el estado de cada binding en la tabla de Vinculación", () => {
+    expect(accessKindLabel("parameterized_link")).toBe("Enlace personalizado");
+    expect(accessKindLabel("manual_handoff")).toBe("Entrega manual");
+    expect(bindingStatusLabel("ready")).toBe("Listo");
+    expect(bindingStatusLabel("missing")).toBe("Falta enlace");
+    // Un valor no mapeado (contrato nuevo, o el enum crece) cae al string
+    // crudo en vez de romper — mismo criterio que bindingLabel().
+    expect(bindingStatusLabel("algo_nuevo")).toBe("algo_nuevo");
   });
 });
