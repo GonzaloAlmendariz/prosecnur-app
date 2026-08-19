@@ -46,6 +46,49 @@
   )
 }
 
+# Igual que `.afiche_compiled()` pero para una plantilla ya construida (por
+# ejemplo, con los bloques reordenados a mano) en vez de generarla desde cero.
+.afiche_compiled_from_template <- function(template, url) {
+  unit <- list(
+    unit_id = "u1", label = "Piloto", role = "piloto", group = "PILOTO",
+    dimensions = list(course_name = "Encuesta para estudiantes de pregrado")
+  )
+  plan <- list(plan_id = "plan-afiche", units = list(unit))
+  binding <- list(
+    access_id = "a1", logical_collector_id = "PILOTO", unit_id = "u1",
+    access_kind = "manual_handoff", access_ref = url, status = "ready"
+  )
+  deployment <- list(
+    deployment_id = "d1", target = list(provider = "kobo"),
+    bindings = list(binding), sensitivity = list(access_urls = "operational"),
+    status = "prepared"
+  )
+  fp <- function(x) collection_fingerprint(x)
+  instance <- list(
+    schema = COLLECTION_MATERIAL_INSTANCE_SCHEMA,
+    instance_id = "material-afiche",
+    template_ref = list(
+      template_id = template$template_id, revision = 1L, sha256 = template$template_sha256
+    ),
+    deployment_id = "d1",
+    deployment_fingerprint = fp(deployment),
+    access_fingerprint = fp(list(binding)),
+    instance_fingerprint = fp("afiche"),
+    unit_refs = list("u1"), access_refs = list("a1"),
+    locale = "es-PE", status = "ready", sensitivity = "operational", warnings = list()
+  )
+  collection_material_compile(
+    template, instance,
+    project = list(name = "Hostigamiento sexual UNSA 2026", period = "Piloto 2026"),
+    plan = plan, deployment = deployment
+  )
+}
+
+.cra_test_greyscale <- function(path) {
+  img <- png::readPNG(path)
+  if (length(dim(img)) == 3L) img[, , 1] else img
+}
+
 test_that("el preset del afiche valida y no hereda el vocabulario de la ficha", {
   template <- collection_material_poster_template(assets = c("logo-unsa", "logo-pulso"))
   expect_true(collection_material_template_validate(template)$ok)
@@ -238,4 +281,78 @@ test_that("los logos se resuelven desde los archivos del proyecto por slug", {
   mapa <- prosecnurapp:::.cm_brand_assets_map(session, ids)
   expect_identical(names(mapa), "logo-unsa")
   expect_identical(mapa[["logo-unsa"]], ruta)
+})
+
+# --- El orden de los bloques es funcional, no cosmetico -----------------------
+# El QR del afiche esta anclado al centro -moverlo es un problema de colision,
+# no de orden-, pero todo lo demas SI responde a donde vive en el array: lo
+# que aparece antes del `access_qr` se apila arriba, lo que aparece despues se
+# apila abajo.
+
+test_that("pasar 'Instrucciones' antes del QR en el array las sube de verdad", {
+  template <- collection_material_poster_template(assets = "logo-uno")
+  blocks <- template$pages[[1]]$blocks
+  ids <- vapply(blocks, function(b) b$block_id, character(1))
+  expect_gt(which(ids == "indicaciones"), which(ids == "qr"))
+
+  compiled <- .afiche_compiled("https://x.test/enc", assets = "logo-uno")
+  L <- prosecnurapp:::.cra_layout()
+  geo <- pulso_pdf_geo("portrait")
+  plan_original <- prosecnurapp:::.cra_flow_plan(compiled$pages[[1]]$blocks, L, geo)
+  instr_original <- Find(function(it) identical(it$block_id, "indicaciones"), plan_original$items)
+  expect_false(is.null(instr_original))
+  expect_false(is.null(instr_original$y_top))  # abajo del QR: se ancla por el tope
+
+  # Mover "indicaciones" a antes de "qr" en el array de bloques.
+  bloque <- blocks[[which(ids == "indicaciones")]]
+  sin_bloque <- blocks[ids != "indicaciones"]
+  ids_sin <- vapply(sin_bloque, function(b) b$block_id, character(1))
+  template$pages[[1]]$blocks <- append(sin_bloque, list(bloque), after = which(ids_sin == "titulo"))
+  template$template_sha256 <- NULL
+  template$template_sha256 <- collection_fingerprint(template)
+
+  compiled2 <- .afiche_compiled_from_template(template, "https://x.test/enc")
+  plan_reordenado <- prosecnurapp:::.cra_flow_plan(compiled2$pages[[1]]$blocks, L, geo)
+  instr_reordenada <- Find(function(it) identical(it$block_id, "indicaciones"), plan_reordenado$items)
+  expect_false(is.null(instr_reordenada))
+  # Ahora vive ARRIBA del QR: su anclaje es `y_bottom`, no `y_top`.
+  expect_true(!is.null(instr_reordenada$y_bottom) && is.null(instr_reordenada$y_top))
+  expect_gt(instr_reordenada$y_bottom, L$qr_y)
+
+  rendered <- collection_material_render_compiled(
+    compiled2, tempfile(fileext = ".pdf"), device = "pdf"
+  )
+  expect_type(rendered$warnings, "list")
+})
+
+test_that("el bloque divider del afiche deja una linea de tinta en su banda", {
+  skip_if_not_installed("png")
+  template <- collection_material_poster_template(assets = "logo-uno")
+  template$pages[[1]]$blocks <- append(
+    template$pages[[1]]$blocks, list(list(block_id = "rule", type = "divider")),
+    after = which(vapply(template$pages[[1]]$blocks, function(b) b$block_id == "indicaciones", logical(1)))
+  )
+  template$template_sha256 <- NULL
+  template$template_sha256 <- collection_fingerprint(template)
+
+  compiled <- .afiche_compiled_from_template(template, "https://x.test/enc")
+  L <- prosecnurapp:::.cra_layout()
+  geo <- pulso_pdf_geo("portrait")
+  plan <- prosecnurapp:::.cra_flow_plan(compiled$pages[[1]]$blocks, L, geo)
+  divider_item <- Find(function(it) identical(it$type, "divider"), plan$items)
+  expect_false(is.null(divider_item))
+
+  dir <- tempfile("afiche-divider-"); dir.create(dir)
+  png_path <- file.path(dir, "afiche.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .cra_test_greyscale(png_path)
+  y <- if (!is.null(divider_item$y_top)) {
+    divider_item$y_top - divider_item$height * 0.5
+  } else {
+    divider_item$y_bottom + divider_item$height * 0.5
+  }
+  fila <- round((1 - y) * nrow(g))
+  banda <- g[max(1L, fila - 3L):min(nrow(g), fila + 3L), , drop = FALSE]
+  expect_true(any(banda < 0.93))
 })

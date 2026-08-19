@@ -103,6 +103,77 @@
   missing
 }
 
+# El afiche tiene un solo anclaje real: el QR centrado, que no es un bloque
+# reordenable (moverlo del centro es un problema de colision, no de orden).
+# Todo lo demas SI responde al orden: un bloque que en `page$blocks` aparece
+# ANTES del `access_qr` se apila hacia arriba desde el QR; uno que aparece
+# DESPUES se apila hacia abajo. Asi "subir Instrucciones por encima del
+# Titulo" en el editor de verdad pone las instrucciones arriba del QR.
+.cra_flow_plan <- function(blocks, L, geo) {
+  flow_types <- c("heading", "body", "divider", "instructions")
+  items <- Filter(function(b) b$type %in% flow_types, blocks %||% list())
+  qr_index <- which(vapply(blocks %||% list(), function(b) identical(b$type, "access_qr"), logical(1)))
+  qr_pos <- if (length(qr_index)) qr_index[[1]] else Inf
+  item_index <- which(vapply(blocks %||% list(), function(b) b$type %in% flow_types, logical(1)))
+
+  gap <- 0.020
+  link_h <- 0.075
+  qr_half_h <- (L$qr_side * geo$page_w) / geo$page_h / 2
+  qr_top <- L$qr_y + qr_half_h
+  qr_bottom <- L$qr_y - qr_half_h
+
+  block_h <- function(b) {
+    if (b$type %in% c("heading", "body")) {
+      n <- length(b$lines %||% list())
+      if (n == 0L) return(0)
+      size <- if (identical(b$type, "heading")) L$title_size else 11
+      lh <- if (identical(b$type, "heading")) L$title_lineheight else 1.2
+      return(n * (size * lh / 72) / geo$page_h + 0.014)
+    }
+    if (identical(b$type, "divider")) return(0.022)
+    if (identical(b$type, "instructions")) {
+      n <- length(b$lines %||% list())
+      if (n == 0L) return(0)
+      return(n * (11 * 1.2 / 72) / geo$page_h + 0.012)
+    }
+    0
+  }
+
+  above <- items[item_index < qr_pos]
+  below <- items[item_index > qr_pos]
+  plan <- list()
+  # Techo y piso: si alguien apila muchos bloques a un solo lado del QR (poco
+  # comun, pero el editor ya no lo impide) esto evita que el flujo escriba
+  # sobre la regla de cabecera o el pie en vez de desbordar silenciosamente.
+  ceiling_y <- L$y_brand_rule - 0.03
+  floor_y <- 0.10
+
+  cursor <- qr_top + gap
+  for (b in rev(above)) {
+    h <- block_h(b)
+    top_edge <- min(cursor + h, ceiling_y)
+    plan[[length(plan) + 1L]] <- list(block_id = b$block_id, type = b$type, y_bottom = cursor, height = top_edge - cursor)
+    cursor <- top_edge + gap
+  }
+
+  cursor <- qr_bottom - gap
+  link_after <- if (length(below)) below[[length(below)]]$block_id else NA_character_
+  place_link <- function() {
+    plan[[length(plan) + 1L]] <<- list(block_id = ".link", type = "link", y_top = max(cursor, floor_y), height = link_h)
+    cursor <<- max(cursor, floor_y) - link_h - gap
+  }
+  for (b in below) {
+    h <- block_h(b)
+    y_top <- max(cursor, floor_y)
+    plan[[length(plan) + 1L]] <- list(block_id = b$block_id, type = b$type, y_top = y_top, height = h)
+    cursor <- y_top - h - gap
+    if (identical(b$block_id, link_after)) place_link()
+  }
+  if (is.na(link_after)) place_link()
+
+  list(items = plan)
+}
+
 #' Dibuja una pagina compilada con el layout `poster_qr`.
 #'
 #' @param page pagina de `collection_material_compile`.
@@ -118,10 +189,7 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
   geo <- pulso_pdf_geo(page$orientation %||% "portrait")
   L <- .cra_layout()
   brand <- .crf_block(page, "brand_strip")
-  heading <- .crf_block(page, "heading")
-  body <- .crf_block(page, "body")
   qr <- .crf_block(page, "access_qr")
-  instructions <- .crf_block(page, "instructions")
   footer <- .crf_block(page, "footer")
   warnings <- list()
 
@@ -141,18 +209,6 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
     }
   }
   pulso_pdf_hairline(L$x_left, L$x_right, L$y_brand_rule, tokens = tokens)
-
-  title_lines <- heading$lines %||% .crf_wrap(page$project$name, 35L, 3L)
-  .cra_draw_centered(
-    title_lines, L$y_title,
-    grid::gpar(col = tokens$navy, fontsize = L$title_size, fontface = "bold"),
-    lineheight = L$title_lineheight
-  )
-  title_h <- length(title_lines) * (L$title_size * L$title_lineheight / 72) / geo$page_h
-  .cra_draw_centered(
-    body$lines %||% character(0), L$y_title - title_h - L$body_gap,
-    grid::gpar(col = tokens$soft, fontsize = 11), lineheight = 1.2
-  )
 
   payload <- .crf_txt(qr$value, "")
   if (!is.null(qr)) {
@@ -183,32 +239,62 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
     }
   }
 
-  .cra_draw_centered(
-    instructions$lines %||% .crf_wrap(instructions$value, 72L, 3L), L$y_instructions,
-    grid::gpar(col = tokens$ink, fontsize = 11), lineheight = 1.2
-  )
-  grid::grid.text(
-    "Enlace de la encuesta", x = 0.5, y = L$y_link_label, just = c("center", "top"),
-    default.units = "npc", gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
-  )
-  link_lines <- .crf_wrap(payload, width = 92L, max_lines = 3L)
-  if (!length(link_lines)) link_lines <- "Pendiente de generar"
-  .cra_draw_centered(
-    link_lines, L$y_link,
-    grid::gpar(col = tokens$navy, fontsize = L$link_size), lineheight = L$link_lineheight
-  )
-
-  # El area clicable la declara quien dibujo: el rectangulo cubre las lineas
-  # realmente emitidas, no una franja fija. El device de R no emite anotaciones,
-  # asi que el renderer las inyecta despues sobre este rectangulo.
+  plan <- .cra_flow_plan(page$blocks, L, geo)
   links <- list()
-  if (nzchar(payload)) {
-    link_h <- length(link_lines) * (L$link_size * L$link_lineheight / 72) / geo$page_h
-    links[[1]] <- list(
-      page = page_no, url = payload, kind = "printed_url",
-      x0 = L$x_left, x1 = L$x_right,
-      y0 = L$y_link - link_h, y1 = L$y_link + 0.006
-    )
+
+  for (item in plan$items) {
+    if (identical(item$type, "heading")) {
+      block <- .crf_block(page, "heading")
+      lines <- block$lines %||% .crf_wrap(page$project$name, 35L, 3L)
+      y <- item$y_bottom %||% item$y_top
+      just_top <- !is.null(item$y_top)
+      .cra_draw_centered(
+        lines, if (just_top) y else y + length(lines) * (L$title_size * L$title_lineheight / 72) / geo$page_h,
+        grid::gpar(col = tokens$navy, fontsize = L$title_size, fontface = "bold"),
+        lineheight = L$title_lineheight
+      )
+    } else if (identical(item$type, "body")) {
+      block <- .crf_block(page, "body")
+      lines <- block$lines %||% character(0)
+      y <- item$y_bottom %||% item$y_top
+      just_top <- !is.null(item$y_top)
+      .cra_draw_centered(
+        lines, if (just_top) y else y + length(lines) * (11 * 1.2 / 72) / geo$page_h,
+        grid::gpar(col = tokens$soft, fontsize = 11), lineheight = 1.2
+      )
+    } else if (identical(item$type, "divider")) {
+      y <- if (!is.null(item$y_top)) item$y_top - item$height * 0.5 else item$y_bottom + item$height * 0.5
+      pulso_pdf_hairline(L$x_left, L$x_right, y, tokens = tokens)
+    } else if (identical(item$type, "instructions")) {
+      block <- .crf_block(page, "instructions")
+      lines <- block$lines %||% .crf_wrap(block$value, 72L, 3L)
+      y <- item$y_bottom %||% item$y_top
+      just_top <- !is.null(item$y_top)
+      .cra_draw_centered(
+        lines, if (just_top) y else y + length(lines) * (11 * 1.2 / 72) / geo$page_h,
+        grid::gpar(col = tokens$ink, fontsize = 11), lineheight = 1.2
+      )
+    } else if (identical(item$type, "link")) {
+      grid::grid.text(
+        "Enlace de la encuesta", x = 0.5, y = item$y_top, just = c("center", "top"),
+        default.units = "npc", gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
+      )
+      link_lines <- .crf_wrap(payload, width = 92L, max_lines = 3L)
+      if (!length(link_lines)) link_lines <- "Pendiente de generar"
+      link_y <- item$y_top - 0.024
+      .cra_draw_centered(
+        link_lines, link_y,
+        grid::gpar(col = tokens$navy, fontsize = L$link_size), lineheight = L$link_lineheight
+      )
+      if (nzchar(payload)) {
+        link_h <- length(link_lines) * (L$link_size * L$link_lineheight / 72) / geo$page_h
+        links[[length(links) + 1L]] <- list(
+          page = page_no, url = payload, kind = "printed_url",
+          x0 = L$x_left, x1 = L$x_right,
+          y0 = link_y - link_h, y1 = link_y + 0.006
+        )
+      }
+    }
   }
 
   period <- .crf_txt(footer$value %||% page$project$period, "")
