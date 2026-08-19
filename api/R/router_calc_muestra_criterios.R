@@ -48,6 +48,10 @@
 
 .cm_criterios_frame_guardar <- function(sid, frame, referencia = NULL) {
   prepared <- .cm_criterios_frame_publico(frame, referencia)
+  # Gate de llegada: el frame que esta por ser reemplazado es el baseline. Se
+  # anota ANTES de pisarlo o el punto de comparacion se pierde para siempre.
+  anterior <- session_get(sid, required = FALSE)[["calc_muestra_aulas_frame"]]
+  prepared$frame <- calc_muestra_aulas_novedades_anotar(prepared$frame, anterior)
   session_set(sid, "calc_muestra_aulas_config", prepared$frame$config)
   session_set(sid, "calc_muestra_aulas_frame", prepared$frame)
   session_set(sid, "calc_muestra_aulas_criterios_contexto", prepared$context)

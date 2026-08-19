@@ -192,3 +192,25 @@ calc_muestra_aulas_novedades <- function(aula_frame, baseline, config = list()) 
   out$limpio <- length(bloques) == 0L
   out
 }
+
+#' Anota las novedades de llegada en el frame nuevo contra el frame anterior.
+#'
+#' El gate corre en el UNICO punto por el que pasan las dos vias de guardado
+#' (.cm_criterios_frame_guardar, sincrona y on_complete del job). Sin este
+#' hook, calc_muestra_aulas_novedades existia sin consumidor: la revision de
+#' llegada de la base 2026 tuvo que hacerse a mano fuera de la app (medido el
+#' 2026-08-19, grep del simbolo fuera de su archivo: vacio).
+#'
+#' @param frame_nuevo frame recien construido (con su llegada_snapshot).
+#' @param frame_anterior frame que estaba en sesion, o NULL la primera vez.
+#' @return frame_nuevo con `novedades`; primera construccion = comparado FALSE.
+calc_muestra_aulas_novedades_anotar <- function(frame_nuevo, frame_anterior) {
+  if (!is.list(frame_nuevo)) return(frame_nuevo)
+  baseline <- if (is.list(frame_anterior)) frame_anterior$llegada_snapshot else NULL
+  frame_nuevo$novedades <- calc_muestra_aulas_novedades(
+    frame_nuevo$aula_frame,
+    baseline,
+    frame_nuevo$config %||% list()
+  )
+  frame_nuevo
+}
