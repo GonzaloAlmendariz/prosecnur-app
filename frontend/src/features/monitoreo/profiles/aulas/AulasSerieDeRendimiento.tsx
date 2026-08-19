@@ -197,7 +197,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // cuotas del motor— y la del total, de los partes, en gris y dicha aparte.
     const baseSexo = cuotasVisibles.reduce((n, c) => n + c.observadas, 0);
     const metaSexo = cuotasVisibles.reduce((n, c) => n + c.meta, 0);
-    const series = cuotasVisibles
+    // **Sin ninguna respuesta atribuida no hay serie por sexo que dibujar.** Con
+    // `observadas` en cero las dos líneas salían planas pegadas al eje y parecían
+    // rotas —«no entiendo por qué la línea azul se queda inmóvil hasta el
+    // final»—. Una línea plana en cero no es una serie: es una ausencia dibujada
+    // como si fuera un dato. Se dice con palabras y se dibujan sólo las cuotas.
+    const hayObservadasPorSexo = cuotasVisibles.some((c) => c.observadas > 0);
+    const series = (hayObservadasPorSexo ? cuotasVisibles : [])
       .filter((c) => c.meta > 0 || c.observadas > 0)
       .map((c) => {
         const peso = baseSexo > 0 ? c.observadas / baseSexo : metaSexo > 0 ? c.meta / metaSexo : 0;
@@ -246,8 +252,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrarCuota))}, ${fmt(Math.ceil(meta - alCerrarCuota))} por debajo`
         } · ${fmt(Math.round(ultimo))} encuestas en el parte`
       : `${fmt(Math.round(ultimo))} encuestas del parte · sin meta declarada`;
+    // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
+    // no depende de que alguien haya respondido.
+    const metasSeñaladas = cuotasVisibles
+      .filter((c) => c.meta > 0)
+      .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
     return {
       tope, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
+      metasSeñaladas, hayObservadasPorSexo,
       etiqueta: elegida
         ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
         : `Acumulado del estudio: ${Math.round(ultimo)} de ${meta}`,
@@ -351,12 +363,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               ) : null}
               {/* La CUOTA de cada sexo, señalizada con su color. Sin esto no se
                   puede saber si una linea llega o no llega. */}
-              {acumulado.series.map((se) => (se.meta > 0 ? (
+              {acumulado.metasSeñaladas.map((se) => (
                 <line key={`meta-${se.sexo}`} x1={MARGEN} y1={acumulado.y(se.meta)}
                   x2={100 - MARGEN} y2={acumulado.y(se.meta)}
                   stroke={se.color} strokeWidth="1.2" strokeDasharray="4 4"
                   vectorEffect="non-scaling-stroke" opacity="0.75" />
-              ) : null))}
+              ))}
               {/* El total, en gris: es la suma, y la suma no tiene sexo. */}
               <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.revision}
                 strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
@@ -385,7 +397,21 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       {acumulado ? (
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
           <span>{acumulado.lectura}</span>
+          {/* Qué es cada trazo. Sin esto el gráfico tiene seis líneas y ninguna
+              explicación: «no entiendo el significado de cada línea». */}
+          <span className="aulas-serie-leyenda es-trazos">
+            <em className="es-solido">línea sólida: conseguido</em>
+            <em className="es-punteado">punteada: lo que se infiere de la agenda</em>
+            <em className="es-horizontal">horizontal: la cuota de ese sexo</em>
+            <em className="es-gris">gris: total del parte, sin repartir por sexo</em>
+          </span>
           <span className="aulas-serie-leyenda">
+            {!acumulado.hayObservadasPorSexo ? (
+              <em className="es-ausente">
+                Ninguna respuesta está atribuida todavía a un curso-horario, así que
+                no hay serie por sexo: sólo se señalan las dos cuotas
+              </em>
+            ) : null}
             {/* La sobremuestra, dicha o declarada ausente. Callarla dejaría la
                 pantalla igual tanto si el estudio la tiene como si no. */}
             {sobremuestra && sobremuestra > acumulado.meta ? (

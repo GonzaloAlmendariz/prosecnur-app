@@ -42,6 +42,7 @@ import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
+import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
@@ -1155,6 +1156,29 @@ function renderAulasView(
             la tabla obliga a resolver restando de cabeza. */}
         <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
         <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* Lo primero de la pestaña, antes que ningún gráfico: es lo único que
+              pide una acción hoy. Los demás paneles explican el campo; éste dice
+              a quién llamar. */}
+          <h3>A quién hay que agendar</h3>
+          <span>aulas por pedir, con la anticipación del operativo de 2025</span>
+        </div>
+        <AulasAlertaDeAnticipacion
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+        />
       </section>
       )}
       {pestana !== "rendimiento" ? null : (

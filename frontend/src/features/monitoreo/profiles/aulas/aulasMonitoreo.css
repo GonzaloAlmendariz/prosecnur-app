@@ -3286,6 +3286,36 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: 11px; }
 
+/* Anticipacion: a quien hay que salir a agendar y cuantas aulas. */
+.mon-profile-page.is-aulas-flow .aulas-anticipacion { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-ok {
+  margin: 0; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #168a55 26%, var(--pulso-border));
+  background: color-mix(in srgb, #168a55 6%, var(--pulso-surface));
+  color: var(--pulso-text); font-size: 11.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-lista { margin: 0; padding: 0; list-style: none; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
+  display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px 78px;
+  gap: 8px; align-items: center; padding: 4px 6px;
+  border-bottom: 1px solid var(--pulso-border-soft); font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:not(:first-child) { text-align: right; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-cabecera {
+  color: var(--pulso-text-faint); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li.es-urgente {
+  background: color-mix(in srgb, #a61d4f 4%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-nombre {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-pedir strong { font-size: 13px; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-ya { color: #a61d4f; font-weight: 650; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-pie { margin: 2px 0 0; font-size: 11px; }
+
 /* Serie de rendimiento por facultad: el general y el de una sola. */
 .mon-profile-page.is-aulas-flow .aulas-serie {
   display: grid; gap: 6px; min-width: 0;
@@ -3305,6 +3335,23 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em {
   display: inline-flex; align-items: center; gap: 5px;
   font-style: normal; font-weight: 600; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos { gap: 10px; }
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos em {
+  font-weight: 500; color: var(--pulso-text-soft); font-size: 10.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos em::before {
+  width: 14px; height: 2px; background: var(--pulso-text-soft); border-radius: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-punteado::before {
+  background: repeating-linear-gradient(to right, var(--pulso-text-soft) 0 4px, transparent 4px 7px);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-horizontal::before {
+  background: repeating-linear-gradient(to right, var(--pulso-text-soft) 0 3px, transparent 3px 6px);
+  height: 1px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-gris::before {
+  background: var(--pulso-border-strong);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-ausente {
   color: var(--pulso-text-faint); font-weight: 500;
