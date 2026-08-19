@@ -67,6 +67,12 @@ export type ProyeccionDeFacultad = {
   cuotas: CuotaProyectada[];
   /** `observada` o `meta`, según de dónde salió el reparto por sexo. */
   reparto: "observada" | "meta" | "sin dato";
+  /**
+   * El «hoy» del estudio: último día con parte de campo. Es el ancla de
+   * cualquier margen —el reloj de la máquina no sirve, porque diría que un
+   * estudio de agosto lleva meses cerrado—. `""` si aún no hay ni un parte.
+   */
+  corte: string;
   /** Todas sus cuotas cubiertas con lo agendado. */
   alcanzaTodo: boolean;
 };
@@ -186,6 +192,7 @@ export function proyeccionPorAgenda(
       dias,
       cuotas: cuotasProyectadas,
       reparto,
+      corte: ultimoConParte,
       alcanzaTodo: cuotasProyectadas.length > 0 && cuotasProyectadas.every((c) => c.alcanza),
     } satisfies ProyeccionDeFacultad;
   }).sort((a, b) => Number(a.alcanzaTodo) - Number(b.alcanzaTodo)

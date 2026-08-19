@@ -155,3 +155,35 @@ export function sumarDiasDeCampo(iso: string, dias: number): string {
   }
   return d.toISOString().slice(0, 10);
 }
+
+/**
+ * Días de campo entre dos fechas, sin contar el `desde` y contando el `hasta`.
+ *
+ * Misma regla del domingo que `sumarDiasDeCampo`, y por eso vive aquí: en
+ * `01c0163d` una segunda copia de los tramos en otro archivo se desincronizó y
+ * «Sin agendar» acabó sin contener una sola aula sin agendar.
+ */
+export function diasDeCampoEntre(desde: string, hasta: string): number {
+  const a = new Date(`${desde}T00:00:00Z`);
+  const b = new Date(`${hasta}T00:00:00Z`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime()) || b <= a) return 0;
+  let n = 0;
+  for (let i = 0; i < 3000; i += 1) {
+    a.setUTCDate(a.getUTCDate() + 1);
+    if (a > b) break;
+    if (a.getUTCDay() !== 0) n += 1;
+  }
+  return n;
+}
+
+/** El inverso de `sumarDiasDeCampo`: cuenta hacia atrás saltando domingos. */
+export function restarDiasDeCampo(iso: string, dias: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || dias <= 0) return iso;
+  let quedan = dias;
+  for (let i = 0; quedan > 0 && i < 3000; i += 1) {
+    d.setUTCDate(d.getUTCDate() - 1);
+    if (d.getUTCDay() !== 0) quedan -= 1;
+  }
+  return d.toISOString().slice(0, 10);
+}
