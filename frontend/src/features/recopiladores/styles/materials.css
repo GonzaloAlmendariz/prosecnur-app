@@ -31,15 +31,19 @@
   font-size: 12px;
 }
 
+/* Mismo recipe glass que .pulso-panel (theme.css) — ver access.css. */
 .rec-outline,
 .rec-canvas-wrap,
 .rec-inspector {
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
+    color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-border-strong));
   border-radius: var(--pulso-radius-card);
   min-height: 0;
   overflow: auto;
   scrollbar-gutter: stable;
+  transition: border-color var(--motion-dur-fast) ease;
 }
 
 .rec-outline header,
@@ -76,12 +80,19 @@
   gap: 8px;
   padding: 7px;
   text-align: left;
+  transition: background-color var(--motion-dur-fast) ease;
   width: 100%;
 }
 
 .rec-outline button.is-selected {
   background: var(--pulso-primary-soft);
   color: var(--pulso-primary-strong);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-outline button:not(.is-selected):hover {
+    background: var(--pulso-surface-2);
+  }
 }
 
 .rec-outline button > span {
@@ -143,6 +154,13 @@
   min-width: 0;
   padding: 12px;
   text-align: left;
+  transition: border-color var(--motion-dur-fast) ease, box-shadow var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-canvas-block:not(.is-selected):hover {
+    border-color: color-mix(in srgb, var(--pulso-primary-border) 50%, var(--pulso-border));
+  }
 }
 
 .rec-canvas-block > small,
@@ -246,10 +264,20 @@
 
 .rec-render-result a {
   align-items: center;
+  border-radius: var(--pulso-radius-chip);
   color: var(--pulso-primary-strong);
   display: inline-flex;
   font-size: 13px;
   gap: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  transition: background-color var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-render-result a:hover {
+    background: var(--pulso-primary-soft);
+  }
 }
 
 @media (max-width: 1120px) {

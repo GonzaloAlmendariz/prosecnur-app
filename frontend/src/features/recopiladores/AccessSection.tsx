@@ -47,6 +47,8 @@ function targetFromFields(
     active: boolean;
     customVariable: string;
     recipientJson: string;
+    prefillField: string;
+    returnUrl: string;
   },
 ): CollectionTarget {
   let recipients: Array<Record<string, unknown>> = [];
@@ -67,6 +69,11 @@ function targetFromFields(
     asset_type: adapterId === "kobo_existing_v1" ? fields.assetType || null : null,
     deployment_active: adapterId === "kobo_existing_v1" ? fields.active : null,
     type: adapterId === "surveymonkey_weblink_existing_v1" ? "web_link" : null,
+    // Sin valor, el motor decide sola: ruta XPath completa si el Asset UID
+    // se conoce, nombre pelado si no. Este campo es la salida de escape
+    // explicita, no el camino por defecto.
+    prefill_field: adapterId === "kobo_existing_v1" ? fields.prefillField || null : null,
+    return_url: adapterId === "kobo_existing_v1" ? fields.returnUrl || null : null,
     custom_variable: adapterId === "surveymonkey_weblink_existing_v1" ? fields.customVariable || null : null,
     custom_variables: adapterId === "surveymonkey_weblink_existing_v1" && fields.customVariable
       ? [fields.customVariable]
@@ -96,14 +103,16 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
   const [active, setActive] = useState(currentDeployment?.target.deployment_active === true);
   const [customVariable, setCustomVariable] = useState(currentDeployment?.target.custom_variable ?? "");
   const [recipientJson, setRecipientJson] = useState("[]");
+  const [prefillField, setPrefillField] = useState(currentDeployment?.target.prefill_field ?? "");
+  const [returnUrl, setReturnUrl] = useState(currentDeployment?.target.return_url ?? "");
   const [preflight, setPreflight] = useState<CollectionCapabilityPreflight | null>(null);
   const [preview, setPreview] = useState<CollectionDeploymentPreview | null>(null);
   const [busy, setBusy] = useState<"preflight" | "preview" | "save" | "prepare" | null>(null);
   const [error, setError] = useState("");
 
   const target = useMemo(() => targetFromFields(adapterId, {
-    profile, baseUrl, remoteId, assetType, active, customVariable, recipientJson,
-  }), [active, adapterId, assetType, baseUrl, customVariable, profile, recipientJson, remoteId]);
+    profile, baseUrl, remoteId, assetType, active, customVariable, recipientJson, prefillField, returnUrl,
+  }), [active, adapterId, assetType, baseUrl, customVariable, prefillField, profile, recipientJson, remoteId, returnUrl]);
   const localBlocking = useMemo(() => localProviderBlocking(adapterId, target), [adapterId, target]);
   const candidate = deploymentFromPreview(preview) ?? currentDeployment;
   const backendBlocking = preflight?.blocking ?? [];
@@ -181,6 +190,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
     <div className="rec-access-layout">
       <aside className="rec-target-panel">
         <header><Link2 size={18} /><div><span>Adapter</span><h2>Target existente</h2></div></header>
+        <span className="rec-field-group-heading">Conexión</span>
         <label>Tipo de acceso
           <select value={adapterId} onChange={(event) => changeAdapter(event.target.value as CollectionAdapterId)}>
             {Object.entries(COLLECTION_ADAPTER_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
@@ -196,6 +206,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         ) : null}
         {adapterId === "kobo_existing_v1" ? (
           <>
+            <span className="rec-field-group-heading">Identidad del asset</span>
             <label>Asset UID<input value={remoteId} onChange={(event) => setRemoteId(event.target.value)} /></label>
             <label>Tipo observado
               <select value={assetType} onChange={(event) => setAssetType(event.target.value)}>
@@ -203,10 +214,28 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
               </select>
             </label>
             <label className="rec-check"><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} /> Deployment activo observado</label>
+            <span className="rec-field-group-heading">Personalización del enlace</span>
+            <label>Campo de personalización (avanzado)
+              <input
+                value={prefillField}
+                onChange={(event) => setPrefillField(event.target.value)}
+                placeholder={remoteId ? `/${remoteId}/collectorID` : "collectorID"}
+              />
+            </label>
+            <label>Return URL
+              <input
+                value={returnUrl}
+                onChange={(event) => setReturnUrl(event.target.value)}
+                placeholder="https://… (opcional, una sola para todo el estudio)"
+              />
+            </label>
           </>
         ) : null}
         {adapterId.startsWith("surveymonkey") ? (
-          <label>Collector ID<input value={remoteId} onChange={(event) => setRemoteId(event.target.value)} /></label>
+          <>
+            <span className="rec-field-group-heading">Identidad del collector</span>
+            <label>Collector ID<input value={remoteId} onChange={(event) => setRemoteId(event.target.value)} /></label>
+          </>
         ) : null}
         {adapterId === "surveymonkey_weblink_existing_v1" ? (
           <label>Custom Variable observada<input value={customVariable} onChange={(event) => setCustomVariable(event.target.value)} placeholder="unit_id" /></label>

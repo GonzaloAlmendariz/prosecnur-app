@@ -83,6 +83,13 @@
   gap: 9px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   padding: 10px;
+  transition: border-color var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-artifact-list article:hover {
+    border-color: color-mix(in srgb, var(--pulso-primary-border) 40%, var(--pulso-border));
+  }
 }
 
 .rec-artifact-list article strong,
@@ -99,6 +106,14 @@
 }
 
 .rec-artifact-list a {
+  border-radius: var(--pulso-radius-chip);
   color: var(--pulso-primary-strong);
   padding: 7px;
+  transition: background-color var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-artifact-list a:hover {
+    background: var(--pulso-primary-soft);
+  }
 }

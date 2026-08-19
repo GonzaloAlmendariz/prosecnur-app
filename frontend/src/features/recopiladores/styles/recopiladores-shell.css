@@ -89,10 +89,17 @@
   padding: 8px 12px;
 }
 
+/* Mismo recipe glass que .pulso-panel (theme.css) — ver access.css. Es el
+   estado más visto del módulo (Recopiladores sin plan aún). */
 .rec-empty-state {
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
+    color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-border-strong));
   border-radius: var(--pulso-radius-card);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    var(--pulso-shadow-soft);
   flex-direction: column;
   gap: 10px;
   min-height: var(--pulso-operational-min-panel);
@@ -159,6 +166,16 @@
   padding: 10px 12px;
   text-align: left;
   vertical-align: top;
+}
+
+.rec-table-scroll tbody tr {
+  transition: background-color var(--motion-dur-fast) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-table-scroll tbody tr:hover {
+    background: var(--pulso-surface-2);
+  }
 }
 
 .rec-table-scroll th {

@@ -7,18 +7,43 @@
   min-height: 0;
 }
 
+/* Mismo recipe glass que .pulso-panel (theme.css) — Recopiladores tenía su
+   propio recipe plano (surface + borde + shadow-low, sin hover) que nunca
+   se alineó con el resto de la app. Se reusa el token/valor exacto, no una
+   variante nueva. */
 .rec-target-panel,
 .rec-access-result,
 .rec-package-card,
 .rec-render-card,
 .rec-handoff-card,
 .rec-receipt-card {
-  background: var(--pulso-surface);
-  border: 1px solid var(--pulso-border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
+    color-mix(in srgb, var(--pulso-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pulso-border) 76%, var(--pulso-border-strong));
   border-radius: var(--pulso-radius-card);
-  box-shadow: var(--pulso-shadow-low);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    var(--pulso-shadow-soft);
   min-width: 0;
   padding: 16px;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .rec-target-panel:hover,
+  .rec-access-result:hover,
+  .rec-package-card:hover,
+  .rec-render-card:hover,
+  .rec-handoff-card:hover,
+  .rec-receipt-card:hover {
+    border-color: color-mix(in srgb, var(--pulso-primary-border) 44%, var(--pulso-border));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
+      0 8px 22px rgba(0, 36, 87, 0.08);
+  }
 }
 
 .rec-target-panel,
@@ -47,6 +72,21 @@
 .rec-handoff-card header > div,
 .rec-receipt-card header > div {
   flex: 1;
+}
+
+/* Insignia del ícono de cabecera: antes viajaba suelto junto al texto, sin
+   ningún tratamiento — el mismo patrón que ya usa pulso-catalogchip-icon. */
+.rec-target-panel header > svg:first-child,
+.rec-access-result header > svg:first-child,
+.rec-package-card header > svg:first-child,
+.rec-render-card header > svg:first-child,
+.rec-handoff-card header > svg:first-child,
+.rec-receipt-card header > svg:first-child {
+  background: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
+  border-radius: var(--pulso-radius-chip);
+  color: var(--pulso-primary-strong);
+  flex: 0 0 auto;
+  padding: 7px;
 }
 
 .rec-target-panel header span,
@@ -96,11 +136,45 @@
   font-size: 13px;
   min-height: var(--pulso-control-height-md);
   padding: 6px 8px;
+  transition:
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) ease;
+}
+
+.rec-target-panel input:focus-visible,
+.rec-target-panel select:focus-visible,
+.rec-target-panel textarea:focus-visible,
+.rec-editor-toolbar select:focus-visible,
+.rec-inspector-fields input:focus-visible,
+.rec-inspector-fields select:focus-visible,
+.rec-inspector-fields textarea:focus-visible {
+  border-color: var(--pulso-primary);
+  box-shadow: 0 0 0 3px var(--pulso-primary-focus);
+  outline: none;
 }
 
 .rec-target-panel textarea,
 .rec-inspector-fields textarea {
   resize: vertical;
+}
+
+/* Agrupa los campos del target en bloques temáticos (Conexión / Identidad
+   del asset / Personalización) en vez de una sola columna sin jerarquía. */
+.rec-target-panel .rec-field-group-heading {
+  border-top: 1px solid var(--pulso-border);
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: .07em;
+  margin-top: 5px;
+  padding-top: 13px;
+  text-transform: uppercase;
+}
+
+.rec-target-panel .rec-field-group-heading:first-of-type {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .rec-target-panel .rec-check,
