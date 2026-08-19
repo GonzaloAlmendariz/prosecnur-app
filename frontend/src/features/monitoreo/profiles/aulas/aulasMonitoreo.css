@@ -3255,3 +3255,15 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-baja { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-sube { color: var(--pulso-success-fg); }
+
+/* Pronóstico de cierre: observado sólido, proyección punteada. */
+.mon-profile-page.is-aulas-flow .aulas-pronostico { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-pronostico-lectura { margin: 0; color: var(--pulso-text-soft); font-size: 12px; }
+.mon-profile-page.is-aulas-flow .aulas-pronostico-grafico {
+  width: 100%; height: 132px; overflow: visible;
+}
+.mon-profile-page.is-aulas-flow .aulas-pronostico-eje {
+  display: flex; justify-content: space-between; margin: 0;
+  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: 11px; }
