@@ -884,6 +884,15 @@
   simplified %in% c("kobo", "xlsform") || identical(simplified, "unknown")
 }
 
+#' Campos de identificacion / contacto que no deben graficarse.
+#' Los patrones se buscan sobre `name` + `label` concatenados, y la etiqueta es
+#' prosa: por eso este filtro SOLO aplica a preguntas abiertas. Una pregunta
+#' cerrada responde con su lista de opciones, nunca con un dato de contacto, y
+#' aplicarle estos patrones mataba preguntas sustantivas por una palabra de su
+#' enunciado (ACNUR V3: «...grupo de WhatsApp administrado por World Vision»,
+#' «...entre usted y la empresa», «Si tuvo observaciones, ¿pudo resolverlas?»).
+#' Ver `docs/qa/checklist-acnur-v3-preguntas-ausentes-2026-08-19.md`.
+#' @keywords internal
 .graficos_is_identifier_like <- function(name, label = "") {
   key <- paste(.graficos_norm_text_key(name), .graficos_norm_text_key(label))
   grepl(
@@ -932,7 +941,12 @@
 .graficos_graphable_reason <- function(item) {
   tipo <- .graficos_base_type(item$tipo)
   if (!isTRUE(item$data_available)) return(list(graphable = FALSE, reason = "vacía"))
-  if (.graficos_is_identifier_like(item$name, item$label)) {
+  # Una pregunta cerrada (o una recodificada con catalogo) responde con su lista
+  # de opciones: no puede ser un campo de contacto, asi que el filtro de
+  # identificadores no la alcanza. Ver `.graficos_is_identifier_like()`.
+  cerrada <- tipo %in% c("select_one", "select_multiple") ||
+    (.graficos_is_recoded_var(item$name) && length(item$choices %||% list()) > 0L)
+  if (!cerrada && .graficos_is_identifier_like(item$name, item$label)) {
     return(list(graphable = FALSE, reason = "identificador/contacto/texto sensible"))
   }
   if (.graficos_is_operational_metadata(item$name, item$label)) {
@@ -1268,6 +1282,10 @@
   }, logical(1)))) {
     warnings <- c(warnings, "Se ignoraron páginas/grupos SurveyMonkey como secciones temáticas sugeridas.")
   }
+
+  # Un descarte con datos en la mano tiene que decirse, no caber en un "+N
+  # variables más" del popover. Ver `graficos_descartes_avisados.R`.
+  warnings <- c(warnings, .graficos_avisos_de_descarte(sources))
 
   list(
     ok = TRUE,
