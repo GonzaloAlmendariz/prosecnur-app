@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -58,5 +60,26 @@ describe("qué cuenta como encuesta efectiva", () => {
     const boton = html.match(/<button[^>]*>(?:(?!<\/button>)[\s\S])*?Añadir condición/);
     expect(boton).not.toBeNull();
     expect(boton![0]).toContain("disabled");
+  });
+});
+
+describe("la lista de valores se abre hacia el lado que cabe", () => {
+  it("declara la clase que la abre hacia arriba", () => {
+    // Con la CUARTA condición en un viewport de 600 px la lista se abría **251
+    // px fuera de la ventana** —medido: `bottom: 851`—. Es el mismo molde que el
+    // globo del gráfico: un elemento anclado sin mirar el borde.
+    //
+    // El render estático no tiene ventana, así que lo que este archivo sujeta es
+    // que la clase EXISTA y que el componente la use; el comportamiento se
+    // verificó en pantalla a 1024x600, con el botón a la vista como lo tendría
+    // un usuario: la primera condición abre en 269–371 y la cuarta en 397–499,
+    // las dos dentro.
+    const fuente = readFileSync(
+      new URL("./AulasFiltrosDeEfectiva.tsx", import.meta.url), "utf8");
+    expect(fuente).toContain("es-arriba");
+    expect(fuente).toMatch(/window\.innerHeight - r\.bottom/);
+    const css = readFileSync(
+      new URL("./aulasMonitoreo.css", import.meta.url), "utf8");
+    expect(css).toMatch(/\.aulas-efectiva-opciones\.es-arriba[^}]*bottom:\s*100%/);
   });
 });
