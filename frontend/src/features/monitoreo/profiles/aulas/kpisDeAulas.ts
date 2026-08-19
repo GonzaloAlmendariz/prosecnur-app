@@ -335,6 +335,8 @@ export function aulasKpis(
   // falta —en personas y en cursos-horario—.
   const estado = estadoDeAplicacion((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[]);
   const cumplen = estado.estados.find((e) => e.clave === "cerrando")?.aulas ?? 0;
+  const conMeta = ((dashboard?.course_status ?? []) as Array<Record<string, unknown>>)
+    .filter((f) => Number(f.expected_valid ?? 0) > 0).length;
   return [
     validasKpi(dashboard),
     {
@@ -343,8 +345,18 @@ export function aulasKpis(
       value: fmt(cumplen),
       // Un conteo sin su denominador no se puede leer: «0» y «0 de 196» dicen lo
       // mismo del numerador y cosas distintas del estudio.
-      pista: estado.total
-        ? `de ${fmt(estado.total)} cursos-horario del plan`
+      //
+      // Y el denominador son **los que tienen meta declarada**: medido sobre el
+      // corte, 234 de las 236 filas de `course_status` la traen —las dos que no,
+      // que el propio perfil ya declara en Cuotas—. Con `estado.total` esas dos
+      // entraban en el denominador, y «llegar a su meta» no significa nada para
+      // una fila que no tiene ninguna.
+      //
+      // La diferencia es de dos filas, no de cuarenta: la primera version de este
+      // comentario decia que los 40 extras no tenian meta y ESO ERA FALSO. La
+      // cifra se midio despues de escribirlo.
+      pista: conMeta
+        ? `de ${fmt(conMeta)} cursos-horario con meta`
         : "cursos-horario que llegaron a su meta",
     },
     cuotaKpi(dashboard),
