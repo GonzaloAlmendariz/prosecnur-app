@@ -2034,3 +2034,35 @@ del corte: sirve tanto de conformidad como de comprobación de que nada regresó
 aparte —ventana de 131 px en la ruta por facultad, declarada como restricción de
 alto del perfil— y la matriz de cuatro viewports se corrió sobre las dos
 superficies nuevas.
+
+
+## 2026-08-18 — El defecto de escala: quién calcula sobre el payload recortado
+
+`course_status` viaja **recortado a 500 filas** (`MONITOREO_AULAS_COURSE_STATUS_TOPE`)
+y el estudio real tiene **2 615**. Todo lo que se calcule en la vista sobre ese
+bloque es, a escala real, una cifra de un subconjunto presentada como el total.
+
+Barrido de sus consumidores en `AulasMonitoreoPage`:
+
+| Consumidor | Estado |
+|---|---|
+| Cumplimiento en respuestas | ✅ usa `cumplimiento_respuestas` del motor |
+| Perfil por facultad | ✅ usa `avance_por_facultad` del motor (L103) |
+| Contador de los paneles | ✅ declara «500 de 2 615» cuando recorta (L102) |
+| Tabla «Avance por curso-horario» | ✅ enseñar 500 filas está declarado |
+| **`AulasEstadoChart`** | ☐ cuenta aulas por `application_state` sobre el bloque recortado |
+| **`AulasCoberturaChart`** | ☐ reparte aulas por cobertura sobre el bloque recortado |
+
+**Por qué importa aunque el recorte esté declarado**: las 500 filas NO son una
+muestra al azar. El motor las ordena por tramo del circuito —`en_aplicacion`
+primero, luego `lista`, luego `pendiente`— así que un recorte sobre-representa
+las aulas que ya están en campo. Un gráfico de distribución sobre ese orden no
+es «una parte del reparto»: es un reparto **sesgado hacia lo avanzado**, y se lee
+como si el operativo fuera mejor de lo que es.
+
+**Alcance del arreglo pendiente**: publicar dos agregados desde el motor, con la
+misma forma que `cumplimiento_respuestas`, sobre el universo que cada panel
+declara —el de estado incluye el banco, porque su contador dice «236 · 40 del
+banco»—. No se puede verificar con el fixture actual (236 filas, nunca toca el
+tope): la prueba tendría que ser un test de motor con más de 500 filas, o el
+sexto proyecto de referencia.
