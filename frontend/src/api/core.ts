@@ -87,6 +87,29 @@ export class ApiError extends Error {
   }
 }
 
+// `collection_contract_problem_lines()` (api/R/collection_contracts.R) arma
+// cada entrada de `details.problems` como "<path> [<code>]: <detalle>" — el
+// `detalle` ya es la frase legible que el motor escribió para un humano; el
+// `<path> [<code>]` es la mitad para debug. Sin esto, `handle()` solo veía
+// `error.message` (el resumen genérico del contrato roto) y el detalle por
+// campo se perdía siempre, para TODA la app: no solo Accesos, cualquier
+// `E_*_INVALID` de collection_* con varios problemas a la vez.
+function summarizeProblems(details: unknown): string {
+  const problems = (details as { problems?: unknown } | null | undefined)?.problems;
+  if (!Array.isArray(problems) || !problems.length) return "";
+  const seen = new Set<string>();
+  for (const raw of problems) {
+    if (typeof raw !== "string") continue;
+    const detail = (raw.match(/\]:\s*(.+)$/)?.[1] ?? raw).trim();
+    if (detail) seen.add(detail);
+  }
+  const uniques = Array.from(seen);
+  if (!uniques.length) return "";
+  const shown = uniques.slice(0, 3);
+  const restante = uniques.length - shown.length;
+  return ` · ${shown.join(" · ")}${restante > 0 ? ` (+${restante} más)` : ""}`;
+}
+
 // Mensaje de fallo de descarga bajo el mismo contrato: qué pasó + cómo
 // seguir. `raw` (body del backend) solo se anexa como detalle si es corto
 // y legible (ni JSON/HTML ni multilínea) — nunca se vuelca el body crudo.
@@ -124,7 +147,8 @@ export async function handle<T>(res: Response): Promise<T> {
     }
     const code = body?.error?.code ?? body?.code ?? `HTTP_${res.status}`;
     const fallbackMessage = raw.trim() || res.statusText || `HTTP ${res.status}`;
-    const message = body?.error?.message ?? body?.message ?? fallbackMessage;
+    const message = (body?.error?.message ?? body?.message ?? fallbackMessage)
+      + summarizeProblems(body?.error?.details);
     // E_NO_SESSION: el backend no reconoce el sid que tenemos en
     // localStorage. Típicamente porque el backend se reinició (sesiones
     // en memoria, no persistidas). Disparamos un evento global que

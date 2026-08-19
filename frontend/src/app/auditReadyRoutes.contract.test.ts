@@ -498,7 +498,7 @@ describe("audit-ready route root contract", () => {
     const value = readinessValue(tag, "auditReady", "Recopiladores");
     expectSemanticReadiness(value, "Recopiladores", "recopiladores/");
     expect(compactExpression(value), "Recopiladores exact directional readiness and polarity").toBe(
-      "loading?false:`recopiladores/${direction.seccion}/${direction.pestana}`",
+      "loading||seccionCargando?false:`recopiladores/${direction.seccion}/${direction.pestana}`",
     );
   });
 
