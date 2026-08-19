@@ -16,13 +16,25 @@ import { COLOR_AULA_LISTA, TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
  * tabla, o las dos superficies dejan de hablar entre sí.
  */
 
-/** Las columnas que son un ESTADO y no un dato libre. Lista cerrada a propósito. */
-export const COLUMNAS_DE_ESTADO = new Set([
-  "application_state",
-  "sample_status",
-  "application_status",
-  "operational_status",
-]);
+/**
+ * Las columnas que son un ESTADO y no un dato libre.
+ *
+ * Era una lista de cuatro claves literales, y la capa de presentación decide lo
+ * mismo con una regla más ancha —`status`, cualquier `*_status`, cualquier
+ * `*_state`—. Dos criterios para la misma pregunta: medido sobre el corte, la
+ * columna «Estado» de Cuotas tenía **40 celdas sin chip de 40**, porque su clave
+ * es `status` a secas y no estaba en la lista.
+ *
+ * Ahora el chip pregunta lo mismo que la traducción. No hace falta que la lista
+ * acierte: `colorDeEstado` no colorea lo que no reconoce, así que una columna
+ * que no sea un estado se queda en texto plano igual que antes.
+ */
+export function esColumnaDeEstado(campo: string) {
+  return campo === "status" || campo.endsWith("_status") || campo.endsWith("_state");
+}
+
+/** Compatibilidad: el `has` de antes, ahora resuelto por la regla. */
+export const COLUMNAS_DE_ESTADO = { has: esColumnaDeEstado };
 
 /**
  * El estado OPERATIVO, agrupado por desenlace.
@@ -85,6 +97,32 @@ const COLOR_OPERATIVO_POR_ETIQUETA = new Map(
 );
 
 /**
+ * El vocabulario de las CUOTAS, que es otro.
+ *
+ * `pendiente` ya tenía color por el rótulo alterno de su tramo, pero `cumplida`,
+ * `en_riesgo` y `sin_meta` no aparecen en ningún tramo ni en los estados
+ * operativos. Sin esto, la columna «Estado» de Cuotas coloreaba lo pendiente y
+ * dejaba en texto plano lo cumplido: una columna donde sólo se ve la mala
+ * noticia se lee peor que una sin color.
+ *
+ * Sobre el corte de prueba las 40 celdas están en «Pendiente», así que las otras
+ * tres NO se pueden ver en pantalla todavía; se fijan por test.
+ */
+const COLOR_CUOTA: Record<string, string> = {
+  pendiente: COLOR_RESULTADO.pendiente,
+  cumplida: COLOR_RESULTADO.efectiva,
+  en_riesgo: COLOR_RESULTADO.parcial,
+  sin_meta: COLOR_RESULTADO.revision,
+};
+
+const COLOR_CUOTA_POR_ETIQUETA = new Map(
+  Object.entries(COLOR_CUOTA).map(([clave, color]) => [
+    String(STATUS_LABELS[clave] ?? clave).toLowerCase(),
+    color,
+  ]),
+);
+
+/**
  * El color de un estado, buscado por su ETIQUETA visible.
  *
  * Se busca por etiqueta y no por clave porque a la celda llega ya traducido por
@@ -101,6 +139,8 @@ export function colorDeEstado(valor: string): string | null {
   if (operativo) return operativo;
   const alterno = COLOR_POR_ROTULO_ALTERNO.get(texto);
   if (alterno) return alterno;
+  const cuota = COLOR_CUOTA_POR_ETIQUETA.get(texto);
+  if (cuota) return cuota;
   // «EN RESERVA 3» es el vocabulario del Excel: la reserva y su posición. El
   // número cambia la fila, no el estado.
   if (texto.startsWith("en reserva")) {
