@@ -84,7 +84,13 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
     expect(aulasPage).toMatch(
       /<div\s+className="mon-profile-table-wrap"\s+data-qa-geometry-capacity="owned"\s+data-qa-geometry-member/,
     );
-    expect(aulasPage.match(/data-qa-geometry-member/g)).toHaveLength(2);
+    // UNO desde que el panel de preparación dejó de declarar su grupo en el
+    // `section`: con el grupo puesto ahí, la CABECERA entraba como miembro y
+    // sus 5 px de holgura salían como `capacity-drift` del panel —el gate lo
+    // reportó en cinco paneles del perfil—. Su rejilla de tarjetas sigue
+    // declarando su propio grupo y su capacidad; lo que se retiró es la
+    // declaración sobrante, no una superficie.
+    expect(aulasPage.match(/data-qa-geometry-member/g)).toHaveLength(1);
     // Se cuenta la RELACIÓN, no el nombre del grupo: todo panel de datos declara
     // su contrato. Amarrar el test a `monitoring-aulas-table` con un número fijo
     // lo hacía fallar al separar Avance y Consultas en paneles propios —un

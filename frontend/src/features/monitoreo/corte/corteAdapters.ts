@@ -117,12 +117,21 @@ export function corteAulas(
   dashboard: MonitoreoAulasDashboard | null | undefined,
 ): MonitoreoCorte {
   const kpis = dashboard?.kpis;
-  const agenda = dashboard?.agenda ?? [];
-  const rastreadas = agenda.filter((row) => row.sample_role !== "extra_reserve_pool");
-  const metasDeclaradas = rastreadas.filter((row) => numero(row.expected_valid) != null);
-  const meta = metasDeclaradas.length
-    ? metasDeclaradas.reduce((sum, row) => sum + (numero(row.expected_valid) ?? 0), 0)
-    : null;
+  // La meta la publica el MOTOR, no se recompone acá.
+  //
+  // Se sumaba `expected_valid` sobre la agenda quitando el banco, y eso da
+  // 4 336 donde el estudio pide 3 743: la agenda trae TODOS los eslabones de
+  // cada cadena y la meta es de una aula por cadena —la que está en juego—,
+  // porque las reservas dormidas no piden respuestas hasta que entran. El
+  // resultado era la misma palabra con dos cifras en el mismo módulo: la
+  // tarjeta de Salidas decía «meta 4 336» mientras Avance decía 3 743 en tres
+  // paneles distintos.
+  //
+  // El motor ya calcula esa suma sobre el conjunto en juego y la manda dentro
+  // de `ritmo_diario`, con un comentario que dice justamente que viaja ahí para
+  // que la vista no tenga que recomponerla. Se usa ésa.
+  const metaDelMotor = numero(dashboard?.ritmo_diario?.meta);
+  const meta = metaDelMotor != null && metaDelMotor > 0 ? metaDelMotor : null;
 
   return construirCorte({
     ingesta: numero(state?.n_rows) ?? numero(kpis?.respuestas_total) ?? 0,

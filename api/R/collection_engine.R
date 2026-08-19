@@ -617,37 +617,58 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
   sprintf("d[%s]", as.character(key))
 }
 
-.collection_access_url <- function(binding, sensitivity, provider = "kobo") {
+# Los corchetes que exige Enketo van escapados; la barra de la ruta XPath
+# completa (`/<asset_uid>/campo`) se deja literal. `URLencode(reserved = TRUE)`
+# escapa TODO reservado -incluida la barra, a `%2F`- porque trata la cadena
+# como un segmento de path; el enlace real que Gonzalo confirmo en produccion
+# la deja sin escapar dentro del query, que es donde vive.
+.collection_encode_param_name <- function(name) {
+  name <- gsub("[", "%5B", as.character(name), fixed = TRUE)
+  gsub("]", "%5D", name, fixed = TRUE)
+}
+
+.collection_access_url <- function(binding, sensitivity, provider = "kobo", return_url = "") {
   ref <- as.character(binding$access_ref %||% "")
   if (length(ref) != 1L || !nzchar(ref) || !grepl("^https?://", ref, ignore.case = TRUE) ||
       !tolower(sensitivity) %in% c("public", "operational")) return("")
+  url <- ref
   prefill <- binding$prefill %||% list()
-  if (!identical(binding$access_kind, "parameterized_link") || !length(prefill)) return(ref)
-  # Un valor de personalizacion vacio o NA NO produce enlace.
-  #
-  # Sin este corte, una unidad sin codigo daba `d[collectorID]=` —un QR que
-  # escanea bien, abre el formulario bien y llega SIN identificador, asi que la
-  # respuesta entra anonima y nadie se entera hasta el analisis—. Y el NA era
-  # peor que el vacio: `d[collectorID]=NA` si lleva identificador, y es la
-  # cadena «NA», con lo que TODAS las unidades sin codigo se acumulan en un
-  # mismo colector inventado que parece legitimo.
-  #
-  # Devolver "" y no colgar el parametro a secas: un enlace sin el parametro se
-  # ve sano y falla igual de callado. Vacio es el valor que el resto del motor
-  # ya entiende como «esta unidad no tiene acceso todavia» y que la vista sabe
-  # enseñar.
-  valores <- vapply(prefill, function(v) {
-    v <- suppressWarnings(as.character(v)[1])
-    if (is.na(v)) "" else trimws(v)
-  }, character(1))
-  if (any(!nzchar(valores))) return("")
-  query <- paste(vapply(names(prefill), function(key) {
-    paste0(
-      utils::URLencode(.collection_prefill_param(key, provider), reserved = TRUE), "=",
-      utils::URLencode(as.character(prefill[[key]]), reserved = TRUE)
+  if (identical(binding$access_kind, "parameterized_link") && length(prefill)) {
+    # Un valor de personalizacion vacio o NA NO produce enlace.
+    #
+    # Sin este corte, una unidad sin codigo daba `d[collectorID]=` —un QR que
+    # escanea bien, abre el formulario bien y llega SIN identificador, asi que la
+    # respuesta entra anonima y nadie se entera hasta el analisis—. Y el NA era
+    # peor que el vacio: `d[collectorID]=NA` si lleva identificador, y es la
+    # cadena «NA», con lo que TODAS las unidades sin codigo se acumulan en un
+    # mismo colector inventado que parece legitimo.
+    #
+    # Devolver "" y no colgar el parametro a secas: un enlace sin el parametro se
+    # ve sano y falla igual de callado. Vacio es el valor que el resto del motor
+    # ya entiende como «esta unidad no tiene acceso todavia» y que la vista sabe
+    # enseñar.
+    valores <- vapply(prefill, function(v) {
+      v <- suppressWarnings(as.character(v)[1])
+      if (is.na(v)) "" else trimws(v)
+    }, character(1))
+    if (any(!nzchar(valores))) return("")
+    query <- paste(vapply(names(prefill), function(key) {
+      paste0(
+        .collection_encode_param_name(.collection_prefill_param(key, provider)), "=",
+        utils::URLencode(as.character(prefill[[key]]), reserved = TRUE)
+      )
+    }, character(1)), collapse = "&")
+    url <- paste0(url, if (grepl("?", url, fixed = TRUE)) "&" else "?", query)
+  }
+  return_url <- suppressWarnings(as.character(return_url %||% "")[1])
+  return_url <- if (is.na(return_url)) "" else trimws(return_url)
+  if (nzchar(return_url)) {
+    url <- paste0(
+      url, if (grepl("?", url, fixed = TRUE)) "&" else "?",
+      "returnUrl=", utils::URLencode(return_url, reserved = TRUE)
     )
-  }, character(1)), collapse = "&")
-  paste0(ref, if (grepl("?", ref, fixed = TRUE)) "&" else "?", query)
+  }
+  url
 }
 
 .collection_monitoring_handoff <- function(existing, plan, deployment, receipt) {
@@ -705,7 +726,7 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
     row$recipient_id <- binding$recipient_id
     row$operator_id <- binding$operator_id
     row$access_kind <- binding$access_kind
-    row$link <- .collection_access_url(binding, sensitivity, deployment$target$provider)
+    row$link <- .collection_access_url(binding, sensitivity, deployment$target$provider, deployment$target$return_url)
     row$access_ref_hash <- collection_fingerprint(binding$access_ref %||% "")
     row["qr"] <- list(NULL)
     rows[[index]] <- row

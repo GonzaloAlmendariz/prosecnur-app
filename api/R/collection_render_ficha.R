@@ -286,7 +286,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   payload <- .crf_txt(resolved_access[[access_id]], "")
   if (!nzchar(payload) && is.list(binding)) {
     sensitivity <- as.character(deployment$sensitivity$access_urls %||% "restricted")[[1]]
-    payload <- .collection_access_url(binding, sensitivity, deployment$target$provider)
+    payload <- .collection_access_url(binding, sensitivity, deployment$target$provider, deployment$target$return_url)
   }
   list(
     access_id = access_id,

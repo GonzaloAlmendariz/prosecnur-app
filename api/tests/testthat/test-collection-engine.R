@@ -315,6 +315,75 @@ test_that("la costura adapter -> resolvedor no duplica el parametro", {
   expect_equal(lengths(regmatches(url, gregexpr("collectorID", url, fixed = TRUE)))[[1]], 1L)
 })
 
+test_that("sin prefill_field, la costura produce el enlace real que Gonzalo confirmo en produccion", {
+  # Reproduce byte a byte el enlace que Gonzalo dio por bueno:
+  # https://ee-eu.kobotoolbox.org/single/ccIcHAqm?d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=EEGGLL
+  # La ruta XPath completa (`/<asset_uid>/collectorID`) tiene que salir del
+  # motor por defecto -sin que nadie configure `prefill_field`- y la barra NO
+  # se escapa a `%2F`, que es justo lo que rompia el enlace real.
+  adapter <- collection_adapter_get("kobo_existing_v1")
+  target <- list(
+    asset_uid = "aNNuP72AedZ886EoAUeV5o", asset_type = "survey", deployment_active = TRUE,
+    base_access_url = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm"
+  )
+  plan <- list(
+    schema = "collection_plan/v1", plan_id = "plan-costura-xpath",
+    units = list(list(unit_id = "unit-1", link_key = "EEGGLL"))
+  )
+  deployment <- adapter$preview_deployment(plan, adapter$inspect_target(list(), target))
+  url <- .collection_access_url(deployment$bindings[[1]], "operational", "kobo")
+
+  expect_identical(
+    url,
+    "https://ee-eu.kobotoolbox.org/single/ccIcHAqm?d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=EEGGLL"
+  )
+})
+
+test_that("returnUrl se cuelga al final, una sola vez y para todo el estudio", {
+  # Mismo enlace real, ahora completo con `returnUrl`. El valor SI va con la
+  # barra escapada -va del lado del valor, no del nombre del parametro- porque
+  # ahi la codificacion estandar es correcta y es lo que el enlace real trae.
+  binding <- list(
+    access_ref = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    access_kind = "parameterized_link",
+    prefill = list(`/aNNuP72AedZ886EoAUeV5o/collectorID` = "EEGGLL")
+  )
+  url <- .collection_access_url(
+    binding, "operational", "kobo",
+    return_url = "https://pulso.pucp.edu.pe/noticias/enlace"
+  )
+
+  expect_identical(
+    url,
+    paste0(
+      "https://ee-eu.kobotoolbox.org/single/ccIcHAqm?",
+      "d%5B/aNNuP72AedZ886EoAUeV5o/collectorID%5D=EEGGLL&",
+      "returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fnoticias%2Fenlace"
+    )
+  )
+})
+
+test_that("sin returnUrl configurado, el enlace sale igual que antes", {
+  binding <- list(
+    access_ref = "https://ee.example.test/x/form",
+    access_kind = "parameterized_link",
+    prefill = list(collectorID = "CH-1")
+  )
+  expect_identical(
+    .collection_access_url(binding, "operational", "kobo"),
+    .collection_access_url(binding, "operational", "kobo", return_url = "")
+  )
+  expect_false(grepl("returnUrl", .collection_access_url(binding, "operational", "kobo"), fixed = TRUE))
+})
+
+test_that("returnUrl tambien viaja en un acceso sin personalizacion", {
+  # returnUrl no depende de que la unidad tenga collectorID: es del estudio
+  # entero, asi que un manual_handoff o un recipient_link tambien lo llevan.
+  binding <- list(access_ref = "https://ee.example.test/x/form", access_kind = "manual_handoff")
+  url <- .collection_access_url(binding, "operational", "kobo", return_url = "https://pulso.pucp.edu.pe/x")
+  expect_identical(url, "https://ee.example.test/x/form?returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fx")
+})
+
 test_that("un valor de personalizacion vacio o NA no produce enlace", {
   # Un QR con `d[collectorID]=` escanea bien, abre el formulario bien y llega
   # SIN identificador: la respuesta entra anonima y no se descubre hasta el
