@@ -4107,3 +4107,15 @@ heredan. Verificado en vivo (specimen sobre estilos reales).
 primero era el BOOTGATE — la pagina del navegador habia caido al gate
 (SID muerto tras relanzar la API) y boot.css no define esos tokens.
 Leccion re-aplicada: verificar DONDE vive antes de declarar ausencia.
+
+### PEDIDO NUEVO de Gonzalo: revamp estetico de Coincidencia (cola de UI)
+
+Textual: «coincidencia se puede ver muchisimo mejor a nivel de estetica
+y formato». BASELINE MEDIDO (2026-08-19): 6 bloques apilados en columna
+unica de **7.574px**; el ultimo («Cada facultad, paso a paso») mide
+**5.121px** — 15 fichas apiladas, 2/3 del alto total. Diagnostico
+inicial: (a) sin jerarquia vistazo→detalle (todo al mismo nivel);
+(b) la ficha por facultad pide selector/acordeon como el historico;
+(c) tres bloques cuentan historias hermanas (embudo, certificacion,
+seleccion comparada) sin transicion. Pase de Rama 2 con contrato
+geometrico en los proximos ticks, tras cerrar el pase de warns.
