@@ -46,6 +46,25 @@ export function AulasFiltrosDeEfectiva({
   onGuardar: () => void;
 }) {
   const [abierto, setAbierto] = useState<number | null>(null);
+  /**
+   * Hacia dónde se abre la lista de valores.
+   *
+   * Se abría siempre hacia abajo, y con la CUARTA condición en un viewport de
+   * 600 px eso la dejaba **251 px fuera de la ventana**: medido, `bottom: 851`.
+   * Es el mismo molde que el globo del gráfico —un elemento anclado sin mirar el
+   * borde—, aquí por abajo. Si no cabe debajo, se abre hacia arriba.
+   */
+  const [haciaArriba, setHaciaArriba] = useState(false);
+
+  const alternar = (i: number, boton: HTMLElement | null) => {
+    if (abierto === i) { setAbierto(null); return; }
+    const r = boton?.getBoundingClientRect();
+    // 240 es el alto máximo de la lista más su margen: si no caben debajo, se
+    // abre hacia arriba. Se mide al ABRIR y no al montar porque el panel se
+    // desplaza con el scroll de la sección.
+    setHaciaArriba(Boolean(r && window.innerHeight - r.bottom < 240 && r.top > 240));
+    setAbierto(i);
+  };
   const nombres = variables.map((v) => v.name);
   const valoresDe = (nombre: string) =>
     variables.find((v) => v.name === nombre)?.values ?? [];
@@ -98,14 +117,15 @@ export function AulasFiltrosDeEfectiva({
             </label>
             <div className="aulas-efectiva-valores">
               <span>Valores que cuentan</span>
-              <button type="button" onClick={() => setAbierto(abierto === i ? null : i)}
+              <button type="button"
+                onClick={(e) => alternar(i, e.currentTarget)}
                 disabled={!f.var}>
                 {f.values.length
                   ? `${f.values.length} elegido${f.values.length === 1 ? "" : "s"}`
                   : "Elegir"}
               </button>
               {abierto === i ? (
-                <ul className="aulas-efectiva-opciones">
+                <ul className={`aulas-efectiva-opciones${haciaArriba ? " es-arriba" : ""}`}>
                   {valoresDe(f.var).map((v) => (
                     <li key={v}>
                       <label>
