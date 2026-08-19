@@ -27,6 +27,7 @@ import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
 import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
+import { AulasCambioDeAula } from "./AulasCambioDeAula";
 import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
@@ -813,6 +814,13 @@ function renderAulasView(
           {/* La cadena del parte, SUMADA. Fila a fila no se ve que los
               duplicados pesen más que los rechazos. */}
           <AulasEmbudoDelAula filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]} />
+          {/* Y si el aula fue donde decía. El equipo anota el salón real y el
+              plan trae el agendado, y nadie los cruzaba: un aula aplicada en
+              otro sitio no se sabía. */}
+          <AulasCambioDeAula
+            partes={cuadre.filas as MonitoreoRow[]}
+            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          />
           {/* La resta ya viene hecha del motor —el mismo helper que decide el
               descuadre—, así que esta línea y el aviso de Validación no pueden
               discrepar. Es el destino que le faltaba a «Cuadre del parte de

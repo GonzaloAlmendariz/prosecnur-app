@@ -375,7 +375,18 @@ if (ESCALA_2025) {
          # El aula REAL suele ser la agendada, y a veces no: es justo el dato por
          # el que existe una columna «AULA» en la hoja de campo separada de la
          # del plan. Una de cada siete se movio.
-         actual_room = if (i %% 7 == 0) sprintf("%s (cambio)", as.character(u$label)) else as.character(u$label),
+         # El aula REAL, y cuando cambia cambia de verdad: OTRO salon, no el
+         # mismo con un sufijo. El fixture ponia «MIE 10:00 H131 (cambio)» sobre
+         # el mismo H131, asi que comparar codigos de salon daba CERO cambios y
+         # comparar cadenas enteras daba treinta falsos. Ninguna de las dos
+         # sirve para el libro real, donde `AULA` es solo el codigo —«D102»— y
+         # un cambio es otro salon distinto.
+         actual_room = if (i %% 7 == 0) {
+           sub("[A-Z][0-9]{3}$",
+               sprintf("%s%d", c("A","H","L","N","V","Z")[[1L + ((i + 3L) %% 6L)]],
+                       100L + ((i + 17L) %% 40L)),
+               as.character(u$label))
+         } else as.character(u$label),
          applied_date = as.character(u$scheduled_date %||% ""),
          applied_time = as.character(u$scheduled_time %||% ""),
          # Una de cada trece no se pudo aplicar. Con todas en «APLICADA» la
