@@ -3618,3 +3618,16 @@ pendiente — el usuario ve desaparecer su selección sin un letrero
 «PSICOLOGÍA: fijada en 8; recalcula y vuelve a seleccionar para
 aplicarla». Mejora: chip/aviso de fijas pendientes (diff workspace
 estratos vs resultado) en la preparación y en el margen.
+
+### El letrero se encendió y destapó 12 fijas fantasma — diagnóstico pendiente
+
+El aviso nuevo de fijaciones pendientes (commit del letrero) mostró 12
+que YA vivían en el estudio, p. ej. ARQ «fijada en 11 (cálculo vigente
+15)» — 11 es el objetivo Kamila 2025. Hipótesis a discriminar:
+(H1) fijas heredadas de la réplica 2025 que nunca se aplicaron
+(¿deberían limpiarse o aplicarse?); (H2) desalineación de componente —
+el stepper escribe en facultyComp y el escenario activo (e1) lee
+selectedComp=totalComp, con lo que el letrero mezcla colecciones.
+DIAGNÓSTICO: volcar estratos de AMBOS componentes (fijas) + resultado
+por escenario y decidir; si H2, el letrero y el stepper deben apuntar
+al MISMO componente que el motor usa.
