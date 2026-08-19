@@ -438,6 +438,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             <svg className="aulas-serie-grafico es-acumulado" viewBox="0 0 100 100"
               preserveAspectRatio="none" role="img"
               aria-label={acumulado.etiqueta}>
+              <defs>
+                <linearGradient id="aulas-serie-area" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={COLOR_RESULTADO.efectiva} stopOpacity="0.16" />
+                  <stop offset="100%" stopColor={COLOR_RESULTADO.efectiva} stopOpacity="0.01" />
+                </linearGradient>
+              </defs>
               {[0, Math.round(acumulado.tope / 2), acumulado.tope].map((m) => (
                 <line key={m} x1={MARGEN} y1={acumulado.y(m)} x2={100 - MARGEN} y2={acumulado.y(m)}
                   stroke="var(--pulso-border)" strokeWidth="1"
@@ -480,7 +486,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   crece, que es lo que un acumulado es. */}
               <polygon
                 points={`${MARGEN},${MARGEN + UTIL} ${acumulado.observado} ${x(corte)},${MARGEN + UTIL}`}
-                fill={COLOR_RESULTADO.efectiva} opacity="0.09" />
+                fill="url(#aulas-serie-area)" />
               <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.efectiva}
                 strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
                 vectorEffect="non-scaling-stroke" />
@@ -507,6 +513,11 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
           <span>{acumulado.lectura}</span>
         </p>
+          <p className="mon-profile-muted aulas-serie-pie">
+            El <strong>sólido</strong> es lo conseguido y el <strong>punteado</strong>,
+            lo que se infiere de las aulas ya agendadas; las horizontales son la meta
+            y las cuotas de cada sexo.
+          </p>
         </div>
       ) : null}
 
@@ -695,6 +706,11 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           ? <span>{fmt(porVenir.length)} días agendados por delante</span>
           : <span>sin días agendados por delante</span>}
       </p>
+      <p className="mon-profile-muted aulas-serie-pie">
+        {elegida
+          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
+          : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
+      </p>
       </div>
 
       {/* Las DOS metas de la facultad, que es lo que decide si se sale a agendar.
@@ -758,19 +774,6 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         </p>
       ) : null}
 
-      {acumulado ? (
-        <p className="mon-profile-muted aulas-serie-pie">
-          Arriba, el acumulado contra la meta: <strong>sólido</strong> lo conseguido,
-          <strong> punteado</strong> lo que se infiere de las aulas ya agendadas, y las
-          horizontales son las cuotas de cada sexo.
-        </p>
-      ) : null}
-
-      <p className="mon-profile-muted aulas-serie-pie">
-        {elegida
-          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
-          : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
-      </p>
     </div>
   );
 }
