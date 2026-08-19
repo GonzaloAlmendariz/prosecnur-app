@@ -10,6 +10,7 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Download, FileCheck2, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
 import { handoffReadiness } from "./handoffModel";
+import { providerLabel } from "./providerRules";
 import "./styles/delivery.css";
 
 type Props = {
@@ -62,7 +63,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
         <dl>
           <div><dt>Deployment</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>
           <div><dt>Cobertura</dt><dd>{deployment ? `${deployment.coverage.units_with_access}/${deployment.coverage.units_total}` : "—"}</dd></div>
-          <div><dt>Target</dt><dd>{deployment?.target.provider ?? "—"}</dd></div>
+          <div><dt>Target</dt><dd>{deployment ? providerLabel(deployment.target.provider) : "—"}</dd></div>
           <div><dt>Fingerprint</dt><dd title={readiness.fingerprint}>{shortFingerprint(readiness.fingerprint)}</dd></div>
         </dl>
         <PulsoButton variant="primary" onClick={() => { void handoff(); }} disabled={!readiness.ready || readiness.delivered || busy}>
