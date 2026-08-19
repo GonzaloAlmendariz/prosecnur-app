@@ -388,7 +388,13 @@ function TerritorialModelWorkbenchImpl({
   const crossedDistricts = routeOverview?.district_count ?? reports?.district_progress?.length ?? 0;
   const responsibleCount = reports?.responsible_summary?.configured ? reports.responsible_summary.distinct_count : null;
   const responsibleHint = responsibleCount == null ? "por configurar" : responsibleCount > 0 ? "detectados" : "sin asignar";
-  const progressPct = routeMeta && routeMeta > 0 ? Math.min(100, Math.max(0, Math.round((responseCount / routeMeta) * 100))) : null;
+  // Sin techo. El `Math.min(100, …)` que estaba aquí servía para la barra, pero
+  // el MISMO valor se imprime como texto: con 1 693 respuestas sobre una meta de
+  // 1 200 decía «100% de 1,200 entrevistas» en vez de 141 %. Pasarse de la meta
+  // es un dato del operativo, no un desbordamiento que haya que esconder —y la
+  // pestaña vecina ya enseña «107 %» sin problema—. El techo va donde hace falta,
+  // que es el ancho de la barra.
+  const progressPct = routeMeta && routeMeta > 0 ? Math.max(0, Math.round((responseCount / routeMeta) * 100)) : null;
   const cards: RouteMetricCard[] = [
     { label: "Titulares", value: fmt(titularBlocks.length || reports?.block_progress.length || 0), hint: "manzanas seleccionadas", icon: Route },
     { label: "Reemplazos", value: fmt(replacementCount), hint: `${routeOverview?.replacement_per_route == null ? "Por definir" : fmt(routeOverview.replacement_per_route)} por titular`, icon: Link2 },
