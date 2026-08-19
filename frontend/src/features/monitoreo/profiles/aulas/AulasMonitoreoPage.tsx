@@ -1011,8 +1011,11 @@ function renderAulasView(
               fecha de cada aula, la hoja de partes dice cuáles se llenaron— y
               nadie las cruzaba. Los demás paneles de Avance contestan cuánto se
               lleva; éste, qué se quedó atrás. */}
-          <h3>Lo que se quedó atrás</h3>
-          <span>contra la fecha del corte</span>
+          {/* El registro del informe. «Lo que se quedó atrás» es la frase de una
+              reunión, no de un reporte, y este panel cuenta algo muy concreto:
+              cursos-horario cuya fecha ya pasó y que siguen sin parte. */}
+          <h3>Cursos-horario vencidos sin aplicar</h3>
+          <span>fecha ya pasada al corte, sin parte de campo</span>
         </div>
         <AulasFrenteDelOperativo
           filas={(dashboard?.agenda ?? []) as MonitoreoAulasPlanRow[]}
