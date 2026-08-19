@@ -1167,7 +1167,12 @@ function renderAulasView(
               está rindiendo más»— y además esquiva el guard: «Rendimiento por
               facultad» terminaría igual que «Cuota sexo por facultad». */}
           <h3>Qué está rindiendo más</h3>
-          <span>encuestas por aula visitada</span>
+          {/* «del parte»: estas encuestas son las que el equipo anotó aula por
+              aula —4 863 sobre este corte— y no las respuestas de Kobo que la
+              pestaña vecina cuenta como VÁLIDAS —3 700—. Sin nombrar la fuente,
+              dos cifras separadas por una pestaña y con 1 163 de diferencia se
+              leen como la misma. */}
+          <span>encuestas del parte, por aula visitada</span>
         </div>
         {/* Las filas del parte YA UNIDAS a su facultad, que es lo que devuelve
             `parteDeCampo`. Pasando el parte crudo salían las 210 aulas bajo
