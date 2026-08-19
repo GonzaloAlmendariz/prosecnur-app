@@ -3474,6 +3474,24 @@
   transform: translateX(-50%); pointer-events: none; z-index: 1;
   background: var(--pulso-text-faint); opacity: 0.45;
 }
+/* EL CRUCE DE LA META: donde el acumulado alcanza lo que el plan espera. Es la
+ * pregunta que Gonzalo hace del grafico —«¿y cuando llegaria?»— y la linea la
+ * cruzaba sin decir nada. Se ancla al punto y se separa hacia arriba para no
+ * taparlo. */
+.mon-profile-page.is-aulas-flow .aulas-serie-cruce {
+  position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px));
+  padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  font-size: var(--aulas-serie-min); font-weight: 600; pointer-events: none;
+  color: #168a55; border: 1px solid color-mix(in srgb, #168a55 34%, transparent);
+  background: color-mix(in srgb, #168a55 10%, var(--pulso-surface));
+}
+/* Cuando el cruce cae en lo agendado NO es un hecho: es una prevision, y se
+ * pinta con el color de lo inferido para que no se lea como conseguido. */
+.mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-inferido {
+  color: #b97611; border-color: color-mix(in srgb, #b97611 34%, transparent);
+  background: color-mix(in srgb, #b97611 10%, var(--pulso-surface));
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cruce b { font-weight: 700; }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
   transform: translate(-50%, -50%); cursor: help;
