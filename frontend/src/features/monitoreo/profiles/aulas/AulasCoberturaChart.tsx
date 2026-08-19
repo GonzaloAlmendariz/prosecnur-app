@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
@@ -13,6 +13,21 @@ import { coberturaPorAula } from "./coberturaPorAula";
  * Este es el único gráfico del catálogo que no existe en los otros perfiles,
  * porque sólo aquí la unidad lleva su propia meta.
  */
+/**
+ * Alto del grafico segun el sitio que haya.
+ *
+ * En grande va **al lado** de «Dónde falta más» y sube a 360 para que la pareja
+ * quede pareja —antes eran 311 contra 1 050, con 739 px de columna muerta—. En
+ * un viewport bajo la pareja **se apila**, asi que no hay nada que equilibrar y
+ * 360 px de cinco barras se comen el 60 % de una pantalla de 600.
+ *
+ * La clausula lo dice: al cambiar de regimen responsive el alto objetivo puede
+ * cambiar, pero cambia para todo el grupo. Aqui el grupo se deshace, y con el la
+ * razon de ser del alto grande.
+ */
+const ALTO_COMPACTO = 820;
+const ALTO_DEL_GRAFICO = { amplio: 360, compacto: 220 };
+
 export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
@@ -20,6 +35,19 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
   /** Las aulas sin meta declarada, también del motor. */
   sinMetaMotor?: number;
 }) {
+  // Se mide una vez y se escucha el cambio: el usuario redimensiona y el grafico
+  // tiene que encogerse con la ventana, no en la siguiente carga.
+  const [compacto, setCompacto] = useState(
+    () => typeof window !== "undefined" && window.innerHeight <= ALTO_COMPACTO,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-height: ${ALTO_COMPACTO}px)`);
+    const alCambiar = () => setCompacto(mq.matches);
+    alCambiar();
+    mq.addEventListener("change", alCambiar);
+    return () => mq.removeEventListener("change", alCambiar);
+  }, []);
+
   const { tramos, sinMeta, total } = useMemo(() => {
     // El reparto del MOTOR primero, por la misma razón que el de estado: la
     // vista lo sumaba sobre las 500 filas que viajan de 2 615, y ésas están
@@ -71,13 +99,8 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
     <div className="aulas-cobertura-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <PlotlyChart
         data={data}
-        // **Cinco barras en 220 px con 739 de columna muerta al lado.** Se
-        // sube para acercarse al panel vecino: Gonzalo, «ambos elementos
-        // paralelos deben tener un alto equilibrado». No es estirar el marco
-        // dejando hueco —eso ya lo castigo el gate con 380 px de
-        // `capacity-drift`—: es que el contenido USE el alto, que es lo que la
-        // clausula pide. Plotly no crece con su fila, asi que va en la prop.
-        height={360}
+        // Plotly no crece con su fila: el alto va en la prop, no en el CSS.
+        height={compacto ? ALTO_DEL_GRAFICO.compacto : ALTO_DEL_GRAFICO.amplio}
         ariaLabel="Cursos-horario por nivel de cobertura de su meta"
         layout={{
           margin: { l: 110, r: 16, t: 8, b: 28 },
