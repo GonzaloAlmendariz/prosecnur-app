@@ -2029,6 +2029,7 @@ function OccurrenceAlertReviewRow({ item }: { item: OccurrenceAlertReviewItem })
   );
 }
 
+// ⚠ SIN MONTAR. Definida y nunca referenciada en todo `src`.
 function OccurrenceAlertLine({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
     <p className={value ? "is-warning" : "is-ready"}>

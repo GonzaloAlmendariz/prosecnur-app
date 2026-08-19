@@ -481,6 +481,7 @@ function TerritorialModelWorkbenchImpl({
   );
 }
 
+// ⚠ SIN MONTAR. Definida y nunca referenciada en todo `src`.
 function RouteSheetStrip({
   routeSheet,
   onReload,

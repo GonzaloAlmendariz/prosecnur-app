@@ -6530,6 +6530,8 @@ function AcreditacionPhonePendingInsistence({
   );
 }
 
+// ⚠ SIN MONTAR. Definida y nunca referenciada en todo `src`. La unica del
+// perfil telefonico; las otras cinco del barrido son de territorial.
 function TelefonicoPendingOperationalTable({
   pendingRows,
   insistenceRows,
