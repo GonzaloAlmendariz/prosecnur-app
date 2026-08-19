@@ -2256,9 +2256,13 @@
 }
 
 .cmv2-frame-warning-list span {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
-  color: var(--pulso-warn-fg);
+  /* Advertencias del marco con texto largo: el chip mostaza lleno con texto
+   * marron era uno de los cuadros gritones (pedido de Gonzalo 2026-08-19).
+   * Mismo lenguaje que el recipe warn de aviso.css. */
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
+  color: var(--pulso-text-soft);
 }
 
 .cmv2-classroom-badges,
