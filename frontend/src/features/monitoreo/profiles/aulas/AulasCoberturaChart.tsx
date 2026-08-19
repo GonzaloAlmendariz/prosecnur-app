@@ -13,8 +13,27 @@ import { coberturaPorAula } from "./coberturaPorAula";
  * Este es el único gráfico del catálogo que no existe en los otros perfiles,
  * porque sólo aquí la unidad lleva su propia meta.
  */
-export function AulasCoberturaChart({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const { tramos, sinMeta, total } = useMemo(() => coberturaPorAula(filas), [filas]);
+export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
+  resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
+  /** Las aulas sin meta declarada, también del motor. */
+  sinMetaMotor?: number;
+}) {
+  const { tramos, sinMeta, total } = useMemo(() => {
+    // El reparto del MOTOR primero, por la misma razón que el de estado: la
+    // vista lo sumaba sobre las 500 filas que viajan de 2 615, y ésas están
+    // ordenadas por tramo del circuito.
+    if (resumen?.length) {
+      const porClave = new Map(resumen.map((e) => [e.clave, Number(e.aulas) || 0]));
+      const claves = ["sin_respuestas", "hasta_25", "hasta_50", "hasta_99", "cumplida"] as const;
+      const base = coberturaPorAula([]);
+      const tramosMotor = base.tramos.map((t, i) => ({ ...t, aulas: porClave.get(claves[i]) ?? 0 }));
+      const totalMotor = tramosMotor.reduce((n, t) => n + t.aulas, 0);
+      if (totalMotor) return { tramos: tramosMotor, sinMeta: sinMetaMotor ?? 0, total: totalMotor };
+    }
+    return coberturaPorAula(filas);
+  }, [filas, resumen, sinMetaMotor]);
 
   if (!total) {
     return (

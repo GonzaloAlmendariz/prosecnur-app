@@ -830,6 +830,11 @@ export type MonitoreoAulasDashboard = {
 	    aulas_con_brecha: number;
 	    sin_meta: number;
 	  };
+	  /** Los dos repartos, calculados por el motor ANTES del recorte a 500 filas. */
+	  course_status_estados?: Array<{ clave: string; aulas: number }>;
+	  course_status_cobertura?: Array<{ clave: string; aulas: number }>;
+	  course_status_estados_desconocidos?: number;
+	  course_status_sin_meta?: number;
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

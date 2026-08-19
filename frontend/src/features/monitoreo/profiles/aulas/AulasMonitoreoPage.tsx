@@ -989,7 +989,11 @@ function renderAulasView(
             de abajo cuánto lleva recogido cada una. Los dos van ANTES de la
             tabla: la tabla dice aula por aula y esto dice la forma del
             conjunto. */}
-        <AulasEstadoChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+        <AulasEstadoChart
+          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
+          resumen={dashboard.course_status_estados ?? null}
+          desconocidasMotor={dashboard.course_status_estados_desconocidos}
+        />
       </section>
       )}
       {/* Los dos que se parecen, en pareja. Medido a 1440: cobertura ocupa 239 px
@@ -1029,7 +1033,11 @@ function renderAulasView(
           <h3>Cursos-horario por cobertura</h3>
           <span>{contadorDeAulas(aulaRows.length)}</span>
         </div>
-        <AulasCoberturaChart filas={aulaRows as unknown as MonitoreoAulasPlanRow[]} />
+        <AulasCoberturaChart
+          filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
+          resumen={dashboard.course_status_cobertura ?? null}
+          sinMetaMotor={dashboard.course_status_sin_meta}
+        />
       </section>
       <section
         className="mon-profile-panel"
