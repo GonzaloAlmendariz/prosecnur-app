@@ -1548,8 +1548,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Las dos hojas del libro cuentan la misma aula en dos momentos y nadie las
   # comparaba: el cuadre de arriba mira la aritmetica DENTRO del parte.
   cruce <- monitoreo_aulas_cruce_hojas(partes_campo, cfg$control %||% list())
+  # Sobre el plan CRUDO a proposito: `monitoreo_aulas_estado_muestra()` ya
+  # convirtio en `sin_contactar` todo lo que no reconoce, asi que preguntarselo
+  # al plan normalizado devolveria cero siempre.
+  estados_raros <- monitoreo_aulas_estados_no_reconocidos(plan %||% cfg$plan %||% list())
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "valid_response_criterion"),
+    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
@@ -1572,6 +1576,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # es un fallo del lector —adivinar seria peor— pero es informacion del
       # equipo que no entra, y hasta ahora nadie lo decia.
       if ((cfg$control_sin_nombre %||% 0L) > 0L) "review" else "ok",
+      # STATUS MUESTRA con valores que el lector no reconoce. `review` y no
+      # `warning` porque se arregla en la hoja o añadiendo el estado, no en
+      # campo.
+      if (estados_raros$total > 0L) "review" else "ok",
       # Que criterio de validez se aplico. `review` cuando el estudio declaro
       # una columna que la base no trae —un error de tipeo en la config pasaba
       # por criterio deliberado— y cuando no hay columna y por tanto cuenta
@@ -1625,6 +1633,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       } else {
         "Todas las columnas con datos de la Base de control tienen nombre."
       },
+      monitoreo_aulas_estados_no_reconocidos_texto(estados_raros),
       monitoreo_aulas_criterio_texto(criterio)
     ),
     stringsAsFactors = FALSE,
