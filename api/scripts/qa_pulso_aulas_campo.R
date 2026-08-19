@@ -584,8 +584,28 @@ if (ESCALA_2025) {
   # pero un lote entero a las 00:00 haria que cualquier lectura por hora saliera
   # degenerada.
   minuto <- (seq_len(n) * 7L) %% 300L
+  # El colector de la respuesta tiene que ser el identificador con el que el
+  # motor cruza —`classroom_id`—, NO el codigo operativo.
+  #
+  # Estuvo sembrado con `CH 25` mientras el plan lleva `aulch25_0244`, asi que
+  # las 3 700 respuestas eran huerfanas las 3 700: el propio tablero lo decia
+  # («2 220 respuestas validas no corresponden a ninguna aula del plan») y aun
+  # asi la seccion de Avance entera llevaba enseñando CEROS —las veinte
+  # facultades al 0 %, todas las barras vacias— porque sin cruce no hay validas
+  # por aula y la brecha sale igual a la meta. Duodecima vez en este loop que el
+  # fixture decide lo que se puede ver, y la mas cara: ningun grafico de avance
+  # se podia juzgar.
+  aula_de_codigo <- stats::setNames(
+    vapply(plan, function(u) as.character(u$classroom_id %||% ""), character(1)),
+    vapply(plan, function(u) as.character(u$operational_code %||% ""), character(1))
+  )
+  colector <- unname(aula_de_codigo[destinos])
+  # La huerfana DELIBERADA se conserva: `u-fantasma` no esta en el plan y es la
+  # que mantiene viva la rama del aviso. Sin ninguna, el chequeo quedaria sin
+  # poder ejercitarse nunca.
+  colector[is.na(colector) | !nzchar(colector)] <- destinos[is.na(colector) | !nzchar(colector)]
   data <- data.frame(
-    collectorID = destinos,
+    collectorID = colector,
     sexo = rep(c("F", "M"), length.out = n),
     `_submission_time` = format(
       as.POSIXct(paste0(dia_destino, " 08:00:00"), tz = "UTC") + (minuto * 60L),
