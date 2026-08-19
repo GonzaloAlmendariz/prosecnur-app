@@ -3900,3 +3900,18 @@ iguales, y como llegamos a la misma muestra con criterios diferentes?»
 
 Queda una fila honesta en «no»: τ 0.53 (asumido hoy, medido del 2025
 real) vs 0.7038 (el que 2025 asumio) — diferencia REAL y deliberada.
+
+### Gate consolidado del dia (2026-08-19) — todo verde
+
+Backend R, las 8 suites del area tocada: aulas 139 · encabezado 10 ·
+config-fusion 12 · match-catalogo 7 · novedades-gate 11 ·
+alumnos-ch-resello 26 · docente-unico 27 · alumnos-por-ch 91 =
+**323 PASS · 0 FAIL**. Frontend: typecheck limpio · vitest
+criterios+salidas **400 PASS**. Siete commits de codigo hoy
+(4f7e15cd, dd219ef0, c7ff635a, f05d3d18, 2cd5431d+4d425187+2a87578c,
+de8ffb84, 6b1774ad), cada uno con mutante o control.
+
+⛔ EN CANCHA DE GONZALO: (a) ADR «un solo dueño para la config de
+aulas» (cierra la familia mordidas 10/11/12 + resello×3 + lectura
+facultyComp×4); (b) REPARTO 2026: mantener 190 o ajustar (natural 162,
+solo AE/EDU/GAS pedirian +1); (c) re-pregunta EEE (DIPLOMAS/movilidad).
