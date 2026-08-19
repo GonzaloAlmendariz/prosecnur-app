@@ -52,7 +52,8 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
   const sinVariacion = p.ritmoLento === p.ritmoRapido;
 
   // El eje X son días de campo, no fechas del calendario: lo que se proyecta es
-  // trabajo, y el fin de semana no produce.
+  // trabajo, y el domingo no produce. **Sólo el domingo**: el sábado sí es día de
+  // campo, y darlo por perdido alargaba el cierre unos cuatro días al mes.
   const totalX = p.serie.length + (p.diasLento ?? 0);
   // Un margen interior de verdad. Antes el area util era 0-100 en los dos ejes,
   // asi que la primera y la ultima marca quedaban partidas por el borde y la
@@ -151,7 +152,8 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
         {sinVariacion ? (
           <>
             Proyectado al ritmo observado de <strong>{fmt(p.ritmoLento ?? 0)}</strong> aulas por día
-            de campo, igual todos los días, contando sólo días hábiles. Sin variación entre días no
+            de campo, igual todos los días, contando todos los días menos el domingo. Sin
+            variación entre días no
             hay banda que dibujar: la fecha es <strong>{dm(fin)}</strong> mientras el ritmo se
             sostenga.
           </>
@@ -159,7 +161,8 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
           <>
             Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong> aulas
             por día de campo (entre {fmt(p.ritmoLento ?? 0)} y {fmt(p.ritmoRapido ?? 0)} según el
-            día), contando sólo días hábiles. Entre el <strong>{dm(pronto)}</strong> y el{" "}
+            día), contando todos los días menos el domingo. Entre el{" "}
+            <strong>{dm(pronto)}</strong> y el{" "}
             <strong>{dm(tarde)}</strong>.
           </>
         )}{" "}
