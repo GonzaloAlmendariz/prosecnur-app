@@ -14,6 +14,7 @@ import {
   Users,
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
+import { sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { pct } from "../../core/formatoComun";
 
 /**
@@ -101,11 +102,28 @@ function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   // `report_scope=source`, que devuelve las 12 celdas—, así que la tarjeta no se
   // vacía en las secciones que piden ese scope.
   const cuota = cuotasResumen((dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[]).general;
+  // Lo que falta, por sexo. Se agrega desde las celdas —facultad x sexo— porque
+  // pasarse en una facultad no cubre lo que falta en otra, igual que en el total.
+  const faltanPorSexo = new Map<string, number>();
+  for (const fila of (dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>) {
+    const sexo = String(fila.sex ?? "").trim() || "Sin dato";
+    const falta = Math.max(0, Number(fila.target ?? 0) - Number(fila.observed ?? 0));
+    if (!falta) continue;
+    faltanPorSexo.set(sexo, (faltanPorSexo.get(sexo) ?? 0) + falta);
+  }
+  const porSexo = [...faltanPorSexo.entries()]
+    .map(([sexo, faltan]) => ({ etiqueta: sexSeriesLabel(sexo), faltan }))
+    .sort((a, b) => b.faltan - a.faltan);
   return {
     label: "Cuota por recoger",
     icono: Users,
     value: cuota.celdas ? fmt(cuota.faltan) : "S/D",
-    pista: cuota.celdas ? "personas de sexo por facultad" : "el plan no declara cuotas",
+    // El desglose por sexo en la pista: «3 743» no dice a quién hay que buscar.
+    pista: cuota.celdas
+      ? (porSexo.length
+          ? porSexo.map((x) => `${fmt(x.faltan)} ${x.etiqueta.toLowerCase()}`).join(" · ")
+          : "personas de sexo por facultad")
+      : "el plan no declara cuotas",
     tone: cuota.faltan ? "warn" : "neutral",
     // La última frase contesta la resta que no cuadra: 4 376 − 3 700 son 676 y
     // la tarjeta dice 701. No es un error —lo que falta se suma celda a celda,
@@ -155,21 +173,50 @@ function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
 
 function brechasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const brechas = Number(dashboard?.kpis?.brechas ?? 0);
+  // Nunca un agregado sin su desglose. «168» no dice dónde hay que ir; «168 en
+  // 20 facultades · la mayor, Educación con 232» sí. La facultad sale de
+  // `course_status`, que ya viaja con ella.
+  const porFacultad = new Map<string, number>();
+  for (const fila of (dashboard?.course_status ?? []) as Array<Record<string, unknown>>) {
+    const b = Number(fila.brecha ?? 0);
+    if (!Number.isFinite(b) || b <= 0) continue;
+    const f = String(fila.faculty ?? "").trim() || "Sin facultad";
+    porFacultad.set(f, (porFacultad.get(f) ?? 0) + b);
+  }
+  const mayor = [...porFacultad.entries()].sort((a, b) => b[1] - a[1])[0];
   return {
     label: "Brechas",
     icono: AlertCircle,
     value: fmt(brechas),
-    pista: "cursos-horario por debajo de su meta",
+    pista: porFacultad.size
+      ? `cursos-horario en ${fmt(porFacultad.size)} ${porFacultad.size === 1 ? "facultad" : "facultades"}`
+      : "cursos-horario por debajo de su meta",
+    detalle: mayor
+      ? `La mayor es ${mayor[0]}, con ${fmt(mayor[1])} respuestas por recoger. El corte de `
+        + `\`course_status\` puede venir recortado, así que el reparto por facultad se lee como orden de magnitud.`
+      : undefined,
     tone: brechas ? "warn" : "neutral",
   };
 }
 
 function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
+  // El desglose honesto de esta tarjeta es decir que NO se puede desglosar: si
+  // ninguna respuesta se ata a un curso-horario, no hay facultad ni sexo que
+  // repartir. Callarlo la deja igual que si el reparto existiera, y repartirla
+  // por la meta sería inventarlo.
+  const validas = Number(dashboard?.kpis?.respuestas_validas ?? 0);
+  const atribuidas = ((dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>)
+    .reduce((n, f) => n + Number(f.observed ?? 0), 0);
   return {
     label: "Válidas",
     icono: CheckCircle2,
     value: fmt(dashboard?.kpis?.respuestas_validas),
-    pista: "respuestas de Kobo que pasan el filtro",
+    pista: validas > 0 && atribuidas === 0
+      ? "de Kobo · ninguna atribuida a un curso-horario"
+      : "respuestas de Kobo que pasan el filtro",
+    detalle: validas > 0 && atribuidas === 0
+      ? "Sin atribución no se pueden repartir por facultad ni por sexo, así que no cuentan para ninguna cuota."
+      : undefined,
   };
 }
 
@@ -294,7 +341,11 @@ export function aulasKpis(
       label: "Cumplen",
       icono: Target,
       value: fmt(cumplen),
-      pista: "cursos-horario que llegaron a su meta",
+      // Un conteo sin su denominador no se puede leer: «0» y «0 de 196» dicen lo
+      // mismo del numerador y cosas distintas del estudio.
+      pista: estado.total
+        ? `de ${fmt(estado.total)} cursos-horario del plan`
+        : "cursos-horario que llegaron a su meta",
     },
     cuotaKpi(dashboard),
     brechasKpi(dashboard),
