@@ -106,3 +106,31 @@ describe("una cabecera de columna no pierde la tilde que su gemela sí lleva", (
     expect(fuente).not.toMatch(/\}\s*dias</);
   });
 });
+
+describe("dos cifras vecinas del mismo hecho no se llaman igual", () => {
+  // En «Avance > Resumen» de acrconta convivían, a ocho píxeles:
+  //
+  //   «331 casos del universo sin trabajar»   (universo - efectivas)
+  //   PENDIENTES 322 · 7 parciales · 2 rechazos
+  //
+  // 331 ≠ 322 porque los 9 parciales y rechazos SÍ se trabajaron: la frase era
+  // falsa para nueve casos y las dos cifras no reconciliaban en pantalla.
+  //
+  // «Sin cubrir» las reconcilia (322 + 7 + 2 = 331) y es el verbo que el perfil
+  // ya usa para el universo. «Sin efectiva» habría sido peor: en el modelo
+  // telefónico ya nombra otra cosa —barridas sin efectiva, sobre las barridas—.
+
+  test("la frase del corte no dice «sin trabajar»", () => {
+    expect(fuente).not.toContain("del universo sin trabajar");
+  });
+
+  test("dice «sin cubrir», el verbo que el perfil ya usa para el universo", () => {
+    expect(fuente.match(/del universo sin cubrir/g)?.length).toBe(3);
+    expect(fuente).toContain('return "Universo cubierto";');
+  });
+
+  test("«sin efectiva» sigue significando sólo lo del barrido telefónico", () => {
+    // Si alguien la usa para el universo, vuelve la palabra con dos denominadores.
+    expect(fuente).not.toMatch(/universo[^"`\n]{0,20}sin efectiva/);
+  });
+});
