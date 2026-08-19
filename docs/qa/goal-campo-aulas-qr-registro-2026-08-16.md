@@ -2200,3 +2200,40 @@ entero: el bloque estaba bien y el panel dejó de estarlo.
 Y la razón de que nada de esto aparezca en el gate: **son defectos de lectura, no
 de cálculo**. Los 1 162 tests pasan, el gate da `ok=true`, y el panel dice que
 hoy es un día que no ha ocurrido.
+
+
+## 2026-08-19 — El catálogo, aplicado a un perfil hermano (acreditación)
+
+La prueba de que el catálogo de L141–L143 es reutilizable: se aplicó a
+**acreditación** —el perfil que Gonzalo puso de ejemplo de tablas bien hechas— y
+dio **seis defectos en seis pasadas**, cinco de ellos invisibles para los tests y
+para el gate visual.
+
+| | Commit | Qué salió |
+|---|---|---|
+| L144 | `2d3d406c` | **El mismo dato con dos nombres en las dos ramas de una vista**: `activeRows` era «Fuentes activas» / «Fuentes configuradas»; `reportSources`, «Fuentes del corte» / «Fuentes del reporte». Y «Fuentes configuradas» le robaba el nombre a la lista de abajo, la que sí las trae todas. |
+| L145 | `501a6157` | **Cabeceras que pierden la tilde que su gemela lleva**: la clave del objeto es el encabezado visible, así que «Telefono» y «Teléfono» convivían para el mismo canal. Descartados por medición los ~18 literales sin tilde que **son listas de alias de búsqueda**. |
+| L146 | `4e62d466` | **Un bloque que se dibuja a cero píxeles.** El stack reparte el alto entre dos filas y la pestaña le puso cuatro hijos: `38px 0px 0px 1879px`. 13 fuentes y 4 padrones montados, `checkVisibility()` en true, cero en pantalla. |
+| L147 | `d862e641` · `47ddd1b4` | **Dos cifras vecinas que no reconcilian** (331 «sin trabajar» junto a 322 pendientes, y 9 de esos 331 sí se trabajaron) · **un rótulo que nombra un denominador y el cálculo usa otro** («% del barrido» sobre la base) · **EFECTIVAS 141 y EFECTIVAS 157 en una pantalla**. |
+| L148 | `e23597c4` | **Una faceta que cuenta sobre una población distinta de la que la tabla puede mostrar**: sumaban 810 bajo un encabezado de 488, ofrecían «Sin respuesta (322)» y al elegirlo daban **0 filas**. |
+| L149 | `673cd2e0` | **El agregado llamado igual que el individual**: «Mínimo actor 287» sobre tarjetas que rotulan «Mínimo actor» con 108, 15, 38 y 126. |
+
+### Lo que el catálogo ganó con esta pasada
+
+Tres patrones nuevos, todos de la misma familia —**una etiqueta que promete una
+población y el número es de otra**—:
+
+11. **Un rótulo que nombra un denominador distinto del que usa el cálculo.**
+12. **Una faceta o filtro que cuenta sobre más de lo que su superficie muestra.**
+    Se caza **sumando las opciones y comparándolas con el encabezado**.
+13. **El agregado y el individual con la misma etiqueta**, en una pantalla.
+
+### Y dos reglas de método que esta pasada confirmó
+
+- **Sumar y dividir lo que se ve.** 331 vs 322, 810 vs 488, 141/270 vs 141/254 y
+  108+15+38+126 = 287: los cinco salieron de aritmética sobre la pantalla, no de
+  leer código.
+- **Medir antes de reparar descarta tanto como confirma.** En seis pasadas se
+  descartaron tres candidatos que parecían el defecto: los literales sin tilde
+  (son alias), «Número Incorrrecto» (viene así del cliente, con test propio) y el
+  corte a 160 filas (**no es silencioso**, el pie lo declara).
