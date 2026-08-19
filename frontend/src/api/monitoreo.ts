@@ -816,6 +816,20 @@ export type MonitoreoAulasDashboard = {
 	    media_diaria: number;
 	    meta: number;
 	  };
+	  /**
+	   * El cumplimiento en respuestas, calculado por el MOTOR sobre el conjunto
+	   * en juego y entero. La vista lo sumaba sobre `course_status`, que viaja
+	   * recortado a 500 filas.
+	   */
+	  cumplimiento_respuestas?: {
+	    meta: number;
+	    validas: number;
+	    cubierto: number;
+	    excedente: number;
+	    falta: number;
+	    aulas_con_brecha: number;
+	    sin_meta: number;
+	  };
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

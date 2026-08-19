@@ -163,3 +163,50 @@ test_that("carga de Monitoreo canoniza históricos de forma idempotente", {
     )]
   )
 })
+
+test_that("el cumplimiento en respuestas se calcula sobre el conjunto en juego y entero", {
+  # La vista lo sumaba sobre `course_status`, que viaja recortado a 500 filas:
+  # sobre un plan de 2 615 el panel habria enseñado la meta de un subconjunto
+  # arbitrario presentada como el total del estudio.
+  plan <- list(
+    # Titular en juego, con meta y a medias.
+    list(operational_code = "CH 1", classroom_id = "c1", sample_role = "titular",
+         sample_status = "agendada", expected_valid = 30, respuestas_validas = 10,
+         faculty = "Derecho", stratum = "Derecho"),
+    # Su reserva DORMIDA: no pide respuestas hasta que entra.
+    list(operational_code = "R 1.1", classroom_id = "r11", sample_role = "chain_reserve",
+         titular_operational_code = "CH 1", sample_status = "en_reserva",
+         expected_valid = 30, respuestas_validas = 0,
+         faculty = "Derecho", stratum = "Derecho"),
+    # Aula que SOBRECUMPLE: el excedente no cubre la falta de la otra.
+    list(operational_code = "CH 2", classroom_id = "c2", sample_role = "titular",
+         sample_status = "agendada", expected_valid = 20, respuestas_validas = 26,
+         faculty = "Letras", stratum = "Letras"),
+    # Sin meta declarada: fuera del denominador, contada aparte.
+    list(operational_code = "CH 3", classroom_id = "c3", sample_role = "titular",
+         sample_status = "agendada", expected_valid = 0, respuestas_validas = 4,
+         faculty = "Letras", stratum = "Letras"),
+    # Banco: respaldo del estrato, no pide respuestas.
+    list(operational_code = "EXTRA 1", classroom_id = "x1", sample_role = "extra_reserve_pool",
+         sample_status = "en_reserva", expected_valid = 25, respuestas_validas = 0,
+         faculty = "Derecho", stratum = "Derecho")
+  )
+  # Las validas las cuenta el MOTOR desde las respuestas, no se siembran en el
+  # plan: 10 para CH 1 y 26 para CH 2, que es la que sobrecumple.
+  responses <- data.frame(
+    classroom_id = c(rep("c1", 10), rep("c2", 26), rep("c3", 4)),
+    response_status = "completed",
+    stringsAsFactors = FALSE
+  )
+  cfg <- list(source_mapping = list(classroom_id_var = "classroom_id", status_var = "response_status"))
+  tablero <- monitoreo_aulas_dashboard(plan, responses, cfg)
+  cr <- tablero$cumplimiento_respuestas
+  # 30 + 20: ni la reserva dormida (30) ni el banco (25) ni la que no declara meta.
+  expect_identical(as.numeric(cr$meta), 50)
+  # 10 + 20: el aula que recogio 26 aporta 20, su propia meta.
+  expect_identical(as.numeric(cr$cubierto), 30)
+  expect_identical(as.numeric(cr$excedente), 6)
+  expect_identical(as.numeric(cr$falta), 20)
+  expect_identical(as.integer(cr$aulas_con_brecha), 1L)
+  expect_identical(as.integer(cr$sin_meta), 1L)
+})

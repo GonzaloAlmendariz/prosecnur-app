@@ -1198,6 +1198,36 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   avance_por_facultad <- avance_por_facultad[order(-avance_por_facultad$brecha,
                                                    avance_por_facultad$faculty), , drop = FALSE]
 
+  # EL CUMPLIMIENTO EN RESPUESTAS, tambien en el motor.
+  #
+  # Lo sumaba el frontend sobre `course_status`, que viaja RECORTADO a 500 filas.
+  # Sobre este fixture no se notaba —236 filas, ningun recorte— y sobre el
+  # estudio real de 2 615 el panel habria enseñado la meta, lo cubierto y lo que
+  # falta de un subconjunto arbitrario de 500, presentado como el total del
+  # estudio. Es el MISMO defecto que ya obligo a mover el perfil por facultad
+  # aqui arriba, y la misma reparacion.
+  #
+  # `cubierto` se satura por aula: recoger de mas en un aula no cubre la falta de
+  # otra, que es la trampa que ya tenia la cuota. Un aula sin meta declarada no
+  # entra en el denominador —su avance no esta definido— y se cuenta aparte para
+  # que el descarte se vea.
+  .aulas_num <- function(x) {
+    v <- suppressWarnings(as.numeric(x))
+    ifelse(is.finite(v), v, 0)
+  }
+  .meta_por_aula <- .aulas_num(tracked_df$expected_valid)
+  .validas_por_aula <- .aulas_num(tracked_df$respuestas_validas)
+  .con_meta <- .meta_por_aula > 0
+  cumplimiento_respuestas <- list(
+    meta = sum(.meta_por_aula[.con_meta]),
+    validas = sum(.validas_por_aula),
+    cubierto = sum(pmin(.validas_por_aula[.con_meta], .meta_por_aula[.con_meta])),
+    excedente = sum(pmax(0, .validas_por_aula[.con_meta] - .meta_por_aula[.con_meta])),
+    falta = sum(pmax(0, .meta_por_aula[.con_meta] - .validas_por_aula[.con_meta])),
+    aulas_con_brecha = sum(.validas_por_aula[.con_meta] < .meta_por_aula[.con_meta]),
+    sin_meta = sum(!.con_meta)
+  )
+
   advance <- stats::aggregate(
     cbind(aulas = rep(1L, nrow(tracked_df)), respuestas_validas = tracked_df$respuestas_validas, brecha = tracked_df$brecha) ~ stratum,
     data = tracked_df,
@@ -1469,6 +1499,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     banco_extras = monitoreo_aulas_banco_extras(plan),
     avance_por_estrato = .monitoreo_aulas_records(advance),
     avance_por_facultad = .monitoreo_aulas_records(avance_por_facultad),
+    # El denominador del avance, calculado sobre el conjunto EN JUEGO y entero:
+    # la vista lo sumaba sobre un payload recortado a 500 filas.
+    cumplimiento_respuestas = cumplimiento_respuestas,
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload.

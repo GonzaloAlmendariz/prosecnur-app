@@ -16,8 +16,19 @@ import { avanceEnRespuestas } from "./avanceEnRespuestas";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasAvanceEnRespuestas({ filas, validasTotales = 0 }: {
+export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * El agregado del motor, cuando viene. Se prefiere SIEMPRE al cálculo local:
+   * éste suma sobre `course_status`, que el motor recorta a 500 filas, así que
+   * sobre un plan de 2 615 enseñaría la meta de un subconjunto arbitrario
+   * presentada como el total del estudio. Es el mismo defecto que ya obligó a
+   * mover el perfil por facultad al motor.
+   */
+  resumen?: {
+    meta: number; validas: number; cubierto: number; excedente: number;
+    falta: number; aulas_con_brecha: number; sin_meta: number;
+  } | null;
   /**
    * Las respuestas válidas del corte, del KPI. Sirve para explicar el hueco
    * entre «3 700 válidas» y «0 de 3 743»: sin ella, la pantalla enseña las dos
@@ -25,7 +36,23 @@ export function AulasAvanceEnRespuestas({ filas, validasTotales = 0 }: {
    */
   validasTotales?: number;
 }) {
-  const a = useMemo(() => avanceEnRespuestas(filas), [filas]);
+  const a = useMemo(() => {
+    if (resumen && Number(resumen.meta) > 0) {
+      const meta = Number(resumen.meta) || 0;
+      const cubierto = Number(resumen.cubierto) || 0;
+      return {
+        meta,
+        validas: Number(resumen.validas) || 0,
+        cubierto,
+        excedente: Number(resumen.excedente) || 0,
+        falta: Number(resumen.falta) || 0,
+        aulasConBrecha: Number(resumen.aulas_con_brecha) || 0,
+        sinMeta: Number(resumen.sin_meta) || 0,
+        avance: meta > 0 ? Math.round((1000 * cubierto) / meta) / 10 : 0,
+      };
+    }
+    return avanceEnRespuestas(filas);
+  }, [filas, resumen]);
 
   if (!a.meta) {
     return (
