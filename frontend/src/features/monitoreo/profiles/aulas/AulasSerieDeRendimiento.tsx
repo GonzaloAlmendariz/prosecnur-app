@@ -39,12 +39,14 @@ const dm = (fecha: string) => {
   return m ? `${m[3]}/${m[2]}` : fecha;
 };
 
-export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], sobremuestra = null }: {
+export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
   /** El plan, sólo para los elegibles de cada aula ya aplicada. */
   plan?: ReadonlyArray<MonitoreoRow>;
+  /** La Base de control del libro, que trae el reparto por sexo de cada aula. */
+  control?: ReadonlyArray<MonitoreoRow>;
   /**
    * La sobremuestra del diseño, si el estudio la declara.
    *
@@ -60,7 +62,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
    */
   sobremuestra?: number | null;
 }) {
-  const modelo = useMemo(() => serieDeRendimiento(partes, plan), [partes, plan]);
+  const modelo = useMemo(() => serieDeRendimiento(partes, plan, control), [partes, plan, control]);
   const proyeccion = useMemo(
     () => proyeccionPorAgenda(agenda, partes, cuotas),
     [agenda, partes, cuotas],
@@ -225,8 +227,43 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // rotas —«no entiendo por qué la línea azul se queda inmóvil hasta el
     // final»—. Una línea plana en cero no es una serie: es una ausencia dibujada
     // como si fuera un dato. Se dice con palabras y se dibujan sólo las cuotas.
+    // **El reparto por sexo sale del libro, no de la cuota.** El libro lo declara
+    // aula por aula y viaja con el parte; la cuota se mide sobre respuestas
+    // atribuidas, que es otra fuente. Con el libro, la serie por sexo se puede
+    // dibujar junto al total sin cruzar nada —y Gonzalo avisó de que los datos van
+    // a llegar con el sexo en todos los efectivos, así que ésta es la vía—.
+    const acumSexo = (campo: "mujeres" | "hombres") => {
+      const dias = elegida ? elegida.dias : [];
+      let acc = 0;
+      let visto = false;
+      return dias.map((d) => {
+        const v = d[campo];
+        if (v != null) { acc += v; visto = true; }
+        return visto ? acc : null;
+      });
+    };
+    const acumM = acumSexo("mujeres");
+    const acumH = acumSexo("hombres");
+    const hayLibroPorSexo = acumM.some((v) => v != null);
     const hayObservadasPorSexo = cuotasVisibles.some((c) => c.observadas > 0);
-    const series = (hayObservadasPorSexo ? cuotasVisibles : [])
+    // Con el libro se dibuja la serie de verdad; sin él, sólo las cuotas.
+    const seriesDelLibro = hayLibroPorSexo
+      ? ([["Mujeres", acumM, "Mujer"], ["Hombres", acumH, "Hombre"]] as const).map(([etiqueta, serie, clave]) => {
+          const meta = cuotasVisibles.find((c) => sexSeriesLabel(c.sexo) === sexSeriesLabel(clave))?.meta ?? 0;
+          const ultimoV = [...serie].reverse().find((v) => v != null) ?? 0;
+          return {
+            sexo: etiqueta,
+            color: colorDeSexo(clave),
+            meta,
+            conseguidas: ultimoV,
+            faltan: Math.max(0, meta - ultimoV),
+            alcanza: meta > 0 && ultimoV >= meta,
+            obs: serie.map((v, i) => (v == null ? null : `${x(i)},${yy(v)}`)).filter(Boolean).join(" "),
+            inf: "",
+          };
+        })
+      : [];
+    const series = seriesDelLibro.length ? seriesDelLibro : (hayObservadasPorSexo ? cuotasVisibles : [])
       .filter((c) => c.meta > 0 || c.observadas > 0)
       .map((c) => {
         const peso = baseSexo > 0 ? c.observadas / baseSexo : metaSexo > 0 ? c.meta / metaSexo : 0;
@@ -283,7 +320,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
     return {
       tope, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
-      metasSeñaladas, hayObservadasPorSexo,
+      metasSeñaladas, hayObservadasPorSexo: hayObservadasPorSexo || hayLibroPorSexo,
       etiqueta: elegida
         ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
         : `Acumulado del estudio: ${Math.round(ultimo)} de ${meta}`,
