@@ -1938,3 +1938,31 @@ Los tres defectos de color de esta serie —`operational_status` sin tabla propi
 los dos diccionarios, y el registro en texto plano— aparecieron leyendo la
 pantalla, no corriendo tests. El código corre, la celda se dibuja, el typecheck
 pasa, los 1 124 tests pasan, y sólo falta el color.
+
+
+## 2026-08-18 — La matriz de viewports sobre «Lo que se quedó atrás»
+
+| Viewport | Lista | Scroll vacío | Dueños | Último panel visible | Recortes sin `title` | Desborde X |
+|---|---|---|---|---|---|---|
+| 1440×1000 | 419 px | 0 | 2 | sí | 0 | no |
+| 1366×768 | 419 px | 0 | 2 | sí | 0 | no |
+| 1280×720 | 419 px | 0 | 2 | sí | 0 | no |
+| 1024×600 | 419 px | 0 | 2 | sí | 0 | no |
+
+Conforme en los cuatro. Los dos dueños son el del workbench y el de la tabla,
+que es el aceptado; la lista del frente es intrínseca (419 px = 20 filas) y no
+añade un tercero.
+
+**Avance NO tiene la restricción de Modelo**: su stack deja que el workbench
+recorra la pila entera, mientras `aulas-agenda-stack` fija `height: 100%` para
+que la tabla de la agenda llene el viewport. Por eso la misma decisión —lista
+intrínseca contra lista con scroll propio— es correcta en una sección e
+incorrecta en la otra. La política no es del perfil: es del stack de cada
+sección.
+
+### Otra vez la trampa de medir la pantalla equivocada
+
+La primera medición a 1024×600 devolvió «no hay lista del frente». La dirección
+era `consultas/reemplazos`: quedaba una navegación pendiente de un barrido
+anterior. **Comprobar `describir()` contra lo pedido antes de leer** es lo que
+convirtió un falso hallazgo en un dato.
