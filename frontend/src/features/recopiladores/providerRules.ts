@@ -57,6 +57,21 @@ export function bindingStatusLabel(status: string): string {
   return BINDING_STATUS_LABELS[status] ?? status;
 }
 
+// `target.provider` también llega como `string` suelto, pero el registro de
+// adapters (`.ca_adapter()` en api/R/collection_adapters.R ~línea 534) solo
+// produce estos tres. Kobo/SurveyMonkey son nombres de marca -Accesos ya los
+// capitaliza así en el selector de canal-; DeliverySection.tsx los mostraba
+// en minúscula cruda en el campo "Target".
+const PROVIDER_LABELS: Record<string, string> = {
+  manual: "manual",
+  kobo: "Kobo",
+  surveymonkey: "SurveyMonkey",
+};
+
+export function providerLabel(provider: string): string {
+  return PROVIDER_LABELS[provider] ?? provider;
+}
+
 export function adapterOperation(adapterId: CollectionAdapterId) {
   return adapterId === "surveymonkey_recipient_existing_v1"
     ? "native_link_reuse"
