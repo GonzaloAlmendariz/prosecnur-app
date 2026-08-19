@@ -22,6 +22,7 @@ import {
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
 import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
+import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
 
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
@@ -320,8 +321,15 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
                     aria-pressed={clave === seleccion}
                   >
                     <span className="registro-campo-item-titulo">{etiquetaDeAula(row)}</span>
+                    {/* El estado con su chip, como en TODAS las tablas del
+                        perfil. Acá se pintaba en texto plano: medido sobre el
+                        corte, 196 filas con estado y 0 con color, mientras la
+                        tabla de al lado colorea sus 236. Y es la superficie
+                        donde más se nota, porque es donde se elige a qué aula
+                        entrar: el color dice de un vistazo cuáles ya se
+                        tocaron. */}
                     <span className={`registro-campo-estado is-${estado}`}>
-                      {ESTADOS.find((e) => e.value === estado)?.label ?? estado}
+                      <EstadoEnCelda valor={ESTADOS.find((e) => e.value === estado)?.label ?? estado} />
                     </span>
                   </button>
                 </li>
