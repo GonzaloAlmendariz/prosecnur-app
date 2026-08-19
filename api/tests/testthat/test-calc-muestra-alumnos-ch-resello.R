@@ -144,3 +144,22 @@ test_that("un espejo sin decision o sin schema no se inventa", {
   s <- session_get(sid)
   expect_null(s$calc_muestra_aulas_config$alumnos_por_ch_decision)
 })
+
+test_that("el espejo se sella aunque el estudio YA este al dia (el caso real)", {
+  # Dos builds seguidos producen el mismo hash: el estudio quedo sellado en el
+  # primero y el early-return «nada que resellar» saltaba el espejo en el
+  # segundo. Cada copia se evalua por su cuenta.
+  sid <- .resello_sid(.resello_decision("HASH_NUEVO"))
+  session_set(sid, "calc_muestra_aulas_config", list(
+    alumnos_por_ch_decision = .resello_decision("HASH_VIEJO")
+  ))
+
+  expect_true(.cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO"))
+
+  s <- session_get(sid)
+  expect_identical(s$calc_muestra_aulas_config$alumnos_por_ch_decision$frame_hash, "HASH_NUEVO")
+  expect_true(.cm_alumnos_por_ch_decision_matches_config(
+    s$calc_muestra_estudio,
+    s$calc_muestra_aulas_config
+  ))
+})
