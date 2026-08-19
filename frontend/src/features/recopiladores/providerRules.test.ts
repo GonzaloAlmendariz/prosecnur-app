@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { adapterOperation, deploymentFromPreview, localProviderBlocking } from "./providerRules";
+import {
+  adapterOperation,
+  deploymentFromPreview,
+  deploymentStatusLabel,
+  localProviderBlocking,
+} from "./providerRules";
 
 describe("reglas capability-driven de adapters", () => {
   it("bloquea Kobo sin URL de captura, survey y deployment activo", () => {
@@ -49,5 +54,16 @@ describe("reglas capability-driven de adapters", () => {
     };
     expect(deploymentFromPreview({ deployment })).toBe(deployment);
     expect(deploymentFromPreview({ preview: { deployment } })).toBe(deployment);
+  });
+
+  it("traduce los 4 estados del deployment, el resto se muestra tal cual", () => {
+    expect(deploymentStatusLabel("draft")).toBe("Borrador");
+    expect(deploymentStatusLabel("prepared")).toBe("Preparado");
+    expect(deploymentStatusLabel("handed_off")).toBe("Entregado a Monitoreo");
+    expect(deploymentStatusLabel("stale")).toBe("Desactualizado");
+    // "sin deployment"/"sin plan" son literales en español que ya arma
+    // RecopiladoresShell.tsx cuando no hay deployment — no son un estado del
+    // backend, tienen que pasar intactos.
+    expect(deploymentStatusLabel("sin deployment")).toBe("sin deployment");
   });
 });

@@ -33,6 +33,7 @@ import {
   Undo2,
 } from "../../vendor/lucide-react";
 import type { RecopiladoresPestana } from "./navegacion";
+import { deploymentStatusLabel } from "./providerRules";
 import {
   createTemplateHistory,
   templateHistoryReducer,
@@ -336,7 +337,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             <div><dt>Template</dt><dd>{template.template_id}</dd></div>
             <div><dt>Deployment</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
             <div><dt>Instancias</dt><dd>{instances.length}</dd></div>
-            <div><dt>Estado</dt><dd>{deployment?.status ?? "sin deployment"}</dd></div>
+            <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin deployment"}</dd></div>
           </dl>
           <PulsoButton variant="secondary" onClick={() => { void createInstances(); }} disabled={!deployment || instanceBusy}>
             {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : <Layers size={15} />} Crear instancias
