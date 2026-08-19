@@ -160,9 +160,13 @@ calc_muestra_aulas_novedades <- function(aula_frame, baseline, config = list()) 
     }
   }
   min_fac <- names((cs$minEligible %||% list())$byFaculty %||% list())
-  fac_keys <- vapply(fac_actuales, .cm_aulas_text_key, character(1))
+  # Clave CANONICA de criterios (.cm_criterios_fac_key), no text_key: el
+  # estreno del gate con la base 2026 marco huerfanas FALSAS de Arte y
+  # Diseno porque "ARTE Y DISENO" -> text_key no coincide con el slug
+  # arte_y_diseno de la config.
+  fac_keys <- vapply(fac_actuales, function(x) .cm_criterios_fac_key(x), character(1))
   for (f in min_fac) {
-    if (!(.cm_aulas_text_key(f) %in% fac_keys)) {
+    if (!(.cm_criterios_fac_key(f) %in% fac_keys)) {
       huerfanas[[length(huerfanas) + 1L]] <- list(
         criterio = "minEligible.byFaculty", valor = f,
         detalle = "minimo propio declarado para una facultad que la base nueva no trae"
@@ -171,7 +175,7 @@ calc_muestra_aulas_novedades <- function(aula_frame, baseline, config = list()) 
   }
   exc <- ((cs$byVariable %||% list())$session_type %||% list())$exceptions %||% list()
   for (f in names(exc)) {
-    if (!(.cm_aulas_text_key(f) %in% fac_keys)) {
+    if (!(.cm_criterios_fac_key(f) %in% fac_keys)) {
       huerfanas[[length(huerfanas) + 1L]] <- list(
         criterio = "session_type.exceptions", valor = f,
         detalle = "excepcion de tipo de sesion declarada para una facultad ausente"
