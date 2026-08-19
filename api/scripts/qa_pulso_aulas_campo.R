@@ -422,6 +422,21 @@ if (ESCALA_2025) {
       }
     }
   }
+  # **Las aulas CON parte quedan declaradas como aplicadas.**
+  #
+  # `operational_status` solo se ponia en «agendada» para lo de la agenda, asi que
+  # ninguna aula llegaba nunca a «aplicada» y el KPI «Aplicadas» salia **0 por
+  # construccion**, con 3 700 respuestas recogidas al lado. El rotulo ya lo
+  # explica —«declaradas en el registro de campo», que no es lo mismo que las
+  # respuestas— pero **la rama distinta de cero no se podia ver en pantalla**, que
+  # es la clase de vacio que este loop lleva persiguiendo: una superficie que
+  # nadie ha visto funcionar porque el fixture no la produce.
+  codigos_con_parte <- vapply(aplicadas, function(u) as.character(u$operational_code), character(1))
+  for (m in seq_along(plan)) {
+    if (as.character(plan[[m]]$operational_code) %in% codigos_con_parte) {
+      plan[[m]]$operational_status <- "aplicada"
+    }
+  }
   # Cuanta gente hubo de verdad en cada aula. Vive AQUI porque el parte de campo
   # es quien la cuenta —el aplicador, en el momento— y la Base de control la
   # copia despues. Sembrarla dos veces con formulas distintas dejaba las dos
