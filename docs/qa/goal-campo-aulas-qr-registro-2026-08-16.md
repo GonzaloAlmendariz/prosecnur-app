@@ -2589,3 +2589,47 @@ overflow=0  globalOverflowX=false  pageErrors=0
 **El mismo y único fallo**: el `scroll-unreachable` del chrome, ya declarado. Y
 comprobado que el reporte menciona `aulas-serie` — la verificación que este
 documento fijó como obligatoria antes de creerse un verde.
+
+## 2026-08-19 — El perfil releído entero, y el arreglo probado con la avería real
+
+### Los ocho moldes
+
+El perfil de aulas queda releído como prosa de punta a punta: 17 paneles de
+`avance`, 4 pestañas de `modelo`, 2 de `calidad`, 4 de `consultas` y `fuentes`.
+Veinte hallazgos en trece pasadas, y casi todos son de **ocho moldes que se
+repiten**:
+
+1. **Un rótulo pegado a un número que no es el suyo.** «No quisieron responder ·
+   4 650 −187»: el 4 650 son los que *siguen*. **Los dos números estaban bien; lo
+   falso era cuál de los dos nombraba el rótulo.**
+2. **Una unidad que cambia a media frase sin nombrarse.** «24 cadenas · … · 146
+   sin reserva», donde 146 son cursos-horario titulares.
+3. **Una abreviatura inventada.** «2 med.» eran intentos, y el panel vecino se
+   llama «Medio de contacto».
+4. **Un rótulo agregado que vale para dos diagnósticos opuestos.**
+5. **Dos fuentes del mismo hecho dibujadas juntas sin decirlo.**
+6. **Porcentajes de una partición que no suman a la vista.**
+7. **Un aviso que sobrevive a su causa.**
+8. **Un vacío que acusa de la causa más grave** en vez de la suya.
+
+### El arreglo del aviso pegado, probado con la avería de verdad
+
+`20efd7ad` se escribió sin poder provocar un 500 real. La ocasión llegó sola: la
+API local murió (`curl` → `000`, y el log termina sin dejar rastro).
+
+| Paso | Aviso en pantalla |
+|---|---|
+| Con la API caída | `Internal Server Error · HTTP_500` |
+| API de vuelta, **cambiando sólo de pestaña** | **ninguno** |
+
+Las dos mitades quedan comprobadas: **con el fallo presente el aviso se queda**
+—porque el problema sigue— y **al recuperarse se va sin recargar**. Antes habría
+durado hasta salir de la sección y volver.
+
+### Una deriva evitada
+
+El encargo tenía anotado como siguiente paso «llevar el catálogo a territorial,
+telefónico y acreditación». **Es exactamente la deriva que Gonzalo corrigió** —«¿por
+qué te fuiste al territorial? no era parte de lo que habíamos planteado»—. El
+catálogo queda escrito aquí para quien trabaje esos perfiles; el loop se queda en
+aulas.
