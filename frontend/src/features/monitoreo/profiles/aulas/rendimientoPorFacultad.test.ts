@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { franjaDeAplicacion, rendimientoPorFacultad } from "./rendimientoPorFacultad";
@@ -117,5 +119,32 @@ describe("rendimientoPorFacultad", () => {
     ]);
     expect(f.delPotencial).toBeNull();
     expect(f.deLosAsistentes).toBeCloseTo(83.3, 1);
+  });
+});
+
+describe("el panel nombra de qué fuente son sus encuestas", () => {
+  // Medido en el fixture: las efectivas del rendimiento suman 4 863 sobre 210
+  // aulas, y la pestaña vecina de la MISMA sección muestra «VÁLIDAS 3 700 ·
+  // respuestas de Kobo que pasan el filtro». Son 1 163 de diferencia entre dos
+  // cifras que un lector natural toma por la misma: unas las anotó el equipo
+  // aula por aula, las otras llegaron a Kobo y pasaron el filtro.
+  //
+  // El resumen ya nombraba su fuente («de Kobo»); este panel no nombraba la
+  // suya.
+  const page = fs.readFileSync(
+    path.resolve(__dirname, "AulasMonitoreoPage.tsx"),
+    "utf8",
+  );
+
+  test("el subtítulo dice que las encuestas son del parte", () => {
+    expect(page).toContain("<span>encuestas del parte, por aula visitada</span>");
+  });
+
+  test("la fuente vecina sigue nombrando la suya", () => {
+    // Vive en `kpisDeAulas.ts`, no en el page-file: si alguien le quita la
+    // pista a VÁLIDAS, las dos cifras vuelven a ser indistinguibles y este
+    // panel se queda solo nombrando la suya.
+    const kpis = fs.readFileSync(path.resolve(__dirname, "kpisDeAulas.ts"), "utf8");
+    expect(kpis).toContain('pista: "respuestas de Kobo que pasan el filtro"');
   });
 });
