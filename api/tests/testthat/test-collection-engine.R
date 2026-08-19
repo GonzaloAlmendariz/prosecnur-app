@@ -108,6 +108,53 @@ test_that("seed aulas_v1 acepta la selección decidida de Cálculo de muestra", 
   expect_null(session_get(sid)$monitoreo_aulas_plan)
 })
 
+test_that("V4 el plan/deployment de Recopiladores no asume un origen de aulas", {
+  # ADR 0046 nombra acreditacion multiactor, establecimientos y listados como
+  # perfiles futuros -aulas_v1 fue deliberadamente el primero, "paridad
+  # funcional y QA visual del adapter aulas_v1 antes de anadir otros
+  # perfiles" (Cumplimiento del ADR)-, asi que el contrato de plan/deployment
+  # tiene que aceptar un origen que NO sea calc-muestra-aulas ni monitoreo
+  # HOY, aunque el auto-seed de .collection_seed_source() siga siendo
+  # aulas-only por ahora. Reproduce lo que se verifico a mano contra el
+  # router real esta sesion (curl directo a /api/recopiladores/plan): un
+  # plan con unit_type="establishment" y source_ref.module="acreditacion".
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fp <- paste0("sha256:", strrep("b", 64L))
+  plan <- list(
+    schema = "collection_plan/v1", plan_id = "plan-v4-no-aulas",
+    adapter = list(id = "kobo_existing_v1", version = 1L),
+    source_ref = list(module = "acreditacion", run_id = "run-v4", fingerprint = fp),
+    instrument_ref = list(revision_id = "instrumento-v4", sha256 = strrep("c", 64L)),
+    unit_type = "establishment",
+    units = list(
+      list(unit_id = "est-1", label = "Sede 1", link_key = "SEDE-1"),
+      list(unit_id = "est-2", label = "Sede 2", link_key = "SEDE-2")
+    ),
+    revision = 1L, input_fingerprint = fp
+  )
+  put <- collection_plan_put(sid, plan, expected_revision = 0L)
+  expect_identical(put$plan$unit_type, "establishment")
+  expect_identical(put$plan$source_ref$module, "acreditacion")
+
+  target <- list(
+    provider = "kobo", asset_uid = "aV4Sedes", asset_type = "survey",
+    deployment_active = TRUE, base_access_url = "https://ee.kobotoolbox.org/x/sedesV4"
+  )
+  adapter <- collection_adapter_get("kobo_existing_v1")
+  preview <- adapter$preview_deployment(plan = put$plan, target = adapter$inspect_target(list(), target))
+  preview$capability_preflight <- NULL
+  dep_put <- collection_deployment_put(sid, preview, expected_revision = put$state_revision)
+  prep <- collection_deployment_prepare(sid, expected_revision = dep_put$state_revision)
+  expect_identical(prep$deployment$status, "prepared")
+  expect_identical(prep$deployment$coverage$units_with_access, 2L)
+
+  # El default de ruta XPath (motor QR, E1/E2) tampoco es especial para
+  # aulas: sale igual para un origen de acreditacion.
+  url <- .collection_access_url(prep$deployment$bindings[[1]], "operational", "kobo")
+  expect_match(url, "d%5B/aV4Sedes/collectorID%5D=", fixed = TRUE)
+})
+
 test_that("cambiar selección o revisión de instrumento vuelve stale el deployment", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
