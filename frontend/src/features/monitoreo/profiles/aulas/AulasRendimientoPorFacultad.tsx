@@ -50,6 +50,7 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
         <li className="aulas-rendimiento-cabecera" aria-hidden="true">
           <span>{unidad}</span>
           <span>Por aula</span>
+          <span>Ajustado</span>
           <span>De los asistentes</span>
           <span>Del potencial</span>
         </li>
@@ -72,6 +73,12 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
             {/* Las dos tasas conviven con la barra y NO la sustituyen: miden
                 cosas distintas —el trabajo del aplicador y cuánto queda por
                 exprimir— y cualquiera de ellas ordenaría mal la lista. */}
+            {/* El AJUSTADO al lado del crudo, nunca en su lugar. En el estudio
+                real las facultades van de 2 a 39 aulas, y una de dos aulas
+                afortunadas encabeza la lista cruda sin merecerlo. */}
+            <span className="aulas-rendimiento-tasa">
+              {f.porAulaAjustado == null ? "—" : f.porAulaAjustado.toLocaleString("es-PE")}
+            </span>
             <span className="aulas-rendimiento-tasa">{pct(f.deLosAsistentes)}</span>
             <span className="aulas-rendimiento-tasa">{pct(f.delPotencial)}</span>
           </li>
@@ -79,7 +86,12 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
       </ul>
       <p className="mon-profile-muted aulas-rendimiento-pie">
         Ordenadas por lo que deja cada visita. <strong>De los asistentes</strong> mide el trabajo
-        en el aula; <strong>del potencial</strong>, cuánto queda por recoger de esa facultad.
+        en el aula; <strong>del potencial</strong>, cuánto queda por recoger.{" "}
+        {/* Qué es el ajustado, en una línea y con el porqué: sin esto es una
+            columna con un número que nadie sabe de dónde sale. */}
+        <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada
+        {" "}{unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
+        afortunadas no encabeza la lista.
       </p>
     </div>
   );
