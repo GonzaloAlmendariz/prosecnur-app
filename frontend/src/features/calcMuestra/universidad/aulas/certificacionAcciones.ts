@@ -51,3 +51,30 @@ export function estratosConAulaExtra(
   });
   return tocado ? nuevos : null;
 }
+
+/**
+ * Generalización del ajuste (pedido de Gonzalo 2026-08-19: «el usuario puede
+ * hacer este tipo de ajustes» — subir Y bajar): fija el override de UNA
+ * facultad en `aulasActuales + delta`, con piso 1 (bajar a 0 titulares es
+ * excluir la facultad del sorteo, y eso es otra decisión con otra puerta).
+ */
+export function estratosConAjusteAula(
+  estratos: CalcMuestraEstrato[] | null | undefined,
+  facultad: string,
+  aulasActuales: number,
+  delta: 1 | -1,
+): CalcMuestraEstrato[] | null {
+  if (!Array.isArray(estratos) || !estratos.length) return null;
+  if (!Number.isFinite(aulasActuales) || aulasActuales < 0) return null;
+  const nuevo = Math.round(aulasActuales) + delta;
+  if (nuevo < 1) return null;
+  const objetivo = claveFacultad(facultad);
+  if (!objetivo) return null;
+  let tocado = false;
+  const nuevos = estratos.map((e) => {
+    if (claveFacultad(e.label) !== objetivo) return e;
+    tocado = true;
+    return { ...e, aulas_base_fijas: nuevo };
+  });
+  return tocado ? nuevos : null;
+}

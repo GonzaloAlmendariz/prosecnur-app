@@ -146,3 +146,35 @@
   font-variant-numeric: tabular-nums;
 }
 .cmv2-cert-calibrada[data-corto] { color: var(--pulso-warn-fg); }
+
+/* El par ±1 del reparto (Gonzalo: subir Y bajar desde la UI, registrado). */
+.cmv2-cert-stepper {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+}
+.cmv2-cert-stepper button {
+  padding: 1px 6px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.cmv2-cert-stepper button:hover:not(:disabled) {
+  border-color: var(--cmv2-accent);
+  color: var(--cmv2-accent-fg);
+}
+.cmv2-cert-stepper button:disabled { opacity: 0.4; cursor: default; }
+
+/* La frase que explica el ×N: formato de apoyo, no compite con la tabla. */
+.cmv2-cert-leyenda {
+  margin: 2px 0 0;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+  line-height: 1.4;
+  max-width: 760px;
+}
+.cmv2-cert-leyenda b, .cmv2-cert-leyenda i { color: var(--pulso-text-soft); }

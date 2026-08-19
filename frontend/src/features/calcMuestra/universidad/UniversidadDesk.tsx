@@ -66,7 +66,7 @@ import {
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
-import { estratosConAulaExtra } from "./aulas/certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra } from "./aulas/certificacionAcciones";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -511,6 +511,16 @@ export function UniversidadDesk({
     },
     [facultyComp, onComponente, onInvalidateAulasArtifacts],
   );
+  const onAjustarAulaFacultad = useCallback(
+    (facultad: string, aulasActuales: number, delta: 1 | -1) => {
+      if (!facultyComp) return;
+      const nuevos = estratosConAjusteAula(facultyComp.marco?.estratos ?? null, facultad, aulasActuales, delta);
+      if (!nuevos) return;
+      onComponente(facultyComp.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [facultyComp, onComponente, onInvalidateAulasArtifacts],
+  );
   const certificacionFacultad = useMemo(
     () => normalizeCalcMuestraCertificacionFacultad(
       (aulasState?.selection as { certificacion_facultad?: unknown } | null)?.certificacion_facultad ?? null,
@@ -699,6 +709,7 @@ export function UniversidadDesk({
                 sexoBalance={sexoBalance}
                 certificacion={certificacionFacultad}
                 onAgregarAula={onAgregarAulaFacultad}
+                onAjustarAula={onAjustarAulaFacultad}
                 fichas={fichasFacultad}
                 periodoAnterior={referenciaCriterios?.periodo ?? ""}
                 referencia={referenciaAsistencia}

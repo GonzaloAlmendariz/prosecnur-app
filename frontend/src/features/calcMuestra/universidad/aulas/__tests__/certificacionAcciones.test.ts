@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { estratosConAulaExtra } from "../certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra } from "../certificacionAcciones";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
 // La decisión «darle un aula más» debe estar disponible en la UI y quedar
@@ -50,5 +50,35 @@ describe("cableado de la acción", () => {
 
   it("nada queda apagado con un guard constante", () => {
     expect(card).not.toMatch(/\{\s*false\s*&&/);
+  });
+});
+
+describe("estratosConAjusteAula (el par ±1)", () => {
+  const estratos = [
+    { label: "DERECHO", aulas_base_fijas: undefined },
+    { label: "PSICOLOGÍA", aulas_base_fijas: undefined },
+  ] as never;
+
+  it("baja fija actuales−1 y sube fija actuales+1, solo en la facultad tocada", () => {
+    const menos = estratosConAjusteAula(estratos, "DERECHO", 18, -1);
+    expect(menos?.[0].aulas_base_fijas).toBe(17);
+    expect(menos?.[1].aulas_base_fijas).toBeUndefined();
+    const mas = estratosConAjusteAula(estratos, "DERECHO", 18, 1);
+    expect(mas?.[0].aulas_base_fijas).toBe(19);
+  });
+
+  it("no baja de 1: excluir una facultad del sorteo es otra decisión con otra puerta", () => {
+    expect(estratosConAjusteAula(estratos, "DERECHO", 1, -1)).toBeNull();
+  });
+
+  it("la tarjeta ofrece el stepper con onAjustarAula y la leyenda explica el ×N", () => {
+    const card = readFileSync(
+      new URL("../CertificacionFacultadCard.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(card).toMatch(/onAjustarAula\(f\.facultad, f\.aulas_titulares, -1\)/);
+    expect(card).toMatch(/onAjustarAula\(f\.facultad, f\.aulas_titulares, 1\)/);
+    expect(card).toMatch(/cmv2-cert-leyenda/);
+    expect(card).toMatch(/por cada alumno de cuota/);
   });
 });
