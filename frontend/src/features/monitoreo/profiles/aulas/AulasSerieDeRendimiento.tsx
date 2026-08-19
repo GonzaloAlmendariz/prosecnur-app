@@ -39,6 +39,34 @@ const dm = (fecha: string) => {
   return m ? `${m[3]}/${m[2]}` : fecha;
 };
 
+/**
+ * La escala del eje vertical: un paso REDONDO y el tope que le corresponde.
+ *
+ * Dos arreglos en el mismo sitio, porque son el mismo problema.
+ *
+ * 1. Eran tres escalones —tope, mitad y cero— y con eso no se puede situar un
+ *    punto a ojo: entre dos referencias hay 160 px y hay que interpolar.
+ * 2. Y salían de multiplicar el tope por 0,75 · 0,5 · 0,25, así que un tope de
+ *    45 daba **34 · 23 · 11**. Gonzalo: «los ticks del eje y pueden tener saltos
+ *    más lógicos, como cada 20 o cada 10». Un eje se lee por su paso, no por sus
+ *    fracciones: nadie interpola sobre 11,25.
+ *
+ * El paso sale de la serie 1 · 2 · 2,5 · 5 · 10 por la potencia de diez que toque,
+ * eligiendo el más fino que deje cinco divisiones o menos, y el tope se redondea
+ * hacia arriba a un múltiplo de ese paso. 45 → paso 10 y tope 50; 240 → paso 50 y
+ * tope 250; 4 400 → paso 1 000 y tope 5 000.
+ */
+export function escalaDeEje(maximo: number): { tope: number; escalones: number[] } {
+  const bruto = Math.max(1, maximo);
+  const magnitud = Math.pow(10, Math.floor(Math.log10(bruto / 4)));
+  const paso = [1, 2, 2.5, 5, 10].map((m) => m * magnitud).find((c) => bruto / c <= 5)
+    ?? 10 * magnitud;
+  const tope = Math.ceil(bruto / paso) * paso;
+  const escalones: number[] = [];
+  for (let v = tope; v > -paso / 2; v -= paso) escalones.push(Math.round(v));
+  return { tope, escalones };
+}
+
 export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], control = [], sobremuestra = null }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
@@ -91,7 +119,18 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   // inferencia no pasa de donde llega lo agendado, y donde no hay agenda no hay
   // línea —que es información, no un hueco: significa que no queda nada que
   // aplicar y hay que salir a agendar—.
-  const porVenir = proyectada ? proyectada.dias.map((d) => d.fecha) : [];
+  //
+  // En la vista GENERAL los días agendados son los de TODO el estudio, no los de
+  // ninguna facultad. Antes esta lista quedaba vacía cuando no había facultad
+  // elegida y el pie afirmaba **«sin días agendados por delante»** con el estudio
+  // teniendo aulas agendadas: la frase sólo era cierta bajo un supuesto que no
+  // enunciaba —«de la facultad que tengas elegida»— y en esa vista no hay
+  // ninguna. Un rótulo que vale igual para «no queda nada agendado» y para «no
+  // estoy mirando una facultad» esconde justo el que decide si hay que salir a
+  // agendar.
+  const porVenir = proyectada
+    ? proyectada.dias.map((d) => d.fecha)
+    : [...new Set(proyeccion.flatMap((p) => p.dias.map((d) => d.fecha)))].sort();
   const fechas = [...aplicadas, ...porVenir];
 
   // El techo del eje: lo más alto que se llega a dibujar, con un respiro. Se
@@ -110,7 +149,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   const techosDeAgenda = proyectada
     ? proyectada.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0))
     : [];
-  const tope = Math.max(1, Math.ceil(Math.max(...valores, ...techosDeAgenda, mediaDelEstudio) / 5) * 5);
+  const { tope, escalones } = escalaDeEje(Math.max(...valores, ...techosDeAgenda, mediaDelEstudio));
   const x = (i: number) => (fechas.length > 1 ? MARGEN + (UTIL * i) / (fechas.length - 1) : 50);
   const y = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
   const corte = aplicadas.length - 1;
@@ -137,6 +176,29 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     return { p25: en(0.25), p50: en(0.5), p75: en(0.75) };
   });
   const conBanda = cuartiles.filter(Boolean).length >= 2;
+
+  /**
+   * Lo que cabe esperar POR AULA cada día agendado, en la vista general.
+   *
+   * No es un promedio de los esperados de cada facultad: es el esperado
+   * **ponderado por cuántas aulas pone cada una ese día**, que es lo que de
+   * verdad va a salir. Un día con seis aulas de una facultad que rinde 30 y una
+   * de otra que rinde 12 no espera 21.
+   *
+   * Sin esto la franja teñida del diario quedaba en blanco en la vista general.
+   */
+  const esperadoDelEstudio = elegida ? [] : porVenir.map((fecha) => {
+    let esperadas = 0;
+    let aulas = 0;
+    for (const f of proyeccion) {
+      for (const d of f.dias) {
+        if (d.fecha !== fecha) continue;
+        esperadas += d.esperadas;
+        aulas += d.aulas;
+      }
+    }
+    return aulas ? esperadas / aulas : null;
+  });
   const extremos = elegida || facultades.length < 4
     ? []
     : [facultades[0], facultades[facultades.length - 1]];
@@ -176,7 +238,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       })();
 
   const acumulado = ((): null | {
-    tope: number; meta: number; y: (v: number) => number; observado: string;
+    tope: number; escalones: number[]; meta: number; y: (v: number) => number; observado: string;
     inferido: string; lectura: string;
     series: Array<{ sexo: string; color: string; meta: number; conseguidas: number; faltan: number; alcanza: boolean; obs: string; inf: string }>;
     repartoObservado: boolean;
@@ -198,9 +260,31 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     const meta = elegida
       ? elegida.metaDeLoVisitado
       : facultades.reduce((n, f) => n + f.metaDeLoVisitado, 0);
-    const proyectadas = proyectada ? proyectada.dias.map((d) => ultimo + d.acumuladas) : [];
+    // **La proyección del ESTUDIO cuando no hay facultad elegida.** Sin esto la
+    // franja teñida de lo agendado ocupaba un tercio del gráfico y estaba
+    // completamente en blanco: prometía que ahí hay algo y no dibujaba nada, que
+    // es peor que no teñirla. Y es justo la lectura que Gonzalo pide —«imagina
+    // que ya vamos 10 días de aplicación y ya tenemos agendadas dos semanas [...]
+    // eso es lo rico de este gráfico»—: lo interesante no es la franja, es ver la
+    // previsión corriendo sobre ella con diez días de evidencia detrás.
+    //
+    // Se suma por FECHA y no por posición: cada facultad tiene su propio
+    // calendario y el día 3 de una no es el día 3 de otra. Y se acumula sobre el
+    // total ya conseguido, que es contra lo que se mide la meta.
+    const proyectadas = proyectada
+      ? proyectada.dias.map((d) => ultimo + d.acumuladas)
+      : (() => {
+        const porFecha = new Map<string, number>();
+        for (const f of proyeccion) {
+          for (const d of f.dias) {
+            porFecha.set(d.fecha, (porFecha.get(d.fecha) ?? 0) + d.esperadas);
+          }
+        }
+        let suma = ultimo;
+        return porVenir.map((fecha) => (suma += porFecha.get(fecha) ?? 0));
+      })();
     const techo = Math.max(ultimo, meta, sobremuestra ?? 0, ...proyectadas, 1);
-    const tope = Math.ceil(techo / 50) * 50 || 50;
+    const { tope, escalones } = escalaDeEje(techo);
     const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
     const observado = observadas.map((v, i) => `${x(i)},${yy(v)}`).join(" ");
     const inferido = proyectadas.length
@@ -319,7 +403,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       .filter((c) => c.meta > 0)
       .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
     return {
-      tope, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
+      tope, escalones, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
       metasSeñaladas, hayObservadasPorSexo: hayObservadasPorSexo || hayLibroPorSexo,
       etiqueta: elegida
         ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
@@ -432,19 +516,30 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           </p>
         <div className="aulas-serie-plot es-acumulado">
           <ul className="aulas-serie-y" aria-hidden="true">
-            {[acumulado.tope, Math.round(acumulado.tope / 2), 0].map((m) => <li key={m}>{fmt(m)}</li>)}
+            {acumulado.escalones.map((m) => <li key={m}><span>{fmt(m)}</span><i /></li>)}
           </ul>
           <div className="aulas-serie-lienzo">
             <svg className="aulas-serie-grafico es-acumulado" viewBox="0 0 100 100"
               preserveAspectRatio="none" role="img"
               aria-label={acumulado.etiqueta}>
+              {/* LA ZONA DE LO AGENDADO. Gonzalo: «el grafico sigue sin
+                  diferenciar el pasado del futuro o lo previsto». Y era exacto: la
+                  unica separacion era una vertical punteada del MISMO gris que la
+                  rejilla —#e2e7f0, indistinguible de una linea de fondo— y una
+                  fecha en ambar de 10 px. Lo que se lee de un vistazo es la
+                  superficie, no la raya: todo lo que cae a la derecha del ultimo
+                  parte va sobre fondo teñido, y ahi dentro nada es un hecho. */}
+              {porVenir.length ? (
+                <rect x={x(corte)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corte))}
+                  height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07" />
+              ) : null}
               <defs>
                 <linearGradient id="aulas-serie-area" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={COLOR_RESULTADO.efectiva} stopOpacity="0.16" />
                   <stop offset="100%" stopColor={COLOR_RESULTADO.efectiva} stopOpacity="0.01" />
                 </linearGradient>
               </defs>
-              {[0, Math.round(acumulado.tope / 2), acumulado.tope].map((m) => (
+              {acumulado.escalones.map((m) => (
                 <line key={m} x1={MARGEN} y1={acumulado.y(m)} x2={100 - MARGEN} y2={acumulado.y(m)}
                   stroke="var(--pulso-border)" strokeWidth="1"
                   vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
@@ -470,8 +565,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               ) : null}
               {porVenir.length ? (
                 <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
-                  stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
-                  vectorEffect="non-scaling-stroke" opacity="0.8" />
+                  stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" strokeDasharray="4 3"
+                  vectorEffect="non-scaling-stroke" opacity="0.9" />
               ) : null}
               {/* La CUOTA de cada sexo, señalizada con su color. Sin esto no se
                   puede saber si una linea llega o no llega. */}
@@ -508,6 +603,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   vectorEffect="non-scaling-stroke" opacity="0.85" />
               ) : null))}
             </svg>
+            {porVenir.length ? (
+              <>
+                <span className="aulas-serie-zona es-aplicado"
+                  style={{ right: `${100 - x(corte)}%` }}>aplicado</span>
+                <span className="aulas-serie-zona es-agendado"
+                  style={{ left: `${x(corte)}%` }}>agendado</span>
+              </>
+            ) : null}
           </div>
         </div>
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
@@ -527,7 +630,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         </p>
       <div className="aulas-serie-plot">
         <ul className="aulas-serie-y" aria-hidden="true">
-          {[tope, Math.round(tope / 2), 0].map((m) => <li key={m}>{fmt(m)}</li>)}
+          {escalones.map((m) => <li key={m}><span>{fmt(m)}</span><i /></li>)}
         </ul>
         <div className="aulas-serie-lienzo">
           <svg className="aulas-serie-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
@@ -535,7 +638,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             aria-label={elegida
               ? `Rendimiento diario de ${elegida.facultad}; esperado ${elegida.esperadoFinal} encuestas por aula`
               : `Rendimiento diario de ${facultades.length} facultades; media del estudio ${mediaDelEstudio}`}>
-            {[0, Math.round(tope / 2), tope].map((m) => (
+            {/* LA ZONA DE LO AGENDADO, debajo de todo. Ver el comentario del
+                acumulado: la raya sola no separaba nada porque iba del color de
+                la rejilla. */}
+            {porVenir.length ? (
+              <rect x={x(corte)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corte))}
+                height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07" />
+            ) : null}
+            {escalones.map((m) => (
               <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
                 stroke="var(--pulso-border)" strokeWidth="1"
                 vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
@@ -578,6 +688,18 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 strokeLinejoin="round" strokeLinecap="round"
                 vectorEffect="non-scaling-stroke" />
             ) : null}
+            {/* El esperado del ESTUDIO sobre lo agendado. Arranca en la mediana
+                del último día con parte para que se vea de dónde sale. */}
+            {conBanda && esperadoDelEstudio.some((v) => v != null) ? (
+              <polyline
+                points={[
+                  `${x(corte)},${y(cuartiles[corte]?.p50 ?? mediaDelEstudio)}`,
+                  ...esperadoDelEstudio.map((v, i) => (v == null ? null : `${x(corte + 1 + i)},${y(v)}`)).filter(Boolean),
+                ].join(" ")}
+                fill="none" stroke={COLOR_RESULTADO.parcial} strokeWidth="2.5"
+                strokeDasharray="6 4" strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke" />
+            ) : null}
             {/* El esperado sólo con una facultad elegida: veinte líneas punteadas
                 sobre veinte sólidas no se leen, y encima el esperado es lo que se
                 mira DESPUÉS de decidir a quién mirar. */}
@@ -587,11 +709,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />
             ) : null}
             {/* La frontera: a la izquierda lo que pasó, a la derecha lo que se
-                infiere de la agenda. Sin esta raya las dos mitades se leen igual. */}
+                infiere de la agenda. El comentario ya decía «sin esta raya las dos
+                mitades se leen igual» —y se leían igual igualmente, porque la raya
+                iba en `--pulso-border`, el MISMO gris de la rejilla de fondo. */}
             {porVenir.length ? (
               <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
-                stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
-                vectorEffect="non-scaling-stroke" />
+                stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" strokeDasharray="4 3"
+                vectorEffect="non-scaling-stroke" opacity="0.9" />
             ) : null}
             {/* Las BARRAS de elegibles: el techo de cada día, o sea toda la gente
                 que podía —o podrá— responder en esas aulas. La línea va por
@@ -626,7 +750,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 <g key={`techo-${d.fecha}`}>
                   <rect x={x(corte + 1 + i) - ancho / 2} y={y(techo)}
                     width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
-                    fill={COLOR_RESULTADO.pendiente} opacity="0.12" />
+                    fill={COLOR_RESULTADO.pendiente} opacity="0.22" />
                   <line x1={x(corte + 1 + i) - ancho / 2} y1={y(techo)}
                     x2={x(corte + 1 + i) + ancho / 2} y2={y(techo)}
                     stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" opacity="0.5"
@@ -644,6 +768,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 strokeDasharray="6 4" vectorEffect="non-scaling-stroke" />
             ) : null}
           </svg>
+            {porVenir.length ? (
+              <>
+                <span className="aulas-serie-zona es-aplicado"
+                  style={{ right: `${100 - x(corte)}%` }}>aplicado</span>
+                <span className="aulas-serie-zona es-agendado"
+                  style={{ left: `${x(corte)}%` }}>agendado</span>
+              </>
+            ) : null}
           {/* Los puntos van en HTML y no como `<circle>`: en un viewBox estirado
               un círculo sale elipse. Y son los que llevan el hover: cada uno dice
               su fecha, sus aulas, sus encuestas y si eso es observado o inferido.
