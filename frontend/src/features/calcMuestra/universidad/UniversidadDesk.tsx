@@ -501,26 +501,6 @@ export function UniversidadDesk({
   // facultad fija sus titulares en el estrato del estudio (aulas_base_fijas);
   // invalidar los artefactos deja los banners existentes guiando el
   // recalcular → seleccionar que la aplica. Nada manual.
-  const onAgregarAulaFacultad = useCallback(
-    (facultad: string, aulasActuales: number) => {
-      if (!facultyComp) return;
-      const nuevos = estratosConAulaExtra(facultyComp.marco?.estratos ?? null, facultad, aulasActuales);
-      if (!nuevos) return;
-      onComponente(facultyComp.id, { marco: { estratos: nuevos } });
-      onInvalidateAulasArtifacts();
-    },
-    [facultyComp, onComponente, onInvalidateAulasArtifacts],
-  );
-  const onAjustarAulaFacultad = useCallback(
-    (facultad: string, aulasActuales: number, delta: 1 | -1) => {
-      if (!facultyComp) return;
-      const nuevos = estratosConAjusteAula(facultyComp.marco?.estratos ?? null, facultad, aulasActuales, delta);
-      if (!nuevos) return;
-      onComponente(facultyComp.id, { marco: { estratos: nuevos } });
-      onInvalidateAulasArtifacts();
-    },
-    [facultyComp, onComponente, onInvalidateAulasArtifacts],
-  );
   const certificacionFacultad = useMemo(
     () => normalizeCalcMuestraCertificacionFacultad(
       (aulasState?.selection as { certificacion_facultad?: unknown } | null)?.certificacion_facultad ?? null,
@@ -533,6 +513,31 @@ export function UniversidadDesk({
   );
   const calculationReady = labModel.selectedResultReady;
   const selectionReady = labModel.selectionReady;
+  // H2 (2026-08-19): estas acciones escribian SIEMPRE en facultyComp, pero el
+  // motor dimensiona con el componente del ESCENARIO ACTIVO (selectedComp) —
+  // en e1 la fijacion caia en un componente que nadie leia. Ambas apuntan al
+  // componente que el motor usa; el letrero lee el mismo.
+  const compActivo = labModel.selectedComp ?? facultyComp;
+  const onAgregarAulaFacultad = useCallback(
+    (facultad: string, aulasActuales: number) => {
+      if (!compActivo) return;
+      const nuevos = estratosConAulaExtra(compActivo.marco?.estratos ?? null, facultad, aulasActuales);
+      if (!nuevos) return;
+      onComponente(compActivo.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [compActivo, onComponente, onInvalidateAulasArtifacts],
+  );
+  const onAjustarAulaFacultad = useCallback(
+    (facultad: string, aulasActuales: number, delta: 1 | -1) => {
+      if (!compActivo) return;
+      const nuevos = estratosConAjusteAula(compActivo.marco?.estratos ?? null, facultad, aulasActuales, delta);
+      if (!nuevos) return;
+      onComponente(compActivo.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [compActivo, onComponente, onInvalidateAulasArtifacts],
+  );
 
   // Marco construido pero cálculo en N = 0 y sin población en memoria
   // (proyectos guardados antes del sync automático): la reparación exige

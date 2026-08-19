@@ -23,16 +23,21 @@ export function FijasPendientesAviso({
       <header>
         <Pin size={14} aria-hidden="true" />
         <strong>
-          {pendientes.length} fijación{pendientes.length === 1 ? "" : "es"} pendiente{pendientes.length === 1 ? "" : "s"} de recalcular
+          {pendientes.length === 1
+            ? "Fijaste a mano los titulares de 1 facultad"
+            : `Fijaste a mano los titulares de ${pendientes.length} facultades`}
         </strong>
-        <span>recalcula la propuesta y vuelve a seleccionar para aplicarlas</span>
+        <span>
+          una fijación reemplaza al número que la fórmula calcula; para que el
+          sorteo la use: recalcula la propuesta y vuelve a seleccionar
+        </span>
       </header>
       <ul>
         {pendientes.map((p) => (
           <li key={p.facultad}>
             <b>{p.facultad}</b>
             <span className="cmv2-docente-unico-swap">
-              fijada en {p.fijada}{p.calculada != null ? ` (el cálculo vigente decía ${p.calculada})` : ""}
+              tendrá {p.fijada} titulares{p.calculada != null ? ` — la fórmula calculaba ${p.calculada}` : ""}
             </span>
           </li>
         ))}

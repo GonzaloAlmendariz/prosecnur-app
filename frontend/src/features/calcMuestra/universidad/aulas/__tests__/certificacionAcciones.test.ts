@@ -43,8 +43,8 @@ describe("cableado de la acción", () => {
   it("la tarjeta ofrece +1 aula en filas comprometidas y el Desk la registra", () => {
     expect(card).toMatch(/filaComprometida\(f\)/);
     expect(card).toMatch(/onAgregarAula\(f\.facultad, f\.aulas_titulares\)/);
-    expect(desk).toMatch(/estratosConAulaExtra\(facultyComp\.marco\?\.estratos/);
-    expect(desk).toMatch(/onComponente\(facultyComp\.id, \{ marco: \{ estratos: nuevos \} \}\)/);
+    expect(desk).toMatch(/estratosConAulaExtra\(compActivo\.marco\?\.estratos/);
+    expect(desk).toMatch(/onComponente\(compActivo\.id, \{ marco: \{ estratos: nuevos \} \}\)/);
     expect(desk).toMatch(/onAgregarAula=\{onAgregarAulaFacultad\}/);
   });
 
