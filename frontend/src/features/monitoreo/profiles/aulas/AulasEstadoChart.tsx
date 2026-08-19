@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { COLOR_SEPARADOR_BARRA } from "../../coloresDeResultado";
-import { estadoDeAplicacion } from "./estadoDeAplicacion";
+import { TRAMOS_DE_APLICACION, estadoDeAplicacion } from "./estadoDeAplicacion";
 
 /**
  * El STATUS DE APLICACIÓN en una barra: cuántas cumplen y cuántas ni se han tocado.
@@ -13,10 +13,39 @@ import { estadoDeAplicacion } from "./estadoDeAplicacion";
  * punto del circuito**, y sobre todo separa «sin agendar» de «agendada y aún sin
  * empezar», que la cobertura mete en el mismo saco.
  */
-export function AulasEstadoChart({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
+  resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
+  /** Estados que el motor no supo clasificar: se declaran, no se tragan. */
+  desconocidasMotor?: number;
+}) {
   const { estados, desconocidas, total, sinSalirACampo } = useMemo(
-    () => estadoDeAplicacion(filas),
-    [filas],
+    () => {
+      // El reparto del MOTOR primero: la vista lo sumaba sobre `course_status`,
+      // que viaja recortado a 500 filas de 2 615, y el recorte no es una muestra
+      // al azar —el orden pone `en_aplicacion` primero—, así que el gráfico
+      // salía sesgado hacia lo avanzado.
+      if (resumen?.length) {
+        const porClave = new Map(resumen.map((e) => [e.clave, Number(e.aulas) || 0]));
+        const estados = TRAMOS_DE_APLICACION.map((t) => ({
+          clave: t.clave, etiqueta: t.etiqueta, color: t.color,
+          aulas: porClave.get(t.clave) ?? 0,
+        }));
+        const total = estados.reduce((n, e) => n + e.aulas, 0);
+        if (total) {
+          return {
+            estados, total,
+            desconocidas: desconocidasMotor ?? 0,
+            sinSalirACampo: estados
+              .filter((e) => e.clave === "pendiente" || e.clave === "lista")
+              .reduce((n, e) => n + e.aulas, 0),
+          };
+        }
+      }
+      return estadoDeAplicacion(filas);
+    },
+    [filas, resumen, desconocidasMotor],
   );
 
   if (!total) {

@@ -983,8 +983,50 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # 2 115 aulas que no llegaban a la pantalla, y con la vista por facultad que
   # el estudio necesita faltarian facultades enteras sin que nada lo dijera.
   # El total viaja como atributo para que la vista pueda decir «500 de 2 615».
+  # LOS DOS REPARTOS, calculados ANTES del recorte.
+  #
+  # «Status de aplicacion» y «Cursos-horario por cobertura» los contaba la vista
+  # sobre estas mismas filas YA RECORTADAS a 500. Y el recorte no es una muestra
+  # al azar: el orden de arriba pone `en_aplicacion` primero, asi que sobre un
+  # plan de 2 615 los dos graficos habrian salido SESGADOS HACIA LO AVANZADO y
+  # se leerian como si el operativo fuera mejor de lo que es. Declarar «500 de
+  # 2 615» avisa del tamaño, no del sesgo.
+  estados_conteo <- table(factor(
+    out$application_state,
+    levels = c("pendiente", "lista", "en_aplicacion", "cerrando", "reemplazada", "en_reserva")
+  ))
+  estados <- lapply(names(estados_conteo), function(k) {
+    list(clave = k, aulas = as.integer(estados_conteo[[k]]))
+  })
+  # Un estado que no este en la lista NO se traga: `factor()` lo dejaria en NA y
+  # el reparto sumaria menos aulas de las que hay sin que nada lo dijera, que es
+  # el defecto que esta serie lleva persiguiendo. Se cuenta aparte.
+  estados_desconocidos <- as.integer(sum(!(out$application_state %in% names(estados_conteo))))
+  # La cobertura, en los mismos tramos que la vista: sin respuestas, 1-25, 26-50,
+  # 51-99 y meta cumplida. Un aula sin meta declarada NO entra en el reparto y se
+  # cuenta aparte, igual que en el cumplimiento.
+  meta_cs <- suppressWarnings(as.numeric(out$expected_valid))
+  val_cs <- suppressWarnings(as.numeric(out$respuestas_validas))
+  meta_cs[!is.finite(meta_cs)] <- 0
+  val_cs[!is.finite(val_cs)] <- 0
+  con_meta <- meta_cs > 0
+  razon <- ifelse(con_meta, val_cs / pmax(meta_cs, 1), NA_real_)
+  tramo <- ifelse(is.na(razon), NA_character_,
+           ifelse(razon <= 0, "sin_respuestas",
+           ifelse(razon <= 0.25, "hasta_25",
+           ifelse(razon <= 0.5, "hasta_50",
+           ifelse(razon < 1, "hasta_99", "cumplida")))))
+  claves_cob <- c("sin_respuestas", "hasta_25", "hasta_50", "hasta_99", "cumplida")
+  cobertura <- lapply(claves_cob, function(k) {
+    list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)))
+  })
+
   recortado <- .monitoreo_aulas_records(out, max_rows = MONITOREO_AULAS_COURSE_STATUS_TOPE)
   attr(recortado, "total") <- nrow(out)
+  attr(recortado, "estados") <- estados
+  attr(recortado, "estados_desconocidos") <- estados_desconocidos
+  attr(recortado, "cobertura") <- cobertura
+  attr(recortado, "sin_meta") <- as.integer(sum(!con_meta))
   recortado
 }
 
@@ -1490,6 +1532,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # Cuantas hay DE VERDAD. Sin esto, `course_status` de 500 sobre un plan de
     # 2 615 se leia como «el estudio tiene 500 aulas».
     course_status_total = as.integer(attr(course_status, "total") %||% length(course_status)),
+    # Los dos repartos que la vista sumaba sobre el payload recortado.
+    course_status_estados = attr(course_status, "estados") %||% list(),
+    course_status_estados_desconocidos = as.integer(attr(course_status, "estados_desconocidos") %||% 0L),
+    course_status_cobertura = attr(course_status, "cobertura") %||% list(),
+    course_status_sin_meta = as.integer(attr(course_status, "sin_meta") %||% 0L),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una

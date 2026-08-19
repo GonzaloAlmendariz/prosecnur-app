@@ -210,3 +210,28 @@ test_that("el cumplimiento en respuestas se calcula sobre el conjunto en juego y
   expect_identical(as.integer(cr$aulas_con_brecha), 1L)
   expect_identical(as.integer(cr$sin_meta), 1L)
 })
+
+test_that("los repartos de estado y cobertura se calculan ANTES del recorte", {
+  # `course_status` viaja recortado a 500 filas y el recorte NO es una muestra al
+  # azar: el orden pone `en_aplicacion` primero. Sumar los repartos sobre el
+  # payload recortado daria graficos sesgados hacia lo avanzado.
+  n <- MONITOREO_AULAS_COURSE_STATUS_TOPE + 40L
+  plan <- lapply(seq_len(n), function(i) list(
+    operational_code = sprintf("CH %d", i),
+    classroom_id = sprintf("c%d", i),
+    sample_role = "titular",
+    sample_status = "agendada",
+    # Las ultimas 40 —las que el recorte deja fuera— sin meta: si el reparto se
+    # calculara sobre las 500 primeras, `sin_meta` daria 0.
+    expected_valid = if (i > MONITOREO_AULAS_COURSE_STATUS_TOPE) 0 else 20,
+    faculty = "Derecho", stratum = "Derecho"
+  ))
+  tablero <- monitoreo_aulas_dashboard(plan, responses = data.frame(), config = list())
+  expect_identical(tablero$course_status_total, n)
+  expect_length(tablero$course_status, MONITOREO_AULAS_COURSE_STATUS_TOPE)
+  # El reparto cubre las n filas, no las 500 que viajan.
+  aulas_en_estados <- sum(vapply(tablero$course_status_estados, function(e) e$aulas, integer(1)))
+  expect_identical(aulas_en_estados, n)
+  # Y las 40 sin meta se ven, que es justo lo que el recorte escondia.
+  expect_identical(tablero$course_status_sin_meta, 40L)
+})
