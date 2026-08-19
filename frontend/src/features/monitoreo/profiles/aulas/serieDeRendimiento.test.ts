@@ -95,3 +95,36 @@ describe("serieDeRendimiento", () => {
     expect(facultades).toEqual([]);
   });
 });
+
+describe("los elegibles del pasado son el techo de cada día", () => {
+  // «La barra representa cuánto se esperaba y la línea, a cuánto se llegó [...]
+  // no sólo aplica al futuro, aplica también a lo que ya se aplicó en el pasado.»
+  const plan = [
+    parte({ operational_code: "A", eligible_n: 40 }),
+    parte({ operational_code: "B", eligible_n: 60 }),
+  ];
+
+  it("suma los elegibles del plan por día", () => {
+    const partes = [
+      parte({ operational_code: "A", faculty: "Derecho", applied_at: "2026-08-10", effective_surveys: 20 }),
+      parte({ operational_code: "B", faculty: "Derecho", applied_at: "2026-08-10", effective_surveys: 30 }),
+    ];
+    const { facultades } = serieDeRendimiento(partes, plan);
+    expect(facultades[0].dias[0].elegibles).toBe(100);
+    expect(facultades[0].dias[0].efectivas).toBe(50);
+  });
+
+  it("los elegibles salen del PLAN, no del parte", () => {
+    // El parte no los trae; buscarlos ahí daría 0 y la barra desaparecería.
+    const partes = [
+      parte({ operational_code: "A", faculty: "Derecho", applied_at: "2026-08-10", effective_surveys: 20 }),
+    ];
+    expect(serieDeRendimiento(partes, plan).facultades[0].dias[0].elegibles).toBe(40);
+    expect(serieDeRendimiento(partes, []).facultades[0].dias[0].elegibles).toBe(0);
+  });
+
+  it("sin plan no inventa un techo", () => {
+    const partes = [parte({ operational_code: "Z", faculty: "Derecho", applied_at: "2026-08-10", effective_surveys: 9 })];
+    expect(serieDeRendimiento(partes, plan).facultades[0].dias[0].elegibles).toBe(0);
+  });
+});

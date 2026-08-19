@@ -40,6 +40,14 @@ export type DiaDeRendimiento = {
   fecha: string;
   /** Aulas de esa facultad con parte ese día. */
   aulas: number;
+  /**
+   * Los elegibles de esas aulas: el techo del día, toda la gente que PODÍA
+   * responder. Va aparte de las efectivas porque la distancia entre las dos es
+   * la efectividad, y es la misma lectura que la agenda hace hacia adelante:
+   * «la barra representa cuánto se esperaba y la línea, a cuánto se llegó [...]
+   * no sólo aplica al futuro, aplica también a lo que ya se aplicó en el pasado».
+   */
+  elegibles: number;
   efectivas: number;
   /** Lo observado ESE día. `null` si la facultad no visitó ninguna aula. */
   porAula: number | null;
@@ -76,26 +84,42 @@ const redondea = (n: number) => Math.round(n * 10) / 10;
  *   misma razón que en `rendimientoPorFacultad`: si cada superficie uniera por su
  *   cuenta podrían discrepar en de qué facultad es un aula.
  */
-export function serieDeRendimiento(partes: ReadonlyArray<MonitoreoRow>): {
+export function serieDeRendimiento(
+  partes: ReadonlyArray<MonitoreoRow>,
+  /** El plan, sólo para los elegibles de cada aula: el parte no los trae. */
+  plan: ReadonlyArray<MonitoreoRow> = [],
+): {
   facultades: RendimientoDiarioDeFacultad[];
   fechas: string[];
   /** La media del estudio al cierre del último día. Es el prior de la última barra. */
   mediaDelEstudio: number;
 } {
   const fechas = new Set<string>();
-  const porFacultad = new Map<string, Map<string, { aulas: number; efectivas: number }>>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number }>>();
   const totalPorFecha = new Map<string, { aulas: number; efectivas: number }>();
+
+  // Los elegibles viven en el plan, no en el parte. Se busca por
+  // `operational_code`, la misma clave con la que `parteDeCampo` une las dos
+  // hojas: si cada superficie uniera por su cuenta podrían discrepar.
+  const elegiblesPorCodigo = new Map<string, number>();
+  for (const fila of plan) {
+    const codigo = texto(fila.operational_code);
+    if (codigo) elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
+  }
 
   for (const fila of partes) {
     const fecha = fechaDeAplicacion(fila.applied_at ?? fila.applied_date);
     if (!fecha) continue;
     const facultad = texto(fila.faculty) || "Sin facultad";
     const efectivas = numero(fila.effective_surveys);
+    const elegibles = elegiblesPorCodigo.get(texto(fila.operational_code))
+      ?? numero(fila.eligible_n);
     fechas.add(fecha);
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    const dia = dias.get(fecha) ?? { aulas: 0, efectivas: 0 };
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0 };
     dia.aulas += 1;
+    dia.elegibles += elegibles;
     dia.efectivas += efectivas;
     dias.set(fecha, dia);
     const total = totalPorFecha.get(fecha) ?? { aulas: 0, efectivas: 0 };
@@ -123,13 +147,14 @@ export function serieDeRendimiento(partes: ReadonlyArray<MonitoreoRow>): {
     let aulasAcum = 0;
     let efectivasAcum = 0;
     const serie = orden.map((fecha) => {
-      const dia = dias.get(fecha) ?? { aulas: 0, efectivas: 0 };
+      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0 };
       aulasAcum += dia.aulas;
       efectivasAcum += dia.efectivas;
       const media = mediaHasta.get(fecha) ?? 0;
       return {
         fecha,
         aulas: dia.aulas,
+        elegibles: dia.elegibles,
         efectivas: dia.efectivas,
         porAula: dia.aulas ? redondea(dia.efectivas / dia.aulas) : null,
         aulasAcumuladas: aulasAcum,

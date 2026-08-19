@@ -38,12 +38,14 @@ const dm = (fecha: string) => {
   return m ? `${m[3]}/${m[2]}` : fecha;
 };
 
-export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
+export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [] }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
+  /** El plan, sólo para los elegibles de cada aula ya aplicada. */
+  plan?: ReadonlyArray<MonitoreoRow>;
 }) {
-  const modelo = useMemo(() => serieDeRendimiento(partes), [partes]);
+  const modelo = useMemo(() => serieDeRendimiento(partes, plan), [partes, plan]);
   const proyeccion = useMemo(
     () => proyeccionPorAgenda(agenda, partes, cuotas),
     [agenda, partes, cuotas],
@@ -112,6 +114,13 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
   const extremos = elegida || facultades.length < 4
     ? []
     : [facultades[0], facultades[facultades.length - 1]];
+
+  /** Lo que dice la pista de un día ya aplicado: el techo y lo conseguido. */
+  const lineasDelDia = (d: { fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null }) => [
+    `${dm(d.fecha)} · observado`,
+    `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
+    `${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por aula`,
+  ];
 
   const indice = elegida ? facultades.indexOf(elegida) : -1;
   const mover = (paso: number) => {
@@ -228,15 +237,27 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
                 stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
                 vectorEffect="non-scaling-stroke" />
             ) : null}
-            {/* Las BARRAS de elegibles: el techo de cada día agendado, o sea toda
-                la gente que PODRÍA responder en esas aulas. La línea de esperado
-                va por debajo, y la distancia entre las dos es la efectividad
-                prevista. Gonzalo: «hay que diferenciar cuánto se espera llegar
-                con las aulas versus cuántos matriculados o elegibles hay [...]
-                los elegibles como barras y lo esperado como líneas, y las barras
-                un poquito más opacas».
+            {/* Las BARRAS de elegibles: el techo de cada día, o sea toda la gente
+                que podía —o podrá— responder en esas aulas. La línea va por
+                debajo, y la distancia entre las dos es la efectividad.
+                **También en el pasado**: «la barra representa cuánto se esperaba
+                y la línea, a cuánto se llegó [...] no sólo aplica al futuro,
+                aplica también a lo que ya se aplicó». Con eso el gráfico se lee
+                igual a los dos lados de la línea de corte, que es lo que lo hace
+                intuitivo.
                 En elegibles POR AULA, que es la unidad del eje; los totales del
                 día van en el hover, que es donde caben sin mentir la escala. */}
+            {elegida ? elegida.dias.map((d, i) => {
+              if (!d.elegibles || !d.aulas) return null;
+              const techo = d.elegibles / d.aulas;
+              const ancho = fechas.length > 1 ? (UTIL / (fechas.length - 1)) * 0.55 : 6;
+              return (
+                <rect key={`techo-obs-${d.fecha}`}
+                  x={x(i) - ancho / 2} y={y(techo)}
+                  width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
+                  fill={COLOR_RESULTADO.efectiva} opacity="0.13" />
+              );
+            }) : null}
             {proyectada ? proyectada.dias.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
@@ -267,16 +288,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
             <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
               style={{ left: `${x(i)}%`, top: `${y(d.porAula)}%` }}
               aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} encuestas en ${fmt(d.aulas)} aulas`}
-              onMouseEnter={() => setPista({ x: x(i), y: y(d.porAula!), lineas: [
-                `${dm(d.fecha)} · observado`,
-                `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas`,
-                `${personasPorAula(d.porAula)} por aula`,
-              ] })}
-              onFocus={() => setPista({ x: x(i), y: y(d.porAula!), lineas: [
-                `${dm(d.fecha)} · observado`,
-                `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas`,
-                `${personasPorAula(d.porAula)} por aula`,
-              ] })}
+              onMouseEnter={() => setPista({ x: x(i), y: y(d.porAula!), lineas: lineasDelDia(d) })}
+              onFocus={() => setPista({ x: x(i), y: y(d.porAula!), lineas: lineasDelDia(d) })}
               onMouseLeave={() => setPista(null)}
               onBlur={() => setPista(null)} />
           ))) : null}
@@ -392,7 +405,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
 
       <p className="mon-profile-muted aulas-serie-pie">
         {elegida
-          ? "La línea sólida es lo que dejó cada día; la punteada gris, lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—. La raya horizontal es esa media. Lo ámbar, a la derecha de la línea de corte, es lo que se infiere de las aulas YA AGENDADAS: ni un día más allá de donde llega la agenda."
+          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media."
           : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
     </div>
