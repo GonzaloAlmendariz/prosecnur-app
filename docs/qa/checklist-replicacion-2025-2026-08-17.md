@@ -3880,3 +3880,23 @@ filas + totales (190 vs 194 · 3.086 vs 3.303), denominadores rotulados
 y «—» honesto si una facultad no existe en la referencia. Verificada en
 vivo sobre el estudio real (screenshot en la sesion). El Vite 5191
 murio con la suspension y se relanzo.
+
+### La pregunta de Gonzalo destapo la CUARTA lectura del componente equivocado
+
+«¿Por que deff y sobremuestra son diferentes cuando deberian ser
+iguales, y como llegamos a la misma muestra con criterios diferentes?»
+— las dos mitades tenian respuesta medida:
+
+1. NO eran diferentes: la ficha de Coincidencia leia
+   facultyComp.parametros (deff 1.5 / 20% de fabrica, jamas tocados)
+   en vez del componente ACTIVO (deff 2 / x1,5 — identicos a 2025).
+   Misma raiz que H2. Ademas «50 %» vs «1.5» (porcentaje vs ratio) no
+   coincidian textualmente siendo la misma cantidad. Reparado + tests
+   de contrato actualizados; verificado en vivo: tres «si».
+2. La muestra es igual porque esta FIJADA por decision (2.500 objetivo
+   + cuotas por facultad + 190 aulas del REPARTO — opcion B), no
+   derivada de la formula. Con la ficha reparada ya no hay paradoja:
+   mismos parametros Y misma muestra.
+
+Queda una fila honesta en «no»: τ 0.53 (asumido hoy, medido del 2025
+real) vs 0.7038 (el que 2025 asumio) — diferencia REAL y deliberada.
