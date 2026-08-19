@@ -83,6 +83,17 @@ export type RendimientoDiarioDeFacultad = {
   efectivas: number;
   /** El esperado del último día, que es el que vale para decidir mañana. */
   esperadoFinal: number;
+  /**
+   * Lo que el PLAN espera de las aulas que ya se visitaron: la suma de su
+   * `expected_valid`.
+   *
+   * Es la meta con la que se puede comparar el acumulado del parte **sin cruzar
+   * fuentes**: las dos cifras salen del par plan+parte. La cuota por sexo, en
+   * cambio, se mide sobre respuestas atribuidas a un curso-horario, y compararla
+   * con el parte fue el defecto que hizo que el gráfico dijera «llegamos»
+   * mientras su pie decía «0 de 196».
+   */
+  metaDeLoVisitado: number;
   /** Lo observado en todo el corte, sin encoger. Se enseña al lado. */
   observadoFinal: number | null;
 };
@@ -115,15 +126,19 @@ export function serieDeRendimiento(
 } {
   const fechas = new Set<string>();
   const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number }>>();
+  const metaVisitadaPorFacultad = new Map<string, number>();
   const totalPorFecha = new Map<string, { aulas: number; efectivas: number }>();
 
   // Los elegibles viven en el plan, no en el parte. Se busca por
   // `operational_code`, la misma clave con la que `parteDeCampo` une las dos
   // hojas: si cada superficie uniera por su cuenta podrían discrepar.
   const elegiblesPorCodigo = new Map<string, number>();
+  const metaPorCodigo = new Map<string, number>();
   for (const fila of plan) {
     const codigo = texto(fila.operational_code);
-    if (codigo) elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
+    if (!codigo) continue;
+    elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
+    metaPorCodigo.set(codigo, numero(fila.expected_valid));
   }
 
   for (const fila of partes) {
@@ -131,8 +146,12 @@ export function serieDeRendimiento(
     if (!fecha) continue;
     const facultad = texto(fila.faculty) || "Sin facultad";
     const efectivas = numero(fila.effective_surveys);
-    const elegibles = elegiblesPorCodigo.get(texto(fila.operational_code))
-      ?? numero(fila.eligible_n);
+    const codigo = texto(fila.operational_code);
+    const elegibles = elegiblesPorCodigo.get(codigo) ?? numero(fila.eligible_n);
+    metaVisitadaPorFacultad.set(
+      facultad,
+      (metaVisitadaPorFacultad.get(facultad) ?? 0) + (metaPorCodigo.get(codigo) ?? 0),
+    );
     fechas.add(fecha);
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
@@ -188,6 +207,7 @@ export function serieDeRendimiento(
       aulas: aulasAcum,
       efectivas: efectivasAcum,
       esperadoFinal: ultimo?.esperado ?? 0,
+      metaDeLoVisitado: Math.round(metaVisitadaPorFacultad.get(facultad) ?? 0),
       observadoFinal: aulasAcum ? redondea(efectivasAcum / aulasAcum) : null,
     } satisfies RendimientoDiarioDeFacultad;
   });
