@@ -234,7 +234,27 @@ export function AulasObjetivoTab({
           <div className="cmv2-compact-field">
             <span>Mínimo por curso-horario</span>
             <NumberCell value={config.min_elegibles_aula} min={1} step={1} onChange={(v) => updateConfig({ min_elegibles_aula: Math.round(v) })} />
-            <em>Descarta cursos demasiado pequeños para sostener una aplicación presencial.</em>
+            {/* VARA 3: once facultades declaran mínimo propio (10–20 en
+                HSVG2026) y este campo solo mueve el GENERAL. Sin la nota, el
+                «15» a secas presenta como uniforme lo que es heterogéneo por
+                diseño — y editar aquí parecería pisar los propios. */}
+            {(() => {
+              const propios = Object.values(config.criterios_seleccion?.minEligible?.byFaculty ?? {})
+                .map(Number)
+                .filter((v) => Number.isFinite(v) && v > 0);
+              if (!propios.length) {
+                return <em>Descarta cursos demasiado pequeños para sostener una aplicación presencial.</em>;
+              }
+              const rango = propios.length > 1 && Math.min(...propios) !== Math.max(...propios)
+                ? `${fmtInt(Math.min(...propios))}–${fmtInt(Math.max(...propios))}`
+                : fmtInt(propios[0]);
+              return (
+                <em>
+                  Es el mínimo general; {fmtInt(propios.length)} facultades declaran uno propio ({rango}),
+                  decidido en Marco › Criterios — este campo no los toca.
+                </em>
+              );
+            })()}
           </div>
           <div className="cmv2-compact-field">
             <span>Reemplazos por curso-horario</span>
