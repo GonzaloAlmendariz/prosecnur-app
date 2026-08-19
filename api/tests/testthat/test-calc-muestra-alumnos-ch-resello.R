@@ -163,3 +163,28 @@ test_that("el espejo se sella aunque el estudio YA este al dia (el caso real)", 
     s$calc_muestra_aulas_config
   ))
 })
+
+test_that("la TERCERA copia — la config del frame — sale sellada del guardado", {
+  # Los routers de Aulas validan contra frame$config, no contra la sesion.
+  # Sin resellar la config del frame, el 409 sobrevivia a los otros dos sellos.
+  sid <- session_create()
+  session_set(sid, "calc_muestra_estudio", list(
+    workspace = list(aulas_config = list(alumnos_por_ch_decision = .resello_decision("HASH_VIEJO")))
+  ))
+  frame <- list(
+    schema = "calc_muestra_aulas_frame_v1",
+    frame_hash = "HASH_NUEVO",
+    aula_frame = data.frame(),
+    config = calc_muestra_aulas_normalize_config(list(
+      alumnos_por_ch_decision = .resello_decision("HASH_VIEJO")
+    ))
+  )
+  guardado <- .cm_criterios_frame_guardar(sid, frame)
+  expect_identical(guardado$config$alumnos_por_ch_decision$frame_hash, "HASH_NUEVO")
+  s <- session_get(sid)
+  expect_identical(s$calc_muestra_aulas_config$alumnos_por_ch_decision$frame_hash, "HASH_NUEVO")
+  # Y el guard de los artefactos queda satisfecho con la config del frame.
+  expect_true(.cm_alumnos_por_ch_decision_matches_config(
+    s$calc_muestra_estudio, guardado$config
+  ))
+})

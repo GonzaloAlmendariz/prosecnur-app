@@ -88,3 +88,30 @@
 
   hubo
 }
+
+#' Re-sella la decisión contenida en UNA config contra el hash dado.
+#'
+#' Tercera copia del mismo dato: el frame guarda su config de nacimiento, y
+#' los routers de Aulas validan contra `frame$config` — no contra la config de
+#' sesión. Sellar sesión y estudio no bastaba: el frame recién construido
+#' seguía cargando el hash del marco con cuya config se construyó (medido
+#' 2026-08-19, tercer 409 seguido con estudio y sesión ya convergentes). El
+#' guardado del marco pasa su config por aquí ANTES de persistirla.
+#'
+#' @param cfg config de aulas (la del frame por guardar).
+#' @param frame_hash hash del marco recién construido.
+#' @return la config con la decisión sellada, o intacta si no procede.
+.cm_alumnos_por_ch_resellar_config <- function(cfg, frame_hash) {
+  hash <- .cm_aulas_scalar(frame_hash, "")
+  if (!nzchar(hash) || !is.list(cfg)) return(cfg)
+  decision <- cfg$alumnos_por_ch_decision
+  if (!is.list(decision)) return(cfg)
+  firma <- .cm_alumnos_por_ch_decision_signature(decision)
+  if (!is.list(firma) || !identical(firma$schema, .cm_alumnos_por_ch_decision_schema)) {
+    return(cfg)
+  }
+  if (identical(.cm_aulas_scalar(decision$frame_hash, ""), hash)) return(cfg)
+  decision$frame_hash <- hash
+  cfg$alumnos_por_ch_decision <- decision
+  cfg
+}
