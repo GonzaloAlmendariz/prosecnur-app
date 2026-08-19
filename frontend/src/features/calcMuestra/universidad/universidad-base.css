@@ -202,8 +202,11 @@
 }
 
 .cmv2-classroom-readiness-map article.is-working {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
+  /* «En progreso» sin gritar: velo calido + filete ambar, no el crema lleno
+   * (pedido de Gonzalo 2026-08-19, mismo lenguaje que aviso.css). */
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
 }
 
 .cmv2-classroom-readiness-map small,
