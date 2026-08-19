@@ -3372,3 +3372,23 @@ contra la copia vigente (marco 2.615, selección 203).
 **Lectura**: lo declarable está declarado y donde muerde (VARA 3
 cumplida en lo existente); los tres huecos son exactamente EF2/EF3/EF5,
 y los tres son de efectividad — la matriz confirma el rumbo de la era.
+
+### EF2 en producción — cero docentes repetidos en los titulares
+
+**Capa R ☑ (`76b4f4d1`)** y **re-selección verificada**: 203 titulares,
+**0 docentes repetidos** (eran 8 con 17 aulas), **9 intercambios
+registrados** (Atoche ×3 necesitó 2), **0 no reparables**, **0
+duplicados globales** de classroom_id (todos los swaps intercambiaron
+con su ola), cuotas por facultad INTACTAS (203). El aviso del
+sacrificio declarado viaja en methodological_warning y el registro
+completo en diagnostics.docente_unico — VARA 0 cumplida: interno,
+admitido, registrado.
+
+| # | Era EFECTIVIDAD | Estado |
+|---|---|---|
+| EF1 matriz de consolidación | ☑ `ebf45ff9` |
+| EF2 docente único — motor + re-selección | ☑ `76b4f4d1` (falta UI: toggle + registro visible) |
+| EF3 efectividad esperada ex ante | ☐ |
+| EF4 registro del sacrificio (patrón nace en EF2) | ◐ |
+| EF5 techo de aulas | ☐ |
+| EF6 contrato inter-módulos | ☐ |
