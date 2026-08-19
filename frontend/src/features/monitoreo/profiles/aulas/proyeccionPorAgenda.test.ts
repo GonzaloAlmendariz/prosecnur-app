@@ -136,3 +136,37 @@ describe("proyeccionPorAgenda", () => {
     expect(res[0].facultad).toBe("Apretada");
   });
 });
+
+describe("los elegibles son el techo del día, y van aparte", () => {
+  // «Si agendamos tres aulas y se tiene previsto que haya cien elegibles, pero
+  // por los criterios que hemos ido calculando se prevén sesenta, eso hay que
+  // mostrarlo.» La distancia entre las dos cifras ES la efectividad prevista.
+  it("suma los elegibles de las aulas de cada día", () => {
+    const agenda = [
+      aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11", eligible_n: 40 }),
+      aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-11", eligible_n: 60 }),
+      aula({ operational_code: "CH 92", faculty: "Derecho", scheduled_date: "2026-08-12", eligible_n: 30 }),
+    ];
+    const [d] = proyeccionPorAgenda(agenda, historia, []);
+    expect(d.dias.map((x) => [x.fecha, x.aulas, x.elegibles])).toEqual([
+      ["2026-08-11", 2, 100],
+      ["2026-08-12", 1, 30],
+    ]);
+  });
+
+  it("lo esperado va por debajo de los elegibles, que es el punto", () => {
+    const agenda = [
+      aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11", eligible_n: 100 }),
+    ];
+    const [d] = proyeccionPorAgenda(agenda, historia, []);
+    // La historia rinde ~20 por aula sobre aulas de 100 elegibles: se espera muy
+    // por debajo del techo, y eso es informacion, no un error.
+    expect(d.dias[0].esperadas).toBeLessThan(d.dias[0].elegibles);
+  });
+
+  it("un aula sin elegibles declarados no inventa un techo", () => {
+    const agenda = [aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11" })];
+    const [d] = proyeccionPorAgenda(agenda, historia, []);
+    expect(d.dias[0].elegibles).toBe(0);
+  });
+});
