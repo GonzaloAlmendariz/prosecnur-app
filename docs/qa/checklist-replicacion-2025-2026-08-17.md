@@ -3715,3 +3715,32 @@ contacto) el plan ≈ 202. τ propio queda de VIGILANCIA (contrato EF6).
   **⛔ RE-PREGUNTA con dato**: ¿mantiene el Sí (entra como exenta de
   nivel y que caiga natural por elegibles) o exclusión deliberada
   declarada (más limpio)?
+
+### La base 2026 ya entra por la puerta del usuario — dos defectos de fondo muertos en el camino
+
+**Encabezado desplazado (4f7e15cd)**: los xlsx DTI 2026 traen 6 filas de
+preambulo + 5 vacias y el encabezado en la **fila 12** (no la 7 que
+anote antes: openpyxl colapsaba vacias). readxl entregaba UNA columna
+(«Reporte de Alumnos matriculados 2026-2») y el rol salia
+«desconocida»: el marco 2026 era inconstruible EN LA APP. Deteccion
+geometrica en archivo nuevo; base normal intacta (skip 0). Medido con
+los reales: alumnos 137.919×17 base_madre 0.96 · cursos 22.058×18
+catalogo 0.74. Mutante 6 rojos; suite del area 139 PASS.
+
+**marco/config pisaba la config vigente (dd219ef0) — mordida 12, la
+variante temporal de la lista cerrada**: un POST parcial normalizaba a
+secas y toda clave ausente caia al default. Asi se perdio el techo DOS
+veces (el sello parcial devolvio n_aulas=30/targets=0; la cadena B2 sin
+techo lo borro a su vez) y el .pulso guardaba la destruccion. Ahora
+fusiona: lo ausente hereda, null explicito borra, faculty_targets se
+ajusta por facultad. Verificado e2e post-fix: recarga con
+techo=200+targets=15+n_aulas=190+docente_unico y el POST parcial ya no
+destruye. Mutante 5 rojos; 12 PASS.
+
+**Carga 2026 en la app**: ambos archivos subidos por /api/files/upload
+(kind=data) e inspeccionados en-app con roles correctos. Bonus: la hoja
+SQL de cada xlsx trae la consulta DTI — filtros de origen documentados
+(cicloano=2026 ciclo 02 matriculados; excluye condmatri='20' y claves
+%IDM%; TIPODOCENTE de puestos DIC/ORD/PRD/EXT). Sigue: explorar-base,
+mapeo, construir marco (el gate de llegada corre en-app) y guardar como
+archivo NUEVO — el diseno B 2025 no se pisa.
