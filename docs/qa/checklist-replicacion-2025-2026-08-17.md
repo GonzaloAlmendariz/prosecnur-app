@@ -3744,3 +3744,29 @@ SQL de cada xlsx trae la consulta DTI — filtros de origen documentados
 %IDM%; TIPODOCENTE de puestos DIC/ORD/PRD/EXT). Sigue: explorar-base,
 mapeo, construir marco (el gate de llegada corre en-app) y guardar como
 archivo NUEVO — el diseno B 2025 no se pisa.
+
+### EL MARCO 2026 EXISTE — 2.616 aulas en 15 facultades, guardado aparte
+
+Tres construcciones para llegar: (1) mapping 2025 curado no reconocia
+las columnas DTI crudas → 847 pseudo-aulas por horario y 0 incluidas;
+(2) mapping 2026 sellado explicito (via la fusion nueva, sin pisar
+criterios) → 5.269 aulas bien identificadas pero catalogo 397/5.269:
+el fuzzy resolvia classroom_label→SESIONES y la clave del catalogo
+arrastraba dia/hora/salon; (3) **fix de fondo c7ff635a**: el label
+(sesiones/salon) NO es identidad — el aula es curso × seccion ×
+horario; overlap 5.269/5.269, teacher_type 130.395 valores.
+
+**Las quince filas (incluidas 2026 vs 2025)**: C&I 578/571 · DERECHO
+411/395 · EGL 331/329 · EGC 314/299 · **A&D 228/78 (+150 — un criterio
+2025 no esta mordiendo: sospecha talleres, revisar antes de
+dimensionar)** · CyA 159/168 · CCSS 140/139 · GES 97/102 · AE 92/103 ·
+PSI 84/89 · ARQ 80/55 · GAS 34/20 · LyCH 28/41 · EDU 27/22 · CONT
+13/15. Total 2.616 vs 2.426. EEE: 5 aulas / 0 incluidas — entra y cae
+natural por elegibilidad, visible (el «Si» de Gonzalo honrado sin
+silenciarla). Guardado como HSVG2026_marco2026.pulso (el diseno B 2025
+intacto en su archivo).
+
+**Hallazgo**: `calc_muestra_aulas_novedades` (gate de llegada) no tiene
+consumidor en el flujo de construir — grep fuera de su archivo: vacio.
+Conectarlo o declararlo; el repaso de llegada de esta base lo hice a
+mano fuera de la app.
