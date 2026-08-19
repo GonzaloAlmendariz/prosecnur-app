@@ -20,7 +20,9 @@ import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Eye, Link2, Loader2, Save, ShieldCheck } from "../../vendor/lucide-react";
 import {
   COLLECTION_ADAPTER_LABELS,
+  accessKindLabel,
   adapterOperation,
+  bindingStatusLabel,
   deploymentFromPreview,
   localProviderBlocking,
 } from "./providerRules";
@@ -341,7 +343,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
               <div className="rec-table-scroll">
                 <table><thead><tr><th>Unidad</th><th>Tipo</th><th>Identidad lógica</th><th>Estado</th></tr></thead>
                   <tbody>{candidate.bindings.map((binding) => (
-                    <tr key={binding.access_id}><td><strong>{binding.unit_id}</strong><small>{binding.access_id}</small></td><td>{binding.access_kind}</td><td>{binding.logical_collector_id}</td><td><span className={`rec-state is-${binding.status}`}>{binding.status}</span></td></tr>
+                    <tr key={binding.access_id}><td><strong>{binding.unit_id}</strong><small>{binding.access_id}</small></td><td>{accessKindLabel(binding.access_kind)}</td><td>{binding.logical_collector_id}</td><td><span className={`rec-state is-${binding.status}`}>{bindingStatusLabel(binding.status)}</span></td></tr>
                   ))}</tbody>
                 </table>
               </div>
