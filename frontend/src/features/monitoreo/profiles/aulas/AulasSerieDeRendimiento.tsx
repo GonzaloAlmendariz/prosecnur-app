@@ -39,12 +39,26 @@ const dm = (fecha: string) => {
   return m ? `${m[3]}/${m[2]}` : fecha;
 };
 
-export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [] }: {
+export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan = [], sobremuestra = null }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
   /** El plan, sólo para los elegibles de cada aula ya aplicada. */
   plan?: ReadonlyArray<MonitoreoRow>;
+  /**
+   * La sobremuestra del diseño, si el estudio la declara.
+   *
+   * Existe en Cálculo de muestra —`oversample_pct` como parámetro y
+   * `oversample_n` en el resumen de `calc_muestra_aulas`— pero **no viaja al
+   * monitoreo**: la config de aulas trae `selection_run_id` y `frame_hash`, o sea
+   * el enlace a la corrida, y ninguna cifra de diseño. Hasta que viaje, esto
+   * llega en `null` y la pantalla lo dice en vez de suponerlo.
+   *
+   * Y cuando llegue, se lee como lo que es: **la meta manda y la sobremuestra es
+   * referencia**. Gonzalo: «sobrellegar a la muestra no es una necesidad [...]
+   * la sobremuestra podría servir como un valor referencial».
+   */
+  sobremuestra?: number | null;
 }) {
   const modelo = useMemo(() => serieDeRendimiento(partes, plan), [partes, plan]);
   const proyeccion = useMemo(
@@ -160,7 +174,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? proyectada.cuotas.reduce((n, c) => n + c.meta, 0)
       : cuotas.reduce((n, c) => n + Number(c.target ?? 0), 0);
     const proyectadas = proyectada ? proyectada.dias.map((d) => ultimo + d.acumuladas) : [];
-    const techo = Math.max(ultimo, meta, ...proyectadas, 1);
+    const techo = Math.max(ultimo, meta, sobremuestra ?? 0, ...proyectadas, 1);
     const tope = Math.ceil(techo / 50) * 50 || 50;
     const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
     const observado = observadas.map((v, i) => `${x(i)},${yy(v)}`).join(" ");
@@ -314,6 +328,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   stroke="var(--pulso-border-soft)" strokeWidth="1"
                   vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
               ))}
+              {/* La SOBREMUESTRA, si el estudio la declara: por encima de la meta
+                  y con trazo propio. No es una obligación —la meta manda— y por
+                  eso va más tenue y punteada más fina. */}
+              {sobremuestra && sobremuestra > acumulado.meta ? (
+                <line x1={MARGEN} y1={acumulado.y(sobremuestra)} x2={100 - MARGEN}
+                  y2={acumulado.y(sobremuestra)}
+                  stroke={COLOR_RESULTADO.revision} strokeWidth="1" strokeDasharray="2 4"
+                  vectorEffect="non-scaling-stroke" opacity="0.7" />
+              ) : null}
               {/* La META, que es contra lo que se lee todo lo demás. */}
               {acumulado.meta > 0 ? (
                 <line x1={MARGEN} y1={acumulado.y(acumulado.meta)} x2={100 - MARGEN}
@@ -363,6 +386,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
           <span>{acumulado.lectura}</span>
           <span className="aulas-serie-leyenda">
+            {/* La sobremuestra, dicha o declarada ausente. Callarla dejaría la
+                pantalla igual tanto si el estudio la tiene como si no. */}
+            {sobremuestra && sobremuestra > acumulado.meta ? (
+              <em style={{ "--aulas-serie-color": COLOR_RESULTADO.revision } as React.CSSProperties}>
+                Sobremuestra {fmt(sobremuestra)}
+                {acumulado.series.length && acumulado.series.every((se) => se.alcanza) ? " · referencia" : " · referencia, no obligatoria"}
+              </em>
+            ) : (
+              <em className="es-ausente">Sobremuestra no declarada por el estudio</em>
+            )}
             {acumulado.series.map((se) => (
               <em key={se.sexo} style={{ "--aulas-serie-color": se.color } as React.CSSProperties}>
                 {se.sexo} {fmt(Math.round(se.conseguidas))}/{fmt(se.meta)}
