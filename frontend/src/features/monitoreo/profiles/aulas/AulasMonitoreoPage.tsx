@@ -398,6 +398,7 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
       // capacidad inflada. El contenedor de datos —la rejilla de tarjetas— ya
       // declara su propio grupo `equal` justo debajo, que es lo que hay que
       // vigilar aquí.
+    data-qa-geometry-contract="intrinsic"
     >
       <div className="mon-profile-panel-head">
         {/* No sale de ninguna hoja del libro: es la cadena que deja el plan
@@ -462,6 +463,7 @@ function renderAulasView(
           // wrapper de datos hace que el padding del encabezado se lea como
           // capacidad inflada— y salía igual en cinco paneles del perfil. Lo que hay
           // que vigilar es el contenedor de datos, que declara lo suyo más abajo.
+        data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
             {/* Antes decía «Fuente y plan» y era una tabla campo/valor que

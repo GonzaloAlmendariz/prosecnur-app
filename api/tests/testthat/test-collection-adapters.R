@@ -165,6 +165,36 @@ test_that("Kobo existing genera d[] local sobre web form verificado", {
   expect_equal(deployment$capabilities$remote_write, list(observed = FALSE, source = "disabled_v1"))
 })
 
+test_that("sin prefill_field explicito, el campo por defecto es la ruta XPath del asset", {
+  # El enlace real que Gonzalo confirmo en produccion usa `d[/<asset_uid>/collectorID]`,
+  # no `d[collectorID]`. Con el asset conocido y SIN override, el motor tiene que
+  # producir esa ruta por defecto -no el nombre pelado que algunos servidores
+  # Enketo rechazan-.
+  adapter <- .collection_adapter_env$collection_adapter_get("kobo_existing_v1")
+  inspected <- adapter$inspect_target(list(), list(
+    asset_uid = "aNNuP72AedZ886EoAUeV5o", asset_type = "survey", deployment_active = TRUE,
+    base_access_url = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm"
+  ))
+  deployment <- adapter$preview_deployment(.collection_adapter_plan(), inspected)
+
+  expect_equal(names(deployment$bindings[[1]]$prefill), "/aNNuP72AedZ886EoAUeV5o/collectorID")
+  # La composicion final de la URL (`.collection_access_url()`, que ademas
+  # preserva la barra sin escapar) se verifica en test-collection-engine.R,
+  # donde vive esa funcion.
+})
+
+test_that("prefill_field explicito sigue ganando aunque el asset_uid se conozca", {
+  adapter <- .collection_adapter_env$collection_adapter_get("kobo_existing_v1")
+  inspected <- adapter$inspect_target(list(), list(
+    asset_uid = "aNNuP72AedZ886EoAUeV5o", asset_type = "survey", deployment_active = TRUE,
+    base_access_url = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    prefill_field = "collectorID"
+  ))
+  deployment <- adapter$preview_deployment(.collection_adapter_plan(), inspected)
+
+  expect_equal(names(deployment$bindings[[1]]$prefill), "collectorID")
+})
+
 test_that("Kobo bloquea landing administrativa y deployment inactivo", {
   adapter <- .collection_adapter_env$collection_adapter_get("kobo_existing_v1")
   inspected <- adapter$inspect_target(list(), list(

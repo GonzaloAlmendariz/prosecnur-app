@@ -123,6 +123,8 @@ describe("corteAulas", () => {
       generated_at: "2026-07-20T10:00:00Z",
       kpis: { total_aulas: 3, aulas_aplicadas: 2, respuestas_validas: 18, filter_passed: 24, brechas: 1 },
       agenda: [aula(), aula(), aula()],
+      // La meta la publica el MOTOR y viaja con la serie del ritmo.
+      ritmo_diario: { dias: [], dias_con_campo: 0, media_diaria: 0, meta: 30 },
       ...overrides,
     } as unknown as MonitoreoAulasDashboard;
   }
@@ -135,13 +137,32 @@ describe("corteAulas", () => {
     expect(corte.meta).toBe(30);
   });
 
-  it("el pool de reservas extra no infla la meta", () => {
-    // Solo las aulas rastreadas cuentan, igual que en `avance_por_estrato`.
+  it("la meta es la del motor y NO se recompone desde la agenda", () => {
+    // Sumar `expected_valid` sobre la agenda da 4 336 donde el estudio pide
+    // 3 743: la agenda trae TODOS los eslabones de cada cadena y la meta es de
+    // una aula por cadena, la que está en juego. La tarjeta de Salidas decía
+    // «meta 4 336» mientras Avance decía 3 743 en tres paneles.
+    //
+    // Se fija con una agenda que suma OTRA cosa a propósito: si alguien vuelve
+    // a recomponer la meta acá, este aserto lo dice.
     const corte = corteAulas(
       estado(),
-      dashboardAulas({ agenda: [aula(), aula(), aula({ sample_role: "extra_reserve_pool" })] }),
+      dashboardAulas({
+        agenda: [aula(), aula(), aula(), aula(), aula(), aula()],
+        ritmo_diario: { dias: [], dias_con_campo: 0, media_diaria: 0, meta: 30 },
+      }),
     );
-    expect(corte.meta).toBe(20);
+    expect(corte.meta).toBe(30);
+  });
+
+  it("sin meta del motor queda sin determinar, no en cero", () => {
+    // Un cero se lee como «el estudio no pide nada» y dispara una lectura de
+    // avance sobre un denominador inventado.
+    const corte = corteAulas(
+      estado(),
+      dashboardAulas({ ritmo_diario: { dias: [], dias_con_campo: 0, media_diaria: 0, meta: 0 } }),
+    );
+    expect(corte.meta).toBeNull();
   });
 
   it("un aula que sobrecumple no sube la meta", () => {
@@ -152,6 +173,7 @@ describe("corteAulas", () => {
       dashboardAulas({
         kpis: { total_aulas: 2, aulas_aplicadas: 2, respuestas_validas: 24, filter_passed: 24, brechas: 0 },
         agenda: [aula(), aula()],
+        ritmo_diario: { dias: [], dias_con_campo: 0, media_diaria: 0, meta: 20 },
       }),
     );
     expect(corte.meta).toBe(20);

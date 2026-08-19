@@ -339,7 +339,14 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
   if (identical(adapter_id, "kobo_existing_v1") ||
       (identical(adapter_id, "aulas_v1") && identical(.ca_text(target$provider), "kobo"))) {
     base_url <- .ca_text(target$base_access_url %||% target$survey_url %||% target$url)
-    field <- .ca_text(target$prefill_field, "collectorID")
+    # Con el asset conocido, el campo por defecto es la ruta XPath completa
+    # (`/<asset_uid>/collectorID`): es el formato del enlace real que Gonzalo
+    # confirmo en produccion, no el nombre pelado (`collectorID`) que Enketo
+    # tambien puede rechazar segun el servidor. `prefill_field` sigue siendo
+    # la salida de escape explicita para quien lo necesite pelado.
+    asset_uid <- .ca_text(target$asset_uid)
+    default_field <- if (nzchar(asset_uid)) paste0("/", asset_uid, "/collectorID") else "collectorID"
+    field <- .ca_text(target$prefill_field, default_field)
     value <- .ca_unit_value(unit)
     if (!nzchar(.ca_url_issue(base_url)) && nzchar(value)) {
       access_ref <- base_url
@@ -416,12 +423,19 @@ collection_capability_preflight <- function(adapter_id, operation = NULL, target
     .ca_text(target$provider, "manual")
   )
   remote_ref <- .ca_target_ref(target, c("asset_uid", "version_id", "collector_id", "id"))
+  # A donde vuelve el encuestador tras enviar (`returnUrl` de Enketo): una
+  # sola URL para todo el estudio, declarada por quien configura el target,
+  # nunca inferida.
+  return_url <- .ca_text(target$return_url)
   list(
     schema = "collection_deployment/v1",
     deployment_id = .ca_id("deployment", paste(.ca_text(plan$plan_id, "plan"), adapter_id, sep = "-")),
     plan_id = .ca_text(plan$plan_id),
     plan_fingerprint = .ca_text(plan$input_fingerprint),
-    target = list(provider = provider, remote_ref = remote_ref),
+    target = list(
+      provider = provider, remote_ref = remote_ref,
+      return_url = if (nzchar(return_url)) return_url else NULL
+    ),
     capabilities = list(remote_write = list(observed = FALSE, source = "disabled_v1")),
     capability_preflight = local_preflight,
     bindings = bindings,
