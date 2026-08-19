@@ -3770,3 +3770,36 @@ intacto en su archivo).
 consumidor en el flujo de construir — grep fuera de su archivo: vacio.
 Conectarlo o declararlo; el repaso de llegada de esta base lo hice a
 mano fuera de la app.
+
+### A&D y talleres: el +150 era un artefacto MIO de comparacion — la replica es casi exacta
+
+La referencia correcta es el marco 2025 FINAL guardado en el .pulso
+(2.615 incluidas: 2.426 teoricas + 189 talleres declarados), no el
+desglose viejo del checklist (2.426, anterior a declarar talleres).
+Contra esa referencia: **A&D 228 vs 222 (+6)** — 78 teoricas iguales y
+150 talleres vs 144. **Total 2.616 vs 2.615: UNA aula de diferencia.**
+La regla viajo intacta: byVariable.session_type = teorico con
+excepciones op:add taller SOLO en arte_y_diseno y
+arquitectura_y_urbanismo (V3 de manual). Deltas organicos de oferta:
+ARQ −20 (28 talleres vs 45), DER +16, EGC +15, GAS +14, LyCH −13,
+AE −11.
+
+**Caso de borde documentado (no defecto)**: 2art60_0001 «Laboratorio de
+Fotografia Analoga», TALLER incluido atribuido a CyA — es un curso ART
+de A&D cursado por alumnos de CyA: la excepcion aplico por la facultad
+del CURSO (correcto, R9) y el frame lo atribuye por sus alumnos. La
+tension faculty-alumno vs faculty-curso ya esta en el tablero (N3:
+faculty_aula ausente del payload).
+
+**LECCION**: el delta se declara contra el estado GUARDADO de la
+referencia, no contra la ultima cifra anotada en el doc — el checklist
+tenia una foto anterior a los talleres y fabrico un +150 fantasma.
+
+**Fuentes 2026 (observacion de Gonzalo en la UI)**: los
+source_bindings del workspace seguian declarando el xlsx 2025 aunque el
+frame ya era 2026 — el construir por API no actualiza la declaracion.
+Reparado: src-estudiantes y src-cursos apuntan a los 207915 2026-2
+(hoja Data, diagnosticos frescos con roles 0.96/0.74) y los DOS xlsx
+viajan en files/ del .pulso (el 2025 salio). HSVG2026_marco2026.pulso
+re-guardado consistente. Para VERLO: abrir ese .pulso (la ventana que
+mostraba 2025 esta sobre la sesion vieja).
