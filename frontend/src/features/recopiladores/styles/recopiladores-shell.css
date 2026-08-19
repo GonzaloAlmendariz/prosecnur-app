@@ -61,6 +61,21 @@
   overflow: hidden;
 }
 
+/* En el layout ancho de tres columnas cada panel del editor de Materiales
+   -outline/canvas/inspector- es dueño de su propio scroll, así que el panel
+   contenedor se queda quieto (`overflow: hidden` arriba) para no mostrar dos
+   barras de scroll superpuestas. Pero en `materials.css` -mismo punto de
+   quiebre- el inspector deja de ser dueño de su scroll y pasa a fluir a su
+   alto natural DEBAJO de outline+canvas: sin este override el panel seguía
+   en `hidden` y ese sobrante quedaba recortado sin ninguna forma de
+   llegar a él -medido en 1024x600, una de las medidas oficiales de la
+   matriz de QA visual, el inspector entero era inalcanzable-. */
+@media (max-width: 1120px) {
+  .rec-tab-panel:has(.rec-editor) {
+    overflow-y: auto;
+  }
+}
+
 .rec-loading,
 .rec-contained-empty,
 .rec-empty-state {
