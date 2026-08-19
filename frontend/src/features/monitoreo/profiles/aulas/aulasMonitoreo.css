@@ -3184,3 +3184,8 @@
   font-size: 11.5px;
   overflow-wrap: anywhere;
 }
+
+.mon-profile-page.is-aulas-flow .aulas-umbrales-nota {
+  margin: 2px 0 0;
+  font-size: 11px;
+}
