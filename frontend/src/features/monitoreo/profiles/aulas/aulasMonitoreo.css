@@ -3298,3 +3298,36 @@
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cifra em { color: var(--pulso-text-faint); font-style: normal; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-aguanta strong { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-aguanta em { color: var(--pulso-text-faint); font-style: normal; }
+
+/* Qué medio agenda mejor. */
+.mon-profile-page.is-aulas-flow .aulas-medio { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-medio-lectura,
+.mon-profile-page.is-aulas-flow .aulas-medio-pie {
+  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-medio-lista {
+  display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-lista > li {
+  display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr) 84px;
+  align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-cabecera {
+  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-cabecera > span:nth-child(3) { text-align: right; }
+.mon-profile-page.is-aulas-flow .aulas-medio-nombre {
+  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: 12.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-nombre em {
+  color: var(--pulso-text-faint); font-size: 10.5px; font-style: normal; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-barra { display: flex; align-items: center; height: 20px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-medio-barra i {
+  display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-right: 6px;
+  border-radius: 3px; color: #fff; font-size: 11px; font-style: normal; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-medio-intentos {
+  text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
+}

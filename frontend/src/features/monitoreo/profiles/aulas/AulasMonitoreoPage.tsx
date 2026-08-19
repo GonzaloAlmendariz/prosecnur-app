@@ -31,6 +31,7 @@ import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
+import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
@@ -518,6 +519,20 @@ function renderAulasView(
             click. */}
         {pestana === "facultad" ? null : <HandoffTracePanel dashboard={dashboard} />}
         {pestana === "registro" ? registro : null}
+        {pestana === "contacto" ? (
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            {/* «Qué medio agenda mejor» y no «Medio de contacto»: el título dice
+                la pregunta que contesta, que es lo que hace que alguien entre. */}
+            <h3>Qué medio agenda mejor</h3>
+            <span>y con cuántos intentos</span>
+          </div>
+          <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+        </section>
+        ) : null}
         {pestana === "facultad" ? (
         <section
           // `mon-profile-panel` a secas y NO `aulas-agenda-panel`: aquella clase
@@ -546,7 +561,8 @@ function renderAulasView(
           <AulasAgendaPorFacultad filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
         </section>
         ) : null}
-        {pestana === "agenda" || (pestana !== "registro" && pestana !== "facultad") ? (
+        {pestana === "agenda"
+          || (pestana !== "registro" && pestana !== "facultad" && pestana !== "contacto") ? (
         <section
           // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
           // por día y tabla— y la regla común declara dos. Un hijo de más se
