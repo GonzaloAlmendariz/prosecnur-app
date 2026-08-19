@@ -3560,3 +3560,24 @@ liberados a DERECHO (18→20 → 1,03×, resuelve su ámbar; EDU 3→2 1,17×,
 LyCH 5→4 1,38×) + techo_aulas_visitadas=200 sellado en el estudio y
 consumido como presupuesto por margen/simulación/monitoreo. Con su
 confirmación: afijación, techo, re-sorteo, contingencias declaradas.
+
+### Gonzalo cambia una decisión y abre la serie EF8 — τ diferenciado AL DIMENSIONAMIENTO
+
+Textual (2026-08-19): «¿por qué estamos utilizando un indicador de
+efectividad del 53% en todas las facultades cuando cada facultad tiene
+su propia efectividad diferenciada? (…) podemos calcularla por facultad
+— eso de primeras. Y lo segundo: que el usuario pueda hacer todos estos
+ajustes (…) no solo aplicarlas porque sí, sino validarlas, testearlas.»
+
+**SUPERSEDE** la decisión anterior «τ por facultad referencial, no
+redimensionar» (checklist 1ce69cc5): ahora τ_facultad entra al
+dimensionamiento. Es la solución ESTRUCTURAL de DERECHO (dimensionado
+con su τ real, sus aulas suben solas, sin mano).
+
+| Etapa | Qué | Estado |
+|---|---|---|
+| EF8a | Par ±1 por facultad en la certificación + leyenda del ×N | ☑ (commit del stepper) |
+| EF8b-1 | τ por facultad EN R desde la referencia, con PARIDAD contra el cálculo del sustento (D1) — mismas cifras o se explica | ☐ SIGUIENTE |
+| EF8b-2 | El dimensionamiento usa τ_fac (k≥12 aplicadas; fallback τ global DECLARADO por fila) + tests + mutante | ☐ |
+| EF8b-3 | Recalcular propuesta → nuevos targets (medir: ¿DERECHO sube? ¿total respeta techo ~200 con contingencia?) → re-chain completo → guardar | ☐ |
+| EF8c | Validación en vivo: stepper aplicado end-to-end + sustento mostrando τ propio en la fórmula | ☐ |
