@@ -19,6 +19,7 @@ import {
   type RecopiladoresPestana,
   type RecopiladoresSeccion,
 } from "./navegacion";
+import { deploymentStatusLabel } from "./providerRules";
 import "./styles/recopiladores-shell.css";
 
 const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "recopiladores")!;
@@ -201,7 +202,7 @@ export function RecopiladoresShell() {
           }]}
           estado={[{
             id: "deployment-status",
-            label: status,
+            label: deploymentStatusLabel(status),
             tone: status === "handed_off" ? "success" : status === "stale" ? "danger" : "neutral",
           }]}
           ariaLabel="Controles de Recopiladores"

@@ -13,6 +13,22 @@ export const COLLECTION_ADAPTER_LABELS: Record<CollectionAdapterId, string> = {
   surveymonkey_recipient_existing_v1: "SurveyMonkey · recipients existentes",
 };
 
+// `CollectionDeployment["status"]` es un union type cerrado de 4 valores
+// (api/recopiladores.ts) — a diferencia de `unit_type`, que cada adapter
+// declara libremente y por eso no se traduce. RecopiladoresShell.tsx (chip
+// del top bar) y MaterialsSection.tsx (pestaña Paquetes) mostraban el valor
+// crudo del backend; ambos consumen este mismo mapa para no divergir.
+const DEPLOYMENT_STATUS_LABELS: Record<CollectionDeployment["status"], string> = {
+  draft: "Borrador",
+  prepared: "Preparado",
+  handed_off: "Entregado a Monitoreo",
+  stale: "Desactualizado",
+};
+
+export function deploymentStatusLabel(status: string): string {
+  return DEPLOYMENT_STATUS_LABELS[status as CollectionDeployment["status"]] ?? status;
+}
+
 export function adapterOperation(adapterId: CollectionAdapterId) {
   return adapterId === "surveymonkey_recipient_existing_v1"
     ? "native_link_reuse"
