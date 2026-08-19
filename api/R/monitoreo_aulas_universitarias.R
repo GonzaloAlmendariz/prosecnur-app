@@ -309,8 +309,9 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       # descartaria TODAS las respuestas**, y el tope de cuatro es el que Gonzalo
       # declaro —«puede tener hasta 4»—.
       valid_filters = local({
-        crudos <- mapping$valid_filters %||% mapping$filtros_validez %||% list()
-        if (!is.list(crudos)) crudos <- list()
+        crudos <- .monitoreo_aulas_filas_de_filtro(
+          mapping$valid_filters %||% mapping$filtros_validez
+        )
         limpios <- list()
         for (f in crudos) {
           if (!is.list(f)) next
@@ -767,6 +768,27 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   )
 }
 
+#' Normaliza `valid_filters` a una LISTA DE LISTAS, venga como venga.
+#'
+#' **`jsonlite` convierte un array de objetos en un `data.frame`**, no en una
+#' lista: `[{"var":"sexo","values":["F"]}]` llega como un data.frame de una fila.
+#' Iterando con `for (f in crudos)` se recorren entonces las COLUMNAS, `is.list(f)`
+#' es falso y **se descarta todo en silencio**. El sintoma exacto: el POST
+#' devuelve 200, la clave aparece en la config y su valor es `[]`.
+#'
+#' Es la misma trampa de `simplifyDataFrame` que este repo ya tiene fichada, y
+#' solo salio haciendo el ciclo entero desde la pantalla: guardar y ver que el
+#' numero no se movia.
+.monitoreo_aulas_filas_de_filtro <- function(x) {
+  if (is.null(x)) return(list())
+  if (is.data.frame(x)) {
+    if (!nrow(x)) return(list())
+    return(lapply(seq_len(nrow(x)), function(i) as.list(x[i, , drop = FALSE])))
+  }
+  if (!is.list(x)) return(list())
+  x
+}
+
 #' Los filtros que definen una encuesta EFECTIVA, tal como los declara el estudio.
 #'
 #' Gonzalo: «la seccion de fuentes no deja declarar las variables que definen a
@@ -785,7 +807,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
 #' @export
 monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
   mapping <- cfg$source_mapping %||% list()
-  declarados <- mapping$valid_filters %||% list()
+  declarados <- .monitoreo_aulas_filas_de_filtro(mapping$valid_filters)
   filtros <- list()
   for (f in declarados) {
     var <- .monitoreo_scalar(f$var %||% f$variable, "")
@@ -815,8 +837,14 @@ monitoreo_aulas_filtros_de_validez <- function(cfg = list()) {
   # cada uno acota, ninguno amplia. Un filtro cuya columna no esta en la base NO
   # se aplica —y el criterio lo declara aparte—, porque descartarlo todo por una
   # columna ausente seria peor que contar de mas.
+  # **Basta con UNO declarado.** Ponia `> 1L` y con un solo `valid_filters` la
+  # respuesta se iba por el camino viejo de `status_var` —vacio en un estudio que
+  # solo declaro filtros— y contaba TODO. Salio haciendo el ciclo entero desde la
+  # pantalla: se guardaba «sexo = F» y las validas seguian siendo 3 700. Los tests
+  # no lo veian porque el caso de un filtro se probaba con `status_var`.
   filtros <- monitoreo_aulas_filtros_de_validez(cfg)
-  if (length(filtros) > 1L) {
+  declarados <- (cfg$source_mapping %||% list())$valid_filters
+  if (length(filtros) && length(declarados)) {
     ok <- rep(TRUE, nrow(data))
     for (f in filtros) {
       if (!f$var %in% names(data)) next
@@ -877,7 +905,8 @@ monitoreo_aulas_criterio_validez <- function(data, cfg = list()) {
   # Con varios filtros el criterio ya no es «una columna»: se declara cuantos se
   # aplicaron y cuales, y si alguno pedia una columna que la base no trae.
   filtros <- monitoreo_aulas_filtros_de_validez(cfg)
-  if (length(filtros) > 1L) {
+  declarados <- (cfg$source_mapping %||% list())$valid_filters
+  if (length(filtros) && length(declarados)) {
     ausentes <- vapply(filtros, function(f) !f$var %in% names(data), logical(1))
     return(list(
       columna = "", modo = "por_filtros",
@@ -925,6 +954,10 @@ monitoreo_aulas_criterio_texto <- function(crit) {
       nombres <- crit$filtros %||% character(0)
       ausentes <- crit$filtros_ausentes %||% character(0)
       paste0(
+        if (length(nombres) == 1L)
+        sprintf("Una respuesta cuenta si su '%s' esta entre los valores declarados: %d de %d.",
+                nombres[[1]], validas, total)
+      else
         sprintf("Una respuesta cuenta si cumple %d condiciones a la vez (%s): %d de %d.",
                 length(nombres), paste(nombres, collapse = ", "), validas, total),
         if (length(ausentes)) sprintf(
