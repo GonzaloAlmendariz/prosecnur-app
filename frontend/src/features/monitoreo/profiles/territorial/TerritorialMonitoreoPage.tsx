@@ -960,6 +960,11 @@ function SourceView({ reports }: { reports: MonitoreoTerritorialDashboard | null
   );
 }
 
+// ⚠ SIN MONTAR. `RouteView` no se referencia en ningún sitio: ni en este archivo
+// ni en el resto de `src`. Medido el 2026-08-19 sobre `acnur_acg`, ninguna de las
+// 29 pestañas del perfil la dibuja. Se conserva —borrar una vista es decisión con
+// doble confirmación, y en este repo ya se borró y restauró más de una— pero
+// nada de lo que hay debajo llega a una pantalla.
 function RouteView({ reports }: { reports: MonitoreoTerritorialDashboard | null }) {
   if (!reports) {
     return <EmptyPanel icon={Route} title="Manzanas pendientes" detail="La muestra territorial todavía no está hidratada en memoria." />;
@@ -1087,6 +1092,12 @@ function ValidationView({
       />
     );
   }
+  // ⚠ RAMA SIN ALCANZAR. Se llega aquí sólo si `pestanaActiva` no es ninguna de
+  // las cinco de arriba, y el catálogo de navegación declara exactamente esas
+  // cinco para `territorial/calidad` (`lib/navegacion/catalogos/monitoreo.ts`):
+  // geolocalizacion, reconciliacion, duracion, cuotas y anulacion. Así que los
+  // paneles «Mapa operativo único», «Registros auditados» y «Manzanas
+  // consideradas por el mapa» no tienen dirección que los abra.
   const rows = reports.response_audit ?? [];
   const routeBlocks = reports.route_blocks?.length ? reports.route_blocks : reports.map?.blocks ?? reports.block_progress ?? [];
   const visibleBlocks = showReplacements
@@ -1166,6 +1177,9 @@ function ValidationView({
   );
 }
 
+// ⚠ SIN MONTAR. Igual que `RouteView`: definida y nunca referenciada. Su panel
+// «Avance por distrito» no lo dibuja ninguna pestaña; el avance por distrito que
+// sí se ve viene de otro componente.
 function AdvanceView({ reports }: { reports: MonitoreoTerritorialDashboard | null }) {
   if (!reports) {
     return <EmptyPanel icon={BarChart3} title="Avance pendiente" detail="Todavía no hay avance territorial hidratado." />;
