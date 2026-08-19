@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { AulasColaDeContacto } from "./AulasColaDeContacto";
+import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 
@@ -63,5 +64,24 @@ describe("un vacío nombra su causa, no la más grave", () => {
     expect(todasDormidas).toContain("No queda ningún curso-horario a quien llamar");
     expect(todasDormidas).toContain("los 2 del plan están citados, en reserva o ya reemplazados");
     expect(todasDormidas).not.toContain("declara su ciclo");
+  });
+});
+
+describe("el vacío usa lo que el motor ya contó", () => {
+  // NOTA: no hay test de «reemplazos sin fecha» porque **ese vacío no puede
+  // ocurrir**. En `consumoDelBanco` la facultad se registra antes del chequeo de
+  // fecha, así que un reemplazo sin fecha siempre produce entrada. Lo comprobó
+  // este archivo: el aserto que lo esperaba fallaba con el panel ya reparado.
+
+  it("sin ningún reemplazo sí da la buena noticia, y sin plan no la da", () => {
+    const sinReemplazos = renderToStaticMarkup(
+      <AulasConsumoDelBanco filas={[
+        { operational_code: "CH 1", faculty: "Derecho", sample_status: "aplicada" },
+      ] as unknown as MonitoreoAulasPlanRow[]} />);
+    expect(sinReemplazos).toContain("Ningún curso-horario ha sido reemplazado todavía");
+
+    const sinPlan = renderToStaticMarkup(<AulasConsumoDelBanco filas={[]} />);
+    expect(sinPlan).toContain("El plan todavía no trae cursos-horario");
+    expect(sinPlan).not.toContain("ha sido reemplazado todavía");
   });
 });

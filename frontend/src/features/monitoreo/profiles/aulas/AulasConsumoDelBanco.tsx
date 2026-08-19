@@ -23,10 +23,19 @@ const fmt = (n: number) => n.toLocaleString("es-PE");
 export function AulasConsumoDelBanco({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
   const { facultades, sinFecha } = useMemo(() => consumoDelBanco(filas), [filas]);
 
+  // Dos causas, y **sólo dos**: sin plan no hay nada, y con plan sin reemplazos la
+  // lista vacía es una buena noticia. Escribí aquí una tercera —«hay reemplazos
+  // sin fecha»— y el test la tumbó: en el motor la facultad se registra ANTES de
+  // mirar la fecha (`f.caidas += 1` es incondicional), así que un reemplazo sin
+  // fecha sí produce entrada y esta lista no puede quedar vacía por eso. Ese caso
+  // ya está dicho donde sí ocurre, en la lectura de abajo: «N sin fecha de
+  // reemplazo, fuera del cálculo».
   if (!facultades.length) {
     return (
       <p className="mon-profile-muted">
-        Ningún curso-horario ha sido reemplazado todavía, así que no hay consumo de reserva que medir.
+        {filas.length
+          ? "Ningún curso-horario ha sido reemplazado todavía, así que no hay consumo de reserva que medir."
+          : "El plan todavía no trae cursos-horario."}
       </p>
     );
   }
