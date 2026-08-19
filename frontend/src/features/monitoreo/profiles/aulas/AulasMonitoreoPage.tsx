@@ -1313,8 +1313,13 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
-          <h3>Cuánto aguanta el colchón</h3>
-          <span>al ritmo al que están cayendo</span>
+          {/* El registro es el del informe, no el de la sala. Se llamaba
+              «Cuánto aguanta el colchón · al ritmo al que están cayendo». */}
+          {/* Sin «por facultad» en el título: el guard de títulos lo cazó por
+              terminar igual que «Cuota sexo por facultad», que es el defecto que
+              ese guard existe para impedir. La unidad va en el subtítulo. */}
+          <h3>Consumo de la reserva</h3>
+          <span>por facultad, al ritmo de reemplazos observado</span>
         </div>
         <AulasConsumoDelBanco filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
       </section>
