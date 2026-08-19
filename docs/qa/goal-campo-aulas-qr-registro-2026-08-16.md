@@ -2288,3 +2288,39 @@ ya estaba resuelto con la palabra «total»; el pronóstico proyecta *aulas* a
 propósito y lo argumenta; «aulas extra» es el término del motor; y que las 196 se
 vean «Planificada» ya estaba razonado en el propio panel —lo que faltaba no era el
 aviso, era el dato por fila—.
+
+
+## 2026-08-19 — Territorial: el catálogo encuentra dos moldes nuevos
+
+| | Commit | Qué salió |
+|---|---|---|
+| L157 | `5c6fe435` · `96b8f9b3` | **Media cola del page-file no se dibuja.** `RouteView`, `AdvanceView` y la rama final de `ValidationView` no tienen dirección que las abra: seis paneles muertos, restos de un layout anterior. Explica de paso los dos pares de títulos casi iguales. |
+| L158 | `0cfa7b03` | **Seis componentes sin montar en todo Monitoreo**, cinco en territorial, de 474 barridos. Con guard permanente. |
+| L159 | `febf1f2f` | **«UMP pendientes 5» eran 21**: el contador pintaba el largo *después* del `.slice(0, 5)`. Y las dos cifras vecinas —3 y 21— eran de fuentes distintas: cuota operativa contra hoja de ruta. |
+
+### Dos patrones más
+
+15. **Un componente definido y nunca montado.** No lo ve nadie: el typecheck no
+    llega a las funciones de módulo, los tests no lo importan y el gate visual
+    sólo mira lo que se dibuja. Sólo aparece si alguien pregunta por qué un
+    cambio no se ve.
+16. **El contador es el tope.** Un `.slice(0, N)` cuyo `length` se pinta como si
+    fuera la cuenta. Decía 5 donde había 21, y por construcción nunca puede
+    decir más de 5.
+
+### El barrido del 16, y su resultado negativo
+
+Todas las colecciones cortadas de Monitoreo cuyo `length` se pinta: **22
+candidatas, una sola real** —la ya reparada—. Las demás declaran su corte
+(«Mostrando 160 de 488», «8 de 37», «80 visibles de 214») o son guardas
+`{x.length ? … : …}` que el detector confundía con texto.
+
+Eso último importa: **el detector daba 22 y la verdad era 1**. Un barrido
+automático localiza; no juzga. Las 21 se descartaron mirándolas una por una.
+
+### Lo que queda sin resolver, y por qué no se tocó
+
+«Estado UMP» titula «147 completas · 3 faltan · **19 subsanadas**» y su barra
+reparte 147 + 3 + 0 = 150 **sin colocar las 19**. No se sabe si están dentro de
+las 147. Es dominio, no lectura: hace falta saber qué es `stack.subsanada` antes
+de mover nada.
