@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ESTADOS_OPERATIVOS } from "./aulasPresentation";
+import { ESTADOS_OPERATIVOS, STATUS_LABELS } from "./aulasPresentation";
 import { colorDeEstado } from "./EstadoEnCelda";
 import { TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
 
@@ -31,6 +31,19 @@ describe("colorDeEstado", () => {
       expect(tramo && operativo, `${compartido} debería estar en los dos`).toBeTruthy();
       expect(colorDeEstado(compartido)).toBe(tramo?.color);
     }
+  });
+
+  it("los DOS rótulos de un tramo dan el mismo color", () => {
+    // `application_state` tiene dos juegos de nombres —«Lista» en la tabla,
+    // «Agendada» en la franja por día— y buscar sólo por uno dejaba sin color
+    // el valor mayoritario: 76 celdas con chip de 236, y las 160 restantes
+    // decían «Lista». Los nombres NO se unifican (la tabla convive con una
+    // columna que ya usa «Agendada»); el color sí.
+    const desalineados = TRAMOS_DE_APLICACION
+      .filter((t) => STATUS_LABELS[t.clave])
+      .filter((t) => colorDeEstado(STATUS_LABELS[t.clave]) !== t.color)
+      .map((t) => `${t.clave}: «${STATUS_LABELS[t.clave]}» ≠ «${t.etiqueta}»`);
+    expect(desalineados).toEqual([]);
   });
 
   it("un valor que no es estado no se colorea", () => {

@@ -1,5 +1,5 @@
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { ESTADOS_OPERATIVOS } from "./aulasPresentation";
+import { ESTADOS_OPERATIVOS, STATUS_LABELS } from "./aulasPresentation";
 import { COLOR_AULA_LISTA, TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
 
 /**
@@ -59,6 +59,26 @@ const COLOR_OPERATIVO: Record<string, string> = {
   cerrada: COLOR_RESULTADO.efectiva,
 };
 
+/**
+ * El OTRO rótulo de cada tramo de aplicación.
+ *
+ * `application_state` tiene dos juegos de nombres: los de `TRAMOS_DE_APLICACION`
+ * —que es lo que se lee en la franja por día— y los de `STATUS_LABELS`, que es
+ * lo que llega a las celdas de la tabla. Buscar el color sólo por los primeros
+ * dejaba sin colorear el valor mayoritario: medido sobre el corte, la columna
+ * «Status de aplicación» tenía 76 celdas con chip de 236, y las 160 restantes
+ * decían «Lista», que es el mismo estado que la franja llama «Agendada».
+ *
+ * No se unifican los nombres: la tabla convive con una columna `sample_status`
+ * que ya usa «Agendada», y unificarlos pondría la misma palabra con dos
+ * significados en la misma fila. Lo que se unifica es el color.
+ */
+const COLOR_POR_ROTULO_ALTERNO = new Map(
+  TRAMOS_DE_APLICACION
+    .map((t) => [String(STATUS_LABELS[t.clave] ?? "").toLowerCase(), t.color] as const)
+    .filter(([rotulo]) => Boolean(rotulo)),
+);
+
 /** El mismo mapa, indexado por el rótulo que de verdad llega a la celda. */
 const COLOR_OPERATIVO_POR_ETIQUETA = new Map(
   ESTADOS_OPERATIVOS.map((e) => [e.label.toLowerCase(), COLOR_OPERATIVO[e.value]]),
@@ -79,6 +99,8 @@ export function colorDeEstado(valor: string): string | null {
   if (tramo) return tramo.color;
   const operativo = COLOR_OPERATIVO_POR_ETIQUETA.get(texto);
   if (operativo) return operativo;
+  const alterno = COLOR_POR_ROTULO_ALTERNO.get(texto);
+  if (alterno) return alterno;
   // «EN RESERVA 3» es el vocabulario del Excel: la reserva y su posición. El
   // número cambia la fila, no el estado.
   if (texto.startsWith("en reserva")) {

@@ -205,7 +205,20 @@ const CHECK_LABELS: Record<string, string> = {
   valid_response_criterion: "Criterio de respuesta válida",
 };
 
-const STATUS_LABELS: Record<string, string> = {
+/**
+ * El rótulo de un valor de estado, por su clave.
+ *
+ * OJO: para las claves de `application_state` hay un SEGUNDO juego de rótulos en
+ * `TRAMOS_DE_APLICACION` —`lista` es «Lista» acá y «Agendada» allá, `pendiente`
+ * es «Pendiente» y «Sin agendar», `cerrando` «Cierre en curso» y «Cumple»,
+ * `en_aplicacion` «En aplicación» y «Aplicada»—. No están alineados a propósito:
+ * la franja por día habla de la aplicación y la tabla convive con una columna
+ * `sample_status` que ya usa «Agendada», así que unificar los nombres crearía
+ * una palabra con dos significados en la MISMA fila. Lo que sí tiene que ser
+ * único es el COLOR, y de eso se encarga `colorDeEstado`, que resuelve los dos
+ * juegos al mismo tramo.
+ */
+export const STATUS_LABELS: Record<string, string> = {
   ok: "Correcto",
   review: "Revisar",
   warning: "Advertencia",
