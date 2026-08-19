@@ -246,13 +246,22 @@ collection_material_field_form_rows <- function() {
 #'
 #' @param assets ids de logo de la careta; `NULL` para una hoja sin co-marca.
 #' @param rows renglones del formulario; por defecto los de la hoja en uso.
-#' @param title_binding que se imprime como titulo bajo el QR. Por defecto el
-#'   id logico del colector, que es como se llama cada ficha; `NULL` la deja sin
-#'   titulo.
+#' @param title_binding que se imprime como titulo bajo el QR. Por defecto la
+#'   etiqueta legible de la unidad (`unit.label`, campo obligatorio en
+#'   `collection_plan/v1` para cualquier origen), que es como se llama cada
+#'   ficha; `NULL` la deja sin titulo.
+#'
+#'   ANTES el default era `access.logical_collector_id`: para el origen
+#'   legacy de aulas ese campo nunca lo pone nadie, asi que caia en el hash
+#'   generado por `.collection_stable_id("logical", unit_id)` -algo como
+#'   "logical-unit-aulas-aula-01-fd6e0ab1ee-4cd233a0cb"-, impreso como el
+#'   elemento mas grande de la hoja que un encuestador sostiene en el aula.
+#'   Los tests viejos no lo veian porque su fixture siempre ponia un
+#'   `logical_collector_id` legible a mano.
 #' @return `collection_material_template/v1` determinista.
 #' @export
 collection_material_field_sheet_template <- function(assets = NULL, rows = NULL,
-                                                     title_binding = "access.logical_collector_id") {
+                                                     title_binding = "unit.label") {
   blocks <- list()
   if (!is.null(assets)) {
     blocks <- c(blocks, list(list(
