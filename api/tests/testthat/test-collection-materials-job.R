@@ -111,7 +111,12 @@ test_that("job asincrono renderiza y registra el recibo desde un worker limpio",
   expect_true(file.exists(session_get(fx$sid)$files[[job$result_public$file_id]]$path))
 })
 
-test_that("bundle contiene solo PDF y TSV, sin manifest JSON paralelo", {
+test_that("bundle separa un PDF por unidad en Fichas/<facultad>/, sin manifest JSON paralelo", {
+  # El prototipo Python de Gonzalo (docs/Generador_fichasQR.ipynb, sin
+  # trackear) organizaba su salida en carpetas -por seleccion/muestra alla,
+  # por facultad aca, que es el dato que de verdad identifica donde entregar
+  # cada ficha impresa-. Un solo PDF con todas las paginas seguidas no deja
+  # encontrar la ficha de un aula sin recorrer el archivo entero.
   fx <- .cmj_test_seed()
   on.exit(session_delete(fx$sid), add = TRUE)
   dir <- withr::local_tempdir()
@@ -122,7 +127,11 @@ test_that("bundle contiene solo PDF y TSV, sin manifest JSON paralelo", {
 
   result <- collection_material_render_job(snapshot_path, "bundle", path)
   listing <- utils::unzip(path, list = TRUE)$Name
-  expect_setequal(listing, c("fichas.pdf", "accesos.tsv"))
+  # Fixture: "Aula 1" en Ingenieria, "Aula 2" en Derecho (facultades
+  # distintas) -> dos carpetas, un PDF cada una.
+  expect_setequal(listing, c(
+    "Fichas/Ingenieria/Aula 1.pdf", "Fichas/Derecho/Aula 2.pdf", "accesos.tsv"
+  ))
   expect_false(any(grepl("manifest[.]json$", listing, ignore.case = TRUE)))
   expect_identical(result$media_type, "application/zip")
   expect_identical(result$page_count, 2L)
@@ -131,10 +140,46 @@ test_that("bundle contiene solo PDF y TSV, sin manifest JSON paralelo", {
   unpack <- file.path(dir, "unpack")
   dir.create(unpack)
   utils::unzip(path, exdir = unpack)
-  expect_identical(qpdf::pdf_length(file.path(unpack, "fichas.pdf")), 2L)
+  # Cada PDF por unidad tiene una sola pagina -ya no es un PDF combinado.
+  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Ingenieria/Aula 1.pdf")), 1L)
+  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Derecho/Aula 2.pdf")), 1L)
   tsv <- utils::read.delim(file.path(unpack, "accesos.tsv"), stringsAsFactors = FALSE)
   expect_identical(tsv$unit_id, vapply(result$page_map, `[[`, character(1), "unit_id"))
   expect_true(all(grepl("^https://", tsv$qr_payload)))
+})
+
+test_that("dos unidades de la misma facultad con el mismo label no se pisan", {
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "project_name", "Estudio Materiales")
+  session_set(sid, "monitoreo_aulas_plan", list(
+    list(
+      selection_run_id = "render-1", operational_code = "MAT-01", label = "Aula 1",
+      wave = "M1", faculty = "Ingenieria", course_id = "Calculo",
+      schedule = "08:00", venue = "A-201", teacher = "Docente 1", eligible_n = 30,
+      link = "https://kf.kobotoolbox.org/x/form?d%5BcollectorID%5D=MAT-01"
+    ),
+    list(
+      selection_run_id = "render-1", operational_code = "MAT-02", label = "Aula 1",
+      wave = "M1", faculty = "Ingenieria", course_id = "Fisica",
+      schedule = "10:00", venue = "B-101", teacher = "Docente 2", eligible_n = 25,
+      link = "https://kf.kobotoolbox.org/x/form?d%5BcollectorID%5D=MAT-02"
+    )
+  ))
+  seeded <- collection_state_seed(sid)
+  created <- collection_material_instance_create(sid, seeded$state_revision)
+  snapshot <- collection_material_render_snapshot(sid, created$instance$instance_id)
+  snapshot$output_filename <- "materiales.zip"
+  dir <- withr::local_tempdir()
+  snapshot_path <- file.path(dir, "bundle.rds")
+  saveRDS(snapshot, snapshot_path)
+  path <- file.path(dir, "materiales.zip")
+
+  collection_material_render_job(snapshot_path, "bundle", path)
+  listing <- utils::unzip(path, list = TRUE)$Name
+  expect_setequal(listing, c(
+    "Fichas/Ingenieria/Aula 1.pdf", "Fichas/Ingenieria/Aula 1 (2).pdf", "accesos.tsv"
+  ))
 })
 
 test_that("on_complete registra output y persiste un solo receipt sin resolved_access", {
