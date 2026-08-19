@@ -2770,8 +2770,13 @@
   white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmo-cifra strong { color: var(--pulso-text); }
-/* El acumulado va más callado que el día: es contexto, no el dato de la fila. */
-.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado { color: var(--pulso-border-strong); }
+/* El acumulado va más callado que el día: es contexto, no el dato de la fila.
+   Pero callado no es invisible: estaba con `--pulso-border-strong`, un token de
+   BORDE haciendo de color de texto, y medido daba **1.48:1** de contraste a
+   11 px —el minimo legible es 4.5—. Un borde esta calibrado para una linea de
+   1 px, no para glifos. `--pulso-text-faint` lo deja en ~5:1, todavia por
+   debajo del 8.28 de la cifra del dia, que es la jerarquia que se buscaba. */
+.mon-profile-page.is-aulas-flow .aulas-ritmo-acumulado { color: var(--pulso-text-faint); }
 
 /* El encabezado compartido dentro de la reja de aulas.
    `mon-workbench-main` aporta FILAS —`auto auto minmax(0,1fr)`— y la clase
@@ -3512,8 +3517,14 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-zona.es-aplicado {
   margin-right: 6px; color: var(--pulso-text-faint);
 }
+/* El rotulo de la zona inferida. El color de la SERIE (#b97611) sirve para una
+   linea de 2 px, no para 9.5 px en mayusculas: medido daba 3.22:1 sobre su
+   propio tinte, y el minimo legible es 4.5. `--pulso-warn-fg` es el token que
+   ya existe para «texto sobre fondo ambar teñido» —5.7:1— y de paso quita un
+   hex escrito a mano en CSS de feature. El fondo conserva el color de la serie:
+   lo que cambia es el texto, no la identidad de la zona. */
 .mon-profile-page.is-aulas-flow .aulas-serie-zona.es-agendado {
-  margin-left: 6px; color: #b97611;
+  margin-left: 6px; color: var(--pulso-warn-fg);
   background: color-mix(in srgb, #b97611 12%, transparent);
 }
 /* La guia vertical compartida: el dia sobre el que esta el raton, marcado en LOS
@@ -3532,13 +3543,16 @@
   position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px));
   padding: 2px 7px; border-radius: 999px; white-space: nowrap;
   font-size: var(--aulas-serie-min); font-weight: 600; pointer-events: none;
-  color: #168a55; border: 1px solid color-mix(in srgb, #168a55 34%, transparent);
+  /* Mismo caso que la zona: el verde de la serie daba 3.85:1 a 10 px.
+     `--pulso-success-fg` da 6.28 sobre este mismo tinte. */
+  color: var(--pulso-success-fg);
+  border: 1px solid color-mix(in srgb, #168a55 34%, transparent);
   background: color-mix(in srgb, #168a55 10%, var(--pulso-surface));
 }
 /* Cuando el cruce cae en lo agendado NO es un hecho: es una prevision, y se
  * pinta con el color de lo inferido para que no se lea como conseguido. */
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-inferido {
-  color: #b97611; border-color: color-mix(in srgb, #b97611 34%, transparent);
+  color: var(--pulso-warn-fg); border-color: color-mix(in srgb, #b97611 34%, transparent);
   background: color-mix(in srgb, #b97611 10%, var(--pulso-surface));
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce b { font-weight: 700; }
@@ -3646,7 +3660,10 @@
   color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: #b97611; }
+/* La FECHA de un dia agendado. La barra puede llevar el color de la serie
+   —es una forma de 6 px—, pero su rotulo a 10 px daba 3.71:1 sobre blanco.
+   Mismo token que la zona: el fondo mantiene la identidad, el texto se lee. */
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: var(--pulso-warn-fg); }
 /* El DOMINGO, que no es dia de campo: la marca se alarga y la fecha se apaga,
  * para que el hueco del fin de semana quede explicado y no parezca un dia
  * perdido. */
