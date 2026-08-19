@@ -38,6 +38,17 @@ function unitRoleLabel(unit: Pick<CollectionUnit, "role" | "dimensions">): strin
   return value(unit.role);
 }
 
+// `.collection_instrument_ref()` (api/R/collection_engine.R) devuelve el
+// centinela "legacy-instrument-unpinned" cuando el plan no tiene una
+// revisión de instrumento fijada -no es un id real, es la señal de que no
+// hay ninguno-. Mostrarlo tal cual en la cabecera del plan lee como un dato
+// cualquiera; un revision_id real (hash o id del XLSForm) sí es informativo
+// y se muestra igual que antes.
+function instrumentRevisionLabel(revisionId: string): string {
+  if (revisionId === "legacy-instrument-unpinned") return "sin instrumento fijado";
+  return revisionId;
+}
+
 const PLAN_PAGE_SIZE = 50;
 
 export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize = PLAN_PAGE_SIZE) {
@@ -115,7 +126,7 @@ export function PlanSection({ payload, onState }: Props) {
         title="Unidades que entran a recolección"
         actions={(
           <div className="rec-plan-data-meta">
-            <code title={plan.instrument_ref.sha256}>instrumento {plan.instrument_ref.revision_id}</code>
+            <code title={plan.instrument_ref.sha256}>instrumento {instrumentRevisionLabel(plan.instrument_ref.revision_id)}</code>
             {plan.units.length ? (
               <span>{pagination.start + 1}–{pagination.end} de {plan.units.length}</span>
             ) : null}
