@@ -3915,3 +3915,35 @@ de8ffb84, 6b1774ad), cada uno con mutante o control.
 aulas» (cierra la familia mordidas 10/11/12 + resello×3 + lectura
 facultyComp×4); (b) REPARTO 2026: mantener 190 o ajustar (natural 162,
 solo AE/EDU/GAS pedirian +1); (c) re-pregunta EEE (DIPLOMAS/movilidad).
+
+### Auditoria comparativa 2025↔2026 (pedido de Gonzalo) — veredicto punto por punto
+
+**DISENO**: muestra 2.500 = · sobremuestra ×1,5 = · deff 2 = · p 0,30 =
+· confianza 95% = (ficha con sus «si» tras 6b1774ad) · e 2,5% vs 2,46%
+(leve, documentado) · τ 0,53 hoy (MEDIDO del 2025 real) vs 0,7038 que
+2025 ASUMIO — deliberado y mas conservador · cuotas FIJADAS del diseno
+B; el proporcional 2026 apenas las moveria (max DER +16) · N de
+estratos sigue 21.365 (2025) — actualizar N es parte de la decision
+REPARTO pendiente · 190 fijas vs natural 2026 162 (+28 colchon).
+
+**SELECCION (190 titulares 2026)**: reparto EXACTO 15/15 (2025: 170
+agendadas/194 aplicadas, DER 16→20) · mediana de elegibles por titular
+IGUAL O MEJOR en 14/15 facultades (EGL 53 vs 48, EGC 50 vs 39, C&I 35
+vs 28; solo ARQ 27 vs 34,5) · docente unico: 0 repetidos (2025 tenia 8
+docentes en 17 aulas) · talleres SOLO A&D 9 + ARQ 3 · niveles fuera de
+rango: 1 caso borde (1qui01_0111 «QUIMICA 1», curso nivel-1 con alumnos
+de ciclo 2 — entra por la regla declarada de cualquier-par; excluible a
+mano si se prefiere) · minimos propios: 0 titulares por debajo en las
+15 · sexo: 15/15 dentro de tolerancia 2,5% · esperadas 3.086 (1,23x la
+cuota; 2025 logro 3.303 con 194 aplicadas) · reservas: 1.720 en cadenas
++ 706 pool.
+
+**EL UNICO ROJO: EDUCACION NO CERTIFICA por 0,7 efectivas** — 2
+titulares, 42 elegibles, esperadas 22,3 vs cuota 23 (margen 0,97). Es
+EXACTAMENTE el caso que el dry-run anticipo (AE/EDU/GAS pedian +1). El
+remedio existe en la UI: stepper +1 aula en la tarjeta de certificacion
+⛔ decision de Gonzalo (junto con el REPARTO 2026).
+
+Fuera de alcance declarado: cruce curso-a-curso 2025↔2026 (el detalle
+CH del libro 2025 no viaja en el state; el embudo por facultad cubre la
+comparacion agregada).
