@@ -925,6 +925,8 @@ function LightTerritorialMap({
   );
 }
 
+// ⚠ SIN MONTAR. Definida y nunca referenciada, como `RouteView` y
+// `AdvanceView`. Ver el guard `superficiesSinMontar.test.ts`.
 function SourceView({ reports }: { reports: MonitoreoTerritorialDashboard | null }) {
   if (!reports) {
     return <EmptyPanel icon={DatabaseZap} title="Fuente pendiente" detail="Todavía no hay resumen local de la fuente territorial." />;
