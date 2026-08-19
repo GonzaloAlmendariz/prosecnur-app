@@ -60,7 +60,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
           <div><strong>{readiness.delivered ? "Entrega registrada" : readiness.ready ? "Listo para entregar" : "Entrega bloqueada"}</strong><p>{readiness.reason}</p></div>
         </div>
         <dl>
-          <div><dt>Deployment</dt><dd>{deployment?.deployment_id ?? "—"}</dd></div>
+          <div><dt>Deployment</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>
           <div><dt>Cobertura</dt><dd>{deployment ? `${deployment.coverage.units_with_access}/${deployment.coverage.units_total}` : "—"}</dd></div>
           <div><dt>Target</dt><dd>{deployment?.target.provider ?? "—"}</dd></div>
           <div><dt>Fingerprint</dt><dd title={readiness.fingerprint}>{shortFingerprint(readiness.fingerprint)}</dd></div>
@@ -81,7 +81,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
       >
         {receipt ? (
           <article className="rec-receipt">
-            <strong>{receipt.schema}</strong>
+            <strong>Recibo firmado</strong>
             <dl>
               <div><dt>Fecha</dt><dd>{receipt.handed_off_at}</dd></div>
               <div><dt>Revisión</dt><dd>{receipt.state_revision}</dd></div>
