@@ -63,7 +63,12 @@ describe("la banda de KPIs", () => {
     expect(etiquetas("consultas")).toContain("Cadenas sin cerrar");
     expect(etiquetas("calidad")).toContain("Alertas");
     expect(etiquetas("avance")).toContain("Cuota por recoger");
-    expect(etiquetas("avance")).toContain("Cumplen");
+    expect(etiquetas("avance")).toContain("Llegaron a su meta");
+    // Y NO «Cumplen»: esa palabra la usaban a la vez este KPI, el tramo
+    // `cerrando` del gráfico de estado y «Meta cumplida» del de cobertura, para
+    // tres cosas distintas. El KPI decía 216 y el gráfico 0 en la misma
+    // pantalla.
+    expect(etiquetas("avance")).not.toContain("Cumplen");
   });
 
   it("las cadenas se cuentan con la misma función que las cuenta abajo", () => {
@@ -168,5 +173,46 @@ describe("un puntaje no se escribe con el símbolo de porcentaje", () => {
       "calidad" as never,
     ).find((k) => k.label === "Representatividad");
     expect(sinDato?.value).toBe("S/D");
+  });
+});
+
+describe("«llegaron a su meta» sale del motor y no del estado operativo", () => {
+  // El KPI contaba el estado `cerrando`, que el motor define como
+  // `operational_status in (aplicada, cerrada)` **O** `validas >= meta`. Con el
+  // OR basta con haber salido a campo, asi que decia 216 mientras el grafico de
+  // cobertura —dos paneles mas abajo, misma pantalla— decia 0.
+  const conCobertura = (cumplida: number, total: number, sinMeta: number) => ({
+    course_status_cobertura: [
+      { clave: "sin_respuestas", aulas: total - sinMeta - cumplida },
+      { clave: "cumplida", aulas: cumplida },
+    ],
+    course_status_total: total,
+    course_status_sin_meta: sinMeta,
+    // Estado operativo que diria OTRA cosa: todas aplicadas.
+    course_status: Array.from({ length: total }, (_, i) => ({
+      operational_code: `CH ${i}`, operational_status: "aplicada", expected_valid: 20, respuestas_validas: 0,
+    })),
+  });
+
+  it("toma la cifra del motor, no la de las aplicadas", () => {
+    const kpi = aulasKpis(conCobertura(7, 269, 2) as never, "avance")
+      .find((k) => k.label === "Llegaron a su meta");
+    expect(kpi?.value).toBe("7");
+    // 269 aplicadas habrian dado «269» con la cuenta vieja.
+    expect(kpi?.value).not.toBe("269");
+  });
+
+  it("el denominador es el total del motor menos las que no declaran meta", () => {
+    const kpi = aulasKpis(conCobertura(7, 269, 2) as never, "avance")
+      .find((k) => k.label === "Llegaron a su meta");
+    // 269 - 2. Contarlo sobre `course_status` lo dejaba a merced del recorte a
+    // 500 filas del payload.
+    expect(kpi?.pista).toContain("267");
+  });
+
+  it("cero es una cifra, no un vacio", () => {
+    const kpi = aulasKpis(conCobertura(0, 269, 2) as never, "avance")
+      .find((k) => k.label === "Llegaron a su meta");
+    expect(kpi?.value).toBe("0");
   });
 });

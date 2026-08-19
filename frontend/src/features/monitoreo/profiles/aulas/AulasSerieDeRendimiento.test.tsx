@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import {
-  AulasSerieDeRendimiento, diasDelRango, escalaDeEje, esDomingo,
+  AulasSerieDeRendimiento, diasDelRango, escalaDeEje, esDomingo, separaLasMetas,
 } from "./AulasSerieDeRendimiento";
 
 /**
@@ -369,5 +369,43 @@ describe("cada sexo se proyecta y dice cuándo llega a SU cuota", () => {
     const html = conCuotasYAgenda();
     const chips = [...html.matchAll(/aulas-serie-cruce es-sexo/g)];
     if (html.includes("las dos cuotas")) expect(chips).toHaveLength(1);
+  });
+});
+
+
+describe("las etiquetas de meta no se montan una sobre otra", () => {
+  // Cada meta se coloca por su valor, asi que con la cuota repartida mitad y
+  // mitad —el caso mas comun— las de hombres y mujeres caen casi en la misma
+  // altura. 368 px de lienzo y 14 de etiqueta dan un minimo de 3.8 %.
+  const MINIMO = (100 * 14) / 368;
+
+  it("separa dos metas casi iguales lo justo, sin tocar la de arriba", () => {
+    const fuera = separaLasMetas([
+      { clave: "m", y: 40 },
+      { clave: "h", y: 41 },
+    ]);
+    expect(fuera[0].y).toBe(40);
+    expect(fuera[1].y - fuera[0].y).toBeCloseTo(MINIMO, 5);
+  });
+
+  it("no toca las que ya estan separadas", () => {
+    // El caso del fixture: 2 089 y 1 654 dejan sitio de sobra.
+    const fuera = separaLasMetas([{ clave: "a", y: 20 }, { clave: "b", y: 60 }]);
+    expect(fuera.map((m) => m.y)).toEqual([20, 60]);
+  });
+
+  it("conserva el orden por valor, para que cada etiqueta siga a su linea", () => {
+    // Entra desordenada a proposito: si el orden se perdiera, «Hombres» acabaria
+    // rotulando la linea de «Mujeres», que es peor que un solape.
+    const fuera = separaLasMetas([
+      { clave: "abajo", y: 80 }, { clave: "arriba", y: 10 }, { clave: "medio", y: 45 },
+    ]);
+    expect(fuera.map((m) => m.clave)).toEqual(["arriba", "medio", "abajo"]);
+  });
+
+  it("con tres pegadas, las aparta en cascada", () => {
+    const fuera = separaLasMetas([{ clave: "a", y: 50 }, { clave: "b", y: 50 }, { clave: "c", y: 50 }]);
+    expect(fuera[1].y - fuera[0].y).toBeCloseTo(MINIMO, 5);
+    expect(fuera[2].y - fuera[1].y).toBeCloseTo(MINIMO, 5);
   });
 });

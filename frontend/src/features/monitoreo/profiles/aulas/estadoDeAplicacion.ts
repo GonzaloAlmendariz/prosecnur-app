@@ -60,7 +60,12 @@ export const TRAMOS_DE_APLICACION = [
   { clave: "pendiente", etiqueta: "Sin agendar", color: COLOR_RESULTADO.pendiente },
   { clave: "lista", etiqueta: "Agendada", color: COLOR_AULA_LISTA },
   { clave: "en_aplicacion", etiqueta: "Aplicada", color: COLOR_RESULTADO.parcial },
-  { clave: "cerrando", etiqueta: "Cumple", color: COLOR_RESULTADO.efectiva },
+  // «Cumple» era la MISMA palabra que el KPI de arriba y que «Meta cumplida» del
+  // grafico de cobertura, para tres cosas distintas. Este tramo no dice que un
+  // aula llego a su meta: el motor lo define como `aplicada|cerrada` **O**
+  // `validas >= meta`, asi que basta con haber salido a campo. «En cierre» es lo
+  // que de verdad significa, y deja la palabra «meta» para quien la mide.
+  { clave: "cerrando", etiqueta: "En cierre", color: COLOR_RESULTADO.efectiva },
   // `REEMPLAZADA` en **STATUS MUESTRA**. Antes caían en «Sin agendar», que es
   // falso por partida doble: estaban agendadas y ya no van a aplicarse porque su
   // reserva tomó el relevo. Medido sobre el estudio de 196: de las 48 que decían

@@ -130,7 +130,11 @@ export function AulasPiramideCuota({ filas, foco, onFoco }: {
                 onClick={() => onFoco(activo ? null : { tipo: "facultad", valor: fila.facultad })}
               >
                 <Lado lado={fila.izquierda} tope={tope} hacia="izquierda" />
-                <span className="aulas-piramide-facultad">{fila.facultad}</span>
+                {/* `title` como en el resto del perfil. De las 20 facultades del
+                    estudio sólo se recorta una —«Ciencias y Artes de la
+                    Comunicacion», 38 px de más—, pero era la única etiqueta
+                    recortada de toda la sección sin forma de leerse entera. */}
+                <span className="aulas-piramide-facultad" title={fila.facultad}>{fila.facultad}</span>
                 <Lado lado={fila.derecha} tope={tope} hacia="derecha" />
               </button>
             </li>
