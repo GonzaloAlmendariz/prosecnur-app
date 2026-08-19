@@ -114,6 +114,15 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
         {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
         afortunadas no encabeza. <strong>De los asistentes</strong> mide el trabajo en el aula;{" "}
         <strong>del potencial</strong>, cuánto queda por recoger.
+        {/* **De dónde salen los tramos.** Sin decirlo, ver «7:00 – 9:00» con 26
+            aulas junto a «9:01 – 19:00» con 161 se lee como un corte arbitrario
+            y mal hecho. Son los del equipo —la hoja «planilla» del libro— y por
+            eso no se retocan: usar otros haría que la app y su Excel hablaran de
+            horarios distintos. */}
+        {clave === "franja" ? (
+          <> Los tramos son los del <strong>libro del operativo</strong>, no un corte de la
+          app: por eso uno cubre dos horas y otro diez.</>
+        ) : null}
       </p>
     </div>
   );
