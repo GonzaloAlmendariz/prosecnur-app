@@ -81,17 +81,18 @@ export function PlanSection({ payload, onState }: Props) {
 
   return (
     <div className="rec-plan-layout">
-      <aside className="rec-summary-card">
-        <ClipboardList size={20} aria-hidden />
-        <span>collection_plan/v1</span>
-        <strong>{plan.units.length} unidades</strong>
+      <Panel
+        className="rec-summary-card"
+        eyebrow="collection_plan/v1"
+        title={<><ClipboardList size={18} aria-hidden /> {plan.units.length} unidades</>}
+      >
         <dl>
           <div><dt>Tipo</dt><dd>{plan.unit_type}</dd></div>
           <div><dt>Adapter</dt><dd>{plan.adapter.id}</dd></div>
           <div><dt>Revisión</dt><dd>{plan.revision}</dd></div>
           <div><dt>Origen</dt><dd>{plan.source_ref.module}</dd></div>
         </dl>
-      </aside>
+      </Panel>
       <Panel
         className="rec-data-card"
         eyebrow="Plan congelado"
