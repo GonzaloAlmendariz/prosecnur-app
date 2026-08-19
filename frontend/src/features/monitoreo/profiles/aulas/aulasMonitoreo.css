@@ -3351,6 +3351,31 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: #b97611; }
 
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption {
+  caption-side: top; text-align: left; padding: 0 0 4px;
+  color: var(--pulso-text-soft); font-size: 11px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption em {
+  color: var(--pulso-text-faint); font-style: normal;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas th,
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas td {
+  padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--pulso-border-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas thead th {
+  color: var(--pulso-text-faint); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tbody th { text-align: left; font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tbody td:last-child { font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-cumplida td:last-child { color: #168a55; }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-llega td:last-child { color: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-corta td:last-child { color: #a61d4f; }
+
 .mon-profile-page.is-aulas-flow .aulas-serie-aviso {
   margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;
   border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
