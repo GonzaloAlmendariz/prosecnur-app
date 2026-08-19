@@ -16,13 +16,26 @@ import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 const fmt = (n: number) => n.toLocaleString("es-PE");
 const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("es-PE")} %`);
 
-export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", unidad = "Facultad" }: {
+export function AulasRendimientoPorFacultad({
+  partes, plan, clave = "faculty", unidad = "Facultad", explicaLasColumnas = true,
+}: {
   partes: ReadonlyArray<MonitoreoRow>;
   plan: ReadonlyArray<MonitoreoRow>;
   /** Por qué unidad de esfuerzo se agrupa: facultad, aplicador o franja. */
   clave?: "faculty" | "applied_by" | "franja";
   /** Cómo se llama esa unidad en la cabecera de la lista. */
   unidad?: string;
+  /**
+   * Si este panel lleva el pie que explica las cuatro columnas.
+   *
+   * Las tres vistas —facultad, aplicador, franja— comparten componente Y
+   * columnas, y salen **una detrás de otra en la misma pantalla**: el pie se
+   * repetía palabra por palabra tres veces, 191 de las 896 palabras de prosa de
+   * la pestaña. Dentro de un panel ese pie NO sobra —nombra cuatro columnas que
+   * no se explican en ningún otro sitio—; lo que sobra es decirlo tres veces.
+   * Lo lleva el primero y los otros dos lo heredan por vecindad.
+   */
+  explicaLasColumnas?: boolean;
 }) {
   const filas = useMemo(() => rendimientoPorFacultad(partes, plan, clave), [partes, plan, clave]);
 
@@ -109,11 +122,15 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
           mismo panel— y explicaba asistentes y potencial antes que «Ajustado»,
           que va en medio: quien lee tenía que saltar. */}
       <p className="mon-profile-muted aulas-rendimiento-pie">
-        <strong>Por aula</strong> es lo que deja cada visita, y por eso ordena la lista.{" "}
-        <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
-        {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
-        afortunadas no encabeza. <strong>De los asistentes</strong> mide el trabajo en el aula;{" "}
-        <strong>del potencial</strong>, cuánto queda por recoger.
+        {explicaLasColumnas ? (
+          <>
+            <strong>Por aula</strong> es lo que deja cada visita, y por eso ordena la lista.{" "}
+            <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
+            {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
+            afortunadas no encabeza. <strong>De los asistentes</strong> mide el trabajo en el aula;{" "}
+            <strong>del potencial</strong>, cuánto queda por recoger.
+          </>
+        ) : null}
         {/* **De dónde salen los tramos.** Sin decirlo, ver «7:00 – 9:00» con 26
             aulas junto a «9:01 – 19:00» con 161 se lee como un corte arbitrario
             y mal hecho. Son los del equipo —la hoja «planilla» del libro— y por

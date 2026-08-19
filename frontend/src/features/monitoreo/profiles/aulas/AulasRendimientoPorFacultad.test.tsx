@@ -77,3 +77,40 @@ describe("qué está rindiendo más, en personas enteras", () => {
     expect(html.indexOf("Zoologia")).toBeLessThan(html.indexOf("Antropologia"));
   });
 });
+
+describe("el pie de columnas no se repite panel tras panel", () => {
+  // Las tres vistas —facultad, aplicador, franja— comparten componente Y
+  // columnas, y salen una detrás de otra en la misma pantalla. El pie que
+  // explica «Por aula / Ajustado / De los asistentes / Del potencial» se
+  // imprimía palabra por palabra las tres veces: 191 de las 896 palabras de
+  // prosa de la pestaña, un tercio de la prosa larga.
+  const filas = [aula("Derecho", 100, 40), aula("Arte", 100, 20)];
+  const columnas = "es lo que deja cada visita";
+  const tramos = "no un corte de la";
+
+  it("el primer panel sí explica las columnas", () => {
+    const html = renderToStaticMarkup(
+      <AulasRendimientoPorFacultad partes={filas} plan={[]} />,
+    );
+    expect(html).toContain(columnas);
+  });
+
+  it("los que vienen detrás no lo repiten", () => {
+    const html = renderToStaticMarkup(
+      <AulasRendimientoPorFacultad partes={filas} plan={[]} clave="applied_by" unidad="Aplicador" explicaLasColumnas={false} />,
+    );
+    expect(html).not.toContain(columnas);
+  });
+
+  it("pero lo que sí es propio de un panel se queda", () => {
+    // De dónde salen los tramos horarios sólo tiene sentido en el de franja y
+    // no se dice en ningún otro sitio: callarlo por «acortar» sería quitar
+    // información, no repetición. Se conserva aunque el panel ya no explique
+    // las columnas.
+    const html = renderToStaticMarkup(
+      <AulasRendimientoPorFacultad partes={filas} plan={[]} clave="franja" unidad="Franja" explicaLasColumnas={false} />,
+    );
+    expect(html).not.toContain(columnas);
+    expect(html).toContain(tramos);
+  });
+});
