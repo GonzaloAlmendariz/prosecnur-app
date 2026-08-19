@@ -3581,3 +3581,28 @@ con su τ real, sus aulas suben solas, sin mano).
 | EF8b-2 | El dimensionamiento usa τ_fac (k≥12 aplicadas; fallback τ global DECLARADO por fila) + tests + mutante | ☐ |
 | EF8b-3 | Recalcular propuesta → nuevos targets (medir: ¿DERECHO sube? ¿total respeta techo ~200 con contingencia?) → re-chain completo → guardar | ☐ |
 | EF8c | Validación en vivo: stepper aplicado end-to-end + sustento mostrando τ propio en la fórmula | ☐ |
+
+### EF8b-2 medido — el τ diferenciado y el techo CHOCAN: 212 titulares
+
+Con τ propio en el dimensionamiento (motor ya soporta e$tau; medición
+sobre el estudio vigente): **203 → 212 titulares** (~226 visitas con
+caída residual; ~245 con tasa 2025). Drivers: **EGC 27→33** (τ real
+0.428) y **EGL 22→26** (0.444) — hoy SUB-aprovisionadas por el global
+0.53; DERECHO 18→17 (su τ real 0.562 es mejor que el global — su
+ámbar venía del modelo por bins, no de su asistencia). El resto queda
+igual (9 facultades sin k≥12 caen al global declarado).
+
+**⛔ DECISIÓN DE GONZALO — tres salidas coherentes**:
+- (A) **τ propio manda y el techo sube** (~215): el diseño más honesto
+  por facultad; acepta ~226 visitas esperadas.
+- (B) **El techo manda (200)**: sizing queda global (203) y el riesgo
+  EGC/EGL se cubre con **contingencia dirigida** (la bolsa extra
+  prioriza EGC/EGL; sus cadenas se refuerzan) + Monitoreo los vigila
+  con τ propio como vara. Sin re-sorteo.
+- (C) **τ propio con cuota recortada a techo**: sizing con τ_fac pero
+  el total se recorta a ~190 quitando de las sobre-cubiertas — mezcla
+  las dos varas; requiere su reparto explícito.
+Nota metodológica: tres modelos conviven (τ global · τ propio ·
+bins/CH) y no coinciden por facultad (DERECHO: corto en bins, holgado
+en τ propio). La decisión fija CUÁL gobierna el sizing; los otros
+quedan de vigilancia. Nada se aplica sin su letra.
