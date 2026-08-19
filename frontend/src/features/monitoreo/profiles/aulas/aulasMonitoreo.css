@@ -3267,3 +3267,34 @@
   color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: 11px; }
+
+/* Consumo del banco: cuánto aguanta cada facultad. */
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-lectura,
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-pie {
+  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista {
+  display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li {
+  display: grid; grid-template-columns: minmax(140px, 1fr) 108px 70px 104px;
+  align-items: center; gap: 10px; padding: 3px 6px;
+  border-left: 3px solid transparent; border-radius: 6px; min-width: 0; font-size: 12.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera {
+  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera > span:nth-child(n + 2) { text-align: right; }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li.es-seca {
+  border-left-color: var(--pulso-danger-fg); background: var(--pulso-surface-sunken);
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-nombre { min-width: 0; overflow-wrap: anywhere; }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-cifra,
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-aguanta {
+  text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-cifra em { color: var(--pulso-text-faint); font-style: normal; }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-aguanta strong { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-aguanta em { color: var(--pulso-text-faint); font-style: normal; }
