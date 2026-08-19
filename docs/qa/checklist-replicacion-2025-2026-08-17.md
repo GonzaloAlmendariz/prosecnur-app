@@ -4081,3 +4081,15 @@ exacto 197 verifique (el script solo guarda si es exacto). DEFECTO DE
 FONDO acumulado al ADR dueño unico: los endpoints deberian preferir la
 config de sesion cuando es mas nueva que la del frame, o el sello
 deberia refrescar frame.config.
+
+### RE-SORTEO P25 VERIFICADO Y GUARDADO — 197 exactos y la certificacion en 15/15
+
+Con la config explicita (patron B2): **197 titulares, REPARTO P25
+EXACTO en las 15 facultades** (C&I 40 · EGC 25 · EGL 23 · DER 18 ·
+A&D 17 · CCSS 12 · ARQ 12 · AE 11 · CyA 10 · GES 8 · PSI 7 · EDU 4 ·
+LyCH 4 · GAS 3 · CONT 3) · **0 docentes repetidos** · esperadas
+**3.155** (vs 3.086 con 190) · **CERTIFICACION 15 DE 15 — el unico
+rojo de la auditoria (EDUCACION 0,93x) quedo VERDE con sus 4 aulas** ·
+197 ≤ techo 200 · guardado en marco2026.pulso. La seleccion 2026
+definitiva del diseño P25 esta completa: marco + diseño N-2026 +
+reparto P25 + sorteo cube con docente unico + simulacion de reemplazos.
