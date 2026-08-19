@@ -35,6 +35,7 @@ import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
+import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
@@ -1187,6 +1188,29 @@ function renderAulasView(
             (dashboard.partes_campo ?? []) as MonitoreoRow[],
             (dashboard.agenda ?? []) as MonitoreoRow[],
           ).filas as MonitoreoRow[]}
+        />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* Se proyectan AULAS y no respuestas: la meta esta en respuestas
+              atribuidas a un curso-horario y sobre este corte hay cero —llegan
+              anonimas—, asi que proyectar la serie del parte contra esa meta
+              daria una fecha inventada. Las aulas viven en un solo universo. */}
+          <h3>Cuándo se termina de aplicar el plan</h3>
+          <span>al ritmo observado</span>
+        </div>
+        <AulasPronosticoDeCierre
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
         />
       </section>
       )}
