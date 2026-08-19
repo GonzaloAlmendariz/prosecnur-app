@@ -57,8 +57,13 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], di
     );
   }
 
+  // **El dueño del vacío es la LISTA, no este envoltorio.** Los dos declaraban
+  // `capacity="owned"` y el gate marcó `capacity-drift`: los 61 px entre ambos
+  // —la cabecera y la lectura— se leían como capacidad interior sin usar. La
+  // cláusula limita la declaración al contenedor visible de DATOS, y un
+  // envoltorio que además lleva texto no lo es.
   return (
-    <div className="aulas-anticipacion" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+    <div className="aulas-anticipacion">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(conBrecha.length)}</strong>{" "}
         {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} aulas nuevas ·
