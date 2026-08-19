@@ -137,6 +137,25 @@ const TERRITORIAL_LOCAL_TABS = MONITOREO_PESTANAS.territorial;
 const TERRITORIAL_ADVANCE_TABS = TERRITORIAL_LOCAL_TABS.avance;
 type TerritorialAdvanceLocalTab = typeof TERRITORIAL_ADVANCE_TABS[number]["key"];
 
+
+/**
+ * El aviso de que una tabla enseña menos filas de las que su cabecera declara.
+ *
+ * Cinco tablas de este perfil cortaban con `.slice(0, N)` bajo un encabezado que
+ * decía el total —«N registros locales», «N casos», «N distritos»— y no lo
+ * avisaban en ninguna parte: quien contara las filas veía 40 donde el título
+ * prometía cientos, sin saber si faltaban o si el dato era ése. Los otros
+ * perfiles ya lo declaran («Mostrando 160 de 488 registros»).
+ */
+function TerritorialRecorte({ visibles, total, unidad }: { visibles: number; total: number; unidad: string }) {
+  if (total <= visibles) return null;
+  return (
+    <p className="mon-profile-table-recorte">
+      Mostrando {fmt(visibles)} de {fmt(total)} {unidad}.
+    </p>
+  );
+}
+
 function defaultLocalTabForView(view: MonitoreoSeccion) {
   return TERRITORIAL_LOCAL_TABS[view]?.[0]?.key ?? "";
 }
@@ -980,6 +999,7 @@ function RouteView({ reports }: { reports: MonitoreoTerritorialDashboard | null 
             { key: "meta", label: "Meta", render: (row) => fmt(row.meta, "S/D") },
           ]}
         />
+        <TerritorialRecorte visibles={Math.min(40, blocks.length)} total={blocks.length} unidad="manzanas" />
       </section>
     </div>
   );
@@ -1122,6 +1142,7 @@ function ValidationView({
             { key: "responsable", label: "Responsable", render: (row) => row.responsible_display || row.submitted_by || "" },
           ]}
         />
+        <TerritorialRecorte visibles={Math.min(45, rows.length)} total={rows.length} unidad="casos" />
       </section>
       <section className="ter-panel">
         <div className="ter-panel-head">
@@ -1139,6 +1160,7 @@ function ValidationView({
             { key: "responsable", label: "Responsable", render: (row) => row.responsable || "" },
           ]}
         />
+        <TerritorialRecorte visibles={Math.min(40, visibleBlocks.length)} total={visibleBlocks.length} unidad="manzanas" />
       </section>
     </div>
   );
@@ -1174,6 +1196,7 @@ function AdvanceView({ reports }: { reports: MonitoreoTerritorialDashboard | nul
             { key: "brecha", label: "Brecha", render: (row) => fmt(row.brecha, "S/D") },
           ]}
         />
+        <TerritorialRecorte visibles={Math.min(30, districtRows.length)} total={districtRows.length} unidad="distritos" />
       </section>
       <section className="ter-panel">
         <div className="ter-panel-head">
