@@ -63,23 +63,50 @@ const BLOCK_LABELS: Record<CollectionBlockType, string> = {
   footer: "Pie de página",
 };
 
+// Todo binding que un preset del backend pueda dejar en un bloque `heading`/
+// `body`/`footer` (binding suelto, sin `label` propio) tiene que estar acá:
+// si falta uno, ese bloque vuelve a mostrar la ruta técnica cruda. Ver
+// `collection_materials.R`/`collection_render_afiche.R`/
+// `collection_render_ficha_campo.R` para la lista real de bindings en uso.
 const BINDING_OPTIONS = [
   "access.qr_payload",
   "unit.label",
+  "unit.course_name",
   "unit.schedule",
   "unit.venue",
   "unit.role",
   "deployment.deployment_id",
   "project.name",
+  "project.period",
 ];
+
+// El binding (`unit.schedule`, `access.qr_payload`…) es el identificador que
+// viaja al backend; esta tabla es solo cómo se lo nombra en la UI del
+// analista, para no obligarlo a leer rutas con puntos para saber qué está
+// agregando a la ficha.
+const BINDING_LABELS: Record<string, string> = {
+  "access.qr_payload": "Código QR de acceso",
+  "unit.label": "Nombre de la unidad",
+  "unit.course_name": "Nombre del curso",
+  "unit.schedule": "Horario",
+  "unit.venue": "Aula o lugar",
+  "unit.role": "Rol (titular / reemplazo)",
+  "deployment.deployment_id": "Código de la entrega",
+  "project.name": "Nombre del proyecto",
+  "project.period": "Periodo del proyecto",
+};
+
+export function bindingLabel(binding: string): string {
+  return BINDING_LABELS[binding] ?? binding;
+}
 
 export function materialFieldBinding(field: CollectionMaterialField): string {
   return typeof field === "string" ? field : field.binding;
 }
 
 export function materialFieldCanvasLabel(field: CollectionMaterialField): string {
-  if (typeof field === "string") return field;
-  return field.label ? `${field.label} (${field.binding})` : field.binding;
+  if (typeof field === "string") return bindingLabel(field);
+  return field.label ?? bindingLabel(field.binding);
 }
 
 // Semilla vacía: sólo ocupa el reducer hasta que resuelve el GET, y no se
@@ -142,7 +169,7 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
             {block.type === "access_qr" ? <strong>QR autoritativo del backend</strong> : null}
             {block.text ? <strong>{block.text}</strong> : null}
             {block.fields?.length ? <small>{block.fields.map(materialFieldCanvasLabel).join(" · ")}</small> : null}
-            {block.binding && block.type !== "access_qr" ? <code>{block.binding}</code> : null}
+            {block.binding && block.type !== "access_qr" ? <small>{bindingLabel(block.binding)}</small> : null}
           </button>
         ))}
       </div>
@@ -386,9 +413,9 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             <label>ID del bloque<input value={selected.block_id} readOnly /></label>
             <label>Tipo<select value={selected.type} disabled>{COLLECTION_BLOCK_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
             {selected.text !== undefined ? <label>Texto<textarea value={selected.text ?? ""} onChange={(event) => updateBlock({ text: event.target.value })} rows={5} /></label> : null}
-            {selected.binding !== undefined ? <label>Binding<select value={selected.binding ?? ""} onChange={(event) => updateBlock({ binding: event.target.value })}>{BINDING_OPTIONS.map((binding) => <option key={binding}>{binding}</option>)}</select></label> : null}
+            {selected.binding !== undefined ? <label>Dato que muestra<select value={selected.binding ?? ""} onChange={(event) => updateBlock({ binding: event.target.value })}>{BINDING_OPTIONS.map((binding) => <option key={binding} value={binding}>{bindingLabel(binding)}</option>)}</select></label> : null}
             {selected.fields !== undefined ? <fieldset><legend>Campos permitidos</legend>{BINDING_OPTIONS.filter((item) => item.startsWith("unit.")).map((field) => (
-              <label className="rec-check" key={field}><input type="checkbox" checked={selected.fields?.some((item) => materialFieldBinding(item) === field) ?? false} onChange={(event) => updateBlock({ fields: event.target.checked ? [...(selected.fields ?? []), field] : (selected.fields ?? []).filter((item) => materialFieldBinding(item) !== field) })} /> {field}</label>
+              <label className="rec-check" key={field}><input type="checkbox" checked={selected.fields?.some((item) => materialFieldBinding(item) === field) ?? false} onChange={(event) => updateBlock({ fields: event.target.checked ? [...(selected.fields ?? []), field] : (selected.fields ?? []).filter((item) => materialFieldBinding(item) !== field) })} /> {bindingLabel(field)}</label>
             ))}</fieldset> : null}
             <PulsoButton variant="danger" size="sm" disabled={selected.required === true || selected.type === "access_qr"} onClick={removeSelected}><Trash2 size={14} /> Eliminar bloque</PulsoButton>
           </div>
