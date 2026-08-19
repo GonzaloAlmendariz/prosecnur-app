@@ -89,6 +89,26 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
     .filter(Boolean)
     .join(" ");
 
+  // La vista general con veinte líneas verdes era una maraña —«el gráfico general
+  // no se entiende bien», y era verdad—. Veinte series iguales no se leen una por
+  // una, así que lo que se lee es la DISPERSIÓN: la banda entre el cuartil 1 y el
+  // 3 de cada día, la mediana encima, y las veinte al fondo muy tenues para no
+  // perder el detalle. Y con color, las dos que deciden: la que más rinde y la
+  // que menos.
+  const cuartiles = elegida ? [] : aplicadas.map((_, i) => {
+    const v = facultades
+      .map((f) => f.dias[i]?.porAula)
+      .filter((n): n is number => n != null)
+      .sort((a, b) => a - b);
+    if (!v.length) return null;
+    const en = (q: number) => v[Math.min(v.length - 1, Math.floor(q * (v.length - 1)))];
+    return { p25: en(0.25), p50: en(0.5), p75: en(0.75) };
+  });
+  const conBanda = cuartiles.filter(Boolean).length >= 2;
+  const extremos = elegida || facultades.length < 4
+    ? []
+    : [facultades[0], facultades[facultades.length - 1]];
+
   const indice = elegida ? facultades.indexOf(elegida) : -1;
   const mover = (paso: number) => {
     if (!facultades.length) return;
@@ -112,8 +132,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
           <>
             <strong>{fmt(facultades.length)}</strong> facultades ·{" "}
             <strong>{personasPorAula(mediaDelEstudio)}</strong> encuestas por aula de media del estudio ·
-            de <strong>{personasPorAula(facultades[0].esperadoFinal)}</strong> a{" "}
-            <strong>{personasPorAula(facultades[facultades.length - 1].esperadoFinal)}</strong> esperadas
+            de <strong>{personasPorAula(facultades[0].esperadoFinal)}</strong>{" "}
+            ({facultades[0].facultad}) a{" "}
+            <strong>{personasPorAula(facultades[facultades.length - 1].esperadoFinal)}</strong>{" "}
+            ({facultades[facultades.length - 1].facultad}) esperadas
           </>
         )}
       </p>
@@ -154,14 +176,39 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
             <line x1={MARGEN} y1={y(mediaDelEstudio)} x2={100 - MARGEN} y2={y(mediaDelEstudio)}
               stroke={COLOR_RESULTADO.revision} strokeWidth="1.2" strokeDasharray="2 4"
               vectorEffect="non-scaling-stroke" opacity="0.7" />
+            {/* La banda de dispersión, debajo de todo: entre el cuartil 1 y el 3
+                de cada día está la mitad central de las facultades. */}
+            {conBanda ? (
+              <polygon
+                points={[
+                  ...cuartiles.map((c, i) => (c ? `${x(i)},${y(c.p75)}` : null)).filter(Boolean),
+                  ...cuartiles.map((c, i) => (c ? `${x(i)},${y(c.p25)}` : null)).filter(Boolean).reverse(),
+                ].join(" ")}
+                fill={COLOR_RESULTADO.efectiva} opacity="0.1" />
+            ) : null}
             {dibujadas.map((f) => (
               <polyline key={f.facultad} points={trazo(f.dias)} fill="none"
                 stroke={COLOR_RESULTADO.efectiva}
-                strokeWidth={elegida ? 2.5 : 1.2}
-                opacity={elegida ? 1 : 0.45}
+                strokeWidth={elegida ? 2.5 : 1}
+                opacity={elegida ? 1 : 0.16}
                 strokeLinejoin="round" strokeLinecap="round"
                 vectorEffect="non-scaling-stroke" />
             ))}
+            {extremos.map((f, k) => (
+              <polyline key={`extremo-${f.facultad}`} points={trazo(f.dias)} fill="none"
+                stroke={k === 0 ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.rechazo}
+                strokeWidth="2" opacity="0.9"
+                strokeLinejoin="round" strokeLinecap="round"
+                vectorEffect="non-scaling-stroke" />
+            ))}
+            {/* La mediana del día, que es la línea que de verdad se lee. */}
+            {conBanda ? (
+              <polyline
+                points={cuartiles.map((c, i) => (c ? `${x(i)},${y(c.p50)}` : null)).filter(Boolean).join(" ")}
+                fill="none" stroke={COLOR_RESULTADO.efectiva} strokeWidth="3"
+                strokeLinejoin="round" strokeLinecap="round"
+                vectorEffect="non-scaling-stroke" />
+            ) : null}
             {/* El esperado sólo con una facultad elegida: veinte líneas punteadas
                 sobre veinte sólidas no se leen, y encima el esperado es lo que se
                 mira DESPUÉS de decidir a quién mirar. */}
@@ -291,7 +338,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
       <p className="mon-profile-muted aulas-serie-pie">
         {elegida
           ? "La línea sólida es lo que dejó cada día; la punteada gris, lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—. La raya horizontal es esa media. Lo ámbar, a la derecha de la línea de corte, es lo que se infiere de las aulas YA AGENDADAS: ni un día más allá de donde llega la agenda."
-          : "Una línea por facultad, y la raya gris horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
+          : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
     </div>
   );
