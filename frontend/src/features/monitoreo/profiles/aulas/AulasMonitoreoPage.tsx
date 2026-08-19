@@ -35,6 +35,7 @@ import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
+import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
@@ -1089,6 +1090,34 @@ function renderAulasView(
             la tabla obliga a resolver restando de cabeza. */}
         <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
         <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* El título son SUS palabras —«qué nos está rindiendo más, qué no
+              está rindiendo más»— y además esquiva el guard: «Rendimiento por
+              facultad» terminaría igual que «Cuota sexo por facultad». */}
+          <h3>Qué está rindiendo más</h3>
+          <span>encuestas por aula visitada</span>
+        </div>
+        {/* Las filas del parte YA UNIDAS a su facultad, que es lo que devuelve
+            `parteDeCampo`. Pasando el parte crudo salían las 210 aulas bajo
+            «Sin facultad»: la hoja «Aulas Aplicadas (Campo)» no tiene columna de
+            facultad y la une el mismo helper que la tabla de Consultas — usar el
+            suyo evita que las dos superficies discrepen en de qué facultad es un
+            aula. */}
+        <AulasRendimientoPorFacultad
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+        />
       </section>
       )}
       {pestana !== "cuotas" ? null : (

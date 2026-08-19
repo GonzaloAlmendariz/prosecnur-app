@@ -3189,3 +3189,37 @@
   margin: 2px 0 0;
   font-size: 11px;
 }
+
+/* Qué está rindiendo más: una línea por facultad, ordenadas por encuestas por aula. */
+.mon-profile-page.is-aulas-flow .aulas-rendimiento { display: grid; gap: 7px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-lectura,
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-pie {
+  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-lista {
+  display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-lista > li {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.2fr) minmax(0, 2fr) 92px 88px;
+  align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera {
+  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera > span:nth-child(n + 3) { text-align: right; }
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre {
+  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: 12.5px; overflow-wrap: anywhere;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre em {
+  color: var(--pulso-text-faint); font-size: 10.5px; font-style: normal; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-barra { display: flex; align-items: center; height: 18px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-barra i {
+  display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-right: 5px;
+  border-radius: 3px; color: #fff; font-size: 11px; font-style: normal; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-tasa {
+  text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
+}

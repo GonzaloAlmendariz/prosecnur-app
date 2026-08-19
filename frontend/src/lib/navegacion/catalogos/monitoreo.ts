@@ -24,6 +24,7 @@ import {
   Building2,
   Table2,
   Target,
+  TrendingUp,
   Trash2,
   Users,
   type LucideIcon,
@@ -222,6 +223,11 @@ export const MONITOREO_PESTANAS = {
       pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),
       pestana("aulas", "avance", "estratos", "Estratos", "Avance y brecha por estrato", Layers3),
       pestana("aulas", "avance", "cuotas", "Cuotas", "Sexo por facultad", Target),
+      // El eje que sustituye a «aula válida / no válida», retirado por Gonzalo
+      // el 2026-08-18: la unidad es la encuesta conseguida, no un porcentaje
+      // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
+      // lleva siete paneles.
+      pestana("aulas", "avance", "rendimiento", "Rendimiento", "Qué rinde más, por facultad", TrendingUp),
       pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
     ],
     // Validación tenía las dos superficies apiladas y la hoja quedaba enterrada
