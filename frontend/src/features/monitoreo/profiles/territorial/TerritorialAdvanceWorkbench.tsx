@@ -274,6 +274,8 @@ function TerritorialAdvanceWorkbenchImpl({
               rows={dailyRows}
               targetTotal={dailyTargetTotal || advance.meta || advance.validas + advance.brecha}
               umpTotal={blocks.length}
+              validasDelCorte={advance.validas}
+              umpCompletasDelCorte={umpStack.complete}
             />
           ) : null}
         </section>
@@ -2263,10 +2265,16 @@ function TerritorialAdvanceRhythmSection({
   rows,
   targetTotal,
   umpTotal,
+  validasDelCorte,
+  umpCompletasDelCorte,
 }: {
   rows: TerritorialDailyDashboardRow[];
   targetTotal: number;
   umpTotal: number;
+  /** Las válidas que declara el corte, con fecha o sin ella. */
+  validasDelCorte: number;
+  /** Las UMP completas que declara el corte operativo. */
+  umpCompletasDelCorte: number;
 }) {
   const chartConfig = useMemo(() => ({
     displayModeBar: false,
@@ -2283,6 +2291,21 @@ function TerritorialAdvanceRhythmSection({
   const best = bestRow && bestRow.validas > 0 ? bestRow : null;
   const pendingValid = Math.max(0, targetTotal - (latest?.cumulative_valid ?? 0));
   const pendingUmp = Math.max(0, umpTotal - (latest?.cumulative_complete_ump ?? 0));
+  // La serie diaria descarta las filas SIN FECHA (`buildDailyRows` filtra por
+  // `row.date`), así que su acumulado no es el del corte. Sobre acnur_acg la
+  // diferencia era de 308: el resumen decía «1 283 de 1 200 · meta superada,
+  // +83» y aquí ponía «975 de 1 200 · brecha 225». Dos pestañas de la misma
+  // sección contestando lo contrario sobre si el campo puede cerrarse.
+  //
+  // No se cambia el cálculo —la serie diaria SÓLO puede hablar de días—: se dice
+  // cuántas quedan fuera, que es lo que reconcilia las dos pantallas.
+  const acumulado = latest?.cumulative_valid ?? 0;
+  const validasFueraDeLaSerie = Math.max(0, validasDelCorte - acumulado);
+  // Y lo mismo con las UMP: la serie no trae `new_complete_ump`, así que su
+  // acumulado se queda en 0 mientras el corte operativo declara 147. Un 0 que
+  // sale de un campo ausente no es «ninguna»: es «no lo sé».
+  const umpDeLaSerie = latest?.cumulative_complete_ump ?? 0;
+  const serieSinUmp = umpDeLaSerie === 0 && umpCompletasDelCorte > 0;
   return (
     <section className="mon-territorial-tab-panel mon-territorial-tab-panel--rhythm" aria-label="Ritmo diario y acumulado">
       <div className="mon-territorial-rhythm-layout">
@@ -2290,7 +2313,7 @@ function TerritorialAdvanceRhythmSection({
           <header>
             <div>
               <span><CalendarRange size={14} /> Ritmo diario válido</span>
-              <strong>Válidas diarias y acumulado contra meta · todo el corte</strong>
+              <strong>Válidas diarias y acumulado contra meta · sólo las respuestas con fecha</strong>
             </div>
             <em>{formatMetric(rows.length)} días</em>
           </header>
@@ -2315,7 +2338,15 @@ function TerritorialAdvanceRhythmSection({
           <AdvanceMetric
             label="Válidas acumuladas"
             value={latest ? formatMetric(latest.cumulative_valid) : "S/D"}
-            hint={latest ? `de ${formatMetric(targetTotal)} de meta` : "sin fechas en el corte"}
+            hint={latest
+              ? validasFueraDeLaSerie > 0
+                // «quedan fuera de esta serie» y no «sin fecha»: lo probado es
+                // la diferencia entre lo que declara el corte y lo que la serie
+                // acumula. El porqué —la serie sólo toma filas con fecha— lo dice
+                // el subtítulo del panel, que es donde se puede afirmar.
+                ? `de ${formatMetric(targetTotal)} de meta · ${formatMetric(validasFueraDeLaSerie)} válidas del corte quedan fuera de esta serie`
+                : `de ${formatMetric(targetTotal)} de meta`
+              : "sin fechas en el corte"}
             tone={latest && latest.cumulative_valid > 0 ? "ready" : "base"}
           />
           <AdvanceMetric label="Brecha meta" value={formatMetric(pendingValid)} hint={`meta ${formatMetric(targetTotal)}`} tone={pendingValid ? "warning" : "ready"} />
@@ -2325,7 +2356,16 @@ function TerritorialAdvanceRhythmSection({
             hint={best ? territorialDailyDateLabel(best) : "ningún día del corte registra válidas"}
             tone="base"
           />
-          <AdvanceMetric label="UMP completas" value={formatMetric(latest?.cumulative_complete_ump ?? 0)} hint={latest ? `${formatMetric(pendingUmp)} pendientes de ${formatMetric(umpTotal)}` : "sin fechas"} tone="base" />
+          <AdvanceMetric
+            label="UMP completas"
+            value={serieSinUmp ? "S/D" : formatMetric(umpDeLaSerie)}
+            hint={!latest
+              ? "sin fechas"
+              : serieSinUmp
+                ? `la serie diaria no las trae · el corte declara ${formatMetric(umpCompletasDelCorte)}`
+                : `${formatMetric(pendingUmp)} pendientes de ${formatMetric(umpTotal)}`}
+            tone="base"
+          />
         </aside>
       </div>
       <TerritorialDailyDashboardTable rows={rows} />
