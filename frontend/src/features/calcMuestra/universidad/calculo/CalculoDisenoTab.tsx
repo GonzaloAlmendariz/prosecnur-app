@@ -138,7 +138,11 @@ export function CalculoDisenoTab({
   const formula = useMemo(
     () =>
       N > 0
-        ? String.raw`n=\dfrac{N\,z^2\,p\,(1-p)\,\mathit{deff}}{(N-1)\,e^2+z^2\,p\,(1-p)\,\mathit{deff}}=\dfrac{${ltxInt(N)}\cdot ${ltxNum(zT, 2)}^2\cdot ${ltxNum(pT, 2)}\cdot ${ltxNum(q, 2)}\cdot ${ltxNum(deffT, 2)}}{\ldots}`
+        /* El denominador también se instancia: quedaba en «…» y el margen de
+           error e —el parámetro que más se discute— era el único que nunca
+           aparecía con su número en la fracción. La promesa de esta tarjeta
+           es la fórmula CON tus números, entera. */
+        ? String.raw`n=\dfrac{N\,z^2\,p\,(1-p)\,\mathit{deff}}{(N-1)\,e^2+z^2\,p\,(1-p)\,\mathit{deff}}=\dfrac{${ltxInt(N)}\cdot ${ltxNum(zT, 2)}^2\cdot ${ltxNum(pT, 2)}\cdot ${ltxNum(q, 2)}\cdot ${ltxNum(deffT, 2)}}{${ltxInt(N - 1)}\cdot ${ltxNum(eT, 3)}^2+${ltxNum(zT, 2)}^2\cdot ${ltxNum(pT, 2)}\cdot ${ltxNum(q, 2)}\cdot ${ltxNum(deffT, 2)}}`
         : String.raw`n=\dfrac{N\,z^2\,p\,(1-p)\,\mathit{deff}}{(N-1)\,e^2+z^2\,p\,(1-p)\,\mathit{deff}}`,
     [N, zT, pT, q, deffT],
   );
@@ -161,7 +165,7 @@ export function CalculoDisenoTab({
             terms={[
               { symbol: "N", termino: "marco muestral", value: N > 0 ? fmtInt(N) : "—" },
               { symbol: "z", termino: "nivel de confianza", value: fmtDecimal(zT, 2) },
-              { symbol: "p", termino: "p (proporción", value: fmtDecimal(pT, 2) },
+              { symbol: "p", termino: "proporción esperada", value: fmtDecimal(pT, 2) },
               { symbol: "e", termino: "margen de error", value: `±${fmtDecimal(eT * 100, 1)}%` },
               { symbol: "deff", termino: "deff", value: fmtDecimal(deffT, 2) },
             ]}
