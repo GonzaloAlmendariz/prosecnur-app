@@ -35,6 +35,7 @@ import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
+import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
@@ -1212,6 +1213,19 @@ function renderAulasView(
           ).filas as MonitoreoRow[]}
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
         />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Cuánto aguanta el colchón</h3>
+          <span>al ritmo al que están cayendo</span>
+        </div>
+        <AulasConsumoDelBanco filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
       </section>
       )}
       {pestana !== "cuotas" ? null : (

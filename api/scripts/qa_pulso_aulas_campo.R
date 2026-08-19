@@ -292,7 +292,16 @@ if (ESCALA_2025) {
     o$contact_date <- format(as.Date("2026-08-03") + (i %% 5L), "%Y-%m-%d")
     # Quien costo mas intentos es a quien hay que mirar: por eso no es constante.
     o$contact_attempts <- 1L + (i %% 4L)
-    if (identical(est, "reemplazada")) o$replacement_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
+    if (identical(est, "reemplazada")) {
+      o$replacement_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
+      # CUANDO cayo, que es lo que permite medir a que ritmo se consume el
+      # banco. El campo existe en el lector (`replaced_at`) y tiene rotulo
+      # («Reemplazada el»), y el fixture no lo sembraba: sin fecha, «cuantas
+      # aulas nos quedan» se puede contestar pero «cuando se acaban» no.
+      # Repartidas por los primeros dias de campo, que es cuando caen de verdad:
+      # un aula se cae al intentar aplicarla, no despues.
+      o$replaced_at <- format(as.Date("2026-08-10") + ((i %% 6L) + (i %/% 12L)), "%Y-%m-%d")
+    }
     o
   }
   plan <- c(
