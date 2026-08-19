@@ -52,6 +52,7 @@
   )
 }
 
+
 .cm_llegada_diff_set <- function(actuales, base) {
   base <- toupper(trimws(unlist(base %||% list(), use.names = FALSE)))
   setdiff(actuales, base)
@@ -140,6 +141,46 @@ calc_muestra_aulas_novedades <- function(aula_frame, baseline, config = list()) 
   if (length(niveles_nuevos)) {
     bloques[[length(bloques) + 1L]] <- list(
       tipo = "nivel_nuevo_por_facultad", gravedad = "media", valores = niveles_nuevos
+    )
+  }
+
+  # 5 · Declaraciones huerfanas: lo que el estudio declaro contra el
+  # vocabulario anterior y la base nueva ya no trae. Una whitelist que
+  # apunta a un valor fantasma no filtra nada y NADIE lo dice — el modelo
+  # de Gonzalo: los criterios se re-declaran contra CADA base, y esto es
+  # la lista de que re-declarar.
+  huerfanas <- list()
+  fac_actuales <- toupper(trimws(unlist(actual$faculties)))
+  for (f in names(rangos)) {
+    if (!(toupper(trimws(f)) %in% fac_actuales)) {
+      huerfanas[[length(huerfanas) + 1L]] <- list(
+        criterio = "courseLevelRanges", valor = f,
+        detalle = "rangos declarados para una facultad que la base nueva no trae"
+      )
+    }
+  }
+  min_fac <- names((cs$minEligible %||% list())$byFaculty %||% list())
+  fac_keys <- vapply(fac_actuales, .cm_aulas_text_key, character(1))
+  for (f in min_fac) {
+    if (!(.cm_aulas_text_key(f) %in% fac_keys)) {
+      huerfanas[[length(huerfanas) + 1L]] <- list(
+        criterio = "minEligible.byFaculty", valor = f,
+        detalle = "minimo propio declarado para una facultad que la base nueva no trae"
+      )
+    }
+  }
+  exc <- ((cs$byVariable %||% list())$session_type %||% list())$exceptions %||% list()
+  for (f in names(exc)) {
+    if (!(.cm_aulas_text_key(f) %in% fac_keys)) {
+      huerfanas[[length(huerfanas) + 1L]] <- list(
+        criterio = "session_type.exceptions", valor = f,
+        detalle = "excepcion de tipo de sesion declarada para una facultad ausente"
+      )
+    }
+  }
+  if (length(huerfanas)) {
+    bloques[[length(bloques) + 1L]] <- list(
+      tipo = "declaracion_huerfana", gravedad = "media", valores = huerfanas
     )
   }
 
