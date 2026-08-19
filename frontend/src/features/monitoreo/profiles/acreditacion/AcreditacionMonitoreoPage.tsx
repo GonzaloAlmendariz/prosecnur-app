@@ -8913,10 +8913,10 @@ function AcreditacionActiveSourcesView({
             </section>
             <section className="mon-profile-panel">
               <div className="mon-profile-panel-head">
-                <h3>Fuentes del corte</h3>
+                <h3>Fuentes del reporte</h3>
                 <span>{fmt(reportSources.length)} filas</span>
               </div>
-              <DataTable rows={reportSources} empty="El corte no declaró fuentes." />
+              <DataTable rows={reportSources} empty="El reporte no declaró fuentes para este corte." />
             </section>
           </div>
           <AcreditacionConfiguredSourcesList
@@ -9020,7 +9020,7 @@ function AcreditacionActiveSourcesView({
       </div>
       <details className="mon-acr-source-disclosure">
         <summary>
-          <span><Table2 size={14} /> Detalle tecnico</span>
+          <span><Table2 size={14} /> Detalle técnico</span>
           <em>{fmt(activeRows.length)} fuentes activas</em>
         </summary>
         <div className="mon-profile-grid">
@@ -9033,8 +9033,8 @@ function AcreditacionActiveSourcesView({
           </section>
           <section className="mon-profile-panel">
             <div className="mon-profile-panel-head">
-              <h3>Fuentes configuradas</h3>
-              <span>{fmt(activeRows.length)} activas</span>
+              <h3>Fuentes activas</h3>
+              <span>{fmt(activeRows.length)} filas</span>
             </div>
             <DataTable rows={activeRows} empty="No hay fuentes activas." preferredColumns={["Fuente", "Servicio", "Actor", "Canal", "Estado", "Último sync", "ID"]} />
           </section>
@@ -9043,7 +9043,7 @@ function AcreditacionActiveSourcesView({
               <h3>Fuentes del reporte</h3>
               <span>{fmt(reportSources.length)} filas</span>
             </div>
-            <DataTable rows={reportSources} empty="El reporte no declaro fuentes para este corte." />
+            <DataTable rows={reportSources} empty="El reporte no declaró fuentes para este corte." />
           </section>
         </div>
         <AcreditacionConfiguredSourcesList
