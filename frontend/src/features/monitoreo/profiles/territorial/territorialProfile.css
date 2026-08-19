@@ -4497,6 +4497,13 @@
   background: var(--priority-color);
 }
 
+.mon-territorial-exec-priority-corte {
+  display: block;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
 .mon-territorial-exec-priority-empty {
   border: 1px dashed var(--pulso-border);
   border-radius: 8px;
