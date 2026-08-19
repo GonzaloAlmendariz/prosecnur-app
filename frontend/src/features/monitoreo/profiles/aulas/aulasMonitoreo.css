@@ -3354,3 +3354,37 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-salones em { font-style: normal; }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-salones strong { color: var(--pulso-text); }
+
+/* Cola de contacto: a quién llamar, y lo que costó agendar. */
+.mon-profile-page.is-aulas-flow .aulas-cola { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-cola-lectura { margin: 0; color: var(--pulso-text-soft); font-size: 12px; }
+.mon-profile-page.is-aulas-flow .aulas-cola-subtitulo {
+  margin: 4px 0 0; color: var(--pulso-text-faint); font-size: 10.5px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-cola-lista,
+.mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo {
+  display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-cola-lista > li {
+  display: grid; grid-template-columns: 74px minmax(0, 1.4fr) minmax(0, 1.2fr) 120px;
+  align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0; font-size: 12px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo > li {
+  display: grid; grid-template-columns: minmax(0, 1fr) 150px;
+  align-items: baseline; gap: 10px; padding: 2px 6px; min-width: 0; font-size: 12px;
+  color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo > li > span:last-child {
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo em,
+.mon-profile-page.is-aulas-flow .aulas-cola-quien em,
+.mon-profile-page.is-aulas-flow .aulas-cola-como em,
+.mon-profile-page.is-aulas-flow .aulas-cola-intentos em {
+  color: var(--pulso-text-faint); font-style: normal; font-size: 10.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cola-codigo { color: var(--pulso-text); font-weight: 600; }
+.mon-profile-page.is-aulas-flow .aulas-cola-quien { display: grid; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
+.mon-profile-page.is-aulas-flow .aulas-cola-como { min-width: 0; color: var(--pulso-text-soft); overflow-wrap: anywhere; }
+.mon-profile-page.is-aulas-flow .aulas-cola-intentos { text-align: right; font-variant-numeric: tabular-nums; }
