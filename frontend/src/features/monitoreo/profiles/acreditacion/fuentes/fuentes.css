@@ -17,6 +17,23 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+/* «Fuentes y universo» reúne TRES bloques bajo la franja de estado —resumen,
+ * universo y fichas—, así que el stack tiene CUATRO hijos y la plantilla de
+ * arriba reparte el alto entre exactamente DOS filas. El resultado medido a
+ * 1440x1000 y a 1024x600 era `grid-template-rows: 38px 0px 0px 1879px`: el
+ * resumen (las 13 fuentes en sus tres tarjetas, con la cobertura por actor) y
+ * el universo (los 4 padrones con sus botones Abrir/Cambiar) se renderizaban a
+ * CERO píxeles. Montados, `checkVisibility()` en true, y ni un píxel en
+ * pantalla: quedaba visible sólo el tercero, el de declarar.
+ *
+ * Aquí las filas se dimensionan por contenido y el scroll lo sigue teniendo el
+ * workbench, que es su dueño declarado. */
+.mon-profile-stack.fuentes-resumen-stack.is-inventario {
+  min-height: 0;
+  grid-template-rows: none;
+  grid-auto-rows: min-content;
+}
+
 .fuentes-resumen {
   display: flex;
   flex-direction: column;
