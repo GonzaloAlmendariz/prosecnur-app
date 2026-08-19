@@ -258,13 +258,26 @@ COLLECTION_MATERIAL_BINDINGS <- c(
             )
             next
           }
-          for (nm in setdiff(names(cell) %||% character(0), c("label", "span"))) {
+          for (nm in setdiff(names(cell) %||% character(0), c("label", "span", "binding"))) {
             problems[[length(problems) + 1L]] <- .cm_problem(
               paste0(cell_path, ".", nm), "form_field_not_allowed",
-              "Cada campo del formulario solo admite label y span."
+              "Cada campo del formulario solo admite label, span y binding."
             )
           }
           problems <- c(problems, .cm_plain_text_problem(cell$label, paste0(cell_path, ".label")))
+          # `binding` es la excepcion deliberada a "casi ningun dato existe antes
+          # de entrar al aula" (ver cabecera de collection_render_ficha_campo.R):
+          # un campo como el total de alumnos matriculados SI se conoce desde el
+          # plan, y hacer que el aplicador lo copie a mano es un paso que puede
+          # fallar. Se limita al mismo catalogo cerrado que el resto del motor
+          # -no cualquier string- para no reabrir un binding libre en un layout
+          # que fue disenado sin uno.
+          if (!is.null(cell$binding) && !.cc_is_scalar_string(cell$binding)) {
+            problems[[length(problems) + 1L]] <- .cm_problem(
+              paste0(cell_path, ".binding"), "bad_form_binding",
+              "binding, si esta presente, tiene que ser un texto simple."
+            )
+          }
           span <- suppressWarnings(as.numeric(cell$span %||% (1 / length(cells))))
           if (is.na(span) || span < 0.10 || span > 1) {
             problems[[length(problems) + 1L]] <- .cm_problem(

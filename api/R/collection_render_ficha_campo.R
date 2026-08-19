@@ -6,8 +6,12 @@
 #
 # La diferencia de fondo con `single_sheet` no es estetica: alli los datos
 # vienen impresos desde el plan; aqui casi ninguno existe antes de entrar al
-# aula. Por eso este layout no tiene grid de etiqueta/valor ni imprime el
-# enlace: lo que necesita es espacio en blanco bien pautado.
+# aula, asi que este layout no tiene grid de etiqueta/valor ni imprime el
+# enlace. La UNICA excepcion deliberada es el total de alumnos matriculados
+# (`campo(..., binding = "unit.eligible_n")` en
+# `collection_material_field_form_rows()`): ese dato SI lo conoce el plan
+# antes de imprimir, asi que se imprime en vez de dejarlo para copiar a mano.
+# El resto sigue siendo espacio en blanco bien pautado.
 
 .cfc_layout <- function() {
   list(
@@ -22,7 +26,11 @@
     y_title = 0.392,
     title_size = 16,
     form_top = 0.335,
-    form_step = 0.036,
+    # 0.029, no 0.036: la hoja crecio de 7 a 9 renglones (matriculados y
+    # observaciones nuevos) y el alto disponible (form_top-form_floor) no
+    # cambio. Medido contra el PNG real, no solo la aritmetica: verificar con
+    # `.cfx_grey()`/`test-collection-ficha-campo.R` si se vuelve a tocar.
+    form_step = 0.029,
     form_floor = 0.100,
     label_size = 8.6,
     gap = 0.008,
@@ -79,20 +87,33 @@
         label, x = cursor, y = y, just = c("left", "bottom"),
         default.units = "npc", gp = gp
       )
-      rule_from <- cursor + .cfc_text_width(label, gp) + L$gap
-      rule_to <- cursor + span - L$gap
-      if (rule_to > rule_from) {
-        grid::grid.lines(
-          x = grid::unit(c(rule_from, rule_to), "npc"),
-          y = grid::unit(y - 0.004, "npc"),
-          gp = grid::gpar(col = tokens$ink, lwd = 0.7)
+      valor <- .crf_txt(cell$value, "")
+      if (nzchar(valor)) {
+        # Un dato que el plan YA conoce (ej. matriculados) se imprime en vez de
+        # dejarse en blanco: copiarlo a mano es un paso de mas que puede fallar.
+        # Sin raya -no es un campo para llenar- y en peso normal para
+        # distinguirlo visualmente de la etiqueta en negrita.
+        grid::grid.text(
+          valor, x = cursor + .cfc_text_width(label, gp) + L$gap, y = y,
+          just = c("left", "bottom"), default.units = "npc",
+          gp = grid::gpar(col = tokens$ink, fontsize = L$label_size, fontface = "plain")
         )
       } else {
-        # La etiqueta se comio su propio renglon: no hay donde escribir. Se
-        # avisa en vez de dibujar una raya de un milimetro que nadie puede usar.
-        warnings[[length(warnings) + 1L]] <- list(
-          code = "form_field_no_room", label = label, row = i
-        )
+        rule_from <- cursor + .cfc_text_width(label, gp) + L$gap
+        rule_to <- cursor + span - L$gap
+        if (rule_to > rule_from) {
+          grid::grid.lines(
+            x = grid::unit(c(rule_from, rule_to), "npc"),
+            y = grid::unit(y - 0.004, "npc"),
+            gp = grid::gpar(col = tokens$ink, lwd = 0.7)
+          )
+        } else {
+          # La etiqueta se comio su propio renglon: no hay donde escribir. Se
+          # avisa en vez de dibujar una raya de un milimetro que nadie puede usar.
+          warnings[[length(warnings) + 1L]] <- list(
+            code = "form_field_no_room", label = label, row = i
+          )
+        }
       }
       cursor <- cursor + span
     }
@@ -219,26 +240,33 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
 #' @export
 collection_material_field_form_rows <- function() {
   fila <- function(...) list(fields = list(...))
-  campo <- function(label, span) list(label = label, span = span)
+  campo <- function(label, span, binding = NULL) list(label = label, span = span, binding = binding)
   list(
     fila(campo("Facultad", 0.55), campo("Pabellón y aula:", 0.45)),
     fila(campo("Curso:", 0.45), campo("Horario del curso:", 0.55)),
     fila(campo("Docente:", 1)),
-    fila(campo("N° de alumnos en aula", 0.40), campo("Hombres:", 0.30), campo("Mujeres:", 0.30)),
+    # Unico campo impreso, no en blanco: el plan YA sabe cuantos alumnos
+    # matriculados tiene la unidad (`unit.eligible_n`) antes de imprimir la
+    # ficha, asi que copiarlo a mano seria un paso de mas que puede fallar.
+    # Ver la nota de `.cfc_layout()` sobre por que esta es la unica excepcion.
+    fila(campo("N° de alumnos matriculados:", 1, binding = "unit.eligible_n")),
+    fila(
+      campo("N° de alumnos en aula", 0.28), campo("Hombres:", 0.20),
+      campo("Mujeres:", 0.20), campo("Menores de edad:", 0.32)
+    ),
     # Los cuatro numeros que el cuadre del parte comprueba —asistentes menos
     # rechazos menos duplicados igual efectivas— en una sola fila. El papel no
     # pedia los dos ultimos, asi que quien aplica en el aula no anotaba lo que
     # despues hay que meter en el Excel y en la app.
-    #
-    # En una fila y no en dos porque el formulario esta LLENO: su capacidad es
-    # de 7 renglones (`.cfc_layout()`: `form_top`, `form_step`, `form_floor`) y
-    # ya usaba 7. Una octava fila se recortaba con `form_lines_overflow`.
     fila(
       campo("N° de encuestas aplicadas:", 0.34), campo("Rechazos:", 0.18),
       campo("Ya respondieron:", 0.26), campo("Efectivas:", 0.22)
     ),
     fila(campo("Aplicador/a", 1)),
-    fila(campo("Fecha:", 0.45), campo("Hora de aplicación:", 0.55))
+    fila(campo("Fecha:", 0.45), campo("Hora de aplicación:", 0.55)),
+    # Espacio libre para lo que ninguna casilla previo: la hoja del equipo en
+    # papel ya lo tenia y el formulario digital no.
+    fila(campo("Observaciones:", 1))
   )
 }
 
