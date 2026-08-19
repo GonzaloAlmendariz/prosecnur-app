@@ -32,6 +32,7 @@ import { AulasEmbudoDelAula } from "./AulasEmbudoDelAula";
 import { columnasConDato } from "./columnasConDato";
 import { AulasAvanceEnRespuestas } from "./AulasAvanceEnRespuestas";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
+import { AulasColaDeContacto } from "./AulasColaDeContacto";
 import { AulasMedioDeContacto } from "./AulasMedioDeContacto";
 import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
@@ -532,6 +533,9 @@ function renderAulasView(
             <span>y con cuántos intentos</span>
           </div>
           <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+          {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita», por
+              eso comparten pestaña; el medio dice con qué y la cola con quién. */}
+          <AulasColaDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
         </section>
         ) : null}
         {pestana === "facultad" ? (
