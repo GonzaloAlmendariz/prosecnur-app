@@ -78,3 +78,36 @@ export function estratosConAjusteAula(
   });
   return tocado ? nuevos : null;
 }
+
+/**
+ * Las fijaciones PENDIENTES: estratos con `aulas_base_fijas` que el resultado
+ * calculado aún no refleja. Hallazgo del click-test (EF8c): al fijar, la
+ * selección se invalida en cadena pero NADA nombraba la causa — el usuario
+ * veía desaparecer su selección sin letrero. Esto alimenta ese letrero.
+ */
+export type FijaPendiente = { facultad: string; fijada: number; calculada: number | null };
+
+export function fijasPendientes(
+  estratos: ReadonlyArray<CalcMuestraEstrato> | null | undefined,
+  aulasPorEstrato: ReadonlyArray<{ estrato?: unknown; aulas_base?: unknown }> | null | undefined,
+): FijaPendiente[] {
+  if (!Array.isArray(estratos) || !estratos.length) return [];
+  const calculadas = new Map<string, number>();
+  for (const fila of aulasPorEstrato ?? []) {
+    const clave = claveFacultad(fila.estrato);
+    const base = Number(fila.aulas_base);
+    if (clave && Number.isFinite(base)) calculadas.set(clave, base);
+  }
+  const out: FijaPendiente[] = [];
+  for (const e of estratos) {
+    const fijada = Number((e as { aulas_base_fijas?: unknown }).aulas_base_fijas);
+    if (!Number.isFinite(fijada) || fijada <= 0) continue;
+    const clave = claveFacultad(e.label);
+    const calculada = calculadas.has(clave) ? calculadas.get(clave)! : null;
+    if (calculada !== fijada) {
+      out.push({ facultad: String(e.label ?? ""), fijada, calculada });
+    }
+  }
+  return out;
+}
+

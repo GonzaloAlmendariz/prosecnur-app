@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { estratosConAjusteAula, estratosConAulaExtra } from "../certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, fijasPendientes } from "../certificacionAcciones";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
 // La decisión «darle un aula más» debe estar disponible en la UI y quedar
@@ -80,5 +80,28 @@ describe("estratosConAjusteAula (el par ±1)", () => {
     expect(card).toMatch(/onAjustarAula\(f\.facultad, f\.aulas_titulares, 1\)/);
     expect(card).toMatch(/cmv2-cert-leyenda/);
     expect(card).toMatch(/por cada alumno de cuota/);
+  });
+});
+
+describe("fijasPendientes (el letrero del click-test)", () => {
+  it("lista la fija que el resultado aun no refleja, con ambos numeros", () => {
+    const pendientes = fijasPendientes(
+      [{ label: "PSICOLOGÍA", aulas_base_fijas: 8 }, { label: "DERECHO" }] as never,
+      [{ estrato: "PSICOLOGÍA", aulas_base: 7 }, { estrato: "DERECHO", aulas_base: 18 }],
+    );
+    expect(pendientes).toEqual([{ facultad: "PSICOLOGÍA", fijada: 8, calculada: 7 }]);
+  });
+
+  it("la fija ya aplicada (resultado coincide) NO es pendiente", () => {
+    const pendientes = fijasPendientes(
+      [{ label: "PSICOLOGÍA", aulas_base_fijas: 8 }] as never,
+      [{ estrato: "PSICOLOGÍA", aulas_base: 8 }],
+    );
+    expect(pendientes).toEqual([]);
+  });
+
+  it("sin fijas o sin estratos devuelve vacio", () => {
+    expect(fijasPendientes([{ label: "X" }] as never, [])).toEqual([]);
+    expect(fijasPendientes(null, null)).toEqual([]);
   });
 });
