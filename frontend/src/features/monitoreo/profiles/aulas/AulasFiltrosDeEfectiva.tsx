@@ -85,17 +85,19 @@ export function AulasFiltrosDeEfectiva({
   return (
     <div className="aulas-efectiva">
       <p className="mon-profile-muted aulas-efectiva-lectura">
-        {/* **La frase tiene que corresponder al estado.** Con CERO condiciones
-            decía «si cumple la condición declarada» y no había ninguna: se veía
-            al quitar los filtros y guardar. Es el mismo molde que este perfil
-            lleva corrigiendo —un rótulo pegado a algo que no es lo suyo— y me
-            salió en mi propio panel. */}
+        {/* **Una sola vez cada cosa.** Esta linea decia «Una respuesta cuenta
+            como efectiva si cumple las N condiciones a la vez» y a continuacion
+            el motor decia «Una respuesta cuenta si su 'sexo' esta entre los
+            valores declarados» —dos veces «una respuesta cuenta» en el mismo
+            renglon— mientras la cabecera del panel ya dice «hasta cuatro
+            condiciones, y se cumplen todas». **Tres veces la misma idea.**
+            Gonzalo: «todos los elementos visuales siguen bastante verborreados
+            en esta seccion».
+            Se queda **la cifra**, que es lo unico que la cabecera no dice; y el
+            caso de cero, que no es una repeticion sino un estado. */}
         {filtros.length === 0
-          ? "Este estudio no declara ninguna condición, así que cuentan todas las respuestas."
-          : filtros.length === 1
-            ? "Una respuesta cuenta como efectiva si cumple la condición declarada."
-            : `Una respuesta cuenta como efectiva si cumple las ${filtros.length} condiciones a la vez.`}
-        {criterio ? <> Ahora mismo: {criterio}</> : null}
+          ? "Sin condiciones declaradas cuentan todas las respuestas."
+          : criterio}
       </p>
 
       {/* **C1: se declara, o el gate no lo mide.** Con dos condiciones el runner

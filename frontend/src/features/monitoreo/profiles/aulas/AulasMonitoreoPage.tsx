@@ -1843,7 +1843,17 @@ export default function AulasMonitoreoPage() {
               current="monitoreo"
               compact
               title="Seguimiento de la intervención por cursos-horario"
-              summary="Este monitoreo lee el plan del cálculo de muestra de cursos-horario y sus enlaces QR/PDF para medir avance, caídas, reemplazos y brechas sin rediseñar la muestra."
+              // **La franja en prosa era la propia franja.** Decía «lee el plan
+              // del cálculo de muestra y sus enlaces QR/PDF para medir avance,
+              // caídas, reemplazos y brechas» —26 palabras— y justo debajo están
+              // los cuatro pasos con esos mismos rótulos; lo único que añadía,
+              // «sin rediseñar la muestra», ya lo dice la tarjeta de Monitoreo.
+              // Gonzalo: «todos los elementos visuales siguen bastante
+              // verborreados en esta sección».
+              //
+              // Se queda lo que los pasos NO dicen: que cada uno se hace en otro
+              // sitio y que esta vista sólo mira.
+              summary="Cada paso se hace en su módulo; aquí sólo se sigue."
               secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
               action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
             />
