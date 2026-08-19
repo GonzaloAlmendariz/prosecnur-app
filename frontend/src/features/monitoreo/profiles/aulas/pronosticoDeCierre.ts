@@ -128,20 +128,30 @@ export function pronosticoDeCierre(
 }
 
 /**
- * Suma días DE CAMPO a una fecha, saltando sábados y domingos.
+ * Suma días DE CAMPO a una fecha. **El único día que no se aplica es el domingo.**
  *
- * El operativo no trabaja fin de semana —el fixture y el libro real lo muestran
- * igual: dos días en blanco cada cinco— así que contar días corridos adelantaría
- * el cierre casi dos semanas en una proyección de un mes.
+ * Saltaba también el sábado, y la justificación era una inferencia sobre los
+ * huecos del fixture —«dos días en blanco cada cinco»—. Gonzalo, que lleva el
+ * operativo, lo dice al revés: «el único día que no se hace campo es el
+ * domingo». Un hueco en el dato no prueba que ese día no se trabaje; prueba que
+ * ese día no hay dato, que es justo lo que un fixture sintético produce por
+ * construcción. **La regla la pone quien lleva el campo, no la forma del
+ * fixture.**
+ *
+ * Y con esto el pronóstico deja de irse largo: saltando dos días por semana en
+ * vez de uno, una proyección de un mes empujaba el cierre unos cuatro días más
+ * tarde de lo real.
  */
 export function sumarDiasDeCampo(iso: string, dias: number): string {
-  const d = new Date(`${iso}T00:00:00`);
+  // En UTC, como el eje del gráfico: con hora local, `toISOString()` devuelve el
+  // día anterior en cualquier zona al este de Greenwich.
+  const d = new Date(`${iso}T00:00:00Z`);
   if (Number.isNaN(d.getTime()) || dias <= 0) return iso;
   let quedan = dias;
-  while (quedan > 0) {
-    d.setDate(d.getDate() + 1);
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) quedan -= 1;
+  // Tope de seguridad: un `dias` corrupto no debe colgar la vista.
+  for (let i = 0; quedan > 0 && i < 3000; i += 1) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (d.getUTCDay() !== 0) quedan -= 1;
   }
   return d.toISOString().slice(0, 10);
 }
