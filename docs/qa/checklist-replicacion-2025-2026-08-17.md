@@ -3803,3 +3803,28 @@ Reparado: src-estudiantes y src-cursos apuntan a los 207915 2026-2
 viajan en files/ del .pulso (el 2025 salio). HSVG2026_marco2026.pulso
 re-guardado consistente. Para VERLO: abrir ese .pulso (la ventana que
 mostraba 2025 esta sobre la sesion vieja).
+
+### El gate de llegada corre en la app (f05d3d18) y los niveles muerden igual que 2025
+
+**N2 CERRADO**: calc_muestra_aulas_novedades tenia CERO consumidores;
+ahora corre en .cm_criterios_frame_guardar — el unico punto por el que
+pasan la via sincrona y el on_complete del job — comparando contra el
+llegada_snapshot del frame que esta por ser reemplazado, ANTES de
+pisarlo. Primera construccion = «no comparado», jamas inventa baseline.
+Mutante baseline-NULL 3 rojos; 11 PASS. **Verificado en vivo**:
+reconstruir marco2026 sobre si mismo → comparado=True, limpio=True, 0
+bloques. Bonus: los file_ids resuelven tras recargar el .pulso (los
+xlsx viajan en files/).
+
+**N3 CERRADO sin defecto**: faculty_aula no es columna prometida del
+frame — es un valor interno de la capa de criterios (la facultad que
+muestra la UI, la de alumnos) distinto de la faculty efectiva del curso
+que usan las reglas; los public_cols la listan por intersect defensivo.
+La atribucion 2026 replica la de 2025.
+
+**N4 MEDIDO — los rangos de nivel viajan y muerden coherente en 2026**
+(excluidas por course_level, por facultad): POSGRADO 682 · EGC 79 (94
+CH en nivel 1) · DERECHO 67 (18 n1 + 33 n11-12) · C&I 66 · AE 42 ·
+CCSS 31 · ARQ 23 · A&D 12 · resto <10. **EGL: 1 aula de 477 en nivel
+1 — el criterio no la toca, V3 intacta** (2025: 1 de 481). Total
+excluidas por nivel: 1.038.
