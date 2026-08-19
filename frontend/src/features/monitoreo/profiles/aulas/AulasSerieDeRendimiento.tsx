@@ -527,8 +527,18 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     setFoco(facultades[siguiente].facultad);
   };
 
+  // **C1: los miembros son los dos BLOQUES, no este envoltorio.** `.aulas-serie`
+  // es el cuerpo del panel y no declara nada: la sección de arriba ya declara el
+  // grupo, y cada bloque marca su `capacity="owned"`, que es el patrón de los
+  // otros siete paneles de esta sección —un miembro por panel, su contenedor de
+  // datos, delta 0—.
+  //
+  // Antes llevaba `capacity="owned"` y `member` a la vez, y al añadirle encima un
+  // grupo propio se volvía opaca: el gate la tomaba entera como miembro y la
+  // emparejaba con la cabecera del panel, marcando 898 px de `capacity-drift`
+  // entre un título de 36 px y un gráfico de 934.
   return (
-    <div className="aulas-serie" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+    <div className="aulas-serie">
       <p className="aulas-cadenas-lectura">
         {elegida ? (
           <>
@@ -578,7 +588,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           Van juntos y no en dos paneles porque comparten eje X: el mismo día se
           lee arriba y abajo en la misma vertical. */}
       {acumulado ? (
-        <div className="aulas-serie-bloque">
+        <div className="aulas-serie-bloque"
+          data-qa-geometry-capacity="owned" data-qa-geometry-member>
           {/* El rotulo dice QUE mide el grafico. Sin el habia que deducirlo del
               pie, tres bandas mas abajo. */}
           <p className="aulas-serie-rotulo">
@@ -756,7 +767,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         </div>
       ) : null}
 
-      <div className="aulas-serie-bloque">
+      <div className="aulas-serie-bloque"
+        data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="aulas-serie-rotulo">
           <b>Día a día <i>· encuestas por aula, con los elegibles de fondo</i></b>
         </p>
