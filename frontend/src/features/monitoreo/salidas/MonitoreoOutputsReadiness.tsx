@@ -37,6 +37,14 @@ export function MonitoreoOutputsReadiness({
     navigate({ pathname: location.pathname, search: query ? `?${query}` : "" });
   };
 
+  // Sólo cuando los tres granos están determinados Y coinciden. Con un
+  // `oficial` en «sin determinar» no hay descarte conocido, que no es lo mismo
+  // que no haber descarte.
+  const sinDescartes = corte.procesable != null
+    && corte.oficial != null
+    && corte.ingesta === corte.procesable
+    && corte.procesable === corte.oficial;
+
   return (
     <section
       className={`mon-outputs-readiness is-${readiness.estado}`}
@@ -83,6 +91,17 @@ export function MonitoreoOutputsReadiness({
             </li>
           ))}
         </ul>
+      ) : sinDescartes ? (
+        /* La lista se llama «Por qué bajan los conteos» y, cuando no bajan,
+           desaparecía: quedaban tres cifras idénticas sin nada que dijera si el
+           filtro corrió y no perdió a nadie o si no había filtro que correr. En
+           aulas las tres son 3 700 justamente porque la base no trae columna de
+           estado —lo dice un control de Calidad, en otra pestaña—. Aquí no se
+           explica el porqué, que es de cada estudio; se dice el hecho, que es lo
+           que esta superficie puede afirmar. */
+        <p className="mon-outputs-readiness__sin-saltos">
+          Los tres granos traen la misma cifra: en este corte no se descarta ningún caso.
+        </p>
       ) : null}
 
       {readiness.bloqueos.length ? (

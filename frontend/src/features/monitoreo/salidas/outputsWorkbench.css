@@ -1756,6 +1756,12 @@
   color: var(--pulso-state-partial-fg);
 }
 
+.mon-outputs-readiness__sin-saltos {
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
 .mon-outputs-readiness__bloqueos li {
   display: flex;
   align-items: center;
