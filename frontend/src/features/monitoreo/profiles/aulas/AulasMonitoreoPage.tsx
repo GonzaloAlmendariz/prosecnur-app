@@ -1164,6 +1164,30 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
+          {/* El ranking de arriba dice QUIÉN rinde más; esto, cómo le fue día a
+              día y qué cabe esperar de su próxima aula. Son preguntas distintas
+              y por eso son dos paneles: el ranking se mira para repartir hoy, la
+              serie para ver si una facultad se está apagando. */}
+          <h3>Cómo rinde cada facultad, día a día</h3>
+          <span>encuestas por aula visitada · y lo que cabe esperar</span>
+        </div>
+        <AulasSerieDeRendimiento
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+        />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
           {/* El título son SUS palabras —«qué nos está rindiendo más, qué no
               está rindiendo más»— y además esquiva el guard: «Rendimiento por
               facultad» terminaría igual que «Cuota sexo por facultad». */}
@@ -1187,30 +1211,6 @@ function renderAulasView(
             (dashboard.agenda ?? []) as MonitoreoRow[],
           ).filas as MonitoreoRow[]}
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-        />
-      </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
-      <section
-        className="mon-profile-panel"
-        data-qa-geometry-group="monitoring-aulas-avance"
-        data-qa-geometry-contract="intrinsic"
-      >
-        <div className="mon-profile-panel-head">
-          {/* El ranking de arriba dice QUIÉN rinde más; esto, cómo le fue día a
-              día y qué cabe esperar de su próxima aula. Son preguntas distintas
-              y por eso son dos paneles: el ranking se mira para repartir hoy, la
-              serie para ver si una facultad se está apagando. */}
-          <h3>Cómo rinde cada facultad, día a día</h3>
-          <span>encuestas por aula visitada · y lo que cabe esperar</span>
-        </div>
-        <AulasSerieDeRendimiento
-          partes={parteDeCampo(
-            (dashboard.partes_campo ?? []) as MonitoreoRow[],
-            (dashboard.agenda ?? []) as MonitoreoRow[],
-          ).filas as MonitoreoRow[]}
-          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
         />
       </section>
       )}
