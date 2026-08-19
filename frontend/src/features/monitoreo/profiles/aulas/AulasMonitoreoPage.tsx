@@ -1152,8 +1152,11 @@ function renderAulasView(
       >
         <div className="mon-profile-panel-head">
           {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
-          <h3>A qué hora se consigue más</h3>
-          <span>franjas del operativo</span>
+          {/* «A qué hora se consigue más» terminaba igual que «Quién consigue
+              más» y el guard lo tumbó. El título nombra la unidad, que además es
+              la del libro. */}
+          <h3>Franja horaria del operativo</h3>
+          <span>encuestas por aula, según cuándo se aplicó</span>
         </div>
         <AulasRendimientoPorFacultad
           partes={parteDeCampo(
