@@ -27,18 +27,30 @@ const pintar = (filtros: Array<{ var: string; values: string[] }>) =>
       onChange={() => {}} onGuardar={() => {}} />);
 
 describe("qué cuenta como encuesta efectiva", () => {
-  it("sin ninguna condición NO dice que cumple «la condición declarada»", () => {
+  it("sin ninguna condición dice ESO, no que se cumpla una", () => {
     const html = pintar([]);
-    expect(html).toContain("no declara ninguna condición");
-    expect(html).toContain("cuentan todas las respuestas");
+    expect(html).toContain("Sin condiciones declaradas cuentan todas las respuestas");
     expect(html).not.toContain("cumple la condición declarada");
   });
 
-  it("con una lo dice en singular y con dos declara que son a la vez", () => {
-    expect(pintar([{ var: "sexo", values: ["F"] }]))
-      .toContain("cumple la condición declarada");
-    const dos = pintar([{ var: "sexo", values: ["F"] }, { var: "p01", values: ["1"] }]);
-    expect(dos).toContain("las 2 condiciones a la vez");
+  it("con condiciones NO repite lo que ya dicen la cabecera y el motor", () => {
+    // Decía «Una respuesta cuenta como efectiva si cumple las N condiciones a la
+    // vez» y a continuación el motor decía «Una respuesta cuenta si su 'sexo'
+    // está entre los valores declarados» —dos veces «una respuesta cuenta» en el
+    // mismo renglón— mientras la cabecera del panel ya dice «hasta cuatro
+    // condiciones, y se cumplen todas». **Tres veces la misma idea.**
+    const html = pintar([{ var: "sexo", values: ["F"] }, { var: "p01", values: ["1"] }]);
+    expect(html).not.toContain("condiciones a la vez");
+    expect(html).not.toContain("Una respuesta cuenta como efectiva");
+  });
+
+  it("con condiciones enseña la cifra del motor, que es lo que la cabecera no dice", () => {
+    const conCriterio = renderToStaticMarkup(
+      <AulasFiltrosDeEfectiva
+        filtros={[{ var: "sexo", values: ["F"] }]} variables={VARS}
+        criterio="Una respuesta cuenta si su 'sexo' esta entre los valores declarados: 1850 de 3700."
+        onChange={() => {}} onGuardar={() => {}} />);
+    expect(conCriterio).toContain("1850 de 3700");
   });
 
   it("avisa de la variable que la base no trae, en vez de aplicarla en silencio", () => {
