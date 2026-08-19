@@ -195,6 +195,13 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [error, setError] = useState("");
   useEffect(() => { onCargando?.(loading); }, [loading, onCargando]);
   const template = history.present;
+  // Sin esto, mover/agregar/quitar un bloque (o deshacer/rehacer) DESPUÉS de
+  // un render exitoso dejaba el panel de resultado (imagen, filename, sha256,
+  // "Descargar artefacto") mostrando el artefacto VIEJO como si reflejara la
+  // plantilla recién editada — mismo patrón que la vista previa stale de
+  // Accesos (ece1b0dc), acá con el binario ya generado en vez de con datos a
+  // medio confirmar.
+  useEffect(() => { setRenderResult(null); }, [template]);
   const blocks = template.pages[0]?.blocks ?? [];
   const selected = blocks.find((block) => block.block_id === selectedId) ?? blocks[0] ?? null;
   // Cada tipo de bloque es un slot único en el renderer (`.crf_block()`, api/R/
