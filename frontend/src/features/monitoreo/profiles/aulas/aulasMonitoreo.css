@@ -3806,3 +3806,74 @@
   font-size: 12.5px;
   font-weight: 600;
 }
+
+/* Que cuenta como una encuesta EFECTIVA: hasta cuatro condiciones, y se cumplen
+ * TODAS. Vive en la seccion Fuentes porque es donde se declara de donde salen y
+ * que valen las respuestas. */
+.mon-profile-page.is-aulas-flow .aulas-efectiva { display: grid; gap: 8px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-efectiva-lectura { margin: 0; font-size: 12px; }
+.mon-profile-page.is-aulas-flow .aulas-efectiva-lista {
+  display: grid; gap: 6px; margin: 0; padding: 0; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-lista > li {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
+  align-items: end; gap: 10px; padding: 8px 10px;
+  border: 1px solid var(--pulso-border); border-radius: 10px;
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva label,
+.mon-profile-page.is-aulas-flow .aulas-efectiva-valores {
+  display: grid; gap: 3px; min-width: 0; position: relative;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva label > span,
+.mon-profile-page.is-aulas-flow .aulas-efectiva-valores > span {
+  font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-weight: 600;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva select,
+.mon-profile-page.is-aulas-flow .aulas-efectiva-valores > button {
+  height: 28px; padding: 0 8px; min-width: 0;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
+  text-align: left; cursor: pointer;
+}
+/* La lista de valores se abre SOBRE el panel, no lo empuja: con cuatro
+ * condiciones abiertas la seccion entera se descolocaba. */
+.mon-profile-page.is-aulas-flow .aulas-efectiva-opciones {
+  position: absolute; top: 100%; left: 0; z-index: 1400;
+  margin: 4px 0 0; padding: 6px; max-height: 220px; overflow: auto;
+  min-width: 180px; list-style: none;
+  border: 1px solid var(--pulso-border); border-radius: 10px;
+  background: var(--pulso-surface); box-shadow: var(--pulso-shadow-low);
+  display: grid; gap: 2px; font-size: 11.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-opciones label {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-quitar {
+  height: 28px; width: 28px; display: grid; place-items: center;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text-soft); cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-aviso {
+  margin: 0; padding: 7px 10px; border-radius: 8px; font-size: 11.5px;
+  border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
+  background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-mando {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-mando button {
+  height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
+  font-weight: 600; cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-mando button:disabled {
+  opacity: 0.5; cursor: not-allowed;
+}
+.mon-profile-page.is-aulas-flow .aulas-efectiva-guardar {
+  margin-left: auto;
+  border-color: var(--pulso-module-monitoring) !important;
+  color: var(--pulso-module-monitoring) !important;
+}
