@@ -3305,3 +3305,42 @@ UI muestran títulos propios y no confunden hoy.
 |---|---|---|
 | Todo lo numerado (Tandas I/J/K · D1–D5 · menores · R4 · sello 4 métodos) | ☑ |
 | ADR 0079 resello del workspace · botón PSI·hombres | ⛔ decisión de Gonzalo |
+
+### El 44/100 castiga la afijación, no el sorteo — ⛔ DECISIÓN METODOLÓGICA
+
+**Medido en la ficha ejecutiva de Cierre**: «Representatividad 44/100,
+por debajo del mínimo defendible… vuelve a generar la selección». El 44
+está hecho de dos ceros: `balance_faculty` (peso 0.18, score 0) y
+`balance_sex` (0.10, score 0) — los DOS ejes que el sorteo ESTRATIFICA.
+
+**La causa es de unidades, la veta «una palabra para dos cosas»**: el
+balance compara proporción de AULAS de la selección contra proporción
+de AULAS del marco; la afijación reparte ESTUDIANTES (proporcional con
+pisos). ARQUITECTURA: 3.8% del marco en aulas pero 15/203 = 7.4% de la
+selección — que son EXACTAMENTE las 15 aulas que su diseño le exige
+(aulas chicas → más aulas por estudiante). El sorteo entregó el diseño
+al pie (certificación 15/15; 574/584 categorías en tolerancia) y la
+métrica lo castiga por obedecer.
+
+**El consejo es irrealizable por construcción** (patrón del gate del
+relato): regenerar la selección no puede mover esas proporciones —
+las fija la cuota por estrato. El motor ya SABE que faculty/sex definen
+la estratificación (el saneo del balance las descarta intra-estrato con
+aviso); el score global aún no lo sabe.
+
+**Pregunta a Gonzalo — con cada respuesta su acción**:
+- (a) ¿Las dimensiones fijadas por la estratificación se EXCLUYEN del
+  score global y se declaran «fijadas por diseño» (el score pasaría a
+  medirse sobre lo que el sorteo SÍ decide: program, level, schedule,
+  size_group…)? → reponderar objective_config y re-etiquetar la ficha.
+- (b) ¿O se miden en LA UNIDAD del diseño (participación de
+  estudiantes vs población, no de aulas vs marco)? → cambiar el
+  denominador de balance_faculty/balance_sex.
+- (c) ¿O el 44 se queda como está y la ficha explica que incluye
+  desviación deliberada de afijación? → solo texto.
+NO se toca el score sin su decisión.
+
+| # | Cola | Estado |
+|---|---|---|
+| Todo lo numerado + sello 4 métodos | ☑ |
+| ADR 0079 resello · botón PSI·hombres · score 44/100 (a/b/c) | ⛔ decisión de Gonzalo |
