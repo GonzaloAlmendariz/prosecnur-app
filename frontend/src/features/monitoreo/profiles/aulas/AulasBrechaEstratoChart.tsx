@@ -6,6 +6,9 @@ import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { brechaPorEstrato } from "./brechaPorEstrato";
 
+/** El mismo formato que el resto del perfil: «3,743» y no «3743». */
+const fmt = (n: number) => n.toLocaleString("es-PE");
+
 /**
  * Dónde falta más, de un vistazo.
  *
@@ -86,12 +89,16 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
         }}
         config={{ displayModeBar: false, responsive: true }}
       />
+      {/* Las cifras con separador de miles, como en TODO el resto del perfil.
+          Este pie escribía «Faltan 3743» y «suman 1332» en crudo, dos dedos
+          debajo de paneles que dicen «3,743»: la misma cifra con dos formatos en
+          la misma pantalla se lee como si fueran dos números distintos. */}
       <p className="mon-profile-table-recorte">
-        Faltan {brechaTotal} respuestas en total.
+        Faltan {fmt(brechaTotal)} respuestas en total.
         {cerrados ? ` ${cerrados} ${cerrados === 1 ? "estrato ya alcanzó" : "estratos ya alcanzaron"} su meta.` : ""}
         {/* El recorte se declara con su brecha: sin decir cuánto suman, la
             última barra se leería como «lo demás está cerrado». */}
-        {omitidos ? ` No se dibujan ${contar(omitidos, "estrato", "estratos")} con menos brecha, que suman ${brechaOmitida}.` : ""}
+        {omitidos ? ` No se dibujan ${contar(omitidos, "estrato", "estratos")} con menos brecha, que suman ${fmt(brechaOmitida)}.` : ""}
       </p>
     </div>
   );
