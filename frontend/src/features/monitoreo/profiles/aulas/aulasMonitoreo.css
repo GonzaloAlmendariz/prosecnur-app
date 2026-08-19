@@ -3306,6 +3306,10 @@
   display: inline-flex; align-items: center; gap: 5px;
   font-style: normal; font-weight: 600; color: var(--pulso-text);
 }
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-ausente {
+  color: var(--pulso-text-faint); font-weight: 500;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-ausente::before { display: none; }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em::before {
   content: ""; width: 10px; height: 3px; border-radius: 2px;
   background: var(--aulas-serie-color, var(--pulso-border-strong));
