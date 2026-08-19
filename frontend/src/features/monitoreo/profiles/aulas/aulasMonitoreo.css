@@ -3223,3 +3223,35 @@
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-tasa {
   text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
 }
+
+/* Ritmo por facultad: una serie de barras por día, escala compartida. */
+.mon-profile-page.is-aulas-flow .aulas-ritmofac { display: grid; gap: 7px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-lectura,
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-pie {
+  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-lista {
+  display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-lista > li {
+  display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 1.6fr) 64px;
+  align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-nombre {
+  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: 12.5px; overflow-wrap: anywhere;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-nombre em {
+  color: var(--pulso-text-faint); font-size: 10.5px; font-style: normal; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-serie {
+  display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-serie i {
+  flex: 1 1 0; min-width: 3px; border-radius: 2px 2px 0 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-tend {
+  text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-baja { color: var(--pulso-danger-fg); }
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-sube { color: var(--pulso-success-fg); }

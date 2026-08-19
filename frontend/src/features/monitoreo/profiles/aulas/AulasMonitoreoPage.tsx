@@ -35,6 +35,7 @@ import { AulasAgendaPorFacultad } from "./AulasAgendaPorFacultad";
 import { AulasCadenaChart } from "./AulasCadenaChart";
 import { AulasFrenteDelOperativo } from "./AulasFrenteDelOperativo";
 import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
+import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
@@ -1166,6 +1167,26 @@ function renderAulasView(
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           clave="franja"
           unidad="Franja"
+        />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* El ritmo del estudio entero ya existe en Resumen; éste dice QUIÉN
+              lo sostiene y quién se paró. «Siempre todo es por facultad». */}
+          <h3>Ritmo día a día de cada facultad</h3>
+          <span>y hacia dónde va</span>
+        </div>
+        <AulasRitmoPorFacultad
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
         />
       </section>
       )}
