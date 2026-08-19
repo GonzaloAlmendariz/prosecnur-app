@@ -165,6 +165,15 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
       ))
       grid::popViewport()
     } else {
+      # Los otros dos presets (ficha, ficha_campo) pasan por un helper
+      # compartido que avisa `access_missing` para cualquier bloque
+      # `access_qr` sin valor; el afiche dibuja su QR a mano -no hereda ese
+      # helper- y se habia quedado sin el aviso pese a mostrar "Sin enlace"
+      # en el PDF. Sin esto, nada programatico distinguia un afiche completo
+      # de uno que salio sin QR.
+      warnings[[length(warnings) + 1L]] <- list(
+        code = "access_missing", page = page_no, block_id = qr$block_id
+      )
       grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))
       grid::grid.rect(gp = grid::gpar(fill = NA, col = tokens$rule, lwd = 0.7))
       grid::grid.text(

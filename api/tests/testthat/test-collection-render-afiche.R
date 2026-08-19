@@ -153,6 +153,29 @@ test_that("un logo que no resuelve avisa en vez de dibujar una careta a medias",
   ))
 })
 
+test_that("un afiche sin acceso resuelto avisa access_missing, igual que ficha y ficha_campo", {
+  # El afiche dibuja su QR a mano -no pasa por el helper compartido que
+  # ficha.R y ficha_campo.R usan para cualquier bloque access_qr- y se habia
+  # quedado sin este aviso pese a mostrar "Sin enlace" en el PDF: el PDF se
+  # veia bien, pero nada programatico distinguia un afiche completo de uno
+  # sin QR.
+  compiled <- .afiche_compiled("")
+  dir <- tempfile("afiche-sin-acceso-"); dir.create(dir)
+  rendered <- collection_material_render_compiled(
+    compiled, file.path(dir, "sin_acceso.pdf"), device = "pdf"
+  )
+  codes <- vapply(rendered$warnings, function(w) as.character(w$code %||% ""), character(1))
+  expect_true("access_missing" %in% codes)
+
+  con_acceso <- .afiche_compiled("https://x.test/enc")
+  completo <- collection_material_render_compiled(
+    con_acceso, file.path(dir, "con_acceso.pdf"), device = "pdf"
+  )
+  expect_false("access_missing" %in% vapply(
+    completo$warnings, function(w) as.character(w$code %||% ""), character(1)
+  ))
+})
+
 test_that("la careta deja tinta en su banda y respeta el aspecto de cada logo", {
   skip_if_not_installed("png")
   compiled <- .afiche_compiled("https://x.test/enc", assets = c("logo-ancho", "logo-cuadrado"))
