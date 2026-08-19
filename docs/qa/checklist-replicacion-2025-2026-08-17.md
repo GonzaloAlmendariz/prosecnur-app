@@ -3999,3 +3999,29 @@ decide si aplicar (los steppers por facultad ya existen en Seleccion).
 **Nota de proceso**: actualizar N invalido correctamente los artefactos
 derivados; la cadena (comparar→seleccionar→simular) se esta
 re-derivando con el diseño 2026 y se re-guardara el .pulso completo.
+
+### Que significan los scores de motores + dimensionamiento SIN tope con P25
+
+**El score (0-100) mide cuanto se parece la muestra que produce cada
+motor al perfil real de la poblacion**, sobre las 7 variables del
+objetivo con sus pesos (facultad 0,18 con tolerancia 2,5% · programa
+0,14 · nivel 0,10 · horario 0,10 · sexo 0,10 · tamaño de aula 0,08 ·
+modalidad 0,06) mas cobertura de alumnos unicos (0,10), perdida por
+duplicados (0,06), dispersion (0,05), estabilidad de pesos (0,02) y
+profundidad de reservas (0,01). 100 = perfil identico al poblacional.
+2026 sube ~15 pts en todos porque el marco nuevo esta mas balanceado.
+Pivotal 72,3 vs cube 66,8: casi toda la brecha es balance (73,8 vs
+66,1) — pivotal reparte mejor el perfil en 2026.
+
+**SIN TOPE, con P25 por facultad (el estadistico sellado) y τ 0,53:
+197 aulas totales** — dentro del rango normal (170-210) y bajo el
+techo de 200. Por facultad (P25 · req vs hoy): ARQ 21·12(+3) ·
+A&D 14·17(+3) · AE 11·11(+3) · EDU 15·4(+2) · GAS 14·3(+1) ·
+CONT 17·3(+1) · EGL 34·23(+1) · GES/CyA/PSI/LyCH iguales ·
+CCSS 24·12(−1) · C&I 25·40(−2) · EGC 31·25(−2) · DER 40·18(−2).
+El P25 pide MAS donde las aulas son chicas (AE/A&D/ARQ) y MENOS donde
+son grandes (DER P25=40). Ojo: difiere del maximin (que le daba +4 a
+DER) porque optimizan cosas distintas — P25 dimensiona por el peor
+cuarto de las aulas; el maximin iguala el colchon de esperadas
+promedio. ⛔ Gonzalo elige la vara de reparto: P25-sin-tope (197),
+maximin-190, o fijas actuales.
