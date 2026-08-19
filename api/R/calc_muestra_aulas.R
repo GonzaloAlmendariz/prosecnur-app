@@ -413,6 +413,10 @@ calc_muestra_aulas_default_config <- function() {
       # EF2: un docente no se selecciona repetido entre titulares (pedido
       # textual; reparación registrada en calc_muestra_aulas_docente_unico.R).
       docente_unico = TRUE,
+      # EF5/opción B: techo operativo de aulas VISITADAS del estudio (Gonzalo:
+      # «no pasarnos de doscientas aulas»). 0 = sin techo declarado; el valor
+      # es una decisión del estudio, no un default universal.
+      techo_aulas_visitadas = 0L,
       pps_weight = 0.25,
       coverage_weight = 1,
       monte_carlo_n = 500L,
@@ -517,6 +521,7 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       duplicate_penalty = max(0, .cm_aulas_num(selector$duplicate_penalty %||% selector$penalizacion_repetidos %||% config$penalizacion_repetidos, defaults$selector$duplicate_penalty)),
       sequential_discount = .cm_aulas_bool(selector$sequential_discount %||% selector$descuento_secuencial %||% config$sequential_discount %||% config$descuento_secuencial, defaults$selector$sequential_discount),
       docente_unico = .cm_aulas_bool(selector$docente_unico %||% selector$teacher_unique %||% config$docente_unico, defaults$selector$docente_unico),
+      techo_aulas_visitadas = max(0L, .cm_aulas_int(selector$techo_aulas_visitadas %||% selector$techo_visitas %||% config$techo_aulas_visitadas %||% config$techo_visitas, defaults$selector$techo_aulas_visitadas)),
       pps_weight = max(0, .cm_aulas_num(selector$pps_weight %||% config$pps_weight, defaults$selector$pps_weight)),
       coverage_weight = max(0, .cm_aulas_num(selector$coverage_weight %||% config$coverage_weight, defaults$selector$coverage_weight)),
       monte_carlo_n = max(0L, .cm_aulas_int(selector$monte_carlo_n %||% selector$simulaciones, simulation_runs)),

@@ -160,3 +160,12 @@ test_that("de punta a punta: seleccionar ya no repite docentes cuando hay altern
   # Y nada se duplica globalmente tras el intercambio.
   expect_equal(anyDuplicated(as.character(sel$selection$classroom_id)), 0L)
 })
+
+test_that("el techo de visitas sobrevive al normalizador (lista cerrada vigilada)", {
+  cfg <- calc_muestra_aulas_normalize_config(list(selector = list(techo_aulas_visitadas = 200)))
+  expect_identical(cfg$selector$techo_aulas_visitadas, 200L)
+  # Alias y nivel config; ausente = 0 = sin techo declarado, jamás inventado.
+  cfg2 <- calc_muestra_aulas_normalize_config(list(techo_visitas = 250))
+  expect_identical(cfg2$selector$techo_aulas_visitadas, 250L)
+  expect_identical(calc_muestra_aulas_normalize_config(list())$selector$techo_aulas_visitadas, 0L)
+})

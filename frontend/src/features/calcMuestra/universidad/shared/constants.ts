@@ -189,6 +189,8 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   // en 203 titulares y CERO estratos ahogados. La reparación es post-sorteo,
   // determinista y registrada; FALSE explícito conserva corridas históricas.
   docente_unico: true,
+  // Techo de visitas: 0 = sin techo declarado (el valor lo fija cada estudio).
+  techo_aulas_visitadas: 0,
   pps_weight: 0.25,
   coverage_weight: 1,
   monte_carlo_n: 500,
