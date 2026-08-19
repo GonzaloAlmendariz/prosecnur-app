@@ -4093,3 +4093,17 @@ rojo de la auditoria (EDUCACION 0,93x) quedo VERDE con sus 4 aulas** ·
 197 ≤ techo 200 · guardado en marco2026.pulso. La seleccion 2026
 definitiva del diseño P25 esta completa: marco + diseño N-2026 +
 reparto P25 + sorteo cube con docente unico + simulacion de reemplazos.
+
+### Los cuadros mostaza dejaron de gritar (pedido de UI de Gonzalo)
+
+Causa doble: el tono warn del recipe compartido (fondo crema 60% +
+titulo marron) y cmv2-source-warning (crema 68% + TODO en marron peso
+800 — el mas feo del modulo). Rediseño: filete ambar 3px + icono ambar
+cargan el tono; fondo al 30% sobre surface; texto en el gris de la casa
+con strong para cifras. Un solo recipe, todos los warn del modulo
+heredan. Verificado en vivo (specimen sobre estilos reales).
+
+**Nota de proceso**: la «desaparicion» de --pulso-warn-bg que persegui
+primero era el BOOTGATE — la pagina del navegador habia caido al gate
+(SID muerto tras relanzar la API) y boot.css no define esos tokens.
+Leccion re-aplicada: verificar DONDE vive antes de declarar ausencia.
