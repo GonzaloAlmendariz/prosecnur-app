@@ -201,7 +201,23 @@ if (ESCALA_2025) {
   # Los motivos que el equipo declara al dar de baja un aula. Son los de
   # `monitoreo_aulas_motivos_reemplazo()`: uno inventado se normaliza a «otro».
   MOTIVOS <- c("docente_no_autoriza", "aula_no_existe", "horario_cambio", "baja_asistencia")
-  dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes")
+  # **El unico dia que no se hace campo es el DOMINGO.** El sembrado saltaba dos
+  # dias cada cinco —semana de lunes a viernes— y el grafico enseñaba el sabado
+  # en blanco como si el operativo se parara. Gonzalo: «el unico dia que no se
+  # hace campo es el domingo, solo deberia estar vacio el domingo, no haber mas
+  # saltos de dias». El hueco era del fixture, no del campo.
+  dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado")
+  INICIO_DE_CAMPO <- as.Date("2026-08-10")  # lunes
+  #' El n-esimo dia de campo desde el inicio, contando desde 0 y saltando domingos.
+  dia_de_campo <- function(n) {
+    d <- INICIO_DE_CAMPO
+    quedan <- n
+    while (quedan > 0L) {
+      d <- d + 1L
+      if (format(d, "%w") != "0") quedan <- quedan - 1L
+    }
+    format(d, "%Y-%m-%d")
+  }
   horas <- c("08:00", "10:00", "12:00", "14:00", "16:00", "18:00")
   base <- function(cod, rol, fac, i, repl = NULL, ord = NULL, est = "agendada") {
     # El dia NO puede salir de `i %% 10` a secas: la facultad sale de `i %% 20`
@@ -211,7 +227,10 @@ if (ESCALA_2025) {
     # existia y no podia enseñar nada—. Sumando `i %/% 20L` el dia avanza dentro
     # de cada facultad y las series se reparten por el rango.
     dia_i <- 1L + ((i + (i %/% 20L)) %% 10L)
-    fecha <- format(as.Date("2026-08-10") + (dia_i - 1L) + (2L * ((dia_i - 1L) %/% 5L)), "%Y-%m-%d")
+    fecha <- dia_de_campo(dia_i - 1L)
+    # El nombre del dia sale de la FECHA. Con `dias[[1 + (dia_i - 1) %% 5]]` se
+    # inventaba un dia de la semana que no coincidia con la fecha sembrada.
+    nombre_dia <- dias[[as.integer(format(as.Date(fecha), "%w"))]]
     hora <- horas[[1L + (i %% length(horas))]]
     # `SESIONES Y AULA` del Excel es un texto DESCRIPTIVO —«LUN 08:00 A101»—, no
     # el codigo con un prefijo. Sembrandolo como «Aula CH 24» junto a la columna
@@ -225,13 +244,13 @@ if (ESCALA_2025) {
     # HSVG2026, donde no coinciden, 0 de 202 apuntaban a un titular.
     o <- list(classroom_id = .qa_classroom_id(cod), operational_code = cod,
               label = sprintf("%s %s %s%d",
-                              toupper(substr(dias[[1L + ((dia_i - 1L) %% 5L)]], 1, 3)),
+                              toupper(substr(nombre_dia, 1, 3)),
                               hora, pabellon, 100L + (i %% 40L)),
               course_name = paste("Curso", cod),
               scheduled_date = fecha,
-              scheduled_day = dias[[1L + ((dia_i - 1L) %% 5L)]],
+              scheduled_day = nombre_dia,
               scheduled_time = hora,
-              schedule = sprintf("%s %s", substr(dias[[1L + ((dia_i - 1L) %% 5L)]], 1, 3), hora),
+              schedule = sprintf("%s %s", substr(nombre_dia, 1, 3), hora),
               teacher = paste("Docente", cod), teacher_phone = sprintf("9%08d", i * 137 %% 1e8),
               # La OBSERVACION de quien agendo, que el libro real trae en la
               # columna OBSERVACIONES y el motor deja en `replacement_note`.
@@ -352,16 +371,19 @@ if (ESCALA_2025) {
   # entero y no quedaba nada por aplicar. Es la decima vez en este loop que el
   # fixture decide lo que se puede ver.
   #
-  # Se apartan una de cada nueve y se reparten en cuatro dias posteriores al
-  # ultimo con parte (21/08), para que haya facultades de las tres clases: las
-  # que con lo agendado llegan a su cuota, las que no llegan, y las que no
-  # tienen nada agendado.
+  # Se apartan una de cada nueve y se reparten en los CINCO dias de campo que
+  # siguen al ultimo con parte, sin dejar ningun dia en medio: Gonzalo, «se
+  # agendan varios dias de antelacion, de 4 a 6 dias». Antes arrancaba el 24/08
+  # con el ultimo parte el 20/08, asi que el grafico enseñaba tres dias vacios
+  # seguidos y parecia que el operativo se paraba —era el fixture, no el campo—.
+  # Con esto hay facultades de las tres clases: las que con lo agendado llegan a
+  # su cuota, las que no llegan, y las que no tienen nada agendado.
   por_venir_i <- which(seq_along(aplicadas_todas) %% 9L == 0L)
   aplicadas <- aplicadas_todas[setdiff(seq_along(aplicadas_todas), por_venir_i)]
   for (k in seq_along(por_venir_i)) {
     j <- por_venir_i[[k]]
     codigo <- as.character(aplicadas_todas[[j]]$operational_code)
-    nueva <- format(as.Date("2026-08-24") + ((k - 1L) %% 4L), "%Y-%m-%d")
+    nueva <- dia_de_campo(9L + 1L + ((k - 1L) %% 5L))
     for (m in seq_along(plan)) {
       if (identical(as.character(plan[[m]]$operational_code), codigo)) {
         plan[[m]]$scheduled_date <- nueva

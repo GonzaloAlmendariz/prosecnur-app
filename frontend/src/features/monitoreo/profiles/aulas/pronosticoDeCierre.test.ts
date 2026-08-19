@@ -56,10 +56,33 @@ describe("pronosticoDeCierre", () => {
     expect(p.ultimaFecha).toBe("2026-08-10");
   });
 
-  it("los días de campo saltan el fin de semana", () => {
-    // 2026-08-14 es viernes: sumar un día de campo lleva al lunes 17, no al 15.
-    expect(sumarDiasDeCampo("2026-08-14", 1)).toBe("2026-08-17");
-    expect(sumarDiasDeCampo("2026-08-14", 5)).toBe("2026-08-21");
+  it("los días de campo saltan el domingo, y SÓLO el domingo", () => {
+    // Antes saltaba también el sábado, justificado con una inferencia sobre los
+    // huecos del fixture. Gonzalo, que lleva el operativo: «el único día que no
+    // se hace campo es el domingo». Un hueco en el dato no prueba que ese día no
+    // se trabaje: prueba que ese día no hay dato.
+    //
+    // 2026-08-14 es viernes. Sumar un día de campo lleva al SÁBADO 15, que sí se
+    // trabaja; con la regla vieja saltaba al lunes 17.
+    expect(sumarDiasDeCampo("2026-08-14", 1)).toBe("2026-08-15");
+    // Y dos días saltan el domingo 16 para caer en el lunes 17.
+    expect(sumarDiasDeCampo("2026-08-14", 2)).toBe("2026-08-17");
+    // Seis días de campo desde el viernes: sáb 15, lun 17, mar 18, mié 19,
+    // jue 20, vie 21. Con la regla vieja daba el lunes 24.
+    expect(sumarDiasDeCampo("2026-08-14", 6)).toBe("2026-08-21");
+    // Una semana entera de campo son seis días, así que doce días de campo
+    // cubren dos semanas exactas.
+    expect(sumarDiasDeCampo("2026-08-14", 12)).toBe("2026-08-28");
     expect(sumarDiasDeCampo("2026-08-14", 0)).toBe("2026-08-14");
+  });
+
+  it("no se desplaza un día según la zona horaria de la máquina", () => {
+    // Con hora local, `toISOString()` devuelve el día ANTERIOR en cualquier zona
+    // al este de Greenwich. El sábado 15 tiene que salir sábado 15 en Lima y en
+    // Madrid.
+    expect(sumarDiasDeCampo("2026-08-14", 1)).toBe("2026-08-15");
+    expect(sumarDiasDeCampo("2026-01-01", 1)).toBe("2026-01-02");
+    // Cruzando fin de mes y año bisiesto.
+    expect(sumarDiasDeCampo("2028-02-28", 1)).toBe("2028-02-29");
   });
 });
