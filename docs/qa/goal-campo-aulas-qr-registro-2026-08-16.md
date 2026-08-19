@@ -2558,3 +2558,34 @@ contenedor. Con `--post-click-wait-selector ".mon-outputs-workbench"`:
 
 > **La lección**: un contenedor elegido a ojo acota la medición sin avisar. Antes
 > de concluir que una superficie está vacía, buscar su raíz real en el DOM.
+
+## 2026-08-19 — Dos no-defectos medidos, y el gate sobre el escenario largo
+
+Los dos ítems que quedaban del escenario largo **eran impresiones mías, y la
+medición desmiente las dos**. Se anotan porque un no-defecto medido es lo que
+evita volver a investigarlo.
+
+**1. «Añadir el techo de elegibles agendados al acumulado».** Contestaría una
+pregunta que ya está contestada: las **21 facultades** dicen «con lo agendado se
+pasa de esa meta», o sea que el máximo posible **nunca es la restricción**. La
+restricción está en la cuota por sexo, y eso ya lo dicen la tabla y el chip del
+cruce. Dibujarlo sería ruido.
+
+**2. «La escala del acumulado aplasta los diez días de evidencia».** Medido: lo
+observado ocupa el **79 % del alto** y queda un **2 % de aire** por encima de
+todo, con el tope en 5 000 contra una previsión de 4 907. No aplasta nada.
+
+### El gate sobre el escenario de 27 días
+
+Desde la última corrida se añadieron los chips de cruce, las etiquetas de meta al
+final de cada horizontal, tres polilíneas más y diez ticks más en el eje. Nada de
+eso se había medido.
+
+```
+ok=false  geometryGroups=20  geometryIssues=1  geometryCoverageMisses=0
+overflow=0  globalOverflowX=false  pageErrors=0
+```
+
+**El mismo y único fallo**: el `scroll-unreachable` del chrome, ya declarado. Y
+comprobado que el reporte menciona `aulas-serie` — la verificación que este
+documento fijó como obligatoria antes de creerse un verde.
