@@ -63,9 +63,14 @@ export function embudoDelAula(filas: ReadonlyArray<MonitoreoRow>): EmbudoDelAula
     partes: filas.length,
     asistentes,
     pasos: [
+      // **El rotulo nombra la cifra GRANDE, que es lo que queda.** Decia «No
+      // quisieron responder» junto a «4 650 −187», y el 4 650 no son los que no
+      // quisieron: son los que siguen —los que no quisieron son 187—. El primer
+      // paso funcionaba solo porque no tiene resta. Un rotulo pegado a un numero
+      // que no es el suyo se lee mal aunque los dos numeros esten bien.
       { clave: "asistentes", etiqueta: "Estaban en el aula", quedan: asistentes, pierde: 0, pct: 100 },
-      { clave: "rechazos", etiqueta: "No quisieron responder", quedan: trasRechazos, pierde: rechazos, pct: pct(trasRechazos) },
-      { clave: "duplicados", etiqueta: "Ya habían respondido", quedan: trasDuplicados, pierde: duplicados, pct: pct(trasDuplicados) },
+      { clave: "rechazos", etiqueta: "Sin los que no quisieron responder", quedan: trasRechazos, pierde: rechazos, pct: pct(trasRechazos) },
+      { clave: "duplicados", etiqueta: "Sin los que ya habían respondido", quedan: trasDuplicados, pierde: duplicados, pct: pct(trasDuplicados) },
     ],
     declaradas,
     // Lo que la cadena implica contra lo que el equipo escribió. No se corrige
