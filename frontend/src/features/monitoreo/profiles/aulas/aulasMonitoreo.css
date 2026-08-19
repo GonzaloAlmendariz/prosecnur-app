@@ -2875,7 +2875,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-lista > li.es-riesgo {
   border-left-color: var(--pulso-danger-fg);
-  background: var(--pulso-surface-sunken);
+  background: var(--pulso-surface-2);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-lista > li.es-cubierta {
@@ -2994,7 +2994,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ruta-facultad {
-  border: 1px solid var(--pulso-border-soft);
+  border: 1px solid var(--pulso-border);
   border-radius: 8px;
   background: var(--pulso-surface);
   min-width: 0;
@@ -3053,7 +3053,7 @@
   align-items: center;
   gap: 8px;
   padding: 3px 0;
-  border-top: 1px solid var(--pulso-border-subtle, var(--pulso-border-soft));
+  border-top: 1px solid var(--pulso-border);
   min-width: 0;
   font-size: 12px;
 }
@@ -3298,7 +3298,7 @@
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
   display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px auto;
   gap: 8px; align-items: center; padding: 4px 6px;
-  border-bottom: 1px solid var(--pulso-border-soft); font-size: 11.5px;
+  border-bottom: 1px solid var(--pulso-border); font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:not(:first-child) { text-align: right; }
@@ -3399,7 +3399,7 @@
  * donde acaba un grafico y empieza el otro. */
 .mon-profile-page.is-aulas-flow .aulas-serie-bloque {
   display: grid; gap: 6px; padding: 10px 12px 8px;
-  border: 1px solid var(--pulso-border-soft); border-radius: 10px;
+  border: 1px solid var(--pulso-border); border-radius: 10px;
   background: var(--pulso-surface);
 }
 /* El rotulo dice QUE mide el grafico. Habia que deducirlo del pie. */
@@ -3497,7 +3497,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas th,
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas td {
-  padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--pulso-border-soft);
+  padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--pulso-border);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas thead th {
   color: var(--pulso-text-faint); font-size: 10px; font-weight: 600;
@@ -3539,7 +3539,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera > span:nth-child(n + 2) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li.es-seca {
-  border-left-color: var(--pulso-danger-fg); background: var(--pulso-surface-sunken);
+  border-left-color: var(--pulso-danger-fg); background: var(--pulso-surface-2);
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-nombre { min-width: 0; overflow-wrap: anywhere; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cifra,

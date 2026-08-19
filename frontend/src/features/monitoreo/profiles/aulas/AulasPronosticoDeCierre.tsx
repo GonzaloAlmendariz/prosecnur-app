@@ -92,7 +92,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
         {/* La rejilla. Va primero para quedar detras de todo. */}
         {marcas.map((m) => (
           <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
-            stroke="var(--pulso-border-soft)" strokeWidth="1"
+            stroke="var(--pulso-border)" strokeWidth="1"
             vectorEffect="non-scaling-stroke" opacity={m === p.universo ? 1 : 0.55} />
         ))}
         {/* Donde termina lo observado y empieza lo proyectado. Era una etiqueta
