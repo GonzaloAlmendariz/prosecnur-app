@@ -149,3 +149,15 @@ test_that("una declaracion por SLUG no es huerfana si la facultad vive con su la
   huerf <- Filter(function(x) x$tipo == "declaracion_huerfana", n$bloques)
   expect_length(huerf, 0L)
 })
+
+test_that("el workspace del estudio conserva techo, docente_unico y faculty_targets (mordida 11)", {
+  est <- calc_muestra_normalize_estudio(list(workspace = list(aulas_config = list(
+    techo_aulas_visitadas = 200,
+    docente_unico = FALSE,
+    faculty_targets = list("DERECHO" = 20, "PSICOLOGÍA" = 7)
+  ))))
+  cfg <- est$workspace$aulas_config
+  expect_identical(cfg$techo_aulas_visitadas, 200L)
+  expect_false(cfg$docente_unico)
+  expect_equal(length(cfg$faculty_targets), 2L)
+})
