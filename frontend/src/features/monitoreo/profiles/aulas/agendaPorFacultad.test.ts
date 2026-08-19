@@ -42,6 +42,22 @@ describe("agendaPorFacultad", () => {
     expect(salida.map((f) => f.facultad)).toEqual(["ConFecha", "SinFecha"]);
   });
 
+  it("lleva la observación de quien agendó", () => {
+    // Viaja en `replacement_note` —el motor acepta ahí la columna OBSERVACIONES
+    // del libro— y hasta ahora no la pedía ninguna superficie: el dato llegaba,
+    // tenía rótulo y no se veía en ninguna parte.
+    const [f] = agendaPorFacultad([
+      fila({
+        operational_code: "CH 1", faculty: "Derecho", scheduled_date: "2026-08-10",
+        replacement_note: "El docente pide llegar 10 min antes",
+      } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "CH 2", faculty: "Derecho", scheduled_date: "2026-08-11" }),
+    ]);
+    expect(f.aulas[0].nota).toBe("El docente pide llegar 10 min antes");
+    // Sin nota es cadena vacía, no `undefined`: la vista pregunta por verdad.
+    expect(f.aulas[1].nota).toBe("");
+  });
+
   it("«en marcha» son las que ya no están sólo planificadas", () => {
     const [f] = agendaPorFacultad([
       fila({ operational_code: "A", faculty: "X", operational_status: "aplicada" }),
