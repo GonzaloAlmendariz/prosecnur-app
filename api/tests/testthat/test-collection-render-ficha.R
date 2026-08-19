@@ -197,39 +197,81 @@ test_that("la ficha built-in imprime el rol", {
 # --- Capacidad y reparto del grid --------------------------------------------
 # Anadir un campo a la ficha con careta la desbordo en silencio: 7 campos contra
 # 6 de capacidad, y "Estudiantes" se caia con un warning que nadie lee. La
-# capacidad no es un numero elegido: sale de la banda disponible entre el grid y
-# el bloque del enlace.
-
-.crf_grid_capacity <- function(L) {
-  max(1L, as.integer(floor((L$y_rows_top - (L$y_link + 0.055)) / L$row_step_min)) + 1L)
-}
+# capacidad no es un numero elegido: sale del plan de flujo real (orden +
+# tamano de los demas bloques presentes), no de una banda fija entre dos
+# anclajes -eso era justo lo que volvia cosmetico el orden de los bloques.
 
 .crf_grid_fields <- function(template) {
   grid <- Filter(function(b) identical(b$type, "field_grid"), template$pages[[1]]$blocks)[[1]]
   grid$fields
 }
 
+# Compilado minimo para poder llamarle al plan de flujo real -sin esto los
+# bloques del template no traen `$lines`/`$rows` y la medicion de altura
+# subestima todo a "vacio".
+.crf_render_test_compiled <- function(template) {
+  unit <- list(
+    unit_id = "u1", label = "Prueba", role = "titular", group = "M1",
+    dimensions = list(course_name = "Curso de prueba", faculty = "Facultad de prueba")
+  )
+  binding <- list(
+    access_id = "a1", logical_collector_id = "u1", unit_id = "u1",
+    access_kind = "manual_handoff", access_ref = "https://x.test/enc", status = "ready"
+  )
+  deployment <- list(
+    deployment_id = "d1", target = list(provider = "kobo"), bindings = list(binding),
+    sensitivity = list(access_urls = "operational"), status = "prepared"
+  )
+  fp <- function(x) collection_fingerprint(x)
+  instance <- list(
+    schema = COLLECTION_MATERIAL_INSTANCE_SCHEMA, instance_id = "m1",
+    template_ref = list(template_id = template$template_id, revision = 1L, sha256 = template$template_sha256),
+    deployment_id = "d1", deployment_fingerprint = fp(deployment),
+    access_fingerprint = fp(list(binding)), instance_fingerprint = fp("m1"),
+    unit_refs = list("u1"), access_refs = list("a1"),
+    locale = "es-PE", status = "ready", sensitivity = "operational", warnings = list()
+  )
+  collection_material_compile(
+    template, instance, project = list(name = "Proyecto de prueba", period = "Prueba"),
+    plan = list(plan_id = "p1", units = list(unit)), deployment = deployment
+  )
+}
+
+.crf_grid_plan_item <- function(template) {
+  compiled <- .crf_render_test_compiled(template)
+  page <- compiled$pages[[1]]
+  L <- .crf_layout(branded = !is.null(.crf_block(page, "brand_strip")))
+  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  list(L = L, item = Find(function(it) identical(it$type, "field_grid"), plan$items))
+}
+
 test_that("las plantillas de la casa caben en su propia hoja", {
   builtin <- .crf_grid_fields(collection_material_builtin_template())
   branded <- .crf_grid_fields(collection_material_branded_sheet_template(assets = "logo-x"))
 
-  # El control: con el paso fijo anterior la capacidad era 6 y la branded 7.
-  expect_lte(length(builtin), .crf_grid_capacity(.crf_layout()))
-  expect_lte(length(branded), .crf_grid_capacity(.crf_layout(branded = TRUE)))
+  cap_builtin <- .crf_grid_plan_item(collection_material_builtin_template())
+  cap_branded <- .crf_grid_plan_item(collection_material_branded_sheet_template(assets = "logo-x"))
+  capacidad <- function(res) max(1L, as.integer(floor(res$item$height / res$L$row_step_min)) + 1L)
+
+  expect_lte(length(builtin), capacidad(cap_builtin))
+  expect_lte(length(branded), capacidad(cap_branded))
 })
 
 test_that("pocas filas reparten la banda en vez de dejar el hueco abajo", {
-  L <- .crf_layout()
-  band <- L$y_rows_top - (L$y_link + 0.055)
+  res <- .crf_grid_plan_item(collection_material_builtin_template())
+  L <- res$L
+  band <- res$item$height
+  banda_floor <- res$item$y_top - band
   paso <- function(n) if (n > 1L) min(L$row_step, band / (n - 1L)) else 0
-  fondo <- function(n) L$y_rows_top - (n - 1L) * paso(n)
+  fondo <- function(n) res$item$y_top - (n - 1L) * paso(n)
+  capacidad <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
 
-  # Con 6 campos el grid llega casi al enlace; con el paso fijo viejo (0.053)
-  # se quedaba en 0.510 y dejaba una franja muerta de ~0.13 npc.
-  expect_gt(fondo(6L), L$y_link)
-  expect_lt(fondo(6L) - L$y_link, 0.09)
+  # Con 6 campos el grid llega casi al piso de su banda: no deja un hueco
+  # muerto abajo antes del siguiente bloque.
+  expect_gt(fondo(6L), banda_floor)
+  expect_lt(fondo(6L) - banda_floor, band * 0.5)
   # Y nunca se aprieta por debajo del minimo legible.
-  expect_gte(paso(.crf_grid_capacity(L)), L$row_step_min * 0.999)
+  expect_gte(paso(capacidad), L$row_step_min * 0.999)
 })
 
 test_that("el lector de QR usa la geometria de la variante que dibujo la hoja", {
@@ -248,6 +290,14 @@ test_that("el lector de QR usa la geometria de la variante que dibujo la hoja", 
   Filter(function(b) identical(b$type, "application_log"), template$pages[[1]]$blocks)[[1]]
 }
 
+.crf_log_plan_item <- function(template) {
+  compiled <- .crf_render_test_compiled(template)
+  page <- compiled$pages[[1]]
+  L <- .crf_layout(branded = !is.null(.crf_block(page, "brand_strip")))
+  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  list(L = L, item = Find(function(it) identical(it$type, "application_log"), plan$items))
+}
+
 test_that("las dos plantillas de la casa comparten un solo vocabulario de registro", {
   builtin <- .crf_log_block(collection_material_builtin_template())
   branded <- .crf_log_block(collection_material_branded_sheet_template(assets = "logo-x"))
@@ -263,8 +313,10 @@ test_that("las dos plantillas de la casa comparten un solo vocabulario de regist
 })
 
 test_that("el registro cabe encima del pie y avisa si no", {
-  L <- .crf_layout()
-  banda <- L$y_log_rows - L$y_log_floor
+  res <- .crf_log_plan_item(collection_material_builtin_template())
+  L <- res$L
+  banda <- res$item$height
+  banda_floor <- res$item$y_top - 0.028 - banda
   capacidad <- max(1L, as.integer(floor(banda / L$log_row_step_min)) + 1L)
   filas <- as.integer(.crf_log_block(collection_material_builtin_template())$rows)
   paso <- if (filas > 1L) min(L$log_row_step, banda / (filas - 1L)) else 0
@@ -272,7 +324,7 @@ test_that("el registro cabe encima del pie y avisa si no", {
   expect_lte(filas, capacidad)
   # El control: con el paso fijo de 0.032 la quinta linea caia en 0.040 y el pie
   # vive en ~0.038 — la etiqueta se imprimia encima del logo.
-  expect_gte(L$y_log_rows - (filas - 1L) * paso, L$y_log_floor)
+  expect_gte(res$item$y_top - 0.028 - (filas - 1L) * paso, banda_floor)
 })
 
 test_that("un registro mas largo que su banda se recorta con aviso, no se desborda", {
@@ -282,11 +334,22 @@ test_that("un registro mas largo que su banda se recorta con aviso, no se desbor
   template$pages[[1]]$blocks[[bloque]]$labels <- as.list(c(collection_material_application_log_labels(), "Observaciones:"))
   template$template_sha256 <- NULL
   template$template_sha256 <- collection_fingerprint(template)
-
-  L <- .crf_layout()
-  capacidad <- max(1L, as.integer(floor((L$y_log_rows - L$y_log_floor) / L$log_row_step_min)) + 1L)
-  expect_gt(6L, capacidad)
   expect_true(collection_material_template_validate(template)$ok)
+
+  # 6 filas contra la banda real que le toca en el plan de flujo (compite con
+  # el field_grid de la misma hoja, no una banda propia fija).
+  res <- .crf_log_plan_item(template)
+  capacidad <- max(1L, as.integer(floor(max(0, res$item$height - 0.028) / res$L$log_row_step_min)) + 1L)
+  rendered <- collection_material_render_compiled(
+    .crf_render_test_compiled(template), tempfile(fileext = ".pdf"), device = "pdf"
+  )
+  overflow <- Filter(function(w) identical(w$code, "application_log_overflow"), rendered$warnings)
+  if (6L > capacidad) {
+    expect_length(overflow, 1L)
+    expect_lt(overflow[[1]]$visible_rows, 6L)
+  } else {
+    expect_length(overflow, 0L)
+  }
 })
 
 test_that("labels de mas que renglones no pasa la validacion", {
@@ -352,4 +415,112 @@ test_that("un enlace que encogiera el modulo por debajo del umbral se detecta", 
   # aserto de arriba no esta pasando por vacio.
   gigante <- paste0("https://ee.example.test/x/aB3xY9kQ?d%5BcollectorID%5D=", strrep("x", 1200L))
   expect_lt(.crf_mm_por_modulo(gigante), 0.6)
+})
+
+# --- El orden de los bloques es funcional, no cosmetico ----------------------
+# Antes cada tipo de bloque tenia una `y` fija en `.crf_layout()`: reordenar en
+# el editor de Materiales no cambiaba nada en el PDF. Esto prueba que mover un
+# bloque en el array de la plantilla mueve de verdad su posicion en la hoja.
+
+.crf_reorder_blocks <- function(template, before_id, after_id) {
+  blocks <- template$pages[[1]]$blocks
+  ids <- vapply(blocks, function(b) b$block_id, character(1))
+  bloque <- blocks[[which(ids == before_id)]]
+  sin_bloque <- blocks[ids != before_id]
+  ids_sin <- vapply(sin_bloque, function(b) b$block_id, character(1))
+  destino <- which(ids_sin == after_id)
+  template$pages[[1]]$blocks <- append(sin_bloque, list(bloque), after = destino)
+  template$template_sha256 <- NULL
+  template$template_sha256 <- collection_fingerprint(template)
+  template
+}
+
+test_that("subir 'Instrucciones' antes del grid en el array lo sube de verdad en la hoja", {
+  original <- collection_material_builtin_template()
+  ids_original <- vapply(original$pages[[1]]$blocks, function(b) b$block_id, character(1))
+  expect_lt(which(ids_original == "details"), which(ids_original == "instructions"))
+
+  reordenada <- .crf_reorder_blocks(original, before_id = "instructions", after_id = "unit")
+  ids_nuevo <- vapply(reordenada$pages[[1]]$blocks, function(b) b$block_id, character(1))
+  expect_lt(which(ids_nuevo == "instructions"), which(ids_nuevo == "details"))
+
+  plan_original <- .crf_grid_plan_item(original)
+  instr_original <- Find(
+    function(it) identical(it$block_id, "instructions"),
+    .crf_flow_plan(
+      .crf_render_test_compiled(original)$pages[[1]]$blocks, plan_original$L,
+      pulso_pdf_type(), pulso_pdf_geo("portrait")
+    )$items
+  )
+  # En el orden original el grid ("details") va arriba de las instrucciones.
+  expect_gt(plan_original$item$y_top, instr_original$y_top)
+
+  plan_reordenada <- .crf_grid_plan_item(reordenada)
+  instr_reordenada <- Find(
+    function(it) identical(it$block_id, "instructions"),
+    .crf_flow_plan(
+      .crf_render_test_compiled(reordenada)$pages[[1]]$blocks, plan_reordenada$L,
+      pulso_pdf_type(), pulso_pdf_geo("portrait")
+    )$items
+  )
+  # Reordenado, las instrucciones deben quedar ARRIBA del grid: el mismo
+  # cambio en el array invierte la posicion real en la pagina.
+  expect_gt(instr_reordenada$y_top, plan_reordenada$item$y_top)
+
+  # Y el render real no truena con el nuevo orden.
+  rendered <- collection_material_render_compiled(
+    .crf_render_test_compiled(reordenada), tempfile(fileext = ".pdf"), device = "pdf"
+  )
+  expect_type(rendered$warnings, "list")
+})
+
+# --- El bloque "Separador" dibuja algo, no es un tipo inerte -----------------
+
+.crf_greyscale <- function(path) {
+  img <- png::readPNG(path)
+  if (length(dim(img)) == 3L) img[, , 1] else img
+}
+
+test_that("el bloque divider deja una linea de tinta en su banda", {
+  skip_if_not_installed("png")
+  template <- collection_material_builtin_template()
+  compiled <- .crf_render_test_compiled(template)
+  page <- compiled$pages[[1]]
+  L <- .crf_layout(branded = FALSE)
+  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  divider_item <- Find(function(it) identical(it$type, "divider"), plan$items)
+  expect_false(is.null(divider_item))
+
+  dir <- tempfile("crf-divider-"); dir.create(dir)
+  png_path <- file.path(dir, "divider.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .crf_greyscale(png_path)
+  y <- divider_item$y_top - divider_item$height * 0.5
+  fila <- round((1 - y) * nrow(g))
+  banda <- g[max(1L, fila - 3L):min(nrow(g), fila + 3L), , drop = FALSE]
+  # El hairline es #d0d5dd (~0.82 de gris): un umbral claro basta para
+  # distinguirlo del blanco de fondo sin confundirse con texto negro cercano.
+  expect_true(any(banda < 0.93))
+})
+
+test_that("quitar el divider del array no deja una linea fantasma en su lugar", {
+  skip_if_not_installed("png")
+  template <- collection_material_builtin_template()
+  blocks <- template$pages[[1]]$blocks
+  ids <- vapply(blocks, function(b) b$block_id, character(1))
+  template$pages[[1]]$blocks <- blocks[ids != "rule"]
+  template$template_sha256 <- NULL
+  template$template_sha256 <- collection_fingerprint(template)
+
+  compiled <- .crf_render_test_compiled(template)
+  page <- compiled$pages[[1]]
+  L <- .crf_layout(branded = FALSE)
+  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  expect_null(Find(function(it) identical(it$type, "divider"), plan$items))
+
+  rendered <- collection_material_render_compiled(
+    compiled, tempfile(fileext = ".pdf"), device = "pdf"
+  )
+  expect_type(rendered$warnings, "list")
 })

@@ -119,6 +119,23 @@
   white-space: nowrap;
 }
 
+.rec-outline-item {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+.rec-outline-item > button {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rec-outline-reorder {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+}
+
 .rec-canvas-wrap {
   background: var(--pulso-bg);
   padding: 18px;

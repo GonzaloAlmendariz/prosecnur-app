@@ -21,6 +21,8 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
   Archive,
+  ChevronDown,
+  ChevronUp,
   Download,
   FileText,
   Image,
@@ -267,6 +269,18 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     setSelectedId(next[0]?.block_id ?? "");
   };
 
+  // El orden del array es lo que el motor usa para apilar los bloques en la
+  // hoja (api/R/collection_render_ficha.R, `.crf_flow_plan`): mover un bloque
+  // acá mueve de verdad su posición en el PDF, no solo en esta lista.
+  const moveBlock = (blockId: string, direction: -1 | 1) => {
+    const index = blocks.findIndex((block) => block.block_id === blockId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= blocks.length) return;
+    const next = [...blocks];
+    [next[index], next[target]] = [next[target], next[index]];
+    commit({ ...template, pages: [{ ...template.pages[0], blocks: next }, ...template.pages.slice(1)] });
+  };
+
   const saveTemplate = async () => {
     if (!payload) return;
     setSaving(true);
@@ -405,7 +419,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       <aside className="rec-outline" aria-label="Estructura de bloques">
         <header><span>Outline</span><strong>{blocks.length} bloques</strong></header>
         <ol>{blocks.map((block, index) => (
-          <li key={block.block_id}>
+          <li key={block.block_id} className="rec-outline-item">
             <button
               type="button"
               className={selected?.block_id === block.block_id ? "is-selected" : ""}
@@ -414,6 +428,18 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             >
               <span>{index + 1}</span><div><strong>{BLOCK_LABELS[block.type]}</strong><small>{block.block_id}</small></div>
             </button>
+            <div className="rec-outline-reorder">
+              <PulsoButton
+                variant="icon" size="sm" aria-label={`Subir ${BLOCK_LABELS[block.type]}`}
+                title="Subir un lugar" disabled={index === 0}
+                onClick={() => moveBlock(block.block_id, -1)}
+              ><ChevronUp size={14} /></PulsoButton>
+              <PulsoButton
+                variant="icon" size="sm" aria-label={`Bajar ${BLOCK_LABELS[block.type]}`}
+                title="Bajar un lugar" disabled={index === blocks.length - 1}
+                onClick={() => moveBlock(block.block_id, 1)}
+              ><ChevronDown size={14} /></PulsoButton>
+            </div>
           </li>
         ))}</ol>
       </aside>

@@ -142,7 +142,13 @@ test_that("las lineas para llenar a mano no invaden la columna del QR", {
 
   g <- .cfm_grey(path)
   L <- prosecnurapp:::.crf_layout(branded = TRUE)
-  fila <- round((1 - (L$y_rows_top - 0.004)) * nrow(g))
+  # El grid ya no vive en una `y` fija: su banda sale del plan de flujo, que
+  # depende de cuanto ocupen los bloques que lo preceden en el orden real.
+  plan <- prosecnurapp:::.crf_flow_plan(
+    compiled$pages[[1]]$blocks, L, prosecnurapp:::pulso_pdf_type(), prosecnurapp:::pulso_pdf_geo("portrait")
+  )
+  grid_item <- Find(function(it) identical(it$type, "field_grid"), plan$items)
+  fila <- round((1 - (grid_item$y_top - 0.004)) * nrow(g))
   tramo <- g[max(1L, fila - 2L):min(nrow(g), fila + 2L), , drop = FALSE]
 
   # Umbral claro a proposito: la linea es un hairline #d0d5dd (~0.82 de gris).
@@ -163,8 +169,13 @@ test_that("las lineas para llenar a mano no invaden la columna del QR", {
 })
 
 test_that("mas filas de las que caben se recortan con aviso en vez de pisar el enlace", {
+  # La capacidad ya no sale de una banda fija: la reparte el plan de flujo
+  # contra los demas bloques presentes. 30 campos en blanco es mas de lo que
+  # cabe en cualquier reparto razonable de la hoja -no es un numero elegido
+  # para acertarle a la banda vieja, es "imposible" a proposito.
   dir <- tempfile("cfm-over-"); dir.create(dir)
-  campos <- lapply(seq_len(9L), function(i) list(label = sprintf("Campo %d", i), blank = TRUE))
+  n_campos <- 30L
+  campos <- lapply(seq_len(n_campos), function(i) list(label = sprintf("Campo %d", i), blank = TRUE))
   compiled <- .cfm_compiled(collection_material_branded_sheet_template(
     assets = "logo-uno", fields = campos
   ))
@@ -174,8 +185,8 @@ test_that("mas filas de las que caben se recortan con aviso en vez de pisar el e
   )
   overflow <- Filter(function(w) identical(w$code, "field_grid_overflow"), rendered$warnings)
   expect_length(overflow, 1L)
-  expect_identical(overflow[[1]]$rows, 9L)
-  expect_lt(overflow[[1]]$visible_rows, 9L)
+  expect_identical(overflow[[1]]$rows, n_campos)
+  expect_lt(overflow[[1]]$visible_rows, n_campos)
 })
 
 test_that("la ficha con careta conserva el QR releible y el enlace clicable", {

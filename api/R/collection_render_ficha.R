@@ -448,6 +448,111 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   invisible(NULL)
 }
 
+# Convierte el ORDEN de los bloques de contenido en posiciones verticales
+# reales, en vez de que cada tipo tenga una `y` fija en `.crf_layout()`.
+# Antes reordenar en el editor no cambiaba nada en el PDF (era cosmetico);
+# esto mide cuanto ocupa cada bloque presente y los apila de arriba a abajo
+# en el orden en que aparecen en `page$blocks`. Separado de dibujar para que
+# se pueda probar sin abrir un device grid.
+#
+# El QR se queda anclado arriba a la derecha -no es parte del flujo: moverlo
+# libremente exige evitar colisiones en dos ejes, un problema distinto al que
+# pide este cambio-. Los bloques cuya banda cae dentro de su altura usan el
+# ancho angosto ya usado por el grid (`row_right`); mas abajo, ancho completo.
+# El enlace tampoco es un bloque del catalogo -no aparece en el editor, no se
+# puede reordenar- asi que se ancla justo debajo del ultimo `field_grid` (o
+# del `body` si no hay grid) para que la hoja siga leyendose de arriba a abajo
+# pase lo que pase con el orden de los demas bloques.
+.crf_flow_plan <- function(blocks, L, type, geo) {
+  flow_types <- c("body", "field_grid", "divider", "instructions", "application_log")
+  items <- Filter(function(b) b$type %in% flow_types, blocks %||% list())
+  gap <- 0.018
+  link_h <- 0.085
+  row_right <- min(L$x_right, L$qr_x - L$qr_side * 0.60 - 0.02)
+  qr_outer_h <- (L$qr_side * 1.20 * geo$page_w) / geo$page_h
+  qr_bottom <- L$qr_y - qr_outer_h / 2
+  flow_top <- L$y_title
+  flow_floor <- L$y_log_floor
+
+  fixed_h <- function(b) {
+    if (identical(b$type, "body")) {
+      n <- length(b$lines %||% list())
+      if (n == 0L) return(0)
+      return(n * (type$section * 1.15 / 72) / geo$page_h + 0.012)
+    }
+    if (identical(b$type, "divider")) return(0.020)
+    if (identical(b$type, "instructions")) {
+      n <- length(b$lines %||% list())
+      if (n == 0L) return(0)
+      return(n * (type$body * 1.12 / 72) / geo$page_h + 0.010)
+    }
+    0
+  }
+  nat_h <- function(b) {
+    if (identical(b$type, "field_grid")) {
+      n <- length(b$rows %||% list())
+      return(if (n > 1L) (n - 1L) * L$row_step else L$row_step * 0.6)
+    }
+    if (identical(b$type, "application_log")) {
+      n <- as.integer(b$rows %||% 3L)
+      return(if (n > 1L) (n - 1L) * L$log_row_step else L$log_row_step * 0.6)
+    }
+    0
+  }
+
+  n_items <- length(items)
+  gap_total <- if (n_items > 1L) (n_items - 1L) * gap else 0
+  fixed_total <- sum(vapply(items, fixed_h, numeric(1)))
+  # `+ gap` aparte del enlace: `place_link()` siempre deja su propio gap de
+  # salida (ver mas abajo), y ese gap no es uno de los `n_items - 1` que ya
+  # cuenta `gap_total`. Sin este termino el presupuesto quedaba corto en
+  # exactamente un gap y el registro de aplicacion se pasaba del piso de la
+  # pagina, escribiendo encima del pie -medido con un render real, no a ojo.
+  available <- max(0, (flow_top - flow_floor) - fixed_total - gap_total - link_h - gap)
+
+  elastic <- Filter(function(b) b$type %in% c("field_grid", "application_log"), items)
+  nat_sum <- sum(vapply(elastic, nat_h, numeric(1)))
+  elastic_h <- list()
+  for (b in elastic) {
+    share <- if (nat_sum > 0) available * nat_h(b) / nat_sum else available / length(elastic)
+    elastic_h[[b$block_id]] <- max(0, share)
+  }
+
+  grid_ids <- vapply(Filter(function(b) identical(b$type, "field_grid"), items), function(b) b$block_id, character(1))
+  body_ids <- vapply(Filter(function(b) identical(b$type, "body"), items), function(b) b$block_id, character(1))
+  link_after <- if (length(grid_ids)) grid_ids[[length(grid_ids)]] else if (length(body_ids)) body_ids[[1]] else NA_character_
+
+  plan <- list()
+  cursor <- flow_top
+  place_link <- function() {
+    right_edge <- if (cursor > qr_bottom) row_right else L$x_right
+    plan[[length(plan) + 1L]] <<- list(
+      block_id = ".link", type = "link", y_top = cursor, height = link_h, right_edge = right_edge
+    )
+    cursor <<- cursor - link_h - gap
+  }
+  if (is.na(link_after)) place_link()
+  for (b in items) {
+    h <- if (b$type %in% c("field_grid", "application_log")) elastic_h[[b$block_id]] %||% 0 else fixed_h(b)
+    right_edge <- if (cursor > qr_bottom) row_right else L$x_right
+    plan[[length(plan) + 1L]] <- list(
+      block_id = b$block_id, type = b$type, y_top = cursor, height = h, right_edge = right_edge
+    )
+    cursor <- cursor - h - gap
+    if (!is.na(link_after) && identical(b$block_id, link_after)) place_link()
+  }
+  list(items = plan, row_right = row_right, qr_bottom = qr_bottom)
+}
+
+# Ancho de linea proporcional al espacio real disponible. Los bloques de texto
+# libre (`instructions`, el enlace) se calibraron a mano contra el ancho
+# completo de la hoja; si el orden los deja en la banda angosta junto al QR
+# hay que encoger el wrap en la misma proporcion o el texto invade el simbolo.
+.crf_flow_chars <- function(right_edge, x_left, full_chars, full_span = 0.85) {
+  span <- max(0.05, right_edge - x_left)
+  max(14L, as.integer(round(full_chars * span / full_span)))
+}
+
 #' Dibuja una pagina con el layout `single_sheet` (ficha de aplicacion).
 #'
 #' @param page pagina de `collection_material_compile`.
@@ -464,11 +569,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   brand <- .crf_block(page, "brand_strip")
   L <- .crf_layout(branded = !is.null(brand))
   heading <- .crf_block(page, "heading")
-  body <- .crf_block(page, "body")
   qr <- .crf_block(page, "access_qr")
-  fields <- .crf_block(page, "field_grid")
-  instructions <- .crf_block(page, "instructions")
-  log_block <- .crf_block(page, "application_log")
   footer <- .crf_block(page, "footer")
   tag <- .crf_block(page, "status_tag")
   warnings <- list()
@@ -517,112 +618,128 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
     }
   }
 
-  .crf_draw_lines(
-    body$lines %||% .crf_wrap(page$unit$course_name, 38L, 3L),
-    L$x_left, L$y_title, grid::gpar(col = tokens$navy, fontsize = type$section, fontface = "bold")
-  )
-
-  rows <- fields$rows %||% list()
-  # El grid vive a la izquierda del QR, asi que una fila no puede invadir su
-  # columna: el ancho util termina donde empieza el recuadro del simbolo.
-  row_right <- min(L$x_right, L$qr_x - L$qr_side * 0.60 - 0.02)
-  # Capacidad real de la banda: por debajo empieza el bloque del enlace. Una
-  # fila de mas no se "aprieta" indefinidamente, pisa el enlace, asi que por
-  # debajo de `row_step_min` se recorta y se avisa.
-  band <- L$y_rows_top - (L$y_link + 0.055)
-  max_rows <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
-  if (length(rows) > max_rows) {
-    warnings[[length(warnings) + 1L]] <- list(
-      code = "field_grid_overflow", page = page_no,
-      rows = length(rows), visible_rows = max_rows
-    )
-    rows <- rows[seq_len(max_rows)]
-  }
-  # Pocas filas no se apelotonan arriba dejando un hueco antes del enlace: se
-  # reparten la banda hasta el paso maximo. Medido sobre el PNG, ese hueco era
-  # la franja muerta mas grande de la hoja.
-  row_step <- if (length(rows) > 1L) min(L$row_step, band / (length(rows) - 1L)) else 0
-  for (i in seq_along(rows)) {
-    y <- L$y_rows_top - (i - 1L) * row_step
-    grid::grid.text(
-      .crf_txt(rows[[i]]$label, "Dato"), x = L$x_left, y = y,
-      just = "left", default.units = "npc",
-      gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
-    )
-    if (isTRUE(rows[[i]]$blank)) {
-      pulso_pdf_hairline(L$x_left + L$label_w, row_right, y - 0.004, tokens = tokens, lwd = 0.5)
-      next
-    }
-    .crf_draw_lines(
-      rows[[i]]$lines %||% .crf_wrap(rows[[i]]$value, 31L, 2L),
-      L$x_left + L$label_w, y + 0.008,
-      grid::gpar(col = tokens$ink, fontsize = type$body), lineheight = 1.05
-    )
-  }
-
-  pulso_pdf_hairline(L$x_left, L$x_right, L$y_link + 0.045, tokens = tokens)
-  grid::grid.text(
-    "Enlace de la encuesta", x = L$x_left, y = L$y_link + 0.022,
-    just = "left", default.units = "npc",
-    gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
-  )
-  payload <- .crf_txt(page$access$qr_payload, "")
-  link_size <- max(6.5, type$code - 0.5)
-  link_lines <- .crf_wrap(payload, width = 92L, max_lines = 3L)
-  if (!length(link_lines)) link_lines <- "Pendiente de generar"
-  .crf_draw_lines(
-    link_lines, L$x_left, L$y_link,
-    grid::gpar(col = tokens$navy, fontsize = link_size), lineheight = 1.05
-  )
+  plan <- .crf_flow_plan(page$blocks, L, type, geo)
   links <- list()
-  if (nzchar(payload)) {
-    link_h <- length(link_lines) * (link_size * 1.05 / 72) / geo$page_h
-    links[[1]] <- list(
-      page = page_no, url = payload, kind = "printed_url",
-      x0 = L$x_left, x1 = L$x_right,
-      y0 = L$y_link - link_h, y1 = L$y_link + 0.006
-    )
-  }
+  payload <- .crf_txt(page$access$qr_payload, "")
 
-  if (!is.null(instructions)) {
-    .crf_draw_lines(
-      instructions$lines %||% .crf_wrap(instructions$value, 75L, 4L),
-      L$x_left, L$y_instructions, grid::gpar(col = tokens$soft, fontsize = type$body), lineheight = 1.12
-    )
-  }
-
-  if (!is.null(log_block)) {
-    rows_n <- as.integer(log_block$rows %||% 3L)
-    grid::grid.text(
-      .crf_txt(log_block$text, "Registro de aplicacion"), x = L$x_left, y = L$y_log_title,
-      just = "left", default.units = "npc",
-      gp = grid::gpar(col = tokens$navy, fontsize = type$caption, fontface = "bold")
-    )
-    y0 <- L$y_log_rows
-    etiquetas <- as.character(unlist(log_block$labels %||% list(), use.names = FALSE))
-    banda_log <- L$y_log_rows - L$y_log_floor
-    max_log <- max(1L, as.integer(floor(banda_log / L$log_row_step_min)) + 1L)
-    if (rows_n > max_log) {
-      warnings[[length(warnings) + 1L]] <- list(
-        code = "application_log_overflow", page = page_no,
-        rows = rows_n, visible_rows = max_log
+  for (item in plan$items) {
+    if (identical(item$type, "body")) {
+      block <- .crf_block(page, "body")
+      .crf_draw_lines(
+        block$lines %||% .crf_wrap(page$unit$course_name, 38L, 3L),
+        L$x_left, item$y_top, grid::gpar(col = tokens$navy, fontsize = type$section, fontface = "bold")
       )
-      rows_n <- max_log
-    }
-    log_step <- if (rows_n > 1L) min(L$log_row_step, banda_log / (rows_n - 1L)) else 0
-    for (i in seq_len(rows_n)) {
-      y <- y0 - (i - 1L) * log_step
-      # Con etiqueta, la linea dice que anotar y empieza donde termina el texto.
-      # Sin ella cae al ordinal de siempre, que no compromete a nada.
-      etiqueta <- if (i <= length(etiquetas)) etiquetas[[i]] else ""
-      con_etiqueta <- nzchar(etiqueta)
+    } else if (identical(item$type, "divider")) {
+      pulso_pdf_hairline(L$x_left, item$right_edge, item$y_top - item$height * 0.5, tokens = tokens)
+    } else if (identical(item$type, "field_grid")) {
+      fields <- .crf_block(page, "field_grid")
+      rows <- fields$rows %||% list()
+      row_right <- item$right_edge
+      band <- item$height
+      # Capacidad real de la banda que le toco por orden. Una fila de mas no
+      # se "aprieta" indefinidamente: por debajo de `row_step_min` se recorta
+      # y se avisa, igual que antes.
+      max_rows <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
+      if (length(rows) > max_rows) {
+        warnings[[length(warnings) + 1L]] <- list(
+          code = "field_grid_overflow", page = page_no,
+          rows = length(rows), visible_rows = max_rows
+        )
+        rows <- rows[seq_len(max_rows)]
+      }
+      row_step <- if (length(rows) > 1L) min(L$row_step, band / (length(rows) - 1L)) else 0
+      for (i in seq_along(rows)) {
+        y <- item$y_top - (i - 1L) * row_step
+        grid::grid.text(
+          .crf_txt(rows[[i]]$label, "Dato"), x = L$x_left, y = y,
+          just = "left", default.units = "npc",
+          gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
+        )
+        if (isTRUE(rows[[i]]$blank)) {
+          pulso_pdf_hairline(L$x_left + L$label_w, row_right, y - 0.004, tokens = tokens, lwd = 0.5)
+          next
+        }
+        .crf_draw_lines(
+          rows[[i]]$lines %||% .crf_wrap(rows[[i]]$value, 31L, 2L),
+          L$x_left + L$label_w, y + 0.008,
+          grid::gpar(col = tokens$ink, fontsize = type$body), lineheight = 1.05
+        )
+      }
+    } else if (identical(item$type, "instructions")) {
+      block <- .crf_block(page, "instructions")
+      chars <- .crf_flow_chars(item$right_edge, L$x_left, 75L)
+      lines <- if (identical(item$right_edge, L$x_right)) {
+        block$lines %||% .crf_wrap(block$value, chars, 4L)
+      } else {
+        .crf_wrap(block$value, chars, block$max_lines %||% 4L)
+      }
+      .crf_draw_lines(
+        lines, L$x_left, item$y_top,
+        grid::gpar(col = tokens$soft, fontsize = type$body), lineheight = 1.12
+      )
+    } else if (identical(item$type, "application_log")) {
+      log_block <- .crf_block(page, "application_log")
+      rows_n <- as.integer(log_block$rows %||% 3L)
       grid::grid.text(
-        if (con_etiqueta) etiqueta else sprintf("%d", i),
-        x = L$x_left, y = y, just = "left", default.units = "npc",
-        gp = grid::gpar(col = if (con_etiqueta) tokens$soft else tokens$faint, fontsize = type$caption)
+        .crf_txt(log_block$text, "Registro de aplicacion"), x = L$x_left, y = item$y_top,
+        just = "left", default.units = "npc",
+        gp = grid::gpar(col = tokens$navy, fontsize = type$caption, fontface = "bold")
       )
-      inicio <- if (con_etiqueta) L$x_left + L$log_label_w else L$x_left + 0.03
-      pulso_pdf_hairline(inicio, L$x_right, y - 0.006, tokens = tokens, lwd = 0.5)
+      y0 <- item$y_top - 0.028
+      etiquetas <- as.character(unlist(log_block$labels %||% list(), use.names = FALSE))
+      banda_log <- max(0, item$height - 0.028)
+      max_log <- max(1L, as.integer(floor(banda_log / L$log_row_step_min)) + 1L)
+      if (rows_n > max_log) {
+        warnings[[length(warnings) + 1L]] <- list(
+          code = "application_log_overflow", page = page_no,
+          rows = rows_n, visible_rows = max_log
+        )
+        rows_n <- max_log
+      }
+      log_step <- if (rows_n > 1L) min(L$log_row_step, banda_log / (rows_n - 1L)) else 0
+      for (i in seq_len(rows_n)) {
+        y <- y0 - (i - 1L) * log_step
+        # Con etiqueta, la linea dice que anotar y empieza donde termina el texto.
+        # Sin ella cae al ordinal de siempre, que no compromete a nada.
+        etiqueta <- if (i <= length(etiquetas)) etiquetas[[i]] else ""
+        con_etiqueta <- nzchar(etiqueta)
+        grid::grid.text(
+          if (con_etiqueta) etiqueta else sprintf("%d", i),
+          x = L$x_left, y = y, just = "left", default.units = "npc",
+          gp = grid::gpar(col = if (con_etiqueta) tokens$soft else tokens$faint, fontsize = type$caption)
+        )
+        inicio <- if (con_etiqueta) L$x_left + L$log_label_w else L$x_left + 0.03
+        pulso_pdf_hairline(inicio, item$right_edge, y - 0.006, tokens = tokens, lwd = 0.5)
+      }
+    } else if (identical(item$type, "link")) {
+      # `item$y_top` es el punto mas alto que ocupa el bloque -igual que
+      # cualquier otro item del flujo-, asi que todo se ancla HACIA ABAJO de
+      # el. La version vieja dibujaba la regla y la etiqueta ARRIBA de su
+      # anclaje (`y_link + 0.045`); eso invadia la banda del bloque anterior
+      # en cuanto el anclaje dejo de ser una `y` fija con aire regalado encima.
+      pulso_pdf_hairline(L$x_left, item$right_edge, item$y_top, tokens = tokens)
+      grid::grid.text(
+        "Enlace de la encuesta", x = L$x_left, y = item$y_top - 0.023,
+        just = "left", default.units = "npc",
+        gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
+      )
+      link_size <- max(6.5, type$code - 0.5)
+      chars <- .crf_flow_chars(item$right_edge, L$x_left, 92L)
+      link_lines <- .crf_wrap(payload, width = chars, max_lines = 3L)
+      if (!length(link_lines)) link_lines <- "Pendiente de generar"
+      text_top <- item$y_top - 0.045
+      .crf_draw_lines(
+        link_lines, L$x_left, text_top,
+        grid::gpar(col = tokens$navy, fontsize = link_size), lineheight = 1.05
+      )
+      if (nzchar(payload)) {
+        link_h <- length(link_lines) * (link_size * 1.05 / 72) / geo$page_h
+        links[[length(links) + 1L]] <- list(
+          page = page_no, url = payload, kind = "printed_url",
+          x0 = L$x_left, x1 = item$right_edge,
+          y0 = text_top - link_h, y1 = text_top + 0.006
+        )
+      }
     }
   }
 
