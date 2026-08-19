@@ -131,3 +131,45 @@ test_that("el normalizador tira los filtros incompletos y corta en CUATRO", {
   expect_length(fs, 4L)
   expect_identical(vapply(fs, function(f) f$var, character(1)), c("v1", "v2", "v3", "v4"))
 })
+
+test_that("UN SOLO `valid_filters` ya filtra: no cae al camino viejo", {
+  # El defecto salio haciendo el ciclo entero desde la pantalla: se guardaba
+  # «sexo = F», las validas seguian siendo 3 700 y no habia error. El motor
+  # exigia MAS DE UNO para aplicar `valid_filters` y con uno se iba por
+  # `status_var`, que en ese estudio esta vacio, asi que contaba todo.
+  #
+  # No lo veian los tests porque el caso de «un filtro» se probaba con
+  # `status_var`, que es el camino viejo.
+  cfg <- list(source_mapping = list(valid_filters = list(
+    list(var = "consentimiento", values = "si")
+  )))
+  ok <- prosecnurapp:::.monitoreo_aulas_valid_response(.mafv_base(), cfg)
+  expect_identical(sum(ok), 4L)
+  expect_true(sum(ok) < nrow(.mafv_base()))
+
+  crit <- monitoreo_aulas_criterio_validez(.mafv_base(), cfg)
+  expect_identical(crit$modo, "por_filtros")
+  expect_identical(crit$validas, 4L)
+  # Y con uno solo la frase no dice «1 condiciones».
+  expect_true(grepl("consentimiento", monitoreo_aulas_criterio_texto(crit), fixed = TRUE))
+  expect_false(grepl("1 condiciones", monitoreo_aulas_criterio_texto(crit), fixed = TRUE))
+})
+
+test_that("los filtros sobreviven aunque lleguen como DATA.FRAME desde el JSON", {
+  # `jsonlite` convierte un array de objetos en un data.frame, no en una lista:
+  # iterando con `for (f in crudos)` se recorren las COLUMNAS y se descarta todo
+  # **en silencio**. El sintoma exacto que salio en pantalla: el POST devuelve
+  # 200, la clave aparece en la config y su valor es `[]`.
+  como_json <- data.frame(var = c("estado", "consentimiento"), stringsAsFactors = FALSE)
+  como_json$values <- list("completa", "si")
+
+  cfg <- monitoreo_aulas_normalize_config(list(source_mapping = list(valid_filters = como_json)))
+  fs <- cfg$source_mapping$valid_filters
+  expect_length(fs, 2L)
+  expect_identical(fs[[1]]$var, "estado")
+  expect_identical(unlist(fs[[2]]$values), "si")
+
+  # Y filtran de verdad, que es lo que se estaba perdiendo.
+  ok <- prosecnurapp:::.monitoreo_aulas_valid_response(.mafv_base(), cfg)
+  expect_identical(sum(ok), 3L)
+})
