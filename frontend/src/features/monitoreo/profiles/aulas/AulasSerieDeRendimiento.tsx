@@ -292,6 +292,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     puntos: Array<{ x: number; y: number; inferido: boolean; lineas: string[] }>;
     cubiertasPorSexo: number | null;
     conseguidasEnTotal: number;
+    cruce: { x: number; y: number; fecha: string; inferido: boolean } | null;
     inferido: string; lectura: string;
     series: Array<{ sexo: string; color: string; meta: number; conseguidas: number; faltan: number; alcanza: boolean; obs: string; inf: string }>;
     repartoObservado: boolean;
@@ -472,6 +473,18 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       // que el total, las dos líneas de sexo NO suman la verde y hay que decirlo.
       cubiertasPorSexo: hayLibroPorSexo ? cubiertas : null,
       conseguidasEnTotal: Math.round(ultimo),
+      cruce: (() => {
+        if (meta <= 0) return null;
+        // Primero en lo YA conseguido: si la meta se paso, no hay nada que
+        // pronosticar y la marca dice cuando se paso.
+        const iObs = observadas.findIndex((v) => v >= meta);
+        if (iObs >= 0) {
+          return { x: xa(iObs), y: yy(observadas[iObs]), fecha: aplicadas[iObs], inferido: false };
+        }
+        const iInf = proyectadas.findIndex((v) => v >= meta);
+        if (iInf < 0) return null;
+        return { x: xp(iInf), y: yy(proyectadas[iInf]), fecha: porVenir[iInf], inferido: true };
+      })(),
       // Un punto por dia sobre la linea del total. Gonzalo: «el acumulado por dia
       // no tiene hover cuando el dia a dia si». Cada uno dice cuanto se lleva,
       // cuanto falta para la meta y —cuando el libro lo declara— el reparto.
@@ -737,6 +750,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             ) : null}
             {pista ? (
               <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
+            ) : null}
+            {acumulado.cruce ? (
+              <span
+                className={`aulas-serie-cruce${acumulado.cruce.inferido ? " es-inferido" : ""}`}
+                style={{ left: `${acumulado.cruce.x}%`, top: `${acumulado.cruce.y}%` }}
+              >
+                {acumulado.cruce.inferido ? "llegaría el " : "meta alcanzada el "}
+                <b>{dm(acumulado.cruce.fecha)}</b>
+              </span>
             ) : null}
             {acumulado.puntos.map((pt, i) => (
               <span key={`acum-${i}`}

@@ -30,6 +30,18 @@ if (is.na(destino) || !nzchar(destino)) {
 # banco de pruebas. Las tablas de 196 filas son donde el recorte de columnas y el
 # reparto de alto se ponen a prueba; con nueve no se ve nada de eso.
 ESCALA_2025 <- any(args == "--escala") && any(args == "2025")
+# Cuantos dias de campo por delante cubre la agenda.
+#
+# Gonzalo dio DOS cifras y no se contradicen: **la norma son 4 a 6 dias** —«se
+# agendan varios dias de antelacion, de 4 a 6 dias»— y el caso que quiere VER es
+# **dos semanas y un par de dias mas** —«¿como se veria tener [muchos] dias
+# agendados donde solo podemos preveer, pero ya tenemos informacion sobre 10 dias
+# de aplicacion? Eso es lo rico de este grafico»—.
+#
+# El fixture por defecto siembra la NORMA, que es lo que un lector debe encontrar
+# al abrirlo; el escenario largo entra con `--agenda-larga` para poder mirarlo sin
+# volver irreal el caso normal.
+DIAS_DE_AGENDA <- if (any(args == "--agenda-larga")) 14L else 5L
 
 # El modo pequeño —sin `--escala 2025`— NO esta implementado entero: `partes`,
 # `asistentes_del_parte` y `data` solo se construyen dentro de la rama grande, y
@@ -371,8 +383,8 @@ if (ESCALA_2025) {
   # entero y no quedaba nada por aplicar. Es la decima vez en este loop que el
   # fixture decide lo que se puede ver.
   #
-  # Se apartan una de cada nueve y se reparten en los CINCO dias de campo que
-  # siguen al ultimo con parte, sin dejar ningun dia en medio: Gonzalo, «se
+  # Se apartan una de cada nueve y se reparten en los `DIAS_DE_AGENDA` dias de
+  # campo que siguen al ultimo con parte, sin dejar ningun dia en medio: Gonzalo, «se
   # agendan varios dias de antelacion, de 4 a 6 dias». Antes arrancaba el 24/08
   # con el ultimo parte el 20/08, asi que el grafico enseñaba tres dias vacios
   # seguidos y parecia que el operativo se paraba —era el fixture, no el campo—.
@@ -383,7 +395,7 @@ if (ESCALA_2025) {
   for (k in seq_along(por_venir_i)) {
     j <- por_venir_i[[k]]
     codigo <- as.character(aplicadas_todas[[j]]$operational_code)
-    nueva <- dia_de_campo(9L + 1L + ((k - 1L) %% 5L))
+    nueva <- dia_de_campo(9L + 1L + ((k - 1L) %% DIAS_DE_AGENDA))
     for (m in seq_along(plan)) {
       if (identical(as.character(plan[[m]]$operational_code), codigo)) {
         plan[[m]]$scheduled_date <- nueva

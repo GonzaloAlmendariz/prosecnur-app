@@ -254,3 +254,58 @@ describe("el eje X es un calendario, no una lista de días con datos", () => {
     expect(html).toContain("es-vacio");
   });
 });
+
+describe("el acumulado dice CUÁNDO se llega a la meta", () => {
+  /** Cuatro días aplicados y seis agendados: la meta cae en lo agendado. */
+  function conMetaPorDelante() {
+    const partes = [
+      aplicada("2026-08-10", 20, "A1"), aplicada("2026-08-11", 20, "A2"),
+      aplicada("2026-08-12", 20, "A3"), aplicada("2026-08-13", 20, "A4"),
+    ];
+    const plan = [
+      // El plan espera 40 por aula visitada: la meta de lo visitado son 160,
+      // y lo conseguido son 80. Falta la mitad.
+      ...["A1", "A2", "A3", "A4"].map((c) => ({
+        operational_code: c, faculty: "Derecho", expected_valid: 40, eligible_n: 50,
+      })),
+    ] as unknown as MonitoreoRow[];
+    // Del 17 al 22 de agosto. Escrito como `2026-08-1${7 + i}` daba
+    // «2026-08-110» a partir del cuarto: fechas invalidas que el motor descarta
+    // en silencio, y el test fallaba sin decir por que.
+    const agenda = Array.from({ length: 6 }, (_, i) =>
+      agendada(`2026-08-${17 + i}`, `B${i}`));
+    return renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} plan={plan} agenda={agenda} />);
+  }
+
+  it("marca el cruce en la franja agendada, y lo dice como previsión", () => {
+    // Gonzalo: «tengo que ver si voy a llegar a la cuota y a la meta [...] **¿Y
+    // cuándo llegaría?**». El dato existía —`fechaDeCruce` en la proyección— pero
+    // sólo se escribía en la tabla de cuotas, que además exige elegir facultad.
+    // En el acumulado la línea cruzaba la horizontal de la meta sin decir nada.
+    const html = conMetaPorDelante();
+    expect(html).toContain("aulas-serie-cruce");
+    // «llegaría», no «alcanzada»: en lo agendado no es un hecho, es previsión.
+    expect(html).toContain("llegaría el");
+    expect(html).toContain("es-inferido");
+    expect(html).not.toContain("meta alcanzada el");
+  });
+
+  it("cuando la meta ya se pasó lo dice como hecho, no como previsión", () => {
+    const partes = [aplicada("2026-08-10", 60, "A1"), aplicada("2026-08-11", 60, "A2")];
+    const plan = ["A1", "A2"].map((c) => ({
+      operational_code: c, faculty: "Derecho", expected_valid: 40, eligible_n: 50,
+    })) as unknown as MonitoreoRow[];
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} plan={plan} agenda={[]} />);
+    expect(html).toContain("meta alcanzada el");
+    expect(html).not.toContain("llegaría el");
+  });
+
+  it("sin meta que cruzar no inventa una marca", () => {
+    // Sin plan no hay meta de lo visitado contra la que medirse.
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={[aplicada("2026-08-10", 20, "A1")]} agenda={[]} />);
+    expect(html).not.toContain("aulas-serie-cruce");
+  });
+});
