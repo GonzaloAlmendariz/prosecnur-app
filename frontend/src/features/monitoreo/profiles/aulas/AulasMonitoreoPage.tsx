@@ -9,8 +9,10 @@ import {
   apiMonitoreoAulasGenerarLibro,
   apiMonitoreoAulasImportarLibro,
   apiMonitoreoAulasImportFromCalcMuestra,
+  apiMonitoreoAulasConfig,
   apiMonitoreoAulasSync,
   apiMonitoreoState,
+  type MonitoreoAulasConfig,
   type MonitoreoAulasDashboard,
   type MonitoreoAulasPlanRow,
   type MonitoreoRow,
@@ -47,6 +49,7 @@ import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
+import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { historiaDeCadena } from "./historiaDeCadena";
@@ -457,6 +460,15 @@ function renderAulasView(
    * 3 700 filas y 43 columnas que una de 3 700 y dos.
    */
   volumen: { filas?: number; columnas?: number } = {},
+  /**
+   * Qué cuenta como encuesta EFECTIVA en este estudio, ya construido.
+   *
+   * Se pasa hecho, como `operations`: esta función no ve el estado ni sabe
+   * guardar, y el panel necesita las variables de la base y el escritor de la
+   * config. Gonzalo: «la sección de fuentes no deja declarar las variables que
+   * definen a una encuesta efectiva».
+   */
+  criterioDeEfectiva: ReactNode = null,
 ) {
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -496,6 +508,21 @@ function renderAulasView(
             columnas={volumen.columnas}
           />
         </section>
+        {/* **Qué cuenta como efectiva**, aquí y no en otra sección: Fuentes es la
+            que promete decir de dónde salen las respuestas, y de qué vale cada
+            una es parte de eso. Hasta ahora no se podía declarar en aulas —los
+            perfiles hermanos sí— y el motor sólo admitía una condición. */}
+        {criterioDeEfectiva ? (
+          <section className="mon-profile-panel" data-qa-geometry-contract="intrinsic">
+            <div className="mon-profile-panel-head">
+              <h3>Qué cuenta como encuesta efectiva</h3>
+              <span className="mon-profile-panel-hint">
+                hasta cuatro condiciones, y se cumplen todas
+              </span>
+            </div>
+            {criterioDeEfectiva}
+          </section>
+        ) : null}
       </div>
     );
   }
@@ -1472,6 +1499,16 @@ export default function AulasMonitoreoPage() {
   // siguiente, que es la que el propio import dispara—.
   const [aviso, setAviso] = useState("");
   const [error, setError] = useState("");
+  /**
+   * Los filtros que definen una encuesta efectiva, en edición.
+   *
+   * `null` mientras no se han cargado: así se distingue «todavía no sé» de «el
+   * estudio no declara ninguno», que son cosas distintas y con `[]` se
+   * confundirían —y el segundo caso se guardaría como si el usuario lo hubiera
+   * vaciado a propósito—.
+   */
+  const [filtrosEfectiva, setFiltrosEfectiva] = useState<FiltroDeEfectiva[] | null>(null);
+  const [guardandoCriterio, setGuardandoCriterio] = useState(false);
 
   const activeDef = useMemo(
     () => AULAS_WORKBENCH_VIEWS.find((item) => item.key === seccionActiva) ?? AULAS_WORKBENCH_VIEWS[0],
@@ -1591,6 +1628,49 @@ export default function AulasMonitoreoPage() {
   useEffect(() => {
     void loadView(seccionActiva);
   }, [seccionActiva, loadView]);
+
+  // Los filtros guardados entran al borrador cuando llega el estado, y **sólo
+  // una vez**: si se resembraran en cada carga, una edición sin guardar se
+  // perdería al recargar el tablero de fondo.
+  useEffect(() => {
+    if (filtrosEfectiva !== null) return;
+    const mapping = state?.aulas_universitarias?.source_mapping;
+    if (!mapping) return;
+    const declarados = mapping.valid_filters;
+    if (declarados?.length) {
+      setFiltrosEfectiva(declarados.map((f) => ({ var: f.var, values: [...f.values] })));
+    } else if (mapping.status_var) {
+      // Un estudio configurado a la vieja usanza entra como UN filtro: es
+      // exactamente lo que el motor hace, así que la pantalla enseña lo que se
+      // está aplicando y no una lista vacía.
+      setFiltrosEfectiva([{ var: mapping.status_var, values: [...(mapping.valid_statuses ?? [])] }]);
+    } else {
+      setFiltrosEfectiva([]);
+    }
+  }, [state, filtrosEfectiva]);
+
+  const guardarCriterio = useCallback(async () => {
+    if (!filtrosEfectiva) return;
+    setGuardandoCriterio(true);
+    setError("");
+    try {
+      // Sólo los completos: un filtro sin variable o sin valores no filtra nada
+      // y el motor lo descarta igual, así que guardarlo dejaría en la config una
+      // condición que no hace nada y confunde al leerla.
+      const limpios = filtrosEfectiva.filter((f) => f.var && f.values.length);
+      await apiMonitoreoAulasConfig({
+        source_mapping: {
+          ...(state?.aulas_universitarias?.source_mapping ?? {}),
+          valid_filters: limpios,
+        },
+      } as Partial<MonitoreoAulasConfig>);
+      await loadView(seccionActiva, true, true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGuardandoCriterio(false);
+    }
+  }, [filtrosEfectiva, state, loadView, seccionActiva]);
 
   // **Un error de una carga anterior no describe lo que estás viendo ahora.**
   // `loadView` se dispara por SECCIÓN, así que al cambiar de pestaña dentro de la
@@ -1825,6 +1905,21 @@ export default function AulasMonitoreoPage() {
                 filas: Number(state?.n_rows ?? 0) || undefined,
                 columnas: (state?.variables ?? []).length || undefined,
               },
+              // El panel del criterio, ya construido: el render no ve el estado
+              // ni sabe guardar. Sólo cuando hay base que mirar —sin variables
+              // no hay nada que elegir y el panel sería un formulario vacío.
+              filtrosEfectiva && (state?.variables ?? []).length ? (
+                <AulasFiltrosDeEfectiva
+                  filtros={filtrosEfectiva}
+                  variables={state?.variables ?? []}
+                  criterio={((dashboard?.validation ?? []).find(
+                    (c) => (c as { check?: string }).check === "valid_response_criterion",
+                  )?.detail as string | undefined) || undefined}
+                  guardando={guardandoCriterio}
+                  onChange={setFiltrosEfectiva}
+                  onGuardar={() => { void guardarCriterio(); }}
+                />
+              ) : null,
             )}
           </div>
       </MonitoreoWorkbenchChrome>

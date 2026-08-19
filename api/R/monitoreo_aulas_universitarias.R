@@ -298,7 +298,31 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       link_var = .monitoreo_scalar(mapping$link_var %||% mapping$link, defaults$source_mapping$link_var),
       date_var = .monitoreo_scalar(mapping$date_var %||% mapping$fecha_var, defaults$source_mapping$date_var),
       status_var = .monitoreo_scalar(mapping$status_var %||% mapping$estado_var, defaults$source_mapping$status_var),
-      valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses))
+      valid_statuses = as.list(.monitoreo_chr_vec(mapping$valid_statuses %||% mapping$estados_validos %||% defaults$source_mapping$valid_statuses)),
+      # **Los filtros de encuesta efectiva, que si no se declaran AQUI se pierden
+      # al guardar.** Este normalizador es la whitelist de la config: lo que no
+      # nombra, no persiste, y el campo se habria caido en silencio dejando la UI
+      # nueva sin efecto ninguno.
+      #
+      # Se limpian aqui y no en el cliente porque la config puede llegar de un
+      # `.pulso` viejo o de otra sesion: **un filtro sin variable o sin valores
+      # descartaria TODAS las respuestas**, y el tope de cuatro es el que Gonzalo
+      # declaro —«puede tener hasta 4»—.
+      valid_filters = local({
+        crudos <- mapping$valid_filters %||% mapping$filtros_validez %||% list()
+        if (!is.list(crudos)) crudos <- list()
+        limpios <- list()
+        for (f in crudos) {
+          if (!is.list(f)) next
+          var <- .monitoreo_scalar(f$var %||% f$variable, "")
+          vals <- .monitoreo_chr_vec(f$values %||% f$valores %||% character(0))
+          if (nzchar(var) && length(vals)) {
+            limpios[[length(limpios) + 1L]] <- list(var = var, values = as.list(vals))
+          }
+          if (length(limpios) >= 4L) break
+        }
+        limpios
+      })
     ),
     plan = monitoreo_aulas_normalize_plan(config$plan %||% config$agenda %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el

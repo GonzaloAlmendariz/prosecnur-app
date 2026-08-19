@@ -100,3 +100,34 @@ test_that("el criterio NOMBRA los filtros, y avisa del que no se pudo aplicar", 
   expect_true(grepl("columna_que_no_existe", txt, fixed = TRUE))
   expect_true(grepl("no se aplico", txt, fixed = TRUE))
 })
+
+test_that("los filtros SOBREVIVEN al normalizador de config", {
+  # Este normalizador es la whitelist: lo que no nombra, no persiste. Sin esto
+  # la UI dejaria elegir los filtros y al guardar se perderian en silencio, que
+  # es el defecto clasico de este repo —un campo cruza varias whitelists—.
+  cfg <- monitoreo_aulas_normalize_config(list(source_mapping = list(
+    valid_filters = list(
+      list(var = "estado", values = c("completa")),
+      list(var = "consentimiento", values = c("si"))
+    )
+  )))
+  fs <- cfg$source_mapping$valid_filters
+  expect_length(fs, 2L)
+  expect_identical(fs[[1]]$var, "estado")
+  expect_identical(unlist(fs[[2]]$values), "si")
+})
+
+test_that("el normalizador tira los filtros incompletos y corta en CUATRO", {
+  # Un filtro sin variable o sin valores descartaria TODAS las respuestas, y el
+  # tope es el que declaro Gonzalo: «puede tener hasta 4».
+  cfg <- monitoreo_aulas_normalize_config(list(source_mapping = list(
+    valid_filters = c(
+      list(list(var = "", values = "x")),
+      list(list(var = "a", values = character(0))),
+      lapply(1:6, function(i) list(var = paste0("v", i), values = "si"))
+    )
+  )))
+  fs <- cfg$source_mapping$valid_filters
+  expect_length(fs, 4L)
+  expect_identical(vapply(fs, function(f) f$var, character(1)), c("v1", "v2", "v3", "v4"))
+})

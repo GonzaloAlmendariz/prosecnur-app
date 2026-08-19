@@ -726,6 +726,16 @@ export type MonitoreoAulasConfig = {
     date_var: string;
     status_var: string;
     valid_statuses: string[];
+    /**
+     * Los filtros que definen una encuesta EFECTIVA, hasta cuatro.
+     *
+     * Gonzalo: «una encuesta efectiva en algunos casos tiene más de un filtro,
+     * puede tener hasta 4». Una respuesta vale si **cumple todos**: cada uno
+     * acota, ninguno amplía. Sin esto se lee `status_var` + `valid_statuses`,
+     * que es una sola condición y no alcanza para un estudio real —«efectiva»
+     * suele ser completa **y** con consentimiento **y** del público elegible—.
+     */
+    valid_filters?: Array<{ var: string; values: string[] }>;
   };
   plan: MonitoreoAulasPlanRow[];
   quotas: unknown;
