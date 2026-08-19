@@ -124,6 +124,58 @@ describe("hasta qué día se puede esperar", () => {
   });
 });
 
+describe("si el banco de esa facultad tiene las aulas que se piden", () => {
+  const conBrecha = () => facultad({
+    facultad: "Derecho", cuotas: [cuota(60)], dias: [dia("2026-08-11"), dia("2026-08-24")],
+  });
+  // 60 de brecha a 20 por aula son 3, y con la tasa de caída se piden 4.
+  const banco = (disponibles: number | undefined, faculty = "Derecho") =>
+    [{ faculty, extras: 99, disponibles, elegibles: 0, mujeres: 0, hombres: 0 }];
+
+  it("alcanza cuando quedan al menos las que se piden", () => {
+    const [a] = alertaDeAnticipacion([conBrecha()], banco(4));
+    expect(a.aulasAPedir).toBe(4);
+    expect(a.bancoDisponible).toBe(4);
+    expect(a.bancoAlcanza).toBe(true);
+  });
+
+  it("no alcanza cuando quedan menos, aunque el banco sea grande", () => {
+    // `extras` es 99: lo que decide es cuántas quedan SIN USAR, no cuántas
+    // llegó a haber. Un banco de 99 del que se gastaron 96 no da para 4.
+    const [a] = alertaDeAnticipacion([conBrecha()], banco(3));
+    expect(a.bancoAlcanza).toBe(false);
+  });
+
+  it("no saber cuántas quedan no es saber que no queda ninguna", () => {
+    // Un payload sin `disponibles` deja la casilla en «no se sabe». Pintarla
+    // como cero acusaría a la facultad de una escasez que nadie midió, y esta
+    // lista manda a gente a trabajar: tiene que poder defenderse.
+    const [sinCampo] = alertaDeAnticipacion([conBrecha()], banco(undefined));
+    expect(sinCampo.bancoDisponible).toBeNull();
+    expect(sinCampo.bancoAlcanza).toBeNull();
+
+    const [sinBanco] = alertaDeAnticipacion([conBrecha()], []);
+    expect(sinBanco.bancoDisponible).toBeNull();
+    expect(sinBanco.bancoAlcanza).toBeNull();
+  });
+
+  it("el banco de otra facultad no cuenta como propio", () => {
+    // El banco viene repartido por estrato justamente para que no se mezcle: si
+    // se leyera el total, Derecho con 207 taparía a Arquitectura con 12.
+    const [a] = alertaDeAnticipacion([conBrecha()], banco(50, "Arquitectura"));
+    expect(a.bancoDisponible).toBeNull();
+  });
+
+  it("sin nada que pedir no se juzga el banco", () => {
+    const [a] = alertaDeAnticipacion(
+      [facultad({ facultad: "Derecho", cuotas: [cuota(0)], alcanzaTodo: true })],
+      banco(0),
+    );
+    expect(a.aulasAPedir).toBe(0);
+    expect(a.bancoAlcanza).toBeNull();
+  });
+});
+
 describe("el orden es el de salir a llamar", () => {
   it("primero las paradas, después las urgentes, y dentro las que más piden", () => {
     const largo = [dia("2026-08-11"), dia("2026-08-24")];

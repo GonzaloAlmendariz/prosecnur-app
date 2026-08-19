@@ -1208,6 +1208,7 @@ function renderAulasView(
           ).filas as MonitoreoRow[]}
           agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
           cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+          banco={dashboard.banco_extras?.por_facultad ?? []}
         />
       </section>
       )}

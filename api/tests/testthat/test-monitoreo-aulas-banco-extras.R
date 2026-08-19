@@ -137,3 +137,43 @@ test_that("el recibo del libro dice cuantas facultades cubre", {
   sin_plan <- monitoreo_aulas_libro_recibo(list(importado_en = "2026-08-18"))
   expect_null(sin_plan$resumen$facultades)
 })
+
+test_that("distingue el banco que existe del que queda disponible", {
+  # `total` y `disponibles` son cosas distintas y hasta ahora solo viajaba el
+  # total. Un banco de 4 del que ya entraron 3 se leia como 4, que es justo el
+  # numero con el que alguien decide si sale a llamar o si el problema ya no es
+  # de agenda sino de muestra.
+  extra <- function(code, faculty, estado) list(
+    operational_code = code, sample_role = "extra_reserve_pool", faculty = faculty,
+    eligible_n = 10, sample_status = estado,
+    sex_top_1 = "F", sex_top_1_n = 6, sex_top_2 = "M", sex_top_2_n = 4)
+
+  b <- monitoreo_aulas_banco_extras(list(
+    extra("EXTRA 1", "DERECHO", "en_reserva"),
+    extra("EXTRA 2", "DERECHO", "en reserva 3"),   # el vocabulario del Excel
+    extra("EXTRA 3", "DERECHO", "aplicada"),       # ya entro: no cuenta
+    extra("EXTRA 4", "DERECHO", "efectiva"),       # ya entro: no cuenta
+    extra("EXTRA 5", "ARTE", "-")                  # «todavia nada aqui»
+  ))
+
+  expect_identical(b$total, 5L)
+  expect_identical(b$disponibles, 3L)
+
+  derecho <- Filter(function(f) identical(f$faculty, "DERECHO"), b$por_facultad)[[1]]
+  expect_identical(derecho$extras, 4L)
+  expect_identical(derecho$disponibles, 2L)
+
+  arte <- Filter(function(f) identical(f$faculty, "ARTE"), b$por_facultad)[[1]]
+  expect_identical(arte$disponibles, 1L)
+})
+
+test_that("una extra con fecha agendada pero en reserva sigue disponible", {
+  # La trampa que costo la medicion: en el fixture las 40 extras traian
+  # `scheduled_date` Y estaban `en_reserva`. Contar «tiene fecha» como «ya se
+  # gasto» daba cero disponibles en las veinte facultades, que es exactamente lo
+  # contrario de la verdad. Lo que decide es el ESTADO.
+  b <- monitoreo_aulas_banco_extras(list(list(
+    operational_code = "EXTRA 1", sample_role = "extra_reserve_pool", faculty = "X",
+    eligible_n = 10, sample_status = "en_reserva", scheduled_date = "2026-08-24")))
+  expect_identical(b$disponibles, 1L)
+})

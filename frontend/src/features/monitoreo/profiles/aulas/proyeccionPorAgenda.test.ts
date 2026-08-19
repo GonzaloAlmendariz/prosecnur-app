@@ -55,6 +55,48 @@ describe("proyeccionPorAgenda", () => {
     expect(d.aulasAgendadas).toBe(1);
   });
 
+  it("una reserva dormida no es agenda, aunque lleve fecha", () => {
+    // `dashboard.agenda` es el PLAN ENTERO, y el banco de extras viene con
+    // fecha puesta. Contarlo como trabajo comprometido proyectaba encuestas que
+    // nadie iba a recoger y tapaba justo la brecha que esto sirve para ver:
+    // sembrar 30 extras mas en una facultad le bajaba la brecha de 152 a 81.
+    const agenda = [
+      aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11", sample_status: "agendada" }),
+      aula({ operational_code: "EXTRA 1", faculty: "Derecho", scheduled_date: "2026-08-12", sample_role: "extra_reserve_pool", sample_status: "en_reserva" }),
+      aula({ operational_code: "R 1.1", faculty: "Derecho", scheduled_date: "2026-08-13", sample_role: "chain_reserve", sample_status: "en reserva 3" }),
+    ];
+    const [d] = proyeccionPorAgenda(agenda, historia, [
+      cuota({ faculty: "Derecho", sex: "Mujer", target: 300, observed: 0 }),
+    ]);
+    expect(d.aulasAgendadas).toBe(1);
+    expect(d.dias.map((x) => x.fecha)).toEqual(["2026-08-11"]);
+  });
+
+  it("un titular ya reemplazado tampoco: esa aula se cayó", () => {
+    const agenda = [
+      aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11", sample_status: "reemplazada" }),
+      aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-12", sample_status: "agendada" }),
+    ];
+    const [d] = proyeccionPorAgenda(agenda, historia, [
+      cuota({ faculty: "Derecho", sex: "Mujer", target: 300, observed: 0 }),
+    ]);
+    expect(d.aulasAgendadas).toBe(1);
+  });
+
+  it("un estado que nadie previó SÍ cuenta: la lista es de exclusión", () => {
+    // Una lista cerrada de estados «buenos» se traga en silencio lo que no
+    // reconoce. Con un allow-list de `agendada`, un estudio que usara
+    // `contactada` proyectaría cero sin avisar de nada.
+    const agenda = [
+      aula({ operational_code: "CH 90", faculty: "Derecho", scheduled_date: "2026-08-11", sample_status: "contactada" }),
+      aula({ operational_code: "CH 91", faculty: "Derecho", scheduled_date: "2026-08-12" }),
+    ];
+    const [d] = proyeccionPorAgenda(agenda, historia, [
+      cuota({ faculty: "Derecho", sex: "Mujer", target: 300, observed: 0 }),
+    ]);
+    expect(d.aulasAgendadas).toBe(2);
+  });
+
   it("dice el día en que se cruzaría la meta de cada sexo", () => {
     const agenda = Array.from({ length: 4 }, (_, i) => aula({
       operational_code: `CH 9${i}`,

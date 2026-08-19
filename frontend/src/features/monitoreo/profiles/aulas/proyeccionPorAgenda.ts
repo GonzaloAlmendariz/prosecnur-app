@@ -1,5 +1,6 @@
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { serieDeRendimiento } from "./serieDeRendimiento";
+import { esVisitaComprometida } from "./visitaComprometida";
 
 /**
  * Si lo que ya está agendado alcanza la cuota de cada sexo, y cuándo.
@@ -20,7 +21,9 @@ import { serieDeRendimiento } from "./serieDeRendimiento";
  * ## De dónde sale cada pieza
  *
  * - **Las aulas por venir**: filas del plan con fecha de aplicación posterior al
- *   último parte y sin parte propio. Ninguna se inventa.
+ *   último parte, sin parte propio y **que alguien vaya a visitar de verdad**
+ *   (`esVisitaComprometida`). Ninguna se inventa, y una reserva dormida o un
+ *   titular ya reemplazado no cuentan aunque lleven fecha.
  * - **Lo que rinde cada aula**: el esperado Gamma-Poisson de
  *   `serieDeRendimiento`, que ya encoge hacia la media del estudio cuando la
  *   facultad tiene pocas aulas.
@@ -115,6 +118,9 @@ export function proyeccionPorAgenda(
     if (codigo && conParte.has(codigo)) continue;
     const fecha = soloFecha(fila.scheduled_date);
     if (!fecha || (ultimoConParte && fecha <= ultimoConParte)) continue;
+    // Tener fecha no es tener quien vaya. El banco entero y los titulares ya
+    // reemplazados la llevan, y contarlos tapaba la brecha que esto mide.
+    if (!esVisitaComprometida(fila.sample_status)) continue;
     const facultad = texto(fila.faculty) || "Sin facultad";
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;

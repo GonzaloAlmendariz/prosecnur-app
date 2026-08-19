@@ -1,3 +1,4 @@
+import type { FacultadDelBanco } from "./AulasBancoExtras";
 import type { ProyeccionDeFacultad } from "./proyeccionPorAgenda";
 import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
 
@@ -37,6 +38,18 @@ import { diasDeCampoEntre, restarDiasDeCampo } from "./pronosticoDeCierre";
  * - **`sin agenda`**: no queda ninguna aula por delante y la cuota sigue
  *   abierta. Ahí el campo YA está parado; es lo más urgente que puede decir esta
  *   lista y antes se confundía con lo anterior.
+ *
+ * ## Y si el banco de esa facultad no tiene las aulas que se piden
+ *
+ * Decir «pide 14 en Educación» sin mirar si existen es mandar a llamar al
+ * vacío. El banco de extras **es** el sitio de donde salen esas aulas —no
+ * reemplazan a nadie: existen para cerrar la cuota de hombres y mujeres por
+ * facultad— y viene repartido por estrato, no en un montón común.
+ *
+ * Cuando el banco de la facultad no llega, **el problema deja de ser de agenda y
+ * pasa a ser de muestra**: no hay llamada que lo arregle, hay que volver a
+ * Cálculo de muestra. Se dice con `bancoAlcanza`, y en ese caso la lista tiene
+ * que hablar distinto, porque las dos situaciones piden acciones opuestas.
  *
  * ## Los dos umbrales vienen del operativo de 2025, no de una intuición
  *
@@ -78,6 +91,18 @@ export type AlertaDeFacultad = {
   /** Días de campo que quedan de agenda desde el corte. 0 si ya se secó. */
   diasDeAgenda: number;
   /**
+   * Extras de ESA facultad que todavía no entraron al operativo. `null` cuando
+   * el estudio no publica banco: no saber cuántas quedan no es lo mismo que
+   * saber que no queda ninguna, y pintarlo como cero acusaría de una escasez
+   * que nadie midió.
+   */
+  bancoDisponible: number | null;
+  /**
+   * Si el banco de la facultad cubre lo que hay que pedir. `null` cuando no hay
+   * banco publicado o no hay nada que pedir.
+   */
+  bancoAlcanza: boolean | null;
+  /**
    * Último día útil para llamar sin que la facultad se quede parada: el día del
    * que aún salen `DIAS_DE_ANTICIPACION` días de campo antes de que se acabe su
    * agenda. `null` cuando no queda agenda que proteger.
@@ -94,10 +119,18 @@ export type AlertaDeFacultad = {
  * «sin agenda». Si todavía no hay ningún parte el campo no ha empezado, y
  * entonces el ancla es el **primer día agendado** de esa facultad, que es el
  * hecho más temprano disponible; no se inventa un hoy.
+ *
+ * @param banco `banco_extras.por_facultad` del payload, si el estudio lo trae.
  */
 export function alertaDeAnticipacion(
   proyeccion: ReadonlyArray<ProyeccionDeFacultad>,
+  banco: ReadonlyArray<FacultadDelBanco> = [],
 ): AlertaDeFacultad[] {
+  // Se indexa por nombre de facultad porque es la clave con la que el motor
+  // publica las dos cosas. `disponibles` puede faltar en un payload viejo: ahí
+  // el banco existe pero no se sabe cuánto queda, y eso NO es cero.
+  const porFacultad = new Map(banco.map((f) => [f.faculty, f]));
+
   return proyeccion
     .map((f) => {
       const faltan = f.cuotas.reduce((n, c) => n + c.faltanAlCerrarAgenda, 0);
@@ -126,6 +159,11 @@ export function alertaDeAnticipacion(
           ? "sin agenda"
           : margen <= 0 ? "pedir ahora" : "hay margen";
 
+      const suyo = porFacultad.get(f.facultad);
+      const bancoDisponible = suyo == null
+        ? null
+        : typeof suyo.disponibles === "number" ? suyo.disponibles : null;
+
       return {
         facultad: f.facultad,
         faltan,
@@ -138,6 +176,10 @@ export function alertaDeAnticipacion(
         pedirAntesDe: urgencia === "hay margen" && ultimoDiaAgendado
           ? restarDiasDeCampo(ultimoDiaAgendado, DIAS_DE_ANTICIPACION)
           : null,
+        bancoDisponible,
+        bancoAlcanza: bancoDisponible == null || aulasAPedir <= 0
+          ? null
+          : bancoDisponible >= aulasAPedir,
         urgencia,
       } satisfies AlertaDeFacultad;
     })

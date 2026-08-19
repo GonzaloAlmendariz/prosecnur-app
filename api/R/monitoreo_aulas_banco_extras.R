@@ -66,6 +66,16 @@ monitoreo_aulas_banco_extras <- function(plan = list()) {
     sx <- .mabe_sexos(u)
     elegibles <- suppressWarnings(as.numeric(u$eligible_n %||% NA))
     list(
+      # Una extra sigue DISPONIBLE mientras no haya entrado al operativo. Es el
+      # mismo juego de estados dormidos con el que `monitoreo_aulas_en_juego()`
+      # decide que eslabon de una cadena esta en juego, y se reusa en vez de
+      # copiarlo: en `01c0163d` una segunda copia de unos tramos se desincronizo
+      # y un tramo acabo sin contener una sola aula de las que nombraba.
+      #
+      # `total` y `disponibles` son cosas distintas y hasta ahora solo viajaba
+      # el total: un banco de 207 del que ya se gastaron 190 se leia como 207,
+      # que es justo el numero con el que alguien decide salir a llamar.
+      disponible = .maej_dormido(u$sample_status %||% ""),
       operational_code = as.character(u$operational_code %||% ""),
       course_name = as.character(u$course_name %||% ""),
       faculty = as.character(u$faculty %||% ""),
@@ -87,7 +97,9 @@ monitoreo_aulas_banco_extras <- function(plan = list()) {
       v <- vapply(propios, function(e) as.numeric(e[[campo]] %||% NA), numeric(1))
       as.integer(sum(v, na.rm = TRUE))
     }
-    list(faculty = f, extras = length(propios), elegibles = suma("eligible_n"),
+    list(faculty = f, extras = length(propios),
+         disponibles = sum(vapply(propios, function(e) isTRUE(e$disponible), logical(1))),
+         elegibles = suma("eligible_n"),
          mujeres = suma("mujeres"), hombres = suma("hombres"))
   })
   orden <- order(-vapply(por_facultad, function(f) f$extras, integer(1)),
@@ -100,6 +112,7 @@ monitoreo_aulas_banco_extras <- function(plan = list()) {
   }
   list(
     total = length(extras),
+    disponibles = sum(vapply(extras, function(e) isTRUE(e$disponible), logical(1))),
     elegibles = suma_total("eligible_n"),
     mujeres = suma_total("mujeres"),
     hombres = suma_total("hombres"),
