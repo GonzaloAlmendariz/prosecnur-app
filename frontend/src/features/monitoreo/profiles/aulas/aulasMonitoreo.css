@@ -2133,6 +2133,14 @@
   padding-right: 2px;
 }
 
+/* En un viewport bajo la pareja se APILA, asi que no hay nada que equilibrar y
+ * 400 px se llevan dos tercios de una pantalla de 600. El mismo umbral que usa
+ * el grafico vecino y la agenda por dia, para que los tres cambien de regimen a
+ * la vez y no uno detras de otro. */
+@media (max-height: 820px) {
+  .mon-profile-page.is-aulas-flow .aulas-facultades-scroll { max-height: 260px; }
+}
+
 .mon-profile-page.is-aulas-flow .aulas-facultades-lista li {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr) 128px;
