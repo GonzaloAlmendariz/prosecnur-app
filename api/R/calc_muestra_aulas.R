@@ -1472,6 +1472,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     # W2: eco estable de los filtros efectivos del criterio 7/8 (frescura del
     # marco en la UI). Ver .cm_aulas_filters_echo.
     filters_echo = .cm_aulas_filters_echo(cfg),
+    # EF7a: la foto estructural del marco (calc_muestra_aulas_llegada.R);
+    # contra ella se miden las NOVEDADES cuando llegue la base 2026.
+    llegada_snapshot = .cm_llegada_snapshot(aula_frame),
     frame_hash = frame_hash_estable,
     # I11: universo del estudio anterior por facultad, derivado del catalogo
     # con el spec de config (calc_muestra_aulas_universo_referencia.R).
