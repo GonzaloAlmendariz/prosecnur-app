@@ -3324,6 +3324,10 @@
  * tengas problema en cambiar la dimension». Con 220 px y veinte lineas la
  * dispersion entre facultades se aplastaba contra el eje; a 320 se separan. */
 .mon-profile-page.is-aulas-flow .aulas-serie-grafico { width: 100%; height: 320px; overflow: visible; }
+/* El acumulado va arriba y con mas peso: es la pregunta que manda —«si llegamos a
+ * la meta»— y el diario de abajo es el detalle. */
+.mon-profile-page.is-aulas-flow .aulas-serie-grafico.es-acumulado { height: 220px; }
+.mon-profile-page.is-aulas-flow .aulas-serie-plot.es-acumulado { margin-bottom: 2px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-eje {
   display: flex; justify-content: space-between; margin: 0;
   color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
