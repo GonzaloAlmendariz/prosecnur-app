@@ -132,3 +132,20 @@ test_that("la declaracion huerfana se lista: whitelist que apunta a un fantasma 
   expect_true("courseLevelRanges" %in% criterios)
   expect_true("minEligible.byFaculty" %in% criterios)
 })
+
+test_that("una declaracion por SLUG no es huerfana si la facultad vive con su label", {
+  # Estreno real 2026: minEligible.byFaculty['arte_y_diseno'] marcaba huerfana
+  # FALSA con "ARTE Y DISEÑO" presente — text_key no coincide con el slug.
+  base <- .cm_llegada_snapshot(.ll_frame())
+  frame <- .ll_frame(data.frame(
+    classroom_id = "AD1", faculty = "ARTE Y DISEÑO",
+    session_type = "TALLER", teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+    modality = "PRESENCIAL", course_level_num = 3, stringsAsFactors = FALSE
+  ))
+  base2 <- .cm_llegada_snapshot(frame)
+  cfg <- .ll_cfg
+  cfg$criterios_seleccion$minEligible <- list(byFaculty = list(arte_y_diseno = 10))
+  n <- calc_muestra_aulas_novedades(frame, base2, cfg)
+  huerf <- Filter(function(x) x$tipo == "declaracion_huerfana", n$bloques)
+  expect_length(huerf, 0L)
+})
