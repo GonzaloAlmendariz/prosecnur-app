@@ -226,6 +226,54 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
           : <span>sin días agendados por delante</span>}
       </p>
 
+      {/* Las DOS metas de la facultad, que es lo que decide si se sale a agendar.
+          Gonzalo: «cada facultad tiene una meta por hombre y por mujer [...]
+          tengo que ver si voy a llegar a la cuota, y si lo que tengo agendado ya
+          es suficiente para llegar a esa meta o no. ¿Y cuándo llegaría?».
+          Sólo con una facultad elegida: en la vista general son cuarenta filas y
+          ninguna pregunta. */}
+      {elegida && proyectada && proyectada.cuotas.length ? (
+        <table className="aulas-serie-cuotas">
+          <caption>
+            Cuota de {elegida.facultad} y lo que aportan sus aulas agendadas
+            {proyectada.reparto === "meta" ? (
+              <em>
+                {" "}· el reparto por sexo sale de la META, porque esta facultad
+                todavía no tiene respuestas propias con sexo declarado
+              </em>
+            ) : null}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Sexo</th>
+              <th scope="col">Meta</th>
+              <th scope="col">Conseguidas</th>
+              <th scope="col">Faltan</th>
+              <th scope="col">De la agenda</th>
+              <th scope="col">Con lo agendado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {proyectada.cuotas.map((c) => (
+              <tr key={c.sexo} className={c.faltan === 0 ? "es-cumplida" : c.alcanza ? "es-llega" : "es-corta"}>
+                <th scope="row">{c.sexo}</th>
+                <td>{fmt(c.meta)}</td>
+                <td>{fmt(c.observadas)}</td>
+                <td>{c.faltan === 0 ? "—" : fmt(c.faltan)}</td>
+                <td>{proyectada.aulasAgendadas ? `~${fmt(c.esperadasDeLaAgenda)}` : "—"}</td>
+                <td>
+                  {c.faltan === 0
+                    ? "cuota cumplida"
+                    : c.fechaDeCruce
+                      ? `llega el ${dm(c.fechaDeCruce)}`
+                      : `no llega · faltarían ${fmt(c.faltanAlCerrarAgenda)}`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+
       {/* Que una facultad no tenga NADA agendado por delante no es un hueco del
           gráfico: es la noticia. Es el momento en que hay que salir a agendar, y
           callarlo deja la pantalla igual que si la agenda estuviera llena. */}
