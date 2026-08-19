@@ -2066,3 +2066,58 @@ declara —el de estado incluye el banco, porque su contador dice «236 · 40 de
 banco»—. No se puede verificar con el fixture actual (236 filas, nunca toca el
 tope): la prueba tendría que ser un test de motor con más de 500 filas, o el
 sexto proyecto de referencia.
+
+
+---
+
+# 2026-08-19 — Loop nocturno: del «aula válida» al RENDIMIENTO
+
+Gonzalo redirigió el loop: «más que medir la validez por curso-horario, hay que
+medir el rendimiento y la efectividad», «el punto central para el estudio siempre
+es que lleguemos a las aulas y que las aulas sean efectivas», y «el analista
+cuantitativo tiene que ser capaz de ver en tiempo real cuál es la efectividad,
+cuál es la asistencia, qué nos está rindiendo más… siempre todo es por facultad».
+
+| | Etapa | Commit | En una frase |
+|---|---|---|---|
+| L122 | Las 30 preguntas | `3c953d9f` | Qué permite el libro y qué contesta la app: **8 contestadas · 8 a medias · 14 no**, y **nueve de las 14 son del analista**. |
+| L123 | Las 19 hojas | `431b2e1e` | El libro real tiene **19 hojas y la app lee tres**. «Tabla - Resumen» (serie por fecha), «Progreso General» (metas y AULAS por facultad), «planilla» (producción por encuestador y franja) y seis «aplicación del día N». **Cinco de las 14 preguntas ya estaban resueltas ahí.** |
+| L124 | La observación de agendamiento | `69a30b2c` | La columna se leía, tenía rótulo y **ninguna tabla la pedía**. Ahora en «A dónde ir cada día», 39 de 196. |
+| L125 | Los tres VALIDADOR | `3673fe0d` | **No son revisores: son motivos de descarte.** `V1+V2+V3 = CORTAS` y `CORTAS+LARGAS = ENVIADAS`, **194/194 sin excepción**. 10,7 % de descarte, 60/25/15. |
+| L126 | La validez deja de ser veredicto | `830ed94c` | **Corrección de premisa de Gonzalo.** El 70T/70P es un corte del Excel, «no algo que nosotros verifiquemos». La matriz lo declara y dice qué no decide: 40 de 100 rinde más que 14 de 20. |
+| L127 | Rendimiento por facultad | `2267c782` | Tres tasas —por aula, de los asistentes, del potencial— **ordenadas por el absoluto**. Publicidad tiene la mejor aceptación (93,6 %) y rinde de las que menos: la demostración en datos de por qué no se ordena por porcentaje. |
+| L128 | Por aplicador y por franja | `88516d14` · `7f4c9dec` | Equipo 4 saca 26,1 y Equipo 5 21,9 con aceptación casi igual. 7:00–9:00 tiene la mejor aceptación y rinde menos: hay menos gente. Franjas = las del libro. |
+| L129 | Ritmo y tendencia por facultad | `60a343d2` | **7 de 20 facultades a menos ritmo que al empezar.** Tendencia de la segunda mitad contra la primera; nula con menos de cuatro días, porque es ruido. |
+| L130 | Pronóstico de cierre | `f44e5c1e` | **Se proyectan AULAS y no respuestas**: la meta está en respuestas atribuidas y hay CERO. 170 de 196, cierra hacia el 25/08. Punteado gris, banda, supuestos declarados, y si no alcanza no proyecta. |
+| L131 | El techo del colchón | `e1269cd9` | 26 caídas, **11 de 20 facultades ya sin con qué reemplazar**. El tope de política **no existe como dato** y la superficie lo dice. |
+| L132 | El ajuste bayesiano | `f3a41776` | **Sí aporta, decidido midiendo**: en el libro real las facultades van de **2 a 39 aulas**. Encogimiento Gamma-Poisson con peso fijo y declarado; el observado no se sustituye. |
+| L133 | Los dos repartos recortados | `836a5c3c` | Se calculan en el motor **antes del recorte a 500**. Verificado con test de motor de **540 filas**. El recorte no es muestra al azar: sesga hacia lo avanzado. |
+| L134 | Gate visual de la pestaña nueva | `1bd689b2` | 8 grupos, un problema (capacidad sin declarar), 0 issues a 1440. El falso positivo de 1024 **re-verificado**, no heredado. |
+
+## Las lecciones de la noche
+
+**1. El fixture decidió lo que se podía ver CINCO veces.** La observación de
+agendamiento sin sembrar · las identidades de los validadores violadas
+(`validator_2` siempre cero) · **día y facultad acoplados** porque el día salía
+de `i %% 10` y la facultad de `i %% 20`, y 10 divide a 20, así que cada facultad
+caía siempre en el mismo día · `replaced_at` sin sembrar · y ~10 aulas iguales
+por facultad, que hacen invisible el encogimiento. **Un fixture que no respeta
+las identidades del dato real no es «datos de prueba»: es una fuente de
+conclusiones falsas.**
+
+**2. El gate se LEE, no se encadena.** `88516d14` entró con un test en rojo
+porque el commit iba detrás de un `grep` que tuvo salida: un grep con salida
+devuelve éxito aunque lo que imprima sea un fallo.
+
+**3. Comprobar el DENOMINADOR antes de construir.** Dos veces en un mismo tick
+salió «Sin facultad» en las 210 y «Sin hora» en las 210, por no mirar primero si
+el campo viajaba. El parte publicado manda `applied_at` con fecha y hora juntas,
+no `applied_time`.
+
+**4. Lo proyectado nunca comparte trazo con lo observado**, declara sus
+supuestos y su incertidumbre, y **si no alcanza para proyectar se dice** en vez
+de dibujar una línea plana.
+
+**5. Un prior fijo y explicado vale más que uno estimado.** Estimarlo por
+momentos daría un valor distinto cada corte y haría el ranking inestable de un
+día para otro.
