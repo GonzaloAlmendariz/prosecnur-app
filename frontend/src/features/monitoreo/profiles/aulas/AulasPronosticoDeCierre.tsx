@@ -54,8 +54,16 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
   // El eje X son días de campo, no fechas del calendario: lo que se proyecta es
   // trabajo, y el fin de semana no produce.
   const totalX = p.serie.length + (p.diasLento ?? 0);
-  const x = (i: number) => (totalX > 1 ? (100 * i) / (totalX - 1) : 0);
-  const y = (v: number) => 100 - (100 * v) / Math.max(p.universo, 1);
+  // Un margen interior de verdad. Antes el area util era 0-100 en los dos ejes,
+  // asi que la primera y la ultima marca quedaban partidas por el borde y la
+  // linea nacia y moria pegada al canto del panel.
+  const MARGEN = 4;
+  const util = 100 - MARGEN * 2;
+  const x = (i: number) => (totalX > 1 ? MARGEN + (util * i) / (totalX - 1) : MARGEN);
+  const y = (v: number) => MARGEN + util - (util * v) / Math.max(p.universo, 1);
+  // Las tres referencias del eje vertical. Sin ellas no se podia leer ni un
+  // valor: habia una sola linea, la de la meta, y ninguna escala.
+  const marcas = [0, Math.round(p.universo / 2), p.universo];
 
   const observado = p.serie.map((d, i) => `${x(i)},${y(d.acumulado)}`).join(" ");
   const desde = p.serie.length - 1;
@@ -74,25 +82,58 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
         faltan <strong>{fmt(p.faltan)}</strong> · al ritmo de estos{" "}
         {fmt(p.diasConCampo)} días cierra hacia el <strong>{dm(fin)}</strong>
       </p>
+      <div className="aulas-pronostico-plot">
+        <ul className="aulas-pronostico-y" aria-hidden="true">
+          {[...marcas].reverse().map((m) => <li key={m}>{fmt(m)}</li>)}
+        </ul>
+      <div className="aulas-pronostico-lienzo">
       <svg className="aulas-pronostico-grafico" viewBox="0 0 100 100" preserveAspectRatio="none"
         role="img" aria-label={`${p.aplicadas} de ${p.universo} aulas; cierre estimado entre ${dm(pronto)} y ${dm(tarde)}`}>
+        {/* La rejilla. Va primero para quedar detras de todo. */}
+        {marcas.map((m) => (
+          <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
+            stroke="var(--pulso-border-soft)" strokeWidth="1"
+            vectorEffect="non-scaling-stroke" opacity={m === p.universo ? 1 : 0.55} />
+        ))}
+        {/* Donde termina lo observado y empieza lo proyectado. Era una etiqueta
+            suelta debajo del grafico, sin nada en el dibujo que la sujetara. */}
+        <line x1={x(desde)} y1={MARGEN} x2={x(desde)} y2={MARGEN + util}
+          stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
+          vectorEffect="non-scaling-stroke" opacity="0.8" />
         {/* La banda entre el ritmo más rápido y el más lento ya vistos. Va
             DEBAJO de las líneas para que no las tape. */}
         <polygon points={`${rapido} ${x(desde + (p.diasLento ?? 0))},${y(p.universo)}`}
           fill={COLOR_RESULTADO.pendiente} opacity="0.16" />
-        <line x1="0" y1={y(p.universo)} x2="100" y2={y(p.universo)}
-          stroke="var(--pulso-border-soft)" strokeWidth="0.6" />
         {/* Lo proyectado: punteado y gris, como pidió Gonzalo. Nunca del color
             de lo conseguido, que es lo que lo haría pasar por observado. */}
+        {/* `non-scaling-stroke` en TODOS los trazos. El viewBox es cuadrado y la
+            caja mide 1 290 x 200: sin esto el navegador estira el grosor diez
+            veces mas a lo ancho que a lo alto, y la misma linea se ve gruesa en
+            los tramos horizontales y de pelo en los verticales. Es lo que hacia
+            que el trazo verde se viera mal dibujado. */}
         <polyline points={lento} fill="none" stroke={COLOR_RESULTADO.pendiente}
-          strokeWidth="0.8" strokeDasharray="2 2" opacity="0.75" />
+          strokeWidth="1.2" strokeDasharray="3 3" opacity="0.75" vectorEffect="non-scaling-stroke" />
         <polyline points={rapido} fill="none" stroke={COLOR_RESULTADO.pendiente}
-          strokeWidth="0.8" strokeDasharray="2 2" opacity="0.75" />
+          strokeWidth="1.2" strokeDasharray="3 3" opacity="0.75" vectorEffect="non-scaling-stroke" />
         <polyline points={central} fill="none" stroke={COLOR_RESULTADO.pendiente}
-          strokeWidth="1.4" strokeDasharray="3 2" />
+          strokeWidth="2" strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />
         {/* Lo observado: sólido y en el verde de lo conseguido. */}
-        <polyline points={observado} fill="none" stroke={COLOR_RESULTADO.efectiva} strokeWidth="1.8" />
+        <polyline points={observado} fill="none" stroke={COLOR_RESULTADO.efectiva}
+          strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
+        {/* El punto donde se está hoy, en HTML y no como `<circle>`.
+            `vector-effect` arregla el GROSOR del trazo, no la geometría: en un
+            viewBox cuadrado estirado a 1 262 x 200 un círculo se dibuja como una
+            elipse de cincuenta píxeles de ancho. Posicionado por porcentaje sale
+            redondo y además puede llevar su propio título. */}
+        {/* El porcentaje es del LIENZO, no del `plot`: el `plot` incluye la
+            columna del eje vertical, así que un 79 % suyo cae a la derecha del
+            79 % del dibujo. */}
+        <span className="aulas-pronostico-hoy"
+          style={{ left: `${x(desde)}%`, top: `${y(p.aplicadas)}%` }}
+          title={`${fmt(p.aplicadas)} de ${fmt(p.universo)} aulas al ${dm(p.ultimaFecha)}`} />
+      </div>
+      </div>
       <p className="aulas-pronostico-eje">
         <span>{dm(p.serie[0].fecha)}</span>
         {/* «último con campo», no «hoy»: es la fecha del último parte, que
