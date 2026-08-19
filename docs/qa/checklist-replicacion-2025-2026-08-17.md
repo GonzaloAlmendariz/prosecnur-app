@@ -3606,3 +3606,15 @@ Nota metodológica: tres modelos conviven (τ global · τ propio ·
 bins/CH) y no coinciden por facultad (DERECHO: corto en bins, holgado
 en τ propio). La decisión fija CUÁL gobierna el sizing; los otros
 quedan de vigilancia. Nada se aplica sin su letra.
+
+### EF8c parcial — el stepper validado funcionalmente; hallazgo de feedback
+
+Click real (+1 en PSICOLOGÍA, sesión desechable sin guardar): el
+estudio muta y la INVALIDACIÓN corre en cadena — la selección deja de
+publicarse, la guía marca «Método: por comparar». Correcto y honesto.
+
+**Hallazgo UX (pendiente)**: ninguna superficie nombra la fijación
+pendiente — el usuario ve desaparecer su selección sin un letrero
+«PSICOLOGÍA: fijada en 8; recalcula y vuelve a seleccionar para
+aplicarla». Mejora: chip/aviso de fijas pendientes (diff workspace
+estratos vs resultado) en la preparación y en el margen.
