@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { personasPorAula } from "./redondeoConservador";
 import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 
 /**
@@ -54,14 +55,14 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
             los tres y además es más corto. */}
         {filas.length > 1 ? (
           <>
-            De <strong>{fmt(filas[0].porAula ?? 0)}</strong> por aula ({filas[0].facultad}) a{" "}
-            <strong>{fmt(filas[filas.length - 1].porAula ?? 0)}</strong>{" "}
+            De <strong>{personasPorAula(filas[0].porAula)}</strong> por aula ({filas[0].facultad}) a{" "}
+            <strong>{personasPorAula(filas[filas.length - 1].porAula)}</strong>{" "}
             ({filas[filas.length - 1].facultad})
           </>
         ) : (
           <>Todo el trabajo está en <strong>{filas[0].facultad}</strong></>
         )}
-        {" "}· <strong>{media.toLocaleString("es-PE")}</strong> de media en{" "}
+        {" "}· <strong>{personasPorAula(media)}</strong> de media en{" "}
         {fmt(aulas)} {aulas === 1 ? "aula visitada" : "aulas visitadas"}
       </p>
       <ul className="aulas-rendimiento-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
@@ -86,7 +87,7 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
               <i style={{
                 width: `${Math.max(4, (100 * (f.porAula ?? 0)) / tope)}%`,
                 background: (f.porAula ?? 0) >= media ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
-              }}>{f.porAula ?? "—"}</i>
+              }}>{personasPorAula(f.porAula)}</i>
             </span>
             {/* Las dos tasas conviven con la barra y NO la sustituyen: miden
                 cosas distintas —el trabajo del aplicador y cuánto queda por
@@ -95,7 +96,7 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
                 real las facultades van de 2 a 39 aulas, y una de dos aulas
                 afortunadas encabeza la lista cruda sin merecerlo. */}
             <span className="aulas-rendimiento-tasa">
-              {f.porAulaAjustado == null ? "—" : f.porAulaAjustado.toLocaleString("es-PE")}
+              {personasPorAula(f.porAulaAjustado)}
             </span>
             <span className="aulas-rendimiento-tasa">{pct(f.deLosAsistentes)}</span>
             <span className="aulas-rendimiento-tasa">{pct(f.delPotencial)}</span>

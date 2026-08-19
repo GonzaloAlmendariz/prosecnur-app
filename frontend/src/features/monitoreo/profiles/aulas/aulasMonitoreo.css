@@ -3484,9 +3484,16 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: #b97611; }
 
+/* La tabla toma el MISMO material que los bloques de grafico. Iba desnuda,
+ * chocando contra dos superficies enmarcadas: parecia caida ahi, no parte de la
+ * lectura. `border-collapse` deja de ser `collapse` para que el radio del marco
+ * se respete. */
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas {
-  width: 100%; border-collapse: collapse; font-size: var(--aulas-serie-sec);
-  font-variant-numeric: tabular-nums;
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  font-size: var(--aulas-serie-sec); font-variant-numeric: tabular-nums;
+  padding: 10px 12px 4px;
+  border: 1px solid var(--pulso-border); border-radius: 10px;
+  background: var(--pulso-surface);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption {
   caption-side: top; text-align: left; padding: 0 0 4px;
