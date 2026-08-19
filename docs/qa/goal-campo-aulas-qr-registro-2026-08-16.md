@@ -2633,3 +2633,44 @@ telefónico y acreditación». **Es exactamente la deriva que Gonzalo corrigió*
 qué te fuiste al territorial? no era parte de lo que habíamos planteado»—. El
 catálogo queda escrito aquí para quien trabaje esos perfiles; el loop se queda en
 aulas.
+
+## 2026-08-19 — El hueco de la pareja, y una evidencia falsa nueva del navegador
+
+### El molde no se repetía
+
+Gonzalo señaló el espacio muerto de la pareja de `avance/resumen`. Medido: **311 px
+el gráfico contra 1 050 la lista**, con `align-items: start` — **739 px de columna
+muerta**.
+
+| | gráfico | lista | hueco |
+|---|---|---|---|
+| antes | 311 | 1 050 | **739** |
+| ahora | 451 | 494 | **43** |
+
+Se acerca **por los dos lados**: la lista se acota a 400 px con scroll propio, y
+el gráfico sube de 220 a 360 —cinco barras en 220 px con 739 de hueco al lado—.
+
+> **Igualar marcos y USAR el marco son cosas distintas.** Estirar el gráfico
+> dejándolo vacío ya se probó y el gate lo marcó con 380 px de `capacity-drift`;
+> que el contenido ocupe el alto es lo que la cláusula pide.
+
+**El primer intento rompió algo ya reparado**: puse el `max-height` sobre la
+propia rejilla y, con alto acotado, `grid-auto-rows: 1fr` deja de igualar y
+reparte — las filas volvieron a **28 y 41 px** según el largo del nombre, el mismo
+C2 que el comentario de esa regla decía haber arreglado. **El scroll va en un
+envoltorio**; la rejilla conserva su `1fr`.
+
+Barrido del resto del perfil —13 direcciones—: **ninguna otra pareja
+desequilibrada**, y lo único que pasa de 700 px es el propio contenedor de la
+vista, que es su dueño de scroll. El molde no se repetía.
+
+### Evidencia falsa: el barrido daba CERO con el panel oculto
+
+El primer barrido devolvió **0 parejas examinadas**, incluida la que acababa de
+arreglar. No era el selector ni el tiempo de espera: **con el panel del navegador
+oculto la rejilla colapsa a una columna** y `getBoundingClientRect` no sirve, así
+que el filtro «dos columnas» descartaba todo.
+
+> Antes de creerse un «no hay hallazgos», comprobar que el barrido **encuentra el
+> caso conocido**. Aquí el control era la pareja recién reparada: si no aparece,
+> la medición está rota, no el código.
