@@ -1664,7 +1664,18 @@ export default function AulasMonitoreoPage() {
           valid_filters: limpios,
         },
       } as Partial<MonitoreoAulasConfig>);
-      await loadView(seccionActiva, true, true);
+      // **Con el scope de VALIDACIÓN**, no con el de la sección.
+      //
+      // La frase que el panel enseña —«cuentan N de M»— la calcula el motor y
+      // viaja en los controles de validación. La sección Fuentes pide el scope
+      // `source`, que no los trae, así que al guardar el panel seguía enseñando
+      // el número ANTERIOR: se guardaba «sexo = F», el motor ya contaba 1 850 y
+      // la pantalla decía 3 700 hasta recargar. Un panel que no puede enseñar el
+      // efecto de su propio botón enseña a desconfiar del botón.
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
     } catch (e) {
       setError((e as Error).message);
     } finally {

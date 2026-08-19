@@ -2106,6 +2106,33 @@
   list-style: none;
 }
 
+/* **El scroll va en un ENVOLTORIO, no en la rejilla.**
+ *
+ * Con 20 facultades a 43 px la lista medía 955 px y arrastraba a su panel hasta
+ * 1 050, mientras el gráfico de al lado —311— dejaba **739 px de columna
+ * muerta**. Gonzalo: «hay un espacio muerto vacío que no está ayudando; ambos
+ * elementos paralelos deben tener un alto equilibrado».
+ *
+ * El primer intento puso `max-height` sobre la propia rejilla y **rompió lo que
+ * ya estaba arreglado**: con un alto acotado, `grid-auto-rows: 1fr` deja de
+ * igualar y reparte, y las filas volvieron a 28 y 41 px según el largo del
+ * nombre —el mismo C2 que el comentario de arriba dice haber reparado—. Medido
+ * antes y después, no supuesto.
+ *
+ * Y **no se estira el gráfico**: eso ya se probó y el gate lo marcó como
+ * `capacity-drift` de 380 px. Se acota quien impone el alto, que es la lista.
+ * El envoltorio es el dueño declarado de su scroll, así que no es una jaula. */
+.mon-profile-page.is-aulas-flow .aulas-facultades-scroll {
+  /* 400 px son nueve facultades y pico; con el grafico vecino a 360 los dos
+   * paneles quedan a la par. Medido: 311 vs 654 antes, y el hueco era de 343
+   * incluso tras el primer recorte. */
+  max-height: 400px;
+  overflow-y: auto;
+  min-height: 0;
+  /* Sitio para la barra, o la última columna queda debajo de ella. */
+  padding-right: 2px;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-facultades-lista li {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr) 128px;
