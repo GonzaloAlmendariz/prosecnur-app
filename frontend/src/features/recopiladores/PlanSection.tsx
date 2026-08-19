@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { apiRecopiladoresSeed, type CollectionStatePayload } from "../../api/recopiladores";
+import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
@@ -21,6 +21,21 @@ type Props = {
 function value(value: unknown) {
   if (typeof value === "string" || typeof value === "number") return String(value);
   return "—";
+}
+
+// Mismo vocabulario que `.crf_role_label()` (api/R/collection_render_ficha.R):
+// `titular`/`chain_reserve`/`extra_reserve_pool` son claves del motor de
+// selección de aulas, no español. La ficha impresa ya las traduce; esta
+// tabla (lo primero que el analista ve del plan) no debería quedarse atrás.
+// Un rol que no reconocemos se muestra tal cual -inventarle una etiqueta
+// sería peor que mostrar la clave-, igual que en el renderer.
+function unitRoleLabel(unit: Pick<CollectionUnit, "role" | "dimensions">): string {
+  const key = (unit.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
+  const target = typeof unit.dimensions?.replacement_for === "string" ? unit.dimensions.replacement_for : "";
+  if (key === "titular") return "Titular";
+  if (key === "chain_reserve" || key === "reserva") return target ? `Reemplazo de ${target}` : "Reemplazo";
+  if (key === "extra_reserve_pool") return "Reserva adicional";
+  return value(unit.role);
 }
 
 const PLAN_PAGE_SIZE = 50;
@@ -116,7 +131,7 @@ export function PlanSection({ payload, onState }: Props) {
                   {pagination.items.map((unit) => (
                     <tr key={unit.unit_id}>
                       <td><strong>{unit.label}</strong><small>{unit.unit_id}</small></td>
-                      <td>{value(unit.role)}</td>
+                      <td>{unitRoleLabel(unit)}</td>
                       <td>{value(unit.group)}</td>
                       <td>{value(unit.dimensions?.schedule ?? unit.scheduling?.wave)}</td>
                     </tr>
