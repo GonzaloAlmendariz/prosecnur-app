@@ -42,6 +42,18 @@ ESCALA_2025 <- any(args == "--escala") && any(args == "2025")
 # al abrirlo; el escenario largo entra con `--agenda-larga` para poder mirarlo sin
 # volver irreal el caso normal.
 DIAS_DE_AGENDA <- if (any(args == "--agenda-larga")) 14L else 5L
+# Condiciones de encuesta EFECTIVA, para poder ver el panel con datos.
+#
+# Por defecto NINGUNA: el bloque de abajo explica que un estudio de Kobo recien
+# conectado no declara `status_var`, y eso es deliberado. Pero sin condiciones el
+# panel «Qué cuenta como encuesta efectiva» sale con la lista vacia, y **una
+# lista vacia no tiene geometria que auditar**: el gate lo daba verde sin haber
+# medido la unica coleccion que el panel tiene. Con `--con-filtros` el fixture
+# trae dos, y la rama se puede ver y medir.
+FILTROS_DE_EFECTIVA <- if (any(args == "--con-filtros")) list(
+  list(var = "sexo", values = list("F", "M")),
+  list(var = "p01", values = list("1", "2", "3"))
+) else list()
 
 # El modo pequeño —sin `--escala 2025`— NO esta implementado entero: `partes`,
 # `asistentes_del_parte` y `data` solo se construyen dentro de la rama grande, y
@@ -689,7 +701,7 @@ session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
     # conectado. Declararlo apuntando a `_validation_status` descarta TODAS las
     # respuestas, porque Kobo deja esa columna vacia mientras nadie las revisa
     # a mano —y "" no esta entre los estados validos. Es la otra cara de L12.
-    source_mapping = list(collector_var = "collectorID"),
+    source_mapping = list(collector_var = "collectorID", valid_filters = FILTROS_DE_EFECTIVA),
     # Siete columnas huerfanas, como las que trae la Base de control del estudio
     # de 2025: tienen datos y su cabecera esta vacia en la hoja.
     control_sin_nombre = 7L
@@ -708,7 +720,7 @@ invisible(capture.output(build_pulso(sid, destino, project_name = "QA aulas en c
 
 tablero <- monitoreo_aulas_dashboard(plan, data, monitoreo_aulas_normalize_config(list(
   enabled = TRUE, plan = plan, partes_campo = partes, control = control, libro = libro_recibo,
-  source_mapping = list(collector_var = "collectorID"),
+  source_mapping = list(collector_var = "collectorID", valid_filters = FILTROS_DE_EFECTIVA),
   control_sin_nombre = 7L
 )))
 
