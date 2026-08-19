@@ -25,6 +25,36 @@
   switch(format, png = "png", pdf = "pdf", bundle = "zip")
 }
 
+# Segmento de ruta legible: nombres de facultad/unidad tienen que sobrevivir
+# como carpeta o archivo real. `.collection_stable_id()` (collection_engine.R)
+# no sirve acá -agrega un hash y vuelve el nombre irreconocible para quien
+# abre el zip a mano-, así que esto solo saca los caracteres que rompen un
+# sistema de archivos y conserva el resto legible.
+.cmj_path_segment <- function(value, fallback) {
+  value <- .crf_txt(value, "")
+  if (!nzchar(value)) return(fallback)
+  value <- gsub("[\\/:*?\"<>|]", "-", value)
+  value <- trimws(gsub("\\s+", " ", value))
+  value <- substr(value, 1L, 80L)
+  if (!nzchar(value)) fallback else value
+}
+
+# Vista de una sola pagina sobre un `compiled` ya armado, para poder llamar a
+# `collection_material_render_compiled()` sin reimplementar el device PDF por
+# unidad. `layout_fingerprint` se conserva del compilado completo a
+# proposito: identifica LA RECETA (plantilla+instancia), no el archivo
+# individual, y es lo que ya usan los recibos para trazabilidad.
+.cmj_page_subset <- function(compiled, index) {
+  list(
+    schema = compiled$schema,
+    pages = compiled$pages[index],
+    page_count = 1L,
+    page_map = compiled$page_map[index],
+    warnings = list(),
+    layout_fingerprint = compiled$layout_fingerprint
+  )
+}
+
 .cmj_tsv_rows <- function(compiled) {
   rows <- lapply(compiled$page_map, function(item) {
     page <- compiled$pages[[as.integer(item$page)]]
@@ -89,24 +119,63 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
       brand_assets = snapshot$brand_assets %||% list()
     )
   } else {
-    report("render", percent = 40, message = "Renderizando PDF del paquete...")
+    # Un PDF por unidad, en `Fichas/<facultad>/<unidad>.pdf` -no un solo PDF
+    # combinado con todas las paginas seguidas-: es lo que el equipo de campo
+    # necesita para encontrar la ficha de un aula sin recorrer un archivo de
+    # cientos de paginas. El prototipo Python de Gonzalo (docs/
+    # Generador_fichasQR.ipynb, sin trackear) ya separaba por carpeta -ahí por
+    # `seleccion`/muestra, acá por facultad, que es el dato que de verdad
+    # identifica dónde entregar cada ficha impresa.
+    report("render", percent = 40, message = "Renderizando fichas del paquete...")
     stage <- tempfile("collection-material-bundle-", tmpdir = dirname(result_path))
     dir.create(stage, recursive = TRUE, showWarnings = FALSE)
     on.exit(unlink(stage, recursive = TRUE, force = TRUE), add = TRUE)
-    pdf_path <- file.path(stage, "fichas.pdf")
+    fichas_dir <- file.path(stage, "Fichas")
+    dir.create(fichas_dir, showWarnings = FALSE)
     tsv_path <- file.path(stage, "accesos.tsv")
-    rendered <- collection_material_render_compiled(
-      compiled, pdf_path, device = "pdf",
-      brand_assets = snapshot$brand_assets %||% list()
-    )
+
+    n_pages <- length(compiled$pages)
+    draw_warnings <- list()
+    # Cuenta repeticiones de "carpeta/nombre" para no pisar un archivo cuando
+    # dos unidades de la misma facultad comparten label (dos secciones del
+    # mismo curso, por ejemplo).
+    seen_names <- new.env(parent = emptyenv())
+    for (i in seq_len(n_pages)) {
+      page_i <- compiled$pages[[i]]
+      folder <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
+      folder_path <- file.path(fichas_dir, folder)
+      dir.create(folder_path, showWarnings = FALSE)
+      base_name <- .cmj_path_segment(page_i$unit$label, page_i$unit$unit_id %||% sprintf("unidad-%d", i))
+      key <- file.path(folder, base_name)
+      count <- (if (exists(key, envir = seen_names, inherits = FALSE)) get(key, envir = seen_names) else 0L) + 1L
+      assign(key, count, envir = seen_names)
+      file_name <- if (count > 1L) sprintf("%s (%d).pdf", base_name, count) else sprintf("%s.pdf", base_name)
+      rendered_unit <- collection_material_render_compiled(
+        .cmj_page_subset(compiled, i), file.path(folder_path, file_name), device = "pdf",
+        brand_assets = snapshot$brand_assets %||% list()
+      )
+      draw_warnings <- c(draw_warnings, rendered_unit$warnings %||% list())
+      if (i %% 5L == 0L || i == n_pages) {
+        report("render", percent = 40L + as.integer(35 * i / max(1L, n_pages)),
+               message = sprintf("Renderizando ficha %d de %d...", i, n_pages))
+      }
+    }
+    rendered <- list(warnings = draw_warnings)
     utils::write.table(
       .cmj_tsv_rows(compiled), tsv_path,
       sep = "\t", quote = TRUE, row.names = FALSE, na = "", fileEncoding = "UTF-8"
     )
-    report("bundle", percent = 78, message = "Empaquetando PDF y TSV...")
+    report("bundle", percent = 78, message = "Empaquetando fichas y TSV...")
+    # `mode = "cherry-pick"` (default de zip::zipr) aplana cada archivo a su
+    # basename dentro del zip -es para elegir archivos sueltos de cualquier
+    # lado, no para conservar una jerarquia de carpetas-. Con eso, "Fichas/
+    # Ingenieria/Aula 1.pdf" en disco salia como "Aula 1.pdf" en el zip, sin
+    # ninguna carpeta: medido con un zip de prueba antes de confiar en la
+    # firma de la funcion. "mirror" es el modo que sí respeta la ruta
+    # relativa a `root`.
     zip::zipr(
-      result_path, files = c("fichas.pdf", "accesos.tsv"),
-      root = stage, include_directories = FALSE
+      result_path, files = list.files(stage, recursive = TRUE),
+      root = stage, mode = "mirror"
     )
   }
   report("verify", percent = 92, message = "Verificando checksum y paginas...")
