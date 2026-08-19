@@ -410,6 +410,9 @@ calc_muestra_aulas_default_config <- function() {
       # que congelan la selección anterior declaran FALSE explícitamente.
       # La lógica vive en calc_muestra_aulas_descuento.R.
       sequential_discount = TRUE,
+      # EF2: un docente no se selecciona repetido entre titulares (pedido
+      # textual; reparación registrada en calc_muestra_aulas_docente_unico.R).
+      docente_unico = TRUE,
       pps_weight = 0.25,
       coverage_weight = 1,
       monte_carlo_n = 500L,
@@ -513,6 +516,7 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       replacement_score_weights = selector$replacement_score_weights %||% selector$pesos_reemplazo %||% config$replacement_score_weights %||% defaults$selector$replacement_score_weights,
       duplicate_penalty = max(0, .cm_aulas_num(selector$duplicate_penalty %||% selector$penalizacion_repetidos %||% config$penalizacion_repetidos, defaults$selector$duplicate_penalty)),
       sequential_discount = .cm_aulas_bool(selector$sequential_discount %||% selector$descuento_secuencial %||% config$sequential_discount %||% config$descuento_secuencial, defaults$selector$sequential_discount),
+      docente_unico = .cm_aulas_bool(selector$docente_unico %||% selector$teacher_unique %||% config$docente_unico, defaults$selector$docente_unico),
       pps_weight = max(0, .cm_aulas_num(selector$pps_weight %||% config$pps_weight, defaults$selector$pps_weight)),
       coverage_weight = max(0, .cm_aulas_num(selector$coverage_weight %||% config$coverage_weight, defaults$selector$coverage_weight)),
       monte_carlo_n = max(0L, .cm_aulas_int(selector$monte_carlo_n %||% selector$simulaciones, simulation_runs)),
@@ -4072,6 +4076,9 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
 
   waves <- c("M1", if (selector$replacement_waves > 0L) paste0("M", seq_len(selector$replacement_waves) + 1L) else character(0))
   selection_df <- .cm_aulas_select_waves(aula_frame, selector, engine, waves, seed = selector$seed, objective = objective, on_progress = on_progress)
+  # EF2: docente unico entre titulares (calc_muestra_aulas_docente_unico.R);
+  # corre ANTES de leer attrs para que su aviso viaje con los del sorteo.
+  selection_df <- .cm_aulas_docente_unico_reparar(selection_df, aula_frame, selector)
   engine_used <- .cm_aulas_scalar(attr(selection_df, "engine_used"), engine)
   fallback_warnings <- attr(selection_df, "warnings") %||% character(0)
   # D2: el ajuste de tamano del sorteo viaja como DATO (attr de la seleccion),
@@ -4080,6 +4087,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   size_adjustment <- attr(selection_df, "size_adjustment") %||% list(added_n = 0L, removed_n = 0L)
   # El recorrido se rescata ANTES de los merge: `merge()` descarta atributos.
   recorrido_sorteo <- attr(selection_df, "recorrido") %||% NULL
+  docente_unico_registro <- attr(selection_df, "docente_unico") %||% NULL
   if (!nrow(selection_df)) stop("No se pudo seleccionar aulas con el marco actual.", call. = FALSE)
   rownames(selection_df) <- NULL
 
@@ -4368,6 +4376,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     quotas = .cm_aulas_records(data.frame(stratum = names(.cm_aulas_quota_estratos(aula_frame, selector$n_aulas, selector)), n_aulas = as.integer(.cm_aulas_quota_estratos(aula_frame, selector$n_aulas, selector)), stringsAsFactors = FALSE)),
     summary = summary,
     diagnostics = list(
+      docente_unico = docente_unico_registro,
       probabilities = probabilities,
       balance = balance,
       profile_distributions = representativity$profile_distributions,
