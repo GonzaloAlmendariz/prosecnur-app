@@ -2164,3 +2164,39 @@ limpio.
 
 De las 30 del inventario: 30 contestadas. Ocho se cerraron en la tanda del
 rendimiento y las tres últimas —P4, P17 y P2— en ésta.
+
+
+## 2026-08-19 — Leer los paneles como PROSA: diez defectos que ningún test veía
+
+Las ocho superficies construidas en la noche, releídas entera cada una —cabecera,
+contador, lectura, cabecera de tabla y pie **seguidos**, como quien entra por
+primera vez—.
+
+| | Commit | Qué salió |
+|---|---|---|
+| L141 | `39e194a7` | Los tres paneles de rendimiento tenían **la misma frase palabra por palabra** (compartían componente y la lectura era el total global) · **género que no concuerda**: «la que más rinde (Equipo 4)» · el pie llamaba **«lo que deja cada visita»** a la columna «Por aula», y explicaba las columnas en otro orden. |
+| L142 | `7a0cf2b3` | El eje del pronóstico llamaba **«hoy» al último día con campo** —21/08 con el corte del 18: una afirmación falsa sobre el calendario— · la lista de ritmo **sin cabecera** · **«1 caída en 1 día» = ritmo de 1/día**, una cadencia de una sola observación que además proyectaba. |
+| L143 | `1cf73026` · `a49affc6` | El bloque de cambio de aula **partía la narración del embudo** —entre «2 menos» y la frase que explica esos dos— y decía **«aulas» donde el panel cuenta «partes»** · «Preparación de campo» **se colaba en Contacto** y ahogaba el bloque de medios (430 → 599 px al sacarlo) · el panel **titulaba una sola de las dos cosas que contiene**. |
+
+### El catálogo de patrones — lo reutilizable
+
+1. **La misma frase repetida** entre paneles que comparten componente.
+2. **Género o número que no concuerdan** cuando un componente sirve a varias unidades.
+3. **Una columna llamada de dos formas** entre la cabecera y el pie.
+4. **Etiquetas que afirman algo que no es** — «hoy» por «último con campo».
+5. **Listas sin cabecera** donde el resto del perfil sí la lleva.
+6. **Cadencias calculadas con uno o dos puntos** presentadas como ritmo.
+7. **Bloques que parten una narración**, metidos entre una cifra y su explicación.
+8. **Vocabulario del perfil**: «partes» (210) ≠ «aulas» (196) ≠ «cursos-horario» (236).
+9. **Un panel que contiene dos cosas y titula una** (C1).
+10. **Un panel heredado que se cuela** en una pestaña y se come el alto.
+
+### La regla de método
+
+**Leer los párrafos de un panel SEGUIDOS.** Los defectos 7 y 8 los introduje yo
+verificando un bloque nuevo **contra su propio dato**, sin releer el panel
+entero: el bloque estaba bien y el panel dejó de estarlo.
+
+Y la razón de que nada de esto aparezca en el gate: **son defectos de lectura, no
+de cálculo**. Los 1 162 tests pasan, el gate da `ok=true`, y el panel dice que
+hoy es un día que no ha ocurrido.
