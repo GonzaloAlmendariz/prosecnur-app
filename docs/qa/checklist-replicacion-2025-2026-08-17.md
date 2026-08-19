@@ -4056,3 +4056,15 @@ resultado pre-actualizacion (el diseño N-2026 con cuotas proporcionales
 no movio la seleccion: los faculty_targets fijan las aulas). El
 marco2026.pulso guarda ahora marco + diseño N-2026 + comparacion de
 metodos fresca + seleccion + simulacion, todo coherente.
+
+### DECISION DE GONZALO: reparto P25 sin tope — 197 aulas. Aplicado y re-sorteando
+
+Textual: «Vamos con las 197 por P25, aplicalo y re-sortea». Aplicado:
+aulas_base_fijas de los 15 estratos = reparto P25 (C&I 40 · EGC 25 ·
+EGL 23 · DER 18 · A&D 17 · CCSS 12 · ARQ 12 · AE 11 · CyA 10 · GES 8 ·
+PSI 7 · EDU 4 · LyCH 4 · GAS 3 · CONT 3 = 197) + selector sellado
+(n_aulas 197, faculty_targets nuevos; techo 200 y docente_unico
+conservados por la fusion). Calcular verifica: aulas_base_total 197
+con estadistico p25 en las 15. Cadena re-sorteo corriendo
+(comparar→seleccionar→simular→save); la verificacion del reparto
+exacto, docentes unicos y certificacion llega con su output.
