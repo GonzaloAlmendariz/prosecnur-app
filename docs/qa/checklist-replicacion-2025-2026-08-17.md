@@ -3947,3 +3947,29 @@ remedio existe en la UI: stepper +1 aula en la tarjeta de certificacion
 Fuera de alcance declarado: cruce curso-a-curso 2025↔2026 (el detalle
 CH del libro 2025 no viaja en el state; el embudo por facultad cubre la
 comparacion agregada).
+
+### Los N del diseño ya son 2026 — y la formula destapo la QUINTA copia del mismo dato
+
+Pregunta de Gonzalo («¿por que los N siguen en 2025?») + su reporte
+sobre la formula («esto se rompio»). Lo hecho, medido y verificado:
+
+1. **Estratos actualizados a la poblacion 2026 real** (por facultad ×
+   sexo, del marco vigente): ΣN 21.365 → **21.920**. Con N nuevo, las
+   cuotas del resultado pasan al proporcional 2026 (±5 por facultad;
+   total 2.500 y las 190 aulas fijas INTACTOS). Se descubrio ademas que
+   el motor SIEMPRE deriva la cuota proporcional al N — las cuota_fija
+   del estrato no rigen ese numero; con N 2025 eran indistinguibles
+   porque las fijas SON el proporcional de Kamila.
+2. **La formula de Cochran leia OTRA copia**: `marco.marco_validado`
+   (escalar del componente, junto a universo_bruto y marco_contactable)
+   — quinta aparicion de «misma cantidad, varios dueños». Actualizados
+   los tres escalares a 21.920; formula verificada en vivo (N 21.920,
+   sin rastro de 21.365). El fix ESTRUCTURAL (derivar el escalar de los
+   estratos o validar coherencia) pertenece al ADR del dueño unico.
+3. **EDUCACION mostrada en la app** (pedido textual): Seleccion →
+   «Cursos-horario titulares» → fila EDUCACION en «NO cubre» (cuota 24
+   con N 2026, 2 titulares, 42 elegibles, esperadas 22, margen 0,93×
+   ambar) con sus botones −1/+1 al lado. Con cuota 24 el faltante
+   crecio de 0,7 a ~1,7: el +1 aula se refuerza. Screenshot en sesion.
+
+.pulso marco2026 re-guardado con todo lo anterior.
