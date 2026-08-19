@@ -457,7 +457,15 @@ export function withUniversityEstratoDefaults(estratos: CalcMuestraEstrato[] = [
     p_facultad: e.p_facultad == null
       ? UNIVERSITY_REFERENCE_SUCCESS_RATE[e.label.toUpperCase()] ?? UNIVERSITY_REFERENCE_SUCCESS_RATE[normalizeUniversityLabel(e.label)] ?? 0.5
       : safeNumber(e.p_facultad, UNIVERSITY_REFERENCE_SUCCESS_RATE[e.label.toUpperCase()] ?? UNIVERSITY_REFERENCE_SUCCESS_RATE[normalizeUniversityLabel(e.label)] ?? 0.5),
-    ...(auditMap[normalizeUniversityLabel(e.label)] ?? {}),
+    // Los defaults de auditoría NO inyectan DECISIONES (cuota_fija,
+    // sobremuestra_fija, aulas_base_fijas): son la réplica 2025 del proyecto
+    // canónico y espolvorearlos sobre cualquier estudio contaminaba el modelo
+    // en memoria — 12 «fijaciones fantasma» que ninguna superficie podía
+    // explicar (Gonzalo, 2026-08-19: «no entiendo esas doce fijaciones»).
+    // Solo pasan los parámetros de precisión; las decisiones son del estudio.
+    ...(({ cuota_fija, sobremuestra_fija, aulas_base_fijas, ...resto }) => resto)(
+      auditMap[normalizeUniversityLabel(e.label)] ?? {},
+    ),
     aulas_extra_operativas: e.aulas_extra_operativas == null
       ? auditMap[normalizeUniversityLabel(e.label)]?.aulas_extra_operativas ?? 1
       : Math.max(0, Math.round(safeNumber(e.aulas_extra_operativas, 1))),
