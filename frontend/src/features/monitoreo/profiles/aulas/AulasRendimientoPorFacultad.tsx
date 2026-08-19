@@ -41,10 +41,28 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
 
   return (
     <div className="aulas-rendimiento">
+      {/* La lectura habla de ESTA agrupación, no del total.
+          Las tres vistas —facultad, aplicador, franja— comparten componente, y
+          con el total salía la MISMA frase palabra por palabra en los tres
+          paneles seguidos: «4 863 encuestas en 210 aulas visitadas · 23,2 por
+          aula de media», tres veces. Repetida así se lee como un fallo y
+          desperdicia la única línea que puede decir qué enseña cada corte.
+          El total sigue estando: es el «de media» del final. */}
       <p className="aulas-rendimiento-lectura">
-        <strong>{fmt(efectivas)}</strong> encuestas en <strong>{fmt(aulas)}</strong>{" "}
-        {aulas === 1 ? "aula visitada" : "aulas visitadas"} ·{" "}
-        <strong>{media.toLocaleString("es-PE")}</strong> por aula de media
+        {/* Sin género: el mismo componente sirve a facultad, aplicador y franja,
+            y «la que más rinde (Equipo 4)» no concuerda. «De X a Y» vale para
+            los tres y además es más corto. */}
+        {filas.length > 1 ? (
+          <>
+            De <strong>{fmt(filas[0].porAula ?? 0)}</strong> por aula ({filas[0].facultad}) a{" "}
+            <strong>{fmt(filas[filas.length - 1].porAula ?? 0)}</strong>{" "}
+            ({filas[filas.length - 1].facultad})
+          </>
+        ) : (
+          <>Todo el trabajo está en <strong>{filas[0].facultad}</strong></>
+        )}
+        {" "}· <strong>{media.toLocaleString("es-PE")}</strong> de media en{" "}
+        {fmt(aulas)} {aulas === 1 ? "aula visitada" : "aulas visitadas"}
       </p>
       <ul className="aulas-rendimiento-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <li className="aulas-rendimiento-cabecera" aria-hidden="true">
@@ -84,14 +102,17 @@ export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", u
           </li>
         ))}
       </ul>
+      {/* El pie explica las columnas EN SU ORDEN y con SU NOMBRE.
+          Antes decía «ordenadas por lo que deja cada visita» —que es la columna
+          «Por aula» llamada de otra forma, dos nombres para lo mismo dentro del
+          mismo panel— y explicaba asistentes y potencial antes que «Ajustado»,
+          que va en medio: quien lee tenía que saltar. */}
       <p className="mon-profile-muted aulas-rendimiento-pie">
-        Ordenadas por lo que deja cada visita. <strong>De los asistentes</strong> mide el trabajo
-        en el aula; <strong>del potencial</strong>, cuánto queda por recoger.{" "}
-        {/* Qué es el ajustado, en una línea y con el porqué: sin esto es una
-            columna con un número que nadie sabe de dónde sale. */}
-        <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada
-        {" "}{unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
-        afortunadas no encabeza la lista.
+        <strong>Por aula</strong> es lo que deja cada visita, y por eso ordena la lista.{" "}
+        <strong>Ajustado</strong> corrige el tamaño de la muestra: equivale a sumarle a cada{" "}
+        {unidad.toLowerCase()} cinco aulas con el rendimiento medio, así una con dos aulas
+        afortunadas no encabeza. <strong>De los asistentes</strong> mide el trabajo en el aula;{" "}
+        <strong>del potencial</strong>, cuánto queda por recoger.
       </p>
     </div>
   );
