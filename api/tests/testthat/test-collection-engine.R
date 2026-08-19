@@ -206,6 +206,75 @@ test_that("reconcile observa instrumento y target sin escribir si no cambiaron",
   expect_true("instrument_revision_changed" %in% unlist(stale$deployment$stale$reasons))
 })
 
+test_that("V5 el deployment es todo o nada: una unidad sin enlace bloquea el prepare completo", {
+  # Hallazgo real, no supuesto: `collection_deployment_prepare()` exige
+  # cobertura TOTAL (collection_engine.R ~linea 532,
+  # `units_missing_access > 0` => E_COLLECTION_DEPLOYMENT_NOT_READY, 422). No
+  # existe un handoff parcial donde 2 de 3 unidades avanzan y la tercera
+  # queda "pendiente": el estudio entero se queda en `draft` hasta que TODAS
+  # las unidades resuelven acceso. Con una muestra de 200+ aulas, una sola
+  # unidad con un valor de personalizacion vacio bloquea el prepare de las
+  # otras 199 -no es un bug de este cambio, es el contrato ya existente-.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  fp <- paste0("sha256:", strrep("d", 64L))
+  plan <- list(
+    schema = "collection_plan/v1", plan_id = "plan-v5-mixto",
+    adapter = list(id = "kobo_existing_v1", version = 1L),
+    source_ref = list(module = "calc-muestra", run_id = "run-v5", fingerprint = fp),
+    instrument_ref = list(revision_id = "instrumento-v5", sha256 = strrep("e", 64L)),
+    unit_type = "classroom_course_schedule",
+    units = list(
+      list(unit_id = "u-1", label = "Aula 1", link_key = "AULA-1"),
+      # Sin link_key -> .ca_unit_value() da "" -> access_ref queda NULL ->
+      # .collection_access_url() no tiene nada que componer.
+      list(unit_id = "u-2", label = "Aula 2", link_key = ""),
+      list(unit_id = "u-3", label = "Aula 3", link_key = "AULA-3")
+    ),
+    revision = 1L, input_fingerprint = fp
+  )
+  put <- collection_plan_put(sid, plan, expected_revision = 0L)
+
+  target <- list(
+    provider = "kobo", asset_uid = "aV5Mixto", asset_type = "survey",
+    deployment_active = TRUE, base_access_url = "https://ee.kobotoolbox.org/x/mixtoV5"
+  )
+  adapter <- collection_adapter_get("kobo_existing_v1")
+  preview <- adapter$preview_deployment(plan = put$plan, target = adapter$inspect_target(list(), target))
+  preview$capability_preflight <- NULL
+  dep_put <- collection_deployment_put(sid, preview, expected_revision = put$state_revision)
+  # El PREVIEW si distingue cobertura parcial (2/3) sin bloquear -es el
+  # punto donde el analista ve el hueco antes de intentar preparar-.
+  expect_identical(dep_put$deployment$coverage$units_with_access, 2L)
+  expect_identical(dep_put$deployment$coverage$units_missing_access, 1L)
+  expect_identical(dep_put$deployment$status, "draft")
+
+  err <- tryCatch(
+    collection_deployment_prepare(sid, expected_revision = dep_put$state_revision),
+    error = function(e) e
+  )
+  expect_s3_class(err, "api_error")
+  expect_identical(err$code, "E_COLLECTION_DEPLOYMENT_NOT_READY")
+
+  # Con las 3 unidades resueltas SI prepara y SI hace handoff completo, sin
+  # unidades faltantes ni link vacio.
+  plan$units[[2]]$link_key <- "AULA-2"
+  put2 <- collection_plan_put(sid, plan, expected_revision = dep_put$state_revision)
+  preview2 <- adapter$preview_deployment(plan = put2$plan, target = adapter$inspect_target(list(), target))
+  preview2$capability_preflight <- NULL
+  dep_put2 <- collection_deployment_put(sid, preview2, expected_revision = put2$state_revision)
+  prep <- collection_deployment_prepare(sid, expected_revision = dep_put2$state_revision)
+  expect_identical(prep$deployment$status, "prepared")
+  expect_identical(prep$deployment$coverage$units_missing_access, 0L)
+
+  session_set(sid, "project_path", tempfile(fileext = ".pulso"))
+  session_set(sid, "project_dirty", FALSE)
+  ho <- collection_handoff(sid, expected_revision = prep$state_revision)
+  rows <- ho$monitoring_rows
+  expect_length(rows, 3L)
+  expect_true(all(vapply(rows, function(r) nzchar(as.character(r$link %||% "")), logical(1))))
+})
+
 test_that("handoff repetido es no-op y conserva revisión, timestamp y dirty", {
   sid <- session_create()
   on.exit(session_delete(sid), add = TRUE)
