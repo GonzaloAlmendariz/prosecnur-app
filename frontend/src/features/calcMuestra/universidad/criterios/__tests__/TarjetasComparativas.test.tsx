@@ -258,7 +258,7 @@ describe("contrato: las dos tarjetas están cableadas en Entrega", () => {
     // El mutante que importa: pasar `undefined` como parámetros deja la columna
     // de este estudio en blanco sin que nada mas falle.
     expect(desk).toContain('from "./criterios/criteriosGeneralesModel"');
-    expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?parametros: facultyComp\?\.parametros/);
+    expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?parametros: compActivo\?\.parametros/);
     expect(desk).toMatch(/criteriosGeneralesDeEstudio\(\{[\s\S]*?decision:/);
     // Los criterios del marco se leen del config QUE PRODUJO EL MARCO, no del
     // workspace: son dos copias y la del workspace va por detrás.
@@ -418,13 +418,16 @@ describe("criterios generales del estudio", () => {
     const fs = criteriosGeneralesDeEstudio({
       parametros: PARAMS, selector: SELECTOR, aulasMarco: 2112, filas: FILAS_EST,
     });
-    expect(busca(fs, "Sobremuestra")).toBe("20 %");
+    // En el idioma del histórico (ratio): la referencia guarda 1.5 y la
+    // comparación es textual — «20 %» declaraba «no coincide» contra la
+    // MISMA cantidad (medido 2026-08-19 en Coincidencia).
+    expect(busca(fs, "Sobremuestra")).toBe("×1.2");
     // CONTROL: con otro estudio cambia. El literal «1.5» no cambiaba nunca.
     const otro = criteriosGeneralesDeEstudio({
       parametros: { ...PARAMS, oversample_pct: 0.5 }, selector: SELECTOR,
       aulasMarco: null, filas: null,
     });
-    expect(busca(otro, "Sobremuestra")).toBe("50 %");
+    expect(busca(otro, "Sobremuestra")).toBe("×1.5");
   });
 
   it("la DECISIÓN sellada manda sobre el parámetro del componente", () => {

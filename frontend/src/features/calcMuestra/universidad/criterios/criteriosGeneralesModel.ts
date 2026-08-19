@@ -31,6 +31,13 @@ export function fmtCifra(valor: unknown, decimales = 0): string {
 }
 
 /** Porcentaje declarado como fracción (0,2 → «20 %»). */
+/** Ratio de sobremuestra en el idioma del histórico: 0.5 (extra) -> «×1,5». */
+export function fmtRatioSobremuestra(valor: unknown): string {
+  const n = typeof valor === "number" ? valor : Number(valor);
+  if (!Number.isFinite(n) || n < 0) return "";
+  return `×${fmtCifra(1 + n, 1)}`;
+}
+
 export function fmtPorcentaje(valor: unknown): string {
   if (valor == null || valor === "" || typeof valor === "boolean") return "";
   const n = Number(valor);
@@ -124,7 +131,10 @@ export function criteriosGeneralesDeEstudio({
     },
     {
       concepto: "Sobremuestra",
-      hoy: fmtPorcentaje(p.oversample_pct),
+      // En el idioma del historico: RATIO (x1,5), no porcentaje. La referencia
+      // guarda ratio_sobremuestra=1.5 y la comparacion es textual: mostrar
+      // «50 %» aqui declaraba «no coincide» contra la MISMA cantidad.
+      hoy: fmtRatioSobremuestra(p.oversample_pct),
       claveHistorica: "ratio_sobremuestra",
     },
     {
