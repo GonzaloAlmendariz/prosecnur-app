@@ -76,7 +76,11 @@ export function AulasColaDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoA
                 <span title={e.facultad}>{e.facultad}</span>
                 <span>
                   {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} med.`}
-                  <em> · {fmt(e.aulas)} {e.aulas === 1 ? "aula" : "aulas"}</em>
+                  {/* «cursos-horario», que es lo que cuenta el plan y lo que
+                      dice el vacío de este mismo componente tres líneas arriba
+                      —«Todos los cursos-horario del plan tienen cita»—. Decía
+                      «aulas», y en este perfil no son la misma unidad. */}
+                  <em> · {fmt(e.aulas)} {e.aulas === 1 ? "curso-horario" : "cursos-horario"}</em>
                 </span>
               </li>
             ))}

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { colaDeContacto } from "./colaDeContacto";
@@ -48,5 +50,34 @@ describe("colaDeContacto", () => {
     ]);
     expect(pendientes).toHaveLength(0);
     expect(esfuerzo).toHaveLength(0);
+  });
+});
+
+describe("un componente no usa dos unidades para la misma poblacion", () => {
+  // `AulasColaDeContacto` decía «Todos los cursos-horario del plan tienen cita»
+  // en su estado vacío y «8 aulas» en la lista de esfuerzo, tres líneas más
+  // abajo y sobre las MISMAS filas del plan. En este perfil no son la misma
+  // unidad: 210 partes, 196 aulas, 236 cursos-horario.
+  const componente = fs.readFileSync(
+    path.resolve(__dirname, "AulasColaDeContacto.tsx"),
+    "utf8",
+  );
+  // Los comentarios explican el defecto y nombran la palabra vieja: buscarla en
+  // el fuente entero daría falso rojo.
+  const visible = componente
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+
+  it("se aisló el texto visible", () => {
+    expect(visible).toContain("tienen cita");
+  });
+
+  it("la lista de esfuerzo cuenta cursos-horario", () => {
+    expect(visible).toContain('"curso-horario" : "cursos-horario"');
+  });
+
+  it("no queda copy visible que llame «aulas» a esas filas", () => {
+    expect(visible).not.toMatch(/"aula" : "aulas"/);
   });
 });
