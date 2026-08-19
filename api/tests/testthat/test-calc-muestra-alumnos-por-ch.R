@@ -159,7 +159,7 @@ test_that("decisión Alumnos por CH sobrevive whitelist sin fabricar defaults v�
   )
 })
 
-test_that("P1 y P2 consumen la decisión R y anulan aulas_base_fijas legacy", {
+test_that("P1 y P2 consumen la decisión R y la fijación de titulares SOBREVIVE", {
   frame <- .apch_frame()
   # Reemplaza FAC B por un snapshot completo; el elegible decidido queda en 30.
   frame$aula_frame$eligible_n[[4]] <- 30
@@ -170,9 +170,12 @@ test_that("P1 y P2 consumen la decisión R y anulan aulas_base_fijas legacy", {
   resolved <- calc_muestra_alumnos_por_ch_resolver_estudio(.apch_study(), frame)
 
   for (component in resolved$estudio$componentes) {
+    # El divisor lo fija la decisión; la fijación de titulares es OTRA
+    # decisión registrada y sobrevive al recálculo (antes se anulaba: el
+    # borrado protegía de la contaminación de defaults, muerta en f51a3c1a).
     expect_equal(
       vapply(component$marco$estratos, `[[`, numeric(1), "aulas_base_fijas"),
-      c(0, 0)
+      c(777, 888)
     )
     expect_equal(
       vapply(component$marco$estratos, `[[`, numeric(1), "promedio_conglomerado"),
@@ -211,7 +214,8 @@ test_that("P1 y P2 consumen la decisión R y anulan aulas_base_fijas legacy", {
       result$aulas_base_total,
       as.integer(sum(vapply(rows, `[[`, integer(1), "aulas_base")))
     )
-    expect_lt(result$aulas_base_total, 777L + 888L)
+    # Con la fijación viva, el total ES la suma de fijas: 777 + 888.
+    expect_identical(result$aulas_base_total, 777L + 888L)
   }
 })
 
@@ -293,7 +297,15 @@ test_that("divisor decidido, usado y auditado conserva exactamente su valor", {
     frame$frame_hash
   )
   expected <- c(37.5, 40)
-  resolved <- calc_muestra_alumnos_por_ch_resolver_estudio(.apch_study(), frame)
+  estudio_sin_fijas <- .apch_study()
+  # Este test es del DIVISOR: sin fijas, para que aulas_base salga de la
+  # fórmula (la supervivencia de la fijación se prueba en el test de arriba).
+  for (ci in seq_along(estudio_sin_fijas$componentes)) {
+    for (ei in seq_along(estudio_sin_fijas$componentes[[ci]]$marco$estratos)) {
+      estudio_sin_fijas$componentes[[ci]]$marco$estratos[[ei]]$aulas_base_fijas <- 0L
+    }
+  }
+  resolved <- calc_muestra_alumnos_por_ch_resolver_estudio(estudio_sin_fijas, frame)
 
   for (component in resolved$estudio$componentes) {
     expect_identical(
