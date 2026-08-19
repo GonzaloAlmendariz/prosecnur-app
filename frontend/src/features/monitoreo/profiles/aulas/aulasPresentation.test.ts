@@ -285,3 +285,35 @@ describe("los vocabularios cerrados no derivan entre R y la UI", () => {
     expect(faltan, `estados del motor sin etiqueta: ${faltan.join(", ")}`).toEqual([]);
   });
 });
+
+describe("una columna de porcentaje lo dice en su rótulo", () => {
+  // `quota_pct` era el ÚNICO `_pct` del mapa cuya etiqueta no llevaba el «%»:
+  // se leía «Cuota», pegada a «Faltantes cuota» —que sí es un conteo—, así que
+  // la cabecera prometía la cuota del curso y debajo había la parte de ella ya
+  // conseguida.
+  // La lista vive sin exportar en el módulo; se lee del fuente para no abrir su
+  // superficie pública sólo por un test.
+  const fuente = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "aulasPresentation.ts"),
+    "utf8",
+  );
+  const lista = (fuente.match(/const COLUMNAS_DE_PORCENTAJE = new Set\(\[([\s\S]*?)\]\)/) ?? [])[1] ?? "";
+  const campos = [...lista.matchAll(/"(\w+)"/g)].map((m) => m[1]);
+
+  it("se encontró la lista de porcentajes", () => {
+    expect(campos.length).toBeGreaterThan(6);
+  });
+
+  it("todo campo de la lista lleva «%» o «vs» en su rótulo", () => {
+    const sinMarca = campos
+      .map((campo) => [campo, aulasFieldLabel(campo)] as const)
+      .filter(([campo, rotulo]) => rotulo && rotulo !== campo && !/%|vs/i.test(rotulo))
+      .map(([campo, rotulo]) => `${campo} → «${rotulo}»`);
+    expect(sinMarca).toEqual([]);
+  });
+
+  it("«% Cuota» ya no se confunde con la cuota del curso", () => {
+    expect(aulasFieldLabel("quota_pct")).toBe("% Cuota");
+    expect(aulasFieldLabel("quota_missing")).toBe("Faltantes cuota");
+  });
+});
