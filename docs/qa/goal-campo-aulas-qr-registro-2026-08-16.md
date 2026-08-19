@@ -2237,3 +2237,54 @@ población y el número es de otra**—:
   descartaron tres candidatos que parecían el defecto: los literales sin tilde
   (son alias), «Número Incorrrecto» (viene así del cliente, con test propio) y el
   corte a 160 filas (**no es silencioso**, el pie lo declara).
+
+
+## 2026-08-19 — El catálogo, de vuelta en el perfil del encargo (aulas)
+
+Las **quince** pestañas del perfil, leídas de corrido y con la aritmética hecha a
+mano sobre lo que se ve. Siete defectos, ninguno visible para los 258 tests ni
+para el gate.
+
+| | Commit | Qué salió |
+|---|---|---|
+| L150 | `c4d8cbc3` | **Encuestas sin fuente declarada.** «Qué está rindiendo más» contaba «N encuestas» sin decir de dónde salen: suman **4 863**, y la pestaña vecina muestra **3 700 VÁLIDAS de Kobo**. 1 163 de diferencia entre dos cifras que se leen como la misma. |
+| L151 | `a0607841` | **Un puntaje pintado como porcentaje.** «REPRESENTATIVIDAD 93 %» es `..._score`, y el control de la misma pantalla lo enseña como «Puntaje 93.1 de 100». Con CUMPLEN en 0, ese «93 %» tranquilizaba en falso. |
+| L152 | `17aafcaf` | **Dos columnas `_pct` sin su «%»** —«Cuota» pegada a «Faltantes cuota», que sí es un conteo; y «Avance» entre META/OBSERVADAS/FALTANTES—. La segunda la cazó el guard escrito para la primera. |
+| L153 | `82ffe06f` · `b125b1c8` | **La escala decidida por el tope.** Ver abajo: es la lección, no un ítem. |
+| L154 | `d92bce92` · `bffc1664` | **Vocabulario**: «69 de 168 aulas» a tres líneas de un tile y un título que dicen *cursos-horario*; y un componente que decía «cursos-horario» en su vacío y «aulas» en su lista, **dentro de un solo archivo**. |
+| L155 | `39d5a828` | **Una lista que sólo aparece cuando hay algo que contar.** El embudo mostraba 3 700 · 3 700 · 3 700 y «Por qué bajan los conteos» desaparecía: indistinguible «el filtro no perdió a nadie» de «no había filtro». |
+| L156 | `e25bc0bc` | **El contador publicaba un hecho que la fila no enseñaba.** «170 con parte en el libro» sobre 196 filas todas «Planificada»; el conjunto ya se construía, sólo para contar. |
+
+### El catálogo, ampliado
+
+14. **Una lista condicionada a tener contenido** vuelve indistinguibles «no hubo»
+    y «no se pudo saber». Si su título promete una explicación, su ausencia
+    también dice algo.
+
+### La lección más cara de la tanda
+
+**Un fixture honesto no sólo deja ver defectos: los provoca.**
+
+El fixture sembraba `quota_pct` con la misma división que `sent_vs_population`
+—210 de 210 filas idénticas, novena vez que decide lo que se puede ver—. Al
+arreglarlo, la cuota pasó a compararse contra la meta del plan y **empezó a
+superar el 100 %**, que es lo normal cuando un curso se pasa. Eso destapó que el
+detector de escala decidía por el **máximo** de la columna con corte en 1.5: una
+sola fila pasada tumbaba las 140 a «0.8 %». Ahora decide la **mediana**, que no la
+mueve un dato suelto.
+
+Y esa pregunta, llevada a los otros perfiles, encontró la peor de todas: en el
+**build público** —el que ve el cliente— `Math.abs(value) <= 1 ? value * 100 :
+value` multiplicaba por cien **todo porcentaje menor que 1 %**, y por VALOR, así
+que dentro de una lista unas filas se escalaban y otras no.
+
+Tres defectos encadenados, y el primero de la cadena era un fixture.
+
+### Lo que descartó la medición
+
+Cinco candidatos que parecían el defecto y no lo eran, todos comprobados antes de
+tocar: el corte a 160 filas **lo declara el pie**; «faltan 43» vs «3 743 faltan»
+ya estaba resuelto con la palabra «total»; el pronóstico proyecta *aulas* a
+propósito y lo argumenta; «aulas extra» es el término del motor; y que las 196 se
+vean «Planificada» ya estaba razonado en el propio panel —lo que faltaba no era el
+aviso, era el dato por fila—.
