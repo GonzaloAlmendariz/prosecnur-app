@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
+
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
-import { AulasSerieDeRendimiento, escalaDeEje } from "./AulasSerieDeRendimiento";
+import {
+  AulasSerieDeRendimiento, diasDelRango, escalaDeEje, esDomingo,
+} from "./AulasSerieDeRendimiento";
 
 /**
  * El gráfico tiene que separar lo aplicado de lo agendado.
@@ -128,5 +132,125 @@ describe("la escala del eje vertical", () => {
       expect(escalones.length).toBeGreaterThanOrEqual(4);
       expect(escalones.length).toBeLessThanOrEqual(6);
     }
+  });
+});
+
+describe("los dos gráficos se leen como uno", () => {
+  it("el acumulado también tiene puntos con hover, no sólo el diario", () => {
+    // Gonzalo: «el acumulado por día no tiene hover cuando el día a día sí».
+    const html = pintar();
+    const acumulado = html.slice(0, html.indexOf("Día a día"));
+    const puntos = [...acumulado.matchAll(/aulas-serie-punto/g)];
+    // Cuatro días aplicados y dos agendados: seis puntos en la línea del total.
+    expect(puntos).toHaveLength(6);
+    // Y cada uno dice lo que hay que saber sin bajar la vista al eje de días.
+    expect(acumulado).toMatch(/aria-label="\d{2}\/\d{2} · acumulado, .*encuestas/);
+    expect(acumulado).toContain("inferido de la agenda");
+  });
+
+  it("los dos lienzos tienen el mismo carril de eje, o el mismo día no cae en la misma vertical", () => {
+    // El defecto original: cada rejilla dimensionaba su columna del eje Y por sus
+    // propias cifras —«250» arriba, «45» abajo— y los lienzos salían de 1262 y
+    // 1269 px. Comparten el eje de días: si no coinciden, apilarlos no significa
+    // nada. El carril se declara una vez en el CSS del panel; aquí se fija que
+    // ninguna de las dos rejillas lo redefina.
+    const css = readFileSync(
+      new URL("./aulasMonitoreo.css", import.meta.url), "utf8");
+    const rejillas = [...css.matchAll(
+      /\.aulas-serie-plot\s*\{[^}]*grid-template-columns:\s*([^;]+);/g)];
+    expect(rejillas).toHaveLength(1);
+    expect(rejillas[0][1]).toContain("var(--aulas-serie-carril)");
+    expect(css).not.toMatch(/\.aulas-serie-plot\.es-acumulado[^{]*\{[^}]*grid-template-columns/);
+  });
+});
+
+describe("las dos líneas de sexo no suman la verde, y hay que decirlo", () => {
+  /** Dos aulas: la primera sin reparto en el libro, la segunda con él. */
+  function conLibroAMedias() {
+    const partes = [
+      aplicada("2026-08-10", 31, "A1"),
+      aplicada("2026-08-12", 18, "A2"),
+    ];
+    const control = [
+      { operational_code: "A2", women_n: 8, men_n: 6 },
+    ] as unknown as MonitoreoRow[];
+    return renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} control={control} />);
+  }
+
+  it("el hover del día sin reparto dice que el libro todavía no lo declara", () => {
+    // Gonzalo: «¿por qué las líneas de hombre y mujer recién salen el 11 de
+    // agosto y no el 10?». Porque el libro calla el reparto de esas aulas, no
+    // porque no hubiera aulas: el 10/08 la verde ya valía 31. Eso tenía que
+    // poder leerse en el gráfico, y no se podía.
+    expect(conLibroAMedias()).toContain("el libro todavía no declara el sexo de ninguna");
+  });
+
+  it("el hover del día con reparto da el desglose Y su cobertura", () => {
+    const html = conLibroAMedias();
+    expect(html).toContain("8 mujeres · 6 hombres");
+    // 14 de 49: las dos cifras de sexo NO suman lo conseguido.
+    expect(html).toContain("el libro declara el sexo en 14 de las 49");
+  });
+
+  it("cuando el reparto cubre menos que el total, la leyenda lo declara", () => {
+    expect(conLibroAMedias()).toContain("sexo declarado en 14 de 49 encuestas");
+  });
+
+  it("cuando el reparto cubre todo, no molesta con la advertencia", () => {
+    const partes = [aplicada("2026-08-10", 14, "A1")];
+    const control = [{ operational_code: "A1", women_n: 8, men_n: 6 }] as unknown as MonitoreoRow[];
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} control={control} />);
+    expect(html).toContain("sexo declarado en todas");
+    expect(html).not.toContain("sexo declarado en 14 de 14 encuestas");
+  });
+});
+
+describe("el eje X es un calendario, no una lista de días con datos", () => {
+  it("no se salta ni un día entre la primera fecha y la última", () => {
+    // Gonzalo: «cada tick del eje x debe ser un día de calendario sí o sí, ahora
+    // veo saltos de varios días entre tick y tick». Era literal: las fechas se
+    // repartían por ÍNDICE, así que del viernes 14 se pasaba al lunes 17 y el fin
+    // de semana ocupaba lo mismo que un día. **El gráfico mentía sobre el ritmo**,
+    // que es justo lo que viene a medir.
+    expect(diasDelRango("2026-08-14", "2026-08-17")).toEqual([
+      "2026-08-14", "2026-08-15", "2026-08-16", "2026-08-17",
+    ]);
+    expect(diasDelRango("2026-08-10", "2026-08-26")).toHaveLength(17);
+  });
+
+  it("cruza el fin de mes sin inventarse días", () => {
+    expect(diasDelRango("2026-08-30", "2026-09-02")).toEqual([
+      "2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02",
+    ]);
+    // Y febrero, que es donde se rompen los saltos hechos a mano.
+    expect(diasDelRango("2028-02-27", "2028-03-01")).toEqual([
+      "2028-02-27", "2028-02-28", "2028-02-29", "2028-03-01",
+    ]);
+  });
+
+  it("un solo día es un solo tick, y un rango invertido no cuelga", () => {
+    expect(diasDelRango("2026-08-10", "2026-08-10")).toEqual(["2026-08-10"]);
+    expect(diasDelRango("2026-08-20", "2026-08-10")).toEqual(["2026-08-20"]);
+  });
+
+  it("reconoce el domingo, que no es día de campo", () => {
+    // 2026-08-16 es domingo; el 15 es sábado y el 17 lunes.
+    expect(esDomingo("2026-08-16")).toBe(true);
+    expect(esDomingo("2026-08-15")).toBe(false);
+    expect(esDomingo("2026-08-17")).toBe(false);
+  });
+
+  it("el eje pinta los días vacíos del calendario, no sólo los que tienen parte", () => {
+    // Dos días con parte separados por un fin de semana: el eje tiene que
+    // enseñar los cuatro, o el salto se lee como un día.
+    const partes = [aplicada("2026-08-14", 20, "A1"), aplicada("2026-08-17", 22, "A2")];
+    const html = renderToStaticMarkup(
+      <AulasSerieDeRendimiento partes={partes} agenda={[]} />);
+    const ticks = [...html.matchAll(/<li class="[^"]*" style="left:/g)];
+    expect(ticks).toHaveLength(4);
+    expect(html).toContain("es-domingo");
+    expect(html).toContain("es-vacio");
   });
 });

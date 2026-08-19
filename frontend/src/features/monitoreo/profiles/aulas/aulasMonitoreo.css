@@ -3466,6 +3466,14 @@
   margin-left: 6px; color: #b97611;
   background: color-mix(in srgb, #b97611 12%, transparent);
 }
+/* La guia vertical compartida: el dia sobre el que esta el raton, marcado en LOS
+ * DOS graficos a la vez. Los lienzos ya coincidian al pixel, pero coincidir no es
+ * enseñar que coinciden. */
+.mon-profile-page.is-aulas-flow .aulas-serie-guia {
+  position: absolute; top: 4%; bottom: 4%; width: 1px;
+  transform: translateX(-50%); pointer-events: none; z-index: 1;
+  background: var(--pulso-text-faint); opacity: 0.45;
+}
 .mon-profile-page.is-aulas-flow .aulas-serie-punto {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
   transform: translate(-50%, -50%); cursor: help;
@@ -3508,6 +3516,19 @@
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: #b97611; }
+/* El DOMINGO, que no es dia de campo: la marca se alarga y la fecha se apaga,
+ * para que el hueco del fin de semana quede explicado y no parezca un dia
+ * perdido. */
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-domingo i {
+  height: 9px; background: var(--pulso-border-strong);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-domingo span {
+  color: var(--pulso-text-faint); opacity: 0.7;
+}
+/* Un dia de calendario sin actividad: la marca, mas corta, y sin fecha. */
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-vacio i {
+  height: 3px; opacity: 0.6;
+}
 
 /* La tabla toma el MISMO material que los bloques de grafico. Iba desnuda,
  * chocando contra dos superficies enmarcadas: parecia caida ahi, no parte de la

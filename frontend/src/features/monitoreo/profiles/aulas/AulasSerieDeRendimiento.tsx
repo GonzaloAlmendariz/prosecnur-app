@@ -56,6 +56,34 @@ const dm = (fecha: string) => {
  * hacia arriba a un múltiplo de ese paso. 45 → paso 10 y tope 50; 240 → paso 50 y
  * tope 250; 4 400 → paso 1 000 y tope 5 000.
  */
+/**
+ * Todos los días de calendario entre dos fechas, ambas incluidas.
+ *
+ * El eje pintaba sólo los días CON dato y los repartía por índice, así que el
+ * salto del viernes al lunes ocupaba lo mismo que un día: el gráfico mentía
+ * sobre el ritmo. Un día vacío en el eje es información —un fin de semana, un
+ * feriado, tres días parados—, no un hueco que sobra.
+ */
+export function diasDelRango(desde: string, hasta: string): string[] {
+  if (!desde || !hasta) return [desde, hasta].filter(Boolean);
+  const dias: string[] = [];
+  // En UTC: `new Date("2026-08-10")` ya es medianoche UTC, y sumar días con
+  // `setUTCDate` no se rompe con el horario de verano de ninguna zona.
+  const fin = new Date(`${hasta}T00:00:00Z`).getTime();
+  const cursor = new Date(`${desde}T00:00:00Z`);
+  // Tope de seguridad: un `hasta` corrupto no debe colgar la vista.
+  for (let i = 0; cursor.getTime() <= fin && i < 400; i += 1) {
+    dias.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dias.length ? dias : [desde];
+}
+
+/** Domingo, que no es día de campo. Se marca en el eje para que el hueco se lea. */
+export function esDomingo(fecha: string): boolean {
+  return new Date(`${fecha}T00:00:00Z`).getUTCDay() === 0;
+}
+
 export function escalaDeEje(maximo: number): { tope: number; escalones: number[] } {
   const bruto = Math.max(1, maximo);
   const magnitud = Math.pow(10, Math.floor(Math.log10(bruto / 4)));
@@ -99,7 +127,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   // El hover de verdad. El `title` nativo tarda un segundo, no se puede estilar y
   // en un punto de 7 px es casi imposible de acertar: «el hover tiene que
   // funcionar en los gráficos».
-  const [pista, setPista] = useState<{ x: number; y: number; lineas: string[] } | null>(null);
+  const [pista, setPista] = useState<
+    { x: number; y: number; lineas: string[]; bloque: "acumulado" | "diario" } | null
+  >(null);
 
   if (!modelo.fechas.length || !modelo.facultades.length) {
     return (
@@ -150,13 +180,33 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     ? proyectada.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0))
     : [];
   const { tope, escalones } = escalaDeEje(Math.max(...valores, ...techosDeAgenda, mediaDelEstudio));
-  const x = (i: number) => (fechas.length > 1 ? MARGEN + (UTIL * i) / (fechas.length - 1) : 50);
+  // **EL EJE ES UN CALENDARIO, no una lista de días con datos.** Gonzalo: «cada
+  // tick del eje x debe ser un día de calendario sí o sí, ahora veo saltos de
+  // varios días entre tick y tick». Y era literal: las fechas se repartían por
+  // ÍNDICE, así que del 14/08 se pasaba al 17/08 sin que se notara que en medio
+  // hay un sábado y un domingo. Con el eje ordinal, un fin de semana, un feriado
+  // o tres días parados se dibujan como si fueran un día: **el gráfico mentía
+  // sobre el ritmo**, que es justo lo que viene a medir.
+  //
+  // Ahora se pintan todos los días entre el primero con parte y el último
+  // agendado. Un día sin actividad queda como hueco, y eso es información: es un
+  // día que no se aprovechó, o un domingo, que no se aplica.
+  const calendario = diasDelRango(fechas[0], fechas[fechas.length - 1]);
+  /** Dónde cae una fecha en el eje. -1 si no está, que no debería pasar. */
+  const enElEje = (fecha: string) => calendario.indexOf(fecha);
+  const x = (i: number) => (calendario.length > 1 ? MARGEN + (UTIL * i) / (calendario.length - 1) : 50);
   const y = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
+  /** Índice en las series, que siguen ordenadas por día CON parte. */
   const corte = aplicadas.length - 1;
+  /** Y su sitio en el eje de calendario, que es donde se dibuja la frontera. */
+  const corteX = aplicadas.length ? enElEje(aplicadas[corte]) : 0;
+  /** El sitio en el eje del día `i` de las series aplicadas / agendadas. */
+  const xa = (i: number) => x(enElEje(aplicadas[i]));
+  const xp = (i: number) => x(enElEje(porVenir[i]));
 
   /** Sólo los días en que esa facultad fue a algún aula: un hueco no es un cero. */
   const trazo = (dias: ReadonlyArray<{ porAula: number | null }>) => dias
-    .map((d, i) => (d.porAula == null ? null : `${x(i)},${y(d.porAula)}`))
+    .map((d, i) => (d.porAula == null ? null : `${xa(i)},${y(d.porAula)}`))
     .filter(Boolean)
     .join(" ");
 
@@ -239,6 +289,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
 
   const acumulado = ((): null | {
     tope: number; escalones: number[]; meta: number; y: (v: number) => number; observado: string;
+    puntos: Array<{ x: number; y: number; inferido: boolean; lineas: string[] }>;
+    cubiertasPorSexo: number | null;
+    conseguidasEnTotal: number;
     inferido: string; lectura: string;
     series: Array<{ sexo: string; color: string; meta: number; conseguidas: number; faltan: number; alcanza: boolean; obs: string; inf: string }>;
     repartoObservado: boolean;
@@ -286,9 +339,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     const techo = Math.max(ultimo, meta, sobremuestra ?? 0, ...proyectadas, 1);
     const { tope, escalones } = escalaDeEje(techo);
     const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
-    const observado = observadas.map((v, i) => `${x(i)},${yy(v)}`).join(" ");
+    const observado = observadas.map((v, i) => `${xa(i)},${yy(v)}`).join(" ");
     const inferido = proyectadas.length
-      ? [`${x(corte)},${yy(ultimo)}`, ...proyectadas.map((v, i) => `${x(corte + 1 + i)},${yy(v)}`)].join(" ")
+      ? [`${x(corteX)},${yy(ultimo)}`, ...proyectadas.map((v, i) => `${xp(i)},${yy(v)}`)].join(" ")
       : "";
     const alCerrar = proyectadas.length ? proyectadas[proyectadas.length - 1] : ultimo;
 
@@ -316,18 +369,29 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     // atribuidas, que es otra fuente. Con el libro, la serie por sexo se puede
     // dibujar junto al total sin cruzar nada —y Gonzalo avisó de que los datos van
     // a llegar con el sexo en todos los efectivos, así que ésta es la vía—.
+    // En la vista general se suman TODAS las facultades, igual que la línea del
+    // total. Antes devolvía `[]` sin facultad elegida, así que el desglose por
+    // sexo —que es lo que Gonzalo pidió que no faltara nunca— sencillamente no
+    // existía en la vista que se abre por defecto.
     const acumSexo = (campo: "mujeres" | "hombres") => {
-      const dias = elegida ? elegida.dias : [];
       let acc = 0;
       let visto = false;
-      return dias.map((d) => {
-        const v = d[campo];
+      return aplicadas.map((_, i) => {
+        const v = elegida
+          ? elegida.dias[i]?.[campo] ?? null
+          : facultades.reduce<number | null>((n, f) => {
+            const w = f.dias[i]?.[campo];
+            return w == null ? n : (n ?? 0) + w;
+          }, null);
         if (v != null) { acc += v; visto = true; }
         return visto ? acc : null;
       });
     };
     const acumM = acumSexo("mujeres");
     const acumH = acumSexo("hombres");
+    /** Encuestas con sexo conocido, día a día: la suma de los dos repartos. */
+    const conSexo = acumM.map((m, i) => (m == null ? null : m + (acumH[i] ?? 0)));
+    const cubiertas = [...conSexo].reverse().find((v) => v != null) ?? 0;
     const hayLibroPorSexo = acumM.some((v) => v != null);
     const hayObservadasPorSexo = cuotasVisibles.some((c) => c.observadas > 0);
     // Con el libro se dibuja la serie de verdad; sin él, sólo las cuotas.
@@ -342,7 +406,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             conseguidas: ultimoV,
             faltan: Math.max(0, meta - ultimoV),
             alcanza: meta > 0 && ultimoV >= meta,
-            obs: serie.map((v, i) => (v == null ? null : `${x(i)},${yy(v)}`)).filter(Boolean).join(" "),
+            obs: serie.map((v, i) => (v == null ? null : `${xa(i)},${yy(v)}`)).filter(Boolean).join(" "),
             inf: "",
           };
         })
@@ -354,10 +418,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         // El nivel de hoy es el que declara la cuota; la forma de la curva se
         // toma del acumulado diario, que es lo único que hay con fecha.
         const escala = ultimo > 0 ? c.observadas / ultimo : 0;
-        const obs = observadas.map((v, i) => `${x(i)},${yy(v * escala)}`).join(" ");
+        const obs = observadas.map((v, i) => `${xa(i)},${yy(v * escala)}`).join(" ");
         const inf = proyectadas.length
-          ? [`${x(corte)},${yy(c.observadas)}`,
-             ...proyectadas.map((v, i) => `${x(corte + 1 + i)},${yy(c.observadas + (v - ultimo) * peso)}`)].join(" ")
+          ? [`${x(corteX)},${yy(c.observadas)}`,
+             ...proyectadas.map((v, i) => `${xp(i)},${yy(c.observadas + (v - ultimo) * peso)}`)].join(" ")
           : "";
         const alCerrarSexo = c.observadas + (alCerrar - ultimo) * peso;
         return {
@@ -404,6 +468,42 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       .map((c) => ({ sexo: sexSeriesLabel(c.sexo), color: colorDeSexo(c.sexo), meta: c.meta, observadas: c.observadas }));
     return {
       tope, escalones, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
+      // Cuántas de las conseguidas llevan sexo declarado en el libro. Si es menos
+      // que el total, las dos líneas de sexo NO suman la verde y hay que decirlo.
+      cubiertasPorSexo: hayLibroPorSexo ? cubiertas : null,
+      conseguidasEnTotal: Math.round(ultimo),
+      // Un punto por dia sobre la linea del total. Gonzalo: «el acumulado por dia
+      // no tiene hover cuando el dia a dia si». Cada uno dice cuanto se lleva,
+      // cuanto falta para la meta y —cuando el libro lo declara— el reparto.
+      puntos: [
+        ...observadas.map((v, i) => ({
+          x: xa(i), y: yy(v), inferido: false,
+          lineas: [
+            `${dm(aplicadas[i])} · acumulado`,
+            `${fmt(Math.round(v))} de ${fmt(meta)} encuestas`,
+            v >= meta ? "meta alcanzada" : `faltan ${fmt(Math.ceil(meta - v))}`,
+            // El desglose SIEMPRE, y con su cobertura: las dos cifras de sexo no
+            // suman el total porque el reparto sólo se conoce donde el libro lo
+            // declara. Callarlo dejaba creer que sí sumaban.
+            ...(acumM[i] != null
+              ? [
+                `${fmt(acumM[i]!)} mujeres · ${fmt(acumH[i] ?? 0)} hombres`,
+                (conSexo[i] ?? 0) < Math.round(v)
+                  ? `el libro declara el sexo en ${fmt(conSexo[i] ?? 0)} de las ${fmt(Math.round(v))}`
+                  : "sexo declarado en todas",
+              ]
+              : ["el libro todavía no declara el sexo de ninguna"]),
+          ],
+        })),
+        ...proyectadas.map((v, i) => ({
+          x: xp(i), y: yy(v), inferido: true,
+          lineas: [
+            `${dm(porVenir[i])} · inferido de la agenda`,
+            `~${personasProyectadas(v)} de ${fmt(meta)} encuestas`,
+            v >= meta ? "con lo agendado se pasa de la meta" : `quedarian ${fmt(Math.ceil(meta - v))} por debajo`,
+          ],
+        })),
+      ],
       metasSeñaladas, hayObservadasPorSexo: hayObservadasPorSexo || hayLibroPorSexo,
       etiqueta: elegida
         ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
@@ -512,6 +612,19 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   {se.meta > 0 ? (se.alcanza ? " ✓" : ` · faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
                 </em>
               ))}
+              {/* **Las dos cifras de sexo no suman la verde**, y sin esto el
+                  gráfico deja creer que sí. El reparto sólo se conoce en las aulas
+                  cuyo libro lo declara: en Estudios Generales Letras la verde vale
+                  31 el primer día y las series de sexo arrancan dos días después,
+                  no porque no hubiera aulas sino porque el libro calla su
+                  reparto. */}
+              {acumulado.cubiertasPorSexo != null
+                && acumulado.cubiertasPorSexo < acumulado.conseguidasEnTotal ? (
+                <em className="es-ausente">
+                  sexo declarado en {fmt(acumulado.cubiertasPorSexo)} de{" "}
+                  {fmt(acumulado.conseguidasEnTotal)} encuestas
+                </em>
+              ) : null}
             </span>
           </p>
         <div className="aulas-serie-plot es-acumulado">
@@ -530,7 +643,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   superficie, no la raya: todo lo que cae a la derecha del ultimo
                   parte va sobre fondo teñido, y ahi dentro nada es un hecho. */}
               {porVenir.length ? (
-                <rect x={x(corte)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corte))}
+                <rect x={x(corteX)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corteX))}
                   height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07" />
               ) : null}
               <defs>
@@ -564,7 +677,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   vectorEffect="non-scaling-stroke" opacity="0.9" />
               ) : null}
               {porVenir.length ? (
-                <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
+                <line x1={x(corteX)} y1={MARGEN} x2={x(corteX)} y2={MARGEN + UTIL}
                   stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" strokeDasharray="4 3"
                   vectorEffect="non-scaling-stroke" opacity="0.9" />
               ) : null}
@@ -580,7 +693,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   lee como un trazo; con el area debajo se lee como un volumen que
                   crece, que es lo que un acumulado es. */}
               <polygon
-                points={`${MARGEN},${MARGEN + UTIL} ${acumulado.observado} ${x(corte)},${MARGEN + UTIL}`}
+                points={`${MARGEN},${MARGEN + UTIL} ${acumulado.observado} ${x(corteX)},${MARGEN + UTIL}`}
                 fill="url(#aulas-serie-area)" />
               <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.efectiva}
                 strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
@@ -606,10 +719,29 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {porVenir.length ? (
               <>
                 <span className="aulas-serie-zona es-aplicado"
-                  style={{ right: `${100 - x(corte)}%` }}>aplicado</span>
+                  style={{ right: `${100 - x(corteX)}%` }}>aplicado</span>
                 <span className="aulas-serie-zona es-agendado"
-                  style={{ left: `${x(corte)}%` }}>agendado</span>
+                  style={{ left: `${x(corteX)}%` }}>agendado</span>
               </>
+            ) : null}
+            {pista ? (
+              <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
+            ) : null}
+            {acumulado.puntos.map((pt, i) => (
+              <span key={`acum-${i}`}
+                className={`aulas-serie-punto${pt.inferido ? " es-inferido" : ""}`}
+                tabIndex={0} role="img" aria-label={pt.lineas.join(", ")}
+                style={{ left: `${pt.x}%`, top: `${pt.y}%` }}
+                onMouseEnter={() => setPista({ ...pt, bloque: "acumulado" })}
+                onFocus={() => setPista({ ...pt, bloque: "acumulado" })}
+                onMouseLeave={() => setPista(null)}
+                onBlur={() => setPista(null)} />
+            ))}
+            {pista && pista.bloque === "acumulado" ? (
+              <div className="aulas-serie-pista" role="status"
+                style={{ left: `${pista.x}%`, top: `${pista.y}%` }}>
+                {pista.lineas.map((l, k) => <span key={k}>{l}</span>)}
+              </div>
             ) : null}
           </div>
         </div>
@@ -642,7 +774,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 acumulado: la raya sola no separaba nada porque iba del color de
                 la rejilla. */}
             {porVenir.length ? (
-              <rect x={x(corte)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corte))}
+              <rect x={x(corteX)} y={MARGEN} width={Math.max(0, 100 - MARGEN - x(corteX))}
                 height={UTIL} fill={COLOR_RESULTADO.pendiente} opacity="0.07" />
             ) : null}
             {escalones.map((m) => (
@@ -660,8 +792,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {conBanda ? (
               <polygon
                 points={[
-                  ...cuartiles.map((c, i) => (c ? `${x(i)},${y(c.p75)}` : null)).filter(Boolean),
-                  ...cuartiles.map((c, i) => (c ? `${x(i)},${y(c.p25)}` : null)).filter(Boolean).reverse(),
+                  ...cuartiles.map((c, i) => (c ? `${xa(i)},${y(c.p75)}` : null)).filter(Boolean),
+                  ...cuartiles.map((c, i) => (c ? `${xa(i)},${y(c.p25)}` : null)).filter(Boolean).reverse(),
                 ].join(" ")}
                 fill={COLOR_RESULTADO.efectiva} opacity="0.1" />
             ) : null}
@@ -683,7 +815,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {/* La mediana del día, que es la línea que de verdad se lee. */}
             {conBanda ? (
               <polyline
-                points={cuartiles.map((c, i) => (c ? `${x(i)},${y(c.p50)}` : null)).filter(Boolean).join(" ")}
+                points={cuartiles.map((c, i) => (c ? `${xa(i)},${y(c.p50)}` : null)).filter(Boolean).join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.efectiva} strokeWidth="3"
                 strokeLinejoin="round" strokeLinecap="round"
                 vectorEffect="non-scaling-stroke" />
@@ -693,8 +825,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {conBanda && esperadoDelEstudio.some((v) => v != null) ? (
               <polyline
                 points={[
-                  `${x(corte)},${y(cuartiles[corte]?.p50 ?? mediaDelEstudio)}`,
-                  ...esperadoDelEstudio.map((v, i) => (v == null ? null : `${x(corte + 1 + i)},${y(v)}`)).filter(Boolean),
+                  `${x(corteX)},${y(cuartiles[corte]?.p50 ?? mediaDelEstudio)}`,
+                  ...esperadoDelEstudio.map((v, i) => (v == null ? null : `${xp(i)},${y(v)}`)).filter(Boolean),
                 ].join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.parcial} strokeWidth="2.5"
                 strokeDasharray="6 4" strokeLinejoin="round"
@@ -704,7 +836,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 sobre veinte sólidas no se leen, y encima el esperado es lo que se
                 mira DESPUÉS de decidir a quién mirar. */}
             {elegida ? (
-              <polyline points={elegida.dias.map((d, i) => `${x(i)},${y(d.esperado)}`).join(" ")}
+              <polyline points={elegida.dias.map((d, i) => `${xa(i)},${y(d.esperado)}`).join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.pendiente} strokeWidth="2"
                 strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />
             ) : null}
@@ -713,7 +845,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 mitades se leen igual» —y se leían igual igualmente, porque la raya
                 iba en `--pulso-border`, el MISMO gris de la rejilla de fondo. */}
             {porVenir.length ? (
-              <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
+              <line x1={x(corteX)} y1={MARGEN} x2={x(corteX)} y2={MARGEN + UTIL}
                 stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" strokeDasharray="4 3"
                 vectorEffect="non-scaling-stroke" opacity="0.9" />
             ) : null}
@@ -733,10 +865,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
               return (
                 <g key={`techo-obs-${d.fecha}`}>
-                  <rect x={x(i) - ancho / 2} y={y(techo)}
+                  <rect x={xa(i) - ancho / 2} y={y(techo)}
                     width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
                     fill="var(--pulso-text)" opacity="0.055" />
-                  <line x1={x(i) - ancho / 2} y1={y(techo)} x2={x(i) + ancho / 2} y2={y(techo)}
+                  <line x1={xa(i) - ancho / 2} y1={y(techo)} x2={xa(i) + ancho / 2} y2={y(techo)}
                     stroke="var(--pulso-border-strong)" strokeWidth="1.5" opacity="0.9"
                     vectorEffect="non-scaling-stroke" />
                 </g>
@@ -748,11 +880,11 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
               return (
                 <g key={`techo-${d.fecha}`}>
-                  <rect x={x(corte + 1 + i) - ancho / 2} y={y(techo)}
+                  <rect x={xp(i) - ancho / 2} y={y(techo)}
                     width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
                     fill={COLOR_RESULTADO.pendiente} opacity="0.22" />
-                  <line x1={x(corte + 1 + i) - ancho / 2} y1={y(techo)}
-                    x2={x(corte + 1 + i) + ancho / 2} y2={y(techo)}
+                  <line x1={xp(i) - ancho / 2} y1={y(techo)}
+                    x2={xp(i) + ancho / 2} y2={y(techo)}
                     stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" opacity="0.5"
                     vectorEffect="non-scaling-stroke" />
                 </g>
@@ -762,8 +894,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 dónde sale, y sólo llega hasta donde llega la agenda. */}
             {proyectada && porVenir.length ? (
               <polyline
-                points={[`${x(corte)},${y(elegida!.esperadoFinal)}`,
-                  ...porVenir.map((_, i) => `${x(corte + 1 + i)},${y(proyectada.esperadoPorAula)}`)].join(" ")}
+                points={[`${x(corteX)},${y(elegida!.esperadoFinal)}`,
+                  ...porVenir.map((_, i) => `${xp(i)},${y(proyectada.esperadoPorAula)}`)].join(" ")}
                 fill="none" stroke={COLOR_RESULTADO.parcial} strokeWidth="2.5"
                 strokeDasharray="6 4" vectorEffect="non-scaling-stroke" />
             ) : null}
@@ -771,9 +903,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {porVenir.length ? (
               <>
                 <span className="aulas-serie-zona es-aplicado"
-                  style={{ right: `${100 - x(corte)}%` }}>aplicado</span>
+                  style={{ right: `${100 - x(corteX)}%` }}>aplicado</span>
                 <span className="aulas-serie-zona es-agendado"
-                  style={{ left: `${x(corte)}%` }}>agendado</span>
+                  style={{ left: `${x(corteX)}%` }}>agendado</span>
               </>
             ) : null}
           {/* Los puntos van en HTML y no como `<circle>`: en un viewBox estirado
@@ -783,10 +915,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               no un dato. */}
           {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
             <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
-              style={{ left: `${x(i)}%`, top: `${y(d.porAula)}%` }}
+              style={{ left: `${xa(i)}%`, top: `${y(d.porAula)}%` }}
               aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} encuestas en ${fmt(d.aulas)} aulas`}
-              onMouseEnter={() => setPista({ x: x(i), y: y(d.porAula!), lineas: lineasDelDia(d) })}
-              onFocus={() => setPista({ x: x(i), y: y(d.porAula!), lineas: lineasDelDia(d) })}
+              onMouseEnter={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
+              onFocus={() => setPista({ x: xa(i), y: y(d.porAula!), lineas: lineasDelDia(d), bloque: "diario" })}
               onMouseLeave={() => setPista(null)}
               onBlur={() => setPista(null)} />
           ))) : null}
@@ -796,19 +928,22 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               `${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"}`,
               d.elegibles ? `${fmt(d.elegibles)} elegibles · ~${personasProyectadas(d.esperadas)} esperadas` : `~${personasProyectadas(d.esperadas)} esperadas`,
             ];
-            const px = x(corte + 1 + i);
+            const px = xp(i);
             const py = y(proyectada.esperadoPorAula);
             return (
               <span key={d.fecha} className="aulas-serie-punto es-inferido" tabIndex={0} role="img"
                 style={{ left: `${px}%`, top: `${py}%` }}
                 aria-label={lineas.join(", ")}
-                onMouseEnter={() => setPista({ x: px, y: py, lineas })}
-                onFocus={() => setPista({ x: px, y: py, lineas })}
+                onMouseEnter={() => setPista({ x: px, y: py, lineas, bloque: "diario" })}
+                onFocus={() => setPista({ x: px, y: py, lineas, bloque: "diario" })}
                 onMouseLeave={() => setPista(null)}
                 onBlur={() => setPista(null)} />
             );
           }) : null}
           {pista ? (
+            <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
+          ) : null}
+          {pista && pista.bloque === "diario" ? (
             <div className="aulas-serie-pista" role="status"
               style={{ left: `${pista.x}%`, top: `${pista.y}%` }}>
               {pista.lineas.map((l, k) => <span key={k}>{l}</span>)}
@@ -820,13 +955,25 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           etiquetas en los extremos no contestaban eso. Las etiquetas se alternan
           cuando hay muchas, pero las marcas están todas. */}
       <ol className="aulas-serie-dias" aria-hidden="true">
-        {fechas.map((f, i) => (
-          <li key={f} className={i > corte ? "es-agenda" : ""}
-            style={{ left: `${x(i)}%` }}>
-            <i />
-            {fechas.length <= 14 || i % 2 === 0 ? <span>{dm(f)}</span> : null}
-          </li>
-        ))}
+        {calendario.map((f, i) => {
+          const conDato = fechas.includes(f);
+          const clases = [
+            i > corteX ? "es-agenda" : "",
+            esDomingo(f) ? "es-domingo" : "",
+            conDato ? "" : "es-vacio",
+          ].filter(Boolean).join(" ");
+          // Con el eje en calendario hay más ticks que antes, así que la etiqueta
+          // se reserva para los días que dicen algo: los que tienen dato, y los
+          // extremos. El domingo se marca aunque esté vacío —es la razón del
+          // hueco, y callarla deja el hueco sin explicar.
+          const rotula = conDato || esDomingo(f) || i === 0 || i === calendario.length - 1;
+          return (
+            <li key={f} className={clases} style={{ left: `${x(i)}%` }}>
+              <i />
+              {rotula && (calendario.length <= 16 || conDato || esDomingo(f)) ? <span>{dm(f)}</span> : null}
+            </li>
+          );
+        })}
       </ol>
       </div>
 
