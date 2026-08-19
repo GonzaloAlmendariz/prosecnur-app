@@ -1888,3 +1888,53 @@ cambiarlo mirando un solo viewport ancho no se nota.** A 1440×1000 la versión 
 dueño se veía perfecta; a 1366×768 dejaba 823 px de scroll en vacío con el
 contenido desbordando invisible. La matriz de viewports no es burocracia: es el
 único sitio donde ese error aparece.
+
+
+## 2026-08-18 — El color de estado, barrido superficie por superficie
+
+| Superficie | Columna | Chips |
+|---|---|---|
+| Agenda | Status de muestra | 196/196 |
+| Reemplazos | Status de muestra | 50/50 |
+| Brechas | Estado operativo | 168/168 |
+| Avance | Status de aplicación | 236/236 |
+| Registro de campo | (lista) | 196/196 |
+
+Al empezar el hilo, **tres de las cinco estaban a cero o a un tercio**.
+
+### El defecto de fondo: dos diccionarios para los mismos estados
+
+`application_state` tiene DOS juegos de rótulos y el color sólo consultaba uno:
+
+| clave | tabla (`STATUS_LABELS`) | franja (`TRAMOS_DE_APLICACION`) |
+|---|---|---|
+| `lista` | «Lista» | «Agendada» |
+| `pendiente` | «Pendiente» | «Sin agendar» |
+| `cerrando` | «Cierre en curso» | «Cumple» |
+| `en_aplicacion` | «En aplicación» | «Aplicada» |
+
+**Los nombres NO se unifican, y ésa es la decisión.** La tabla convive con una
+columna `sample_status` que ya usa «Agendada»: alinearlos pondría la misma
+palabra con dos significados en la MISMA fila. Lo que se unifica es el color.
+`colorDeEstado` resuelve los dos juegos al mismo tramo, y el guard recorre los
+tramos comparando **ambos** rótulos — probado quitando el alias: nombra los
+cuatro desalineados, no dice «falla algo».
+
+### La lección del barrido: un `[]` puede ser falta de medición
+
+La primera pasada devolvió `[]` para `modelo/agenda` y estuvo a punto de
+reportarse como «sin defectos». La comprobación directa dio **196/196**: la
+tabla no había montado cuando la sonda miró. La segunda versión distingue
+`SIN TABLA` de `tablas sin columna de estado` de una lista de columnas con su
+conteo — **es lo único que hace interpretable un vacío**.
+
+Va junto a la regla hermana del gate visual —«un verde con menos grupos que
+paneles no es un verde»—: las dos dicen lo mismo, que un resultado sin
+denominador no se puede leer.
+
+### Y las tres veces se descubrieron MIRANDO
+
+Los tres defectos de color de esta serie —`operational_status` sin tabla propia,
+los dos diccionarios, y el registro en texto plano— aparecieron leyendo la
+pantalla, no corriendo tests. El código corre, la celda se dibuja, el typecheck
+pasa, los 1 124 tests pasan, y sólo falta el color.
