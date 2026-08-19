@@ -2003,3 +2003,34 @@ avance sobre un denominador inventado.
 - **Una superficie compartida se escapa de un barrido escrito para las propias.**
   `mon-outputs-workbench` y `mon-calidad` son las dos del perfil; la segunda
   sigue sin barrer con este método.
+
+
+## 2026-08-18 — Foto final: las doce direcciones tras los cambios del día
+
+Corrida completa a 1440×1000 con `--require-geometry` y
+`--post-click-wait-selector` en **todas** (`waitSelectorMisses=0` en las doce, y
+grupos entre 3 y 10 — la señal de que se midió el destino y no el aterrizaje).
+
+| Dirección | | Grupos |
+|---|---|---|
+| `fuentes` | ok | 3 |
+| `modelo/agenda` | ok | 4 |
+| `modelo/facultad` | ok | 3 |
+| `modelo/registro` | ok | 3 |
+| `calidad/controles` | ok | 3 |
+| `calidad/base` | ok | 3 |
+| `consultas/reemplazos` | ok | 3 |
+| `consultas/brechas` | ok | 3 |
+| `consultas/parte` | ok | 3 |
+| `consultas/extras` | ok | 3 |
+| `avance/resumen` | ok | 10 |
+| `avance/estratos` | ok | 3 |
+
+**Doce de doce, 0 issues y 0 geometryIssues.** Es la foto DESPUÉS de un día que
+tocó declaraciones de geometría en cinco paneles, el layout de dos y el adaptador
+del corte: sirve tanto de conformidad como de comprobación de que nada regresó.
+
+**Alcance de esta foto**: un solo viewport. El compacto 1024×600 está medido
+aparte —ventana de 131 px en la ruta por facultad, declarada como restricción de
+alto del perfil— y la matriz de cuatro viewports se corrió sobre las dos
+superficies nuevas.
