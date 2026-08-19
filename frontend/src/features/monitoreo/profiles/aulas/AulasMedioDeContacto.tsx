@@ -17,10 +17,14 @@ const fmt = (n: number) => n.toLocaleString("es-PE");
 export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
   const medios = useMemo(() => medioDeContacto(filas), [filas]);
 
+  // Dos causas distintas: que no haya cursos-horario, o que los haya y ninguno
+  // declare medio. La segunda es un aviso sobre el libro; la primera, no.
   if (!medios.length) {
     return (
       <p className="mon-profile-muted">
-        Ningún curso-horario declara por qué medio se contactó, así que no se puede comparar.
+        {filas.length
+          ? `Ninguno de los ${fmt(filas.length)} cursos-horario declara por qué medio se contactó, así que no se puede comparar.`
+          : "El plan todavía no trae cursos-horario que contactar."}
       </p>
     );
   }
