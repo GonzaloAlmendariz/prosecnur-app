@@ -74,13 +74,18 @@ export function AulasColaDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoA
           {/* Lo que costó agendar, que es lo que este ciclo puede decir cuando
               ya no queda cola. Una facultad que costó cuatro intentos por aula
               va a costar lo mismo la próxima ola. */}
-          <p className="aulas-cola-subtitulo">Lo que costó agendar, por facultad</p>
+          {/* La unidad, en el subtítulo. Las celdas decían «2 med.» y aquí no hay
+              ni cabecera de columna que lo declare: la abreviatura era lo único
+              que se leía, y se lee como «medios». */}
+          <p className="aulas-cola-subtitulo">
+            Lo que costó agendar, por facultad · <em>mediana de intentos</em>
+          </p>
           <ul className="aulas-cola-esfuerzo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
             {esfuerzo.map((e) => (
               <li key={e.facultad}>
                 <span title={e.facultad}>{e.facultad}</span>
                 <span>
-                  {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} med.`}
+                  {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} ${e.intentos === 1 ? "intento" : "intentos"}`}
                   {/* «cursos-horario», que es lo que cuenta el plan y lo que
                       dice el vacío de este mismo componente tres líneas arriba
                       —«Todos los cursos-horario del plan tienen cita»—. Decía
