@@ -145,6 +145,13 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
     // pista a VÁLIDAS, las dos cifras vuelven a ser indistinguibles y este
     // panel se queda solo nombrando la suya.
     const kpis = fs.readFileSync(path.resolve(__dirname, "kpisDeAulas.ts"), "utf8");
-    expect(kpis).toContain('pista: "respuestas de Kobo que pasan el filtro"');
+    // La pista se volvió condicional al desagregar la tarjeta, así que ya no hay
+    // un literal fijo: lo que se exige es que **las dos ramas nombren Kobo**, que
+    // es lo que este guard protege —sin eso, «3 700» y las «4 863» del parte
+    // vuelven a ser indistinguibles—.
+    const bloque = kpis.slice(kpis.indexOf("function validasKpi"));
+    const cuerpo = bloque.slice(0, bloque.indexOf("\n}"));
+    expect(cuerpo).toContain("respuestas de Kobo que pasan el filtro");
+    expect(cuerpo).toContain("de Kobo · ninguna atribuida a un curso-horario");
   });
 });
