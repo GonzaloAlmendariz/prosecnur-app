@@ -108,12 +108,12 @@ test_that("el enlace impreso del afiche sale clicable en el PDF", {
   compiled <- .afiche_compiled(url)
   dir <- tempfile("afiche-link-"); dir.create(dir)
   pdf_path <- file.path(dir, "afiche.pdf")
-  collection_material_render_compiled(compiled, pdf_path, device = "pdf")
+  rendered <- collection_material_render_compiled(compiled, pdf_path, device = "pdf")
 
-  raw <- readBin(pdf_path, "raw", n = file.info(pdf_path)$size)
-  expect_true(length(grepRaw("/Subtype /Link", raw, fixed = TRUE)) > 0L)
-  expect_true(length(grepRaw(url, raw, fixed = TRUE)) > 0L)
-  expect_identical(qpdf::pdf_length(pdf_path), 1L)
+  # Contrato compartido (helper-collection-material-pdf.R): paginas +
+  # anotacion /Subtype /Link + URL exacta, con la misma vara que
+  # ficha_campo y (potencialmente) cualquier preset futuro.
+  expect_collection_material_pdf_valid(pdf_path, rendered)
 
   # El PNG no admite anotaciones: la inyeccion es exclusiva del device PDF y no
   # debe intentarse sobre el raster.
