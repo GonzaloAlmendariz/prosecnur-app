@@ -3492,6 +3492,14 @@
   background: color-mix(in srgb, #b97611 10%, var(--pulso-surface));
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce b { font-weight: 700; }
+/* El cruce de una CUOTA de sexo, en su color. Mas discreto que el del total: el
+ * total es la pregunta del panel y estos son su desglose. */
+.mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-sexo {
+  color: var(--aulas-serie-color);
+  border-color: color-mix(in srgb, var(--aulas-serie-color) 30%, transparent);
+  background: color-mix(in srgb, var(--aulas-serie-color) 8%, var(--pulso-surface));
+  font-weight: 500;
+}
 /* LA META, ROTULADA AL FINAL DE SU LINEA. Eran tres horizontales punteadas y
  * habia que subir a la leyenda para saber cual era cual; la cifra va donde el ojo
  * ya esta cuando sigue la linea. Fuera del area util, sobre el margen derecho. */
@@ -3532,8 +3540,11 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-pista.es-izquierda {
   transform: translate(-12px, calc(-100% - 12px));
 }
+/* Anclado a la derecha sube MAS: ahi viven las etiquetas de meta, y un cruce
+ * esta por definicion a la altura de su meta, asi que con la separacion normal se
+ * rozaban. Medido: 1 de 21 facultades chocaba. */
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-derecha {
-  transform: translate(calc(-100% + 10px), calc(-100% - 10px));
+  transform: translate(calc(-100% + 10px), calc(-100% - 22px));
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-izquierda {
   transform: translate(-10px, calc(-100% - 10px));

@@ -316,7 +316,11 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     conseguidasEnTotal: number;
     cruce: { x: number; y: number; fecha: string; inferido: boolean } | null;
     inferido: string; lectura: string;
-    series: Array<{ sexo: string; color: string; meta: number; conseguidas: number; faltan: number; alcanza: boolean; obs: string; inf: string }>;
+    series: Array<{
+      sexo: string; color: string; meta: number; conseguidas: number; faltan: number;
+      alcanza: boolean; obs: string; inf: string;
+      cruce?: { x: number; y: number; fecha: string } | null;
+    }>;
     repartoObservado: boolean;
     metasSeñaladas: Array<{ sexo: string; color: string; meta: number; observadas: number }>;
     hayObservadasPorSexo: boolean;
@@ -418,10 +422,26 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     const hayLibroPorSexo = acumM.some((v) => v != null);
     const hayObservadasPorSexo = cuotasVisibles.some((c) => c.observadas > 0);
     // Con el libro se dibuja la serie de verdad; sin él, sólo las cuotas.
+    // **Cada sexo también se proyecta sobre lo agendado.** Sólo lo hacía el total
+    // (`inf: ""`), así que las dos líneas de sexo se cortaban en seco el día del
+    // último parte y el gráfico no podía contestar la pregunta con la que empezó
+    // todo esto: «tengo que ver si voy a llegar a la cuota y a la meta de hombres
+    // y mujeres [...] **¿y cuándo llegaría?**».
+    //
+    // Se reparte lo que se prevé conseguir con la **proporción ya observada** de
+    // cada sexo, que es el mismo supuesto que el pie declara para el reparto. No
+    // se inventa nada nuevo: si el libro dice que 6 de cada 10 son mujeres, la
+    // agenda se reparte igual mientras no haya dato que diga otra cosa.
+    const conocidoPorSexo = (acumM[acumM.length - 1] ?? 0) + (acumH[acumH.length - 1] ?? 0);
     const seriesDelLibro = hayLibroPorSexo
       ? ([["Mujeres", acumM, "Mujer"], ["Hombres", acumH, "Hombre"]] as const).map(([etiqueta, serie, clave]) => {
           const meta = cuotasVisibles.find((c) => sexSeriesLabel(c.sexo) === sexSeriesLabel(clave))?.meta ?? 0;
           const ultimoV = [...serie].reverse().find((v) => v != null) ?? 0;
+          const peso = conocidoPorSexo > 0 ? ultimoV / conocidoPorSexo : 0;
+          const proyeccionDelSexo = proyectadas.map((v) => ultimoV + (v - ultimo) * peso);
+          const iCruce = meta > 0 && ultimoV < meta
+            ? proyeccionDelSexo.findIndex((v) => v >= meta)
+            : -1;
           return {
             sexo: etiqueta,
             color: colorDeSexo(clave),
@@ -430,7 +450,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             faltan: Math.max(0, meta - ultimoV),
             alcanza: meta > 0 && ultimoV >= meta,
             obs: serie.map((v, i) => (v == null ? null : `${xa(i)},${yy(v)}`)).filter(Boolean).join(" "),
-            inf: "",
+            inf: proyeccionDelSexo.length
+              ? [`${x(corteX)},${yy(ultimoV)}`,
+                 ...proyeccionDelSexo.map((v, i) => `${xp(i)},${yy(v)}`)].join(" ")
+              : "",
+            // Dónde cruza SU cuota, que es lo que la tabla ya dice en palabras
+            // («llega el DD/MM») y el gráfico callaba.
+            cruce: iCruce >= 0
+              ? { x: xp(iCruce), y: yy(proyeccionDelSexo[iCruce]), fecha: porVenir[iCruce] }
+              : null,
           };
         })
       : [];
@@ -825,6 +853,34 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 <b>{dm(acumulado.cruce.fecha)}</b>
               </span>
             ) : null}
+            {/* **Dos cruces en la misma fecha son UN chip.** Medido: en 2 de cada
+                12 facultades mujeres y hombres cruzan su cuota el mismo día, y sus
+                dos etiquetas caían en la misma vertical, solapadas. Fundirlas no
+                es sólo evitar el choque: «las dos cuotas el 28/08» es una frase, y
+                dos chips pegados son dos cosas que el ojo tiene que juntar. */}
+            {Object.entries(
+              acumulado.series.reduce<Record<string, typeof acumulado.series>>((mapa, se) => {
+                if (!se.cruce) return mapa;
+                (mapa[se.cruce.fecha] ??= []).push(se);
+                return mapa;
+              }, {}),
+            ).map(([fecha, juntas]) => {
+              // Del par se toma el que cruza más arriba, que es donde el ojo
+              // termina de seguir la línea.
+              const ancla = juntas.reduce((a, b) => (a.cruce!.y <= b.cruce!.y ? a : b));
+              return (
+                <span key={`cruce-${fecha}`}
+                  className={`aulas-serie-cruce es-sexo${anclaje(ancla.cruce!.x)}`}
+                  style={{
+                    left: `${ancla.cruce!.x}%`, top: `${ancla.cruce!.y}%`,
+                    "--aulas-serie-color": juntas.length > 1 ? "var(--pulso-text-soft)" : ancla.color,
+                  } as React.CSSProperties}>
+                  {juntas.length > 1
+                    ? "las dos cuotas"
+                    : ancla.sexo} <b>{dm(fecha)}</b>
+                </span>
+              );
+            })}
             {acumulado.puntos.map((pt, i) => (
               <span key={`acum-${i}`}
                 className={`aulas-serie-punto${pt.inferido ? " es-inferido" : ""}`}
