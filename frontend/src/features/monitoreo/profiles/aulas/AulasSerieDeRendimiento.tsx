@@ -49,6 +49,10 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
     [agenda, partes, cuotas],
   );
   const [foco, setFoco] = useState("");
+  // El hover de verdad. El `title` nativo tarda un segundo, no se puede estilar y
+  // en un punto de 7 px es casi imposible de acertar: «el hover tiene que
+  // funcionar en los gráficos».
+  const [pista, setPista] = useState<{ x: number; y: number; lineas: string[] } | null>(null);
 
   if (!modelo.fechas.length || !modelo.facultades.length) {
     return (
@@ -224,6 +228,26 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
                 stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
                 vectorEffect="non-scaling-stroke" />
             ) : null}
+            {/* Las BARRAS de elegibles: el techo de cada día agendado, o sea toda
+                la gente que PODRÍA responder en esas aulas. La línea de esperado
+                va por debajo, y la distancia entre las dos es la efectividad
+                prevista. Gonzalo: «hay que diferenciar cuánto se espera llegar
+                con las aulas versus cuántos matriculados o elegibles hay [...]
+                los elegibles como barras y lo esperado como líneas, y las barras
+                un poquito más opacas».
+                En elegibles POR AULA, que es la unidad del eje; los totales del
+                día van en el hover, que es donde caben sin mentir la escala. */}
+            {proyectada ? proyectada.dias.map((d, i) => {
+              if (!d.elegibles || !d.aulas) return null;
+              const techo = d.elegibles / d.aulas;
+              const ancho = fechas.length > 1 ? (UTIL / (fechas.length - 1)) * 0.55 : 6;
+              return (
+                <rect key={`techo-${d.fecha}`}
+                  x={x(corte + 1 + i) - ancho / 2} y={y(techo)}
+                  width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
+                  fill={COLOR_RESULTADO.pendiente} opacity="0.18" />
+              );
+            }) : null}
             {/* Lo INFERIDO. Arranca en el último día con parte para que se vea de
                 dónde sale, y sólo llega hasta donde llega la agenda. */}
             {proyectada && porVenir.length ? (
@@ -235,20 +259,51 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
             ) : null}
           </svg>
           {/* Los puntos van en HTML y no como `<circle>`: en un viewBox estirado
-              un círculo sale elipse. Y son los que llevan el hover —«un poquito
-              de hover», dijo—: cada uno dice su fecha, sus aulas, sus encuestas y
-              si eso es observado o inferido. Sólo con una facultad elegida:
-              veinte series de puntos son una nube, no un dato. */}
+              un círculo sale elipse. Y son los que llevan el hover: cada uno dice
+              su fecha, sus aulas, sus encuestas y si eso es observado o inferido.
+              Sólo con una facultad elegida: veinte series de puntos son una nube,
+              no un dato. */}
           {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
-            <span key={d.fecha} className="aulas-serie-punto"
+            <span key={d.fecha} className="aulas-serie-punto" tabIndex={0} role="img"
               style={{ left: `${x(i)}%`, top: `${y(d.porAula)}%` }}
-              title={`${dm(d.fecha)} · observado · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por aula`} />
+              aria-label={`${dm(d.fecha)}, observado, ${fmt(d.efectivas)} encuestas en ${fmt(d.aulas)} aulas`}
+              onMouseEnter={() => setPista({ x: x(i), y: y(d.porAula!), lineas: [
+                `${dm(d.fecha)} · observado`,
+                `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas`,
+                `${personasPorAula(d.porAula)} por aula`,
+              ] })}
+              onFocus={() => setPista({ x: x(i), y: y(d.porAula!), lineas: [
+                `${dm(d.fecha)} · observado`,
+                `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas`,
+                `${personasPorAula(d.porAula)} por aula`,
+              ] })}
+              onMouseLeave={() => setPista(null)}
+              onBlur={() => setPista(null)} />
           ))) : null}
-          {proyectada ? proyectada.dias.map((d, i) => (
-            <span key={d.fecha} className="aulas-serie-punto es-inferido"
-              style={{ left: `${x(corte + 1 + i)}%`, top: `${y(proyectada.esperadoPorAula)}%` }}
-              title={`${dm(d.fecha)} · inferido de la agenda · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"} · ~${personasProyectadas(d.esperadas)} encuestas esperadas`} />
-          )) : null}
+          {proyectada ? proyectada.dias.map((d, i) => {
+            const lineas = [
+              `${dm(d.fecha)} · inferido de la agenda`,
+              `${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"}`,
+              d.elegibles ? `${fmt(d.elegibles)} elegibles · ~${personasProyectadas(d.esperadas)} esperadas` : `~${personasProyectadas(d.esperadas)} esperadas`,
+            ];
+            const px = x(corte + 1 + i);
+            const py = y(proyectada.esperadoPorAula);
+            return (
+              <span key={d.fecha} className="aulas-serie-punto es-inferido" tabIndex={0} role="img"
+                style={{ left: `${px}%`, top: `${py}%` }}
+                aria-label={lineas.join(", ")}
+                onMouseEnter={() => setPista({ x: px, y: py, lineas })}
+                onFocus={() => setPista({ x: px, y: py, lineas })}
+                onMouseLeave={() => setPista(null)}
+                onBlur={() => setPista(null)} />
+            );
+          }) : null}
+          {pista ? (
+            <div className="aulas-serie-pista" role="status"
+              style={{ left: `${pista.x}%`, top: `${pista.y}%` }}>
+              {pista.lineas.map((l, k) => <span key={k}>{l}</span>)}
+            </div>
+          ) : null}
         </div>
       {/* El eje por día, con UNA marca por fecha. Gonzalo: «el eje que es
           importantísimo, porque yo tengo que saber qué días aplicó». Tres

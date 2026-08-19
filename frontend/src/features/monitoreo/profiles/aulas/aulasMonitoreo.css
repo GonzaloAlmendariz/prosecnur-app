@@ -3334,6 +3334,23 @@
   background: var(--pulso-surface); border: 2px solid #168a55;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto.es-inferido { border-color: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-serie-punto:focus-visible {
+  outline: 2px solid var(--pulso-focus, #2f6f90); outline-offset: 2px;
+}
+/* La pista del hover. Sobre el punto y desplazada hacia arriba, con el ancho
+ * suelto: el `title` nativo tardaba un segundo, no se podia estilar y en un punto
+ * de 7 px era casi imposible de acertar. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista {
+  position: absolute; z-index: 3; transform: translate(-50%, calc(-100% - 12px));
+  display: grid; gap: 1px; padding: 6px 9px; border-radius: 8px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface); box-shadow: 0 6px 18px rgba(16, 24, 40, 0.14);
+  font-size: 11px; line-height: 1.35; white-space: nowrap; pointer-events: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista span:first-child {
+  font-weight: 650; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista span { color: var(--pulso-text-soft); }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto:hover { transform: translate(-50%, -50%) scale(1.4); }
 
 /* El eje por dia: una marca por fecha, alineada con el lienzo. */

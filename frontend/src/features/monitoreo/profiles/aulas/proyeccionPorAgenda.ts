@@ -56,8 +56,14 @@ export type ProyeccionDeFacultad = {
   esperadoPorAula: number;
   /** Aulas del plan con fecha por delante y sin parte. */
   aulasAgendadas: number;
-  /** Las fechas de esas aulas, en orden. */
-  dias: Array<{ fecha: string; aulas: number; esperadas: number; acumuladas: number }>;
+  /**
+   * Las fechas de esas aulas, en orden. `elegibles` es el techo del día —toda la
+   * gente que podría responder— y `esperadas` lo que se prevé conseguir de ellos:
+   * la distancia entre las dos ES la efectividad prevista, y verla separada era
+   * el encargo. «Si agendamos tres aulas y se tiene previsto que haya cien
+   * elegibles, pero se prevén sesenta, eso hay que mostrarlo.»
+   */
+  dias: Array<{ fecha: string; aulas: number; elegibles: number; esperadas: number; acumuladas: number }>;
   cuotas: CuotaProyectada[];
   /** `observada` o `meta`, según de dónde salió el reparto por sexo. */
   reparto: "observada" | "meta" | "sin dato";
@@ -97,7 +103,7 @@ export function proyeccionPorAgenda(
     partes.map((p) => texto(p.operational_code)).filter(Boolean),
   );
 
-  const porFacultad = new Map<string, Map<string, number>>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number }>>();
   for (const fila of agenda) {
     const codigo = texto(fila.operational_code);
     if (codigo && conParte.has(codigo)) continue;
@@ -106,7 +112,10 @@ export function proyeccionPorAgenda(
     const facultad = texto(fila.faculty) || "Sin facultad";
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    dias.set(fecha, (dias.get(fecha) ?? 0) + 1);
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0 };
+    dia.aulas += 1;
+    dia.elegibles += numero(fila.eligible_n);
+    dias.set(fecha, dia);
   }
 
   // Las cuotas de cada facultad, tal como las publica el motor.
@@ -121,15 +130,21 @@ export function proyeccionPorAgenda(
 
   return [...facultades].map((facultad) => {
     const esperadoPorAula = esperadoPorFacultad.get(facultad) ?? media;
-    const agendaDeLaFacultad = [...(porFacultad.get(facultad) ?? new Map())]
+    const agendaDeLaFacultad = [...(porFacultad.get(facultad) ?? new Map<string, { aulas: number; elegibles: number }>())]
       .sort(([a], [b]) => a.localeCompare(b));
     let acumuladas = 0;
-    const dias = agendaDeLaFacultad.map(([fecha, aulas]) => {
-      const esperadas = aulas * esperadoPorAula;
+    const dias = agendaDeLaFacultad.map(([fecha, dia]) => {
+      const esperadas = dia.aulas * esperadoPorAula;
       acumuladas += esperadas;
-      return { fecha, aulas, esperadas: redondea(esperadas), acumuladas: redondea(acumuladas) };
+      return {
+        fecha,
+        aulas: dia.aulas,
+        elegibles: dia.elegibles,
+        esperadas: redondea(esperadas),
+        acumuladas: redondea(acumuladas),
+      };
     });
-    const aulasAgendadas = agendaDeLaFacultad.reduce((n, [, aulas]) => n + aulas, 0);
+    const aulasAgendadas = agendaDeLaFacultad.reduce((n, [, dia]) => n + dia.aulas, 0);
 
     const filas = cuotasPorFacultad.get(facultad) ?? [];
     const observadasTotal = filas.reduce((n, f) => n + numero(f.observed), 0);
