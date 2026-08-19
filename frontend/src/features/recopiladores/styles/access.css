@@ -10,11 +10,11 @@
 /* Mismo recipe glass que .pulso-panel (theme.css) — Recopiladores tenía su
    propio recipe plano (surface + borde + shadow-low, sin hover) que nunca
    se alineó con el resto de la app. Se reusa el token/valor exacto, no una
-   variante nueva. */
+   variante nueva. rec-package-card/rec-render-card salieron de esta lista
+   en E10: ahora usan el componente <Panel> compartido, que trae su propia
+   superficie — dejarlas acá sería un recipe duplicado y muerto. */
 .rec-target-panel,
 .rec-access-result,
-.rec-package-card,
-.rec-render-card,
 .rec-handoff-card,
 .rec-receipt-card {
   background:
@@ -35,8 +35,6 @@
 @media (hover: hover) and (pointer: fine) {
   .rec-target-panel:hover,
   .rec-access-result:hover,
-  .rec-package-card:hover,
-  .rec-render-card:hover,
   .rec-handoff-card:hover,
   .rec-receipt-card:hover {
     border-color: color-mix(in srgb, var(--pulso-primary-border) 44%, var(--pulso-border));
@@ -55,8 +53,6 @@
 
 .rec-target-panel header,
 .rec-access-result > header,
-.rec-package-card header,
-.rec-render-card > header,
 .rec-handoff-card header,
 .rec-receipt-card > header {
   align-items: center;
@@ -67,8 +63,6 @@
 
 .rec-target-panel header > div,
 .rec-access-result header > div,
-.rec-package-card header > div,
-.rec-render-card header > div,
 .rec-handoff-card header > div,
 .rec-receipt-card header > div {
   flex: 1;
@@ -78,8 +72,6 @@
    ningún tratamiento — el mismo patrón que ya usa pulso-catalogchip-icon. */
 .rec-target-panel header > svg:first-child,
 .rec-access-result header > svg:first-child,
-.rec-package-card header > svg:first-child,
-.rec-render-card header > svg:first-child,
 .rec-handoff-card header > svg:first-child,
 .rec-receipt-card header > svg:first-child {
   background: color-mix(in srgb, var(--pulso-primary) 10%, transparent);
@@ -91,8 +83,6 @@
 
 .rec-target-panel header span,
 .rec-access-result header span,
-.rec-package-card header span,
-.rec-render-card header span,
 .rec-handoff-card header span,
 .rec-receipt-card header span {
   color: var(--pulso-text-faint);
@@ -104,8 +94,6 @@
 
 .rec-target-panel h2,
 .rec-access-result h2,
-.rec-package-card h2,
-.rec-render-card h2,
 .rec-handoff-card h2,
 .rec-receipt-card h2 {
   font-size: 16px;

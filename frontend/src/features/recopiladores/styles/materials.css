@@ -223,11 +223,20 @@
   padding: 0 4px;
 }
 
+/* rec-package-card/rec-render-card: desde E10 usan <Panel> (su recipe glass
+   y header viven ahí, no acá). Solo queda el layout de contenido y el
+   ícono inline del título de rec-package-card, igual que rec-summary-card
+   en plan.css. */
 .rec-package-card,
 .rec-render-card {
   align-content: start;
   display: grid;
   gap: 14px;
+}
+
+.rec-package-card .pulso-panel-title svg {
+  color: var(--rec-accent);
+  flex-shrink: 0;
 }
 
 .rec-render-result {
