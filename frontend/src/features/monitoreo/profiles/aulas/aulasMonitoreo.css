@@ -3287,7 +3287,29 @@
 .mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: 11px; }
 
 /* Serie de rendimiento por facultad: el general y el de una sola. */
-.mon-profile-page.is-aulas-flow .aulas-serie { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-serie {
+  display: grid; gap: 6px; min-width: 0;
+  /* El MISMO par de Calculo de muestra. Alli los tokens viven bajo `.cmv2-frame`
+   * y aqui no existen, asi que se redeclaran apuntando a las mismas variables
+   * base —no a un hex copiado—: si la casa cambia el azul o el rosa, los dos
+   * modulos cambian juntos. */
+  --aulas-sexo-hombre: var(--pulso-module-dashboard);
+  --aulas-sexo-mujer: var(--pulso-accent-rose);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-lectura-acumulado {
+  flex-wrap: wrap; gap: 4px 14px; color: var(--pulso-text-soft); font-size: 11.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda {
+  display: inline-flex; gap: 12px; flex-wrap: wrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-style: normal; font-weight: 600; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em::before {
+  content: ""; width: 10px; height: 3px; border-radius: 2px;
+  background: var(--aulas-serie-color, var(--pulso-border-strong));
+}
 .mon-profile-page.is-aulas-flow .aulas-serie-mando {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
