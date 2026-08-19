@@ -195,6 +195,13 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const template = history.present;
   const blocks = template.pages[0]?.blocks ?? [];
   const selected = blocks.find((block) => block.block_id === selectedId) ?? blocks[0] ?? null;
+  // Cada tipo de bloque es un slot único en el renderer (`.crf_block()`, api/R/
+  // collection_render_ficha.R, busca por tipo y toma el primero) — un segundo
+  // bloque del mismo tipo pasa la validación del schema pero nunca se dibuja,
+  // así que ni se avisa que sobra. Se oculta la opción en vez de dejar crear
+  // un bloque que jamás va a imprimirse.
+  const presentBlockTypes = new Set(blocks.map((block) => block.type));
+  const addableBlockTypes = COLLECTION_BLOCK_TYPES.filter((type) => !presentBlockTypes.has(type));
   const deployment = payload?.state.deployment ?? null;
   const activeAdapter = payload?.state.plan?.adapter.id ?? null;
   const adapterCompatible = activeAdapter ? template.compatible_adapters.includes(activeAdapter) : true;
@@ -382,7 +389,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       <div className="rec-editor-toolbar" role="toolbar" aria-label="Herramientas de plantilla">
         <select aria-label="Añadir bloque semántico" defaultValue="" onChange={(event) => { if (event.target.value) addBlock(event.target.value as CollectionBlockType); event.target.value = ""; }}>
           <option value="" disabled>Añadir bloque…</option>
-          {COLLECTION_BLOCK_TYPES.map((type) => <option key={type} value={type}>{BLOCK_LABELS[type]}</option>)}
+          {addableBlockTypes.map((type) => <option key={type} value={type}>{BLOCK_LABELS[type]}</option>)}
         </select>
         <PulsoButton variant="icon" size="sm" aria-label="Deshacer" title="Deshacer (Cmd/Ctrl+Z)" disabled={!history.past.length} onClick={() => dispatch({ type: "undo" })}><Undo2 size={15} /></PulsoButton>
         <PulsoButton variant="icon" size="sm" aria-label="Rehacer" title="Rehacer (Shift+Cmd/Ctrl+Z o Ctrl+Y)" disabled={!history.future.length} onClick={() => dispatch({ type: "redo" })}><Redo2 size={15} /></PulsoButton>
