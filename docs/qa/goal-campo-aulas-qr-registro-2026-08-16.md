@@ -2376,3 +2376,71 @@ Es el mismo molde que `8568aac1` en aulas —«Estado de ficha» decía «Por re
 en las 196 sin existir una sola ficha— y que L156 —el contador publicaba un hecho
 que la fila no enseñaba—. Tres veces la misma raíz: **una ausencia presentada como
 un valor**.
+
+## 2026-08-19 — La tanda de gráficos: del token fantasma al eje de calendario
+
+Ocho commits sobre `avance/rendimiento` del perfil de aulas, casi todos nacidos de
+una frase de Gonzalo mirando la pantalla. Se anotan aquí porque hasta ahora sólo
+vivían en el encargo del loop, que no está versionado.
+
+| # | Commit | Qué se reparó |
+|---|---|---|
+| 1 | `07a97a8e` | **Siete tallas de letra en un panel** (9.5 · 10 · 10.5 · 11 · 11.5 · 12 · 16) → tres. Y los dos gráficos apilados **no estaban alineados**: 1262 px arriba, 1269 abajo, porque cada rejilla dimensionaba el carril del eje Y por sus propias cifras. Comparten el eje de días: si no coinciden, apilarlos no significa nada. |
+| 2 | `1c75c62a` | **`--pulso-border-soft` no existe**: resuelve a vacío, `stroke` computa a `none` y **la rejilla de los dos gráficos no se había dibujado nunca**. Cinco tokens fantasma en aulas, doce usos, diez sin respaldo. |
+| 3 | `d31abffe` | Cada pie muda a su bloque; «Qué está rindiendo más» pasa a **personas enteras**. |
+| 4 | `f1897600` | **APLICADO vs AGENDADO**: la frontera existía y estaba pintada en el gris de la rejilla. |
+| 5 | `696f061b` | **El eje X pasa a ser un calendario.** Y el hover del acumulado declara la **cobertura del reparto por sexo**. |
+| 6 | `57a19267` | **El único día que no se hace campo es el domingo.** |
+| 7 | `112ce8a1` | El pronóstico decía «días hábiles» con el motor contando sábados. |
+| 8 | `977940d9` + `f2789492` | **Cinco estados vacíos** que daban un solo mensaje para dos causas. |
+
+### Lo que costó, y no era código
+
+**Un nombre en una lista de deuda tolerada no es una nota: es un defecto activo.**
+`--pulso-border-soft` estaba en el `DEUDA_CONOCIDA` de
+`tokensDefinidos.contract.test.ts` **desde el 2026-07-30**, con permiso explícito
+para seguir roto. Mientras tanto la rejilla de los gráficos no se dibujaba, la
+tabla de cuotas no tenía separadores y el gris del día sin efectivas era
+transparente. El guard además leía los `.ts/.tsx` sólo para *definiciones*, nunca
+para usos: un `stroke="var(--pulso-x)"` dentro de un SVG no lo veía nadie. Se
+extendió a usos; **hoy no añade ningún huérfano**, y por eso mismo entró.
+
+**Un eje que reparte por índice miente sobre el ritmo.** Del viernes 14/08 se
+pasaba al lunes 17/08 y el fin de semana ocupaba lo mismo que un día, en un
+gráfico cuyo asunto *es* el ritmo.
+
+**Un hueco en el dato no prueba que ese día no se trabaje: prueba que ese día no
+hay dato.** Dos sitios daban la semana por cinco días infiriéndolo de los huecos
+de un fixture escrito por el propio agente. **La regla la pone quien lleva el
+campo, no la forma del fixture.** El pronóstico se iba unos cuatro días largo al
+mes.
+
+**Dos series juntas con denominadores distintos.** Las líneas de sexo salen de las
+aulas cuyo libro declara reparto; la verde, de todas. **Nunca suman**, y nada lo
+decía: 48 + 35 = 83 contra 232.
+
+**El mensaje de un vacío se escribe leyendo el motor, no la condición.**
+`!x.length` dice *cuándo* está vacío, no *por qué*. Dos mensajes escritos en esta
+tanda fueron corregidos por su propio test: uno acusaba al libro de un campo sin
+rellenar cuando la causa era buena, y otro describía una rama **que no puede
+ocurrir**.
+
+### El barrido de vacíos, cerrado
+
+22 estados vacíos con retorno temprano. **7** ya distinguían dos causas · **5**
+reparados · **1** (`Agenda por día`) estaba bien y el inventario lo listó mal ·
+**8** son correctos con un solo mensaje, y se dice por qué de cada uno: o el motor
+no descarta ninguna fila, o las dos causas dan el mismo diagnóstico y la misma
+acción, o el `total` incluye lo no clasificado. **1** —`Colchón por facultad`—
+tiene una segunda causa degenerada (un plan de sólo reservas) y se declara sin
+tocar. Verde por conformidad, no por ausencia.
+
+### Sigue esperando decisión de Gonzalo
+
+1. «Cómo rinde cada facultad, día a día» y «Encuestas por día de cada facultad»
+   son la misma pregunta a dos escalas. Retirar un panel es un borrado.
+2. **30 usos de `--pulso-border-soft` siguen rotos fuera de aulas**: `carga` 10,
+   `xf-choice-filters` 11, `definicion` de calcMuestra 5, `xlsform-v2` 3, `home` 1.
+   O se declara el token o se barren los usos.
+3. Si sus **4–6 días de antelación de agenda** son los **7** de
+   `DIAS_DE_ANTICIPACION`, medidos sobre el libro 2025 como plazo de *reemplazo*.
