@@ -3286,6 +3286,43 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: 11px; }
 
+/* Serie de rendimiento por facultad: el general y el de una sola. */
+.mon-profile-page.is-aulas-flow .aulas-serie { display: grid; gap: 6px; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-serie-mando {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-mando button {
+  height: 26px; min-width: 26px; padding: 0 9px;
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: var(--pulso-surface); color: var(--pulso-text-soft);
+  font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-mando button:hover { background: var(--pulso-surface-2); }
+.mon-profile-page.is-aulas-flow .aulas-serie-mando button.is-activa {
+  border-color: var(--pulso-module-monitoring); color: var(--pulso-module-monitoring);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface));
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-mando select {
+  height: 26px; max-width: 320px; padding: 0 8px;
+  border: 1px solid var(--pulso-border); border-radius: 8px;
+  background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-plot {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-y {
+  display: flex; flex-direction: column; justify-content: space-between;
+  margin: 0; padding: 0; list-style: none; text-align: right;
+  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-lienzo { position: relative; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-serie-grafico { width: 100%; height: 220px; overflow: visible; }
+.mon-profile-page.is-aulas-flow .aulas-serie-eje {
+  display: flex; justify-content: space-between; margin: 0;
+  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pie { margin: 2px 0 0; font-size: 11px; }
+
 /* Consumo del banco: cuánto aguanta cada facultad. */
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo { display: grid; gap: 6px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lectura,
