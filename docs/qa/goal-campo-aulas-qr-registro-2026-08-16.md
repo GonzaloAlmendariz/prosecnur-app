@@ -2519,3 +2519,42 @@ después del evento de scroll»), para el que ya espera dos frames.
 una comprobación C4 debilitada es peor que un falso positivo conocido: C4 es la
 cláusula que caza contenido inalcanzable de verdad. Queda **declarado** con su
 medición para que lo decida Gonzalo.
+
+## 2026-08-19 — La sección `avance` entera, y dos trampas del propio runner
+
+Las **cinco** pestañas de `avance` medidas con `--require-geometry` y su
+`--post-click-wait-selector`:
+
+| Pestaña | Grupos | Cobertura sin declarar | Fallos |
+|---|---|---|---|
+| `resumen` | 10 | 0 | 1 — `scroll-unreachable` (chrome) |
+| `rendimiento` | 20 | 0 | 1 — el mismo |
+| `estratos` | 6 | 0 | 1 — el mismo |
+| `cuotas` | 6 | 0 | 1 — el mismo |
+| `salidas` | 4 | 0 | 1 — el mismo |
+
+**Cinco de cinco con el mismo y único fallo**, que es el `scroll-unreachable` de
+`monitoring-workbench-rows` ya declarado como deuda L105 y medido hoy como falso
+positivo. No depende del contenido de la pestaña: es del chrome.
+
+### Dos trampas del runner, medidas
+
+**1. `--ir` repetido NO produce una captura por dirección.** Con cuatro `--ir` en
+una sola invocación el resultado fue `captures=2` —una por viewport— y los grupos
+auditados eran los de la **última** dirección. Un barrido con `--ir` repetido mide
+una pestaña y reporta un verde que parece de todas. Una invocación por dirección.
+
+*(El barrido de las doce direcciones del 2026-08-18 no está afectado: sus
+veredictos difieren entre direcciones, así que se corrió por separado.)*
+
+**2. `waitSelectorMisses` dice que TU selector es el equivocado, no que la página
+esté vacía.** `avance/salidas` dio `waitSelectorMisses=2` con
+`--post-click-wait-selector ".mon-profile-panel"`, y midiendo el contenedor
+`#monitoreo-avance-panel` aparecían 1 623 caracteres contra los 17 838 de
+`resumen`. La conclusión inmediata —«la pestaña no entrega nada»— **era falsa**:
+`avance/salidas` renderiza `MonitoreoOutputsWorkbench`, que vive **fuera** de ese
+contenedor. Con `--post-click-wait-selector ".mon-outputs-workbench"`:
+`postClick: True`, `waitSelectorMisses=0`, cobertura completa.
+
+> **La lección**: un contenedor elegido a ojo acota la medición sin avisar. Antes
+> de concluir que una superficie está vacía, buscar su raíz real en el DOM.
