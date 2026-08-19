@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
+import { sexSeriesKind, sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { personasPorAula, personasProyectadas } from "./redondeoConservador";
 import { serieDeRendimiento } from "./serieDeRendimiento";
 
@@ -118,6 +119,37 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   // El acumulado: encuestas sumadas día a día contra la meta. Es la pregunta que
   // manda —«si llegamos a la meta»— y por eso va arriba y con su propio eje: la
   // escala de un acumulado no cabe en la de un rendimiento por aula.
+  /**
+   * El color de cada sexo, el MISMO par que usa Cálculo de muestra.
+   *
+   * Allí los tokens viven bajo `.cmv2-frame` y aquí no existen, así que se
+   * redeclaran apuntando a las mismas variables base —no a un hex copiado—: si
+   * la casa cambia el azul o el rosa, los dos módulos cambian juntos. Y la
+   * clasificación de la etiqueta se importa de `sexoPalette` en vez de repetir
+   * aquí la lista de sinónimos, que es donde se descuadran dos módulos.
+   */
+  const colorDeSexo = (etiqueta: string) => {
+    const clase = sexSeriesKind(etiqueta);
+    if (clase === "male") return "var(--aulas-sexo-hombre)";
+    if (clase === "female") return "var(--aulas-sexo-mujer)";
+    return "var(--pulso-border-strong)";
+  };
+
+  /** Las cuotas que aplican a la vista: las de la facultad, o las del estudio. */
+  const cuotasVisibles = elegida && proyectada
+    ? proyectada.cuotas.map((c) => ({ sexo: c.sexo, meta: c.meta, observadas: c.observadas }))
+    : (() => {
+        const porSexo = new Map<string, { meta: number; observadas: number }>();
+        for (const fila of cuotas) {
+          const sexo = String(fila.sex ?? "").trim() || "Sin dato";
+          const acc = porSexo.get(sexo) ?? { meta: 0, observadas: 0 };
+          acc.meta += Number(fila.target ?? 0);
+          acc.observadas += Number(fila.observed ?? 0);
+          porSexo.set(sexo, acc);
+        }
+        return [...porSexo].map(([sexo, v]) => ({ sexo, ...v }));
+      })();
+
   const acumulado = (() => {
     const observadas = elegida
       ? elegida.dias.map((d) => d.efectivasAcumuladas)
@@ -136,15 +168,72 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? [`${x(corte)},${yy(ultimo)}`, ...proyectadas.map((v, i) => `${x(corte + 1 + i)},${yy(v)}`)].join(" ")
       : "";
     const alCerrar = proyectadas.length ? proyectadas[proyectadas.length - 1] : ultimo;
+
+    // Una línea por sexo, con su cuota señalizada. El desglose por DÍA no existe
+    // en el dato —el parte no trae sexo—, así que la serie de cada sexo es el
+    // acumulado repartido con la proporción YA OBSERVADA de esa facultad. Se
+    // declara en el pie: es un supuesto, no una medición día a día.
+    // **La cuota se mide sobre las respuestas atribuidas a un curso-horario, no
+    // sobre las encuestas del parte.** Son dos fuentes distintas y sobre este
+    // corte dan 0 y 232: mezclarlas ponía un ✓ en la leyenda mientras la tabla de
+    // abajo decía «no llega · faltarían 88». Es la misma trampa que este perfil
+    // lleva toda la noche corrigiendo, y la metí yo.
+    //
+    // Así que las líneas de sexo salen de la MISMA fuente que la tabla —las
+    // cuotas del motor— y la del total, de los partes, en gris y dicha aparte.
+    const baseSexo = cuotasVisibles.reduce((n, c) => n + c.observadas, 0);
+    const metaSexo = cuotasVisibles.reduce((n, c) => n + c.meta, 0);
+    const series = cuotasVisibles
+      .filter((c) => c.meta > 0 || c.observadas > 0)
+      .map((c) => {
+        const peso = baseSexo > 0 ? c.observadas / baseSexo : metaSexo > 0 ? c.meta / metaSexo : 0;
+        // El nivel de hoy es el que declara la cuota; la forma de la curva se
+        // toma del acumulado diario, que es lo único que hay con fecha.
+        const escala = ultimo > 0 ? c.observadas / ultimo : 0;
+        const obs = observadas.map((v, i) => `${x(i)},${yy(v * escala)}`).join(" ");
+        const inf = proyectadas.length
+          ? [`${x(corte)},${yy(c.observadas)}`,
+             ...proyectadas.map((v, i) => `${x(corte + 1 + i)},${yy(c.observadas + (v - ultimo) * peso)}`)].join(" ")
+          : "";
+        const alCerrarSexo = c.observadas + (alCerrar - ultimo) * peso;
+        return {
+          sexo: sexSeriesLabel(c.sexo),
+          color: colorDeSexo(c.sexo),
+          meta: c.meta,
+          conseguidas: c.observadas,
+          faltan: Math.max(0, c.meta - c.observadas),
+          alcanza: alCerrarSexo >= c.meta,
+          obs,
+          inf,
+        };
+      });
+    const repartoObservado = baseSexo > 0;
+    // Nunca un agregado sin su desglose: «faltan 232» no dice a quién hay que ir
+    // a buscar. Se acompaña siempre del reparto por sexo.
+    const desglose = (total: number) => cuotasVisibles.length
+      ? ` (${cuotasVisibles
+          .filter((c) => c.meta > 0 || c.observadas > 0)
+          .map((c) => {
+            const b = cuotasVisibles.reduce((n, q) => n + q.observadas, 0);
+            const m = cuotasVisibles.reduce((n, q) => n + q.meta, 0);
+            const peso = b > 0 ? c.observadas / b : m > 0 ? c.meta / m : 0;
+            return `${fmt(Math.round(total * peso))} ${sexSeriesLabel(c.sexo).toLowerCase()}`;
+          })
+          .join(" · ")})`
+      : "";
+    // La cifra que manda es la de la CUOTA, no la del parte: es la que decide si
+    // el estudio llega. La del parte se dice aparte y con su nombre.
+    const conseguidasCuota = cuotasVisibles.reduce((n, c) => n + c.observadas, 0);
+    const alCerrarCuota = conseguidasCuota + (alCerrar - ultimo);
     const lectura = meta > 0
-      ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas · ${
-          alCerrar >= meta
+      ? `${fmt(Math.round(conseguidasCuota))}${desglose(conseguidasCuota)} de ${fmt(meta)} de cuota · ${
+          alCerrarCuota >= meta
             ? "con lo agendado se llega a la meta"
-            : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
-        }`
-      : `${fmt(Math.round(ultimo))} encuestas acumuladas · sin meta declarada`;
+            : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrarCuota))}, ${fmt(Math.ceil(meta - alCerrarCuota))} por debajo`
+        } · ${fmt(Math.round(ultimo))} encuestas en el parte`
+      : `${fmt(Math.round(ultimo))} encuestas del parte · sin meta declarada`;
     return {
-      tope, meta, y: yy, observado, inferido, lectura,
+      tope, meta, y: yy, observado, inferido, lectura, series, repartoObservado,
       etiqueta: elegida
         ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
         : `Acumulado del estudio: ${Math.round(ultimo)} de ${meta}`,
@@ -237,19 +326,52 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
                   vectorEffect="non-scaling-stroke" opacity="0.8" />
               ) : null}
-              <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.efectiva}
-                strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
-                vectorEffect="non-scaling-stroke" />
+              {/* La CUOTA de cada sexo, señalizada con su color. Sin esto no se
+                  puede saber si una linea llega o no llega. */}
+              {acumulado.series.map((se) => (se.meta > 0 ? (
+                <line key={`meta-${se.sexo}`} x1={MARGEN} y1={acumulado.y(se.meta)}
+                  x2={100 - MARGEN} y2={acumulado.y(se.meta)}
+                  stroke={se.color} strokeWidth="1.2" strokeDasharray="4 4"
+                  vectorEffect="non-scaling-stroke" opacity="0.75" />
+              ) : null))}
+              {/* El total, en gris: es la suma, y la suma no tiene sexo. */}
+              <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.revision}
+                strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
+                vectorEffect="non-scaling-stroke" opacity="0.45" />
               {acumulado.inferido ? (
-                <polyline points={acumulado.inferido} fill="none" stroke={COLOR_RESULTADO.parcial}
-                  strokeWidth="2.5" strokeDasharray="6 4" strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke" />
+                <polyline points={acumulado.inferido} fill="none" stroke={COLOR_RESULTADO.revision}
+                  strokeWidth="1.8" strokeDasharray="6 4" strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke" opacity="0.45" />
               ) : null}
+              {/* Y las dos que importan: hombres y mujeres, en el mismo gráfico y
+                  con el par de colores de Cálculo de muestra. */}
+              {acumulado.series.map((se) => (
+                <polyline key={`obs-${se.sexo}`} points={se.obs} fill="none" stroke={se.color}
+                  strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke" />
+              ))}
+              {acumulado.series.map((se) => (se.inf ? (
+                <polyline key={`inf-${se.sexo}`} points={se.inf} fill="none" stroke={se.color}
+                  strokeWidth="2.5" strokeDasharray="6 4" strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke" opacity="0.85" />
+              ) : null))}
             </svg>
           </div>
         </div>
       ) : null}
-      {acumulado ? <p className="aulas-serie-eje"><span>{acumulado.lectura}</span></p> : null}
+      {acumulado ? (
+        <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
+          <span>{acumulado.lectura}</span>
+          <span className="aulas-serie-leyenda">
+            {acumulado.series.map((se) => (
+              <em key={se.sexo} style={{ "--aulas-serie-color": se.color } as React.CSSProperties}>
+                {se.sexo} {fmt(Math.round(se.conseguidas))}/{fmt(se.meta)}
+                {se.meta > 0 ? (se.alcanza ? " ✓" : ` · faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
+              </em>
+            ))}
+          </span>
+        </p>
+      ) : null}
 
       <div className="aulas-serie-plot">
         <ul className="aulas-serie-y" aria-hidden="true">
