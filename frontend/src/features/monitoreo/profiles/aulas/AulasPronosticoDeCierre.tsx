@@ -34,7 +34,7 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
 
   if (p.motivo) {
     return (
-      <div className="aulas-pronostico">
+      <div className="aulas-pronostico" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="aulas-pronostico-lectura">
           <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas del plan
           tienen parte de campo.
@@ -64,7 +64,11 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
   const lento = `${x(desde)},${y(p.aplicadas)} ${x(desde + (p.diasLento ?? 0))},${y(p.universo)}`;
 
   return (
-    <div className="aulas-pronostico">
+    // C1: el gráfico es el contenedor visible de datos y el dueño del espacio
+    // interior. Sin declararlo, el gate cae a la cabecera y reporta sus 5 px de
+    // holgura como `capacity-drift` — el mismo diagnóstico sobre el sitio
+    // equivocado que salió en cinco paneles del perfil.
+    <div className="aulas-pronostico" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <p className="aulas-pronostico-lectura">
         <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas aplicadas ·
         faltan <strong>{fmt(p.faltan)}</strong> · al ritmo de estos{" "}
