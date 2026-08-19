@@ -79,3 +79,93 @@ unidad de esfuerzo**— y hoy no existe ninguno.
 
 **Barato y de propina**: P10 y P22 son columnas que el equipo LLENA y la app no
 enseña. No hay que calcular nada: hay que mostrarlas.
+
+---
+
+# Las hojas que la app NO lee (2026-08-18, tras el aviso de Gonzalo)
+
+El libro real de 2025 tiene **19 hojas**. La app lee **tres**. Gonzalo apuntó a
+«la hoja que tiene tablas dinámicas… para el recorrido diario, la producción por
+encuestador, las metas y las cuotas por facultad», y ahí estaba media respuesta
+a las 14 preguntas sin contestar.
+
+**PII**: estas hojas llevan nombre, teléfono y correo PUCP de los docentes, y la
+planilla lleva nombres de encuestadores. Se leyó ESTRUCTURA, no datos. **Ninguna
+copia entra al repo** (regla de siempre).
+
+## Las 19 hojas, y qué lee la app
+
+| | Hoja | ¿La app? |
+|---|---|---|
+| 1 | Muestra - Full Data | ✗ |
+| 2 | BD Agenda - Matriz | ✗ |
+| 3 | En Reserva | ✗ (el banco vive en el plan) |
+| 4 | **Aulas Agendadas** | ✅ |
+| 5 | Copia de Aulas Agendadas | ✗ (copia) |
+| 6 | **Base de control** | ✅ |
+| 7 | Actualizar datos | ✗ (mecánica de Excel) |
+| 8 | **Aulas Aplicadas (Campo)** | ✅ |
+| 9 | **Tabla - Resumen** | ✗ ← serie por fecha |
+| 10 | **Progreso General** | ✗ ← metas y cuotas por facultad |
+| 11 | Fechas normalizadas | ✗ (auxiliar) |
+| 12–17 | **aplicación del día 23·24·25·26·29·01** | ✗ ← el recorrido diario |
+| 18 | aulas adicionales | ✗ (el banco) |
+| 19 | **planilla** | ✗ ← producción por encuestador y franja |
+
+## Qué contesta cada una de las cuatro que importan
+
+### 9 · «Tabla - Resumen» — la serie por fecha
+
+Columnas: `MUESTRA · FACULTAD · CURSO-HORARIO · POBLACIÓN · 70% POBLACIÓN ·
+ENCUESTAS VÁLIDAS · N° MUJERES · N° HOMBRES · REGISTRO POR FECHA` y después
+**una columna por fecha de campo** (08/09, 09/09, 10/09…) con el conteo de ese
+día.
+
+Es **la materia prima del ritmo y del pronóstico**: encuestas por aula y por
+día, con la facultad al lado. Contesta **P28** y alimenta **P29**. Y trae el
+umbral escrito —`70% POBLACIÓN`—, que es la vara de efectividad que Gonzalo ya
+había explicado.
+
+### 10 · «Progreso General» — metas y cuotas por facultad
+
+Cabecera de dos filas: `FACULTAD · TOTAL/MUJERES/HOMBRES` (meta) ·
+`TOTAL/MUJERES/HOMBRES` (logrado) · **`AULAS`** · `TOTAL · PROGRESO ·
+FALTANTES · MUJERES · PROGRESO · FALTANTES`.
+
+Una fila real: Arquitectura, meta 123 (84 M / 39 H), logrado 184, **6 aulas**,
+171 válidas, progreso **1,39** y faltantes **−48**.
+
+Tres cosas que la app no tiene:
+1. **`PROGRESO` como ratio** y **`FALTANTES` en negativo cuando se sobrecumple**
+   — hoy la app satura la brecha en cero y el sobrecumplimiento desaparece.
+2. **`AULAS` por facultad junto a las válidas** → efectividad por facultad sale
+   de dividir: 171 ÷ 6. Es **P26** servida en bandeja.
+3. Meta y logrado **desglosados por sexo**, no sólo el total.
+
+### 19 · «planilla» — producción por encuestador y por franja
+
+Columnas: `N° · Apellido Paterno · Apellido Materno · Nombres completos` y luego
+**tres bloques de franja horaria** —`7:00–9:00`, `9:01–19:00`, `19:01–22:00`—
+cada uno con `N CURSO-HORARIO · APLICADOR · RANGO-HORARIO`.
+
+Contesta **P13** (qué aplicador rinde más) y **P14** (a qué hora se recoge más),
+las dos que marqué como inexistentes. Y `RANGO - HORARIO` es la MISMA columna
+que aparece en la Base de control: el turno es un eje que cruza dos hojas.
+
+### 12–17 · «aplicación del día N» — el recorrido diario
+
+Cada día su hoja, con la agenda completa filtrada a esa fecha. Es **P1**, que la
+app ya contesta con «A dónde ir cada día» — pero el Excel lo hacía **por día y
+con el contacto del docente al lado**, que es lo que se lleva a campo.
+
+## Lo que esto cambia
+
+**Cinco de las 14 preguntas sin contestar ya estaban resueltas en el Excel** —
+P13, P14, P26, P28 y parte de P29—, en hojas que la app nunca leyó. El diseño de
+E2, E3 y E4 **no hay que inventarlo**: hay que leer estas cuatro hojas y decidir
+qué se calcula en el motor.
+
+**Y una diferencia de criterio, medida**: «Progreso General» conserva el
+sobrecumplimiento (`−48` faltantes, progreso `1,39`) mientras la app satura la
+brecha en cero. Las dos decisiones son defendibles, pero **no son la misma**, y
+hoy nadie dice cuál usa el estudio.
