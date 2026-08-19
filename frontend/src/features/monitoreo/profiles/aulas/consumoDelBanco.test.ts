@@ -36,6 +36,19 @@ describe("consumoDelBanco", () => {
     expect(salida.facultades[0].diasHastaAgotarse).toBe(0);
   });
 
+  it("un solo día de caídas NO es un ritmo", () => {
+    // «1 caída en 1 día» daría «1/día» y proyectaría el agotamiento del colchón
+    // desde una sola observación.
+    const salida = consumoDelBanco([
+      fila({ operational_code: "CH 1", faculty: "X", titular_operational_code: "CH 1",
+        sample_status: "reemplazada", replaced_at: "2026-08-10" } as Partial<MonitoreoAulasPlanRow>),
+      fila({ operational_code: "R 1.1", faculty: "X", sample_role: "chain_reserve",
+        titular_operational_code: "CH 1", sample_status: "en_reserva" }),
+    ]);
+    expect(salida.facultades[0].ritmo).toBeNull();
+    expect(salida.facultades[0].diasHastaAgotarse).toBeNull();
+  });
+
   it("una caída sin fecha se cuenta aparte y no inventa ritmo", () => {
     const salida = consumoDelBanco([
       fila({ operational_code: "CH 1", faculty: "X", titular_operational_code: "CH 1",
