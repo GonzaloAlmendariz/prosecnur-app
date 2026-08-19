@@ -15,6 +15,17 @@ import {
   type LucideIcon,
 } from "../../../../vendor/lucide-react";
 import { pct } from "../../core/formatoComun";
+
+/**
+ * Un puntaje 0-100 se escribe «93 de 100», nunca «93 %».
+ *
+ * El símbolo de porcentaje pide una población de la que ese 93 sea una parte, y
+ * aquí no la hay: es un índice de desvío contra la muestra planificada.
+ */
+function puntajeSobreCien(value: unknown) {
+  const n = value == null || value === "" ? NaN : Number(value);
+  return Number.isFinite(n) ? `${Math.round(n)} de 100` : "S/D";
+}
 import { summarizeAulasValidation } from "./aulasPresentation";
 import { cuotasResumen } from "./cuotasResumen";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
@@ -227,11 +238,19 @@ export function aulasKpis(
         tone: alertas.count ? "warn" : "neutral",
       },
       {
+        // Un PUNTAJE, no un porcentaje. El backend lo llama
+        // `representativity_effective_score` y el control lo enseña como
+        // «Puntaje 93.1 de 100»; el tile lo pintaba «93 %» con la pista «la
+        // muestra efectiva contra la planificada», que se lee como «se consiguió
+        // el 93 % de lo planificado». No es eso: mide cuánto se DESVÍA la
+        // muestra efectiva de la planificada —0.3 pp de media en este corte—.
+        // Con las 3 700 respuestas sin colgar de ninguna aula del plan y CUMPLEN
+        // en 0, un «93 %» ahí es tranquilizador y falso.
         label: "Representatividad",
         icono: Target,
-        value: pct(kpis?.representativity_effective_score),
-        pista: "la muestra efectiva contra la planificada",
-        detalle: "100 % es una muestra efectiva idéntica a la planificada; 0 % es un desvío medio de 5 puntos o más.",
+        value: puntajeSobreCien(kpis?.representativity_effective_score),
+        pista: "puntaje: 100 es idéntica a la planificada",
+        detalle: "Mide cuánto se desvía la muestra efectiva de la planificada: 100 es idéntica y 0 es un desvío medio de 5 puntos o más. No es la parte de la muestra que se consiguió.",
       },
     ];
   }
