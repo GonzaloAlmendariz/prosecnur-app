@@ -66,9 +66,16 @@ export function AulasFiltrosDeEfectiva({
   return (
     <div className="aulas-efectiva">
       <p className="mon-profile-muted aulas-efectiva-lectura">
-        {filtros.length > 1
-          ? `Una respuesta cuenta como efectiva si cumple las ${filtros.length} condiciones a la vez.`
-          : "Una respuesta cuenta como efectiva si cumple la condición declarada."}
+        {/* **La frase tiene que corresponder al estado.** Con CERO condiciones
+            decía «si cumple la condición declarada» y no había ninguna: se veía
+            al quitar los filtros y guardar. Es el mismo molde que este perfil
+            lleva corrigiendo —un rótulo pegado a algo que no es lo suyo— y me
+            salió en mi propio panel. */}
+        {filtros.length === 0
+          ? "Este estudio no declara ninguna condición, así que cuentan todas las respuestas."
+          : filtros.length === 1
+            ? "Una respuesta cuenta como efectiva si cumple la condición declarada."
+            : `Una respuesta cuenta como efectiva si cumple las ${filtros.length} condiciones a la vez.`}
         {criterio ? <> Ahora mismo: {criterio}</> : null}
       </p>
 
