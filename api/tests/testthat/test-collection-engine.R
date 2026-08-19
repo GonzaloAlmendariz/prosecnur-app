@@ -384,6 +384,31 @@ test_that("returnUrl tambien viaja en un acceso sin personalizacion", {
   expect_identical(url, "https://ee.example.test/x/form?returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fx")
 })
 
+test_that("V2 durabilidad: .collection_access_url no depende de sesion, sid ni cache", {
+  # Un QR impreso tiene que seguir resolviendo igual dentro de un mes, con la
+  # sesion que lo genero hace tiempo cerrada. La funcion no recibe `sid` en su
+  # firma -es deliberado-, y sus dos unicos insumos (`binding` y
+  # `deployment$target`) son parte de `collection_state`, que SI viaja dentro
+  # del `.pulso` (`.pulso_strip_caches()` en project_pulso.R no lo toca; solo
+  # poda caches derivables como `dashboard_rp_inst` o `graficos_preview_cache`,
+  # nunca `collection_state`). Esto arma binding+target "en frio", sin pasar
+  # por session_create()/session_set(), para que quede blindado: si alguna vez
+  # la funcion empieza a leer algo de una sesion viva, esto se rompe.
+  binding_frio <- list(
+    access_ref = "https://ee-eu.kobotoolbox.org/single/ccIcHAqm",
+    access_kind = "parameterized_link",
+    prefill = list(`/aFRIO123/collectorID` = "CH 9")
+  )
+  url_1 <- .collection_access_url(binding_frio, "operational", "kobo", "https://pulso.pucp.edu.pe/x")
+  url_2 <- .collection_access_url(binding_frio, "operational", "kobo", "https://pulso.pucp.edu.pe/x")
+  expect_identical(url_1, url_2)
+  expect_identical(
+    url_1,
+    "https://ee-eu.kobotoolbox.org/single/ccIcHAqm?d%5B/aFRIO123/collectorID%5D=CH%209&returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fx"
+  )
+  expect_false("sid" %in% names(formals(.collection_access_url)))
+})
+
 test_that("un valor de personalizacion vacio o NA no produce enlace", {
   # Un QR con `d[collectorID]=` escanea bien, abre el formulario bien y llega
   # SIN identificador: la respuesta entra anonima y no se descubre hasta el
