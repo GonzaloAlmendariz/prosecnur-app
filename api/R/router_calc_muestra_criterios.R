@@ -52,6 +52,12 @@
   # anota ANTES de pisarlo o el punto de comparacion se pierde para siempre.
   anterior <- session_get(sid, required = FALSE)[["calc_muestra_aulas_frame"]]
   prepared$frame <- calc_muestra_aulas_novedades_anotar(prepared$frame, anterior)
+  # La config del frame es la TERCERA copia de la decisión de alumnos por CH
+  # (los routers de Aulas validan contra frame$config): se re-sella antes de
+  # persistir, o el frame nuevo carga el hash del marco anterior para siempre.
+  prepared$frame$config <- .cm_alumnos_por_ch_resellar_config(
+    prepared$frame$config, prepared$frame$frame_hash
+  )
   session_set(sid, "calc_muestra_aulas_config", prepared$frame$config)
   session_set(sid, "calc_muestra_aulas_frame", prepared$frame)
   session_set(sid, "calc_muestra_aulas_criterios_contexto", prepared$context)
