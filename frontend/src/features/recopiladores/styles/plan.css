@@ -6,9 +6,12 @@
   min-height: 0;
 }
 
-/* Mismo recipe glass que .pulso-panel (theme.css) — ver access.css. */
-.rec-summary-card,
-.rec-data-card {
+/* Mismo recipe glass que .pulso-panel (theme.css) — ver access.css.
+   .rec-data-card ya NO lo necesita: desde E10 usa el componente <Panel>
+   compartido, que trae su propia superficie. Se queda solo en
+   .rec-summary-card, que sigue con markup propio (ver E10 en el encargo del
+   loop, migración pendiente). */
+.rec-summary-card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
     color-mix(in srgb, var(--pulso-surface) 92%, transparent);
@@ -23,8 +26,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .rec-summary-card:hover,
-  .rec-data-card:hover {
+  .rec-summary-card:hover {
     border-color: color-mix(in srgb, var(--pulso-primary-border) 44%, var(--pulso-border));
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.78),
@@ -95,21 +97,6 @@
 
 .rec-data-card {
   min-width: 0;
-  padding: 0 16px 16px;
-}
-
-.rec-data-card > header {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  justify-content: space-between;
-  padding: 16px 2px 12px;
-}
-
-.rec-data-card h2 {
-  font-size: 16px;
-  margin: 3px 0 0;
 }
 
 .rec-data-card code {
