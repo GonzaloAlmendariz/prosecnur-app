@@ -112,3 +112,35 @@ test_that("el re-sellado no reactiva un objetivo tras cambiar el estadístico", 
     .cm_alumnos_por_ch_preparar_estudio_guardado(antes, despues)$estudio$workspace$aulas_config$n_aulas
   )
 })
+
+test_that("el resello tambien sella el ESPEJO en la config de aulas de sesion", {
+  # El guard de los artefactos de Aulas compara la firma del estudio contra la
+  # de calc_muestra_aulas_config, y el guardado del marco reemplaza esa config
+  # por la del frame construido — que carga el hash del marco ANTERIOR.
+  # Resellar solo el estudio dejaba firmas divergentes y un 409 decision_stale
+  # eterno tras cada reconstruccion (medido 2026-08-19 sobre el marco 2026:
+  # estudio 3644ce7a…, config 8f676b56…).
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO"))
+  session_set(sid, "calc_muestra_aulas_config", list(
+    alumnos_por_ch_decision = .resello_decision("HASH_MAS_VIEJO_AUN")
+  ))
+
+  expect_true(.cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO"))
+
+  s <- session_get(sid)
+  espejo <- s$calc_muestra_aulas_config$alumnos_por_ch_decision
+  expect_identical(espejo$frame_hash, "HASH_NUEVO")
+  # Y el guard queda satisfecho: ambas firmas convergen.
+  expect_true(.cm_alumnos_por_ch_decision_matches_config(
+    s$calc_muestra_estudio,
+    s$calc_muestra_aulas_config
+  ))
+})
+
+test_that("un espejo sin decision o sin schema no se inventa", {
+  sid <- .resello_sid(.resello_decision("HASH_VIEJO"))
+  session_set(sid, "calc_muestra_aulas_config", list(selector = list(n_aulas = 5L)))
+  expect_true(.cm_alumnos_por_ch_resellar(sid, "HASH_NUEVO"))
+  s <- session_get(sid)
+  expect_null(s$calc_muestra_aulas_config$alumnos_por_ch_decision)
+})
