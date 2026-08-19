@@ -344,7 +344,32 @@ if (ESCALA_2025) {
     lapply(1:40, function(k) base(sprintf("EXTRA %d", k), "extra_reserve_pool",
                                   facs[[1 + (k %% length(facs))]], 210 + k, est = "en_reserva"))
   )
-  aplicadas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
+  aplicadas_todas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
+  # AULAS AGENDADAS POR DELANTE: con fecha posterior al ultimo parte y SIN parte.
+  #
+  # Sin ellas la zona inferida del grafico de rendimiento —la que se calcula
+  # sobre la agenda— no se puede ver en pantalla: el fixture cerraba el campo
+  # entero y no quedaba nada por aplicar. Es la decima vez en este loop que el
+  # fixture decide lo que se puede ver.
+  #
+  # Se apartan una de cada nueve y se reparten en cuatro dias posteriores al
+  # ultimo con parte (21/08), para que haya facultades de las tres clases: las
+  # que con lo agendado llegan a su cuota, las que no llegan, y las que no
+  # tienen nada agendado.
+  por_venir_i <- which(seq_along(aplicadas_todas) %% 9L == 0L)
+  aplicadas <- aplicadas_todas[setdiff(seq_along(aplicadas_todas), por_venir_i)]
+  for (k in seq_along(por_venir_i)) {
+    j <- por_venir_i[[k]]
+    codigo <- as.character(aplicadas_todas[[j]]$operational_code)
+    nueva <- format(as.Date("2026-08-24") + ((k - 1L) %% 4L), "%Y-%m-%d")
+    for (m in seq_along(plan)) {
+      if (identical(as.character(plan[[m]]$operational_code), codigo)) {
+        plan[[m]]$scheduled_date <- nueva
+        plan[[m]]$operational_status <- "agendada"
+        break
+      }
+    }
+  }
   # Cuanta gente hubo de verdad en cada aula. Vive AQUI porque el parte de campo
   # es quien la cuenta —el aplicador, en el momento— y la Base de control la
   # copia despues. Sembrarla dos veces con formulas distintas dejaba las dos
