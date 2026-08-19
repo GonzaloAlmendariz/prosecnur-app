@@ -69,6 +69,7 @@ export function AulasSeleccionTab({
   sexoBalance = null,
   certificacion = null,
   onAgregarAula,
+  onAjustarAula,
   fichas = null,
   periodoAnterior = "",
   referencia = null,
@@ -85,6 +86,8 @@ export function AulasSeleccionTab({
   sexoBalance?: CalcMuestraSexoPorFacultad | null;
   certificacion?: CalcMuestraCertificacionFacultad | null;
   onAgregarAula?: (facultad: string, aulasActuales: number) => void;
+  /** El par ±1 del reparto por facultad (pasa directo a la certificación). */
+  onAjustarAula?: (facultad: string, aulasActuales: number, delta: 1 | -1) => void;
   /** Fichas hoy/antes por facultad para el embudo comparado (Gonzalo: «el
    *  embudo de facultad por facultad debería estar en selección»). */
   fichas?: FichaFacultad[] | null;
@@ -236,7 +239,7 @@ export function AulasSeleccionTab({
       )}
 
       {/* 2 · El veredicto: ¿la selección garantiza la meta, por facultad y sexo? */}
-      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} referencia={referencia ?? null} calibrada={efectividadCalibradaPorFacultad(m1Rows)} />
+      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} onAjustarAula={onAjustarAula} referencia={referencia ?? null} calibrada={efectividadCalibradaPorFacultad(m1Rows)} />
 
       {/* EF2 · El registro visible del docente único: qué se intercambió y
           por qué; sin ajustes no pinta nada. */}

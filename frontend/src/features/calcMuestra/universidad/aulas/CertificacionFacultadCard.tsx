@@ -106,6 +106,7 @@ function filaComprometida(f: CalcMuestraCertificacionFacultad["filas"][number]):
 export function CertificacionFacultadCard({
   certificacion,
   onAgregarAula,
+  onAjustarAula,
   referencia = null,
   calibrada = null,
 }: {
@@ -114,6 +115,11 @@ export function CertificacionFacultadCard({
    *  en el estrato del estudio; el recálculo la aplica. Sin callback, la
    *  tarjeta es solo lectura (p. ej. en superficies de eco). */
   onAgregarAula?: (facultad: string, aulasActuales: number) => void;
+  /** El par ±1 (Gonzalo: el usuario ajusta el reparto desde la UI, subir Y
+   *  bajar, todo registrado). Con este callback la fila muestra el stepper
+   *  en TODAS las facultades; sin él, sólo el legado «¿un aula más?» en las
+   *  comprometidas. */
+  onAjustarAula?: (facultad: string, aulasActuales: number, delta: 1 | -1) => void;
   /** El estudio anterior, SOLO para el cumplimiento por sexo referencial. */
   referencia?: CalcMuestraReferenciaAsistencia | null;
   /** EF3: suma por facultad de efectivas_esperadas calibradas por CH
@@ -191,7 +197,22 @@ export function CertificacionFacultadCard({
                   <span className="cmv2-cert-estado" data-estado={f.estado}>
                     {ESTADO_LABEL[f.estado] ?? f.estado}
                   </span>
-                  {onAgregarAula && filaComprometida(f) ? (
+                  {onAjustarAula ? (
+                    <span className="cmv2-cert-stepper" aria-label={`Ajustar titulares de ${f.facultad}`}>
+                      <button
+                        type="button"
+                        disabled={f.aulas_titulares <= 1}
+                        title={`Fija ${f.aulas_titulares - 1} titulares para ${f.facultad} en el estudio; recalcula y vuelve a seleccionar para aplicarlo.`}
+                        onClick={() => onAjustarAula(f.facultad, f.aulas_titulares, -1)}
+                      >−1</button>
+                      <button
+                        type="button"
+                        title={`Fija ${f.aulas_titulares + 1} titulares para ${f.facultad} en el estudio; recalcula y vuelve a seleccionar para aplicarlo.`}
+                        onClick={() => onAjustarAula(f.facultad, f.aulas_titulares, 1)}
+                      >+1</button>
+                    </span>
+                  ) : null}
+                  {!onAjustarAula && onAgregarAula && filaComprometida(f) ? (
                     <button
                       type="button"
                       className="cmv2-cert-accion"
@@ -207,6 +228,14 @@ export function CertificacionFacultadCard({
           </tbody>
         </table>
       </div>
+      {/* El × explicado en una frase operativa: «no está claro qué representa
+          para quien elabora la selección» — Gonzalo, 2026-08-19. */}
+      <p className="cmv2-cert-leyenda">
+        <b>Margen ×N</b>: por cada alumno de cuota, cuántos esperas lograr con la
+        tasa de asistencia del diseño — bajo <b>1,00×</b> la facultad quedaría
+        corta y se marca. La cifra <i>2025/CH</i> al pie repite la cuenta con lo
+        que cada tipo de aula rindió de verdad en 2025 (referencial).
+      </p>
     </section>
   );
 }
