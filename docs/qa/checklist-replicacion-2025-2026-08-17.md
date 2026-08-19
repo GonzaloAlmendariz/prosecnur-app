@@ -3476,3 +3476,35 @@ EGL 3,4 · DERECHO 2,8 las que más).
 | EF1 ☑ · EF2 ☑ · EF3 fase 1 ☑ · EF5 medición ☑ | |
 | EF3 fase 2 · DERECHO 322/347 · techo N | ⛔ decisión de Gonzalo |
 | EF4 registro unificado del sacrificio · EF6 contrato inter-módulos | ☐ |
+
+### EF6 — contrato de lo que la selección PUBLICA para los otros módulos
+
+Para el loop de Monitoreo (E1–E7) y Recopiladores: todo esto viaja HOY
+en `selection.selection[]` del estado de calc-muestra (y en el .pulso):
+
+| Campo | Semántica | Para quién |
+|---|---|---|
+| `operational_code` / cadenas Rn.m | identidad operativa del aula y su plan B | recopiladores (QR/ficha), monitoreo |
+| `teacher`, `teacher_email` | contacto del docente (0/203 sin correo) | recopiladores |
+| `p_aplicada_ref` | P(aplicada) calibrada 2025 por docente — **prior para el pronóstico de monitoreo (E4)** | monitoreo |
+| `rendimiento_ref` | efectivas/elegibles esperado por tamaño | monitoreo (metas por aula) |
+| `efectivas_esperadas` | elegibles × p × r — el presupuesto ex ante por aula; Σ por facultad vs cuota = KPI VARA 0 | monitoreo (avance real vs esperado POR FACULTAD) |
+| `diagnostics.docente_unico` | swaps registrados del criterio docente único | auditoría |
+| techo de visitas | ⛔ pendiente del N de Gonzalo — cuando exista, monitoreo lo hereda como barra de quema | monitoreo |
+
+Regla de lectura para monitoreo: el avance observado por facultad se
+compara contra `Σ efectivas_esperadas` (no solo contra la cuota) — la
+diferencia observado-vs-calibrado ES la señal temprana de que una
+facultad rinde distinto de lo previsto.
+
+**EF4 — DIFERIDO CON RAZÓN**: unificar «el registro del sacrificio» con
+una sola fuente viva (docente_unico) sería andamiaje por las dudas; se
+construye cuando exista la segunda (fase 2 del índice, si Gonzalo la
+aprueba). El patrón ya está fijado por EF2: registro en diagnostics +
+warning con cifras + superficie visible.
+
+| # | Era EFECTIVIDAD — tablero final de la tanda | Estado |
+|---|---|---|
+| EF1 matriz ☑ · EF2 docente único ☑ · EF3 fase 1 ☑ · EF5 medición ☑ · EF6 contrato ☑ | |
+| EF4 | diferido con razón (espera 2ª fuente) |
+| ⛔ Gonzalo: fase 2 · DERECHO 322/347 · techo N · ADR 0079 · PSI · score a/b/c | |
