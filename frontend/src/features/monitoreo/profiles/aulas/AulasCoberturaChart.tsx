@@ -35,10 +35,14 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
     return coberturaPorAula(filas);
   }, [filas, resumen, sinMetaMotor]);
 
+  // `sinMeta` ya viene contado del motor: decir CUÁNTOS no declaran meta manda a
+  // la columna que hay que rellenar, y distingue ese caso de no tener plan.
   if (!total) {
     return (
       <p className="mon-profile-muted">
-        Todavía no hay cursos-horario con meta que repartir en tramos.
+        {sinMeta
+          ? `Ninguno de los ${sinMeta.toLocaleString("es-PE")} cursos-horario del plan declara cuántas respuestas espera, así que no hay cobertura que repartir en tramos.`
+          : "El plan todavía no trae cursos-horario."}
       </p>
     );
   }
