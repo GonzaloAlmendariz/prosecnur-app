@@ -3828,3 +3828,38 @@ CH en nivel 1) · DERECHO 67 (18 n1 + 33 n11-12) · C&I 66 · AE 42 ·
 CCSS 31 · ARQ 23 · A&D 12 · resto <10. **EGL: 1 aula de 477 en nivel
 1 — el criterio no la toca, V3 intacta** (2025: 1 de 481). Total
 excluidas por nivel: 1.038.
+
+### Lo que la base 2026 esta destapando — lectura honesta del patron
+
+Preocupacion de Gonzalo (textual): «pense que el motor ya estaba solido
+pero veo que agregando una nueva data aparecen muchos errores».
+
+Que se rompio y que NO se rompio: **el corazon metodologico replico
+casi perfecto** (2.616 vs 2.615 incluidas; talleres, rangos de nivel y
+minimos mordiendo identico; REPARTO 190 sobreviviendo a calcular).
+Lo que fallo fueron las COSTURAS de entrada y estado, y todas
+pertenecen a las dos familias que la queja de fondo ya nombraba:
+
+1. Entrada nunca antes ejercitada: la base 2025 entro CURADA A MANO
+   (columnas renombradas en español); el motor jamas habia visto un
+   DTI crudo. De ahi: encabezado fila 12 (4f7e15cd), fuzzy
+   SESIONES→label (c7ff635a), mapping sin las columnas crudas.
+2. Estado duplicado sin dueño unico: config pisada por POST parcial
+   (mordida 12, dd219ef0) y TRES copias de la decision de alumnos por
+   CH (estudio, sesion, frame) que divergen a la primera
+   reconstruccion (2cd5431d + 4d425187 + 2a87578c — un 409 eterno que
+   ni el propio remedio del mensaje curaba).
+
+Por que esto es la mejor noticia posible dentro de la mala: la 2026
+entro POR LA PUERTA DEL USUARIO a proposito. Si la hubieramos curado a
+mano como en 2025, estos defectos seguian dormidos y los pisaba el
+equipo en produccion, sin loop de reparacion detras. Cada uno murio
+con causa medida + test + mutante, no con parche.
+
+**DEUDA ESTRUCTURAL DECLARADA (candidata a ADR)**: la config de aulas
+vive en tres duenos (estudio.workspace.aulas_config,
+calc_muestra_aulas_config de sesion, frame.config) y la decision de
+alumnos por CH en los tres a la vez. Cada mordida de esta serie (10,
+11, 12, resello x3) es el mismo defecto de fondo: NINGUNA fuente es
+canonica. Un ADR «un solo dueño para la config de aulas» cerraria la
+familia entera en vez de sellar copia por copia.
