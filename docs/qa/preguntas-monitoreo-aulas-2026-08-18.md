@@ -68,6 +68,12 @@ efectivas»**.
 
 **30 preguntas · 8 contestadas · 8 a medias · 14 sin contestar.**
 
+> **ACTUALIZACIÓN 2026-08-19 — las 14 están en 0.** Ocho se cerraron en la tanda
+> del rendimiento (P13, P14, P19, P26, P27, P28, P29, P30) y las tres últimas
+> —P4 el medio de contacto, P17 el aula real, P2 la cola— en la madrugada. Las
+> que quedaban «a medias» se resolvieron con las superficies nuevas. El detalle,
+> en `goal-campo-aulas-qr-registro-2026-08-16.md`, L122 en adelante.
+
 De las 14, **nueve son del ANALISTA**, que es exactamente la persona que Gonzalo
 describió como desatendida. Y tres de ellas —P13 aplicador, P14 hora, P19
 asistencia— son sus tres palabras textuales: «cuál es la efectividad, cuál es la
