@@ -212,6 +212,20 @@ if (ESCALA_2025) {
               scheduled_time = hora,
               schedule = sprintf("%s %s", substr(dias[[1L + ((dia_i - 1L) %% 5L)]], 1, 3), hora),
               teacher = paste("Docente", cod), teacher_phone = sprintf("9%08d", i * 137 %% 1e8),
+              # La OBSERVACION de quien agendo, que el libro real trae en la
+              # columna OBSERVACIONES y el motor deja en `replacement_note`.
+              # Sembrada en 1 de cada 5: el fixture no la traia y por eso la
+              # columna era INEJERCITABLE —el dato llegaba, tenia rotulo y
+              # ninguna superficie lo pedia, asi que anadirlo no se habria visto—.
+              # Textos del tipo que el equipo escribe de verdad: condiciones para
+              # entrar al aula, no prosa.
+              replacement_note = if (i %% 5L == 0L) {
+                c("El docente pide llegar 10 min antes",
+                  "Aula cambiada la semana pasada, confirmar al llegar",
+                  "Solo permite los ultimos 15 min de clase",
+                  "Coordinar con jefe de practica, no con el docente",
+                  "Grupo pequeno, confirmar si vale la pena")[[1L + ((i %/% 5L) %% 5L)]]
+              } else "",
               faculty = fac, stratum = fac, level = "Pregrado", sample_role = rol,
               wave = if (rol == "titular") "M1" else sprintf("M%d", (ord %||% 1) + 1),
               orden = i, eligible_n = 20 + (i %% 25), enrolled_total = 25 + (i %% 25),

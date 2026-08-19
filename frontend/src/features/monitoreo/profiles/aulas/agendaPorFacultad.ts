@@ -21,6 +21,12 @@ export type AulaEnAgenda = {
   /** «LUN 08:00 A101»: el texto descriptivo del libro, que es dónde está el aula. */
   donde: string;
   estado: string;
+  /**
+   * Lo que anotó quien agendó. Viaja en `replacement_note` —el motor acepta ahí
+   * la columna OBSERVACIONES del libro— y hasta hoy no la pedía ninguna
+   * superficie: el dato llegaba, tenía rótulo y no se veía en ninguna parte.
+   */
+  nota: string;
 };
 
 export type FacultadEnAgenda = {
@@ -54,6 +60,7 @@ export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): 
       // El estado OPERATIVO y no el de muestra: lo que se pregunta antes de
       // salir es si el aula ya se aplicó, no si es titular o reemplazo.
       estado: texto(fila.operational_status) || "planificada",
+      nota: texto((fila as { replacement_note?: unknown }).replacement_note),
     };
     const grupo = porFacultad.get(facultad);
     if (grupo) grupo.push(aula);

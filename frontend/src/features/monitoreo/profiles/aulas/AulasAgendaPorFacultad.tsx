@@ -85,6 +85,12 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
                   <span className="aulas-ruta-estado">
                     <EstadoEnCelda valor={ROTULO.get(a.estado) ?? a.estado} />
                   </span>
+                  {/* Lo que anotó quien agendó. Es una condición para entrar al
+                      aula —«el docente pide llegar 10 min antes», «coordinar con
+                      el jefe de práctica»— y el sitio donde sirve es éste, no una
+                      columna de una tabla: se lee camino al aula. Ocupa su propia
+                      línea sólo cuando existe. */}
+                  {a.nota ? <span className="aulas-ruta-nota">{a.nota}</span> : null}
                 </li>
               ))}
             </ul>
