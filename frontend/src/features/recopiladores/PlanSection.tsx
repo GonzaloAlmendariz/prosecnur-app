@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { apiRecopiladoresSeed, type CollectionStatePayload } from "../../api/recopiladores";
+import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
   ChevronLeft,
@@ -91,16 +92,19 @@ export function PlanSection({ payload, onState }: Props) {
           <div><dt>Origen</dt><dd>{plan.source_ref.module}</dd></div>
         </dl>
       </aside>
-      <section className="rec-data-card" aria-label="Unidades del plan">
-        <header>
-          <div><span>Plan congelado</span><h2>Unidades que entran a recolección</h2></div>
+      <Panel
+        className="rec-data-card"
+        eyebrow="Plan congelado"
+        title="Unidades que entran a recolección"
+        actions={(
           <div className="rec-plan-data-meta">
             <code title={plan.instrument_ref.sha256}>instrumento {plan.instrument_ref.revision_id}</code>
             {plan.units.length ? (
               <span>{pagination.start + 1}–{pagination.end} de {plan.units.length}</span>
             ) : null}
           </div>
-        </header>
+        )}
+      >
         {plan.units.length ? (
           <>
             <div className="rec-table-scroll" data-qa-geometry-capacity="owned">
@@ -147,7 +151,7 @@ export function PlanSection({ payload, onState }: Props) {
             El plan es válido, pero su selección no contiene unidades. Regresa al módulo de origen para decidirlas.
           </div>
         )}
-      </section>
+      </Panel>
     </div>
   );
 }
