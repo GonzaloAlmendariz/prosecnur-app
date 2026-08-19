@@ -3539,3 +3539,24 @@ facultades donde muerde (VARA 3), test + mutante + re-derivación.
 | # | Cola de decisiones (todas con datos) | |
 |---|---|---|
 | Fracasos 2025 en cadenas: A/B/C · fase 2 MOS (pinzas aceptadas: en pausa) · DERECHO 322/347 · techo N · ADR 0079 · PSI · score a/b/c | ⛔ Gonzalo |
+
+### El techo tiene número de Gonzalo (~200) y el diseño de 190 es viable — medido
+
+Textual: «sería bueno no pasarnos de doscientas aulas (…) un valor algo
+menor a 190 y aulas adicionales solo a manera de contingencia (…) que el
+número pauteado no se dispare a 210, 215».
+
+**MEDIDO**: encogiendo 203→190 desde las facultades más sobre-cubiertas
+(ARQ −6 → 1,64× · AE −4 → 1,68× · A&D −3 → 1,52×): esperadas totales
+3.157 vs cuota 2.500 (1,26×), ninguna facultad nueva bajo cuota (DERECHO
+sigue 0,93, ya conocido). **Visitas esperadas con 190**: caída residual
+6,5% (las 21/36 caídas por contacto se atacaron: correo 100% + docente
+único + QR) → **~202, clava el techo**; con la tasa 2025 completa
+(15,7%) → 220, se pasa. El presupuesto funciona SI el frente de
+contacto rinde — métrica que Monitoreo vigila en vivo.
+
+**⛔ PROPUESTA esperando su sí**: n=190 con el reparto medido + 2
+liberados a DERECHO (18→20 → 1,03×, resuelve su ámbar; EDU 3→2 1,17×,
+LyCH 5→4 1,38×) + techo_aulas_visitadas=200 sellado en el estudio y
+consumido como presupuesto por margen/simulación/monitoreo. Con su
+confirmación: afijación, techo, re-sorteo, contingencias declaradas.
