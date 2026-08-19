@@ -742,6 +742,9 @@ export type CalcMuestraWorkspaceAulasConfig = {
   /** EF2: un docente no se selecciona repetido entre titulares (reparación
    *  post-sorteo registrada). ON por defecto; FALSE explícito lo apaga. */
   docente_unico?: boolean;
+  /** Opción B: techo operativo de aulas VISITADAS del estudio («no pasarnos
+   *  de 200»). 0 = sin techo declarado; decisión del estudio. */
+  techo_aulas_visitadas?: number;
   pps_weight: number;
   coverage_weight: number;
   monte_carlo_n: number;

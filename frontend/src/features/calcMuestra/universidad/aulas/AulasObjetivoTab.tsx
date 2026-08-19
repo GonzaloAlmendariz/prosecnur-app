@@ -262,6 +262,11 @@ export function AulasObjetivoTab({
             <em>Crea Rn.1, Rn.2... como alternativas equivalentes para cada curso-horario titular.</em>
           </div>
           <div className="cmv2-compact-field">
+            <span>Techo de visitas del estudio</span>
+            <NumberCell value={config.techo_aulas_visitadas ?? 0} min={0} step={5} onChange={(v) => updateConfig({ techo_aulas_visitadas: Math.max(0, Math.round(v)) })} />
+            <em>«No pasarnos de N aulas»: titulares + reemplazos activados no deberían superarlo. 0 = sin techo declarado.</em>
+          </div>
+          <div className="cmv2-compact-field">
             <span>Extra operativo por estrato</span>
             <NumberCell value={config.aulas_extra_operativas_default} min={0} step={1} onChange={(v) => updateConfig({ aulas_extra_operativas_default: Math.round(v) })} />
             <em>Refuerzo de agenda; no cambia el N estadístico ni la muestra titular.</em>

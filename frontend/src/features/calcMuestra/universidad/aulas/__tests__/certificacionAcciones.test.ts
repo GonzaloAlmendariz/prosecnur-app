@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { estratosConAjusteAula, estratosConAulaExtra, fijasPendientes } from "../certificacionAcciones";
+import { presupuestoVisitas } from "../PresupuestoVisitasCard";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
 // La decisión «darle un aula más» debe estar disponible en la UI y quedar
@@ -103,5 +104,30 @@ describe("fijasPendientes (el letrero del click-test)", () => {
   it("sin fijas o sin estratos devuelve vacio", () => {
     expect(fijasPendientes([{ label: "X" }] as never, [])).toEqual([]);
     expect(fijasPendientes(null, null)).toEqual([]);
+  });
+});
+
+describe("presupuestoVisitas (opción B: el techo manda)", () => {
+  const tit = (n: number, p: number) => Array.from({ length: n }, () => ({ p_aplicada_ref: p }));
+
+  it("plan = titulares + activaciones esperadas, con estado contra el techo", () => {
+    const p = presupuestoVisitas(200, tit(190, 0.935));
+    expect(p?.plan).toBe(202);
+    // 202 sobre techo 200: EXCEDIDO aunque sea por poco — decirlo claro es
+    // el punto del presupuesto. Rozando = dentro pero a ≤5 del techo.
+    expect(p?.estado).toBe("excedido");
+    expect(presupuestoVisitas(205, tit(190, 0.935))?.estado).toBe("rozando");
+    expect(presupuestoVisitas(240, tit(190, 0.935))?.estado).toBe("dentro");
+  });
+
+  it("sin techo declarado (0) o sin titulares no pinta presupuesto", () => {
+    expect(presupuestoVisitas(0, tit(190, 0.9))).toBeNull();
+    expect(presupuestoVisitas(200, [])).toBeNull();
+  });
+
+  it("sin calibración declara que no puede estimar, sin inventar activaciones", () => {
+    const p = presupuestoVisitas(200, [{ otra: 1 }, { otra: 2 }] as never);
+    expect(p?.activacionesEsperadas).toBeNull();
+    expect(p?.plan).toBeNull();
   });
 });
