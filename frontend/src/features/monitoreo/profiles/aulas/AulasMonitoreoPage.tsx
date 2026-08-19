@@ -523,7 +523,14 @@ function renderAulasView(
         {pestana === "registro" ? registro : null}
         {pestana === "contacto" ? (
         <section
-          className="mon-profile-panel"
+          // Clase propia: el stack de Agenda reparte el alto entre DOS filas con
+          // `height: 100%`, y esta pestaña mete dos paneles en uno. Sin ella, a
+          // 1024x600 la seccion quedaba en 54 px, el bloque de medios en CERO y
+          // 421 px de contenido desbordaban SIN NINGUN dueño de scroll —medido—.
+          // El gate no lo vio: da ok=true porque no hay grupo declarado que se
+          // viole ni dueño que auditar. Un contenido que desborda sin dueño es
+          // invisible para el.
+          className="mon-profile-panel aulas-contacto-panel"
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
@@ -532,10 +539,15 @@ function renderAulasView(
             <h3>Qué medio agenda mejor</h3>
             <span>y con cuántos intentos</span>
           </div>
-          <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
-          {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita», por
-              eso comparten pestaña; el medio dice con qué y la cola con quién. */}
-          <AulasColaDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+          {/* Los dos dentro de UN dueño de scroll, no cada uno con el suyo: la
+              pantalla tiene que tener un solo recorrido. */}
+          <div className="aulas-contacto-cuerpo">
+            <AulasMedioDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+            {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
+                por eso comparten pestaña; el medio dice con qué y la cola con
+                quién. */}
+            <AulasColaDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+          </div>
         </section>
         ) : null}
         {pestana === "facultad" ? (
