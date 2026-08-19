@@ -3973,3 +3973,29 @@ sobre la formula («esto se rompio»). Lo hecho, medido y verificado:
    crecio de 0,7 a ~1,7: el +1 aula se refuerza. Screenshot en sesion.
 
 .pulso marco2026 re-guardado con todo lo anterior.
+
+### Los 4 metodos en ambos años + el analisis del tope 190 (quien pierde, quien gana)
+
+**Metodos (mismos 4 motores, Monte Carlo genuino)**:
+2025 — cube 51,4 (recomendado) · pool 50,4 · pivotal 50,1 · PPS 48,2.
+2026 — **pivotal 72,3 (recomendado)** · cube 66,8 · pool 66,4 · PPS
+65,9. Todos suben ~15 pts con la base nueva (mejor balance del marco).
+⚠ La seleccion vigente usa CUBE (el sellado, consistente con 2025)
+mientras 2026 recomienda PIVOTAL (+5,5 pts, casi todo balance_score
+73,8 vs 66,1). ⛔ Gonzalo: mantener cube (consistencia interanual,
+reproducibilidad ya blindada) o adoptar pivotal (mejor balance 2026).
+
+**Tope 190 — el control es el MARGEN por facultad** (esperadas/cuota;
+el sorteo ES por facultad, el tope solo obliga a repartir las 190):
+HOY pierden EDU 0,92x · CONT 1,15x · DER 1,17x · PSI 1,19x; ganan LyCH
+2,17x · EGC 1,67x · AE 1,66x · GAS 1,52x. **Reparto MAXIMIN con las
+mismas 190** (aula marginal ≈ promedio de su facultad, aproximacion
+declarada): 10 movimientos (EGC −5, C&I −2, LyCH/AE/EGL −1 → DER +4,
+EDU/CONT/PSI/GES/ARQ/A&D +1) suben el margen minimo de 0,92x a 1,36x y
+comprimen el rango a [1,36; 1,73]. Nota: el maximin le da a DERECHO +4
+— refuerza la prioridad manual que Gonzalo ya le habia dado. ⛔ Gonzalo
+decide si aplicar (los steppers por facultad ya existen en Seleccion).
+
+**Nota de proceso**: actualizar N invalido correctamente los artefactos
+derivados; la cadena (comparar→seleccionar→simular) se esta
+re-derivando con el diseño 2026 y se re-guardara el .pulso completo.
