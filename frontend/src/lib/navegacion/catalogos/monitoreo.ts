@@ -218,6 +218,10 @@ export const MONITOREO_PESTANAS = {
       // contestarla obligaba a rastrear las 196 filas y rehacer el grupo a mano,
       // una vez por facultad y por día.
       pestana("aulas", "modelo", "facultad", "Por facultad", "A dónde hay que ir cada día", Building2),
+      // «A quién llamo y por qué medio» es un trabajo distinto de consultar el
+      // plan, y la agenda no tiene sitio para un tercer panel: su stack reparte
+      // el alto entre dos.
+      pestana("aulas", "modelo", "contacto", "Contacto", "Qué medio agenda mejor", PhoneCall),
     ],
     avance: [
       pestana("aulas", "avance", "resumen", "Resumen", "Avance por curso-horario", BarChart3),
