@@ -1178,6 +1178,7 @@ function renderAulasView(
           ).filas as MonitoreoRow[]}
           agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
           cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
         />
       </section>
       )}
