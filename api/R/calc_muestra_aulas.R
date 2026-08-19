@@ -963,8 +963,17 @@ calc_muestra_aulas_inspect_workbook <- function(path, max_rows = 80L) {
   course <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$course_id), "")
   section <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$section), "")
   schedule <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$schedule), "")
-  label <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$classroom_label), "")
-  fallback <- paste(course, section, schedule, label, sep = "::")
+  # El label (sesiones/salon) es DESCRIPTIVO, no identidad: el aula es curso x
+  # seccion x horario. Incluirlo rompia el match base-catalogo cuando solo una
+  # tabla lo trae (2026: SESIONES con dia/hora/salon en el catalogo dejaba
+  # 397/5.269 aulas matcheadas; sin label, 5.269/5.269). Se usa como ultimo
+  # recurso solo si las tres facetas de identidad vienen vacias.
+  fallback <- paste(course, section, schedule, sep = "::")
+  sin_identidad <- !nzchar(gsub(":", "", fallback, fixed = TRUE))
+  if (any(sin_identidad)) {
+    label <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$classroom_label), "")
+    fallback[sin_identidad] <- label[sin_identidad]
+  }
   fallback <- vapply(fallback, .cm_aulas_text_key, character(1))
   direct[needs] <- fallback[needs]
   direct
