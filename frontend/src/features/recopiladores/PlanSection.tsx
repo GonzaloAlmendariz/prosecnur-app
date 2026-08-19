@@ -10,6 +10,7 @@ import {
   DatabaseZap,
   Loader2,
 } from "../../vendor/lucide-react";
+import { COLLECTION_ADAPTER_LABELS } from "./providerRules";
 import "./styles/plan.css";
 
 type Props = {
@@ -83,12 +84,12 @@ export function PlanSection({ payload, onState }: Props) {
     <div className="rec-plan-layout">
       <Panel
         className="rec-summary-card"
-        eyebrow="collection_plan/v1"
+        eyebrow="Resumen del plan"
         title={<><ClipboardList size={18} aria-hidden /> {plan.units.length} unidades</>}
       >
         <dl>
           <div><dt>Tipo</dt><dd>{plan.unit_type}</dd></div>
-          <div><dt>Adapter</dt><dd>{plan.adapter.id}</dd></div>
+          <div><dt>Método</dt><dd>{COLLECTION_ADAPTER_LABELS[plan.adapter.id] ?? plan.adapter.id}</dd></div>
           <div><dt>Revisión</dt><dd>{plan.revision}</dd></div>
           <div><dt>Origen</dt><dd>{plan.source_ref.module}</dd></div>
         </dl>

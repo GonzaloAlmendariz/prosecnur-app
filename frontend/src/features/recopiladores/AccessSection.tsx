@@ -5,6 +5,9 @@ import {
   apiRecopiladoresDeploymentPreview,
   apiRecopiladoresDeploymentPut,
   apiRecopiladoresProviderPreflight,
+  type CapabilityImplementation,
+  type CapabilityPolicy,
+  type CapabilitySupport,
   type CollectionAdapterId,
   type CollectionCapabilityPreflight,
   type CollectionDeployment,
@@ -87,6 +90,44 @@ function capabilityTone(capability: { implementation?: string; policy?: string }
   if (capability.policy === "disabled_v1" || capability.implementation === "unavailable") return "is-disabled";
   if (capability.implementation === "available") return "is-ready";
   return "is-pending";
+}
+
+// El preflight (`collection_capability_preflight/v1`, api/R/collection_adapters.R)
+// habla en claves y enums en inglés a propósito -es un contrato interno-, pero
+// eso no debería llegar tal cual a la pantalla del analista. Estas tablas son
+// la traducción; si el backend agrega una capability o un valor de enum
+// nuevo, el fallback deja ver el crudo en vez de romper, pero conviene
+// sumarlo acá (mismo patrón que BINDING_LABELS en MaterialsSection.tsx).
+const CAPABILITY_LABELS: Record<string, string> = {
+  local_generation: "Generación local del enlace/QR",
+  remote_read: "Lectura desde el proveedor",
+  remote_write: "Escritura hacia el proveedor",
+  native_link_reuse: "Reutilización de enlace nativo",
+};
+
+const SUPPORT_LABELS: Record<CapabilitySupport, string> = {
+  supported: "Soportado",
+  unsupported: "No soportado",
+  unknown: "Sin observar",
+};
+
+const IMPLEMENTATION_LABELS: Record<CapabilityImplementation, string> = {
+  available: "Disponible",
+  partial: "Parcial",
+  planned: "Planeada",
+  unavailable: "No disponible",
+};
+
+const POLICY_LABELS: Record<CapabilityPolicy, string> = {
+  allowed_v1: "Habilitada en esta versión",
+  allowed_explicit: "Requiere autorización explícita",
+  disabled_v1: "Deshabilitada en esta versión",
+  future: "Prevista para una versión futura",
+};
+
+function policyLabel(value: string | undefined): string | null {
+  if (!value) return null;
+  return POLICY_LABELS[value as CapabilityPolicy] ?? value;
 }
 
 export function AccessSection({ payload, activeTab, onState }: Props) {
@@ -191,8 +232,8 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
     <div className="rec-access-layout">
       <Panel
         className="rec-target-panel"
-        eyebrow="Adapter"
-        title={<><Link2 size={18} aria-hidden /> Target existente</>}
+        eyebrow="Canal de acceso"
+        title={<><Link2 size={18} aria-hidden /> Origen existente</>}
       >
         <span className="rec-field-group-heading">Conexión</span>
         <label>Tipo de acceso
@@ -257,14 +298,14 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
             {busy === "preview" ? <Loader2 size={14} className="pulso-spin" /> : <Eye size={14} />} Vista previa local
           </PulsoButton>
         </div>
-        <p className="rec-policy-note"><ShieldCheck size={13} /> remote_write está unavailable / disabled_v1. Esta pantalla no crea ni modifica recursos del proveedor.</p>
+        <p className="rec-policy-note"><ShieldCheck size={13} /> La escritura hacia el proveedor está deshabilitada en esta versión. Esta pantalla no crea ni modifica recursos del proveedor.</p>
       </Panel>
 
       <Panel
         className="rec-access-result"
         data-qa-geometry-capacity="owned"
-        eyebrow={activeTab === "canales" ? "Capabilities observadas" : "Vinculación"}
-        title={activeTab === "canales" ? "Preflight del target" : "Unidad ↔ acceso"}
+        eyebrow={activeTab === "canales" ? "Capacidades observadas" : "Vinculación"}
+        title={activeTab === "canales" ? "Comprobación del origen" : "Unidad ↔ acceso"}
         actions={activeTab === "canales" ? undefined : (
           <div className="rec-result-actions">
             <PulsoButton variant="secondary" size="sm" onClick={() => { void save(); }} disabled={!deploymentFromPreview(preview) || Boolean(busy)}><Save size={14} /> Guardar borrador</PulsoButton>
@@ -278,13 +319,21 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
               <div className="rec-capability-grid" data-qa-geometry-group="recopiladores/capabilities" data-qa-geometry-contract="equal">
                 {Object.entries(preflight.capabilities).map(([name, capability]) => (
                   <article key={name} className={capabilityTone(capability)}>
-                    <strong>{name.replaceAll("_", " ")}</strong>
-                    <span>{capability.provider_support ?? (capability.observed === false ? "no observado" : "desconocido")}</span>
-                    <small>{capability.implementation ?? capability.source ?? "sin implementación"} · {capability.policy ?? "sin política"}</small>
+                    <strong>{CAPABILITY_LABELS[name] ?? name.replaceAll("_", " ")}</strong>
+                    <span>
+                      {capability.provider_support
+                        ? SUPPORT_LABELS[capability.provider_support]
+                        : capability.observed === false ? "No observado" : "Sin observar"}
+                    </span>
+                    <small>
+                      {(capability.implementation ? IMPLEMENTATION_LABELS[capability.implementation] : null)
+                        ?? policyLabel(capability.source)
+                        ?? "Sin implementación"} · {policyLabel(capability.policy) ?? "Sin política"}
+                    </small>
                   </article>
                 ))}
               </div>
-            ) : <div className="rec-contained-empty">Ejecuta el preflight para separar soporte del proveedor, implementación y política V1.</div>}
+            ) : <div className="rec-contained-empty">Ejecuta el preflight para separar soporte del proveedor, implementación y política vigente.</div>}
           </>
         ) : (
           <>
