@@ -79,6 +79,20 @@
   overflow-wrap: anywhere;
 }
 
+/* La marca de «tiene parte en el libro». Va antes del estado y en el tono
+ * neutro del perfil: es un dato de la fila, no una alerta. */
+.registro-campo-parte {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-border);
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+}
+
 .registro-campo-estado {
   font-size: 11px;
   color: var(--pulso-text-soft);

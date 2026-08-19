@@ -199,15 +199,20 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
   // La clave es `operational_code`, la misma con la que el parte se une al plan
   // en `parteDeCampo`: si cada superficie uniera por su cuenta podrían discrepar
   // en qué aula tiene parte.
-  const conRegistro = useMemo(() => {
+  const codigosConParte = useMemo(() => {
     const conParte = new Set<string>();
     for (const fila of partes) {
       const codigo = String((fila as { operational_code?: unknown }).operational_code ?? "").trim();
       if (codigo) conParte.add(codigo);
     }
-    if (!conParte.size) return 0;
-    return filas.filter((r) => conParte.has(String(r.operational_code ?? "").trim())).length;
-  }, [filas, partes]);
+    return conParte;
+  }, [partes]);
+  const conRegistro = useMemo(
+    () => (codigosConParte.size
+      ? filas.filter((r) => codigosConParte.has(String(r.operational_code ?? "").trim())).length
+      : 0),
+    [filas, codigosConParte],
+  );
 
   const elegir = (row: MonitoreoAulasPlanRow) => {
     const clave = String(row.operational_code ?? row.classroom_id);
@@ -329,6 +334,20 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
                         donde más se nota, porque es donde se elige a qué aula
                         entrar: el color dice de un vistazo cuáles ya se
                         tocaron. */}
+                    {/* Que esta fila tenga parte en el libro es un hecho que el
+                        panel YA publica en su contador —«170 con parte en el
+                        libro»— y que la fila no enseñaba: el conjunto se
+                        construía sólo para contar. Sobre un libro importado las
+                        196 se ven «Planificada», porque `operational_status` lo
+                        mueve esta misma pantalla al guardar, así que la lista
+                        donde se elige a qué aula entrar no distinguía las 170
+                        hechas de las 26 que faltan. No se reescribe el estado
+                        declarado: se añade el dato al lado. */}
+                    {codigosConParte.has(clave) ? (
+                      <span className="registro-campo-parte" title="Tiene parte de campo en el libro">
+                        con parte
+                      </span>
+                    ) : null}
                     <span className={`registro-campo-estado is-${estado}`}>
                       <EstadoEnCelda valor={ESTADOS.find((e) => e.value === estado)?.label ?? estado} />
                     </span>
