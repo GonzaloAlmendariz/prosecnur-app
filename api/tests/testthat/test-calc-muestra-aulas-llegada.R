@@ -118,3 +118,17 @@ test_that("construir publica el snapshot en el payload del frame", {
   expect_identical(frame$llegada_snapshot$schema, "cm_llegada_snapshot_v1")
   expect_true(frame$llegada_snapshot$n_aulas > 0)
 })
+
+test_that("la declaracion huerfana se lista: whitelist que apunta a un fantasma no filtra nada", {
+  base <- .cm_llegada_snapshot(.ll_frame())
+  cfg <- .ll_cfg
+  cfg$criterios_seleccion$courseLevelRanges[["FACULTAD EXTINTA"]] <- list(list(min = 2, max = 10))
+  cfg$criterios_seleccion$minEligible <- list(byFaculty = list(facultad_extinta = 12))
+  n <- calc_muestra_aulas_novedades(.ll_frame(), base, cfg)
+  expect_false(n$limpio)
+  b <- Filter(function(x) x$tipo == "declaracion_huerfana", n$bloques)
+  expect_length(b, 1L)
+  criterios <- vapply(b[[1]]$valores, function(v) v$criterio, character(1))
+  expect_true("courseLevelRanges" %in% criterios)
+  expect_true("minEligible.byFaculty" %in% criterios)
+})
