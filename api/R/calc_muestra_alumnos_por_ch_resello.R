@@ -66,5 +66,22 @@
   ws$aulas_config <- cfg
   estudio$workspace <- ws
   session_set(sid, "calc_muestra_estudio", estudio)
+  # Espejo obligatorio: el guard de los artefactos de Aulas compara la firma
+  # del ESTUDIO contra la de calc_muestra_aulas_config, y el guardado del
+  # marco REEMPLAZA esa config por la del frame construido — que carga el
+  # hash del marco ANTERIOR. Resellar solo el estudio dejaba las firmas
+  # divergentes y un 409 decision_stale eterno tras cada reconstruccion
+  # (medido 2026-08-19: estudio 3644ce7a…, config 8f676b56…).
+  aulas_cfg <- estado$calc_muestra_aulas_config
+  if (is.list(aulas_cfg) && is.list(aulas_cfg$alumnos_por_ch_decision)) {
+    espejo <- aulas_cfg$alumnos_por_ch_decision
+    firma_espejo <- .cm_alumnos_por_ch_decision_signature(espejo)
+    if (is.list(firma_espejo) &&
+        identical(firma_espejo$schema, .cm_alumnos_por_ch_decision_schema)) {
+      espejo$frame_hash <- hash
+      aulas_cfg$alumnos_por_ch_decision <- espejo
+      session_set(sid, "calc_muestra_aulas_config", aulas_cfg)
+    }
+  }
   TRUE
 }
