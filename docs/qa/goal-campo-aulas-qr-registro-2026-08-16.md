@@ -2324,3 +2324,32 @@ automático localiza; no juzga. Las 21 se descartaron mirándolas una por una.
 reparte 147 + 3 + 0 = 150 **sin colocar las 19**. No se sabe si están dentro de
 las 147. Es dominio, no lectura: hace falta saber qué es `stack.subsanada` antes
 de mover nada.
+
+
+## 2026-08-19 — L160 · Dos pestañas de la misma sección contestan lo contrario
+
+**Sin reparar todavía. Medido sobre `acnur_acg`, y es el hallazgo de más alcance
+de toda la serie**, porque las dos cifras contestan la única pregunta que decide
+si el campo sigue abierto.
+
+| | `avance/resumen` | `avance/ritmo` |
+|---|---|---|
+| válidas | **1 283** de 1 200 · «107 % · Meta superada, +83» | **975** de 1 200 · «Brecha meta 225» |
+| UMP completas | **147** completas · 3 faltan | **0** · «150 pendientes de 150» |
+
+Una dice que el estudio se pasó de la meta; la otra, que le falta un quinto.
+
+**Lo medido, no supuesto**: 1 283 − 975 = **308**, y 308 es exactamente el
+«En observación» que la propia pestaña de resumen declara en su panel CORTE
+OPERATIVO. Pero en el modelo son campos **disjuntos** (`advance.validas` y
+`advance.observacion`, que con las 68 no válidas suman 1 659), así que la
+coincidencia no puede ser el reparto que parece: o el acumulado diario excluye lo
+que `validas` incluye, o uno de los dos campos no es lo que su nombre dice.
+
+Por qué no se tocó: **saber cuál de las dos es la buena es dominio, no lectura**.
+`cumulative_valid` no existe en `api/R` —la serie diaria se arma en el frontend—,
+así que hay que seguirla hasta su origen antes de mover un rótulo. Relabelar por
+conjetura aquí sería justo el error que este catálogo existe para no cometer.
+
+Lo que sí queda dicho: **dos superficies del mismo hecho no coinciden y ninguna lo
+declara**, que es la regla (i) del método desde el principio de la serie.
