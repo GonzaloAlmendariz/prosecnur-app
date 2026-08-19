@@ -2444,3 +2444,78 @@ tocar. Verde por conformidad, no por ausencia.
    O se declara el token o se barren los usos.
 3. Si sus **4–6 días de antelación de agenda** son los **7** de
    `DIAS_DE_ANTICIPACION`, medidos sobre el libro 2025 como plazo de *reemplazo*.
+
+## 2026-08-19 — El gate visual, y el `scroll-unreachable` que no reproduce
+
+### El primer verde no valía nada
+
+```
+ok=true  issues=0  geometryGroups=4  geometryCoverageMisses=0
+```
+
+El reporte **no mencionaba `aulas-serie` en ninguna parte**: los cuatro grupos
+eran los KPIs, dos por viewport. El `--ir` había llegado bien —el label decía
+«Cursos-horario Avance Rendimiento»— pero el proyecto entró vacío: `ACTIVAS 0/0`,
+`REGISTROS 0`, `CORTE Sin corte`. **Verde sobre una pantalla sin nada dentro.**
+
+Con `--post-click-wait-selector ".aulas-serie"`: **22 grupos y 3 fallos**.
+
+> **Regla**: antes de creerse un verde del gate, comprobar que el reporte menciona
+> el selector del panel. `grep aulas-serie report.json`.
+>
+> Y la dirección canónica es **`monitoreo/aulas/avance/rendimiento`**: el
+> manifiesto llama al modo `aulas` aunque la UI lo rotule «Cursos-horario».
+
+### Dos de los tres fallos eran declaraciones de más
+
+**Una declaración de geometría de más es tan mala como una de menos.**
+
+1. `AulasAlertaDeAnticipacion` declaraba `capacity="owned"` **dos veces
+   anidadas** —el envoltorio y la lista—, y los 61 px entre ambos (cabecera y
+   lectura) se leían como capacidad interior sin usar. De las cuatro dobles
+   declaraciones del perfil era la única mala: en `Cola de contacto` son dos
+   listas **hermanas** y en `Pronóstico` dos ramas del mismo `return`.
+2. `.aulas-serie` era **a la vez** miembro del grupo del panel, dueño de un vacío
+   y contenedor de un grupo propio. Con el grupo encima se volvía **opaca**: el
+   gate la tomaba entera como miembro y la emparejaba con la cabecera del panel,
+   marcando **898 px** de `capacity-drift` entre un título de 36 y un gráfico
+   de 934.
+
+Lo que lo resolvió no fue razonar sino **medir el patrón de la casa**: siete de
+las ocho secciones de `avance` tienen **un miembro —su lista de datos, con
+`capacity="owned"`, delta 0—**. La reparación fue seguirlo.
+
+```
+ok=false  geometryGroups=20  geometryIssues=1  geometryCoverageMisses=0
+```
+
+### El fallo que queda no reproduce en el navegador
+
+`scroll-unreachable` a 1024×600 sobre `monitoring-workbench-rows`, dueño
+`#monitoreo-avance-panel`.
+
+**No es de esta tanda**: aparece igual en `avance/resumen`, una pestaña sin
+ninguno de los gráficos nuevos.
+
+**Y la verdad de campo dice que el contenido sí se alcanza.** Con el scroll al
+final a 1024×600:
+
+| Medida | Valor |
+|---|---|
+| `maxScroll` / `scrollTop` | 5162 / 5162 — al final |
+| Último panel | «Consumo de la reserva» |
+| Su borde inferior | **584**, exactamente el del dueño |
+| Última hoja pintada | «Días de reserva», bottom **553** — dentro |
+| `alcanzable` | **true** |
+
+El nodo que el runner elige como terminal es un `<small>` con «cursos-horario en
+20 facultades» —el subtítulo del KPI de Brechas, **arriba del todo**— con
+`lastContentBottom: -2535.91`. Su cadena de ancestros no tiene `position: sticky`
+ni ningún `overflow` que recorte, así que no es el caso que el propio runner
+anticipa en su comentario («los virtualizadores actualizan sus filas visibles
+después del evento de scroll»), para el que ya espera dos frames.
+
+**No se toca el runner.** Es tooling compartido que gatea los cuatro perfiles, y
+una comprobación C4 debilitada es peor que un falso positivo conocido: C4 es la
+cláusula que caza contenido inalcanzable de verdad. Queda **declarado** con su
+medición para que lo decida Gonzalo.
