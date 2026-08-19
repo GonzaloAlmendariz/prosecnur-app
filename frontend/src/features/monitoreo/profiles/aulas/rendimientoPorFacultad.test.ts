@@ -23,6 +23,41 @@ describe("rendimientoPorFacultad", () => {
     expect(salida[1].deLosAsistentes).toBe(70);
   });
 
+  it("el encogimiento CAMBIA el orden cuando las facultades son de tamaños distintos", () => {
+    // El caso real: en el estudio de 2025 las facultades van de 2 a 39 aulas
+    // (Ciencias Contables 2, Ciencias e Ingeniería 39). Una facultad con dos
+    // aulas afortunadas encabeza la lista cruda y no debería.
+    const partes = [
+      // Chica: 2 aulas, 40 efectivas cada una. Tasa cruda 40.
+      parte({ operational_code: "A", faculty: "Chica", effective_surveys: 40, observed_students: 45 }),
+      parte({ operational_code: "B", faculty: "Chica", effective_surveys: 40, observed_students: 45 }),
+      // Grande: 10 aulas de 30. Tasa cruda 30, con cinco veces más evidencia.
+      ...Array.from({ length: 10 }, (_, i) =>
+        parte({ operational_code: `G${i}`, faculty: "Grande", effective_surveys: 30, observed_students: 35 })),
+    ];
+    const salida = rendimientoPorFacultad(partes);
+    const chica = salida.find((f) => f.facultad === "Chica")!;
+    const grande = salida.find((f) => f.facultad === "Grande")!;
+    // Cruda: la chica gana.
+    expect(chica.porAula).toBe(40);
+    expect(grande.porAula).toBe(30);
+    // Ajustada: la chica se acerca a la media y la grande apenas se mueve.
+    expect(chica.porAulaAjustado!).toBeLessThan(chica.porAula!);
+    expect(Math.abs(grande.porAulaAjustado! - grande.porAula!))
+      .toBeLessThan(Math.abs(chica.porAulaAjustado! - chica.porAula!));
+    // Y el dato observado SIGUE estando: el encogido no lo sustituye.
+    expect(chica.porAula).toBe(40);
+  });
+
+  it("con muchas aulas el encogimiento casi no mueve la cifra", () => {
+    const partes = Array.from({ length: 40 }, (_, i) =>
+      parte({ operational_code: `A${i}`, faculty: "X", effective_surveys: 20, observed_students: 25 }));
+    const [f] = rendimientoPorFacultad(partes);
+    // Con una sola facultad, la media del estudio ES su propia tasa: el prior
+    // no puede moverla, que es lo correcto.
+    expect(f.porAulaAjustado).toBe(20);
+  });
+
   it("un parte vacío no hunde la tasa de su facultad", () => {
     // Sin efectivas NI asistentes no es un aula que rindió cero: es un parte que
     // nadie llenó todavía.

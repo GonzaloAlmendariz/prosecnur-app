@@ -36,6 +36,22 @@ export type RendimientoDeFacultad = {
   elegibles: number;
   /** Efectivas por aula visitada. `null` si no hay aulas. */
   porAula: number | null;
+  /**
+   * El mismo rendimiento, ENCOGIDO hacia la media del estudio según cuánta
+   * evidencia tiene la facultad. `null` si no hay aulas.
+   *
+   * Por qué existe: en el estudio real las facultades van de **2 a 39 aulas**
+   * —Ciencias Contables 2, Ciencias e Ingeniería 39—, así que la tasa cruda de
+   * una facultad con dos aulas es el promedio de dos observaciones y se compara
+   * de tú a tú con otra que tiene treinta y nueve. Una facultad con 2 aulas y 1
+   * efectiva no «rinde 50 %».
+   *
+   * El encogimiento equivale a añadirle a cada facultad `PESO_DEL_PRIOR` aulas
+   * imaginarias con el rendimiento medio del estudio: quien tiene muchas apenas
+   * se mueve, quien tiene dos se acerca a la media hasta que su propia evidencia
+   * mande. NUNCA sustituye al dato observado, que se sigue viendo al lado.
+   */
+  porAulaAjustado: number | null;
   /** Efectivas sobre los que estaban en el aula, 0-100. `null` si no hay asistentes. */
   deLosAsistentes: number | null;
   /** Efectivas sobre los elegibles del curso, 0-100. `null` si no se conocen. */
@@ -60,6 +76,16 @@ function numero(valor: unknown): number {
  * franja: un aula aplicada a las 6 de la mañana es un dato raro que hay que ver,
  * no un caso de «mañana temprano».
  */
+/**
+ * Cuántas aulas «imaginarias» al rendimiento medio se le suman a cada facultad
+ * para encoger su tasa. Cinco es una elección DECLARADA, no estimada: con este
+ * número una facultad de 2 aulas queda a medio camino de la media y una de 39
+ * se mueve un 11 %, que es el reparto que la corrección pretende. Estimarlo por
+ * momentos daría un valor distinto cada corte y haría el ranking inestable de un
+ * día para otro, que es peor que un prior fijo y dicho.
+ */
+export const PESO_DEL_PRIOR = 5;
+
 export const FRANJAS_DE_APLICACION = [
   { clave: "manana", etiqueta: "7:00 – 9:00", hasta: 9 * 60 },
   { clave: "dia", etiqueta: "9:01 – 19:00", hasta: 19 * 60 },
@@ -123,7 +149,7 @@ export function rendimientoPorFacultad(
     if (!f) {
       f = {
         facultad, aulas: 0, efectivas: 0, asistentes: 0, elegibles: 0,
-        porAula: null, deLosAsistentes: null, delPotencial: null,
+        porAula: null, porAulaAjustado: null, deLosAsistentes: null, delPotencial: null,
       };
       acumulado.set(facultad, f);
     }
@@ -133,9 +159,19 @@ export function rendimientoPorFacultad(
     f.elegibles += elegiblesPorCodigo.get(texto(fila.operational_code)) ?? 0;
   }
 
+  // La media del estudio, que es hacia donde encoge. Sale del total y no del
+  // promedio de las tasas: promediar tasas le daría el mismo peso a una facultad
+  // de 2 aulas que a una de 39, que es justo el sesgo que esto corrige.
+  const totalEfectivas = [...acumulado.values()].reduce((n, f) => n + f.efectivas, 0);
+  const totalAulas = [...acumulado.values()].reduce((n, f) => n + f.aulas, 0);
+  const media = totalAulas ? totalEfectivas / totalAulas : 0;
+
   const salida = [...acumulado.values()].map((f) => ({
     ...f,
     porAula: f.aulas ? Math.round((10 * f.efectivas) / f.aulas) / 10 : null,
+    porAulaAjustado: f.aulas
+      ? Math.round((10 * (f.efectivas + PESO_DEL_PRIOR * media)) / (f.aulas + PESO_DEL_PRIOR)) / 10
+      : null,
     deLosAsistentes: f.asistentes ? Math.round((1000 * f.efectivas) / f.asistentes) / 10 : null,
     delPotencial: f.elegibles ? Math.round((1000 * f.efectivas) / f.elegibles) / 10 : null,
   }));

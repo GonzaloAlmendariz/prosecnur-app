@@ -3202,8 +3202,8 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-lista > li {
   display: grid;
-  grid-template-columns: minmax(130px, 1.2fr) minmax(0, 2fr) 92px 88px;
-  align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; min-width: 0;
+  grid-template-columns: minmax(120px, 1.1fr) minmax(0, 1.7fr) 76px 92px 88px;
+  align-items: center; gap: 9px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera {
   color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
