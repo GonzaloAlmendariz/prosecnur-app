@@ -4958,7 +4958,13 @@ function AcreditacionPhoneQuotaPanel({ rows }: { rows: Array<Record<string, unkn
       <div className="mon-phone-quota-summary" aria-label="Resumen de cuotas telefónicas">
         <span><em>Universo</em><strong>{formatMetric(totalUniverse)}</strong></span>
         <span className={totalMeta ? "is-target" : "is-base"}><em>Meta</em><strong>{totalMeta ? formatMetric(totalMeta) : "Sin meta"}</strong></span>
-        <span className="is-ready"><em>Efectivas</em><strong>{formatMetric(totalEffective)}</strong></span>
+        {/* «Efectivas Kobo», como ya lo dice el editor gemelo y como lo
+            explica el propio subtítulo de este panel. En la misma pantalla, el
+            embudo del barrido muestra otras «Efectivas» —141 contra 157 en
+            acrconta—: son las llamadas que acabaron en efectiva, no las
+            respuestas Kobo que pasan el filtro. Dos cifras distintas bajo la
+            misma palabra, a media pantalla una de otra. */}
+        <span className="is-ready"><em>Efectivas Kobo</em><strong>{formatMetric(totalEffective)}</strong></span>
         <span className={totalGap ? "is-warning" : "is-ready"}><em>Brecha</em><strong>{formatMetric(totalGap)}</strong></span>
       </div>
       {expanded ? (
@@ -5151,7 +5157,7 @@ function AcreditacionPhoneStatusStorage({
               role="listitem"
               tabIndex={0}
               className={`is-${item.tone}`}
-              aria-label={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(item.pctValue)} del barrido)`}
+              aria-label={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(item.pctValue)} de la base)`}
               title={`${item.label}: ${formatMetric(item.value)} (${phonePercentLabel(item.pctValue)})`}
               onBlur={() => setHoveredStatusKey("")}
               onFocus={() => setHoveredStatusKey(item.key)}
@@ -5172,7 +5178,7 @@ function AcreditacionPhoneStatusStorage({
           >
             <strong>{hoveredStatus.label}</strong>
             <span>{formatMetric(hoveredStatus.value)} casos</span>
-            <em>{phonePercentLabel(hoveredStatus.pctValue)} del barrido</em>
+            <em>{phonePercentLabel(hoveredStatus.pctValue)} de la base</em>
           </div>
         ) : null}
       </div>
@@ -5193,7 +5199,12 @@ function AcreditacionPhoneStatusStorage({
               <strong>{item.label}</strong>
               <em>{formatMetric(item.value)}</em>
               <i aria-hidden="true" />
-              <small>{phonePercentLabel(pctValue)} del barrido</small>
+              {/* «de la base» y no «del barrido»: el porcentaje se calcula sobre
+                  `base` —la base telefónica, los 270 del encabezado—, no sobre
+                  los 254 barridos. Y tiene que ser así: «No barrido» es uno de
+                  los estados de esta misma lista, y sobre el barrido no
+                  existiría. */}
+              <small>{phonePercentLabel(pctValue)} de la base</small>
             </span>
           );
         })}
