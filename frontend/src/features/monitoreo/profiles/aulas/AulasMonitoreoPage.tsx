@@ -1592,6 +1592,25 @@ export default function AulasMonitoreoPage() {
     void loadView(seccionActiva);
   }, [seccionActiva, loadView]);
 
+  // **Un error de una carga anterior no describe lo que estás viendo ahora.**
+  // `loadView` se dispara por SECCIÓN, así que al cambiar de pestaña dentro de la
+  // misma sección el aviso rojo sobrevivía: medido, «Internal Server Error ·
+  // HTTP_500» seguía en pantalla con la API respondiendo 200 y los datos de
+  // delante correctos, y sólo se iba al salir de la sección y volver. Un cartel
+  // de error sobre datos buenos es peor que no avisar: enseña a ignorar los
+  // avisos.
+  //
+  // No se BORRA —eso sería dejar de afirmar algo sin comprobarlo—: se
+  // **reintenta**, en silencio. Si la carga sigue rota el error vuelve solo, y si
+  // se recuperó desaparece porque se recuperó.
+  useEffect(() => {
+    if (!error) return;
+    void loadView(seccionActiva, true, true);
+    // `error` fuera de las dependencias a propósito: reintentar al CAMBIAR DE
+    // PESTAÑA, no cada vez que el error cambie —eso sería un bucle—.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pestanaActiva]);
+
   // Flujos movidos del monolito (unidad 4.1) sin reescribir la lógica:
   // importAulasFromCalcMuestra / syncAulasUniversitarias de MonitoreoPage.tsx.
   const importPlan = useCallback(async () => {

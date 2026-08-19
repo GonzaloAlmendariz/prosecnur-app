@@ -396,10 +396,28 @@ if (ESCALA_2025) {
     j <- por_venir_i[[k]]
     codigo <- as.character(aplicadas_todas[[j]]$operational_code)
     nueva <- dia_de_campo(9L + 1L + ((k - 1L) %% DIAS_DE_AGENDA))
+    # **El dia de la semana viaja con la fecha.** Moviendo solo `scheduled_date`
+    # el aula conservaba el `schedule` y el `scheduled_day` de su siembra
+    # original, y en pantalla salia «vie 04/09 14:00 · CH 141 · MIE 14:00»: la
+    # fecha dice viernes y el horario dice miercoles. Un lector lo leeria como un
+    # defecto de la app, y es del fixture.
+    nombre_nuevo <- dias[[as.integer(format(as.Date(nueva), "%w"))]]
     for (m in seq_along(plan)) {
       if (identical(as.character(plan[[m]]$operational_code), codigo)) {
         plan[[m]]$scheduled_date <- nueva
         plan[[m]]$operational_status <- "agendada"
+        plan[[m]]$scheduled_day <- nombre_nuevo
+        hora_actual <- as.character(plan[[m]]$scheduled_time)
+        if (!nzchar(hora_actual)) hora_actual <- "08:00"
+        plan[[m]]$schedule <- sprintf("%s %s", substr(nombre_nuevo, 1, 3), hora_actual)
+        # **Y el `label`**, que es el que la pantalla enseña —«MIE 14:00 V116»,
+        # la columna «SESIONES Y AULA» del Excel—. Arreglar solo `schedule` no
+        # cambiaba nada de lo que se ve: el primer intento toco el campo que no
+        # era y las discrepancias seguian ahi, identicas.
+        etiqueta <- as.character(plan[[m]]$label)
+        aula_txt <- sub("^[A-Z]{3} \\d{2}:\\d{2} ", "", etiqueta)
+        plan[[m]]$label <- sprintf("%s %s %s", toupper(substr(nombre_nuevo, 1, 3)),
+                                   hora_actual, aula_txt)
         break
       }
     }
