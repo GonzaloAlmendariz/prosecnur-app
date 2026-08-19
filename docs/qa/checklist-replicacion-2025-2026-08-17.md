@@ -3683,3 +3683,35 @@ con 288 CH: ¿entra al marco (declarar rangos) o se excluye a propósito
 jerarquía? (3) CONSORCIO: confirmar exclusión. Con sus letras: cargar
 la base en Datos (Variables), reconstruir marco (el gate correrá
 dentro de la app), re-declarar lo marcado y re-derivar todo.
+
+### OPCIÓN B CERRADA — 190 exactos, techo sellado, y dos mordidas más muertas
+
+**Cadena B2 verificada**: **190 titulares con REPARTO EXACTO en las 15
+facultades** (OK por fila; DERECHO 20 con su +2) · 0 docentes repetidos
+· esperadas 3.073 (1,23×) · guardado. En el camino murieron la
+**mordida 10** (calcular borraba las fijas del usuario — el mecanismo
+registrado estaba roto e2e) y la **mordida 11** (el normalizador del
+estudio despojaba techo/docente_unico/faculty_targets en cada
+autosave). Techo=200 y faculty_targets sellados y SOBREVIVIENDO.
+
+**Tarjeta de presupuesto viva**: «techo 200 — plan ≈ 221 (190 + 31
+activaciones según 2025) — EXCEDE» — lectura CONSERVADORA con la tasa
+completa 2025; con el frente de contacto resuelto (21/36 caídas eran
+contacto) el plan ≈ 202. τ propio queda de VIGILANCIA (contrato EF6).
+
+### Respuestas de llegada 1 y 3 registradas; la 2 medida — y la 1 con dato nuevo
+
+- (3) CONSORCIO excluido: CONFIRMADO (deliberado, ya declarado).
+- (2) Docentes nuevos MEDIDOS por facultad (el conteo con %in%; el
+  primero con ==NA fabricaba filas fantasma — trampa R anotada):
+  **PRE-DOCENTE INSTRUCTOR: 8 CH** (A&D 5, EGC 3; matric. 12–60) ·
+  **JP TC: 1 CH** (CCSS, 13). Marginales; propuesta: ambos al escalón
+  pre-docente de la jerarquía, junto a JEFE DE PRÁCTICA.
+- (1) EEE «Sí entra» — PERO el detalle cambia el cuadro: sus 344
+  alumnos son **DESCNIVEL = DIPLOMAS Y OTROS** con CONDI MOVILIDAD
+  ESTUDIANTIL (1.358/1.444) — NO son pregrado regular: los filtros de
+  elegibilidad del estudio (pregrado + regular) los excluyen, así que
+  sus 288 CH quedarían con ~0 elegibles y caerían por mínimo.
+  **⛔ RE-PREGUNTA con dato**: ¿mantiene el Sí (entra como exenta de
+  nivel y que caiga natural por elegibles) o exclusión deliberada
+  declarada (más limpio)?
