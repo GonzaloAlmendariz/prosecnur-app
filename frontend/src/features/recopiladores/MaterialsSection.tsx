@@ -17,6 +17,7 @@ import {
   type CollectionStatePayload,
 } from "../../api/recopiladores";
 import { JobProgress } from "../../components/JobProgress";
+import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
   Archive,
@@ -299,8 +300,11 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   if (activeTab === "paquetes") {
     return (
       <div className="rec-package-layout">
-        <section className="rec-package-card">
-          <header><Archive size={19} /><div><span>Instancias</span><h2>Receta ligada al deployment</h2></div></header>
+        <Panel
+          className="rec-package-card"
+          eyebrow="Instancias"
+          title={<><Archive size={18} aria-hidden /> Receta ligada al deployment</>}
+        >
           <dl>
             <div><dt>Template</dt><dd>{template.template_id}</dd></div>
             <div><dt>Deployment</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
@@ -310,9 +314,13 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           <PulsoButton variant="secondary" onClick={() => { void createInstances(); }} disabled={!deployment || instanceBusy}>
             {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : <Layers size={15} />} Crear instancias
           </PulsoButton>
-        </section>
-        <section className="rec-render-card" data-qa-geometry-capacity="owned">
-          <header><div><span>Renderer autoritativo</span><h2>PNG, PDF o paquete</h2></div></header>
+        </Panel>
+        <Panel
+          className="rec-render-card"
+          data-qa-geometry-capacity="owned"
+          eyebrow="Renderer autoritativo"
+          title="PNG, PDF o paquete"
+        >
           <div className="rec-render-actions">
             <PulsoButton variant="secondary" onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Preview PNG</PulsoButton>
             <PulsoButton variant="primary" onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Render PDF</PulsoButton>
@@ -335,7 +343,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             </div>
           ) : <div className="rec-contained-empty">El binario y su preview se generan en backend y quedan fuera del proyecto `.pulso`.</div>}
           {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
-        </section>
+        </Panel>
       </div>
     );
   }

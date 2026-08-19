@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 type Props = {
   title?: ReactNode;
@@ -9,9 +9,11 @@ type Props = {
   noPadding?: boolean;
   variant?: "content" | "subtle";
   className?: string;
-};
+} & Omit<ComponentPropsWithoutRef<"section">, "title" | "className" | "children">;
 
-export function Panel({ title, eyebrow, actions, hint, children, noPadding, variant = "content", className }: Props) {
+export function Panel({
+  title, eyebrow, actions, hint, children, noPadding, variant = "content", className, ...rest
+}: Props) {
   const hasHeader = title || eyebrow || actions;
   const classes = [
     "pulso-panel",
@@ -20,7 +22,7 @@ export function Panel({ title, eyebrow, actions, hint, children, noPadding, vari
     className,
   ].filter(Boolean).join(" ");
   return (
-    <section className={classes}>
+    <section className={classes} {...rest}>
       {hasHeader && (
         <div className="pulso-panel-header">
           <div className="pulso-panel-heading">
