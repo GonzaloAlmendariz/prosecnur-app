@@ -4068,3 +4068,16 @@ conservados por la fusion). Calcular verifica: aulas_base_total 197
 con estadistico p25 en las 15. Cadena re-sorteo corriendo
 (comparar→seleccionar→simular→save); la verificacion del reparto
 exacto, docentes unicos y certificacion llega con su output.
+
+### Primer re-sorteo salio con el reparto VIEJO — tercera mordida de «frame.config gana»
+
+El sorteo con body vacio uso frame$config (congelada al construir, con
+targets 190) e ignoro la config de sesion recien sellada (197). Es la
+MISMA trampa que perdio el techo en B2 — el frame como tercera copia
+que manda. Cadena relanzada con config explicita completa (patron B2:
+frame.config + overrides n_aulas 197/targets P25). El .pulso quedo
+guardado con la seleccion 190 vieja; se re-guarda cuando el reparto
+exacto 197 verifique (el script solo guarda si es exacto). DEFECTO DE
+FONDO acumulado al ADR dueño unico: los endpoints deberian preferir la
+config de sesion cuando es mas nueva que la del frame, o el sello
+deberia refrescar frame.config.
