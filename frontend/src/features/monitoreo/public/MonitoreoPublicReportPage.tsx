@@ -70,10 +70,30 @@ function formatMetric(value: number | null | undefined) {
   return Math.round(value).toLocaleString("es-PE");
 }
 
+/**
+ * Formatea un porcentaje que YA viene en 0-100. No adivina la escala.
+ *
+ * Adivinaba: `Math.abs(value) <= 1 ? value * 100 : value`, y con eso **todo
+ * porcentaje menor que 1 % se multiplicaba por cien**. Un estado que era el
+ * 0.8 % del total se publicaba como «80%», en el build que ve el cliente. La
+ * regla es la misma que en el perfil de aulas —adivinar la escala por el valor
+ * suelto—, pero aquí era por VALOR y no por columna, así que dentro de una misma
+ * lista unas filas se escalaban y otras no.
+ */
 function formatPercent(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value)) return "S/D";
-  const pct = Math.abs(value) <= 1 ? value * 100 : value;
-  return `${pct.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+  return `${value.toLocaleString("es-PE", { maximumFractionDigits: 1 })}%`;
+}
+
+/**
+ * Un porcentaje que llega del payload puede venir en 0-1 o en 0-100 según la
+ * hoja que lo escribió, y aquí sólo hay un valor suelto: no hay columna que
+ * mirar. La conjetura se queda, pero acotada a ese caso y nunca sobre algo que
+ * esta pantalla haya calculado.
+ */
+function pctDelPayload(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return null;
+  return Math.abs(value) <= 1 ? value * 100 : value;
 }
 
 function safePercent(part: number | null | undefined, total: number | null | undefined) {
@@ -440,7 +460,7 @@ function PublicationProgressPanel({
             const label = rowText(row, labelKeys, `Grupo ${index + 1}`);
             const done = rowNumber(row, doneKeys);
             const target = rowNumber(row, targetKeys);
-            const progress = rowNumber(row, percentKeys) ?? safePercent(done, target) ?? 0;
+            const progress = pctDelPayload(rowNumber(row, percentKeys)) ?? safePercent(done, target) ?? 0;
             const state = rowText(row, ["Estado de avance", "Estado", "Estado de cuota", "Estado general de campo", "Estado interno"], "No disponible");
             return (
               <section key={`${label}-${index}`} className="mon-public-progress-card">
@@ -941,7 +961,7 @@ function TerritorialReport({ payload }: { payload: MonitoreoPublicReportPayload 
     const gap = rowNumber(advance, ["brecha"]);
     const activeDistricts = districts.filter((row) => (rowNumber(row, ["validas"]) ?? 0) > 0).length;
     return [
-      { label: "Validas", value: formatMetric(valid), hint: `${formatPercent(rowNumber(advance, ["avance_pct"]) ?? safePercent(valid, meta))} de avance`, tone: "ready" },
+      { label: "Validas", value: formatMetric(valid), hint: `${formatPercent(pctDelPayload(rowNumber(advance, ["avance_pct"])) ?? safePercent(valid, meta))} de avance`, tone: "ready" },
       { label: "Meta", value: formatMetric(meta), hint: "objetivo territorial", tone: "base" },
       { label: "Brecha", value: formatMetric(gap), hint: "pendientes contra meta", tone: gap ? "warning" : "ready" },
       { label: "Distritos con avance", value: formatMetric(activeDistricts), hint: `${formatMetric(districts.length)} distritos publicados`, tone: "base" },
@@ -1132,7 +1152,7 @@ function ActorProgress({ actors }: { actors: MonitoreoRow[] }) {
         {actors.map((row) => {
           const actor = rowText(row, ["Actor"], "Sin actor");
           const state = accreditationState(row);
-          const progress = rowNumber(row, ["Avance universo"]) ?? safePercent(state.effective, state.universe) ?? 0;
+          const progress = pctDelPayload(rowNumber(row, ["Avance universo"])) ?? safePercent(state.effective, state.universe) ?? 0;
           const total = Math.max(1, state.universe || state.effective + state.partial + state.refusal + state.unanswered);
           const states = [
             { key: "effective", label: "Efectivas", value: state.effective },
@@ -1189,7 +1209,7 @@ function DistrictProgress({ rows, activePhase }: { rows: MonitoreoRow[]; activeP
           const district = rowText(row, ["distrito"], "Sin distrito");
           const valid = rowNumber(row, ["validas"]) ?? 0;
           const meta = rowNumber(row, ["meta"]);
-          const progress = rowNumber(row, ["avance_pct"]) ?? safePercent(valid, meta) ?? 0;
+          const progress = pctDelPayload(rowNumber(row, ["avance_pct"])) ?? safePercent(valid, meta) ?? 0;
           const gap = rowNumber(row, ["brecha"]);
           return (
             <section key={`${rowText(row, ["ubigeo"], district)}-${district}`} className="mon-public-progress-card">
