@@ -169,3 +169,50 @@ qué se calcula en el motor.
 sobrecumplimiento (`−48` faltantes, progreso `1,39`) mientras la app satura la
 brecha en cero. Las dos decisiones son defendibles, pero **no son la misma**, y
 hoy nadie dice cuál usa el estudio.
+
+---
+
+# P22 resuelta: los tres VALIDADOR no son revisores, son motivos de descarte
+
+Medido sobre las 194 filas de la «Base de control» del libro real. **Dos
+identidades, sin una sola excepción:**
+
+| Identidad | Se cumple en | Totales |
+|---|---|---|
+| `VALIDADOR 1 + 2 + 3 = TOTAL CORTAS` | **194 / 194** | 236 + 98 + 60 = **394** |
+| `CORTAS + LARGAS = TOTAL ENVIADAS` | **194 / 194** | 394 + 3 304 = **3 698** |
+
+De ahí sale la semántica, que no había que adivinar:
+
+- Toda encuesta enviada es **corta** (descartada) o **larga** (válida).
+- Toda corta cae por **exactamente uno** de tres validadores.
+- **10,7 %** de las 3 698 encuestas se descartaron; **el 60 % de ellas por el
+  validador 1**, el 25 % por el 2 y el 15 % por el 3.
+
+Y la cabecera de grupo lo confirma: las tres viven bajo **`CONTROL - CUENTA`**,
+junto a TOTAL ENVIADAS y TOTAL CORTAS/LARGAS, no en un grupo de supervisión.
+
+**Lo que la app puede decir sin preguntar nada**: «de N encuestas, X se
+descartaron por cortas; de ésas, tantas por cada validador». La lectura no
+necesita saber cómo se llaman las reglas.
+
+**PREGUNTA PARA GONZALO**: ¿qué regla es cada validador? Con el nombre, la
+lectura pasa de «validador 1» a decir el motivo, que es lo que el analista
+necesita para corregir el campo.
+
+## El fixture violaba las dos identidades
+
+Sembraba `validator_1 = i %% 2`, `validator_2 = 0` —**siempre cero**— y
+`validator_3 = i %% 3` contra un `short_total = i %% 4` sin relación, y
+`long_total` tampoco completaba las enviadas. Cualquier lectura construida sobre
+eso habría sido falsa **y ninguna comprobación la habría pillado**, porque la
+app no conocía la identidad.
+
+Corregido con las proporciones del real (10,7 % de descarte, repartido 60/25/15)
+y el tercer validador **por resta**, para que la identidad no dependa del
+redondeo. Verificado en pantalla: **140 de 140** filas cumplen las dos.
+
+**La lección**: un fixture que no respeta las identidades del dato real no es
+«datos de prueba», es una fuente de conclusiones falsas. Es la decimoquinta vez
+en esta serie que el fixture decide lo que se puede ver — y la primera en que lo
+que enseñaba era directamente incoherente.

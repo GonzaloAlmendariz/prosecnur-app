@@ -57,6 +57,21 @@ if (!ESCALA_2025) {
 # asi que `replacement_for` —que guarda el classroom_id del titular— coincidia
 # por accidente con el codigo operativo y la cadena se agrupaba bien de casualidad.
 # Sobre HSVG2026, donde no coinciden, 0 de 202 apuntaban a un titular.
+# El descarte por validador, con las dos invariantes del libro real.
+# `.cortas` da entre 0 y ~21 % de las enviadas segun el aula (mediana ~10 %), y
+# los tres validadores lo REPARTEN: su suma es exactamente `.cortas`, nunca otra
+# cosa. El tercero se calcula por resta para que la identidad no dependa del
+# redondeo.
+.cortas <- function(enviadas, i) {
+  if (!is.finite(enviadas) || enviadas <= 0) return(0L)
+  as.integer(round(enviadas * (0.04 + 0.13 * ((i %% 7L) / 6))))
+}
+.cortas_v1 <- function(enviadas, i) as.integer(round(.cortas(enviadas, i) * 0.60))
+.cortas_v2 <- function(enviadas, i) as.integer(round(.cortas(enviadas, i) * 0.25))
+.cortas_v3 <- function(enviadas, i) {
+  .cortas(enviadas, i) - .cortas_v1(enviadas, i) - .cortas_v2(enviadas, i)
+}
+
 .qa_classroom_id <- function(codigo) {
   limpio <- tolower(gsub("[^A-Za-z0-9]", "", codigo))
   sprintf("aul%s_%04d", limpio, abs(sum(utf8ToInt(codigo))) %% 10000)
@@ -464,9 +479,23 @@ control <- lapply(seq_along(aplicadas), function(i) {
     sent_total = enviadas,
     sent_vs_total = round(enviadas / asistentes, 3),
     sent_vs_population = round(enviadas / matriculados, 3),
-    validator_1 = i %% 2, validator_2 = 0, validator_3 = i %% 3,
-    short_total = i %% 4, short_vs_total = round((i %% 4) / max(enviadas, 1), 3),
-    long_total = i %% 3, long_vs_total = round((i %% 3) / max(enviadas, 1), 3),
+    # DOS INVARIANTES del libro real, medidas sobre sus 194 filas y sin una sola
+    # excepcion (2026-08-18):
+    #   VALIDADOR 1 + 2 + 3 == TOTAL CORTAS        (394 = 394)
+    #   CORTAS + LARGAS     == TOTAL ENVIADAS      (394 + 3 304 = 3 698)
+    # O sea: toda encuesta enviada es corta o larga, y toda corta cae por UNO de
+    # los tres validadores —no son tres revisores, son tres motivos de descarte—.
+    # El fixture las violaba las dos: sembraba `i %% 2 / 0 / i %% 3` contra un
+    # `short_total = i %% 4` sin relacion, y `validator_2` era SIEMPRE cero. Con
+    # eso, cualquier lectura sobre los validadores habria sido falsa y ninguna
+    # comprobacion la habria pillado.
+    # Proporciones tomadas del real: 10,7 % de descarte, repartido 60/25/15.
+    validator_1 = .cortas_v1(enviadas, i), validator_2 = .cortas_v2(enviadas, i),
+    validator_3 = .cortas_v3(enviadas, i),
+    short_total = .cortas(enviadas, i),
+    short_vs_total = round(.cortas(enviadas, i) / max(enviadas, 1), 3),
+    long_total = enviadas - .cortas(enviadas, i),
+    long_vs_total = round((enviadas - .cortas(enviadas, i)) / max(enviadas, 1), 3),
     threshold_total = round(0.7 * asistentes),
     threshold_population = round(0.7 * matriculados),
     valid_total = if (enviadas >= 0.7 * asistentes) 1 else 0,
