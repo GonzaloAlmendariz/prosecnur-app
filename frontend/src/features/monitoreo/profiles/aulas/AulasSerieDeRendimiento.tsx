@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
+import { personasPorAula, personasProyectadas } from "./redondeoConservador";
 import { serieDeRendimiento } from "./serieDeRendimiento";
 
 /**
@@ -102,17 +103,17 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
       <p className="aulas-cadenas-lectura">
         {elegida ? (
           <>
-            <strong>{elegida.facultad}</strong> deja <strong>{fmt(elegida.observadoFinal ?? 0)}</strong>{" "}
+            <strong>{elegida.facultad}</strong> deja <strong>{personasPorAula(elegida.observadoFinal)}</strong>{" "}
             encuestas por aula en {fmt(elegida.aulas)} {elegida.aulas === 1 ? "aula" : "aulas"} ·
-            se espera <strong>{fmt(elegida.esperadoFinal)}</strong> de la siguiente
+            se espera <strong>{personasPorAula(elegida.esperadoFinal)}</strong> de la siguiente
             {elegida.aulas < 5 ? " (con tan pocas aulas, el esperado se apoya en la media del estudio)" : ""}
           </>
         ) : (
           <>
             <strong>{fmt(facultades.length)}</strong> facultades ·{" "}
-            <strong>{fmt(mediaDelEstudio)}</strong> encuestas por aula de media del estudio ·
-            de <strong>{fmt(facultades[0].esperadoFinal)}</strong> a{" "}
-            <strong>{fmt(facultades[facultades.length - 1].esperadoFinal)}</strong> esperadas
+            <strong>{personasPorAula(mediaDelEstudio)}</strong> encuestas por aula de media del estudio ·
+            de <strong>{personasPorAula(facultades[0].esperadoFinal)}</strong> a{" "}
+            <strong>{personasPorAula(facultades[facultades.length - 1].esperadoFinal)}</strong> esperadas
           </>
         )}
       </p>
@@ -126,7 +127,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
           <option value="">Todas las facultades</option>
           {facultades.map((f) => (
             <option key={f.facultad} value={f.facultad}>
-              {f.facultad} · {fmt(f.esperadoFinal)} esperadas
+              {f.facultad} · {personasPorAula(f.esperadoFinal)} esperadas
             </option>
           ))}
         </select>
@@ -194,12 +195,12 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
           {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
             <span key={d.fecha} className="aulas-serie-punto"
               style={{ left: `${x(i)}%`, top: `${y(d.porAula)}%` }}
-              title={`${dm(d.fecha)} · observado · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas · ${fmt(d.porAula)} por aula`} />
+              title={`${dm(d.fecha)} · observado · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por aula`} />
           ))) : null}
           {proyectada ? proyectada.dias.map((d, i) => (
             <span key={d.fecha} className="aulas-serie-punto es-inferido"
               style={{ left: `${x(corte + 1 + i)}%`, top: `${y(proyectada.esperadoPorAula)}%` }}
-              title={`${dm(d.fecha)} · inferido de la agenda · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"} · ~${fmt(d.esperadas)} encuestas esperadas`} />
+              title={`${dm(d.fecha)} · inferido de la agenda · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"} · ~${personasProyectadas(d.esperadas)} encuestas esperadas`} />
           )) : null}
         </div>
       {/* El eje por día, con UNA marca por fecha. Gonzalo: «el eje que es
@@ -260,7 +261,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
                 <td>{fmt(c.meta)}</td>
                 <td>{fmt(c.observadas)}</td>
                 <td>{c.faltan === 0 ? "—" : fmt(c.faltan)}</td>
-                <td>{proyectada.aulasAgendadas ? `~${fmt(c.esperadasDeLaAgenda)}` : "—"}</td>
+                <td>{proyectada.aulasAgendadas ? `~${personasProyectadas(c.esperadasDeLaAgenda)}` : "—"}</td>
                 <td>
                   {c.faltan === 0
                     ? "cuota cumplida"
