@@ -627,6 +627,11 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
   gsub("]", "%5D", name, fixed = TRUE)
 }
 
+# Deliberadamente sin `sid`: un QR impreso tiene que resolver igual dentro de
+# un mes, con la sesion que lo genero hace tiempo cerrada. `binding` y
+# `deployment$target` (unicos insumos, vienen del llamador) son parte de
+# `collection_state`, que persiste dentro del `.pulso` -no es un cache
+# derivable que `.pulso_strip_caches()` pode al guardar-.
 .collection_access_url <- function(binding, sensitivity, provider = "kobo", return_url = "") {
   ref <- as.character(binding$access_ref %||% "")
   if (length(ref) != 1L || !nzchar(ref) || !grepl("^https?://", ref, ignore.case = TRUE) ||
