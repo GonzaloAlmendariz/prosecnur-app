@@ -53,10 +53,16 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
       {v.indeterminadas ? (
         // Ni a un lado ni al otro: la hoja no trae con qué situarlas. Sumarlas
         // a «ninguno» diría que fallaron, y no se sabe.
+        //
+        // **Con su porcentaje**, y con el MISMO denominador que las celdas. Sin
+        // él las cuatro celdas sumaban 68 % y el tercio que falta sólo estaba
+        // como un conteo suelto: los porcentajes de una partición tienen que
+        // poder sumarse a la vista, o quien lee concluye que no cuadra. Pasó
+        // leyendo esta misma pantalla.
         <p className="mon-profile-table-recorte">
           <strong>{fmt(v.indeterminadas)}</strong>{" "}
           {v.indeterminadas === 1 ? "aula sin sus dos umbrales" : "aulas sin sus dos umbrales"} en
-          la hoja.
+          la hoja · {aulas ? Math.round((100 * v.indeterminadas) / aulas) : 0} %
         </p>
       ) : null}
       {/* DE QUIÉN es este corte, y qué NO decide.
