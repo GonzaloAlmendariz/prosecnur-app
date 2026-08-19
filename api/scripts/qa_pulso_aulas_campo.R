@@ -204,7 +204,13 @@ if (ESCALA_2025) {
   dias <- c("Lunes", "Martes", "Miercoles", "Jueves", "Viernes")
   horas <- c("08:00", "10:00", "12:00", "14:00", "16:00", "18:00")
   base <- function(cod, rol, fac, i, repl = NULL, ord = NULL, est = "agendada") {
-    dia_i <- 1L + (i %% 10L)
+    # El dia NO puede salir de `i %% 10` a secas: la facultad sale de `i %% 20`
+    # y 10 divide a 20, asi que cada facultad caia SIEMPRE en el mismo dia. Con
+    # eso, cualquier vista de ritmo por facultad enseñaba «314 encuestas en 1
+    # dia» para las veinte y la tendencia era incalculable en todas —la vista
+    # existia y no podia enseñar nada—. Sumando `i %/% 20L` el dia avanza dentro
+    # de cada facultad y las series se reparten por el rango.
+    dia_i <- 1L + ((i + (i %/% 20L)) %% 10L)
     fecha <- format(as.Date("2026-08-10") + (dia_i - 1L) + (2L * ((dia_i - 1L) %/% 5L)), "%Y-%m-%d")
     hora <- horas[[1L + (i %% length(horas))]]
     # `SESIONES Y AULA` del Excel es un texto DESCRIPTIVO —«LUN 08:00 A101»—, no
