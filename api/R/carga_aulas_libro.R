@@ -48,7 +48,21 @@ aulas_libro_importar <- function(path) {
   ausentes <- lapply(AULAS_LIBRO_HOJAS[!presentes], function(x) x$hoja)
 
   con_estado <- sum(vapply(plan, function(r) nzchar(r$sample_status %||% ""), logical(1)))
-  titulares <- sum(vapply(plan, function(r) identical(r$sample_role, "titular"), logical(1)))
+  rol <- function(x) vapply(plan, function(r) identical(r$sample_role, x), logical(1))
+  titulares <- sum(rol("titular"))
+  # **Las reservas, que es el sumando que faltaba para situar el total.** La
+  # tarjeta de Fuentes enseñaba «236 cursos-horario» y «170 titulares», y el KPI
+  # de al lado «196 · titulares y sus reservas encadenadas»: tres cifras para la
+  # misma palabra sin forma de encajarlas sin salir de la pantalla.
+  #
+  # **Las aulas EXTRA no se cuentan aqui a proposito.** Este resumen describe lo
+  # que trae el LIBRO, y su hoja «Aulas Agendadas» solo distingue titular de
+  # reserva encadenada —`sample_role` sale del bloque de columnas: el primero es
+  # titular, los demas reservas—. Un `sum(rol("extra_reserve_pool"))` sobre este
+  # plan valdria **siempre 0**, y pintar «0 extra» en un estudio que tiene 40
+  # seria peor que no decirlo. Los extras viven en el plan del calculo de
+  # muestra y se cuentan en `Consultas > Aulas extra disponibles`.
+  reservas <- sum(rol("chain_reserve"))
 
   list(
     plan = plan,
@@ -61,6 +75,7 @@ aulas_libro_importar <- function(path) {
     resumen = list(
       unidades = length(plan),
       titulares = as.integer(titulares),
+      reservas = as.integer(reservas),
       contactadas = as.integer(con_estado),
       partes_de_campo = length(partes),
       filas_de_control = length(control$filas)

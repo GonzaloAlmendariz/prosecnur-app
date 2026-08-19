@@ -89,6 +89,8 @@ export type ReciboDelLibro = {
     /** Cuántas facultades cubre el libro: un libro de 15 y uno de 6 son cosas distintas. */
     facultades?: number;
     titulares?: number;
+    /** Reservas encadenadas: sin ellas, «236» y «170» no encajan. */
+    reservas?: number;
     partes_de_campo?: number;
     filas_de_control?: number;
   };
@@ -143,7 +145,16 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
               // unidad con la que se dirige el operativo, y un libro de 15 y
               // uno de 6 son cosas muy distintas aunque traigan las mismas filas.
               ["facultades", "facultades"],
+              // **Las reservas, para poder situar el total.** Se veian «236
+              // cursos-horario» y «170 titulares», y el KPI de al lado «196 ·
+              // titulares y sus reservas encadenadas»: tres cifras para la misma
+              // palabra y ninguna forma de encajarlas sin salir de la pantalla.
+              //
+              // Las aulas EXTRA no salen aqui: el libro no las distingue —ver
+              // `carga_aulas_libro.R`— y pintar «0 extra» en un estudio que
+              // tiene 40 seria peor que no decirlo.
               ["titulares", "titulares"],
+              ["reservas", "reservas"],
               ["partes_de_campo", "partes de campo"],
               ["filas_de_control", "filas de control"],
             ] as const).map(([clave, rotulo]) => {
