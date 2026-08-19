@@ -77,6 +77,27 @@ describe("rol de cada unidad, traducido igual que la ficha impresa", () => {
   });
 });
 
+describe("revisión del instrumento en la cabecera del plan", () => {
+  it("traduce el centinela de instrumento no fijado, no lo muestra crudo", () => {
+    const plan: CollectionPlan = {
+      ...BASE_PLAN,
+      instrument_ref: { revision_id: "legacy-instrument-unpinned", sha256: "sha" },
+    };
+    const markup = renderToStaticMarkup(
+      <PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} />,
+    );
+    expect(markup).toContain("sin instrumento fijado");
+    expect(markup).not.toContain("legacy-instrument-unpinned");
+  });
+
+  it("una revisión real se muestra tal cual, no se inventa una etiqueta", () => {
+    const markup = renderToStaticMarkup(
+      <PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} />,
+    );
+    expect(markup).toContain("rev-1");
+  });
+});
+
 describe("paginación del plan", () => {
   it("acota un plan realista sin perder el conteo total", () => {
     const units = Array.from({ length: 2373 }, (_, index) => index + 1);
