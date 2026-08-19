@@ -14,6 +14,7 @@
  * propios y sus seis cuentas. Las dos con la columna de 2025 al lado.
  */
 import type {
+  CalcMuestraAulasSelection,
   CalcMuestraCertificacionFacultad,
   CalcMuestraReferenciaAsistencia,
   CalcMuestraReferenciaCriterios,
@@ -21,6 +22,7 @@ import type {
 import { CriteriosGeneralesCard, type CriterioGeneralFila } from "../criterios/CriteriosGeneralesCard";
 import { EmbudoComparadoFacultades } from "./EmbudoComparadoFacultades";
 import { CertificacionFacultadCard } from "../aulas/CertificacionFacultadCard";
+import { SeleccionComparadaCard } from "./SeleccionComparadaCard";
 import { FichaPorFacultadCard } from "../criterios/FichaPorFacultadCard";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 
@@ -31,6 +33,7 @@ export function SalidasCoincidenciaTab({
   referencia,
   certificacion = null,
   referenciaAsistencia = null,
+  seleccion = null,
 }: {
   criteriosGenerales: CriterioGeneralFila[];
   criteriosMarco: CriterioGeneralFila[];
@@ -41,6 +44,8 @@ export function SalidasCoincidenciaTab({
   /** El sello de la selección vigente, en modo lectura: la Entrega muestra
    *  la garantía junto a la coincidencia (la ACCIÓN vive en Selección). */
   certificacion?: CalcMuestraCertificacionFacultad | null;
+  /** La selección vigente: alimenta «la selección nueva contra lo aplicado». */
+  seleccion?: CalcMuestraAulasSelection | null;
 }) {
   // Sin encabezado propio: la barra de pestañas ya dice «Coincidencia · criterios
   // y cuentas contra el estudio anterior», y repetirlo debajo con un parrafo mas
@@ -64,6 +69,13 @@ export function SalidasCoincidenciaTab({
           2025 Y cumple sus propias metas. Solo lectura — la acción «+1 aula»
           vive en Selección, donde se decide. */}
       <CertificacionFacultadCard certificacion={certificacion} referencia={referenciaAsistencia} />
+      {/* El rendimiento comparado: lo que la selección nueva ESPERA (con las
+          tasas del año anterior) contra lo que el año anterior LOGRÓ. */}
+      <SeleccionComparadaCard
+        seleccion={seleccion}
+        referencia={referenciaAsistencia}
+        periodo={referencia?.periodo ?? ""}
+      />
       <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
     </section>
   );
