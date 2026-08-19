@@ -394,6 +394,39 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           Van juntos y no en dos paneles porque comparten eje X: el mismo día se
           lee arriba y abajo en la misma vertical. */}
       {acumulado ? (
+        <div className="aulas-serie-bloque">
+          {/* El rotulo dice QUE mide el grafico. Sin el habia que deducirlo del
+              pie, tres bandas mas abajo. */}
+          <p className="aulas-serie-rotulo">
+            <b>Acumulado por día <i>· encuestas conseguidas contra la meta</i></b>
+            {/* Una sola línea de leyenda y sólo con lo que se está dibujando. Con
+                las cuatro explicaciones fijas más el aviso más la sobremuestra, el
+                hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
+            <span className="aulas-serie-leyenda">
+              {acumulado.hayObservadasPorSexo ? null : (
+                <em className="es-ausente">
+                  Sin respuestas atribuidas a un curso-horario no hay serie por sexo:
+                  se señalan sólo las dos cuotas
+                </em>
+              )}
+                {/* La sobremuestra, dicha o declarada ausente. Callarla dejaría la
+                  pantalla igual tanto si el estudio la tiene como si no. */}
+              {sobremuestra && sobremuestra > acumulado.meta ? (
+                <em style={{ "--aulas-serie-color": COLOR_RESULTADO.revision } as React.CSSProperties}>
+                  Sobremuestra {fmt(sobremuestra)}
+                  {acumulado.series.length && acumulado.series.every((se) => se.alcanza) ? " · referencia" : " · referencia, no obligatoria"}
+                </em>
+              ) : (
+                <em className="es-ausente">Sobremuestra no declarada por el estudio</em>
+              )}
+              {acumulado.series.map((se) => (
+                <em key={se.sexo} style={{ "--aulas-serie-color": se.color } as React.CSSProperties}>
+                  {se.sexo} {fmt(Math.round(se.conseguidas))}/{fmt(se.meta)}
+                  {se.meta > 0 ? (se.alcanza ? " ✓" : ` · faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
+                </em>
+              ))}
+            </span>
+          </p>
         <div className="aulas-serie-plot es-acumulado">
           <ul className="aulas-serie-y" aria-hidden="true">
             {[acumulado.tope, Math.round(acumulado.tope / 2), 0].map((m) => <li key={m}>{fmt(m)}</li>)}
@@ -465,40 +498,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             </svg>
           </div>
         </div>
-      ) : null}
-      {acumulado ? (
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
           <span>{acumulado.lectura}</span>
-          {/* Una sola línea de leyenda y sólo con lo que se está dibujando. Con
-              las cuatro explicaciones fijas más el aviso más la sobremuestra, el
-              hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
-          <span className="aulas-serie-leyenda">
-            {acumulado.hayObservadasPorSexo ? null : (
-              <em className="es-ausente">
-                Sin respuestas atribuidas a un curso-horario no hay serie por sexo:
-                se señalan sólo las dos cuotas
-              </em>
-            )}
-            {/* La sobremuestra, dicha o declarada ausente. Callarla dejaría la
-                pantalla igual tanto si el estudio la tiene como si no. */}
-            {sobremuestra && sobremuestra > acumulado.meta ? (
-              <em style={{ "--aulas-serie-color": COLOR_RESULTADO.revision } as React.CSSProperties}>
-                Sobremuestra {fmt(sobremuestra)}
-                {acumulado.series.length && acumulado.series.every((se) => se.alcanza) ? " · referencia" : " · referencia, no obligatoria"}
-              </em>
-            ) : (
-              <em className="es-ausente">Sobremuestra no declarada por el estudio</em>
-            )}
-            {acumulado.series.map((se) => (
-              <em key={se.sexo} style={{ "--aulas-serie-color": se.color } as React.CSSProperties}>
-                {se.sexo} {fmt(Math.round(se.conseguidas))}/{fmt(se.meta)}
-                {se.meta > 0 ? (se.alcanza ? " ✓" : ` · faltan ${fmt(Math.ceil(se.faltan))}`) : ""}
-              </em>
-            ))}
-          </span>
         </p>
+        </div>
       ) : null}
 
+      <div className="aulas-serie-bloque">
+        <p className="aulas-serie-rotulo">
+          <b>Día a día <i>· encuestas por aula, con los elegibles de fondo</i></b>
+        </p>
       <div className="aulas-serie-plot">
         <ul className="aulas-serie-y" aria-hidden="true">
           {[tope, Math.round(tope / 2), 0].map((m) => <li key={m}>{fmt(m)}</li>)}
@@ -580,23 +589,32 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {elegida ? elegida.dias.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
-              const ancho = fechas.length > 1 ? (UTIL / (fechas.length - 1)) * 0.55 : 6;
+              const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
               return (
-                <rect key={`techo-obs-${d.fecha}`}
-                  x={x(i) - ancho / 2} y={y(techo)}
-                  width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
-                  fill={COLOR_RESULTADO.efectiva} opacity="0.13" />
+                <g key={`techo-obs-${d.fecha}`}>
+                  <rect x={x(i) - ancho / 2} y={y(techo)}
+                    width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
+                    fill="var(--pulso-text)" opacity="0.055" />
+                  <line x1={x(i) - ancho / 2} y1={y(techo)} x2={x(i) + ancho / 2} y2={y(techo)}
+                    stroke="var(--pulso-border-strong)" strokeWidth="1.5" opacity="0.9"
+                    vectorEffect="non-scaling-stroke" />
+                </g>
               );
             }) : null}
             {proyectada ? proyectada.dias.map((d, i) => {
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
-              const ancho = fechas.length > 1 ? (UTIL / (fechas.length - 1)) * 0.55 : 6;
+              const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
               return (
-                <rect key={`techo-${d.fecha}`}
-                  x={x(corte + 1 + i) - ancho / 2} y={y(techo)}
-                  width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
-                  fill={COLOR_RESULTADO.pendiente} opacity="0.18" />
+                <g key={`techo-${d.fecha}`}>
+                  <rect x={x(corte + 1 + i) - ancho / 2} y={y(techo)}
+                    width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
+                    fill={COLOR_RESULTADO.pendiente} opacity="0.12" />
+                  <line x1={x(corte + 1 + i) - ancho / 2} y1={y(techo)}
+                    x2={x(corte + 1 + i) + ancho / 2} y2={y(techo)}
+                    stroke={COLOR_RESULTADO.pendiente} strokeWidth="1.5" opacity="0.5"
+                    vectorEffect="non-scaling-stroke" />
+                </g>
               );
             }) : null}
             {/* Lo INFERIDO. Arranca en el último día con parte para que se vea de
@@ -671,6 +689,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           ? <span>{fmt(porVenir.length)} días agendados por delante</span>
           : <span>sin días agendados por delante</span>}
       </p>
+      </div>
 
       {/* Las DOS metas de la facultad, que es lo que decide si se sale a agendar.
           Gonzalo: «cada facultad tiene una meta por hombre y por mujer [...]
