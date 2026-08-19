@@ -565,6 +565,11 @@ mount_calc_muestra <- function(pr) {
       sid <- session_header(req)
       body <- .cm_parse_body(req)
       config <- .cm_merge_criterios_seleccion(body$config %||% body, body)
+      # Un body parcial NO pisa la config vigente: lo ausente hereda, un null
+      # explicito borra. Sin esta fusion, sellar una clave suelta devolvia el
+      # resto de la config a defaults (medido: techo perdido dos veces).
+      vigente <- session_get(sid, required = FALSE)[["calc_muestra_aulas_config"]] %||% list()
+      config <- calc_muestra_aulas_config_fusionar(vigente, config)
       config <- calc_muestra_aulas_normalize_config(config)
       session_set(sid, "calc_muestra_aulas_config", config)
       list(ok = TRUE, config = config, state = .cm_state_payload(sid))
