@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
 
 import type { MonitoreoAulasDashboard } from "../../../../api/monitoreo";
 import { cuotasResumen } from "./cuotasResumen";
@@ -136,5 +136,37 @@ describe("el KPI de cuota", () => {
       quotas_sex_faculty: [{ faculty: "Derecho", sex: "F", target: 300, observed: 300 }],
     }));
     expect(cumplida?.value).toBe("0");
+  });
+});
+
+describe("un puntaje no se escribe con el símbolo de porcentaje", () => {
+  // El tile de Representatividad pintaba «93 %» con la pista «la muestra
+  // efectiva contra la planificada», y se lee como «se consiguió el 93 % de lo
+  // planificado». No es eso: el backend lo llama
+  // `representativity_effective_score` y el propio control lo enseña como
+  // «Puntaje 93.1 de 100». Mide cuánto se DESVÍA la muestra efectiva de la
+  // planificada —0.3 pp de media en el fixture—, y en un corte donde las 3 700
+  // respuestas no cuelgan de ninguna aula del plan, un «93 %» tranquiliza en
+  // falso.
+  const tile = aulasKpis(
+    { validation: [], kpis: { representativity_effective_score: 93.1 } } as never,
+    "calidad" as never,
+  ).find((k) => k.label === "Representatividad");
+
+  test("se escribe «de 100» y sin «%»", () => {
+    expect(tile?.value).toBe("93 de 100");
+    expect(tile?.value).not.toContain("%");
+  });
+
+  test("ni la pista ni el detalle lo llaman porcentaje", () => {
+    expect(`${tile?.pista} ${tile?.detalle}`).not.toContain("%");
+  });
+
+  test("sin dato dice S/D, no «NaN de 100»", () => {
+    const sinDato = aulasKpis(
+      { validation: [], kpis: {} } as never,
+      "calidad" as never,
+    ).find((k) => k.label === "Representatividad");
+    expect(sinDato?.value).toBe("S/D");
   });
 });
