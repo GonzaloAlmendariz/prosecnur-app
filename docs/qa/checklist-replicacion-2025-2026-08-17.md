@@ -3508,3 +3508,34 @@ warning con cifras + superficie visible.
 | EF1 matriz ☑ · EF2 docente único ☑ · EF3 fase 1 ☑ · EF5 medición ☑ · EF6 contrato ☑ | |
 | EF4 | diferido con razón (espera 2ª fuente) |
 | ⛔ Gonzalo: fase 2 · DERECHO 322/347 · techo N · ADR 0079 · PSI · score a/b/c | |
+
+### Los fracasos absolutos 2025 acechan en las cadenas de reemplazo
+
+Gonzalo, textual: «de seguro podemos ver qué es lo que NO funcionó en
+absoluto — a lo que se fue y no hubo casi ningún alumno» — y con pinzas
+para los ganadores («no es 100% seguro que lo que funcionó repita»).
+
+**MEDIDO**: 40 fracasos absolutos 2025 (36 caídas + 4 aplicadas
+desiertas: ≤5 efectivas o <25% asistencia). **35 viven en el marco
+incluido de hoy** (C&I 10 · EGC 10 · DERECHO 6 · CCSS 3 · EGL 3 ·
+EDU/AE/CyA 1). **0 son titulares** — pero **los 35 están en cadenas de
+reemplazo/pool**: el plan B puede activar un aula que ya fracasó.
+
+También respondido: el descuento de alumnos repetidos SÍ está aplicado
+(descuento secuencial ON, aporte_neto auditado por fila, 6.655 netos).
+Y las pinzas sobre el índice quedan aceptadas: la calibración sale de
+las 230 intentadas (muestra seleccionada), por eso sigue REFERENCIAL.
+
+**⛔ PREGUNTA A GONZALO — el destino de los 35 en las cadenas**:
+- (A) **Excluirlos de los reemplazos** (siguen en el marco y pueden
+  salir titulares por azar; nunca como plan B) — el más quirúrgico.
+- (B) **Degradarlos al final de su cadena + aviso visible** («fracasó
+  en 2025: caída/desierta») — conserva el azar, informa al operativo.
+- (C) Excluirlos del marco entero — el más duro; choca con sus propias
+  pinzas (fracaso 2025 ≠ fracaso 2026 garantizado).
+Con su letra: implementación con criterio declarado SOLO en las 8
+facultades donde muerde (VARA 3), test + mutante + re-derivación.
+
+| # | Cola de decisiones (todas con datos) | |
+|---|---|---|
+| Fracasos 2025 en cadenas: A/B/C · fase 2 MOS (pinzas aceptadas: en pausa) · DERECHO 322/347 · techo N · ADR 0079 · PSI · score a/b/c | ⛔ Gonzalo |
