@@ -9958,7 +9958,7 @@ function AcreditacionSourcesWorkbench({
   // se lee el inventario, después se declara.
   if (!isPhoneSourceModel) {
     return (
-      <div className="mon-profile-stack fuentes-resumen-stack">
+      <div className="mon-profile-stack fuentes-resumen-stack is-inventario">
         {sourceStatus}
         <FuentesResumen
           sources={operationalSources}
