@@ -288,10 +288,28 @@ if (ESCALA_2025) {
     # —con razon— las descartaba: la dimension AGENDA se veia sin lo unico que
     # solo ella recoge. Los medios son los observados en el estudio de 2025:
     # Llamada (123) y Correo Electronico (33).
-    o$contact_medium <- c("Llamada", "Correo Electrónico")[[1L + (i %% 2L)]]
+    # El medio y su desenlace, con la relacion MEDIDA en el libro real de 2025
+    # (194 filas): la llamada es mayoritaria —123 contra 31— y agenda mejor,
+    # 80 % contra 65 %, con 2 intentos de mediana contra 3.
+    #
+    # El fixture repartia 50/50 y daba EXACTAMENTE el mismo desenlace a los dos
+    # —13 reemplazadas, 80 agendadas y 5 en reserva cada uno—, asi que la
+    # pregunta «¿que medio agenda mejor?» no tenia respuesta posible: cualquier
+    # vista habria enseñado dos columnas iguales.
+    #
+    # OJO con la media de intentos del libro real: sale 19,65 para el correo
+    # porque la columna tiene FECHAS DE EXCEL filtradas (45909, 23252). Con los
+    # valores absurdos fuera, la mediana es 2 contra 3.
+    o$contact_medium <- if ((i %% 4L) == 0L) "Correo Electrónico" else "Llamada"
     o$contact_date <- format(as.Date("2026-08-03") + (i %% 5L), "%Y-%m-%d")
     # Quien costo mas intentos es a quien hay que mirar: por eso no es constante.
-    o$contact_attempts <- 1L + (i %% 4L)
+    # Intentos segun el medio, con las medianas del real: 2 la llamada, 3 el
+    # correo, y la cola larga que el libro tambien tiene (max 7).
+    o$contact_attempts <- if (identical(o$contact_medium, "Correo Electrónico")) {
+      2L + (i %% 5L)
+    } else {
+      1L + (i %% 3L)
+    }
     if (identical(est, "reemplazada")) {
       o$replacement_reason <- MOTIVOS[[1 + (i %% length(MOTIVOS))]]
       # CUANDO cayo, que es lo que permite medir a que ritmo se consume el

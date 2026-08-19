@@ -258,3 +258,38 @@ rinde 40 encuestas, y una con 20 al 70 % rinde 14».
 **Consecuencia para `VALIDO TOTAL` NO CUMPLE en 149 de 194**: deja de ser una
 alarma. Es lo que el equipo anotó con un corte que él mismo describe como no
 verificado. La pregunta abierta se cierra sola.
+
+---
+
+# P4 medida en el libro real: qué medio agenda mejor
+
+Cruce `MEDIO DE CONTACTO` × `STATUS MUESTRA` sobre las 194 filas de «Aulas
+Agendadas» del libro de 2025.
+
+| Medio | n | Agendadas | Intentos (mediana) | p90 | máx |
+|---|---|---|---|---|---|
+| **Llamada** | 123 | 98 = **80 %** | **2,0** | 4 | 7 |
+| **Correo electrónico** | 31 | 20 = **65 %** | **3,0** | 4 | 7 |
+
+La llamada agenda mejor y con un intento menos de mediana. **Es una preferencia
+leve, no una regla**: el correo agenda dos de cada tres.
+
+## Una trampa del dato, y de las caras
+
+La **media** de intentos del correo sale **19,65**. Es falsa: la columna
+`NÚMERO DE INTENTOS` tiene **fechas de Excel filtradas** —45909, 23252— que
+inflan la media nueve veces. Con los valores absurdos fuera, la mediana es 3.
+
+Creerse el 19,65 llevaría a prohibir el correo; con 2 contra 3 la decisión es
+«prefiere llamar cuando puedas». **La diferencia entre las dos lecturas es una
+decisión operativa distinta**, y la separa una sola línea de filtrado.
+
+De paso: la columna `MEDIO DE CONTACTO` también tiene basura —un `45909.0` y un
+`-`— y la de estado un `45917.0`. Son 16 filas de 194 con algún campo corrido.
+
+## El fixture no podía contestarla
+
+Repartía 50/50 y daba **exactamente el mismo desenlace** a los dos medios: 13
+reemplazadas, 80 agendadas y 5 en reserva cada uno. Cualquier vista habría
+enseñado dos columnas idénticas. Sembrado ahora con la relación medida —llamada
+mayoritaria, mejor tasa y un intento menos—. **Sexta vez esta noche.**
