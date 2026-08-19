@@ -309,6 +309,14 @@
 @media (max-width: 1120px) {
   .rec-editor {
     grid-template-columns: minmax(160px, 210px) minmax(320px, 1fr);
+    /* El inspector deja de ser dueño de su propio scroll (ver abajo) y pasa
+       a fluir a su alto natural en una fila implícita nueva -"auto"-, así
+       que el editor entero puede crecer más alto que la fila de
+       outline+canvas. Quien absorbe ese sobrante ahora es
+       `.rec-tab-panel:has(.rec-editor)` (recopiladores-shell.css, mismo
+       punto de quiebre) — acá basta con declarar la fila 3 y dejar que
+       `overflow: visible` (heredado, sin tocar) deje salir el contenido. */
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
   .rec-inspector {
