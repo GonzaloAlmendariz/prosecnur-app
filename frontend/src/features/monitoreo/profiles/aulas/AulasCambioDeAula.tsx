@@ -25,12 +25,15 @@ export function AulasCambioDeAula({ partes, plan }: {
       <p className="aulas-cambio-aula-lectura">
         {r.cambios.length ? (
           <>
+            {/* «partes» y no «aulas»: el panel cuenta 210 PARTES —filas de la
+                hoja— y el plan tiene 196 aulas. Decir «30 de 210 aulas» metía
+                la tercera cifra del perfil bajo la misma palabra. */}
             <strong>{fmt(r.cambios.length)}</strong> de {fmt(r.comparadas)}{" "}
-            {r.cambios.length === 1 ? "aula se aplicó" : "aulas se aplicaron"} en un salón distinto
+            {r.cambios.length === 1 ? "parte declara" : "partes declaran"} un salón distinto
             del agendado
           </>
         ) : (
-          <>Las {fmt(r.comparadas)} aulas comparables se aplicaron en el salón agendado.</>
+          <>Los {fmt(r.comparadas)} partes comparables declaran el salón agendado.</>
         )}
         {/* Sin salón reconocible se declara: no saber no es lo mismo que
             coincidir, y meterlas en el denominador diría que todo cuadró. */}

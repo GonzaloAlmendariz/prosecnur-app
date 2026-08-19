@@ -830,13 +830,6 @@ function renderAulasView(
           {/* La cadena del parte, SUMADA. Fila a fila no se ve que los
               duplicados pesen más que los rechazos. */}
           <AulasEmbudoDelAula filas={(dashboard.partes_campo ?? []) as MonitoreoRow[]} />
-          {/* Y si el aula fue donde decía. El equipo anota el salón real y el
-              plan trae el agendado, y nadie los cruzaba: un aula aplicada en
-              otro sitio no se sabía. */}
-          <AulasCambioDeAula
-            partes={cuadre.filas as MonitoreoRow[]}
-            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
-          />
           {/* La resta ya viene hecha del motor —el mismo helper que decide el
               descuadre—, así que esta línea y el aviso de Validación no pueden
               discrepar. Es el destino que le faltaba a «Cuadre del parte de
@@ -848,6 +841,16 @@ function renderAulasView(
               menos rechazos y duplicados no dan las efectivas declaradas. Se ven primero.
             </p>
           ) : null}
+          {/* El cambio de aula va DESPUÉS del descuadre, no en medio.
+              Metido entre el embudo y esta frase, partía la narración: el
+              lector iba «5 390 → 4 865 → el equipo declaró 4 863, DOS MENOS» y
+              se cruzaba con «30 aulas en otro salón» antes de leer la frase que
+              explica esos dos. Son dos hechos del mismo parte, pero uno explica
+              al anterior y el otro no. */}
+          <AulasCambioDeAula
+            partes={cuadre.filas as MonitoreoRow[]}
+            plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          />
           <DataTable
             rows={cuadre.filas}
             empty="Todavía no se ha registrado ningún parte de campo."
