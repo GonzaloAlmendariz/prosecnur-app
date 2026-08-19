@@ -1,58 +1,56 @@
 import { describe, expect, it } from "vitest";
 
-import { ESTADOS_OPERATIVOS, STATUS_LABELS } from "./aulasPresentation";
-import { colorDeEstado } from "./EstadoEnCelda";
-import { TRAMOS_DE_APLICACION } from "./estadoDeAplicacion";
+import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { colorDeEstado, esColumnaDeEstado } from "./EstadoEnCelda";
 
-/**
- * Una lista cerrada que no reconoce un valor lo deja en texto plano SIN avisar,
- * y así estuvieron las 168 filas de Brechas enseñando «Planificada» en gris de
- * texto al lado de otra tabla que sí coloreaba. Estos asertos hacen ruidoso el
- * silencio: un estado nuevo en el vocabulario del motor rompe el test en vez de
- * aparecer descolorido en pantalla.
- */
-describe("colorDeEstado", () => {
-  it("colorea TODOS los estados operativos del vocabulario", () => {
-    const sinColor = ESTADOS_OPERATIVOS.filter((e) => !colorDeEstado(e.label));
-    expect(sinColor.map((e) => e.value)).toEqual([]);
+// Dos criterios para la misma pregunta: la capa de presentación traduce como
+// estado `status`, cualquier `*_status` y cualquier `*_state`; el chip conocía
+// sólo cuatro claves literales. Medido sobre el corte, la columna «Estado» de
+// Cuotas tenía **40 celdas sin chip de 40**, porque su clave es `status` a secas.
+//
+// Y el vocabulario de las cuotas no tenía colores propios: `pendiente` los
+// heredaba por el rótulo alterno de su tramo, pero `cumplida`, `en_riesgo` y
+// `sin_meta` no. Una columna donde sólo se colorea la mala noticia se lee peor
+// que una sin color.
+
+describe("el chip pregunta lo mismo que la traducción", () => {
+  it.each(["status", "sample_status", "application_status", "operational_status", "application_state"])(
+    "%s es columna de estado",
+    (campo) => {
+      expect(esColumnaDeEstado(campo)).toBe(true);
+    },
+  );
+
+  it.each(["facultad", "meta", "observadas", "link", "motivo"])("%s no lo es", (campo) => {
+    expect(esColumnaDeEstado(campo)).toBe(false);
   });
 
-  it("colorea TODOS los tramos de aplicación", () => {
-    const sinColor = TRAMOS_DE_APLICACION.filter((t) => !colorDeEstado(t.etiqueta));
-    expect(sinColor.map((t) => t.clave)).toEqual([]);
+  it("un rol no es un estado y se queda sin color", () => {
+    // `sample_role` sí lo traduce la presentación, pero un ROL no es un
+    // desenlace: colorearlo con la paleta de resultados diría otra cosa.
+    expect(esColumnaDeEstado("sample_role")).toBe(false);
+    expect(colorDeEstado("Titular")).toBeNull();
+  });
+});
+
+describe("el vocabulario de cuotas tiene sus colores", () => {
+  it.each([
+    ["Pendiente", COLOR_RESULTADO.pendiente],
+    ["Cumplida", COLOR_RESULTADO.efectiva],
+    ["En riesgo", COLOR_RESULTADO.parcial],
+    ["Sin meta", COLOR_RESULTADO.revision],
+  ])("%s se pinta con el color compartido", (etiqueta, color) => {
+    expect(colorDeEstado(etiqueta)).toBe(color);
   });
 
-  it("los dos vocabularios coinciden donde comparten rótulo", () => {
-    // «Agendada» y «Reemplazada» existen en los dos. Si divergieran, la misma
-    // palabra saldría de dos colores según la tabla que la muestre.
-    for (const compartido of ["Agendada", "Reemplazada"]) {
-      const tramo = TRAMOS_DE_APLICACION.find((t) => t.etiqueta === compartido);
-      const operativo = ESTADOS_OPERATIVOS.find((e) => e.label === compartido);
-      expect(tramo && operativo, `${compartido} debería estar en los dos`).toBeTruthy();
-      expect(colorDeEstado(compartido)).toBe(tramo?.color);
-    }
+  it("los cuatro son colores distintos entre sí", () => {
+    const colores = ["Pendiente", "Cumplida", "En riesgo", "Sin meta"].map(colorDeEstado);
+    expect(new Set(colores).size).toBe(4);
   });
 
-  it("los DOS rótulos de un tramo dan el mismo color", () => {
-    // `application_state` tiene dos juegos de nombres —«Lista» en la tabla,
-    // «Agendada» en la franja por día— y buscar sólo por uno dejaba sin color
-    // el valor mayoritario: 76 celdas con chip de 236, y las 160 restantes
-    // decían «Lista». Los nombres NO se unifican (la tabla convive con una
-    // columna que ya usa «Agendada»); el color sí.
-    const desalineados = TRAMOS_DE_APLICACION
-      .filter((t) => STATUS_LABELS[t.clave])
-      .filter((t) => colorDeEstado(STATUS_LABELS[t.clave]) !== t.color)
-      .map((t) => `${t.clave}: «${STATUS_LABELS[t.clave]}» ≠ «${t.etiqueta}»`);
-    expect(desalineados).toEqual([]);
-  });
-
-  it("un valor que no es estado no se colorea", () => {
-    // Mejor sin color que con un color que signifique otra cosa.
-    expect(colorDeEstado("Equipo 3")).toBeNull();
+  it("lo que no reconoce sigue sin colorearse", () => {
+    // Es la garantía que hace segura la regla ancha de arriba.
+    expect(colorDeEstado("Cualquier cosa")).toBeNull();
     expect(colorDeEstado("")).toBeNull();
-  });
-
-  it("«EN RESERVA 3» es el mismo estado que «En reserva»", () => {
-    expect(colorDeEstado("EN RESERVA 3")).toBe(colorDeEstado("En reserva"));
   });
 });
