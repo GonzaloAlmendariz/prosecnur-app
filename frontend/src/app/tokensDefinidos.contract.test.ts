@@ -79,11 +79,21 @@ function inventario() {
     }
   }
 
-  // Un token puede declararse desde TS con `style={{ "--pulso-x": … }}`.
+  // Un token puede declararse desde TS con `style={{ "--pulso-x": … }}` —y también
+  // USARSE desde TS, que es lo que el barrido no miraba: un `stroke="var(--pulso-x)"`
+  // en el SVG de un gráfico resuelve a `none` y la línea sencillamente no se
+  // dibuja, sin que nada falle. Hoy este tramo no añade ningún huérfano nuevo
+  // (los que usa el producto en TSX ya salían por CSS), y por eso mismo entra
+  // ahora: cierra la puerta antes de que entre el primero.
   for (const archivo of archivos(srcDir, [".ts", ".tsx"])) {
     const fuente = fs.readFileSync(archivo, "utf8");
     for (const [, nombre] of fuente.matchAll(/"(--pulso-[A-Za-z0-9_-]+)"\s*:/g)) {
       definidos.add(nombre);
+    }
+    for (const [, nombre, fallback] of fuente.matchAll(USO)) {
+      if (fallback) continue;
+      const relativo = path.relative(srcDir, archivo);
+      usadosSinFallback.set(nombre, [...(usadosSinFallback.get(nombre) ?? []), relativo]);
     }
   }
 

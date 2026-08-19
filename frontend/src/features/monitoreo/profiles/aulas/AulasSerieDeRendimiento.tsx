@@ -403,6 +403,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 las cuatro explicaciones fijas más el aviso más la sobremuestra, el
                 hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
             <span className="aulas-serie-leyenda">
+              {acumulado.meta > 0 ? (
+                <em className="es-horizontal es-gris">Meta {fmt(acumulado.meta)}</em>
+              ) : null}
               {acumulado.hayObservadasPorSexo ? null : (
                 <em className="es-ausente">
                   Sin respuestas atribuidas a un curso-horario no hay serie por sexo:
@@ -437,7 +440,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               aria-label={acumulado.etiqueta}>
               {[0, Math.round(acumulado.tope / 2), acumulado.tope].map((m) => (
                 <line key={m} x1={MARGEN} y1={acumulado.y(m)} x2={100 - MARGEN} y2={acumulado.y(m)}
-                  stroke="var(--pulso-border-soft)" strokeWidth="1"
+                  stroke="var(--pulso-border)" strokeWidth="1"
                   vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
               ))}
               {/* La SOBREMUESTRA, si el estudio la declara: por encima de la meta
@@ -449,12 +452,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                   stroke={COLOR_RESULTADO.revision} strokeWidth="1" strokeDasharray="2 4"
                   vectorEffect="non-scaling-stroke" opacity="0.7" />
               ) : null}
-              {/* La META, que es contra lo que se lee todo lo demás. */}
+              {/* La META, que es contra lo que se lee todo lo demás. En NEUTRO:
+                  iba en el mismo rosa que la cuota de mujeres y las dos lineas
+                  quedaban indistinguibles diciendo cosas distintas. La meta no es
+                  de ningun sexo. */}
               {acumulado.meta > 0 ? (
                 <line x1={MARGEN} y1={acumulado.y(acumulado.meta)} x2={100 - MARGEN}
                   y2={acumulado.y(acumulado.meta)}
-                  stroke={COLOR_RESULTADO.rechazo} strokeWidth="1.5" strokeDasharray="6 3"
-                  vectorEffect="non-scaling-stroke" opacity="0.85" />
+                  stroke="var(--pulso-text-faint)" strokeWidth="1.5" strokeDasharray="6 3"
+                  vectorEffect="non-scaling-stroke" opacity="0.9" />
               ) : null}
               {porVenir.length ? (
                 <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
@@ -520,7 +526,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               : `Rendimiento diario de ${facultades.length} facultades; media del estudio ${mediaDelEstudio}`}>
             {[0, Math.round(tope / 2), tope].map((m) => (
               <line key={m} x1={MARGEN} y1={y(m)} x2={100 - MARGEN} y2={y(m)}
-                stroke="var(--pulso-border-soft)" strokeWidth="1"
+                stroke="var(--pulso-border)" strokeWidth="1"
                 vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
             ))}
             {/* La media del estudio, siempre visible: es contra lo que se compara

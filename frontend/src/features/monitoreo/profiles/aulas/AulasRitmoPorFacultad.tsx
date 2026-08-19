@@ -70,7 +70,7 @@ export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<Monito
                 <i key={d.fecha} title={`${dm(d.fecha)}: ${fmt(d.efectivas)}`}
                   style={{
                     height: `${d.efectivas ? Math.max(8, (100 * d.efectivas) / tope) : 3}%`,
-                    background: d.efectivas ? COLOR_RESULTADO.efectiva : "var(--pulso-border-soft)",
+                    background: d.efectivas ? COLOR_RESULTADO.efectiva : "var(--pulso-border)",
                   }} />
               ))}
             </span>
