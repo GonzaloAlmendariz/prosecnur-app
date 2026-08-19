@@ -1966,3 +1966,40 @@ La primera medición a 1024×600 devolvió «no hay lista del frente». La direc
 era `consultas/reemplazos`: quedaba una navegación pendiente de un barrido
 anterior. **Comprobar `describir()` contra lo pedido antes de leer** es lo que
 convirtió un falso hallazgo en un dato.
+
+
+## 2026-08-18 — La meta con dos cifras, en la última pestaña sin barrer
+
+`avance/salidas` no había pasado por el barrido porque su superficie es
+`mon-outputs-workbench`, un componente COMPARTIDO que no usa
+`.mon-profile-panel`: la sonda devolvía «0 paneles» y estuvo a punto de leerse
+como vista vacía. Al mirarla, el defecto insignia de la serie seguía vivo ahí.
+
+**«VÁLIDAS 3 700 · meta 4 336»** contra los **3 743** que Avance declara en TRES
+paneles —cumplimiento, ritmo y estratos—.
+
+`corteAulas` sumaba `expected_valid` sobre la agenda quitando el banco. La
+agenda trae **todos los eslabones de cada cadena** y la meta es de un aula por
+cadena —la que está en juego—: una reserva dormida no pide respuestas hasta que
+entra. Es la misma corrección que ya se había hecho en el panel de cumplimiento
+y que aquí faltaba.
+
+**El motor ya publicaba la cifra buena** dentro de `ritmo_diario`, con un
+comentario que dice que viaja ahí «para que la vista no tenga que recomponerla».
+La vista la recomponía igual. Ahora se usa la del motor, y un cero se trata como
+SIN DETERMINAR: un cero se lee como «el estudio no pide nada» y dispara un
+avance sobre un denominador inventado.
+
+### Lo que enseñó la reparación
+
+- **Los tests que fijan el cálculo viejo no se borran: se reescriben al contrato
+  nuevo.** El que decía «el pool de extras no infla la meta» ahora fija que la
+  meta NO se recompone, con una agenda que suma otra cosa a propósito.
+- **Quitar un grupo de geometría no es quitar el contrato.** Al retirar la
+  declaración mal puesta de cinco paneles arranqué también su
+  `data-qa-geometry-contract` y los dejé SIN DECLARAR —C1—. Lo cazó el guard del
+  workbench compacto, que exige que ningún panel se quede sin contrato. El
+  contrato vuelve; el grupo no.
+- **Una superficie compartida se escapa de un barrido escrito para las propias.**
+  `mon-outputs-workbench` y `mon-calidad` son las dos del perfil; la segunda
+  sigue sin barrer con este método.
