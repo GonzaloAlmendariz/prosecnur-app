@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { serieDeRendimiento } from "./serieDeRendimiento";
 
 /**
@@ -36,8 +37,16 @@ const dm = (fecha: string) => {
   return m ? `${m[3]}/${m[2]}` : fecha;
 };
 
-export function AulasSerieDeRendimiento({ partes }: { partes: ReadonlyArray<MonitoreoRow> }) {
+export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [] }: {
+  partes: ReadonlyArray<MonitoreoRow>;
+  agenda?: ReadonlyArray<MonitoreoRow>;
+  cuotas?: ReadonlyArray<MonitoreoRow>;
+}) {
   const modelo = useMemo(() => serieDeRendimiento(partes), [partes]);
+  const proyeccion = useMemo(
+    () => proyeccionPorAgenda(agenda, partes, cuotas),
+    [agenda, partes, cuotas],
+  );
   const [foco, setFoco] = useState("");
 
   if (!modelo.fechas.length || !modelo.facultades.length) {
@@ -49,9 +58,17 @@ export function AulasSerieDeRendimiento({ partes }: { partes: ReadonlyArray<Moni
     );
   }
 
-  const { fechas, facultades, mediaDelEstudio } = modelo;
+  const { fechas: aplicadas, facultades, mediaDelEstudio } = modelo;
   const elegida = facultades.find((f) => f.facultad === foco) ?? null;
   const dibujadas = elegida ? [elegida] : facultades;
+  const proyectada = elegida ? proyeccion.find((p) => p.facultad === elegida.facultad) ?? null : null;
+
+  // Los días de la AGENDA que vienen después del último con parte. Sólo esos: la
+  // inferencia no pasa de donde llega lo agendado, y donde no hay agenda no hay
+  // línea —que es información, no un hueco: significa que no queda nada que
+  // aplicar y hay que salir a agendar—.
+  const porVenir = proyectada ? proyectada.dias.map((d) => d.fecha) : [];
+  const fechas = [...aplicadas, ...porVenir];
 
   // El techo del eje: lo más alto que se llega a dibujar, con un respiro. Se
   // calcula sobre lo que SE VE, no sobre todo el modelo, para que al elegir una
@@ -63,6 +80,7 @@ export function AulasSerieDeRendimiento({ partes }: { partes: ReadonlyArray<Moni
   const tope = Math.max(1, Math.ceil(Math.max(...valores, mediaDelEstudio) / 5) * 5);
   const x = (i: number) => (fechas.length > 1 ? MARGEN + (UTIL * i) / (fechas.length - 1) : 50);
   const y = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
+  const corte = aplicadas.length - 1;
 
   /** Sólo los días en que esa facultad fue a algún aula: un hueco no es un cero. */
   const trazo = (dias: ReadonlyArray<{ porAula: number | null }>) => dias
@@ -151,20 +169,80 @@ export function AulasSerieDeRendimiento({ partes }: { partes: ReadonlyArray<Moni
                 fill="none" stroke={COLOR_RESULTADO.pendiente} strokeWidth="2"
                 strokeDasharray="5 3" vectorEffect="non-scaling-stroke" />
             ) : null}
+            {/* La frontera: a la izquierda lo que pasó, a la derecha lo que se
+                infiere de la agenda. Sin esta raya las dos mitades se leen igual. */}
+            {porVenir.length ? (
+              <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
+                stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
+                vectorEffect="non-scaling-stroke" />
+            ) : null}
+            {/* Lo INFERIDO. Arranca en el último día con parte para que se vea de
+                dónde sale, y sólo llega hasta donde llega la agenda. */}
+            {proyectada && porVenir.length ? (
+              <polyline
+                points={[`${x(corte)},${y(elegida!.esperadoFinal)}`,
+                  ...porVenir.map((_, i) => `${x(corte + 1 + i)},${y(proyectada.esperadoPorAula)}`)].join(" ")}
+                fill="none" stroke={COLOR_RESULTADO.parcial} strokeWidth="2.5"
+                strokeDasharray="6 4" vectorEffect="non-scaling-stroke" />
+            ) : null}
           </svg>
+          {/* Los puntos van en HTML y no como `<circle>`: en un viewBox estirado
+              un círculo sale elipse. Y son los que llevan el hover —«un poquito
+              de hover», dijo—: cada uno dice su fecha, sus aulas, sus encuestas y
+              si eso es observado o inferido. Sólo con una facultad elegida:
+              veinte series de puntos son una nube, no un dato. */}
+          {elegida ? elegida.dias.map((d, i) => (d.porAula == null ? null : (
+            <span key={d.fecha} className="aulas-serie-punto"
+              style={{ left: `${x(i)}%`, top: `${y(d.porAula)}%` }}
+              title={`${dm(d.fecha)} · observado · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"} · ${fmt(d.efectivas)} encuestas · ${fmt(d.porAula)} por aula`} />
+          ))) : null}
+          {proyectada ? proyectada.dias.map((d, i) => (
+            <span key={d.fecha} className="aulas-serie-punto es-inferido"
+              style={{ left: `${x(corte + 1 + i)}%`, top: `${y(proyectada.esperadoPorAula)}%` }}
+              title={`${dm(d.fecha)} · inferido de la agenda · ${fmt(d.aulas)} ${d.aulas === 1 ? "aula agendada" : "aulas agendadas"} · ~${fmt(d.esperadas)} encuestas esperadas`} />
+          )) : null}
         </div>
+      {/* El eje por día, con UNA marca por fecha. Gonzalo: «el eje que es
+          importantísimo, porque yo tengo que saber qué días aplicó». Tres
+          etiquetas en los extremos no contestaban eso. Las etiquetas se alternan
+          cuando hay muchas, pero las marcas están todas. */}
+      <ol className="aulas-serie-dias" aria-hidden="true">
+        {fechas.map((f, i) => (
+          <li key={f} className={i > corte ? "es-agenda" : ""}
+            style={{ left: `${x(i)}%` }}>
+            <i />
+            {fechas.length <= 14 || i % 2 === 0 ? <span>{dm(f)}</span> : null}
+          </li>
+        ))}
+      </ol>
       </div>
 
+      {/* Sin repetir la última fecha: ya está en el eje por día, dos líneas más
+          arriba, y verla dos veces se lee como dos datos distintos. */}
       <p className="aulas-serie-eje">
-        <span>{dm(fechas[0])}</span>
-        <span>{fmt(fechas.length)} días de campo</span>
-        <span>{dm(fechas[fechas.length - 1])}</span>
+        <span>{fmt(aplicadas.length)} días con parte</span>
+        {porVenir.length
+          ? <span>{fmt(porVenir.length)} días agendados por delante</span>
+          : <span>sin días agendados por delante</span>}
       </p>
+
+      {/* Que una facultad no tenga NADA agendado por delante no es un hueco del
+          gráfico: es la noticia. Es el momento en que hay que salir a agendar, y
+          callarlo deja la pantalla igual que si la agenda estuviera llena. */}
+      {elegida && proyectada && !proyectada.aulasAgendadas ? (
+        <p className="aulas-serie-aviso">
+          <strong>{elegida.facultad}</strong> no tiene ninguna aula agendada por delante:
+          sin agenda no hay nada que inferir, y lo que falte de su cuota no va a llegar solo.
+          {proyectada.cuotas.some((c) => c.faltan > 0)
+            ? ` Le faltan ${fmt(proyectada.cuotas.reduce((n, c) => n + c.faltan, 0))} encuestas de cuota.`
+            : ""}
+        </p>
+      ) : null}
 
       <p className="mon-profile-muted aulas-serie-pie">
         {elegida
-          ? "La línea sólida es lo que dejó cada día; la punteada, lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—. La raya gris horizontal es esa media."
-          : "Una línea por facultad, y la raya gris horizontal es la media del estudio. Elige una facultad para ver su esperado."}
+          ? "La línea sólida es lo que dejó cada día; la punteada gris, lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—. La raya horizontal es esa media. Lo ámbar, a la derecha de la línea de corte, es lo que se infiere de las aulas YA AGENDADAS: ni un día más allá de donde llega la agenda."
+          : "Una línea por facultad, y la raya gris horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
     </div>
   );
