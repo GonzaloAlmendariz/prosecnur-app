@@ -1297,8 +1297,14 @@ function renderAulasView(
         <div className="mon-profile-panel-head">
           {/* El ritmo del estudio entero ya existe en Resumen; éste dice QUIÉN
               lo sostiene y quién se paró. «Siempre todo es por facultad». */}
-          <h3>Ritmo día a día de cada facultad</h3>
-          <span>y hacia dónde va</span>
+          {/* «Encuestas por día» y no «ritmo» a secas: el panel de arriba también
+              es día a día y por facultad, y se llamaban casi igual. Éste cuenta
+              PRODUCCIÓN —cuántas encuestas trajo cada día— y el otro RENDIMIENTO
+              —cuántas dejó cada aula—. Son la misma pregunta a dos escalas y
+              conviene decidir si sobra uno; mientras tanto, que al menos se
+              distingan. */}
+          <h3>Encuestas por día de cada facultad</h3>
+          <span>producción diaria, sin dividir entre aulas</span>
         </div>
         <AulasRitmoPorFacultad
           partes={parteDeCampo(
@@ -1319,8 +1325,12 @@ function renderAulasView(
               atribuidas a un curso-horario y sobre este corte hay cero —llegan
               anonimas—, asi que proyectar la serie del parte contra esa meta
               daria una fecha inventada. Las aulas viven en un solo universo. */}
+          {/* La unidad en el subtítulo. Este panel cuenta AULAS y el acumulado
+              del panel de arriba cuenta ENCUESTAS: son dos preguntas distintas
+              —terminar de visitar no es llegar a la cuota— y sin decir la unidad
+              parecían el mismo gráfico dos veces. */}
           <h3>Cuándo se termina de aplicar el plan</h3>
-          <span>al ritmo observado</span>
+          <span>aulas del plan aplicadas, al ritmo observado</span>
         </div>
         <AulasPronosticoDeCierre
           partes={parteDeCampo(
