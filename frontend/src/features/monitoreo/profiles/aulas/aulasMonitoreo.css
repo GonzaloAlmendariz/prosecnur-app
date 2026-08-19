@@ -3388,3 +3388,22 @@
 .mon-profile-page.is-aulas-flow .aulas-cola-quien { display: grid; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
 .mon-profile-page.is-aulas-flow .aulas-cola-como { min-width: 0; color: var(--pulso-text-soft); overflow-wrap: anywhere; }
 .mon-profile-page.is-aulas-flow .aulas-cola-intentos { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* La pestaña Contacto vive dentro del stack de Agenda, que reparte el alto entre
+   dos filas: la cabecera manda y el cuerpo se queda con el resto y lo recorre.
+   Sin esto la seccion quedaba en 54 px con 421 de contenido desbordando sin
+   dueño de scroll. */
+.mon-profile-page.is-aulas-flow .aulas-contacto-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-contacto-cuerpo {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
