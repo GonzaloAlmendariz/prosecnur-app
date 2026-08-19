@@ -4025,3 +4025,24 @@ DER) porque optimizan cosas distintas — P25 dimensiona por el peor
 cuarto de las aulas; el maximin iguala el colchon de esperadas
 promedio. ⛔ Gonzalo elige la vara de reparto: P25-sin-tope (197),
 maximin-190, o fijas actuales.
+
+### CORRECCION (reclamo de Gonzalo, fundado): la vara de dimensionamiento es P25 y yo use la media en dos analisis ad-hoc
+
+Verificado 15/15 contra los datos: **el MOTOR siempre uso el P25
+sellado** — avg_conglomerado del estrato = P25 exacto del marco 2026
+(25,25/34,5/21,75/14,25 con interpolacion) y estadistico_usado=p25 en
+todas las filas. La decision sellada rige la app.
+
+Los analisis MIOS fuera del motor no: (1) el «natural 2026 = 162» del
+dry-run uso min(mediana, media) — **RETIRADO; la cifra canonica sin
+tope es 197 con P25**; (2) el maximin uso esperadas-promedio (concepto
+distinto — igualar colchones — pero debio declararse o hablar P25).
+
+**LECCION**: todo analisis ad-hoc dimensiona con el estadistico SELLADO
+en la decision del estudio, no con el que el analista use por
+costumbre; el propio motor era la referencia y lo tenia bien.
+
+**Hallazgo menor de nomenclatura**: el campo se llama
+promedio_conglomerado/avg_conglomerado pero contiene el estadistico
+sellado (hoy P25) — nombre de una cosa, valor de otra; candidato a
+renombrar (estadistico_conglomerado_valor) en una pasada futura.
