@@ -238,12 +238,14 @@ test_that("con el binding avanzado al id de colector, si sale vacio se cae al ro
   template <- collection_material_field_sheet_template(title_binding = "access.logical_collector_id")
   compiled <- .cfx_compiled(template, collector = "")
   dir <- tempfile("cfx-notitle-"); dir.create(dir)
-  rendered <- collection_material_render_compiled(
-    compiled, file.path(dir, "sin.pdf"), device = "pdf"
-  )
+  pdf_path <- file.path(dir, "sin.pdf")
+  rendered <- collection_material_render_compiled(compiled, pdf_path, device = "pdf")
   expect_true("sheet_title_missing" %in% vapply(
     rendered$warnings, function(w) as.character(w$code %||% ""), character(1)
   ))
+  # El titulo falta, pero el QR sigue siendo el mismo enlace clicable de
+  # siempre: un titulo vacio no debe arrastrarse al link.
+  expect_collection_material_pdf_valid(pdf_path, rendered)
 })
 
 test_that("cada renglon deja una linea real donde escribir, dentro de los margenes", {
@@ -276,13 +278,14 @@ test_that("mas renglones de los que caben se recortan con aviso", {
   rows <- lapply(sprintf("Campo %d", seq_len(11L)), fila)
   compiled <- .cfx_compiled(collection_material_field_sheet_template(rows = rows))
   dir <- tempfile("cfx-over-"); dir.create(dir)
-  rendered <- collection_material_render_compiled(
-    compiled, file.path(dir, "over.pdf"), device = "pdf"
-  )
+  pdf_path <- file.path(dir, "over.pdf")
+  rendered <- collection_material_render_compiled(compiled, pdf_path, device = "pdf")
   hit <- Filter(function(w) identical(w$code, "form_lines_overflow"), rendered$warnings)
   expect_length(hit, 1L)
   expect_identical(hit[[1]]$rows, 11L)
   expect_lt(hit[[1]]$visible_rows, 11L)
+  # El recorte de renglones no debe recortar tambien el QR ni su enlace.
+  expect_collection_material_pdf_valid(pdf_path, rendered)
 })
 
 test_that("una etiqueta que se come su renglon avisa en vez de dibujar una raya inutil", {
@@ -291,12 +294,12 @@ test_that("una etiqueta que se come su renglon avisa en vez de dibujar una raya 
   ))))
   compiled <- .cfx_compiled(collection_material_field_sheet_template(rows = rows))
   dir <- tempfile("cfx-room-"); dir.create(dir)
-  rendered <- collection_material_render_compiled(
-    compiled, file.path(dir, "room.pdf"), device = "pdf"
-  )
+  pdf_path <- file.path(dir, "room.pdf")
+  rendered <- collection_material_render_compiled(compiled, pdf_path, device = "pdf")
   expect_true("form_field_no_room" %in% vapply(
     rendered$warnings, function(w) as.character(w$code %||% ""), character(1)
   ))
+  expect_collection_material_pdf_valid(pdf_path, rendered)
 })
 
 test_that("los cuatro numeros del cuadre no se pisan entre si", {
