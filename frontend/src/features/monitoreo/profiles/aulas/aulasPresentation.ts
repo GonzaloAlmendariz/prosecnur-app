@@ -71,7 +71,10 @@ const FIELD_LABELS: Record<string, string> = {
   last_response_day: "Último día de respuesta",
   non_respondents: "Asistentes que no respondieron",
   attendance_pct: "% Asistencia",
-  quota_pct: "Cuota",
+  // El unico `_pct` del mapa que no llevaba su «%», y ademas pegado a
+  // «Faltantes cuota», que si es un conteo: la cabecera «Cuota» se lee como la
+  // cuota del curso y lo que hay debajo es la parte de ella que ya se consiguio.
+  quota_pct: "% Cuota",
   quota_missing: "Faltantes cuota",
   women_n: "N.º mujeres",
   men_n: "N.º hombres",
@@ -169,7 +172,9 @@ const FIELD_LABELS: Record<string, string> = {
   source: "Fuente",
   observed: "Observadas",
   missing: "Faltantes",
-  progress_pct: "Avance",
+  // Entre META, OBSERVADAS y FALTANTES —los tres conteos— un «Avance» a secas
+  // se lee como uno más. Lleva su «%» como el resto de columnas de porcentaje.
+  progress_pct: "% Avance",
   check: "Control",
   status: "Estado",
   detail: "Detalle",

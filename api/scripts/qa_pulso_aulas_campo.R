@@ -507,6 +507,9 @@ control <- lapply(seq_along(aplicadas), function(i) {
   # que asisten pero no estan en el padron—: es el unico modo de que la rama
   # contraria tambien exista, y ocurre en campo.
   matriculados <- as.numeric(u$eligible_n)
+  # Lo que el plan le pide a este curso. Las dos aulas sin meta declarada la
+  # dejan en NA a proposito: la hoja tambien tiene celdas vacias.
+  cuota_del_plan <- suppressWarnings(as.numeric(u$expected_valid %||% NA))
   # Los asistentes NO se recalculan: los conto el aplicador en el parte de
   # campo y esta hoja los copia. Dos formulas para la misma aula dejaban las
   # dos hojas discrepando en las 114 comparables, que es ruido y no senal.
@@ -552,8 +555,16 @@ control <- lapply(seq_along(aplicadas), function(i) {
     observed_students = asistentes,
     non_respondents = i %% 5,
     attendance_pct = round(asistentes / as.numeric(base$enrolled_total), 3),
-    quota_pct = round(enviadas / as.numeric(u$eligible_n), 3),
-    quota_missing = max(0, as.numeric(u$eligible_n) - enviadas),
+    # La CUOTA es lo que el plan pide de ese curso (`expected_valid`), NO sus
+    # matriculados elegibles. Sembrandola sobre `eligible_n` salia exactamente
+    # la misma division que `sent_vs_population` —que ya es enviadas sobre
+    # matriculados—, y las dos columnas coincidian en las 210 filas: ninguna
+    # sesion podia ver que miden cosas distintas. Es la novena vez en este loop
+    # que el fixture decide lo que se puede ver.
+    quota_pct = if (is.na(cuota_del_plan) || cuota_del_plan <= 0) NA_real_
+                else round(enviadas / cuota_del_plan, 3),
+    quota_missing = if (is.na(cuota_del_plan)) NA_real_
+                    else max(0, cuota_del_plan - enviadas),
     women_n = mujeres, men_n = enviadas - mujeres,
     women_pct = round(mujeres / max(enviadas, 1), 3),
     men_pct = round((enviadas - mujeres) / max(enviadas, 1), 3),
