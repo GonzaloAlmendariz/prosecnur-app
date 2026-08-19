@@ -392,6 +392,8 @@ function columnLabel(column: string) {
     Rechazos: "Rechazo",
     "Sin respuesta plataforma": "Sin respuesta",
     Validas: "Válidas",
+    Tecnica: "Técnica",
+    Telefono: "Teléfono",
     Universo: "Base reportada",
   };
   return labels[column] ?? column.replaceAll("_", " ");
@@ -17212,7 +17214,7 @@ function renderAcreditacionView(
         <section className="mon-profile-panel">
           <div className="mon-profile-panel-head">
             <h3>Ritmo diario</h3>
-            <span>{fmt(dailyRows.length)} dias</span>
+            <span>{fmt(dailyRows.length)} días</span>
           </div>
           <DataTable rows={dailyRows as Array<Record<string, unknown>>} empty="No hay serie diaria preparada." />
         </section>

@@ -80,3 +80,29 @@ describe("un mismo dato se llama igual en todas las ramas", () => {
     expect(usos.length).toBe(2); // el aria-label del aside y su encabezado
   });
 });
+
+describe("una cabecera de columna no pierde la tilde que su gemela sí lleva", () => {
+  // Las filas que arma el frontend usan la CLAVE como encabezado visible
+  // (`columnLabel` sólo remapea unas pocas). Así, la pestaña de seguimiento
+  // mostraba «Teléfono» y la de enlaces «Telefono» para el mismo canal, y
+  // «Tecnica» junto a «Estado» y «Meta» bien escritos.
+  //
+  // La reparación va en `columnLabel` y no en la clave: la clave también puede
+  // llegar del payload, y renombrarla sólo arregla las filas locales.
+  const mapa = fuente.slice(
+    fuente.indexOf("function columnLabel"),
+    fuente.indexOf("\n}", fuente.indexOf("function columnLabel")),
+  );
+
+  test.each([
+    ["Tecnica", "Técnica"],
+    ["Telefono", "Teléfono"],
+    ["Validas", "Válidas"],
+  ])("%s se muestra como %s", (clave, rotulo) => {
+    expect(mapa).toContain(`${clave}: "${rotulo}"`);
+  });
+
+  test("ningún contador de panel escribe «dias» sin tilde", () => {
+    expect(fuente).not.toMatch(/\}\s*dias</);
+  });
+});
