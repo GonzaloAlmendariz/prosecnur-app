@@ -556,11 +556,18 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
           )
         )
       }
-      # La decisión vigente prevalece sobre `aulas_base_fijas` y sobre los
-      # estadísticos legacy que el frontend hubiese materializado antes.
+      # La decisión vigente fija el DIVISOR (estadístico); la fijación de
+      # titulares del usuario (aulas_base_fijas, stepper/+1 de la
+      # certificación) es OTRA decisión registrada y SOBREVIVE al recálculo.
+      # El borrado incondicional que vivía aquí protegía contra las fijas
+      # que los defaults de auditoría materializaban en el frontend — esa
+      # contaminación murió en la fuente (f51a3c1a); borrar ahora mataba la
+      # acción registrada del usuario en cada calcular (medido: fija 9 →
+      # calcular → 0). Un .pulso viejo con semillas ya no las pierde en
+      # silencio: el letrero de fijaciones las MUESTRA y el stepper las
+      # corrige.
       estrato$promedio_conglomerado <- normalized_value
       estrato$mediana_conglomerado <- 0
-      estrato$aulas_base_fijas <- 0L
       estratos[[j]] <- estrato
       audit_rows[[length(audit_rows) + 1L]] <- list(
         estrato = estrato$label,
