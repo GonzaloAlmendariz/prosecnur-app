@@ -6,6 +6,7 @@ import {
   type CollectionStatePayload,
 } from "../../api/recopiladores";
 import { downloadUrl } from "../../api/core";
+import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Download, FileCheck2, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
 import { handoffReadiness } from "./handoffModel";
@@ -49,8 +50,11 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
 
   return (
     <div className="rec-delivery-layout">
-      <section className="rec-handoff-card">
-        <header><Send size={20} /><div><span>Handoff local</span><h2>Deployment → Monitoreo</h2></div></header>
+      <Panel
+        className="rec-handoff-card"
+        eyebrow="Handoff local"
+        title={<><Send size={18} aria-hidden /> Deployment → Monitoreo</>}
+      >
         <div className={`rec-handoff-status${readiness.delivered ? " is-delivered" : readiness.ready ? " is-ready" : " is-blocked"}`}>
           {readiness.delivered ? <CheckCircle2 size={22} /> : <ShieldCheck size={22} />}
           <div><strong>{readiness.delivered ? "Entrega registrada" : readiness.ready ? "Listo para entregar" : "Entrega bloqueada"}</strong><p>{readiness.reason}</p></div>
@@ -67,10 +71,14 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
         </PulsoButton>
         <p className="rec-policy-note">La operación es idempotente: el mismo fingerprint conserva un único recibo y no repite el traspaso.</p>
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
-      </section>
+      </Panel>
 
-      <section className="rec-receipt-card" data-qa-geometry-capacity="owned">
-        <header><FileCheck2 size={20} /><div><span>Recibo estable</span><h2>Manifest de entrega y artefactos</h2></div></header>
+      <Panel
+        className="rec-receipt-card"
+        data-qa-geometry-capacity="owned"
+        eyebrow="Recibo estable"
+        title={<><FileCheck2 size={18} aria-hidden /> Manifest de entrega y artefactos</>}
+      >
         {receipt ? (
           <article className="rec-receipt">
             <strong>{receipt.schema}</strong>
@@ -97,7 +105,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
             </div>
           ) : null}
         </div>
-      </section>
+      </Panel>
     </div>
   );
 }
