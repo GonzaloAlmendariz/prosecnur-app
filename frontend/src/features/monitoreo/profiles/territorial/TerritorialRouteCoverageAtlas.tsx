@@ -126,7 +126,9 @@ export function TerritorialRouteCoverageAtlas({
               <strong>{formatMetric(responseCount)}</strong>
               <em>respuestas Kobo</em>
             </span>
-            <i style={{ "--route-progress": `${progressPct ?? 0}%` } as CSSProperties}>
+            {/* La barra sí lleva techo: un 141 % no cabe. El número de al lado
+                no lo lleva, que es donde el dato importa. */}
+            <i style={{ "--route-progress": `${Math.min(100, progressPct ?? 0)}%` } as CSSProperties}>
               <b />
             </i>
             <small>{progressPct == null ? "Meta de fase por definir" : `${progressPct}% de ${formatMetric(routeMeta)} entrevistas`}</small>
