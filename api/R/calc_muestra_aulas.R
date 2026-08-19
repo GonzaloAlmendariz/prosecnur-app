@@ -1458,6 +1458,12 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     warnings <- c(warnings, "La validacion entre base principal y catalogo curso-horario requiere revision.")
   }
 
+  # EF3 fase 1: el hash se sella ANTES de anotar la efectividad esperada —
+  # las columnas son derivadas y referenciales; moverian la firma en vano e
+  # invalidarian artefactos acreditados (calc_muestra_aulas_efectividad.R).
+  frame_hash_estable <- .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters))
+  aula_frame <- .cm_aulas_efectividad_anotar(aula_frame)
+
   out <- list(
     schema = "calc_muestra_aulas_frame_v1",
     generated_at = .cm_aulas_now_iso(),
@@ -1466,7 +1472,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     # W2: eco estable de los filtros efectivos del criterio 7/8 (frescura del
     # marco en la UI). Ver .cm_aulas_filters_echo.
     filters_echo = .cm_aulas_filters_echo(cfg),
-    frame_hash = .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters)),
+    frame_hash = frame_hash_estable,
     # I11: universo del estudio anterior por facultad, derivado del catalogo
     # con el spec de config (calc_muestra_aulas_universo_referencia.R).
     universo_referencia = calc_muestra_aulas_universo_referencia(catalogo_curso_horario, cfg),
@@ -4272,6 +4278,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
     "teacher_email", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
+    "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
@@ -4896,6 +4903,7 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     "orden", "classroom_id", "label", "course_id",
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
     "teacher_email", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
+    "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "historical_sample_label", "operation_status", "field_status",
     "scheduled_date", "scheduled_time", "applied_date", "applied_time",
