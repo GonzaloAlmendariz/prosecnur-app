@@ -165,6 +165,24 @@ test_that("Kobo existing genera d[] local sobre web form verificado", {
   expect_equal(deployment$capabilities$remote_write, list(observed = FALSE, source = "disabled_v1"))
 })
 
+test_that("el preflight de un target ecoa return_url, no solo prefill_field", {
+  # `.ca_target_ref()` es una whitelist manual: agregar un campo nuevo al
+  # target (aca `return_url`, ver `.ca_preview_deployment()`) y olvidar
+  # sumarlo a esta whitelist lo deja invisible para cualquier UI futura que
+  # lea `inspect_target()$target` en vez de reconstruir el target a mano.
+  adapter <- .collection_adapter_env$collection_adapter_get("kobo_existing_v1")
+  inspected <- adapter$inspect_target(
+    list(),
+    list(
+      asset_uid = "aSurvey", asset_type = "survey", deployment_active = TRUE,
+      base_access_url = "https://ee.example.test/x/opaque-form",
+      prefill_field = "collectorID", return_url = "https://acnur.example.test/gracias"
+    )
+  )
+  expect_equal(inspected$target$prefill_field, "collectorID")
+  expect_equal(inspected$target$return_url, "https://acnur.example.test/gracias")
+})
+
 test_that("sin prefill_field explicito, el campo por defecto es la ruta XPath del asset", {
   # El enlace real que Gonzalo confirmo en produccion usa `d[/<asset_uid>/collectorID]`,
   # no `d[collectorID]`. Con el asset conocido y SIN override, el motor tiene que
