@@ -3392,3 +3392,36 @@ admitido, registrado.
 | EF4 registro del sacrificio (patrón nace en EF2) | ◐ |
 | EF5 techo de aulas | ☐ |
 | EF6 contrato inter-módulos | ☐ |
+
+### EF3 medición — las señales 2025 SÍ predicen efectividad (n=230 intentadas, 194 aplicadas)
+
+**Aplicabilidad** (¿se logra aplicar?, base 84%):
+- tipo_docente: CONTRATADO **87%** vs ORDINARIO-PRINCIPAL **73%** (n 193/37)
+- bloque: regular tarde **89%** vs especial mañana **74%** (n 87/43)
+
+**Rendimiento** (efectivas/elegibles, mediana 0.56) — la señal más fuerte,
+monotónica en tamaño:
+- ≤15: **0.80** · 16–25: **0.69** · 26–35: 0.56 · 36–50: 0.55 · >50: **0.44**
+- asistencia igual de monotónica: 0.92 → 0.62
+- especial noche rinde **0.40** (aplica 86% pero rinde poco)
+- tipo_curso NO calibrable desde 2025 (todo teórico); talleres 2026 sin prior
+
+**La tensión que el índice debe respetar**: las chicas rinden en TASA casi
+el doble que las gigantes, pero aportan menos efectivas ABSOLUTAS — por
+eso el índice es **efectivas_esperadas = elegibles × P(aplicada | docente,
+bloque) × rendimiento_esperado(tamaño, bloque)**, calibrado 2025, y su
+agregado POR FACULTAD contra la cuota es el KPI ex ante de la VARA 0.
+
+**Diseño en dos fases**: (1) columna referencial en el marco + suma por
+facultad vs cuota en Selección — NO cambia el sorteo, muestra la apuesta;
+(2) pesarlo en el sorteo (pool_controlado u objetivo) = decisión de
+Gonzalo, porque cambia π — su VARA 0 lo autoriza en principio («sacrificar
+aleatoriedad por efectividad, admitido internamente») pero el cuánto es
+suyo. Fase 1 primero.
+
+| # | Era EFECTIVIDAD | Estado |
+|---|---|---|
+| EF1 matriz ☑ · EF2 docente único COMPLETO ☑ | `ebf45ff9` `76b4f4d1` `9d9368c7` |
+| EF3 medición ☑ — señal real; fase 1 (columna+KPI referencial) | ☐ SIGUIENTE |
+| EF3 fase 2 (pesar el sorteo) | ⛔ decisión de Gonzalo |
+| EF4 registro (patrón nacido en EF2) ◐ · EF5 techo ☐ · EF6 contrato ☐ | |
