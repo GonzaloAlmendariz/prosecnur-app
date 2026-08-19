@@ -71,7 +71,13 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
     <div className="aulas-cobertura-chart" data-qa-geometry-capacity="owned" data-qa-geometry-member>
       <PlotlyChart
         data={data}
-        height={220}
+        // **Cinco barras en 220 px con 739 de columna muerta al lado.** Se
+        // sube para acercarse al panel vecino: Gonzalo, «ambos elementos
+        // paralelos deben tener un alto equilibrado». No es estirar el marco
+        // dejando hueco —eso ya lo castigo el gate con 380 px de
+        // `capacity-drift`—: es que el contenido USE el alto, que es lo que la
+        // clausula pide. Plotly no crece con su fila, asi que va en la prop.
+        height={360}
         ariaLabel="Cursos-horario por nivel de cobertura de su meta"
         layout={{
           margin: { l: 110, r: 16, t: 8, b: 28 },

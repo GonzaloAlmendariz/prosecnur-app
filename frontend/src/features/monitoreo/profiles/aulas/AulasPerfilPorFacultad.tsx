@@ -49,6 +49,9 @@ export function AulasPerfilPorFacultad({ filas, resumen }: {
         <strong>{fmt(cumplidas)}</strong> con su meta cumplida
         {sinFacultad ? <> · {fmt(sinFacultad)} cursos-horario sin facultad declarada</> : null}
       </p>
+      {/* El envoltorio lleva el scroll; la rejilla conserva su `1fr`, que es lo
+          que iguala las filas. Ponerlo en la propia rejilla las descuadra. */}
+      <div className="aulas-facultades-scroll">
       <ol className="aulas-facultades-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((f) => (
           <li key={f.facultad}>
@@ -98,6 +101,7 @@ export function AulasPerfilPorFacultad({ filas, resumen }: {
           </li>
         ))}
       </ol>
+      </div>
     </div>
   );
 }
