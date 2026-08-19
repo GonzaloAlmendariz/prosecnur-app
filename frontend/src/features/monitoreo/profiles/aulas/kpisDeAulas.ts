@@ -333,14 +333,32 @@ export function aulasKpis(
 
   // Avance: cuánto se recogió, cuántos cursos-horario llegaron a su meta y qué
   // falta —en personas y en cursos-horario—.
-  const estado = estadoDeAplicacion((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[]);
-  const cumplen = estado.estados.find((e) => e.clave === "cerrando")?.aulas ?? 0;
-  const conMeta = ((dashboard?.course_status ?? []) as Array<Record<string, unknown>>)
-    .filter((f) => Number(f.expected_valid ?? 0) > 0).length;
+  // **La cifra sale del motor, no del estado operativo.**
+  //
+  // Este KPI decia «Cumplen 216 · de 267 cursos-horario con meta» mientras el
+  // grafico de cobertura, dos paneles mas abajo y en la misma pantalla, dejaba
+  // «Meta cumplida» en CERO. Las dos eran «correctas» bajo definiciones
+  // distintas de la misma palabra: el KPI contaba el estado operativo
+  // `cerrando`, que el motor define como
+  // `operational_status in (aplicada, cerrada) OR validas >= meta` —un OR, asi
+  // que basta con haber salido a campo—, y el grafico contaba las que de verdad
+  // alcanzaron su `expected_valid`.
+  //
+  // Un rotulo que promete meta tiene que entregar meta. `course_status_cobertura`
+  // ya publica esa cuenta, calculada en el motor sobre TODAS las filas y con el
+  // filtro de validez aplicado, asi que se lee de ahi en vez de recomponerla.
+  const cobertura = (dashboard?.course_status_cobertura ?? []) as Array<{ clave?: unknown; aulas?: unknown }>;
+  const cumplen = Number(cobertura.find((c) => c.clave === "cumplida")?.aulas ?? 0) || 0;
+  // El denominador tambien sale del motor: son las filas con meta, o sea el
+  // total menos las que no la declaran. Contarlo sobre `course_status` lo dejaba
+  // a merced del recorte a 500 filas.
+  const totalDelMotor = Number(dashboard?.course_status_total ?? 0) || 0;
+  const sinMeta = Number(dashboard?.course_status_sin_meta ?? 0) || 0;
+  const conMeta = Math.max(0, totalDelMotor - sinMeta);
   return [
     validasKpi(dashboard),
     {
-      label: "Cumplen",
+      label: "Llegaron a su meta",
       icono: Target,
       value: fmt(cumplen),
       // Un conteo sin su denominador no se puede leer: «0» y «0 de 196» dicen lo

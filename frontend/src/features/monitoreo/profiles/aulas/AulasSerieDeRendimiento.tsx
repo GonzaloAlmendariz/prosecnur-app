@@ -80,6 +80,39 @@ export function diasDelRango(desde: string, hasta: string): string[] {
 }
 
 /** Domingo, que no es día de campo. Se marca en el eje para que el hueco se lea. */
+/** Alto del lienzo del acumulado, en px. Igual que `.aulas-serie-grafico`. */
+const ALTO_DEL_LIENZO = 368;
+/** Alto de una etiqueta de meta más su aire: 11 px de texto y 3 de respiro. */
+const ALTO_DE_LA_META = 14;
+
+/**
+ * Aparta las etiquetas de meta que caerían una encima de otra.
+ *
+ * Cada una se coloca en `top: y(valor)%`, o sea que su posición sale SOLO del
+ * valor. Con el fixture actual —meta de mujeres 2 089 y de hombres 1 654— hay
+ * 7 px entre ellas y no se nota, pero **nada lo impide**: en un estudio con la
+ * cuota repartida mitad y mitad, que es el caso más común, las dos metas son
+ * casi el mismo número y sus etiquetas se montan una sobre otra hasta quedar
+ * ilegibles. Es el mismo choque que los chips de cruce ya resuelven fundiéndose,
+ * en la única capa del gráfico que no lo tenía.
+ *
+ * No se fusionan como aquellos: dos metas del mismo valor siguen siendo dos
+ * cuotas distintas y decir «las dos, 1 870» perdería de cuál es cada línea. Se
+ * separan lo justo, de arriba abajo, conservando el orden por valor para que
+ * cada etiqueta siga al lado de su línea.
+ */
+export function separaLasMetas<T extends { y: number }>(metas: ReadonlyArray<T>): T[] {
+  const minimo = (100 * ALTO_DE_LA_META) / ALTO_DEL_LIENZO;
+  // De arriba abajo: `y` en porcentaje crece hacia abajo, como el `top` del CSS.
+  const orden = [...metas].sort((a, b) => a.y - b.y);
+  let ultima = -Infinity;
+  return orden.map((m) => {
+    const y = Math.max(m.y, ultima + minimo);
+    ultima = y;
+    return { ...m, y };
+  });
+}
+
 export function esDomingo(fecha: string): boolean {
   return new Date(`${fecha}T00:00:00Z`).getUTCDay() === 0;
 }
@@ -830,15 +863,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {pista ? (
               <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
             ) : null}
-            {[
+            {separaLasMetas([
               { clave: "total", valor: acumulado.meta, color: "var(--pulso-text-faint)", que: "Meta" },
               ...acumulado.metasSeñaladas.map((se) => ({
                 clave: se.sexo, valor: se.meta, color: se.color, que: sexSeriesLabel(se.sexo),
               })),
-            ].filter((m) => m.valor > 0).map((m) => (
+            ].filter((m) => m.valor > 0).map((m) => ({ ...m, y: acumulado.y(m.valor) }))).map((m) => (
               <span key={`meta-${m.clave}`} className="aulas-serie-meta"
                 style={{
-                  top: `${acumulado.y(m.valor)}%`,
+                  top: `${m.y}%`,
                   "--aulas-serie-color": m.color,
                 } as React.CSSProperties}>
                 {m.que} <b>{fmt(m.valor)}</b>
