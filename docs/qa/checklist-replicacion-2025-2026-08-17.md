@@ -4046,3 +4046,13 @@ costumbre; el propio motor era la referencia y lo tenia bien.
 promedio_conglomerado/avg_conglomerado pero contiene el estadistico
 sellado (hoy P25) — nombre de una cosa, valor de otra; candidato a
 renombrar (estadistico_conglomerado_valor) en una pasada futura.
+
+### Ciclo N-2026 cerrado: el .pulso vuelve a estar integro
+
+Cadena re-derivada tras la actualizacion de N (comparar 700s →
+seleccionar 30s → simular 470s → guardado): **190 titulares, 15
+facultades, 0 docentes repetidos, 3.086 esperadas** — identico al
+resultado pre-actualizacion (el diseño N-2026 con cuotas proporcionales
+no movio la seleccion: los faculty_targets fijan las aulas). El
+marco2026.pulso guarda ahora marco + diseño N-2026 + comparacion de
+metodos fresca + seleccion + simulacion, todo coherente.
