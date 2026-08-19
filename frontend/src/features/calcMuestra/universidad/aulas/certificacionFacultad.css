@@ -134,3 +134,15 @@
   font-variant-numeric: tabular-nums;
 }
 .cmv2-cert-sexo-ref[data-corto] { color: var(--pulso-warn-fg); }
+
+/* EF3: la esperada CALIBRADA por CH al pie de la esperada por τ — mismo
+   patrón que el cumplimiento 2025 por sexo (D2): otro modelo, etiquetado,
+   nunca en lugar del oficial. Ámbar cuando no llega a la cuota. */
+.cmv2-cert-calibrada {
+  display: block;
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+}
+.cmv2-cert-calibrada[data-corto] { color: var(--pulso-warn-fg); }

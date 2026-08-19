@@ -18,6 +18,7 @@ import type {
   CalcMuestraCertificacionFacultad,
   CalcMuestraReferenciaAsistencia,
 } from "../../../../api/calcMuestra";
+import type { EfectividadCalibradaFacultad } from "./efectividadCalibradaModel";
 import { fmtInt } from "../../sharedCore";
 import "./certificacionFacultad.css";
 
@@ -106,6 +107,7 @@ export function CertificacionFacultadCard({
   certificacion,
   onAgregarAula,
   referencia = null,
+  calibrada = null,
 }: {
   certificacion: CalcMuestraCertificacionFacultad | null;
   /** Acción REGISTRADA: fija los titulares de la facultad en (actuales + 1)
@@ -114,6 +116,10 @@ export function CertificacionFacultadCard({
   onAgregarAula?: (facultad: string, aulasActuales: number) => void;
   /** El estudio anterior, SOLO para el cumplimiento por sexo referencial. */
   referencia?: CalcMuestraReferenciaAsistencia | null;
+  /** EF3: suma por facultad de efectivas_esperadas calibradas por CH
+   *  (efectividadCalibradaModel). OTRO modelo que las «Esperadas» de la fila
+   *  (tau global): se pinta al pie, etiquetado, nunca en su lugar. */
+  calibrada?: Map<string, EfectividadCalibradaFacultad> | null;
 }) {
   if (!certificacion || !certificacion.filas.length) return null;
   const ref2025 = cumplimientoSexo2025(referencia);
@@ -162,7 +168,22 @@ export function CertificacionFacultadCard({
                 <td>{f.cuota != null ? fmtInt(f.cuota) : "—"}</td>
                 <td>{fmtInt(f.aulas_titulares)}</td>
                 <td>{f.elegibles_titulares != null ? fmtInt(f.elegibles_titulares) : "—"}</td>
-                <td>{f.efectivas_esperadas != null ? fmtInt(f.efectivas_esperadas) : "—"}</td>
+                <td>
+                  {f.efectivas_esperadas != null ? fmtInt(f.efectivas_esperadas) : "—"}
+                  {(() => {
+                    const cal = calibrada?.get(String(f.facultad ?? "").trim().toUpperCase());
+                    if (!cal || !cal.conDato) return null;
+                    return (
+                      <small
+                        className="cmv2-cert-calibrada"
+                        data-corto={f.cuota != null && cal.suma < f.cuota ? "true" : undefined}
+                        title={`Calibración 2025 por curso-horario (elegibles × P(aplicada|docente) × rendimiento(tamaño)); referencial, no redimensiona. ${cal.conDato} de ${cal.total} titulares con dato.`}
+                      >
+                        2025/CH {fmtInt(Math.round(cal.suma))}
+                      </small>
+                    );
+                  })()}
+                </td>
                 <td>{f.margen != null ? `${f.margen.toFixed(2).replace(".", ",")}×` : "—"}</td>
                 <CeldaSexo fila={f} sexo="F" ref2025={ref2025.get(claveFac(f.facultad))?.F ?? null} />
                 <CeldaSexo fila={f} sexo="M" ref2025={ref2025.get(claveFac(f.facultad))?.M ?? null} />
