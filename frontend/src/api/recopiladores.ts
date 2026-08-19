@@ -47,6 +47,7 @@ export type CollectionTarget = {
   type?: string | null;
   base_access_url?: string | null;
   prefill_field?: string | null;
+  return_url?: string | null;
   custom_variable?: string | null;
   custom_variables?: string[] | null;
   recipients?: Array<Record<string, unknown>> | null;
