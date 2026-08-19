@@ -24,6 +24,7 @@ import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { AporteTitularesCard } from "./AporteTitularesCard";
 import { DocenteUnicoAviso } from "./DocenteUnicoAviso";
+import { FijasPendientesAviso } from "./FijasPendientesAviso";
 import { efectividadCalibradaPorFacultad } from "./efectividadCalibradaModel";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
@@ -146,6 +147,9 @@ export function AulasSeleccionTab({
 
   return (
     <div className="cmv2-aulas-stack">
+      {/* EF8c: la fijación pendiente se NOMBRA — sin esto, fijar un aula
+          hacía desaparecer la selección sin explicación (click-test). */}
+      <FijasPendientesAviso estratos={model.facultades} aulasPorEstrato={model.aulasPorEstrato} />
       {/* K2 (censo f224af2d): la pestaña contaba dos historias entreveradas y
           la ACCIÓN quedaba enterrada en el bloque 8 de 11. Orden contratado:
           1 estado+acción · 2 el veredicto (certificación) · 3 el porqué del

@@ -169,6 +169,7 @@ export { default as ListPlus } from "lucide-react/dist/esm/icons/list-plus.mjs";
 export { default as ListTree } from "lucide-react/dist/esm/icons/list-tree.mjs";
 export { default as Loader2 } from "lucide-react/dist/esm/icons/loader-circle.mjs";
 export { default as Lock } from "lucide-react/dist/esm/icons/lock.mjs";
+export { default as Pin } from "lucide-react/dist/esm/icons/pin.mjs";
 export { default as Magnet } from "lucide-react/dist/esm/icons/magnet.mjs";
 export { default as Mail } from "lucide-react/dist/esm/icons/mail.mjs";
 export { default as Map } from "lucide-react/dist/esm/icons/map.mjs";
