@@ -237,4 +237,67 @@ todo <- con_link == length(seleccion) && length(compiled$pages) == length(selecc
   libro_ok && registro_ok && cuadre_ok && reemplazo_ok && huerfano_ok && tablero_ok
 say("")
 say("COSTURA COMPLETA: %s", if (todo) "de punta a punta" else "HAY UN ESLABON ROTO")
+
+# --- 13. Variante: sin prefill_field explicito (XPath por defecto) + return_url
+# El default nuevo -ruta XPath completa cuando se conoce el asset_uid- y
+# return_url nunca se probaron en la costura completa, solo en tests
+# unitarios de .collection_access_url(). Misma seleccion, sesion nueva para
+# no pisar la ya persistida arriba.
+sid2 <- session_create()
+session_set(sid2, "project_name", "SIM Aulas 2026 (xpath+returnUrl)")
+session_set(sid2, "estudio", list(nombre = "SIM Aulas 2026", periodo = "Agosto 2026"))
+session_set(sid2, "calc_muestra_aulas_selection", list(selection = seleccion))
+session_set(sid2, "project_dirty", FALSE)
+seeded2 <- collection_state_seed(sid2)
+
+target2 <- list(
+  provider = "kobo",
+  base_access_url = "https://ee.kobotoolbox.org/x/aB3xY9kQ",
+  # SIN prefill_field: el motor decide sola -> ruta XPath completa.
+  asset_type = "survey",
+  deployment_active = TRUE,
+  asset_uid = "aSIM123456789",
+  return_url = "https://pulso.pucp.edu.pe/noticias/enlace"
+)
+adapter2 <- collection_adapter_get("kobo_existing_v1")
+preview2 <- adapter2$preview_deployment(plan = seeded2$plan, target = target2)
+campo_usado <- names(preview2$bindings[[1]]$prefill)
+say("[13] sin prefill_field: campo de personalizacion usado = %s", campo_usado)
+xpath_ok <- identical(campo_usado, "/aSIM123456789/collectorID")
+
+preview2$capability_preflight <- NULL
+put2 <- collection_deployment_put(sid2, preview2, expected_revision = seeded2$state_revision)
+prep2 <- collection_deployment_prepare(sid2, expected_revision = put2$state_revision)
+inst2 <- collection_material_instance_create(sid2, expected_revision = prep2$state_revision)
+ho2 <- collection_handoff(sid2, expected_revision = inst2$state_revision)
+rows2 <- ho2$monitoring_rows
+say("[13] handoff con return_url: %d filas", length(rows2))
+for (r in rows2) say("      %-10s %s", r$operational_code %||% r$classroom_id, r$link %||% "(sin link)")
+returnurl_ok <- length(rows2) > 0L &&
+  all(vapply(rows2, function(r) grepl("returnUrl=", r$link %||% "", fixed = TRUE), logical(1)))
+xpath_en_link_ok <- length(rows2) > 0L &&
+  all(vapply(rows2, function(r) grepl("d%5B/aSIM123456789/collectorID%5D=", r$link %||% "", fixed = TRUE), logical(1)))
+con_link2 <- sum(vapply(rows2, function(r) nzchar(r$link %||% ""), logical(1)))
+
+plan_mon2 <- monitoreo_aulas_normalize_plan(rows2)
+libro2 <- file.path(tempdir(), "sim_libro_aulas_xpath.xlsx")
+invisible(aulas_libro_generar(plan_mon2, libro2))
+vuelta2 <- aulas_libro_importar(libro2)
+libro2_ok <- identical(cod(plan_mon2), cod(vuelta2$plan))
+enlaces_vuelta2 <- sum(vapply(vuelta2$plan, function(r) nzchar(as.character(r$link %||% "")), logical(1)))
+
+say("")
+say("VEREDICTO — variante xpath + returnUrl")
+say("  campo de personalizacion = ruta xpath completa .... %s", xpath_ok)
+say("  enlaces con returnUrl= ............................. %s", returnurl_ok)
+say("  ruta xpath escapada correctamente en el enlace ..... %s", xpath_en_link_ok)
+say("  enlaces personalizados por unidad .................. %s", con_link2 == length(seleccion))
+say("  el libro va y vuelve sin perder nada ............... %s", libro2_ok && enlaces_vuelta2 == length(vuelta2$plan))
+
+todo2 <- xpath_ok && returnurl_ok && xpath_en_link_ok && con_link2 == length(seleccion) &&
+  libro2_ok && enlaces_vuelta2 == length(vuelta2$plan)
+say("")
+say("COSTURA XPATH+RETURNURL: %s", if (todo2) "de punta a punta" else "HAY UN ESLABON ROTO")
+
+todo <- todo && todo2
 if (!todo) quit(status = 1L)
