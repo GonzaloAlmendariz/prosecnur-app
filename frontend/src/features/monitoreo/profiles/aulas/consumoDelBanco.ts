@@ -64,7 +64,10 @@ export function consumoDelBanco(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   const facultades: ConsumoDeFacultad[] = [];
   for (const [facultad, f] of porFacultad) {
     const quedan = colchon.get(facultad)?.libres ?? 0;
-    const ritmo = f.dias.size ? Math.round((10 * f.caidas) / f.dias.size) / 10 : null;
+    // Con UN solo día de caídas no hay ritmo: «1 caída en 1 día» daría «1/día»
+    // y proyectaría el agotamiento del colchón desde una sola observación. Se
+    // declara nulo, igual que la tendencia con menos de cuatro días.
+    const ritmo = f.dias.size >= 2 ? Math.round((10 * f.caidas) / f.dias.size) / 10 : null;
     facultades.push({
       facultad,
       quedan,

@@ -48,7 +48,13 @@ export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<Monito
         · {fmt(fechas.length)} {fechas.length === 1 ? "día" : "días"} de campo,
         de {dm(fechas[0])} a {dm(fechas[fechas.length - 1])}
       </p>
+      {/* Cabecera, como en los demás paneles del perfil: sin ella el «−37,9 %»
+          de la derecha es un número suelto y hay que bajar al pie para saber
+          qué mide. */}
       <ul className="aulas-ritmofac-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <li className="aulas-ritmofac-cabecera" aria-hidden="true">
+          <span>Facultad</span><span>Día a día</span><span>Tendencia</span>
+        </li>
         {facultades.map((f) => (
           <li key={f.facultad}>
             <span className="aulas-ritmofac-nombre" title={f.facultad}>

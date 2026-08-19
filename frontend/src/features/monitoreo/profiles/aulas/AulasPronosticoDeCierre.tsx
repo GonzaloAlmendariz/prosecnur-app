@@ -95,7 +95,10 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
       </svg>
       <p className="aulas-pronostico-eje">
         <span>{dm(p.serie[0].fecha)}</span>
-        <span>hoy · {dm(p.ultimaFecha)}</span>
+        {/* «último con campo», no «hoy»: es la fecha del último parte, que
+            sobre este corte es el 21/08 mientras el corte es del 18. Llamarlo
+            «hoy» convierte un dato en una afirmación falsa sobre el calendario. */}
+        <span>último con campo · {dm(p.ultimaFecha)}</span>
         <span>{sinVariacion ? dm(fin) : dm(tarde)}</span>
       </p>
       {/* Los SUPUESTOS, que es lo que separa una proyección de una promesa.

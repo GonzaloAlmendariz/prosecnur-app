@@ -3407,3 +3407,8 @@
   overflow-y: auto;
   padding-right: 2px;
 }
+
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera {
+  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera > span:nth-child(3) { text-align: right; }
