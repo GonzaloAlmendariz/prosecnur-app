@@ -601,6 +601,12 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
       cfg$sequential_discount,
       calc_muestra_aulas_default_config()$selector$sequential_discount
     ),
+    # EF2/EF5/opcion B — whitelist-only: sin estas entradas el normalizador
+    # del estudio DESPOJABA la decision en cada autosave (mordida 11, medida
+    # con la base 2026 recien llegada: techo y faculty_targets a None).
+    docente_unico = calc_bool(cfg$docente_unico, TRUE),
+    techo_aulas_visitadas = calc_int(cfg$techo_aulas_visitadas, 0L, min = 0L, max = 100000L),
+    faculty_targets = .cm_afijacion_normalize_targets(cfg$faculty_targets),
     pps_weight = calc_num(cfg$pps_weight, 0.25, min = 0, max = 100),
     coverage_weight = calc_num(cfg$coverage_weight, 1, min = 0, max = 100),
     monte_carlo_n = calc_int(cfg$monte_carlo_n, 500L, min = 0L, max = 100000L),
