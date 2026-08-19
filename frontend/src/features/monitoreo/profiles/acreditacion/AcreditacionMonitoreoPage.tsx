@@ -14982,7 +14982,7 @@ function AcreditacionActorProgressCardView({
               <small>
                 {lectura.objetivo === "barrido"
                   ? `${card.meta == null ? "Sin mínimo" : lectura.minimoCubierto ? `Mínimo ${fmt(card.meta)} cubierto` : `Mínimo ${fmt(card.meta)} pendiente`} · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`
-                  : `${countText(lectura.universoPendiente, "caso", "casos")} del universo sin trabajar · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`}
+                  : `${countText(lectura.universoPendiente, "caso", "casos")} del universo sin cubrir · objetivo ${lectura.sugerido ? "sugerido" : "declarado"}`}
               </small>
             </p>
           ) : null}
@@ -16906,15 +16906,21 @@ function AcreditacionAdvanceSummaryWorkbench({
           <strong>{fmt(totals.effective)} efectivas de {fmt(totals.universe)}</strong>
           <p>
             {totals.metas
-              ? `${fmt(totals.metas - totals.brechas)} de ${countText(totals.metas, scopeLabel.toLowerCase(), `${scopeLabel.toLowerCase()}es`)} cubren su mínimo interno · ${countText(Math.max(0, totals.universe - totals.effective), "caso", "casos")} del universo sin trabajar.`
-              : `${fmt(Math.max(0, totals.universe - totals.effective))} casos del universo sin trabajar.`}
+              ? `${fmt(totals.metas - totals.brechas)} de ${countText(totals.metas, scopeLabel.toLowerCase(), `${scopeLabel.toLowerCase()}es`)} cubren su mínimo interno · ${countText(Math.max(0, totals.universe - totals.effective), "caso", "casos")} del universo sin cubrir.`
+              : `${fmt(Math.max(0, totals.universe - totals.effective))} casos del universo sin cubrir.`}
           </p>
         </div>
         <div className="mon-advance-hero-kpis">
           {/* Las DOS lecturas conviven: el minimo es el piso interno con el que
               el estudio se cubre, y la cobertura del universo es lo que el
               cliente suele perseguir. Mostrar solo la primera daba por cerrado
-              un estudio con casos sin trabajar. */}
+              un estudio con casos sin cubrir.
+              «Sin cubrir» y no «sin trabajar»: son universo - efectivas, y 9 de
+              los 331 medidos en acrconta SI se trabajaron (7 parciales y 2
+              rechazos). Tampoco «sin efectiva», que en el modelo telefonico ya
+              nombra otra cosa —barridas sin efectiva, sobre las barridas, no
+              sobre el universo—. «Cubierto» es el verbo que este perfil ya usa
+              para el universo (`Universo cubierto`). */}
           <AcreditacionAdvanceMetric label={`Mínimos ${scopeLabel.toLowerCase()}`} value={totals.metas ? `${fmt(totals.metas - totals.brechas)}/${fmt(totals.metas)}` : "S/M"} hint={totals.brechas ? `${fmt(totals.brechas)} bajo el mínimo` : "todos cubiertos · interno"} tone={totals.brechas ? "target" : "ready"} />
           <AcreditacionAdvanceMetric label="Universo" value={`${fmt(totals.effective)}/${fmt(totals.universe)}`} hint={`${completionPct == null ? "S/D" : pct(completionPct)} cubierto`} tone="ready" />
           <AcreditacionAdvanceMetric
