@@ -3449,3 +3449,30 @@ marco reconstruido (misma config; el frame nuevo cambió el balance).
 | EF3 fase 2 (pesar el sorteo con el índice) | ⛔ decisión de Gonzalo |
 | DERECHO 322 vs cuota 347 bajo calibración — ¿aula más / reponderar? | ⛔ decisión de Gonzalo |
 | EF4 registro ◐ (nació en EF2) · EF5 techo ☐ · EF6 contrato ☐ | |
+
+### EF5 medición — el techo de aulas no existe como concepto en la app
+
+Gonzalo, textual: «la idea operativa para algunos estudios es que no nos
+pasemos de determinadas aulas». Medido: NINGÚN campo de techo en la
+config; el margen/reservas dan sostenibles por facultad pero nada los
+lee como presupuesto de visitas del estudio.
+
+**Los datos para decidir el N**: 2025 visitó 230 aulas desde 170
+titulares (36 caídas). El diseño 2026 con 203 titulares espera, bajo la
+calibración por CH, **31,6 caídas → ~235 visitas** (C&I 6,9 · EGC 4,2 ·
+EGL 3,4 · DERECHO 2,8 las que más).
+
+**⛔ PREGUNTA A GONZALO — con cada respuesta su acción**:
+- ¿Techo operativo de visitas para HSVG2026? Candidatos con dato:
+  **240** (ajustado a lo esperado), **250** (holgura de ~15), o
+  **sin techo** (se declara que este estudio no lo fija).
+- Con su N: campo `techo_aulas_visitadas` en el estudio (resellable),
+  el margen y la simulación lo consumen como PRESUPUESTO (no holgura
+  infinita), y Monitoreo lo hereda como barra de quema en tiempo real
+  (EF6). Sin techo: la superficie lo declara y nada más.
+
+| # | Era EFECTIVIDAD | Estado |
+|---|---|---|
+| EF1 ☑ · EF2 ☑ · EF3 fase 1 ☑ · EF5 medición ☑ | |
+| EF3 fase 2 · DERECHO 322/347 · techo N | ⛔ decisión de Gonzalo |
+| EF4 registro unificado del sacrificio · EF6 contrato inter-módulos | ☐ |
