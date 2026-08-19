@@ -2328,8 +2328,8 @@ de mover nada.
 
 ## 2026-08-19 — L160 · Dos pestañas de la misma sección contestan lo contrario
 
-**Sin reparar todavía. Medido sobre `acnur_acg`, y es el hallazgo de más alcance
-de toda la serie**, porque las dos cifras contestan la única pregunta que decide
+**REPARADO en `7744de9d`.** Medido sobre `acnur_acg`, y es el hallazgo de más
+alcance de toda la serie, porque las dos cifras contestan la única pregunta que decide
 si el campo sigue abierto.
 
 | | `avance/resumen` | `avance/ritmo` |
@@ -2353,3 +2353,26 @@ conjetura aquí sería justo el error que este catálogo existe para no cometer.
 
 Lo que sí queda dicho: **dos superficies del mismo hecho no coinciden y ninguna lo
 declara**, que es la regla (i) del método desde el principio de la serie.
+
+
+### L160, cerrada — y el patrón 17
+
+`buildDailyRows` filtra `row.date`: la serie diaria **sólo acumula lo fechado**.
+Su acumulado no es el del corte y **nunca podrá serlo** —una serie diaria sólo
+puede hablar de días—, así que no se tocó el cálculo: se dice cuántas quedan
+fuera, y las dos pantallas reconcilian a la vista, **975 + 308 = 1 283**.
+
+El rótulo dice «308 válidas del corte quedan fuera de esta serie» y **no** «sin
+fecha»: lo probado es la diferencia entre lo que declara el corte y lo que la
+serie acumula. La causa va en el subtítulo —que además prometía «todo el corte»
+siendo falso—.
+
+17. **Un cero que sale de un campo ausente.** «UMP completas 0» mientras el corte
+    operativo declaraba 147: la serie no trae `new_complete_ump` y el acumulador
+    arranca en cero. **Un 0 por dato ausente no es «ninguna», es «no lo sé»** —y
+    en una pantalla de avance, «ninguna» es una noticia y «no lo sé» es otra.
+
+Es el mismo molde que `8568aac1` en aulas —«Estado de ficha» decía «Por revisar»
+en las 196 sin existir una sola ficha— y que L156 —el contador publicaba un hecho
+que la fila no enseñaba—. Tres veces la misma raíz: **una ausencia presentada como
+un valor**.
