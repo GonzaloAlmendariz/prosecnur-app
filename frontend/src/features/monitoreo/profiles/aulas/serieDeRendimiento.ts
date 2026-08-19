@@ -34,6 +34,25 @@ import { PESO_DEL_PRIOR } from "./rendimientoPorFacultad";
  *
  * **No proyecta hacia adelante.** Esta serie termina en el último día con campo;
  * lo que venga después es pronóstico y tiene su propio contrato.
+ *
+ * ## El supuesto que hay que decir en voz alta
+ *
+ * **El esperado asume que el rendimiento de una facultad no cambia con los
+ * días.** No modela agotamiento: ni el cansancio del equipo ni —lo que más pesa—
+ * que a medida que avanza el campo sea más probable que la gente del aula ya haya
+ * respondido.
+ *
+ * Se midió en el libro real de 2025 (194 aulas con fecha y enviadas, hoja «Base de
+ * control»): ponderando por población, la primera mitad del campo consiguió el
+ * **61,1 %** de los elegibles y la segunda el **55,6 %** —**5,5 puntos menos**—.
+ * Pero **no es monótono**: por semana fue 60,4 · 57,4 · **64,0** · 34,7, y esta
+ * última con cuatro aulas. El promedio simple de las medias diarias daba −12,3 pp,
+ * inflado por días de una o dos aulas.
+ *
+ * O sea: hay una señal débil y no una ley. Meter una pendiente fija sería darle al
+ * modelo una precisión que el dato no sostiene, y por eso **se asume constante y
+ * se declara en la pantalla** en vez de asumirlo en silencio, que es lo peor de
+ * los dos mundos.
  */
 
 export type DiaDeRendimiento = {
