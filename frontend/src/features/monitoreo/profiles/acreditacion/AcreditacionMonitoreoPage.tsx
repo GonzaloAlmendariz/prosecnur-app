@@ -13083,14 +13083,21 @@ function AcreditacionConsultasPanel({
   const [filters, setFilters] = useState<AcreditacionCaseFilters>({ ...EMPTY_CASE_FILTERS });
   const activeCaseFilters = useMemo(() => consultaFiltersForTab(filters, activeTab), [activeTab, filters]);
   const [selectedId, setSelectedId] = useState("");
+  // Las facetas se cuentan sobre las filas DE ESTA PESTAÑA, no sobre el corte
+  // entero. Contándolas sobre `explorerCases`, «Registros en plataforma» ofrecía
+  // «Sin respuesta (322)» —los casos del universo que nunca respondieron— y al
+  // elegirlo la tabla decía «0 filas»: la pestaña no puede mostrarlos, viven en
+  // «Estado de la base». Medido en acrconta: las facetas sumaban 810 (488 de
+  // plataforma + 322 del universo) bajo un encabezado que declara 488.
+  const facetCases = useMemo(() => acreditacionRowsForConsultaTab(explorerCases, activeTab), [activeTab, explorerCases]);
   const filteredCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, activeCaseFilters)), [activeCaseFilters, explorerCases]);
-  const actorFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, actor: "" })), [activeCaseFilters, explorerCases]);
-  const dateFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, date: "" })), [activeCaseFilters, explorerCases]);
-  const channelFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, channel: "" })), [activeCaseFilters, explorerCases]);
-  const sourceFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, source: "" })), [activeCaseFilters, explorerCases]);
-  const collectorFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, collector: "" })), [activeCaseFilters, explorerCases]);
-  const responseFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, response: "" })), [activeCaseFilters, explorerCases]);
-  const crossingFacetCases = useMemo(() => explorerCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, crossing: "" })), [activeCaseFilters, explorerCases]);
+  const actorFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, actor: "" })), [activeCaseFilters, facetCases]);
+  const dateFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, date: "" })), [activeCaseFilters, facetCases]);
+  const channelFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, channel: "" })), [activeCaseFilters, facetCases]);
+  const sourceFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, source: "" })), [activeCaseFilters, facetCases]);
+  const collectorFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, collector: "" })), [activeCaseFilters, facetCases]);
+  const responseFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, response: "" })), [activeCaseFilters, facetCases]);
+  const crossingFacetCases = useMemo(() => facetCases.filter((item) => caseMatchesFilters(item, { ...activeCaseFilters, crossing: "" })), [activeCaseFilters, facetCases]);
   const actorOptions = useMemo(
     () => countCaseOptions(actorFacetCases, (item) => item.actor),
     [actorFacetCases],
@@ -13124,7 +13131,7 @@ function AcreditacionConsultasPanel({
     [crossingFacetCases],
   );
   const modeCases = useMemo(() => acreditacionRowsForConsultaTab(filteredCases, activeTab), [activeTab, filteredCases]);
-  const allModeCases = useMemo(() => acreditacionRowsForConsultaTab(explorerCases, activeTab), [activeTab, explorerCases]);
+  const allModeCases = facetCases;
   const summary = useMemo(() => summarizeInternalCases(modeCases), [modeCases]);
   const allSummary = useMemo(() => summarizeInternalCases(allModeCases), [allModeCases]);
   const selectedCase = modeCases.find((item) => caseIdentity(item) === selectedId) ?? modeCases[0] ?? null;
