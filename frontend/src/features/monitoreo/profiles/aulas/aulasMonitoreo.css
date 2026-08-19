@@ -3308,8 +3308,12 @@
   background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-plot {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px;
 }
+/* El eje por dia va en la SEGUNDA columna de la misma rejilla: asi queda alineado
+ * con el lienzo sin tener que replicar a mano el ancho de las cifras del eje
+ * vertical, que cambia con el numero de digitos. */
+.mon-profile-page.is-aulas-flow .aulas-serie-dias { grid-column: 2; }
 .mon-profile-page.is-aulas-flow .aulas-serie-y {
   display: flex; flex-direction: column; justify-content: space-between;
   margin: 0; padding: 0; list-style: none; text-align: right;
@@ -3320,6 +3324,38 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-eje {
   display: flex; justify-content: space-between; margin: 0;
   color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-punto {
+  position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  transform: translate(-50%, -50%); cursor: help;
+  background: var(--pulso-surface); border: 2px solid #168a55;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-punto.es-inferido { border-color: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-serie-punto:hover { transform: translate(-50%, -50%) scale(1.4); }
+
+/* El eje por dia: una marca por fecha, alineada con el lienzo. */
+.mon-profile-page.is-aulas-flow .aulas-serie-dias {
+  position: relative; height: 26px; margin: 0; padding: 0; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li {
+  position: absolute; top: 0; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-dias i {
+  width: 1px; height: 5px; background: var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda i { background: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-serie-dias span {
+  color: var(--pulso-text-faint); font-size: 9.5px; font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: #b97611; }
+
+.mon-profile-page.is-aulas-flow .aulas-serie-aviso {
+  margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
+  background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
+  color: var(--pulso-text); font-size: 11.5px;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-pie { margin: 2px 0 0; font-size: 11px; }
 
