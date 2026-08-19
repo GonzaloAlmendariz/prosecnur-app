@@ -19,6 +19,7 @@ import { SinDecisionAlumnosChAviso } from "../../calculo/SinDecisionAlumnosChAvi
 import { AulasSeleccionTab } from "../AulasSeleccionTab";
 import { MargenPorFacultadCard } from "../MargenPorFacultadCard";
 import { DocenteUnicoAviso } from "../DocenteUnicoAviso";
+import { efectividadCalibradaPorFacultad } from "../efectividadCalibradaModel";
 import { SexoPorFacultadCard } from "../SexoPorFacultadCard";
 
 /** Cifras reales del proyecto: Letras y C. Humanas requiere 16 y tiene 16. */
@@ -251,5 +252,26 @@ describe("DocenteUnicoAviso (EF2)", () => {
     expect(renderToStaticMarkup(
       <DocenteUnicoAviso registro={{ activo: true, ajustes: [], no_reparables: [] }} />,
     )).toBe("");
+  });
+});
+
+describe("efectividadCalibradaPorFacultad (EF3)", () => {
+  it("suma por facultad y cuenta cuantos titulares traen dato", () => {
+    const mapa = efectividadCalibradaPorFacultad([
+      { faculty: "DERECHO", efectivas_esperadas: 10.5 },
+      { faculty: "DERECHO", efectivas_esperadas: 4.5 },
+      { faculty: "PSICOLOGÍA", efectivas_esperadas: 8 },
+      { faculty: "DERECHO" },
+    ]);
+    expect(mapa).not.toBeNull();
+    expect(mapa?.get("DERECHO")).toEqual({ suma: 15, conDato: 2, total: 3 });
+    expect(mapa?.get("PSICOLOGÍA")?.suma).toBe(8);
+  });
+
+  it("corrida vieja sin la columna devuelve null, nunca ceros inventados", () => {
+    expect(efectividadCalibradaPorFacultad([
+      { faculty: "DERECHO" },
+      { faculty: "PSICOLOGÍA" },
+    ])).toBeNull();
   });
 });

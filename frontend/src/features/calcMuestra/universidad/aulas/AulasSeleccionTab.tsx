@@ -24,6 +24,7 @@ import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { AporteTitularesCard } from "./AporteTitularesCard";
 import { DocenteUnicoAviso } from "./DocenteUnicoAviso";
+import { efectividadCalibradaPorFacultad } from "./efectividadCalibradaModel";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
 import { classroomMetricValue } from "../shared/frame";
@@ -235,7 +236,7 @@ export function AulasSeleccionTab({
       )}
 
       {/* 2 · El veredicto: ¿la selección garantiza la meta, por facultad y sexo? */}
-      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} referencia={referencia ?? null} />
+      <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} referencia={referencia ?? null} calibrada={efectividadCalibradaPorFacultad(m1Rows)} />
 
       {/* EF2 · El registro visible del docente único: qué se intercambió y
           por qué; sin ajustes no pinta nada. */}
