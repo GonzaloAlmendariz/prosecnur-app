@@ -3328,7 +3328,7 @@
    * segun sus propias cifras —«250» arriba, «45» abajo— y los dos lienzos
    * salian de 1262 y 1269 px: el mismo dia NO caia en la misma vertical, que
    * es lo unico que justifica apilarlos. */
-  --aulas-serie-carril: 30px;
+  --aulas-serie-carril: 46px;
   /* El MISMO par de Calculo de muestra. Alli los tokens viven bajo `.cmv2-frame`
    * y aqui no existen, asi que se redeclaran apuntando a las mismas variables
    * base —no a un hex copiado—: si la casa cambia el azul o el rosa, los dos
@@ -3423,23 +3423,48 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-dias { grid-column: 2; }
 .mon-profile-page.is-aulas-flow .aulas-serie-y {
   display: flex; flex-direction: column; justify-content: space-between;
-  margin: 0; padding: 0; list-style: none; text-align: right;
+  margin: 0; padding: 0; list-style: none;
   color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
   font-variant-numeric: tabular-nums;
+}
+/* Cada escalon lleva su MARCA, como el eje de dias. Sin ella el numero flota y
+ * no se sabe a que altura exacta corresponde. */
+.mon-profile-page.is-aulas-flow .aulas-serie-y li {
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+  height: 0; line-height: 1;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-y li i {
+  width: 4px; height: 1px; background: var(--pulso-border-strong); flex: none;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-lienzo { position: relative; min-width: 0; }
 /* Mas alto. Gonzalo: «si este grafico necesita mas tamaño, mas alto, daselo, no
  * tengas problema en cambiar la dimension». Con 220 px y veinte lineas la
  * dispersion entre facultades se aplastaba contra el eje; a 320 se separan. */
-.mon-profile-page.is-aulas-flow .aulas-serie-grafico { width: 100%; height: 320px; overflow: visible; }
+.mon-profile-page.is-aulas-flow .aulas-serie-grafico { width: 100%; height: 368px; overflow: visible; }
 /* El acumulado va arriba y con mas peso: es la pregunta que manda —«si llegamos a
  * la meta»— y el diario de abajo es el detalle. */
-.mon-profile-page.is-aulas-flow .aulas-serie-grafico.es-acumulado { height: 220px; }
+.mon-profile-page.is-aulas-flow .aulas-serie-grafico.es-acumulado { height: 264px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-plot.es-acumulado { margin-bottom: 2px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-eje {
   display: flex; justify-content: space-between; margin: 0;
   color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
   font-variant-numeric: tabular-nums;
+}
+/* Los dos lados del corte, nombrados. La zona teñida dice «aqui pasa algo
+ * distinto»; el rotulo dice QUE, que es lo que faltaba: «el grafico sigue sin
+ * diferenciar el pasado del futuro o lo previsto». */
+.mon-profile-page.is-aulas-flow .aulas-serie-zona {
+  position: absolute; top: 2px; z-index: 2;
+  padding: 1px 6px; border-radius: 999px;
+  font-size: 9.5px; font-weight: 650; letter-spacing: 0.03em;
+  text-transform: uppercase; pointer-events: none; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-zona.es-aplicado {
+  margin-right: 6px; color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-zona.es-agendado {
+  margin-left: 6px; color: #b97611;
+  background: color-mix(in srgb, #b97611 12%, transparent);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
