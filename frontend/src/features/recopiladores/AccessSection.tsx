@@ -165,6 +165,20 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
 
   const changeAdapter = (next: CollectionAdapterId) => {
     setAdapterId(next);
+    // `remoteId`/`baseUrl` etc. son inputs compartidos entre proveedores
+    // (misma variable de estado, distinta etiqueta: "Asset UID" en Kobo,
+    // "Collector ID" en SurveyMonkey) — sin este reseteo, cambiar de
+    // proveedor deja el valor del anterior VISIBLE y VÁLIDO bajo el nuevo,
+    // sin bloqueo ni aviso: se pudo armar un deployment de SurveyMonkey
+    // con la URL base de Kobo todavía puesta, "listo" en las 12 unidades.
+    setBaseUrl("");
+    setRemoteId("");
+    setAssetType("survey");
+    setActive(false);
+    setCustomVariable("");
+    setRecipientJson("[]");
+    setPrefillField("");
+    setReturnUrl("");
     setPreflight(null);
     setPreview(null);
     setError("");
