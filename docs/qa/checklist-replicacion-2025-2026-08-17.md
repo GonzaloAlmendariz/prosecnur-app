@@ -3644,3 +3644,42 @@ la fijación caía donde nadie leía. Ambos apuntan ahora a selectedComp.
 (3) El letrero reescrito en idioma de usuario (qué es fijar, qué
 implica, qué hacer). Vivo: carga sin fantasmas; click → 1 fijación
 real bien contada. 1559/1559.
+
+### ¡LLEGÓ LA BASE 2026! — informe de llegada (gate estrenado con datos reales)
+
+`BBDD2026/`: Alumnos 137.919 filas (29.027 únicos; 2025: 29.090) ·
+Cursos 22.058 filas → **5.269 CH únicos** (2025: 5.263). Headers en
+fila 7 (reporte DTI); claves CLAVECURSO+HORARIO, una fila por sesión.
+
+**EL GATE DETECTÓ (primera corrida real, 4 hallazgos legítimos)**:
+- `facultad_nueva`: CONSORCIO DE UNIVERSIDADES (9 CH) → «EXCLUIDA
+  ENTERA» por whitelist — probablemente correcto (2025 los trató por
+  anclas incompatibles) pero ahora DECLARADO.
+- `session_type_nuevo`: CURSO ELECTIVO FUERA DE LA PUCP (10).
+- `teacher_type_nuevo`: PRE-DOCENTE INSTRUCTOR y JP TC (fuera de la
+  jerarquía declarada).
+- `nivel_nuevo`: EDUCACION 3 (cubierto) · POSGRADO 8 (fuera, pero
+  posgrado ya está excluido).
+- (Y destapó un bug mío: huérfanas falsas por text_key vs slug —
+  reparado con clave canónica + test del caso real.)
+
+**VOLUMETRÍA POR FACULTAD (CH únicos 2026 vs frame 2025)** — cambios
+materiales: **EE. ESTUDIOS ESPECIALES 2→288 (+286!)** — fuera de la
+whitelist de rangos = quedaría EXCLUIDA ENTERA en silencio: ⛔ DECISIÓN
+· GESTIÓN −65 (−35%) · PSICOLOGÍA −49 (−36%) · CCSS −62 · C&I −84 ·
+CONTABLES −16 (−36%) · EGC +62 · EGL +15. La estructura cambió de
+verdad: todo el diseño debe recalcularse sobre 2026.
+
+**Niveles**: EGL sigue TODO nivel 0 (4.212) ✓ · DERECHO trae 11:36 y
+12:3 que su rango {0,0}+{2,10} excluye — consistente con la política
+2025 ✓ · EGC niveles 1–4 como antes ✓.
+
+**Contactabilidad docente**: 1.290 filas sin correo PUCP de 22.058
+(5,8%) — medir sobre CH elegibles al construir.
+
+**⛔ DECISIONES DE LLEGADA para Gonzalo**: (1) EE. ESTUDIOS ESPECIALES
+con 288 CH: ¿entra al marco (declarar rangos) o se excluye a propósito
+(declararlo)? (2) los 2 tipos de docente nuevos: ¿dónde van en la
+jerarquía? (3) CONSORCIO: confirmar exclusión. Con sus letras: cargar
+la base en Datos (Variables), reconstruir marco (el gate correrá
+dentro de la app), re-declarar lo marcado y re-derivar todo.
