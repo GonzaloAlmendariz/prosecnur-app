@@ -569,7 +569,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   if (nzchar(payload)) {
     link_h <- length(link_lines) * (link_size * 1.05 / 72) / geo$page_h
     links[[1]] <- list(
-      page = page_no, url = payload,
+      page = page_no, url = payload, kind = "printed_url",
       x0 = L$x_left, x1 = L$x_right,
       y0 = L$y_link - link_h, y1 = L$y_link + 0.006
     )
@@ -702,6 +702,9 @@ collection_material_render_compiled <- function(compiled, path, device = c("pdf"
     page_count = as.integer(length(selected)),
     page_map = compiled$page_map[selected],
     layout_fingerprint = compiled$layout_fingerprint,
+    # Se devuelven los rectangulos declarados para que el llamante pueda
+    # comprobar que el material salio con enlace y no solo con el QR dibujado.
+    links = links,
     warnings = c(compiled$warnings, draw_warnings)
   )
 }

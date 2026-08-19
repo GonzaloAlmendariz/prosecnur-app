@@ -25,7 +25,16 @@
     form_step = 0.036,
     form_floor = 0.100,
     label_size = 8.6,
-    gap = 0.008
+    gap = 0.008,
+    # El enlace impreso al pie no es decoracion: es el unico camino a la
+    # encuesta cuando el QR no escanea — hoja mal impresa, manchada o doblada.
+    # Una ficha cuyo unico portador del enlace es la imagen del QR es papel
+    # muerto en cuanto esa imagen falla.
+    y_link = 0.092,
+    # 9 pt medidos, no elegidos a ojo: a este cuerpo la URL entera ocupa 0.743
+    # de los 0.850 npc disponibles y no se parte en dos lineas. Es el respaldo
+    # que alguien va a teclear a mano, asi que tiene que leerse.
+    link_size = 9
   )
 }
 
@@ -170,13 +179,38 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
     }
   }
 
+  links <- list()
+  if (nzchar(payload)) {
+    link_lines <- .crf_wrap(payload, width = 108L, max_lines = 2L)
+    .cra_draw_centered(
+      link_lines, L$y_link,
+      grid::gpar(col = tokens$navy, fontsize = L$link_size), lineheight = 1.05
+    )
+    link_h <- length(link_lines) * (L$link_size * 1.05 / 72) / geo$page_h
+    links[[1]] <- list(
+      page = page_no, url = payload, kind = "printed_url",
+      x0 = L$x_left, x1 = L$x_right,
+      y0 = L$y_link - link_h, y1 = L$y_link + 0.006
+    )
+    # El QR tambien se clickea: en un PDF que viaja por WhatsApp o correo nadie
+    # va a apuntar la camara a su propia pantalla.
+    half_h <- (L$qr_side * geo$page_w / geo$page_h) / 2
+    links[[2]] <- list(
+      page = page_no, url = payload, kind = "qr_area",
+      x0 = L$qr_x - L$qr_side / 2, x1 = L$qr_x + L$qr_side / 2,
+      y0 = L$qr_y - half_h, y1 = L$qr_y + half_h
+    )
+  } else {
+    warnings[[length(warnings) + 1L]] <- list(code = "access_missing", page = page_no)
+  }
+
   # El centro del pie lleva el nombre del estudio: el periodo ya no identifica
   # nada util en una hoja que se reparte suelta por aula.
   pulso_pdf_footer(
     page_no, periodo = .crf_txt(footer$value %||% page$project$name, ""),
     tokens = tokens, geo = geo
   )
-  list(warnings = warnings, links = list())
+  list(warnings = warnings, links = links)
 }
 
 #' Renglones por defecto de la ficha de campo, calcados de la hoja en uso.
