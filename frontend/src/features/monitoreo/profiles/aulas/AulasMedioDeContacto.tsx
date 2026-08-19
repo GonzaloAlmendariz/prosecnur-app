@@ -66,9 +66,14 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
               </i>
             </span>
             {/* MEDIANA, y dicho: la media del correo en el libro real sale 19,65
-                por fechas de Excel coladas en la columna. */}
+                por fechas de Excel coladas en la columna.
+                **Sin el «med.»**: la columna de arriba ya se llama «Intentos» y el
+                pie ya dice que es la mediana, así que la abreviatura no añadía
+                unidad —la añadía mal—. En un panel titulado «Medio de contacto»,
+                «2 med.» se lee como **2 medios**, que es la lectura natural y es
+                falsa: son 2 intentos. */}
             <span className="aulas-medio-intentos">
-              {m.intentos == null ? "—" : `${m.intentos.toLocaleString("es-PE")} med.`}
+              {m.intentos == null ? "—" : m.intentos.toLocaleString("es-PE")}
             </span>
           </li>
         ))}

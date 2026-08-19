@@ -85,3 +85,42 @@ describe("el vacío usa lo que el motor ya contó", () => {
     expect(sinPlan).not.toContain("ha sido reemplazado todavía");
   });
 });
+
+describe("«med.» no es una unidad", () => {
+  /**
+   * Tres cursos-horario ya citados, con intentos: eso llena «lo que costó».
+   *
+   * La cita se declara con `sample_status: "agendada"`, no con `scheduled_date`:
+   * `tieneCita()` mira el estado de muestra. Con la fecha sola las tres filas
+   * caían en la cola de pendientes y el panel no pintaba el bloque de esfuerzo.
+   */
+  const citados = [
+    { operational_code: "CH 1", faculty: "Derecho", contact_attempts: 2, sample_status: "agendada" },
+    { operational_code: "CH 2", faculty: "Derecho", contact_attempts: 2, sample_status: "agendada" },
+    { operational_code: "CH 3", faculty: "Derecho", contact_attempts: 3, sample_status: "agendada" },
+  ] as unknown as MonitoreoAulasPlanRow[];
+
+  it("la cola dice «intentos» y declara que es la mediana", () => {
+    // Decía «2 med.», y en un perfil cuyo panel vecino se llama «Medio de
+    // contacto» eso se lee como **2 medios**: la lectura natural es la falsa.
+    // Y aquí no hay cabecera de columna que declare la unidad.
+    const html = renderToStaticMarkup(<AulasColaDeContacto filas={citados} />);
+    expect(html).not.toContain("med.");
+    expect(html).toContain("intentos");
+    expect(html).toContain("mediana de intentos");
+  });
+
+  it("medio de contacto no repite la unidad: su columna ya se llama «Intentos»", () => {
+    const html = renderToStaticMarkup(
+      <AulasMedioDeContacto filas={[
+        { operational_code: "CH 1", faculty: "Derecho", contact_medium: "llamada",
+          contact_attempts: 2, sample_status: "agendada" },
+        { operational_code: "CH 2", faculty: "Derecho", contact_medium: "llamada",
+          contact_attempts: 4, sample_status: "agendada" },
+      ] as unknown as MonitoreoAulasPlanRow[]} />);
+    expect(html).not.toContain("med.");
+    // La unidad sigue declarada donde toca: la cabecera y el pie.
+    expect(html).toContain("<span>Intentos</span>");
+    expect(html).toContain("<strong>mediana</strong>");
+  });
+});
