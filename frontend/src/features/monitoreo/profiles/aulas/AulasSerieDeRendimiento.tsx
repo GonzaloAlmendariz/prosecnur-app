@@ -98,8 +98,17 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   const valores = dibujadas.flatMap((f) => [
     ...f.dias.map((d) => d.porAula ?? 0),
     ...(elegida ? f.dias.map((d) => d.esperado) : []),
+    // **Las barras cuentan para el techo del eje.** Sin ellas el `tope` salía de
+    // las líneas y las barras se dibujaban por encima del área útil: `y` daba
+    // 0.93 con el margen en 4, o sea el rectángulo empezaba fuera del gráfico y
+    // se veía cortado contra el borde del panel. Un elemento que no cabe en su
+    // eje no es un elemento mal pintado: es un eje mal calculado.
+    ...(elegida ? f.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0)) : []),
   ]);
-  const tope = Math.max(1, Math.ceil(Math.max(...valores, mediaDelEstudio) / 5) * 5);
+  const techosDeAgenda = proyectada
+    ? proyectada.dias.map((d) => (d.aulas ? d.elegibles / d.aulas : 0))
+    : [];
+  const tope = Math.max(1, Math.ceil(Math.max(...valores, ...techosDeAgenda, mediaDelEstudio) / 5) * 5);
   const x = (i: number) => (fechas.length > 1 ? MARGEN + (UTIL * i) / (fechas.length - 1) : 50);
   const y = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
   const corte = aplicadas.length - 1;
@@ -164,7 +173,15 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         return [...porSexo].map(([sexo, v]) => ({ sexo, ...v }));
       })();
 
-  const acumulado = (() => {
+  const acumulado = ((): null | {
+    tope: number; meta: number; y: (v: number) => number; observado: string;
+    inferido: string; lectura: string;
+    series: Array<{ sexo: string; color: string; meta: number; conseguidas: number; faltan: number; alcanza: boolean; obs: string; inf: string }>;
+    repartoObservado: boolean;
+    metasSeñaladas: Array<{ sexo: string; color: string; meta: number; observadas: number }>;
+    hayObservadasPorSexo: boolean;
+    etiqueta: string;
+  } => {
     const observadas = elegida
       ? elegida.dias.map((d) => d.efectivasAcumuladas)
       : aplicadas.map((_, i) => facultades.reduce((n, f) => n + (f.dias[i]?.efectivasAcumuladas ?? 0), 0));
@@ -228,6 +245,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         };
       });
     const repartoObservado = baseSexo > 0;
+    // Sin nada atribuido, el acumulado no tiene nada que comparar con la cuota.
+    if (!hayObservadasPorSexo && metaSexo > 0) return null;
     // Nunca un agregado sin su desglose: «faltan 232» no dice a quién hay que ir
     // a buscar. Se acompaña siempre del reparto por sexo.
     const desglose = (total: number) => cuotasVisibles.length
@@ -320,6 +339,21 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         <button type="button" aria-label="Facultad siguiente" onClick={() => mover(1)}>›</button>
       </div>
 
+      {/* Cuando la cuota no tiene con qué medirse, el acumulado NO se dibuja.
+          Dejarlo pintaba la línea gris del parte —228— cruzando por encima de una
+          cuota de 196 que se mide sobre otra cosa: visualmente decía «llegamos»
+          mientras el texto decía «0 de 196». Es la misma contradicción de fuentes
+          de antes, reaparecida en forma de dibujo, y un gráfico que se contradice
+          con su propio pie es peor que no estar. */}
+      {!acumulado && cuotasVisibles.some((c) => c.meta > 0) ? (
+        <p className="aulas-serie-aviso">
+          Todavía no se puede dibujar el avance contra la cuota: ninguna respuesta
+          está atribuida a un curso-horario, así que la cuota va en cero mientras el
+          parte declara {fmt(Math.round(elegida?.efectivas ?? facultades.reduce((n, f) => n + f.efectivas, 0)))} encuestas.
+          Son dos cifras de fuentes distintas y superponerlas diría que se llegó.
+        </p>
+      ) : null}
+
       {/* EL ACUMULADO, arriba y con más peso. Gonzalo: «lo que nos importa es si
           llegamos a la meta y cuánto estamos avanzando [...] sobre todo, cómo
           vamos a seguir, y a este ritmo, ¿cuándo llegamos?».
@@ -397,21 +431,16 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       {acumulado ? (
         <p className="aulas-serie-eje aulas-serie-lectura-acumulado">
           <span>{acumulado.lectura}</span>
-          {/* Qué es cada trazo. Sin esto el gráfico tiene seis líneas y ninguna
-              explicación: «no entiendo el significado de cada línea». */}
-          <span className="aulas-serie-leyenda es-trazos">
-            <em className="es-solido">línea sólida: conseguido</em>
-            <em className="es-punteado">punteada: lo que se infiere de la agenda</em>
-            <em className="es-horizontal">horizontal: la cuota de ese sexo</em>
-            <em className="es-gris">gris: total del parte, sin repartir por sexo</em>
-          </span>
+          {/* Una sola línea de leyenda y sólo con lo que se está dibujando. Con
+              las cuatro explicaciones fijas más el aviso más la sobremuestra, el
+              hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
           <span className="aulas-serie-leyenda">
-            {!acumulado.hayObservadasPorSexo ? (
+            {acumulado.hayObservadasPorSexo ? null : (
               <em className="es-ausente">
-                Ninguna respuesta está atribuida todavía a un curso-horario, así que
-                no hay serie por sexo: sólo se señalan las dos cuotas
+                Sin respuestas atribuidas a un curso-horario no hay serie por sexo:
+                se señalan sólo las dos cuotas
               </em>
-            ) : null}
+            )}
             {/* La sobremuestra, dicha o declarada ausente. Callarla dejaría la
                 pantalla igual tanto si el estudio la tiene como si no. */}
             {sobremuestra && sobremuestra > acumulado.meta ? (
@@ -663,6 +692,14 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
           {proyectada.cuotas.some((c) => c.faltan > 0)
             ? ` Le faltan ${fmt(proyectada.cuotas.reduce((n, c) => n + c.faltan, 0))} encuestas de cuota.`
             : ""}
+        </p>
+      ) : null}
+
+      {acumulado ? (
+        <p className="mon-profile-muted aulas-serie-pie">
+          Arriba, el acumulado contra la meta: <strong>sólido</strong> lo conseguido,
+          <strong> punteado</strong> lo que se infiere de las aulas ya agendadas, y las
+          horizontales son las cuotas de cada sexo.
         </p>
       ) : null}
 
