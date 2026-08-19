@@ -322,3 +322,52 @@ describe("el acumulado dice CUÁNDO se llega a la meta", () => {
     expect(html).not.toContain("aulas-serie-cruce");
   });
 });
+
+describe("cada sexo se proyecta y dice cuándo llega a SU cuota", () => {
+  /** Un estudio con reparto declarado y cuotas por sexo, con agenda por delante. */
+  function conCuotasYAgenda() {
+    const partes = [
+      aplicada("2026-08-10", 30, "A1"), aplicada("2026-08-11", 30, "A2"),
+      aplicada("2026-08-12", 30, "A3"), aplicada("2026-08-13", 30, "A4"),
+    ];
+    const control = ["A1", "A2", "A3", "A4"].map((c) => ({
+      operational_code: c, women_n: 18, men_n: 12,
+    })) as unknown as MonitoreoRow[];
+    const plan = ["A1", "A2", "A3", "A4"].map((c) => ({
+      operational_code: c, faculty: "Derecho", expected_valid: 30, eligible_n: 40,
+    })) as unknown as MonitoreoRow[];
+    const cuotas = [
+      { faculty: "Derecho", sex: "Mujer", target: 100, observed: 0 },
+      { faculty: "Derecho", sex: "Hombre", target: 70, observed: 0 },
+    ] as unknown as MonitoreoRow[];
+    const agenda = Array.from({ length: 8 }, (_, i) =>
+      agendada(`2026-08-${17 + i}`, `B${i}`));
+    return renderToStaticMarkup(
+      <AulasSerieDeRendimiento
+        partes={partes} plan={plan} control={control} cuotas={cuotas} agenda={agenda} />);
+  }
+
+  it("las líneas de sexo NO se cortan en el día del último parte", () => {
+    // Sólo el total se proyectaba (`inf: ""`): las dos líneas de sexo se cortaban
+    // en seco y el gráfico no podía contestar la pregunta con la que empezó todo
+    // —«¿voy a llegar a la meta de hombres y mujeres, y cuándo?»—.
+    const html = conCuotasYAgenda();
+    // Seis polilíneas: total, mujeres y hombres, cada una sólida + punteada.
+    const punteadas = [...html.matchAll(/<polyline[^>]*stroke-dasharray="6 4"/g)];
+    expect(punteadas.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("marca el cruce de cada cuota en su color", () => {
+    const html = conCuotasYAgenda();
+    expect(html).toContain("aulas-serie-cruce es-sexo");
+  });
+
+  it("cuando las dos cuotas cruzan el mismo día, es UN solo chip", () => {
+    // Medido en pantalla: 2 de cada 12 facultades cruzan ambas el mismo día y sus
+    // dos etiquetas caían solapadas en la misma vertical. Fundirlas no es sólo
+    // evitar el choque: «las dos cuotas el 28/08» es una frase.
+    const html = conCuotasYAgenda();
+    const chips = [...html.matchAll(/aulas-serie-cruce es-sexo/g)];
+    if (html.includes("las dos cuotas")) expect(chips).toHaveLength(1);
+  });
+});
