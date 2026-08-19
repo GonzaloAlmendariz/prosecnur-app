@@ -12,6 +12,7 @@ import {
   type CollectionStatePayload,
   type CollectionTarget,
 } from "../../api/recopiladores";
+import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Eye, Link2, Loader2, Save, ShieldCheck } from "../../vendor/lucide-react";
 import {
@@ -188,8 +189,11 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
 
   return (
     <div className="rec-access-layout">
-      <aside className="rec-target-panel">
-        <header><Link2 size={18} /><div><span>Adapter</span><h2>Target existente</h2></div></header>
+      <Panel
+        className="rec-target-panel"
+        eyebrow="Adapter"
+        title={<><Link2 size={18} aria-hidden /> Target existente</>}
+      >
         <span className="rec-field-group-heading">Conexión</span>
         <label>Tipo de acceso
           <select value={adapterId} onChange={(event) => changeAdapter(event.target.value as CollectionAdapterId)}>
@@ -254,12 +258,22 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
           </PulsoButton>
         </div>
         <p className="rec-policy-note"><ShieldCheck size={13} /> remote_write está unavailable / disabled_v1. Esta pantalla no crea ni modifica recursos del proveedor.</p>
-      </aside>
+      </Panel>
 
-      <section className="rec-access-result" data-qa-geometry-capacity="owned">
+      <Panel
+        className="rec-access-result"
+        data-qa-geometry-capacity="owned"
+        eyebrow={activeTab === "canales" ? "Capabilities observadas" : "Vinculación"}
+        title={activeTab === "canales" ? "Preflight del target" : "Unidad ↔ acceso"}
+        actions={activeTab === "canales" ? undefined : (
+          <div className="rec-result-actions">
+            <PulsoButton variant="secondary" size="sm" onClick={() => { void save(); }} disabled={!deploymentFromPreview(preview) || Boolean(busy)}><Save size={14} /> Guardar borrador</PulsoButton>
+            <PulsoButton variant="primary" size="sm" onClick={() => { void prepare(); }} disabled={!candidate || blocked || Boolean(busy)}><CheckCircle2 size={14} /> Preparar</PulsoButton>
+          </div>
+        )}
+      >
         {activeTab === "canales" ? (
           <>
-            <header><div><span>Capabilities observadas</span><h2>Preflight del target</h2></div></header>
             {preflight ? (
               <div className="rec-capability-grid" data-qa-geometry-group="recopiladores/capabilities" data-qa-geometry-contract="equal">
                 {Object.entries(preflight.capabilities).map(([name, capability]) => (
@@ -274,12 +288,6 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
           </>
         ) : (
           <>
-            <header><div><span>Vinculación</span><h2>Unidad ↔ acceso</h2></div>
-              <div className="rec-result-actions">
-                <PulsoButton variant="secondary" size="sm" onClick={() => { void save(); }} disabled={!deploymentFromPreview(preview) || Boolean(busy)}><Save size={14} /> Guardar borrador</PulsoButton>
-                <PulsoButton variant="primary" size="sm" onClick={() => { void prepare(); }} disabled={!candidate || blocked || Boolean(busy)}><CheckCircle2 size={14} /> Preparar</PulsoButton>
-              </div>
-            </header>
             {candidate?.bindings.length ? (
               <div className="rec-table-scroll">
                 <table><thead><tr><th>Unidad</th><th>Tipo</th><th>Identidad lógica</th><th>Estado</th></tr></thead>
@@ -299,7 +307,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
           </div>
         ) : null}
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
-      </section>
+      </Panel>
     </div>
   );
 }
