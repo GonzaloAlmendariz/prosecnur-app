@@ -23,6 +23,7 @@ import { EmbudoComparadoFacultades } from "../salidas/EmbudoComparadoFacultades"
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
 import { SeleccionAulasVisual } from "../../didactica/SeleccionAulasVisual";
 import { AporteTitularesCard } from "./AporteTitularesCard";
+import { DocenteUnicoAviso } from "./DocenteUnicoAviso";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
 import { classroomMetricValue } from "../shared/frame";
@@ -235,6 +236,10 @@ export function AulasSeleccionTab({
 
       {/* 2 · El veredicto: ¿la selección garantiza la meta, por facultad y sexo? */}
       <CertificacionFacultadCard certificacion={certificacion} onAgregarAula={onAgregarAula} referencia={referencia ?? null} />
+
+      {/* EF2 · El registro visible del docente único: qué se intercambió y
+          por qué; sin ajustes no pinta nada. */}
+      <DocenteUnicoAviso registro={selection?.diagnostics?.docente_unico} />
 
       {/* 3 · El porqué del pedido: cuántas aulas hay y de dónde sale cada titular. */}
       <MargenPorFacultadCard filas={margenFilas} />

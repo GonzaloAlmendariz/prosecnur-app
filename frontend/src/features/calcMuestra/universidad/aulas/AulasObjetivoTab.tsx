@@ -278,6 +278,21 @@ export function AulasObjetivoTab({
             <em>Recomendado cuando la selección puede sesgarse hacia cursos grandes.</em>
           </span>
         </label>
+        <label className="cmv2-classroom-toggle">
+          <input
+            type="checkbox"
+            checked={config.docente_unico !== false}
+            onChange={(e) => updateConfig({ docente_unico: e.currentTarget.checked })}
+          />
+          <span>
+            <strong>Docente único entre titulares</strong>
+            {/* EF2 · «no molestar al docente»: un docente contactado dos veces
+                puede negarse a la segunda, y la selección no tiene vuelta
+                atrás. El ajuste es post-sorteo, en la misma celda, y queda
+                registrado en la selección (sacrificio declarado). */}
+            <em>Si un docente dicta dos cursos-horario sorteados, uno se intercambia por el mejor candidato de su misma celda; cada ajuste queda registrado.</em>
+          </span>
+        </label>
         {config.usar_grupos_tamano && (
           <div className="cmv2-classroom-groups" aria-label="Grupos de tamaño de curso-horario">
             {config.grupos_tamano.map((group) => (

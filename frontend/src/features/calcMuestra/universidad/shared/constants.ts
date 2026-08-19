@@ -184,6 +184,11 @@ export const DEFAULT_UNIVERSITY_AULAS_CONFIG: CalcMuestraWorkspaceAulasConfig = 
   // nace ON; el valor solo surte efecto al ejecutar una selección NUEVA y
   // nunca reescribe una ya generada. FALSE explícito conserva históricos.
   sequential_discount: true,
+  // EF2: un docente no se selecciona repetido entre titulares (Gonzalo,
+  // textual: «no molestar al docente»). Medido antes de encender: 8 repetidos
+  // en 203 titulares y CERO estratos ahogados. La reparación es post-sorteo,
+  // determinista y registrada; FALSE explícito conserva corridas históricas.
+  docente_unico: true,
   pps_weight: 0.25,
   coverage_weight: 1,
   monte_carlo_n: 500,
