@@ -27,6 +27,7 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
  */
 
 export type RendimientoDeFacultad = {
+  /** El valor de la clave por la que se agrupó: facultad, aplicador o franja. */
   facultad: string;
   /** Aulas de esa facultad con parte de campo llenado. */
   aulas: number;
@@ -51,14 +52,51 @@ function numero(valor: unknown): number {
 }
 
 /**
+ * Las tres FRANJAS de aplicación, tal como las escribe el libro del operativo en
+ * su hoja «planilla». No se inventan tramos: son las del equipo, y usar otras
+ * haría que la app y su Excel hablaran de horarios distintos.
+ *
+ * Lo que caiga fuera de 7:00–22:00 se declara aparte en vez de forzarlo a una
+ * franja: un aula aplicada a las 6 de la mañana es un dato raro que hay que ver,
+ * no un caso de «mañana temprano».
+ */
+export const FRANJAS_DE_APLICACION = [
+  { clave: "manana", etiqueta: "7:00 – 9:00", hasta: 9 * 60 },
+  { clave: "dia", etiqueta: "9:01 – 19:00", hasta: 19 * 60 },
+  { clave: "noche", etiqueta: "19:01 – 22:00", hasta: 22 * 60 },
+] as const;
+
+/** «14:30» → 870. Devuelve `null` si no hay hora reconocible. */
+function minutos(valor: unknown): number | null {
+  const m = texto(valor).match(/(\d{1,2})[:.](\d{2})/);
+  if (!m) return null;
+  const h = Number(m[1]); const mi = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(mi) || h > 23 || mi > 59) return null;
+  return h * 60 + mi;
+}
+
+/** La franja del libro a la que pertenece una hora de aplicación. */
+export function franjaDeAplicacion(valor: unknown): string {
+  const t = minutos(valor);
+  if (t == null) return "Sin hora";
+  if (t < 7 * 60) return "Fuera de franja";
+  for (const f of FRANJAS_DE_APLICACION) if (t <= f.hasta) return f.etiqueta;
+  return "Fuera de franja";
+}
+
+/**
  * @param partes filas del parte de campo YA con su facultad —las que devuelve
  *   `parteDeCampo`—, para no repetir aquí la unión por `operational_code` y
  *   arriesgar que dos superficies discrepen en de qué facultad es un aula.
  * @param plan el plan, sólo para los elegibles de cada aula.
+ * @param clave por qué se agrupa. La misma función sirve para las tres unidades
+ *   de esfuerzo —facultad, aplicador y franja— porque lo único que cambia es la
+ *   clave: duplicarla habría dado tres sitios donde arreglar el mismo redondeo.
  */
 export function rendimientoPorFacultad(
   partes: ReadonlyArray<MonitoreoRow>,
   plan: ReadonlyArray<MonitoreoRow> = [],
+  clave: "faculty" | "applied_by" | "franja" = "faculty",
 ): RendimientoDeFacultad[] {
   const elegiblesPorCodigo = new Map<string, number>();
   for (const fila of plan) {
@@ -69,7 +107,12 @@ export function rendimientoPorFacultad(
 
   const acumulado = new Map<string, RendimientoDeFacultad>();
   for (const fila of partes) {
-    const facultad = texto(fila.faculty) || "Sin facultad";
+    const facultad = clave === "franja"
+      // `applied_at` PRIMERO: el parte publicado no manda `applied_time`, manda
+      // fecha y hora concatenadas en un solo campo («2026-08-11 10:00»).
+      // Buscando sólo `applied_time` salían las 210 aulas en «Sin hora».
+      ? franjaDeAplicacion(fila.applied_at ?? fila.applied_time)
+      : texto(fila[clave]) || (clave === "applied_by" ? "Sin aplicador" : "Sin facultad");
     const efectivas = numero(fila.effective_surveys);
     const asistentes = numero(fila.observed_students);
     // Un parte sin efectivas NI asistentes no es un aula que rindió cero: es un

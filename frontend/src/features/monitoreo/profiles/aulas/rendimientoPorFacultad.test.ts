@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
-import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { franjaDeAplicacion, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 
 const parte = (f: Partial<MonitoreoRow>) => f as MonitoreoRow;
 
@@ -41,6 +41,37 @@ describe("rendimientoPorFacultad", () => {
     );
     expect(f.elegibles).toBe(60);
     expect(f.delPotencial).toBe(50);
+  });
+
+  it("agrupa por aplicador con la MISMA función", () => {
+    const salida = rendimientoPorFacultad(
+      [
+        parte({ operational_code: "A", applied_by: "Equipo 1", effective_surveys: 30, observed_students: 40 }),
+        parte({ operational_code: "B", applied_by: "Equipo 1", effective_surveys: 10, observed_students: 20 }),
+        parte({ operational_code: "C", applied_by: "Equipo 2", effective_surveys: 25, observed_students: 30 }),
+      ],
+      [],
+      "applied_by",
+    );
+    expect(salida.map((f) => f.facultad)).toEqual(["Equipo 2", "Equipo 1"]);
+    expect(salida[0].porAula).toBe(25);
+    expect(salida[1].porAula).toBe(20);
+  });
+
+  it("las franjas son las del libro, y lo raro se declara aparte", () => {
+    // 7:00–9:00 · 9:01–19:00 · 19:01–22:00, de la hoja «planilla». Un aula a las
+    // 6 de la mañana es un dato que hay que ver, no un caso de «mañana».
+    expect(franjaDeAplicacion("08:00")).toBe("7:00 – 9:00");
+    expect(franjaDeAplicacion("09:01")).toBe("9:01 – 19:00");
+    expect(franjaDeAplicacion("19:00")).toBe("9:01 – 19:00");
+    expect(franjaDeAplicacion("20:30")).toBe("19:01 – 22:00");
+    expect(franjaDeAplicacion("06:00")).toBe("Fuera de franja");
+    expect(franjaDeAplicacion("23:10")).toBe("Fuera de franja");
+    expect(franjaDeAplicacion("")).toBe("Sin hora");
+    expect(franjaDeAplicacion("mediodía")).toBe("Sin hora");
+    // El parte publicado manda fecha y hora juntas, no la hora sola.
+    expect(franjaDeAplicacion("2026-08-11 10:00")).toBe("9:01 – 19:00");
+    expect(franjaDeAplicacion("2026-08-11 08:30")).toBe("7:00 – 9:00");
   });
 
   it("sin elegibles conocidos el potencial es nulo, no cero", () => {

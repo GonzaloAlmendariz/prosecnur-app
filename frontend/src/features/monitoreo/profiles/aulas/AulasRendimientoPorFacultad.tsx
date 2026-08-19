@@ -15,11 +15,15 @@ import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 const fmt = (n: number) => n.toLocaleString("es-PE");
 const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("es-PE")} %`);
 
-export function AulasRendimientoPorFacultad({ partes, plan }: {
+export function AulasRendimientoPorFacultad({ partes, plan, clave = "faculty", unidad = "Facultad" }: {
   partes: ReadonlyArray<MonitoreoRow>;
   plan: ReadonlyArray<MonitoreoRow>;
+  /** Por qué unidad de esfuerzo se agrupa: facultad, aplicador o franja. */
+  clave?: "faculty" | "applied_by" | "franja";
+  /** Cómo se llama esa unidad en la cabecera de la lista. */
+  unidad?: string;
 }) {
-  const filas = useMemo(() => rendimientoPorFacultad(partes, plan), [partes, plan]);
+  const filas = useMemo(() => rendimientoPorFacultad(partes, plan, clave), [partes, plan, clave]);
 
   if (!filas.length) {
     return (
@@ -44,7 +48,7 @@ export function AulasRendimientoPorFacultad({ partes, plan }: {
       </p>
       <ul className="aulas-rendimiento-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <li className="aulas-rendimiento-cabecera" aria-hidden="true">
-          <span>Facultad</span>
+          <span>{unidad}</span>
           <span>Por aula</span>
           <span>De los asistentes</span>
           <span>Del potencial</span>

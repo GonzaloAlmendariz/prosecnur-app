@@ -1120,6 +1120,52 @@ function renderAulasView(
         />
       </section>
       )}
+      {/* Las otras dos unidades de esfuerzo, en paneles propios y no tras un
+          selector: las tres se leen juntas —una facultad rinde poco Y su
+          aplicador rinde bien— y un control las escondería de a dos. */}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Quién consigue más</h3>
+          <span>encuestas por aula, según quién aplicó</span>
+        </div>
+        <AulasRendimientoPorFacultad
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          clave="applied_by"
+          unidad="Aplicador"
+        />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* Las franjas son las del libro —hoja «planilla»—, no unas nuestras. */}
+          <h3>A qué hora se consigue más</h3>
+          <span>franjas del operativo</span>
+        </div>
+        <AulasRendimientoPorFacultad
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          clave="franja"
+          unidad="Franja"
+        />
+      </section>
+      )}
       {pestana !== "cuotas" ? null : (
       <section
         className="mon-profile-panel"
