@@ -135,7 +135,14 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
         <strong>{cerraronEnTitular}</strong> cerraron con el titular ·{" "}
         <strong>{cerraronEnReemplazo}</strong> con un reemplazo ·{" "}
         <strong>{abiertas}</strong> sin cerrar
-        {sinReserva ? ` · ${sinReserva} sin reserva asignada` : ""}
+        {/* **La unidad, porque cambia a media frase.** Los tres numeros de antes
+            son CADENAS y este son CURSOS-HORARIO titulares —el vacio de este
+            mismo componente lo dice: «ninguno de los N cursos-horario titulares
+            tiene reserva»—. Sin nombrarlo, «24 cadenas · … · 146 sin reserva» se
+            lee como 146 cadenas, y no hay 146 cadenas: hay 24. */}
+        {sinReserva
+          ? ` · ${sinReserva} ${sinReserva === 1 ? "curso-horario titular" : "cursos-horario titulares"} sin reserva asignada`
+          : ""}
         {sinRespuestaAlguna
           ? ` · ${sinRespuestaAlguna} de las abiertas no han recibido ni una respuesta`
           : ""}

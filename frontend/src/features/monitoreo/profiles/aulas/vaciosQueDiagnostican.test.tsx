@@ -124,3 +124,26 @@ describe("«med.» no es una unidad", () => {
     expect(html).toContain("<strong>mediana</strong>");
   });
 });
+
+describe("un rótulo nombra la cifra que tiene al lado", () => {
+  it("el embudo del parte no llama «no quisieron» a los que sí quisieron", async () => {
+    const { embudoDelAula } = await import("./embudoDelAula");
+    // 100 en el aula, 10 rechazos, 20 duplicados → quedan 90 y luego 70.
+    const e = embudoDelAula([{
+      operational_code: "CH 1", observed_students: 100,
+      refusals: 10, duplicates: 20, effective_surveys: 70,
+    }] as unknown as MonitoreoRow[]);
+
+    const rechazos = e.pasos.find((p) => p.clave === "rechazos")!;
+    // El número grande son los que SIGUEN (90), no los 10 que se fueron.
+    expect(rechazos.quedan).toBe(90);
+    expect(rechazos.pierde).toBe(10);
+    // Así que el rótulo tiene que nombrar a los 90, no a los 10. Decía «No
+    // quisieron responder» junto a «90 −10» y se leía «no quisieron: 90».
+    expect(rechazos.etiqueta).toBe("Sin los que no quisieron responder");
+    expect(e.pasos.find((p) => p.clave === "duplicados")!.etiqueta)
+      .toBe("Sin los que ya habían respondido");
+    // El primero no tiene resta: ahí el rótulo ya nombraba su número.
+    expect(e.pasos[0].etiqueta).toBe("Estaban en el aula");
+  });
+});
