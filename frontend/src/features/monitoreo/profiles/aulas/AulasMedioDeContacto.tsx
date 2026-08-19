@@ -31,6 +31,9 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
 
   return (
     <div className="aulas-medio">
+      {/* Su propio rótulo: el panel contiene dos bloques y el título ya no
+          nombra sólo a éste. */}
+      <p className="aulas-medio-titulo">Qué medio agenda mejor</p>
       <p className="aulas-medio-lectura">
         {medios.length > 1 ? (
           <>
