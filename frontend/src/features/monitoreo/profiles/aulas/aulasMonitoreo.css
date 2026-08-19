@@ -3296,7 +3296,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista { margin: 0; padding: 0; list-style: none; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
-  display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px 78px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px auto;
   gap: 8px; align-items: center; padding: 4px 6px;
   border-bottom: 1px solid var(--pulso-border-soft); font-size: 11.5px;
   font-variant-numeric: tabular-nums;
