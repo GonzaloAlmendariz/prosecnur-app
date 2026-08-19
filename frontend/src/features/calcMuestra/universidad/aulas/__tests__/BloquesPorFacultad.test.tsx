@@ -18,6 +18,7 @@ import { CalculoCursosHorarioFacultadTab } from "../../calculo/CalculoCursosHora
 import { SinDecisionAlumnosChAviso } from "../../calculo/SinDecisionAlumnosChAviso";
 import { AulasSeleccionTab } from "../AulasSeleccionTab";
 import { MargenPorFacultadCard } from "../MargenPorFacultadCard";
+import { DocenteUnicoAviso } from "../DocenteUnicoAviso";
 import { SexoPorFacultadCard } from "../SexoPorFacultadCard";
 
 /** Cifras reales del proyecto: Letras y C. Humanas requiere 16 y tiene 16. */
@@ -208,5 +209,47 @@ describe("montaje: margen y sexo viven en la pestaña de Selección", () => {
     const html = tabSeleccion(null, null);
     expect(html).not.toContain("cmv2-margen-card");
     expect(html).not.toContain("cmv2-sexo-card");
+  });
+});
+
+describe("DocenteUnicoAviso (EF2)", () => {
+  it("lista cada intercambio con saliente → entrante y su celda", () => {
+    const html = renderToStaticMarkup(
+      <DocenteUnicoAviso registro={{
+        activo: true,
+        ajustes: [{
+          docente: "ATOCHE DIAZ, WILMER JHONNY",
+          stratum: "CIENCIAS E INGENIERIA / M / G2",
+          saliente: "1ind59_0831",
+          entrante: "1civ44_1001",
+          intercambiado_con_ola: true,
+        }],
+        no_reparables: [],
+      }} />,
+    );
+    expect(html).toContain("1 intercambio registrado");
+    expect(html).toContain("ATOCHE DIAZ");
+    expect(html).toContain("1ind59_0831");
+    expect(html).toContain("1civ44_1001");
+    expect(html).toContain("con ola");
+  });
+
+  it("el no-reparable se declara, nunca se calla", () => {
+    const html = renderToStaticMarkup(
+      <DocenteUnicoAviso registro={{
+        activo: true,
+        ajustes: [],
+        no_reparables: [{ docente: "PEREZ", stratum: "FAC1 / F / G1", classroom_id: "A2" }],
+      }} />,
+    );
+    expect(html).toContain("se conserva repetido");
+    expect(html).toContain("PEREZ");
+  });
+
+  it("sin registro o sin ajustes no pinta nada: un aviso sobre nada es ruido", () => {
+    expect(renderToStaticMarkup(<DocenteUnicoAviso registro={undefined} />)).toBe("");
+    expect(renderToStaticMarkup(
+      <DocenteUnicoAviso registro={{ activo: true, ajustes: [], no_reparables: [] }} />,
+    )).toBe("");
   });
 });

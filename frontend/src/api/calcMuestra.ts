@@ -739,6 +739,9 @@ export type CalcMuestraWorkspaceAulasConfig = {
    *  grande ya cubierta deja de pesar como grande). Engine y frontend lo
    *  encienden por defecto; FALSE explícito conserva corridas históricas. */
   sequential_discount?: boolean;
+  /** EF2: un docente no se selecciona repetido entre titulares (reparación
+   *  post-sorteo registrada). ON por defecto; FALSE explícito lo apaga. */
+  docente_unico?: boolean;
   pps_weight: number;
   coverage_weight: number;
   monte_carlo_n: number;
@@ -2338,7 +2341,10 @@ export type CalcMuestraAulasSelection = {
    *  (contrato Oleada III). Retrocompatible: corridas viejas no lo traen y la
    *  UI se comporta como hoy (lectura defensiva en descuentoRepetidosModel). */
   sequential_discount?: CalcMuestraAulasSelectionDescuento | null;
-  diagnostics?: Record<string, MonitoreoRow[] | undefined>;
+  diagnostics?: Record<string, MonitoreoRow[] | undefined> & {
+    /** EF2: registro de la reparación docente-único (objeto, no filas). */
+    docente_unico?: unknown;
+  };
   methodology?: Record<string, unknown>;
   method_comparison?: CalcMuestraAulasMethodComparison;
   replacement_simulation?: CalcMuestraAulasReplacementSimulation;
@@ -2713,6 +2719,48 @@ export function normalizeCalcMuestraReferenciaCriterios(
     por_facultad: filas,
   };
 }
+
+/** EF2 — registro de la reparación docente-único que emite el motor. */
+export type CalcMuestraDocenteUnicoAjuste = {
+  docente: string;
+  stratum: string;
+  saliente: string;
+  entrante: string;
+  intercambiado_con_ola: boolean;
+};
+
+export type CalcMuestraDocenteUnico = {
+  activo: boolean;
+  ajustes: CalcMuestraDocenteUnicoAjuste[];
+  no_reparables: { docente: string; stratum: string; classroom_id: string }[];
+};
+
+/** Normalizador defensivo: el registro viaja como objeto dentro de
+ *  `selection.diagnostics` (que tipa filas); corridas viejas no lo traen y
+ *  esto devuelve null en vez de inventar un registro vacío como "medido". */
+export function normalizeCalcMuestraDocenteUnico(raw: unknown): CalcMuestraDocenteUnico | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw as Record<string, unknown>;
+  const lista = (v: unknown): Record<string, unknown>[] =>
+    Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object") : [];
+  const texto = (v: unknown): string => String(v ?? "").trim();
+  return {
+    activo: obj.activo === true,
+    ajustes: lista(obj.ajustes).map((a) => ({
+      docente: texto(a.docente),
+      stratum: texto(a.stratum),
+      saliente: texto(a.saliente),
+      entrante: texto(a.entrante),
+      intercambiado_con_ola: a.intercambiado_con_ola === true,
+    })),
+    no_reparables: lista(obj.no_reparables).map((n) => ({
+      docente: texto(n.docente),
+      stratum: texto(n.stratum),
+      classroom_id: texto(n.classroom_id),
+    })),
+  };
+}
+
 
 export const CALC_MUESTRA_SALUD_CRITERIOS_SCHEMA =
   "calc_muestra_aulas_salud_criterios_v1" as const;

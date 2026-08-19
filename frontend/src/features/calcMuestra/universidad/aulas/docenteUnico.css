@@ -1,0 +1,59 @@
+/* EF2 · Registro visible de la reparación docente-único. Owner local. */
+.cmv2-docente-unico {
+  display: grid;
+  gap: 7px;
+  padding: 11px 13px;
+  border: 1px solid var(--cmv2-border);
+  border-left: 3px solid var(--cmv2-accent);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface);
+}
+
+.cmv2-docente-unico header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  color: var(--pulso-text);
+}
+
+.cmv2-docente-unico header strong { font-size: 12.5px; }
+
+.cmv2-docente-unico header span {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.cmv2-docente-unico ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-docente-unico li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 11.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-docente-unico li[data-no-reparable="true"] { color: var(--pulso-warn-fg); }
+
+.cmv2-docente-unico-celda {
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+}
+
+.cmv2-docente-unico-swap {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-docente-unico-swap i {
+  font-style: normal;
+  color: var(--pulso-text-muted);
+}
