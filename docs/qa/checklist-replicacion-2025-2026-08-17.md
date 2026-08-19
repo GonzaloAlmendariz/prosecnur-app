@@ -3274,3 +3274,34 @@ declarada y por facultad, da **203**.
 | Tandas I/J/K · D1–D5 · menores 1–3 · R4 | ☑ |
 | ADR 0079 resello entero del workspace | ⛔ BLOQUEADO — decisión de Gonzalo |
 | PSI·hombres 0.86× (botón en pantalla como mitigación) | ⛔ decisión de Gonzalo |
+
+### El sello de los cuatro métodos tenía dos capas de mentira
+
+**Capa 1 (`c32073ee`)**: BalancedSampling ni instalada ni declarada en
+DESCRIPTION — el CI instala exactamente lo declarado, así que en toda
+máquina limpia el pivotal degradaba a cubo con su risk flag honesto.
+
+**Capa 2 (`c477a465`)**: con la librería puesta SEGUÍA cayendo — lcube
+2.x exige lcube(prob, Xspread, Xbal), la llamada de 2 args erraba
+SIEMPRE, el tryCatch la tragaba y el else-if por EXISTENCIA nunca
+intentaba lpm2. El pivotal local genuino no había corrido NUNCA. De
+paso murió el bug latente índices-como-indicadores (2.x devuelve
+índices; which(out>0) habría elegido las primeras k filas).
+
+**Resultado, medido y guardado en el .pulso**: los 4 motores corren
+puros — sistematico_pps+descuento · cube_balanceado ·
+**local_pivotal_balanceado** (primera vez genuino) ·
+pool_controlado|cube+descuento (capa legítima). El flag «método
+equivalente» desapareció; los 3 method_fallback restantes son
+divulgaciones legítimas (π referenciales, balance sin variación
+intra-estrato). La recomendación se mantiene: pool_controlado. La
+selección vigente del cubo NO cambió (mismo run 20260818150453).
+
+Observación menor anotada: `method_fallback` como código agrupa
+divulgaciones que no son fallbacks — taxonomía a revisar algún día, las
+UI muestran títulos propios y no confunden hoy.
+
+| # | Cola | Estado |
+|---|---|---|
+| Todo lo numerado (Tandas I/J/K · D1–D5 · menores · R4 · sello 4 métodos) | ☑ |
+| ADR 0079 resello del workspace · botón PSI·hombres | ⛔ decisión de Gonzalo |
