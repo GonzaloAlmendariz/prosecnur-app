@@ -3344,3 +3344,31 @@ NO se toca el score sin su decisión.
 |---|---|---|
 | Todo lo numerado + sello 4 métodos | ☑ |
 | ADR 0079 resello · botón PSI·hombres · score 44/100 (a/b/c) | ⛔ decisión de Gonzalo |
+
+### EF1 — La matriz de consolidación de criterios (era EFECTIVIDAD)
+
+Pedido textual: «concentres y reintegres todos los criterios importantes
+(…) si la interfaz permite seguirlos, si el motor R lo permite». Medido
+contra la copia vigente (marco 2.615, selección 203).
+
+| Criterio | Motor R | UI | Declarado HSVG2026 | Aporte a EFECTIVIDAD |
+|---|---|---|---|---|
+| Modalidad presencial | ✓ | ✓ | ✓ Presencial en salón | aula físicamente visitable |
+| session_type + excepciones | ✓ | ✓ | ✓ TEORICO-familia; +taller A&D/ARQ | tipos que rindieron en 2025 |
+| Nivel del curso por facultad | ✓ | ✓ | ✓ 15 facultades (rangos/exención) | poblaciones correctas por facultad |
+| Mínimo elegibles (gral+propios) | ✓ | ✓ | ✓ 15 + 10 propios (10–20) | aulas que sostienen la aplicación |
+| Condición / edad / formación / matrícula | ✓ | ✓ | ✓ byVariable (9 familias) | elegibilidad real |
+| teacher_type (jerarquía) | ✓ | ✓ | ✓ orden declarado | docente que abre la puerta |
+| Grupos de tamaño | ✓ | ✓ | ✓ estratos G· | sin sesgo a cursos grandes |
+| Estratos facultad × sexo | ✓ | ✓ | ✓ | cuota POR FACULTAD garantizada |
+| Descuento secuencial (alumno repetido) | ✓ | ✓ | ✓ ON (aporte_neto en payload) | muestra neta, no bruta |
+| balance_vars / equivalencia reemplazos | ✓ | ✓ | ✓ 5 / 7 vars | reemplazo equivalente de verdad |
+| π · pesos · Σπ=cuota | ✓ | ✓ | ✓ (13 tests identidad) | validez estadística |
+| **Docente NO repetido (EF2)** | **✗** | **✗** | **✗** | **no quemar docentes: 8 repetidos/17 aulas HOY** |
+| **Techo de aulas como presupuesto (EF5)** | **✗** | **✗** | **✗** | los reemplazos no son infinitos |
+| **Efectividad esperada ex ante (EF3)** | **✗** | **✗** | **✗** | LA VARA 0 — hoy ninguna cifra la mide |
+| Contactabilidad del docente | dato ✓ (no criterio) | se muestra | 0/203 titulares sin correo | señal de las 21 caídas 2025 |
+
+**Lectura**: lo declarable está declarado y donde muerde (VARA 3
+cumplida en lo existente); los tres huecos son exactamente EF2/EF3/EF5,
+y los tres son de efectividad — la matriz confirma el rumbo de la era.
