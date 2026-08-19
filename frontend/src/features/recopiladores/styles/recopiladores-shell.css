@@ -151,6 +151,25 @@
   min-width: 0;
   overflow-x: auto;
   overflow-y: visible;
+  transition: box-shadow var(--motion-dur-fast) ease;
+}
+
+/* Pista de que quedan columnas fuera de vista -"Estado" podia desaparecer
+   del todo en anchos angostos sin ninguna barra de scroll visible-. Solo se
+   ve del lado donde de verdad hay mas contenido (TableScroll.tsx la calcula
+   con scrollLeft/scrollWidth reales, no adivina por el viewport). */
+.rec-table-scroll.has-scroll-left {
+  box-shadow: inset 10px 0 8px -8px rgba(15, 23, 42, .16);
+}
+
+.rec-table-scroll.has-scroll-right {
+  box-shadow: inset -10px 0 8px -8px rgba(15, 23, 42, .16);
+}
+
+.rec-table-scroll.has-scroll-left.has-scroll-right {
+  box-shadow:
+    inset 10px 0 8px -8px rgba(15, 23, 42, .16),
+    inset -10px 0 8px -8px rgba(15, 23, 42, .16);
 }
 
 .rec-table-scroll table {
