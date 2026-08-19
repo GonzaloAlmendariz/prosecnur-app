@@ -464,22 +464,6 @@ export function UniversidadDesk({
         (syncedWorkspace.aulas_config as { filters?: Record<string, unknown> } | undefined)?.filters,
     );
   }, [aulasState?.config, criteriosSeleccionVigente, syncedWorkspace.aulas_config]);
-  const criteriosGenerales = useMemo<CriterioGeneralFila[]>(
-    () =>
-      criteriosGeneralesDeEstudio({
-        parametros: facultyComp?.parametros as Record<string, unknown> | undefined,
-        decision: (syncedWorkspace.aulas_config as
-          { alumnos_por_ch_decision?: Record<string, unknown> } | undefined)
-          ?.alumnos_por_ch_decision,
-        selector: syncedWorkspace.aulas_config as Record<string, unknown> | undefined,
-        aulasMarco:
-          (aulasState?.frame?.aula_frame ?? []).filter(
-            (r) => (r as Record<string, unknown>).included === true,
-          ).length || null,
-        filas: margenFilas,
-      }),
-    [margenFilas, aulasState?.frame?.aula_frame, facultyComp, syncedWorkspace.aulas_config],
-  );
   // La afijación del diseño viaja en el config del seleccionar: sin esto el
   // sorteo reparte por masa de elegibles e ignora el aulas_base por facultad
   // que el propio cálculo publicó (medido: desvío 68/202 en HSVG2026).
@@ -518,6 +502,27 @@ export function UniversidadDesk({
   // en e1 la fijacion caia en un componente que nadie leia. Ambas apuntan al
   // componente que el motor usa; el letrero lee el mismo.
   const compActivo = labModel.selectedComp ?? facultyComp;
+  // Los criterios generales de Coincidencia leen el componente ACTIVO — la
+  // misma raiz que H2: leian facultyComp (deff/sobremuestra de fabrica, jamas
+  // tocados) mientras el motor dimensiona con selectedComp, y la ficha
+  // declaraba «no coincide» contra 2025 siendo identicos (medido 2026-08-19:
+  // ficha 1.5/20% vs activo 2/x1,5).
+  const criteriosGenerales = useMemo<CriterioGeneralFila[]>(
+    () =>
+      criteriosGeneralesDeEstudio({
+        parametros: compActivo?.parametros as Record<string, unknown> | undefined,
+        decision: (syncedWorkspace.aulas_config as
+          { alumnos_por_ch_decision?: Record<string, unknown> } | undefined)
+          ?.alumnos_por_ch_decision,
+        selector: syncedWorkspace.aulas_config as Record<string, unknown> | undefined,
+        aulasMarco:
+          (aulasState?.frame?.aula_frame ?? []).filter(
+            (r) => (r as Record<string, unknown>).included === true,
+          ).length || null,
+        filas: margenFilas,
+      }),
+    [margenFilas, aulasState?.frame?.aula_frame, compActivo, syncedWorkspace.aulas_config],
+  );
   const onAgregarAulaFacultad = useCallback(
     (facultad: string, aulasActuales: number) => {
       if (!compActivo) return;
