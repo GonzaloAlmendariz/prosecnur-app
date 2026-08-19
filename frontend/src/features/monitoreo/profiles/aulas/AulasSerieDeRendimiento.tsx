@@ -115,6 +115,42 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
     ? []
     : [facultades[0], facultades[facultades.length - 1]];
 
+  // El acumulado: encuestas sumadas día a día contra la meta. Es la pregunta que
+  // manda —«si llegamos a la meta»— y por eso va arriba y con su propio eje: la
+  // escala de un acumulado no cabe en la de un rendimiento por aula.
+  const acumulado = (() => {
+    const observadas = elegida
+      ? elegida.dias.map((d) => d.efectivasAcumuladas)
+      : aplicadas.map((_, i) => facultades.reduce((n, f) => n + (f.dias[i]?.efectivasAcumuladas ?? 0), 0));
+    if (!observadas.length) return null;
+    const ultimo = observadas[observadas.length - 1];
+    const meta = elegida && proyectada
+      ? proyectada.cuotas.reduce((n, c) => n + c.meta, 0)
+      : cuotas.reduce((n, c) => n + Number(c.target ?? 0), 0);
+    const proyectadas = proyectada ? proyectada.dias.map((d) => ultimo + d.acumuladas) : [];
+    const techo = Math.max(ultimo, meta, ...proyectadas, 1);
+    const tope = Math.ceil(techo / 50) * 50 || 50;
+    const yy = (v: number) => MARGEN + UTIL - (UTIL * v) / tope;
+    const observado = observadas.map((v, i) => `${x(i)},${yy(v)}`).join(" ");
+    const inferido = proyectadas.length
+      ? [`${x(corte)},${yy(ultimo)}`, ...proyectadas.map((v, i) => `${x(corte + 1 + i)},${yy(v)}`)].join(" ")
+      : "";
+    const alCerrar = proyectadas.length ? proyectadas[proyectadas.length - 1] : ultimo;
+    const lectura = meta > 0
+      ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas · ${
+          alCerrar >= meta
+            ? "con lo agendado se llega a la meta"
+            : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
+        }`
+      : `${fmt(Math.round(ultimo))} encuestas acumuladas · sin meta declarada`;
+    return {
+      tope, meta, y: yy, observado, inferido, lectura,
+      etiqueta: elegida
+        ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
+        : `Acumulado del estudio: ${Math.round(ultimo)} de ${meta}`,
+    };
+  })();
+
   /** Lo que dice la pista de un día ya aplicado: el techo y lo conseguido. */
   const lineasDelDia = (d: { fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null }) => [
     `${dm(d.fecha)} · observado`,
@@ -168,6 +204,52 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         </select>
         <button type="button" aria-label="Facultad siguiente" onClick={() => mover(1)}>›</button>
       </div>
+
+      {/* EL ACUMULADO, arriba y con más peso. Gonzalo: «lo que nos importa es si
+          llegamos a la meta y cuánto estamos avanzando [...] sobre todo, cómo
+          vamos a seguir, y a este ritmo, ¿cuándo llegamos?».
+          El diario de abajo dice qué tal fue cada día; éste, si el estudio llega.
+          Van juntos y no en dos paneles porque comparten eje X: el mismo día se
+          lee arriba y abajo en la misma vertical. */}
+      {acumulado ? (
+        <div className="aulas-serie-plot es-acumulado">
+          <ul className="aulas-serie-y" aria-hidden="true">
+            {[acumulado.tope, Math.round(acumulado.tope / 2), 0].map((m) => <li key={m}>{fmt(m)}</li>)}
+          </ul>
+          <div className="aulas-serie-lienzo">
+            <svg className="aulas-serie-grafico es-acumulado" viewBox="0 0 100 100"
+              preserveAspectRatio="none" role="img"
+              aria-label={acumulado.etiqueta}>
+              {[0, Math.round(acumulado.tope / 2), acumulado.tope].map((m) => (
+                <line key={m} x1={MARGEN} y1={acumulado.y(m)} x2={100 - MARGEN} y2={acumulado.y(m)}
+                  stroke="var(--pulso-border-soft)" strokeWidth="1"
+                  vectorEffect="non-scaling-stroke" opacity={m === 0 ? 1 : 0.55} />
+              ))}
+              {/* La META, que es contra lo que se lee todo lo demás. */}
+              {acumulado.meta > 0 ? (
+                <line x1={MARGEN} y1={acumulado.y(acumulado.meta)} x2={100 - MARGEN}
+                  y2={acumulado.y(acumulado.meta)}
+                  stroke={COLOR_RESULTADO.rechazo} strokeWidth="1.5" strokeDasharray="6 3"
+                  vectorEffect="non-scaling-stroke" opacity="0.85" />
+              ) : null}
+              {porVenir.length ? (
+                <line x1={x(corte)} y1={MARGEN} x2={x(corte)} y2={MARGEN + UTIL}
+                  stroke="var(--pulso-border)" strokeWidth="1" strokeDasharray="3 3"
+                  vectorEffect="non-scaling-stroke" opacity="0.8" />
+              ) : null}
+              <polyline points={acumulado.observado} fill="none" stroke={COLOR_RESULTADO.efectiva}
+                strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"
+                vectorEffect="non-scaling-stroke" />
+              {acumulado.inferido ? (
+                <polyline points={acumulado.inferido} fill="none" stroke={COLOR_RESULTADO.parcial}
+                  strokeWidth="2.5" strokeDasharray="6 4" strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke" />
+              ) : null}
+            </svg>
+          </div>
+        </div>
+      ) : null}
+      {acumulado ? <p className="aulas-serie-eje"><span>{acumulado.lectura}</span></p> : null}
 
       <div className="aulas-serie-plot">
         <ul className="aulas-serie-y" aria-hidden="true">
