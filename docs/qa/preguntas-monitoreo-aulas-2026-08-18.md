@@ -216,3 +216,45 @@ redondeo. Verificado en pantalla: **140 de 140** filas cumplen las dos.
 «datos de prueba», es una fuente de conclusiones falsas. Es la decimoquinta vez
 en esta serie que el fixture decide lo que se puede ver — y la primera en que lo
 que enseñaba era directamente incoherente.
+
+---
+
+# CORRECCIÓN DE PREMISA (Gonzalo, 2026-08-18): la validez por aula no es un veredicto
+
+Textual: «que una aula o la intervención de un curso-horario sea válido o no
+válido es un valor que en el Excel se agregó, pero que **técnicamente no es algo
+que nosotros verifiquemos**… no importa si cumple o no el 70 % de asistencia,
+porque si es un aula con cien elegibles, no importa que sea el 50 o el 40 %,
+igual son bastantes alumnos y hay que ir a aplicar». Y: «más que medir la validez
+por curso-horario, **hay que medir el rendimiento y la efectividad**… no hay un
+valor exacto para determinar que algo es válido o inválido; depende del criterio
+del encuestador y del analista en el momento en que se aplique».
+
+**Esto invalida una premisa que esta serie llevaba enshrined**: el 70T/70P
+figuraba como «LA VARA» desde que él mismo lo explicó, y la matriz de umbrales
+(`29fcab4c`) presentaba cuatro celdas con colores de acierto y fallo. Con esas
+palabras, esas celdas se leían como **un veredicto de la app sobre cada aula**, y
+no lo son.
+
+**Lo reparado ya**: la matriz conserva las cuatro celdas —el equipo SÍ escribió
+ese corte en su libro y hay que poder verlo— y declara de quién es y qué no
+decide: «Es el corte que el equipo escribió en el libro, no un criterio que la
+app verifique. No dice a qué aula conviene ir: un aula con 100 elegibles al 40 %
+rinde 40 encuestas, y una con 20 al 70 % rinde 14».
+
+**Lo que reordena hacia adelante**:
+
+1. **El eje deja de ser válido/inválido y pasa a ser RENDIMIENTO.** La unidad
+   útil son **encuestas conseguidas**, en absoluto y por unidad de esfuerzo, no
+   un porcentaje contra un umbral.
+2. **El tamaño manda sobre el porcentaje.** Un aula grande a media asistencia
+   rinde más que una pequeña que «cumple». Cualquier orden de prioridad que use
+   el % como criterio está mal ordenada.
+3. **Sólo lo extremo es señal**: él menciona «una asistencia mínima del 20 %,
+   que haya muy pocas personas». Eso es un aviso, **no un veredicto**.
+4. **La decisión es del encuestador y del analista en el momento.** La app pone
+   las cifras delante; no decide por ellos.
+
+**Consecuencia para `VALIDO TOTAL` NO CUMPLE en 149 de 194**: deja de ser una
+alarma. Es lo que el equipo anotó con un corte que él mismo describe como no
+verificado. La pregunta abierta se cierra sola.

@@ -51,14 +51,29 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
         ))}
       </ul>
       {v.indeterminadas ? (
-        // Ni efectivas ni fallidas: la hoja no trae con qué decidirlo. Sumarlas
+        // Ni a un lado ni al otro: la hoja no trae con qué situarlas. Sumarlas
         // a «ninguno» diría que fallaron, y no se sabe.
         <p className="mon-profile-table-recorte">
           <strong>{fmt(v.indeterminadas)}</strong>{" "}
-          {v.indeterminadas === 1 ? "aula no se puede evaluar" : "aulas no se pueden evaluar"}:
-          la hoja no trae sus dos umbrales.
+          {v.indeterminadas === 1 ? "aula sin sus dos umbrales" : "aulas sin sus dos umbrales"} en
+          la hoja.
         </p>
       ) : null}
+      {/* DE QUIÉN es este corte, y qué NO decide.
+          Gonzalo, 2026-08-18: «que una intervención sea válida o no válida es un
+          valor que en el Excel se agregó, pero que técnicamente no es algo que
+          nosotros verifiquemos… no importa si cumple o no el 70 % de asistencia,
+          porque si es un aula con cien elegibles, no importa que sea el 50 o el
+          40 %, igual son bastantes alumnos y hay que ir a aplicar».
+          Sin esta línea, cuatro celdas con colores de acierto y fallo se leen
+          como un veredicto de la app sobre cada aula, y no lo son. El ejemplo va
+          con números porque es lo que hace evidente que el tamaño manda: 40 de
+          100 es más que 14 de 20. */}
+      <p className="mon-profile-muted aulas-umbrales-nota">
+        Es el corte que el equipo escribió en el libro, no un criterio que la app
+        verifique. No dice a qué aula conviene ir: un aula con 100 elegibles al 40 %
+        rinde 40 encuestas, y una con 20 al 70 % rinde 14.
+      </p>
     </div>
   );
 }
