@@ -917,17 +917,27 @@
   white-space: normal;
 }
 
+/* Alineado al recipe warn de aviso.css (pedido de Gonzalo 2026-08-19): antes
+ * era el cuadro mostaza mas gritón del módulo — fondo crema al 68% y TODO el
+ * texto marrón en peso 800. El tono lo dice el filete ámbar; el texto vuelve
+ * al gris de la casa con peso normal. */
 .cmv2-source-warning {
   grid-column: 1 / -1;
   margin: 0;
-  padding: 9px 10px;
-  border: 1px solid var(--pulso-warn-border);
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
   border-radius: var(--pulso-radius);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 68%, #fff);
-  color: var(--pulso-warn-fg);
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
+  color: var(--pulso-text-soft);
   font-size: 11.5px;
-  font-weight: var(--pulso-weight-heavy);
-  line-height: 1.35;
+  font-weight: var(--pulso-weight-regular);
+  line-height: 1.45;
+}
+
+.cmv2-source-warning strong {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
 }
 
 .cmv2-category-browser {

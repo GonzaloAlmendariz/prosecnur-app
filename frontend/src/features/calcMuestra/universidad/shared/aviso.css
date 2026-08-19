@@ -77,17 +77,22 @@
   color: var(--pulso-success-fg);
 }
 
+/* Warn amable (pedido de Gonzalo 2026-08-19: «cuadros mostaza que no se ven
+ * nada bien»). El tono lo carga un filete ámbar + el ícono; el fondo queda
+ * casi neutro y el texto vuelve al gris de la casa — antes el bloque entero
+ * gritaba en crema saturado con título marrón. */
 .cmv2-aviso[data-tone="warn"] {
-  border-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 60%, var(--pulso-surface));
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
 }
 
 .cmv2-aviso[data-tone="warn"] .cmv2-aviso-icon {
-  color: var(--pulso-warn-fg);
+  color: var(--pulso-warn-accent);
 }
 
 .cmv2-aviso[data-tone="warn"] .cmv2-aviso-title {
-  color: var(--pulso-warn-fg);
+  color: var(--pulso-text);
 }
 
 /* --- Variante compacta (estados de una línea) -------------------------------- */
