@@ -434,7 +434,10 @@ function TerritorialExecutiveUmpPanel({ stack }: { stack: TerritorialExecutiveUm
   return (
     <section className="mon-territorial-exec-ump" aria-label="Estado de UMP y manzanas">
       <header>
-        <span><Route size={14} /> Estado UMP</span>
+        {/* De qué UMP habla: las de la cuota operativa. En la misma pantalla,
+            «Prioridades» cuenta las de la hoja de ruta, y sobre el corte real las
+            dos cifras eran 3 y 21 bajo el mismo rótulo «UMP». */}
+        <span><Route size={14} /> Estado UMP {operational ? "· cuota operativa" : ""}</span>
         <strong>{formatMetric(stack.complete)} completas · {formatMetric(pending)} faltan{completeDetail}</strong>
       </header>
       <div className="mon-territorial-exec-ump-stack" role="list" aria-label="Distribución de UMP completas, incompletas y sin avance">
@@ -752,14 +755,14 @@ function TerritorialExecutivePriorities({
     <section className="mon-territorial-exec-priorities" aria-label="Prioridades de avance">
       <header>
         <span><AlertTriangle size={14} /> Prioridades de avance</span>
-        <strong>UMP y distritos ordenados por brecha</strong>
+        <strong>UMP de la hoja de ruta y distritos, ordenados por brecha</strong>
       </header>
       <div className="mon-territorial-exec-priority-groups">
         {groups.map((group) => (
           <article key={group.key} className={`is-${group.key}`}>
             <header>
               <strong>{group.label}</strong>
-              <em>{group.items.length ? formatMetric(group.items.length) : "0"}</em>
+              <em>{group.total ? formatMetric(group.total) : "0"}</em>
             </header>
             <div>
               {group.items.length ? group.items.map((item) => (
@@ -782,6 +785,11 @@ function TerritorialExecutivePriorities({
               )) : (
                 <span className="mon-territorial-exec-priority-empty">{group.emptyLabel}</span>
               )}
+              {group.total > group.items.length ? (
+                <span className="mon-territorial-exec-priority-corte">
+                  Los {formatMetric(group.items.length)} de mayor brecha, de {formatMetric(group.total)}.
+                </span>
+              ) : null}
             </div>
           </article>
         ))}
@@ -2744,11 +2752,15 @@ function distributionFromRows(rows: TerritorialResponseAuditRow[], getKey: (row:
     .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "es"));
 }
 
+/** Cuántos se muestran de cada grupo. La cuenta real viaja aparte. */
+const PRIORIDADES_VISIBLES = 5;
+
 function buildAdvancePriorities(districts: TerritorialDistrictProgress[], blocks: TerritorialBlockProgress[]) {
-  const districtItems = [...districts]
-    .filter((row) => numberOrZero(row.brecha) > 0)
+  const districtsConBrecha = districts.filter((row) => numberOrZero(row.brecha) > 0);
+  const blocksPendientes = blocks.filter((row) => blockStatus(row) !== "complete");
+  const districtItems = [...districtsConBrecha]
     .sort((a, b) => numberOrZero(b.brecha) - numberOrZero(a.brecha))
-    .slice(0, 5)
+    .slice(0, PRIORIDADES_VISIBLES)
     .map((row) => ({
       key: `district-${districtKey(row)}`,
       type: "district" as const,
@@ -2759,10 +2771,9 @@ function buildAdvancePriorities(districts: TerritorialDistrictProgress[], blocks
       progressPct: clamp(row.avance_pct ?? 0, 0, 100),
       tone: "warning" as const,
     }));
-  const blockItems = [...blocks]
-    .filter((row) => blockStatus(row) !== "complete")
+  const blockItems = [...blocksPendientes]
     .sort((a, b) => numberOrZero(b.brecha) - numberOrZero(a.brecha))
-    .slice(0, 5)
+    .slice(0, PRIORIDADES_VISIBLES)
     .map((row) => ({
       key: `ump-${row.id_manzana || row.ump}`,
       type: "ump" as const,
@@ -2774,9 +2785,14 @@ function buildAdvancePriorities(districts: TerritorialDistrictProgress[], blocks
       progressPct: clamp(row.avance_pct ?? safePercent(row.validas, row.meta) ?? 0, 0, 100),
       tone: blockStatus(row) === "none" ? "muted" as const : "warning" as const,
     }));
+  // `total` y no `items.length`: la lista se corta en cinco, y pintar el largo
+  // de lo cortado convierte un tope de presentación en un dato. En el corte real
+  // el rótulo decía «UMP pendientes 5» —eran cinco filas— dos dedos debajo de un
+  // panel que declara «Cuota pendiente 3»: dos cifras del mismo hecho que no
+  // reconcilian, y ninguna de las dos era el número de UMP pendientes.
   return [
-    { key: "districts", label: "Distritos con brecha", emptyLabel: "Sin distritos rezagados", items: districtItems },
-    { key: "ump", label: "UMP pendientes", emptyLabel: "Sin UMP pendientes", items: blockItems },
+    { key: "districts", label: "Distritos con brecha", emptyLabel: "Sin distritos rezagados", items: districtItems, total: districtsConBrecha.length },
+    { key: "ump", label: "UMP pendientes", emptyLabel: "Sin UMP pendientes", items: blockItems, total: blocksPendientes.length },
   ];
 }
 
