@@ -80,7 +80,7 @@ correcto; se documenta para poder responderle a Ulises.
 | 1.8 | 113 · `GeneralSatisfaction_why` | text | 1 | D — 1 respuesta | ☑ correcto que no salga |
 | 1.9 | 115 · `RecomendSatisfaction_text` | text | 0 | D — sin respuestas | ☑ correcto que no salga |
 | 1.10 | 133 · `date_reva_sit` — fecha de resultado | date | 69 | C — tipo no graficable | ☐ **bloqueado** |
-| 1.11 | 134 · `MesesReva` — duración del trámite | integer | 87 | C — pero **ya está tramificada** en el `.pulso` del 1.º | ☑ resuelto · arrastrar `MesesReva_recod` |
+| 1.11 | 134 · `MesesReva` — duración del trámite | integer | 87 | C — tramificada en el `.pulso` del 1.º | ☑ **en el mazo del 19/08** (lám. 90) |
 | 1.12 | 136 · `revaDificults_other` | text | 5 | D — integrada en `revaDificults_recod` | ☑ correcto que no salga |
 | 1.13 | 137 · `reva_Tram_obs` | select_one | 6 | **A** — «observaciones» en la etiqueta | ☑ **reparado** |
 | 1.14 | 166 · `Equi_barrera_other` | text | 3 | D — integrada en `Equi_barrera_recod` | ☑ correcto que no salga |
@@ -90,10 +90,10 @@ correcto; se documenta para poder responderle a Ulises.
 
 | | Fila / variable | Tipo | Casos | Causa | Estado |
 |---|---|---|---|---|---|
-| 2.1 | 135 · `revaDificults` → `revaDificults_recod` | select_multiple | 87 | B | ☐ pendiente · regenerar |
-| 2.2 | 165 · `Equi_barrera` → `Equi_barrera_recod` | select_multiple | 83 | B | ☐ pendiente · regenerar |
-| 2.3 | 170 · `Sos_desarrollo` → `Sos_desarrollo_recod` | select_multiple | 87 | B | ☐ pendiente · regenerar |
-| 2.4 | 178 · `RevB_barriers` → `RevB_barriers_recod` | select_multiple | 42 | B | ☐ pendiente · regenerar |
+| 2.1 | 135 · `revaDificults` → `revaDificults_recod` | select_multiple | 87 | B | ☑ **en el mazo del 19/08** (lám. 91) |
+| 2.2 | 165 · `Equi_barrera` → `Equi_barrera_recod` | select_multiple | 83 | B | ☑ **en el mazo del 19/08** |
+| 2.3 | 170 · `Sos_desarrollo` → `Sos_desarrollo_recod` | select_multiple | 87 | B | ☑ **en el mazo del 19/08** |
+| 2.4 | 178 · `RevB_barriers` → `RevB_barriers_recod` | select_multiple | 42 | B | ☑ **en el mazo del 19/08** |
 
 Evidencia del bloque 2 — `revaDificults_recod` en los dos `.pulso`:
 
@@ -181,6 +181,36 @@ aprender a ignorar deja de ser un aviso; `date_reva_sit` queda en la cola, abajo
 
 Evidencia: `test-graficos-descartes-avisados.R` (18 asserts) · 16 suites de
 gráficos y codificación, **707 pass / 0 fail**.
+
+## El mazo regenerado — 2026-08-19
+
+Generado con `ACNUR_V3_final.pulso` (15/08, v0.8.0), que es el `.pulso`
+consistente: trae las etiquetas reparadas y `MesesReva_recod`. Perfil
+`acnur_kobo_cruncher_plus`, plantilla `acnur_16_9`.
+
+```
+láminas                134
+tamaño                 668 KB
+avisos del render      0
+paquete OOXML          zip íntegro · 0 <a:cs> mal ordenados · 0 content-types de más
+```
+
+Las once preguntas del checklist están en el plan y en el mazo. Verificadas
+leyendo el texto real del XML de las láminas —los gráficos son formas OOXML
+nativas, no imágenes, así que las etiquetas se leen directamente:
+
+| Lámina | Contenido leído del XML |
+|---|---|
+| 91 | «Tiempos largos de espera», «Observaciones al expediente», «Costos del proceso»… — **texto, no códigos** |
+| 90 | «Hasta 1 mes» 51% · «De 2 a 3 meses» 40% · «4 meses o más» 9% · N = 85 de 101 |
+| 123 | `Sos_empresa`: Sí 69% · No 28% · No sabe 2% · N = 85 de 101 |
+
+Entregado en `Preparaicon del 2do entregable/ACNUR_V3_mazo_regenerado_2026-08-19.pptx`.
+
+**Aviso preexistente que el motor levantó y no se tocó**: «La recodificación
+aplicada de "¿Por qué motivo no participó en el Censo Nacional 2025 del INEI?"
+difiere del catálogo actual (categorías cambiadas); vuelve a aplicarla».
+Es el recod gate sobre `WhyNoCenso`, ajeno a este lote.
 
 ## Cola — lo que aún no se decide
 
