@@ -25,6 +25,14 @@ import type { MonitoreoSheetBinding, MonitoreoSource } from "../../../api/client
  * no expone una dirección web que la app pueda construir con lo que guarda.
  * Se distingue de `falta-dato` —donde el usuario sí puede hacer algo— para que
  * la vista no invite a arreglar lo que no está roto.
+ *
+ * **Los mensajes dicen la CONSECUENCIA, no sólo el hueco.** Decían «Falta elegir
+ * el formulario de Kobo» y ese texto se pinta al lado de la propia fuente, que
+ * puede estar diciendo «ACTIVA · 3 700 filas · 43 columnas». Las dos frases
+ * juntas se contradicen: si falta elegir el formulario, ¿de dónde salen las
+ * 3 700 filas? Lo que falta es el dato con el que se ARMA EL ENLACE, y lo único
+ * que impide es abrirla; los datos entraron por otra vía. Empezar por «no se
+ * puede abrir» sitúa el aviso en lo que de verdad bloquea.
  */
 export type EnlaceDeFuente =
   | { estado: "enlace"; href: string; texto: string; titulo: string }
@@ -95,7 +103,7 @@ function enlaceDeHoja(source: MonitoreoSource): EnlaceDeFuente {
   if (!raw) {
     return {
       estado: "falta-dato",
-      mensaje: "Falta el enlace del Google Sheet.",
+      mensaje: "No se puede abrir: la fuente no trae el enlace del Google Sheet.",
     };
   }
   const href = /^https?:\/\//i.test(raw)
@@ -117,13 +125,13 @@ function enlaceDeKobo(source: MonitoreoSource): EnlaceDeFuente {
   if (!uid) {
     return {
       estado: "falta-dato",
-      mensaje: "Falta elegir el formulario de Kobo.",
+      mensaje: "No se puede abrir en Kobo: la fuente no declara qué formulario es.",
     };
   }
   if (!base) {
     return {
       estado: "falta-dato",
-      mensaje: "Falta el servidor de Kobo de esta fuente.",
+      mensaje: "No se puede abrir en Kobo: la fuente no declara el servidor.",
     };
   }
   // Pantalla administrativa del proyecto en Kobo. Sirve para abrirlo y NUNCA
@@ -142,7 +150,7 @@ function enlaceDeSurveyMonkey(source: MonitoreoSource): EnlaceDeFuente {
   if (!id) {
     return {
       estado: "falta-dato",
-      mensaje: "Falta elegir la encuesta de SurveyMonkey.",
+      mensaje: "No se puede abrir en SurveyMonkey: la fuente no declara qué encuesta es.",
     };
   }
   // Deliberadamente NO se construye una dirección web a partir del survey_id.

@@ -35,13 +35,16 @@ describe("las fuentes del estudio de aulas", () => {
     expect(html).toContain("Respuestas de campo");
   });
 
-  it("dicen por qué no hay enlace en vez de dejar el hueco", () => {
+  it("dicen qué se pierde, no sólo que falta un dato", () => {
     // Un renglón vacío parecería una fila incompleta sin decir de quién es la
-    // falta; el motivo es accionable: falta elegir el formulario.
+    // falta. Y el motivo tiene que empezar por la CONSECUENCIA: decía «Falta
+    // elegir el formulario de Kobo» pegado a una fuente que dice «ACTIVA ·
+    // 3 700 filas · 43 columnas», y las dos frases juntas se contradicen. Lo
+    // único que falta es con qué abrir la fuente en Kobo.
     const html = renderToStaticMarkup(
       <AulasFuentesDelEstudio fuentes={[fuente()]} anonimas={false} />,
     );
-    expect(html).toContain("formulario de Kobo");
+    expect(html).toContain("No se puede abrir en Kobo");
     expect(html).toContain("Sin actualizar");
   });
 

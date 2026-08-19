@@ -92,11 +92,16 @@ describe("enlaceDeFuente (R2)", () => {
     expect(enlace.href).toBe("https://docs.google.com/spreadsheets/d/ABC123/edit#gid=0");
   });
 
-  test("sin spreadsheet dice qué hacer, no solo que falta", () => {
+  test("sin spreadsheet dice qué se pierde, no sólo qué falta", () => {
+    // El mensaje se pinta al lado de la fuente, que puede estar diciendo
+    // «ACTIVA · 3 700 filas». «Falta el enlace» ahí se lee como que la fuente no
+    // está configurada; lo único que falta es con qué ABRIRLA. Por eso empieza
+    // por la consecuencia.
     const enlace = enlaceDeFuente(fuente({}));
     expect(enlace.estado).toBe("falta-dato");
     if (enlace.estado === "enlace") return;
-    expect(enlace.mensaje).toContain("Falta el enlace del Google Sheet");
+    expect(enlace.mensaje).toMatch(/^No se puede abrir/);
+    expect(enlace.mensaje).toContain("enlace del Google Sheet");
   });
 
   test("Kobo abre el proyecto y avisa que no es la URL de captura", () => {
