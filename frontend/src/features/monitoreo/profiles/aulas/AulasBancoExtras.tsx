@@ -31,6 +31,12 @@ export type ExtraDeBanco = {
 export type FacultadDelBanco = {
   faculty: string;
   extras: number;
+  /**
+   * Las que todavía no entraron al operativo. `extras` es cuántas EXISTEN y
+   * ésta cuántas QUEDAN: un banco de 207 del que ya se gastaron 190 se leía
+   * como 207, que es el número con el que alguien decide salir a llamar.
+   */
+  disponibles?: number;
   elegibles: number;
   mujeres: number;
   hombres: number;
@@ -38,6 +44,7 @@ export type FacultadDelBanco = {
 
 export type BancoDeExtras = {
   total: number;
+  disponibles?: number;
   elegibles: number;
   mujeres: number;
   hombres: number;

@@ -385,7 +385,25 @@ if (ESCALA_2025) {
     # dibuja con una por facultad, asi que con seis no se veia como se comporta
     # a veinte —que es el techo del rango real—.
     lapply(1:40, function(k) base(sprintf("EXTRA %d", k), "extra_reserve_pool",
-                                  facs[[1 + (k %% length(facs))]], 210 + k, est = "en_reserva"))
+                                  facs[[1 + (k %% length(facs))]], 210 + k, est = "en_reserva")),
+    # El banco NO es parejo, y repartirlo a dos por facultad hacia INVISIBLE la
+    # mitad del fenomeno. La alerta de anticipacion pide entre 7 y 14 aulas por
+    # facultad, asi que con dos en todas la unica rama que se podia ver en
+    # pantalla era «el banco no alcanza» —veinte de veinte—. En el estudio real
+    # el reparto es todo lo contrario de parejo: Derecho lleva 207 extras y
+    # Arquitectura 12.
+    #
+    # Estas treinta concentradas en dos facultades les dejan 17 cada una, por
+    # encima de lo que la alerta les pide, y hacen visible la rama que autoriza
+    # a salir a llamar. Es la undecima vez en este loop que el fixture decide lo
+    # que se puede ver.
+    lapply(1:30, function(k) base(sprintf("EXTRA B%d", k), "extra_reserve_pool",
+                                  facs[[1 + (k %% 2)]], 260 + k, est = "en_reserva")),
+    # Y tres ya gastadas, para que `disponibles` no sea siempre igual a `extras`:
+    # sin una sola extra activada, la distincion entre «cuantas hay» y «cuantas
+    # quedan» no se puede comprobar en pantalla.
+    lapply(1:3, function(k) base(sprintf("EXTRA G%d", k), "extra_reserve_pool",
+                                 facs[[1]], 295 + k, est = "aplicada"))
   )
   aplicadas_todas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
   # AULAS AGENDADAS POR DELANTE: con fecha posterior al ultimo parte y SIN parte.

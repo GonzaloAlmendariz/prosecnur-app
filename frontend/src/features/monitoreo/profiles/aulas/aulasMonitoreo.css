@@ -3330,6 +3330,14 @@
   color: var(--pulso-text); font-size: 11.5px;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista { margin: 0; padding: 0; list-style: none; }
+/* Con la columna «Banco» son cuatro cifras y no tres. Se declara en la LISTA y
+   no en cada fila: las columnas de esta tabla solo coinciden si todas las filas
+   resuelven el mismo reparto, y cada `li` es su propia grilla. */
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-lista.con-banco { --aulas-anticipacion-cifras: 4; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-sinbanco {
+  margin: 0; font-size: 11.5px; color: #a61d4f;
+  border-left: 2px solid #a61d4f; padding-left: 8px;
+}
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
   /* Cada fila es su propia grilla, asi que la ultima columna NO puede ser
      `auto`: se dimensiona con el texto de ESA fila y arrastra a las numericas.
@@ -3337,7 +3345,7 @@
      x distintas —736, 727, 756 y 703— y los numeros dejaban de estar bajo su
      cabecera. Con `auto` no se notaba solo porque todas las filas decian la
      misma palabra. 92px es «antes del 21/08» a 11.5px sin recorte. */
-  display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 56px 92px;
+  display: grid; grid-template-columns: minmax(0, 1fr) repeat(var(--aulas-anticipacion-cifras, 3), 56px) 92px;
   gap: 8px; align-items: center; padding: 4px 6px;
   border-bottom: 1px solid var(--pulso-border); font-size: 11.5px;
   font-variant-numeric: tabular-nums;

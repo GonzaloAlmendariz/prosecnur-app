@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
+import type { FacultadDelBanco } from "./AulasBancoExtras";
 import {
   DIAS_DE_ANTICIPACION,
   type AlertaDeFacultad,
@@ -18,6 +19,11 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
  * La columna «Cuándo» lleva una **fecha**, no un adjetivo. Un «hay margen» no se
  * puede agendar; un «antes del 24/08» sí, y es lo que pidió Gonzalo al decir que
  * hay que poder predecirlo con antelación.
+ *
+ * Y «Banco» va pegada a «Pedir» porque la comparación es exactamente entre esas
+ * dos. Cuando el banco de la facultad no llega, la lista deja de pedir llamadas:
+ * no hay de dónde sacar esas aulas y el problema vuelve a Cálculo de muestra.
+ * Decir «pide 14» sin mirar si existen es mandar a llamar al vacío.
  */
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
@@ -35,19 +41,26 @@ function cuando(f: AlertaDeFacultad): string {
   return f.pedirAntesDe ? `antes del ${diaCorto(f.pedirAntesDe)}` : "hay margen";
 }
 
-export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [] }: {
+export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [] }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
+  /** `banco_extras.por_facultad`, para saber si las aulas que se piden existen. */
+  banco?: ReadonlyArray<FacultadDelBanco>;
 }) {
   const filas = useMemo(
-    () => alertaDeAnticipacion(proyeccionPorAgenda(agenda, partes, cuotas)),
-    [agenda, partes, cuotas],
+    () => alertaDeAnticipacion(proyeccionPorAgenda(agenda, partes, cuotas), banco),
+    [agenda, partes, cuotas, banco],
   );
 
   const conBrecha = filas.filter((f) => f.urgencia !== "sin brecha");
   const aulasTotales = conBrecha.reduce((n, f) => n + f.aulasAPedir, 0);
   const paradas = conBrecha.filter((f) => f.urgencia === "sin agenda").length;
+  const sinBanco = conBrecha.filter((f) => f.bancoAlcanza === false).length;
+  // Si NINGUNA fila sabe cuánto banco le queda, la columna sería «S/D» veinte
+  // veces. Se omite entera: una columna que no distingue nada sólo estrecha las
+  // que sí lo hacen.
+  const hayBanco = conBrecha.some((f) => f.bancoDisponible != null);
   // Cuando todas las facultades dicen lo mismo en «Cuándo», la columna es la
   // misma palabra veinte veces: ruido que empuja al resto. Se dice una vez en la
   // lectura y la columna desaparece. Se compara el TEXTO y no la urgencia,
@@ -84,7 +97,21 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [] }: 
         {cuandos.size === 1 ? ` · todas: ${[...cuandos][0]}` : ""}
       </p>
 
-      <ul className="aulas-anticipacion-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+      {/* Va fuera de la lectura y antes de la tabla porque cambia QUÉ hacer, no
+          cuánto: con el banco corto no hay llamada que lo arregle. */}
+      {sinBanco > 0 ? (
+        <p className="aulas-anticipacion-sinbanco">
+          En <strong>{fmt(sinBanco)}</strong> {sinBanco === 1 ? "facultad" : "facultades"}{" "}
+          el banco de extras no tiene las aulas que se piden: eso no se resuelve
+          llamando, se resuelve ampliando la muestra en Cálculo de muestra.
+        </p>
+      ) : null}
+
+      <ul
+        className={`aulas-anticipacion-lista${hayBanco ? " con-banco" : ""}`}
+        data-qa-geometry-capacity="owned"
+        data-qa-geometry-member
+      >
         {/* «Pedir» va primera entre las cifras porque es por lo que está
             ordenada la lista, y porque es la que se ejecuta. Con «Faltan»
             delante, la primera columna numérica que lee el ojo salta —232, 196,
@@ -93,6 +120,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [] }: 
         <li className="aulas-anticipacion-cabecera" aria-hidden="true">
           <span>Facultad</span>
           <span>Pedir</span>
+          {hayBanco ? <span>Banco</span> : null}
           <span>Cubren</span>
           <span>Faltan</span>
           {cuandos.size > 1 ? <span>Cuándo</span> : null}
@@ -103,6 +131,13 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [] }: 
             <span className="aulas-anticipacion-pedir">
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
             </span>
+            {/* Extras de ESA facultad sin usar. `null` es «no se sabe», que no es
+                cero: pintarlo como cero acusaría de una escasez no medida. */}
+            {hayBanco ? (
+              <span className={f.bancoAlcanza === false ? "aulas-anticipacion-ya" : ""}>
+                {f.bancoDisponible == null ? <em>S/D</em> : fmt(f.bancoDisponible)}
+              </span>
+            ) : null}
             {/* Las que cubrirían la brecha si TODAS se aplicaran. Se enseña al
                 lado de las que hay que pedir para que el margen se vea, en vez de
                 aparecer como un número inflado sin explicación. */}
@@ -128,6 +163,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [] }: 
         llamar sin que la facultad se quede parada: se cuenta desde el día en que
         se le acaba la agenda, restando los <strong>{DIAS_DE_ANTICIPACION} días</strong>{" "}
         que pasaron de mediana entre llamar a un aula y aplicarla, también en 2025.
+        {hayBanco ? " «Banco» son las aulas extra de esa facultad que siguen sin usarse." : ""}
       </p>
     </div>
   );
