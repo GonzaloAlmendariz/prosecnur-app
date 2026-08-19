@@ -3425,3 +3425,27 @@ suyo. Fase 1 primero.
 | EF3 medición ☑ — señal real; fase 1 (columna+KPI referencial) | ☐ SIGUIENTE |
 | EF3 fase 2 (pesar el sorteo) | ⛔ decisión de Gonzalo |
 | EF4 registro (patrón nacido en EF2) ◐ · EF5 techo ☐ · EF6 contrato ☐ | |
+
+### EF3 fase 1 CERRADA — el número de la VARA 0 existe, y ya encontró algo
+
+**Motor (`e966991f`) + UI (`ff12fcda`) + pipeline completo re-derivado y
+guardado** (marco reconstruido con la config vigente → selección →
+simulación → .pulso): 203/203 titulares con `efectivas_esperadas`; suma
+total **3.283 vs cuota 2.500** (cobertura 1,31× bajo calibración 2025);
+docente único AGUANTÓ la reconstrucción completa (0 repetidos).
+
+**El hallazgo que el número nuevo destapa y el τ global no veía**:
+**DERECHO en ámbar** — τ global espera 357 (cubre su cuota de 347),
+la calibración por CH espera **322** (corta por 25). Es la facultad
+de mayor riesgo ex ante del diseño vigente. Las otras 14 cubren bajo
+ambos modelos.
+
+Efecto colateral medido: la representatividad subió 44→68/100 con el
+marco reconstruido (misma config; el frame nuevo cambió el balance).
+
+| # | Era EFECTIVIDAD | Estado |
+|---|---|---|
+| EF1 ☑ · EF2 ☑ · EF3 fase 1 ☑ | `ebf45ff9` `76b4f4d1` `9d9368c7` `e966991f` `ff12fcda` |
+| EF3 fase 2 (pesar el sorteo con el índice) | ⛔ decisión de Gonzalo |
+| DERECHO 322 vs cuota 347 bajo calibración — ¿aula más / reponderar? | ⛔ decisión de Gonzalo |
+| EF4 registro ◐ (nació en EF2) · EF5 techo ☐ · EF6 contrato ☐ | |
