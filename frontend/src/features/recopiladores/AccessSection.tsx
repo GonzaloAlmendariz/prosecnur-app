@@ -274,8 +274,14 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
               <input
                 value={returnUrl}
                 onChange={(event) => setReturnUrl(event.target.value)}
-                placeholder="https://… (opcional, una sola para todo el estudio)"
+                placeholder="https://…"
               />
+              {/* El placeholder original tenía esta misma frase, pero un
+                  placeholder desaparece apenas se escribe algo y además se
+                  recortaba a mitad de palabra en el ancho real del campo
+                  ("...para todo el estu"). Una pista persistente no depende
+                  del ancho del input ni se pierde al usar el campo. */}
+              <small>Opcional, una sola para todo el estudio.</small>
             </label>
           </>
         ) : null}
