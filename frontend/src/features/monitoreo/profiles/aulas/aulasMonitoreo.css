@@ -3412,3 +3412,12 @@
   color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera > span:nth-child(3) { text-align: right; }
+
+/* El rótulo de cada bloque dentro del panel de contacto: el título de la
+   sección cubre los dos y cada uno dice cuál es. */
+.mon-profile-page.is-aulas-flow .aulas-medio-titulo {
+  margin: 0;
+  color: var(--pulso-text);
+  font-size: 12.5px;
+  font-weight: 600;
+}

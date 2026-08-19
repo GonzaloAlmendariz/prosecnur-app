@@ -519,7 +519,15 @@ function renderAulasView(
             agenda—. Sin él, la ruta se queda con los 367. No se pierde nada:
             el mismo panel está en las otras dos pestañas de la sección, a un
             click. */}
-        {pestana === "facultad" ? null : <HandoffTracePanel dashboard={dashboard} />}
+        {/* La preparación NO entra en «Por facultad» ni en «Contacto». En las
+            dos la sección dispone de 367 px a 1366x768 y ese panel se lleva
+            159: en la ruta dejaba la lista en 104 px y en Contacto ahogaba el
+            bloque de medios. Y en ninguna de las dos aporta —una dice a dónde
+            ir y la otra a quién llamar—; el mismo panel sigue en la pestaña
+            Agenda, a un click. */}
+        {pestana === "facultad" || pestana === "contacto"
+          ? null
+          : <HandoffTracePanel dashboard={dashboard} />}
         {pestana === "registro" ? registro : null}
         {pestana === "contacto" ? (
         <section
@@ -534,10 +542,12 @@ function renderAulasView(
           data-qa-geometry-contract="intrinsic"
         >
           <div className="mon-profile-panel-head">
-            {/* «Qué medio agenda mejor» y no «Medio de contacto»: el título dice
-                la pregunta que contesta, que es lo que hace que alguien entre. */}
-            <h3>Qué medio agenda mejor</h3>
-            <span>y con cuántos intentos</span>
+            {/* El título cubre las DOS cosas que hay dentro. Decía «Qué medio
+                agenda mejor», que es sólo la primera: quien buscara «a quién
+                llamo hoy» no lo encontraba ahí, y la superficie no declaraba lo
+                que contiene (C1). Cada bloque lleva ahora su propio rótulo. */}
+            <h3>Cómo se consigue la cita</h3>
+            <span>el medio y la cola de contacto</span>
           </div>
           {/* Los dos dentro de UN dueño de scroll, no cada uno con el suyo: la
               pantalla tiene que tener un solo recorrido. */}

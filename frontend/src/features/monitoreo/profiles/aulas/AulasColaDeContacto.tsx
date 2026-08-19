@@ -27,6 +27,7 @@ export function AulasColaDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoA
 
   return (
     <div className="aulas-cola">
+      <p className="aulas-medio-titulo">A quién llamar</p>
       <p className="aulas-cola-lectura">
         {pendientes.length ? (
           <>
