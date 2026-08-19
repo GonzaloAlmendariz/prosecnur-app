@@ -3303,7 +3303,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:not(:first-child) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-cabecera {
-  color: var(--pulso-text-faint); font-size: 10px; font-weight: 600;
+  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min); font-weight: 600;
   letter-spacing: 0.02em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li.es-urgente {
@@ -3318,7 +3318,17 @@
 
 /* Serie de rendimiento por facultad: el general y el de una sola. */
 .mon-profile-page.is-aulas-flow .aulas-serie {
-  display: grid; gap: 6px; min-width: 0;
+  display: grid; gap: 10px; min-width: 0;
+  /* UNA escala de tres pasos. Habia SIETE tallas en el mismo panel —9.5, 10,
+   * 10.5, 11, 11.5, 12 y 16— y siete tallas no son jerarquia: son ruido. */
+  --aulas-serie-txt: 12px;   /* la lectura de cada grafico */
+  --aulas-serie-sec: 11px;   /* leyenda, tabla, pie */
+  --aulas-serie-min: 10px;   /* ejes y marcas */
+  /* El carril del eje Y, FIJO y compartido. Cada rejilla lo dimensionaba sola
+   * segun sus propias cifras —«250» arriba, «45» abajo— y los dos lienzos
+   * salian de 1262 y 1269 px: el mismo dia NO caia en la misma vertical, que
+   * es lo unico que justifica apilarlos. */
+  --aulas-serie-carril: 30px;
   /* El MISMO par de Calculo de muestra. Alli los tokens viven bajo `.cmv2-frame`
    * y aqui no existen, asi que se redeclaran apuntando a las mismas variables
    * base —no a un hex copiado—: si la casa cambia el azul o el rosa, los dos
@@ -3327,7 +3337,8 @@
   --aulas-sexo-mujer: var(--pulso-accent-rose);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-lectura-acumulado {
-  flex-wrap: wrap; gap: 4px 14px; color: var(--pulso-text-soft); font-size: 11.5px;
+  flex-wrap: wrap; gap: 4px 14px; color: var(--pulso-text-soft);
+  font-size: var(--aulas-serie-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda {
   display: inline-flex; gap: 12px; flex-wrap: wrap;
@@ -3335,10 +3346,11 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em {
   display: inline-flex; align-items: center; gap: 5px;
   font-style: normal; font-weight: 600; color: var(--pulso-text);
+  font-size: var(--aulas-serie-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos { gap: 10px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos em {
-  font-weight: 500; color: var(--pulso-text-soft); font-size: 10.5px;
+  font-weight: 500; color: var(--pulso-text-soft); font-size: var(--aulas-serie-min);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos em::before {
   width: 14px; height: 2px; background: var(--pulso-text-soft); border-radius: 0;
@@ -3368,7 +3380,7 @@
   height: 26px; min-width: 26px; padding: 0 9px;
   border: 1px solid var(--pulso-border); border-radius: 999px;
   background: var(--pulso-surface); color: var(--pulso-text-soft);
-  font-size: 11.5px; font-weight: 600; cursor: pointer;
+  font-size: var(--aulas-serie-sec); font-weight: 600; cursor: pointer;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-mando button:hover { background: var(--pulso-surface-2); }
 .mon-profile-page.is-aulas-flow .aulas-serie-mando button.is-activa {
@@ -3378,10 +3390,32 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-mando select {
   height: 26px; max-width: 320px; padding: 0 8px;
   border: 1px solid var(--pulso-border); border-radius: 8px;
-  background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: var(--aulas-serie-sec);
+}
+/* Cada grafico es un BLOQUE: su rotulo, su lienzo y su lectura dentro del mismo
+ * marco. Antes eran diez bandas sueltas del mismo peso apiladas en el panel
+ * —dos ejes, dos lecturas y DOS pies consecutivos— y no habia forma de saber
+ * donde acaba un grafico y empieza el otro. */
+.mon-profile-page.is-aulas-flow .aulas-serie-bloque {
+  display: grid; gap: 6px; padding: 10px 12px 8px;
+  border: 1px solid var(--pulso-border-soft); border-radius: 10px;
+  background: var(--pulso-surface);
+}
+/* El rotulo dice QUE mide el grafico. Habia que deducirlo del pie. */
+.mon-profile-page.is-aulas-flow .aulas-serie-rotulo {
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 4px 14px; margin: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-rotulo b {
+  font-size: var(--aulas-serie-txt); font-weight: 650; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-rotulo b i {
+  font-style: normal; font-weight: 500; color: var(--pulso-text-faint);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-plot {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px;
+  display: grid; grid-template-columns: var(--aulas-serie-carril) minmax(0, 1fr);
+  gap: 0 8px;
 }
 /* El eje por dia va en la SEGUNDA columna de la misma rejilla: asi queda alineado
  * con el lienzo sin tener que replicar a mano el ancho de las cifras del eje
@@ -3390,7 +3424,8 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-y {
   display: flex; flex-direction: column; justify-content: space-between;
   margin: 0; padding: 0; list-style: none; text-align: right;
-  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
+  font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-lienzo { position: relative; min-width: 0; }
 /* Mas alto. Gonzalo: «si este grafico necesita mas tamaño, mas alto, daselo, no
@@ -3403,7 +3438,8 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-plot.es-acumulado { margin-bottom: 2px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-eje {
   display: flex; justify-content: space-between; margin: 0;
-  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
+  font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
@@ -3443,18 +3479,18 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda i { background: #b97611; }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias span {
-  color: var(--pulso-text-faint); font-size: 9.5px; font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda span { color: #b97611; }
 
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas {
-  width: 100%; border-collapse: collapse; font-size: 11.5px;
+  width: 100%; border-collapse: collapse; font-size: var(--aulas-serie-sec);
   font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption {
   caption-side: top; text-align: left; padding: 0 0 4px;
-  color: var(--pulso-text-soft); font-size: 11px;
+  color: var(--pulso-text-soft); font-size: var(--aulas-serie-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption em {
   color: var(--pulso-text-faint); font-style: normal;
@@ -3477,9 +3513,11 @@
   margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;
   border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
   background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
-  color: var(--pulso-text); font-size: 11.5px;
+  color: var(--pulso-text); font-size: var(--aulas-serie-sec);
 }
-.mon-profile-page.is-aulas-flow .aulas-serie-pie { margin: 2px 0 0; font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-serie-pie {
+  margin: 0; font-size: var(--aulas-serie-sec);
+}
 
 /* Consumo del banco: cuánto aguanta cada facultad. */
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo { display: grid; gap: 6px; min-width: 0; }
