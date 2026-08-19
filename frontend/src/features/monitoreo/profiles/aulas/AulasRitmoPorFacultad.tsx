@@ -23,10 +23,16 @@ function dm(iso: string): string {
 export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<MonitoreoRow> }) {
   const { facultades, fechas } = useMemo(() => ritmoPorFacultad(partes), [partes]);
 
+  // **Dos causas distintas, un solo mensaje.** La lista queda vacía tanto si no
+  // hay ni un parte de campo —el estado normal antes de salir— como si los hay y
+  // ninguno trae fecha. Acusar a los partes de venir sin fecha cuando todavía no
+  // existen manda a buscar un defecto en el libro que no está ahí.
   if (!facultades.length) {
     return (
       <p className="mon-profile-muted">
-        Ningún parte de campo trae fecha de aplicación, así que no se puede seguir el ritmo.
+        {partes.length
+          ? `Ninguno de los ${fmt(partes.length)} partes de campo trae fecha de aplicación, así que no se puede seguir el ritmo.`
+          : "Todavía no hay partes de campo: el ritmo aparece en cuanto se registre la primera aula aplicada."}
       </p>
     );
   }

@@ -16,11 +16,16 @@ const fmt = (n: number) => n.toLocaleString("es-PE");
 export function AulasColaDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
   const { pendientes, esfuerzo } = useMemo(() => colaDeContacto(filas), [filas]);
 
+  // **Dos causas, y ninguna era la que decía el mensaje.** Con filas presentes la
+  // cola sólo queda vacía si TODAS quedan fuera por una razón buena —banco,
+  // reserva dormida, ya citada o ya reemplazada—, no porque «no declaren su ciclo
+  // de contacto». Ese texto mandaba a rellenar un campo del libro que está bien.
   if (!pendientes.length && !esfuerzo.length) {
     return (
       <p className="mon-profile-muted">
-        Ningún curso-horario declara su ciclo de contacto, así que no se puede ordenar a quién
-        llamar.
+        {filas.length
+          ? `No queda ningún curso-horario a quien llamar: los ${fmt(filas.length)} del plan están citados, en reserva o ya reemplazados.`
+          : "El plan todavía no trae cursos-horario a los que contactar."}
       </p>
     );
   }
