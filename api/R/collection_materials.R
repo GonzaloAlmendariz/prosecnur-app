@@ -782,7 +782,7 @@ collection_material_instance_validate <- function(instance) {
   if (.cc_is_scalar_string(instance$status) && !(instance$status %in% c("ready", "stale"))) {
     problems[[length(problems) + 1L]] <- .cm_problem("instance.status", "bad_status", "status debe ser ready o stale.")
   }
-  if (.cc_is_scalar_string(instance$sensitivity) && !(instance$sensitivity %in% c("public", "operational", "restricted", "sensitive"))) {
+  if (.cc_is_scalar_string(instance$sensitivity) && !(instance$sensitivity %in% c("public", "operational", "restricted", "sensitive", "reference"))) {
     problems[[length(problems) + 1L]] <- .cm_problem("instance.sensitivity", "bad_sensitivity", "Sensibilidad no reconocida.")
   }
   for (field in c("deployment_fingerprint", "access_fingerprint", "instance_fingerprint")) {

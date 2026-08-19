@@ -147,6 +147,20 @@ test_that("resolved_access restricted es transitorio y nunca entra a collection_
   expect_true(collection_state_validate(session_get(fx$sid)$collection_state)$ok)
 })
 
+test_that("deployment.sensitivity reference (proyectos de referencia/auditoria) crea instancia", {
+  fx <- .cmt_seed()
+  on.exit(session_delete(fx$sid), add = TRUE)
+  session <- session_get(fx$sid)
+  session$collection_state$deployment$sensitivity$access_urls <- "reference"
+  session$collection_state$deployment$deployment_fingerprint <-
+    .collection_deployment_fingerprint(session$collection_state$deployment)
+  .session_env[[fx$sid]] <- session
+
+  created <- collection_material_instance_create(fx$sid, fx$seeded$state_revision)
+  expect_identical(created$instance$sensitivity, "reference")
+  expect_true(collection_material_instance_validate(created$instance)$ok)
+})
+
 test_that("una unidad sin acceso queda advertida pero sigue siendo compilable", {
   fx <- .cmt_seed()
   on.exit(session_delete(fx$sid), add = TRUE)
