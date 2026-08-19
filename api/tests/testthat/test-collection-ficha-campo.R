@@ -11,8 +11,10 @@
   path
 }
 
-.cfx_compiled <- function(template, url = "https://x.test/enc", collector = "PILOTO_2026") {
+.cfx_compiled <- function(template, url = "https://x.test/enc", collector = "PILOTO_2026",
+                          dimensions = NULL) {
   unit <- list(unit_id = "u1", label = "Rotulo de la unidad", role = "piloto", group = "PILOTO")
+  if (!is.null(dimensions)) unit$dimensions <- dimensions
   binding <- list(
     access_id = "a1", logical_collector_id = collector, unit_id = "u1",
     access_kind = "manual_handoff", access_ref = url, status = "ready"
@@ -170,13 +172,79 @@ test_that("los renglones por defecto son los de la hoja en uso", {
     "N° de alumnos en aula", "Hombres:", "Mujeres:", "N° de encuestas aplicadas:",
     "Rechazos:", "Aplicador/a", "Fecha:", "Hora de aplicación:",
     # Los dos numeros que el cuadre del parte comprueba y que el papel no pedia.
-    # Van en la fila de aplicadas porque el formulario esta lleno: su capacidad
-    # es 7 renglones y ya usaba 7.
-    "Ya respondieron:", "Efectivas:"
+    "Ya respondieron:", "Efectivas:",
+    # Los tres campos nuevos: matriculados (impreso, viene del plan), menores
+    # de edad y observaciones (los dos en blanco, igual que el resto).
+    "N° de alumnos matriculados:", "Menores de edad:", "Observaciones:"
   ) %in% etiquetas))
 
   # La hoja no desdobla la aplicacion en fisico y virtual: es una sola cifra.
   expect_false(any(grepl("virtual|físico|fisico", etiquetas, ignore.case = TRUE)))
+
+  # El unico campo con dato pre-impreso es matriculados -viene del plan-; el
+  # resto sigue siendo espacio en blanco (sin `binding`) para llenar a mano.
+  con_binding <- Filter(function(r) {
+    any(vapply(r$fields, function(f) !is.null(f$binding), logical(1)))
+  }, rows)
+  expect_length(con_binding, 1L)
+  expect_identical(con_binding[[1]]$fields[[1]]$label, "N° de alumnos matriculados:")
+  expect_identical(con_binding[[1]]$fields[[1]]$binding, "unit.eligible_n")
+})
+
+test_that("matriculados se imprime desde el plan, no se deja en blanco para copiar a mano", {
+  skip_if_not_installed("png")
+  # Pedido de Gonzalo (2026-08-19), comparado contra un prototipo previo en
+  # Python: el total de alumnos matriculados ya lo conoce el plan antes de
+  # imprimir, asi que se imprime en vez de dejarse como una raya para llenar.
+  compiled <- .cfx_compiled(
+    collection_material_field_sheet_template(), dimensions = list(eligible_n = 42)
+  )
+  filas <- Filter(function(f) identical(f$binding, "unit.eligible_n"), unlist(
+    lapply(
+      Filter(function(b) identical(b$type, "form_lines"), compiled$pages[[1]]$blocks)[[1]]$rows,
+      function(r) r$fields
+    ),
+    recursive = FALSE
+  ))
+  expect_length(filas, 1L)
+  # El VALOR compilado -lo que el PDF va a imprimir- es el dato real, no un
+  # texto generico ni el binding crudo.
+  expect_identical(filas[[1]]$value, "42")
+
+  dir <- tempfile("cfx-matriculados-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  # El renglon impreso deja tinta (el numero) donde un renglon en blanco
+  # dejaria una sola raya angosta: se comprueba que hay tinta bien mas alla de
+  # donde termina la etiqueta, señal de que el valor SI se dibujo.
+  g <- .cfx_grey(png_path)
+  L <- prosecnurapp:::.cfc_layout()
+  idx <- which(vapply(
+    collection_material_field_form_rows(),
+    function(r) identical(r$fields[[1]]$binding %||% "", "unit.eligible_n"), logical(1)
+  ))
+  expect_length(idx, 1L)
+  y <- L$form_top - (idx[[1]] - 1L) * L$form_step
+  media <- L$form_step / 3
+  tramo <- g[max(1L, round((1 - (y + media)) * nrow(g))):min(nrow(g), round((1 - (y - media)) * nrow(g))), , drop = FALSE]
+  con_tinta <- which(apply(tramo < 0.5, 2, any))
+  expect_gt(length(con_tinta), 100L)
+})
+
+test_that("sin dato de matriculados, el renglon dice 'Sin dato' en vez de un vacio silencioso", {
+  # `.crf_txt(..., "Sin dato")` es el fallback existente de `eligible_n` -no
+  # se toca-, pero conviene confirmar que sigue vivo para este binding nuevo:
+  # una ficha sin ese dato imprime la palabra "SIN DATO", no deja el renglon
+  # en blanco sin explicar por que (que se leeria como un campo mas para
+  # llenar a mano, cuando en realidad es un dato que deberia venir del plan).
+  compiled <- .cfx_compiled(collection_material_field_sheet_template())
+  bloque <- Filter(function(b) identical(b$type, "form_lines"), compiled$pages[[1]]$blocks)[[1]]
+  fila <- Filter(function(r) {
+    any(vapply(r$fields, function(f) identical(f$binding %||% "", "unit.eligible_n"), logical(1)))
+  }, bloque$rows)
+  expect_length(fila, 1L)
+  expect_identical(fila[[1]]$fields[[1]]$value, "Sin dato")
 })
 
 test_that("el QR domina la pagina y se relee con la geometria de este layout", {
@@ -302,13 +370,13 @@ test_that("una etiqueta que se come su renglon avisa en vez de dibujar una raya 
   expect_collection_material_pdf_valid(pdf_path, rendered)
 })
 
-test_that("los cuatro numeros del cuadre no se pisan entre si", {
+test_that("los cuatro numeros de cada fila con cuatro campos no se pisan entre si", {
   skip_if_not_installed("png")
-  # La fila de aplicadas paso de dos campos a cuatro —el cuadre del parte
-  # necesita duplicados y efectivas— y el formulario esta lleno, asi que no
-  # habia sitio para una fila mas. El riesgo de meter cuatro donde habia dos es
-  # que las etiquetas se solapen: aqui se comprueba que siguen siendo bloques
-  # de tinta SEPARADOS.
+  # Dos filas llevan cuatro campos: el cuadre del parte (aplicadas/rechazos/
+  # ya respondieron/efectivas) y el conteo de asistencia (alumnos en aula/
+  # hombres/mujeres/menores de edad). El riesgo de meter cuatro donde antes
+  # habia menos es que las etiquetas se solapen: aqui se comprueba que las DOS
+  # filas siguen siendo bloques de tinta SEPARADOS, no solo una.
   compiled <- .cfx_compiled(collection_material_field_sheet_template())
   dir <- tempfile("cfx-cuatro-"); dir.create(dir)
   png_path <- file.path(dir, "ficha.png")
@@ -318,18 +386,20 @@ test_that("los cuatro numeros del cuadre no se pisan entre si", {
   L <- prosecnurapp:::.cfc_layout()
   filas <- collection_material_field_form_rows()
   idx <- which(vapply(filas, function(f) length(f$fields) == 4L, logical(1)))
-  expect_length(idx, 1L)
+  expect_length(idx, 2L)
 
-  y <- L$form_top - (idx[[1]] - 1L) * L$form_step
-  media <- L$form_step / 3
-  tramo <- g[max(1L, round((1 - (y + media)) * nrow(g))):min(nrow(g), round((1 - (y - media)) * nrow(g))), , drop = FALSE]
-  columnas <- which(apply(tramo < 0.5, 2, any))
-  expect_gt(length(columnas), 100L)
+  for (fila_idx in idx) {
+    y <- L$form_top - (fila_idx - 1L) * L$form_step
+    media <- L$form_step / 3
+    tramo <- g[max(1L, round((1 - (y + media)) * nrow(g))):min(nrow(g), round((1 - (y - media)) * nrow(g))), , drop = FALSE]
+    columnas <- which(apply(tramo < 0.5, 2, any))
+    expect_gt(length(columnas), 100L, label = sprintf("fila %d", fila_idx))
 
-  # Cuatro etiquetas separadas dejan al menos cuatro bloques de tinta. Si se
-  # pisaran, los bloques se fundirian en menos.
-  bloques <- length(which(diff(columnas) > 3L)) + 1L
-  expect_gte(bloques, 4L)
-  expect_gte(min(columnas), round(L$x_left * ncol(g)) - 4L)
-  expect_lte(max(columnas), round(L$x_right * ncol(g)) + 4L)
+    # Cuatro etiquetas separadas dejan al menos cuatro bloques de tinta. Si se
+    # pisaran, los bloques se fundirian en menos.
+    bloques <- length(which(diff(columnas) > 3L)) + 1L
+    expect_gte(bloques, 4L, label = sprintf("fila %d", fila_idx))
+    expect_gte(min(columnas), round(L$x_left * ncol(g)) - 4L, label = sprintf("fila %d", fila_idx))
+    expect_lte(max(columnas), round(L$x_right * ncol(g)) + 4L, label = sprintf("fila %d", fila_idx))
+  }
 })

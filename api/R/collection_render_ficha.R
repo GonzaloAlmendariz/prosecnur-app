@@ -247,6 +247,15 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
       )
     }
   }
+  if (identical(block$type, "form_lines")) {
+    out$rows <- lapply(block$rows %||% list(), function(row) {
+      cells <- lapply(row$fields %||% list(), function(cell) {
+        if (!.cc_is_scalar_string(cell$binding)) return(cell)
+        c(cell, list(value = .crf_binding_value(cell$binding, context)))
+      })
+      list(fields = cells)
+    })
+  }
   if (identical(block$type, "field_grid")) {
     out$rows <- lapply(block$fields %||% list(), function(field) {
       if (is.character(field)) field <- list(label = field, binding = field)
