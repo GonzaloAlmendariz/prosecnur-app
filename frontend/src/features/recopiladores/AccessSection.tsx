@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   apiRecopiladoresDeploymentPrepare,
@@ -162,6 +162,16 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
   const candidate = deploymentFromPreview(preview) ?? currentDeployment;
   const backendBlocking = preflight?.blocking ?? [];
   const blocked = localBlocking.length > 0 || backendBlocking.length > 0;
+
+  // Sin esto, editar CUALQUIER campo después de generar una vista previa no
+  // la invalidaba: "Guardar borrador"/"Preparar" seguían usando el
+  // deployment de la vista previa VIEJA (`deploymentFromPreview(preview)`),
+  // no lo que el usuario tiene tipeado ahora. Reproducido: Asset UID
+  // "assetORIGINAL" -> vista previa -> corregir a "assetEDITADO" sin volver
+  // a generar preview -> "Preparar" guardó igual "assetORIGINAL" en las 12
+  // unidades, sin ningún aviso de que el formulario tenía cambios sin
+  // reflejar.
+  useEffect(() => { setPreview(null); }, [target]);
 
   const changeAdapter = (next: CollectionAdapterId) => {
     setAdapterId(next);
