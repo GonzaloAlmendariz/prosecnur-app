@@ -3631,3 +3631,16 @@ selectedComp=totalComp, con lo que el letrero mezcla colecciones.
 DIAGNÓSTICO: volcar estratos de AMBOS componentes (fijas) + resultado
 por escenario y decidir; si H2, el letrero y el stepper deben apuntar
 al MISMO componente que el motor usa.
+
+### Las 12 fantasma resueltas — eran DOS defectos de fondo, no uno
+
+(1) **Los defaults de auditoría contaminaban todo estudio**: el
+espolvoreo incondicional inyectaba las decisiones Kamila 2025
+(cuota/sobremuestra/aulas fijas) en el modelo en memoria de cualquier
+estudio — el .pulso estaba limpio. Las decisiones ya no se espolvorean.
+(2) **H2 confirmada**: stepper y «¿un aula más?» (2 consumidores)
+escribían en facultyComp mientras el motor lee el componente ACTIVO —
+la fijación caía donde nadie leía. Ambos apuntan ahora a selectedComp.
+(3) El letrero reescrito en idioma de usuario (qué es fijar, qué
+implica, qué hacer). Vivo: carga sin fantasmas; click → 1 fijación
+real bien contada. 1559/1559.
