@@ -144,8 +144,11 @@ describe("los dos gráficos se leen como uno", () => {
     // Cuatro días aplicados y dos agendados: seis puntos en la línea del total.
     expect(puntos).toHaveLength(6);
     // Y cada uno dice lo que hay que saber sin bajar la vista al eje de días.
-    expect(acumulado).toMatch(/aria-label="\d{2}\/\d{2} · acumulado, .*encuestas/);
-    expect(acumulado).toContain("inferido de la agenda");
+    // El globo se pinta con colores en vez de palabras, asi que la palabra tiene
+    // que seguir viva en el `aria-label`: si el color sustituye al texto, el
+    // lector de pantalla no puede quedarse sin el.
+    expect(acumulado).toMatch(/aria-label="\d{2}\/\d{2}, \d+ \/ \d+/);
+    expect(acumulado).toContain("· inferido");
   });
 
   it("los dos lienzos tienen el mismo carril de eje, o el mismo día no cae en la misma vertical", () => {
@@ -183,14 +186,22 @@ describe("las dos líneas de sexo no suman la verde, y hay que decirlo", () => {
     // agosto y no el 10?». Porque el libro calla el reparto de esas aulas, no
     // porque no hubiera aulas: el 10/08 la verde ya valía 31. Eso tenía que
     // poder leerse en el gráfico, y no se podía.
-    expect(conLibroAMedias()).toContain("el libro todavía no declara el sexo de ninguna");
+    expect(conLibroAMedias()).toContain("sin sexo declarado todavía");
   });
 
   it("el hover del día con reparto da el desglose Y su cobertura", () => {
     const html = conLibroAMedias();
-    expect(html).toContain("8 mujeres · 6 hombres");
+    // **El color dice de quién es la cifra**, así que en el globo van los números
+    // solos con su punto. La palabra tiene que seguir viva en el `aria-label`, o
+    // el lector de pantalla se queda sin ella: un color no se oye.
+    //
+    // El globo en sí NO se puede comprobar aquí —sólo existe al posarse, y esto
+    // es un render estático—; sus puntos de color se verifican en pantalla. Lo
+    // que este archivo sujeta es que la información no se pierda al quitar las
+    // palabras, que es el riesgo del cambio.
+    expect(html).toMatch(/aria-label="[^"]*8 mujeres · 6 hombres/);
     // 14 de 49: las dos cifras de sexo NO suman lo conseguido.
-    expect(html).toContain("el libro declara el sexo en 14 de las 49");
+    expect(html).toMatch(/aria-label="[^"]*sexo en 14 de 49/);
   });
 
   it("cuando el reparto cubre menos que el total, la leyenda lo declara", () => {
@@ -202,8 +213,10 @@ describe("las dos líneas de sexo no suman la verde, y hay que decirlo", () => {
     const control = [{ operational_code: "A1", women_n: 8, men_n: 6 }] as unknown as MonitoreoRow[];
     const html = renderToStaticMarkup(
       <AulasSerieDeRendimiento partes={partes} control={control} />);
-    expect(html).toContain("sexo declarado en todas");
-    expect(html).not.toContain("sexo declarado en 14 de 14 encuestas");
+    // Cuando cubre todo NO se dice nada: en un globo que se lee de un vistazo,
+    // confirmar lo que no falta es ruido.
+    expect(html).not.toContain("sexo en 14 de 14");
+    expect(html).not.toContain("sin sexo declarado");
   });
 });
 

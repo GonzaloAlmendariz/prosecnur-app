@@ -3492,6 +3492,19 @@
   background: color-mix(in srgb, #b97611 10%, var(--pulso-surface));
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce b { font-weight: 700; }
+/* LA META, ROTULADA AL FINAL DE SU LINEA. Eran tres horizontales punteadas y
+ * habia que subir a la leyenda para saber cual era cual; la cifra va donde el ojo
+ * ya esta cuando sigue la linea. Fuera del area util, sobre el margen derecho. */
+.mon-profile-page.is-aulas-flow .aulas-serie-meta {
+  position: absolute; right: 0; transform: translateY(-50%);
+  padding: 0 2px 0 5px; z-index: 1; pointer-events: none; white-space: nowrap;
+  font-size: 9.5px; font-weight: 500; letter-spacing: 0.01em;
+  color: var(--aulas-serie-color, var(--pulso-text-faint));
+  background: var(--pulso-surface);
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-meta b {
+  font-weight: 700; font-variant-numeric: tabular-nums;
+}
 .mon-profile-page.is-aulas-flow .aulas-serie-punto {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
   transform: translate(-50%, -50%); cursor: help;
@@ -3511,10 +3524,49 @@
   background: var(--pulso-surface); box-shadow: 0 6px 18px rgba(16, 24, 40, 0.14);
   font-size: 11px; line-height: 1.35; white-space: nowrap; pointer-events: none;
 }
+/* En los extremos del eje el globo se ancla por el lado que CABE: centrado, su
+ * mitad se sale del lienzo y el borde del panel lo recorta. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista.es-derecha {
+  transform: translate(calc(-100% + 12px), calc(-100% - 12px));
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista.es-izquierda {
+  transform: translate(-12px, calc(-100% - 12px));
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-derecha {
+  transform: translate(calc(-100% + 10px), calc(-100% - 10px));
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-izquierda {
+  transform: translate(-10px, calc(-100% - 10px));
+}
+/* La FECHA manda: es lo primero que se busca al posarse. */
 .mon-profile-page.is-aulas-flow .aulas-serie-pista span:first-child {
   font-weight: 650; color: var(--pulso-text);
+  font-size: var(--aulas-serie-min); letter-spacing: 0.02em;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-pista span { color: var(--pulso-text-soft); }
+/* La cifra grande, que es la respuesta. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista span:nth-child(2) {
+  font-size: 12.5px; font-weight: 600; color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+/* **El color dice de quien es la cifra**, asi que la palabra sobra. Cada una con
+ * su punto del color de su serie. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-cifras {
+  display: flex; gap: 12px; margin-top: 1px;
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-cifras b {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--aulas-serie-color, var(--pulso-text));
+}
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-cifras b::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--aulas-serie-color, var(--pulso-border-strong));
+}
+/* Lo que matiza, mas pequeño y mas tenue: nunca compite con la cifra. */
+.mon-profile-page.is-aulas-flow .aulas-serie-pista .es-tenue {
+  font-size: 9.5px; color: var(--pulso-text-faint); margin-top: 1px;
+}
 .mon-profile-page.is-aulas-flow .aulas-serie-punto:hover { transform: translate(-50%, -50%) scale(1.4); }
 
 /* El eje por dia: una marca por fecha, alineada con el lienzo. */

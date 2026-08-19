@@ -84,6 +84,28 @@ export function esDomingo(fecha: string): boolean {
   return new Date(`${fecha}T00:00:00Z`).getUTCDay() === 0;
 }
 
+/**
+ * Un trozo del globo del hover.
+ *
+ * Era una lista de cadenas y salian cinco lineas de texto plano. Gonzalo: «el
+ * hover puede ser mas minimalista y hacer uso de los colores para referenciar
+ * hombres y mujeres». Con un punto del color de la serie, la cifra ya dice de
+ * quien es y la palabra sobra —y con ella, la linea entera—.
+ */
+type TrozoDePista =
+  | string
+  /** Una fila de cifras con su color: `● 1 366   ● 995`. */
+  | { cifras: Array<{ valor: string; color: string; de: string }> }
+  /** Texto secundario, mas tenue y mas pequeño. */
+  | { tenue: string };
+
+/** Lo que lee un lector de pantalla: el globo pintado, en palabras. */
+function pistaEnPalabras(trozos: ReadonlyArray<TrozoDePista>): string {
+  return trozos.map((t) => (typeof t === "string" ? t
+    : "tenue" in t ? t.tenue
+      : t.cifras.map((c) => `${c.valor} ${c.de}`).join(" · "))).join(", ");
+}
+
 export function escalaDeEje(maximo: number): { tope: number; escalones: number[] } {
   const bruto = Math.max(1, maximo);
   const magnitud = Math.pow(10, Math.floor(Math.log10(bruto / 4)));
@@ -128,7 +150,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   // en un punto de 7 px es casi imposible de acertar: «el hover tiene que
   // funcionar en los gráficos».
   const [pista, setPista] = useState<
-    { x: number; y: number; lineas: string[]; bloque: "acumulado" | "diario" } | null
+    { x: number; y: number; lineas: TrozoDePista[]; bloque: "acumulado" | "diario" } | null
   >(null);
 
   if (!modelo.fechas.length || !modelo.facultades.length) {
@@ -289,7 +311,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
 
   const acumulado = ((): null | {
     tope: number; escalones: number[]; meta: number; y: (v: number) => number; observado: string;
-    puntos: Array<{ x: number; y: number; inferido: boolean; lineas: string[] }>;
+    puntos: Array<{ x: number; y: number; inferido: boolean; lineas: TrozoDePista[] }>;
     cubiertasPorSexo: number | null;
     conseguidasEnTotal: number;
     cruce: { x: number; y: number; fecha: string; inferido: boolean } | null;
@@ -492,29 +514,33 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         ...observadas.map((v, i) => ({
           x: xa(i), y: yy(v), inferido: false,
           lineas: [
-            `${dm(aplicadas[i])} · acumulado`,
-            `${fmt(Math.round(v))} de ${fmt(meta)} encuestas`,
-            v >= meta ? "meta alcanzada" : `faltan ${fmt(Math.ceil(meta - v))}`,
-            // El desglose SIEMPRE, y con su cobertura: las dos cifras de sexo no
-            // suman el total porque el reparto sólo se conoce donde el libro lo
-            // declara. Callarlo dejaba creer que sí sumaban.
+            dm(aplicadas[i]),
+            `${fmt(Math.round(v))} / ${fmt(meta)}${v >= meta ? " ✓" : ` · faltan ${fmt(Math.ceil(meta - v))}`}`,
+            // **El desglose por color, no por palabra.** Decía «1 366 mujeres ·
+            // 995 hombres» y con el punto del color de la serie la cifra ya dice
+            // de quién es: se van dos palabras y, con la cobertura a una línea
+            // tenue, dos de las cinco líneas del globo.
             ...(acumM[i] != null
               ? [
-                `${fmt(acumM[i]!)} mujeres · ${fmt(acumH[i] ?? 0)} hombres`,
-                (conSexo[i] ?? 0) < Math.round(v)
-                  ? `el libro declara el sexo en ${fmt(conSexo[i] ?? 0)} de las ${fmt(Math.round(v))}`
-                  : "sexo declarado en todas",
+                { cifras: [
+                  { valor: fmt(acumM[i]!), color: colorDeSexo("Mujer"), de: "mujeres" },
+                  { valor: fmt(acumH[i] ?? 0), color: colorDeSexo("Hombre"), de: "hombres" },
+                ] },
+                // La cobertura sólo cuando NO cubre todo: si cubre, decirlo es
+                // ruido en un globo que se lee de un vistazo.
+                ...((conSexo[i] ?? 0) < Math.round(v)
+                  ? [{ tenue: `sexo en ${fmt(conSexo[i] ?? 0)} de ${fmt(Math.round(v))}` }]
+                  : []),
               ]
-              : ["el libro todavía no declara el sexo de ninguna"]),
-          ],
+              : [{ tenue: "sin sexo declarado todavía" }]),
+          ] as TrozoDePista[],
         })),
         ...proyectadas.map((v, i) => ({
           x: xp(i), y: yy(v), inferido: true,
           lineas: [
-            `${dm(porVenir[i])} · inferido de la agenda`,
-            `~${personasProyectadas(v)} de ${fmt(meta)} encuestas`,
-            v >= meta ? "con lo agendado se pasa de la meta" : `quedarian ${fmt(Math.ceil(meta - v))} por debajo`,
-          ],
+            `${dm(porVenir[i])} · inferido`,
+            `~${personasProyectadas(v)} / ${fmt(meta)}${v >= meta ? " ✓" : ` · faltarían ${fmt(Math.ceil(meta - v))}`}`,
+          ] as TrozoDePista[],
         })),
       ],
       metasSeñaladas, hayObservadasPorSexo: hayObservadasPorSexo || hayLibroPorSexo,
@@ -523,6 +549,31 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         : `Acumulado del estudio: ${Math.round(ultimo)} de ${meta}`,
     };
   })();
+
+  /**
+   * De qué lado se ancla un globo según dónde caiga en el eje.
+   *
+   * Centrado (`translate(-50%)`) es lo correcto en medio, pero en los extremos
+   * **la mitad del globo se sale del lienzo y se recorta**: con el punto a 96 %
+   * la pista del último día agendado salía cortada por el borde del panel. Cerca
+   * de un borde se ancla por el lado que cabe.
+   */
+  const anclaje = (x: number) => (x > 78 ? " es-derecha" : x < 22 ? " es-izquierda" : "");
+
+  /** Pinta un trozo del globo: texto, texto tenue, o cifras con su color. */
+  const trozo = (t: TrozoDePista, k: number) => {
+    if (typeof t === "string") return <span key={k}>{t}</span>;
+    if ("tenue" in t) return <span key={k} className="es-tenue">{t.tenue}</span>;
+    return (
+      <span key={k} className="es-cifras">
+        {t.cifras.map((c) => (
+          <b key={c.de} style={{ "--aulas-serie-color": c.color } as React.CSSProperties}>
+            {c.valor}
+          </b>
+        ))}
+      </span>
+    );
+  };
 
   /** Lo que dice la pista de un día ya aplicado: el techo y lo conseguido. */
   const lineasDelDia = (d: { fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null }) => [
@@ -751,9 +802,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {pista ? (
               <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
             ) : null}
+            {[
+              { clave: "total", valor: acumulado.meta, color: "var(--pulso-text-faint)", que: "Meta" },
+              ...acumulado.metasSeñaladas.map((se) => ({
+                clave: se.sexo, valor: se.meta, color: se.color, que: sexSeriesLabel(se.sexo),
+              })),
+            ].filter((m) => m.valor > 0).map((m) => (
+              <span key={`meta-${m.clave}`} className="aulas-serie-meta"
+                style={{
+                  top: `${acumulado.y(m.valor)}%`,
+                  "--aulas-serie-color": m.color,
+                } as React.CSSProperties}>
+                {m.que} <b>{fmt(m.valor)}</b>
+              </span>
+            ))}
             {acumulado.cruce ? (
               <span
-                className={`aulas-serie-cruce${acumulado.cruce.inferido ? " es-inferido" : ""}`}
+                className={`aulas-serie-cruce${acumulado.cruce.inferido ? " es-inferido" : ""}${anclaje(acumulado.cruce.x)}`}
                 style={{ left: `${acumulado.cruce.x}%`, top: `${acumulado.cruce.y}%` }}
               >
                 {acumulado.cruce.inferido ? "llegaría el " : "meta alcanzada el "}
@@ -763,7 +828,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             {acumulado.puntos.map((pt, i) => (
               <span key={`acum-${i}`}
                 className={`aulas-serie-punto${pt.inferido ? " es-inferido" : ""}`}
-                tabIndex={0} role="img" aria-label={pt.lineas.join(", ")}
+                tabIndex={0} role="img" aria-label={pistaEnPalabras(pt.lineas)}
                 style={{ left: `${pt.x}%`, top: `${pt.y}%` }}
                 onMouseEnter={() => setPista({ ...pt, bloque: "acumulado" })}
                 onFocus={() => setPista({ ...pt, bloque: "acumulado" })}
@@ -771,9 +836,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 onBlur={() => setPista(null)} />
             ))}
             {pista && pista.bloque === "acumulado" ? (
-              <div className="aulas-serie-pista" role="status"
+              <div className={`aulas-serie-pista${anclaje(pista.x)}`} role="status"
                 style={{ left: `${pista.x}%`, top: `${pista.y}%` }}>
-                {pista.lineas.map((l, k) => <span key={k}>{l}</span>)}
+                {pista.lineas.map(trozo)}
               </div>
             ) : null}
           </div>
@@ -967,7 +1032,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             return (
               <span key={d.fecha} className="aulas-serie-punto es-inferido" tabIndex={0} role="img"
                 style={{ left: `${px}%`, top: `${py}%` }}
-                aria-label={lineas.join(", ")}
+                aria-label={pistaEnPalabras(lineas)}
                 onMouseEnter={() => setPista({ x: px, y: py, lineas, bloque: "diario" })}
                 onFocus={() => setPista({ x: px, y: py, lineas, bloque: "diario" })}
                 onMouseLeave={() => setPista(null)}
@@ -978,9 +1043,9 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             <span className="aulas-serie-guia" style={{ left: `${pista.x}%` }} />
           ) : null}
           {pista && pista.bloque === "diario" ? (
-            <div className="aulas-serie-pista" role="status"
+            <div className={`aulas-serie-pista${anclaje(pista.x)}`} role="status"
               style={{ left: `${pista.x}%`, top: `${pista.y}%` }}>
-              {pista.lineas.map((l, k) => <span key={k}>{l}</span>)}
+              {pista.lineas.map(trozo)}
             </div>
           ) : null}
         </div>
