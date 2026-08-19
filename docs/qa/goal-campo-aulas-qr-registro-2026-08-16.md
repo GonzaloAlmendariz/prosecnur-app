@@ -2121,3 +2121,46 @@ de dibujar una línea plana.
 **5. Un prior fijo y explicado vale más que uno estimado.** Estimarlo por
 momentos daría un valor distinto cada corte y haría el ranking inestable de un
 día para otro.
+
+
+## 2026-08-19 — Las tres últimas preguntas, y el gate que dijo que sí
+
+| | Etapa | Commit | En una frase |
+|---|---|---|---|
+| L135 | P4 · qué medio agenda mejor | `adf474a4` · `c38225e4` | Llamada **80 %** con **2** intentos de mediana, correo **65 %** con **3**, en el libro real. Pestaña **Contacto** en Agenda. |
+| L136 | P17 · el aula real | `b8e462c4` | **30 de 210** aplicadas en otro salón. La trampa era el FORMATO: texto descriptivo contra código, que comparado entero da 100 % de discrepancia. |
+| L137 | P2 · la cola de contacto | `6271b8b2` | Los pendientes por intentos, y **el esfuerzo gastado cuando la cola está vacía**: Educación costó 6 intentos de mediana y Publicidad 3. |
+| L138 | La pestaña que desbordaba | `ac9ec0b3` | A 1024×600: sección de 54 px, bloque de medios en CERO, 421 px sin dueño de scroll — **con el gate en `ok=true`**. |
+
+### L139 — La lección de la tanda: el gate descarta hipótesis, no las confirma
+
+**Dos veces esta noche un `ok=true` convivió con una vista rota**: la ventana de
+104 px de la ruta por facultad y el desbordamiento sin dueño de la pestaña
+Contacto. Las dos se cazaron igual — **midiendo alturas en el navegador después
+del verde**.
+
+Y la razón es estructural, no un fallo del runner: **un contenido que desborda
+sin dueño de scroll no viola ningún grupo declarado ni tiene recorrido que
+auditar**. Para el gate no hay nada que medir. Un `ok=true` significa «no
+encontré lo que sé buscar».
+
+De ahí la regla operativa: **después de un verde sobre una superficie nueva,
+medir a mano el alto de sus paneles y quién posee el scroll**. Cuesta una
+llamada y es donde han salido los dos peores defectos de layout de la serie.
+
+### L140 — Una trampa del dato que vale por sí sola
+
+La media de intentos del correo en el libro real sale **19,65**; la mediana, **3**.
+La diferencia son **fechas de Excel coladas en la columna** —45909, 23252—.
+Creerse la media llevaría a **prohibir el correo**; el dato real dice «prefiere
+llamar cuando puedas». **Dos decisiones operativas opuestas separadas por una
+línea de filtrado.**
+
+Por eso el panel enseña la MEDIANA y lo dice, con un tope de cordura que descarta
+lo imposible **y cuenta el descarte**, para que no parezca que el dato estaba
+limpio.
+
+### Las 14 preguntas sin contestar están en 0
+
+De las 30 del inventario: 30 contestadas. Ocho se cerraron en la tanda del
+rendimiento y las tres últimas —P4, P17 y P2— en ésta.
