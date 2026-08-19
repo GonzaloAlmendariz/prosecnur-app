@@ -96,6 +96,19 @@ export function RecopiladoresShell() {
     }
   }, []);
 
+  // `refresh()` alterna `loading`, y `!loading` desmonta la sección activa
+  // (abajo). Para un refresco que dispara la sección misma —terminó un
+  // render de Materiales, no cambió de proyecto— desmontarla le borra su
+  // propio estado (jobId, renderResult, instancias) a mitad de mostrar el
+  // resultado. `refreshSilent` actualiza `payload` sin tocar `loading`.
+  const refreshSilent = useCallback(async () => {
+    try {
+      setPayload(await apiRecopiladoresState());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo leer Recopiladores.");
+    }
+  }, []);
+
   useEffect(() => { void refresh(); }, [refresh]);
 
   useEffect(() => {
@@ -274,7 +287,7 @@ export function RecopiladoresShell() {
             <MaterialsSection
               payload={payload}
               activeTab={direction.pestana}
-              onStateRefresh={refresh}
+              onStateRefresh={refreshSilent}
               onArtifact={setLatestArtifact}
               onCargando={setSeccionCargando}
             />
