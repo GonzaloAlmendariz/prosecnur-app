@@ -164,6 +164,7 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
             key={block.block_id}
             type="button"
             className={`rec-canvas-block is-${block.type}${selectedId === block.block_id ? " is-selected" : ""}`}
+            aria-current={selectedId === block.block_id ? "true" : undefined}
             onClick={() => onSelect(block.block_id)}
           >
             <span>{BLOCK_LABELS[block.type]}</span>
@@ -398,7 +399,12 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         <header><span>Outline</span><strong>{blocks.length} bloques</strong></header>
         <ol>{blocks.map((block, index) => (
           <li key={block.block_id}>
-            <button type="button" className={selected?.block_id === block.block_id ? "is-selected" : ""} onClick={() => setSelectedId(block.block_id)}>
+            <button
+              type="button"
+              className={selected?.block_id === block.block_id ? "is-selected" : ""}
+              aria-current={selected?.block_id === block.block_id ? "true" : undefined}
+              onClick={() => setSelectedId(block.block_id)}
+            >
               <span>{index + 1}</span><div><strong>{BLOCK_LABELS[block.type]}</strong><small>{block.block_id}</small></div>
             </button>
           </li>
