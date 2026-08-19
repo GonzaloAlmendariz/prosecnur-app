@@ -63,9 +63,10 @@ test_that("la ficha de campo declara su propio preset y no el de la ficha de pla
     hit <- Filter(function(b) identical(b$block_id, id), template$pages[[1]]$blocks)
     if (length(hit)) hit[[1]] else NULL
   }
-  # El titulo es el id del colector y el pie nombra el estudio. La careta va
-  # centrada, no arrimada al margen.
-  expect_identical(bloque("titulo")$binding, "access.logical_collector_id")
+  # El titulo es la etiqueta legible de la unidad (no el id logico del
+  # colector: ese cae en un hash para el origen de aulas, ver V7) y el pie
+  # nombra el estudio. La careta va centrada, no arrimada al margen.
+  expect_identical(bloque("titulo")$binding, "unit.label")
   expect_identical(bloque("footer")$binding, "project.name")
   expect_identical(bloque("careta")$align, "center")
 
@@ -91,6 +92,50 @@ test_that("la ficha de campo declara su propio preset y no el de la ficha de pla
   intruso$template_sha256 <- NULL
   intruso$template_sha256 <- collection_fingerprint(intruso)
   expect_true("block_not_in_preset" %in% .cfx_codes(collection_material_template_validate(intruso)))
+})
+
+test_that("V7 el titulo de la ficha de campo es legible, no el hash del origen legacy", {
+  # Los tests de arriba usan .cfx_compiled(), cuyo fixture SIEMPRE pone un
+  # logical_collector_id legible a mano ("PILOTO_2026") -asi nunca vieron el
+  # caso real-. Este test reproduce el origen legacy de aulas de punta a
+  # punta (igual que sim_aulas_qr_campo.R), donde nadie llena
+  # logical_collector_id y el motor cae en .collection_stable_id(), un hash
+  # opaco. Confirma que el titulo IMPRESO usa la etiqueta legible de la
+  # unidad, no ese hash.
+  sid <- session_create()
+  on.exit(session_delete(sid), add = TRUE)
+  session_set(sid, "monitoreo_aulas_plan", list(list(
+    selection_run_id = "sel-v7", operational_code = "AULA-09", classroom_id = "AULA-09",
+    label = "AULA-09", wave = "M1", faculty = "Ingeniería",
+    link = "https://kf.kobotoolbox.org/x/asset1?d%5BcollectorID%5D=AULA-09"
+  )))
+  seeded <- collection_state_seed(sid)
+  unit_id <- seeded$plan$units[[1]]$unit_id
+  binding <- seeded$deployment$bindings[[1]]
+  # El hallazgo en una linea: el id logico NO es "AULA-09", es un hash.
+  expect_false(identical(binding$logical_collector_id, "AULA-09"))
+  expect_match(binding$logical_collector_id, "^logical-")
+
+  template <- collection_material_field_sheet_template()
+  instance <- list(
+    schema = COLLECTION_MATERIAL_INSTANCE_SCHEMA, instance_id = "m-v7",
+    template_ref = list(template_id = template$template_id, revision = 1L, sha256 = template$template_sha256),
+    deployment_id = seeded$deployment$deployment_id,
+    deployment_fingerprint = collection_fingerprint(seeded$deployment),
+    access_fingerprint = collection_fingerprint(seeded$deployment$bindings),
+    instance_fingerprint = collection_fingerprint("m-v7"),
+    unit_refs = list(unit_id), access_refs = list(binding$access_id),
+    locale = "es-PE", status = "ready", sensitivity = "operational", warnings = list()
+  )
+  compiled <- collection_material_compile(
+    template, instance, project = list(name = "Estudio V7", period = "Piloto"),
+    plan = seeded$plan, deployment = seeded$deployment
+  )
+  titulo <- .crf_block(compiled$pages[[1]], "heading")
+  # El VALOR compilado de verdad -lo que el PDF va a imprimir- es la
+  # etiqueta legible, no el hash del id logico.
+  expect_identical(titulo$value, "AULA-09")
+  expect_false(grepl("^logical-", titulo$value, fixed = FALSE))
 })
 
 test_that("los renglones del formulario tienen que caber en su propio ancho", {
@@ -157,12 +202,12 @@ test_that("el QR domina la pagina y se relee con la geometria de este layout", {
   ))
 })
 
-test_that("el titulo es el id del colector, centrado y debajo del QR", {
+test_that("el titulo es la etiqueta de la unidad, centrado y debajo del QR", {
   skip_if_not_installed("png")
-  compiled <- .cfx_compiled(collection_material_field_sheet_template(), collector = "PILOTO_2026")
+  compiled <- .cfx_compiled(collection_material_field_sheet_template())
   expect_identical(
     Filter(function(b) identical(b$block_id, "titulo"), compiled$pages[[1]]$blocks)[[1]]$value,
-    "PILOTO_2026"
+    "Rotulo de la unidad"
   )
 
   dir <- tempfile("cfx-title-"); dir.create(dir)
@@ -185,8 +230,13 @@ test_that("el titulo es el id del colector, centrado y debajo del QR", {
   expect_gt(fila, qr_abajo)
 })
 
-test_that("sin id de colector la hoja se cae al rotulo de la unidad y avisa", {
-  compiled <- .cfx_compiled(collection_material_field_sheet_template(), collector = "")
+test_that("con el binding avanzado al id de colector, si sale vacio se cae al rotulo y avisa", {
+  # unit.label (el default desde V7) siempre viene lleno -es obligatorio en
+  # collection_plan/v1-, asi que este fallback ya no se ejercita con el
+  # default. Sigue vivo para quien elija el binding avanzado
+  # access.logical_collector_id a proposito y ese campo llegue vacio.
+  template <- collection_material_field_sheet_template(title_binding = "access.logical_collector_id")
+  compiled <- .cfx_compiled(template, collector = "")
   dir <- tempfile("cfx-notitle-"); dir.create(dir)
   rendered <- collection_material_render_compiled(
     compiled, file.path(dir, "sin.pdf"), device = "pdf"
