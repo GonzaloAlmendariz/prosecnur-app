@@ -804,8 +804,6 @@
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(15) { animation-delay: 280ms; }
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(n + 16) { animation-delay: 300ms; }
 
-  /* --- Grafo de repetidos: nodos encendidos en orden de lectura --------------- */
-  .cmv2-aulas-overlap-svg > g:nth-of-type(n + 8) { animation-delay: 210ms; }
 }
 
 /* --- Reemplazos: expansión de cadenas ("Ver todas las cadenas (N)") ----------
