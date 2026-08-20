@@ -2112,9 +2112,23 @@
   display: grid;
   gap: 1px;
   min-width: 0;
+  /* Los nombres largos se salian de la caja. `min-width: 0` deja que la celda
+     se encoja, pero sin esto el CONTENIDO sigue pintandose fuera. */
+  overflow: hidden;
   color: var(--pulso-text);
   font-size: var(--aulas-txt);
   font-weight: var(--pulso-weight-medium);
+}
+
+/* Nombre y cuenta, cada uno en una linea y con elipsis. Sin `nowrap` el nombre
+   envolveria a dos lineas y la fila creceria: el marco no puede depender del
+   largo del nombre de una facultad (C2). */
+.mon-profile-page.is-aulas-flow .aulas-facultad-rotulo,
+.mon-profile-page.is-aulas-flow .aulas-facultad-nombre em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-nombre em {
