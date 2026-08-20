@@ -1332,6 +1332,39 @@ function renderAulasView(
         data-qa-geometry-contract="intrinsic"
       >
         <div className="mon-profile-panel-head">
+          {/* La cuarta unidad de esfuerzo, y la única sobre la que el equipo
+              decide al agendar: la hora la pone el curso, el aplicador lo pone
+              la asignación, la facultad la pone la muestra — el día se elige.
+
+              Y no es una curiosidad: el pronóstico de cierre proyecta «al ritmo
+              observado de N aulas por día de campo», o sea tratando todos los
+              días como iguales. Si un martes rinde el doble que un viernes, dos
+              agendas con el mismo número de aulas dan resultados distintos.
+
+              El título nombra la unidad y no termina como ningún otro, que es
+              la regla que el guard de títulos sujeta. */}
+          <h3>Día de la semana</h3>
+          <span>encuestas por aula, según qué día se aplicó</span>
+        </div>
+        <AulasRendimientoPorFacultad
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+          plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          clave="dia_semana"
+          unidad="Día"
+          explicaLasColumnas={false}
+        />
+      </section>
+      )}
+      {pestana !== "rendimiento" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
           {/* El ritmo del estudio entero ya existe en Resumen; éste dice QUIÉN
               lo sostiene y quién se paró. «Siempre todo es por facultad». */}
           {/* «Encuestas por día» y no «ritmo» a secas: el panel de arriba también

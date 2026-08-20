@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
-import { franjaDeAplicacion, rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { diaDeSemanaDeAplicacion, franjaDeAplicacion, rendimientoPorFacultad } from "./rendimientoPorFacultad";
 
 const parte = (f: Partial<MonitoreoRow>) => f as MonitoreoRow;
 
@@ -153,5 +153,47 @@ describe("el panel nombra de qué fuente son sus encuestas", () => {
     const cuerpo = bloque.slice(0, bloque.indexOf("\n}"));
     expect(cuerpo).toContain("respuestas de Kobo que pasan el filtro");
     expect(cuerpo).toContain("de Kobo · ninguna atribuida a un curso-horario");
+  });
+});
+
+describe("la cuarta unidad de esfuerzo: el día de la semana", () => {
+  // El pronóstico de cierre proyecta «al ritmo observado de N aulas por día de
+  // campo», o sea tratando todos los días como iguales. Hay panel para la hora
+  // del día y no lo había para el día, que es la única de las cuatro sobre la
+  // que el equipo decide al agendar: la hora la pone el curso, el aplicador la
+  // asignación y la facultad la muestra.
+  const parte = (applied_at: string, efectivas: number) =>
+    ({ operational_code: `CH ${applied_at}${efectivas}`, applied_at,
+       effective_surveys: efectivas, observed_students: efectivas + 2 }) as unknown as MonitoreoRow;
+
+  it("nombra el día correcto, en UTC", () => {
+    // 2026-08-16 es domingo; el 17, lunes. En hora local, una aplicación a las
+    // 00:30 caería en el día anterior al oeste de Greenwich.
+    expect(diaDeSemanaDeAplicacion("2026-08-16")).toBe("Domingo");
+    expect(diaDeSemanaDeAplicacion("2026-08-17 08:00")).toBe("Lunes");
+    expect(diaDeSemanaDeAplicacion("2026-08-21T23:59:00")).toBe("Viernes");
+  });
+
+  it("sin fecha no inventa un día", () => {
+    expect(diaDeSemanaDeAplicacion("")).toBe("Sin fecha");
+    expect(diaDeSemanaDeAplicacion("mañana")).toBe("Sin fecha");
+    expect(diaDeSemanaDeAplicacion(null)).toBe("Sin fecha");
+  });
+
+  it("agrupa los partes por su día y ordena por lo que deja cada visita", () => {
+    const filas = rendimientoPorFacultad([
+      parte("2026-08-17", 10), parte("2026-08-17", 20),  // lunes: 15 por aula
+      parte("2026-08-21", 40),                            // viernes: 40 por aula
+    ], [], "dia_semana");
+    expect(filas.map((f) => f.facultad)).toEqual(["Viernes", "Lunes"]);
+    expect(filas[0].porAula).toBe(40);
+    expect(filas[1].porAula).toBe(15);
+  });
+
+  it("si un parte cae en domingo, se dice: no se esconde", () => {
+    // El domingo no se aplica, pero un parte que diga domingo es un dato del
+    // libro y esconderlo dejaría aulas fuera de la cuenta sin avisar.
+    const filas = rendimientoPorFacultad([parte("2026-08-16", 5)], [], "dia_semana");
+    expect(filas.map((f) => f.facultad)).toEqual(["Domingo"]);
   });
 });
