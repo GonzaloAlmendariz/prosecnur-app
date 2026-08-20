@@ -118,7 +118,11 @@ describe("ficha por facultad", () => {
     expect(f.pasos).toHaveLength(7);
     expect(f.pasos[0]).toMatchObject({ n: 1, hoy: 225, antes: 225 });
     expect(f.pasos[1]).toMatchObject({ n: 2, hoy: 26, antes: 25 });
-    expect(f.pasos[2]).toMatchObject({ n: 3, hoy: 12, antes: 9 });
+    // Sin fallback a sorteadas: 9 es lo SORTEADO (otro paso del embudo) y la
+    // referencia real trae aulas_universo=NA en las 15 — el fallback corria
+    // siempre y fabricaba deltas absurdos (A&D 228 vs 12 «+216»). Sin marco
+    // por facultad registrado, la columna dice «—».
+    expect(f.pasos[2]).toMatchObject({ n: 3, hoy: 12, antes: null });
     expect(f.pasos[4]).toMatchObject({ n: 5, hoy: 4, antes: 4 });
     // Paso 7: sin selección corrida el hoy es null (jamás 0); el antes son
     // los titulares del histórico si la referencia los trae.
