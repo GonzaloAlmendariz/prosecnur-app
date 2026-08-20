@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { fmtInt } from "../../sharedCore";
+import { tip, tipAria, useTooltipGrafico, type TooltipDatos } from "../shared/graficos/TooltipGrafico";
 import { seleccionPorFacultad, type CadenaTitular } from "./seleccionPorFacultadModel";
 import "./seleccionPorFacultad.css";
 
@@ -34,6 +35,31 @@ function FilaAula({
   onSelect?: (fila: Fila) => void;
 }) {
   const esperadas = numOrNull(fila.efectivas_esperadas);
+  const el = numOrNull(fila.eligible_n) ?? 0;
+  const p = numOrNull(fila.p_aplicada_ref);
+  const r = numOrNull(fila.rendimiento_ref);
+  // La cuenta del valor de validez, aula por aula — Gonzalo (2026-08-20): «de
+  // veinticuatro elegibles van a haber doce; ese es el valor de validez, y
+  // tiene que estar claro». La lee la delegación del <ul> padre.
+  const desglose: TooltipDatos | null =
+    esperadas != null && p != null && r != null
+      ? {
+          titulo: texto(fila.course_name) || texto(fila.course_id),
+          filas: [
+            { label: "Elegibles sentados", valor: fmtInt(el) },
+            {
+              label: `Deja aplicar (${texto(fila.teacher_type).toLowerCase() || "docente sin tipo"})`,
+              valor: `${Math.round(p * 100)} %`,
+            },
+            { label: `Rinde (aula de ${fmtInt(el)} elegibles)`, valor: `${Math.round(r * 100)} %` },
+            { label: "Efectivas esperadas", valor: fmtInt(Math.round(esperadas)) },
+          ],
+          nota: `${fmtInt(el)} × ${p.toFixed(2).replace(".", ",")} × ${r
+            .toFixed(2)
+            .replace(".", ",")} → ${fmtInt(Math.round(esperadas))} — el valor de validez con el que Monitoreo juzga esta aula en campo`,
+          tono: "efectiva",
+        }
+      : null;
   return (
     <button
       type="button"
@@ -50,11 +76,14 @@ function FilaAula({
           {texto(fila.teacher) ? ` · ${texto(fila.teacher)}` : ""}
         </small>
       </span>
-      <span className="cmv2-selfac-cifras">
-        <span title="Alumnos elegibles sentados en el aula">
-          {fmtInt(numOrNull(fila.eligible_n) ?? 0)} <small>elegibles</small>
+      <span
+        className="cmv2-selfac-cifras"
+        {...(desglose ? { ...tip(desglose), "aria-label": tipAria(desglose) } : {})}
+      >
+        <span>
+          {fmtInt(el)} <small>elegibles</small>
         </span>
-        <span title="Efectivas que el diseño espera de esta aula (elegibles × tasa del docente × rendimiento del tamaño)">
+        <span>
           {esperadas != null ? fmtInt(Math.round(esperadas)) : "—"} <small>esperadas</small>
         </span>
       </span>
@@ -125,6 +154,7 @@ export function SeleccionPorFacultadCard({
   const facultades = useMemo(() => seleccionPorFacultad(rows), [rows]);
   const [activa, setActiva] = useState<string>("");
   const [query, setQuery] = useState("");
+  const { manejadores, tooltip } = useTooltipGrafico();
   if (!facultades.length) return null;
   const facultadActiva =
     facultades.find((f) => f.facultad === activa) ?? facultades[0];
@@ -169,7 +199,7 @@ export function SeleccionPorFacultadCard({
           />
         </label>
       </div>
-      <ul className="cmv2-selfac-lista">
+      <ul className="cmv2-selfac-lista" {...manejadores}>
         {titularesVisibles.map((c) => (
           <CadenaFila
             key={texto(c.titular.classroom_id)}
@@ -184,6 +214,7 @@ export function SeleccionPorFacultadCard({
           Ningún titular de {facultadActiva.facultad} coincide con «{query}».
         </p>
       )}
+      {tooltip}
     </section>
   );
 }
