@@ -115,16 +115,26 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
   }
   eleg_por_fac <- list()
   aulas_por_fac <- list()
+  esp_por_fac <- list()
+  esp_aulas_fac <- list()
   titulares_fk <- character(0)
   if (nrow(titulares) && "faculty" %in% names(titulares)) {
     titulares_fk <- .cm_criterios_fac_key(as.character(titulares$faculty))
     el <- suppressWarnings(as.numeric(titulares$eligible_n))
     el[!is.finite(el)] <- 0
+    # Plan 1b/E4: el metodo canonico suma las EFECTIVAS ESPERADAS por aula
+    # (elegibles x tasa de efectividad del aula, V7). La tasa plana queda como
+    # fallback DECLARADO para payloads sin la columna.
+    ee <- suppressWarnings(as.numeric(titulares$efectivas_esperadas %||% rep(NA_real_, nrow(titulares))))
     for (i in seq_along(titulares_fk)) {
       k <- titulares_fk[[i]]
       if (!nzchar(k)) next
       eleg_por_fac[[k]] <- (eleg_por_fac[[k]] %||% 0) + el[[i]]
       aulas_por_fac[[k]] <- (aulas_por_fac[[k]] %||% 0L) + 1L
+      if (is.finite(ee[[i]])) {
+        esp_por_fac[[k]] <- (esp_por_fac[[k]] %||% 0) + ee[[i]]
+        esp_aulas_fac[[k]] <- (esp_aulas_fac[[k]] %||% 0L) + 1L
+      }
     }
   }
   cuotas_sexo <- .cm_certificacion_cuotas_sexo(estudio)
@@ -156,13 +166,27 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
     cuota <- suppressWarnings(as.numeric(.cm_aulas_scalar(f$cuota, NA)))
     elegibles <- eleg_por_fac[[k]] %||% NA_real_
     aulas <- aulas_por_fac[[k]] %||% 0L
-    esperadas <- if (is.finite(elegibles) && is.finite(tasa)) elegibles * tasa else NA_real_
+    # Suma por aula solo si TODAS las titulares de la facultad traen esperado
+    # (parcial mezclaria varas); si no, tasa plana declarada.
+    suma_ok <- (esp_aulas_fac[[k]] %||% 0L) == aulas && aulas > 0L
+    metodo_fila <- if (suma_ok) "suma_esperadas" else "tasa_plana"
+    esperadas <- if (suma_ok) {
+      esp_por_fac[[k]]
+    } else if (is.finite(elegibles) && is.finite(tasa)) {
+      elegibles * tasa
+    } else {
+      NA_real_
+    }
+    if (suma_ok && is.finite(elegibles) && elegibles > 0) {
+      # La tasa de la fila pasa a ser la EFECTIVA de sus aulas (derivada).
+      tasa <- esperadas / elegibles
+    }
     margen <- if (is.finite(esperadas) && is.finite(cuota) && cuota > 0) esperadas / cuota else NA_real_
     estado <- if (!is.finite(cuota) || cuota <= 0) {
       "sin_cuota"
     } else if (!is.finite(elegibles) || aulas <= 0L) {
       "sin_titulares"
-    } else if (!is.finite(tasa)) {
+    } else if (!suma_ok && !is.finite(tasa)) {
       "sin_tasa"
     } else if (esperadas >= cuota) {
       "certificada"
@@ -174,13 +198,19 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
       if (estado == "certificada") certificadas <- certificadas + 1L
     }
     aviso <- switch(estado,
-      certificada = sprintf(
+      certificada = if (identical(metodo_fila, "suma_esperadas")) sprintf(
+        "Sus %d titulares suman %s efectivas esperadas (aula por aula, seg\u00fan el tama\u00f1o y la facultad de cada una) para una cuota de %s.",
+        aulas, fmt1(esperadas), fmt1(cuota)
+      ) else sprintf(
         "Sus %d titulares cargan %s elegibles; con la tasa de rendimiento %s de %s %% rinden %s efectivas para una cuota de %s.",
         aulas, fmt1(elegibles),
         if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
         fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota)
       ),
-      no_cubre = sprintf(
+      no_cubre = if (identical(metodo_fila, "suma_esperadas")) sprintf(
+        "NO CUBRE: sus %d titulares suman %s efectivas esperadas (aula por aula) frente a una cuota de %s. Faltan %s.",
+        aulas, fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
+      ) else sprintf(
         "NO CUBRE: sus %d titulares cargan %s elegibles y con la tasa de rendimiento %s de %s %% rinden %s efectivas, por debajo de la cuota de %s. Faltan %s.",
         aulas, fmt1(elegibles),
         if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
@@ -225,6 +255,7 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
       estado = estado,
       aviso = aviso,
       tasa = if (is.finite(tasa)) round(tasa, 4) else NA_real_,
+      metodo = metodo_fila,
       sexo = sexo_filas
     )
   }
