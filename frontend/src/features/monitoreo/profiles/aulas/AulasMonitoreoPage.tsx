@@ -49,7 +49,7 @@ import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
-import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
+import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
@@ -869,7 +869,14 @@ function renderAulasView(
               196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
               perfil cuya unidad es el curso-horario. El recibo del libro ya usa
               este mismo lenguaje: «210 filas de control». */}
-          <span>{control.length ? contar(control.length, "fila de la hoja", "filas de la hoja") : "Sin datos"}</span>
+          {/* Y cuantas columnas: son 26 y en 1440 solo caben nueve, asi que
+              dos tercios de la tabla viven a la derecha del borde. La sombra de
+              desplazamiento ensena que hay mas; el numero dice cuanto mas. */}
+          <span>
+            {control.length
+              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${contar(columnasDelControl(controlResumen), "columna", "columnas")}`
+              : "Sin datos"}
+          </span>
         </div>
         {/* La vara, junto al veredicto que produce. Declararla en una pantalla
             de ajustes la dejaría lejos de su resultado, que es lo que hacía que
