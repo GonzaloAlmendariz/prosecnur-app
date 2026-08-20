@@ -404,18 +404,6 @@
   color: var(--pulso-text-faint);
 }
 
-/* El resto de facultades, en una linea. */
-.registro-campo-facultades-resto select {
-  font: inherit;
-  font-size: 11px;
-  padding: 3px 6px;
-  border: 1px solid var(--pulso-border);
-  border-radius: 999px;
-  background: var(--pulso-surface);
-  color: var(--pulso-text-soft);
-  max-width: 190px;
-}
-
 /* El filtro y la lista son UNA celda del grid del cuerpo. Sin este envoltorio,
    el filtro ocupaba la primera columna y empujaba la lista a la del formulario:
    la lista salia a 1034 px con el texto centrado y el formulario caia debajo. */
