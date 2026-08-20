@@ -1,0 +1,80 @@
+/* La barra del presupuesto de visitas (M3, vara de mejora continua): un solo
+   carril con titulares + activaciones apiladas contra la marca del techo; el
+   exceso se pinta en rojo suave más allá de la marca. Sólo tokens. */
+
+.cmv2-presup-carril {
+  position: relative;
+  display: flex;
+  height: 14px;
+  margin: 10px 2px 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: visible;
+}
+
+.cmv2-presup-seg {
+  display: block;
+  height: 100%;
+}
+
+.cmv2-presup-seg:first-child { border-radius: 4px 0 0 4px; }
+
+.cmv2-presup-seg[data-seg="titulares"] {
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-presup-seg[data-seg="activaciones"] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, transparent);
+}
+
+.cmv2-presup-seg[data-seg="exceso"] {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 55%, transparent);
+  border-radius: 0 4px 4px 0;
+}
+
+/* La marca del techo: una línea que corta el carril con su etiqueta encima. */
+.cmv2-presup-techo {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  transform: translateX(-1px);
+  background: var(--pulso-text);
+  border-radius: 1px;
+}
+
+.cmv2-presup-techo b {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  white-space: nowrap;
+}
+
+.cmv2-presup-leyenda {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-presup-leyenda i {
+  display: inline-block;
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+  vertical-align: baseline;
+  margin-right: 2px;
+}
+
+.cmv2-presup-leyenda i[data-seg="titulares"] { background: var(--module-accent, var(--pulso-primary)); }
+
+.cmv2-presup-leyenda i[data-seg="activaciones"] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, transparent);
+}
+
+.cmv2-presup-leyenda i[data-seg="exceso"] {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 55%, transparent);
+}
