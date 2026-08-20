@@ -1490,6 +1490,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     # EF7a: la foto estructural del marco (calc_muestra_aulas_llegada.R);
     # contra ella se miden las NOVEDADES cuando llegue la base 2026.
     llegada_snapshot = .cm_llegada_snapshot(aula_frame),
+    # M9: que columna uso el motor por rol (calc_muestra_aulas_mapeo_resuelto.R);
+    # la UI de Variables lo muestra como informacion, no como asignacion.
+    mapeo_resuelto = calc_muestra_aulas_mapeo_resuelto(raw, catalogo_curso_horario, mapping),
     frame_hash = frame_hash_estable,
     # I11: universo del estudio anterior por facultad, derivado del catalogo
     # con el spec de config (calc_muestra_aulas_universo_referencia.R).
