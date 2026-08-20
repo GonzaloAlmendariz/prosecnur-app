@@ -3,6 +3,7 @@ import { contar } from "../../fuentes/vocabulario";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
+import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { brechaPorEstrato } from "./brechaPorEstrato";
 
@@ -88,6 +89,8 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
         height={Math.max(200, 34 * orden.length + 56)}
         ariaLabel="Respuestas recogidas y brecha por estrato"
         layout={{
+          // La escala de eje del perfil, no el default compartido de Plotly.
+          font: fuenteDeEjeAulas(),
           barmode: "stack",
           margin: { l: 8, r: 52, t: 30, b: 28 },
           xaxis: { title: { text: "respuestas" }, zeroline: false, fixedrange: true },
