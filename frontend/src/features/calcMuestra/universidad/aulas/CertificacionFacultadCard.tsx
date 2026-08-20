@@ -142,9 +142,11 @@ export function CertificacionFacultadCard({
                 {fmtInt(certificadas)} de {fmtInt(evaluables)}
               </b>{" "}
               facultades garantizan la cuota de alumnos que el diseño les trazó
-              {tasa_esperada != null
-                ? `, con la tasa de asistencia esperada de ${(tasa_esperada * 100).toFixed(1).replace(".", ",")} %`
-                : ""}
+              {certificacion.filas.some((f) => f.metodo === "suma_esperadas")
+                ? ", sumando las efectivas esperadas de sus aulas (aula por aula, según su tamaño y su facultad)"
+                : tasa_esperada != null
+                  ? `, con la tasa de asistencia esperada de ${(tasa_esperada * 100).toFixed(1).replace(".", ",")} %`
+                  : ""}
               .
             </>
           ) : (
@@ -250,10 +252,11 @@ export function CertificacionFacultadCard({
       {/* El × explicado en una frase operativa: «no está claro qué representa
           para quien elabora la selección» — Gonzalo, 2026-08-19. */}
       <p className="cmv2-cert-leyenda">
-        <b>Margen ×N</b>: por cada alumno de cuota, cuántos esperas lograr con la
-        tasa de asistencia del diseño — bajo <b>1,00×</b> la facultad quedaría
-        corta y se marca. La cifra <i>2025/CH</i> al pie repite la cuenta con lo
-        que cada tipo de aula rindió de verdad en 2025 (referencial).
+        <b>Margen ×N</b>: por cada alumno de cuota, cuántos esperan rendir sus
+        aulas (la suma de sus efectivas esperadas) — bajo <b>1,00×</b> la
+        facultad quedaría corta y se marca. La cifra <i>2025/CH</i> al pie
+        repite la cuenta con lo que cada tipo de aula rindió de verdad en 2025
+        (referencial).
       </p>
       {/* Contrato cerrado con Monitoreo (2026-08-20): su criterio de aula
           válida lee el esperado que ESTE diseño calculó, no un % fijo. */}

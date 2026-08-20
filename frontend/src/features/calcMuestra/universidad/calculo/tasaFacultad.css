@@ -143,3 +143,11 @@
   .cmv2-tasafac-fila { grid-template-columns: minmax(0, 1fr) auto; }
   .cmv2-tasafac-carril { grid-column: 1 / -1; }
 }
+
+/* La cuenta con etiquetas: cada numero dice QUE es (2026-08-20). */
+.cmv2-tasafac-cuenta { display: inline-flex; align-items: flex-start; gap: 7px; white-space: nowrap; }
+.cmv2-tasafac-num { display: inline-grid; justify-items: center; gap: 1px; }
+.cmv2-tasafac-num b { font-size: 13px; color: var(--pulso-text); line-height: 1.1; }
+.cmv2-tasafac-num small { font-size: 9px; color: var(--pulso-text-muted); line-height: 1.1; }
+.cmv2-tasafac-num.cmv2-tasafac-res b { color: var(--module-accent, var(--pulso-primary)); font-size: 14px; }
+.cmv2-tasafac-op { color: var(--pulso-text-muted); font-size: 12px; padding-top: 1px; }

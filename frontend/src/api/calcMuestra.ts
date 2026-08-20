@@ -2203,6 +2203,8 @@ export type CalcMuestraCertificacionSexoCelda = {
 };
 
 export type CalcMuestraCertificacionFacultadFila = {
+  /** Como se calculo esperadas: suma_esperadas (aula por aula) | tasa_plana. */
+  metodo?: string;
   faculty_key: string;
   facultad: string;
   cuota: number | null;

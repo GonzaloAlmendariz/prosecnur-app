@@ -41,22 +41,29 @@ function FilaAula({
   // La cuenta del valor de validez, aula por aula — Gonzalo (2026-08-20): «de
   // veinticuatro elegibles van a haber doce; ese es el valor de validez, y
   // tiene que estar claro». La lee la delegación del <ul> padre.
+  const factor = numOrNull(fila.factor_facultad) ?? 1;
+  // V7: la cuenta del tooltip es CONDICIONAL (E × R × F); la tasa de
+  // aplicación del docente va como línea operativa aparte, nunca en la
+  // multiplicación.
   const desglose: TooltipDatos | null =
-    esperadas != null && p != null && r != null
+    esperadas != null && r != null
       ? {
           titulo: texto(fila.course_name) || texto(fila.course_id),
           filas: [
-            { label: "Elegibles sentados", valor: fmtInt(el) },
-            {
-              label: `Deja aplicar (${texto(fila.teacher_type).toLowerCase() || "docente sin tipo"})`,
-              valor: `${Math.round(p * 100)} %`,
-            },
-            { label: `Rinde (aula de ${fmtInt(el)} elegibles)`, valor: `${Math.round(r * 100)} %` },
+            { label: "Elegibles en lista", valor: fmtInt(el) },
+            { label: `Tasa de su tramo (aula de ${fmtInt(el)})`, valor: `${Math.round(r * 100)} %` },
+            ...(factor !== 1
+              ? [{ label: "Ajuste de su facultad", valor: `× ${factor.toFixed(2).replace(".", ",")}` }]
+              : []),
             { label: "Efectivas esperadas", valor: fmtInt(Math.round(esperadas)) },
           ],
-          nota: `${fmtInt(el)} × ${p.toFixed(2).replace(".", ",")} × ${r
-            .toFixed(2)
-            .replace(".", ",")} → ${fmtInt(Math.round(esperadas))} — el valor de validez con el que Monitoreo juzga esta aula en campo`,
+          nota: `${fmtInt(el)} × ${r.toFixed(2).replace(".", ",")}${
+            factor !== 1 ? ` × ${factor.toFixed(2).replace(".", ",")}` : ""
+          } → ${fmtInt(Math.round(esperadas))} — el valor de validez si el aula entra a campo${
+            p != null
+              ? `; su docente aplica el ${Math.round(p * 100)} % (operativo: anticipa cadena)`
+              : ""
+          }`,
           tono: "efectiva",
         }
       : null;

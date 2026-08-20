@@ -41,8 +41,8 @@ export function TasaEfectividadFacultadCard({
       <header>
         <strong>La tasa de efectividad de cada facultad</strong>
         <span>
-          de cada 100 elegibles en lista, cuántas encuestas efectivas deja el aula típica de la
-          facultad; es el divisor que convierte su cuota en cursos-horario titulares
+          el aula típica de cada facultad (su P25 de elegibles, arriba) rinde P25 × tasa
+          efectivas; la cuota se divide entre ese rendimiento para llegar a los titulares
         </span>
       </header>
 
@@ -68,9 +68,18 @@ export function TasaEfectividadFacultadCard({
               <span className="cmv2-tasafac-valor">{pctTasa(f.tasa)}</span>
             </div>
             {f.cuota != null && f.p25 != null && f.cupos != null ? (
-              <div className="cmv2-tasafac-cuenta" title="cuota ÷ (alumnos por CH × tasa de efectividad) = cursos-horario titulares">
-                {fmtInt(f.cuota)} ÷ ({Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} × {coma(f.tasa)}) →{" "}
-                <b>{fmtInt(f.cupos)} {f.cupos === 1 ? "titular" : "titulares"}</b>
+              // El concepto intermedio que faltaba (Gonzalo: «no entiendo como
+              // llegamos a esos titulares»): el aula tipica RINDE P25 × tasa
+              // efectivas, y la cuota se divide entre eso.
+              <div
+                className="cmv2-tasafac-cuenta"
+                title={`El aula típica de la facultad rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
+              >
+                <span className="cmv2-tasafac-num"><b>{fmtInt(f.cuota)}</b><small>cuota</small></span>
+                <span className="cmv2-tasafac-op">÷</span>
+                <span className="cmv2-tasafac-num"><b>{coma(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
+                <span className="cmv2-tasafac-op">→</span>
+                <span className="cmv2-tasafac-num cmv2-tasafac-res"><b>{fmtInt(f.cupos)}</b><small>{f.cupos === 1 ? "titular" : "titulares"}</small></span>
               </div>
             ) : (
               <div className="cmv2-tasafac-cuenta" data-vacia="true">
