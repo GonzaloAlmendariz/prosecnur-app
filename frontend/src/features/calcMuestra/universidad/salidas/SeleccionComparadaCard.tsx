@@ -33,6 +33,14 @@ export function SeleccionComparadaCard({
 }) {
   const comp = seleccionComparada(seleccion, referencia);
   if (!comp.filas.length) return null;
+  // Escala comun para las micro-barras: el maximo de AMBAS series en todas
+  // las facultades — mezclar escalas por fila haria mentir a las barras.
+  const escala = Math.max(
+    1,
+    ...comp.filas.flatMap((f) => [f.esperadasNuevas ?? 0, f.efectivasRef ?? 0]),
+  );
+  const pct = (v: number | null): string =>
+    v == null || v <= 0 ? "0%" : `${Math.max(2, (v / escala) * 100)}%`;
   const etiquetaRef = periodo || "estudio anterior";
   const conRef = comp.totales.efectivasRef != null;
 
@@ -55,6 +63,9 @@ export function SeleccionComparadaCard({
               <th scope="col">Elegibles hoy</th>
               <th scope="col">Esperadas hoy</th>
               <th scope="col">Efectivas {etiquetaRef}</th>
+              <th scope="col" className="cmv2-selcmp-th-barras">
+                esperadas <i data-serie="hoy" /> vs logradas <i data-serie="antes" />
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -66,6 +77,17 @@ export function SeleccionComparadaCard({
                 <td>{fmtInt(f.elegiblesNuevos)}</td>
                 <td>{fmtMiles(f.esperadasNuevas)}</td>
                 <td>{fmtMiles(f.efectivasRef)}</td>
+                <td className="cmv2-selcmp-celda-barras" aria-hidden="true">
+                  {/* Las dos series a ESCALA COMUN (el lenguaje del embudo):
+                      esperadas hoy llena, logradas del año pasado en trazo
+                      tenue debajo — la comparacion se VE, no solo se lee. */}
+                  <span className="cmv2-selcmp-track" data-serie="hoy">
+                    <span style={{ width: pct(f.esperadasNuevas) }} />
+                  </span>
+                  <span className="cmv2-selcmp-track" data-serie="antes">
+                    <span style={{ width: pct(f.efectivasRef) }} />
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -77,6 +99,7 @@ export function SeleccionComparadaCard({
               <td />
               <td>{fmtMiles(comp.totales.esperadasNuevas)}</td>
               <td>{fmtMiles(comp.totales.efectivasRef)}</td>
+              <td />
             </tr>
           </tfoot>
         </table>

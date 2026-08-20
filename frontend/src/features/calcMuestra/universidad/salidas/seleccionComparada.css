@@ -48,3 +48,57 @@
   line-height: 1.45;
   color: var(--pulso-text-muted);
 }
+
+/* Micro-barras comparativas (vara de mejora continua, 2026-08-19): el mismo
+   lenguaje del embudo comparado — carril neutro al 8%, hoy en verde, el año
+   anterior en trazo tenue — a escala comun global. */
+.cmv2-selcmp-celda-barras {
+  min-width: 130px;
+  vertical-align: middle;
+}
+
+.cmv2-selcmp-track {
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-selcmp-track + .cmv2-selcmp-track {
+  margin-top: 3px;
+}
+
+.cmv2-selcmp-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 320ms var(--cmv2-ease-out, ease);
+}
+
+.cmv2-selcmp-track[data-serie="hoy"] > span { background: var(--pulso-success-fg); }
+
+.cmv2-selcmp-track[data-serie="antes"] > span {
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
+}
+
+/* La leyenda vive en el encabezado de la columna: dos puntos con las mismas
+   tintas que las barras, sin pedir una fila aparte. */
+.cmv2-selcmp-th-barras {
+  font-weight: var(--pulso-weight-medium);
+}
+
+.cmv2-selcmp-th-barras i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin: 0 2px;
+  vertical-align: baseline;
+}
+
+.cmv2-selcmp-th-barras i[data-serie="hoy"] { background: var(--pulso-success-fg); }
+
+.cmv2-selcmp-th-barras i[data-serie="antes"] {
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
+}
