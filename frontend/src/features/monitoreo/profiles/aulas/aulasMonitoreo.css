@@ -4337,3 +4337,35 @@
 .mon-profile-page.is-aulas-flow .aulas-observaciones-codigos {
   display: block; margin-top: 2px; font-variant-numeric: tabular-nums;
 }
+
+/* Como trabaja cada equipo. Misma rejilla que las otras listas del perfil. */
+.mon-profile-page.is-aulas-flow .aulas-equipos-lista {
+  list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-lista li {
+  display: grid; grid-template-columns: 120px minmax(0, 240px) 44px minmax(0, 1fr);
+  align-items: center; gap: 8px; font-size: var(--aulas-sec); white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-nombre {
+  overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-barra {
+  height: 8px; border-radius: 4px; background: var(--pulso-surface-2); overflow: hidden;
+}
+/* Neutra por defecto: colorear a todos por su puesto convierte la lista en un
+   ranking de personas. Solo se tiñe el que SE DISTINGUE de la media. */
+.mon-profile-page.is-aulas-flow .aulas-equipos-barra > span {
+  display: block; height: 100%; border-radius: 4px;
+  background: var(--pulso-text-faint); opacity: 0.55;
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-lista li.es-distinto .aulas-equipos-barra > span {
+  opacity: 0.8;
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-n {
+  text-align: right; font-variant-numeric: tabular-nums; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-por {
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
+  overflow: hidden; text-overflow: ellipsis;
+}
+.mon-profile-page.is-aulas-flow .aulas-equipos-pie { margin-top: 8px; }

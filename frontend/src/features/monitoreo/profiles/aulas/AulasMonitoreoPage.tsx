@@ -52,6 +52,7 @@ import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
+import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
@@ -744,6 +745,25 @@ function renderAulasView(
               <span>observaciones de los partes</span>
             </div>
             <AulasObservacionesDeCampo
+              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
+            />
+          </section>
+          {/* **Cómo trabaja cada equipo, en Validación y no enterrado en
+              Avance.** Es lo que el jefe de campo viene a ver, y existía sólo
+              como el cuarto de nueve paneles de otra sección midiendo encuestas
+              por aula. Aquí va con su banda: se está juzgando el trabajo de
+              personas y una diferencia de cinco encuestas entre el primero y el
+              último cabe entera en el ruido. */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Cómo trabaja cada equipo</h3>
+              <span>producción y calidad por aplicador</span>
+            </div>
+            <AulasTrabajoDeLosEquipos
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
             />
           </section>
