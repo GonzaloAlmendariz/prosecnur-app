@@ -346,6 +346,70 @@ porcentajes verificados     112/112
 paquete OOXML               zip íntegro · 0 <a:cs> mal ordenados
 ```
 
+## El denominador sale del instrumento — 2026-08-20
+
+**Decisión de Gonzalo**: solo el denominador, con mejor redacción; el mazo espera
+al arreglo. Público como entidad editorial (secciones, ficha técnica) queda
+fuera de esta tanda.
+
+**El instrumento ya declaraba el público.** El `relevant` acumulado —propio más
+el de los grupos que la contienen— de cada pregunta lo dice literalmente:
+
+```
+MesesReva   ${Consent}='Yes' and ${proyecto_ppl}='Homologación Laboral'
+PastWorking ${Consent}='Yes' and ${proyecto_ppl}='Vinculación Laboral'
+sector      ${Consent}='Yes' and ${proyecto_ppl}='Vinculación Laboral' AND ${PastWorking}='1' or …
+```
+
+151 de 169 preguntas lo traen, y `sector` muestra las dos capas: el público
+(Vinculación, 16) y el filtro interno (trabajaba antes, 4).
+
+**Y Prosecnur ya sabía evaluarlo.** No hubo que construir motor:
+`build_group_gate_map()` acumula los gates de grupo, `odk_parse_to_ast()` parsea
+el `relevant` y `ast_to_r()` lo compila. Validación deriva de ahí sus 265 reglas
+`skip`. Gráficos no lo consultaba: ponía `total <- nrow(data)` y calculaba un
+`eligible_known` que **no consumía nadie** —variable muerta desde que se
+escribió—. `graficos_base_elegible.R` cierra ese hueco.
+
+(`universe_filter` suena a esto por el nombre pero no sirve: separa casos reales
+de pruebas para excluirlos, no describe públicos que conviven.)
+
+### La redacción
+
+El porcentaje ahora es **tasa de respuesta entre elegibles**, que informa; el
+anterior era la fracción de la muestra total, que engañaba. Cuando todos los
+elegibles respondieron no se escribe: un «(100%)» solo agrega ruido.
+
+```
+antes    N = 4 de 101 (4.0%).
+después  Base: 4 respuestas de Vinculación Laboral.
+
+antes    N = 12 de 101 (11.9%).
+después  Base: 12 de 16 elegibles de Vinculación Laboral (75%).
+
+sin universo derivable    Base: 101 respuestas, toda la muestra.
+```
+
+`Consent` se descarta al nombrar el público: es un requisito de participación,
+no un público. Y si el `relevant` degrada a `odk_raw` —el parser no lo entiende—
+no se inventa universo: se conserva el denominador anterior.
+
+### El mazo entregado
+
+```
+láminas                      134
+pies con «N = … de 101»        0   (antes: 107)
+pies por universo             62 Vinculación · 35 Homologación · 4 toda la muestra
+                               1 «101 elegibles (44.6%)» — legítimo, se pregunta a todos
+«recodificada»                 0
+títulos en #1A1A1A           112   (0 terracota)
+porcentajes verificados    112/112
+paquete OOXML                zip íntegro · 0 <a:cs> mal ordenados
+```
+
+Evidencia: `test-graficos-base-elegible.R` (15 asserts) · 9 suites, 1 543 pass /
+0 fail.
+
 ## Cola — lo que aún no se decide
 
 - **L1 · numéricas y fechas en el mazo (ítems 1.2, 1.6, 1.10).** `MesesReva` ya

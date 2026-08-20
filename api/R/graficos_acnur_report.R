@@ -198,6 +198,9 @@
     nzchar(.graficos_scalar_chr(base$repeat_group, "")) ||
     identical(.graficos_scalar_chr(grain$kind, ""), "instancia")
   list(base = base, data = data, inst = inst, is_repeat = is_repeat,
+       # El mapa de gates se arma UNA vez por fuente: recorrerlo por variable
+       # multiplicaba por 112 el parseo del instrumento.
+       gate_map = .graficos_gate_map(inst),
        unit = if (is_repeat) .graficos_acnur_repeat_unit(base, inst) else NULL)
 }
 
@@ -340,8 +343,17 @@
     idx <- which(as.character(survey$name) == name)[1]
     if (length(idx) && !is.na(idx)) relevant <- .graficos_scalar_chr(survey$relevant[[idx]], "")
   }
-  eligible_known <- !nzchar(relevant)
+  # El universo de la pregunta se deriva del instrumento, no de la muestra:
+  # `nrow(data)` denominaba «4 de 101» una pregunta que solo se le hace a las 16
+  # personas de una de las dos rutas del estudio. `eligible_known` se calculaba
+  # aqui desde siempre y no lo consumia nadie; ahora se resuelve de verdad en
+  # `graficos_base_elegible.R`.
   total <- nrow(data)
+  base_info <- tryCatch(
+    .graficos_base_de_variable(data, ctx$inst, name, sum(answered), ctx$gate_map),
+    error = function(e) NULL
+  )
+  eligible_known <- isTRUE((base_info %||% list())$derivado)
   allowed <- vapply(variable$choices %||% list(),
                     function(x) .graficos_scalar_chr((x %||% list())$name, ""),
                     character(1))
@@ -357,15 +369,19 @@
   n_valid <- n_answered
   n_special <- max(0L, n_answered - sum(substantive))
 
+  # Cuando el universo se pudo derivar manda el texto de `base_info`; si no, se
+  # conserva la redaccion anterior antes que inventar un denominador.
+  base_phrase_main <- if (eligible_known) base_info$texto else
+    .graficos_acnur_base_summary(n_valid, total, "respuestas")
+
   if (!ctx$is_repeat && multiple) {
     mentions <- sum(lengths(tokens[substantive]))
     note <- sprintf(
       "%s; %s menciones. Los porcentajes no suman 100%%.",
-      .graficos_acnur_base_summary(n_valid, total, "respuestas"),
-      .graficos_acnur_number(mentions)
+      base_phrase_main, .graficos_acnur_number(mentions)
     )
   } else if (!ctx$is_repeat) {
-    note <- paste0(.graficos_acnur_base_summary(n_valid, total, "respuestas"), ".")
+    note <- paste0(base_phrase_main, ".")
   } else {
     # Base por servicio/instancia: mismo formato limpio que la base principal
     # ("Base: <n> de <total> (<pct>)"). El nombre del servicio se anexa aparte en
