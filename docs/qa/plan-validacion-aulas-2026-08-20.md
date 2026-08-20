@@ -186,7 +186,22 @@ extensible a todos los monitoreos.
     TS tiene test con ese motivo, y el gate visual pasa con el panel montado.
     La rama **con** datos se razonó contra `acnur_pdm` (12 preguntas, 6
     excluidas) y **no está vista en pantalla**: en aulas no hay instrumento.
-- **T15** — Por aplicador y por aula: quién concentra las respuestas malas.
+- **T15 ☑ (2026-08-20, 62 tests)** — Señales agregadas por grupo, con banda de
+  Wilson. Medido en `acnur_pdm` sobre `recomendation`: **9 de 16 aplicadores
+  destacan**, y la separación es enorme — dos en **92.5 %** de negativas
+  [80–97] contra otros tres en **0 %** [0–10.7].
+  - **Mi previsión era que no distinguiría** (grupos de ~22 casos) y **la
+    medición la desmintió**: las bandas son anchas pero no se solapan ni de
+    lejos. Preverlo no es medirlo.
+  - **19 nombres de aplicador que son 17**: «JORGE DEL SOLAR» convive con
+    «JORGE  DEL SOLAR» y «Silbia Cruzado» con «silbia cruzado». Se unen
+    mayúsculas y espacios —seguro— y **no se une por parecido**: «MARTHA
+    VILANUEVA» no es «MARTHA VILLANUEVA», y ese caso se reconoce porque queda
+    con un solo registro.
+  - **Los grupos sin banda van al final**: el de un caso salía primero con
+    100 %, leyéndose como «el peor» sin decir nada.
+  - La banda de una tasa es Wilson, no la de la mediana: aguanta el 0 % y el
+    100 %, que es la mitad de los aplicadores.
 - **T16** — Marcar casos para invalidar, con su trazabilidad.
 - **T17** — Pestaña propia en Validación y contrato para que otros perfiles la
   hereden.
