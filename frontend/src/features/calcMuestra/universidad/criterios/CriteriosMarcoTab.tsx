@@ -40,6 +40,7 @@ import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
+import { MordidasEstudianteCard } from "./MordidasEstudianteCard";
 import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
 import { normalizeUniversityAulasConfig } from "../shared/study";
 import { CifraFila, CifraMotor } from "../ui";
@@ -474,6 +475,17 @@ export function CriteriosMarcoTab({
                   <p className="cmv2-crit-scope-hint">de la hoja de matrícula (una fila por estudiante)</p>
                 </div>
               </header>
+              {/* El vistazo antes del detalle (M8): cuanto muerde cada
+                  criterio por separado, con su capa declarada. */}
+              <MordidasEstudianteCard
+                reporte={(aulasState?.frame as { criterios_alumno_report?: unknown } | null | undefined)?.criterios_alumno_report as Parameters<typeof MordidasEstudianteCard>[0]["reporte"]}
+                elegiblesFinal={(() => {
+                  const audit = (aulasState?.frame as { audit?: Array<{ metric?: unknown; value?: unknown }> } | null | undefined)?.audit;
+                  const fila = audit?.find((a) => a.metric === "eligible_student_rows");
+                  const v = Number(fila?.value);
+                  return Number.isFinite(v) ? v : null;
+                })()}
+              />
               {/* `intrinsic`: cada tarjeta de criterio mide lo que piden sus
                   categorías —Facultad lista decenas y Sexo dos—, así que su
                   alto es función de los datos de esa variable. */}

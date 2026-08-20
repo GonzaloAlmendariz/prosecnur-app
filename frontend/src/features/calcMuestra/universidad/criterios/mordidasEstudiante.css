@@ -1,0 +1,88 @@
+/* «Cuánto recorta cada criterio» (M8) — barras de mordida independientes con
+   su capa declarada. Sólo tokens. */
+
+.cmv2-mordidas-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cmv2-mordidas-fila {
+  display: grid;
+  grid-template-columns: 215px minmax(0, 1fr) 120px;
+  gap: 12px;
+  align-items: center;
+}
+
+.cmv2-mordidas-nombre {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-mordidas-nombre small {
+  flex: none;
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-border);
+  color: var(--pulso-text-muted);
+  cursor: help;
+}
+
+.cmv2-mordidas-track {
+  display: block;
+  height: 9px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-mordidas-track > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--module-accent, var(--pulso-primary));
+  transition: width 320ms var(--cmv2-ease-out, ease);
+}
+
+/* La capa instrumento se distingue: actúa en campo, no recorta el marco. */
+.cmv2-mordidas-track[data-capa="instrumento"] > i {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 38%, transparent);
+}
+
+.cmv2-mordidas-cifra {
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold);
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cmv2-mordidas-cifra small {
+  color: var(--pulso-text-muted);
+  font-weight: var(--pulso-weight-regular);
+}
+
+.cmv2-mordidas-pie {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-mordidas-pie strong {
+  color: var(--pulso-text);
+}
+
+@media (max-width: 900px) {
+  .cmv2-mordidas-fila { grid-template-columns: 140px minmax(0, 1fr) 104px; }
+}
