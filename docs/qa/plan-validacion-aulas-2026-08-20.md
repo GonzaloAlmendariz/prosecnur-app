@@ -202,7 +202,29 @@ extensible a todos los monitoreos.
     100 %, leyéndose como «el peor» sin decir nada.
   - La banda de una tasa es Wilson, no la de la mediana: aguanta el 0 % y el
     100 %, que es la mitad de los aplicadores.
-- **T16** — Marcar casos para invalidar, con su trazabilidad.
+- **T16 ⛔ BLOQUEADO — exige una decisión de Gonzalo (2026-08-20)**. Marcar casos
+  para invalidar. **No se escribe nada hasta decidir**, porque el mecanismo **ya
+  existe** y crear un segundo sería el defecto de «dos sistemas paralelos» que
+  este mismo plan vino a reparar.
+  - **Lo que hay**: `production_annulments` del perfil territorial —**17
+    funciones y 97 referencias** en `api/R/monitoreo_engine.R`, endpoints
+    `/api/monitoreo/territorial/annulments/{preview,apply}`, con estado
+    `active`/`reverted`, motivo, responsable y **scope `response` para anular un
+    caso puntual por su uuid**—. Es exactamente lo que T16 iba a inventar.
+  - **Y su núcleo es genérico**: `filter_rows` con scope `response` busca
+    columnas candidatas de uuid y **no depende de UMP ni distrito**. Lo
+    territorial son las funciones de bloques/manzanas y que se persiste dentro
+    de `cfg$territorial$production_annulments`.
+  - **Por qué está bloqueado**: generalizarlo toca `monitoreo_engine.R` y
+    `router_monitoreo.R`, **los dos congelados a crecimiento**, y cambia un
+    mecanismo que el perfil territorial ya usa en producción. Es un cambio de
+    arquitectura con ADR, no un tick.
+  - **Las tres salidas, para elegir**: **(1)** generalizar el núcleo a un archivo
+    propio y que la persistencia acepte el perfil —lo correcto, y lo más caro—;
+    **(2)** que aulas invoque el mecanismo territorial tal cual, aceptando que
+    los datos vivan bajo `territorial` —barato y mentiroso—; **(3)** dejar aulas
+    sin anulación por ahora y decirlo en la superficie. **Mi recomendación es
+    (1)**, y hasta que se decida, T17 puede avanzar sin esto.
 - **T17** — Pestaña propia en Validación y contrato para que otros perfiles la
   hereden.
 
