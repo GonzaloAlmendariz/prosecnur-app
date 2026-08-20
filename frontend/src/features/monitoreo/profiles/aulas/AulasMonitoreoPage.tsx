@@ -27,6 +27,7 @@ import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
 import { AulasBancoExtras } from "./AulasBancoExtras";
+import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
 import { AulasConcentracionBrecha } from "./AulasConcentracionBrecha";
 import { AulasCambioDeAula } from "./AulasCambioDeAula";
@@ -981,6 +982,17 @@ function renderAulasView(
             No reemplazan a ningún curso-horario: son aulas adicionales para
             cerrar la cuota de hombres y mujeres de cada facultad.
           </p>
+          {/* **Antes del inventario, no después.** La frase de arriba dice que
+              estas aulas existen para cerrar la cuota; lo primero que hay que
+              saber es si la cierran. Puesto debajo quedaba tras una tabla de 73
+              filas, y la respuesta se leía al final del catálogo —el mismo orden
+              que la Base de control ya sigue: veredicto, después detalle—. En el
+              mismo panel porque es una sola decisión. */}
+          <AulasAlcanceDelBanco
+            banco={dashboard.banco_extras ?? null}
+            control={(dashboard.control_calidad ?? []) as Array<Record<string, unknown>>}
+            quotas={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+          />
           <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
         </section>
         ) : null}

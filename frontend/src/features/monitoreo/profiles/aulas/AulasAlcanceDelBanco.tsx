@@ -1,0 +1,130 @@
+import { useMemo } from "react";
+
+import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { alcanceDelBanco } from "./alcanceDelBanco";
+import type { BancoDeExtras } from "./AulasBancoExtras";
+
+/**
+ * ¿Alcanza el banco para cerrar la cuota que falta?
+ *
+ * El panel de arriba dice cuántas aulas extra hay y cuántos alumnos tienen. Es
+ * un inventario, y un inventario de 2 436 alumnos se lee como reserva de sobra
+ * cuando la cuota pendiente es de 1 558. La cuenta real dice lo contrario:
+ * ningún alumno del banco es una encuesta, y con la tasa de respuesta observada
+ * el banco entero rinde unas 1 430 —ni el extremo alto de la banda llega—.
+ *
+ * No repite el cruce del inventario: aquél enseña qué hay, éste qué falta
+ * después de gastarlo todo.
+ */
+
+const fmt = (n: number) => n.toLocaleString("es-PE");
+const pct = (n: number) => `${(n * 100).toFixed(1).replace(".", ",")} %`;
+
+const VEREDICTO = {
+  alcanza: "El banco alcanza para cerrar la cuota",
+  justo: "El banco alcanza justo, y sólo si rinde por encima de lo habitual",
+  "no alcanza": "El banco no alcanza para cerrar la cuota",
+} as const;
+
+export function AulasAlcanceDelBanco({ banco, control, quotas }: {
+  banco: BancoDeExtras | null;
+  control: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  quotas: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}) {
+  const r = useMemo(() => {
+    if (!banco) return null;
+    // Lo que falta por facultad, sumando celdas sexo × facultad. Es el mismo
+    // criterio del KPI de cuota pendiente: pasarse en una celda no cubre otra.
+    const falta = new Map<string, number>();
+    for (const fila of quotas) {
+      const f = String(fila.faculty ?? "").trim();
+      if (!f) continue;
+      const pendiente = Math.max(0, Number(fila.target ?? 0) - Number(fila.observed ?? 0));
+      if (!pendiente) continue;
+      falta.set(f, (falta.get(f) ?? 0) + pendiente);
+    }
+    const filas = (banco.por_facultad ?? []).map((f) => ({
+      faculty: f.faculty,
+      elegibles: Number(f.elegibles ?? 0),
+    }));
+    // Las que QUEDAN, no las que existen: un banco del que ya se gastó la mitad
+    // no proyecta como uno intacto.
+    const aulas = banco.disponibles ?? banco.total ?? filas.length;
+    return alcanceDelBanco(control, filas, falta, aulas);
+  }, [banco, control, quotas]);
+
+  if (!r) {
+    // C5 categoría 1: el vacío dice qué falta y de dónde sale, dentro de la caja.
+    return (
+      <p className="mon-profile-muted">
+        Para saber si el banco alcanza hace falta la hoja «Base de control» del
+        libro: de ahí sale la tasa con la que responde un aula, y sin ella
+        proyectar sus alumnos sería inventar.
+      </p>
+    );
+  }
+
+  const conDeficit = r.facultades.filter((f) => f.deficit > 0);
+  const tono = r.veredicto === "alcanza" ? COLOR_RESULTADO.efectiva
+    : r.veredicto === "justo" ? COLOR_RESULTADO.parcial
+    : COLOR_RESULTADO.rechazo;
+
+  return (
+    <div className="aulas-alcance">
+      <p className="aulas-alcance-titular" style={{ color: tono }}>
+        {VEREDICTO[r.veredicto]}
+      </p>
+      <p className="aulas-cadenas-lectura">
+        Vaciarlo entero rinde <strong>{fmt(r.rinde)}</strong> encuestas
+        {" "}—entre {fmt(r.bajo)} y {fmt(r.alto)}— y faltan{" "}
+        <strong>{fmt(r.falta)}</strong>
+      </p>
+      <p className="mon-profile-muted aulas-alcance-base">
+        {/* De dónde sale la proyección. Sin esto, «1 430» parece un dato del
+            banco y es una cuenta hecha con la tasa a la que responden las aulas
+            ya aplicadas. */}
+        Con la tasa a la que han respondido las aulas aplicadas:{" "}
+        <strong>{pct(r.tasa.tasa)}</strong> de su población elegible, medida en{" "}
+        {fmt(r.tasa.aulas)} aulas. La banda es la variación entre aulas, que es
+        alta —{fmt(Math.round(r.tasa.sd * 100))} puntos—, así que una cifra sola
+        prometería una precisión que no hay.
+      </p>
+      {conDeficit.length ? (
+        <>
+          <ul className="aulas-alcance-lista">
+            {conDeficit.slice(0, 8).map((f) => (
+              <li key={f.facultad}>
+                <span className="aulas-alcance-fac">{f.facultad}</span>
+                <span className="aulas-alcance-barra">
+                  <span style={{ width: `${Math.min(100, (100 * f.rinde) / Math.max(1, f.falta))}%` }} />
+                </span>
+                <span className="aulas-alcance-n"><strong>−{fmt(f.deficit)}</strong></span>
+                <span className="aulas-alcance-por">
+                  faltan {fmt(f.falta)} · su banco rinde {fmt(f.rinde)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mon-profile-muted aulas-alcance-pie">
+            {conDeficit.length > 8 ? <>Las ocho de mayor déficit, de {fmt(conDeficit.length)}. </> : null}
+            {/* La cuenta optimista, dicha. Es la que sale de restar totales, y
+                es la que uno hace de cabeza mirando el inventario. */}
+            Sumado por facultad faltarían <strong>{fmt(r.deficit)}</strong>{" "}
+            encuestas tras vaciar el banco
+            {r.deficit !== r.deficitSiSeCompensara ? (
+              <>
+                ; restando totales saldrían {fmt(r.deficitSiSeCompensara)}, pero
+                pasarse en una facultad no cubre lo que falta en otra
+              </>
+            ) : null}.
+          </p>
+        </>
+      ) : (
+        <p className="mon-profile-muted aulas-alcance-pie">
+          Ninguna facultad se queda corta: el banco de cada una cubre su propia
+          cuota pendiente.
+        </p>
+      )}
+    </div>
+  );
+}
