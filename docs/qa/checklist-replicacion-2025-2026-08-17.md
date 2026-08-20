@@ -4226,3 +4226,13 @@ descartado. En su lugar: cada carril de la distribucion muestra al
 hover sus cinco cuantiles Y la cuenta real del estrato («cuota 125 ÷
 (P25 21 × τ 0,53) → 12 aulas»). La formula por facultad, viva en
 pantalla. Verificada con hover real.
+
+### M8 ENTREGADA: el vistazo de los criterios de estudiante
+
+Barra por criterio (independiente, declarado que no se suman) arriba de
+las tarjetas de Marco, ordenada por mordida: nivel curricular −35.195
+(25,5%, chip «al encuestar» — actua en aula, no recorta el marco) ·
+condicion −12.408 · edad −11.530 · formacion −10.661 · facultad −9.049.
+Pie con el acumulado real del motor (109.737/137.919, 79,6%).
+Verificada en vivo. La cola de la vara sigue viva: proximos candidatos
+al recorrer Datos y las transiciones entre pestañas.
