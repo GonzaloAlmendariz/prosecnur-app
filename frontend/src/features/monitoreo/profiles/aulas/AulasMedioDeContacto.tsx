@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { medioDeContacto } from "./medioDeContacto";
+import { difereDeVerdad, medioDeContacto } from "./medioDeContacto";
 
 /**
  * Qué medio agenda mejor y a qué coste en intentos.
@@ -40,11 +40,25 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
       <p className="aulas-medio-titulo">Qué medio agenda mejor</p>
       <p className="aulas-medio-lectura">
         {medios.length > 1 ? (
-          <>
-            <strong>{mejor.medio}</strong> agenda el{" "}
-            <strong>{mejor.tasa.toLocaleString("es-PE")} %</strong> y{" "}
-            <strong>{peor.medio}</strong> el {peor.tasa.toLocaleString("es-PE")} %
-          </>
+          difereDeVerdad(mejor, peor) ? (
+            <>
+              <strong>{mejor.medio}</strong> agenda el{" "}
+              <strong>{mejor.tasa.toLocaleString("es-PE")} %</strong> y{" "}
+              <strong>{peor.medio}</strong> el {peor.tasa.toLocaleString("es-PE")} %
+            </>
+          ) : (
+            // **No se ordena lo que el dato no distingue.** Medido: Llamada
+            // 82,3 % (121 de 147) contra Correo 79,6 % (39 de 49) son 2,7 puntos
+            // frente a una banda de 13,1. Quien lee «Llamada agenda mejor»
+            // cambia cómo se contacta a la gente por una diferencia que sale
+            // por casualidad la mitad de las veces.
+            <>
+              Ningún medio agenda claramente mejor: <strong>{mejor.medio}</strong>{" "}
+              {mejor.tasa.toLocaleString("es-PE")} % y <strong>{peor.medio}</strong>{" "}
+              {peor.tasa.toLocaleString("es-PE")} %, una diferencia que cabe en el margen de
+              estos tamaños
+            </>
+          )
         ) : (
           <>Todo el contacto se hizo por <strong>{mejor.medio}</strong>, así que no hay con qué comparar.</>
         )}

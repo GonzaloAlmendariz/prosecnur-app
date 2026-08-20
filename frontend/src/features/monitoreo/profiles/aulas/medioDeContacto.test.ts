@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { medioDeContacto } from "./medioDeContacto";
+import { difereDeVerdad, medioDeContacto } from "./medioDeContacto";
 
 const fila = (f: Partial<MonitoreoAulasPlanRow>) => f as MonitoreoAulasPlanRow;
 
@@ -55,5 +55,35 @@ describe("medioDeContacto", () => {
   it("sin intentos declarados la mediana es nula, no cero", () => {
     const [m] = medioDeContacto([fila({ contact_medium: "Llamada", sample_status: "agendada" })]);
     expect(m.intentos).toBeNull();
+  });
+});
+
+describe("no se ordenan dos medios que el dato no distingue", () => {
+  // El panel se titula «Qué medio agenda mejor» y su lectura los ordenaba
+  // siempre. Medido sobre el corte: Llamada 82,3 % (121 de 147) y Correo 79,6 %
+  // (39 de 49) son **2,7 puntos frente a una banda de 13,1**. Quien lee
+  // «Llamada agenda mejor» cambia cómo se contacta a la gente por una diferencia
+  // que sale por casualidad la mitad de las veces.
+  const medio = (m: string, agendadas: number, aulas: number) =>
+    ({ medio: m, aulas, agendadas, tasa: Math.round((1000 * agendadas) / aulas) / 10,
+       intentos: 2, intentosDescartados: 0 });
+
+  it("el caso real del corte NO se distingue", () => {
+    expect(difereDeVerdad(medio("Llamada", 121, 147), medio("Correo", 39, 49))).toBe(false);
+  });
+
+  it("una diferencia grande con tamaños decentes SÍ", () => {
+    // 90 % contra 40 % sobre cien casos cada uno: si esto no pasara, el guard
+    // seria un filtro que no deja pasar nada.
+    expect(difereDeVerdad(medio("Llamada", 90, 100), medio("Correo", 40, 100))).toBe(true);
+  });
+
+  it("la misma diferencia con cuatro casos no se distingue", () => {
+    // 100 % contra 50 % son 50 puntos, pero de dos aulas contra cuatro.
+    expect(difereDeVerdad(medio("A", 2, 2), medio("B", 2, 4))).toBe(false);
+  });
+
+  it("un medio sin aulas no se compara", () => {
+    expect(difereDeVerdad(medio("A", 0, 0), medio("B", 40, 100))).toBe(false);
   });
 });
