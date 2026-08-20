@@ -178,3 +178,49 @@
   max-width: 760px;
 }
 .cmv2-cert-leyenda b, .cmv2-cert-leyenda i { color: var(--pulso-text-soft); }
+
+/* La barra del margen (M4, vara de mejora continua): un carril fijo 0-2,2x
+   con la marca de 1,0x — la cuota justa. Verde cuando cubre, rojo suave
+   cuando no; las 15 filas comparten escala para compararse de un vistazo. */
+.cmv2-cert-margen-celda {
+  min-width: 92px;
+}
+
+.cmv2-cert-margen-celda > span:first-child {
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-cert-margen-track {
+  position: relative;
+  display: block;
+  height: 5px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: visible;
+}
+
+.cmv2-cert-margen-track > i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.cmv2-cert-margen-track > i[data-cubre="true"] {
+  background: color-mix(in srgb, var(--pulso-success-fg) 62%, transparent);
+}
+
+.cmv2-cert-margen-track > i[data-cubre="false"] {
+  background: color-mix(in srgb, var(--pulso-danger-fg) 55%, transparent);
+}
+
+/* La marca de la cuota justa (1,0x). */
+.cmv2-cert-margen-track > b {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  transform: translateX(-1px);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--pulso-text) 66%, transparent);
+}
