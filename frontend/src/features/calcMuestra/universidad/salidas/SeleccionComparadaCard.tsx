@@ -17,6 +17,7 @@ import type {
   CalcMuestraAulasSelection,
   CalcMuestraReferenciaAsistencia,
 } from "../../../../api/calcMuestra";
+import { tip, tipAria, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
 import { seleccionComparada } from "./seleccionComparadaModel";
 import "./seleccionComparada.css";
 
@@ -32,6 +33,7 @@ export function SeleccionComparadaCard({
   periodo: string;
 }) {
   const comp = seleccionComparada(seleccion, referencia);
+  const { manejadores, tooltip } = useTooltipGrafico();
   if (!comp.filas.length) return null;
   // Escala comun para las micro-barras: el maximo de AMBAS series en todas
   // las facultades — mezclar escalas por fila haria mentir a las barras.
@@ -53,7 +55,7 @@ export function SeleccionComparadaCard({
           las tasas de {etiquetaRef}
         </span>
       </header>
-      <div className="cmv2-tabla-scroll">
+      <div className="cmv2-tabla-scroll" {...manejadores}>
         <table className="cmv2-tabla-comparada">
           <thead>
             <tr>
@@ -77,16 +79,36 @@ export function SeleccionComparadaCard({
                 <td>{fmtInt(f.elegiblesNuevos)}</td>
                 <td>{fmtMiles(f.esperadasNuevas)}</td>
                 <td>{fmtMiles(f.efectivasRef)}</td>
-                <td className="cmv2-selcmp-celda-barras" aria-hidden="true">
+                <td className="cmv2-selcmp-celda-barras">
                   {/* Las dos series a ESCALA COMUN (el lenguaje del embudo):
                       esperadas hoy llena, logradas del año pasado en trazo
-                      tenue debajo — la comparacion se VE, no solo se lee. */}
-                  <span className="cmv2-selcmp-track" data-serie="hoy">
-                    <span style={{ width: pct(f.esperadasNuevas) }} />
-                  </span>
-                  <span className="cmv2-selcmp-track" data-serie="antes">
-                    <span style={{ width: pct(f.efectivasRef) }} />
-                  </span>
+                      tenue debajo — y el detalle vive en el tooltip (M6). */}
+                  {(() => {
+                    const delta =
+                      f.esperadasNuevas != null && f.efectivasRef != null
+                        ? Math.round(f.esperadasNuevas) - Math.round(f.efectivasRef)
+                        : null;
+                    const datosTip = {
+                      titulo: f.facultad,
+                      filas: [
+                        { label: "Esperadas hoy", valor: f.esperadasNuevas != null ? fmtInt(Math.round(f.esperadasNuevas)) : "sin dato" },
+                        { label: `Logradas ${periodo || "antes"}`, valor: f.efectivasRef != null ? fmtInt(Math.round(f.efectivasRef)) : "sin referencia" },
+                        ...(delta != null ? [{ label: "Diferencia", valor: `${delta > 0 ? "+" : ""}${fmtInt(delta)}` }] : []),
+                      ],
+                      nota: `${fmtInt(f.aulasNuevas)} titulares hoy · ${f.aulasAplicadasRef != null ? fmtInt(f.aulasAplicadasRef) : "—"} aplicadas antes`,
+                      tono: "efectiva",
+                    };
+                    return (
+                      <span className="cmv2-selcmp-tracks" {...tip(datosTip)} aria-label={tipAria(datosTip)}>
+                        <span className="cmv2-selcmp-track" data-serie="hoy">
+                          <span style={{ width: pct(f.esperadasNuevas) }} />
+                        </span>
+                        <span className="cmv2-selcmp-track" data-serie="antes">
+                          <span style={{ width: pct(f.efectivasRef) }} />
+                        </span>
+                      </span>
+                    );
+                  })()}
                 </td>
               </tr>
             ))}
@@ -116,6 +138,7 @@ export function SeleccionComparadaCard({
           llegó a levantar datos; «titulares» es lo planificado hoy, antes de campo.
         </p>
       )}
+      {tooltip}
     </section>
   );
 }

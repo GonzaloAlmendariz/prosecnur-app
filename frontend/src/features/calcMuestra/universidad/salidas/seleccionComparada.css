@@ -102,3 +102,11 @@
 .cmv2-selcmp-th-barras i[data-serie="antes"] {
   background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
 }
+
+/* El grupo de tracks es el objetivo del tooltip (M6): ocupa la celda entera
+   para que el hover no exija punteria. */
+.cmv2-selcmp-tracks {
+  display: block;
+  padding: 2px 0;
+  cursor: default;
+}
