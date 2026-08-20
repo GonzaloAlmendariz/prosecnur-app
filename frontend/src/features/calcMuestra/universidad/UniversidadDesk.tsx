@@ -784,6 +784,8 @@ export function UniversidadDesk({
                   sentido conceptual — esto habla de aulas, no del n). */}
               <DistribucionElegiblesCard
                 aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
+                estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
+                  import("./calculo/DistribucionElegiblesCard").EstratoDimension[] | null}
               />
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion">
