@@ -4391,3 +4391,21 @@ facultad (3) → (T3) elegibles vs esperadas visibles por fila (4) →
 (T4) glosar/limpiar razon operativa y ajuste frente al marco (5, 6) →
 (T5) el grafico partido y el de repetidos: explicarlos o retirarlos
 (2, 8). El lenguaje de «celdas» (pedido anterior) sigue en cola tras T1.
+
+### Pregunta metodologica de Gonzalo: el sistema de efectividad, explicado y por encolar EN LA APP
+
+Su pregunta: ¿de donde sale el 53%? ¿por que efectividad POR CH? ¿con
+que criterio? Respuesta dada (completa en la conversacion): (1) τ=0,53
+MEDIDO del 2025 ejecutado (efectivas/elegibles-sentados; 2025 asumio
+0,704) — es el divisor del dimensionamiento (cuota÷(P25×τ)→197);
+(2) el τ POR FACULTAD ya esta medido (DER 0,562 · CCSS 0,550 · C&I
+0,538 · A&D 0,519 · EGL 0,444 · EGC 0,428; resto sin k suficiente) y
+quedo EN VIGILANCIA por su opcion B — activable; (3) efectivas_esperadas
+por CH es OTRA capa (pronostico, contrato EF6): elegibles ×
+P(aplicada|docente: contratado 0,87 / ordinario-principal 0,73) ×
+rendimiento(tamaño: ≤15→0,80 … >50→0,44), curvas medidas del 2025;
+(4) validacion de coherencia: Σesperadas/Σelegibles de los 197 = 0,529
+≈ τ — el micro reconstruye el macro; Monitoreo verifico 197/197 desvio
+0. ENCOLADO (M-next): tarjeta didactica «De donde sale la efectividad»
+en Calculo con las dos curvas y esta cadena — que la pregunta se
+responda sola en pantalla.
