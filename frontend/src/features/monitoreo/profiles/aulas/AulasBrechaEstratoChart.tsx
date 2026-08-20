@@ -35,9 +35,24 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
     );
   }
 
+  // **El resto NO entra como barra, y lo probé.**
+  //
+  // Con estratos de verdad —`FACULTAD / SEXO / TAMAÑO`, 56 en el estudio— el
+  // corte de doce deja fuera 44 que suman 858 de las 1 580 que faltan, así que
+  // el gráfico dibuja el 46 % del problema. Metí una barra «Otros 44 estratos»
+  // para que esa masa se viera… y la medición después la tumbó: con 858 contra
+  // los 89 del mayor, la escala pasa a fijarla el agregado y **los doce
+  // estratos reales quedan comprimidos en el 10 % izquierdo**. Comparar
+  // estratos entre sí es justo para lo que existe este panel.
+  //
+  // Lo que sí faltaba era el PESO de lo que se dibuja, que es lo que un lector
+  // no puede calcular de cabeza: va abajo, en el pie.
   // Plotly dibuja el primer elemento abajo: se invierte para que el estrato con
   // más brecha quede arriba, que es donde cae la vista.
   const orden = [...estratos].reverse();
+  const parteDibujada = brechaTotal > 0
+    ? Math.round((100 * (brechaTotal - brechaOmitida)) / brechaTotal)
+    : 0;
   const data = [
     {
       type: "bar",
@@ -96,9 +111,15 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
       <p className="mon-profile-table-recorte">
         Faltan {fmt(brechaTotal)} respuestas en total.
         {cerrados ? ` ${cerrados} ${cerrados === 1 ? "estrato ya alcanzó" : "estratos ya alcanzaron"} su meta.` : ""}
-        {/* El recorte se declara con su brecha: sin decir cuánto suman, la
-            última barra se leería como «lo demás está cerrado». */}
-        {omitidos ? ` No se dibujan ${contar(omitidos, "estrato", "estratos")} con menos brecha, que suman ${fmt(brechaOmitida)}.` : ""}
+        {/* El recorte se declara con su brecha Y con su PESO: «no se dibujan 44»
+            no dice si eso es el margen o la mitad del problema, y aquí es el
+            54 %. Sin el porcentaje, quien mira las doce barras cree que está
+            viendo el estudio. */}
+        {omitidos
+          // «estrato» es masculino: «las otras 44 estratos» era lo que salía al
+          // pegar un artículo femenino a lo que devuelve `contar()`.
+          ? ` Los ${estratos.length} que se dibujan son el ${parteDibujada} % de lo que falta; los otros ${contar(omitidos, "estrato", "estratos")} suman ${fmt(brechaOmitida)}.`
+          : ""}
       </p>
     </div>
   );

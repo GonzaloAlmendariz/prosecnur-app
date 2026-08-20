@@ -83,7 +83,11 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
               <span className="aulas-frente-cuando">
                 {fechaCorta(a.fecha)}{a.hora ? <em> {a.hora}</em> : null}
               </span>
-              <span className="aulas-frente-donde" title={a.donde}>{a.donde || "—"}</span>
+              {/* El `title` lleva el texto ENTERO del Excel —«LUN 16:00 V110»—
+                  aunque la celda muestre solo el aula: el vocabulario del equipo
+                  no se pierde, solo deja de repetirse al lado de la columna que
+                  ya dice el dia y la hora. */}
+              <span className="aulas-frente-donde" title={a.sesion || a.donde}>{a.donde || "—"}</span>
             </li>
           ))}
         </ul>
