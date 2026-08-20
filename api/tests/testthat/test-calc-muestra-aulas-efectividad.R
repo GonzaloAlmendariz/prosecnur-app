@@ -92,6 +92,15 @@ test_that("un tau ilegal NO habilita el modo global: cae a embebida declarada", 
   expect_identical(cfg$efectividad, list(fuente = "historico", periodo = "2025-2", tau = NA_real_))
 })
 
+test_that("la proyeccion del workspace NO borra la procedencia (septima lista cerrada)", {
+  ws <- .cm_normalize_workspace_aulas_config(list(
+    efectividad = list(fuente = "historico", periodo = "2025-2")
+  ))
+  expect_identical(ws$efectividad, list(fuente = "historico", periodo = "2025-2", tau = NA_real_))
+  # Sin declaracion la clave queda NULL (no un default disfrazado).
+  expect_null(.cm_normalize_workspace_aulas_config(list())$efectividad)
+})
+
 test_that("frame sin eligible_n o vacio queda intacto (nunca inventa)", {
   vacio <- data.frame()
   expect_identical(.cm_aulas_efectividad_anotar(vacio), vacio)

@@ -481,6 +481,11 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
   filtros_default <- calc_muestra_aulas_default_config()$filters
   out <- list(
     schema = calc_str(cfg$schema, "calc_muestra_workspace_aulas_v1"),
+    # Procedencia de la calibracion de efectividad. Séptima aparición de la
+    # familia lista-cerrada (H8b documenta el patron): sin este passthrough,
+    # cada round-trip del estudio BORRABA la declaracion sellada via
+    # /marco/config y el build volvia a calibracion_embebida en silencio.
+    efectividad = .cm_efectividad_normalize_config(cfg$efectividad),
     modalidad = calc_enum(cfg$modalidad, modalidad_values, "presencial_aula"),
     selector = calc_enum(cfg$selector, selector_values, "cube_balanceado"),
     selector_engine = calc_enum(cfg$selector_engine %||% cfg$selector, selector_values, "cube_balanceado"),
