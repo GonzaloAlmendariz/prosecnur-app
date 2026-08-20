@@ -33,15 +33,20 @@ function classroomExpectedSexLabel(row: Record<string, unknown>, workspace?: Cal
 function classroomSelectionReason(row: Record<string, unknown>) {
   const explicit = classroomRowText(row, ["selection_reason", "reason", "motivo"]);
   if (explicit) return explicit;
+  // Prosa, no jerga concatenada — Gonzalo (2026-08-20): «la razón operativa
+  // no se entiende» (ítem 5 del pliego).
   const faculty = classroomRowText(row, ["faculty", "stratum"]);
   const eligible = classroomRowNumber(row, ["eligible_n"]);
   const pi = classroomRowNumber(row, ["pi_final"]);
-  const parts = [
-    faculty ? `aporta a ${faculty}` : "",
-    eligible > 0 ? `${fmtInt(eligible)} elegibles esperados` : "",
-    pi > 0 ? `prob. final ${fmtPct(pi)}` : "",
-  ].filter(Boolean);
-  return parts.length ? parts.join("; ") : "curso-horario incluido por el método seleccionado";
+  const partes: string[] = [];
+  if (faculty) partes.push(`cubre la cuota de ${faculty}`);
+  if (eligible > 0) partes.push(`aporta ${fmtInt(eligible)} elegibles`);
+  let texto = partes.join(" y ");
+  if (pi > 0) {
+    texto += `${texto ? "; " : ""}el sorteo le asignó una probabilidad final de ${fmtPct(pi)}`;
+  }
+  if (!texto) return "Incluido por el método de selección vigente.";
+  return `${texto.charAt(0).toUpperCase()}${texto.slice(1)}.`;
 }
 
 export function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows?: Array<Record<string, unknown>> | unknown; workspace?: CalcMuestraWorkspace }) {
@@ -73,7 +78,7 @@ export function ClassroomSelectionRationaleDashboard({ rows, workspace }: { rows
               <th>Curso-horario titular</th>
               <th>Facultad / programa</th>
               <th>Esperado</th>
-              <th>Razón operativa</th>
+              <th>Por qué está en la muestra</th>
             </tr>
           </thead>
           <tbody>
@@ -209,46 +214,53 @@ export function ClassroomSelectionTable({
 }
 
 export function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, unknown>> | unknown }) {
-  const visible = rowsFrom<Record<string, unknown>>(rows)
-    .slice(0, 8)
+  // Antes: un pseudo-grafo con las PRIMERAS 8 filas unidas por lineas sin
+  // significado — «sin razon de ser clara» (Gonzalo, item 8 del pliego).
+  // Ahora: el ranking honesto de los titulares que MAS estudiantes comparten,
+  // con su proposito dicho en una frase.
+  const todos = rowsFrom<Record<string, unknown>>(rows)
     .map((row, index) => ({
       id: classroomRowText(row, ["classroom_id"]) || `aula-${index}`,
       label: classroomOperationalCode(row, `CH ${index + 1}`),
+      curso: classroomRowText(row, ["course_name", "label"]),
       overlap: classroomRowNumber(row, ["duplicate_overlap"]),
-      x: 36 + (index % 2) * 128,
-      y: 36 + Math.floor(index / 2) * 54,
     }));
+  const conSolape = todos.filter((item) => item.overlap > 0).sort((a, b) => b.overlap - a.overlap);
+  const visible = conSolape.slice(0, 8);
   const maxOverlap = Math.max(1, ...visible.map((item) => item.overlap));
   return (
     <div className="cmv2-classroom-overlap-graph">
       <div className="cmv2-subhead">
-        <strong>Cursos-horario repetidos</strong>
+        <strong>Titulares que comparten estudiantes</strong>
       </div>
-      {!visible.length ? (
-        <span className="cmv2-classroom-muted">Genera la selección para ver si los cursos-horario comparten muchos estudiantes.</span>
+      <p className="cmv2-overlap-rank-glosa">
+        Estudiantes de cada titular que otra aula de la muestra ya cubre: cuanto más alto,
+        menos estudiantes únicos aporta esa aula. El descuento de repetidos usa este dato.
+      </p>
+      {!todos.length ? (
+        <span className="cmv2-classroom-muted">Genera la selección para ver si los cursos-horario comparten estudiantes.</span>
+      ) : !visible.length ? (
+        <span className="cmv2-classroom-muted">Ningún titular comparte estudiantes con otras aulas de la muestra.</span>
       ) : (
-        <svg viewBox="0 0 230 250" role="img" aria-label="Grafo simple de estudiantes repetidos entre cursos-horario" className="cmv2-aulas-overlap-svg">
-          {visible.slice(1).map((item, index) => (
-            <line
-              key={`line-${item.id}`}
-              x1={visible[index].x}
-              y1={visible[index].y}
-              x2={item.x}
-              y2={item.y}
-              strokeWidth={1}
-            />
+        <ul className="cmv2-overlap-rank">
+          {visible.map((item) => (
+            <li key={item.id}>
+              <span className="cmv2-overlap-rank-etq">
+                <b>{item.label}</b>
+                <small>{String(item.curso).slice(0, 28)}</small>
+              </span>
+              <i className="cmv2-overlap-rank-track">
+                <b style={{ width: `${(item.overlap / maxOverlap) * 100}%` }} />
+              </i>
+              <span className="cmv2-overlap-rank-n">{fmtInt(item.overlap)}</span>
+            </li>
           ))}
-          {visible.map((item) => {
-            const radius = 11 + Math.min(14, (item.overlap / maxOverlap) * 14);
-            return (
-              <g key={item.id}>
-                <circle cx={item.x} cy={item.y} r={radius} strokeWidth={1.2} />
-                <text x={item.x} y={item.y + 3} textAnchor="middle">{fmtInt(item.overlap)}</text>
-                <text x={item.x} y={item.y + radius + 13} textAnchor="middle">{String(item.label).slice(0, 16)}</text>
-              </g>
-            );
-          })}
-        </svg>
+          {conSolape.length > visible.length && (
+            <li className="cmv2-overlap-rank-resto">
+              y {fmtInt(conSolape.length - visible.length)} titulares más con solape menor
+            </li>
+          )}
+        </ul>
       )}
     </div>
   );
