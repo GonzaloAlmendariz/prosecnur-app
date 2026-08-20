@@ -1565,6 +1565,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # convirtio en `sin_contactar` todo lo que no reconoce, asi que preguntarselo
   # al plan normalizado devolveria cero siempre.
   estados_raros <- monitoreo_aulas_estados_no_reconocidos(plan %||% cfg$plan %||% list())
+  # Una sola vez: lo consumen el payload y el contraste de veredictos, y
+  # calcularlo dos veces sobre 152 filas es trabajo repetido con riesgo de que
+  # las dos copias se separen.
+  control_publicado <- monitoreo_aulas_control_publicado(cfg$control %||% list())
   # De declaracion de diseño a control de verdad: ver
   # `monitoreo_aulas_identificadores.R`.
   identificadores <- monitoreo_aulas_identificadores(responses, isTRUE(cfg$anonymous_responses))
@@ -1759,8 +1763,18 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # el estudio declara aquí y las casillas que el equipo llenó en su Excel— y
     # en este corte ni el número coincide: 2 filtros contra 3 columnas.
     criterio_validez = criterio,
+    # **Que es un aula valida SEGUN EL ESTUDIO.** `NULL` mientras no se declare,
+    # que es como estan todos los estudios hoy: la app se cree el veredicto del
+    # Excel porque no tiene criterio propio. Cuando se declara, el motor calcula
+    # el suyo y lo CONTRASTA con el de la hoja —no lo sustituye—: el equipo
+    # decide con su formula y aqui se ve donde las dos no coinciden.
+    criterio_aula = (function() {
+      crit <- monitoreo_aulas_criterio_aula(cfg)
+      if (is.null(crit)) return(NULL)
+      monitoreo_aulas_contraste_veredicto(control_publicado, crit)
+    })(),
     control_calidad = monitoreo_aulas_control_con_facultad(
-      monitoreo_aulas_control_publicado(cfg$control %||% list()),
+      control_publicado,
       plan %||% cfg$plan %||% list()
     )$filas,
     control_calidad_resumen = monitoreo_aulas_control_resumen(cfg$control %||% list()),
