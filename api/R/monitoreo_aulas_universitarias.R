@@ -1752,6 +1752,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # equipo sale por facultad. El cruce cuenta lo que cruza —`sin_cruce` viaja
     # en el resumen— porque un homonimo ya se hizo pasar por conexion en este
     # mismo perfil.
+    # **El criterio de validez del ESTUDIO, para poder contrastarlo con el del
+    # libro.** Se calculaba y sólo se gastaba en el texto de un control, así que
+    # la Base de control enseñaba las columnas «VALIDADOR 1/2/3» de la hoja sin
+    # nada que dijera de quién son. Son dos sistemas distintos —los filtros que
+    # el estudio declara aquí y las casillas que el equipo llenó en su Excel— y
+    # en este corte ni el número coincide: 2 filtros contra 3 columnas.
+    criterio_validez = criterio,
     control_calidad = monitoreo_aulas_control_con_facultad(
       monitoreo_aulas_control_publicado(cfg$control %||% list()),
       plan %||% cfg$plan %||% list()

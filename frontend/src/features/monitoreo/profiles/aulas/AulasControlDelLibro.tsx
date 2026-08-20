@@ -1,5 +1,6 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
+import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -266,10 +267,14 @@ function texto(valor: unknown) {
 export function AulasControlDelLibro({
   filas,
   resumen,
+  criterio,
 }: {
   filas: ReadonlyArray<Record<string, unknown>>;
   resumen: ResumenDeControl | null;
+  /** El criterio de validez que declara el ESTUDIO, para contrastarlo. */
+  criterio?: CriterioDelEstudio | null;
 }) {
+  const validadores = contrasteDeValidadores(criterio, filas);
   const grupos = resumen?.grupos ?? [];
   const aulas = resumen?.aulas ?? filas.length;
 
@@ -325,6 +330,28 @@ export function AulasControlDelLibro({
           <AulasMatrizUmbrales v={resumen.veredicto} aulas={aulas} />
           <Veredicto v={resumen.veredicto} aulas={aulas} />
         </>
+      ) : null}
+      {/* **De quién son los validadores.**
+          La hoja trae columnas VALIDADOR y el estudio declara sus propios
+          filtros de respuesta válida en la app: dos sistemas distintos, juntos
+          en la misma pantalla y sin nada que dijera cuál es cuál. Aquí no se
+          inventa la relación —no la hay— sino que se nombra. */}
+      {validadores.columnas > 0 ? (
+        <p className="mon-profile-muted aulas-control-validadores">
+          Las {validadores.columnas === 1 ? "columna" : `${validadores.columnas} columnas`}
+          {" "}de validador {validadores.columnas === 1 ? "es" : "son"} del equipo: las llena
+          en su Excel y la app no las calcula.{" "}
+          {validadores.sinDeclarar ? (
+            <>Este estudio todavía no declara sus filtros de respuesta válida, así
+            que no hay con qué compararlas.</>
+          ) : (
+            <>
+              El estudio declara {validadores.declarados.length}{" "}
+              {validadores.declarados.length === 1 ? "filtro" : "filtros"} propios
+              ({validadores.declarados.join(", ")}), que es otro criterio.
+            </>
+          )}
+        </p>
       ) : null}
       <p className="aulas-cadenas-lectura">
         {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el

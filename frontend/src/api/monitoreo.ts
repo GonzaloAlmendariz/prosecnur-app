@@ -761,6 +761,20 @@ export type MonitoreoAulasDashboard = {
    */
   banco_extras?: BancoDeExtras | null;
   /**
+   * El criterio de respuesta válida que declara el ESTUDIO, para poder
+   * contrastarlo con las columnas VALIDADOR de la hoja del equipo. Son dos
+   * sistemas distintos y la Base de control los ponía juntos sin decir cuál era
+   * cuál: en el corte de HSVG2026, 2 filtros declarados contra 3 columnas.
+   */
+  criterio_validez?: {
+    modo?: string;
+    filtros?: string[] | string;
+    filtros_ausentes?: string[] | string;
+    columna?: string;
+    validas?: number;
+    total?: number;
+  } | null;
+  /**
    * Cuántos cursos-horario hay DE VERDAD. `course_status` viaja recortado por
    * el tamaño del payload —500 filas— y sin este campo un plan de 2 615 se leía
    * en pantalla como «el estudio tiene 500 aulas».
