@@ -783,6 +783,11 @@ export type MonitoreoAulasDashboard = {
    */
   texto_abierto?: unknown;
   /**
+   * Qué descarta cada filtro de validez declarado. Lo normaliza
+   * `cadenaDeFiltros()` en el feature.
+   */
+  cadena_filtros?: unknown;
+  /**
    * El criterio de respuesta válida que declara el ESTUDIO, para poder
    * contrastarlo con las columnas VALIDADOR de la hoja del equipo. Son dos
    * sistemas distintos y la Base de control los ponía juntos sin decir cuál era

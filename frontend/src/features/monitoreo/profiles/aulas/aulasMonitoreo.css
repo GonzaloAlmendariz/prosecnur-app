@@ -4689,3 +4689,92 @@
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── La cadena de filtros ────────────────────────────────────────────────
+   Tres columnas fijas —que filtra, de cuantas a cuantas, cuanto descarta— para
+   que la cadena se recorra en vertical sin releer los rotulos. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-filtros {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-alarma {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-warn) 38%, var(--pulso-border));
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-warn) 9%, var(--pulso-surface-2));
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-pasos {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-pasos li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-var {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-var small {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-flujo {
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-flujo strong {
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-caen {
+  display: grid;
+  gap: 1px;
+  justify-items: end;
+  min-width: 78px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-caen.is-activo {
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--pulso-warn) 72%, var(--pulso-text));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cadena-caen small {
+  font-weight: 400;
+  color: var(--pulso-text-muted);
+}

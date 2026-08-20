@@ -54,6 +54,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
+import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
 import { AulasTextoAbierto } from "./AulasTextoAbierto";
 import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
@@ -817,6 +818,21 @@ function renderAulasView(
               <span>calidad de las respuestas abiertas</span>
             </div>
             <AulasTextoAbierto bloque={dashboard.texto_abierto} />
+          </section>
+          {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
+              puede saber si el criterio trabaja: un filtro que acepta todos los
+              valores da el mismo número que no tener filtro. Va en Validación
+              porque es la pregunta del analista sobre su propio criterio. */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Qué descarta cada filtro</h3>
+              <span>la cadena de validez, paso a paso</span>
+            </div>
+            <AulasCadenaDeFiltros bloque={dashboard.cadena_filtros} />
           </section>
         </div>
       );
