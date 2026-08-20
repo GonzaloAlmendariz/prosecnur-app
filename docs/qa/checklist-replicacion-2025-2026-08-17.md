@@ -4329,3 +4329,27 @@ media/baja llevan el recipe de la casa (filete ambar inset presente).
 | Cobertura | OK (2 tarjetas por facultad) |
 
 Falta: Calculo (4), Seleccion, Entrega — proximo tick.
+
+### Simulacion y el 239% — dos señalamientos de Gonzalo arreglados y verificados (4dd87175)
+
+**Simulacion («la peor de todas»)**: el ladrillo del fallback (diez
+notas del motor con «|» en crudo) ahora se resume contable con el crudo
+plegado y partido en lista; las tarjetas de riesgo dejaron el mostaza
+lleno por el recipe. **El 239%**: era elegibles-sentados/cuota — la
+cifra grande pasa a esperadas/objetivo y quedo verificada en vivo:
+«rinden ≈3.155 efectivas frente a 2.500 (sientan 5.963, ×2,4 en bruto)
+— 126% en efectivas esperadas»; el veredicto corta/justa/holgada juzga
+con esa vara.
+
+**Colaboracion con la sesion de Monitoreo** (pedido de Gonzalo de
+trabajar en conjunto): les pase el contrato de efectivas_esperadas /
+p_aplicada_ref / rendimiento_ref como esperado POR AULA (en vez del 70%
+fijo) y el nombre canonico; con ese dato encontraron que su handoff
+usaba eligible_n como meta (el KPI «0 de 194 llegaron a su meta» era
+imposible por construccion) y ya lo repararon. τ=0,53 vs 0,704
+declarados como varas distintas en ambos lados.
+
+**PENDIENTE SIGUIENTE (Gonzalo)**: el lenguaje de «Reemplazos por
+celda» — «misma celda, celda equivalente, celda sin reserva… hay que
+definir bien el lenguaje»: glosar celda=estrato del diseño en la
+superficie y renombrar en lenguaje del analista.
