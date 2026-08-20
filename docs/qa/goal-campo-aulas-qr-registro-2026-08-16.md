@@ -2674,3 +2674,80 @@ que el filtro «dos columnas» descartaba todo.
 > Antes de creerse un «no hay hallazgos», comprobar que el barrido **encuentra el
 > caso conocido**. Aquí el control era la pareja recién reparada: si no aparece,
 > la medición está rota, no el código.
+
+## 2026-08-20 — El gate visual daba verde sobre la pantalla de carga
+
+Nueve unidades esta madrugada. Lo que las une: cada arreglo destapó que la misma
+avería estaba también un piso más arriba.
+
+### La familia del turno: verde por ausencia
+
+- **Un control que decía «correcto» y no se había ejecutado** (`11087449`). La
+  lista de Calidad decía «6 correctos» y uno de ellos llevaba escrito en su
+  propio detalle «la fuente no trae identificador de respuesta; no se puede
+  comprobar». Cuarto estado `sin_datos`, rotulado **«Sin comprobar»**, con
+  material neutro: un control no ejecutado no es salud, pero tampoco pide acción.
+- **Y su gemelo arriba**: el KPI contaba `status != "ok"` y pasó a decir «6
+  controles que no pasan», mientras el de al lado prometía «11 reglas evaluadas»
+  con 10 evaluadas. Tres cifras que ahora cuadran: **10 evaluadas + 1 sin
+  comprobar = 11 filas**; **5 alertas + 5 correctos = 10 evaluadas**.
+- **El control que no podía fallar** (`b6ec3302`). `student_id_required` tenía el
+  estado escrito a mano —`"ok"` siempre— y era una declaración de diseño, no un
+  control. Ahora es `personal_identifiers` y comprueba lo serio: si la base
+  arrastra correo, celular, documento o nombre bajo promesa de anonimato. No
+  reimplanta la detección: hereda el clasificador de `pulso_anonimizar.R`.
+- **El gate entero** (`a5aa497f`, `400298f2`). `ui-quick-check` devolvía
+  `ok=true issues=0` sobre una captura que decía «Preparando vista». La página
+  emitía su marca de readiness fija desde el primer render; y `CalidadDeCampo`,
+  que los cuatro perfiles montan, publicaba una **segunda** marca que respondía
+  por una vista ajena.
+
+### Lo que apareció cuando el gate empezó a medir
+
+| pestaña | antes | después |
+|---|---|---|
+| `calidad/base` | `ok=true` sobre la pantalla de carga | `ok=true` · 8 grupos · 0 issues |
+| `avance/resumen` | nunca medida | **3 `overflow-x`** → reparados |
+| otras once | nunca medidas | verde |
+
+Los tres `overflow-x` eran nombres de facultad pintando fuera de su celda —227 px
+en 190—. La causa: el nombre iba como **texto suelto dentro de un grid**, y a una
+caja anónima no se le aplica `text-overflow`.
+
+### Producto nuevo: «Lo que falta para cerrar»
+
+La Base de control terminaba en «23 de 152 efectivas» y ahí paraba. Medido sobre
+el corte real: **505 encuestas cierran las 79 aulas que no llegaron**, mediana 6,
+**36 a cinco o menos** —dos a una sola— y **con la mitad del esfuerzo se cierran
+56 de las 79**. El panel es una escalera de esfuerzo más la cola de trabajo, y
+agrupa por facultad porque una salida cierra varias aulas.
+
+**El orden corrigió el propio diseño**: por costo, encabezaba una facultad de UNA
+aula a dos encuestas —la salida más barata y la peor en rendimiento—. Cuando un
+bloque promete «a dónde ir», el orden es el rendimiento de la visita.
+
+### La tasa que se movía por lo que el equipo llena
+
+«23 de 152 aulas efectivas · 15 %» tenía 50 filas sin evaluar en el denominador:
+ese 15 % **sube solo porque el equipo termine de llenar la hoja**. Entre las 102
+evaluadas es 23 %. La matriz de al lado NO cambió de denominador —su reparto
+incluye a las no evaluadas a propósito, para que sumen 100 %— y lo que faltaba
+era declararlo: una es un reparto y la otra una tasa.
+
+### Tres trampas de medición, todas propias
+
+1. **Varias `--ir` en una corrida no son varias capturas.** El runner navega en
+   cadena y mide **sólo la última**: cuatro direcciones dieron `captures=1`, y
+   ese `ok=true` cubría una pestaña de cuatro.
+2. **Un `scroll-unreachable` que no lo es.** En 1024×600 el runner marca
+   `lastContentReachable: false` en `avance/resumen`. Comprobado a mano: bajando
+   al panel y luego dentro de la lista, la última facultad queda visible entre
+   244 y 504 px de una ventana de 600. **El producto es alcanzable.**
+3. **Y el intento de diagnosticarlo produjo un número absurdo**: midiendo el
+   `bottom` de todos los descendientes salió un `logicalBottom` de **14 094 px**
+   con un `maxScroll` de 2 580. En una página con scrolls anidados el `bottom`
+   absoluto de un elemento no significa nada — el runner corta la rama al llegar
+   a un contenedor con scroll propio y mi medición no.
+
+> Un rojo del gate se verifica igual que un verde. La diferencia es que el verde
+> falso deja pasar defectos y el rojo falso hace que se deje de mirar el gate.
