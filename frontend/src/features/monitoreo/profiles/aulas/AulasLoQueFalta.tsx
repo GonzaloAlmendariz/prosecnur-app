@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 
+import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { NombreDeFacultad } from "./NombreDeFacultad";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar, porFacultad } from "./loQueFaltaParaCerrar";
 
@@ -23,13 +25,22 @@ const fmt = (n: number) => n.toLocaleString("es-PE");
 
 const MARGEN = 6;
 
+// Se leen detrás de «falla», así que la frase entera tiene que decir lo que
+// pasa. «falla ninguno de los dos umbrales» decía exactamente lo contrario de
+// lo que le pasa a esa aula, que es fallar los dos.
 const FALLA: Record<string, string> = {
-  ambos: "ninguno de los dos umbrales",
+  ambos: "los dos umbrales",
   total: "el umbral de asistentes",
   poblacion: "el umbral de matriculados",
 };
 
-export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Record<string, unknown>>> }) {
+export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
+  filas: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  /** El corte que cruza la sección entera; viaja en la URL. */
+  facultadEnFoco?: string;
+  /** Sin esto la lista no es pulsable, igual que las otras cinco. */
+  onFoco?: (foco: FocoDeCuota) => void;
+}) {
   const r = useMemo(() => loQueFaltaParaCerrar(filas), [filas]);
 
   if (!r.noEfectivas) {
@@ -74,6 +85,7 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
   // lectura que la escalera existe para dar: las baratas van primero.
   const conLaMitad = aulasQueCierran(r.aulas, Math.round(costo / 2)).cerradas;
   const grupos = porFacultad(r.aulas);
+  const enFoco = facultadEnFoco ? r.aulas.filter((a) => a.facultad === facultadEnFoco) : r.aulas;
 
   return (
     // Quién posee el vacío interior de este panel.
@@ -138,8 +150,15 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
       {grupos.filas.length > 1 ? (
         <ul className="aulas-falta-facultades">
           {grupos.filas.slice(0, 6).map((f) => (
-            <li key={f.facultad}>
-              <span className="aulas-falta-fac">{f.facultad}</span>
+            <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
+              {/* La sexta lista que pone el foco. La séptima superficie de las
+                  mismas veinte facultades que se conformaba con enseñarlas. */}
+              <NombreDeFacultad
+                facultad={f.facultad}
+                className="aulas-falta-fac"
+                enFoco={f.facultad === facultadEnFoco}
+                onFoco={onFoco}
+              />
               <span className="aulas-falta-barra">
                 <span style={{ width: `${(f.aulas / grupos.filas[0].aulas) * 100}%` }} />
               </span>
@@ -155,8 +174,13 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
           ))}
         </ul>
       ) : null}
+      {/* La lista OBEDECE el foco; el bloque de facultades de arriba no.
+          Filtrar también aquel dejaría en una sola fila el bloque que existe
+          para comparar facultades entre sí —la misma razón por la que la
+          pirámide recibe todas las filas: es el control—. Aquí es al revés:
+          quien está siguiendo a una facultad quiere SUS aulas. */}
       <ul className="aulas-falta-lista">
-        {r.aulas.slice(0, 10).map((a) => (
+        {enFoco.slice(0, 10).map((a) => (
           <li key={a.codigo}>
             <span className="aulas-falta-cod">{a.codigo}</span>
             <span className="aulas-falta-n"><strong>{fmt(a.faltan)}</strong></span>
@@ -167,7 +191,16 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
         ))}
       </ul>
       <p className="mon-profile-muted aulas-falta-pie">
-        {total > 10 ? <>Las diez más baratas; quedan {fmt(total - 10)} más, hasta {fmt(r.aulas[total - 1].faltan)} encuestas. </> : null}
+        {/* Cuál es el conjunto que se está listando. Sin esto, con el foco
+            puesto se ven tres aulas y se leen como si fueran todas. */}
+        {facultadEnFoco ? (
+          <>
+            Las {enFoco.length > 10 ? "diez más baratas de " : ""}{fmt(enFoco.length)}{" "}
+            {enFoco.length === 1 ? "aula" : "aulas"} de {facultadEnFoco}, que es la facultad en foco.{" "}
+          </>
+        ) : total > 10 ? (
+          <>Las diez más baratas; quedan {fmt(total - 10)} más, hasta {fmt(r.aulas[total - 1].faltan)} encuestas. </>
+        ) : null}
         {conDiez > conCinco ? <>Con diez o menos cierran {fmt(conDiez)}. </> : null}
         {conLaMitad ? <>Con la mitad del esfuerzo —{fmt(Math.round(costo / 2))} encuestas— se cierran {fmt(conLaMitad)} de las {fmt(total)}. </> : null}
         {/* Lo que este panel NO puede priorizar se dice, no se calla: sin esto
