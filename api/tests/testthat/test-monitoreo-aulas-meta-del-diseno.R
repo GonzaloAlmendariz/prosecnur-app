@@ -115,3 +115,27 @@ test_that("el PORQUE de la meta viaja con ella", {
   )))
   expect_true(is.na(sin[[1]]$p_aplicada_ref))
 })
+
+test_that("el factor de facultad y la procedencia de la calibracion viajan", {
+  # Gonzalo pidio que el esperado dejara de asumir «que todas las facultades
+  # tienen la misma naturaleza», asi que desde 2026-08-20 la meta lleva un
+  # cuarto factor. Sin transportarlo, el desglose de la pantalla dejaria de
+  # cuadrar en 135 de las 197 aulas titulares del marco 2026.
+  plan <- monitoreo_aulas_normalize_plan(list(list(
+    operational_code = "CH 1", classroom_id = "a", eligible_n = 24,
+    efectivas_esperadas = 9.8, p_aplicada_ref = 0.73, rendimiento_ref = 0.69,
+    factor_facultad = 0.81, facultad_k = 26,
+    efectividad_fuente = "historico", efectividad_periodo = "2025"
+  )))
+  f <- plan[[1]]
+  expect_equal(f$factor_facultad, 0.81)
+  expect_equal(f$facultad_k, 26)
+  expect_identical(f$efectividad_fuente, "historico")
+  expect_identical(f$efectividad_periodo, "2025")
+  # El control: en las facultades sin base suficiente rige la tasa general y el
+  # campo no viene; no se inventa un 1.
+  sin <- monitoreo_aulas_normalize_plan(list(list(
+    operational_code = "CH 2", classroom_id = "b", eligible_n = 24, efectivas_esperadas = 12.1
+  )))
+  expect_true(is.na(sin[[1]]$factor_facultad))
+})

@@ -28,6 +28,13 @@ export type PorQueEsaMeta = {
   elegibles: number;
   pAplicada: number;
   rendimiento: number;
+  /** El de su facultad, cuando la referencia tiene base para calcularlo. */
+  factorFacultad: number | null;
+  /** Aulas del histórico que sostienen ese factor. */
+  facultadK: number | null;
+  /** De dónde sale la calibración: «histórico», «2025». */
+  fuente: string;
+  periodo: string;
   meta: number;
   /** Los tipos de docente del aula, ya separados. */
   docentes: string[];
@@ -59,8 +66,28 @@ export function porQueEsaMeta(fila: Fila): PorQueEsaMeta | null {
   if (elegibles === null || pAplicada === null || rendimiento === null || meta === null) return null;
   if (elegibles <= 0 || pAplicada <= 0 || rendimiento <= 0) return null;
   const docentes = tiposDeDocente(fila.teacher_type);
+  const factorFacultad = num(fila.factor_facultad);
+
+  // **El desglose se comprueba a sí mismo.**
+  //
+  // La fórmula del esperado la escribe el cálculo de muestra y ya ha cambiado
+  // una vez: el 2026-08-20 se le añadió el factor de facultad, y de golpe la
+  // frase de tres factores dejó de cuadrar en 135 de 197 aulas. Perseguir su
+  // fórmula desde aquí garantiza volver a quedarse atrás, y una explicación que
+  // no reproduce el número que tiene al lado es peor que no explicar nada.
+  //
+  // Así que se multiplica lo que hay y se compara con la meta declarada: si no
+  // la reproduce, no se explica. La tolerancia cubre el redondeo a un decimal.
+  const producto = elegibles * pAplicada * rendimiento * (factorFacultad ?? 1);
+  if (Math.abs(producto - meta) > 0.15) return null;
+
   return {
-    elegibles, pAplicada, rendimiento, meta,
+    elegibles, pAplicada, rendimiento,
+    factorFacultad,
+    facultadK: num(fila.facultad_k),
+    fuente: String(fila.efectividad_fuente ?? "").trim(),
+    periodo: String(fila.efectividad_periodo ?? "").trim(),
+    meta,
     docentes,
     variosDocentes: docentes.length > 1,
   };
