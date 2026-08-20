@@ -212,6 +212,63 @@ aplicada de "¿Por qué motivo no participó en el Censo Nacional 2025 del INEI?
 difiere del catálogo actual (categorías cambiadas); vuelve a aplicarla».
 Es el recod gate sobre `WhyNoCenso`, ajeno a este lote.
 
+## El título de lámina volvía en terracota Pulso — 2026-08-20
+
+Al comparar contra el mazo de referencia de Ulises (plantilla anterior) aparecen
+**112 títulos en `#CA5651`**, el terracota de Pulso, donde el formato ACNUR pide
+el negro institucional `#1A1A1A`.
+
+**Causa.** `color_titulo_slide` (título de lámina, separadores de sección y
+portada) se separó en algún momento de `color_titulo` (título del gráfico) para
+poder moverlos por separado — el comentario en `graficos_metadata.R:2044` lo
+documenta. La clave nueva **no se propagó al perfil ACNUR**, que declara
+`color_titulo` y no `color_titulo_slide`, así que el motor caía a su default
+Pulso (`reporte_plan_ppt.R:7955`). El perfil de acreditación sí la tenía.
+
+Es exactamente el mecanismo que se sospechaba: una mejora del mazo general que
+no se separó del formato independiente. Pero **no** es una degradación amplia
+del preset ACNUR: el resto de su identidad —azul `#0072BC`, sentence case,
+elemento gráfico por lámina— estaba intacta.
+
+**Reparado** añadiendo `color_titulo_slide = .ACNUR_PPT_COLORS$text` al preset
+`base` del perfil. Dos tests en `test-graficos-metadata.R`: uno estructural
+—todo perfil que declare `color_titulo` debe declarar `color_titulo_slide`, para
+que el próximo perfil no repita el hueco— y uno que fija la paleta del perfil
+ACNUR y prohíbe que sus `color_*` sean de la paleta Pulso.
+
+**Además**, defensa en profundidad: la plantilla `plantilla_acnur_16_9.pptx`
+declaraba `#CA5651` en el placeholder de título de 31 de sus 35 layouts (241
+sustituciones a `#1A1A1A`). No era la causa —el motor escribe el color en la
+lámina y pisa al layout, verificado regenerando— pero una plantilla ACNUR que
+lleva pintado el color de Pulso es una trampa para el siguiente cambio.
+
+```
+                        CA5651   1A1A1A   0072BC   18375F   títulos 24pt
+referencia (Ulises)          0     2344      598      258   1A1A1A ×1718
+antes                      112      640      539      266   CA5651 ×112
+después                      0      752      539      266   1A1A1A ×112
+```
+
+### Cobertura de variables del mazo final
+
+```
+cerradas del instrumento                   125
+resueltas en el plan                       122
+ausentes                                     3   testreal · Registered_person_available · Consent
+                                                 (control operativo, correctamente fuera)
+pares cruda/_recod                          14
+grafican la codificada                   14/14   ninguna lámina usa la variable cruda
+```
+
+Entregado en `Preparaicon del 2do entregable/ACNUR_V3_mazo_FINAL_2026-08-20.pptx`
+(134 láminas, paquete OOXML sano).
+
+**Fuera de alcance por decisión de Gonzalo — lo revisa Ulises**: las tres láminas
+de «Contenido» llevan su título en `#081F5C` (azul Pulso) sobre el layout
+`Title and Content`; la portada y la tabla también quedan pendientes. Y 16
+`#CA5651` siguen en la plantilla fuera de los títulos (Contraportada, Índice,
+Objetivos_Secciones, General Objective), sin efecto en las láminas renderizadas.
+
 ## Cola — lo que aún no se decide
 
 - **L1 · numéricas y fechas en el mazo (ítems 1.2, 1.6, 1.10).** `MesesReva` ya
