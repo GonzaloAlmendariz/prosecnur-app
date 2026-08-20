@@ -187,3 +187,56 @@ monitoreo_tiempos_por_grupo <- function(minutos, grupo, conf = 0.95, minimo_n = 
   fuera <- do.call(rbind, filas)
   fuera[order(fuera$mediana), , drop = FALSE]
 }
+
+#' Umbral de sospecha por duracion
+#'
+#' Misma doctrina que `aula_valida`: **sin declarar, no juzga**. La funcion
+#' devuelve siempre un criterio; lo que cambia es si `declarado` es TRUE.
+#'
+#' El umbral es **absoluto, en minutos**, y esa eleccion se midio. La
+#' alternativa era relativa a la mediana del estudio —«menos del 40 %»— y se
+#' descarto porque **se mueve con la propia muestra**: si todo el equipo acelera,
+#' el umbral acelera con el y deja de marcar justo cuando mas habria que mirar.
+#' Sobre acnur_acg, con las duraciones a la mitad, el absoluto de 5 min pasa de
+#' 55 a 436 marcadas y el relativo del 40 % marca **exactamente las mismas 82,
+#' y ademas el mismo conjunto de respuestas**.
+#'
+#' Cifras que ayudan a elegir el numero (acnur_acg, 1 283 respuestas, mediana
+#' 14.12 min): <3 min marca 10 (0.8 %), <4 marca 23 (1.8 %), <5 marca 55
+#' (4.3 %), <7 marca 174 (13.6 %). **No hay un valle donde cortar** —entre 5 y 7
+#' minutos la cifra se triplica—, y por eso el numero lo pone quien conoce el
+#' cuestionario, no el motor.
+monitoreo_tiempos_criterio <- function(cfg = NULL) {
+  bruto <- cfg[["duracion_sospecha_min"]] %||% NA
+  umbral <- suppressWarnings(as.numeric(bruto)[1])
+  declarado <- isTRUE(is.finite(umbral)) && umbral > 0
+  list(
+    declarado = declarado,
+    umbral_min = if (declarado) umbral else NA_real_,
+    leyenda = if (declarado) {
+      sprintf("Se marcan las respuestas de menos de %s minutos.", format(umbral, trim = TRUE))
+    } else {
+      "Este estudio no ha declarado a partir de cuantos minutos una respuesta es sospechosa."
+    }
+  )
+}
+
+#' Que respuestas quedan marcadas por su duracion
+#'
+#' Sin criterio declarado no marca ninguna: devuelve todo FALSE y el contador en
+#' cero, para que la superficie pueda describir sin acusar.
+monitoreo_tiempos_veredicto <- function(minutos, criterio = NULL) {
+  minutos <- as.numeric(minutos)
+  criterio <- criterio %||% monitoreo_tiempos_criterio(NULL)
+  marcada <- rep(FALSE, length(minutos))
+  if (isTRUE(criterio$declarado)) {
+    marcada <- is.finite(minutos) & minutos >= 0 & minutos < criterio$umbral_min
+  }
+  list(
+    declarado = isTRUE(criterio$declarado),
+    umbral_min = criterio$umbral_min,
+    marcada = marcada,
+    n_marcadas = sum(marcada),
+    n_evaluadas = sum(is.finite(minutos) & minutos >= 0)
+  )
+}
