@@ -85,7 +85,11 @@ test_that("Monitoreo importa seleccion de calc-muestra y agrega respuestas anoni
   expect_true(length(dashboard$quotas_sex_faculty) >= 4)
   expect_true(dashboard$kpis$quota_cells_pending > 0)
   expect_true(length(dashboard$course_status) >= 3)
-  expect_true(any(vapply(dashboard$validation, function(row) identical(row$check, "student_id_required") && identical(row$status, "ok"), logical(1))))
+  # `student_id_required` era una declaracion de diseño con el estado escrito a
+  # mano: siempre "ok", sin mirar nada, y contando entre los correctos. Ahora
+  # `personal_identifiers` comprueba lo contrario y serio —si la base arrastra
+  # correo, celular, documento o nombre— y en esta base, que no los trae, pasa.
+  expect_true(any(vapply(dashboard$validation, function(row) identical(row$check, "personal_identifiers") && identical(row$status, "ok"), logical(1))))
 })
 
 test_that("Agenda de aulas cambia estados y aplica reemplazos", {

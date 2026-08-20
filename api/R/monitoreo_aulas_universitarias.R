@@ -1565,11 +1565,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # convirtio en `sin_contactar` todo lo que no reconoce, asi que preguntarselo
   # al plan normalizado devolveria cero siempre.
   estados_raros <- monitoreo_aulas_estados_no_reconocidos(plan %||% cfg$plan %||% list())
+  # De declaracion de diseño a control de verdad: ver
+  # `monitoreo_aulas_identificadores.R`.
+  identificadores <- monitoreo_aulas_identificadores(responses, isTRUE(cfg$anonymous_responses))
   validation <- data.frame(
-    check = c("anonymous_responses", "student_id_required", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion"),
+    check = c("anonymous_responses", "personal_identifiers", "unmapped_valid_responses", "duplicate_responses", "effective_representativity", "sex_faculty_quota", "field_report_reconciliation", "book_sheets_cross_check", "unnamed_control_columns", "unknown_sample_status", "valid_response_criterion"),
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
-      "ok",
+      identificadores$status,
       if (any(huerfanas)) "warning" else "ok",
       # **«No se puede comprobar» NO es «correcto».**
       #
@@ -1609,7 +1612,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
-      "No se exige identificador personal de estudiante.",
+      identificadores$detail,
       if (any(huerfanas)) {
         sprintf("%d respuestas validas no corresponden a ninguna aula del plan.", sum(huerfanas))
       } else {

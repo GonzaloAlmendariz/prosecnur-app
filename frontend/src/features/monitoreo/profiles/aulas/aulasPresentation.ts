@@ -188,7 +188,10 @@ const FIELD_LABELS: Record<string, string> = {
 
 const CHECK_LABELS: Record<string, string> = {
   anonymous_responses: "Respuestas anónimas",
-  student_id_required: "Identificador estudiantil no requerido",
+  // Antes «Identificador estudiantil no requerido», que describía una POLÍTICA
+  // del estudio y no lo que la regla mira. El control ahora comprueba lo
+  // contrario y serio: si la base arrastra correo, celular, documento o nombre.
+  personal_identifiers: "Identificadores personales en la base",
   unmapped_valid_responses: "Respuestas válidas sin curso-horario",
   // `duplicate_collectors` se retiró: en un estudio de aulas el mismo QR lo
   // escanean todos los alumnos, así que el colector se repite por diseño y ese
