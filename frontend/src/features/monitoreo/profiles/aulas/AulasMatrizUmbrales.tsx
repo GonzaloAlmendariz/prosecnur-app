@@ -50,6 +50,19 @@ export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas
           </li>
         ))}
       </ul>
+      {/* De qué son estos porcentajes.
+          Dos centímetros más abajo, el titular dice «23 efectivas de 102
+          evaluadas · 23 %», y aquí la misma casilla de 23 dice 15 %. Las dos
+          son correctas y no miden lo mismo: esto es un REPARTO de las filas del
+          libro —por eso incluye a las que nadie evaluó y por eso suman 100 %—,
+          y aquélla es una TASA sobre lo evaluado. Sin esta línea, el lector ve
+          dos porcentajes distintos para el mismo número y uno de los dos tiene
+          que estar mal. */}
+      {aulas ? (
+        <p className="mon-profile-muted aulas-umbrales-base">
+          Reparto de las {fmt(aulas)} filas de la hoja, evaluadas o no.
+        </p>
+      ) : null}
       {v.indeterminadas ? (
         // Ni a un lado ni al otro: la hoja no trae con qué situarlas. Sumarlas
         // a «ninguno» diría que fallaron, y no se sabe.

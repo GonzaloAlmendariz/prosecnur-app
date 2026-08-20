@@ -4192,3 +4192,9 @@
   color: var(--pulso-text-faint); font-size: var(--aulas-min);
 }
 .mon-profile-page.is-aulas-flow .aulas-falta-pie { margin-top: 8px; }
+
+/* De que son los porcentajes de la matriz. Va pegado a las celdas, no al final
+   del bloque: es su pie de escala, no una nota mas. */
+.mon-profile-page.is-aulas-flow .aulas-umbrales-base {
+  margin: 6px 0 0; font-size: var(--aulas-min);
+}
