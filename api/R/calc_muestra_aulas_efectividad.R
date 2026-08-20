@@ -53,5 +53,8 @@
   el <- suppressWarnings(as.numeric(aula_frame$eligible_n))
   el[!is.finite(el)] <- 0
   aula_frame$efectivas_esperadas <- round(el * p * r, 1)
+  # Contrato con Monitoreo (2026-08-20): declarar de donde salio la meta para
+  # que su lado pueda afirmar "del diseno" sin inferirlo. Literal estable.
+  aula_frame$meta_origen <- "diseno"
   aula_frame
 }
