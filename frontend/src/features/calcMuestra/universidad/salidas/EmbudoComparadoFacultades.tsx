@@ -11,7 +11,7 @@
  * (miles) con aulas (decenas) en una sola escala aplastaría las barras
  * chicas — y el selector de paso recorre el embudo entero.
  */
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { fmtInt } from "../../sharedCore";
 import { tip, tipAria, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
 import { pasoComparado, pasosComparables, pasosDelEmbudo } from "./embudoComparadoModel";
@@ -37,6 +37,37 @@ export function EmbudoComparadoFacultades({
     pasos.some((p) => p.n === pasoInicial) ? pasoInicial : (pasos[0]?.n ?? pasoInicial),
   );
   const { manejadores, tooltip } = useTooltipGrafico();
+  // M5 (vara de mejora continua): al cambiar de paso el ORDEN cambia (se
+  // ordena por la diferencia de ese paso) y las filas se teletransportaban.
+  // FLIP ligero: cada fila viaja de su posicion vieja a la nueva con la curva
+  // de la casa; las barras ya transicionan su ancho por CSS.
+  const listaRef = useRef<HTMLOListElement | null>(null);
+  const rectsPrevios = useRef<Map<string, number>>(new Map());
+  useLayoutEffect(() => {
+    const lista = listaRef.current;
+    if (!lista) return;
+    const nuevos = new Map<string, number>();
+    for (const li of Array.from(lista.children)) {
+      const el = li as HTMLElement;
+      const clave = el.dataset.fac ?? "";
+      nuevos.set(clave, el.getBoundingClientRect().top);
+    }
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!sinMovimiento) {
+      for (const li of Array.from(lista.children)) {
+        const el = li as HTMLElement;
+        const antes = rectsPrevios.current.get(el.dataset.fac ?? "");
+        const ahora = nuevos.get(el.dataset.fac ?? "");
+        if (antes != null && ahora != null && Math.abs(antes - ahora) > 1) {
+          el.animate(
+            [{ transform: `translateY(${antes - ahora}px)` }, { transform: "translateY(0)" }],
+            { duration: 320, easing: "cubic-bezier(0.23, 1, 0.32, 1)" },
+          );
+        }
+      }
+    }
+    rectsPrevios.current = nuevos;
+  }, [pasoN]);
   if (!fichas.length || !pasos.length) return null;
 
   const paso = pasoComparado(fichas, pasoN);
@@ -83,7 +114,7 @@ export function EmbudoComparadoFacultades({
           </button>
         ))}
       </nav>
-      <ol className="cmv2-embcmp-lista" {...manejadores}>
+      <ol className="cmv2-embcmp-lista" ref={listaRef} {...manejadores}>
         {paso.filas.map((f) => {
           const datosTip = {
             titulo: f.facultad,
@@ -98,7 +129,7 @@ export function EmbudoComparadoFacultades({
             tono: "efectiva",
           };
           return (
-            <li key={f.facultad} aria-label={tipAria(datosTip)}>
+            <li key={f.facultad} data-fac={f.facultad} aria-label={tipAria(datosTip)}>
               <span className="cmv2-embcmp-nombre">{f.facultad}</span>
               <span className="cmv2-embcmp-tracks" {...tip(datosTip)}>
                 <span className="cmv2-embcmp-track" data-serie="hoy">
