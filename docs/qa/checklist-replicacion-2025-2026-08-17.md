@@ -4452,3 +4452,24 @@ del plan llevan esperado definido → luz verde comunicada a Monitoreo
 (campos: eligible_n, p_aplicada_ref, rendimiento_ref, efectivas_
 esperadas, meta_origen, teacher_type; ojo teacher_type compuesto con
 « | »). Pendiente de formato menor: nada bloqueante declarado.
+
+### 2026-08-20 (tarde 3): procedencia de la calibracion + la pregunta por facultad
+
+- eb3f4e57: cfg$efectividad declara historico|tau_global|nada->embebida
+  (en voz alta, warn); columnas efectividad_fuente/periodo/tau publicas;
+  UI academica sin '2025' hardcodeado; via tau para estudios sin
+  historico. Ciclo de sello historico/2025 en background.
+- **PREGUNTA ABIERTA DE GONZALO — ¿curvas por facultad?** Respuesta
+  medida: hoy las curvas docente/tamano son GENERALES (mismo 73% en
+  toda facultad); el tau por facultad esta medido pero en vigilancia.
+  IMPACTO MEDIDO del factor tau_fac/tau_global (solo k>=12): Σesperadas
+  3.155 -> 3.021; EGC 1,19x -> 0,96x, EGL 1,14x -> 0,96x, DER 0,90x ->
+  0,96x (las tres quedarian ~4% cortas); resto sin cambio (factor 1,0
+  por k insuficiente). BONUS: la mirada por-aula ya dice DER 0,90x HOY
+  mientras la certificacion plana (tau 0,53 x elegibles) la da por
+  garantizada — dos definiciones de esperado por facultad conviven.
+  DECISION DE GONZALO (⛔): A) incorporar factor por facultad donde
+  k>=12 (EGC/EGL/DER pedirian ~1-2 aulas mas o se confia en la cadena);
+  B) mantener general declarado (aviso ya en pantalla). Con A, la
+  certificacion debe pasar a juzgar por Σesperadas por facultad para no
+  contradecirse.
