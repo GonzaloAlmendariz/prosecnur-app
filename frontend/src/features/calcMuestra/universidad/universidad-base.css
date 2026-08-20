@@ -691,13 +691,17 @@
 }
 
 .cmv2-classroom-risk-list .is-alta {
-  border-color: var(--pulso-danger-border);
-  background: var(--pulso-danger-bg);
+  /* Recipe de la casa: filete + fondo suave (Gonzalo 2026-08-20: la columna
+     de riesgos era «barreras mostaza… se ven tan mal»). */
+  border-color: color-mix(in srgb, var(--pulso-danger-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-danger-fg);
 }
 
 .cmv2-classroom-risk-list .is-media {
-  border-color: var(--pulso-warn-border);
-  background: var(--pulso-warn-bg);
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
 }
 
 .cmv2-classroom-risk-list .is-ok,

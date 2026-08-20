@@ -71,7 +71,19 @@ export function ClassroomRiskList({
                     afordancia en el hueco donde cabía el nombre de la cosa. */}
                 <details className="cmv2-aviso-tecnico">
                   <summary>Mensaje del motor</summary>
-                  <code>{detail}</code>
+                  {/* El motor concatena sus notas con « | »: partidas en lista
+                      se pueden leer; en un parrafo eran un ladrillo. */}
+                  {detail.includes(" | ") ? (
+                    <code>
+                      <ul className="cmv2-aviso-tecnico-lista">
+                        {detail.split(" | ").map((nota, i) => (
+                          <li key={i}>{nota}</li>
+                        ))}
+                      </ul>
+                    </code>
+                  ) : (
+                    <code>{detail}</code>
+                  )}
                 </details>
               </>
             ) : <span>{aviso.resumen}</span>}
