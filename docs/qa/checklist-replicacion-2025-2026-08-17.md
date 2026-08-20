@@ -4195,3 +4195,12 @@ del techo. Con el reparto P25-197: plan conservador 229 (197+32) — 29
 sobre el techo 200 con la tasa completa 2025 (con el frente de contacto
 resuelto seria menos; la calibracion residual esta documentada). El
 trade-off del techo quedo visible para la decision de Gonzalo.
+
+### M4 ENTREGADA: la barra del margen en la certificacion
+
+Escala fija compartida (0-2,2x) con la marca de 1,0x en las 15 filas.
+OBSERVACION que la barra destapa (para Gonzalo, no accion): con el
+reparto P25-197, DERECHO quedo al filo — margen 1,04x y mujeres 0,99x
+en ambar (el P25 le recorto de 20 a 18 titulares). La certificacion
+pasa, pero es la facultad mas ajustada del diseño vigente; si Gonzalo
+quiere colchon ahi, el stepper +1 esta al lado.
