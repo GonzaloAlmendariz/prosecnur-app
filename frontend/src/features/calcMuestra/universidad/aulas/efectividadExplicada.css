@@ -235,3 +235,14 @@
   box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
   color: var(--pulso-text);
 }
+
+/* V7: el docente como dato OPERATIVO dentro de la radiografia. */
+.cmv2-efexp-operativo {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-top: 1px dashed var(--pulso-border);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+.cmv2-efexp-operativo b { color: var(--pulso-text); }

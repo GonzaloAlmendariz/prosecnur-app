@@ -86,7 +86,7 @@ describe("radiografiaAula", () => {
         eligible_n: 24,
         p_aplicada_ref: 0.73,
         rendimiento_ref: 0.69,
-        efectivas_esperadas: 12.1,
+        efectivas_esperadas: 16.6,
         teacher_type: "DOCENTE ORDINARIO - PRINCIPAL",
       },
       porTamano,
@@ -96,10 +96,10 @@ describe("radiografiaAula", () => {
       elegibles: 24,
       tramo: "16–25",
       docente: "Ordinario - Principal",
-      esperadas: 12.1,
+      esperadas: 16.6,
     });
-    // La cuenta sin redondear, para poder ENSEÑARLA: 24 × 0,73 × 0,69.
-    expect(r!.productoExacto).toBeCloseTo(12.0888, 4);
+    // V7: la cuenta es CONDICIONAL (sin docente): 24 × 0,69 = 16,56.
+    expect(r!.productoExacto).toBeCloseTo(16.56, 4);
   });
 
   it("un reemplazo lleva su ordinal y una fila sin tasas no se inventa", () => {
@@ -111,7 +111,7 @@ describe("radiografiaAula", () => {
         eligible_n: 60,
         p_aplicada_ref: 0.87,
         rendimiento_ref: 0.44,
-        efectivas_esperadas: 23,
+        efectivas_esperadas: 26.4,
         teacher_type: "DOCENTE CONTRATADO - CONTRATADO",
       },
       porTamano,

@@ -7,6 +7,7 @@
  */
 import { Gauge } from "lucide-react";
 import { fmtInt } from "../../sharedCore";
+import { efectividadExplicada, etiquetaDocente } from "./efectividadExplicadaModel";
 import "./docenteUnico.css";
 import "./presupuestoVisitas.css";
 
@@ -96,6 +97,36 @@ export function PresupuestoVisitasCard({
           )}
         </p>
       )}
+      {(() => {
+        // V7/plan 1b: la tasa de aplicacion por tipo de docente vive AQUI —
+        // su casa conceptual es el presupuesto (anticipa intentos y cadena),
+        // no la cuenta de efectivas. Derivada de las filas del motor (un dueño).
+        const grupos = efectividadExplicada(titulares as Record<string, unknown>[])?.porDocente ?? [];
+        if (!grupos.length) return null;
+        return (
+          <div className="cmv2-presup-docentes">
+            <table className="cmv2-efexp-tabla-ref">
+              <caption>Tasa de aplicación por tipo de docente — anticipa intentos y cadena, no efectivas</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Tipo de docente</th>
+                  <th scope="col">Tasa de aplicación</th>
+                  <th scope="col">Titulares</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grupos.map((g) => (
+                  <tr key={g.tasa}>
+                    <th scope="row">{etiquetaDocente(g.etiqueta)}</th>
+                    <td>{`${Math.round(g.tasa * 100)} %`}</td>
+                    <td>{fmtInt(g.nAulas)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
     </section>
   );
 }
