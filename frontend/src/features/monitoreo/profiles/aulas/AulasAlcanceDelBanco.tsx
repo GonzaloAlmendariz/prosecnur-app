@@ -5,6 +5,7 @@ import { alcanceDelBanco, faltaTrasLaAgenda } from "./alcanceDelBanco";
 import type { BancoDeExtras } from "./AulasBancoExtras";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
+import { caidaObservada, DESENLACES_MINIMOS } from "./tasaDeCaida";
 
 /**
  * ¿Alcanza el banco para cerrar la cuota que falta?
@@ -56,7 +57,16 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
     // Las que QUEDAN, no las que existen: un banco del que ya se gastó la mitad
     // no proyecta como uno intacto.
     const aulas = banco.disponibles ?? banco.total ?? filas.length;
-    return alcanceDelBanco(control, filas, falta, aulas);
+    // La caída observada en ESTE estudio, no la constante de 2025: es la que
+    // manda cuando ya hay desenlaces suficientes, y la propia alerta de
+    // anticipación avisa cuando las dos se separan.
+    // La caída observada en ESTE estudio, y sólo cuando hay desenlaces
+    // suficientes para que sea una tasa y no ruido: con cinco titulares
+    // resueltos, «se cae el 20 %» es un accidente. Sin evidencia, cero —el
+    // panel prefiere quedarse corto a inventar un descuento—.
+    const caida = caidaObservada(agenda);
+    const descuento = caida.tasa != null && caida.decididos >= DESENLACES_MINIMOS ? caida.tasa : 0;
+    return alcanceDelBanco(control, filas, falta, aulas, descuento);
   }, [banco, control, quotas, agenda, partes]);
 
   if (!r) {
@@ -94,6 +104,12 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
         {fmt(r.tasa.aulas)} aulas. La banda es la variación entre aulas, que es
         alta —{fmt(Math.round(r.tasa.sd * 100))} puntos—, así que una cifra sola
         prometería una precisión que no hay.
+        {r.caida > 0 ? (
+          <>
+            {" "}Y descontando el <strong>{(r.caida * 100).toFixed(0)} %</strong>{" "}
+            que se cae: un aula del banco tampoco llega siempre a aplicarse.
+          </>
+        ) : null}
       </p>
       {conDeficit.length ? (
         <>
@@ -113,6 +129,12 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
           </ul>
           <p className="mon-profile-muted aulas-alcance-pie">
             {conDeficit.length > 8 ? <>Las ocho de mayor déficit, de {fmt(conDeficit.length)}. </> : null}
+            {/* La otra superficie que mira el banco. Cuenta AULAS y pide sobre
+                el neto, así que puede señalar más facultades que ésta, que
+                cuenta encuestas: decirlo evita que las dos cifras se lean como
+                una contradicción. */}
+            «A quién hay que agendar», en Avance, cuenta lo mismo en aulas por
+            pedir y puede señalar más facultades.{" "}
             {/* La cuenta optimista, dicha. Es la que sale de restar totales, y
                 es la que uno hace de cabeza mirando el inventario. */}
             Sumado por facultad faltarían <strong>{fmt(r.deficit)}</strong>{" "}

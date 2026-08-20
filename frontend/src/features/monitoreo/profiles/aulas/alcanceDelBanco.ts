@@ -87,6 +87,8 @@ export type FacultadDelAlcance = {
 
 export type AlcanceDelBanco = {
   tasa: TasaObservada;
+  /** La caída aplicada al rendimiento del banco, en 0–1. */
+  caida: number;
   /** Encuestas esperadas del banco entero. */
   rinde: number;
   /** Banda de dos errores estándar, en encuestas. */
@@ -108,12 +110,14 @@ export type AlcanceDelBanco = {
  * @param banco elegibles del banco por facultad.
  * @param falta cuota pendiente por facultad.
  * @param aulasDelBanco cuántas aulas nuevas se abrirían; fija el ruido de la banda.
+ * @param caida proporción de aulas que no llegan a aplicarse, en 0–1.
  */
 export function alcanceDelBanco(
   control: ReadonlyArray<FilaDeControl>,
   banco: ReadonlyArray<{ faculty: string; elegibles: number }>,
   falta: ReadonlyMap<string, number>,
   aulasDelBanco: number,
+  caida = 0,
 ): AlcanceDelBanco | null {
   const tasa = tasaDeRespuestaObservada(control);
   if (!tasa) return null;
@@ -124,8 +128,14 @@ export function alcanceDelBanco(
   // banda calculada sobre la muestra vieja diría lo contrario.
   const n = Math.max(1, aulasDelBanco);
   const ee = tasa.sd / Math.sqrt(n);
+  // **Un aula del banco también se cae.** Sin esto el banco rendía como si las
+  // 73 se aplicaran todas, y la alerta de anticipación de al lado —que sí pide
+  // sobre el neto— contaba 18 facultades sin aulas suficientes contra las 14 de
+  // aquí. La misma pregunta en dos unidades no puede dar dos respuestas sin que
+  // nadie lo diga; la diferencia era ésta.
+  const rendimiento = Math.max(0, 1 - Math.min(1, Math.max(0, caida)));
   const elegiblesTotales = banco.reduce((s, b) => s + Math.max(0, b.elegibles || 0), 0);
-  const proyectar = (t: number) => Math.round(elegiblesTotales * Math.max(0, t));
+  const proyectar = (t: number) => Math.round(elegiblesTotales * Math.max(0, t) * rendimiento);
 
   // El déficit sumado por facultad, a una tasa dada. Se evalúa tres veces —con
   // la tasa central y con los dos extremos de la banda— porque el veredicto se
@@ -136,7 +146,7 @@ export function alcanceDelBanco(
     for (const b of banco) {
       const f = String(b.faculty ?? "").trim();
       if (!f) continue;
-      suma += Math.max(0, Math.max(0, falta.get(f) ?? 0) - Math.round(Math.max(0, b.elegibles || 0) * Math.max(0, t)));
+      suma += Math.max(0, Math.max(0, falta.get(f) ?? 0) - Math.round(Math.max(0, b.elegibles || 0) * Math.max(0, t) * rendimiento));
     }
     for (const [f, falt] of falta) {
       if (banco.some((b) => String(b.faculty ?? "").trim() === f)) continue;
@@ -152,7 +162,7 @@ export function alcanceDelBanco(
     const f = String(b.faculty ?? "").trim();
     if (!f) continue;
     vistas.add(f);
-    const rinde = Math.round(elegibles * tasa.tasa);
+    const rinde = Math.round(elegibles * tasa.tasa * rendimiento);
     const falt = Math.max(0, falta.get(f) ?? 0);
     facultades.push({ facultad: f, elegibles, rinde, falta: falt, deficit: Math.max(0, falt - rinde) });
   }
@@ -170,6 +180,7 @@ export function alcanceDelBanco(
   const alto = proyectar(tasa.tasa + 2 * ee);
   return {
     tasa,
+    caida: 1 - rendimiento,
     rinde,
     bajo,
     alto,

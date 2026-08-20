@@ -74,6 +74,21 @@ describe("alcanceDelBanco", () => {
     expect(r.veredicto).toBe("no alcanza");
   });
 
+  it("un aula del banco también se cae, y el rendimiento lo descuenta", () => {
+    // Sin esto el banco rendía como si las 73 aulas se aplicaran todas, y la
+    // alerta de anticipación de al lado —que sí pide sobre el neto— contaba 18
+    // facultades sin aulas suficientes contra las 14 de aquí. La misma pregunta
+    // en dos unidades no puede dar dos respuestas sin que nadie lo diga.
+    const sinCaida = alcanceDelBanco(control, [{ faculty: "A", elegibles: 200 }], new Map([["A", 90]]), 10)!;
+    const conCaida = alcanceDelBanco(control, [{ faculty: "A", elegibles: 200 }], new Map([["A", 90]]), 10, 0.2)!;
+    expect(sinCaida.rinde).toBe(100);
+    expect(conCaida.rinde).toBe(80);
+    expect(conCaida.caida).toBeCloseTo(0.2, 5);
+    // Y el veredicto cambia con ello: 100 cubre 90, 80 no.
+    expect(sinCaida.veredicto).toBe("alcanza");
+    expect(conCaida.veredicto).toBe("no alcanza");
+  });
+
   it("el veredicto se decide en el extremo desfavorable de la banda", () => {
     // Con dispersión, «alcanza» exige que hasta el extremo bajo cubra la falta.
     const dispersas = [aula(2, 10), aula(8, 10), aula(5, 10), aula(9, 10), aula(1, 10)];

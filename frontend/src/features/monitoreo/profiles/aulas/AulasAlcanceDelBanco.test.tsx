@@ -66,6 +66,32 @@ describe("AulasAlcanceDelBanco", () => {
     expect(html.replace(/<[^>]+>/g, "")).not.toContain("y faltan 300");
   });
 
+  it("con pocos desenlaces no descuenta caída: sería ruido, no una tasa", () => {
+    // Con tres titulares resueltos, «se cae el 33 %» es un accidente, y meterlo
+    // en la proyección mueve el veredicto por azar. El panel prefiere quedarse
+    // corto a inventar un descuento.
+    const titular = (i: number, caido: boolean) => ({
+      operational_code: `CH ${i}`, sample_role: "titular",
+      sample_status: caido ? "reemplazada" : "aplicada",
+      operational_status: "aplicada", faculty: "Letras",
+    });
+    const pocos = [titular(1, true), titular(2, false), titular(3, false)] as never;
+    const html = renderToStaticMarkup(
+      <AulasAlcanceDelBanco banco={banco} control={control} agenda={pocos} partes={[]}
+        quotas={cuota([["Letras", 300, 0]])} />,
+    );
+    expect(html).not.toContain("que se cae");
+
+    // El control: con desenlaces suficientes SÍ descuenta, así que el aserto de
+    // arriba distingue las dos ramas y no pasa por vacío.
+    const muchos = Array.from({ length: 30 }, (_, i) => titular(i + 1, i < 6)) as never;
+    const conTasa = renderToStaticMarkup(
+      <AulasAlcanceDelBanco banco={banco} control={control} agenda={muchos} partes={[]}
+        quotas={cuota([["Letras", 300, 0]])} />,
+    );
+    expect(conTasa).toContain("que se cae");
+  });
+
   it("sin Base de control no proyecta: dice qué falta y de dónde sale", () => {
     // C5 categoría 1. Inventar una tasa para poder pintar el panel sería
     // exactamente lo que el contrato prohíbe.
