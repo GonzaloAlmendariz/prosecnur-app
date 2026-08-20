@@ -770,7 +770,7 @@ function renderAulasView(
           <h3>Lo que falta para cerrar</h3>
           <span>en encuestas, sobre el umbral que la hoja calculó</span>
         </div>
-        <AulasLoQueFalta filas={control} />
+        <AulasLoQueFalta filas={control} facultadEnFoco={facultadEnFoco} onFoco={onFoco} />
       </section>
       ) : null}
       </div>
