@@ -1859,9 +1859,21 @@ export default function AulasMonitoreoPage() {
 
   return (
     <div className="mon-profile-page is-aulas-flow" style={MODULE_TONES.monitoreo as CSSProperties}>
+      {/* **La marca dice «false» mientras la vista carga.**
+          Emitida fija, la vista se declaraba lista desde el primer render y el
+          runner canónico capturaba la pantalla de «Preparando vista» como si
+          fuera la vista: `ok=true issues=0` sobre CONTROLES 0, ALERTAS 0 y
+          REPRESENTATIVIDAD S/D. Verde por ausencia, y no en un panel sino en el
+          gate entero del perfil. `data-audit-has-dashboard` llevaba el dato al
+          lado sin que nadie lo consultara.
+
+          Sólo `loading`, que es transitorio: un estudio que terminó de cargar y
+          no tiene libro SÍ está listo —su vacío es legítimo y hay que poder
+          auditarlo—, y declararlo «false» dejaría al runner esperando hasta el
+          timeout. */}
       <span
         hidden
-        data-audit-ready="monitoreo-aulas"
+        data-audit-ready={loading ? "false" : "monitoreo-aulas"}
         data-audit-has-dashboard={dashboard ? "true" : "false"}
       />
       <MonitoreoModuleChrome
