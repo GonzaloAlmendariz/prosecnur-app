@@ -108,8 +108,8 @@ describe("buildAulaInspectorModel", () => {
     // Cadena leída de replacement_for === classroom_id del titular, ordenada.
     expect(model.cadena.map((slot) => slot.code)).toEqual(["R 1.1", "R 1.2"]);
     expect(model.cadena.map((slot) => slot.id)).toEqual(["del204_0409", "der310_0102"]);
-    expect(model.cadena[0].equivalencia).toBe("Misma celda");
-    expect(model.cadena[1].equivalencia).toBe("Misma facultad");
+    expect(model.cadena[0].equivalencia).toBe("Mismo estrato del diseño");
+    expect(model.cadena[1].equivalencia).toBe("Misma facultad, otro estrato");
     expect(model.cadena.every((slot) => !slot.activo)).toBe(true);
     // Composición honesta: 0 reales se muestran como 0, no como "—".
     expect(model.elegiblesText).toBe("43");
@@ -121,7 +121,7 @@ describe("buildAulaInspectorModel", () => {
     const model = buildAulaInspectorModel({ row: R1, selectionRows: ROWS });
     expect(model.rol).toBe("reemplazo");
     expect(model.rolLabel).toBe("Reemplazo R 1.1");
-    expect(model.equivalenciaLabel).toBe("Misma celda");
+    expect(model.equivalenciaLabel).toBe("Mismo estrato del diseño");
     expect(model.titular).toEqual({
       id: "dec285_0409",
       code: "CH 1",
