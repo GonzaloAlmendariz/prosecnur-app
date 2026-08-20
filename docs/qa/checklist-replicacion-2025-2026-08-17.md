@@ -4144,3 +4144,11 @@ que pasan los criterios») comparaba el marco 2026 contra LO SORTEADO
 comentario del codigo condenaba la comparacion pero dejaba el fallback.
 Fix: sin marco historico por facultad la columna dice «—», jamas un
 numero de otro paso. 41 PASS.
+
+### Revamp de Coincidencia, corte 2: tres grupos rotulados
+
+«El metodo, contra el estudio anterior» · «Lo que produce la seleccion»
+· «El detalle, facultad por facultad» — rotulos discretos con filete y
+pausa mayor entre grupos. La pagina dejo de ser seis tarjetas al mismo
+nivel. Con el corte 1 (ficha a 2 columnas): pagina 7.574 → ~5.460px y
+con apoyos de lectura. Restan micro-pulidos si Gonzalo los pide al ver.
