@@ -49,6 +49,7 @@ import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
+import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
 import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
@@ -753,6 +754,23 @@ function renderAulasView(
           <span>{control.length ? contar(control.length, "fila de la hoja", "filas de la hoja") : "Sin datos"}</span>
         </div>
         <AulasControlDelLibro filas={control} resumen={controlResumen} />
+      </section>
+      ) : null}
+      {/* El precio de cerrar lo que no llegó. Va DESPUÉS de la tabla del libro
+          —el veredicto primero, la cola de trabajo después— y en la misma
+          pestaña porque sale del mismo dato: en una pestaña propia habría que
+          saltar entre las dos para saber de qué aula se habla. */}
+      {enBase && control.length ? (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Lo que falta para cerrar</h3>
+          <span>en encuestas, sobre el umbral que la hoja calculó</span>
+        </div>
+        <AulasLoQueFalta filas={control} />
       </section>
       ) : null}
       </div>

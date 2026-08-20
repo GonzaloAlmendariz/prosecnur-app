@@ -4118,3 +4118,51 @@
   border-color: var(--pulso-module-monitoring) !important;
   color: var(--pulso-module-monitoring) !important;
 }
+
+/* «Lo que falta para cerrar»: la escalera de esfuerzo y su cola de trabajo.
+   Geometria intrinseca —la lista tiene tope de diez— asi que el panel no
+   necesita duenno de scroll propio. */
+.mon-profile-page.is-aulas-flow .aulas-falta-lienzo { position: relative; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-falta-grafico {
+  width: 100%; height: 170px; overflow: visible; display: block;
+}
+/* Los rotulos de la escala: HTML sobre el lienzo, porque el SVG va estirado. */
+.mon-profile-page.is-aulas-flow .aulas-falta-y {
+  position: absolute; left: 0; font-size: var(--aulas-min);
+  color: var(--pulso-text-faint); background: var(--pulso-surface);
+  padding-right: 4px; pointer-events: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-y.es-alto { top: 4px; }
+.mon-profile-page.is-aulas-flow .aulas-falta-y.es-medio { top: 50%; transform: translateY(-50%); }
+.mon-profile-page.is-aulas-flow .aulas-falta-marca {
+  position: absolute; bottom: 2px; transform: translateX(-50%);
+  font-size: var(--aulas-min); color: var(--pulso-resultado-efectiva);
+  background: var(--pulso-surface); padding: 0 4px; white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-eje {
+  display: flex; justify-content: space-between;
+  margin: 4px 0 10px; font-size: var(--aulas-min); color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-lista {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 2px;
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-lista li {
+  display: grid; grid-template-columns: 72px 34px 1fr; align-items: baseline;
+  gap: 8px; font-size: var(--aulas-sec);
+  padding: 3px 0; border-bottom: 1px solid var(--pulso-border-subtle, var(--pulso-border));
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-lista li:last-child { border-bottom: 0; }
+.mon-profile-page.is-aulas-flow .aulas-falta-cod {
+  font-variant-numeric: tabular-nums; color: var(--pulso-text);
+}
+/* El faltante es la cifra que decide, asi que va tabular y a la derecha: la
+   columna se recorre con el ojo sin leer los codigos. */
+.mon-profile-page.is-aulas-flow .aulas-falta-n {
+  text-align: right; font-variant-numeric: tabular-nums;
+  color: var(--pulso-resultado-efectiva);
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-por {
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-pie { margin-top: 8px; }

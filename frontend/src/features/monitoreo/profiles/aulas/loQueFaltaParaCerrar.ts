@@ -1,0 +1,139 @@
+/**
+ * Cuánto falta para que un aula evaluada pase a efectiva.
+ *
+ * La pantalla dice «23 de 152 aulas efectivas · 15 %» y ahí se acaba: nadie
+ * sabe si esas 79 que no llegaron quedaron a una encuesta o a veinte. Medido
+ * sobre el corte real, **505 encuestas cierran las 79, la mediana es 6 y 36
+ * cierran con cinco o menos** —dos con una sola—. Es la diferencia entre un
+ * veredicto y una cola de trabajo ordenada por esfuerzo.
+ *
+ * El faltante NO se inventa: sale del umbral que la propia hoja calculó
+ * (`threshold_total` / `threshold_population`, conteos de encuestas, ya
+ * resueltos por el equipo con su denominador) contra lo que el aula envió.
+ * Sólo se cuenta el umbral que el aula FALLÓ, y cuando falla los dos manda el
+ * más exigente: cerrar el mayor cierra el otro de paso.
+ */
+
+/** Una fila de «Base de control» tal como el motor la publica. */
+type FilaDeControl = Readonly<Record<string, unknown>>;
+
+const num = (v: unknown): number | null => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const n = Number.parseFloat(String(v ?? "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+};
+
+const txt = (v: unknown) => String(v ?? "").trim();
+
+export type AulaPorCerrar = {
+  codigo: string;
+  /** Encuestas que faltan para alcanzar el umbral que falló. */
+  faltan: number;
+  enviadas: number;
+  /** El umbral que decide, ya en encuestas. */
+  umbral: number;
+  /** Cuál de los dos falló: los dos, el total o la población. */
+  falla: "ambos" | "total" | "poblacion";
+};
+
+export type LoQueFalta = {
+  aulas: AulaPorCerrar[];
+  /** Evaluadas y no efectivas. Incluye las que no traen cifras. */
+  noEfectivas: number;
+  /** Suma de faltantes: lo que costaría cerrarlas todas. */
+  costoTotal: number;
+  /**
+   * Evaluadas y no efectivas a las que la hoja no da con qué calcular el
+   * faltante. Se dicen aparte: son las que este panel NO puede priorizar, y
+   * callarlas haría leer «79 aulas» donde se midieron menos.
+   */
+  sinCifras: number;
+  /**
+   * Aulas cuyo veredicto dice que no cumple aunque las enviadas ya pasan el
+   * umbral de la propia hoja. No es un faltante de cero: es una discrepancia
+   * de la hoja consigo misma, y se cuenta aparte para no rebajarla a «ya está».
+   */
+  contradicciones: number;
+};
+
+/**
+ * @param filas filas publicadas de «Base de control».
+ * @returns las aulas por cerrar, de la más barata a la más cara.
+ */
+export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQueFalta {
+  const aulas: AulaPorCerrar[] = [];
+  let noEfectivas = 0;
+  let sinCifras = 0;
+  let contradicciones = 0;
+
+  for (const fila of filas) {
+    const t = fila.cumple_total;
+    const p = fila.cumple_poblacion;
+    // Sin evaluar no es lo mismo que no llegó: un aula que nadie miró no tiene
+    // faltante, tiene una hoja sin llenar. Va fuera del panel entero.
+    if ((t !== true && t !== false) || (p !== true && p !== false)) continue;
+    if (t && p) continue;
+    noEfectivas += 1;
+
+    const enviadas = num(fila.sent_total);
+    const uT = num(fila.threshold_total);
+    const uP = num(fila.threshold_population);
+    // Un umbral menor o igual a 1 es una proporción escrita como tal, no un
+    // número de encuestas; el motor ya descarta ese caso al decidir y aquí se
+    // descarta por el mismo motivo.
+    const usable = (u: number | null) => (u !== null && u > 1 ? u : null);
+    const faltaT = !t ? usable(uT) : null;
+    const faltaP = !p ? usable(uP) : null;
+    if (enviadas === null || (faltaT === null && faltaP === null)) {
+      sinCifras += 1;
+      continue;
+    }
+
+    const umbral = Math.max(faltaT ?? 0, faltaP ?? 0);
+    const faltan = Math.ceil(umbral - enviadas);
+    if (faltan <= 0) {
+      contradicciones += 1;
+      continue;
+    }
+    aulas.push({
+      codigo: txt(fila.operational_code) || txt(fila.course_code) || "—",
+      faltan,
+      enviadas,
+      umbral,
+      falla: !t && !p ? "ambos" : !t ? "total" : "poblacion",
+    });
+  }
+
+  // De la más barata a la más cara: es el orden en que se hace el trabajo, y el
+  // que hace que la curva acumulada tenga sentido de leer.
+  aulas.sort((a, b) => a.faltan - b.faltan || a.codigo.localeCompare(b.codigo, "es"));
+  return {
+    aulas,
+    noEfectivas,
+    costoTotal: aulas.reduce((s, a) => s + a.faltan, 0),
+    sinCifras,
+    contradicciones,
+  };
+}
+
+/**
+ * Cuántas aulas se cierran con un presupuesto de encuestas.
+ *
+ * @param aulas las aulas por cerrar, ya ordenadas por costo.
+ * @param presupuesto encuestas adicionales disponibles.
+ */
+export function aulasQueCierran(aulas: ReadonlyArray<AulaPorCerrar>, presupuesto: number) {
+  let gasto = 0;
+  let cerradas = 0;
+  for (const a of aulas) {
+    if (gasto + a.faltan > presupuesto) break;
+    gasto += a.faltan;
+    cerradas += 1;
+  }
+  return { cerradas, gasto };
+}
+
+/** El corte natural: cuántas cierran con `n` encuestas o menos CADA UNA. */
+export function cierranConHasta(aulas: ReadonlyArray<AulaPorCerrar>, n: number) {
+  return aulas.filter((a) => a.faltan <= n).length;
+}
