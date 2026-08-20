@@ -1,87 +1,216 @@
-/* «De dónde sale el esperado de cada aula» — sólo tokens var(--pulso-*). */
+/* «De dónde sale el esperado de cada aula» — la radiografía del valor de
+   validez. Sólo tokens var(--pulso-*). Formato formal (Gonzalo, 2026-08-20):
+   «se ve en minúsculas, sin formato… debería ser un bloque más formal». */
 
-.cmv2-efexp-cuenta {
-  margin: 10px 0 0;
-  padding: 8px 12px;
-  border: 1px solid var(--cmv2-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 5%, var(--pulso-surface));
-  font-size: 12.5px;
-  line-height: 1.55;
-  color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.cmv2-efexp-cuenta small {
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-}
-
-.cmv2-efexp-tablas {
+/* 1 · Las tablas de referencia, como tablas de verdad. */
+.cmv2-efexp-ref {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
-  margin-top: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
 }
 
-.cmv2-efexp-tabla h4 {
-  margin: 0 0 6px;
+.cmv2-efexp-tabla-ref {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-efexp-tabla-ref caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 12px;
+  font-weight: var(--pulso-weight-semibold, 600);
+  color: var(--pulso-text);
+  padding-bottom: 6px;
+}
+
+.cmv2-efexp-tabla-ref th,
+.cmv2-efexp-tabla-ref td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--pulso-border);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cmv2-efexp-tabla-ref thead th {
   font-size: 11.5px;
   font-weight: var(--pulso-weight-medium);
-  color: var(--pulso-text-soft);
+  color: var(--pulso-text-muted);
+  border-bottom: 1px solid var(--pulso-border-strong, var(--pulso-border));
 }
 
-.cmv2-efexp-tabla ul {
+.cmv2-efexp-tabla-ref th[scope="row"],
+.cmv2-efexp-tabla-ref thead th:first-child {
+  text-align: left;
+  font-weight: var(--pulso-weight-medium);
+}
+
+/* 2 · El selector. */
+.cmv2-efexp-selector {
+  margin-top: 16px;
+  position: relative;
+}
+
+.cmv2-efexp-buscador {
+  max-width: 460px;
+}
+
+.cmv2-efexp-candidatas {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 10px;
+  background: var(--pulso-surface);
+  box-shadow: var(--pulso-shadow-md, 0 8px 24px rgb(0 0 0 / 0.08));
+  max-width: 640px;
+  position: absolute;
+  z-index: 20;
+}
+
+.cmv2-efexp-candidatas button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--pulso-text);
+}
+
+.cmv2-efexp-candidatas button:hover {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, transparent);
+}
+
+.cmv2-efexp-candidatas b {
+  flex: none;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 12%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-efexp-candidatas span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmv2-efexp-sinmatch {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+/* 3 · La redacción del cálculo: el bloque protagonista, con aire. */
+.cmv2-efexp-radio {
+  margin-top: 14px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 4%, var(--pulso-surface));
+  padding: 16px 18px 18px;
+}
+
+.cmv2-efexp-radio > header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+
+.cmv2-efexp-radio-rol {
+  flex: none;
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold, 600);
+  padding: 3px 9px;
+  border-radius: var(--pulso-radius-chip);
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 14%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-efexp-radio > header strong {
+  font-size: 14px;
+  color: var(--pulso-text);
+}
+
+.cmv2-efexp-radio > header small {
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-efexp-pasos {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: 0;
 }
 
-.cmv2-efexp-tabla li {
+.cmv2-efexp-pasos li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 90px auto;
-  gap: 10px;
-  align-items: center;
-  font-size: 11.5px;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--pulso-border);
 }
 
-.cmv2-efexp-etq {
+.cmv2-efexp-pasos li:last-child {
+  border-bottom: none;
+}
+
+.cmv2-efexp-pasos li > b {
+  font-size: 20px;
+  font-weight: var(--pulso-weight-bold);
   color: var(--pulso-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cmv2-efexp-track {
-  display: block;
-  height: 6px;
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
-  overflow: hidden;
-}
-
-.cmv2-efexp-track b {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--module-accent, var(--pulso-primary));
-}
-
-.cmv2-efexp-num {
+  text-align: right;
   font-variant-numeric: tabular-nums;
-  color: var(--pulso-text);
   white-space: nowrap;
 }
 
-.cmv2-efexp-num small {
-  color: var(--pulso-text-muted);
-  font-size: 10px;
+.cmv2-efexp-pasos li > div {
+  display: grid;
+  gap: 2px;
 }
 
+.cmv2-efexp-pasos li > div strong {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-efexp-pasos li > div span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-efexp-pasos li[data-resultado] > b {
+  color: var(--module-accent, var(--pulso-primary));
+  font-size: 24px;
+}
+
+.cmv2-efexp-pasos li[data-resultado] {
+  border-top: 1px solid var(--pulso-border-strong, var(--pulso-border));
+  margin-top: 2px;
+}
+
+/* 4 · El pie de coherencia. */
 .cmv2-efexp-pie {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   font-size: 11.5px;
   line-height: 1.55;
   color: var(--pulso-text-soft);

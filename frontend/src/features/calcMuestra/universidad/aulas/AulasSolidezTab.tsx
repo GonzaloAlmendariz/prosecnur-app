@@ -58,6 +58,7 @@ export function AulasSolidezTab({
   const {
     selection,
     selectionReady,
+    selectionRows,
     coverageRows,
     visibleProfiles,
     m1Rows,
@@ -87,8 +88,9 @@ export function AulasSolidezTab({
 
   return (
     <div className="cmv2-aulas-stack">
-      {/* 1 · La aritmética del esperado: de dónde sale el valor de validez. */}
-      <EfectividadExplicadaCard filas={m1Rows} />
+      {/* 1 · La radiografía del esperado: cualquier curso-horario del plan
+          (titular o reemplazo) con la redacción de su cálculo. */}
+      <EfectividadExplicadaCard filas={selectionRows} titulares={m1Rows} />
 
       {/* EF2 · El registro del docente único: qué se intercambió y por qué. */}
       <DocenteUnicoAviso registro={selection?.diagnostics?.docente_unico} />

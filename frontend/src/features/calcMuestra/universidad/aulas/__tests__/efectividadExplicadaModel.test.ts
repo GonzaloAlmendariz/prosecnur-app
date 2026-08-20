@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { efectividadExplicada } from "../efectividadExplicadaModel";
+import { efectividadExplicada, etiquetaDocente, radiografiaAula } from "../efectividadExplicadaModel";
 
 const fila = (over: Record<string, unknown>) => ({
   course_name: "CURSO",
@@ -58,3 +58,67 @@ describe("efectividadExplicada", () => {
     expect(efectividadExplicada([{ course_name: "X", eligible_n: 10 }])).toBeNull();
   });
 });
+
+describe("etiquetaDocente", () => {
+  it("formaliza el tipo y compone el aula con dos docentes", () => {
+    expect(etiquetaDocente("DOCENTE ORDINARIO - PRINCIPAL")).toBe("Ordinario - Principal");
+    expect(
+      etiquetaDocente("DOCENTE ORDINARIO - PRINCIPAL | DOCENTE CONTRATADO - CONTRATADO"),
+    ).toBe("Ordinario - Principal y Contratado - Contratado (manda el más restrictivo)");
+    expect(etiquetaDocente("")).toBe("Sin tipo declarado");
+  });
+});
+
+describe("radiografiaAula", () => {
+  const porTamano = [
+    { tasa: 0.69, minElegibles: 16, maxElegibles: 25, nAulas: 56 },
+    { tasa: 0.44, minElegibles: 52, maxElegibles: 91, nAulas: 31 },
+  ];
+
+  it("redacta la cuenta completa de un titular, con tramo y producto exacto", () => {
+    const r = radiografiaAula(
+      {
+        course_name: "PROSPECCIÓN Y EXPLORACIÓN MINERA",
+        course_id: "GEM284",
+        schedule: "09G1",
+        faculty_aula: "CIENCIAS E INGENIERIA",
+        sample_role: "titular",
+        eligible_n: 24,
+        p_aplicada_ref: 0.73,
+        rendimiento_ref: 0.69,
+        efectivas_esperadas: 12.1,
+        teacher_type: "DOCENTE ORDINARIO - PRINCIPAL",
+      },
+      porTamano,
+    );
+    expect(r).toMatchObject({
+      rol: "Titular",
+      elegibles: 24,
+      tramo: "16–25",
+      docente: "Ordinario - Principal",
+      esperadas: 12.1,
+    });
+    // La cuenta sin redondear, para poder ENSEÑARLA: 24 × 0,73 × 0,69.
+    expect(r!.productoExacto).toBeCloseTo(12.0888, 4);
+  });
+
+  it("un reemplazo lleva su ordinal y una fila sin tasas no se inventa", () => {
+    const r = radiografiaAula(
+      {
+        course_id: "X1",
+        sample_role: "chain_reserve",
+        replacement_order: 3,
+        eligible_n: 60,
+        p_aplicada_ref: 0.87,
+        rendimiento_ref: 0.44,
+        efectivas_esperadas: 23,
+        teacher_type: "DOCENTE CONTRATADO - CONTRATADO",
+      },
+      porTamano,
+    );
+    expect(r!.rol).toBe("Reemplazo 3");
+    expect(r!.tramo).toBe("52–91");
+    expect(radiografiaAula({ course_id: "Y", eligible_n: 10 }, porTamano)).toBeNull();
+  });
+});
+
