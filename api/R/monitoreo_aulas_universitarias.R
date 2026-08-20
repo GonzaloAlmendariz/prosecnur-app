@@ -465,6 +465,21 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # (invariante suya: si esta una, esta la otra), asi que **lo declarado por el
     # productor manda** y aqui solo se deriva lo que el no emite.
     meta_origen = get(c("meta_origen", "expected_valid_origen"), ""),
+    # **El PORQUE de la meta, para poder enseñarlo.**
+    #
+    # Gonzalo: «el que monitorea tiene que saber por que estamos asignando esa
+    # validez a ese curso horario». La meta no es un numero caido del cielo:
+    # `eligible_n` x `p_aplicada_ref` (probabilidad de que el aula llegue a
+    # aplicarse, segun el tipo de docente) x `rendimiento_ref` (lo que rinde un
+    # aula de ese tamaño) = `efectivas_esperadas`. Los tres campos viajan para
+    # que la pantalla pueda decir «24 x 73 % x 69 % → 12» sin recalcular nada.
+    #
+    # `teacher_type` puede venir COMPUESTO cuando el aula tiene dos docentes
+    # —«ORDINARIO - PRINCIPAL | CONTRATADO»— y la tasa aplicada es la del mas
+    # restrictivo. Se conserva entero: partirlo aqui perderia el segundo.
+    p_aplicada_ref = getn(c("p_aplicada_ref"), NA_real_),
+    rendimiento_ref = getn(c("rendimiento_ref"), NA_real_),
+    teacher_type = get(c("teacher_type", "tipo_docente"), ""),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
     word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),

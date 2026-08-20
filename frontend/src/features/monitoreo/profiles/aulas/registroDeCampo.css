@@ -413,3 +413,11 @@
   min-width: 0;
   min-height: 0;
 }
+
+/* Por que esta aula espera lo que espera. Va pegado al nombre del aula: quien
+   registra necesita saber contra que se la va a medir, antes de anotar. */
+.registro-campo-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}

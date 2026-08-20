@@ -24,6 +24,7 @@ import {
 } from "../../../../api/monitoreo";
 import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
 import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad";
+import { porQueEsaMeta } from "./porQueEsaMeta";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
 
@@ -461,6 +462,29 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
                   {etiquetaDeAula(activa)}
                   {activa.eligible_n ? ` · ${contar(activa.eligible_n, "matriculado", "matriculados")}` : ""}
                 </p>
+                {/* **Por qué esta aula espera lo que espera.**
+                    Gonzalo: «el que monitorea tiene que saber por qué estamos
+                    asignando esa validez a ese curso horario». La meta no es un
+                    número caído del cielo, y quien está registrando el aula es
+                    justo quien necesita saber contra qué se la va a medir. */}
+                {(() => {
+                  const pq = porQueEsaMeta(activa as Record<string, unknown>);
+                  if (!pq) return null;
+                  const p = (v: number) => `${Math.round(v * 100)} %`;
+                  return (
+                    <p className="registro-campo-meta">
+                      Esta aula espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
+                      {pq.elegibles} elegibles × {p(pq.pAplicada)} de que se aplique ×{" "}
+                      {p(pq.rendimiento)} de rendimiento.
+                      {pq.variosDocentes ? (
+                        <>
+                          {" "}Tiene {pq.docentes.length} docentes, así que se usa la
+                          tasa del más restrictivo.
+                        </>
+                      ) : null}
+                    </p>
+                  );
+                })()}
 
                 {/* Estado y motivo comparten fila. Sueltos eran dos `label` de
                     bloque, así que cada uno ocupaba los 1 034 px del formulario

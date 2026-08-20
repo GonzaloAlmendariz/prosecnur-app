@@ -91,3 +91,27 @@ test_that("sin elegibles y sin meta, el origen lo dice en vez de fingir una", {
   ))
   expect_identical(plan[[1]]$meta_origen, "sin_meta")
 })
+
+test_that("el PORQUE de la meta viaja con ella", {
+  # Gonzalo: «el que monitorea tiene que saber por que estamos asignando esa
+  # validez a ese curso horario». Con la meta sola, la pantalla solo puede
+  # repetir un numero; con los tres factores puede decir de donde sale.
+  #
+  # `teacher_type` se conserva ENTERO: viene compuesto cuando el aula tiene dos
+  # docentes —«ORDINARIO - PRINCIPAL | CONTRATADO»— y la tasa aplicada es la del
+  # mas restrictivo. Partirlo aqui perderia el segundo.
+  plan <- monitoreo_aulas_normalize_plan(list(list(
+    operational_code = "CH 1", classroom_id = "a", eligible_n = 24,
+    efectivas_esperadas = 12.1, p_aplicada_ref = 0.73, rendimiento_ref = 0.69,
+    teacher_type = "DOCENTE ORDINARIO - PRINCIPAL | DOCENTE CONTRATADO - CONTRATADO"
+  )))
+  f <- plan[[1]]
+  expect_equal(f$p_aplicada_ref, 0.73)
+  expect_equal(f$rendimiento_ref, 0.69)
+  expect_identical(f$teacher_type, "DOCENTE ORDINARIO - PRINCIPAL | DOCENTE CONTRATADO - CONTRATADO")
+  # El control: sin los factores no se inventan.
+  sin <- monitoreo_aulas_normalize_plan(list(list(
+    operational_code = "CH 2", classroom_id = "b", eligible_n = 24
+  )))
+  expect_true(is.na(sin[[1]]$p_aplicada_ref))
+})
