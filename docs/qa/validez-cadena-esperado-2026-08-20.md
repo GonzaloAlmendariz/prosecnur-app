@@ -208,3 +208,23 @@ La decisión 1 (propuesta v2) tiene por tanto DOS alcances posibles:
 (1b) recalibrar esperados Y re-dimensionar a 190 (re-sorteo completo,
 reparto nuevo con EGC/EGL arriba). Ambos dentro del rango; 1b es el
 diseño plenamente coherente, 1a el de menor disrupción operativa.
+
+## V6 — la pregunta de Gonzalo destapa dos esperados donde entregábamos uno (2026-08-20)
+
+Su pregunta textual: «si un profesor no deja entrar al aula, esa aula no
+se aplica — sigo sin entender cómo eso influye en la cantidad de
+efectividad de un curso-horario». Y tiene razón: el riesgo del docente
+es TODO-O-NADA por aula; el × P solo tiene sentido como valor esperado
+ex-ante del CUPO, nunca como estándar de un aula ya aplicada.
+
+Corrección al contrato (entra al paquete 1b):
+- **Esperado del cupo** = E × P × R × F — presupuesto de visitas,
+  certificación, dimensionamiento (el aula puede caerse; la cadena repone).
+- **Esperado del aula aplicada** (condicional) = E × R × F — el VALOR DE
+  VALIDEZ que Monitoreo usa en campo. Juzgar una aplicada contra el
+  esperado-con-P le regala el veredicto en exactamente el riesgo que ya
+  no existe (13–27 % según el docente).
+Cada reemplazo activado se juzga contra SU propio condicional.
+Implementación: publicar ambas columnas con nombre propio en el plan
+(p. ej. efectivas_esperadas_cupo y efectivas_esperadas_aplicada) y
+avisar a Monitoreo que el valor de validez migra a la condicional.
