@@ -55,6 +55,7 @@ import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import { DistribucionElegiblesCard } from "./calculo/DistribucionElegiblesCard";
+import { TasaEfectividadFacultadCard } from "./calculo/TasaEfectividadFacultadCard";
 import {
   AulasAuditoriaTab,
   AulasMetodoTab,
@@ -785,6 +786,15 @@ export function UniversidadDesk({
                 certeza={aulasState?.certeza ?? null}
                 certezaEnCurso={midiendoCerteza}
                 onMedirCerteza={onMedirCerteza}
+              />
+              {/* Plan 1b/E8 — la tarjeta estrella de la pestana (Gonzalo:
+                  «sumamente explicada de forma visual y didactica: aqui se
+                  pide cuantas aulas se requieren por facultad sabiendo su
+                  tasa de efectividad»). */}
+              <TasaEfectividadFacultadCard
+                tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
+                estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
+                  import("./calculo/tasaFacultadModel").EstratoDimensionado[] | null}
               />
               {/* La distribucion que el P25 resume, DONDE se dimensionan los
                   cursos-horario (Gonzalo: los graficos van donde tienen
