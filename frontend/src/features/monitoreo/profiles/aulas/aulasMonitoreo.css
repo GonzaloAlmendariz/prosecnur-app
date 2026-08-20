@@ -4313,3 +4313,27 @@
 .mon-profile-page.is-aulas-flow .aulas-criterio-form > p {
   flex-basis: 100%; margin: 0; font-size: var(--aulas-min);
 }
+
+/* Lo que reporto el campo. Texto largo escrito a mano: se lee, no se recorre. */
+.mon-profile-page.is-aulas-flow .aulas-observaciones-lista {
+  list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px;
+}
+.mon-profile-page.is-aulas-flow .aulas-observaciones-lista li {
+  padding: 8px 10px; border: 1px solid var(--pulso-border); border-radius: 10px;
+  background: var(--pulso-surface-2);
+}
+.mon-profile-page.is-aulas-flow .aulas-observaciones-texto {
+  display: flex; align-items: baseline; gap: 6px; margin: 0;
+  font-size: var(--aulas-txt); color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-observaciones-texto svg {
+  flex: none; align-self: center; color: var(--pulso-text-faint);
+}
+/* Quien lo reporto y donde. No envuelve a dos lineas por los codigos: van al
+   final y se recortan con su propio contador. */
+.mon-profile-page.is-aulas-flow .aulas-observaciones-quien {
+  margin: 3px 0 0 19px; font-size: var(--aulas-min); color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-observaciones-codigos {
+  display: block; margin-top: 2px; font-variant-numeric: tabular-nums;
+}
