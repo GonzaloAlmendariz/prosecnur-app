@@ -172,3 +172,38 @@ describe("AulasAvanceEnRespuestas y las respuestas sin atribuir", () => {
     expect(html).not.toContain("sin identificar");
   });
 });
+
+describe("el puente entre esta cuenta y el KPI de válidas", () => {
+  // La banda decía «VÁLIDAS 2,220» y este panel «2,163 cubren meta»: 57 de
+  // diferencia a dos centímetros y nada que las uniera. No es un error de suma
+  // —el motor cuenta aquí sólo el eslabón EN JUEGO de cada cadena, porque sumar
+  // el titular caído y su reserva inflaría una meta dimensionada para un aula—
+  // pero sin decirlo son dos cifras del mismo hecho contradiciéndose.
+  const resumen = { meta: 100, validas: 80, cubierto: 80, excedente: 0, falta: 20,
+    aulas_con_brecha: 2, sin_meta: 0 };
+
+  it("nombra las respuestas que quedan fuera de la cuenta", () => {
+    const html = renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={[]} resumen={resumen as never} validasTotales={95} />,
+    );
+    expect(html).toContain("15");
+    expect(html).toMatch(/eslabones que ya\s*no son el que cuenta/);
+  });
+
+  it("no dice nada cuando no hay diferencia que explicar", () => {
+    const html = renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={[]} resumen={resumen as never} validasTotales={80} />,
+    );
+    expect(html).not.toMatch(/eslabones que ya/);
+  });
+
+  it("tampoco cuando el KPI trae menos que la cuenta, que seria otro defecto", () => {
+    // Aqui la frase mentiria: `validasTotales` es el total y no puede ser menor.
+    // Si lo fuera, restar daria un negativo pintado como si faltaran respuestas.
+    const html = renderToStaticMarkup(
+      <AulasAvanceEnRespuestas filas={[]} resumen={resumen as never} validasTotales={70} />,
+    );
+    expect(html).not.toMatch(/eslabones que ya/);
+    expect(html).not.toContain("-10");
+  });
+});
