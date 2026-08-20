@@ -2211,8 +2211,10 @@
 
 .cmv2-frame-issue-list article.is-media,
 .cmv2-frame-issue-list article.is-baja {
-  border-color: var(--pulso-warn-border);
-  background: color-mix(in srgb, var(--pulso-warn-bg) 42%, #fff);
+  /* Recipe warn de la casa (aviso.css): filete ambar + fondo casi neutro. */
+  border-color: color-mix(in srgb, var(--pulso-warn-border) 55%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-bg) 30%, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--pulso-warn-accent);
 }
 
 .cmv2-frame-issue-list article.is-alta {

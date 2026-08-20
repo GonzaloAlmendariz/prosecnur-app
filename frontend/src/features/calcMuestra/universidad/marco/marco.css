@@ -429,7 +429,9 @@
 }
 
 .cmv2-marco-gauge[data-tone="warn"] .cmv2-marco-gauge-fill {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--pulso-warn-fg) 55%, var(--cmv2-surface)), var(--pulso-warn-fg));
+  /* Ambar canonico, no warn-fg: el degrade al marron #8a5000 era la barra
+     «cafe» que el barrido destapo (Gonzalo: los mostaza no se ven nada bien). */
+  background: linear-gradient(90deg, color-mix(in srgb, var(--pulso-warn-accent) 55%, var(--cmv2-surface)), var(--pulso-warn-accent));
 }
 
 .cmv2-marco-gauge[data-tone="ok"] .cmv2-marco-gauge-fill {
