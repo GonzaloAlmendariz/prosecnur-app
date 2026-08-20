@@ -54,7 +54,8 @@ export function DistribucionElegiblesCard({
         <strong>Cuántos elegibles carga cada aula</strong>
         <span>
           cada carril va del aula más chica a la más grande de su facultad; la marca fuerte es el
-          P25 — el divisor que dimensiona (cuota ÷ (P25 × τ))
+          P25 de alumnos por CH — el divisor que, junto a la tasa de efectividad de la facultad,
+          convierte su cuota en titulares
         </span>
       </header>
       <ul className="cmv2-distelig-lista" {...manejadores}>
@@ -71,7 +72,7 @@ export function DistribucionElegiblesCard({
             ],
             // La aritmética viva del motor: la fórmula deja de ser abstracta.
             nota: dim
-              ? `cuota ${fmtInt(dim.cuota)} ÷ (P25 ${fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × τ ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} aulas`
+              ? `cuota ${fmtInt(dim.cuota)} ÷ (P25 ${fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} titulares`
               : `${fmtInt(f.nAulas)} aulas en el marco`,
             tono: "efectiva",
           };

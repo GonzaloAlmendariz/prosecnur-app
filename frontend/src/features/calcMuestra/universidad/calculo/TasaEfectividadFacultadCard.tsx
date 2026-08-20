@@ -42,7 +42,7 @@ export function TasaEfectividadFacultadCard({
         <strong>La tasa de efectividad de cada facultad</strong>
         <span>
           de cada 100 elegibles en lista, cuántas encuestas efectivas deja el aula típica de la
-          facultad; es el divisor que convierte su cuota en cupos de aula
+          facultad; es el divisor que convierte su cuota en cursos-horario titulares
         </span>
       </header>
 
@@ -68,9 +68,9 @@ export function TasaEfectividadFacultadCard({
               <span className="cmv2-tasafac-valor">{pctTasa(f.tasa)}</span>
             </div>
             {f.cuota != null && f.p25 != null && f.cupos != null ? (
-              <div className="cmv2-tasafac-cuenta" title="cuota ÷ (P25 de elegibles × tasa de efectividad) = cupos de aula">
+              <div className="cmv2-tasafac-cuenta" title="cuota ÷ (alumnos por CH × tasa de efectividad) = cursos-horario titulares">
                 {fmtInt(f.cuota)} ÷ ({Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} × {coma(f.tasa)}) →{" "}
-                <b>{fmtInt(f.cupos)} {f.cupos === 1 ? "cupo" : "cupos"}</b>
+                <b>{fmtInt(f.cupos)} {f.cupos === 1 ? "titular" : "titulares"}</b>
               </div>
             ) : (
               <div className="cmv2-tasafac-cuenta" data-vacia="true">
@@ -79,7 +79,7 @@ export function TasaEfectividadFacultadCard({
             )}
             {f.cuentaCuadra === false && (
               <p className="cmv2-tasafac-descuadre" role="note">
-                La cuenta local no reproduce los cupos del motor: revisa que el estrato y la
+                La cuenta local no reproduce los titulares del motor: revisa que el estrato y la
                 tasa sellada sean los vigentes.
               </p>
             )}
@@ -97,7 +97,7 @@ export function TasaEfectividadFacultadCard({
         </p>
         {conCuenta.length > 0 && (
           <p className="cmv2-tasafac-total">
-            Σ {fmtInt(totalCupos)} cupos de aula para {fmtInt(conCuenta.length)} facultades.
+            Σ {fmtInt(totalCupos)} titulares para {fmtInt(conCuenta.length)} facultades.
           </p>
         )}
       </footer>

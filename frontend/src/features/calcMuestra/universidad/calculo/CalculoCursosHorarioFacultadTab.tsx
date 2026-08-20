@@ -116,10 +116,11 @@ export function CalculoCursosHorarioFacultadTab({
       <section className="cmv2-panel cmv2-ch-panel" data-qa-geometry-member>
         <div className="cmv2-panel-head">
           <div>
-            <strong>Cursos-horario requeridos publicados por R</strong>
+            <strong>Cursos-horario requeridos, facultad por facultad</strong>
             <p className="cmv2-calc-diseno-nota">
-              La decisión firmada usa {etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)} sobre el marco elegible.
-              Titulares, reservas y total son cifras del resultado; esta pestaña solo las proyecta.
+              La cadena completa por facultad: cuota ÷ ({etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)} × tasa de
+              efectividad de la facultad) → titulares. Las cifras son del resultado del motor; esta
+              pestaña solo las proyecta.
             </p>
           </div>
           <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
@@ -136,7 +137,7 @@ export function CalculoCursosHorarioFacultadTab({
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
-            <thead><tr><th>Facultad</th><th>Cuota</th><th>Método R</th><th>Alumnos por CH</th><th>Titulares</th><th>Reservas</th><th>A coordinar</th></tr></thead>
+            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th>Reservas</th><th>A coordinar</th></tr></thead>
             <tbody>
               {model.filas.map((fila) => (
                 <tr key={fila.estrato}>
@@ -144,6 +145,10 @@ export function CalculoCursosHorarioFacultadTab({
                   <td>{fmtInt(fila.cuota)}</td>
                   <td>{etiquetaAlumnosPorChMetodo(fila.estadistico_usado)}</td>
                   <td>{fmtDec(fila.alumnos_por_ch!.valor, 1)}</td>
+                  <td>{(() => {
+                    const t = Number((fila as Record<string, unknown>).tau);
+                    return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1).replace(".", ",")} %` : "—";
+                  })()}</td>
                   <td>{fmtInt(fila.aulas_base)}</td>
                   <td>{fmtInt(fila.aulas_reemplazo)}</td>
                   <td className="cmv2-ch-tabla-final"><strong>{fmtInt(fila.aulas_total)}</strong></td>
