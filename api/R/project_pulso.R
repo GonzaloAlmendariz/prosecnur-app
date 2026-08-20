@@ -1339,9 +1339,14 @@
       new_row$name <- parent_recod
       new_row$type <- paste(type_base, recod_list)
       if ("list_name" %in% names(new_row)) new_row$list_name <- recod_list
-      label <- as.character(new_row[[lab_col_s]][[1]] %||% parent)
-      if (!grepl("recod", label, ignore.case = TRUE)) label <- paste(label, "recodificada")
-      new_row[[lab_col_s]] <- label
+      # La etiqueta de una `_recod` es la MISMA de su pregunta madre: es la
+      # misma pregunta, con las abiertas ya categorizadas. Este reparador le
+      # anexaba " recodificada" y ese sufijo viajaba al titulo de la lamina del
+      # PPT ("¿En que sector trabajaba antes del programa? recodificada"), que
+      # es texto de entregable y va al cliente. Las 12 `_recod` que crea la
+      # codificacion normal (`.add_recoded_q()`) copian la etiqueta tal cual;
+      # solo las que reconstruia este reparador salian marcadas.
+      new_row[[lab_col_s]] <- as.character(new_row[[lab_col_s]][[1]] %||% parent)
       before <- survey[seq_len(parent_idx), , drop = FALSE]
       after <- if (parent_idx < nrow(survey)) survey[(parent_idx + 1L):nrow(survey), , drop = FALSE] else survey[0, , drop = FALSE]
       survey <- rbind(before, new_row[, names(survey), drop = FALSE], after)
@@ -1356,6 +1361,18 @@
       if ("list_name" %in% names(survey) &&
           !identical(as.character(survey$list_name[[recod_idx]] %||% ""), recod_list)) {
         survey$list_name[[recod_idx]] <- recod_list
+        changed <- TRUE
+      }
+      # Limpiar la huella que dejaban las versiones anteriores de este mismo
+      # reparador. Solo se toca cuando la etiqueta es EXACTAMENTE la de la madre
+      # mas " recodificada": esa forma no la escribe un analista, la escribia el
+      # codigo. Sin esto, un `.pulso` guardado antes del arreglo sigue llevando
+      # el sufijo al titulo de la lamina cada vez que se reabre.
+      etiqueta_madre <- as.character(parent_row[[lab_col_s]][[1]] %||% parent)
+      etiqueta_recod <- as.character(survey[[lab_col_s]][[recod_idx]] %||% "")
+      if (nzchar(etiqueta_madre) &&
+          identical(trimws(etiqueta_recod), trimws(paste(etiqueta_madre, "recodificada")))) {
+        survey[[lab_col_s]][[recod_idx]] <- etiqueta_madre
         changed <- TRUE
       }
     }
