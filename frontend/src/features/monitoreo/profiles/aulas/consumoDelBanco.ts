@@ -27,7 +27,29 @@ export type ConsumoDeFacultad = {
   caidas: number;
   /** Días distintos en los que cayó alguna. */
   diasConCaidas: number;
-  /** Caídas por día con caídas. `null` si no hay fechas. */
+  /**
+   * Caídas por **día de campo del estudio**, no por día en que cayó alguna.
+   *
+   * Estaba dividido entre `diasConCaidas`, un denominador que por construcción
+   * no puede dar menos de 1: si cayeron tres aulas en tres días distintos, el
+   * ritmo salía «1/día» aunque el estudio llevara diez días de campo. Y como los
+   * días de reserva son `quedan / ritmo`, una facultad con una reserva libre
+   * siempre acababa en «1 día» —una tautología presentada como medición, y
+   * siempre del lado alarmista—.
+   *
+   * El denominador correcto son los días de campo transcurridos, porque **una
+   * caída puede ocurrir cualquier día que el operativo salga**, no sólo los días
+   * en que ya ocurrió una. Es la diferencia con la producción, que sí es
+   * condicional a salir: ahí `mediaDiaria` divide entre días con campo y hace
+   * bien.
+   *
+   * Con el corte del fixture: Gestión pasa de «1/día» a **0,3/día**, y su reserva
+   * de 1 pasa de «1 día» a **3 días**.
+   *
+   * `null` cuando no se sabe cuántos días de campo lleva el estudio: sin
+   * denominador no hay ritmo, y quedarse con el viejo sería preferir una cifra
+   * cómoda a ninguna.
+   */
   ritmo: number | null;
   /** Días hasta quedarse sin reservas al ritmo actual. `null` si no se puede. */
   diasHastaAgotarse: number | null;
@@ -37,7 +59,14 @@ function texto(valor: unknown): string {
   return typeof valor === "string" ? valor.trim() : valor == null ? "" : String(valor).trim();
 }
 
-export function consumoDelBanco(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
+/**
+ * @param diasDeCampo días de campo que lleva el estudio. Es el denominador del
+ *   ritmo de caídas; sin él no se proyecta nada.
+ */
+export function consumoDelBanco(
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  diasDeCampo = 0,
+): {
   facultades: ConsumoDeFacultad[];
   caidasPorDia: Array<{ fecha: string; caidas: number }>;
   sinFecha: number;
@@ -67,7 +96,12 @@ export function consumoDelBanco(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     // Con UN solo día de caídas no hay ritmo: «1 caída en 1 día» daría «1/día»
     // y proyectaría el agotamiento del colchón desde una sola observación. Se
     // declara nulo, igual que la tendencia con menos de cuatro días.
-    const ritmo = f.dias.size >= 2 ? Math.round((10 * f.caidas) / f.dias.size) / 10 : null;
+    // Dos caídas como mínimo para hablar de ritmo —con una, el «ritmo» es la
+    // fecha de esa única caída— y los días de campo del estudio como
+    // denominador.
+    const ritmo = f.caidas >= 2 && diasDeCampo > 0
+      ? Math.round((10 * f.caidas) / diasDeCampo) / 10
+      : null;
     facultades.push({
       facultad,
       quedan,
