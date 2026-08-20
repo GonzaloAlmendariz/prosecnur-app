@@ -4353,3 +4353,18 @@ declarados como varas distintas en ambos lados.
 celda» — «misma celda, celda equivalente, celda sin reserva… hay que
 definir bien el lenguaje»: glosar celda=estrato del diseño en la
 superficie y renombrar en lenguaje del analista.
+
+### Contrato cruzado con Monitoreo CERRADO: aula valida contra el esperado del diseño
+
+La sesion de Monitoreo verifico efectivas_esperadas fila a fila (197 de
+197 con desvio 0,000 leyendo p_aplicada_ref y rendimiento_ref — la
+verificacion cruzada mas fuerte que ha tenido ese dato) y sello su
+criterio: `cfg$aula_valida = list(modo = "esperado"|"proporcion",
+alfa = 0-1)`. En modo esperado, un aula sin meta del diseño queda
+INDETERMINADA — decision suya, correcta y mejor que nuestro fallback
+sugerido: jamas juzgar con una vara que nadie eligio. Precedencia de
+alias reparada (efectivas_esperadas primero). PENDIENTE ACORDADO:
+cuando su superficie de α exista, nuestra ficha de calculo añade
+«Monitoreo valida cada aula contra su esperado del diseño
+(efectivas_esperadas), con α declarable» + el valor vigente — ficha y
+pantalla diciendo lo mismo desde el primer dia.
