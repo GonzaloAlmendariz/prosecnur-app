@@ -222,33 +222,6 @@
   gap: 10px;
 }
 
-/* Avance suma su rail de pestañas (Resumen · Salidas) sobre el canvas. */
-.mon-profile-page.is-aulas-flow .aulas-mon-view:has(.aulas-mon-tabs) {
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 10px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-mon-view:has(.mon-profile-error):has(.aulas-mon-tabs) {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-mon-tabs {
-  display: flex;
-  gap: 6px;
-  min-width: 0;
-}
-
-/* Solo geometría y reposo: hover, activo y foco los gobierna nav-states.css a
- * través de `data-nav-item`, y el relleno del activo lo pinta el indicador
- * deslizante de GlidingTabList. */
-.mon-profile-page.is-aulas-flow .aulas-mon-tabs button {
-  padding: 7px 14px;
-  border: 1px solid var(--pulso-border);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--pulso-text-soft);
-  background: var(--pulso-surface-2);
-}
 
 /* Stack de una sola tabla (avance, fuentes, calidad, consultas): la tabla llena */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack {
@@ -779,7 +752,6 @@
   overflow: auto;
 }
 
-
 /* Aviso de la vista: algo que pasó y conviene saber, sin ser un fallo.
  *
  * Material propio y NO el de `.mon-profile-error`: importar un libro al que le
@@ -935,20 +907,6 @@
   min-width: 0;
 }
 
-/* Ver `.aulas-cobertura-chart`: el alto se reserva o el panel colapsa. */
-.mon-profile-page.is-aulas-flow .aulas-mon-view .aulas-cuotas-chart {
-  /* Intrínseco, no estirado. El envoltorio tomaba el alto del panel —medido: 155
-     px para 139 de contenido— y el sobrante caía como hueco muerto DENTRO de él:
-     `capacity-drift` de 16 px en el gate del contrato (C3). Plotly no crece con
-     su fila porque su alto lo fija la prop, así que absorber holgura que no puede
-     usar sólo produce vacío sin dueño. Con `start` la holgura se queda en el
-     panel, que sí tiene borde visible y por tanto la posee. */
-  align-self: start;
-  min-height: 200px;
-  display: grid;
-  grid-template-rows: 1fr auto;
-  min-width: 0;
-}
 
 /* Un panel que contiene un GRÁFICO es intrínseco, no `1fr`.
    `.mon-profile-panel` reparte `auto minmax(0,1fr)` porque su caso normal es una
@@ -959,8 +917,7 @@
    Declarándolo intrínseco la holgura vuelve al stack, cuyo gutter sí la posee. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-estado-chart),
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cobertura-chart),
-.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cadena-chart),
-.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cuotas-chart) {
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel:has(> .aulas-cadena-chart) {
   grid-template-rows: auto auto;
 }
 
@@ -1003,14 +960,6 @@
   white-space: nowrap;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-cuota-desglose {
-  color: var(--pulso-text-soft);
-  font-size: var(--aulas-min);
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.85;
-}
-
 .mon-profile-page.is-aulas-flow .aulas-cuota-fila.es-total .aulas-cuota-etiqueta {
   font-size: 13px;
   font-weight: var(--pulso-weight-black);
@@ -1048,29 +997,6 @@
   font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cuotas-cortes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
-  margin-top: 4px;
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cuotas-cortes h4 {
-  margin: 0 0 6px;
-  font-size: var(--aulas-min);
-  font-weight: var(--pulso-weight-black);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pulso-text-soft);
-}
-
-.mon-profile-page.is-aulas-flow .aulas-cuotas-cortes section {
-  display: grid;
-  gap: 6px;
-  align-content: start;
-  min-width: 0;
 }
 
 /* ── Historia de la cadena ───────────────────────────────────────────────
@@ -1964,7 +1890,6 @@
   font-style: normal;
 }
 
-
 /* Agenda: cabecera + lectura por día + tabla. Tres filas declaradas, no dos:
    con `auto minmax(0,1fr)` el tercer hijo cae en una fila implícita y se dibuja
    ENCIMA de la tabla —medido—.
@@ -2583,7 +2508,6 @@
 .mon-profile-page.is-aulas-flow .aulas-kpi-band {
   padding: 12px;
 }
-
 
 /* Las cadenas abiertas, en tabla. Eran veintiuna tarjetas idénticas —borde,
    radio de tarjeta y franja de color— repitiendo la misma frase: un muro donde
@@ -3379,7 +3303,6 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-frente-cuando em { font-style: normal; }
-
 
 /* La observación de quien agendó, en su propia línea bajo el aula. Ocupa las
    cinco columnas para no estrechar ninguna, y sólo aparece cuando hay nota. */
