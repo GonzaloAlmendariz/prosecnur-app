@@ -55,6 +55,7 @@ import {
   type TipoBorradorCriterio,
 } from "../criterios/borradorCriterios";
 import type { FacultadRef } from "../criterios/facultades";
+import { FacultadesExcluidasCard } from "../criterios/FacultadesExcluidasCard";
 import type { FacultadMinRef } from "../criterios/MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criterios/minElegiblesModel";
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
@@ -883,6 +884,14 @@ export function CursosHorarioMarcoTab({
                 ) : (
                   <RefreshCw size={15} aria-hidden="true" />
                 )}
+      {/* Las exclusiones gobiernan qué facultades aparecen en los bloques de
+          abajo: van PRIMERO (pedido textual de Gonzalo, 2026-08-20; antes
+          vivía en criterios de estudiante, donde no pertenecía). */}
+      <FacultadesExcluidasCard
+        config={config}
+        facultades={facRefs}
+        onPatch={patchAulasConfig}
+      />
                 Calcular población y cursos-horario elegibles
               </span>
             </button>

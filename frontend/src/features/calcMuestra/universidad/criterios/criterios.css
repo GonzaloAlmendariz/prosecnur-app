@@ -2491,3 +2491,31 @@
 }
 /* Con el lente en una facultad, su ficha ocupa el ancho completo. */
 .cmv2-ficha-lista[data-lente="una"] { grid-template-columns: minmax(0, 1fr); }
+
+/* Facultades excluidas — arreglo estetico (Gonzalo 2026-08-20: «la caja esta
+   completamente rota»). Fuera del grid de criterios la tarjeta ocupaba el
+   ancho entero y el subhead se estiraba en UNA fila (titulo izquierda,
+   subtitulo flotando a la derecha). El subhead vuelve a columna, el ancho se
+   contiene y las casillas toman el acento del modulo. */
+.cmv2-crit-card[data-criterio="facultades-excluidas"] {
+  max-width: 1040px;
+}
+
+.cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  margin-bottom: 6px;
+}
+
+.cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead small {
+  max-width: 62ch;
+}
+
+.cmv2-facultades-excluidas-lista input[type="checkbox"] {
+  accent-color: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-facultades-excluidas-pie {
+  margin-top: 10px;
+}
