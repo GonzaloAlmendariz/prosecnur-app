@@ -28,9 +28,14 @@ test_that("el anotador escribe las tres columnas y la identidad se cumple", {
     stringsAsFactors = FALSE
   )
   out <- .cm_aulas_efectividad_anotar(af)
-  expect_true(all(c("p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas") %in% names(out)))
-  # A: 12 x 0.87 x 0.80 = 8.352 -> 8.4 ; B: 60 x 0.73 x 0.44 = 19.272 -> 19.3
-  expect_equal(out$efectivas_esperadas, c(8.4, 19.3))
+  expect_true(all(c("p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas",
+                    "tasa_efectividad_aula") %in% names(out)))
+  # V7 — ecuacion CONDICIONAL (el docente no descuenta efectivas):
+  # A: 12 x 0.80 = 9.6 ; B: 60 x 0.44 = 26.4
+  expect_equal(out$efectivas_esperadas, c(9.6, 26.4))
+  expect_equal(out$tasa_efectividad_aula, c(0.80, 0.44))
+  # La tasa de aplicacion sigue viajando como dato OPERATIVO.
+  expect_equal(out$p_aplicada_ref, c(0.87, 0.73))
   # La tension medida: la chica rinde MAS en tasa, la grande aporta MAS absoluto.
   expect_gt(out$rendimiento_ref[[1]], out$rendimiento_ref[[2]])
   expect_gt(out$efectivas_esperadas[[2]], out$efectivas_esperadas[[1]])
@@ -61,8 +66,8 @@ test_that("declarar historico con periodo viaja en la fila", {
   out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
   expect_identical(out$efectividad_fuente, "historico")
   expect_identical(out$efectividad_periodo, "2025")
-  # Las curvas siguen siendo las medidas: 20 x 0.87 x 0.69 = 12.0
-  expect_equal(out$efectivas_esperadas, 12.0)
+  # V7: condicional — 20 x 0.69 = 13.8 (el docente ya no multiplica).
+  expect_equal(out$efectivas_esperadas, 13.8)
 })
 
 test_that("sin historico, tau_global: esperado = elegibles x tau y SIN curvas", {
@@ -125,10 +130,10 @@ test_that("el factor por facultad muerde solo donde el historico tiene base", {
     stringsAsFactors = FALSE
   )
   out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
-  # DERECHO: 20 x 0.87 x 0.69 x (0.562/0.53 = 1.060) = 12.73 -> 12.7
+  # V7 condicional — DERECHO: 20 x 0.69 x (0.562/0.53 = 1.060) = 14.63 -> 14.6
   expect_equal(out$factor_facultad, c(1.06, 1))
   expect_equal(out$facultad_k, c(16L, NA_integer_))
-  expect_equal(out$efectivas_esperadas, c(12.7, 12.0))
+  expect_equal(out$efectivas_esperadas, c(14.6, 13.8))
 })
 
 test_that("sin tau_base el factor NO se aplica (nunca dividir por un supuesto mudo)", {
@@ -141,7 +146,7 @@ test_that("sin tau_base el factor NO se aplica (nunca dividir por un supuesto mu
                    stringsAsFactors = FALSE)
   out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
   expect_equal(out$factor_facultad, 1)
-  expect_equal(out$efectivas_esperadas, 12.0)
+  expect_equal(out$efectivas_esperadas, 13.8)
 })
 
 test_that("E1: los tramos sellados gobiernan el rendimiento (la curva es DATO)", {
@@ -238,6 +243,7 @@ test_that("la seleccion publica las columnas de efectividad (listas cerradas vig
   ))
   frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
   sel <- calc_muestra_aulas_seleccionar(frame, cfg)
-  expect_true(all(c("p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas") %in% names(sel$selection)))
+  expect_true(all(c("p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas",
+                    "tasa_efectividad_aula") %in% names(sel$selection)))
   expect_true(all(is.finite(sel$selection$efectivas_esperadas)))
 })
