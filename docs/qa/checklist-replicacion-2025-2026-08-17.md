@@ -4316,3 +4316,16 @@ inmediato a los dos hallazgos de Consistencia (3697a480, verificados en
 vivo): el gauge warn dejo el degrade al marron #8a5000 y toma el ambar
 canonico (medido: sin rgb(138,80,0), con rgb(217,119,6)); los hallazgos
 media/baja llevan el recipe de la casa (filete ambar inset presente).
+
+### P2 · BARRIDO parte 2a: MARCO — dos hallazgos, dos arreglos en el tick
+
+| Pestaña | Veredicto |
+|---|---|
+| Criterios del estudiante | OK (M8 vivo) |
+| Alumnos por CH | OK (1 panel coherente) |
+| CH: criterios + radiografia | ARREGLADO: el subtitulo de Facultades excluidas desbordaba su card (570 vs 467px) — ahora envuelve. Nota: los desplegables por facultad miden 13k px pero SON desplegables (contenido bajo demanda) |
+| Poblacion | OK (stat-cards + tabla) |
+| CH: unidades | ARREGLADO: panel de particularidades 22.098 → 1.268px (−94%) — listas plegadas a 8 con «Ver N mas» |
+| Cobertura | OK (2 tarjetas por facultad) |
+
+Falta: Calculo (4), Seleccion, Entrega — proximo tick.
