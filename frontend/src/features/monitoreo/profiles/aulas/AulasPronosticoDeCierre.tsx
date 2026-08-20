@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { escalaDeEje } from "./AulasSerieDeRendimiento";
 import { pronosticoDeCierre, sumarDiasDeCampo } from "./pronosticoDeCierre";
 
 /**
@@ -64,7 +65,21 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
   const y = (v: number) => MARGEN + util - (util * v) / Math.max(p.universo, 1);
   // Las tres referencias del eje vertical. Sin ellas no se podia leer ni un
   // valor: habia una sola linea, la de la meta, y ninguna escala.
-  const marcas = [0, Math.round(p.universo / 2), p.universo];
+  // **El eje en saltos redondos, no en mitades.**
+  //
+  // Era `[0, universo/2, universo]`, o sea 0 · 98 · 196: dos de las tres marcas
+  // son numeros que nadie usa para medir. Gonzalo ya lo pidio para el otro
+  // grafico —«los ticks del eje y pueden tener saltos mas logicos como cada 20 o
+  // cada 10»— y aqui seguia sin aplicarse. `escalaDeEje` es la misma funcion que
+  // decide la escala de la serie de rendimiento: se reusa en vez de tener dos
+  // criterios de eje en el mismo perfil.
+  //
+  // El tope de la escala puede quedar por encima del universo —196 sube a 200—,
+  // que es justo lo que hace que las marcas sean redondas; la linea del universo
+  // se sigue dibujando en su sitio.
+  // `escalaDeEje` ya devuelve los escalones de arriba abajo; aquí se quieren de
+  // abajo arriba, que es el orden en que se posicionan.
+  const marcas = [...escalaDeEje(p.universo).escalones].reverse();
 
   const observado = p.serie.map((d, i) => `${x(i)},${y(d.acumulado)}`).join(" ");
   const desde = p.serie.length - 1;
@@ -148,6 +163,15 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
           «entre 17 y 17» y «entre el 25/08 y el 25/08» se lee como un error de
           la pantalla, así que ese caso se enuncia como lo que es —un ritmo sin
           variación— y se dice que por eso no hay banda. */}
+      {/* «Entre el 24/08 y el 25/08.» era una frase sin sujeto: no decía de qué
+          era el rango, y repetía la fecha que el titular ya había dado cuatro
+          líneas más arriba. Ahora cada extremo dice de qué día sale, que es lo
+          único que el titular no puede decir.
+
+          **Y el comentario vive AQUÍ, fuera del párrafo.** Puesto entre dos
+          líneas de texto JSX se come el salto que las separa y salen pegadas:
+          primero «según eldía» y, al moverlo una línea, «15 aulaspor día». Un
+          comentario no debería cambiar lo que se lee, y en JSX sí lo hace. */}
       <p className="mon-profile-muted aulas-pronostico-pie">
         {sinVariacion ? (
           <>
@@ -161,9 +185,9 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
           <>
             Proyectado al ritmo observado de <strong>{p.ritmo?.toLocaleString("es-PE")}</strong> aulas
             por día de campo (entre {fmt(p.ritmoLento ?? 0)} y {fmt(p.ritmoRapido ?? 0)} según el
-            día), contando todos los días menos el domingo. Entre el{" "}
-            <strong>{dm(pronto)}</strong> y el{" "}
-            <strong>{dm(tarde)}</strong>.
+            día), contando todos los días menos el domingo. Con un día flojo
+            cerraría el <strong>{dm(tarde)}</strong>; con uno bueno,
+            el <strong>{dm(pronto)}</strong>.
           </>
         )}{" "}
         No descuenta las aulas que aún no tienen fecha ni supone que el ritmo mejore.
