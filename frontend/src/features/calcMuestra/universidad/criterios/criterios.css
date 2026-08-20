@@ -2378,11 +2378,13 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* «Dos tarjetas por fila» (decision textual de Gonzalo) decidido por el
+   * ancho REAL disponible, no por un breakpoint de viewport: la media query
+   * (max-width: 1279px) colapsaba a una columna con la card a 1.092px — donde
+   * la dupla cabe sobrada — y la ficha se volvia un muro de 5.121px (medido
+   * 2026-08-19). auto-fit hace el colapso solo cuando de verdad no caben. */
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
   gap: 10px;
-}
-@media (max-width: 1279px) {
-  .cmv2-ficha-lista { grid-template-columns: minmax(0, 1fr); }
 }
 .cmv2-ficha {
   border-radius: 8px;
