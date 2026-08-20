@@ -255,6 +255,14 @@ export function CertificacionFacultadCard({
         corta y se marca. La cifra <i>2025/CH</i> al pie repite la cuenta con lo
         que cada tipo de aula rindió de verdad en 2025 (referencial).
       </p>
+      {/* Contrato cerrado con Monitoreo (2026-08-20): su criterio de aula
+          válida lee el esperado que ESTE diseño calculó, no un % fijo. */}
+      <p className="cmv2-cert-leyenda">
+        <b>En campo</b>: Monitoreo valida cada aula contra su esperado del
+        diseño (<i>efectivas esperadas</i>), con un umbral α que el estudio
+        declara allá; sin meta del diseño, el aula queda sin juzgar — no se
+        aplica ningún porcentaje por defecto.
+      </p>
     </section>
   );
 }

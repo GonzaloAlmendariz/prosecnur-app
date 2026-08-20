@@ -34,6 +34,14 @@ test_that("el anotador escribe las tres columnas y la identidad se cumple", {
   # La tension medida: la chica rinde MAS en tasa, la grande aporta MAS absoluto.
   expect_gt(out$rendimiento_ref[[1]], out$rendimiento_ref[[2]])
   expect_gt(out$efectivas_esperadas[[2]], out$efectivas_esperadas[[1]])
+  # Contrato con Monitoreo: el origen de la meta viaja declarado, literal
+  # estable "diseno" (su normalizador lo consume en vez de inferirlo).
+  expect_identical(out$meta_origen, c("diseno", "diseno"))
+})
+
+test_that("sin meta no hay origen: el marcador solo existe donde hay diseno", {
+  sin <- data.frame(classroom_id = "A", stringsAsFactors = FALSE)
+  expect_false("meta_origen" %in% names(.cm_aulas_efectividad_anotar(sin)))
 })
 
 test_that("frame sin eligible_n o vacio queda intacto (nunca inventa)", {
