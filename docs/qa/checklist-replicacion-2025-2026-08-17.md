@@ -4368,3 +4368,26 @@ cuando su superficie de α exista, nuestra ficha de calculo añade
 «Monitoreo valida cada aula contra su esperado del diseño
 (efectivas_esperadas), con α declarable» + el valor vigente — ficha y
 pantalla diciendo lo mismo desde el primer dia.
+
+### PLIEGO NUEVO de Gonzalo: revamp de «Cursos-horario titulares» («bastante rota, mucha deuda»)
+
+Textual, punto por punto: (1) «no te deja escoger por facultad — no
+tienes claro que curso-horario le pertenece a quien»; (2) «un grafico
+partido a la mitad que no se termina de entender»; (3) «sexo esperado
+por CH titular nuevamente no se filtra por facultad — no entiendo que
+tengo que ver»; (4) «no diferencia elegibles de elegibles esperables en
+funcion del rendimiento»; (5) «razon operativa no se entiende, la tabla
+muy sencilla»; (6) «ajuste frente al marco: un monton de texto que no
+se entiende»; (7) «filtrar cursos-horario: sin filtro por facultad; no
+es necesidad de mostrar-200-mas — deberia SEPARARSE POR FACULTAD,
+mostrar titulares y opcion de mostrar reemplazos: los reemplazos
+despues del titular, reemplazo 1, reemplazo 2»; (8) «grafico de CH
+repetidos al final: no entiendo el grafico ni su razon de ser».
+
+DIRECCION (la da el propio pliego): LA FACULTAD ES EL EJE. Orden de
+ejecucion: (T1) la lista agrupada por facultad con reemplazos plegados
+bajo su titular (mata 1 y 7) → (T2) sexo esperado filtrable/por
+facultad (3) → (T3) elegibles vs esperadas visibles por fila (4) →
+(T4) glosar/limpiar razon operativa y ajuste frente al marco (5, 6) →
+(T5) el grafico partido y el de repetidos: explicarlos o retirarlos
+(2, 8). El lenguaje de «celdas» (pedido anterior) sigue en cola tras T1.
