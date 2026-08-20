@@ -617,27 +617,7 @@
     height: 100%;
   }
 
-  /* A 1024x600 el stack de Validacion recibia 87 px y los repartia como
-     `0px 26px 26px 180px` entre sus cuatro paneles: «Lo que reporto el campo» y
-     «Como trabaja cada equipo» se quedaban en 26 px —solo su encabezado, con el
-     contenido aplastado a cero— y el panel de arriba se dibujaba encima. Las
-     pistas `auto` de un grid se comprimen cuando el contenedor tiene menos alto
-     que su contenido; en esta pestana no hay scroll interno que absorba la
-     diferencia, asi que la altura la da el contenido y el desbordamiento lo
-     recoge el dueno de scroll del workbench. Medido: el stack pasa de 87 a
-     1036 px y el recorrido del dueno de 698 a 1309 px.
 
-     Va anclado con `:has(.registro-campo)` y no a la seccion entera a proposito:
-     las otras dos pestanas de Validacion —controles y base de control— llevan
-     tablas cuyo scroll interno depende de la fila `minmax(0, 1fr)`, y darles
-     `min-content` les quitaria su cabecera pegajosa. */
-  .mon-profile-page.is-aulas-flow .aulas-mon-view:has(.registro-campo) {
-    flex: 1 0 auto;
-  }
-
-  .mon-profile-page.is-aulas-flow .mon-profile-stack:has(.registro-campo) {
-    grid-auto-rows: min-content;
-  }
 }
 
 /* ── El vacío se contiene, no se estira ────────────────────────────────────
@@ -4415,4 +4395,123 @@
 .mon-profile-page.is-aulas-flow .aulas-cruce-por {
   color: var(--pulso-text-faint); font-size: var(--aulas-min);
   overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── El registro de campo da su alto al contenido ───────────────────────
+   El stack de Validacion repartia el alto que tenia entre sus paneles en vez
+   de tomarlo del contenido. A 1024x600 recibia 87 px y los repartia como
+   `0px 26px 26px 180px`: dos paneles quedaban en 26 px —solo su encabezado—.
+   A 1440x1000 el sintoma era el contrario y peor de ver: cada panel recibia
+   menos fila de la que ocupa su contenido y, con `overflow: visible`, las
+   barras de «Como trabaja cada equipo» se dibujaban ENCIMA del titulo de «El
+   parte contra la plataforma». El gate visual no lo cantaba —no mide
+   solapamiento— y solo salio al mirar la captura.
+
+   Las pistas `auto` de un grid se comprimen cuando el contenedor tiene menos
+   alto que su contenido; en esta pestana no hay scroll interno que absorba la
+   diferencia, asi que la altura la da el contenido y el desbordamiento lo
+   recoge el dueno de scroll del workbench. Medido a 1024: el stack pasa de 87
+   a 1 036 px y el recorrido del dueno de 698 a 1 309 px.
+
+   Va anclado con `:has(.registro-campo)` y NO a la seccion entera a proposito:
+   las otras dos pestanas de Validacion —controles y base de control— llevan
+   tablas cuyo scroll interno depende de la fila `minmax(0, 1fr)`, y darles
+   `min-content` les quitaria su cabecera pegajosa.
+
+   Y va fuera de cualquier media query: el defecto no es de viewport bajo, se
+   manifiesta distinto segun el alto. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(.registro-campo) {
+  flex: 1 0 auto;
+}
+
+.mon-profile-page.is-aulas-flow .mon-profile-stack:has(.registro-campo) {
+  grid-auto-rows: min-content;
+}
+
+/* ── Tiempos de respuesta ────────────────────────────────────────────────
+   Comparte el material de las otras lecturas de Validacion; lo propio es la
+   fila de cifras y la lista de aulas que se salen del resto. */
+.mon-profile-page.is-aulas-flow .aulas-tiempos {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-cifras li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-cifras li.is-alerta {
+  border-color: color-mix(in srgb, var(--pulso-warn) 40%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn) 8%, var(--pulso-surface-2));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-cifras span {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-cifras small {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-lista {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-aula {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-med small {
+  color: var(--pulso-text-muted);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tiempos-resto {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
 }

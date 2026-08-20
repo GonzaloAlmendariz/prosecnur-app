@@ -1885,6 +1885,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (is.null(crit)) return(NULL)
       monitoreo_aulas_contraste_veredicto(control_publicado, crit)
     })(),
+    # Cuanto duraron las respuestas. Contesta aunque la base no traiga marcas
+    # de tiempo —el estudio de aulas de hoy no las trae— para que la vista
+    # pueda decir que faltan en vez de no mostrar nada.
+    tiempos = monitoreo_aulas_tiempos(responses, cfg, response_classroom),
     control_calidad = monitoreo_aulas_control_con_facultad(
       control_publicado,
       plan %||% cfg$plan %||% list()

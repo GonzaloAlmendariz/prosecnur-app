@@ -54,6 +54,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
+import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
@@ -784,6 +785,22 @@ function renderAulasView(
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
               agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
             />
+          </section>
+          {/* **El control de tiempos, que el Excel anterior tenía y la app no.**
+              Va en Validación porque es pregunta del analista, y se muestra
+              aunque este estudio no traiga marcas de tiempo: el panel dice que
+              faltan. Un panel que desaparece cuando no hay dato deja al usuario
+              sin saber que el dato existe. */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Cuánto se tarda en responder</h3>
+              <span>duración por respuesta y por aula</span>
+            </div>
+            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos} />
           </section>
         </div>
       );

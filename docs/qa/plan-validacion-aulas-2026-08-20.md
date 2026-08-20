@@ -118,7 +118,20 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
     (4.3 %), **<7 marca 174 (13.6 %)** — entre 5 y 7 minutos se triplica.
   - **Pendiente para Gonzalo**: elegir el número para el estudio de aulas. Hasta
     entonces la superficie describirá sin acusar.
-- **T11** — El tiempo en la ficha del aula, junto a su veredicto.
+- **T11 ☑ (2026-08-20, 77 tests R + 5 TS)** — «Cuánto se tarda en responder»,
+  panel propio en Validación. El bloque `tiempos` viaja **siempre** en el
+  payload del dashboard: cuando la base no trae marcas —el caso de este
+  estudio— llega con `disponible: false` y su motivo, y el panel **dice que
+  faltan** en vez de desaparecer. Un panel que se esconde cuando no hay dato
+  deja al usuario sin saber que el dato existe (C5 categoría 1).
+  - **El defecto que destapó la captura, y que el gate NO ve**: a 1440×1000 los
+    paneles de Validación **se dibujaban unos encima de otros** —las barras de
+    «Cómo trabaja cada equipo» sobre el título de «El parte contra la
+    plataforma»—. Es el mismo defecto de reparto de alto que a 1024 recortaba, y
+    la regla estaba encerrada en `@media (max-height: 760px)`, así que sólo
+    curaba la mitad. Ahora vive fuera de toda media query.
+  - **`ui-quick-check` no mide solapamiento**: dio `issues=0` sobre esa pantalla.
+    La captura es evidencia, el número no basta.
 
 ### C. Calidad de las respuestas abiertas (T12–T17)
 
