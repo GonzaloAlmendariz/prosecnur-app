@@ -4523,3 +4523,23 @@ declara «NO es comparable; reconstruye el marco». Octava lista
 cerrada/fallback mudo de la familia. Ademas V4 cerro el deff (1,08-1,12
 estratificado vs 2,0 asumido — conservador) y la revision exhaustiva
 completo sus 5 campanas de medicion.
+
+### 2026-08-20: LOOP DETENIDO POR GONZALO — «esto es importante y necesita cerrarse bien»
+
+Ticker apagado (bvx2l9wv3). Hallazgo que motiva el cierre, medido al
+detalle: el encabezado «Muestra objetivo — / resultado inválido» es un
+GUARDIÁN REAL (design_divisor_ch_required_mismatch): para EGL espera 22
+aulas = ceil(397 / (34,5 × 0,53)) y el reparto aplicado tiene 23. El
+P25 verdadero de EGL es 34,5 (tipo 7 sobre las 331 aulas del marco; el
+estrato sellado LO DECLARA BIEN: avg_conglomerado=34.5) — pero su
+aulas_base sellada es 23, que corresponde a P25=34. El estrato es
+internamente inconsistente: declara divisor 34,5 y un resultado que
+solo sale con 34. Solo EGL está afectada (el validador no marca a las
+otras 14). Consecuencia: el reparto «197 por P25» es en rigor 196 por
+la regla acreditada (EGL 22, no 23). DECISIÓN DE GONZALO: (a) corregir
+a 196 (EGL 23→22, re-sorteo y guardado; el encabezado vuelve a publicar
+cifras), (b) mantener 197 declarando el aula extra de EGL como decisión
+deliberada (exige documentarla y que el guardián la acepte), o (c)
+integrarlo con la decisión 1b (re-dimensionar todo con la calibración
+v2 → 190, que subsume esta corrección). El loop queda EN PAUSA hasta
+que Gonzalo cierre esto.
