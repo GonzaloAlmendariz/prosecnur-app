@@ -4257,3 +4257,17 @@ workspace.variable_mappings con el patron que YA existe para criterios
 aplicada por API dejaba el chip en ambar perpetuo»); (3) la tarjeta
 distingue «confirmado por el usuario» de «resuelto por el motor». Todo
 suma al ADR del dueño unico.
+
+### Facultades excluidas: pertenencia + estetica (pedido de Gonzalo) — HECHO
+
+Textual: «es un contenedor que no tiene nada que ver con esto
+[criterios de estudiante]… deberia estar en cursos-horarios, al
+inicio». Trasladada a la pestaña de criterios de CH ANTES de los
+bloques por facultad (gobierna que facultades aparecen abajo);
+estetica reparada (el subhead se estiraba en una fila a ancho completo
+— vuelve a columna, ancho contenido, casillas con acento del modulo).
+Contrato de tests mudado con la tarjeta. PENDIENTES ABIERTOS del mismo
+mensaje: (a) el EXPLORADOR de Datos tira «failed to fetch» — reproducir
+y reparar; (b) BARRIDO formal de pertenencia+estetica de TODOS los
+contenedores del modulo (su pregunta: «no se si has validado que todos
+esten donde deberian y no esten rotos»).
