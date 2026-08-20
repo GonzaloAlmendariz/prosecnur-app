@@ -143,14 +143,31 @@ extensible a todos los monitoreos.
 > —`_submission_time`, `collectorID` y `sexo`— y el `.pulso` **no trae
 > instrumento**. Aquí no hay nada que inventariar.
 >
-> **Dónde SÍ**: `acnur_acg` trae **~22 columnas de texto abierto y su
-> instrumento**; `acnur_pdm` ~14 y `acrconta` ~11. La capacidad se construye
-> contra `acnur_acg` —que es además el que permite verificar las señales— y se
-> hereda por contrato, que es lo que Gonzalo pidió.
+> **CORRECCIÓN (T13, 2026-08-20): las cifras de «~22 / ~14 / ~11 columnas
+> abiertas» estaban mal.** Salían de contar columnas de tipo carácter, que
+> incluyen códigos, GPS, fechas y selects. Contadas contra el **instrumento**,
+> que es la fuente autoritativa: `acnur_acg` tiene **4** preguntas `text` —y dos
+> son identificadores—, `acrconta` **3**, y **`acnur_pdm` 18 + 3 en el repeat**.
+> **La capacidad se construye contra `acnur_pdm`**, no contra acg: es el único
+> con preguntas abiertas de contenido (`RECP04_why`, `srv_claridad_why`…).
 
 - **T12** — ~~Inventario.~~ Hecho: ver arriba.
-- **T13** — Señales objetivas por respuesta: longitud, repetición literal,
-  teclado seguido, una sola palabra, copia entre casos.
+- **T13 ☑ (2026-08-20, `api/R/monitoreo_texto_abierto.R`, 22 tests)** — Señales
+  por respuesta, medidas sobre las **1 610 respuestas abiertas de `acnur_pdm`**
+  antes de elegir cuáles valen.
+  - **Una señal sólo significa algo contra su propia pregunta.** En
+    `Enumerator_name` el **99.3 %** de las respuestas se repiten —es el nombre
+    del encuestador— y en `telephone` el **100 %** es una sola palabra. Las
+    mismas señales en `recomendation` marcan 54.7 % y 44 % sobre contenido real.
+  - **Señal descartada con su cifra**: «teclado seguido» (asdf, qwer, 1234)
+    marca **0 de 1 610**.
+  - **Relleno y negativa son cosas distintas**, y el primer intento las juntó:
+    con «no» y «ninguno» dentro de relleno, `recomendation` daba **33 % de
+    relleno** que era gente contestando que no tenía recomendaciones. Separadas,
+    `comentario_encuestador` de acg muestra las dos conviviendo: **8.7 % de
+    relleno** (los 103 «.») y **10.4 % de negativas**.
+  - **No filtra nada**: `monitoreo_texto_orden_de_lectura()` ordena por dónde
+    empezar y devuelve todas las respuestas. Es un visualizador, no un juez.
 - **T14** — Vista de lectura: leer muchas respuestas rápido, agrupadas por
   señal. **Es un visualizador, no un diagnóstico automático.**
 - **T15** — Por aplicador y por aula: quién concentra las respuestas malas.
