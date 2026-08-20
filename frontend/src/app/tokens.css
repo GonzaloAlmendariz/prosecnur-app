@@ -123,6 +123,16 @@
    * antes #d68a00, el único doble ámbar del sistema (ADR 0038). */
   --pulso-warn-accent: #d97706;
 
+  /* DESENLACES DE ENCUESTA — el mismo trio que `COLOR_RESULTADO` (TS), ahora
+   * tambien desde CSS: habia **224 literales** de estos colores en seis hojas.
+   * Centraliza, no recolorea. El porque y el guard, en
+   * `features/monitoreo/resultadoTokens.contract.test.ts`. */
+  --pulso-resultado-efectiva: #168a55;
+  --pulso-resultado-parcial: #b97611;
+  --pulso-resultado-rechazo: #a61d4f;
+  --pulso-resultado-pendiente: #7a8796;
+  --pulso-resultado-revision: #474f5b;
+
   --pulso-danger-bg: #fef2f2;
   --pulso-danger-border: #fecaca;
   --pulso-danger-fg: #991b1b;
