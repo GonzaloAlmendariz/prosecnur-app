@@ -15,6 +15,7 @@
 import { useMemo, useState } from "react";
 import { fmtInt } from "../../sharedCore";
 import {
+  ajustesPorFacultad,
   efectividadExplicada,
   etiquetaDocente,
   fuenteEfectividad,
@@ -86,6 +87,8 @@ export function EfectividadExplicadaCard({
         )
         .slice(0, 8)
     : [];
+  const ajustes = useMemo(() => ajustesPorFacultad(filas), [filas]);
+  const ajusteActivo = ajustes.length > 0;
   const radio =
     elegida && fuente.tipo !== "tau_global" ? radiografiaAula(elegida, m.porTamano) : null;
   const radioTau = elegida && fuente.tipo === "tau_global" ? radiografiaAulaTau(elegida) : null;
@@ -154,6 +157,40 @@ export function EfectividadExplicadaCard({
       </div>
       )}
 
+      {/* 1c · El ajuste por facultad, cuando el estudio lo declaró (decisión
+          de Gonzalo, 2026-08-20): τ de la facultad frente al general, con su
+          k — «sí necesito saber por qué solo en seis facultades». */}
+      {ajusteActivo && (
+        <div className="cmv2-efexp-ref">
+          <table className="cmv2-efexp-tabla-ref">
+            <caption>Ajuste por facultad — {refTexto}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Facultad</th>
+                <th scope="col">Ajuste del esperado</th>
+                <th scope="col">Aulas aplicadas (k)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ajustes.map((a) => (
+                <tr key={a.facultad}>
+                  <th scope="row">{a.facultad}</th>
+                  <td>× {coma(a.factor, 2)}</td>
+                  <td>{a.k != null ? fmtInt(a.k) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="cmv2-efexp-aviso">
+            El ajuste solo se aplica donde el {refTexto} acumuló base suficiente
+            (al menos 12 aulas aplicadas, según la clasificación de suficiencia de la
+            referencia). Para las demás facultades el histórico no pudo generar una tasa
+            específica estadísticamente defendible: rige la tasa general, y cada
+            radiografía lo declara.
+          </p>
+        </div>
+      )}
+
       {/* 1b · La procedencia y la limitación, declaradas — nunca en silencio. */}
       {fuente.tipo === "calibracion_embebida" && (
         <p className="cmv2-efexp-aviso" data-tono="warn">
@@ -163,7 +200,7 @@ export function EfectividadExplicadaCard({
           quede correctamente referenciado.
         </p>
       )}
-      {fuente.tipo === "historico" && (
+      {fuente.tipo === "historico" && !ajusteActivo && (
         <p className="cmv2-efexp-aviso">
           Las dos tasas son generales del {refTexto}: no se diferencian por facultad. La
           variación por facultad medida en ese histórico está identificada y su
@@ -259,15 +296,30 @@ export function EfectividadExplicadaCard({
                 </span>
               </div>
             </li>
+            {ajusteActivo && (
+              <li>
+                <b>× {coma(radio.factorFacultad, 2)}</b>
+                <div>
+                  <strong>ajuste de su facultad</strong>
+                  <span>
+                    {radio.factorFacultad !== 1
+                      ? `en el ${refTexto}, ${radio.facultad} registró una tasa de efectivas ${radio.factorFacultad > 1 ? "mayor" : "menor"} que la general (k = ${fmtInt(radio.facultadK ?? 0)} aulas aplicadas): el esperado se ajusta en consecuencia`
+                      : `el ${refTexto} no pudo generar una tasa específica para ${radio.facultad} (base insuficiente): rige la tasa general`}
+                  </span>
+                </div>
+              </li>
+            )}
             <li data-resultado="true">
               <b>= {coma(radio.esperadas, 1)}</b>
               <div>
                 <strong>efectivas esperadas — el valor de validez</strong>
                 <span>
                   {fmtInt(radio.elegibles)} × {coma(radio.pAplicada, 2)} ×{" "}
-                  {coma(radio.rendimiento, 2)} = {coma(radio.productoExacto, 2)}, que el
-                  motor guarda como {coma(radio.esperadas, 1)}. Con este número Monitoreo
-                  juzga esta aula en campo; cada curso-horario lleva el suyo.
+                  {coma(radio.rendimiento, 2)}
+                  {ajusteActivo ? ` × ${coma(radio.factorFacultad, 2)}` : ""} ={" "}
+                  {coma(radio.productoExacto, 2)}, que el motor guarda como{" "}
+                  {coma(radio.esperadas, 1)}. Con este número Monitoreo juzga esta aula en
+                  campo; cada curso-horario lleva el suyo.
                 </span>
               </div>
             </li>
