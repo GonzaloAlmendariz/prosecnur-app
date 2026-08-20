@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { consumoDelBanco } from "./consumoDelBanco";
+import { NombreDeFacultad } from "./NombreDeFacultad";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * Cuánto cubre la reserva de cada facultad al ritmo de reemplazos observado.
@@ -20,7 +22,7 @@ import { consumoDelBanco } from "./consumoDelBanco";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco }: {
+export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
    * Días de campo que lleva el estudio: el denominador del ritmo de caídas.
@@ -31,6 +33,8 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco }:
   diasDeCampo?: number;
   /** La facultad enfocada. **No filtra: resalta** — ver la nota en `AulasRitmoPorFacultad`. */
   facultadEnFoco?: string;
+  /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
+  onFoco?: (foco: FocoDeCuota) => void;
 }) {
   const { facultades, sinFecha } = useMemo(
     () => consumoDelBanco(filas, diasDeCampo),
@@ -72,7 +76,8 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco }:
         </li>
         {facultades.map((f) => (
           <li key={f.facultad} className={`${f.quedan === 0 ? "es-seca" : ""}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`.trim() || undefined}>
-            <span className="aulas-banco-consumo-nombre" title={f.facultad}>{f.facultad}</span>
+            <NombreDeFacultad facultad={f.facultad} className="aulas-banco-consumo-nombre"
+              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
             <span className="aulas-banco-consumo-cifra">
               {fmt(f.caidas)}
               {f.ritmo ? <em> · {f.ritmo.toLocaleString("es-PE")}/día</em> : null}

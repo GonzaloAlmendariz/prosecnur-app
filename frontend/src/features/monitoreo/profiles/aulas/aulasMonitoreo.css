@@ -2846,6 +2846,23 @@
   }
 }
 
+/* El nombre de facultad cuando ADEMAS pone el foco.
+ *
+ * Resetea lo que el navegador le pone a un `<button>` pero **no toca `display`**:
+ * cada lista le pasa su propia clase de celda —unas son `grid`, otras llevan
+ * elipsis— y esa maquetacion tiene que sobrevivir. Por eso no vale `all: unset`.
+ */
+.mon-profile-page.is-aulas-flow .aulas-foco-boton {
+  appearance: none; background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-foco-boton:hover {
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.mon-profile-page.is-aulas-flow .aulas-foco-boton:focus-visible {
+  outline: 2px solid var(--pulso-primary, #002457); outline-offset: 2px; border-radius: 4px;
+}
+
 /* LA FACULTAD EN FOCO, EN TODAS LAS LISTAS DE LA SECCION.
  *
  * `foco` es una dimensión declarada de la gramática de navegación y viaja en la

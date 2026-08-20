@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { ritmoPorFacultad } from "./ritmoPorFacultad";
+import { NombreDeFacultad } from "./NombreDeFacultad";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * Cómo va cada facultad día a día, y hacia dónde.
@@ -20,7 +22,7 @@ function dm(iso: string): string {
   return d && m ? `${d}/${m}` : iso;
 }
 
-export function AulasRitmoPorFacultad({ partes, facultadEnFoco }: {
+export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
   /**
    * La facultad enfocada, si la hay. **No filtra: resalta.** `foco` viaja en la
@@ -29,6 +31,8 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco }: {
    * estas listas aportan; el detalle se filtra, el control no.
    */
   facultadEnFoco?: string;
+  /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
+  onFoco?: (foco: FocoDeCuota) => void;
 }) {
   const { facultades, fechas } = useMemo(() => ritmoPorFacultad(partes), [partes]);
 
@@ -78,10 +82,11 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco }: {
         </li>
         {facultades.map((f) => (
           <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
-            <span className="aulas-ritmofac-nombre" title={f.facultad}>
+            <NombreDeFacultad facultad={f.facultad} className="aulas-ritmofac-nombre"
+              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
               {f.facultad}
               <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"} · {f.mediaDiaria.toLocaleString("es-PE")}/día</em>
-            </span>
+            </NombreDeFacultad>
             {/* Una barra por día del rango COMPARTIDO: los huecos son días sin
                 recoger y tienen que ocupar su sitio, porque una facultad parada
                 tres días es lo que hay que ver. */}

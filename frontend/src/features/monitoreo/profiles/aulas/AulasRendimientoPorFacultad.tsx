@@ -4,6 +4,8 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { personasPorAula } from "./redondeoConservador";
 import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
+import { NombreDeFacultad } from "./NombreDeFacultad";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * Qué está rindiendo más y qué menos, facultad por facultad.
@@ -18,7 +20,7 @@ const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("es-P
 
 export function AulasRendimientoPorFacultad({
   partes, plan, clave = "faculty", unidad = "Facultad", explicaLasColumnas = true,
-  facultadEnFoco,
+  facultadEnFoco, onFoco,
 }: {
   partes: ReadonlyArray<MonitoreoRow>;
   plan: ReadonlyArray<MonitoreoRow>;
@@ -33,6 +35,8 @@ export function AulasRendimientoPorFacultad({
    * estas listas aportan; el detalle se filtra, el control no.
    */
   facultadEnFoco?: string;
+  /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
+  onFoco?: (foco: FocoDeCuota) => void;
 
   /**
    * Si este panel lleva el pie que explica las cuatro columnas.
@@ -97,10 +101,15 @@ export function AulasRendimientoPorFacultad({
         </li>
         {filas.map((f) => (
           <li key={f.facultad} className={clave === "faculty" && f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
-            <span className="aulas-rendimiento-nombre" title={f.facultad}>
+            {/* Sólo es control cuando agrupa POR FACULTAD: en las otras lentes
+                la fila es una franja o un día, y poner el foco de facultad desde
+                ahí pondría el nombre de una franja donde va una facultad. */}
+            <NombreDeFacultad facultad={f.facultad} className="aulas-rendimiento-nombre"
+              enFoco={clave === "faculty" && f.facultad === facultadEnFoco}
+              onFoco={clave === "faculty" ? onFoco : undefined}>
               {f.facultad}
               <em>{fmt(f.aulas)} {f.aulas === 1 ? "aula" : "aulas"} · {fmt(f.efectivas)} encuestas</em>
-            </span>
+            </NombreDeFacultad>
             {/* La barra mide POR AULA, que es la pregunta del panel. Escala
                 compartida entre facultades: normalizar cada una a sí misma haría
                 que todas se vieran iguales. */}
