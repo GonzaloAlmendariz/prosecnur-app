@@ -2508,8 +2508,17 @@
   margin-bottom: 6px;
 }
 
+.cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead {
+  min-width: 0;
+}
+
 .cmv2-crit-card[data-criterio="facultades-excluidas"] .cmv2-subhead small {
   max-width: 62ch;
+  /* El subtitulo ENVUELVE: en la grilla de la pestaña de CH la card mide
+     ~470px y un small en una linea la desbordaba (No Scroll Jail, medido
+     2026-08-20: scrollWidth 570 vs clientWidth 467). */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .cmv2-facultades-excluidas-lista input[type="checkbox"] {
