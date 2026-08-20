@@ -4409,3 +4409,28 @@ rendimiento(tamaño: ≤15→0,80 … >50→0,44), curvas medidas del 2025;
 0. ENCOLADO (M-next): tarjeta didactica «De donde sale la efectividad»
 en Calculo con las dos curvas y esta cadena — que la pregunta se
 responda sola en pantalla.
+
+### 2026-08-20 (tarde): valor de validez con nombres, particion de titulares, y un delta de score abierto
+
+- Tooltip por aula + tarjeta «De donde sale el esperado de cada aula»
+  (43b082e0): la cuenta viva con el tipo de docente REAL y el rango de
+  tamano con conteos; control de coherencia honesto 46% = 84% x 55%
+  (mi primera version comparo con denominador de estudiantes UNICOS
+  5.963 y dio un falso 0,529~tau; el denominador correcto son los
+  elegibles sentados por aula, 6.829 — «una palabra, dos denominadores»
+  otra vez). teacher_type entro a las DOS listas cerradas de
+  publicacion (cuarta mordida); re-sorteo de fondo verifico reparto
+  identico 197/197 y teacher_type 197/197, guardado en el .pulso.
+- Particion de la pestana (4250feb2): titulares = operativo; Solidez de
+  la seleccion (id solidez) = el porque. Catalogo 29->30, contratos
+  mudados, CSS huerfano purgado.
+- **HALLAZGO ABIERTO — score de representatividad 69 -> 47,9 con filas
+  identicas**: el re-sorteo de hoy reproduce 47,9 dos veces
+  (determinista, seed 20260619) con frame.config.objective v1 igual al
+  del estado; ayer la cadena (bx6pulsab) corrio construir + comparar
+  ANTES de seleccionar y dio 69. Sospecha: comparar-metodos alimenta pi
+  Monte Carlo / estado que la representatividad consume. Plan del
+  proximo tick: correr comparar-metodos y re-seleccionar; si vuelve 69,
+  el score depende de un estado de comparacion que el guardado no
+  declara — defecto de fondo (el score de un sorteo determinista no
+  puede depender de que corrio antes).
