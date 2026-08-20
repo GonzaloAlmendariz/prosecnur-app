@@ -1,0 +1,41 @@
+/* Coincidencia — jerarquía vistazo→detalle (revamp pedido por Gonzalo,
+   2026-08-19). Antes: seis tarjetas apiladas al mismo nivel, sin transición.
+   Ahora tres grupos rotulados: el método (qué reglas rigen), el resultado
+   (qué produce la selección) y el detalle (facultad por facultad). Solo
+   tokens var(--pulso-*); cero hex. */
+
+.cmv2-coincidencia {
+  display: grid;
+  gap: 12px;
+}
+
+.cmv2-coincidencia-grupo {
+  display: grid;
+  gap: 12px;
+}
+
+/* Separación MAYOR entre grupos que entre tarjetas hermanas: la pausa es la
+   transición que faltaba. */
+.cmv2-coincidencia-grupo + .cmv2-coincidencia-grupo {
+  margin-top: 16px;
+}
+
+.cmv2-coincidencia-rotulo {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-weight: var(--pulso-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Filete que corre hasta el borde: ancla el rótulo sin pedir una caja. */
+.cmv2-coincidencia-rotulo::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--pulso-border);
+}
