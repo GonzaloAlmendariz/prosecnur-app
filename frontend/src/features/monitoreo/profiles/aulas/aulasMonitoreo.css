@@ -3404,6 +3404,25 @@
    no en cada fila: las columnas de esta tabla solo coinciden si todas las filas
    resuelven el mismo reparto, y cada `li` es su propia grilla. */
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista.con-banco { --aulas-anticipacion-cifras: 4; }
+/* El supuesto de caida, encima de la lista que depende de el. Neutro mientras
+   el estudio vaya como 2025; teñido solo cuando la diferencia sale del margen,
+   porque entonces cambia cuantas aulas hay que pedir. */
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-caida {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  margin: 0; padding: 5px 8px; border-radius: 7px;
+  background: var(--pulso-surface-2);
+  font-size: var(--aulas-sec); color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-caida em {
+  font-style: normal; color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-caida.es-distinta {
+  background: color-mix(in srgb, var(--pulso-warn-accent) 8%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-caida.es-distinta em {
+  color: var(--pulso-warn-fg); font-weight: 650;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-sinbanco {
   margin: 0; font-size: var(--aulas-sec); color: var(--pulso-resultado-rechazo);
   border-left: 2px solid var(--pulso-resultado-rechazo); padding-left: 8px;
