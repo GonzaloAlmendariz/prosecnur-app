@@ -46,12 +46,28 @@ function cuando(f: AlertaDeFacultad): string {
 /** `0.235` → `24 %`. */
 const pctCorto = (n: number) => `${Math.round(n * 100)} %`;
 
-export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [] }: {
+export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [], facultadEnFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
   /** `banco_extras.por_facultad`, para saber si las aulas que se piden existen. */
   banco?: ReadonlyArray<FacultadDelBanco>;
+  /**
+   * La facultad enfocada, si la hay. **No filtra: resalta.**
+   *
+   * `foco` es una dimensión declarada de la gramática de navegación y viaja en
+   * la URL (`?foco=facultad:Derecho`), pero lo obedecía UNA sola superficie: la
+   * tabla de cuotas. El perfil tiene **seis listas de las mismas veinte
+   * facultades**, así que para saber cómo va Derecho había que cazar su fila
+   * seis veces.
+   *
+   * Resaltar y no filtrar es deliberado: estas listas son rankings —«a quién
+   * llamar», «qué rinde más», «dónde falta más»— y dejarlas en una sola fila
+   * destruiría justo lo que aportan, que es dónde cae esa facultad entre las
+   * otras. El detalle sí se filtra; el control, no. Es la misma regla que ya
+   * gobierna la pirámide.
+   */
+  facultadEnFoco?: string;
 }) {
   const filas = useMemo(
     () => alertaDeAnticipacion(proyeccionPorAgenda(agenda, partes, cuotas), banco),
@@ -165,7 +181,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
           {cuandos.size > 1 ? <span>Cuándo</span> : null}
         </li>
         {conBrecha.map((f) => (
-          <li key={f.facultad} className={f.urgencia === "hay margen" ? "" : "es-urgente"}>
+          <li key={f.facultad} className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
             <span className="aulas-anticipacion-nombre" title={f.facultad}>{f.facultad}</span>
             <span className="aulas-anticipacion-pedir">
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}

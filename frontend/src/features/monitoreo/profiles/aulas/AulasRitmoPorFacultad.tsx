@@ -20,7 +20,16 @@ function dm(iso: string): string {
   return d && m ? `${d}/${m}` : iso;
 }
 
-export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<MonitoreoRow> }) {
+export function AulasRitmoPorFacultad({ partes, facultadEnFoco }: {
+  partes: ReadonlyArray<MonitoreoRow>;
+  /**
+   * La facultad enfocada, si la hay. **No filtra: resalta.** `foco` viaja en la
+   * URL y sólo lo obedecía la tabla de cuotas, teniendo el perfil seis listas de
+   * las mismas veinte facultades. Filtrar destruiría el ranking, que es lo que
+   * estas listas aportan; el detalle se filtra, el control no.
+   */
+  facultadEnFoco?: string;
+}) {
   const { facultades, fechas } = useMemo(() => ritmoPorFacultad(partes), [partes]);
 
   // **Dos causas distintas, un solo mensaje.** La lista queda vacía tanto si no
@@ -68,7 +77,7 @@ export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<Monito
           <span>Facultad</span><span>Día a día</span><span>Tendencia</span>
         </li>
         {facultades.map((f) => (
-          <li key={f.facultad}>
+          <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <span className="aulas-ritmofac-nombre" title={f.facultad}>
               {f.facultad}
               <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"} · {f.mediaDiaria.toLocaleString("es-PE")}/día</em>

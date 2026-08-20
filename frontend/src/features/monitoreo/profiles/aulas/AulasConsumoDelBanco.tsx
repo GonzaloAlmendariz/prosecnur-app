@@ -20,7 +20,7 @@ import { consumoDelBanco } from "./consumoDelBanco";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasConsumoDelBanco({ filas, diasDeCampo = 0 }: {
+export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
    * Días de campo que lleva el estudio: el denominador del ritmo de caídas.
@@ -29,6 +29,8 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0 }: {
    * aritmética, no por medición.
    */
   diasDeCampo?: number;
+  /** La facultad enfocada. **No filtra: resalta** — ver la nota en `AulasRitmoPorFacultad`. */
+  facultadEnFoco?: string;
 }) {
   const { facultades, sinFecha } = useMemo(
     () => consumoDelBanco(filas, diasDeCampo),
@@ -69,7 +71,7 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0 }: {
           <span>Facultad</span><span>Reemplazadas</span><span>Reserva libre</span><span>Días de reserva</span>
         </li>
         {facultades.map((f) => (
-          <li key={f.facultad} className={f.quedan === 0 ? "es-seca" : undefined}>
+          <li key={f.facultad} className={`${f.quedan === 0 ? "es-seca" : ""}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`.trim() || undefined}>
             <span className="aulas-banco-consumo-nombre" title={f.facultad}>{f.facultad}</span>
             <span className="aulas-banco-consumo-cifra">
               {fmt(f.caidas)}

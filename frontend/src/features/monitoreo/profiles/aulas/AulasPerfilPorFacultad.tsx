@@ -17,10 +17,12 @@ import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } fr
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasPerfilPorFacultad({ filas, resumen }: {
+export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** `avance_por_facultad` del motor. Cuando llega, MANDA. */
   resumen?: ReadonlyArray<FilaDeFacultadDelMotor>;
+  /** La facultad enfocada. **No filtra: resalta** — ver la nota en `AulasRitmoPorFacultad`. */
+  facultadEnFoco?: string;
 }) {
   const { facultades, sinFacultad, tope, cumplidas } = useMemo(
     // El bloque del motor manda porque agrega sobre el conjunto correcto: un
@@ -54,7 +56,7 @@ export function AulasPerfilPorFacultad({ filas, resumen }: {
       <div className="aulas-facultades-scroll">
       <ol className="aulas-facultades-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((f) => (
-          <li key={f.facultad}>
+          <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <span className="aulas-facultad-nombre">
               {f.facultad}
               {/* Con una sola aula la tasa es un caso, no una tendencia: se

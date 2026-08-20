@@ -2846,6 +2846,26 @@
   }
 }
 
+/* LA FACULTAD EN FOCO, EN TODAS LAS LISTAS DE LA SECCION.
+ *
+ * `foco` es una dimensión declarada de la gramática de navegación y viaja en la
+ * URL, pero lo obedecía UNA sola superficie: la tabla de cuotas. El perfil tiene
+ * **seis listas de las mismas veinte facultades**, así que para saber cómo va
+ * Derecho había que cazar su fila seis veces.
+ *
+ * Resalta, no filtra: estas listas son rankings —«a quién llamar», «qué rinde
+ * más», «dónde falta más»— y dejarlas en una sola fila destruiría lo único que
+ * aportan, que es dónde cae esa facultad entre las otras.
+ *
+ * Un borde a la izquierda y un fondo tenue, no un color de estado: el foco no
+ * dice nada del aula, dice qué está mirando el usuario. Los estados —urgente,
+ * seca— conservan el suyo y se ven a la vez. */
+.mon-profile-page.is-aulas-flow li.es-en-foco {
+  background: color-mix(in srgb, var(--pulso-primary, #002457) 6%, transparent);
+  box-shadow: inset 2px 0 0 var(--pulso-primary, #002457);
+  border-radius: 6px;
+}
+
 /* Las cifras de TODAS las tablas del perfil, no sólo las de la Base de control.
    `DataTable` las pintaba a la izquierda, así que en Partes de campo convivían
    «25», «69.4 %», «1», «20» y «−1» pegados al borde, cada uno empezando a una

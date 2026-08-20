@@ -965,6 +965,12 @@ function renderAulasView(
   // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
   // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
   const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+  // **El foco cruza la sección entera.** Es una dimensión declarada de la
+  // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
+  // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
+  // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
+  const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
+
   // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
   // doce celdas; con foco, sólo las de esa facultad o ese sexo.
   const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (
@@ -1164,6 +1170,7 @@ function renderAulasView(
         <AulasPerfilPorFacultad
           filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
           resumen={(dashboard.avance_por_facultad ?? []) as never}
+          facultadEnFoco={facultadEnFoco}
         />
       </section>
       </div>
@@ -1231,6 +1238,7 @@ function renderAulasView(
           agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
           cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
           banco={dashboard.banco_extras?.por_facultad ?? []}
+          facultadEnFoco={facultadEnFoco}
         />
       </section>
       )}
@@ -1290,6 +1298,7 @@ function renderAulasView(
             (dashboard.agenda ?? []) as MonitoreoRow[],
           ).filas as MonitoreoRow[]}
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          facultadEnFoco={facultadEnFoco}
         />
       </section>
       )}
@@ -1409,6 +1418,7 @@ function renderAulasView(
           <span>producción diaria, sin dividir entre aulas</span>
         </div>
         <AulasRitmoPorFacultad
+          facultadEnFoco={facultadEnFoco}
           partes={parteDeCampo(
             (dashboard.partes_campo ?? []) as MonitoreoRow[],
             (dashboard.agenda ?? []) as MonitoreoRow[],
@@ -1465,6 +1475,7 @@ function renderAulasView(
         <AulasConsumoDelBanco
           filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
           diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
+          facultadEnFoco={facultadEnFoco}
         />
       </section>
       )}
