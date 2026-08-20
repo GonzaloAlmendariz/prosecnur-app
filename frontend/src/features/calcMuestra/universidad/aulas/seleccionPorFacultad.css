@@ -1,0 +1,171 @@
+/* La selección por facultad (T1 del pliego, 2026-08-20). Sólo tokens. */
+
+.cmv2-selfac {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmv2-selfac-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cmv2-selfac-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cmv2-selfac-chips button b {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-selfac-chips button[data-activa] {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 10%, var(--pulso-surface));
+  color: var(--pulso-text);
+}
+
+.cmv2-selfac-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cmv2-selfac-head strong {
+  font-size: 12.5px;
+  color: var(--pulso-text);
+}
+
+.cmv2-selfac-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cmv2-selfac-cadena-titular {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmv2-selfac-fila {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.cmv2-selfac-fila:hover {
+  border-color: var(--cmv2-border-strong, var(--pulso-border-strong));
+}
+
+.cmv2-selfac-fila[data-activa] {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 6%, var(--pulso-surface));
+}
+
+.cmv2-selfac-rol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 20px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  background: color-mix(in srgb, var(--pulso-text-muted) 12%, transparent);
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-selfac-rol[data-titular] {
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 14%, transparent);
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-selfac-curso {
+  display: grid;
+  min-width: 0;
+}
+
+.cmv2-selfac-curso b {
+  font-size: 12px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-selfac-curso small {
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-selfac-cifras {
+  display: flex;
+  gap: 14px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--pulso-text);
+  white-space: nowrap;
+}
+
+.cmv2-selfac-cifras small {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+}
+
+.cmv2-selfac-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.cmv2-selfac-reemplazos {
+  list-style: none;
+  margin: 4px 0 2px;
+  /* La cadena cuelga de su titular: la sangría ES el vínculo visual. */
+  padding-left: 34px;
+  display: grid;
+  gap: 3px;
+}
+
+.cmv2-selfac-vacio {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+}
