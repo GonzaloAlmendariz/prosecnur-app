@@ -211,7 +211,6 @@ export const MONITOREO_PESTANAS = {
     // acreditación.
     modelo: [
       pestana("aulas", "modelo", "agenda", "Agenda", "Plan y enlaces por curso-horario", Table2),
-      pestana("aulas", "modelo", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
       // La agenda ordenada por curso-horario sirve para BUSCAR una fila cuando
       // ya se sabe el código; la pregunta de campo es la contraria —«hoy toca
       // esta facultad, ¿qué aulas son, a qué hora y en qué pabellón?»— y
@@ -244,7 +243,20 @@ export const MONITOREO_PESTANAS = {
     // cambia es que cada una recibe la vista entera. Y no son la misma medida:
     // arriba lo que deriva el motor, en la hoja lo que el equipo calcula en su
     // Excel.
+    // **El registro de campo abre Validación, y ya no cuelga de Agenda.**
+    //
+    // Agendar es conseguir la cita con el docente; el control de campo empieza
+    // cuando se sale a campo. Son dos trabajos, dos momentos y dos personas, y
+    // tenerlos en la misma sección obligaba a quien registra a entrar por
+    // «Agenda de cursos-horario», que no es lo suyo. Gonzalo: «ni siquiera sé
+    // por qué registro de campo está en agenda… debería ser la primera sección
+    // de validación».
+    //
+    // Y va PRIMERO porque Validación es el instrumento de dos personas: el jefe
+    // de campo, que entra por lo que pasó en el aula, y el analista, que entra
+    // por los controles. Lo que se registra viene antes de lo que se valida.
     calidad: [
+      pestana("aulas", "calidad", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
       pestana("aulas", "calidad", "controles", "Controles", "Lo que el motor deriva del corte", ShieldAlert),
       pestana("aulas", "calidad", "base", "Base de control", "La hoja que llena el equipo", Table2),
     ],

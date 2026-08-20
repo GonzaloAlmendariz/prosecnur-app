@@ -582,7 +582,7 @@ function renderAulasView(
       // mismo tropiezo que ya costó el reparto de Consultas al llegar su cuarta
       // pestaña, y por eso acá se escribe positivo desde el principio.
       <div className={`mon-profile-stack aulas-agenda-stack${
-        pestana === "registro" ? " is-registro" : pestana === "facultad" ? " is-ruta" : ""}`}>
+        pestana === "facultad" ? " is-ruta" : ""}`}>
         {/* La preparación NO entra en «Por facultad». A 1366x768 la sección
             entera dispone de 367 px y ese panel se lleva 158: a la ruta le
             quedaban 198, o sea una ventana de 104 px para 5 538 de contenido
@@ -599,7 +599,6 @@ function renderAulasView(
         {pestana === "facultad" || pestana === "contacto"
           ? null
           : <HandoffTracePanel dashboard={dashboard} />}
-        {pestana === "registro" ? registro : null}
         {pestana === "contacto" ? (
         <section
           // Clase propia: el stack de Agenda reparte el alto entre DOS filas con
@@ -664,7 +663,7 @@ function renderAulasView(
         </section>
         ) : null}
         {pestana === "agenda"
-          || (pestana !== "registro" && pestana !== "facultad" && pestana !== "contacto") ? (
+          || (pestana !== "facultad" && pestana !== "contacto") ? (
         <section
           // `aulas-agenda-panel`: este panel tiene TRES filas —cabecera, lectura
           // por día y tabla— y la regla común declara dos. Un hijo de más se
@@ -717,6 +716,14 @@ function renderAulasView(
     );
   }
   if (view === "calidad") {
+    // **El registro de campo abre Validación.**
+    //
+    // Estaba en «Agenda de cursos-horario», que es otro trabajo: agendar es
+    // conseguir la cita y el control de campo empieza cuando se sale. Y va
+    // primero porque esta sección la usan dos personas —el jefe de campo, que
+    // entra por lo que pasó en el aula, y el analista, que entra por los
+    // controles— y lo que se registra viene antes de lo que se valida.
+    if (pestana === "registro") return <div className="mon-profile-stack">{registro}</div>;
     const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
     const summary = summarizeAulasValidation(rows);
     const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
