@@ -25,6 +25,7 @@ import { CertificacionFacultadCard } from "../aulas/CertificacionFacultadCard";
 import { SeleccionComparadaCard } from "./SeleccionComparadaCard";
 import { FichaPorFacultadCard } from "../criterios/FichaPorFacultadCard";
 import type { FichaFacultad } from "../criterios/fichaFacultadModel";
+import "./coincidencia.css";
 
 export function SalidasCoincidenciaTab({
   criteriosGenerales,
@@ -52,31 +53,43 @@ export function SalidasCoincidenciaTab({
   // largo es texto que nadie lee dos veces.
   return (
     <section className="cmv2-coincidencia" aria-label="Coincidencia con el estudio anterior">
-      <CriteriosGeneralesCard filas={criteriosGenerales} referencia={referencia} />
-      {/* Los criterios del MARCO, que son los que deciden qué aulas entran. La
-          tarjeta de arriba compara el DISEÑO; esto es el método. */}
-      <CriteriosGeneralesCard
-        titulo="Los criterios que arman el marco"
-        subtitulo="qué aulas entran: modalidad, sesión, nivel, mínimo y exclusiones"
-        filas={criteriosMarco}
-        referencia={referencia}
-      />
-      {/* El gráfico que faltaba: las quince facultades, hoy contra 2025, a la
-          misma escala y paso por paso. Va antes de las fichas porque es el
-          vistazo; la ficha es el detalle de una facultad. */}
-      <EmbudoComparadoFacultades fichas={fichas} periodo={referencia?.periodo ?? ""} />
-      {/* La garantía de la selección vigente cierra el relato: coincide con
-          2025 Y cumple sus propias metas. Solo lectura — la acción «+1 aula»
-          vive en Selección, donde se decide. */}
-      <CertificacionFacultadCard certificacion={certificacion} referencia={referenciaAsistencia} />
-      {/* El rendimiento comparado: lo que la selección nueva ESPERA (con las
-          tasas del año anterior) contra lo que el año anterior LOGRÓ. */}
-      <SeleccionComparadaCard
-        seleccion={seleccion}
-        referencia={referenciaAsistencia}
-        periodo={referencia?.periodo ?? ""}
-      />
-      <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
+      {/* Tres grupos rotulados (revamp 2026-08-19): el método, el resultado y
+          el detalle. Antes las seis tarjetas iban apiladas al mismo nivel y la
+          página no tenía dónde apoyar la vista. */}
+      <div className="cmv2-coincidencia-grupo" aria-label="El método">
+        <h3 className="cmv2-coincidencia-rotulo">El método, contra el estudio anterior</h3>
+        <CriteriosGeneralesCard filas={criteriosGenerales} referencia={referencia} />
+        {/* Los criterios del MARCO, que son los que deciden qué aulas entran.
+            La tarjeta de arriba compara el DISEÑO; esto es el método. */}
+        <CriteriosGeneralesCard
+          titulo="Los criterios que arman el marco"
+          subtitulo="qué aulas entran: modalidad, sesión, nivel, mínimo y exclusiones"
+          filas={criteriosMarco}
+          referencia={referencia}
+        />
+      </div>
+      <div className="cmv2-coincidencia-grupo" aria-label="El resultado">
+        <h3 className="cmv2-coincidencia-rotulo">Lo que produce la selección</h3>
+        {/* El gráfico que faltaba: las quince facultades, hoy contra 2025, a la
+            misma escala y paso por paso. Va antes de las fichas porque es el
+            vistazo; la ficha es el detalle de una facultad. */}
+        <EmbudoComparadoFacultades fichas={fichas} periodo={referencia?.periodo ?? ""} />
+        {/* La garantía de la selección vigente cierra el relato: coincide con
+            2025 Y cumple sus propias metas. Solo lectura — la acción «+1 aula»
+            vive en Selección, donde se decide. */}
+        <CertificacionFacultadCard certificacion={certificacion} referencia={referenciaAsistencia} />
+        {/* El rendimiento comparado: lo que la selección nueva ESPERA (con las
+            tasas del año anterior) contra lo que el año anterior LOGRÓ. */}
+        <SeleccionComparadaCard
+          seleccion={seleccion}
+          referencia={referenciaAsistencia}
+          periodo={referencia?.periodo ?? ""}
+        />
+      </div>
+      <div className="cmv2-coincidencia-grupo" aria-label="El detalle por facultad">
+        <h3 className="cmv2-coincidencia-rotulo">El detalle, facultad por facultad</h3>
+        <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
+      </div>
     </section>
   );
 }
