@@ -6,6 +6,29 @@
    de dejar ~45% de espacio muerto. Se importa despues de profilePage.css para
    ganar en igualdad de especificidad. */
 
+/* LA ESCALA TIPOGRAFICA DEL PERFIL — tres pasos, y solo tres.
+ *
+ * Estos tres tokens existian desde hace tiempo, pero declarados DENTRO de
+ * `.aulas-serie`, o sea disponibles en un unico panel. Su propio comentario
+ * decia: «habia SIETE tallas en el mismo panel —9.5, 10, 10.5, 11, 11.5, 12 y
+ * 16— y siete tallas no son jerarquia: son ruido». Se arreglo ahi y no se subio,
+ * asi que los otros dieciseis paneles volvieron a derivar exactamente igual.
+ *
+ * Medido antes de subirlos: **nueve tallas distintas y 328 elementos de texto a
+ * media talla** (9.5, 10.5, 11.5, 12.5) en las cuatro pestañas de Avance. Las
+ * medias tallas son las que producen la sensacion de «no termina de verse
+ * profesional»: no forman escalon con nada y el navegador las redondea distinto
+ * segun el zoom.
+ *
+ * Al raiz del perfil, y todo lo que estaba fuera de escala se ajusta al escalon
+ * mas cercano hacia abajo —encoger nunca desborda, agrandar si—.
+ */
+.mon-profile-page.is-aulas-flow {
+  --aulas-txt: 12px;   /* la lectura de cada grafico y el texto de una fila */
+  --aulas-sec: 11px;   /* leyenda, tabla, pie */
+  --aulas-min: 10px;   /* ejes, marcas y rotulos micro */
+}
+
 .mon-profile-page.is-aulas-flow .mon-profile-content {
   /* Flex, no grid de filas contadas. El chrome compartido puede anteponer un
      hijo —el bloque de calidad de campo— y con `auto minmax(0,1fr)` ese hijo se
@@ -90,7 +113,7 @@
 .mon-profile-page.is-aulas-flow .aulas-kpi span {
   min-height: 22px;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   line-height: 1.12;
@@ -121,7 +144,7 @@
    sería justo la mitad que explica el número. */
 .mon-profile-page.is-aulas-flow .aulas-kpi small {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-medium);
   line-height: 1.25;
   text-wrap: pretty;
@@ -347,7 +370,7 @@
 .mon-profile-page.is-aulas-flow .aulas-ops-grid article span {
   grid-area: label;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -368,7 +391,7 @@
 .mon-profile-page.is-aulas-flow .aulas-ops-grid article small {
   grid-area: hint;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -419,7 +442,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-ops-actions em {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
 }
 
@@ -434,7 +457,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-module-monitoring) 7%, #fff);
   color: color-mix(in srgb, var(--pulso-module-monitoring) 78%, var(--pulso-text));
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-heavy);
   padding: 3px 9px;
   white-space: nowrap;
@@ -537,7 +560,7 @@
 
   .mon-profile-page.is-aulas-flow .mon-aulas-handoff-grid article strong {
     grid-area: value;
-    font-size: 12px;
+    font-size: var(--aulas-txt);
     white-space: nowrap;
   }
 
@@ -804,7 +827,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
 }
 
@@ -835,7 +858,7 @@
 
 .aulas-control-veredicto > .mon-profile-muted {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 /* En línea y no en lista vertical: son tres cifras cortas, y apiladas ocupaban
@@ -847,7 +870,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px 16px;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
 }
 
@@ -966,7 +989,7 @@
 .mon-profile-page.is-aulas-flow .aulas-cuota-etiqueta {
   display: grid;
   gap: 1px;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
   overflow: hidden;
   min-width: 0;
@@ -982,7 +1005,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cuota-desglose {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
@@ -1014,7 +1037,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cuota-cifra {
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -1022,7 +1045,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cuota-lectura {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -1036,7 +1059,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cuotas-cortes h4 {
   margin: 0 0 6px;
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1063,7 +1086,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-cadenas-lectura {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -1104,7 +1127,7 @@
 .mon-profile-page.is-aulas-flow .aulas-cadena-head strong { font-size: 13px; }
 .mon-profile-page.is-aulas-flow .aulas-cadena-head span,
 .mon-profile-page.is-aulas-flow .aulas-cadena-head em {
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
   font-style: normal;
   overflow: hidden;
@@ -1204,7 +1227,7 @@
 .mon-profile-page.is-aulas-flow .aulas-banco-nombre {
   min-width: 0;
   white-space: normal;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-weight: var(--pulso-weight-black);
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -1222,7 +1245,7 @@
 .mon-profile-page.is-aulas-flow .aulas-banco-sexos {
   grid-column: 1 / -1;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1261,7 +1284,7 @@
   align-items: center;
   gap: 6px;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-consumo-leyenda strong {
@@ -1335,7 +1358,7 @@
   border: 1px solid var(--pulso-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--pulso-surface-2) 55%, #fff);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1393,7 +1416,7 @@
 .mon-profile-page.is-aulas-flow .aulas-controles-lectura {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-controles-lista {
@@ -1455,13 +1478,13 @@
   gap: 8px;
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-weight: var(--pulso-weight-black);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-titulo span {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-medium);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1507,13 +1530,13 @@
 .mon-profile-page.is-aulas-flow .aulas-umbrales-celdas span {
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   overflow-wrap: anywhere;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-umbrales-celdas em {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
@@ -1555,7 +1578,7 @@
   gap: 10px;
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-embudo-carril {
@@ -1581,7 +1604,7 @@
    que corregir en campo. */
 .mon-profile-page.is-aulas-flow .aulas-embudo-cifra em {
   color: var(--pulso-warn-fg);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
@@ -1610,7 +1633,7 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
 }
 
@@ -1635,7 +1658,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-concentracion-cifra em {
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
 }
 
@@ -1651,7 +1674,7 @@
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--aulas-estado) 12%, #fff);
   color: color-mix(in srgb, var(--aulas-estado) 78%, var(--pulso-text));
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-weight: var(--pulso-weight-black);
   white-space: nowrap;
 }
@@ -1676,7 +1699,7 @@
   gap: 8px;
   min-width: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   line-height: 1.4;
   text-wrap: pretty;
 }
@@ -1694,7 +1717,7 @@
 .mon-profile-page.is-aulas-flow .aulas-control-caso em {
   margin-left: 5px;
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-weight: var(--pulso-weight-medium);
 }
@@ -1705,7 +1728,7 @@
   border-radius: var(--pulso-radius-chip);
   background: var(--pulso-chart-chip-bg);
   color: var(--pulso-text);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-weight: var(--pulso-weight-black);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1715,7 +1738,7 @@
 .mon-profile-page.is-aulas-flow .aulas-control-detalle {
   margin: 3px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   line-height: 1.4;
   text-wrap: pretty;
 }
@@ -1778,7 +1801,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-fuente-titulo span {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: var(--pulso-weight-medium);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1787,7 +1810,7 @@
 .mon-profile-page.is-aulas-flow .aulas-fuente-servicio {
   margin: 2px 0 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-fuente-sync {
@@ -1796,7 +1819,7 @@
   align-items: center;
   gap: 4px 10px;
   margin: 6px 0 0;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-fuente-sync a,
@@ -1829,7 +1852,7 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--pulso-module-monitoring) 5%, transparent);
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   line-height: 1.4;
 }
 
@@ -1858,7 +1881,7 @@
   content: "▾";
   margin-left: 6px;
   color: var(--pulso-text-faint);
-  font-size: 10px;
+  font-size: var(--aulas-min);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-agenda-detalle:not([open]) > summary::after {
@@ -1878,7 +1901,7 @@
 .mon-profile-page.is-aulas-flow .aulas-agenda-lectura {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-agenda-lista {
@@ -1898,7 +1921,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-agenda-dia {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-weight: var(--pulso-weight-medium);
 }
 
@@ -1927,7 +1950,7 @@
   align-items: baseline;
   gap: 6px;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1937,7 +1960,7 @@
    no existe. Un separador decorativo no arregla un dato. */
 .mon-profile-page.is-aulas-flow .aulas-agenda-cifra em {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
 }
 
@@ -1998,7 +2021,7 @@
   border-radius: var(--pulso-radius-chip);
   background: color-mix(in srgb, var(--pulso-warn-bg) 40%, transparent);
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   line-height: 1.4;
 }
 
@@ -2055,7 +2078,7 @@
   padding: 0;
   list-style: none;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas li {
@@ -2090,7 +2113,7 @@
 .mon-profile-page.is-aulas-flow .aulas-facultades-lectura {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultades-lista {
@@ -2154,13 +2177,13 @@
   gap: 1px;
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-weight: var(--pulso-weight-medium);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-nombre em {
   color: var(--pulso-text-soft);
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-style: normal;
 }
 
@@ -2182,13 +2205,13 @@
   align-items: baseline;
   gap: 6px;
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-variant-numeric: tabular-nums;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra em {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
 }
 
@@ -2212,7 +2235,7 @@
   align-items: baseline;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -2231,7 +2254,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-ejes > span em {
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   font-weight: var(--pulso-weight-medium);
   color: var(--pulso-text);
   letter-spacing: 0;
@@ -2240,7 +2263,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-ejes em {
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-weight: var(--pulso-weight-medium);
   letter-spacing: 0;
@@ -2292,7 +2315,7 @@
 /* El nombre va al centro, entre los dos lados: es el eje de la pirámide. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-facultad {
   color: var(--pulso-text);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2356,7 +2379,7 @@
 .mon-profile-page.is-aulas-flow .aulas-piramide-cifra {
   flex: none;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -2364,7 +2387,7 @@
    sin enseñar el rayado obliga a buscarlo en las barras. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-leyenda {
   display: flex; align-items: center; gap: 7px;
-  margin: 0 0 6px; font-size: 11px; color: var(--pulso-text-faint);
+  margin: 0 0 6px; font-size: var(--aulas-sec); color: var(--pulso-text-faint);
 }
 .mon-profile-page.is-aulas-flow .aulas-piramide-leyenda i {
   flex: none; width: 26px; height: 10px; border-radius: 3px;
@@ -2388,7 +2411,7 @@
 /* Sin cuota declarada no es lo mismo que cuota en cero. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-sin-cuota {
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: italic;
   opacity: 0.75;
 }
@@ -2429,7 +2452,7 @@
   border-radius: 0;
   background: none;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-weight: var(--pulso-weight-medium);
   letter-spacing: 0;
   text-transform: none;
@@ -2516,7 +2539,7 @@
   gap: 7px;
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-weight: var(--pulso-weight-black);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -2600,7 +2623,7 @@
 /* La banda de grupos, que es la fila 1 del propio Excel. */
 .mon-profile-page.is-aulas-flow .aulas-control-libro .aulas-control-bloques th {
   text-align: left;
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2687,7 +2710,7 @@
   margin: 4px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -2707,7 +2730,7 @@
   padding: 8px 0 0;
   border-top: 1px solid var(--pulso-border);
   list-style: none;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
 }
 .mon-profile-page.is-aulas-flow .aulas-agenda-leyenda li {
@@ -2786,7 +2809,7 @@
   grid-template-columns: 84px minmax(0, 1fr) 52px 60px;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmo-fecha { white-space: nowrap; }
@@ -2894,7 +2917,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .mon-workbench-head-copy .pulso-section-eyebrow {
-  font-size: 10px;
+  font-size: var(--aulas-min);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2903,7 +2926,7 @@
 
 .mon-profile-page.is-aulas-flow .mon-workbench-head-copy p,
 .mon-profile-page.is-aulas-flow .mon-workbench-head-tab {
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   color: var(--pulso-text-soft);
 }
 
@@ -2918,7 +2941,7 @@
 .mon-profile-page.is-aulas-flow .aulas-colchon-lectura {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-lista {
@@ -2946,7 +2969,7 @@
 .mon-profile-page.is-aulas-flow .aulas-colchon-cabecera {
   padding-bottom: 2px;
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--aulas-min);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -2969,13 +2992,13 @@
   gap: 1px;
   min-width: 0;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--aulas-txt);
   overflow-wrap: anywhere;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-nombre em {
   color: var(--pulso-text-faint);
-  font-size: 10.5px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
@@ -2996,21 +3019,21 @@
   height: 100%;
   border-radius: 3px;
   color: #fff;
-  font-size: 10.5px;
+  font-size: var(--aulas-min);
   font-style: normal;
   font-variant-numeric: tabular-nums;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-barra em {
   color: var(--pulso-text-faint);
-  font-size: 11px;
+  font-size: var(--aulas-sec);
   font-style: normal;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-riesgo,
 .mon-profile-page.is-aulas-flow .aulas-colchon-sindotar {
   text-align: right;
-  font-size: 12.5px;
+  font-size: var(--aulas-txt);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3026,7 +3049,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-pie {
   margin: 2px 0 0;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
 }
 
 /* Ruta por facultad: a dónde hay que ir. 20 facultades y 196 aulas. */
@@ -3040,7 +3063,7 @@
 .mon-profile-page.is-aulas-flow .aulas-ruta-lectura {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 /* La lista SÍ es dueña de su scroll, y tiene que serlo.
@@ -3108,7 +3131,7 @@
 .mon-profile-page.is-aulas-flow .aulas-ruta-cuenta,
 .mon-profile-page.is-aulas-flow .aulas-ruta-desde {
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -3137,7 +3160,7 @@
   padding: 3px 0;
   border-top: 1px solid var(--pulso-border);
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ruta-cuando {
@@ -3196,7 +3219,7 @@
 .mon-profile-page.is-aulas-flow .aulas-frente-lectura {
   margin: 0;
   color: var(--pulso-text-soft);
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-frente-carril {
@@ -3226,7 +3249,7 @@
   border-left: 3px solid var(--pulso-danger-fg);
   border-radius: 4px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--aulas-txt);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-frente-dias {
@@ -3263,22 +3286,22 @@
   grid-column: 1 / -1;
   padding: 1px 0 2px 108px;
   color: var(--pulso-text-soft);
-  font-size: 11.5px;
+  font-size: var(--aulas-sec);
   overflow-wrap: anywhere;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-umbrales-nota {
   margin: 2px 0 0;
-  font-size: 11px;
+  font-size: var(--aulas-sec);
 }
 
 /* Qué está rindiendo más: una línea por facultad, ordenadas por encuestas por aula. */
 .mon-profile-page.is-aulas-flow .aulas-rendimiento { display: grid; gap: 7px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-lectura,
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-pie {
-  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+  margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt);
 }
-.mon-profile-page.is-aulas-flow .aulas-rendimiento-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-pie { font-size: var(--aulas-sec); }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-lista {
   display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
 }
@@ -3288,31 +3311,31 @@
   align-items: center; gap: 9px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera {
-  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera > span:nth-child(n + 3) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre {
-  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: 12.5px; overflow-wrap: anywhere;
+  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: var(--aulas-txt); overflow-wrap: anywhere;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre em {
-  color: var(--pulso-text-faint); font-size: 10.5px; font-style: normal; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-barra { display: flex; align-items: center; height: 18px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-barra i {
   display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-right: 5px;
-  border-radius: 3px; color: #fff; font-size: 11px; font-style: normal; font-variant-numeric: tabular-nums;
+  border-radius: 3px; color: #fff; font-size: var(--aulas-sec); font-style: normal; font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-tasa {
-  text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
+  text-align: right; color: var(--pulso-text-soft); font-size: var(--aulas-txt); font-variant-numeric: tabular-nums;
 }
 
 /* Ritmo por facultad: una serie de barras por día, escala compartida. */
 .mon-profile-page.is-aulas-flow .aulas-ritmofac { display: grid; gap: 7px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-lectura,
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-pie {
-  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+  margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt);
 }
-.mon-profile-page.is-aulas-flow .aulas-ritmofac-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-pie { font-size: var(--aulas-sec); }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-lista {
   display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
 }
@@ -3321,10 +3344,10 @@
   align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-nombre {
-  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: 12.5px; overflow-wrap: anywhere;
+  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: var(--aulas-txt); overflow-wrap: anywhere;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-nombre em {
-  color: var(--pulso-text-faint); font-size: 10.5px; font-style: normal; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie {
   display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 0;
@@ -3333,14 +3356,14 @@
   flex: 1 1 0; min-width: 3px; border-radius: 2px 2px 0 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-tend {
-  text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
+  text-align: right; color: var(--pulso-text-soft); font-size: var(--aulas-txt); font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-baja { color: var(--pulso-danger-fg); }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-sube { color: var(--pulso-success-fg); }
 
 /* Pronóstico de cierre: observado sólido, proyección punteada. */
 .mon-profile-page.is-aulas-flow .aulas-pronostico { display: grid; gap: 6px; min-width: 0; }
-.mon-profile-page.is-aulas-flow .aulas-pronostico-lectura { margin: 0; color: var(--pulso-text-soft); font-size: 12px; }
+.mon-profile-page.is-aulas-flow .aulas-pronostico-lectura { margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt); }
 /* El grafico y su eje vertical, en dos columnas. Las cifras del eje van en
  * HTML y no dentro del SVG: con `preserveAspectRatio="none"` el texto se
  * estiraria a lo ancho igual que se estiraba el trazo. */
@@ -3350,7 +3373,7 @@
 .mon-profile-page.is-aulas-flow .aulas-pronostico-y {
   display: flex; flex-direction: column; justify-content: space-between;
   margin: 0; padding: 0; list-style: none; text-align: right;
-  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-pronostico-grafico {
   width: 100%; height: 200px; overflow: visible;
@@ -3364,9 +3387,9 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-pronostico-eje {
   display: flex; justify-content: space-between; margin: 0;
-  color: var(--pulso-text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-variant-numeric: tabular-nums;
 }
-.mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-pronostico-pie { margin: 2px 0 0; font-size: var(--aulas-sec); }
 
 /* Anticipacion: a quien hay que salir a agendar y cuantas aulas. */
 .mon-profile-page.is-aulas-flow .aulas-anticipacion { display: grid; gap: 6px; min-width: 0; }
@@ -3374,7 +3397,7 @@
   margin: 0; padding: 8px 10px; border-radius: 8px;
   border: 1px solid color-mix(in srgb, #168a55 26%, var(--pulso-border));
   background: color-mix(in srgb, #168a55 6%, var(--pulso-surface));
-  color: var(--pulso-text); font-size: 11.5px;
+  color: var(--pulso-text); font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista { margin: 0; padding: 0; list-style: none; }
 /* Con la columna «Banco» son cuatro cifras y no tres. Se declara en la LISTA y
@@ -3382,7 +3405,7 @@
    resuelven el mismo reparto, y cada `li` es su propia grilla. */
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista.con-banco { --aulas-anticipacion-cifras: 4; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-sinbanco {
-  margin: 0; font-size: 11.5px; color: #a61d4f;
+  margin: 0; font-size: var(--aulas-sec); color: #a61d4f;
   border-left: 2px solid #a61d4f; padding-left: 8px;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
@@ -3394,12 +3417,12 @@
      misma palabra. 92px es «antes del 21/08» a 11.5px sin recorte. */
   display: grid; grid-template-columns: minmax(0, 1fr) repeat(var(--aulas-anticipacion-cifras, 3), 56px) 92px;
   gap: 8px; align-items: center; padding: 4px 6px;
-  border-bottom: 1px solid var(--pulso-border); font-size: 11.5px;
+  border-bottom: 1px solid var(--pulso-border); font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:not(:first-child) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min); font-weight: 600;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-weight: 600;
   letter-spacing: 0.02em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li.es-urgente {
@@ -3411,16 +3434,11 @@
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-pedir strong { font-size: 13px; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:last-child { white-space: nowrap; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-ya { color: #a61d4f; font-weight: 650; }
-.mon-profile-page.is-aulas-flow .aulas-anticipacion-pie { margin: 2px 0 0; font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-pie { margin: 2px 0 0; font-size: var(--aulas-sec); }
 
 /* Serie de rendimiento por facultad: el general y el de una sola. */
 .mon-profile-page.is-aulas-flow .aulas-serie {
   display: grid; gap: 10px; min-width: 0;
-  /* UNA escala de tres pasos. Habia SIETE tallas en el mismo panel —9.5, 10,
-   * 10.5, 11, 11.5, 12 y 16— y siete tallas no son jerarquia: son ruido. */
-  --aulas-serie-txt: 12px;   /* la lectura de cada grafico */
-  --aulas-serie-sec: 11px;   /* leyenda, tabla, pie */
-  --aulas-serie-min: 10px;   /* ejes y marcas */
   /* El carril del eje Y, FIJO y compartido. Cada rejilla lo dimensionaba sola
    * segun sus propias cifras —«250» arriba, «45» abajo— y los dos lienzos
    * salian de 1262 y 1269 px: el mismo dia NO caia en la misma vertical, que
@@ -3435,7 +3453,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-lectura-acumulado {
   flex-wrap: wrap; gap: 4px 14px; color: var(--pulso-text-soft);
-  font-size: var(--aulas-serie-sec);
+  font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda {
   display: inline-flex; gap: 12px; flex-wrap: wrap;
@@ -3443,11 +3461,11 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em {
   display: inline-flex; align-items: center; gap: 5px;
   font-style: normal; font-weight: 600; color: var(--pulso-text);
-  font-size: var(--aulas-serie-sec);
+  font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos { gap: 10px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos em {
-  font-weight: 500; color: var(--pulso-text-soft); font-size: var(--aulas-serie-min);
+  font-weight: 500; color: var(--pulso-text-soft); font-size: var(--aulas-min);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda.es-trazos em::before {
   width: 14px; height: 2px; background: var(--pulso-text-soft); border-radius: 0;
@@ -3477,7 +3495,7 @@
   height: 26px; min-width: 26px; padding: 0 9px;
   border: 1px solid var(--pulso-border); border-radius: 999px;
   background: var(--pulso-surface); color: var(--pulso-text-soft);
-  font-size: var(--aulas-serie-sec); font-weight: 600; cursor: pointer;
+  font-size: var(--aulas-sec); font-weight: 600; cursor: pointer;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-mando button:hover { background: var(--pulso-surface-2); }
 .mon-profile-page.is-aulas-flow .aulas-serie-mando button.is-activa {
@@ -3488,7 +3506,7 @@
   height: 26px; max-width: 320px; padding: 0 8px;
   border: 1px solid var(--pulso-border); border-radius: 8px;
   background: var(--pulso-surface); color: var(--pulso-text);
-  font-size: var(--aulas-serie-sec);
+  font-size: var(--aulas-sec);
 }
 /* Cada grafico es un BLOQUE: su rotulo, su lienzo y su lectura dentro del mismo
  * marco. Antes eran diez bandas sueltas del mismo peso apiladas en el panel
@@ -3505,7 +3523,7 @@
   flex-wrap: wrap; gap: 4px 14px; margin: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-rotulo b {
-  font-size: var(--aulas-serie-txt); font-weight: 650; color: var(--pulso-text);
+  font-size: var(--aulas-txt); font-weight: 650; color: var(--pulso-text);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-rotulo b i {
   font-style: normal; font-weight: 500; color: var(--pulso-text-faint);
@@ -3521,7 +3539,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-y {
   display: flex; flex-direction: column; justify-content: space-between;
   margin: 0; padding: 0; list-style: none;
-  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
   font-variant-numeric: tabular-nums;
 }
 /* Cada escalon lleva su MARCA, como el eje de dias. Sin ella el numero flota y
@@ -3544,7 +3562,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-plot.es-acumulado { margin-bottom: 2px; }
 .mon-profile-page.is-aulas-flow .aulas-serie-eje {
   display: flex; justify-content: space-between; margin: 0;
-  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
   font-variant-numeric: tabular-nums;
 }
 /* Los dos lados del corte, nombrados. La zona teñida dice «aqui pasa algo
@@ -3553,7 +3571,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-zona {
   position: absolute; top: 2px; z-index: 2;
   padding: 1px 6px; border-radius: 999px;
-  font-size: 9.5px; font-weight: 650; letter-spacing: 0.03em;
+  font-size: var(--aulas-min); font-weight: 650; letter-spacing: 0.03em;
   text-transform: uppercase; pointer-events: none; white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-zona.es-aplicado {
@@ -3584,7 +3602,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce {
   position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px));
   padding: 2px 7px; border-radius: 999px; white-space: nowrap;
-  font-size: var(--aulas-serie-min); font-weight: 600; pointer-events: none;
+  font-size: var(--aulas-min); font-weight: 600; pointer-events: none;
   /* Mismo caso que la zona: el verde de la serie daba 3.85:1 a 10 px.
      `--pulso-success-fg` da 6.28 sobre este mismo tinte. */
   color: var(--pulso-success-fg);
@@ -3612,7 +3630,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-meta {
   position: absolute; right: 0; transform: translateY(-50%);
   padding: 0 2px 0 5px; z-index: 1; pointer-events: none; white-space: nowrap;
-  font-size: 9.5px; font-weight: 500; letter-spacing: 0.01em;
+  font-size: var(--aulas-min); font-weight: 500; letter-spacing: 0.01em;
   color: var(--aulas-serie-color, var(--pulso-text-faint));
   background: var(--pulso-surface);
 }
@@ -3636,7 +3654,7 @@
   display: grid; gap: 1px; padding: 6px 9px; border-radius: 8px;
   border: 1px solid var(--pulso-border);
   background: var(--pulso-surface); box-shadow: 0 6px 18px rgba(16, 24, 40, 0.14);
-  font-size: 11px; line-height: 1.35; white-space: nowrap; pointer-events: none;
+  font-size: var(--aulas-sec); line-height: 1.35; white-space: nowrap; pointer-events: none;
 }
 /* En los extremos del eje el globo se ancla por el lado que CABE: centrado, su
  * mitad se sale del lienzo y el borde del panel lo recorta. */
@@ -3658,12 +3676,12 @@
 /* La FECHA manda: es lo primero que se busca al posarse. */
 .mon-profile-page.is-aulas-flow .aulas-serie-pista span:first-child {
   font-weight: 650; color: var(--pulso-text);
-  font-size: var(--aulas-serie-min); letter-spacing: 0.02em;
+  font-size: var(--aulas-min); letter-spacing: 0.02em;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-pista span { color: var(--pulso-text-soft); }
 /* La cifra grande, que es la respuesta. */
 .mon-profile-page.is-aulas-flow .aulas-serie-pista span:nth-child(2) {
-  font-size: 12.5px; font-weight: 600; color: var(--pulso-text);
+  font-size: var(--aulas-txt); font-weight: 600; color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
 /* **El color dice de quien es la cifra**, asi que la palabra sobra. Cada una con
@@ -3682,7 +3700,7 @@
 }
 /* Lo que matiza, mas pequeño y mas tenue: nunca compite con la cifra. */
 .mon-profile-page.is-aulas-flow .aulas-serie-pista .es-tenue {
-  font-size: 9.5px; color: var(--pulso-text-faint); margin-top: 1px;
+  font-size: var(--aulas-min); color: var(--pulso-text-faint); margin-top: 1px;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto:hover { transform: translate(-50%, -50%) scale(1.4); }
 
@@ -3699,7 +3717,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda i { background: #b97611; }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias span {
-  color: var(--pulso-text-faint); font-size: var(--aulas-serie-min);
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 /* La FECHA de un dia agendado. La barra puede llevar el color de la serie
@@ -3726,14 +3744,14 @@
  * se respete. */
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas {
   width: 100%; border-collapse: separate; border-spacing: 0;
-  font-size: var(--aulas-serie-sec); font-variant-numeric: tabular-nums;
+  font-size: var(--aulas-sec); font-variant-numeric: tabular-nums;
   padding: 10px 12px 4px;
   border: 1px solid var(--pulso-border); border-radius: 10px;
   background: var(--pulso-surface);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption {
   caption-side: top; text-align: left; padding: 0 0 4px;
-  color: var(--pulso-text-soft); font-size: var(--aulas-serie-sec);
+  color: var(--pulso-text-soft); font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas caption em {
   color: var(--pulso-text-faint); font-style: normal;
@@ -3743,7 +3761,7 @@
   padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--pulso-border);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas thead th {
-  color: var(--pulso-text-faint); font-size: 10px; font-weight: 600;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-weight: 600;
   letter-spacing: 0.02em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tbody th { text-align: left; font-weight: 600; }
@@ -3756,29 +3774,29 @@
   margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;
   border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
   background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
-  color: var(--pulso-text); font-size: var(--aulas-serie-sec);
+  color: var(--pulso-text); font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-pie {
-  margin: 0; font-size: var(--aulas-serie-sec);
+  margin: 0; font-size: var(--aulas-sec);
 }
 
 /* Consumo del banco: cuánto aguanta cada facultad. */
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo { display: grid; gap: 6px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lectura,
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-pie {
-  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+  margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt);
 }
-.mon-profile-page.is-aulas-flow .aulas-banco-consumo-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-banco-consumo-pie { font-size: var(--aulas-sec); }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista {
   display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li {
   display: grid; grid-template-columns: minmax(140px, 1fr) 108px 70px 104px;
   align-items: center; gap: 10px; padding: 3px 6px;
-  border-left: 3px solid transparent; border-radius: 6px; min-width: 0; font-size: 12.5px;
+  border-left: 3px solid transparent; border-radius: 6px; min-width: 0; font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera {
-  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera > span:nth-child(n + 2) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li.es-seca {
@@ -3797,9 +3815,9 @@
 .mon-profile-page.is-aulas-flow .aulas-medio { display: grid; gap: 6px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-medio-lectura,
 .mon-profile-page.is-aulas-flow .aulas-medio-pie {
-  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+  margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt);
 }
-.mon-profile-page.is-aulas-flow .aulas-medio-pie { font-size: 11px; }
+.mon-profile-page.is-aulas-flow .aulas-medio-pie { font-size: var(--aulas-sec); }
 .mon-profile-page.is-aulas-flow .aulas-medio-lista {
   display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0;
 }
@@ -3808,28 +3826,28 @@
   align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-cabecera {
-  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-cabecera > span:nth-child(3) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-medio-nombre {
-  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: 12.5px;
+  display: grid; gap: 1px; min-width: 0; color: var(--pulso-text); font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-nombre em {
-  color: var(--pulso-text-faint); font-size: 10.5px; font-style: normal; font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-barra { display: flex; align-items: center; height: 20px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-medio-barra i {
   display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-right: 6px;
-  border-radius: 3px; color: #fff; font-size: 11px; font-style: normal; font-variant-numeric: tabular-nums;
+  border-radius: 3px; color: #fff; font-size: var(--aulas-sec); font-style: normal; font-variant-numeric: tabular-nums;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-intentos {
-  text-align: right; color: var(--pulso-text-soft); font-size: 12px; font-variant-numeric: tabular-nums;
+  text-align: right; color: var(--pulso-text-soft); font-size: var(--aulas-txt); font-variant-numeric: tabular-nums;
 }
 
 /* Aulas aplicadas en otro salón. */
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula { display: grid; gap: 5px; min-width: 0; margin-top: 2px; }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-lectura {
-  margin: 0; color: var(--pulso-text-soft); font-size: 12px;
+  margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-lista {
   display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; min-width: 0;
@@ -3837,7 +3855,7 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-lista > li {
   display: grid; grid-template-columns: 74px minmax(0, 1fr) 132px;
-  align-items: center; gap: 10px; padding: 2px 6px; min-width: 0; font-size: 12px;
+  align-items: center; gap: 10px; padding: 2px 6px; min-width: 0; font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-codigo { color: var(--pulso-text); font-weight: 600; }
 .mon-profile-page.is-aulas-flow .aulas-cambio-aula-facultad {
@@ -3851,9 +3869,9 @@
 
 /* Cola de contacto: a quién llamar, y lo que costó agendar. */
 .mon-profile-page.is-aulas-flow .aulas-cola { display: grid; gap: 6px; min-width: 0; }
-.mon-profile-page.is-aulas-flow .aulas-cola-lectura { margin: 0; color: var(--pulso-text-soft); font-size: 12px; }
+.mon-profile-page.is-aulas-flow .aulas-cola-lectura { margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-txt); }
 .mon-profile-page.is-aulas-flow .aulas-cola-subtitulo {
-  margin: 4px 0 0; color: var(--pulso-text-faint); font-size: 10.5px;
+  margin: 4px 0 0; color: var(--pulso-text-faint); font-size: var(--aulas-min);
   letter-spacing: 0.04em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-lista,
@@ -3862,11 +3880,11 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-lista > li {
   display: grid; grid-template-columns: 74px minmax(0, 1.4fr) minmax(0, 1.2fr) 120px;
-  align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0; font-size: 12px;
+  align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0; font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo > li {
   display: grid; grid-template-columns: minmax(0, 1fr) 150px;
-  align-items: baseline; gap: 10px; padding: 2px 6px; min-width: 0; font-size: 12px;
+  align-items: baseline; gap: 10px; padding: 2px 6px; min-width: 0; font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo > li > span:last-child {
@@ -3876,7 +3894,7 @@
 .mon-profile-page.is-aulas-flow .aulas-cola-quien em,
 .mon-profile-page.is-aulas-flow .aulas-cola-como em,
 .mon-profile-page.is-aulas-flow .aulas-cola-intentos em {
-  color: var(--pulso-text-faint); font-style: normal; font-size: 10.5px;
+  color: var(--pulso-text-faint); font-style: normal; font-size: var(--aulas-min);
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-codigo { color: var(--pulso-text); font-weight: 600; }
 .mon-profile-page.is-aulas-flow .aulas-cola-quien { display: grid; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
@@ -3903,7 +3921,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera {
-  color: var(--pulso-text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera > span:nth-child(3) { text-align: right; }
 
@@ -3912,7 +3930,7 @@
 .mon-profile-page.is-aulas-flow .aulas-medio-titulo {
   margin: 0;
   color: var(--pulso-text);
-  font-size: 12.5px;
+  font-size: var(--aulas-txt);
   font-weight: 600;
 }
 
@@ -3920,7 +3938,7 @@
  * TODAS. Vive en la seccion Fuentes porque es donde se declara de donde salen y
  * que valen las respuestas. */
 .mon-profile-page.is-aulas-flow .aulas-efectiva { display: grid; gap: 8px; min-width: 0; }
-.mon-profile-page.is-aulas-flow .aulas-efectiva-lectura { margin: 0; font-size: 12px; }
+.mon-profile-page.is-aulas-flow .aulas-efectiva-lectura { margin: 0; font-size: var(--aulas-txt); }
 .mon-profile-page.is-aulas-flow .aulas-efectiva-lista {
   display: grid; gap: 6px; margin: 0; padding: 0; list-style: none;
 }
@@ -3936,14 +3954,14 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-efectiva label > span,
 .mon-profile-page.is-aulas-flow .aulas-efectiva-valores > span {
-  font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
+  font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--pulso-text-faint); font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-efectiva select,
 .mon-profile-page.is-aulas-flow .aulas-efectiva-valores > button {
   height: 28px; padding: 0 8px; min-width: 0;
   border: 1px solid var(--pulso-border); border-radius: 8px;
-  background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
+  background: var(--pulso-surface); color: var(--pulso-text); font-size: var(--aulas-sec);
   text-align: left; cursor: pointer;
 }
 /* La lista de valores se abre SOBRE el panel, no lo empuja: con cuatro
@@ -3954,7 +3972,7 @@
   min-width: 180px; list-style: none;
   border: 1px solid var(--pulso-border); border-radius: 10px;
   background: var(--pulso-surface); box-shadow: var(--pulso-shadow-low);
-  display: grid; gap: 2px; font-size: 11.5px;
+  display: grid; gap: 2px; font-size: var(--aulas-sec);
 }
 /* Hacia arriba cuando no cabe debajo: con la cuarta condicion en 600 px de alto
  * la lista se abria 251 px FUERA de la ventana. */
@@ -3970,7 +3988,7 @@
   background: var(--pulso-surface); color: var(--pulso-text-soft); cursor: pointer;
 }
 .mon-profile-page.is-aulas-flow .aulas-efectiva-aviso {
-  margin: 0; padding: 7px 10px; border-radius: 8px; font-size: 11.5px;
+  margin: 0; padding: 7px 10px; border-radius: 8px; font-size: var(--aulas-sec);
   border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
   background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
 }
@@ -3980,7 +3998,7 @@
 .mon-profile-page.is-aulas-flow .aulas-efectiva-mando button {
   height: 28px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px;
   border: 1px solid var(--pulso-border); border-radius: 999px;
-  background: var(--pulso-surface); color: var(--pulso-text); font-size: 11.5px;
+  background: var(--pulso-surface); color: var(--pulso-text); font-size: var(--aulas-sec);
   font-weight: 600; cursor: pointer;
 }
 .mon-profile-page.is-aulas-flow .aulas-efectiva-mando button:disabled {
