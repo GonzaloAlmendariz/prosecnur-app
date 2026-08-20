@@ -182,3 +182,64 @@ test_that("no se agrupa lo que no viene emparejado", {
     "una entrada por respuesta"
   )
 })
+
+test_that("sin umbral declarado el criterio existe pero no juzga", {
+  c0 <- monitoreo_tiempos_criterio(NULL)
+  expect_false(c0$declarado)
+  expect_true(is.na(c0$umbral_min))
+  expect_match(c0$leyenda, "no ha declarado")
+
+  v <- monitoreo_tiempos_veredicto(c(1, 2, 3, 40), c0)
+  expect_equal(v$n_marcadas, 0)
+  expect_equal(v$n_evaluadas, 4)
+  expect_false(any(v$marcada))
+})
+
+test_that("un umbral vacio, cero o negativo no cuenta como declarado", {
+  for (malo in list(NULL, "", NA, 0, -5, "abc")) {
+    expect_false(monitoreo_tiempos_criterio(list(duracion_sospecha_min = malo))$declarado)
+  }
+  expect_true(monitoreo_tiempos_criterio(list(duracion_sospecha_min = "5"))$declarado)
+})
+
+test_that("declarado, marca por debajo del umbral y no en el umbral", {
+  crit <- monitoreo_tiempos_criterio(list(duracion_sospecha_min = 5))
+  v <- monitoreo_tiempos_veredicto(c(1.26, 4.99, 5, 5.01, 20, NA, -3), crit)
+  expect_equal(v$n_marcadas, 2)
+  expect_equal(which(v$marcada), c(1, 2))
+  # Una duracion negativa no es «rapida»: no se cuenta ni como evaluada.
+  expect_equal(v$n_evaluadas, 5)
+})
+
+test_that("el umbral absoluto sigue midiendo cuando la muestra entera acelera", {
+  # Medido en acnur_acg: con las duraciones a la mitad, el absoluto de 5 min
+  # pasa de 55 a 436 marcadas y el relativo del 40 % marca exactamente las
+  # mismas 82 —el mismo conjunto—. Por eso el umbral es absoluto.
+  lento <- c(10, 12, 14, 16, 18, 20)
+  rapido <- lento / 5
+
+  crit <- monitoreo_tiempos_criterio(list(duracion_sospecha_min = 5))
+  expect_equal(monitoreo_tiempos_veredicto(lento, crit)$n_marcadas, 0)
+  expect_equal(monitoreo_tiempos_veredicto(rapido, crit)$n_marcadas, 6)
+
+  # El control que justifica el descarte: un umbral relativo a la mediana marca
+  # lo mismo en las dos muestras, porque se mueve con ellas.
+  relativo <- function(x) sum(x < 0.4 * stats::median(x))
+  expect_equal(relativo(lento), relativo(rapido))
+})
+
+test_that("el umbral sobrevive al normalizador de config del perfil de aulas", {
+  # `monitoreo_aulas_normalize_config()` ES la whitelist: lo que no nombra se
+  # cae al guardar. Es la trampa que ya se comio a `valid_filters`, y una
+  # superficie para declarar el umbral con el campo perdiendose seria peor que
+  # no tenerla.
+  cfg <- monitoreo_aulas_normalize_config(list(duracion_sospecha_min = 4))
+  expect_equal(cfg$duracion_sospecha_min, 4)
+
+  # Sin declarar sigue sin existir: no se inventa un defecto que juzgue.
+  vacia <- monitoreo_aulas_normalize_config(list())
+  expect_null(vacia$duracion_sospecha_min)
+
+  # Y un valor invalido no persiste como si fuera una declaracion.
+  expect_null(monitoreo_aulas_normalize_config(list(duracion_sospecha_min = 0))$duracion_sospecha_min)
+})

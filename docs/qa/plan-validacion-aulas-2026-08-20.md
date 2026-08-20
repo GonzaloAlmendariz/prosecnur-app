@@ -104,8 +104,20 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
     aplicador en aulas exige el cruce respuesta↔aula↔aplicador y hoy **no es
     calculable con este estudio**; el aviso «Falta declarar quién recolecta» que
     ya sale en pantalla es la misma carencia vista desde el avance.
-- **T10** — Umbral de sospecha declarable, con la misma doctrina que
-  `aula_valida`: sin declarar, no juzga.
+- **T10 ☑ (2026-08-20, 69 tests)** — Umbral de sospecha declarable, en la
+  whitelist de `monitoreo_aulas_normalize_config` junto a `aula_valida`. Sin
+  declarar no juzga: no hay defecto que marque nada.
+  - **Es absoluto en minutos, y la elección se midió.** La alternativa era
+    relativa a la mediana del estudio; se descartó porque **se mueve con la
+    propia muestra**. Con las duraciones de `acnur_acg` a la mitad, el absoluto
+    de 5 min pasa de 55 a **436** marcadas y el relativo del 40 % marca
+    **exactamente las mismas 82 — el mismo conjunto de respuestas**. Un equipo
+    que acelerara en bloque sería invisible para el relativo.
+  - **No hay valle donde cortar**, y por eso el número lo pone quien conoce el
+    cuestionario: <3 min marca 10 (0.8 %), <4 marca 23 (1.8 %), <5 marca 55
+    (4.3 %), **<7 marca 174 (13.6 %)** — entre 5 y 7 minutos se triplica.
+  - **Pendiente para Gonzalo**: elegir el número para el estudio de aulas. Hasta
+    entonces la superficie describirá sin acusar.
 - **T11** — El tiempo en la ficha del aula, junto a su veredicto.
 
 ### C. Calidad de las respuestas abiertas (T12–T17)

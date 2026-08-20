@@ -339,6 +339,18 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
       ))
       if (is.null(crit)) NULL else crit
     }),
+    # **A partir de cuantos minutos una respuesta es sospechosa.** Misma
+    # whitelist y misma doctrina que `aula_valida`: sin declarar no juzga, y lo
+    # que no se nombre aqui no persiste. El numero lo pone quien conoce el
+    # cuestionario porque la distribucion no ofrece donde cortar: medido en
+    # acnur_acg, <5 min marca el 4.3 % de las respuestas y <7 min el 13.6 %.
+    duracion_sospecha_min = local({
+      crit <- monitoreo_tiempos_criterio(list(
+        duracion_sospecha_min = config$duracion_sospecha_min %||%
+          defaults$duracion_sospecha_min
+      ))
+      if (isTRUE(crit$declarado)) crit$umbral_min else NULL
+    }),
     plan = monitoreo_aulas_normalize_plan(config$plan %||% config$agenda %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no
