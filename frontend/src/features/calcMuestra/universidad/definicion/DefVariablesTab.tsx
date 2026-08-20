@@ -144,6 +144,18 @@ export function DefVariablesTab({
     }, new Map());
 
   const requiredRoles = UNIVERSITY_REQUIRED_VARIABLES.filter((base) => base.required).map((base) => base.role);
+  // M9 fase 2: lo que el MOTOR resolvió en el marco vigente, por rol. Solo
+  // informa (§3.3.1); la base pisa al catálogo si ambos resolvieron el rol.
+  const motorResuelto = (() => {
+    const mr = (aulasState?.frame as { mapeo_resuelto?: { base?: Record<string, unknown>; catalogo?: Record<string, unknown> } } | null | undefined)?.mapeo_resuelto;
+    const mapa = new Map<string, string>();
+    for (const origen of [mr?.catalogo, mr?.base]) {
+      for (const [rol, col] of Object.entries(origen ?? {})) {
+        if (typeof col === "string" && col.trim()) mapa.set(rol, col.trim());
+      }
+    }
+    return mapa;
+  })();
   const confirmedRequired = requiredRoles.filter((role) => isUniversityRoleConfirmed(workspace.variable_mappings, role));
 
   function suggestionFor(role: string) {
@@ -282,6 +294,7 @@ export function DefVariablesTab({
                     sheetNote={sheetNote}
                     suggested={suggestionFor(base.role)}
                     confirmedColumn={universityConfirmedColumn(workspace.variable_mappings, base.role)}
+                    motorResuelto={motorResuelto.get(base.role) ?? ""}
                     selectValue={selectValue}
                     motivoExtra={MOTIVO_MOTOR[base.role]}
                     categories={observedByRole.get(base.role) ?? []}
