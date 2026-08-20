@@ -28,9 +28,24 @@
   p
 }
 
-.cm_efectividad_rendimiento <- function(eligible_n) {
+.cm_efectividad_rendimiento <- function(eligible_n, tramos = NULL) {
   e <- suppressWarnings(as.numeric(eligible_n))
   e[!is.finite(e)] <- 0
+  # Tramos sellados en la config (plan 1b): la curva es DATO del estudio, no
+  # codigo. Sin sello, la calibracion embebida (y la fila lo declara).
+  if (is.list(tramos) && length(tramos)) {
+    r <- rep(NA_real_, length(e))
+    restante <- rep(TRUE, length(e))
+    for (tr in tramos) {
+      hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
+      if (!is.finite(hasta)) hasta <- Inf
+      tasa <- suppressWarnings(as.numeric(tr$tasa)[1])
+      idx <- restante & e <= hasta
+      r[idx] <- tasa
+      restante <- restante & !idx
+    }
+    return(r)
+  }
   r <- rep(NA_real_, length(e))
   r[e <= 15] <- 0.80
   r[e > 15 & e <= 25] <- 0.69
@@ -38,6 +53,28 @@
   r[e > 35 & e <= 50] <- 0.55
   r[e > 50] <- 0.44
   r
+}
+
+#' Tasa de aplicacion por tipo de docente desde la tabla sellada; un aula con
+#' docentes compuestos («A | B») lleva la del mas restrictivo (min), que es
+#' como el campo se comporta: basta que uno rechace.
+.cm_efectividad_p_desde_tabla <- function(tipos, tabla) {
+  claves <- vapply(tabla, function(x) toupper(trimws(as.character(x$tipo)[1])), character(1))
+  tasas <- vapply(tabla, function(x) suppressWarnings(as.numeric(x$tasa)[1]), numeric(1))
+  general <- tasas[claves %in% c("GENERAL", "*", "")]
+  base <- if (length(general)) general[[1]] else NA_real_
+  vapply(as.character(tipos), function(tt) {
+    partes <- toupper(trimws(strsplit(tt, "|", fixed = TRUE)[[1]]))
+    partes <- partes[nzchar(partes)]
+    if (!length(partes)) return(base)
+    vals <- vapply(partes, function(pp) {
+      hit <- which(claves == pp)
+      if (length(hit)) tasas[[hit[1]]] else base
+    }, numeric(1))
+    vals <- vals[is.finite(vals)]
+    if (!length(vals)) return(base)
+    min(vals)
+  }, numeric(1), USE.NAMES = FALSE)
 }
 
 #' Normaliza la declaracion de procedencia de la calibracion (cfg$efectividad).
@@ -80,8 +117,45 @@
       limpio <- Filter(Negate(is.null), limpio)
       if (length(limpio)) por_facultad <- limpio
     }
+    # Tramos de rendimiento sellados: {hasta, tasa} ascendentes; el ultimo
+    # puede venir sin `hasta` (= infinito). Invalido -> NULL (rige embebida,
+    # declarada).
+    tramos_in <- ef$rendimiento_tramos
+    rendimiento_tramos <- NULL
+    if (is.list(tramos_in) && length(tramos_in)) {
+      limpio_t <- lapply(tramos_in, function(tr) {
+        if (!is.list(tr)) return(NULL)
+        hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
+        tasa <- suppressWarnings(as.numeric(tr$tasa)[1])
+        if (!is.finite(tasa) || tasa <= 0 || tasa > 1) return(NULL)
+        list(hasta = if (is.finite(hasta)) hasta else NA_real_, tasa = tasa)
+      })
+      limpio_t <- Filter(Negate(is.null), limpio_t)
+      hastas <- vapply(limpio_t, function(x) if (is.finite(x$hasta)) x$hasta else Inf, numeric(1))
+      if (length(limpio_t) >= 2L && !is.unsorted(hastas, strictly = TRUE)) {
+        rendimiento_tramos <- limpio_t
+      }
+    }
+    # Tasa de aplicacion por tipo de docente (capa OPERATIVA): {tipo, tasa, k}.
+    ta_in <- ef$tasa_aplicacion
+    tasa_aplicacion <- NULL
+    if (is.list(ta_in) && length(ta_in)) {
+      limpio_a <- lapply(ta_in, function(x) {
+        if (!is.list(x)) return(NULL)
+        tipo <- chr1(x$tipo)
+        tasa_v <- suppressWarnings(as.numeric(x$tasa)[1])
+        kv <- suppressWarnings(as.integer(x$k)[1])
+        if (!nzchar(tipo) || !is.finite(tasa_v) || tasa_v <= 0 || tasa_v > 1) return(NULL)
+        list(tipo = tipo, tasa = tasa_v,
+             k = if (length(kv) == 1L && !is.na(kv)) kv else NA_integer_)
+      })
+      limpio_a <- Filter(Negate(is.null), limpio_a)
+      if (length(limpio_a)) tasa_aplicacion <- limpio_a
+    }
     return(list(fuente = "historico", periodo = periodo, tau = NA_real_,
-                tau_base = tau_base, por_facultad = por_facultad))
+                tau_base = tau_base, por_facultad = por_facultad,
+                rendimiento_tramos = rendimiento_tramos,
+                tasa_aplicacion = tasa_aplicacion))
   }
   if (identical(fuente, "tau_global") && is.finite(tau) && tau > 0 && tau <= 1) {
     return(list(fuente = "tau_global", periodo = periodo, tau = tau))
