@@ -38,7 +38,13 @@ export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<Monito
   }
 
   const tope = Math.max(1, ...facultades.flatMap((f) => f.dias.map((d) => d.efectivas)));
-  const cayendo = facultades.filter((f) => (f.tendencia ?? 0) < -15).length;
+  // **Sólo cuentan las caídas que el propio vaivén de la facultad no explica.**
+  // El umbral del −15 % contaba las siete que salían «a menos ritmo» sobre un
+  // estudio cuya producción diaria es plana: una facultad con una sola aula al
+  // día, en un estudio donde un aula deja entre 13 y 74, produce un −48 % sin
+  // que haya pasado nada.
+  const cayendo = facultades.filter((f) => f.distinguible && (f.tendencia ?? 0) < 0).length;
+  const conVaiven = facultades.filter((f) => f.tendencia != null && !f.distinguible).length;
 
   return (
     <div className="aulas-ritmofac">
@@ -83,8 +89,17 @@ export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<Monito
             {/* La tendencia compara días YA OCURRIDOS: no es un pronóstico. Nula
                 cuando hay menos de cuatro días con campo, porque con menos es
                 ruido y decirlo sería inventar. */}
-            <span className={`aulas-ritmofac-tend${
-              f.tendencia == null ? "" : f.tendencia < -15 ? " es-baja" : f.tendencia > 15 ? " es-sube" : ""}`}>
+            <span
+              className={`aulas-ritmofac-tend${
+                f.tendencia == null || !f.distinguible
+                  ? " es-ruido"
+                  : f.tendencia < 0 ? " es-baja" : f.tendencia > 0 ? " es-sube" : ""}`}
+              title={f.tendencia == null
+                ? "Menos de cuatro días con campo: no hay tendencia que calcular."
+                : f.distinguible
+                  ? "El cambio es mayor que el vaivén normal de esta facultad."
+                  : "El cambio cabe dentro del vaivén normal de esta facultad, así que no se puede distinguir de la casualidad."}
+            >
               {f.tendencia == null ? "—" : `${f.tendencia > 0 ? "+" : ""}${f.tendencia.toLocaleString("es-PE")} %`}
             </span>
           </li>
@@ -93,6 +108,12 @@ export function AulasRitmoPorFacultad({ partes }: { partes: ReadonlyArray<Monito
       <p className="mon-profile-muted aulas-ritmofac-pie">
         La tendencia compara la segunda mitad de sus días de campo con la primera. Es lo ya
         ocurrido, no una proyección.
+        {/* La cifra se sigue enseñando siempre —el dato es el dato— pero apagada
+            cuando cabe dentro del vaivén de esa facultad. Sin decirlo, una cifra
+            apagada se lee como un fallo de la pantalla. */}
+        {conVaiven
+          ? ` En ${fmt(conVaiven)} ${conVaiven === 1 ? "facultad el cambio cabe" : "facultades el cambio cabe"} dentro de su propio vaivén: la cifra va apagada porque no se distingue de la casualidad.`
+          : ""}
       </p>
     </div>
   );

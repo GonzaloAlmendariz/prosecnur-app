@@ -3419,6 +3419,11 @@
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie i {
   flex: 1 1 0; min-width: 3px; border-radius: 2px 2px 0 0;
 }
+/* La tendencia que no se distingue del vaivén va apagada: se sigue viendo —el
+   dato es el dato— pero sin el peso de una que sí decide algo. */
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-tend.es-ruido {
+  color: var(--pulso-text-faint); font-weight: 400;
+}
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-tend {
   text-align: right; color: var(--pulso-text-soft); font-size: var(--aulas-txt); font-variant-numeric: tabular-nums;
 }
