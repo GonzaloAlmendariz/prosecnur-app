@@ -273,3 +273,40 @@ describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
     expect(k?.tone).toBe("neutral");
   });
 });
+
+describe("la tarjeta de Válidas y las que no entran en ninguna celda", () => {
+  const dashboard = (validas: number, celdas: Array<[number, number]>) => ({
+    kpis: { respuestas_validas: validas },
+    quotas_sex_faculty: celdas.map(([target, observed], i) => ({
+      faculty: `F${i}`, sex: "F", target, observed,
+    })),
+  }) as never;
+
+  it("dice cuántas encuestas hechas no cuentan para ninguna cuota", () => {
+    // El caso real del corte: 2 220 válidas y 2 185 atribuidas. Antes esta
+    // diferencia sólo se decía si era TOTAL —«ninguna atribuida»—, así que 35
+    // encuestas hechas quedaban invisibles en un operativo al que le faltan
+    // 1 558 y cuyo banco entero no alcanza.
+    const kpi = aulasKpis(dashboard(2220, [[3743, 2185]]), "avance")
+      .find((k) => k.label === "Válidas")!;
+    expect(kpi.pista).toBe("35 no entran en ninguna celda de cuota");
+    expect(kpi.detalle).toContain("2,185 de 2,220");
+    expect(kpi.detalle).toContain("lo que les falta es el sexo");
+  });
+
+  it("sin diferencia, la pista no inventa un problema", () => {
+    // El control: si la resta se hiciera mal —o si `observed` viniera recortado
+    // al target— esta tarjeta acusaría en un corte sano.
+    const kpi = aulasKpis(dashboard(2185, [[3743, 2185]]), "avance")
+      .find((k) => k.label === "Válidas")!;
+    expect(kpi.pista).toBe("respuestas de Kobo que pasan el filtro");
+    expect(kpi.detalle).toBeUndefined();
+  });
+
+  it("ninguna atribuida sigue siendo su propio caso", () => {
+    const kpi = aulasKpis(dashboard(2220, [[3743, 0]]), "avance")
+      .find((k) => k.label === "Válidas")!;
+    expect(kpi.pista).toContain("ninguna atribuida");
+  });
+});
+

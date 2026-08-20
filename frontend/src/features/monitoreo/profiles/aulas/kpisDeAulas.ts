@@ -249,16 +249,31 @@ function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const validas = Number(dashboard?.kpis?.respuestas_validas ?? 0);
   const atribuidas = ((dashboard?.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>)
     .reduce((n, f) => n + Number(f.observed ?? 0), 0);
+  // **El caso intermedio, que era el real y no se decía.**
+  //
+  // La rama de arriba sólo miraba el todo-o-nada. En este corte hay 2 220
+  // válidas y 2 185 atribuidas a una celda sexo × facultad: **35 encuestas
+  // hechas que no cuentan para ninguna cuota**, en un operativo donde faltan
+  // 1 558 y el banco entero no alcanza. La cifra estaba calculada dos líneas
+  // más arriba y sólo se usaba para el caso extremo.
+  //
+  // No es un tope: se comprobó que ninguna de las 40 celdas supera su meta, así
+  // que `observed` no está recortado y la diferencia es real.
+  const fuera = Math.max(0, validas - atribuidas);
   return {
     label: "Válidas",
     icono: CheckCircle2,
     value: fmt(dashboard?.kpis?.respuestas_validas),
     pista: validas > 0 && atribuidas === 0
       ? "de Kobo · ninguna atribuida a un curso-horario"
-      : "respuestas de Kobo que pasan el filtro",
+      : fuera > 0
+        ? `${fmt(fuera)} no entran en ninguna celda de cuota`
+        : "respuestas de Kobo que pasan el filtro",
     detalle: validas > 0 && atribuidas === 0
       ? "Sin atribución no se pueden repartir por facultad ni por sexo, así que no cuentan para ninguna cuota."
-      : undefined,
+      : fuera > 0
+        ? `${fmt(atribuidas)} de ${fmt(validas)} caen en una celda sexo × facultad. Las otras ${fmt(fuera)} están hechas y no cuentan para ninguna cuota: si el control «Respuestas válidas sin curso-horario» está en verde, lo que les falta es el sexo.`
+        : undefined,
   };
 }
 
