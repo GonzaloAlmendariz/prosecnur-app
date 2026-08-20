@@ -228,3 +228,37 @@ Cada reemplazo activado se juzga contra SU propio condicional.
 Implementación: publicar ambas columnas con nombre propio en el plan
 (p. ej. efectivas_esperadas_cupo y efectivas_esperadas_aplicada) y
 avisar a Monitoreo que el valor de validez migra a la condicional.
+
+## V7 — el rediseño que pidió Gonzalo, resuelto con medición (2026-08-20)
+
+Su objeción textual: «cuando yo agendo un aula espero sí o sí aplicarla;
+si se cae, la reemplazo… el tipo de docente en todo caso garantizaría
+efectividad vía asistencia… me suena a jalado de los pelos: hay que
+repensar cómo calculamos las efectivas esperadas y darle un nombre al
+indicador por aula».
+
+MEDICIÓN DECISIVA (aulas aplicadas 2025, control por tamaño): el tipo
+de docente NO mueve la efectividad condicional — contratado residual
+1,007 [0,955–1,066] (k=167), ordinario-principal 0,959 [0,831–1,102]
+(k=27). Una vez aplicada, el aula rinde lo que su tamaño y facultad
+explican. El docente decide solo SI se aplica.
+
+EL DISEÑO FINAL (sustituye la dualidad de V6 por algo más simple):
+
+- **Tasa de efectividad del aula** (el indicador por aula, con nombre
+  propio) = R(tamaño) × F(facultad). Dos criterios, ambos con evidencia;
+  el docente SALE de la ecuación con evidencia, no por gusto.
+- **Efectivas esperadas** = Elegibles × tasa de efectividad del aula.
+  UN solo esperado condicional: sirve igual para certificar (la cadena
+  repone caídas) y para el veredicto de Monitoreo en campo.
+  Ej.: Prospección = 24 × 0,642 × 0,972 = 15,0.
+- **Tasa de aplicación** (por tipo de docente: 0,865/0,730) se muda a la
+  capa OPERATIVA: presupuesto de visitas (intentos > cupos por caídas),
+  profundidad de cadena requerida por facultad (Derecho, cargada de
+  ordinarios-principales, necesita cadenas más hondas) y riesgo de cupo
+  sin reemplazo viable. Nunca multiplica efectivas.
+
+Escalera de nombres final: tasa de efectividad DE LA FACULTAD (dimensiona)
+→ tasa de efectividad DEL AULA (R×F) → EFECTIVAS ESPERADAS (E × tasa del
+aula; valor de validez) → TASA DE APLICACIÓN (operativa). El global 0,53
+muere en superficies (directiva previa).
