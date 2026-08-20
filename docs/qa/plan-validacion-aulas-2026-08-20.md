@@ -255,9 +255,15 @@ extensible a todos los monitoreos.
     «152 filas de la hoja · **26 columnas**». El número sale de
     `columnasDelControl()`, **la misma cuenta que hace la tabla**, para no tener
     dos definiciones que se separen.
-  - **Falta**: los **8 párrafos** apilados entre el veredicto y la tabla, todos
-    con peso parecido. Agruparlos en veredicto → detalle → procedencia sin
-    borrar ninguno.
+  - **Y la otra mitad, hecha**: entre el veredicto y la tabla flotaban **tres
+    líneas de procedencia** —quién llena los validadores, cuántas filas trae
+    cada bloque, qué bloque vino vacío— con tres estilos distintos y sin nada
+    que dijera que eran lo mismo. Van juntas en su propia caja: el panel pasa de
+    seis elementos sueltos a **cuatro bloques** —tarjetas, veredicto,
+    procedencia, tabla—. **Cuesta 7 px de alto** (342 → 349) y los vale: eran el
+    ruido que competía con el resultado. Ningún texto se borró.
+  - **Marcado ◐ y no ☑ a propósito**: «se ve fatal» es un juicio de Gonzalo y lo
+    cierra él, no el gate.
 - **T23** — Agenda deja de ser la traducción de 12 columnas: filtro por facultad
   y lo que decide quien llama.
 - **T24** — El reemplazo, alcanzable sin entrar al formulario de un aula.

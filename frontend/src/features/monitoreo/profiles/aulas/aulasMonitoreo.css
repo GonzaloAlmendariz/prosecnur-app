@@ -4660,3 +4660,32 @@
   background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
   background-attachment: local, local, scroll, scroll;
 }
+
+/* ── La procedencia de la Base de control, en una sola caja ──────────────
+   Las tres lineas que dicen de que esta hecha la hoja —validadores, filas por
+   bloque, bloques vacios— iban sueltas entre el veredicto y la tabla, con tres
+   estilos distintos y sin nada que dijera que eran lo mismo. Medido: 46 px de
+   texto repartidos en tres renglones flotantes. Agrupadas comparten material y
+   dejan de competir con el veredicto. */
+.mon-profile-page.is-aulas-flow .aulas-control-procedencia {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-control-procedencia > p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+/* Dentro de la caja, el recuento por bloque es el renglon con los numeros y se
+   distingue por sus cifras, no por un color propio. */
+.mon-profile-page.is-aulas-flow .aulas-control-procedencia > p strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
