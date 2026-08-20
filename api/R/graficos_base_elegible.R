@@ -157,7 +157,8 @@
 #' anterior, «4 de 101 (4.0%)», medía contra un universo que nunca vio esa
 #' pregunta.
 #' @keywords internal
-.graficos_base_texto_elegible <- function(n, elegibles, publico = "", total = NULL) {
+.graficos_base_texto_elegible <- function(n, elegibles, publico = "", total = NULL,
+                                          universo_label = "la muestra total") {
   n <- as.integer(n %||% 0L)
   fmt <- function(x) format(as.integer(x), big.mark = " ", trim = TRUE)
   unidad <- if (n == 1L) "respuesta" else "respuestas"
@@ -173,30 +174,50 @@
   }
   elegibles <- as.integer(elegibles)
 
-  if (nzchar(publico)) {
-    return(sprintf("%s %s de %s (%s%%)", fmt(n), unidad, publico, pct(n, elegibles)))
+  etiqueta <- if (nzchar(publico)) publico else .graficos_scalar_chr(universo_label, "")
+  if (!nzchar(etiqueta)) {
+    # Repeats: el universo son instancias del propio grupo, no personas de la
+    # muestra; nombrarlo "muestra total" mezclaría dos granos.
+    return(sprintf("%s %s (%s%%)", fmt(n), unidad, pct(n, elegibles)))
   }
-  sprintf("%s %s de la muestra total (%s%%)", fmt(n), unidad, pct(n, elegibles))
+  sprintf("%s %s de %s (%s%%)", fmt(n), unidad, etiqueta, pct(n, elegibles))
 }
 
-#' Denominador de una variable: elegibles, público y texto listo.
+#' Denominador de una variable: universo, público y texto listo.
+#'
+#' **El porcentaje se calcula sobre el universo que se nombra.** El pie decía
+#' «15 respuestas de Vinculación Laboral (100%)» para una pregunta que solo ven
+#' quienes entraron al grupo de WhatsApp: 15 de 15 elegibles es 100%, pero el
+#' texto nombra a Vinculación Laboral, que son 16, y 15 de 16 no es 100%. El
+#' lector no puede verificar un pie que mide contra un universo distinto del que
+#' declara.
+#'
+#' Así que el denominador es el del público nombrado. En una pregunta con filtro
+#' interno el porcentaje deja de ser tasa de no-respuesta y pasa a ser la
+#' fracción del público que llegó a la pregunta —«4 respuestas de Vinculación
+#' Laboral (25%)»: de las 16, cuatro trabajaban antes del programa—. Es lo que
+#' el lector puede comprobar con los dos números que tiene delante.
 #' @keywords internal
 .graficos_base_de_variable <- function(data, inst, var, n_respuestas, gate_map = NULL) {
   total <- if (is.data.frame(data)) nrow(data) else NA_integer_
   gate_map <- gate_map %||% .graficos_gate_map(inst)
   entry <- .graficos_gate_para(gate_map, var)
-  mask <- .graficos_mascara_elegible(data, entry)
-
-  if (is.null(mask)) {
-    return(list(elegibles = NA_integer_, publico = "", derivado = FALSE,
-                texto = .graficos_base_texto_elegible(n_respuestas, NULL, "", total)))
-  }
-  elegibles <- sum(mask)
   publico <- .graficos_publico_de_gate(entry, inst)
+
+  universo <- NULL
+  if (nzchar(publico)) {
+    # El universo del público es el gate de GRUPO, sin el relevant propio de la
+    # pregunta: ese restringe dentro del público, no lo redefine.
+    env <- .graficos_eval_env(data)
+    mask <- .graficos_mascara_de_ast((entry %||% list())$gate, env, nrow(data))
+    if (!is.null(mask)) universo <- sum(mask) else publico <- ""
+  }
+  if (is.null(universo) && is.finite(total) && total > 0L) universo <- as.integer(total)
+
   list(
-    elegibles = as.integer(elegibles),
+    elegibles = if (is.null(universo)) NA_integer_ else as.integer(universo),
     publico = publico,
-    derivado = TRUE,
-    texto = .graficos_base_texto_elegible(n_respuestas, elegibles, publico, total)
+    derivado = !is.null(universo),
+    texto = .graficos_base_texto_elegible(n_respuestas, universo, publico, total)
   )
 }
