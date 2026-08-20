@@ -63,7 +63,27 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
 > día que llegue un XLSForm que los declare.
 
 - **T7** — ~~Medir qué trae la base.~~ Hecho: ver arriba.
-- **T8** — Duración por respuesta: distribución, mediana y cola.
+- **T8 ☑ (2026-08-20, `api/R/monitoreo_tiempos_respuesta.R`, 29 tests)** —
+  Duración por respuesta. Sobre `acnur_acg`, 1 283 respuestas: **mediana 14.12
+  min**, p25 8.46, p75 27.51, **p95 857** y **máximo 10 260 —siete días—**; 92
+  pasan de dos horas. La cola se cuenta aparte y no se recorta: sin las seis
+  colas la mediana es la misma, así que winsorizar sólo escondería el caso a
+  revisar.
+  - **Trampa medida**: `strptime` no acepta el offset con dos puntos (`-05:00`)
+    que escriben Kobo y SurveyMonkey y devuelve NA sin avisar. Sin normalizar,
+    la mediana daba **0 min** y las colas caían en **1 440 y 10 080** —múltiplos
+    exactos de un día, la firma de comparar fechas sin hora—.
+  - **Las columnas de duración del instrumento no sirven como fuente**:
+    `duracion_total` trae 37 valores y **los 37 son negativos**;
+    `duracion_total_start_end` trae **979 ceros de 1 283** y en las 304
+    comparables su mediana es 1 414 contra 31 de la propia (ratio 50). El motor
+    calcula la suya desde `start`/`end` y no las lee.
+  - **La detección es una lista cerrada**: la base trae `A/time_A_start`,
+    `B/time_b_start`… que son marcas de **bloque**, no de la entrevista; una
+    detección por parecido las tomaría como inicio.
+  - **Pendiente declarado**: es motor sin superficie. Nadie lo consume todavía
+    —la vista llega en T11—, y hasta entonces la capacidad no existe para el
+    usuario.
 - **T9** — Duración por aula y por aplicador: dónde se responde demasiado rápido.
 - **T10** — Umbral de sospecha declarable, con la misma doctrina que
   `aula_valida`: sin declarar, no juzga.
