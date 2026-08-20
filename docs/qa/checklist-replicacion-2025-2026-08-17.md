@@ -4176,3 +4176,13 @@ ordenado por P25 ascendente — la escalera cuenta sola por que AE
 necesita 11 aulas para cuota 64 y Derecho 18 para 363. Cuantiles tipo 7
 (los del motor); la leyenda declara que el valor que rige es el sellado
 por estrato. Verificado en vivo.
+
+### PRINCIPIO NUEVO de Gonzalo (rige la cola de mejoras): los graficos van donde pertenecen conceptualmente
+
+Textual: «esta bien que agreguemos graficos, me encanta la idea, pero
+tienen que estar conceptualmente donde mejor deberian estar, donde
+tiene mas sentido a nivel tematico y conceptual». Primera aplicacion:
+la distribucion de elegibles (M2) se mudo de Diseño (que es la formula
+del n) a Cursos-horario por facultad (donde se dimensionan las aulas de
+las que el grafico habla). Antes de montar cada mejora: preguntar de
+QUE habla y montarla en la superficie que responde esa pregunta.
