@@ -4212,3 +4212,45 @@
 .mon-profile-page.is-aulas-flow .aulas-umbrales-base {
   margin: 6px 0 0; font-size: var(--aulas-min);
 }
+
+/* «¿Alcanza el banco?»: el veredicto, su banda y el reparto por facultad. */
+/* Va ARRIBA del inventario, asi que su regla separa hacia abajo. */
+.mon-profile-page.is-aulas-flow .aulas-alcance {
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-titular {
+  margin: 0 0 4px; font-size: var(--aulas-txt);
+  font-weight: var(--pulso-weight-semibold, 600);
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-base { margin: 4px 0 10px; font-size: var(--aulas-min); }
+.mon-profile-page.is-aulas-flow .aulas-alcance-lista {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-lista li {
+  display: grid; grid-template-columns: 168px minmax(0, 1fr) 44px 168px;
+  align-items: center; gap: 8px; font-size: var(--aulas-sec); white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-fac {
+  overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text);
+}
+/* La barra mide CUANTO CUBRE el banco de esa facultad, de 0 a su cuota: llena
+   es que cubre, corta es que se queda lejos. No mide el deficit —una barra que
+   crece con lo que falta se lee como progreso al reves—. */
+.mon-profile-page.is-aulas-flow .aulas-alcance-barra {
+  height: 8px; max-width: 220px; border-radius: 4px;
+  background: var(--pulso-surface-2); overflow: hidden;
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-barra > span {
+  display: block; height: 100%; border-radius: 4px;
+  background: var(--pulso-resultado-efectiva); opacity: 0.7;
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-n {
+  text-align: right; font-variant-numeric: tabular-nums;
+  color: var(--pulso-resultado-rechazo);
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-por {
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
+  overflow: hidden; text-overflow: ellipsis;
+}
+.mon-profile-page.is-aulas-flow .aulas-alcance-pie { margin-top: 8px; }
