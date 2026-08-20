@@ -18,6 +18,7 @@ const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("es-P
 
 export function AulasRendimientoPorFacultad({
   partes, plan, clave = "faculty", unidad = "Facultad", explicaLasColumnas = true,
+  facultadEnFoco,
 }: {
   partes: ReadonlyArray<MonitoreoRow>;
   plan: ReadonlyArray<MonitoreoRow>;
@@ -25,6 +26,14 @@ export function AulasRendimientoPorFacultad({
   clave?: "faculty" | "applied_by" | "franja" | "dia_semana";
   /** Cómo se llama esa unidad en la cabecera de la lista. */
   unidad?: string;
+  /**
+   * La facultad enfocada, si la hay. **No filtra: resalta.** `foco` viaja en la
+   * URL y sólo lo obedecía la tabla de cuotas, teniendo el perfil seis listas de
+   * las mismas veinte facultades. Filtrar destruiría el ranking, que es lo que
+   * estas listas aportan; el detalle se filtra, el control no.
+   */
+  facultadEnFoco?: string;
+
   /**
    * Si este panel lleva el pie que explica las cuatro columnas.
    *
@@ -87,7 +96,7 @@ export function AulasRendimientoPorFacultad({
           <span>Del potencial</span>
         </li>
         {filas.map((f) => (
-          <li key={f.facultad}>
+          <li key={f.facultad} className={clave === "faculty" && f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <span className="aulas-rendimiento-nombre" title={f.facultad}>
               {f.facultad}
               <em>{fmt(f.aulas)} {f.aulas === 1 ? "aula" : "aulas"} · {fmt(f.efectivas)} encuestas</em>
