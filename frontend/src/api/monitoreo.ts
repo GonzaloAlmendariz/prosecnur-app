@@ -768,6 +768,15 @@ export type MonitoreoAulasDashboard = {
    */
   banco_extras?: BancoDeExtras | null;
   /**
+   * Cuánto duró cada respuesta. Llega SIEMPRE, también cuando la base no trae
+   * marcas de inicio y fin —el caso del estudio de aulas de hoy—: en ese caso
+   * viene con `disponible: false` y su motivo, para que la vista pueda decir
+   * que falta el dato en vez de no mostrar el panel. La forma exacta la
+   * normaliza `tiemposDeRespuesta()` en el feature, que es quien trata con los
+   * arrays de uno que produce jsonlite.
+   */
+  tiempos?: unknown;
+  /**
    * El criterio de respuesta válida que declara el ESTUDIO, para poder
    * contrastarlo con las columnas VALIDADOR de la hoja del equipo. Son dos
    * sistemas distintos y la Base de control los ponía juntos sin decir cuál era

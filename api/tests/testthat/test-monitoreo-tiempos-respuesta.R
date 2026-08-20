@@ -243,3 +243,27 @@ test_that("el umbral sobrevive al normalizador de config del perfil de aulas", {
   # Y un valor invalido no persiste como si fuera una declaracion.
   expect_null(monitoreo_aulas_normalize_config(list(duracion_sospecha_min = 0))$duracion_sospecha_min)
 })
+
+test_that("el dashboard publica el bloque de tiempos aunque la base no los traiga", {
+  # Es el caso del estudio de aulas: si el bloque no viajara, la vista no
+  # podria decir que faltan los tiempos —solo podria no mostrar nada, que es
+  # como se pierde un dato sin que nadie se entere—.
+  plan <- list(list(classroom_id = "CH 1", operational_code = "CH 1", eligible_n = 30))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(sexo = c("1", "2")), list())
+  expect_false(is.null(d$tiempos))
+  expect_false(d$tiempos$disponible)
+  expect_match(d$tiempos$motivo, "ni inicio ni fin")
+  expect_false(d$tiempos$criterio$declarado)
+
+  # Y cuando la base SI las trae, el mismo bloque llega con las cifras.
+  respuestas <- data.frame(
+    start = sprintf("2026-06-13T10:%02d:00-05:00", 0:9),
+    end = sprintf("2026-06-13T10:%02d:00-05:00", seq(12, 30, by = 2)),
+    stringsAsFactors = FALSE
+  )
+  con <- monitoreo_aulas_dashboard(plan, respuestas, list(duracion_sospecha_min = 5))
+  expect_true(con$tiempos$disponible)
+  expect_equal(con$tiempos$columna_inicio, "start")
+  expect_true(is.finite(con$tiempos$resumen$mediana))
+  expect_true(con$tiempos$criterio$declarado)
+})

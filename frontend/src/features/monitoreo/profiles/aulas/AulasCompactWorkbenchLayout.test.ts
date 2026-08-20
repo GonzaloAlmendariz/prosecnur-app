@@ -191,22 +191,43 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
     expect(aulasOperations).toContain('data-qa-geometry-group="monitoring-aulas-operations"');
     expect(aulasOperations).toContain('data-qa-geometry-contract="equal"');
   });
-  test("en viewport bajo el registro de campo da su alto al contenido en vez de repartirlo", () => {
+  test("el registro de campo da su alto al contenido en vez de repartirlo", () => {
     // Medido a 1024x600 antes de la regla: el stack recibia 87 px y sus cuatro
-    // paneles quedaban en `0px 26px 26px 180px`, con «Lo que reporto el campo» y
-    // «Como trabaja cada equipo» reducidos a su encabezado. Con la regla el stack
-    // mide 1036 px y el recorrido del dueno de scroll pasa de 698 a 1309 px.
-    const view = shortAulasRuleBody(
-      ".mon-profile-page.is-aulas-flow .aulas-mon-view:has(.registro-campo)",
-    );
-    const stack = shortAulasRuleBody(
-      ".mon-profile-page.is-aulas-flow .mon-profile-stack:has(.registro-campo)",
-    );
+    // paneles quedaban en `0px 26px 26px 180px`, con dos reducidos a su
+    // encabezado. A 1440x1000 el mismo defecto se veia al reves y peor: los
+    // paneles se dibujaban ENCIMA del titulo del siguiente. Por eso la regla no
+    // vive dentro de ninguna media query.
+    const reglaDe = (selector: string): string => {
+      const escapado = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return aulasCss.match(new RegExp(`${escapado}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+    };
 
-    expect(view).toMatch(/flex:\s*1 0 auto;/);
-    expect(stack).toMatch(/grid-auto-rows:\s*min-content;/);
+    expect(reglaDe(".mon-profile-page.is-aulas-flow .aulas-mon-view:has(.registro-campo)"))
+      .toMatch(/flex:\s*1 0 auto;/);
+    expect(reglaDe(".mon-profile-page.is-aulas-flow .mon-profile-stack:has(.registro-campo)"))
+      .toMatch(/grid-auto-rows:\s*min-content;/);
 
-    // Y no se generaliza a la seccion: las otras pestanas de Validacion viven de
+    // Y no queda encerrada en el bloque de viewport bajo, que es donde estuvo
+    // primero y donde solo reparaba la mitad del defecto. El helper de arriba
+    // no sirve para comprobarlo —lee desde el marcador hasta el final del
+    // archivo—, asi que aqui se delimita el bloque contando llaves.
+    const inicioMedia = aulasCss.indexOf("@media (max-height: 760px) {");
+    let profundidad = 0;
+    let finMedia = inicioMedia;
+    for (let i = aulasCss.indexOf("{", inicioMedia); i < aulasCss.length; i += 1) {
+      if (aulasCss[i] === "{") profundidad += 1;
+      else if (aulasCss[i] === "}") {
+        profundidad -= 1;
+        if (profundidad === 0) { finMedia = i; break; }
+      }
+    }
+    const posRegla = aulasCss.indexOf(
+      ".mon-profile-page.is-aulas-flow .mon-profile-stack:has(.registro-campo) {",
+    );
+    expect(posRegla).toBeGreaterThan(-1);
+    expect(posRegla > inicioMedia && posRegla < finMedia).toBe(false);
+
+    // Ni se generaliza a la seccion: las otras pestanas de Validacion viven de
     // la fila `minmax(0, 1fr)` para el scroll interno de sus tablas.
     expect(aulasCss).not.toMatch(
       /\.mon-workbench-content--calidad[^{]*\.mon-profile-stack\s*\{[^}]*grid-auto-rows:\s*min-content;/s,
