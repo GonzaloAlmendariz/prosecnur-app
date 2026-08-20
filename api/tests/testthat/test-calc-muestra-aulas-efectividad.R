@@ -91,7 +91,8 @@ test_that("un tau ilegal NO habilita el modo global: cae a embebida declarada", 
   cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(fuente = "historico", periodo = "2025-2")))
   expect_identical(cfg$efectividad,
                    list(fuente = "historico", periodo = "2025-2", tau = NA_real_,
-                        tau_base = NA_real_, por_facultad = NULL))
+                        tau_base = NA_real_, por_facultad = NULL,
+                        rendimiento_tramos = NULL, tasa_aplicacion = NULL))
 })
 
 test_that("la proyeccion del workspace NO borra la procedencia (septima lista cerrada)", {
@@ -100,7 +101,8 @@ test_that("la proyeccion del workspace NO borra la procedencia (septima lista ce
   ))
   expect_identical(ws$efectividad,
                    list(fuente = "historico", periodo = "2025-2", tau = NA_real_,
-                        tau_base = NA_real_, por_facultad = NULL))
+                        tau_base = NA_real_, por_facultad = NULL,
+                        rendimiento_tramos = NULL, tasa_aplicacion = NULL))
   # Sin declaracion la clave queda NULL (no un default disfrazado).
   expect_null(.cm_normalize_workspace_aulas_config(list())$efectividad)
 })
@@ -140,6 +142,48 @@ test_that("sin tau_base el factor NO se aplica (nunca dividir por un supuesto mu
   out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
   expect_equal(out$factor_facultad, 1)
   expect_equal(out$efectivas_esperadas, 12.0)
+})
+
+test_that("E1: los tramos sellados gobiernan el rendimiento (la curva es DATO)", {
+  TRAMOS <- list(
+    list(hasta = 15, tasa = 0.809), list(hasta = 25, tasa = 0.642),
+    list(hasta = 35, tasa = 0.566), list(hasta = 50, tasa = 0.500),
+    list(tasa = 0.409)
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(
+    fuente = "historico", periodo = "2025", rendimiento_tramos = TRAMOS
+  )))
+  expect_length(cfg$efectividad$rendimiento_tramos, 5L)
+  r <- .cm_efectividad_rendimiento(c(10, 15, 16, 25, 26, 40, 51, 200),
+                                   tramos = cfg$efectividad$rendimiento_tramos)
+  expect_equal(r, c(0.809, 0.809, 0.642, 0.642, 0.566, 0.500, 0.409, 0.409))
+  # Sin tramos: la embebida sigue byte a byte (retro-compat).
+  expect_equal(.cm_efectividad_rendimiento(c(10, 60)), c(0.80, 0.44))
+  # Tramos desordenados NO pasan la normalizacion: NULL, rige embebida.
+  malo <- calc_muestra_aulas_normalize_config(list(efectividad = list(
+    fuente = "historico",
+    rendimiento_tramos = list(list(hasta = 25, tasa = 0.6), list(hasta = 15, tasa = 0.8))
+  )))
+  expect_null(malo$efectividad$rendimiento_tramos)
+})
+
+test_that("E1: la tasa de aplicacion sellada resuelve tipos y compuestos (manda el minimo)", {
+  TABLA <- list(
+    list(tipo = "DOCENTE CONTRATADO - CONTRATADO", tasa = 0.865, k = 193),
+    list(tipo = "DOCENTE ORDINARIO - PRINCIPAL", tasa = 0.730, k = 37),
+    list(tipo = "GENERAL", tasa = 0.843, k = 230)
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(
+    fuente = "historico", tasa_aplicacion = TABLA
+  )))
+  expect_length(cfg$efectividad$tasa_aplicacion, 3L)
+  p <- .cm_efectividad_p_desde_tabla(c(
+    "DOCENTE CONTRATADO - CONTRATADO",
+    "DOCENTE ORDINARIO - PRINCIPAL | DOCENTE CONTRATADO - CONTRATADO",
+    "DOCENTE ORDINARIO - ASOCIADO",
+    ""
+  ), cfg$efectividad$tasa_aplicacion)
+  expect_equal(p, c(0.865, 0.730, 0.843, 0.843))
 })
 
 test_that("frame sin eligible_n o vacio queda intacto (nunca inventa)", {
