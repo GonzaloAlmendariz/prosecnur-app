@@ -1272,10 +1272,24 @@ function renderAulasView(
         />
       </section>
       )}
-      {/* Las otras dos unidades de esfuerzo, en paneles propios y no tras un
-          selector: las tres se leen juntas —una facultad rinde poco Y su
-          aplicador rinde bien— y un control las escondería de a dos. */}
+      {/* Las otras TRES unidades de esfuerzo, en paneles propios y no tras un
+          selector: se leen juntas —una facultad rinde poco Y su aplicador rinde
+          bien— y un control las escondería de a dos.
+
+          Y ahora en FILA, que es lo que hace verdad esa frase. Apiladas medían
+          920 px dentro de una pestaña de 7,5 pantallas de scroll, así que para
+          comparar la franja con el día había que recordar el primero. La cuarta
+          —por facultad— se queda encima a todo lo ancho: son 21 filas contra 7 y
+          a un tercio de ancho sus nombres no caben. */}
       {pestana !== "rendimiento" ? null : (
+      <div
+        className="aulas-lentes-trio"
+        data-qa-geometry-group="monitoring-aulas-lentes"
+        /* `intrinsic` por el mismo motivo que la pareja: apiladas bajo 1180 px
+           cada una vuelve a su alto propio —7, 3 y 7 filas— así que `equal`
+           sería una promesa que no pueden cumplir. */
+        data-qa-geometry-contract="intrinsic"
+      >
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -1298,8 +1312,6 @@ function renderAulasView(
           explicaLasColumnas={false}
         />
       </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -1324,8 +1336,6 @@ function renderAulasView(
           explicaLasColumnas={false}
         />
       </section>
-      )}
-      {pestana !== "rendimiento" ? null : (
       <section
         className="mon-profile-panel"
         data-qa-geometry-group="monitoring-aulas-avance"
@@ -1357,6 +1367,7 @@ function renderAulasView(
           explicaLasColumnas={false}
         />
       </section>
+      </div>
       )}
       {pestana !== "rendimiento" ? null : (
       <section

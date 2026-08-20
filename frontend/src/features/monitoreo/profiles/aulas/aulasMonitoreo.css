@@ -2782,6 +2782,70 @@
   }
 }
 
+/* LAS TRES LENTES PEQUEÑAS, EN FILA.
+ *
+ * «Quién consigue más», «Franja horaria» y «Día de la semana» son el mismo
+ * componente con distinta clave y viven en paneles separados a propósito: «las
+ * tres se leen juntas —una facultad rinde poco Y su aplicador rinde bien— y un
+ * control las escondería de a dos». Apiladas median 350 + 220 + 350 = 920 px
+ * dentro de una pestaña de **7,5 pantallas de scroll**, o sea que «se leen
+ * juntas» era una intención que la maquetación no permitía: para comparar la
+ * franja con el día había que recordar el primero.
+ *
+ * En fila ocupan lo que el más alto y quedan literalmente comparables, que es lo
+ * unico que las justifica como paneles aparte. `align-items: start` y contrato
+ * `intrinsic` por el mismo motivo que la pareja de arriba: apiladas bajo el
+ * corte vuelven cada una a su alto propio, asi que `equal` seria una promesa que
+ * no pueden cumplir.
+ *
+ * La cuarta lente —«Qué está rindiendo más», por facultad— NO entra: son 21
+ * filas contra 7, y a un tercio de ancho sus nombres de facultad no caben. Se
+ * queda a todo lo ancho, encima de las tres. */
+.mon-profile-page.is-aulas-flow .aulas-lentes-trio {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+  flex: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-lentes-trio > .mon-profile-panel { min-width: 0; }
+
+/* **La fila de estas listas necesita su propio reparto a un tercio de ancho.**
+ *
+ * El reparto de ancho completo pide 120 px de nombre + 76 + 92 + 88 de cifras +
+ * 36 de gaps = **412 px sólo en columnas fijas**, y un panel del trío da ~400 de
+ * contenido. La columna de la barra —la que es `minmax(0, 1.7fr)`— se quedaba
+ * con lo que sobraba, o sea nada, y su cabecera «POR AULA» se partía **en una
+ * letra por línea**. Un ancho fijo pensado para ancho completo no sobrevive a un
+ * tercio, y encogerlo no es un parche: es el mismo dato en menos sitio.
+ *
+ * Las cifras siguen cabiendo —«92.6 %» mide ~40 px a 10 px— y la alineación
+ * entre filas se conserva porque los anchos siguen siendo fijos, que es de donde
+ * sale. */
+.mon-profile-page.is-aulas-flow .aulas-lentes-trio .aulas-rendimiento-lista > li {
+  /* Los anchos salen de la PALABRA MÁS LARGA de cada cabecera, no de la cifra:
+     «AJUSTADO» a 10 px con la letra espaciada mide ~52 px y la columna tenía 46,
+     así que se partía en «AJUSTA / DO». Una cabecera rota a media palabra se lee
+     peor que una columna estrecha. */
+  grid-template-columns: minmax(60px, 1fr) minmax(30px, 1.2fr) 56px 68px 60px;
+  gap: 6px;
+}
+/* Y que no vuelva a partirse: si algún día una etiqueta no cupiera, que se
+   salga y se vea, en vez de romperse por la mitad y parecer intencionado. */
+.mon-profile-page.is-aulas-flow .aulas-lentes-trio .aulas-rendimiento-cabecera > span {
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+}
+
+/* Bajo 1180 px, el mismo corte que la pareja y la banda de KPIs. A un tercio de
+   1180 son 380 px por panel y las barras dejan de leerse. */
+@media (max-width: 1180px) {
+  .mon-profile-page.is-aulas-flow .aulas-lentes-trio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Las cifras de TODAS las tablas del perfil, no sólo las de la Base de control.
    `DataTable` las pintaba a la izquierda, así que en Partes de campo convivían
    «25», «69.4 %», «1», «20» y «−1» pegados al borde, cada uno empezando a una
