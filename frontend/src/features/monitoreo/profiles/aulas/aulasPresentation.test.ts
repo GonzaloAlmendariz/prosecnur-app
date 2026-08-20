@@ -33,14 +33,14 @@ describe("aulasPresentation", () => {
   it("presenta los seis controles técnicos con etiquetas operativas", () => {
     expect([
       "anonymous_responses",
-      "student_id_required",
+      "personal_identifiers",
       "unmapped_valid_responses",
       "duplicate_responses",
       "effective_representativity",
       "sex_faculty_quota",
     ].map(aulasCheckLabel)).toEqual([
       "Respuestas anónimas",
-      "Identificador estudiantil no requerido",
+      "Identificadores personales en la base",
       "Respuestas válidas sin curso-horario",
       "Respuestas repetidas",
       "Representatividad efectiva",
@@ -121,7 +121,7 @@ describe("aulasPresentation", () => {
 
     expect(summarizeAulasValidation([
       { check: "anonymous_responses", status: "ok" },
-      { check: "student_id_required", status: "ok" },
+      { check: "personal_identifiers", status: "ok" },
     ])).toEqual({ label: "Sin alertas", count: 0, sinComprobar: 0, evaluados: 2 });
 
     expect(summarizeAulasValidation([
@@ -132,7 +132,7 @@ describe("aulasPresentation", () => {
 
     expect(summarizeAulasValidation([
       { check: "anonymous_responses", status: "" },
-      { check: "student_id_required", status: "estado_nuevo" },
+      { check: "personal_identifiers", status: "estado_nuevo" },
     ])).toEqual({ label: "2 alertas", count: 2, sinComprobar: 0, evaluados: 2 });
     // Un estado vacio NO es «Por revisar»: esa palabra ya la usa el estado
     // `review` de un control, y la misma palabra para un hallazgo y para la
