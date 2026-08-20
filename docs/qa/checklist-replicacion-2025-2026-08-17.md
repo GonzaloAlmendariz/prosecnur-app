@@ -4167,3 +4167,12 @@ escala comun global, leyenda en el encabezado; el lenguaje del embudo.
 Verificada en vivo con la seleccion P25-197. SIGUIENTE (M2): el grafico
 de DISTRIBUCION de elegibles por aula por facultad con el P25 marcado —
 hace visible la vara que dimensiona.
+
+### M2 ENTREGADA: la distribucion de elegibles por aula, con el P25 marcado
+
+Grafico nuevo en Calculo (junto a la formula): 15 carriles min-max con
+banda P25-P75, marca fuerte del P25 con su valor, mediana en gris,
+ordenado por P25 ascendente — la escalera cuenta sola por que AE
+necesita 11 aulas para cuota 64 y Derecho 18 para 363. Cuantiles tipo 7
+(los del motor); la leyenda declara que el valor que rige es el sellado
+por estrato. Verificado en vivo.
