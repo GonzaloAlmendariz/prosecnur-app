@@ -368,12 +368,22 @@ const REAL_TABSETS: readonly TabsetCase[] = [
     rootMarker: 'className="mon-gs-report-tabs"',
     relationStem: "mon-gs-report",
   },
-  {
-    name: "B08 Aulas · avance",
-    file: "features/monitoreo/profiles/aulas/AulasMonitoreoPage.tsx",
-    rootMarker: 'className="aulas-mon-tabs"',
-    relationStem: "aulas-mon",
-  },
+  // B08 «Aulas · avance» RETIRADA, no perdida.
+  //
+  // Auditaba un tablist escrito a mano en la página. En `ecbb059e` las pestañas
+  // de aulas pasaron al rail lateral, o sea al primitivo compartido
+  // `ContextTabRail`, y `className="aulas-mon-tabs"` dejó de existir: esta
+  // entrada llevaba **roja desde entonces**, buscando un marcador que no está.
+  //
+  // La semántica que protegía no se perdió, se mudó: `ContextTabRail.tsx` es
+  // quien pone `role="tablist"`, `role="tab"`, `aria-selected` y
+  // `aria-controls`, y `ContextTabRail.test.tsx` los comprueba. Auditar aquí una
+  // etiqueta que ya no se escribe en la página sería pedirle a un archivo que
+  // declare algo que su componente le da hecho.
+  //
+  // Barrido al retirarla: de las 19 entradas de esta tabla, era la ÚNICA cuyo
+  // marcador no aparece exactamente una vez en su archivo. Las otras 18 siguen
+  // apuntando a algo real.
   {
     name: "B09 Telefonico · consultas",
     file: "features/monitoreo/profiles/telefonico/TelefonicoMonitoreoPage.tsx",

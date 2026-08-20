@@ -1116,7 +1116,7 @@
 /* La franja izquierda dice el desenlace sin leer nada. */
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-titular { border-left-color: var(--pulso-state-ready-fg); }
 .mon-profile-page.is-aulas-flow .aulas-cadena.es-reemplazo { border-left-color: var(--pulso-state-partial-fg); }
-.mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left-color: var(--pulso-danger-fg, #a61d4f); }
+.mon-profile-page.is-aulas-flow .aulas-cadena.es-abierta { border-left-color: var(--pulso-danger-fg, var(--pulso-resultado-rechazo)); }
 
 .mon-profile-page.is-aulas-flow .aulas-cadena-head {
   display: grid;
@@ -1446,29 +1446,29 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control.es-correcto {
-  border-left-color: color-mix(in srgb, #168a55 55%, var(--pulso-border));
+  border-left-color: color-mix(in srgb, var(--pulso-resultado-efectiva) 55%, var(--pulso-border));
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control.es-correcto svg {
-  color: #168a55;
+  color: var(--pulso-resultado-efectiva);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control.es-advertencia {
-  border-left-color: color-mix(in srgb, #b97611 65%, var(--pulso-border));
+  border-left-color: color-mix(in srgb, var(--pulso-resultado-parcial) 65%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-warn-bg) 32%, #fff);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control.es-advertencia svg {
-  color: #b97611;
+  color: var(--pulso-resultado-parcial);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control.es-revisar {
-  border-left-color: color-mix(in srgb, #a61d4f 60%, var(--pulso-border));
-  background: color-mix(in srgb, #a61d4f 5%, #fff);
+  border-left-color: color-mix(in srgb, var(--pulso-resultado-rechazo) 60%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-resultado-rechazo) 5%, #fff);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control.es-revisar svg {
-  color: #a61d4f;
+  color: var(--pulso-resultado-rechazo);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-control-titulo {
@@ -1776,7 +1776,7 @@
 .mon-profile-page.is-aulas-flow .aulas-fuente i {
   display: block;
   margin-top: 1px;
-  color: #168a55;
+  color: var(--pulso-resultado-efectiva);
 }
 
 /* Una fuente apagada no se esconde: sigue declarada y se lee en gris. */
@@ -2064,10 +2064,10 @@
   border-radius: 6px;
   background: repeating-linear-gradient(
     135deg,
-    color-mix(in srgb, #b97611 40%, transparent) 0 4px,
+    color-mix(in srgb, var(--pulso-resultado-parcial) 40%, transparent) 0 4px,
     transparent 4px 8px
   );
-  border: 1px dashed color-mix(in srgb, #b97611 55%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--pulso-resultado-parcial) 55%, transparent);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas {
@@ -2095,9 +2095,9 @@
   background: currentColor;
 }
 
-.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-cubierto::before { background: #168a55; }
-.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-falta::before { background: #7a8796; }
-.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-excedente::before { background: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-cubierto::before { background: var(--pulso-resultado-efectiva); }
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-falta::before { background: var(--pulso-resultado-pendiente); }
+.mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-excedente::before { background: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-avance-mermas .es-sin-meta::before { background: var(--pulso-border); }
 
 /* ── Por facultad ────────────────────────────────────────────────────────────
@@ -2216,7 +2216,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra .es-cumplida {
-  color: #168a55;
+  color: var(--pulso-resultado-efectiva);
 }
 
 /* ── Pirámide de cuota ───────────────────────────────────────────────────────
@@ -3382,7 +3382,7 @@
 .mon-profile-page.is-aulas-flow .aulas-pronostico-hoy {
   position: absolute; width: 9px; height: 9px; border-radius: 50%;
   transform: translate(-50%, -50%); pointer-events: auto;
-  background: var(--pulso-state-ok-fg, #168a55);
+  background: var(--pulso-state-ok-fg, var(--pulso-resultado-efectiva));
   box-shadow: 0 0 0 2px var(--pulso-surface);
 }
 .mon-profile-page.is-aulas-flow .aulas-pronostico-eje {
@@ -3395,8 +3395,8 @@
 .mon-profile-page.is-aulas-flow .aulas-anticipacion { display: grid; gap: 6px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-ok {
   margin: 0; padding: 8px 10px; border-radius: 8px;
-  border: 1px solid color-mix(in srgb, #168a55 26%, var(--pulso-border));
-  background: color-mix(in srgb, #168a55 6%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-resultado-efectiva) 26%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-resultado-efectiva) 6%, var(--pulso-surface));
   color: var(--pulso-text); font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista { margin: 0; padding: 0; list-style: none; }
@@ -3405,8 +3405,8 @@
    resuelven el mismo reparto, y cada `li` es su propia grilla. */
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista.con-banco { --aulas-anticipacion-cifras: 4; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-sinbanco {
-  margin: 0; font-size: var(--aulas-sec); color: #a61d4f;
-  border-left: 2px solid #a61d4f; padding-left: 8px;
+  margin: 0; font-size: var(--aulas-sec); color: var(--pulso-resultado-rechazo);
+  border-left: 2px solid var(--pulso-resultado-rechazo); padding-left: 8px;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li {
   /* Cada fila es su propia grilla, asi que la ultima columna NO puede ser
@@ -3426,14 +3426,14 @@
   letter-spacing: 0.02em; text-transform: uppercase;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li.es-urgente {
-  background: color-mix(in srgb, #a61d4f 4%, transparent);
+  background: color-mix(in srgb, var(--pulso-resultado-rechazo) 4%, transparent);
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-nombre {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-pedir strong { font-size: 13px; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:last-child { white-space: nowrap; }
-.mon-profile-page.is-aulas-flow .aulas-anticipacion-ya { color: #a61d4f; font-weight: 650; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-ya { color: var(--pulso-resultado-rechazo); font-weight: 650; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-pie { margin: 2px 0 0; font-size: var(--aulas-sec); }
 
 /* Serie de rendimiento por facultad: el general y el de una sola. */
@@ -3577,7 +3577,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-zona.es-aplicado {
   margin-right: 6px; color: var(--pulso-text-faint);
 }
-/* El rotulo de la zona inferida. El color de la SERIE (#b97611) sirve para una
+/* El rotulo de la zona inferida. El color de la SERIE (var(--pulso-resultado-parcial)) sirve para una
    linea de 2 px, no para 9.5 px en mayusculas: medido daba 3.22:1 sobre su
    propio tinte, y el minimo legible es 4.5. `--pulso-warn-fg` es el token que
    ya existe para «texto sobre fondo ambar teñido» —5.7:1— y de paso quita un
@@ -3585,7 +3585,7 @@
    lo que cambia es el texto, no la identidad de la zona. */
 .mon-profile-page.is-aulas-flow .aulas-serie-zona.es-agendado {
   margin-left: 6px; color: var(--pulso-warn-fg);
-  background: color-mix(in srgb, #b97611 12%, transparent);
+  background: color-mix(in srgb, var(--pulso-resultado-parcial) 12%, transparent);
 }
 /* La guia vertical compartida: el dia sobre el que esta el raton, marcado en LOS
  * DOS graficos a la vez. Los lienzos ya coincidian al pixel, pero coincidir no es
@@ -3606,14 +3606,14 @@
   /* Mismo caso que la zona: el verde de la serie daba 3.85:1 a 10 px.
      `--pulso-success-fg` da 6.28 sobre este mismo tinte. */
   color: var(--pulso-success-fg);
-  border: 1px solid color-mix(in srgb, #168a55 34%, transparent);
-  background: color-mix(in srgb, #168a55 10%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-resultado-efectiva) 34%, transparent);
+  background: color-mix(in srgb, var(--pulso-resultado-efectiva) 10%, var(--pulso-surface));
 }
 /* Cuando el cruce cae en lo agendado NO es un hecho: es una prevision, y se
  * pinta con el color de lo inferido para que no se lea como conseguido. */
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce.es-inferido {
-  color: var(--pulso-warn-fg); border-color: color-mix(in srgb, #b97611 34%, transparent);
-  background: color-mix(in srgb, #b97611 10%, var(--pulso-surface));
+  color: var(--pulso-warn-fg); border-color: color-mix(in srgb, var(--pulso-resultado-parcial) 34%, transparent);
+  background: color-mix(in srgb, var(--pulso-resultado-parcial) 10%, var(--pulso-surface));
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cruce b { font-weight: 700; }
 /* El cruce de una CUOTA de sexo, en su color. Mas discreto que el del total: el
@@ -3640,9 +3640,9 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-punto {
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
   transform: translate(-50%, -50%); cursor: help;
-  background: var(--pulso-surface); border: 2px solid #168a55;
+  background: var(--pulso-surface); border: 2px solid var(--pulso-resultado-efectiva);
 }
-.mon-profile-page.is-aulas-flow .aulas-serie-punto.es-inferido { border-color: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-serie-punto.es-inferido { border-color: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-serie-punto:focus-visible {
   outline: 2px solid var(--pulso-focus, #2f6f90); outline-offset: 2px;
 }
@@ -3715,7 +3715,7 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-dias i {
   width: 1px; height: 5px; background: var(--pulso-border);
 }
-.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda i { background: #b97611; }
+.mon-profile-page.is-aulas-flow .aulas-serie-dias li.es-agenda i { background: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-serie-dias span {
   color: var(--pulso-text-faint); font-size: var(--aulas-min);
   font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -3766,14 +3766,14 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tbody th { text-align: left; font-weight: 600; }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tbody td:last-child { font-weight: 600; }
-.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-cumplida td:last-child { color: #168a55; }
-.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-llega td:last-child { color: #b97611; }
-.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-corta td:last-child { color: #a61d4f; }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-cumplida td:last-child { color: var(--pulso-resultado-efectiva); }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-llega td:last-child { color: var(--pulso-resultado-parcial); }
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-corta td:last-child { color: var(--pulso-resultado-rechazo); }
 
 .mon-profile-page.is-aulas-flow .aulas-serie-aviso {
   margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;
-  border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
-  background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-resultado-parcial) 32%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-resultado-parcial) 7%, var(--pulso-surface));
   color: var(--pulso-text); font-size: var(--aulas-sec);
 }
 .mon-profile-page.is-aulas-flow .aulas-serie-pie {
@@ -3989,8 +3989,8 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-efectiva-aviso {
   margin: 0; padding: 7px 10px; border-radius: 8px; font-size: var(--aulas-sec);
-  border: 1px solid color-mix(in srgb, #b97611 32%, var(--pulso-border));
-  background: color-mix(in srgb, #b97611 7%, var(--pulso-surface));
+  border: 1px solid color-mix(in srgb, var(--pulso-resultado-parcial) 32%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-resultado-parcial) 7%, var(--pulso-surface));
 }
 .mon-profile-page.is-aulas-flow .aulas-efectiva-mando {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
