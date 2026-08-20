@@ -4,10 +4,12 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
 import type { FacultadDelBanco } from "./AulasBancoExtras";
 import {
   DIAS_DE_ANTICIPACION,
+  TASA_DE_CAIDA,
   type AlertaDeFacultad,
   alertaDeAnticipacion,
 } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
+import { caidaObservada } from "./tasaDeCaida";
 
 /**
  * A quién hay que salir a agendar, cuántas aulas y hasta qué día se puede esperar.
@@ -41,6 +43,9 @@ function cuando(f: AlertaDeFacultad): string {
   return f.pedirAntesDe ? `antes del ${diaCorto(f.pedirAntesDe)}` : "hay margen";
 }
 
+/** `0.235` → `24 %`. */
+const pctCorto = (n: number) => `${Math.round(n * 100)} %`;
+
 export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [] }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
@@ -61,6 +66,13 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
   // veces. Se omite entera: una columna que no distingue nada sólo estrecha las
   // que sí lo hacen.
   const hayBanco = conBrecha.some((f) => f.bancoDisponible != null);
+  // **El supuesto que hay detrás de cada número de esta lista.**
+  //
+  // «Pedir 14» sale de multiplicar lo que falta por la tasa de caída de 2025.
+  // Esa constante no se toca —cambiarla cada día haría la alerta inservible—
+  // pero si este estudio se estuviera cayendo al 35 % la lista estaría pidiendo
+  // un cuarto menos de lo necesario y nada lo diría.
+  const caida = useMemo(() => caidaObservada(agenda), [agenda]);
   // Cuando todas las facultades dicen lo mismo en «Cuándo», la columna es la
   // misma palabra veinte veces: ruido que empuja al resto. Se dice una vez en la
   // lectura y la columna desaparece. Se compara el TEXTO y no la urgencia,
@@ -96,6 +108,33 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
           : null}
         {cuandos.size === 1 ? ` · todas: ${[...cuandos][0]}` : ""}
       </p>
+
+      {/* El supuesto, comparado con lo que va pasando. Va ARRIBA de la lista
+          porque califica todos sus números, no debajo como una nota. */}
+      {caida.tasa != null ? (
+        <p className={`aulas-anticipacion-caida${caida.direccion ? " es-distinta" : ""}`}>
+          <span>
+            Se cae <strong>{pctCorto(caida.tasa)}</strong> de los titulares
+            {" "}({fmt(caida.caidas)} de {fmt(caida.decididos)} ya resueltos)
+            {" · "}en 2025 fue <strong>{pctCorto(TASA_DE_CAIDA)}</strong>
+          </span>
+          {caida.direccion ? (
+            <em>
+              {caida.direccion === "se caen más"
+                ? "se están cayendo más que entonces: la lista está pidiendo de menos"
+                : "se están cayendo menos que entonces: la lista está pidiendo de más"}
+            </em>
+          ) : (
+            // Dentro del margen no se dice «va igual»: se dice que todavía no se
+            // puede distinguir, que es lo que la evidencia permite afirmar.
+            <em>
+              {caida.margen == null
+                ? "todavía son pocos desenlaces para compararlo"
+                : "la diferencia cabe dentro del margen de este tamaño"}
+            </em>
+          )}
+        </p>
+      ) : null}
 
       {/* Va fuera de la lectura y antes de la tabla porque cambia QUÉ hacer, no
           cuánto: con el banco corto no hay llamada que lo arregle. */}
