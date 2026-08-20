@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { AlertCircle, CheckCircle2, ShieldAlert } from "../../../../vendor/lucide-react";
+import { AlertCircle, CheckCircle2, HelpCircle, ShieldAlert } from "../../../../vendor/lucide-react";
 import { aulasCheckLabel, aulasStatusLabel, presentDetail } from "./aulasPresentation";
 
 /**
@@ -21,19 +21,26 @@ import { aulasCheckLabel, aulasStatusLabel, presentDetail } from "./aulasPresent
  * es «verde por conformidad, no por ausencia»— pero se lee en un renglón.
  */
 
-type Severidad = "revisar" | "advertencia" | "correcto";
+type Severidad = "revisar" | "advertencia" | "sin-comprobar" | "correcto";
 
 const SEVERIDAD: Record<string, Severidad> = {
   review: "revisar",
   warning: "advertencia",
+  // Un control que no pudo ejecutarse NO es un control conforme. Iba en `ok` y
+  // engordaba «6 correctos» con uno que decía en su propio texto que no había
+  // podido comprobarse.
+  sin_datos: "sin-comprobar",
   ok: "correcto",
 };
 
-const ORDEN: Record<Severidad, number> = { revisar: 0, advertencia: 1, correcto: 2 };
+// Entre la advertencia y lo correcto: no pide acción hoy, pero tampoco cuenta
+// como salud. Un verde por ausencia se lee como conformidad.
+const ORDEN: Record<Severidad, number> = { revisar: 0, advertencia: 1, "sin-comprobar": 2, correcto: 3 };
 
 const ICONO = {
   revisar: ShieldAlert,
   advertencia: AlertCircle,
+  "sin-comprobar": HelpCircle,
   correcto: CheckCircle2,
 } as const;
 
@@ -127,6 +134,7 @@ export function controlesDeAulas(filas: ReadonlyArray<Record<string, unknown>>) 
     revisar: controles.filter((c) => c.severidad === "revisar").length,
     advertencias: controles.filter((c) => c.severidad === "advertencia").length,
     correctos: controles.filter((c) => c.severidad === "correcto").length,
+    sinComprobar: controles.filter((c) => c.severidad === "sin-comprobar").length,
   };
 }
 
@@ -142,7 +150,7 @@ export function AulasControles({ filas, plan = [] }: {
    */
   plan?: ReadonlyArray<Record<string, unknown>>;
 }) {
-  const { controles, revisar, advertencias, correctos } = useMemo(
+  const { controles, revisar, advertencias, correctos, sinComprobar } = useMemo(
     () => controlesDeAulas(filas),
     [filas],
   );
@@ -169,6 +177,14 @@ export function AulasControles({ filas, plan = [] }: {
         <strong>{revisar}</strong> piden revisión · <strong>{advertencias}</strong>{" "}
         {advertencias === 1 ? "advertencia" : "advertencias"} ·{" "}
         <strong>{correctos}</strong> {correctos === 1 ? "correcto" : "correctos"}
+        {/* **Tres números, no dos.** El Contrato de Superficie lo pide para el
+            gate visual —«conformes / no conformes / no declaradas»— y esta lista
+            es exactamente el mismo problema: un control que no pudo ejecutarse
+            iba en «correctos» y hacía que la pantalla se leyera más sana de lo
+            que el corte permite afirmar. */}
+        {sinComprobar ? (
+          <> · <strong>{sinComprobar}</strong> sin comprobar</>
+        ) : null}
       </p>
       <ul className="aulas-controles-lista">
         {controles.map((control) => {

@@ -1379,6 +1379,17 @@
   color: var(--pulso-resultado-efectiva);
 }
 
+/* Sin comprobar: NI verde ni ambar. Un control que no pudo ejecutarse no es
+   salud —por eso no comparte el verde de «correcto»— pero tampoco pide accion
+   hoy, asi que no roba la atencion de los que si. Neutro, que es lo que es. */
+.mon-profile-page.is-aulas-flow .aulas-control.es-sin-comprobar {
+  border-color: var(--pulso-border);
+  background: var(--pulso-surface-2);
+}
+.mon-profile-page.is-aulas-flow .aulas-control.es-sin-comprobar svg {
+  color: var(--pulso-text-faint);
+}
+
 .mon-profile-page.is-aulas-flow .aulas-control.es-advertencia {
   border-left-color: color-mix(in srgb, var(--pulso-resultado-parcial) 65%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-warn-bg) 32%, #fff);

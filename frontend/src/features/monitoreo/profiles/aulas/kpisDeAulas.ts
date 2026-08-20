@@ -318,7 +318,18 @@ export function aulasKpis(
     const controles = (dashboard?.validation ?? []) as Array<Record<string, unknown>>;
     const alertas = summarizeAulasValidation(controles);
     return [
-      { label: "Controles", icono: ClipboardCheck, value: fmt(controles.length), pista: "reglas evaluadas sobre este corte" },
+      {
+        label: "Controles",
+        icono: ClipboardCheck,
+        // El tile ensena las EVALUADAS, no las declaradas, para que su cifra y la
+        // de Alertas compartan denominador. La diferencia con la lista de abajo
+        // —que sigue mostrando las once— la explica la propia pista; callarla
+        // dejaria dos fuentes del mismo hecho discrepando sin que nadie lo diga.
+        value: fmt(alertas.evaluados),
+        pista: alertas.sinComprobar
+          ? `evaluadas · ${alertas.sinComprobar} sin comprobar`
+          : "reglas evaluadas sobre este corte",
+      },
       {
         label: "Alertas",
         icono: ShieldAlert,
