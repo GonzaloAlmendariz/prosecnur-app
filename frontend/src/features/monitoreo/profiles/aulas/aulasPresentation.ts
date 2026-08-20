@@ -230,6 +230,15 @@ export const STATUS_LABELS: Record<string, string> = {
   ok: "Correcto",
   review: "Revisar",
   warning: "Advertencia",
+  /**
+   * **«No se puede comprobar» no es «correcto».**
+   *
+   * Un control sin los datos para ejecutarse se contaba como `ok`, así que la
+   * pantalla decía «6 correctos» donde uno de los seis declaraba en su propio
+   * texto que no había podido comprobarse. Es el «verde por AUSENCIA» que el
+   * Contrato de Superficie prohíbe, cometido dentro de la lista de validación.
+   */
+  sin_datos: "Sin comprobar",
   planificada: "Planificada",
   contactada: "Contactada",
   agendada: "Agendada",
@@ -500,9 +509,20 @@ export function presentAulasRow(
   );
 }
 
+// Tres cifras, no una: un control que NO SE PUDO EJECUTAR no es una alerta
+// —no hay nada que corregir— pero tampoco cuenta como regla evaluada. Con dos
+// cifras el mismo control caia en el monton equivocado hiciera lo que hiciera:
+// contado como alerta prometia trabajo que no existe, y contado aparte del
+// total dejaba el tile diciendo «11 reglas evaluadas» cuando se evaluaron 10.
+// El desconocido sigue cayendo en `count`, que es donde tiene que hacer ruido.
 export function summarizeAulasValidation(rows: Array<Record<string, unknown>>) {
-  if (!rows.length) return { label: "Sin controles disponibles", count: 0 };
-  const count = rows.filter((row) => normalizedKey(row.status) !== "ok").length;
-  if (!count) return { label: "Sin alertas", count: 0 };
-  return { label: `${count} ${count === 1 ? "alerta" : "alertas"}`, count };
+  if (!rows.length) return { label: "Sin controles disponibles", count: 0, sinComprobar: 0, evaluados: 0 };
+  const sinComprobar = rows.filter((row) => normalizedKey(row.status) === "sin_datos").length;
+  const evaluados = rows.length - sinComprobar;
+  const count = rows.filter((row) => {
+    const estado = normalizedKey(row.status);
+    return estado !== "ok" && estado !== "sin_datos";
+  }).length;
+  if (!count) return { label: "Sin alertas", count: 0, sinComprobar, evaluados };
+  return { label: `${count} ${count === 1 ? "alerta" : "alertas"}`, count, sinComprobar, evaluados };
 }

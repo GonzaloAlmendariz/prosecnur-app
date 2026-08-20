@@ -532,9 +532,14 @@ test_that("un aula llena no se denuncia como colectores duplicados", {
   # 10 alumnos escanean el MISMO QR: es el diseno del estudio, no una anomalia.
   # El control: el chequeo viejo (`duplicate_collectors`) decia "review" aqui, o
   # sea siempre que un aula tuviera mas de una respuesta.
+  # Con `_uuid` distintos: diez respuestas del MISMO QR y ninguna repetida. Antes
+  # este caso venia sin identificador, asi que el "ok" que fijaba salia de la
+  # rama en la que el control no puede ejecutarse —verde por ausencia— y no de
+  # la rama que el test dice comprobar.
   lleno <- .costura_validacion(
     ho$monitoring_rows,
-    data.frame(collectorID = rep(uid[1], 10), stringsAsFactors = FALSE),
+    data.frame(collectorID = rep(uid[1], 10), `_uuid` = as.character(seq_len(10)),
+               check.names = FALSE, stringsAsFactors = FALSE),
     "duplicate_responses"
   )
   expect_identical(lleno$status, "ok")
@@ -563,7 +568,10 @@ test_that("sin identificador de respuesta el aviso lo dice, no calla ni alarma",
     data.frame(collectorID = rep(uid[1], 4), stringsAsFactors = FALSE),
     "duplicate_responses"
   )
-  expect_identical(sin_id$status, "ok")
+  # `sin_datos`, no "ok": el panel contaba este control entre los «6 correctos»
+  # mientras su propio texto decia que no se pudo comprobar, que es el verde por
+  # ausencia que el Contrato de Superficie prohibe.
+  expect_identical(sin_id$status, "sin_datos")
   expect_match(sin_id$detail, "no trae identificador de respuesta")
 })
 

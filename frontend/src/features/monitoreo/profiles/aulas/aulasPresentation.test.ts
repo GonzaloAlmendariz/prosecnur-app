@@ -88,27 +88,52 @@ describe("aulasPresentation", () => {
     });
   });
 
+  it("un control que no se pudo ejecutar no es alerta ni cuenta como evaluado", () => {
+    // El defecto que esto fija: el KPI decia «6 controles que no pasan» sobre
+    // un corte donde uno de los seis no pudo ejecutarse —la fuente no trae
+    // identificador de respuesta— y el de al lado prometia «11 reglas
+    // evaluadas». Los tres numeros tienen que cuadrar: evaluados + sin
+    // comprobar = total, y las alertas salen solo de lo evaluado.
+    const resumen = summarizeAulasValidation([
+      { check: "anonymous_responses", status: "ok" },
+      { check: "sex_faculty_quota", status: "warning" },
+      { check: "duplicate_responses", status: "sin_datos" },
+    ]);
+    expect(resumen).toEqual({ label: "1 alerta", count: 1, sinComprobar: 1, evaluados: 2 });
+    expect(resumen.evaluados + resumen.sinComprobar).toBe(3);
+
+    // Y el control del control: sin ninguna fila `sin_datos` las mismas dos
+    // reglas dan `evaluados` igual al total, asi que el aserto de arriba no
+    // pasaria igual si `sin_datos` volviera a contarse como una mas.
+    expect(summarizeAulasValidation([
+      { check: "anonymous_responses", status: "ok" },
+      { check: "sex_faculty_quota", status: "warning" },
+    ])).toEqual({ label: "1 alerta", count: 1, sinComprobar: 0, evaluados: 2 });
+  });
+
   it("resume solo estados no correctos como alertas", () => {
     expect(summarizeAulasValidation([])).toEqual({
       label: "Sin controles disponibles",
       count: 0,
+      sinComprobar: 0,
+      evaluados: 0,
     });
 
     expect(summarizeAulasValidation([
       { check: "anonymous_responses", status: "ok" },
       { check: "student_id_required", status: "ok" },
-    ])).toEqual({ label: "Sin alertas", count: 0 });
+    ])).toEqual({ label: "Sin alertas", count: 0, sinComprobar: 0, evaluados: 2 });
 
     expect(summarizeAulasValidation([
       { check: "anonymous_responses", status: "ok" },
       { check: "duplicate_responses", status: "review" },
       { check: "sex_faculty_quota", status: "warning" },
-    ])).toEqual({ label: "2 alertas", count: 2 });
+    ])).toEqual({ label: "2 alertas", count: 2, sinComprobar: 0, evaluados: 3 });
 
     expect(summarizeAulasValidation([
       { check: "anonymous_responses", status: "" },
       { check: "student_id_required", status: "estado_nuevo" },
-    ])).toEqual({ label: "2 alertas", count: 2 });
+    ])).toEqual({ label: "2 alertas", count: 2, sinComprobar: 0, evaluados: 2 });
     // Un estado vacio NO es «Por revisar»: esa palabra ya la usa el estado
     // `review` de un control, y la misma palabra para un hallazgo y para la
     // ausencia de dato hacia que las 196 aulas dijeran «Estado de ficha: Por

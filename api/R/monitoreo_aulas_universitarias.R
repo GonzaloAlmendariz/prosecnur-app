@@ -1571,7 +1571,15 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       "ok",
       if (any(huerfanas)) "warning" else "ok",
-      if (respuestas_repetidas > 0L) "review" else "ok",
+      # **«No se puede comprobar» NO es «correcto».**
+      #
+      # Sin columna de identificador de respuesta este control no mira nada, y
+      # aun asi se contaba entre los correctos: la pantalla decia «6 correctos»
+      # donde uno de los seis declaraba en su propio texto que no habia podido
+      # comprobarse. Es el «verde por AUSENCIA» que el Contrato de Superficie
+      # prohibe, cometido dentro de la propia lista de validacion.
+      if (!nzchar(respuesta_id_col)) "sin_datos"
+      else if (respuestas_repetidas > 0L) "review" else "ok",
       # El estado mira el PUNTAJE, no solo el aviso extremo. Antes solo se
       # miraba `warning`, que exige 10 pp de desvio en una sola celda, asi que
       # un puntaje de 0 sobre 100 —la peor representatividad que la escala puede
