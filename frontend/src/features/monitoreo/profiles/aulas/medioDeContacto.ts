@@ -85,3 +85,25 @@ export function medioDeContacto(
     || (x.intentos ?? Infinity) - (y.intentos ?? Infinity)
     || y.aulas - x.aulas);
 }
+
+/**
+ * Si la diferencia entre dos medios es mayor que el azar de sus tamaños.
+ *
+ * El panel se titula «Qué medio agenda mejor» y su lectura ordena dos medios.
+ * Medido sobre el corte: **Llamada 82,3 % (121 de 147) y Correo 79,6 % (39 de
+ * 49)**, o sea **2,7 puntos de diferencia contra una banda de 13,1**. Con esos
+ * tamaños, esa distancia sale por casualidad la mitad de las veces, y quien lee
+ * «Llamada agenda mejor» cambia cómo se contacta a la gente por nada.
+ *
+ * Se compara contra dos errores estándar de la diferencia de proporciones. Es la
+ * misma disciplina que la tasa de caída y la tendencia por facultad: **la cifra
+ * se enseña siempre, pero sólo se ordena lo que el dato sostiene**.
+ */
+export function difereDeVerdad(a: MedioDeContacto, b: MedioDeContacto): boolean {
+  if (!a.aulas || !b.aulas) return false;
+  const pa = a.agendadas / a.aulas;
+  const pb = b.agendadas / b.aulas;
+  const error = Math.sqrt((pa * (1 - pa)) / a.aulas + (pb * (1 - pb)) / b.aulas);
+  if (error <= 0) return pa !== pb;
+  return Math.abs(pa - pb) > 2 * error;
+}
