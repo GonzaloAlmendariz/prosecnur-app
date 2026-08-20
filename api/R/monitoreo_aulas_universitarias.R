@@ -325,6 +325,20 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
         limpios
       })
     ),
+    # **Que es un aula valida en este estudio.** Va en la whitelist o no
+    # persiste: es la misma trampa que ya se comio a `valid_filters`, y una
+    # superficie para declararlo con el campo cayendose al guardar seria peor
+    # que no tenerla.
+    #
+    # Se normaliza con `monitoreo_aulas_criterio_aula()`, que es quien define
+    # que es declarable: asi hay UNA sola definicion y no dos que se separan.
+    # `NULL` cuando no se declaro, que es como estan todos los estudios de hoy.
+    aula_valida = local({
+      crit <- monitoreo_aulas_criterio_aula(list(
+        aula_valida = config$aula_valida %||% defaults$aula_valida
+      ))
+      if (is.null(crit)) NULL else crit
+    }),
     plan = monitoreo_aulas_normalize_plan(config$plan %||% config$agenda %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no

@@ -4271,3 +4271,45 @@
 .mon-profile-page.is-aulas-flow .aulas-control-validadores {
   margin: 0 0 6px; font-size: var(--aulas-min);
 }
+
+/* Que es un aula valida en este estudio. Va junto al veredicto que produce:
+   una vara declarada lejos de su resultado es una vara que nadie sabe cual es. */
+.mon-profile-page.is-aulas-flow .aulas-criterio {
+  margin: 0 0 10px; padding: 0 0 10px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-linea {
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  margin: 0; font-size: var(--aulas-sec); color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-linea svg {
+  align-self: center; color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-boton {
+  appearance: none; background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; font-size: var(--aulas-min); min-height: 0;
+  color: var(--pulso-primary, #002457); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-form {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-top: 8px; font-size: var(--aulas-sec);
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-form label {
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-form input {
+  width: 62px; font: inherit; font-size: var(--aulas-sec);
+  padding: 2px 6px; border: 1px solid var(--pulso-border); border-radius: 6px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-criterio-form > button {
+  font: inherit; font-size: var(--aulas-min); min-height: 0;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid var(--pulso-border); background: var(--pulso-surface);
+  color: var(--pulso-text); cursor: pointer;
+}
+/* La condicion para que el criterio sirva: ocupa toda la linea siguiente. */
+.mon-profile-page.is-aulas-flow .aulas-criterio-form > p {
+  flex-basis: 100%; margin: 0; font-size: var(--aulas-min);
+}

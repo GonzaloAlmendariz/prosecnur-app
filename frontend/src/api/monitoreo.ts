@@ -711,6 +711,13 @@ export type MonitoreoAulasPlanRow = {
 };
 
 export type MonitoreoAulasConfig = {
+  /**
+   * Qué es un aula válida en este estudio. `null` mientras no se declare, que
+   * es como están todos los estudios hoy: el veredicto se lo cree al Excel.
+   * En modo «esperado» se compara con `efectivas_esperadas`, la meta que el
+   * cálculo de muestra calculó para cada curso-horario.
+   */
+  aula_valida?: { modo?: "esperado" | "proporcion"; alfa?: number; umbral?: number; exige?: string } | null;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   schema: "monitoreo_aulas_universitarias_v1" | string;
