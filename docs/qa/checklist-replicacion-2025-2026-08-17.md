@@ -4236,3 +4236,24 @@ condicion −12.408 · edad −11.530 · formacion −10.661 · facultad −9.04
 Pie con el acumulado real del motor (109.737/137.919, 79,6%).
 Verificada en vivo. La cola de la vara sigue viva: proximos candidatos
 al recorrer Datos y las transiciones entre pestañas.
+
+### M9 — HALLAZGO MAYOR en Datos/Variables: la superficie dice «Sin asignar» con el mapping sellado y el marco construido
+
+Recorrido con el lente didactico destapo un C5 roto: las tarjetas del
+mapeo manual muestran «Sin asignar» en TODOS los roles (identificador,
+facultad, sexo…) mientras el motor tiene el mapping 2026 sellado
+(ALUMNO/NOMBREFAC/SEXO…) y el marco construido con el. Causa: la
+pestaña lee workspace.variable_mappings y el mapping real vive en
+calc_muestra_aulas_config.mapping — SEXTA aparicion de la familia
+«dos dueños» (config x3, decision x3, N x2, frame.config-gana x3, y
+ahora variable_mappings vs mapping). Riesgo de usuario: re-mapear
+creyendo que falta, o desconfiar del marco.
+
+PLAN (tick dedicado, no parche a ciegas): (1) el motor publica en el
+frame las columnas RESUELTAS por rol (hoy no viajan para la base, solo
+para el catalogo); (2) frame_guardar las aterriza a
+workspace.variable_mappings con el patron que YA existe para criterios
+(.cm_criterios_sincronizar_workspace — mismo porqué: «una config
+aplicada por API dejaba el chip en ambar perpetuo»); (3) la tarjeta
+distingue «confirmado por el usuario» de «resuelto por el motor». Todo
+suma al ADR del dueño unico.
