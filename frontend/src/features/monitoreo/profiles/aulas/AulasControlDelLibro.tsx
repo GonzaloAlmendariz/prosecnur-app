@@ -163,23 +163,80 @@ const COLUMNAS_DE_CIFRA = new Set([
   "quota_pct", "quota_missing", "women_n", "men_n", "women_pct", "men_pct",
 ]);
 
-/** `VALIDO TOTAL` y `VALIDO POBLACION`: el veredicto del equipo, en 1/0. */
-const COLUMNAS_DE_VEREDICTO = new Set(["valid_total", "valid_population"]);
+/**
+ * `VALIDO TOTAL` y `VALIDO POBLACION`: el veredicto del aula.
+ *
+ * Cada columna se dibuja desde el veredicto que **el motor ya resolvió**, no
+ * releyendo la celda. El campo del motor y el umbral con el que se calcula el
+ * respaldo van al lado del nombre de la columna porque son la misma decisión.
+ */
+const COLUMNAS_DE_VEREDICTO = new Map([
+  ["valid_total", { veredicto: "cumple_total", umbral: "threshold_total", celda: "valid_total" }],
+  ["valid_population", { veredicto: "cumple_poblacion", umbral: "threshold_population", celda: "valid_population" }],
+]);
 
-function Veredicto1o0({ valor }: { valor: unknown }) {
-  const txt = String(valor ?? "").trim();
-  if (!txt) return <span className="mon-profile-muted">—</span>;
-  const si = ["1", "SI", "SÍ", "TRUE", "V", "VALIDO", "VÁLIDO", "CUMPLE", "OK"]
-    .includes(txt.toUpperCase());
-  // El NO CUMPLE se dibujaba «·». Medido sobre HSVG2026: en «Válido población»
-  // 103 filas decían no cumple con ese punto y otras 70 decían «sin dato» con
-  // un «—», las dos grises y del mismo peso. Un ojo que recorre la columna no
-  // distingue el veredicto negativo de la ausencia de veredicto, que son cosas
-  // opuestas —una es un resultado del aula y la otra un hueco de la hoja—, y
-  // encima la marca más callada de la tabla era la del caso mayoritario.
+/**
+ * El veredicto del aula, con TRES estados.
+ *
+ * Antes esta marca releía la celda con su propia lista de palabras válidas y
+ * mandaba a «✗ No válido» todo lo que no reconocía. Contra el motor, que ya
+ * resuelve lo mismo en `cumple_total` / `cumple_poblacion`, las dos fuentes
+ * discrepaban **en los dos sentidos**, y las dos discrepancias son visibles en
+ * la misma pantalla:
+ *
+ * - una celda con «PENDIENTE» → el motor la deja INDETERMINADA y el aula no
+ *   cuenta como efectiva, pero la tabla la marcaba «✗ No válido», que es acusar
+ *   a un aula de no llegar cuando lo que pasa es que nadie la evaluó;
+ * - una celda VACÍA con 30 enviadas contra un umbral de 20 → el motor declara
+ *   el aula EFECTIVA y la cuenta arriba, mientras la tabla decía «—», o sea
+ *   «sin dato» sobre un aula que el propio panel ya contó entre las efectivas.
+ *
+ * El fixture no produce ninguno de los dos casos —sus celdas son 1, 0 o
+ * vacías—, así que ninguna pasada visual podía verlo: salió de correr el motor.
+ *
+ * `cumple_*` no tenía un solo consumidor en el frontend. Ahora es la fuente, y
+ * la celda cruda pasa al `title`: la hoja es del equipo y un veredicto que el
+ * equipo no escribió tiene que decir de dónde salió.
+ */
+function VeredictoDelAula({
+  fila,
+  campo,
+  umbral,
+  celdaDeLaHoja,
+}: {
+  fila: Readonly<Record<string, unknown>>;
+  campo: string;
+  umbral: string;
+  celdaDeLaHoja: string;
+}) {
+  const v = fila[campo];
+  const celda = String(fila[celdaDeLaHoja] ?? "").trim();
+  if (v !== true && v !== false) {
+    return (
+      <span
+        className="mon-profile-muted"
+        title={celda
+          ? `La hoja dice «${celda}», que no se lee como un veredicto, y no hay umbral con qué calcularlo.`
+          : "La hoja no trae el veredicto y no hay umbral con qué calcularlo."}
+      >
+        —
+      </span>
+    );
+  }
+  // Derivado: la hoja no lo escribió y el motor lo calculó contra el umbral que
+  // la propia hoja trae. Se marca —punteado, sin color nuevo— porque quien vaya
+  // al Excel a buscar este ✓ no lo va a encontrar ahí.
+  const derivado = !celda;
+  const cifra = texto(fila[umbral]);
+  const enviadas = texto(fila.sent_total);
   return (
-    <span className={`aulas-control-marca${si ? " es-si" : " es-no"}`} title={si ? "Válido" : "No válido"}>
-      {si ? "✓" : "✗"}
+    <span
+      className={`aulas-control-marca${v ? " es-si" : " es-no"}${derivado ? " es-derivado" : ""}`}
+      title={derivado
+        ? `Lo calculó la app: ${enviadas || "las"} enviadas contra el umbral ${cifra || "de la hoja"}. La hoja no trae este veredicto.`
+        : v ? "Válido, según la hoja" : "No válido, según la hoja"}
+    >
+      {v ? "✓" : "✗"}
     </span>
   );
 }
@@ -325,7 +382,19 @@ export function AulasControlDelLibro({
                     ].filter(Boolean).join(" ")}
                   >
                     {COLUMNAS_DE_VEREDICTO.has(c)
-                      ? <Veredicto1o0 valor={fila[c]} />
+                      ? (
+                        <VeredictoDelAula
+                          // La fila CRUDA, no la presentada: el veredicto es un
+                          // dato de decision —`true`/`false`/`null`— y la capa
+                          // de presentacion existe para rotular celdas de la
+                          // hoja. Al pasarlo por ella, `cumple_total` llegaba
+                          // convertido y las tres ramas caian en la misma.
+                          fila={filas[i] ?? fila}
+                          campo={COLUMNAS_DE_VEREDICTO.get(c)!.veredicto}
+                          umbral={COLUMNAS_DE_VEREDICTO.get(c)!.umbral}
+                          celdaDeLaHoja={COLUMNAS_DE_VEREDICTO.get(c)!.celda}
+                        />
+                      )
                       : texto(fila[c]) || <span className="mon-profile-muted">—</span>}
                   </td>
                 ))}
