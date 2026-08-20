@@ -10,6 +10,8 @@ import {
 } from "./alertaDeAnticipacion";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { caidaObservada } from "./tasaDeCaida";
+import { NombreDeFacultad } from "./NombreDeFacultad";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * A quién hay que salir a agendar, cuántas aulas y hasta qué día se puede esperar.
@@ -46,7 +48,7 @@ function cuando(f: AlertaDeFacultad): string {
 /** `0.235` → `24 %`. */
 const pctCorto = (n: number) => `${Math.round(n * 100)} %`;
 
-export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [], facultadEnFoco }: {
+export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], banco = [], facultadEnFoco, onFoco }: {
   partes: ReadonlyArray<MonitoreoRow>;
   agenda?: ReadonlyArray<MonitoreoRow>;
   cuotas?: ReadonlyArray<MonitoreoRow>;
@@ -68,6 +70,8 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
    * gobierna la pirámide.
    */
   facultadEnFoco?: string;
+  /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
+  onFoco?: (foco: FocoDeCuota) => void;
 }) {
   const filas = useMemo(
     () => alertaDeAnticipacion(proyeccionPorAgenda(agenda, partes, cuotas), banco),
@@ -182,7 +186,8 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
         </li>
         {conBrecha.map((f) => (
           <li key={f.facultad} className={`${f.urgencia === "hay margen" ? "" : "es-urgente"}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`}>
-            <span className="aulas-anticipacion-nombre" title={f.facultad}>{f.facultad}</span>
+            <NombreDeFacultad facultad={f.facultad} className="aulas-anticipacion-nombre"
+              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
             <span className="aulas-anticipacion-pedir">
               {f.aulasAPedir ? <strong>{fmt(f.aulasAPedir)}</strong> : <em>S/D</em>}
             </span>

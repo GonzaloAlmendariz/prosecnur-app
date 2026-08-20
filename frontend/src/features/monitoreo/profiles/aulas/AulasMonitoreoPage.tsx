@@ -1171,6 +1171,7 @@ function renderAulasView(
           filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
           resumen={(dashboard.avance_por_facultad ?? []) as never}
           facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
         />
       </section>
       </div>
@@ -1239,6 +1240,7 @@ function renderAulasView(
           cuotas={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
           banco={dashboard.banco_extras?.por_facultad ?? []}
           facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
         />
       </section>
       )}
@@ -1299,6 +1301,7 @@ function renderAulasView(
           ).filas as MonitoreoRow[]}
           plan={(dashboard.agenda ?? []) as MonitoreoRow[]}
           facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
         />
       </section>
       )}
@@ -1419,6 +1422,7 @@ function renderAulasView(
         </div>
         <AulasRitmoPorFacultad
           facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
           partes={parteDeCampo(
             (dashboard.partes_campo ?? []) as MonitoreoRow[],
             (dashboard.agenda ?? []) as MonitoreoRow[],
@@ -1476,6 +1480,7 @@ function renderAulasView(
           filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
           diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
           facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
         />
       </section>
       )}

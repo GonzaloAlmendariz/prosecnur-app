@@ -3,6 +3,8 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } from "./perfilPorFacultad";
+import { NombreDeFacultad } from "./NombreDeFacultad";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * Cada facultad contra su meta, ordenadas por lo que falta.
@@ -17,12 +19,14 @@ import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } fr
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco }: {
+export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** `avance_por_facultad` del motor. Cuando llega, MANDA. */
   resumen?: ReadonlyArray<FilaDeFacultadDelMotor>;
   /** La facultad enfocada. **No filtra: resalta** — ver la nota en `AulasRitmoPorFacultad`. */
   facultadEnFoco?: string;
+  /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
+  onFoco?: (foco: FocoDeCuota) => void;
 }) {
   const { facultades, sinFacultad, tope, cumplidas } = useMemo(
     // El bloque del motor manda porque agrega sobre el conjunto correcto: un
@@ -57,14 +61,15 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco }: {
       <ol className="aulas-facultades-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((f) => (
           <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
-            <span className="aulas-facultad-nombre">
+            <NombreDeFacultad facultad={f.facultad} className="aulas-facultad-nombre"
+              enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
               {f.facultad}
               {/* Con una sola aula la tasa es un caso, no una tendencia: se
                   dice, en vez de dejar que se lea como perfil de la facultad. */}
               {/* Con espacio: el nombre y su cuenta salian pegados —«Gestion14
                   cursos-horario»— porque el `gap` del flex no viaja al texto. */}
               <em>{" "}{f.aulas === 1 ? "1 curso-horario" : `${fmt(f.aulas)} cursos-horario`}</em>
-            </span>
+            </NombreDeFacultad>
             <span
               className="aulas-facultad-carril"
               style={{ width: `${tope ? Math.max(8, (100 * f.meta) / tope) : 0}%` }}

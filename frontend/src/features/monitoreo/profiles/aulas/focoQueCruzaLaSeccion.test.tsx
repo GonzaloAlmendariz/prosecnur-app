@@ -20,6 +20,11 @@ const { AulasRitmoPorFacultad } = await import("./AulasRitmoPorFacultad");
  * otras. El detalle se filtra; el control, no.
  */
 
+const partes = [
+  { faculty: "Derecho", applied_at: "2026-08-10 10:00", effective_surveys: 20, observed_students: 25, operational_code: "CH 1" },
+  { faculty: "Arte", applied_at: "2026-08-11 10:00", effective_surveys: 15, observed_students: 20, operational_code: "CH 2" },
+] as unknown as MonitoreoRow[];
+
 const cuantas = (html: string) => (html.match(/es-en-foco/g) ?? []).length;
 
 describe("el foco cruza la sección y resalta sin filtrar", () => {
@@ -53,11 +58,6 @@ describe("el foco cruza la sección y resalta sin filtrar", () => {
     expect(cuantas(html)).toBe(0);
   });
 
-  const partes = [
-    { faculty: "Derecho", applied_at: "2026-08-10 10:00", effective_surveys: 20, observed_students: 25, operational_code: "CH 1" },
-    { faculty: "Arte", applied_at: "2026-08-11 10:00", effective_surveys: 15, observed_students: 20, operational_code: "CH 2" },
-  ] as unknown as MonitoreoRow[];
-
   it("«Encuestas por día de cada facultad» también", () => {
     const html = renderToStaticMarkup(
       <AulasRitmoPorFacultad partes={partes} facultadEnFoco="Arte" />,
@@ -86,5 +86,59 @@ describe("el foco cruza la sección y resalta sin filtrar", () => {
         clave="franja" unidad="Franja" facultadEnFoco="9:01 – 19:00" />,
     );
     expect(cuantas(porFranja)).toBe(0);
+  });
+});
+
+describe("las listas también PONEN el foco, no sólo lo reflejan", () => {
+  // Se veía en cinco listas y sólo se podía elegir en una —la pirámide, en su
+  // propia pestaña—: quien miraba «A quién hay que agendar» y quería seguir a
+  // Derecho tenía que irse a Cuotas, pulsar y volver. Un foco que se ve en cinco
+  // sitios y se pone en uno es media función.
+  const resumen = [
+    { faculty: "Derecho", aulas: 9, meta: 100, brecha: 40, respuestas_validas: 60 },
+    { faculty: "Arte", aulas: 5, meta: 80, brecha: 30, respuestas_validas: 50 },
+  ];
+
+  it("sin `onFoco` el nombre es texto, no un botón", () => {
+    // Las listas que no participen del foco no deben cambiar de semántica.
+    const html = renderToStaticMarkup(
+      <AulasPerfilPorFacultad filas={[]} resumen={resumen as never} />,
+    );
+    expect(html).not.toContain("aulas-foco-boton");
+    expect(html).not.toContain("aria-pressed");
+  });
+
+  it("con `onFoco` cada nombre es un botón que dice si está pulsado", () => {
+    const html = renderToStaticMarkup(
+      <AulasPerfilPorFacultad filas={[]} resumen={resumen as never}
+        facultadEnFoco="Derecho" onFoco={() => {}} />,
+    );
+    expect((html.match(/aulas-foco-boton/g) ?? []).length).toBe(2);
+    expect((html.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect((html.match(/aria-pressed="false"/g) ?? []).length).toBe(1);
+  });
+
+  it("pulsar la que ya está en foco lo SUELTA", () => {
+    // Es un interruptor, no una opción de un conjunto: por eso `aria-pressed` y
+    // no `aria-selected`. Sin esto no habría forma de volver a verlas todas.
+    const recibido: unknown[] = [];
+    const html = renderToStaticMarkup(
+      <AulasPerfilPorFacultad filas={[]} resumen={resumen as never}
+        facultadEnFoco="Derecho" onFoco={(f) => recibido.push(f)} />,
+    );
+    // El render estático no dispara clicks; se comprueba el contrato del
+    // componente que los construye.
+    expect(html).toContain("Dejar de seguir Derecho");
+    expect(html).toContain("Seguir Arte en toda la sección");
+  });
+
+  it("las lentes que no agrupan por facultad no ponen foco de facultad", () => {
+    // Sus filas se llaman «9:01 – 19:00» o «Martes»: poner el foco desde ahí
+    // escribiría el nombre de una franja donde va una facultad.
+    const html = renderToStaticMarkup(
+      <AulasRendimientoPorFacultad partes={partes} plan={[]}
+        clave="franja" unidad="Franja" onFoco={() => {}} />,
+    );
+    expect(html).not.toContain("aulas-foco-boton");
   });
 });
