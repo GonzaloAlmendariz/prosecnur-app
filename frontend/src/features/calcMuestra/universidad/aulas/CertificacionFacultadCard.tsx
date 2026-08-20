@@ -190,7 +190,26 @@ export function CertificacionFacultadCard({
                     );
                   })()}
                 </td>
-                <td>{f.margen != null ? `${f.margen.toFixed(2).replace(".", ",")}×` : "—"}</td>
+                <td className="cmv2-cert-margen-celda">
+                  {f.margen != null ? (
+                    <>
+                      <span>{f.margen.toFixed(2).replace(".", ",")}×</span>
+                      {/* La barra del margen contra la marca de 1,0x (la cuota
+                          justa): bajo la marca es deficit, sobre la marca es
+                          colchon. Escala fija 0-2,2x para que las 15 filas
+                          sean comparables entre si. */}
+                      <span className="cmv2-cert-margen-track" aria-hidden="true">
+                        <i
+                          data-cubre={f.margen >= 1 ? "true" : "false"}
+                          style={{ width: `${Math.min(100, (f.margen / 2.2) * 100)}%` }}
+                        />
+                        <b style={{ left: `${(1 / 2.2) * 100}%` }} />
+                      </span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <CeldaSexo fila={f} sexo="F" ref2025={ref2025.get(claveFac(f.facultad))?.F ?? null} />
                 <CeldaSexo fila={f} sexo="M" ref2025={ref2025.get(claveFac(f.facultad))?.M ?? null} />
                 <td>
