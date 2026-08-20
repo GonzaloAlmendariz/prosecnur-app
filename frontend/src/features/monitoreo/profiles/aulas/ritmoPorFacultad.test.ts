@@ -57,3 +57,57 @@ describe("ritmoPorFacultad", () => {
     expect(fechaDeAplicacion("mañana")).toBe("");
   });
 });
+
+describe("una tendencia sólo se llama tendencia si el ruido no la explica", () => {
+  // Medido sobre el corte: la producción diaria del ESTUDIO es plana —de 313 a
+  // 390 efectivas al día— y aun así siete facultades salían «a menos ritmo que
+  // al empezar», con caídas de hasta el 47,9 %. Educación es el caso: 165
+  // efectivas en la primera mitad y 86 en la segunda, con 5 aulas contra 4 y una
+  // sola aula al día, en un estudio donde un aula deja entre 13 y 74.
+  const parteDe = (facultad: string, applied_date: string, effective_surveys: number) =>
+    ({ faculty: facultad, applied_date, effective_surveys }) as unknown as MonitoreoRow;
+
+  const conDias = (facultad: string, valores: number[]) =>
+    valores.map((v, i) => parteDe(facultad, `2026-08-${String(10 + i).padStart(2, "0")}`, v));
+
+  it("el caso real de Educación no se declara: cabe en su vaivén", () => {
+    // 28, 32, 74, 31 | 31, 19, 23, 13 — un −47,9 % que sale de que un día
+    // hubo dos aulas y del tamaño de una sola.
+    const { facultades } = ritmoPorFacultad(conDias("Educacion", [28, 32, 74, 31, 31, 19, 23, 13]));
+    const f = facultades[0];
+    expect(f.tendencia).toBeLessThan(-40);
+    expect(f.distinguible).toBe(false);
+  });
+
+  it("pero una caída sostenida y limpia SÍ se declara", () => {
+    // 40 constantes y luego 10 constantes: sin vaivén interno, la diferencia no
+    // puede venir del azar. Si esto no se declarara, el guard sobraría.
+    const { facultades } = ritmoPorFacultad(conDias("Clara", [40, 41, 39, 40, 10, 11, 9, 10]));
+    const f = facultades[0];
+    expect(f.tendencia).toBeLessThan(-70);
+    expect(f.distinguible).toBe(true);
+  });
+
+  it("una subida limpia también", () => {
+    const { facultades } = ritmoPorFacultad(conDias("Sube", [10, 11, 9, 10, 40, 41, 39, 40]));
+    expect(facultades[0].tendencia).toBeGreaterThan(70);
+    expect(facultades[0].distinguible).toBe(true);
+  });
+
+  it("con menos de cuatro días no hay tendencia ni pretensión de tenerla", () => {
+    const { facultades } = ritmoPorFacultad(conDias("Corta", [30, 20, 25]));
+    expect(facultades[0].tendencia).toBeNull();
+    expect(facultades[0].distinguible).toBe(false);
+  });
+
+  it("primero las que caen de verdad, después las que sólo hacen ruido", () => {
+    // Ordenar por la cifra a secas ponía arriba a la que más vaivén tiene, que
+    // no es lo mismo que la que más cae.
+    const { facultades } = ritmoPorFacultad([
+      ...conDias("Ruidosa", [28, 32, 74, 31, 31, 19, 23, 13]),   // −48 %, ruido
+      ...conDias("Real", [40, 41, 39, 40, 22, 23, 21, 22]),      // −45 %, limpia
+    ]);
+    expect(facultades.map((f) => f.facultad)).toEqual(["Real", "Ruidosa"]);
+    expect(facultades[0].tendencia).toBeGreaterThan(facultades[1].tendencia!);
+  });
+});
