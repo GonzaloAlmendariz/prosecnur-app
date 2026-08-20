@@ -208,9 +208,13 @@ export function fichaDeFacultad(
         // El «antes» correcto es el MARCO ELEGIBLE del estudio anterior
         // (aulas_universo, derivado exacto del catálogo con sus criterios) —
         // comparar contra las sorteadas era peras con manzanas (C&I: 571 vs
-        // 40 cuando su universo 2025 era 655). Sorteadas queda de fallback
-        // para referencias sin universo derivado.
-        hoy: aulasElegibles, antes: h?.aulas_universo ?? h?.aulas_sorteadas ?? null,
+        // 40 cuando su universo 2025 era 655). SIN fallback a sorteadas: la
+        // referencia real trae aulas_universo=NA en las 15 facultades, así que
+        // el fallback corría SIEMPRE y fabricaba deltas absurdos (A&D: 228 vs
+        // 12 «+216», cuando su marco 2025 tenía 222). Si el estudio anterior
+        // no registró su marco por facultad, la columna dice «—», jamás un
+        // número de otro paso del embudo (medido 2026-08-19).
+        hoy: aulasElegibles, antes: h?.aulas_universo ?? null,
         detalle: aulasDelCatalogo != null ? `de ${aulasDelCatalogo} en el catálogo` : "en el marco",
       },
       {
