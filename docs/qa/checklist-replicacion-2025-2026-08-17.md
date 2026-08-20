@@ -4204,3 +4204,11 @@ reparto P25-197, DERECHO quedo al filo — margen 1,04x y mujeres 0,99x
 en ambar (el P25 le recorto de 20 a 18 titulares). La certificacion
 pasa, pero es la facultad mas ajustada del diseño vigente; si Gonzalo
 quiere colchon ahi, el stepper +1 esta al lado.
+
+### M5 ENTREGADA: el reorden del embudo se anima (FLIP)
+
+Al cambiar de paso, las filas viajan a su nueva posicion (320ms, curva
+de la casa, respeta prefers-reduced-motion) en vez de teletransportarse.
+Verificado en vivo (paso 1→7: 12 filas, 26 animaciones). Con M1-M5
+entregadas, la cola de la vara de mejora continua se realimenta:
+proximos candidatos al descubrir en el recorrido de superficies.
