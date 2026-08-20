@@ -43,7 +43,7 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
   const tope = Math.max(...r.equipos.map((e) => e.porAula), 1);
 
   return (
-    <div className="aulas-equipos">
+    <div className="aulas-equipos" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
         {r.distinguibles === 0 ? (
           <>

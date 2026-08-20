@@ -86,7 +86,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
     : COLOR_RESULTADO.rechazo;
 
   return (
-    <div className="aulas-alcance">
+    <div className="aulas-alcance" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-alcance-titular" style={{ color: tono }}>
         {VEREDICTO[r.veredicto]}
       </p>
