@@ -26,6 +26,7 @@ import { AporteTitularesCard } from "./AporteTitularesCard";
 import { DocenteUnicoAviso } from "./DocenteUnicoAviso";
 import { FijasPendientesAviso } from "./FijasPendientesAviso";
 import { PresupuestoVisitasCard } from "./PresupuestoVisitasCard";
+import { SeleccionPorFacultadCard } from "./SeleccionPorFacultadCard";
 import { efectividadCalibradaPorFacultad } from "./efectividadCalibradaModel";
 import { fmtInt } from "../../sharedCore";
 import { classroomRowSearch, classroomRowText } from "../shared/format";
@@ -306,36 +307,14 @@ export function AulasSeleccionTab({
                 data-qa-geometry-contract="intrinsic"
               >
                 <div className="cmv2-aulas-tabla-main">
-                  <label className="cmv2-compact-field cmv2-classroom-table-filter">
-                    <span>Filtrar cursos-horario</span>
-                    <input
-                      value={tableQuery}
-                      placeholder="facultad, curso, horario, estado..."
-                      onChange={(e) => setTableQuery(e.currentTarget.value)}
-                    />
-                  </label>
-                  <ClassroomSelectionTable
-                    rows={visibleSelectionRows}
+                  {/* T1 del pliego (Gonzalo, 2026-08-20): la seleccion se lee
+                      POR FACULTAD, cada titular con su cadena plegada — no una
+                      tabla plana con «mostrar 200 mas». */}
+                  <SeleccionPorFacultadCard
+                    rows={selectionRows}
                     selectedRow={activeRow}
                     onSelectRow={setInspectedRow}
                   />
-                  {filteredSelectionRows.length > 0 && (
-                    <div className="cmv2-aulas-tabla-pie">
-                      <span>
-                        mostrando {fmtInt(Math.min(tableLimit, filteredSelectionRows.length))} de {fmtInt(filteredSelectionRows.length)} cursos-horario
-                        {tableQuery.trim() ? ` (filtro sobre ${fmtInt(selectionRows.length)})` : ""}
-                      </span>
-                      {filteredSelectionRows.length > tableLimit && (
-                        <button
-                          type="button"
-                          className="cmv2-ghost"
-                          onClick={() => setTableLimit((limit) => limit + TABLE_PAGE_STEP)}
-                        >
-                          Mostrar {fmtInt(Math.min(TABLE_PAGE_STEP, filteredSelectionRows.length - tableLimit))} más
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
