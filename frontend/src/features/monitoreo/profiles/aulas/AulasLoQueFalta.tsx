@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar } from "./loQueFaltaParaCerrar";
+import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar, porFacultad } from "./loQueFaltaParaCerrar";
 
 /**
  * Cuánto cuesta cerrar las aulas que no llegaron.
@@ -73,6 +73,7 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
   // La mitad del esfuerzo no cierra la mitad de las aulas, y ésa es justo la
   // lectura que la escalera existe para dar: las baratas van primero.
   const conLaMitad = aulasQueCierran(r.aulas, Math.round(costo / 2)).cerradas;
+  const grupos = porFacultad(r.aulas);
 
   return (
     <div className="aulas-falta">
@@ -124,6 +125,30 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
         <span>0</span>
         <span>{fmt(costo)} encuestas adicionales</span>
       </p>
+      {/* Por facultad, porque es como se sale a campo: ocho aulas de una misma
+          facultad son UNA salida y ocho repartidas son ocho. Va antes que la
+          lista de aulas —primero a dónde ir, después a cuál— y ordenada por lo
+          que RINDE la visita, no por lo que cuesta: la barra mide aulas. */}
+      {grupos.filas.length > 1 ? (
+        <ul className="aulas-falta-facultades">
+          {grupos.filas.slice(0, 6).map((f) => (
+            <li key={f.facultad}>
+              <span className="aulas-falta-fac">{f.facultad}</span>
+              <span className="aulas-falta-barra">
+                <span style={{ width: `${(f.aulas / grupos.filas[0].aulas) * 100}%` }} />
+              </span>
+              <span className="aulas-falta-n"><strong>{fmt(f.aulas)}</strong></span>
+              {/* Corto a propósito: con «· N a cinco o menos» detrás, el detalle
+                  envolvía a dos líneas y las seis filas quedaban de alturas
+                  distintas. Ese dato ya está arriba para el conjunto y abajo
+                  aula por aula. */}
+              <span className="aulas-falta-por">
+                {f.aulas === 1 ? "aula" : "aulas"} · {fmt(f.costo)} encuestas
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <ul className="aulas-falta-lista">
         {r.aulas.slice(0, 10).map((a) => (
           <li key={a.codigo}>
@@ -141,6 +166,10 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
         {conLaMitad ? <>Con la mitad del esfuerzo —{fmt(Math.round(costo / 2))} encuestas— se cierran {fmt(conLaMitad)} de las {fmt(total)}. </> : null}
         {/* Lo que este panel NO puede priorizar se dice, no se calla: sin esto
             «{total} aulas» se leería como todas las que se quedaron cortas. */}
+        {grupos.filas.length > 6 ? <>Las seis facultades que más cierran, de {fmt(grupos.filas.length)}. </> : null}
+        {/* El cruce con el plan se cuenta, no se da por hecho: en este mismo
+            perfil catorce campos que parecían llegar eran homónimos. */}
+        {grupos.sinFacultad ? <>{fmt(grupos.sinFacultad)} de estas aulas no cruzan con ninguna facultad del plan por su código, así que quedan fuera del reparto de arriba. </> : null}
         {r.sinCifras ? <>Otras {fmt(r.sinCifras)} se quedaron cortas y el libro no trae con qué medirles el faltante. </> : null}
         {r.contradicciones ? (
           <>

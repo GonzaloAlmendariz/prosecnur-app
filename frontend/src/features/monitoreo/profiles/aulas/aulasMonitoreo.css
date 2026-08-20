@@ -4143,6 +4143,32 @@
   display: flex; justify-content: space-between;
   margin: 4px 0 10px; font-size: var(--aulas-min); color: var(--pulso-text-faint);
 }
+/* A donde salir, antes de a que aula. La barra es relativa a la facultad mas
+   cara de las dibujadas, no al total: comparar facultades entre si es para lo
+   que existe esta lista. */
+.mon-profile-page.is-aulas-flow .aulas-falta-facultades {
+  list-style: none; margin: 0 0 12px; padding: 0 0 10px;
+  display: grid; gap: 3px;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-facultades li {
+  display: grid; grid-template-columns: 168px minmax(0, 1fr) 34px 118px;
+  align-items: center; gap: 8px; font-size: var(--aulas-sec);
+  white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-fac {
+  color: var(--pulso-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Acotada: a ancho completo la barra cruzaba media pantalla para comparar seis
+   valores que caben en un palmo, y el ojo tenia que viajar hasta la cifra. */
+.mon-profile-page.is-aulas-flow .aulas-falta-barra {
+  height: 8px; max-width: 240px; border-radius: 4px;
+  background: var(--pulso-surface-2); overflow: hidden;
+}
+.mon-profile-page.is-aulas-flow .aulas-falta-barra > span {
+  display: block; height: 100%; border-radius: 4px;
+  background: var(--pulso-resultado-efectiva); opacity: 0.75;
+}
 .mon-profile-page.is-aulas-flow .aulas-falta-lista {
   list-style: none; margin: 0; padding: 0;
   display: grid; gap: 2px;
