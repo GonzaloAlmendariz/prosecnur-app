@@ -491,6 +491,12 @@ function renderAulasView(
    */
   criterioDeEfectiva: ReactNode = null,
 ) {
+  // **El foco cruza la sección entera.** Es una dimensión declarada de la
+  // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
+  // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
+  // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
+  const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
+
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
     // sin dashboard: importar el plan es justamente la acción de arranque.
@@ -606,7 +612,11 @@ function renderAulasView(
             {/* Y a quién toca llamar. Los dos contestan «cómo consigo la cita»,
                 por eso comparten pestaña; el medio dice con qué y la cola con
                 quién. */}
-            <AulasColaDeContacto filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]} />
+            <AulasColaDeContacto
+              filas={agendaRows(dashboard) as unknown as MonitoreoAulasPlanRow[]}
+              facultadEnFoco={facultadEnFoco}
+              onFoco={onFoco}
+            />
           </div>
         </section>
         ) : null}
@@ -965,12 +975,6 @@ function renderAulasView(
   // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
   // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
   const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
-  // **El foco cruza la sección entera.** Es una dimensión declarada de la
-  // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
-  // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
-  // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
-  const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
-
   // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
   // doce celdas; con foco, sólo las de esa facultad o ese sexo.
   const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (

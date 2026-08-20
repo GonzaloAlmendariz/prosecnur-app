@@ -3957,13 +3957,20 @@
   display: grid; grid-template-columns: 74px minmax(0, 1.4fr) minmax(0, 1.2fr) 120px;
   align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0; font-size: var(--aulas-txt);
 }
+/* 180 y no 150: la mediana puede traer decimal —«1.5 intentos · 8
+   cursos-horario»— y con 150 esas dos filas envolvían a 28 px mientras las otras
+   dieciocho medían 14. Una lista dentada por un decimal, teniendo el nombre
+   1 116 px de sobra al lado. */
 .mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo > li {
-  display: grid; grid-template-columns: minmax(0, 1fr) 150px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 180px;
   align-items: baseline; gap: 10px; padding: 2px 6px; min-width: 0; font-size: var(--aulas-txt);
   color: var(--pulso-text-soft);
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo > li > span:last-child {
   text-align: right; font-variant-numeric: tabular-nums;
+  /* Y si algún día no cupiera, que se salga y se vea, en vez de partirse en dos
+     líneas y dentar la lista en silencio. */
+  white-space: nowrap;
 }
 .mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo em,
 .mon-profile-page.is-aulas-flow .aulas-cola-quien em,

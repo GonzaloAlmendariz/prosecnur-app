@@ -2,6 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { colaDeContacto } from "./colaDeContacto";
+import { NombreDeFacultad } from "./NombreDeFacultad";
+import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
  * A quién llamar hoy, y cuánto ha costado agendar.
@@ -13,7 +15,18 @@ import { colaDeContacto } from "./colaDeContacto";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasColaDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * La facultad enfocada. **Resalta, no filtra**, como en las cinco listas de
+   * Avance: ésta es la última lista de facultad del perfil que no participaba
+   * del foco, y con ella la pregunta «¿cómo va Derecho?» se contesta también
+   * desde Modelo, sin volver a buscar su fila a ojo.
+   */
+  facultadEnFoco?: string;
+  /** Pulsar un nombre pone el foco. Sin esto, los nombres son sólo texto. */
+  onFoco?: (foco: FocoDeCuota) => void;
+}) {
   const { pendientes, esfuerzo } = useMemo(() => colaDeContacto(filas), [filas]);
 
   // **Dos causas, y ninguna era la que decía el mensaje.** Con filas presentes la
@@ -82,8 +95,9 @@ export function AulasColaDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoA
           </p>
           <ul className="aulas-cola-esfuerzo" data-qa-geometry-capacity="owned" data-qa-geometry-member>
             {esfuerzo.map((e) => (
-              <li key={e.facultad}>
-                <span title={e.facultad}>{e.facultad}</span>
+              <li key={e.facultad} className={e.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
+                <NombreDeFacultad facultad={e.facultad} className=""
+                  enFoco={e.facultad === facultadEnFoco} onFoco={onFoco} />
                 <span>
                   {e.intentos == null ? "—" : `${e.intentos.toLocaleString("es-PE")} ${e.intentos === 1 ? "intento" : "intentos"}`}
                   {/* «cursos-horario», que es lo que cuenta el plan y lo que
