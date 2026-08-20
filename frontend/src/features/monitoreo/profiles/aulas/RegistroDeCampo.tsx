@@ -177,10 +177,31 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
     [agenda],
   );
   // Cuántas siguen sin pasar por aquí. Es lo que viene a saber quien abre la
-  // pestaña, y sale de la misma lista que tiene al lado: `planificada` es el
-  // estado con el que nacen y del que sólo salen al registrarlas.
+  // pestaña.
+  //
+  // **Un aula REEMPLAZADA no está «todavía sin registrar»: no va a registrarse
+  // nunca.** Cuando un titular cae, su reserva toma el relevo y él se queda en
+  // `planificada` para siempre —nunca llegó a salir—. Contar ese estado a secas
+  // decía «26 de 196 todavía sin registrar» y, medido, **las 26 eran
+  // reemplazadas**: la pestaña mandaba a registrar veintiséis aulas muertas y
+  // callaba las dieciocho que de verdad esperan su parte.
+  //
+  // La condición se escribe por lo que DESCARTA —muerta, o ya registrada— y todo
+  // lo demás cuenta: un estado que nadie previó sobre un aula viva es justo lo
+  // que alguien tiene que mirar.
   const porRegistrar = useMemo(
-    () => filas.filter((r) => (String(r.operational_status ?? "") || "planificada") === "planificada").length,
+    () => filas.filter((r) => {
+      if (String(r.sample_status ?? "").toLowerCase() === "reemplazada") return false;
+      const circuito = String(r.operational_status ?? "").toLowerCase();
+      return circuito !== "aplicada" && circuito !== "cerrada";
+    }).length,
+    [filas],
+  );
+  // Las que NO se van a registrar nunca. Son el puente entre las 196 de la lista
+  // y el denominador de la cifra: sin nombrarlas, «18 de 170» junto a una lista
+  // de 196 filas se lee como que faltan aulas.
+  const reemplazadas = useMemo(
+    () => filas.filter((r) => String(r.sample_status ?? "").toLowerCase() === "reemplazada").length,
     [filas],
   );
   const activa = useMemo(
@@ -375,7 +396,14 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
                 </p>
                 {porRegistrar ? (
                   <p className="registro-campo-vacio-cifra">
-                    <strong>{porRegistrar}</strong> de {filas.length} todavía sin registrar
+                    <strong>{porRegistrar}</strong> de {filas.length - reemplazadas} todavía sin registrar
+                    {/* El denominador son las REGISTRABLES, y la diferencia con
+                        la lista de al lado se dice: si la lista tiene 196 filas
+                        y aquí pone 170, sin explicación se lee como aulas
+                        perdidas. */}
+                    {reemplazadas ? (
+                      <em> · {reemplazadas} reemplazadas no se registran</em>
+                    ) : null}
                   </p>
                 ) : null}
               </div>
