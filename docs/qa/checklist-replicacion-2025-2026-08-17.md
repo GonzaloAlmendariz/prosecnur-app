@@ -4434,3 +4434,21 @@ responda sola en pantalla.
   el score depende de un estado de comparacion que el guardado no
   declara — defecto de fondo (el score de un sorteo determinista no
   puede depender de que corrio antes).
+
+### 2026-08-20 (tarde 2): la radiografia del esperado — tick prioritario de Gonzalo
+
+Mandato textual: «yo puedo marcar cualquier curso horario o cualquier
+reemplazo, y el validador me deberia decir como llegamos a este valor…
+bloque mas formal arriba… escoger el curso horario y que me de la
+redaccion del calculo… a traves de ese valor es lo que le vamos a dar a
+la sesion de monitoreo de aulas». Hecho en 248a7bcb: tablas de
+referencia formales (con conteos del plan completo: contratado 87%/
+1.602 · ord-asociado 84%/638 · ord-principal 73%/376; tamanos 10-15
+80%/259 · 16-25 69%/731 · 26-35 56%/494 · 36-50 55%/851 · 51-130
+44%/281), buscador sobre los 2.616 CH del plan, redaccion en 4 pasos
+con numeros grandes y el producto exacto vs lo guardado. Verificado en
+vivo con titular y con aula de bolsa extra. CONFIRMADO: los 2.616 CH
+del plan llevan esperado definido → luz verde comunicada a Monitoreo
+(campos: eligible_n, p_aplicada_ref, rendimiento_ref, efectivas_
+esperadas, meta_origen, teacher_type; ojo teacher_type compuesto con
+« | »). Pendiente de formato menor: nada bloqueante declarado.
