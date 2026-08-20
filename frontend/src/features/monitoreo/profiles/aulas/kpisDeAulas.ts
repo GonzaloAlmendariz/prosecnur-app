@@ -354,7 +354,11 @@ export function aulasKpis(
   // a merced del recorte a 500 filas.
   const totalDelMotor = Number(dashboard?.course_status_total ?? 0) || 0;
   const sinMeta = Number(dashboard?.course_status_sin_meta ?? 0) || 0;
-  const conMeta = Math.max(0, totalDelMotor - sinMeta);
+  // El banco tampoco entra: el motor lo saco del reparto de cobertura por el
+  // mismo motivo por el que ya no entraba en `brechas`, asi que el denominador
+  // de esta cifra tiene que seguirlo o diria «0 de 267» sobre un reparto de 194.
+  const banco = Number(dashboard?.course_status_banco ?? 0) || 0;
+  const conMeta = Math.max(0, totalDelMotor - sinMeta - banco);
   return [
     validasKpi(dashboard),
     {

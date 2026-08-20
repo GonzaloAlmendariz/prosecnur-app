@@ -1122,6 +1122,7 @@ function renderAulasView(
           filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
           resumen={dashboard.course_status_cobertura ?? null}
           sinMetaMotor={dashboard.course_status_sin_meta}
+          bancoMotor={dashboard.course_status_banco}
         />
       </section>
       <section
