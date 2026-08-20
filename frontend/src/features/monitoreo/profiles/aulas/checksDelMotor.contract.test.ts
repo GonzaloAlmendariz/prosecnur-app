@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { aulasCheckLabel } from "./aulasPresentation";
+import { aulasCheckLabel, aulasFieldLabel } from "./aulasPresentation";
 
 /**
  * Toda regla que el motor emite tiene su rótulo en la capa de presentación.
@@ -50,3 +50,35 @@ describe("los controles del motor llegan traducidos", () => {
     expect(sinRotulo).toEqual([]);
   });
 });
+
+/**
+ * Y la otra mitad: los CAMPOS de la hoja que el equipo llena.
+ *
+ * `carga_base_control.R` declara los campos de «Base de control» con los títulos
+ * del Excel. Es la lista que crece cuando el equipo añade una columna a su
+ * libro, y una columna nueva sin rótulo cae en el mismo fallback: sale
+ * prettificada y parece traducida.
+ */
+const RUTA_LECTOR = path.join(__dirname, "../../../../../../api/R/carga_base_control.R");
+
+function camposDelLector(): string[] {
+  const fuente = readFileSync(RUTA_LECTOR, "utf8");
+  return [...fuente.matchAll(/campo\s*=\s*"([a-z0-9_]+)"/g)].map((m) => m[1]);
+}
+
+describe("los campos de «Base de control» llegan traducidos", () => {
+  it("el lector sigue declarando sus campos con `campo = \"...\"`", () => {
+    const campos = camposDelLector();
+    expect(campos.length).toBeGreaterThanOrEqual(20);
+    expect(campos).toContain("sent_total");
+  });
+
+  it("ningún campo sale a pantalla como jerga prettificada", () => {
+    const sinRotulo = camposDelLector().filter((campo) => {
+      const rotulo = aulasFieldLabel(campo);
+      return rotulo.toLowerCase() === campo.replace(/_/g, " ").toLowerCase();
+    });
+    expect(sinRotulo).toEqual([]);
+  });
+});
+
