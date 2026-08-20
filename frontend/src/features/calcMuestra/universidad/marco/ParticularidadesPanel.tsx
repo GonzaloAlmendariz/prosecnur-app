@@ -7,6 +7,7 @@
  * auto-decide; las exclusiones recién operan al RECONSTRUIR el marco. La
  * lógica reductora vive en particularidadesModel (puro, con test).
  */
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { GraduationCap, Layers, MapPin, Radar, Split } from "lucide-react";
 import type {
@@ -25,6 +26,31 @@ import {
 type Decisiones = Record<string, CalcMuestraParticularidadDecision>;
 
 /** Fila decidible: título + meta + segmentado incluir/excluir/revisado + nota. */
+/** Lista plegada a un vistazo (barrido 2026-08-20): las listas de casos
+ *  crecian a miles de pixeles (medido: el panel llego a 22.098px). Se muestran
+ *  las primeras filas y el resto queda a un click, sin perder ninguna. */
+const FILAS_VISTAZO = 8;
+
+function ListaPlegable({ filas, etiqueta }: { filas: ReactNode[]; etiqueta: string }) {
+  const [abierta, setAbierta] = useState(false);
+  const visibles = abierta ? filas : filas.slice(0, FILAS_VISTAZO);
+  const ocultas = filas.length - FILAS_VISTAZO;
+  return (
+    <>
+      <ul className="cmv2-partic-list">{visibles}</ul>
+      {ocultas > 0 && (
+        <button
+          type="button"
+          className="cmv2-partic-plegar"
+          onClick={() => setAbierta((v) => !v)}
+        >
+          {abierta ? "Ver menos" : `Ver ${fmtInt(ocultas)} ${etiqueta} más`}
+        </button>
+      )}
+    </>
+  );
+}
+
 function ParticularidadFila({
   id,
   titulo,
@@ -202,8 +228,9 @@ export function ParticularidadesPanel({
                   Mostrando los primeros {fmtInt(multi.length)} de {fmtInt(counts.multi_facultad)}.
                 </p>
               ) : null}
-              <ul className="cmv2-partic-list">
-                {multi.map((row) => (
+              <ListaPlegable
+                etiqueta="cursos"
+                filas={multi.map((row) => (
                   <ParticularidadFila
                     key={row.id}
                     id={row.id}
@@ -217,7 +244,7 @@ export function ParticularidadesPanel({
                     onDecisiones={onDecisiones}
                   />
                 ))}
-              </ul>
+              />
             </section>
           ) : null}
 
@@ -239,8 +266,9 @@ export function ParticularidadesPanel({
                     Nota de campo: el aula se dicta fuera del campus e implica desplazamiento del
                     encuestador.
                   </p>
-                  <ul className="cmv2-partic-list">
-                    {codigoZ.map((row) => (
+                  <ListaPlegable
+                    etiqueta="cursos"
+                    filas={codigoZ.map((row) => (
                       <ParticularidadFila
                         key={row.id}
                         id={row.id}
@@ -250,7 +278,7 @@ export function ParticularidadesPanel({
                         onDecisiones={onDecisiones}
                       />
                     ))}
-                  </ul>
+                  />
                 </div>
               ) : null}
               {counts.nombre_tesis > 0 ? (
@@ -261,8 +289,9 @@ export function ParticularidadesPanel({
                   <p className="cmv2-partic-note">
                     Nota de campo: suelen tener baja asistencia presencial, salvo en 9.º–10.º ciclo.
                   </p>
-                  <ul className="cmv2-partic-list">
-                    {tesis.map((row) => (
+                  <ListaPlegable
+                    etiqueta="cursos"
+                    filas={tesis.map((row) => (
                       <ParticularidadFila
                         key={row.id}
                         id={row.id}
@@ -272,7 +301,7 @@ export function ParticularidadesPanel({
                         onDecisiones={onDecisiones}
                       />
                     ))}
-                  </ul>
+                  />
                 </div>
               ) : null}
             </section>
