@@ -269,6 +269,83 @@ de «Contenido» llevan su título en `#081F5C` (azul Pulso) sobre el layout
 `#CA5651` siguen en la plantilla fuera de los títulos (Contraportada, Índice,
 Objetivos_Secciones, General Objective), sin efecto en las láminas renderizadas.
 
+## Validación del mazo contra la base — 2026-08-20
+
+### El estudio tiene dos poblaciones, y el pie las denomina sobre una sola
+
+`proyecto_ppl` parte los 101 casos en dos rutas que **responden cuestionarios
+distintos**, sin un solo caso en común:
+
+```
+Homologación Laboral   85 casos   (SUNEDU 81 · MINEDU 4)
+Vinculación Laboral    16 casos   (Independiente 15 · MTPE 1)
+cruce con PastWorking  85/0 y 0/16 — reparto perfecto
+```
+
+De las 112 variables graficadas, **107 pertenecen a una sola ruta**: 43 solo a
+Homologación, 64 solo a Vinculación, 5 a ambas. El pie declara «N = X de 101»
+en todas, así que el denominador es el de la muestra entera y no el de la
+población que efectivamente respondió esa pregunta.
+
+El caso que lo destapó, `sector`:
+
+```
+en el mazo    N = 4 de 101 (4.0%)
+lo correcto   4 de 16 de Vinculación Laboral (25.0%)
+```
+
+Los 4 son reales —de los 16 de Vinculación, solo 4 trabajaban antes del
+programa— y el 50%/50% entre Comercio y Servicios es exacto sobre esos 4. Lo que
+engaña es el 4.0%.
+
+Es la veta de [[feedback_una_palabra_para_dos_cosas]]: un mismo rótulo, dos
+denominadores. **Queda abierto**: exige decidir si el pie declara la base de la
+ruta, si el mazo se parte en dos secciones por `proyecto_ppl`, o ambas.
+
+### La aritmética sí está bien
+
+Recomputadas las 112 láminas desde la base, comparando cada porcentaje del XML
+del PPT contra el recuento:
+
+```
+láminas comparadas                    112
+porcentajes que coinciden             112
+discrepancias                           0
+```
+
+Las 7 que fallaron en la primera pasada eran multi-respuesta —el comparador
+contaba combinaciones («1 96») como categorías en vez de opciones marcadas—.
+Recontadas por opción, las 7 coinciden. El error era del comparador.
+
+### El título llevaba la palabra «recodificada»
+
+`.pulso_repair_parent_recod_xlsform()` reconstruye la fila `<var>_recod` cuando
+falta y le anexaba « recodificada» a la etiqueta. Ese sufijo viajaba al **título
+de la lámina** del PPT —texto de entregable, que va al cliente—. Las 12 `_recod`
+que crea la codificación normal copian la etiqueta de la madre tal cual; solo
+las 2 que reconstruía este reparador (`sector`, `HelpChannel`) salían marcadas.
+
+Reparado en dos partes: el reparador ya no anexa el sufijo, y **limpia
+retroactivamente su propia huella** —solo cuando la etiqueta es exactamente la
+de la madre más « recodificada», que es una forma que no escribe un analista—,
+para que un `.pulso` guardado antes del arreglo se corrija al reabrirse. Un test
+comprueba que una etiqueta escrita a mano que mencione la palabra no se toca.
+
+```
+antes    ¿En qué sector trabajaba antes del programa? recodificada
+después  ¿En qué sector trabajaba antes del programa?
+```
+
+### Estado del mazo entregado
+
+```
+láminas                     134
+«recodificada» en el mazo     0
+títulos en #1A1A1A          112   (0 en terracota Pulso)
+porcentajes verificados     112/112
+paquete OOXML               zip íntegro · 0 <a:cs> mal ordenados
+```
+
 ## Cola — lo que aún no se decide
 
 - **L1 · numéricas y fechas en el mazo (ítems 1.2, 1.6, 1.10).** `MesesReva` ya
