@@ -191,8 +191,16 @@
     aula_frame$efectividad_tau <- round(as.numeric(cal$tau), 3)
     aula_frame$efectivas_esperadas <- round(el * as.numeric(cal$tau), 1)
   } else {
-    p <- .cm_efectividad_p_aplicada(aula_frame$teacher_type %||% rep("", nrow(aula_frame)))
-    r <- .cm_efectividad_rendimiento(aula_frame$eligible_n)
+    tipos <- aula_frame$teacher_type %||% rep("", nrow(aula_frame))
+    # Tasa de aplicacion: capa OPERATIVA (visitas/cadena). V7 la saco de las
+    # efectivas esperadas con evidencia (residual condicional ~1): un docente
+    # decide SI el aula entra, no cuanto rinde adentro.
+    p <- if (is.list(cal$tasa_aplicacion) && length(cal$tasa_aplicacion)) {
+      .cm_efectividad_p_desde_tabla(tipos, cal$tasa_aplicacion)
+    } else {
+      .cm_efectividad_p_aplicada(tipos)
+    }
+    r <- .cm_efectividad_rendimiento(aula_frame$eligible_n, tramos = cal$rendimiento_tramos)
     aula_frame$p_aplicada_ref <- round(p, 3)
     aula_frame$rendimiento_ref <- round(r, 3)
     # Ajuste por facultad: solo donde el historico declaro un tau con
@@ -218,7 +226,12 @@
     }
     aula_frame$factor_facultad <- round(factor, 3)
     aula_frame$facultad_k <- k_fac
-    aula_frame$efectivas_esperadas <- round(el * p * r * factor, 1)
+    # La tasa de efectividad DEL AULA (nombre propio, V7): R(tamano) x F(fac).
+    aula_frame$tasa_efectividad_aula <- round(r * factor, 3)
+    # EFECTIVAS ESPERADAS = elegibles x tasa del aula — CONDICIONAL a que el
+    # aula se aplique. El riesgo del docente NO descuenta efectivas (la cadena
+    # repone caidas); vive en p_aplicada_ref para presupuesto y cadena.
+    aula_frame$efectivas_esperadas <- round(el * r * factor, 1)
   }
   # La procedencia viaja en la fila: la UI y Monitoreo la leen, no la asumen.
   aula_frame$efectividad_fuente <- as.character(cal$fuente)
