@@ -2314,8 +2314,11 @@
   flex-direction: row;
 }
 
+/* `flex` en LOS DOS lados, no `block` en uno.
+   Con un solo hijo, `block` valía; con el relleno y su sombra son dos, y en
+   `block` se apilarían en vertical en vez de encadenarse. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-carril {
-  display: block;
+  display: flex;
   flex: none;
   height: 16px;
   overflow: hidden;
@@ -2324,15 +2327,30 @@
 }
 
 /* El relleno crece desde el centro hacia afuera, que es lo que hace que las dos
-   mitades se lean como una pirámide y no como dos listas pegadas. */
+   mitades se lean como una pirámide y no como dos listas pegadas.
+   `row-reverse` y no `justify-content: flex-end`: con dos hijos hay que
+   invertir el ORDEN, o la sombra de lo previsto saldría entre el relleno y el
+   centro —o sea, creciendo hacia dentro— que es al revés de lo que significa. */
 .mon-profile-page.is-aulas-flow .aulas-piramide-lado.es-izquierda .aulas-piramide-carril {
-  display: flex;
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-carril i {
   display: block;
+  flex: none;
   height: 100%;
+}
+
+/* **Lo previsto se ve como previsión.** Rayado y a media tinta: si se pintara
+   sólido se leería como recogido, que es exactamente el error que haría inútil
+   dibujarlo. El rayado va en el mismo tono que el relleno para que se entienda
+   que es la misma celda, no otra serie. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-carril i.es-previsto {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--aulas-previsto-tono, var(--pulso-text-faint)) 42%, transparent) 0 3px,
+    transparent 3px 6px
+  );
 }
 
 .mon-profile-page.is-aulas-flow .aulas-piramide-cifra {
@@ -2341,6 +2359,30 @@
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+/* La leyenda del rayado, con su propia muestra a la izquierda: decir «lo rayado»
+   sin enseñar el rayado obliga a buscarlo en las barras. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-leyenda {
+  display: flex; align-items: center; gap: 7px;
+  margin: 0 0 6px; font-size: 11px; color: var(--pulso-text-faint);
+}
+.mon-profile-page.is-aulas-flow .aulas-piramide-leyenda i {
+  flex: none; width: 26px; height: 10px; border-radius: 3px;
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--pulso-text-faint) 42%, transparent) 0 3px,
+    transparent 3px 6px
+  );
+  outline: 1px solid var(--pulso-border);
+}
+
+/* El veredicto en color: sólo el que pide acción se tiñe. Teñir los tres deja
+   la columna hecha un semáforo donde nada destaca. */
+.mon-profile-page.is-aulas-flow .aulas-piramide-cifra.es-no-cierra {
+  color: var(--pulso-warn-fg); font-weight: 650;
+}
+.mon-profile-page.is-aulas-flow .aulas-piramide-cifra.es-cumplida {
+  color: var(--pulso-success-fg);
 }
 
 /* Sin cuota declarada no es lo mismo que cuota en cero. */

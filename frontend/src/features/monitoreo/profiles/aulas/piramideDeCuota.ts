@@ -1,4 +1,5 @@
 import type { MonitoreoRow } from "../../../../api/monitoreo";
+import type { ProyeccionDeFacultad } from "./proyeccionPorAgenda";
 
 /**
  * La cuota como pirámide: una facultad por fila, un sexo a cada lado.
@@ -12,6 +13,19 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
  * Sólo hay dos lados. Si el estudio declarara un tercer valor de sexo, la
  * pirámide dejaría de servir: se devuelve `otros` con esos valores y quien
  * llama decide —hoy, seguir mostrando la lista—. No se descartan en silencio.
+ *
+ * ## Y además PREDICE
+ *
+ * El comentario de arriba dice que la lista que se retiró contestaba «qué celda
+ * se va a incumplir» y esa pregunta se quedó sin responder en ninguna parte del
+ * perfil —siendo que el estudio se aprueba o no por estas cuarenta celdas—. No
+ * se repone como panel aparte: sería una segunda forma del MISMO cruce, que es
+ * justo lo que hay que evitar. Se responde AQUÍ.
+ *
+ * Cada lado recibe lo que la agenda ya comprometida le va a aportar
+ * (`proyeccionPorAgenda`), así que la barra deja de decir sólo dónde está y
+ * pasa a decir **dónde va a acabar**. Un lado cuya sombra no llega a su meta no
+ * cierra con lo que hay agendado, y eso se ve sin leer un número.
  */
 
 export type LadoDeCuota = {
@@ -22,6 +36,19 @@ export type LadoDeCuota = {
   /** Cumplimiento en puntos porcentuales; puede pasar de 100. */
   avance: number;
   cumple: boolean;
+  /**
+   * Lo que le añadirían las aulas YA AGENDADAS, en puntos de su propia meta.
+   * `null` cuando el estudio no publica agenda: no saber qué va a llegar no es
+   * lo mismo que saber que no llega nada, y pintar cero acusaría de una
+   * parálisis que nadie midió.
+   */
+  previsto: number | null;
+  /** Si con lo agendado esta celda llega a su meta. */
+  cierra: boolean | null;
+  /** El día en que la cerraría. `null` si no la cierra o si ya está cumplida. */
+  cierraEl: string | null;
+  /** Lo que seguiría faltando cuando se acabe la agenda. */
+  faltanAlCerrar: number;
 };
 
 export type FilaDePiramide = {
@@ -41,12 +68,26 @@ function texto(valor: unknown) {
   return typeof valor === "string" ? valor.trim() : "";
 }
 
-function lado(sexo: string, filas: ReadonlyArray<MonitoreoRow>): LadoDeCuota | null {
+function lado(
+  sexo: string,
+  filas: ReadonlyArray<MonitoreoRow>,
+  pronostico: CeldaPrevista | null,
+): LadoDeCuota | null {
   const propias = filas.filter((fila) => texto(fila.sex) === sexo);
   if (!propias.length) return null;
   const meta = propias.reduce((s, f) => s + numero(f.target), 0);
   const observadas = propias.reduce((s, f) => s + numero(f.observed), 0);
   if (meta <= 0) return null;
+  const cumple = observadas >= meta;
+  // Lo previsto se mide en puntos de SU meta y se recorta a lo que queda por
+  // cubrir: una celda que ya cumplió no crece, y una sombra que se pasara de la
+  // meta diria que el excedente sirve para algo, que es justo lo que no hace.
+  const previsto = pronostico
+    ? Math.max(0, Math.min(
+        100 - Math.min(100, (100 * observadas) / meta),
+        (100 * pronostico.esperadas) / meta,
+      ))
+    : null;
   return {
     sexo,
     meta,
@@ -54,8 +95,43 @@ function lado(sexo: string, filas: ReadonlyArray<MonitoreoRow>): LadoDeCuota | n
     // Celda a celda, como en el resto del módulo: pasarse en una no cubre otra.
     faltan: propias.reduce((s, f) => s + Math.max(0, numero(f.target) - numero(f.observed)), 0),
     avance: Math.round((1000 * observadas) / meta) / 10,
-    cumple: observadas >= meta,
+    cumple,
+    previsto,
+    cierra: pronostico ? (cumple || pronostico.alcanza) : null,
+    cierraEl: cumple ? null : (pronostico?.fechaDeCruce ?? null),
+    faltanAlCerrar: pronostico?.faltanAlCerrarAgenda ?? 0,
   };
+}
+
+/** Lo que la agenda comprometida aporta a una celda concreta. */
+type CeldaPrevista = {
+  esperadas: number;
+  alcanza: boolean;
+  fechaDeCruce: string | null;
+  faltanAlCerrarAgenda: number;
+};
+
+/**
+ * Indexa la proyección por `facultad|sexo`, que es la clave de una celda.
+ *
+ * Se hace aquí y no en el componente para que la pirámide siga siendo una
+ * función pura sobre datos y se pueda probar sin montar nada.
+ */
+export function celdasPrevistas(
+  proyeccion: ReadonlyArray<ProyeccionDeFacultad>,
+): Map<string, CeldaPrevista> {
+  const mapa = new Map<string, CeldaPrevista>();
+  for (const f of proyeccion) {
+    for (const c of f.cuotas) {
+      mapa.set(`${f.facultad}|${c.sexo}`, {
+        esperadas: c.esperadasDeLaAgenda,
+        alcanza: c.alcanza,
+        fechaDeCruce: c.fechaDeCruce,
+        faltanAlCerrarAgenda: c.faltanAlCerrarAgenda,
+      });
+    }
+  }
+  return mapa;
 }
 
 /**
@@ -65,7 +141,10 @@ function lado(sexo: string, filas: ReadonlyArray<MonitoreoRow>): LadoDeCuota | n
  * va a la izquierda— para que no dependa del alfabeto ni del orden en que el
  * motor devolvió las filas.
  */
-export function piramideDeCuota(filas: ReadonlyArray<MonitoreoRow>) {
+export function piramideDeCuota(
+  filas: ReadonlyArray<MonitoreoRow>,
+  previstas: ReadonlyMap<string, CeldaPrevista> = new Map(),
+) {
   const conMeta = filas.filter((fila) => numero(fila.target) > 0 && texto(fila.sex));
   const cuenta = new Map<string, number>();
   for (const fila of conMeta) {
@@ -86,8 +165,8 @@ export function piramideDeCuota(filas: ReadonlyArray<MonitoreoRow>) {
 
   const facultades: FilaDePiramide[] = [...porFacultad.entries()]
     .map(([facultad, propias]) => {
-      const izquierda = izq ? lado(izq, propias) : null;
-      const derecha = der ? lado(der, propias) : null;
+      const izquierda = izq ? lado(izq, propias, previstas.get(`${facultad}|${izq}`) ?? null) : null;
+      const derecha = der ? lado(der, propias, previstas.get(`${facultad}|${der}`) ?? null) : null;
       return {
         facultad,
         izquierda,
@@ -95,8 +174,28 @@ export function piramideDeCuota(filas: ReadonlyArray<MonitoreoRow>) {
         faltan: (izquierda?.faltan ?? 0) + (derecha?.faltan ?? 0),
       };
     })
-    // Primero donde más falta, como el resto de las listas del perfil.
-    .sort((a, b) => b.faltan - a.faltan || a.facultad.localeCompare(b.facultad, "es"));
+    // **Primero las que NO van a cerrar**, y sólo después las que más deben.
+    //
+    // Ordenar por lo que falta pone arriba a la facultad más grande, que es la
+    // que más debe por tamaño y no la que está en peligro. Con la proyección
+    // encima, la pregunta que ordena es otra: de éstas, ¿cuáles no llegan con lo
+    // que ya está agendado? Sin proyección el orden es el de antes, así que un
+    // estudio sin agenda no cambia de aspecto.
+    //
+    // Ordena lo que va a FALTAR al acabar la agenda, no cuántas celdas están en
+    // peligro. Llevaba las dos claves y la segunda nunca decidía nada: una celda
+    // que no cierra tiene por construcción `faltanAlCerrar > 0`
+    // —`alcanza` es falso exactamente cuando lo esperado no cubre lo que falta—
+    // así que contar celdas en peligro daba siempre el mismo orden que sumar lo
+    // que les falta. Lo destapó un mutante que sobrevivió: anular la primera
+    // clave no movió ni un test.
+    .sort((a, b) => {
+      const faltaAlCerrar = (f: FilaDePiramide) =>
+        (f.izquierda?.faltanAlCerrar ?? 0) + (f.derecha?.faltanAlCerrar ?? 0);
+      return faltaAlCerrar(b) - faltaAlCerrar(a)
+        || b.faltan - a.faltan
+        || a.facultad.localeCompare(b.facultad, "es");
+    });
 
   return {
     facultades,
