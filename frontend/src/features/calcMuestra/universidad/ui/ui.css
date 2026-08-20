@@ -673,7 +673,12 @@ button.cmv2-uni-flujo-etapa:focus-visible {
   letter-spacing: -0.01em;
   color: var(--pulso-text);
   line-height: 1.1;
-  white-space: nowrap;
+  /* Los valores TEXTO («Balance por cuotas y tamaño») envuelven: el nowrap
+     desbordaba la fila de KPIs de Seleccion (barrido 2026-08-20, medido
+     271px en un slot de 200 — No Scroll Jail). Los numericos no envuelven
+     en la practica: no llevan espacios. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .cmv2-uni-cifra[data-hero="true"] .cmv2-uni-cifra-valor {
