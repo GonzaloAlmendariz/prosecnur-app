@@ -55,6 +55,8 @@ export { default as Calculator } from "lucide-react/dist/esm/icons/calculator.mj
 export { default as Calendar } from "lucide-react/dist/esm/icons/calendar.mjs";
 export { default as CalendarDays } from "lucide-react/dist/esm/icons/calendar-days.mjs";
 export { default as CalendarPlus } from "lucide-react/dist/esm/icons/calendar-plus.mjs";
+export { default as CalendarCheck } from "lucide-react/dist/esm/icons/calendar-check.mjs";
+export { default as CalendarClock } from "lucide-react/dist/esm/icons/calendar-clock.mjs";
 export { default as CalendarRange } from "lucide-react/dist/esm/icons/calendar-range.mjs";
 export { default as Camera } from "lucide-react/dist/esm/icons/camera.mjs";
 export { default as Check } from "lucide-react/dist/esm/icons/check.mjs";
