@@ -156,11 +156,32 @@ incluso con su residual positivo. Decisión operativa única: ~2 aulas más a
 Derecho o confianza declarada en su cadena, junto con el techo (plan 229 vs
 techo 200).
 
+## V4 — el deff real del 2025 (eslabón 1, cerrado): el 2,0 asumido es conservador
+
+Linealización de conglomerados sobre las 194 aulas aplicadas (n = 3.303
+efectivas, m̄ = 17,0 por aula), simple y estratificada por facultad (la
+versión fiel al diseño, que estratificó por facultad×sexo):
+
+| Desenlace | p̂ 2025 | deff simple | deff estratificado | ρ intra-aula |
+|---|---|---|---|---|
+| Prevalencia HS | 0,214 | 1,55 | **1,08** | 0,005 |
+| Prevalencia VBG | 0,303 | 1,29 | **1,12** | 0,007 |
+| % mujeres | 0,527 | 4,70 | 1,85 | 0,053 |
+
+Lecturas: (a) los desenlaces sustantivos casi no se aglomeran por aula — el
+deff real estratificado es ~1,1 frente al 2,0 asumido: **el diseño es
+conservador con margen** (error efectivo real ≈ 1,8 % frente al 2,46 %
+nominal); (b) el % mujeres sí se aglomera (carreras segregadas), pero el
+sexo está controlado por la afijación facultad×sexo, así que no daña; (c)
+bonus de calibración: el p = 0,30 asumido en la fórmula coincide casi
+exacto con la prevalencia VBG real del 2025 (0,303). El eslabón 1 pasa a
+**sólido (conservador declarado)**.
+
 ## Cola de mediciones pendientes
 
 - [x] r̄_fac sobre el mix 2025 aplicado → V1b (medido 2026-08-20).
 - [x] k e IC de P(aplicación) por tipo → V3 (2026-08-20).
 - [x] k e IC del rendimiento por bin → V3 (2026-08-20); bins exactos propuestos.
-- [ ] deff real del 2025 ejecutado vs el 2,0 asumido (eslabón 1).
+- [x] deff real del 2025 → V4: 1,08–1,12 estratificado; el 2,0 asumido es conservador.
 - [x] Denominador exacto de τ=0,53: 3.303/6.232, k=194 (verificado en V1b).
 - [ ] Certificación por Σesperadas (eslabón 8) — decisión de Gonzalo.
