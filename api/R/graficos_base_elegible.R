@@ -148,27 +148,35 @@
 
 #' Redacción del pie.
 #'
-#' El porcentaje ahora es tasa de respuesta ENTRE ELEGIBLES, que informa; el
-#' anterior era la fracción de la muestra total, que engañaba. Cuando todos los
-#' elegibles respondieron no se escribe: un "(100%)" solo agrega ruido.
+#' Formato único, sin prefijo: `<n> respuestas de <público> (<pct>%)`. Una sola
+#' forma para todas las láminas —que unas traigan porcentaje y otras no obliga
+#' al lector a preguntarse por qué—.
+#'
+#' El porcentaje es **tasa de respuesta entre elegibles**, no fracción de la
+#' muestra: quién pudo responder sale del `relevant` del instrumento. El
+#' anterior, «4 de 101 (4.0%)», medía contra un universo que nunca vio esa
+#' pregunta.
 #' @keywords internal
 .graficos_base_texto_elegible <- function(n, elegibles, publico = "", total = NULL) {
   n <- as.integer(n %||% 0L)
   fmt <- function(x) format(as.integer(x), big.mark = " ", trim = TRUE)
+  unidad <- if (n == 1L) "respuesta" else "respuestas"
+  pct <- function(a, b) {
+    v <- if (is.finite(b) && b > 0) 100 * a / b else NA_real_
+    format(round(v, 1), trim = TRUE)
+  }
 
-  if (is.null(elegibles) || !is.finite(elegibles) || elegibles <= 0L) {
-    if (is.null(total) || !is.finite(total) || total <= 0L) return(sprintf("Base: %s", fmt(n)))
-    return(sprintf("Base: %s respuestas, toda la muestra", fmt(n)))
+  # Sin universo derivable no se inventa un denominador ni un porcentaje.
+  if (is.null(elegibles) || !length(elegibles) || is.na(elegibles) ||
+      !is.finite(elegibles) || elegibles <= 0L) {
+    return(sprintf("%s %s", fmt(n), unidad))
   }
   elegibles <- as.integer(elegibles)
-  de_quien <- if (nzchar(publico)) sprintf(" de %s", publico) else ""
 
-  if (n >= elegibles) {
-    return(sprintf("Base: %s respuestas%s", fmt(n), de_quien))
+  if (nzchar(publico)) {
+    return(sprintf("%s %s de %s (%s%%)", fmt(n), unidad, publico, pct(n, elegibles)))
   }
-  sprintf("Base: %s de %s elegibles%s (%s%%)",
-          fmt(n), fmt(elegibles), de_quien,
-          format(round(100 * n / elegibles, 1), trim = TRUE))
+  sprintf("%s %s de la muestra total (%s%%)", fmt(n), unidad, pct(n, elegibles))
 }
 
 #' Denominador de una variable: elegibles, público y texto listo.

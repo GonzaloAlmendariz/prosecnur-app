@@ -58,28 +58,39 @@ test_that("el universo de cada pregunta sale del relevant, no de la muestra ente
   expect_equal(sector$publico, "Vinculación Laboral")
 })
 
-test_that("la redacción del pie dice la tasa entre elegibles, no la fracción de la muestra", {
-  # Todos los elegibles respondieron: el "(100%)" solo seria ruido.
+test_that("la redacción es una sola y el porcentaje es tasa entre elegibles", {
+  # Formato único, sin prefijo: que unas láminas traigan porcentaje y otras no
+  # obliga al lector a preguntarse por qué.
   expect_identical(
     .graficos_base_texto_elegible(4L, 4L, "Vinculación Laboral", 101L),
-    "Base: 4 respuestas de Vinculación Laboral"
+    "4 respuestas de Vinculación Laboral (100%)"
   )
-  # Con no-respuesta, el porcentaje es tasa de respuesta ENTRE ELEGIBLES.
   expect_identical(
     .graficos_base_texto_elegible(12L, 16L, "Vinculación Laboral", 101L),
-    "Base: 12 de 16 elegibles de Vinculación Laboral (75%)"
+    "12 respuestas de Vinculación Laboral (75%)"
   )
-  # Sin público identificado, el universo sigue siendo el de elegibles.
+  # El porcentaje mide contra los ELEGIBLES, no contra la muestra: 12 de 16 es
+  # 75%, no el 11.9% que salía de dividir entre 101.
+  expect_false(grepl("11.9", .graficos_base_texto_elegible(12L, 16L, "Vinculación Laboral", 101L), fixed = TRUE))
+
+  # Singular cuando corresponde.
   expect_identical(
-    .graficos_base_texto_elegible(80L, 85L, "", 101L),
-    "Base: 80 de 85 elegibles (94.1%)"
+    .graficos_base_texto_elegible(1L, 4L, "Vinculación Laboral", 101L),
+    "1 respuesta de Vinculación Laboral (25%)"
   )
-  # Sin universo derivable se conserva la muestra, pero sin el porcentaje que
-  # engañaba.
+  # Sin público identificado el universo sigue siendo el de elegibles.
   expect_identical(
-    .graficos_base_texto_elegible(101L, NULL, "", 101L),
-    "Base: 101 respuestas, toda la muestra"
+    .graficos_base_texto_elegible(45L, 101L, "", 101L),
+    "45 respuestas de la muestra total (44.6%)"
   )
+  # Sin universo derivable no se inventa denominador ni porcentaje.
+  expect_identical(.graficos_base_texto_elegible(101L, NULL, "", 101L), "101 respuestas")
+  # Y en ningún caso se escribe el prefijo.
+  for (txt in c(
+    .graficos_base_texto_elegible(4L, 4L, "Vinculación Laboral", 101L),
+    .graficos_base_texto_elegible(45L, 101L, "", 101L),
+    .graficos_base_texto_elegible(101L, NULL, "", 101L)
+  )) expect_false(grepl("Base:", txt, fixed = TRUE))
 })
 
 test_that("sin relevant evaluable no se inventa un universo", {

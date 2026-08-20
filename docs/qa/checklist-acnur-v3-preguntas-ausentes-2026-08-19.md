@@ -380,14 +380,18 @@ El porcentaje ahora es **tasa de respuesta entre elegibles**, que informa; el
 anterior era la fracción de la muestra total, que engañaba. Cuando todos los
 elegibles respondieron no se escribe: un «(100%)» solo agrega ruido.
 
+Formato **único**, sin prefijo: `<n> respuestas de <público> (<pct>%)`. Que unas
+láminas traigan porcentaje y otras no obliga al lector a preguntarse por qué.
+
 ```
 antes    N = 4 de 101 (4.0%).
-después  Base: 4 respuestas de Vinculación Laboral.
+después  4 respuestas de Vinculación Laboral (100%).
 
 antes    N = 12 de 101 (11.9%).
-después  Base: 12 de 16 elegibles de Vinculación Laboral (75%).
+después  12 respuestas de Vinculación Laboral (75%).
 
-sin universo derivable    Base: 101 respuestas, toda la muestra.
+sin público identificado   45 respuestas de la muestra total (44.6%).
+sin universo derivable     101 respuestas.
 ```
 
 `Consent` se descarta al nombrar el público: es un requisito de participación,
@@ -399,8 +403,8 @@ no se inventa universo: se conserva el denominador anterior.
 ```
 láminas                      134
 pies con «N = … de 101»        0   (antes: 107)
-pies por universo             62 Vinculación · 35 Homologación · 4 toda la muestra
-                               1 «101 elegibles (44.6%)» — legítimo, se pregunta a todos
+pies con prefijo «Base:»       0
+pies en formato estándar     105
 «recodificada»                 0
 títulos en #1A1A1A           112   (0 terracota)
 porcentajes verificados    112/112
