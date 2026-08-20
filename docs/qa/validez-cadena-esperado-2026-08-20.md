@@ -61,14 +61,61 @@ años. Las fuentes 2025 (solo lectura) permiten medirlo. Con el residual, la
 facultad.
 
 **Estado**: factor sellado vigente en el .pulso (Σ 3.020); corrección
-pendiente de medición r̄_fac-2025 y del visto de Gonzalo (tercera revisión
-del valor que Monitoreo consume en el día).
+pendiente del visto de Gonzalo. La medición r̄_fac-2025 ya está hecha (V1b).
+
+## V1b — residual definitivo sobre el mix 2025 aplicado (medido de la fuente)
+
+Fuente: HSVBG2025_base_historica_aulas_ADR0060.xlsx, hoja «Solo aplicadas»
+(194 filas). τ global verificado EXACTO: 3.303/6.232 = 0,5300 (cierra el
+pendiente del eslabón 3: el denominador son los elegibles sentados en las
+194 aplicadas).
+
+| Facultad | k | τ_fac exacto | r̄ (bins sobre mix 2025) | RESIDUAL 2025 | sellado hoy |
+|---|---|---|---|---|---|
+| CIENCIAS E INGENIERÍA | 40 | 0,5380 | 0,5802 | **0,927** | 1,015 |
+| EE.GG. CIENCIAS | 26 | 0,4279 | 0,4970 | **0,861** | 0,808 |
+| EE.GG. LETRAS | 23 | 0,4435 | 0,4791 | **0,926** | 0,838 |
+| CIENCIAS SOCIALES | 17 | 0,5498 | 0,5993 | **0,917** | 1,038 |
+| DERECHO | 16 | 0,5620 | 0,5540 | **1,015** | 1,060 |
+| ARTE Y DISEÑO | 12 | 0,5186 | 0,6014 | **0,863** | 0,979 |
+
+## Hallazgo V2 — los bins de rendimiento sobre-predicen ~6 % (2026-08-20)
+
+Sobre el MISMO mix 2025 aplicado del que nacieron, los bins codificados
+(0,80/0,69/0,56/0,55/0,44) producen r̄ global = 0,5614 frente al 0,5300
+real: **sesgo de calibración de +5,9 %**, probablemente por redondeo de los
+bins o por promediar tasas simples en vez de razón de sumas. Consecuencia:
+las nueve facultades sin τ propio, hoy con factor 1,0, quedan
+sobre-predichas ~6 %. Corrección coherente: su factor debe ser el residual
+GLOBAL (0,944), declarado como «corrección de calibración general, sin tasa
+específica de facultad».
+
+## Propuesta integrada (decisión de Gonzalo, con impacto)
+
+Factor = residual-2025 en las seis; 0,944 en las nueve restantes. Efecto
+estimado sobre titulares (esperadas base curvas × residual):
+
+| Facultad | esp. sellada | esp. residual-2025 | cuota | margen residual |
+|---|---|---|---|---|
+| C&I | 655 | 598 | 528 | 1,13× |
+| EGC | 388 | 413 | 403 | 1,02× |
+| EGL | 381 | 420 | 397 | 1,06× |
+| DERECHO | 347 | 332 | 363 | **0,91×** |
+| CCSS | 184 | 162 | 149 | 1,09× |
+| A&D | 196 | 173 | 119 | 1,45× |
+| RESTO (×0,944) | 871 | 822 | — | — |
+| **Σ** | **3.020** | **≈2.920** | 2.500 | 1,17× |
+
+Derecho queda corta (0,91×: su p de aplicación baja —muchos
+ordinario-principal— más su residual ~1 ya no la rescata): pediría ~2 aulas
+más o confianza explícita en su cadena. El techo de visitas (200) sigue
+excedido por el plan (229): ambas cosas son la MISMA decisión operativa.
 
 ## Cola de mediciones pendientes
 
-- [ ] r̄_fac sobre el mix 2025 aplicado (fuentes HSTVG2026, solo lectura) → factor residual definitivo.
+- [x] r̄_fac sobre el mix 2025 aplicado → V1b (medido 2026-08-20).
 - [ ] k e IC de P(aplicación) por tipo de docente (eslabón 4).
 - [ ] k e IC del rendimiento por bin de tamaño (eslabón 5).
 - [ ] deff real del 2025 ejecutado vs el 2,0 asumido (eslabón 1).
-- [ ] Denominador exacto de τ=0,53 contra la base fuente (eslabón 3).
+- [x] Denominador exacto de τ=0,53: 3.303/6.232, k=194 (verificado en V1b).
 - [ ] Certificación por Σesperadas (eslabón 8) — decisión de Gonzalo.
