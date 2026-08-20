@@ -21,6 +21,9 @@ export type CalcMuestraTasaFacultad = {
 };
 
 const num = (v: unknown): number | null => {
+  // Number(null) === 0: un "sin dato" JSON se volveria un cero con
+  // significado. null/undefined/"" son ausencia, no cero.
+  if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
