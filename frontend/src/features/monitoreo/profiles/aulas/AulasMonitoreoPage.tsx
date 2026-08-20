@@ -992,6 +992,8 @@ function renderAulasView(
             banco={dashboard.banco_extras ?? null}
             control={(dashboard.control_calidad ?? []) as Array<Record<string, unknown>>}
             quotas={(dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>}
+            agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
+            partes={(dashboard.partes_campo ?? []) as MonitoreoRow[]}
           />
           <AulasBancoExtras banco={dashboard.banco_extras ?? null} />
         </section>

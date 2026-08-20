@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { alcanceDelBanco } from "./alcanceDelBanco";
+import { alcanceDelBanco, faltaTrasLaAgenda } from "./alcanceDelBanco";
 import type { BancoDeExtras } from "./AulasBancoExtras";
+import type { MonitoreoRow } from "../../../../api/monitoreo";
+import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 
 /**
  * ¿Alcanza el banco para cerrar la cuota que falta?
@@ -26,23 +28,27 @@ const VEREDICTO = {
   "no alcanza": "El banco no alcanza para cerrar la cuota",
 } as const;
 
-export function AulasAlcanceDelBanco({ banco, control, quotas }: {
+export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }: {
   banco: BancoDeExtras | null;
   control: ReadonlyArray<Readonly<Record<string, unknown>>>;
   quotas: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  /** La agenda comprometida y los partes, para saber qué viene sin tocar el banco. */
+  agenda: ReadonlyArray<MonitoreoRow>;
+  partes: ReadonlyArray<MonitoreoRow>;
 }) {
   const r = useMemo(() => {
     if (!banco) return null;
-    // Lo que falta por facultad, sumando celdas sexo × facultad. Es el mismo
-    // criterio del KPI de cuota pendiente: pasarse en una celda no cubre otra.
-    const falta = new Map<string, number>();
-    for (const fila of quotas) {
-      const f = String(fila.faculty ?? "").trim();
-      if (!f) continue;
-      const pendiente = Math.max(0, Number(fila.target ?? 0) - Number(fila.observed ?? 0));
-      if (!pendiente) continue;
-      falta.set(f, (falta.get(f) ?? 0) + pendiente);
-    }
+    // **Lo que faltará CUANDO SE ACABE LA AGENDA, no lo que falta hoy.**
+    //
+    // El banco se abre después de agotar las aulas ya comprometidas, así que
+    // pedirle que cubra lo que ésas van a traer es contarlo dos veces. Medido
+    // en este corte: faltan 1 558 hoy y 1 192 cuando la agenda termine —366
+    // encuestas que ya vienen—, y con el denominador de hoy el panel podía
+    // declarar «no alcanza» sobre un banco que sí cubre.
+    //
+    // Salió de comparar este panel con la pirámide, que proyecta lo mismo y
+    // decía otra cifra. Dos superficies del mismo hecho tienen que coincidir.
+    const falta = faltaTrasLaAgenda(proyeccionPorAgenda(agenda, partes, quotas as MonitoreoRow[]));
     const filas = (banco.por_facultad ?? []).map((f) => ({
       faculty: f.faculty,
       elegibles: Number(f.elegibles ?? 0),
@@ -51,7 +57,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas }: {
     // no proyecta como uno intacto.
     const aulas = banco.disponibles ?? banco.total ?? filas.length;
     return alcanceDelBanco(control, filas, falta, aulas);
-  }, [banco, control, quotas]);
+  }, [banco, control, quotas, agenda, partes]);
 
   if (!r) {
     // C5 categoría 1: el vacío dice qué falta y de dónde sale, dentro de la caja.
@@ -76,8 +82,8 @@ export function AulasAlcanceDelBanco({ banco, control, quotas }: {
       </p>
       <p className="aulas-cadenas-lectura">
         Vaciarlo entero rinde <strong>{fmt(r.rinde)}</strong> encuestas
-        {" "}—entre {fmt(r.bajo)} y {fmt(r.alto)}— y faltan{" "}
-        <strong>{fmt(r.falta)}</strong>
+        {" "}—entre {fmt(r.bajo)} y {fmt(r.alto)}— y cuando se acabe la agenda
+        faltarán <strong>{fmt(r.falta)}</strong>
       </p>
       <p className="mon-profile-muted aulas-alcance-base">
         {/* De dónde sale la proyección. Sin esto, «1 430» parece un dato del

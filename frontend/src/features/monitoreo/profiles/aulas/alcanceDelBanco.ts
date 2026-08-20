@@ -127,6 +127,24 @@ export function alcanceDelBanco(
   const elegiblesTotales = banco.reduce((s, b) => s + Math.max(0, b.elegibles || 0), 0);
   const proyectar = (t: number) => Math.round(elegiblesTotales * Math.max(0, t));
 
+  // El déficit sumado por facultad, a una tasa dada. Se evalúa tres veces —con
+  // la tasa central y con los dos extremos de la banda— porque el veredicto se
+  // decide POR FACULTAD y no por totales, y una banda sobre el total no dice
+  // nada del reparto.
+  const deficitPorFacultad = (t: number) => {
+    let suma = 0;
+    for (const b of banco) {
+      const f = String(b.faculty ?? "").trim();
+      if (!f) continue;
+      suma += Math.max(0, Math.max(0, falta.get(f) ?? 0) - Math.round(Math.max(0, b.elegibles || 0) * Math.max(0, t)));
+    }
+    for (const [f, falt] of falta) {
+      if (banco.some((b) => String(b.faculty ?? "").trim() === f)) continue;
+      suma += Math.max(0, falt);
+    }
+    return suma;
+  };
+
   const facultades: FacultadDelAlcance[] = [];
   const vistas = new Set<string>();
   for (const b of banco) {
@@ -159,8 +177,44 @@ export function alcanceDelBanco(
     deficit: facultades.reduce((s, f) => s + f.deficit, 0),
     deficitSiSeCompensara: Math.max(0, faltaTotal - rinde),
     facultades,
-    // El veredicto se decide en el extremo desfavorable: declarar que alcanza
-    // con la cifra central es prometer la mitad de las veces.
-    veredicto: bajo >= faltaTotal ? "alcanza" : alto >= faltaTotal ? "justo" : "no alcanza",
+    // **El veredicto se decide POR FACULTAD, no por totales.**
+    //
+    // Con totales decía «el banco alcanza» sobre un corte donde 14 facultades
+    // se quedaban cortas y faltaban 363 encuestas: el titular usaba justo la
+    // cuenta optimista que el pie de este mismo panel desautoriza. Que sobre en
+    // Derecho no cierra la cuota de Letras.
+    //
+    // Y en el extremo desfavorable: `alcanza` sólo si ni con la tasa baja queda
+    // déficit; `no alcanza` si ni con la alta desaparece.
+    veredicto: deficitPorFacultad(tasa.tasa - 2 * ee) === 0
+      ? "alcanza"
+      : deficitPorFacultad(tasa.tasa + 2 * ee) === 0 ? "justo" : "no alcanza",
   };
 }
+
+/**
+ * Lo que faltará por facultad cuando se acabe la agenda comprometida.
+ *
+ * **No es lo que falta hoy, y la diferencia decide el veredicto.** El banco se
+ * abre después de agotar las aulas ya comprometidas, así que pedirle que cubra
+ * lo que ésas van a traer es contarlo dos veces. Medido en el corte real:
+ * faltan 1 558 hoy y 1 192 al acabarse la agenda —366 encuestas que ya vienen—.
+ *
+ * Vive aquí y no en el componente para poder probarse sin montar la vista ni
+ * sembrar la maquinaria entera de la proyección.
+ */
+export function faltaTrasLaAgenda(
+  proyeccion: ReadonlyArray<{ facultad: string; cuotas: ReadonlyArray<{ faltanAlCerrarAgenda: number }> }>,
+): Map<string, number> {
+  const falta = new Map<string, number>();
+  for (const f of proyeccion) {
+    const nombre = String(f.facultad ?? "").trim();
+    if (!nombre) continue;
+    // Celda a celda, como en todo el módulo: pasarse en una no cubre otra.
+    const pendiente = f.cuotas.reduce((s, c) => s + Math.max(0, c.faltanAlCerrarAgenda ?? 0), 0);
+    if (!pendiente) continue;
+    falta.set(nombre, (falta.get(nombre) ?? 0) + pendiente);
+  }
+  return falta;
+}
+

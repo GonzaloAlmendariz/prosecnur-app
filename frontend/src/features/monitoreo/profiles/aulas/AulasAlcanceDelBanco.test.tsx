@@ -29,7 +29,7 @@ describe("AulasAlcanceDelBanco", () => {
     // 300. Por facultad faltan 200; restando totales, 120. La diferencia entre
     // las dos cuentas es justo lo que el panel existe para no dejar pasar.
     const html = renderToStaticMarkup(
-      <AulasAlcanceDelBanco banco={banco} control={control} quotas={cuota([["Derecho", 20, 0], ["Letras", 300, 0]])} />,
+      <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]} quotas={cuota([["Derecho", 20, 0], ["Letras", 300, 0]])} />,
     );
     expect(html).toContain("El banco no alcanza para cerrar la cuota");
     // Sobre el TEXTO, no sobre el markup: `<strong>200</strong>` aparece también
@@ -46,18 +46,31 @@ describe("AulasAlcanceDelBanco", () => {
 
   it("cuando cubre, lo dice sin lista de problemas", () => {
     const html = renderToStaticMarkup(
-      <AulasAlcanceDelBanco banco={banco} control={control} quotas={cuota([["Derecho", 20, 0], ["Letras", 30, 0]])} />,
+      <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]} quotas={cuota([["Derecho", 20, 0], ["Letras", 30, 0]])} />,
     );
     expect(html).toContain("El banco alcanza para cerrar la cuota");
     expect(html).toContain("Ninguna facultad se queda corta");
     expect(html).not.toContain("aulas-alcance-lista");
   });
 
+  it("la frase dice que el denominador es la agenda acabada, no lo de hoy", () => {
+    // El reparto por facultad se prueba en `faltaTrasLaAgenda`, que es donde
+    // vive y donde se puede sembrar sin montar la maquinaria de la proyección.
+    // Aquí se fija lo que la pantalla promete: que esa cifra NO es «lo que
+    // falta hoy», porque el banco se abre cuando la agenda se acaba.
+    const html = renderToStaticMarkup(
+      <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]}
+        quotas={cuota([["Letras", 300, 0]])} />,
+    );
+    expect(html).toContain("cuando se acabe la agenda");
+    expect(html.replace(/<[^>]+>/g, "")).not.toContain("y faltan 300");
+  });
+
   it("sin Base de control no proyecta: dice qué falta y de dónde sale", () => {
     // C5 categoría 1. Inventar una tasa para poder pintar el panel sería
     // exactamente lo que el contrato prohíbe.
     const html = renderToStaticMarkup(
-      <AulasAlcanceDelBanco banco={banco} control={[]} quotas={cuota([["Letras", 300, 0]])} />,
+      <AulasAlcanceDelBanco banco={banco} control={[]} agenda={[]} partes={[]} quotas={cuota([["Letras", 300, 0]])} />,
     );
     expect(html).toContain("hace falta la hoja «Base de control»");
     expect(html).not.toContain("aulas-alcance-titular");
@@ -65,7 +78,7 @@ describe("AulasAlcanceDelBanco", () => {
 
   it("la tasa y su dispersión se declaran, no se esconden", () => {
     const html = renderToStaticMarkup(
-      <AulasAlcanceDelBanco banco={banco} control={control} quotas={cuota([["Letras", 300, 0]])} />,
+      <AulasAlcanceDelBanco banco={banco} control={control} agenda={[]} partes={[]} quotas={cuota([["Letras", 300, 0]])} />,
     );
     expect(html).toContain("50,0 %");
     expect(html).toContain("medida en 3 aulas");
