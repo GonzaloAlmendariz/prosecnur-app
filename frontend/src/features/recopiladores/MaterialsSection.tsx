@@ -271,9 +271,13 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
 
   const removeSelected = () => {
     if (!selected || selected.required || selected.type === "access_qr") return;
+    const index = blocks.findIndex((block) => block.block_id === selected.block_id);
     const next = blocks.filter((block) => block.block_id !== selected.block_id);
     commit({ ...template, pages: [{ ...template.pages[0], blocks: next }, ...template.pages.slice(1)] });
-    setSelectedId(next[0]?.block_id ?? "");
+    // Selecciona lo que quedó en el mismo lugar (lo que antes era el
+    // siguiente bloque) en vez de saltar siempre al primero — borrar el
+    // bloque 6 de 9 no debería tirar la selección hasta el bloque 1.
+    setSelectedId(next[Math.min(index, next.length - 1)]?.block_id ?? "");
   };
 
   // El orden del array es lo que el motor usa para apilar los bloques en la
