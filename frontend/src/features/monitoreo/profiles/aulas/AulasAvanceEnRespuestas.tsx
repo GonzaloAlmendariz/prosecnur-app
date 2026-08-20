@@ -111,6 +111,19 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
             la falta de ninguna otra
           </li>
         ) : null}
+        {/* **El puente entre esta cuenta y el KPI de arriba.**
+            La banda dice «VÁLIDAS 2,220» y este panel «2,163 cubren meta»: 57
+            de diferencia a dos centimetros, sin nada que las una. No es un
+            error de suma —el motor cuenta aqui SOLO el eslabon en juego de cada
+            cadena, porque contar el titular caido y su reserva juntos inflaria
+            una meta dimensionada para un aula— pero callarlo deja dos cifras
+            del mismo hecho contradiciendose en la misma pantalla. */}
+        {validasTotales > a.validas ? (
+          <li className="es-sin-meta">
+            <strong>{fmt(validasTotales - a.validas)}</strong> se recogieron en eslabones que ya
+            no son el que cuenta en su cadena, así que no suman a ninguna meta
+          </li>
+        ) : null}
         {a.sinMeta ? (
           <li className="es-sin-meta">
             {fmt(a.sinMeta)} {a.sinMeta === 1 ? "curso-horario no declara" : "cursos-horario no declaran"} su
