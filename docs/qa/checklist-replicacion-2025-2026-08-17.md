@@ -4511,3 +4511,15 @@ EDUCACION dice «el historico 2025 no pudo generar una tasa especifica
 (base insuficiente): rige la tasa general». Peer de Monitoreo avisado
 del cambio de metas (msg d00cfc90): Σ3.155→3.020, factor_facultad y
 facultad_k viajan por fila.
+
+### 2026-08-20 (tarde 6): la pieza perdida del score, encontrada y declarada
+
+Abriendo el state.rds del .pulso (1,1 MB): el frame persiste SIN
+`population` (la tabla de estudiantes; correcto por contrato, es
+derivable) → las dimensiones "student" del objetivo caian a la via
+por-aula en silencio → 47,9 vs 68,6 con filas identicas. Reparado
+anti-fallback (commit en el log): el score sobre marco rehidratado
+declara «NO es comparable; reconstruye el marco». Octava lista
+cerrada/fallback mudo de la familia. Ademas V4 cerro el deff (1,08-1,12
+estratificado vs 2,0 asumido — conservador) y la revision exhaustiva
+completo sus 5 campanas de medicion.
