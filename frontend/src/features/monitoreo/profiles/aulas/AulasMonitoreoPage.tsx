@@ -53,6 +53,7 @@ import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLi
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
+import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
@@ -765,6 +766,23 @@ function renderAulasView(
             </div>
             <AulasTrabajoDeLosEquipos
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
+            />
+          </section>
+          {/* La pregunta del analista: ¿lo de plataforma coincide con lo que se
+              vio en el aula? Va en la misma pestaña que el registro porque es el
+              contraste de lo que ahí se anota. */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>El parte contra la plataforma</h3>
+              <span>lo declarado y lo que llegó</span>
+            </div>
+            <AulasParteContraPlataforma
+              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
+              agenda={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
             />
           </section>
         </div>
