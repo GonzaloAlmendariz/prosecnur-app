@@ -51,6 +51,7 @@ import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
+import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
@@ -723,7 +724,32 @@ function renderAulasView(
     // primero porque esta sección la usan dos personas —el jefe de campo, que
     // entra por lo que pasó en el aula, y el analista, que entra por los
     // controles— y lo que se registra viene antes de lo que se valida.
-    if (pestana === "registro") return <div className="mon-profile-stack">{registro}</div>;
+    if (pestana === "registro") {
+      return (
+        <div className="mon-profile-stack">
+          {registro}
+          {/* **Lo que el campo reportó, que hasta hoy no se leía en ninguna
+              pantalla.** `field_note` tenía formulario de entrada y cero
+              superficies de lectura: el aplicador anotaba lo que vio en el aula
+              y eso no llegaba a nadie. Va aquí, debajo del registro, porque es
+              la misma pestaña y la misma persona: quien registra y quien lee lo
+              registrado son el jefe de campo. */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Lo que reportó el campo</h3>
+              <span>observaciones de los partes</span>
+            </div>
+            <AulasObservacionesDeCampo
+              partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
+            />
+          </section>
+        </div>
+      );
+    }
     const rows = (dashboard.validation ?? []) as Array<Record<string, unknown>>;
     const summary = summarizeAulasValidation(rows);
     const control = (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>;
