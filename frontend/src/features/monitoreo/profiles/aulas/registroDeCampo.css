@@ -55,6 +55,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Al ras de la izquierda. `text-align: left` no basta en un flex column: los
+     hijos se colocan por `align-items`, que el `<button>` trae en `center` del
+     sistema, asi que las tres lineas salian centradas cada una en su ancho.
+     En una lista de 170 filas eso obliga a leer cada una: alineadas, el ojo
+     baja por un solo borde. */
+  align-items: flex-start;
   padding: 8px 10px;
   background: transparent;
   border: 0;
@@ -363,4 +369,59 @@
      vecinos y la fila crece añadiendo el motivo, no ensanchando el estado. */
   grid-template-columns: repeat(auto-fit, minmax(14rem, 21rem));
   gap: var(--pulso-space-3, 12px);
+}
+
+/* A que facultad se va. Un selector de UNA linea: la columna mide 240 px y los
+   chips de las veinte facultades caian a seis lineas —174 px de banda para una
+   lista de 182—, o sea el remedio peor que el problema. */
+.registro-campo-filtro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--pulso-border);
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+.registro-campo-filtro select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text);
+}
+
+/* De que facultad es cada aula. Con «Todas» puesto, sin esto la fila decia el
+   codigo y el curso y nada mas. */
+.registro-campo-item-facultad {
+  font-size: 11px;
+  color: var(--pulso-text-faint);
+}
+
+/* El resto de facultades, en una linea. */
+.registro-campo-facultades-resto select {
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 6px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface);
+  color: var(--pulso-text-soft);
+  max-width: 190px;
+}
+
+/* El filtro y la lista son UNA celda del grid del cuerpo. Sin este envoltorio,
+   el filtro ocupaba la primera columna y empujaba la lista a la del formulario:
+   la lista salia a 1034 px con el texto centrado y el formulario caia debajo. */
+.registro-campo-columna {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
