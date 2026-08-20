@@ -154,9 +154,23 @@ export default function CalidadDeCampo({
   const bloqueantes = calidad?.resumen?.bloqueantes ?? 0;
 
   return (
+    // **Un panel del chrome no declara que la vista está lista.**
+    //
+    // Esto emitía `data-audit-ready="monitoreo-calidad-campo"`, y `estadoListo()`
+    // resuelve con `querySelector`, o sea con la PRIMERA marca del documento. En
+    // las secciones «avance» y «calidad» —las dos que montan este panel— la
+    // marca de un panel del chrome quedaba disponible mientras la página seguía
+    // cargando, así que un perfil que apaga su marca poniéndola en `undefined`
+    // —territorial, telefónico y acreditación lo hacen así— seguía dando la
+    // vista por lista: la única marca que quedaba en el DOM era ésta.
+    //
+    // Nadie la consumía: ni un test, ni un runner, ni el QA visual la buscaban
+    // por nombre. Lo único que hacía era responder «listo» por una vista que no
+    // es suya. El `data-qa` conserva el gancho para quien quiera seleccionar
+    // este panel sin volver a hablar por la página.
     <section
       className="mon-calidad"
-      data-audit-ready="monitoreo-calidad-campo"
+      data-qa="monitoreo-calidad-campo"
       aria-labelledby="mon-calidad-titulo"
     >
       <header className="mon-calidad-head">
