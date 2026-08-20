@@ -4632,3 +4632,31 @@
   font-style: normal;
   color: color-mix(in srgb, var(--pulso-warn) 70%, var(--pulso-text));
 }
+
+/* ── Una tabla ancha avisa de que sigue ──────────────────────────────────
+   Medido en Base de control a 1440x1000: la tabla mide 2 677 px dentro de un
+   marco de 892, asi que **el 67 % de sus 26 columnas queda fuera de vista**.
+   Se alcanzan con scroll —el marco ya es `overflow-x: auto`, C4 cumplido— pero
+   nada lo decia: el corte se ve como si la tabla terminara ahi, y por eso «70T»
+   y «VÁLIDAD…» aparecian truncadas sin explicacion.
+
+   La sombra sale del propio scroll con dos gradientes anclados al contenido
+   (`background-attachment: local`) y dos al marco (`scroll`): cuando hay mas
+   contenido de ese lado, el degradado del borde se ve; al llegar al final, el
+   del contenido lo tapa. Sin JS y sin un rotulo que explique lo que la propia
+   tabla puede ensenar.
+
+   Va para todas las tablas de aulas y no solo para esta: el perfil tiene cinco
+   con el mismo marco. No se toca `.mon-profile-table-wrap` a secas porque lo
+   comparten los otros tres perfiles. */
+.mon-profile-page.is-aulas-flow .mon-profile-table-wrap {
+  background-image:
+    linear-gradient(to right, var(--pulso-surface) 40%, rgba(255, 255, 255, 0)),
+    linear-gradient(to left, var(--pulso-surface) 40%, rgba(255, 255, 255, 0)),
+    linear-gradient(to right, rgba(15, 23, 42, 0.13), rgba(15, 23, 42, 0)),
+    linear-gradient(to left, rgba(15, 23, 42, 0.13), rgba(15, 23, 42, 0));
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-repeat: no-repeat;
+  background-size: 32px 100%, 32px 100%, 12px 100%, 12px 100%;
+  background-attachment: local, local, scroll, scroll;
+}

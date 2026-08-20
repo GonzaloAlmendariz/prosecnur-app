@@ -241,8 +241,23 @@ extensible a todos los monitoreos.
 
 ### E. Forma y arquitectura (T22–T25)
 
-- **T22** — Base de control con formato: 26 columnas crudas es lo más literal
-  que queda del Excel.
+- **T22 ◐ (2026-08-20)** — Base de control. **El diagnóstico del plan estaba
+  desactualizado**: decía «26 columnas crudas» y las columnas siguen siendo 26,
+  pero de crudas nada —ya tenían bloques como el libro, columnas vacías
+  ocultas, alineación de cifras y escala de proporciones—.
+  - **Lo que sí estaba mal, medido en pantalla**: la tabla mide **2 677 px en un
+    marco de 892**, así que **el 67 % de sus columnas quedaba fuera de vista** y
+    nada lo decía. Se alcanzaban con scroll (C4 cumplido), pero el corte se veía
+    como si la tabla acabara ahí: «70T» y «VÁLIDAD…» aparecían truncadas sin
+    explicación.
+  - **Hecho**: sombra de desplazamiento en las tablas de aulas —dos gradientes
+    anclados al contenido y dos al marco, sin JS— y el encabezado declara
+    «152 filas de la hoja · **26 columnas**». El número sale de
+    `columnasDelControl()`, **la misma cuenta que hace la tabla**, para no tener
+    dos definiciones que se separen.
+  - **Falta**: los **8 párrafos** apilados entre el veredicto y la tabla, todos
+    con peso parecido. Agruparlos en veredicto → detalle → procedencia sin
+    borrar ninguno.
 - **T23** — Agenda deja de ser la traducción de 12 columnas: filtro por facultad
   y lo que decide quien llama.
 - **T24** — El reemplazo, alcanzable sin entrar al formulario de un aula.

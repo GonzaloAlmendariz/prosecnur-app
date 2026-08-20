@@ -264,6 +264,23 @@ function texto(valor: unknown) {
   return String(valor).trim();
 }
 
+/**
+ * Cuántas columnas acaba pintando la tabla del libro.
+ *
+ * Vive aquí y no en la página porque **es la misma cuenta que hace la tabla**:
+ * el identificador más los campos de los grupos que traen dato. Calcularla otra
+ * vez en el encabezado daría dos definiciones que se separan en cuanto una de
+ * las dos cambie —ya pasó con los tramos de la agenda, que tenían su propia
+ * copia—.
+ */
+export function columnasDelControl(resumen: ResumenDeControl | null): number {
+  const grupos = resumen?.grupos ?? [];
+  const campos = grupos
+    .filter((g) => g.aulas_con_dato > 0)
+    .flatMap((g) => CAMPOS_POR_GRUPO[g.clave] ?? []);
+  return campos.length ? campos.length + 1 : 0;
+}
+
 export function AulasControlDelLibro({
   filas,
   resumen,
