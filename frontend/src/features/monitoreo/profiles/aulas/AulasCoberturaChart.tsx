@@ -28,12 +28,21 @@ import { coberturaPorAula } from "./coberturaPorAula";
 const ALTO_COMPACTO = 820;
 const ALTO_DEL_GRAFICO = { amplio: 360, compacto: 220 };
 
-export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
+export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
   /** Las aulas sin meta declarada, también del motor. */
   sinMetaMotor?: number;
+  /**
+   * Reservas del banco, que el motor ya NO reparte en tramos: son aulas
+   * adicionales esperando en su estrato, no aulas que alguien vaya a visitar, y
+   * contarlas como «sin respuestas» convertia el banco en alarma —73 de las 121
+   * que salian ahi—. Se recibe para poder NOMBRARLAS: sacarlas del reparto y no
+   * decir donde fueron deja al lector con dos totales que no cuadran entre la
+   * cabecera del panel y este pie.
+   */
+  bancoMotor?: number;
 }) {
   // Se mide una vez y se escucha el cambio: el usuario redimensiona y el grafico
   // tiene que encogerse con la ventana, no en la siguiente carga.
@@ -111,12 +120,23 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor }: {
         }}
         config={{ displayModeBar: false, responsive: true }}
       />
-      {sinMeta ? (
+      {sinMeta || bancoMotor ? (
         // No se esconde ni se reparte: un aula sin meta no cabe en una escala
         // relativa, y decir cuántas son es parte de lo que el gráfico informa.
         <p className="mon-profile-table-recorte">
-          {sinMeta} {sinMeta === 1 ? "curso-horario no declara" : "cursos-horario no declaran"} su
-          meta, así que {sinMeta === 1 ? "queda" : "quedan"} fuera del reparto.
+          {sinMeta ? (
+            <>
+              {sinMeta} {sinMeta === 1 ? "curso-horario no declara" : "cursos-horario no declaran"} su
+              meta, así que {sinMeta === 1 ? "queda" : "quedan"} fuera del reparto.
+            </>
+          ) : null}
+          {bancoMotor ? (
+            <>
+              {sinMeta ? " " : ""}
+              {bancoMotor} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
+              {" "}esperan en su estrato y contarlas como «sin respuestas» las volvería una alarma.
+            </>
+          ) : null}
         </p>
       ) : null}
     </div>

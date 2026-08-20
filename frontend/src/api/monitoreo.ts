@@ -845,6 +845,12 @@ export type MonitoreoAulasDashboard = {
 	  course_status_cobertura?: Array<{ clave: string; aulas: number }>;
 	  course_status_estados_desconocidos?: number;
 	  course_status_sin_meta?: number;
+	  /**
+	   * Reservas del banco, fuera del reparto de cobertura. El motor las excluye
+	   * por el mismo motivo por el que ya no entraban en `brechas`: son aulas
+	   * adicionales esperando en su estrato, no aulas que alguien vaya a visitar.
+	   */
+	  course_status_banco?: number;
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

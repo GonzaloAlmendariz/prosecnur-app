@@ -1150,7 +1150,17 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   val_cs <- suppressWarnings(as.numeric(out$respuestas_validas))
   meta_cs[!is.finite(meta_cs)] <- 0
   val_cs[!is.finite(val_cs)] <- 0
-  con_meta <- meta_cs > 0
+  # **El banco NO entra en el reparto de cobertura**, por el mismo motivo por el
+  # que ya no entra en `brechas`: son aulas adicionales que esperan en su
+  # estrato, no aulas que alguien vaya a visitar, y contarlas como «sin
+  # respuestas» convierte el banco en alarma. Medido sobre el fixture, de las
+  # 121 que salian «Sin respuestas» —la barra mas larga y la primera que mira el
+  # ojo— 73 eran del banco.
+  #
+  # Se cuentan aparte para que la vista pueda nombrarlas: sacarlas del reparto y
+  # no decir donde fueron deja al lector con dos totales que no cuadran.
+  en_juego_cs <- !(tolower(trimws(as.character(out$sample_role %||% ""))) %in% "extra_reserve_pool")
+  con_meta <- meta_cs > 0 & en_juego_cs
   razon <- ifelse(con_meta, val_cs / pmax(meta_cs, 1), NA_real_)
   tramo <- ifelse(is.na(razon), NA_character_,
            ifelse(razon <= 0, "sin_respuestas",
@@ -1167,7 +1177,10 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   attr(recortado, "estados") <- estados
   attr(recortado, "estados_desconocidos") <- estados_desconocidos
   attr(recortado, "cobertura") <- cobertura
-  attr(recortado, "sin_meta") <- as.integer(sum(!con_meta))
+  # Las que no declaran meta, contadas SOLO entre las que estan en juego: una
+  # reserva del banco sin meta no es un dato que falte, es que no le toca.
+  attr(recortado, "sin_meta") <- as.integer(sum(en_juego_cs & !(meta_cs > 0)))
+  attr(recortado, "banco") <- as.integer(sum(!en_juego_cs))
   recortado
 }
 
@@ -1687,6 +1700,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     course_status_estados_desconocidos = as.integer(attr(course_status, "estados_desconocidos") %||% 0L),
     course_status_cobertura = attr(course_status, "cobertura") %||% list(),
     course_status_sin_meta = as.integer(attr(course_status, "sin_meta") %||% 0L),
+    # Cuantas del reparto son banco. La vista las nombra en vez de dejar dos
+    # totales que no cuadran entre la cabecera y el pie.
+    course_status_banco = as.integer(attr(course_status, "banco") %||% 0L),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una
