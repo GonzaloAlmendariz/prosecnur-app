@@ -220,3 +220,68 @@ export function radiografiaAula(
   };
 }
 
+export type FuenteEfectividad = {
+  tipo: "historico" | "calibracion_embebida" | "tau_global";
+  periodo: string;
+  tau: number | null;
+};
+
+/** La procedencia de la calibración, leída de las filas del motor — nunca
+ *  asumida por la UI (Gonzalo, 2026-08-20: «la idea es que no sea un
+ *  hardcore… el histórico pudo haber sido de hace seis meses»). Filas viejas
+ *  sin la columna se declaran como lo que son: calibración embebida. */
+export function fuenteEfectividad(rows: Fila[] | null): FuenteEfectividad {
+  const fila = (rows ?? []).find((f) => String(f.efectividad_fuente ?? "").trim());
+  const tipoRaw = String(fila?.efectividad_fuente ?? "").trim();
+  const tipo =
+    tipoRaw === "historico" || tipoRaw === "tau_global" ? tipoRaw : "calibracion_embebida";
+  const tau = num(fila?.efectividad_tau);
+  return {
+    tipo,
+    periodo: String(fila?.efectividad_periodo ?? "").trim(),
+    tau: tipo === "tau_global" ? tau : null,
+  };
+}
+
+export type RadiografiaTau = {
+  curso: string;
+  codigo: string;
+  horario: string;
+  facultad: string;
+  rol: string;
+  elegibles: number;
+  tau: number;
+  esperadas: number;
+  productoExacto: number;
+};
+
+/** La redacción del cálculo cuando el estudio se rige por τ global (sin
+ *  histórico): dos pasos en vez de cuatro. */
+export function radiografiaAulaTau(fila: Fila): RadiografiaTau | null {
+  const el = num(fila.eligible_n);
+  const esperadas = num(fila.efectivas_esperadas);
+  const tau = num(fila.efectividad_tau);
+  if (el == null || esperadas == null || tau == null) return null;
+  const base = radiografiaConIdentidad(fila);
+  return { ...base, elegibles: el, tau, esperadas, productoExacto: el * tau };
+}
+
+function radiografiaConIdentidad(fila: Fila) {
+  const role = String(fila.sample_role ?? "").trim();
+  const orden = num(fila.replacement_order);
+  return {
+    curso: String(fila.course_name ?? "").trim() || String(fila.course_id ?? "").trim(),
+    codigo: String(fila.course_id ?? "").trim(),
+    horario: String(fila.schedule ?? "").trim(),
+    facultad: String(fila.faculty_aula ?? fila.faculty ?? "").trim(),
+    rol:
+      role === "titular"
+        ? "Titular"
+        : role === "chain_reserve"
+          ? `Reemplazo${orden != null ? ` ${orden}` : ""}`
+          : role === "extra_reserve_pool"
+            ? "Bolsa extra"
+            : role || "—",
+  };
+}
+

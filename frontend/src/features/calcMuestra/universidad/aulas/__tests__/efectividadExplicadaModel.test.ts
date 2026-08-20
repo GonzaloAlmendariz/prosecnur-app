@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { efectividadExplicada, etiquetaDocente, radiografiaAula } from "../efectividadExplicadaModel";
+import { efectividadExplicada, etiquetaDocente, fuenteEfectividad, radiografiaAula, radiografiaAulaTau } from "../efectividadExplicadaModel";
 
 const fila = (over: Record<string, unknown>) => ({
   course_name: "CURSO",
@@ -119,6 +119,36 @@ describe("radiografiaAula", () => {
     expect(r!.rol).toBe("Reemplazo 3");
     expect(r!.tramo).toBe("52–91");
     expect(radiografiaAula({ course_id: "Y", eligible_n: 10 }, porTamano)).toBeNull();
+  });
+});
+
+describe("fuenteEfectividad", () => {
+  it("lee la procedencia de la fila y las filas viejas se declaran embebidas", () => {
+    expect(
+      fuenteEfectividad([{ efectividad_fuente: "historico", efectividad_periodo: "2025" }]),
+    ).toEqual({ tipo: "historico", periodo: "2025", tau: null });
+    expect(
+      fuenteEfectividad([{ efectividad_fuente: "tau_global", efectividad_tau: 0.5 }]),
+    ).toEqual({ tipo: "tau_global", periodo: "", tau: 0.5 });
+    // Sin columna (data guardada antes del contrato): la verdad es que las
+    // tasas venian embebidas — se declara, no se disfraza de historico.
+    expect(fuenteEfectividad([{ course_id: "A" }]).tipo).toBe("calibracion_embebida");
+  });
+});
+
+describe("radiografiaAulaTau", () => {
+  it("redacta la via global en dos factores y no inventa sin tau", () => {
+    const r = radiografiaAulaTau({
+      course_name: "CURSO NUEVO",
+      course_id: "CN1",
+      sample_role: "titular",
+      eligible_n: 41,
+      efectividad_tau: 0.5,
+      efectivas_esperadas: 20.5,
+    });
+    expect(r).toMatchObject({ rol: "Titular", elegibles: 41, tau: 0.5, esperadas: 20.5 });
+    expect(r!.productoExacto).toBeCloseTo(20.5, 6);
+    expect(radiografiaAulaTau({ course_id: "X", eligible_n: 10, efectivas_esperadas: 5 })).toBeNull();
   });
 });
 

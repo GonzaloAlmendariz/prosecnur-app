@@ -44,6 +44,54 @@ test_that("sin meta no hay origen: el marcador solo existe donde hay diseno", {
   expect_false("meta_origen" %in% names(.cm_aulas_efectividad_anotar(sin)))
 })
 
+test_that("sin declaracion la procedencia se dice en voz alta: calibracion_embebida", {
+  af <- data.frame(classroom_id = "A", eligible_n = 20,
+                   teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+                   stringsAsFactors = FALSE)
+  out <- .cm_aulas_efectividad_anotar(af)
+  expect_identical(out$efectividad_fuente, "calibracion_embebida")
+  expect_identical(out$efectividad_periodo, "")
+})
+
+test_that("declarar historico con periodo viaja en la fila", {
+  cal <- .cm_efectividad_calibracion(list(efectividad = list(fuente = "historico", periodo = "2025")))
+  af <- data.frame(classroom_id = "A", eligible_n = 20,
+                   teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+                   stringsAsFactors = FALSE)
+  out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
+  expect_identical(out$efectividad_fuente, "historico")
+  expect_identical(out$efectividad_periodo, "2025")
+  # Las curvas siguen siendo las medidas: 20 x 0.87 x 0.69 = 12.0
+  expect_equal(out$efectivas_esperadas, 12.0)
+})
+
+test_that("sin historico, tau_global: esperado = elegibles x tau y SIN curvas", {
+  cal <- .cm_efectividad_calibracion(list(efectividad = list(fuente = "tau_global", tau = 0.5)))
+  af <- data.frame(classroom_id = c("A", "B"), eligible_n = c(20, 41),
+                   stringsAsFactors = FALSE)
+  out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
+  expect_identical(out$efectividad_fuente, c("tau_global", "tau_global"))
+  expect_true(all(is.na(out$p_aplicada_ref)))
+  expect_true(all(is.na(out$rendimiento_ref)))
+  expect_equal(out$efectividad_tau, c(0.5, 0.5))
+  expect_equal(out$efectivas_esperadas, c(10.0, 20.5))
+  expect_identical(out$meta_origen, c("diseno", "diseno"))
+})
+
+test_that("un tau ilegal NO habilita el modo global: cae a embebida declarada", {
+  expect_identical(
+    .cm_efectividad_calibracion(list(efectividad = list(fuente = "tau_global", tau = 1.4)))$fuente,
+    "calibracion_embebida"
+  )
+  expect_identical(
+    .cm_efectividad_calibracion(list(efectividad = list(fuente = "tau_global")))$fuente,
+    "calibracion_embebida"
+  )
+  # El normalizador de config preserva la clave declarada (lista cerrada S2).
+  cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(fuente = "historico", periodo = "2025-2")))
+  expect_identical(cfg$efectividad, list(fuente = "historico", periodo = "2025-2", tau = NA_real_))
+})
+
 test_that("frame sin eligible_n o vacio queda intacto (nunca inventa)", {
   vacio <- data.frame()
   expect_identical(.cm_aulas_efectividad_anotar(vacio), vacio)
@@ -70,7 +118,7 @@ test_that("construir anota el frame SIN mover el frame_hash (firma estable)", {
   # vano. (Comparar por RE-COMPUTO externo no sirve: digest serializa bytes
   # que identical() ignora — row.names compactos/encoding — y da falso rojo.)
   testthat::local_mocked_bindings(
-    .cm_aulas_efectividad_anotar = function(aula_frame) aula_frame
+    .cm_aulas_efectividad_anotar = function(aula_frame, calibracion = NULL) aula_frame
   )
   frame_sin <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
   expect_false("efectivas_esperadas" %in% names(frame_sin$aula_frame))
