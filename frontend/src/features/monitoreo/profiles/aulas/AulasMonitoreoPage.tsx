@@ -441,6 +441,27 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
   );
 }
 
+/**
+ * Días de campo transcurridos: los días DISTINTOS con parte de campo.
+ *
+ * Es el denominador del ritmo de caídas —una caída puede ocurrir cualquier día
+ * que el operativo salga— y no debe confundirse con los días con respuestas,
+ * que en este corte son 24 porque las aulas ya agendadas traen las suyas.
+ *
+ * Función suelta y no `useMemo`: `renderAulasView` no es un componente y tiene
+ * returns tempranos, así que un hook ahí se ejecuta o no según la sección y
+ * React lo rechaza con «rendered more hooks than during the previous render».
+ * Lo aprendí metiéndolo dentro y viendo la pantalla caerse al error boundary.
+ */
+function diasDeCampoDelCorte(partes: ReadonlyArray<MonitoreoRow>): number {
+  const dias = new Set<string>();
+  for (const p of partes) {
+    const m = String(p.applied_at ?? p.applied_date ?? "").match(/\d{4}-\d{2}-\d{2}/);
+    if (m) dias.add(m[0]);
+  }
+  return dias.size;
+}
+
 function renderAulasView(
   view: MonitoreoSeccion,
   dashboard: MonitoreoAulasDashboard | null,
@@ -1437,7 +1458,14 @@ function renderAulasView(
           <h3>Consumo de la reserva</h3>
           <span>por facultad, al ritmo de reemplazos observado</span>
         </div>
-        <AulasConsumoDelBanco filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]} />
+        {/* Los días de campo salen de los PARTES —los días en que el operativo
+            salió de verdad— y no de `ritmo_diario`, que cuenta días con
+            respuestas y en este corte abarca 24 por las aulas ya agendadas: una
+            caída sólo puede ocurrir un día en que se sale. */}
+        <AulasConsumoDelBanco
+          filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
+          diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
+        />
       </section>
       )}
       {pestana !== "cuotas" ? null : (

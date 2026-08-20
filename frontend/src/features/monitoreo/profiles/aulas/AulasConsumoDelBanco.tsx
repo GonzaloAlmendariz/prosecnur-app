@@ -20,8 +20,20 @@ import { consumoDelBanco } from "./consumoDelBanco";
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
 
-export function AulasConsumoDelBanco({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const { facultades, sinFecha } = useMemo(() => consumoDelBanco(filas), [filas]);
+export function AulasConsumoDelBanco({ filas, diasDeCampo = 0 }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /**
+   * Días de campo que lleva el estudio: el denominador del ritmo de caídas.
+   * Sin él no se proyecta nada, porque el ritmo viejo —caídas por día CON
+   * caídas— no podía bajar de 1 y convertía «una reserva libre» en «un día» por
+   * aritmética, no por medición.
+   */
+  diasDeCampo?: number;
+}) {
+  const { facultades, sinFecha } = useMemo(
+    () => consumoDelBanco(filas, diasDeCampo),
+    [filas, diasDeCampo],
+  );
 
   // Dos causas, y **sólo dos**: sin plan no hay nada, y con plan sin reemplazos la
   // lista vacía es una buena noticia. Escribí aquí una tercera —«hay reemplazos
