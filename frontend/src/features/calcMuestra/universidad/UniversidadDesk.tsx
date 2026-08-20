@@ -787,22 +787,19 @@ export function UniversidadDesk({
                 certezaEnCurso={midiendoCerteza}
                 onMedirCerteza={onMedirCerteza}
               />
-              {/* Plan 1b/E8 — la tarjeta estrella de la pestana (Gonzalo:
-                  «sumamente explicada de forma visual y didactica: aqui se
-                  pide cuantas aulas se requieren por facultad sabiendo su
-                  tasa de efectividad»). */}
-              <TasaEfectividadFacultadCard
-                tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
-                estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
-                  import("./calculo/tasaFacultadModel").EstratoDimensionado[] | null}
-              />
-              {/* La distribucion que el P25 resume, DONDE se dimensionan los
-                  cursos-horario (Gonzalo: los graficos van donde tienen
-                  sentido conceptual — esto habla de aulas, no del n). */}
+              {/* Recorrido narrativo (Gonzalo, 2026-08-20: «elegibles deberia
+                  estar al inicio»): 1º la materia prima — cuantos elegibles
+                  carga cada aula y su P25; 2º la tasa que convierte; 3º la
+                  tabla del resultado. */}
               <DistribucionElegiblesCard
                 aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
                 estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
                   import("./calculo/DistribucionElegiblesCard").EstratoDimension[] | null}
+              />
+              <TasaEfectividadFacultadCard
+                tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
+                estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
+                  import("./calculo/tasaFacultadModel").EstratoDimensionado[] | null}
               />
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion">
