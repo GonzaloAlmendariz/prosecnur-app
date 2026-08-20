@@ -89,16 +89,57 @@ test_that("un tau ilegal NO habilita el modo global: cae a embebida declarada", 
   )
   # El normalizador de config preserva la clave declarada (lista cerrada S2).
   cfg <- calc_muestra_aulas_normalize_config(list(efectividad = list(fuente = "historico", periodo = "2025-2")))
-  expect_identical(cfg$efectividad, list(fuente = "historico", periodo = "2025-2", tau = NA_real_))
+  expect_identical(cfg$efectividad,
+                   list(fuente = "historico", periodo = "2025-2", tau = NA_real_,
+                        tau_base = NA_real_, por_facultad = NULL))
 })
 
 test_that("la proyeccion del workspace NO borra la procedencia (septima lista cerrada)", {
   ws <- .cm_normalize_workspace_aulas_config(list(
     efectividad = list(fuente = "historico", periodo = "2025-2")
   ))
-  expect_identical(ws$efectividad, list(fuente = "historico", periodo = "2025-2", tau = NA_real_))
+  expect_identical(ws$efectividad,
+                   list(fuente = "historico", periodo = "2025-2", tau = NA_real_,
+                        tau_base = NA_real_, por_facultad = NULL))
   # Sin declaracion la clave queda NULL (no un default disfrazado).
   expect_null(.cm_normalize_workspace_aulas_config(list())$efectividad)
+})
+
+test_that("el factor por facultad muerde solo donde el historico tiene base", {
+  cal <- .cm_efectividad_calibracion(list(efectividad = list(
+    fuente = "historico", periodo = "2025-2", tau_base = 0.53,
+    por_facultad = list(
+      list(facultad = "DERECHO", tau = 0.562, k = 16, suficiencia = "delgada"),
+      # invalida (tau fuera de rango): se descarta en la normalizacion
+      list(facultad = "PSICOLOGIA", tau = 1.7, k = 6)
+    )
+  )))
+  expect_length(cal$por_facultad, 1L)
+  af <- data.frame(
+    classroom_id = c("A", "B"),
+    faculty = c("DERECHO", "EDUCACION"),
+    eligible_n = c(20, 20),
+    teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+    stringsAsFactors = FALSE
+  )
+  out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
+  # DERECHO: 20 x 0.87 x 0.69 x (0.562/0.53 = 1.060) = 12.73 -> 12.7
+  expect_equal(out$factor_facultad, c(1.06, 1))
+  expect_equal(out$facultad_k, c(16L, NA_integer_))
+  expect_equal(out$efectivas_esperadas, c(12.7, 12.0))
+})
+
+test_that("sin tau_base el factor NO se aplica (nunca dividir por un supuesto mudo)", {
+  cal <- .cm_efectividad_calibracion(list(efectividad = list(
+    fuente = "historico",
+    por_facultad = list(list(facultad = "DERECHO", tau = 0.562, k = 16))
+  )))
+  af <- data.frame(classroom_id = "A", faculty = "DERECHO", eligible_n = 20,
+                   teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+                   stringsAsFactors = FALSE)
+  out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
+  expect_equal(out$factor_facultad, 1)
+  expect_equal(out$efectivas_esperadas, 12.0)
 })
 
 test_that("frame sin eligible_n o vacio queda intacto (nunca inventa)", {

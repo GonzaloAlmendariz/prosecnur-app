@@ -170,11 +170,15 @@ export type RadiografiaAula = {
   rendimiento: number;
   /** Lo que el motor guardó (1 decimal). */
   esperadas: number;
-  /** elegibles × p × r sin redondear, para mostrar la cuenta completa. */
+  /** elegibles × p × r × factor sin redondear, para mostrar la cuenta completa. */
   productoExacto: number;
   docente: string;
   /** Tramo de tamaño observado en el plan para este rendimiento («16–25»). */
   tramo: string;
+  /** Ajuste de la facultad (τ_facultad / τ_base); 1 cuando no hay base. */
+  factorFacultad: number;
+  /** Aulas aplicadas de esta facultad en el histórico; null = sin base. */
+  facultadK: number | null;
 };
 
 /** La redacción del cálculo de UN curso-horario — Gonzalo (2026-08-20): «yo
@@ -200,6 +204,8 @@ export function radiografiaAula(
         : role === "extra_reserve_pool"
           ? "Bolsa extra"
           : role || "—";
+  const factor = num(fila.factor_facultad) ?? 1;
+  const kFac = num(fila.facultad_k);
   return {
     curso: String(fila.course_name ?? "").trim() || String(fila.course_id ?? "").trim(),
     codigo: String(fila.course_id ?? "").trim(),
@@ -210,7 +216,9 @@ export function radiografiaAula(
     pAplicada: p,
     rendimiento: r,
     esperadas,
-    productoExacto: el * p * r,
+    productoExacto: el * p * r * factor,
+    factorFacultad: factor,
+    facultadK: kFac != null ? Math.round(kFac) : null,
     docente: etiquetaDocente(String(fila.teacher_type ?? "")),
     tramo: grupo
       ? grupo.minElegibles === grupo.maxElegibles
@@ -283,5 +291,26 @@ function radiografiaConIdentidad(fila: Fila) {
             ? "Bolsa extra"
             : role || "—",
   };
+}
+
+export type AjusteFacultad = {
+  facultad: string;
+  factor: number;
+  k: number | null;
+};
+
+/** Los ajustes por facultad vigentes en el plan, derivados de las filas del
+ *  motor. Vacío cuando el ajuste no está activo (sin declaración sellada). */
+export function ajustesPorFacultad(rows: Fila[] | null): AjusteFacultad[] {
+  const porFac = new Map<string, AjusteFacultad>();
+  for (const f of rows ?? []) {
+    const factor = num(f.factor_facultad);
+    if (factor == null || factor === 1) continue;
+    const facultad = String(f.faculty_aula ?? f.faculty ?? "").trim();
+    if (!facultad || porFac.has(facultad)) continue;
+    const k = num(f.facultad_k);
+    porFac.set(facultad, { facultad, factor, k: k != null ? Math.round(k) : null });
+  }
+  return [...porFac.values()].sort((a, b) => b.factor - a.factor);
 }
 

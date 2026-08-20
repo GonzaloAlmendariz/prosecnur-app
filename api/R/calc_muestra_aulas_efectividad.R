@@ -56,7 +56,32 @@
   periodo <- chr1(ef$periodo)
   tau <- suppressWarnings(as.numeric(ef$tau)[1])
   if (identical(fuente, "historico")) {
-    return(list(fuente = "historico", periodo = periodo, tau = NA_real_))
+    # Ajuste por facultad (decision de Gonzalo, 2026-08-20): tau medido de la
+    # VARA DE EFECTIVAS del historico donde la referencia lo clasifica con
+    # suficiencia (k>=12); las demas facultades NO llevan entrada — para ellas
+    # rige la tasa general y la UI lo declara. tau_base es el agregado que las
+    # curvas reproducen; el factor por aula es tau_facultad / tau_base.
+    tau_base <- suppressWarnings(as.numeric(ef$tau_base)[1])
+    if (!is.finite(tau_base) || tau_base <= 0 || tau_base > 1) tau_base <- NA_real_
+    pf_in <- ef$por_facultad
+    por_facultad <- NULL
+    if (is.list(pf_in) && length(pf_in)) {
+      limpio <- lapply(pf_in, function(e) {
+        if (!is.list(e)) return(NULL)
+        fac <- chr1(e$facultad)
+        tv <- suppressWarnings(as.numeric(e$tau)[1])
+        kv <- suppressWarnings(as.integer(e$k)[1])
+        suf <- chr1(e$suficiencia)
+        if (!nzchar(fac) || !is.finite(tv) || tv <= 0 || tv > 1) return(NULL)
+        list(facultad = fac, tau = tv,
+             k = if (length(kv) == 1L && !is.na(kv)) kv else NA_integer_,
+             suficiencia = suf)
+      })
+      limpio <- Filter(Negate(is.null), limpio)
+      if (length(limpio)) por_facultad <- limpio
+    }
+    return(list(fuente = "historico", periodo = periodo, tau = NA_real_,
+                tau_base = tau_base, por_facultad = por_facultad))
   }
   if (identical(fuente, "tau_global") && is.finite(tau) && tau > 0 && tau <= 1) {
     return(list(fuente = "tau_global", periodo = periodo, tau = tau))
@@ -96,7 +121,30 @@
     r <- .cm_efectividad_rendimiento(aula_frame$eligible_n)
     aula_frame$p_aplicada_ref <- round(p, 3)
     aula_frame$rendimiento_ref <- round(r, 3)
-    aula_frame$efectivas_esperadas <- round(el * p * r, 1)
+    # Ajuste por facultad: solo donde el historico declaro un tau con
+    # suficiencia; el resto queda en 1 con k=NA — la UI dice "el historico no
+    # pudo generar informacion especifica para esta facultad".
+    factor <- rep(1, nrow(aula_frame))
+    k_fac <- rep(NA_integer_, nrow(aula_frame))
+    pf <- cal$por_facultad
+    tau_base <- suppressWarnings(as.numeric(cal$tau_base))
+    if (is.list(pf) && length(pf) && length(tau_base) == 1L &&
+        is.finite(tau_base) && tau_base > 0) {
+      fac_col <- toupper(trimws(as.character(aula_frame$faculty %||% rep("", nrow(aula_frame)))))
+      for (e in pf) {
+        fk <- toupper(trimws(as.character(e$facultad)[1]))
+        tv <- suppressWarnings(as.numeric(e$tau)[1])
+        kv <- suppressWarnings(as.integer(e$k)[1])
+        if (nzchar(fk) && is.finite(tv) && tv > 0) {
+          idx <- fac_col == fk
+          factor[idx] <- tv / tau_base
+          k_fac[idx] <- kv
+        }
+      }
+    }
+    aula_frame$factor_facultad <- round(factor, 3)
+    aula_frame$facultad_k <- k_fac
+    aula_frame$efectivas_esperadas <- round(el * p * r * factor, 1)
   }
   # La procedencia viaja en la fila: la UI y Monitoreo la leen, no la asumen.
   aula_frame$efectividad_fuente <- as.character(cal$fuente)
