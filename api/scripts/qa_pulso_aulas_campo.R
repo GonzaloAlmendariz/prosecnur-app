@@ -290,7 +290,23 @@ if (ESCALA_2025) {
                   "Coordinar con jefe de practica, no con el docente",
                   "Grupo pequeno, confirmar si vale la pena")[[1L + ((i %/% 5L) %% 5L)]]
               } else "",
-              faculty = fac, stratum = fac, level = "Pregrado", sample_role = rol,
+              faculty = fac,
+              # **El estrato NO es la facultad.** En el estudio real es
+              # `FACULTAD / SEXO / TAMANO` —«DERECHO / F / G4»— y es lo que hace
+              # que el banco se pueda repartir sin descuadrar la composicion.
+              #
+              # Sembrandolo igual que la facultad, «Avance por estrato» y «Donde
+              # falta mas» dibujaban EL MISMO CRUCE con veinte etiquetas
+              # identicas, y uno de los dos paneles se leia como una copia del
+              # otro. No lo era: era el fixture colapsando dos dimensiones en
+              # una, y con eso el panel de estratos no se podia juzgar.
+              # Sin recortar el nombre: con `substr(fac, 1, 12)`, «Estudios
+              # Generales Letras» y «Estudios Generales Ciencias» salian las dos
+              # como «ESTUDIOS GEN» y el estrato dejaba de identificar a nadie.
+              stratum = sprintf("%s / %s / G%d", toupper(fac),
+                                if (i %% 2L == 0L) "F" else "M",
+                                1L + (as.integer(20 + (i %% 25)) %/% 12L)),
+              level = "Pregrado", sample_role = rol,
               wave = if (rol == "titular") "M1" else sprintf("M%d", (ord %||% 1) + 1),
               orden = i, eligible_n = 20 + (i %% 25), enrolled_total = 25 + (i %% 25),
               # Dos aulas SIN meta declarada. Ocurre de verdad —una reserva que

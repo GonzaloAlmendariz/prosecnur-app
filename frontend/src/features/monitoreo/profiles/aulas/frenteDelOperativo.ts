@@ -20,6 +20,13 @@ export type AulaVencida = {
   fecha: string;
   hora: string;
   donde: string;
+  /**
+   * El texto tal cual lo escribe el equipo en `SESIONES Y AULA` —«LUN 16:00
+   * V110»—. `donde` lleva solo el aula para no repetir la hora que la columna
+   * vecina ya dice; éste se conserva para el `title`, porque el vocabulario del
+   * Excel es el que el equipo reconoce y no debe perderse.
+   */
+  sesion: string;
   /** Días corridos desde su fecha hasta el corte. */
   dias: number;
 };
@@ -59,6 +66,29 @@ function dias(desde: string, hasta: string): number {
  *   toma del reloj: un panel que lee `new Date()` da un resultado distinto cada
  *   vez que se abre y no hay forma de fijarlo en un test.
  */
+/**
+ * De «LUN 16:00 V110», el aula: «V110».
+ *
+ * `SESIONES Y AULA` del Excel es un texto DESCRIPTIVO que el equipo escribe
+ * entero —«LUN 08:00 A101»—, y la lista lo pintaba tal cual en una columna
+ * rotulada **dónde**, pegada a la columna **cuándo** que ya dice «lun 10/08
+ * 16:00». O sea: dos columnas contiguas repitiendo el dia y la hora, y el dato
+ * que la segunda promete —el aula— ocupando 4 de sus 14 caracteres.
+ *
+ * Se quita SOLO el prefijo de dia y hora, y solo si esta: si el texto no
+ * empieza con ese patron, se devuelve entero. El vocabulario del Excel manda
+ * —es el que usa el equipo— pero eso no obliga a decir dos veces lo mismo en la
+ * misma fila. El texto completo sigue en el `title`.
+ */
+export function soloElAula(label: string): string {
+  const limpio = label.trim();
+  if (!limpio) return "";
+  // `LUN 16:00 V110` · `LUN 8:00 A101` · `MIE 14:00 N121`. Sin dia o sin hora no
+  // se toca: adivinar donde acaba el prefijo seria peor que dejarlo.
+  const sinDiaYHora = limpio.replace(/^[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,10}\.?\s+\d{1,2}:\d{2}\s+/, "");
+  return sinDiaYHora || limpio;
+}
+
 export function frenteDelOperativo(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
   partes: ReadonlyArray<Record<string, unknown>>,
@@ -97,7 +127,8 @@ export function frenteDelOperativo(
       facultad: texto(fila.faculty) || "Sin facultad",
       fecha,
       hora: texto(fila.scheduled_time),
-      donde: texto(fila.label),
+      donde: soloElAula(texto(fila.label)),
+      sesion: texto(fila.label),
       dias: dias(fecha, corte),
     });
   }
