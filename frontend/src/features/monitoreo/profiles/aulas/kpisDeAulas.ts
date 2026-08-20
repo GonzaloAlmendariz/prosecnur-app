@@ -18,15 +18,15 @@ import { sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { pct } from "../../core/formatoComun";
 
 /**
- * Un puntaje 0-100 se escribe «93 de 100», nunca «93 %».
+ * `puntajeSobreCien` se retiró con el tile de Representatividad, su único
+ * consumidor: una función que nadie llama es deuda, no una capacidad.
  *
- * El símbolo de porcentaje pide una población de la que ese 93 sea una parte, y
- * aquí no la hay: es un índice de desvío contra la muestra planificada.
+ * La lección que fijaban sus tests sigue en pie donde el puntaje vive ahora,
+ * que es el control «Representatividad efectiva» del motor: **un puntaje 0-100
+ * se escribe «94,8 de 100» y nunca «94,8 %»**, porque el símbolo de porcentaje
+ * pide una población de la que esa cifra sea una parte, y aquí es un índice de
+ * desvío contra la muestra planificada.
  */
-function puntajeSobreCien(value: unknown) {
-  const n = value == null || value === "" ? NaN : Number(value);
-  return Number.isFinite(n) ? `${Math.round(n)} de 100` : "S/D";
-}
 import { summarizeAulasValidation } from "./aulasPresentation";
 import { cuotasResumen } from "./cuotasResumen";
 import { parteDeCampo } from "./parteDeCampo";
@@ -287,6 +287,13 @@ function validasKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
 export function aulasKpis(
   dashboard: MonitoreoAulasDashboard | null,
   seccion: MonitoreoSeccion,
+  /**
+   * La pestaña activa. La banda contesta la pregunta de la sección **y de la
+   * pestaña**: dos pestañas de la misma sección pueden ser dos trabajos, y
+   * presidirlas con las mismas tres cifras convierte a una de las dos en
+   * decorado. Opcional: sin ella, la banda se comporta como antes.
+   */
+  pestana = "",
 ): AulasKpi[] {
   const kpis = dashboard?.kpis;
 
@@ -330,6 +337,16 @@ export function aulasKpis(
   }
 
   if (seccion === "calidad") {
+    // **«Base de control» no lleva banda.**
+    //
+    // Esa pestaña ya abre con su propio encabezado de cifras —la matriz de los
+    // cuatro casos y el titular de efectivas—, que dicen lo que ahí se viene a
+    // saber. Encima llevaba tres tiles de la OTRA pestaña: controles, alertas y
+    // representatividad, que son calidad del dato y no veredicto de aula. Tres
+    // estratos de cabecera, 111 px de banda, y el usuario leyéndolos como
+    // repetición. Gonzalo: «hay KPIs arriba y abajo, repitiéndose».
+    if (pestana === "base") return [];
+
     const controles = (dashboard?.validation ?? []) as Array<Record<string, unknown>>;
     const alertas = summarizeAulasValidation(controles);
     return [
@@ -352,21 +369,14 @@ export function aulasKpis(
         pista: "controles que no pasan",
         tone: alertas.count ? "warn" : "neutral",
       },
-      {
-        // Un PUNTAJE, no un porcentaje. El backend lo llama
-        // `representativity_effective_score` y el control lo enseña como
-        // «Puntaje 93.1 de 100»; el tile lo pintaba «93 %» con la pista «la
-        // muestra efectiva contra la planificada», que se lee como «se consiguió
-        // el 93 % de lo planificado». No es eso: mide cuánto se DESVÍA la
-        // muestra efectiva de la planificada —0.3 pp de media en este corte—.
-        // Con las 3 700 respuestas sin colgar de ninguna aula del plan y CUMPLEN
-        // en 0, un «93 %» ahí es tranquilizador y falso.
-        label: "Representatividad",
-        icono: Target,
-        value: puntajeSobreCien(kpis?.representativity_effective_score),
-        pista: "puntaje: 100 es idéntica a la planificada",
-        detalle: "Mide cuánto se desvía la muestra efectiva de la planificada: 100 es idéntica y 0 es un desvío medio de 5 puntos o más. No es la parte de la muestra que se consiguió.",
-      },
+      // **El tile de Representatividad se retiró.**
+      //
+      // Decía «95 de 100» a dos centímetros del control «Representatividad
+      // efectiva · Puntaje 94,8 de 100», en la misma pantalla: la misma cifra
+      // dos veces con distinta precisión. Se queda la que contesta —el control
+      // trae el desvío en puntos y la escala— y se retira la que sólo la
+      // repetía, que es la regla de la casa cuando dos superficies dicen lo
+      // mismo. El puntaje no se pierde: vive en su control, con su explicación.
     ];
   }
 

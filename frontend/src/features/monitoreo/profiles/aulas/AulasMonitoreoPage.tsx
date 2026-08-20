@@ -181,10 +181,15 @@ function columnasDeCifra(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard, seccion }: {
+function AulasKpiBand({ dashboard, seccion, pestana }: {
   dashboard: MonitoreoAulasDashboard | null;
   seccion: MonitoreoSeccion;
+  pestana: string;
 }) {
+  const kpis = aulasKpis(dashboard, seccion, pestana);
+  // Sin tiles no hay banda: pintarla vacía dejaría 111 px de marco sin nada
+  // dentro, que es peor que la repetición que se viene a quitar.
+  if (!kpis.length) return null;
   return (
     <div
       className="aulas-kpi-band"
@@ -193,7 +198,7 @@ function AulasKpiBand({ dashboard, seccion }: {
       data-qa-geometry-group="monitoring-aulas-kpis"
       data-qa-geometry-contract="equal"
     >
-      {aulasKpis(dashboard, seccion).map((kpi) => {
+      {kpis.map((kpi) => {
         const Icono = kpi.icono;
         return (
           <div
@@ -1987,7 +1992,7 @@ export default function AulasMonitoreoPage() {
         )}
       >
 
-          <AulasKpiBand dashboard={dashboard} seccion={seccionActiva} />
+          <AulasKpiBand dashboard={dashboard} seccion={seccionActiva} pestana={pestanaActiva} />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
               tone="monitoreo"
