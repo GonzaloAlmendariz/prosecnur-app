@@ -29,6 +29,8 @@ function puntajeSobreCien(value: unknown) {
 }
 import { summarizeAulasValidation } from "./aulasPresentation";
 import { cuotasResumen } from "./cuotasResumen";
+import { parteDeCampo } from "./parteDeCampo";
+import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
 import { historiaDeCadena } from "./historiaDeCadena";
 
@@ -168,6 +170,46 @@ function registroKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     value: fmt(dashboard?.kpis?.aulas_aplicadas),
     pista: "declaradas en el registro de campo",
     detalle: "Las declara el aplicador al registrar la aplicación; no se derivan de las respuestas recibidas.",
+  };
+}
+
+/**
+ * **¿Vamos a llegar?** — la única pregunta del tablero que no tenía cifra.
+ *
+ * La banda de Avance dice «llegaron a su meta: 0», «cuota por recoger: 1 558» y
+ * «brechas: 168»: tres formas de decir que se va atrás, y ninguna dice si con lo
+ * que hay agendado se llega. Ese número existe desde que la pirámide predice
+ * —`proyeccionPorAgenda` decide celda a celda si la agenda comprometida cubre su
+ * cuota— pero vivía sólo en el detalle, a dos pestañas de distancia.
+ *
+ * El denominador son las celdas sexo × facultad, que es por lo que se aprueba o
+ * no el estudio. Un `0 de 40` es una alarma; un `0` a secas no dice nada.
+ *
+ * `tone` en `warn` cuando no cierran todas: es la cifra que decide si hay que
+ * salir a pedir aulas, y neutra se lee como un dato más de contexto.
+ */
+function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
+  const proyeccion = proyeccionPorAgenda(
+    (dashboard?.agenda ?? []) as MonitoreoRow[],
+    parteDeCampo(
+      (dashboard?.partes_campo ?? []) as MonitoreoRow[],
+      (dashboard?.agenda ?? []) as MonitoreoRow[],
+    ).filas as MonitoreoRow[],
+    (dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[],
+  );
+  const celdas = proyeccion.flatMap((f) => f.cuotas);
+  const cierran = celdas.filter((c) => c.alcanza).length;
+  return {
+    label: "Cierran con lo agendado",
+    icono: CalendarRange,
+    value: celdas.length ? fmt(cierran) : "S/D",
+    pista: celdas.length
+      ? `de ${fmt(celdas.length)} celdas sexo × facultad`
+      : "el estudio no declara cuotas por sexo y facultad",
+    tone: celdas.length && cierran < celdas.length ? "warn" : "neutral",
+    detalle: celdas.length
+      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las que no cierran se ven una a una en Cuotas."
+      : undefined,
   };
 }
 
@@ -381,6 +423,7 @@ export function aulasKpis(
         ? `de ${fmt(conMeta)} cursos-horario con meta`
         : "cursos-horario que llegaron a su meta",
     },
+    cierreKpi(dashboard),
     cuotaKpi(dashboard),
     brechasKpi(dashboard),
   ];

@@ -216,3 +216,60 @@ describe("«llegaron a su meta» sale del motor y no del estado operativo", () =
     expect(kpi?.value).toBe("0");
   });
 });
+
+describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
+  // La banda decía «llegaron a su meta: 0», «cuota por recoger: 1 558» y
+  // «brechas: 168»: tres formas de decir que se va atrás, y ninguna decía si con
+  // lo que hay agendado se llega. El número existía desde que la pirámide
+  // predice, pero vivía sólo en el detalle, a dos pestañas de distancia.
+  const historia = Array.from({ length: 8 }, (_, i) => ({
+    operational_code: `CH ${i}`, faculty: "Derecho", applied_at: "2026-08-10",
+    applied_date: "2026-08-10", effective_surveys: 20,
+  }));
+
+  const tableroCon = (target: number, observed: number, aulasAgendadas: number) => ({
+    partes_campo: historia,
+    agenda: [
+      ...historia.map((h) => ({ ...h, scheduled_date: "2026-08-10" })),
+      ...Array.from({ length: aulasAgendadas }, (_, i) => ({
+        operational_code: `CH 9${i}`, faculty: "Derecho", scheduled_date: "2026-08-20",
+        sample_status: "agendada",
+      })),
+    ],
+    quotas_sex_faculty: [
+      { faculty: "Derecho", sex: "Mujer", target, observed },
+      { faculty: "Derecho", sex: "Hombre", target, observed },
+    ],
+  });
+
+  const cierre = (t: unknown) =>
+    aulasKpis(t as never, "avance").find((k) => k.label === "Cierran con lo agendado");
+
+  it("cuenta las celdas que la agenda cubre, con su denominador", () => {
+    // Dos celdas de 30 con 10 recogidas: faltan 20 en cada una, y cinco aulas
+    // agendadas a ~20 por aula las cubren de sobra.
+    const k = cierre(tableroCon(30, 10, 5));
+    expect(k?.value).toBe("2");
+    expect(k?.pista).toContain("2 celdas");
+  });
+
+  it("sin nada agendado no cierra ninguna, y avisa", () => {
+    const k = cierre(tableroCon(300, 10, 0));
+    expect(k?.value).toBe("0");
+    expect(k?.tone).toBe("warn");
+  });
+
+  it("cuando cierran todas deja de ser una alarma", () => {
+    const k = cierre(tableroCon(10, 10, 0));
+    expect(k?.value).toBe("2");
+    expect(k?.tone).toBe("neutral");
+  });
+
+  it("sin cuotas declaradas dice S/D, no cero", () => {
+    // Cero celdas cerrando y «no hay celdas» son cosas distintas: un 0 ahí
+    // mandaria a buscar un problema que no existe.
+    const k = cierre({ ...tableroCon(30, 10, 5), quotas_sex_faculty: [] });
+    expect(k?.value).toBe("S/D");
+    expect(k?.tone).toBe("neutral");
+  });
+});
