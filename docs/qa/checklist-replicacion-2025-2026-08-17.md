@@ -4152,3 +4152,18 @@ numero de otro paso. 41 PASS.
 pausa mayor entre grupos. La pagina dejo de ser seis tarjetas al mismo
 nivel. Con el corte 1 (ficha a 2 columnas): pagina 7.574 → ~5.460px y
 con apoyos de lectura. Restan micro-pulidos si Gonzalo los pide al ver.
+
+### VARA NUEVA de Gonzalo: mejora continua sin esperar — y su primera entrega
+
+Textual: «no esperes a lo que yo te diga, tu continua… siempre hay algo
+que mejorar… si no es un grafico, es un contenedor; si no, una tarjeta;
+si no, una transicion… continua sin detenerte». PROHIBIDO el tick
+silencioso por «no hay nada»: cada tick entrega una mejora
+didactica/visual verificada. Cola viva en el encargo (M1-M5).
+
+M1 ENTREGADA: micro-barras comparativas en «La seleccion nueva contra
+lo aplicado» — esperadas hoy (verde) vs logradas 2025 (trazo tenue) a
+escala comun global, leyenda en el encabezado; el lenguaje del embudo.
+Verificada en vivo con la seleccion P25-197. SIGUIENTE (M2): el grafico
+de DISTRIBUCION de elegibles por aula por facultad con el P25 marcado —
+hace visible la vara que dimensiona.
