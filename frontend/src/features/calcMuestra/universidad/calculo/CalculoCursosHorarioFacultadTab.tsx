@@ -119,8 +119,8 @@ export function CalculoCursosHorarioFacultadTab({
             <strong>Cursos-horario requeridos, facultad por facultad</strong>
             <p className="cmv2-calc-diseno-nota">
               La cadena completa por facultad: cuota ÷ ({etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)} × tasa de
-              efectividad de la facultad) → titulares. Las cifras son del resultado del motor; esta
-              pestaña solo las proyecta.
+              efectividad de la facultad) → titulares. La cuota de cada facultad viene de la
+              afijación del diseño (pestaña Diseño); las cifras son del resultado del motor.
             </p>
           </div>
           <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
@@ -130,9 +130,9 @@ export function CalculoCursosHorarioFacultadTab({
         </div>
 
         <div className="cmv2-ch-kpis" data-qa-geometry-group="calc-muestra/cursos-horario-totales" data-qa-geometry-contract="equal">
-          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned"><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
-          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned"><span>{fmtInt(model.aulasExtraTotal)}</span><small>CH de reserva</small></div>
-          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned"><span>{fmtInt(model.aulasTotal)}</span><small>CH a coordinar</small></div>
+          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Los cursos-horario que el sorteo intenta primero: se visitan sí o sí."><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
+          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Cupos adicionales dimensionados por la regla del diseño (la mitad de los titulares, redondeando arriba): se activan si un titular cae."><span>{fmtInt(model.aulasExtraTotal)}</span><small>CH de reserva</small></div>
+          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title={`Todo lo que el operativo debe estar listo para agendar: ${fmtInt(model.aulasBaseTotal)} titulares + ${fmtInt(model.aulasExtraTotal)} de reserva.`}><span>{fmtInt(model.aulasTotal)}</span><small>CH a coordinar = {fmtInt(model.aulasBaseTotal)} titulares + {fmtInt(model.aulasExtraTotal)} reserva</small></div>
         </div>
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">

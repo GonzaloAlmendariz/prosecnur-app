@@ -1458,3 +1458,14 @@
   color: var(--pulso-text-muted);
 }
 .cmv2-sindecision-detalle { margin-top: 6px !important; }
+
+/* Recorrido narrativo de Cursos-horario requeridos (2026-08-20). */
+.cmv2-recorrido-paso { display: grid; gap: 6px; }
+.cmv2-recorrido-paso + .cmv2-recorrido-paso { margin-top: 16px; }
+.cmv2-recorrido-kicker {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold, 600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}

@@ -777,30 +777,39 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("calculo-ch-facultad") && <div id="cmv2-local-calculo-ch-facultad">
-              <CalculoCursosHorarioFacultadTab
-                componentes={[totalComp, facultyComp]}
-                currentFrameHash={aulasState?.frame?.frame_hash}
-                escenario={escenarioAulas}
-                onEscenario={seleccionarEscenarioAulas}
-                marcoDesactualizado={marcoDesactualizado}
-                certeza={aulasState?.certeza ?? null}
-                certezaEnCurso={midiendoCerteza}
-                onMedirCerteza={onMedirCerteza}
-              />
               {/* Recorrido narrativo (Gonzalo, 2026-08-20: «elegibles deberia
-                  estar al inicio»): 1º la materia prima — cuantos elegibles
-                  carga cada aula y su P25; 2º la tasa que convierte; 3º la
-                  tabla del resultado. */}
-              <DistribucionElegiblesCard
-                aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
-                estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
-                  import("./calculo/DistribucionElegiblesCard").EstratoDimension[] | null}
-              />
-              <TasaEfectividadFacultadCard
-                tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
-                estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
-                  import("./calculo/tasaFacultadModel").EstratoDimensionado[] | null}
-              />
+                  estar al inicio… evaluemos el recorrido»): paso 1 la materia
+                  prima (elegibles y su P25) → paso 2 el convertidor (la tasa
+                  y la cuenta) → paso 3 el pedido (tabla) y su garantia. */}
+              <div className="cmv2-recorrido-paso" data-paso="1">
+                <span className="cmv2-recorrido-kicker">Paso 1 · Qué hay: los elegibles y el tamaño de las aulas</span>
+                <DistribucionElegiblesCard
+                  aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
+                  estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
+                    import("./calculo/DistribucionElegiblesCard").EstratoDimension[] | null}
+                />
+              </div>
+              <div className="cmv2-recorrido-paso" data-paso="2">
+                <span className="cmv2-recorrido-kicker">Paso 2 · Qué rinde: la tasa que convierte cuota en titulares</span>
+                <TasaEfectividadFacultadCard
+                  tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
+                  estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
+                    import("./calculo/tasaFacultadModel").EstratoDimensionado[] | null}
+                />
+              </div>
+              <div className="cmv2-recorrido-paso" data-paso="3">
+                <span className="cmv2-recorrido-kicker">Paso 3 · Qué se pide: titulares y reservas, y si alcanzan</span>
+                <CalculoCursosHorarioFacultadTab
+                  componentes={[totalComp, facultyComp]}
+                  currentFrameHash={aulasState?.frame?.frame_hash}
+                  escenario={escenarioAulas}
+                  onEscenario={seleccionarEscenarioAulas}
+                  marcoDesactualizado={marcoDesactualizado}
+                  certeza={aulasState?.certeza ?? null}
+                  certezaEnCurso={midiendoCerteza}
+                  onMedirCerteza={onMedirCerteza}
+                />
+              </div>
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion">
               <CalculoDistribucionTab
