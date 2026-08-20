@@ -2598,6 +2598,14 @@
 /* El veredicto negativo es un RESULTADO y se pinta como tal; el gris queda
    reservado para el «—» de sin dato, que es lo único que de verdad calla. */
 .mon-profile-page.is-aulas-flow .aulas-control-marca.es-no { color: var(--pulso-danger-fg); }
+/* El veredicto que la hoja NO escribio y calculo la app contra el umbral de la
+   propia hoja. Quien vaya al Excel a buscar este simbolo no lo va a encontrar,
+   asi que la marca lo dice sin inventar un color: el mismo signo, subrayado
+   punteado. */
+.mon-profile-page.is-aulas-flow .aulas-control-marca.es-derivado {
+  border-bottom: 1px dotted currentColor;
+  padding-bottom: 1px;
+}
 .mon-profile-page.is-aulas-flow .aulas-control-libro th.es-marca,
 .mon-profile-page.is-aulas-flow .aulas-control-libro td.es-marca { text-align: center; }
 
