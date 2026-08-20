@@ -246,8 +246,22 @@ extensible a todos los monitoreos.
     y `caen_solo_aqui` exclusivas (no depende). El panel sólo muestra la segunda
     cuando difiere de la primera: repetir el mismo número con dos rótulos
     confunde en vez de informar.
-- **T20** — Ficha de aula: un aula, todo lo suyo —lo esperado, lo conseguido, el
-  parte, los tiempos, las abiertas—.
+- **T20 ☑ (2026-08-20, 6 tests)** — Ficha del curso-horario: las cuatro fuentes
+  del operativo en una lectura —lo esperado, lo que llegó a plataforma, lo que
+  anotó el campo y lo que contó el libro—.
+  - **Verificada en pantalla con un aula real**: `CH 52` de Letras da esperaba
+    **15** de 22 elegibles, plataforma **13** (brecha 2), campo **13**, libro
+    **14**. Tres cifras del mismo hecho que sólo se pueden comparar aquí.
+  - **Enlazable**: el clic escribe `?…&foco=aula:CH 52`, así que la ficha se
+    puede mandar por su URL. Va inline gobernada por `foco`, como el detalle de
+    facultad de esta misma sección: no hacía falta un sideover nuevo.
+  - **Un defecto propio corregido al verlo**: con el parte presente pero sin
+    asistentes anotados, el pie decía «— asistentes», que se lee como una cifra
+    rota. Ahora dice cuál falta.
+  - **El disparador está donde se puede**: `AulasLoQueFalta` es el único sitio
+    que lista aulas pintando sus propias filas —`DataTable` no admite render por
+    celda—. La ficha se montó primero en la pestaña equivocada: el disparador
+    vivía en `base` y la ficha en `registro`.
 - **T21** — «Si no llegó a lo suyo, ¿de dónde se saca?»: enlazar el déficit del
   aula con el banco y la cola de cierre.
 

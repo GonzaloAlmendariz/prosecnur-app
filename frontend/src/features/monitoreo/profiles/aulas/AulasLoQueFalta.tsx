@@ -182,7 +182,21 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
       <ul className="aulas-falta-lista">
         {enFoco.slice(0, 10).map((a) => (
           <li key={a.codigo}>
-            <span className="aulas-falta-cod">{a.codigo}</span>
+            {/* El codigo abre la ficha de esa aula. Es el unico sitio del perfil
+                que lista aulas pintando sus propias filas —`DataTable` no
+                admite render por celda—, asi que es de donde se puede entrar
+                sin inventar una tabla nueva. */}
+            {onFoco ? (
+              <button
+                type="button"
+                className="aulas-falta-cod es-enlace"
+                onClick={() => onFoco({ tipo: "aula", valor: a.codigo })}
+              >
+                {a.codigo}
+              </button>
+            ) : (
+              <span className="aulas-falta-cod">{a.codigo}</span>
+            )}
             <span className="aulas-falta-n"><strong>{fmt(a.faltan)}</strong></span>
             <span className="aulas-falta-por">
               {a.enviadas} de {a.umbral} · falla {FALLA[a.falla]}

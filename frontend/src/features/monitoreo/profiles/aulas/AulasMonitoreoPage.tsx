@@ -55,6 +55,8 @@ import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
 import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
+import { AulasFichaDeAula } from "./AulasFichaDeAula";
+import { fichaDeAula } from "./fichaDeAula";
 import { AulasTextoAbierto } from "./AulasTextoAbierto";
 import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
@@ -847,6 +849,31 @@ function renderAulasView(
     const enBase = pestana === "base";
     return (
       <div className="mon-profile-stack aulas-tablas-apiladas">
+      {/* **La ficha del aula en foco.** Va primero porque quien la abrió
+          viene a verla, y se gobierna con `foco=aula:<codigo>`, igual que el
+          detalle de facultad de esta misma sección. Cerrarla limpia el foco
+          y la sección vuelve a su lectura completa. */}
+      {foco?.tipo === "aula" ? (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-table"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          <h3>Ficha del curso-horario</h3>
+          <span>lo esperado, lo conseguido y lo que anotó el campo</span>
+        </div>
+        <AulasFichaDeAula
+          ficha={fichaDeAula(foco.valor, {
+            agenda: (dashboard.agenda ?? []) as Array<Record<string, unknown>>,
+            partes: (dashboard.partes_campo ?? []) as Array<Record<string, unknown>>,
+            control: (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>,
+            brechas: (dashboard.brechas ?? []) as Array<Record<string, unknown>>,
+          })}
+          onCerrar={() => onFoco(null)}
+        />
+      </section>
+      ) : null}
       {enBase ? null : (
       <section
         className="mon-profile-panel"
