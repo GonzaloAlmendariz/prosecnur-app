@@ -2,11 +2,14 @@ import type { MonitoreoAulasDashboard, MonitoreoAulasPlanRow, MonitoreoRow } fro
 import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
 import {
   AlertCircle,
+  CalendarCheck,
+  CalendarClock,
   CalendarRange,
   CheckCircle2,
   ClipboardCheck,
   Link2,
   Link2Off,
+  PhoneCall,
   RefreshCw,
   ShieldAlert,
   Table2,
@@ -32,6 +35,7 @@ import { cuotasResumen } from "./cuotasResumen";
 import { parteDeCampo } from "./parteDeCampo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { estadoDeAplicacion } from "./estadoDeAplicacion";
+import { agendamiento } from "./agendamiento";
 import { historiaDeCadena } from "./historiaDeCadena";
 
 /**
@@ -320,6 +324,42 @@ export function aulasKpis(
   }
 
   if (seccion === "modelo") {
+    // **«Agenda» es otro trabajo que «Registro».** Agendar es llamar al docente
+    // y cerrar una cita; registrar es anotar lo que pasó en el aula. La banda
+    // de la sección hablaba de aulas APLICADAS en las dos, así que quien está
+    // agendando presidía su pantalla con el avance de otro.
+    if (pestana === "agenda") {
+      const ag = agendamiento((dashboard?.agenda ?? []) as Array<Record<string, unknown>>);
+      const tiles: AulasKpi[] = [
+        {
+          label: "Agendadas",
+          icono: CalendarCheck,
+          value: fmt(ag.agendadas),
+          // Con su denominador: «160» y «160 de 186» dicen lo mismo del
+          // numerador y cosas distintas del trabajo que queda.
+          pista: `de ${fmt(ag.enJuego)} que se van a visitar`,
+        },
+        {
+          label: "Por agendar",
+          icono: CalendarClock,
+          value: fmt(ag.porAgendar),
+          pista: "sin fecha cerrada todavía",
+          tone: ag.porAgendar ? "warn" : "neutral",
+        },
+      ];
+      // La insistencia sólo cuando hay gestiones registradas: sin ellas el tile
+      // diría «0 cuestan más de una gestión», que se lee como que todas salen a
+      // la primera cuando lo que pasa es que nadie anotó.
+      if (ag.intentosMedianos !== null) {
+        tiles.push({
+          label: "Cuestan más de una",
+          icono: PhoneCall,
+          value: fmt(ag.conInsistencia),
+          pista: `gestiones; la mediana es ${fmt(ag.intentosMedianos)}`,
+        });
+      }
+      return tiles;
+    }
     // La sección de la agenda y el registro: cuántas hay, cuántas se
     // registraron y cuántas no han recibido ni una respuesta.
     const estado = estadoDeAplicacion((dashboard?.course_status ?? []) as MonitoreoAulasPlanRow[]);
