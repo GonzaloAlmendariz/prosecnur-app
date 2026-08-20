@@ -14,6 +14,7 @@
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
 import { useMemo, useState } from "react";
+
 import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
 import {
@@ -22,6 +23,7 @@ import {
   type MonitoreoAulasPlanRow,
 } from "../../../../api/monitoreo";
 import { ESTADOS_OPERATIVOS, MOTIVOS_DE_REEMPLAZO } from "./aulasPresentation";
+import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
 
@@ -58,10 +60,10 @@ export function aulaNecesitaMotivo(estado: string): boolean {
 
 /** Etiqueta de un aula en la lista: su código operativo y de qué curso es. */
 export function etiquetaDeAula(row: MonitoreoAulasPlanRow): string {
-  const codigo = String(row.operational_code ?? row.classroom_id ?? "").trim();
-  const curso = String(row.course_name ?? row.label ?? "").trim();
-  if (codigo && curso) return `${codigo} · ${curso}`;
-  return codigo || curso || "Curso-horario sin identificar";
+  return etiquetaSinRepetir(
+    String(row.operational_code ?? row.classroom_id ?? ""),
+    String(row.course_name ?? row.label ?? ""),
+  );
 }
 
 /**
@@ -171,6 +173,8 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
   // porque no es el resultado de la acción: es lo que la activación OBLIGA a
   // hacer después, y no se limpia con el mismo gesto.
   const [avisoPeso, setAvisoPeso] = useState("");
+  // La facultad elegida. Vacía es «todas», igual que en el banco de extras.
+  const [facultad, setFacultad] = useState("");
 
   const filas = useMemo(
     () => agenda.filter((r) => String(r.sample_role ?? "") !== "extra_reserve_pool"),
@@ -233,6 +237,17 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
       ? filas.filter((r) => codigosConParte.has(String(r.operational_code ?? "").trim())).length
       : 0),
     [filas, codigosConParte],
+  );
+
+  // Las facultades, con lo que queda por registrar en cada una. Filtro y
+  // resumen a la vez, como en el banco de extras.
+  const facultades = useMemo(
+    () => facultadesDelRegistro(filas, codigosConParte),
+    [filas, codigosConParte],
+  );
+  const visibles = useMemo(
+    () => (facultad ? filas.filter((r) => String(r.faculty ?? "").trim() === facultad) : filas),
+    [filas, facultad],
   );
 
   const elegir = (row: MonitoreoAulasPlanRow) => {
@@ -335,8 +350,34 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
         </p>
       ) : (
         <div className="registro-campo-cuerpo">
+          {/* Filtro y lista son UNA celda del grid. Sueltos, el filtro se comía
+              la primera columna y la lista saltaba a la del formulario. */}
+          <div className="registro-campo-columna">
+          {/* **A qué facultad se va.**
+              El trabajo de campo no se organiza por curso-horario sino por
+              facultad, y la lista daba 170 seguidos sin manera de acotarlos.
+
+              Un selector y no chips: **la columna de la lista mide 240 px** y
+              los chips de las veinte facultades —«Ciencias y Artes de la
+              Comunicación» pide 178— caían a seis líneas, 174 px de banda para
+              una lista de 182. El remedio salía peor que el problema. Cada
+              opción lleva lo que queda por registrar ahí, que es lo que decide
+              la salida. */}
+          {facultades.length > 1 ? (
+            <label className="registro-campo-filtro">
+              <span>Facultad</span>
+              <select value={facultad} onChange={(e) => setFacultad(e.target.value)}>
+                <option value="">Todas · {filas.length}</option>
+                {facultades.map((f) => (
+                  <option key={f.facultad} value={f.facultad}>
+                    {f.facultad} · {f.aulas - f.conParte || f.aulas}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <ul className="registro-campo-lista" data-qa-geometry-capacity="owned">
-            {filas.map((row) => {
+            {visibles.map((row) => {
               const clave = String(row.operational_code ?? row.classroom_id);
               const estado = String(row.operational_status ?? "planificada");
               return (
@@ -348,6 +389,12 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
                     aria-pressed={clave === seleccion}
                   >
                     <span className="registro-campo-item-titulo">{etiquetaDeAula(row)}</span>
+                    {/* La facultad, que es como se agrupa el trabajo. Sin ella
+                        la fila sólo decía el código y el curso, y con «Todas»
+                        puesto no había manera de saber de dónde era cada aula. */}
+                    {String(row.faculty ?? "").trim() ? (
+                      <span className="registro-campo-item-facultad">{String(row.faculty).trim()}</span>
+                    ) : null}
                     {/* El estado con su chip, como en TODAS las tablas del
                         perfil. Acá se pintaba en texto plano: medido sobre el
                         corte, 196 filas con estado y 0 con color, mientras la
@@ -377,6 +424,7 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
               );
             })}
           </ul>
+          </div>
 
           <div className="registro-campo-form">
             {!activa ? (
