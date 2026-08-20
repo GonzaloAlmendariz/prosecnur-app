@@ -500,20 +500,24 @@ describe("la tarjeta de facultades excluidas, montada en la pestaña", () => {
     );
   }
 
-  it("se monta en la pestaña que el usuario abre", () => {
-    // Control imprescindible: si la tarjeta no se montara, los dos tests de
-    // abajo pasarían sin medir nada. Ya ocurrió: estaba dentro del bloque de
-    // criterios de aula y con `scope="alumno"` no llegaba a pintarse.
-    expect(pintarConMarco()).toContain('data-criterio="facultades-excluidas"');
-  });
-
-  it("lista las facultades DEL MARCO, no las del catálogo de alumno", () => {
-    const html = seccionTarjeta(pintarConMarco());
-    expect(html).toContain("DERECHO");
-    expect(html).toContain("PSICOLOGÍA");
-    // La categoría que sólo existe en el catálogo de alumno no es una facultad
-    // del marco y no debe aparecer.
-    expect(html).not.toContain("CONSORCIO DE UNIVERSIDADES");
+  it("vive en criterios de cursos-horario, al inicio — y ya no en criterios de estudiante", () => {
+    // Gonzalo (2026-08-20): «es un contenedor que no tiene nada que ver con
+    // esto [criterios de estudiante]… debería estar en cursos-horarios, al
+    // inicio: abajo están los desplegables por facultad y ahí ya no saldrían
+    // las excluidas». Contrato por fuente (el tab de CH es demasiado pesado
+    // para montarlo aquí): el montaje vive en CursosHorarioMarcoTab con las
+    // facultades DEL MARCO (facRefs), y CriteriosMarcoTab no lo reintroduce.
+    const fs = require("node:fs") as typeof import("node:fs");
+    const path = require("node:path") as typeof import("node:path");
+    const chTab = fs.readFileSync(
+      path.resolve(__dirname, "../../marco/CursosHorarioMarcoTab.tsx"),
+      "utf8",
+    );
+    expect(chTab).toMatch(/<FacultadesExcluidasCard[\s\S]*?facultades=\{facRefs\}/);
+    const critTab = fs.readFileSync(path.resolve(__dirname, "../CriteriosMarcoTab.tsx"), "utf8");
+    expect(critTab).not.toContain("<FacultadesExcluidasCard");
+    // Y la pestaña de criterios de estudiante ya NO la pinta.
+    expect(pintarConMarco()).not.toContain('data-criterio="facultades-excluidas"');
   });
 
   it("no publica una cifra de aulas que no puede garantizar", () => {
