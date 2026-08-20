@@ -4497,3 +4497,17 @@ esperadas, meta_origen, teacher_type; ojo teacher_type compuesto con
   de toda la cadena (encolada como serie propia); techo 200 vs plan 229
   sigue EXCEDIDO — con esperadas ajustadas, EGC/EGL/DER ~0,96x: la
   decision de aulas extra o confianza en cadena es de Gonzalo.
+
+### 2026-08-20 (tarde 5): sello v5 CERRADO y verificado en vivo
+
+Ciclo bqqx7hth9 exitoso: reparto identico 197, hash estable
+3644ce7aa66e, fuente historico/2025 en las filas, 135/197 titulares con
+ajuste (los de las 6 facultades exactas), Σesperadas 3.020 (previsto
+3.021), score 68,6 estable, guardado. Verificado en vivo (SID a4e79f0f):
+3 tablas formales con «historico 2025» leido del dato; tabla de ajuste
+con los 6 factores (DER 1,06 · CCSS 1,04 · C&I 1,01 · A&D 0,98 · EGL
+0,84 · EGC 0,81) y k; radiografia de C&I muestra «× 1,01» y la de
+EDUCACION dice «el historico 2025 no pudo generar una tasa especifica
+(base insuficiente): rige la tasa general». Peer de Monitoreo avisado
+del cambio de metas (msg d00cfc90): Σ3.155→3.020, factor_facultad y
+facultad_k viajan por fila.
