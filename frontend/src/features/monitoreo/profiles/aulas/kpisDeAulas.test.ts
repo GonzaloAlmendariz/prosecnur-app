@@ -98,8 +98,19 @@ describe("la banda de KPIs", () => {
     // defecto; lo que no puede pasar es una sección vacía, que dejaría la franja
     // superior como un marco sin contenido.
     for (const s of SECCIONES) {
-      expect(aulasKpis(tablero(), s).length, `sección ${s}`).toBeGreaterThanOrEqual(3);
+      expect(aulasKpis(tablero(), s).length, `sección ${s}`).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  it("«Base de control» es la excepción declarada: no lleva banda", () => {
+    // Esa pestaña abre con su propio encabezado —la matriz de los cuatro casos
+    // y el titular de efectivas—, y encima llevaba tres tiles de la OTRA
+    // pestaña. Tres estratos de cabecera y 111 px de banda para decir lo que la
+    // pestaña ya dice mejor.
+    expect(aulasKpis(tablero(), "calidad" as never, "base")).toEqual([]);
+    // El control: la otra pestaña de la misma sección SÍ la lleva, así que la
+    // excepción es de la pestaña y no un apagado de la sección entera.
+    expect(aulasKpis(tablero(), "calidad" as never, "controles").length).toBeGreaterThan(0);
   });
 });
 
@@ -144,35 +155,24 @@ describe("el KPI de cuota", () => {
   });
 });
 
-describe("un puntaje no se escribe con el símbolo de porcentaje", () => {
-  // El tile de Representatividad pintaba «93 %» con la pista «la muestra
-  // efectiva contra la planificada», y se lee como «se consiguió el 93 % de lo
-  // planificado». No es eso: el backend lo llama
-  // `representativity_effective_score` y el propio control lo enseña como
-  // «Puntaje 93.1 de 100». Mide cuánto se DESVÍA la muestra efectiva de la
-  // planificada —0.3 pp de media en el fixture—, y en un corte donde las 3 700
-  // respuestas no cuelgan de ninguna aula del plan, un «93 %» tranquiliza en
-  // falso.
-  const tile = aulasKpis(
-    { validation: [], kpis: { representativity_effective_score: 93.1 } } as never,
-    "calidad" as never,
-  ).find((k) => k.label === "Representatividad");
-
-  test("se escribe «de 100» y sin «%»", () => {
-    expect(tile?.value).toBe("93 de 100");
-    expect(tile?.value).not.toContain("%");
-  });
-
-  test("ni la pista ni el detalle lo llaman porcentaje", () => {
-    expect(`${tile?.pista} ${tile?.detalle}`).not.toContain("%");
-  });
-
-  test("sin dato dice S/D, no «NaN de 100»", () => {
-    const sinDato = aulasKpis(
-      { validation: [], kpis: {} } as never,
-      "calidad" as never,
-    ).find((k) => k.label === "Representatividad");
-    expect(sinDato?.value).toBe("S/D");
+describe("el puntaje de representatividad no se repite en la banda", () => {
+  // Decía «95 de 100» a dos centímetros del control «Representatividad efectiva
+  // · Puntaje 94,8 de 100»: la misma cifra dos veces en la misma pantalla, con
+  // distinta precisión. Se quedó la que contesta —el control trae el desvío en
+  // puntos y su escala— y se retiró la que sólo repetía.
+  //
+  // La lección del formato sigue viva donde el puntaje vive: **se escribe «de
+  // 100» y nunca con «%»**, porque no es una parte de ninguna población sino un
+  // índice de desvío. Ese texto lo compone el motor.
+  it("ninguna pestaña de calidad lo vuelve a poner como tile", () => {
+    for (const pestana of ["controles", "base"]) {
+      const tiles = aulasKpis(
+        { validation: [], kpis: { representativity_effective_score: 93.1 } } as never,
+        "calidad" as never,
+        pestana,
+      );
+      expect(tiles.find((k) => k.label === "Representatividad")).toBeUndefined();
+    }
   });
 });
 
