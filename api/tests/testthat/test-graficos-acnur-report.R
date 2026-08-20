@@ -367,8 +367,12 @@ test_that("pregunta principal declara su base especifica y no el universo fijo",
   note <- .acnur_report_ascii(.acnur_report_graph_note(graph))
 
   expect_false(is.null(graph))
-  expect_equal(note, "N = 3 de 4 (75.0%).")
+  # Formato estándar de la casa: sin prefijo, y el porcentaje medido contra el
+  # universo que el propio pie nombra.
+  expect_equal(note, "3 respuestas de la muestra total (75%).")
   expect_false(grepl("4 encuestas", note, ignore.case = TRUE))
+  expect_false(grepl("N = ", note, fixed = TRUE))
+  expect_false(grepl("Base:", note, fixed = TRUE))
 })
 
 test_that("opcion multiple separa personas que respondieron y menciones", {
@@ -380,7 +384,7 @@ test_that("opcion multiple separa personas que respondieron y menciones", {
   note <- .acnur_report_ascii(.acnur_report_graph_note(graph))
 
   expect_false(is.null(graph))
-  expect_match(note, "N = 3 de 4 \\(75.0%\\)", ignore.case = TRUE)
+  expect_match(note, "3 respuestas de la muestra total \\(75%\\)", ignore.case = TRUE)
   expect_match(note, "5 menciones", ignore.case = TRUE)
   expect_match(note, "no suman 100%", fixed = TRUE)
   expect_false(grepl("N = 5 personas", note, ignore.case = TRUE))
@@ -396,7 +400,7 @@ test_that("pregunta repetible distingue servicios y personas unicas", {
 
   expect_false(is.null(graph))
   # El especial cuenta como una categoria mas y entra al denominador: 5 de 5.
-  expect_match(note, "N = 5 de 5 \\(100.0%\\)", ignore.case = TRUE)
+  expect_match(note, "5 respuestas \\(100%\\)", ignore.case = TRUE)
   expect_false(grepl("correspondientes a", note, ignore.case = TRUE))
   expect_false(grepl("respuestas de servicio", note, ignore.case = TRUE))
   # Ya no se lista aparte: se grafica como categoria.

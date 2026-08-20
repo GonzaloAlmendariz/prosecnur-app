@@ -47,15 +47,28 @@ test_that("el universo de cada pregunta sale del relevant, no de la muestra ente
   expect_true(meses$derivado)
   expect_equal(meses$elegibles, 4L)          # solo Homologación, no los 6
   expect_equal(meses$publico, "Homologación Laboral")
+  expect_identical(meses$texto, "4 respuestas de Homologación Laboral (100%)")
 
   past <- .graficos_base_de_variable(d, inst, "PastWorking", 2L)
   expect_equal(past$elegibles, 2L)           # solo Vinculación
   expect_equal(past$publico, "Vinculación Laboral")
+})
 
-  # `sector` acumula las dos capas: la ruta (grupo) y el filtro propio.
+test_that("el porcentaje se mide contra el universo que el pie nombra", {
+  # El pie decía "15 respuestas de Vinculación Laboral (100%)" para una pregunta
+  # que solo ven quienes entraron al grupo de WhatsApp: 15 de 15 elegibles es
+  # 100%, pero nombraba a Vinculación Laboral, que son 16. Un pie que mide
+  # contra un universo distinto del que declara no se puede verificar leyéndolo.
+  inst <- list(survey = survey_dos_rutas())
+  d <- datos_dos_rutas()
+
+  # `sector` tiene filtro propio (`PastWorking = '1'`): 1 de los 2 de la ruta.
   sector <- .graficos_base_de_variable(d, inst, "sector", 1L)
-  expect_equal(sector$elegibles, 1L)
   expect_equal(sector$publico, "Vinculación Laboral")
+  # El denominador es el del público nombrado, no el del filtro interno.
+  expect_equal(sector$elegibles, 2L)
+  expect_identical(sector$texto, "1 respuesta de Vinculación Laboral (50%)")
+  expect_false(grepl("100%", sector$texto, fixed = TRUE))
 })
 
 test_that("la redacción es una sola y el porcentaje es tasa entre elegibles", {

@@ -414,6 +414,37 @@ paquete OOXML                zip íntegro · 0 <a:cs> mal ordenados
 Evidencia: `test-graficos-base-elegible.R` (15 asserts) · 9 suites, 1 543 pass /
 0 fail.
 
+## El pie mide contra el universo que nombra — 2026-08-20
+
+Gonzalo, sobre la lámina de WhatsApp: «¿por qué aquí son 15 y no 16, y sigue en
+100%?». El pie decía **«15 respuestas de Vinculación Laboral (100%)»**. Los 15
+eran los elegibles reales —solo ven esa pregunta quienes entraron al grupo—, así
+que 15 de 15 era 100%. Pero el texto nombra a Vinculación Laboral, que son 16, y
+15 de 16 no es 100%.
+
+**Un pie que mide contra un universo distinto del que declara no se puede
+verificar leyéndolo.** El denominador pasa a ser el del público nombrado:
+
+```
+antes    15 respuestas de Vinculación Laboral (100%)
+después  15 respuestas de Vinculación Laboral (93.8%)
+
+antes     4 respuestas de Vinculación Laboral (100%)
+después   4 respuestas de Vinculación Laboral (25%)
+```
+
+**Qué se gana y qué se pierde.** Se gana que los dos números del pie concuerden:
+el lector comprueba 15/16 y 4/16 con lo que tiene delante. Se pierde el matiz de
+que las ausentes no son no-respuesta sino gente que no era elegible —de las 16
+de Vinculación, cuatro trabajaban antes del programa, y las otras doce nunca
+vieron la pregunta—. Decirlo exigiría traducir el `relevant` a prosa, que es
+otro problema. Queda anotado por si el informe lo necesita.
+
+El formato es único en todo el mazo, incluidas las láminas de repeat, que
+conservaban el `N = 5 de 5 (100.0%)` anterior. En repeats no se nombra universo
+—«5 respuestas (100%)»—: sus instancias son servicios, no personas de la
+muestra, y llamarlas «muestra total» mezclaría dos granos.
+
 ## Cola — lo que aún no se decide
 
 - **L1 · numéricas y fechas en el mazo (ítems 1.2, 1.6, 1.10).** `MesesReva` ya

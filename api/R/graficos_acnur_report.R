@@ -388,7 +388,8 @@
     # `.graficos_repeat_service_note`; aquí ya no se declara la unidad
     # ("respuestas de servicio") ni el conteo de personas ("correspondientes a
     # X personas"), por pedido editorial.
-    base_phrase <- .graficos_acnur_base_summary(n_valid, total)
+    # Mismo formato estándar que la base principal: un solo pie en todo el mazo.
+    base_phrase <- .graficos_base_texto_elegible(n_valid, total, "", total, universo_label = "")
     if (multiple) {
       note <- sprintf("%s; %s menciones. Los porcentajes no suman 100%%.",
                       base_phrase, .graficos_acnur_number(sum(lengths(tokens[substantive]))))
