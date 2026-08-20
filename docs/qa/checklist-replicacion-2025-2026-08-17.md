@@ -4186,3 +4186,12 @@ la distribucion de elegibles (M2) se mudo de Diseño (que es la formula
 del n) a Cursos-horario por facultad (donde se dimensionan las aulas de
 las que el grafico habla). Antes de montar cada mejora: preguntar de
 QUE habla y montarla en la superficie que responde esa pregunta.
+
+### M3 ENTREGADA: la barra del presupuesto de visitas
+
+Carril apilado en la tarjeta de Seleccion: titulares (acento) +
+activaciones esperadas (tenue) + exceso (rojo suave) contra la marca
+del techo. Con el reparto P25-197: plan conservador 229 (197+32) — 29
+sobre el techo 200 con la tasa completa 2025 (con el frente de contacto
+resuelto seria menos; la calibracion residual esta documentada). El
+trade-off del techo quedo visible para la decision de Gonzalo.
