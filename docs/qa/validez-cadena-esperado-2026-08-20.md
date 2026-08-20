@@ -262,3 +262,17 @@ Escalera de nombres final: tasa de efectividad DE LA FACULTAD (dimensiona)
 → tasa de efectividad DEL AULA (R×F) → EFECTIVAS ESPERADAS (E × tasa del
 aula; valor de validez) → TASA DE APLICACIÓN (operativa). El global 0,53
 muere en superficies (directiva previa).
+
+## V8 — barrido final del 2025: no queda nada más (2026-08-20)
+
+Mandato: «una última revisión exhaustiva de los datos del 2025 para ver
+si hay algo más». Con la vara de V7 (residual condicional vs tamaño, IC
+bootstrap 2000): bloque horario (4 categorías, todas IC ∋ 1), día de
+semana (5, todas ∋ 1), fatiga de campo por semana (sin patrón: 1,04 /
+0,93 / 1,07), reagendas (sin variación registrada), tipo de curso y
+modalidad (constantes: todo teórico presencial). Único destello: nivel 8
+con residual 0,873 [0,774–0,974] — descartado como artefacto de
+comparaciones múltiples (1 celda de 8 testeadas, sin patrón
+dosis-respuesta entre niveles). VEREDICTO: el modelo E × R(tamaño) ×
+F(facultad) es todo lo que el 2025 sostiene. Plan de ejecución:
+plan-1b-esperado-redefinido-2026-08-20.md.
