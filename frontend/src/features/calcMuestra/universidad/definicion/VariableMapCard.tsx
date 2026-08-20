@@ -32,6 +32,7 @@ function fmtMean(value: number) {
 }
 
 export function VariableMapCard({
+  motorResuelto = "",
   base,
   valueType,
   columns,
@@ -49,6 +50,10 @@ export function VariableMapCard({
   onConfirm,
   onClear,
 }: {
+  /** Columna que el MOTOR resolvió para este rol en el marco vigente
+   *  (frame.mapeo_resuelto). Información, no asignación (§3.3.1): se muestra
+   *  solo cuando el usuario no confirmó, con confirmación a un click. */
+  motorResuelto?: string;
   base: CalcMuestraWorkspaceVariableMapping;
   valueType: UniversityVariableValueType;
   columns: string[];
@@ -178,6 +183,24 @@ export function VariableMapCard({
               </span>
             )}
           </>
+        ) : motorResuelto ? (
+          <span className="cmv2-defi-var-motor">
+            <span className="cmv2-defi-var-motor-copy">
+              El motor está usando <b>{motorResuelto}</b>
+            </span>
+            <button
+              type="button"
+              className="cmv2-defi-var-confirm-btn"
+              title={`Confirmar ${motorResuelto} como ${base.label} en el estudio`}
+              onClick={() => {
+                onSelect(motorResuelto);
+                onConfirm();
+              }}
+            >
+              <CheckCircle2 size={14} />
+              Confirmarla
+            </button>
+          </span>
         ) : (
           <span className={`cmv2-defi-var-pending ${required ? "is-required" : ""}`}>
             {required ? "Falta asignar esta columna" : "Sin asignar (opcional)"}

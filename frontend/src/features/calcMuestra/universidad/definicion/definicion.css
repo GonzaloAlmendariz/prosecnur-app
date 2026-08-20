@@ -1985,3 +1985,28 @@
   font-size: 11px;
   color: var(--pulso-text-muted);
 }
+
+/* «El motor está usando X» (M9 fase 2): estado informativo cuando el usuario
+   no confirmó pero el marco vigente resolvió el rol — §3.3.1: información con
+   confirmación a un click, jamás asignación silenciosa. */
+.cmv2-defi-var-motor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cmv2-defi-var-motor-copy {
+  font-size: 11.5px;
+  color: var(--pulso-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-defi-var-motor-copy b {
+  color: var(--pulso-text);
+  font-weight: var(--pulso-weight-semibold);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
