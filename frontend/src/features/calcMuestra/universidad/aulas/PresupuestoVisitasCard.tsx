@@ -8,6 +8,7 @@
 import { Gauge } from "lucide-react";
 import { fmtInt } from "../../sharedCore";
 import "./docenteUnico.css";
+import "./presupuestoVisitas.css";
 
 export function presupuestoVisitas(
   techo: number | null | undefined,
@@ -54,6 +55,47 @@ export function PresupuestoVisitasCard({
             : `${fmtInt(p.titulares)} titulares; sin calibración para estimar activaciones`}
         </span>
       </header>
+      {p.plan != null && (
+        <div className="cmv2-presup-carril" role="img"
+          aria-label={`Titulares ${fmtInt(p.titulares)} más ${fmtInt(p.activacionesEsperadas ?? 0)} activaciones esperadas = plan ${fmtInt(p.plan)}, contra un techo de ${fmtInt(p.techo)}`}>
+          {(() => {
+            // La barra del presupuesto: se VE cuánto comen los titulares,
+            // cuánto las activaciones y cuánto queda (o cuánto se pasa).
+            const escala = Math.max(p.techo, p.plan ?? 0);
+            const w = (v: number) => `${(v / escala) * 100}%`;
+            const dentroPlan = Math.min(p.plan ?? 0, p.techo);
+            const activacionesDentro = Math.max(0, dentroPlan - p.titulares);
+            const exceso = Math.max(0, (p.plan ?? 0) - p.techo);
+            return (
+              <>
+                <span className="cmv2-presup-seg" data-seg="titulares" style={{ width: w(Math.min(p.titulares, p.techo)) }} />
+                {activacionesDentro > 0 && (
+                  <span className="cmv2-presup-seg" data-seg="activaciones" style={{ width: w(activacionesDentro) }} />
+                )}
+                {exceso > 0 && (
+                  <span className="cmv2-presup-seg" data-seg="exceso" style={{ width: w(exceso) }} />
+                )}
+                <i className="cmv2-presup-techo" style={{ left: w(p.techo) }}>
+                  <b>techo {fmtInt(p.techo)}</b>
+                </i>
+              </>
+            );
+          })()}
+        </div>
+      )}
+      {p.plan != null && (
+        <p className="cmv2-presup-leyenda">
+          <i data-seg="titulares" /> {fmtInt(p.titulares)} titulares ·{" "}
+          <i data-seg="activaciones" /> {fmtInt(p.activacionesEsperadas ?? 0)} activaciones esperadas
+          {(p.plan ?? 0) > p.techo ? (
+            <>
+              {" "}· <i data-seg="exceso" /> {fmtInt((p.plan ?? 0) - p.techo)} sobre el techo
+            </>
+          ) : (
+            <> · quedan {fmtInt(p.techo - (p.plan ?? 0))} de holgura</>
+          )}
+        </p>
+      )}
     </section>
   );
 }
