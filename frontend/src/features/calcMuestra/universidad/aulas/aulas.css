@@ -568,20 +568,8 @@
 }
 
 /* --- Grafo de repetidos (SVG movido, sin hex) ------------------------------------ */
-.cmv2-aulas-overlap-svg line {
-  stroke: var(--cmv2-border);
-}
 
-.cmv2-aulas-overlap-svg circle {
-  fill: var(--cmv2-accent-soft);
-  stroke: var(--cmv2-accent-fg);
-}
 
-.cmv2-aulas-overlap-svg text {
-  fill: var(--pulso-text-muted);
-  font-size: 10px;
-  font-weight: var(--pulso-weight-bold);
-}
 
 /* --- Auditoría: grid de fórmulas -------------------------------------------------- */
 .cmv2-aulas-formulas {
@@ -817,16 +805,6 @@
   .cmv2-aulas-olas .cmv2-uni-flujo > *:nth-child(n + 16) { animation-delay: 300ms; }
 
   /* --- Grafo de repetidos: nodos encendidos en orden de lectura --------------- */
-  .cmv2-aulas-overlap-svg > g {
-    animation: cmv2-aulas-fade 240ms var(--cmv2-ease-out, ease-out) both;
-  }
-
-  .cmv2-aulas-overlap-svg > g:nth-of-type(2) { animation-delay: 30ms; }
-  .cmv2-aulas-overlap-svg > g:nth-of-type(3) { animation-delay: 60ms; }
-  .cmv2-aulas-overlap-svg > g:nth-of-type(4) { animation-delay: 90ms; }
-  .cmv2-aulas-overlap-svg > g:nth-of-type(5) { animation-delay: 120ms; }
-  .cmv2-aulas-overlap-svg > g:nth-of-type(6) { animation-delay: 150ms; }
-  .cmv2-aulas-overlap-svg > g:nth-of-type(7) { animation-delay: 180ms; }
   .cmv2-aulas-overlap-svg > g:nth-of-type(n + 8) { animation-delay: 210ms; }
 }
 
@@ -1999,3 +1977,65 @@
 .cmv2-sexo-th-barras i[data-serie="ofrece"] {
   background: var(--module-accent, var(--pulso-primary));
 }
+
+/* Ranking de solape (reemplaza al pseudo-grafo, 2026-08-20). Solo tokens. */
+.cmv2-overlap-rank-glosa {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-overlap-rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.cmv2-overlap-rank li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.cmv2-overlap-rank-etq { display: grid; min-width: 0; }
+.cmv2-overlap-rank-etq b { color: var(--pulso-text); font-size: 11px; }
+.cmv2-overlap-rank-etq small {
+  color: var(--pulso-text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmv2-overlap-rank-track {
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-overlap-rank-track b {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-warn-accent) 70%, var(--pulso-surface));
+}
+
+.cmv2-overlap-rank-n {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+  font-size: 11.5px;
+}
+
+.cmv2-overlap-rank-resto {
+  grid-template-columns: 1fr;
+  color: var(--pulso-text-muted);
+  font-size: 10.5px;
+}
+
