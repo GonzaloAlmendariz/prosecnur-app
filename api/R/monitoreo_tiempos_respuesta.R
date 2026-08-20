@@ -114,3 +114,76 @@ monitoreo_tiempos_resumen <- function(minutos, cola_min = NA_real_) {
     cola_larga = larga
   )
 }
+
+#' Banda de la mediana por orden estadistico
+#'
+#' La mediana de un grupo de 20 respuestas no se puede comparar con la de otro
+#' de 300 como si fueran el mismo dato. La banda sale de los ordenes
+#' estadisticos —exacta, sin suponer normalidad y sin dependencias nuevas—: con
+#' `n` observaciones, el intervalo va del k-esimo valor ordenado al (n-k+1), con
+#' `k = qbinom(alpha/2, n, 0.5)`.
+#'
+#' Con menos de `minimo_n` observaciones no se devuelve banda: un intervalo
+#' calculado sobre cuatro casos abarca casi todo el rango y da una precision que
+#' no existe.
+monitoreo_tiempos_banda_mediana <- function(x, conf = 0.95, minimo_n = 5) {
+  x <- sort(as.numeric(x[is.finite(x)]))
+  n <- length(x)
+  if (n < minimo_n) return(list(inferior = NA_real_, superior = NA_real_, n = n))
+  alpha <- 1 - conf
+  k <- stats::qbinom(alpha / 2, n, 0.5)
+  if (k < 1) k <- 1
+  list(inferior = x[k], superior = x[n - k + 1], n = n)
+}
+
+#' Duracion por grupo, con su banda
+#'
+#' El grupo lo declara quien llama —aula, aplicador, jornada, distrito— porque
+#' no todas las bases traen las mismas columnas: `acnur_acg` no tiene ni una de
+#' aplicador (`_submitted_by` viene vacio en sus 1 283 filas) y si tiene
+#' distrito y jornada. Adivinar el agrupador produciria un «por aplicador» que
+#' en realidad agrupa por otra cosa.
+#'
+#' `destaca` es TRUE cuando la banda del grupo **no contiene** la mediana del
+#' resto de la muestra: es la unica lectura que distingue una diferencia real de
+#' la variacion esperable. Un grupo sin banda —pocos casos— nunca destaca, y se
+#' reconoce por `n_bajo`.
+monitoreo_tiempos_por_grupo <- function(minutos, grupo, conf = 0.95, minimo_n = 5) {
+  minutos <- as.numeric(minutos)
+  grupo <- as.character(grupo)
+  if (length(grupo) != length(minutos)) {
+    stop("`grupo` y `minutos` tienen que traer una entrada por respuesta")
+  }
+  usable <- is.finite(minutos) & minutos >= 0 & !is.na(grupo) & nzchar(grupo)
+  minutos <- minutos[usable]
+  grupo <- grupo[usable]
+  claves <- sort(unique(grupo))
+  filas <- lapply(claves, function(g) {
+    dentro <- minutos[grupo == g]
+    fuera <- minutos[grupo != g]
+    banda <- monitoreo_tiempos_banda_mediana(dentro, conf = conf, minimo_n = minimo_n)
+    referencia <- if (length(fuera)) stats::median(fuera) else NA_real_
+    destaca <- is.finite(banda$inferior) && is.finite(referencia) &&
+      (referencia < banda$inferior || referencia > banda$superior)
+    data.frame(
+      grupo = g,
+      n = length(dentro),
+      n_bajo = length(dentro) < minimo_n,
+      mediana = round(stats::median(dentro), 2),
+      banda_inf = round(banda$inferior, 2),
+      banda_sup = round(banda$superior, 2),
+      mediana_resto = if (is.finite(referencia)) round(referencia, 2) else NA_real_,
+      destaca = destaca,
+      stringsAsFactors = FALSE
+    )
+  })
+  if (!length(filas)) {
+    return(data.frame(
+      grupo = character(0), n = integer(0), n_bajo = logical(0),
+      mediana = numeric(0), banda_inf = numeric(0), banda_sup = numeric(0),
+      mediana_resto = numeric(0), destaca = logical(0), stringsAsFactors = FALSE
+    ))
+  }
+  fuera <- do.call(rbind, filas)
+  fuera[order(fuera$mediana), , drop = FALSE]
+}
