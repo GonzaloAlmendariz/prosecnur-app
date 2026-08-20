@@ -353,39 +353,50 @@ export function AulasControlDelLibro({
           filtros de respuesta válida en la app: dos sistemas distintos, juntos
           en la misma pantalla y sin nada que dijera cuál es cuál. Aquí no se
           inventa la relación —no la hay— sino que se nombra. */}
+      {/* **De qué está hecha esta hoja, en un solo sitio.**
+          Estas tres líneas —quién llena los validadores, cuántas filas trae cada
+          bloque y qué bloque vino vacío— son procedencia, no veredicto. Sueltas
+          entre el resultado y la tabla eran tres renglones flotantes con tres
+          estilos distintos, y esa es la mitad del «no tiene formato»: nada decía
+          que fueran lo mismo ni dónde acababan. Juntas en su propia caja se leen
+          de un vistazo y dejan de competir con el veredicto de arriba.
+          Van ANTES de la tabla porque explican lo que se va a leer, no después
+          como una nota al pie que ya nadie mira. */}
+      <div className="aulas-control-procedencia">
       {validadores.columnas > 0 ? (
-        <p className="mon-profile-muted aulas-control-validadores">
-          Las {validadores.columnas === 1 ? "columna" : `${validadores.columnas} columnas`}
-          {" "}de validador {validadores.columnas === 1 ? "es" : "son"} del equipo: las llena
-          en su Excel y la app no las calcula.{" "}
-          {validadores.sinDeclarar ? (
-            <>Este estudio todavía no declara sus filtros de respuesta válida, así
-            que no hay con qué compararlas.</>
-          ) : (
-            <>
-              El estudio declara {validadores.declarados.length}{" "}
-              {validadores.declarados.length === 1 ? "filtro" : "filtros"} propios
-              ({validadores.declarados.join(", ")}), que es otro criterio.
-            </>
-          )}
+          <p className="mon-profile-muted aulas-control-validadores">
+            Las {validadores.columnas === 1 ? "columna" : `${validadores.columnas} columnas`}
+            {" "}de validador {validadores.columnas === 1 ? "es" : "son"} del equipo: las llena
+            en su Excel y la app no las calcula.{" "}
+            {validadores.sinDeclarar ? (
+              <>Este estudio todavía no declara sus filtros de respuesta válida, así
+              que no hay con qué compararlas.</>
+            ) : (
+              <>
+                El estudio declara {validadores.declarados.length}{" "}
+                {validadores.declarados.length === 1 ? "filtro" : "filtros"} propios
+                ({validadores.declarados.join(", ")}), que es otro criterio.
+              </>
+            )}
+          </p>
+        ) : null}
+        <p className="aulas-cadenas-lectura">
+          {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el
+              plan sigue, y llamarlas igual confundía dos denominadores. */}
+          <strong>{aulas}</strong> {aulas === 1 ? "fila" : "filas"} en la hoja
+          {conDato.map((g) => (
+            <span key={g.clave}>
+              {" · "}
+              {nombreDeGrupo(g)} <strong>{g.aulas_con_dato}</strong>
+            </span>
+          ))}
         </p>
-      ) : null}
-      <p className="aulas-cadenas-lectura">
-        {/* Filas de la hoja, no aulas del plan: son 210 contra las 196 que el
-            plan sigue, y llamarlas igual confundía dos denominadores. */}
-        <strong>{aulas}</strong> {aulas === 1 ? "fila" : "filas"} en la hoja
-        {conDato.map((g) => (
-          <span key={g.clave}>
-            {" · "}
-            {nombreDeGrupo(g)} <strong>{g.aulas_con_dato}</strong>
-          </span>
-        ))}
-      </p>
-      {vacios.length ? (
-        <p className="mon-profile-muted">
-          Sin llenar en el libro: {vacios.map(nombreDeGrupo).join(" · ")}.
-        </p>
-      ) : null}
+        {vacios.length ? (
+          <p className="mon-profile-muted">
+            Sin llenar en el libro: {vacios.map(nombreDeGrupo).join(" · ")}.
+          </p>
+        ) : null}
+      </div>
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <table className="mon-profile-table">
           <thead>
