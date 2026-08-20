@@ -266,6 +266,10 @@ calc_muestra_aulas_tasas_facultad <- function(aula_frame) {
   k_fac <- suppressWarnings(as.integer(aula_frame$facultad_k %||% rep(NA_integer_, nrow(aula_frame))))
   fac <- toupper(trimws(as.character(aula_frame$faculty)))
   ok <- nzchar(fac) & is.finite(r) & el > 0
+  # Solo el marco ELEGIBLE dimensiona: si el frame trae la marca `included`,
+  # las excluidas por criterios no aportan a la tasa de su facultad.
+  inc <- aula_frame$included
+  if (!is.null(inc)) ok <- ok & (inc %in% TRUE)
   salida <- list()
   for (ff in unique(fac[ok])) {
     idx <- ok & fac == ff
