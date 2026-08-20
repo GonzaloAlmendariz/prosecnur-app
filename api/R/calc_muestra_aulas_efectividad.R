@@ -40,19 +40,67 @@
   r
 }
 
+#' Normaliza la declaracion de procedencia de la calibracion (cfg$efectividad).
+#' Tres estados legales: "historico" (las tasas provienen de la data historica
+#' del estudio anterior; periodo opcional), "tau_global" (no hay historico: el
+#' esperado se rige por el supuesto global tau declarado), o NULL (nadie
+#' declaro nada). Gonzalo (2026-08-20): «la idea es que no sea un hardcore…
+#' puede no haber historico: se rige por el global, y hay que mostrarlo».
+.cm_efectividad_normalize_config <- function(ef = NULL) {
+  if (!is.list(ef)) return(NULL)
+  chr1 <- function(x) {
+    v <- as.character(x)[1]
+    if (length(v) != 1L || is.na(v)) "" else trimws(v)
+  }
+  fuente <- chr1(ef$fuente)
+  periodo <- chr1(ef$periodo)
+  tau <- suppressWarnings(as.numeric(ef$tau)[1])
+  if (identical(fuente, "historico")) {
+    return(list(fuente = "historico", periodo = periodo, tau = NA_real_))
+  }
+  if (identical(fuente, "tau_global") && is.finite(tau) && tau > 0 && tau <= 1) {
+    return(list(fuente = "tau_global", periodo = periodo, tau = tau))
+  }
+  NULL
+}
+
+#' Resuelve la calibracion vigente. Sin declaracion NO se inventa un
+#' historico: las curvas embebidas (medidas sobre un estudio anterior real)
+#' se usan igual, pero la procedencia se DECLARA como calibracion_embebida
+#' para que la UI lo diga en voz alta — anti-fallback.
+.cm_efectividad_calibracion <- function(cfg = NULL) {
+  ef <- .cm_efectividad_normalize_config(if (is.list(cfg)) cfg[["efectividad"]] else NULL)
+  if (is.null(ef)) return(list(fuente = "calibracion_embebida", periodo = "", tau = NA_real_))
+  ef
+}
+
 #' Anota el frame con la efectividad esperada por curso-horario.
 #' Idempotente y sin RNG; con frame vacío o sin eligible_n devuelve tal cual.
-.cm_aulas_efectividad_anotar <- function(aula_frame) {
+#' Con fuente "tau_global" no hay curvas: esperado = elegibles x tau, y las
+#' columnas de curva quedan NA a proposito (la UI muestra la via global).
+.cm_aulas_efectividad_anotar <- function(aula_frame, calibracion = NULL) {
   if (!is.data.frame(aula_frame) || !nrow(aula_frame) || !"eligible_n" %in% names(aula_frame)) {
     return(aula_frame)
   }
-  p <- .cm_efectividad_p_aplicada(aula_frame$teacher_type %||% rep("", nrow(aula_frame)))
-  r <- .cm_efectividad_rendimiento(aula_frame$eligible_n)
-  aula_frame$p_aplicada_ref <- round(p, 3)
-  aula_frame$rendimiento_ref <- round(r, 3)
+  cal <- if (is.list(calibracion) && length(calibracion)) calibracion else
+    list(fuente = "calibracion_embebida", periodo = "", tau = NA_real_)
   el <- suppressWarnings(as.numeric(aula_frame$eligible_n))
   el[!is.finite(el)] <- 0
-  aula_frame$efectivas_esperadas <- round(el * p * r, 1)
+  if (identical(cal$fuente, "tau_global")) {
+    aula_frame$p_aplicada_ref <- NA_real_
+    aula_frame$rendimiento_ref <- NA_real_
+    aula_frame$efectividad_tau <- round(as.numeric(cal$tau), 3)
+    aula_frame$efectivas_esperadas <- round(el * as.numeric(cal$tau), 1)
+  } else {
+    p <- .cm_efectividad_p_aplicada(aula_frame$teacher_type %||% rep("", nrow(aula_frame)))
+    r <- .cm_efectividad_rendimiento(aula_frame$eligible_n)
+    aula_frame$p_aplicada_ref <- round(p, 3)
+    aula_frame$rendimiento_ref <- round(r, 3)
+    aula_frame$efectivas_esperadas <- round(el * p * r, 1)
+  }
+  # La procedencia viaja en la fila: la UI y Monitoreo la leen, no la asumen.
+  aula_frame$efectividad_fuente <- as.character(cal$fuente)
+  aula_frame$efectividad_periodo <- as.character(cal$periodo %||% "")
   # Contrato con Monitoreo (2026-08-20): declarar de donde salio la meta para
   # que su lado pueda afirmar "del diseno" sin inferirlo. Literal estable.
   aula_frame$meta_origen <- "diseno"

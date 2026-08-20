@@ -431,6 +431,9 @@ calc_muestra_aulas_default_config <- function() {
     # marco sale por el path legacy de patrones (retro-compat bit a bit). La
     # lógica vive en calc_muestra_aulas_criterios.R.
     criterios_seleccion = list(),
+    # Procedencia de la calibracion de efectividad (historico | tau_global);
+    # NULL = sin declarar -> el anotador la marca calibracion_embebida.
+    efectividad = NULL,
     # Firma de la decisión que produjo el objetivo de esta corrida. No cambia
     # el frame; impide que una comparación/selección vieja reviva si el nuevo
     # cálculo coincide accidentalmente en `n_aulas`.
@@ -539,6 +542,7 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
     criterios_seleccion = .cm_criterios_normalize_seleccion(
       config$criterios_seleccion %||% config$criterios_marco %||% config$seleccion_criterios
     ),
+    efectividad = .cm_efectividad_normalize_config(config$efectividad),
     alumnos_por_ch_decision = .cm_alumnos_por_ch_decision_signature(
       config$alumnos_por_ch_decision
     ),
@@ -1477,7 +1481,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   # las columnas son derivadas y referenciales; moverian la firma en vano e
   # invalidarian artefactos acreditados (calc_muestra_aulas_efectividad.R).
   frame_hash_estable <- .cm_aulas_hash(list(aula_frame = aula_frame, cfg = cfg$filters))
-  aula_frame <- .cm_aulas_efectividad_anotar(aula_frame)
+  aula_frame <- .cm_aulas_efectividad_anotar(aula_frame, calibracion = .cm_efectividad_calibracion(cfg))
 
   out <- list(
     schema = "calc_muestra_aulas_frame_v1",
@@ -4300,6 +4304,7 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
     "teacher_email", "teacher_type", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
     "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas", "meta_origen",
+    "efectividad_fuente", "efectividad_periodo", "efectividad_tau",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "pi_base", "pi_design", "pi_mc", "pi_final", "probability_source",
     "mc_runs", "mc_error_summary", "weight_classroom", "pi_student", "weight_student",
@@ -4925,6 +4930,7 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
     "course_name", "section", "schedule", "modality", "session_type", "teacher",
     "teacher_email", "teacher_type", "faculty", "faculty_aula", "program", "level", "course_level_num", "eligible_n", "enrolled_total",
     "p_aplicada_ref", "rendimiento_ref", "efectivas_esperadas", "meta_origen",
+    "efectividad_fuente", "efectividad_periodo", "efectividad_tau",
     "size_group", "sex_top_1", "sex_top_1_n", "sex_top_2", "sex_top_2_n",
     "stratum", "historical_sample_label", "operation_status", "field_status",
     "scheduled_date", "scheduled_time", "applied_date", "applied_time",
