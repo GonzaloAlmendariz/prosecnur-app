@@ -76,7 +76,13 @@ export function AulasLoQueFalta({ filas }: { filas: ReadonlyArray<Readonly<Recor
   const grupos = porFacultad(r.aulas);
 
   return (
-    <div className="aulas-falta">
+    // Quién posee el vacío interior de este panel.
+    //
+    // Sin esta declaración el runner elige un candidato por su cuenta y le tocó
+    // el `mon-profile-panel-head`: 5 px de padding de encabezado leídos como
+    // capacidad sin dueño (`capacity-drift`). El contenedor de datos es éste,
+    // que es donde el vacío tiene sentido —la lista tiene tope de diez—.
+    <div className="aulas-falta" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(costo)}</strong> encuestas cierran las {fmt(total)} aulas
         que no llegaron
