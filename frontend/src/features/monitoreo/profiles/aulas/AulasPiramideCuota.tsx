@@ -2,7 +2,8 @@ import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { piramideDeCuota, type LadoDeCuota } from "./piramideDeCuota";
+import { celdasPrevistas, piramideDeCuota, type LadoDeCuota } from "./piramideDeCuota";
+import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
 
 /**
@@ -18,6 +19,34 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  */
 
 const fmt = (n: number) => n.toLocaleString("es-PE");
+/** `2026-08-24` → `24/08`. */
+const dm = (iso: string) => {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}` : iso;
+};
+
+/**
+ * Lo que hay que leer de esta celda, en tres palabras.
+ *
+ * La cifra decía «78 faltan», que es dónde está la celda hoy. Con la proyección
+ * encima puede decir dónde va a acabar, que es lo que decide si hay que hacer
+ * algo: **una celda a la que le faltan 78 pero que cierra el jueves no necesita
+ * a nadie, y una a la que le faltan 12 y no cierra, sí.** Sin agenda publicada
+ * se sigue diciendo lo de antes, porque predecir sin datos sería inventar.
+ */
+function veredicto(lado: LadoDeCuota): { texto: string; estado: "cumplida" | "cierra" | "no-cierra" | "sin-dato" } {
+  if (lado.cumple) return { texto: "cumplida", estado: "cumplida" };
+  if (lado.cierra === null) return { texto: `${fmt(lado.faltan)} faltan`, estado: "sin-dato" };
+  if (lado.cierra) {
+    return {
+      texto: lado.cierraEl ? `cierra ${dm(lado.cierraEl)}` : "cierra",
+      estado: "cierra",
+    };
+  }
+  // Lo que va a faltar CUANDO SE ACABE la agenda, no lo que falta ahora: es la
+  // cifra con la que se decide cuántas aulas más pedir.
+  return { texto: `faltarán ${fmt(lado.faltanAlCerrar)}`, estado: "no-cierra" };
+}
 
 /**
  * El color dice el ESTADO de la celda, no lo lejos que está: eso ya lo dice el
@@ -54,30 +83,51 @@ function Lado({ lado, tope, hacia }: {
   // ve grande— y el relleno, lo observado dentro de su propia meta.
   const carril = tope ? Math.max(6, (100 * lado.meta) / tope) : 0;
   const relleno = Math.min(100, lado.avance);
+  const v = veredicto(lado);
+  const detalle = lado.cierra === null
+    ? ""
+    : lado.cumple
+      ? ""
+      : lado.cierra
+        ? ` · con lo agendado llega${lado.cierraEl ? ` el ${dm(lado.cierraEl)}` : ""}`
+        : ` · con lo agendado se queda a ${fmt(lado.faltanAlCerrar)}`;
   return (
     <span
       className={`aulas-piramide-lado es-${hacia}`}
-      title={`${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} · ${lado.avance}%`}
+      title={`${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} · ${lado.avance}%${detalle}`}
     >
-      <span className="aulas-piramide-cifra">
-        {lado.faltan ? `${fmt(lado.faltan)} faltan` : "cumplida"}
-      </span>
+      <span className={`aulas-piramide-cifra es-${v.estado}`}>{v.texto}</span>
       <span className="aulas-piramide-carril" style={{ width: `${carril}%` }}>
         <i style={{ width: `${relleno}%`, background: tono(lado) }} />
+        {/* **La sombra de lo que la agenda va a traer.** Sale del relleno hacia
+            la meta, en el mismo carril y con la misma escala, así que si no
+            llega al final del carril esa celda no cierra —y eso se ve sin leer
+            ninguna cifra—. Va rayada y translúcida porque es previsión y no
+            dato: confundirla con lo recogido sería peor que no dibujarla. */}
+        {lado.previsto ? (
+          <i
+            className="es-previsto"
+            style={{ width: `${lado.previsto}%`, "--aulas-previsto-tono": tono(lado) } as React.CSSProperties}
+          />
+        ) : null}
       </span>
     </span>
   );
 }
 
-export function AulasPiramideCuota({ filas, foco, onFoco }: {
+export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = [] }: {
   filas: ReadonlyArray<MonitoreoRow>;
   /** El corte enfocado; la fila enfocada se marca y filtra el detalle. */
   foco: FocoDeCuota;
   onFoco: (foco: FocoDeCuota) => void;
+  /** El plan con sus fechas, para saber qué va a traer lo ya agendado. */
+  agenda?: ReadonlyArray<MonitoreoRow>;
+  /** Los partes de campo, que dan el rendimiento con el que se proyecta. */
+  partes?: ReadonlyArray<MonitoreoRow>;
 }) {
   const { facultades, izquierda, derecha, otros, tope, sinMeta } = useMemo(
-    () => piramideDeCuota(filas),
-    [filas],
+    () => piramideDeCuota(filas, celdasPrevistas(proyeccionPorAgenda(agenda, partes, filas))),
+    [filas, agenda, partes],
   );
   // El marginal de cada sexo: lo que falta sumando todas las facultades de ese
   // lado. Vivía en una lista de barras aparte —«Por sexo»— que repetía el mismo
@@ -115,6 +165,20 @@ export function AulasPiramideCuota({ filas, foco, onFoco }: {
           <em>{faltanPorLado.derecha ? `${fmt(faltanPorLado.derecha)} por recoger` : "cumplida"}</em>
         </span>
       </p>
+      {/* La leyenda del rayado va en su PROPIA línea y no en la regla del centro:
+          metida ahí se partía en tres líneas dentro de una columna de 168 px,
+          apretada entre las dos etiquetas de sexo. Aquí tiene el ancho del panel.
+
+          Y sólo aparece si hay algo rayado que explicar: sin agenda por delante
+          no hay sombra en ninguna barra, y una leyenda de algo que no se ve
+          manda a buscar lo que no está. */}
+      {facultades.some((f) => f.izquierda?.previsto || f.derecha?.previsto) ? (
+        <p className="aulas-piramide-leyenda">
+          <i aria-hidden="true" />
+          Lo rayado es lo que traerán las aulas ya agendadas. Si no llega al final
+          de su carril, esa celda no cierra con lo que hay.
+        </p>
+      ) : null}
       <ol className="aulas-piramide-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         {facultades.map((fila) => {
           const activo = foco?.tipo === "facultad" && foco.valor === fila.facultad;

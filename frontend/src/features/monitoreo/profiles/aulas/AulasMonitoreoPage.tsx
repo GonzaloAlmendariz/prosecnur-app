@@ -1425,7 +1425,16 @@ function renderAulasView(
             Recibe TODAS las filas, no las enfocadas: es el control, y filtrada
             se quedaría en una sola fila sin forma de elegir otra ni de soltar el
             foco. Quien se filtra es la tabla, que es el detalle. */}
-        <AulasPiramideCuota filas={quotaRows as MonitoreoRow[]} foco={foco} onFoco={onFoco} />
+        <AulasPiramideCuota
+          filas={quotaRows as MonitoreoRow[]}
+          foco={foco}
+          onFoco={onFoco}
+          agenda={(dashboard.agenda ?? []) as MonitoreoRow[]}
+          partes={parteDeCampo(
+            (dashboard.partes_campo ?? []) as MonitoreoRow[],
+            (dashboard.agenda ?? []) as MonitoreoRow[],
+          ).filas as MonitoreoRow[]}
+        />
         {/* La tabla filtrada lo dice: la cabecera del panel cuenta las 12 celdas
             del estudio y con un foco puesto abajo se ven dos. Un contador que no
             cuadra con lo que hay debajo es lo que llevo el día arreglando. */}
