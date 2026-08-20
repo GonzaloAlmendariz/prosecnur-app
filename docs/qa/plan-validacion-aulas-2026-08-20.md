@@ -50,8 +50,19 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
 
 ### B. Control de tiempos (T7–T11)
 
-- **T7** — Medir qué trae la base: `_submission_time`, `start`, `end`, duración
-  por respuesta. **Antes de diseñar nada.** Si no está, es deuda declarada.
+> **T7 ☑ MEDIDO (2026-08-20).** La base del estudio de aulas trae **43 columnas
+> y UNA sola de tiempo**: `_submission_time`. **No hay `start` ni `end`**, así
+> que no hay duración por respuesta. Y la ventana por aula que sí se puede
+> calcular sale **constante: mediana 293 min y máximo 293**, porque el fixture
+> siembra los tiempos con un patrón fijo — no distingue señal.
+>
+> **Dónde SÍ se puede construir y verificar**: el proyecto de referencia
+> `acnur_acg` trae `start`, `end` y `_submission_time` sobre 1 732 respuestas.
+> La lógica se escribe y se prueba contra él; en aulas la superficie **dirá que
+> este estudio no trae tiempos** en vez de no existir, para que funcione sola el
+> día que llegue un XLSForm que los declare.
+
+- **T7** — ~~Medir qué trae la base.~~ Hecho: ver arriba.
 - **T8** — Duración por respuesta: distribución, mediana y cola.
 - **T9** — Duración por aula y por aplicador: dónde se responde demasiado rápido.
 - **T10** — Umbral de sospecha declarable, con la misma doctrina que
@@ -63,8 +74,17 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
 Capacidad nueva que **no existe en ningún perfil** y que Gonzalo quiere
 extensible a todos los monitoreos.
 
-- **T12** — Inventario: qué preguntas abiertas trae el instrumento y cuántas
-  respuestas tienen. Medir antes de prometer.
+> **T12 ☑ MEDIDO (2026-08-20).** La base del estudio de aulas **no tiene ni una
+> pregunta de texto abierto**: de sus 43 columnas, sólo tres son de texto
+> —`_submission_time`, `collectorID` y `sexo`— y el `.pulso` **no trae
+> instrumento**. Aquí no hay nada que inventariar.
+>
+> **Dónde SÍ**: `acnur_acg` trae **~22 columnas de texto abierto y su
+> instrumento**; `acnur_pdm` ~14 y `acrconta` ~11. La capacidad se construye
+> contra `acnur_acg` —que es además el que permite verificar las señales— y se
+> hereda por contrato, que es lo que Gonzalo pidió.
+
+- **T12** — ~~Inventario.~~ Hecho: ver arriba.
 - **T13** — Señales objetivas por respuesta: longitud, repetición literal,
   teclado seguido, una sola palabra, copia entre casos.
 - **T14** — Vista de lectura: leer muchas respuestas rápido, agrupadas por
@@ -94,6 +114,21 @@ extensible a todos los monitoreos.
 - **T24** — El reemplazo, alcanzable sin entrar al formulario de un aula.
 - **T25** — Pasada de forma sobre Validación entera, con el gate visual en los
   dos viewports.
+
+## Lo aprendido al medir (2026-08-20)
+
+**Los dos bloques que parecían más ambiciosos no estaban bloqueados: estaban en
+otro proyecto.** Medir antes de construir ahorró diseñar cinco ticks contra una
+base sin `start`/`end` y seis contra una sin preguntas abiertas — y encontró
+dónde sí se pueden verificar.
+
+De ahí una regla que este plan adopta: **cuando el fixture del perfil no sostiene
+una capacidad, buscar en los proyectos de referencia antes de declararla
+bloqueada.** Hay cinco y no todos traen lo mismo.
+
+Y la contraria, igual de importante: **una capacidad verificada contra otro
+proyecto no está verificada en éste.** En aulas, las dos superficies tendrán que
+decir «este estudio no trae eso» — que es información, no un hueco.
 
 ## Reglas de este plan
 
