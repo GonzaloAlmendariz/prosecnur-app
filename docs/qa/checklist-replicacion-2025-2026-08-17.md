@@ -4119,3 +4119,18 @@ inicial: (a) sin jerarquia vistazo→detalle (todo al mismo nivel);
 (c) tres bloques cuentan historias hermanas (embudo, certificacion,
 seleccion comparada) sin transicion. Pase de Rama 2 con contrato
 geometrico en los proximos ticks, tras cerrar el pase de warns.
+
+### Revamp de Coincidencia, primer corte: la ficha recupera sus dos columnas
+
+La decision textual de Gonzalo era «dos tarjetas por cada fila» y una
+media query por viewport (max-width 1279) la colapsaba a UNA columna
+con la card a 1.092px — la ficha era un muro de 5.121px. Fix de fondo:
+auto-fit minmax(480px) decide por el ancho REAL disponible. Medido:
+ficha −45% (2.791px), pagina −31% (5.245px). Pendiente del revamp:
+jerarquia vistazo→detalle y transiciones entre bloques hermanos.
+
+NOTA DE DATOS a revisar (vista en el screenshot, no tocada): en la
+ficha, el paso 3 «Aulas que pasan los criterios» muestra 2025-2 = 12
+para A&D y 7 para ARQ — el marco 2025 final tenia 222 y 100; la
+referencia de ese paso parece venir de OTRA fuente (¿aulas aplicadas?).
+Verificar el mapping historico del paso antes de declarar defecto.
