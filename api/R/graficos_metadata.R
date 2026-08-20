@@ -4245,7 +4245,16 @@
         size_titulo_seccion = 30,
         top_offset_subtitulo_portada = 0.58,
         height_subtitulo_portada = 0.95,
+        # `color_titulo_slide` se separo de `color_titulo` para que el titulo de
+        # la LAMINA pudiera ir en el naranja de la casa sin arrastrar el del
+        # GRAFICO. La clave nueva no se propago a este perfil, asi que el
+        # titulo de cada lamina ACNUR caia al default Pulso (#CA5651): 112 de
+        # las 134 laminas del mazo de PDM MedVida 2026 salieron en terracota
+        # donde el formato pide el negro institucional. Un perfil que declara
+        # `color_titulo` y no `color_titulo_slide` esta incompleto por
+        # construccion; el test lo vigila.
         color_titulo = .ACNUR_PPT_COLORS$text,
+        color_titulo_slide = .ACNUR_PPT_COLORS$text,
         color_subtitulo = .ACNUR_PPT_COLORS$navy,
         color_leyenda = .ACNUR_PPT_COLORS$text,
         color_ejes = .ACNUR_PPT_COLORS$text,

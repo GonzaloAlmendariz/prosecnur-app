@@ -710,3 +710,43 @@ test_that("style profiles: cada perfil PPT trae template_id y estructura seriali
     expect_type(p$auto_otros_slides, "logical")
   }
 })
+
+test_that("un perfil de estilo que fija el color del titulo fija los dos", {
+  # `color_titulo_slide` (lamina, seccion, portada) se separo de `color_titulo`
+  # (titulo del grafico) para poder moverlos por separado. El perfil ACNUR se
+  # quedo sin la clave nueva y el titulo de cada lamina cayo al default Pulso
+  # `#CA5651`: 112 de las 134 laminas del mazo de PDM MedVida 2026 salieron en
+  # terracota donde el formato institucional pide el negro `#1A1A1A`.
+  # Ver `docs/qa/checklist-acnur-v3-preguntas-ausentes-2026-08-19.md`.
+  perfiles <- .ppt_style_profiles_payload()$style_profiles
+  expect_gt(length(perfiles), 0L)
+
+  for (p in perfiles) {
+    base <- (p$presets %||% list())$base %||% list()
+    if (is.null(base$color_titulo)) next
+    expect_false(
+      is.null(base$color_titulo_slide),
+      info = sprintf(
+        "el perfil '%s' declara color_titulo pero no color_titulo_slide: el titulo de sus laminas cae al default Pulso",
+        p$name
+      )
+    )
+  }
+})
+
+test_that("el perfil ACNUR pinta sus titulos con la paleta institucional", {
+  perfiles <- .ppt_style_profiles_payload()$style_profiles
+  acnur <- Filter(function(p) identical(p$name, "acnur_kobo_cruncher_plus"), perfiles)[[1]]
+  base <- acnur$presets$base
+
+  expect_identical(base$color_titulo_slide, .ACNUR_PPT_COLORS$text)
+  expect_identical(base$color_titulo, .ACNUR_PPT_COLORS$text)
+  expect_identical(base$color_titulo_seccion, .ACNUR_PPT_COLORS$blue)
+  expect_identical(base$color_subtitulo_portada, .ACNUR_PPT_COLORS$yellow)
+
+  # Ningun color del perfil puede ser de la paleta Pulso.
+  pulso <- c("#CA5651", "#081F5C")
+  colores <- unlist(base[grepl("^color_", names(base))], use.names = TRUE)
+  intrusos <- colores[toupper(colores) %in% toupper(pulso)]
+  expect_length(intrusos, 0L)
+})
