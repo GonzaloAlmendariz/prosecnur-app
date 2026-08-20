@@ -2779,6 +2779,18 @@
 .mon-profile-page.is-aulas-flow .aulas-foco-boton {
   appearance: none; background: none; border: 0; padding: 0; margin: 0;
   font: inherit; color: inherit; text-align: left; cursor: pointer; min-width: 0;
+  /* **`min-height: 0`, y es lo que de verdad engordaba la fila.**
+     El sistema le da a todo `<button>` una altura minima de 28 px —correcta para
+     un control que se pulsa con el dedo, equivocada para un texto de 11 px
+     dentro de una celda de tabla—. Medido: al convertir los nombres en botones,
+     las filas de las cinco listas pasaron de 24 a **37 px**, un 54 % mas altas,
+     y ningun test lo vio porque el texto, el color y las columnas seguian
+     exactamente igual.
+     (Antes culpe a `font: inherit`, que efectivamente resetea `line-height` a
+     `normal` —la abreviatura no lo hereda—, pero aqui el padre tambien es
+     `normal`, asi que no era eso. La medicion lo desmintio.) */
+  min-height: 0;
+  line-height: inherit;
 }
 .mon-profile-page.is-aulas-flow .aulas-foco-boton:hover {
   text-decoration: underline; text-underline-offset: 2px;
@@ -3463,7 +3475,12 @@
      x distintas —736, 727, 756 y 703— y los numeros dejaban de estar bajo su
      cabecera. Con `auto` no se notaba solo porque todas las filas decian la
      misma palabra. 92px es «antes del 21/08» a 11.5px sin recorte. */
-  display: grid; grid-template-columns: minmax(0, 1fr) repeat(var(--aulas-anticipacion-cifras, 3), 56px) 92px;
+  /* «Faltan» necesita 78 y no 56: lleva la cifra y, cuando la brecha está
+     cargada a un lado, de qué lado es —«73 · 53 f»—. Se lo quita al nombre, que
+     es `1fr` y tiene 922 px de sobra. */
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) repeat(calc(var(--aulas-anticipacion-cifras, 3) - 1), 56px) 78px 92px;
   gap: 8px; align-items: center; padding: 4px 6px;
   border-bottom: 1px solid var(--pulso-border); font-size: var(--aulas-sec);
   font-variant-numeric: tabular-nums;
@@ -3479,6 +3496,16 @@
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-nombre {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* «Faltan» lleva al lado de qué lado es, cuando la brecha está cargada.
+   **En la misma línea, no debajo**: apilado, las diez filas con nota medían 33
+   px contra 24 las demás y la lista quedaba dentada. Una lista cuyo alto de fila
+   depende de si un dato existe no se recorre con el ojo. */
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-faltan { white-space: nowrap; }
+.mon-profile-page.is-aulas-flow .aulas-anticipacion-faltan em {
+  font-style: normal; font-size: var(--aulas-min); color: var(--pulso-text-faint);
+  white-space: nowrap;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-pedir strong { font-size: 13px; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:last-child { white-space: nowrap; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-ya { color: var(--pulso-resultado-rechazo); font-weight: 650; }

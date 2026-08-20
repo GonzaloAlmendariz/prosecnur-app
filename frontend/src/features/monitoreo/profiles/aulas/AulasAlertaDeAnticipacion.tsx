@@ -45,6 +45,16 @@ function cuando(f: AlertaDeFacultad): string {
   return f.pedirAntesDe ? `antes del ${diaCorto(f.pedirAntesDe)}` : "hay margen";
 }
 
+/**
+ * Cuando lo que falta está tan cargado a un lado que hay que decirlo al pedir.
+ *
+ * **Dos tercios.** Por debajo de ahí los dos lados pesan parecido y nombrar uno
+ * mandaría a pedir sesgado; por encima, pedir aulas cualesquiera deja abierta la
+ * celda que falla. Medido sobre el corte: las ocho facultades con más brecha
+ * están cargadas a mujeres, hasta 53 contra 20.
+ */
+const CARGA_QUE_MANDA = 2 / 3;
+
 /** `0.235` → `24 %`. */
 const pctCorto = (n: number) => `${Math.round(n * 100)} %`;
 
@@ -202,7 +212,20 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
                 lado de las que hay que pedir para que el margen se vea, en vez de
                 aparecer como un número inflado sin explicación. */}
             <span>{f.aulasNecesarias ? fmt(f.aulasNecesarias) : "S/D"}</span>
-            <span>{fmt(f.faltan)}</span>
+            {/* Lo que falta Y DE QUÉ. Sumar los dos sexos escondía la mitad de
+                la instrucción: «pide 12 en Gestión» con 52 mujeres y 24 hombres
+                de brecha. El banco se elige por composición, así que el pedido
+                también. */}
+            <span className="aulas-anticipacion-faltan" title={
+              f.faltanPorSexo.length
+                ? f.faltanPorSexo.map((x) => `${fmt(x.faltan)} ${x.sexo}`).join(" · ")
+                : undefined
+            }>
+              {fmt(f.faltan)}
+              {f.faltanPorSexo.length > 1 && f.faltanPorSexo[0].faltan >= f.faltan * CARGA_QUE_MANDA ? (
+                <em> · {fmt(f.faltanPorSexo[0].faltan)} {f.faltanPorSexo[0].sexo.toLowerCase()}</em>
+              ) : null}
+            </span>
             {cuandos.size > 1 ? (
               <span className={f.urgencia === "hay margen" ? "" : "aulas-anticipacion-ya"}>
                 {cuando(f)}
