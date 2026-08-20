@@ -261,3 +261,44 @@ describe("las constantes vienen del operativo de 2025 y están declaradas", () =
     expect(TASA_DE_CAIDA).toBeCloseTo(40 / 170, 2);
   });
 });
+
+describe("lo que falta, y DE QUÉ", () => {
+  // La lista decía «pide 12 aulas en Gestión» y esa facultad está corta de 52
+  // mujeres y 24 hombres: dos tercios de lo que falta es de un lado. Doce aulas
+  // cualesquiera no cierran la celda que falla, y el banco existe justamente
+  // para elegir por composición.
+  const conCuotas = (mujeres: number, hombres: number) => facultad({
+    facultad: "Gestion",
+    dias: [dia("2026-08-11"), dia("2026-08-24")],
+    cuotas: [
+      { ...cuota(mujeres), sexo: "Mujer" },
+      { ...cuota(hombres), sexo: "Hombre" },
+    ],
+  });
+
+  it("desglosa la brecha por sexo y la ordena por tamaño", () => {
+    const [a] = alertaDeAnticipacion([conCuotas(52, 24)]);
+    expect(a.faltan).toBe(76);
+    expect(a.faltanPorSexo).toEqual([
+      { sexo: "Mujer", faltan: 52 },
+      { sexo: "Hombre", faltan: 24 },
+    ]);
+  });
+
+  it("el desglose suma exactamente lo que falta", () => {
+    // Si no sumara, la lista diría una cosa en la cifra y otra en su detalle.
+    const [a] = alertaDeAnticipacion([conCuotas(30, 17)]);
+    expect(a.faltanPorSexo.reduce((n, x) => n + x.faltan, 0)).toBe(a.faltan);
+  });
+
+  it("un sexo que ya cerró no aparece en el desglose", () => {
+    // «0 hombres» no es una instrucción: es ruido en una columna estrecha.
+    const [a] = alertaDeAnticipacion([conCuotas(40, 0)]);
+    expect(a.faltanPorSexo).toEqual([{ sexo: "Mujer", faltan: 40 }]);
+  });
+
+  it("sin brecha no hay desglose", () => {
+    const [a] = alertaDeAnticipacion([conCuotas(0, 0)]);
+    expect(a.faltanPorSexo).toEqual([]);
+  });
+});

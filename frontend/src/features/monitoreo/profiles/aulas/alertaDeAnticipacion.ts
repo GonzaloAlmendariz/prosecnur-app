@@ -79,6 +79,22 @@ export type AlertaDeFacultad = {
   facultad: string;
   /** Lo que seguiría faltando cuando se acabe la agenda, sumando los dos sexos. */
   faltan: number;
+  /**
+   * Y de qué es. **Sumar los dos sexos esconde la mitad de la instrucción.**
+   *
+   * La lista decía «pide 12 aulas en Gestión» y esa facultad está corta de 52
+   * mujeres y 24 hombres: dos tercios de lo que falta es de un lado. Doce aulas
+   * cualesquiera no cierran la celda que falla, y el banco existe justamente
+   * para elegir por composición —«necesitamos bastantes mujeres en determinada
+   * facultad, ¿qué extra me garantiza tantos hombres y tantas mujeres?»—.
+   *
+   * Medido sobre el corte: en las ocho facultades con más brecha falta más
+   * mujer que hombre, hasta 53 contra 20. No es una excepción, es la forma del
+   * estudio.
+   *
+   * Ordenado de mayor a menor: el primero es el que manda al pedir.
+   */
+  faltanPorSexo: Array<{ sexo: string; faltan: number }>;
   esperadoPorAula: number;
   /** Aulas que cubrirían esa brecha si todas se aplicaran. */
   aulasNecesarias: number;
@@ -134,6 +150,10 @@ export function alertaDeAnticipacion(
   return proyeccion
     .map((f) => {
       const faltan = f.cuotas.reduce((n, c) => n + c.faltanAlCerrarAgenda, 0);
+      const faltanPorSexo = f.cuotas
+        .filter((c) => c.faltanAlCerrarAgenda > 0)
+        .map((c) => ({ sexo: c.sexo, faltan: c.faltanAlCerrarAgenda }))
+        .sort((a, b) => b.faltan - a.faltan);
       const porAula = f.esperadoPorAula > 0 ? f.esperadoPorAula : 0;
       const aulasNecesarias = faltan > 0 && porAula > 0 ? Math.ceil(faltan / porAula) : 0;
       // Pedir exactamente las que faltan es pedir de menos: una de cada cuatro no
@@ -167,6 +187,7 @@ export function alertaDeAnticipacion(
       return {
         facultad: f.facultad,
         faltan,
+        faltanPorSexo,
         esperadoPorAula: porAula,
         aulasNecesarias,
         aulasAPedir,
