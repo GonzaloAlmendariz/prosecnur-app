@@ -4266,3 +4266,8 @@
   overflow: hidden; text-overflow: ellipsis;
 }
 .mon-profile-page.is-aulas-flow .aulas-alcance-pie { margin-top: 8px; }
+
+/* De quien son los validadores de la hoja. Va pegado a la tabla que los enseña. */
+.mon-profile-page.is-aulas-flow .aulas-control-validadores {
+  margin: 0 0 6px; font-size: var(--aulas-min);
+}

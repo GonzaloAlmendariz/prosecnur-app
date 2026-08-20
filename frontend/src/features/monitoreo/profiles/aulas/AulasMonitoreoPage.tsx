@@ -759,7 +759,11 @@ function renderAulasView(
               este mismo lenguaje: «210 filas de control». */}
           <span>{control.length ? contar(control.length, "fila de la hoja", "filas de la hoja") : "Sin datos"}</span>
         </div>
-        <AulasControlDelLibro filas={control} resumen={controlResumen} />
+        <AulasControlDelLibro
+          filas={control}
+          resumen={controlResumen}
+          criterio={(dashboard.criterio_validez ?? null) as never}
+        />
       </section>
       ) : null}
       {/* El precio de cerrar lo que no llegó. Va DESPUÉS de la tabla del libro
