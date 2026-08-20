@@ -4553,3 +4553,23 @@ sale de TODAS las superficies (control de coherencia de la radiografía,
 del dimensionamiento). El control de coherencia se muda a tests/QA
 (sigue siendo la verificación interna), pero la UI habla SOLO en tasas
 por facultad.
+
+### 2026-08-20: FASE A DEL PLAN 1b COMPLETA (E1-E6, ticks 1-6 de la serie)
+
+E1 5df8c658 curvas/tasas como datos sellables · E2 a734a8cb anotador
+condicional (EE = E×R×F, docente fuera con evidencia) + tasa_efectividad
+_aula · E3 0d17f3c8 tasas por facultad publicadas en el frame (un dueño)
+· fix included 0c24c72d · E4 3224a883 certificación por suma_esperadas
+con método declarado · E5 CICLO VERIFICADO Y GUARDADO: sello v2 completo
+(residuales k, tramos corregidos, tasas de aplicación), recálculo con
+tau por facultad → cuotas 2.500 proporcionales y **190 cupos exactos
+= tabla V5**, sorteo 190/190 exacto, 0 docentes repetidos, Σesperadas
+3.423, certificación suma_esperadas 15/15 filas — **14/15 certificadas,
+DERECHO 0,97× (353 vs 363, faltan 10)** · E6 guardián satisfecho:
+reasons=[], reconciliation ok, sample 2.500 — el encabezado vuelve a
+publicar cifras. Aprendizaje del ciclo: la verificación se hace contra
+el componente del ESCENARIO ACTIVO (universidad), no contra el de
+precisión-por-facultad (H2 otra vez; abortó bien sin guardar).
+DECISIÓN PARA GONZALO: Derecho 0,97× — ¿aula 17 (un clic en «¿un aula
+más?», flujo registrado) o se acepta con su cadena? SID vigente
+69b716b3, .pulso guardado con todo.
