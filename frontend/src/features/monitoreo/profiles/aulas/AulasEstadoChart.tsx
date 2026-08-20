@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
+import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_SEPARADOR_BARRA } from "../../coloresDeResultado";
 import { TRAMOS_DE_APLICACION, estadoDeAplicacion } from "./estadoDeAplicacion";
 
@@ -98,6 +99,8 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
         height={104}
         ariaLabel="Cursos-horario por status de aplicación"
         layout={{
+          // La escala de eje del perfil, no el default compartido de Plotly.
+          font: fuenteDeEjeAulas(),
           barmode: "stack",
           margin: { l: 8, r: 8, t: 30, b: 8 },
           xaxis: { visible: false, fixedrange: true },

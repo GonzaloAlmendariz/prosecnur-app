@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
+import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
 
@@ -112,6 +113,8 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
         height={compacto ? ALTO_DEL_GRAFICO.compacto : ALTO_DEL_GRAFICO.amplio}
         ariaLabel="Cursos-horario por nivel de cobertura de su meta"
         layout={{
+          // La escala de eje del perfil, no el default compartido de Plotly.
+          font: fuenteDeEjeAulas(),
           margin: { l: 110, r: 16, t: 8, b: 28 },
           xaxis: { title: { text: "cursos-horario" }, zeroline: false, fixedrange: true },
           yaxis: { automargin: true, fixedrange: true },
