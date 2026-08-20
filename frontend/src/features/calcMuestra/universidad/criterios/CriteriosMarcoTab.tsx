@@ -56,7 +56,6 @@ import { CriterioComposicionCard } from "./CriterioComposicionCard";
 import { PresetCanonicoButton } from "./PresetCanonicoButton";
 import type { PresetCanonicoPlan } from "./presetCanonicoModel";
 import { MinElegiblesCard, type FacultadMinRef } from "./MinElegiblesCard";
-import { FacultadesExcluidasCard } from "./FacultadesExcluidasCard";
 import { SaludCriteriosCard } from "./SaludCriteriosCard";
 import { setMinimoFacultad, setTasaAsistencia } from "./minElegiblesModel";
 import type { FacultadRef } from "./facultades";
@@ -515,18 +514,6 @@ export function CriteriosMarcoTab({
             </section>
           )}
 
-          {/* Excluir una facultad no es un criterio de alumno ni de aula: es una
-              decisión sobre el marco entero, así que vive fuera de los dos
-              bloques de criterios y se muestra siempre. Estaba dentro del
-              bloque de aula y no llegaba a pintarse nunca, porque la pestaña
-              que se usa monta esta vista con scope de alumno. */}
-          {showAlumno && (
-            <FacultadesExcluidasCard
-              config={config}
-              facultades={facRefs}
-              onPatch={patchAulasConfig}
-            />
-          )}
 
           {showAula && aula.length > 0 && (
             <section className="cmv2-crit-section" data-scope="aula">
