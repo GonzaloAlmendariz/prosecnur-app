@@ -407,7 +407,20 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     stratum = get(c("stratum", "estrato"), "global"),
     eligible_n = getn(c("eligible_n", "elegibles"), 0),
     enrolled_total = getn(c("enrolled_total", "matriculados", "total_matriculados"), 0),
-    expected_valid = getn(c("expected_valid", "meta_aula", "eligible_n"), 0),
+    # **`efectivas_esperadas` es la meta que el diseño calculó para ESTA aula**, y
+    # faltaba en esta lista. El cálculo de muestra la produce por curso-horario
+    # —elegibles x P(aplicada|tipo de docente) x rendimiento(tamaño), calibrado
+    # con el 2025 real— y en el marco 2026 va de 5,8 a 34,8 encuestas por aula.
+    # Sin el alias, el handoff caía al último recurso, `eligible_n`, y la meta
+    # pasaba a ser **el total de elegibles**: un aula de 24 donde el diseño
+    # espera 12,1 tenía que traer 24. De ahí salía «Llegaron a su meta: 0 de
+    # 194», que no medía el campo sino una vara imposible.
+    #
+    # El fallback a `eligible_n` se conserva para los planes que no traen el
+    # dato, pero **queda dicho que es un sustituto y no la meta**: convertir «no
+    # sé la meta» en «la meta son todos» es el mismo defecto que hace fallar a
+    # todo el mundo por definición.
+    expected_valid = getn(c("expected_valid", "efectivas_esperadas", "meta_aula", "eligible_n"), 0),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
     word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),
