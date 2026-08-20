@@ -30,6 +30,40 @@ function marcas(fila: Record<string, unknown>) {
   return html;
 }
 
+describe("AulasControlDelLibro · la tasa de efectividad", () => {
+  function titular(veredicto: Record<string, number>, aulas: number) {
+    return renderToStaticMarkup(
+      <AulasControlDelLibro
+        filas={[]}
+        resumen={{ aulas, grupos: [], veredicto } as never}
+      />,
+    );
+  }
+
+  it("divide entre las evaluadas, no entre las filas del libro", () => {
+    // 23 efectivas de 152 filas con 50 sin evaluar. Dividir entre 152 da 15 %,
+    // que no mide el campo: sube solo porque el equipo termine de llenar la
+    // hoja y baja en cuanto se añaden filas vacías. Entre las 102 evaluadas
+    // son 23 %.
+    const html = titular(
+      { efectivas: 23, cumple_una: 29, no_efectivas: 50, indeterminadas: 50, solo_asistentes: 24, solo_poblacion: 5 },
+      152,
+    );
+    expect(html).toContain("<strong>23</strong> efectivas de 102 evaluadas");
+    expect(html).toContain("23 %");
+    expect(html).not.toContain("15 %");
+  });
+
+  it("sin ninguna sin evaluar, el denominador vuelve a ser las filas y la palabra sobra", () => {
+    // El control: con `indeterminadas` en cero las dos fórmulas coinciden, así
+    // que este caso NO distingue cuál está implementada; está para fijar que la
+    // palabra «evaluadas» no se cuela cuando no hace falta decirla.
+    const html = titular({ efectivas: 5, cumple_una: 3, no_efectivas: 2, indeterminadas: 0 }, 10);
+    expect(html).toContain("<strong>5</strong> de 10 aulas efectivas");
+    expect(html).toContain("50 %");
+  });
+});
+
 describe("AulasControlDelLibro · veredicto por aula", () => {
   it("una celda ilegible queda INDETERMINADA, no «no válido»", () => {
     // El motor deja `cumple_total` en null ante «PENDIENTE» y el aula no cuenta

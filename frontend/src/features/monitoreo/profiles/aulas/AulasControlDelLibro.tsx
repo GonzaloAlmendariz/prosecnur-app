@@ -57,11 +57,27 @@ export type ResumenDeControl = {
  * «Sin evaluar» no se suma a las que fallaron: nadie las miró todavía.
  */
 function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
-  const pct = aulas > 0 ? Math.round((v.efectivas / aulas) * 100) : 0;
+  // **El denominador son las EVALUADAS, no las filas del libro.**
+  //
+  // Dividir entre las 152 filas con 50 sin evaluar dentro daba 15 %, y ese 15 %
+  // no mide el campo: sube solo porque el equipo termine de llenar la hoja
+  // —sin que ninguna aula haya mejorado— y baja en cuanto se añaden filas
+  // vacías. La tasa de efectividad tiene que moverse por lo que pasa en las
+  // aulas, así que las que nadie miró salen del denominador y se dicen aparte,
+  // que es lo que el desglose ya hacía debajo.
+  const sinEvaluar = v.indeterminadas ?? 0;
+  const evaluadas = Math.max(0, aulas - sinEvaluar);
+  const pct = evaluadas > 0 ? Math.round((v.efectivas / evaluadas) * 100) : 0;
   return (
     <div className="aulas-control-veredicto">
       <p className="aulas-control-titular">
-        <strong>{v.efectivas}</strong> de {aulas} aulas efectivas
+        {/* Dos redacciones, no una con la palabra intercalada: «102 aulas
+            evaluadas efectivas» encadena dos adjetivos y se lee torcido. */}
+        {sinEvaluar ? (
+          <><strong>{v.efectivas}</strong> efectivas de {evaluadas} evaluadas</>
+        ) : (
+          <><strong>{v.efectivas}</strong> de {evaluadas} aulas efectivas</>
+        )}
         <span> · {pct} %</span>
       </p>
       <p className="mon-profile-muted">
