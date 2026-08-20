@@ -265,3 +265,12 @@
   color: var(--pulso-text-soft);
   font-style: italic;
 }
+
+/* La glosa del estrato: define el lenguaje donde se usa (2026-08-20). */
+.cmv2-selection-map-glosa {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+  max-width: 78ch;
+}

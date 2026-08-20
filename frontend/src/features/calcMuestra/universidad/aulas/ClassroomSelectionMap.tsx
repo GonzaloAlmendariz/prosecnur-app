@@ -12,11 +12,15 @@ import {
 } from "./classroomSelectionMapModel";
 import "./classroomSelectionMap.css";
 
+import { EQUIVALENCIA_ETIQUETAS, GLOSA_ESTRATO } from "./equivalenciaEtiquetas";
+
+// El mapa solo distingue estos cuatro niveles; las etiquetas salen del
+// vocabulario canonico (equivalenciaEtiquetas.ts) — un vocabulario, un dueño.
 const EQUIVALENCE_LABELS = {
-  misma_celda: "Misma celda",
-  celda_equivalente: "Celda equivalente",
-  misma_facultad: "Misma facultad",
-  desconocido: "Sin equivalencia acreditada",
+  misma_celda: EQUIVALENCIA_ETIQUETAS.misma_celda,
+  celda_equivalente: EQUIVALENCIA_ETIQUETAS.celda_equivalente,
+  misma_facultad: EQUIVALENCIA_ETIQUETAS.misma_facultad,
+  desconocido: EQUIVALENCIA_ETIQUETAS.desconocido,
 } as const;
 
 function MapNodeButton({
@@ -141,6 +145,9 @@ export function ClassroomSelectionMapWorkspace({
             <span key={key} data-equivalence={key}><i aria-hidden="true" />{label}</span>
           ))}
         </div>
+        {/* La glosa que faltaba: «¿a qué te refieres con misma celda?» —
+            Gonzalo, 2026-08-20. El lenguaje se define donde se usa. */}
+        <p className="cmv2-selection-map-glosa">{GLOSA_ESTRATO}</p>
         {model.unlinkedReserveCount > 0 && (
           <p className="cmv2-selection-map-warning">
             {fmtInt(model.unlinkedReserveCount)} reemplazos no traen titular o slot enlazable; se muestran sin inventar la relación.

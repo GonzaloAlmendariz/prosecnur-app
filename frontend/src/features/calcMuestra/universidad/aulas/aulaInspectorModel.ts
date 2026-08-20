@@ -7,6 +7,7 @@
  * sharedCore (fmtInt/fmtDec/fmtPct) para no inventar convenciones.
  */
 import { fmtDec, fmtInt, fmtPct, safeNumber } from "../../sharedCore";
+import { equivalenciaEtiqueta } from "./equivalenciaEtiquetas";
 import { classroomRowText, rowValueForCandidates } from "../shared/format";
 import { canonicalClassroomOperationalCode } from "./classroomOperationalCode";
 
@@ -63,28 +64,12 @@ export type AulaInspectorModel = {
   repetidosText: string;
 };
 
-/**
- * Etiquetas en español de los niveles de equivalencia que reporta el motor
- * (equivalence_level / match_level). Mismo vocabulario que Reemplazos.
- */
-const EQUIVALENCE_LABELS: Record<string, string> = {
-  titular: "Titular",
-  misma_celda: "Misma celda",
-  celda_cercana: "Celda cercana",
-  misma_facultad: "Misma facultad",
-  mismo_dominio: "Mismo dominio",
-  mismo_programa: "Mismo programa",
-  cambia_programa: "Cambia programa",
-  cambia_carrera: "Cambia carrera",
-  cambia_nivel: "Cambia nivel",
-  baja_equivalencia: "Baja equivalencia",
-  sin_reserva: "Sin reemplazo viable",
-};
 
 export function aulaEquivalenceLabel(value: string) {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized) return DASH;
-  return EQUIVALENCE_LABELS[normalized] ?? normalized.replace(/_/g, " ");
+  // Vocabulario canonico compartido con Reemplazos y el mapa.
+  return equivalenciaEtiqueta(normalized, DASH);
 }
 
 function textOrDash(row: Record<string, unknown>, keys: string[]) {

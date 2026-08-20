@@ -1,4 +1,5 @@
 import { ArrowRight, RefreshCw, Route } from "lucide-react";
+import { equivalenciaEtiqueta } from "./equivalenciaEtiquetas";
 import type {
   CalcMuestraAulasReplacementSimulation,
   CalcMuestraAulasReplacementSuggestion,
@@ -49,21 +50,9 @@ function classroomSlotNumber(slotId: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 function classroomReplacementMatchLabel(value: string) {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  const labels: Record<string, string> = {
-    misma_celda: "Mantiene la celda",
-    celda_cercana: "Celda cercana",
-    misma_facultad: "Misma facultad",
-    mismo_dominio: "Mismo dominio",
-    mismo_programa: "Mismo programa",
-    cambia_programa: "Cambia programa",
-    cambia_carrera: "Cambia carrera",
-    cambia_nivel: "Cambia nivel",
-    baja_equivalencia: "Baja equivalencia",
-    sin_reserva: "Sin reemplazo viable",
-  };
-  const fallback = normalized.replace(/_/g, " ");
-  return labels[normalized] ?? (fallback || "equivalencia pendiente");
+  // Vocabulario canonico compartido (equivalenciaEtiquetas.ts): la jerga
+  // «celda» se glosa como estrato del diseño en un solo lugar.
+  return equivalenciaEtiqueta(value);
 }
 
 function classroomReplacementSlotTone(value: string, warning?: string) {
