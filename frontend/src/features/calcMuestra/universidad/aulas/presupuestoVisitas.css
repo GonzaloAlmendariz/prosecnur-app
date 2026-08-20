@@ -78,3 +78,6 @@
 .cmv2-presup-leyenda i[data-seg="exceso"] {
   background: color-mix(in srgb, var(--pulso-danger-fg) 55%, transparent);
 }
+
+/* V7: la tabla de tasas de aplicacion vive en el presupuesto (su casa). */
+.cmv2-presup-docentes { margin-top: 10px; max-width: 560px; }

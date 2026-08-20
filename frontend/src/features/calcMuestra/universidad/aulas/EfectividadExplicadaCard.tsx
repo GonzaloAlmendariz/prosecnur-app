@@ -113,25 +113,6 @@ export function EfectividadExplicadaCard({
       {fuente.tipo !== "tau_global" && (
       <div className="cmv2-efexp-ref">
         <table className="cmv2-efexp-tabla-ref">
-          <caption>Tasa de aplicación según el tipo de docente — {refTexto}</caption>
-          <thead>
-            <tr>
-              <th scope="col">Tipo de docente</th>
-              <th scope="col">Tasa de aplicación</th>
-              <th scope="col">Aulas en el plan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {m.porDocente.map((g) => (
-              <tr key={g.tasa}>
-                <th scope="row">{etiquetaDocente(g.etiqueta)}</th>
-                <td>{pct(g.tasa)}</td>
-                <td>{fmtInt(g.nAulas)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <table className="cmv2-efexp-tabla-ref">
           <caption>Tasa de efectividad según el tamaño del aula — {refTexto}</caption>
           <thead>
             <tr>
@@ -275,16 +256,6 @@ export function EfectividadExplicadaCard({
               </div>
             </li>
             <li>
-              <b>× {pct(radio.pAplicada)}</b>
-              <div>
-                <strong>tasa de aplicación de su tipo de docente</strong>
-                <span>
-                  su docente es {radio.docente}: en el {refTexto}, las aulas con ese tipo
-                  de docente registraron una tasa de aplicación del {pct(radio.pAplicada)}
-                </span>
-              </div>
-            </li>
-            <li>
               <b>× {pct(radio.rendimiento)}</b>
               <div>
                 <strong>tasa de efectividad de su tamaño</strong>
@@ -314,16 +285,24 @@ export function EfectividadExplicadaCard({
               <div>
                 <strong>efectivas esperadas — el valor de validez</strong>
                 <span>
-                  {fmtInt(radio.elegibles)} × {coma(radio.pAplicada, 2)} ×{" "}
-                  {coma(radio.rendimiento, 2)}
+                  {fmtInt(radio.elegibles)} × {coma(radio.rendimiento, 2)}
                   {ajusteActivo ? ` × ${coma(radio.factorFacultad, 2)}` : ""} ={" "}
                   {coma(radio.productoExacto, 2)}, que el motor guarda como{" "}
-                  {coma(radio.esperadas, 1)}. Con este número Monitoreo juzga esta aula en
-                  campo; cada curso-horario lleva el suyo.
+                  {coma(radio.esperadas, 1)}. Es la cuenta CONDICIONAL: lo que esta aula debe
+                  rendir si entra a campo — con este número Monitoreo la juzga; si se cae, su
+                  reemplazo se juzga contra el suyo propio.
                 </span>
               </div>
             </li>
           </ol>
+          {/* V7: el docente NO descuenta efectivas — es dato OPERATIVO: anticipa
+              si el aula entrara y cuanta cadena podria costar el cupo. */}
+          <p className="cmv2-efexp-operativo">
+            <b>Dato operativo</b>: su docente ({radio.docente}) tiene una tasa de aplicación
+            del {pct(radio.pAplicada)} — no descuenta las esperadas; anticipa el riesgo de que
+            el aula no entre y haya que activar su cadena de reemplazos. El presupuesto de
+            visitas de Selección usa esta tasa.
+          </p>
         </article>
       )}
 
@@ -381,13 +360,11 @@ export function EfectividadExplicadaCard({
       {mTitulares && (
         <p className="cmv2-efexp-pie">
           Control de coherencia: las {fmtInt((titulares ?? []).length)} cuentas de los
-          titulares suman <b>{fmtInt(Math.round(mTitulares.totalEsperadas))} esperadas</b>{" "}
-          sobre {fmtInt(mTitulares.totalElegibles)} elegibles sentados —{" "}
-          {pct(mTitulares.tasaGlobal)}, que se descompone en {pct(mTitulares.pAplicadaMedia)}{" "}
-          <small>(tasa media de aplicación)</small> × {pct(mTitulares.tauImplicito)}{" "}
-          <small>(tasa de efectividad condicional — el τ del dimensionamiento)</small>. La
-          brecha entre ambas tasas es el riesgo de que un aula no se pueda aplicar, y eso lo
-          recupera la cadena de reemplazos — por eso existe.
+          titulares suman <b>{fmtInt(Math.round(mTitulares.totalEsperadas))} efectivas
+          esperadas</b> sobre {fmtInt(mTitulares.totalElegibles)} elegibles en lista —{" "}
+          {pct(mTitulares.tasaGlobal)} de tasa media de efectividad. Es el mismo número que
+          certifica cada facultad en su tabla y el que Monitoreo consume aula por aula; las
+          tasas por facultad que lo componen viven en Cálculo → Cursos-horario requeridos.
         </p>
       )}
     </section>

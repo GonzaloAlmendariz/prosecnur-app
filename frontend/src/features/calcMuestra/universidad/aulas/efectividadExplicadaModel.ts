@@ -209,6 +209,8 @@ export function radiografiaAula(
           : role || "—";
   const factor = num(fila.factor_facultad) ?? 1;
   const kFac = num(fila.facultad_k);
+  // V7/plan 1b: la cuenta de efectivas es CONDICIONAL — E × R × F. La tasa de
+  // aplicación del docente (p) NO multiplica: viaja como dato operativo.
   return {
     curso: String(fila.course_name ?? "").trim() || String(fila.course_id ?? "").trim(),
     codigo: String(fila.course_id ?? "").trim(),
@@ -219,7 +221,7 @@ export function radiografiaAula(
     pAplicada: p,
     rendimiento: r,
     esperadas,
-    productoExacto: el * p * r * factor,
+    productoExacto: el * r * factor,
     factorFacultad: factor,
     facultadK: kFac != null ? Math.round(kFac) : null,
     docente: etiquetaDocente(String(fila.teacher_type ?? "")),
