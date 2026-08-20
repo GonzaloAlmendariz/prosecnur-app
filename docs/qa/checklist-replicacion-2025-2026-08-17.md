@@ -4134,3 +4134,13 @@ ficha, el paso 3 «Aulas que pasan los criterios» muestra 2025-2 = 12
 para A&D y 7 para ARQ — el marco 2025 final tenia 222 y 100; la
 referencia de ese paso parece venir de OTRA fuente (¿aulas aplicadas?).
 Verificar el mapping historico del paso antes de declarar defecto.
+
+### La nota de datos del paso 3 ERA defecto — y de la familia de los denominadores
+
+aulas_universo=NA en las 15 filas de la referencia 2025 hacia correr
+SIEMPRE el fallback a aulas_sorteadas: el paso 3 de la ficha («Aulas
+que pasan los criterios») comparaba el marco 2026 contra LO SORTEADO
+2025 — A&D 228 vs 12 «+216» cuando su marco final tenia 222. El propio
+comentario del codigo condenaba la comparacion pero dejaba el fallback.
+Fix: sin marco historico por facultad la columna dice «—», jamas un
+numero de otro paso. 41 PASS.
