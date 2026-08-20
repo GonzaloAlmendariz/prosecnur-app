@@ -777,6 +777,12 @@ export type MonitoreoAulasDashboard = {
    */
   tiempos?: unknown;
   /**
+   * Calidad de las respuestas de texto abierto. Como `tiempos`, llega siempre:
+   * sin instrumento viene con `disponible: false` y su motivo. Lo normaliza
+   * `textoAbierto()` en el feature.
+   */
+  texto_abierto?: unknown;
+  /**
    * El criterio de respuesta válida que declara el ESTUDIO, para poder
    * contrastarlo con las columnas VALIDADOR de la hoja del equipo. Son dos
    * sistemas distintos y la Base de control los ponía juntos sin decir cuál era

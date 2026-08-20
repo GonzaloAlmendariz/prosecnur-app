@@ -1889,6 +1889,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # de tiempo —el estudio de aulas de hoy no las trae— para que la vista
     # pueda decir que faltan en vez de no mostrar nada.
     tiempos = monitoreo_aulas_tiempos(responses, cfg, response_classroom),
+    # Calidad de las respuestas abiertas. Igual que `tiempos`, contesta aunque
+    # no haya nada que leer: este estudio no trae instrumento, asi que la vista
+    # dira que no se sabe cuales son sus preguntas abiertas.
+    texto_abierto = monitoreo_texto_abierto_payload(responses, cfg$instrumento_survey),
     control_calidad = monitoreo_aulas_control_con_facultad(
       control_publicado,
       plan %||% cfg$plan %||% list()

@@ -102,3 +102,141 @@ monitoreo_texto_orden_de_lectura <- function(respuestas) {
   if (!nrow(s)) return(s)
   s[order(!s$relleno, s$largo, -s$repeticiones), , drop = FALSE]
 }
+
+# Nombres de variable que son identificadores, no respuestas que leer. Se
+# excluyen del visualizador por dos motivos: no aportan calidad de contenido y
+# suelen traer datos personales —`Enumerator_name` y `telephone` de acnur_pdm
+# son exactamente eso—.
+#
+# **Se declara siempre cuales se excluyeron.** Un filtro por nombre puede
+# equivocarse —una pregunta «¿como se llama el programa?» casaria `name`— y ya
+# paso una vez con el filtro de identificadores del mazo, que se comio cinco
+# preguntas cerradas de 125 en silencio. Si se ve la lista, el error se corrige;
+# si se descarta callando, no.
+# Los patrones van anclados al nombre COMPLETO. Sin anclar, `^cod(e|igo)`
+# excluia `codigo_postal_why`, que es una pregunta de contenido: lo cazo el
+# propio test que escribi para comprobar que no habia falsos positivos.
+MONITOREO_TEXTO_IDENTIFICADOR <- paste(
+  "^(pulso_)?cod(e|igo)(_pulso)?$", "^enumerator(_name)?$",
+  "^encuestador(_nombre)?$", "^telephone$", "^telefono$", "^celular$",
+  "^dni$", "^email$", "^correo$", "^ump$",
+  sep = "|"
+)
+
+#' Que preguntas de un instrumento son de texto abierto
+#'
+#' La fuente es el instrumento y no la base: contar columnas de tipo caracter da
+#' codigos, GPS, fechas y selects. Medido —contra el instrumento, `acnur_acg`
+#' tiene 4 preguntas `text` y `acnur_pdm` 18; contando columnas caracter salian
+#' «~22» y «~14»—.
+#'
+#' **Sin instrumento no se adivina.** Una heuristica sobre la base marcaba como
+#' abiertas las coordenadas GPS y la fecha de Kobo.
+#'
+#' @param survey Hoja `survey` del instrumento, con `type` y `name`.
+#' @param columnas Nombres de columna de la base.
+#' @return Lista con `disponible`, `motivo`, `preguntas` y `excluidas`.
+monitoreo_texto_preguntas <- function(survey = NULL, columnas = character(0)) {
+  vacio <- function(motivo) list(
+    disponible = FALSE, motivo = motivo,
+    preguntas = list(), excluidas = list()
+  )
+  if (is.null(survey) || !NROW(survey)) {
+    return(vacio("Este estudio no trae instrumento, asi que no se sabe que preguntas son abiertas."))
+  }
+  col_tipo <- grep("^type$", names(survey), ignore.case = TRUE)[1]
+  col_nom <- grep("^name$", names(survey), ignore.case = TRUE)[1]
+  if (is.na(col_tipo) || is.na(col_nom)) {
+    return(vacio("El instrumento no declara tipo y nombre de sus preguntas."))
+  }
+  col_lab <- grep("^label", names(survey), ignore.case = TRUE)[1]
+  tipo <- trimws(as.character(survey[[col_tipo]]))
+  nombre <- as.character(survey[[col_nom]])
+  etiqueta <- if (is.na(col_lab)) nombre else as.character(survey[[col_lab]])
+  abiertas <- which(tipo == "text" & !is.na(nombre) & nzchar(nombre))
+  if (!length(abiertas)) {
+    return(vacio("El instrumento de este estudio no tiene ni una pregunta de texto abierto."))
+  }
+
+  # La columna puede venir con el prefijo del grupo (`D/D1_information_text`).
+  en_la_base <- function(n) {
+    hit <- columnas[columnas == n | endsWith(columnas, paste0("/", n))]
+    if (length(hit)) hit[1] else NA_character_
+  }
+
+  preguntas <- list()
+  excluidas <- list()
+  for (i in abiertas) {
+    col <- en_la_base(nombre[i])
+    fila <- list(
+      variable = nombre[i],
+      columna = col,
+      etiqueta = trimws(gsub("[[:space:]]+", " ", etiqueta[i] %||% nombre[i]))
+    )
+    if (grepl(MONITOREO_TEXTO_IDENTIFICADOR, nombre[i], ignore.case = TRUE)) {
+      fila$motivo <- "Es un identificador, no una respuesta que leer."
+      excluidas[[length(excluidas) + 1L]] <- fila
+    } else if (is.na(col)) {
+      fila$motivo <- "El instrumento la declara pero la base no trae su columna."
+      excluidas[[length(excluidas) + 1L]] <- fila
+    } else {
+      preguntas[[length(preguntas) + 1L]] <- fila
+    }
+  }
+  list(
+    disponible = length(preguntas) > 0L,
+    motivo = if (length(preguntas)) "" else
+      "Las preguntas abiertas del instrumento son identificadores o no estan en la base.",
+    preguntas = preguntas,
+    excluidas = excluidas
+  )
+}
+
+#' Bloque de texto abierto para el payload de un perfil de Monitoreo
+#'
+#' Contesta siempre, igual que el de tiempos: sin instrumento devuelve
+#' `disponible = FALSE` con el motivo, para que la vista lo diga en vez de
+#' desaparecer.
+#'
+#' Por cada pregunta viaja su **perfil** —lo que esa pregunta hace en conjunto—
+#' junto a las respuestas en orden de lectura. El perfil no es decoracion: es lo
+#' que permite saber si una señal significa algo ahi. Un 99 % de repeticion en
+#' el nombre del encuestador es lo esperable; el mismo 99 % en «¿por que?» no.
+#'
+#' @param por_pregunta Cuantas respuestas se mandan de cada pregunta.
+monitoreo_texto_abierto_payload <- function(responses = data.frame(),
+                                            survey = NULL,
+                                            por_pregunta = 60L) {
+  hallazgo <- monitoreo_texto_preguntas(survey, names(responses))
+  base <- list(
+    disponible = isTRUE(hallazgo$disponible),
+    motivo = hallazgo$motivo,
+    excluidas = hallazgo$excluidas,
+    preguntas = list()
+  )
+  if (!base$disponible) return(base)
+
+  base$preguntas <- lapply(hallazgo$preguntas, function(p) {
+    v <- responses[[p$columna]]
+    perfil <- monitoreo_texto_perfil(v, p$etiqueta)
+    orden <- monitoreo_texto_orden_de_lectura(v)
+    cuantas <- min(nrow(orden), por_pregunta)
+    list(
+      variable = p$variable,
+      etiqueta = p$etiqueta,
+      perfil = perfil,
+      # `mostradas` y `contestadas` viajan por separado a proposito: una lista
+      # recortada sin decir cuanto se recorto se lee como si fuera todo.
+      mostradas = cuantas,
+      respuestas = if (cuantas) lapply(seq_len(cuantas), function(i) list(
+        fila = orden$fila[i],
+        texto = orden$texto[i],
+        largo = orden$largo[i],
+        relleno = orden$relleno[i],
+        negativa = orden$negativa[i],
+        repeticiones = orden$repeticiones[i]
+      )) else list()
+    )
+  })
+  base
+}

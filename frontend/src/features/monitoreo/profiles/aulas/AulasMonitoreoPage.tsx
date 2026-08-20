@@ -54,6 +54,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
+import { AulasTextoAbierto } from "./AulasTextoAbierto";
 import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
@@ -801,6 +802,21 @@ function renderAulasView(
               <span>duración por respuesta y por aula</span>
             </div>
             <AulasTiemposDeRespuesta tiempos={dashboard.tiempos} />
+          </section>
+          {/* **La calidad de lo que se escribió a mano.** Capacidad que no
+              existía en ningún perfil de Monitoreo. Es un visualizador: ordena
+              por dónde empezar a leer y no esconde respuestas. Como el de
+              tiempos, se muestra aunque este estudio no traiga instrumento. */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Lo que se escribió a mano</h3>
+              <span>calidad de las respuestas abiertas</span>
+            </div>
+            <AulasTextoAbierto bloque={dashboard.texto_abierto} />
           </section>
         </div>
       );
