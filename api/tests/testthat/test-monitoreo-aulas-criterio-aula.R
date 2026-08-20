@@ -67,3 +67,39 @@ test_that("sin criterio declarado no hay contraste que hacer", {
   expect_false(r$declarado)
   expect_identical(r$comparadas, 0L)
 })
+
+test_that("el modo ESPERADO juzga cada aula contra lo que el diseño esperaba de ella", {
+  # La vara que pidio Gonzalo: «si en un aula no se llega a lo que se esperaba,
+  # lo logico es que se tenga que ir a otra aula para suplir aquello que falto».
+  # El diseño publica `efectivas_esperadas` por curso-horario y en el marco 2026
+  # va de 5,8 a 34,8: una proporcion igual para todas ignora esa variacion.
+  crit <- monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = 0.8)))
+  expect_identical(crit$modo, "esperado")
+  # Con meta 12.1 y alfa 0.8, la vara son 9.68 encuestas.
+  expect_true(monitoreo_aulas_veredicto_propio(list(sent_total = 10), crit, 12.1)$efectiva)
+  expect_false(monitoreo_aulas_veredicto_propio(list(sent_total = 9), crit, 12.1)$efectiva)
+})
+
+test_that("sin meta del diseño el modo esperado NO juzga, en vez de inventar una vara", {
+  # Es el caso de los planes que no vienen del calculo de muestra. Caer aqui a
+  # una proporcion cualquiera seria exactamente lo que este modo viene a quitar,
+  # y ademas repetiria el defecto de la meta = elegibles.
+  crit <- monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = 0.8)))
+  expect_true(is.na(monitoreo_aulas_veredicto_propio(list(sent_total = 30), crit, NA)$efectiva))
+  expect_true(is.na(monitoreo_aulas_veredicto_propio(list(sent_total = 30), crit, 0)$efectiva))
+})
+
+test_that("«80» y «0.8» son el mismo alfa, y uno invalido no declara criterio", {
+  m <- function(a) monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = a)))
+  expect_identical(m(80)$alfa, 0.8)
+  expect_identical(m(0.8)$alfa, 0.8)
+  expect_null(m(0))
+  expect_null(m(150))
+})
+
+test_that("un aula sin `sent_total` no se juzga en ningun modo", {
+  # No es que no llegue: es que no hay con que medirla.
+  crit <- monitoreo_aulas_criterio_aula(list(aula_valida = list(modo = "esperado", alfa = 0.8)))
+  expect_true(is.na(monitoreo_aulas_veredicto_propio(list(), crit, 12.1)$efectiva))
+})
+
