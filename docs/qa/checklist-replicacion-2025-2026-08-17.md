@@ -4218,3 +4218,11 @@ proximos candidatos al descubrir en el recorrido de superficies.
 El tooltip delegado de la casa con esperadas/logradas/diferencia y la
 nota de titulares vs aplicadas; las barras dejaron de ser aria-hidden
 (aria-label completo por facultad). Verificada en vivo.
+
+### M7 ENTREGADA (reevaluada): tooltip con la aritmetica viva del motor
+
+Marcar matriculados en el carril de elegibles mezclaba denominadores —
+descartado. En su lugar: cada carril de la distribucion muestra al
+hover sus cinco cuantiles Y la cuenta real del estrato («cuota 125 ÷
+(P25 21 × τ 0,53) → 12 aulas»). La formula por facultad, viva en
+pantalla. Verificada con hover real.
