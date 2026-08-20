@@ -4307,3 +4307,12 @@ los contenedores del modulo, con tabla contenedor→veredicto.
 Dos ajustes menores encolados (M10-lista): aviso de llaves al recipe +
 revisar la barra degrade. SIGUE parte 2: Marco / Calculo / Seleccion /
 Entrega.
+
+### REGLA NUEVA del barrido (Gonzalo): lo hallado SE ARREGLA en el mismo tick
+
+Textual: «si encuentras esas cosas, deberias arreglarlas — no solo
+revisarlas, sino ir solucionando lo que vayas encontrando». Aplicada de
+inmediato a los dos hallazgos de Consistencia (3697a480, verificados en
+vivo): el gauge warn dejo el degrade al marron #8a5000 y toma el ambar
+canonico (medido: sin rgb(138,80,0), con rgb(217,119,6)); los hallazgos
+media/baja llevan el recipe de la casa (filete ambar inset presente).
