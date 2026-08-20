@@ -405,7 +405,21 @@ if (ESCALA_2025) {
     lapply(1:3, function(k) base(sprintf("EXTRA G%d", k), "extra_reserve_pool",
                                  facs[[1]], 295 + k, est = "aplicada"))
   )
-  aplicadas_todas <- Filter(function(r) !identical(r$sample_status, "reemplazada"), plan)
+  # **El BANCO no sale a campo, asi que no tiene parte ni queda «aplicada».**
+  #
+  # Estaba dentro, y con ello las 73 reservas extra recibian parte de campo y
+  # `operational_status = "aplicada"`. Consecuencia medida en pantalla: el
+  # grafico «Status de aplicacion» ponia 64 del banco en «En cierre» y dejaba
+  # «En reserva» en CERO, con el propio panel diciendo «269 cursos-horario · 73
+  # del banco» dos centimetros mas arriba. Una reserva que nadie ha activado no
+  # esta aplicada: esta esperando.
+  #
+  # Es tambien la unica forma de que el tramo «En reserva» del grafico se vea
+  # alguna vez: con el banco entero declarado aplicado, esa rama no existia.
+  aplicadas_todas <- Filter(
+    function(r) !identical(r$sample_status, "reemplazada") &&
+      !identical(as.character(r$sample_role %||% ""), "extra_reserve_pool"),
+    plan)
   # AULAS AGENDADAS POR DELANTE: con fecha posterior al ultimo parte y SIN parte.
   #
   # Sin ellas la zona inferida del grafico de rendimiento —la que se calcula
