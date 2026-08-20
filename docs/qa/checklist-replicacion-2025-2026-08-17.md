@@ -4292,3 +4292,18 @@ empaquetado no sufre esto.
 
 PENDIENTE ABIERTO: (P2) barrido formal de pertenencia+estetica de todos
 los contenedores del modulo, con tabla contenedor→veredicto.
+
+### P2 · BARRIDO de contenedores — parte 1: DATOS (6 pestañas)
+
+| Pestaña | Contenedores | ¿Pertenecen? | ¿Esteticamente bien? |
+|---|---|---|---|
+| Estudio | identidad + mapa del recorrido | SI | SI (stepper + embudo con unidades declaradas) |
+| Fuentes | aviso + 2 bases + referencia historica | SI | SI (bindings 2026 al dia) |
+| Consistencia | coincidencia 100% + 3 stat-cards + hallazgos + ejemplos | SI | CASI: (a) el aviso «llaves repetidas» no pasa por el recipe warn nuevo (sin filete); (b) una barra degrade marron bajo el % no habla el idioma |
+| Variables | filtros de corte + 12+ tarjetas de rol | SI (chips M9 vivos) | SI tras M9 |
+| Explorador | tabla con filtros | SI | SI (P1 verificado) |
+| Historico | panel rico de referencia | SI (el modelo a seguir) | SI |
+
+Dos ajustes menores encolados (M10-lista): aviso de llaves al recipe +
+revisar la barra degrade. SIGUE parte 2: Marco / Calculo / Seleccion /
+Entrega.
