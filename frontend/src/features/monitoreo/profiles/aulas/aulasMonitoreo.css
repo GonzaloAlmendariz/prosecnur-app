@@ -2799,6 +2799,14 @@
   outline: 2px solid var(--pulso-primary, #002457); outline-offset: 2px; border-radius: 4px;
 }
 
+/* El matiz de las cadenas que juntaron sin cerrar: explica una contradiccion
+   aparente entre dos cifras de la misma pantalla, asi que va pegado a la lectura
+   y no al final del panel. */
+.mon-profile-page.is-aulas-flow .aulas-cadenas-matiz {
+  margin: 0 0 8px; font-size: var(--aulas-sec); color: var(--pulso-text-soft);
+  border-left: 2px solid var(--pulso-border-strong); padding-left: 8px;
+}
+
 /* LA FACULTAD EN FOCO, EN TODAS LAS LISTAS DE LA SECCION.
  *
  * `foco` es una dimensión declarada de la gramática de navegación y viaja en la
