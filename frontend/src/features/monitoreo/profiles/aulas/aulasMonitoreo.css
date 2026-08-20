@@ -4515,3 +4515,120 @@
   font-size: 11px;
   color: var(--pulso-text-muted);
 }
+
+/* ── Respuestas abiertas ─────────────────────────────────────────────────
+   Lista de lectura rapida: el texto manda y la señal va al margen, para poder
+   recorrer muchas respuestas sin que los rotulos compitan con lo que se lee. */
+.mon-profile-page.is-aulas-flow .aulas-abiertas {
+  display: grid;
+  gap: 8px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 260px;
+  padding: 4px 9px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  font-size: 11.5px;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button.is-activa {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 10%, var(--pulso-surface-2));
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-preguntas button small {
+  color: var(--pulso-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-perfil small {
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-lista {
+  display: grid;
+  gap: 3px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-lista li.is-relleno {
+  background: color-mix(in srgb, var(--pulso-warn) 9%, var(--pulso-surface-2));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-texto {
+  min-width: 0;
+  color: var(--pulso-text);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-meta {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-abiertas-meta em {
+  font-style: normal;
+  color: color-mix(in srgb, var(--pulso-warn) 70%, var(--pulso-text));
+}

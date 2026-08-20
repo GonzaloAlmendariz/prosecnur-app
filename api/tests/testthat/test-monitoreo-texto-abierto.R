@@ -73,3 +73,94 @@ test_that("una pregunta sin respuestas no rompe nada", {
   expect_equal(p$sin_contestar, 3L)
   expect_true(is.na(p$pct_relleno))
 })
+
+test_that("las preguntas abiertas salen del instrumento y no de adivinar la base", {
+  survey <- data.frame(
+    type = c("text", "select_one si_no", "text", "note", "calculate"),
+    name = c("RECP04_why", "P1", "obstacle_other", "aviso", "edad_calc"),
+    label = c("¿Qué aspecto?", "¿Recibió?", "¿Qué otro obstáculo?", "Lea", ""),
+    stringsAsFactors = FALSE
+  )
+  r <- monitoreo_texto_preguntas(survey, c("RECP04_why", "obstacle_other", "P1", "edad_calc"))
+  expect_true(r$disponible)
+  expect_equal(vapply(r$preguntas, function(p) p$variable, ""), c("RECP04_why", "obstacle_other"))
+})
+
+test_that("sin instrumento no se adivina: el motivo lo dice", {
+  # Una heuristica sobre la base marcaba como abiertas las coordenadas GPS y la
+  # fecha de Kobo, medido en acnur_acg.
+  r <- monitoreo_texto_preguntas(NULL, c("gps_inicio", "kobo_fecha_hora"))
+  expect_false(r$disponible)
+  expect_match(r$motivo, "no trae instrumento")
+  expect_length(r$preguntas, 0)
+})
+
+test_that("un instrumento sin preguntas abiertas se distingue de no tener instrumento", {
+  survey <- data.frame(type = c("select_one x", "integer"), name = c("a", "b"), stringsAsFactors = FALSE)
+  r <- monitoreo_texto_preguntas(survey, c("a", "b"))
+  expect_false(r$disponible)
+  expect_match(r$motivo, "ni una pregunta de texto abierto")
+})
+
+test_that("los identificadores se excluyen PERO quedan declarados, no desaparecen", {
+  # El filtro por nombre puede equivocarse; si se ve la lista, el error se
+  # corrige. Un filtro silencioso ya se comio cinco preguntas cerradas una vez.
+  survey <- data.frame(
+    type = rep("text", 4),
+    name = c("Enumerator_name", "telephone", "Pulso_code", "recomendation"),
+    label = c("Nombre", "Teléfono", "Código", "¿Alguna observación?"),
+    stringsAsFactors = FALSE
+  )
+  r <- monitoreo_texto_preguntas(survey, c("Enumerator_name", "telephone", "Pulso_code", "recomendation"))
+  expect_equal(vapply(r$preguntas, function(p) p$variable, ""), "recomendation")
+  expect_length(r$excluidas, 3)
+  expect_true(all(grepl("identificador", vapply(r$excluidas, function(p) p$motivo, ""))))
+})
+
+test_that("una pregunta de contenido no se excluye por llevar una palabra parecida", {
+  survey <- data.frame(
+    type = rep("text", 2),
+    name = c("nombre_del_barrio", "codigo_postal_why"),
+    label = c("¿Cómo se llama el barrio?", "¿Por qué?"),
+    stringsAsFactors = FALSE
+  )
+  r <- monitoreo_texto_preguntas(survey, c("nombre_del_barrio", "codigo_postal_why"))
+  expect_equal(length(r$preguntas), 2)
+})
+
+test_that("la columna se encuentra aunque venga con el prefijo de su grupo", {
+  survey <- data.frame(type = "text", name = "D1_information_text", label = "¿Dónde?", stringsAsFactors = FALSE)
+  r <- monitoreo_texto_preguntas(survey, c("otra", "D/D1_information_text"))
+  expect_equal(r$preguntas[[1]]$columna, "D/D1_information_text")
+})
+
+test_that("una pregunta declarada que la base no trae se declara con SU motivo", {
+  # Caso real: las tres `srv_*_why` de acnur_pdm viven en el repeat y no estan
+  # en la base principal. No es lo mismo que ser un identificador.
+  survey <- data.frame(type = "text", name = "srv_claridad_why", label = "¿Por qué?", stringsAsFactors = FALSE)
+  r <- monitoreo_texto_preguntas(survey, c("otra_cosa"))
+  expect_false(r$disponible)
+  expect_length(r$excluidas, 1)
+  expect_match(r$excluidas[[1]]$motivo, "la base no trae su columna")
+})
+
+test_that("el payload declara cuantas respuestas muestra de cuantas hay", {
+  # Una lista recortada sin decir cuanto se recorto se lee como si fuera todo.
+  survey <- data.frame(type = "text", name = "p", label = "¿Por qué?", stringsAsFactors = FALSE)
+  respuestas <- data.frame(p = paste("respuesta", 1:40), stringsAsFactors = FALSE)
+  p <- monitoreo_texto_abierto_payload(respuestas, survey, por_pregunta = 10L)
+  expect_true(p$disponible)
+  expect_equal(p$preguntas[[1]]$mostradas, 10L)
+  expect_equal(p$preguntas[[1]]$perfil$contestadas, 40L)
+  expect_length(p$preguntas[[1]]$respuestas, 10L)
+})
+
+test_that("el dashboard de aulas publica el bloque y dice que no hay instrumento", {
+  d <- monitoreo_aulas_dashboard(
+    list(list(classroom_id = "CH 1", operational_code = "CH 1", eligible_n = 30)),
+    data.frame(sexo = c("1", "2")), list()
+  )
+  expect_false(is.null(d$texto_abierto))
+  expect_false(d$texto_abierto$disponible)
+  expect_match(d$texto_abierto$motivo, "no trae instrumento")
+})

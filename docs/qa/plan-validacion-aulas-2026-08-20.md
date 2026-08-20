@@ -168,8 +168,24 @@ extensible a todos los monitoreos.
     relleno** (los 103 «.») y **10.4 % de negativas**.
   - **No filtra nada**: `monitoreo_texto_orden_de_lectura()` ordena por dónde
     empezar y devuelve todas las respuestas. Es un visualizador, no un juez.
-- **T14** — Vista de lectura: leer muchas respuestas rápido, agrupadas por
-  señal. **Es un visualizador, no un diagnóstico automático.**
+- **T14 ☑ (2026-08-20, 44 tests R + 5 TS)** — «Lo que se escribió a mano», panel
+  en Validación con selector de pregunta, el perfil de esa pregunta y sus
+  respuestas en orden de lectura. **No esconde ninguna respuesta** y declara
+  cuántas muestra de cuántas hay.
+  - **Las preguntas salen del instrumento, no de adivinar la base**: sin
+    instrumento el bloque dice justo eso. Una heurística sobre la base marcaba
+    como abiertas las coordenadas GPS y la fecha de Kobo.
+  - **Los identificadores se excluyen pero quedan declarados** con su motivo
+    —en `acnur_pdm`: `Enumerator_name`, `telephone`, `Pulso_code`, más tres
+    `srv_*_why` que viven en el repeat y no están en la base—. El filtro por
+    nombre puede equivocarse: **el propio test lo cazó excluyendo
+    `codigo_postal_why`**, y por eso los patrones van anclados al nombre
+    completo.
+  - **Verificado por los dos extremos, no en la misma pantalla**: el motor da
+    `disponible: false` con su motivo sobre el fixture de aulas, el normalizador
+    TS tiene test con ese motivo, y el gate visual pasa con el panel montado.
+    La rama **con** datos se razonó contra `acnur_pdm` (12 preguntas, 6
+    excluidas) y **no está vista en pantalla**: en aulas no hay instrumento.
 - **T15** — Por aplicador y por aula: quién concentra las respuestas malas.
 - **T16** — Marcar casos para invalidar, con su trazabilidad.
 - **T17** — Pestaña propia en Validación y contrato para que otros perfiles la
