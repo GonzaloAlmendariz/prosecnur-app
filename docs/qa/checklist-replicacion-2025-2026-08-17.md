@@ -4212,3 +4212,9 @@ de la casa, respeta prefers-reduced-motion) en vez de teletransportarse.
 Verificado en vivo (paso 1→7: 12 filas, 26 animaciones). Con M1-M5
 entregadas, la cola de la vara de mejora continua se realimenta:
 proximos candidatos al descubrir en el recorrido de superficies.
+
+### M6 ENTREGADA: tooltip + voz en las micro-barras de la seleccion comparada
+
+El tooltip delegado de la casa con esperadas/logradas/diferencia y la
+nota de titulares vs aplicadas; las barras dejaron de ser aria-hidden
+(aria-label completo por facultad). Verificada en vivo.
