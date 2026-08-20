@@ -4271,3 +4271,24 @@ mensaje: (a) el EXPLORADOR de Datos tira «failed to fetch» — reproducir
 y reparar; (b) BARRIDO formal de pertenencia+estetica de TODOS los
 contenedores del modulo (su pregunta: «no se si has validado que todos
 esten donde deberian y no esten rotos»).
+
+### M9 COMPLETA + el «failed to fetch» del Explorador diagnosticado y contenido
+
+**M9 verificada en vivo**: el ciclo cerro (mapeo_resuelto publicado —
+base.faculty NOMBREFAC, catalogo.teacher_type TIPODOCENTE — cadena
+P25-197 re-verificada: 197 exactos, 0 repetidos, certificacion 15/15,
+guardado) y la pestaña Variables muestra los chips «El motor esta
+usando DESCNIVEL — Confirmarla» exactamente en los roles sin confirmar.
+La superficie ya no miente y la decision sigue siendo del usuario.
+
+**Explorador (P1) — NO estaba roto**: el «failed to fetch» era el Vite
+de dev muerto bajo la ventana (muere en silencio con las suspensiones;
+el log termina limpio). Verificado con la pila sana: el Explorador
+carga 137.919 filas con filtros sin error. Mitigacion: guardian
+vite_guard.sh en el scratchpad que revive el 5191 si muere (chequeo
+cada 30s). Nota para Gonzalo: si la app queda «congelada» con errores
+de red, es el dev server — recargar tras revivirlo; el Electron
+empaquetado no sufre esto.
+
+PENDIENTE ABIERTO: (P2) barrido formal de pertenencia+estetica de todos
+los contenedores del modulo, con tabla contenedor→veredicto.
