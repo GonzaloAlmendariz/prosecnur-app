@@ -31,15 +31,36 @@ describe("porQueEsaMeta", () => {
     expect(r).toMatchObject({ elegibles: 24, pAplicada: 0.73, rendimiento: 0.69, meta: 12.1 });
     expect(r.variosDocentes).toBe(false);
 
-    // **El caso que distingue leer de recalcular.** Arriba los factores dan
-    // 12,09 y la meta declarada es 12,1: recalcular acertaba por redondeo y el
-    // aserto no probaba nada. Aquí el productor declara 11 sobre unos factores
-    // que darían 12,1 —un tope, otro redondeo, una corrección suya—: la meta
-    // que manda es la que viene, porque ellos son los dueños de ese número.
-    const distinta = porQueEsaMeta({
+    // **Cuando los factores NO reproducen la meta, no se explica.**
+    //
+    // Aquí el productor declara 11 sobre unos factores que darían 12,1. Antes
+    // esto devolvía el desglose con meta 11, o sea una frase que no cuadra con
+    // su propio número. La fórmula del esperado la escriben ellos y ya cambió
+    // una vez —el factor de facultad—, así que perseguirla desde aquí garantiza
+    // volver a quedarse atrás: se comprueba y, si no cuadra, se calla.
+    expect(porQueEsaMeta({
       eligible_n: 24, p_aplicada_ref: 0.73, rendimiento_ref: 0.69, expected_valid: 11,
+    })).toBeNull();
+  });
+
+  it("el factor de facultad entra en la comprobación", () => {
+    // Desde el 2026-08-20 la meta lleva un cuarto factor —«no todas las
+    // facultades tienen la misma naturaleza»— y con él cuadran 191 de las 197
+    // titulares del marco 2026; sin él, sólo 62. Sin contarlo, el desglose
+    // dejaría de explicar 135 aulas.
+    const conFactor = porQueEsaMeta({
+      eligible_n: 24, p_aplicada_ref: 0.73, rendimiento_ref: 0.69,
+      factor_facultad: 0.81, facultad_k: 26, expected_valid: 9.8,
+      efectividad_fuente: "historico", efectividad_periodo: "2025",
     })!;
-    expect(distinta.meta).toBe(11);
+    expect(conFactor.factorFacultad).toBe(0.81);
+    expect(conFactor.facultadK).toBe(26);
+    expect(conFactor.fuente).toBe("historico");
+
+    // El control: esa misma meta SIN el factor no cuadra, así que no se explica.
+    expect(porQueEsaMeta({
+      eligible_n: 24, p_aplicada_ref: 0.73, rendimiento_ref: 0.69, expected_valid: 9.8,
+    })).toBeNull();
   });
 
   it("un aula con dos docentes lo dice: la tasa es la del más restrictivo", () => {

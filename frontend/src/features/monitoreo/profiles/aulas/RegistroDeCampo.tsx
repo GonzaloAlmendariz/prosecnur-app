@@ -475,12 +475,25 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
                     <p className="registro-campo-meta">
                       Esta aula espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
                       {pq.elegibles} elegibles × {p(pq.pAplicada)} de que se aplique ×{" "}
-                      {p(pq.rendimiento)} de rendimiento.
+                      {p(pq.rendimiento)} de rendimiento
+                      {/* El cuarto factor sólo cuando lo hay: en las facultades
+                          sin base suficiente rige la tasa general y decir
+                          «× 100 %» sería ruido. */}
+                      {pq.factorFacultad !== null && Math.abs(pq.factorFacultad - 1) > 0.001 ? (
+                        <>
+                          {" "}× {p(pq.factorFacultad)} de su facultad
+                          {pq.facultadK ? ` (${pq.facultadK} aulas de referencia)` : ""}
+                        </>
+                      ) : null}
+                      .
                       {pq.variosDocentes ? (
                         <>
                           {" "}Tiene {pq.docentes.length} docentes, así que se usa la
                           tasa del más restrictivo.
                         </>
+                      ) : null}
+                      {pq.fuente && pq.periodo ? (
+                        <> Calibrado con el {pq.fuente} {pq.periodo}.</>
                       ) : null}
                     </p>
                   );

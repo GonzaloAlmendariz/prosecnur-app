@@ -480,6 +480,17 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     p_aplicada_ref = getn(c("p_aplicada_ref"), NA_real_),
     rendimiento_ref = getn(c("rendimiento_ref"), NA_real_),
     teacher_type = get(c("teacher_type", "tipo_docente"), ""),
+    # **El cuarto factor: la facultad.** Gonzalo pidio que el esperado dejara de
+    # asumir «que todas las facultades tienen la misma naturaleza», asi que desde
+    # 2026-08-20 la meta lleva ademas el factor de su facultad, medido del
+    # historico y aplicado **solo donde la referencia tiene base suficiente**:
+    # 135 de las 197 titulares del marco 2026 lo llevan y las otras 62 rigen por
+    # la tasa general. `facultad_k` dice cuantas aulas sostienen ese factor.
+    factor_facultad = getn(c("factor_facultad"), NA_real_),
+    facultad_k = getn(c("facultad_k"), NA_real_),
+    # De donde sale la calibracion, para no tener que asumirla.
+    efectividad_fuente = get(c("efectividad_fuente"), ""),
+    efectividad_periodo = get(c("efectividad_periodo"), ""),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
     word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),
