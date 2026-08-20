@@ -4165,8 +4165,16 @@
   display: grid; gap: 3px;
   border-bottom: 1px solid var(--pulso-border);
 }
-.mon-profile-page.is-aulas-flow .aulas-falta-facultades li {
-  display: grid; grid-template-columns: 168px minmax(0, 1fr) 34px 118px;
+/* La MISMA rejilla que `.aulas-alcance-lista`: son dos listas de facultades con
+   el mismo papel en paneles vecinos, y con columnas distintas se leian como dos
+   objetos que no tienen nada que ver.
+   La columna de la barra mide lo que mide la barra. Con `1fr` reservaba 946 px
+   para dibujar 220 y los otros 700 quedaban de hueco entre la barra y su cifra:
+   aire sin dueño, que es rotura de composicion y no respiro. */
+.mon-profile-page.is-aulas-flow .aulas-falta-facultades li,
+.mon-profile-page.is-aulas-flow .aulas-alcance-lista li {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 240px) 44px minmax(0, 1fr);
   align-items: center; gap: 8px; font-size: var(--aulas-sec);
   white-space: nowrap;
 }
@@ -4176,7 +4184,7 @@
 /* Acotada: a ancho completo la barra cruzaba media pantalla para comparar seis
    valores que caben en un palmo, y el ojo tenia que viajar hasta la cifra. */
 .mon-profile-page.is-aulas-flow .aulas-falta-barra {
-  height: 8px; max-width: 240px; border-radius: 4px;
+  height: 8px; border-radius: 4px;
   background: var(--pulso-surface-2); overflow: hidden;
 }
 .mon-profile-page.is-aulas-flow .aulas-falta-barra > span {
@@ -4227,10 +4235,7 @@
 .mon-profile-page.is-aulas-flow .aulas-alcance-lista {
   list-style: none; margin: 0; padding: 0; display: grid; gap: 3px;
 }
-.mon-profile-page.is-aulas-flow .aulas-alcance-lista li {
-  display: grid; grid-template-columns: 168px minmax(0, 1fr) 44px 168px;
-  align-items: center; gap: 8px; font-size: var(--aulas-sec); white-space: nowrap;
-}
+
 .mon-profile-page.is-aulas-flow .aulas-alcance-fac {
   overflow: hidden; text-overflow: ellipsis; color: var(--pulso-text);
 }
@@ -4238,7 +4243,7 @@
    es que cubre, corta es que se queda lejos. No mide el deficit —una barra que
    crece con lo que falta se lee como progreso al reves—. */
 .mon-profile-page.is-aulas-flow .aulas-alcance-barra {
-  height: 8px; max-width: 220px; border-radius: 4px;
+  height: 8px; border-radius: 4px;
   background: var(--pulso-surface-2); overflow: hidden;
 }
 .mon-profile-page.is-aulas-flow .aulas-alcance-barra > span {
