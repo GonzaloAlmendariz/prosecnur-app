@@ -185,3 +185,26 @@ exacto con la prevalencia VBG real del 2025 (0,303). El eslabón 1 pasa a
 - [x] deff real del 2025 → V4: 1,08–1,12 estratificado; el 2,0 asumido es conservador.
 - [x] Denominador exacto de τ=0,53: 3.303/6.232, k=194 (verificado en V1b).
 - [ ] Certificación por Σesperadas (eslabón 8) — decisión de Gonzalo.
+
+## V5 — el dimensionamiento re-verificado con la calibración v2 (pregunta de Gonzalo)
+
+«¿Este nuevo cálculo ya fue tomado en cuenta para ver si siguen siendo
+~190 aulas?» Respuesta medida (2026-08-20):
+
+- Con la **tasa condicional v2 por facultad** (la vara del τ, sin doble
+  conteo del riesgo de caída que la cadena cubre): el pedido sería
+  **190 aulas** (vigente: 197; rango normal 170–210 ✓). Movimientos:
+  EGC 25→30 (+5), EGL 23→26 (+3); bajan 1–3 las facultades chicas con
+  tasas condicionales altas (AE 11→9, A&D 17→14, CyA 10→8, DER 18→16 —
+  la tasa condicional de Derecho es ALTA, 0,568: su problema es de
+  visitas/aplicación, no de cupos).
+- Con la tasa **incluyendo el riesgo de aplicación** (vara del
+  presupuesto de VISITAS, no de cupos): 228 intentos esperados — casi
+  idéntico al plan de visitas vigente (229): el presupuesto actual ya
+  refleja la realidad v2.
+
+La decisión 1 (propuesta v2) tiene por tanto DOS alcances posibles:
+(1a) recalibrar solo los esperados (sin re-sorteo; las 197 quedan);
+(1b) recalibrar esperados Y re-dimensionar a 190 (re-sorteo completo,
+reparto nuevo con EGC/EGL arriba). Ambos dentro del rango; 1b es el
+diseño plenamente coherente, 1a el de menor disrupción operativa.
