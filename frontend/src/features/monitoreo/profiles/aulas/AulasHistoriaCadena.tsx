@@ -129,6 +129,20 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
     );
   }
 
+  // **Las cadenas que juntaron lo que pide el hueco sin que ninguna aula sola
+  // llegara a la suya.** Es el caso que hace que la tabla se contradiga a la
+  // vista: enseña «válidas 17» al lado de «meta 15» —la del titular, sumando la
+  // cadena— y el resumen dice «sin cerrar».
+  //
+  // Las dos cosas son ciertas y la regla es deliberada: una cadena cierra cuando
+  // UN aula alcanza SU propia meta, porque el resto del perfil calcula la brecha
+  // por aula. Sumar los eslabones diría que cerró mientras `brechas` y el KPI
+  // siguen contándola. Pero dos fuentes del mismo hecho que no coinciden tienen
+  // que decirlo, o quien lee elige una y desconfía de la otra.
+  const juntaronSinCerrar = historias.filter(
+    (h) => h.desenlace === "abierta" && h.meta > 0 && h.validas >= h.meta,
+  ).length;
+
   return (
     <div className="aulas-cadenas">
       <p className="aulas-cadenas-lectura">
@@ -147,6 +161,13 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           ? ` · ${sinRespuestaAlguna} de las abiertas no han recibido ni una respuesta`
           : ""}
       </p>
+      {juntaronSinCerrar ? (
+        <p className="aulas-cadenas-matiz">
+          En <strong>{juntaronSinCerrar}</strong> de las abiertas la cadena ya juntó
+          lo que pide el hueco, pero <strong>ninguna aula sola</strong> alcanzó su propia meta:
+          por eso siguen contando como brecha en el resto del perfil.
+        </p>
+      ) : null}
       {/* Agrupadas por desenlace. Eran 24 cajas idénticas en 1 554 px de alto:
           las tres que cerraron —la respuesta a «cuál fue la cadena que nos
           permitió llegar a la meta»— quedaban enterradas entre veintiuna que se
