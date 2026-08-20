@@ -1885,6 +1885,9 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       if (is.null(crit)) return(NULL)
       monitoreo_aulas_contraste_veredicto(control_publicado, crit)
     })(),
+    # Cual de los filtros declarados descarta que. Hasta ahora solo viajaba el
+    # total de validas, asi que un filtro que no descarta nada era invisible.
+    cadena_filtros = monitoreo_aulas_cadena_filtros(responses, cfg),
     # Cuanto duraron las respuestas. Contesta aunque la base no traiga marcas
     # de tiempo —el estudio de aulas de hoy no las trae— para que la vista
     # pueda decir que faltan en vez de no mostrar nada.

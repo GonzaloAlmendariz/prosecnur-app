@@ -232,8 +232,20 @@ extensible a todos los monitoreos.
 
 - **T18** — El criterio de aula válida juzga de verdad: veredicto propio contra
   el de la hoja, con el contraste ya escrito.
-- **T19** — La cadena de filtros por aula: cuántas respuestas caen en cada
-  filtro declarado. Hoy sólo hay el total.
+- **T19 ☑ (2026-08-20, 23 tests R + 5 TS)** — «Qué descarta cada filtro», en
+  Validación. Antes sólo viajaba el total de válidas, y con un total no se sabe
+  si el criterio trabaja.
+  - **Invariante verificado con el dato real**: la cadena deja **2 220** y el
+    KPI del perfil dice VÁLIDAS **2 220**. El fixture no guarda las respuestas,
+    así que esto sólo se podía comprobar en pantalla, y se comprobó.
+  - **Y desmintió mi propia hipótesis.** Escribí que los dos filtros
+    —`sexo = F/M`, `p01 = 1/2/3`— aceptaban todos los valores posibles y que los
+    dos darían «caen 0». Medido: **`sexo` no descarta ni una, pero `p01`
+    descarta 1 480 de 3 700 — el 40 %**. Leer la config no es medir los datos.
+  - **Dos cuentas con nombres distintos**: `caen` en cascada (depende del orden)
+    y `caen_solo_aqui` exclusivas (no depende). El panel sólo muestra la segunda
+    cuando difiere de la primera: repetir el mismo número con dos rótulos
+    confunde en vez de informar.
 - **T20** — Ficha de aula: un aula, todo lo suyo —lo esperado, lo conseguido, el
   parte, los tiempos, las abiertas—.
 - **T21** — «Si no llegó a lo suyo, ¿de dónde se saca?»: enlazar el déficit del
