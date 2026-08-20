@@ -22,7 +22,7 @@ export function AulasRendimientoPorFacultad({
   partes: ReadonlyArray<MonitoreoRow>;
   plan: ReadonlyArray<MonitoreoRow>;
   /** Por qué unidad de esfuerzo se agrupa: facultad, aplicador o franja. */
-  clave?: "faculty" | "applied_by" | "franja";
+  clave?: "faculty" | "applied_by" | "franja" | "dia_semana";
   /** Cómo se llama esa unidad en la cabecera de la lista. */
   unidad?: string;
   /**

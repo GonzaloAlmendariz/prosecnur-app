@@ -110,6 +110,32 @@ export function franjaDeAplicacion(valor: unknown): string {
   return "Fuera de franja";
 }
 
+/** Los días, en orden de semana y no de rendimiento, para etiquetar. */
+const DIAS_DE_LA_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+/**
+ * El día de la semana en que se aplicó un aula.
+ *
+ * **Por qué es una unidad de esfuerzo y no una curiosidad.** El pronóstico de
+ * cierre proyecta «al ritmo observado de N aulas por día de campo», o sea que
+ * trata todos los días como iguales. Si un martes rinde el doble que un viernes,
+ * dos agendas con el mismo número de aulas dan resultados distintos y el
+ * pronóstico se equivoca en la dirección que marque la composición de la agenda.
+ * Hay panel para la hora del día —«Franja horaria»— y no lo había para el día
+ * de la semana, que es la dimensión sobre la que el equipo SÍ puede decidir al
+ * agendar.
+ *
+ * En UTC, como el resto del perfil: con hora local, una aplicación de las 00:30
+ * cae en el día anterior en cualquier zona al oeste de Greenwich.
+ */
+export function diaDeSemanaDeAplicacion(valor: unknown): string {
+  const m = texto(valor).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return "Sin fecha";
+  const d = new Date(`${m[0]}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "Sin fecha";
+  return DIAS_DE_LA_SEMANA[d.getUTCDay()] ?? "Sin fecha";
+}
+
 /**
  * @param partes filas del parte de campo YA con su facultad —las que devuelve
  *   `parteDeCampo`—, para no repetir aquí la unión por `operational_code` y
@@ -122,7 +148,7 @@ export function franjaDeAplicacion(valor: unknown): string {
 export function rendimientoPorFacultad(
   partes: ReadonlyArray<MonitoreoRow>,
   plan: ReadonlyArray<MonitoreoRow> = [],
-  clave: "faculty" | "applied_by" | "franja" = "faculty",
+  clave: "faculty" | "applied_by" | "franja" | "dia_semana" = "faculty",
 ): RendimientoDeFacultad[] {
   const elegiblesPorCodigo = new Map<string, number>();
   for (const fila of plan) {
@@ -138,7 +164,9 @@ export function rendimientoPorFacultad(
       // fecha y hora concatenadas en un solo campo («2026-08-11 10:00»).
       // Buscando sólo `applied_time` salían las 210 aulas en «Sin hora».
       ? franjaDeAplicacion(fila.applied_at ?? fila.applied_time)
-      : texto(fila[clave]) || (clave === "applied_by" ? "Sin aplicador" : "Sin facultad");
+      : clave === "dia_semana"
+        ? diaDeSemanaDeAplicacion(fila.applied_at ?? fila.applied_date)
+        : texto(fila[clave]) || (clave === "applied_by" ? "Sin aplicador" : "Sin facultad");
     const efectivas = numero(fila.effective_surveys);
     const asistentes = numero(fila.observed_students);
     // Un parte sin efectivas NI asistentes no es un aula que rindió cero: es un
