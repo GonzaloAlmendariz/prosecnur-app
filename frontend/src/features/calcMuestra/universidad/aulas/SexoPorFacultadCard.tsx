@@ -53,6 +53,9 @@ export function SexoPorFacultadCard({
               <th scope="col">Titulares</th>
               <th scope="col">Su cuota pide</th>
               <th scope="col">Sus aulas ofrecen</th>
+              <th scope="col" className="cmv2-sexo-th-barras">
+                % mujeres: <i data-serie="pide" /> pide · <i data-serie="ofrece" /> ofrece
+              </th>
               <th scope="col">Diferencia</th>
             </tr>
           </thead>
@@ -63,6 +66,16 @@ export function SexoPorFacultadCard({
                 <td>{fmtInt(f.aulas_titulares)}</td>
                 <td>{pct(f.marco_prop_mujeres)}</td>
                 <td>{pct(f.titulares_prop_mujeres)}</td>
+                <td className="cmv2-sexo-celda-barras">
+                  {/* Las dos proporciones a escala comun 0-100: la brecha se VE
+                      sin leer numeros (VARA 4: mas visual, mas intuitivo). */}
+                  <span className="cmv2-sexo-track" data-serie="pide">
+                    <span style={{ width: `${Math.min(100, Math.max(0, (f.marco_prop_mujeres ?? 0) * 100))}%` }} />
+                  </span>
+                  <span className="cmv2-sexo-track" data-serie="ofrece">
+                    <span style={{ width: `${Math.min(100, Math.max(0, (f.titulares_prop_mujeres ?? 0) * 100))}%` }} />
+                  </span>
+                </td>
                 <td>
                   {f.brecha_pp == null
                     ? "—"

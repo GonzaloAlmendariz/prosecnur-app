@@ -1953,3 +1953,49 @@
   color: var(--pulso-text-soft);
   max-width: 62ch;
 }
+
+/* Sexo por facultad: barras pareadas a escala comun (VARA 4, 2026-08-20).
+   Mismo lenguaje de micro-tracks de la casa; solo tokens. */
+.cmv2-sexo-celda-barras { min-width: 140px; vertical-align: middle; }
+
+.cmv2-sexo-track {
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-sexo-track + .cmv2-sexo-track { margin-top: 3px; }
+
+.cmv2-sexo-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+.cmv2-sexo-track[data-serie="pide"] > span {
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
+}
+
+.cmv2-sexo-track[data-serie="ofrece"] > span {
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+/* La leyenda vive en el encabezado de la columna, sin fila aparte. */
+.cmv2-sexo-th-barras i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin: 0 2px;
+  vertical-align: baseline;
+}
+
+.cmv2-sexo-th-barras i[data-serie="pide"] {
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
+}
+
+.cmv2-sexo-th-barras i[data-serie="ofrece"] {
+  background: var(--module-accent, var(--pulso-primary));
+}
