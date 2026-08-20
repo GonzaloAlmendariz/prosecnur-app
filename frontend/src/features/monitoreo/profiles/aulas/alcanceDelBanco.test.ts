@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { alcanceDelBanco, tasaDeRespuestaObservada } from "./alcanceDelBanco";
+import { alcanceDelBanco, faltaTrasLaAgenda, tasaDeRespuestaObservada } from "./alcanceDelBanco";
 
 const aula = (sent: number, elig: number) => ({ sent_total: sent, eligible_n: elig });
 
@@ -55,6 +55,25 @@ describe("alcanceDelBanco", () => {
     expect(r.deficit).toBe(50);
   });
 
+  it("no dice que alcanza si alguna facultad se queda corta, aunque el total sobre", () => {
+    // **El defecto que esto fija, y estaba en mi propio panel.** El veredicto
+    // salía de comparar totales, así que decía «el banco alcanza» sobre un
+    // corte donde 14 facultades se quedaban cortas y faltaban 363 encuestas: el
+    // titular usaba justo la cuenta optimista que el pie desautoriza.
+    //
+    // Aquí: el banco rinde 200 en total y falta 150 en total —sobra—, pero
+    // Letras no tiene banco y le faltan 50.
+    const r = alcanceDelBanco(
+      control,
+      [{ faculty: "Derecho", elegibles: 400 }, { faculty: "Letras", elegibles: 0 }],
+      new Map([["Derecho", 100], ["Letras", 50]]),
+      10,
+    )!;
+    expect(r.rinde).toBeGreaterThanOrEqual(r.falta);
+    expect(r.deficit).toBe(50);
+    expect(r.veredicto).toBe("no alcanza");
+  });
+
   it("el veredicto se decide en el extremo desfavorable de la banda", () => {
     // Con dispersión, «alcanza» exige que hasta el extremo bajo cubra la falta.
     const dispersas = [aula(2, 10), aula(8, 10), aula(5, 10), aula(9, 10), aula(1, 10)];
@@ -81,3 +100,26 @@ describe("alcanceDelBanco", () => {
     expect(alcanceDelBanco([], [{ faculty: "A", elegibles: 10 }], new Map(), 5)).toBeNull();
   });
 });
+
+describe("faltaTrasLaAgenda", () => {
+  it("cuenta lo que faltará al acabarse la agenda, no lo que falta hoy", () => {
+    // **El defecto que esto fija, y era mío.** El panel usaba `target −
+    // observed`, o sea lo que falta HOY, y el banco se abre DESPUÉS de agotar
+    // las aulas comprometidas. Medido en el corte real: 1 558 hoy contra 1 192
+    // al acabarse la agenda —366 encuestas que ya vienen—, suficiente para que
+    // el panel declare «no alcanza» sobre un banco que sí cubre.
+    const falta = faltaTrasLaAgenda([
+      { facultad: "Letras", cuotas: [{ faltanAlCerrarAgenda: 40 }, { faltanAlCerrarAgenda: 23 }] },
+      { facultad: "Derecho", cuotas: [{ faltanAlCerrarAgenda: 0 }, { faltanAlCerrarAgenda: 0 }] },
+    ]);
+    expect(falta.get("Letras")).toBe(63);
+    // Una facultad que cierra con lo agendado no entra: no hay nada que pedirle
+    // al banco. Con el denominador viejo entraba con toda su cuota pendiente.
+    expect(falta.has("Derecho")).toBe(false);
+  });
+
+  it("una facultad sin nombre no crea una entrada", () => {
+    expect(faltaTrasLaAgenda([{ facultad: "  ", cuotas: [{ faltanAlCerrarAgenda: 9 }] }]).size).toBe(0);
+  });
+});
+
