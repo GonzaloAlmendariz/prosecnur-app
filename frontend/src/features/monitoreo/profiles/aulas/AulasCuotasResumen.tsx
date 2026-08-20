@@ -39,13 +39,22 @@ function Barra({ corte }: { corte: CorteDeCuota }) {
   );
 }
 
-export type FocoDeCuota = { tipo: "facultad" | "sexo"; valor: string } | null;
+/**
+ * La entidad enfocada dentro de la sección.
+ *
+ * `facultad` y `sexo` acotan lo que se ve; **`aula` no acota nada: abre la ficha
+ * de ese curso-horario**. Comparten parámetro porque la gramática declara `foco`
+ * para la entidad seleccionada y no hay una sexta dimensión que inventar, y el
+ * prefijo evita la ambigüedad de un valor suelto. Los consumidores que sólo
+ * miran `facultad` siguen ignorando el resto, que es como estaba escrito.
+ */
+export type FocoDeCuota = { tipo: "facultad" | "sexo" | "aula"; valor: string } | null;
 
-/** Serializa el foco para la URL: `facultad:Derecho`, `sexo:F`. */
+/** Serializa el foco para la URL: `facultad:Derecho`, `sexo:F`, `aula:CH 31`. */
 export function focoDesdeTexto(bruto: string | null): FocoDeCuota {
   const [tipo, ...resto] = (bruto ?? "").split(":");
   const valor = resto.join(":").trim();
-  if (!valor || (tipo !== "facultad" && tipo !== "sexo")) return null;
+  if (!valor || (tipo !== "facultad" && tipo !== "sexo" && tipo !== "aula")) return null;
   return { tipo, valor };
 }
 
