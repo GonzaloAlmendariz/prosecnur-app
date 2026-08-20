@@ -16,6 +16,7 @@ import {
   Search,
   Send,
   Settings2,
+  ShieldCheck,
   Sigma,
   Table2,
   Target,
@@ -36,6 +37,7 @@ export type ClassroomLabTab =
   | "metodo"
   | "laboratorio"
   | "seleccion"
+  | "solidez"
   | "perfil"
   | "reemplazos"
   | "aulas-relato"
@@ -123,6 +125,9 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestanaAula("metodo", "Comparar métodos", "Elegir la opción más representativa", Settings2),
     pestanaAula("laboratorio", "Simulación", "Estabilidad y repetidos", BarChart3),
     pestanaAula("seleccion", "Cursos-horario titulares", "Unidades que se intentan primero", Table2),
+    // Particion de titulares (Gonzalo, 2026-08-20): lo operativo se queda alla;
+    // el porque (efectividad, margen, solapes, ajuste al marco) vive aqui.
+    pestanaAula("solidez", "Solidez de la selección", "Por qué estas aulas: efectividad, margen y solapes", ShieldCheck),
     pestanaAula("perfil", "Perfil de la muestra", "De qué está hecha, facultad por facultad", PieChart),
     pestanaAula("reemplazos", "Reemplazos por curso-horario", "Rutas Rn.1, Rn.2...", RefreshCw),
     // ADR 0067: el sustento narrado — la corrida persistida contada escena por

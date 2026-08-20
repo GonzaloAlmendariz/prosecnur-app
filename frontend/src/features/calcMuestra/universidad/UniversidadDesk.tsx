@@ -61,6 +61,7 @@ import {
   AulasObjetivoTab,
   AulasReemplazosTab,
   AulasSeleccionTab,
+  AulasSolidezTab,
   AulasPerfilTab,
   AulasSimulacionTab,
   buildClassroomLabModel,
@@ -709,18 +710,24 @@ export function UniversidadDesk({
             )}
             {activeLabTab === "seleccion" && (
               <AulasSeleccionTab
-                workspace={syncedWorkspace}
                 model={labModel}
                 busy={busy}
                 onSelectMethod={onSeleccionarAulasConAfijacion}
                 onSimulateReplacements={onSimularReemplazos}
                 onNavigate={onNavigate}
                 certeza={aulasState?.certeza ?? null}
-                margenFilas={margenFilas}
-                sexoBalance={sexoBalance}
                 certificacion={certificacionFacultad}
                 onAgregarAula={onAgregarAulaFacultad}
                 onAjustarAula={onAjustarAulaFacultad}
+                referencia={referenciaAsistencia}
+              />
+            )}
+            {activeLabTab === "solidez" && (
+              <AulasSolidezTab
+                workspace={syncedWorkspace}
+                model={labModel}
+                margenFilas={margenFilas}
+                sexoBalance={sexoBalance}
                 fichas={fichasFacultad}
                 periodoAnterior={referenciaCriterios?.periodo ?? ""}
                 referencia={referenciaAsistencia}
