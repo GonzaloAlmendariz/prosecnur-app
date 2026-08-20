@@ -20,7 +20,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
   /** Estados que el motor no supo clasificar: se declaran, no se tragan. */
   desconocidasMotor?: number;
 }) {
-  const { estados, desconocidas, total, sinSalirACampo } = useMemo(
+  const { estados, desconocidas, total, sinSalirACampo, enJuego } = useMemo(
     () => {
       // El reparto del MOTOR primero: la vista lo sumaba sobre `course_status`,
       // que viaja recortado a 500 filas de 2 615, y el recorte no es una muestra
@@ -40,10 +40,27 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
             sinSalirACampo: estados
               .filter((e) => e.clave === "pendiente" || e.clave === "lista")
               .reduce((n, e) => n + e.aulas, 0),
+            // **El denominador de esa frase no es el total.**
+            //
+            // «5 de 269 cursos-horario todavía no salen a campo» se lee como que
+            // los otros 264 sí salieron, y 70 de esos 269 son reservas del banco
+            // que NO van a salir salvo que caiga su titular. El numerador ya las
+            // excluía —sólo suma `pendiente` y `lista`— y el denominador las
+            // metía: la mitad de la fracción contaba una cosa y la otra mitad,
+            // otra. Las que están en juego son el total menos las dormidas.
+            enJuego: estados
+              .filter((e) => e.clave !== "en_reserva")
+              .reduce((n, e) => n + e.aulas, 0),
           };
         }
       }
-      return estadoDeAplicacion(filas);
+      const propio = estadoDeAplicacion(filas);
+      return {
+        ...propio,
+        enJuego: propio.estados
+          .filter((e) => e.clave !== "en_reserva")
+          .reduce((n, e) => n + e.aulas, 0),
+      };
     },
     [filas, resumen, desconocidasMotor],
   );
@@ -98,8 +115,14 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
           // El pie de ESTE gráfico habla de su propio eje. Decía «no han
           // recibido ni una respuesta» y contaba agendamiento: 14 aquí contra
           // los 48 que el panel de cobertura mostraba un dedo más abajo.
-          ? `${sinSalirACampo} de ${total} cursos-horario todavía no salen a campo.`
-          : `Los ${total} cursos-horario ya recibieron respuestas.`}
+          ? `${sinSalirACampo} de ${enJuego} cursos-horario en juego todavía no salen a campo.`
+          : `Los ${enJuego} cursos-horario en juego ya salieron.`}
+        {/* Y las dormidas se nombran en vez de desaparecer de la frase: si el
+            lector ve 269 en la cabecera y 199 aquí, la diferencia tiene que
+            estar dicha. */}
+        {total > enJuego
+          ? ` Las otras ${total - enJuego} son reservas que esperan en el banco.`
+          : ""}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}
         {desconocidas
