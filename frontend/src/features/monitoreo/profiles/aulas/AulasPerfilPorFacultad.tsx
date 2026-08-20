@@ -63,7 +63,13 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
           <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-facultad-nombre"
               enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
-              {f.facultad}
+              {/* En su propio elemento para poder elipsarlo: como texto suelto
+                  dentro del grid genera una caja anónima, y `text-overflow` no
+                  se aplica a una caja anónima. Medido: «Ciencias y Artes de la
+                  Comunicación» pedía 227 px en una celda de 190 y los 37 de más
+                  se salían de la caja sin puntos suspensivos. El nombre entero
+                  sigue en el `title` del botón. */}
+              <span className="aulas-facultad-rotulo">{f.facultad}</span>
               {/* Con una sola aula la tasa es un caso, no una tendencia: se
                   dice, en vez de dejar que se lea como perfil de la facultad. */}
               {/* Con espacio: el nombre y su cuenta salian pegados —«Gestion14
