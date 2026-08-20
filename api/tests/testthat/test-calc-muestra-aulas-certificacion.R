@@ -134,3 +134,56 @@ test_that("la certificación prefiere la τ del PROPIO diseño sobre la referenc
   out2 <- calc_muestra_aulas_adjuntar_certificacion(.cert_seleccion(), .cert_estudio(), .cert_referencia())
   expect_identical(out2$certificacion_facultad$tasa_fuente, "referencia")
 })
+
+# ── Plan 1b/E4: el metodo canonico suma las efectivas esperadas por aula ─────
+
+.mk_sel_e4 <- function(con_esperadas = TRUE) {
+  sel_df <- data.frame(
+    classroom_id = c("A", "B"),
+    sample_role = "titular",
+    wave = "M1",
+    faculty = "DERECHO",
+    eligible_n = c(20, 40),
+    stringsAsFactors = FALSE
+  )
+  if (con_esperadas) sel_df$efectivas_esperadas <- c(13.8, 20.0)
+  list(selection = sel_df)
+}
+
+.mk_estudio_e4 <- function() {
+  list(componentes = list(list(
+    actor_id = "estudiantes_facultad",
+    resultado = list(aulas_por_estrato = list(list(
+      estrato = "DERECHO", cuota = 30, tau = 0.53
+    )))
+  )))
+}
+
+test_that("E4: con esperadas por aula la certificacion SUMA y declara el metodo", {
+  sel <- calc_muestra_aulas_adjuntar_certificacion(.mk_sel_e4(TRUE), estudio = .mk_estudio_e4())
+  fila <- sel$certificacion_facultad$filas[[1]]
+  expect_identical(fila$metodo, "suma_esperadas")
+  # 13.8 + 20.0 = 33.8 -> 34; cuota 30 -> certificada.
+  expect_equal(fila$efectivas_esperadas, 34)
+  expect_identical(fila$estado, "certificada")
+  expect_match(fila$aviso, "aula por aula")
+  # La tasa de la fila es la EFECTIVA derivada (33.8/60), no la plana.
+  expect_equal(fila$tasa, round(33.8 / 60, 4))
+})
+
+test_that("E4 CONTROL: sin la columna, cae a tasa plana DECLARADA (retro-compat)", {
+  sel <- calc_muestra_aulas_adjuntar_certificacion(.mk_sel_e4(FALSE), estudio = .mk_estudio_e4())
+  fila <- sel$certificacion_facultad$filas[[1]]
+  expect_identical(fila$metodo, "tasa_plana")
+  # 60 x 0.53 = 31.8 -> 32.
+  expect_equal(fila$efectivas_esperadas, 32)
+  expect_match(fila$aviso, "tasa de rendimiento")
+})
+
+test_that("E4: una facultad con esperados PARCIALES no mezcla varas (cae a plana)", {
+  base <- .mk_sel_e4(TRUE)
+  base$selection$efectivas_esperadas[2] <- NA_real_
+  sel <- calc_muestra_aulas_adjuntar_certificacion(base, estudio = .mk_estudio_e4())
+  expect_identical(sel$certificacion_facultad$filas[[1]]$metodo, "tasa_plana")
+})
+
