@@ -4369,3 +4369,28 @@
   overflow: hidden; text-overflow: ellipsis;
 }
 .mon-profile-page.is-aulas-flow .aulas-equipos-pie { margin-top: 8px; }
+
+/* El parte contra la plataforma. */
+.mon-profile-page.is-aulas-flow .aulas-cruce-alarma {
+  display: flex; align-items: center; gap: 6px; margin: 0 0 4px;
+  font-size: var(--aulas-txt); font-weight: var(--pulso-weight-semibold, 600);
+  color: var(--pulso-resultado-rechazo);
+}
+.mon-profile-page.is-aulas-flow .aulas-cruce-lista {
+  list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px;
+}
+.mon-profile-page.is-aulas-flow .aulas-cruce-lista li {
+  display: grid; grid-template-columns: 96px 52px minmax(0, 1fr);
+  align-items: baseline; gap: 8px; font-size: var(--aulas-sec); white-space: nowrap;
+}
+.mon-profile-page.is-aulas-flow .aulas-cruce-cod {
+  font-variant-numeric: tabular-nums; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-cruce-n {
+  text-align: right; font-variant-numeric: tabular-nums;
+  color: var(--pulso-resultado-rechazo);
+}
+.mon-profile-page.is-aulas-flow .aulas-cruce-por {
+  color: var(--pulso-text-faint); font-size: var(--aulas-min);
+  overflow: hidden; text-overflow: ellipsis;
+}
