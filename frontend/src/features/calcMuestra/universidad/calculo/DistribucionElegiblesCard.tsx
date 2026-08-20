@@ -3,7 +3,7 @@
  *
  * El gráfico didáctico que faltaba en Cálculo: cada facultad como un carril
  * min–max con su banda P25–P75 y la marca del P25 — el divisor real del
- * dimensionamiento (cuota ÷ (P25 × τ)). Ordenado por P25 ascendente para que
+ * dimensionamiento (cuota ÷ (P25 × tasa de la facultad)). Ordenado por P25 ascendente para que
  * la historia se lea sola: las facultades de aulas chicas arriba (necesitan
  * más aulas por alumno de cuota), las de aulas grandes abajo.
  */
@@ -27,7 +27,7 @@ export function DistribucionElegiblesCard({
 }: {
   aulaFrame: FilaAula[] | null;
   /** aulas_por_estrato del componente activo: habilita la aritmética viva
-   *  del tooltip (cuota ÷ (P25 × τ) → aulas). Opcional: sin él, el tooltip
+   *  del tooltip (cuota ÷ (P25 × tasa) → titulares). Opcional: sin él, el tooltip
    *  muestra solo la distribución. */
   estratos?: EstratoDimension[] | null;
 }) {

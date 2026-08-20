@@ -279,12 +279,13 @@ export function CertezaCoberturaPanel({
               <Info size={12} aria-hidden="true" /> Cada facultad se simuló{" "}
               {fmtInt(vista.certeza.corridas_solicitadas)} veces por candidato, sorteando con el
               mismo método que la selección real y contando estudiantes distintos (dos aulas que
-              comparten alumnos no suman dos veces). El rendimiento τ de cada facultad se aplica
-              antes de comparar contra la cuota.
+              comparten alumnos no suman dos veces). La tasa de efectividad de cada facultad se
+              aplica antes de comparar contra la cuota.
             </p>
             <p>
-              Lo que esto <strong>no</strong> mide: la incertidumbre del propio τ. Acá entra como
-              valor conocido; su intervalo lo publica la referencia histórica de asistencia.
+              Lo que esto <strong>no</strong> mide: la incertidumbre de la propia tasa de
+              efectividad. Acá entra como valor conocido; su base (k) y su derivación se declaran
+              en la tarjeta de la tasa por facultad, arriba.
             </p>
             {vista.hayCotaSuperior && (
               <p>
