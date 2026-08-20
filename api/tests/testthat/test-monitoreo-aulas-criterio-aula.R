@@ -103,3 +103,20 @@ test_that("un aula sin `sent_total` no se juzga en ningun modo", {
   expect_true(is.na(monitoreo_aulas_veredicto_propio(list(), crit, 12.1)$efectiva))
 })
 
+
+test_that("el criterio declarado PERSISTE en la config normalizada", {
+  # El normalizador es la whitelist de la config: lo que no nombra, no persiste.
+  # Ya se comio a `valid_filters` una vez, y una superficie para declarar el
+  # criterio con el campo cayendose al guardar seria peor que no tenerla.
+  cfg <- monitoreo_aulas_normalize_config(list(
+    aula_valida = list(modo = "esperado", alfa = 80)
+  ))
+  expect_identical(cfg$aula_valida$modo, "esperado")
+  expect_identical(cfg$aula_valida$alfa, 0.8)
+
+  # Y el control: una declaracion invalida no se guarda a medias.
+  vacia <- monitoreo_aulas_normalize_config(list(aula_valida = list(modo = "esperado", alfa = 0)))
+  expect_null(vacia$aula_valida)
+  # Sin declarar, sigue sin haber criterio: la app no se inventa una vara.
+  expect_null(monitoreo_aulas_normalize_config(list())$aula_valida)
+})

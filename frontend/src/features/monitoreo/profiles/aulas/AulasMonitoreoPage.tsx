@@ -50,6 +50,7 @@ import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, type ResumenDeControl } from "./AulasControlDelLibro";
+import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasLoQueFalta } from "./AulasLoQueFalta";
 import { AulasFiltrosDeEfectiva, type FiltroDeEfectiva } from "./AulasFiltrosDeEfectiva";
 import { AulasFuentesDelEstudio, type ReciboDelLibro } from "./AulasFuentesDelEstudio";
@@ -497,6 +498,13 @@ function renderAulasView(
    * definen a una encuesta efectiva».
    */
   criterioDeEfectiva: ReactNode = null,
+  /**
+   * La declaración de qué es un aula válida, ya construida.
+   *
+   * Se pasa hecha —como `criterioDeEfectiva`— porque esta función no ve el
+   * estado ni sabe guardar, y el control necesita las dos cosas.
+   */
+  criterioDeAula: ReactNode = null,
 ) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -759,6 +767,10 @@ function renderAulasView(
               este mismo lenguaje: «210 filas de control». */}
           <span>{control.length ? contar(control.length, "fila de la hoja", "filas de la hoja") : "Sin datos"}</span>
         </div>
+        {/* La vara, junto al veredicto que produce. Declararla en una pantalla
+            de ajustes la dejaría lejos de su resultado, que es lo que hacía que
+            nadie supiera cuál era. */}
+        {criterioDeAula}
         <AulasControlDelLibro
           filas={control}
           resumen={controlResumen}
@@ -1679,6 +1691,18 @@ export default function AulasMonitoreoPage() {
   );
   const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
+  // Cuántas aulas traen META DEL DISEÑO, que es lo que hace juzgable el
+  // criterio. Se cuenta contra `eligible_n`: cuando el handoff no encontró
+  // `efectivas_esperadas` cayó al fallback y la «meta» es el total de
+  // elegibles, o sea que no hay meta de verdad aunque el campo venga lleno.
+  const metasDelDiseno = useMemo(() => {
+    const filas = (dashboard?.agenda ?? []) as Array<Record<string, unknown>>;
+    return filas.filter((f) => {
+      const meta = Number(f.expected_valid ?? 0);
+      const elegibles = Number(f.eligible_n ?? 0);
+      return Number.isFinite(meta) && meta > 0 && meta !== elegibles;
+    }).length;
+  }, [dashboard]);
   const imported = aulasPlanImported(aulasConfig);
   const sourceTotal = state?.sources?.length ?? 0;
   const activeSources = (state?.sources ?? []).filter((source) => source.enabled).length;
@@ -1830,6 +1854,26 @@ export default function AulasMonitoreoPage() {
       setGuardandoCriterio(false);
     }
   }, [filtrosEfectiva, state, loadView, seccionActiva]);
+
+  /**
+   * Declarar qué es un aula válida en este estudio.
+   *
+   * Mismo camino que el criterio de respuesta válida —la config de aulas y
+   * después un refresco con el scope de VALIDACIÓN—, porque el veredicto que
+   * cambia viaja ahí: sin eso el panel seguiría enseñando el reparto anterior y
+   * el botón parecería no hacer nada.
+   */
+  const guardarCriterioDeAula = useCallback(async (valor: { modo: string; alfa: number }) => {
+    try {
+      await apiMonitoreoAulasConfig({ aula_valida: valor } as Partial<MonitoreoAulasConfig>);
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
 
   // **Un error de una carga anterior no describe lo que estás viendo ahora.**
   // `loadView` se dispara por SECCIÓN, así que al cambiar de pestaña dentro de la
@@ -2101,6 +2145,12 @@ export default function AulasMonitoreoPage() {
                   onGuardar={() => { void guardarCriterio(); }}
                 />
               ) : null,
+              // La vara de aula válida, también construida aquí por lo mismo.
+              <AulasCriterioDeAula
+                criterio={(state?.aulas_universitarias?.aula_valida ?? null) as never}
+                hayMetas={metasDelDiseno}
+                onGuardar={guardarCriterioDeAula}
+              />,
             )}
           </div>
       </MonitoreoWorkbenchChrome>
