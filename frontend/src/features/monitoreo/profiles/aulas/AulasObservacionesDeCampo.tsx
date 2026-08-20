@@ -35,7 +35,7 @@ export function AulasObservacionesDeCampo({ partes }: {
   }
 
   return (
-    <div className="aulas-observaciones">
+    <div className="aulas-observaciones" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(r.conNota)}</strong> de {fmt(r.partes)} partes traen
         observación

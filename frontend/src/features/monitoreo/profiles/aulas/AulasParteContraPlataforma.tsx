@@ -33,7 +33,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
     // El caso que no se puede listar: cuando descuadra casi todo, el cruce ya
     // no habla del campo.
     return (
-      <div className="aulas-cruce">
+      <div className="aulas-cruce" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         <p className="aulas-cruce-alarma">
           <TriangleAlert size={14} aria-hidden="true" />
           Las dos fuentes no se corresponden
@@ -59,7 +59,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
   }
 
   return (
-    <div className="aulas-cruce">
+    <div className="aulas-cruce" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(r.descuadran)}</strong> de {fmt(r.comparables)} aulas
         comparables no cuadran con plataforma
