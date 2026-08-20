@@ -195,6 +195,11 @@ export function AulasSeleccionTab({
             cobertura={coberturaObjetivo({
               cubiertos: classroomMetricValue(coverageRows, "selected_unique_students"),
               objetivo: targetForDisplay,
+              // La métrica que juzga: Σ efectivas_esperadas de los titulares.
+              esperadas: m1Rows.reduce((suma, fila) => {
+                const v = Number((fila as Record<string, unknown>).efectivas_esperadas);
+                return Number.isFinite(v) ? suma + v : suma;
+              }, 0),
               certeza,
             })}
           />

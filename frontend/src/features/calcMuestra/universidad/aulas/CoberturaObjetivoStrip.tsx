@@ -23,7 +23,7 @@ const TITULO: Record<CoberturaObjetivo["estado"], string> = {
 };
 
 export function CoberturaObjetivoStrip({ cobertura }: { cobertura: CoberturaObjetivo }) {
-  const { cubiertos, objetivo, ratio, estado, facultadesCortas } = cobertura;
+  const { cubiertos, objetivo, ratio, esperadas, ratioEsperadas, estado, facultadesCortas } = cobertura;
 
   return (
     <section
@@ -43,8 +43,22 @@ export function CoberturaObjetivoStrip({ cobertura }: { cobertura: CoberturaObje
           </span>
         ) : (
           <span>
-            {fmtInt(cubiertos ?? 0)} estudiantes distintos en los titulares frente a{" "}
-            {fmtInt(objetivo ?? 0)} de muestra objetivo.
+            {esperadas != null ? (
+              <>
+                Con las tasas del diseño, los titulares rinden ≈{fmtInt(Math.round(esperadas))}{" "}
+                efectivas frente a {fmtInt(objetivo ?? 0)} de muestra objetivo
+                {cubiertos != null && ratio != null
+                  ? ` (sientan ${fmtInt(cubiertos)} estudiantes distintos, ×${ratio.toFixed(1).replace(".", ",")} la cuota en bruto)`
+                  : ""}
+                .
+              </>
+            ) : (
+              <>
+                {fmtInt(cubiertos ?? 0)} estudiantes distintos en los titulares frente a{" "}
+                {fmtInt(objetivo ?? 0)} de muestra objetivo — cifra BRUTA: sin calibración de
+                rendimiento, no dice cuántas efectivas rinden.
+              </>
+            )}
             {estado === "justa" &&
               " Sin margen: un aula que no se pueda aplicar deja la cuota corta."}
             {estado === "corta" &&
@@ -53,10 +67,10 @@ export function CoberturaObjetivoStrip({ cobertura }: { cobertura: CoberturaObje
         )}
       </div>
 
-      {ratio != null && (
+      {(ratioEsperadas ?? ratio) != null && (
         <div className="cmv2-cobertura-objetivo-cifra" data-qa-geometry-member>
-          <strong>{PCT.format(ratio)}</strong>
-          <small>de la muestra objetivo</small>
+          <strong>{PCT.format((ratioEsperadas ?? ratio) as number)}</strong>
+          <small>{ratioEsperadas != null ? "en efectivas esperadas" : "en elegibles (bruto)"}</small>
         </div>
       )}
 

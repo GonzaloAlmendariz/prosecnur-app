@@ -19,6 +19,12 @@ export type CoberturaObjetivo = {
   cubiertos: number | null;
   objetivo: number | null;
   ratio: number | null;
+  /** Σ efectivas_esperadas de los titulares (calibración del diseño); null si
+   *  el motor no la anotó. Es LA métrica que decide: la cuota se logra con
+   *  efectivas, no con elegibles sentados (Gonzalo, 2026-08-20: «239% me
+   *  parece bien alta — ¿está contando solo elegibles?»). */
+  esperadas: number | null;
+  ratioEsperadas: number | null;
   estado: CoberturaObjetivoEstado;
   /** Facultades que la certeza marcó como cortas o agotadas, si se midió. */
   facultadesCortas: string[];
@@ -38,20 +44,29 @@ function finito(value: unknown): number | null {
 export function coberturaObjetivo({
   cubiertos,
   objetivo,
+  esperadas,
   certeza,
 }: {
   cubiertos: unknown;
   objetivo: unknown;
+  /** Σ efectivas_esperadas de los titulares; opcional (marcos sin calibración). */
+  esperadas?: unknown;
   certeza?: CalcMuestraAulasCerteza | null;
 }): CoberturaObjetivo {
   const cub = finito(cubiertos);
   const obj = finito(objetivo);
+  const esp = finito(esperadas);
   const ratio = cub != null && obj != null ? cub / obj : null;
-  const estado: CoberturaObjetivoEstado = ratio == null
+  const ratioEsperadas = esp != null && obj != null ? esp / obj : null;
+  // El veredicto lo decide el rendimiento esperado cuando existe: sentar
+  // 2,4× la cuota en elegibles no es cubrirla — con τ rinden ~1,26×. El ratio
+  // físico queda de fallback para marcos sin calibración.
+  const ratioJuez = ratioEsperadas ?? ratio;
+  const estado: CoberturaObjetivoEstado = ratioJuez == null
     ? "sin_datos"
-    : ratio < 1
+    : ratioJuez < 1
       ? "corta"
-      : ratio < HOLGURA_MINIMA
+      : ratioJuez < HOLGURA_MINIMA
         ? "justa"
         : "holgada";
 
@@ -61,5 +76,5 @@ export function coberturaObjetivo({
         .map((fila) => fila.label)
     : [];
 
-  return { cubiertos: cub, objetivo: obj, ratio, estado, facultadesCortas };
+  return { cubiertos: cub, objetivo: obj, ratio, esperadas: esp, ratioEsperadas, estado, facultadesCortas };
 }

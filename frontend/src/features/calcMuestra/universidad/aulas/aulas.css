@@ -1954,3 +1954,11 @@
   line-height: 1.45;
   color: var(--pulso-warn-fg);
 }
+
+/* Notas del motor partidas en lista (antes: un parrafo-ladrillo). */
+.cmv2-aviso-tecnico-lista {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}

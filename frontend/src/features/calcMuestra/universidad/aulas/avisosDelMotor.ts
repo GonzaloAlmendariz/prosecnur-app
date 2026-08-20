@@ -84,6 +84,11 @@ const DICCIONARIO: Array<{ patron: RegExp; titulo: string; resumen: string }> = 
       "La selección corrió sin descontar repetidos.",
   },
   {
+    patron: /ajuste de tamano divulgado|balance del sorteo/i,
+    titulo: "El sorteo ajustó tamaños y balanceó con lo disponible",
+    resumen: "", // se computa aparte: el detalle trae N notas concatenadas.
+  },
+  {
     patron: /al menos 100 corridas|simulacion insuficiente/i,
     titulo: "Simulación corta para leer estabilidad",
     resumen: "La optimización por candidatas necesita al menos 100 corridas para una lectura preliminar.",
@@ -97,6 +102,21 @@ export function traducirAvisoDelMotor(detalle: string): AvisoTraducido {
   }
   const conocido = DICCIONARIO.find((entrada) => entrada.patron.test(limpio));
   if (conocido) {
+    if (!conocido.resumen && /ajuste de tamano divulgado|balance del sorteo/i.test(limpio)) {
+      // El motor concatena todas sus notas con « | » y llegaban como un
+      // ladrillo ilegible (Gonzalo, 2026-08-20: «no se entiende absolutamente
+      // nada»). El resumen CUENTA lo que pasó; el detalle queda plegado.
+      const ajustes = (limpio.match(/ajuste de tamano divulgado/gi) ?? []).length;
+      const balances = (limpio.match(/balance del sorteo/gi) ?? []).length;
+      const partes: string[] = [];
+      if (ajustes) partes.push(`en ${ajustes} estrato${ajustes === 1 ? "" : "s"} el sorteo entregó más o menos aulas que la cuota y se corrigió por sorteo ponderado`);
+      if (balances) partes.push(`en ${balances} estrato${balances === 1 ? "" : "s"} balanceó con menos variables porque las demás no varían dentro del estrato`);
+      return {
+        titulo: conocido.titulo,
+        resumen: partes.length ? `${partes.join("; ")}. El resultado final respeta las cuotas.` : "El motor dejó notas del sorteo en esta corrida.",
+        mostrarCrudo: true,
+      };
+    }
     return { titulo: conocido.titulo, resumen: conocido.resumen, mostrarCrudo: true };
   }
   if (avisoEsTecnico(limpio)) {
