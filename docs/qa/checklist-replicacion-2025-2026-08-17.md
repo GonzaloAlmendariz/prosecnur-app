@@ -4543,3 +4543,13 @@ deliberada (exige documentarla y que el guardián la acepte), o (c)
 integrarlo con la decisión 1b (re-dimensionar todo con la calibración
 v2 → 190, que subsume esta corrección). El loop queda EN PAUSA hasta
 que Gonzalo cierre esto.
+
+### Directiva de Gonzalo (2026-08-20, cierre del loop): el global desaparece de las superficies
+
+Textual: «ya no debería quedar ni como resumen porque es misleading, la
+tasa de efectividad es por facultad». Al ejecutar 1b: el 0,53 global
+sale de TODAS las superficies (control de coherencia de la radiografía,
+«tasa de asistencia esperada de 53,0%» de la certificación, sustento
+del dimensionamiento). El control de coherencia se muda a tests/QA
+(sigue siendo la verificación interna), pero la UI habla SOLO en tasas
+por facultad.
