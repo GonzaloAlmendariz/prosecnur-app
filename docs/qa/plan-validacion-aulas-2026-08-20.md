@@ -84,7 +84,26 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
   - **Pendiente declarado**: es motor sin superficie. Nadie lo consume todavía
     —la vista llega en T11—, y hasta entonces la capacidad no existe para el
     usuario.
-- **T9** — Duración por aula y por aplicador: dónde se responde demasiado rápido.
+- **T9 ☑ (2026-08-20, mismo motor, 47 tests)** — Duración por grupo, con su
+  banda. **El grupo lo declara quien llama**, y no es un detalle de estilo:
+  `acnur_acg` **no trae ni una columna de aplicador** —`_submitted_by` viene
+  vacío en sus 1 283 filas y lo único operativo es distrito (6) y jornada (20
+  días)—, así que un «por aplicador» cableado habría agrupado por otra cosa.
+  - **La banda sale de los órdenes estadísticos** (`qbinom`), exacta y sin
+    dependencias nuevas. Con menos de 5 casos **no hay banda y el grupo no
+    juzga**.
+  - **El caso que justifica el tick**: la jornada `2026-07-02` trae **una sola
+    respuesta de 1 467 min** (24 h). Sin banda sería «el día más lento con
+    diferencia»; con banda no dice nada, que es lo correcto.
+  - **La referencia es el resto de la muestra, no la muestra entera**: un grupo
+    mayoritario arrastra la mediana global hacia sí mismo y nunca destacaría.
+  - **Lectura real por distrito**: 4 de 6 destacan — SMP 11.57 min (banda
+    8.98–14.04) contra 14.51 del resto; SJL 16.91 (14.74–19.80) contra 13.23.
+  - **Pendiente declarado**: en aulas el aplicador vive en la **hoja del libro**,
+    no en la base de respuestas, y esa base **no trae tiempos**. La duración por
+    aplicador en aulas exige el cruce respuesta↔aula↔aplicador y hoy **no es
+    calculable con este estudio**; el aviso «Falta declarar quién recolecta» que
+    ya sale en pantalla es la misma carencia vista desde el avance.
 - **T10** — Umbral de sospecha declarable, con la misma doctrina que
   `aula_valida`: sin declarar, no juzga.
 - **T11** — El tiempo en la ficha del aula, junto a su veredicto.

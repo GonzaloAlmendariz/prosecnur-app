@@ -96,3 +96,89 @@ test_that("una base vacia no rompe el resumen", {
   expect_equal(r$n, 0)
   expect_true(is.na(r$mediana))
 })
+
+test_that("con pocos casos no hay banda, y sin banda no se juzga", {
+  # Caso real de acnur_acg: la jornada 2026-07-02 trae UNA respuesta de 1 467
+  # min. Sin banda seria «el dia mas lento con diferencia»; con banda no dice
+  # nada, que es lo correcto.
+  sola <- monitoreo_tiempos_banda_mediana(1467.89)
+  expect_true(is.na(sola$inferior))
+
+  minutos <- c(rep(c(12, 14, 16), 8), 1467.89)
+  grupo <- c(rep("jornada llena", 24), "jornada de una")
+  r <- monitoreo_tiempos_por_grupo(minutos, grupo)
+  suelta <- r[r$grupo == "jornada de una", ]
+  expect_equal(suelta$n, 1)
+  expect_true(suelta$n_bajo)
+  expect_false(suelta$destaca)
+  expect_true(is.na(suelta$banda_inf))
+})
+
+test_that("la banda sale de los ordenes estadisticos, no de una aproximacion", {
+  # Con n = 10 y 95 %, qbinom(0.025, 10, 0.5) = 2: la banda va del 2.o al 9.o
+  # valor ordenado.
+  x <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 100)
+  b <- monitoreo_tiempos_banda_mediana(x)
+  expect_equal(b$inferior, 2)
+  expect_equal(b$superior, 9)
+
+  # Y el valor extremo no la mueve: es lo que distingue esta banda de una
+  # construida sobre la media y su desviacion.
+  y <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 1e6)
+  expect_equal(monitoreo_tiempos_banda_mediana(y)$superior, 9)
+})
+
+test_that("destaca quien queda fuera de la banda, y no quien solo difiere un poco", {
+  lento <- monitoreo_tiempos_por_grupo(
+    c(rep(c(10, 11, 12), 10), rep(c(40, 42, 44), 10)),
+    c(rep("normal", 30), rep("lento", 30))
+  )
+  expect_true(all(lento$destaca))
+
+  # El control: dos grupos que difieren en un minuto no destacan, aunque sus
+  # medianas no sean iguales.
+  parejo <- monitoreo_tiempos_por_grupo(
+    c(rep(c(10, 12, 14), 10), rep(c(11, 13, 15), 10)),
+    c(rep("uno", 30), rep("otro", 30))
+  )
+  expect_false(any(parejo$destaca))
+})
+
+test_that("la referencia es el resto de la muestra, no la muestra entera", {
+  # El grupo mayoritario ARRASTRA la mediana global hacia si mismo: comparar
+  # contra ella lo dejaria siempre dentro y nunca destacaria. Aqui «casi todo»
+  # son 60 respuestas rapidas y «unos pocos» 12 lentas.
+  minutos <- c(rep(c(10, 11, 12), 20), rep(c(40, 41, 42), 4))
+  grupo <- c(rep("casi todo", 60), rep("unos pocos", 12))
+  r <- monitoreo_tiempos_por_grupo(minutos, grupo)
+
+  mayoritario <- r[r$grupo == "casi todo", ]
+  expect_true(mayoritario$destaca)
+  # La mediana global cae DENTRO de su banda; la del resto, fuera. Si el motor
+  # usara la global, este grupo no destacaria.
+  expect_true(stats::median(minutos) >= mayoritario$banda_inf &&
+                stats::median(minutos) <= mayoritario$banda_sup)
+  expect_equal(mayoritario$mediana_resto, 41)
+})
+
+test_that("las filas salen ordenadas por mediana y sin grupos vacios", {
+  r <- monitoreo_tiempos_por_grupo(
+    c(rep(30, 6), rep(10, 6), rep(20, 6), 15, 15),
+    c(rep("c", 6), rep("a", 6), rep("b", 6), "", NA)
+  )
+  expect_equal(r$grupo, c("a", "b", "c"))
+  expect_equal(r$mediana, c(10, 20, 30))
+})
+
+test_that("una respuesta sin grupo no se cuela en el grupo de al lado", {
+  r <- monitoreo_tiempos_por_grupo(c(10, 10, 10, 10, 10, 999), c(rep("x", 5), ""))
+  expect_equal(nrow(r), 1)
+  expect_equal(r$n, 5)
+})
+
+test_that("no se agrupa lo que no viene emparejado", {
+  expect_error(
+    monitoreo_tiempos_por_grupo(c(1, 2, 3), c("a", "b")),
+    "una entrada por respuesta"
+  )
+})
