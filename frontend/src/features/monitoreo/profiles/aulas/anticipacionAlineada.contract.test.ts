@@ -47,4 +47,17 @@ describe("la lista de anticipación alinea sus columnas", () => {
     // que es dato operativo y no etiqueta: C4 no admite elipsis ahí.
     expect(ultima).toBeGreaterThanOrEqual(88);
   });
+
+  it("el nombre-botón no arrastra la altura mínima de un control", () => {
+    // El sistema le da a todo `<button>` un `min-height: 28px` —correcto para
+    // algo que se pulsa con el dedo, equivocado para un texto de 11 px en una
+    // celda de tabla—. Al convertir los nombres de facultad en botones, las
+    // filas de las CINCO listas pasaron de 24 a **37 px**, un 54 % más altas, y
+    // ningún test lo vio: el texto, el color y las columnas seguían igual.
+    //
+    // Es exactamente el tipo de línea que alguien quita al «limpiar» un reset.
+    const regla = css.match(/\.aulas-foco-boton \{([^}]*)\}/);
+    expect(regla).not.toBeNull();
+    expect(regla![1]).toMatch(/min-height:\s*0/);
+  });
 });
