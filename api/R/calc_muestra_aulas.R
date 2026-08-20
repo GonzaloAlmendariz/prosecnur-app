@@ -1497,6 +1497,9 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     # M9: que columna uso el motor por rol (calc_muestra_aulas_mapeo_resuelto.R);
     # la UI de Variables lo muestra como informacion, no como asignacion.
     mapeo_resuelto = calc_muestra_aulas_mapeo_resuelto(raw, catalogo_curso_horario, mapping),
+    # Plan 1b/E3: la tasa de efectividad por facultad, UN dueño publicado —
+    # dimensionamiento, sello y tarjeta didactica leen esto, nadie recalcula.
+    tasas_efectividad_facultad = calc_muestra_aulas_tasas_facultad(aula_frame),
     frame_hash = frame_hash_estable,
     # I11: universo del estudio anterior por facultad, derivado del catalogo
     # con el spec de config (calc_muestra_aulas_universo_referencia.R).

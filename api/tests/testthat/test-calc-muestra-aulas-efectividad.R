@@ -117,8 +117,8 @@ test_that("el factor por facultad muerde solo donde el historico tiene base", {
     fuente = "historico", periodo = "2025-2", tau_base = 0.53,
     por_facultad = list(
       list(facultad = "DERECHO", tau = 0.562, k = 16, suficiencia = "delgada"),
-      # invalida (tau fuera de rango): se descarta en la normalizacion
-      list(facultad = "PSICOLOGIA", tau = 1.7, k = 6)
+      # invalida (fuera de la cota de residuales, > 2): se descarta
+      list(facultad = "PSICOLOGIA", tau = 2.4, k = 6)
     )
   )))
   expect_length(cal$por_facultad, 1L)
@@ -189,6 +189,56 @@ test_that("E1: la tasa de aplicacion sellada resuelve tipos y compuestos (manda 
     ""
   ), cfg$efectividad$tasa_aplicacion)
   expect_equal(p, c(0.865, 0.730, 0.843, 0.843))
+})
+
+test_that("E3: las tasas por facultad se derivan del frame anotado (un dueño)", {
+  cal <- .cm_efectividad_calibracion(list(efectividad = list(
+    fuente = "historico", periodo = "2025", tau_base = 1,
+    rendimiento_tramos = list(
+      list(hasta = 15, tasa = 0.809), list(hasta = 25, tasa = 0.642),
+      list(hasta = 35, tasa = 0.566), list(hasta = 50, tasa = 0.500),
+      list(tasa = 0.409)
+    ),
+    por_facultad = list(list(facultad = "DERECHO", tau = 1.115, k = 16, suficiencia = "delgada"))
+  )))
+  af <- data.frame(
+    classroom_id = c("A", "B", "C"),
+    faculty = c("DERECHO", "DERECHO", "EDUCACION"),
+    eligible_n = c(20, 40, 10),
+    teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+    stringsAsFactors = FALSE
+  )
+  out <- .cm_aulas_efectividad_anotar(af, calibracion = cal)
+  tasas <- calc_muestra_aulas_tasas_facultad(out)
+  expect_length(tasas, 2L)
+  der <- tasas[[which(vapply(tasas, function(x) x$facultad, character(1)) == "DERECHO")]]
+  # DERECHO: (20x0.642x1.115 + 40x0.500x1.115) / 60 = (14.317 + 22.3)/60 = 0.6103
+  expect_equal(der$tasa, round((20*0.642*1.115 + 40*0.500*1.115)/60, 4))
+  expect_true(der$con_residual)
+  expect_equal(der$facultad_k, 16L)
+  edu <- tasas[[which(vapply(tasas, function(x) x$facultad, character(1)) == "EDUCACION")]]
+  # EDUCACION sin residual: su tasa es la de su mix (10 eleg -> tramo <=15).
+  expect_equal(edu$tasa, 0.809)
+  expect_false(edu$con_residual)
+  expect_true(is.na(edu$facultad_k))
+  # Un frame sin anotar no inventa tasas.
+  expect_length(calc_muestra_aulas_tasas_facultad(af), 0L)
+})
+
+test_that("E3: construir publica tasas_efectividad_facultad en el frame", {
+  base <- data.frame(
+    student_id = paste0("s", 1:40),
+    aula_id = rep(c("A1", "A2"), each = 20),
+    curso_id = rep(c("C1", "C2"), each = 20),
+    curso = rep(c("Curso 1", "Curso 2"), each = 20),
+    horario = "L 8", facultad = "FAC1", programa = "P1", sexo = "F",
+    edad = 20, condicion = "regular", nivel = "3", modalidad = "presencial",
+    stringsAsFactors = FALSE
+  )
+  cfg <- calc_muestra_aulas_normalize_config(list(filters = list(min_eligible_per_class = 1L)))
+  frame <- calc_muestra_aulas_construir(base_madre = base, config = cfg)
+  expect_true(length(frame$tasas_efectividad_facultad) >= 1L)
+  expect_equal(frame$tasas_efectividad_facultad[[1]]$facultad, "FAC1")
 })
 
 test_that("frame sin eligible_n o vacio queda intacto (nunca inventa)", {

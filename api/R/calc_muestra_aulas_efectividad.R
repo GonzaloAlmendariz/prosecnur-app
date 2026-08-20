@@ -109,7 +109,10 @@
         tv <- suppressWarnings(as.numeric(e$tau)[1])
         kv <- suppressWarnings(as.integer(e$k)[1])
         suf <- chr1(e$suficiencia)
-        if (!nzchar(fac) || !is.finite(tv) || tv <= 0 || tv > 1) return(NULL)
+        # tau admite hasta 2: con tau_base=1 el sello guarda RESIDUALES
+        # directos (Derecho 1,115 rinde por encima de su mix) — un residual
+        # mayor a 2 si seria absurdo y se descarta.
+        if (!nzchar(fac) || !is.finite(tv) || tv <= 0 || tv > 2) return(NULL)
         list(facultad = fac, tau = tv,
              k = if (length(kv) == 1L && !is.na(kv)) kv else NA_integer_,
              suficiencia = suf)
@@ -241,3 +244,46 @@
   aula_frame$meta_origen <- "diseno"
   aula_frame
 }
+
+#' La tasa de efectividad de cada FACULTAD, derivada del marco anotado.
+#'
+#' Plan 1b/E3: es el numero que dimensiona (cupos = cuota / (P25 x tasa)) y el
+#' que la tarjeta didactica de Cursos-horario requeridos explica. UN dueño:
+#' se deriva de las columnas que el anotador ya escribio (rendimiento_ref y
+#' factor_facultad), asi ninguna superficie recalcula por su cuenta.
+#' Devuelve una lista por facultad: {facultad, tasa, n_aulas, elegibles,
+#' con_residual (si su F vino del historico), facultad_k}.
+calc_muestra_aulas_tasas_facultad <- function(aula_frame) {
+  if (!is.data.frame(aula_frame) || !nrow(aula_frame) ||
+      !all(c("faculty", "eligible_n", "rendimiento_ref") %in% names(aula_frame))) {
+    return(list())
+  }
+  el <- suppressWarnings(as.numeric(aula_frame$eligible_n))
+  el[!is.finite(el) | el < 0] <- 0
+  r <- suppressWarnings(as.numeric(aula_frame$rendimiento_ref))
+  f <- suppressWarnings(as.numeric(aula_frame$factor_facultad %||% rep(1, nrow(aula_frame))))
+  f[!is.finite(f)] <- 1
+  k_fac <- suppressWarnings(as.integer(aula_frame$facultad_k %||% rep(NA_integer_, nrow(aula_frame))))
+  fac <- toupper(trimws(as.character(aula_frame$faculty)))
+  ok <- nzchar(fac) & is.finite(r) & el > 0
+  salida <- list()
+  for (ff in unique(fac[ok])) {
+    idx <- ok & fac == ff
+    tot_el <- sum(el[idx])
+    if (tot_el <= 0) next
+    tasa <- sum(el[idx] * r[idx] * f[idx]) / tot_el
+    kk <- k_fac[idx]
+    kk <- kk[!is.na(kk)]
+    salida[[length(salida) + 1L]] <- list(
+      facultad = ff,
+      tasa = round(tasa, 4),
+      n_aulas = as.integer(sum(idx)),
+      elegibles = as.integer(round(tot_el)),
+      con_residual = any(f[idx] != 1),
+      facultad_k = if (length(kk)) kk[[1]] else NA_integer_
+    )
+  }
+  orden <- order(vapply(salida, function(x) -x$elegibles, numeric(1)))
+  salida[orden]
+}
+
