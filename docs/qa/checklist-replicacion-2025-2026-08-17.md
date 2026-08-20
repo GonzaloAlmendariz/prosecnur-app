@@ -4473,3 +4473,27 @@ esperadas, meta_origen, teacher_type; ojo teacher_type compuesto con
   B) mantener general declarado (aviso ya en pantalla). Con A, la
   certificacion debe pasar a juzgar por Σesperadas por facultad para no
   contradecirse.
+
+### 2026-08-20 (tarde 4): opcion A ejecutada + score resuelto + vocabulario estrato
+
+- SCORE 69->47,9 RESUELTO A NIVEL DE QUE: el v4 (construir ANTES de
+  seleccionar) devolvio 68,6; seleccionar solo da 47,9 con las mismas
+  197 filas. El score depende de estado que construir refresca — la
+  foto persistida del marco pierde una pieza que la representatividad
+  consume. Pendiente el CUAL (comparar frame fresco vs rehidratado).
+  El .pulso quedo guardado con 68,6 + historico/2025 en las 197 filas
+  (hash estable 3644ce7aa66e).
+- Vocabulario celda->estrato unificado (9c88e8a8): un solo diccionario
+  (equivalenciaEtiquetas.ts) para panels/inspector/mapa + GLOSA visible.
+- OPCION A ejecutada (844a90b0): factor tau_fac/tau_base declarado en
+  cfg$efectividad.por_facultad (6 facultades con suficiencia de la
+  referencia v2: C&I solida k=40; EGC 26, EGL 23, CCSS 17, DER 16, A&D
+  12 delgadas; 9 insuficientes k=2-11 riguen general DECLARADO);
+  radiografia con paso «× ajuste de su facultad» y tabla con k; formula
+  completa el x p x r x factor. Ciclo de sello v5 en background
+  (bqqx7hth9): verificar reparto identico + factor viajando +
+  Σesperadas ~3.021 + guardado.
+- PENDIENTE DE SU MANDATO: revision exhaustiva de validez estadistica
+  de toda la cadena (encolada como serie propia); techo 200 vs plan 229
+  sigue EXCEDIDO — con esperadas ajustadas, EGC/EGL/DER ~0,96x: la
+  decision de aulas extra o confianza en cadena es de Gonzalo.
