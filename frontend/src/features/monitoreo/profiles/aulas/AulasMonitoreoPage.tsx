@@ -1692,16 +1692,16 @@ export default function AulasMonitoreoPage() {
   const corte = useMemo(() => corteAulas(state, dashboard), [state, dashboard]);
   const aulasConfig = state?.config?.aulas_universitarias ?? null;
   // Cuántas aulas traen META DEL DISEÑO, que es lo que hace juzgable el
-  // criterio. Se cuenta contra `eligible_n`: cuando el handoff no encontró
-  // `efectivas_esperadas` cayó al fallback y la «meta» es el total de
-  // elegibles, o sea que no hay meta de verdad aunque el campo venga lleno.
+  // criterio.
+  //
+  // Se lee `meta_origen`, no se infiere. Antes se comparaba la meta con los
+  // elegibles y se contaba «distinta» como si fuera del diseño: en el fixture
+  // de QA eso daba 267 aulas «del diseño» y ninguna sale de un cálculo de
+  // muestra. El campo lo escribe el cálculo junto a `efectivas_esperadas`, y
+  // cuando no viene, el normalizador lo deriva y nombra el fallback.
   const metasDelDiseno = useMemo(() => {
     const filas = (dashboard?.agenda ?? []) as Array<Record<string, unknown>>;
-    return filas.filter((f) => {
-      const meta = Number(f.expected_valid ?? 0);
-      const elegibles = Number(f.eligible_n ?? 0);
-      return Number.isFinite(meta) && meta > 0 && meta !== elegibles;
-    }).length;
+    return filas.filter((f) => String(f.meta_origen ?? "") === "diseno").length;
   }, [dashboard]);
   const imported = aulasPlanImported(aulasConfig);
   const sourceTotal = state?.sources?.length ?? 0;

@@ -30,7 +30,10 @@ export type CriterioDeAula = {
 
 export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
   criterio: CriterioDeAula;
-  /** Cuántas aulas del plan traen meta del diseño. Sin ellas el modo no juzga. */
+  /**
+   * Cuántas aulas del plan traen meta DEL DISEÑO, leída de `meta_origen`.
+   * Sin ellas el modo no juzga ninguna.
+   */
   hayMetas: number;
   onGuardar: (valor: { modo: string; alfa: number }) => Promise<void> | void;
 }) {
@@ -86,20 +89,17 @@ export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
           </button>
           {/* La condición para que el criterio sirva de algo, dicha antes de
               guardarlo y no después: sin meta del diseño el aula no se juzga. */}
-          {/* **Se dice «meta propia», no «meta del diseño».**
-              El plan normaliza la meta desde varios orígenes —`efectivas_esperadas`
-              del cálculo de muestra, un `expected_valid` de un plan externo, o el
-              fallback a los elegibles— y una vez normalizada **no se distingue de
-              cuál vino**. Atribuirla al cálculo de muestra sería afirmar un
-              origen que esta pantalla no puede comprobar: en este mismo fixture
-              hay 267 aulas con meta propia y ninguna sale de un diseño. */}
+          {/* Ya se puede decir «del diseño» con evidencia: el plan trae
+              `meta_origen` por fila —lo escribe el cálculo de muestra junto a
+              `efectivas_esperadas`— en vez de que esta pantalla lo infiera
+              comparando la meta con los elegibles, que es lo que daba 267 aulas
+              «del diseño» en un fixture donde ninguna sale de un cálculo. */}
           <p className="mon-profile-muted">
-            Se compara con la meta de cada curso-horario. Cuando el plan viene del
-            cálculo de muestra, ésa es `efectivas_esperadas`: lo que el diseño
-            esperaba de esa aula.{" "}
+            Se compara con lo que el diseño esperaba de cada curso-horario
+            (`efectivas_esperadas` del cálculo de muestra).{" "}
             {hayMetas > 0
-              ? `${hayMetas} aulas del plan traen meta propia; las que no, quedarán sin juzgar.`
-              : "Ninguna aula del plan trae meta propia —la suya es el total de elegibles—, así que este criterio no podría juzgar ninguna."}
+              ? `${hayMetas} aulas del plan la traen; las que no, quedarán sin juzgar.`
+              : "Ninguna aula del plan la trae, así que este criterio no podría juzgar ninguna: el plan tiene que venir del cálculo de muestra."}
           </p>
         </div>
       ) : null}

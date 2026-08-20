@@ -35,3 +35,59 @@ test_that("la meta del diseño gana al alias de esta capa", {
   )))
   expect_equal(externo[[1]]$expected_valid, 15)
 })
+
+test_that("cada aula usa SU meta, aunque el marco traiga la columna a medias", {
+  # **El defecto que esto fija.** `getn` toma la primera columna que EXISTA y su
+  # default se aplica a las filas vacias de esa columna. Con `efectivas_esperadas`
+  # delante y default 0, cualquier fila sin esperado —los reemplazos, o un plan a
+  # medio anotar— se quedaba con **meta 0**, que en un veredicto significa que el
+  # aula cumple siempre. Y el fallback tampoco la rescataba: 0 es finito.
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "A", classroom_id = "a", eligible_n = 24, efectivas_esperadas = 12.1),
+    list(operational_code = "B", classroom_id = "b", eligible_n = 24, expected_valid = 15),
+    list(operational_code = "C", classroom_id = "c", eligible_n = 24)
+  ))
+  expect_equal(vapply(plan, function(f) f$expected_valid, numeric(1)), c(12.1, 15, 24))
+  # Ninguna se queda en cero, que es la forma que tenia el defecto.
+  expect_false(any(vapply(plan, function(f) f$expected_valid == 0, logical(1))))
+})
+
+test_that("la meta dice DE DONDE viene, y lo declarado por el productor manda", {
+  # `expected_valid` colapsaba tres cosas en un numero: lo que el diseño calculo
+  # para ESA aula, lo que alguien declaro a mano, y el total de elegibles cuando
+  # no habia ninguna. La pantalla decia «la meta que el calculo de muestra
+  # calculo» sobre filas que no venian de ningun diseño.
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "A", classroom_id = "a", eligible_n = 24, efectivas_esperadas = 12.1),
+    list(operational_code = "B", classroom_id = "b", eligible_n = 24, expected_valid = 15),
+    list(operational_code = "C", classroom_id = "c", eligible_n = 24),
+    # El calculo de muestra escribe `meta_origen` junto a `efectivas_esperadas`;
+    # lo que el productor declara no se recalcula.
+    list(operational_code = "D", classroom_id = "d", eligible_n = 30,
+         efectivas_esperadas = 9, meta_origen = "diseno")
+  ))
+  expect_identical(vapply(plan, function(f) f$meta_origen, character(1)),
+                   c("diseno", "declarada", "elegibles", "diseno"))
+})
+
+test_that("lo que el productor declara NO se recalcula", {
+  # **Este caso mato un mutante que el de arriba dejaba vivo.** Alli la fila con
+  # `meta_origen` traia ademas `efectivas_esperadas`, asi que derivar y respetar
+  # daban lo mismo y el aserto no distinguia cual estaba implementado.
+  #
+  # Aqui el productor dice «diseno» sobre una fila que llega por el alias: la
+  # derivacion diria «declarada» y lo declarado tiene que ganar. Es el caso de un
+  # handoff que renombra el campo pero conserva su procedencia.
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "A", classroom_id = "a", eligible_n = 24,
+         expected_valid = 12.1, meta_origen = "diseno")
+  ))
+  expect_identical(plan[[1]]$meta_origen, "diseno")
+})
+
+test_that("sin elegibles y sin meta, el origen lo dice en vez de fingir una", {
+  plan <- monitoreo_aulas_normalize_plan(list(
+    list(operational_code = "A", classroom_id = "a")
+  ))
+  expect_identical(plan[[1]]$meta_origen, "sin_meta")
+})

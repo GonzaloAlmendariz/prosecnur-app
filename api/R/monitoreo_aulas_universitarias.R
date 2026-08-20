@@ -439,7 +439,32 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # `expected_valid` ni `meta_aula` en ninguna parte** —esos dos alias son de
     # esta capa—. Poner el alias propio delante dejaba que un plan externo o una
     # edicion a mano pisaran la meta que calculo el diseño.
-    expected_valid = getn(c("efectivas_esperadas", "expected_valid", "meta_aula", "eligible_n"), 0),
+    # **La meta se compone por FILA, no por columna.**
+    #
+    # `getn` toma la primera columna que EXISTA en el marco y su default se
+    # aplica a las filas vacias de esa columna. Con `efectivas_esperadas`
+    # delante y default 0, cualquier fila sin esperado —los reemplazos, o un
+    # plan a medio anotar— se quedaba con **meta 0**, que en un veredicto
+    # significa que el aula cumple siempre. El fallback de abajo tampoco la
+    # rescataba: 0 es finito.
+    #
+    # Componiendola por fila, cada aula usa lo primero que tenga: el esperado
+    # del diseño, la meta declarada, y si no, los elegibles.
+    expected_valid = local({
+      del_diseno <- getn(c("efectivas_esperadas"), NA_real_)
+      declarada <- getn(c("expected_valid", "meta_aula"), NA_real_)
+      ifelse(is.finite(del_diseno), del_diseno, declarada)
+    }),
+    # **De donde salio esa meta.** Sin esto, `expected_valid` colapsa tres cosas
+    # en un numero: lo que el diseño calculo para ESA aula, lo que alguien
+    # declaro a mano, y el total de elegibles cuando no habia ninguna de las dos.
+    # La pantalla decia «la meta que el calculo de muestra calculo» sobre filas
+    # que no venian de ningun diseño.
+    #
+    # `meta_origen` lo escribe el calculo de muestra junto a `efectivas_esperadas`
+    # (invariante suya: si esta una, esta la otra), asi que **lo declarado por el
+    # productor manda** y aqui solo se deriva lo que el no emite.
+    meta_origen = get(c("meta_origen", "expected_valid_origen"), ""),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
     word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),
@@ -549,6 +574,23 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
   out$sex_top_1_n[!is.finite(out$sex_top_1_n)] <- 0
   out$sex_top_2_n[!is.finite(out$sex_top_2_n)] <- 0
   out$enrolled_total[!is.finite(out$enrolled_total)] <- 0
+  # El origen que el productor no declaro, derivado por fila y en el mismo orden
+  # de precedencia que la meta. Se calcula ANTES de los dos fallbacks de abajo
+  # para poder distinguir «no habia meta» de «la meta es cero».
+  sin_origen <- !nzchar(out$meta_origen)
+  if (any(sin_origen)) {
+    del_diseno <- suppressWarnings(as.numeric(getn(c("efectivas_esperadas"), NA_real_)))
+    declarada <- suppressWarnings(as.numeric(getn(c("expected_valid", "meta_aula"), NA_real_)))
+    out$meta_origen[sin_origen & is.finite(del_diseno)] <- "diseno"
+    pendiente <- sin_origen & !is.finite(del_diseno)
+    out$meta_origen[pendiente & is.finite(declarada)] <- "declarada"
+    # Lo que queda usara el total de elegibles, que **no es una meta**: es lo que
+    # hay cuando no hay ninguna. Nombrarlo es lo que impide que vuelva a leerse
+    # como si el diseño la hubiera fijado.
+    resto <- sin_origen & !is.finite(del_diseno) & !is.finite(declarada)
+    out$meta_origen[resto] <- ifelse(is.finite(out$eligible_n[resto]) & out$eligible_n[resto] > 0,
+                                     "elegibles", "sin_meta")
+  }
   out$expected_valid[!is.finite(out$expected_valid)] <- out$eligible_n[!is.finite(out$expected_valid)]
   out$eligible_n[!is.finite(out$eligible_n)] <- 0
   out$expected_valid[!is.finite(out$expected_valid)] <- 0
