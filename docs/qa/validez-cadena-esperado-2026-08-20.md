@@ -111,11 +111,56 @@ ordinario-principal— más su residual ~1 ya no la rescata): pediría ~2 aulas
 más o confianza explícita en su cadena. El techo de visitas (200) sigue
 excedido por el plan (229): ambas cosas son la MISMA decisión operativa.
 
+## V3 — las curvas verificadas con k e IC (eslabones 4 y 5, cerrados)
+
+**P(aplicación | tipo de docente)** — denominador: aulas intentadas
+(aplicada + caída + no aplicada), Wilson 95 %:
+
+| Tipo | aplicadas/intentadas | tasa | IC95 | embebida | veredicto |
+|---|---|---|---|---|---|
+| Contratado | 167/193 | 0,865 | [0,810–0,906] | 0,87 | sólido |
+| Ordinario-Principal | 27/37 | 0,730 | [0,570–0,846] | 0,73 | defendible (IC ancho) |
+| Ordinario-Asociado / resto | — | — | — | 0,84 | **sin base 2025 propia** (la base 2025 no tiene asociados); el 0,84 coincide con la tasa global 194/230 = 0,843 → se declara como «tasa general de aplicación», no como medición del tipo. En 2026 hay 638 aulas de asociados llevándola: el eslabón más débil que queda. |
+
+**Rendimiento por tamaño** — razón de sumas exacta, bootstrap 2000 reps:
+
+| Bin | k | Σeleg | tasa exacta | IC95 | embebida | sesgo |
+|---|---|---|---|---|---|---|
+| ≤15 | 26 | 309 | 0,809 | [0,726–0,891] | 0,80 | −0,009 |
+| 16–25 | 53 | 1.104 | 0,642 | [0,580–0,703] | 0,69 | +0,048 |
+| 26–35 | 38 | 1.149 | 0,566 | [0,500–0,638] | 0,56 | −0,006 |
+| 36–50 | 50 | 2.104 | 0,500 | [0,458–0,545] | 0,55 | **+0,050 (embebida FUERA del IC)** |
+| >50 | 27 | 1.566 | 0,409 | [0,346–0,473] | 0,44 | +0,031 |
+
+El sesgo V2 (+5,9 % global) sale sobre todo de los bins 16–25 y 36–50 (los
+dos más poblados); el 36–50 está significativamente sobre-predicho.
+
+## Propuesta v2 — la corrección integrada FINAL (decisión de Gonzalo)
+
+1. **Recalibrar los bins a la razón de sumas exacta**: 0,809 / 0,642 /
+   0,566 / 0,500 / 0,409. Con ellos, r̄ sobre el mix 2025 = 0,5298 ≈ τ
+   0,5300: V2 desaparece por construcción y las nueve facultades sin τ
+   propio quedan bien calibradas con factor 1,0 (ya no hace falta el 0,944).
+2. **Residual por facultad sobre los bins corregidos** (las seis): C&I
+   0,972 · EGC 0,917 · EGL 0,985 · CCSS 0,960 · **DER 1,115** · A&D 0,910.
+   Con los bins corregidos, Derecho emerge como el atípico genuino (+11,5 %
+   sobre su mix) y EGL queda prácticamente explicada por el tamaño (0,985).
+3. **P(aplicación)**: contratado 0,865 · ordinario-principal 0,730 ·
+   resto 0,843 declarado como tasa general.
+
+**Impacto 2026 medido (titulares vigentes)**: Σ esperadas ≈ **2.911**
+(1,16× la muestra de 2.500). Por facultad: 14 de 15 cubren cuota (C&I
+1,12× · EGL 1,05× · EGC 1,02× · CCSS 1,10× · GES 1,07× · resto ≥1,1×);
+**DERECHO 0,92×** (333 vs 363) — su carga de ordinario-principal domina
+incluso con su residual positivo. Decisión operativa única: ~2 aulas más a
+Derecho o confianza declarada en su cadena, junto con el techo (plan 229 vs
+techo 200).
+
 ## Cola de mediciones pendientes
 
 - [x] r̄_fac sobre el mix 2025 aplicado → V1b (medido 2026-08-20).
-- [ ] k e IC de P(aplicación) por tipo de docente (eslabón 4).
-- [ ] k e IC del rendimiento por bin de tamaño (eslabón 5).
+- [x] k e IC de P(aplicación) por tipo → V3 (2026-08-20).
+- [x] k e IC del rendimiento por bin → V3 (2026-08-20); bins exactos propuestos.
 - [ ] deff real del 2025 ejecutado vs el 2,0 asumido (eslabón 1).
 - [x] Denominador exacto de τ=0,53: 3.303/6.232, k=194 (verificado en V1b).
 - [ ] Certificación por Σesperadas (eslabón 8) — decisión de Gonzalo.
