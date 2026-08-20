@@ -54,6 +54,7 @@ import { criteriosMarcoDeEstudio } from "./criterios/criteriosMarcoModel";
 import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
+import { DistribucionElegiblesCard } from "./calculo/DistribucionElegiblesCard";
 import {
   AulasAuditoriaTab,
   AulasMetodoTab,
@@ -753,6 +754,11 @@ export function UniversidadDesk({
                 onSetComponentes={onSetComponentes}
                 onCalcular={calculateSample}
                 calculando={calculando}
+              />
+              {/* La distribucion que el P25 resume: hace VISIBLE el divisor
+                  del dimensionamiento junto a la formula que lo usa. */}
+              <DistribucionElegiblesCard
+                aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
               />
             </div>}
             {showLocalTab("calculo-propuestas") && <div id="cmv2-local-calculo-propuestas">
