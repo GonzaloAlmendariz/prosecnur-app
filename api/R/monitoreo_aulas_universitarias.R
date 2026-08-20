@@ -420,7 +420,12 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # dato, pero **queda dicho que es un sustituto y no la meta**: convertir «no
     # sé la meta» en «la meta son todos» es el mismo defecto que hace fallar a
     # todo el mundo por definición.
-    expected_valid = getn(c("expected_valid", "efectivas_esperadas", "meta_aula", "eligible_n"), 0),
+    # **`efectivas_esperadas` va PRIMERO: es el nombre canonico.** Lo confirmo la
+    # sesion de Calculo de muestra: su motor escribe esa columna y **no escribe
+    # `expected_valid` ni `meta_aula` en ninguna parte** —esos dos alias son de
+    # esta capa—. Poner el alias propio delante dejaba que un plan externo o una
+    # edicion a mano pisaran la meta que calculo el diseño.
+    expected_valid = getn(c("efectivas_esperadas", "expected_valid", "meta_aula", "eligible_n"), 0),
     link = get(c("link", "url", "collector_link"), ""),
     qr = get(c("qr", "qr_url"), ""),
     word_link = get(c("word_link", "word_url", "word", "docx", "ficha_word"), ""),
