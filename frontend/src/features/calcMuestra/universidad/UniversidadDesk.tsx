@@ -755,11 +755,6 @@ export function UniversidadDesk({
                 onCalcular={calculateSample}
                 calculando={calculando}
               />
-              {/* La distribucion que el P25 resume: hace VISIBLE el divisor
-                  del dimensionamiento junto a la formula que lo usa. */}
-              <DistribucionElegiblesCard
-                aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
-              />
             </div>}
             {showLocalTab("calculo-propuestas") && <div id="cmv2-local-calculo-propuestas">
               <CalculoPropuestasTab
@@ -783,6 +778,12 @@ export function UniversidadDesk({
                 certeza={aulasState?.certeza ?? null}
                 certezaEnCurso={midiendoCerteza}
                 onMedirCerteza={onMedirCerteza}
+              />
+              {/* La distribucion que el P25 resume, DONDE se dimensionan los
+                  cursos-horario (Gonzalo: los graficos van donde tienen
+                  sentido conceptual — esto habla de aulas, no del n). */}
+              <DistribucionElegiblesCard
+                aulaFrame={(aulasState?.frame?.aula_frame ?? null) as Record<string, unknown>[] | null}
               />
             </div>}
             {showLocalTab("calculo-distribucion") && <div id="cmv2-local-calculo-distribucion">
