@@ -1744,7 +1744,15 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # 70P, cuota por sexo del aula, rango horario— no llegaban a ninguna
     # superficie. El resumen acompana a las filas para que la vista pueda decir
     # que grupo del control viene vacio en vez de pintar ceros medidos.
-    control_calidad = monitoreo_aulas_control_publicado(cfg$control %||% list()),
+    # Con la facultad adosada desde el plan: la hoja del equipo no la trae y sin
+    # ella la cola de trabajo solo puede ordenarse por aula suelta, cuando el
+    # equipo sale por facultad. El cruce cuenta lo que cruza —`sin_cruce` viaja
+    # en el resumen— porque un homonimo ya se hizo pasar por conexion en este
+    # mismo perfil.
+    control_calidad = monitoreo_aulas_control_con_facultad(
+      monitoreo_aulas_control_publicado(cfg$control %||% list()),
+      plan %||% cfg$plan %||% list()
+    )$filas,
     control_calidad_resumen = monitoreo_aulas_control_resumen(cfg$control %||% list()),
     # De que libro salen estas cifras y que hojas trajo. `NULL` cuando el
     # estudio nunca importo uno, que es distinto de un libro sin hojas.

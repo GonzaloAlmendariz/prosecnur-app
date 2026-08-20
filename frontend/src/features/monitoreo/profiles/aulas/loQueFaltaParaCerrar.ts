@@ -27,6 +27,8 @@ const txt = (v: unknown) => String(v ?? "").trim();
 
 export type AulaPorCerrar = {
   codigo: string;
+  /** La del plan, adosada por el motor. Vacía si el código no cruzó. */
+  facultad: string;
   /** Encuestas que faltan para alcanzar el umbral que falló. */
   faltan: number;
   enviadas: number;
@@ -97,6 +99,7 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
     }
     aulas.push({
       codigo: txt(fila.operational_code) || txt(fila.course_code) || "—",
+      facultad: txt(fila.faculty),
       faltan,
       enviadas,
       umbral,
@@ -136,4 +139,50 @@ export function aulasQueCierran(aulas: ReadonlyArray<AulaPorCerrar>, presupuesto
 /** El corte natural: cuántas cierran con `n` encuestas o menos CADA UNA. */
 export function cierranConHasta(aulas: ReadonlyArray<AulaPorCerrar>, n: number) {
   return aulas.filter((a) => a.faltan <= n).length;
+}
+
+export type FacultadPorCerrar = {
+  facultad: string;
+  aulas: number;
+  /** Encuestas que cierran todas las de esta facultad. */
+  costo: number;
+  /** Cuántas de sus aulas están a cinco encuestas o menos. */
+  baratas: number;
+};
+
+/**
+ * La misma cola, agrupada por facultad.
+ *
+ * «Siempre todo es por facultad», y con razón: cerrar ocho aulas de una misma
+ * facultad es UNA salida y ocho aulas repartidas son ocho.
+ *
+ * **Ordena por aulas que se cierran, no por lo que cuestan.** Primero lo ordené
+ * por costo ascendente y el resultado encabezaba con una facultad de UNA aula a
+ * dos encuestas: la salida más barata en encuestas y la peor de todas en
+ * rendimiento, porque ir a una facultad a cerrar un aula cuesta lo mismo que ir
+ * a cerrar ocho. La pregunta que este bloque contesta es a dónde ir, y a esa
+ * pregunta responde cuántas aulas cierra la visita. El costo desempata.
+ *
+ * Las aulas cuyo código no cruzó con el plan quedan fuera del reparto y se
+ * cuentan aparte: meterlas en una facultad «Sin facultad» las haría competir
+ * con facultades reales en la misma lista.
+ */
+export function porFacultad(aulas: ReadonlyArray<AulaPorCerrar>) {
+  const mapa = new Map<string, FacultadPorCerrar>();
+  let sinFacultad = 0;
+  for (const a of aulas) {
+    if (!a.facultad) {
+      sinFacultad += 1;
+      continue;
+    }
+    const f = mapa.get(a.facultad) ?? { facultad: a.facultad, aulas: 0, costo: 0, baratas: 0 };
+    f.aulas += 1;
+    f.costo += a.faltan;
+    if (a.faltan <= 5) f.baratas += 1;
+    mapa.set(a.facultad, f);
+  }
+  const filas = [...mapa.values()].sort(
+    (x, y) => y.aulas - x.aulas || x.costo - y.costo || x.facultad.localeCompare(y.facultad, "es"),
+  );
+  return { filas, sinFacultad };
 }

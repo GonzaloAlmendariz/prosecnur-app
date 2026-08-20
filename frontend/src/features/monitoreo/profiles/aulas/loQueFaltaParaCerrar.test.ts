@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar } from "./loQueFaltaParaCerrar";
+import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar, porFacultad } from "./loQueFaltaParaCerrar";
 
 const fila = (o: Record<string, unknown>) => ({ operational_code: "CH 1", ...o });
 
@@ -14,7 +14,7 @@ describe("loQueFaltaParaCerrar", () => {
       fila({ cumple_total: true, cumple_poblacion: false, sent_total: 14, threshold_total: 10, threshold_population: 18 }),
     ]);
     expect(r.aulas).toEqual([
-      { codigo: "CH 1", faltan: 4, enviadas: 14, umbral: 18, falla: "poblacion" },
+      { codigo: "CH 1", facultad: "", faltan: 4, enviadas: 14, umbral: 18, falla: "poblacion" },
     ]);
     expect(r.costoTotal).toBe(4);
 
@@ -101,5 +101,40 @@ describe("loQueFaltaParaCerrar", () => {
     // presupuesto de 7 se gastaría en la de 10 y cerraría cero.
     expect(aulasQueCierran(r.aulas, 6)).toEqual({ cerradas: 1, gasto: 2 });
     expect(cierranConHasta(r.aulas, 5)).toBe(2);
+  });
+});
+
+describe("porFacultad", () => {
+  const aula = (facultad: string, faltan: number, codigo: string) => ({
+    codigo, facultad, faltan, enviadas: 0, umbral: faltan, falla: "total" as const,
+  });
+
+  it("encabeza la facultad que más aulas cierra, no la más barata", () => {
+    // **Este aserto corrige mi propio diseño.** Ordenado por costo, la primera
+    // era una facultad de UNA aula a dos encuestas: la salida más barata en
+    // encuestas y la peor en rendimiento, porque ir a cerrar un aula cuesta la
+    // misma visita que ir a cerrar cuatro. La pregunta es a dónde ir.
+    const r = porFacultad([
+      aula("Minas", 2, "CH 1"),
+      aula("Derecho", 6, "CH 2"),
+      aula("Derecho", 7, "CH 3"),
+      aula("Derecho", 4, "CH 4"),
+    ]);
+    expect(r.filas.map((f) => f.facultad)).toEqual(["Derecho", "Minas"]);
+    // 6, 7 y 4: sólo una está a cinco o menos.
+    expect(r.filas[0]).toEqual({ facultad: "Derecho", aulas: 3, costo: 17, baratas: 1 });
+  });
+
+  it("a igual número de aulas manda la más barata", () => {
+    const r = porFacultad([aula("A", 9, "1"), aula("B", 3, "2")]);
+    expect(r.filas.map((f) => f.facultad)).toEqual(["B", "A"]);
+  });
+
+  it("un aula que no cruzó con el plan se cuenta aparte, no crea una facultad", () => {
+    // Una fila «Sin facultad» competiría en la misma lista con facultades
+    // reales, y en este perfil un homónimo ya se hizo pasar por conexión.
+    const r = porFacultad([aula("", 3, "1"), aula("", 4, "2"), aula("A", 5, "3")]);
+    expect(r.sinFacultad).toBe(2);
+    expect(r.filas).toEqual([{ facultad: "A", aulas: 1, costo: 5, baratas: 1 }]);
   });
 });
