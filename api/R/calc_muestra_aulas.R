@@ -3078,6 +3078,17 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   weighted_distance <- if (is.finite(overall)) 1 - overall / 100 else NA_real_
 
   warnings <- character(0)
+  # Score-rehidratado (medido 2026-08-20: 47,9 vs 68,6 con las MISMAS filas):
+  # la persistencia del frame NO guarda `population` (derivable, por contrato),
+  # y sin ella las dimensiones con preferencia "student" caen a la via por-aula
+  # EN SILENCIO. El score resultante no es comparable y tiene que decirlo.
+  pop_rows <- nrow(.cm_aulas_as_df(frame_result$population %||% data.frame(stringsAsFactors = FALSE), "population"))
+  student_vars <- sum(.cm_aulas_text_key(objective$variables$source_preference) == "student", na.rm = TRUE)
+  if (pop_rows == 0L && student_vars > 0L) {
+    warnings <- c(warnings, sprintf(
+      "El marco no trae la tabla de estudiantes (rehidratado sin population): %d dimension(es) del objetivo se midieron por aula en vez de por estudiante unico. El score NO es comparable con el de un marco recien construido; reconstruye el marco para el score completo.",
+      student_vars))
+  }
   missing <- metrics[!(metrics$active %in% TRUE), , drop = FALSE]
   if (nrow(missing)) warnings <- c(warnings, sprintf("Se redistribuyo peso de %s dimension(es) sin datos activos.", nrow(missing)))
   severe <- metrics[metrics$metric_group == "balance" & is.finite(metrics$max_abs_error) & is.finite(metrics$tolerance) & metrics$max_abs_error > 2 * metrics$tolerance, , drop = FALSE]
