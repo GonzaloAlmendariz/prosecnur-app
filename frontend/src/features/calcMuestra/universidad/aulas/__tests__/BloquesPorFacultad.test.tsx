@@ -16,7 +16,7 @@ import {
 } from "../../../../../api/client";
 import { CalculoCursosHorarioFacultadTab } from "../../calculo/CalculoCursosHorarioFacultadTab";
 import { SinDecisionAlumnosChAviso } from "../../calculo/SinDecisionAlumnosChAviso";
-import { AulasSeleccionTab } from "../AulasSeleccionTab";
+import { AulasSolidezTab } from "../AulasSolidezTab";
 import { MargenPorFacultadCard } from "../MargenPorFacultadCard";
 import { DocenteUnicoAviso } from "../DocenteUnicoAviso";
 import { efectividadCalibradaPorFacultad } from "../efectividadCalibradaModel";
@@ -167,15 +167,18 @@ describe("montaje: el aviso vive en la pestaña de Cálculo", () => {
   });
 });
 
-describe("montaje: margen y sexo viven en la pestaña de Selección", () => {
+describe("montaje: margen y sexo viven en la pestaña de Solidez", () => {
   // Sin esto el mutante sobrevive: con las dos tarjetas desmontadas, los 1.425
-  // tests de calcMuestra seguían verdes.
-  function tabSeleccion(
+  // tests de calcMuestra seguían verdes. Partición de titulares (2026-08-20):
+  // el contrato se mudó de Selección a Solidez junto con las tarjetas.
+  function tabSolidez(
     margenFilas: CalcMuestraAulasEstrato[] | null,
     sexo: unknown,
   ): string {
     // El modelo mínimo que la pestaña desestructura; con menos revienta en un
     // `.filter` y el test diría «no se pinta» por la razón equivocada.
+    // selectionReady: true — Solidez contiene su propio vacío (C3) y sin
+    // selección corrida NO pinta las tarjetas a propósito.
     const model = {
       config: {}, selection: null, selectionRows: [], coverageRows: [],
       visibleProfiles: [], m1Rows: [], reserveRows: [], replacementSimulation: null,
@@ -183,15 +186,12 @@ describe("montaje: margen y sexo viven en la pestaña de Selección", () => {
       targetForDisplay: 0, m1ForDisplay: 0, facultades: [],
       frameReady: false, comparison: null, simulationRows: [], rows: [],
       marcoDesactualizado: false, methods: [], stored: null, frameRows: [],
-      extraRows: [], profiles: [], objetivo: null,
-    } as unknown as Parameters<typeof AulasSeleccionTab>[0]["model"];
+      extraRows: [], profiles: [], objetivo: null, selectionReady: true,
+    } as unknown as Parameters<typeof AulasSolidezTab>[0]["model"];
     return renderToStaticMarkup(
-      <AulasSeleccionTab
-        workspace={{ aulas_config: {} } as unknown as Parameters<typeof AulasSeleccionTab>[0]["workspace"]}
+      <AulasSolidezTab
+        workspace={{ aulas_config: {} } as unknown as Parameters<typeof AulasSolidezTab>[0]["workspace"]}
         model={model}
-        busy={null}
-        onSelectMethod={() => {}}
-        onSimulateReplacements={() => {}}
         margenFilas={margenFilas}
         sexoBalance={normalizeCalcMuestraSexoPorFacultad(sexo)}
       />,
@@ -199,7 +199,7 @@ describe("montaje: margen y sexo viven en la pestaña de Selección", () => {
   }
 
   it("las dos tarjetas aparecen en la pestaña", () => {
-    const html = tabSeleccion(FILAS, SEXO_CRUDO);
+    const html = tabSolidez(FILAS, SEXO_CRUDO);
     expect(html).toContain("cmv2-margen-card");
     expect(html).toContain("cmv2-sexo-card");
     expect(html).toContain("LETRAS Y CIENCIAS HUMANAS");
@@ -207,9 +207,25 @@ describe("montaje: margen y sexo viven en la pestaña de Selección", () => {
   });
 
   it("CONTROL: sin los bloques la pestaña no las pinta", () => {
-    const html = tabSeleccion(null, null);
+    const html = tabSolidez(null, null);
     expect(html).not.toContain("cmv2-margen-card");
     expect(html).not.toContain("cmv2-sexo-card");
+  });
+
+  it("CONTROL C3: sin selección corrida la pestaña explica su vacío", () => {
+    const model = {
+      config: {}, selection: null, selectionRows: [], coverageRows: [],
+      visibleProfiles: [], m1Rows: [], facultades: [], targetForDisplay: 0,
+      framePopulationCount: 0, selectionReady: false,
+    } as unknown as Parameters<typeof AulasSolidezTab>[0]["model"];
+    const html = renderToStaticMarkup(
+      <AulasSolidezTab
+        workspace={{ aulas_config: {} } as unknown as Parameters<typeof AulasSolidezTab>[0]["workspace"]}
+        model={model}
+      />,
+    );
+    expect(html).toContain("cmv2-aulas-vacio-nota");
+    expect(html).not.toContain("cmv2-margen-card");
   });
 });
 

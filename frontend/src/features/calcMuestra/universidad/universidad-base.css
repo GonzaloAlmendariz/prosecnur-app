@@ -710,10 +710,6 @@
   background: var(--pulso-success-bg);
 }
 
-.cmv2-classroom-table-filter {
-  max-width: 360px;
-  margin: 8px 0;
-}
 
 .cmv2-classroom-table-wrap {
   position: relative;

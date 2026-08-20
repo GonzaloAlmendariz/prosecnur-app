@@ -898,25 +898,7 @@
 
 /* --- Pie de la tabla de selección: contador honesto + "mostrar más" ----------
    Barra discreta: hairline superior, texto muted tabular y botón compacto. */
-.cmv2-aulas-tabla-pie {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 6px 2px 0;
-  border-top: 1px solid color-mix(in srgb, var(--cmv2-border) 60%, transparent);
-  font-size: 11px;
-  color: var(--pulso-text-muted);
-  font-variant-numeric: tabular-nums;
-}
 
-.cmv2-aulas-tabla-pie .cmv2-ghost {
-  min-height: 26px;
-  padding: 3px 10px;
-  font-size: 11px;
-}
 
 /* =============================================================================
    Inspector de aula seleccionada (pestaña Aulas titulares).
@@ -1961,4 +1943,13 @@
   padding-left: 16px;
   display: grid;
   gap: 4px;
+}
+
+/* C3 de «Solidez de la selección»: el vacío se explica a sí mismo. */
+.cmv2-aulas-vacio-nota {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pulso-text-soft);
+  max-width: 62ch;
 }

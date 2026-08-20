@@ -70,7 +70,7 @@ describe("universitySidebarTabs — Selección", () => {
     expect(resolveUniversityClassroomTab("auditoria")).toBe("auditoria");
   });
 
-  it("expone solo las ocho pestañas vivas y conserva sus gates", () => {
+  it("expone solo las nueve pestañas vivas y conserva sus gates", () => {
     // ADR 0067: «Relato» (aulas-relato) entra junto a Sustento con el mismo
     // gate que Perfil — narra la selección persistida, así que existe en
     // cuanto ella existe.
@@ -86,6 +86,7 @@ describe("universitySidebarTabs — Selección", () => {
       "metodo:working",
       "laboratorio:working",
       "seleccion:pending",
+      "solidez:pending",
       "perfil:pending",
       "reemplazos:pending",
       "aulas-relato:pending",

@@ -124,7 +124,7 @@ describe("manifiesto de navegación", () => {
     );
   });
 
-  it("expone las 29 pestañas de Muestra, 26 de Procesamiento y 4 de Dashboard", () => {
+  it("expone las 30 pestañas de Muestra, 26 de Procesamiento y 4 de Dashboard", () => {
     const muestra = nodosDe("calc-muestra").filter(
       (nodo) =>
         nodo.nivel === "pestana"
@@ -138,7 +138,8 @@ describe("manifiesto de navegación", () => {
     );
 
     // ADR 0067: Selección gana «Relato» (aulas-relato). 27 → 28.
-    expect(muestra).toHaveLength(29);
+    // Partición de titulares (2026-08-20): Selección gana «Solidez». 29 → 30.
+    expect(muestra).toHaveLength(30);
     expect(nodoPorClave("calc-muestra/opinion-universitaria/aulas/marco")).toBeNull();
     expect(
       nodoPorClave("calc-muestra/opinion-universitaria/aulas/aulas-relato"),
