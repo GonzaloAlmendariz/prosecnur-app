@@ -240,3 +240,98 @@ monitoreo_texto_abierto_payload <- function(responses = data.frame(),
   })
   base
 }
+
+#' Banda de una proporcion (Wilson)
+#'
+#' La banda de una mediana sale de los ordenes estadisticos
+#' (`monitoreo_tiempos_banda_mediana`); la de una tasa, no. Aqui va el intervalo
+#' de Wilson, que se porta bien con pocos casos y con tasas pegadas a 0 o a 1
+#' —justo lo que pasa aqui: la mitad de los aplicadores tienen 0 % de relleno—.
+#' Lo que se comparte entre las dos es el criterio, no la formula: **destaca
+#' quien no alcanza a lo que hace el resto**.
+monitoreo_banda_proporcion <- function(exitos, n, conf = 0.95) {
+  if (!is.finite(n) || n <= 0) return(list(inferior = NA_real_, superior = NA_real_))
+  z <- stats::qnorm(1 - (1 - conf) / 2)
+  p <- exitos / n
+  d <- 1 + z^2 / n
+  centro <- p + z^2 / (2 * n)
+  radio <- z * sqrt(p * (1 - p) / n + z^2 / (4 * n^2))
+  list(
+    inferior = max(0, (centro - radio) / d),
+    superior = min(1, (centro + radio) / d)
+  )
+}
+
+#' Nombres que son el mismo nombre
+#'
+#' Medido en acnur_pdm: sus 19 aplicadores nominales son **16**. «JORGE DEL
+#' SOLAR» convive con «JORGE  DEL SOLAR» (dos espacios) y «Silbia Cruzado» con
+#' «silbia cruzado». Sin unirlos, tres aplicadores aparecen partidos y con un
+#' solo caso, y un grupo de uno no dice nada de nadie.
+#'
+#' **Solo se unen mayusculas y espacios, que es seguro.** «MARTHA VILANUEVA»
+#' —sin una L— NO se une a «MARTHA VILLANUEVA»: parecerse no es ser, y fusionar
+#' por parecido inventaria datos. Ese caso se reconoce por quedarse en un solo
+#' registro, y por eso `n` viaja siempre al lado de la tasa.
+monitoreo_texto_normaliza_grupo <- function(grupo) {
+  g <- trimws(gsub("[[:space:]]+", " ", as.character(grupo)))
+  clave <- toupper(g)
+  # La forma que se muestra es la mas frecuente, no la primera que aparezca.
+  visible <- vapply(split(g, clave), function(v) names(sort(table(v), decreasing = TRUE))[1], "")
+  # Se cuenta contra el texto CRUDO: si se contara contra `g`, las variantes que
+  # solo difieren en espacios ya estarian unidas y la cuenta diria menos de las
+  # que hubo. Medido: en acnur_pdm son 2 fusiones y contando mal salia 1.
+  crudos <- unique(as.character(grupo)[nzchar(trimws(as.character(grupo)))])
+  list(clave = clave, visible = unname(visible[clave]),
+       fusionados = length(crudos) - length(unique(clave[nzchar(clave)])))
+}
+
+#' Señales de texto abierto agregadas por grupo
+#'
+#' @param respuestas Texto de UNA pregunta.
+#' @param grupo Quien o donde, una entrada por respuesta.
+#' @param senal `"relleno"` o `"negativa"`.
+monitoreo_texto_por_grupo <- function(respuestas, grupo, senal = "relleno",
+                                      conf = 0.95, minimo_n = 5) {
+  s <- monitoreo_texto_senales(respuestas)
+  vacia <- data.frame(
+    grupo = character(0), n = integer(0), n_bajo = logical(0), marcadas = integer(0),
+    tasa = numeric(0), banda_inf = numeric(0), banda_sup = numeric(0),
+    tasa_resto = numeric(0), destaca = logical(0), stringsAsFactors = FALSE
+  )
+  if (!nrow(s)) return(vacia)
+  if (!senal %in% names(s)) stop("`senal` tiene que ser una de las que produce monitoreo_texto_senales()")
+  g <- monitoreo_texto_normaliza_grupo(grupo)
+  marca <- s[[senal]]
+  clave <- g$clave[s$fila]
+  visible <- g$visible[s$fila]
+  vale <- !is.na(clave) & nzchar(clave)
+  if (!any(vale)) return(vacia)
+  marca <- marca[vale]; clave <- clave[vale]; visible <- visible[vale]
+
+  filas <- lapply(sort(unique(clave)), function(k) {
+    dentro <- marca[clave == k]
+    fuera <- marca[clave != k]
+    n <- length(dentro)
+    banda <- if (n >= minimo_n) monitoreo_banda_proporcion(sum(dentro), n, conf) else
+      list(inferior = NA_real_, superior = NA_real_)
+    resto <- if (length(fuera)) mean(fuera) else NA_real_
+    data.frame(
+      grupo = visible[clave == k][1],
+      n = n,
+      n_bajo = n < minimo_n,
+      marcadas = sum(dentro),
+      tasa = round(100 * mean(dentro), 1),
+      banda_inf = round(100 * banda$inferior, 1),
+      banda_sup = round(100 * banda$superior, 1),
+      tasa_resto = if (is.finite(resto)) round(100 * resto, 1) else NA_real_,
+      destaca = is.finite(banda$inferior) && is.finite(resto) &&
+        (100 * resto < round(100 * banda$inferior, 1) || 100 * resto > round(100 * banda$superior, 1)),
+      stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, filas)
+  # Los grupos sin banda van al final aunque su tasa sea la mas alta: un 100 %
+  # sobre un caso encabezando la lista se lee como «el peor», y no dice nada.
+  out[order(out$n_bajo, -out$tasa, -out$n), , drop = FALSE]
+}
