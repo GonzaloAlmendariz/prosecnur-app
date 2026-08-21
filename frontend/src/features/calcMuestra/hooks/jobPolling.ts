@@ -3,16 +3,43 @@
  * cursos-horario, reportes). Lógica extraída de CalcMuestraPage para poder
  * testearla sin montar la página, con dos endurecimientos (F6):
  *
- *  - Timeout: antes se abandonaba el polling SIN cancelar el job → el worker
- *    quedaba huérfano corriendo en el backend. Ahora se pide la cancelación
- *    (best-effort) antes de lanzar el error.
  *  - 404: los jobs viven en memoria del backend; tras un reinicio el job ya
  *    no existe y el 404 era tratado como transitorio PARA SIEMPRE. Ahora N
  *    404 consecutivos cortan con un mensaje claro.
+ *  - Si se fija un techo de tiempo explícito, al rendirse se pide la
+ *    cancelación del job (best-effort) para no dejar el worker huérfano.
+ *
+ * EL RELOJ YA NO MATA EL TRABAJO (decisión de Gonzalo, 2026-08-21). Antes el
+ * polling se rendía a los 30 minutos y, al hacerlo, cancelaba el job. Medido
+ * con los archivos reales: comparar los cuatro métodos sobre un marco de 3.490
+ * cursos-horario tarda ~75 minutos, así que el techo cancelaba trabajo bueno
+ * justo en los marcos de tamaño normal —«lo normal es que salgan entre 3.500 y
+ * 4.500 cursos-horario»—. Su instrucción, textual: «si la comparación dura
+ * mucho mucho tiempo, y hay un tope, bueno, hay que admitir que pase el tope,
+ * no pasa nada. La idea es de que el contador sea honesto con cómo vamos».
+ *
+ * De ahí las dos mitades de este módulo: el proceso termina cuando el backend
+ * dice que terminó —o cuando el usuario cancela—, y mientras tanto el contador
+ * declara el avance real, lo que falta y que lleva más de lo previsto.
  */
 import { ApiError, apiJobCancel, apiJobStatus, type JobSnapshot } from "../../../api/client";
 
 export const CM_JOB_POLL_INTERVAL_MS = 1500;
+/**
+ * Ritmo de preguntas cuando el trabajo ya se hizo largo. Un job de una hora no
+ * necesita 40 preguntas por minuto: pasado el umbral, se espacia.
+ */
+export const CM_JOB_POLL_INTERVAL_LARGO_MS = 5000;
+export const CM_JOB_ESPACIAR_TRAS_MS = 5 * 60_000;
+/**
+ * A partir de aquí el proceso lleva más de lo previsto. NO se mata: se dice.
+ * Es la diferencia entre un contador honesto y uno que calla.
+ */
+export const CM_JOB_AVISO_LARGO_MS = 30 * 60_000;
+/**
+ * Techo duro heredado. Sigue disponible para quien quiera fijarlo a mano
+ * (`timeoutMs`), pero ya NO es el comportamiento por defecto de `esperarJob`.
+ */
 export const CM_JOB_POLL_TIMEOUT_MS = 30 * 60_000;
 /** 404 consecutivos tolerados antes de dar el job por perdido (backend reiniciado). */
 export const CM_JOB_MAX_NOT_FOUND = 5;
@@ -30,6 +57,63 @@ export function cmJobStageMessage(snap: JobSnapshot): string | null {
     return progress.message;
   }
   return null;
+}
+
+/**
+ * Qué fracción del trabajo va hecha, entre 0 y 1, o null si el job no lo
+ * declara. Se lee de `percent` y, si no viene, de `current/total` — el motor
+ * escribe cualquiera de las dos (job_progress_writer en api/R/jobs.R).
+ */
+export function cmJobFraccion(snap: JobSnapshot): number | null {
+  const p = snap.progress;
+  if (!p || typeof p !== "object") return null;
+  const pct = (p as Record<string, unknown>).percent;
+  if (typeof pct === "number" && Number.isFinite(pct) && pct >= 0) {
+    return Math.min(1, pct / 100);
+  }
+  const current = (p as Record<string, unknown>).current;
+  const total = (p as Record<string, unknown>).total;
+  if (typeof current === "number" && typeof total === "number" && total > 0 && current >= 0) {
+    return Math.min(1, current / total);
+  }
+  return null;
+}
+
+/**
+ * Cuánto falta, en milisegundos, extrapolando el ritmo medio hasta ahora.
+ *
+ * Devuelve null mientras la estimación no valga nada: sin fracción declarada,
+ * recién arrancado (los primeros segundos incluyen la carga de los datos y
+ * darían un número absurdo), o ya terminado. Es una estimación y el texto la
+ * presenta como tal — no se anuncia un minuto exacto que el motor no prometió.
+ */
+export function cmJobEta(elapsedMs: number, fraccion: number | null): number | null {
+  if (fraccion === null) return null;
+  if (fraccion < 0.02 || fraccion >= 1) return null;
+  if (elapsedMs < 20_000) return null;
+  return Math.max(0, Math.round((elapsedMs * (1 - fraccion)) / fraccion));
+}
+
+/**
+ * La línea que ve el usuario mientras espera: qué se está haciendo, en qué va,
+ * cuánto lleva, cuánto falta y —si se pasó de lo previsto— que sigue vivo.
+ */
+export function cmTextoProgreso(args: {
+  label: string;
+  stage: string | null;
+  elapsedMs: number;
+  fraccion: number | null;
+  avisoLargoMs?: number;
+}): string {
+  const { label, stage, elapsedMs, fraccion } = args;
+  const avisoLargoMs = args.avisoLargoMs ?? CM_JOB_AVISO_LARGO_MS;
+  const partes = [`${label}${stage ? ` — ${stage}` : ""}`, cmFormatElapsed(elapsedMs)];
+  const eta = cmJobEta(elapsedMs, fraccion);
+  if (eta !== null) partes.push(`faltan ~${cmFormatElapsed(eta)}`);
+  if (elapsedMs > avisoLargoMs) {
+    partes.push(`más de ${Math.round(avisoLargoMs / 60_000)} min, sigue trabajando`);
+  }
+  return partes.join(" · ");
 }
 
 export function cmJobErrorText(snap: JobSnapshot): string {
@@ -56,24 +140,32 @@ export function esJobNoEncontrado(e: unknown): boolean {
 export type EsperarJobOpciones = {
   /** true cuando el usuario pidió cancelar: el loop corta en el próximo tick. */
   cancelRequested?: () => boolean;
-  /** Recibe "etiqueta — etapa · mm:ss" para el banner de progreso. */
+  /** Recibe la línea de progreso lista para el banner. */
   onProgress?: (texto: string) => void;
   /** Inyectables para tests (por defecto: API real, Date.now y setTimeout). */
   status?: (jobId: string) => Promise<JobSnapshot>;
   cancel?: (jobId: string) => Promise<unknown>;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  /**
+   * Techo duro OPCIONAL. Por defecto no hay: el trabajo termina cuando el
+   * backend dice que terminó o cuando el usuario cancela, nunca por reloj.
+   */
   timeoutMs?: number;
   intervalMs?: number;
+  /** Ritmo espaciado una vez que el trabajo se hizo largo. */
+  intervalLargoMs?: number;
+  espaciarTrasMs?: number;
+  avisoLargoMs?: number;
   maxNotFound?: number;
 };
 
 /**
  * Espera un job del backend polleando GET /api/jobs/<id>. Resuelve con el
  * snapshot "done"; lanza JobCancelledError si el usuario canceló o el backend
- * reporta "cancelled", y Error con el mensaje real del worker si falla, si
- * supera el timeout (cancelando el job best-effort) o si el job desapareció
- * del backend (404 consecutivos).
+ * reporta "cancelled", y Error con el mensaje real del worker si falla o si el
+ * job desapareció del backend (404 consecutivos). Sólo se rinde por tiempo si
+ * quien llama fija un `timeoutMs` explícito, y en ese caso cancela el job.
  */
 export async function esperarJob(
   jobId: string,
@@ -84,8 +176,11 @@ export async function esperarJob(
   const cancel = opciones.cancel ?? apiJobCancel;
   const sleep = opciones.sleep ?? ((ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms); }));
   const now = opciones.now ?? Date.now;
-  const timeoutMs = opciones.timeoutMs ?? CM_JOB_POLL_TIMEOUT_MS;
+  const timeoutMs = opciones.timeoutMs ?? Infinity;
   const intervalMs = opciones.intervalMs ?? CM_JOB_POLL_INTERVAL_MS;
+  const intervalLargoMs = opciones.intervalLargoMs ?? CM_JOB_POLL_INTERVAL_LARGO_MS;
+  const espaciarTrasMs = opciones.espaciarTrasMs ?? CM_JOB_ESPACIAR_TRAS_MS;
+  const avisoLargoMs = opciones.avisoLargoMs ?? CM_JOB_AVISO_LARGO_MS;
   const maxNotFound = opciones.maxNotFound ?? CM_JOB_MAX_NOT_FOUND;
   const start = now();
   let notFoundSeguidos = 0;
@@ -93,8 +188,10 @@ export async function esperarJob(
     // El usuario pidió cancelar: cortamos el polling de inmediato (el backend
     // sigue abortando el worker en su tiempo) y señalamos cancelación limpia.
     if (opciones.cancelRequested?.()) throw new JobCancelledError(label);
-    if (now() - start > timeoutMs) {
-      // F6: no abandonar sin cancelar — si el polling se rinde, el job también.
+    const transcurrido = now() - start;
+    if (Number.isFinite(timeoutMs) && transcurrido > timeoutMs) {
+      // Techo pedido a mano: no abandonar sin cancelar — si el polling se
+      // rinde, el job también, para no dejar el worker huérfano.
       try {
         await cancel(jobId);
       } catch {
@@ -125,9 +222,16 @@ export async function esperarJob(
       if (snap.status === "error") {
         throw new Error(`${label}: ${cmJobErrorText(snap)}`);
       }
-      const stage = cmJobStageMessage(snap);
-      opciones.onProgress?.(`${label}${stage ? ` — ${stage}` : ""} · ${cmFormatElapsed(now() - start)}`);
+      opciones.onProgress?.(
+        cmTextoProgreso({
+          label,
+          stage: cmJobStageMessage(snap),
+          elapsedMs: now() - start,
+          fraccion: cmJobFraccion(snap),
+          avisoLargoMs,
+        }),
+      );
     }
-    await sleep(intervalMs);
+    await sleep(transcurrido > espaciarTrasMs ? intervalLargoMs : intervalMs);
   }
 }
