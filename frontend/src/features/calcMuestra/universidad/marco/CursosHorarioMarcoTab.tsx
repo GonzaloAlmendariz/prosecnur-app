@@ -37,6 +37,7 @@ import {
   type MonitoreoRow,
 } from "../../../../api/client";
 import { seleccionActiva } from "../../dominio/criteriosMarco";
+import { AvisoPrecedenciaSuite, debeAvisarPrecedenciaSuite } from "../criterios/avisoPrecedenciaSuite";
 import {
   ELEGIBLES_POR_AULA_ID,
   minEligibleThreshold,
@@ -447,6 +448,10 @@ export function CursosHorarioMarcoTab({
     config.teacher_type_orden,
     { config, opcionalesActivos: opcionalesActivosMotor },
   );
+  const avisaPrecedencia = debeAvisarPrecedenciaSuite({
+    suiteActiva: !sinCriteriosDeclarados,
+    marcoDesactualizado,
+  });
   const radiografiaV2 = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2"
     ? criteriosRadiografia
     : null;
@@ -840,6 +845,7 @@ export function CursosHorarioMarcoTab({
 
   return (
     <div className="cmv2-chfp" data-audit-ready={ready && marcoPublicable ? "true" : "false"}>
+      {avisaPrecedencia ? <AvisoPrecedenciaSuite /> : null}
       {onReconstruir && (
         <div
           className="cmv2-crit-apply cmv2-chfp-apply"
