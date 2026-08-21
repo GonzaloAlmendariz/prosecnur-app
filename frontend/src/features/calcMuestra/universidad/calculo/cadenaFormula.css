@@ -1,0 +1,99 @@
+/* La cadena cuota → titulares como fórmula, no como párrafo (2026-08-21).
+   Cada término es una pieza que dice su nombre y, debajo, de dónde sale. */
+
+.cmv2-cadfor {
+  margin: 6px 0 0;
+}
+
+.cmv2-cadfor-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-cadfor-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cmv2-cadfor-pieza {
+  display: grid;
+  gap: 1px;
+  align-content: center;
+  padding: 6px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  background: var(--pulso-surface);
+  min-width: 0;
+}
+
+.cmv2-cadfor-pieza b {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--pulso-text);
+}
+
+.cmv2-cadfor-pieza small {
+  font-size: 9.5px;
+  line-height: 1.3;
+  color: var(--pulso-text-muted);
+}
+
+/* Entrada y salida marcan los extremos de la cadena; los factores del medio
+   quedan en voz más baja para que se lea de un vistazo qué entra y qué sale. */
+.cmv2-cadfor-pieza[data-rol="entrada"] {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 40%, var(--pulso-border));
+}
+
+.cmv2-cadfor-pieza[data-rol="salida"] {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+}
+
+.cmv2-cadfor-pieza[data-rol="salida"] b {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-cadfor-op,
+.cmv2-cadfor-parentesis {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-cadfor-parentesis {
+  font-size: 20px;
+  font-weight: 300;
+  opacity: 0.5;
+}
+
+.cmv2-cadfor-ir {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: 9.5px;
+  color: var(--module-accent, var(--pulso-primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.cmv2-cadfor-nota {
+  margin: 8px 0 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-cadfor-nota b {
+  color: var(--pulso-text-soft);
+}

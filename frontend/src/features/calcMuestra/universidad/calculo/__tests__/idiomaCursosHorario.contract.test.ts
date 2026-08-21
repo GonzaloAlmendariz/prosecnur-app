@@ -16,10 +16,21 @@ describe("idioma de Cursos-horario requeridos", () => {
   it("la tabla principal enseña la tasa de efectividad (la cadena no se rompe)", () => {
     const tab = src("CalculoCursosHorarioFacultadTab.tsx");
     expect(tab).toContain("<th>Tasa de efectividad</th>");
-    expect(tab).toContain("tasa de\n              efectividad de la facultad) → titulares");
+    // MUDADO 2026-08-21: la cadena dejó de ser un párrafo dentro del tab y es
+    // un diagrama propio (Gonzalo: «hay un cuadro de texto gigante llamado "la
+    // cadena completa por facultad"; debería explicarse de forma más dinámica»).
+    // El contrato es el mismo —la cadena no se rompe—, sólo cambió de casa.
+    const cadena = src("CadenaFormulaFacultad.tsx");
+    expect(cadena).toContain("cuota");
+    expect(cadena).toContain("tasa de efectividad");
+    expect(cadena).toContain("titulares");
+    expect(tab).toContain("<CadenaFormulaFacultad");
+    // El divisor se lee de la decisión del analista, nunca escrito a mano.
+    expect(tab).toContain("etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)");
     // La jerga enterrada no vuelve.
     expect(tab).not.toContain("publicados por R");
     expect(tab).not.toContain("Método R");
+    expect(cadena).not.toContain("Método R");
   });
 
   it("las tarjetas de la pestaña no hablan del τ global muerto", () => {

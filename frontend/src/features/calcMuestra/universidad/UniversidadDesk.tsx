@@ -813,7 +813,7 @@ export function UniversidadDesk({
                 />
               </div>
               <div className="cmv2-recorrido-paso" data-paso="3">
-                <span className="cmv2-recorrido-kicker">Paso 3 · Qué se pide: titulares y reservas, y si alcanzan</span>
+                <span className="cmv2-recorrido-kicker">Paso 3 · Qué se pide: titulares, reservas y si llegan a la cuota</span>
                 <CalculoCursosHorarioFacultadTab
                   componentes={[totalComp, facultyComp]}
                   currentFrameHash={aulasState?.frame?.frame_hash}
@@ -823,6 +823,7 @@ export function UniversidadDesk({
                   certeza={aulasState?.certeza ?? null}
                   certezaEnCurso={midiendoCerteza}
                   onMedirCerteza={onMedirCerteza}
+                  onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
                 />
               </div>
             </div>}
