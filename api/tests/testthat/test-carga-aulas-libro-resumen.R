@@ -258,3 +258,22 @@ test_that("cada cifra de avance de la portada dice de DONDE sale", {
   expect_false("Avance" %in% names(cortes$por_facultad))
   expect_false("Avance sobre lo esperado" %in% names(cortes$avance))
 })
+
+test_that("el banco NO entra en los cortes por facultad", {
+  # No esta agendado: sumarlo da un operativo que nadie va a visitar. En el
+  # estudio de trabajo son 73 aulas, y entrando inflarian tanto el numero de
+  # facultades como los titulares de cada una. El mutante que los metia
+  # sobrevivia: la regla estaba escrita en un comentario y en ningun aserto.
+  cortes <- aulas_libro_cortes(list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+         expected_valid = 20, eligible_n = 30),
+    # Del banco y en OTRA facultad: si entrara, «Facultades» diria 2.
+    list(operational_code = "X 1", sample_role = "extra_reserve_pool",
+         faculty = "Ciencias", expected_valid = 15, eligible_n = 24)
+  ))
+  expect_equal(cortes$totales[["Facultades"]], 1L)
+  expect_identical(cortes$por_facultad$Facultad, "Letras")
+  # Y se cuentan aparte, que es como lo trata el resto del sistema: no
+  # desaparecen, cambian de sitio.
+  expect_equal(cortes$totales[["Aulas del banco"]], 1L)
+})

@@ -220,3 +220,47 @@ alto_de_fila <- function(path, hoja, fila) {
   ht <- xml2::xml_attr(r, "ht")
   if (is.na(ht)) NA_real_ else as.numeric(ht)
 }
+
+# El TIPO de una celda: `"n"` numerica, `"s"`/`"str"` texto, `""` sin declarar.
+#
+# Es lo que decide si Excel puede ordenar y filtrar por rango. Un
+# `expect_gt(length(grep('t="n"', celdas)), 0)` sobre la hoja entera NO sirve
+# para vigilar una columna: cualquier otra columna numerica lo satisface —paso
+# exactamente eso con las fechas el dia que se empezaron a tipar los conteos—.
+tipo_de_celda <- function(path, hoja, col, fila) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(NA_character_)
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  ref <- paste0(openxlsx::int2col(col), fila)
+  c1 <- xml2::xml_find_first(doc, sprintf(".//a:c[@r='%s']", ref), ns)
+  if (inherits(c1, "xml_missing")) return(NA_character_)
+  t <- xml2::xml_attr(c1, "t")
+  # Sin atributo `t`, Excel entiende numero.
+  if (is.na(t)) "n" else t
+}
+
+# Las columnas que llevan formato condicional en una hoja, como letras.
+#
+# El semaforo se cuelga por posicion, y ya se pinto una vez sobre la columna
+# equivocada —`MEDIO DE CONTACTO` en vez de `STATUS DE APLICACION`—: una regla
+# que existe pero no tiñe nada no se ve por ningun lado.
+columnas_con_formato_condicional <- function(path, hoja) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(character(0))
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  sq <- xml2::xml_attr(xml2::xml_find_all(doc, ".//a:conditionalFormatting", ns), "sqref")
+  sq <- sq[!is.na(sq)]
+  unique(sub("([A-Z]+).*", "\\1", unlist(strsplit(sq, "[ :]"))))
+}
