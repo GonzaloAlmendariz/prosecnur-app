@@ -59,6 +59,11 @@ export function universityEffectiveMappingPayload(
   aulasState: CalcMuestraAulasState | null,
 ): Record<string, string[]> {
   const out: Record<string, string[]> = {};
+  const columnsBySource = universityColumnOptionsBySource(workspace, aulasState);
+  const columnasDe = (sourceRole: string | undefined | null) =>
+    universitySourceGroupForRole(sourceRole) === "classroom"
+      ? columnsBySource.classroom
+      : columnsBySource.student;
 
   // 1 · Todo lo confirmado, incluidos roles fuera del catálogo conocido.
   for (const row of workspace.variable_mappings ?? []) {
@@ -67,15 +72,29 @@ export function universityEffectiveMappingPayload(
     out[rolDelMotor(row.role)] = [column];
   }
 
-  // 2 · Para las variables conocidas sin confirmar, la sugerencia visible.
-  const columnsBySource = universityColumnOptionsBySource(workspace, aulasState);
+  // 2 · Las variables conocidas: sugerencia si no hay confirmada, y también si
+  //     la confirmada ya NO existe entre las columnas de su fuente.
+  //
+  //     Ese segundo caso es real y estaba mudo: el proyecto HSVG2026 arrastraba
+  //     un mapeo confirmado de una base anterior («Código PUCP») sobre archivos
+  //     que traen ALUMNO. La pantalla lo daba por confirmado —6 de 6, en verde—
+  //     y al reconstruir el motor moría con «No se encontro columna de
+  //     estudiante». Es lo que le pasa a cualquiera que reemplace su base por
+  //     una versión nueva con otros encabezados. Si no conocemos las columnas
+  //     de esa fuente no se toca nada: sin evidencia no se descarta lo que el
+  //     usuario declaró.
   for (const base of UNIVERSITY_REQUIRED_VARIABLES) {
     const rol = rolDelMotor(base.role);
-    if (out[rol]) continue;
-    if (columnaConfirmada(workspace.variable_mappings, base.role)) continue;
-    const columnas = universitySourceGroupForRole(base.source_role) === "classroom"
-      ? columnsBySource.classroom
-      : columnsBySource.student;
+    const confirmada = columnaConfirmada(workspace.variable_mappings, base.role);
+    const columnas = columnasDe(base.source_role);
+    const confirmadaExiste = !columnas.length || columnas.includes(confirmada);
+    if (confirmada && confirmadaExiste) continue;
+    if (!confirmada && out[rol]) continue;
+    // La confirmada no existe: se retira del payload aunque no haya sugerencia.
+    // Mandar una columna inexistente hace que el motor muera con un error
+    // críptico; sin ella aplica su propia lectura de la base, que es lo que
+    // hacía antes de que nadie la mapeara.
+    if (confirmada && !confirmadaExiste) delete out[rol];
     const sugerida = inferUniversityColumn(base.role, columnas);
     if (sugerida) out[rol] = [sugerida];
   }
