@@ -67,11 +67,21 @@ export function SalidasCoincidenciaTab({
   // y cuentas contra el estudio anterior», y repetirlo debajo con un parrafo mas
   // largo es texto que nadie lee dos veces.
   return (
-    <section className="cmv2-coincidencia" aria-label="Coincidencia con el estudio anterior">
+    <section
+      className="cmv2-coincidencia"
+      aria-label="Coincidencia con el estudio anterior"
+      // La superficie declara su geometría: sin esto `ui-quick-check` sólo
+      // auditaba el resumen del toolbar y devolvía «ok=true» sin haber medido
+      // nada de esta pestaña. Verde por ausencia, no por conformidad.
+      // `intrinsic` porque sus tres grupos tienen alturas propias —el método,
+      // el resultado y el detalle no miden lo mismo ni deben.
+      data-qa-geometry-group="calc-muestra/salidas-coincidencia"
+      data-qa-geometry-contract="intrinsic"
+    >
       {/* Tres grupos rotulados (revamp 2026-08-19): el método, el resultado y
           el detalle. Antes las seis tarjetas iban apiladas al mismo nivel y la
           página no tenía dónde apoyar la vista. */}
-      <div className="cmv2-coincidencia-grupo" aria-label="El método">
+      <div className="cmv2-coincidencia-grupo" aria-label="El método" data-qa-geometry-member>
         <h3 className="cmv2-coincidencia-rotulo">El método, contra el estudio anterior</h3>
         <CriteriosGeneralesCard filas={criteriosGenerales} referencia={referencia} />
         {/* Los criterios del MARCO, que son los que deciden qué aulas entran.
@@ -83,7 +93,7 @@ export function SalidasCoincidenciaTab({
           referencia={referencia}
         />
       </div>
-      <div className="cmv2-coincidencia-grupo" aria-label="El resultado">
+      <div className="cmv2-coincidencia-grupo" aria-label="El resultado" data-qa-geometry-member>
         <h3 className="cmv2-coincidencia-rotulo">Lo que produce la selección</h3>
         {/* Medido en vivo con un proyecto sin selección: las tres tarjetas de
             abajo devuelven null y el grupo quedaba en 13 px de alto — un
@@ -112,7 +122,7 @@ export function SalidasCoincidenciaTab({
           periodo={referencia?.periodo ?? ""}
         />
       </div>
-      <div className="cmv2-coincidencia-grupo" aria-label="El detalle por facultad">
+      <div className="cmv2-coincidencia-grupo" aria-label="El detalle por facultad" data-qa-geometry-member>
         <h3 className="cmv2-coincidencia-rotulo">El detalle, facultad por facultad</h3>
         <FichaPorFacultadCard fichas={fichas} periodo={referencia?.periodo ?? ""} />
       </div>
