@@ -35,3 +35,18 @@ test_that("varias claves se separan y se leen todas", {
   expect_true(grepl("Escuela de posgrado", msg, fixed = TRUE))
   expect_true(grepl("Artes escenicas", msg, fixed = TRUE))
 })
+
+test_that("la rama sobrante dice la salida, igual que la faltante", {
+  # Medido en el recorrido del usuario nuevo: al declarar criterios, una
+  # facultad se quedo sin cursos-horario elegibles y el calculo se bloqueo. El
+  # mensaje explicaba el hecho —«no puede recibir cuota»— y ahi terminaba,
+  # mientras la rama de facultad FALTANTE si ofrece sus dos salidas. Quedarse
+  # sin salida es peor que el error.
+  sobra <- .cm_alumnos_ch_mensaje_cobertura(character(0), "consorcio_de_universidades")
+
+  expect_true(grepl("no puede recibir cuota", sobra, fixed = TRUE))
+  # Las dos salidas reales, verificadas en la app: excluirla del estudio o
+  # revisar los criterios que dejaron sus aulas fuera.
+  expect_true(grepl("Facultades excluidas", sobra, fixed = TRUE))
+  expect_true(grepl("criterios", sobra, fixed = TRUE))
+})
