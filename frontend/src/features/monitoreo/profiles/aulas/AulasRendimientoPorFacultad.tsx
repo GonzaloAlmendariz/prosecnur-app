@@ -54,7 +54,7 @@ export function AulasRendimientoPorFacultad({
 
   if (!filas.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay partes de campo con asistentes ni efectivas, así que no se puede decir
         qué rinde más.
       </p>

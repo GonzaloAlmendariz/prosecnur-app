@@ -56,7 +56,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
 
   if (!r.descuadran) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Las {fmt(r.comparables)} aulas comparables cuadran: lo que el aplicador
         declaró es lo que llegó a plataforma.
       </p>

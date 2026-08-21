@@ -39,7 +39,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
 
   if (!facultades.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {sinFacultad
           ? `Ninguno de los ${fmt(sinFacultad)} cursos-horario del plan declara facultad.`
           : "El plan todavía no trae cursos-horario."}

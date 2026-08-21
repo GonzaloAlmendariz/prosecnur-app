@@ -41,7 +41,10 @@ export function AulasRitmoDiario({ ritmo }: { ritmo: RitmoDiario | null }) {
       // El vacío dice de dónde saldría el dato: sin marca de envío no hay
       // calendario, y eso es una propiedad de la fuente, no un fallo de la
       // vista. Inventar un solo día con todo dentro sería peor que no dibujar.
-      <p className="mon-profile-muted">
+      // Y declara lo mismo que la rama con datos —miembro del grupo, dueño de
+      // su hueco—: sin eso el único miembro visible pasa a ser el encabezado
+      // del panel y el gate canta `capacity-drift` sobre su padding.
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Las respuestas de este estudio no traen fecha de envío, así que no se
         puede reconstruir el día a día de la recolección.
       </p>

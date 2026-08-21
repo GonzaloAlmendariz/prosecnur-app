@@ -144,7 +144,7 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
 
   if (!facultades.length || !izquierda) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {sinMeta
           ? `Las ${fmt(sinMeta)} celdas de cuota del plan no declaran objetivo.`
           : "El plan no declara composición por sexo para estos cursos-horario."}

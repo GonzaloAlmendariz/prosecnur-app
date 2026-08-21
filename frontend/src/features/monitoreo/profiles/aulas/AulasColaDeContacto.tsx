@@ -35,7 +35,7 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   // de contacto». Ese texto mandaba a rellenar un campo del libro que está bien.
   if (!pendientes.length && !esfuerzo.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {filas.length
           ? `No queda ningún curso-horario a quien llamar: los ${fmt(filas.length)} del plan están citados, en reserva o ya reemplazados.`
           : "El plan todavía no trae cursos-horario a los que contactar."}

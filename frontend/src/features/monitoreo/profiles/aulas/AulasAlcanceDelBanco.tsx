@@ -72,7 +72,7 @@ export function AulasAlcanceDelBanco({ banco, control, quotas, agenda, partes }:
   if (!r) {
     // C5 categoría 1: el vacío dice qué falta y de dónde sale, dentro de la caja.
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Para saber si el banco alcanza hace falta la hoja «Base de control» del
         libro: de ahí sale la tasa con la que responde un aula, y sin ella
         proyectar sus alumnos sería inventar.

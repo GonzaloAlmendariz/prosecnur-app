@@ -29,8 +29,12 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
   const f = useMemo(() => frenteDelOperativo(filas, partes, corte), [filas, partes, corte]);
 
   if (!f.conFecha) {
+    // El vacío declara lo mismo que la rama con datos: es miembro del grupo y
+    // posee su hueco. Sin esto, cuando el panel no tiene nada que pintar el
+    // único miembro visible pasa a ser el encabezado de la sección y el gate
+    // canta `capacity-drift` sobre sus 5 px de padding.
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {f.sinFecha
           ? `Ninguno de los ${fmt(f.sinFecha)} cursos-horario del plan tiene fecha agendada, así que no se puede decir cuáles van con atraso.`
           : "La agenda todavía no declara fechas."}

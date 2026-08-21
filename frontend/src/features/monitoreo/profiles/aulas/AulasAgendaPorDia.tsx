@@ -41,7 +41,7 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
   // útil que una barra única con todo dentro.
   if (!diasDeCampo) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Ninguno de los {sinFecha} cursos-horario tiene fecha de aplicación. Se
         declara en la columna «Fecha de aplicación» del libro.
       </p>

@@ -117,7 +117,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
 
   if (!historias.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {sinReserva
           // No es lo mismo «no hay plan» que «el diseño no asignó reservas».
           // Decía «ninguno necesitó reemplazo», que suena a la mejor noticia
