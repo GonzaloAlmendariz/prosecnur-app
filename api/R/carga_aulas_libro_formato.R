@@ -258,8 +258,16 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # en la SEGUNDA, asi que repetir solo la primera dejaba las paginas con un
     # numero de orden y ningun curso-horario. Visto en el PDF.
     repetidas <- columnas_repetidas[[hoja]] %||% 1L
+    # **Se repite la fila de TITULOS, no la banda de grupo.**
+    #
+    # Repitiendo las dos, las columnas repetidas arrastraban tambien la banda
+    # del PRIMER tramo, asi que una pagina con columnas de «CONTROL - CUENTA»
+    # salia rotulada «INFORMACIÓN DEL CURSO». Estaba declarado como limitacion
+    # y no lo es: basta con no repetir esa fila. La banda aparece en la primera
+    # pagina de su tramo, que es donde significa algo, y en las demas no hay
+    # rotulo — mejor sin rotulo que con uno que miente.
     openxlsx::pageSetup(wb, hoja, orientation = "landscape", fitToWidth = FALSE,
-                        printTitleRows = seq_len(n_cab),
+                        printTitleRows = n_cab,
                         printTitleCols = seq_len(repetidas))
   }
 

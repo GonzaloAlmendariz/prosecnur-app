@@ -119,7 +119,15 @@ relleno_de_celda <- function(path, hoja, col, fila) {
 #
 # @return el rango como cadena (por ejemplo «$A:$D»); `""` si la hoja no declara
 #   columnas repetidas.
+filas_repetidas_de <- function(path, hoja) {
+  .print_titles_de(path, hoja, "\\$[0-9]+:\\$[0-9]+")
+}
+
 columnas_repetidas_de <- function(path, hoja) {
+  .print_titles_de(path, hoja, "\\$[A-Z]+:\\$[A-Z]+")
+}
+
+.print_titles_de <- function(path, hoja, patron) {
   d <- tempfile()
   dir.create(d)
   on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
@@ -134,7 +142,7 @@ columnas_repetidas_de <- function(path, hoja) {
     for (parte in strsplit(v, ",", fixed = TRUE)[[1]]) {
       if (!startsWith(parte, sprintf("'%s'!", hoja))) next
       rango <- sub(".*!", "", parte)
-      if (grepl("^\\$[A-Z]+:\\$[A-Z]+$", rango)) return(rango)
+      if (grepl(paste0("^", patron, "$"), rango)) return(rango)
     }
   }
   ""
