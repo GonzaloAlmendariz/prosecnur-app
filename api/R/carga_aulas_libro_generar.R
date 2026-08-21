@@ -255,7 +255,19 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
     if (!length(n) || !is.finite(n) || n < 1L) n <- 1L
     por_aula[[sprintf("%s#%d", cod, n)]] <- pt
   }
-  titulos_agenda <- .calg_titulos_agenda()
+  # **Las DOS fechas del bloque se llamaban igual.** Esta hoja repite la parte de
+  # agenda y le pega el parte de campo, asi que «FECHA DE APLICACION» sale dos
+  # veces en el mismo bloque: la que se agendo y la que ocurrio. Lo unico que
+  # las distinguia en pantalla era una tilde —«APLICACION» contra
+  # «APLICACIÓN»—, que es una diferencia accidental y que nadie lee como una
+  # distincion de significado. El lector ya lo sufria: separa las dos partes por
+  # la SEGUNDA aparicion de `MATRICULADOS TOTAL DTI`, una heuristica que existe
+  # solo porque los rotulos no se distinguen.
+  #
+  # `FECHA AGENDADA` es **alias declarado** de `scheduled_date` en
+  # `AULAS_AGENDADAS_BLOQUE`, asi que el nombre ya estaba disponible. Se cambia
+  # SOLO en esta hoja: en «Aulas Agendadas» no hay con que confundirla.
+  titulos_agenda <- sub("^FECHA DE APLICACION$", "FECHA AGENDADA", .calg_titulos_agenda())
   titulos_campo <- .calg_titulos_campo()
 
   grupo <- c()
