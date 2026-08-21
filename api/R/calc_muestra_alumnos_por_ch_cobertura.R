@@ -65,10 +65,17 @@
     ))
   }
   if (nzchar(sobran)) {
+    # Con la salida, como la rama de faltante: el hecho sin salida deja al
+    # usuario bloqueado sabiendo que algo esta mal y sin donde girar. Las dos
+    # vias son reales y estan verificadas en la app: la lista de facultades
+    # excluidas vive en Marco > Cursos-horario, y los criterios que dejaron sus
+    # aulas fuera se declaran en esa misma pestaña.
     partes <- c(partes, paste0(
       "El estudio declara ", sobran,
       " y el marco vigente no tiene ningún curso-horario elegible ahí: ",
-      "esa facultad no puede recibir cuota."
+      "esa facultad no puede recibir cuota. Si no participa del estudio, ",
+      "márcala en Facultades excluidas (Marco › Cursos-horario); si debe ",
+      "participar, revisa ahí mismo los criterios que dejaron sus aulas fuera."
     ))
   }
   if (!length(partes)) {
