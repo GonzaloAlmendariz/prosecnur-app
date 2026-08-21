@@ -741,3 +741,32 @@ test_that("«ID MATCH» va con el gris de la app: no se escribe en el", {
   aulas_libro_generar(.libro_de_prueba(2L), libro)
   expect_identical(relleno_de_celda(libro, "Aulas Agendadas", 1, 2), "FFF2F4F7")
 })
+
+test_that("las tres hojas listan las aulas en el MISMO orden", {
+  # No es casualidad ni cosmetica: es lo que permite mirar dos hojas en
+  # paralelo. Cada una filtra distinto —la agenda trae un grupo por titular, la
+  # de campo los que tienen parte, el control los que tienen registro— asi que
+  # el numero de filas no coincide, pero el orden relativo si tiene que
+  # coincidir. Sin esto, reordenar una sola las descuadra sin que nada falle.
+  plan <- lapply(c(1, 2, 10, 11, 100), function(n) list(
+    operational_code = sprintf("CH %d", n), titular_operational_code = sprintf("CH %d", n),
+    sample_role = "titular", faculty = "Letras", course_name = "C",
+    eligible_n = 30, expected_valid = 20, wave = "M1"
+  ))
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, libro,
+                      partes = list(list(operational_code = "CH 10", intento = 1L,
+                                         observed_students = 20, effective_surveys = 18)),
+                      control = list(list(operational_code = "CH 2", sent_total = 9)))
+
+  codigos <- function(hoja, fila_cab) {
+    d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = hoja, colNames = FALSE))
+    cab <- as.character(unlist(d[fila_cab, ]))
+    v <- as.character(d[[which(cab == "CURSO-HORARIO")[[1]]]])[-(1:fila_cab)]
+    v[!is.na(v) & nzchar(v)]
+  }
+  esperado <- c("CH 1", "CH 2", "CH 10", "CH 11", "CH 100")
+  expect_identical(codigos("Aulas Agendadas", 1L), esperado)
+  expect_identical(codigos("Aulas Aplicadas (Campo)", 2L), esperado)
+  expect_identical(codigos("Base de control", 2L), esperado)
+})
