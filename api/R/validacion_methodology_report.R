@@ -661,22 +661,31 @@
 # emite el mismo filtro por identificador que usa el script de replicación, con
 # los que PERMANECEN. Sin esto el script declaraba "Encuestas incluidas: 101" y
 # su `prepare_validation_universe()` devolvía las 103 sin tocar.
-.vmr_universe_formula_ids <- function(universe) {
+.vmr_universe_formula_ids <- function(universe, origen = "data") {
   llave <- .vmr_text(universe$final_case_variable %||% "")
   ids <- as.character(unlist(universe$final_case_ids %||% character(0), use.names = FALSE))
   ids <- ids[!is.na(ids) & nzchar(ids)]
   if (!nzchar(llave) || !length(ids)) return("")
   literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = "\n")
+  encabezado <- if (identical(origen, "data")) {
+    c("# Universo final del estudio: los casos que superaron el control de calidad.",
+      "# Se listan por su identificador de caso, que ya viene en la base recibida;",
+      "# reproduce el universo exacto sin exponer nada más.")
+  } else {
+    # Encadenado tras el filtro de pruebas: lo que sigue es la depuración, que
+    # no se puede expresar como condición porque es una lista de casos.
+    c("# Control de calidad: del universo anterior se conservan los casos que lo",
+      "# superaron, listados por su identificador. Sin este paso la función",
+      "# devolvería el universo previo a la depuración.")
+  }
   paste(c(
-    "# Universo final del estudio: los casos que superaron el control de calidad.",
-    "# Se listan por su identificador de caso, que ya viene en la base recibida;",
-    "# reproduce el universo exacto sin exponer nada más.",
+    encabezado,
     paste0(".universo_variable <- ", literal(llave)),
     paste0(".universo_final <- ", literal(ids)),
-    "if (!(.universo_variable %in% names(data))) {",
+    paste0("if (!(.universo_variable %in% names(", origen, "))) {"),
     "  stop(\"Falta la variable de identificador de caso para reconstruir el universo.\", call. = FALSE)",
     "}",
-    ".casos <- as.character(data[[.universo_variable]])",
+    paste0(".casos <- as.character(", origen, "[[.universo_variable]])"),
     ".faltantes <- setdiff(.universo_final, .casos)",
     "if (length(.faltantes) > 0L) {",
     "  stop(sprintf(",
@@ -684,7 +693,7 @@
     "    length(.faltantes)",
     "  ), call. = FALSE)",
     "}",
-    "base_validacion <- data[match(.universo_final, .casos), , drop = FALSE]"
+    paste0("base_validacion <- ", origen, "[match(.universo_final, .casos), , drop = FALSE]")
   ), collapse = "\n")
 }
 
@@ -785,18 +794,30 @@
   universe$excluded_cleaning <- .vmr_universe_count(universe$excluded_cleaning, 0L)
   universe$cleaning_applied <- isTRUE(universe$cleaning_applied)
   universe$excluded_rejections <- .vmr_universe_rejection_count(universe)
-  universe$formula_r <- .vmr_universe_formula(universe)
-  # El filtro por identificador es el recurso cuando no hay filtro de pruebas
-  # que exprese la merma. `formula_kind` distingue las dos: la del PDF se
-  # imprime, la de identificadores no cabe —son cientos de UUID— y allí se
-  # declara en prosa que la lista viaja en el script.
-  universe$formula_kind <- "condicion"
-  if (!nzchar(universe$formula_r)) {
-    ids_formula <- .vmr_universe_formula_ids(universe)
-    if (nzchar(ids_formula)) {
-      universe$formula_r <- ids_formula
-      universe$formula_kind <- "identificadores"
-    }
+  # El universo puede tener DOS etapas y hay que emitir las dos. El filtro de
+  # pruebas es una condición sobre una variable; la depuración es una lista de
+  # casos y no hay condición que la exprese. Emitir sólo la primera dejaba la
+  # función devolviendo el universo previo a la depuración mientras los
+  # comentarios declaraban el conteo final: el mismo defecto que ya costó una
+  # reparación, ahora en el caso combinado.
+  condicion <- .vmr_universe_formula(universe)
+  ids_formula <- .vmr_universe_formula_ids(
+    universe,
+    origen = if (nzchar(condicion)) "base_validacion" else "data"
+  )
+  # `formula_condicion` es lo único imprimible en el PDF: la lista de
+  # identificadores son cientos de UUID que desbordan la caja, y allí se declara
+  # en prosa que viaja en el script.
+  universe$formula_condicion <- condicion
+  if (nzchar(condicion) && nzchar(ids_formula)) {
+    universe$formula_r <- paste(condicion, "", ids_formula, sep = "\n")
+    universe$formula_kind <- "condicion_e_identificadores"
+  } else if (nzchar(ids_formula)) {
+    universe$formula_r <- ids_formula
+    universe$formula_kind <- "identificadores"
+  } else {
+    universe$formula_r <- condicion
+    universe$formula_kind <- "condicion"
   }
   universe$formula_available <- nzchar(universe$formula_r)
   universe
@@ -2544,7 +2565,7 @@ validation_methodology_report_pdf <- function(model, path) {
       if (!isTRUE(universe$applied)) {
         preparation_details <- c(preparation_details, "No se registró un filtro de encuestas de prueba.")
       }
-      if (identical(universe$formula_kind, "identificadores")) {
+      if (grepl("identificadores", .vmr_text(universe$formula_kind %||% ""), fixed = TRUE)) {
         n_ids <- length(as.character(unlist(universe$final_case_ids %||% character(0), use.names = FALSE)))
         preparation_details <- c(preparation_details, sprintf(
           paste0(
@@ -2583,11 +2604,7 @@ validation_methodology_report_pdf <- function(model, path) {
   }
   # La fórmula por identificadores no se imprime: son cientos de UUID que
   # desbordarían la caja y no se leen. La prosa de arriba ya dice dónde está.
-  filter_formula <- if (identical(universe$formula_kind, "identificadores")) {
-    ""
-  } else {
-    .vmr_text(universe$formula_r %||% "")
-  }
+  filter_formula <- .vmr_text(universe$formula_condicion %||% "")
   filter_lines <- if (nzchar(filter_formula)) {
     display_formula <- if (rich_preparation) {
       filter_formula

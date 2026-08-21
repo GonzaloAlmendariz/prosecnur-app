@@ -1692,3 +1692,72 @@ test_that("sin nada descartado el informe no inventa la sección", {
     expect_false(grepl("LO QUE ESTE PLAN NO CUBRE", report_text, fixed = TRUE))
   }
 })
+
+test_that("con filtro de pruebas Y depuración, la función emite las dos etapas", {
+  # El caso que se crea al hacer el filtrado de pruebas dentro de la app: el
+  # universo tiene dos etapas. Emitir sólo la condición dejaba la función
+  # devolviendo el universo previo a la depuración mientras los comentarios
+  # declaraban el conteo final.
+  universo <- list(
+    applied = TRUE, variable = "testreal", real_values = "real", test_values = "test",
+    corrections = list(list(key_variable = "Pulso_code", key_values = "H1004",
+                            variable = "testreal", from_values = "real",
+                            to_value = "test", reason = "Prueba marcada como real")),
+    total = 12L, corrected = 1L, excluded_test = 4L, excluded_rules = 0L, included = 6L,
+    cleaning_applied = TRUE, excluded_cleaning = 2L,
+    final_case_variable = "_uuid", final_case_ids = as.list(sprintf("u%02d", 5:10))
+  )
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))), upstream_universe = universo)
+  expect_identical(model$upstream_universe$formula_kind, "condicion_e_identificadores")
+
+  r_path <- tempfile(fileext = ".R")
+  validation_methodology_report_r(model, r_path)
+  env <- new.env(parent = globalenv()); sys.source(r_path, envir = env)
+
+  crudo <- data.frame(
+    `_uuid` = sprintf("u%02d", 1:12),
+    Pulso_code = sprintf("H10%02d", 1:12),
+    testreal = c(rep("test", 3), rep("real", 9)),
+    check.names = FALSE, stringsAsFactors = FALSE)
+  out <- env$prepare_validation_universe(crudo)
+
+  expect_equal(nrow(out), 6L)
+  expect_equal(sort(as.character(out$`_uuid`)), sprintf("u%02d", 5:10))
+  # El control: con sólo la condición habrían quedado 8 —las que pasan el
+  # filtro de pruebas— y el script habría declarado 6.
+  expect_false(identical(nrow(out), 8L))
+
+  script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  # La reclasificación se documenta: es la corrección del error del analista.
+  expect_match(script, "Prueba marcada como real", fixed = TRUE)
+  expect_match(script, "# Encuestas recibidas: 12", fixed = TRUE)
+  expect_match(script, "# Pruebas retiradas: 4", fixed = TRUE)
+  # Y los depurados siguen sin aparecer.
+  expect_false(grepl('"u11"', script, fixed = TRUE))
+  expect_false(grepl('"u12"', script, fixed = TRUE))
+})
+
+test_that("el PDF imprime la condición pero nunca la lista de identificadores", {
+  universo <- list(
+    applied = TRUE, variable = "testreal", real_values = "real", test_values = "test",
+    total = 120L, corrected = 0L, excluded_test = 17L, excluded_rules = 0L, included = 101L,
+    cleaning_applied = TRUE, excluded_cleaning = 2L,
+    final_case_variable = "_uuid",
+    final_case_ids = as.list(sprintf("caso-%03d", seq_len(101)))
+  )
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code"))), upstream_universe = universo)
+  pdf_path <- tempfile(fileext = ".pdf")
+  expect_error(validation_methodology_report_pdf(model, pdf_path), NA)
+
+  if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
+  txt <- tempfile(fileext = ".txt")
+  expect_equal(system2("pdftotext", c("-layout", pdf_path, txt)), 0L)
+  # El wrapping del PDF parte las frases: se normalizan los espacios antes de
+  # buscar, o el aserto falla por un salto de línea y no por el contenido.
+  texto <- gsub("\\s+", " ", paste(readLines(txt, warn = FALSE, encoding = "UTF-8"), collapse = " "))
+  expect_match(texto, ".filter_real_values", fixed = TRUE)
+  expect_match(texto, "identificadores incluidos viajan en el script R", fixed = TRUE)
+  expect_false(grepl("caso-001", texto, fixed = TRUE))
+})
