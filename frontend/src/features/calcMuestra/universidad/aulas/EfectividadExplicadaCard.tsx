@@ -142,7 +142,8 @@ export function EfectividadExplicadaCard({
           de Gonzalo, 2026-08-20): la tasa de la facultad frente a la general, con su
           k — «sí necesito saber por qué solo en seis facultades». */}
       {ajusteActivo && (
-        <div className="cmv2-efexp-ref">
+        <>
+          <div className="cmv2-efexp-ref cmv2-efexp-ref--solo">
           <table className="cmv2-efexp-tabla-ref">
             <caption>Ajuste por facultad — {refTexto}</caption>
             <thead>
@@ -162,6 +163,9 @@ export function EfectividadExplicadaCard({
               ))}
             </tbody>
           </table>
+          </div>
+          {/* El aviso va DEBAJO de la tabla a lo ancho — dentro del grid se
+              montaba encima y tapaba la columna Aulas (Gonzalo, en vivo). */}
           <p className="cmv2-efexp-aviso">
             El ajuste solo se aplica donde el {refTexto} acumuló base suficiente
             (al menos 12 aulas aplicadas, según la clasificación de suficiencia de la
@@ -169,7 +173,7 @@ export function EfectividadExplicadaCard({
             específica estadísticamente defendible: rige la tasa general, y cada
             radiografía lo declara.
           </p>
-        </div>
+        </>
       )}
 
       {/* 1b · La procedencia y la limitación, declaradas — nunca en silencio. */}
