@@ -406,3 +406,40 @@ test_that("las cuentas de campo entran como numero, no como texto", {
   expect_false(grepl('t="s"', celda, fixed = TRUE))
   expect_false(grepl('t="str"', celda, fixed = TRUE))
 })
+
+# --- Los tramos de la «Base de control» -------------------------------------
+
+test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
+  g <- aulas_libro_grupos_control()
+  expect_length(g, 4L)
+  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  # Contiguos, sin solape y sin dejar columnas fuera: si mañana el spec gana un
+  # campo en medio, el tramo que lo contiene crece y los demas se corren solos.
+  expect_identical(g[[1]]$desde, 1L)
+  expect_identical(g[[length(g)]]$hasta, length(campos))
+  for (k in seq_len(length(g) - 1L)) {
+    expect_identical(g[[k]]$hasta + 1L, g[[k + 1L]]$desde)
+  }
+  # El control de que el anclaje es por nombre y no por numero: el primer campo
+  # de cada tramo es el que dice la etiqueta.
+  expect_identical(campos[[g[[2]]$desde]], "FECHA AGENDADA")
+  expect_identical(campos[[g[[3]]$desde]], "TOTAL ENVIADAS")
+  expect_identical(campos[[g[[4]]$desde]], "N ASISTENTES EN AULA")
+})
+
+test_that("la base de control combina sus tramos y repite hasta el curso-horario", {
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(), libro)
+  xml <- paste(.xml_de_hoja_llamada(libro, "Base de control"), collapse = "")
+  # Sin combinar, la etiqueta iba en su primera celda y el tramo entero salia
+  # como una franja en blanco al imprimir.
+  expect_true(grepl("<mergeCell", xml, fixed = TRUE))
+
+  d <- withr::local_tempdir()
+  utils::unzip(libro, exdir = d)
+  wbx <- paste(readLines(file.path(d, "xl", "workbook.xml"), warn = FALSE), collapse = "")
+  # `MUESTRA` es la ola y se repite en cientos de filas: repetir solo la
+  # primera columna dejaba las paginas rotuladas «M1» y sin aula.
+  expect_true(grepl("Print_Titles", wbx, fixed = TRUE))
+  expect_true(grepl("Base de control'!\\$A:\\$B", wbx))
+})
