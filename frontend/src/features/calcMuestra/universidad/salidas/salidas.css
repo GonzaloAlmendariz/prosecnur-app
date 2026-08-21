@@ -1167,3 +1167,31 @@
 .cmv2-sal-reporte-stale strong {
   color: var(--pulso-warn-fg);
 }
+
+/* El cierre del diseño: saca al estudio de «propuesta preliminar», que es lo
+   que decide con qué plantilla sale el reporte. Va al pie de la ficha, antes de
+   las observaciones de salud, porque cerrar no las resuelve. */
+.cmv2-sal-validar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+}
+
+.cmv2-sal-validar > svg { flex: 0 0 auto; margin-top: 1px; color: var(--pulso-text-muted); }
+.cmv2-sal-validar > div { display: grid; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.cmv2-sal-validar strong { font-size: 12px; color: var(--pulso-text); }
+.cmv2-sal-validar span { font-size: 11px; line-height: 1.5; color: var(--pulso-text-soft); }
+.cmv2-sal-validar em { font-size: 10.5px; line-height: 1.45; color: var(--pulso-text-muted); font-style: normal; }
+.cmv2-sal-validar button { flex: 0 0 auto; align-self: center; }
+
+.cmv2-sal-validar[data-validado] {
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-bg) 46%, var(--pulso-surface));
+}
+
+.cmv2-sal-validar[data-validado] > svg { color: var(--pulso-success-fg); }
