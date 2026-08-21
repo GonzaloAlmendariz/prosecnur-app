@@ -90,6 +90,19 @@ export function SalidasCierreTab({
   // pintaban la misma cifra con umbrales propios, y la de cierre era la más
   // laxa —cualquier valor desde 1 salía verde, sin estado intermedio—.
   const profundidadMin = profundidadReserva(minDepth, model.config?.objective?.reserve_depth_target ?? null);
+  // `reserve_depth` cuenta las reservas que caen en la MISMA celda que su
+  // titular. Desde que la cadena puede degradar de celda a facultad (el estrato
+  // es preferencia, no condición), una celda puede quedar en cero y su titular
+  // tener reemplazo igual, de otra celda de su facultad. Sin esta distinción el
+  // KPI marcaba «hay celdas por debajo del objetivo» y se leía como «hay aulas
+  // sin reemplazo»: cierto lo primero, falso lo segundo. Medido en HSVG2026:
+  // 5 celdas en cero y CERO titulares sin reserva.
+  const celdasSinPropia = depthRatios.filter((r) => r === 0).length;
+  const titularesConReserva = new Set(
+    reserveRows.map((row) => classroomRowText(row, ["replacement_for"])).filter(Boolean),
+  );
+  const todosCubiertos = m1Rows.length > 0
+    && m1Rows.every((row) => titularesConReserva.has(classroomRowText(row, ["classroom_id"])));
   const peorCelda = reserveDepthRows.find((row) => classroomRowNumber(row, ["depth_ratio"]) === minDepth);
 
   // Salud del diseño: veredicto derivado de las mismas cifras validadas que
@@ -230,12 +243,14 @@ export function SalidasCierreTab({
             label="Profundidad de reserva"
             value={Number.isFinite(minDepth) ? fmtRatio(minDepth) : "pendiente"}
             detalle={profundidadMin
-              ? profundidadMin.tono === "alerta"
-                ? "hay celdas por debajo del objetivo"
-                : `mínima por celda${peorCelda ? `: ${classroomRowText(peorCelda, ["stratum"])}` : ""}`
+              ? celdasSinPropia > 0 && todosCubiertos
+                ? `${fmtInt(celdasSinPropia)} ${celdasSinPropia === 1 ? "celda sin reserva" : "celdas sin reserva"} de su estrato; sus titulares se cubren con aulas de su facultad`
+                : profundidadMin.tono === "alerta"
+                  ? "hay celdas por debajo del objetivo"
+                  : `mínima por celda${peorCelda ? `: ${classroomRowText(peorCelda, ["stratum"])}` : ""}`
               : "requiere simular reemplazos"}
             origen={Number.isFinite(minDepth) ? "motor" : undefined}
-            tono={profundidadMin?.tono}
+            tono={celdasSinPropia > 0 && todosCubiertos ? undefined : profundidadMin?.tono}
           />
         </CifraFila>
 
