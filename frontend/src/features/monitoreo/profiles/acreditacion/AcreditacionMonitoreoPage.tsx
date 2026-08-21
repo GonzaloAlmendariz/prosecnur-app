@@ -16789,7 +16789,7 @@ function AcreditacionAdvanceSummaryWorkbench({
     const comparison = phoneComparison ?? {
       phoneEffective: 0,
       platformComplete: totals.effective,
-      matchedEffective: 0,
+      matchedEffective: 0, total: 0, // sin `total`, el `mismatch: 0` de abajo hacia que el fallback de «no hay cruce» se declarara «cruce perfecto»
       mismatch: 0,
     };
     const platformEffective = comparison.platformComplete || totals.effective;
@@ -16847,7 +16847,7 @@ function AcreditacionAdvanceSummaryWorkbench({
             <button type="button" className={comparison.mismatch ? "is-warning" : "is-ready"} onClick={() => onNavigateLocalTab?.("avance", "detalle")}>
               <span><KeyRound size={13} /> CodPulso</span>
               <strong>{phoneCodPulsoEffectiveMatchLabel(comparison)}</strong>
-              <em>{comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : "coincidencia individual"}</em>
+              <em>{comparison.mismatch ? `${fmt(comparison.mismatch)} diferencias` : comparison.total ? "coincidencia individual" : "todavia sin cruce"}</em>
             </button>
           </div>
         </div>
@@ -16871,7 +16871,7 @@ function AcreditacionAdvanceSummaryWorkbench({
                 <strong>
                   {comparison.mismatch
                     ? `${fmt(Math.abs(comparison.phoneEffective - platformEffective))} de diferencia`
-                    : "Kobo y barrido coinciden"}
+                    : comparison.total ? "Kobo y barrido coinciden" : "todavia sin cruce"}
                 </strong>
               </div>
               <em>{fmt(dailySignalDays)} día{dailySignalDays === 1 ? "" : "s"} con efectivas{undatedPhoneEffective ? ` · ${fmt(undatedPhoneEffective)} sin fecha` : ""}</em>
@@ -16886,7 +16886,7 @@ function AcreditacionAdvanceSummaryWorkbench({
               <article>
                 <span>Barrido telefónico</span>
                 <strong>{fmt(comparison.phoneEffective)} efectivas declaradas</strong>
-                <p>{comparison.mismatch ? `${fmt(comparison.mismatch)} CodPulso no coinciden.` : "Coincide con Kobo por llave individual."}</p>
+                <p>{comparison.mismatch ? `${fmt(comparison.mismatch)} CodPulso no coinciden.` : comparison.total ? "Coincide con Kobo por llave individual." : "Todavia no hay CodPulso que cruzar con Kobo."}</p>
                 <i style={{ "--phone-advance-pct": `${Math.max(2, Math.min(100, safePercentValue(comparison.phoneEffective, totals.universe) ?? 0))}%` } as CSSProperties} />
               </article>
             </div>

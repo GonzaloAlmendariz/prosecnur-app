@@ -6716,8 +6716,8 @@ function phoneCodPulsoDifferenceParts(comparison: Pick<PhonePlatformComparisonTo
   return parts;
 }
 
-function phoneCodPulsoDifferenceHint(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode" | "total">) {
-  if (!comparison.mismatch) return comparison.total ? `${fmt(comparison.total)} registros comparados` : "coincidencia individual";
+export function phoneCodPulsoDifferenceHint(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode" | "total">) {
+  if (!comparison.mismatch) return comparison.total ? `${fmt(comparison.total)} registros comparados` : "todavia no hay cruce que comparar";
   const parts: string[] = [];
   if (comparison.platformWithoutPhone) parts.push(`${fmt(comparison.platformWithoutPhone)} Kobo con telefono pendiente`);
   if (comparison.phoneWithoutPlatform) parts.push(`${fmt(comparison.phoneWithoutPlatform)} tel. sin Kobo`);
@@ -6725,8 +6725,8 @@ function phoneCodPulsoDifferenceHint(comparison: Pick<PhonePlatformComparisonTot
   return parts.length ? parts.join(" · ") : `${fmt(comparison.mismatch)} diferencias`;
 }
 
-function phoneCodPulsoDifferenceSentence(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode">) {
-  if (!comparison.mismatch) return "Las efectivas telefonicas coinciden con Kobo por CodPulso individual.";
+export function phoneCodPulsoDifferenceSentence(comparison: Pick<PhonePlatformComparisonTotals, "mismatch" | "phoneWithoutPlatform" | "platformWithoutPhone" | "withoutCode" | "total">) {
+  if (!comparison.mismatch) return comparison.total ? "Las efectivas telefonicas coinciden con Kobo por CodPulso individual." : "Todavia no hay efectivas telefonicas que cruzar con Kobo.";
   return `${phoneCodPulsoDifferenceParts(comparison).join("; ")}.`;
 }
 
