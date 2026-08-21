@@ -89,9 +89,18 @@ test_that("el agendamiento ya registrado NO se borra al regenerar", {
 
   # El control: escribiendo "" en estas columnas —como hacia antes— los tres
   # estados salen vacios y este bloque entero se cae.
-  expect_identical(unname(estados[["CH 1"]]), "agendada")
-  expect_identical(unname(estados[["CH 4"]]), "reemplazada")
-  expect_identical(unname(estados[["R 4.1"]]), "en_reserva")
+  # **El libro devuelve el vocabulario del EXCEL, y el motor lo normaliza.**
+  # Desde que el libro escribe lo que su propio desplegable ofrece —«AGENDADA»,
+  # «EN RESERVA 1»— la relectura devuelve eso, no la forma interna. No rompe
+  # nada porque `monitoreo_aulas_estado_muestra()` reconoce las dos, y se
+  # comprueban las dos mitades: que vuelve el valor del Excel y que el motor
+  # lo entiende.
+  expect_identical(unname(estados[["CH 1"]]), "AGENDADA")
+  expect_identical(unname(estados[["CH 4"]]), "REEMPLAZADA")
+  expect_identical(unname(estados[["R 4.1"]]), "EN RESERVA 1")
+  expect_identical(monitoreo_aulas_estado_muestra(estados[["CH 1"]]), "agendada")
+  expect_identical(monitoreo_aulas_estado_muestra(estados[["CH 4"]]), "reemplazada")
+  expect_identical(monitoreo_aulas_estado_muestra(estados[["R 4.1"]]), "en_reserva")
   expect_identical(unname(intentos[["CH 1"]]), "2")
   expect_identical(unname(intentos[["CH 4"]]), "3")
 })

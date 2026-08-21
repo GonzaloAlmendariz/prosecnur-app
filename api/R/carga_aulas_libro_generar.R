@@ -100,8 +100,9 @@ aulas_libro_hoja_agendadas <- function(unidades) {
         # columna OBSERVACIONES en `replacement_note`, asi que leer solo `notes`
         # perdia las 190 observaciones del estudio de 2025 en cada regeneracion.
         .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
-        .calg_num_txt(u$contact_attempts), .calg_txt(u$sample_status),
-        .calg_txt(u$scheduled_date), .calg_txt(u$scheduled_day), .calg_txt(u$scheduled_time),
+        .calg_num_txt(u$contact_attempts),
+        .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
+        .calg_txt(u$scheduled_date), .calg_dia_excel(u$scheduled_day), .calg_txt(u$scheduled_time),
         .calg_txt(u$link),
         .calg_txt(u$notes %||% u$replacement_note)
       )
@@ -162,6 +163,47 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   v <- suppressWarnings(as.numeric(valores))
   v <- v[is.finite(v)]
   if (!length(v) || any(v > 1.5)) "decimal" else "porcentaje"
+}
+
+# **El vocabulario del EXCEL, no el interno.**
+#
+# El libro escribia los valores tal como los guarda la app —«agendada»,
+# «en_reserva», «Martes»— mientras sus propios desplegables ofrecian «AGENDADA»,
+# «EN RESERVA 1», «MAR». Medido en el estudio: **243 de 243 valores de STATUS
+# MUESTRA y 243 de 243 de DIA estaban FUERA de su lista**. No es solo estetica:
+# quien despliega no ve seleccionado lo que hay, y Excel puede marcar la celda
+# como dato no valido.
+#
+# La traduccion va aqui, al ESCRIBIR. El lector sigue aceptando las dos formas
+# —tiene su normalizador y sus alias— asi que un libro viejo se relee igual.
+.calg_status_excel <- function(valor, orden = NA_real_) {
+  v <- tolower(trimws(.calg_txt(valor)))
+  v <- gsub("[ _]+", "_", v)
+  if (!nzchar(v)) return("")
+  if (startsWith(v, "en_reserva")) {
+    # «EN RESERVA k» describe a la reserva k, y k sale del orden de la cadena.
+    n <- suppressWarnings(as.numeric(gsub("[^0-9]", "", v)))
+    if (!length(n) || !is.finite(n) || n <= 0) n <- orden
+    return(if (is.finite(n) && n > 0) sprintf("EN RESERVA %d", as.integer(n)) else "EN RESERVA 1")
+  }
+  conocidos <- c(agendada = "AGENDADA", reagendada = "REAGENDADA",
+                 reemplazada = "REEMPLAZADA")
+  # `conocidos[[v]]` con un nombre que no esta REVIENTA («subscript out of
+  # bounds») en vez de dar NULL: se pregunta por los nombres.
+  if (v %in% names(conocidos)) return(unname(conocidos[[v]]))
+  # Un estado que la lista no ofrece se escribe en mayusculas y tal cual: se ve
+  # que esta fuera del vocabulario, en vez de desaparecer o disfrazarse de otro.
+  toupper(.calg_txt(valor))
+}
+
+# «Martes» -> «MAR». La lista del desplegable usa las tres primeras letras.
+.calg_dia_excel <- function(valor) {
+  v <- toupper(trimws(.calg_txt(valor)))
+  if (!nzchar(v)) return("")
+  v <- chartr("ÁÉÍÓÚÜ", "AEIOUU", v)
+  if (v %in% AULAS_LIBRO_DIA) return(v)
+  tres <- substr(v, 1, 3)
+  if (tres %in% AULAS_LIBRO_DIA) tres else v
 }
 
 # Los titulos de campo que son CUENTAS. El `% ASISTENCIA` no esta: es una
@@ -240,8 +282,9 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
       .calg_txt(u$faculty), .calg_txt(u$level), .calg_txt(u$label),
       .calg_num_txt(u$enrolled_total), .calg_num_txt(u$eligible_n),
       .calg_txt(u$contact_medium), .calg_txt(u$contact_date),
-      .calg_num_txt(u$contact_attempts), .calg_txt(u$sample_status),
-      .calg_txt(u$scheduled_date), .calg_txt(u$scheduled_day), .calg_txt(u$scheduled_time),
+      .calg_num_txt(u$contact_attempts),
+      .calg_status_excel(u$sample_status, .calg_num_txt(u$replacement_order)),
+      .calg_txt(u$scheduled_date), .calg_dia_excel(u$scheduled_day), .calg_txt(u$scheduled_time),
       .calg_txt(u$link), .calg_txt(u$notes %||% u$replacement_note),
       # Parte de campo del primer intento: los dos denominadores como referencia
       # y lo que ya se haya registrado. Ver la nota de la hoja de agendamiento.
