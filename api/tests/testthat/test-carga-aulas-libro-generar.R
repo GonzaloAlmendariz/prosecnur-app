@@ -280,3 +280,49 @@ test_that("la hoja de aplicadas tiñe su propio estado", {
   expect_match(xml, "conditionalFormatting")
   expect_match(xml, 'text="APLICADA"')
 })
+
+test_that("la cabecera distingue el titular de cada reserva", {
+  # Los veinte titulos se repiten identicos en cada bloque: la cabecera de la
+  # columna 21 y la de la 41 se leen igual y no habia forma de saber en que
+  # eslabon se esta. Una fila de banda encima seria lo natural, pero el lector
+  # espera los titulos en la PRIMERA fila y añadirla rompe la relectura.
+  path <- file.path(tempdir(), "libro_banda.xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), path)
+
+  destino <- file.path(tempdir(), paste0("banda_", as.integer(runif(1, 1, 1e6))))
+  dir.create(destino)
+  utils::unzip(path, exdir = destino)
+  estilos <- paste(readLines(file.path(destino, "xl", "styles.xml"), warn = FALSE),
+                   collapse = "")
+  # El navy del titular y los dos tonos de reserva.
+  expect_match(estilos, "FF002457")
+  expect_match(estilos, "FF1D4F8C")
+  expect_match(estilos, "FF2F6BB0")
+})
+
+test_that("la banda no rompe la relectura", {
+  # Es la razon de hacerlo con color y no con una fila nueva: el contrato del
+  # lector es que los titulos esten en la primera fila.
+  path <- file.path(tempdir(), "libro_banda2.xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), path)
+  plan <- aulas_agendadas_leer(path)
+  expect_equal(length(plan), 3L)   # titular + dos reservas
+  expect_equal(plan[[1]]$operational_code, "CH 1")
+})
+
+test_that("la hoja de listas queda oculta y los desplegables siguen", {
+  # «Listas» existe para que las validaciones apunten a un rango y no a
+  # literales; no es del equipo, y verla en la barra invita a editarla —que es
+  # justo lo que las rompe—. Excel las resuelve igual contra una hoja oculta.
+  path <- file.path(tempdir(), "libro_listas.xlsx")
+  aulas_libro_generar(.libro_de_prueba(1L), path)
+  wb <- openxlsx::loadWorkbook(path)
+  visibilidad <- openxlsx::sheetVisibility(wb)
+  expect_equal(as.character(visibilidad[which(names(wb) == "Listas")]), "hidden")
+  # Y las de trabajo siguen a la vista: ocultarlas todas seria peor remedio.
+  expect_true(all(as.character(visibilidad[names(wb) != "Listas"]) == "visible"))
+
+  # El desplegable sigue declarado contra ella.
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Agendadas"), collapse = "")
+  expect_match(xml, "Listas")
+})

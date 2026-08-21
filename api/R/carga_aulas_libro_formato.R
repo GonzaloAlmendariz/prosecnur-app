@@ -79,6 +79,18 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
     openxlsx::writeData(wb, hoja, c(names(listas)[[i]], valores), startCol = i, startRow = 1)
   }
   openxlsx::setColWidths(wb, hoja, cols = seq_along(listas), widths = 22)
+  # **La hoja auxiliar no se enseña.**
+  #
+  # «Listas» existe para que los desplegables apunten a un rango y no a
+  # literales; no es del equipo y verla en la barra invita a editarla, que es
+  # justo lo que rompe las validaciones. Excel las resuelve igual contra una
+  # hoja oculta.
+  if (length(listas) && "Listas" %in% names(wb)) {
+    openxlsx::sheetVisibility(wb)[which(names(wb) == "Listas")] <- FALSE
+  }
+  # El libro abre por la portada y no por donde lo dejo el generador.
+  if (length(names(wb))) openxlsx::activeSheet(wb) <- 1L
+
   invisible(wb)
 }
 
@@ -234,6 +246,30 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
         )
       }
     }
+  }
+
+  # **De un golpe: donde acaba el titular y empieza cada reserva.**
+  #
+  # Los veinte titulos se repiten identicos en cada bloque, asi que la cabecera
+  # de la columna 21 y la de la 41 se leen igual y no hay forma de saber en que
+  # eslabon se esta. Una fila de banda encima —«TITULAR», «REEMPLAZO 1»— seria
+  # lo natural, pero el lector espera los titulos en la PRIMERA fila y añadirla
+  # romperia la relectura; el color da la misma pista sin tocar la estructura.
+  #
+  # El titular conserva el navy del resto del libro y las reservas alternan dos
+  # tonos mas claros: el contraste con el texto blanco se mantiene en los tres.
+  tonos <- c("#1D4F8C", "#2F6BB0")
+  for (i in seq_along(agrupados)) {
+    g <- agrupados[[i]]
+    if (!length(g$cols)) next
+    n_cab <- filas_cabecera[[g$hoja]] %||% 1L
+    banda <- openxlsx::createStyle(
+      textDecoration = "bold", fgFill = tonos[[(i - 1L) %% length(tonos) + 1L]],
+      fontColour = "#FFFFFF", halign = "left", valign = "center", wrapText = TRUE,
+      border = "TopBottomLeftRight", borderColour = "#FFFFFF"
+    )
+    openxlsx::addStyle(wb, g$hoja, banda, rows = seq_len(n_cab), cols = g$cols,
+                       gridExpand = TRUE, stack = FALSE)
   }
 
   # **Los reemplazos se pliegan.**
