@@ -17,10 +17,10 @@ cuando era sólo el punto de partida.
 |---|---|---|---|
 | L1 | Quitar la hoja «Datos»: no debe haber forcejeo de tabla dinámica | `carga_aulas_libro_generar.R` | ☑ `354aec5c` |
 | L2 | «Se va resumen» | `carga_aulas_libro_generar.R` | ☑ commit siguiente a `354aec5c` |
-| L3 | La Base de control deja de calcar: fuera `70T`/`70P` | `api/R/carga_base_control.R`, `carga_aulas_libro_generar.R` | ☐ |
-| L3a | En su lugar: **% de efectivas esperado vs obtenido**, y si es superior o inferior | idem | ☐ |
-| L3b | **Alumnos elegibles esperados vs efectivos**, y si superior o inferior | idem | ☐ |
-| L3c | **Hombres y mujeres esperados vs obtenidos** | idem | ☐ |
+| L3 | La Base de control deja de calcar: fuera `70T`/`70P` | `carga_base_control.R`, `carga_aulas_libro_generar.R` | ☑ `789b41e0` |
+| L3a | **% de efectivas esperado vs obtenido**, y la diferencia con signo | idem | ☑ |
+| L3b | **Elegibles esperados**; el «efectivo» es la efectiva de plataforma, ya en L3a | idem | ☑ |
+| L3c | **Hombres y mujeres esperados** (del plan, por aula) vs obtenidos (`women_n`/`men_n`) | idem | ☑ |
 | L4 | Los datos inventados deben salir del **marco real 2026** (`hsvg2026`) | `api/inst/reference_projects/hsvg2026/` | ⛔ **medido: el marco SÍ está (5 263 aulas × 34), pero `run_history: 0 corridas` — la selección con cadenas NO está guardada ahí** |
 | L5 | Vocabulario: **titular, reemplazo 1.1, 1.2, 1.3** | `carga_aulas_libro_generar.R` | ☑ en la hoja de campo. **En «Aulas Agendadas» no hay banda de texto** —sólo color— porque su lector espera los títulos en la fila 1; entra en L7 |
 | L6 | La coma de miles en cifras de dos dígitos | — | ☑ `6bc088d1` — se resolvió al retirar «Datos» y «Resumen»: las comas eran de los totales de la portada (5,410). En las tres hojas, lo que lleva `#,##0` no pasa de 52 |
@@ -128,7 +128,12 @@ pierde nada y dice mucho más — que es exactamente la crítica de fondo.
      plataforma, esa columna **la escribe Prosecnur**, no el equipo: la Base de
      control deja de ser una hoja que se llena a mano y pasa a ser donde la app
      deja lo que sabe para que el equipo lo lea.
-2. **Compatibilidad con los libros a medio llenar.** El lector empareja por
+2. ~~Compatibilidad con los libros a medio llenar.~~ **RESUELTO sin coste**: los
+   cuatro títulos viejos siguen en la spec como alias de LECTURA. Ya no se
+   escriben, pero un libro que el equipo tenga con la columna `70T` se sigue
+   leyendo entero. Queda un test que lo fija.
+
+   El texto original: El lector empareja por
    título: si `70T` desaparece de `BASE_CONTROL_CAMPOS`, un libro que el equipo
    ya tenga con esa columna deja de leerla. Se puede conservar como alias de
    lectura sin escribirla —la spec ya admite varios títulos por campo— y esa es
