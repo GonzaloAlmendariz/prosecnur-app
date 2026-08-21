@@ -150,8 +150,10 @@ aulas_aplicadas_leer <- function(path, hoja = "Aulas Aplicadas (Campo)") {
     )
   }
   crudo <- readxl::read_excel(path, sheet = hoja, col_names = FALSE, .name_repair = "minimal")
-  # La fila 1 son cabeceras de GRUPO («MUESTRA DE APLICACION PRINCIPAL»…) y la
-  # fila 2 los campos. El cuerpo empieza en la 3.
+  # La fila 1 son cabeceras de GRUPO («TITULAR», «REEMPLAZO 1»…) y la fila 2 los
+  # campos. El cuerpo empieza en la 3. Esta fila se IGNORA a proposito: es lo que
+  # permite renombrar las bandas —lo hizo el cambio de vocabulario a titular y
+  # reemplazo— sin romper la relectura de un libro a medio llenar.
   if (nrow(crudo) < 3L) return(list())
   titulos <- as.character(unlist(crudo[2, ], use.names = FALSE))
   cuerpo <- crudo[-c(1, 2), , drop = FALSE]

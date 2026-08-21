@@ -205,7 +205,16 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
   grupo <- c()
   campos <- c()
   for (b in seq_len(intentos)) {
-    etiqueta <- if (b == 1L) "MUESTRA DE APLICACIÓN PRINCIPAL" else sprintf("APLICACIÓN DE REEMPLAZO %d", b)
+    # **«TITULAR» y «REEMPLAZO n», no «muestra».** El vocabulario del estudio
+    # dejo de hablar de muestra 1 y muestra 2: una cadena es un titular y sus
+    # reemplazos, y asi se llaman ya los codigos de las aulas —«CH 4» y su
+    # «R 4.1», «R 4.2»—. La banda decia «MUESTRA DE APLICACIÓN PRINCIPAL» y
+    # «APLICACIÓN DE REEMPLAZO 2», que es el vocabulario viejo y ademas
+    # desalineado: el bloque 2 es el reemplazo 1, no el 2.
+    #
+    # Se puede renombrar sin romper la relectura porque el lector IGNORA esta
+    # fila: `carga_aulas_aplicadas.R` toma los titulos de la fila 2.
+    etiqueta <- if (b == 1L) "TITULAR" else sprintf("REEMPLAZO %d", b - 1L)
     ancho <- 1L + length(titulos_agenda) + length(titulos_campo)
     grupo <- c(grupo, etiqueta, rep("", ancho - 1L))
     campos <- c(campos, "ID MATCH", titulos_agenda, titulos_campo)

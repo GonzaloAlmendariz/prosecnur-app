@@ -657,3 +657,33 @@ test_that("las columnas con coma de miles no tienen cifras de cuatro digitos", {
     expect_lt(max(v), 1000, label = sprintf("el mayor valor de «%s»", cmp))
   }
 })
+
+test_that("las bandas dicen TITULAR y REEMPLAZO n, no «muestra»", {
+  # El vocabulario del estudio dejo de hablar de muestra 1 y muestra 2: una
+  # cadena es un titular y sus reemplazos, y asi se llaman ya los codigos
+  # —«CH 4» y su «R 4.1»—. La banda decia «MUESTRA DE APLICACIÓN PRINCIPAL» y
+  # «APLICACIÓN DE REEMPLAZO 2», que ademas estaba desalineado: el bloque 2 es
+  # el reemplazo 1, no el 2.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  fila <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Aulas Aplicadas (Campo)",
+                                               colNames = FALSE, rows = 1))
+  bandas <- Filter(nzchar, as.character(unlist(fila)))
+  expect_identical(bandas[[1]], "TITULAR")
+  # El bloque 2 es el reemplazo 1: la numeracion sigue al codigo del aula.
+  expect_identical(bandas[[2]], "REEMPLAZO 1")
+  expect_false(any(grepl("MUESTRA", bandas, fixed = TRUE)))
+})
+
+test_that("renombrar las bandas no rompe la relectura", {
+  # Es lo que permite cambiar el vocabulario sin romper un libro a medio llenar:
+  # el lector toma los titulos de la fila 2 e IGNORA la de grupo.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(1L), libro, partes = list(list(
+    operational_code = "CH 1", intento = 1L, observed_students = 21,
+    effective_surveys = 19, application_status = "APLICADA"
+  )))
+  partes <- aulas_aplicadas_leer(libro)
+  expect_gt(length(partes), 0L)
+  expect_equal(as.numeric(partes[[1]]$effective_surveys), 19)
+})
