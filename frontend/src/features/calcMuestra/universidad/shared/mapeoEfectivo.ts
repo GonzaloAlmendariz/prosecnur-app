@@ -46,6 +46,48 @@ function columnaConfirmada(
   return "";
 }
 
+/** Una variable declarada contra una columna que su archivo ya no tiene. */
+export type UniversityOrphanMapping = {
+  role: string;
+  label: string;
+  column: string;
+  source_role: string;
+};
+
+/**
+ * Variables cuya columna confirmada YA NO existe entre las columnas de su
+ * fuente.
+ *
+ * Es el estado que dejó mudo al proyecto HSVG2026: mapeo declarado contra una
+ * base anterior («Código PUCP») sobre archivos que traen ALUMNO, la pantalla
+ * mostrando «6 de 6 requeridas confirmadas» en verde y el motor muriendo al
+ * reconstruir. Se intentó resolverlo sustituyendo la columna por la sugerida y
+ * el remedio fue peor: cambiaba los números del estudio (21.920 → 2.461
+ * estudiantes elegibles) sin avisar. Lo que corresponde es declararlo y que
+ * decida quien conoce el estudio.
+ *
+ * Sin columnas conocidas para esa fuente no se acusa a nadie: un binding recién
+ * declarado todavía no trae diagnósticos de hoja.
+ */
+export function universityOrphanMappings(
+  workspace: CalcMuestraWorkspace,
+  aulasState: CalcMuestraAulasState | null,
+): UniversityOrphanMapping[] {
+  const columnsBySource = universityColumnOptionsBySource(workspace, aulasState);
+  const out: UniversityOrphanMapping[] = [];
+  for (const base of UNIVERSITY_REQUIRED_VARIABLES) {
+    const column = columnaConfirmada(workspace.variable_mappings, base.role);
+    if (!column) continue;
+    const columnas = universitySourceGroupForRole(base.source_role) === "classroom"
+      ? columnsBySource.classroom
+      : columnsBySource.student;
+    if (!columnas.length) continue;
+    if (columnas.includes(column)) continue;
+    out.push({ role: base.role, label: base.label, column, source_role: base.source_role ?? "" });
+  }
+  return out;
+}
+
 /**
  * `{ rol_del_motor: [columna] }` con la columna confirmada por el usuario o, en
  * su defecto, la misma sugerencia que la pantalla ya está mostrando.

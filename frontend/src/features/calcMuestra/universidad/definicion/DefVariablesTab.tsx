@@ -36,6 +36,8 @@ import {
   upsertUniversityVariableMapping,
 } from "./variableRoles";
 import { FiltrosCorteCard } from "./FiltrosCorteCard";
+import { AvisoModulo } from "../shared/AvisoModulo";
+import { universityOrphanMappings } from "../shared/mapeoEfectivo";
 import { VariableMapCard } from "./VariableMapCard";
 import "./definicion.css";
 
@@ -157,6 +159,10 @@ export function DefVariablesTab({
     return mapa;
   })();
   const confirmedRequired = requiredRoles.filter((role) => isUniversityRoleConfirmed(workspace.variable_mappings, role));
+  // Columnas declaradas que el archivo actual ya no tiene: pasa al reemplazar
+  // la base por una versión con otros encabezados, y hasta ahora no se decía
+  // —la cuenta de confirmadas seguía en verde y el motor moría al construir—.
+  const huerfanas = universityOrphanMappings(workspace, aulasState);
 
   function suggestionFor(role: string) {
     const baseVar = BASE_BY_ROLE.get(role);
@@ -212,7 +218,7 @@ export function DefVariablesTab({
       <header className="cmv2-defi-var-head">
         <div className="cmv2-defi-var-head-copy">
           <span className="cmv2-eyebrow">Mapeo manual de columnas</span>
-          <p>Confirma qué columna de tu base cumple cada rol. Las sugerencias son solo un punto de partida: nada queda listo hasta que lo confirmas.</p>
+          <p>Confirma qué columna de tu base cumple cada rol. Mientras no confirmes, se usa la sugerencia que ves aquí: lo que muestra esta pantalla es lo que recibe el motor.</p>
         </div>
         <div className="cmv2-defi-var-head-actions">
           <span className="cmv2-pill-soft" data-ok={confirmedRequired.length === requiredRoles.length || undefined}>
@@ -226,6 +232,24 @@ export function DefVariablesTab({
           )}
         </div>
       </header>
+
+      {huerfanas.length > 0 && (
+        <AvisoModulo tone="warn" title="Hay columnas declaradas que tu archivo ya no tiene">
+          <p>
+            {huerfanas.map((h, i) => (
+              <span key={h.role}>
+                {i > 0 ? " · " : null}
+                <strong>{h.label}</strong> → <code>{h.column}</code>
+              </span>
+            ))}
+          </p>
+          <p>
+            Suele pasar al cambiar la base por una versión nueva con otros encabezados.
+            Elige la columna que corresponde en cada tarjeta: mientras no lo hagas, el
+            motor no encontrará esos datos al construir el marco.
+          </p>
+        </AvisoModulo>
+      )}
 
       {/* ADR 0060 · los filtros de corte abren la pestaña: antes de decir qué
           significa cada columna hay que declarar qué registros entran. Es el
