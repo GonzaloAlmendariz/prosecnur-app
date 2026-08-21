@@ -277,3 +277,44 @@ test_that("el banco NO entra en los cortes por facultad", {
   # desaparecen, cambian de sitio.
   expect_equal(cortes$totales[["Aulas del banco"]], 1L)
 })
+
+test_that("la barra de datos va en «Recogidas», y es una BARRA", {
+  # Se verifico a mano cuando se añadio y nunca se convirtio en test: el mutante
+  # que la quitaba entera sobrevivia. Y se comprueba el TIPO, no solo que haya
+  # regla en esa columna — cambiarla por un semaforo de texto tambien seria un
+  # cambio, y uno que LibreOffice no enseña en el PDF.
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(
+    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+              expected_valid = 20, eligible_n = 30)),
+    path,
+    partes = list(list(operational_code = "CH 1", effective_surveys = 17))
+  )
+  reglas <- reglas_condicionales_de(path, "Resumen")
+  barras <- reglas[reglas$tipo == "dataBar", , drop = FALSE]
+  expect_equal(nrow(barras), 1L)
+
+  # En SU columna, calculada desde la tabla que se pinta.
+  cortes <- aulas_libro_cortes(
+    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+              expected_valid = 20, eligible_n = 30)),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 17))
+  )
+  esperada <- openxlsx::int2col(which(names(cortes$por_facultad) == "Recogidas (partes)"))
+  expect_identical(barras$col[[1]], esperada)
+
+  # Y el rango cubre UNA columna: `openxlsx` agrupa varias en un solo `sqref`
+  # —«B23:G42»—, asi que sin esto «barras en todas» pasaba como una sola regla.
+  expect_match(barras$sqref[[1]], sprintf("^%s[0-9]+:%s[0-9]+$", esperada, esperada))
+})
+
+test_that("un libro sin avance no lleva barra: no hay nada que comparar", {
+  path <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(
+    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+              expected_valid = 20, eligible_n = 30)),
+    path
+  )
+  reglas <- reglas_condicionales_de(path, "Resumen")
+  expect_false("dataBar" %in% reglas$tipo)
+})
