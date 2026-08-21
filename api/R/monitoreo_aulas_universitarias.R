@@ -1684,6 +1684,29 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # Las dos hojas del libro cuentan la misma aula en dos momentos y nadie las
   # comparaba: el cuadre de arriba mira la aritmetica DENTRO del parte.
   cruce <- monitoreo_aulas_cruce_hojas(partes_campo, cfg$control %||% list())
+  # Y el tercer cruce: lo que el equipo DECLARO contra lo que llego al servidor.
+  # Las respuestas se cuentan con los MISMOS dos helpers que usa el resto del
+  # motor —el emparejamiento es por `classroom_id` con `collection_unit_id` de
+  # respaldo— porque una segunda copia se separaria de la primera. Contra el
+  # TOTAL recibido y no contra las validas: el aplicador cuenta las encuestas
+  # que consiguio, y el criterio de validez del estudio es un filtro posterior.
+  # Compararlas seria repetir el equivoco de llamar «avance» a dos cosas.
+  recibidas_por_aula <- stats::setNames(
+    .monitoreo_aulas_contar_por_fila(
+      plan_df, .monitoreo_aulas_named_counts(response_classroom)
+    ),
+    plan_df$operational_code
+  )
+  cruce_plataforma <- monitoreo_aulas_cruce_plataforma(partes_campo, recibidas_por_aula)
+  cruce_plataforma_resumen <- monitoreo_aulas_cruce_plataforma_resumen(
+    cruce_plataforma,
+    # Comparables son los partes que traen efectivas declaradas, no todos: un
+    # parte a medio llenar no cuadra ni descuadra.
+    comparables = sum(vapply(partes_campo, function(pt) {
+      v <- suppressWarnings(as.numeric((pt %||% list())$effective_surveys %||% NA))
+      length(v) == 1L && is.finite(v)
+    }, logical(1)))
+  )
   # Sobre el plan CRUDO a proposito: `monitoreo_aulas_estado_muestra()` ya
   # convirtio en `sin_contactar` todo lo que no reconoce, asi que preguntarselo
   # al plan normalizado devolveria cero siempre.
@@ -1830,6 +1853,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     ),
     agenda = .monitoreo_aulas_records(plan_df),
     course_status = course_status,
+    # El tercer cruce, con su resumen al lado: la lista sola no dice sobre
+    # cuantas aulas se midio, y «64 aulas no cuadran» de 64 o de 152 son dos
+    # noticias distintas.
+    platform_cross_check = cruce_plataforma,
+    platform_cross_check_summary = cruce_plataforma_resumen,
     # Cuantas hay DE VERDAD. Sin esto, `course_status` de 500 sobre un plan de
     # 2 615 se leia como «el estudio tiene 500 aulas».
     course_status_total = as.integer(attr(course_status, "total") %||% length(course_status)),
