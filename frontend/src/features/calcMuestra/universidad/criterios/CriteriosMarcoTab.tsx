@@ -40,6 +40,7 @@ import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { seleccionActiva } from "../../dominio/criteriosMarco";
+import { AvisoPrecedenciaSuite, debeAvisarPrecedenciaSuite } from "./avisoPrecedenciaSuite";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { MordidasEstudianteCard } from "./MordidasEstudianteCard";
 import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
@@ -313,6 +314,10 @@ export function CriteriosMarcoTab({
     config,
     opcionalesActivos: opcionalesActivosMotor,
   });
+  const avisaPrecedencia = debeAvisarPrecedenciaSuite({
+    suiteActiva: !sinCriteriosDeclarados,
+    marcoDesactualizado,
+  });
 
   /*
    * Desglose de lo que recortó cada criterio de alumno en el marco EJECUTADO.
@@ -372,6 +377,7 @@ export function CriteriosMarcoTab({
 
   return (
     <div className="cmv2-crit" data-audit-ready={ready && marcoPublicable ? "true" : "false"}>
+      {avisaPrecedencia ? <AvisoPrecedenciaSuite /> : null}
       {onReconstruir && (
         <div
           className="cmv2-crit-apply"
