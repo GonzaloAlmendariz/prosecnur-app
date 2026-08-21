@@ -580,9 +580,9 @@ test_that("las hojas anchas se imprimen en horizontal", {
     expect_identical(impresion_de(libro, hoja)$orientacion, "landscape",
                      info = sprintf("la hoja «%s» se imprimiria en vertical", hoja))
   }
-  # La portada es la excepcion: es angosta y va en vertical, encajada a lo ancho
-  # para que su tabla por facultad no se parta en dos paginas.
-  expect_identical(impresion_de(libro, "Resumen")$orientacion, "portrait")
+  # Ya no hay excepcion: las tres hojas del libro son anchas y van en
+  # horizontal. La portada, que era la unica en vertical, se retiro.
+  expect_null(impresion_de(libro, "Resumen"))
 })
 
 test_that("la cabecera lleva alto propio: dos lineas de titulo no caben en uno", {
