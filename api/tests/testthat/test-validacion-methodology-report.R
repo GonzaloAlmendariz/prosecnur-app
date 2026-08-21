@@ -970,6 +970,23 @@ test_that("resumen suma solo evaluaciones validas y habla de señalamientos", {
   expect_false(grepl("no_evaluada|no_aplicable|incorrecta_ejecucion", report$text, fixed = FALSE))
 })
 
+test_that("sin hallazgos el cierre no arrastra la coletilla del caso encontrado", {
+  # Se pegaba siempre: «no encontraron casos. Un caso encontrado debe revisarse
+  # antes de modificar la base» se contradice a sí mismo.
+  evaluation <- list(resumen_tabla = data.frame(
+    id_regla = rule_required("Pulso_code")$id, estado = "correcta",
+    n_evaluados = 101L, n_inconsistencias = 0L, stringsAsFactors = FALSE))
+  model <- build_validation_methodology_report_model(
+    .vmr_test_scope(list(rule_required("Pulso_code")), evaluation = evaluation),
+    upstream_universe = list(applied = TRUE, variable = "testreal", real_values = "real",
+                             total = 101L, included = 101L, excluded_test = 0L))
+  if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
+  report <- .vmr_test_pdf_text(model)
+  texto <- gsub("\\s+", " ", report$text)
+  expect_match(texto, "no encontraron casos", fixed = TRUE)
+  expect_false(grepl("Un caso encontrado debe revisarse", texto, fixed = TRUE))
+})
+
 test_that("titulos cliente eliminan codigos, tokens ODK e ingles operativo", {
   raw <- "[SATI_014] Si la sección de ${sede_ppl} se abre («Consent» = 'Yes'), entonces «total_espacios» coincide."
   title <- .vmr_humanize_title(raw, c(

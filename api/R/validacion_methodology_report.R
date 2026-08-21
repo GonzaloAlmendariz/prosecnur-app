@@ -2750,7 +2750,7 @@ validation_methodology_report_pdf <- function(model, path) {
       page_range <- if (row$first_rule_page == row$last_rule_page) sprintf("p. %d", row$first_rule_page) else sprintf("pp. %d-%d", row$first_rule_page, row$last_rule_page)
       grid::grid.roundrect(x = 0.5, y = y, width = 0.86, height = 0.050, r = grid::unit(2, "mm"), gp = grid::gpar(fill = theme$white, col = theme$line))
       grid::grid.text(row$label, x = 0.09, y = y + 0.010, just = "left", gp = grid::gpar(col = theme$ink, fontsize = 8.8, fontface = "bold"))
-      grid::grid.text(sprintf("%s %s · %s ejecutadas", fmt(row$controls), if (row$controls == 1L) "regla" else "reglas", fmt(row$evaluated)), x = 0.09, y = y - 0.014, just = "left", gp = grid::gpar(col = theme$muted, fontsize = 7.5))
+      grid::grid.text(sprintf("%s %s · %s %s", fmt(row$controls), if (row$controls == 1L) "regla" else "reglas", fmt(row$evaluated), if (identical(as.integer(row$evaluated), 1L)) "ejecutada" else "ejecutadas"), x = 0.09, y = y - 0.014, just = "left", gp = grid::gpar(col = theme$muted, fontsize = 7.5))
       grid::grid.roundrect(x = 0.59 + index_bar_width / 2, y = y, width = index_bar_width, height = 0.012, r = grid::unit(1.5, "mm"), gp = grid::gpar(fill = "#E2E9F2", col = NA))
       if (is.finite(row_coverage) && row_coverage > 0) grid::grid.roundrect(x = 0.59 + index_bar_width * min(row_coverage, 1) / 2, y = y, width = index_bar_width * min(row_coverage, 1), height = 0.012, r = grid::unit(1.5, "mm"), gp = grid::gpar(fill = theme$teal, col = NA))
       grid::grid.text(if (is.finite(row_coverage)) sprintf("%.0f%%", row_coverage * 100) else "Pendiente", x = 0.82, y = y, just = "right", gp = grid::gpar(col = theme$text, fontsize = 8, fontface = "bold"))
@@ -2923,7 +2923,14 @@ validation_methodology_report_pdf <- function(model, path) {
   } else {
     "El informe contiene las reglas y sus fórmulas; falta ejecutarlas sobre la base."
   }
-  closing_text <- paste(closing_text, "Un caso encontrado debe revisarse antes de modificar la base.")
+  # La coletilla enmarca el hallazgo: encontrado no es lo mismo que erróneo, y
+  # antes de tocar la base hay que mirarlo. Sólo tiene sentido si hay alguno —se
+  # pegaba también con cero, contradiciendo la frase que la precede.
+  n_hallazgos <- suppressWarnings(as.numeric(s$findings_total))[1L]
+  if (isTRUE(model$evaluation_available) && is.finite(n_hallazgos) && n_hallazgos > 0) {
+    closing_text <- paste(closing_text, "Un caso encontrado debe revisarse antes de modificar la base.")
+  }
+
   grid::grid.text(.vmr_wrap(closing_text, 78L), x = 0.07, y = 0.705, just = c("left", "top"), gp = grid::gpar(col = theme$text, fontsize = 10.5, lineheight = 1.25))
   closing_metrics <- list(
     c("ENCUESTAS EVALUADAS", fmt(universe$included %||% NA_real_)),
