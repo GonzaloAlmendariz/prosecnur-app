@@ -410,6 +410,25 @@ export function AulasControlDelLibro({
           </p>
         ) : null}
       </div>
+      {!bloques.length ? (
+        // La hoja llego con filas pero SIN una sola columna de control llena.
+        // La tabla entonces pintaba 190 filas de una unica columna —el codigo
+        // del curso-horario— con la banda de grupos vacia encima: la vista
+        // entera ocupada por una lista que no dice nada del control, mientras
+        // el encabezado del panel declaraba «sin columnas». Medido: 190 `td`,
+        // 2 `th` y uno de ellos vacio.
+        //
+        // No se pierde capacidad al retirarla: que aulas trae la hoja ya lo
+        // dice «190 filas en la hoja» aqui arriba, y cuales son los grupos que
+        // faltan lo dice «Sin llenar en el libro». Y declara lo mismo que la
+        // rama con datos, que es lo que evita que el gate mida el encabezado
+        // del panel como si fuera el contenedor de datos.
+        <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          La hoja trae sus filas pero ninguna columna de control llena, asi que
+          todavia no hay veredicto por aula que mostrar. Se llenan en el Excel
+          del equipo y vuelven al importar el libro.
+        </p>
+      ) : (
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <table className="mon-profile-table">
           <thead>
@@ -487,6 +506,7 @@ export function AulasControlDelLibro({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

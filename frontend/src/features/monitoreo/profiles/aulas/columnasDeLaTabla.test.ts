@@ -27,8 +27,13 @@ describe("columnasDeLaTabla", () => {
     expect(n(dos)).toBeGreaterThan(n(unGrupo));
   });
 
-  it("sin resumen no inventa un ancho", () => {
-    expect(columnasDeLaTabla(null)).toBe("sin columnas");
-    expect(columnasDeLaTabla({ aulas: 0, grupos: [] } as never)).toBe("sin columnas");
+  it("sin resumen no inventa un ancho, y dice de que columnas habla", () => {
+    // Era «sin columnas» a secas y, pegado a «190 filas de la hoja», se leia
+    // como que la HOJA no tiene columnas: tiene 39, y lo que falta es que el
+    // equipo las llene. Es el mismo equivoco que esta funcion existe para
+    // evitar, cometido en su propia rama vacia.
+    expect(columnasDeLaTabla(null)).toBe("sin columnas de control llenas");
+    expect(columnasDeLaTabla({ aulas: 0, grupos: [] } as never))
+      .toBe("sin columnas de control llenas");
   });
 });

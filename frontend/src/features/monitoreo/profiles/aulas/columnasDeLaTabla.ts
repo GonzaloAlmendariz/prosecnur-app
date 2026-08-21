@@ -15,6 +15,9 @@ import { columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibr
  */
 export function columnasDeLaTabla(resumen: ResumenDeControl | null): string {
   const pintadas = columnasDelControl(resumen);
-  if (!pintadas) return "sin columnas";
+  // «sin columnas» a secas, pegado a «190 filas de la hoja», vuelve a caer en el
+  // equivoco que esta funcion existe para evitar: se lee como que la HOJA no
+  // tiene columnas, cuando tiene 39 y lo que falta es que el equipo las llene.
+  if (!pintadas) return "sin columnas de control llenas";
   return `${pintadas} ${pintadas === 1 ? "columna" : "columnas"} en la tabla`;
 }
