@@ -66,6 +66,28 @@ AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)
   v
 }
 
+# **Una fecha escrita en Excel deja de ser texto.**
+#
+# Excel convierte solo lo que parece una fecha: en cuanto alguien escribe
+# «11/08/2026» en la celda, el fichero guarda el numero de serie y el lector
+# recibia **46245**. Medido con el propio generador: la misma hoja da
+# «2026-08-11» si la escribe la app y «46245» si la reescribe Excel, y ese
+# numero viajaba tal cual al plan.
+#
+# El origen es 1899-12-30 —el desplazamiento clasico de Excel, que cuenta un
+# 29 de febrero de 1900 que no existio—. Se acota a un rango razonable para no
+# convertir en fecha un numero que solo es un numero: por debajo de 20000
+# (1954) o por encima de 60000 (2064) se deja como estaba.
+.caa_fecha <- function(x) {
+  v <- .caa_txt(x)
+  if (!nzchar(v)) return("")
+  n <- suppressWarnings(as.numeric(v))
+  if (!length(n) || !is.finite(n) || n < 20000 || n > 60000) return(v)
+  # `%d` y no `%s`: un serial con decimales trae la hora, y la parte entera es
+  # el dia.
+  format(as.Date(floor(n), origin = "1899-12-30"), "%Y-%m-%d")
+}
+
 .caa_num <- function(x) {
   v <- suppressWarnings(as.numeric(.caa_txt(x)))
   if (!length(v) || !is.finite(v)) NA_real_ else v
@@ -121,6 +143,9 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
       mapa <- .caa_mapa_bloque(titulos, desde)
       if (!length(mapa)) next
       val <- function(campo) if (is.null(mapa[[campo]])) "" else .caa_txt(df[i, mapa[[campo]]])
+      # La celda cruda, para los campos que necesitan interpretarla —una fecha
+      # que Excel guardo como numero de serie llega aqui como «46245».
+      fecha <- function(campo) if (is.null(mapa[[campo]])) "" else .caa_fecha(df[i, mapa[[campo]]])
       num <- function(campo) if (is.null(mapa[[campo]])) NA_real_ else .caa_num(df[i, mapa[[campo]]])
 
       code <- val("operational_code")
@@ -153,9 +178,9 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
         # no se mezcla con el de la aplicacion, que llega de otra hoja.
         sample_status = val("sample_status"),
         contact_medium = val("contact_medium"),
-        contact_date = val("contact_date"),
+        contact_date = fecha("contact_date"),
         contact_attempts = num("contact_attempts"),
-        scheduled_date = val("scheduled_date"),
+        scheduled_date = fecha("scheduled_date"),
         scheduled_day = val("scheduled_day"),
         scheduled_time = val("scheduled_time"),
         link = val("link"),

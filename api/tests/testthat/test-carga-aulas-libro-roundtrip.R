@@ -120,3 +120,46 @@ test_that("las observaciones del agendamiento sobreviven al round-trip", {
   codigos <- .rt_campo(v$plan, "operational_code")
   expect_identical(unname(setNames(notas, codigos)[["R 4.1"]]), "El docente pidio reprogramar")
 })
+
+test_that("una fecha que Excel guardo como numero vuelve a ser fecha", {
+  # **Defecto vivo, no una mejora.** Excel convierte solo lo que parece fecha:
+  # en cuanto alguien escribe «11/08/2026» en la celda, el fichero guarda el
+  # numero de serie. Medido con el propio generador: la misma hoja daba
+  # «2026-08-11» escrita por la app y «46245» reescrita por Excel, y ese numero
+  # viajaba tal cual al plan.
+  plan <- list(
+    list(operational_code = "CH 1", titular_operational_code = "CH 1",
+         sample_role = "titular", faculty = "Derecho", course_name = "CURSO",
+         eligible_n = 40, scheduled_date = "2026-08-11", sample_status = "AGENDADA")
+  )
+  path <- file.path(tempdir(), "roundtrip_fecha.xlsx")
+  aulas_libro_generar(plan, path)
+
+  # Lo que escribe la app: texto ISO.
+  expect_equal(aulas_agendadas_leer(path)[[1]]$scheduled_date, "2026-08-11")
+
+  # Lo que devuelve Excel: la misma celda como fecha de verdad.
+  wb <- openxlsx::loadWorkbook(path)
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
+  col <- 1L + which(campos == "scheduled_date")
+  openxlsx::writeData(wb, "Aulas Agendadas", as.Date("2026-08-11"),
+                      startCol = col, startRow = 2)
+  otro <- file.path(tempdir(), "roundtrip_fecha2.xlsx")
+  openxlsx::saveWorkbook(wb, otro, overwrite = TRUE)
+
+  leido <- aulas_agendadas_leer(otro)[[1]]$scheduled_date
+  expect_equal(leido, "2026-08-11")
+  # El control: sin la conversion esto valdria "46245", que es lo que llegaba.
+  expect_false(identical(leido, "46245"))
+})
+
+test_that("un numero que no es una fecha se queda como esta", {
+  # El rango acota a 1954-2064. Un «25» —asistentes, intentos— no puede
+  # convertirse en 1900-01-24 porque alguien lo puso en una columna de fecha.
+  expect_equal(.caa_fecha("25"), "25")
+  expect_equal(.caa_fecha("2026-08-11"), "2026-08-11")
+  expect_equal(.caa_fecha(""), "")
+  expect_equal(.caa_fecha("-"), "")
+  # Un serial con hora: la parte entera es el dia.
+  expect_equal(.caa_fecha("46245.75"), "2026-08-11")
+})
