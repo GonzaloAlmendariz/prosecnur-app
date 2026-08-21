@@ -118,10 +118,11 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #' @param listas vocabularios, en el orden de las columnas de la hoja «Listas».
 #' @param columnas_app lista `hoja -> columnas` que llena la app, para teñirlas.
 #' @param agrupados lista `list(hoja, cols)` de columnas plegables.
+#' @param semaforos lista `list(hoja, cols, filas, desde)` de columnas de estado.
 #' @export
 aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(),
                                         listas = list(), columnas_app = list(),
-                                        agrupados = list()) {
+                                        agrupados = list(), semaforos = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -176,6 +177,41 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     filas <- (n_cab + 1L):ultima
     openxlsx::addStyle(wb, hoja, de_la_app, rows = filas, cols = cols,
                        gridExpand = TRUE, stack = TRUE)
+  }
+
+  # **El estado se ve sin leerlo.**
+  #
+  # Las columnas de estado son las que se recorren buscando «que falta»: con 951
+  # filas y el valor en texto, encontrar las que siguen por agendar era leer
+  # celda a celda. El color lo dice de un vistazo y el texto se queda —el color
+  # solo no sirve: hay quien no lo distingue, y el fichero se imprime en blanco
+  # y negro—.
+  #
+  # Los tonos salen de lo que significa cada estado, no de una paleta: verde lo
+  # cerrado, ambar lo que espera accion, gris lo que ya no se toca. La regla es
+  # `contains` sobre el texto del vocabulario, asi que un estado nuevo no rompe
+  # nada: simplemente no se tiñe.
+  semaforo <- list(
+    list(texto = "AGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+    list(texto = "REAGENDADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+    list(texto = "APLICADA", estilo = openxlsx::createStyle(bgFill = "#E3F3E8", fontColour = "#155E2E")),
+    list(texto = "EN RESERVA", estilo = openxlsx::createStyle(bgFill = "#E7EEF9", fontColour = "#1B4B8F")),
+    list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
+    list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
+  )
+  # Sobre las columnas de ESTADO y sólo esas: colgarlo de las validaciones
+  # teñía también «MEDIO DE CONTACTO» y «DÍA», que no llevan estos valores. No
+  # rompía nada —ninguna celda casaba— pero dejaba reglas donde no significan.
+  for (sem in semaforos) {
+    if (!length(sem$cols) || !sem$filas) next
+    for (col in sem$cols) {
+      for (regla in semaforo) {
+        openxlsx::conditionalFormatting(
+          wb, sem$hoja, cols = col, rows = seq_len(sem$filas) + sem$desde,
+          type = "contains", rule = regla$texto, style = regla$estilo
+        )
+      }
+    }
   }
 
   # **Los reemplazos se pliegan.**
