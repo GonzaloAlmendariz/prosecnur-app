@@ -25,6 +25,7 @@ import { HistorialCorridas } from "./HistorialCorridas";
 import "../../didactica/didactica.css";
 import "./salidas.css";
 import { profundidadReserva } from "../aulas/profundidadReservaModel";
+import { rendimientoNeto } from "./rendimientoNetoModel";
 
 export function SalidasCierreTab({
   model,
@@ -95,6 +96,15 @@ export function SalidasCierreTab({
   // muestra esta ficha. La procedencia de cada cifra no cambia; lo que cambia
   // es si el conjunto se puede defender tal cual.
   const observaciones = saludDesdeModel(model);
+  // C5 · Lo que la muestra rinde DE VERDAD: el dimensionamiento suma elegibles
+  // brutos y dos aulas del mismo estrato pueden compartir alumnos. Sin esto, la
+  // ficha declaraba un diseño «cerrado» sin haber contrastado nunca el neto
+  // contra el objetivo.
+  const neto = rendimientoNeto(
+    m1Rows,
+    safeNumber(selectedComp.resultado?.n_objetivo, 0) || null,
+    safeNumber(selectedComp.resultado?.n_operativo, 0) || null,
+  );
   const validado = modoTrabajo === "diseno_validado";
   // No se cierra un diseño que todavía no existe: exige resultado acreditado.
   const puedeValidar = Boolean(selectedResultReady);
@@ -259,6 +269,41 @@ export function SalidasCierreTab({
           * aulas ya cerradas: su reporte se titulaba «Propuesta metodológica
           * preliminar» y usaba la plantilla preliminar, sin salida posible.
           */}
+        {neto && !neto.sinDatos && (
+          <div className="cmv2-sal-neto" data-cubre={neto.cubreObjetivo === false ? "no" : undefined}>
+            <strong>Lo que la muestra rinde sin contar alumnos dos veces</strong>
+            <p>
+              Los {fmtInt(neto.bruto)} elegibles de los titulares son{" "}
+              <b>{fmtInt(neto.neto)}</b> alumnos distintos:{" "}
+              <b>{fmtInt(neto.repetidos)}</b> ({fmtPct(neto.fraccionRepetida)}) aparecen en
+              más de un aula. Con la tasa media ({fmtPct(neto.tasaMedia)}) se esperan{" "}
+              <b>{fmtInt(neto.efectivasEsperadas)}</b> encuestas efectivas.
+            </p>
+            {neto.objetivo != null && (
+              <p>
+                {neto.cubreObjetivo ? (
+                  <>
+                    Cubre la muestra objetivo de {fmtInt(neto.objetivo)} con{" "}
+                    <b>{fmtInt(neto.margenSobreObjetivo ?? 0)}</b> de margen.
+                    {neto.operativa != null && neto.efectivasEsperadas < neto.operativa ? (
+                      <>
+                        {" "}La sobremuestra operativa de {fmtInt(neto.operativa)} no se
+                        alcanza, y es su función: existe para absorber esta pérdida.
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <b>No alcanza la muestra objetivo</b> de {fmtInt(neto.objetivo)}: faltan{" "}
+                    {fmtInt(Math.abs(neto.margenSobreObjetivo ?? 0))} efectivas. Hacen falta
+                    más titulares, o aulas que compartan menos alumnos entre sí.
+                  </>
+                )}
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="cmv2-sal-validar" data-validado={validado || undefined}>
           {validado ? (
             <>

@@ -1195,3 +1195,25 @@
 }
 
 .cmv2-sal-validar[data-validado] > svg { color: var(--pulso-success-fg); }
+
+/* El rendimiento neto en la ficha de validación. Es prosa de defensa, no una
+   alerta: consumir sobremuestra es la función del colchón. Sólo se tiñe cuando
+   el OBJETIVO no se alcanza, que es lo único que sí compromete el diseño. */
+.cmv2-sal-neto {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+}
+
+.cmv2-sal-neto strong { font-size: 12px; color: var(--pulso-text); }
+.cmv2-sal-neto p { margin: 0; font-size: 11px; line-height: 1.55; color: var(--pulso-text-soft); }
+.cmv2-sal-neto b { color: var(--pulso-text); font-weight: 600; }
+
+.cmv2-sal-neto[data-cubre="no"] {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 38%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-danger-bg) 40%, var(--pulso-surface));
+}
