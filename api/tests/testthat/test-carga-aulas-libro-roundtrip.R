@@ -358,3 +358,77 @@ test_that("un titular sin control sigue teniendo su fila, para que la llenen", {
   codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
   expect_true("CH 4" %in% codigos)
 })
+
+# --- El barrido de FILAS: ninguna unidad con registro se queda fuera ---------
+#
+# Complemento del barrido de campos. Aquel prueba con UNA unidad y cubre que no
+# se pierda ninguna COLUMNA; este cubre que no se pierda ninguna FILA. Son dos
+# coberturas distintas y el defecto de las reservas con control se coló entre
+# las dos: ninguna columna faltaba, faltaban 22 filas.
+
+.rt_plan_tres_roles <- function() list(
+  list(classroom_id = "A-1", operational_code = "CH 1", course_name = "C1",
+       faculty = "Letras", sample_role = "titular", eligible_n = 30,
+       enrolled_total = 34, expected_valid = 20),
+  list(classroom_id = "A-2", operational_code = "CH 2", course_name = "C2",
+       faculty = "Letras", sample_role = "titular", eligible_n = 28,
+       enrolled_total = 31, expected_valid = 18),
+  list(classroom_id = "A-3", operational_code = "R 2.1", course_name = "C3",
+       faculty = "Letras", sample_role = "chain_reserve",
+       titular_operational_code = "CH 2", replacement_for = "CH 2",
+       replacement_order = 1, eligible_n = 26, enrolled_total = 29,
+       expected_valid = 17),
+  list(classroom_id = "A-4", operational_code = "X 1", course_name = "C4",
+       faculty = "Letras", sample_role = "extra_reserve_pool",
+       eligible_n = 24, enrolled_total = 27, expected_valid = 15)
+)
+
+test_that("vuelve el control de CUALQUIER unidad que lo tenga, sea del rol que sea", {
+  # Una reserva activada y un extra del banco activado se aplican igual que un
+  # titular: si tienen control, el libro tiene que devolverlo. Escribir solo
+  # titulares costo 22 filas en el estudio de trabajo.
+  v <- .rt_vuelta(
+    plan = .rt_plan_tres_roles(),
+    partes = list(),
+    control = list(
+      list(operational_code = "CH 1", sent_total = 11),
+      list(operational_code = "R 2.1", sent_total = 22),
+      list(operational_code = "X 1", sent_total = 33)
+    )
+  )
+  codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  valores <- setNames(
+    vapply(v$control, function(r) as.numeric(r$sent_total %||% NA), numeric(1)),
+    codigos
+  )
+  # Los tres, con SU valor: si el generador los repartiera mal, los numeros
+  # 11/22/33 saldrian cruzados.
+  expect_equal(unname(valores[["CH 1"]]), 11)
+  expect_equal(unname(valores[["R 2.1"]]), 22)
+  expect_equal(unname(valores[["X 1"]]), 33)
+})
+
+test_that("vuelve el parte de CUALQUIER unidad que lo tenga", {
+  # La hoja de campo ya lo hacia bien desde antes; este test lo fija para que no
+  # se pierda al reves de como se perdio en la Base de control.
+  v <- .rt_vuelta(
+    plan = .rt_plan_tres_roles(),
+    partes = list(
+      list(operational_code = "CH 1", intento = 1L, observed_students = 21,
+           effective_surveys = 19, application_status = "APLICADA"),
+      list(operational_code = "R 2.1", intento = 1L, observed_students = 14,
+           effective_surveys = 12, application_status = "APLICADA"),
+      list(operational_code = "X 1", intento = 1L, observed_students = 9,
+           effective_surveys = 8, application_status = "APLICADA")
+    ),
+    control = list()
+  )
+  codigos <- vapply(v$partes, function(r) as.character(r$operational_code %||% ""), character(1))
+  efectivas <- setNames(
+    vapply(v$partes, function(r) as.numeric(r$effective_surveys %||% NA), numeric(1)),
+    codigos
+  )
+  expect_equal(unname(efectivas[["CH 1"]]), 19)
+  expect_equal(unname(efectivas[["R 2.1"]]), 12)
+  expect_equal(unname(efectivas[["X 1"]]), 8)
+})
