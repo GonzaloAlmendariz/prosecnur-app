@@ -511,3 +511,35 @@ test_that("declarar de MENOS no se tiñe: es posible y corriente", {
   expect_true(grepl("&gt;", xml, fixed = TRUE))
   expect_false(grepl("AB3&lt;&gt;X3", xml, fixed = TRUE))
 })
+
+test_that("cada desplegable saca sus valores de SU lista, no de la de al lado", {
+  # El emparejamiento entre columna y lista sale de dos numeraciones que se
+  # llevan a mano: la posicion del campo en el bloque y el indice de la lista en
+  # la hoja «Listas». Si manaña se añade una lista en medio, se cruzan y el
+  # desplegable de estados ofrece los dias — sin que nada falle.
+  #
+  # El aserto no compara letras de columna: comprueba que la CABECERA de la
+  # lista a la que apunta cada validacion es el titulo de la columna validada.
+  # Asi se mantiene solo.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(1L), libro)
+
+  v <- validaciones_de(libro, "Aulas Agendadas")
+  expect_gt(nrow(v), 0L)
+
+  titulos_lista <- unlist(openxlsx::read.xlsx(libro, sheet = "Listas",
+                                              colNames = FALSE, rows = 1))
+  titulos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$titulos[[1]], character(1))
+
+  for (k in seq_len(nrow(v))) {
+    letra <- sub("([A-Z]+).*", "\\1", v$sqref[[k]])
+    n <- openxlsx::col2int(letra)
+    # La posicion dentro del bloque, descontando la columna `ID MATCH`.
+    pos <- ((n - 2L) %% AULAS_AGENDADAS_ANCHO_BLOQUE) + 1L
+    esperado <- titulos_bloque[[pos]]
+
+    col_lista <- openxlsx::col2int(sub(".*!\\$([A-Z]+)\\$.*", "\\1", v$formula[[k]]))
+    expect_identical(unname(titulos_lista[[col_lista]]), esperado,
+                     info = sprintf("la validacion de %s apunta a otra lista", esperado))
+  }
+})
