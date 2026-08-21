@@ -45,6 +45,7 @@ import {
   type MonitoreoVariable,
 } from "../../../../api/client";
 import type { MonitoreoSeccion } from "../../core/monitoreoRegistry";
+import { cruceDeDistritos } from "./cruceDeDistritos";
 import { describirFilasDeFase } from "./filasDeFase";
 import { useWaitForSourceSyncJob } from "./sync/pollSourceSync";
 
@@ -698,6 +699,7 @@ function TerritorialSourceConsoleImpl({
   ));
   const routeDistrictTotal = routeDistricts.length || liveDistricts.length;
   const districtCrossPct = routeDistrictTotal ? Math.round((alignedDistricts.length / routeDistrictTotal) * 100) : null;
+  const veredictoDistritos = cruceDeDistritos(alignedDistricts.length, routeDistrictTotal, fmt);
   const surveyQuestionCount = sourceCoherence?.survey_count ?? null;
   const surveyChoiceCount = sourceCoherence?.choices_count ?? null;
   const schemaHealthPct = surveyQuestionCount ? 100 : activeAssetUid ? 55 : 0;
@@ -1095,7 +1097,7 @@ function TerritorialSourceConsoleImpl({
                   </div>
                 </div>
                 <div className="mon-territorial-form-kpi-grid" aria-label="Estado operativo de la fuente">
-                  <TerritorialSourceMetric label="Distritos alineados" value={`${fmt(alignedDistricts.length)} de ${fmt(routeDistrictTotal)}`} hint={alignedDistricts.length >= routeDistrictTotal ? "Hojas de Ruta y Kobo coinciden" : "Revisar cobertura territorial"} progress={districtCrossPct ?? 0} tone={alignedDistricts.length >= routeDistrictTotal ? "ready" : "warning"} />
+                  <TerritorialSourceMetric label="Distritos alineados" value={veredictoDistritos.valor} hint={veredictoDistritos.pista} progress={districtCrossPct ?? 0} tone={veredictoDistritos.tono} />
                   <TerritorialSourceMetric label="Respuestas sincronizadas" value={fmt(responseCount)} hint={koboSource?.last_sync_at ? `Actualizado ${formatDate(koboSource.last_sync_at)}` : "Sin actualización reciente"} progress={responseCount ? 100 : 0} tone={responseCount ? "base" : "warning"} />
                   <TerritorialSourceMetric label="Respuestas que pasan el filtro" value={sourceEffectiveCount == null ? "Por definir" : fmt(sourceEffectiveCount)} hint={filterConfigured ? `${effectivePct == null ? "S/D" : `${effectivePct}%`} del corte` : "Define el corte operativo"} progress={effectivePct ?? 0} tone={filterConfigured ? "ready" : "warning"} />
                   <TerritorialSourceMetric label="Formulario leído" value={surveyQuestionCount == null ? "Pendiente" : `${fmt(surveyQuestionCount)} preguntas`} hint={surveyChoiceCount == null ? `Inspección ${formatDate(sourceCoherence?.date_modified)}` : `${fmt(surveyChoiceCount)} opciones disponibles`} progress={schemaHealthPct} tone={surveyQuestionCount ? "ready" : "warning"} />
