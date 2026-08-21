@@ -113,6 +113,25 @@ export function TasaEfectividadFacultadCard({
               </i>
               <span className="cmv2-tasafac-valor">{pctTasa(f.tasa)}</span>
             </div>
+            {f.cuota != null && f.p25 != null && f.cupos != null ? (
+              // El concepto intermedio que faltaba (Gonzalo: «no entiendo como
+              // llegamos a esos titulares»): el aula tipica RINDE P25 × tasa
+              // efectivas, y la cuota se divide entre eso.
+              <div
+                className="cmv2-tasafac-cuenta"
+                title={`El aula típica de la facultad rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
+              >
+                <span className="cmv2-tasafac-num"><b>{fmtInt(f.cuota)}</b><small>cuota</small></span>
+                <span className="cmv2-tasafac-op">÷</span>
+                <span className="cmv2-tasafac-num"><b>{coma(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
+                <span className="cmv2-tasafac-op">→</span>
+                <span className="cmv2-tasafac-num cmv2-tasafac-res"><b>{fmtInt(f.cupos)}</b><small>{f.cupos === 1 ? "titular" : "titulares"}</small></span>
+              </div>
+            ) : (
+              <div className="cmv2-tasafac-cuenta" data-vacia="true">
+                {faltaCalcular ? "titulares tras calcular la muestra" : "esta facultad no entró al reparto"}
+              </div>
+            )}
             {/* De dónde sale ESA tasa, con sus dos factores a la vista. El
                 motor los publica por separado justamente para poder mostrarlos
                 (calc_muestra_aulas_efectividad.R); si no reconstruyen la tasa
@@ -148,25 +167,6 @@ export function TasaEfectividadFacultadCard({
                 Su marco de {fmtInt(f.nAulasMarco)} aulas rinde <b>{pctTasa(f.tasaMarco)}</b> según
                 el tamaño de cada una; el dimensionamiento usa {pctTasa(f.tasa)}.
               </p>
-            )}
-            {f.cuota != null && f.p25 != null && f.cupos != null ? (
-              // El concepto intermedio que faltaba (Gonzalo: «no entiendo como
-              // llegamos a esos titulares»): el aula tipica RINDE P25 × tasa
-              // efectivas, y la cuota se divide entre eso.
-              <div
-                className="cmv2-tasafac-cuenta"
-                title={`El aula típica de la facultad rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
-              >
-                <span className="cmv2-tasafac-num"><b>{fmtInt(f.cuota)}</b><small>cuota</small></span>
-                <span className="cmv2-tasafac-op">÷</span>
-                <span className="cmv2-tasafac-num"><b>{coma(f.p25 * f.tasa, 1)}</b><small>efectivas por aula típica</small></span>
-                <span className="cmv2-tasafac-op">→</span>
-                <span className="cmv2-tasafac-num cmv2-tasafac-res"><b>{fmtInt(f.cupos)}</b><small>{f.cupos === 1 ? "titular" : "titulares"}</small></span>
-              </div>
-            ) : (
-              <div className="cmv2-tasafac-cuenta" data-vacia="true">
-                {faltaCalcular ? "titulares tras calcular la muestra" : "esta facultad no entró al reparto"}
-              </div>
             )}
             {f.cuentaCuadra === false && (
               <p className="cmv2-tasafac-descuadre" role="note">
