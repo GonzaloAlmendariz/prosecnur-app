@@ -699,3 +699,18 @@ test_that("el libro abre por la hoja donde se trabaja", {
   expect_identical(visible[[which(names(wb) == "Listas")]], "hidden")
   expect_true(all(visible[names(wb) != "Listas"] == "visible"))
 })
+
+test_that("al imprimir se repite la fila de TITULOS, no la banda de grupo", {
+  # Repitiendo las dos, las columnas repetidas arrastraban la banda del PRIMER
+  # tramo: una pagina con columnas de «CONTROL - CUENTA» salia rotulada
+  # «INFORMACIÓN DEL CURSO». Medido en el libro del estudio: el rotulo enganaba
+  # en 56 de las 56 paginas de esa hoja; ahora sale en 8 —las primeras de cada
+  # tramo de columnas— y en las demas no hay rotulo, que es mejor que uno falso.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  # Las hojas de dos filas de cabecera repiten SOLO la segunda.
+  expect_identical(filas_repetidas_de(libro, "Base de control"), "$2:$2")
+  expect_identical(filas_repetidas_de(libro, "Aulas Aplicadas (Campo)"), "$2:$2")
+  # Y la agenda, que solo tiene una, sigue repitiendo la suya.
+  expect_identical(filas_repetidas_de(libro, "Aulas Agendadas"), "$1:$1")
+})
