@@ -163,3 +163,43 @@ test_that("un numero que no es una fecha se queda como esta", {
   # Un serial con hora: la parte entera es el dia.
   expect_equal(.caa_fecha("46245.75"), "2026-08-11")
 })
+
+test_that("las fechas se escriben como fechas y siguen releyendose", {
+  # Una celda de texto con formato de fecha SIGUE siendo texto: Excel no la
+  # ordena ni la filtra por rango, y «2026-8-9» se coloca antes que
+  # «2026-08-11» porque compara letra a letra. Tipar la columna solo se puede
+  # desde que el lector tolera el serial —antes la devolvia como «46245»—, asi
+  # que las dos mitades se prueban juntas.
+  plan <- list(
+    list(operational_code = "CH 1", titular_operational_code = "CH 1",
+         sample_role = "titular", faculty = "Derecho", course_name = "CURSO",
+         eligible_n = 40, scheduled_date = "2026-08-11", sample_status = "AGENDADA"),
+    list(operational_code = "CH 2", titular_operational_code = "CH 2",
+         sample_role = "titular", faculty = "Gestión", course_name = "OTRO",
+         eligible_n = 20, scheduled_date = "2026-08-09", sample_status = "AGENDADA")
+  )
+  path <- file.path(tempdir(), "roundtrip_tipos.xlsx")
+  aulas_libro_generar(plan, path)
+
+  # 1. La celda es un numero, no una cadena: es lo que permite ordenar.
+  destino <- file.path(tempdir(), paste0("tipos_", as.integer(runif(1, 1, 1e6))))
+  dir.create(destino)
+  utils::unzip(path, exdir = destino)
+  hojas <- openxlsx::getSheetNames(path)
+  xml <- paste(readLines(file.path(destino, "xl", "worksheets",
+                                   sprintf("sheet%d.xml", which(hojas == "Aulas Agendadas"))),
+                         warn = FALSE), collapse = "")
+  # El `formatCode` vive en `xl/styles.xml`, no en la hoja: lo que la hoja dice
+  # es el TIPO de la celda, y es lo que decide si Excel puede ordenar. Una fecha
+  # tipada sale como `t="n"` con el serial dentro; una de texto, como `t="s"`.
+  celdas <- regmatches(xml, gregexpr('<c r="[A-Z]+[0-9]+"[^>]*>', xml))[[1]]
+  numericas <- grep('t="n"', celdas, value = TRUE)
+  expect_gt(length(numericas), 0)
+
+  # 2. Y el viaje de vuelta sigue dando la fecha, no el serial.
+  leido <- aulas_agendadas_leer(path)
+  fechas <- vapply(leido, function(u) as.character(u$scheduled_date %||% ""), character(1))
+  expect_true("2026-08-11" %in% fechas)
+  expect_true("2026-08-09" %in% fechas)
+  expect_false(any(grepl("^4[0-9]{4}$", fechas)))
+})
