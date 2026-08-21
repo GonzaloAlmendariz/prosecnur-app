@@ -611,3 +611,49 @@ test_that("el semaforo de la agenda cae sobre STATUS MUESTRA", {
   expect_true(esperada %in% cols)
   expect_false(otra %in% cols)
 })
+
+test_that("el telefono del docente NO es un numero", {
+  # Es la columna con la que el agendador marca, y este libro es su unica
+  # herramienta. Tipada como numero, Excel enseñaria «900,040,826» —o «9E+08»
+  # si la columna se estrecha— y no se puede marcar lo que no se lee. Es texto
+  # a proposito y nadie lo vigilaba.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(list(list(
+    operational_code = "CH 1", sample_role = "titular", faculty = "Letras",
+    course_name = "Curso 1", teacher = "Docente 1", teacher_phone = "900040826",
+    eligible_n = 30, enrolled_total = 34
+  )), libro)
+
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(sp) sp$campo, character(1))
+  col <- 1L + which(campos == "teacher_phone")
+  expect_identical(tipo_de_celda(libro, "Aulas Agendadas", col, 2), "s")
+
+  # Y el control: los denominadores SI son numeros, asi que el libro no esta
+  # escribiendolo todo como texto —eso los dejaria sin poder sumarse—.
+  col_n <- 1L + which(campos == "enrolled_total")
+  expect_identical(tipo_de_celda(libro, "Aulas Agendadas", col_n, 2), "n")
+})
+
+test_that("las columnas con coma de miles no tienen cifras de cuatro digitos", {
+  # Gonzalo vio comas donde no tenian sentido. Venian de la portada —«5,410
+  # alumnos elegibles»— y de la hoja «Datos», las dos retiradas. En las hojas de
+  # trabajo el formato «#,##0» sigue puesto y esta bien que siga: lo que hay que
+  # comprobar es que lo llevan CUENTAS POR AULA, no totales de estudio.
+  #
+  # Se miran solo esas columnas. Barrer todos los numeros de la hoja daba un
+  # falso positivo con 46245, que es el SERIAL de una fecha —lleva formato
+  # «dd/mm/yyyy» y se ve como fecha—: el mismo aserto demasiado ancho que este
+  # fichero lleva media sesion acotando.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Aulas Agendadas",
+                                            colNames = FALSE))
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(sp) sp$campo, character(1))
+  for (cmp in c("enrolled_total", "eligible_n", "contact_attempts")) {
+    col <- 1L + which(campos == cmp)
+    v <- suppressWarnings(as.numeric(d[[col]]))
+    v <- v[is.finite(v)]
+    if (!length(v)) next
+    expect_lt(max(v), 1000, label = sprintf("el mayor valor de «%s»", cmp))
+  }
+})
