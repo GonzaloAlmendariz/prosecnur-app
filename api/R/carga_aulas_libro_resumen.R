@@ -243,6 +243,19 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
     numericas <- setdiff(2:n_col_fac, which(names(cortes$por_facultad) == "Avance"))
     openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n_fac), cols = numericas,
                        gridExpand = TRUE, stack = TRUE)
+    # **Una barra donde se compara.** Veinte facultades con sus cifras alineadas
+    # obligan a leer numero por numero para ver cual va corta; la barra lo
+    # resuelve de un vistazo y no ocupa una columna mas. Solo en `Recogidas`,
+    # que es la que se compara con su meta de al lado — poner barras en todas
+    # las columnas seria decoracion.
+    col_rec <- which(names(cortes$por_facultad) == "Recogidas")
+    if (length(col_rec)) {
+      openxlsx::conditionalFormatting(
+        wb, hoja, cols = col_rec, rows = (fila + 1L):(fila + n_fac),
+        type = "databar", style = c("#C7D0DD", "#002457"), gradient = FALSE,
+        border = FALSE
+      )
+    }
     col_av <- which(names(cortes$por_facultad) == "Avance")
     if (length(col_av)) {
       openxlsx::addStyle(wb, hoja, openxlsx::createStyle(halign = "right"),
