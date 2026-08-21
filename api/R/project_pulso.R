@@ -127,15 +127,17 @@
 # Histórico volvía a su estado vacío —«sube la base del estudio anterior en
 # Fuentes»— y había que subirla otra vez.
 #
-# Y aquí no hay forma de recalcularlo: el archivo crudo de la referencia se
-# excluye a propósito del zip (`.pulso_sanitize_calc_muestra_reference_bindings`
-# deja el binding en «pendiente»), porque es la base de OTRO estudio. Si el
-# agregado no viaja, no viaja nada.
-#
 # Lo que viaja son agregados del estudio anterior: conteos por celda, por
 # criterio, por semana y por cadena. No hay filas por estudiante ni datos
 # personales; el curso-horario histórico es una etiqueta de aula de un año que
 # ya cerró.
+#
+# Desde 2026-08-21 viaja TAMBIÉN el archivo de la referencia (Gonzalo: «además
+# el histórico debe viajar con el .pulso»). Antes se excluía por ser «la base
+# de OTRO estudio», pero lo que el motor acepta como referencia es un agregado
+# por AULA con la misma anonimidad que este bloque —1.012 filas y 29 columnas
+# en el estudio real— así que el motivo no aplicaba y el costo sí: quien
+# recibía el proyecto no podía re-derivar nada.
 .pulso_sanitize_calc_muestra_asistencia_record <- function(value, fields) {
   if (!is.list(value) && !is.data.frame(value)) return(NULL)
   .pulso_whitelist_scalar_fields(value, fields)
@@ -502,51 +504,6 @@
   ref
 }
 
-.pulso_sanitize_calc_muestra_reference_bindings <- function(bindings) {
-  if (is.data.frame(bindings)) {
-    if (!("role" %in% names(bindings)) || !nrow(bindings)) return(bindings)
-    role <- as.character(bindings$role)
-    idx <- which(!is.na(role) & role == "referencia_asistencia")
-    if (!length(idx)) return(bindings)
-    if ("status" %in% names(bindings)) {
-      bindings$status <- as.character(bindings$status)
-      bindings$status[idx] <- "pendiente"
-    }
-    for (field in intersect(c("file_id", "fileId", "file_name", "fileName"), names(bindings))) {
-      bindings[[field]] <- as.character(bindings[[field]])
-      bindings[[field]][idx] <- ""
-    }
-    for (field in intersect(c("sheet_diagnostics", "diagnostics"), names(bindings))) {
-      column <- bindings[[field]]
-      if (is.list(column)) {
-        column[idx] <- rep(list(list()), length(idx))
-      } else {
-        column[idx] <- NA
-      }
-      bindings[[field]] <- column
-    }
-    return(bindings)
-  }
-  if (!is.list(bindings)) return(bindings)
-  lapply(bindings, function(binding) {
-    if (!is.list(binding)) return(binding)
-    role <- as.character(binding$role %||% "")
-    if (!length(role) || is.na(role[[1L]]) || role[[1L]] != "referencia_asistencia") {
-      return(binding)
-    }
-    binding$status <- "pendiente"
-    binding$file_id <- ""
-    binding$file_name <- ""
-    binding$fileId <- NULL
-    binding$fileName <- NULL
-    binding$sheet_diagnostics <- list()
-    binding$diagnostics <- NULL
-    binding
-  })
-}
-
-# Devuelve una copia del session state sin los caches derivables. NO toca
-# el env original — solo construye la versión "liviana" para saveRDS.
 .pulso_strip_caches <- function(s) {
   if (!is.null(s$codif_por_base) && is.list(s$codif_por_base)) {
     for (src in names(s$codif_por_base)) {
@@ -659,14 +616,9 @@
   }
   s$calc_muestra_referencia_asistencia <-
     .pulso_sanitize_calc_muestra_asistencia(s$calc_muestra_referencia_asistencia)
-  calc_muestra_estudio <- s$calc_muestra_estudio
-  if (is.list(calc_muestra_estudio) && is.list(calc_muestra_estudio$workspace)) {
-    calc_muestra_estudio$workspace$source_bindings <-
-      .pulso_sanitize_calc_muestra_reference_bindings(
-        calc_muestra_estudio$workspace$source_bindings
-      )
-    s$calc_muestra_estudio <- calc_muestra_estudio
-  }
+  # El binding de `referencia_asistencia` ya NO se degrada a «pendiente»: su
+  # archivo viaja en el .pulso (ver `.pulso_collect_calc_muestra_fids`), así
+  # que borrar su file_id dejaría la referencia huérfana de su propio archivo.
   # No limpiar s$monitoreo_territorial_map_cache ni
   # s$monitoreo_snapshot$territorial_report_cache: son caches persistentes,
   # versionadas y acotadas para acelerar Monitoreo territorial al abrir un
@@ -1914,27 +1866,29 @@
     value <- value[!is.na(value) & nzchar(value)]
     if (length(value)) out <<- c(out, value)
   }
+  # El histórico VIAJA con el proyecto (Gonzalo, 2026-08-21: «además el
+  # histórico debe viajar con el .pulso»). Antes su file_id se saltaba acá a
+  # propósito y por eso el archivo nunca entraba al zip: quien recibía el
+  # proyecto tenía los agregados pero no podía re-derivar nada, y para empezar
+  # uno nuevo debía conseguir el archivo por su cuenta — de los ocho candidatos
+  # del estudio real sólo uno pasa el validador.
+  # Se revisó el motivo por el que se excluía («es la base de OTRO estudio») y
+  # no aplica a lo que el motor acepta: la referencia válida es un agregado por
+  # AULA —1.012 filas, 29 columnas, 130 KB en el estudio real—, sin una sola
+  # fila por estudiante. Es la misma clase de dato que los agregados que ya
+  # viajaban en el estado.
   collect_binding <- function(binding) {
     if (is.null(binding)) return(invisible(NULL))
     if (is.data.frame(binding)) {
-      include <- rep(TRUE, nrow(binding))
-      if ("role" %in% names(binding)) {
-        role <- as.character(binding$role)
-        include <- is.na(role) | role != "referencia_asistencia"
-      }
       if ("file_id" %in% names(binding)) {
-        for (value in binding$file_id[include]) add_fid(value)
+        for (value in binding$file_id) add_fid(value)
       }
       if ("fileId" %in% names(binding)) {
-        for (value in binding$fileId[include]) add_fid(value)
+        for (value in binding$fileId) add_fid(value)
       }
       return(invisible(NULL))
     }
     if (!is.list(binding)) return(invisible(NULL))
-    role <- as.character(binding$role %||% "")
-    if (length(role) && !is.na(role[[1L]]) && role[[1L]] == "referencia_asistencia") {
-      return(invisible(NULL))
-    }
     add_fid(binding$file_id %||% binding$fileId)
     invisible(NULL)
   }

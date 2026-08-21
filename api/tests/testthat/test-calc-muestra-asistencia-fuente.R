@@ -209,7 +209,7 @@ test_that("state payload es retrocompatible y hace eco exacto del resumen", {
   )
 })
 
-test_that(".pulso conserva solo el resumen agregado y degrada su binding raw", {
+test_that(".pulso conserva el resumen agregado Y el archivo de la referencia", {
   skip_if_not_installed("zip")
   skip_if_not_installed("jsonlite")
   sid <- session_create()
@@ -243,11 +243,17 @@ test_that(".pulso conserva solo el resumen agregado y degrada su binding raw", {
   loaded_sid <- loaded$session_id
   restored <- session_get(loaded_sid)
 
-  raw_ausente <- !any(grepl(raw_meta$file_id, zip_entries, fixed = TRUE)) &&
-    !(raw_meta$file_id %in% names(restored$files %||% list()))
+  # MUDADO 2026-08-21 — antes se exigia lo contrario. El archivo de la
+  # referencia VIAJA: sin el, quien recibe el proyecto tiene los agregados
+  # pero no puede re-derivar nada, y para empezar uno nuevo tiene que conseguir
+  # el xlsx por su cuenta (de los ocho candidatos del estudio real, uno pasa el
+  # validador). Lo que el motor acepta es un agregado por AULA, sin filas por
+  # estudiante, asi que viaja con la misma anonimidad que el resumen.
+  raw_presente <- any(grepl(raw_meta$file_id, zip_entries, fixed = TRUE)) &&
+    (raw_meta$file_id %in% names(restored$files %||% list()))
   expect_true(
-    raw_ausente,
-    info = paste("El file_id raw de referencia_asistencia todavía viaja en .pulso:", raw_meta$file_id)
+    raw_presente,
+    info = paste("El archivo de referencia_asistencia NO viaja en el .pulso:", raw_meta$file_id)
   )
 
   resumen <- restored$calc_muestra_referencia_asistencia
@@ -293,20 +299,21 @@ test_that(".pulso conserva solo el resumen agregado y degrada su binding raw", {
   expect_identical(binding$role, "referencia_asistencia")
   expect_identical(binding$label, "Referencia de asistencia")
   expect_identical(binding$sheet_name, "Base de control")
-  binding_saneado <- identical(binding$status, "pendiente") &&
-    (is.null(binding$file_id) || !nzchar(binding$file_id)) &&
-    (is.null(binding$file_name) || !nzchar(binding$file_name)) &&
-    (is.null(binding$sheet_diagnostics) || length(binding$sheet_diagnostics) == 0L)
+  # MUDADO 2026-08-21: el binding YA NO se degrada. Antes se vaciaba su file_id
+  # y su archivo no entraba al zip, asi que la referencia sobrevivia sin su
+  # fuente. Gonzalo: «ademas el historico debe viajar con el .pulso».
   expect_true(
-    binding_saneado,
+    !is.null(binding$file_id) && nzchar(binding$file_id),
     info = sprintf(
-      "Binding referencia_asistencia no degradado: status=%s file_id=%s file_name=%s diagnostics=%d",
-      as.character(binding$status %||% "<NULL>"),
-      as.character(binding$file_id %||% "<NULL>"),
-      as.character(binding$file_name %||% "<NULL>"),
-      length(binding$sheet_diagnostics %||% list())
+      "El binding de referencia_asistencia perdio su file_id: %s",
+      as.character(binding$file_id %||% "<NULL>")
     )
   )
+  expect_true(
+    !is.null(binding$file_name) && nzchar(binding$file_name),
+    info = "El binding de referencia_asistencia perdio el nombre de su archivo."
+  )
+  expect_false(identical(binding$status, "pendiente"))
 })
 
 test_that("un .pulso previo a referencia_asistencia abre con payload NULL", {
