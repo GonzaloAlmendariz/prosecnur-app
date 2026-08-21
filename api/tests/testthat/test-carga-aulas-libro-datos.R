@@ -158,56 +158,25 @@ test_that("el orden de reemplazo va VACIO en quien no lo tiene", {
 
 # --- El formato de la hoja que alimenta las dinamicas -----------------------
 
-# Resuelve el formato REAL de una celda: del `s=` de la celda al `cellXfs`, y de
-# ahi al `numFmtId`. Mirar solo si `styles.xml` contiene «0.0%» no vale: la hoja
-# de campo ya lo mete, asi que el aserto pasaba aunque «Datos» se quedara sin
-# formato — un mutante sobrevivio exactamente asi.
+# El resolvedor vive en `helper-formato-xlsx.R`: lo usan esta hoja y la de
+# campo, y tener dos copias del camino `s=` -> `cellXfs` -> `formatCode` es
+# justo la clase de duplicado que se separa.
 .dat_formato_de <- function(pct, columna) {
+  unidades <- list(list(operational_code = "CH 1", sample_role = "titular",
+                        faculty = "F", eligible_n = 30, enrolled_total = 34))
+  partes <- list(list(operational_code = "CH 1", intento = 1L,
+                      observed_students = 22, attendance_pct = pct,
+                      effective_surveys = 20))
+  control <- list(list(operational_code = "CH 1", sent_total = 21,
+                       attendance_pct = pct))
   f <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
-  aulas_libro_generar(
-    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "F",
-              eligible_n = 30, enrolled_total = 34)),
-    f,
-    partes = list(list(operational_code = "CH 1", intento = 1L,
-                       observed_students = 22, attendance_pct = pct,
-                       effective_surveys = 20)),
-    control = list(list(operational_code = "CH 1", sent_total = 21,
-                        attendance_pct = pct))
-  )
-  d <- withr::local_tempdir(.local_envir = parent.frame())
-  utils::unzip(f, exdir = d)
-  hojas <- openxlsx::getSheetNames(f)
-  i <- which(hojas == "Datos")
-  hoja <- paste(readLines(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i)),
-                          warn = FALSE), collapse = "")
-  st <- paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
-
+  aulas_libro_generar(unidades, f, partes = partes, control = control)
   # La posicion sale de la MISMA funcion que arma la hoja: `read.xlsx` normaliza
   # los nombres —«% asistencia (parte)» se vuelve «X..asistencia..parte.»— y
   # buscar el literal ahi devolvia siempre vacio.
-  col <- which(names(aulas_libro_hoja_datos(
-    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "F",
-              eligible_n = 30, enrolled_total = 34)),
-    list(list(operational_code = "CH 1", intento = 1L, observed_students = 22,
-              attendance_pct = pct, effective_surveys = 20)),
-    list(list(operational_code = "CH 1", sent_total = 21, attendance_pct = pct))
-  )) == columna)
+  col <- which(names(aulas_libro_hoja_datos(unidades, partes, control)) == columna)
   if (!length(col)) return(NA_character_)
-  ref <- paste0(openxlsx::int2col(col), 2)
-  celda <- regmatches(hoja, regexpr(sprintf('<c r="%s"[^>]*>', ref), hoja))
-  if (!length(celda)) return(NA_character_)
-  sidx <- regmatches(celda, regexpr('s="[0-9]+"', celda))
-  if (!length(sidx)) return("")
-  sidx <- as.integer(gsub("[^0-9]", "", sidx))
-  xfs <- regmatches(st, regexpr("<cellXfs.*?</cellXfs>", st))
-  xf <- regmatches(xfs, gregexpr("<xf [^>]*/?>", xfs))[[1]]
-  if (sidx + 1L > length(xf)) return("")
-  nid <- regmatches(xf[[sidx + 1L]], regexpr('numFmtId="[0-9]+"', xf[[sidx + 1L]]))
-  if (!length(nid)) return("")
-  nid <- gsub("[^0-9]", "", nid)
-  fmt <- regmatches(st, regexpr(sprintf('<numFmt numFmtId="%s" formatCode="[^"]*"', nid), st))
-  if (!length(fmt)) return(nid)
-  gsub('.*formatCode="([^"]*)".*', "\\1", fmt)
+  formato_de_celda(f, "Datos", col, 2)
 }
 
 test_that("el % de asistencia de la hoja de datos se ENSEÑA como porcentaje", {
