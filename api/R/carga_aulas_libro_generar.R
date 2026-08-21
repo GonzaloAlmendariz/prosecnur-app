@@ -309,6 +309,18 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
          rango = .calf_rango(hoja_listas, 3L, length(listas[[3]])))
   )
 
+  # Las columnas de estado que se tiñen. Se piden por su POSICION dentro del
+  # bloque, igual que las validaciones: si el bloque gana un campo, esto sigue
+  # apuntando al estado y no a su vecina.
+  filas_aplicadas <- nrow(hojas[["Aulas Aplicadas (Campo)"]]) - 2L
+  col_status_aplicacion <- 1L + which(.calg_titulos_campo() == "STATUS DE APLICACIÓN")
+  semaforos <- list(
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
+         cols = vapply(bloques, function(b) col_en_bloque("sample_status", b), integer(1))),
+    list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
+         cols = col_status_aplicacion)
+  )
+
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
     wb,
@@ -329,7 +341,8 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
         1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L,
         1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE
       )
-    )) else list()
+    )) else list(),
+    semaforos = semaforos
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path

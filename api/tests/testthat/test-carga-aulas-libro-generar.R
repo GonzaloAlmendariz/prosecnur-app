@@ -253,3 +253,30 @@ test_that("los bloques de reemplazo se pliegan y el del titular no", {
   # Visibles al abrir: el agrupado ofrece plegarlos, no lo decide por nadie.
   expect_false(any(grepl('outlineLevel="1"[^>]*hidden="1"', con_nivel)))
 })
+
+test_that("el estado se tiñe, y solo el estado", {
+  # Con 951 filas, encontrar «que falta» era leer celda a celda. El color lo
+  # dice de un vistazo y el texto se queda: el color solo no sirve —hay quien no
+  # lo distingue y el fichero se imprime en blanco y negro—.
+  path <- file.path(tempdir(), "libro_semaforo.xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), path)
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Agendadas"), collapse = "")
+
+  textos <- unique(regmatches(xml, gregexpr('text="[^"]+"', xml))[[1]])
+  for (estado in c("AGENDADA", "REEMPLAZADA", "EN RESERVA")) {
+    expect_true(any(grepl(estado, textos, fixed = TRUE)), info = estado)
+  }
+
+  # Una regla por bloque de cadena y no una por columna con validacion: colgarlo
+  # de las validaciones teñia tambien «MEDIO DE CONTACTO» y «DÍA».
+  rangos <- regmatches(xml, gregexpr('conditionalFormatting sqref="[^"]+"', xml))[[1]]
+  expect_equal(length(rangos), 3L)   # titular + dos reservas
+})
+
+test_that("la hoja de aplicadas tiñe su propio estado", {
+  path <- file.path(tempdir(), "libro_semaforo2.xlsx")
+  aulas_libro_generar(.libro_de_prueba(1L), path)
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Aplicadas (Campo)"), collapse = "")
+  expect_match(xml, "conditionalFormatting")
+  expect_match(xml, 'text="APLICADA"')
+})
