@@ -98,6 +98,16 @@ describe("un vacío que nombra un bloqueo ofrece la salida", () => {
     expect(css).toMatch(/\.cmv2-expb-filtros:empty\s*\{[^}]*display:\s*none/);
   });
 
+  it("una tarjeta con varios hijos no declara uno solo como su contenido", () => {
+    // `data-qa-geometry-content` gobierna DOS cosas: la cardinalidad y el
+    // `contentBottom` contra el que el gate mide el vacío. Marcado sólo en
+    // `detail`, los otros cuatro hijos de la tarjeta pasaban a contar como
+    // espacio muerto: 21,14 px por tarjeta en las 21 de la pestaña, contra
+    // 1,04 px reales. Marcarlo en un hijo de varios hermanos es el error.
+    const card = src("../definicion/VariableMapCard.tsx");
+    expect(card).not.toContain("data-qa-geometry-content");
+  });
+
   it("la clase del botón vive en la hoja de la primitiva que la emite", () => {
     // Estaba partida entre `validacion-v2.css` (base) y `theme.css` (hover):
     // una feature que no cargara la de Validación tenía la clase sin estilo.
