@@ -149,6 +149,21 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   if (length(i)) as.integer(i[[1]]) else 0L
 }
 
+# La escala de una columna de razones se decide por la COLUMNA ENTERA y con
+# corte en 1.5, la misma regla que usa la capa de presentacion del frontend. El
+# motor NO normaliza (decision declarada en `monitoreo_aulas_cruce_hojas.R`): el
+# libro devuelve la cifra tal como la escribio el equipo y solo cambia como se
+# ENSEÑA.
+#
+# Vive a nivel de fichero y no dentro de `aulas_libro_generar()` porque la hoja
+# «Datos» la necesita tambien: una segunda copia del corte 1.5 se separaria de
+# esta en cuanto una de las dos cambie.
+.calg_escala_pct <- function(valores) {
+  v <- suppressWarnings(as.numeric(valores))
+  v <- v[is.finite(v)]
+  if (!length(v) || any(v > 1.5)) "decimal" else "porcentaje"
+}
+
 # Los titulos de campo que son CUENTAS. El `% ASISTENCIA` no esta: es una
 # razon y su formato depende de la escala que traiga.
 .calg_campo_numeros <- function() c(
@@ -416,16 +431,6 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       openxlsx::writeData(wb, hoja, num, startCol = col, startRow = desde + 1L,
                           colNames = FALSE)
     }
-  }
-
-  # La escala se decide por la COLUMNA ENTERA y con corte en 1.5, la misma
-  # regla que usa la capa de presentacion del frontend. El motor NO normaliza
-  # (decision declarada en `monitoreo_aulas_cruce_hojas.R`): el libro devuelve
-  # la cifra tal como la escribio el equipo y solo cambia como se ENSEÑA.
-  .calg_escala_pct <- function(valores) {
-    v <- suppressWarnings(as.numeric(valores))
-    v <- v[is.finite(v)]
-    if (!length(v) || any(v > 1.5)) "decimal" else "porcentaje"
   }
 
   profundidad <- .calg_profundidad(unidades)
