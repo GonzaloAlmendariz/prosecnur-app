@@ -392,10 +392,6 @@ button.pulso-secondary:hover:not(:disabled) {
 }
 /* /PulsoButton */
 
-.pulso-empty-cta:hover {
-  background: #013371;
-  border-color: #013371;
-}
 
 input, textarea, select {
   font-family: inherit;

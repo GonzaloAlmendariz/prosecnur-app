@@ -1071,21 +1071,6 @@
   animation: pulso-hovercard-in-kf var(--motion-dur-fast) var(--motion-ease-out);
 }
 
-.pulso-empty-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--pulso-control-height-md);
-  padding: 5px 14px;
-  border-radius: 8px;
-  background: var(--pulso-primary);
-  border: 1px solid var(--pulso-primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: var(--pulso-control-weight);
-  text-decoration: none;
-}
-
 .pulso-validacion-status-pill.is-done {
   border-color: color-mix(in srgb, var(--pulso-success-fg) 24%, var(--pulso-border));
   background: color-mix(in srgb, var(--pulso-success-bg) 72%, white);

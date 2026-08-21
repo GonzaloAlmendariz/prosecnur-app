@@ -73,6 +73,7 @@ export function AulasPerfilTab({
   titulares,
   marco,
   referencia,
+  onNavigate,
 }: {
   /** Los cursos-horario que campo intenta primero. */
   titulares: Record<string, unknown>[];
@@ -80,6 +81,8 @@ export function AulasPerfilTab({
   marco: Record<string, unknown>[];
   /** El estudio anterior, si el proyecto lo declaró. */
   referencia: CalcMuestraReferenciaAsistencia | null;
+  /** Sin esto el vacío nombra dónde se corre la selección pero no lleva. */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   const { manejadores, tooltip } = useTooltipGrafico();
 
@@ -142,6 +145,15 @@ export function AulasPerfilTab({
           icon={<PieChart size={22} aria-hidden="true" />}
           title="Todavía no hay una selección que perfilar"
           hint="Corre la selección en «Cursos-horario titulares» y aquí verás de qué está hecha, facultad por facultad."
+          cta={onNavigate ? (
+            <button
+              type="button"
+              className="pulso-empty-cta"
+              onClick={() => onNavigate("aulas", "seleccion")}
+            >
+              Ir a Cursos-horario titulares
+            </button>
+          ) : undefined}
         />
       </section>
     );

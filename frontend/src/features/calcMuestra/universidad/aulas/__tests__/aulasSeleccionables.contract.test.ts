@@ -77,6 +77,31 @@ describe("un vacío que nombra un bloqueo ofrece la salida", () => {
     const desk = src("../UniversidadDesk.tsx");
     expect(desk).toMatch(/<SalidasMonitoreoTab[^>]*onNavigate=/);
   });
+
+  // Tercera superficie de la misma familia: Perfil decía «Corre la selección en
+  // Cursos-horario titulares» y no llevaba, con `EmptyState` aceptando `cta`.
+  it("Perfil ofrece la salida que su texto nombra", () => {
+    const tab = src("AulasPerfilTab.tsx");
+    expect(tab).toMatch(/cta=\{onNavigate/);
+    expect(src("../UniversidadDesk.tsx")).toMatch(/<AulasPerfilTab[\s\S]{0,220}onNavigate=/);
+  });
+
+  it("la clase del botón vive en la hoja de la primitiva que la emite", () => {
+    // Estaba partida entre `validacion-v2.css` (base) y `theme.css` (hover):
+    // una feature que no cargara la de Validación tenía la clase sin estilo.
+    // `states.css` la importa `States.tsx`, así que viaja con quien la emite.
+    const estados = readFileSync(
+      resolve(__dirname, "../../../../../components/states.css"),
+      "utf8",
+    );
+    expect(estados).toContain(".pulso-empty-cta {");
+    expect(estados).toContain(".pulso-empty-cta:hover {");
+    const validacion = readFileSync(
+      resolve(__dirname, "../../../../validacion/validacion-v2.css"),
+      "utf8",
+    );
+    expect(validacion).not.toContain(".pulso-empty-cta {");
+  });
 });
 
 describe("las cifras de aulas cuentan las seleccionables", () => {
