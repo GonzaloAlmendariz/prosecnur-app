@@ -326,3 +326,27 @@ test_that("la hoja de listas queda oculta y los desplegables siguen", {
   xml <- paste(.xml_de_hoja_llamada(path, "Aulas Agendadas"), collapse = "")
   expect_match(xml, "Listas")
 })
+
+test_that("la banda de grupo de la hoja de campo ocupa su bloque", {
+  # La fila de grupo escribia la etiqueta en su primera celda y rellenaba el
+  # resto con vacios: impresa, era una franja navy enorme con dos palabras en la
+  # esquina y todo lo demas en blanco. Visto en el PDF.
+  path <- file.path(tempdir(), "libro_merge.xlsx")
+  aulas_libro_generar(.libro_de_prueba(1L), path)
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Aplicadas (Campo)"), collapse = "")
+  expect_match(xml, "mergeCell")
+})
+
+test_that("la hoja de campo tambien repite el codigo al imprimir", {
+  # Mismo defecto que la agenda: `ID MATCH` es un correlativo y sin el codigo
+  # las paginas siguientes no dicen de que aula hablan.
+  path <- file.path(tempdir(), "libro_campo_cols.xlsx")
+  aulas_libro_generar(.libro_de_prueba(1L), path)
+  destino <- file.path(tempdir(), paste0("campo_", as.integer(runif(1, 1, 1e6))))
+  dir.create(destino)
+  utils::unzip(path, exdir = destino)
+  libro <- paste(readLines(file.path(destino, "xl", "workbook.xml"), warn = FALSE),
+                 collapse = "")
+  # Dos hojas con `Print_Titles`: la agenda y la de campo.
+  expect_gte(length(regmatches(libro, gregexpr("Print_Titles", libro))[[1]]), 2L)
+})

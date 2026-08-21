@@ -386,7 +386,22 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
     # es un correlativo y `MUESTRA` va antes del codigo, asi que repetir «las
     # dos primeras» dejaba las paginas con un numero de orden, una ola y ningun
     # curso-horario. Se vio en el PDF despues de darlo por arreglado.
-    columnas_repetidas = list(`Aulas Agendadas` = col_en_bloque("operational_code", 1L))
+    columnas_repetidas = list(
+      `Aulas Agendadas` = col_en_bloque("operational_code", 1L),
+      # Misma idea en la hoja de campo: su bloque es
+      # `ID MATCH + titulos_agenda + titulos_campo`, y el codigo va segundo
+      # dentro de los titulos de agenda.
+      `Aulas Aplicadas (Campo)` = 1L + which(.calg_titulos_agenda() == "CURSO-HORARIO")
+    ),
+    # Las bandas de grupo de la hoja de campo: una por intento.
+    combinar = local({
+      ancho_bloque <- 1L + length(.calg_titulos_agenda()) + length(.calg_titulos_campo())
+      n_bloques <- max(1L, floor(ncol(hojas[["Aulas Aplicadas (Campo)"]]) / ancho_bloque))
+      lapply(seq_len(n_bloques), function(b) list(
+        hoja = "Aulas Aplicadas (Campo)", fila = 1L,
+        cols = seq((b - 1L) * ancho_bloque + 1L, b * ancho_bloque)
+      ))
+    })
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
