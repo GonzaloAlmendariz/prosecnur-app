@@ -111,14 +111,14 @@ export function EfectividadExplicadaCard({
           existe cuando hay curvas (histórico o calibración); con tasa global no
           hay curvas que mostrar. */}
       {fuente.tipo !== "tau_global" && (
-      <div className="cmv2-efexp-ref">
+      <div className={`cmv2-efexp-ref${ajusteActivo ? "" : " cmv2-efexp-ref--solo"}`}>
         <table className="cmv2-efexp-tabla-ref">
           <caption>Tasa de efectividad según el tamaño del aula — {refTexto}</caption>
           <thead>
             <tr>
-              <th scope="col">Elegibles sentados</th>
+              <th scope="col">Elegibles</th>
               <th scope="col">Tasa de efectividad</th>
-              <th scope="col">Aulas en el plan</th>
+              <th scope="col" title="Cursos-horario del plan en este tramo">Aulas</th>
             </tr>
           </thead>
           <tbody>
@@ -129,12 +129,45 @@ export function EfectividadExplicadaCard({
                     ? fmtInt(g.minElegibles)
                     : `${fmtInt(g.minElegibles)} a ${fmtInt(g.maxElegibles)}`}
                 </th>
-                <td>{pct(g.tasa)}</td>
+                <td className="cmv2-efexp-celda-barra">
+                  <i className="cmv2-efexp-minibar" aria-hidden="true">
+                    <b style={{ width: `${Math.min(100, g.tasa * 100)}%` }} />
+                  </i>
+                  <span>{pct(g.tasa)}</span>
+                </td>
                 <td>{fmtInt(g.nAulas)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {ajusteActivo && (
+          <table className="cmv2-efexp-tabla-ref">
+            <caption>Ajuste por facultad — {refTexto}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Facultad</th>
+                <th scope="col">Ajuste del esperado</th>
+                <th scope="col" title="Aulas aplicadas de la facultad en el histórico">k</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ajustes.map((a) => (
+                <tr key={a.facultad}>
+                  <th scope="row">{a.facultad}</th>
+                  <td className="cmv2-efexp-celda-barra">
+                    {/* Barra divergente desde ×1,00: arriba en acento, abajo
+                        en tinta tenue — la magnitud se VE, no solo se lee. */}
+                    <i className="cmv2-efexp-divbar" data-dir={a.factor >= 1 ? "up" : "down"} aria-hidden="true">
+                      <b style={{ width: `${Math.min(50, (Math.abs(a.factor - 1) / 0.15) * 50)}%` }} />
+                    </i>
+                    <span>× {coma(a.factor, 2)}</span>
+                  </td>
+                  <td>{a.k != null ? fmtInt(a.k) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
       )}
 
@@ -142,30 +175,6 @@ export function EfectividadExplicadaCard({
           de Gonzalo, 2026-08-20): la tasa de la facultad frente a la general, con su
           k — «sí necesito saber por qué solo en seis facultades». */}
       {ajusteActivo && (
-        <>
-          <div className="cmv2-efexp-ref cmv2-efexp-ref--solo">
-          <table className="cmv2-efexp-tabla-ref">
-            <caption>Ajuste por facultad — {refTexto}</caption>
-            <thead>
-              <tr>
-                <th scope="col">Facultad</th>
-                <th scope="col">Ajuste del esperado</th>
-                <th scope="col">Aulas aplicadas (k)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ajustes.map((a) => (
-                <tr key={a.facultad}>
-                  <th scope="row">{a.facultad}</th>
-                  <td>× {coma(a.factor, 2)}</td>
-                  <td>{a.k != null ? fmtInt(a.k) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-          {/* El aviso va DEBAJO de la tabla a lo ancho — dentro del grid se
-              montaba encima y tapaba la columna Aulas (Gonzalo, en vivo). */}
           <p className="cmv2-efexp-aviso">
             El ajuste solo se aplica donde el {refTexto} acumuló base suficiente
             (al menos 12 aulas aplicadas, según la clasificación de suficiencia de la
@@ -173,7 +182,6 @@ export function EfectividadExplicadaCard({
             específica estadísticamente defendible: rige la tasa general, y cada
             radiografía lo declara.
           </p>
-        </>
       )}
 
       {/* 1b · La procedencia y la limitación, declaradas — nunca en silencio. */}
