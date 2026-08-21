@@ -65,17 +65,21 @@
     ))
   }
   if (nzchar(sobran)) {
-    # Con la salida, como la rama de faltante: el hecho sin salida deja al
-    # usuario bloqueado sabiendo que algo esta mal y sin donde girar. Las dos
-    # vias son reales y estan verificadas en la app: la lista de facultades
-    # excluidas vive en Marco > Cursos-horario, y los criterios que dejaron sus
-    # aulas fuera se declaran en esa misma pestaña.
+    # OJO con la salida que se ofrece aqui. Se probo mandar a «Facultades
+    # excluidas (Marco > Cursos-horario)» y NO desbloquea: medido en el
+    # recorrido, excluirla del marco la deja igualmente declarada en los
+    # estratos del componente —que es lo que esta comparacion mira
+    # (`seen` del componente contra las claves del contrato del marco, en
+    # calc_muestra_alumnos_por_ch.R ~498)— y el fallo se repite. La unica
+    # salida veraz que se puede afirmar hoy es la que devuelve aulas elegibles
+    # a esa facultad; regenerar el reparto sin ella es una decision de diseño
+    # pendiente, y prometerla seria mandar a girar la perilla equivocada.
     partes <- c(partes, paste0(
       "El estudio declara ", sobran,
       " y el marco vigente no tiene ningún curso-horario elegible ahí: ",
-      "esa facultad no puede recibir cuota. Si no participa del estudio, ",
-      "márcala en Facultades excluidas (Marco › Cursos-horario); si debe ",
-      "participar, revisa ahí mismo los criterios que dejaron sus aulas fuera."
+      "esa facultad no puede recibir cuota. Revisa en Marco › Cursos-horario ",
+      "qué criterio dejó sus aulas fuera: mientras el estudio pida cuota ahí y ",
+      "el marco no tenga aulas, el cálculo no puede repartir."
     ))
   }
   if (!length(partes)) {
