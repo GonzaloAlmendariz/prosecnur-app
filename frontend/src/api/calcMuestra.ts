@@ -4708,6 +4708,15 @@ export async function apiCalcMuestraMarcoConfig(config: Record<string, unknown>)
   );
 }
 
+/** Columnas que la referencia histórica debe traer, servidas por el motor. */
+export type CalcMuestraAsistenciaRequisito = { campo: string; alias: string[] };
+
+export async function apiCalcMuestraAsistenciaRequisitos() {
+  return handle<{ ok: true; requisitos: CalcMuestraAsistenciaRequisito[] }>(
+    await apiFetch("/api/calc-muestra/asistencia/requisitos", { headers: headers() }),
+  );
+}
+
 export async function apiCalcMuestraMarcoInspeccionarArchivo(file_id: string) {
   return handle<{
     ok: true;

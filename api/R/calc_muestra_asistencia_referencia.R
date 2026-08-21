@@ -195,6 +195,27 @@
   list(datos = datos, advertencias = warnings)
 }
 
+#' Columnas que la referencia historica debe traer, con sus alias aceptados.
+#'
+#' Existe porque el usuario tenia que FALLAR para enterarse: en la carpeta de un
+#' estudio real conviven ocho Excel «historicos» y solo uno pasa. Los requisitos
+#' se derivan de `.cm_asist_column_aliases()` —la misma fuente que valida— para
+#' que la pantalla no pueda quedar diciendo algo distinto de lo que el motor
+#' exige.
+#'
+#' @return lista de listas `{campo, alias}` en el orden en que se validan.
+#' (Sin `@export`: el router vive en el mismo paquete y el NAMESPACE de este
+#' repo no se regenera a mano — sus vecinas de este archivo tampoco exportan.)
+calc_muestra_asistencia_requisitos <- function() {
+  aliases <- .cm_asist_column_aliases()
+  lapply(names(aliases), function(campo) {
+    list(
+      campo = campo,
+      alias = as.list(unique(as.character(aliases[[campo]])))
+    )
+  })
+}
+
 .cm_asist_resolve_columns <- function(datos) {
   aliases <- .cm_asist_column_aliases()
   resolved <- vapply(
