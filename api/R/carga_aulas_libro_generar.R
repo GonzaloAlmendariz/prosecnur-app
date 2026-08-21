@@ -558,6 +558,16 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
       `Base de control` = .calg_col_control("CURSO-HORARIO")
     ),
     # Las bandas de grupo de la hoja de campo: una por intento.
+    # La regla de cuadre del parte, una por intento: las efectivas no pueden
+    # superar a los asistentes menos rechazos y duplicados.
+    descuadres = lapply(seq_len(intentos_campo), function(b) list(
+      hoja = "Aulas Aplicadas (Campo)", desde = 2L,
+      filas = max(0L, filas_aplicadas),
+      asistentes = col_campo("CANTIDAD DE ASISTENTES", b),
+      rechazos = col_campo("CANTIDAD DE RECHAZOS", b),
+      duplicados = col_campo("DUPLICADOS (YA RESPONDIERON)", b),
+      efectivas = col_campo("CANTIDAD DE EFECTIVAS", b)
+    )),
     combinar = c(
       lapply(seq_len(intentos_campo), function(b) list(
         hoja = "Aulas Aplicadas (Campo)", fila = 1L,
