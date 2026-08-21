@@ -216,7 +216,7 @@ export function ResumenDiseno({
       <header className="rec-resumen-context">
         <span className="rec-resumen-context-title">
           <small>Diseño vigente</small>
-          <strong>Universo → elegibles → operación</strong>
+          <strong>Universo → elegibles → operación → aulas</strong>
         </span>
         <span className="rec-resumen-meta">
           {perfil.esEjemplo && <span className="rec-badge-ejemplo">EJEMPLO</span>}
