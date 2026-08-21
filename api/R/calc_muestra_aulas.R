@@ -2657,7 +2657,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 
   reserves <- if (isTRUE(include_reserves)) {
     .cm_aulas_progress(on_progress, "cadenas_reemplazo", message = "Cadenas de reemplazo", force = TRUE)
-    .cm_aulas_build_replacement_chains(aula_frame, titulars, selector, seed = if (is.null(seed)) NULL else seed + 2003L)
+    cadenas <- .cm_aulas_build_replacement_chains(aula_frame, titulars, selector, seed = if (is.null(seed)) NULL else seed + 2003L)
+    # Ningún titular sin al menos un reemplazo. Ver el porqué y su alcance en
+    # `calc_muestra_aulas_profundidad.R`: cubre el caso sin depender de haber
+    # diagnosticado qué lo produce.
+    .cm_aulas_garantizar_reemplazo_minimo(titulars, cadenas, aula_frame)
   } else {
     aula_frame[0, , drop = FALSE]
   }

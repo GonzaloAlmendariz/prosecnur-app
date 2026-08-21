@@ -106,3 +106,99 @@ calc_muestra_aulas_profundidad_por_facultad <- function(cadenas_filas, default =
     fuente = "historico"
   )
 }
+
+# ---------------------------------------------------------------------------
+# Garantía: ningún titular sin al menos un reemplazo
+# ---------------------------------------------------------------------------
+# Gonzalo, 2026-08-21: «lo primordial es asegurar efectividad, pero que todas
+# las aulas tengan por lo menos un reemplazo».
+#
+# Medido sobre HSVG2026: 9 de 190 titulares salen de la selección con la cadena
+# VACÍA, y sus 22 filas de reemplazo quedan colgando de un `classroom_id` que ya
+# no figura como titular. Sea cual sea el mecanismo que cambia esos titulares
+# entre el sorteo y el resultado —no está diagnosticado— la consecuencia es la
+# misma: nueve aulas irían a campo sin plan B teniendo cientos de candidatas de
+# su facultad libres.
+#
+# Esta pasada NO intenta explicar la causa: la cubre. Es deliberado, porque una
+# garantía que depende de haber enumerado todas las causas se rompe la próxima
+# vez que aparezca una nueva.
+#
+# ESTADO MEDIDO 2026-08-21, y es la pista que faltaba: conectada aquí NO
+# DISPARA. En el momento en que se construyen las cadenas, los 190 titulares
+# tienen todos su reemplazo; los 9 se quedan sin él MÁS ABAJO en el pipeline.
+# Eso descarta el sorteo y el encadenado como causa, y acota la búsqueda a lo
+# que ocurre entre este punto y el ensamblado del resultado.
+#
+# Se deja conectada igualmente: cubre el caso de que el builder sí deje a
+# alguien en cero (celda agotada, marco chico), que es real aunque hoy no se dé
+# en este proyecto. Cuando se encuentre el mecanismo de aguas abajo habrá que
+# invocarla TAMBIÉN allí, sobre los titulares definitivos.
+#
+# No toca los titulares, así que el balance del cube queda intacto y las
+# probabilidades de inclusión no cambian: un reemplazo es plan de contingencia,
+# no muestra. Respeta la jerarquía de siempre —mismo estrato primero, misma
+# facultad después— y NUNCA cruza de facultad, aunque eso implique dejar a un
+# titular sin cubrir: antes eso que reponer una cuota que no es la suya.
+
+#' Asigna un reemplazo a los titulares que se quedaron sin ninguno.
+#'
+#' @param titulars Titulares finales, con `classroom_id`, `faculty`, `stratum`.
+#' @param reserves Reservas ya construidas (puede venir vacío).
+#' @param aula_frame Marco del que salen los candidatos.
+#' @return Las reservas, más una fila por cada titular que estaba en cero y pudo
+#'   cubrirse. Marcadas `equivalence_level = "garantia_minima"` para que la
+#'   pantalla y el reporte puedan distinguirlas de las sorteadas en cadena.
+#' @keywords internal
+.cm_aulas_garantizar_reemplazo_minimo <- function(titulars, reserves, aula_frame) {
+  if (!is.data.frame(titulars) || !nrow(titulars)) return(reserves)
+  ids_tit <- as.character(titulars$classroom_id)
+  con_cadena <- if (is.data.frame(reserves) && nrow(reserves)) {
+    unique(as.character(reserves$replacement_for))
+  } else character(0)
+  faltan <- which(!(ids_tit %in% con_cadena))
+  if (!length(faltan)) return(reserves)
+
+  usados <- unique(c(ids_tit,
+                     if (is.data.frame(reserves) && nrow(reserves)) as.character(reserves$classroom_id) else character(0)))
+  libres <- aula_frame[!(as.character(aula_frame$classroom_id) %in% usados), , drop = FALSE]
+  if (!nrow(libres)) return(reserves)
+  if ("included" %in% names(libres)) libres <- libres[libres$included %in% TRUE, , drop = FALSE]
+  if (!nrow(libres)) return(reserves)
+
+  nuevas <- list()
+  for (i in faltan) {
+    tit <- titulars[i, , drop = FALSE]
+    fac <- as.character(tit$faculty[[1]] %||% "")
+    est <- as.character(tit$stratum[[1]] %||% "")
+    # Estrato primero; si no hay, la facultad. Fuera de la facultad, nunca.
+    cand <- libres[as.character(libres$stratum) == est, , drop = FALSE]
+    if (!nrow(cand)) cand <- libres[as.character(libres$faculty) == fac, , drop = FALSE]
+    if (!nrow(cand)) next
+    # La más parecida en tamaño: es lo que decide cuánto repone de la cuota.
+    obj <- .cm_aulas_num(tit$eligible_n[[1]], 0)
+    dif <- abs(suppressWarnings(as.numeric(cand$eligible_n)) - obj)
+    dif[!is.finite(dif)] <- Inf
+    elegida <- cand[which.min(dif), , drop = FALSE]
+    elegida$wave <- "M2"
+    elegida$sample_role <- "chain_reserve"
+    elegida$replacement_order <- 1L
+    elegida$replacement_for <- tit$classroom_id[[1]]
+    elegida$selection_slot_id <- tit$selection_slot_id[[1]]
+    elegida$chain_score <- NA_real_
+    elegida$equivalence_level <- "garantia_minima"
+    elegida$replacement_impact_score <- NA_real_
+    elegida$chain_depth <- 1L
+    elegida$activation_weight_status <- "reserve_conditional"
+    elegida$analysis_weight_warning <- "Reserva condicional: usar peso analitico final solo si se activa en campo y se ajusta no respuesta."
+    elegida$active_overlap <- NA_real_
+    elegida$titular_overlap <- NA_real_
+    elegida$eligible_delta_vs_titular <- .cm_aulas_num(elegida$eligible_n[[1]], 0) - obj
+    nuevas[[length(nuevas) + 1L]] <- elegida
+    libres <- libres[as.character(libres$classroom_id) != as.character(elegida$classroom_id[[1]]), , drop = FALSE]
+  }
+  if (!length(nuevas)) return(reserves)
+  extra <- .cm_aulas_bind_rows_fill(nuevas)
+  if (!is.data.frame(reserves) || !nrow(reserves)) return(extra)
+  .cm_aulas_bind_rows_fill(list(reserves, extra))
+}
