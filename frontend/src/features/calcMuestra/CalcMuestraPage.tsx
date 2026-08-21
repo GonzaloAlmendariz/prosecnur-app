@@ -115,6 +115,7 @@ import { criterioSalida, metaCuotaFijada, sugerenciaCuota } from "./criterioSali
 import { seleccionActiva } from "./dominio/criteriosMarco";
 import { facultadesDesdeFrame } from "./dominio";
 import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
+import { avisoMarcoConstruido } from "./universidad/marco/avisoMarcoConstruido";
 import { avisoTrasCalcular } from "./universidad/calculo/avisoCalculo";
 import {
   defaultTitleFor,
@@ -1885,12 +1886,15 @@ export default function CalcMuestraPage() {
         univCH > eligCH
           ? `${fmtInt(eligCH)} de ${fmtInt(univCH)} cursos-horario elegibles`
           : `${fmtInt(eligCH)} cursos-horario elegibles`;
-      setMsg({
-        kind: "info",
-        text: sync
-          ? `Base leída y marco construido: ${estFrag} en ${fmtInt(sync.estratos.length)} facultades y ${chFrag}. El cálculo ya tiene N y estratos listos.`
-          : `Base leída y marco construido: ${estFrag} y ${chFrag}.`,
-      });
+      // «Listos» sólo si hay algo listo: con criterios que no dejan pasar
+      // ninguna aula, ese cierre mandaba a Cálculo a chocarse con un vacío.
+      setMsg(avisoMarcoConstruido({
+        estFrag,
+        chFrag,
+        estratos: sync ? sync.estratos.length : 0,
+        elegiblesEstudiantes: eligEst,
+        elegiblesCursosHorario: eligCH,
+      }));
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo construir el marco desde la base cargada." });
     } finally {
