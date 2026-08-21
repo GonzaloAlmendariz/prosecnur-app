@@ -333,3 +333,28 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   expect_identical(as.character(b$control$course_name),
                    as.character(b$u$course_name))
 })
+
+test_that("el control de una RESERVA activada no se pierde al regenerar", {
+  # La hoja se escribia solo con titulares, asi que una reserva de cadena que ya
+  # se aplico —tiene parte y tiene control— perdia su fila. Medido en el estudio
+  # de trabajo: de 152 filas de control, 22 eran de reservas y no volvian.
+  v <- .rt_vuelta(control = list(
+    list(operational_code = "CH 1", sent_total = 17),
+    list(operational_code = "R 4.1", sent_total = 9, valid_total = 1)
+  ))
+  codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  expect_true("R 4.1" %in% codigos)
+  fila <- v$control[[which(codigos == "R 4.1")[[1]]]]
+  expect_equal(as.numeric(fila$sent_total), 9)
+  expect_equal(as.numeric(fila$valid_total), 1)
+  # El control: el titular sigue estando, no se cambio una cosa por otra.
+  expect_true("CH 1" %in% codigos)
+})
+
+test_that("un titular sin control sigue teniendo su fila, para que la llenen", {
+  # Las filas de titulares que aparecen al regenerar no son un defecto: son la
+  # hoja ofreciendo el sitio donde se escribe.
+  v <- .rt_vuelta(control = list(list(operational_code = "CH 1", sent_total = 17)))
+  codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  expect_true("CH 4" %in% codigos)
+})
