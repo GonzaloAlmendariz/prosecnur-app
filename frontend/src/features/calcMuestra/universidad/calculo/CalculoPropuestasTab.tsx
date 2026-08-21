@@ -279,12 +279,22 @@ export function CalculoPropuestasTab({
   // Parámetros elegidos en Diseño (universidad): se muestran para que Propuestas
   // ejecute sobre valores explícitos, nunca cifras escritas a mano.
   const g = componentes[0].parametros;
-  const paramsElegidos = [
+  const paramsElegidos: Array<{ label: string; value: string; nota?: string }> = [
     { label: "z", value: fmtNum(g.z, 2) },
     { label: "p", value: fmtNum(g.p, 2) },
     { label: "e", value: `±${fmtNum(g.e * 100, 1)}%` },
     { label: "deff", value: fmtNum(g.deff, 2) },
-    { label: "τ", value: `${Math.round(safeNumber(g.tau, 0.7) * 100)}%` },
+    // La tasa de efectividad se nombra, no se escribe en griego: es la única
+    // de estas cifras que NO sale del diseño que el usuario acaba de fijar,
+    // sino de un valor de referencia heredado (0,53 en el preset de
+    // universidad, medido en el estudio anterior). Quien recibe la app veía
+    // «τ 53%» sin saber ni qué es ni de dónde viene, y aplicándose a su
+    // estudio en silencio.
+    {
+      label: "tasa de efectividad",
+      value: `${Math.round(safeNumber(g.tau, 0.7) * 100)}%`,
+      nota: "valor de referencia heredado del estudio anterior; ajústalo cuando tengas datos propios",
+    },
   ];
 
   return (
@@ -305,7 +315,7 @@ export function CalculoPropuestasTab({
         <div className="cmv2-calc-params-elegidos" aria-label="Parámetros elegidos en Diseño">
           <span className="cmv2-calc-params-eyebrow">Parámetros del diseño</span>
           {paramsElegidos.map((param) => (
-            <span key={param.label} className="cmv2-calc-param-chip">
+            <span key={param.label} className="cmv2-calc-param-chip" title={param.nota}>
               <code>{param.label}</code>
               <strong>{param.value}</strong>
             </span>
