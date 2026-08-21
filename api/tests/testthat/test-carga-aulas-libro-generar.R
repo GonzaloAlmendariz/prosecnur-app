@@ -696,6 +696,10 @@ test_that("el libro abre por la hoja donde se trabaja", {
   libro <- withr::local_tempfile(fileext = ".xlsx")
   aulas_libro_generar(.libro_de_prueba(2L), libro)
   expect_identical(openxlsx::getSheetNames(libro)[[1]], "Aulas Agendadas")
+  # Y la que queda ACTIVA, que es otra cosa: el orden dice cual es la primera,
+  # `activeTab` dice por cual abre. Un mutante que la ponia en la ultima
+  # sobrevivio al aserto de orden.
+  expect_identical(hoja_activa_de(libro), "Aulas Agendadas")
 
   wb <- openxlsx::loadWorkbook(libro)
   # Y «Listas» sigue oculta: se oculta por NOMBRE, asi que retirar dos hojas no

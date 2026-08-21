@@ -300,3 +300,24 @@ reglas_condicionales_de <- function(path, hoja) {
   })
   do.call(rbind, filas)
 }
+
+# Por que hoja abre el libro: el nombre de la que queda seleccionada.
+#
+# `getSheetNames(path)[[1]]` NO sirve para esto: dice cual es la PRIMERA, no
+# cual queda ACTIVA. Un mutante que ponia `activeSheet` en la ultima sobrevivio
+# a un test que solo miraba el orden.
+hoja_activa_de <- function(path) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  wb <- xml2::read_xml(file.path(d, "xl", "workbook.xml"))
+  vista <- xml2::xml_find_first(wb, ".//a:bookViews/a:workbookView", ns)
+  tab <- if (inherits(vista, "xml_missing")) NA_character_ else xml2::xml_attr(vista, "activeTab")
+  # Sin `activeTab`, Excel abre por la primera.
+  i <- if (is.na(tab)) 0L else as.integer(tab)
+  hojas <- openxlsx::getSheetNames(path)
+  if (i + 1L > length(hojas)) return(NA_character_)
+  hojas[[i + 1L]]
+}
