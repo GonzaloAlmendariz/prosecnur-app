@@ -93,12 +93,12 @@ aulas_libro_cortes <- function(unidades, partes = list(), control = list()) {
       if (is.null(f1) || !is.finite(e)) next
       if (!is.na(ef_fac[[f1]])) ef_fac[[f1]] <- ef_fac[[f1]] + e
     }
-    por_facultad$Recogidas <- round(unname(ef_fac[por_facultad$Facultad]), 1)
+    por_facultad$`Recogidas (partes)` <- round(unname(ef_fac[por_facultad$Facultad]), 1)
     # Un 0 de 0 no es 0 %: una facultad sin esperado no tiene avance que dar.
-    por_facultad$Avance <- vapply(seq_len(nrow(por_facultad)), function(i) {
+    por_facultad$`Avance (partes)` <- vapply(seq_len(nrow(por_facultad)), function(i) {
       esp <- por_facultad$Esperadas[[i]]
       if (!is.finite(esp) || esp <= 0) return("—")
-      paste0(round(100 * por_facultad$Recogidas[[i]] / esp, 1), " %")
+      paste0(round(100 * por_facultad$`Recogidas (partes)`[[i]] / esp, 1), " %")
     }, character(1))
   }
 
@@ -144,13 +144,24 @@ aulas_libro_cortes <- function(unidades, partes = list(), control = list()) {
       xor(a, b)
     }, logical(1))
 
+    # **Cada cifra de avance dice de DONDE sale.**
+    #
+    # El mismo estudio tiene seis numeros parecidos y distintos: 3 891
+    # asistentes observados, 3 508 efectivas anotadas por el equipo, 3 700
+    # respuestas leidas de la plataforma, 2 220 validas por el criterio del
+    # estudio, 2 163 que cubren meta y 1 901 enviadas segun el control.
+    #
+    # Esta portada cuenta lo que el equipo ANOTO en sus partes, que da 93.6 %
+    # donde la pantalla de Avance —que cuenta validas que cubren meta— dice
+    # 57.8 %. Las dos son ciertas y responden preguntas distintas. Llamar
+    # «avance» a secas a las dos era la misma palabra para dos cosas.
     esperadas <- totales[["Encuestas esperadas (titulares)"]]
     avance <- list(
       `Aulas con parte de campo` = length(intersect(con_parte, cod[titular])),
       `Aulas en la base de control` = if (length(control)) length(control) else "—",
-      `Encuestas efectivas recogidas` = round(efectivas, 1),
+      `Efectivas anotadas en los partes` = round(efectivas, 1),
       # Un 0 de 0 no es 0 %: es una cuenta que no se puede hacer.
-      `Avance sobre lo esperado` = if (is.finite(esperadas) && esperadas > 0) {
+      `Avance segun los partes` = if (is.finite(esperadas) && esperadas > 0) {
         paste0(round(100 * efectivas / esperadas, 1), " %")
       } else "—",
       # Sin base de control, «0 aulas efectivas» es falso: no es que ninguna lo
@@ -240,7 +251,7 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
     # `Avance` es texto ya formado y va a la derecha como las cifras, pero sin
     # formato numerico: un «—» con `#,##0.#` encima no se rompe, pero declarar
     # numero lo que no lo es invita al proximo error de escala.
-    numericas <- setdiff(2:n_col_fac, which(names(cortes$por_facultad) == "Avance"))
+    numericas <- setdiff(2:n_col_fac, which(names(cortes$por_facultad) == "Avance (partes)"))
     openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n_fac), cols = numericas,
                        gridExpand = TRUE, stack = TRUE)
     # **Una barra donde se compara.** Veinte facultades con sus cifras alineadas
@@ -248,7 +259,7 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
     # resuelve de un vistazo y no ocupa una columna mas. Solo en `Recogidas`,
     # que es la que se compara con su meta de al lado — poner barras en todas
     # las columnas seria decoracion.
-    col_rec <- which(names(cortes$por_facultad) == "Recogidas")
+    col_rec <- which(names(cortes$por_facultad) == "Recogidas (partes)")
     if (length(col_rec)) {
       openxlsx::conditionalFormatting(
         wb, hoja, cols = col_rec, rows = (fila + 1L):(fila + n_fac),
@@ -256,7 +267,7 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
         border = FALSE
       )
     }
-    col_av <- which(names(cortes$por_facultad) == "Avance")
+    col_av <- which(names(cortes$por_facultad) == "Avance (partes)")
     if (length(col_av)) {
       openxlsx::addStyle(wb, hoja, openxlsx::createStyle(halign = "right"),
                          rows = (fila + 1L):(fila + n_fac), cols = col_av,
