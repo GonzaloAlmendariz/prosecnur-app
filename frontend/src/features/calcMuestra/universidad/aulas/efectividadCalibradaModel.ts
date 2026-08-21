@@ -3,7 +3,7 @@
  * 2025 por curso-horario: elegibles × P(aplicada|docente) × rendimiento(tamaño)).
  *
  * Convive con las «Esperadas» de la certificación, que usan OTRO modelo
- * (elegibles × τ global 0.53): dos números con el mismo nombre son la veta
+ * (la ecuación vieja con tasa plana): dos números con el mismo nombre son la veta
  * más productiva de defectos de la casa, así que ésta se muestra AL PIE de
  * aquélla, etiquetada por su modelo, nunca en su lugar. Referencial: no toca
  * el sorteo (fase 2 = decisión de Gonzalo).

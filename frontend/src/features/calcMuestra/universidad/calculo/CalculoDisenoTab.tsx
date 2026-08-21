@@ -274,7 +274,7 @@ export function CalculoDisenoTab({
           <SupuestoFila
             id="rendimiento"
             titulo="Supuestos operativos: rendimiento y campo"
-            resumen="No todo curso-horario rinde completo: la tasa de rendimiento (τ) convierte encuestas objetivo en intentos, y la sobremuestra agrega colchón."
+            resumen="No todo curso-horario rinde completo: la tasa de efectividad global (el respaldo cuando una facultad no tiene la suya) convierte encuestas objetivo en intentos, y la sobremuestra agrega colchón."
             popover={
               <>
                 <strong>Campo y rendimiento por curso-horario</strong>
@@ -286,7 +286,7 @@ export function CalculoDisenoTab({
               <>
                 <label className="cmv2-did-slider cmv2-calc-tau">
                   <div className="cmv2-did-slider-head">
-                    <span>Tasa de rendimiento (τ)</span>
+                    <span>Tasa de efectividad global (respaldo)</span>
                     <output>{Math.round(tau * 100)}%</output>
                   </div>
                   <input

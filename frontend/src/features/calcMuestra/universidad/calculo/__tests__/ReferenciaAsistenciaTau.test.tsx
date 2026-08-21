@@ -143,9 +143,10 @@ describe("ReferenciaAsistenciaTau", () => {
       'data-qa-geometry-group="calc-muestra/referencia-asistencia-tau"',
     );
     // Un chip con «τ» a secas obliga a buscar la definición en otro punto de la
-    // página. El símbolo se conserva —es el del compendio metodológico— junto a
+    // página. Renombrado al vocabulario nuevo (serie P, 2026-08-20): el
+    // griego murió en superficies; el compendio metodológico— junto a
     // su nombre.
-    expect(html).toContain("Rendimiento actual (τ)");
+    expect(html).toContain("Tasa de efectividad actual");
     expect(html).toContain("72.0%");
     expect(html).toContain("Producto de referencia");
     expect(html).toContain("47.0%");
