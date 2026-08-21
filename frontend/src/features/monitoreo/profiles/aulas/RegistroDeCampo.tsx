@@ -13,7 +13,7 @@
 // aulas haya; C3 el vacío vive dentro del panel; C4 la lista scrollea dentro de
 // su propio contenedor; C5 entrega lo que su título promete — el registro
 // completo de una aplicación, no un subconjunto cómodo.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
 import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
@@ -161,9 +161,21 @@ type Props = {
    */
   partes?: ReadonlyArray<Record<string, unknown>>;
   onGuardado: () => void;
+  /**
+   * El curso-horario que trae la dirección (`?foco=aula:CH 21`). El registro es
+   * donde vive la única acción que activa un reemplazo, así que tenía que poder
+   * abrirse ya sobre un aula concreta: quien ve caer `CH 21` en la ruta del día
+   * o en su ficha llega aquí con el formulario puesto, en vez de buscarlo entre
+   * 196 filas.
+   */
+  codigoEnFoco?: string;
+  /** Se avisa al elegir, para que la dirección siga a la selección. */
+  onElegir?: (codigo: string) => void;
 };
 
-export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
+export function RegistroDeCampo({
+  agenda, partes = [], onGuardado, codigoEnFoco = "", onElegir,
+}: Props) {
   const [seleccion, setSeleccion] = useState<string>("");
   const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
@@ -257,7 +269,27 @@ export function RegistroDeCampo({ agenda, partes = [], onGuardado }: Props) {
     setForm(formDesdeFila(row));
     setError("");
     setOk("");
+    onElegir?.(clave);
   };
+
+  // La dirección manda sobre la selección, no al revés: llegar con
+  // `?foco=aula:CH 21` tiene que abrir esa aula aunque el componente ya
+  // estuviera montado con otra. Se compara como compara el motor —sin
+  // distinguir mayúsculas ni espacios de sobra— porque el código viaja por la
+  // URL y vuelve con el formato que le dé el navegador.
+  useEffect(() => {
+    const buscado = codigoEnFoco.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!buscado || buscado === seleccion.trim().toLowerCase()) return;
+    const fila = filas.find((r) => {
+      const clave = String(r.operational_code ?? r.classroom_id ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+      return clave === buscado;
+    });
+    if (!fila) return;
+    setSeleccion(String(fila.operational_code ?? fila.classroom_id));
+    setForm(formDesdeFila(fila));
+    setError("");
+    setOk("");
+  }, [codigoEnFoco, filas, seleccion]);
 
   const set = <K extends keyof RegistroForm>(campo: K, valor: RegistroForm[K]) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));

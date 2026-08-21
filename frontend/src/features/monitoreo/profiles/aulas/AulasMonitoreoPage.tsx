@@ -2277,6 +2277,13 @@ export default function AulasMonitoreoPage() {
                 // decía «0 con parte» mientras Consultas enseñaba «210 partes».
                 partes={(dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>}
                 onGuardado={() => { void loadView(seccionActiva, true, true); }}
+                // La dirección abre el aula: `?foco=aula:CH 21` deja el
+                // formulario puesto sobre ella, que es donde vive la única
+                // acción que activa su reemplazo. Antes había que buscarla
+                // entre 196 filas, y quien la veía caer en la ruta del día no
+                // tenía cómo llegar hasta aquí.
+                codigoEnFoco={foco?.tipo === "aula" ? foco.valor : ""}
+                onElegir={(codigo) => cambiarFoco({ tipo: "aula", valor: codigo })}
               />,
               state?.sources ?? [],
               pestanaActiva,
