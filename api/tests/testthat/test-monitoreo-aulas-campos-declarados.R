@@ -92,11 +92,26 @@ test_that("el tablero avisa de las columnas que no pudo leer", {
   expect_match(as.character(aviso$detail), "Ponles nombre")
 })
 
+# Actualizado: `.mcd_aviso(0L)` no pasa hoja de control, asi que ya no hay nada
+# que comprobar y el estado correcto es `sin_datos` — ver
+# `test-monitoreo-aulas-verde-por-ausencia.R`. El «ok» se comprueba con una hoja
+# que SI existe y no tiene columnas huerfanas, que es lo que este test queria
+# decir.
 test_that("sin columnas huerfanas el aviso queda en ok", {
   # El control: si el aviso dijera siempre lo mismo, este caso no lo distinguiria.
-  aviso <- .mcd_aviso(0L)
+  plan <- list(list(classroom_id = "A", operational_code = "CH 1", label = "x",
+                    wave = "M1", sample_role = "titular", orden = 1, eligible_n = 30))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list(
+    enabled = TRUE, plan = plan, control_sin_nombre = 0L,
+    control = list(list(operational_code = "CH 1"))
+  ))
+  aviso <- Filter(function(r) identical(as.character(r$check), "unnamed_control_columns"),
+                  d$validation)[[1]]
   expect_identical(as.character(aviso$status), "ok")
   expect_no_match(as.character(aviso$detail), "Ponles nombre")
+
+  # Y sin hoja que mirar no es «ok»: es que no se comprobo.
+  expect_identical(as.character(.mcd_aviso(0L)$status), "sin_datos")
 })
 
 test_that("el conteo sobrevive al normalizador de config", {
