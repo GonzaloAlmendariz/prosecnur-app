@@ -277,7 +277,14 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # La escala se calcula UNA vez y la comparten la banda de la cabecera y el
   # tinte de los datos: si cada una tuviera la suya, el bloque 3 podria salir de
   # un color arriba y de otro abajo.
-  tonos <- aulas_libro_colores_eslabon(max(length(tintes), length(agrupados) + 1L))
+  # Sobre el ESLABON mas alto, no sobre cuantas entradas hay: dos hojas con tres
+  # bloques cada una dan seis entradas y la escala salia de seis pasos, con los
+  # tonos mas juntos de lo necesario. Lo que decide cuantos colores hacen falta
+  # es la profundidad de la cadena.
+  eslabon_max <- if (length(tintes)) {
+    max(vapply(tintes, function(t) as.integer(t$eslabon %||% 1L), integer(1)))
+  } else 1L
+  tonos <- aulas_libro_colores_eslabon(max(eslabon_max, length(agrupados) + 1L))
 
   # **Y el color baja a las filas de datos, con una linea que separa bloques.**
   #
@@ -296,6 +303,20 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   for (tb in tintes) {
     if (!length(tb$cols) || !tb$filas) next
     tono <- tonos[[min(tb$eslabon, length(tonos))]]
+    # **La banda de esta hoja tambien lleva el color de su eslabon.** En «Aulas
+    # Aplicadas (Campo)» los tres bloques salian con el mismo navy: la banda
+    # decia «TITULAR» y «REEMPLAZO 1», pero el color no distinguia, y el color
+    # es lo que se ve al desplazarse. Se pinta aqui porque el bucle de
+    # `agrupados` solo cubre la agenda.
+    if (isTRUE(tb$pinta_banda)) {
+      banda_bloque <- openxlsx::createStyle(
+        textDecoration = "bold", fgFill = tono, fontColour = "#FFFFFF",
+        halign = "left", valign = "center", wrapText = TRUE,
+        border = "TopBottomLeftRight", borderColour = "#FFFFFF"
+      )
+      openxlsx::addStyle(wb, tb$hoja, banda_bloque, rows = 1L, cols = tb$cols,
+                         gridExpand = TRUE, stack = FALSE)
+    }
     tinte <- openxlsx::createStyle(fgFill = .calf_tinte_distinguible(tono))
     openxlsx::addStyle(wb, tb$hoja, tinte, rows = seq_len(tb$filas) + tb$desde,
                        cols = tb$cols, gridExpand = TRUE, stack = TRUE)

@@ -701,11 +701,22 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     # El tinte y el borde de CADA eslabon, titular incluido: `agrupados` solo
     # trae los reemplazos —el titular no se pliega— pero el color si es de los
     # doce.
-    tintes = lapply(seq_len(profundidad), function(b) list(
-      hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, eslabon = b,
-      cols = seq(1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L,
-                 1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE)
-    )),
+    tintes = c(
+      lapply(seq_len(profundidad), function(b) list(
+        hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, eslabon = b,
+        cols = seq(1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L,
+                   1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE)
+      )),
+      # La hoja de campo tiene los mismos eslabones y salia con los tres
+      # bloques en el mismo navy: la banda los nombraba pero el color no los
+      # distinguia. `pinta_banda`, porque aqui la fila 1 es la banda y la pinta
+      # este bucle —el de `agrupados` solo cubre la agenda—.
+      lapply(seq_len(intentos_campo), function(b) list(
+        hoja = "Aulas Aplicadas (Campo)", desde = 2L,
+        filas = max(0L, filas_aplicadas), eslabon = b, pinta_banda = TRUE,
+        cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
+      ))
+    ),
     semaforos = semaforos,
     formatos = formatos,
     # Hasta la columna del CODIGO del aula, calculada y no adivinada: `ID MATCH`
