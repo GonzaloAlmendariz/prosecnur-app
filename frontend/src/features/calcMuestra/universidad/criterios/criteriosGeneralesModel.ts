@@ -49,7 +49,7 @@ const ETIQUETA_ESTADISTICO: Record<string, string> = {
   media: "media",
   mediana: "mediana",
   p25: "primer cuartil (p25)",
-  min_mediana_media: "mín(mediana, media)",
+  min_mediana_media: "mínimo entre media y mediana",
 };
 
 const ETIQUETA_SELECTOR: Record<string, string> = {

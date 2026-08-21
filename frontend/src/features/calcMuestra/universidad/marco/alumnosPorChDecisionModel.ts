@@ -15,8 +15,11 @@ export const ALUMNOS_POR_CH_METHODS: ReadonlyArray<{
   { id: "media", label: "Media", detail: "Promedio: sensible a CH excepcionalmente grandes." },
   {
     id: "min_mediana_media",
-    label: "mín(mediana, media)",
-    detail: "El menor de los dos centros: es el estadístico que aplicó el diseño de 2025.",
+    // Gonzalo: «el título debería ser mínimo entre media y mediana, y no
+    // debería estar jergoso como "es el que se aplicó en 2025"; simplemente
+    // explicar a qué se refiere».
+    label: "Mínimo entre media y mediana",
+    detail: "Toma el menor de los dos: si la media sube por unos pocos CH grandes, manda la mediana.",
   },
 ];
 
@@ -70,24 +73,32 @@ export function esMetodoAlumnosPorChValido(
   return ALUMNOS_POR_CH_METHODS.some((method) => method.id === value);
 }
 
-/** Método de arranque: el guardado solo si sirve; si no, el recomendado. */
 /**
  * Método que la pestaña PROPONE cuando el estudio todavía no decidió nada.
  *
- * Es `min_mediana_media` por decisión de Gonzalo —«usa mín(mediana, media) por
- * defecto y déjalo cambiable por facultad»— y porque es el estadístico que
- * aplicó el diseño de 2025: la hoja «TD Estudiantes» lo llama «Mínimo entre
- * mediana y media». Antes proponía `p25`, que es más conservador todavía y no
- * coincide con el precedente.
+ * Es `p25`, y esto CORRIGE un default anterior.
+ *
+ * Historia, porque importa para no volver atrás: durante un tiempo propuso
+ * `min_mediana_media`, apoyándose en una indicación de Gonzalo («usa
+ * mín(mediana, media) por defecto y déjalo cambiable por facultad») y en que
+ * es el estadístico que nombra la hoja «TD Estudiantes» de 2025. El
+ * 2026-08-21 lo corrigió sin ambigüedad: «el valor por defecto que calculamos
+ * aquí es el primer cuartil, es el P25 y SIEMPRE es el P25, a menos que una
+ * persona decida utilizar otro indicador».
+ *
+ * Y el default anterior contradecía a la propia pantalla, que marca P25 como
+ * RECOMENDADO y ofrece un botón «Restablecer P25»: quien abría la pestaña,
+ * leía la recomendación, no tocaba nada y confirmaba, se llevaba el estadístico
+ * que NO era. Medido en un proyecto real: con mín(mediana, media) el divisor de
+ * EE.GG. Letras es 49,5 y con P25 es 25,0 — casi el doble de aulas.
  *
  * Sólo es una PROPUESTA: la decisión sigue exigiendo la firma del analista
- * (`confirmado_at`), y hasta que la firme el motor calcula con el promedio
- * global avisándolo en cada facultad.
+ * (`confirmado_at`), y un estudio que ya guardó su método conserva el suyo.
  */
 export function metodoAlumnosPorChInicial(
   guardado: unknown,
 ): CalcMuestraAlumnosPorChMethod {
-  return esMetodoAlumnosPorChValido(guardado) ? guardado : "min_mediana_media";
+  return esMetodoAlumnosPorChValido(guardado) ? guardado : "p25";
 }
 
 export function missingAlumnosPorChFaculties(
