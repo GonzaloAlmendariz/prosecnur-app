@@ -92,9 +92,16 @@ estimado ~75 min para 68 corridas.
 
 Dato para no decidir a ciegas: **el recorte automático ya existe y ya actuó** —
 el motor limita el costo a 60.000 (aulas × corridas) con piso de diez, y con
-3.490 aulas eso dio 17 corridas, bajando de 500. Como el presupuesto mantiene el
-producto constante, **reducir el marco no acorta el tiempo**. Y la interfaz no
-ofrece elegir menos corridas.
+3.490 aulas eso dio 17 corridas, bajando de 500.
+
+**El tamaño sí importa** (medido, corrigiendo una estimación previa mía): sobre
+un marco de **57 aulas** la comparación completa —500 corridas por método, sin
+recorte— tarda **19,3 minutos** y cabe en el techo. Sobre 3.490 aulas se va a
+~75 minutos y no cabe. El presupuesto de 60.000 es un **techo**, no un objetivo:
+los marcos chicos quedan por debajo y por eso son más rápidos. El punto de corte
+está en algún lugar intermedio y merece medirse si se decide por esta vía.
+
+La interfaz, eso sí, no ofrece elegir menos corridas.
 
 Salidas reales: subir o parametrizar el techo de 30 minutos; bajar el
 presupuesto de costo del comparador; o dar control de corridas al usuario.
