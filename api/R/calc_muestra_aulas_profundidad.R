@@ -202,3 +202,59 @@ calc_muestra_aulas_profundidad_por_facultad <- function(cadenas_filas, default =
   if (!is.data.frame(reserves) || !nrow(reserves)) return(extra)
   .cm_aulas_bind_rows_fill(list(reserves, extra))
 }
+
+# ---------------------------------------------------------------------------
+# Integridad: `replacement_for` se re-deriva del slot
+# ---------------------------------------------------------------------------
+# El vínculo reserva -> titular viaja DOS VECES: en `selection_slot_id` (la
+# posición del titular en la selección) y en `replacement_for` (su
+# `classroom_id`). Cuando el titular de un slot cambia después de construir las
+# cadenas, el slot se actualiza y `replacement_for` NO: queda apuntando al aula
+# anterior, que acaba en el pool extra o como reserva de otro.
+#
+# Medido en HSVG2026 el 2026-08-21: 9 de 190 titulares aparecían «sin ningún
+# reemplazo» y 9 cadenas apuntaban a aulas que no eran titulares. Los
+# `selection_slot_id` de unos y otras COINCIDEN uno a uno —slot_043, slot_045,
+# slot_069, slot_127…—, que es la prueba de que la cadena existe y está bien
+# asignada: lo único roto era el campo que la nombra.
+#
+# Por eso se re-deriva en vez de reconstruirse: el slot es el vínculo fiable y
+# `replacement_for` es su copia, así que la copia se recalcula del original.
+# Reconstruir las cadenas habría sorteado reemplazos nuevos para aulas que ya
+# los tenían.
+
+#' Re-deriva `replacement_for` y `titular_operational_code` desde el slot.
+#' @keywords internal
+.cm_aulas_reparar_vinculo_titular <- function(selection_df) {
+  if (!is.data.frame(selection_df) || !nrow(selection_df)) return(selection_df)
+  if (!all(c("selection_slot_id", "sample_role") %in% names(selection_df))) return(selection_df)
+  roles <- as.character(selection_df$sample_role)
+  es_titular <- roles == "titular"
+  if (!any(es_titular)) return(selection_df)
+  slots <- as.character(selection_df$selection_slot_id)
+  # Mapa slot -> aula titular vigente.
+  id_por_slot <- stats::setNames(
+    as.character(selection_df$classroom_id[es_titular]),
+    slots[es_titular]
+  )
+  cod_por_slot <- if ("operational_code" %in% names(selection_df)) {
+    stats::setNames(as.character(selection_df$operational_code[es_titular]), slots[es_titular])
+  } else NULL
+
+  # Sólo las reservas ENCADENADAS: el pool extra no cuelga de ningún titular y
+  # su `replacement_for` vacío es correcto, no un vínculo perdido.
+  encadenada <- roles == "chain_reserve" & nzchar(slots)
+  if (!any(encadenada)) return(selection_df)
+  nuevo <- unname(id_por_slot[slots[encadenada]])
+  tiene <- !is.na(nuevo) & nzchar(nuevo)
+  if (!any(tiene)) return(selection_df)
+  idx <- which(encadenada)[tiene]
+  if (!"replacement_for" %in% names(selection_df)) selection_df$replacement_for <- ""
+  selection_df$replacement_for[idx] <- nuevo[tiene]
+  if (!is.null(cod_por_slot) && "titular_operational_code" %in% names(selection_df)) {
+    cod <- unname(cod_por_slot[slots[encadenada]])[tiene]
+    ok <- !is.na(cod) & nzchar(cod)
+    if (any(ok)) selection_df$titular_operational_code[idx[ok]] <- cod[ok]
+  }
+  selection_df
+}
