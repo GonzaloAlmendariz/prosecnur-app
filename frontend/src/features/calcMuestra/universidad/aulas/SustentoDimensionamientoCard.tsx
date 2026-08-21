@@ -22,7 +22,7 @@ export function SustentoDimensionamientoCard({
   referencia = null,
 }: {
   filas: CalcMuestraAulasEstrato[] | null;
-  /** El estudio anterior, SOLO para la lectura referencial del τ propio. */
+  /** El estudio anterior, SOLO para la lectura referencial de la tasa propia. */
   referencia?: CalcMuestraReferenciaAsistencia | null;
 }) {
   const sustento = construirSustento(filas, referencia?.cadenas_reemplazo?.filas ?? null);
@@ -48,7 +48,7 @@ export function SustentoDimensionamientoCard({
               ; la tasa de efectividad ({Math.round(tauGlobal * 100)}%, la
               realizada por el estudio anterior) es{" "}
               <strong>una sola para todas las facultades por decisión de
-              diseño</strong> — el τ propio de cada una se muestra al final
+              diseño</strong> — la tasa propia de cada una se muestra al final
               como referencia, sin redimensionar nada
             </>
           ) : (
@@ -76,10 +76,10 @@ export function SustentoDimensionamientoCard({
               <th scope="col" className="cmv2-num">= titulares</th>
               <th scope="col" className="cmv2-num">+ reservas</th>
               <th scope="col" className="cmv2-num">a coordinar</th>
-              {/* Decisión de Gonzalo: el τ propio es REFERENCIAL — se muestra,
+              {/* Decisión de Gonzalo: la tasa propia es REFERENCIAL — se muestra,
                   no redimensiona. Sale de las aulas aplicadas 2025 de la
                   facultad (Σefectivas/Σelegibles, k ≥ 12). */}
-              <th scope="col" className="cmv2-num cmv2-sustento-ref">τ propio 2025 (ref.)</th>
+              <th scope="col" className="cmv2-num cmv2-sustento-ref">tasa propia 2025 (ref.)</th>
             </tr>
           </thead>
           <tbody>
@@ -101,9 +101,9 @@ export function SustentoDimensionamientoCard({
                 <td className="cmv2-num">{fmtInt(fila.aCoordinar)}</td>
                 <td className="cmv2-num cmv2-sustento-ref">
                   {fila.tauPropio == null ? (
-                    <span title="Menos de 12 aulas aplicadas en 2025: un τ propio sería ruido.">— (k&lt;12)</span>
+                    <span title="Menos de 12 aulas aplicadas en 2025: una tasa propia sería ruido.">— (k&lt;12)</span>
                   ) : (
-                    <span title={`Con el τ propio de la facultad (${Math.round(fila.tauPropio * 100)}%, de ${fila.kPropio} aulas aplicadas en 2025) la misma fórmula daría ${fila.aulasConTauPropio} titulares. Referencial: no cambia el diseño.`}>
+                    <span title={`Con la tasa propia de la facultad (${Math.round(fila.tauPropio * 100)}%, de ${fila.kPropio} aulas aplicadas en 2025) la misma fórmula daría ${fila.aulasConTauPropio} titulares. Referencial: no cambia el diseño.`}>
                       {Math.round(fila.tauPropio * 100)}% → {fila.aulasConTauPropio == null ? "—" : fmtInt(fila.aulasConTauPropio)}
                     </span>
                   )}
