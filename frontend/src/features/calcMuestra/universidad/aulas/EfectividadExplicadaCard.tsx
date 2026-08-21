@@ -102,13 +102,13 @@ export function EfectividadExplicadaCard({
         <strong>De dónde sale el esperado de cada aula</strong>
         <span>
           {fuente.tipo === "tau_global"
-            ? `la misma regla para los ${fmtInt(conCuenta.length)} cursos-horario del plan: elegibles × τ global declarado (${coma((fuente.tau ?? 0) * 100, 1)} %)`
+            ? `la misma regla para los ${fmtInt(conCuenta.length)} cursos-horario del plan: elegibles × la tasa global declarada (${coma((fuente.tau ?? 0) * 100, 1)} %)`
             : `la misma cuenta para los ${fmtInt(conCuenta.length)} cursos-horario del plan (titulares y reemplazos), con tasas derivadas del ${refTexto}`}
         </span>
       </header>
 
       {/* 1 · El bloque formal de referencia: las dos tablas medidas. Solo
-          existe cuando hay curvas (histórico o calibración); con τ global no
+          existe cuando hay curvas (histórico o calibración); con tasa global no
           hay curvas que mostrar. */}
       {fuente.tipo !== "tau_global" && (
       <div className="cmv2-efexp-ref">
@@ -139,7 +139,7 @@ export function EfectividadExplicadaCard({
       )}
 
       {/* 1c · El ajuste por facultad, cuando el estudio lo declaró (decisión
-          de Gonzalo, 2026-08-20): τ de la facultad frente al general, con su
+          de Gonzalo, 2026-08-20): la tasa de la facultad frente a la general, con su
           k — «sí necesito saber por qué solo en seis facultades». */}
       {ajusteActivo && (
         <div className="cmv2-efexp-ref">
@@ -177,7 +177,7 @@ export function EfectividadExplicadaCard({
         <p className="cmv2-efexp-aviso" data-tono="warn">
           Este estudio no declara la procedencia de su calibración: las tasas provienen de
           una calibración embebida en el motor, medida sobre un estudio anterior. Declara el
-          histórico del estudio (con su periodo) o un τ global propio para que el esperado
+          histórico del estudio (con su periodo) o una tasa global propia para que el esperado
           quede correctamente referenciado.
         </p>
       )}
@@ -191,7 +191,7 @@ export function EfectividadExplicadaCard({
       {fuente.tipo === "tau_global" && (
         <p className="cmv2-efexp-aviso">
           Este estudio no tiene histórico de referencia: cada esperado se rige por el
-          supuesto global τ declarado en el diseño. Cuando exista data aplicada propia, la
+          supuesto global declarado en el diseño. Cuando exista data aplicada propia, la
           calibración por tipo de docente y tamaño podrá medirse y reemplazar al supuesto.
         </p>
       )}
@@ -332,7 +332,7 @@ export function EfectividadExplicadaCard({
             <li>
               <b>× {coma(radioTau.tau * 100, 1)} %</b>
               <div>
-                <strong>τ global declarado en el diseño</strong>
+                <strong>tasa global declarada en el diseño</strong>
                 <span>
                   este estudio no tiene histórico de referencia: el supuesto global es la
                   única tasa disponible y se aplica igual a todas las aulas
