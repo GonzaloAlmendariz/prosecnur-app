@@ -1,0 +1,103 @@
+/* Paso 0 de «Cursos-horario requeridos»: la muestra objetivo y la sobremuestra
+   operativa. Es una cadena corta y horizontal — el número que gobierna todo lo
+   que viene después tiene que leerse de un vistazo, no buscarse. */
+
+.cmv2-muop-cadena {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-muop-paso {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 120px;
+  min-width: 110px;
+  padding: 9px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface);
+}
+
+.cmv2-muop-paso b {
+  font-size: 17px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-muop-paso b i {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-muop-paso small {
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--pulso-text-muted);
+}
+
+/* La muestra objetivo es la decisión; la operativa es lo que se sale a buscar.
+   Las dos se distinguen del resto sin gritar. */
+.cmv2-muop-paso[data-tono="clave"] {
+  border-color: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 45%, var(--pulso-border));
+}
+
+.cmv2-muop-paso[data-tono="destino"] {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 7%, var(--pulso-surface));
+}
+
+.cmv2-muop-paso[data-tono="destino"] b {
+  color: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-muop-pie {
+  margin: 9px 0 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pulso-text-soft);
+  max-width: 84ch;
+}
+
+.cmv2-muop-pie b {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-muop-falta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-soft, var(--pulso-surface));
+  box-shadow: inset 3px 0 0 var(--module-accent, var(--pulso-primary));
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-muop-ir {
+  border: 1px solid var(--pulso-border);
+  border-radius: 6px;
+  padding: 3px 9px;
+  background: var(--pulso-surface);
+  color: var(--module-accent, var(--pulso-primary));
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cmv2-muop-ir:hover {
+  border-color: var(--module-accent, var(--pulso-primary));
+  background: color-mix(in srgb, var(--module-accent, var(--pulso-primary)) 8%, var(--pulso-surface));
+}

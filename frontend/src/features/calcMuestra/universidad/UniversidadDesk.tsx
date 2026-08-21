@@ -55,6 +55,7 @@ import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
 import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import { DistribucionElegiblesCard } from "./calculo/DistribucionElegiblesCard";
+import { MuestraOperativaCard } from "./calculo/MuestraOperativaCard";
 import { TasaEfectividadFacultadCard } from "./calculo/TasaEfectividadFacultadCard";
 import {
   AulasAuditoriaTab,
@@ -782,6 +783,18 @@ export function UniversidadDesk({
                   estar al inicio… evaluemos el recorrido»): paso 1 la materia
                   prima (elegibles y su P25) → paso 2 el convertidor (la tasa
                   y la cuenta) → paso 3 el pedido (tabla) y su garantia. */}
+              {/* Paso 0 (Gonzalo, 2026-08-21): «nunca resuelves la muestra
+                  objetivo y la sobremuestra operativa… ese valor es muy
+                  necesario para el resto de cálculo». De ahí sale la cuota que
+                  el paso 2 convierte en titulares; sin declararlo, la cadena
+                  empieza en el aire. */}
+              <div className="cmv2-recorrido-paso" data-paso="0">
+                <span className="cmv2-recorrido-kicker">Paso 0 · Qué se busca: la muestra y su sobremuestra</span>
+                <MuestraOperativaCard
+                  comp={compActivo ?? null}
+                  onIrACalculo={() => onNavigate("calculo", "calculo-propuestas")}
+                />
+              </div>
               <div className="cmv2-recorrido-paso" data-paso="1">
                 <span className="cmv2-recorrido-kicker">Paso 1 · Qué hay: los elegibles y el tamaño de las aulas</span>
                 <DistribucionElegiblesCard

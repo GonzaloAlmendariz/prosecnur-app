@@ -54,6 +54,16 @@ export type FilaTasaFacultad = {
    */
   mix: number | null;
   residual: number | null;
+  /**
+   * La tasa que el MOTOR calculó para esta facultad desde su marco (mix de
+   * tamaños), cuando difiere de la que dimensiona. Medido con datos reales:
+   * en un estudio sin histórico el estrato se queda en el 0,53 plano del
+   * preset mientras el marco ya publicó 0,4756 para EE.GG. Ciencias (aulas
+   * grandes) y 0,6663 para Arte y Diseño (chicas). Son 157 titulares contra
+   * 145. No se elige acá cuál rige —eso mueve las cifras del estudio— pero
+   * callar que existen dos es lo que no puede seguir pasando.
+   */
+  tasaMarco: number | null;
 };
 
 const num = (v: unknown): number | null => {
@@ -104,6 +114,7 @@ export function tasasFacultad(
         tasa: tasaVigente,
         mix: desglosaLaVigente ? t.rendimiento_mix : null,
         residual: desglosaLaVigente ? t.factor_residual : null,
+        tasaMarco: Math.abs(t.tasa - tasaVigente) > 0.0005 ? t.tasa : null,
         conResidual: t.con_residual,
         k: t.facultad_k,
         nAulasMarco: t.n_aulas,

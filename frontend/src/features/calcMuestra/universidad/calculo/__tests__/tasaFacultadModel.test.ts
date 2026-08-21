@@ -113,6 +113,25 @@ describe("tasasFacultad", () => {
     expect(filas[0].cuota).toBe(363);
   });
 
+  it("cuando el marco y el estrato traen tasas distintas, la otra se DECLARA", () => {
+    // Medido en el proyecto de usuario nuevo: sin histórico el estrato usa el
+    // 0,53 plano del preset mientras el marco ya publicó 0,4756 para EE.GG.
+    // Ciencias. Son 157 titulares contra 145: no puede quedar mudo.
+    const filas = tasasFacultad(
+      [{ facultad: "ESTUDIOS GENERALES CIENCIAS", tasa: 0.4756, n_aulas: 486, elegibles: 25091, con_residual: false, facultad_k: null }],
+      [{ estrato: "ESTUDIOS GENERALES CIENCIAS", cuota: 422, avg_conglomerado: 51.6, aulas_base: 16, tau: 0.53 }],
+    );
+    expect(filas[0].tasa).toBe(0.53);
+    expect(filas[0].tasaMarco).toBe(0.4756);
+
+    // Cuando coinciden no hay nada que declarar: no se inventa una segunda.
+    const iguales = tasasFacultad(
+      [{ facultad: "DERECHO", tasa: 0.5679, n_aulas: 411, elegibles: 16397, con_residual: true, facultad_k: 16 }],
+      [{ estrato: "DERECHO", cuota: 363, avg_conglomerado: 40, aulas_base: 16, tau: 0.5679 }],
+    );
+    expect(iguales[0].tasaMarco).toBeNull();
+  });
+
   it("un descuadre motor↔cuenta se DECLARA, no se maquilla", () => {
     const filas = tasasFacultad(RAW, [
       { estrato: "DERECHO", cuota: 363, avg_conglomerado: 40, aulas_base: 99, tau: 0.5679 },
