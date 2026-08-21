@@ -209,3 +209,25 @@ test_that("una facultad sin esperado no da 0 % de avance", {
   )
   expect_identical(cortes$por_facultad[["Avance"]][[1]], "—")
 })
+
+test_that("lo que recoge una reserva cuenta para la facultad de su cadena", {
+  # Medido en el estudio: 515 de las 3 508 efectivas (14.7 %) vienen de
+  # reservas de cadena, contra un denominador que solo cuenta titulares. Es
+  # correcto porque la reserva SUSTITUYE al titular caido — verificado: de las
+  # 152 cadenas con parte, NINGUNA registro dos aulas—, y filtrar por titular
+  # aqui se comeria una de cada siete encuestas del avance.
+  cortes <- aulas_libro_cortes(
+    list(list(operational_code = "CH 1", sample_role = "titular",
+              faculty = "Letras", expected_valid = 20, eligible_n = 30),
+         list(operational_code = "R 1.1", sample_role = "chain_reserve",
+              titular_operational_code = "CH 1", faculty = "Letras",
+              expected_valid = 20, eligible_n = 28)),
+    partes = list(list(operational_code = "R 1.1", effective_surveys = 18))
+  )
+  pf <- cortes$por_facultad
+  # La meta sigue siendo la del titular —una cadena, una aula que visitar— y lo
+  # recogido por la reserva cuenta hacia ella.
+  expect_equal(pf$Esperadas[[1]], 20)
+  expect_equal(pf$Recogidas[[1]], 18)
+  expect_identical(pf$Avance[[1]], "90 %")
+})
