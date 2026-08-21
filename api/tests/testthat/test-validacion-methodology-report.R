@@ -1489,7 +1489,7 @@ test_that("sin filtro de pruebas, la depuración declara los conteos de la ficha
   # Sin filtro de pruebas no se escriben sus líneas en cero.
   expect_false(grepl("# Pruebas retiradas", script, fixed = TRUE))
   expect_false(grepl("# Encuestas reclasificadas", script, fixed = TRUE))
-  expect_match(script, "No se registró un filtro de encuestas de prueba.", fixed = TRUE)
+  expect_match(script, "El universo del estudio es la base recibida completa.", fixed = TRUE)
   # El agregado no arrastra el detalle del caso.
   expect_match(script, "limpieza y validación de la base", fixed = TRUE)
 })
@@ -1550,7 +1550,7 @@ test_that("sin depuración ni filtro la sección sigue declarando que no hay fil
   r_path <- tempfile(fileext = ".R")
   validation_methodology_report_r(model, r_path)
   script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-  expect_match(script, "# No se registró un filtro de encuestas de prueba.", fixed = TRUE)
+  expect_match(script, "# El universo del estudio es la base recibida completa.", fixed = TRUE)
   expect_false(grepl("# Encuestas recibidas:", script, fixed = TRUE))
 })
 
@@ -1570,7 +1570,7 @@ test_that("sin identificadores la función sigue siendo un aviso, no un filtro",
   r_path <- tempfile(fileext = ".R")
   validation_methodology_report_r(model, r_path)
   script <- paste(readLines(r_path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
-  expect_match(script, "No se registró un filtro de encuestas de prueba en este plan.", fixed = TRUE)
+  expect_match(script, "El universo del estudio es la base recibida completa.", fixed = TRUE)
 })
 
 test_that("con identificadores el script reproduce el universo de verdad", {
@@ -1635,7 +1635,9 @@ test_that("el PDF no imprime los identificadores: declara dónde están", {
   if (!nzchar(Sys.which("pdftotext"))) skip("pdftotext no está disponible")
   txt <- tempfile(fileext = ".txt")
   expect_equal(system2("pdftotext", c("-layout", pdf_path, txt)), 0L)
-  texto <- paste(readLines(txt, warn = FALSE, encoding = "UTF-8"), collapse = " ")
+  # El wrapping del PDF parte las frases: se normalizan los espacios antes de
+  # buscar, o el aserto falla por un salto de línea y no por el contenido.
+  texto <- gsub("\\s+", " ", paste(readLines(txt, warn = FALSE, encoding = "UTF-8"), collapse = " "))
   expect_match(texto, "identificadores incluidos viajan en el script R", fixed = TRUE)
   # Cientos de UUID desbordarían la caja; no se imprime ninguno.
   expect_false(grepl("caso-001", texto, fixed = TRUE))
