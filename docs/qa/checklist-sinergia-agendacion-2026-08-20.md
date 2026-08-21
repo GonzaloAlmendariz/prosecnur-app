@@ -8,7 +8,8 @@ Trabajo coordinado entre dos sesiones: **calc-muestra** (esta) y **Monitoreo**
 (peer `prosecnur-app-23`, dueño del generador del libro y su lector). Regla del
 reparto: calc-muestra verifica y toca sus superficies; el peer toca
 `carga_aulas_libro_generar.R` / `carga_aulas_agendadas.R`; nadie toca
-`collection_*` sin palabra de Gonzalo.
+`collection_*` sin palabra de Gonzalo. El plan del lado de Monitoreo vive en
+`docs/qa/plan-validacion-aulas-2026-08-20.md`.
 
 ## El contrato (medido, no supuesto)
 
@@ -38,6 +39,18 @@ del ancho real y resuelve por título). Fila = titular + reemplazos por
 | 7 | `pendiente_enlace` ambiguo en Monitoreo: mismo rótulo para «no se generó» y «se generó contra otra selección» (una palabra, dos cosas); distinguirlas exige leer `input_fingerprint` de Recopiladores = contrato nuevo entre módulos | motor de materiales del peer | ⛔ decisión de Gonzalo — el peer se ofrece a implementarlo leyendo solo el fingerprint |
 | 8 | `TELEFONO DE DOCENTE` vacío | libro (columna de la persona) | ☑ cerrado — no es defecto: la base DTI no lo trae y lo llena quien agenda |
 | 9 | ¿Calc-muestra ofrece el libro desde su Entrega? Hoy: «Pase a Monitoreo» existe (`SalidasMonitoreoTab`) y Entregables descarga el workbook de auditoría, pero el libro de agendación solo se genera desde Monitoreo | `salidas/SalidasMonitoreoTab.tsx` / `SalidasEntregablesTab.tsx` | ⛔ decisión de Gonzalo — si sí: botón que llama al MISMO endpoint (`/api/monitoreo/aulas/generar-libro`), sin motor paralelo |
+
+## La lectura conjunta de los ítems 6 y 7 (sube la prioridad)
+
+Vistos por separado, el 6 es «no hay re-armado» y el 7 es «rótulo ambiguo».
+Juntos son otra cosa: **un estado del que no se sale por la interfaz y que
+además no se anuncia**. Si la selección se re-sortea después de adaptar el plan
+de Recopiladores, no existe ninguna vía en la UI para re-alinearlo (seed noop,
+`PlanPut` sin consumidor) y ninguna superficie lo declara: el contador de
+materiales diría «179/196 con enlace» tan tranquilo, leyéndose como «faltan 17
+QR» cuando 148 unidades del plan nuevo no existen en el plan congelado. No es
+un rótulo que se pule: es una puerta cerrada sin cartel. Las decisiones 6 y 7
+conviene tomarlas juntas.
 
 ## Lo aprendido que evita reinvestigar
 
