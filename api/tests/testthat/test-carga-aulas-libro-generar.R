@@ -543,3 +543,29 @@ test_that("cada desplegable saca sus valores de SU lista, no de la de al lado", 
                      info = sprintf("la validacion de %s apunta a otra lista", esperado))
   }
 })
+
+test_that("las siete columnas de identidad del control se llenan de verdad", {
+  # `aulas_libro_hoja_control()` las escribe con `pon("MUESTRA", ...)`, que busca
+  # el titulo en la spec y **si no lo encuentra no hace nada y no avisa**. Un
+  # renombrado en `BASE_CONTROL_CAMPOS` dejaria esa columna vacia en el libro de
+  # todos los estudios sin que nada fallara: descartar en silencio.
+  #
+  # Se comprueba por su EFECTO —la celda trae el dato— y no listando los siete
+  # literales otra vez, que seria una tercera copia de los mismos nombres.
+  d <- aulas_libro_hoja_control(list(
+    list(operational_code = "CH 1", sample_role = "titular", wave = "M1",
+         course_name = "Curso 1", label = "Aula 101", schedule = "Lun 10:00",
+         enrolled_total = 34, eligible_n = 30)
+  ))
+  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  fila <- unlist(d[3, ], use.names = FALSE)
+  valor <- function(titulo) fila[[which(campos == titulo)[[1]]]]
+
+  expect_identical(valor("MUESTRA"), "M1")
+  expect_identical(valor("CURSO-HORARIO"), "CH 1")
+  expect_identical(valor("NOMBRE DEL CURSO"), "Curso 1")
+  expect_identical(valor("AULA"), "Aula 101")
+  expect_identical(valor("HORARIO"), "Lun 10:00")
+  expect_identical(valor("MATRICULADOS TOTALES"), "34")
+  expect_identical(valor("MATRICULADOS POBLACION"), "30")
+})
