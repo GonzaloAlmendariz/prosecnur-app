@@ -35,6 +35,12 @@ export function CadenaAulas({
   const estMax = divisores.length ? Math.max(...divisores) : null;
   const taus = conDato.map((r) => safeNumber(r.tau, 0)).filter((v) => v > 0);
   const tauProm = taus.length ? taus.reduce((a, b) => a + b, 0) / taus.length : null;
+  // Mismo criterio que `origenTasaFacultades` (calculo/tasaFacultadModel.ts):
+  // si TODAS las facultades comparten exactamente la misma tasa, no hay dato
+  // propio del estudio — es la de referencia heredada del preset. Decir «cada
+  // curso-horario rinde alrededor del 53%» sin más lo presenta como un hecho
+  // medido aquí, que es justo lo que este loop viene corrigiendo.
+  const tasaSinDatosPropios = taus.length > 1 && taus.every((t) => Math.abs(t - taus[0]) < 1e-9);
 
   const esRango = estMin != null && estMax != null && Math.round(estMin) !== Math.round(estMax);
   const rangoEst =
@@ -90,7 +96,12 @@ export function CadenaAulas({
         ) : (
           <> ({rangoEst} elegibles por curso-horario en este marco).</>
         )}
-        {tauProm != null && <> Cada curso-horario rinde alrededor del {Math.round(tauProm * 100)}% de sus elegibles.</>}
+        {tauProm != null && (
+          <>
+            {" "}Cada curso-horario rinde alrededor del {Math.round(tauProm * 100)}% de sus elegibles
+            {tasaSinDatosPropios ? " (tasa de referencia, aún sin datos propios de este estudio)" : ""}.
+          </>
+        )}
         {reemplazosPorTitular != null && reemplazosPorTitular > 0 && (
           <> Cada titular lleva R1–R{reemplazosPorTitular} reservas equivalentes</>
         )}
