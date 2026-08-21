@@ -475,7 +475,7 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 #' @return la ruta escrita.
 #' @export
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
-                               efectivas = NULL) {
+                               efectivas = NULL, responses = NULL, validas = NULL) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
@@ -510,6 +510,12 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     openxlsx::addWorksheet(wb, nombre)
     openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
   }
+  # **La hoja de indicadores va la ULTIMA, y es a proposito.** El libro lo abre
+  # quien agenda, y su hoja tiene que ser la primera; quien viene a mirar como
+  # va el campo la busca, y encontrarla al final no le cuesta nada.
+  aulas_libro_escribir_indicadores(
+    wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas)
+  )
 
   # **El formato solo no basta: hay que escribir el dato con su tipo.**
   #
