@@ -1,0 +1,47 @@
+# Checklist — el libro de agendación deja de calcar el Excel viejo
+
+**Origen**: revisión de Gonzalo del 21/08/2026 sobre
+`Libro_de_agendacion_de_aulas.xlsx` generado desde el proyecto de trabajo.
+
+**La crítica de fondo, textual**: «estás tratando de calcar exactamente cómo era
+el Excel y no estás haciendo preguntas más profundas sobre si así se debería
+mostrar ahora que tenemos un monitoreo más sofisticado».
+
+Es acertada y explica los ítems L3 y L5: el libro se construyó reproduciendo la
+hoja del cliente, columna por columna, y esa fidelidad se trató como requisito
+cuando era sólo el punto de partida.
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| L1 | Quitar la hoja «Datos»: no debe haber forcejeo de tabla dinámica | `api/R/carga_aulas_libro_datos.R`, `carga_aulas_libro_generar.R` | ☐ |
+| L2 | Decidir qué pasa con «Resumen» — él nombra tres hojas (agendadas, aplicadas, control) y la portada no está entre ellas | `carga_aulas_libro_resumen.R` | ⛔ decisión suya |
+| L3 | La Base de control deja de calcar: fuera `70T`/`70P` | `api/R/carga_base_control.R`, `carga_aulas_libro_generar.R` | ☐ |
+| L3a | En su lugar: **% de efectivas esperado vs obtenido**, y si es superior o inferior | idem | ☐ |
+| L3b | **Alumnos elegibles esperados vs efectivos**, y si superior o inferior | idem | ☐ |
+| L3c | **Hombres y mujeres esperados vs obtenidos** | idem | ☐ |
+| L4 | Los datos inventados deben salir del **marco real 2026** (`hsvg2026`), que ya tiene cursos-horario seleccionados y cadenas de reemplazo | `api/inst/reference_projects/hsvg2026/` | ☐ |
+| L5 | Vocabulario: ya no es «muestra 1 / muestra 2» sino **titular, reemplazo 1.1, 1.2, 1.3** | `carga_aulas_libro_*.R`, `AULAS_AGENDADAS_BLOQUE` | ☐ |
+| L6 | La coma de miles en Matriculados / Elegibles / Esperadas no tiene sentido en cifras de dos dígitos | `carga_aulas_libro_datos.R`, `carga_aulas_libro_formato.R` | ☐ |
+| L7 | El agendador no ve el teléfono del docente mientras escribe (medido: contexto 242 caracteres, pantalla ~206, congelado sólo `ID MATCH`) | `carga_aulas_libro_formato.R` | ⛔ decisión suya: congelar hasta teléfono, o reordenar el bloque |
+
+## Lo que L3 exige y no existe todavía
+
+Las tres comparaciones son **esperado vs obtenido**, y el libro sólo tiene el
+lado «obtenido». El esperado hay que traerlo:
+
+- **% de efectivas esperado**: del criterio del estudio y `expected_valid`.
+- **Elegibles esperados**: `eligible_n` ya está en el plan.
+- **Hombres/mujeres esperados**: de las cuotas por sexo × facultad, que el
+  motor ya calcula (`quotas_sex_faculty`).
+
+Eso convierte la Base de control de una hoja que el equipo llena en una hoja
+que **compara lo planificado con lo que pasó**, que es lo que pide la crítica de
+fondo.
+
+## Trampa conocida
+
+`AULAS_AGENDADAS_BLOQUE` y `BASE_CONTROL_CAMPOS` son el contrato con el Excel
+que el equipo ya usa: el lector empareja **por título**. Cambiar un título rompe
+la relectura de los libros que el equipo tenga a medio llenar, salvo que el
+título viejo se conserve como alias — la spec ya admite varios por campo
+(`titulos = c("OBSERVACIONES", "OBSERVACIONES SOBRE AULAS AGENDADAS")`).
