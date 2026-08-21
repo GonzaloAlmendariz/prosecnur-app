@@ -22,6 +22,40 @@
 # no con un 1 fijo: un estudio con cadenas de once necesita las once.
 AULAS_LIBRO_STATUS_MUESTRA_BASE <- c("AGENDADA", "REAGENDADA", "REEMPLAZADA")
 
+# **Un color por ESLABON, no dos alternando.**
+#
+# La banda usaba `#1D4F8C` y `#2F6BB0` en ciclo, asi que el reemplazo 3 repetia
+# el color del 1 y con once reservas la pista dejaba de distinguir. Gonzalo:
+# «las columnas de titular deberian ser de un color, y las columnas de
+# reemplazo uno, reemplazo dos, reemplazo tres y subsiguientes de otros colores
+# para distinguirlos».
+#
+# El titular conserva el navy del resto del libro. Los reemplazos van
+# aclarandose desde el: cuanto mas lejos de la cadena, mas claro, que es la
+# jerarquia real —el primero entra antes que el ultimo—. La escala se calcula
+# para la profundidad que tenga el estudio, asi que doce bloques dan doce tonos
+# distintos y no seis repetidos.
+.calf_mezcla <- function(hex, blanco, peso) {
+  c1 <- grDevices::col2rgb(hex)[, 1]
+  c2 <- grDevices::col2rgb(blanco)[, 1]
+  grDevices::rgb(t(round(c1 * (1 - peso) + c2 * peso)), maxColorValue = 255)
+}
+
+#' La escala de color de los eslabones de una cadena.
+#'
+#' @param n cuantos bloques hay, titular incluido.
+#' @return vector de colores; el primero es el titular.
+#' @export
+aulas_libro_colores_eslabon <- function(n = 1L) {
+  n <- max(1L, suppressWarnings(as.integer(n)))
+  if (!is.finite(n)) n <- 1L
+  if (n == 1L) return("#002457")
+  # Del azul medio al claro, sin llegar a perder el contraste con el blanco del
+  # texto: el ultimo eslabon sigue leyendose.
+  pasos <- seq(0, 0.55, length.out = n - 1L)
+  c("#002457", vapply(pasos, function(p) .calf_mezcla("#1D4F8C", "#FFFFFF", p), character(1)))
+}
+
 # Llamada (123) · Correo Electronico (33). El «-» observado (14) NO entra: es
 # como el equipo escribe «todavia nada aqui», y el lector ya lo trata como
 # ausencia. Ofrecerlo en el desplegable lo convertiria en un valor.
@@ -146,7 +180,8 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                                         formatos = list(),
                                         columnas_repetidas = list(),
                                         combinar = list(),
-                                        descuadres = list()) {
+                                        descuadres = list(),
+                                        tintes = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -211,6 +246,38 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # Lo que trae la app va teñido; lo que llena la persona queda en blanco. Es
   # la unica pista de donde se escribe, y hasta ahora las veinte columnas del
   # bloque salian identicas.
+  # La escala se calcula UNA vez y la comparten la banda de la cabecera y el
+  # tinte de los datos: si cada una tuviera la suya, el bloque 3 podria salir de
+  # un color arriba y de otro abajo.
+  tonos <- aulas_libro_colores_eslabon(max(length(tintes), length(agrupados) + 1L))
+
+  # **Y el color baja a las filas de datos, con una linea que separa bloques.**
+  #
+  # Con el color solo en la cabecera, quien esta veinte columnas dentro no sabe
+  # en que eslabon escribe: la cabecera se queda arriba y las celdas son todas
+  # blancas. Un tinte muy claro del mismo tono acompaña la columna hasta el
+  # final, y un borde grueso en la primera columna de cada bloque dice donde
+  # acaba uno y empieza el siguiente.
+  #
+  # **Va ANTES del gris de «lo que trae la app», y el orden importa.** Aplicado
+  # despues, el tinte del bloque pisaba ese gris y se perdia la unica pista de
+  # que columnas no hay que tocar. Las dos se necesitan y no compiten: una dice
+  # de que eslabon es la columna, la otra si se escribe en ella. Gana la
+  # segunda, que es la que evita que alguien edite lo que la app va a
+  # sobrescribir.
+  for (tb in tintes) {
+    if (!length(tb$cols) || !tb$filas) next
+    tono <- tonos[[min(tb$eslabon, length(tonos))]]
+    tinte <- openxlsx::createStyle(fgFill = .calf_mezcla(tono, "#FFFFFF", 0.93))
+    openxlsx::addStyle(wb, tb$hoja, tinte, rows = seq_len(tb$filas) + tb$desde,
+                       cols = tb$cols, gridExpand = TRUE, stack = TRUE)
+    borde <- openxlsx::createStyle(border = "left", borderColour = tono,
+                                   borderStyle = "medium")
+    openxlsx::addStyle(wb, tb$hoja, borde,
+                       rows = seq_len(tb$filas + tb$desde),
+                       cols = tb$cols[[1]], gridExpand = TRUE, stack = TRUE)
+  }
+
   de_la_app <- openxlsx::createStyle(fgFill = "#F2F4F7", fontColour = "#5B6472")
   for (hoja in names(columnas_app)) {
     cols <- columnas_app[[hoja]]
@@ -346,13 +413,14 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   #
   # El titular conserva el navy del resto del libro y las reservas alternan dos
   # tonos mas claros: el contraste con el texto blanco se mantiene en los tres.
-  tonos <- c("#1D4F8C", "#2F6BB0")
   for (i in seq_along(agrupados)) {
     g <- agrupados[[i]]
     if (!length(g$cols)) next
     n_cab <- filas_cabecera[[g$hoja]] %||% 1L
     banda <- openxlsx::createStyle(
-      textDecoration = "bold", fgFill = tonos[[(i - 1L) %% length(tonos) + 1L]],
+      # `i + 1L`: el primero de la escala es el titular, que no esta en
+      # `agrupados` —solo se agrupan los reemplazos, el titular no se pliega—.
+      textDecoration = "bold", fgFill = tonos[[i + 1L]],
       fontColour = "#FFFFFF", halign = "left", valign = "center", wrapText = TRUE,
       border = "TopBottomLeftRight", borderColour = "#FFFFFF"
     )

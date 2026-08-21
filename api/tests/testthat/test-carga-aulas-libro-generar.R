@@ -180,21 +180,6 @@ test_that("se distingue lo que trae la app de lo que llena la persona", {
 # que se puede comprobar sin abrir Excel: el .xlsx es un zip y su XML dice si
 # hay filtro, anchos propios y agrupado.
 
-.libro_de_prueba <- function(n_reservas = 2L) {
-  titular <- list(
-    operational_code = "CH 1", titular_operational_code = "CH 1",
-    sample_role = "titular", faculty = "Letras y Ciencias Humanas",
-    course_name = "HISTORIA Y TEORIA DE LA ARQUITECTURA CONTEMPORANEA",
-    teacher = "Docente CH 1", eligible_n = 40, scheduled_date = "2026-08-11"
-  )
-  reservas <- lapply(seq_len(n_reservas), function(i) list(
-    operational_code = sprintf("R 1.%d", i), titular_operational_code = "CH 1",
-    sample_role = "chain_reserve", replacement_order = i,
-    faculty = "Letras y Ciencias Humanas", course_name = "CURSO DE RESERVA",
-    eligible_n = 30
-  ))
-  c(list(titular), reservas)
-}
 
 #' El XML de una hoja por NOMBRE.
 #'
@@ -292,17 +277,18 @@ test_that("la cabecera distingue el titular de cada reserva", {
   destino <- file.path(tempdir(), paste0("banda_", as.integer(runif(1, 1, 1e6))))
   dir.create(destino)
   utils::unzip(path, exdir = destino)
-  estilos <- paste(readLines(file.path(destino, "xl", "styles.xml"), warn = FALSE),
-                   collapse = "")
-  # Los dos tonos de reserva son exclusivos de esta banda, asi que buscarlos en
-  # el catalogo sirve: si desaparecen de aqui, desaparecen del libro.
-  expect_match(estilos, "FF1D4F8C")
-  expect_match(estilos, "FF2F6BB0")
-  # **El navy NO se busca en el catalogo**: la portada lo usa en su titulo, sus
-  # secciones y su barra de datos, asi que ahi esta pase lo que pase — con el
-  # mutante que se lo quitaba a la cabecera de las hojas, este test seguia
-  # verde. Se comprueba en LA CELDA, que es donde tiene que verse.
-  expect_identical(relleno_de_celda(path, "Aulas Agendadas", 1, 1), "FF002457")
+  # **Se comprueba en LA CELDA de cada bloque, no en el catalogo de estilos.**
+  # Antes se buscaban dos tonos fijos —`FF1D4F8C` y `FF2F6BB0`— porque la banda
+  # los alternaba; la escala por eslabon los calcula, asi que un color concreto
+  # dejo de ser el contrato. Lo que sigue siendolo: el titular lleva el navy del
+  # libro y cada bloque un color distinto.
+  A <- AULAS_AGENDADAS_ANCHO_BLOQUE
+  cabeceras <- vapply(1:3, function(b) {
+    relleno_de_celda(path, "Aulas Agendadas", 1L + (b - 1L) * A + 2L, 1)
+  }, character(1))
+  expect_identical(cabeceras[[1]], "FF002457")
+  expect_identical(anyDuplicated(cabeceras), 0L)
+  expect_true(all(nzchar(cabeceras)))
 })
 
 test_that("la banda no rompe la relectura", {
