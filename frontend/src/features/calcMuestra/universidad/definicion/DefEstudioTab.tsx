@@ -111,6 +111,7 @@ export function DefEstudioTab({
   onTitulo,
   onContexto,
   onWorkspace,
+  onNavigate,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -119,6 +120,8 @@ export function DefEstudioTab({
   onTitulo: (titulo: string) => void;
   onContexto: (campo: "cliente" | "tipo_cliente" | "descripcion_libre", valor: string) => void;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+  /** Contrato de navegación del desk: (seccion, pestana). */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   const frame = aulasState?.frame ?? null;
   const universo = frameAuditNumber(frame, "input_rows");
@@ -190,7 +193,7 @@ export function DefEstudioTab({
   return (
     <div className="cmv2-did-stack">
       {primeraVez ? (
-        <HeroPrimeraVez workspace={workspace} onWorkspace={onWorkspace} />
+        <HeroPrimeraVez workspace={workspace} onWorkspace={onWorkspace} onNavigate={onNavigate} />
       ) : (
         <div className="cmv2-defi-flow-compact" aria-label="Avance del recorrido de la muestra">
           <MuestraFlowDiagram compacto highlight={highlightRecorrido} estados={estadosRecorrido} />
@@ -291,16 +294,25 @@ const HERO_ICONS: Record<CalcMuestraWorkspaceSourceMode, typeof FileSpreadsheet>
 /**
  * Hero compacto estilo EmptyHome: pregunta directa + una tarjeta por insumo
  * posible. Elegir una tarjeta declara el modo de fuente (onWorkspace); el
- * archivo se sube en la pestaña Bases del sidebar — este tab no navega, así
- * que la confirmación apunta con una flecha hacia esa pestaña. Debajo, el
- * recorrido completo con "Estás aquí" en Definir.
+ * archivo se sube en la pestaña «Fuentes» del sidebar (su id interno sigue
+ * siendo `def-bases`, de cuando se llamaba así).
+ *
+ * La confirmación LLEVA hasta ahí en vez de apuntar con una flecha: el panel
+ * izquierdo son iconos sin rótulo, así que a quien entra por primera vez
+ * «ve la pestaña Bases» no le sirve —no existe ese nombre en pantalla— y
+ * «ve la pestaña Fuentes» tampoco del todo, porque tiene que descubrir cuál
+ * de los seis iconos lo es. Debajo, el recorrido completo con "Estás aquí"
+ * en Definir.
  */
 function HeroPrimeraVez({
   workspace,
   onWorkspace,
+  onNavigate,
 }: {
   workspace: CalcMuestraWorkspace;
   onWorkspace: (workspace: CalcMuestraWorkspace) => void;
+  /** Contrato de navegación del desk: (seccion, pestana). */
+  onNavigate?: (section: string, tab?: string) => void;
 }) {
   const [modoElegido, setModoElegido] = useState<CalcMuestraWorkspaceSourceMode | null>(null);
   const sourceMode = workspace.source_mode ?? "base_madre";
@@ -356,15 +368,20 @@ function HeroPrimeraVez({
           <ArrowLeft size={13} aria-hidden="true" />
           <span>
             Listo: quedó declarado <strong>{etiquetaElegida}</strong>. Sube tu Excel en la
-            pestaña <strong>Bases</strong> del panel izquierdo.
+            pestaña <strong>Fuentes</strong> del panel izquierdo.
           </span>
+          {onNavigate ? (
+            <button type="button" className="cmv2-defi-hero-ir" onClick={() => onNavigate("definicion", "def-bases")}>
+              Ir a Fuentes
+            </button>
+          ) : null}
         </p>
       ) : (
         <p className="cmv2-defi-hero-nota">
           <ArrowLeft size={13} aria-hidden="true" />
           <span>
             Al elegir, el modo queda declarado y el archivo se sube en la pestaña{" "}
-            <strong>Bases</strong> del panel izquierdo.
+            <strong>Fuentes</strong> del panel izquierdo.
           </span>
         </p>
       )}

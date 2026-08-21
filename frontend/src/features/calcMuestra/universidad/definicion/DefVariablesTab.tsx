@@ -317,7 +317,7 @@ export function DefVariablesTab({
           variant="inline"
           icon={<Database size={18} />}
           title="Sin columnas detectadas todavía"
-          hint="Cuando cargues o construyas el marco en Bases, estas tarjetas propondrán columnas para que las confirmes. Mientras tanto puedes dejar preparado qué datos espera el estudio."
+          hint="Cuando cargues o construyas el marco en Fuentes, estas tarjetas propondrán columnas para que las confirmes. Mientras tanto puedes dejar preparado qué datos espera el estudio."
         />
       )}
     </section>
