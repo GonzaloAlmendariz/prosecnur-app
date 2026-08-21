@@ -122,6 +122,7 @@ export function CriteriosRadiografiaConsola({
   puedeReconstruir,
   reconstruyendo,
   recuperacionPropia = true,
+  sinCriteriosDeclarados = false,
 }: {
   catalogo: CriteriosCatalogo;
   radiografia: CalcMuestraAulasCriteriosRadiografia | null;
@@ -132,6 +133,8 @@ export function CriteriosRadiografiaConsola({
   onReconstruir?: () => void;
   puedeReconstruir?: boolean;
   reconstruyendo?: boolean;
+  /** No hay suite de criterios activa: la radiografía aún no puede existir. */
+  sinCriteriosDeclarados?: boolean;
   /**
    * G40 · Quién anuncia que falta la radiografía.
    *
@@ -181,6 +184,7 @@ export function CriteriosRadiografiaConsola({
         onActualizar={onReconstruir}
         puedeActualizar={puedeReconstruir}
         actualizando={reconstruyendo}
+        sinCriteriosDeclarados={sinCriteriosDeclarados}
       />
     );
   }

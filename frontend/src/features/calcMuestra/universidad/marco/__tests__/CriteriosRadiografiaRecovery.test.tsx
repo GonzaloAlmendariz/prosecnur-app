@@ -8,6 +8,7 @@ import type {
   CriteriosSeleccionMarco,
 } from "../../../../../api/client";
 import { CriteriosRadiografiaConsola } from "../CriteriosRadiografiaConsola";
+import { CriteriosRadiografiaRecovery } from "../CriteriosRadiografiaRecovery";
 
 const catalogo: CriteriosCatalogo = {
   schema: "calc_muestra_criterios_catalogo_v1",
@@ -163,5 +164,37 @@ describe("CriteriosRadiografiaRecovery", () => {
     expect(html).toContain("Sin dato");
     expect(html).toContain("cmv2-crc-card-strip");
     expect(html).not.toContain("Radiografía por facultad pendiente");
+  });
+});
+
+describe("cuando todavía no hay criterios declarados", () => {
+  /**
+   * Medido en el recorrido de un usuario nuevo: con el marco recién construido
+   * y sin criterios, la tarjeta decía «Actualízalo con el motor R» y su botón
+   * reconstruía el marco entero (~40 s, dos veces) sin poder resolverlo nunca
+   * — la radiografía solo se calcula con una suite de criterios ACTIVA
+   * (calc_muestra_aulas_criterios.R: `if (n_aulas && suite_activa)`). Un botón
+   * que promete lo que no puede cumplir es peor que no ofrecer ninguno.
+   */
+  it("dice que faltan criterios y no ofrece el botón de actualizar", () => {
+    const html = renderToStaticMarkup(
+      <CriteriosRadiografiaRecovery
+        scope="alumno"
+        sinCriteriosDeclarados
+        onActualizar={() => {}}
+        puedeActualizar
+      />,
+    );
+
+    expect(html).toContain("declara");
+    expect(html).not.toContain("Actualizar radiografía por facultad");
+  });
+
+  it("con criterios declarados mantiene la vía de actualizar", () => {
+    const html = renderToStaticMarkup(
+      <CriteriosRadiografiaRecovery scope="alumno" onActualizar={() => {}} puedeActualizar />,
+    );
+
+    expect(html).toContain("Actualizar radiografía por facultad");
   });
 });
