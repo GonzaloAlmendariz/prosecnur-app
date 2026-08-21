@@ -136,6 +136,15 @@ export function TasaEfectividadFacultadCard({
                 )}
               </p>
             )}
+            {/* El motor calculó OTRA tasa para esta facultad desde su marco y
+                no es la que dimensiona. Se declara: quien lee tiene que poder
+                ver que hay dos, y cuál manda. */}
+            {f.tasaMarco != null && (
+              <p className="cmv2-tasafac-otra" role="note">
+                Su marco de {fmtInt(f.nAulasMarco)} aulas rinde <b>{pctTasa(f.tasaMarco)}</b> según
+                el tamaño de cada una; el dimensionamiento usa {pctTasa(f.tasa)}.
+              </p>
+            )}
             {f.cuota != null && f.p25 != null && f.cupos != null ? (
               // El concepto intermedio que faltaba (Gonzalo: «no entiendo como
               // llegamos a esos titulares»): el aula tipica RINDE P25 × tasa

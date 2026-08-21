@@ -234,3 +234,18 @@
   background: color-mix(in srgb, var(--pulso-warn-bg) 35%, var(--pulso-surface));
   color: var(--pulso-text-soft);
 }
+
+/* Hay dos tasas para la misma facultad y sólo una dimensiona: se dice cuál es
+   la otra y de dónde sale, en voz baja pero sin esconderla (2026-08-21). */
+.cmv2-tasafac-otra {
+  grid-column: 1 / -1;
+  margin: 3px 0 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-tasafac-otra b {
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text-soft);
+}
