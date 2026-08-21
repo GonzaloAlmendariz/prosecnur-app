@@ -191,7 +191,13 @@ export function DefEstudioTab({
   ];
 
   return (
-    <div className="cmv2-did-stack">
+    <div
+      className="cmv2-did-stack"
+      // La raíz es COMÚN a las dos ramas de `primeraVez`, así que declararla
+      // acá cubre el hero de estreno y la vista con estudio ya definido.
+      data-qa-geometry-group="calc-muestra/def-estudio"
+      data-qa-geometry-contract="intrinsic"
+    >
       {primeraVez ? (
         <HeroPrimeraVez workspace={workspace} onWorkspace={onWorkspace} onNavigate={onNavigate} />
       ) : (
