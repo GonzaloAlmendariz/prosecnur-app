@@ -1,5 +1,7 @@
 # Checklist — el libro de agendación deja de calcar el Excel viejo
 
+**Quién usa este libro** (aclaración suya, y es el criterio que ordena todo lo demás): «el agendador solo ve el excel, no la app; la app se nutre del excel para alimentar la app». Dos personas, dos herramientas. Este libro es de quien agenda y de quien aplica — cada hoja que no se llena le quita sitio a las que sí, y **L7 sube de prioridad**: si el Excel es su única herramienta, no ver el teléfono mientras escribe es más grave.
+
 **Origen**: revisión de Gonzalo del 21/08/2026 sobre
 `Libro_de_agendacion_de_aulas.xlsx` generado desde el proyecto de trabajo.
 
@@ -14,7 +16,7 @@ cuando era sólo el punto de partida.
 | # | Indicación | Dónde vive | Estado |
 |---|---|---|---|
 | L1 | Quitar la hoja «Datos»: no debe haber forcejeo de tabla dinámica | `carga_aulas_libro_generar.R` | ☑ `354aec5c` |
-| L2 | Decidir qué pasa con «Resumen» — él nombra tres hojas (agendadas, aplicadas, control) y la portada no está entre ellas | `carga_aulas_libro_resumen.R` | ⛔ decisión suya |
+| L2 | «Se va resumen» | `carga_aulas_libro_generar.R` | ☑ commit siguiente a `354aec5c` |
 | L3 | La Base de control deja de calcar: fuera `70T`/`70P` | `api/R/carga_base_control.R`, `carga_aulas_libro_generar.R` | ☐ |
 | L3a | En su lugar: **% de efectivas esperado vs obtenido**, y si es superior o inferior | idem | ☐ |
 | L3b | **Alumnos elegibles esperados vs efectivos**, y si superior o inferior | idem | ☐ |
