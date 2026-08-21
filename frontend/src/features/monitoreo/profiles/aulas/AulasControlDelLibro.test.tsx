@@ -54,6 +54,30 @@ describe("AulasControlDelLibro · la tasa de efectividad", () => {
     expect(html).not.toContain("15 %");
   });
 
+  it("con cero evaluadas no hay porcentaje que enseñar", () => {
+    // El caso de un estudio que genero su libro y aun no lo lleno: 26 filas,
+    // ninguna evaluada. Un «0 %» ahi se lee como «ninguna llego», y lo cierto
+    // es que ninguna se ha mirado. La cifra existiria pero no mediria nada.
+    const html = titular(
+      { efectivas: 0, cumple_una: 0, no_efectivas: 0, indeterminadas: 26, solo_asistentes: 0, solo_poblacion: 0 },
+      26,
+    );
+    // Se mira el TITULAR y no el html entero: la matriz de umbrales de arriba
+    // dice «100 %» legitimamente, y un `not.toContain("0 %")` global lo caza
+    // por dentro. Un aserto demasiado ancho falla por donde no es.
+    const titularHtml = html.slice(html.indexOf('class="aulas-control-titular"'));
+    expect(titularHtml).toContain("efectivas de 0 evaluadas");
+    expect(titularHtml.slice(0, titularHtml.indexOf("</p>"))).not.toContain("%");
+
+    // El control: con evaluadas de verdad el porcentaje SI sale, para que este
+    // aserto no pase por no encontrar nunca un porcentaje.
+    const conDatos = titular(
+      { efectivas: 5, cumple_una: 3, no_efectivas: 2, indeterminadas: 0, solo_asistentes: 2, solo_poblacion: 1 },
+      10,
+    );
+    expect(conDatos).toContain("50 %");
+  });
+
   it("sin ninguna sin evaluar, el denominador vuelve a ser las filas y la palabra sobra", () => {
     // El control: con `indeterminadas` en cero las dos fórmulas coinciden, así
     // que este caso NO distingue cuál está implementada; está para fijar que la
