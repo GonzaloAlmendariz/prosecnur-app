@@ -350,3 +350,59 @@ test_that("la hoja de campo tambien repite el codigo al imprimir", {
   # Dos hojas con `Print_Titles`: la agenda y la de campo.
   expect_gte(length(regmatches(libro, gregexpr("Print_Titles", libro))[[1]]), 2L)
 })
+
+# --- El % de asistencia y el semaforo de la hoja de campo -------------------
+#
+# Tres defectos de contar columnas y de escala, los tres invisibles: la columna
+# se quedaba en blanco, el semaforo se pintaba sobre una columna ajena y los
+# numeros entraban como texto con un formato numerico encima que no se veia.
+
+.libro_con_pct <- function(pct) {
+  plan <- list(list(classroom_id = "A-01", operational_code = "CH 1",
+                    label = "Aula 101", course_name = "C1", faculty = "F",
+                    sample_role = "titular", wave = "M1", orden = 1,
+                    eligible_n = 30, enrolled_total = 34, expected_valid = 20))
+  f <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
+  aulas_libro_generar(plan, f, partes = list(list(
+    operational_code = "CH 1", intento = 1L, observed_students = 22,
+    attendance_pct = pct, application_status = "APLICADA")))
+  f
+}
+
+.estilos_de <- function(path) {
+  d <- withr::local_tempdir(.local_envir = parent.frame())
+  utils::unzip(path, exdir = d)
+  paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
+}
+
+test_that("un % de asistencia en 0-1 se ENSEÑA como porcentaje", {
+  st <- .estilos_de(.libro_con_pct(0.61))
+  expect_true(grepl('formatCode="0.0%"', st, fixed = TRUE))
+})
+
+test_that("un % que llega en 0-100 NO se formatea como porcentaje", {
+  # El control del anterior: con la misma cifra en la otra escala, el formato
+  # de porcentaje enseñaria 7650 %. La columna decide por si misma.
+  st <- .estilos_de(.libro_con_pct(76.5))
+  expect_false(grepl('formatCode="0.0%"', st, fixed = TRUE))
+  expect_true(grepl('formatCode="0.0"', st, fixed = TRUE))
+})
+
+test_that("el semaforo de la hoja de campo cae sobre STATUS DE APLICACIÓN", {
+  # `STATUS DE APLICACIÓN` es la columna 33 (AG) porque su bloque lleva los 20
+  # titulos de agenda en medio. Contando solo los titulos de campo daba la 13
+  # (M), que es `MEDIO DE CONTACTO`: la regla existia y no teñia nada.
+  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"), collapse = "")
+  expect_true(grepl('sqref="AG[0-9]', xml))
+  expect_false(grepl('sqref="M[0-9]', xml))
+})
+
+test_that("las cuentas de campo entran como numero, no como texto", {
+  # Un numFmt sobre una celda de texto no se ve. La celda de los asistentes
+  # (columna W, la 23) no puede ser una cadena.
+  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"), collapse = "")
+  celda <- regmatches(xml, regexpr('<c r="W3"[^>]*>', xml))
+  expect_length(celda, 1L)
+  expect_false(grepl('t="s"', celda, fixed = TRUE))
+  expect_false(grepl('t="str"', celda, fixed = TRUE))
+})

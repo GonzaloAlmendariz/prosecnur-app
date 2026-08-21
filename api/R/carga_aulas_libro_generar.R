@@ -119,8 +119,14 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   celdas <- c(
     .calg_num_txt(unidad$enrolled_total), .calg_num_txt(unidad$eligible_n),
     n("observed_students"),
-    # El porcentaje lo calcula la hoja del equipo con sus formulas.
-    "",
+    # **El % de asistencia VUELVE al libro.** Estaba en blanco con el comentario
+    # de que «lo calcula la hoja del equipo con sus formulas», pero el libro que
+    # generamos no llevaba formula ninguna: escribia texto vacio. Y el LECTOR si
+    # lo lee (`carga_aulas_aplicadas.R`), asi que reabrir un libro con partes
+    # perdia justo esa columna. No se deriva —medido sobre 152 partes: no sale
+    # de ninguno de los dos denominadores de la hoja— porque es el numero que
+    # pone el equipo.
+    n("attendance_pct"),
     n("refusals"), n("duplicates"), n("effective_surveys"),
     # Los nombres son los que produce el LECTOR (`carga_aulas_aplicadas.R`),
     # que es de donde vienen los partes en un estudio real. Los alias cubren a
@@ -134,6 +140,13 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   celdas[is.na(celdas)] <- ""
   celdas
 }
+
+# Los titulos de campo que son CUENTAS. El `% ASISTENCIA` no esta: es una
+# razon y su formato depende de la escala que traiga.
+.calg_campo_numeros <- function() c(
+  "MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN", "CANTIDAD DE ASISTENTES",
+  "CANTIDAD DE RECHAZOS", "DUPLICADOS (YA RESPONDIERON)", "CANTIDAD DE EFECTIVAS"
+)
 
 .calg_titulos_campo <- function() c(
   "MATRICULADOS TOTAL DTI", "MATRICULADOS POBLACIÓN", "CANTIDAD DE ASISTENTES",
@@ -304,6 +317,30 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
     }
   }
 
+  # Un `numFmt` sobre celdas de TEXTO no se ve: la columna llevaba «#,##0»
+  # declarado y seguia alineandose como cadena. El tipado es lo que hace que el
+  # formato signifique algo, igual que con las fechas.
+  .calg_tipar_numeros <- function(wb, hoja, datos, cols, desde) {
+    for (col in cols) {
+      if (col > ncol(datos)) next
+      crudo <- as.character(datos[[col]])[-seq_len(desde)]
+      num <- suppressWarnings(as.numeric(crudo))
+      if (!any(is.finite(num))) next
+      openxlsx::writeData(wb, hoja, num, startCol = col, startRow = desde + 1L,
+                          colNames = FALSE)
+    }
+  }
+
+  # La escala se decide por la COLUMNA ENTERA y con corte en 1.5, la misma
+  # regla que usa la capa de presentacion del frontend. El motor NO normaliza
+  # (decision declarada en `monitoreo_aulas_cruce_hojas.R`): el libro devuelve
+  # la cifra tal como la escribio el equipo y solo cambia como se ENSEÑA.
+  .calg_escala_pct <- function(valores) {
+    v <- suppressWarnings(as.numeric(valores))
+    v <- v[is.finite(v)]
+    if (!length(v) || any(v > 1.5)) "decimal" else "porcentaje"
+  }
+
   profundidad <- .calg_profundidad(unidades)
   listas <- list(
     `STATUS MUESTRA` = aulas_libro_status_muestra(profundidad),
@@ -337,12 +374,28 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
   # bloque, igual que las validaciones: si el bloque gana un campo, esto sigue
   # apuntando al estado y no a su vecina.
   filas_aplicadas <- nrow(hojas[["Aulas Aplicadas (Campo)"]]) - 2L
-  col_status_aplicacion <- 1L + which(.calg_titulos_campo() == "STATUS DE APLICACIÓN")
+
+  # **La hoja de campo tiene SU propio bloque y hay que contarlo entero.**
+  # `1 + which(titulos_campo == …)` daba la columna 13 —`MEDIO DE CONTACTO`—
+  # porque olvidaba los 20 titulos de agenda que van en medio: el semaforo de
+  # estado se estaba pintando sobre una columna de la agenda, donde ninguna
+  # regla casa, asi que no se veia ni de un lado ni del otro. Y cubria solo el
+  # primer intento. Mismo error de contar columnas a mano que ya habia costado
+  # las paginas sin aula; por eso ahora hay UNA funcion que lo calcula.
+  ancho_campo <- 1L + length(.calg_titulos_agenda()) + length(.calg_titulos_campo())
+  intentos_campo <- max(1L, floor(ncol(hojas[["Aulas Aplicadas (Campo)"]]) / ancho_campo))
+  col_campo <- function(titulo, b) {
+    (b - 1L) * ancho_campo + 1L + length(.calg_titulos_agenda()) +
+      which(.calg_titulos_campo() == titulo)
+  }
+  cols_campo <- function(titulos) unlist(lapply(titulos, function(t)
+    vapply(seq_len(intentos_campo), function(b) col_campo(t, b), integer(1))))
+
   semaforos <- list(
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda,
          cols = vapply(bloques, function(b) col_en_bloque("sample_status", b), integer(1))),
     list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
-         cols = col_status_aplicacion)
+         cols = cols_campo("STATUS DE APLICACIÓN"))
   )
 
   # Que columnas del bloque son numeros y cuales fechas. Por nombre de campo,
@@ -353,11 +406,24 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "fecha",
          cols = cols_de(c("contact_date", "scheduled_date"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "numero",
-         cols = cols_de(c("enrolled_total", "eligible_n", "contact_attempts")))
+         cols = cols_de(c("enrolled_total", "eligible_n", "contact_attempts"))),
+    list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
+         tipo = "numero", cols = cols_campo(.calg_campo_numeros())),
+    # El tipo de esta columna lo decide la escala de lo que llego, no una
+    # preferencia: en 0-1 se enseña como porcentaje, en 0-100 como decimal.
+    list(hoja = "Aulas Aplicadas (Campo)", desde = 2L, filas = max(0L, filas_aplicadas),
+         tipo = .calg_escala_pct(unlist(lapply(cols_campo("% ASISTENCIA"), function(col)
+           as.character(hojas[["Aulas Aplicadas (Campo)"]][[col]])[-(1:2)]))),
+         cols = cols_campo("% ASISTENCIA"))
   )
 
   .calg_tipar_fechas(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
                      cols_de(c("contact_date", "scheduled_date")), desde = 1L)
+  .calg_tipar_numeros(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
+                      cols_de(c("enrolled_total", "eligible_n", "contact_attempts")),
+                      desde = 1L)
+  .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
+                      cols_campo(c(.calg_campo_numeros(), "% ASISTENCIA")), desde = 2L)
 
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
@@ -394,14 +460,10 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
       `Aulas Aplicadas (Campo)` = 1L + which(.calg_titulos_agenda() == "CURSO-HORARIO")
     ),
     # Las bandas de grupo de la hoja de campo: una por intento.
-    combinar = local({
-      ancho_bloque <- 1L + length(.calg_titulos_agenda()) + length(.calg_titulos_campo())
-      n_bloques <- max(1L, floor(ncol(hojas[["Aulas Aplicadas (Campo)"]]) / ancho_bloque))
-      lapply(seq_len(n_bloques), function(b) list(
-        hoja = "Aulas Aplicadas (Campo)", fila = 1L,
-        cols = seq((b - 1L) * ancho_bloque + 1L, b * ancho_bloque)
-      ))
-    })
+    combinar = lapply(seq_len(intentos_campo), function(b) list(
+      hoja = "Aulas Aplicadas (Campo)", fila = 1L,
+      cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
+    ))
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path

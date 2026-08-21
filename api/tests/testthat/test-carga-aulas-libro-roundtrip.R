@@ -36,11 +36,17 @@
 .rt_partes <- function() list(
   list(operational_code = "CH 1", intento = 1L, observed_students = 22,
        refusals = 1, duplicates = 1, effective_surveys = 20,
-       applied_by = "Equipo A", application_status = "APLICADA"),
+       applied_by = "Equipo A", application_status = "APLICADA",
+       # INCOHERENTE a proposito: 22 de 30 elegibles serian 0.733 y de 34
+       # matriculados 0.647. Con un valor que no sale de ningun denominador de
+       # la hoja, un generador que lo DERIVE en vez de devolverlo se cae.
+       attendance_pct = 0.61),
   # Una reserva activada se aplica igual que un titular.
   list(operational_code = "R 4.1", intento = 1L, observed_students = 12,
        refusals = 1, duplicates = 0, effective_surveys = 9,
-       applied_by = "Equipo B", application_status = "APLICADA")
+       applied_by = "Equipo B", application_status = "APLICADA",
+       # Distinto del otro: una constante escrita por error tampoco pasa.
+       attendance_pct = 0.38)
 )
 
 .rt_vuelta <- function(plan = .rt_plan(), partes = .rt_partes()) {
@@ -202,4 +208,18 @@ test_that("las fechas se escriben como fechas y siguen releyendose", {
   expect_true("2026-08-11" %in% fechas)
   expect_true("2026-08-09" %in% fechas)
   expect_false(any(grepl("^4[0-9]{4}$", fechas)))
+})
+
+test_that("el % de asistencia que puso el equipo vuelve al plan", {
+  # Era la unica columna del parte que el generador dejaba en blanco, con un
+  # comentario que decia que «la calcula la hoja del equipo con sus formulas»
+  # —y el libro no llevaba formula ninguna—. El lector SI la leia, asi que
+  # regenerar el libro de un estudio en marcha borraba el dato.
+  v <- .rt_vuelta()
+  pct <- setNames(
+    vapply(v$partes, function(p) as.numeric(p$attendance_pct %||% NA), numeric(1)),
+    .rt_campo(v$partes, "operational_code")
+  )
+  expect_equal(unname(pct[["CH 1"]]), 0.61)
+  expect_equal(unname(pct[["R 4.1"]]), 0.38)
 })
