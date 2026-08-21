@@ -332,6 +332,11 @@ hoja_activa_de <- function(path) {
 
 # Los colores de las barras de datos de una hoja.
 #
+# **Y si, LibreOffice las renderiza.** Se declaro lo contrario al añadir la
+# primera —«no se puede verificar en el PDF, solo en el XML»— y era falso: se
+# ven en la hoja de indicadores, y fue mirandolas ahi como se descubrio que
+# tapaban el numero. Una limitacion que no se ha intentado no es una limitacion.
+#
 # Van dentro del `<dataBar>` de la regla, no en `dxfs`: una barra no es un
 # formato de celda. Hace falta para comprobar que NO tapan el numero — con el
 # navy del libro, la cifra quedaba en negro sobre azul oscuro.
