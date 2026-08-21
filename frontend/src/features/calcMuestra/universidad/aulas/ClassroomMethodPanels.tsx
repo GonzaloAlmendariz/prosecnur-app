@@ -149,8 +149,11 @@ function ProfileBalanceRow({ row }: { row: CalcMuestraAulasProfileDistribution }
         <span>marco {fmtPct(frame)} · muestra {fmtPct(selected)}</span>
         <em>{fmtPct(gap)} de brecha{hasTolerance ? ` · tolerancia ±${fmtPct(tolerance)}` : ""}</em>
       </div>
+      {/* Barras PAREADAS (2026-08-20): las dos superpuestas desde cero se
+          leian como un grafico «partido a la mitad» (Gonzalo). Marco arriba
+          en tinta tenue, muestra debajo en acento — el idioma de la casa. */}
       <div
-        className="cmv2-profile-track"
+        className="cmv2-profile-track cmv2-profile-par"
         aria-label={`${row.category}: marco ${fmtPct(frame)}, seleccionado ${fmtPct(selected)}${hasTolerance ? `, tolerancia ±${fmtPct(tolerance)} (${within ? "dentro" : "fuera"} de banda)` : ""}`}
       >
         {hasTolerance && (
@@ -160,8 +163,12 @@ function ProfileBalanceRow({ row }: { row: CalcMuestraAulasProfileDistribution }
             style={{ left: `${bandStart * 100}%`, width: `${Math.max(1.5, bandWidth * 100)}%` }}
           />
         )}
-        <i className="is-frame" style={{ width: `${frame * 100}%` }} />
-        <i className="is-selected" style={{ width: `${selected * 100}%` }} />
+        <span className="cmv2-profile-linea">
+          <b className="is-frame" style={{ width: `${frame * 100}%` }} />
+        </span>
+        <span className="cmv2-profile-linea">
+          <b className="is-selected" style={{ width: `${selected * 100}%` }} />
+        </span>
       </div>
     </div>
   );
