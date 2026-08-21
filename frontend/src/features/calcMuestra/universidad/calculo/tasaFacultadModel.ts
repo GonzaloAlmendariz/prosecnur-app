@@ -36,6 +36,13 @@ export type FilaTasaFacultad = {
   cupos: number | null;
   /** ceil(cuota/(p25×tasa)) reproducido en el front === cupos del motor. */
   cuentaCuadra: boolean | null;
+  /**
+   * Los dos factores de la tasa (tasa = mix × residual), para poder mostrar de
+   * dónde sale. Ambos null cuando el motor no los publica o cuando no
+   * reconstruyen la tasa vigente — nunca se enseña una cuenta que no cuadra.
+   */
+  mix: number | null;
+  residual: number | null;
 };
 
 const num = (v: unknown): number | null => {
@@ -66,9 +73,17 @@ export function tasasFacultad(
       // cuenta lo delataría.
       const tasaVigente = dim?.tau != null && dim.tau > 0 ? dim.tau : t.tasa;
       const cuposLocal = dim ? Math.ceil(dim.cuota / (dim.p25 * tasaVigente)) : null;
+      // El desglose sólo se ofrece si reconstruye la tasa QUE SE VA A MOSTRAR.
+      // Cuando manda la del estrato y difiere de la del marco, los factores del
+      // marco explicarían otro número: mejor sin desglose que con uno que miente.
+      const desglosaLaVigente =
+        t.rendimiento_mix != null && t.factor_residual != null &&
+        Math.abs(t.rendimiento_mix * t.factor_residual - tasaVigente) <= 0.0005;
       return {
         facultad: t.facultad,
         tasa: tasaVigente,
+        mix: desglosaLaVigente ? t.rendimiento_mix : null,
+        residual: desglosaLaVigente ? t.factor_residual : null,
         conResidual: t.con_residual,
         k: t.facultad_k,
         nAulasMarco: t.n_aulas,

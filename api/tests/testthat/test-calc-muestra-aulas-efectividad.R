@@ -225,6 +225,46 @@ test_that("E3: las tasas por facultad se derivan del frame anotado (un dueño)",
   expect_length(calc_muestra_aulas_tasas_facultad(af), 0L)
 })
 
+test_that("E3: la tasa se publica DESCOMPUESTA — mix de tamanos x residual", {
+  # Gonzalo pidio que la pantalla pueda ensenar de donde sale cada tasa. Para
+  # eso el motor publica los dos factores, no solo el producto: el mix (que
+  # rinde el aula tipica por su tamano) y el residual (lo que la facultad
+  # rindio en el historico mas alla de su mix).
+  cal <- .cm_efectividad_calibracion(list(efectividad = list(
+    fuente = "historico", periodo = "2025", tau_base = 1,
+    rendimiento_tramos = list(
+      list(hasta = 15, tasa = 0.809), list(hasta = 25, tasa = 0.642),
+      list(hasta = 35, tasa = 0.566), list(hasta = 50, tasa = 0.500),
+      list(tasa = 0.409)
+    ),
+    por_facultad = list(list(facultad = "DERECHO", tau = 1.115, k = 16, suficiencia = "delgada"))
+  )))
+  af <- data.frame(
+    classroom_id = c("A", "B", "C"),
+    faculty = c("DERECHO", "DERECHO", "EDUCACION"),
+    eligible_n = c(20, 40, 10),
+    teacher_type = "DOCENTE CONTRATADO - CONTRATADO",
+    stringsAsFactors = FALSE
+  )
+  tasas <- calc_muestra_aulas_tasas_facultad(.cm_aulas_efectividad_anotar(af, calibracion = cal))
+  der <- tasas[[which(vapply(tasas, function(x) x$facultad, character(1)) == "DERECHO")]]
+  edu <- tasas[[which(vapply(tasas, function(x) x$facultad, character(1)) == "EDUCACION")]]
+
+  # El mix de DERECHO es su R ponderado por elegibles, SIN el residual:
+  # (20x0.642 + 40x0.500)/60 = 0.5473. Y su residual es el 1.115 del historico.
+  expect_equal(der$rendimiento_mix, round((20 * 0.642 + 40 * 0.500) / 60, 6))
+  expect_equal(der$factor_residual, 1.115)
+  # La descomposicion tiene que reconstruir la tasa publicada: si no cuadra,
+  # la pantalla ensenaria una cuenta que no da el resultado que muestra.
+  expect_equal(round(der$rendimiento_mix * der$factor_residual, 4), der$tasa)
+
+  # EDUCACION no tiene residual propio: su factor es exactamente 1 y su tasa
+  # ES su mix — que es justo lo que la fila debe poder decir.
+  expect_equal(edu$factor_residual, 1)
+  expect_equal(edu$rendimiento_mix, edu$tasa)
+  expect_false(edu$con_residual)
+})
+
 test_that("E3: construir publica tasas_efectividad_facultad en el frame", {
   base <- data.frame(
     student_id = paste0("s", 1:40),
