@@ -73,14 +73,14 @@ export function DistribucionElegiblesCard({
             // La aritmética viva del motor: la fórmula deja de ser abstracta.
             nota: dim
               ? `cuota ${fmtInt(dim.cuota)} ÷ (P25 ${fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} titulares`
-              : `${fmtInt(f.nAulas)} aulas en el marco`,
+              : `${fmtInt(f.nAulas)} ${f.nAulas === 1 ? "aula" : "aulas"} en el marco`,
             tono: "efectiva",
           };
           return (
           <li key={f.clave} className="cmv2-distelig-fila">
             <span className="cmv2-distelig-nombre">
               {f.facultad}
-              <small>{fmtInt(f.nAulas)} aulas</small>
+              <small>{fmtInt(f.nAulas)} {f.nAulas === 1 ? "aula" : "aulas"}</small>
             </span>
             <span className="cmv2-distelig-carril" role="img" {...tip(datosTip)}
               aria-label={tipAria(datosTip)}>
