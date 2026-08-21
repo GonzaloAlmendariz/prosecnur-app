@@ -65,6 +65,21 @@ export function TasaEfectividadFacultadCard({
         </span>
       </header>
 
+      {/* C5 · Sin esto la tabla enseña porcentajes sin decir de dónde salen, y
+          el contraste entre chips se malinterpreta como «unas usan el
+          histórico y otras no». */}
+      <p className="cmv2-tasafac-regla" role="note">
+        <b>Todas las facultades usan el estudio anterior; seis lo usan dos veces.</b>{" "}
+        La <b>función de efectividad según tamaño</b> (cuánto rinde un aula de 12, de 30 o
+        de 50 alumnos) se estima sobre el histórico completo, con las aulas de todas las
+        facultades juntas, y se aplica a la <b>composición por tamaño</b> de cada una (qué
+        mezcla de aulas grandes y chicas tiene hoy en el marco). Eso da su efectividad
+        esperada. Cuando una facultad aplicó 12 aulas o más el año pasado se le estima
+        además su <b>razón observado/esperado</b> (si rindió por encima o por debajo de lo
+        que su tamaño predecía) y se multiplica. Con menos de 12 esa razón sería ruido y se
+        fija en 1, el valor neutro; <b>nunca se sustituye por una tasa general</b>.
+      </p>
+
       {faltaCalcular && (
         <p className="cmv2-tasafac-falta" role="note">
           <b>Falta calcular la muestra.</b> La cuota de cada facultad es su parte de la
@@ -92,9 +107,24 @@ export function TasaEfectividadFacultadCard({
                   sobre {fmtInt(f.nAulasMarco)} {f.nAulasMarco === 1 ? "aula" : "aulas"}
                 </span>
               )}
+              {/*
+                * Los rótulos contrastaban «medida en el histórico» contra
+                * «derivada de su mix», y eso se leía como que la segunda NO
+                * usaba el histórico. Sí lo usa: la curva de cuánto rinde un
+                * aula según su tamaño se mide sobre el estudio anterior
+                * ENTERO. Lo que separa a los dos casos es si además hay
+                * suficientes aulas propias (k ≥ 12) para estimarle un factor
+                * de facultad. Gonzalo, 2026-08-21, tras leer la tarjeta:
+                * «sigo sin entender qué pasa cuando una facultad tuvo menos
+                * de doce aulas aplicadas el año pasado».
+                */}
               {f.conResidual ? (
-                <span className="cmv2-tasafac-chip" data-origen="historico">
-                  medida en el histórico · k={f.k != null ? fmtInt(f.k) : "—"}
+                <span
+                  className="cmv2-tasafac-chip"
+                  data-origen="historico"
+                  title={`Su composición por tamaño (la mezcla de aulas que tiene en el marco) y además su razón observado/esperado: en 2025 aplicó ${f.k != null ? fmtInt(f.k) : "—"} aulas, suficientes para medir si rinde por encima o por debajo de lo que su tamaño predice.`}
+                >
+                  composición × razón O/E 2025 · k={f.k != null ? fmtInt(f.k) : "—"}
                 </span>
               ) : origen === "general" ? (
                 /* Sin histórico la tasa no se deriva de nada: es la de
@@ -108,8 +138,12 @@ export function TasaEfectividadFacultadCard({
                   tasa de referencia, sin datos propios
                 </span>
               ) : (
-                <span className="cmv2-tasafac-chip" data-origen="mix">
-                  derivada de su mix de tamaños
+                <span
+                  className="cmv2-tasafac-chip"
+                  data-origen="mix"
+                  title="Aplicó menos de 12 aulas en 2025, así que no se le estima una razón observado/esperado propia (sobre tan pocos casos sería ruido) y se fija en 1: rinde lo que su tamaño predice. La función de efectividad según tamaño sí sale del histórico; lo propio de esta facultad es su composición por tamaño."
+                >
+                  composición por tamaño · sin razón propia
                 </span>
               )}
             </div>
