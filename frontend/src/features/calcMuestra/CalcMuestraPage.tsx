@@ -2690,6 +2690,7 @@ export default function CalcMuestraPage() {
           {desk === "opinion_universitaria" && (
             <UniversidadDesk
               estudio={estudio}
+              onPatchEstudio={patchEstudio}
               workspace={workspace}
               aulasState={aulasState}
               motorPideRefirmarAlumnosCh={refirmaAlumnosCh}

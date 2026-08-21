@@ -38,20 +38,20 @@ test_that("elegibles <= 0 o no numericos se descartan, nunca dividen", {
   expect_equal(taus$derecho$tau, 0.5)
 })
 
-test_that("el dimensionador usa el propio cuando existe y DECLARA el fallback", {
+test_that("una facultad sin respaldo suficiente no aparece en el mapa", {
+  # Sustituye al test del retirado `.cm_tau_para_dimensionar`: lo que importa no
+  # es a qué tasa «cae» (no cae a ninguna, conserva su composición), sino que su
+  # razón propia NO se publique cuando el respaldo no alcanza.
   aplicados <- lapply(1:12, function(i) .tf_esc("aplicado", 12, 20))
   taus <- .cm_tau_por_facultad(list(.tf_cadena("DERECHO", aplicados)))
-  propio <- .cm_tau_para_dimensionar("DERECHO", taus, 0.53)
-  expect_identical(propio$fuente, "propio_2025")
-  expect_equal(propio$tau, 0.6)
-  global <- .cm_tau_para_dimensionar("ARQUITECTURA Y URBANISMO", taus, 0.53)
-  expect_identical(global$fuente, "global")
-  expect_equal(global$tau, 0.53)
+  expect_equal(taus[["derecho"]]$tau, 0.6)
+  expect_null(taus[["arquitectura_y_urbanismo"]])
 })
 
 test_that("la clave de facultad tolera tildes y variantes (misma clave que criterios)", {
   aplicados <- lapply(1:12, function(i) .tf_esc("aplicado", 10, 20))
   taus <- .cm_tau_por_facultad(list(.tf_cadena("PSICOLOGÍA", aplicados)))
   expect_named(taus, "psicologia")
-  expect_identical(.cm_tau_para_dimensionar("psicología", taus, 0.53)$fuente, "propio_2025")
+  # La clave es la MISMA que usa el resto del motor para cruzar por facultad.
+  expect_identical(names(taus), .cm_criterios_fac_key("psicología"))
 })

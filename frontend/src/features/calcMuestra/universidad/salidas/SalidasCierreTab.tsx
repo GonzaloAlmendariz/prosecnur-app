@@ -13,7 +13,7 @@
  * (shared/salud.ts) y distingue "diseño cerrado" / "con observaciones" /
  * "con riesgos"; las observaciones se listan al pie de la ficha.
  */
-import { AlertTriangle, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileCheck2, ShieldAlert } from "lucide-react";
 import type { CalcMuestraWorkspace } from "../../../../api/client";
 import { calcEPreview } from "../../didactica/motorPreview";
 import { fmtInt, fmtPct, fmtRatio, safeNumber } from "../../sharedCore";
@@ -29,9 +29,16 @@ import { profundidadReserva } from "../aulas/profundidadReservaModel";
 export function SalidasCierreTab({
   model,
   workspace,
+  modoTrabajo = null,
+  onValidarDiseno,
 }: {
   model: ClassroomLabModel;
   workspace: CalcMuestraWorkspace;
+  /** `estimacion_preliminar` | `diseno_validado`. Decide con qué plantilla sale
+   *  el reporte y, por tanto, cómo se titula ante el cliente. */
+  modoTrabajo?: string | null;
+  /** Sin esto el recorrido universitario no tiene forma de cerrar el diseño. */
+  onValidarDiseno?: () => void;
 }) {
   const {
     aulasScenario,
@@ -88,6 +95,9 @@ export function SalidasCierreTab({
   // muestra esta ficha. La procedencia de cada cifra no cambia; lo que cambia
   // es si el conjunto se puede defender tal cual.
   const observaciones = saludDesdeModel(model);
+  const validado = modoTrabajo === "diseno_validado";
+  // No se cierra un diseño que todavía no existe: exige resultado acreditado.
+  const puedeValidar = Boolean(selectedResultReady);
   const hayRiesgos = observaciones.some((obs) => obs.nivel === "danger");
   const disenoCompleto = calculationReady && selectionReady && replacementReady;
   const estadoFicha = !disenoCompleto
@@ -239,6 +249,62 @@ export function SalidasCierreTab({
                 : "pendiente"}
           </span>
           <em>Con estos datos el sorteo se reconstruye exacto; el detalle completo vive en Selección → Sustento técnico.</em>
+        </div>
+
+        {/*
+          * El estudio nacía en `estimacion_preliminar` y el recorrido
+          * universitario NO tenía dónde salir de ahí: la única acción vivía en
+          * la sección «resultados» del recorrido general, a la que este modo
+          * nunca llega. Efecto medido el 2026-08-21 sobre HSVG2026, con sus 190
+          * aulas ya cerradas: su reporte se titulaba «Propuesta metodológica
+          * preliminar» y usaba la plantilla preliminar, sin salida posible.
+          */}
+        <div className="cmv2-sal-validar" data-validado={validado || undefined}>
+          {validado ? (
+            <>
+              <CheckCircle2 size={15} aria-hidden="true" />
+              <div>
+                <strong>Diseño validado</strong>
+                <span>
+                  El reporte sale como diseño metodológico validado, con la ficha
+                  y las tablas por estrato. Sigue siendo editable: recalcular no
+                  revierte este estado.
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <FileCheck2 size={15} aria-hidden="true" />
+              <div>
+                <strong>El diseño figura como propuesta preliminar</strong>
+                <span>
+                  {puedeValidar
+                    ? "Mientras siga así, el reporte se titula «Propuesta metodológica preliminar». Márcalo validado cuando el diseño esté cerrado para campo."
+                    : "Cuando el cálculo y la selección estén acreditados podrás marcarlo como validado, y el reporte dejará de titularse preliminar."}
+                </span>
+                {observaciones.length > 0 && puedeValidar ? (
+                  <em>
+                    Quedan {fmtInt(observaciones.length)}{" "}
+                    {observaciones.length === 1 ? "observación" : "observaciones"} de salud abajo:
+                    validarlo no las resuelve ni las oculta.
+                  </em>
+                ) : null}
+              </div>
+              {onValidarDiseno && (
+                <button
+                  type="button"
+                  className="cmv2-ghost"
+                  onClick={onValidarDiseno}
+                  disabled={!puedeValidar}
+                  title={puedeValidar
+                    ? "Marca el diseño como validado: el reporte pasa a la plantilla de diseño validado."
+                    : "Falta acreditar el cálculo y la selección vigentes."}
+                >
+                  Marcar diseño validado
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         {observaciones.length > 0 && (

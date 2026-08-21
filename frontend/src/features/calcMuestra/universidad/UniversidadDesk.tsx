@@ -128,6 +128,7 @@ export function UniversidadDesk({
   paqueteEnCurso,
   paquetePasos,
   onNavigate,
+  onPatchEstudio,
 }: {
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
@@ -173,6 +174,10 @@ export function UniversidadDesk({
   calculando: boolean;
   /** Navegación del Recorrido: cambia de sección del rail y/o de pestaña local. */
   onNavigate: (section: string, tab?: string) => void;
+  /** Cierra el diseño (`modo_trabajo`). Sin esto la pestaña Cierre no puede
+   *  sacar al estudio de «propuesta preliminar» y su reporte se titula así
+   *  para siempre. */
+  onPatchEstudio?: (patch: Partial<CalcMuestraEstudio>) => void;
 }) {
   const baseWorkspace = useMemo(
     () => workspace.frame_mode === "opinion_universitaria"
@@ -853,7 +858,14 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("salidas-guia") && <div id="cmv2-local-salidas-guia">
-              <SalidasCierreTab model={labModel} workspace={syncedWorkspace} />
+              <SalidasCierreTab
+                model={labModel}
+                workspace={syncedWorkspace}
+                modoTrabajo={estudio.modo_trabajo ?? null}
+                onValidarDiseno={
+                  onPatchEstudio ? () => onPatchEstudio({ modo_trabajo: "diseno_validado" }) : undefined
+                }
+              />
             </div>}
             {showLocalTab("salidas-resultados") && <div id="cmv2-local-salidas-resultados">
               <SalidasResultadosTab

@@ -82,14 +82,18 @@
   out
 }
 
-#' El τ que el dimensionamiento debe usar para UNA facultad: el propio si es
-#' publicable, el global si no — con la fuente DECLARADA (VARA 0: el cambio
-#' de vara se registra por fila, nunca se aplica en silencio).
-.cm_tau_para_dimensionar <- function(facultad, taus_propios, tau_global) {
-  clave <- .cm_criterios_fac_key(facultad %||% "")
-  propio <- taus_propios[[clave]] %||% NULL
-  if (is.list(propio) && is.finite(propio$tau %||% NA_real_)) {
-    return(list(tau = propio$tau, fuente = "propio_2025", k = propio$k))
-  }
-  list(tau = tau_global, fuente = "global", k = 0L)
-}
+# `.cm_tau_para_dimensionar()` vivía acá y se retiró el 2026-08-21. Resolvía
+# «usa el τ propio de la facultad si es publicable, el global si no», y NUNCA
+# tuvo consumidor en producción: sólo la llamaban sus propios tests.
+#
+# No se reconecta, se retira, porque describe un dimensionamiento que NO es el
+# que hace el motor y que además sería peor. El motor no elige entre dos tasas:
+# compone una sola por estandarización, τ = composición por tamaño × razón
+# observado/esperado, y con k < 12 la razón se fija en 1 (la facultad conserva
+# su composición, que es propia). El τ global sólo entra cuando el estudio
+# ENTERO no declara histórico, y entonces rige para las quince.
+#
+# La firma retirada decía lo contrario —que una facultad con pocas aulas cae a
+# una tasa general— y ése es exactamente el malentendido que Gonzalo reportó al
+# leer la pantalla ese día. Un camino descartado que sigue escrito se lee como
+# el camino vigente.
