@@ -2091,20 +2091,37 @@ export default function CalcMuestraPage() {
       try {
         const snap = await apiJobStatus(jobId);
         if (snap.status === "done" || snap.status === "error" || snap.status === "cancelled") {
-          // Ya terminó mientras no mirábamos: basta con recoger su resultado.
+          // Terminó mientras no mirábamos. Si acabó bien, se recoge su
+          // resultado y ya; si quedó cancelado o falló, se DICE — enterarse de
+          // que el trabajo murió es justamente lo que uno viene a buscar al
+          // volver, y callarlo deja la impresión de que nunca se lanzó.
           olvidarJobEnCurso(sid, kind);
           const state = await apiCalcMuestraState();
           setAulasState(state.aulas ?? null);
+          if (snap.status === "cancelled") {
+            setMsg({ kind: "info", text: `${etiqueta}: el proceso quedó cancelado. No se aplicaron cambios; vuelve a lanzarlo cuando quieras.` });
+          } else if (snap.status === "error") {
+            setMsg({ kind: "error", text: `${etiqueta}: ${cmJobErrorText(snap)}` });
+          }
           return;
         }
         await esperarJobAulas(jobId, etiqueta, kind);
         const state = await apiCalcMuestraState();
         setAulasState(state.aulas ?? null);
         setMsg({ kind: "info", text: `${etiqueta}: terminado.` });
-      } catch {
-        // El trabajo pudo morir con el backend: se olvida y la pantalla vuelve
-        // a su estado normal, sin inventar un resultado.
+      } catch (e) {
+        // Se olvida el trabajo, pero NO en silencio: al retomar puede aparecer
+        // justo lo que hay que contar —que se canceló, que el worker falló, o
+        // que el polling se rindió a los 30 minutos y pidió cancelarlo—. La
+        // primera versión de esta recuperación se comía ese mensaje y la
+        // pantalla se quedaba diciendo «Comparando…» sobre un trabajo muerto.
         olvidarJobEnCurso(sid, kind);
+        setBusy(null);
+        setMsg(
+          e instanceof JobCancelledError
+            ? { kind: "info", text: `${etiqueta}: el proceso quedó cancelado. No se aplicaron cambios; vuelve a lanzarlo cuando quieras.` }
+            : { kind: "error", text: e instanceof Error ? e.message : `${etiqueta}: el proceso terminó sin resultado.` },
+        );
       }
     })();
     // Sólo al montar: es una recuperación, no una suscripción.
