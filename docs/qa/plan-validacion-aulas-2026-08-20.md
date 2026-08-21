@@ -323,7 +323,18 @@ extensible a todos los monitoreos.
   - **Tercer ítem seguido que este plan describía mal** —con T16 y T22—. El plan
     se escribió la mañana del 2026-08-20 y describe el estado de entonces:
     **comprobar si ya está hecho antes de construirlo**.
-- **T24** — El reemplazo, alcanzable sin entrar al formulario de un aula.
+- **T24 ◐ (2026-08-20, 3 tests)** — El reemplazo alcanzable. **Medido: la acción
+  existe sólo dentro del formulario de un aula** en el registro de campo
+  (`apiMonitoreoAulasActivarReemplazo`, botón «Activar reemplazo», visible sólo
+  si el estado lo permite —una aplicada no se reemplaza—).
+  - **Hecho**: el registro **se abre por dirección**. Llegar con
+    `?foco=aula:CH 52` deja esa aula seleccionada y su formulario puesto;
+    verificado en pantalla. Antes la selección vivía en un `useState` suelto que
+    la URL no podía alcanzar —contra la regla de la casa— y había que buscar el
+    aula entre 196 filas.
+  - **Falta**: el enlace desde la ficha («registrar cómo fue en campo»). La
+    ficha vive en una función de render que no puede cambiar de pestaña sin
+    tocar su firma; se quitó a medio hacer en vez de dejarlo colgado.
 - **T25** — Pasada de forma sobre Validación entera, con el gate visual en los
   dos viewports.
 
