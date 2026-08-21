@@ -5,6 +5,8 @@ import type {
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { AvisoModulo } from "../shared/AvisoModulo";
+import { fmtInt } from "../../sharedCore";
+import { avisoDuracionComparacion } from "./duracionComparacion";
 import { normalizeAulasSelectorEngine, normalizeUniversityAulasConfig } from "../shared/study";
 import { DescuentoRepetidosControl } from "./DescuentoRepetidosControl";
 import {
@@ -78,9 +80,28 @@ export function AulasMetodoTab({
     configuredMethodLabel: engineOption.label,
   });
 
+  // Cuánto va a tardar esto, ANTES de pulsar. Medido: con el reparto real por
+  // 17 facultades una sola corrida del método balanceado pasa de ocho minutos
+  // sobre 3.142 aulas, contra 57 s con objetivo global. Descubrirlo por el
+  // contador, cuando ya arrancó, no es aviso: es sorpresa.
+  const aulasDelMarco = model.frameRows.length;
+  const estratosConCuota = model.aulasPorEstrato.length;
+  const duracion = avisoDuracionComparacion({ aulas: aulasDelMarco, facultades: estratosConCuota });
+
   return (
     <div className="cmv2-aulas-stack">
       <ClassroomMethodDecisionHero decision={decision} />
+
+      {!hayComparacion && duracion.avisar && (
+        <AvisoModulo tone="info" title="Comparar los cuatro métodos va a tardar" compact>
+          <p>
+            Con {fmtInt(aulasDelMarco)} cursos-horario repartidos en {fmtInt(estratosConCuota)} facultades, la comparación puede llevar horas: balancear
+            respetando la cuota de cada facultad a la vez es mucho más caro que una cuota global.
+            Nada la interrumpe y el progreso se conserva si navegas o recargas — pero cuenta con ese
+            tiempo antes de lanzarla.
+          </p>
+        </AvisoModulo>
+      )}
 
       {hayComparacion && (
         <ClassroomLabCommandBar
