@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tasasFacultad } from "../tasaFacultadModel";
+import { tasasFacultad, origenTasaFacultades } from "../tasaFacultadModel";
 
 const RAW = [
   { facultad: "ARQUITECTURA Y URBANISMO", tasa: 0.5489, n_aulas: 80, elegibles: 2468, con_residual: false, facultad_k: null },
@@ -51,5 +51,39 @@ describe("tasasFacultad", () => {
     expect(tasasFacultad(undefined, ESTRATOS)).toEqual([]);
     expect(tasasFacultad("x", ESTRATOS)).toEqual([]);
     expect(tasasFacultad([{ facultad: "", tasa: 0.5 }], ESTRATOS)).toEqual([]);
+  });
+});
+
+describe("origen de la tasa cuando el estudio no trae datos propios", () => {
+  /**
+   * Medido en el recorrido de un usuario nuevo: sin histórico cargado, TODAS
+   * las facultades mostraban «53,0 %» con el chip «derivada de su mix de
+   * tamaños». No está derivada de nada: es la tasa de referencia heredada del
+   * preset, plana. La etiqueta prometía un cálculo propio del estudio que no
+   * ocurrió.
+   */
+  it("marca «general» cuando ninguna tiene residual y todas comparten la misma tasa", () => {
+    const filas = [
+      { facultad: "A", tasa: 0.53, conResidual: false },
+      { facultad: "B", tasa: 0.53, conResidual: false },
+      { facultad: "C", tasa: 0.53, conResidual: false },
+    ];
+    expect(origenTasaFacultades(filas)).toBe("general");
+  });
+
+  it("marca «mix» cuando las tasas difieren entre facultades", () => {
+    const filas = [
+      { facultad: "A", tasa: 0.61, conResidual: false },
+      { facultad: "B", tasa: 0.48, conResidual: false },
+    ];
+    expect(origenTasaFacultades(filas)).toBe("mix");
+  });
+
+  it("marca «historico» en cuanto alguna trae residual medido", () => {
+    const filas = [
+      { facultad: "A", tasa: 0.53, conResidual: true },
+      { facultad: "B", tasa: 0.53, conResidual: false },
+    ];
+    expect(origenTasaFacultades(filas)).toBe("historico");
   });
 });
