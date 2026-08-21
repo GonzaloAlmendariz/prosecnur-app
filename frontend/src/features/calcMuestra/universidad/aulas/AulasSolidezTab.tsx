@@ -70,8 +70,15 @@ export function AulasSolidezTab({
   // sustento no existe todavía y se dice por qué.
   if (!selectionReady) {
     return (
-      <div className="cmv2-aulas-stack">
-        <section className="cmv2-panel cmv2-aulas-panel">
+      <div
+        className="cmv2-aulas-stack"
+        // El vacío también es superficie y también se audita: una pestaña que
+        // pasa la mitad de su vida en este estado no puede quedar fuera del
+        // gate sólo porque todavía no tiene datos.
+        data-qa-geometry-group="calc-muestra/aulas-solidez"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <section className="cmv2-panel cmv2-aulas-panel" data-qa-geometry-member>
           <div className="cmv2-subhead">
             <strong>Solidez de la selección</strong>
           </div>
@@ -87,7 +94,12 @@ export function AulasSolidezTab({
   }
 
   return (
-    <div className="cmv2-aulas-stack">
+    <div
+      className="cmv2-aulas-stack"
+      // Declarada para que el gate visual pueda auditarla.
+      data-qa-geometry-group="calc-muestra/aulas-solidez"
+      data-qa-geometry-contract="intrinsic"
+    >
       {/* P5 · Los cinco actos del sustento, con el kicker del recorrido de
           Cursos-horario requeridos: la estructura que vivía en comentarios
           pasa a la vista del lector. */}

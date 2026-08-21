@@ -33,6 +33,15 @@ describe("las pestañas declaran su geometría", () => {
     return txt.includes("data-qa-geometry-group") && txt.includes("data-qa-geometry-contract");
   };
 
+  it("una pestaña que se rinde sin datos declara TAMBIÉN su vacío", () => {
+    // Medido: Solidez declaraba sólo la rama con selección, así que en el
+    // estado en que un usuario nuevo la encuentra —vacía— el gate no auditaba
+    // nada y devolvía verde. Un vacío es superficie y también se mide.
+    const solidez = src("AulasSolidezTab.tsx");
+    const ramaVacia = solidez.slice(solidez.indexOf("if (!selectionReady)"), solidez.indexOf("selectionReady) {") + 900);
+    expect(ramaVacia).toContain("data-qa-geometry-group");
+  });
+
   it("las superficies ya cubiertas no pierden su declaración", () => {
     for (const f of [
       "AulasMetodoTab.tsx",
@@ -41,6 +50,8 @@ describe("las pestañas declaran su geometría", () => {
       "../marco/MarcoPoblacionTab.tsx",
       "../marco/MarcoAulasTab.tsx",
       "../salidas/SalidasCoincidenciaTab.tsx",
+      "../calculo/CalculoDisenoTab.tsx",
+      "AulasSolidezTab.tsx",
     ]) {
       expect(declara(f), `${f} dejó de declarar su geometría`).toBe(true);
     }
