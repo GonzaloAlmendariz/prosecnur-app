@@ -168,3 +168,73 @@ test_that("se distingue lo que trae la app de lo que llena la persona", {
   expect_true(idx("link") %in% cols)
   expect_true(idx("operational_code") %in% cols)
 })
+
+# ── Formato del libro ────────────────────────────────────────────────────
+# Gonzalo, 2026-08-21: «que el excel que se genera y que se lee esten en muy
+# buen formato, elegantes… muy profesional y sofisticado». Lo que sigue fija lo
+# que se puede comprobar sin abrir Excel: el .xlsx es un zip y su XML dice si
+# hay filtro, anchos propios y agrupado.
+
+.libro_de_prueba <- function(n_reservas = 2L) {
+  titular <- list(
+    operational_code = "CH 1", titular_operational_code = "CH 1",
+    sample_role = "titular", faculty = "Letras y Ciencias Humanas",
+    course_name = "HISTORIA Y TEORIA DE LA ARQUITECTURA CONTEMPORANEA",
+    teacher = "Docente CH 1", eligible_n = 40, scheduled_date = "2026-08-11"
+  )
+  reservas <- lapply(seq_len(n_reservas), function(i) list(
+    operational_code = sprintf("R 1.%d", i), titular_operational_code = "CH 1",
+    sample_role = "chain_reserve", replacement_order = i,
+    faculty = "Letras y Ciencias Humanas", course_name = "CURSO DE RESERVA",
+    eligible_n = 30
+  ))
+  c(list(titular), reservas)
+}
+
+.xml_de_hoja <- function(path, hoja = 1L) {
+  destino <- file.path(tempdir(), paste0("xlsx_", as.integer(runif(1, 1, 1e6))))
+  dir.create(destino)
+  utils::unzip(path, exdir = destino)
+  readLines(file.path(destino, "xl", "worksheets", sprintf("sheet%d.xml", hoja)),
+            warn = FALSE)
+}
+
+test_that("la hoja de agenda sale con autofiltro sobre su cabecera", {
+  # Sin filtro, encontrar una facultad en 951 filas era desplazarse a mano.
+  path <- file.path(tempdir(), "libro_filtro.xlsx")
+  aulas_libro_generar(.libro_de_prueba(), path)
+  xml <- paste(.xml_de_hoja(path), collapse = "")
+  expect_match(xml, 'autoFilter ref="A1:')
+})
+
+test_that("cada columna toma el ancho de lo que lleva, no uno fijo", {
+  # Con un ancho unico, «DIA» y «NOMBRE DEL CURSO» ocupaban lo mismo: el primero
+  # desperdiciaba media columna y el segundo cortaba el titulo.
+  path <- file.path(tempdir(), "libro_anchos.xlsx")
+  aulas_libro_generar(.libro_de_prueba(), path)
+  xml <- paste(.xml_de_hoja(path), collapse = "")
+  anchos <- unique(as.numeric(sub('.*width="([0-9.]+)".*', "\\1",
+                                  regmatches(xml, gregexpr('width="[0-9.]+"', xml))[[1]])))
+  expect_gt(length(anchos), 3)
+  # Y ninguna se come la pantalla: el tope es 42.
+  expect_lte(max(anchos), 43)
+  expect_gte(min(anchos), 9)
+})
+
+test_that("los bloques de reemplazo se pliegan y el del titular no", {
+  # La hoja son 21 columnas por eslabon. Quien agenda trabaja sobre el titular y
+  # solo baja a la cadena cuando un aula cae; agrupados, los reemplazos se
+  # pliegan con un clic.
+  path <- file.path(tempdir(), "libro_grupos.xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), path)
+  xml <- paste(.xml_de_hoja(path), collapse = "")
+  cols <- regmatches(xml, gregexpr('<col [^>]*>', xml))[[1]]
+  con_nivel <- grep("outlineLevel", cols, value = TRUE)
+  # Dos reservas -> dos bloques agrupados.
+  expect_equal(length(con_nivel), 2L * AULAS_AGENDADAS_ANCHO_BLOQUE)
+  # Y el primer bloque —el titular, columnas 2 a 21— se queda fuera.
+  primeras <- as.integer(sub('.*min="([0-9]+)".*', "\\1", con_nivel))
+  expect_gt(min(primeras), AULAS_AGENDADAS_ANCHO_BLOQUE)
+  # Visibles al abrir: el agrupado ofrece plegarlos, no lo decide por nadie.
+  expect_false(any(grepl('outlineLevel="1"[^>]*hidden="1"', con_nivel)))
+})

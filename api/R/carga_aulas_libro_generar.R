@@ -314,7 +314,18 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
     columnas_app = list(`Aulas Agendadas` = aulas_libro_columnas_de_la_app(
       campos_bloque, AULAS_LIBRO_CAMPOS_DE_LA_PERSONA, profundidad,
       ancho = AULAS_AGENDADAS_ANCHO_BLOQUE, desplazamiento = 1L
-    ))
+    )),
+    # Un grupo plegable por cada bloque de reemplazo. El titular —el primer
+    # bloque— se queda fuera: es la fila que se trabaja siempre y plegarla no
+    # tendria sentido. Con once reservas, la hoja pasa de 241 columnas a 21
+    # visibles en un clic.
+    agrupados = if (profundidad > 1L) lapply(2:profundidad, function(b) list(
+      hoja = "Aulas Agendadas",
+      cols = seq(
+        1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L,
+        1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE
+      )
+    )) else list()
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
