@@ -102,6 +102,7 @@ import {
 } from "./universidad/shared/constants";
 import { deskDeModo, modoCrudoDeLaDireccion, useCalcMuestraDireccion } from "./navegacion";
 import { normalizeUniversityLabel } from "./universidad/shared/format";
+import { universityEffectiveMappingPayload } from "./universidad/shared/mapeoEfectivo";
 import {
   classroomComparisonReady,
   classroomFrameReady,
@@ -1681,23 +1682,6 @@ export default function CalcMuestraPage() {
     }
   }
 
-  function universityWorkspaceMappingPayload(mappings: CalcMuestraWorkspaceVariableMapping[] | undefined) {
-    const out: Record<string, string[]> = {};
-    for (const row of mappings ?? []) {
-      const column = row.column?.trim();
-      if (!column) continue;
-      const role = row.role === "course_schedule_id"
-        ? "classroom_id"
-        : row.role === "classroom"
-          ? "classroom_label"
-          : row.role === "eligible"
-            ? "condition"
-            : row.role;
-      out[role] = [column];
-    }
-    return out;
-  }
-
   function universityMarcoConfigPayload(nextWorkspace: CalcMuestraWorkspace) {
     const config = normalizeUniversityAulasConfig(nextWorkspace.aulas_config);
     // Los opcionales c7/c8 los gobierna la decisión del Motor/Recorrido, no un
@@ -1710,7 +1694,12 @@ export default function CalcMuestraPage() {
     const suiteActiva = seleccionActiva(config.criterios_seleccion);
     return {
       ...config,
-      mapping: universityWorkspaceMappingPayload(nextWorkspace.variable_mappings),
+      // Lo que la pantalla MUESTRA es lo que se usa: `universityEffectiveMappingPayload`
+      // completa con la misma sugerencia visible en Variables lo que el usuario no
+      // confirmó a mano. Antes viajaba solo lo confirmado y, con todo aparentemente
+      // asignado en pantalla, el motor recibía `mapping: {}` e inferia por su cuenta:
+      // 847 cursos-horario en vez de 5.269 sobre las bases reales de HSVG2026.
+      mapping: universityEffectiveMappingPayload(nextWorkspace, aulasState),
       selector_engine: config.selector_engine,
       filters: filtrosLegacyPayload(config, suiteActiva, {
         c7: opcionalesActivos.includes("c7"),
