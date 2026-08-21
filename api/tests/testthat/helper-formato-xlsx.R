@@ -118,3 +118,24 @@ columnas_repetidas_de <- function(path, hoja) {
   if (!length(m)) return("")
   sub(".*!", "", m)
 }
+
+# Cuantas celdas combinadas tiene UNA hoja.
+#
+# «El XML contiene <mergeCell>» se satisface con una: con el mutante que dejaba
+# la Base de control combinando un tramo de los cuatro, el test seguia verde.
+# Lo que hay que comprobar es el numero, y contra la cuenta de tramos que
+# declara el generador, no contra un 4 escrito a mano.
+celdas_combinadas_de <- function(path, hoja) {
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(NA_integer_)
+  xml <- paste(readLines(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])),
+                         warn = FALSE), collapse = "")
+  m <- gregexpr("<mergeCell ", xml, fixed = TRUE)[[1]]
+  if (length(m) == 1L && m[[1]] == -1L) return(0L)
+  length(m)
+}
