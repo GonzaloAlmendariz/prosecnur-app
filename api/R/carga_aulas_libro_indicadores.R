@@ -136,6 +136,19 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
 #' @param ind salida de `aulas_libro_indicadores()`.
 #' @param hoja nombre de la hoja.
 #' @export
+#' Por que no hay avance diario, en una frase.
+#'
+#' Un «—» dice que falta el dato; no dice que hacer. Las dos causas piden cosas
+#' distintas: sin base de respuestas hay que cargarla, y con base pero sin
+#' fechas legibles el problema esta en la columna de fecha del formulario.
+.cali_motivo_sin_diario <- function(ind) {
+  m <- ind$meta %||% list()
+  if (is.null(m$logrado) || !length(m$logrado) || !is.finite(suppressWarnings(as.numeric(m$logrado)))) {
+    return("Todavia no hay base de respuestas cargada, asi que no hay efectivas por dia que seguir.")
+  }
+  "Las respuestas no traen fecha legible, asi que no se puede repartir el avance por dia."
+}
+
 aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo") {
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
 
@@ -153,6 +166,12 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
   cabecera <- openxlsx::createStyle(textDecoration = "bold", fgFill = "#002457",
                                     fontColour = "#FFFFFF", halign = "left")
   numero <- openxlsx::createStyle(halign = "right", numFmt = "#,##0.#")
+  # `#,##0.#` OMITE el cero decimal, asi que en «Media por aula» un 23.0 salia
+  # «23» entre 20.5, 21.9 y 23.8: la misma columna con dos formatos, y el ojo lo
+  # lee como si ese equipo tuviera una cifra mas redonda que los demas. Visto en
+  # el PDF. Las columnas de conteo se quedan con `numero` —«26.0 aulas» seria
+  # ruido—; solo la media, que es un promedio, declara su decimal.
+  promedio <- openxlsx::createStyle(halign = "right", numFmt = "#,##0.0")
 
   openxlsx::writeData(wb, hoja, "Cómo va el campo", startCol = 1, startRow = 1)
   openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
@@ -176,17 +195,35 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     list("Aulas que llegaron a SU meta", m$aulas_cerradas, cifra),
     list("Aulas del operativo", m$aulas, cifra)
   )
+  sin_dato <- 0L
   for (f in filas_meta) {
     openxlsx::writeData(wb, hoja, f[[1]], startCol = 1, startRow = fila)
     valor <- f[[2]]
     if (is.null(valor) || !length(valor) || !is.finite(suppressWarnings(as.numeric(valor)))) {
       # Sin respuestas leidas todavia no hay avance que dar, y un 0 diria que
       # se lleva cero.
+      sin_dato <- sin_dato + 1L
       openxlsx::writeData(wb, hoja, "—", startCol = 2, startRow = fila)
     } else {
       openxlsx::writeData(wb, hoja, as.numeric(valor), startCol = 2, startRow = fila)
       openxlsx::addStyle(wb, hoja, f[[3]], rows = fila, cols = 2)
     }
+    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+    fila <- fila + 1L
+  }
+
+  # **Un «—» dice que falta, no de donde saldria.** Y en esta hoja el hueco se
+  # lee peor todavia: dos bloques mas abajo hay 3 508 «efectivas declaradas»
+  # sumadas por aplicador, asi que la misma pagina parece decir que no hay
+  # efectivas y listarlas. No se contradicen —una sale de PLATAFORMA y la otra
+  # de lo que el equipo escribio en su parte— pero sin decirlo, quien lee elige
+  # cual creer. Solo aparece cuando de verdad hay huecos.
+  if (sin_dato) {
+    openxlsx::writeData(
+      wb, hoja,
+      "Estas cifras salen de la plataforma, no del parte de campo: se llenan al cargar la base de respuestas.",
+      startCol = 1, startRow = fila
+    )
     openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     fila <- fila + 1L
   }
@@ -199,7 +236,9 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     openxlsx::writeData(wb, hoja, ind$aplicadores, startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:4, gridExpand = TRUE)
     n <- nrow(ind$aplicadores)
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = 2:4,
+    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = 2:3,
+                       gridExpand = TRUE, stack = TRUE)
+    openxlsx::addStyle(wb, hoja, promedio, rows = (fila + 1L):(fila + n), cols = 4,
                        gridExpand = TRUE, stack = TRUE)
     # **La barra en un tono CLARO, o tapa el numero.** Con el navy del libro, la
     # cifra quedaba en negro sobre azul oscuro y no se leia: la barra ayuda a
@@ -211,7 +250,19 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     fila <- fila + n + 2L
   }
 
-  if (!is.null(ind$diario) && nrow(ind$diario)) {
+  # **La seccion no desaparece: dice por que esta vacia.** Sin avance diario, el
+  # bloque entero se esfumaba de la hoja y quien la vio con datos no podia saber
+  # si se habia retirado o si faltaba el dato. El avance diario cuenta EFECTIVAS
+  # de plataforma, asi que sin base de respuestas no hay serie — y eso es lo que
+  # hay que decir, no callarlo.
+  if (is.null(ind$diario) || !nrow(ind$diario)) {
+    openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
+    openxlsx::writeData(wb, hoja, .cali_motivo_sin_diario(ind), startCol = 1,
+                        startRow = fila + 1L)
+    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila + 1L, cols = 1)
+    fila <- fila + 3L
+  } else {
     openxlsx::writeData(wb, hoja, "Avance diario", startCol = 1, startRow = fila)
     openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:4, gridExpand = TRUE)
     fila <- fila + 1L
