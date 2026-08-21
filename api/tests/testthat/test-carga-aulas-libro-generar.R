@@ -569,3 +569,28 @@ test_that("las siete columnas de identidad del control se llenan de verdad", {
   expect_identical(valor("MATRICULADOS TOTALES"), "34")
   expect_identical(valor("MATRICULADOS POBLACION"), "30")
 })
+
+test_that("las hojas anchas se imprimen en horizontal", {
+  # Sin esto se parten por columnas en A4 vertical y cada pagina queda con
+  # cuatro columnas y media: es el defecto que motivo el `pageSetup`, y no habia
+  # nada que lo sostuviera —el mutante que las ponia en vertical sobrevivia—.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  for (hoja in c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control")) {
+    expect_identical(impresion_de(libro, hoja)$orientacion, "landscape",
+                     info = sprintf("la hoja «%s» se imprimiria en vertical", hoja))
+  }
+  # La portada es la excepcion: es angosta y va en vertical, encajada a lo ancho
+  # para que su tabla por facultad no se parta en dos paginas.
+  expect_identical(impresion_de(libro, "Resumen")$orientacion, "portrait")
+})
+
+test_that("la cabecera lleva alto propio: dos lineas de titulo no caben en uno", {
+  # Con el alto por defecto, «DUPLICADOS (YA RESPONDIERON)» en una columna de 18
+  # se cortaba. El mutante que lo quitaba tambien sobrevivia.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  expect_gt(alto_de_fila(libro, "Aulas Agendadas", 1), 20)
+  # Y la fila de datos NO lo lleva: el alto es de la cabecera, no de la hoja.
+  expect_true(is.na(alto_de_fila(libro, "Aulas Agendadas", 3)))
+})
