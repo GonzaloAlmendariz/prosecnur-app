@@ -35,6 +35,19 @@ type ClassroomReplacementChain = {
   stratum: string;
   eligible: number;
   slots: ClassroomReplacementSlot[];
+  /**
+   * Aulas del pool extra que están en la facultad de este titular.
+   *
+   * Medido el 2026-08-21 sobre HSVG2026: 91 de los 190 titulares tienen la
+   * cadena incompleta, y para los más cortos el pool NO tiene ninguna aula de
+   * su estrato exacto pero sí de su facultad (DERECHO 241, ARTE Y DISEÑO 87,
+   * EGC 63, ARTES ESCÉNICAS 21, ARQUITECTURA 8). La tarjeta enseñaba diez
+   * casillas «sin reemplazo» idénticas, que se leen como «no hay nada», cuando
+   * lo cierto es que no hay nada DEL MISMO ESTRATO. Gonzalo: «sus reemplazos,
+   * por mucho que no sean equivalentes, ¿no deberían estar en la cadena? Ahora
+   * no los veo».
+   */
+  poolEnFacultad: number;
 };
 function classroomReplacementRouteLabel(wave: string | undefined, rank?: number) {
   const numericRank = safeNumber(rank, 0);
@@ -55,11 +68,24 @@ function classroomReplacementMatchLabel(value: string) {
   return equivalenciaEtiqueta(value);
 }
 
-function classroomReplacementSlotTone(value: string, warning?: string) {
+/**
+ * El tono lo decide la EQUIVALENCIA, no la presencia de un aviso.
+ *
+ * `if (warning) return "is-warning"` ponía en ámbar todo lo que trajera texto
+ * de advertencia, y el aviso de peso analítico («usar peso final sólo si se
+ * activa en campo») lo llevan LAS 1.665 reservas encadenadas del estudio real.
+ * Resultado medido el 2026-08-21: el semáforo estaba clavado en ámbar y las
+ * tres ramas de abajo no se ejecutaban nunca, así que un reemplazo de la misma
+ * celda se veía igual que uno que pierde 40 elegibles. Gonzalo, mirando dos
+ * tarjetas: «¿por qué está en amarillo?».
+ *
+ * El aviso de peso sigue mostrándose como nota en el slot; lo que ya no hace es
+ * secuestrar el color.
+ */
+function classroomReplacementSlotTone(value: string) {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (warning) return "is-warning";
   if (["misma_celda", "mismo_programa", "mismo_dominio"].includes(normalized)) return "is-strong";
-  if (["celda_cercana", "misma_facultad"].includes(normalized)) return "is-good";
+  if (["celda_equivalente", "celda_cercana", "misma_facultad"].includes(normalized)) return "is-good";
   return "is-soft";
 }
 
@@ -83,6 +109,14 @@ export function classroomReplacementChains(
     .filter((row) => classroomRowText(row, ["sample_role"]) === "chain_reserve" || (classroomRowText(row, ["wave"]) !== "M1" && classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool"))
     .sort((a, b) => safeNumber(a.replacement_order, classroomWaveNumber(classroomRowText(a, ["wave"]))) - safeNumber(b.replacement_order, classroomWaveNumber(classroomRowText(b, ["wave"]))));
   const suggestions = rowsFrom<CalcMuestraAulasReplacementSuggestion>(simulation?.suggestions);
+  // El pool extra no cuelga de ningún titular: es la bolsa de última instancia.
+  const poolPorFacultad = new Map<string, number>();
+  for (const row of selectionRows) {
+    if (classroomRowText(row, ["sample_role"]) !== "extra_reserve_pool") continue;
+    const fac = classroomRowText(row, ["faculty", "stratum"]);
+    if (!fac) continue;
+    poolPorFacultad.set(fac, (poolPorFacultad.get(fac) ?? 0) + 1);
+  }
   // Cada titular seleccionado tiene su ruta y todas viajan a campo, así que la
   // lista las trae todas. Estaba cortada en 24 mientras la selección de
   // referencia trae 30: seis titulares se quedaban sin tarjeta y sin aviso.
@@ -141,6 +175,7 @@ export function classroomReplacementChains(
       stratum,
       eligible: classroomRowNumber(titular, ["eligible_n"]),
       slots: slotsFromPlan.slice(0, depth),
+      poolEnFacultad: poolPorFacultad.get(faculty) ?? 0,
     };
   });
 }
@@ -223,15 +258,39 @@ export function ClassroomReplacementChainPanel({
               {Array.from({ length: maxDepth }, (_, index) => {
                 const slot = chain.slots[index];
                 if (!slot) {
+                  // Los huecos se colapsan en UNO que dice qué falta y qué
+                  // queda: diez casillas iguales ocupaban la tarjeta entera y
+                  // ninguna informaba. Sólo se dibuja en el primer hueco.
+                  if (index > chain.slots.length) return null;
+                  const faltan = maxDepth - chain.slots.length;
                   return (
-                    <span key={index} className="cmv2-chain-empty-slot">
-                      <b>M{index + 2}</b>
-                      sin reemplazo
+                    <span
+                      key={index}
+                      className="cmv2-chain-empty-slot"
+                      data-con-pool={chain.poolEnFacultad > 0 || undefined}
+                    >
+                      <b>
+                        {faltan === 1
+                          ? "1 lugar sin cubrir"
+                          : `${fmtInt(faltan)} lugares sin cubrir`}
+                      </b>
+                      {chain.poolEnFacultad > 0 ? (
+                        <>
+                          Sin más aulas de su estrato exacto.{" "}
+                          <em>
+                            {fmtInt(chain.poolEnFacultad)} en la reserva extra de{" "}
+                            {chain.faculty}, de otro estrato: sirven sólo si se acepta
+                            perder equivalencia.
+                          </em>
+                        </>
+                      ) : (
+                        "Sin más aulas de su estrato ni reserva extra en su facultad."
+                      )}
                     </span>
                   );
                 }
                 return (
-                  <div key={slot.id || index} className={`cmv2-chain-slot ${classroomReplacementSlotTone(slot.match, slot.warning)}`}>
+                  <div key={slot.id || index} className={`cmv2-chain-slot ${classroomReplacementSlotTone(slot.match)}`}>
                     <span>
                       <strong>{slot.label}</strong>
                       <b>{slot.code || (slot.order ? `R${slot.order}` : slot.wave)}</b>

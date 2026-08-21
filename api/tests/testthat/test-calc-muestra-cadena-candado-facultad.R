@@ -58,16 +58,20 @@ test_that("agotada la celda, el candado de facultad se queda en la facultad", {
   # «libre» tambien la prefiere: el pool de facultad se agota antes de abrirse.
   expect_identical(.cad_elegir("libre", sin_celda), 2L)
 
-  # «celda» no elige nada: es justo el corte que deja 44 de 84 celdas sin cadena.
-  expect_true(is.na(.cad_elegir("celda", sin_celda)))
+  # Desde 2026-08-21 «celda» tampoco corta: agotada la celda sigue por la
+  # facultad. Gonzalo: «las aulas no pueden quedarse sin reemplazos sólo porque
+  # no hay reemplazos que tienen el mismo estrato».
+  expect_identical(.cad_elegir("celda", sin_celda), 2L)
 })
 
-test_that("agotada tambien la facultad, solo el libre sigue eligiendo", {
-  # La diferencia que importa entre «facultad» y «libre»: uno se detiene y el
-  # otro cruza a otra facultad. Sin este contraste, los dos candados serian el
-  # mismo con distinto nombre.
+test_that("agotada la facultad NINGUN candado cruza a otra", {
+  # Antes «libre» sí cruzaba, y con `min_replacements_per_titular = 1` esa era
+  # la rama por la que salía la PRIMERA reserva de cada titular. Gonzalo,
+  # 2026-08-21: «esos reemplazos sí o sí tienen que ser de la misma facultad,
+  # ojo». La cuota se reparte por facultad: un aula de otra repone una cuota
+  # que no es la que se perdió.
   solo_otra_facultad <- c(FALSE, FALSE, TRUE)
-  expect_identical(.cad_elegir("libre", solo_otra_facultad), 3L)
+  expect_true(is.na(.cad_elegir("libre", solo_otra_facultad)))
   expect_true(is.na(.cad_elegir("facultad", solo_otra_facultad)))
   expect_true(is.na(.cad_elegir("celda", solo_otra_facultad)))
 })
@@ -141,24 +145,30 @@ test_that("min_reps corre la frontera del candado", {
   .cm_aulas_build_replacement_chains(frame, .cad_titulars(frame), selector, seed = 42L)
 }
 
-test_that("la cadena por facultad es mas larga y no cruza de facultad", {
-  # El titular es de A1 (Derecho) y su celda tiene UNA sola aula: la suya. Con el
-  # candado de celda la cadena se queda en la reserva libre inicial; con el de
-  # facultad sigue tomando las otras tres aulas de Derecho.
+test_that("la celda ya no corta la cadena: se completa dentro de la facultad", {
+  # El titular es de A1 (Derecho) y su celda tiene UNA sola aula: la suya. Antes,
+  # el candado de celda dejaba la cadena en 1 y sólo el de facultad tomaba las
+  # otras tres aulas de Derecho. Ahora las dos estrategias las toman: el estrato
+  # es preferencia, no condición de existencia.
   por_celda <- .cad_cadena("max_complete_chains_by_cell")
   por_facultad <- .cad_cadena("max_complete_chains_by_faculty")
 
-  expect_identical(nrow(por_celda), 1L)
-  expect_gt(nrow(por_facultad), nrow(por_celda))
+  expect_gt(nrow(por_celda), 1L)
+  expect_identical(nrow(por_celda), nrow(por_facultad))
 
-  # Y ninguna reserva sale de Derecho: el candado se respeta pese a que quedan
-  # cuatro aulas de Psicologia disponibles.
+  # Y ninguna reserva sale de Derecho pese a quedar cuatro aulas de Psicologia
+  # disponibles: la facultad es un límite duro, no una preferencia.
   expect_true(all(por_facultad$faculty == "DERECHO"))
+  expect_true(all(por_celda$faculty == "DERECHO"))
 })
 
-test_that("sin estrategia declarada la cadena puede cruzar de facultad", {
-  # Control del comportamiento viejo: el pool libre agota Derecho y sigue.
+test_that("sin estrategia declarada la cadena TAMPOCO cruza de facultad", {
+  # Era el control del comportamiento viejo: el pool libre agotaba Derecho y
+  # seguía en Psicologia. Ese era el agujero, no una funcionalidad.
   libre <- .cad_cadena("", olas = 6L)
-  expect_gt(nrow(libre), 3L)
-  expect_true(any(libre$faculty == "PSICOLOGIA"))
+  # Se detiene en las TRES aulas de Derecho disponibles. Antes pasaba de tres
+  # justamente porque seguía en Psicologia: el número es la evidencia.
+  expect_identical(nrow(libre), 3L)
+  expect_false(any(libre$faculty == "PSICOLOGIA"))
+  expect_true(all(libre$faculty == "DERECHO"))
 })

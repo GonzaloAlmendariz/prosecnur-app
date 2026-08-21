@@ -165,7 +165,7 @@ test_that("el objetivo declarado manda sobre el de fabrica", {
   expect_true(grepl("de 3 celdas", .cm_aulas_aviso_celdas_sin_reserva(.alc_depth(c(0.5, 11, 11)), 0), fixed = TRUE))
 })
 
-test_that("la primera reserva puede salir de la facultad; las siguientes no", {
+test_that("la reserva baja de celda a facultad, y NUNCA cruza de facultad", {
   # El mecanismo que corrige la lectura ingenua «celda chica => titular sin
   # reserva». En profundidad 1 el pool cae a la facultad cuando la celda no
   # tiene hermanos; de la segunda en adelante, bajo el candado de CELDA, no hay
@@ -192,8 +192,12 @@ test_that("la primera reserva puede salir de la facultad; las siguientes no", {
   expect_identical(cand$faculty[laxo], "GASTRO")   # cae a la facultad, no a cualquiera
   expect_false(identical(cand$stratum[laxo], tit$stratum))
 
+  # Desde 2026-08-21 el «estricto» tampoco se queda en cero: agotada la celda
+  # baja a la facultad, y lo que NINGUNO hace es cruzar a OTRA (score 3, el más
+  # alto de los tres, y aun así no se elige).
   estricto <- .cm_aulas_pick_chain_reserve_idx(1, tit, cand, mask, score, TRUE, TRUE, candado = "celda")
-  expect_true(is.na(estricto))
+  expect_identical(cand$faculty[estricto], "GASTRO")
+  expect_false(identical(cand$faculty[estricto], "OTRA"))
 
   # Y con un hermano en la propia celda, el estricto sí elige — y prefiere la
   # celda propia incluso cuando el laxo tendría opciones mejor puntuadas fuera.
