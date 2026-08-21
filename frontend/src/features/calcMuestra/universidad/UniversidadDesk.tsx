@@ -894,7 +894,7 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("salidas-monitoreo") && <div id="cmv2-local-salidas-monitoreo">
-              <SalidasMonitoreoTab model={labModel} />
+              <SalidasMonitoreoTab model={labModel} onNavigate={onNavigate} />
             </div>}
           </div>
         )}

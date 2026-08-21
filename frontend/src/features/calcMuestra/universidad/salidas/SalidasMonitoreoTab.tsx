@@ -23,8 +23,23 @@ import {
 import "../../didactica/didactica.css";
 import "./salidas.css";
 import { profundidadReserva } from "../aulas/profundidadReservaModel";
+import {
+  AulasStageNotice,
+  resolveAulasStageNotice,
+  type AulasNavigate,
+} from "../aulas/aulasSurfaceState";
 
-export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
+export function SalidasMonitoreoTab({
+  model,
+  onNavigate,
+}: {
+  model: ClassroomLabModel;
+  /** Sin esto un vacío puede nombrar el bloqueo pero no llevar a resolverlo. */
+  onNavigate?: AulasNavigate;
+}) {
+  // El bloqueo se nombra con la MISMA cadena que las pestañas de Aulas: si
+  // falta el marco lo dice el marco, no «genera la selección».
+  const stageNotice = resolveAulasStageNotice(model, "salidas-monitoreo");
   // Mismo objetivo declarado que en la pestaña de reemplazos: los tonos de la
   // misma magnitud no pueden decidirse con umbrales distintos según la pantalla.
   const objetivoReserva = model.config?.objective?.reserve_depth_target ?? null;
@@ -78,7 +93,12 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
   ];
 
   return (
-    <div className="cmv2-sal-stack">
+    <div
+      className="cmv2-sal-stack"
+      // Declarada para que el gate visual pueda auditarla.
+      data-qa-geometry-group="calc-muestra/salidas-monitoreo"
+      data-qa-geometry-contract="intrinsic"
+    >
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Qué recibe Monitoreo">
         <div className="cmv2-panel-head">
           <strong>Pase a Monitoreo</strong>
@@ -136,11 +156,15 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
       {selectionReady ? (
         <ClassroomSelectionTable rows={m1Rows.slice(0, 16)} />
       ) : (
-        <ClassroomEmptyState
-          icon={Grid3X3}
-          title="Plan de cursos-horario pendiente"
-          detail="Genera la selección para que Monitoreo reciba titulares, reemplazos y trazabilidad metodológica."
-        />
+        stageNotice ? (
+          <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
+        ) : (
+          <ClassroomEmptyState
+            icon={Grid3X3}
+            title="Plan de cursos-horario pendiente"
+            detail="Genera la selección para que Monitoreo reciba titulares, reemplazos y trazabilidad metodológica."
+          />
+        )
       )}
 
       <section className="cmv2-panel cmv2-sal-panel" aria-label="Reservas listas para campo">
@@ -184,11 +208,15 @@ export function SalidasMonitoreoTab({ model }: { model: ClassroomLabModel }) {
         ) : reserveRows.length ? (
           <ClassroomSelectionTable rows={reserveRows.slice(0, 24)} />
         ) : (
-          <ClassroomEmptyState
-            icon={RefreshCw}
-            title="Reemplazos pendientes"
-            detail="Genera la selección y simula reemplazos para ver qué curso-horario conviene activar si uno titular cae."
-          />
+          stageNotice ? (
+            <AulasStageNotice notice={stageNotice} onNavigate={onNavigate} />
+          ) : (
+            <ClassroomEmptyState
+              icon={RefreshCw}
+              title="Reemplazos pendientes"
+              detail="Genera la selección y simula reemplazos para ver qué curso-horario conviene activar si uno titular cae."
+            />
+          )
         )}
       </section>
 
