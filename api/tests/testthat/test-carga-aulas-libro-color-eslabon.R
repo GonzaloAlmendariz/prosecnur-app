@@ -119,3 +119,41 @@ test_that("en el LIBRO, el tinte de cada eslabon se distingue del gris de la app
     expect_gte(max(abs(rgb - gris)), 8L)
   }
 })
+
+test_that("la hoja de campo tambien distingue sus eslabones por color", {
+  # Salia con los TRES bloques en el mismo navy: la banda decia «TITULAR» y
+  # «REEMPLAZO 1», pero el color no distinguia — y el color es lo que se ve al
+  # desplazarse veinte columnas, cuando la banda ya no esta en pantalla.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  ancho <- 1L + length(prosecnurapp:::.calg_titulos_agenda()) +
+    length(prosecnurapp:::.calg_titulos_campo())
+  bandas <- vapply(1:3, function(b) {
+    relleno_de_celda(libro, "Aulas Aplicadas (Campo)", (b - 1L) * ancho + 3L, 1)
+  }, character(1))
+  expect_identical(anyDuplicated(bandas), 0L)
+  # Y son EXACTAMENTE la escala de tres eslabones, no tres tonos cualesquiera
+  # de una escala mas larga: la escala se calculaba sobre el numero de entradas
+  # —seis, dos hojas por tres bloques— y salian tonos mas juntos de lo
+  # necesario. Con esto, el ultimo eslabon usa el color mas claro disponible.
+  esperado <- paste0("FF", toupper(sub("^#", "", aulas_libro_colores_eslabon(3L))))
+  expect_identical(bandas, esperado)
+})
+
+test_that("el mismo eslabon tiene el mismo color en las DOS hojas", {
+  # Si la agenda y la hoja de campo pintaran el reemplazo 1 de colores
+  # distintos, el color dejaria de ser una pista y pasaria a ser ruido. Paso:
+  # la escala se calculaba sobre el numero de entradas —seis, dos hojas por tres
+  # bloques— en vez de sobre la profundidad de la cadena.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  ancho_campo <- 1L + length(prosecnurapp:::.calg_titulos_agenda()) +
+    length(prosecnurapp:::.calg_titulos_campo())
+  for (b in 1:3) {
+    agenda <- relleno_de_celda(libro, "Aulas Agendadas",
+                               1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 2L, 1)
+    campo <- relleno_de_celda(libro, "Aulas Aplicadas (Campo)",
+                              (b - 1L) * ancho_campo + 3L, 1)
+    expect_identical(agenda, campo, info = sprintf("eslabon %d", b))
+  }
+})
