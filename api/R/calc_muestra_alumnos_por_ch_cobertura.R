@@ -20,9 +20,22 @@
 # leerse y el detalle estructurado sigue estando completo en `details`.
 .cm_alumnos_ch_cobertura_max_nombres <- 4L
 
+# Las facultades viajan indexadas por clave («consorcio_de_universidades») y ese
+# es el nombre que acababa en pantalla: en el aviso se leia como un
+# identificador de base de datos, no como una facultad. Un nombre que ya viene
+# legible —con espacios— no se toca.
+.cm_alumnos_ch_nombre_legible <- function(key) {
+  if (grepl(" ", key, fixed = TRUE)) return(key)
+  texto <- gsub("_", " ", key, fixed = TRUE)
+  texto <- trimws(texto)
+  if (!nzchar(texto)) return(key)
+  paste0(toupper(substr(texto, 1, 1)), substr(texto, 2, nchar(texto)))
+}
+
 .cm_alumnos_ch_lista_legible <- function(keys) {
   keys <- as.character(unlist(keys, use.names = FALSE))
   keys <- keys[!is.na(keys) & nzchar(keys)]
+  keys <- vapply(keys, .cm_alumnos_ch_nombre_legible, character(1), USE.NAMES = FALSE)
   if (!length(keys)) return("")
   if (length(keys) <= .cm_alumnos_ch_cobertura_max_nombres) {
     return(paste(keys, collapse = ", "))

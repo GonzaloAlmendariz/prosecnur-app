@@ -7,7 +7,9 @@
 
 test_that("nombra la facultad que falta y donde se resuelve", {
   msg <- .cm_alumnos_ch_mensaje_cobertura("escuela_de_posgrado", character(0))
-  expect_true(grepl("escuela_de_posgrado", msg, fixed = TRUE))
+  # La facultad se nombra, y se nombra legible: la clave con guiones bajos se
+  # leia en pantalla como un identificador de base de datos.
+  expect_true(grepl("Escuela de posgrado", msg, fixed = TRUE))
   # La causa medida, no el sintoma: el curso esta catalogado bajo una facultad
   # a la que no pertenecen sus alumnos.
   expect_true(grepl("no pertenece ninguno de sus alumnos elegibles", msg, fixed = TRUE))
@@ -29,17 +31,17 @@ test_that("faltante y sobrante son problemas distintos y se dicen distinto", {
 
   # Con las dos, el mensaje trae las dos.
   ambas <- .cm_alumnos_ch_mensaje_cobertura("derecho", "educacion")
-  expect_true(grepl("derecho", ambas, fixed = TRUE))
-  expect_true(grepl("educacion", ambas, fixed = TRUE))
+  expect_true(grepl("Derecho", ambas, fixed = TRUE))
+  expect_true(grepl("Educacion", ambas, fixed = TRUE))
 })
 
 test_that("con muchas facultades resume en vez de volverse ilegible", {
   msg <- .cm_alumnos_ch_mensaje_cobertura(
     c("a", "b", "c", "d", "e", "f"), character(0)
   )
-  expect_true(grepl("a, b, c, d y 2 más", msg, fixed = TRUE))
+  expect_true(grepl("A, B, C, D y 2 más", msg, fixed = TRUE))
   # Justo en el limite no resume.
-  expect_true(grepl("a, b, c, d", .cm_alumnos_ch_mensaje_cobertura(c("a","b","c","d"), character(0)), fixed = TRUE))
+  expect_true(grepl("A, B, C, D", .cm_alumnos_ch_mensaje_cobertura(c("a","b","c","d"), character(0)), fixed = TRUE))
   expect_false(grepl("más", .cm_alumnos_ch_mensaje_cobertura(c("a","b","c","d"), character(0)), fixed = TRUE))
 })
 
