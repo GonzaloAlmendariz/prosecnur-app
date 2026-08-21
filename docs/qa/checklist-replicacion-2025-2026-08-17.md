@@ -4573,3 +4573,21 @@ precisión-por-facultad (H2 otra vez; abortó bien sin guardar).
 DECISIÓN PARA GONZALO: Derecho 0,97× — ¿aula 17 (un clic en «¿un aula
 más?», flujo registrado) o se acepta con su cadena? SID vigente
 69b716b3, .pulso guardado con todo.
+
+### 2026-08-20: E20 — AVISO A MONITOREO (5ª revisión de metas, la estructural)
+
+La sesión peer original de Monitoreo murió (socket stale); el aviso se
+envió a la sesión activa prosecnur-app-23 (msg 357710f3) y queda AQUÍ
+como fuente durable para quien retome Monitoreo:
+- El plan es de 190 titulares (no 197), re-dimensionado por tasa de
+  efectividad de cada facultad (reparto en el plan guardado).
+- Valor de validez CONDICIONAL: efectivas_esperadas = elegibles ×
+  R(tramo, bins corregidos 0,809/0,642/0,566/0,500/0,409) × F(residual
+  de facultad). El docente salió con evidencia (residual condicional ≈1
+  dentro de aplicadas); p_aplicada_ref queda SOLO operativo
+  (visitas/cadena), nunca para el veredicto de efectivas.
+- Σ esperadas titulares = 3.423 (tasa media 50%); metas por aula MÁS
+  ALTAS que la versión con ×P. Reemplazo activado se juzga contra SU
+  esperado. Campos por fila: efectivas_esperadas, tasa_efectividad_aula,
+  factor_facultad, facultad_k, rendimiento_ref, efectividad_fuente/
+  periodo, meta_origen.
