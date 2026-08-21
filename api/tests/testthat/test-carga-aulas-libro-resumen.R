@@ -109,3 +109,67 @@ test_that("las hojas de datos se imprimen con su cabecera en cada pagina", {
   letra <- LETTERS[hasta]
   expect_match(libro, sprintf("\\$A:\\$%s", letra))
 })
+
+# --- El avance en la portada ------------------------------------------------
+
+.res_u <- function(cod, meta) list(operational_code = cod, sample_role = "titular",
+                                   faculty = "Letras", expected_valid = meta,
+                                   eligible_n = 30)
+
+test_that("un libro NUEVO no lleva bloque de avance", {
+  # Siete ceros no informan de nada y la portada tiene que caber. Sin partes ni
+  # control no hay avance del que hablar.
+  cortes <- aulas_libro_cortes(list(.res_u("CH 1", 20)))
+  expect_null(cortes$avance)
+})
+
+test_that("con partes y control, la portada dice el avance", {
+  cortes <- aulas_libro_cortes(
+    list(.res_u("CH 1", 20), .res_u("CH 2", 18)),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 17)),
+    control = list(list(operational_code = "CH 1", valid_total = 1, valid_population = 1),
+                   list(operational_code = "CH 2", valid_total = 1, valid_population = 0))
+  )
+  expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
+  expect_identical(cortes$avance[["Avance sobre lo esperado"]], "44.7 %")
+  # Las dos ramas del umbral se distinguen: un agregado que valiera igual para
+  # «cumple los dos» y «cumple uno» esconderia justo lo que decide.
+  expect_equal(cortes$avance[["Aulas efectivas (los dos umbrales)"]], 1L)
+  expect_equal(cortes$avance[["Aulas que cumplen solo uno"]], 1L)
+})
+
+test_that("sin encuestas esperadas, el avance NO es 0 %", {
+  # Un 0 de 0 no es 0 %: es una cuenta que no se puede hacer.
+  cortes <- aulas_libro_cortes(
+    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras")),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 0))
+  )
+  expect_identical(cortes$avance[["Avance sobre lo esperado"]], "—")
+})
+
+test_that("las aulas con parte se cuentan sobre TITULARES, sin repetir intentos", {
+  # Dos partes de la misma aula son dos intentos, no dos aulas visitadas.
+  cortes <- aulas_libro_cortes(
+    list(.res_u("CH 1", 20)),
+    partes = list(list(operational_code = "CH 1", intento = 1L, effective_surveys = 5),
+                  list(operational_code = "CH 1", intento = 2L, effective_surveys = 12))
+  )
+  expect_equal(cortes$avance[["Aulas con parte de campo"]], 1L)
+  # Las efectivas SI suman los dos intentos: son encuestas recogidas, no aulas.
+  expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
+})
+
+test_that("sin base de control, las aulas efectivas NO son cero", {
+  # Visto en el PDF: un libro con 130 partes y sin control declaraba «0 aulas
+  # efectivas» junto a un avance del 93.6 %. No es que ninguna lo sea; es que
+  # no hay con que decirlo.
+  cortes <- aulas_libro_cortes(
+    list(.res_u("CH 1", 20)),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 17))
+  )
+  expect_identical(cortes$avance[["Aulas efectivas (los dos umbrales)"]], "—")
+  expect_identical(cortes$avance[["Aulas que cumplen solo uno"]], "—")
+  expect_identical(cortes$avance[["Aulas en la base de control"]], "—")
+  # El control: lo que SI se puede contar se cuenta.
+  expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
+})

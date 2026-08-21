@@ -358,7 +358,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # La portada, PRIMERA. Es lo que una dinamica enseñaria —cuanto operativo hay,
   # como se reparte por facultad y en que estado esta— y contesta sin filtrar lo
   # que las hojas de datos solo contestan filtrando.
-  aulas_libro_escribir_resumen(wb, unidades)
+  aulas_libro_escribir_resumen(wb, unidades, partes = partes, control = control)
   # La hoja larga, para las dinamicas. Va DESPUES de la portada y antes de las
   # hojas de trabajo: quien viene a analizar la encuentra arriba, y quien viene
   # a llenar sigue teniendo las suyas donde estaban.
