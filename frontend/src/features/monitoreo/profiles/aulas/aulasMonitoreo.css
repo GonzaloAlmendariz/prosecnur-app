@@ -776,7 +776,14 @@
 .aulas-aviso svg {
   flex: 0 0 auto;
   margin-top: 1px;
+  /* Ámbar por defecto: el aviso nació para lo que hay que mirar. */
   color: var(--pulso-warn-fg);
+}
+
+/* Lo que salió bien no se pinta como un problema. Sólo cambia el ícono y su
+   color: el marco es el mismo, porque es el mismo tipo de superficie. */
+.aulas-aviso[data-tono="ok"] svg {
+  color: var(--pulso-success-fg);
 }
 
 /* «Base de control»: el bloque de la tercera hoja del libro.

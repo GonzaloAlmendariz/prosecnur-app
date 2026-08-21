@@ -51,7 +51,7 @@ import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
-import { avisoLibroImportado } from "./avisoLibroImportado";
+import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
@@ -1839,6 +1839,10 @@ export default function AulasMonitoreoPage() {
   // recarga sale bien —así que el aviso duraba lo que tardaba la petición
   // siguiente, que es la que el propio import dispara—.
   const [aviso, setAviso] = useState("");
+  // El tono del aviso: «ok» para lo que salió bien, «atencion» para lo que hay
+  // que mirar. Con uno solo, una importación limpia se pintaba igual que una
+  // que dejó columnas sin leer.
+  const [avisoTono, setAvisoTono] = useState<TonoAviso>("ok");
   const [error, setError] = useState("");
   /**
    * Los filtros que definen una encuesta efectiva, en edición.
@@ -1937,6 +1941,7 @@ export default function AulasMonitoreoPage() {
       const res = await apiMonitoreoAulasGenerarLibro();
       // Decir qué lleva dentro: el libro se descargaba en silencio.
       setAviso(avisoLibroGenerado(res));
+      setAvisoTono("ok");
       // La descarga la dispara un enlace efímero: no hay dónde «guardar» un
       // Excel operativo dentro del proyecto, y sacarlo es justo el punto.
       const a = document.createElement("a");
@@ -1968,7 +1973,9 @@ export default function AulasMonitoreoPage() {
       setState(res.state);
       // El resumen entero, no solo lo que faltaba: quien importa necesita saber
       // que entro, y que columnas con datos NO se leyeron.
-      setAviso(avisoLibroImportado(res));
+      const anuncio = avisoLibroImportado(res);
+      setAviso(anuncio.texto);
+      setAvisoTono(anuncio.tono);
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");
@@ -2252,7 +2259,11 @@ export default function AulasMonitoreoPage() {
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
             {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
                 de pasar no puede vivir dentro de lo que la acción remonta. */}
-            {aviso ? <div className="aulas-aviso"><Info size={16} /> {aviso}</div> : null}
+            {aviso ? (
+              <div className="aulas-aviso" data-tono={avisoTono}>
+                {avisoTono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso}
+              </div>
+            ) : null}
             {loading ? (
               <EmptyPanel title="Preparando vista" detail="Leyendo cache local del proyecto..." />
             ) : seccionActiva === "avance" && pestanaActiva === "salidas" ? (
