@@ -31,6 +31,42 @@ las dos son del analista. El registro de campo acaba de entrar (`e310512c`).
 | Agenda | tabla literal de 12 columnas, sin filtro por facultad |
 | Reemplazo | sólo se activa dentro del formulario de un aula |
 
+## Lo que el proyecto real destapó, y lo que la cadena de QA no alcanza
+
+Con el plan 1b —2 616 filas contra las 269 del fixture de trabajo— aparecieron
+cuatro defectos que el fixture pequeño escondía por completo: paneles vacíos sin
+declarar su geometría, 932 filas desbordadas por un `white-space` heredado, la
+coletilla del docente contradiciendo su propia fórmula, y el coste real del
+motor. Ninguno era invisible por sutil: **era invisible porque el fixture no
+producía el caso**.
+
+**El coste, medido**: `monitoreo_aulas_dashboard` tarda **1,13 s con 269 filas y
+7,16 s con 2 616**; el normalizador del plan, **0,17 s → 2,34 s**. Escala casi
+lineal, pero el warm start de un `.pulso` de 12,7 MB **no terminó en seis
+minutos** con la máquina cargada, y `ui-quick-check` falla de forma sistemática
+con `readiness: marca-en-false` sobre ese proyecto.
+
+**Lo que eso implica para el QA**: el gate visual **no puede verificar el perfil
+con el proyecto real** en esta máquina. Lo verificado con el plan 1b se hizo a
+mano en el navegador o con las suites; lo que salió por gate salió con el
+fixture pequeño. Es una laguna de cobertura declarada, no un verde.
+
+**Fixtures y qué ejercita cada uno** (ninguno lo hace todo, y por eso los
+defectos salían a trozos):
+
+| Fixture | Plan | Libro | Nombres |
+|---|---|---|---|
+| `aulas_agenda_larga.pulso` | 269 filas, viejo | sí (partes + control) | cortos («Curso CH 1») |
+| `roundtrip.pulso` | 1b, 2 616 filas | no | reales |
+| `aulas_1b_completo.pulso` | 1b, 2 616 filas | sí (control, sin partes) | reales |
+
+El tercero se construye generando el libro **desde el propio plan** —así los
+códigos cuadran— y volviéndolo a importar. Y confirma algo que importa para la
+decisión del banco: **tras el viaje por Excel los roles se conservan** —190
+titulares, 1 665 reservas, 761 extras— porque la importación es **fusión, no
+reemplazo**: el rol lo pone el plan previo, no el libro. El riesgo de que el
+banco se lea como titular sólo existiría reconstruyendo el estado desde cero.
+
 ## Los 25 ticks
 
 ### A. Validación para el jefe de campo (T1–T6)
