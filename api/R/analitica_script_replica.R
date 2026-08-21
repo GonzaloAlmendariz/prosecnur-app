@@ -425,9 +425,9 @@
   # una sola le afirma al cliente algo que no siempre es exacto. El agregado es
   # deliberado: el detalle vive en el Excel de decisiones, que es interno.
   add("# (2) Universo final del estudio: los casos que quedaron tras la limpieza y")
-  add("#     validación de la base. Se listan por su identificador de caso (ya")
-  add("#     presente en el crudo), lo que permite reproducir la base exacta sin")
-  add("#     exponer nada más.")
+  add("#     validación de la base. Se identifican por su código de caso, que ya")
+  add("#     viene en el crudo, de modo que el filtro se puede volver a aplicar")
+  add("#     sobre cualquier export del estudio.")
   add("universo_final <- ", .script_replica_deparse(universo))
   add("llave <- ", .script_replica_deparse(plan$key_raw))
   add("")
