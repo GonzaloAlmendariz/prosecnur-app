@@ -3234,7 +3234,12 @@
   display: grid;
   /* Cuándo · código · dónde · docente · estado. «Dónde» y «docente» ceden
      ancho; las otras tres tienen el suyo para que se lean en columna. */
-  grid-template-columns: 108px 74px minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  /* La columna del codigo pasa de 74 a 98 px: con «reemplaza a CH 21» debajo,
+     74 px recortaban el identificador del titular —medido: el texto necesita
+     94—, y un identificador a medias es C4. Va fijo y no `max-content` porque
+     cada fila es su propia grilla: dejarlo crecer desalinearia las columnas
+     entre filas, que es peor que el recorte. */
+  grid-template-columns: 108px 98px minmax(0, 1.1fr) minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 3px 0;
@@ -4908,4 +4913,13 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--pulso-text);
+}
+
+/* Una reserva, dicha como reserva, bajo su codigo en la ruta del dia. */
+.mon-profile-page.is-aulas-flow .aulas-ruta-reserva {
+  display: block;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--pulso-text-muted);
 }
