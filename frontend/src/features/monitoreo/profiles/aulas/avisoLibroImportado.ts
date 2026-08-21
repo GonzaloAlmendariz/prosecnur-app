@@ -18,11 +18,20 @@ export type ResumenLibroImportado = {
   filas_de_control: number;
 };
 
+/**
+ * `atencion` cuando el libro no trajo una hoja o dejó columnas sin leer.
+ *
+ * Con un solo tono, una importación limpia se anunciaba con el mismo ámbar que
+ * una que se dejó columnas con datos sin leer: el rótulo valía igual para dos
+ * diagnósticos opuestos y escondía justo el que pide actuar.
+ */
+export type TonoAviso = "ok" | "atencion";
+
 export function avisoLibroImportado(res: {
   resumen?: Partial<ResumenLibroImportado>;
   hojas_ausentes?: string[];
   control_sin_nombre?: number[];
-}): string {
+}): { texto: string; tono: TonoAviso } {
   const r = res.resumen ?? {};
   const frases: string[] = [];
 
@@ -58,6 +67,10 @@ export function avisoLibroImportado(res: {
     );
   }
 
-  if (!texto.length) return "El libro no traía nada que leer.";
-  return texto.join(" ");
+  const tono: TonoAviso =
+    res.hojas_ausentes?.length || (res.control_sin_nombre?.length ?? 0) > 0 || !texto.length
+      ? "atencion"
+      : "ok";
+  if (!texto.length) return { texto: "El libro no traía nada que leer.", tono };
+  return { texto: texto.join(" "), tono };
 }

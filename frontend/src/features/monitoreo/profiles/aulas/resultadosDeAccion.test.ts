@@ -41,7 +41,10 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
   });
 
   it("el aviso se pinta FUERA de la compuerta de carga", () => {
-    const posAviso = page.indexOf('{aviso ? <div className="aulas-aviso"');
+    // Ancla a la clase y no al JSX entero: el nodo gano un `data-tono` y el
+            // literal exacto dejo de existir sin que cambiara nada de lo que este
+            // test protege.
+    const posAviso = page.indexOf('className="aulas-aviso"');
     const posGate = page.indexOf("{loading ? (");
     expect(posAviso).toBeGreaterThan(-1);
     expect(posGate).toBeGreaterThan(-1);
@@ -56,7 +59,8 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     // La frase se mudó a `avisoLibroImportado` —tiene reglas y se prueba en su
     // propio test—, pero lo que este aserto protege sigue igual: el resultado
     // de una importación que funcionó va al aviso, nunca al error.
-    expect(page).toContain("setAviso(avisoLibroImportado(res))");
+    expect(page).toContain("avisoLibroImportado(res)");
+    expect(page).toContain("setAviso(anuncio.texto)");
     expect(page).not.toMatch(/setError\(\s*avisoLibro/);
     expect(page).not.toContain("setError(`El libro");
   });
