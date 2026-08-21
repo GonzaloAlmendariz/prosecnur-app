@@ -65,11 +65,40 @@ Calcular → Seleccionar cursos-horario.
 - «El alias del tipo de curso desbloqueaba la radiografía»: no era el bloqueo; el
   alcance se corrigió en `a84634c3`.
 
-## Decisión abierta de Gonzalo
+## Decisiones abiertas de Gonzalo
+
+### 1. El reparto no se regenera y deja el cálculo sin salida
 
 Un estudio cuyo componente declara una facultad que el marco no puede cubrir
 **no tiene salida desde la interfaz**: el reparto solo se regenera al calcular, y
-calcular es justo lo que el desajuste bloquea. Ocurre con los datos reales sin
-tocar nada raro. Opciones: podar los estratos inexistentes al construir el marco;
-ignorar con aviso las facultades sin aulas; o una acción explícita para quitarlas
-del reparto. Toca el reparto de cuotas, así que no se ejecuta sin su palabra.
+calcular es justo lo que el desajuste bloquea.
+
+No es un caso raro. **Se dispara con la acción que la propia app ofrece**:
+excluir facultades que no participan (Marco › Cursos-horario). Medido — con el
+marco reducido a tres facultades, el cálculo se bloquea porque el componente
+sigue declarando quince. Y ocurre igual sin tocar nada, porque el preset declara
+una facultad a la que el marco 2026-2 no da aulas elegibles.
+
+Opciones: podar los estratos inexistentes al construir el marco; ignorar con
+aviso las facultades sin aulas; o una acción explícita para quitarlas del
+reparto. Toca el reparto de cuotas, así que no se ejecuta sin su palabra.
+
+### 2. Comparar métodos no cabe en el techo de tiempo
+
+Con un marco de este tamaño la comparación **no puede completarse**: el
+seguimiento del navegador se rinde a los 30 minutos y, al hacerlo, cancela el
+trabajo (deliberado: no dejar procesos huérfanos). Medido: 47 % a los ~35 min,
+estimado ~75 min para 68 corridas.
+
+Dato para no decidir a ciegas: **el recorte automático ya existe y ya actuó** —
+el motor limita el costo a 60.000 (aulas × corridas) con piso de diez, y con
+3.490 aulas eso dio 17 corridas, bajando de 500. Como el presupuesto mantiene el
+producto constante, **reducir el marco no acorta el tiempo**. Y la interfaz no
+ofrece elegir menos corridas.
+
+Salidas reales: subir o parametrizar el techo de 30 minutos; bajar el
+presupuesto de costo del comparador; o dar control de corridas al usuario.
+
+*Mientras estas dos sigan abiertas, el sorteo y todo lo que va después
+(Solidez, Reemplazos, Entrega con selección) no se pueden recorrer de punta a
+punta con un marco de este tamaño.*
