@@ -122,14 +122,17 @@ export function ResumenDiseno({
   const sobremuestraOperativa = resultReady && Number.isSafeInteger(rawOperational) && Number(rawOperational) >= 0
     ? Number(rawOperational)
     : null;
+  // Vocabulario de la pantalla, no del código: aquí decía «frame» —inglés en
+  // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
+  // hacer. Los estados que piden acción la nombran: «recalcula».
   const resultNote = resultReady
-    ? `${resultModel.selection.shortLabel} · R · frame vigente`
+    ? `${resultModel.selection.shortLabel} · R · marco vigente`
     : resultModel.state.kind === "stale"
-      ? `${resultModel.selection.shortLabel} · R · frame anterior`
+      ? `${resultModel.selection.shortLabel} · R · marco anterior · recalcula`
       : resultModel.state.kind === "invalid"
         ? `${resultModel.selection.shortLabel} · R · resultado inválido`
         : resultModel.state.kind === "legacy"
-          ? `${resultModel.selection.shortLabel} · contrato anterior`
+          ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
           : `${resultModel.selection.shortLabel} · falta calcular`;
 
   const metrics: SummaryMetric[] = [
