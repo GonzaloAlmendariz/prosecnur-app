@@ -4645,3 +4645,20 @@ DECISIONES DE GONZALO EN MESA: Derecho 0,97x (+1 aula o cadena) ·
 regla de reserva (mitad) · motor cube vs pool_controlado (recomendacion
 nueva del comparador re-acreditado) · ADR un-solo-dueno (~9 apariciones
 de la familia en el dia) · EEE. Working tree limpio en el area propia.
+
+### 2026-08-20: VEREDICTO DEL PEER — el viaje completo PASA (cierre externo de la serie)
+
+Monitoreo recorrio los cuatro tramos con la copia anonimizada: handoff
+2.616 filas con los diez campos (facultad_k 2.002, exacto a lo
+anunciado) → whitelist sin perdidas → guardar/reabrir su .pulso (12,7MB)
+sin perdidas → payload con la ecuacion condicional cuadrando en
+2.616/2.616 (ninguna fila necesito la forma con p_aplicada; CH1: 53 ×
+0,409 × 1 = 21,68 vs meta 21,7).
+
+MATIZ PARA AUDITORIAS FUTURAS (no es defecto): en la frontera del
+handoff, `efectivas_esperadas` se RENOMBRA a `expected_valid` (el
+canonico del lado Monitoreo); valor identico fila a fila (dif. max 0,
+cruzado por operational_code). Quien audite un .pulso de Monitoreo
+buscando `efectivas_esperadas` no la encontrara — busca
+`expected_valid`. Con esto, la serie 1b queda cerrada TAMBIEN en su
+tramo externo.
