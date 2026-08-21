@@ -68,7 +68,12 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
   // que es lo que el desglose ya hacía debajo.
   const sinEvaluar = v.indeterminadas ?? 0;
   const evaluadas = Math.max(0, aulas - sinEvaluar);
-  const pct = evaluadas > 0 ? Math.round((v.efectivas / evaluadas) * 100) : 0;
+  // Con cero evaluadas NO hay porcentaje. Un «0 %» sobre 0 de 0 se lee como
+  // «ninguna llegó», y lo cierto es que ninguna se ha mirado todavía —el caso
+  // de un estudio que generó su libro y aún no lo llenó—. Es la misma familia
+  // que «un denominador que garantiza la respuesta»: la cifra existe, pero no
+  // mide nada.
+  const pct = evaluadas > 0 ? Math.round((v.efectivas / evaluadas) * 100) : null;
   return (
     <div className="aulas-control-veredicto">
       <p className="aulas-control-titular">
@@ -79,7 +84,7 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
         ) : (
           <><strong>{v.efectivas}</strong> de {evaluadas} aulas efectivas</>
         )}
-        <span> · {pct} %</span>
+        {pct !== null ? <span> · {pct} %</span> : null}
       </p>
       <p className="mon-profile-muted">
         Alcanzaron el 70 % contra los dos denominadores: asistentes elegibles y alumnos elegibles.
