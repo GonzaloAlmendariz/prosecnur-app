@@ -112,11 +112,16 @@ describe("presupuestoVisitas (opción B: el techo manda)", () => {
 
   it("plan = titulares + activaciones esperadas, con estado contra el techo", () => {
     const p = presupuestoVisitas(200, tit(190, 0.935));
-    expect(p?.plan).toBe(202);
-    // 202 sobre techo 200: EXCEDIDO aunque sea por poco — decirlo claro es
-    // el punto del presupuesto. Rozando = dentro pero a ≤5 del techo.
-    expect(p?.estado).toBe("excedido");
-    expect(presupuestoVisitas(205, tit(190, 0.935))?.estado).toBe("rozando");
+    // Semantica corregida (2026-08-20, pregunta de Gonzalo): las GESTIONES
+    // (titulares + activaciones de cadena) son otra cuenta que la vara del
+    // techo; el techo juzga VISITAS FISICAS (titulares + reintentos en aula,
+    // 2/196 medido 2025). 190 titulares -> 2 reintentos -> 192 fisicas.
+    expect(p?.gestiones).toBe(202);
+    expect(p?.visitasFisicas).toBe(192);
+    expect(p?.estado).toBe("dentro");
+    // El estado juzga por fisicas: excedido/rozando contra el techo real.
+    expect(presupuestoVisitas(191, tit(190, 0.935))?.estado).toBe("excedido");
+    expect(presupuestoVisitas(195, tit(190, 0.935))?.estado).toBe("rozando");
     expect(presupuestoVisitas(240, tit(190, 0.935))?.estado).toBe("dentro");
   });
 
@@ -128,6 +133,6 @@ describe("presupuestoVisitas (opción B: el techo manda)", () => {
   it("sin calibración declara que no puede estimar, sin inventar activaciones", () => {
     const p = presupuestoVisitas(200, [{ otra: 1 }, { otra: 2 }] as never);
     expect(p?.activacionesEsperadas).toBeNull();
-    expect(p?.plan).toBeNull();
+    expect(p?.gestiones).toBeNull();
   });
 });

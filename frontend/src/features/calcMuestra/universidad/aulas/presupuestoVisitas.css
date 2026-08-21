@@ -81,3 +81,13 @@
 
 /* V7: la tabla de tasas de aplicacion vive en el presupuesto (su casa). */
 .cmv2-presup-docentes { margin-top: 10px; max-width: 560px; }
+
+/* Las gestiones de contacto: otra cuenta que la vara del techo (2026-08-20). */
+.cmv2-presup-gestiones {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+  max-width: 78ch;
+}
+.cmv2-presup-gestiones b { color: var(--pulso-text-soft); }

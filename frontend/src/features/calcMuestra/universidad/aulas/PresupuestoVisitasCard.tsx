@@ -11,10 +11,27 @@ import { efectividadExplicada, etiquetaDocente } from "./efectividadExplicadaMod
 import "./docenteUnico.css";
 import "./presupuestoVisitas.css";
 
+/** De 196 aulas agendadas en 2025, solo 2 no se aplicaron estando ya en
+ *  campo: casi toda la caida ocurre en contacto/agenda, SIN viaje. La vara
+ *  del techo son las VISITAS FISICAS; las gestiones son otra cuenta. */
+const TASA_REINTENTO_EN_AULA_2025 = 2 / 196;
+
 export function presupuestoVisitas(
   techo: number | null | undefined,
   titulares: ReadonlyArray<Record<string, unknown>>,
-): { techo: number; titulares: number; activacionesEsperadas: number | null; plan: number | null; estado: "dentro" | "rozando" | "excedido" } | null {
+): {
+  techo: number;
+  titulares: number;
+  /** Reintentos fisicos esperados (aula agendada que no se aplica al llegar). */
+  reintentosEsperados: number;
+  /** La vara del techo: titulares + reintentos fisicos. */
+  visitasFisicas: number;
+  /** Activaciones de cadena esperadas (caidas en contacto/agenda, sin viaje). */
+  activacionesEsperadas: number | null;
+  /** Gestiones de agendamiento esperadas: titulares + activaciones. */
+  gestiones: number | null;
+  estado: "dentro" | "rozando" | "excedido";
+} | null {
   const t = Number(techo);
   if (!Number.isFinite(t) || t <= 0 || !titulares.length) return null;
   let caidas = 0;
@@ -27,11 +44,19 @@ export function presupuestoVisitas(
     }
   }
   const activaciones = conDato > 0 ? Math.round(caidas) : null;
-  const plan = activaciones != null ? titulares.length + activaciones : null;
-  const estado = plan == null
-    ? "dentro"
-    : plan > t ? "excedido" : plan >= t - 5 ? "rozando" : "dentro";
-  return { techo: t, titulares: titulares.length, activacionesEsperadas: activaciones, plan, estado };
+  const gestiones = activaciones != null ? titulares.length + activaciones : null;
+  const reintentos = Math.round(titulares.length * TASA_REINTENTO_EN_AULA_2025);
+  const visitasFisicas = titulares.length + reintentos;
+  const estado = visitasFisicas > t ? "excedido" : visitasFisicas >= t - 5 ? "rozando" : "dentro";
+  return {
+    techo: t,
+    titulares: titulares.length,
+    reintentosEsperados: reintentos,
+    visitasFisicas,
+    activacionesEsperadas: activaciones,
+    gestiones,
+    estado,
+  };
 }
 
 export function PresupuestoVisitasCard({
@@ -49,24 +74,23 @@ export function PresupuestoVisitasCard({
         <Gauge size={14} aria-hidden="true" />
         <strong>Presupuesto de visitas: techo {fmtInt(p.techo)}</strong>
         <span>
-          {p.plan != null
-            ? `plan vigente ≈ ${fmtInt(p.plan)} (${fmtInt(p.titulares)} titulares + ${fmtInt(p.activacionesEsperadas ?? 0)} activaciones esperadas según 2025) — ${
-                p.estado === "excedido" ? "EXCEDE el techo" : p.estado === "rozando" ? "roza el techo" : "dentro del techo"
-              }`
-            : `${fmtInt(p.titulares)} titulares; sin calibración para estimar activaciones`}
+          {`visitas físicas esperadas ≈ ${fmtInt(p.visitasFisicas)} (${fmtInt(p.titulares)} titulares + ${fmtInt(p.reintentosEsperados)} reintentos en aula, según 2025) — ${
+            p.estado === "excedido" ? "EXCEDE el techo" : p.estado === "rozando" ? "roza el techo" : "DENTRO del techo"
+          }`}
         </span>
       </header>
-      {p.plan != null && (
+      {p.visitasFisicas != null && (
         <div className="cmv2-presup-carril" role="img"
-          aria-label={`Titulares ${fmtInt(p.titulares)} más ${fmtInt(p.activacionesEsperadas ?? 0)} activaciones esperadas = plan ${fmtInt(p.plan)}, contra un techo de ${fmtInt(p.techo)}`}>
+          aria-label={`Visitas físicas esperadas ${fmtInt(p.visitasFisicas)} (titulares más reintentos en aula) contra un techo de ${fmtInt(p.techo)}`}>
           {(() => {
-            // La barra del presupuesto: se VE cuánto comen los titulares,
-            // cuánto las activaciones y cuánto queda (o cuánto se pasa).
-            const escala = Math.max(p.techo, p.plan ?? 0);
+            // La barra mide la vara del techo: VISITAS FISICAS (titulares +
+            // reintentos en aula). Las gestiones de contacto van aparte.
+            const plan = p.visitasFisicas;
+            const escala = Math.max(p.techo, plan);
             const w = (v: number) => `${(v / escala) * 100}%`;
-            const dentroPlan = Math.min(p.plan ?? 0, p.techo);
+            const dentroPlan = Math.min(plan, p.techo);
             const activacionesDentro = Math.max(0, dentroPlan - p.titulares);
-            const exceso = Math.max(0, (p.plan ?? 0) - p.techo);
+            const exceso = Math.max(0, plan - p.techo);
             return (
               <>
                 <span className="cmv2-presup-seg" data-seg="titulares" style={{ width: w(Math.min(p.titulares, p.techo)) }} />
@@ -84,17 +108,23 @@ export function PresupuestoVisitasCard({
           })()}
         </div>
       )}
-      {p.plan != null && (
-        <p className="cmv2-presup-leyenda">
-          <i data-seg="titulares" /> {fmtInt(p.titulares)} titulares ·{" "}
-          <i data-seg="activaciones" /> {fmtInt(p.activacionesEsperadas ?? 0)} activaciones esperadas
-          {(p.plan ?? 0) > p.techo ? (
-            <>
-              {" "}· <i data-seg="exceso" /> {fmtInt((p.plan ?? 0) - p.techo)} sobre el techo
-            </>
-          ) : (
-            <> · quedan {fmtInt(p.techo - (p.plan ?? 0))} de holgura</>
-          )}
+      <p className="cmv2-presup-leyenda">
+        <i data-seg="titulares" /> {fmtInt(p.titulares)} titulares ·{" "}
+        <i data-seg="activaciones" /> {fmtInt(p.reintentosEsperados)} reintentos en aula
+        {p.visitasFisicas > p.techo ? (
+          <>
+            {" "}· <i data-seg="exceso" /> {fmtInt(p.visitasFisicas - p.techo)} sobre el techo
+          </>
+        ) : (
+          <> · quedan {fmtInt(p.techo - p.visitasFisicas)} de holgura</>
+        )}
+      </p>
+      {p.gestiones != null && (
+        <p className="cmv2-presup-gestiones">
+          Aparte, la <b>gestión de agendamiento</b>: ≈ {fmtInt(p.gestiones)} contactos
+          ({fmtInt(p.titulares)} titulares + {fmtInt(p.activacionesEsperadas ?? 0)} activaciones
+          de cadena esperadas). Casi toda la caída se resuelve en contacto o agenda, sin viajar
+          — medido 2025: de 196 aulas agendadas, solo 2 no se aplicaron estando en campo.
         </p>
       )}
       {(() => {
