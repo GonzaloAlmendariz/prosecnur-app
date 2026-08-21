@@ -67,3 +67,53 @@ referencia. Dos caminos, y la elección es de Gonzalo:
 Mientras tanto, incluso sin selección, el marco ya permite lo importante para la
 estética: los **nombres de curso, docentes, facultades y aulas son reales**, en
 vez de «Docente CH 1».
+
+## L3 — el diseño, con lo que hay medido
+
+Medido el 21/08 sobre el proyecto de trabajo: **los dos lados ya existen**, y el
+esperado está **por aula**, no sólo por facultad.
+
+**Lado esperado — en el plan, 170/170 titulares, sin huecos:**
+
+| campo | rango | para qué |
+|---|---|---|
+| `eligible_n` | 20–44 | alumnos elegibles esperados |
+| `expected_valid` | 0–31 | encuestas efectivas esperadas |
+| `sex_top_1_n` / `sex_top_2_n` | 11–18 / 9–14 | **el reparto por sexo esperado, por aula** |
+
+**Lado obtenido — en el control, 102 de 152 filas llenas:**
+
+| campo | rango |
+|---|---|
+| `sent_total` | 7–45 |
+| `observed_students` | 11–52 |
+| `women_n` / `men_n` | 4–27 / 3–18 |
+
+**Y de ahí sale el hallazgo que da sentido al cambio:** `expected_valid` sobre
+`eligible_n` da justamente el **70 %** del estudio. O sea que `70T`/`70P` no son
+dos columnas cualesquiera: son **ese porcentaje convertido en dos banderas de
+sí/no**. Sustituirlas por el porcentaje esperado, el obtenido y su diferencia no
+pierde nada y dice mucho más — que es exactamente la crítica de fondo.
+
+### Columnas propuestas (sustituyen a `70T`, `70P`, `VALIDO TOTAL`, `VALIDO POBLACION`)
+
+| grupo | columna | de dónde sale |
+|---|---|---|
+| Efectivas | `% EFECTIVAS ESPERADO` | `expected_valid / eligible_n` |
+| | `% EFECTIVAS OBTENIDO` | efectivas del parte `/ eligible_n` |
+| | `DIFERENCIA` | obtenido − esperado, con signo |
+| Sexo | `MUJERES ESPERADAS` / `OBTENIDAS` | `sex_top_1_n` · `women_n` |
+| | `HOMBRES ESPERADOS` / `OBTENIDOS` | `sex_top_2_n` · `men_n` |
+| Elegibles | `ELEGIBLES ESPERADOS` | `eligible_n` |
+| | `ELEGIBLES EFECTIVOS` | **⛔ falta decidir qué es** |
+
+### Las dos cosas que faltan antes de implementar
+
+1. **Qué es «alumno elegible efectivo».** ¿Los que asistieron (`observed_students`,
+   pero asistir no es ser elegible)? ¿Los que respondieron y pasaron el filtro
+   del estudio? Son dos cifras distintas y la diferencia cambia el diagnóstico.
+2. **Compatibilidad con los libros a medio llenar.** El lector empareja por
+   título: si `70T` desaparece de `BASE_CONTROL_CAMPOS`, un libro que el equipo
+   ya tenga con esa columna deja de leerla. Se puede conservar como alias de
+   lectura sin escribirla —la spec ya admite varios títulos por campo— y esa es
+   la opción sin coste, pero conviene decidirlo a propósito y no por inercia.
