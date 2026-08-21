@@ -275,10 +275,24 @@ aulas_libro_grupos_control <- function() {
   })
 }
 
-aulas_libro_hoja_control <- function(unidades) {
+aulas_libro_hoja_control <- function(unidades, control = list()) {
   campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
+  claves <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$campo, character(1))
   grupo <- rep("", length(campos))
   for (g in aulas_libro_grupos_control()) grupo[[g$desde]] <- g$etiqueta
+
+  # **El control ya registrado vuelve al libro.** Se escribian SIETE de las 39
+  # columnas —la identidad y los dos denominadores— y las 32 restantes salian
+  # en blanco «porque las calcula el equipo con sus formulas». El lector las lee
+  # todas, asi que regenerar el libro a mitad de operativo borraba el control de
+  # las aulas que ya lo tenian: medido en el estudio de referencia, 102 de 152
+  # filas con las 24 columnas de conteo, umbrales y cuotas llenas.
+  por_aula <- list()
+  for (r in control) {
+    if (!is.list(r)) next
+    cod <- .calg_txt(r$operational_code, .calg_txt(r$classroom_id))
+    if (nzchar(cod)) por_aula[[cod]] <- r
+  }
 
   titulares <- Filter(function(u) identical(.calg_txt(u$sample_role), "titular"), unidades)
   filas <- lapply(titulares, function(u) {
@@ -294,6 +308,27 @@ aulas_libro_hoja_control <- function(unidades) {
     pon("HORARIO", .calg_txt(u$schedule))
     pon("MATRICULADOS TOTALES", .calg_num_txt(u$enrolled_total))
     pon("MATRICULADOS POBLACION", .calg_num_txt(u$eligible_n))
+
+    # Lo registrado se escribe DESPUES y solo donde trae algo: la identidad la
+    # manda el plan, que es su fuente, y el control manda en lo suyo. Va por la
+    # MISMA spec que usa el lector, asi que ninguna columna puede quedarse fuera
+    # por olvido: si el spec gana un campo, esta vuelta lo escribe sola.
+    reg <- por_aula[[.calg_txt(u$operational_code)]]
+    if (!is.null(reg)) {
+      # Lo que el PLAN ya escribio no se pisa: es la fuente de la identidad y
+      # de los denominadores. Un registro con el nombre de curso de la version
+      # anterior del plan le ganaba al plan y devolvia el nombre viejo. Se mira
+      # que celdas quedaron llenas en vez de repetir aqui la lista de campos de
+      # identidad, que se desincronizaria en cuanto el plan escriba una mas.
+      del_plan <- nzchar(fila)
+      for (k in seq_along(claves)) {
+        if (del_plan[[k]]) next
+        crudo <- reg[[claves[[k]]]]
+        if (is.null(crudo) || length(crudo) != 1L || is.na(crudo)) next
+        valor <- if (is.numeric(crudo)) .calg_num_txt(crudo) else .calg_txt(crudo)
+        if (nzchar(valor)) fila[[k]] <- valor
+      }
+    }
     fila
   })
   as.data.frame(do.call(rbind, c(list(grupo), list(campos), filas)), stringsAsFactors = FALSE)
@@ -303,16 +338,17 @@ aulas_libro_hoja_control <- function(unidades) {
 #'
 #' @param unidades filas del plan (formato largo).
 #' @param path destino `.xlsx`.
+#' @param control filas de «Base de control» ya registradas, que vuelven al libro.
 #' @return la ruta escrita.
 #' @export
-aulas_libro_generar <- function(unidades, path, partes = list()) {
+aulas_libro_generar <- function(unidades, path, partes = list(), control = list()) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
-    `Base de control` = aulas_libro_hoja_control(unidades)
+    `Base de control` = aulas_libro_hoja_control(unidades, control)
   )
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
