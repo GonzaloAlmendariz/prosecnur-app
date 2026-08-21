@@ -106,6 +106,16 @@
   min-height: 30px;
 }
 
+/* Sus CUATRO contenidos son condicionales —chips, desplegable de añadir,
+   «Quitar todos» y el popover de valores—, así que una base sin columnas
+   categóricas filtrables dejaba la barra montada y vacía: 30 px de nada sobre
+   la tabla, medidos por el gate visual. No se condiciona el render en el JSX
+   porque `barraFiltrosRef` cuelga de este div y el popover vive dentro; `:empty`
+   resuelve el caso sin tocar esa mecánica. */
+.cmv2-expb-filtros:empty {
+  display: none;
+}
+
 /* --- chip de filtro activo --- */
 
 /* Dos controles en una píldora —abrir y quitar— separados por una hairline, en
