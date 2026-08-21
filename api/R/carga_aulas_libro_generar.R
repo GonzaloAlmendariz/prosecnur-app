@@ -362,7 +362,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # La hoja larga, para las dinamicas. Va DESPUES de la portada y antes de las
   # hojas de trabajo: quien viene a analizar la encuentra arriba, y quien viene
   # a llenar sigue teniendo las suyas donde estaban.
-  aulas_libro_escribir_datos(wb, unidades)
+  aulas_libro_escribir_datos(wb, unidades, partes = partes, control = control)
   for (nombre in names(hojas)) {
     openxlsx::addWorksheet(wb, nombre)
     openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
