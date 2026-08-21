@@ -34,3 +34,23 @@ describe("avisoDuracionComparacion", () => {
     expect(avisoDuracionComparacion({ aulas: CM_COMPARAR_UMBRAL_LARGO - 1, facultades: 1 }).avisar).toBe(false);
   });
 });
+
+describe("el aviso cuenta las aulas que de verdad se comparan", () => {
+  // Defecto propio, cazado al verificar en vivo: el aviso decía «5.269
+  // cursos-horario» —todas las filas del frame— cuando la comparación trabaja
+  // sobre las 3.373 INCLUIDAS. Un rótulo con otro número, en el mismo commit
+  // que reparaba rótulos con otro número.
+  const contarIncluidas = (filas: Array<{ included?: unknown }>) =>
+    filas.filter((f) => f.included === true).length;
+
+  it("las excluidas por criterios no entran en la cuenta", () => {
+    const filas = [
+      { included: true }, { included: true }, { included: false },
+      { included: undefined }, { included: "true" }, { included: null },
+    ];
+    expect(contarIncluidas(filas)).toBe(2);
+    // Con el total (6) el aviso saltaría; con las incluidas (2) no.
+    expect(avisoDuracionComparacion({ aulas: contarIncluidas(filas) * 1000, facultades: 3 }).avisar).toBe(false);
+    expect(avisoDuracionComparacion({ aulas: filas.length * 1000, facultades: 3 }).avisar).toBe(true);
+  });
+});
