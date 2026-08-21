@@ -4625,3 +4625,23 @@ reabrir → payload de Monitoreo), el tramo del contrato que nuestro lado
 no puede recorrer. Su lado ya soporta las TRES formas de la ecuacion
 (condicional 1b, legado con p, tau_global) con la que reproduce el
 numero declarado.
+
+### 2026-08-20: E25 — CIERRE DE LA SERIE 1b (24 ticks)
+
+Tablero completo: Fase A motor (E1-E6: config-como-datos, anotador
+condicional, tasas por facultad publicadas, certificacion por suma,
+sello 190 verificado, guardian sano) · Fase B Cursos-horario requeridos
+(E7-E12: tarjeta de la tasa por facultad con k y cuenta etiquetada,
+recorrido en 3 pasos, KPI autoexplicativo, reservas bajo una regla,
+contrato de idioma) · Fase C Solidez (E13-E18: radiografia condicional
+de 3 pasos, docente a la capa operativa, presupuesto con vara fisica
+vs gestiones, comparador re-acreditado, contrato de idioma) · Fase D
+cierre (E19-E24: purga del global, aviso estructural a Monitoreo por
+ambos canales, gates R 168/168 + vitest 1.652/1.652, persistencia de
+los 10 campos verificada en el rds, «grafico partido» resuelto con
+barras pareadas, pliego original 8/8, copia anonimizada entregada).
+PENDIENTE EXTERNO: veredicto del peer sobre el viaje completo.
+DECISIONES DE GONZALO EN MESA: Derecho 0,97x (+1 aula o cadena) ·
+regla de reserva (mitad) · motor cube vs pool_controlado (recomendacion
+nueva del comparador re-acreditado) · ADR un-solo-dueno (~9 apariciones
+de la familia en el dia) · EEE. Working tree limpio en el area propia.
