@@ -53,9 +53,9 @@ export type EfectividadExplicada = {
   porTamano: GrupoTamano[];
   totalElegibles: number;
   totalEsperadas: number;
-  /** Σesperadas / Σelegibles-por-aula. OJO: NO es el τ del diseño — es
-   *  τ × P(aplicada); la diferencia es el riesgo de caída que la cadena de
-   *  reemplazos recupera. Medido el 2026-08-20: 0,462 = 0,872 × 0,53. */
+  /** Σesperadas / Σelegibles en lista — la tasa media de efectividad de la
+   *  selección (condicional, V7: el docente no descuenta). Es un resumen de
+   *  control; la vara real vive por facultad y por aula. */
   tasaGlobal: number;
   /** P(aplicada) media ponderada por elegibles. */
   pAplicadaMedia: number;
