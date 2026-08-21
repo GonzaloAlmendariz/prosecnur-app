@@ -13,7 +13,7 @@
  * cuota ÷ (P25 × tasa) → cupos. Un descuadre con el motor se declara.
  */
 import { fmtInt } from "../../sharedCore";
-import { tasasFacultad, type EstratoDimensionado } from "./tasaFacultadModel";
+import { tasasFacultad, type EstratoDimensionado, origenTasaFacultades } from "./tasaFacultadModel";
 import "./tasaFacultad.css";
 
 const pctTasa = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
@@ -29,6 +29,7 @@ export function TasaEfectividadFacultadCard({
   estratos: EstratoDimensionado[] | null;
 }) {
   const filas = tasasFacultad(tasasRaw, estratos);
+  const origen = origenTasaFacultades(filas);
   if (!filas.length) return null;
   const totalCupos = filas.reduce((s, f) => s + (f.cupos ?? 0), 0);
   const conCuenta = filas.filter((f) => f.cuota != null);
@@ -46,7 +47,7 @@ export function TasaEfectividadFacultadCard({
         </span>
       </header>
 
-      <ol className="cmv2-tasafac-lista">
+      <ol className="cmv2-tasafac-lista" data-origen-global={origen}>
         {filas.map((f) => (
           <li key={f.facultad} className="cmv2-tasafac-fila">
             <div className="cmv2-tasafac-nombre">
@@ -54,6 +55,17 @@ export function TasaEfectividadFacultadCard({
               {f.conResidual ? (
                 <span className="cmv2-tasafac-chip" data-origen="historico">
                   medida en el histórico · k={f.k != null ? fmtInt(f.k) : "—"}
+                </span>
+              ) : origen === "general" ? (
+                /* Sin histórico la tasa no se deriva de nada: es la de
+                   referencia del preset, idéntica en todas. Decir «derivada de
+                   su mix» prometía un cálculo propio que no ocurrió. */
+                <span
+                  className="cmv2-tasafac-chip"
+                  data-origen="general"
+                  title="Este estudio todavía no tiene datos propios de efectividad: se usa la tasa de referencia, igual para todas las facultades."
+                >
+                  tasa de referencia, sin datos propios
                 </span>
               ) : (
                 <span className="cmv2-tasafac-chip" data-origen="mix">

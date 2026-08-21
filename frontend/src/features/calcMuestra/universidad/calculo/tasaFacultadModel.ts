@@ -80,3 +80,26 @@ export function tasasFacultad(
     })
     .sort((a, b) => (b.cuota ?? 0) - (a.cuota ?? 0) || b.tasa - a.tasa);
 }
+
+/**
+ * De dónde sale REALMENTE la tasa que se muestra por facultad.
+ *
+ * Había dos etiquetas —«medida en el histórico» o «derivada de su mix de
+ * tamaños»— y un tercer caso sin nombre que es justo el de quien estrena la
+ * app: sin histórico, el factor de cada facultad es 1 y la tasa que se pinta es
+ * la de referencia del preset, plana e idéntica en las quince. Llamar a eso
+ * «derivada de su mix» promete un cálculo propio del estudio que no ocurrió.
+ *
+ * Se distingue por evidencia, no por configuración: si alguna facultad trae
+ * residual medido, hay histórico; si no lo hay pero las tasas difieren, la
+ * derivación por mix de tamaños sí ocurrió; si todas comparten exactamente la
+ * misma, no se derivó nada.
+ */
+export function origenTasaFacultades(
+  filas: Array<{ tasa: number; conResidual: boolean }>,
+): "historico" | "mix" | "general" {
+  if (!filas.length) return "general";
+  if (filas.some((f) => f.conResidual)) return "historico";
+  const primera = filas[0].tasa;
+  return filas.every((f) => Math.abs(f.tasa - primera) < 1e-9) ? "general" : "mix";
+}
