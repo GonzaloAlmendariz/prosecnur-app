@@ -179,6 +179,86 @@ for (c in estudio$componentes) {
 }
 ```
 
+## Cómo se estima la efectividad esperada de cada facultad
+
+```{r efectividad_metodo, results="asis"}
+tf <- bundle$tasas_facultad
+cat("El número de aulas de cada facultad sale de una sola fórmula:\n\n")
+cat("$$\\text{aulas} = \\left\\lceil \\frac{\\text{cuota}}{\\text{alumnos por curso-horario} \\times \\tau} \\right\\rceil$$\n\n")
+cat(paste0(
+  "La cuota es la parte de la sobremuestra operativa que corresponde a la facultad ",
+  "por afijación, y los alumnos por curso-horario son el estadístico declarado sobre ",
+  "sus elegibles. El tercer término, la efectividad esperada $\\tau$, es el que exige ",
+  "sustento: no se observa, se estima.\n\n"))
+cat(paste0(
+  "**Procedimiento: estandarización directa por tamaño de conglomerado.** El aula es ",
+  "la unidad de conglomerado, y su tamaño es el factor que más pesa en cuánto rinde ",
+  "(un aula chica rinde una fracción mayor de sus elegibles que una grande). ",
+  "La estimación se hace en dos capas:\n\n"))
+cat(paste0(
+  "1. **Función de efectividad según tamaño**, estimada sobre el estudio anterior ",
+  "completo, con las aulas de todas las facultades juntas. Es *común a todas*.\n",
+  "2. **Composición por tamaño** de cada facultad, tomada del marco vigente: qué ",
+  "proporción de sus elegibles está en aulas de cada tramo. Es *propia de cada una*.\n\n"))
+cat(paste0(
+  "El producto de ambas da la efectividad esperada de la facultad bajo el supuesto de ",
+  "que se comporta como predice el tamaño de sus aulas. Cuando el estudio anterior ",
+  "aporta suficientes aulas de esa facultad se añade una tercera capa:\n\n"))
+cat(paste0(
+  "3. **Razón observado/esperado**, el cociente entre lo que la facultad rindió de ",
+  "hecho y lo que su composición predecía. Corrige lo que es propio de la facultad ",
+  "más allá de sus tamaños. Se estima sólo con **12 aulas aplicadas o más**; por ",
+  "debajo se fija en 1 (valor neutro).\n\n"))
+cat(paste0(
+  "**Por qué la función de tamaño es común y no por facultad.** Estimarla por ",
+  "facultad exige poblar una celda por cada combinación de facultad y tramo de ",
+  "tamaño. Sobre el estudio anterior, la mayoría de esas celdas quedan vacías o con ",
+  "un puñado de aulas, mientras la estimación común reparte las mismas ",
+  "observaciones entre unos pocos tramos. Se pone en común lo que necesita muchos ",
+  "datos (el efecto del tamaño, sin razón teórica para operar distinto según la ",
+  "facultad) y se deja propio lo que se puede estimar con pocos (un solo parámetro ",
+  "por facultad).\n\n"))
+cat(paste0(
+  "**Sobre el umbral de 12 aulas.** Se evaluó sustituir el corte por un encogimiento ",
+  "parcial, que acerca la razón observado/esperado a 1 cuanto menor es el respaldo en ",
+  "vez de saltar entre dos valores. La descomposición de la varianza mostró que una ",
+  "parte considerable de la dispersión observada entre facultades es error de ",
+  "estimación y no diferencia verdadera, lo que respalda encoger. No se adoptó porque ",
+  "la estimación del error se vuelve poco fiable justamente donde más haría falta: ",
+  "con tres o cuatro aulas, un grupo que casualmente rindió parejo produce una ",
+  "varianza pequeña que el método lee como precisión y pondera de más. El corte duro ",
+  "es menos eficiente y más conservador, y esa es la decisión vigente.\n\n"))
+cat(paste0(
+  "**Sin estudio anterior.** Si el proyecto no declara un histórico, no hay función ",
+  "de tamaño ni razón que estimar: se aplica una tasa de referencia única, igual para ",
+  "todas las facultades, y el documento lo declara como tal.\n\n"))
+```
+
+```{r efectividad_tabla, results="asis"}
+tf <- bundle$tasas_facultad
+if (!is.null(tf) && length(tf)) {
+  df <- do.call(rbind, lapply(tf, function(t) {
+    mix <- t$rendimiento_mix; f <- t$factor_residual
+    data.frame(
+      Facultad = t$facultad,
+      `Aulas en el marco` = t$n_aulas,
+      `Composición por tamaño` = if (is.null(mix) || !is.finite(mix)) "—" else sprintf("%.3f", mix),
+      `Razón O/E` = if (is.null(f) || !is.finite(f) || abs(f - 1) < 1e-9) "1 (neutro)" else sprintf("%.3f", f),
+      `Aulas 2025` = if (is.null(t$facultad_k) || is.na(t$facultad_k)) "menos de 12" else as.character(t$facultad_k),
+      `Efectividad esperada` = sprintf("%.1f%%", 100 * t$tasa),
+      stringsAsFactors = FALSE, check.names = FALSE
+    )
+  }))
+  print(tabla_pulso(df, caption = paste(
+    "Efectividad esperada por facultad. «Composición por tamaño» es la efectividad",
+    "que predice la mezcla de tamaños de sus aulas; «Razón O/E» corrige lo que la",
+    "facultad rindió por encima o por debajo de esa predicción en el estudio anterior.")))
+  cat("\n\n")
+} else {
+  cat("*(El desglose por facultad no está disponible para este estudio: no hay marco de aulas construido.)*\n\n")
+}
+```
+
 ## Aulas/unidades operativas por estrato
 
 ```{r aulas_estratos, results="asis"}

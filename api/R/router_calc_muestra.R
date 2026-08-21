@@ -1249,6 +1249,17 @@ mount_calc_muestra <- function(pr) {
                  "Ejecuta el cálculo antes de generar el reporte.")
       }
 
+      # El desglose de la tasa se resuelve ACÁ: el worker callr no tiene la
+      # sesión, y `aulas_por_estrato` sólo publica el τ ya compuesto.
+      tasas_fac <- tryCatch({
+        af <- s$calc_muestra_aulas_frame$aula_frame
+        if (is.data.frame(af) && nrow(af)) {
+          inc <- af$included
+          if (!is.null(inc)) af <- af[inc %in% TRUE, , drop = FALSE]
+          if (nrow(af)) calc_muestra_aulas_tasas_facultad(af) else NULL
+        } else NULL
+      }, error = function(e) NULL)
+
       ext <- if (formato == "pdf") "pdf" else "html"
       filename <- sprintf("reporte_calc_muestra.%s", ext)
 
@@ -1272,7 +1283,8 @@ mount_calc_muestra <- function(pr) {
         sid    = sid,
         kind   = "calc_muestra_reporte",
         func   = calc_muestra_render_job,
-        args   = list(estudio = estudio, formato = formato),
+        args   = list(estudio = estudio, formato = formato,
+                      tasas_facultad = tasas_fac),
         result_filename = filename,
         on_complete = on_complete
       )

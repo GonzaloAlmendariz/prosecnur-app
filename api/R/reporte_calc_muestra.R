@@ -20,7 +20,8 @@
 reporte_calc_muestra <- function(estudio, output_file,
                                   formato = c("html", "pdf"),
                                   quiet = FALSE,
-                                  progress_path = NULL) {
+                                  progress_path = NULL,
+                                  tasas_facultad = NULL) {
   formato <- match.arg(formato)
 
   if (!requireNamespace("quarto", quietly = TRUE)) {
@@ -62,10 +63,16 @@ reporte_calc_muestra <- function(estudio, output_file,
   # anexo XLSX, asi que el documento que respalda el levantamiento —el que se
   # ensena cuando preguntan como se eligieron las aulas— no lo llevaba. La
   # tabla es fija y no depende de la sesion, asi que siempre se puede publicar.
+  # El desglose de la tasa por facultad (composición por tamaño × razón
+  # observado/esperado) viaja aparte porque `aulas_por_estrato` publica el τ ya
+  # compuesto: sin sus dos términos el reporte enseña un porcentaje y pide que
+  # se le crea. Lo calcula el router, que es quien tiene el marco en sesión;
+  # NULL cuando no hay marco y la sección se omite en vez de inventarla.
   bundle <- list(
     estudio = estudio,
     formato = formato,
     modo = modo,
+    tasas_facultad = tasas_facultad,
     metodologia = tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL)
   )
   path_rds <- file.path(tmp_root, "bundle_calc_muestra.rds")
@@ -156,16 +163,18 @@ reporte_calc_muestra <- function(estudio, output_file,
 #' Función del job de rendering — pensada para `job_submit`.
 calc_muestra_render_job <- function(estudio, formato = "html",
                                      result_path = NULL,
-                                     progress_path = NULL) {
+                                     progress_path = NULL,
+                                     tasas_facultad = NULL) {
   if (is.null(result_path) || !nzchar(result_path)) {
     stop("result_path requerido para el job de reporte.", call. = FALSE)
   }
   reporte_calc_muestra(
-    estudio       = estudio,
-    output_file   = result_path,
-    formato       = formato,
-    quiet         = TRUE,
-    progress_path = progress_path
+    estudio        = estudio,
+    output_file    = result_path,
+    formato        = formato,
+    quiet          = TRUE,
+    progress_path  = progress_path,
+    tasas_facultad = tasas_facultad
   )
   list(ok = TRUE, path = result_path, formato = formato,
        generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
