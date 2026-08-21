@@ -96,4 +96,9 @@ test_that("las hojas de datos se imprimen con su cabecera en cada pagina", {
                  collapse = "")
   # `printTitleRows` se guarda como nombre definido `_xlnm.Print_Titles`.
   expect_match(libro, "Print_Titles")
+  # Y la COLUMNA tambien: en horizontal la hoja se parte por columnas, y sin
+  # repetir la primera —el codigo del aula— la segunda pagina son cifras sin
+  # saber de que aula son. Visto en el PDF: tres paginas y solo la primera
+  # decia el codigo. El rango de columnas se escribe como `$A:$A`.
+  expect_match(libro, "\\$A:\\$A")
 })
