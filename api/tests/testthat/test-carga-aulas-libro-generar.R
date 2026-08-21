@@ -375,17 +375,35 @@ test_that("la hoja de campo tambien repite el codigo al imprimir", {
   paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
 }
 
+# La columna del `% ASISTENCIA` en la hoja de campo, calculada como la calcula
+# el generador: `ID MATCH` + los titulos de agenda + su posicion entre los de
+# campo.
+.col_pct_campo <- function() {
+  1L + length(prosecnurapp:::.calg_titulos_agenda()) +
+    which(prosecnurapp:::.calg_titulos_campo() == "% ASISTENCIA")
+}
+
 test_that("un % de asistencia en 0-1 se ENSEÑA como porcentaje", {
-  st <- .estilos_de(.libro_con_pct(0.61))
-  expect_true(grepl('formatCode="0.0%"', st, fixed = TRUE))
+  # Se resuelve el formato de LA CELDA y no se mira si `styles.xml` contiene
+  # «0.0%»: el libro tiene varias hojas y basta con que otra lo aplique para que
+  # el catalogo lo declare. Este test dejo de discriminar el dia que la hoja
+  # «Datos» empezo a formatear sus porcentajes — quitarle el formato a la hoja
+  # de campo ya no rompia nada—, y se descubrio pasando el mutante despues.
+  expect_identical(
+    formato_de_celda(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)",
+                     .col_pct_campo(), 3),
+    "0.0%"
+  )
 })
 
 test_that("un % que llega en 0-100 NO se formatea como porcentaje", {
   # El control del anterior: con la misma cifra en la otra escala, el formato
   # de porcentaje enseñaria 7650 %. La columna decide por si misma.
-  st <- .estilos_de(.libro_con_pct(76.5))
-  expect_false(grepl('formatCode="0.0%"', st, fixed = TRUE))
-  expect_true(grepl('formatCode="0.0"', st, fixed = TRUE))
+  expect_identical(
+    formato_de_celda(.libro_con_pct(76.5), "Aulas Aplicadas (Campo)",
+                     .col_pct_campo(), 3),
+    "0.0"
+  )
 })
 
 test_that("el semaforo de la hoja de campo cae sobre STATUS DE APLICACIÓN", {
