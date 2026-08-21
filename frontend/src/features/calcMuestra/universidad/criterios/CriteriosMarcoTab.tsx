@@ -39,6 +39,7 @@ import {
 import { ELEGIBLES_POR_AULA_ID } from "../../dominio";
 import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
+import { seleccionActiva } from "../../dominio/criteriosMarco";
 import { marcoCriteriosDesactualizado } from "../shared/frame";
 import { MordidasEstudianteCard } from "./MordidasEstudianteCard";
 import { frameIntegrity, marcoFueConstruido } from "../shared/frameIntegrity";
@@ -303,6 +304,10 @@ export function CriteriosMarcoTab({
   const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
   const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
   const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;
+  // La radiografía se calcula SOBRE los criterios: sin suite activa el motor
+  // no la emite y reconstruir no cambia nada (medido: dos builds de ~40 s sin
+  // efecto). En ese estado la tarjeta debe pedir criterios, no reconstrucción.
+  const sinCriteriosDeclarados = !seleccionActiva(config.criterios_seleccion);
   const marcoNoVerificable = marcoConstruido && integridadFrame.status === "unverifiable";
   const marcoDesactualizado = marcoCriteriosDesactualizado(aulasState?.frame, config.criterios_seleccion, config.teacher_type_orden, {
     config,
@@ -356,9 +361,11 @@ export function CriteriosMarcoTab({
           : !marcoConstruido
             ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
             : criteriosRadiografiaF1Pendiente
-              ? criteriosRadiografiaF1Ausente
-                ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
-                : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
+              ? sinCriteriosDeclarados
+                ? "La radiografía por facultad se calcula sobre los criterios: declara los de al menos una variable para verla."
+                : criteriosRadiografiaF1Ausente
+                  ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
+                  : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
             : marcoDesactualizado
               ? "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
@@ -455,6 +462,7 @@ export function CriteriosMarcoTab({
               onReconstruir={onReconstruir}
               puedeReconstruir={listoParaRecalcular}
               reconstruyendo={reconstruyendo}
+              sinCriteriosDeclarados={sinCriteriosDeclarados}
             />
           ) : null}
           {showAlumno && alumno.length > 0 && radiografiaInline.invalid.length ? (
