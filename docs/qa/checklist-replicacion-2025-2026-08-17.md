@@ -4614,3 +4614,14 @@ titulares; facultad_k con valor en 2.002); su copia (aulas_agenda_larga,
 170 titulares) es de la era réplica-2025, anterior al contrato. Les
 avisé la tolerancia de redondeo (±0,05) y la tercera forma (tau_global)
 para su explicador. Ofrecida copia fresca VÍA ANONIMIZADOR si la piden.
+
+### 2026-08-20: E24 — copia anonimizada entregada a Monitoreo
+
+aulas_plan1b.pulso (9,6 MB) generada con pulso_anonimizar.R (sal fuerte
+de un solo uso, detector «sin PII detectable», ~368k reemplazos) y
+dejada en el scratchpad del peer — copia QA, sin commit. A cambio, el
+peer verificara el VIAJE COMPLETO de los 10 campos (abrir → guardar →
+reabrir → payload de Monitoreo), el tramo del contrato que nuestro lado
+no puede recorrer. Su lado ya soporta las TRES formas de la ecuacion
+(condicional 1b, legado con p, tau_global) con la que reproduce el
+numero declarado.
