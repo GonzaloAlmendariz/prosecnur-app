@@ -294,7 +294,23 @@ aulas_libro_hoja_control <- function(unidades, control = list()) {
     if (nzchar(cod)) por_aula[[cod]] <- r
   }
 
-  titulares <- Filter(function(u) identical(.calg_txt(u$sample_role), "titular"), unidades)
+  # **Titulares Y cualquier aula que ya tenga control registrado.**
+  #
+  # Escribiendo solo titulares, una reserva de cadena ACTIVADA —que se aplico,
+  # tiene parte y tiene su fila de control— perdia esa fila al regenerar el
+  # libro. Medido en el estudio: de 152 filas de control, **22 eran de reservas
+  # y no volvian**. Es la misma regla que la hoja «Aulas Aplicadas (Campo)» ya
+  # aplica desde antes —titular o con parte registrado—; aqui faltaba.
+  #
+  # Las 40 filas de titulares sin control que aparecen al regenerar NO son un
+  # problema: es la hoja ofreciendo la fila para que el equipo la llene.
+  con_control <- vapply(unidades, function(u) {
+    !is.null(por_aula[[.calg_txt(u$operational_code)]])
+  }, logical(1))
+  titulares <- unidades[
+    vapply(unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1)) |
+      con_control
+  ]
   filas <- lapply(titulares, function(u) {
     fila <- rep("", length(campos))
     pon <- function(nombre, valor) {
