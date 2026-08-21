@@ -499,11 +499,18 @@ export function DefBasesTab({
   ];
 
   return (
-    <section className="cmv2-panel cmv2-university-sources" data-qa-geometry-member>
+    <section
+      className="cmv2-panel cmv2-university-sources"
+      // Marcaba `member` sin que ningún grupo lo contuviera: un miembro
+      // huérfano no lo audita nadie. Ahora la sección declara su grupo y sus
+      // bloques internos son los miembros.
+      data-qa-geometry-group="calc-muestra/def-bases"
+      data-qa-geometry-contract="intrinsic"
+    >
       {/* Dos escenarios reales de datos (§3.1.3): base única o dos bases. La
           lectura de una selección ya trabajada no es un tipo de base para armar
           el marco, sino un camino aparte: vive como opción secundaria abajo. */}
-      <div className="cmv2-source-mode-grid cmv2-uni-stagger" role="radiogroup" aria-label="Escenario de datos institucional">
+      <div className="cmv2-source-mode-grid cmv2-uni-stagger" role="radiogroup" aria-label="Escenario de datos institucional" data-qa-geometry-member>
         {UNIVERSITY_SOURCE_MODE_OPTIONS.filter((option) => option.id !== "seleccion_existente").map((option) => (
           <div key={option.id} className="cmv2-defi-mode">
             <button
