@@ -119,10 +119,13 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #' @param columnas_app lista `hoja -> columnas` que llena la app, para teñirlas.
 #' @param agrupados lista `list(hoja, cols)` de columnas plegables.
 #' @param semaforos lista `list(hoja, cols, filas, desde)` de columnas de estado.
+#' @param formatos lista `list(hoja, cols, filas, desde, tipo)` — `tipo` es
+#'   `"fecha"` o `"numero"`.
 #' @export
 aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(),
                                         listas = list(), columnas_app = list(),
-                                        agrupados = list(), semaforos = list()) {
+                                        agrupados = list(), semaforos = list(),
+                                        formatos = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -199,6 +202,25 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     list(texto = "REEMPLAZADA", estilo = openxlsx::createStyle(bgFill = "#EEF0F3", fontColour = "#5B6472")),
     list(texto = "NO APLICADA", estilo = openxlsx::createStyle(bgFill = "#FBEDE3", fontColour = "#8A4B1B"))
   )
+  # **Los números se escriben como números y las fechas como fechas.**
+  #
+  # Todo salía como texto plano, así que Excel no podía ordenar por fecha ni
+  # sumar una columna: «2026-08-11» y «2026-8-9» se ordenaban alfabéticamente y
+  # los matriculados no admitían un total al pie. Ahora la columna lleva su
+  # formato y el dato entra con el tipo que le toca.
+  #
+  # Esto se puede hacer **desde que el lector tolera el serial de Excel**: antes,
+  # formatear una fecha la devolvía al plan como «46245». El orden importa —
+  # primero que la relectura aguante, después la forma.
+  formato_numero <- openxlsx::createStyle(numFmt = "#,##0", halign = "right")
+  formato_fecha <- openxlsx::createStyle(numFmt = "dd/mm/yyyy", halign = "center")
+  for (fm in formatos) {
+    if (!length(fm$cols) || !fm$filas) next
+    estilo <- if (identical(fm$tipo, "fecha")) formato_fecha else formato_numero
+    openxlsx::addStyle(wb, fm$hoja, estilo, rows = seq_len(fm$filas) + fm$desde,
+                       cols = fm$cols, gridExpand = TRUE, stack = TRUE)
+  }
+
   # Sobre las columnas de ESTADO y sólo esas: colgarlo de las validaciones
   # teñía también «MEDIO DE CONTACTO» y «DÍA», que no llevan estos valores. No
   # rompía nada —ninguna celda casaba— pero dejaba reglas donde no significan.

@@ -280,6 +280,26 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
     openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
   }
 
+  # **El formato solo no basta: hay que escribir el dato con su tipo.**
+  #
+  # Una celda de texto «2026-08-11» con formato de fecha SIGUE siendo texto:
+  # Excel no la ordena ni la filtra por rango, y «2026-8-9» se coloca antes que
+  # «2026-08-11» porque compara letra a letra. Se reescriben las columnas de
+  # fecha con su valor tipado; el resto de la hoja se queda como esta.
+  #
+  # Se puede desde que el lector tolera el serial: antes, tipar una fecha la
+  # devolvia al plan como «46245».
+  .calg_tipar_fechas <- function(wb, hoja, datos, cols, desde) {
+    for (col in cols) {
+      if (col > ncol(datos)) next
+      crudo <- as.character(datos[[col]])[-seq_len(desde)]
+      fecha <- suppressWarnings(as.Date(crudo, format = "%Y-%m-%d"))
+      if (!any(!is.na(fecha))) next
+      openxlsx::writeData(wb, hoja, fecha, startCol = col, startRow = desde + 1L,
+                          colNames = FALSE)
+    }
+  }
+
   profundidad <- .calg_profundidad(unidades)
   listas <- list(
     `STATUS MUESTRA` = aulas_libro_status_muestra(profundidad),
@@ -321,6 +341,20 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
          cols = col_status_aplicacion)
   )
 
+  # Que columnas del bloque son numeros y cuales fechas. Por nombre de campo,
+  # como todo lo demas: si el bloque gana una columna, esto no se descoloca.
+  cols_de <- function(campos) unlist(lapply(campos, function(campo)
+    vapply(bloques, function(b) col_en_bloque(campo, b), integer(1))))
+  formatos <- list(
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "fecha",
+         cols = cols_de(c("contact_date", "scheduled_date"))),
+    list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "numero",
+         cols = cols_de(c("enrolled_total", "eligible_n", "contact_attempts")))
+  )
+
+  .calg_tipar_fechas(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
+                     cols_de(c("contact_date", "scheduled_date")), desde = 1L)
+
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
     wb,
@@ -342,7 +376,8 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
         1L + b * AULAS_AGENDADAS_ANCHO_BLOQUE
       )
     )) else list(),
-    semaforos = semaforos
+    semaforos = semaforos,
+    formatos = formatos
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
