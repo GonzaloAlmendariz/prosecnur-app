@@ -30,6 +30,17 @@ export type FilaTasaFacultad = {
   conResidual: boolean;
   k: number | null;
   nAulasMarco: number;
+  /** Elegibles del marco que respaldan la tasa: es su PESO real en el estudio. */
+  elegiblesMarco: number;
+  /**
+   * true cuando la tasa se apoya en tan pocas aulas que es más ruido que
+   * señal. Gonzalo, viendo la lista encabezada por una facultad de 2 aulas:
+   * «no entiendo por qué tienen una tasa de efectividad si el año pasado no se
+   * fue a esas aulas». La tasa se calcula igual —toda aula tiene tramo de
+   * tamaño— pero presentarla sin decir sobre qué se apoya la iguala con las
+   * que descansan en cientos.
+   */
+  respaldoFino: boolean;
   /** Aritmética del dimensionamiento; null cuando el estrato no está. */
   cuota: number | null;
   p25: number | null;
@@ -49,6 +60,15 @@ const num = (v: unknown): number | null => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 };
+
+/**
+ * Debajo de esta cantidad de aulas la tasa de una facultad describe un puñado
+ * de casos, no un patrón. Es el mismo umbral con el que el motor decide si
+ * publica el τ propio de una facultad (`.cm_tau_k_minimo`, 12): si 12 aulas es
+ * el mínimo para creerle al histórico, es también el mínimo para presentar la
+ * tasa del marco sin advertencia.
+ */
+export const UMBRAL_RESPALDO_FINO = 12;
 
 export function tasasFacultad(
   raw: unknown,
@@ -87,13 +107,19 @@ export function tasasFacultad(
         conResidual: t.con_residual,
         k: t.facultad_k,
         nAulasMarco: t.n_aulas,
+        elegiblesMarco: t.elegibles,
+        respaldoFino: t.n_aulas > 0 && t.n_aulas < UMBRAL_RESPALDO_FINO,
         cuota: dim?.cuota ?? null,
         p25: dim?.p25 ?? null,
         cupos: dim?.cupos ?? null,
         cuentaCuadra: dim && cuposLocal != null ? cuposLocal === dim.cupos : null,
       };
     })
-    .sort((a, b) => (b.cuota ?? 0) - (a.cuota ?? 0) || b.tasa - a.tasa);
+    // Orden por PESO, no por tasa. Con la muestra ya calculada manda la cuota;
+    // sin ella mandan los elegibles del marco. Desempatar por tasa ponía
+    // arriba de todo a la facultad más marginal del estudio —dos aulas de 44
+    // elegibles encabezando quince facultades— y eso se lee como un ranking.
+    .sort((a, b) => (b.cuota ?? 0) - (a.cuota ?? 0) || b.elegiblesMarco - a.elegiblesMarco);
 }
 
 /**
