@@ -4885,10 +4885,15 @@ mount_monitoreo <- function(pr) {
       partes <- s$monitoreo_aulas_partes_campo %||%
         ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$partes_campo %||%
         list()
-      aulas_libro_generar(unidades, destino, partes = partes)
+      # Y el control ya registrado, por lo mismo: la hoja tiene 39 columnas y
+      # solo siete salian del plan. Sin esto, regenerar borraba el trabajo de
+      # conteo, umbrales y cuotas de las aulas que ya lo tenian.
+      control <- s$monitoreo_aulas_control %||% list()
+      aulas_libro_generar(unidades, destino, partes = partes, control = control)
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
       list(ok = TRUE, file_id = meta$file_id, filename = nombre,
-           unidades = length(unidades), partes = length(partes))
+           unidades = length(unidades), partes = length(partes),
+           control = length(control))
     })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.

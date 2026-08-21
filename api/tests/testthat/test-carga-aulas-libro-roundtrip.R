@@ -49,9 +49,22 @@
        attendance_pct = 0.38)
 )
 
-.rt_vuelta <- function(plan = .rt_plan(), partes = .rt_partes()) {
+.rt_control <- function() list(
+  # Valores que NO salen de ningun otro sitio del libro: si el generador los
+  # derivara —de los matriculados, de los partes— en vez de devolverlos, no
+  # darian estos numeros.
+  list(operational_code = "CH 1", sent_total = 17, sent_vs_total = 0.5,
+       # `VALIDADOR 1` es una CUENTA, no un nombre: en el estudio real llega
+       # como entero y el lector lo lee como numero.
+       validator_1 = 3, threshold_total = 21, valid_total = 1,
+       women_n = 9, men_n = 8, quota_missing = 4,
+       last_response_day = "2026-08-19")
+)
+
+.rt_vuelta <- function(plan = .rt_plan(), partes = .rt_partes(),
+                       control = .rt_control()) {
   libro <- withr::local_tempfile(fileext = ".xlsx")
-  aulas_libro_generar(plan, libro, partes = partes)
+  aulas_libro_generar(plan, libro, partes = partes, control = control)
   aulas_libro_importar(libro)
 }
 
@@ -222,4 +235,30 @@ test_that("el % de asistencia que puso el equipo vuelve al plan", {
   )
   expect_equal(unname(pct[["CH 1"]]), 0.61)
   expect_equal(unname(pct[["R 4.1"]]), 0.38)
+})
+
+test_that("el control ya registrado NO se borra al regenerar", {
+  # Se escribian SIETE de las 39 columnas y las demas salian en blanco «porque
+  # las calcula el equipo». El lector las lee todas: regenerar el libro a mitad
+  # de operativo borraba conteos, umbrales y cuotas. Medido en el estudio de
+  # referencia: 102 de 152 filas las tenian llenas.
+  v <- .rt_vuelta()
+  codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  fila <- v$control[[which(codigos == "CH 1")[[1]]]]
+  expect_equal(as.numeric(fila$sent_total), 17)
+  expect_equal(as.numeric(fila$validator_1), 3)
+  expect_equal(as.numeric(fila$threshold_total), 21)
+  expect_equal(as.numeric(fila$quota_missing), 4)
+  expect_identical(as.character(fila$last_response_day), "2026-08-19")
+})
+
+test_that("la identidad del aula la manda el PLAN, no el registro", {
+  # El control se escribe DESPUES, asi que hay que comprobar que no pisa la
+  # identidad: un registro con un nombre de curso viejo no debe ganarle al plan.
+  v <- .rt_vuelta(control = list(list(operational_code = "CH 1",
+                                      course_name = "NOMBRE VIEJO", sent_total = 17)))
+  codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
+  fila <- v$control[[which(codigos == "CH 1")[[1]]]]
+  expect_identical(as.character(fila$course_name), "Curso 1")
+  expect_equal(as.numeric(fila$sent_total), 17)
 })
