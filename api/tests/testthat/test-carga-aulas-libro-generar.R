@@ -294,10 +294,15 @@ test_that("la cabecera distingue el titular de cada reserva", {
   utils::unzip(path, exdir = destino)
   estilos <- paste(readLines(file.path(destino, "xl", "styles.xml"), warn = FALSE),
                    collapse = "")
-  # El navy del titular y los dos tonos de reserva.
-  expect_match(estilos, "FF002457")
+  # Los dos tonos de reserva son exclusivos de esta banda, asi que buscarlos en
+  # el catalogo sirve: si desaparecen de aqui, desaparecen del libro.
   expect_match(estilos, "FF1D4F8C")
   expect_match(estilos, "FF2F6BB0")
+  # **El navy NO se busca en el catalogo**: la portada lo usa en su titulo, sus
+  # secciones y su barra de datos, asi que ahi esta pase lo que pase — con el
+  # mutante que se lo quitaba a la cabecera de las hojas, este test seguia
+  # verde. Se comprueba en LA CELDA, que es donde tiene que verse.
+  expect_identical(relleno_de_celda(path, "Aulas Agendadas", 1, 1), "FF002457")
 })
 
 test_that("la banda no rompe la relectura", {
@@ -369,11 +374,6 @@ test_that("la hoja de campo tambien repite el codigo al imprimir", {
   f
 }
 
-.estilos_de <- function(path) {
-  d <- withr::local_tempdir(.local_envir = parent.frame())
-  utils::unzip(path, exdir = d)
-  paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
-}
 
 # La columna del `% ASISTENCIA` en la hoja de campo, calculada como la calcula
 # el generador: `ID MATCH` + los titulos de agenda + su posicion entre los de
