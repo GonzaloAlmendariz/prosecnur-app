@@ -1700,7 +1700,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     status = c(
       if (isTRUE(cfg$anonymous_responses)) "ok" else "review",
       identificadores$status,
-      if (any(huerfanas)) "warning" else "ok",
+      monitoreo_aulas_estado_control(length(huerfanas) > 0L, any(huerfanas), "warning"),
       # **«No se puede comprobar» NO es «correcto».**
       #
       # Sin columna de identificador de respuesta este control no mira nada, y
@@ -1715,18 +1715,27 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # un puntaje de 0 sobre 100 —la peor representatividad que la escala puede
       # expresar— se mostraba como «Correcto».
       .monitoreo_aulas_representatividad_estado(representativity),
-      if (length(quota_status) && any(quota_status %in% c("pendiente", "en_riesgo"))) "warning" else "ok",
+      monitoreo_aulas_estado_control(length(quota_status) > 0L,
+                                     any(quota_status %in% c("pendiente", "en_riesgo")), "warning"),
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
-      if (length(descuadres)) "review" else "ok",
+      monitoreo_aulas_estado_control(length(partes_campo) > 0L, length(descuadres) > 0L),
       # El cruce entre las dos hojas. `ok` cuando coinciden Y cuando no hay con
       # que comparar no se finge que cuadran: eso se dice en el detalle.
-      if (length(cruce$hallazgos)) "review" else "ok",
+      monitoreo_aulas_estado_control(cruce$comparables > 0L, length(cruce$hallazgos) > 0L),
       # Columnas de «Base de control» con datos que la cabecera no bautiza. No
       # es un fallo del lector —adivinar seria peor— pero es informacion del
       # equipo que no entra, y hasta ahora nadie lo decia.
-      if ((cfg$control_sin_nombre %||% 0L) > 0L) "review" else "ok",
+      # Comprobable si HAY hoja: o llegaron filas, o el lector conto columnas
+      # sin nombre en ella —contarlas ya prueba que la hoja existe, y en un
+      # estudio real ese conteo viaja sin las filas—. Pedir solo las filas
+      # apagaba el aviso justo cuando tenia algo que decir; lo cazo
+      # `test-monitoreo-aulas-campos-declarados.R:89`.
+      monitoreo_aulas_estado_control(
+        length(cfg$control %||% list()) > 0L || (cfg$control_sin_nombre %||% 0L) > 0L,
+        (cfg$control_sin_nombre %||% 0L) > 0L
+      ),
       # STATUS MUESTRA con valores que el lector no reconoce. `review` y no
       # `warning` porque se arregla en la hoja o añadiendo el estado, no en
       # campo.
@@ -1735,15 +1744,21 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # una columna que la base no trae —un error de tipeo en la config pasaba
       # por criterio deliberado— y cuando no hay columna y por tanto cuenta
       # TODO, que es una decision que conviene tomar a sabiendas.
-      switch(criterio$modo, declarada_ausente = "review", sin_columna = "review", "ok")
+      monitoreo_aulas_estado_control(nrow(responses) > 0L,
+                                     criterio$modo %in% c("declarada_ausente", "sin_columna"))
     ),
     detail = c(
       "El tablero agrega por aula/collector/link.",
       identificadores$detail,
       if (any(huerfanas)) {
         sprintf("%d respuestas validas no corresponden a ninguna aula del plan.", sum(huerfanas))
-      } else {
+      } else if (length(valid_response)) {
         "Todas las respuestas validas se atribuyeron a un aula del plan."
+      } else {
+        # El estado ya dice `sin_datos`; el texto tiene que decir lo mismo. Con
+        # cero respuestas, «todas se atribuyeron» afirma un recuento que no se
+        # hizo.
+        "Todavia no hay respuestas validas que atribuir a un aula."
       },
       if (!nzchar(respuesta_id_col)) {
         "La fuente no trae identificador de respuesta; no se puede comprobar."
@@ -1781,8 +1796,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
           "%d columnas de la Base de control tienen datos pero su cabecera esta vacia en el Excel, asi que no se leyeron. Ponles nombre en la hoja para que entren.",
           cfg$control_sin_nombre
         )
-      } else {
+      } else if (length(cfg$control %||% list()) || (cfg$control_sin_nombre %||% 0L) > 0L) {
         "Todas las columnas con datos de la Base de control tienen nombre."
+      } else {
+        "El libro todavia no trae la hoja «Base de control» que comprobar."
       },
       monitoreo_aulas_estados_no_reconocidos_texto(estados_raros),
       monitoreo_aulas_criterio_texto(criterio)
