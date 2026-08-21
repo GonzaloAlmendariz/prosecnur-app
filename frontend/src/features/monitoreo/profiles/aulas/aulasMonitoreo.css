@@ -4923,3 +4923,24 @@
   font-weight: 400;
   color: var(--pulso-text-muted);
 }
+
+/* El puente de la ficha a la accion: un boton de texto, no una llamada a la
+   accion — la ficha informa y este enlace lleva a donde se hace. */
+.mon-profile-page.is-aulas-flow .aulas-ficha-acciones {
+  margin: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ficha-acciones button {
+  padding: 5px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 8px;
+  background: var(--pulso-surface-2);
+  font-size: 12px;
+  color: var(--pulso-text);
+  cursor: pointer;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-ficha-acciones button:hover {
+  border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
+  color: var(--pulso-module-monitoring);
+}
