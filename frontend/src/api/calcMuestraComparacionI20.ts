@@ -582,8 +582,8 @@ export function normalizeCalcMuestraComparacionI20(
       data,
       current_frame_hash: currentFrameHash,
       reasons: [currentFrameHash
-        ? "La comparación pertenece a un frame anterior."
-        : "No existe un frame vigente para acreditar la comparación."],
+        ? "La comparación pertenece a un marco anterior."
+        : "No existe un marco vigente para acreditar la comparación."],
     };
   }
   return { kind: "ready", data };

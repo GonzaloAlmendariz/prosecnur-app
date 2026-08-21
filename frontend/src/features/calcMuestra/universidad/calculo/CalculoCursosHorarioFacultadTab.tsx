@@ -110,7 +110,7 @@ export function CalculoCursosHorarioFacultadTab({
             ? "Los criterios del marco cambiaron después del cálculo. Reconfirma Alumnos por CH y recalcula antes de publicar este plan."
             : frameHashVigente
               ? "El resultado pertenece a otro marco. Reconfirma Alumnos por CH y recalcula antes de publicar este plan."
-              : "No existe un frame vigente que acredite este resultado. Reconstruye el marco y recalcula antes de publicar este plan."}
+              : "No existe un marco vigente que acredite este resultado. Reconstruye el marco y recalcula antes de publicar este plan."}
         </AvisoModulo>
       )}
       <section className="cmv2-panel cmv2-ch-panel" data-qa-geometry-member>
