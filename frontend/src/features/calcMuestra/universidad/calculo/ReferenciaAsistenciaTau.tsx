@@ -55,8 +55,8 @@ export function ReferenciaAsistenciaTau({
             <div>
               {/* El símbolo se explica en otro punto de la página, no aquí: un
                   chip suelto con «τ» obliga a buscar su definición. */}
-              <span title="Tasa de rendimiento: proporción de encuestas completas por intento">
-                Rendimiento actual (τ)
+              <span title="Tasa de efectividad: encuestas efectivas por elegible en lista">
+                Tasa de efectividad actual
               </span>
               <strong>{fmtRate(tauActual)}</strong>
             </div>
