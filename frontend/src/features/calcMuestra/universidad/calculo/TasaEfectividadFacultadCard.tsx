@@ -14,6 +14,7 @@
  */
 import { fmtInt } from "../../sharedCore";
 import { tasasFacultad, type EstratoDimensionado, origenTasaFacultades } from "./tasaFacultadModel";
+import { CurvaRendimientoDiagrama } from "./CurvaRendimientoDiagrama";
 import "./tasaFacultad.css";
 
 const pctTasa = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
@@ -41,6 +42,9 @@ export function TasaEfectividadFacultadCard({
   // repetir «sin estrato dimensionado» en cada fila — que se lee como si el
   // problema fuera de la facultad.
   const faltaCalcular = conCuenta.length === 0;
+  // El diagrama necesita los tramos que publica el motor; sin ellos (motor
+  // anterior) queda la prosa corta.
+  const hayDiagrama = filas.some((f) => f.tramos.length > 0);
 
   return (
     <section
@@ -175,12 +179,21 @@ export function TasaEfectividadFacultadCard({
       </ol>
 
       <footer className="cmv2-tasafac-pie">
-        <p>
-          <b>De dónde sale cada tasa</b>: el aula típica de la facultad según su mezcla real de
-          tamaños (las aulas chicas rinden más que las grandes), ajustada por lo que la facultad
-          rindió en el histórico más allá de su mix — solo donde el histórico acumuló base
-          suficiente (chip «medida»); en las demás rige su mix, declarado. La cuenta de cada
-          aula concreta vive en <i>Selección → Solidez → De dónde sale el esperado de cada aula</i>.
+        {/* El diagrama sustituye al párrafo que describía la curva sin
+            mostrarla. Si el motor no publica los tramos vuelve la prosa —
+            corta, la larga era justamente lo que sobraba. */}
+        {hayDiagrama ? (
+          <CurvaRendimientoDiagrama filas={filas} />
+        ) : (
+          <p>
+            <b>De dónde sale cada tasa</b>: el aula típica de la facultad según su mezcla real de
+            tamaños —las chicas rinden más que las grandes—, ajustada por lo que la facultad rindió
+            en el histórico, sólo donde acumuló base suficiente.
+          </p>
+        )}
+        <p className="cmv2-tasafac-pie-nota">
+          La cuenta de cada aula concreta vive en{" "}
+          <i>Selección → Solidez → De dónde sale el esperado de cada aula</i>.
         </p>
         {conCuenta.length > 0 && (
           <p className="cmv2-tasafac-total">
