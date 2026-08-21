@@ -4022,6 +4022,12 @@ calc_muestra_aulas_simular_reemplazos <- function(frame_result, selection_result
   if (!"selection_slot_id" %in% names(selection_df)) selection_df$selection_slot_id <- ""
   if (!"replacement_order" %in% names(selection_df)) selection_df$replacement_order <- vapply(selection_df$wave, .cm_aulas_wave_number, integer(1)) - 1L
   selection_df <- .cm_aulas_assign_operational_codes(selection_df)
+  # El vínculo reserva -> titular viaja duplicado (slot y classroom_id) y sólo
+  # el slot se actualiza cuando el titular de ese slot cambia. Ver el porqué en
+  # `calc_muestra_aulas_profundidad.R`. Va DESPUÉS de asignar códigos para poder
+  # re-derivar también `titular_operational_code`. Idempotente: con el vínculo
+  # sano no toca ninguna fila, por eso se aplica en las tres rutas.
+  selection_df <- .cm_aulas_reparar_vinculo_titular(selection_df)
   roles <- .cm_aulas_role_values(selection_df)
   titulars <- selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE]
   reserves <- selection_df[roles == "chain_reserve", , drop = FALSE]
@@ -4380,6 +4386,12 @@ calc_muestra_aulas_seleccionar <- function(frame_result, config = list(), on_pro
   selection_df$representativity_score <- representativity$representativity_score
   selection_df$representativity_distance <- representativity$weighted_distance
   selection_df <- .cm_aulas_assign_operational_codes(selection_df)
+  # El vínculo reserva -> titular viaja duplicado (slot y classroom_id) y sólo
+  # el slot se actualiza cuando el titular de ese slot cambia. Ver el porqué en
+  # `calc_muestra_aulas_profundidad.R`. Va DESPUÉS de asignar códigos para poder
+  # re-derivar también `titular_operational_code`. Idempotente: con el vínculo
+  # sano no toca ninguna fila, por eso se aplica en las tres rutas.
+  selection_df <- .cm_aulas_reparar_vinculo_titular(selection_df)
 
   public_cols <- c(
     "selection_run_id", "operational_code", "titular_operational_code",
@@ -5008,6 +5020,12 @@ calc_muestra_aulas_demo_hsvg_2025 <- function() {
   selection_df$representativity_score <- representativity$representativity_score
   selection_df$representativity_distance <- representativity$weighted_distance
   selection_df <- .cm_aulas_assign_operational_codes(selection_df)
+  # El vínculo reserva -> titular viaja duplicado (slot y classroom_id) y sólo
+  # el slot se actualiza cuando el titular de ese slot cambia. Ver el porqué en
+  # `calc_muestra_aulas_profundidad.R`. Va DESPUÉS de asignar códigos para poder
+  # re-derivar también `titular_operational_code`. Idempotente: con el vínculo
+  # sano no toca ninguna fila, por eso se aplica en las tres rutas.
+  selection_df <- .cm_aulas_reparar_vinculo_titular(selection_df)
   public_cols <- c(
     "selection_run_id", "operational_code", "titular_operational_code",
     "replacement_chain_code", "operational_sequence",
