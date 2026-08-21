@@ -249,3 +249,77 @@
 
 /* Tabla sola en su carril: sin celda fantasma al lado (2026-08-20). */
 .cmv2-efexp-ref--solo { grid-template-columns: minmax(320px, 620px); }
+
+/* Las tablas hermanas: mitades iguales, tasas con barra, ajuste divergente
+   (feedback de Gonzalo 2026-08-20: «descuadre de magnitudes… muy simplón»). */
+.cmv2-efexp-ref { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); align-items: start; }
+.cmv2-efexp-ref--solo { grid-template-columns: minmax(320px, 620px); }
+
+.cmv2-efexp-tabla-ref th,
+.cmv2-efexp-tabla-ref td { padding: 5px 10px; }
+
+.cmv2-efexp-celda-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.cmv2-efexp-celda-barra span {
+  min-width: 46px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cmv2-efexp-minibar {
+  flex: 1;
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-efexp-minibar b {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+/* Divergente: centro = ×1,00; derecha acento (rinde más), izquierda tenue. */
+.cmv2-efexp-divbar {
+  flex: 1;
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+}
+
+.cmv2-efexp-divbar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--pulso-border-strong, var(--pulso-border));
+}
+
+.cmv2-efexp-divbar b {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+}
+
+.cmv2-efexp-divbar[data-dir="up"] b {
+  left: 50%;
+  background: var(--module-accent, var(--pulso-primary));
+}
+
+.cmv2-efexp-divbar[data-dir="down"] b {
+  right: 50%;
+  background: color-mix(in srgb, var(--pulso-text-muted) 45%, transparent);
+}
