@@ -1115,6 +1115,14 @@
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: start;
+  /* `align-items: start` alinea el ícono con la PRIMERA LÍNEA de su fila;
+     `align-content` centra el BLOQUE de filas en la altura que `min-height`
+     reserva. Sin lo segundo, `normal` equivale a `stretch`: las filas auto
+     crecen y el sobrante se cuela como gaps inflados entre ícono y texto.
+     Medido: no cambia el sobrante inferior que audita el gate —eran 15,78 px
+     antes y después—, reparte el mismo espacio de forma legible. El sobrante
+     lo cierra que el vacío tenga contenido, no que el marco se estire. */
+  align-content: center;
   gap: 10px;
   min-height: 150px;
   padding: 18px;

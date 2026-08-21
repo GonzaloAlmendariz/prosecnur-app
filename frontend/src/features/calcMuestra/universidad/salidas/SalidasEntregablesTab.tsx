@@ -226,7 +226,12 @@ export function SalidasEntregablesTab({
   const { stale: reporteStale, ...reporteCard } = reporte;
 
   return (
-    <div className="cmv2-sal-stack">
+    <div
+      className="cmv2-sal-stack"
+      // Declarada para que el gate visual pueda auditarla.
+      data-qa-geometry-group="calc-muestra/salidas-entregables"
+      data-qa-geometry-contract="intrinsic"
+    >
       <ReporteMetodologicoCard {...reporteCard} />
       {Boolean(reporteStale) && reporte.disponible && (
         <AvisoModulo tone="warn" role="status" compact title="Desactualizado:">

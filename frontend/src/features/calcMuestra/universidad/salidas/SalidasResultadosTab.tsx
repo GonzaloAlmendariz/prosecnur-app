@@ -50,7 +50,12 @@ export function SalidasResultadosTab({
   }
 
   return (
-    <div className="cmv2-sal-stack">
+    <div
+      className="cmv2-sal-stack"
+      // Declarada para que el gate visual pueda auditarla.
+      data-qa-geometry-group="calc-muestra/salidas-resultados"
+      data-qa-geometry-contract="intrinsic"
+    >
       {chartComp && <DistribucionFacultadSexo resultado={chartComp.resultado} />}
 
       <section className="cmv2-panel cmv2-sal-panel cmv2-university-results" aria-label="Tablas de cierre por componente">

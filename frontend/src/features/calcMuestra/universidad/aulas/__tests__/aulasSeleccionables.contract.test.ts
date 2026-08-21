@@ -58,6 +58,27 @@ describe("las pestañas declaran su geometría", () => {
   });
 });
 
+describe("un vacío que nombra un bloqueo ofrece la salida", () => {
+  // `ClassroomEmptyState` acepta `actionLabel`/`onAction` desde siempre y el
+  // 2026-08-21 los cuatro vacíos que la usaban pasaban CERO: una capacidad que
+  // no consume nadie. Peor, el de Pase a Monitoreo decía «genera la selección»
+  // cuando lo que faltaba antes era comparar los métodos — nombraba el bloqueo
+  // equivocado y mandaba al sitio equivocado. La cadena real ya la resuelve
+  // `resolveAulasStageNotice`, que sí trae causa y destino.
+  it("Pase a Monitoreo resuelve su bloqueo con la cadena del módulo", () => {
+    const tab = src("../salidas/SalidasMonitoreoTab.tsx");
+    expect(tab).toContain("resolveAulasStageNotice");
+    expect(tab).toContain("AulasStageNotice");
+    // Sin el navegador el aviso nombra el bloqueo pero no lleva a resolverlo.
+    expect(tab).toContain("onNavigate");
+  });
+
+  it("el desk le pasa el navegador que ya tiene a mano", () => {
+    const desk = src("../UniversidadDesk.tsx");
+    expect(desk).toMatch(/<SalidasMonitoreoTab[^>]*onNavigate=/);
+  });
+});
+
 describe("las cifras de aulas cuentan las seleccionables", () => {
   const SUPERFICIES = ["AulasMetodoTab.tsx", "AulasSeleccionTab.tsx"];
 

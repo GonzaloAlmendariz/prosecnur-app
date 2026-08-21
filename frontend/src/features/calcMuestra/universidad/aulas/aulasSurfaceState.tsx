@@ -19,7 +19,11 @@ export type AulasSurfaceStage =
   | "seleccion"
   | "relato"
   | "reemplazos"
-  | "auditoria";
+  | "auditoria"
+  /* Las pestañas de Salida consumían este resolutor: escribían su propio vacío
+     a mano y al hacerlo perdían la salida. Medido el 2026-08-21: los 4 vacíos
+     de Salida no pasaban `onAction` ni destino, con la cadena ya resuelta acá. */
+  | "salidas-monitoreo";
 
 export type AulasStageNoticeModel = {
   kind:
