@@ -437,6 +437,9 @@ export function CursosHorarioMarcoTab({
   const criteriosRadiografiaF1Lista = criteriosRadiografia?.schema === "calc_muestra_aulas_criterios_radiografia_v2";
   const criteriosRadiografiaF1Pendiente = marcoConstruido && !criteriosRadiografiaF1Lista;
   const criteriosRadiografiaF1Ausente = marcoConstruido && aulasState?.frame?.criterios_radiografia == null;
+  // Misma causa que en Criterios del estudiante: sin suite activa el motor no
+  // emite la radiografía y reconstruir no la produce (calc_muestra_aulas_criterios.R).
+  const sinCriteriosDeclarados = !seleccionActiva(config.criterios_seleccion);
   const marcoNoVerificable = marcoConstruido && integridadFrame.status === "unverifiable";
   const marcoDesactualizado = marcoCriteriosDesactualizado(
     aulasState?.frame,
@@ -808,9 +811,11 @@ export function CursosHorarioMarcoTab({
           : !marcoConstruido
             ? "Aún no has construido el marco: calcula la población y los cursos-horario elegibles."
             : criteriosRadiografiaF1Pendiente
-              ? criteriosRadiografiaF1Ausente
-                ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
-                : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
+              ? sinCriteriosDeclarados
+                ? "La radiografía por facultad se calcula sobre los criterios: declara los de al menos una variable para verla."
+                : criteriosRadiografiaF1Ausente
+                  ? "El marco guardado aún no incluye la radiografía por facultad. Actualízalo para publicar el detalle analítico."
+                  : "La radiografía por facultad no cumple el contrato vigente. Reconstruye el marco para recuperarla."
             : previewBloqueado
               ? previewBloqueado
             : marcoDesactualizado
@@ -921,6 +926,7 @@ export function CursosHorarioMarcoTab({
               onReconstruir={onReconstruir}
               puedeReconstruir={listoParaRecalcular}
               reconstruyendo={reconstruyendo}
+              sinCriteriosDeclarados={sinCriteriosDeclarados}
               /* G40 · La barra de arriba ya dice que falta la radiografía y ya
                  ofrece el único botón que la repone —es literalmente el mismo
                  `onReconstruir`—. La tarjeta de recuperación repetía el aviso
