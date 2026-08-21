@@ -138,7 +138,11 @@ export function criteriosGeneralesDeEstudio({
       claveHistorica: "ratio_sobremuestra",
     },
     {
-      concepto: "Factor de asistencia (τ)",
+      // El mismo numero aparecia en la app con TRES nombres —«tasa de
+      // efectividad» en Propuestas, «rinde alrededor del N%» en Objetivo y
+      // «Factor de asistencia (τ)» aqui—, y la letra griega quedo enterrada en
+      // las superficies desde la serie 1b. Un solo nombre para una sola cosa.
+      concepto: "Tasa de efectividad",
       hoy: fmtCifra(p.tau, 2),
       claveHistorica: "tasa_respuesta_asumida",
     },
