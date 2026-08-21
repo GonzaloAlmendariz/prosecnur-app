@@ -385,7 +385,13 @@ export function aulasKpis(
     // representatividad, que son calidad del dato y no veredicto de aula. Tres
     // estratos de cabecera, 111 px de banda, y el usuario leyéndolos como
     // repetición. Gonzalo: «hay KPIs arriba y abajo, repitiéndose».
-    if (pestana === "base") return [];
+    // El mismo argumento vale para las otras dos pestañas que abren con su
+    // propia cifra: «Registro de campo» encabeza con «196 cursos-horario · 152
+    // con parte en el libro» y «Respuestas abiertas» con el estado de su
+    // pregunta. En las dos, Controles y Alertas son el resumen de la pestaña
+    // VECINA —lo que el motor deriva del corte—, no de lo que ahí se hace, y
+    // ocupaban 90 px de los 600 de alto en portátil.
+    if (pestana === "base" || pestana === "registro" || pestana === "abiertas") return [];
 
     const controles = (dashboard?.validation ?? []) as Array<Record<string, unknown>>;
     const alertas = summarizeAulasValidation(controles);

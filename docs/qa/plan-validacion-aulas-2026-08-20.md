@@ -344,8 +344,18 @@ extensible a todos los monitoreos.
   - **Falta**: el enlace desde la ficha («registrar cómo fue en campo»). La
     ficha vive en una función de render que no puede cambiar de pestaña sin
     tocar su firma; se quitó a medio hacer en vez de dejarlo colgado.
-- **T25** — Pasada de forma sobre Validación entera, con el gate visual en los
-  dos viewports.
+- **T25 ◐ (2026-08-20)** — Pasada de forma sobre las cuatro pestañas de
+  Validación, a 1440×1000 y 1024×600, con las ocho capturas abiertas. Las cuatro
+  en 0 issues.
+  - **Lo que encontró**: la banda «Controles / Alertas» salía en las cuatro,
+    aunque en *Registro de campo* y en *Respuestas abiertas* resume la pestaña
+    **vecina** —lo que el motor deriva del corte—, no lo que ahí se hace. Se
+    llevaba **90 px de los 600** de alto en portátil. Ya existía la excepción
+    para *Base de control* con la cita de Gonzalo —«hay KPIs arriba y abajo,
+    repitiéndose»—; ahora vale para las tres que abren con su propia cifra.
+  - **Medido después**: a 1024×600 el registro entra entero —lista de aulas y
+    estado del formulario— donde antes quedaba fuera de pantalla.
+  - **Sigue ◐**: la forma la cierra Gonzalo, no el gate.
 
 ## Lo aprendido al medir (2026-08-20)
 
