@@ -595,6 +595,7 @@ export function UniversidadDesk({
                 onTitulo={onTitulo}
                 onContexto={onContexto}
                 onWorkspace={onWorkspace}
+                onNavigate={onNavigate}
               />
             </div>}
             {/* D10: Fuentes declara y construye; Consistencia califica el

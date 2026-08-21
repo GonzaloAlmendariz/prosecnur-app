@@ -244,6 +244,31 @@
   color: var(--pulso-success-fg);
 }
 
+/* El paso siguiente se puede DAR, no solo leer: el panel izquierdo son
+   iconos sin rótulo y a quien entra por primera vez «ve la pestaña Fuentes»
+   le deja el trabajo de adivinar cuál de los seis lo es. */
+.cmv2-defi-hero-ir {
+  flex: none;
+  margin-left: 2px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--pulso-success-fg) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-success-fg) 10%, transparent);
+  color: var(--pulso-success-fg);
+  font: inherit;
+  font-weight: var(--pulso-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.cmv2-defi-hero-ir:hover {
+  background: color-mix(in srgb, var(--pulso-success-fg) 18%, transparent);
+}
+
+.cmv2-defi-hero-ir:focus-visible {
+  outline: 2px solid var(--pulso-focus-ring, var(--pulso-success-fg));
+  outline-offset: 2px;
+}
+
 .cmv2-defi-hero-guide {
   display: grid;
   gap: 6px;
