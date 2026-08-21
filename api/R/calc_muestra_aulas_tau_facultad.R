@@ -17,6 +17,37 @@
 # (k=23) muy por debajo; C&I 0.538 (k=40) ≈ global. Seis facultades
 # publicables; nueve con k<12 caen al global.
 
+# POR QUÉ 12 Y POR QUÉ UN CORTE DURO, evaluado el 2026-08-21 sobre HSVG2026
+# a pedido de Gonzalo. Se midió la alternativa —encogimiento parcial, que en vez
+# de saltar de 1 al valor crudo acerca la razón O/E a 1 cuanto menos respaldo
+# tiene— con Bayes empírico sobre las 194 aulas aplicadas de 2025:
+#
+#   varianza observada entre facultades  0,0301
+#   error medio de estimación            0,0203
+#   varianza REAL entre facultades (τ²)  0,0099   -> sd ≈ 0,10
+#
+# Es decir: DOS TERCIOS de las diferencias que hoy se ven entre facultades son
+# ruido de estimación, no diferencia verdadera. Eso es un argumento A FAVOR de
+# encoger, y el corte duro tiene además una incoherencia demostrada: ARTES
+# ESCÉNICAS (k=11) se estima con MENOS error que ARTE Y DISEÑO (k=12) —se 0,067
+# contra 0,086— y sin embargo recibe razón neutra mientras la otra recibe la
+# suya entera. El umbral corta por el CONTEO, no por la precisión.
+#
+# Aun así NO se aplica, por dos razones medidas:
+#
+#  1. El beneficio es chico: 190 titulares contra 192, y sólo 5 facultades se
+#     mueven (ARQ -1, C&I +1, DERECHO +2, EGL +1, GASTRONOMÍA -1).
+#  2. La fórmula ingenua premia la casualidad. GASTRONOMÍA, con k=3, recibiría
+#     peso 0,93 —más que C&I con k=40— porque sus tres aulas rindieron parecido
+#     y la varianza muestral de tres observaciones no mide nada. Su tasa saltaría
+#     de 0,6464 a 0,8518 y perdería un aula.
+#
+# Aplicarlo exige una salvaguarda explícita para k pequeño (encoger también la
+# estimación del error, o capar el peso por k). Mientras no exista, el corte duro
+# es peor en teoría y más seguro en campo, y esa es la decisión vigente.
+#
+# Guion para retomarlo: scratchpad `encogimiento.R` e `impacto.R` de la sesión
+# del 2026-08-21 reproducen las tres tablas sobre el .pulso de trabajo.
 .cm_tau_k_minimo <- 12L
 
 #' τ propio por facultad desde las filas de cadenas de la referencia

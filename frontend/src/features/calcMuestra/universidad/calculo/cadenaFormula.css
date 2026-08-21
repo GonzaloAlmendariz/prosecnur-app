@@ -5,9 +5,14 @@
   margin: 6px 0 0;
 }
 
+/* Una fórmula se lee en UNA línea o no se lee: con `wrap`, «titulares» saltaba
+   solo a un segundo renglón y el resultado quedaba huérfano del operador que lo
+   produce (Gonzalo, 2026-08-21, señalando la sección). En vez de envolver, las
+   piezas se comprimen y su glosa envuelve por dentro; el wrap se recupera sólo
+   cuando el ancho ya no da para comprimir sin romper la lectura. */
 .cmv2-cadfor-linea {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: stretch;
   gap: 6px;
   margin: 0;
@@ -15,12 +20,27 @@
   list-style: none;
 }
 
+@media (max-width: 860px) {
+  .cmv2-cadfor-linea {
+    flex-wrap: wrap;
+  }
+}
+
 .cmv2-cadfor-grupo {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: stretch;
   gap: 6px;
   min-width: 0;
+  /* El paréntesis es lo que más ocupa y lo que mejor tolera comprimirse: cede
+     antes que la entrada y la salida, que son los extremos que dan sentido. */
+  flex: 1 1 auto;
+}
+
+@media (max-width: 860px) {
+  .cmv2-cadfor-grupo {
+    flex-wrap: wrap;
+  }
 }
 
 .cmv2-cadfor-pieza {
@@ -44,6 +64,18 @@
   font-size: 9.5px;
   line-height: 1.3;
   color: var(--pulso-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Los extremos declaran qué entra y qué sale: no se comprimen. */
+.cmv2-cadfor-pieza[data-rol="entrada"],
+.cmv2-cadfor-pieza[data-rol="salida"] {
+  flex: 0 0 auto;
+}
+
+.cmv2-cadfor-op,
+.cmv2-cadfor-parentesis {
+  flex: 0 0 auto;
 }
 
 /* Entrada y salida marcan los extremos de la cadena; los factores del medio

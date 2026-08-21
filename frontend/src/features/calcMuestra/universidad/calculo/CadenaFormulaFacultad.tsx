@@ -51,7 +51,7 @@ export function CadenaFormulaFacultad({
           <span className="cmv2-cadfor-op" aria-hidden="true">×</span>
           <span className="cmv2-cadfor-pieza" data-rol="factor">
             <b>tasa de efectividad</b>
-            <small>tamaño de sus aulas × su histórico</small>
+            <small>composición × razón O/E</small>
           </span>
           <span className="cmv2-cadfor-parentesis" aria-hidden="true">)</span>
         </li>
