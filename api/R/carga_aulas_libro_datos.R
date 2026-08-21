@@ -30,13 +30,49 @@
 #' @param unidades filas del plan.
 #' @return `data.frame` con columnas únicas y tipos ya resueltos.
 #' @export
-aulas_libro_hoja_datos <- function(unidades) {
+aulas_libro_hoja_datos <- function(unidades, partes = list(), control = list()) {
   if (!length(unidades)) {
     return(data.frame(
       `Curso-horario` = character(0), Titular = character(0), Papel = character(0),
       check.names = FALSE, stringsAsFactors = FALSE
     ))
   }
+  # **Los hechos de campo y de control tambien entran, o la dinamica no sirve.**
+  #
+  # Con solo las columnas del plan se puede contar aulas por facultad, pero no
+  # se puede preguntar cuantas efectivas hubo por facultad ni que proporcion
+  # supero el umbral — que es a lo que se hace una dinamica en este estudio.
+  #
+  # De un aula con varios intentos manda el ULTIMO que registro algo: es el que
+  # cuenta como aplicacion. Los anteriores viven en la hoja de campo, que es
+  # donde se sigue el historial; aqui hay una fila por aula.
+  por_aula <- list()
+  for (pt in partes) {
+    if (!is.list(pt)) next
+    cod <- .cald_txt(pt, "operational_code")
+    if (!nzchar(cod)) cod <- .cald_txt(pt, "classroom_id")
+    if (!nzchar(cod)) next
+    previo <- por_aula[[cod]]
+    i_nuevo <- .cald_num(pt, "intento")
+    i_previo <- if (is.null(previo)) -Inf else .cald_num(previo, "intento")
+    if (is.null(previo) || !is.finite(i_previo) ||
+        (is.finite(i_nuevo) && i_nuevo >= i_previo)) por_aula[[cod]] <- pt
+  }
+  ctl_aula <- list()
+  for (r in control) {
+    if (!is.list(r)) next
+    cod <- .cald_txt(r, "operational_code")
+    if (!nzchar(cod)) cod <- .cald_txt(r, "classroom_id")
+    if (nzchar(cod)) ctl_aula[[cod]] <- r
+  }
+  reg <- function(mapa) function(u) {
+    mapa[[.cald_txt(u, "operational_code")]] %||% list()
+  }
+  del_parte <- reg(por_aula)
+  del_control <- reg(ctl_aula)
+  tx <- function(f, k) vapply(unidades, function(u) .cald_txt(f(u), k), character(1))
+  nm <- function(f, k) vapply(unidades, function(u) .cald_num(f(u), k), numeric(1))
+
   papel <- function(u) {
     switch(.cald_txt(u, "sample_role"),
            titular = "Titular",
@@ -72,6 +108,33 @@ aulas_libro_hoja_datos <- function(unidades) {
     }, numeric(1)), origin = "1970-01-01"),
     Hora = vapply(unidades, .cald_txt, character(1), "scheduled_time"),
     `Sesiones y aula` = vapply(unidades, .cald_txt, character(1), "label"),
+
+    # Del parte de campo. **Los cuatro hechos que las DOS hojas registran van
+    # con el nombre de su hoja detras**: el cruce de las dos fuentes ya midio
+    # que discrepan —el revisor corrige cuentas del parte— y una columna sola
+    # llamada «Asistentes» obligaria a elegir en silencio cual gana.
+    `Asistentes (parte)` = nm(del_parte, "observed_students"),
+    `% asistencia (parte)` = nm(del_parte, "attendance_pct"),
+    Rechazos = nm(del_parte, "refusals"),
+    Duplicados = nm(del_parte, "duplicates"),
+    Efectivas = nm(del_parte, "effective_surveys"),
+    `Aplicador (parte)` = tx(del_parte, "applied_by"),
+    `Estado de aplicacion (parte)` = tx(del_parte, "application_status"),
+
+    # De la base de control.
+    `Asistentes (control)` = nm(del_control, "observed_students"),
+    `% asistencia (control)` = nm(del_control, "attendance_pct"),
+    Enviadas = nm(del_control, "sent_total"),
+    `Cortas` = nm(del_control, "short_total"),
+    `Largas` = nm(del_control, "long_total"),
+    `Umbral 70T` = nm(del_control, "threshold_total"),
+    `Umbral 70P` = nm(del_control, "threshold_population"),
+    `Valido total` = nm(del_control, "valid_total"),
+    `Valido poblacion` = nm(del_control, "valid_population"),
+    Cuota = nm(del_control, "quota_pct"),
+    `Faltantes de cuota` = nm(del_control, "quota_missing"),
+    Mujeres = nm(del_control, "women_n"),
+    Hombres = nm(del_control, "men_n"),
     check.names = FALSE, stringsAsFactors = FALSE
   )
 }
@@ -84,8 +147,9 @@ aulas_libro_hoja_datos <- function(unidades) {
 #' @param tabla nombre de la tabla, el que aparece al crear la dinámica.
 #' @export
 aulas_libro_escribir_datos <- function(wb, unidades, hoja = "Datos",
-                                       tabla = "datos_aulas") {
-  datos <- aulas_libro_hoja_datos(unidades)
+                                       tabla = "datos_aulas", partes = list(),
+                                       control = list()) {
+  datos <- aulas_libro_hoja_datos(unidades, partes, control)
   openxlsx::addWorksheet(wb, hoja)
   openxlsx::writeDataTable(
     wb, hoja, datos, tableName = tabla, tableStyle = "TableStyleMedium2",

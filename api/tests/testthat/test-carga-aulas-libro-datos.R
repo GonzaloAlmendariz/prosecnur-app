@@ -70,3 +70,71 @@ test_that("el libro trae la tabla con nombre, que es lo que pide la dinamica", {
   expect_match(xml, 'name="datos_aulas"')
   expect_match(xml, "autoFilter")
 })
+
+# --- Los hechos de campo y control en la tabla de dinamicas ------------------
+
+.dat_u <- function() list(operational_code = "CH 1", sample_role = "titular",
+                          faculty = "Letras", course_name = "Curso 1",
+                          eligible_n = 30, enrolled_total = 34)
+
+test_that("la tabla trae los hechos de campo y de control, no solo el plan", {
+  # Con solo el plan, una dinamica puede contar aulas por facultad y nada mas:
+  # no puede responder cuantas efectivas hubo ni cuantas pasaron el umbral.
+  d <- aulas_libro_hoja_datos(
+    list(.dat_u()),
+    list(list(operational_code = "CH 1", intento = 1L, observed_students = 22,
+              effective_surveys = 20, application_status = "APLICADA")),
+    list(list(operational_code = "CH 1", sent_total = 21, threshold_total = 21,
+              valid_total = 1, women_n = 9))
+  )
+  expect_equal(d$Efectivas[[1]], 20)
+  expect_identical(d$`Estado de aplicacion (parte)`[[1]], "APLICADA")
+  expect_equal(d$Enviadas[[1]], 21)
+  expect_equal(d$`Valido total`[[1]], 1)
+  expect_equal(d$Mujeres[[1]], 9)
+})
+
+test_that("los hechos que registran las DOS hojas no se colapsan en una columna", {
+  # El cruce de las dos fuentes ya midio que discrepan: el revisor corrige
+  # cuentas del parte. Una columna sola llamada «Asistentes» obligaria a elegir
+  # en silencio cual gana. El control: los dos valores son distintos y los dos
+  # tienen que estar.
+  d <- aulas_libro_hoja_datos(
+    list(.dat_u()),
+    list(list(operational_code = "CH 1", intento = 1L, observed_students = 22,
+              attendance_pct = 0.61, applied_by = "Equipo A")),
+    list(list(operational_code = "CH 1", observed_students = 23,
+              attendance_pct = 0.64))
+  )
+  expect_equal(d$`Asistentes (parte)`[[1]], 22)
+  expect_equal(d$`Asistentes (control)`[[1]], 23)
+  expect_equal(d$`% asistencia (parte)`[[1]], 0.61)
+  expect_equal(d$`% asistencia (control)`[[1]], 0.64)
+})
+
+test_that("de varios intentos manda el ULTIMO que registro algo", {
+  d <- aulas_libro_hoja_datos(
+    list(.dat_u()),
+    list(list(operational_code = "CH 1", intento = 1L, observed_students = 5,
+              application_status = "NO SE APLICO"),
+         list(operational_code = "CH 1", intento = 2L, observed_students = 22,
+              application_status = "APLICADA"))
+  )
+  # Con el primero, la tabla diria que en esa aula hubo 5 asistentes y que no
+  # se aplico: el historial vive en la hoja de campo, aqui hay una fila por aula.
+  expect_equal(d$`Asistentes (parte)`[[1]], 22)
+  expect_identical(d$`Estado de aplicacion (parte)`[[1]], "APLICADA")
+})
+
+test_that("ninguna columna se repite: una Excel Table no lo admite", {
+  # Es la razon de ser de esta hoja —las del libro repiten los veinte titulos
+  # doce veces— y ahora que trae campos de tres fuentes, el choque de nombres
+  # es facil. `writeDataTable` fallaria; que falle aqui y no al generar.
+  d <- aulas_libro_hoja_datos(
+    list(.dat_u()),
+    list(list(operational_code = "CH 1", intento = 1L, observed_students = 22)),
+    list(list(operational_code = "CH 1", observed_students = 23))
+  )
+  expect_identical(anyDuplicated(names(d)), 0L)
+  expect_gt(ncol(d), 30L)
+})
