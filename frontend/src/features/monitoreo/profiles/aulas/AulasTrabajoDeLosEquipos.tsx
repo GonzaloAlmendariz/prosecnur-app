@@ -32,8 +32,13 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
   const r = useMemo(() => produccionPorAplicador(partes), [partes]);
 
   if (!r) {
+    // El vacío declara lo mismo que la rama con datos: es un miembro del grupo
+    // y posee su hueco. Sin esto, en un estudio sin partes de campo el único
+    // miembro visible pasa a ser el encabezado del panel y el gate canta
+    // `capacity-drift` sobre sus 4 px de padding — medido con el plan real,
+    // tres paneles a la vez.
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Los partes no dicen quién aplicó cada aula, así que no hay producción que
         repartir. El aplicador se anota al registrar el aula.
       </p>

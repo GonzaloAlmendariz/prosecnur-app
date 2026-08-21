@@ -38,12 +38,22 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  /* Sin esto, cada `li` toma el ancho de SU contenido y el boton, con
+     `width: 100 %`, hereda ese ancho de mas: con los nombres de curso reales
+     —«HISTORIA Y TEORIA DE LA ARQUITECTURA Y URBANISMO»— desbordaban 80 filas
+     en horizontal. La columna del grid ya esta acotada con `minmax(0, 15rem)`;
+     lo que faltaba era que la lista y sus filas heredaran ese limite. */
+  min-width: 0;
   min-height: 8rem;
   max-height: 20rem;
   overflow-y: auto;
   border: 1px solid var(--pulso-border);
   border-radius: 10px;
   background: var(--pulso-surface-2);
+}
+
+.registro-campo-lista > li {
+  min-width: 0;
 }
 
 .registro-campo-lista > li + li {
@@ -76,6 +86,18 @@
 .registro-campo-item.is-activa {
   background: var(--pulso-module-monitoring-soft);
   box-shadow: inset 2px 0 0 var(--pulso-module-monitoring);
+}
+
+/* Con `align-items: flex-start` los hijos toman su ancho intrinseco y NO se
+   encogen: un nombre de curso real —«HISTORIA Y TEORIA DE LA ARQUITECTURA Y
+   URBANISMO»— hacia mas ancho al hijo que al boton y desbordaba en horizontal.
+   Medido con el plan real: 80 filas desbordadas en cada viewport, invisible con
+   el fixture anterior porque sus cursos se llamaban «Curso CH 1».
+   El techo va aqui y no como elipsis: el nombre del curso es dato operativo y
+   se ajusta en varias lineas (C4). */
+.registro-campo-item > * {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .registro-campo-item-titulo {
