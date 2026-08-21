@@ -63,3 +63,39 @@ export function estadisticoDelReparto(
   }
   return vistos.size === 1 ? Array.from(vistos)[0] : null;
 }
+
+/**
+ * Cómo se anuncia la tasa de efectividad entre los parámetros del diseño.
+ *
+ * Gonzalo, señalando el chip «tasa de efectividad 53%»: «creo que esto ya no es
+ * cierto». Tenía razón: ese 53 % es el parámetro GLOBAL del componente y el
+ * dimensionamiento usa la tasa de CADA facultad —0,4346 en EE.GG. Ciencias,
+ * 0,7385 en Letras y Ciencias Humanas—. Anunciar un número plano entre z, p, e
+ * y deff lo pone al mismo nivel que los parámetros que el analista fijó, cuando
+ * ninguna facultad tiene por qué estar usándolo.
+ *
+ * Si las tasas del reparto difieren, se anuncia el rango y se dice que es por
+ * facultad. Si coinciden con la global, el chip vuelve a ser exacto tal cual.
+ */
+export function resumenTasaEfectividad(
+  estratos: Array<{ tau?: unknown }> | null | undefined,
+  tauGlobal: number,
+): { valor: string; nota: string } {
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const notaGlobal = "valor de referencia heredado del estudio anterior; ajústalo cuando tengas datos propios";
+  const taus: number[] = [];
+  for (const e of estratos ?? []) {
+    const v = Number(e?.tau);
+    if (Number.isFinite(v) && v > 0) taus.push(v);
+  }
+  if (taus.length < 2) return { valor: pct(tauGlobal), nota: notaGlobal };
+  const min = Math.min(...taus);
+  const max = Math.max(...taus);
+  // Un punto porcentual de diferencia no merece anunciarse como rango: se
+  // redondea a lo mismo y el chip quedaría con «53%–53%».
+  if (pct(min) === pct(max)) return { valor: pct(min), nota: notaGlobal };
+  return {
+    valor: `${pct(min)}–${pct(max)}`,
+    nota: `cada facultad dimensiona con la suya; ${pct(tauGlobal)} es la de referencia para las que no tienen datos propios`,
+  };
+}

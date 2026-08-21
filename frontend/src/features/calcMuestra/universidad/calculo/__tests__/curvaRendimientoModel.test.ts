@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { curvaRendimiento, etiquetaPeldano } from "../curvaRendimientoModel";
+import { resumenTasaEfectividad } from "../estadisticoAula";
 
 const fac = (tramos: Array<[number, number, number, number]>) => ({
   tramos: tramos.map(([tasa, n_aulas, desde, hasta]) => ({
@@ -53,5 +54,46 @@ describe("curvaRendimiento", () => {
     expect(etiquetaPeldano(curva[0], false, true)).toBe("hasta 15");
     expect(etiquetaPeldano(curva[1], false, false)).toBe("26 a 35");
     expect(etiquetaPeldano(curva[2], true, false)).toBe("más de 50");
+  });
+});
+
+describe("resumenTasaEfectividad", () => {
+  it("anuncia el rango cuando cada facultad dimensiona con la suya", () => {
+    // Medido en el marco 2026: EE.GG. Ciencias 0,4346 y Letras y Ciencias
+    // Humanas 0,7385. Un chip que dijera «53%» entre z, p, e y deff pondría al
+    // mismo nivel un parámetro que ninguna facultad está usando.
+    const r = resumenTasaEfectividad(
+      [{ tau: 0.4346 }, { tau: 0.5679 }, { tau: 0.7385 }],
+      0.53,
+    );
+    expect(r.valor).toBe("43%–74%");
+    expect(r.nota).toContain("cada facultad");
+    expect(r.nota).toContain("53%");
+  });
+
+  it("si todas coinciden, el chip vuelve a ser exacto tal cual", () => {
+    const r = resumenTasaEfectividad([{ tau: 0.53 }, { tau: 0.53 }], 0.53);
+    expect(r.valor).toBe("53%");
+    expect(r.nota).toContain("valor de referencia heredado");
+  });
+
+  it("sin reparto todavía, o con uno solo, se anuncia la global", () => {
+    expect(resumenTasaEfectividad(null, 0.53).valor).toBe("53%");
+    expect(resumenTasaEfectividad([], 0.7).valor).toBe("70%");
+    expect(resumenTasaEfectividad([{ tau: 0.61 }], 0.53).valor).toBe("53%");
+  });
+
+  it("una diferencia que se redondea a lo mismo no se anuncia como rango", () => {
+    // 0,529 y 0,531 son ambos «53%»: «53%–53%» sería ruido, no información.
+    const r = resumenTasaEfectividad([{ tau: 0.529 }, { tau: 0.531 }], 0.53);
+    expect(r.valor).toBe("53%");
+  });
+
+  it("ignora taus imposibles en vez de arrastrarlos al rango", () => {
+    const r = resumenTasaEfectividad(
+      [{ tau: 0.4 }, { tau: 0 }, { tau: -1 }, { tau: "x" }, { tau: null }, { tau: 0.8 }],
+      0.53,
+    );
+    expect(r.valor).toBe("40%–80%");
   });
 });

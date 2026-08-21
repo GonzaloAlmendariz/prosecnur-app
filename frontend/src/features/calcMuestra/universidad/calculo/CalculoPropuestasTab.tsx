@@ -29,6 +29,7 @@ import { FlujoVertical, FormulaLatex, type FlujoEtapa } from "../ui";
 import { useValorSwap } from "../ui/useValorSwap";
 import { CadenaAfijacion } from "./CadenaAfijacion";
 import { SwapValor, fmtNum } from "./calculoUi";
+import { resumenTasaEfectividad } from "./estadisticoAula";
 import "../../didactica/didactica.css";
 import "./calculo.css";
 
@@ -290,10 +291,18 @@ export function CalculoPropuestasTab({
     // universidad, medido en el estudio anterior). Quien recibe la app veía
     // «τ 53%» sin saber ni qué es ni de dónde viene, y aplicándose a su
     // estudio en silencio.
+    // Y tampoco es UNA tasa: el reparto usa la de cada facultad, así que el
+    // chip anuncia el rango cuando difieren (Gonzalo: «creo que esto ya no es
+    // cierto»).
     {
       label: "tasa de efectividad",
-      value: `${Math.round(safeNumber(g.tau, 0.7) * 100)}%`,
-      nota: "valor de referencia heredado del estudio anterior; ajústalo cuando tengas datos propios",
+      ...(() => {
+        const r = resumenTasaEfectividad(
+          componentes[0].resultado?.aulas_por_estrato as Array<{ tau?: unknown }> | null | undefined,
+          safeNumber(g.tau, 0.7),
+        );
+        return { value: r.valor, nota: r.nota };
+      })(),
     },
   ];
 
