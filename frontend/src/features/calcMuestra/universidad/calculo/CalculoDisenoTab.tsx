@@ -150,8 +150,13 @@ export function CalculoDisenoTab({
   const porFacultadIndep = facultyComp.tecnica === "prob_estratificado_independiente";
 
   return (
-    <div className="cmv2-calc-stack">
-      <section className="cmv2-panel cmv2-calc-diseno-panel">
+    <div
+      className="cmv2-calc-stack"
+      // Declarada para que el gate visual pueda auditarla.
+      data-qa-geometry-group="calc-muestra/calculo-diseno"
+      data-qa-geometry-contract="intrinsic"
+    >
+      <section className="cmv2-panel cmv2-calc-diseno-panel" data-qa-geometry-member>
         <div className="cmv2-panel-head">
           <strong>La fórmula del diseño</strong>
           <span className="cmv2-pill-soft">
