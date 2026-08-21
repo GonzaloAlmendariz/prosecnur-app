@@ -135,12 +135,14 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #'   `"fecha"` o `"numero"`.
 #' @param columnas_repetidas lista `hoja -> n` de columnas que se repiten al
 #'   imprimir; por defecto una.
+#' @param combinar lista `list(hoja, fila, cols)` de bandas a combinar.
 #' @export
 aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(),
                                         listas = list(), columnas_app = list(),
                                         agrupados = list(), semaforos = list(),
                                         formatos = list(),
-                                        columnas_repetidas = list()) {
+                                        columnas_repetidas = list(),
+                                        combinar = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -268,6 +270,17 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
         )
       }
     }
+  }
+
+  # **La banda de grupo se combina en vez de dejar una franja hueca.**
+  #
+  # La fila de grupo escribe la etiqueta en su primera celda y rellena el resto
+  # con vacios, asi que al imprimirla se ve una franja navy enorme con dos
+  # palabras en la esquina y el resto en blanco. Combinadas, la etiqueta ocupa
+  # su bloque y se lee como lo que es: el titulo de ese tramo de columnas.
+  for (mg in combinar) {
+    if (length(mg$cols) < 2L) next
+    openxlsx::mergeCells(wb, mg$hoja, cols = mg$cols, rows = mg$fila)
   }
 
   # **De un golpe: donde acaba el titular y empieza cada reserva.**
