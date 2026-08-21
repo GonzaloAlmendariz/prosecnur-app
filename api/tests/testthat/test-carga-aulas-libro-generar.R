@@ -350,10 +350,17 @@ test_that("la hoja de campo tambien repite el codigo al imprimir", {
   destino <- file.path(tempdir(), paste0("campo_", as.integer(runif(1, 1, 1e6))))
   dir.create(destino)
   utils::unzip(path, exdir = destino)
-  libro <- paste(readLines(file.path(destino, "xl", "workbook.xml"), warn = FALSE),
-                 collapse = "")
-  # Dos hojas con `Print_Titles`: la agenda y la de campo.
-  expect_gte(length(regmatches(libro, gregexpr("Print_Titles", libro))[[1]]), 2L)
+  # **El RANGO de la hoja, no cuantos `Print_Titles` hay en el libro.** Contarlos
+  # no vale: seis hojas los declaran, asi que el conteo se cumple aunque esta
+  # repita la columna equivocada. Con el mutante que la dejaba en `ID MATCH`
+  # —el defecto real que se encontro mirando el PDF— el test seguia verde.
+  hasta <- 1L + which(prosecnurapp:::.calg_titulos_agenda() == "CURSO-HORARIO")
+  expect_identical(
+    columnas_repetidas_de(path, "Aulas Aplicadas (Campo)"),
+    sprintf("$A:$%s", openxlsx::int2col(hasta))
+  )
+  # Y llega mas alla de la primera: `ID MATCH` es un correlativo.
+  expect_gt(hasta, 1L)
 })
 
 # --- El % de asistencia y el semaforo de la hoja de campo -------------------
