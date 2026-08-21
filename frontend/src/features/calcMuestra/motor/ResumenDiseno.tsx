@@ -4,7 +4,7 @@
  * diseño. Vive en el toolbar del módulo, no dentro de una pestaña.
  */
 import { useMemo, type ReactNode } from "react";
-import { BookOpenCheck, ClipboardCheck, RotateCcw, ShieldCheck, Target, Users } from "lucide-react";
+import { BookOpenCheck, ClipboardCheck, RotateCcw, School, ShieldCheck, Target, Users } from "lucide-react";
 import {
   type CalcMuestraAulasState,
   type CalcMuestraEstudio,
@@ -122,6 +122,25 @@ export function ResumenDiseno({
   const sobremuestraOperativa = resultReady && Number.isSafeInteger(rawOperational) && Number(rawOperational) >= 0
     ? Number(rawOperational)
     : null;
+  // El último eslabón, que faltaba (Gonzalo, 2026-08-21): «el KPI donde está
+  // universo, estudiantes elegibles, muestra objetivo y sobremuestra operativa
+  // debería también hacer espacio para el último criterio importante, que es
+  // el número de aulas titulares… así ya cerramos todo el círculo: ya sabemos
+  // el universo, los elegibles, la muestra y las aulas a las que ir».
+  // Se SUMA del reparto por facultad en vez de leer un total aparte: es la
+  // misma cifra que la pestaña de cursos-horario requeridos muestra abajo, y
+  // dos fuentes para el mismo número es justo lo que se viene corrigiendo.
+  const aulasTitulares = (() => {
+    if (!resultReady) return null;
+    const filas = resultModel.component?.resultado?.aulas_por_estrato;
+    if (!Array.isArray(filas) || !filas.length) return null;
+    let total = 0;
+    for (const fila of filas) {
+      const v = Number((fila as { aulas_base?: unknown })?.aulas_base);
+      if (Number.isFinite(v) && v > 0) total += v;
+    }
+    return total > 0 ? total : null;
+  })();
   // Vocabulario de la pantalla, no del código: aquí decía «frame» —inglés en
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
   // hacer. Los estados que piden acción la nombran: «recalcula».
@@ -176,6 +195,13 @@ export function ResumenDiseno({
       value: sobremuestraOperativa,
       note: resultNote,
       icon: <ShieldCheck size={16} aria-hidden="true" />,
+      tone: "operation",
+    },
+    {
+      label: "Aulas titulares",
+      value: aulasTitulares,
+      note: resultNote,
+      icon: <School size={16} aria-hidden="true" />,
       tone: "operation",
     },
   ];
