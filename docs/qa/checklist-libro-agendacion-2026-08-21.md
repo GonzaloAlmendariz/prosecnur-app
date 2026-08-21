@@ -109,9 +109,25 @@ pierde nada y dice mucho más — que es exactamente la crítica de fondo.
 
 ### Las dos cosas que faltan antes de implementar
 
-1. **Qué es «alumno elegible efectivo».** ¿Los que asistieron (`observed_students`,
-   pero asistir no es ser elegible)? ¿Los que respondieron y pasaron el filtro
-   del estudio? Son dos cifras distintas y la diferencia cambia el diagnóstico.
+1. ~~Qué es «alumno elegible efectivo».~~ **RESPONDIDO por Gonzalo (21/08)**:
+   «un elegible efectivo o sólo efectivo es una respuesta efectiva de la
+   plataforma, es decir es una encuesta que se completa y pasa los filtros».
+
+   Es la definición canónica y tiene dos consecuencias que van más allá de esta
+   hoja:
+
+   - **La efectiva se define en la plataforma, no en el parte.** Lo que el
+     aplicador anota (`effective_surveys`) es su cuenta de campo; la efectiva
+     del estudio es la respuesta que llegó y pasó los filtros. Son dos cifras
+     distintas con un nombre parecido, y ésta es la buena.
+   - **Cierra la pregunta que quedó abierta en `7c5b6712`**: el cruce
+     parte↔plataforma compara lo declarado contra `respuestas_validas`, y ése
+     **es** el criterio correcto. Lo había dejado como duda pensando que
+     comparar contra el total recibido sería más fiel; no lo es.
+   - **Cambia la naturaleza de la hoja.** Si la efectiva la define la
+     plataforma, esa columna **la escribe Prosecnur**, no el equipo: la Base de
+     control deja de ser una hoja que se llena a mano y pasa a ser donde la app
+     deja lo que sabe para que el equipo lo lea.
 2. **Compatibilidad con los libros a medio llenar.** El lector empareja por
    título: si `70T` desaparece de `BASE_CONTROL_CAMPOS`, un libro que el equipo
    ya tenga con esa columna deja de leerla. Se puede conservar como alias de
