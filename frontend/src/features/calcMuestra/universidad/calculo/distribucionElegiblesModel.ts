@@ -1,12 +1,20 @@
 /**
- * La distribución de elegibles por aula, por facultad — el dato que el P25
- * resume y que dimensiona el estudio.
+ * La distribución de elegibles por aula, por facultad — el dato del que sale el
+ * número que dimensiona el estudio.
  *
- * Vara de mejora continua (Gonzalo, 2026-08-19): el P25 rige cuántas aulas
- * necesita cada facultad (cuota ÷ (P25 × τ)) pero era INVISIBLE en la UI — la
- * confusión P25-vs-media de hoy no habría existido con esta distribución en
- * pantalla. Cuantiles con interpolación tipo 7 (la de R), igual que el motor;
- * la tarjeta lo declara referencial: el número que rige es el del estrato.
+ * Vara de mejora continua (Gonzalo, 2026-08-19): el estadístico que rige
+ * cuántas aulas necesita cada facultad (cuota ÷ (estadístico × tasa)) era
+ * INVISIBLE en la UI, y la confusión P25-vs-media de entonces no habría
+ * existido con esta distribución en pantalla.
+ *
+ * OJO (2026-08-21): este modelo calcula el P25 porque es lo único que puede
+ * derivar sin el reparto, PERO el divisor real lo elige el analista en Marco ›
+ * Alumnos por CH y puede ser la mediana, la media o el mínimo entre las dos.
+ * Quien pinte esto debe marcar el `avg_conglomerado` del estrato cuando exista
+ * —lo hace `DistribucionElegiblesCard`— y no llamar «P25» al divisor sin
+ * mirarlo: eso fue exactamente el defecto que esta cabecera decía prevenir.
+ *
+ * Cuantiles con interpolación tipo 7 (la de R), igual que el motor.
  */
 type FilaAula = Record<string, unknown>;
 
@@ -67,4 +75,27 @@ export function distribucionElegibles(aulaFrame: FilaAula[] | null | undefined):
   }
   filas.sort((a, b) => a.p25 - b.p25);
   return filas;
+}
+
+/**
+ * Ordena las facultades por el número que DIVIDE de verdad.
+ *
+ * `distribucionElegibles` ordena por P25 porque es lo único que puede derivar
+ * del marco. Cuando el reparto ya existe, el divisor puede ser otro —mediana,
+ * media, mínimo entre las dos— y ordenar por P25 contaría una historia falsa:
+ * el carril promete «las facultades de aulas chicas necesitan más aulas para
+ * la misma cuota», y esa frase sólo es cierta respecto del divisor real.
+ *
+ * Una facultad sin divisor sellado conserva su P25 como clave, para no
+ * mandarla al final por un dato que falta.
+ */
+export function ordenarPorDivisor(
+  filas: DistribucionFacultad[],
+  divisorDe: (facultad: string) => number | null | undefined,
+): DistribucionFacultad[] {
+  const clave = (f: DistribucionFacultad) => {
+    const d = divisorDe(f.facultad);
+    return typeof d === "number" && Number.isFinite(d) && d > 0 ? d : f.p25;
+  };
+  return [...filas].sort((a, b) => clave(a) - clave(b));
 }

@@ -9,7 +9,7 @@
  */
 import { fmtInt } from "../../sharedCore";
 import { tip, tipAria, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
-import { distribucionElegibles } from "./distribucionElegiblesModel";
+import { distribucionElegibles, ordenarPorDivisor } from "./distribucionElegiblesModel";
 import "./distribucionElegibles.css";
 import { estadisticoDelReparto, nombreEstadistico } from "./estadisticoAula";
 
@@ -62,6 +62,15 @@ export function DistribucionElegiblesCard({
   const nombreDivisor = nombreEstadistico(estadistico);
   const hayDivisorSellado = Array.from(porFacultad.values()).some((d) => Number.isFinite(d.divisor));
   if (!filas.length) return null;
+  // El orden también obedece al criterio (Gonzalo: «todos los gráficos y las
+  // visualizaciones de allí deberían hacerle caso a ese criterio»). El modelo
+  // ordena por P25 porque es lo único que puede calcular sin el reparto; si el
+  // reparto está, manda el divisor sellado. La historia que cuenta el carril
+  // —«las facultades de aulas chicas necesitan más aulas para la misma
+  // cuota»— sólo es cierta si ordena por el número que divide de verdad.
+  const filasOrdenadas = hayDivisorSellado
+    ? ordenarPorDivisor(filas, (facultad) => porFacultad.get(facultad.toUpperCase())?.divisor)
+    : filas;
   const escala = Math.max(1, ...filas.map((f) => f.max));
   const x = (v: number) => `${(v / escala) * 100}%`;
   const ancho = (a: number, b: number) => `${Math.max(0.5, ((b - a) / escala) * 100)}%`;
@@ -78,7 +87,7 @@ export function DistribucionElegiblesCard({
         </span>
       </header>
       <ul className="cmv2-distelig-lista" {...manejadores}>
-        {filas.map((f) => {
+        {filasOrdenadas.map((f) => {
           const dim = porFacultad.get(f.facultad.toUpperCase()) ?? null;
           const datosTip = {
             titulo: f.facultad,
