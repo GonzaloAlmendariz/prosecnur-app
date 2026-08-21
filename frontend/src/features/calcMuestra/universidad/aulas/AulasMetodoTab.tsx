@@ -93,7 +93,15 @@ export function AulasMetodoTab({
   const duracion = avisoDuracionComparacion({ aulas: aulasDelMarco, facultades: estratosConCuota });
 
   return (
-    <div className="cmv2-aulas-stack">
+    <div
+      className="cmv2-aulas-stack"
+      // Sin esta declaración el gate visual auditaba sólo el resumen del
+      // toolbar y devolvía «ok=true» sin haber mirado esta pestaña: verde por
+      // ausencia. `intrinsic` porque sus bloques —el héroe de la decisión, el
+      // aviso de duración, la comparación— tienen alturas propias.
+      data-qa-geometry-group="calc-muestra/aulas-metodo"
+      data-qa-geometry-contract="intrinsic"
+    >
       <ClassroomMethodDecisionHero decision={decision} />
 
       {!hayComparacion && duracion.avisar && (

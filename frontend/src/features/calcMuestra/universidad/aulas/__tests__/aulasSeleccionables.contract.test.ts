@@ -23,6 +23,30 @@ const src = (rel: string) => readFileSync(resolve(__dirname, "..", rel), "utf8")
 const sinComentarios = (texto: string) =>
   texto.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
+describe("las pestañas declaran su geometría", () => {
+  // Un `ok=true` del gate visual sobre una pestaña que no declara geometría no
+  // dice que esté bien: dice que no se miró. El 2026-08-21, al declarar
+  // Coincidencia, el gate pasó de verde a rojo y destapó 14 px de espacio
+  // muerto que llevaban ahí desde que las tarjetas pasaron a grid.
+  const declara = (rel: string) => {
+    const txt = src(rel);
+    return txt.includes("data-qa-geometry-group") && txt.includes("data-qa-geometry-contract");
+  };
+
+  it("las superficies ya cubiertas no pierden su declaración", () => {
+    for (const f of [
+      "AulasMetodoTab.tsx",
+      "../calculo/CalculoPropuestasTab.tsx",
+      "../calculo/CalculoCursosHorarioFacultadTab.tsx",
+      "../marco/MarcoPoblacionTab.tsx",
+      "../marco/MarcoAulasTab.tsx",
+      "../salidas/SalidasCoincidenciaTab.tsx",
+    ]) {
+      expect(declara(f), `${f} dejó de declarar su geometría`).toBe(true);
+    }
+  });
+});
+
 describe("las cifras de aulas cuentan las seleccionables", () => {
   const SUPERFICIES = ["AulasMetodoTab.tsx", "AulasSeleccionTab.tsx"];
 

@@ -103,8 +103,14 @@ export function MarcoAulasTab({
   }
 
   return (
-    <div className="cmv2-marco-stack">
-      <section className="cmv2-panel cmv2-marco-aulas-head">
+    <div
+      className="cmv2-marco-stack"
+      // Declarada para que el gate visual pueda auditarla: sin esto devolvía
+      // «ok=true» sin haber mirado la pestaña.
+      data-qa-geometry-group="calc-muestra/marco-aulas"
+      data-qa-geometry-contract="intrinsic"
+    >
+      <section className="cmv2-panel cmv2-marco-aulas-head" data-qa-geometry-member>
         <div className="cmv2-marco-aulas-lead">
           <span className="cmv2-eyebrow">Marco de cursos-horario</span>
           <strong>De la matrícula elegible a las unidades que se pueden seleccionar</strong>

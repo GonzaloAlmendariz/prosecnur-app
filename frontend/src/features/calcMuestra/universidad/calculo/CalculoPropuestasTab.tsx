@@ -307,8 +307,16 @@ export function CalculoPropuestasTab({
   ];
 
   return (
-    <div className="cmv2-calc-stack">
-      <section className="cmv2-panel cmv2-calc-escenarios-panel">
+    <div
+      className="cmv2-calc-stack"
+      // Sin esta declaración el gate visual auditaba sólo el resumen del
+      // toolbar y daba «ok=true» sin haber mirado la pestaña. `intrinsic`
+      // porque sus paneles —las propuestas, los parámetros, las cifras— tienen
+      // alturas propias y no deben igualarse entre sí.
+      data-qa-geometry-group="calc-muestra/calculo-propuestas"
+      data-qa-geometry-contract="intrinsic"
+    >
+      <section className="cmv2-panel cmv2-calc-escenarios-panel" data-qa-geometry-member>
         <div className="cmv2-panel-head">
           <strong>Propuestas de muestra</strong>
           <div className="cmv2-panel-head-actions">
