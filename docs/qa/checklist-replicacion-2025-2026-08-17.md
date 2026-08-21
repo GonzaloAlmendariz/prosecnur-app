@@ -4602,3 +4602,15 @@ E22-E25 como reserva de la serie (feedback de Gonzalo, ajustes finos) y
 las decisiones abiertas: Derecho 0,97×, regla de reserva, cube vs
 pool_controlado (recomendación nueva del comparador), ADR un-solo-dueño,
 EEE.
+
+### 2026-08-20: E22 — intercambio con la nueva sesión de Monitoreo
+
+Su lado ya se adaptó al plan 1b (commit suyo a70a5118): explicador que
+prueba las formas conocidas de la ecuación y declara cuál reproduce el
+número (nada de perseguir ecuaciones); tasa_efectividad_aula entró a su
+whitelist. Su aviso de campos ausentes NO aplica: verificado abriendo
+nuestro state.rds — los 10 campos persisten en las 2.616 filas (190
+titulares; facultad_k con valor en 2.002); su copia (aulas_agenda_larga,
+170 titulares) es de la era réplica-2025, anterior al contrato. Les
+avisé la tolerancia de redondeo (±0,05) y la tercera forma (tau_global)
+para su explicador. Ofrecida copia fresca VÍA ANONIMIZADOR si la piden.
