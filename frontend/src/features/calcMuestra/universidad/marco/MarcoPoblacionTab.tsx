@@ -96,8 +96,14 @@ export function MarcoPoblacionTab({
   }));
 
   return (
-    <div className="cmv2-marco-stack">
-      <section className="cmv2-panel cmv2-marco-poblacion-head">
+    <div
+      className="cmv2-marco-stack"
+      // Declarada para que el gate visual pueda auditarla: sin esto devolvía
+      // «ok=true» sin haber mirado la pestaña.
+      data-qa-geometry-group="calc-muestra/marco-poblacion"
+      data-qa-geometry-contract="intrinsic"
+    >
+      <section className="cmv2-panel cmv2-marco-poblacion-head" data-qa-geometry-member>
         <div className="cmv2-marco-flujo-layout">
           <div className="cmv2-marco-flujo-main cmv2-marco-flujo-stagger">
             <FlujoVertical
