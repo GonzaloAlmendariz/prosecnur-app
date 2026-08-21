@@ -87,6 +87,15 @@ function facultyFor(row: Record<string, unknown>): string {
   return classroomRowText(row, ["faculty", "facultad", "stratum"]) || UNKNOWN_FACULTY;
 }
 
+// La posición en la ruta es el sufijo del código operativo («R 1.3» → 3); el
+// campo `order` es el respaldo. Sin ninguno, el nodo va al final sin reordenar.
+function reserveRouteIndex(node: SelectionMapNode): number {
+  const match = node.code.match(/\.(\d+)\s*$/);
+  const parsed = match ? safeNumber(match[1], 0) : 0;
+  if (parsed > 0) return parsed;
+  return node.order > 0 ? node.order : Number.MAX_SAFE_INTEGER;
+}
+
 /** Devuelve exactamente la fila del payload que el botón del mapa inspecciona. */
 export function selectionMapInspectionTarget(node: SelectionMapNode): Record<string, unknown> {
   return node.row;
@@ -165,6 +174,12 @@ export function buildClassroomSelectionMap(
     };
     if (chain) chain.reserves.push(node);
     else unlinked.push({ faculty: facultyFor(row), node });
+  }
+
+  // El payload llega en orden de sorteo, no de ruta; la superficie promete
+  // «R n.1 → R n.2 → …», así que la ruta se ordena acá, para TODO consumidor.
+  for (const chain of chains) {
+    chain.reserves.sort((a, b) => reserveRouteIndex(a) - reserveRouteIndex(b));
   }
 
   const groupsByFaculty = new Map<string, SelectionMapGroup>();
