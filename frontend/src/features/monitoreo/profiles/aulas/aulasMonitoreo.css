@@ -4897,3 +4897,15 @@
 .mon-profile-page.is-aulas-flow .aulas-falta-cod.es-enlace:hover {
   text-decoration: underline;
 }
+
+/* La salida de una aula con brecha: de donde sale lo que le falto. */
+.mon-profile-page.is-aulas-flow .aulas-ficha-salida {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--pulso-module-monitoring) 22%, var(--pulso-border));
+  border-radius: var(--pulso-radius-card);
+  background: color-mix(in srgb, var(--pulso-module-monitoring) 6%, var(--pulso-surface-2));
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--pulso-text);
+}

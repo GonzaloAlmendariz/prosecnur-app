@@ -1,5 +1,9 @@
+import { useMemo } from "react";
+
+import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { X } from "../../../../vendor/lucide-react";
-import type { FichaDeAula } from "./fichaDeAula";
+import { dondeSeSaca } from "./dondeSeSaca";
+import { fichaDeAula } from "./fichaDeAula";
 
 /**
  * Un aula y todo lo suyo, en una sola lectura.
@@ -16,10 +20,27 @@ import type { FichaDeAula } from "./fichaDeAula";
 
 const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"));
 
-export function AulasFichaDeAula({ ficha, onCerrar }: {
-  ficha: FichaDeAula;
+type Fuentes = {
+  agenda?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  partes?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  control?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  brechas?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+};
+
+export function AulasFichaDeAula({ codigo, fuentes, onCerrar }: {
+  codigo: string;
+  fuentes: Fuentes;
   onCerrar: () => void;
 }) {
+  // Se compone UNA vez y de ahí sale también la facultad con la que se busca la
+  // salida. Calcularla aparte mirando sólo la agenda fue el defecto que tuvo el
+  // primer intento: las aulas que la agenda no lista —pero sí el libro o las
+  // brechas— se quedaban sin facultad y la salida no aparecía nunca.
+  const ficha = useMemo(() => fichaDeAula(codigo, fuentes), [codigo, fuentes]);
+  const salida = useMemo(
+    () => dondeSeSaca(ficha.facultad, (fuentes.agenda ?? []) as MonitoreoAulasPlanRow[]),
+    [ficha.facultad, fuentes.agenda],
+  );
   if (!ficha.existe) {
     return (
       <div className="aulas-ficha" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
@@ -91,6 +112,31 @@ export function AulasFichaDeAula({ ficha, onCerrar }: {
 
       {ficha.parte.observacion ? (
         <p className="aulas-ficha-nota">«{ficha.parte.observacion}»</p>
+      ) : null}
+
+      {/* **De dónde se saca lo que faltó.** Sólo cuando falta: un aula que
+          llegó a lo suyo no necesita esta sección, y pintarla vacía sería un
+          hueco sin propósito (C3). La cuenta es de SU facultad porque la cuota
+          es por facultad. */}
+      {ficha.brecha !== null && ficha.brecha > 0 && salida?.conocida ? (
+        <p className="aulas-ficha-salida">
+          Le faltan <strong>{fmt(ficha.brecha)}</strong>.{" "}
+          {salida.reservasLibres > 0 ? (
+            <>
+              En {salida.facultad} {salida.reservasLibres === 1 ? "queda" : "quedan"}{" "}
+              <strong>{fmt(salida.reservasLibres)}</strong>{" "}
+              {salida.reservasLibres === 1 ? "reserva sin usar" : "reservas sin usar"}.
+            </>
+          ) : (
+            <>
+              En {salida.facultad} <strong>no queda ninguna reserva sin usar</strong>
+              {salida.cadenasAgotadas > 0
+                ? `: sus ${fmt(salida.cadenasAgotadas)} cadenas con reemplazo ya las gastaron.`
+                : "; el diseño no le dio ninguna."}{" "}
+              Lo que quede tiene que salir del banco de extras.
+            </>
+          )}
+        </p>
       ) : null}
     </div>
   );

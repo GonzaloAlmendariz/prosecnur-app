@@ -56,6 +56,7 @@ import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
 import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
 import { AulasFichaDeAula } from "./AulasFichaDeAula";
+import { dondeSeSaca } from "./dondeSeSaca";
 import { fichaDeAula } from "./fichaDeAula";
 import { AulasTextoAbierto } from "./AulasTextoAbierto";
 import { AulasTiemposDeRespuesta } from "./AulasTiemposDeRespuesta";
@@ -864,12 +865,13 @@ function renderAulasView(
           <span>lo esperado, lo conseguido y lo que anotó el campo</span>
         </div>
         <AulasFichaDeAula
-          ficha={fichaDeAula(foco.valor, {
+          codigo={foco.valor}
+          fuentes={{
             agenda: (dashboard.agenda ?? []) as Array<Record<string, unknown>>,
             partes: (dashboard.partes_campo ?? []) as Array<Record<string, unknown>>,
             control: (dashboard.control_calidad ?? []) as Array<Record<string, unknown>>,
             brechas: (dashboard.brechas ?? []) as Array<Record<string, unknown>>,
-          })}
+          }}
           onCerrar={() => onFoco(null)}
         />
       </section>
