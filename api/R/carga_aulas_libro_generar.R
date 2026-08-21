@@ -390,10 +390,14 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # como se reparte por facultad y en que estado esta— y contesta sin filtrar lo
   # que las hojas de datos solo contestan filtrando.
   aulas_libro_escribir_resumen(wb, unidades, partes = partes, control = control)
-  # La hoja larga, para las dinamicas. Va DESPUES de la portada y antes de las
-  # hojas de trabajo: quien viene a analizar la encuentra arriba, y quien viene
-  # a llenar sigue teniendo las suyas donde estaban.
-  aulas_libro_escribir_datos(wb, unidades, partes = partes, control = control)
+  # **La hoja larga «Datos» se retiro.** Se añadio para poder hacer tablas
+  # dinamicas, y Gonzalo lo llamo por su nombre al verla: «esta esforzando una
+  # tabla dinamica cuando no deberia haber un forcejeo de tabla dinamica».
+  # Tenia razon: este libro se lleva a campo para LLENARLO —agendamiento y parte
+  # de aplicacion— y el analisis vive en la app, que ya cruza las mismas cifras
+  # sin pedirle a nadie que construya una dinamica. Una hoja de 34 columnas que
+  # nadie llena y casi nadie pivota es peso muerto en un fichero que el equipo
+  # abre para trabajar.
   for (nombre in names(hojas)) {
     openxlsx::addWorksheet(wb, nombre)
     openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
