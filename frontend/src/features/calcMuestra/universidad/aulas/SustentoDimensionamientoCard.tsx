@@ -126,7 +126,7 @@ export function SustentoDimensionamientoCard({
         </table>
       </div>
       <p className="cmv2-sustento-nota">
-        La columna «τ propio 2025» es <strong>referencial</strong>: muestra qué
+        La columna «tasa propia 2025» es <strong>referencial</strong>: muestra qué
         daría la misma fórmula con la tasa de efectividad que esa facultad
         realizó el año pasado (solo facultades con 12+ aulas aplicadas), sin
         cambiar el diseño vigente. El estudio anterior declaró 170 titulares: su fórmula —con la mediana y
