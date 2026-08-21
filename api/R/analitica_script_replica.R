@@ -419,9 +419,15 @@
   L <- character(0)
   add <- function(...) L[[length(L) + 1L]] <<- paste0(...)
 
-  add("# (2) Universo final del estudio: los casos que superaron el control de")
-  add("#     calidad. Se listan por su identificador de caso (ya presente en el")
-  add("#     crudo), lo que permite reproducir la base exacta sin exponer nada más.")
+  # "limpieza y validación" y no "control de calidad": entre el crudo y el
+  # universo final puede haber más de una etapa —descartes previos al
+  # procesamiento y exclusiones decididas en Validación— y atribuirlas todas a
+  # una sola le afirma al cliente algo que no siempre es exacto. El agregado es
+  # deliberado: el detalle vive en el Excel de decisiones, que es interno.
+  add("# (2) Universo final del estudio: los casos que quedaron tras la limpieza y")
+  add("#     validación de la base. Se listan por su identificador de caso (ya")
+  add("#     presente en el crudo), lo que permite reproducir la base exacta sin")
+  add("#     exponer nada más.")
   add("universo_final <- ", .script_replica_deparse(universo))
   add("llave <- ", .script_replica_deparse(plan$key_raw))
   add("")
@@ -431,7 +437,7 @@
   add("  stop(sprintf(\"El crudo no contiene %d caso(s) del universo final; verifica que es el export completo de Kobo.\", length(faltantes)))")
   add("}")
   add("n_fuera <- nrow(crudo) - length(universo_final)")
-  add("message(sprintf(\"Casos en el crudo: %d | Universo final: %d | Fuera del universo final por control de calidad: %d\",")
+  add("message(sprintf(\"Casos en el crudo: %d | Universo final: %d | Fuera por limpieza y validación: %d\",")
   add("                nrow(crudo), length(universo_final), n_fuera))")
   add("")
   add("# (3) Normalización y selección de filas: nos quedamos con el universo final")

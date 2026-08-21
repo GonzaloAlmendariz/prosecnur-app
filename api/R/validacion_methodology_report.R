@@ -650,7 +650,7 @@
   cleaning_line <- if (excluded_cleaning > 0L) {
     paste0(
       "Se retir", if (excluded_cleaning == 1L) "ó " else "aron ", excluded_cleaning,
-      if (excluded_cleaning == 1L) " encuesta en el control de calidad de la base." else " encuestas en el control de calidad de la base."
+      if (excluded_cleaning == 1L) " encuesta en la limpieza y validación de la base." else " encuestas en la limpieza y validación de la base."
     )
   } else character(0)
   c(correction_lines, filter_line, exclusion_lines, cleaning_line)
@@ -668,14 +668,14 @@
   if (!nzchar(llave) || !length(ids)) return("")
   literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = "\n")
   encabezado <- if (identical(origen, "data")) {
-    c("# Universo final del estudio: los casos que superaron el control de calidad.",
-      "# Se listan por su identificador de caso, que ya viene en la base recibida;",
-      "# reproduce el universo exacto sin exponer nada más.")
+    c("# Universo final del estudio: los casos que quedaron tras la limpieza y",
+      "# validación de la base. Se listan por su identificador de caso, que ya viene",
+      "# en la base recibida; reproduce el universo exacto sin exponer nada más.")
   } else {
     # Encadenado tras el filtro de pruebas: lo que sigue es la depuración, que
     # no se puede expresar como condición porque es una lista de casos.
-    c("# Control de calidad: del universo anterior se conservan los casos que lo",
-      "# superaron, listados por su identificador. Sin este paso la función",
+    c("# Limpieza y validación: del universo anterior se conservan los casos que",
+      "# quedaron, listados por su identificador. Sin este paso la función",
       "# devolvería el universo previo a la depuración.")
   }
   paste(c(
