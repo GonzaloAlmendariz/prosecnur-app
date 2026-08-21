@@ -105,6 +105,11 @@
   font-weight: 500;
   /* Dato operativo: no se recorta con elipsis (C4). */
   overflow-wrap: anywhere;
+  /* Y tiene que poder romper: `white-space` se hereda, el boton de la fila lo
+     traia en `nowrap` y bajo `nowrap` el `overflow-wrap` de arriba no hace
+     nada. Medido con los nombres de curso reales: el titulo pedia 252 px en una
+     caja de 218 y 932 de 1 855 filas desbordaban en horizontal. */
+  white-space: normal;
 }
 
 /* La marca de «tiene parte en el libro». Va antes del estado y en el tono
