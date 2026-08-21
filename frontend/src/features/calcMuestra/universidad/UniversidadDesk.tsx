@@ -741,6 +741,7 @@ export function UniversidadDesk({
                 titulares={labModel.m1Rows}
                 marco={aulasState?.frame?.aula_frame ?? []}
                 referencia={referenciaAsistencia}
+                onNavigate={onNavigate}
               />
             )}
             {activeLabTab === "reemplazos" && (

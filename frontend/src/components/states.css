@@ -169,6 +169,30 @@
   margin-top: var(--pulso-space-1);
 }
 
+/* El botón del vacío. Vivía partido en dos hojas ajenas —la base en
+   `validacion-v2.css`, el `:hover` en `theme.css`—, así que una feature que
+   no cargara la de Validación tenía la clase pero no el estilo. Es una clase
+   `pulso-*`: su sitio es la hoja de la primitiva que la emite. */
+.pulso-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--pulso-control-height-md);
+  padding: 5px 14px;
+  border-radius: 8px;
+  background: var(--pulso-primary);
+  border: 1px solid var(--pulso-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: var(--pulso-control-weight);
+  text-decoration: none;
+}
+
+.pulso-empty-cta:hover {
+  background: #013371;
+  border-color: #013371;
+}
+
 @keyframes pulso-states-fade-in-up {
   from {
     opacity: 0;

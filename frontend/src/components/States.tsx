@@ -83,7 +83,23 @@ export function EmptyState({
   variant?: "panel" | "inline";
 }) {
   return (
-    <div className={`pulso-empty-state pulso-empty-state--${variant}`}>
+    <div
+      className={`pulso-empty-state pulso-empty-state--${variant}`}
+      /*
+       * La altura mínima del vacío (240 px en `panel`, 140 en `inline`) es
+       * capacidad RESERVADA a propósito: un estado vacío sin presencia se lee
+       * como una franja rota. El gate visual audita «capacidad interior que
+       * nadie usa» y un `min-height` deliberado la produce siempre que el
+       * contenido es más corto, así que se declara como poseída en vez de
+       * dejar el issue abierto o encoger el diseño para complacer al gate.
+       *
+       * Lo que esta declaración APAGA: la vigilancia de deriva vertical dentro
+       * del vacío. Es aceptable porque su contenido es fijo —ícono, título,
+       * pista, cta— y se centra; no crece con los datos. No copiar el atributo
+       * a superficies cuyo alto sí dependa de lo que traiga el motor.
+       */
+      data-qa-geometry-capacity="owned"
+    >
       <span className="pulso-empty-state-icon">{icon}</span>
       <h4 className="pulso-empty-state-title">{title}</h4>
       {hint && <p className="pulso-empty-state-hint">{hint}</p>}
