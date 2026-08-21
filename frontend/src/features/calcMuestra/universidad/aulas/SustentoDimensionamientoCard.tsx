@@ -38,21 +38,21 @@ export function SustentoDimensionamientoCard({
         <p>
           El motor usa una sola fórmula por facultad:{" "}
           <strong>
-            titulares = cuota ÷ (alumnos por aula × tasa de respuesta)
+            titulares = cuota ÷ (alumnos por aula × tasa de efectividad)
           </strong>
           , redondeada hacia arriba. Los alumnos por aula son{" "}
           {estadisticoNombres.join(" / ")} de los elegibles por curso-horario de
           esa facultad en el marco vigente
           {tauGlobal != null ? (
             <>
-              ; la tasa de respuesta ({Math.round(tauGlobal * 100)}%, la
+              ; la tasa de efectividad ({Math.round(tauGlobal * 100)}%, la
               realizada por el estudio anterior) es{" "}
               <strong>una sola para todas las facultades por decisión de
               diseño</strong> — el τ propio de cada una se muestra al final
               como referencia, sin redimensionar nada
             </>
           ) : (
-            <>; la tasa de respuesta es propia de cada facultad</>
+            <>; la tasa de efectividad es propia de cada facultad</>
           )}
           . Sobre los titulares se suma 50% de reservas.
           {sustento.ajustadasAMano > 0 ? (
@@ -127,10 +127,10 @@ export function SustentoDimensionamientoCard({
       </div>
       <p className="cmv2-sustento-nota">
         La columna «τ propio 2025» es <strong>referencial</strong>: muestra qué
-        daría la misma fórmula con la tasa de respuesta que esa facultad
+        daría la misma fórmula con la tasa de efectividad que esa facultad
         realizó el año pasado (solo facultades con 12+ aulas aplicadas), sin
         cambiar el diseño vigente. El estudio anterior declaró 170 titulares: su fórmula —con la mediana y
-        sin tasa de respuesta explícita— daba alrededor de 133, y las
+        sin tasa de efectividad explícita— daba alrededor de 133, y las
         facultades grandes se ajustaron a mano en agenda. Este diseño publica
         la cuenta entera, con cada factor a la vista y los ajustes marcados.
       </p>
