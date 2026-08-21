@@ -102,7 +102,7 @@ import {
 } from "./universidad/shared/constants";
 import { deskDeModo, modoCrudoDeLaDireccion, useCalcMuestraDireccion } from "./navegacion";
 import { normalizeUniversityLabel } from "./universidad/shared/format";
-import { leerJobEnCurso, olvidarJobEnCurso, recordarJobEnCurso, type JobLargo } from "./hooks/jobsEnCurso";
+import { ETIQUETA_JOB, JOBS_RETOMABLES, leerJobEnCurso, olvidarJobEnCurso, recordarJobEnCurso, type JobLargo } from "./hooks/jobsEnCurso";
 import { universityEffectiveMappingPayload } from "./universidad/shared/mapeoEfectivo";
 import {
   classroomComparisonReady,
@@ -1800,7 +1800,7 @@ export default function CalcMuestraPage() {
       // en la sesión, así que se relee el estado al terminar.
       let estado: CalcMuestraState;
       if (res.mode === "job") {
-        await esperarJobAulas(res.job_id, "Construyendo el marco");
+        await esperarJobAulas(res.job_id, "Construyendo el marco", "construir");
         estado = await apiCalcMuestraState();
       } else {
         estado = res.state;
@@ -2034,7 +2034,7 @@ export default function CalcMuestraPage() {
   // real del worker si el job falla, se cancela o supera el timeout. El loop
   // vive en hooks/jobPolling.ts (F6: el timeout cancela el job best-effort y
   // los 404 consecutivos cortan con mensaje claro en vez de pollear eterno).
-  async function esperarJobAulas(jobId: string, label: string, kind: JobLargo = "comparar"): Promise<JobSnapshot> {
+  async function esperarJobAulas(jobId: string, label: string, kind: JobLargo): Promise<JobSnapshot> {
     cancelRequestedRef.current = false;
     setActiveJobId(jobId);
     // Memoria de la pestaña: si el usuario recarga mientras esto corre, al
@@ -2082,26 +2082,29 @@ export default function CalcMuestraPage() {
     if (retomadoRef.current) return;
     retomadoRef.current = true;
     const sid = window.localStorage.getItem("pulso.sessionId") ?? "";
-    const jobId = leerJobEnCurso(sid, "comparar");
-    if (!jobId) return;
+    const pendiente = JOBS_RETOMABLES.map((k) => ({ kind: k, jobId: leerJobEnCurso(sid, k) }))
+      .find((x): x is { kind: JobLargo; jobId: string } => Boolean(x.jobId));
+    if (!pendiente) return;
+    const { kind, jobId } = pendiente;
+    const etiqueta = ETIQUETA_JOB[kind];
     void (async () => {
       try {
         const snap = await apiJobStatus(jobId);
         if (snap.status === "done" || snap.status === "error" || snap.status === "cancelled") {
           // Ya terminó mientras no mirábamos: basta con recoger su resultado.
-          olvidarJobEnCurso(sid, "comparar");
+          olvidarJobEnCurso(sid, kind);
           const state = await apiCalcMuestraState();
           setAulasState(state.aulas ?? null);
           return;
         }
-        await esperarJobAulas(jobId, "Comparando métodos");
+        await esperarJobAulas(jobId, etiqueta, kind);
         const state = await apiCalcMuestraState();
         setAulasState(state.aulas ?? null);
-        setMsg({ kind: "info", text: "Comparación de métodos lista." });
+        setMsg({ kind: "info", text: `${etiqueta}: terminado.` });
       } catch {
         // El trabajo pudo morir con el backend: se olvida y la pantalla vuelve
         // a su estado normal, sin inventar un resultado.
-        olvidarJobEnCurso(sid, "comparar");
+        olvidarJobEnCurso(sid, kind);
       }
     })();
     // Sólo al montar: es una recuperación, no una suscripción.
@@ -2120,7 +2123,7 @@ export default function CalcMuestraPage() {
         simulation_runs: simulationRuns,
       });
       if (res.mode === "job" && res.job_id) {
-        const snap = await esperarJobAulas(res.job_id, "Comparando métodos");
+        const snap = await esperarJobAulas(res.job_id, "Comparando métodos", "comparar");
         const state = await apiCalcMuestraState();
         setAulasState(state.aulas ?? null);
         const rd = (snap.result_data ?? {}) as { simulation_runs?: number; simulation_runs_executed?: number };
@@ -2168,7 +2171,7 @@ export default function CalcMuestraPage() {
       const res = await apiCalcMuestraAulasSeleccionar(config, undefined, methodId, config.objective);
       let nextAulasState: CalcMuestraAulasState | null;
       if (res.mode === "job" && res.job_id) {
-        await esperarJobAulas(res.job_id, "Seleccionando cursos-horario");
+        await esperarJobAulas(res.job_id, "Seleccionando cursos-horario", "seleccionar");
         const state = await apiCalcMuestraState();
         nextAulasState = state.aulas ?? null;
       } else {
@@ -2199,7 +2202,7 @@ export default function CalcMuestraPage() {
     try {
       const res = await apiCalcMuestraAulasCerteza(payload);
       if (res.mode === "job" && res.job_id) {
-        await esperarJobAulas(res.job_id, "Midiendo certeza de cobertura");
+        await esperarJobAulas(res.job_id, "Midiendo certeza de cobertura", "certeza");
         const state = await apiCalcMuestraState();
         setAulasState(state.aulas ?? null);
       } else {
@@ -2223,7 +2226,7 @@ export default function CalcMuestraPage() {
         // Marcos grandes: el backend deriva a job (mismo patrón que comparar/
         // seleccionar); se pollea con cancelación y banner de progreso. Con un
         // backend viejo la respuesta sigue siendo síncrona (rama de abajo).
-        await esperarJobAulas(res.job_id, "Simulando reemplazos");
+        await esperarJobAulas(res.job_id, "Simulando reemplazos", "simular");
         const state = await apiCalcMuestraState();
         setAulasState(state.aulas ?? null);
       } else {
@@ -2312,7 +2315,7 @@ export default function CalcMuestraPage() {
       await persistCurrent(contextoReporte.estudio);
       const res = await apiCalcMuestraReporteIniciar(formato);
       setReporteMeta({ disponible: false, jobId: res.job_id });
-      await esperarJobAulas(res.job_id, "Paquete de defensa — reporte metodológico");
+      await esperarJobAulas(res.job_id, "Paquete de defensa — reporte metodológico", "reporte");
       await exigirContextoPaqueteVigente(fingerprintInicial);
       setReporteMeta({ disponible: true, jobId: res.job_id });
       actualizarPasoPaquete("reporte", {
