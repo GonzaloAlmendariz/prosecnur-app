@@ -36,15 +36,21 @@ export type FilaSustento = {
   estadisticoValor: number | null;
   estadisticoNombre: string;
   tau: number | null;
-  /** REFERENCIAL (decisión de Gonzalo: «debe ser referencial y no cambiar la
-   *  cantidad de aulas ya calculadas»): el τ PROPIO de la facultad, medido de
-   *  las aulas aplicadas del estudio anterior (Σefectivas/Σelegibles — el
-   *  MISMO tipo de tasa que el τ del diseño, no la asistencia bruta), solo
-   *  cuando k ≥ 12 aulas (el umbral de suficiencia de la casa). */
+  /** Lo que la facultad rindió en el estudio anterior (Σefectivas/Σelegibles
+   *  sobre sus aulas aplicadas — el MISMO tipo de tasa que el τ del diseño, no
+   *  la asistencia bruta), sólo con k ≥ 12 aulas.
+   *
+   *  NO es una alternativa descartada, aunque la UI lo llamó «referencial»
+   *  hasta el 2026-08-21: de este número sale el FACTOR DE FACULTAD, que ya
+   *  está dentro de la tasa que dimensiona (τ = mix de tamaños × factor). Lo
+   *  que no se hace es usarlo en CRUDO, porque arrastra la composición del
+   *  marco de aquel año. Medido en HSVG2026: en crudo daría 194 titulares
+   *  contra los 190 del diseño, y +3 de esa brecha son Arte y Diseño, cuyo
+   *  marco 2026 tiene aulas más chicas que las que aplicó en 2025. */
   tauPropio: number | null;
   kPropio: number | null;
-  /** Cuántas aulas daría la MISMA fórmula con el τ propio. Nunca entra al
-   *  diseño: es lectura. */
+  /** Cuántas aulas daría la MISMA fórmula con ese rendimiento en crudo. Es la
+   *  lectura del contraste, no una vía alternativa de dimensionar. */
   aulasConTauPropio: number | null;
   /** Lo que da la fórmula del motor con estos insumos. */
   aulasFormula: number | null;

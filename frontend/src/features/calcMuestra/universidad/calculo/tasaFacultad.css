@@ -211,6 +211,23 @@
 
 .cmv2-tasafac-falta b { color: var(--pulso-text); }
 
+/* La regla de las dos capas del histórico. Es prosa de lectura, no un aviso:
+   sin borde de alerta ni acento lateral, para que no compita con el aviso de
+   «falta calcular» que puede estar justo encima. */
+.cmv2-tasafac-regla {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-border-soft, var(--pulso-border));
+  border-radius: 8px;
+  background: var(--pulso-surface-2, var(--pulso-surface));
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.cmv2-tasafac-regla b { color: var(--pulso-text); font-weight: 600; }
+
 .cmv2-tasafac-ir {
   border: 1px solid var(--pulso-border);
   border-radius: 6px;
