@@ -516,7 +516,12 @@ export function RegistroDeCampo({
                       {pq.entraPAplicada && pq.pAplicada !== null ? (
                         <>× {p(pq.pAplicada)} de que se aplique{" "}</>
                       ) : null}
-                      × {p(pq.rendimiento)} de rendimiento
+                      {/* Sin histórico no hay tramo ni facultad: una sola tasa
+                          para todo el estudio. Enseñar «rendimiento» ahí sería
+                          nombrar un factor que su meta no usa. */}
+                      {pq.tau !== null
+                        ? <>× {p(pq.tau)} de efectividad</>
+                        : <>× {p(pq.rendimiento)} de rendimiento</>}
                       {/* El cuarto factor sólo cuando lo hay: en las facultades
                           sin base suficiente rige la tasa general y decir
                           «× 100 %» sería ruido. */}

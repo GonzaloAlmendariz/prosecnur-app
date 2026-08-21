@@ -126,4 +126,33 @@ describe("porQueEsaMeta", () => {
       eligible_n: 40, rendimiento_ref: 0.5, factor_facultad: 1, expected_valid: 33,
     })).toBeNull();
   });
+  it("un estudio sin histórico se explica con su tasa única", () => {
+    // Aviso de la sesión de Cálculo de muestra: existe una tercera forma,
+    // `elegibles × efectividad_tau`, para estudios sin histórico —ahí llegan
+    // `rendimiento_ref` y `p_aplicada_ref` vacíos—. Exigir rendimiento dejaría
+    // esas aulas sin explicación.
+    const pq = porQueEsaMeta({ eligible_n: 30, efectividad_tau: 0.4, expected_valid: 12 });
+    expect(pq).not.toBeNull();
+    expect(pq?.tau).toBe(0.4);
+    expect(pq?.entraPAplicada).toBe(false);
+  });
+
+  it("con histórico Y tau, gana la forma que reproduce la meta", () => {
+    // El caso que distingue las tres: la fila trae las dos calibraciones y sólo
+    // una de ellas da el número declarado. Elegir por orden en vez de por
+    // resultado explicaría con la ecuación equivocada.
+    const porHistorico = porQueEsaMeta({
+      eligible_n: 30, rendimiento_ref: 0.5, efectividad_tau: 0.4, expected_valid: 15,
+    });
+    expect(porHistorico?.tau).toBeNull();
+    const porTau = porQueEsaMeta({
+      eligible_n: 30, rendimiento_ref: 0.5, efectividad_tau: 0.4, expected_valid: 12,
+    });
+    expect(porTau?.tau).toBe(0.4);
+  });
+
+  it("el redondeo del motor a un decimal no rompe la explicación", () => {
+    // 24 × 0,566 = 13,584 y la fila declara 13,6.
+    expect(porQueEsaMeta({ eligible_n: 24, rendimiento_ref: 0.566, expected_valid: 13.6 })).not.toBeNull();
+  });
 });

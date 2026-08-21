@@ -496,6 +496,12 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # la escribe por fila y aqui no se recalcula: si el productor cambia de
     # ecuacion, la tasa que se ensena tiene que seguir siendo la suya.
     tasa_efectividad_aula = getn(c("tasa_efectividad_aula"), NA_real_),
+    # La tasa unica de los estudios SIN historico: ahi el esperado es
+    # `elegibles x efectividad_tau` y no hay tramo ni factor de facultad que
+    # aplicar —`rendimiento_ref` y `p_aplicada_ref` llegan vacios—. Aviso de la
+    # sesion de Calculo de muestra; entra en la whitelist antes de que llegue el
+    # primer estudio asi, porque lo que el normalizador no nombra no persiste.
+    efectividad_tau = getn(c("efectividad_tau"), NA_real_),
     teacher_type = get(c("teacher_type", "tipo_docente"), ""),
     # **El cuarto factor: la facultad.** Gonzalo pidio que el esperado dejara de
     # asumir «que todas las facultades tienen la misma naturaleza», asi que desde
