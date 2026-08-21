@@ -1469,3 +1469,14 @@
   text-transform: uppercase;
   color: var(--pulso-text-muted);
 }
+
+/* Qué hace confirmar, en voz baja bajo la cifra (2026-08-21). Sin esta línea
+   el botón se leía como una puerta que abre algo, y no abre nada: es el sello
+   de revisión de este plan. */
+.cmv2-calc-confirm-que-hace {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--pulso-text-muted);
+}
