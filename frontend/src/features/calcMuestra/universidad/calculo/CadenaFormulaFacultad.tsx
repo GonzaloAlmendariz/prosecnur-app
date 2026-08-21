@@ -61,9 +61,15 @@ export function CadenaFormulaFacultad({
           <small>las aulas que hay que visitar</small>
         </li>
       </ol>
+      {/* La nota decía «reservas» igual que la columna, así que aclaraba una
+          palabra usando la misma palabra. Ahora la columna se llama «cupo de
+          reserva» y la nota explica la diferencia con una cifra: en HSVG2026,
+          ARQUITECTURA tiene 6 de cupo y 69 aulas encadenadas. */}
       <p className="cmv2-cadfor-nota">
-        Las <b>reservas</b> de esta tabla son cupos dimensionados del plan; las rutas concretas de
-        reemplazo (R1, R2…) viven en <i>Selección → Reemplazos</i>.
+        El <b>cupo de reserva</b> de esta tabla es lo que el plan presupuesta (la mitad de
+        los titulares): cuántas visitas extra se prevén, no qué aulas son. Las aulas de
+        reemplazo concretas las sortea la selección en cadenas por titular (R1, R2…) y son
+        bastantes más; viven en <i>Selección → Reemplazos</i>.
       </p>
     </div>
   );

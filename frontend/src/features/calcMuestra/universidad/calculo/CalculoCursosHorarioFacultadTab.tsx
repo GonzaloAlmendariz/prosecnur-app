@@ -140,7 +140,7 @@ export function CalculoCursosHorarioFacultadTab({
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
-            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th>Reservas</th><th>Del plan</th></tr></thead>
+            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Cupo de reserva que el plan presupuesta para esta facultad: la mitad de sus titulares, redondeada hacia arriba. NO es el número de aulas de reemplazo que el sorteo construye: esas son las cadenas R1, R2… y son muchas más (en HSVG2026, 6 de cupo contra 69 encadenadas en ARQUITECTURA). Las cadenas viven en Selección → Reemplazos.">Cupo de reserva</th><th>Del plan</th></tr></thead>
             <tbody>
               {model.filas.map((fila) => (
                 <tr key={fila.estrato}>
