@@ -36,10 +36,19 @@ export function AulasPronosticoDeCierre({ partes, plan }: {
   if (p.motivo) {
     return (
       <div className="aulas-pronostico" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <p className="aulas-pronostico-lectura">
-          <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas del plan
-          tienen parte de campo.
-        </p>
+        {/* «0 de 0 aulas del plan tienen parte de campo» es una cuenta que no
+            se puede hacer, no un cero: sin plan no hay universo contra el que
+            medir. Misma familia que `c4af437d`. */}
+        {p.universo ? (
+          <p className="aulas-pronostico-lectura">
+            <strong>{fmt(p.aplicadas)}</strong> de <strong>{fmt(p.universo)}</strong> aulas del plan
+            tienen parte de campo.
+          </p>
+        ) : (
+          <p className="aulas-pronostico-lectura">
+            El plan todavía no trae aulas contra las que medir el avance.
+          </p>
+        )}
         {/* Por qué NO se proyecta, en vez de una línea plana que parecería una
             predicción de que no pasará nada. */}
         <p className="mon-profile-muted">{MOTIVOS[p.motivo] ?? ""}</p>
