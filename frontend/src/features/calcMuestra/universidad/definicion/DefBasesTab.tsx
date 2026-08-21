@@ -171,12 +171,19 @@ export function BaseUploadCard({
   const selectedDiagnostic = sourceBindingSelectedDiagnostic(binding);
   const isCompatible = sourceBindingCompatibleForBuild(binding);
   const done = Boolean(binding.file_id);
+  // `isUploading` va PRIMERO: al reemplazar un archivo el binding conserva su
+  // file_id, así que sin esta rama el chip seguía afirmando «listo» durante
+  // toda la lectura del Excel nuevo —mientras la zona de arrastre, en la misma
+  // tarjeta, decía «Subiendo…»—. Dos superficies de la misma tarjeta no pueden
+  // declarar estados distintos del mismo archivo.
   const status = gated
     ? "en espera"
-    : done
-      ? isCompatible ? "listo" : "revisar hoja"
-      : binding.file_name ? "declarada" : "pendiente";
-  const statusTone = status === "listo" ? "ok" : status === "revisar hoja" ? "warn" : status === "declarada" || status === "en espera" ? "info" : undefined;
+    : isUploading
+      ? "subiendo"
+      : done
+        ? isCompatible ? "listo" : "revisar hoja"
+        : binding.file_name ? "declarada" : "pendiente";
+  const statusTone = status === "listo" ? "ok" : status === "revisar hoja" ? "warn" : status === "declarada" || status === "en espera" || status === "subiendo" ? "info" : undefined;
   // Filas: primero la cifra real (declarada en el binding o auditada por el
   // motor al construir); si solo existe la vista previa de la inspección, se
   // dice explícitamente que es una muestra.
