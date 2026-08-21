@@ -115,6 +115,7 @@ import { criterioSalida, metaCuotaFijada, sugerenciaCuota } from "./criterioSali
 import { seleccionActiva } from "./dominio/criteriosMarco";
 import { facultadesDesdeFrame } from "./dominio";
 import { conDivisorDelMarco } from "./universidad/marco/divisorDelMarco";
+import { avisoTrasCalcular } from "./universidad/calculo/avisoCalculo";
 import {
   defaultTitleFor,
   filtrosLegacyPayload,
@@ -1560,11 +1561,9 @@ export default function CalcMuestraPage() {
       hydrate(res.estudio);
       registrarCorridaDeCalculo(res.estudio);
       useMotorStore.getState().invalidarCursosHorario();
-      const nComponentes = res.estudio.componentes.length;
-      setMsg({
-        kind: "info",
-        text: `Cálculo completado: ${nComponentes} ${nComponentes === 1 ? "componente" : "componentes"}.`,
-      });
+      // Contar componentes no es contar éxitos: si el motor marcó alguna
+      // distribución «incompatible», el aviso lo dice en vez de felicitar.
+      setMsg(avisoTrasCalcular(res.estudio.componentes));
     } catch (e) {
       setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." });
     } finally {
