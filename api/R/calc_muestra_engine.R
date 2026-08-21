@@ -501,6 +501,17 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     # recibía los defaults del frontend (filtro de tipo de sesión apagado).
     # Mismo contrato que accepted_teacher_type_patterns: ausente -> default
     # del motor; una list() vacía explícita se respeta.
+    # Facultades que el estudio decide NO incluir. Octava aparición de la
+    # familia lista-cerrada: sin esta clave, la exclusión se aplicaba en el
+    # build (viaja en `filters` del payload) pero NUNCA sobrevivía al guardado
+    # —el `.pulso` volvía con la lista vacía y la decisión se perdía en
+    # silencio—. Medido: de las 20 claves que el front envía en `aulas_config`,
+    # esta era la única que se caía aquí.
+    excluded_faculties = local({
+      nombres <- .cm_normalize_chr_list(cfg$excluded_faculties %||% cfg$facultades_excluidas)
+      limpios <- trimws(as.character(unlist(nombres, use.names = FALSE)))
+      as.list(limpios[nzchar(limpios)])
+    }),
     exclude_level_patterns = if (is.null(cfg$exclude_level_patterns)) {
       filtros_default$exclude_level_patterns
     } else {
