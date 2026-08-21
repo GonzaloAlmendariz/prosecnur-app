@@ -76,7 +76,17 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
                     {a.fecha ? fechaCorta(a.fecha) : "—"}
                     {a.hora ? <em> {a.hora}</em> : null}
                   </span>
-                  <span className="aulas-ruta-codigo">{a.codigo}</span>
+                  <span className="aulas-ruta-codigo">
+                    {a.codigo}
+                    {/* Una reserva se ve como reserva. Iba suelta entre los
+                        titulares de su facultad —un `R 21.1` junto a un `CH 21`—
+                        y su relación había que adivinarla por el número. */}
+                    {a.esReserva ? (
+                      <em className="aulas-ruta-reserva">
+                        {a.titular ? `reemplaza a ${a.titular}` : "reserva"}
+                      </em>
+                    ) : null}
+                  </span>
                   {/* DÓNDE, que es lo que se viene a buscar: «LUN 08:00 A101»
                       lleva el pabellón y el salón. Sin esta columna la vista
                       diría cuándo y con quién, y no a dónde ir. */}

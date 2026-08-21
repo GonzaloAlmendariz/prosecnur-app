@@ -27,6 +27,10 @@ export type AulaEnAgenda = {
    * superficie: el dato llegaba, tenía rótulo y no se veía en ninguna parte.
    */
   nota: string;
+  /** Es una reserva de cadena, no un curso-horario titular. */
+  esReserva: boolean;
+  /** El titular al que reemplaza, cuando lo es. */
+  titular: string;
 };
 
 export type FacultadEnAgenda = {
@@ -61,6 +65,14 @@ export function agendaPorFacultad(filas: ReadonlyArray<MonitoreoAulasPlanRow>): 
       // salir es si el aula ya se aplicó, no si es titular o reemplazo.
       estado: texto(fila.operational_status) || "planificada",
       nota: texto((fila as { replacement_note?: unknown }).replacement_note),
+      // **Que una reserva se vea como reserva.** En la lista de su facultad, un
+      // `R 21.1` aparecia junto a `CH 21` y nada decia que lo estuviera
+      // reemplazando: la relacion habia que adivinarla por el numero. No toca
+      // el estado —que sigue siendo el operativo, porque antes de salir lo que
+      // se pregunta es si el aula ya se aplico— sino que lo dice aparte.
+      esReserva: texto(fila.sample_role) === "chain_reserve",
+      titular: texto((fila as { titular_operational_code?: unknown }).titular_operational_code)
+        || texto((fila as { replacement_for?: unknown }).replacement_for),
     };
     const grupo = porFacultad.get(facultad);
     if (grupo) grupo.push(aula);

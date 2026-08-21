@@ -311,9 +311,15 @@ extensible a todos los monitoreos.
     contacto —a quién llamo, por qué medio, cuándo, cuántos intentos, en qué
     quedó, para cuándo— y sólo viven ahí. «A quién reemplaza» se quitó a
     propósito para hacerles sitio.
-  - **Lo que sí queda de la queja**: en «A dónde ir cada día», un `R 21.1`
-    aparece junto a `CH 21` y **nada dice que sea una reserva ni de quién**. La
-    relación se adivina por el número.
+  - **Lo que quedaba de la queja, hecho**: en «A dónde ir cada día» un `R 21.1`
+    aparecía junto a `CH 21` sin decir que lo estuviera reemplazando. Ahora cada
+    reserva lleva **«reemplaza a CH 21»** bajo su código. No toca el estado
+    —que sigue siendo el operativo, porque antes de salir lo que se pregunta es
+    si el aula ya se aplicó—, lo dice aparte.
+  - **Y el recorte que trajo**: con la marca debajo, la columna del código
+    recortaba el identificador del titular —74 px para un texto de 94—. Pasó a
+    98 px, **fijos y no `max-content`**: cada fila es su propia grilla, así que
+    dejarla crecer habría desalineado las columnas entre filas.
   - **Tercer ítem seguido que este plan describía mal** —con T16 y T22—. El plan
     se escribió la mañana del 2026-08-20 y describe el estado de entonces:
     **comprobar si ya está hecho antes de construirlo**.
