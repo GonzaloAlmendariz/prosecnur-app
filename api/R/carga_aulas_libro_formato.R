@@ -178,6 +178,14 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # Las cabeceras respiran: dos lineas de titulo en 18 de ancho necesitan
     # alto, y con el alto por defecto se cortaban.
     openxlsx::setRowHeights(wb, hoja, rows = seq_len(n_cab), heights = 30)
+     # **Y si alguien imprime, que no salga una hoja sin cabecera.**
+    #
+    # Estas hojas son anchas y largas: en vertical se parten por columnas y cada
+    # pagina posterior pierde la fila de titulos, asi que la segunda hoja de una
+    # tabla de 951 filas es una lista de numeros sin nombre. Horizontal y con la
+    # cabecera repetida en cada pagina.
+    openxlsx::pageSetup(wb, hoja, orientation = "landscape", fitToWidth = FALSE,
+                        printTitleRows = seq_len(n_cab))
   }
 
   # Lo que trae la app va teñido; lo que llena la persona queda en blanco. Es

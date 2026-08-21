@@ -152,5 +152,17 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen") {
 
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
   openxlsx::setColWidths(wb, hoja, cols = 2:6, widths = 13)
+  # **La portada tiene que caber a lo ancho.**
+  #
+  # Convertida a PDF, la tabla por facultad se partia en dos paginas: «Elegibles»
+  # y «Esperadas» caian sueltas en la segunda, con su cabecera pero sin saber de
+  # que facultad eran. Seis columnas de 34+13x5 no entran en un A4 vertical.
+  # `fitToWidth` la encaja en una pagina de ancho y deja crecer el alto, que es
+  # lo que hace falta cuando la universidad tiene veinte facultades.
+  #
+  # Esto solo se ve ABRIENDO el fichero: el XML declaraba las seis columnas y
+  # todo parecia correcto.
+  openxlsx::pageSetup(wb, hoja, orientation = "portrait", fitToWidth = TRUE,
+                      fitToHeight = FALSE)
   invisible(fila + n_est + 1L)
 }

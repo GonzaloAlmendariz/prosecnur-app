@@ -64,3 +64,36 @@ test_that("el libro abre por la portada", {
   aulas_libro_generar(plan_prueba, path)
   expect_equal(openxlsx::getSheetNames(path)[1], "Resumen")
 })
+
+test_that("la portada cabe a lo ancho de una pagina", {
+  # Convertida a PDF, la tabla por facultad se partia en dos: «Elegibles» y
+  # «Esperadas» caian sueltas en la segunda pagina, con su cabecera pero sin
+  # saber de que facultad eran. Seis columnas de 34+13x5 no entran en un A4
+  # vertical. Esto SOLO se ve abriendo el fichero: el XML declaraba las seis
+  # columnas y todo parecia correcto.
+  path <- file.path(tempdir(), "libro_pagina.xlsx")
+  aulas_libro_generar(plan_prueba, path)
+  destino <- file.path(tempdir(), paste0("pag_", as.integer(runif(1, 1, 1e6))))
+  dir.create(destino)
+  utils::unzip(path, exdir = destino)
+  hojas <- openxlsx::getSheetNames(path)
+  xml <- paste(readLines(file.path(destino, "xl", "worksheets",
+                                   sprintf("sheet%d.xml", which(hojas == "Resumen"))),
+                         warn = FALSE), collapse = "")
+  expect_match(xml, 'fitToWidth="1"')
+})
+
+test_that("las hojas de datos se imprimen con su cabecera en cada pagina", {
+  # Una tabla de 951 filas en vertical parte por columnas y cada pagina
+  # posterior pierde los titulos: la segunda hoja es una lista de numeros sin
+  # nombre.
+  path <- file.path(tempdir(), "libro_impresion.xlsx")
+  aulas_libro_generar(plan_prueba, path)
+  destino <- file.path(tempdir(), paste0("imp_", as.integer(runif(1, 1, 1e6))))
+  dir.create(destino)
+  utils::unzip(path, exdir = destino)
+  libro <- paste(readLines(file.path(destino, "xl", "workbook.xml"), warn = FALSE),
+                 collapse = "")
+  # `printTitleRows` se guarda como nombre definido `_xlnm.Print_Titles`.
+  expect_match(libro, "Print_Titles")
+})
