@@ -3,12 +3,15 @@
 # Medido en el recorrido de un usuario nuevo con el catalogo real 2026-2: la
 # columna que trae el tipo de curso se llama DESCTIPOCURSO (TEORICO,
 # LABORATORIO, TALLER, SEMINARIO, ACTIVIDAD…) y los sinonimos de `session_type`
-# no la reconocian. Sin esa variable el motor no emite `criterios_radiografia`,
-# asi que la pestaña de criterios quedaba en «RADIOGRAFIA POR FACULTAD
-# PENDIENTE» y su boton «Actualizar radiografia» reconstruia el marco entero
-# —40 s— sin poder resolverlo nunca: un estado sin salida. Es ademas la
-# variable con la que se declara el criterio que definio el marco de 2025
-# (excluir seminarios, tesis, asesorias).
+# no la reconocian: `.cm_aulas_col()` devolvia vacio teniendo la columna
+# delante.
+#
+# ALCANCE, medido despues: por el camino CON catalogo la señal ya se resolvia
+# sin este alias (`.cm_catalogo_signal_candidates` inyecta «tipo»,
+# «tipo_curso», … y ahi si casaba), asi que esto NO era lo que bloqueaba la
+# radiografia por facultad —esa depende de que haya criterios declarados—. El
+# alias cubre el camino en que la columna llega con su nombre crudo y se
+# resuelve contra `mapping$session_type`.
 
 test_that("el catalogo del DTI resuelve su tipo de curso como session_type", {
   catalogo <- data.frame(
