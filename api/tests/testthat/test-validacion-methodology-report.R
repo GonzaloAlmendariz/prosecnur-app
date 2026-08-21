@@ -1491,7 +1491,7 @@ test_that("sin filtro de pruebas, la depuración declara los conteos de la ficha
   expect_false(grepl("# Encuestas reclasificadas", script, fixed = TRUE))
   expect_match(script, "No se registró un filtro de encuestas de prueba.", fixed = TRUE)
   # El agregado no arrastra el detalle del caso.
-  expect_match(script, "control de calidad de la base", fixed = TRUE)
+  expect_match(script, "limpieza y validación de la base", fixed = TRUE)
 })
 
 test_that("el PDF con base depurada trae los tres números de la ficha", {
