@@ -81,6 +81,38 @@ describe("tasasFacultad", () => {
     expect(viejo[0].cupos).toBe(16);
   });
 
+  it("sin cuota ordena por PESO, no por tasa, y marca el respaldo fino", () => {
+    // Gonzalo, mirando la lista sin calcular: la encabezaba ESCUELA DE
+    // ESTUDIOS ESPECIALES —2 aulas, 44 elegibles— por tener la tasa más alta,
+    // encima de facultades de 578 aulas. Un ranking donde no lo hay.
+    const filas = tasasFacultad(
+      [
+        { facultad: "ESCUELA DE ESTUDIOS ESPECIALES", tasa: 0.69, n_aulas: 2, elegibles: 44, con_residual: false, facultad_k: null },
+        { facultad: "CIENCIAS E INGENIERIA", tasa: 0.5747, n_aulas: 702, elegibles: 22553, con_residual: false, facultad_k: null },
+        { facultad: "LETRAS Y CIENCIAS HUMANAS", tasa: 0.6795, n_aulas: 16, elegibles: 327, con_residual: false, facultad_k: null },
+      ],
+      null,
+    );
+    expect(filas.map((f) => f.facultad)).toEqual([
+      "CIENCIAS E INGENIERIA",
+      "LETRAS Y CIENCIAS HUMANAS",
+      "ESCUELA DE ESTUDIOS ESPECIALES",
+    ]);
+    // Y la de dos aulas lo dice: la tasa existe, su respaldo es fino.
+    expect(filas[2].respaldoFino).toBe(true);
+    expect(filas[2].nAulasMarco).toBe(2);
+    expect(filas[0].respaldoFino).toBe(false);
+    // 16 aulas ya pasa el umbral de 12 con el que el motor cree al histórico.
+    expect(filas[1].respaldoFino).toBe(false);
+  });
+
+  it("con la muestra calculada manda la cuota, no los elegibles", () => {
+    const filas = tasasFacultad(RAW, ESTRATOS);
+    // DERECHO tiene menos aulas que ARQUITECTURA en el fixture pero más cuota.
+    expect(filas[0].facultad).toBe("DERECHO");
+    expect(filas[0].cuota).toBe(363);
+  });
+
   it("un descuadre motor↔cuenta se DECLARA, no se maquilla", () => {
     const filas = tasasFacultad(RAW, [
       { estrato: "DERECHO", cuota: 363, avg_conglomerado: 40, aulas_base: 99, tau: 0.5679 },

@@ -796,6 +796,7 @@ export function UniversidadDesk({
                   tasasRaw={(aulasState?.frame as Record<string, unknown> | undefined)?.tasas_efectividad_facultad}
                   estratos={(compActivo?.resultado?.aulas_por_estrato ?? null) as
                     import("./calculo/tasaFacultadModel").EstratoDimensionado[] | null}
+                  onIrACalculo={() => onNavigate("calculo", "calculo-propuestas")}
                 />
               </div>
               <div className="cmv2-recorrido-paso" data-paso="3">

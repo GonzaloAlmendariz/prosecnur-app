@@ -22,17 +22,25 @@ const coma = (v: number, dec = 2) => v.toFixed(dec).replace(".", ",");
 export function TasaEfectividadFacultadCard({
   tasasRaw,
   estratos,
+  onIrACalculo,
 }: {
   /** frame.tasas_efectividad_facultad tal como llega (se normaliza adentro). */
   tasasRaw: unknown;
   /** aulas_por_estrato del componente activo (cuota, P25, cupos del motor). */
   estratos: EstratoDimensionado[] | null;
+  /** Lleva a donde se resuelve la muestra objetivo y la sobremuestra. */
+  onIrACalculo?: () => void;
 }) {
   const filas = tasasFacultad(tasasRaw, estratos);
   const origen = origenTasaFacultades(filas);
   if (!filas.length) return null;
   const totalCupos = filas.reduce((s, f) => s + (f.cupos ?? 0), 0);
   const conCuenta = filas.filter((f) => f.cuota != null);
+  // Ninguna facultad tiene cuota: no es que les falten datos, es que todavía
+  // no se calculó la muestra. Se dice UNA vez y con el camino, en lugar de
+  // repetir «sin estrato dimensionado» en cada fila — que se lee como si el
+  // problema fuera de la facultad.
+  const faltaCalcular = conCuenta.length === 0;
 
   return (
     <section
@@ -47,11 +55,33 @@ export function TasaEfectividadFacultadCard({
         </span>
       </header>
 
+      {faltaCalcular && (
+        <p className="cmv2-tasafac-falta" role="note">
+          <b>Falta calcular la muestra.</b> La cuota de cada facultad es su parte de la
+          sobremuestra operativa, y sin ella no hay titulares que mostrar acá. Las tasas de
+          abajo ya están medidas sobre el marco.
+          {onIrACalculo && (
+            <button type="button" className="cmv2-tasafac-ir" onClick={onIrACalculo}>
+              Ir a Propuestas
+            </button>
+          )}
+        </p>
+      )}
+
       <ol className="cmv2-tasafac-lista" data-origen-global={origen}>
         {filas.map((f) => (
           <li key={f.facultad} className="cmv2-tasafac-fila">
             <div className="cmv2-tasafac-nombre">
               <b>{f.facultad}</b>
+              {f.respaldoFino && (
+                <span
+                  className="cmv2-tasafac-chip"
+                  data-origen="fino"
+                  title={`La tasa se calcula sobre ${fmtInt(f.nAulasMarco)} ${f.nAulasMarco === 1 ? "aula" : "aulas"} del marco: son muy pocas para leerla como un patrón de la facultad.`}
+                >
+                  sobre {fmtInt(f.nAulasMarco)} {f.nAulasMarco === 1 ? "aula" : "aulas"}
+                </span>
+              )}
               {f.conResidual ? (
                 <span className="cmv2-tasafac-chip" data-origen="historico">
                   medida en el histórico · k={f.k != null ? fmtInt(f.k) : "—"}
@@ -122,7 +152,7 @@ export function TasaEfectividadFacultadCard({
               </div>
             ) : (
               <div className="cmv2-tasafac-cuenta" data-vacia="true">
-                sin estrato dimensionado
+                {faltaCalcular ? "titulares tras calcular la muestra" : "esta facultad no entró al reparto"}
               </div>
             )}
             {f.cuentaCuadra === false && (

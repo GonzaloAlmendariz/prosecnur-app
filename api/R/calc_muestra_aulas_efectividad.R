@@ -286,6 +286,25 @@ calc_muestra_aulas_tasas_facultad <- function(aula_frame) {
     mix <- sum(el[idx] * r[idx]) / tot_el
     ff_vals <- unique(f[idx])
     factor_res <- if (length(ff_vals) == 1L) ff_vals[[1]] else if (mix > 0) tasa / mix else 1
+    # EL MIX, literal: como se reparten las aulas de esta facultad entre los
+    # tramos de tamano. Gonzalo, mirando la tarjeta: «¿a que se refiere con un
+    # mix de tamanos?». Decirlo en prosa no alcanzo; con esto la pantalla puede
+    # ENSENARLO — «60 aulas que rinden 0,80, 90 que rinden 0,56…» — y se ve por
+    # que dos facultades con las mismas aulas tienen tasas distintas.
+    mix_tramos <- local({
+      rr <- r[idx]; ee <- el[idx]
+      niveles <- sort(unique(rr[is.finite(rr)]), decreasing = TRUE)
+      lapply(niveles, function(tv) {
+        sel <- is.finite(rr) & rr == tv
+        list(
+          tasa = round(tv, 4),
+          n_aulas = as.integer(sum(sel)),
+          elegibles = as.integer(round(sum(ee[sel]))),
+          desde = as.integer(min(ee[sel])),
+          hasta = as.integer(max(ee[sel]))
+        )
+      })
+    })
     kk <- k_fac[idx]
     kk <- kk[!is.na(kk)]
     salida[[length(salida) + 1L]] <- list(
@@ -296,6 +315,7 @@ calc_muestra_aulas_tasas_facultad <- function(aula_frame) {
       # pantalla ensenaria una cuenta que no da el numero que muestra al lado.
       rendimiento_mix = round(mix, 6),
       factor_residual = round(factor_res, 6),
+      mix_tramos = mix_tramos,
       n_aulas = as.integer(sum(idx)),
       elegibles = as.integer(round(tot_el)),
       con_residual = any(f[idx] != 1),
