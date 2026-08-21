@@ -274,6 +274,15 @@ export function BaseUploadCard({
             <div className="cmv2-defi-upload-stat">
               <span>{filasReales > 0 ? "Filas leídas" : "Filas (vista previa)"}</span>
               <strong>{filasReales > 0 ? fmtInt(filasReales) : filasPreview > 0 ? fmtInt(filasPreview) : "—"}</strong>
+              {/* Quien sube por primera vez una matrícula de seis cifras lee «80»
+                  y no tiene cómo saber si su archivo entró completo: la
+                  inspección lee a propósito solo las primeras filas para
+                  reconocer las columnas (calc_muestra_aulas_inspect_workbook,
+                  max_rows), y el total recién se cuenta al construir el marco.
+                  Sin esta línea, el número invita justo a la lectura contraria. */}
+              {filasReales > 0 ? null : filasPreview > 0 ? (
+                <small>Solo para reconocer columnas; el total se cuenta al construir el marco.</small>
+              ) : null}
             </div>
           </div>
           {/* F104 · Era un `<details>` rotulado «Ver columnas detectadas (N)».
