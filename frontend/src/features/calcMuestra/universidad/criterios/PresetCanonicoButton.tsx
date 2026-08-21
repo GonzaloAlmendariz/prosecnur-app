@@ -1,6 +1,8 @@
 /**
- * Botón secundario "Partir de los criterios HST 2025": precarga el BORRADOR de
- * la suite con la selección canónica de la reunión del diseño muestral. Antes
+ * Botón secundario "Partir de los criterios de un estudio anterior (HST 2025)":
+ * precarga el BORRADOR de la suite con la selección canónica de ese estudio. El
+ * rótulo nombra la procedencia Y lo que es, porque quien recibe la app no tiene
+ * por qué saber qué significa «HST 2025» ni «la reunión del diseño muestral». Antes
  * de aplicar muestra la mini-lista de lo que va a precargar y, si el borrador
  * tiene cambios sin confirmar, lo advierte y pide confirmación explícita.
  * Control explícito y explicado: nada se confirma ni se aplica al marco desde
@@ -42,18 +44,19 @@ export function PresetCanonicoButton({
         aria-expanded={abierto}
         aria-haspopup="dialog"
         onClick={() => setAbierto((v) => !v)}
-        title="Precarga el borrador con los criterios de inclusión de la reunión del diseño muestral (HST 2025); confirmas cada variable después"
+        title="Precarga el borrador con los criterios de inclusión que se acordaron para el estudio HST 2025 de PULSO PUCP; confirmas cada variable después"
       >
         <Sparkles size={14} aria-hidden="true" />
-        Partir de los criterios HST 2025
+        Partir de los criterios de un estudio anterior (HST 2025)
       </button>
       {abierto ? (
-        <div className="cmv2-crit-preset-panel" role="dialog" aria-label="Precargar los criterios HST 2025">
+        <div className="cmv2-crit-preset-panel" role="dialog" aria-label="Precargar los criterios del estudio anterior HST 2025">
           <strong className="cmv2-crit-preset-title">Esto se precarga en el borrador</strong>
           <p className="cmv2-crit-preset-copy">
-            Los criterios de inclusión acordados en la reunión del diseño muestral (excluir seminarios,
-            tesis, asesorías, investigación, prácticas supervisadas y actividades artísticas). Solo
-            cambia el borrador: confirmas cada variable y recalculas el marco cuando decidas.
+            Los criterios de inclusión que se acordaron para el estudio HST 2025 de PULSO PUCP
+            (excluir seminarios, tesis, asesorías, investigación, prácticas supervisadas y actividades
+            artísticas). Son un punto de partida de otro estudio, no una regla de este: solo cambia el
+            borrador, y confirmas cada variable y recalculas el marco cuando decidas.
           </p>
           {restrictivos.length > 0 ? (
             <ul className="cmv2-crit-preset-list">
