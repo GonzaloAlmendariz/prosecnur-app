@@ -532,7 +532,13 @@ export function RegistroDeCampo({
                         </>
                       ) : null}
                       .
-                      {pq.variosDocentes ? (
+                      {/* La coletilla de los docentes SOLO cuando su tasa es
+                          parte de la meta. Con la ecuación condicional el tipo
+                          de docente salió del esperado, y dejarla puesta decía
+                          que «se usa la tasa del más restrictivo» debajo de una
+                          fórmula que no la usa: visto en pantalla con el plan
+                          real, `CH 1` mostraba las dos cosas a la vez. */}
+                      {pq.entraPAplicada && pq.variosDocentes ? (
                         <>
                           {" "}Tiene {pq.docentes.length} docentes, así que se usa la
                           tasa del más restrictivo.
