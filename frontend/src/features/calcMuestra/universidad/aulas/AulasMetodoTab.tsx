@@ -84,7 +84,11 @@ export function AulasMetodoTab({
   // 17 facultades una sola corrida del método balanceado pasa de ocho minutos
   // sobre 3.142 aulas, contra 57 s con objetivo global. Descubrirlo por el
   // contador, cuando ya arrancó, no es aviso: es sorpresa.
-  const aulasDelMarco = model.frameRows.length;
+  // Las INCLUIDAS, no todas las filas del frame: la comparación trabaja sobre
+  // el marco elegible. `frameRows` trae también las excluidas por criterios y
+  // anunciar 5.269 donde se comparan 3.373 es exactamente el defecto que este
+  // módulo lleva el día entero reparando — un rótulo con otro número.
+  const aulasDelMarco = model.frameRows.filter((fila) => fila.included === true).length;
   const estratosConCuota = model.aulasPorEstrato.length;
   const duracion = avisoDuracionComparacion({ aulas: aulasDelMarco, facultades: estratosConCuota });
 
