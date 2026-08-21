@@ -435,3 +435,41 @@ test_that("vuelve el parte de CUALQUIER unidad que lo tenga", {
   expect_equal(unname(efectivas[["R 2.1"]]), 12)
   expect_equal(unname(efectivas[["X 1"]]), 8)
 })
+
+test_that("una columna con datos y sin cabecera se REPORTA al importar", {
+  # El lector cuenta las columnas de «Base de control» que traen dato y cuya
+  # cabecera no las bautiza, y el aviso de la app las nombra: en el estudio de
+  # trabajo son siete. Su propio comentario cuenta que esto ya fallo una vez
+  # —«decia 0 columnas sin nombre en una hoja que tiene siete»— y aun asi el
+  # mutante que renombraba el campo sobrevivia: `aulas_libro_importar()` leia
+  # NULL y reportaba cero para siempre.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.rt_plan(), libro, control = list(
+    list(operational_code = "CH 1", sent_total = 17)
+  ))
+
+  # Se añade a mano lo que hace el equipo en su Excel: una columna de trabajo
+  # con datos y sin titulo.
+  wb <- openxlsx::loadWorkbook(libro)
+  extra <- length(BASE_CONTROL_CAMPOS) + 2L
+  openxlsx::writeData(wb, "Base de control", "apunte suelto",
+                      startCol = extra, startRow = 3, colNames = FALSE)
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+
+  out <- aulas_libro_importar(libro)
+  expect_gt(length(out$control_sin_nombre), 0L)
+  expect_true(extra %in% unlist(out$control_sin_nombre))
+})
+
+test_that("un libro sin columnas sueltas no inventa ninguna", {
+  # El control del anterior: si el lector marcara como «sin nombre» cualquier
+  # columna vacia, un libro recien generado —39 columnas, casi todas en blanco
+  # porque las llena el equipo— daria una lista enorme y el aviso perderia todo
+  # su valor.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.rt_plan(), libro, control = list(
+    list(operational_code = "CH 1", sent_total = 17)
+  ))
+  out <- aulas_libro_importar(libro)
+  expect_length(out$control_sin_nombre, 0L)
+})
