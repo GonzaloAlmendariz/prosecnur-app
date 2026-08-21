@@ -42,6 +42,13 @@ export type LoQueFalta = {
   aulas: AulaPorCerrar[];
   /** Evaluadas y no efectivas. Incluye las que no traen cifras. */
   noEfectivas: number;
+  /**
+   * Las filas que el libro SI evaluo —las que traen los dos veredictos—. Sin
+   * este numero el panel no puede distinguir «ninguna se quedo corta» de
+   * «ninguna se evaluo», y la segunda se leia como la primera: la mejor
+   * noticia del operativo anunciada sobre cero aulas.
+   */
+  evaluadas: number;
   /** Suma de faltantes: lo que costaría cerrarlas todas. */
   costoTotal: number;
   /**
@@ -65,6 +72,7 @@ export type LoQueFalta = {
 export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQueFalta {
   const aulas: AulaPorCerrar[] = [];
   let noEfectivas = 0;
+  let evaluadas = 0;
   let sinCifras = 0;
   let contradicciones = 0;
 
@@ -74,6 +82,7 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
     // Sin evaluar no es lo mismo que no llegó: un aula que nadie miró no tiene
     // faltante, tiene una hoja sin llenar. Va fuera del panel entero.
     if ((t !== true && t !== false) || (p !== true && p !== false)) continue;
+    evaluadas += 1;
     if (t && p) continue;
     noEfectivas += 1;
 
@@ -113,6 +122,7 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
   return {
     aulas,
     noEfectivas,
+    evaluadas,
     costoTotal: aulas.reduce((s, a) => s + a.faltan, 0),
     sinCifras,
     contradicciones,
