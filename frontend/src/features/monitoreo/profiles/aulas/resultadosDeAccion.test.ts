@@ -53,8 +53,12 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     // «El libro no traía X. Lo demás se leyó» es una importación que FUNCIONÓ.
     // Iba en `setError` —rojo— y además `loadView` limpia `error` al terminar
     // bien, así que el propio import lo borraba con su recarga.
-    expect(page).toContain("setAviso(`El libro no traía");
-    expect(page).not.toContain("setError(`El libro no traía");
+    // La frase se mudó a `avisoLibroImportado` —tiene reglas y se prueba en su
+    // propio test—, pero lo que este aserto protege sigue igual: el resultado
+    // de una importación que funcionó va al aviso, nunca al error.
+    expect(page).toContain("setAviso(avisoLibroImportado(res))");
+    expect(page).not.toMatch(/setError\(\s*avisoLibro/);
+    expect(page).not.toContain("setError(`El libro");
   });
 
   it("los íconos entran por el shim, no por el barrel de lucide", () => {
