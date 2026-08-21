@@ -130,8 +130,8 @@ test_that("con partes y control, la portada dice el avance", {
     control = list(list(operational_code = "CH 1", valid_total = 1, valid_population = 1),
                    list(operational_code = "CH 2", valid_total = 1, valid_population = 0))
   )
-  expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
-  expect_identical(cortes$avance[["Avance sobre lo esperado"]], "44.7 %")
+  expect_equal(cortes$avance[["Efectivas anotadas en los partes"]], 17)
+  expect_identical(cortes$avance[["Avance segun los partes"]], "44.7 %")
   # Las dos ramas del umbral se distinguen: un agregado que valiera igual para
   # «cumple los dos» y «cumple uno» esconderia justo lo que decide.
   expect_equal(cortes$avance[["Aulas efectivas (los dos umbrales)"]], 1L)
@@ -144,7 +144,7 @@ test_that("sin encuestas esperadas, el avance NO es 0 %", {
     list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras")),
     partes = list(list(operational_code = "CH 1", effective_surveys = 0))
   )
-  expect_identical(cortes$avance[["Avance sobre lo esperado"]], "—")
+  expect_identical(cortes$avance[["Avance segun los partes"]], "—")
 })
 
 test_that("las aulas con parte se cuentan sobre TITULARES, sin repetir intentos", {
@@ -156,7 +156,7 @@ test_that("las aulas con parte se cuentan sobre TITULARES, sin repetir intentos"
   )
   expect_equal(cortes$avance[["Aulas con parte de campo"]], 1L)
   # Las efectivas SI suman los dos intentos: son encuestas recogidas, no aulas.
-  expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
+  expect_equal(cortes$avance[["Efectivas anotadas en los partes"]], 17)
 })
 
 test_that("sin base de control, las aulas efectivas NO son cero", {
@@ -171,7 +171,7 @@ test_that("sin base de control, las aulas efectivas NO son cero", {
   expect_identical(cortes$avance[["Aulas que cumplen solo uno"]], "—")
   expect_identical(cortes$avance[["Aulas en la base de control"]], "—")
   # El control: lo que SI se puede contar se cuenta.
-  expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
+  expect_equal(cortes$avance[["Efectivas anotadas en los partes"]], 17)
 })
 
 test_that("la tabla por facultad dice cuanto lleva recogido cada una", {
@@ -190,16 +190,16 @@ test_that("la tabla por facultad dice cuanto lleva recogido cada una", {
   rownames(pf) <- pf$Facultad
   # Cada facultad con LO SUYO: un reparto que asignara todo a la primera, o que
   # repartiera el total en partes iguales, daria 23 y 11.5 aqui.
-  expect_equal(pf["Letras", "Recogidas"], 17)
-  expect_equal(pf["Ciencias", "Recogidas"], 6)
-  expect_identical(pf["Letras", "Avance"], "85 %")
-  expect_identical(pf["Ciencias", "Avance"], "33.3 %")
+  expect_equal(pf["Letras", "Recogidas (partes)"], 17)
+  expect_equal(pf["Ciencias", "Recogidas (partes)"], 6)
+  expect_identical(pf["Letras", "Avance (partes)"], "85 %")
+  expect_identical(pf["Ciencias", "Avance (partes)"], "33.3 %")
 })
 
 test_that("un libro nuevo no gana las columnas de recogido", {
   cortes <- aulas_libro_cortes(list(.res_u("CH 1", 20)))
-  expect_false("Recogidas" %in% names(cortes$por_facultad))
-  expect_false("Avance" %in% names(cortes$por_facultad))
+  expect_false("Recogidas (partes)" %in% names(cortes$por_facultad))
+  expect_false("Avance (partes)" %in% names(cortes$por_facultad))
 })
 
 test_that("una facultad sin esperado no da 0 % de avance", {
@@ -207,7 +207,7 @@ test_that("una facultad sin esperado no da 0 % de avance", {
     list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras")),
     partes = list(list(operational_code = "CH 1", effective_surveys = 4))
   )
-  expect_identical(cortes$por_facultad[["Avance"]][[1]], "—")
+  expect_identical(cortes$por_facultad[["Avance (partes)"]][[1]], "—")
 })
 
 test_that("lo que recoge una reserva cuenta para la facultad de su cadena", {
@@ -228,6 +228,23 @@ test_that("lo que recoge una reserva cuenta para la facultad de su cadena", {
   # La meta sigue siendo la del titular —una cadena, una aula que visitar— y lo
   # recogido por la reserva cuenta hacia ella.
   expect_equal(pf$Esperadas[[1]], 20)
-  expect_equal(pf$Recogidas[[1]], 18)
-  expect_identical(pf$Avance[[1]], "90 %")
+  expect_equal(pf$`Recogidas (partes)`[[1]], 18)
+  expect_identical(pf$`Avance (partes)`[[1]], "90 %")
+})
+
+test_that("cada cifra de avance de la portada dice de DONDE sale", {
+  # El mismo estudio tiene seis numeros parecidos y distintos: 3 891 asistentes
+  # observados, 3 508 efectivas anotadas por el equipo, 3 700 respuestas leidas,
+  # 2 220 validas, 2 163 que cubren meta y 1 901 enviadas segun el control.
+  # Esta portada cuenta lo que el equipo ANOTO —da 93.6 % donde la pantalla de
+  # Avance dice 57.8 %—, asi que no puede llamarse «avance» a secas.
+  cortes <- aulas_libro_cortes(
+    list(.res_u("CH 1", 20)),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 17))
+  )
+  expect_true(all(grepl("partes", names(cortes$avance)[3:4])))
+  expect_true(any(grepl("partes", names(cortes$por_facultad))))
+  # El control: ninguna etiqueta puede quedarse con el nombre generico.
+  expect_false("Avance" %in% names(cortes$por_facultad))
+  expect_false("Avance sobre lo esperado" %in% names(cortes$avance))
 })
