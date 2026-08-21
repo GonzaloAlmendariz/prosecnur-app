@@ -72,7 +72,14 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   titulos_bloque <- .calg_titulos_agenda()
   # Agrupa por titular: cada fila del Excel es un titular con su cadena al lado.
   # Por `titular_operational_code` y no por `replacement_for` — ver `.calg_titular`.
-  grupos <- split(unidades, vapply(unidades, .calg_titular, character(1)))
+  #
+  # **En el orden del PLAN, no en el alfabetico.** `split()` ordena los grupos
+  # por su clave como TEXTO, asi que el libro salia «CH 1, CH 10, CH 100,
+  # CH 101…»: quien busca «CH 11» lo encontraba noventa filas mas abajo, y el
+  # orden de la muestra —que el plan ya trae resuelto— se perdia. Con el factor
+  # de niveles en orden de aparicion, el libro conserva el del plan.
+  claves <- vapply(unidades, .calg_titular, character(1))
+  grupos <- split(unidades, factor(claves, levels = unique(claves)))
   profundidad <- max(1L, max(vapply(grupos, length, integer(1)), 1L))
 
   cabecera <- c("ID MATCH", rep(titulos_bloque, profundidad))

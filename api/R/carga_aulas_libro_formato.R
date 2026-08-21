@@ -313,6 +313,10 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     if (!length(cols)) next
     ultima <- max(n_cab + 1L, filas_datos[[hoja]] %||% (n_cab + 1L))
     filas <- (n_cab + 1L):ultima
+    # `ID MATCH` es de la app tambien —es el correlativo con el que se enlazan
+    # las filas— y salia en blanco, que en esta hoja significa «escribe aqui».
+    # Va con el mismo gris que el resto de lo que no se toca.
+    cols <- unique(c(1L, cols))
     openxlsx::addStyle(wb, hoja, de_la_app, rows = filas, cols = cols,
                        gridExpand = TRUE, stack = TRUE)
   }
