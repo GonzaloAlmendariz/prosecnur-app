@@ -2886,6 +2886,52 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     aula_frame[[aula_col]],
     suppressWarnings(as.numeric(aula_frame$eligible_n %||% rep(1, nrow(aula_frame))))
   )
+  # La población agregada TAMBIÉN sirve, y es la referencia correcta.
+  #
+  # `frame$population` no es una tabla de estudiantes: viaja en formato largo
+  # —`primary_role`/`primary_raw`/`count`, 249 filas en HSVG2026— con la
+  # distribución de la base madre. La rama de arriba pide microdatos
+  # (`student_id` + una columna por dimensión), no los encuentra y cae al marco
+  # de aulas, que es OTRA referencia: la afijación reparte por población
+  # matriculada y el marco pondera elegibles, y un alumno aparece en varias
+  # aulas. DERECHO tiene 3.187 matriculados y 15.085 elegibles en sus aulas.
+  #
+  # Con la agregada el perfil se construye directo: filtrar por `primary_role`
+  # igual a la dimensión y sumar `count` por `primary_raw`. Es la distribución
+  # de estudiantes que el diseño usa para repartir, así que la distancia pasa a
+  # medir lo que dice medir.
+  if (source_preference == "student" && nzchar(student_col) && nrow(population) &&
+      all(c("primary_role", "primary_raw", "count") %in% names(population))) {
+    # La tabla es un cruce: la dimensión puede venir como PRIMARIA o como
+    # SECUNDARIA. En HSVG2026 `faculty` es primaria y `sex` secundaria, así que
+    # mirar sólo la primaria dejaba a `sex` cayendo al marco de aulas, con score
+    # 0 y peso 0,10.
+    clave_dim <- .cm_aulas_text_key(student_col)
+    es_primaria <- .cm_aulas_text_key(population$primary_role) == clave_dim
+    es_secundaria <- if ("secondary_role" %in% names(population)) {
+      .cm_aulas_text_key(population$secondary_role) == clave_dim
+    } else rep(FALSE, nrow(population))
+    usa_secundaria <- !any(es_primaria) && any(es_secundaria)
+    pop_dim <- population[if (usa_secundaria) es_secundaria else es_primaria, , drop = FALSE]
+    if (nrow(pop_dim)) {
+      pesos <- suppressWarnings(as.numeric(pop_dim$count))
+      pesos[!is.finite(pesos) | pesos < 0] <- 0
+      valores_dim <- if (usa_secundaria) pop_dim$secondary_raw else pop_dim$primary_raw
+      if (sum(pesos) > 0) {
+        fp_pop <- get_profile(paste0("popagg:", student_col), valores_dim, pesos)
+        return(.cm_aulas_distribution_compare(
+          frame_profile = fp_pop,
+          selected_values = selected_m1[[aula_col]],
+          selected_weights = suppressWarnings(as.numeric(selected_m1$eligible_n %||% rep(1, nrow(selected_m1)))),
+          dimension = dimension,
+          label = label,
+          source = "population_aggregated",
+          tolerance = tolerance
+        ))
+      }
+    }
+  }
+
   # Una variable que PIDE la población y acaba comparándose contra el marco de
   # aulas no está midiendo lo mismo, y hasta 2026-08-21 el cambio de referencia
   # no se declaraba en ninguna parte.
