@@ -305,7 +305,14 @@ export function AulasControlDelLibro({
     return (
       // El vacío vive dentro de la caja y dice de dónde saldría el dato (C3):
       // esta hoja no la produce la app, la llena el equipo.
-      <p className="mon-profile-muted">
+      //
+      // **Y declara lo mismo que la rama con datos.** Sin `member`, el grupo
+      // `monitoring-aulas-table` se queda sin miembro explícito y el runner cae
+      // a los hijos directos del `section`: el encabezado del panel entra como
+      // si fuera un contenedor de datos y sus 4 px de padding compiten contra
+      // los 17 del aviso → `capacity-drift` en los dos viewports. Con datos el
+      // grupo iba verde, así que el defecto sólo existía en el estado vacío.
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         El libro importado no trae la hoja «Base de control», o la trae sin filas.
         Es la hoja donde el equipo lleva el control de calidad por aula.
       </p>

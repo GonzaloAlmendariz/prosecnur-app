@@ -32,9 +32,14 @@ export function AulasObservacionesDeCampo({ partes }: {
     // tres paneles a la vez.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ninguno de los {fmt(r.partes)} partes trae observaciones. Se escriben al
-        registrar un aula, en el campo «Observaciones», y son lo que el aplicador
-        vio y no cabe en un número.
+        {/* Dos causas distintas, y la frase las decía igual. Con 152 partes y
+            ninguna nota, el campo no está escribiendo lo que ve y eso SÍ es un
+            aviso sobre el libro. Con cero partes no se ha mirado nada: decir
+            «ninguno de los 0 partes trae observaciones» afirma haber contado
+            sobre un conjunto vacío. Misma familia que `c4af437d`. */}
+        {r.partes
+          ? `Ninguno de los ${fmt(r.partes)} partes trae observaciones. Se escriben al registrar un aula, en el campo «Observaciones», y son lo que el aplicador vio y no cabe en un número.`
+          : "Todavía no hay partes de campo. Las observaciones se escriben al registrar un aula, en el campo «Observaciones», y son lo que el aplicador vio y no cabe en un número."}
       </p>
     );
   }
