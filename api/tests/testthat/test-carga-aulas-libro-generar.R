@@ -130,7 +130,12 @@ test_that("el libro sale con desplegables, panel congelado y anchos", {
   expect_true("Listas" %in% hojas)
   expect_true(all(c("Aulas Agendadas", "Aulas Aplicadas (Campo)", "Base de control") %in% hojas))
 
-  xml <- paste(readLines(unz(path, "xl/worksheets/sheet1.xml"), warn = FALSE), collapse = "")
+  # sheet2 y no sheet1: el libro abre por la portada «Resumen» desde que existe,
+  # asi que la hoja de agenda es la segunda. Buscarla por posicion fija es
+  # justo lo que rompio este test al anadir la portada.
+  hoja_agenda <- which(hojas == "Aulas Agendadas")
+  xml <- paste(readLines(unz(path, sprintf("xl/worksheets/sheet%d.xml", hoja_agenda)),
+                         warn = FALSE), collapse = "")
   # Las validaciones con formula a otra hoja las escribe `openxlsx` en el
   # namespace de extension `x14`, NO como `<dataValidation `. Buscar la etiqueta
   # simple daba CERO sobre un libro que si las llevaba, y con ese cero casi
@@ -191,6 +196,16 @@ test_that("se distingue lo que trae la app de lo que llena la persona", {
   c(list(titular), reservas)
 }
 
+#' El XML de una hoja por NOMBRE.
+#'
+#' Por nombre y no por indice: el libro gano una portada y todo lo que apuntaba
+#' a `sheet1.xml` paso a leer «Resumen». Un test que localiza su hoja por
+#' posicion se rompe en cuanto el libro crece por delante.
+.xml_de_hoja_llamada <- function(path, nombre) {
+  hojas <- openxlsx::getSheetNames(path)
+  .xml_de_hoja(path, which(hojas == nombre))
+}
+
 .xml_de_hoja <- function(path, hoja = 1L) {
   destino <- file.path(tempdir(), paste0("xlsx_", as.integer(runif(1, 1, 1e6))))
   dir.create(destino)
@@ -203,7 +218,7 @@ test_that("la hoja de agenda sale con autofiltro sobre su cabecera", {
   # Sin filtro, encontrar una facultad en 951 filas era desplazarse a mano.
   path <- file.path(tempdir(), "libro_filtro.xlsx")
   aulas_libro_generar(.libro_de_prueba(), path)
-  xml <- paste(.xml_de_hoja(path), collapse = "")
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Agendadas"), collapse = "")
   expect_match(xml, 'autoFilter ref="A1:')
 })
 
@@ -212,7 +227,7 @@ test_that("cada columna toma el ancho de lo que lleva, no uno fijo", {
   # desperdiciaba media columna y el segundo cortaba el titulo.
   path <- file.path(tempdir(), "libro_anchos.xlsx")
   aulas_libro_generar(.libro_de_prueba(), path)
-  xml <- paste(.xml_de_hoja(path), collapse = "")
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Agendadas"), collapse = "")
   anchos <- unique(as.numeric(sub('.*width="([0-9.]+)".*', "\\1",
                                   regmatches(xml, gregexpr('width="[0-9.]+"', xml))[[1]])))
   expect_gt(length(anchos), 3)
@@ -227,7 +242,7 @@ test_that("los bloques de reemplazo se pliegan y el del titular no", {
   # pliegan con un clic.
   path <- file.path(tempdir(), "libro_grupos.xlsx")
   aulas_libro_generar(.libro_de_prueba(2L), path)
-  xml <- paste(.xml_de_hoja(path), collapse = "")
+  xml <- paste(.xml_de_hoja_llamada(path, "Aulas Agendadas"), collapse = "")
   cols <- regmatches(xml, gregexpr('<col [^>]*>', xml))[[1]]
   con_nivel <- grep("outlineLevel", cols, value = TRUE)
   # Dos reservas -> dos bloques agrupados.
