@@ -179,7 +179,25 @@ export function CalculoCursosHorarioFacultadTab({
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>
         <div className="cmv2-calc-confirm-copy">
           <strong>{estado.vigente ? "Cursos-horario requeridos confirmados" : "Cursos-horario requeridos pendientes de confirmación"}</strong>
-          <span>{fmtInt(model.aulasTotal)} cursos-horario a coordinar según el resultado vigente.</span>
+          {/* «A coordinar» era falso: las reservas son cupos dimensionados del
+              plan, no visitas que se agenden (Gonzalo, 2026-08-21: «ojo, las
+              aulas de reserva no se coordinan así»). Se dicen por separado. */}
+          <span>
+            {fmtInt(model.aulasBaseTotal)} titulares
+            {model.aulasExtraTotal > 0 && <> y {fmtInt(model.aulasExtraTotal)} de reserva</>} según el
+            resultado vigente.
+          </span>
+          {/* Qué hace confirmar, porque no se adivina: Gonzalo supuso que
+              desbloqueaba algo («me imagino que si le das a confirmar el plan,
+              eso permitiría marcar cuántas aulas»). No abre ninguna puerta —el
+              sorteo no lo exige— y su decisión no viaja al motor: es el sello
+              de que revisaste ESTE plan, y se cae solo si el marco o el
+              resultado cambian. */}
+          <small className="cmv2-calc-confirm-que-hace">
+            {estado.vigente
+              ? "Queda como constancia de que revisaste este plan; si el marco o el cálculo cambian, vuelve a pendiente."
+              : "Confirmar deja constancia de que revisaste este plan. No condiciona el sorteo."}
+          </small>
         </div>
         <div className="cmv2-inline-actions">
           {estado.vigente && <button type="button" className="cmv2-ghost" onClick={() => confirmar(null)}><RotateCcw size={13} aria-hidden="true" /> Reabrir</button>}
