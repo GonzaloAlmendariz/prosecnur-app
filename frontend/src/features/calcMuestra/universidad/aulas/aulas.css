@@ -514,7 +514,7 @@
 }
 
 .cmv2-aulas-tol-leyenda .is-marco::before {
-  background: color-mix(in srgb, var(--cmv2-accent) 24%, var(--cmv2-surface-tint));
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
 }
 
 .cmv2-aulas-tol-leyenda .is-muestra::before {
@@ -2037,3 +2037,42 @@
   font-size: 10.5px;
 }
 
+
+/* Ajuste frente al marco: barras pareadas (adios al «partido»), 2026-08-20. */
+.cmv2-profile-track.cmv2-profile-par {
+  height: auto;
+  display: grid;
+  gap: 3px;
+  position: relative;
+  padding: 2px 0;
+}
+
+.cmv2-profile-par .cmv2-profile-linea {
+  display: block;
+  position: relative;
+  height: 6px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--pulso-text-muted) 8%, transparent);
+  overflow: hidden;
+}
+
+.cmv2-profile-par .cmv2-profile-linea b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+}
+
+.cmv2-profile-par .cmv2-profile-linea .is-frame {
+  background: color-mix(in srgb, var(--pulso-text-muted) 34%, transparent);
+}
+
+.cmv2-profile-par .cmv2-profile-linea .is-selected {
+  background: var(--cmv2-accent-fg);
+  opacity: 0.85;
+}
+
+.cmv2-profile-par .cmv2-aulas-tol-banda {
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+}

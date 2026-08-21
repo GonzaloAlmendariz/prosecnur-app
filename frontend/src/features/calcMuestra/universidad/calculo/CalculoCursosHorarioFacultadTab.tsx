@@ -121,6 +121,8 @@ export function CalculoCursosHorarioFacultadTab({
               La cadena completa por facultad: cuota ÷ ({etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)} × tasa de
               efectividad de la facultad) → titulares. La cuota de cada facultad viene de la
               afijación del diseño (pestaña Diseño); las cifras son del resultado del motor.
+              Las «reservas» de esta tabla son cupos dimensionados del plan; las rutas
+              concretas de reemplazo (R1, R2…) viven en Selección → Reemplazos.
             </p>
           </div>
           <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
