@@ -264,3 +264,39 @@ columnas_con_formato_condicional <- function(path, hoja) {
   sq <- sq[!is.na(sq)]
   unique(sub("([A-Z]+).*", "\\1", unlist(strsplit(sq, "[ :]"))))
 }
+
+# Las reglas de formato condicional de una hoja, con su TIPO y su columna.
+#
+# `columnas_con_formato_condicional()` dice donde hay regla; esta dice cual.
+# Hace falta cuando una hoja lleva varias clases —una barra de datos y un
+# semaforo de texto no son lo mismo— y comprobar solo la columna deja pasar que
+# se cambie una por otra.
+#
+# **Devuelve tambien el `sqref` crudo**, y hace falta: `openxlsx` agrupa varias
+# columnas en UNA sola etiqueta —`sqref="B23:G42"`—, asi que mirar solo la
+# primera letra no distingue «la barra esta en su columna» de «la barra esta en
+# las seis». Un mutante sobrevivio exactamente por eso.
+#
+# @return `data.frame(col, tipo, sqref)`, una fila por regla.
+reglas_condicionales_de <- function(path, hoja) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  vacio <- data.frame(col = character(0), tipo = character(0), stringsAsFactors = FALSE)
+  if (!length(i)) return(vacio)
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  cfs <- xml2::xml_find_all(doc, ".//a:conditionalFormatting", ns)
+  if (!length(cfs)) return(vacio)
+  filas <- lapply(cfs, function(cf) {
+    sq <- xml2::xml_attr(cf, "sqref")
+    col <- sub("([A-Z]+).*", "\\1", strsplit(sq, "[ :]")[[1]][[1]])
+    tipos <- xml2::xml_attr(xml2::xml_find_all(cf, ".//a:cfRule", ns), "type")
+    data.frame(col = rep(col, length(tipos)), tipo = tipos,
+               sqref = rep(sq, length(tipos)), stringsAsFactors = FALSE)
+  })
+  do.call(rbind, filas)
+}

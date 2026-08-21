@@ -189,3 +189,18 @@ test_that("si llega en 0-100 tampoco aqui se formatea como porcentaje", {
   # El control: la misma cifra en la otra escala saldria como 6400 %.
   expect_identical(.dat_formato_de(64, "% asistencia (parte)"), "0.0")
 })
+
+test_that("la hoja de datos repite el codigo del aula al imprimir", {
+  # Tercera hoja con el mismo defecto. Con 34 columnas se parte en cuatro
+  # tramos a lo ancho, y sin la columna repetida los tres ultimos son cifras sin
+  # saber de que aula son. Se comprobo en el PDF —el tramo de la pagina 11 SI
+  # repetia «Curso-horario»— pero no habia test, y el mutante que le quitaba el
+  # `printTitleCols` sobrevivia.
+  f <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(
+    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "F",
+              eligible_n = 30, enrolled_total = 34)),
+    f
+  )
+  expect_identical(columnas_repetidas_de(f, "Datos"), "$A:$A")
+})
