@@ -201,10 +201,12 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     n <- nrow(ind$aplicadores)
     openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n), cols = 2:4,
                        gridExpand = TRUE, stack = TRUE)
-    # La barra donde se compara: quien va flojo se ve sin leer la columna.
+    # **La barra en un tono CLARO, o tapa el numero.** Con el navy del libro, la
+    # cifra quedaba en negro sobre azul oscuro y no se leia: la barra ayuda a
+    # comparar de un vistazo, pero el numero es el dato. Visto en el PDF.
     openxlsx::conditionalFormatting(
       wb, hoja, cols = 4, rows = (fila + 1L):(fila + n),
-      type = "databar", style = c("#C7D0DD", "#002457"), gradient = FALSE, border = FALSE
+      type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
     )
     fila <- fila + n + 2L
   }
@@ -220,7 +222,8 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
                        gridExpand = TRUE, stack = TRUE)
     openxlsx::conditionalFormatting(
       wb, hoja, cols = 2, rows = (fila + 1L):(fila + n),
-      type = "databar", style = c("#C7D0DD", "#1D4F8C"), gradient = FALSE, border = FALSE
+      # Mismo motivo que arriba: el numero por encima de la barra.
+      type = "databar", style = c("#DCE6F2", "#C2D4E8"), gradient = FALSE, border = FALSE
     )
     fila <- fila + n + 1L
   }
