@@ -96,6 +96,16 @@ test_that("las hojas de datos se imprimen con su cabecera en cada pagina", {
                  collapse = "")
   # `printTitleRows` se guarda como nombre definido `_xlnm.Print_Titles`.
   expect_match(libro, "Print_Titles")
+  # **Y el RANGO de la agenda, no solo que exista el nombre definido**: con
+  # cualquier hoja que lo declare, `expect_match` pasa aunque la agenda repita
+  # la columna equivocada — el mutante que la dejaba en `ID MATCH` no rompia
+  # nada, y ese es justo el defecto que se vio en el PDF.
+  campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
+  hasta <- 1L + which(campos_bloque == "operational_code")
+  expect_identical(
+    columnas_repetidas_de(path, "Aulas Agendadas"),
+    sprintf("$A:$%s", openxlsx::int2col(hasta))
+  )
   # Y la COLUMNA tambien: en horizontal la hoja se parte por columnas, y sin
   # repetir la primera —el codigo del aula— la segunda pagina son cifras sin
   # saber de que aula son. Visto en el PDF: tres paginas y solo la primera

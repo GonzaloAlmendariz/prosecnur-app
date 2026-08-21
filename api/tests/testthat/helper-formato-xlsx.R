@@ -95,3 +95,26 @@ relleno_de_celda <- function(path, hoja, col, fila) {
   # `rgb=` es una letra valida en hex y se colaba delante del color.
   toupper(gsub('^rgb="|"$', "", rgb))
 }
+
+# El rango de columnas que una hoja repite al imprimir (`Print_Titles`).
+#
+# **Contar cuantos `Print_Titles` hay en `workbook.xml` no vale.** El libro tiene
+# seis hojas y varias lo declaran, asi que el conteo se cumple aunque la hoja que
+# importa repita la columna equivocada. Comprobado con el mutante: hacer que la
+# agenda y la hoja de campo repitieran solo `ID MATCH` —el defecto real que se
+# encontro mirando el PDF— no rompia ningun test.
+#
+# @return el rango como cadena (por ejemplo «$A:$D»); `""` si la hoja no declara
+#   columnas repetidas.
+columnas_repetidas_de <- function(path, hoja) {
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  wb <- paste(readLines(file.path(d, "xl", "workbook.xml"), warn = FALSE), collapse = "")
+  # El nombre definido lleva la hoja delante: «'Aulas Agendadas'!$A:$D».
+  patron <- sprintf("'%s'!\\$[A-Z]+:\\$[A-Z]+", gsub("([()])", "\\\\\\1", hoja))
+  m <- regmatches(wb, regexpr(patron, wb))
+  if (!length(m)) return("")
+  sub(".*!", "", m)
+}
