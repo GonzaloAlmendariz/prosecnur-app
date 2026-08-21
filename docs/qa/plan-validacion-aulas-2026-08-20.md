@@ -262,8 +262,21 @@ extensible a todos los monitoreos.
     que lista aulas pintando sus propias filas —`DataTable` no admite render por
     celda—. La ficha se montó primero en la pestaña equivocada: el disparador
     vivía en `base` y la ficha en `registro`.
-- **T21** — «Si no llegó a lo suyo, ¿de dónde se saca?»: enlazar el déficit del
-  aula con el banco y la cola de cierre.
+- **T21 ☑ (2026-08-20, 5 tests)** — «De dónde se saca», dentro de la ficha y
+  **sólo cuando hay brecha**: un aula que llegó a lo suyo no necesita esa
+  sección, y pintarla vacía sería un hueco sin propósito (C3).
+  - **La cuenta es de SU facultad**, porque la cuota es por facultad: veinte
+    reservas libres no sirven si la que perdió el aula tiene cero. Verificado en
+    pantalla: `CH 52` → «Le faltan 2. En Letras y Ciencias Humanas queda 1
+    reserva sin usar».
+  - **Reusa `colchonPorFacultad()`**, el mismo cálculo que pinta el panel del
+    colchón. Dos cuentas de lo mismo se separarían en la peor forma: la ficha
+    diciendo que hay de dónde sacar y el panel de al lado que no. Hay un test
+    que las compara —y que exige que el caso traiga reservas de verdad, porque
+    con las dos en cero pasaría sin comprobar nada—.
+  - **El banco de extras se queda fuera a propósito**: tiene su propio panel con
+    tasa observada y banda, y repetir aquí una versión sin banda daría una cifra
+    más optimista y sin su incertidumbre.
 
 ### E. Forma y arquitectura (T22–T25)
 
