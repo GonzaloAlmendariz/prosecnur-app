@@ -142,7 +142,8 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
                                         agrupados = list(), semaforos = list(),
                                         formatos = list(),
                                         columnas_repetidas = list(),
-                                        combinar = list()) {
+                                        combinar = list(),
+                                        descuadres = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -280,6 +281,38 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
         )
       }
     }
+  }
+
+  # **El descuadre del parte se ve AL ESCRIBIRLO, no dos semanas despues.**
+  #
+  # `monitoreo_aulas_reconciliacion.R` ya comprueba que las efectivas no pueden
+  # ser mas que los asistentes menos los rechazos menos los duplicados. Pero eso
+  # ocurre al IMPORTAR: quien llena la hoja en el aula no se entera hasta que
+  # alguien sube el libro, y para entonces la clase se acabo. La misma regla,
+  # como formato condicional, tiñe la celda en cuanto el numero no cuadra.
+  #
+  # No bloquea nada: es un aviso, no una validacion. Un dato raro puede ser
+  # correcto y la hoja no esta para discutir con quien estuvo en el aula.
+  #
+  # Rechazos y duplicados en blanco cuentan como cero —igual que en el motor:
+  # son cuentas de eventos que, de no anotarse, no ocurrieron— y por eso van con
+  # `N()`, que convierte el vacio en 0 sin romper la formula.
+  descuadre <- openxlsx::createStyle(bgFill = "#FDE7E7", fontColour = "#8A1C1C")
+  for (dc in descuadres) {
+    if (!length(dc$efectivas) || !dc$filas) next
+    fila1 <- dc$desde + 1L
+    ef <- paste0(openxlsx::int2col(dc$efectivas), fila1)
+    as <- paste0(openxlsx::int2col(dc$asistentes), fila1)
+    re <- paste0(openxlsx::int2col(dc$rechazos), fila1)
+    du <- paste0(openxlsx::int2col(dc$duplicados), fila1)
+    openxlsx::conditionalFormatting(
+      wb, dc$hoja, cols = dc$efectivas, rows = seq_len(dc$filas) + dc$desde,
+      type = "expression",
+      # Sin dato no hay descuadre que enseñar: una fila vacia se quedaria roja.
+      rule = sprintf("AND(%s<>\"\",%s<>\"\",%s>%s-N(%s)-N(%s))",
+                     ef, as, ef, as, re, du),
+      style = descuadre
+    )
   }
 
   # **La banda de grupo se combina en vez de dejar una franja hueca.**

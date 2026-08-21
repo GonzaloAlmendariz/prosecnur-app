@@ -443,3 +443,29 @@ test_that("la base de control combina sus tramos y repite hasta el curso-horario
   expect_true(grepl("Print_Titles", wbx, fixed = TRUE))
   expect_true(grepl("Base de control'!\\$A:\\$B", wbx))
 })
+
+# --- El descuadre del parte se ve al escribirlo ------------------------------
+
+test_that("la hoja de campo avisa cuando las efectivas no cuadran", {
+  # `monitoreo_aulas_reconciliacion.R` ya comprueba esto, pero al IMPORTAR:
+  # quien llena la hoja en el aula no se entera hasta que alguien sube el libro,
+  # y para entonces la clase se acabo. La misma regla, en la hoja.
+  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"),
+               collapse = "")
+  expect_true(grepl('type="expression"', xml, fixed = TRUE))
+  # La formula compara efectivas contra asistentes menos rechazos y duplicados.
+  # `N()` convierte el vacio en cero: rechazos y duplicados sin anotar son
+  # eventos que no ocurrieron, igual que en el motor.
+  expect_true(grepl("N(", xml, fixed = TRUE))
+  # Y no tiñe una fila vacia: sin efectivas y sin asistentes no hay descuadre.
+  expect_true(grepl("AND(", xml, fixed = TRUE))
+})
+
+test_that("la regla de cuadre se repite en cada intento, no solo en el primero", {
+  # Un aula que se visita dos veces tiene dos bloques de parte y los dos se
+  # llenan a mano. Contar columnas para uno solo ya costo el semaforo.
+  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"),
+               collapse = "")
+  n <- length(gregexpr('type="expression"', xml, fixed = TRUE)[[1]])
+  expect_gte(n, 2L)
+})
