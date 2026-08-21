@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiError, type JobSnapshot } from "../../../../api/client";
 import {
   cmFormatElapsed,
+  cmJobEta,
+  cmJobFraccion,
+  cmTextoProgreso,
   esJobNoEncontrado,
   esperarJob,
   JobCancelledError,
@@ -34,6 +37,49 @@ function reloj() {
 }
 
 describe("esperarJob — F6", () => {
+  it("timeout: sólo se aplica si quien llama lo pide; por defecto NO mata el trabajo", async () => {
+    // La conducta que Gonzalo decidió: comparar los métodos sobre un marco de
+    // tamaño normal pasa de una hora, y el reloj no puede tirar ese trabajo.
+    // Antes, sin `timeoutMs`, a los 30 minutos se cancelaba el job y se perdía.
+    const { now, sleep } = reloj();
+    const cancel = vi.fn(async () => ({ ok: true }));
+    let llamadas = 0;
+    const resultado = await esperarJob("j1", "Comparando métodos", {
+      // Dos horas de trabajo a 5 s por vuelta, y recién entonces termina.
+      status: async () => (llamadas++ < 1440 ? snap("running") : snap("done")),
+      cancel,
+      now,
+      sleep,
+      intervalMs: 5_000,
+      intervalLargoMs: 5_000,
+    });
+    expect(resultado.status).toBe("done");
+    expect(now()).toBeGreaterThan(2 * 60 * 60_000 - 60_000);
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
+  it("el polling se espacia cuando el trabajo se hace largo", async () => {
+    const esperas: number[] = [];
+    let t = 0;
+    let llamadas = 0;
+    await esperarJob("j1", "Comparando métodos", {
+      status: async () => (llamadas++ < 400 ? snap("running") : snap("done")),
+      cancel: async () => ({ ok: true }),
+      now: () => t,
+      sleep: async (ms: number) => {
+        esperas.push(ms);
+        t += ms;
+      },
+      intervalMs: 1_500,
+      intervalLargoMs: 5_000,
+      espaciarTrasMs: 60_000,
+    });
+    expect(esperas[0]).toBe(1_500);
+    expect(esperas[esperas.length - 1]).toBe(5_000);
+    // Espaciar de verdad: si no lo hiciera, 400 vueltas a 1,5 s serían 600 s.
+    expect(esperas.filter((ms) => ms === 5_000).length).toBeGreaterThan(300);
+  });
+
   it("timeout: cancela el job en el backend (best-effort) antes de abandonar", async () => {
     const { now, sleep } = reloj();
     const cancel = vi.fn(async () => ({ ok: true }));
@@ -184,5 +230,77 @@ describe("cmFormatElapsed", () => {
     expect(cmFormatElapsed(0)).toBe("00:00");
     expect(cmFormatElapsed(61_000)).toBe("01:01");
     expect(cmFormatElapsed(-5)).toBe("00:00");
+  });
+});
+
+describe("el contador es honesto con cómo vamos", () => {
+  it("cmJobFraccion lee percent, y si no viene, current/total", () => {
+    expect(cmJobFraccion(snap("running", { progress: { percent: 47 } as JobSnapshot["progress"] }))).toBeCloseTo(0.47);
+    expect(cmJobFraccion(snap("running", { progress: { current: 240, total: 500 } as JobSnapshot["progress"] }))).toBeCloseTo(0.48);
+    // Sin señal medible no se inventa una: null, y el texto no promete nada.
+    expect(cmJobFraccion(snap("running", { progress: { message: "corrida 5" } as JobSnapshot["progress"] }))).toBeNull();
+    expect(cmJobFraccion(snap("running", { progress: {} as JobSnapshot["progress"] }))).toBeNull();
+    expect(cmJobFraccion(snap("running", { progress: { current: 3, total: 0 } as JobSnapshot["progress"] }))).toBeNull();
+  });
+
+  it("cmJobEta extrapola el ritmo, y calla mientras la estimación no valga nada", () => {
+    // A la mitad en 10 min ⇒ faltan ~10 min.
+    expect(cmJobEta(600_000, 0.5)).toBe(600_000);
+    // Al 25 % en 10 min ⇒ faltan ~30.
+    expect(cmJobEta(600_000, 0.25)).toBe(1_800_000);
+    expect(cmJobEta(600_000, null)).toBeNull();
+    // Arranque: la carga de datos distorsiona y daría un número absurdo.
+    expect(cmJobEta(5_000, 0.01)).toBeNull();
+    expect(cmJobEta(600_000, 0.005)).toBeNull();
+    expect(cmJobEta(600_000, 1)).toBeNull();
+  });
+
+  it("la línea dice etapa, transcurrido, lo que falta y que se pasó de lo previsto", () => {
+    const corto = cmTextoProgreso({
+      label: "Comparando métodos",
+      stage: "corrida 240/500",
+      elapsedMs: 600_000,
+      fraccion: 0.48,
+    });
+    expect(corto).toContain("Comparando métodos — corrida 240/500");
+    expect(corto).toContain("10:00");
+    expect(corto).toContain("faltan ~");
+    expect(corto).not.toContain("sigue trabajando");
+
+    const largo = cmTextoProgreso({
+      label: "Comparando métodos",
+      stage: null,
+      elapsedMs: 40 * 60_000,
+      fraccion: 0.5,
+      avisoLargoMs: 30 * 60_000,
+    });
+    // Pasarse del tiempo previsto se DICE; ya no se mata el trabajo.
+    expect(largo).toContain("más de 30 min, sigue trabajando");
+
+    // Sin fracción declarada no se inventa un tiempo restante.
+    const sinEta = cmTextoProgreso({ label: "Sorteo", stage: "preparando", elapsedMs: 600_000, fraccion: null });
+    expect(sinEta).not.toContain("faltan");
+  });
+
+  it("esperarJob entrega esa línea al banner, con lo que falta", async () => {
+    let t = 0;
+    let llamadas = 0;
+    const progresos: string[] = [];
+    await esperarJob("j1", "Comparando métodos", {
+      status: async () =>
+        llamadas++ < 3
+          ? snap("running", { progress: { percent: 25, message: "corrida 125/500" } as JobSnapshot["progress"] })
+          : snap("done"),
+      cancel: async () => ({ ok: true }),
+      onProgress: (texto) => progresos.push(texto),
+      now: () => t,
+      sleep: async (ms: number) => {
+        t += ms;
+      },
+      intervalMs: 60_000,
+    });
+    const ultimo = progresos[progresos.length - 1];
+    expect(ultimo).toContain("corrida 125/500");
+    expect(ultimo).toContain("faltan ~");
   });
 });
