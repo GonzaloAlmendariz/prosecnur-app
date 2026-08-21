@@ -45,8 +45,9 @@ test_that("la rama sobrante dice la salida, igual que la faltante", {
   sobra <- .cm_alumnos_ch_mensaje_cobertura(character(0), "consorcio_de_universidades")
 
   expect_true(grepl("no puede recibir cuota", sobra, fixed = TRUE))
-  # Las dos salidas reales, verificadas en la app: excluirla del estudio o
-  # revisar los criterios que dejaron sus aulas fuera.
-  expect_true(grepl("Facultades excluidas", sobra, fixed = TRUE))
-  expect_true(grepl("criterios", sobra, fixed = TRUE))
+  # La salida que SI se verifico: recuperar aulas para esa facultad. Se probo
+  # mandar a «Facultades excluidas» y no desbloquea —la facultad sigue
+  # declarada en los estratos del componente—, asi que el mensaje no la ofrece.
+  expect_true(grepl("qué criterio dejó sus aulas fuera", sobra, fixed = TRUE))
+  expect_false(grepl("Facultades excluidas", sobra, fixed = TRUE))
 })
