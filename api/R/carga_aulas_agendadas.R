@@ -51,7 +51,15 @@ AULAS_AGENDADAS_ANCHO_BLOQUE <- length(AULAS_AGENDADAS_BLOQUE)
   v <- gsub("[\u00b0\u00ba\u00aa]", "", v)
   v <- trimws(gsub("[[:space:]]+", " ", v))
   v <- toupper(iconv(v, from = "", to = "ASCII//TRANSLIT", sub = ""))
-  gsub("[^A-Z0-9 -]", "", v)
+  v <- gsub("[^A-Z0-9 -]", "", v)
+  # **El papel del bloque no forma parte del nombre del campo.** Los tres
+  # bloques de «Aulas Agendadas» repetian las MISMAS 20 cabeceras —«NOMBRE DE
+  # DOCENTE» tres veces identico— y lo unico que distinguia al titular del
+  # reemplazo 1.2 era el COLOR, que no sobrevive a una impresion en blanco y
+  # negro ni al PDF. Ahora los bloques 2+ llevan su papel en el titulo y el
+  # lector lo descarta aqui, asi que sigue leyendo igual una hoja vieja sin
+  # sufijo y una nueva con el.
+  trimws(sub(" R[0-9]+$", "", v))
 }
 
 # El equipo escribe "-" para decir "todavia nada aqui" —medido: 1810 de 2040
