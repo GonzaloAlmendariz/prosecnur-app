@@ -514,6 +514,16 @@ function renderAulasView(
    * estado ni sabe guardar, y el control necesita las dos cosas.
    */
   criterioDeAula: ReactNode = null,
+  /**
+   * Cambia de pestaña dentro de la misma sección.
+   *
+   * Lo necesita la ficha del aula para llevar al registro de campo, que es
+   * donde vive la única acción que activa un reemplazo: la ficha dice lo que
+   * pasó con el aula y la acción está una pestaña más allá. Se pasa como
+   * función y no se resuelve aquí porque quien recuerda la pestaña activa de
+   * cada sección es el componente de arriba.
+   */
+  irAPestana: ((clave: string) => void) | null = null,
 ) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -883,6 +893,9 @@ function renderAulasView(
             brechas: (dashboard.brechas ?? []) as Array<Record<string, unknown>>,
           }}
           onCerrar={() => onFoco(null)}
+          // El foco viaja en la URL, así que el registro se abre ya sobre esta
+          // aula: `codigoEnFoco` lo recoge del mismo `foco=aula:<codigo>`.
+          onRegistrar={irAPestana ? () => irAPestana("registro") : undefined}
         />
       </section>
       ) : null}
@@ -2324,6 +2337,9 @@ export default function AulasMonitoreoPage() {
                 hayMetas={metasDelDiseno}
                 onGuardar={guardarCriterioDeAula}
               />,
+              // Cambiar de pestaña dentro de la sección: quien recuerda la
+              // activa de cada una es este componente, no el render.
+              (clave) => elegirPestana(seccionActiva, clave),
             )}
           </div>
       </MonitoreoWorkbenchChrome>

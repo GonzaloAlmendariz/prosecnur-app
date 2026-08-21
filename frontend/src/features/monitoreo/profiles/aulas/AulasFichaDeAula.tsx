@@ -27,10 +27,12 @@ type Fuentes = {
   brechas?: ReadonlyArray<Readonly<Record<string, unknown>>>;
 };
 
-export function AulasFichaDeAula({ codigo, fuentes, onCerrar }: {
+export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
   codigo: string;
   fuentes: Fuentes;
   onCerrar: () => void;
+  /** Lleva al registro de campo con esta aula puesta, donde vive la acción. */
+  onRegistrar?: () => void;
 }) {
   // Se compone UNA vez y de ahí sale también la facultad con la que se busca la
   // salida. Calcularla aparte mirando sólo la agenda fue el defecto que tuvo el
@@ -112,6 +114,19 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar }: {
 
       {ficha.parte.observacion ? (
         <p className="aulas-ficha-nota">«{ficha.parte.observacion}»</p>
+      ) : null}
+
+      {/* **El puente a la acción.** La ficha dice lo que pasó con el aula; lo
+          que se puede HACER con ella —registrar cómo fue y, si toca, activar su
+          reemplazo— vive en el registro de campo. Sin este enlace había que
+          cambiar de pestaña y buscarla entre 196 filas. El foco viaja, así que
+          el registro se abre ya sobre ella. */}
+      {onRegistrar ? (
+        <p className="aulas-ficha-acciones">
+          <button type="button" onClick={onRegistrar}>
+            Registrar cómo fue en campo
+          </button>
+        </p>
       ) : null}
 
       {/* **De dónde se saca lo que faltó.** Sólo cuando falta: un aula que
