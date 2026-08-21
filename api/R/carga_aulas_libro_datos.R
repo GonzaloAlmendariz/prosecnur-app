@@ -92,6 +92,12 @@ aulas_libro_escribir_datos <- function(wb, unidades, hoja = "Datos",
     withFilter = TRUE, bandedRows = TRUE
   )
   openxlsx::freezePane(wb, hoja, firstActiveRow = 2L, firstActiveCol = 2L)
+  # La hoja larga no pasa por el formateador comun —no tiene bloques ni
+  # validaciones—, asi que su ajuste de impresion se declara aqui: horizontal,
+  # con la cabecera y la columna del codigo repetidas en cada pagina. Sin la
+  # columna, la segunda pagina son cifras sin saber de que aula.
+  openxlsx::pageSetup(wb, hoja, orientation = "landscape", fitToWidth = FALSE,
+                      printTitleRows = 1L, printTitleCols = 1L)
   # Anchos por lo que lleva cada columna, como en las demas hojas.
   anchos <- vapply(names(datos), function(n) {
     v <- as.character(datos[[n]])

@@ -184,8 +184,12 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # pagina posterior pierde la fila de titulos, asi que la segunda hoja de una
     # tabla de 951 filas es una lista de numeros sin nombre. Horizontal y con la
     # cabecera repetida en cada pagina.
+    # `printTitleCols` ademas de `printTitleRows`: en horizontal la hoja se
+    # parte por COLUMNAS, y sin repetir la primera —el codigo del aula— las
+    # paginas 2 y 3 son filas de datos sin saber de que aula son. Es el mismo
+    # problema que las filas, en el otro eje, y se ve igual de mal.
     openxlsx::pageSetup(wb, hoja, orientation = "landscape", fitToWidth = FALSE,
-                        printTitleRows = seq_len(n_cab))
+                        printTitleRows = seq_len(n_cab), printTitleCols = 1L)
   }
 
   # Lo que trae la app va teñido; lo que llena la persona queda en blanco. Es
