@@ -321,3 +321,23 @@ hoja_activa_de <- function(path) {
   if (i + 1L > length(hojas)) return(NA_character_)
   hojas[[i + 1L]]
 }
+
+# Los colores de las barras de datos de una hoja.
+#
+# Van dentro del `<dataBar>` de la regla, no en `dxfs`: una barra no es un
+# formato de celda. Hace falta para comprobar que NO tapan el numero — con el
+# navy del libro, la cifra quedaba en negro sobre azul oscuro.
+colores_databar_de <- function(path, hoja) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(character(0))
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  barras <- xml2::xml_find_all(doc, ".//a:cfRule[@type='dataBar']//a:color", ns)
+  rgb <- xml2::xml_attr(barras, "rgb")
+  toupper(rgb[!is.na(rgb)])
+}

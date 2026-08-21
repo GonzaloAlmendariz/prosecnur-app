@@ -103,3 +103,23 @@ test_that("el avance se ENSEÑA como porcentaje, no como 0.59", {
   expect_length(fila, 1L)
   expect_identical(formato_de_celda(libro, "Cómo va el campo", 2, fila), "0.0%")
 })
+
+test_that("las barras no tapan el numero", {
+  # Con el navy del libro, la cifra quedaba en negro sobre azul oscuro y no se
+  # leia: la barra ayuda a comparar de un vistazo, pero el numero es el dato.
+  # Visto en el PDF de la hoja.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  partes <- list(
+    list(operational_code = "CH 1", applied_by = "Equipo A", effective_surveys = 20),
+    list(operational_code = "CH 2", applied_by = "Equipo B", effective_surveys = 8)
+  )
+  aulas_libro_generar(.ci_plan(), libro, partes = partes,
+                      efectivas = c(`CH 1` = 18, `CH 2` = 12))
+  colores <- colores_databar_de(libro, "Cómo va el campo")
+  expect_gt(length(colores), 0L)
+  for (hex in colores) {
+    lum <- mean(grDevices::col2rgb(paste0("#", substr(hex, 3, 8)))[, 1])
+    # Por debajo de 190 el texto negro deja de leerse encima.
+    expect_gt(lum, 190)
+  }
+})
