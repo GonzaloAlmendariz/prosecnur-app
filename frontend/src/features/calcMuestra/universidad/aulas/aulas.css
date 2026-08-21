@@ -2096,3 +2096,28 @@
   bottom: 0;
   z-index: 1;
 }
+
+/* El hueco de la cadena dejó de ser una casilla muda repetida diez veces: ahora
+   es UNO que dice cuántos lugares faltan y si queda reserva extra en la
+   facultad. Ocupa la fila entera porque es prosa, no un slot más. */
+.cmv2-chain-empty-slot {
+  grid-column: 1 / -1;
+  display: block;
+  padding: 9px 11px;
+  line-height: 1.5;
+}
+
+.cmv2-chain-empty-slot b {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-chain-empty-slot em {
+  font-style: normal;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-chain-empty-slot[data-con-pool] {
+  border-color: color-mix(in srgb, var(--pulso-warning-fg, var(--pulso-text-muted)) 22%, var(--pulso-border));
+}

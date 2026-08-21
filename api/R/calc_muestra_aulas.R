@@ -2395,12 +2395,25 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   if (!any(avail_mask)) return(NA_integer_)
   same_stratum <- if (has_stratum) (cand_ctx$stratum == tit_ctx$stratum[[i]]) & avail_mask else rep(FALSE, cand_ctx$n)
   same_faculty <- if (has_faculty) (cand_ctx$faculty == tit_ctx$faculty[[i]]) & avail_mask else rep(FALSE, cand_ctx$n)
+  # LA FACULTAD ES UN LÍMITE DURO. Gonzalo, 2026-08-21: «esos reemplazos sí o sí
+  # tienen que ser de la misma facultad, ojo». La cuota se reparte por facultad,
+  # así que un aula de otra cubre una cuota que no es la que se perdió. La rama
+  # `which(avail_mask)` —el pool entero, sin filtro— se retira: con
+  # `min_replacements_per_titular = 1` la PRIMERA reserva de cada titular salía
+  # por ahí y podía caer en cualquier facultad.
+  #
+  # Y el estrato es una PREFERENCIA, no una condición de existencia: agotadas
+  # las aulas de la celda, la cadena sigue con las de la facultad en vez de
+  # cortarse. Medido antes de este cambio sobre HSVG2026: 91 de 190 titulares
+  # con cadena incompleta, muchos con una sola reserva, porque su celda
+  # (facultad × sexo × tamaño) no tenía más aulas. «Las aulas no pueden quedarse
+  # sin reemplazos sólo porque no hay reemplazos que tienen el mismo estrato».
+  # `equivalence_level` sigue distinguiendo `misma_celda` de `celda_equivalente`,
+  # así que degradar queda registrado por fila y visible en la pantalla.
   pool <- if (any(same_stratum)) {
     which(same_stratum)
-  } else if (!identical(candado, "celda") && any(same_faculty)) {
+  } else if (any(same_faculty)) {
     which(same_faculty)
-  } else if (identical(candado, "libre")) {
-    which(avail_mask)
   } else {
     integer(0)
   }
@@ -2410,9 +2423,12 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 
 # Que candado rige en esta ola.
 #
-# Las dos estrategias con candado lo aplican SOLO pasadas las primeras
-# `min_reps` reservas: la primera siempre puede salir de la facultad, para que
-# un titular de celda chica no se quede en cero.
+# NOTA 2026-08-21: el candado ya no decide SI la cadena puede salir de la celda
+# —siempre puede, dentro de su facultad— sino que se conserva porque el resto
+# del motor lo lee. `.cm_aulas_pick_chain_reserve_idx` aplica hoy una sola
+# regla: preferir la celda, permitir la facultad, nunca cruzarla. El «libre» de
+# las primeras `min_reps` olas dejó de significar «el pool entero» y significa
+# lo mismo que los otros dos.
 #
 # `max_complete_chains_by_faculty` es el precedente de 2025 y existe porque el
 # candado de celda deja 44 de 84 celdas sin poder sostener una cadena de 11:
