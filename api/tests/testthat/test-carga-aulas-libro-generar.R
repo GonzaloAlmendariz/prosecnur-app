@@ -469,3 +469,16 @@ test_that("la regla de cuadre se repite en cada intento, no solo en el primero",
   n <- length(gregexpr('type="expression"', xml, fixed = TRUE)[[1]])
   expect_gte(n, 2L)
 })
+
+test_that("declarar de MENOS no se tiñe: es posible y corriente", {
+  # El motor da por descuadre cualquier diferencia; la hoja solo tiñe el
+  # IMPOSIBLE —mas efectivas que gente disponible—. Declarar de menos pasa
+  # cuando alguien presente no responde y nadie lo anota como rechazo: medido en
+  # el estudio, los DOS unicos partes descuadrados van en ese sentido (declaran
+  # 20 donde la cuenta da 21). Teñirlos seria acusar de un error que no hubo.
+  xml <- paste(.xml_de_hoja_llamada(.libro_con_pct(0.61), "Aulas Aplicadas (Campo)"),
+               collapse = "")
+  # `>` y no `<>`: la comparacion es de un solo lado.
+  expect_true(grepl("&gt;", xml, fixed = TRUE))
+  expect_false(grepl("AB3&lt;&gt;X3", xml, fixed = TRUE))
+})

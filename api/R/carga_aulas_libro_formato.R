@@ -285,11 +285,18 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
 
   # **El descuadre del parte se ve AL ESCRIBIRLO, no dos semanas despues.**
   #
-  # `monitoreo_aulas_reconciliacion.R` ya comprueba que las efectivas no pueden
-  # ser mas que los asistentes menos los rechazos menos los duplicados. Pero eso
-  # ocurre al IMPORTAR: quien llena la hoja en el aula no se entera hasta que
-  # alguien sube el libro, y para entonces la clase se acabo. La misma regla,
-  # como formato condicional, tiñe la celda en cuanto el numero no cuadra.
+  # `monitoreo_aulas_reconciliacion.R` comprueba lo mismo al IMPORTAR, y para
+  # entonces la clase se acabo: quien llena la hoja en el aula no se entera de
+  # que su cuenta no cuadra hasta que alguien sube el libro.
+  #
+  # **Pero tiñe la MITAD de lo que el motor reporta, y a proposito.** El motor
+  # da por descuadre cualquier diferencia; aqui solo se tiñe **declarar MAS
+  # efectivas de las que caben** —mas encuestas que gente disponible es
+  # imposible—. Declarar de MENOS es posible y corriente: alguien presente que
+  # no respondio y a quien nadie anoto como rechazo. Medido en el estudio, los
+  # dos unicos partes descuadrados van en ese sentido (declaran 20 donde la
+  # cuenta da 21), asi que teñirlos en rojo seria acusar al aplicador de un
+  # error que probablemente no cometio.
   #
   # No bloquea nada: es un aviso, no una validacion. Un dato raro puede ser
   # correcto y la hoja no esta para discutir con quien estuvo en el aula.
