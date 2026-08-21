@@ -12,6 +12,26 @@
   align-content: start;
 }
 
+/* P5 · Los actos del sustento: el mismo vocabulario del recorrido de
+   Cursos-horario requeridos (cmv2-recorrido-kicker en calculo.css), con
+   clase propia porque esa hoja no se importa desde Solidez. */
+.cmv2-solidez-acto {
+  display: grid;
+  gap: 12px;
+}
+
+.cmv2-solidez-acto + .cmv2-solidez-acto {
+  margin-top: 10px;
+}
+
+.cmv2-solidez-kicker {
+  font-size: 10.5px;
+  font-weight: var(--pulso-weight-semibold, 600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
 .cmv2-aulas-panel {
   display: grid;
   gap: 10px;

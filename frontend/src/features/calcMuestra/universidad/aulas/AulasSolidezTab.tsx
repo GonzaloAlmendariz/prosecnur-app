@@ -88,36 +88,44 @@ export function AulasSolidezTab({
 
   return (
     <div className="cmv2-aulas-stack">
-      {/* 1 · La radiografía del esperado: cualquier curso-horario del plan
-          (titular o reemplazo) con la redacción de su cálculo. */}
-      <EfectividadExplicadaCard filas={selectionRows} titulares={m1Rows} />
+      {/* P5 · Los cinco actos del sustento, con el kicker del recorrido de
+          Cursos-horario requeridos: la estructura que vivía en comentarios
+          pasa a la vista del lector. */}
+      <div className="cmv2-solidez-acto" data-acto="1">
+        <span className="cmv2-solidez-kicker">Paso 1 · Qué promete cada aula: la radiografía del esperado</span>
+        <EfectividadExplicadaCard filas={selectionRows} titulares={m1Rows} />
+        <DocenteUnicoAviso registro={selection?.diagnostics?.docente_unico} />
+      </div>
 
-      {/* EF2 · El registro del docente único: qué se intercambió y por qué. */}
-      <DocenteUnicoAviso registro={selection?.diagnostics?.docente_unico} />
+      <div className="cmv2-solidez-acto" data-acto="2">
+        <span className="cmv2-solidez-kicker">Paso 2 · Qué se pidió: el margen y el sustento del dimensionamiento</span>
+        <MargenPorFacultadCard filas={margenFilas} />
+        <SustentoDimensionamientoCard filas={margenFilas} referencia={referencia ?? null} />
+      </div>
 
-      {/* 2 · El porqué del pedido: cuántas aulas tiene cada facultad frente a
-          las que necesita, y el sustento del dimensionamiento. */}
-      <MargenPorFacultadCard filas={margenFilas} />
-      <SustentoDimensionamientoCard filas={margenFilas} referencia={referencia ?? null} />
+      <div className="cmv2-solidez-acto" data-acto="3">
+        <span className="cmv2-solidez-kicker">Paso 3 · Contra qué se compara: el estudio anterior y el balance de sexo</span>
+        {fichas && fichas.length ? (
+          <EmbudoComparadoFacultades fichas={fichas} periodo={periodoAnterior} pasoInicial={7} />
+        ) : null}
+        <SexoPorFacultadCard balance={sexoBalance} />
+      </div>
 
-      {/* 3 · Comparaciones: contra el estudio anterior y la oferta por sexo. */}
-      {fichas && fichas.length ? (
-        <EmbudoComparadoFacultades fichas={fichas} periodo={periodoAnterior} pasoInicial={7} />
-      ) : null}
-      <SexoPorFacultadCard balance={sexoBalance} />
+      <div className="cmv2-solidez-acto" data-acto="4">
+        <span className="cmv2-solidez-kicker">Paso 4 · Cómo se sorteó: la mecánica y el aporte de cada titular</span>
+        {/* El visual lee tokens del DOM al montar: solo existe con selección real. */}
+        {selection ? (
+          <SeleccionAulasVisual
+            seleccion={selection}
+            nObjetivo={targetForDisplay || null}
+            totalFacultades={model.facultades.length || null}
+          />
+        ) : null}
+        <AporteTitularesCard filas={m1Rows} />
+      </div>
 
-      {/* 4 · Lo defendible: cómo se sorteó y qué aporta cada titular. El
-          visual lee tokens del DOM al montar: solo existe con selección real. */}
-      {selection ? (
-        <SeleccionAulasVisual
-          seleccion={selection}
-          nObjetivo={targetForDisplay || null}
-          totalFacultades={model.facultades.length || null}
-        />
-      ) : null}
-      <AporteTitularesCard filas={m1Rows} />
-
-      {/* 5 · Solapes, repetidos y ajuste frente al marco. */}
+      <div className="cmv2-solidez-acto" data-acto="5">
+        <span className="cmv2-solidez-kicker">Paso 5 · Qué tan limpia es: solapes, repetidos y ajuste al marco</span>
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
           <div className="cmv2-subhead">
@@ -134,6 +142,7 @@ export function AulasSolidezTab({
         <aside className="cmv2-classroom-lab-side">
           <ClassroomOverlapGraph rows={m1Rows} />
         </aside>
+      </div>
       </div>
     </div>
   );
