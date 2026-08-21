@@ -102,6 +102,7 @@ import {
 } from "./universidad/shared/constants";
 import { deskDeModo, modoCrudoDeLaDireccion, useCalcMuestraDireccion } from "./navegacion";
 import { normalizeUniversityLabel } from "./universidad/shared/format";
+import { leerJobEnCurso, olvidarJobEnCurso, recordarJobEnCurso, type JobLargo } from "./hooks/jobsEnCurso";
 import { universityEffectiveMappingPayload } from "./universidad/shared/mapeoEfectivo";
 import {
   classroomComparisonReady,
@@ -2033,15 +2034,21 @@ export default function CalcMuestraPage() {
   // real del worker si el job falla, se cancela o supera el timeout. El loop
   // vive en hooks/jobPolling.ts (F6: el timeout cancela el job best-effort y
   // los 404 consecutivos cortan con mensaje claro en vez de pollear eterno).
-  async function esperarJobAulas(jobId: string, label: string): Promise<JobSnapshot> {
+  async function esperarJobAulas(jobId: string, label: string, kind: JobLargo = "comparar"): Promise<JobSnapshot> {
     cancelRequestedRef.current = false;
     setActiveJobId(jobId);
+    // Memoria de la pestaña: si el usuario recarga mientras esto corre, al
+    // volver la pantalla decía «falta comparar» con el job vivo en el backend
+    // (medido: status running al 6%). Ver hooks/jobsEnCurso.ts.
+    const sid = window.localStorage.getItem("pulso.sessionId") ?? "";
+    recordarJobEnCurso(sid, kind, jobId);
     try {
       return await esperarJob(jobId, label, {
         cancelRequested: () => cancelRequestedRef.current,
         onProgress: setBusy,
       });
     } finally {
+      olvidarJobEnCurso(sid, kind);
       setActiveJobId(null);
       setCancellingJob(false);
     }
@@ -2061,6 +2068,45 @@ export default function CalcMuestraPage() {
       // job termina solo; no bloqueamos al usuario por un fallo de red aquí.
     }
   }
+
+  // Al volver a la pantalla (recarga incluida), retoma el trabajo largo que
+  // quedó corriendo en vez de decir que falta hacerlo.
+  //
+  // Medido en el recorrido de un usuario nuevo: se lanza «Comparar métodos»
+  // —más de diez minutos con un marco real—, se recarga, y la pestaña volvía a
+  // «Falta comparar los métodos» mientras `GET /api/jobs/<id>` respondía
+  // running al 6 %. Sin esto, la salida natural es volver a pulsar y lanzar un
+  // segundo trabajo encima del primero.
+  const retomadoRef = useRef(false);
+  useEffect(() => {
+    if (retomadoRef.current) return;
+    retomadoRef.current = true;
+    const sid = window.localStorage.getItem("pulso.sessionId") ?? "";
+    const jobId = leerJobEnCurso(sid, "comparar");
+    if (!jobId) return;
+    void (async () => {
+      try {
+        const snap = await apiJobStatus(jobId);
+        if (snap.status === "done" || snap.status === "error" || snap.status === "cancelled") {
+          // Ya terminó mientras no mirábamos: basta con recoger su resultado.
+          olvidarJobEnCurso(sid, "comparar");
+          const state = await apiCalcMuestraState();
+          setAulasState(state.aulas ?? null);
+          return;
+        }
+        await esperarJobAulas(jobId, "Comparando métodos");
+        const state = await apiCalcMuestraState();
+        setAulasState(state.aulas ?? null);
+        setMsg({ kind: "info", text: "Comparación de métodos lista." });
+      } catch {
+        // El trabajo pudo morir con el backend: se olvida y la pantalla vuelve
+        // a su estado normal, sin inventar un resultado.
+        olvidarJobEnCurso(sid, "comparar");
+      }
+    })();
+    // Sólo al montar: es una recuperación, no una suscripción.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function compararMetodosAulas(config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) {
     setMsg(null);
