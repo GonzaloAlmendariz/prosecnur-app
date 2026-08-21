@@ -211,9 +211,12 @@ test_that("las fechas se escriben como fechas y siguen releyendose", {
   # El `formatCode` vive en `xl/styles.xml`, no en la hoja: lo que la hoja dice
   # es el TIPO de la celda, y es lo que decide si Excel puede ordenar. Una fecha
   # tipada sale como `t="n"` con el serial dentro; una de texto, como `t="s"`.
-  celdas <- regmatches(xml, gregexpr('<c r="[A-Z]+[0-9]+"[^>]*>', xml))[[1]]
-  numericas <- grep('t="n"', celdas, value = TRUE)
-  expect_gt(length(numericas), 0)
+  # **LA celda de la fecha, no «alguna celda numerica de la hoja».** Ese aserto
+  # dejo de vigilar nada el dia que los conteos —matriculados, elegibles,
+  # intentos— tambien se empezaron a tipar: cualquiera de ellos lo satisfacia.
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(sp) sp$campo, character(1))
+  col_fecha <- 1L + which(campos == "scheduled_date")
+  expect_identical(tipo_de_celda(path, "Aulas Agendadas", col_fecha, 2), "n")
 
   # 2. Y el viaje de vuelta sigue dando la fecha, no el serial.
   leido <- aulas_agendadas_leer(path)

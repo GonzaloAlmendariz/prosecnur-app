@@ -594,3 +594,20 @@ test_that("la cabecera lleva alto propio: dos lineas de titulo no caben en uno",
   # Y la fila de datos NO lo lleva: el alto es de la cabecera, no de la hoja.
   expect_true(is.na(alto_de_fila(libro, "Aulas Agendadas", 3)))
 })
+
+test_that("el semaforo de la agenda cae sobre STATUS MUESTRA", {
+  # Mismo defecto que ya se vivio en la hoja de campo —la regla teñia
+  # «MEDIO DE CONTACTO»— y en la agenda no habia nada que lo vigilara: el
+  # mutante que le cambiaba la columna sobrevivia. Una regla que existe pero no
+  # tiñe donde debe no se nota por ningun lado.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(sp) sp$campo, character(1))
+  esperada <- openxlsx::int2col(1L + which(campos == "sample_status"))
+  otra <- openxlsx::int2col(1L + which(campos == "contact_medium"))
+
+  cols <- columnas_con_formato_condicional(libro, "Aulas Agendadas")
+  expect_true(esperada %in% cols)
+  expect_false(otra %in% cols)
+})
