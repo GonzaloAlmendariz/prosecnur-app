@@ -28,6 +28,7 @@ import {
 } from "../shared/frame";
 import { estimateOperationalExtra } from "../shared/study";
 import { normalizeStaleJobAviso } from "./descuentoRepetidosModel";
+import { tieneComparacionAlmacenada, tieneSeleccionAlmacenada, tieneSimulacionAlmacenada } from "./evidenciaAlmacenada";
 import { resolveClassroomArtifactStatus } from "./classroomHandoff";
 import { selectorFieldLabel } from "./classroomLabels";
 
@@ -150,9 +151,12 @@ export function buildClassroomLabModel({
     storedComparison: rawComparison,
     storedSelection: rawSelection,
     storedReplacementSimulation: rawReplacementSimulation,
-    hasStoredComparison: Boolean(rawComparison),
-    hasStoredSelection: Boolean(rawSelection),
-    hasStoredReplacementSimulation: Boolean(rawReplacementSimulation),
+    // Contenido, no existencia: el estado trae estas claves como objetos
+    // vacíos y `Boolean({})` es true, así que un proyecto recién creado
+    // afirmaba tener una corrida previa que nunca ocurrió (evidenciaAlmacenada.ts).
+    hasStoredComparison: tieneComparacionAlmacenada(rawComparison),
+    hasStoredSelection: tieneSeleccionAlmacenada(rawSelection),
+    hasStoredReplacementSimulation: tieneSimulacionAlmacenada(rawReplacementSimulation),
     comparison,
     selection,
     replacementSimulation,
