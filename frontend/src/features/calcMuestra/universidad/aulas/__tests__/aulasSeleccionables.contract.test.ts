@@ -86,6 +86,18 @@ describe("un vacío que nombra un bloqueo ofrece la salida", () => {
     expect(src("../UniversidadDesk.tsx")).toMatch(/<AulasPerfilTab[\s\S]{0,220}onNavigate=/);
   });
 
+  it("una barra cuyos contenidos son todos condicionales no reserva altura vacía", () => {
+    // Los cuatro contenidos del filtro del explorador son condicionales, así
+    // que una base sin columnas categóricas filtrables dejaba 30 px de nada
+    // sobre la tabla. No se condiciona el render porque `barraFiltrosRef` cuelga
+    // de ese div y el popover vive dentro.
+    const css = readFileSync(
+      resolve(__dirname, "../../definicion/exploradorBases.css"),
+      "utf8",
+    );
+    expect(css).toMatch(/\.cmv2-expb-filtros:empty\s*\{[^}]*display:\s*none/);
+  });
+
   it("la clase del botón vive en la hoja de la primitiva que la emite", () => {
     // Estaba partida entre `validacion-v2.css` (base) y `theme.css` (hover):
     // una feature que no cargara la de Validación tenía la clase sin estilo.
