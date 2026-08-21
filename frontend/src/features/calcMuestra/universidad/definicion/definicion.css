@@ -766,6 +766,33 @@
   overflow-wrap: anywhere;
 }
 
+/* Los requisitos de la referencia histórica, a la vista mientras no hay
+   archivo (al subirlo desaparecen). Sin plegar: el ADR 0057 prohíbe esconder
+   en esta superficie y aquí sería el propio defecto con otra forma. */
+.cmv2-defi-requisitos {
+  margin: 0 0 2px;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-defi-requisitos > span {
+  font-size: 10px;
+  font-weight: var(--pulso-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cmv2-defi-requisitos > p {
+  margin: 3px 0 0;
+  line-height: 1.6;
+}
+
+.cmv2-defi-requisitos code {
+  font-size: 10.5px;
+  color: var(--pulso-text);
+  cursor: help;
+}
+
 /* Por qué la cifra de la vista previa es pequeña y dónde saldrá el total. */
 .cmv2-defi-upload-stat > small {
   font-size: 10px;

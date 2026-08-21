@@ -8,7 +8,7 @@
  * puente hacia la pestaña Variables. El mini flujo archivo → lectura → marco
  * enseña las cifras reales del motor tras construir.
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Database, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { Popover } from "../../../../components/Popover";
 import { EmptyState } from "../../../../components/States";
@@ -19,6 +19,10 @@ import type {
   CalcMuestraWorkspaceSourceBinding,
   CalcMuestraWorkspaceSourceMode,
 } from "../../../../api/client";
+import {
+  apiCalcMuestraAsistenciaRequisitos,
+  type CalcMuestraAsistenciaRequisito,
+} from "../../../../api/calcMuestra";
 import { fmtInt } from "../../sharedCore";
 import { BadgeMotor } from "../../didactica/PasoDidactico";
 import { AvisoModulo } from "../shared/AvisoModulo";
@@ -83,6 +87,51 @@ function EstadoBaseChip({ estado, tone }: { estado: string; tone?: "ok" | "warn"
 }
 
 /** Qué ES cada archivo y qué pasa si falta — dos frases por rol. */
+/**
+ * Qué columnas debe traer la referencia histórica, ANTES de subirla.
+ *
+ * Medido con el estudio real: en su carpeta conviven ocho Excel «históricos»
+ * —agenda, perfil de campo, base de aplicabilidad, la exportación cruda de la
+ * encuesta…— y solo UNO pasa la validación. Hasta ahora la única forma de
+ * saberlo era fallar. La lista la sirve el motor (mismo mapa de alias que
+ * valida), así que no puede quedar diciendo algo distinto de lo que se exige.
+ */
+function RequisitosReferencia() {
+  const [requisitos, setRequisitos] = useState<CalcMuestraAsistenciaRequisito[] | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    void apiCalcMuestraAsistenciaRequisitos()
+      .then((res) => { if (vivo) setRequisitos(res.requisitos ?? []); })
+      // Silencio deliberado: es información de apoyo. Si no llega, la tarjeta
+      // sigue funcionando igual que antes y el error de subida sigue diciendo
+      // qué falta.
+      .catch(() => undefined);
+    return () => { vivo = false; };
+  }, []);
+
+  if (!requisitos || !requisitos.length) return null;
+  // Sin plegar: el contrato de la superficie de criterios (ADR 0057) prohíbe
+  // esconder aquí, y en este caso tiene toda la razón — plegar justo lo que el
+  // usuario no sabe sería el mismo defecto con otra forma. Los alias van en el
+  // title de cada nombre para no convertir la tarjeta en un muro.
+  return (
+    <div className="cmv2-defi-requisitos">
+      <span>Columnas que debe traer ({requisitos.length})</span>
+      <p>
+        {requisitos.map((req, i) => (
+          <span key={req.campo}>
+            {i > 0 ? " · " : null}
+            <code title={req.alias.length > 1 ? `También se acepta: ${req.alias.filter((a) => a !== req.campo).join(", ")}` : undefined}>
+              {req.campo}
+            </code>
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
 function whatIsForRole(role: string): ReactNode {
   switch (role) {
     case "base_madre":
@@ -209,6 +258,7 @@ export function BaseUploadCard({
       </header>
 
       <p className="cmv2-defi-upload-whatis">{whatIsForRole(binding.role)}</p>
+      {binding.role === "referencia_asistencia" && !binding.file_id ? <RequisitosReferencia /> : null}
 
       <label
         className={`cmv2-defi-dropzone${dragOver ? " is-drag-over" : ""}${disabled ? " is-disabled" : ""}`}

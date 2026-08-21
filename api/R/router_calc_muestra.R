@@ -663,6 +663,17 @@ mount_calc_muestra <- function(pr) {
     })) |>
 
     # -----------------------------------------------------------------------
+    # GET /api/calc-muestra/asistencia/requisitos — qué columnas debe traer la
+    # referencia histórica, con sus alias. Se sirve desde el motor (mismo
+    # `.cm_asist_column_aliases()` que valida) para que la pantalla pueda
+    # decirlo ANTES de subir: hoy el usuario solo se entera fallando, y en un
+    # estudio real conviven ocho Excel «históricos» de los que pasa uno.
+    # -----------------------------------------------------------------------
+    plumber::pr_get("/api/calc-muestra/asistencia/requisitos",
+                    wrap_endpoint(function(req, res, ...) {
+      list(ok = TRUE, requisitos = calc_muestra_asistencia_requisitos())
+    })) |>
+    # -----------------------------------------------------------------------
     # POST /api/calc-muestra/asistencia/referencia — calcula y guarda el
     # agregado metodológico de un estudio histórico externo.
     # Body: { referencia_asistencia|referencia_asistencia_file_id,
