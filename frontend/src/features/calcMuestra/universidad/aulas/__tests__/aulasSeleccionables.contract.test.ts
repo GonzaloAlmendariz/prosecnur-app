@@ -104,8 +104,11 @@ describe("un vacío que nombra un bloqueo ofrece la salida", () => {
     // `detail`, los otros cuatro hijos de la tarjeta pasaban a contar como
     // espacio muerto: 21,14 px por tarjeta en las 21 de la pestaña, contra
     // 1,04 px reales. Marcarlo en un hijo de varios hermanos es el error.
-    const card = src("../definicion/VariableMapCard.tsx");
-    expect(card).not.toContain("data-qa-geometry-content");
+    // Sin comentarios: el porqué de la retirada SE EXPLICA en el archivo y
+    // menciona el atributo, así que un `toContain` crudo se dispara contra su
+    // propia explicación. Se busca el atributo puesto en un elemento.
+    const card = sinComentarios(src("../definicion/VariableMapCard.tsx"));
+    expect(card).not.toMatch(/data-qa-geometry-content/);
   });
 
   it("la clase del botón vive en la hoja de la primitiva que la emite", () => {
