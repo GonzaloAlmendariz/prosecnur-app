@@ -16,9 +16,9 @@ describe("avisoLibroImportado", () => {
   });
 
   it("una columna sin nombre se anuncia CON su causa", () => {
-    // El backend calcula `control_sin_nombre` precisamente para avisar de que
-    // no se leyó todo, y no avisaba de nada. Descartar en silencio es el
-    // defecto: el aviso tiene que decir por qué, no sólo que pasó.
+    // La tarjeta de Fuentes ya las contaba; lo que faltaba era decirlo EN EL
+    // MOMENTO de importar, que es cuando alguien puede ir a mirar su Excel.
+    // Y con su causa, no sólo el hecho.
     const { texto } = avisoLibroImportado({ ...completo, control_sin_nombre: [31, 32, 33] });
     expect(texto).toContain("3 columnas");
     expect(texto).toContain("su cabecera no las nombra");

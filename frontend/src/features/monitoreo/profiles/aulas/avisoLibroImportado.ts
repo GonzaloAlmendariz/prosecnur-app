@@ -2,9 +2,14 @@
  * Qué entró al releer el libro que el equipo llenó.
  *
  * La importación sólo avisaba de las hojas que faltaban. Las seis cifras del
- * resumen no se enseñaban nunca —quien importa no sabía si entraron sus 152
- * partes o ninguno— y `control_sin_nombre` se calculaba *precisamente* para
- * avisar de que no se leyó todo, y no avisaba de nada.
+ * resumen no se enseñaban nunca: quien importa no sabía si entraron sus 152
+ * partes o ninguno.
+ *
+ * Lo de las columnas sin nombre es un matiz, no una ausencia: la tarjeta
+ * «Libro del operativo» de Fuentes ya las cuenta desde el recibo guardado
+ * («7 columnas sin nombre en la hoja» en el estudio real). Lo que faltaba era
+ * decirlo EN EL MOMENTO de importar, que es cuando alguien puede ir a mirar su
+ * Excel — no dos secciones más allá y sin saber que hay algo que mirar.
  *
  * Es la contraparte de `avisoLibroGenerado`: generar dice qué salió, importar
  * dice qué entró.
