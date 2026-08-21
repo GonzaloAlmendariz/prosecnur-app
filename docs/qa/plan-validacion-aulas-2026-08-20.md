@@ -225,9 +225,18 @@ extensible a todos los monitoreos.
     los datos vivan bajo `territorial` —barato y mentiroso—; **(3)** dejar aulas
     sin anulación por ahora y decirlo en la superficie. **Mi recomendación es
     (1)**, y hasta que se decida, T17 puede avanzar sin esto.
-- **T17** — Pestaña propia en Validación y contrato para que otros perfiles la
-  hereden.
-
+- **T17 ☑ (2026-08-20)** — Pestaña propia para las respuestas abiertas, dentro
+  de Validación. Es lo que Gonzalo pidió textual: «otra dimensión de validación
+  que podría ser un tap o una pestaña en sí misma». Vivía dentro de Registro de
+  campo, apretada con otros seis paneles, y leer abiertas es un trabajo entero:
+  se entra a hacer eso, no a mirarlo de paso.
+  - **El «contrato heredable» no es código compartido**: es que
+    `monitoreo_texto_abierto_payload()` **ya es genérico** —no sabe de aulas, se
+    le pasan las respuestas y el instrumento—, así que cualquier perfil puede
+    publicarlo sin tocar el motor. Lo que falta para heredarlo de verdad es que
+    otro perfil lo publique, y eso es trabajo de ese perfil.
+  - Verificado en pantalla: la pestaña sale en el rail y en la cabecera, y el
+    panel queda solo en su vista. Gate en 0 issues.
 ### D. Indicadores por aula (T18–T21)
 
 - **T18** — El criterio de aula válida juzga de verdad: veredicto propio contra

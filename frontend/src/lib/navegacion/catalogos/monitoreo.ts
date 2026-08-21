@@ -19,6 +19,7 @@ import {
   PhoneCall,
   PlugZap,
   Route,
+  MessageSquare,
   ShieldAlert,
   SlidersHorizontal,
   Building2,
@@ -259,6 +260,11 @@ export const MONITOREO_PESTANAS = {
       pestana("aulas", "calidad", "registro", "Registro de campo", "Cómo fue cada aplicación", ClipboardCheck),
       pestana("aulas", "calidad", "controles", "Controles", "Lo que el motor deriva del corte", ShieldAlert),
       pestana("aulas", "calidad", "base", "Base de control", "La hoja que llena el equipo", Table2),
+      // **Pestaña propia, pedida asi**: «otra dimension de validacion que
+      // podria ser un tap o una pestaña en si misma». Vivia dentro de Registro
+      // de campo, apretada con otros seis paneles, y leer respuestas abiertas
+      // es un trabajo entero: se entra a hacer eso y no a mirarlo de paso.
+      pestana("aulas", "calidad", "abiertas", "Respuestas abiertas", "Lo que se escribió a mano", MessageSquare),
     ],
     consultas: [
       pestana("aulas", "consultas", "reemplazos", "Reemplazos", "Cadena por curso-horario caído", Link2),

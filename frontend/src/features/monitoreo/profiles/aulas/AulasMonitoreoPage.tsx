@@ -732,6 +732,30 @@ function renderAulasView(
     // primero porque esta sección la usan dos personas —el jefe de campo, que
     // entra por lo que pasó en el aula, y el analista, que entra por los
     // controles— y lo que se registra viene antes de lo que se valida.
+    if (pestana === "abiertas") {
+      return (
+        <div className="mon-profile-stack aulas-tablas-apiladas">
+        {/* **La calidad de lo que se escribió a mano.** Capacidad que no
+            existía en ningún perfil de Monitoreo. Es un visualizador: ordena
+            por dónde empezar a leer y no esconde respuestas. Como el de
+            tiempos, se muestra aunque este estudio no traiga instrumento.
+            Tiene pestaña propia —«Respuestas abiertas»— porque leerlas es un
+            trabajo entero y no algo que se mire de paso entre otros seis
+            paneles. */}
+        <section
+          className="mon-profile-panel"
+          data-qa-geometry-group="monitoring-aulas-table"
+          data-qa-geometry-contract="intrinsic"
+        >
+          <div className="mon-profile-panel-head">
+            <h3>Lo que se escribió a mano</h3>
+            <span>calidad de las respuestas abiertas</span>
+          </div>
+          <AulasTextoAbierto bloque={dashboard.texto_abierto} />
+        </section>
+        </div>
+      );
+    }
     if (pestana === "registro") {
       return (
         <div className="mon-profile-stack">
@@ -807,21 +831,7 @@ function renderAulasView(
             </div>
             <AulasTiemposDeRespuesta tiempos={dashboard.tiempos} />
           </section>
-          {/* **La calidad de lo que se escribió a mano.** Capacidad que no
-              existía en ningún perfil de Monitoreo. Es un visualizador: ordena
-              por dónde empezar a leer y no esconde respuestas. Como el de
-              tiempos, se muestra aunque este estudio no traiga instrumento. */}
-          <section
-            className="mon-profile-panel"
-            data-qa-geometry-group="monitoring-aulas-table"
-            data-qa-geometry-contract="intrinsic"
-          >
-            <div className="mon-profile-panel-head">
-              <h3>Lo que se escribió a mano</h3>
-              <span>calidad de las respuestas abiertas</span>
-            </div>
-            <AulasTextoAbierto bloque={dashboard.texto_abierto} />
-          </section>
+
           {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
               puede saber si el criterio trabaja: un filtro que acepta todos los
               valores da el mismo número que no tener filtro. Va en Validación
