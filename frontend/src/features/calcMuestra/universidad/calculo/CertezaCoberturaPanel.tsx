@@ -139,7 +139,11 @@ export function CertezaCoberturaPanel({
     >
       <div className="cmv2-panel-head" data-qa-geometry-member>
         <div>
-          <strong>¿Alcanza?</strong>
+          {/* Gonzalo, 2026-08-21: «tampoco entiendo la finalidad de "alcanza".
+              ¿A qué te refieres con alcanza?». El título preguntaba sin decir
+              qué se pregunta: la respuesta estaba en el párrafo de abajo y el
+              rótulo, solo, no significaba nada. */}
+          <strong>¿Esas aulas alcanzan la cuota de cada facultad?</strong>
           {/* La explicación es el contenido, no una nota al pie: sin ella el
               usuario no tiene forma de saber por qué dos números distintos
               responden la misma pregunta. */}

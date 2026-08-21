@@ -4,6 +4,7 @@ import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../..
 import { EmptyState } from "../../../../components/States";
 import { fmtDec, fmtInt } from "../../sharedCore";
 import { useMotorStore } from "../../store";
+import { CadenaFormulaFacultad } from "./CadenaFormulaFacultad";
 import { etiquetaAlumnosPorChMetodo } from "../marco/alumnosPorChDecisionModel";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
@@ -30,6 +31,7 @@ export function CalculoCursosHorarioFacultadTab({
   certeza = null,
   certezaEnCurso = false,
   onMedirCerteza,
+  onIrAAlumnosPorCh,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
@@ -39,6 +41,8 @@ export function CalculoCursosHorarioFacultadTab({
   certeza?: CalcMuestraAulasCerteza | null;
   certezaEnCurso?: boolean;
   onMedirCerteza?: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
+  /** Lleva a Marco › Alumnos por CH, donde se decide el divisor de la cadena. */
+  onIrAAlumnosPorCh?: () => void;
 }) {
   const actorId = escenario === "e2"
     ? UNIVERSITY_FACULTY_COMPONENT_ID
@@ -117,13 +121,10 @@ export function CalculoCursosHorarioFacultadTab({
         <div className="cmv2-panel-head">
           <div>
             <strong>Cursos-horario requeridos, facultad por facultad</strong>
-            <p className="cmv2-calc-diseno-nota">
-              La cadena completa por facultad: cuota ÷ ({etiquetaAlumnosPorChMetodo(model.decision.estadistico_default)} × tasa de
-              efectividad de la facultad) → titulares. La cuota de cada facultad viene de la
-              afijación del diseño (pestaña Diseño); las cifras son del resultado del motor.
-              Las «reservas» de esta tabla son cupos dimensionados del plan; las rutas
-              concretas de reemplazo (R1, R2…) viven en Selección → Reemplazos.
-            </p>
+            <CadenaFormulaFacultad
+              nombreDivisor={etiquetaAlumnosPorChMetodo(model.decision.estadistico_default) || "aula típica"}
+              onIrAAlumnosPorCh={onIrAAlumnosPorCh}
+            />
           </div>
           <div className="cmv2-segment" role="radiogroup" aria-label="Propuesta que dimensiona las aulas">
             <button type="button" role="radio" aria-checked={escenario !== "e2"} data-active={escenario !== "e2" || undefined} onClick={() => onEscenario("e1")}>P1 · Universidad</button>
