@@ -141,6 +141,14 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   celdas
 }
 
+# La columna de un campo de la «Base de control», por nombre. Devuelve 0 si el
+# campo no esta, que es lo que `printTitleCols`/`addStyle` entienden como «nada».
+.calg_col_control <- function(titulo) {
+  campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
+  i <- which(campos == titulo)
+  if (length(i)) as.integer(i[[1]]) else 0L
+}
+
 # Los titulos de campo que son CUENTAS. El `% ASISTENCIA` no esta: es una
 # razon y su formato depende de la escala que traiga.
 .calg_campo_numeros <- function() c(
@@ -237,13 +245,40 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
 #' @param unidades filas del plan.
 #' @return data.frame con dos filas de cabecera.
 #' @export
+#' Los cuatro tramos de la «Base de control», anclados por NOMBRE.
+#'
+#' Estaban puestos por indice a mano —`grupo[[8]]`, `grupo[[14]]`,
+#' `grupo[[29]]`—, que es el mismo error de contar columnas que ya costo tres
+#' defectos en este libro: si `BASE_CONTROL_CAMPOS` gana un campo, las cuatro
+#' bandas se descolocan en silencio y nadie se entera hasta imprimir. Anclados
+#' al nombre del campo donde empieza cada tramo, el spec puede crecer.
+#'
+#' @return lista `list(etiqueta, desde, hasta)` con las posiciones resueltas.
+#' @export
+aulas_libro_grupos_control <- function() {
+  campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
+  anclas <- list(
+    list(etiqueta = "INFORMACIÓN DEL CURSO", desde = "MUESTRA"),
+    list(etiqueta = "INFORMACIÓN DEL CAMPO", desde = "FECHA AGENDADA"),
+    list(etiqueta = "CONTROL - CUENTA", desde = "TOTAL ENVIADAS"),
+    list(etiqueta = "CONTROL - CUOTAS", desde = "N ASISTENTES EN AULA")
+  )
+  inicios <- vapply(anclas, function(a) {
+    i <- which(campos == a$desde)
+    if (length(i)) i[[1]] else NA_integer_
+  }, integer(1))
+  vivos <- which(!is.na(inicios))
+  lapply(seq_along(vivos), function(k) {
+    i <- vivos[[k]]
+    fin <- if (k < length(vivos)) inicios[[vivos[[k + 1L]]]] - 1L else length(campos)
+    list(etiqueta = anclas[[i]]$etiqueta, desde = inicios[[i]], hasta = fin)
+  })
+}
+
 aulas_libro_hoja_control <- function(unidades) {
   campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
   grupo <- rep("", length(campos))
-  grupo[[1]] <- "INFORMACIÓN DEL CURSO"
-  if (length(grupo) >= 8L) grupo[[8]] <- "INFORMACIÓN DEL CAMPO"
-  if (length(grupo) >= 14L) grupo[[14]] <- "CONTROL - CUENTA"
-  if (length(grupo) >= 29L) grupo[[29]] <- "CONTROL - CUOTAS"
+  for (g in aulas_libro_grupos_control()) grupo[[g$desde]] <- g$etiqueta
 
   titulares <- Filter(function(u) identical(.calg_txt(u$sample_role), "titular"), unidades)
   filas <- lapply(titulares, function(u) {
@@ -402,7 +437,12 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
   # como todo lo demas: si el bloque gana una columna, esto no se descoloca.
   cols_de <- function(campos) unlist(lapply(campos, function(campo)
     vapply(bloques, function(b) col_en_bloque(campo, b), integer(1))))
+  filas_control <- nrow(hojas[["Base de control"]]) - 2L
+  cols_control <- vapply(c("MATRICULADOS TOTALES", "MATRICULADOS POBLACION"),
+                         .calg_col_control, integer(1), USE.NAMES = FALSE)
   formatos <- list(
+    list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
+         tipo = "numero", cols = cols_control),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "fecha",
          cols = cols_de(c("contact_date", "scheduled_date"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "numero",
@@ -424,6 +464,8 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
                       desde = 1L)
   .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                       cols_campo(c(.calg_campo_numeros(), "% ASISTENCIA")), desde = 2L)
+  .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
+                      cols_control, desde = 2L)
 
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
@@ -457,13 +499,24 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
       # Misma idea en la hoja de campo: su bloque es
       # `ID MATCH + titulos_agenda + titulos_campo`, y el codigo va segundo
       # dentro de los titulos de agenda.
-      `Aulas Aplicadas (Campo)` = 1L + which(.calg_titulos_agenda() == "CURSO-HORARIO")
+      `Aulas Aplicadas (Campo)` = 1L + which(.calg_titulos_agenda() == "CURSO-HORARIO"),
+      # Y en la «Base de control» la primera columna es `MUESTRA` —la ola—, que
+      # se repite en cientos de filas: sus paginas salian rotuladas «M1» y sin
+      # decir de que aula hablan. Se repite hasta `CURSO-HORARIO`.
+      `Base de control` = .calg_col_control("CURSO-HORARIO")
     ),
     # Las bandas de grupo de la hoja de campo: una por intento.
-    combinar = lapply(seq_len(intentos_campo), function(b) list(
-      hoja = "Aulas Aplicadas (Campo)", fila = 1L,
-      cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
-    ))
+    combinar = c(
+      lapply(seq_len(intentos_campo), function(b) list(
+        hoja = "Aulas Aplicadas (Campo)", fila = 1L,
+        cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
+      )),
+      # Los cuatro tramos de la base de control tenian el mismo hueco: la
+      # etiqueta en su primera celda y el resto del tramo en blanco.
+      lapply(aulas_libro_grupos_control(), function(g) list(
+        hoja = "Base de control", fila = 1L, cols = seq(g$desde, g$hasta)
+      ))
+    )
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path
