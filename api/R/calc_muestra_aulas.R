@@ -2886,13 +2886,31 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     aula_frame[[aula_col]],
     suppressWarnings(as.numeric(aula_frame$eligible_n %||% rep(1, nrow(aula_frame))))
   )
+  # Una variable que PIDE la población y acaba comparándose contra el marco de
+  # aulas no está midiendo lo mismo, y hasta 2026-08-21 el cambio de referencia
+  # no se declaraba en ninguna parte.
+  #
+  # Medido en HSVG2026: `faculty` declara `source_preference = "student"`, pero
+  # `frame$population` trae columnas `primary_role`/`primary_label` y ninguna
+  # `faculty`, así que la condición falla y cae acá. Comparado contra el marco de
+  # aulas ponderado por elegibles da max_abs 0,101 sobre una tolerancia de 0,025
+  # -> penalty 122 -> score 0, con el peso más alto del objetivo (0,18). Ese 0
+  # arrastra el global a 43/100 y se lee como «mala selección», cuando la
+  # afijación se reparte por POBLACIÓN MATRICULADA y no por elegibles del marco:
+  # DERECHO tiene 3.187 alumnos y sus aulas suman 15.085 elegibles.
+  #
+  # No se corrige la cifra acá —eso exige que la población traiga la columna, y
+  # cambiar la referencia en silencio sería el mismo error al revés—: se DECLARA
+  # que la fuente no es la pedida, para que quien lea el 0 sepa contra qué se
+  # midió.
+  degradada <- source_preference == "student" && nzchar(student_col)
   .cm_aulas_distribution_compare(
     frame_profile = fp,
     selected_values = selected_m1[[aula_col]],
     selected_weights = suppressWarnings(as.numeric(selected_m1$eligible_n %||% rep(1, nrow(selected_m1)))),
     dimension = dimension,
     label = label,
-    source = "classroom_weighted_by_eligible",
+    source = if (degradada) "classroom_weighted_by_eligible_fallback" else "classroom_weighted_by_eligible",
     tolerance = tolerance
   )
 }
@@ -2921,6 +2939,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   }
   avg_abs <- mean(dist$abs_error, na.rm = TRUE)
   max_abs <- max(dist$abs_error, na.rm = TRUE)
+  fuente_dist <- if ("source" %in% names(dist)) .cm_aulas_scalar(dist$source[[1]], "") else ""
   penalty <- (avg_abs / tolerance) * 60 + (max_abs / (2 * tolerance)) * 40
   score <- round(max(0, 100 - min(100, penalty)), 1)
   data.frame(
@@ -2934,7 +2953,18 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     avg_abs_error = round(avg_abs, 6),
     max_abs_error = round(max_abs, 6),
     tolerance = tolerance,
-    detail = sprintf("Error medio %.1f pp; maximo %.1f pp.", 100 * avg_abs, 100 * max_abs),
+    # El detalle dice CONTRA QUÉ se midió cuando no se midió contra lo pedido:
+    # un 0 sin esa frase se lee como «la selección está desbalanceada» y lo que
+    # dice en realidad es «se comparó con otra referencia».
+    detail = if (identical(fuente_dist, "classroom_weighted_by_eligible_fallback")) {
+      sprintf(paste("Error medio %.1f pp; maximo %.1f pp. Medido contra el MARCO DE AULAS",
+                    "ponderado por elegibles: la poblacion de estudiantes no trae esta",
+                    "columna. Si el diseno reparte por poblacion matriculada, esta",
+                    "distancia no es la del diseno."),
+              100 * avg_abs, 100 * max_abs)
+    } else {
+      sprintf("Error medio %.1f pp; maximo %.1f pp.", 100 * avg_abs, 100 * max_abs)
+    },
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
