@@ -92,7 +92,15 @@ export function MarcoAulasTab({
 
   if (!classroomRowsRaw.length && !frameAuditNumber(frame, "classroom_n")) {
     return (
-      <div className="cmv2-marco-stack">
+      <div
+        className="cmv2-marco-stack"
+        // También el vacío: es el estado en que un usuario nuevo encuentra
+        // esta pestaña, y declarar sólo la rama con datos la deja fuera del
+        // gate justo cuando más se ve.
+        data-qa-geometry-group="calc-muestra/marco-aulas"
+        data-qa-geometry-contract="intrinsic"
+        data-qa-geometry-member
+      >
         <EmptyState
           icon={<Grid3X3 size={20} />}
           title="El marco de cursos-horario aparece al construirlo"
