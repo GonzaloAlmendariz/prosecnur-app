@@ -140,7 +140,12 @@
 
 .rec-resumen {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* Ocho KPIs en dos filas de cuatro (Gonzalo, 2026-08-21: «quizás agregamos
+     otro indicador para que sean 4 arriba y 4 abajo»). Estaba fijo en seis y
+     al sumar «Aulas titulares» el séptimo caía solo a una segunda fila. Con el
+     par completo —titulares y a coordinar— la franja cierra simétrica: dos de
+     universo y dos de elegibles arriba, dos de muestra y dos de aulas abajo. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   min-width: 0;
   overflow: hidden;
@@ -205,10 +210,10 @@
 /* El nombre del KPI envuelve en vez de recortarse. «UNIVERSO DE CURSOS-HORARIO»
  * no entra en una sexta parte del ancho a 10px con versalita, y con `nowrap`
  * quedaba «UNIVERSO DE CURSOS-HORAR…»: un indicador cuyo nombre no se puede
- * leer. Envolver es seguro porque la franja reparte `repeat(6, minmax(0, 1fr))`
- * —el ancho de columna lo deciden los `1fr`, no el contenido—, así que las seis
- * celdas siguen midiendo lo mismo y solo crece el alto de la fila, para todas a
- * la vez. */
+ * leer. Envolver es seguro porque la franja reparte sus columnas con `1fr`
+ * —el ancho lo decide el reparto, no el contenido—, así que todas las celdas
+ * siguen midiendo lo mismo y solo crece el alto de la fila, para todas a la
+ * vez. */
 .rec-resumen-item small {
   overflow: hidden;
   color: var(--pulso-text-soft);
@@ -1860,12 +1865,23 @@
   }
 }
 
+/* Las dos filas de cuatro necesitan su propio corte de bordes: sin esto la
+   quinta celda arrastra el borde izquierdo de una columna que ya no existe en
+   su fila, y la segunda fila queda sin separación de la primera. */
+.rec-resumen-item:nth-child(4n + 1) {
+  border-left: none;
+}
+
+.rec-resumen-item:nth-child(n + 5) {
+  border-top: 1px solid var(--cmv2-border);
+}
+
 @media (min-width: 901px) and (max-width: 1080px) {
   .rec-resumen {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .rec-resumen-item:nth-child(4) {
+  .rec-resumen-item:nth-child(3n + 1) {
     border-left: none;
   }
 
@@ -1968,4 +1984,13 @@
   .rec-resumen-item strong {
     font-size: 13px;
   }
+}
+
+/* El KPI que declara el método muestra texto, no una cifra: a 17px en negrita
+   «P25 × tasa histórica» rompería la línea de la franja. */
+.rec-resumen-item strong[data-texto] {
+  font-size: 12.5px;
+  font-weight: var(--pulso-weight-semibold);
+  line-height: 1.25;
+  letter-spacing: -0.005em;
 }
