@@ -12,7 +12,25 @@
  * es memoria de la pestaña, no del proyecto, y no debe sobrevivir a cerrar la
  * app ni viajar en el `.pulso`.
  */
-export type JobLargo = "comparar" | "seleccionar" | "simular" | "construir" | "reporte";
+export type JobLargo = "comparar" | "seleccionar" | "simular" | "construir" | "certeza" | "reporte";
+
+/**
+ * Cómo se llama en pantalla cada trabajo. Existe para que retomar uno no lo
+ * anuncie con el nombre de otro: al cablear la memoria, TODAS las llamadas
+ * cayeron en el valor por defecto («comparar»), así que un sorteo retomado se
+ * habría presentado como una comparación de métodos.
+ */
+export const ETIQUETA_JOB: Record<JobLargo, string> = {
+  comparar: "Comparando métodos",
+  seleccionar: "Seleccionando cursos-horario",
+  simular: "Simulando reemplazos",
+  construir: "Construyendo el marco",
+  certeza: "Midiendo certeza de cobertura",
+  reporte: "Paquete de defensa — reporte metodológico",
+};
+
+/** Los trabajos que conviene retomar al volver, en orden de importancia. */
+export const JOBS_RETOMABLES: JobLargo[] = ["comparar", "seleccionar", "simular", "construir", "certeza"];
 
 /** Almacén mínimo: lo justo para recordar un id, y así se puede testear sin DOM. */
 export type AlmacenJobs = Pick<Storage, "getItem" | "setItem" | "removeItem">;
