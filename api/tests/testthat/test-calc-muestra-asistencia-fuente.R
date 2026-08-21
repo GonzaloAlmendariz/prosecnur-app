@@ -185,8 +185,14 @@ test_that("engine tipa input vacío y columnas faltantes sin ocultar las encontr
   ))
   expect_s3_class(incompleto, "api_error")
   expect_identical(incompleto$code, "E_CALC_MUESTRA_ASISTENCIA_COLUMNS")
-  expect_match(conditionMessage(incompleto), "Columnas encontradas", fixed = TRUE)
-  expect_match(conditionMessage(incompleto), "curso_horario", fixed = TRUE)
+  # El mensaje ya no enumera las columnas encontradas —con una base de campo
+  # real son ~140 y sepultaban el dato accionable—: nombra lo que FALTA con sus
+  # alias y cuenta cuantas trae la hoja. La lista completa sigue en `details`,
+  # que es lo que este test cuidaba.
+  expect_match(conditionMessage(incompleto), "no trae", fixed = TRUE)
+  expect_match(conditionMessage(incompleto), "La hoja tiene", fixed = TRUE)
+  expect_false(grepl("Columnas encontradas", conditionMessage(incompleto), fixed = TRUE))
+  expect_true("curso_horario" %in% unlist(incompleto$details$encontradas))
 })
 
 test_that("state payload es retrocompatible y hace eco exacto del resumen", {
