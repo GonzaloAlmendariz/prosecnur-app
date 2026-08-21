@@ -132,6 +132,48 @@ for (c in estudio$componentes) {
 3. Solo diseños probabilísticos con marco completo y probabilidad conocida producen margen de error formal.
 4. Los demás diseños se reportan como cobertura operacional, representatividad teórica o validez interna.
 
+## Sustento metodológico
+
+```{r sustento_metodologico}
+fuentes <- bundle$metodologia
+if (is.null(fuentes) || !nrow(as.data.frame(fuentes))) {
+  cat("_El motor no publicó el bloque de fuentes metodológicas para esta corrida._\n")
+} else {
+  fuentes <- as.data.frame(fuentes, stringsAsFactors = FALSE)
+  limpio <- function(x) { x <- as.character(x); x[is.na(x) | !nzchar(trimws(x))] <- "—"; x }
+  # Sólo lo que un lector externo necesita: la decisión, la regla que aplica la
+  # app y de dónde sale. Los URLs quedan en el anexo, no rompen la tabla aquí.
+  tabla <- data.frame(
+    `Decisión metodológica` = limpio(fuentes$decision_metodologica),
+    `Regla aplicada`        = limpio(fuentes$regla_app),
+    `Referencia oficial`    = limpio(fuentes$official_reference),
+    `Referencia académica`  = limpio(fuentes$academic_reference),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+  tabla_pulso(tabla, caption = "Decisiones de diseño y su respaldo")
+}
+```
+
+```{r sustento_implementacion}
+if (!is.null(fuentes) && nrow(as.data.frame(fuentes))) {
+  f2 <- as.data.frame(fuentes, stringsAsFactors = FALSE)
+  impl <- as.character(f2$implementation_reference)
+  impl <- unique(trimws(impl[!is.na(impl) & nzchar(trimws(impl))]))
+  if (length(impl)) {
+    cat("**Implementación.** El sorteo se ejecuta con ",
+        paste(sprintf("`%s`", impl), collapse = ", "),
+        ". La versión usada y cualquier fallback quedan registrados en la auditoría de la corrida.\n", sep = "")
+  }
+}
+```
+
+::: {.callout-note}
+La selección es probabilística: toda unidad del marco tiene una probabilidad de
+inclusión conocida y mayor que cero, y esa probabilidad es la que pondera los
+resultados. Cada decisión de diseño está anclada en estándares de operativos
+internacionales de evaluación educativa y en la literatura de muestreo balanceado.
+:::
+
 ## Próximos pasos
 
 1. Validar marcos por actor: limpieza, deduplicación, validación de rol único.
