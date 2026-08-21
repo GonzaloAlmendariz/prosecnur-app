@@ -82,7 +82,14 @@ aulas_libro_hoja_agendadas <- function(unidades) {
   grupos <- split(unidades, factor(claves, levels = unique(claves)))
   profundidad <- max(1L, max(vapply(grupos, length, integer(1)), 1L))
 
-  cabecera <- c("ID MATCH", rep(titulos_bloque, profundidad))
+  # **Cada bloque dice de quien es.** Repetidos tal cual, los tres bloques
+  # enseñaban «NOMBRE DE DOCENTE» identico tres veces y el unico modo de saber
+  # si una columna era del titular o del reemplazo 1.2 era el color. Impresa en
+  # blanco y negro —que es como se usa en campo— la hoja no lo decia. El sufijo
+  # lo descarta `.caa_key()`, asi que el ida y vuelta no cambia.
+  cabecera <- c("ID MATCH", unlist(lapply(seq_len(profundidad), function(b) {
+    if (b == 1L) titulos_bloque else paste0(titulos_bloque, " R", b - 1L)
+  })))
   filas <- lapply(seq_along(grupos), function(i) {
     g <- grupos[[i]]
     # El titular primero; las reservas por orden de cadena.
