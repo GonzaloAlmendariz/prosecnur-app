@@ -1838,11 +1838,13 @@ export default function AulasMonitoreoPage() {
   // en rojo la lee como un fallo. Además `loadView` limpia `error` cuando la
   // recarga sale bien —así que el aviso duraba lo que tardaba la petición
   // siguiente, que es la que el propio import dispara—.
-  const [aviso, setAviso] = useState("");
-  // El tono del aviso: «ok» para lo que salió bien, «atencion» para lo que hay
-  // que mirar. Con uno solo, una importación limpia se pintaba igual que una
-  // que dejó columnas sin leer.
-  const [avisoTono, setAvisoTono] = useState<TonoAviso>("ok");
+  // Texto y tono en UN estado, no dos. «ok» para lo que salió bien, «atencion»
+  // para lo que hay que mirar — y como viajan juntos, no hay forma de anunciar
+  // algo nuevo heredando el tono de la acción anterior: un `setAviso` suelto que
+  // olvidara el tono pintaría el resultado siguiente con el color del anterior.
+  const [aviso, setAviso] = useState<{ texto: string; tono: TonoAviso }>({
+    texto: "", tono: "ok",
+  });
   const [error, setError] = useState("");
   /**
    * Los filtros que definen una encuesta efectiva, en edición.
@@ -1936,12 +1938,11 @@ export default function AulasMonitoreoPage() {
   const generarLibro = useCallback(async () => {
     setMutating(true);
     setError("");
-    setAviso("");
+    setAviso({ texto: "", tono: "ok" });
     try {
       const res = await apiMonitoreoAulasGenerarLibro();
       // Decir qué lleva dentro: el libro se descargaba en silencio.
-      setAviso(avisoLibroGenerado(res));
-      setAvisoTono("ok");
+      setAviso({ texto: avisoLibroGenerado(res), tono: "ok" });
       // La descarga la dispara un enlace efímero: no hay dónde «guardar» un
       // Excel operativo dentro del proyecto, y sacarlo es justo el punto.
       const a = document.createElement("a");
@@ -1961,7 +1962,7 @@ export default function AulasMonitoreoPage() {
   const importarLibro = useCallback(async (archivo: File) => {
     setMutating(true);
     setError("");
-    setAviso("");
+    setAviso({ texto: "", tono: "ok" });
     try {
       // Dos pasos a propósito. Mandar el xlsx directo a `importar-libro`
       // no funciona: con `parsers = multi` el archivo llega pero plumber
@@ -1973,9 +1974,7 @@ export default function AulasMonitoreoPage() {
       setState(res.state);
       // El resumen entero, no solo lo que faltaba: quien importa necesita saber
       // que entro, y que columnas con datos NO se leyeron.
-      const anuncio = avisoLibroImportado(res);
-      setAviso(anuncio.texto);
-      setAvisoTono(anuncio.tono);
+      setAviso(avisoLibroImportado(res));
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");
@@ -2259,9 +2258,9 @@ export default function AulasMonitoreoPage() {
             {error ? <div className="mon-profile-error"><AlertCircle size={16} /> {error}</div> : null}
             {/* Fuera del `{loading ? …}` de abajo: un aviso sobre lo que acaba
                 de pasar no puede vivir dentro de lo que la acción remonta. */}
-            {aviso ? (
-              <div className="aulas-aviso" data-tono={avisoTono}>
-                {avisoTono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso}
+            {aviso.texto ? (
+              <div className="aulas-aviso" data-tono={aviso.tono}>
+                {aviso.tono === "ok" ? <CheckCircle2 size={16} /> : <Info size={16} />} {aviso.texto}
               </div>
             ) : null}
             {loading ? (

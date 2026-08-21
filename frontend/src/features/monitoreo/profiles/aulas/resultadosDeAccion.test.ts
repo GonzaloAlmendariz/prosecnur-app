@@ -59,8 +59,7 @@ describe("los resultados de una acción sobreviven a su recarga", () => {
     // La frase se mudó a `avisoLibroImportado` —tiene reglas y se prueba en su
     // propio test—, pero lo que este aserto protege sigue igual: el resultado
     // de una importación que funcionó va al aviso, nunca al error.
-    expect(page).toContain("avisoLibroImportado(res)");
-    expect(page).toContain("setAviso(anuncio.texto)");
+    expect(page).toContain("setAviso(avisoLibroImportado(res))");
     expect(page).not.toMatch(/setError\(\s*avisoLibro/);
     expect(page).not.toContain("setError(`El libro");
   });
