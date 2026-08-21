@@ -93,3 +93,63 @@ test_that("el resumen dice cuantas cuadran SOBRE cuantas se compararon", {
   expect_equal(r$encuestas_de_mas, 8)
   expect_identical(r$peor$operational_code, "CH 1")
 })
+
+# --- El enganche: el cruce llega al payload del tablero ---------------------
+
+# El fixture imita al estudio real: el identificador que viaja en las respuestas
+# NO es el codigo operativo. En el operativo de aulas, `collectorID` vale
+# «aulch1_0220» y el codigo del plan es «CH 1». Con los dos iguales, indexar por
+# uno o por otro da lo mismo y el test no distingue nada — sobrevivio un mutante
+# asi antes de escribirlo de esta forma.
+.cp_plan <- function() monitoreo_aulas_normalize_plan(list(
+  list(operational_code = "CH 1", classroom_id = "aulch1_0220", label = "Aula 1",
+       course_name = "Curso 1", faculty = "Derecho", sample_role = "titular",
+       eligible_n = 30, expected_valid = 21, sample_status = "agendada")
+))
+
+# Cuatro respuestas llegaron y TRES son validas: sin una invalida, el total y
+# las validas coinciden y comparar contra unas u otras da lo mismo — otro
+# mutante sobrevivio por eso. La validez la declara el estudio con sus filtros,
+# no la deduce el motor; por eso el fixture los declara.
+.cp_respuestas <- function() data.frame(
+  collectorID = rep("aulch1_0220", 4),
+  sexo = c("Mujer", "Hombre", "Mujer", "Prefiero no decir"),
+  stringsAsFactors = FALSE
+)
+
+.cp_cfg <- function(efectivas) list(
+  enabled = TRUE, plan = .cp_plan(),
+  source_mapping = list(valid_filters = list(list(var = "sexo",
+                                                 values = c("Mujer", "Hombre")))),
+  partes_campo = list(list(operational_code = "CH 1", intento = 1L,
+                           observed_students = 25, effective_surveys = efectivas))
+)
+
+test_that("el tercer cruce llega al tablero, con su resumen", {
+  # Una capacidad existe solo si alguien la consume: el motor sin enganche es
+  # deuda, no una funcion.
+  plan <- .cp_plan()
+  respuestas <- .cp_respuestas()
+  d <- monitoreo_aulas_dashboard(plan, respuestas, .cp_cfg(20))
+  expect_length(d$platform_cross_check, 1L)
+  h <- d$platform_cross_check[[1]]
+  expect_identical(h$operational_code, "CH 1")
+  # El equipo declaro 20 y llegaron 3.
+  expect_equal(h$declaradas, 20)
+  # CUATRO recibidas: el total, no las tres validas. El aplicador cuenta las
+  # encuestas que consiguio; el criterio de validez es un filtro posterior.
+  expect_equal(h$recibidas, 4)
+  expect_identical(h$sentido, "faltan")
+  expect_equal(d$platform_cross_check_summary$comparables, 1L)
+  expect_equal(d$platform_cross_check_summary$cuadran, 0L)
+})
+
+test_that("cuando lo declarado y lo recibido cuadran, el tablero no inventa un hallazgo", {
+  # El control del anterior: si el enganche emparejara por el codigo operativo
+  # —que NO es el identificador que viaja en las respuestas— este caso saldria
+  # como «faltan 4», porque no encontraria ninguna respuesta del aula.
+  d <- monitoreo_aulas_dashboard(.cp_plan(), .cp_respuestas(), .cp_cfg(4))
+  expect_length(d$platform_cross_check, 0L)
+  expect_equal(d$platform_cross_check_summary$cuadran, 1L)
+  expect_equal(d$platform_cross_check_summary$comparables, 1L)
+})
