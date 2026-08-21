@@ -386,18 +386,23 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver
   # `carga_aulas_libro_formato.R` para el porque de cada vocabulario.
   wb <- openxlsx::createWorkbook()
-  # La portada, PRIMERA. Es lo que una dinamica enseñaria —cuanto operativo hay,
-  # como se reparte por facultad y en que estado esta— y contesta sin filtrar lo
-  # que las hojas de datos solo contestan filtrando.
-  aulas_libro_escribir_resumen(wb, unidades, partes = partes, control = control)
-  # **La hoja larga «Datos» se retiro.** Se añadio para poder hacer tablas
-  # dinamicas, y Gonzalo lo llamo por su nombre al verla: «esta esforzando una
-  # tabla dinamica cuando no deberia haber un forcejeo de tabla dinamica».
-  # Tenia razon: este libro se lleva a campo para LLENARLO —agendamiento y parte
-  # de aplicacion— y el analisis vive en la app, que ya cruza las mismas cifras
-  # sin pedirle a nadie que construya una dinamica. Una hoja de 34 columnas que
-  # nadie llena y casi nadie pivota es peso muerto en un fichero que el equipo
-  # abre para trabajar.
+  # **La portada «Resumen» y la hoja larga «Datos» se retiraron.**
+  #
+  # «Datos» se añadio para poder hacer tablas dinamicas, y Gonzalo lo llamo por
+  # su nombre al verla: «esta esforzando una tabla dinamica cuando no deberia
+  # haber un forcejeo de tabla dinamica». «Resumen» se fue detras por decision
+  # suya: «se va resumen».
+  #
+  # El criterio es el mismo para las dos, y es el que ordena este fichero:
+  # **este libro es la unica herramienta de quien agenda y de quien aplica.**
+  # Gonzalo: «el agendador solo ve el excel, no la app; la app se nutre del
+  # excel para alimentar la app». Son dos personas distintas con dos
+  # herramientas distintas, y el libro es de la primera.
+  #
+  # Por eso cada hoja que no se LLENA le quita sitio a las que si, y por eso las
+  # decisiones de este fichero se juzgan por si ayudan a agendar y a anotar el
+  # parte —no por si permiten analizar—. Quedan las tres hojas de trabajo y las
+  # listas de los desplegables.
   for (nombre in names(hojas)) {
     openxlsx::addWorksheet(wb, nombre)
     openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
