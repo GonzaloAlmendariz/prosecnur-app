@@ -187,9 +187,34 @@ aulas_libro_escribir_datos <- function(wb, unidades, hoja = "Datos",
     col <- function(nombre) which(names(datos) == nombre)
     openxlsx::addStyle(wb, hoja, fecha, rows = 2:(n + 1L), cols = col("Fecha agendada"),
                        gridExpand = TRUE, stack = TRUE)
+    # **Las veinte columnas de campo y control tambien llevan su formato.**
+    #
+    # Se quedaron sin el al añadirlas: los porcentajes salian como «0.61» y los
+    # conteos alineados a la izquierda. Aqui importa mas que en las otras hojas
+    # porque una tabla dinamica hereda el formato de su columna de origen: un
+    # promedio de «% asistencia» heredaba el 0.61.
+    cuentas <- c(
+      "Asistentes (parte)", "Rechazos", "Duplicados", "Efectivas",
+      "Asistentes (control)", "Enviadas", "Cortas", "Largas",
+      "Umbral 70T", "Umbral 70P", "Faltantes de cuota", "Mujeres", "Hombres"
+    )
     openxlsx::addStyle(wb, hoja, numero, rows = 2:(n + 1L),
-                       cols = c(col("Matriculados"), col("Elegibles"), col("Esperadas")),
+                       cols = c(col("Matriculados"), col("Elegibles"), col("Esperadas"),
+                                unlist(lapply(cuentas, col))),
                        gridExpand = TRUE, stack = TRUE)
+
+    # `Umbral 70T`/`70P` son CUENTAS y `Valido total`/`Valido poblacion`
+    # veredictos 0/1, no porcentajes: lo dice su medicion, no su nombre. Solo
+    # estas tres son razones, y su escala la decide la columna entera.
+    pct <- openxlsx::createStyle(numFmt = "0.0%", halign = "right")
+    dec <- openxlsx::createStyle(numFmt = "0.0", halign = "right")
+    for (nombre in c("% asistencia (parte)", "% asistencia (control)", "Cuota")) {
+      i <- col(nombre)
+      if (!length(i)) next
+      estilo <- if (identical(.calg_escala_pct(datos[[nombre]]), "porcentaje")) pct else dec
+      openxlsx::addStyle(wb, hoja, estilo, rows = 2:(n + 1L), cols = i,
+                         gridExpand = TRUE, stack = TRUE)
+    }
   }
   invisible(tabla)
 }
