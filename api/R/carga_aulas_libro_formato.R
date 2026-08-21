@@ -88,7 +88,10 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
   if (length(listas) && "Listas" %in% names(wb)) {
     openxlsx::sheetVisibility(wb)[which(names(wb) == "Listas")] <- FALSE
   }
-  # El libro abre por la portada y no por donde lo dejo el generador.
+  # **El libro abre por «Aulas Agendadas»**, que es la primera hoja desde que se
+  # retiraron la portada y la hoja larga. Ya no es «abre por la portada»: es que
+  # abre **donde se trabaja**, y eso es deliberado — quien recibe este fichero lo
+  # abre para agendar, no para leer un resumen.
   if (length(names(wb))) openxlsx::activeSheet(wb) <- 1L
 
   invisible(wb)

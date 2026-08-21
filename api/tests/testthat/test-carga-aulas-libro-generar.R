@@ -687,3 +687,20 @@ test_that("renombrar las bandas no rompe la relectura", {
   expect_gt(length(partes), 0L)
   expect_equal(as.numeric(partes[[1]]$effective_surveys), 19)
 })
+
+test_that("el libro abre por la hoja donde se trabaja", {
+  # Quien recibe este fichero lo abre para agendar. Cuando habia portada, la
+  # hoja 1 era el resumen y esto significaba «abre por la portada»; al
+  # retirarla, el comportamiento correcto se cumplio por el orden, no por una
+  # decision. Queda fijado como decision: la primera hoja es la del agendador.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  expect_identical(openxlsx::getSheetNames(libro)[[1]], "Aulas Agendadas")
+
+  wb <- openxlsx::loadWorkbook(libro)
+  # Y «Listas» sigue oculta: se oculta por NOMBRE, asi que retirar dos hojas no
+  # la descoloco.
+  visible <- as.character(openxlsx::sheetVisibility(wb))
+  expect_identical(visible[[which(names(wb) == "Listas")]], "hidden")
+  expect_true(all(visible[names(wb) != "Listas"] == "visible"))
+})
