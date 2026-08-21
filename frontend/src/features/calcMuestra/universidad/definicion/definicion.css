@@ -766,6 +766,13 @@
   overflow-wrap: anywhere;
 }
 
+/* Por qué la cifra de la vista previa es pequeña y dónde saldrá el total. */
+.cmv2-defi-upload-stat > small {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
 /*
  * F104 · Las columnas detectadas ya no se pliegan: son la verificación de la
  * carga —lo primero que se comprueba tras subir una base—, y vivían a un click
