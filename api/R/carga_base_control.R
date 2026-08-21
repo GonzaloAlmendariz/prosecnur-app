@@ -57,10 +57,15 @@ BASE_CONTROL_CAMPOS <- list(
   # Los titulos viejos se conservan como ALIAS de lectura: un libro que el
   # equipo tenga a medio llenar con la columna `70T` se sigue leyendo, aunque
   # el generador ya no la escriba.
-  list(campo = "threshold_total",     titulos = c("70T")),
-  list(campo = "threshold_population", titulos = c("70P")),
-  list(campo = "valid_total",         titulos = c("VALIDO TOTAL")),
-  list(campo = "valid_population",    titulos = c("VALIDO POBLACION")),
+  # `solo_lectura`: el campo sigue en la spec para que un libro viejo se lea
+  # entero, pero la hoja que generamos YA NO ESCRIBE esa columna. Conservarlas
+  # para leer no obliga a emitirlas: salian como cuatro columnas vacias que
+  # ocupan sitio y no dicen nada, que es justo el peso muerto que la revision
+  # pedia quitar.
+  list(campo = "threshold_total",     titulos = c("70T"), solo_lectura = TRUE),
+  list(campo = "threshold_population", titulos = c("70P"), solo_lectura = TRUE),
+  list(campo = "valid_total",         titulos = c("VALIDO TOTAL"), solo_lectura = TRUE),
+  list(campo = "valid_population",    titulos = c("VALIDO POBLACION"), solo_lectura = TRUE),
   # **Efectivas: la definicion es la de la PLATAFORMA.** Gonzalo: «un elegible
   # efectivo o solo efectivo es una respuesta efectiva de la plataforma, es
   # decir es una encuesta que se completa y pasa los filtros». No es lo que el
@@ -74,10 +79,7 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "efectivas_brecha",    titulos = c("EFECTIVAS: DIFERENCIA")),
   # Elegibles esperados contra los que dieron una efectiva.
   list(campo = "elegibles_esperados", titulos = c("ELEGIBLES ESPERADOS")),
-  # Sexo esperado contra obtenido. El esperado sale del plan por AULA
-  # (`sex_top_1_n` / `sex_top_2_n`), no de la cuota por facultad.
-  list(campo = "mujeres_esperadas",   titulos = c("MUJERES ESPERADAS")),
-  list(campo = "hombres_esperados",   titulos = c("HOMBRES ESPERADOS")),
+
   # Control - duracion
   list(campo = "last_response_day",   titulos = c("ULTIMO DIA DE RESPUESTA")),
   # Control - cuotas
@@ -86,7 +88,13 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "attendance_pct",      titulos = c("ASISTENCIA")),
   list(campo = "quota_pct",           titulos = c("CUOTA")),
   list(campo = "quota_missing",       titulos = c("FALTANTES CUOTA")),
+  # **El esperado pegado a lo obtenido**, que es como se lee: «esperaba 17
+  # mujeres y consegui 14». Estaban en el bloque de CUENTA, a diez columnas de
+  # su pareja, y comparar obligaba a recorrer la hoja. El esperado sale del plan
+  # por AULA (`sex_top_1_n` / `sex_top_2_n`), no de la cuota por facultad.
+  list(campo = "mujeres_esperadas",   titulos = c("MUJERES ESPERADAS")),
   list(campo = "women_n",             titulos = c("N MUJERES")),
+  list(campo = "hombres_esperados",   titulos = c("HOMBRES ESPERADOS")),
   list(campo = "men_n",               titulos = c("N HOMBRES")),
   list(campo = "women_pct",           titulos = c("MUJERES")),
   list(campo = "men_pct",             titulos = c("HOMBRES")),

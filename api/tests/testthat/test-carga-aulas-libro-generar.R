@@ -423,7 +423,12 @@ test_that("las cuentas de campo entran como numero, no como texto", {
 test_that("los cuatro tramos se anclan por NOMBRE y cubren la hoja entera", {
   g <- aulas_libro_grupos_control()
   expect_length(g, 4L)
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  # Los tramos se calculan sobre las columnas que la hoja ESCRIBE, no sobre la
+  # spec entera: las cuatro `solo_lectura` existen para releer libros viejos y
+  # no salen en la hoja, asi que compararlas con `BASE_CONTROL_CAMPOS` dejaba
+  # los indices corridos por cuatro.
+  campos <- vapply(prosecnurapp:::.calg_control_escritos(),
+                   function(s) s$titulos[[1]], character(1))
   # Contiguos, sin solape y sin dejar columnas fuera: si mañana el spec gana un
   # campo en medio, el tramo que lo contiene crece y los demas se corren solos.
   expect_identical(g[[1]]$desde, 1L)

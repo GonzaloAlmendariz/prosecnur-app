@@ -145,7 +145,7 @@ aulas_libro_hoja_agendadas <- function(unidades) {
 # La columna de un campo de la «Base de control», por nombre. Devuelve 0 si el
 # campo no esta, que es lo que `printTitleCols`/`addStyle` entienden como «nada».
 .calg_col_control <- function(titulo) {
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
+  campos <- vapply(.calg_control_escritos(), function(spec) spec$titulos[[1]], character(1))
   i <- which(campos == titulo)
   if (length(i)) as.integer(i[[1]]) else 0L
 }
@@ -322,8 +322,14 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
 #'
 #' @return lista `list(etiqueta, desde, hasta)` con las posiciones resueltas.
 #' @export
+# Los campos de la Base de control que la hoja ESCRIBE: todos menos los que la
+# spec marca `solo_lectura`, que existen para releer libros viejos.
+.calg_control_escritos <- function() {
+  Filter(function(spec) !isTRUE(spec$solo_lectura), BASE_CONTROL_CAMPOS)
+}
+
 aulas_libro_grupos_control <- function() {
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
+  campos <- vapply(.calg_control_escritos(), function(spec) spec$titulos[[1]], character(1))
   anclas <- list(
     list(etiqueta = "INFORMACIÓN DEL CURSO", desde = "MUESTRA"),
     list(etiqueta = "INFORMACIÓN DEL CAMPO", desde = "FECHA AGENDADA"),
@@ -343,8 +349,9 @@ aulas_libro_grupos_control <- function() {
 }
 
 aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL) {
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
-  claves <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$campo, character(1))
+  escritos <- .calg_control_escritos()
+  campos <- vapply(escritos, function(spec) spec$titulos[[1]], character(1))
+  claves <- vapply(escritos, function(spec) spec$campo, character(1))
   grupo <- rep("", length(campos))
   for (g in aulas_libro_grupos_control()) grupo[[g$desde]] <- g$etiqueta
 
