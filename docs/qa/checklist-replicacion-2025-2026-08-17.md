@@ -4591,3 +4591,14 @@ como fuente durable para quien retome Monitoreo:
   esperado. Campos por fila: efectivas_esperadas, tasa_efectividad_aula,
   factor_facultad, facultad_k, rendimiento_ref, efectividad_fuente/
   periodo, meta_origen.
+
+### 2026-08-20: SERIE 1b — FASES A-D COMPLETAS (E1-E21 en 19 ticks)
+
+E18 cerrado (comparador re-acreditado con target 190; el aviso «no
+acredita» murió; score visible 57/100; guardado). E21 gates: R 168/168
+(8 suites del área), vitest 1.652/1.652 (194 archivos, calcMuestra +
+navegación). Memoria del proyecto actualizada al diseño 1b. Quedan
+E22-E25 como reserva de la serie (feedback de Gonzalo, ajustes finos) y
+las decisiones abiertas: Derecho 0,97×, regla de reserva, cube vs
+pool_controlado (recomendación nueva del comparador), ADR un-solo-dueño,
+EEE.
