@@ -259,7 +259,9 @@ test_that("el control ya registrado NO se borra al regenerar", {
   fila <- v$control[[which(codigos == "CH 1")[[1]]]]
   expect_equal(as.numeric(fila$sent_total), 17)
   expect_equal(as.numeric(fila$validator_1), 3)
-  expect_equal(as.numeric(fila$threshold_total), 21)
+  # `threshold_total` ya no se escribe —es `solo_lectura`, existe para releer
+  # libros viejos— asi que no vuelve. Lo que sustituye a esa columna si:
+  expect_equal(as.numeric(fila$sent_total), 17)
   expect_equal(as.numeric(fila$quota_missing), 4)
   expect_identical(as.character(fila$last_response_day), "2026-08-19")
 })
@@ -344,9 +346,15 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   # `eligible_n` del plan publicado en la Base de control, asi que tampoco lo
   # pisa el registro. Que aparezca aqui es la señal de que la columna nueva se
   # escribe de verdad.
+  # Los cuatro `solo_lectura` se suman a la lista: la hoja ya no los escribe, y
+  # eso es deliberado —salian como columnas vacias—. Siguen en la spec para que
+  # un libro viejo que las traiga se lea entero, que es lo que comprueba
+  # `test-carga-aulas-libro-control-esperado.R`.
   expect_setequal(perdidos,
                   c("wave", "course_name", "room", "enrolled_total", "eligible_n",
-                    "elegibles_esperados"))
+                    "elegibles_esperados",
+                    "threshold_total", "threshold_population",
+                    "valid_total", "valid_population"))
   expect_identical(as.character(b$control$course_name),
                    as.character(b$u$course_name))
 })
@@ -357,13 +365,13 @@ test_that("el control de una RESERVA activada no se pierde al regenerar", {
   # de trabajo: de 152 filas de control, 22 eran de reservas y no volvian.
   v <- .rt_vuelta(control = list(
     list(operational_code = "CH 1", sent_total = 17),
-    list(operational_code = "R 4.1", sent_total = 9, valid_total = 1)
+    list(operational_code = "R 4.1", sent_total = 9, women_n = 4)
   ))
   codigos <- vapply(v$control, function(r) as.character(r$operational_code %||% ""), character(1))
   expect_true("R 4.1" %in% codigos)
   fila <- v$control[[which(codigos == "R 4.1")[[1]]]]
   expect_equal(as.numeric(fila$sent_total), 9)
-  expect_equal(as.numeric(fila$valid_total), 1)
+  expect_equal(as.numeric(fila$women_n), 4)
   # El control: el titular sigue estando, no se cambio una cosa por otra.
   expect_true("CH 1" %in% codigos)
 })

@@ -8,7 +8,8 @@
 # diferente... no solo en el numero, sino tambien en el porcentaje».
 
 .ce_titulo <- function(t) {
-  campos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  campos <- vapply(prosecnurapp:::.calg_control_escritos(),
+                   function(s) s$titulos[[1]], character(1))
   which(campos == t)[[1]]
 }
 
@@ -98,4 +99,37 @@ test_that("los titulos viejos siguen leyendose: un libro a medio llenar no se ro
   for (viejo in c("70T", "70P", "VALIDO TOTAL", "VALIDO POBLACION")) {
     expect_true(viejo %in% campos, info = viejo)
   }
+})
+
+test_that("las columnas viejas se leen pero YA NO se escriben", {
+  # Conservarlas en la spec para releer un libro a medio llenar no obliga a
+  # emitirlas: salian como cuatro columnas VACIAS que ocupan sitio y no dicen
+  # nada. Se vio en el PDF, con «VALIDO TOTAL» y «VALIDO POBLACION» en blanco
+  # al lado de las columnas nuevas.
+  escritos <- vapply(prosecnurapp:::.calg_control_escritos(),
+                     function(s) s$titulos[[1]], character(1))
+  for (viejo in c("70T", "70P", "VALIDO TOTAL", "VALIDO POBLACION")) {
+    expect_false(viejo %in% escritos, info = viejo)
+  }
+  # Pero siguen en la spec: es lo que permite releerlas.
+  todos <- vapply(BASE_CONTROL_CAMPOS, function(s) s$titulos[[1]], character(1))
+  expect_true(all(c("70T", "70P", "VALIDO TOTAL", "VALIDO POBLACION") %in% todos))
+})
+
+test_that("un libro con las columnas viejas se sigue leyendo entero", {
+  # El aserto que de verdad importa: no que el campo este en una lista, sino
+  # que un `.xlsx` que las traiga vuelva con sus valores.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(list(.ce_aula("CH 1", eleg = 30, esperadas = 21)), libro)
+
+  wb <- openxlsx::loadWorkbook(libro)
+  n <- length(prosecnurapp:::.calg_control_escritos())
+  # Se añaden a mano, como las tendria un libro viejo del equipo.
+  openxlsx::writeData(wb, "Base de control", "70T", startCol = n + 1L, startRow = 2, colNames = FALSE)
+  openxlsx::writeData(wb, "Base de control", 1, startCol = n + 1L, startRow = 3, colNames = FALSE)
+  openxlsx::saveWorkbook(wb, libro, overwrite = TRUE)
+
+  filas <- base_control_leer(libro)$filas
+  expect_gt(length(filas), 0L)
+  expect_equal(as.numeric(filas[[1]]$threshold_total), 1)
 })
