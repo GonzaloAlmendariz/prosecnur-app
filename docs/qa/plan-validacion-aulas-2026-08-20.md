@@ -303,8 +303,20 @@ extensible a todos los monitoreos.
     ruido que competía con el resultado. Ningún texto se borró.
   - **Marcado ◐ y no ☑ a propósito**: «se ve fatal» es un juicio de Gonzalo y lo
     cierra él, no el gate.
-- **T23** — Agenda deja de ser la traducción de 12 columnas: filtro por facultad
-  y lo que decide quien llama.
+- **T23 ◐ (2026-08-20)** — Agenda. **Medido: casi todo ya existía.** La división
+  por facultad vive en la pestaña `modelo/facultad` («A dónde ir cada día»):
+  agrupa las **196 aulas en sus 20 facultades** por día, con hora, código, aula,
+  docente y estado, y las reservas salen ahí con su fecha.
+  - **Las 12 columnas de `modelo/agenda` son deliberadas**: son el ciclo de
+    contacto —a quién llamo, por qué medio, cuándo, cuántos intentos, en qué
+    quedó, para cuándo— y sólo viven ahí. «A quién reemplaza» se quitó a
+    propósito para hacerles sitio.
+  - **Lo que sí queda de la queja**: en «A dónde ir cada día», un `R 21.1`
+    aparece junto a `CH 21` y **nada dice que sea una reserva ni de quién**. La
+    relación se adivina por el número.
+  - **Tercer ítem seguido que este plan describía mal** —con T16 y T22—. El plan
+    se escribió la mañana del 2026-08-20 y describe el estado de entonces:
+    **comprobar si ya está hecho antes de construirlo**.
 - **T24** — El reemplazo, alcanzable sin entrar al formulario de un aula.
 - **T25** — Pasada de forma sobre Validación entera, con el gate visual en los
   dos viewports.
