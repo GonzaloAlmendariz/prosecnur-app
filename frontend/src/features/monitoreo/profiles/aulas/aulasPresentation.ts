@@ -68,6 +68,21 @@ const FIELD_LABELS: Record<string, string> = {
   threshold_population: "70P",
   valid_total: "Válido total",
   valid_population: "Válido población",
+  // Las que sustituyeron a `70T`/`70P` en la hoja: el umbral dejo de ser dos
+  // banderas de sí/no y pasó a ser lo esperado contra lo obtenido. Los rótulos
+  // dicen de dónde sale cada mitad, que es lo que las hace comparables.
+  // El rótulo tiene que DECIR algo: el contrato rechaza los que son el nombre
+  // del campo con espacios, porque eso no es traducir, es disimular. «Meta de
+  // efectivas» dice de dónde sale la cifra; «Efectivas esperadas» sólo repite
+  // el identificador en castellano.
+  efectivas_esperadas: "Meta de efectivas del aula",
+  efectivas_obtenidas: "Efectivas que llegaron",
+  efectivas_pct_esperado: "% de efectivas esperado",
+  efectivas_pct_obtenido: "% de efectivas logrado",
+  efectivas_brecha: "Efectivas: cuánto falta",
+  elegibles_esperados: "Elegibles del padrón",
+  mujeres_esperadas: "Mujeres que espera el aula",
+  hombres_esperados: "Hombres que espera el aula",
   last_response_day: "Último día de respuesta",
   non_respondents: "Asistentes que no respondieron",
   attendance_pct: "% Asistencia",
