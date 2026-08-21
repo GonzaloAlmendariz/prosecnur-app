@@ -282,7 +282,10 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # tonos mas juntos de lo necesario. Lo que decide cuantos colores hacen falta
   # es la profundidad de la cadena.
   eslabon_max <- if (length(tintes)) {
-    max(vapply(tintes, function(t) as.integer(t$eslabon %||% 1L), integer(1)))
+    con_eslabon <- Filter(function(t) is.null(t$tono), tintes)
+    if (length(con_eslabon)) {
+      max(vapply(con_eslabon, function(t) as.integer(t$eslabon %||% 1L), integer(1)))
+    } else 1L
   } else 1L
   tonos <- aulas_libro_colores_eslabon(max(eslabon_max, length(agrupados) + 1L))
 
@@ -302,7 +305,11 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # sobrescribir.
   for (tb in tintes) {
     if (!length(tb$cols) || !tb$filas) next
-    tono <- tonos[[min(tb$eslabon, length(tonos))]]
+    # `tono` explicito para los grupos que NO son eslabones de una cadena: los
+    # cuatro tramos de la «Base de control» son areas tematicas —curso, campo,
+    # cuenta, cuotas— y meterlos en la escala de eslabones cambiaria los colores
+    # del titular y sus reemplazos, que es una jerarquia distinta.
+    tono <- tb$tono %||% tonos[[min(tb$eslabon, length(tonos))]]
     # **La banda de esta hoja tambien lleva el color de su eslabon.** En «Aulas
     # Aplicadas (Campo)» los tres bloques salian con el mismo navy: la banda
     # decia «TITULAR» y «REEMPLAZO 1», pero el color no distinguia, y el color

@@ -157,3 +157,32 @@ test_that("el mismo eslabon tiene el mismo color en las DOS hojas", {
     expect_identical(agenda, campo, info = sprintf("eslabon %d", b))
   }
 })
+
+test_that("los cuatro tramos de la Base de control se distinguen", {
+  # 43 columnas: el color es lo unico que dice en que parte de la hoja se esta
+  # cuando la banda ya quedo arriba. Salian los cuatro con el mismo navy.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  g <- aulas_libro_grupos_control()
+  bandas <- vapply(g, function(x) relleno_de_celda(libro, "Base de control", x$desde, 1),
+                   character(1))
+  expect_length(bandas, 4L)
+  expect_identical(anyDuplicated(bandas), 0L)
+})
+
+test_that("los tramos NO comparten escala con los eslabones de la cadena", {
+  # Son dos jerarquias distintas: titular/reemplazos por un lado, areas
+  # tematicas por otro. Metidos en la misma escala, añadir el cuarto tramo
+  # cambiaba el color del titular y sus reemplazos — un cambio en una hoja
+  # repintando otra.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  eslabones <- vapply(1:3, function(b) {
+    relleno_de_celda(libro, "Aulas Agendadas",
+                     1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 2L, 1)
+  }, character(1))
+  # La escala de los eslabones sigue siendo la de TRES, con cuatro tramos en la
+  # otra hoja.
+  esperado <- paste0("FF", toupper(sub("^#", "", aulas_libro_colores_eslabon(3L))))
+  expect_identical(eslabones, esperado)
+})

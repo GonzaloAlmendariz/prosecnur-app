@@ -715,7 +715,20 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
         hoja = "Aulas Aplicadas (Campo)", desde = 2L,
         filas = max(0L, filas_aplicadas), eslabon = b, pinta_banda = TRUE,
         cols = seq((b - 1L) * ancho_campo + 1L, b * ancho_campo)
-      ))
+      )),
+      # Los cuatro tramos de la «Base de control». Llevan `tono` explicito
+      # porque NO son eslabones: son areas tematicas y su escala es propia. Con
+      # 43 columnas, el color es lo unico que dice en que parte de la hoja se
+      # esta cuando la banda ya quedo arriba.
+      local({
+        g <- aulas_libro_grupos_control()
+        escala <- aulas_libro_colores_eslabon(length(g))
+        lapply(seq_along(g), function(i) list(
+          hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
+          tono = escala[[i]], pinta_banda = TRUE,
+          cols = seq(g[[i]]$desde, g[[i]]$hasta)
+        ))
+      })
     ),
     semaforos = semaforos,
     formatos = formatos,
