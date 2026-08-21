@@ -23,7 +23,7 @@ export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<Monito
 
   if (!facultades.length) {
     return (
-      <p className="mon-profile-muted">El plan todavía no reparte cursos-horario por facultad.</p>
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">El plan todavía no reparte cursos-horario por facultad.</p>
     );
   }
 

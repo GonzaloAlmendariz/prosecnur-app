@@ -47,7 +47,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
     // No es un vacío: es la mejor noticia del operativo. Decirlo como «sin
     // datos» la haría parecer un fallo del panel.
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Ninguna aula evaluada se quedó corta: las que el libro evalúa alcanzaron
         sus dos umbrales.
       </p>
@@ -55,7 +55,7 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
   }
   if (!r.aulas.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {fmt(r.noEfectivas)} aulas no alcanzaron sus umbrales, pero el libro no
         trae con qué calcular cuánto les falta: hacen falta las enviadas y el
         umbral en encuestas (columnas 70T y 70P).

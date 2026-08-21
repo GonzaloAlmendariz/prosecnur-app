@@ -56,7 +56,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
 
   if (!a.meta) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {a.sinMeta
           ? `Ninguno de los ${a.sinMeta} cursos-horario del plan declara cuántas respuestas espera.`
           : "El plan todavía no declara metas por curso-horario."}

@@ -111,7 +111,7 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
 
   if (!filas.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Sin cuotas por facultad no se puede decir cuántas aulas faltan por agendar.
       </p>
     );

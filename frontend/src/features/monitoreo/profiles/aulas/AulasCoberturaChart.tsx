@@ -77,7 +77,7 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
   // la columna que hay que rellenar, y distingue ese caso de no tener plan.
   if (!total) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {sinMeta
           ? `Ninguno de los ${sinMeta.toLocaleString("es-PE")} cursos-horario del plan declara cuántas respuestas espera, así que no hay cobertura que repartir en tramos.`
           : "El plan todavía no trae cursos-horario."}

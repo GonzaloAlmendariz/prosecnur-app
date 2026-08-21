@@ -50,7 +50,7 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
   // reemplazo, fuera del cálculo».
   if (!facultades.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {filas.length
           ? "Ningún curso-horario ha sido reemplazado todavía, así que no hay consumo de reserva que medir."
           : "El plan todavía no trae cursos-horario."}

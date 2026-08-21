@@ -30,7 +30,7 @@ export function AulasAgendaPorFacultad({ filas }: { filas: ReadonlyArray<Monitor
 
   if (!facultades.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         No hay agenda de cursos-horario. Importa el plan desde el cálculo de muestra para ver
         a dónde hay que ir.
       </p>

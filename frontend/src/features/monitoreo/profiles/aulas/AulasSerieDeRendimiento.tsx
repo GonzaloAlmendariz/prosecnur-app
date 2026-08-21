@@ -188,7 +188,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
 
   if (!modelo.fechas.length || !modelo.facultades.length) {
     return (
-      <p className="mon-profile-muted">
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Todavía no hay partes de campo con fecha: sin ellos no se puede medir
         cuánto deja cada visita.
       </p>
