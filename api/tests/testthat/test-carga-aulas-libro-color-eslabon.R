@@ -75,3 +75,47 @@ test_that("cada bloque empieza con una linea que lo separa del anterior", {
   colores <- unique(colores[!is.na(colores)])
   expect_gte(length(colores), 3L)
 })
+
+test_that("el tinte del eslabon NO se confunde con el gris de «lo trae la app»", {
+  # Mezclado al 93 %, el tinte quedaba a 3-6 por canal del gris `#F2F4F7`: a la
+  # vista, el mismo color. Se vio en el PDF —«NUMERO DE INTENTOS», que llena el
+  # agendador, parecia de la app— y es un defecto que introdujo el propio color
+  # de eslabon: añadir una pista borro otra.
+  gris <- grDevices::col2rgb("#F2F4F7")[, 1]
+  for (n in c(3L, 6L, 12L)) {
+    for (tono in aulas_libro_colores_eslabon(n)) {
+      tinte <- prosecnurapp:::.calf_tinte_distinguible(tono)
+      d <- max(abs(grDevices::col2rgb(tinte)[, 1] - gris))
+      # 8 es el minimo por debajo del cual las dos pistas se funden.
+      expect_gte(d, 8L)
+    }
+  }
+})
+
+test_that("y sigue siendo un tinte, no un color plano", {
+  # El control del anterior: la forma barata de separarlo del gris seria
+  # oscurecerlo hasta que compita con la cabecera. El tinte tiene que seguir
+  # dejando leer el texto negro que se escribe encima.
+  for (tono in aulas_libro_colores_eslabon(6L)) {
+    tinte <- prosecnurapp:::.calf_tinte_distinguible(tono)
+    expect_gt(mean(grDevices::col2rgb(tinte)[, 1]), 200)
+  }
+})
+
+test_that("en el LIBRO, el tinte de cada eslabon se distingue del gris de la app", {
+  # Los dos tests de arriba prueban la funcion; este prueba que el formateador
+  # la USA. Sin el, volver a mezclar al 93 % en el generador no rompia nada
+  # —comprobado con el mutante—, que es la diferencia entre tener un helper
+  # correcto y tener un libro correcto.
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
+  gris <- grDevices::col2rgb("#F2F4F7")[, 1]
+  for (b in 1:3) {
+    col <- 1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + which(campos == "sample_status")
+    hex <- relleno_de_celda(libro, "Aulas Agendadas", col, 2)
+    expect_true(nzchar(hex))
+    rgb <- grDevices::col2rgb(paste0("#", substr(hex, 3, 8)))[, 1]
+    expect_gte(max(abs(rgb - gris)), 8L)
+  }
+})

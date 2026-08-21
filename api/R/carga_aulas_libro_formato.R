@@ -41,6 +41,26 @@ AULAS_LIBRO_STATUS_MUESTRA_BASE <- c("AGENDADA", "REAGENDADA", "REEMPLAZADA")
   grDevices::rgb(t(round(c1 * (1 - peso) + c2 * peso)), maxColorValue = 255)
 }
 
+# El tinte de un eslabon, garantizando que NO se confunda con el gris de «lo
+# que trae la app».
+#
+# Mezclado al 93 % con blanco, el tinte quedaba a **3-6 por canal** del gris
+# `#F2F4F7`: a la vista son el mismo color, asi que añadir la pista del eslabon
+# borraba la de «esto no lo toques». Se comprobo mirando el PDF, donde
+# `NUMERO DE INTENTOS` —que llena el agendador— parecia de la app.
+#
+# Se busca el tinte mas claro que siga estando a distancia del gris. Si ni el
+# mas oscuro de la escala llega, se devuelve ese: mejor un tinte tenue que uno
+# que miente.
+.calf_tinte_distinguible <- function(tono, gris = "#F2F4F7", minimo = 12) {
+  objetivo <- grDevices::col2rgb(gris)[, 1]
+  for (peso in c(0.93, 0.9, 0.86, 0.82, 0.78)) {
+    cand <- .calf_mezcla(tono, "#FFFFFF", peso)
+    if (max(abs(grDevices::col2rgb(cand)[, 1] - objetivo)) >= minimo) return(cand)
+  }
+  .calf_mezcla(tono, "#FFFFFF", 0.78)
+}
+
 #' La escala de color de los eslabones de una cadena.
 #'
 #' @param n cuantos bloques hay, titular incluido.
@@ -268,7 +288,7 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   for (tb in tintes) {
     if (!length(tb$cols) || !tb$filas) next
     tono <- tonos[[min(tb$eslabon, length(tonos))]]
-    tinte <- openxlsx::createStyle(fgFill = .calf_mezcla(tono, "#FFFFFF", 0.93))
+    tinte <- openxlsx::createStyle(fgFill = .calf_tinte_distinguible(tono))
     openxlsx::addStyle(wb, tb$hoja, tinte, rows = seq_len(tb$filas) + tb$desde,
                        cols = tb$cols, gridExpand = TRUE, stack = TRUE)
     borde <- openxlsx::createStyle(border = "left", borderColour = tono,
