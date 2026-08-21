@@ -506,8 +506,17 @@ export function RegistroDeCampo({
                   return (
                     <p className="registro-campo-meta">
                       Esta aula espera <strong>{pq.meta.toLocaleString("es-PE")}</strong> encuestas:{" "}
-                      {pq.elegibles} elegibles × {p(pq.pAplicada)} de que se aplique ×{" "}
-                      {p(pq.rendimiento)} de rendimiento
+                      {pq.elegibles} elegibles{" "}
+                      {/* `p_aplicada` sólo aparece si es factor de ESTA meta.
+                          Desde el rediseño «1b» del cálculo de muestra dejó de
+                          serlo —el tipo de docente no explicaba nada dentro de
+                          las aplicadas— y sigue viajando como dato operativo:
+                          enseñarlo igual diría que multiplica cuando no lo
+                          hace. */}
+                      {pq.entraPAplicada && pq.pAplicada !== null ? (
+                        <>× {p(pq.pAplicada)} de que se aplique{" "}</>
+                      ) : null}
+                      × {p(pq.rendimiento)} de rendimiento
                       {/* El cuarto factor sólo cuando lo hay: en las facultades
                           sin base suficiente rige la tasa general y decir
                           «× 100 %» sería ruido. */}

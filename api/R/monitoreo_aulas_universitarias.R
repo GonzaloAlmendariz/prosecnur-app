@@ -491,6 +491,11 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     # restrictivo. Se conserva entero: partirlo aqui perderia el segundo.
     p_aplicada_ref = getn(c("p_aplicada_ref"), NA_real_),
     rendimiento_ref = getn(c("rendimiento_ref"), NA_real_),
+    # La tasa que el diseno le atribuye a ESTA aula —`efectivas_esperadas /
+    # eligible_n`—. Viaja aparte porque el rediseno «1b» del calculo de muestra
+    # la escribe por fila y aqui no se recalcula: si el productor cambia de
+    # ecuacion, la tasa que se ensena tiene que seguir siendo la suya.
+    tasa_efectividad_aula = getn(c("tasa_efectividad_aula"), NA_real_),
     teacher_type = get(c("teacher_type", "tipo_docente"), ""),
     # **El cuarto factor: la facultad.** Gonzalo pidio que el esperado dejara de
     # asumir «que todas las facultades tienen la misma naturaleza», asi que desde
