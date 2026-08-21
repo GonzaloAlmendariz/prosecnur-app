@@ -151,3 +151,33 @@ celdas_combinadas_de <- function(path, hoja) {
   if (is.null(p)) return(NA_integer_)
   length(xml2::xml_find_all(p$hoja, ".//a:mergeCells/a:mergeCell", .NS_XLSX))
 }
+
+# Las validaciones de lista de una hoja: a que celdas se aplican y de donde
+# sacan sus valores.
+#
+# `openxlsx` escribe las validaciones que apuntan a OTRA hoja en el namespace de
+# extension `x14`, no como `<dataValidation>` normal — buscar la etiqueta simple
+# devuelve cero sobre un libro que si las lleva.
+#
+# @return `data.frame(sqref, formula)`, una fila por validacion.
+validaciones_de <- function(path, hoja) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+          x14 = "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main",
+          xm = "http://schemas.microsoft.com/office/excel/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(data.frame(sqref = character(0), formula = character(0)))
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  vs <- xml2::xml_find_all(doc, "//x14:dataValidation", ns)
+  data.frame(
+    sqref = vapply(vs, function(v) xml2::xml_text(xml2::xml_find_first(v, ".//xm:sqref", ns)),
+                   character(1)),
+    formula = vapply(vs, function(v) xml2::xml_text(xml2::xml_find_first(v, ".//xm:f", ns)),
+                     character(1)),
+    stringsAsFactors = FALSE
+  )
+}

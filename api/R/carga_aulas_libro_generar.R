@@ -434,11 +434,26 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   }
 
   profundidad <- .calg_profundidad(unidades)
-  listas <- list(
-    `STATUS MUESTRA` = aulas_libro_status_muestra(profundidad),
-    `MEDIO DE CONTACTO` = AULAS_LIBRO_MEDIO_CONTACTO,
-    `DÍA` = AULAS_LIBRO_DIA,
-    `STATUS DE APLICACIÓN` = AULAS_LIBRO_STATUS_APLICACION
+
+  # **Cada lista se llama EXACTAMENTE como su columna.** Los rotulos estaban
+  # escritos a mano y uno ya se habia separado: la columna del bloque es «DIA»
+  # —asi la espera el lector, y asi viene del Excel del equipo— y su lista decia
+  # «DÍA». La misma columna con dos nombres en el mismo libro. Derivados de la
+  # spec, no pueden volver a separarse.
+  titulo_de <- function(campo) {
+    i <- which(vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1)) == campo)
+    AULAS_AGENDADAS_BLOQUE[[i[[1]]]]$titulos[[1]]
+  }
+  listas <- stats::setNames(
+    list(
+      aulas_libro_status_muestra(profundidad),
+      AULAS_LIBRO_MEDIO_CONTACTO,
+      AULAS_LIBRO_DIA,
+      AULAS_LIBRO_STATUS_APLICACION
+    ),
+    c(titulo_de("sample_status"), titulo_de("contact_medium"), titulo_de("scheduled_day"),
+      # Esta es de la hoja de campo, no del bloque de agenda.
+      .calg_titulos_campo()[[which(.calg_titulos_campo() == "STATUS DE APLICACIÓN")]])
   )
   hoja_listas <- "Listas"
 
