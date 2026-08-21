@@ -520,6 +520,12 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       seed = .cm_aulas_int(selector$seed %||% selector$semilla %||% config$semilla, defaults$selector$seed),
       n_aulas = max(1L, .cm_aulas_int(selector$n_aulas %||% selector$aulas_titulares %||% config$n_aulas, defaults$selector$n_aulas)),
       replacement_waves = max(0L, .cm_aulas_int(selector$replacement_waves %||% selector$bolsas_reemplazo %||% config$bolsas_reemplazo, defaults$selector$replacement_waves)),
+      # La normalización es una WHITELIST: lo que no se nombra aquí se pierde en
+      # silencio. Medido el 2026-08-21: la profundidad por facultad se calculaba,
+      # se pasaba en la config y el builder no la veía, así que la corrida salió
+      # byte a byte igual y las cadenas siguieron pidiendo 11. El bug clásico de
+      # este archivo, y no avisa: no falla, simplemente ignora.
+      profundidad_por_facultad = if (is.list(selector$profundidad_por_facultad)) selector$profundidad_por_facultad else NULL,
       selector_engine = selector_engine,
       method_family = method_family,
       strata_cols = as.list(.cm_aulas_chr_vec(selector$strata_cols %||% selector$variables_estrato %||% config$estratos_selector %||% defaults$selector$strata_cols)),
@@ -2453,6 +2459,16 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     max(0L, .cm_aulas_int(selector$max_replacements_per_titular, selector$replacement_waves %||% 0L))
   )
   if (max_depth <= 0L) return(aula_frame[0, , drop = FALSE])
+  # Profundidad POR FACULTAD (`calc_muestra_aulas_profundidad.R`): cada titular
+  # deja de pedir reservas cuando llega a la de la suya, en vez de que todas
+  # pidan las mismas 11. `max_depth` pasa a ser el techo del bucle.
+  prof_fac <- selector$profundidad_por_facultad
+  if (is.list(prof_fac) && length(prof_fac)) {
+    techo <- max(vapply(prof_fac, function(x) .cm_aulas_int(x$profundidad %||% x, 0L), integer(1)))
+    if (is.finite(techo) && techo > 0L) max_depth <- min(max_depth, techo)
+  } else {
+    prof_fac <- NULL
+  }
   candidates <- aula_frame[!aula_frame$classroom_id %in% titulars$classroom_id, , drop = FALSE]
   if (!nrow(candidates)) return(aula_frame[0, , drop = FALSE])
   candidates$.candidate_random <- stats::runif(nrow(candidates))
@@ -2544,6 +2560,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     candado <- .cm_aulas_candado_de_cadena(estrategia, depth, min_reps)
     for (i in seq_len(nT)) {
       if (!any(avail_mask)) break
+      if (!is.null(prof_fac)) {
+        clave_i <- .cm_criterios_fac_key(tit_ctx$faculty[[i]])
+        prof_i <- .cm_aulas_int((prof_fac[[clave_i]] %||% list())$profundidad, max_depth)
+        if (depth > prof_i) next
+      }
       k <- .cm_aulas_pick_chain_reserve_idx(i, tit_ctx, cand_ctx, avail_mask,
                                             score_val[[i]], has_stratum, has_faculty,
                                             candado = candado)
