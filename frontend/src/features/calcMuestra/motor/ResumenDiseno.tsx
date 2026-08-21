@@ -27,6 +27,33 @@ import { useMotorStore } from "../store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
 import "./motor.css";
 
+/**
+ * La primera razón por la que el motor rechazó el resultado, lista para la
+ * cabecera. `normalizeCalcMuestraDistribucionI19` ya la trae —y cuando viene
+ * de R, con su código y sus cifras— pero la franja sólo decía «resultado
+ * inválido»: la explicación existía y no se mostraba.
+ *
+ * Se recorta porque la cabecera es una línea, no un panel; el detalle
+ * completo vive en Distribución.
+ */
+export function primeraRazonInvalida(
+  state: { kind: string; reasons?: unknown },
+  limite = 110,
+): string | null {
+  if (state.kind !== "invalid") return null;
+  const lista = Array.isArray(state.reasons) ? state.reasons : [];
+  for (const razon of lista) {
+    const texto = typeof razon === "string"
+      ? razon
+      : typeof (razon as { message?: unknown })?.message === "string"
+        ? (razon as { message: string }).message
+        : "";
+    const limpio = texto.trim();
+    if (limpio) return limpio.length > limite ? `${limpio.slice(0, limite - 1)}…` : limpio;
+  }
+  return null;
+}
+
 type SummaryMetric = {
   label: string;
   value: number | null;
@@ -172,7 +199,12 @@ export function ResumenDiseno({
     : resultModel.state.kind === "stale"
       ? `${resultModel.selection.shortLabel} · R · marco anterior · recalcula`
       : resultModel.state.kind === "invalid"
-        ? `${resultModel.selection.shortLabel} · R · resultado inválido`
+        // Con la razón que R publicó, no sólo «inválido». El motor explica por
+        // qué —«La suma de facultades no coincide con el marco validado del
+        // diseño», con los dos números— y esa explicación llegaba al front y
+        // se quedaba sin mostrar: la cabecera decía «resultado inválido» y el
+        // usuario no tenía forma de saber qué revisar.
+        ? `${resultModel.selection.shortLabel} · R · ${primeraRazonInvalida(resultModel.state) ?? "resultado inválido"}`
         : resultModel.state.kind === "legacy"
           ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
           : `${resultModel.selection.shortLabel} · falta calcular`;
