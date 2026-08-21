@@ -135,12 +135,12 @@ export function CalculoCursosHorarioFacultadTab({
         <div className="cmv2-ch-kpis" data-qa-geometry-group="calc-muestra/cursos-horario-totales" data-qa-geometry-contract="equal">
           <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Los cursos-horario que el sorteo intenta primero: se visitan sí o sí."><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
           <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Cupos adicionales dimensionados por la regla del diseño (la mitad de los titulares, redondeando arriba): se activan si un titular cae."><span>{fmtInt(model.aulasExtraTotal)}</span><small>CH de reserva</small></div>
-          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title={`Todo lo que el operativo debe estar listo para agendar: ${fmtInt(model.aulasBaseTotal)} titulares + ${fmtInt(model.aulasExtraTotal)} de reserva.`}><span>{fmtInt(model.aulasTotal)}</span><small>CH a coordinar = {fmtInt(model.aulasBaseTotal)} titulares + {fmtInt(model.aulasExtraTotal)} reserva</small></div>
+          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title={`El plan dimensiona ${fmtInt(model.aulasBaseTotal)} titulares y ${fmtInt(model.aulasExtraTotal)} de reserva. Se agendan los titulares; las reservas entran cuando una cae.`}><span>{fmtInt(model.aulasTotal)}</span><small>CH del plan = {fmtInt(model.aulasBaseTotal)} titulares + {fmtInt(model.aulasExtraTotal)} reserva</small></div>
         </div>
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
-            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th>Reservas</th><th>A coordinar</th></tr></thead>
+            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th>Reservas</th><th>Del plan</th></tr></thead>
             <tbody>
               {model.filas.map((fila) => (
                 <tr key={fila.estrato}>
