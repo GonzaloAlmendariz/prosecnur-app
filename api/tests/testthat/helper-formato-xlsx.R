@@ -13,40 +13,70 @@
 # El camino completo es `s=` de la celda -> indice en `cellXfs` -> `numFmtId` ->
 # `formatCode` de `numFmts`.
 #
+# **Se recorre con `xml2`, no con expresiones regulares.** Lo hace asi
+# `test-analitica-color-recod.R` desde antes —«lee el fill REAL del .xlsx, no un
+# proxy»— y la primera version de este helper, escrita con `regmatches`, ya se
+# equivoco: limpiar el color con `[^0-9A-Fa-f]` dejaba **la `b` de `rgb=`**
+# pegada delante, porque la `b` es un digito hexadecimal valido. Un atributo se
+# lee como atributo.
+#
 # @param path ruta al `.xlsx`.
 # @param hoja nombre de la hoja.
 # @param col indice de columna (1 = A).
 # @param fila numero de fila del `.xlsx` (1 = la primera).
 # @return el `formatCode` como cadena; `""` si la celda no lleva formato, `NA`
 #   si la celda no existe.
-formato_de_celda <- function(path, hoja, col, fila) {
+.NS_XLSX <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+
+# Abre el `.xlsx` una vez y devuelve las piezas que los tres lectores comparten.
+.piezas_xlsx <- function(path, hoja) {
   d <- tempfile()
   dir.create(d)
-  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  # Se limpia aqui mismo: `xml2::read_xml()` deja el documento en memoria, asi
+  # que el directorio ya no hace falta cuando esta funcion vuelve. Intentar
+  # registrar el `on.exit` en el frame del llamador no funciona —`d` no existe
+  # alli— y dejaba los tres lectores con «object 'd' not found».
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
   utils::unzip(path, exdir = d)
   hojas <- openxlsx::getSheetNames(path)
   i <- which(hojas == hoja)
-  if (!length(i)) return(NA_character_)
-  xml <- paste(readLines(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])),
-                         warn = FALSE), collapse = "")
-  st <- paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
+  if (!length(i)) return(NULL)
+  list(
+    estilos = xml2::read_xml(file.path(d, "xl", "styles.xml")),
+    hoja = xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  )
+}
 
-  ref <- paste0(openxlsx::int2col(col), fila)
-  celda <- regmatches(xml, regexpr(sprintf('<c r="%s"[^>]*>', ref), xml))
-  if (!length(celda)) return(NA_character_)
-  sidx <- regmatches(celda, regexpr('s="[0-9]+"', celda))
-  if (!length(sidx)) return("")
-  sidx <- as.integer(gsub("[^0-9]", "", sidx))
-  xfs <- regmatches(st, regexpr("<cellXfs.*?</cellXfs>", st))
-  if (!length(xfs)) return("")
-  xf <- regmatches(xfs, gregexpr("<xf [^>]*/?>", xfs))[[1]]
-  if (sidx + 1L > length(xf)) return("")
-  nid <- regmatches(xf[[sidx + 1L]], regexpr('numFmtId="[0-9]+"', xf[[sidx + 1L]]))
-  if (!length(nid)) return("")
-  nid <- gsub("[^0-9]", "", nid)
-  fmt <- regmatches(st, regexpr(sprintf('<numFmt numFmtId="%s" formatCode="[^"]*"', nid), st))
-  if (!length(fmt)) return(nid)
-  gsub('.*formatCode="([^"]*)".*', "\\1", fmt)
+# El indice de estilo (`s=`) de una celda, o NA si la celda no existe.
+.estilo_de_celda <- function(doc, ref) {
+  c1 <- xml2::xml_find_first(doc, sprintf(".//a:c[@r='%s']", ref), .NS_XLSX)
+  if (inherits(c1, "xml_missing")) return(NA_integer_)
+  s <- xml2::xml_attr(c1, "s")
+  if (is.na(s)) 0L else as.integer(s)
+}
+
+# El `xf` numero `idx` de `cellXfs`.
+.xf_de <- function(estilos, idx) {
+  xfs <- xml2::xml_find_all(estilos, ".//a:cellXfs/a:xf", .NS_XLSX)
+  if (idx + 1L > length(xfs)) return(NULL)
+  xfs[[idx + 1L]]
+}
+
+formato_de_celda <- function(path, hoja, col, fila) {
+  p <- .piezas_xlsx(path, hoja)
+  if (is.null(p)) return(NA_character_)
+  idx <- .estilo_de_celda(p$hoja, paste0(openxlsx::int2col(col), fila))
+  if (is.na(idx)) return(NA_character_)
+  xf <- .xf_de(p$estilos, idx)
+  if (is.null(xf)) return("")
+  nid <- xml2::xml_attr(xf, "numFmtId")
+  if (is.na(nid)) return("")
+  fmt <- xml2::xml_find_first(p$estilos, sprintf(".//a:numFmts/a:numFmt[@numFmtId='%s']", nid),
+                              .NS_XLSX)
+  # Los `numFmtId` por debajo de 164 son los integrados de Excel y no aparecen
+  # en `numFmts`: se devuelve el id, que es lo unico que hay.
+  if (inherits(fmt, "xml_missing")) return(nid)
+  xml2::xml_attr(fmt, "formatCode")
 }
 
 # El RELLENO real de una celda, por el mismo motivo que el formato.
@@ -56,44 +86,27 @@ formato_de_celda <- function(path, hoja, col, fila) {
 # datos, asi que el color esta en el catalogo pase lo que pase. Comprobado con
 # el mutante: quitarle el navy a la cabecera de las hojas no rompia nada.
 #
-# Camino: `s=` de la celda -> `cellXfs` -> `fillId` -> `fills` -> `fgColor rgb`.
+# Camino: `s=` de la celda -> `cellXfs` -> `fillId` -> `fills` -> `fgColor rgb`,
+# recorrido con `xml2` por lo mismo que el de arriba.
 #
 # @return el rgb como cadena (por ejemplo «FF002457»); `""` si no tiene relleno,
 #   `NA` si la celda no existe.
 relleno_de_celda <- function(path, hoja, col, fila) {
-  d <- tempfile()
-  dir.create(d)
-  on.exit(unlink(d, recursive = TRUE), add = TRUE)
-  utils::unzip(path, exdir = d)
-  hojas <- openxlsx::getSheetNames(path)
-  i <- which(hojas == hoja)
-  if (!length(i)) return(NA_character_)
-  xml <- paste(readLines(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])),
-                         warn = FALSE), collapse = "")
-  st <- paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
-
-  ref <- paste0(openxlsx::int2col(col), fila)
-  celda <- regmatches(xml, regexpr(sprintf('<c r="%s"[^>]*>', ref), xml))
-  if (!length(celda)) return(NA_character_)
-  sidx <- regmatches(celda, regexpr('s="[0-9]+"', celda))
-  if (!length(sidx)) return("")
-  sidx <- as.integer(gsub("[^0-9]", "", sidx))
-  xfs <- regmatches(st, regexpr("<cellXfs.*?</cellXfs>", st))
-  if (!length(xfs)) return("")
-  xf <- regmatches(xfs, gregexpr("<xf [^>]*/?>", xfs))[[1]]
-  if (sidx + 1L > length(xf)) return("")
-  fid <- regmatches(xf[[sidx + 1L]], regexpr('fillId="[0-9]+"', xf[[sidx + 1L]]))
-  if (!length(fid)) return("")
-  fid <- as.integer(gsub("[^0-9]", "", fid))
-  fills <- regmatches(st, regexpr("<fills.*?</fills>", st))
-  if (!length(fills)) return("")
-  uno <- regmatches(fills, gregexpr("<fill>.*?</fill>", fills))[[1]]
-  if (fid + 1L > length(uno)) return("")
-  rgb <- regmatches(uno[[fid + 1L]], regexpr('rgb="[0-9A-Fa-f]+"', uno[[fid + 1L]]))
-  if (!length(rgb)) return("")
-  # El valor entre comillas, no «todo lo que parezca hexadecimal»: la `b` de
-  # `rgb=` es una letra valida en hex y se colaba delante del color.
-  toupper(gsub('^rgb="|"$', "", rgb))
+  p <- .piezas_xlsx(path, hoja)
+  if (is.null(p)) return(NA_character_)
+  idx <- .estilo_de_celda(p$hoja, paste0(openxlsx::int2col(col), fila))
+  if (is.na(idx)) return(NA_character_)
+  xf <- .xf_de(p$estilos, idx)
+  if (is.null(xf)) return("")
+  fid <- xml2::xml_attr(xf, "fillId")
+  if (is.na(fid)) return("")
+  fills <- xml2::xml_find_all(p$estilos, ".//a:fills/a:fill", .NS_XLSX)
+  fid <- as.integer(fid)
+  if (fid + 1L > length(fills)) return("")
+  fg <- xml2::xml_find_first(fills[[fid + 1L]], ".//a:fgColor", .NS_XLSX)
+  if (inherits(fg, "xml_missing")) return("")
+  rgb <- xml2::xml_attr(fg, "rgb")
+  if (is.na(rgb)) "" else toupper(rgb)
 }
 
 # El rango de columnas que una hoja repite al imprimir (`Print_Titles`).
@@ -109,14 +122,22 @@ relleno_de_celda <- function(path, hoja, col, fila) {
 columnas_repetidas_de <- function(path, hoja) {
   d <- tempfile()
   dir.create(d)
-  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
   utils::unzip(path, exdir = d)
-  wb <- paste(readLines(file.path(d, "xl", "workbook.xml"), warn = FALSE), collapse = "")
-  # El nombre definido lleva la hoja delante: «'Aulas Agendadas'!$A:$D».
-  patron <- sprintf("'%s'!\\$[A-Z]+:\\$[A-Z]+", gsub("([()])", "\\\\\\1", hoja))
-  m <- regmatches(wb, regexpr(patron, wb))
-  if (!length(m)) return("")
-  sub(".*!", "", m)
+  wb <- xml2::read_xml(file.path(d, "xl", "workbook.xml"))
+  nombres <- xml2::xml_find_all(wb, ".//a:definedNames/a:definedName", .NS_XLSX)
+  for (n in nombres) {
+    if (!identical(xml2::xml_attr(n, "name"), "_xlnm.Print_Titles")) next
+    v <- xml2::xml_text(n)
+    # El valor lleva la hoja delante y puede traer filas y columnas separadas
+    # por coma: «'Aulas Agendadas'!$A:$D,'Aulas Agendadas'!$1:$1».
+    for (parte in strsplit(v, ",", fixed = TRUE)[[1]]) {
+      if (!startsWith(parte, sprintf("'%s'!", hoja))) next
+      rango <- sub(".*!", "", parte)
+      if (grepl("^\\$[A-Z]+:\\$[A-Z]+$", rango)) return(rango)
+    }
+  }
+  ""
 }
 
 # Cuantas celdas combinadas tiene UNA hoja.
@@ -126,16 +147,7 @@ columnas_repetidas_de <- function(path, hoja) {
 # Lo que hay que comprobar es el numero, y contra la cuenta de tramos que
 # declara el generador, no contra un 4 escrito a mano.
 celdas_combinadas_de <- function(path, hoja) {
-  d <- tempfile()
-  dir.create(d)
-  on.exit(unlink(d, recursive = TRUE), add = TRUE)
-  utils::unzip(path, exdir = d)
-  hojas <- openxlsx::getSheetNames(path)
-  i <- which(hojas == hoja)
-  if (!length(i)) return(NA_integer_)
-  xml <- paste(readLines(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])),
-                         warn = FALSE), collapse = "")
-  m <- gregexpr("<mergeCell ", xml, fixed = TRUE)[[1]]
-  if (length(m) == 1L && m[[1]] == -1L) return(0L)
-  length(m)
+  p <- .piezas_xlsx(path, hoja)
+  if (is.null(p)) return(NA_integer_)
+  length(xml2::xml_find_all(p$hoja, ".//a:mergeCells/a:mergeCell", .NS_XLSX))
 }
