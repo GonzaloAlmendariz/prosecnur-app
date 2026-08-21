@@ -59,11 +59,15 @@ export function EfectividadExplicadaCard({
   );
   const [query, setQuery] = useState("");
   const [elegidaId, setElegidaId] = useState("");
+  const [facSel, setFacSel] = useState("");
   if (!m) return null;
 
   const conCuenta = (filas ?? []).filter(
     (f) => Number.isFinite(Number(f.efectivas_esperadas)),
   );
+  const facultadesPlan = [...new Set(
+    conCuenta.map((f) => (texto(f.faculty_aula) || texto(f.faculty)).toUpperCase()).filter(Boolean),
+  )].sort();
   const elegida =
     conCuenta.find((f) => texto(f.classroom_id) === elegidaId) ??
     conCuenta.find((f) => texto(f.sample_role) === "titular") ??
@@ -71,22 +75,25 @@ export function EfectividadExplicadaCard({
     null;
   const fuente = fuenteEfectividad(filas);
   // El nombre de la referencia se LEE de la fila; la UI no asume un año.
+  // Dirección de Gonzalo (2026-08-20): la app habla de «histórico» a secas —
+  // el periodo es dato de la fila (auditoría), no copy de pantalla.
   const refTexto =
-    fuente.tipo === "historico"
-      ? fuente.periodo
-        ? `histórico ${fuente.periodo}`
-        : "histórico del estudio anterior"
-      : "estudio de calibración";
+    fuente.tipo === "historico" ? "histórico del estudio anterior" : "estudio de calibración";
   const q = query.trim().toLowerCase();
+  const enFacultad = facSel
+    ? conCuenta.filter((f) => (texto(f.faculty_aula) || texto(f.faculty)).toUpperCase() === facSel)
+    : conCuenta;
   const candidatas = q
-    ? conCuenta
+    ? enFacultad
         .filter((f) =>
           `${texto(f.course_name)} ${texto(f.course_id)} ${texto(f.schedule)} ${texto(f.teacher)} ${texto(f.faculty_aula) || texto(f.faculty)}`
             .toLowerCase()
             .includes(q),
         )
         .slice(0, 8)
-    : [];
+    : facSel
+      ? enFacultad.slice(0, 8)
+      : [];
   const ajustes = useMemo(() => ajustesPorFacultad(filas), [filas]);
   const ajusteActivo = ajustes.length > 0;
   const radio =
@@ -174,16 +181,6 @@ export function EfectividadExplicadaCard({
       {/* 1c · El ajuste por facultad, cuando el estudio lo declaró (decisión
           de Gonzalo, 2026-08-20): la tasa de la facultad frente a la general, con su
           k — «sí necesito saber por qué solo en seis facultades». */}
-      {ajusteActivo && (
-          <p className="cmv2-efexp-aviso">
-            El ajuste solo se aplica donde el {refTexto} acumuló base suficiente
-            (al menos 12 aulas aplicadas, según la clasificación de suficiencia de la
-            referencia). Para las demás facultades el histórico no pudo generar una tasa
-            específica estadísticamente defendible: rige la tasa general, y cada
-            radiografía lo declara.
-          </p>
-      )}
-
       {/* 1b · La procedencia y la limitación, declaradas — nunca en silencio. */}
       {fuente.tipo === "calibracion_embebida" && (
         <p className="cmv2-efexp-aviso" data-tono="warn">
@@ -208,16 +205,41 @@ export function EfectividadExplicadaCard({
         </p>
       )}
 
-      {/* 2 · El selector: cualquier curso-horario del plan, titular o reemplazo. */}
+      {/* 2 · Aviso y selector LADO A LADO (Gonzalo: «hay un espacio en blanco
+          que no sirve para nada cuando radiografiar puede estar al costado»).
+          El selector es facultad-PRIMERO: eliges la facultad y luego el CH. */}
+      <div className="cmv2-efexp-fila2">
+        {ajusteActivo ? (
+          <p className="cmv2-efexp-aviso">
+            El ajuste solo se aplica donde el {refTexto} acumuló base suficiente
+            (al menos 12 aulas aplicadas, según la clasificación de suficiencia de la
+            referencia). Para las demás facultades el histórico no pudo generar una tasa
+            específica estadísticamente defendible: rige la tasa general, y cada
+            radiografía lo declara.
+          </p>
+        ) : (
+          <span aria-hidden="true" />
+        )}
       <div className="cmv2-efexp-selector">
-        <label className="cmv2-compact-field cmv2-efexp-buscador">
-          <span>Radiografiar un curso-horario</span>
-          <input
-            value={query}
-            placeholder="busca por curso, código, docente o facultad…"
-            onChange={(e) => setQuery(e.currentTarget.value)}
-          />
-        </label>
+        <div className="cmv2-efexp-selector-campos">
+          <label className="cmv2-compact-field">
+            <span>Radiografiar: elige la facultad</span>
+            <select value={facSel} onChange={(e) => { setFacSel(e.currentTarget.value); setElegidaId(""); }}>
+              <option value="">todas las facultades</option>
+              {facultadesPlan.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </label>
+          <label className="cmv2-compact-field cmv2-efexp-buscador">
+            <span>…y el curso-horario</span>
+            <input
+              value={query}
+              placeholder={facSel ? "busca o elige de la lista…" : "busca por curso, código o docente…"}
+              onChange={(e) => setQuery(e.currentTarget.value)}
+            />
+          </label>
+        </div>
         {candidatas.length > 0 && (
           <ul className="cmv2-efexp-candidatas">
             {candidatas.map((f) => (
@@ -241,9 +263,10 @@ export function EfectividadExplicadaCard({
         )}
         {q && candidatas.length === 0 && (
           <p className="cmv2-efexp-sinmatch">
-            Ningún curso-horario del plan coincide con «{query}».
+            Ningún curso-horario{facSel ? ` de ${facSel}` : " del plan"} coincide con «{query}».
           </p>
         )}
+      </div>
       </div>
 
       {/* 3 · La redacción del cálculo del curso-horario elegido. */}

@@ -323,3 +323,25 @@
   right: 50%;
   background: color-mix(in srgb, var(--pulso-text-muted) 45%, transparent);
 }
+
+/* Aviso y selector lado a lado; selector facultad-primero (2026-08-20). */
+.cmv2-efexp-fila2 {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.cmv2-efexp-fila2 .cmv2-efexp-aviso { margin-top: 0; }
+.cmv2-efexp-fila2 .cmv2-efexp-selector { margin-top: 0; }
+
+.cmv2-efexp-selector-campos {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(180px, 1.2fr);
+  gap: 10px;
+}
+
+@media (max-width: 1100px) {
+  .cmv2-efexp-fila2 { grid-template-columns: 1fr; }
+}
