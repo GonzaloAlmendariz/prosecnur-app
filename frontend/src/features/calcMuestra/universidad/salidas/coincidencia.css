@@ -52,3 +52,14 @@
   line-height: 1.55;
   color: var(--pulso-text-soft);
 }
+
+/* El grupo separa sus tarjetas con `gap`, así que el `margin-bottom: 14px` que
+   ellas traen —de cuando se apilaban sin grid— sobra por partida doble: suma
+   26 px entre tarjetas donde el grupo declara 12, y deja 14 px muertos después
+   de la última. Lo detectó `ui-quick-check` como `capacity-drift` en cuanto la
+   superficie declaró su geometría; antes daba verde porque no se auditaba.
+   Acotado al grupo: esas clases viven también en superficies sin gap. */
+.cmv2-coincidencia-grupo > .cmv2-generales-card,
+.cmv2-coincidencia-grupo > .cmv2-ficha-card {
+  margin-bottom: 0;
+}
