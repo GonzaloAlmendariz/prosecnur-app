@@ -1175,3 +1175,32 @@ test_that("la base declara su propio diseno en una hoja campo/valor", {
   expect_identical(con_diseno$diseno$muestra, 2500)
   expect_true(con_diseno$diseno$ponderado)
 })
+
+test_that("el error de columnas faltantes es legible con una base de campo real", {
+  # Medido con la base historica del estudio 2025 (≈140 columnas): el mensaje
+  # listaba TODAS las encontradas y sepultaba el unico dato accionable. Quien
+  # sube su historico por primera vez tiene que poder leer que columna le falta.
+  anchas <- as.data.frame(
+    setNames(
+      lapply(seq_len(140), function(i) 1),
+      c("curso_horario", "asistentes", "efectivas", "elegibles",
+        paste0("col_relleno_", seq_len(136)))
+    ),
+    stringsAsFactors = FALSE
+  )
+
+  err <- tryCatch(.cm_asist_resolve_columns(anchas), error = function(e) e)
+  expect_s3_class(err, "condition")
+  msg <- conditionMessage(err)
+
+  # Dice cuantas columnas hay, pero NO las enumera.
+  expect_match(msg, "140 columnas", fixed = TRUE)
+  expect_false(grepl("col_relleno_1,", msg, fixed = TRUE))
+  expect_lt(nchar(msg), 400L)
+
+  # Y el detalle completo sigue disponible para quien lo necesite.
+  detalles <- err$details %||% list()
+  if (length(detalles$encontradas)) {
+    expect_true(length(detalles$encontradas) >= 140L)
+  }
+})

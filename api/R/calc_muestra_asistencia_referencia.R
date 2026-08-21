@@ -205,14 +205,29 @@
   missing <- names(resolved)[!nzchar(resolved)]
   if (length(missing)) {
     found <- names(datos)
-    found_label <- if (length(found)) paste(found, collapse = ", ") else "<ninguna>"
+    # El mensaje nombra lo que FALTA y con que nombres se acepta; la lista de
+    # columnas encontradas viaja solo en `details`. Una base de campo real trae
+    # ~140 columnas: volcarlas en el mensaje sepultaba el unico dato accionable
+    # —«falta no_respondieron»— tras un muro de texto, justo para quien sube su
+    # historico por primera vez y no sabe que columna agregar.
+    faltan_txt <- vapply(missing, function(campo) {
+      alias <- setdiff(unique(as.character(aliases[[campo]])), campo)
+      if (length(alias)) {
+        sprintf("%s (o %s)", campo, paste(utils::head(alias, 3L), collapse = " / "))
+      } else {
+        campo
+      }
+    }, character(1), USE.NAMES = FALSE)
+    mostrar <- utils::head(faltan_txt, 3L)
+    resto <- length(faltan_txt) - length(mostrar)
     stop_api(
       400,
       "E_CALC_MUESTRA_ASISTENCIA_COLUMNS",
       sprintf(
-        "La referencia de asistencia no contiene las columnas requeridas: %s. Columnas encontradas: %s.",
-        paste(missing, collapse = ", "),
-        found_label
+        "La referencia de asistencia no trae %s%s. La hoja tiene %d columnas y ninguna coincide con esos nombres.",
+        paste(mostrar, collapse = "; "),
+        if (resto > 0L) sprintf(" y %d columna(s) mas", resto) else "",
+        length(found)
       ),
       details = list(
         faltantes = as.list(missing),
