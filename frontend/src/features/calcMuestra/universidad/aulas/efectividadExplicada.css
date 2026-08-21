@@ -246,3 +246,6 @@
   color: var(--pulso-text-soft);
 }
 .cmv2-efexp-operativo b { color: var(--pulso-text); }
+
+/* Tabla sola en su carril: sin celda fantasma al lado (2026-08-20). */
+.cmv2-efexp-ref--solo { grid-template-columns: minmax(320px, 620px); }
