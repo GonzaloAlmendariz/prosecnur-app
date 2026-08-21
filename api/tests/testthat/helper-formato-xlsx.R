@@ -48,3 +48,50 @@ formato_de_celda <- function(path, hoja, col, fila) {
   if (!length(fmt)) return(nid)
   gsub('.*formatCode="([^"]*)".*', "\\1", fmt)
 }
+
+# El RELLENO real de una celda, por el mismo motivo que el formato.
+#
+# Buscar «FF002457» en `styles.xml` no prueba que la cabecera de ESTA hoja lo
+# lleve: la portada usa el mismo navy en su titulo, sus secciones y su barra de
+# datos, asi que el color esta en el catalogo pase lo que pase. Comprobado con
+# el mutante: quitarle el navy a la cabecera de las hojas no rompia nada.
+#
+# Camino: `s=` de la celda -> `cellXfs` -> `fillId` -> `fills` -> `fgColor rgb`.
+#
+# @return el rgb como cadena (por ejemplo «FF002457»); `""` si no tiene relleno,
+#   `NA` si la celda no existe.
+relleno_de_celda <- function(path, hoja, col, fila) {
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(NA_character_)
+  xml <- paste(readLines(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])),
+                         warn = FALSE), collapse = "")
+  st <- paste(readLines(file.path(d, "xl", "styles.xml"), warn = FALSE), collapse = "")
+
+  ref <- paste0(openxlsx::int2col(col), fila)
+  celda <- regmatches(xml, regexpr(sprintf('<c r="%s"[^>]*>', ref), xml))
+  if (!length(celda)) return(NA_character_)
+  sidx <- regmatches(celda, regexpr('s="[0-9]+"', celda))
+  if (!length(sidx)) return("")
+  sidx <- as.integer(gsub("[^0-9]", "", sidx))
+  xfs <- regmatches(st, regexpr("<cellXfs.*?</cellXfs>", st))
+  if (!length(xfs)) return("")
+  xf <- regmatches(xfs, gregexpr("<xf [^>]*/?>", xfs))[[1]]
+  if (sidx + 1L > length(xf)) return("")
+  fid <- regmatches(xf[[sidx + 1L]], regexpr('fillId="[0-9]+"', xf[[sidx + 1L]]))
+  if (!length(fid)) return("")
+  fid <- as.integer(gsub("[^0-9]", "", fid))
+  fills <- regmatches(st, regexpr("<fills.*?</fills>", st))
+  if (!length(fills)) return("")
+  uno <- regmatches(fills, gregexpr("<fill>.*?</fill>", fills))[[1]]
+  if (fid + 1L > length(uno)) return("")
+  rgb <- regmatches(uno[[fid + 1L]], regexpr('rgb="[0-9A-Fa-f]+"', uno[[fid + 1L]]))
+  if (!length(rgb)) return("")
+  # El valor entre comillas, no «todo lo que parezca hexadecimal»: la `b` de
+  # `rgb=` es una letra valida en hex y se colaba delante del color.
+  toupper(gsub('^rgb="|"$', "", rgb))
+}
