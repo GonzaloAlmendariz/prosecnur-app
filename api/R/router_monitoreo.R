@@ -4901,8 +4901,21 @@ mount_monitoreo <- function(pr) {
         ),
         error = function(e) NULL
       )
+      # Y las respuestas, para la hoja de indicadores: el avance diario sale de
+      # cuando ENTRO cada encuesta, no de cuando se aplico el aula.
+      respuestas <- (s$monitoreo_snapshot %||% list())$data
+      validas <- tryCatch(
+        if (is.data.frame(respuestas) && nrow(respuestas)) {
+          .monitoreo_aulas_valid_response(
+            respuestas,
+            ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())
+          )
+        } else NULL,
+        error = function(e) NULL
+      )
       aulas_libro_generar(unidades, destino, partes = partes, control = control,
-                          efectivas = efectivas)
+                          efectivas = efectivas, responses = respuestas,
+                          validas = validas)
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
       list(ok = TRUE, file_id = meta$file_id, filename = nombre,
            unidades = length(unidades), partes = length(partes),
