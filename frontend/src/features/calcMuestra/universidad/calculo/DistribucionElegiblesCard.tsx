@@ -11,6 +11,7 @@ import { fmtInt } from "../../sharedCore";
 import { tip, tipAria, useTooltipGrafico } from "../shared/graficos/TooltipGrafico";
 import { distribucionElegibles } from "./distribucionElegiblesModel";
 import "./distribucionElegibles.css";
+import { estadisticoDelReparto, nombreEstadistico } from "./estadisticoAula";
 
 type FilaAula = Record<string, unknown>;
 
@@ -19,7 +20,11 @@ export type EstratoDimension = {
   cuota?: unknown;
   aulas_base?: unknown;
   tau?: unknown;
+  avg_conglomerado?: unknown;
+  estadistico_usado?: unknown;
 };
+
+const coma1 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1).replace(".", ","));
 
 export function DistribucionElegiblesCard({
   aulaFrame,
@@ -33,16 +38,29 @@ export function DistribucionElegiblesCard({
 }) {
   const filas = distribucionElegibles(aulaFrame);
   const { manejadores, tooltip } = useTooltipGrafico();
-  const porFacultad = new Map<string, { cuota: number; aulas: number; tau: number }>();
+  const porFacultad = new Map<string, { cuota: number; aulas: number; tau: number; divisor: number }>();
   for (const e of estratos ?? []) {
     const k = String(e.estrato ?? "").trim().toUpperCase();
     const cuota = Number(e.cuota);
     const aulas = Number(e.aulas_base);
     const tau = Number(e.tau);
+    const divisor = Number(e.avg_conglomerado);
     if (k && Number.isFinite(cuota) && Number.isFinite(aulas)) {
-      porFacultad.set(k, { cuota, aulas, tau: Number.isFinite(tau) ? tau : NaN });
+      porFacultad.set(k, {
+        cuota,
+        aulas,
+        tau: Number.isFinite(tau) ? tau : NaN,
+        divisor: Number.isFinite(divisor) ? divisor : NaN,
+      });
     }
   }
+  // Qué número divide de verdad. NO siempre es el P25: lo decide el analista en
+  // Marco › Alumnos por CH y el motor declara cuál usó. Medido en un proyecto
+  // con decisión `min_mediana_media`: esta tarjeta marcaba 25,0 en EE.GG.
+  // Letras llamándolo «el divisor» mientras el motor dividía entre 49,5.
+  const estadistico = estadisticoDelReparto(estratos);
+  const nombreDivisor = nombreEstadistico(estadistico);
+  const hayDivisorSellado = Array.from(porFacultad.values()).some((d) => Number.isFinite(d.divisor));
   if (!filas.length) return null;
   const escala = Math.max(1, ...filas.map((f) => f.max));
   const x = (v: number) => `${(v / escala) * 100}%`;
@@ -53,9 +71,10 @@ export function DistribucionElegiblesCard({
       <header>
         <strong>Cuántos elegibles carga cada aula</strong>
         <span>
-          cada carril va del aula más chica a la más grande de su facultad; la marca fuerte es el
-          P25 de alumnos por CH — el divisor que, junto a la tasa de efectividad de la facultad,
-          convierte su cuota en titulares
+          cada carril va del aula más chica a la más grande de su facultad; la marca fuerte es{" "}
+          {hayDivisorSellado
+            ? `la ${nombreDivisor} de alumnos por CH — el divisor que, junto a la tasa de efectividad de la facultad, convierte su cuota en titulares`
+            : "el P25 de alumnos por CH; el divisor que dimensiona se sella al calcular"}
         </span>
       </header>
       <ul className="cmv2-distelig-lista" {...manejadores}>
@@ -65,14 +84,17 @@ export function DistribucionElegiblesCard({
             titulo: f.facultad,
             filas: [
               { label: "Aula más chica", valor: fmtInt(f.min) },
-              { label: "P25 (dimensiona)", valor: fmtInt(Math.round(f.p25)) },
+              { label: "P25", valor: fmtInt(Math.round(f.p25)) },
               { label: "Mediana", valor: fmtInt(Math.round(f.mediana)) },
               { label: "P75", valor: fmtInt(Math.round(f.p75)) },
               { label: "Aula más grande", valor: fmtInt(f.max) },
+              ...(dim && Number.isFinite(dim.divisor)
+                ? [{ label: `Divisor (${nombreDivisor})`, valor: coma1(dim.divisor) }]
+                : []),
             ],
             // La aritmética viva del motor: la fórmula deja de ser abstracta.
             nota: dim
-              ? `cuota ${fmtInt(dim.cuota)} ÷ (P25 ${fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} titulares`
+              ? `cuota ${fmtInt(dim.cuota)} ÷ (${Number.isFinite(dim.divisor) ? coma1(dim.divisor) : fmtInt(Math.round(f.p25))}${Number.isFinite(dim.tau) ? ` × tasa ${dim.tau.toFixed(2).replace(".", ",")}` : ""}) → ${fmtInt(dim.aulas)} titulares`
               : `${fmtInt(f.nAulas)} ${f.nAulas === 1 ? "aula" : "aulas"} en el marco`,
             tono: "efectiva",
           };
@@ -87,9 +109,18 @@ export function DistribucionElegiblesCard({
               <i className="cmv2-distelig-rango" style={{ left: x(f.min), width: ancho(f.min, f.max) }} />
               <i className="cmv2-distelig-caja" style={{ left: x(f.p25), width: ancho(f.p25, f.p75) }} />
               <i className="cmv2-distelig-mediana" style={{ left: x(f.mediana) }} />
-              <i className="cmv2-distelig-p25" style={{ left: x(f.p25) }} />
-              <b className="cmv2-distelig-valor" style={{ left: x(f.p25) }}>
-                {fmtInt(Math.round(f.p25))}
+              {/* La marca fuerte señala el número que DIVIDE, no un cuantil
+                  fijo: marcar el P25 cuando el motor divide entre otra cosa
+                  señalaba un punto del carril que no dimensiona nada. */}
+              <i
+                className="cmv2-distelig-p25"
+                style={{ left: x(dim && Number.isFinite(dim.divisor) ? dim.divisor : f.p25) }}
+              />
+              <b
+                className="cmv2-distelig-valor"
+                style={{ left: x(dim && Number.isFinite(dim.divisor) ? dim.divisor : f.p25) }}
+              >
+                {dim && Number.isFinite(dim.divisor) ? coma1(dim.divisor) : fmtInt(Math.round(f.p25))}
               </b>
             </span>
           </li>
@@ -97,7 +128,8 @@ export function DistribucionElegiblesCard({
         })}
       </ul>
       <p className="cmv2-distelig-leyenda">
-        <i className="cmv2-distelig-leyenda-p25" /> P25 (dimensiona) ·{" "}
+        <i className="cmv2-distelig-leyenda-p25" />{" "}
+        {hayDivisorSellado ? `${nombreDivisor} (dimensiona)` : "P25"} ·{" "}
         <i className="cmv2-distelig-leyenda-mediana" /> mediana ·{" "}
         <i className="cmv2-distelig-leyenda-caja" /> del P25 al P75 ·{" "}
         <i className="cmv2-distelig-leyenda-rango" /> aula más chica → más grande. Referencial: el

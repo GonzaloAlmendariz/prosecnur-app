@@ -23,6 +23,8 @@ export type EstratoDimensionado = {
   avg_conglomerado?: unknown;
   aulas_base?: unknown;
   tau?: unknown;
+  /** Qué estadístico declaró el motor haber usado como divisor. */
+  estadistico_usado?: unknown;
 };
 
 export type FilaTasaFacultad = {

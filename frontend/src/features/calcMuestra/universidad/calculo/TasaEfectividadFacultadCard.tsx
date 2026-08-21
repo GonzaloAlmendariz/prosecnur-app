@@ -15,6 +15,7 @@
 import { fmtInt } from "../../sharedCore";
 import { tasasFacultad, type EstratoDimensionado, origenTasaFacultades } from "./tasaFacultadModel";
 import { CurvaRendimientoDiagrama } from "./CurvaRendimientoDiagrama";
+import { estadisticoDelReparto, fraseEstadistico, nombreEstadistico } from "./estadisticoAula";
 import "./tasaFacultad.css";
 
 const pctTasa = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")} %`;
@@ -45,6 +46,10 @@ export function TasaEfectividadFacultadCard({
   // El diagrama necesita los tramos que publica el motor; sin ellos (motor
   // anterior) queda la prosa corta.
   const hayDiagrama = filas.some((f) => f.tramos.length > 0);
+  // El divisor NO es siempre el P25: lo decide el analista y el motor declara
+  // cuál usó. Se lee del reparto en vez de escribirlo a mano.
+  const estadistico = estadisticoDelReparto(estratos);
+  const nombreDivisor = nombreEstadistico(estadistico);
 
   return (
     <section
@@ -54,8 +59,9 @@ export function TasaEfectividadFacultadCard({
       <header>
         <strong>La tasa de efectividad de cada facultad</strong>
         <span>
-          el aula típica de cada facultad (su P25 de elegibles, arriba) rinde P25 × tasa
-          efectivas; la cuota se divide entre ese rendimiento para llegar a los titulares
+          el aula típica de cada facultad ({fraseEstadistico(estadistico)}, arriba) rinde ese
+          tamaño × tasa efectivas; la cuota se divide entre ese rendimiento para llegar a los
+          titulares
         </span>
       </header>
 
@@ -119,7 +125,7 @@ export function TasaEfectividadFacultadCard({
               // efectivas, y la cuota se divide entre eso.
               <div
                 className="cmv2-tasafac-cuenta"
-                title={`El aula típica de la facultad rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
+                title={`El aula típica de la facultad —${nombreDivisor}— rinde ${Number.isInteger(f.p25) ? fmtInt(f.p25) : coma(f.p25, 1)} alumnos × ${pctTasa(f.tasa)} ≈ ${coma(f.p25 * f.tasa, 1)} efectivas; la cuota se divide entre eso.`}
               >
                 <span className="cmv2-tasafac-num"><b>{fmtInt(f.cuota)}</b><small>cuota</small></span>
                 <span className="cmv2-tasafac-op">÷</span>

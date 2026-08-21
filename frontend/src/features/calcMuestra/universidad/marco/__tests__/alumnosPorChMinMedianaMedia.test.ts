@@ -78,11 +78,15 @@ describe("el método se ofrece y se persiste", () => {
   it("está entre las opciones que la superficie publica", () => {
     const ids = ALUMNOS_POR_CH_METHODS.map((method) => method.id);
     expect(ids).toContain("min_mediana_media");
-    // La recomendación pasó a `min_mediana_media` por decisión de Gonzalo —«usa
-    // mín(mediana, media) por defecto y déjalo cambiable por facultad»— y porque
-    // es el estadístico que aplicó el diseño de 2025. Antes se proponía `p25`,
-    // y este test fijaba esa recomendación anterior.
-    expect(metodoAlumnosPorChInicial(undefined)).toBe("min_mediana_media");
+    // MUDADO 2026-08-21 — el default vuelve a `p25`. Gonzalo: «el valor por
+    // defecto que calculamos aquí es el primer cuartil, es el P25 y SIEMPRE es
+    // el P25, a menos que una persona decida utilizar otro indicador». El
+    // default anterior contradecía a la propia pantalla, que marca P25 como
+    // RECOMENDADO y ofrece «Restablecer P25»: quien no tocaba nada se llevaba
+    // otro estadístico. El método sigue OFRECIÉNDOSE; lo que cambia es cuál
+    // arranca elegido.
+    expect(metodoAlumnosPorChInicial(undefined)).toBe("p25");
+    // Un estudio que ya guardó el suyo lo conserva: el default no lo pisa.
     expect(metodoAlumnosPorChInicial("min_mediana_media")).toBe("min_mediana_media");
     expect(esMetodoAlumnosPorChValido("min_mediana_media")).toBe(true);
   });
@@ -120,7 +124,9 @@ describe("el método se ofrece y se persiste", () => {
 
 describe("el id del motor no viaja a la pantalla", () => {
   it("cada método se nombra como se lee", () => {
-    expect(etiquetaAlumnosPorChMetodo("min_mediana_media")).toBe("mín(mediana, media)");
+    // Gonzalo: «el título debería ser mínimo entre media y mediana», sin la
+    // fórmula abreviada y sin apoyarse en «lo que se aplicó en 2025».
+    expect(etiquetaAlumnosPorChMetodo("min_mediana_media")).toBe("Mínimo entre media y mediana");
     expect(etiquetaAlumnosPorChMetodo("p25")).toBe("P25");
     expect(etiquetaAlumnosPorChMetodo("mediana")).toBe("Mediana");
     expect(etiquetaAlumnosPorChMetodo("media")).toBe("Media");
