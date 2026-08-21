@@ -648,7 +648,27 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   cols_control_pct <- vapply(c("% EFECTIVAS ESPERADO", "% EFECTIVAS OBTENIDO"),
                              .calg_col_control, integer(1), USE.NAMES = FALSE)
   cols_control_pct <- cols_control_pct[cols_control_pct > 0L]
-  formatos <- list(
+  # **Las cuatro razones que ya venian en la hoja.** El arreglo de `7d0c22a7`
+  # alcanzo a «% EFECTIVAS ESPERADO/OBTENIDO» y a «% ASISTENCIA», y dejo fuera a
+  # sus hermanas de siempre: en el PDF, «CORTAS VS TOTAL» y «LARGAS VS TOTAL»
+  # salian **0.182 · 0.818 · 0.077 · 0.923**, razones crudas en columnas cuyo
+  # nombre promete una comparacion. El precedente estaba aplicado al vecino y no
+  # a estas.
+  #
+  # Cada una decide su escala POR SU PROPIA COLUMNA: las llena el equipo en su
+  # Excel y nada obliga a que las cuatro vengan en la misma —un libro con «VS
+  # TOTAL» en 0-1 y «ASISTENCIA» en 0-100 es un caso real—.
+  razones_control <- Filter(Negate(is.null), lapply(
+    c("VS TOTAL", "VS POBLACION", "CORTAS VS TOTAL", "LARGAS VS TOTAL"),
+    function(titulo) {
+      col <- .calg_col_control(titulo)
+      if (!length(col) || is.na(col) || col <= 0L) return(NULL)
+      valores <- as.character(hojas[["Base de control"]][[col]])[-(1:2)]
+      list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
+           tipo = .calg_escala_pct(valores), cols = col)
+    }
+  ))
+  formatos <- c(list(
     list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
          tipo = "numero", cols = cols_control),
     list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
@@ -665,7 +685,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
          tipo = .calg_escala_pct(unlist(lapply(cols_campo("% ASISTENCIA"), function(col)
            as.character(hojas[["Aulas Aplicadas (Campo)"]][[col]])[-(1:2)]))),
          cols = cols_campo("% ASISTENCIA"))
-  )
+  ), razones_control)
 
   .calg_tipar_fechas(wb, "Aulas Agendadas", hojas[["Aulas Agendadas"]],
                      cols_de(c("contact_date", "scheduled_date")), desde = 1L)
@@ -675,7 +695,9 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                       cols_campo(c(.calg_campo_numeros(), "% ASISTENCIA")), desde = 2L)
   .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
-                      c(cols_control, cols_control_pct), desde = 2L)
+                      c(cols_control, cols_control_pct,
+                        vapply(razones_control, function(r) r$cols, integer(1))),
+                      desde = 2L)
 
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(
