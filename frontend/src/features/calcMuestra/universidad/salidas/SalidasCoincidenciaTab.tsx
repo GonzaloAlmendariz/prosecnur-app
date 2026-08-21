@@ -21,6 +21,7 @@ import type {
 } from "../../../../api/calcMuestra";
 import { CriteriosGeneralesCard, type CriterioGeneralFila } from "../criterios/CriteriosGeneralesCard";
 import { EmbudoComparadoFacultades } from "./EmbudoComparadoFacultades";
+import { pasosComparables } from "./embudoComparadoModel";
 import { CertificacionFacultadCard } from "../aulas/CertificacionFacultadCard";
 import { SeleccionComparadaCard } from "./SeleccionComparadaCard";
 import { FichaPorFacultadCard } from "../criterios/FichaPorFacultadCard";
@@ -48,6 +49,20 @@ export function SalidasCoincidenciaTab({
   /** La selección vigente: alimenta «la selección nueva contra lo aplicado». */
   seleccion?: CalcMuestraAulasSelection | null;
 }) {
+  // ¿Las tres tarjetas del grupo del resultado van a devolver null? Se calcula
+  // con las MISMAS condiciones con que ellas se rinden —fichas para el embudo,
+  // filas para la certificación, selección para el rendimiento comparado— en
+  // vez de adivinarlo: si alguna cambia su condición, este cálculo se queda
+  // corto y el test de abajo lo dice.
+  // Cada condición se toma de la MISMA función con que la tarjeta decide
+  // rendirse, no de una paráfrasis: el embudo exige `pasosComparables`, no
+  // sólo fichas —medido: con 17 fichas y sin selección seguía sin pintar—, y
+  // una paráfrasis que dijera «hay fichas» dejaría el rótulo colgando igual.
+  const grupoResultadoVacio =
+    pasosComparables(fichas).length === 0 &&
+    !(certificacion && Array.isArray(certificacion.filas) && certificacion.filas.length > 0) &&
+    !(seleccion && Array.isArray(seleccion.selection) && seleccion.selection.length > 0);
+
   // Sin encabezado propio: la barra de pestañas ya dice «Coincidencia · criterios
   // y cuentas contra el estudio anterior», y repetirlo debajo con un parrafo mas
   // largo es texto que nadie lee dos veces.
@@ -70,6 +85,17 @@ export function SalidasCoincidenciaTab({
       </div>
       <div className="cmv2-coincidencia-grupo" aria-label="El resultado">
         <h3 className="cmv2-coincidencia-rotulo">Lo que produce la selección</h3>
+        {/* Medido en vivo con un proyecto sin selección: las tres tarjetas de
+            abajo devuelven null y el grupo quedaba en 13 px de alto — un
+            rótulo que anuncia contenido seguido de nada. Un vacío se declara,
+            no se deja en blanco (C3). */}
+        {grupoResultadoVacio && (
+          <p className="cmv2-coincidencia-vacio" role="note">
+            Todavía no hay nada que comparar acá: este bloque muestra el embudo por facultad, la
+            garantía de la selección y su rendimiento esperado, y los tres se construyen sobre una
+            selección corrida. Sale de <i>Selección → Cursos-horario titulares</i>.
+          </p>
+        )}
         {/* El gráfico que faltaba: las quince facultades, hoy contra 2025, a la
             misma escala y paso por paso. Va antes de las fichas porque es el
             vistazo; la ficha es el detalle de una facultad. */}

@@ -39,3 +39,16 @@
   height: 1px;
   background: var(--pulso-border);
 }
+
+/* El grupo del resultado sin nada que mostrar: se dice por qué y de dónde
+   sale, en vez de dejar un rótulo colgando sobre 13 px de nada (2026-08-21). */
+.cmv2-coincidencia-vacio {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-soft, var(--pulso-surface));
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--pulso-text-soft);
+}
