@@ -4,7 +4,7 @@
  * diseño. Vive en el toolbar del módulo, no dentro de una pestaña.
  */
 import { useMemo, type ReactNode } from "react";
-import { BookOpenCheck, ClipboardCheck, RotateCcw, School, ShieldCheck, Target, Users } from "lucide-react";
+import { BookOpenCheck, ClipboardCheck, RotateCcw, School, ShieldCheck, Sigma, Target, Users } from "lucide-react";
 import {
   type CalcMuestraAulasState,
   type CalcMuestraEstudio,
@@ -16,6 +16,7 @@ import {
 } from "../../../api/calcMuestraDistribucionI19";
 import { fmtInt } from "../sharedCore";
 import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoDistribucionModel";
+import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import { frameIntegrity, notaEstadoDelMarco } from "../universidad/shared/frameIntegrity";
 import {
@@ -29,6 +30,8 @@ import "./motor.css";
 type SummaryMetric = {
   label: string;
   value: number | null;
+  /** Valor de texto para el KPI que declara el método, no una cantidad. */
+  texto?: string;
   note: string;
   icon: ReactNode;
   tone: "universe" | "estimated" | "confirmed" | "operation";
@@ -130,16 +133,36 @@ export function ResumenDiseno({
   // Se SUMA del reparto por facultad en vez de leer un total aparte: es la
   // misma cifra que la pestaña de cursos-horario requeridos muestra abajo, y
   // dos fuentes para el mismo número es justo lo que se viene corrigiendo.
-  const aulasTitulares = (() => {
+  const sumaDelReparto = (campo: "aulas_base" | "aulas_total") => {
     if (!resultReady) return null;
     const filas = resultModel.component?.resultado?.aulas_por_estrato;
     if (!Array.isArray(filas) || !filas.length) return null;
     let total = 0;
     for (const fila of filas) {
-      const v = Number((fila as { aulas_base?: unknown })?.aulas_base);
+      const v = Number((fila as Record<string, unknown>)?.[campo]);
       if (Number.isFinite(v) && v > 0) total += v;
     }
     return total > 0 ? total : null;
+  };
+  const aulasTitulares = sumaDelReparto("aulas_base");
+  // CON QUÉ se dimensiona, justo antes de decir cuántas aulas salen. Gonzalo,
+  // 2026-08-21: «ojo, las aulas de reserva no se coordinan así; más bien antes
+  // de aulas titulares podría indicar que estamos usando P25 y tasa de
+  // efectividad histórica, y luego la cantidad de aulas titulares». El KPI que
+  // había ahí —titulares + reservas como «aulas a coordinar»— prometía una
+  // coordinación que las reservas no tienen.
+  // Ninguno de los dos términos se escribe a mano: el divisor sale de la
+  // decisión del analista y la tasa, de si el histórico dio base propia.
+  const metodoDimensionado = (() => {
+    if (!resultReady) return null;
+    const filas = resultModel.component?.resultado?.aulas_por_estrato;
+    if (!Array.isArray(filas) || !filas.length) return null;
+    const divisor = nombreEstadistico(estadisticoDelReparto(filas as Array<{ estadistico_usado?: unknown }>));
+    const conResidual = (aulasState?.frame as { tasas_efectividad_facultad?: unknown } | undefined)
+      ?.tasas_efectividad_facultad;
+    const hayHistorico = Array.isArray(conResidual)
+      && conResidual.some((f) => (f as { con_residual?: unknown })?.con_residual === true);
+    return `${divisor} × tasa ${hayHistorico ? "histórica" : "de referencia"}`;
   })();
   // Vocabulario de la pantalla, no del código: aquí decía «frame» —inglés en
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
@@ -198,6 +221,14 @@ export function ResumenDiseno({
       tone: "operation",
     },
     {
+      label: "Se dimensiona con",
+      value: null,
+      texto: metodoDimensionado ?? "—",
+      note: metodoDimensionado ? "alumnos por CH × efectividad" : resultNote,
+      icon: <Sigma size={16} aria-hidden="true" />,
+      tone: "operation",
+    },
+    {
       label: "Aulas titulares",
       value: aulasTitulares,
       note: resultNote,
@@ -246,7 +277,9 @@ export function ResumenDiseno({
             <span className="rec-resumen-item-icon" aria-hidden="true">{metric.icon}</span>
             <span className="rec-resumen-item-copy">
               <small>{metric.label}</small>
-              <strong>{metric.value == null ? "—" : fmtInt(metric.value)}</strong>
+              <strong data-texto={metric.texto ? "true" : undefined}>
+                {metric.texto ?? (metric.value == null ? "—" : fmtInt(metric.value))}
+              </strong>
               <span>{metric.note}</span>
             </span>
           </div>
