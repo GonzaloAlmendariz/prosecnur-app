@@ -456,9 +456,13 @@ test_that("la base de control combina sus tramos y repite hasta el curso-horario
   libro <- withr::local_tempfile(fileext = ".xlsx")
   aulas_libro_generar(.libro_de_prueba(), libro)
   xml <- paste(.xml_de_hoja_llamada(libro, "Base de control"), collapse = "")
-  # Sin combinar, la etiqueta iba en su primera celda y el tramo entero salia
-  # como una franja en blanco al imprimir.
-  expect_true(grepl("<mergeCell", xml, fixed = TRUE))
+  # **Una por tramo, no «al menos una».** Con el mutante que dejaba la hoja
+  # combinando un tramo de los cuatro, un `grepl("<mergeCell")` seguia verde y
+  # los otros tres volvian a imprimirse como franjas en blanco.
+  expect_identical(
+    celdas_combinadas_de(libro, "Base de control"),
+    length(aulas_libro_grupos_control())
+  )
 
   d <- withr::local_tempdir()
   utils::unzip(libro, exdir = d)
