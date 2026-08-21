@@ -714,3 +714,30 @@ test_that("al imprimir se repite la fila de TITULOS, no la banda de grupo", {
   # Y la agenda, que solo tiene una, sigue repitiendo la suya.
   expect_identical(filas_repetidas_de(libro, "Aulas Agendadas"), "$1:$1")
 })
+
+test_that("el libro conserva el orden del plan, no el alfabetico", {
+  # `split()` ordena los grupos por su clave como TEXTO, asi que el libro salia
+  # «CH 1, CH 10, CH 100, CH 101…»: quien busca «CH 11» lo encontraba noventa
+  # filas mas abajo. Y el orden de la muestra, que el plan trae resuelto, se
+  # perdia.
+  plan <- lapply(c(1, 2, 10, 11, 100), function(n) list(
+    operational_code = sprintf("CH %d", n), titular_operational_code = sprintf("CH %d", n),
+    sample_role = "titular", faculty = "Letras", course_name = "C", eligible_n = 30
+  ))
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(plan, libro)
+  d <- suppressWarnings(openxlsx::read.xlsx(libro, sheet = "Aulas Agendadas",
+                                            colNames = FALSE))
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
+  v <- as.character(d[[1L + which(campos == "operational_code")]])[-1]
+  v <- v[!is.na(v) & nzchar(v)]
+  expect_identical(v, c("CH 1", "CH 2", "CH 10", "CH 11", "CH 100"))
+})
+
+test_that("«ID MATCH» va con el gris de la app: no se escribe en el", {
+  # Es el correlativo con el que se enlazan las filas y salia en blanco, que en
+  # esta hoja significa «escribe aqui».
+  libro <- withr::local_tempfile(fileext = ".xlsx")
+  aulas_libro_generar(.libro_de_prueba(2L), libro)
+  expect_identical(relleno_de_celda(libro, "Aulas Agendadas", 1, 2), "FFF2F4F7")
+})
