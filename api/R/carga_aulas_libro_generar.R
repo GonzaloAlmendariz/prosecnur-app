@@ -271,6 +271,10 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
   # ni anchos, y sin ellos la hoja no se puede llenar sin equivocarse. Ver
   # `carga_aulas_libro_formato.R` para el porque de cada vocabulario.
   wb <- openxlsx::createWorkbook()
+  # La portada, PRIMERA. Es lo que una dinamica enseñaria —cuanto operativo hay,
+  # como se reparte por facultad y en que estado esta— y contesta sin filtrar lo
+  # que las hojas de datos solo contestan filtrando.
+  aulas_libro_escribir_resumen(wb, unidades)
   for (nombre in names(hojas)) {
     openxlsx::addWorksheet(wb, nombre)
     openxlsx::writeData(wb, nombre, hojas[[nombre]], colNames = FALSE)
