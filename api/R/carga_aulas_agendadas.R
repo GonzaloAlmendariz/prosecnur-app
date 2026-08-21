@@ -28,7 +28,12 @@ AULAS_AGENDADAS_BLOQUE <- list(
   list(campo = "level",            titulos = c("NIVEL DEL CURSO")),
   list(campo = "label",            titulos = c("SESIONES Y AULA")),
   list(campo = "enrolled_total",   titulos = c("MATRICULADOS TOTAL DTI")),
-  list(campo = "eligible_n",       titulos = c("MATRICULADOS POBLACION")),
+  # Con tilde, que es como lo escribe el equipo en su Excel y como ya lo escribe
+  # la hoja de campo. La variante sin tilde queda de alias: se leyo asi durante
+  # todo 2025 y el equipo tiene esos libros. Sin unificar, la hoja de campo
+  # enseñaba «MATRICULADOS POBLACION» y «MATRICULADOS POBLACIÓN» a veinte
+  # columnas de distancia, que es el mismo dato escrito de dos formas.
+  list(campo = "eligible_n",       titulos = c("MATRICULADOS POBLACIÓN", "MATRICULADOS POBLACION")),
   list(campo = "contact_medium",   titulos = c("MEDIO DE CONTACTO")),
   list(campo = "contact_date",     titulos = c("FECHA DE LLAMADA")),
   list(campo = "contact_attempts", titulos = c("NUMERO DE INTENTOS")),
