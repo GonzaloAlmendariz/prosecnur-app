@@ -57,7 +57,17 @@ reporte_calc_muestra <- function(estudio, output_file,
   dir.create(tmp_root, recursive = TRUE, showWarnings = FALSE)
   on.exit(unlink(tmp_root, recursive = TRUE, force = TRUE), add = TRUE)
 
-  bundle <- list(estudio = estudio, formato = formato, modo = modo)
+  # El sustento metodologico viaja con el reporte. Estaba en el motor
+  # (`.cm_aulas_methodological_sources`) y se exportaba SOLO en una hoja del
+  # anexo XLSX, asi que el documento que respalda el levantamiento —el que se
+  # ensena cuando preguntan como se eligieron las aulas— no lo llevaba. La
+  # tabla es fija y no depende de la sesion, asi que siempre se puede publicar.
+  bundle <- list(
+    estudio = estudio,
+    formato = formato,
+    modo = modo,
+    metodologia = tryCatch(.cm_aulas_methodological_sources(), error = function(e) NULL)
+  )
   path_rds <- file.path(tmp_root, "bundle_calc_muestra.rds")
   saveRDS(bundle, file = path_rds, version = 3)
 
