@@ -22,7 +22,7 @@ cuando era sólo el punto de partida.
 | L3b | **Alumnos elegibles esperados vs efectivos**, y si superior o inferior | idem | ☐ |
 | L3c | **Hombres y mujeres esperados vs obtenidos** | idem | ☐ |
 | L4 | Los datos inventados deben salir del **marco real 2026** (`hsvg2026`) | `api/inst/reference_projects/hsvg2026/` | ⛔ **medido: el marco SÍ está (5 263 aulas × 34), pero `run_history: 0 corridas` — la selección con cadenas NO está guardada ahí** |
-| L5 | Vocabulario: ya no es «muestra 1 / muestra 2» sino **titular, reemplazo 1.1, 1.2, 1.3** | `carga_aulas_libro_*.R`, `AULAS_AGENDADAS_BLOQUE` | ☐ |
+| L5 | Vocabulario: **titular, reemplazo 1.1, 1.2, 1.3** | `carga_aulas_libro_generar.R` | ☑ en la hoja de campo. **En «Aulas Agendadas» no hay banda de texto** —sólo color— porque su lector espera los títulos en la fila 1; entra en L7 |
 | L6 | La coma de miles en cifras de dos dígitos | — | ☑ `6bc088d1` — se resolvió al retirar «Datos» y «Resumen»: las comas eran de los totales de la portada (5,410). En las tres hojas, lo que lleva `#,##0` no pasa de 52 |
 | L7 | El agendador no ve el teléfono del docente mientras escribe (medido: contexto 242 caracteres, pantalla ~206, congelado sólo `ID MATCH`) | `carga_aulas_libro_formato.R` | ⛔ decisión suya: congelar hasta teléfono, o reordenar el bloque |
 
