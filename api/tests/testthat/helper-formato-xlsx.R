@@ -181,3 +181,42 @@ validaciones_de <- function(path, hoja) {
     stringsAsFactors = FALSE
   )
 }
+
+# El ajuste de impresion de UNA hoja: orientacion y si encaja a lo ancho.
+#
+# Vive aqui porque el `pageSetup` es por hoja y `workbook.xml` no lo lleva: esta
+# en el `<pageSetup>` de la propia hoja.
+impresion_de <- function(path, hoja) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(NULL)
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  ps <- xml2::xml_find_first(doc, ".//a:pageSetup", ns)
+  if (inherits(ps, "xml_missing")) return(list(orientacion = "", ancho = NA_character_))
+  list(
+    orientacion = xml2::xml_attr(ps, "orientation") %||% "",
+    ancho = xml2::xml_attr(ps, "fitToWidth")
+  )
+}
+
+# El alto declarado de una fila, o NA si va con el alto por defecto.
+alto_de_fila <- function(path, hoja, fila) {
+  ns <- c(a = "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
+  d <- tempfile()
+  dir.create(d)
+  on.exit(unlink(d, recursive = TRUE, force = TRUE), add = TRUE)
+  utils::unzip(path, exdir = d)
+  hojas <- openxlsx::getSheetNames(path)
+  i <- which(hojas == hoja)
+  if (!length(i)) return(NA_real_)
+  doc <- xml2::read_xml(file.path(d, "xl", "worksheets", sprintf("sheet%d.xml", i[[1]])))
+  r <- xml2::xml_find_first(doc, sprintf(".//a:sheetData/a:row[@r='%d']", fila), ns)
+  if (inherits(r, "xml_missing")) return(NA_real_)
+  ht <- xml2::xml_attr(r, "ht")
+  if (is.na(ht)) NA_real_ else as.numeric(ht)
+}
