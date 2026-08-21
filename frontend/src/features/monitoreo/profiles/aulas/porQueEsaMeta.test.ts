@@ -78,4 +78,52 @@ describe("porQueEsaMeta", () => {
     expect(porQueEsaMeta({ eligible_n: 24, expected_valid: 24 })).toBeNull();
     expect(porQueEsaMeta({ eligible_n: 0, p_aplicada_ref: 0.7, rendimiento_ref: 0.7, expected_valid: 0 })).toBeNull();
   });
+  it("la ecuación condicional del rediseño «1b» se explica sin p_aplicada", () => {
+    // Aviso de la sesión de Cálculo de muestra (2026-08-20): el esperado pasa a
+    // ser `elegibles × R(tramo) × F(facultad)`; el tipo de docente salió con
+    // evidencia y `p_aplicada_ref` queda como dato operativo. Los bins de
+    // rendimiento son 0,809 / 0,642 / 0,566 / 0,500 / 0,409.
+    const pq = porQueEsaMeta({
+      eligible_n: 40,
+      rendimiento_ref: 0.5,
+      factor_facultad: 1,
+      // Sigue viajando en la fila, pero YA NO multiplica.
+      p_aplicada_ref: 0.73,
+      expected_valid: 20,
+    });
+    expect(pq).not.toBeNull();
+    expect(pq?.entraPAplicada).toBe(false);
+    expect(pq?.pAplicada).toBeNull();
+    expect(pq?.meta).toBe(20);
+  });
+
+  it("un plan ya guardado con la ecuación anterior sigue explicándose", () => {
+    // 24 × 0,73 × 0,69 = 12,09 → la fila declara 12,1.
+    const pq = porQueEsaMeta({
+      eligible_n: 24, p_aplicada_ref: 0.73, rendimiento_ref: 0.69, expected_valid: 12.1,
+    });
+    expect(pq?.entraPAplicada).toBe(true);
+    expect(pq?.pAplicada).toBe(0.73);
+  });
+
+  it("con p_aplicada presente gana la ecuación que reproduce la meta, no la primera", () => {
+    // El caso que separa las dos reglas: aquí la meta SÓLO cuadra con
+    // p_aplicada, así que declararla fuera sería explicar mal un número que
+    // está bien.
+    const conP = porQueEsaMeta({
+      eligible_n: 40, rendimiento_ref: 0.5, p_aplicada_ref: 0.6, expected_valid: 12,
+    });
+    expect(conP?.entraPAplicada).toBe(true);
+    // Y con la misma fila, si la meta es la de la ecuación nueva, se elige esa.
+    const sinP = porQueEsaMeta({
+      eligible_n: 40, rendimiento_ref: 0.5, p_aplicada_ref: 0.6, expected_valid: 20,
+    });
+    expect(sinP?.entraPAplicada).toBe(false);
+  });
+
+  it("sin p_aplicada y sin cuadrar tampoco se inventa una explicación", () => {
+    expect(porQueEsaMeta({
+      eligible_n: 40, rendimiento_ref: 0.5, factor_facultad: 1, expected_valid: 33,
+    })).toBeNull();
+  });
 });
