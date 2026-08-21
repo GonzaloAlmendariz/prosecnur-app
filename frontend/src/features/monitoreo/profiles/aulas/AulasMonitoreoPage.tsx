@@ -50,6 +50,7 @@ import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
 import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
+import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
@@ -1930,8 +1931,11 @@ export default function AulasMonitoreoPage() {
   const generarLibro = useCallback(async () => {
     setMutating(true);
     setError("");
+    setAviso("");
     try {
       const res = await apiMonitoreoAulasGenerarLibro();
+      // Decir qué lleva dentro: el libro se descargaba en silencio.
+      setAviso(avisoLibroGenerado(res));
       // La descarga la dispara un enlace efímero: no hay dónde «guardar» un
       // Excel operativo dentro del proyecto, y sacarlo es justo el punto.
       const a = document.createElement("a");

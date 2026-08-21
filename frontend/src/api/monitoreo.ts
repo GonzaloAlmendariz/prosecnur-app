@@ -4473,6 +4473,9 @@ export async function apiMonitoreoAulasAgenda(updates: Partial<MonitoreoAulasPla
 export async function apiMonitoreoAulasGenerarLibro() {
   const result = await handle<{
     ok: true; file_id: string; filename: string; unidades: number; partes: number;
+    /** Filas de «Base de control» que viajan dentro. Sin esto, el libro sale
+     *  con siete de sus 39 columnas y regenerarlo borra el trabajo de control. */
+    control: number;
   }>(
     await apiFetch("/api/monitoreo/aulas/generar-libro", {
       method: "POST",
