@@ -262,3 +262,74 @@ test_that("la identidad del aula la manda el PLAN, no el registro", {
   expect_identical(as.character(fila$course_name), "Curso 1")
   expect_equal(as.numeric(fila$sent_total), 17)
 })
+
+# --- El barrido: NINGUN campo que el lector conoce puede perderse -----------
+#
+# Los tres defectos de esta serie —`% ASISTENCIA`, las 32 columnas del control,
+# y antes las columnas de la persona— eran el mismo: una columna que el lector
+# LEE y el generador no escribia. Se encontraron de uno en uno y mirando.
+#
+# Este test los habria cazado a los tres sin buscarlos, y caza el siguiente: da
+# un valor UNICO a cada campo de cada spec, regenera, reimporta y exige que
+# vuelvan todos. Si mañana una spec gana un campo y el generador no lo escribe,
+# salta solo.
+
+.rt_campos_de <- function(spec) vapply(spec, function(s) s$campo, character(1))
+
+.rt_unico <- function(cs, desde) {
+  v <- as.list(seq_along(cs) + desde)
+  names(v) <- cs
+  v
+}
+
+.rt_barrido <- function() {
+  ag <- .rt_campos_de(AULAS_AGENDADAS_BLOQUE)
+  ap <- .rt_campos_de(AULAS_APLICADAS_CAMPO)
+  ct <- .rt_campos_de(BASE_CONTROL_CAMPOS)
+  u <- .rt_unico(ag, 100)
+  u$operational_code <- "CH 1"; u$sample_role <- "titular"; u$classroom_id <- "A-01"
+  pt <- .rt_unico(ap, 300); pt$operational_code <- "CH 1"; pt$intento <- 1L
+  ct1 <- .rt_unico(ct, 500); ct1$operational_code <- "CH 1"
+  libro <- withr::local_tempfile(fileext = ".xlsx", .local_envir = parent.frame())
+  aulas_libro_generar(list(u), libro, partes = list(pt), control = list(ct1))
+  v <- aulas_libro_importar(libro)
+  list(ag = ag, ap = ap, ct = ct, u = u, pt = pt, ct1 = ct1,
+       plan = v$plan[[1]], parte = (v$partes %||% list())[[1]] %||% list(),
+       control = (v$control %||% list())[[1]] %||% list())
+}
+
+.rt_perdidos <- function(esperado, obtenido, cs) {
+  Filter(function(k) {
+    o <- obtenido[[k]]
+    is.null(o) || is.na(o) || !nzchar(as.character(o)) ||
+      as.character(o) != as.character(esperado[[k]])
+  }, cs)
+}
+
+test_that("los 11 campos del parte de campo vuelven todos", {
+  b <- .rt_barrido()
+  expect_identical(.rt_perdidos(b$pt, b$parte, b$ap), character(0))
+})
+
+test_that("los campos del agendamiento vuelven, salvo el alias declarado", {
+  b <- .rt_barrido()
+  perdidos <- .rt_perdidos(b$u, b$plan, b$ag)
+  # `notes` es el UNICO: la columna «OBSERVACIONES» entra por el campo `notes`
+  # y el lector la guarda como `replacement_note`. El dato NO se pierde —cambia
+  # de nombre en el viaje—, y esa asimetria es la que engaño al barrido con el
+  # que se encontro esto. Queda fijada aqui para que se vea, no escondida.
+  expect_identical(perdidos, "notes")
+  expect_identical(as.character(b$plan$replacement_note), as.character(b$u$notes))
+})
+
+test_that("los campos de control vuelven, salvo la identidad que manda el plan", {
+  b <- .rt_barrido()
+  perdidos <- .rt_perdidos(b$ct1, b$control, b$ct)
+  # Estos cinco no vuelven con el valor del REGISTRO porque el plan es su
+  # fuente y no se deja pisar. No es perdida: es la regla, y si algun dia deja
+  # de cumplirse este test lo dice.
+  expect_setequal(perdidos,
+                  c("wave", "course_name", "room", "enrolled_total", "eligible_n"))
+  expect_identical(as.character(b$control$course_name),
+                   as.character(b$u$course_name))
+})
