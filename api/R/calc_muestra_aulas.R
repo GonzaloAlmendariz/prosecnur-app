@@ -1086,7 +1086,23 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
 
   sid_col <- .cm_aulas_col(raw, mapping$student_id)
   if (!nzchar(sid_col)) {
-    stop("No se encontro columna de estudiante. Configura mapping$student_id.", call. = FALSE)
+    # Nombrar la columna DECLARADA: el caso real no es «falta configurar» sino
+    # «lo configurado ya no esta». Pasa al reemplazar la base por una version
+    # con otros encabezados (HSVG2026 declaraba «Código PUCP» sobre archivos
+    # que traen ALUMNO) y con el mensaje generico no habia forma de saber que
+    # corregir desde la pantalla.
+    declarada <- .cm_aulas_scalar(mapping$student_id[[1]] %||% "", "")
+    stop(
+      if (nzchar(declarada)) {
+        sprintf(
+          "No se encontro la columna de estudiante declarada ('%s'): la base cargada no la trae. Elige la columna correcta en Variables > Identificador de estudiante.",
+          declarada
+        )
+      } else {
+        "No se encontro columna de estudiante. Configura mapping$student_id."
+      },
+      call. = FALSE
+    )
   }
 
   student_id <- .cm_aulas_values(raw, sid_col, "")
