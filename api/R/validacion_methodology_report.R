@@ -669,8 +669,8 @@
   literal <- function(x) paste(deparse(x, width.cutoff = 500L), collapse = "\n")
   encabezado <- if (identical(origen, "data")) {
     c("# Universo final del estudio: los casos que quedaron tras la limpieza y",
-      "# validación de la base. Se listan por su identificador de caso, que ya viene",
-      "# en la base recibida; reproduce el universo exacto sin exponer nada más.")
+      "# validación de la base. Se identifican por su código de caso, que ya viene",
+      "# en la base recibida.")
   } else {
     # Encadenado tras el filtro de pruebas: lo que sigue es la depuración, que
     # no se puede expresar como condición porque es una lista de casos.
