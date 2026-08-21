@@ -110,11 +110,21 @@ export function buildClassroomLabModel({
   const sobremuestraPct = selectedComp.parametros.oversample_pct;
   const selectorFields = config.estratos_selector.map(selectorFieldLabel);
   const targetForDisplay = safeNumber(selectedComp.resultado?.n_objetivo, 0);
+  // Las aulas que de verdad se pueden seleccionar. `frameRows` es el
+  // aula_frame COMPLETO —incluidas y excluidas por criterios— y su nombre no
+  // lo dice, así que cada consumidor que contaba `frameRows.length` anunciaba
+  // 5.269 donde hay 3.373 seleccionables. Se cuenta una vez, acá, y se expone
+  // ya contado: reparar cada consumidor por separado es lo que hace que el
+  // defecto sobreviva en el que se olvidó.
+  const frameIncludedRows = frameRows.filter((fila) => fila.included === true);
+  const frameIncludedCount = frameIncludedRows.length;
   const auditedFrameCount = frameAuditValue(frame, "classroom_included_n");
   const frameCapacityKnown = auditedFrameCount !== "" || frameRows.length > 0;
   const selectableFrameCount = auditedFrameCount !== ""
     ? frameAuditNumber(frame, "classroom_included_n")
-    : frameRows.length;
+    // Fallback: si la auditoría no publica el conteo, se cuentan las incluidas,
+    // no todas. Con `frameRows.length` este camino sobreestimaba en silencio.
+    : frameIncludedCount;
   const m1ForDisplay = selectionReady
     ? m1Rows.length
     : frameCapacityKnown ? Math.min(currentAulasTarget, selectableFrameCount) : currentAulasTarget;
@@ -161,6 +171,8 @@ export function buildClassroomLabModel({
     selection,
     replacementSimulation,
     frameRows,
+    frameIncludedRows,
+    frameIncludedCount,
     frameReady,
     marcoDesactualizado: artifactMarcoDesactualizado,
     comparisonReady,

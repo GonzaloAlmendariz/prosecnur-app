@@ -139,7 +139,9 @@ export function AulasSeleccionTab({
             frameReady={model.frameReady}
             comparisonReady={comparisonReady}
             recommendedMethodLabel={comparison?.recommendation?.method_label ?? classroomMethodLabel(recommendedMethodId)}
-            frameCount={frameRows.length}
+            // Las seleccionables, que es lo que el rótulo promete («Una fila
+            // por curso-horario seleccionable»). Antes contaba todas.
+            frameCount={model.frameIncludedCount}
             targetForDisplay={targetForDisplay}
             m1ForDisplay={m1ForDisplay}
           />

@@ -88,7 +88,7 @@ export function AulasMetodoTab({
   // el marco elegible. `frameRows` trae también las excluidas por criterios y
   // anunciar 5.269 donde se comparan 3.373 es exactamente el defecto que este
   // módulo lleva el día entero reparando — un rótulo con otro número.
-  const aulasDelMarco = model.frameRows.filter((fila) => fila.included === true).length;
+  const aulasDelMarco = model.frameIncludedCount;
   const estratosConCuota = model.aulasPorEstrato.length;
   const duracion = avisoDuracionComparacion({ aulas: aulasDelMarco, facultades: estratosConCuota });
 
