@@ -286,6 +286,7 @@ export function columnasDelControl(resumen: ResumenDeControl | null): number {
   return campos.length ? campos.length + 1 : 0;
 }
 
+
 export function AulasControlDelLibro({
   filas,
   resumen,

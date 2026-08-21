@@ -52,6 +52,7 @@ import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
+import { columnasDeLaTabla } from "./columnasDeLaTabla";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
@@ -939,12 +940,14 @@ function renderAulasView(
               196—. Llamarlas «aulas» ponía dos cifras con el mismo nombre en un
               perfil cuya unidad es el curso-horario. El recibo del libro ya usa
               este mismo lenguaje: «210 filas de control». */}
-          {/* Y cuantas columnas: son 26 y en 1440 solo caben nueve, asi que
-              dos tercios de la tabla viven a la derecha del borde. La sombra de
-              desplazamiento ensena que hay mas; el numero dice cuanto mas. */}
+          {/* Y cuantas columnas: en 1440 solo caben nueve, asi que dos tercios
+              de la tabla viven a la derecha del borde. La sombra de
+              desplazamiento ensena que hay mas; el numero dice cuanto mas.
+              «en la tabla» y no «columnas» a secas: pegado a «filas de la
+              hoja», se leia como el ancho de la HOJA, que son 39. */}
           <span>
             {control.length
-              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${contar(columnasDelControl(controlResumen), "columna", "columnas")}`
+              ? `${contar(control.length, "fila de la hoja", "filas de la hoja")} · ${columnasDeLaTabla(controlResumen)}`
               : "Sin datos"}
           </span>
         </div>
