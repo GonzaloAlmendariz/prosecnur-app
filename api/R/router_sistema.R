@@ -718,13 +718,26 @@ mount_sistema <- function(pr) {
         stop_api(400, "E_BAD_FILE", "Could not extract file bytes from multipart payload")
       }
 
-      kind_str <- if (is.character(kind) && length(kind) >= 1 && nzchar(kind[[1]])) {
-        as.character(kind[[1]])
+      # El `kind` puede llegar de tres formas y las tres tienen que acabar en un
+      # escalar o en el 400 de abajo. Medido el 2026-08-21 subiendo con
+      # `curl -F "kind=data"` (sin Content-Type text/plain): el parser entrega
+      # el campo en una forma que este bloque no cubría, `kind_str` salía de
+      # longitud cero y `nzchar()` sobre eso lanza «argument is of length zero»
+      # — un E_INTERNAL 500 en vez del E_NO_KIND_FIELD que el propio endpoint
+      # tiene escrito, y que ADEMÁS documenta esa vía en su mensaje.
+      kind_raw <- if (is.list(kind) && !is.null(kind$value)) kind$value else kind
+      if (is.raw(kind_raw)) kind_raw <- rawToChar(kind_raw)
+      if (is.list(kind_raw) && length(kind_raw) >= 1) kind_raw <- kind_raw[[1]]
+      kind_str <- if (length(kind_raw) >= 1 && !is.na(kind_raw[[1]]) &&
+                      nzchar(trimws(as.character(kind_raw[[1]])))) {
+        trimws(as.character(kind_raw[[1]]))
       } else {
         q <- req$args %||% list()
-        as.character(q$kind %||% req$QUERY_STRING %||% "")
+        candidato <- q$kind %||% req$QUERY_STRING %||% ""
+        if (length(candidato) < 1 || is.na(candidato[[1]])) "" else trimws(as.character(candidato[[1]]))
       }
-      if (!nzchar(kind_str)) {
+      # Longitud uno garantizada: sin esto un `character(0)` rompe el `if`.
+      if (length(kind_str) != 1L || is.na(kind_str) || !nzchar(kind_str)) {
         stop_api(400, "E_NO_KIND_FIELD",
           "Missing 'kind'. Pass it as query param (?kind=xlsform) or form field with Content-Type: text/plain.")
       }
