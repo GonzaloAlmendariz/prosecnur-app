@@ -331,8 +331,13 @@ test_that("los campos de control vuelven, salvo la identidad que manda el plan",
   # Estos cinco no vuelven con el valor del REGISTRO porque el plan es su
   # fuente y no se deja pisar. No es perdida: es la regla, y si algun dia deja
   # de cumplirse este test lo dice.
+  # `elegibles_esperados` se suma a la lista por el mismo motivo: es
+  # `eligible_n` del plan publicado en la Base de control, asi que tampoco lo
+  # pisa el registro. Que aparezca aqui es la señal de que la columna nueva se
+  # escribe de verdad.
   expect_setequal(perdidos,
-                  c("wave", "course_name", "room", "enrolled_total", "eligible_n"))
+                  c("wave", "course_name", "room", "enrolled_total", "eligible_n",
+                    "elegibles_esperados"))
   expect_identical(as.character(b$control$course_name),
                    as.character(b$u$course_name))
 })

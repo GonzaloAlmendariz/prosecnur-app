@@ -299,7 +299,7 @@ aulas_libro_grupos_control <- function() {
   })
 }
 
-aulas_libro_hoja_control <- function(unidades, control = list()) {
+aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NULL) {
   campos <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$titulos[[1]], character(1))
   claves <- vapply(BASE_CONTROL_CAMPOS, function(spec) spec$campo, character(1))
   grupo <- rep("", length(campos))
@@ -349,6 +349,46 @@ aulas_libro_hoja_control <- function(unidades, control = list()) {
     pon("MATRICULADOS TOTALES", .calg_num_txt(u$enrolled_total))
     pon("MATRICULADOS POBLACION", .calg_num_txt(u$eligible_n))
 
+    # **Lo esperado, que sale del plan, y lo obtenido, que sale de la
+    # plataforma.** Sustituye a `70T`/`70P`, que eran ese mismo 70 % reducido a
+    # dos casillas de si/no: se perdia cuanto faltaba y por tanto a que aula ir
+    # primero.
+    esperadas <- suppressWarnings(as.numeric(u$expected_valid %||% NA))[1]
+    eleg <- suppressWarnings(as.numeric(u$eligible_n %||% NA))[1]
+    cod_u <- .calg_txt(u$operational_code)
+    obtenidas <- if (is.null(efectivas)) NA_real_ else {
+      i <- match(cod_u, names(efectivas))
+      if (is.na(i)) NA_real_ else suppressWarnings(as.numeric(efectivas[[i]]))
+    }
+    pct <- function(x) if (is.finite(x) && is.finite(eleg) && eleg > 0) x / eleg else NA_real_
+
+    pon("EFECTIVAS ESPERADAS", .calg_num_txt(esperadas))
+    pon("ELEGIBLES ESPERADOS", .calg_num_txt(eleg))
+    pon("% EFECTIVAS ESPERADO", .calg_num_txt(pct(esperadas)))
+    # Sin respuestas leidas la columna se queda VACIA, no en cero: cero
+    # efectivas y «todavia no sabemos» son dos noticias distintas, y en un aula
+    # sin aplicar la segunda es la cierta.
+    if (is.finite(obtenidas)) {
+      pon("EFECTIVAS OBTENIDAS", .calg_num_txt(obtenidas))
+      pon("% EFECTIVAS OBTENIDO", .calg_num_txt(pct(obtenidas)))
+      if (is.finite(esperadas)) {
+        # En encuestas y con signo: «te faltan 4» es accionable, «-13 %» no.
+        pon("EFECTIVAS: DIFERENCIA", .calg_num_txt(obtenidas - esperadas))
+      }
+    }
+
+    # El reparto por sexo esperado sale del plan POR AULA. Cual de los dos es
+    # mujeres lo dice `sex_top_1`, no la posicion: en otro estudio el mayoritario
+    # puede ser el otro.
+    top1 <- toupper(substr(.calg_txt(u$sex_top_1), 1, 1))
+    n1 <- .calg_num_txt(u$sex_top_1_n)
+    n2 <- .calg_num_txt(u$sex_top_2_n)
+    if (identical(top1, "F") || identical(top1, "M")) {
+      es_mujer_primero <- identical(top1, "F")
+      pon("MUJERES ESPERADAS", if (es_mujer_primero) n1 else n2)
+      pon("HOMBRES ESPERADOS", if (es_mujer_primero) n2 else n1)
+    }
+
     # Lo registrado se escribe DESPUES y solo donde trae algo: la identidad la
     # manda el plan, que es su fuente, y el control manda en lo suyo. Va por la
     # MISMA spec que usa el lector, asi que ninguna columna puede quedarse fuera
@@ -379,16 +419,20 @@ aulas_libro_hoja_control <- function(unidades, control = list()) {
 #' @param unidades filas del plan (formato largo).
 #' @param path destino `.xlsx`.
 #' @param control filas de «Base de control» ya registradas, que vuelven al libro.
+#' @param efectivas vector con nombre: respuestas efectivas por codigo operativo.
+#'   Efectiva es la de la PLATAFORMA —encuesta completa que pasa los filtros—,
+#'   no lo que el aplicador anota en su parte.
 #' @return la ruta escrita.
 #' @export
-aulas_libro_generar <- function(unidades, path, partes = list(), control = list()) {
+aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
+                               efectivas = NULL) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
     `Aulas Aplicadas (Campo)` = aulas_libro_hoja_aplicadas(unidades, partes = partes),
-    `Base de control` = aulas_libro_hoja_control(unidades, control)
+    `Base de control` = aulas_libro_hoja_control(unidades, control, efectivas)
   )
 
   # Workbook en vez de `write.xlsx`: el volcado no admite validaciones, paneles
@@ -528,11 +572,24 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   cols_de <- function(campos) unlist(lapply(campos, function(campo)
     vapply(bloques, function(b) col_en_bloque(campo, b), integer(1))))
   filas_control <- nrow(hojas[["Base de control"]]) - 2L
-  cols_control <- vapply(c("MATRICULADOS TOTALES", "MATRICULADOS POBLACION"),
-                         .calg_col_control, integer(1), USE.NAMES = FALSE)
+  cols_control <- vapply(
+    c("MATRICULADOS TOTALES", "MATRICULADOS POBLACION",
+      # Las cuentas del bloque nuevo: esperadas, obtenidas y la diferencia.
+      "EFECTIVAS ESPERADAS", "EFECTIVAS OBTENIDAS", "EFECTIVAS: DIFERENCIA",
+      "ELEGIBLES ESPERADOS", "MUJERES ESPERADAS", "HOMBRES ESPERADOS"),
+    .calg_col_control, integer(1), USE.NAMES = FALSE)
+  cols_control <- cols_control[cols_control > 0L]
+  # Y los dos porcentajes, que se escriben en 0-1 y hay que ENSEÑAR como
+  # porcentaje: un «0.7» en una columna que se llama «% EFECTIVAS ESPERADO» es
+  # justo el defecto que se corrigio en la hoja de campo.
+  cols_control_pct <- vapply(c("% EFECTIVAS ESPERADO", "% EFECTIVAS OBTENIDO"),
+                             .calg_col_control, integer(1), USE.NAMES = FALSE)
+  cols_control_pct <- cols_control_pct[cols_control_pct > 0L]
   formatos <- list(
     list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
          tipo = "numero", cols = cols_control),
+    list(hoja = "Base de control", desde = 2L, filas = max(0L, filas_control),
+         tipo = "porcentaje", cols = cols_control_pct),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "fecha",
          cols = cols_de(c("contact_date", "scheduled_date"))),
     list(hoja = "Aulas Agendadas", desde = 1L, filas = filas_agenda, tipo = "numero",
@@ -555,7 +612,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   .calg_tipar_numeros(wb, "Aulas Aplicadas (Campo)", hojas[["Aulas Aplicadas (Campo)"]],
                       cols_campo(c(.calg_campo_numeros(), "% ASISTENCIA")), desde = 2L)
   .calg_tipar_numeros(wb, "Base de control", hojas[["Base de control"]],
-                      cols_control, desde = 2L)
+                      c(cols_control, cols_control_pct), desde = 2L)
 
   campos_bloque <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
   aulas_libro_aplicar_formato(

@@ -42,11 +42,42 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "short_vs_total",      titulos = c("CORTAS VS TOTAL")),
   list(campo = "long_total",          titulos = c("TOTAL LARGAS")),
   list(campo = "long_vs_total",       titulos = c("LARGAS VS TOTAL")),
-  # Umbrales que el equipo llama 70T y 70P
+  # **Lo esperado contra lo obtenido, en vez de las dos banderas del Excel viejo.**
+  #
+  # La hoja traia `70T` y `70P`: dos casillas de si/no que decian si el aula
+  # habia llegado al 70 % sobre los matriculados y sobre la poblacion elegible.
+  # Medido, ese 70 % es exactamente `expected_valid / eligible_n`, asi que las
+  # dos banderas eran **ese porcentaje reducido a un si o un no** — se perdia
+  # cuanto faltaba, y por tanto a que aula ir primero.
+  #
+  # Gonzalo, al revisar el libro: «en vez de setenta t y setenta p deberia ser
+  # el porcentaje de efectivas, si ese porcentaje... cual es el esperado, cual
+  # es el que se hizo, y si ese porcentaje es superior o inferior».
+  #
+  # Los titulos viejos se conservan como ALIAS de lectura: un libro que el
+  # equipo tenga a medio llenar con la columna `70T` se sigue leyendo, aunque
+  # el generador ya no la escriba.
   list(campo = "threshold_total",     titulos = c("70T")),
   list(campo = "threshold_population", titulos = c("70P")),
   list(campo = "valid_total",         titulos = c("VALIDO TOTAL")),
   list(campo = "valid_population",    titulos = c("VALIDO POBLACION")),
+  # **Efectivas: la definicion es la de la PLATAFORMA.** Gonzalo: «un elegible
+  # efectivo o solo efectivo es una respuesta efectiva de la plataforma, es
+  # decir es una encuesta que se completa y pasa los filtros». No es lo que el
+  # aplicador anota en su parte —eso es su cuenta de campo— sino la respuesta
+  # que llego y paso los filtros del estudio. Por eso estas columnas las
+  # escribe Prosecnur y no el equipo.
+  list(campo = "efectivas_esperadas", titulos = c("EFECTIVAS ESPERADAS")),
+  list(campo = "efectivas_obtenidas", titulos = c("EFECTIVAS OBTENIDAS")),
+  list(campo = "efectivas_pct_esperado", titulos = c("% EFECTIVAS ESPERADO")),
+  list(campo = "efectivas_pct_obtenido", titulos = c("% EFECTIVAS OBTENIDO")),
+  list(campo = "efectivas_brecha",    titulos = c("EFECTIVAS: DIFERENCIA")),
+  # Elegibles esperados contra los que dieron una efectiva.
+  list(campo = "elegibles_esperados", titulos = c("ELEGIBLES ESPERADOS")),
+  # Sexo esperado contra obtenido. El esperado sale del plan por AULA
+  # (`sex_top_1_n` / `sex_top_2_n`), no de la cuota por facultad.
+  list(campo = "mujeres_esperadas",   titulos = c("MUJERES ESPERADAS")),
+  list(campo = "hombres_esperados",   titulos = c("HOMBRES ESPERADOS")),
   # Control - duracion
   list(campo = "last_response_day",   titulos = c("ULTIMO DIA DE RESPUESTA")),
   # Control - cuotas

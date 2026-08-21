@@ -4889,11 +4889,28 @@ mount_monitoreo <- function(pr) {
       # solo siete salian del plan. Sin esto, regenerar borraba el trabajo de
       # conteo, umbrales y cuotas de las aulas que ya lo tenian.
       control <- s$monitoreo_aulas_control %||% list()
-      aulas_libro_generar(unidades, destino, partes = partes, control = control)
+      # Y las efectivas de PLATAFORMA, que son las que definen si el aula
+      # cumplio: la Base de control las compara con las esperadas del plan. No
+      # salen del parte —eso es la cuenta del aplicador— sino de las respuestas
+      # que llegaron y pasaron los filtros.
+      efectivas <- tryCatch(
+        monitoreo_aulas_efectivas_por_aula(
+          unidades,
+          (s$monitoreo_snapshot %||% list())$data,
+          ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())
+        ),
+        error = function(e) NULL
+      )
+      aulas_libro_generar(unidades, destino, partes = partes, control = control,
+                          efectivas = efectivas)
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
       list(ok = TRUE, file_id = meta$file_id, filename = nombre,
            unidades = length(unidades), partes = length(partes),
-           control = length(control))
+           control = length(control),
+           # Cuantas aulas llevan su cifra de efectivas dentro. Sin esto, un
+           # libro generado antes de la primera sincronizacion se ve igual que
+           # uno completo.
+           efectivas = length(efectivas %||% numeric(0)))
     })) |>
     # Importa el libro operativo del estudio: las tres hojas que el equipo llena
     # en Excel. La app LEE; no sustituye la hoja de calculo.
