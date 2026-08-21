@@ -92,12 +92,36 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #'
 #' @param wb workbook de openxlsx con las tres hojas ya volcadas.
 #' @param filas_cabecera cuantas filas de cabecera tiene cada hoja, por nombre.
+#' Ancho de cada columna por su contenido real.
+#'
+#' `openxlsx` no calcula anchos: o se le da un numero o deja el defecto. Se mide
+#' el texto mas largo de cada columna —cabecera incluida— y se acota, porque una
+#' columna de observaciones libre puede traer 300 caracteres y dejaria la hoja
+#' inservible.
+.calf_anchos <- function(wb, hoja, n_col) {
+  datos <- openxlsx::readWorkbook(wb, sheet = hoja, colNames = FALSE,
+                                  skipEmptyRows = FALSE, skipEmptyCols = FALSE)
+  vapply(seq_len(n_col), function(i) {
+    if (is.null(datos) || i > ncol(datos)) return(14)
+    v <- as.character(datos[[i]])
+    v <- v[!is.na(v) & nzchar(v)]
+    if (!length(v)) return(11)
+    # La cabecera va con `wrapText`, asi que su ancho no manda: se le pide la
+    # palabra mas larga y no la frase entera, o «MATRICULADOS TOTAL DTI» pediria
+    # 23 para una columna de numeros.
+    largo <- max(nchar(v))
+    min(42, max(9, largo + 2))
+  }, numeric(1))
+}
+
 #' @param validaciones lista de `list(hoja, cols, lista, filas)`.
 #' @param listas vocabularios, en el orden de las columnas de la hoja «Listas».
 #' @param columnas_app lista `hoja -> columnas` que llena la app, para teñirlas.
+#' @param agrupados lista `list(hoja, cols)` de columnas plegables.
 #' @export
 aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(),
-                                        listas = list(), columnas_app = list()) {
+                                        listas = list(), columnas_app = list(),
+                                        agrupados = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -119,8 +143,25 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # El panel congela las cabeceras Y la primera columna: en una hoja de 241
     # columnas, perder de vista el `ID MATCH` es perder la fila.
     openxlsx::freezePane(wb, hoja, firstActiveRow = n_cab + 1L, firstActiveCol = 2L)
-    openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col), widths = 18)
-    openxlsx::setColWidths(wb, hoja, cols = 1, widths = 10)
+    # **Anchos por lo que cada columna lleva, no 18 para todas.**
+    #
+    # Con un ancho unico, «DIA» y «NOMBRE DEL CURSO» ocupaban lo mismo: el
+    # primero desperdiciaba media columna y el segundo cortaba el titulo. Se
+    # mide el contenido real —cabecera incluida— y se acota entre 9 y 42 para
+    # que ninguna columna se coma la pantalla ni quede ilegible.
+    openxlsx::setColWidths(wb, hoja, cols = seq_len(n_col),
+                           widths = .calf_anchos(wb, hoja, n_col))
+    openxlsx::setColWidths(wb, hoja, cols = 1, widths = 11)
+    # El autofiltro sobre la ULTIMA fila de cabecera: con dos filas —la banda de
+    # bloques y los titulos— Excel filtra por la de abajo, que es la que tiene
+    # los nombres. Sin esto, buscar una facultad en 951 filas era desplazarse a
+    # mano.
+    if ((filas_datos[[hoja]] %||% 0L) > n_cab) {
+      openxlsx::addFilter(wb, hoja, rows = n_cab, cols = seq_len(n_col))
+    }
+    # Las cabeceras respiran: dos lineas de titulo en 18 de ancho necesitan
+    # alto, y con el alto por defecto se cortaban.
+    openxlsx::setRowHeights(wb, hoja, rows = seq_len(n_cab), heights = 30)
   }
 
   # Lo que trae la app va teñido; lo que llena la persona queda en blanco. Es
@@ -135,6 +176,22 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     filas <- (n_cab + 1L):ultima
     openxlsx::addStyle(wb, hoja, de_la_app, rows = filas, cols = cols,
                        gridExpand = TRUE, stack = TRUE)
+  }
+
+  # **Los reemplazos se pliegan.**
+  #
+  # La hoja de agenda son 241 columnas: un titular y hasta once reservas, todas
+  # con sus veinte campos. Quien agenda trabaja sobre el titular y sólo baja a
+  # la cadena cuando un aula cae, pero tenía que recorrer la hoja entera para
+  # llegar al siguiente bloque. Agrupados, los reemplazos se pliegan con un
+  # clic y la hoja pasa a verse como lo que es: una fila por curso-horario.
+  #
+  # Se dejan VISIBLES al abrir (`hidden = FALSE`): esconder de entrada datos que
+  # el equipo llena sería peor que la fila larga —nadie busca lo que no sabe que
+  # está ahí—. El agrupado ofrece plegarlos, no lo decide por ellos.
+  for (g in agrupados) {
+    if (!length(g$cols)) next
+    openxlsx::groupColumns(wb, g$hoja, cols = g$cols, hidden = FALSE)
   }
 
   for (v in validaciones) {
