@@ -219,10 +219,26 @@ type CalcMuestraChromeToken = {
   tone?: "neutral" | "ready" | "working" | "path";
 };
 
+/**
+ * Cómo se lee en pantalla el estado de una sección o pestaña.
+ *
+ * `guideStatus(done, enabled)` produce tres estados con un significado
+ * preciso: `ready` = hecho · `working` = NO hecho pero ya se puede hacer ·
+ * `pending` = no hecho y BLOQUEADO por un paso previo.
+ *
+ * La traducción los desdibujaba. `working` se leía «Siguiente paso», en
+ * singular, cuando puede haber varios a la vez y es correcto que los haya:
+ * medido en Selección con un proyecto real, tres pestañas —Comparar métodos,
+ * Simulación y Sustento técnico— lo anunciaban juntas, así que ninguna
+ * orientaba. Y `pending` se leía «Pendiente», que no distingue «te toca» de
+ * «todavía no puedes».
+ *
+ * Ahora dicen lo que son: qué está disponible ahora y qué espera a otra cosa.
+ */
 function guidedStatusLabel(status: GuideStatus) {
   if (status === "ready") return "Listo";
-  if (status === "working") return "Siguiente paso";
-  return "Pendiente";
+  if (status === "working") return "Disponible";
+  return "Aún no disponible";
 }
 
 const CANAL_OPTIONS: Array<{ id: CalcMuestraCanalRecojo; label: string }> = [
