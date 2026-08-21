@@ -62,6 +62,8 @@ exige poder cargar un archivo en el navegador.
 - El home anunciaba una muestra que nadie iba a recolectar, sumando dos
   escenarios **alternativos** — `d0a7a0a9`.
 - Tres pestañas decían «Siguiente paso» a la vez — `dc18198a`.
+- «El cálculo ya tiene N y estratos listos» se anunciaba también **sobre un
+  marco vacío** — `e0b5639e`.
 - Un rótulo de grupo sobre 13 px de nada, en Coincidencia — `801e9386`.
 - Y dos míos, cazados mirando la pantalla después de commitear: el aviso de
   duración contaba aulas que no se comparan y el contador prometía un final que
