@@ -218,9 +218,54 @@
   0L
 }
 
+# Los `component_id` de los escenarios ACTIVOS del workspace, o NULL si el
+# estudio no declara escenarios (entonces todos sus componentes cuentan).
+.diseno_componentes_activos <- function(estudio) {
+  escenarios <- (estudio %||% list())$workspace$escenarios %||% list()
+  if (!is.list(escenarios) || !length(escenarios)) return(NULL)
+  ids <- character(0)
+  declara_activo <- FALSE
+  for (e in escenarios) {
+    if (!is.list(e)) next
+    if (!is.null(e$activo)) declara_activo <- TRUE
+    if (isTRUE(e$activo)) {
+      cid <- .diseno_scalar(e$component_id, "")
+      if (nzchar(cid)) ids <- c(ids, cid)
+    }
+  }
+  # Sin ninguno activo no se puede decidir: mejor sumar todo que devolver 0 y
+  # dejar el proyecto anunciando que no tiene muestra.
+  if (!declara_activo || !length(ids)) return(NULL)
+  unique(ids)
+}
+
+#' Total muestral del estudio para `key` (n_objetivo / n_operativo).
+#'
+#' Suma los componentes, PERO sólo los del escenario activo cuando el
+#' workspace declara escenarios.
+#'
+#' Medido el 2026-08-21 en dos proyectos reales de opinión universitaria: cada
+#' uno tiene DOS componentes que son propuestas ALTERNATIVAS del mismo público
+#' —`estudiantes_universidad` con conglomerado multietápico y
+#' `estudiantes_facultad` con estratificado independiente— y la interfaz hace
+#' elegir una con un radiogroup. Sumarlas hacía que el home anunciara «n
+#' objetivo 7.000» cuando la muestra es 2.500 o 4.500: un número que nadie iba
+#' a recolectar.
+#'
+#' Sumar sigue siendo lo correcto para un estudio multiactor, donde cada
+#' componente es un público distinto y la muestra total sí es la suma. La
+#' diferencia no se adivina: el propio workspace marca `activo` en cada
+#' escenario, y eso es lo que se respeta.
 .diseno_calc_total <- function(estudio, key = "n_objetivo") {
   comps <- (estudio %||% list())$componentes %||% list()
   if (length(comps) == 0L) return(0L)
+  activos <- .diseno_componentes_activos(estudio)
+  if (!is.null(activos)) {
+    comps <- Filter(function(comp) {
+      .diseno_scalar((comp %||% list())$id, "") %in% activos
+    }, comps)
+    if (!length(comps)) return(0L)
+  }
   vals <- vapply(comps, function(comp) {
     res <- (comp %||% list())$resultado %||% list()
     meta <- (comp %||% list())$meta %||% list()
