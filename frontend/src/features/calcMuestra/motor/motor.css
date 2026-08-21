@@ -146,6 +146,13 @@
      par completo —titulares y a coordinar— la franja cierra simétrica: dos de
      universo y dos de elegibles arriba, dos de muestra y dos de aulas abajo. */
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Las dos filas miden lo mismo. El contrato de geometría del grupo es
+     `equal` y al pasar a 4×2 las filas quedaron con alturas distintas —56 px
+     contra 70 en 1440, 35 contra 52 en 1280— porque los nombres largos
+     envuelven en más líneas. Lo detectó `ui-quick-check` (equal-frame-drift),
+     no la vista: dos filas desiguales no saltan a la vista y el contrato
+     existe justamente para eso. */
+  grid-auto-rows: 1fr;
   gap: 0;
   min-width: 0;
   overflow: hidden;
