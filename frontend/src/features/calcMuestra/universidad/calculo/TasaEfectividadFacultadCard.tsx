@@ -79,6 +79,33 @@ export function TasaEfectividadFacultadCard({
               </i>
               <span className="cmv2-tasafac-valor">{pctTasa(f.tasa)}</span>
             </div>
+            {/* De dónde sale ESA tasa, con sus dos factores a la vista. El
+                motor los publica por separado justamente para poder mostrarlos
+                (calc_muestra_aulas_efectividad.R); si no reconstruyen la tasa
+                vigente, el modelo los anula y esta línea no se dibuja. */}
+            {f.mix != null && f.residual != null && (
+              <p className="cmv2-tasafac-desglose">
+                <span className="cmv2-tasafac-factor">
+                  <b>{pctTasa(f.mix)}</b>
+                  <small>por el tamaño de sus aulas</small>
+                </span>
+                {f.residual !== 1 ? (
+                  <>
+                    <span className="cmv2-tasafac-op">×</span>
+                    <span className="cmv2-tasafac-factor">
+                      <b>{coma(f.residual, 2)}</b>
+                      <small>
+                        {f.residual > 1 ? "rindió más que su tamaño" : "rindió menos que su tamaño"} en {f.k != null ? `${fmtInt(f.k)} aulas de` : ""} el histórico
+                      </small>
+                    </span>
+                  </>
+                ) : (
+                  <span className="cmv2-tasafac-factor" data-sin-ajuste="true">
+                    <small>el histórico no dio base propia para ajustarla</small>
+                  </span>
+                )}
+              </p>
+            )}
             {f.cuota != null && f.p25 != null && f.cupos != null ? (
               // El concepto intermedio que faltaba (Gonzalo: «no entiendo como
               // llegamos a esos titulares»): el aula tipica RINDE P25 × tasa

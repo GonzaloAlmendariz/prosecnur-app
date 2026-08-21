@@ -276,11 +276,26 @@ calc_muestra_aulas_tasas_facultad <- function(aula_frame) {
     tot_el <- sum(el[idx])
     if (tot_el <= 0) next
     tasa <- sum(el[idx] * r[idx] * f[idx]) / tot_el
+    # Los DOS factores por separado, para que la pantalla pueda ensenar de
+    # donde sale la tasa en vez de pedir que se crea el resultado:
+    #   mix    = R ponderado por elegibles — que rinde el aula tipica de esta
+    #            facultad SOLO por su mezcla de tamanos (chicas rinden mas).
+    #   factor = F residual — lo que esta facultad rindio en el historico MAS
+    #            ALLA de su mix; 1 cuando el historico no le dio base propia.
+    # Se cumple tasa = mix x factor porque F es constante dentro de la facultad.
+    mix <- sum(el[idx] * r[idx]) / tot_el
+    ff_vals <- unique(f[idx])
+    factor_res <- if (length(ff_vals) == 1L) ff_vals[[1]] else if (mix > 0) tasa / mix else 1
     kk <- k_fac[idx]
     kk <- kk[!is.na(kk)]
     salida[[length(salida) + 1L]] <- list(
       facultad = ff,
       tasa = round(tasa, 4),
+      # 6 decimales, no 4: con 4 el producto de los publicados NO reconstruye
+      # la tasa publicada (0,6102 contra 0,6103 en el fixture de DERECHO) y la
+      # pantalla ensenaria una cuenta que no da el numero que muestra al lado.
+      rendimiento_mix = round(mix, 6),
+      factor_residual = round(factor_res, 6),
       n_aulas = as.integer(sum(idx)),
       elegibles = as.integer(round(tot_el)),
       con_residual = any(f[idx] != 1),

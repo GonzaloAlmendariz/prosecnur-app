@@ -151,3 +151,42 @@
 .cmv2-tasafac-num small { font-size: 9px; color: var(--pulso-text-muted); line-height: 1.1; }
 .cmv2-tasafac-num.cmv2-tasafac-res b { color: var(--module-accent, var(--pulso-primary)); font-size: 14px; }
 .cmv2-tasafac-op { color: var(--pulso-text-muted); font-size: 12px; padding-top: 1px; }
+
+/* El desglose de la tasa: sus dos factores a la vista (2026-08-21).
+   Gonzalo: «la UI debería tener una forma amable de mostrar cada una y de
+   dónde sale». Va bajo la barra, en voz baja — es el sustento del número
+   grande, no compite con él. */
+.cmv2-tasafac-desglose {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 3px 0 0;
+  padding-left: 1px;
+}
+
+.cmv2-tasafac-factor {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cmv2-tasafac-factor b {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-tasafac-factor small {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--pulso-text-muted);
+}
+
+/* Sin ajuste propio no hay número que enseñar: sólo el motivo, en cursiva
+   para que no se lea como un factor más de la multiplicación. */
+.cmv2-tasafac-factor[data-sin-ajuste] small {
+  font-style: italic;
+}
