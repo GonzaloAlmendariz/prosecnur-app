@@ -250,9 +250,19 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
   # primero que la relectura aguante, después la forma.
   formato_numero <- openxlsx::createStyle(numFmt = "#,##0", halign = "right")
   formato_fecha <- openxlsx::createStyle(numFmt = "dd/mm/yyyy", halign = "center")
+  # `porcentaje` es para una razon 0-1: Excel la ENSEÑA como 46.7 %. `decimal`
+  # es la misma cifra ya venida en 0-100, que con formato de porcentaje se
+  # veria como 4670 %. Quien decide cual va es la escala medida de la columna
+  # entera, en el generador; aqui solo hay dos estilos distintos.
+  formato_pct <- openxlsx::createStyle(numFmt = "0.0%", halign = "right")
+  formato_decimal <- openxlsx::createStyle(numFmt = "0.0", halign = "right")
   for (fm in formatos) {
     if (!length(fm$cols) || !fm$filas) next
-    estilo <- if (identical(fm$tipo, "fecha")) formato_fecha else formato_numero
+    estilo <- switch(fm$tipo %||% "numero",
+                     fecha = formato_fecha,
+                     porcentaje = formato_pct,
+                     decimal = formato_decimal,
+                     formato_numero)
     openxlsx::addStyle(wb, fm$hoja, estilo, rows = seq_len(fm$filas) + fm$desde,
                        cols = fm$cols, gridExpand = TRUE, stack = TRUE)
   }
