@@ -130,6 +130,13 @@ export function CertificacionFacultadCard({
   if (!certificacion || !certificacion.filas.length) return null;
   const ref2025 = cumplimientoSexo2025(referencia);
   const { certificadas, evaluables, tasa_esperada, ok } = certificacion;
+  // Cuota y esperadas comparten UNA escala (el máximo de ambas series): el
+  // margen es un cociente y 1,3× de C&I se ve idéntico a 1,3× de Gastronomía;
+  // el par de barras devuelve la MAGNITUD que el cociente borra.
+  const magMax = Math.max(
+    1,
+    ...certificacion.filas.map((f) => Math.max(f.cuota ?? 0, f.efectivas_esperadas ?? 0)),
+  );
 
   return (
     <section className="cmv2-cert-card" aria-label="Certificación de la selección por facultad" data-ok={ok ? "si" : "no"}>
@@ -173,11 +180,35 @@ export function CertificacionFacultadCard({
             {certificacion.filas.map((f) => (
               <tr key={f.faculty_key || f.facultad} data-estado={f.estado} title={f.aviso}>
                 <th scope="row">{f.facultad}</th>
-                <td>{f.cuota != null ? fmtInt(f.cuota) : "—"}</td>
+                <td className="cmv2-cert-mag-celda">
+                  {f.cuota != null ? (
+                    <>
+                      <span>{fmtInt(f.cuota)}</span>
+                      <span className="cmv2-cert-mag-track" aria-hidden="true">
+                        <i data-serie="cuota" style={{ width: `${(f.cuota / magMax) * 100}%` }} />
+                      </span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td>{fmtInt(f.aulas_titulares)}</td>
                 <td>{f.elegibles_titulares != null ? fmtInt(f.elegibles_titulares) : "—"}</td>
-                <td>
-                  {f.efectivas_esperadas != null ? fmtInt(f.efectivas_esperadas) : "—"}
+                <td className="cmv2-cert-mag-celda">
+                  {f.efectivas_esperadas != null ? (
+                    <>
+                      <span>{fmtInt(f.efectivas_esperadas)}</span>
+                      <span className="cmv2-cert-mag-track" aria-hidden="true">
+                        <i
+                          data-serie="esperadas"
+                          data-corta={f.cuota != null && f.efectivas_esperadas < f.cuota ? "true" : undefined}
+                          style={{ width: `${(f.efectivas_esperadas / magMax) * 100}%` }}
+                        />
+                      </span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
                   {(() => {
                     const cal = calibrada?.get(String(f.facultad ?? "").trim().toUpperCase());
                     if (!cal || !cal.conDato) return null;
