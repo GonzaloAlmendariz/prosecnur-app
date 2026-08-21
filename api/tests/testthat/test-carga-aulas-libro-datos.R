@@ -138,3 +138,20 @@ test_that("ninguna columna se repite: una Excel Table no lo admite", {
   expect_identical(anyDuplicated(names(d)), 0L)
   expect_gt(ncol(d), 30L)
 })
+
+test_that("el orden de reemplazo va VACIO en quien no lo tiene", {
+  # Medido en el estudio: 243 de 269 filas llevaban un 0 que no significa nada
+  # —170 titulares y 73 del banco— contra 26 con orden de verdad. En una
+  # dinamica ese 0 es un valor real y contamina cualquier promedio.
+  d <- aulas_libro_hoja_datos(list(
+    list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve",
+         titular_operational_code = "CH 1", replacement_order = 1, faculty = "Letras"),
+    list(operational_code = "X 1", sample_role = "extra_reserve_pool", faculty = "Letras")
+  ))
+  expect_true(is.na(d$Orden[[1]]))
+  expect_equal(d$Orden[[2]], 1L)
+  expect_true(is.na(d$Orden[[3]]))
+  # El control: la reserva SI lo tiene, asi que la columna no es toda vacia.
+  expect_equal(sum(!is.na(d$Orden)), 1L)
+})

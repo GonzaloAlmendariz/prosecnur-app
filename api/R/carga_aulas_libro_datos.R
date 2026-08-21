@@ -92,9 +92,19 @@ aulas_libro_hoja_datos <- function(unidades, partes = list(), control = list()) 
       if (nzchar(t)) t else .cald_txt(u, "operational_code")
     }, character(1)),
     Papel = vapply(unidades, papel, character(1)),
+    # **Vacio, no cero, para quien no tiene orden de reemplazo.**
+    #
+    # `Orden` es la posicion DENTRO de una cadena, asi que solo la tienen las
+    # reservas encadenadas. Un titular no reemplaza a nadie y un extra del banco
+    # no cuelga de ninguna cadena. Medido en el estudio: 243 de 269 filas
+    # llevaban un 0 que no significa nada —170 titulares y 73 del banco— contra
+    # 26 con orden de verdad. En una dinamica ese 0 es un valor real: contamina
+    # cualquier promedio y hace que filtrar por «Orden = 0» devuelva titulares y
+    # banco mezclados. Vacio, Excel lo excluye de los calculos y lo agrupa como
+    # «(en blanco)», que es lo que es.
     Orden = vapply(unidades, function(u) {
       n <- .cald_num(u, "replacement_order")
-      if (is.finite(n)) as.integer(n) else 0L
+      if (is.finite(n)) as.integer(n) else NA_integer_
     }, integer(1)),
     Facultad = vapply(unidades, .cald_txt, character(1), "faculty"),
     Curso = vapply(unidades, .cald_txt, character(1), "course_name"),
