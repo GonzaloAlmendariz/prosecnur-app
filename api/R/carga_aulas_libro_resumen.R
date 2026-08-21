@@ -24,7 +24,7 @@
 #' @param unidades filas del plan (formato largo).
 #' @return lista con `totales`, `por_facultad` y `por_estado`.
 #' @export
-aulas_libro_cortes <- function(unidades) {
+aulas_libro_cortes <- function(unidades, partes = list(), control = list()) {
   rol <- vapply(unidades, .calr_txt, character(1), "sample_role")
   fac <- vapply(unidades, .calr_txt, character(1), "faculty")
   fac[!nzchar(fac)] <- "Sin facultad"
@@ -83,7 +83,56 @@ aulas_libro_cortes <- function(unidades) {
   )
   por_estado <- por_estado[order(-por_estado$Aulas), , drop = FALSE]
 
-  list(totales = totales, por_facultad = por_facultad, por_estado = por_estado)
+  # **El avance, si lo hay.**
+  #
+  # La portada solo miraba el plan: abrir el libro a mitad de operativo daba una
+  # primera pagina que hablaba como si no hubiera empezado. Se puede contar
+  # desde que los partes y el control viajan al libro.
+  #
+  # Un libro NUEVO no lleva este bloque: siete ceros no informan de nada y la
+  # portada tiene que caber. Sin partes ni control, no hay avance del que hablar.
+  avance <- NULL
+  if (length(partes) || length(control)) {
+    cod <- vapply(unidades, .calr_txt, character(1), "operational_code")
+    con_parte <- unique(Filter(nzchar, vapply(partes, function(pt) {
+      v <- .calr_txt(pt, "operational_code")
+      if (nzchar(v)) v else .calr_txt(pt, "classroom_id")
+    }, character(1))))
+    efectivas <- sum(vapply(partes, .calr_num, numeric(1), "effective_surveys"), na.rm = TRUE)
+
+    # «Efectiva» exige los DOS umbrales, que es el criterio del estudio. Se leen
+    # los veredictos que el equipo ya declaro en su hoja (`VALIDO TOTAL` y
+    # `VALIDO POBLACION`, 0/1); la portada refleja el libro, no lo recalcula.
+    dos <- vapply(control, function(r) {
+      isTRUE(.calr_num(r, "valid_total") == 1) &&
+        isTRUE(.calr_num(r, "valid_population") == 1)
+    }, logical(1))
+    uno <- vapply(control, function(r) {
+      a <- isTRUE(.calr_num(r, "valid_total") == 1)
+      b <- isTRUE(.calr_num(r, "valid_population") == 1)
+      xor(a, b)
+    }, logical(1))
+
+    esperadas <- totales[["Encuestas esperadas (titulares)"]]
+    avance <- list(
+      `Aulas con parte de campo` = length(intersect(con_parte, cod[titular])),
+      `Aulas en la base de control` = if (length(control)) length(control) else "—",
+      `Encuestas efectivas recogidas` = round(efectivas, 1),
+      # Un 0 de 0 no es 0 %: es una cuenta que no se puede hacer.
+      `Avance sobre lo esperado` = if (is.finite(esperadas) && esperadas > 0) {
+        paste0(round(100 * efectivas / esperadas, 1), " %")
+      } else "—",
+      # Sin base de control, «0 aulas efectivas» es falso: no es que ninguna lo
+      # sea, es que no hay con que decirlo. Mismo criterio que el 0 de 0 — visto
+      # en el PDF, donde un libro con 130 partes y sin control declaraba cero
+      # efectivas junto a un avance del 93.6 %.
+      `Aulas efectivas (los dos umbrales)` = if (length(control)) sum(dos) else "—",
+      `Aulas que cumplen solo uno` = if (length(control)) sum(uno) else "—"
+    )
+  }
+
+  list(totales = totales, por_facultad = por_facultad, por_estado = por_estado,
+       avance = avance)
 }
 
 #' Escribe la portada en el workbook.
@@ -93,8 +142,9 @@ aulas_libro_cortes <- function(unidades) {
 #' @param hoja nombre de la hoja.
 #' @return la fila siguiente a lo escrito.
 #' @export
-aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen") {
-  cortes <- aulas_libro_cortes(unidades)
+aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
+                                         partes = list(), control = list()) {
+  cortes <- aulas_libro_cortes(unidades, partes, control)
   openxlsx::addWorksheet(wb, hoja, gridLines = FALSE)
 
   titulo <- openxlsx::createStyle(fontSize = 16, textDecoration = "bold", fontColour = "#002457")
@@ -124,6 +174,25 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen") {
     openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     openxlsx::addStyle(wb, hoja, cifra, rows = fila, cols = 2)
     fila <- fila + 1L
+  }
+
+  # El avance va DESPUES del operativo y antes de los cortes: es lo que se mira
+  # primero al abrir el libro de un estudio en marcha.
+  if (length(cortes$avance)) {
+    fila <- fila + 1L
+    openxlsx::writeData(wb, hoja, "El avance", startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:2, gridExpand = TRUE)
+    fila <- fila + 1L
+    for (nombre in names(cortes$avance)) {
+      valor <- cortes$avance[[nombre]]
+      openxlsx::writeData(wb, hoja, nombre, startCol = 1, startRow = fila)
+      openxlsx::writeData(wb, hoja, valor, startCol = 2, startRow = fila)
+      openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+      # El porcentaje llega como texto ya formado; la cifra en negrita a la
+      # derecha vale para los dos.
+      openxlsx::addStyle(wb, hoja, cifra, rows = fila, cols = 2)
+      fila <- fila + 1L
+    }
   }
 
   fila <- fila + 1L
