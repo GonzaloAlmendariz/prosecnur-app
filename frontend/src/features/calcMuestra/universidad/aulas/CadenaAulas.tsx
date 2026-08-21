@@ -74,7 +74,9 @@ export function CadenaAulas({
     },
     {
       id: "total",
-      label: "Cursos-horario a coordinar",
+      // No «a coordinar»: las reservas se dimensionan, no se agendan como los
+      // titulares (Gonzalo, 2026-08-21).
+      label: "Cursos-horario del plan",
       valor: fmtInt(sumTotal),
       detalle: "titulares + reservas y extra",
       estado: sumTotal > 0 ? "ready" : "working",

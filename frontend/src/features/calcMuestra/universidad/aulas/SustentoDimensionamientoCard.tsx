@@ -75,7 +75,10 @@ export function SustentoDimensionamientoCard({
               <th scope="col" className="cmv2-num">× respuesta</th>
               <th scope="col" className="cmv2-num">= titulares</th>
               <th scope="col" className="cmv2-num">+ reservas</th>
-              <th scope="col" className="cmv2-num">a coordinar</th>
+              {/* «a coordinar» era falso para el total: las reservas son
+                  cupos del plan, no visitas que se agenden (Gonzalo,
+                  2026-08-21). */}
+              <th scope="col" className="cmv2-num">= del plan</th>
               {/* Decisión de Gonzalo: la tasa propia es REFERENCIAL — se muestra,
                   no redimensiona. Sale de las aulas aplicadas 2025 de la
                   facultad (Σefectivas/Σelegibles, k ≥ 12). */}

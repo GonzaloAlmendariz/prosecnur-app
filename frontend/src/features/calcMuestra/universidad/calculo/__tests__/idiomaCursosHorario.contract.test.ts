@@ -44,3 +44,34 @@ describe("idioma de Cursos-horario requeridos", () => {
     expect(src("TasaEfectividadFacultadCard.tsx")).toContain("titulares");
   });
 });
+
+describe("las reservas no se coordinan", () => {
+  // Gonzalo, 2026-08-21: «ojo, las aulas de reserva no se coordinan así». El
+  // rótulo aplicaba «a coordinar» al TOTAL —titulares + reservas— y prometía
+  // una coordinación que las reservas no tienen: se dimensionan, y entran sólo
+  // cuando una titular cae. Estaba en CINCO superficies, y reparar una no
+  // reparaba el defecto: la primera vez corregí el KPI y quedó viva la barra
+  // de confirmación. Por eso el guardia las mira todas.
+  const SUPERFICIES = [
+    "CalculoCursosHorarioFacultadTab.tsx",
+    "../aulas/SustentoDimensionamientoCard.tsx",
+    "../aulas/CadenaAulas.tsx",
+  ];
+
+  const sinComentarios = (texto: string) =>
+    texto.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+
+  it("ninguna superficie llama «a coordinar» al total del plan", () => {
+    for (const f of SUPERFICIES) {
+      // Se permite nombrarlo en un comentario que explica por qué NO se usa.
+      expect(sinComentarios(src(f)), `«a coordinar» sigue vivo en ${f}`).not.toMatch(/a coordinar/i);
+    }
+  });
+
+  it("el total se nombra por lo que es, y sigue diciendo sus dos partes", () => {
+    const tab = src("CalculoCursosHorarioFacultadTab.tsx");
+    expect(tab).toContain("CH del plan");
+    expect(tab).toContain("titulares");
+    expect(tab).toContain("reserva");
+  });
+});
