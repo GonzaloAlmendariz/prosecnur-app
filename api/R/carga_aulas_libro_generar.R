@@ -381,7 +381,12 @@ aulas_libro_generar <- function(unidades, path, partes = list()) {
       )
     )) else list(),
     semaforos = semaforos,
-    formatos = formatos
+    formatos = formatos,
+    # Hasta la columna del CODIGO del aula, calculada y no adivinada: `ID MATCH`
+    # es un correlativo y `MUESTRA` va antes del codigo, asi que repetir «las
+    # dos primeras» dejaba las paginas con un numero de orden, una ola y ningun
+    # curso-horario. Se vio en el PDF despues de darlo por arreglado.
+    columnas_repetidas = list(`Aulas Agendadas` = col_en_bloque("operational_code", 1L))
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
   path

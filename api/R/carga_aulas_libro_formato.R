@@ -133,11 +133,14 @@ aulas_libro_columnas_de_la_app <- function(campos, de_la_persona, bloques,
 #' @param semaforos lista `list(hoja, cols, filas, desde)` de columnas de estado.
 #' @param formatos lista `list(hoja, cols, filas, desde, tipo)` — `tipo` es
 #'   `"fecha"` o `"numero"`.
+#' @param columnas_repetidas lista `hoja -> n` de columnas que se repiten al
+#'   imprimir; por defecto una.
 #' @export
 aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(),
                                         listas = list(), columnas_app = list(),
                                         agrupados = list(), semaforos = list(),
-                                        formatos = list()) {
+                                        formatos = list(),
+                                        columnas_repetidas = list()) {
   cabecera <- openxlsx::createStyle(
     textDecoration = "bold", fgFill = "#002457", fontColour = "#FFFFFF",
     halign = "left", valign = "center", wrapText = TRUE, border = "TopBottomLeftRight",
@@ -185,11 +188,18 @@ aulas_libro_aplicar_formato <- function(wb, filas_cabecera, validaciones = list(
     # tabla de 951 filas es una lista de numeros sin nombre. Horizontal y con la
     # cabecera repetida en cada pagina.
     # `printTitleCols` ademas de `printTitleRows`: en horizontal la hoja se
-    # parte por COLUMNAS, y sin repetir la primera —el codigo del aula— las
-    # paginas 2 y 3 son filas de datos sin saber de que aula son. Es el mismo
-    # problema que las filas, en el otro eje, y se ve igual de mal.
+    # parte por COLUMNAS, y sin repetir la que identifica la fila, las paginas
+    # 2 y 3 son cifras sin saber de que aula son. Es el mismo problema que las
+    # filas, en el otro eje.
+    #
+    # Cuantas se repiten lo dice quien conoce la hoja: en «Aulas Agendadas» la
+    # primera es `ID MATCH` —un correlativo interno— y el codigo del aula esta
+    # en la SEGUNDA, asi que repetir solo la primera dejaba las paginas con un
+    # numero de orden y ningun curso-horario. Visto en el PDF.
+    repetidas <- columnas_repetidas[[hoja]] %||% 1L
     openxlsx::pageSetup(wb, hoja, orientation = "landscape", fitToWidth = FALSE,
-                        printTitleRows = seq_len(n_cab), printTitleCols = 1L)
+                        printTitleRows = seq_len(n_cab),
+                        printTitleCols = seq_len(repetidas))
   }
 
   # Lo que trae la app va teñido; lo que llena la persona queda en blanco. Es

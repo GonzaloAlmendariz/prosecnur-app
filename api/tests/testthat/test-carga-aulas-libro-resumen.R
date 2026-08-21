@@ -100,5 +100,12 @@ test_that("las hojas de datos se imprimen con su cabecera en cada pagina", {
   # repetir la primera —el codigo del aula— la segunda pagina son cifras sin
   # saber de que aula son. Visto en el PDF: tres paginas y solo la primera
   # decia el codigo. El rango de columnas se escribe como `$A:$A`.
-  expect_match(libro, "\\$A:\\$A")
+  # En la agenda hay que llegar hasta la columna del CODIGO: `ID MATCH` es un
+  # correlativo y `MUESTRA` va antes, asi que repetir «las dos primeras» dejaba
+  # las paginas con un numero de orden, una ola y ningun curso-horario. Se vio
+  # en el PDF DESPUES de darlo por arreglado.
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(x) x$campo, character(1))
+  hasta <- 1L + which(campos == "operational_code")
+  letra <- LETTERS[hasta]
+  expect_match(libro, sprintf("\\$A:\\$%s", letra))
 })
