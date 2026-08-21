@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiError, type JobSnapshot } from "../../../../api/client";
 import {
   cmFormatElapsed,
+  cmFraccionEsDelTotal,
   cmJobEta,
   cmJobFraccion,
   cmTextoProgreso,
@@ -256,11 +257,15 @@ describe("el contador es honesto con cómo vamos", () => {
   });
 
   it("la línea dice etapa, transcurrido, lo que falta y que se pasó de lo previsto", () => {
+    // MUDADO el mismo día: sin declarar que la fracción es del TOTAL, el
+    // tiempo restante se anuncia como de la etapa. Ver «el tiempo restante
+    // dice DE QUÉ es» más abajo.
     const corto = cmTextoProgreso({
       label: "Comparando métodos",
       stage: "corrida 240/500",
       elapsedMs: 600_000,
       fraccion: 0.48,
+      fraccionEsDelTotal: true,
     });
     expect(corto).toContain("Comparando métodos — corrida 240/500");
     expect(corto).toContain("10:00");
@@ -272,6 +277,7 @@ describe("el contador es honesto con cómo vamos", () => {
       stage: null,
       elapsedMs: 40 * 60_000,
       fraccion: 0.5,
+      fraccionEsDelTotal: true,
       avisoLargoMs: 30 * 60_000,
     });
     // Pasarse del tiempo previsto se DICE; ya no se mata el trabajo.
@@ -289,7 +295,7 @@ describe("el contador es honesto con cómo vamos", () => {
     await esperarJob("j1", "Comparando métodos", {
       status: async () =>
         llamadas++ < 3
-          ? snap("running", { progress: { percent: 25, message: "corrida 125/500" } as JobSnapshot["progress"] })
+          ? snap("running", { progress: { phase: "comparar", percent: 25, message: "corrida 125/500" } as JobSnapshot["progress"] })
           : snap("done"),
       cancel: async () => ({ ok: true }),
       onProgress: (texto) => progresos.push(texto),
@@ -302,5 +308,51 @@ describe("el contador es honesto con cómo vamos", () => {
     const ultimo = progresos[progresos.length - 1];
     expect(ultimo).toContain("corrida 125/500");
     expect(ultimo).toContain("faltan ~");
+  });
+});
+
+describe("el tiempo restante dice DE QUÉ es", () => {
+  // Defecto propio, encontrado en vivo el mismo día que se construyó el
+  // contador: el comparador publica «corrida 8 de 17» DENTRO de cada método y
+  // hay cuatro, así que extrapolar esa fracción da el fin del método. Un
+  // «faltan ~00:48» al lado se lee como el fin de la comparación y subestima
+  // por cuatro.
+  it("una fase de etapa NO promete el final del trabajo", () => {
+    const texto = cmTextoProgreso({
+      label: "Comparando métodos",
+      stage: "Selección proporcional al tamaño: corrida 8 de 17",
+      elapsedMs: 42_000,
+      fraccion: 8 / 17,
+      fraccionEsDelTotal: false,
+    });
+    expect(texto).toContain("en esta etapa");
+    expect(texto).not.toMatch(/faltan ~/);
+  });
+
+  it("una fase que sí mide el total lo promete", () => {
+    const texto = cmTextoProgreso({
+      label: "Comparando métodos",
+      stage: "Método 2 de 4",
+      elapsedMs: 600_000,
+      fraccion: 0.5,
+      fraccionEsDelTotal: true,
+    });
+    expect(texto).toContain("faltan ~10:00");
+    expect(texto).not.toContain("en esta etapa");
+  });
+
+  it("cmFraccionEsDelTotal reconoce las fases del trabajo entero", () => {
+    const con = (phase: unknown) =>
+      cmFraccionEsDelTotal(snap("running", { progress: { phase } as JobSnapshot["progress"] }));
+    expect(con("comparar")).toBe(true);
+    expect(con("seleccionar")).toBe(true);
+    // Las de etapa: el motor las usa dentro de cada método.
+    expect(con("simulacion")).toBe(false);
+    expect(con("simulacion_mc")).toBe(false);
+    // Ante lo desconocido se asume etapa: subestimar lo que falta es mejor
+    // que prometer un final que no llega.
+    expect(con("fase_de_2027")).toBe(false);
+    expect(con(undefined)).toBe(false);
+    expect(cmFraccionEsDelTotal(snap("running"))).toBe(false);
   });
 });

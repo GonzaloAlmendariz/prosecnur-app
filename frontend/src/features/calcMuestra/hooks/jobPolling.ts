@@ -51,6 +51,34 @@ export function cmFormatElapsed(ms: number): string {
   return `${mm}:${ss}`;
 }
 
+/**
+ * Fases en las que la fracción publicada mide el trabajo COMPLETO del job.
+ *
+ * El resto de fases cuentan una etapa: el comparador publica «corrida 8 de 17»
+ * dentro de CADA método y hay cuatro, así que extrapolar esa fracción da el
+ * fin del método, no el de la comparación. Prometerlo como total sería un
+ * contador deshonesto por cuatro — justo lo contrario de lo que este módulo
+ * arregló hoy.
+ *
+ * La lista es corta y explícita a propósito: ante una fase desconocida se
+ * asume ETAPA, que como mucho subestima lo que falta en vez de prometer un
+ * final que no llega.
+ */
+const CM_FASES_DEL_TOTAL = new Set(["comparar", "construir", "seleccionar"]);
+
+export function cmJobFase(snap: JobSnapshot): string | null {
+  const p = snap.progress;
+  if (!p || typeof p !== "object") return null;
+  const fase = (p as Record<string, unknown>).phase;
+  return typeof fase === "string" && fase.trim() ? fase.trim() : null;
+}
+
+/** true si lo que falta, según la fracción publicada, es el job entero. */
+export function cmFraccionEsDelTotal(snap: JobSnapshot): boolean {
+  const fase = cmJobFase(snap);
+  return fase != null && CM_FASES_DEL_TOTAL.has(fase);
+}
+
 export function cmJobStageMessage(snap: JobSnapshot): string | null {
   const progress = snap.progress;
   if (progress && typeof progress === "object" && "message" in progress && typeof progress.message === "string" && progress.message) {
@@ -103,13 +131,23 @@ export function cmTextoProgreso(args: {
   stage: string | null;
   elapsedMs: number;
   fraccion: number | null;
+  /** true si la fracción mide el job entero; false si mide una etapa. */
+  fraccionEsDelTotal?: boolean;
   avisoLargoMs?: number;
 }): string {
   const { label, stage, elapsedMs, fraccion } = args;
   const avisoLargoMs = args.avisoLargoMs ?? CM_JOB_AVISO_LARGO_MS;
   const partes = [`${label}${stage ? ` — ${stage}` : ""}`, cmFormatElapsed(elapsedMs)];
   const eta = cmJobEta(elapsedMs, fraccion);
-  if (eta !== null) partes.push(`faltan ~${cmFormatElapsed(eta)}`);
+  // Se dice de QUÉ falta ese tiempo. Un «faltan ~00:48» junto a «corrida 8 de
+  // 17» se lee como el fin del trabajo, y son las 17 de UN método de cuatro.
+  if (eta !== null) {
+    partes.push(
+      args.fraccionEsDelTotal
+        ? `faltan ~${cmFormatElapsed(eta)}`
+        : `~${cmFormatElapsed(eta)} en esta etapa`,
+    );
+  }
   if (elapsedMs > avisoLargoMs) {
     partes.push(`más de ${Math.round(avisoLargoMs / 60_000)} min, sigue trabajando`);
   }
@@ -228,6 +266,7 @@ export async function esperarJob(
           stage: cmJobStageMessage(snap),
           elapsedMs: now() - start,
           fraccion: cmJobFraccion(snap),
+          fraccionEsDelTotal: cmFraccionEsDelTotal(snap),
           avisoLargoMs,
         }),
       );
