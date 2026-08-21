@@ -14,6 +14,7 @@
 import {
   normalizeCalcMuestraTasasFacultad,
   type CalcMuestraTasaFacultad,
+  type TramoMix,
 } from "../../../../api/calcMuestraTasasFacultad";
 
 export type EstratoDimensionado = {
@@ -64,6 +65,8 @@ export type FilaTasaFacultad = {
    * callar que existen dos es lo que no puede seguir pasando.
    */
   tasaMarco: number | null;
+  /** Cómo reparte sus aulas entre los tramos de tamaño: su «mix», dibujable. */
+  tramos: TramoMix[];
 };
 
 const num = (v: unknown): number | null => {
@@ -115,6 +118,7 @@ export function tasasFacultad(
         mix: desglosaLaVigente ? t.rendimiento_mix : null,
         residual: desglosaLaVigente ? t.factor_residual : null,
         tasaMarco: Math.abs(t.tasa - tasaVigente) > 0.0005 ? t.tasa : null,
+        tramos: t.mix_tramos,
         conResidual: t.con_residual,
         k: t.facultad_k,
         nAulasMarco: t.n_aulas,

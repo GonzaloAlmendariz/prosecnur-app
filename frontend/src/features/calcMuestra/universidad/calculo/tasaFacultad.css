@@ -249,3 +249,103 @@
   font-variant-numeric: tabular-nums;
   color: var(--pulso-text-soft);
 }
+
+/* «De dónde sale cada tasa» como diagrama (2026-08-21). Gonzalo: «no tiene por
+   qué ser texto… y que no ocupe solo la mitad de la pantalla». Ocupa el ancho
+   completo y poco alto: una escalera de tramos, no un párrafo. */
+.cmv2-curva {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 9px;
+  background: var(--pulso-surface-soft, var(--pulso-surface));
+}
+
+.cmv2-curva-titulo {
+  margin: 0 0 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-curva-escalera {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cmv2-curva-peldano {
+  display: grid;
+  grid-template-columns: minmax(88px, 118px) minmax(0, 1fr) 44px 74px;
+  align-items: center;
+  gap: 10px;
+}
+
+.cmv2-curva-rango {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pulso-text);
+}
+
+.cmv2-curva-rango small,
+.cmv2-curva-aulas small {
+  font-size: 9.5px;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-curva-track {
+  display: block;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--pulso-surface-strong, var(--pulso-border));
+  overflow: hidden;
+}
+
+.cmv2-curva-track b {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--module-accent, var(--pulso-primary));
+  opacity: 0.75;
+}
+
+.cmv2-curva-tasa {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text);
+}
+
+.cmv2-curva-aulas {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-curva-cierre {
+  margin: 9px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-curva-cierre b { color: var(--pulso-text); }
+
+.cmv2-tasafac-pie-nota {
+  margin-top: 7px;
+  font-size: 10.5px;
+  color: var(--pulso-text-muted);
+}
+
+@media (max-width: 760px) {
+  .cmv2-curva-peldano { grid-template-columns: minmax(80px, 1fr) 40px 66px; }
+  .cmv2-curva-track { grid-column: 1 / -1; order: 3; }
+}

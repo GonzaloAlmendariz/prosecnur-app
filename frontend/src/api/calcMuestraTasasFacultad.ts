@@ -8,6 +8,40 @@
  * propagar un NaN a la tarjeta didáctica.
  */
 
+/** Un tramo de tamaño de aula, con cuántas aulas de la facultad caen en él. */
+export type TramoMix = {
+  /** Lo que rinde un aula de este tramo (0-1). */
+  tasa: number;
+  n_aulas: number;
+  elegibles: number;
+  /** Rango real de elegibles de las aulas que cayeron en el tramo. */
+  desde: number;
+  hasta: number;
+};
+
+function normalizeTramos(raw: unknown): TramoMix[] {
+  if (!Array.isArray(raw)) return [];
+  const out: TramoMix[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const t = item as Record<string, unknown>;
+    const tasa = num(t.tasa);
+    const nAulas = num(t.n_aulas);
+    // Un tramo sin tasa o sin aulas no describe nada: se descarta entero en
+    // vez de dibujar una franja vacía.
+    if (tasa == null || tasa <= 0 || nAulas == null || nAulas <= 0) continue;
+    out.push({
+      tasa,
+      n_aulas: Math.round(nAulas),
+      elegibles: Math.max(0, Math.round(num(t.elegibles) ?? 0)),
+      desde: Math.max(0, Math.round(num(t.desde) ?? 0)),
+      hasta: Math.max(0, Math.round(num(t.hasta) ?? 0)),
+    });
+  }
+  // De aulas chicas (rinden más) a grandes: el orden en que se lee la curva.
+  return out.sort((a, b) => b.tasa - a.tasa);
+}
+
 export type CalcMuestraTasaFacultad = {
   facultad: string;
   /** Tasa de efectividad de la facultad (0-1): Σ el·R·F / Σ el de su marco elegible. */
@@ -25,6 +59,13 @@ export type CalcMuestraTasaFacultad = {
    */
   rendimiento_mix: number | null;
   factor_residual: number | null;
+  /**
+   * El MIX, literal: cómo se reparten las aulas de esta facultad entre los
+   * tramos de rendimiento. Gonzalo, mirando el chip «derivada de su mix de
+   * tamaños»: «¿a qué se refiere con un mix de tamaños?». Con esto se puede
+   * dibujar en vez de describir. Vacío si el motor no lo publica.
+   */
+  mix_tramos: TramoMix[];
   /** true = lleva residual medido del histórico; false = derivada de su mix. */
   con_residual: boolean;
   /** Aulas aplicadas de la facultad en el histórico; null = sin base propia. */
@@ -64,6 +105,7 @@ export function normalizeCalcMuestraTasasFacultad(raw: unknown): CalcMuestraTasa
       tasa,
       rendimiento_mix: desgloseCuadra ? mix : null,
       factor_residual: desgloseCuadra ? residual : null,
+      mix_tramos: normalizeTramos(r.mix_tramos),
       n_aulas: nAulas != null ? Math.max(0, Math.round(nAulas)) : 0,
       elegibles: elegibles != null ? Math.max(0, Math.round(elegibles)) : 0,
       con_residual: r.con_residual === true,
