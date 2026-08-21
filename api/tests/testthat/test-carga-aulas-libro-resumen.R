@@ -173,3 +173,39 @@ test_that("sin base de control, las aulas efectivas NO son cero", {
   # El control: lo que SI se puede contar se cuenta.
   expect_equal(cortes$avance[["Encuestas efectivas recogidas"]], 17)
 })
+
+test_that("la tabla por facultad dice cuanto lleva recogido cada una", {
+  # «El calculo es por facultad; si necesitamos X alumnos por facultad tenemos
+  # que tener aulas que respondan a ese X». Sin esto habia que cruzar la portada
+  # a mano con otra hoja para saber cual facultad va corta.
+  cortes <- aulas_libro_cortes(
+    list(list(operational_code = "CH 1", sample_role = "titular",
+              faculty = "Letras", expected_valid = 20, eligible_n = 30),
+         list(operational_code = "CH 2", sample_role = "titular",
+              faculty = "Ciencias", expected_valid = 18, eligible_n = 30)),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 17),
+                  list(operational_code = "CH 2", effective_surveys = 6))
+  )
+  pf <- cortes$por_facultad
+  rownames(pf) <- pf$Facultad
+  # Cada facultad con LO SUYO: un reparto que asignara todo a la primera, o que
+  # repartiera el total en partes iguales, daria 23 y 11.5 aqui.
+  expect_equal(pf["Letras", "Recogidas"], 17)
+  expect_equal(pf["Ciencias", "Recogidas"], 6)
+  expect_identical(pf["Letras", "Avance"], "85 %")
+  expect_identical(pf["Ciencias", "Avance"], "33.3 %")
+})
+
+test_that("un libro nuevo no gana las columnas de recogido", {
+  cortes <- aulas_libro_cortes(list(.res_u("CH 1", 20)))
+  expect_false("Recogidas" %in% names(cortes$por_facultad))
+  expect_false("Avance" %in% names(cortes$por_facultad))
+})
+
+test_that("una facultad sin esperado no da 0 % de avance", {
+  cortes <- aulas_libro_cortes(
+    list(list(operational_code = "CH 1", sample_role = "titular", faculty = "Letras")),
+    partes = list(list(operational_code = "CH 1", effective_surveys = 4))
+  )
+  expect_identical(cortes$por_facultad[["Avance"]][[1]], "—")
+})

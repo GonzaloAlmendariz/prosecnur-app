@@ -26,6 +26,7 @@
 #' @export
 aulas_libro_cortes <- function(unidades, partes = list(), control = list()) {
   rol <- vapply(unidades, .calr_txt, character(1), "sample_role")
+  cod_u <- vapply(unidades, .calr_txt, character(1), "operational_code")
   fac <- vapply(unidades, .calr_txt, character(1), "faculty")
   fac[!nzchar(fac)] <- "Sin facultad"
   est <- vapply(unidades, function(u) {
@@ -71,6 +72,36 @@ aulas_libro_cortes <- function(unidades, partes = list(), control = list()) {
     Esperadas = vapply(claves, function(f) round(sum(meta[titular & fac == f & is.finite(meta)]), 1), numeric(1)),
     check.names = FALSE, stringsAsFactors = FALSE
   )
+  # **Y lo recogido, que es la pregunta que se le hace a esta tabla.**
+  #
+  # «El calculo es por facultad; si necesitamos X alumnos por facultad tenemos
+  # que tener aulas que respondan a ese X». Con solo el plan, la tabla decia
+  # cuanto se esperaba de cada facultad y nada de cuanto lleva: para saber cual
+  # va corta habia que cruzarla a mano con otra hoja.
+  #
+  # Las columnas solo aparecen si hay partes: en un libro nuevo serian dos
+  # columnas de ceros al lado de las que si dicen algo.
+  if (length(partes)) {
+    fac_de <- list()
+    for (k in seq_along(unidades)) fac_de[[cod_u[[k]]]] <- fac[[k]]
+    ef_fac <- stats::setNames(numeric(length(claves)), claves)
+    for (pt in partes) {
+      c1 <- .calr_txt(pt, "operational_code")
+      if (!nzchar(c1)) c1 <- .calr_txt(pt, "classroom_id")
+      f1 <- fac_de[[c1]]
+      e <- .calr_num(pt, "effective_surveys")
+      if (is.null(f1) || !is.finite(e)) next
+      if (!is.na(ef_fac[[f1]])) ef_fac[[f1]] <- ef_fac[[f1]] + e
+    }
+    por_facultad$Recogidas <- round(unname(ef_fac[por_facultad$Facultad]), 1)
+    # Un 0 de 0 no es 0 %: una facultad sin esperado no tiene avance que dar.
+    por_facultad$Avance <- vapply(seq_len(nrow(por_facultad)), function(i) {
+      esp <- por_facultad$Esperadas[[i]]
+      if (!is.finite(esp) || esp <= 0) return("—")
+      paste0(round(100 * por_facultad$Recogidas[[i]] / esp, 1), " %")
+    }, character(1))
+  }
+
   # Por tamaño del operativo y no alfabético: la portada ordena por dónde hay
   # más trabajo, que es lo que se mira primero.
   por_facultad <- por_facultad[order(-por_facultad$Titulares, por_facultad$Facultad), , drop = FALSE]
@@ -197,14 +228,27 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
 
   fila <- fila + 1L
   openxlsx::writeData(wb, hoja, "Por facultad", startCol = 1, startRow = fila)
-  openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:6, gridExpand = TRUE)
+  # El ancho de la tabla se lee de la tabla: gana dos columnas cuando hay
+  # avance, y un `1:6` fijo dejaba la cabecera a medio teñir.
+  n_col_fac <- ncol(cortes$por_facultad)
+  openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = seq_len(n_col_fac), gridExpand = TRUE)
   fila <- fila + 1L
   openxlsx::writeData(wb, hoja, cortes$por_facultad, startCol = 1, startRow = fila)
-  openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:6, gridExpand = TRUE)
+  openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = seq_len(n_col_fac), gridExpand = TRUE)
   n_fac <- nrow(cortes$por_facultad)
   if (n_fac) {
-    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n_fac), cols = 2:6,
+    # `Avance` es texto ya formado y va a la derecha como las cifras, pero sin
+    # formato numerico: un «—» con `#,##0.#` encima no se rompe, pero declarar
+    # numero lo que no lo es invita al proximo error de escala.
+    numericas <- setdiff(2:n_col_fac, which(names(cortes$por_facultad) == "Avance"))
+    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + n_fac), cols = numericas,
                        gridExpand = TRUE, stack = TRUE)
+    col_av <- which(names(cortes$por_facultad) == "Avance")
+    if (length(col_av)) {
+      openxlsx::addStyle(wb, hoja, openxlsx::createStyle(halign = "right"),
+                         rows = (fila + 1L):(fila + n_fac), cols = col_av,
+                         gridExpand = TRUE, stack = TRUE)
+    }
   }
   fila <- fila + n_fac + 2L
 
@@ -220,7 +264,7 @@ aulas_libro_escribir_resumen <- function(wb, unidades, hoja = "Resumen",
   }
 
   openxlsx::setColWidths(wb, hoja, cols = 1, widths = 34)
-  openxlsx::setColWidths(wb, hoja, cols = 2:6, widths = 13)
+  openxlsx::setColWidths(wb, hoja, cols = 2:8, widths = 13)
   # **La portada tiene que caber a lo ancho.**
   #
   # Convertida a PDF, la tabla por facultad se partia en dos paginas: «Elegibles»
