@@ -48,6 +48,11 @@ export type PorQueEsaMeta = {
   meta: number;
   /** Si `p_aplicada` es uno de los factores de esta meta o sólo un dato al lado. */
   entraPAplicada: boolean;
+  /**
+   * La tasa única de los estudios sin histórico. Cuando la meta sale de ella,
+   * `rendimiento` no es un factor y no se enseña.
+   */
+  tau: number | null;
   /** Los tipos de docente del aula, ya separados. */
   docentes: string[];
   /** `true` si el aula tiene más de un docente: la tasa es la del más restrictivo. */
@@ -74,9 +79,12 @@ export function porQueEsaMeta(fila: Fila): PorQueEsaMeta | null {
   const elegibles = num(fila.eligible_n);
   const pAplicada = num(fila.p_aplicada_ref);
   const rendimiento = num(fila.rendimiento_ref);
+  const tau = num(fila.efectividad_tau);
   const meta = num(fila.expected_valid);
-  if (elegibles === null || rendimiento === null || meta === null) return null;
-  if (elegibles <= 0 || rendimiento <= 0) return null;
+  if (elegibles === null || meta === null || elegibles <= 0) return null;
+  // Un estudio sin histórico no trae rendimiento: su meta sale de la tasa
+  // única. Exigirlo dejaría esas aulas sin explicación.
+  if ((rendimiento === null || rendimiento <= 0) && (tau === null || tau <= 0)) return null;
   const docentes = tiposDeDocente(fila.teacher_type);
   const factorFacultad = num(fila.factor_facultad);
 
@@ -95,13 +103,20 @@ export function porQueEsaMeta(fila: Fila): PorQueEsaMeta | null {
   // —elegibles × rendimiento × factor de facultad— va primero por ser la
   // vigente; la anterior, con `p_aplicada`, se mantiene para que los planes ya
   // guardados sigan explicándose. Si ninguna cuadra, no se explica.
-  const base = elegibles * rendimiento * (factorFacultad ?? 1);
-  const candidatas: Array<{ valor: number; entraPAplicada: boolean }> = [
-    { valor: base, entraPAplicada: false },
-    ...(pAplicada !== null && pAplicada > 0
-      ? [{ valor: base * pAplicada, entraPAplicada: true }]
+  const base = rendimiento !== null && rendimiento > 0
+    ? elegibles * rendimiento * (factorFacultad ?? 1)
+    : null;
+  const candidatas: Array<{ valor: number; entraPAplicada: boolean; porTau: boolean }> = [
+    ...(base !== null ? [{ valor: base, entraPAplicada: false, porTau: false }] : []),
+    ...(base !== null && pAplicada !== null && pAplicada > 0
+      ? [{ valor: base * pAplicada, entraPAplicada: true, porTau: false }]
+      : []),
+    // Estudios sin histórico: una tasa única, sin tramo ni factor de facultad.
+    ...(tau !== null && tau > 0
+      ? [{ valor: elegibles * tau, entraPAplicada: false, porTau: true }]
       : []),
   ];
+  // La tolerancia cubre de sobra el redondeo del motor a un decimal (±0,05).
   const cuadra = candidatas.find((c) => Math.abs(c.valor - meta) <= 0.15);
   if (!cuadra) return null;
 
@@ -109,7 +124,8 @@ export function porQueEsaMeta(fila: Fila): PorQueEsaMeta | null {
     elegibles,
     pAplicada: cuadra.entraPAplicada ? pAplicada : null,
     entraPAplicada: cuadra.entraPAplicada,
-    rendimiento,
+    tau: cuadra.porTau ? tau : null,
+    rendimiento: cuadra.porTau ? 0 : (rendimiento ?? 0),
     factorFacultad,
     facultadK: num(fila.facultad_k),
     fuente: String(fila.efectividad_fuente ?? "").trim(),
