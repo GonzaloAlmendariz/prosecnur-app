@@ -43,9 +43,23 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
 }) {
   const r = useMemo(() => loQueFaltaParaCerrar(filas), [filas]);
 
+  if (!r.evaluadas) {
+    // «Ninguna se quedó corta» con CERO evaluadas es cierto por vacuidad y se
+    // lee como la buena noticia: el libro llegó con 190 filas sin un solo
+    // veredicto y el panel anunciaba que todas alcanzaron sus umbrales. Son dos
+    // estados con distinta acción —celebrar o ir a llenar la hoja—.
+    return (
+      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+        El libro todavía no evalúa ninguna aula, así que no se puede decir
+        cuáles se quedaron cortas. El veredicto sale de las dos columnas de
+        umbral de «Base de control».
+      </p>
+    );
+  }
+
   if (!r.noEfectivas) {
-    // No es un vacío: es la mejor noticia del operativo. Decirlo como «sin
-    // datos» la haría parecer un fallo del panel.
+    // AQUI si es la mejor noticia del operativo —hay aulas evaluadas y todas
+    // llegaron—. Decirlo como «sin datos» la haría parecer un fallo del panel.
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         Ninguna aula evaluada se quedó corta: las que el libro evalúa alcanzaron
