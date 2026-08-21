@@ -208,7 +208,16 @@ export function VariableMapCard({
         )}
       </div>
 
-      <div className="cmv2-defi-var-detail" data-type={valueType} data-qa-geometry-content>
+      {/*
+        * Sin `data-qa-geometry-content`. El atributo declara «esto es el
+        * contenido del miembro» y el gate visual mide contra ÉL: marcado sólo
+        * aquí, los otros cuatro hijos de la tarjeta —cabecera, tipo, selector y
+        * confirmación— pasaban a contar como espacio vacío. Medido: el gate
+        * reportaba 21,14 px muertos por tarjeta en las 21 de la pestaña; el
+        * sobrante real es 1,04. `detail` se marcó por su cardinalidad, pero el
+        * atributo gobierna las dos cosas y aquí empeoraba la medición.
+        */}
+      <div className="cmv2-defi-var-detail" data-type={valueType}>
         {valueType === "categorica" && (
           categories.length > 0 ? (
             <div className="cmv2-defi-var-cats" aria-label={`Categorías observadas de ${base.label}`}>

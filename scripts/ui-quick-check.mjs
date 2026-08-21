@@ -1945,9 +1945,20 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         const cardinality = explicitContent.length > 0
           ? explicitContent.reduce((count, region) => count + visibleChildren(region).length, 0)
           : contentNodes.length;
+        // Un miembro cuyo contenido es TEXTO SUELTO no tiene hijos elemento, y
+        // el fallback al borde superior le atribuía como vacío todo su interior:
+        // un `<p role="status">` de dos líneas se reportaba con 13 px muertos
+        // que no existen. El texto se mide con un Range, que sí lo ve; sólo si
+        // tampoco hay texto se cae al borde.
+        const textoBottom = () => {
+          const range = document.createRange();
+          range.selectNodeContents(member);
+          const rects = Array.from(range.getClientRects());
+          return rects.length > 0 ? Math.max(...rects.map((r) => r.bottom)) : null;
+        };
         const contentBottom = contentNodes.length > 0
           ? Math.max(...contentNodes.map((node) => node.getBoundingClientRect().bottom))
-          : rect.top + Number.parseFloat(style.paddingTop || "0");
+          : (textoBottom() ?? rect.top + Number.parseFloat(style.paddingTop || "0"));
         const paddingBottom = Number.parseFloat(style.paddingBottom || "0") || 0;
         const ownedCapacity = member.getAttribute("data-qa-geometry-capacity") === "owned"
           || Boolean(member.querySelector("[data-qa-geometry-capacity='owned']"));
