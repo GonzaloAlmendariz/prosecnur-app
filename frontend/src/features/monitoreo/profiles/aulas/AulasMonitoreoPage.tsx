@@ -51,6 +51,7 @@ import { AulasPerfilPorFacultad } from "./AulasPerfilPorFacultad";
 import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
+import { avisoLibroImportado } from "./avisoLibroImportado";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
@@ -1965,12 +1966,9 @@ export default function AulasMonitoreoPage() {
       const subido = await apiUpload(archivo, "aulas_libro");
       const res = await apiMonitoreoAulasImportarLibro({ file_id: subido.file_id });
       setState(res.state);
-      // Lo que NO venía se dice, en vez de mostrar ceros silenciosos.
-      if (res.hojas_ausentes?.length) {
-        // Y dice dónde queda escrito: la tarjeta del libro en Fuentes lo
-        // conserva, así que el aviso no es el único registro de que faltó algo.
-        setAviso(`El libro no traía ${res.hojas_ausentes.join(" ni ")}. Lo demás se leyó; queda anotado en Fuentes.`);
-      }
+      // El resumen entero, no solo lo que faltaba: quien importa necesita saber
+      // que entro, y que columnas con datos NO se leyeron.
+      setAviso(avisoLibroImportado(res));
       await loadView(seccionActiva, true, true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo leer el libro.");

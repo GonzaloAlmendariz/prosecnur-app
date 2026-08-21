@@ -4499,6 +4499,9 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
     ok: true;
     resumen: {
       unidades: number; titulares: number; contactadas: number;
+      /** El libro distingue titular de reserva encadenada; el backend lo
+       *  contaba y el tipo no lo declaraba, asi que la cifra no llegaba. */
+      reservas: number;
       partes_de_campo: number; filas_de_control: number;
     };
     hojas_ausentes: string[];
