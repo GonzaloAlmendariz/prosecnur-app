@@ -577,6 +577,16 @@
   Filter(function(item) nzchar(item$variable) && length(item$values), out)
 }
 
+# Concordancia en un texto que lee el cliente: «encontraron 1 casos» delata que
+# la frase se armó con un sprintf y nadie la leyó.
+.vmr_casos_frase <- function(n) {
+  n <- suppressWarnings(as.integer(n))[1L]
+  if (is.na(n)) return("no encontraron casos")
+  if (n == 0L) return("no encontraron casos")
+  if (n == 1L) return("encontraron 1 caso")
+  sprintf("encontraron %s casos", format(n, big.mark = ",", scientific = FALSE, trim = TRUE))
+}
+
 .vmr_universe_count <- function(value, fallback = 0L) {
   out <- suppressWarnings(as.integer(value %||% fallback))[1L]
   if (is.na(out)) as.integer(fallback) else out
@@ -1921,7 +1931,7 @@ validation_methodology_report_r <- function(model, path) {
   } else {
     paste(
       "prepare_validation_universe <- function(data) {",
-      "  warning('No se registró un filtro de encuestas de prueba en este plan.', call. = FALSE)",
+      "  # El universo del estudio es la base recibida completa.",
       "  data",
       "}",
       sep = "\n"
@@ -1962,13 +1972,15 @@ validation_methodology_report_r <- function(model, path) {
     )
     preparation_sentences <- .vmr_universe_preparation_sentences(universe)
     if (!isTRUE(universe$applied)) {
-      preparation_sentences <- c(preparation_sentences, "No se registró un filtro de encuestas de prueba.")
+      if (!length(preparation_sentences)) {
+        preparation_sentences <- "El universo del estudio es la base recibida completa."
+      }
     }
     if (length(preparation_sentences)) {
       universe_summary <- c(universe_summary, unlist(lapply(preparation_sentences, .vmr_script_comment), use.names = FALSE))
     }
   } else {
-    universe_summary <- c(universe_summary, "# No se registró un filtro de encuestas de prueba.")
+    universe_summary <- c(universe_summary, "# El universo del estudio es la base recibida completa.")
   }
   universe_summary <- c(
     universe_summary,
@@ -2397,11 +2409,11 @@ validation_methodology_report_pdf <- function(model, path) {
   pending_controls <- 0
   result_intro <- if (isTRUE(model$evaluation_available)) {
     sprintf(
-      "Se aplicaron %s reglas sobre %s encuestas. En conjunto, produjeron %s evaluaciones y encontraron %s casos.",
+      "Se aplicaron %s reglas sobre %s encuestas. En conjunto, produjeron %s evaluaciones y %s.",
       fmt(total_controls),
       fmt(universe$included %||% NA_real_),
       fmt(s$reviewed_total),
-      fmt(s$findings_total)
+      .vmr_casos_frase(s$findings_total)
     )
   } else {
     "Las reglas aún no se han ejecutado sobre la base."
@@ -2563,7 +2575,9 @@ validation_methodology_report_pdf <- function(model, path) {
       }
       preparation_details <- .vmr_universe_preparation_sentences(universe)
       if (!isTRUE(universe$applied)) {
-        preparation_details <- c(preparation_details, "No se registró un filtro de encuestas de prueba.")
+        if (!length(preparation_details)) {
+          preparation_details <- "El universo del estudio es la base recibida completa."
+        }
       }
       if (grepl("identificadores", .vmr_text(universe$formula_kind %||% ""), fixed = TRUE)) {
         n_ids <- length(as.character(unlist(universe$final_case_ids %||% character(0), use.names = FALSE)))
@@ -2905,7 +2919,7 @@ validation_methodology_report_pdf <- function(model, path) {
   closing_headline <- if (isTRUE(model$evaluation_available)) sprintf("%s reglas aplicadas sobre %s encuestas", fmt(evaluated_controls), fmt(universe$included %||% NA_real_)) else "Las reglas aún no se han ejecutado"
   grid::grid.text(closing_headline, x = 0.07, y = 0.755, just = "left", gp = grid::gpar(col = theme$ink, fontsize = 21, fontface = "bold"))
   closing_text <- if (isTRUE(model$evaluation_available)) {
-    sprintf("Las reglas aplicadas encontraron %s casos para revisar.", fmt(s$findings_total))
+    sprintf("Las reglas aplicadas %s para revisar.", .vmr_casos_frase(s$findings_total))
   } else {
     "El informe contiene las reglas y sus fórmulas; falta ejecutarlas sobre la base."
   }
