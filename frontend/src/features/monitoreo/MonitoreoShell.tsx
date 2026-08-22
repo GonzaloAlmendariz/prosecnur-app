@@ -2,12 +2,13 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import type { ComponentType, CSSProperties } from "react";
 import { AlertCircle } from "lucide-react";
 import { LoadingBlock } from "../../components/States";
-import { apiMonitoreoConfig, apiMonitoreoState, type MonitoreoState } from "../../api/client";
+import { apiMonitoreoConfig, apiMonitoreoState, apiProjectOverview, type MonitoreoState } from "../../api/client";
 import { MODULE_TONES } from "../../lib/modules";
 import { preloadMonitoreoFamily, normalizeMonitoreoFamily } from "./profiles/registry";
 import type { MonitoreoFamilyId, MonitoreoFamilyModule } from "./profiles/types";
 import { MonitoreoModeChoice } from "./MonitoreoModeChoice";
 import type { MonitoreoModo, MonitoreoModoDefinicion } from "./core/monitoreoRegistry";
+import { sugerirModoDeMonitoreo, type SugerenciaDeModo } from "./core/sugerenciaDeModo";
 import "./MonitoreoShell.css";
 
 function familyFromState(state: MonitoreoState | null): MonitoreoFamilyId {
@@ -40,6 +41,7 @@ export default function MonitoreoShell() {
   const [Page, setPage] = useState<ComponentType | null>(null);
   const [error, setError] = useState("");
   const [busyFamily, setBusyFamily] = useState<MonitoreoModo | null>(null);
+  const [sugerencia, setSugerencia] = useState<SugerenciaDeModo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +55,19 @@ export default function MonitoreoShell() {
       .catch((e: unknown) => {
         if (!cancelled) setError((e as Error).message);
       });
+    // El modo que corresponde a lo que el proyecto ya tiene. Va aparte del
+    // estado de Monitoreo a propósito: si el overview falla, la elección sigue
+    // funcionando sin marca. Una sugerencia nunca puede bloquear la pantalla
+    // que sugiere.
+    apiProjectOverview()
+      .then((overview) => {
+        if (cancelled) return;
+        setSugerencia(sugerirModoDeMonitoreo(overview?.facts));
+      })
+      .catch(() => {
+        if (!cancelled) setSugerencia(null);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -134,6 +149,7 @@ export default function MonitoreoShell() {
       <MonitoreoModeChoice
         busyFamily={busyFamily}
         error={error}
+        sugerencia={sugerencia}
         onChoose={(mode) => void chooseMode(mode)}
       />
     );
