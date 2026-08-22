@@ -606,3 +606,38 @@ parsear.**
 test afirmaba que la clave seguía presente y fallaba con razón. Para el cliente da
 igual —ausente y `null` se leen igual en JS— pero el test tenía que afirmarlo como
 es, no como me convenía.
+
+
+## El aviso, por fin en pantalla — y el eslabón que lo comía
+
+**Verificado en la app**: el resumen del plan muestra el aviso completo, con las
+dos fechas, el coste de rehacer y el botón.
+
+Llegar ahí costó tres diagnósticos, y sólo el tercero era correcto:
+
+| Hipótesis | Veredicto |
+|---|---|
+| El `.pulso` no restaura la selección | **falsa** — ese código sólo subroga identificadores |
+| El veredicto sólo viajaba en una de dieciséis salidas | **cierta pero insuficiente** — reparado, y el aviso seguía sin salir |
+| **El normalizador del front se lo comía** | **la causa** |
+
+`normalizeCollectionStatePayload` reconstruye el payload **campo por campo**, así
+que cualquier campo nuevo del backend se pierde en silencio si no se añade ahí.
+El JSON llegaba correcto —comprobado con `curl` contra la API, con
+`"desfasado":true`— y la pantalla no lo veía, con el backend, el endpoint y el
+componente los tres bien.
+
+Es el patrón conocido de la casa: **una lista cerrada se traga lo que no
+reconoce**. Y su rasgo peor es que no falla: no hay error, no hay aviso, el campo
+simplemente no está.
+
+Contrato: 4 tests en el normalizador, incluido que un `desfasado: "true"` de
+cadena **no** se lee como alarma —una alarma que dice que el plan está viejo sin
+saberlo es peor que ninguna—.
+
+### La lección de método
+
+Los tests del componente pasaban porque le pasaban el payload **a mano**. Los del
+backend pasaban porque miraban el backend. **Ningún test cruzaba la frontera**, y
+el defecto vivía exactamente ahí. Lo cazó `curl` contra la API real comparado con
+lo que la pantalla mostraba: la única prueba que atravesaba las dos capas.
