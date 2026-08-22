@@ -134,7 +134,10 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
       nivel: "danger",
       titulo: `Representatividad ${Math.round(score)}/100: por debajo del mínimo defendible`,
       detalle: "El score global de la selección indica que la muestra se aleja demasiado de la estructura del marco.",
-      accion: "Compara métodos y vuelve a generar la selección antes de defender el diseño.",
+      // El «y» hacía obligatorio comparar, que desde el 2026-08-22 ya no lo es
+      // para sortear (commit f2623619). Se nombra lo que de verdad hay que
+      // hacer: probar otro método, que se puede con o sin comparación previa.
+      accion: "Prueba otro método o vuelve a sortear antes de defender el diseño.",
     });
   } else if (score != null && score < UMBRAL_SCORE_OBSERVACION) {
     observaciones.push({

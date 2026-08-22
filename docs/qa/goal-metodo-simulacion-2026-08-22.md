@@ -749,3 +749,38 @@ La decisión se extrajo a `pasoMetodoElegido(metodoVigenteLabel, comparisonReady
 y el contrato prueba la función: 4 tests, y el mutante que vuelve a exigir
 comparación mata 2. **Una decisión que no se puede observar, se aísla para poder
 verificarla.**
+
+
+## El quinto juego de nombres, el del motor, cerrado
+
+`.cm_aulas_method_label` en `api/R/calc_muestra_aulas.R:3413` emitía su propio
+juego —«Selección proporcional al tamaño», «Balanceada y distribuida»…—. La UI ya
+no lo consumía desde `07d90ab1`, pero **el stage de los jobs sí lo compone**:
+durante un sorteo el usuario leía «Selección proporcional al tamaño: corrida 8 de
+17», un nombre que no existe en ninguna pantalla.
+
+Los seis labels alineados con `UNIVERSITY_AULAS_SELECTOR_OPTIONS`. Ningún test R
+dependía de esos textos (`grep method_label api/tests` sale vacío); el único
+consumidor con fixture era `jobPolling.test.ts`, actualizado.
+
+Verificado llamando al helper con el paquete cargado:
+
+```
+sistematico: Sistemático por facultad
+pool: Optimizar repetidos
+cube: Balance por cuotas y tamaño
+```
+
+**Para verlo en la app hace falta relanzar la API**, y para que lo vea el worker
+de jobs, `R CMD INSTALL`.
+
+## Copy que quedó exigiendo comparar
+
+Barrido tras `f2623619`: de seis textos que nombran comparar, cuatro ya ofrecían
+alternativa. Los dos que no:
+
+- Salud, representatividad baja: «Compara métodos **y** vuelve a generar la
+  selección» → «Prueba otro método o vuelve a sortear».
+- Vacío de riesgos: «Compara métodos … para evaluar riesgos» → «Compara métodos
+  **o sortea con el que tengas configurado**: los riesgos se evalúan sobre una
+  corrida hecha con el objetivo y el marco vigentes».

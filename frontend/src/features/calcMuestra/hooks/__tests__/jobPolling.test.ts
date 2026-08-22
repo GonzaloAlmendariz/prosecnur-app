@@ -320,7 +320,7 @@ describe("el tiempo restante dice DE QUÉ es", () => {
   it("una fase de etapa NO promete el final del trabajo", () => {
     const texto = cmTextoProgreso({
       label: "Comparando métodos",
-      stage: "Selección proporcional al tamaño: corrida 8 de 17",
+      stage: "Sistemático por facultad: corrida 8 de 17",
       elapsedMs: 42_000,
       fraccion: 8 / 17,
       fraccionEsDelTotal: false,
