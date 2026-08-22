@@ -91,6 +91,7 @@ errores_registrados <- function() {
     "E_AULAS_LIBRO_BAD_FILE_TYPE",                           "router_monitoreo.R",                "400",
     "E_AULAS_LIBRO_SIN_HOJAS",                               "carga_aulas_libro.R",               "422",
     "E_AULAS_LIBRO_SIN_PLAN",                                "carga_aulas_libro_generar.R",       "409",
+    "E_COLLECTION_SIN_ORIGEN",                               "collection_engine.R",              "409",
     "E_AULAS_LIBRO_SIN_ORIGEN",                              "router_monitoreo.R",                "400",
     "E_AULAS_SIN_PLAN",                                      "monitoreo_aulas_reemplazos.R",      "409",
     "E_AULA_NO_ENCONTRADA",                                  "monitoreo_aulas_reemplazos.R",      "404",
