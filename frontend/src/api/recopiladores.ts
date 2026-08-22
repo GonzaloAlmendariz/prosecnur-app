@@ -118,6 +118,18 @@ export type CollectionStatePayload = CollectionState & {
   noop?: boolean;
   seeded?: boolean;
   seed_available: boolean;
+  /**
+   * El plan congelado contra el sorteo vigente.
+   *
+   * El plan se siembra una vez y re-sortear no lo regenera: un proyecto puede
+   * tener materiales de una corrida y una selección de otra. Ausente cuando no
+   * hay con qué comparar; el backend nunca inventa un veredicto.
+   */
+  source_vigente?: {
+    plan_run_id: string;
+    selection_run_id: string;
+    desfasado: boolean;
+  } | null;
   state: CollectionState;
   handoff?: CollectionHandoffReceipt | null;
 };

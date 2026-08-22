@@ -53,7 +53,7 @@ caída es una visita perdida y un reemplazo que hay que coordinar.
 |---|---|---|---|
 | B1 | Export de aulas → Monitoreo | ☑ identificadores completos y únicos |  |
 | B2 | Export → fichas QR | ☑ **la cadena está sana; el plan guardado NO** |  |
-| B3 | Ida y vuelta | sortear, exportar, leer: ¿coincide el conteo? | ☐ |
+| B3 | Ida y vuelta | ☑ el desfase se detecta y se avisa |  |
 | B4 | Reemplazos en el export | ¿viajan las reservas y su orden de uso? | ☐ |
 
 ### Serie C — El sheets de monitoreo
@@ -387,3 +387,32 @@ no inventa ninguna.
 avisar cuando difieren. El front no recibe hoy el `selection_run_id`, así que
 exige ampliar el payload de recopiladores. Con eso, la pantalla podría decir «este
 plan es de otro sorteo» en vez de dejar que el analista compare fechas a ojo.
+
+
+---
+
+## B3 · El desfase ahora se detecta solo
+
+B2 dejó el diagnóstico y una mejora a medias: la pantalla mostraba la fecha del
+sorteo de origen, pero **comparar seguía siendo cosa del analista**. Ahora lo hace
+el backend, que es quien tiene los dos datos.
+
+`.collection_source_vigente(s, state)` compara el `run_id` del plan con el
+`selection_run_id` de la selección vigente y devuelve
+`{ plan_run_id, selection_run_id, desfasado }`. **Devuelve `NULL` cuando no hay con
+qué comparar** —un proyecto que aún no ha sorteado— en vez de declarar un desfase
+que nadie puede evaluar.
+
+En la pantalla, cuando difieren:
+
+> Este plan se armó con el **sorteo del 1 ago 2026, 21:12**, y la selección
+> vigente es **otra** (del 21 ago 2026, 16:09). Los materiales que se generen
+> ahora llevarán las aulas del plan, no las del sorteo actual.
+
+**No dice «error»**: el plan está congelado a propósito, y congelarlo es correcto
+para un artefacto que ya fue a imprenta. Lo que no puede es no decirse.
+
+Verificación: 5 tests en R —incluido que sin selección vigente **no inventa un
+veredicto**, y que sin plan ni selección devuelve `NULL` en vez de un objeto
+vacío— y 2 en el front, renderizando el aviso con datos de las dos corridas
+reales.

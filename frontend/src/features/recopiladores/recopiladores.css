@@ -2,3 +2,18 @@
  * Compatibility marker only. Recopiladores styles are now section-owned in
  * ./styles/ and imported by their components; new rules must not return here.
  */
+
+
+/* El plan viene de un sorteo distinto del vigente: los materiales que se generen
+   llevaran las aulas del plan. No es un error del plan —esta congelado a
+   proposito— pero callarlo hace que las fichas salgan con aulas de otra corrida. */
+.rec-plan-desfase {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  border: 1px solid var(--pulso-warn-border, var(--pulso-border));
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-surface, var(--pulso-surface-2));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text);
+}

@@ -89,6 +89,9 @@ export function PlanSection({ payload, onState }: Props) {
   const [requestedPage, setRequestedPage] = useState(0);
   const [error, setError] = useState("");
   const plan = payload?.state.plan ?? null;
+  // El backend compara el run_id del plan con el de la selección vigente; aquí
+  // sólo se pinta su veredicto. Ausente = no hay con qué comparar.
+  const desfase = payload?.source_vigente?.desfasado ? payload.source_vigente : null;
 
   const seed = async () => {
     setSeeding(true);
@@ -152,6 +155,14 @@ export function PlanSection({ payload, onState }: Props) {
             </dd>
           </div>
         </dl>
+        {desfase ? (
+          <p className="rec-plan-desfase">
+            Este plan se armó con el <b>sorteo del {fechaDeCorrida(desfase.plan_run_id) || "una corrida anterior"}</b>,
+            y la selección vigente es <b>otra</b>{fechaDeCorrida(desfase.selection_run_id)
+              ? <> (del {fechaDeCorrida(desfase.selection_run_id)})</> : null}.
+            Los materiales que se generen ahora llevarán las aulas del plan, no las del sorteo actual.
+          </p>
+        ) : null}
       </Panel>
       <Panel
         className="rec-data-card"
