@@ -1443,3 +1443,30 @@ atado a la redacción. Afinado a `"plan completo"`.
 **Es el mismo caso que «paso k»**, y esta vez el fallo previo fue mío: busqué
 `method_label` en los tests antes de cambiarlo, pero no busqué el texto de la
 nota. La comprobación vale cuando se hace para **cada** cadena que se toca.
+
+
+## El worker de jobs va con el paquete instalado, no con el fuente
+
+Comprobado sobre `/Users/gonzaloalmendariz/Library/R/arm64/4.5/library/prosecnurapp`:
+
+| Cambio de esta jornada | ¿está en el instalado? |
+|---|---|
+| Nombres de método (`.cm_aulas_method_label`) | **sí** |
+| Explicaciones sin jerga (`.cm_aulas_method_explanation`) | **sí** |
+| Nota de la simulación («titulares y reemplazos») | **NO**, sigue con «olas» |
+
+La asimetría dice que el paquete se reinstaló en algún punto de la jornada, entre
+unos cambios y otros. Efecto práctico: **una corrida lanzada como job seguiría
+emitiendo «plan completo de olas»** hasta que se reinstale, porque el worker
+`callr` resuelve las funciones contra el paquete instalado.
+
+**No se ejecuta aquí**: `R CMD INSTALL` toca la librería de R del usuario con la
+app corriendo en el 8787. El comando, para cuando convenga:
+
+```
+R CMD INSTALL --no-docs --library="$R_LIBS_USER" api
+```
+
+Sin él, los tres cambios de R de hoy están bien en el fuente, en los tests y en
+la vía síncrona; sólo la nota de la simulación se ve vieja si la corrida va por
+job.
