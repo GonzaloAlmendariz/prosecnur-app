@@ -13,6 +13,32 @@ export function classroomMethodLabel(methodId: string) {
   return UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === methodId)?.label ?? methodId;
 }
 
+/**
+ * Términos que un texto del motor no puede traer a la pantalla.
+ *
+ * Las corridas guardadas conservan el texto con el que se generaron —correcto
+ * para un artefacto auditable—, pero eso hace que un `.pulso` viejo muestre la
+ * explicación con jerga junto a la tarjeta que ya la tiene glosada. Medido en
+ * HSVG2026 el 2026-08-22: el panel decía «reduce mejor el SOLAPE» a 300 px de la
+ * tarjeta que dice «se queda con la selección donde menos estudiantes se
+ * repiten». Dos explicaciones del mismo método en la misma pantalla.
+ */
+const JERGA_DEL_MOTOR = /\bsolape\b|\bestratos?\b|post[ -]hoc|\bPPS\b|\bcube\b|\bpivotal\b/i;
+
+/**
+ * La razón que se muestra para un método: la del motor si está limpia, la
+ * canónica si trae jerga.
+ *
+ * No se descarta la del motor sin más —puede llevar la razón concreta de SU
+ * corrida, que el front no conoce—; se descarta sólo cuando trae términos que la
+ * UI no admite en ninguna otra superficie.
+ */
+export function classroomMethodReasonVisible(methodId: string, razonDelMotor?: string | null) {
+  const delMotor = String(razonDelMotor ?? "").trim();
+  if (delMotor && !JERGA_DEL_MOTOR.test(delMotor)) return delMotor;
+  return classroomMethodReason(methodId);
+}
+
 export function classroomMethodReason(methodId: string) {
   return UNIVERSITY_AULAS_SELECTOR_OPTIONS.find((option) => option.id === methodId)?.detail ??
     "Método auditable registrado en la bitácora metodológica.";

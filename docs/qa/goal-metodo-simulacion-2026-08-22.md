@@ -1364,3 +1364,30 @@ tienen conexiones activas, incluido el 5174 que sirve el navegador de trabajo.
 El script nunca toca el 8787, que es del usuario.
 
 Entorno verificado después: Método sigue respondiendo en 5174, 1,88 pantallas.
+
+
+## Una corrida guardada traía la jerga de vuelta
+
+El `.pulso` conserva el texto con el que se generó la corrida, que es lo correcto
+para un artefacto auditable. Pero el efecto visible era éste, en la misma
+pantalla y a 300 px de distancia:
+
+| Superficie | Decía |
+|---|---|
+| Panel «Recomendado por el comparador vigente» | «reduce mejor el **solape**» (guardado, motor viejo) |
+| Tarjeta del mismo método | «Sortea 500 muestras candidatas válidas, las audita…» |
+
+Dos explicaciones del mismo método, una con jerga. `classroomMethodReasonVisible`
+respeta la razón del motor **si está limpia** —puede llevar la razón concreta de
+SU corrida, que el front no conoce— y la sustituye por la canónica si trae
+términos que la UI no admite en ningún otro sitio. 5 tests.
+
+### Y otra vez reparé donde miré, no donde vive
+
+Conecté el selector en las **dos** superficies que encontré con `grep
+operational_reason`… y la pantalla siguió diciendo «solape», porque el panel de
+Método no lee ese campo directamente: lo lee `classroomMethodStoriesModel` para
+componer `decision.reason`. Fue la **cuarta vez** en la jornada.
+
+Lo que lo destapó no fue el grep sino **volver a mirar la pantalla después de
+reparar**. Verificado ahora: cero jerga en el panel y cero en toda la pestaña.

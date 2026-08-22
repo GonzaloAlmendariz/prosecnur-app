@@ -12,6 +12,7 @@ import { classroomMetricValue } from "../shared/frame";
 import {
   classroomMethodLabel,
   classroomMethodReason,
+  classroomMethodReasonVisible,
   classroomNumberText,
   classroomScore,
   selectorFieldLabelTitulo,
@@ -372,7 +373,7 @@ export function MethodSummaryCard({
       <div>
         <small>{active ? "Recomendado" : method.method_id}</small>
         <strong>{classroomMethodLabel(String(method.method_id ?? "")) || method.method_label}</strong>
-        <span>{method.operational_reason ?? classroomMethodReason(String(method.method_id))}</span>
+        <span>{classroomMethodReasonVisible(String(method.method_id), method.operational_reason)}</span>
       </div>
       <div className="cmv2-classroom-quality-metrics">
         <span><strong>{classroomScore(method.representativity_score ?? method.overall_score)}</strong> representatividad</span>
@@ -407,7 +408,7 @@ export function ClassroomRecommendation({
     <div className="cmv2-classroom-reco-panel is-ready">
       <small>Recomendación del laboratorio</small>
       <strong>{classroomMethodLabel(comparison.recommendation.method_id ?? "") || comparison.recommendation.method_label}</strong>
-      <span>{comparison.recommendation.operational_reason}</span>
+      <span>{classroomMethodReasonVisible(String(comparison.recommendation.method_id ?? ""), comparison.recommendation.operational_reason)}</span>
       <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
       <em>{comparison.recommendation.methodological_reason}</em>
     </div>
