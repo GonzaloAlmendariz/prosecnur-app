@@ -128,12 +128,48 @@ imperfecto elige la muestra que mejor engaña a la métrica.
 - **El tab en segundo plano estrangula los timers**: ponerlo al frente antes de
   recorrer direcciones.
 
-## Pendiente serio, sin diagnosticar
+## RESUELTO — «el sorteo tarda 6 minutos desde la app y 22,8 s desde R»
 
-**El sorteo tarda más de 6 minutos desde la app y 22,8 s llamando al mismo motor
-desde R.** Las configs son idénticas y `simulation_runs` es 0 en ambas, así que
-no es lo que se pide sino el entorno del job. Hace la app inusable para iterar y
-bloquea cualquier prueba de extremo a extremo.
+**El diagnóstico anotado era falso.** Decía: «las configs son idénticas y
+`simulation_runs` es 0 en ambas, así que no es lo que se pide sino el entorno del
+job». Las configs sí eran idénticas; **el `method_id` que viajaba, no.**
+
+El botón llamaba `onSelectMethod(config, model.recommendedMethodId)`, y ese
+`recommendedMethodId` daba prioridad a la recomendación del comparador sobre la
+configuración. Medido el 2026-08-22 sobre el proyecto real:
+
+| | |
+|---|---|
+| `selector_engine` guardado en el `.pulso` | `cube_balanceado` |
+| `simulation_runs` | 0 |
+| Método que mandaba el botón | **`pool_controlado`** |
+| `candidate_pool_size` | **500** |
+
+`.cm_aulas_select_once_pool` (`calc_muestra_aulas.R:2211`) corre **un bucle de
+500 iteraciones**, cada una un sorteo completo con el cubo como motor base. Con
+el cubo medido en ~1,9 s por corrida completa, eso son **unos 16 minutos**. La
+corrida se canceló a los 6.
+
+En R se llamó al motor con `cube_balanceado`, que es lo que dice la config: 22,8
+s. **Nunca fueron dos entornos con el mismo trabajo: eran dos métodos
+distintos**, uno de ellos 500 veces más caro por diseño.
+
+Queda **reparado como efecto colateral de `f2623619`**: ahora el botón manda la
+configuración, así que sortea con `cube_balanceado`.
+
+### Lo que sigue abierto de esto
+
+`pool_controlado` es legítimamente caro —500 sorteos es lo que hace— y **la UI no
+avisa de ese coste antes de lanzarlo**, al contrario que la comparación, que sí
+tiene su «va a tardar». Elegir «Optimizar repetidos» y pulsar sortear sigue
+costando ~16 minutos sin advertencia previa.
+
+### Lección
+
+Un diagnóstico que descarta la causa correcta la deja viva durante días. Éste
+decía «configs idénticas» habiendo comparado el `.pulso` contra el `.pulso`, sin
+mirar **el argumento que el botón realmente enviaba**, que era el único sitio
+donde diferían.
 
 ## Cómo verificar
 
