@@ -39,8 +39,8 @@ terminado. Cadencia: **5 minutos entre tick y tick**.
 | A2 | Sortear con **195** proporcional | ☑ ver abajo |  |
 | A3 | Sortear con **200** proporcional | ☑ ver abajo |  |
 | A4 | **190 con reparto dirigido** | ☑ **el mejor resultado de la serie** |  |
-| A5 | **192 con ajustes** | el punto intermedio que Gonzalo señaló | ☐ |
-| A6 | Tabla comparada de las cinco corridas | **cuál minimiza el uso esperado de reemplazos** | ☐ |
+| A5 | **192 y 193 dirigidos** | ☑ 193 cierra déficit y colchón |  |
+| A6 | Tabla comparada de las seis corridas | ☑ **recomendación: 193 dirigido** |  |
 | A7 | Efectividad esperada por configuración | entrevistas logradas / aulas visitadas | ☐ |
 
 **Criterio de A6, que es el que decide**: no gana el score más alto, gana la
@@ -247,3 +247,56 @@ reparto era `if (extra != 0)`, y un reparto dirigido que mantiene el total da
 `extra = 0`: nunca entraba. Se cazó porque 3.302 y score 51,1 son exactamente los
 de A1. **Quinto error de medición de la jornada, y el quinto cazado por
 contradecir una cifra previa.**
+
+
+---
+
+## A5 y A6 · la tabla comparada y la recomendación
+
+Seis corridas sobre el mismo marco, 22–23 s cada una:
+
+| | 190 | 195 | 200 | 190 dir | 192 dir | **193 dir** |
+|---|---|---|---|---|---|---|
+| Titulares | 190 | 195 | 200 | 190 | 192 | **193** |
+| Reservas | 496 | 509 | 522 | 499 | 505 | 507 |
+| Entrevistas esperadas | 3.302 | 3.386 | 3.437 | 3.290 | 3.336 | **3.352** |
+| Score | 51,1 | 53,6 | 54,5 | **62,7** | 62,3 | 61,3 |
+| Colchón global | 34 | 38 | 40 | 33 | 35 | 35 |
+| **Facultades en déficit** | 1 | 1 | 1 | 1 | **0** | **0** |
+| **Facultades sin colchón** | 4 | 4 | 4 | 1 | 1 | **0** |
+
+### Recomendación: 193 aulas con reparto dirigido
+
+Es la **única configuración donde todas las facultades cumplen su cuota y todas
+tienen margen para al menos una caída**. Comparada con la alternativa obvia —subir
+a 200 con reparto proporcional— usa **siete aulas menos** y resuelve lo que
+aquélla dejaba intacto: cuatro facultades sin colchón y Derecho en déficit.
+
+El reparto, sobre los `faculty_targets` de la línea base:
+
+```
+ciencias_e_ingenieria        -3      derecho                    +4
+estudios_generales_ciencias  -3      gestion_y_alta_direccion   +2
+                                     ciencias_contables         +1
+                                     letras_y_ciencias_humanas  +1
+                                     psicologia                 +1
+```
+
+### Lo que muestra la tabla
+
+**El score no es la vara.** A4 tiene el score más alto (62,7) y deja una facultad
+sin colchón; 193 tiene 61,3 y no deja ninguna. Optimizar el score habría elegido
+la peor de las dos para el campo.
+
+**Subir el total con reparto proporcional es la peor relación coste-beneficio**:
+de 190 a 200 son diez visitas más para +3,4 de score, cero facultades rescatadas
+y el déficit de Derecho a medias.
+
+**Y las tres corridas dirigidas cuestan lo mismo que la línea base o casi**: 190,
+192 y 193 aulas contra las 190 de partida.
+
+### Pendiente de decisión
+
+Aplicar el reparto de 193 exige **recalcular `faculty_targets` en el proyecto**, y
+eso es una decisión de Gonzalo: cambia el número de aulas de seis facultades y
+obliga a re-sortear. La corrida ya está medida; falta el visto bueno.
