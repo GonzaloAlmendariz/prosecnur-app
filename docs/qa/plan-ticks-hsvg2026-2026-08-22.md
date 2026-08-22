@@ -1057,3 +1057,36 @@ medirlas:
 
 La tercera es la que más se parecía a un hallazgo —un título duplicado es
 exactamente la forma de los defectos que este perfil ha tenido— y era diseño.
+
+
+## Serie E — el atraso se medía contra un día que nadie nombraba
+
+Dos defectos del mismo hecho: **el mapeo del campo no decía a qué fecha está
+cortado**.
+
+### 1. Un KPI llamado «Corte» cuyo valor era «Listo»
+
+En Fuentes, la tarjeta «Corte» mostraba `"Listo"` / `"Pendiente"` y escondía la
+fecha en la pista. Prometía una fecha y entregaba un estado — la misma familia
+que este perfil lleva corrigiendo. El corte **es** la fecha: todo el atraso del
+operativo se mide contra ella. Ahora la fecha va en el valor y la pista explica
+para qué sirve.
+
+### 2. El panel del frente del operativo no nombraba su día
+
+«12 de 40 cursos-horario que ya pasaron su fecha siguen sin parte» — ¿pasaron su
+fecha respecto de cuándo? El panel mide contra el sello del tablero
+(`generated_at`) y **no contra el reloj del navegador**, que es la decisión
+correcta y está comentada en el código. Pero ese día no aparecía en ninguna
+parte: en un proyecto reabierto días después, la cifra es cierta al día del
+sello y ya no al de hoy, y nada en pantalla permitía notarlo.
+
+Ahora la frase termina en « · al 22 de agosto». Va en el flujo, con el mismo
+separador que el resto del panel, porque califica todas las cifras de la frase.
+
+4 asertos; el mutante que ignora el corte y usa una fecha propia mata 3.
+
+**Nota de método**: el primer intento de ese mutante no llegó a aplicarse —el
+`perl` no matcheó por el escapado— y el test dio verde igual. Un mutante que no
+se aplica es un verde que no prueba nada; se detecta comprobando con `grep` que
+el cambio está en el archivo antes de correr.

@@ -43,6 +43,15 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
   }
 
   const alDia = f.vencidas === f.vencidasConParte;
+  // «Ya pasaron su fecha» respecto de CUÁNDO. El corte es el sello del tablero,
+  // no el reloj del navegador, así que un proyecto reabierto días después
+  // contaba el atraso contra un día que el panel no nombraba en ninguna parte.
+  const diaDelCorte = (() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(corte)) return "";
+    const [a, m, d] = corte.split("-").map(Number);
+    return new Date(a, m - 1, d).toLocaleDateString("es-PE",
+      { day: "numeric", month: "long" });
+  })();
   const ancho = f.vencidas ? Math.round((100 * f.vencidasConParte) / f.vencidas) : 100;
 
   return (
@@ -65,6 +74,9 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
         {/* Sin fecha DECLARADO aparte: no están al día ni atrasados, y meterlos
             en cualquiera de los dos lados inventaría un diagnóstico. */}
         {f.sinFecha ? <> · <strong>{fmt(f.sinFecha)}</strong> sin fecha en la agenda</> : null}
+        {/* Va en el flujo con el mismo separador que el resto del panel: es una
+            calificación de todas las cifras de la frase, no un dato aparte. */}
+        {diaDelCorte ? <> · <span className="aulas-frente-corte">al {diaDelCorte}</span></> : null}
       </p>
       {f.vencidas ? (
         <div className="aulas-frente-carril" role="img"
