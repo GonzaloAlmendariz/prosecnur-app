@@ -158,7 +158,11 @@ test_that("MC conserva las corridas solicitadas en marco chico (<=1200)", {
   expect_equal(mc$runs, requested)     # sin recorte
   expect_equal(mc$requested, requested)
   expect_false(isTRUE(mc$budgeted))
-  expect_match(mc$note, "plan completo de olas")
+  # Lo que se protege es que la nota diga que corrio sobre el plan COMPLETO, sin
+  # recorte por presupuesto; no la redaccion. Estaba clavado a «plan completo de
+  # olas» y «olas» salio de la nota el 2026-08-22: en Simulacion aparecia sin
+  # contexto, porque el vocabulario de olas vive en la pestana Reemplazos.
+  expect_match(mc$note, "plan completo")
   expect_true(any(is.finite(mc$pi) & mc$pi > 0))
 })
 
