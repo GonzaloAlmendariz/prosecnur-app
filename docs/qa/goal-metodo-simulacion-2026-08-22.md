@@ -1216,3 +1216,26 @@ sin que nada lo dijera.
 comprueba que **ningún camino vuelve a resolverlo a mano** —incluido el patrón
 `simulation_runs ?? … monte_carlo_n`— y que comparar y estabilidad siguen dando
 números distintos, porque si coincidieran M1 se habría deshecho. Mutante: 1 rojo.
+
+
+## Y sortear tenía el mismo problema
+
+Extendida la familia a la acción cara, tres caminos otra vez:
+
+| Camino | Mandaba | Veredicto |
+|---|---|---|
+| «Usar método» en una tarjeta | el id de **esa** tarjeta | **legítimo**: es una elección explícita |
+| Barra de acciones | la configuración | correcto desde `f2623619` |
+| Aviso de etapa de Selección | **`recommendedMethodId`** | **el defecto que `f2623619` reparó, vivo aquí** |
+
+Es la **tercera vez en la jornada** que una reparación deja el mismo defecto vivo
+en otra ruta: pasó con el vacío de la simulación (total sí, parcial no), con el
+copy que exigía comparar (cuatro textos sí, dos no) y ahora con el método del
+sorteo. El patrón es siempre el mismo: se repara donde se vio, no donde vive.
+
+Ese camino llevaba además el candado por `comparisonReady`, que cae por el mismo
+motivo que el de la barra: el motor no exige comparar.
+
+El contrato distingue el caso legítimo del defecto: «Usar método» **sí** manda un
+id concreto, porque el usuario acaba de señalarlo; los otros dos tienen prohibido
+sortear con el recomendado a espaldas de la configuración. Mutante: 1 rojo.
