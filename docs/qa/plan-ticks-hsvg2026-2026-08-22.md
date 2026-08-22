@@ -665,3 +665,37 @@ concretos.
 **Por qué hacía falta un test de este tipo**: los del componente pasan porque les
 pasan el payload a mano; los del backend, porque miran el backend. Entre las dos
 capas no había nada, y ahí es donde vivía el defecto.
+
+
+## Censo de normalizadores: 23 pueden comerse un campo
+
+Barrido del front tras el hallazgo de `source_vigente`:
+
+| Tipo | Cuántos |
+|---|---|
+| **Reconstructores** — arman el objeto campo por campo y pierden lo que no nombran | **23** |
+| Permisivos — hacen spread del original | 5 |
+
+No todos son un defecto: sólo lo son cuando el backend emite algo que ellos no
+nombran. Comprobado uno del área, y sí lo era.
+
+### `sexo_por_facultad` perdía la referencia
+
+El motor emite nueve campos —`schema`, `owner`, `grain`, `unit`, **`referencia`**,
+`base`, `tolerancia`, `veredicto`, `filas`— y el normalizador conservaba cuatro.
+Entre los perdidos, **`referencia = "marco_incluido"`**: contra qué se comparan
+las proporciones.
+
+Y la tarjeta rotulaba esa columna **«Su cuota pide»**. La cifra es la proporción
+del marco, que coincide con la cuota **sólo porque este diseño usa afijación
+proporcional**; con otra referencia el rótulo prometería un número que la columna
+no trae. Es la familia dominante del módulo, otra vez.
+
+Ahora el rótulo sale de lo que el motor declare: **«El marco tiene»** con
+`marco_incluido`, el nombre de la referencia si es otra, y **«Su cuota pide»** sólo
+cuando el campo no viene —un `.pulso` viejo no lo trae y cambiarle el rótulo sería
+inventar—. 3 tests.
+
+Es el mismo defecto que se reparó ayer para el balance de facultad («declara
+contra qué referencia se midió»): **el dato existía en el motor y no llegaba a la
+pantalla**, esta vez porque un normalizador lo descartaba por el camino.
