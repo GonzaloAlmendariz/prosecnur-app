@@ -1768,6 +1768,15 @@
   font-size: var(--aulas-sec);
 }
 
+/* Un campo que la hoja no bautiza. Se lee, no se cuenta: va como frase y con el
+   tono de aviso, no como el gris del pie de sincronización. */
+.mon-profile-page.is-aulas-flow .aulas-fuente-falta {
+  margin: 6px 0 0;
+  font-size: var(--aulas-sec);
+  color: var(--pulso-warn-fg);
+  line-height: 1.4;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-fuente-sync a,
 .mon-profile-page.is-aulas-flow .aulas-fuente-sin-enlace {
   display: inline-flex;

@@ -72,6 +72,10 @@ aulas_libro_importar <- function(path) {
     # Columnas con datos que la cabecera de «Base de control» no bautiza. Se
     # reportan para que quien mire el resultado sepa que no se leyo todo.
     control_sin_nombre = as.list(control$sin_nombre),
+    # Lo mismo para la hoja de agenda, que no reportaba nada: campos del bloque
+    # que ningun titulo bautiza. Un «TELEFONO DE DOCENTE» renombrado a «CELULAR»
+    # se leia vacio en silencio.
+    agenda_campos_ausentes = as.list(attr(plan, "campos_ausentes") %||% character(0)),
     resumen = list(
       unidades = length(plan),
       titulares = as.integer(titulares),
@@ -111,6 +115,7 @@ aulas_libro_importar_en_sesion <- function(sid, path) {
   cfg <- session_get(sid)$monitoreo_config %||% list()
   if (is.list(cfg$aulas_universitarias)) {
     cfg$aulas_universitarias$control_sin_nombre <- length(out$control_sin_nombre)
+    cfg$aulas_universitarias$agenda_campos_ausentes <- as.list(out$agenda_campos_ausentes)
     cfg$aulas_universitarias$partes_campo <- out$partes
     # Mismo camino que los partes: sin esta linea las filas de «Base de control»
     # se quedaban en `monitoreo_aulas_control` y no las leia NADIE —ni el motor
@@ -123,6 +128,7 @@ aulas_libro_importar_en_sesion <- function(sid, path) {
     importado_en = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     hojas_ausentes = out$hojas_ausentes,
     control_sin_nombre = out$control_sin_nombre,
+    agenda_campos_ausentes = out$agenda_campos_ausentes,
     resumen = out$resumen
   ))
   out

@@ -163,6 +163,33 @@ aulas_agendadas_n_bloques <- function(n_col) {
   out
 }
 
+#' Campos del bloque que la hoja no bautiza en ninguno de sus bloques.
+#'
+#' La hoja de «Base de control» ya reportaba sus columnas sin nombre; esta no
+#' reportaba nada. Si el equipo renombra una columna en el Sheets —«TELEFONO DE
+#' DOCENTE» pasa a «CELULAR»— el campo se lee vacio y nadie se entera, y ese es
+#' justo el dato con el que se agenda.
+#'
+#' Medido: la hoja que genera la app trae los 20 campos del bloque, asi que una
+#' ausencia aqui es senal de verdad y no ruido de un libro incompleto.
+#'
+#' @param titulos titulos de columna de la hoja.
+#' @return nombres canonicos de los campos que ningun bloque reconoce.
+#' @export
+aulas_agendadas_campos_ausentes <- function(titulos) {
+  titulos <- as.character(titulos %||% character(0))
+  if (!length(titulos)) return(character(0))
+  arranques <- .caa_bloques_desde(titulos)
+  if (!length(arranques)) return(character(0))
+  vistos <- character(0)
+  for (b in seq_along(arranques)) {
+    hasta <- if (b < length(arranques)) arranques[[b + 1L]] - 1L else NULL
+    vistos <- union(vistos, names(.caa_mapa_bloque(titulos, arranques[[b]], hasta)))
+  }
+  campos <- vapply(AULAS_AGENDADAS_BLOQUE, function(s) s$campo, character(1))
+  setdiff(campos, vistos)
+}
+
 #' Traduce la hoja ancha «Aulas Agendadas» a filas de plan.
 #'
 #' @param df data.frame crudo de la hoja, con la cabecera ya como nombres o como
@@ -183,6 +210,7 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
     arranques <- 1L + (seq_len(n_bloques) - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L
   }
   n_bloques <- length(arranques)
+  ausentes <- aulas_agendadas_campos_ausentes(titulos)
 
   filas <- list()
   for (i in seq_len(nrow(df))) {
@@ -245,6 +273,9 @@ aulas_agendadas_a_plan <- function(df, titulos = NULL) {
       )
     }
   }
+  # Viaja como atributo para no cambiar la forma del retorno: los lectores que
+  # ya existen siguen recibiendo la misma lista de filas.
+  attr(filas, "campos_ausentes") <- ausentes
   filas
 }
 
