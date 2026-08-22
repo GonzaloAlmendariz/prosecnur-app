@@ -856,3 +856,54 @@ acción, sobre «Elegir».
 tarjeta de cursos-horario ya ocupaba **69 px de 72** a 1024×600 por su propio
 summary, el más largo de los cuatro. Vive a 3 px del desborde desde antes de
 este cambio.
+
+
+## Serie E — el mapeo del campo: qué panel se apaga y cuál miente
+
+El perfil de aulas de Monitoreo tiene **47 componentes**. La pregunta útil no es
+cuál agregar sino **cuál se apaga en silencio**: un panel que no se renderiza es
+un agujero que el coordinador no puede echar de menos, porque no sabe que existe.
+
+### Censo de los que devuelven `null`
+
+Diez componentes tienen `return null`. Revisados los cuatro que son top-level
+—`AulasAgendaPorDia`, `AulasCambioDeAula`, `AulasMatrizUmbrales`,
+`AulasAlcanceDelBanco`—, **ninguno es un agujero**:
+
+- `AulasCambioDeAula` se retira sólo si no hay partes, y la tabla de al lado ya
+  dice «Todavía no se ha registrado ningún parte de campo».
+- `AulasAgendaPorDia` se retira sólo si no hay filas; con filas y sin fechas ya
+  declara «Ninguno de los N cursos-horario tiene fecha de aplicación».
+
+Iba a «reparar» los dos. Los dos estaban bien.
+
+### El defecto real estaba un paso más allá: el rótulo
+
+`AulasCambioDeAula` cruza el salón que anotó el equipo con el que decía el plan.
+Cuando no puede comparar una fila, decía siempre lo mismo:
+
+> N **sin salón reconocible en una de las dos hojas**
+
+Con partes de campo y **sin plan agendado**, todas las filas caen ahí — y ese
+texto manda a revisar el libro de campo, que está bien, en vez del plan, que es
+el que falta. **Es exactamente el estado que encontró la serie B**: plan de
+recolección desfasado del sorteo vigente. El panel que debía denunciar el
+desfase acusaba a la hoja equivocada.
+
+Es la misma familia que este perfil lleva corrigiendo: un rótulo que vale igual
+para dos diagnósticos opuestos esconde el que decide.
+
+### Reparado
+
+`aulaRealVsAgendada` conserva la causa (`sinSalonReal`, `sinSalonAgendado`,
+`planConSalon`) en vez de fundirlas en un solo contador, y el panel nombra la
+hoja:
+
+| Estado | Antes | Ahora |
+|---|---|---|
+| Partes, sin plan | «N sin salón reconocible en una de las dos hojas» | «el plan agendado no trae salón para ningún curso-horario, así que no hay contra qué comparar los N partes» |
+| Plan completo, parte sin salón | idem | «sin salón anotado en el parte de campo» |
+| Las dos causas mezcladas | idem | «una de las dos hojas» — ahí el genérico **es** el honesto |
+
+7 tests nuevos, dos mutantes muertos (quitar la rama del plan ausente; dejar el
+rótulo genérico siempre), 1 rojo cada uno.

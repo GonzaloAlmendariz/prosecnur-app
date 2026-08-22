@@ -26,6 +26,16 @@ export type AulaRealVsAgendada = {
   cambios: CambioDeAula[];
   /** Filas donde alguno de los dos no trae salón reconocible. */
   sinComparar: number;
+  /** De las que no se pudieron comparar, cuántas fue porque el PARTE no trae
+      salón reconocible. */
+  sinSalonReal: number;
+  /** …y cuántas porque el PLAN no lo trae para ese curso-horario. */
+  sinSalonAgendado: number;
+  /** Cursos-horario del plan con salón reconocible. En cero, el panel no está
+      mirando un libro de campo incompleto: está mirando la falta del plan, y
+      decir «sin salón reconocible en una de las dos hojas» mandaría a revisar
+      la hoja equivocada. */
+  planConSalon: number;
 };
 
 function texto(valor: unknown): string {
@@ -60,16 +70,31 @@ export function aulaRealVsAgendada(
     if (codigo && !agendadaPorCodigo.has(codigo)) agendadaPorCodigo.set(codigo, texto(fila.label));
   }
 
+  let planConSalon = 0;
+  for (const agendadaTexto of agendadaPorCodigo.values()) {
+    if (salonDe(agendadaTexto)) planConSalon += 1;
+  }
+
   const cambios: CambioDeAula[] = [];
   let comparadas = 0;
   let sinComparar = 0;
+  let sinSalonReal = 0;
+  let sinSalonAgendado = 0;
 
   for (const fila of partes) {
     const codigo = texto(fila.operational_code);
     const real = salonDe(fila.actual_room);
     const agendadaTexto = agendadaPorCodigo.get(codigo) ?? "";
     const agendada = salonDe(agendadaTexto);
-    if (!real || !agendada) { sinComparar += 1; continue; }
+    if (!real || !agendada) {
+      sinComparar += 1;
+      // Se cuentan las dos causas por separado, y una fila a la que le faltan
+      // las dos suma en ambas: el panel necesita saber cuál PREDOMINA para
+      // nombrar la hoja que hay que ir a mirar.
+      if (!real) sinSalonReal += 1;
+      if (!agendada) sinSalonAgendado += 1;
+      continue;
+    }
     comparadas += 1;
     if (real !== agendada) {
       cambios.push({
@@ -84,5 +109,5 @@ export function aulaRealVsAgendada(
   cambios.sort((a, b) => a.facultad.localeCompare(b.facultad, "es")
     || a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
 
-  return { comparadas, cambios, sinComparar };
+  return { comparadas, cambios, sinComparar, sinSalonReal, sinSalonAgendado, planConSalon };
 }
