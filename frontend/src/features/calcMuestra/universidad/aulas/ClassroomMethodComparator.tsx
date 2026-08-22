@@ -66,7 +66,7 @@ export function ClassroomMethodComparator({
               return (
                 <article key={method.method_id} className={`cmv2-classroom-method-card${recommended ? " is-recommended" : ""}`} data-qa-geometry-member>
                   <small>{recommended ? "Recomendado" : "Resultado comparado"}</small>
-                  <strong>{method.method_label || classroomMethodLabel(String(method.method_id))}</strong>
+                  <strong>{classroomMethodLabel(String(method.method_id)) || method.method_label}</strong>
                   <div className="cmv2-classroom-quality-metrics">
                     <span><strong>{classroomScore(method.representativity_score ?? method.overall_score)}</strong> representatividad</span>
                     <span><strong>{classroomScore(method.balance_score)}</strong> balance</span>

@@ -9,50 +9,57 @@ import { Award, GitCompare } from "lucide-react";
 import type { CalcMuestraAulasMethodComparison } from "../../../api/client";
 import { BadgeMotor } from "./PasoDidactico";
 import { rowsFrom, rowText, safeNum } from "./didacticaData";
+import { classroomMethodLabel } from "../universidad/aulas/classroomLabels";
 
-/** Nombre legible + fortaleza/riesgo en llano por método conocido. */
-const METODO_COPY: Record<string, { nombre: string; fortaleza: string; riesgo: string }> = {
+/**
+ * Fortaleza y riesgo en llano por método. El NOMBRE no se declara aquí: lo
+ * declara `UNIVERSITY_AULAS_SELECTOR_OPTIONS` y se resuelve con
+ * `classroomMethodLabel`. Este diccionario tenía su propio juego —«Sorteo
+ * balanceado multidimensional», «Salto sistemático proporcional al tamaño»—
+ * distinto del de las otras dos superficies de la MISMA pestaña, así que los
+ * cuatro métodos se anunciaban con tres nombres cada uno según dónde se
+ * mirara. Medido en HSVG2026 el 2026-08-22.
+ */
+const METODO_COPY: Record<string, { fortaleza: string; riesgo: string }> = {
   cube_balanceado: {
-    nombre: "Sorteo balanceado multidimensional",
     fortaleza: "Sortea cuidando que la muestra conserve las proporciones del marco en varias variables a la vez.",
     riesgo: "Necesita variables auxiliares confiables; si vienen sucias, el balance hereda ese ruido.",
   },
   pps_balanceado: {
-    nombre: "Sorteo balanceado (alias legacy)",
     fortaleza: "Compatibilidad con proyectos antiguos: se normaliza al mismo método balanceado recomendado.",
     riesgo: "Es solo un alias; conviene migrar la configuración al nombre actual del método.",
   },
   local_pivotal_balanceado: {
-    nombre: "Balance con dispersión local",
     fortaleza: "Además del balance, evita que los cursos-horario elegidos se concentren en un mismo programa u horario.",
     riesgo: "Exige buenas variables de dispersión; con marcos pequeños puede sacrificar algo de balance.",
   },
   pool_controlado: {
-    nombre: "Sorteo optimizado contra repetidos",
     fortaleza: "Compara muestras candidatas y se queda con la que comparte menos estudiantes entre cursos-horario.",
     riesgo: "Las probabilidades finales dependen de simulación, así que requiere más corridas para auditarse.",
   },
   sistematico_pps: {
-    nombre: "Salto sistemático proporcional al tamaño",
     fortaleza: "Simple y transparente: ordena el marco y avanza con un salto fijo, dando más probabilidad a cursos-horario grandes.",
     riesgo: "Si el orden del marco tiene un patrón oculto, el salto puede alinearse con él y sesgar la muestra.",
   },
   estratificado_aleatorio: {
-    nombre: "Aleatorio estratificado simple",
     fortaleza: "Fácil de explicar: sorteo puro dentro de cada facultad, sin supuestos adicionales.",
     riesgo: "No controla repetidos ni balancea otras variables; puede quedar menos parejo que los métodos balanceados.",
   },
   manual_auditable: {
-    nombre: "Selección manual auditable",
     fortaleza: "Permite una decisión operativa documentada con responsable y motivo registrados.",
     riesgo: "Al no ser un sorteo, pierde la defensa probabilística: úsalo solo como excepción justificada.",
   },
 };
 
+/** Cardinales en letra hasta donde el comparador puede llegar. */
+const NUMERO_EN_LETRA: Record<number, string> = {
+  2: "Dos", 3: "Tres", 4: "Cuatro", 5: "Cinco", 6: "Seis", 7: "Siete",
+};
+
 function metodoCopy(methodId: string, methodLabel: string) {
+  const nombre = classroomMethodLabel(methodId) || methodLabel || methodId.replace(/_/g, " ") || "método sin nombre";
   const conocido = METODO_COPY[methodId];
-  if (conocido) return conocido;
-  const nombre = methodLabel || methodId.replace(/_/g, " ") || "método sin nombre";
+  if (conocido) return { nombre, ...conocido };
   return {
     nombre,
     fortaleza: "Método probabilístico registrado en la bitácora metodológica de la calculadora.",
@@ -136,7 +143,13 @@ export function ComparadorMetodosVisual({
   return (
     <div className="cmv2-did-result">
       <div className="cmv2-did-result-head">
-        <span className="cmv2-eyebrow">Dos formas de sortear, medidas con la misma regla</span>
+        {/* Decía «Dos formas de sortear» sobre CUATRO tarjetas. El número
+            sale de lo que hay, no de una constante escrita a mano. */}
+        <span className="cmv2-eyebrow">
+          {metodos.length === 1
+            ? "Una forma de sortear, medida con la regla del comparador"
+            : `${NUMERO_EN_LETRA[metodos.length] ?? metodos.length} formas de sortear, medidas con la misma regla`}
+        </span>
         <BadgeMotor estado="validado" />
       </div>
 

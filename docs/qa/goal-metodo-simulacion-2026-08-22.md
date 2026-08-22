@@ -363,3 +363,42 @@ peaje son 1.344 px antes de ver lo propio.
 **Decisión pendiente de Gonzalo**: invertir el orden cambia la pedagogía de la
 pestaña, así que se propone y no se ejecuta. Lo que sí entra sin discusión es lo
 que falta —el veredicto—, porque agregar no destruye nada.
+
+
+## El hallazgo grande de M9: cuatro juegos de nombres en una pestaña
+
+Recorriendo Método con scroll —arriba, medio y fondo, como pidió Gonzalo el
+2026-08-22: «las capturas son de toda la hoja, tiene que scrollear arriba al
+medio y abajo si no, no diagnosticas bien»— apareció lo que hacía imposible
+seguir la pestaña: **los mismos cuatro métodos se anunciaban con cuatro nombres
+distintos según dónde se mirara, y tres de esas superficies están en la MISMA
+pantalla.**
+
+| `id` | Paso 1 (stories) | Paso 2 y panel (motor R) | Fondo (didáctica) | Constantes |
+|---|---|---|---|---|
+| `sistematico_pps` | Sistemático PPS | Selección proporcional al tamaño | Salto sistemático proporcional al tamaño | Sistemático por facultad |
+| `cube_balanceado` | Balanceado (cube) | Selección balanceada | Sorteo balanceado multidimensional | Balance por cuotas y tamaño |
+| `local_pivotal_balanceado` | Balance + dispersión | Balanceada y distribuida | Balance con dispersión local | Balance + dispersión |
+| `pool_controlado` | Pool controlado | Optimizada para evitar repetidos | Sorteo optimizado contra repetidos | Optimizar repetidos |
+
+Cerrado en tres pasos: las historias ya no declaran nombre (`fbc307ca`); el
+comparador didáctico tampoco, y conserva sólo lo suyo —fortaleza y riesgo—; y el
+front deja de preferir el `method_label` que manda el motor R
+(`calc_muestra_aulas.R:3416`) sobre el canónico. Seis superficies invertidas.
+
+**Y un rótulo que prometía otro número, en su forma más literal**: el bloque del
+fondo se titulaba **«Dos formas de sortear, medidas con la misma regla»** sobre
+**cuatro** tarjetas. Ahora el número sale del conteo real: «Cuatro formas de
+sortear».
+
+Contrato: `classroomMethodStoriesTituloContrato.test.ts`, 6 tests. Mutantes
+verificados: `title` propio en las historias → rojo; jerga «marco depurado» →
+rojo; `nombre:` propio en el comparador didáctico → rojo.
+
+### Pendiente de este hallazgo
+
+`api/R/calc_muestra_aulas.R:3416-3419` sigue emitiendo su propio juego. La UI ya
+no lo usa, pero **el stage de los jobs sí** («Selección proporcional al tamaño:
+corrida 8 de 17»), así que durante un sorteo el usuario lee un nombre que no
+existe en ninguna pantalla. Alinearlo exige tocar R, relanzar la API y
+`R CMD INSTALL` para que el worker lo vea.
