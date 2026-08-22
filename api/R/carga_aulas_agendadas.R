@@ -120,10 +120,39 @@ aulas_agendadas_n_bloques <- function(n_col) {
   as.integer((n - 1L) %/% AULAS_AGENDADAS_ANCHO_BLOQUE)
 }
 
+# Donde ARRANCA cada bloque, leido de los titulos y no del ancho de la hoja.
+#
+# El ancho mentia. `aulas_agendadas_n_bloques()` hace `(ncol - 1) %/% 20`, asi
+# que una sola columna borrada en el Sheets —el equipo esconde una que le
+# estorba— bajaba la cuenta de 2 bloques a 1 y la hoja se leia SIN LA CADENA DE
+# RESERVAS, sin error y sin aviso. Medido: 41 columnas dan 2 bloques y 40 dan 1,
+# y la fila `R 1.1` desaparecia del plan.
+#
+# El titulo del curso-horario se repite una vez por bloque, asi que sus
+# apariciones son los bloques. Se resta su posicion dentro del bloque para
+# recuperar el arranque. Con la hoja intacta devuelve exactamente los mismos
+# indices que el calculo por ancho.
+.caa_bloques_desde <- function(titulos) {
+  claves <- .caa_key(titulos)
+  idx_campo <- which(vapply(
+    AULAS_AGENDADAS_BLOQUE,
+    function(s) identical(s$campo, "operational_code"), logical(1)
+  ))
+  if (!length(idx_campo)) return(integer())
+  spec <- AULAS_AGENDADAS_BLOQUE[[idx_campo[[1]]]]
+  pos <- which(claves %in% .caa_key(spec$titulos))
+  if (!length(pos)) return(integer())
+  # La primera columna es «ID MATCH» y no pertenece a ningun bloque: un arranque
+  # calculado por debajo de 2 seria basura.
+  desde <- pos - (idx_campo[[1]] - 1L)
+  unique(desde[desde >= 2L])
+}
+
 # Mapea, dentro de un bloque, el campo canonico -> indice de columna absoluto.
 # Se resuelve por titulo y no por posicion fija.
-.caa_mapa_bloque <- function(titulos, desde) {
-  hasta <- min(length(titulos), desde + AULAS_AGENDADAS_ANCHO_BLOQUE - 1L)
+.caa_mapa_bloque <- function(titulos, desde, hasta = NULL) {
+  hasta <- hasta %||% min(length(titulos), desde + AULAS_AGENDADAS_ANCHO_BLOQUE - 1L)
+  hasta <- min(length(titulos), hasta)
   if (desde > length(titulos)) return(list())
   claves <- .caa_key(titulos[desde:hasta])
   out <- list()
@@ -144,16 +173,28 @@ aulas_agendadas_n_bloques <- function(n_col) {
 aulas_agendadas_a_plan <- function(df, titulos = NULL) {
   if (!is.data.frame(df) || !nrow(df) || !ncol(df)) return(list())
   titulos <- titulos %||% names(df)
-  n_bloques <- aulas_agendadas_n_bloques(ncol(df))
-  if (n_bloques < 1L) return(list())
+  # Los arranques salen de los titulos. Si la hoja no trae titulos reconocibles
+  # —un data.frame con nombres genericos— se cae al calculo por ancho, que es
+  # como se leia antes.
+  arranques <- .caa_bloques_desde(titulos)
+  if (!length(arranques)) {
+    n_bloques <- aulas_agendadas_n_bloques(ncol(df))
+    if (n_bloques < 1L) return(list())
+    arranques <- 1L + (seq_len(n_bloques) - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L
+  }
+  n_bloques <- length(arranques)
 
   filas <- list()
   for (i in seq_len(nrow(df))) {
     id_match <- .caa_txt(df[i, 1])
     titular_code <- ""
     for (b in seq_len(n_bloques)) {
-      desde <- 1L + (b - 1L) * AULAS_AGENDADAS_ANCHO_BLOQUE + 1L
-      mapa <- .caa_mapa_bloque(titulos, desde)
+      desde <- arranques[[b]]
+      # La ventana termina donde empieza el bloque siguiente: con los bloques
+      # corridos por una edicion del Sheets, una ventana de ancho fijo se
+      # solaparia con el vecino y pescaria sus columnas.
+      hasta <- if (b < n_bloques) arranques[[b + 1L]] - 1L else NULL
+      mapa <- .caa_mapa_bloque(titulos, desde, hasta)
       if (!length(mapa)) next
       val <- function(campo) if (is.null(mapa[[campo]])) "" else .caa_txt(df[i, mapa[[campo]]])
       # La celda cruda, para los campos que necesitan interpretarla —una fecha

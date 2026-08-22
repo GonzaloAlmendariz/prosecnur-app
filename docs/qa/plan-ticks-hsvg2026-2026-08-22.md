@@ -943,3 +943,44 @@ La palabra estaba corregida ahí y el grano seguía mal aquí.
   otra cosa si detrás hay 40 partes.
 
 6 tests nuevos, mutante (pisar en vez de sumar) mata 3.
+
+
+## Serie C — una columna borrada en el Sheets se llevaba la cadena de reservas
+
+Desbloqueada con fixture propio en vez de esperar al proyecto: el repo ya tenía
+`helper-libro-aulas.R` y `test-carga-aulas-desde-sheets.R`, así que declararla
+«bloqueada hasta que exista `monitoreo_aulas_plan`» era de más.
+
+El Sheets del libro lo edita el equipo mientras el operativo corre. La hoja
+«Aulas Agendadas» es ancha —un bloque de 20 columnas por eslabón de la cadena— y
+los bloques se contaban **por ancho**: `(ncol - 1) %/% 20`.
+
+**Medido con el motor real**, no deducido:
+
+| Edición del Sheets | Antes | Ahora |
+|---|---|---|
+| Una columna insertada en medio | 2 filas ✓ | 2 filas ✓ |
+| Tres columnas en medio | 2 filas ✓ | 2 filas ✓ |
+| Una columna al principio | 2 filas ✓ | 2 filas ✓ |
+| **Una columna borrada** | **1 fila** ✗ | 2 filas ✓ |
+
+41 columnas dan 2 bloques y 40 dan 1. Una sola columna borrada —el equipo
+esconde la que le estorba— y la hoja se leía **sin la cadena de reservas**, sin
+error y sin aviso. Y las reservas son justo lo que hay que vigilar para no
+acabar usándolas, que es el encargo.
+
+Mi primera hipótesis (la inserción corre los campos) resultó **falsa**: la
+ventana del bloque tiene holgura de sobra. El defecto estaba en el otro sentido,
+y sólo apareció probando los cuatro casos con el motor.
+
+### Reparado de fondo
+
+Los arranques de bloque se leen de los **títulos** —el título del curso-horario
+aparece una vez por bloque— y no del ancho. Con la hoja intacta devuelve
+exactamente los mismos índices que el cálculo viejo, y eso está fijado en un
+test de compatibilidad. Sin títulos reconocibles se cae al ancho, como antes. La
+ventana de cada bloque termina donde empieza el siguiente, para que un bloque
+corrido no pesque columnas del vecino.
+
+8 asertos nuevos; el mutante que vuelve al cálculo por ancho mata 2. Suites
+`carga-aulas*` y `monitoreo-aulas*` sin fallos.
