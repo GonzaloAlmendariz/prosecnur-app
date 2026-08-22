@@ -167,7 +167,7 @@ const POOL_BOLAS: GooBolaEsquema[] = [
 export const METODO_GOO_ESQUEMAS: Record<MetodoGooId, MetodoGooEsquemaDef> = {
   sistematico_pps: {
     aria:
-      "Esquema ilustrativo del sistemático PPS: la bola grande seleccionada viaja desde la recta y se ata con dos tirantes a la estructura; una grande ya cubierta se encoge",
+      "Esquema ilustrativo de Sistemático por facultad: las aulas ordenadas en una recta, y una elegida cada cierto salto fijo. Las aulas con más alumnos se dibujan más grandes.",
     bolas: PPS_BOLAS,
     tirantes: [
       ...redDeTirantes([0, 1, 2], PPS_BOLAS, "estructura"),
@@ -177,7 +177,7 @@ export const METODO_GOO_ESQUEMAS: Record<MetodoGooId, MetodoGooEsquemaDef> = {
   },
   cube_balanceado: {
     aria:
-      "Esquema ilustrativo del cube balanceado: las candidatas vibran, se resuelven de una vez y la red completa de tirantes ata el cluster mientras las mini-barras de balance se llenan",
+      "Esquema ilustrativo de Balance por cuotas y tamaño: las aulas elegidas forman un grupo cuyo reparto se parece al del marco. Las barras muestran cuánto se parece en cada variable. No son aulas reales.",
     bolas: CUBE_BOLAS,
     // La RED completa nace en cascada rapidísima al resolverse (rol "red").
     tirantes: redDeTirantes([0, 1, 2, 3, 4, 5], CUBE_BOLAS, "red"),
@@ -185,7 +185,7 @@ export const METODO_GOO_ESQUEMAS: Record<MetodoGooId, MetodoGooEsquemaDef> = {
   },
   local_pivotal_balanceado: {
     aria:
-      "Esquema ilustrativo del local pivotal: balancea como cube y de dos bolas casi idénticas solo la aceptada se ata a la red — la repelida queda sin tirante",
+      "Esquema ilustrativo de Balance + dispersión: hace lo mismo que el balanceado y además, de dos aulas casi idénticas, elige una sola para no amontonar la muestra. No son aulas reales.",
     bolas: PIVOTAL_BOLAS,
     // La gemela aceptada (índice 4) entra a la red; la repelida (5) NO tiene
     // tirante: ese contraste ES el mecanismo.
@@ -194,7 +194,7 @@ export const METODO_GOO_ESQUEMAS: Record<MetodoGooId, MetodoGooEsquemaDef> = {
   },
   pool_controlado: {
     aria:
-      "Esquema ilustrativo del pool controlado: cada cluster candidato es una red pequeña de tirantes; la red ganadora queda y las perdedoras se desvanecen enteras",
+      "Esquema ilustrativo de Optimizar repetidos: varios grupos de aulas candidatos, de los que se conserva el que menos estudiantes repite entre aulas. No son aulas reales.",
     bolas: POOL_BOLAS,
     tirantes: [
       ...redDeTirantes([0, 1, 2, 3], POOL_BOLAS, "perdedor"),

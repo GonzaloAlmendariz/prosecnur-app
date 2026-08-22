@@ -23,6 +23,10 @@ const ARCHIVOS = [
   "../ClassroomMethodStories.tsx",
   "../ClassroomMethodComparator.tsx",
   "../ClassroomLabCommandBar.tsx",
+  // El copy accesible es copy: los cuatro esquemas describían la ANIMACIÓN
+  // («vibran», «tirantes», «cluster») con los nombres de método viejos, y no
+  // aparece en ningún screenshot. El contrato no lo miraba.
+  "../../../didactica/MetodoGooEsquema.tsx",
 ];
 
 /** Fuera comentarios de bloque, de línea y JSX. */

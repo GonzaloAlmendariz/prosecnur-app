@@ -950,3 +950,35 @@ se renderizan en el estado actual del proyecto:
 
 Con eso, **las dos pestañas quedan en cero términos sin glosa**, en pantalla y en
 el texto accesible.
+
+
+## El copy accesible tenía el sexto juego de nombres
+
+Los cuatro esquemas de Método llevaban `aria-label` con **los nombres viejos y
+jerga pura**, describiendo la ANIMACIÓN en vez de lo que representan:
+
+> «Esquema ilustrativo del **cube balanceado**: las candidatas **vibran**, se
+> resuelven de una vez y la red completa de **tirantes** ata el **cluster**
+> mientras las mini-barras de balance se llenan»
+
+Para quien usa lector de pantalla eso no dice ni qué método es ni qué hace. Y no
+aparece en ningún screenshot, así que catorce ticks de revisión visual no podían
+verlo. Reescritos los cuatro con el nombre canónico y lo que el dibujo muestra, y
+`copySinJerga.contract.test.ts` amplía cobertura a `MetodoGooEsquema.tsx`.
+
+**Rompió 4 tests y con razón**: el aria también carga la declaración C1 («esquema
+ilustrativo», «no son aulas reales»), porque el lector de pantalla puede no
+alcanzar el `figcaption`. Restituida en los cuatro.
+
+## Corrección: sí se puede verificar un componente sin jsdom
+
+Al reparar el recorrido de preparación afirmé que «el frontend no tiene entorno
+DOM en los tests» y aislé la decisión a `pasoMetodoElegido` para poder
+verificarla. Lo primero es cierto —no hay jsdom— pero la conclusión era
+incompleta: `metodoGooEsquema.test.tsx` renderiza componentes con
+`renderToStaticMarkup` de `react-dom/server` y comprueba el markup resultante.
+**La vía existía y no la busqué.**
+
+Aislar la decisión sigue siendo mejor diseño, así que no se deshace; pero la
+razón que di era falsa, y la próxima vez que un componente no se pueda observar
+en pantalla, `renderToStaticMarkup` es la primera opción, no la última.
