@@ -506,3 +506,41 @@ es poder hacer algo al respecto.
 diseño impone: el plan está congelado a propósito, así que regenerarlo debe ser
 explícito, avisar de lo que se pierde —despliegue, materiales ya generados— y
 quedar registrado. Es el siguiente tick.
+
+
+---
+
+## C1b · La capacidad que faltaba, y su coste dicho antes
+
+`POST /api/recopiladores/reseed` rehace el plan desde el sorteo vigente. Exige
+`expected_revision` como toda escritura del módulo.
+
+En la pantalla, el aviso de desfase deja de ser sólo diagnóstico:
+
+> Este plan se armó con el **sorteo del 1 ago 2026, 21:12**, y la selección
+> vigente es **otra** (del 21 ago 2026, 16:09). Los materiales que se generen
+> ahora llevarán las aulas del plan, no las del sorteo actual.
+>
+> Rehacerlo lo reemplaza por las aulas del sorteo vigente y **descarta el
+> despliegue preparado**, incluida su **entrega a campo**. Las fichas ya impresas
+> dejan de corresponder al plan.
+>
+> [ Rehacer el plan con el sorteo vigente ]
+
+**El coste va antes del botón, no en un aviso posterior.** El plan está congelado
+a propósito —es lo que fue a imprenta— así que rehacerlo es una decisión, no una
+corrección automática; y la frase sobre la entrega a campo **sólo aparece si de
+verdad se entregó**, no siempre por si acaso.
+
+Verificado: 12 tests en R y 9 en el front, incluido que sin desfase no ofrece
+rehacer nada y que la advertencia de entrega no sale con un despliegue en
+borrador.
+
+### El camino completo, ya sin cortes
+
+```
+sortear → (aviso de desfase) → rehacer el plan → handoff → libro operativo
+```
+
+Antes, el tercer paso no existía y el proyecto se quedaba con el plan de la
+primera corrida para siempre.
