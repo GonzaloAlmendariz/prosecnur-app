@@ -1414,3 +1414,32 @@ cazado las cuatro reparaciones incompletas de hoy.
 **La regla, ya con evidencia**: un contrato que mira la fuente prueba que la
 fuente está limpia. Si lo que importa es lo que el usuario ve, hay que mirar lo
 que el usuario ve.
+
+
+## Aplicando la lección: qué más llega por datos
+
+Barrido de los textos que las dos pestañas reciben del motor:
+
+- **`mc$note`** (`calc_muestra_aulas.R:4335`) es jerga pura —«MC de transparencia
+  omitido: pi prescritas por diseño (pi_final = pi_design). Activa
+  `selector$mc_prescribed_transparency`…»— pero **se escribe y no se lee en
+  ningún sitio**. Es código muerto, no un defecto de pantalla. No se toca: R,
+  fuera del encargo, y el archivo es congelado.
+- **La nota que sí se pinta** decía «Simulación ejecutada con N corridas sobre el
+  plan completo de **olas** y **pool presupuestado** de 500 candidatas». «Olas»
+  es vocabulario establecido —la pestaña Reemplazos las nombra así y las dibuja
+  como línea de tiempo— pero **en Simulación aparece sin contexto**, donde nada
+  más habla de olas. Ahora: «sobre el plan completo de titulares y reemplazos y
+  hasta 500 selecciones candidatas por corrida».
+
+Sin crecer el congelado: 5.279 líneas antes y después.
+
+### Un test R clavado a la redacción, otra vez
+
+`expect_match(mc$note, "plan completo de olas")` se puso rojo. Protege un hecho
+—que corrió sobre el plan completo, sin recorte por presupuesto— pero estaba
+atado a la redacción. Afinado a `"plan completo"`.
+
+**Es el mismo caso que «paso k»**, y esta vez el fallo previo fue mío: busqué
+`method_label` en los tests antes de cambiarlo, pero no busqué el texto de la
+nota. La comprobación vale cuando se hace para **cada** cadena que se toca.

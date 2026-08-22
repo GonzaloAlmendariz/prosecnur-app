@@ -2732,11 +2732,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   pi <- counts / runs
   se <- sqrt(pmax(pi * (1 - pi), 0) / runs)
   budgeted <- runs < requested_runs
-  pool_note <- if (.cm_aulas_engine_key(engine) == "pool_controlado") sprintf(" y pool presupuestado de %s candidatas", sim_selector$candidate_pool_size) else ""
+  pool_note <- if (.cm_aulas_engine_key(engine) == "pool_controlado") sprintf(" y hasta %s selecciones candidatas por corrida", sim_selector$candidate_pool_size) else ""
   note <- if (budgeted) {
     sprintf("Marco grande: se ejecutaron %s de %s corridas presupuestadas para mantener interactividad (SE reportado refleja las corridas ejecutadas)%s.", runs, requested_runs, pool_note)
   } else {
-    sprintf("Simulacion ejecutada con %s corridas sobre el plan completo de olas%s.", runs, pool_note)
+    sprintf("Simulacion ejecutada con %s corridas sobre el plan completo de titulares y reemplazos%s.", runs, pool_note)
   }
   list(
     pi = pi,
