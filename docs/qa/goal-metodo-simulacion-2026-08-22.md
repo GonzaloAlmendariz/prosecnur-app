@@ -108,12 +108,13 @@ imperfecto elige la muestra que mejor engaña a la métrica.
 |---|---|---|
 | M1 | Método y Simulación dejan de ser la misma acción | ☑ `d87e5ac9` |
 | M2 | Semilla e historial junto al botón que sortea | ☑ `d87e5ac9` |
-| M3 | Método deja de comparar dos veces | ☐ |
-| M4 | Riesgos deja de repetirse en las dos pestañas | ☐ |
-| M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ☐ |
+| M3 | Método deja de comparar dos veces | ☑ |
+| M4 | Riesgos deja de repetirse en las dos pestañas | ☑ `eb562932` |
+| M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ◐ hecho CV y estabilidad; faltan los 7 balances y «sistemático por facultad» |
 | M6 | La UI explica qué se hace con las 500 corridas | ☐ |
-| M7 | Cada bloque declara qué mide, cómo y para qué | ☐ |
-| M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ☐ |
+| M7 | Cada bloque declara qué mide, cómo y para qué | ◐ |
+| M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ◐ Método 5,5 · **Simulación 1,17** |
+| **M9** | **Pensar las dos pestañas de nuevo, no pulirlas** | ☐ **va al final** |
 
 ## Trampas del entorno, medidas
 
@@ -143,3 +144,51 @@ bloquea cualquier prueba de extremo a extremo.
 - Gate del área: `pnpm -C frontend exec vitest run
   src/features/calcMuestra/universidad` (1387 tests) y typecheck sin errores
   propios.
+
+## M9 — la etapa que no es pulir
+
+Gonzalo, 2026-08-22, en mitad del loop:
+
+> «uno de los pasos finales no tiene que ser simplemente pulirlo, perfeccionarlo,
+> sino pensar radicalmente si estas dos tabs se ven bien, qué agregar, qué
+> mejorar, qué cosa o elemento de la interfaz usuaria agregar, mejorar,
+> reestructurar, para que se vea lo mejor posible y sea lo más entendible
+> posible».
+
+M1–M8 corrigen defectos **dentro** de la estructura que ya existe: separar dos
+acciones que eran una, dejar de repetir un bloque, glosar una sigla, declarar un
+vacío. Ninguna preguntó si los bloques que hay son los bloques que debería haber.
+M9 sí, y por eso va **al final**: pensar la estructura de nuevo con la jerga
+todavía sin glosar sólo produce una estructura nueva igual de opaca.
+
+Entra con tres preguntas, no con un rediseño: qué falta que hoy no está en
+ninguna de las dos pestañas, qué está pero no se gana su espacio, y qué orden
+haría que se leyeran solas de arriba abajo.
+
+## Lo cerrado de M5, NO lo rehagas
+
+- **«CV de pesos»** era una sigla sin glosa y su detalle decía «sobre el umbral
+  de alerta (0,50)», que da por sabido qué implica cruzarlo. Ahora el rótulo
+  nombra lo que mide —**Desigualdad entre pesos**— y el detalle dice qué pasa:
+  «desiguales: pasa de 0,50, el punto donde conviene revisar».
+- **«Puntaje de estabilidad · 100 = pesos parejos»** → **«Qué tan parejos son ·
+  100 si todas las aulas pesaran igual»**.
+- **La explicación del peso** hablaba en π y w_i antes de decir qué es un peso.
+  Ahora empieza por el objeto real: cada aula representa a un número de aulas del
+  marco, y ése es su peso.
+- **«Resultados de la simulación» pintaba cuatro tarjetas con «0/0 corridas ·
+  Simulación no solicitada»**: el mismo vacío repetido cuatro veces, sin decir
+  qué lo llena. El motor devuelve una fila por método aunque no se hayan pedido
+  corridas. Ahora, si ninguna corrió, el vacío se declara **una vez** y nombra el
+  botón (C3). Simulación pasó de **2,2 a 1,17 pantallas**.
+- **La barra de rango era muda.** Dibujaba p10–p90 sin decirlo. Lleva rótulo:
+  «8 de cada 10 cayeron entre X e Y».
+
+## Lo que queda de M5, medido en la app
+
+Siete tarjetas seguidas que dicen sólo **BALANCE 35/100 Facultad · 69/100
+Programa · 72/100 Nivel/ciclo · 91/100 Horario · 100/100 Modalidad · 39/100
+Tamaño de aula · 50/100 Sexo**. Es exactamente lo que Gonzalo nombró: «hay
+distintos mecanismos para medir el balance, hay distintos balances, no termino de
+entender». Ninguna dice qué compara ni contra qué, y la peor (Facultad, 35) es
+justo la dimensión que la vara del otro loop declara innegociable.

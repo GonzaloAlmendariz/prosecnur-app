@@ -77,15 +77,23 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
             ]}
           />
           <p className="cmv2-aulas-nota-suave">
-            Cada curso-horario pesa w_i = 1/π_i (el inverso de su probabilidad de inclusión). Si los pesos son muy
-            desiguales, unos pocos cursos-horario dominan la estimación y el n efectivo cae por debajo del nominal.
+            Cada aula seleccionada representa a un número de aulas del marco: ése es su <b>peso</b>, y vale
+            el inverso de su probabilidad de entrar al sorteo. Un aula con poca probabilidad representa a
+            muchas, así que pesa más. Si los pesos son muy desiguales, unas pocas aulas dominan el resultado
+            y la muestra rinde como si fuera más pequeña de lo que es: eso es el <b>n efectivo</b>.
           </p>
         </div>
         <CifraFila>
+          {/* «CV de pesos» y «sobre el umbral de alerta» dan por sabido qué es
+              un coeficiente de variación y qué significa cruzarlo. Gonzalo,
+              2026-08-22: «¿a qué se refiere con CV de pesos?». El rótulo pasa a
+              nombrar lo que mide y el detalle a decir qué implica el valor. */}
           <CifraMotor
-            label="CV de pesos"
+            label="Desigualdad entre pesos"
             value={fmtDec(cv, 2)}
-            detalle={cv > cvWarn ? `sobre el umbral de alerta (${fmtDec(cvWarn, 2)})` : "dispersión de los pesos"}
+            detalle={cv > cvWarn
+              ? `desiguales: pasa de ${fmtDec(cvWarn, 2)}, el punto donde conviene revisar`
+              : `parejos: por debajo de ${fmtDec(cvWarn, 2)}`}
             origen="motor"
             tono={cv > cvWarn ? "alerta" : "ok"}
           />
@@ -96,9 +104,9 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
             origen="motor"
           />
           <CifraMotor
-            label="Puntaje de estabilidad"
+            label="Qué tan parejos son"
             value={Number.isFinite(score) && score > 0 ? `${fmtDec(score)}/100` : "—"}
-            detalle="100 = pesos parejos"
+            detalle="100 si todas las aulas pesaran igual"
             origen="motor"
             tono={Number.isFinite(score) && score < 50 ? "alerta" : undefined}
           />

@@ -254,13 +254,22 @@ export function CoverageOverlapPanel({
 
 export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimulationSummary[] | unknown }) {
   const summaryRows = rowsFrom<CalcMuestraAulasSimulationSummary>(rows);
-  if (!summaryRows.length) {
+  // El motor devuelve una fila por método AUNQUE no se hayan pedido corridas, y
+  // entonces las cuatro decían «0/0 corridas · Simulación no solicitada»: un
+  // vacío repetido cuatro veces que ocupa una pantalla y no dice qué hacer.
+  // El vacío se declara una vez y nombra el botón que lo llena (C3).
+  const ningunaCorrida = summaryRows.length > 0
+    && summaryRows.every((row) => safeNumber(row.executed_runs, 0) <= 0);
+  if (!summaryRows.length || ningunaCorrida) {
     return (
       <div className="cmv2-classroom-empty is-compact">
         <span><BarChart3 size={16} /></span>
         <div>
-          <strong>Simulación pendiente</strong>
-          <em>Corre el comparador para estimar estabilidad, cobertura y pérdida por estudiantes repetidos.</em>
+          <strong>Todavía no se ha repetido el sorteo</strong>
+          <em>
+            Cada método se sortea muchas veces con semillas distintas para ver cuánto cambia
+            el resultado de una vez a otra. Pulsa <b>Medir estabilidad</b> arriba para correrlo.
+          </em>
         </div>
       </div>
     );
@@ -271,8 +280,11 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
         <article key={row.method_id}>
           <small>{classroomMethodLabel(row.method_id)}</small>
           <strong>{classroomScore(row.score_mean)}</strong>
-          <span>{fmtInt(safeNumber(row.executed_runs, 0))}/{fmtInt(safeNumber(row.requested_runs, 0))} corridas</span>
-          <div className="cmv2-simulation-range" aria-label={`Rango ${classroomScore(row.score_p10)} a ${classroomScore(row.score_p90)}`}>
+          <span>puntaje medio de {fmtInt(safeNumber(row.executed_runs, 0))} sorteos</span>
+          <span className="cmv2-simulation-range-label">
+            8 de cada 10 cayeron entre {classroomScore(row.score_p10)} y {classroomScore(row.score_p90)}
+          </span>
+          <div className="cmv2-simulation-range" aria-label={`8 de cada 10 sorteos entre ${classroomScore(row.score_p10)} y ${classroomScore(row.score_p90)}`}>
             <i style={{
               left: `${Math.max(0, Math.min(100, safeNumber(row.score_p10, 0)))}%`,
               width: `${Math.max(2, Math.min(100, safeNumber(row.score_p90, 0)) - Math.max(0, safeNumber(row.score_p10, 0)))}%`,
