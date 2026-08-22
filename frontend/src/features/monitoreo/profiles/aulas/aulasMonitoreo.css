@@ -1768,6 +1768,14 @@
   font-size: var(--aulas-sec);
 }
 
+/* El dia contra el que se mide el atraso. Va con el peso de un pie de cifra, no
+   con el del dato: acompaña la lectura, no compite con ella. */
+.mon-profile-page.is-aulas-flow .aulas-frente-corte {
+  color: var(--pulso-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* Un campo que la hoja no bautiza. Se lee, no se cuenta: va como frase y con el
    tono de aviso, no como el gris del pie de sincronización. */
 .mon-profile-page.is-aulas-flow .aulas-fuente-falta {

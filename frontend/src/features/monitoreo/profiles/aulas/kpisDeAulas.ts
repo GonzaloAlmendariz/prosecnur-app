@@ -314,10 +314,14 @@ export function aulasKpis(
         pista: "filas que llegaron de la plataforma",
       },
       {
+        // La tarjeta se llama «Corte» y decía «Listo»: prometia una fecha y
+        // entregaba un estado, con la fecha escondida en la pista. El corte ES
+        // la fecha —todo el atraso del operativo se mide contra ella—, así que
+        // va en el valor.
         label: "Corte",
         icono: RefreshCw,
-        value: sello ? "Listo" : "Pendiente",
-        pista: sello || "todavía sin tablero generado",
+        value: sello || "Pendiente",
+        pista: sello ? "todo el atraso se mide contra este día" : "todavía sin tablero generado",
         tone: sello ? "neutral" : "warn",
       },
     ];
