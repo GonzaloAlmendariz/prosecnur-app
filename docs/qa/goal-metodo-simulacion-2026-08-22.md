@@ -1004,3 +1004,35 @@ Mutante: devolver el paso a exigir comparación mata 2 de 4.
 —porque depende de un estado que el proyecto de trabajo ya superó— **sí se puede
 verificar**. Renderizarla es la primera opción; declarar «no observable» era una
 limitación no intentada.
+
+
+## Las ramas que el proyecto real nunca alcanza
+
+HSVG2026 sólo produce avisos de gravedad **media**, así que en todo el loop nunca
+se vio ni la rama de gravedad alta ni la de «sin riesgos» — y la alta es
+precisamente la que tiene que destacar.
+`riesgoResumenRamas.contract.test.tsx` las renderiza las cinco:
+
+- Con un aviso alto: dice «1 de gravedad alta» primero y marca
+  `data-severidad="alta"`.
+- Sin avisos reales: «no reporta riesgos activos», severidad `ok`.
+- **Sólo con notas del sorteo: severidad `ok`.** Si esto marcara «media»
+  volveríamos al «5 avisos» que no distinguía nada.
+- Un asunto real sí eleva la severidad a `media`.
+- Sin auditar, el resumen no promete que no haya riesgos.
+
+Mutante que quita la mirada a la gravedad alta: mata 2.
+
+### Un mutante que no murió, y por qué está bien
+
+Cambiar «las cifras de salud son asuntos» por «son notas» **pasa los cinco tests
+de este contrato**. No es un hueco: esa decisión la protege
+`avisosDelMotor.test.ts`, donde el mismo mutante mata 1. Comprobado, no supuesto —
+un mutante que sobrevive obliga a buscar quién lo cubre antes de declarar que
+nadie lo hace.
+
+### Trampa del fixture
+
+`classroomRiskRows` deduplica por `severidad|título|detalle`, así que **dos copias
+del mismo aviso cuentan como una**. El primer intento del test usaba dos notas
+idénticas y salía en singular: el fallo era del fixture, no del código.
