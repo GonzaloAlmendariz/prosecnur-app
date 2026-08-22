@@ -313,20 +313,33 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
   }
   return (
     <div className="cmv2-simulation-grid">
-      {summaryRows.map((row) => (
-        <article key={row.method_id}>
+      {summaryRows.map((row) => {
+        // El vacío único de arriba cubre «ninguno corrió». Faltaba el caso
+        // MIXTO —unos métodos simulados y otros no—, donde la tarjeta del que
+        // no corrió decía «puntaje medio de 0 sorteos» y «8 de cada 10 cayeron
+        // entre — y —»: una media de cero sorteos no existe y ese rango afirma
+        // una distribución que no hay. Medido el 2026-08-22 renderizando el
+        // caso, que en la app no se alcanza.
+        const corridas = safeNumber(row.executed_runs, 0);
+        const sinCorrer = corridas <= 0;
+        return (
+        <article key={row.method_id} data-sin-correr={sinCorrer ? "true" : undefined}>
           <small>{classroomMethodLabel(row.method_id)}</small>
-          <strong>{classroomScore(row.score_mean)}</strong>
-          <span>puntaje medio de {fmtInt(safeNumber(row.executed_runs, 0))} sorteos</span>
+          <strong>{sinCorrer ? "—" : classroomScore(row.score_mean)}</strong>
+          <span>{sinCorrer ? "no se simuló" : `puntaje medio de ${fmtInt(corridas)} sorteos`}</span>
+          {!sinCorrer && (
           <span className="cmv2-simulation-range-label">
             8 de cada 10 cayeron entre {classroomScore(row.score_p10)} y {classroomScore(row.score_p90)}
           </span>
+          )}
+          {!sinCorrer && (
           <div className="cmv2-simulation-range" aria-label={`8 de cada 10 sorteos entre ${classroomScore(row.score_p10)} y ${classroomScore(row.score_p90)}`}>
             <i style={{
               left: `${Math.max(0, Math.min(100, safeNumber(row.score_p10, 0)))}%`,
               width: `${Math.max(2, Math.min(100, safeNumber(row.score_p90, 0)) - Math.max(0, safeNumber(row.score_p10, 0)))}%`,
             }} />
           </div>
+          )}
           <em>{motorCopyText(row.note)}</em>
           {/* La tarjeta decia solo el NOMBRE del metodo: «Sistemático por
               facultad — 0/0 corridas». Gonzalo, 2026-08-22: «¿qué es sistemático
@@ -334,7 +347,8 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
               pintaba en ninguna parte de Simulación. */}
           <p className="cmv2-simulation-method-detail">{classroomMethodReason(row.method_id)}</p>
         </article>
-      ))}
+        );
+      })}
     </div>
   );
 }

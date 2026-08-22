@@ -1060,3 +1060,31 @@ devuelve el título técnico mata 1.
 **Los cuatro vacíos de las dos pestañas quedan revisados**: el de resultados de
 simulación (que se repetía cuatro veces), el de balance sin filas, el del
 comparador y el del resumen de riesgos sin auditar.
+
+
+## El estado principal de Simulación, nunca observado hasta hoy
+
+HSVG2026 tiene `simulation_runs: 0`, así que **en todo el loop la pestaña se vio
+siempre vacía**: las tarjetas de resultados, el rango de puntajes y la nota del
+motor no se miraron ni una vez en pantalla. Todo lo que se reparó ahí —el nombre
+canónico, el rango con rótulo, «puntaje medio de N sorteos», la explicación del
+método— se hizo a ciegas.
+
+Renderizado con datos, **los seis primeros contratos pasan a la primera**: los
+cambios eran correctos.
+
+### Pero el caso mixto seguía roto
+
+El vacío único cubre «ningún método corrió». Faltaba **unos sí y otros no**, que
+la app tampoco alcanza:
+
+> Optimizar repetidos — **puntaje medio de 0 sorteos** · **8 de cada 10 cayeron
+> entre — y —**
+
+Una media de cero sorteos no existe, y ese rango afirma una distribución que no
+hay. La tarjeta sin simular ahora dice **«no se simuló»** y no pinta ni media ni
+rango ni barra; la que sí corrió conserva los suyos. Mutante que devuelve el
+pintado: mata 1.
+
+**La lección**: reparar el vacío total no repara el vacío parcial. El «todos» y el
+«alguno» son estados distintos, y el segundo casi nunca se mira.
