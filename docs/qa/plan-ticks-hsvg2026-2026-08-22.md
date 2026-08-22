@@ -544,3 +544,29 @@ sortear → (aviso de desfase) → rehacer el plan → handoff → libro operati
 
 Antes, el tercer paso no existía y el proyecto se quedaba con el plan de la
 primera corrida para siempre.
+
+
+## Verificación en la app: hasta dónde llega y qué queda sin ver
+
+**Confirmado en la app real** (captura de `/recopiladores` con el proyecto
+cargado): el resumen del plan dice **«Origen: calc-muestra · sorteo del 1 ago
+2026, 21:12»**. La reparación de B2 se ve.
+
+**No confirmado en la app**: el aviso de desfase y su botón. La captura no los
+muestra.
+
+Lo verificado por partes, para no confundir «no lo vi» con «no funciona»:
+
+| Pieza | Estado |
+|---|---|
+| `.collection_source_vigente` con el estado real del `.pulso` | ✓ `desfasado: TRUE` con los dos `run_id` correctos |
+| `collection_state_get` sobre una sesión poblada | ✓ el payload lleva `source_vigente` |
+| El JSON que sale al front | ✓ `{"plan_run_id":"…0801…","selection_run_id":"…0821…","desfasado":true}` |
+| `PlanSection` con ese payload | ✓ 9 tests, renderizado |
+| La cadena entera dentro de la app | **sin observar** |
+
+La hipótesis más probable es que la sesión que crea el runner al abrir el `.pulso`
+no restaure `calc_muestra_aulas_selection` igual que la lectura directa del RDS
+—las pruebas de arriba la poblaron a mano— y entonces no habría con qué comparar.
+**Es una hipótesis, no un diagnóstico**: queda para el siguiente tick, y hasta
+comprobarlo el aviso no puede declararse funcionando de extremo a extremo.
