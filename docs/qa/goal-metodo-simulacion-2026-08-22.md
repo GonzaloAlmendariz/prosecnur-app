@@ -552,3 +552,31 @@ auto 1fr` la última fila absorbe el sobrante: **705, 705, 705**.
 Vale la pena registrar el método: la asimetría de las cajas se descarta midiendo
 las cajas, y sólo entonces se busca dentro. Mirar el screenshot y concluir «las
 tarjetas tienen distinto alto» habría llevado a tocar lo que ya estaba bien.
+
+
+## El reorden conceptual, aplicado
+
+Método enseñaba primero y mostraba el resultado después: 1.344 px de explicación
+abstracta —que la propia tarjeta declara «esquema ilustrativo · no son aulas
+reales»— antes de ver lo propio. Correcto en la primera visita, peaje a partir de
+la segunda.
+
+Invertido con la aprobación de Gonzalo. La primera pantalla de Método es ahora:
+recomendación vigente → barra de acciones → riesgos en una línea → **qué dio cada
+método con este marco**, con las cuatro tarjetas y sus cifras en 2×2. La
+didáctica queda debajo como material de consulta.
+
+**Se retira la numeración.** «Paso 1» y «Paso 2» describían una secuencia
+—aprende y luego compara— que dejó de existir al invertir el orden. Ahora son
+«Qué dio cada método con este marco» y «Cómo funciona cada uno de los cuatro
+métodos»: la respuesta y su material de consulta, no dos pasos.
+
+Método sigue en 1,84 pantallas: el reorden no cambia el alto, cambia qué se ve
+sin bajar.
+
+### Lo que queda, medido
+
+El método recomendado se nombra **dos veces en los primeros 100 px**: en el panel
+«Recomendado por el comparador vigente» y en la barra de acciones («Recomendado:
+Optimizar repetidos»). La barra es compartida con Simulación, donde el panel no
+está en el mismo sitio, así que no basta con borrarlo de un lado.

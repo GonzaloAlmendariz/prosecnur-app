@@ -152,22 +152,39 @@ export function AulasMetodoTab({
           onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
         />
       </div>
+      {/*
+        * Los dos bloques de esta pestaña NO son dos comparaciones: uno dice qué
+        * dio cada método con estos datos y el otro qué hace cada uno. Nada lo
+        * decía, así que al bajar parecía que la comparación empezaba otra vez.
+        * Gonzalo, 2026-08-22: «luego abajo te pide por comparación de métodos
+        * otra vez […] no se entiende qué se está haciendo en cada una de las
+        * etapas».
+        *
+        * Iban numerados como Paso 1 (didáctica) y Paso 2 (resultado). El orden
+        * era correcto para la primera visita y un peaje a partir de la segunda:
+        * 1.344 px de explicación abstracta —que la propia tarjeta declara
+        * «esquema ilustrativo · no son aulas reales»— antes de ver lo propio.
+        * Invertido con la aprobación de Gonzalo el 2026-08-22. Y se retira la
+        * numeración: ya no son dos pasos de una secuencia, son la respuesta y
+        * su material de consulta.
+        */}
+      <ClassroomMethodComparator
+        ready={hayComparacion}
+        comparison={comparison}
+        methods={comparisonMethods}
+        recommendedMethodId={decision.kind === "recommended" ? decision.methodId : ""}
+        config={config}
+        busy={busy}
+        onSelectMethod={onSelectMethod}
+      />
+
       <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--full">
         <div className="cmv2-classroom-lab-main">
-          {/*
-            * Los dos bloques de esta pestaña NO son dos comparaciones: arriba
-            * está qué hace cada método y abajo qué dio cada uno con estos datos.
-            * Nada lo decía, así que al bajar parecía que la comparación
-            * empezaba otra vez. Gonzalo, 2026-08-22: «luego abajo te pide por
-            * comparación de métodos otra vez […] no se entiende qué se está
-            * haciendo en cada una de las etapas». Se numeran para que se lean
-            * como un recorrido y no como dos intentos de lo mismo.
-            */}
           <div className="cmv2-subhead">
-            <strong>Paso 1. Qué hace cada uno de los cuatro métodos</strong>
+            <strong>Cómo funciona cada uno de los cuatro métodos</strong>
             <small>
-              Aquí se explica en qué se diferencian. Más abajo, en el paso 2, están los
-              resultados que dio cada uno sobre este marco. {METODO_GOO_LEYENDA}
+              En qué se diferencian al elegir, para leer los resultados de arriba.{" "}
+              {METODO_GOO_LEYENDA}
             </small>
           </div>
           <ClassroomMethodStories
@@ -185,15 +202,6 @@ export function AulasMetodoTab({
         </div>
       </div>
 
-      <ClassroomMethodComparator
-        ready={hayComparacion}
-        comparison={comparison}
-        methods={comparisonMethods}
-        recommendedMethodId={decision.kind === "recommended" ? decision.methodId : ""}
-        config={config}
-        busy={busy}
-        onSelectMethod={onSelectMethod}
-      />
     </div>
   );
 }

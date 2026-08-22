@@ -38,8 +38,11 @@ export function ClassroomMethodComparator({
       <header className="cmv2-method-comparator-head">
         {/* «Comparación de métodos» a secas, después de un bloque que también
             habla de los cuatro métodos, se leía como una segunda comparación.
-            El número lo ata al paso 1 y el subtítulo dice qué añade. */}
-        <strong>Paso 2. Qué dio cada método con este marco</strong>
+            El título dice qué añade: aquí están los NÚMEROS de este marco, no la
+            explicación de los métodos. Llevó un «Paso 2» mientras la didáctica
+            iba encima; al invertirse el orden la numeración dejó de describir
+            nada, porque ya no son dos pasos de una secuencia. */}
+        <strong>Qué dio cada método con este marco</strong>
         {ready ? (
           <span>
             {methods.length} {methods.length === 1 ? "método evaluado" : "métodos evaluados"} sobre
