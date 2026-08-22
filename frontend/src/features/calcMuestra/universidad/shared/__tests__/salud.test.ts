@@ -218,3 +218,33 @@ describe("piezasDesdeModel — escenario elegido", () => {
     expect(piezas.componentes).toEqual([{ etiqueta: "Nivel facultad", nObjetivo: 268, marcoN: 1000 }]);
   });
 });
+
+describe("los avisos de salud usan el mismo vocabulario que las cifras", () => {
+  // «CV de pesos» quedó en el aviso cuando la cifra de la misma pestaña ya se
+  // llamaba «Desigualdad entre pesos»: el mismo concepto con dos nombres a
+  // 200 px. Es la familia dominante del módulo, en su versión más barata de
+  // pasar por alto — cada superficie se reparó por separado.
+  const conCv = (cv: number) => derivarSaludDiseno({
+    ...piezasSanas,
+    cvPesos: cv,
+    cvWarn: 0.5,
+    cvCritical: 0.9,
+  }).find((o) => o.id === "cv-pesos");
+
+  it("el aviso no reintroduce la sigla que la cifra ya glosó", () => {
+    const obs = conCv(0.65);
+    expect(obs, "no salió el aviso de pesos").toBeTruthy();
+    expect(obs!.titulo).not.toMatch(/\bCV\b/);
+    expect(obs!.titulo).toContain("Desigualdad entre pesos");
+  });
+
+  it("el detalle explica la consecuencia sin exigir el término", () => {
+    const obs = conCv(0.65)!;
+    expect(obs.detalle).not.toMatch(/\bn efectivo\b.*nominal|\bCV\b/);
+    expect(obs.detalle).toMatch(/rinde como si fuera más pequeña/);
+  });
+
+  it("la acción dice dónde mirarlo, con el nombre del bloque", () => {
+    expect(conCv(0.65)!.accion).toContain("Estabilidad de pesos");
+  });
+});
