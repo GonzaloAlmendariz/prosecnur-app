@@ -5002,6 +5002,12 @@ mount_monitoreo <- function(pr) {
         resumen = out$resumen,
         hojas_ausentes = out$hojas_ausentes,
         control_sin_nombre = out$control_sin_nombre,
+        # `aulas_libro_importar_en_sesion()` calcula las dos y la respuesta las
+        # dejaba morir aqui. Es el tercer caso del mismo patron en este mismo
+        # camino —antes paso con `reservas` y con `teacher_phone`—: el backend
+        # produce el dato y nadie lo emite, asi que la cifra no llega.
+        fusion = out$fusion,
+        agenda_campos_ausentes = out$agenda_campos_ausentes,
         state = .monitoreo_state_payload(sid),
         saved_project = !is.null(saved_project)
       )

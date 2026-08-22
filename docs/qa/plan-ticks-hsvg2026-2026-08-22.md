@@ -1133,3 +1133,38 @@ concreta.
   escribe `collection_materials_job.R:271`; mi primer grep lo había filtrado yo
   mismo con un `grep -v` demasiado ancho. El campo estaba bien; el instrumento,
   mal.
+
+
+## Serie E — importar el libro de otro sorteo no se distinguía de importar el bueno
+
+`aulas_libro_fusionar_plan()` mete tal cual las aulas que el plan no tiene, y
+está bien pensado: *«un aula que el libro trae y el plan no entra tal cual;
+descartarla perdería una fila que alguien añadió a mano en campo»*. Pero trataba
+igual **1 aula añadida a mano que 190 de otro sorteo**, y el plan quedaba con dos
+sorteos mezclados mientras el aviso decía «Entraron 190 aulas».
+
+Misma forma que el cruce parte↔plataforma, que esto ya resuelve bien con su
+umbral: unos pocos casos son casos; casi todos son otro problema.
+
+### Tercer caso del mismo patrón en el mismo camino
+
+La cifra existía: `aulas_libro_importar_en_sesion()` calcula
+`fusion = {actualizadas, nuevas, intactas}`. **El router no la devolvía**, así
+que moría en el backend. Ya había pasado dos veces aquí mismo:
+
+| Dato | Quién lo producía | Dónde moría |
+|---|---|---|
+| `reservas` | el backend lo contaba | el tipo del front no lo declaraba |
+| `teacher_phone` | la spec y el generador | el registro del lector no lo emitía |
+| **`fusion`** | `carga_aulas_libro.R` | **la respuesta del router no lo pasaba** |
+
+De paso viajó también `agenda_campos_ausentes`, que tenía el mismo problema
+desde el tick anterior.
+
+### La regla que distingue
+
+`intactas > 0` prueba que **había plan previo**. Sin eso, «ninguna coincidió» es
+sólo un primer libro y acusarlo sería un falso positivo en el caso más común de
+todos.
+
+5 asertos; el mutante que quita esa condición —y acusa al primer libro— mata 1.

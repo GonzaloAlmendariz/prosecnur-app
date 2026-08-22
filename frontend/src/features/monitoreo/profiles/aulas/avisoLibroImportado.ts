@@ -32,10 +32,24 @@ export type ResumenLibroImportado = {
  */
 export type TonoAviso = "ok" | "atencion";
 
+/**
+ * Cómo cruzó el libro con el plan que ya estaba.
+ *
+ * `nuevas` tiene DOS lecturas opuestas, igual que el cruce parte↔plataforma:
+ * unas pocas aulas que el plan no tenía son filas que alguien añadió a mano en
+ * campo —normal—, pero **ninguna coincidencia** con un plan que sí existía
+ * significa que el libro es de otro sorteo, y la fusión lo mete entero al lado
+ * del vigente sin decir nada. El aviso decía «Entraron 190 aulas» en los dos
+ * casos.
+ */
+export type FusionDelLibro = { actualizadas: number; nuevas: number; intactas: number };
+
 export function avisoLibroImportado(res: {
   resumen?: Partial<ResumenLibroImportado>;
   hojas_ausentes?: string[];
   control_sin_nombre?: number[];
+  fusion?: FusionDelLibro | null;
+  agenda_campos_ausentes?: string[] | null;
 }): { texto: string; tono: TonoAviso } {
   const r = res.resumen ?? {};
   const frases: string[] = [];
@@ -72,8 +86,31 @@ export function avisoLibroImportado(res: {
     );
   }
 
+  // El libro no cruza con el plan que ya estaba. `intactas > 0` prueba que
+  // había plan previo: sin eso, «ninguna coincidió» es sólo un primer libro.
+  const f = res.fusion ?? null;
+  const noCruza = Boolean(f && f.intactas > 0 && f.actualizadas === 0 && f.nuevas > 0);
+  if (noCruza && f) {
+    texto.push(
+      `Ninguna de las ${f.nuevas} aulas del libro estaba en el plan: se añadieron al lado de las ${f.intactas} que ya había. Si esperabas que actualizara el plan, el libro es de otro sorteo.`,
+    );
+  } else if (f && f.nuevas > 0 && f.actualizadas > 0) {
+    // Pocas nuevas junto a actualizaciones: es lo normal, se dice sin alarmar.
+    texto.push(
+      `${f.actualizadas} ${f.actualizadas === 1 ? "aula del plan se actualizó" : "aulas del plan se actualizaron"} y ${f.nuevas} no ${f.nuevas === 1 ? "estaba" : "estaban"} en él.`,
+    );
+  }
+
+  const ausentes = res.agenda_campos_ausentes?.length ?? 0;
+  if (ausentes) {
+    texto.push(
+      `La hoja de agenda no bautiza ${ausentes} ${ausentes === 1 ? "campo" : "campos"} del bloque: ${ausentes === 1 ? "esa columna se lee vacía" : "esas columnas se leen vacías"}.`,
+    );
+  }
+
   const tono: TonoAviso =
-    res.hojas_ausentes?.length || (res.control_sin_nombre?.length ?? 0) > 0 || !texto.length
+    res.hojas_ausentes?.length || (res.control_sin_nombre?.length ?? 0) > 0 || noCruza
+      || ausentes > 0 || !texto.length
       ? "atencion"
       : "ok";
   if (!texto.length) return { texto: "El libro no traía nada que leer.", tono };
