@@ -36,7 +36,7 @@ terminado. Cadencia: **5 minutos entre tick y tick**.
 | # | Tick | Qué mide | Cerrado |
 |---|---|---|---|
 | A1 | Línea base con **190** aulas | ☑ ver abajo |  |
-| A2 | Sortear con **195** | lo mismo, y cuánto cambia por 5 aulas más | ☐ |
+| A2 | Sortear con **195** proporcional | ☑ ver abajo |  |
 | A3 | Sortear con **200** | ídem; ¿la cuota por facultad mejora o sólo sube el costo? | ☐ |
 | A4 | **190 con ajustes** (profundidad, tolerancia) | qué ajuste mejora sin subir n | ☐ |
 | A5 | **192 con ajustes** | el punto intermedio que Gonzalo señaló | ☐ |
@@ -156,3 +156,41 @@ de la jornada**; los cuatro se cazaron por contradecir una cifra previa, nunca
 por revisar el método.
 
 El runner queda en `scripts/qa/colchon-caidas.R` para reusarlo en A2–A5.
+
+
+---
+
+## A2 · 195 aulas con reparto proporcional
+
+| | 190 (A1) | 195 (A2) |
+|---|---|---|
+| Titulares / reservas | 190 / 496 | 195 / 509 |
+| Entrevistas esperadas | 3.302 | 3.386 |
+| Score de representatividad | 51,1 | **53,6** |
+| Colchón global | 34 (17,9 %) | 38 (19,5 %) |
+| **Derecho** | déficit 38 | **déficit 19** |
+| **Facultades sin colchón** | **4** | **4** |
+
+Las cinco aulas fueron a C&I (+1), EE.GG. Ciencias (+1), EE.GG. Letras (+1), Arte
+y Diseño (+1) y Derecho (+1): **cuatro de las cinco cayeron donde ya había
+colchón**. Las cuatro facultades en cero —Contables, Gestión, Letras y CC.HH.,
+Psicología— **no recibieron ninguna y siguen en cero**.
+
+**Confirma la predicción de A1**: subir el total con reparto proporcional no
+mueve el problema, porque el problema está en las facultades pequeñas y el
+reparto proporcional, por definición, da a las grandes.
+
+Corrida: 22,5 s.
+
+## Hallazgo de producto: `n_aulas` se acepta y no manda
+
+El primer intento de A2 puso `selector$n_aulas = 195` y el sorteo devolvió **190
+titulares, mismo score, mismo colchón, todo idéntico**. `normalize_config`
+conserva el 195 —comprobado— pero el reparto real vive en
+**`selector$faculty_targets`**, una lista `facultad → aulas` que suma el total. Si
+está fijada, `n_aulas` no hace nada **y nadie avisa**.
+
+Es la misma familia que `profundidad_por_facultad`, que también se aceptaba sin
+surtir efecto: **un parámetro que se ignora en silencio**. Queda para la serie E:
+si la UI deja cambiar el objetivo de aulas sin recalcular `faculty_targets`, el
+analista cree haber cambiado el tamaño de su muestra y no ha cambiado nada.
