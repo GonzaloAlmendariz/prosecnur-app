@@ -87,7 +87,18 @@ export function ClassroomMethodComparator({
                     <span><strong>{fmtPct(method.duplicate_loss ?? 0)}</strong> repetidos</span>
                     <span><strong>{fmtPct(method.coverage_unique_pct ?? 0)}</strong> cobertura</span>
                   </div>
-                  <button type="button" className={recommended ? "cmv2-primary" : "cmv2-ghost"} onClick={() => void onSelectMethod(config, String(method.method_id))} disabled={Boolean(busy)}>
+                  {/* Cuatro botones «Usar método» seguidos son indistinguibles
+                      con teclado o lector de pantalla: se oye el mismo nombre
+                      cuatro veces sin saber cuál método es cuál. El nombre
+                      accesible dice de cuál se trata; el visible se queda corto
+                      porque la tarjeta ya lo lleva encima. */}
+                  <button
+                    type="button"
+                    className={recommended ? "cmv2-primary" : "cmv2-ghost"}
+                    aria-label={`Usar ${classroomMethodLabel(String(method.method_id))}`}
+                    onClick={() => void onSelectMethod(config, String(method.method_id))}
+                    disabled={Boolean(busy)}
+                  >
                     Usar método
                   </button>
                 </article>
