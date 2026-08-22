@@ -1268,3 +1268,30 @@ elemento ancho.
 **No se resuelve aquí**: es la pestaña Selección, fuera del encargo de Método y
 Simulación, y no lo introdujo ninguno de los cambios de esta jornada. Queda con
 la medición hecha para que el siguiente no repita el rastreo.
+
+
+## Teclado y foco: cuatro botones iguales no son cuatro opciones
+
+La skill de revamp pide preservar foco, teclado y nombres accesibles, y era la
+dimensión que faltaba por medir. Recorriendo el orden de tabulación:
+
+| | focusables | `tabindex` positivo | orden |
+|---|---|---|---|
+| Método | 15 | 0 | correcto, sigue el documento |
+| Simulación | 3 | 0 | correcto |
+
+Ningún `tabindex` positivo —que rompería el orden natural— y ninguna trampa de
+foco. Pero sí un defecto: **cuatro botones «Usar método» seguidos**, uno por
+tarjeta. Tabulando se oye el mismo nombre cuatro veces y nada dice cuál método
+es cuál. Es «lo repetido es lo prominente» en su versión accesible, y no aparece
+en ningún screenshot. Ahora cada uno se llama **«Usar Sistemático por
+facultad»**, «Usar Balance por cuotas y tamaño», etc.; el texto visible se queda
+corto porque la tarjeta ya lleva el nombre encima.
+
+### Un falso positivo, comprobado antes de reportarlo
+
+El mismo barrido señaló un `<input type="checkbox">` **sin nombre accesible**.
+Comprobado: está dentro de un `<label>` cuyo texto es «Descontar estudiantes
+repetidos al seleccionar», así que el nombre se computa del label. **La heurística
+no miraba el ancestro**, no el marcado. Reportarlo habría mandado a alguien a
+arreglar algo que ya estaba bien.
