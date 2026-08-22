@@ -1343,6 +1343,17 @@
   letter-spacing: -0.01em;
 }
 
+/* Una nota de que el motor hizo su trabajo no se pinta como una advertencia:
+   el ambar es para lo que pide una decision. La gravedad sigue en is-alta. */
+.cmv2-aulas-stack .cmv2-classroom-risk-list > [data-naturaleza="nota"] small,
+.cmv2-aulas-stack .cmv2-classroom-risk-list > [data-naturaleza="pendiente"] small {
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+}
+
+.cmv2-aulas-stack .cmv2-classroom-risk-list > [data-naturaleza="nota"] {
+  --cmv2-risk-accent: var(--cmv2-border, var(--pulso-border));
+}
+
 .cmv2-aulas-stack .cmv2-aulas-simulacion-nota {
   margin: 0;
   font-size: 12px;

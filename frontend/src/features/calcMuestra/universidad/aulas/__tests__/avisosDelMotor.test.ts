@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { avisoEsTecnico, traducirAvisoDelMotor } from "../avisosDelMotor";
+import { naturalezaDelAviso, avisoEsTecnico, traducirAvisoDelMotor } from "../avisosDelMotor";
 
 const CRUDO_PI = [
   "Comparacion de metodos con descuento secuencial aplicado al sorteo:",
@@ -98,5 +98,38 @@ describe("el título del aviso de sorteo dice lo que el aviso trae", () => {
     expect(titulo).toMatch(/balance/i);
     expect(resumen).toContain("1 estrato ");
     expect(resumen).not.toContain("1 estratos");
+  });
+});
+
+describe("un aviso declara qué clase de cosa es, no sólo su gravedad", () => {
+  // Los cinco avisos reales de HSVG2026 el 2026-08-22, todos con severity
+  // «media». Gonzalo: «¿a qué se deben tantas alertas, es porque algo está
+  // mal?». Sólo uno pedía algo.
+  const reales = [
+    { code: "reservas_profundidad", severity: "media", title: "Baja profundidad de reservas", detail: "5 celda(s) tienen menos reservas que titulares." },
+    { code: "", severity: "media", title: "", detail: "comparacion de metodos con descuento secuencial" },
+    { code: "", severity: "media", title: "", detail: "balance del sorteo | balance del sorteo" },
+    { code: "", severity: "media", title: "", detail: "ajuste de tamano divulgado | balance del sorteo" },
+    { code: "", severity: "media", title: "", detail: "requiere al menos 100 corridas" },
+  ];
+
+  it("de los cinco avisos reales sólo uno pide una decisión", () => {
+    const nat = reales.map(naturalezaDelAviso);
+    expect(nat.filter((n) => n === "asunto")).toHaveLength(1);
+    expect(nat.filter((n) => n === "nota")).toHaveLength(3);
+    expect(nat.filter((n) => n === "pendiente")).toHaveLength(1);
+  });
+
+  it("las cifras de salud que cruzan su umbral son asuntos, no notas", () => {
+    expect(naturalezaDelAviso({ code: "salud_cv_pesos", severity: "media", title: "CV alto", detail: "" })).toBe("asunto");
+  });
+
+  it("un aviso sin señal conocida se trata como asunto", () => {
+    // Callar algo que pedía atención es peor que pedir atención de más.
+    expect(naturalezaDelAviso({ code: "xyz_desconocido", severity: "media", title: "?", detail: "?" })).toBe("asunto");
+  });
+
+  it("un ok no es ninguna de las tres", () => {
+    expect(naturalezaDelAviso({ code: "sin_alertas", severity: "ok", title: "", detail: "" })).toBe("ok");
   });
 });

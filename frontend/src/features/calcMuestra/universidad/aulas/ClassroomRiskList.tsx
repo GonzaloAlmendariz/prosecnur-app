@@ -1,7 +1,14 @@
 import { CheckCircle2, CircleAlert, TriangleAlert } from "lucide-react";
 import type { CalcMuestraAulasMethodComparison } from "../../../../api/client";
 import { rowsFrom } from "../../sharedCore";
-import { traducirAvisoDelMotor } from "./avisosDelMotor";
+import { ETIQUETA_NATURALEZA, naturalezaDelAviso, traducirAvisoDelMotor, type NaturalezaAviso } from "./avisosDelMotor";
+
+const ETIQUETA_PILDORA: Record<NaturalezaAviso, string> = {
+  asunto: "Para revisar",
+  nota: "Nota del sorteo",
+  pendiente: "Pendiente",
+  ok: "Sin observaciones",
+};
 
 export function classroomRiskRows(
   risks: NonNullable<CalcMuestraAulasMethodComparison["risk_flags"]> | unknown,
@@ -56,15 +63,24 @@ export function ClassroomRiskList({
   if (resumen) {
     const reales = visible.filter((r) => String(r.severity ?? "") !== "ok");
     const altas = reales.filter((r) => String(r.severity ?? "") === "alta").length;
+    // «5 avisos de gravedad media» obliga a abrirlos todos para descubrir que
+    // sólo uno pide algo. El recuento se da por naturaleza y el asunto primero.
+    const porNaturaleza = (["asunto", "pendiente", "nota"] as NaturalezaAviso[])
+      .map((nat) => ({ nat, n: reales.filter((r) => naturalezaDelAviso(r) === nat).length }))
+      .filter((x) => x.n > 0);
+    const frase = porNaturaleza
+      .map(({ nat, n }) => `${n} ${n === 1 ? ETIQUETA_NATURALEZA[nat].singular : ETIQUETA_NATURALEZA[nat].plural}`)
+      .join(" · ");
+    const hayAsunto = porNaturaleza.some((x) => x.nat === "asunto");
     return (
-      <div className="cmv2-classroom-risk-resumen" data-severidad={altas > 0 ? "alta" : reales.length ? "media" : "ok"}>
+      <div className="cmv2-classroom-risk-resumen" data-severidad={altas > 0 ? "alta" : hayAsunto ? "media" : "ok"}>
         <div className="cmv2-subhead"><strong>{alcance ?? "Riesgos detectados"}</strong></div>
         <p>
           {!reales.length
             ? "La auditoría no reporta riesgos activos para el cálculo vigente."
             : altas > 0
-              ? `${altas} de gravedad alta y ${reales.length - altas} de gravedad media.`
-              : `${reales.length} ${reales.length === 1 ? "aviso" : "avisos"} de gravedad media, ninguno crítico.`}
+              ? `${altas} de gravedad alta. ${frase}.`
+              : `${frase}.`}
         </p>
         {onVerDetalle && reales.length ? (
           <button type="button" className="cmv2-ghost" onClick={onVerDetalle}>
@@ -84,6 +100,7 @@ export function ClassroomRiskList({
       <div className="cmv2-subhead"><strong>{alcance ?? "Riesgos"}</strong></div>
       {visible.map((risk, index) => {
         const severity = String(risk.severity ?? "media");
+        const naturaleza = naturalezaDelAviso(risk);
         const Icon = severityIcon(severity);
         const detail = String(risk.detail ?? "Revisa la auditoría técnica del selector.");
         // La detección por `paquete::funcion` dejaba pasar el resto de la jerga
@@ -92,8 +109,11 @@ export function ClassroomRiskList({
         // tres pestañas de Selección contra 0 en Cálculo.
         const aviso = traducirAvisoDelMotor(detail);
         return (
-          <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${severity}`}>
-            <small><Icon size={12} aria-hidden="true" />{severity}</small>
+          <div key={`${String(risk.code ?? "riesgo")}-${index}`} className={`is-${severity}`} data-naturaleza={naturaleza}>
+            {/* La píldora decía la GRAVEDAD, y las cinco decían «media»: cinco
+                cosas de naturaleza distinta con el mismo distintivo. Dice qué
+                clase de cosa es; la gravedad sigue gobernando el color. */}
+            <small><Icon size={12} aria-hidden="true" />{ETIQUETA_PILDORA[naturaleza]}</small>
             {/* El título traducido gana al del motor: mandaba dos avisos
                 distintos bajo un mismo «Fallback metodológico», y dos cosas
                 distintas con el mismo nombre se leen como una repetida. */}

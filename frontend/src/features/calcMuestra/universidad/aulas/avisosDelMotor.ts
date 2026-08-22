@@ -155,3 +155,49 @@ export function traducirAvisoDelMotor(detalle: string): AvisoTraducido {
   }
   return { titulo: null, resumen: limpio, mostrarCrudo: false };
 }
+
+/**
+ * Qué clase de cosa es un aviso, que no es lo mismo que su gravedad.
+ *
+ * Gonzalo, 2026-08-22, viendo cinco avisos seguidos en ámbar: «¿a qué se deben
+ * tantas alertas, es porque algo está mal?». No lo estaba. De los cinco, uno
+ * pedía una decisión (5 celdas con menos reservas que titulares), tres eran
+ * notas de que el motor hizo su trabajo —las probabilidades mostradas son las
+ * del diseño; en 4 estratos no había nada que balancear; en 8 la cuota no salía
+ * entera y se corrigió— y uno era un recordatorio de que faltaba correr la
+ * simulación. Los cinco marcados «media».
+ *
+ * Una escala donde todo vale lo mismo obliga a leerlos todos para descubrir que
+ * sólo uno pide algo. La gravedad se conserva; la naturaleza se añade.
+ */
+export type NaturalezaAviso = "asunto" | "nota" | "pendiente" | "ok";
+
+const NATURALEZA_POR_PATRON: Array<{ patron: RegExp; naturaleza: NaturalezaAviso }> = [
+  // Lo que pide una decisión o deja al estudio con menos de lo que pidió.
+  { patron: /reserva|profundidad|descuento_sin_ids|implementacion alternativa|no disponible o fallo/i, naturaleza: "asunto" },
+  // Lo que sólo cuenta cómo se comportó el sorteo.
+  { patron: /ajuste de tamano divulgado|balance del sorteo|descuento secuencial/i, naturaleza: "nota" },
+  // Lo que se resuelve corriendo algo.
+  { patron: /al menos \d+ corridas|simulacion insuficiente|auditoria_pendiente|simulaci.n corta/i, naturaleza: "pendiente" },
+];
+
+export function naturalezaDelAviso(risk: Record<string, unknown>): NaturalezaAviso {
+  const severity = String(risk.severity ?? "");
+  if (severity === "ok") return "ok";
+  const code = String(risk.code ?? "");
+  // La salud deriva de cifras del propio cálculo: si una cruza su umbral, hay
+  // algo que mirar, no una nota de procedimiento.
+  if (code.startsWith("salud_")) return "asunto";
+  const texto = `${code} ${String(risk.title ?? "")} ${String(risk.detail ?? "")}`;
+  const encontrado = NATURALEZA_POR_PATRON.find((entrada) => entrada.patron.test(texto));
+  // Sin señal, se trata como asunto: callar algo que pedía atención es peor que
+  // pedir atención de más.
+  return encontrado?.naturaleza ?? "asunto";
+}
+
+export const ETIQUETA_NATURALEZA: Record<NaturalezaAviso, { plural: string; singular: string }> = {
+  asunto: { singular: "asunto para revisar", plural: "asuntos para revisar" },
+  nota: { singular: "nota de cómo salió el sorteo", plural: "notas de cómo salió el sorteo" },
+  pendiente: { singular: "tarea pendiente", plural: "tareas pendientes" },
+  ok: { singular: "sin observaciones", plural: "sin observaciones" },
+};
