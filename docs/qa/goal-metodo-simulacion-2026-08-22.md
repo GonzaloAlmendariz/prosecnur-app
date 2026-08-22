@@ -532,3 +532,23 @@ Un tick que contesta bien una pregunta puede introducir el defecto que otro tick
 acaba de cerrar. La respuesta de M6 era correcta en contenido y mala en forma, y
 se escribió **después** de que Gonzalo pidiera cuidar los textos sin contenedor.
 Contestar no exime de dar forma a la respuesta.
+
+
+## Dos asimetrías más, una visible y otra que sólo aparece midiendo
+
+**La explicación de la fórmula flotaba.** El párrafo que dice qué es un peso y
+qué es el n efectivo iba DESPUÉS de la figura, así que quedaba entre la fórmula
+que explica y el bloque siguiente, sin pertenecer a ninguno. `FormulaLatex` gana
+una prop `nota` y la explicación pasa a ser el pie de la figura, que es lo que
+es.
+
+**Los sellos de procedencia no estaban al ras.** Las tres tarjetas de estabilidad
+median exactamente lo mismo —167 × 128 px las tres—, así que a simple vista el
+problema parecía de cajas y no lo era: lo que se desalineaba era el contenido.
+Un detalle de dos líneas empuja su «cifra validada» más abajo que el de al lado,
+y los tres sellos estaban a **588, 576 y 580 px**. Con `grid-template-rows: auto
+auto 1fr` la última fila absorbe el sobrante: **705, 705, 705**.
+
+Vale la pena registrar el método: la asimetría de las cajas se descarta midiendo
+las cajas, y sólo entonces se busca dentro. Mirar el screenshot y concluir «las
+tarjetas tienen distinto alto» habría llevado a tocar lo que ya estaba bien.

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 /**
  * Fórmula matemática en LaTeX (KaTeX) con procedencia y términos explicados:
  * la expresión se renderiza con el componente Math del kit, y cada
@@ -25,12 +26,21 @@ export function FormulaLatex({
   terms,
   badge,
   caption,
+  nota,
 }: {
   expression: string;
   display?: boolean;
   terms?: FormulaTermino[];
   badge?: "validado" | "preview" | "error";
   caption?: string;
+  /**
+   * Qué dice la fórmula en llano.
+   *
+   * Iba como párrafo suelto DESPUÉS de la figura, así que quedaba flotando
+   * entre la fórmula que explica y el bloque siguiente, sin pertenecer a
+   * ninguno de los dos. Una explicación de una fórmula es su pie: va dentro.
+   */
+  nota?: ReactNode;
 }) {
   return (
     <figure className="cmv2-uni-formula" role="group" aria-label={caption ?? "Fórmula"}>
@@ -58,6 +68,7 @@ export function FormulaLatex({
           ))}
         </div>
       )}
+      {nota && <figcaption className="cmv2-uni-formula-nota">{nota}</figcaption>}
     </figure>
   );
 }

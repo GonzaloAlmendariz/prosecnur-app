@@ -75,13 +75,16 @@ function WeightStabilityBlock({ model }: { model: ClassroomLabModel }) {
                 value: pesoEjemplo ? fmtDec(pesoEjemplo, 2) : undefined,
               },
             ]}
+            nota={
+              <>
+                Cada aula seleccionada representa a un número de aulas del marco: ése es su <b>peso</b>, y
+                vale el inverso de su probabilidad de entrar al sorteo. Un aula con poca probabilidad
+                representa a muchas, así que pesa más. Si los pesos son muy desiguales, unas pocas aulas
+                dominan el resultado y la muestra rinde como si fuera más pequeña de lo que es: eso es el{" "}
+                <b>n efectivo</b>.
+              </>
+            }
           />
-          <p className="cmv2-aulas-nota-suave">
-            Cada aula seleccionada representa a un número de aulas del marco: ése es su <b>peso</b>, y vale
-            el inverso de su probabilidad de entrar al sorteo. Un aula con poca probabilidad representa a
-            muchas, así que pesa más. Si los pesos son muy desiguales, unas pocas aulas dominan el resultado
-            y la muestra rinde como si fuera más pequeña de lo que es: eso es el <b>n efectivo</b>.
-          </p>
         </div>
         <CifraFila>
           {/* «CV de pesos» y «sobre el umbral de alerta» dan por sabido qué es
