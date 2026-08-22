@@ -1168,3 +1168,37 @@ sólo un primer libro y acusarlo sería un falso positivo en el caso más común
 todos.
 
 5 asertos; el mutante que quita esa condición —y acusa al primer libro— mata 1.
+
+
+## El patrón que apareció tres veces ya tiene guardián
+
+Las tres pérdidas de dato de esta serie se encontraron **de casualidad, mirando
+otra cosa**. Eso es lo que había que arreglar de fondo, no cada caso.
+
+| Eslabón | Caso | Cómo se perdía |
+|---|---|---|
+| motor → router | `fusion` | el importador la calculaba, la respuesta no la pasaba |
+| router → tipo | `reservas` | el router lo emitía, el tipo del cliente no lo nombraba |
+| spec → registro | `teacher_phone` | el generador lo escribía, el lector no lo emitía |
+
+Dos guardianes cubren ahora la cadena entera:
+
+- **`test-router-monitoreo-emite-lo-que-importa.R`** ejecuta
+  `aulas_libro_importar()` de verdad —no lee su código— y exige que el endpoint
+  nombre cada campo que devuelve. Los que no deben viajar se declaran en
+  `.EMITE_APARTE` **con su motivo**: `plan`, `partes` y `control` viajan por
+  `state` y mandarlos dos veces duplicaría el payload del plan en cada
+  importación. Esa lista es la parte que hay que defender al crecer.
+- **`monitoreoLibroFrontera.contract.test.ts`** lee el cuerpo del endpoint y
+  exige que el tipo del cliente declare lo que emite.
+
+### Verificado contra el defecto real, no contra sí mismos
+
+Revertido el router al estado de ayer, el guardián de R falla nombrando
+exactamente `agenda_campos_ausentes` y la `fusion`. Quitado `fusion` del tipo, el
+del frontend dice «el router emite estos campos y el tipo del cliente no los
+nombra: fusion».
+
+Los dos llevan un aserto contra el verde vacío —`expect_gt(length(producidos), 0)`
+y `emitidos.length >= 4`—: si el extractor deja de encontrar el `list(...)`, el
+test falla en vez de aprobar por no haber mirado nada.
