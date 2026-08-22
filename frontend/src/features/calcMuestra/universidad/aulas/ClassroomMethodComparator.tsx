@@ -36,9 +36,15 @@ export function ClassroomMethodComparator({
           donde cabía decir de qué trata. Ahora el encabezado nombra la pieza y
           publica cuántos métodos se compararon. */}
       <header className="cmv2-method-comparator-head">
-        <strong>Comparación de métodos</strong>
+        {/* «Comparación de métodos» a secas, después de un bloque que también
+            habla de los cuatro métodos, se leía como una segunda comparación.
+            El número lo ata al paso 1 y el subtítulo dice qué añade. */}
+        <strong>Paso 2. Qué dio cada método con este marco</strong>
         {ready ? (
-          <span>{methods.length} {methods.length === 1 ? "método evaluado" : "métodos evaluados"}</span>
+          <span>
+            {methods.length} {methods.length === 1 ? "método evaluado" : "métodos evaluados"} sobre
+            las mismas aulas
+          </span>
         ) : null}
       </header>
       {!ready || !comparison ? (
