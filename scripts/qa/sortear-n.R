@@ -1,10 +1,15 @@
-# Sortea el marco de un .pulso con un n de aulas dado y mide el colchón de
-# caídas por facultad. Serie A del plan de ticks (2026-08-22).
+# Sortea el marco de un .pulso con un n de aulas dado y mide, por facultad, las
+# CAIDAS QUE LA CUOTA TOLERA. Serie A del plan de ticks (2026-08-22).
+#
+# El nombre importa: Monitoreo ya tiene un `colchonPorFacultad` que cuenta
+# RESERVAS LIBRES durante el operativo. Esto es otra cosa —cuantas titulares
+# pueden caer antes de bajar de la cuota, medido sobre entrevistas esperadas— y
+# llamarlo «colchon» daria dos sentidos a la misma palabra en el mismo dominio.
 #
 #   SP=<dir> N=195 Rscript scripts/qa/sortear-n.R
 #
-# El colchón es la vara: cuántas titulares pueden caer antes de necesitar un
-# reemplazo, contado en el peor caso (que caigan las que más rinden).
+# La vara: cuantas titulares pueden caer antes de necesitar un reemplazo,
+# contado en el peor caso (que caigan las que mas rinden).
 suppressMessages(pkgload::load_all("api", quiet = TRUE))
 `%||%` <- function(a, b) if (is.null(a)) b else a
 norm <- function(x) toupper(trimws(gsub("[[:space:]]+", " ", x)))
@@ -73,7 +78,7 @@ cat(sprintf("esperadas %.0f | objetivo 2500 | margen %.0f | score %s\n",
             sum(tit$rinde), sum(tit$rinde) - 2500,
             as.character(round(as.numeric(sel$representativity_score %||% NA), 1))))
 glob <- sum(cumsum(sort(tit$rinde, decreasing = TRUE)) <= (sum(tit$rinde) - 2500))
-cat(sprintf("colchon global: %d aulas (%.1f%%)\n\n", glob, 100 * glob / nrow(tit)))
+cat(sprintf("caidas que la cuota tolera, global: %d aulas (%.1f%%)\n\n", glob, 100 * glob / nrow(tit)))
 sin <- 0; def <- 0
 for (i in seq_len(nrow(cu))) {
   sub <- tit[tit$fac == cu$lab[i], ]; if (!nrow(sub)) next
@@ -83,4 +88,4 @@ for (i in seq_len(nrow(cu))) {
   cat(sprintf("%-34s %3d %7.0f %6.0f %8s\n", substr(cu$lab[i], 1, 34), nrow(sub), esp, q,
               if (esp < q) sprintf("DEF %.0f", q - esp) else as.character(col)))
 }
-cat(sprintf("\nDEFICIT: %d | SIN COLCHON: %d\n", def, sin))
+cat(sprintf("\nDEFICIT: %d | SIN MARGEN: %d\n", def, sin))

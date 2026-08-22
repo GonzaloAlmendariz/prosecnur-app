@@ -728,3 +728,29 @@ uno.
 **Y una cautela sobre este muestreo**: tres de veintitrés no autoriza a decir que
 el resto está bien. Autoriza a decir que el patrón existe y que se detecta
 comparando con el emisor.
+
+
+## D1 · El monitoreo de aulas ya tiene 47 bloques, y uno se llama como mi métrica
+
+Inventario del perfil: **47 componentes**, entre ellos `AulasPronosticoDeCierre`,
+`AulasLoQueFalta`, `AulasRitmoPorFacultad`, `AulasEmbudoDelAula`,
+`AulasHistoriaCadena` y `AulasColchonPorFacultad`. Es bastante más rico de lo que
+suponía al escribir la serie D.
+
+### Y ahí estaba el choque de vocabulario, cometido por mí
+
+| | Qué mide | Responde |
+|---|---|---|
+| `colchonPorFacultad` (Monitoreo, ya existía) | reservas **libres vs gastadas** durante el operativo | «¿me quedan reservas?» |
+| Mi «colchón de caídas» (A1) | titulares que pueden caer **antes de bajar de la cuota** | «¿cuántas puedo perder sin usar reservas?» |
+
+Dos métricas distintas con la misma palabra, en el mismo dominio. Es exactamente
+la familia que este loop lleva todo el día persiguiendo —**una palabra para dos
+cosas**— y esta vez la introduje yo, en la métrica que decide la serie A.
+
+Renombrada a **«caídas que la cuota tolera»**, y el runner ahora imprime `DEFICIT
+| SIN MARGEN`. Las cifras de A1–A6 no cambian: cambia cómo se llaman.
+
+**La lección, otra vez**: antes de nombrar una métrica nueva, mirar si el dominio
+ya usa esa palabra para otra cosa. Bastaron dos minutos de inventario para
+encontrarlo, y llevaba seis ticks escribiéndolo mal.
