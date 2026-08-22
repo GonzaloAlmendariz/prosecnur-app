@@ -482,3 +482,26 @@ artificiales.
   grilla de cuatro columnas fijas que en una tarjeta de 290 px deja celdas de
   68. Con `auto-fit minmax(118px, 1fr)` caen a 2×2 de 142 px y la palabra entra
   entera. `hyphens: auto` queda como red de seguridad para etiquetas futuras.
+
+
+## Simulación: el mismo patrón, el mismo arreglo
+
+Medido antes: columna izquierda **1.261 px**, lateral **277**, con **984 px de
+hueco muerto** en la franja de 387 de ancho. Idéntico a Método.
+
+La recomendación del laboratorio y el resumen de riesgos suben a una franja de
+ancho completo, en dos piezas lado a lado. Con `align-items: start` quedaban en
+**123 y 97 px** —dos alturas distintas leen como un desajuste, no como dos
+cosas—, así que la franja estira: **127 y 127**.
+
+Simulación: 1,33 → **1,47 pantallas**. Sube, y es un intercambio deliberado: se
+gana el ancho completo para el contenido y se pierde la fila compartida. El hueco
+de 984 px no era espacio útil.
+
+### Trampa que costó un typecheck
+
+Sacar el `<aside>` de dentro del `{cond && (…)}` deja dos elementos hermanos
+donde la expresión admite uno. Seis errores de sintaxis, ninguno con esa palabra:
+«JSX expressions must have one parent element» y cinco de paréntesis. Se
+resuelve envolviendo en fragmento, no tocando los paréntesis que el compilador
+señala.

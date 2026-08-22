@@ -123,6 +123,20 @@
   flex: 1 1 240px;
 }
 
+/* Dos piezas de estado lado a lado: recomendacion y resumen de riesgos. */
+.cmv2-classroom-lab-franja--doble {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  /* stretch, no start: dos piezas de estado lado a lado con alturas distintas
+     (123 y 97 px medidos) leen como un desajuste, no como dos cosas. */
+  align-items: stretch;
+}
+
+.cmv2-classroom-lab-franja--doble > * {
+  height: 100%;
+}
+
 .cmv2-classroom-lab-grid--routes {
   grid-template-columns: minmax(0, 1fr);
 }
