@@ -1239,3 +1239,32 @@ motivo que el de la barra: el motor no exige comparar.
 El contrato distingue el caso legítimo del defecto: «Usar método» **sí** manda un
 id concreto, porque el usuario acaba de señalarlo; los otros dos tienen prohibido
 sortear con el recomendado a espaldas de la configuración. Mutante: 1 rojo.
+
+
+## La familia cerrada, y un desborde que queda anotado
+
+**Simular reemplazos**, la tercera acción, tiene dos caminos y **ambos mandan lo
+mismo**: limpio. La familia «varios caminos para la misma acción» queda cerrada
+con dos acciones reparadas (comparar, sortear) y una que ya era consistente.
+
+### Desborde horizontal en Selección — 5 px, medido y sin resolver
+
+Verificando que los cambios no rompieron nada apareció que **Selección desborda
+horizontalmente**, cosa que Método y Simulación no hacen:
+
+| | ancho visible | contenido | desborde |
+|---|---|---|---|
+| Panel de Selección | 1.306 | 1.311 | **5 px** |
+| `.cmv2-docente-unico` | 1.304 (offset) | 1.308 | 4 px |
+
+Estable en cuatro medidas seguidas, así que no es un estado transitorio. El
+primer intento de localizarlo señaló un `<strong>` con «techo 200» que al
+comprobarlo **no desbordaba**: la medición comparaba contra el borde del panel
+sin descontar su padding. Con la vía correcta —`scrollWidth` contra
+`clientWidth`— el origen es `.cmv2-docente-unico`, pero **ninguno de sus hijos
+excede el límite**, así que los 4 px vienen de márgenes o sombras y no de un
+elemento ancho.
+
+**No se resuelve aquí**: es la pestaña Selección, fuera del encargo de Método y
+Simulación, y no lo introdujo ninguno de los cambios de esta jornada. Queda con
+la medición hecha para que el siguiente no repita el rastreo.
