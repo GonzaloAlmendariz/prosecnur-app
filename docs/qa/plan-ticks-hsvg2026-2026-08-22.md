@@ -52,7 +52,7 @@ caída es una visita perdida y un reemplazo que hay que coordinar.
 | # | Tick | Qué verifica | Cerrado |
 |---|---|---|---|
 | B1 | Export de aulas → Monitoreo | ☑ identificadores completos y únicos |  |
-| B2 | Export → fichas QR | que cada ficha lleva el identificador que el campo va a escanear | ☐ |
+| B2 | Export → fichas QR | ☑ **la cadena está sana; el plan guardado NO** |  |
 | B3 | Ida y vuelta | sortear, exportar, leer: ¿coincide el conteo? | ☐ |
 | B4 | Reemplazos en el export | ¿viajan las reservas y su orden de uso? | ☐ |
 
@@ -342,3 +342,48 @@ y `qr_payload` (`collection_materials_job.R:58`).
 **La cadena usa el campo correcto y el orden de respaldo es sensato.** Falta
 comprobarlo con datos —generar las unidades desde la selección real y verificar
 que las 190 llegan con su código—, que es el siguiente tick.
+
+
+---
+
+## B2 · El plan de recolección viene de un sorteo de hace veinte días
+
+La cadena de código está bien —B1 lo midió— pero **el plan congelado en el
+proyecto no corresponde a la selección vigente**:
+
+| | |
+|---|---|
+| Plan de recolección · corrida de origen | `sel_aulas_2026**0801**211224_e32c240d` |
+| Selección vigente | `sel_aulas_2026**0821**160928_bf10d14c` |
+| Unidades del plan | **2.468** |
+| Filas de la selección | 2.616 |
+| Códigos del plan | **«AULA 1», «AULA 2»…** |
+| Unidades con código «CH n» | **0 de 2.468** |
+
+Veinte días de diferencia, 148 unidades menos y **otra nomenclatura de código**.
+Si se generan materiales ahora, las fichas salen con las aulas de agosto 1.
+
+### Por qué nadie lo ve
+
+`.collection_seed_source` da prioridad al `monitoreo_aulas_plan` y, si no existe
+—no existe aquí—, cae a `calc_muestra_aulas_selection`. Pero **el plan sólo se
+siembra una vez**: una vez sembrado, re-sortear no lo regenera.
+
+El plan **sí guarda de dónde vino** (`source_ref.run_id`, línea 366 de
+`collection_engine.R`), y la pantalla mostraba únicamente
+`plan.source_ref.module` — «calc-muestra», que es el módulo y **nunca cambia**.
+El dato que distingue una corrida de otra estaba en el payload y no se pintaba.
+
+### Lo reparado en este tick
+
+«Origen» pasa a decir **«calc-muestra · sorteo del 1 ago 2026, 21:12»**. La fecha
+sale del propio `run_id` (`sel_aulas_AAAAMMDDHHMMSS_hash`), que la llevaba dentro
+pero ilegible. 4 tests, incluido que un `run_id` sin fecha —`legacy-monitoreo-aulas`—
+no inventa ninguna.
+
+### Lo que falta, y es lo importante
+
+**Comparar automáticamente** el `run_id` del plan con el de la selección vigente y
+avisar cuando difieren. El front no recibe hoy el `selection_run_id`, así que
+exige ampliar el payload de recopiladores. Con eso, la pantalla podría decir «este
+plan es de otro sorteo» en vez de dejar que el analista compare fechas a ojo.

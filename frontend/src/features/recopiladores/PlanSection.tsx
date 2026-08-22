@@ -67,6 +67,23 @@ export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize
   };
 }
 
+/**
+ * La fecha de la corrida que produjo el plan, sacada de su `run_id`.
+ *
+ * Los identificadores son `sel_aulas_AAAAMMDDHHMMSS_hash`: dentro está la fecha,
+ * pero el hash la vuelve ilegible. Sin ella, «Origen: calc-muestra» no distingue
+ * un plan de hoy de uno de hace tres semanas.
+ */
+export function fechaDeCorrida(runId: string | null | undefined) {
+  const m = /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(String(runId ?? ""));
+  if (!m) return "";
+  const [, a, mes, d, h, min] = m;
+  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const mi = Number(mes) - 1;
+  if (mi < 0 || mi > 11) return "";
+  return `${Number(d)} ${meses[mi]} ${a}, ${h}:${min}`;
+}
+
 export function PlanSection({ payload, onState }: Props) {
   const [seeding, setSeeding] = useState(false);
   const [requestedPage, setRequestedPage] = useState(0);
@@ -118,7 +135,22 @@ export function PlanSection({ payload, onState }: Props) {
           <div><dt>Tipo</dt><dd>{plan.unit_type}</dd></div>
           <div><dt>Método</dt><dd>{COLLECTION_ADAPTER_LABELS[plan.adapter.id] ?? plan.adapter.id}</dd></div>
           <div><dt>Revisión</dt><dd>{plan.revision}</dd></div>
-          <div><dt>Origen</dt><dd>{plan.source_ref.module}</dd></div>
+          {/* Decía sólo «calc-muestra», que es el módulo y nunca cambia. El
+              plan guarda ADEMÁS de qué corrida salió (`source_ref.run_id`) y ese
+              dato no se pintaba en ninguna parte. Medido en HSVG2026 el
+              2026-08-22: el plan venía de la corrida del 1 de agosto y la
+              selección vigente era del 21 — veinte días y otra nomenclatura de
+              código («AULA 1» contra «CH 1»)—, y la pantalla decía «Origen:
+              calc-muestra» tan tranquila. */}
+          <div>
+            <dt>Origen</dt>
+            <dd>
+              {plan.source_ref.module}
+              {fechaDeCorrida(plan.source_ref.run_id) ? (
+                <> · sorteo del <b>{fechaDeCorrida(plan.source_ref.run_id)}</b></>
+              ) : null}
+            </dd>
+          </div>
         </dl>
       </Panel>
       <Panel
