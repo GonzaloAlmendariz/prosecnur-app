@@ -37,8 +37,8 @@ terminado. Cadencia: **5 minutos entre tick y tick**.
 |---|---|---|---|
 | A1 | Línea base con **190** aulas | ☑ ver abajo |  |
 | A2 | Sortear con **195** proporcional | ☑ ver abajo |  |
-| A3 | Sortear con **200** | ídem; ¿la cuota por facultad mejora o sólo sube el costo? | ☐ |
-| A4 | **190 con ajustes** (profundidad, tolerancia) | qué ajuste mejora sin subir n | ☐ |
+| A3 | Sortear con **200** proporcional | ☑ ver abajo |  |
+| A4 | **190 con reparto dirigido** | ☑ **el mejor resultado de la serie** |  |
 | A5 | **192 con ajustes** | el punto intermedio que Gonzalo señaló | ☐ |
 | A6 | Tabla comparada de las cinco corridas | **cuál minimiza el uso esperado de reemplazos** | ☐ |
 | A7 | Efectividad esperada por configuración | entrevistas logradas / aulas visitadas | ☐ |
@@ -194,3 +194,56 @@ Es la misma familia que `profundidad_por_facultad`, que también se aceptaba sin
 surtir efecto: **un parámetro que se ignora en silencio**. Queda para la serie E:
 si la UI deja cambiar el objetivo de aulas sin recalcular `faculty_targets`, el
 analista cree haber cambiado el tamaño de su muestra y no ha cambiado nada.
+
+
+---
+
+## A3 y A4 · subir el total no era la respuesta; repartir bien, sí
+
+| | 190 (A1) | 195 (A2) | 200 (A3) | **190 dirigido (A4)** |
+|---|---|---|---|---|
+| Titulares | 190 | 195 | 200 | **190** |
+| Reservas | 496 | 509 | 522 | 499 |
+| Entrevistas esperadas | 3.302 | 3.386 | 3.437 | 3.290 |
+| **Score** | 51,1 | 53,6 | 54,5 | **62,7** |
+| Colchón global | 34 | 38 | 40 | 33 |
+| **Derecho** | déficit 38 | déficit 19 | déficit 19 | **déficit 5** |
+| **Facultades sin colchón** | 4 | 4 | 4 | **1** |
+
+**Con las mismas 190 aulas, el reparto dirigido gana al proporcional de 200 en
+todo lo que importa**: score 62,7 contra 54,5, una facultad sin colchón en vez de
+cuatro, y el déficit de Derecho de 38 a 5 en vez de a 19.
+
+El reparto de A4, sobre los `faculty_targets` de la línea base:
+
+```
+ciencias_e_ingenieria        -3      derecho                    +2
+estudios_generales_ciencias  -3      ciencias_contables         +1
+                                     gestion_y_alta_direccion   +1
+                                     letras_y_ciencias_humanas  +1
+                                     psicologia                 +1
+```
+
+Se quita de las dos facultades con más colchón (8 cada una, quedan en 5) y se da
+a las cuatro que estaban en cero y a Derecho.
+
+### Por qué 200 no arreglaba nada
+
+El reparto proporcional **da a las grandes por definición**. De 190 a 200, ocho
+de las diez aulas fueron a facultades que ya tenían colchón; Contables, Gestión,
+Letras y CC.HH. y Psicología no recibieron **ninguna** en los dos escalones.
+Diez aulas más de campo —diez visitas, diez coordinaciones— para mover el score
+3,4 puntos y dejar el problema operativo intacto.
+
+### Lo que queda por afinar
+
+Gestión sigue en colchón 0 (recibió +1 y necesita más) y Derecho en déficit 5.
+Un segundo ajuste sobre A4 debería cerrarlos: es el A5.
+
+### Otro error del runner, cazado por la cifra repetida
+
+La primera corrida de A4 salió **idéntica a la línea base**. La guarda del
+reparto era `if (extra != 0)`, y un reparto dirigido que mantiene el total da
+`extra = 0`: nunca entraba. Se cazó porque 3.302 y score 51,1 son exactamente los
+de A1. **Quinto error de medición de la jornada, y el quinto cazado por
+contradecir una cifra previa.**
