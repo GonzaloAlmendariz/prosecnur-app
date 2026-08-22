@@ -113,3 +113,21 @@ export function corridasDeEstabilidad(config: Record<string, unknown>) {
     delEstudio,
   };
 }
+
+
+/**
+ * Corridas con las que se lanza LA COMPARACIÓN de métodos.
+ *
+ * Comparar y medir estabilidad son dos acciones distintas desde `d87e5ac9`:
+ * comparar hace una pasada por método para poder elegir, y la estabilidad
+ * repite el sorteo del método vigente. Pero había **tres caminos** para lanzar
+ * la comparación y mandaban cosas distintas: la barra de acciones mandaba `0`,
+ * mientras `runComparison` de Método y el aviso de etapa de Simulación mandaban
+ * `config.simulation_runs ?? config.monte_carlo_n ?? 500`.
+ *
+ * Hoy no se nota porque HSVG2026 trae `simulation_runs: 0` y `??` lo deja pasar,
+ * así que los tres acaban en 0 por casualidad. Con un estudio que declare 300,
+ * un botón compararía con 300 corridas y otro con ninguna, sobre el mismo marco
+ * y sin que nada lo dijera.
+ */
+export const CM_CORRIDAS_COMPARACION = 0;

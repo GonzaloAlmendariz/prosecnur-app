@@ -3,6 +3,7 @@ import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
+import { CM_CORRIDAS_COMPARACION } from "./duracionComparacion";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { METODO_GOO_LEYENDA } from "../../didactica/MetodoGooEsquema";
 import { fmtInt } from "../../sharedCore";
@@ -58,7 +59,7 @@ export function AulasMetodoTab({
   }
 
   function runComparison() {
-    void onCompare(config, config.simulation_runs ?? config.monte_carlo_n ?? 500);
+    void onCompare(config, CM_CORRIDAS_COMPARACION);
   }
 
   // Decisión del usuario: vive en el workspace (autosave) y manda sobre el

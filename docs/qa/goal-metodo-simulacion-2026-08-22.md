@@ -1189,3 +1189,30 @@ motores: **0 de 6 con jerga**.
 **La regla que sale**: cuando el texto del motor gana al del front, carga la misma
 exigencia que el copy de la UI. Si no, la glosa se cuida en un lado y entra por el
 otro.
+
+
+## Tres caminos para comparar, dos comportamientos
+
+Buscando el patrón que causó «DOS formas de sortear» y «500 corridas» —un número
+escrito a mano donde debería derivarse— apareció uno peor, porque no está en un
+texto sino en **la acción**:
+
+| Camino | Mandaba |
+|---|---|
+| Barra de acciones | `0` |
+| `runComparison` de Método | `simulation_runs ?? monte_carlo_n ?? 500` |
+| Aviso de etapa de Simulación | `simulation_runs ?? monte_carlo_n ?? 500` |
+
+Comparar y medir estabilidad son acciones distintas desde `d87e5ac9`: comparar
+hace **una pasada por método** para poder elegir. Pero dos de los tres caminos
+resolvían las corridas por su cuenta.
+
+**Hoy no se nota, y por casualidad**: HSVG2026 trae `simulation_runs: 0` y `??`
+deja pasar el cero, así que los tres acaban en 0. Con un estudio que declare 300,
+un botón compararía con 300 corridas y otro con ninguna, sobre el mismo marco y
+sin que nada lo dijera.
+
+`CM_CORRIDAS_COMPARACION` es ahora el único sitio donde se decide, y el contrato
+comprueba que **ningún camino vuelve a resolverlo a mano** —incluido el patrón
+`simulation_runs ?? … monte_carlo_n`— y que comparar y estabilidad siguen dando
+números distintos, porque si coincidieran M1 se habría deshecho. Mutante: 1 rojo.
