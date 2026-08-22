@@ -570,3 +570,39 @@ no restaure `calc_muestra_aulas_selection` igual que la lectura directa del RDS
 —las pruebas de arriba la poblaron a mano— y entonces no habría con qué comparar.
 **Es una hipótesis, no un diagnóstico**: queda para el siguiente tick, y hasta
 comprobarlo el aviso no puede declararse funcionando de extremo a extremo.
+
+
+## Por qué el aviso no aparecía: lo añadí a una salida y hay dieciséis
+
+La hipótesis del tick anterior era falsa —el `.pulso` **sí** restaura la
+selección; ese código sólo subroga identificadores—. Al descartarla apareció la
+causa, y es mía: **`source_vigente` se calculaba únicamente en
+`collection_state_get`**. Las otras quince salidas del módulo —`seed`, `plan`,
+`deployment`, `prepare`, `reconcile`, `handoff`— devolvían el payload sin él, así
+que el aviso desaparecía en cuanto el front hacía cualquier cosa.
+
+Es **exactamente** el defecto que este loop lleva corrigiendo todo el día, ahora
+cometido por mí: se añade el dato donde se mira, no en todas las salidas.
+
+Reparado con `.collection_con_vigencia(payload, sid)` envolviendo las trece
+salidas de las seis funciones públicas, y un contrato que **cuenta**: cada
+`.collection_payload(` del cuerpo tiene que ir envuelto, o el test falla nombrando
+la función.
+
+### El script de reparación introdujo seis errores de paréntesis
+
+Al envolver automáticamente, el `, sid)` quedó **fuera** del helper en seis
+sitios: `return(.collection_con_vigencia(.collection_payload(…)), sid)` le pasa
+`sid` a `return()`, no al helper. **R lo carga sin quejarse** porque no evalúa el
+cuerpo, así que `load_all` decía «OK» con seis llamadas rotas dentro.
+
+Lo cazó el contrato en un sitio y el resto salió de buscar el patrón `)), sid)` a
+mano. **Un `load_all` limpio no dice que el código esté bien: dice que se puede
+parsear.**
+
+### Y una de R que conviene recordar
+
+`payload$source_vigente <- NULL` **elimina la clave**, no la deja vacía. El primer
+test afirmaba que la clave seguía presente y fallaba con razón. Para el cliente da
+igual —ausente y `null` se leen igual en JS— pero el test tenía que afirmarlo como
+es, no como me convenía.

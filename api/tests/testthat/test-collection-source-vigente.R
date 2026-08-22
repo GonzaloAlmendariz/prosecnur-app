@@ -74,3 +74,38 @@ test_that("el error de origen ausente esta registrado", {
   registro <- paste(readLines("../../R/errors_registry.R", warn = FALSE), collapse = "\n")
   expect_true(grepl("E_COLLECTION_SIN_ORIGEN", registro, fixed = TRUE))
 })
+
+# --- El veredicto viaja en TODAS las respuestas ------------------------------
+#
+# `source_vigente` se calculaba solo en `collection_state_get`, asi que las otras
+# quince salidas del modulo —seed, plan, deployment, prepare, reconcile,
+# handoff— salian sin el y el aviso de plan desfasado desaparecia en cuanto el
+# front hacia cualquier cosa. Se anadio el dato donde se miro, no en todas las
+# salidas: el mismo defecto que este loop lleva corrigiendo todo el dia.
+
+test_that("ninguna salida publica devuelve el payload sin pasar por la vigencia", {
+  lineas <- readLines("../../R/collection_engine.R", warn = FALSE)
+  publicas <- c("collection_state_seed", "collection_plan_put", "collection_deployment_put",
+                "collection_deployment_prepare", "collection_reconcile", "collection_handoff")
+  for (fn in publicas) {
+    ini <- which(startsWith(lineas, paste0(fn, " <- function")))
+    expect_length(ini, 1L)
+    cierres <- which(lineas == "}")
+    fin <- min(cierres[cierres > ini])
+    cuerpo <- lineas[ini:fin]
+    # Cada `.collection_payload(` del cuerpo tiene que ir envuelto en el helper.
+    sueltos <- sum(grepl(".collection_payload(", cuerpo, fixed = TRUE)) -
+      sum(grepl(".collection_con_vigencia(.collection_payload(", cuerpo, fixed = TRUE))
+    expect_equal(sueltos, 0, info = paste(fn, "tiene salidas sin vigencia"))
+  }
+})
+
+test_that("el helper de vigencia no rompe un payload sin seleccion", {
+  # En R, asignar NULL a un elemento de lista lo ELIMINA, asi que la clave no
+  # queda presente-y-vacia: desaparece. Da igual para el cliente —ausente y null
+  # se leen igual en JS— pero el test tiene que afirmarlo como es.
+  sid <- session_create()
+  p <- prosecnurapp:::.collection_con_vigencia(list(state = list(), ok = TRUE), sid)
+  expect_null(p$source_vigente)
+  expect_true(p$ok)
+})
