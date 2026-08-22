@@ -718,6 +718,7 @@ export function UniversidadDesk({
             )}
             {activeLabTab === "seleccion" && (
               <AulasSeleccionTab
+                workspace={syncedWorkspace}
                 model={labModel}
                 busy={busy}
                 onSelectMethod={onSeleccionarAulasConAfijacion}

@@ -9,6 +9,7 @@
  */
 import { useState } from "react";
 import type {
+  CalcMuestraWorkspace,
   CalcMuestraAulasCerteza,
   CalcMuestraCertificacionFacultad,
   CalcMuestraReferenciaAsistencia,
@@ -19,7 +20,9 @@ import { FijasPendientesAviso } from "./FijasPendientesAviso";
 import { PresupuestoVisitasCard } from "./PresupuestoVisitasCard";
 import { SeleccionPorFacultadCard } from "./SeleccionPorFacultadCard";
 import { efectividadCalibradaPorFacultad } from "./efectividadCalibradaModel";
-import { fmtInt } from "../../sharedCore";
+import { fmtInt, safeNumber } from "../../sharedCore";
+import { PanelAvanzado } from "../ui/PanelAvanzado";
+import { HistorialCorridas } from "../salidas/HistorialCorridas";
 import { classroomRowText } from "../shared/format";
 import { classroomMetricValue } from "../shared/frame";
 import { CoberturaObjetivoStrip } from "./CoberturaObjetivoStrip";
@@ -53,6 +56,7 @@ export function AulasSeleccionTab({
   onAgregarAula,
   onAjustarAula,
   referencia = null,
+  workspace,
 }: {
   model: ClassroomLabModel;
   busy: string | null;
@@ -64,6 +68,8 @@ export function AulasSeleccionTab({
   onAjustarAula?: (facultad: string, aulasActuales: number, delta: 1 | -1) => void;
   /** El estudio anterior, para la lectura REFERENCIAL del τ propio. */
   referencia?: CalcMuestraReferenciaAsistencia | null;
+  /** Para el historial de corridas del panel avanzado. */
+  workspace?: CalcMuestraWorkspace;
   onSelectMethod: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
   onNavigate?: AulasNavigate;
@@ -204,6 +210,47 @@ export function AulasSeleccionTab({
             onSelectMethod={onSelectMethod}
             onSimulateReplacements={onSimulateReplacements}
           />
+
+          {/*
+            * Lo que gobierna el sorteo, junto al botón que lo dispara. La
+            * semilla vivía en Selección → Auditoría y el historial de corridas
+            * en Entrega → Cierre: los dos lejos del punto donde se decide
+            * sortear. Gonzalo, 2026-08-22: «no veo dónde se pone la semilla ni
+            * el historial de corridas». Va agrupado y ABIERTO: el contrato de
+            * `cssHuerfano` prohíbe plegar en Aulas, y esa regla nació de que un
+            * panel cerrado escondiera la semilla en esta misma pestaña.
+            */}
+          <PanelAvanzado
+            titulo="Semilla e historial de corridas"
+            descripcion="Con qué se sortea y qué se sorteó antes"
+            // Abierto a propósito. El contrato de `cssHuerfano` prohíbe plegar
+            // en esta área, y nació justamente de que un PanelAvanzado cerrado
+            // escondía la semilla aquí mismo. Agrupar sí, ocultar no.
+            defaultOpen
+          >
+            <CifraFila>
+              <CifraMotor
+                label="Semilla vigente"
+                value={String(safeNumber(model.selection?.seed, model.config.semilla))}
+                detalle={model.selection ? "la que produjo la selección actual" : "la que usará el próximo sorteo"}
+                origen={model.selection ? "motor" : "preview"}
+                monospace
+              />
+              <CifraMotor
+                label="Firma del marco"
+                value={String(model.frame?.frame_hash ?? model.selection?.frame_hash ?? "").slice(0, 12) || "pendiente"}
+                detalle="cambia si cambia el marco"
+                origen="motor"
+                monospace
+              />
+            </CifraFila>
+            <p className="cmv2-aulas-nota-semilla">
+              La semilla y la firma del marco determinan el sorteo por completo: con las
+              mismas dos, el resultado es idéntico. Si una corrida no reproduce a otra, la
+              diferencia está en el marco y no en el azar.
+            </p>
+            {workspace ? <HistorialCorridas workspace={workspace} /> : null}
+          </PanelAvanzado>
         </>
       )}
 
