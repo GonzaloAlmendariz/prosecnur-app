@@ -721,3 +721,31 @@ y el contrato prueba la función pura. Mutante: **mata 2 de 3**.
 
 La regla que confirma: *una decisión que se puede aislar, se aísla*; y un
 contrato no vale hasta que un mutante lo desmiente.
+
+
+## Lo que el cambio anterior dejó mintiendo
+
+Quitar el requisito de comparar dejó falsas tres afirmaciones en el recorrido de
+preparación de Selección, que asumía el flujo viejo:
+
+| Antes | Por qué era falso |
+|---|---|
+| «3. Método **comparado**» | El paso es elegir el método, no compararlos |
+| «por comparar» sin comparación | El paso está resuelto en cuanto hay un método vigente |
+| «**La app elige** la opción con mejor balance y menos repetidos» | Elige el analista; la app recomienda |
+
+La tercera era la peor: describía exactamente el comportamiento que se acababa de
+retirar.
+
+### No se pudo ver en pantalla, así que se aisló
+
+Ese panel sólo se renderiza con `!selectionReady` y el proyecto de trabajo ya
+tiene selección, así que no hay forma de observarlo; y el frontend **no tiene
+entorno DOM en los tests** (son de lógica pura, sin jsdom ni testing-library).
+Declararlo «hecho» sin verlo habría sido exactamente lo que este loop lleva todo
+el día corrigiendo en otros.
+
+La decisión se extrajo a `pasoMetodoElegido(metodoVigenteLabel, comparisonReady)`
+y el contrato prueba la función: 4 tests, y el mutante que vuelve a exigir
+comparación mata 2. **Una decisión que no se puede observar, se aísla para poder
+verificarla.**
