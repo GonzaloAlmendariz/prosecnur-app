@@ -27,6 +27,11 @@ const ARCHIVOS = [
   // («vibran», «tirantes», «cluster») con los nombres de método viejos, y no
   // aparece en ningún screenshot. El contrato no lo miraba.
   "../../../didactica/MetodoGooEsquema.tsx",
+  // Los avisos de etapa: no se ven con un proyecto completo, así que el barrido
+  // de pantalla no los alcanza. Traían «probabilidades Monte Carlo» en DOS
+  // ramas casi idénticas; reparar sólo la que se encuentra primero deja viva la
+  // otra, que es como se han escapado la mitad de los defectos de esta jornada.
+  "../aulasSurfaceState.tsx",
 ];
 
 /** Fuera comentarios de bloque, de línea y JSX. */
