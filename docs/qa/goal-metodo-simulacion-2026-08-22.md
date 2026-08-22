@@ -110,7 +110,7 @@ imperfecto elige la muestra que mejor engaña a la métrica.
 | M2 | Semilla e historial junto al botón que sortea | ☑ `d87e5ac9` |
 | M3 | Método deja de comparar dos veces | ☑ |
 | M4 | Riesgos deja de repetirse en las dos pestañas | ☑ `eb562932` |
-| M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ◐ hechos CV, estabilidad y los 7 balances; falta «sistemático por facultad» |
+| M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ☑ los cuatro términos que nombró |
 | M6 | La UI explica qué se hace con las 500 corridas | ☐ |
 | M7 | Cada bloque declara qué mide, cómo y para qué | ◐ |
 | M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ◐ Método 5,5 · **Simulación 1,29** |
@@ -207,3 +207,32 @@ centésimas de pantalla por dos frases que hacen legible el bloque entero.
 
 **Queda de M5**: «sistemático por facultad», que es un nombre de método, no una
 métrica, y vive en el comparador.
+
+
+## Un método, dos nombres — el defecto de fondo de M5
+
+Buscando por qué «sistemático por facultad» no se entendía apareció la causa, y
+no era la glosa: **el mismo método se llamaba distinto según la pestaña.**
+
+| `id` | En Método (`CLASSROOM_METHOD_STORIES`) | En Simulación (`UNIVERSITY_AULAS_SELECTOR_OPTIONS`) |
+|---|---|---|
+| `sistematico_pps` | Sistemático PPS | Sistemático por facultad |
+| `cube_balanceado` | Balanceado (cube) | Balance por cuotas y tamaño |
+| `pool_controlado` | Pool controlado | Optimizar repetidos |
+| `local_pivotal_balanceado` | Balance + dispersión | Balance + dispersión |
+
+Tres de cuatro. Así que preguntar «¿qué es sistemático por facultad?» **no tenía
+respuesta posible en la pestaña que explica los métodos**: ahí ese método se
+llamaba de otra forma, y nada ataba los dos nombres salvo un `id` que el usuario
+no ve.
+
+Reparado en la fuente: las historias ya no declaran `title` y resuelven el nombre
+con `classroomMethodLabel(id)`. Contrato en
+`aulas/__tests__/classroomMethodStoriesTituloContrato.test.ts` (3 tests), con dos
+mutantes verificados: reintroducir un `title` propio → 1 rojo; devolver la jerga
+«marco depurado» a un `detail` → 1 rojo.
+
+Además se reescribieron cinco explicaciones que tenían **peor jerga que el
+nombre que explicaban**: «cuando hay auxiliares buenas», «ordena el marco
+depurado», «exige simulación para probabilidades finales», y la frase del
+esquema «salta la recta con paso k».

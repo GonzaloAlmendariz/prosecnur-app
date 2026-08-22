@@ -1,3 +1,4 @@
+import { classroomMethodLabel } from "./classroomLabels";
 import { Link } from "react-router-dom";
 import { Award } from "../../../../vendor/lucide-react";
 import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "../../../../lib/navegacion/catalogos/calcMuestra";
@@ -65,7 +66,7 @@ export function ClassroomMethodStories({
               <small>{story.badge}</small>
               {recommended && <span><Award size={11} aria-hidden="true" /> recomendado</span>}
             </header>
-            <strong>{story.title}</strong>
+            <strong>{classroomMethodLabel(story.id)}</strong>
             <p>{story.story}</p>
             {/* Mini-goo ilustrativo del mecanismo (didactica/): declara que no
                 son aulas reales; la corrida real se narra en el Relato. */}
