@@ -92,6 +92,23 @@ const DICCIONARIO: Array<{ patron: RegExp; titulo: string; resumen: string }> = 
     resumen: "",
   },
   {
+    // «Baja profundidad de reservas · N celda(s) tienen menos reservas que
+    // titulares» dice el hecho y no la consecuencia, y el hecho suena a que la
+    // muestra está mal. Gonzalo, 2026-08-22: «¿esto significa que las aulas
+    // están mal?». Medido sobre HSVG2026: 5 celdas de 84, cada una con UN
+    // titular y ninguna reserva de su mismo perfil; los cinco titulares tienen
+    // 2, 3 y 4 reemplazos, todos de otra celda de LA MISMA facultad. Cero
+    // titulares sin reemplazo de 190, y 2,61 reservas por titular en global.
+    // `traducirAvisoDelMotor` recibe el DETALLE, no el título: el patrón mira
+    // la frase que el motor pone en el detalle.
+    patron: /menos reservas que titulares/i,
+    titulo: "Algunas celdas no tienen reserva de su mismo perfil",
+    resumen:
+      "En esas celdas el reemplazo sale de otra celda de la misma facultad: cambia el sexo esperado " +
+      "o el tramo de tamaño del aula, nunca la facultad. Los titulares siguen teniendo reemplazo; lo " +
+      "que cambia es que no será del perfil exacto.",
+  },
+  {
     patron: /al menos 100 corridas|simulacion insuficiente/i,
     titulo: "Simulación corta para leer estabilidad",
     resumen: "La optimización por candidatas necesita al menos 100 corridas para una lectura preliminar.",

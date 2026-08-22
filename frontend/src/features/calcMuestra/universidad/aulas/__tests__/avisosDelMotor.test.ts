@@ -44,7 +44,12 @@ describe("avisos del motor · no se leen crudos", () => {
   });
 
   it("un aviso ya escrito para el usuario pasa intacto y sin disclosure", () => {
-    const humano = "7 celda(s) tienen menos reservas que titulares.";
+    // El ejemplo era «7 celda(s) tienen menos reservas que titulares», que sí es
+    // legible; se cambió el 2026-08-22 porque ese aviso pasó a traducirse, y no
+    // por ilegible: decía el hecho y callaba la consecuencia —que los titulares
+    // conservan reemplazo, de otra celda de la misma facultad—. El principio que
+    // este test protege sigue igual, con un ejemplo que no está en el diccionario.
+    const humano = "La cuota de la facultad se cubrió con las aulas disponibles.";
     const aviso = traducirAvisoDelMotor(humano);
     expect(aviso.resumen).toBe(humano);
     expect(aviso.mostrarCrudo).toBe(false);
@@ -131,5 +136,30 @@ describe("un aviso declara qué clase de cosa es, no sólo su gravedad", () => {
 
   it("un ok no es ninguna de las tres", () => {
     expect(naturalezaDelAviso({ code: "sin_alertas", severity: "ok", title: "", detail: "" })).toBe("ok");
+  });
+});
+
+describe("el aviso de profundidad de reservas dice la consecuencia", () => {
+  const crudo = "5 celda(s) tienen menos reservas que titulares.";
+
+  it("no deja al analista pensando que la muestra está mal", () => {
+    // Gonzalo, 2026-08-22: «¿esto significa que las aulas están mal?». No: en
+    // HSVG2026 eran 5 celdas de 84, todas con un titular y ninguna reserva de su
+    // perfil, y los cinco titulares tienen 2-4 reemplazos de la misma facultad.
+    const { titulo, resumen } = traducirAvisoDelMotor(crudo);
+    expect(titulo).toBe("Algunas celdas no tienen reserva de su mismo perfil");
+    expect(resumen).toContain("misma facultad");
+    expect(resumen).toContain("siguen teniendo reemplazo");
+  });
+
+  it("nombra lo que de verdad cambia: el perfil, no la cobertura", () => {
+    const { resumen } = traducirAvisoDelMotor(crudo);
+    expect(resumen).toMatch(/sexo esperado|tramo de tamaño/);
+    expect(resumen).toContain("nunca la facultad");
+  });
+
+  it("sigue clasificado como asunto para revisar, no como nota", () => {
+    // Es información operativa que el coordinador debe conocer antes de campo.
+    expect(naturalezaDelAviso({ code: "reservas_profundidad", severity: "media", title: "Baja profundidad de reservas", detail: crudo })).toBe("asunto");
   });
 });

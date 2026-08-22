@@ -1518,3 +1518,44 @@ hace que la fila se lea como una fila.
 
 Gate visual tras el cambio: **10 grupos de geometría, 0 issues, 0 coverage
 misses**.
+
+
+## «¿Esto significa que las aulas están mal?» — no, y medido
+
+Gonzalo, sobre la lista de riesgos de Auditoría. El único aviso «para revisar»
+era **«Baja profundidad de reservas · 5 celda(s) tienen menos reservas que
+titulares»**. Medido sobre la selección definitiva:
+
+- **84 celdas** (facultad × sexo esperado × tramo de tamaño). Cinco con menos
+  reservas que titulares, y las cinco son el mismo caso: **1 titular, 0 reservas
+  de su propio perfil**.
+- **Cero titulares sin reemplazo, de 190.** Los cinco afectados tienen 2, 3 y 4
+  reemplazos, todos **de otra celda de la misma facultad**: cambia el sexo
+  esperado o el tramo de tamaño, nunca la facultad.
+- Ratio global: **2,61 reservas por titular**.
+
+| Celda | Reemplazos | De dónde |
+|---|---|---|
+| ARQUITECTURA / M / G4 | 3 | ARQUITECTURA / F / G4 |
+| ARTE Y DISEÑO / M / G3 | 4 | ARTE Y DISEÑO / F / G2 y G1 |
+| ARTES ESCÉNICAS / M / G4 | 4 | ARTES ESCÉNICAS / M / G1 |
+| DERECHO / M / G1 | 2 | DERECHO / F / G1 |
+| LETRAS Y CIENCIAS HUMANAS / M / G4 | 2 | LETRAS Y CIENCIAS HUMANAS / F / G1 |
+
+El defecto no estaba en la muestra: **estaba en el aviso**, que decía el hecho y
+callaba la consecuencia. Ahora: «Algunas celdas no tienen reserva de su mismo
+perfil · En esas celdas el reemplazo sale de otra celda de la misma facultad…
+Los titulares siguen teniendo reemplazo; lo que cambia es que no será del perfil
+exacto». Sigue clasificado como **asunto**, porque el coordinador debe saberlo
+antes de campo.
+
+### Una medición mía que se equivocó, y cómo se cazó
+
+La primera consulta dio **«5 titulares sin ningún reemplazo»**, que habría sido
+una alarma grave y falsa: `replacement_for` guarda el **código de aula**
+(`urb209_0601`), no el `selection_slot_id` (`slot_001`), así que comparaba campos
+distintos. Se cazó porque contradecía una medición previa —«0 titulares sin
+reemplazo»— y esa contradicción obligó a repetirla con el identificador correcto.
+
+**Tercera vez en la jornada** que una medición mal hecha inventa un defecto, y la
+única de las tres que habría llegado al usuario como alarma sobre su muestra.
