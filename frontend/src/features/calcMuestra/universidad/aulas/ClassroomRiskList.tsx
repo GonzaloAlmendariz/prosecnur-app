@@ -24,6 +24,7 @@ export function ClassroomRiskList({
   risks,
   audited,
   resumen = false,
+  alcance,
   onVerDetalle,
 }: {
   risks?: NonNullable<CalcMuestraAulasMethodComparison["risk_flags"]> | unknown;
@@ -39,6 +40,16 @@ export function ClassroomRiskList({
    * cuentan donde estorban y se detallan donde tocan.
    */
   resumen?: boolean;
+  /**
+   * Qué mira ESTA lista, porque no todas miran lo mismo.
+   *
+   * Método muestra los avisos que dejó el comparador; Simulación suma a esos
+   * los que se derivan de las cifras de estabilidad. Medido en HSVG2026 el
+   * 2026-08-22: 5 avisos en Método y 8 en Simulación, ambas listas tituladas
+   * «Riesgos detectados». Al pasar de una pestaña a otra los riesgos parecían
+   * haber crecido solos, sin que nada dijera que el alcance era distinto.
+   */
+  alcance?: string;
   onVerDetalle?: () => void;
 }) {
   const visible = classroomRiskRows(risks, audited);
@@ -47,7 +58,7 @@ export function ClassroomRiskList({
     const altas = reales.filter((r) => String(r.severity ?? "") === "alta").length;
     return (
       <div className="cmv2-classroom-risk-resumen" data-severidad={altas > 0 ? "alta" : reales.length ? "media" : "ok"}>
-        <div className="cmv2-subhead"><strong>Riesgos detectados</strong></div>
+        <div className="cmv2-subhead"><strong>{alcance ?? "Riesgos detectados"}</strong></div>
         <p>
           {!reales.length
             ? "La auditoría no reporta riesgos activos para el cálculo vigente."
@@ -70,7 +81,7 @@ export function ClassroomRiskList({
   };
   return (
     <div className="cmv2-classroom-risk-list">
-      <div className="cmv2-subhead"><strong>Riesgos</strong></div>
+      <div className="cmv2-subhead"><strong>{alcance ?? "Riesgos"}</strong></div>
       {visible.map((risk, index) => {
         const severity = String(risk.severity ?? "media");
         const Icon = severityIcon(severity);
