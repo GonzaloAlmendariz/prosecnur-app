@@ -18,7 +18,25 @@ export function AulasCambioDeAula({ partes, plan }: {
 }) {
   const r = useMemo(() => aulaRealVsAgendada(partes, plan), [partes, plan]);
 
+  // Sin partes el panel se retira: la tabla de al lado ya dice «Todavía no se
+  // ha registrado ningún parte de campo», y repetirlo sería ruido.
   if (!r.comparadas && !r.sinComparar) return null;
+
+  // Hay partes pero el plan no aporta un solo salón agendado. Antes esto salía
+  // como «N sin salón reconocible EN UNA DE LAS DOS HOJAS», que manda a revisar
+  // el libro de campo cuando el que falta es el plan — y es justo el estado de
+  // un proyecto cuyo plan de recolección quedó desfasado del sorteo vigente.
+  if (!r.comparadas && !r.planConSalon) {
+    return (
+      <div className="aulas-cambio-aula">
+        <p className="aulas-cambio-aula-lectura">
+          No se puede saber si alguna aula se aplicó en otro salón: el plan agendado
+          no trae salón para ningún curso-horario, así que no hay contra qué comparar
+          los {fmt(r.sinComparar)} {r.sinComparar === 1 ? "parte" : "partes"} de campo.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="aulas-cambio-aula">
@@ -36,9 +54,18 @@ export function AulasCambioDeAula({ partes, plan }: {
           <>Los {fmt(r.comparadas)} partes comparables declaran el salón agendado.</>
         )}
         {/* Sin salón reconocible se declara: no saber no es lo mismo que
-            coincidir, y meterlas en el denominador diría que todo cuadró. */}
+            coincidir, y meterlas en el denominador diría que todo cuadró. Y se
+            nombra CUÁL de las dos hojas falla cuando una sola explica el caso:
+            «una de las dos hojas» obliga a abrir ambas para averiguarlo. */}
         {r.sinComparar ? (
-          <> · <strong>{fmt(r.sinComparar)}</strong> sin salón reconocible en una de las dos hojas</>
+          <>
+            {" "}· <strong>{fmt(r.sinComparar)}</strong>{" "}
+            {!r.sinSalonAgendado
+              ? "sin salón anotado en el parte de campo"
+              : !r.sinSalonReal
+                ? "sin salón agendado en el plan"
+                : "sin salón reconocible en una de las dos hojas"}
+          </>
         ) : null}
       </p>
       {r.cambios.length ? (
