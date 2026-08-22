@@ -110,10 +110,10 @@ imperfecto elige la muestra que mejor engaña a la métrica.
 | M2 | Semilla e historial junto al botón que sortea | ☑ `d87e5ac9` |
 | M3 | Método deja de comparar dos veces | ☑ |
 | M4 | Riesgos deja de repetirse en las dos pestañas | ☑ `eb562932` |
-| M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ◐ hecho CV y estabilidad; faltan los 7 balances y «sistemático por facultad» |
+| M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ◐ hechos CV, estabilidad y los 7 balances; falta «sistemático por facultad» |
 | M6 | La UI explica qué se hace con las 500 corridas | ☐ |
 | M7 | Cada bloque declara qué mide, cómo y para qué | ◐ |
-| M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ◐ Método 5,5 · **Simulación 1,17** |
+| M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ◐ Método 5,5 · **Simulación 1,29** |
 | **M9** | **Pensar las dos pestañas de nuevo, no pulirlas** | ☐ **va al final** |
 
 ## Trampas del entorno, medidas
@@ -184,11 +184,26 @@ haría que se leyeran solas de arriba abajo.
 - **La barra de rango era muda.** Dibujaba p10–p90 sin decirlo. Lleva rótulo:
   «8 de cada 10 cayeron entre X e Y».
 
-## Lo que queda de M5, medido en la app
+## Los siete balances, cerrado
 
-Siete tarjetas seguidas que dicen sólo **BALANCE 35/100 Facultad · 69/100
-Programa · 72/100 Nivel/ciclo · 91/100 Horario · 100/100 Modalidad · 39/100
-Tamaño de aula · 50/100 Sexo**. Es exactamente lo que Gonzalo nombró: «hay
-distintos mecanismos para medir el balance, hay distintos balances, no termino de
-entender». Ninguna dice qué compara ni contra qué, y la peor (Facultad, 35) es
-justo la dimensión que la vara del otro loop declara innegociable.
+Era el defecto que Gonzalo nombró textualmente —«hay distintos mecanismos para
+medir el balance, hay distintos balances, no termino de entender»— y tenía dos
+capas:
+
+1. **La tarjeta ponía de eyebrow «BALANCE», idéntico en las siete**, y dejaba la
+   dimensión —Facultad, Programa, Horario…—, que es lo ÚNICO que las distingue,
+   en letra pequeña abajo. Lo repetido era lo prominente. El arreglo ya existía
+   diez líneas más abajo en el mismo archivo: `agruparPorDimension` corrige
+   exactamente eso para las filas de perfil, y por el mismo motivo.
+2. **Ninguna decía contra qué se comparaba el puntaje.** Ahora la familia
+   encabeza el grupo una vez con su glosa: «Qué tan parecido es el reparto de las
+   aulas sorteadas al del marco completo. 100 sería idéntico».
+
+Efecto lateral que vale: al dejar de repetirse el eyebrow apareció una **segunda
+familia, Cobertura**, que estaba camuflada porque su rótulo era igual de mudo.
+
+Coste medido y asumido: Simulación pasó de 1,17 a **1,29 pantallas**. Doce
+centésimas de pantalla por dos frases que hacen legible el bloque entero.
+
+**Queda de M5**: «sistemático por facultad», que es un nombre de método, no una
+métrica, y vive en el comparador.

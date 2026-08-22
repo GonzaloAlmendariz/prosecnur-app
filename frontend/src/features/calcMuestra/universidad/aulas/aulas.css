@@ -1358,6 +1358,41 @@
   background: color-mix(in srgb, var(--cmv2-border) 55%, transparent);
 }
 
+/* La familia («Balance») se decia siete veces como eyebrow y la dimension que
+   distingue cada tarjeta iba en pequeno. Ahora la familia encabeza el grupo una
+   sola vez, con su glosa, y la tarjeta se identifica por su dimension. */
+.cmv2-aulas-stack .cmv2-representativity-metric-families {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cmv2-aulas-stack .cmv2-representativity-metric-families > section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cmv2-aulas-stack .cmv2-representativity-metric-families > section > header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cmv2-aulas-stack .cmv2-representativity-metric-families > section > header strong {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.cmv2-aulas-stack .cmv2-representativity-metric-families > section > header p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+  max-width: 68ch;
+}
+
 /* --- Stat-tiles de balance: eyebrow / cifra 21px tabular / meter 6px --------- */
 .cmv2-aulas-stack .cmv2-representativity-metric-grid article {
   gap: 4px;
