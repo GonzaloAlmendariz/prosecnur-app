@@ -85,8 +85,11 @@ const DICCIONARIO: Array<{ patron: RegExp; titulo: string; resumen: string }> = 
   },
   {
     patron: /ajuste de tamano divulgado|balance del sorteo/i,
-    titulo: "El sorteo ajustó tamaños y balanceó con lo disponible",
-    resumen: "", // se computa aparte: el detalle trae N notas concatenadas.
+    // Título y resumen se componen aparte, porque el aviso puede traer sólo
+    // ajustes, sólo balances o ambos, y un título fijo prometía las dos cosas
+    // aunque el aviso trajera una. Ver `componerAvisoDeSorteo`.
+    titulo: "",
+    resumen: "",
   },
   {
     patron: /al menos 100 corridas|simulacion insuficiente/i,
@@ -94,6 +97,40 @@ const DICCIONARIO: Array<{ patron: RegExp; titulo: string; resumen: string }> = 
     resumen: "La optimización por candidatas necesita al menos 100 corridas para una lectura preliminar.",
   },
 ];
+
+/**
+ * Compone título y resumen de las notas del sorteo a partir de lo que el aviso
+ * TRAE, no de lo que su familia podría traer.
+ *
+ * El motor concatena sus notas con « | » y llegaban como un ladrillo ilegible
+ * (Gonzalo, 2026-08-20: «no se entiende absolutamente nada»). El resumen cuenta
+ * lo que pasó y el detalle queda plegado. Pero el título quedó FIJO —«El sorteo
+ * ajustó tamaños y balanceó con lo disponible»— mientras el contenido es
+ * variable, así que un aviso que sólo traía balances se anunciaba como si
+ * también hubiera ajustado tamaños, y dos avisos con contenidos distintos se
+ * leían con el mismo nombre. Medido en HSVG2026 el 2026-08-22: un aviso de «4
+ * estratos balanceó» y otro de «8 ajustó; 4 balanceó», ambos bajo el mismo
+ * título.
+ */
+function componerAvisoDeSorteo(limpio: string): AvisoTraducido {
+  const ajustes = (limpio.match(/ajuste de tamano divulgado/gi) ?? []).length;
+  const balances = (limpio.match(/balance del sorteo/gi) ?? []).length;
+  const partes: string[] = [];
+  if (ajustes) partes.push(`en ${ajustes} estrato${ajustes === 1 ? "" : "s"} el sorteo entregó más o menos aulas que la cuota y se corrigió por sorteo ponderado`);
+  if (balances) partes.push(`en ${balances} estrato${balances === 1 ? "" : "s"} balanceó con menos variables porque las demás no varían dentro del estrato`);
+  const titulo = ajustes && balances
+    ? "El sorteo corrigió cuotas y balanceó con lo disponible"
+    : ajustes
+      ? "El sorteo corrigió cuotas que no salieron exactas"
+      : balances
+        ? "El sorteo balanceó con menos variables de las pedidas"
+        : "El motor dejó notas de este sorteo";
+  return {
+    titulo,
+    resumen: partes.length ? `${partes.join("; ")}. El resultado final respeta las cuotas.` : "El motor dejó notas del sorteo en esta corrida.",
+    mostrarCrudo: true,
+  };
+}
 
 export function traducirAvisoDelMotor(detalle: string): AvisoTraducido {
   const limpio = String(detalle ?? "").trim();
@@ -103,19 +140,7 @@ export function traducirAvisoDelMotor(detalle: string): AvisoTraducido {
   const conocido = DICCIONARIO.find((entrada) => entrada.patron.test(limpio));
   if (conocido) {
     if (!conocido.resumen && /ajuste de tamano divulgado|balance del sorteo/i.test(limpio)) {
-      // El motor concatena todas sus notas con « | » y llegaban como un
-      // ladrillo ilegible (Gonzalo, 2026-08-20: «no se entiende absolutamente
-      // nada»). El resumen CUENTA lo que pasó; el detalle queda plegado.
-      const ajustes = (limpio.match(/ajuste de tamano divulgado/gi) ?? []).length;
-      const balances = (limpio.match(/balance del sorteo/gi) ?? []).length;
-      const partes: string[] = [];
-      if (ajustes) partes.push(`en ${ajustes} estrato${ajustes === 1 ? "" : "s"} el sorteo entregó más o menos aulas que la cuota y se corrigió por sorteo ponderado`);
-      if (balances) partes.push(`en ${balances} estrato${balances === 1 ? "" : "s"} balanceó con menos variables porque las demás no varían dentro del estrato`);
-      return {
-        titulo: conocido.titulo,
-        resumen: partes.length ? `${partes.join("; ")}. El resultado final respeta las cuotas.` : "El motor dejó notas del sorteo en esta corrida.",
-        mostrarCrudo: true,
-      };
+      return componerAvisoDeSorteo(limpio);
     }
     return { titulo: conocido.titulo, resumen: conocido.resumen, mostrarCrudo: true };
   }
