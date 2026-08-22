@@ -982,3 +982,25 @@ incompleta: `metodoGooEsquema.test.tsx` renderiza componentes con
 Aislar la decisión sigue siendo mejor diseño, así que no se deshace; pero la
 razón que di era falsa, y la próxima vez que un componente no se pueda observar
 en pantalla, `renderToStaticMarkup` es la primera opción, no la última.
+
+
+## Deuda saldada: el panel de preparación, verificado renderizado
+
+Con `renderToStaticMarkup` a la vista, lo que quedaba por hacer era comprobar que
+el texto reparado **llega al HTML**, no sólo que la función lo devuelve.
+`preparacionPanelRender.contract.test.tsx` monta el panel con sus props y verifica
+sobre el markup:
+
+- Con método vigente y sin comparar: sale «Método elegido» con su nombre, y NO
+  aparecen «Método comparado», «por comparar» ni «La app elige».
+- Sin método vigente: «sin elegir».
+- El paso se marca `is-ready` por el método, no por la comparación; y con
+  comparación pero sin método vigente sale `is-working`.
+- Los cuatro pasos del recorrido siguen presentes.
+
+Mutante: devolver el paso a exigir comparación mata 2 de 4.
+
+**Lo que cambia hacia adelante**: una superficie que no se puede abrir en la app
+—porque depende de un estado que el proyecto de trabajo ya superó— **sí se puede
+verificar**. Renderizarla es la primera opción; declarar «no observable» era una
+limitación no intentada.
