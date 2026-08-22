@@ -699,3 +699,32 @@ inventar—. 3 tests.
 Es el mismo defecto que se reparó ayer para el balance de facultad («declara
 contra qué referencia se midió»): **el dato existía en el motor y no llegaba a la
 pantalla**, esta vez porque un normalizador lo descartaba por el camino.
+
+
+## Muestreo de los 23 reconstructores: 1 de 3 perdía algo
+
+No todo normalizador que reconstruye pierde datos. Revisados tres del área,
+comparando campo a campo con lo que emite su función en R:
+
+| Normalizador | Emite el motor | Conserva | Veredicto |
+|---|---|---|---|
+| `sexo_por_facultad` | 9 campos | 4 | **perdía `referencia`** — reparado |
+| `docente_unico` | activo, ajustes{docente, stratum, saliente, entrante, intercambiado_con_ola}, no_reparables{docente, stratum, classroom_id} | todos | **sin pérdida** |
+| `session_type_impacto` | schema, tipos_excluidos{tipo, label, facultades{facultad, ch, elegibles, exceptuada}} | transforma a raw/facultades/exceptuado_en/perdido_en | **transforma, no filtra** |
+
+El tercero enseña algo: `raw` es el nombre de su parámetro de entrada, no un campo
+guardado. **Comparar por nombre de campo no basta** cuando el normalizador
+transforma la forma; hay que leerlo.
+
+### Lo que queda como recomendación, no como trabajo hecho
+
+Un censo completo de los 23 exige comparar cada uno con su emisor en R, y **no
+cabe en un tick**. Lo que sí queda es el patrón para hacerlo:
+`recopiladoresFrontera.contract.test.ts` demuestra que un contrato puede leer el
+fuente R y comprobar que el normalizador nombra lo que el backend emite. Aplicarlo
+a los normalizadores críticos del área es trabajo acotado y verificable, uno por
+uno.
+
+**Y una cautela sobre este muestreo**: tres de veintitrés no autoriza a decir que
+el resto está bien. Autoriza a decir que el patrón existe y que se detecta
+comparando con el emisor.
