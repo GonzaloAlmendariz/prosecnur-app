@@ -984,3 +984,38 @@ corrido no pesque columnas del vecino.
 
 8 asertos nuevos; el mutante que vuelve al cálculo por ancho mata 2. Suites
 `carga-aulas*` y `monitoreo-aulas*` sin fallos.
+
+
+## Serie C — la hoja de agenda no decía qué columna dejó de reconocer
+
+Paridad entre las tres hojas del libro. La de «Base de control» ya reportaba sus
+columnas sin nombre —`sin_nombre`, consumido en Fuentes y en el aviso de libro
+importado—. La de agenda **no reportaba nada**.
+
+Consecuencia medida: renombrar «TELEFONO DE DOCENTE» a «CELULAR» en el Sheets
+baja los campos reconocidos de 20 a 19 y `teacher_phone` se lee vacío **sin un
+solo aviso**. El propio código dice de ese campo que es «EL dato con el que se
+agenda».
+
+La hoja que genera la app trae los 20 campos del bloque, así que **una ausencia
+es señal de verdad y no ruido** de un libro incompleto. Eso está fijado en un
+test: si el generador y el lector dejan de hablar el mismo idioma, el aviso se
+volvería permanente y el test lo caza antes.
+
+### Reparado
+
+- `aulas_agendadas_campos_ausentes(titulos)` — pública y testeable.
+- Viaja con el plan **como atributo**, así que ningún consumidor actual cambia
+  de forma.
+- Llega al recibo del libro (`agenda_campos_ausentes`) y a la config, por el
+  mismo camino que `control_sin_nombre`.
+- Se muestra en Fuentes **nombrando los campos, no contándolos**: «la hoja de
+  agenda no trae el teléfono del docente: esas columnas se leen vacías». «Faltan
+  2 campos» manda a buscarlos; nombrarlos permite arreglarlo.
+
+De paso, la hoja de «aplicadas» ya detectaba sus bloques por títulos
+(`aulas_aplicadas_inicios`): la reparación del tick anterior converge al patrón
+que la casa ya tenía en la hoja hermana, no lo inventa.
+
+6 asertos en R y 4 en el frontend. Un token huérfano evitado en el camino
+(`--pulso-warning-strong` no existe; el real es `--pulso-warn-fg`).

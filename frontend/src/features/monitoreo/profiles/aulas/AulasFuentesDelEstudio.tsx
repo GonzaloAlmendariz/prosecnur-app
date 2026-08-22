@@ -79,11 +79,31 @@ function Fuente({ source, filas, columnas }: {
   );
 }
 
+/** Los campos del bloque de agenda, con el nombre que el equipo ve en el Sheets.
+    Sólo los que se pueden echar de menos: el resto sale con su clave técnica, que
+    es preferible a un rótulo inventado. */
+const ROTULO_DE_CAMPO: Record<string, string> = {
+  operational_code: "el curso-horario",
+  teacher: "el nombre del docente",
+  teacher_phone: "el teléfono del docente",
+  teacher_email: "el correo del docente",
+  course_name: "el nombre del curso",
+  faculty: "la facultad",
+  wave: "la muestra",
+  label: "el horario",
+  eligible_n: "los elegibles",
+  enrolled_total: "los matriculados",
+  scheduled_date: "la fecha agendada",
+};
+
 export type ReciboDelLibro = {
   importado_en: string;
   hojas: Array<{ hoja: string; vino: boolean }>;
   hojas_ausentes: number;
   control_sin_nombre: number;
+  /** Campos del bloque de agenda que ningún título de la hoja bautiza. Una
+      columna renombrada en el Sheets se leía vacía sin decirlo. */
+  agenda_campos_ausentes?: ReadonlyArray<string>;
   resumen?: {
     unidades?: number;
     /** Cuántas facultades cubre el libro: un libro de 15 y uno de 6 son cosas distintas. */
@@ -176,6 +196,15 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
             <em> · {recibo.control_sin_nombre} columnas sin nombre en la hoja</em>
           ) : null}
         </p>
+        {/* Se nombran los campos, no se cuentan: «falta el teléfono del
+            docente» se puede arreglar y «faltan 2 campos» manda a buscarlos. */}
+        {recibo.agenda_campos_ausentes?.length ? (
+          <p className="aulas-fuente-falta">
+            La hoja de agenda no trae{" "}
+            {recibo.agenda_campos_ausentes.map((c) => ROTULO_DE_CAMPO[c] ?? c).join(", ")}
+            : esas columnas se leen vacías.
+          </p>
+        ) : null}
       </div>
     </article>
   );
