@@ -235,7 +235,10 @@ export function AulasSimulacionTab({
           </div>
           <aside className="cmv2-classroom-lab-side">
             <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
-            <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady} />
+            <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady}
+            resumen
+            onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
+          />
           </aside>
         </div>
       )}
