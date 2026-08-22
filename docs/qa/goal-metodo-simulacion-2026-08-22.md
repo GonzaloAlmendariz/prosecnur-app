@@ -1391,3 +1391,26 @@ componer `decision.reason`. Fue la **cuarta vez** en la jornada.
 
 Lo que lo destapó no fue el grep sino **volver a mirar la pantalla después de
 reparar**. Verificado ahora: cero jerga en el panel y cero en toda la pestaña.
+
+
+## Verificar la fuente no es verificar el resultado — demostrado
+
+Cuatro veces en la jornada reparé donde miraba y no donde vivía el defecto. La
+causa común: **los contratos barrían archivos**, y el texto también llega por
+datos —el `.pulso` guarda la explicación con la que se generó la corrida—.
+
+`jergaPorDatos.contract.test.tsx` renderiza el panel de Método con razones
+**sucias a propósito** y comprueba la salida. Reintroduciendo el defecto:
+
+| Contrato | Qué mira | Con el defecto vivo |
+|---|---|---|
+| `copySinJerga` | los archivos de copy | **pasa los 8** — no lo ve |
+| `jergaPorDatos` | el HTML renderizado | **mata 2** |
+
+Los dos hacen falta: el primero impide que la jerga entre al código, el segundo
+impide que llegue a la pantalla viniendo de donde venga. Y sólo el segundo habría
+cazado las cuatro reparaciones incompletas de hoy.
+
+**La regla, ya con evidencia**: un contrato que mira la fuente prueba que la
+fuente está limpia. Si lo que importa es lo que el usuario ve, hay que mirar lo
+que el usuario ve.
