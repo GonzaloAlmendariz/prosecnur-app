@@ -680,3 +680,44 @@ mutante que quita `program` mata 2.
 **Lección**: un recorte sin criterio no sólo esconde datos, esconde defectos. Los
 nombres crudos llevaban ahí desde siempre y eran invisibles porque las filas que
 los mostraban nunca entraban en las diez primeras.
+
+
+## «¿Por qué te fuerza a compararlos siempre?»
+
+Pregunta de Gonzalo el 2026-08-22: «¿por qué no sólo seleccionar uno e ir con
+ese? ¿Siempre se debe tener el comparativo entre todos?». Verificado, y había dos
+cosas, no una:
+
+**1. El candado era de UI, no del motor.** El botón de sortear llevaba
+`disabled={... || !model.comparisonReady}`. El endpoint acepta el `method_id` que
+se le mande y sólo valida que el motor exista
+(`router_calc_muestra.R:1063`); no exige comparación previa. Comparar sirve para
+elegir con evidencia, no es requisito para sortear. Candado retirado.
+
+**2. Y peor: la configuración no mandaba.**
+
+```ts
+const recommendedMethodId = comparison?.recommendation?.method_id ?? String(config.selector_engine ?? config.selector);
+```
+
+Da prioridad a la recomendación y sólo cae a la configuración **cuando no hay
+comparación**, que era justo el caso en que el botón estaba deshabilitado. En
+HSVG2026: config `cube_balanceado`, recomendado `pool_controlado`, botón
+«Sortear con Optimizar repetidos». La configuración se ignoraba siempre.
+
+Ahora manda la configuración y, cuando difieren, la barra avisa: **«El comparador
+prefiere Optimizar repetidos»** junto a **«Sortear con Balance por cuotas y
+tamaño»**. La elección es del analista; callar la evidencia que él mismo mandó
+calcular sería lo otro.
+
+### Este contrato nació en falso verde
+
+El primer `metodoParaSortear.contract.test.ts` tenía 3 tests en verde y **el
+mutante que devolvía el recomendado los pasaba todos**: ningún fixture tenía una
+comparación acreditada, así que `comparison` quedaba en null y ambos caminos
+coincidían. Acreditar la firma completa dentro del fixture resultó frágil, así
+que la decisión se extrajo a `resolverMetodoParaSortear(configurado, recomendado)`
+y el contrato prueba la función pura. Mutante: **mata 2 de 3**.
+
+La regla que confirma: *una decisión que se puede aislar, se aísla*; y un
+contrato no vale hasta que un mutante lo desmiente.

@@ -34,6 +34,25 @@ import { selectorFieldLabel } from "./classroomLabels";
 
 export type ClassroomLabModel = ReturnType<typeof buildClassroomLabModel>;
 
+/**
+ * Con qué método se sortea: manda el configurado, la recomendación es sugerencia.
+ *
+ * Se valida contra la lista canónica en vez de confiar en el valor, porque un id
+ * que no esté en las opciones resuelve a un label vacío y deja el botón diciendo
+ * «Sortear con» a secas, sin nombre.
+ *
+ * Vive fuera de `buildClassroomLabModel` a propósito: probarlo a través del
+ * modelo exige acreditar la firma completa de la comparación, y en el primer
+ * intento el fixture no la acreditaba, así que `comparison` quedaba en null,
+ * ambos caminos coincidían y el mutante que devolvía el recomendado pasaba los
+ * tres tests. Una decisión que se puede aislar, se aísla.
+ */
+export function resolverMetodoParaSortear(configuradoId: string, recomendadoId: string) {
+  return UNIVERSITY_AULAS_SELECTOR_OPTIONS.some((o) => o.id === configuradoId)
+    ? configuradoId
+    : recomendadoId;
+}
+
 export function buildClassroomLabModel({
   workspace,
   totalComp,
@@ -95,6 +114,26 @@ export function buildClassroomLabModel({
     representativity?.profile_distributions ?? selection?.diagnostics?.profile_distributions ?? comparison?.method_profiles,
   );
   const recommendedMethodId = comparison?.recommendation?.method_id ?? String(config.selector_engine ?? config.selector);
+  /**
+   * Con qué método se sortea de verdad.
+   *
+   * Era `recommendedMethodId`, que da prioridad a lo que recomienda el
+   * comparador y sólo cae a la configuración cuando NO hay comparación — que es
+   * justo el caso en que el botón estaba deshabilitado. Resultado medido en
+   * HSVG2026 el 2026-08-22: método configurado «Balance por cuotas y tamaño»,
+   * recomendado «Optimizar repetidos», y el botón decía «Sortear con Optimizar
+   * repetidos». El usuario elegía un método y la app sorteaba con otro.
+   *
+   * Gonzalo, 2026-08-22: «¿por qué te fuerza a compararlos siempre? ¿Por qué no
+   * sólo seleccionar uno e ir con ese?». Manda la configuración; la
+   * recomendación es una sugerencia y se avisa cuando difieren.
+   */
+  const metodoParaSortear = resolverMetodoParaSortear(String(config.selector_engine ?? ""), recommendedMethodId);
+  const recomendacionDifiere = Boolean(
+    comparison?.recommendation?.method_id
+    && metodoParaSortear
+    && comparison.recommendation.method_id !== metodoParaSortear,
+  );
   const recommendedProfileRows = profileRows.filter((row) => !row.method_id || row.method_id === (comparison?.recommendation?.method_id ?? ""));
   const visibleProfiles = (recommendedProfileRows.length ? recommendedProfileRows : profileRows).slice(0, 36);
   const coverageRows = rowsFrom<Record<string, unknown>>(representativity?.coverage_overlap ?? selection?.diagnostics?.coverage_overlap);
@@ -198,6 +237,8 @@ export function buildClassroomLabModel({
     reserveRows,
     extraReserveRows,
     recommendedMethodId,
+    metodoParaSortear,
+    recomendacionDifiere,
     recommendedMethod,
     facultades,
     extraOperativo,
