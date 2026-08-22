@@ -130,11 +130,15 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
 
-  .cmv2-method-stories {
-    grid-template-columns: 1fr;
-  }
-
+/* Las tarjetas se apilaban tambien por (max-height: 700px), y apilar por falta
+   de ALTURA multiplica por cuatro justo lo que falta: medido el 2026-08-22 en
+   1024x600, Metodo pasaba de 1,84 a 8,33 pantallas con las cuatro tarjetas a
+   874 px de ancho, en una sola columna, habiendo 900 de sitio. El reparto por
+   ancho lo resuelve el auto-fit de la regla base; el min-height solo tiene
+   sentido cuando de verdad hay una sola columna. */
+@media (max-width: 640px) {
   .cmv2-method-story {
     min-height: 250px;
   }

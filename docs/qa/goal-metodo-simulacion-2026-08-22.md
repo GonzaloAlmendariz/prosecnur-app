@@ -606,3 +606,44 @@ Verificado en las tres pestañas: Selección conserva la suya.
 
 **Selección son 4,64 pantallas**, más del doble que Método y Simulación juntas
 ahora. Es la pestaña más larga de la sección.
+
+
+## QA en 1024x600 — una regla que empeoraba lo que intentaba aliviar
+
+El paso 3 de `/revamp-visual` obliga a probar en `1440x1000` **y** `1024x600`.
+Sólo había verificado el primero, y el segundo destapó lo peor de la jornada:
+
+**Método pasaba de 1,84 a 8,33 pantallas en compacto**, con las cuatro tarjetas
+de método a **874 px de ancho cada una, en una sola columna, habiendo 900 px de
+sitio para tres.**
+
+La causa no era el `auto-fit` nuevo sino un media query viejo:
+
+```css
+@media (max-width: 900px), (max-height: 700px) { .cmv2-method-stories { grid-template-columns: 1fr; } }
+```
+
+Se dispara por **`max-height`**: en 1024x600 la altura es 600, así que apila las
+tarjetas *porque falta altura* — y apilar multiplica por cuatro justo lo que
+falta. Una regla pensada para aliviar el espacio vertical era la que lo
+consumía.
+
+Reparado separando las dos condiciones: `.cmv2-method-decision` conserva ambas
+(pasar a columna cuando hay poca altura sí tiene sentido para una fila de
+controles), y el reparto de las tarjetas lo gobierna el `auto-fit` de la regla
+base. El `min-height: 250px` baja a `max-width: 640px`, donde de verdad hay una
+sola columna. **8,33 → 4,63 pantallas**, tarjetas de 285x390 en tres columnas.
+
+### Desglose en compacto, para el siguiente tick
+
+| Bloque | px |
+|---|---|
+| Panel de recomendación | 175 |
+| Barra | 50 |
+| Franja de riesgos | 56 |
+| **Comparador** | **1.460** |
+| Didáctica | 968 |
+
+El comparador domina, y dentro de él la tabla de balance por categoría, que
+muestra **10 filas con `slice(0, 10)` sin decir cuántas hay**. Un recorte
+silencioso: la superficie no declara que está mostrando una parte.
