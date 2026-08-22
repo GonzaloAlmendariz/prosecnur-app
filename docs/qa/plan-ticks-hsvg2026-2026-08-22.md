@@ -69,10 +69,10 @@ caída es una visita perdida y un reemplazo que hay que coordinar.
 
 | # | Tick | Qué añade | Cerrado |
 |---|---|---|---|
-| D1 | Inventario de lo que hoy se ve | qué preguntas responde el monitoreo y cuáles no | ☐ |
-| D2 | Avance por facultad contra la cuota | no sólo total | ☐ |
-| D3 | Aulas caídas y su reemplazo efectivo | la cadena, no el conteo | ☐ |
-| D4 | Ritmo y proyección | ¿llegamos con las visitas que quedan? | ☐ |
+| D1 | Inventario | ☑ 47 componentes; la serie estaba mal planteada |  |
+| D2 | Avance por facultad contra la cuota | ☑ **ya existe** |  |
+| D3 | Aulas caídas y su reemplazo | ☑ **ya existe** |  |
+| D4 | Ritmo y proyección | ☑ **ya existe** |  |
 
 ### Serie E — UI con sustento técnico (transversal, siempre abierta)
 
@@ -754,3 +754,36 @@ Renombrada a **«caídas que la cuota tolera»**, y el runner ahora imprime `DEF
 **La lección, otra vez**: antes de nombrar una métrica nueva, mirar si el dominio
 ya usa esa palabra para otra cosa. Bastaron dos minutos de inventario para
 encontrarlo, y llevaba seis ticks escribiéndolo mal.
+
+
+## D2–D4 · lo que la serie daba por ausente ya estaba, y bien
+
+| Lo que D pedía | Lo que ya existe |
+|---|---|
+| Avance por facultad contra la cuota | `AulasCuotasResumen` —«cuánta gente falta, en total, por facultad y por sexo»— y `AulasPiramideCuota`, con **cada sexo contra su propia meta** |
+| Aulas caídas y su reemplazo efectivo | `AulasHistoriaCadena`: «si cumplimos con el titular, cómo fue su reemplazo, y **cuál de los dos cerró**» |
+| Ritmo y proyección | `AulasPronosticoDeCierre`, con banda entre el ritmo más lento y el más rápido y una regla explícita: «**nunca un punto: una fecha sola se lee como una promesa**» |
+| — | `AulasLoQueFalta`: convierte el veredicto en **cola de trabajo ordenada por esfuerzo** |
+
+**La serie D estaba mal planteada por mí**: la escribí suponiendo que faltaba, sin
+mirar. Es el mismo error que D1 destapó con «colchón», dos ticks seguidos.
+
+### El límite real: no hay con qué probarlo
+
+Para juzgar si el monitoreo «da información útil» hacen falta datos de campo, y
+**no existen**:
+
+| Proyecto | monitoreo | ¿de aulas? |
+|---|---|---|
+| `acnur_acg`, `acnur_pdm`, `acrconta` | **sí** | no —territorial, telefónico, multiactor— |
+| **`hsvg2026`** | **no** | **sí** |
+| `HSVG2026_*.pulso` de trabajo | sin plan ni respuestas | sí |
+
+O sea: **los 47 componentes del perfil de aulas no tienen ningún proyecto de
+referencia que los ejercite**. Es deuda de cobertura, no un defecto de esos
+componentes, y explica por qué un «sin hallazgos» sobre ellos no valdría nada.
+
+**Lo que desbloquearía la serie D** es un fixture de aulas con campo —plan de
+monitoreo, partes, base de control y respuestas—, que es trabajo grande y decisión
+de Gonzalo. Hasta entonces, D2–D4 se declaran **cubiertos por código existente y
+no verificados con datos**, que no es lo mismo que verdes.
