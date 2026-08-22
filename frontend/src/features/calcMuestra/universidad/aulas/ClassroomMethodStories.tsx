@@ -29,7 +29,7 @@ export function ClassroomMethodDecisionHero({ decision }: { decision: ClassroomM
         <p>{decision.reason}</p>
       </div>
       <span data-qa-geometry-member data-qa-geometry-capacity="owned">
-        {recommended ? <><Award size={16} aria-hidden="true" /> Recomendación acreditada</> : "Sin atribución al engine"}
+        {recommended ? <><Award size={16} aria-hidden="true" /> Recomendación acreditada</> : "Sin recomendación del comparador"}
       </span>
     </section>
   );

@@ -918,3 +918,35 @@ pendiente en vez de como cero: **verde por ausencia**.
 hermano `frameAuditNumberOrNull` para los sitios donde la distinción importa, no
 cambiar el default. Fuera del encargo de Método y Simulación, y sin medir cuántos
 de los 43 dependen del cero como fallback.
+
+
+## La vara 1, medida y fijada
+
+> «Se entiende sin saber muestreo. Ninguna sigla ni término técnico sin glosa.»
+
+Barrido del texto que las dos pestañas ponen en pantalla, buscando trece términos
+que exigen saber muestreo de antemano. **Simulación salió limpia. Método tenía
+tres, todos en una sola frase** —la del control de descuento de repetidos:
+
+> «…el modo que realmente aplicó el **engine**. Con **cube**, **pivotal** o
+> selección manual el descuento es una auditoría **post hoc**: conserva
+> probabilidades, calibración y orden.»
+
+Cinco términos sin glosa, y encima con los nombres de método que dejaron de
+existir en pantalla al unificarse. Lo que decía sigue siendo verdad; ahora lo dice
+sin exigir el vocabulario: *«el descuento no cambia el sorteo: se calcula después,
+para contar cuántos alumnos quedaron repetidos entre aulas»*.
+
+### El contrato encontró lo que el barrido visual no podía ver
+
+`copySinJerga.contract.test.ts` (7 tests) barre los seis archivos de copy de las
+dos pestañas, **quitando comentarios** —documentar un defecto exige nombrar el
+término que lo causaba—. Encontró dos que la inspección del DOM no veía porque no
+se renderizan en el estado actual del proyecto:
+
+- `aria-label="Histograma de π Monte Carlo…"`: **copy accesible**, el que lee un
+  lector de pantalla. La jerga también llega por ahí.
+- **«Sin atribución al engine»**, visible sólo cuando no hay recomendación.
+
+Con eso, **las dos pestañas quedan en cero términos sin glosa**, en pantalla y en
+el texto accesible.
