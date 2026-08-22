@@ -68,11 +68,15 @@ export function ClassroomLabCommandBar({
         <button
           type="button"
           className="cmv2-primary"
-          onClick={() => void onSelectMethod(config, model.recommendedMethodId)}
-          disabled={Boolean(busy) || !model.comparisonReady}
+          onClick={() => void onSelectMethod(config, model.metodoParaSortear)}
+          // El candado por `comparisonReady` era de UI, no del motor: el
+          // endpoint acepta el method_id que se le mande y sólo valida que el
+          // motor exista (router_calc_muestra.R:1063). Comparar sirve para
+          // elegir con evidencia, no es requisito para sortear.
+          disabled={Boolean(busy)}
         >
           {busy === "Seleccionando cursos-horario" ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
-          Sortear con {classroomMethodLabel(model.recommendedMethodId)}
+          Sortear con {classroomMethodLabel(model.metodoParaSortear)}
         </button>
       )}
       {acciones.includes("reemplazos") && onSimulateReplacements && (
@@ -92,6 +96,13 @@ export function ClassroomLabCommandBar({
           veces en los primeros 100 px de scroll. Donde no hay tarjeta —
           Selección, Reemplazos— esta línea es el único sitio que nombra el
           método vigente, así que no se borra: se apaga donde sobra. */}
+      {/* La elección manda, pero callar que el comparador prefiere otro sería
+          esconder evidencia que el propio usuario mandó calcular. */}
+      {model.recomendacionDifiere && acciones.includes("seleccionar") && (
+        <span className="cmv2-classroom-recommendation is-difiere">
+          El comparador prefiere <strong>{classroomMethodLabel(model.recommendedMethodId)}</strong>
+        </span>
+      )}
       {mostrarRecomendado && model.comparison?.recommendation && (
         <span className="cmv2-classroom-recommendation">
           Recomendado: <strong>{classroomMethodLabel(model.recommendedMethodId) || model.comparison.recommendation.method_label}</strong>
