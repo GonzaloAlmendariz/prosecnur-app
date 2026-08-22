@@ -3411,13 +3411,21 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   length(unique(unlist(lapply(df$unique_student_ids, .cm_aulas_student_ids), use.names = FALSE)))
 }
 
+# Los nombres que el usuario ve, y son los MISMOS que la UI: el frontend los
+# declara en `UNIVERSITY_AULAS_SELECTOR_OPTIONS` y los resuelve con
+# `classroomMethodLabel`. Este juego era distinto —"Selección proporcional al
+# tamaño" donde la pestaña decía "Sistemático por facultad"— y con él eran
+# cuatro nombres para los mismos cuatro métodos. La UI ya no usa este
+# `method_label`, pero el stage de los jobs sí lo compone ("Selección
+# proporcional al tamaño: corrida 8 de 17"), así que durante un sorteo el
+# usuario leía un nombre que no existía en ninguna pantalla.
 .cm_aulas_method_label <- function(engine) {
   labels <- c(
-    sistematico_pps = "Selección proporcional al tamaño",
-    cube_balanceado = "Selección balanceada",
-    local_pivotal_balanceado = "Balanceada y distribuida",
-    pool_controlado = "Optimizada para evitar repetidos",
-    estratificado_aleatorio = "Aleatoria estratificada",
+    sistematico_pps = "Sistemático por facultad",
+    cube_balanceado = "Balance por cuotas y tamaño",
+    local_pivotal_balanceado = "Balance + dispersión",
+    pool_controlado = "Optimizar repetidos",
+    estratificado_aleatorio = "Aleatorio estratificado",
     manual_auditable = "Manual auditable"
   )
   labels[[.cm_aulas_engine_key(engine)]] %||% as.character(engine)

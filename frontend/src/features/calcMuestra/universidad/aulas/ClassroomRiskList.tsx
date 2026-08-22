@@ -24,7 +24,7 @@ export function classroomRiskRows(
   if (rows.length) return rows.slice(0, 8);
   return audited
     ? [{ code: "sin_alertas", severity: "ok", title: "Sin alertas críticas", detail: "La auditoría interna no reporta riesgos activos para el cálculo vigente." }]
-    : [{ code: "auditoria_pendiente", severity: "media", title: "Auditoría pendiente", detail: "Compara métodos con el objetivo y el marco vigentes para evaluar riesgos." }];
+    : [{ code: "auditoria_pendiente", severity: "media", title: "Auditoría pendiente", detail: "Compara métodos o sortea con el que tengas configurado: los riesgos se evalúan sobre una corrida hecha con el objetivo y el marco vigentes." }];
 }
 
 export function ClassroomRiskList({
