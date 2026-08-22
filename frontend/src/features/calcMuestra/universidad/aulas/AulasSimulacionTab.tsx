@@ -8,6 +8,7 @@
  * corridas (π Monte Carlo) cuando el motor lo trae.
  */
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
+import { CM_CORRIDAS_COMPARACION } from "./duracionComparacion";
 import { fmtDec, fmtInt, fmtPct, rowsFrom, safeNumber } from "../../sharedCore";
 import { classroomRowNumber, classroomRowText } from "../shared/format";
 import { saludComoRiesgos, saludDesdeModel } from "../shared/salud";
@@ -201,7 +202,7 @@ export function AulasSimulacionTab({
           notice={stageNotice}
           onNavigate={onNavigate}
           onAction={stageNotice.localAction === "compare"
-            ? () => void onCompare(model.config, model.config.simulation_runs ?? model.config.monte_carlo_n ?? 500)
+            ? () => void onCompare(model.config, CM_CORRIDAS_COMPARACION)
             : undefined}
           disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota)}
         />

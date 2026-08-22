@@ -1,4 +1,4 @@
-import { corridasDeEstabilidad } from "./duracionComparacion";
+import { CM_CORRIDAS_COMPARACION, corridasDeEstabilidad } from "./duracionComparacion";
 import { BarChart3, Loader2, RefreshCw, Sigma, Table2 } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
@@ -47,7 +47,7 @@ export function ClassroomLabCommandBar({
           // Sin corridas de auditoría: una pasada por método, que es lo que hace
           // falta para elegir. Las 500 de antes eran las de estabilidad, y
           // convertían una decisión rápida en una espera larga.
-          onClick={() => void onCompare(config, 0)}
+          onClick={() => void onCompare(config, CM_CORRIDAS_COMPARACION)}
           disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
           title="Corre una vez cada uno de los cuatro métodos y compara representatividad, balance, repetidos y cobertura, para decidir con cuál sortear."
         >
