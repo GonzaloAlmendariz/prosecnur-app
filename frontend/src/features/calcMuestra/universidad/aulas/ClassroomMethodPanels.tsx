@@ -328,6 +328,11 @@ export function SimulationSummaryPanel({ rows }: { rows?: CalcMuestraAulasSimula
             }} />
           </div>
           <em>{motorCopyText(row.note)}</em>
+          {/* La tarjeta decia solo el NOMBRE del metodo: «Sistemático por
+              facultad — 0/0 corridas». Gonzalo, 2026-08-22: «¿qué es sistemático
+              por facultad?». La explicación ya existía en las constantes y no se
+              pintaba en ninguna parte de Simulación. */}
+          <p className="cmv2-simulation-method-detail">{classroomMethodReason(row.method_id)}</p>
         </article>
       ))}
     </div>

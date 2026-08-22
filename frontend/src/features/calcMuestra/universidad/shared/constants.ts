@@ -302,27 +302,27 @@ export const UNIVERSITY_AULAS_SELECTOR_OPTIONS: Array<{
   {
     id: "cube_balanceado",
     label: "Balance por cuotas y tamaño",
-    detail: "Recomendado: conserva proporciones del marco usando tamaño elegible, cuotas y variables de control.",
+    detail: "Recomendado: sortea de forma que el reparto de las aulas elegidas se parezca al del marco en facultad, sexo y tamaño a la vez. Un aula con más estudiantes tiene más probabilidad de salir.",
   },
   {
     id: "local_pivotal_balanceado",
     label: "Balance + dispersión",
-    detail: "Modo avanzado para evitar concentración por programa, nivel, horario o campus cuando hay auxiliares buenas.",
+    detail: "Hace lo mismo que el recomendado y además evita que las aulas elegidas se amontonen en el mismo programa, nivel, horario o campus. Sólo conviene si esos datos están completos en el marco.",
   },
   {
     id: "pool_controlado",
     label: "Optimizar repetidos",
-    detail: "Elige entre muestras candidatas para reducir estudiantes repetidos; exige simulación para probabilidades finales.",
+    detail: "Sortea varias veces y se queda con la selección donde menos estudiantes se repiten entre aulas. Como elige entre resultados, necesita la simulación para saber con qué probabilidad entró cada aula.",
   },
   {
     id: "sistematico_pps",
     label: "Sistemático por facultad",
-    detail: "Ordena el marco depurado y selecciona cursos-horario de forma espaciada dentro de cada facultad.",
+    detail: "Dentro de cada facultad ordena las aulas y va tomando una cada cierto salto fijo: la primera al azar y de ahí en adelante, una de cada tantas.",
   },
   {
     id: "estratificado_aleatorio",
     label: "Aleatorio estratificado",
-    detail: "Selecciona dentro de cada grupo de control sin ajuste adicional por repetición.",
+    detail: "Sortea al azar dentro de cada grupo, sin ningún ajuste posterior. Es el punto de comparación más simple.",
   },
   {
     id: "pps_balanceado",
