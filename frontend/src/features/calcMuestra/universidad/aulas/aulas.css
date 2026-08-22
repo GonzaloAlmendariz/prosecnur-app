@@ -1343,6 +1343,15 @@
   letter-spacing: -0.01em;
 }
 
+/* El rango se dibujaba como barra muda: sin rótulo, un lector no sabe si mide
+   percentiles, error o corridas. La barra queda y encima va lo que representa. */
+.cmv2-aulas-stack .cmv2-simulation-range-label {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+  font-variant-numeric: tabular-nums;
+}
+
 .cmv2-aulas-stack .cmv2-simulation-range {
   height: 6px;
   border-radius: 999px;
