@@ -828,3 +828,28 @@ alternativa. Los dos que no:
 - Vacío de riesgos: «Compara métodos … para evaluar riesgos» → «Compara métodos
   **o sortea con el que tengas configurado**: los riesgos se evalúan sobre una
   corrida hecha con el objetivo y el marco vigentes».
+
+
+## Barrido: ¿había más reglas que apilaban por falta de altura?
+
+El defecto de las tarjetas de método —apilar cuando falta ALTURA, que multiplica
+justo lo que falta— parecía una familia. Barrido de todo el CSS del frontend
+buscando `@media` con `max-height` que declaren una sola columna: **14 reglas**.
+Pero el patrón por sí solo no es el defecto, así que se revisaron con un criterio
+explícito: *¿el apilado viene compensado con menos altura, o no?*
+
+De las cuatro de Cálculo de muestra:
+
+| Regla | Veredicto |
+|---|---|
+| `classroomMethodStories.css:128` | **Defecto, reparado.** Apilaba y encima ponía `min-height: 250px` por tarjeta |
+| `classroomSelectionMap.css:245` | **Legítima.** Apila mapa e inspector, pero acota el viewport a `min(48vh, 460px)` |
+| `motor.css:1961` | **Ejemplar.** Con poca altura **ensancha** `.rec-resumen` a seis columnas: menos alto, no más |
+| `motor.css:1852`, `calculoDistribucion.css:438` | Ambiguas; no se tocan sin medir |
+
+Las otras diez están en monitoreo y gráficos, fuera de este encargo.
+
+**El defecto era único en su gravedad**, y la regla que lo distingue es simple:
+apilar siempre aumenta la altura, así que reaccionar a `max-height` apilando sólo
+vale si el mismo bloque acota la altura de lo apilado. `motor.css:1961` hace lo
+contrario y es el modelo a seguir.
