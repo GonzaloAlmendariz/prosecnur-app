@@ -214,7 +214,20 @@ export function AulasSimulacionTab({
       )}
 
       {(metodosListos || evidenciaSimulacion) && (
-        <div className="cmv2-classroom-lab-grid">
+        <>
+        {/* Mismo patrón que Método: la columna izquierda medía 1.261 px y el
+            lateral 277, con 984 px de hueco muerto en una franja de 387 de
+            ancho. La recomendación y el resumen de riesgos son el ESTADO del
+            cálculo: se leen antes de bajar a las cifras, no al costado. */}
+        <div className="cmv2-classroom-lab-franja cmv2-classroom-lab-franja--doble">
+          <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
+          <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady}
+            resumen
+            alcance="Riesgos de la comparación y de la estabilidad"
+            onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
+          />
+        </div>
+        <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--full">
           <div className="cmv2-classroom-lab-main">
             {/* K2 (censo f224af2d): primero CÓMO se movió la simulación
                 (estabilidad/evidencia), después QUÉ salió (resultados). El
@@ -263,15 +276,8 @@ export function AulasSimulacionTab({
               </>
             )}
           </div>
-          <aside className="cmv2-classroom-lab-side">
-            <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
-            <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady}
-            resumen
-            alcance="Riesgos de la comparación y de la estabilidad"
-            onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
-          />
-          </aside>
         </div>
+        </>
       )}
     </div>
   );
