@@ -17,8 +17,34 @@
   )
 }
 
+#' El plan congelado contra el sorteo vigente.
+#'
+#' El plan se siembra UNA vez y re-sortear no lo regenera, asi que un proyecto
+#' puede tener materiales de una corrida y una seleccion de otra. Medido en
+#' HSVG2026 el 2026-08-22: plan del 1 de agosto con 2.468 unidades y codigos
+#' «AULA n», seleccion del 21 con 2.616 filas y codigos «CH n». La pantalla solo
+#' mostraba `source_ref$module` —«calc-muestra»— que nunca cambia.
+#'
+#' Devuelve NULL cuando no hay con que comparar; nunca inventa un veredicto.
+.collection_source_vigente <- function(s, state) {
+  plan_run <- .cm_aulas_scalar(state$plan$source_ref$run_id %||% "", "")
+  sel <- s$calc_muestra_aulas_selection
+  filas <- if (is.list(sel) && !is.null(sel$selection)) sel$selection else NULL
+  run_actual <- ""
+  if (!is.null(filas)) {
+    col <- if (is.data.frame(filas)) filas[["selection_run_id"]] else NULL
+    if (!is.null(col) && length(col)) run_actual <- .cm_aulas_scalar(col[[1]], "")
+  }
+  if (!nzchar(plan_run) && !nzchar(run_actual)) return(NULL)
+  list(
+    plan_run_id = plan_run,
+    selection_run_id = run_actual,
+    desfasado = nzchar(plan_run) && nzchar(run_actual) && !identical(plan_run, run_actual)
+  )
+}
+
 .collection_payload <- function(state, noop = FALSE, seeded = FALSE,
-                                seed_available = FALSE) {
+                                seed_available = FALSE, source_vigente = NULL) {
   list(
     ok = TRUE,
     noop = isTRUE(noop),
@@ -29,6 +55,7 @@
     plan = state$plan,
     deployment = state$deployment,
     migration = state$migration,
+    source_vigente = source_vigente,
     state = state
   )
 }
@@ -401,11 +428,13 @@ collection_state_migrate_legacy <- function(s) {
 
 collection_state_get <- function(sid) {
   s <- session_get(sid)
+  estado <- .collection_current(s)
   .collection_payload(
-    .collection_current(s),
+    estado,
     noop = TRUE,
     seed_available = is.null(s$collection_state) &&
-      length(.collection_seed_source(s)$rows) > 0L
+      length(.collection_seed_source(s)$rows) > 0L,
+    source_vigente = .collection_source_vigente(s, estado)
   )
 }
 
