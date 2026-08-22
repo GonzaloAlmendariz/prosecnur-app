@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
+import { apiRecopiladoresReseed,
+  apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
@@ -92,6 +93,19 @@ export function PlanSection({ payload, onState }: Props) {
   // El backend compara el run_id del plan con el de la selección vigente; aquí
   // sólo se pinta su veredicto. Ausente = no hay con qué comparar.
   const desfase = payload?.source_vigente?.desfasado ? payload.source_vigente : null;
+  const [rehaciendo, setRehaciendo] = useState(false);
+  const rehacer = async () => {
+    if (!payload) return;
+    setRehaciendo(true);
+    setError("");
+    try {
+      onState(await apiRecopiladoresReseed(payload.state_revision));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo rehacer el plan.");
+    } finally {
+      setRehaciendo(false);
+    }
+  };
 
   const seed = async () => {
     setSeeding(true);
@@ -156,12 +170,27 @@ export function PlanSection({ payload, onState }: Props) {
           </div>
         </dl>
         {desfase ? (
-          <p className="rec-plan-desfase">
-            Este plan se armó con el <b>sorteo del {fechaDeCorrida(desfase.plan_run_id) || "una corrida anterior"}</b>,
-            y la selección vigente es <b>otra</b>{fechaDeCorrida(desfase.selection_run_id)
-              ? <> (del {fechaDeCorrida(desfase.selection_run_id)})</> : null}.
-            Los materiales que se generen ahora llevarán las aulas del plan, no las del sorteo actual.
-          </p>
+          <div className="rec-plan-desfase">
+            <p>
+              Este plan se armó con el <b>sorteo del {fechaDeCorrida(desfase.plan_run_id) || "una corrida anterior"}</b>,
+              y la selección vigente es <b>otra</b>{fechaDeCorrida(desfase.selection_run_id)
+                ? <> (del {fechaDeCorrida(desfase.selection_run_id)})</> : null}.
+              Los materiales que se generen ahora llevarán las aulas del plan, no las del sorteo actual.
+            </p>
+            {/* Rehacer descarta el despliegue y su entrega a campo, así que se
+                dice ANTES de pulsar y no en un aviso posterior. El plan está
+                congelado a propósito: rehacerlo es una decisión, no una
+                corrección automática. */}
+            <p className="rec-plan-desfase-coste">
+              Rehacerlo lo reemplaza por las {plan.units.length === 0 ? "aulas" : "aulas"} del sorteo vigente
+              y <b>descarta el despliegue preparado</b>{payload?.state.deployment?.status === "handed_off"
+                ? <>, incluida su <b>entrega a campo</b></> : null}. Las fichas ya impresas dejan de
+              corresponder al plan.
+            </p>
+            <button type="button" className="cmv2-ghost" disabled={rehaciendo} onClick={rehacer}>
+              {rehaciendo ? "Rehaciendo…" : "Rehacer el plan con el sorteo vigente"}
+            </button>
+          </div>
         ) : null}
       </Panel>
       <Panel

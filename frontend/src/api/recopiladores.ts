@@ -130,6 +130,14 @@ export type CollectionStatePayload = CollectionState & {
     selection_run_id: string;
     desfasado: boolean;
   } | null;
+  /** Sólo tras rehacer el plan: qué quedó descartado al hacerlo. */
+  reseeded?: boolean;
+  descartado?: {
+    plan_run_id: string;
+    unidades: number;
+    tenia_despliegue: boolean;
+    entregado: boolean;
+  } | null;
   state: CollectionState;
   handoff?: CollectionHandoffReceipt | null;
 };
@@ -362,6 +370,17 @@ export function apiRecopiladoresState() {
 
 export function apiRecopiladoresSeed() {
   return stateRequest("/api/recopiladores/seed", json("POST"));
+}
+
+/**
+ * Rehace el plan desde el sorteo vigente.
+ *
+ * `apiRecopiladoresSeed` no sirve para esto: siembra una vez y no hace nada si el
+ * plan ya existe. Rehacer descarta el despliegue y su handoff, así que la
+ * respuesta trae `descartado` con lo que se pierde.
+ */
+export function apiRecopiladoresReseed(expected_revision: number) {
+  return stateRequest("/api/recopiladores/reseed", json("POST", { expected_revision }));
 }
 
 export function apiRecopiladoresPlanPut(expected_revision: number, plan: CollectionPlan) {
