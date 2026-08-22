@@ -23,8 +23,22 @@
   background: var(--cmv2-surface-raised);
 }
 
-/* C1: la superficie declara qué es — visible también en el cuadro estático. */
+/* C1: la superficie declara qué es — visible también en el cuadro estático.
+   Y ahora también qué representa: la leyenda en caja alta normal y legible,
+   la marca de «no son aulas reales» en el micro-rótulo de siempre. */
 .cmv2-mgoo-declaracion {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmv2-mgoo-leyenda {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+}
+
+.cmv2-mgoo-marca {
   font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;

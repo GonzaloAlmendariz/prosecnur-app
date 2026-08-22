@@ -56,7 +56,11 @@
 
 .cmv2-method-stories {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Eran dos columnas fijas: con Metodo a una sola columna las tarjetas
+     ganaron 200 px de ancho y el esquema crecio sin mostrar nada mas. Con
+     auto-fit las cuatro caben en una fila en pantalla grande, tres en 1280 y
+     dos en compacto, y el esquema llena su tarjeta en cada caso. */
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 10px;
 }
 

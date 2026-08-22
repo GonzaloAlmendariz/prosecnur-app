@@ -436,3 +436,43 @@ por naturaleza. Medido después:
 Un aviso sin señal conocida se clasifica como **asunto**: callar algo que pedía
 atención es peor que pedir atención de más. 4 tests nuevos; el mutante que quita
 la clasificación de notas mata 1.
+
+
+## Revamp visual de Método — lo que pidió Gonzalo, punto por punto
+
+Instrucción del 2026-08-22: «toma en cuenta /revamp-visual para temas de
+simetría entre elementos, textos secos sin contenedor, elementos no diagramados
+de explicación ilustrativa, separación, y didáctica de explicación y orden
+conceptual».
+
+**Simetría.** La columna izquierda medía 1.131 px y el aside lateral 126: un
+11 %, con ~1.000 px de hueco muerto en una franja de 387 px de ancho. El resumen
+de riesgos subió a una franja a ancho completo —es el ESTADO del cálculo, no
+material para aprender, así que se lee antes de bajar— y las tarjetas ocupan el
+ancho entero. Las cuatro miden ahora **312 × 449 px, idénticas**.
+
+**Texto sin contenedor / duplicado.** El párrafo de la derecha explicaba los
+cuatro métodos otra vez, con un juego de nombres propio —el **quinto** de la
+pestaña— que además dejó de existir en pantalla al unificarse los nombres. Lo
+que decía ya está en las cuatro tarjetas; lo que cerraba lo dice la nota al pie
+del comparador. Retirado.
+
+**Explicación ilustrativa no diagramada.** Los esquemas traían descripción, pero
+sólo en `aria-label`: quien los MIRA no la lee, y lo que ve son bolas negras de
+tamaños distintos unidas por hilos. Ahora llevan leyenda visible: «Cada bola es
+un aula y su tamaño son los alumnos que tiene. Los hilos unen las aulas que el
+método mira juntas al decidir». Un dibujo sin leyenda es decoración.
+
+**Separación y orden conceptual.** La grilla pasó de dos columnas fijas a
+`auto-fit minmax(270px, 1fr)`: cuatro tarjetas en fila en pantalla grande, tres
+en 1280, dos en compacto, y el esquema llena su tarjeta en cada caso sin topes
+artificiales.
+
+**Método: 2,93 → 1,85 pantallas.** Desde el inicio del loop, 6,3 → 1,85.
+
+### Pendiente, visto en el screenshot
+
+- La leyenda del esquema se repite **cuatro veces**, una por tarjeta. Es el mismo
+  defecto que los siete «BALANCE»: lo común se dice una vez.
+- En «Paso 2» las cifras se parten: se lee **«57/10 0»** en vez de «57/100», y el
+  rótulo «representatividad» se corta como «represent atividad».

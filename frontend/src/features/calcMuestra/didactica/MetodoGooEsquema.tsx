@@ -208,6 +208,18 @@ export const METODO_GOO_ESQUEMAS: Record<MetodoGooId, MetodoGooEsquemaDef> = {
 /** La declaración C1 de estos esquemas; visible siempre, también en estático. */
 export const METODO_GOO_DECLARACION = "esquema ilustrativo · no son aulas reales";
 
+/**
+ * Qué representa cada elemento del dibujo.
+ *
+ * El esquema traía descripción, pero sólo en `aria-label`: quien lo MIRA no la
+ * lee, y lo que ve son bolas negras de tamaños distintos unidas por hilos.
+ * Gonzalo, 2026-08-22: «elementos no diagramados de explicación ilustrativa».
+ * Un dibujo sin leyenda es decoración; con leyenda es un diagrama. Los cuatro
+ * esquemas usan el mismo vocabulario visual, así que la leyenda es una sola.
+ */
+export const METODO_GOO_LEYENDA =
+  "Cada bola es un aula y su tamaño son los alumnos que tiene. Los hilos unen las aulas que el método mira juntas al decidir.";
+
 export function MetodoGooEsquema({ metodo }: { metodo: MetodoGooId }) {
   const esquema = METODO_GOO_ESQUEMAS[metodo];
   return (
@@ -280,7 +292,10 @@ export function MetodoGooEsquema({ metodo }: { metodo: MetodoGooId }) {
           </g>
         )}
       </svg>
-      <figcaption className="cmv2-mgoo-declaracion">{METODO_GOO_DECLARACION}</figcaption>
+      <figcaption className="cmv2-mgoo-declaracion">
+        <span className="cmv2-mgoo-leyenda">{METODO_GOO_LEYENDA}</span>
+        <span className="cmv2-mgoo-marca">{METODO_GOO_DECLARACION}</span>
+      </figcaption>
     </figure>
   );
 }
