@@ -35,7 +35,7 @@ terminado. Cadencia: **5 minutos entre tick y tick**.
 
 | # | Tick | Qué mide | Cerrado |
 |---|---|---|---|
-| A1 | Sortear con **190** aulas | línea base: score, celdas sin reserva de perfil, reservas por titular | ☐ |
+| A1 | Línea base con **190** aulas | ☑ ver abajo |  |
 | A2 | Sortear con **195** | lo mismo, y cuánto cambia por 5 aulas más | ☐ |
 | A3 | Sortear con **200** | ídem; ¿la cuota por facultad mejora o sólo sube el costo? | ☐ |
 | A4 | **190 con ajustes** (profundidad, tolerancia) | qué ajuste mejora sin subir n | ☐ |
@@ -95,3 +95,64 @@ Sobre `HSVG2026_definitivo.pulso`, con el motor cargado desde el fuente:
 - score de representatividad y sus siete balances
 - efectividad esperada (elegibles netos × tasa por facultad)
 - **aulas titulares esperadas que caen**, que es la vara 2
+
+
+---
+
+## A1 · Línea base con 190 aulas
+
+Medido sobre la selección vigente de `HSVG2026_definitivo` (no hizo falta
+re-sortear: ya son 190).
+
+| | |
+|---|---|
+| Titulares | 190 |
+| Elegibles netos | 6.440 |
+| Tasa media ponderada | 0,513 |
+| **Entrevistas esperadas** | **3.302** |
+| Objetivo | 2.500 |
+| Margen global | **+802** |
+
+### La métrica que decide la serie: colchón de caídas
+
+**Cuántas aulas titulares pueden caer antes de que haga falta un reemplazo.** Se
+calcula en el peor caso —que caigan las que más rinden— porque es el único que
+garantiza.
+
+- Global: **34 aulas** (17,9 % de las titulares). En el mejor caso, 64.
+
+Pero el margen global esconde el reparto, así que **por facultad**:
+
+| Facultad | aulas | espera | cuota | colchón |
+|---|---|---|---|---|
+| ESTUDIOS GENERALES CIENCIAS | 30 | 603 | 393 | 8 |
+| CIENCIAS E INGENIERIA | 40 | 709 | 528 | 8 |
+| ESTUDIOS GENERALES LETRAS | 26 | 517 | 389 | 5 |
+| ARTE Y DISEÑO | 14 | 179 | 120 | 3 |
+| ARQUITECTURA Y URBANISMO | 11 | 183 | 126 | 2 |
+| ARTES ESCÉNICAS | 9 | 121 | 69 | 2 |
+| CIENCIAS SOCIALES | 12 | 202 | 151 | 2 |
+| EDUCACION | 3 | 46 | 23 | 1 |
+| GASTRONOMÍA, HOTELERÍA Y TURISMO | 3 | 48 | 15 | 1 |
+| **CIENCIAS CONTABLES** | 2 | 26 | 21 | **0** |
+| **GESTIÓN Y ALTA DIRECCIÓN** | 7 | 121 | 115 | **0** |
+| **LETRAS Y CIENCIAS HUMANAS** | 3 | 45 | 26 | **0** |
+| **PSICOLOGÍA** | 6 | 87 | 79 | **0** |
+| **DERECHO** | 16 | 309 | **347** | **DÉFICIT 38** |
+
+**Cuatro facultades sin colchón** —cualquier caída obliga a reemplazo— y
+**Derecho en déficit: no llega a su cuota ni aunque no caiga ninguna aula.**
+
+Ese es el número que las series A2–A5 tienen que mover. Subir de 190 a 195 o 200
+sólo sirve si las aulas nuevas van donde el colchón es cero.
+
+### Un error de medición, corregido antes de reportarlo
+
+El primer cálculo por facultad emparejaba por los **12 primeros caracteres** del
+nombre, y «ESTUDIOS GENERALES CIENCIAS» y «ESTUDIOS GENERALES LETRAS» comparten
+«ESTUDIOS GENE»: las dos salían con 56 aulas y un colchón de 32. Se cazó porque
+56 no cuadraba con las 30 y 26 del desglose anterior. **Cuarto error de medición
+de la jornada**; los cuatro se cazaron por contradecir una cifra previa, nunca
+por revisar el método.
+
+El runner queda en `scripts/qa/colchon-caidas.R` para reusarlo en A2–A5.
