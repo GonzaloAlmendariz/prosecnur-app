@@ -84,6 +84,30 @@
   gap: 8px;
 }
 
+/* Un material que salió de un plan anterior. El aviso encabeza la lista porque
+   se descarga desde cada fila: enterarse después de bajar el archivo no sirve. */
+.rec-artifact-stale-aviso {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rec-artifact-list article.is-desfasado {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+
+.rec-artifact-stale {
+  color: var(--pulso-warn-fg);
+  font-style: normal;
+  font-weight: 600;
+}
+
 .rec-artifact-list article {
   align-items: center;
   background: var(--pulso-bg);

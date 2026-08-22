@@ -10,6 +10,7 @@ import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import { CheckCircle2, Download, FileCheck2, Loader2, Send, ShieldCheck } from "../../vendor/lucide-react";
 import { handoffReadiness } from "./handoffModel";
+import { juzgarMaterialesDelPlan } from "./materialesDelPlanVigente";
 import { providerLabel } from "./providerRules";
 import "./styles/delivery.css";
 
@@ -35,6 +36,15 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
     if (!latestArtifact) return stored;
     return [latestArtifact, ...stored.filter((item) => item.receipt_id !== latestArtifact.receipt_id)];
   }, [latestArtifact, payload?.state.artifact_receipts]);
+
+  // Cada recibo guarda de qué plan salió; el plan vigente tiene su huella. Sin
+  // compararlos, un material impreso con los cursos-horario del sorteo anterior
+  // se ve igual que uno bueno.
+  const juzgados = useMemo(
+    () => juzgarMaterialesDelPlan(artifacts, payload?.state.plan?.input_fingerprint),
+    [artifacts, payload?.state.plan?.input_fingerprint],
+  );
+  const desfasados = juzgados.filter((x) => x.desfasado).length;
 
   const handoff = async () => {
     if (!payload || !readiness.ready || !readiness.fingerprint) return;
@@ -93,10 +103,33 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
         ) : <div className="rec-contained-empty">El recibo aparece aquí después de entregar un deployment preparado.</div>}
 
         <div className="rec-artifact-list" data-qa-geometry-group="recopiladores/artefactos" data-qa-geometry-contract="intrinsic">
-          {artifacts.map((artifact) => (
-            <article key={artifact.receipt_id}>
+          {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que
+              enterarse después de haber bajado el archivo no sirve de nada. */}
+          {desfasados ? (
+            <p className="rec-artifact-stale-aviso" role="status">
+              <strong>{desfasados}</strong>{" "}
+              {desfasados === 1
+                ? "material salió de un plan anterior"
+                : "materiales salieron de un plan anterior"}
+              : sus cursos-horario ya no son los del sorteo vigente. Vuelve a generarlos
+              antes de llevarlos a campo.
+            </p>
+          ) : null}
+          {juzgados.map(({ material: artifact, desfasado }) => (
+            <article
+              key={artifact.receipt_id}
+              className={desfasado ? "is-desfasado" : undefined}
+              data-desfasado={desfasado || undefined}
+            >
               <FileCheck2 size={17} />
-              <div><strong>{artifact.filename}</strong><span>{artifact.media_type} · {artifact.page_count} páginas · {artifact.size_bytes} bytes</span><code>{shortFingerprint(artifact.sha256)}</code></div>
+              <div>
+                <strong>{artifact.filename}</strong>
+                <span>
+                  {artifact.media_type} · {artifact.page_count} páginas · {artifact.size_bytes} bytes
+                  {desfasado ? <em className="rec-artifact-stale"> · de un plan anterior</em> : null}
+                </span>
+                <code>{shortFingerprint(artifact.sha256)}</code>
+              </div>
               <a href={downloadUrl(artifact.file_id)} aria-label={`Descargar ${artifact.filename}`}><Download size={15} /></a>
             </article>
           ))}
