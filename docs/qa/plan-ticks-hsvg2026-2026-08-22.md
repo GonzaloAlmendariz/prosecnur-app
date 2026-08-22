@@ -1090,3 +1090,46 @@ separador que el resto del panel, porque califica todas las cifras de la frase.
 `perl` no matcheó por el escapado— y el test dio verde igual. Un mutante que no
 se aplica es un verde que no prueba nada; se detecta comprobando con `grep` que
 el cambio está en el archivo antes de correr.
+
+
+## Serie C1 — las fichas QR no decían de qué sorteo salieron
+
+El defecto de la serie B **un eslabón más adelante, y con peores
+consecuencias**: un plan desfasado se corrige con un botón; una ficha impresa
+con los cursos-horario del sorteo anterior ya no avisa de nada cuando llega a
+campo.
+
+Cada recibo de artefacto guarda su `plan_fingerprint` **desde el principio**
+(`collection_materials_job.R:215`). El motor incluso sabe declarar `stale` con
+`plan_fingerprint_changed`… pero sólo para el *deployment*
+(`collection_engine.R:527`). Los materiales ya generados se listaban con nombre,
+tipo, páginas, bytes y checksum, y nada comparaba su huella con la del plan
+vigente. El dato estaba entero; lo que faltaba era compararlo.
+
+### Reparado
+
+`juzgarMaterialesDelPlan(materiales, huellaVigente)` marca los que salieron de
+otro plan, con **dos abstenciones deliberadas** —una marca falsa aquí
+desprestigia todas las demás—:
+
+- **Sin huella vigente no se juzga a nadie.** Un proyecto sin plan todavía no
+  vuelve obsoletos sus materiales; no hay con qué comparar.
+- **Un material sin huella tampoco se marca.** Un recibo anterior a que se
+  guardara la procedencia es falta de dato, no prueba de desfase: marcarlo sería
+  acusar por no saber.
+
+En pantalla: aviso **encima** de la lista —se descarga desde cada fila, así que
+enterarse después de bajar el archivo no sirve— más la marca en la fila
+concreta.
+
+6 asertos; el mutante que marca también por falta de dato mata 2.
+
+### Búsquedas de este tick que no dieron nada
+
+- **Censo de KPIs con valor de estado**: sólo el «Corte» ya reparado. Los dos
+  que caen a «S/D» —«Cuota por recoger» y «Cierran con lo agendado»— **sí**
+  dicen su causa en la pista («el plan no declara cuotas»). Sanos.
+- **`artifact_receipts` parecía un campo huérfano** que nadie escribía. Lo
+  escribe `collection_materials_job.R:271`; mi primer grep lo había filtrado yo
+  mismo con un `grep -v` demasiado ancho. El campo estaba bien; el instrumento,
+  mal.
