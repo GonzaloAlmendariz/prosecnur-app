@@ -165,7 +165,10 @@ export function AulasMetodoTab({
           />
         </div>
         <aside className="cmv2-classroom-lab-side">
-          <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady} />
+          <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady}
+            resumen
+            onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
+          />
           {/* Decía «El PPS queda como base auditable. Cube prioriza balance;
               pivotal añade dispersión; el pool reduce repetidos y exige
               probabilidades finales estimadas por simulación»: cinco términos

@@ -2121,3 +2121,28 @@
 .cmv2-chain-empty-slot[data-con-pool] {
   border-color: color-mix(in srgb, var(--pulso-warning-fg, var(--pulso-text-muted)) 22%, var(--pulso-border));
 }
+
+/* Resumen de riesgos para las pestañas cuyo tema NO son los riesgos. La lista
+   completa medía 613 px y se repetía en tres pestañas; esto cuenta y remite. */
+.cmv2-classroom-risk-resumen {
+  display: grid;
+  gap: 6px;
+  padding: 11px 13px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius-card);
+  background: var(--cmv2-surface);
+  box-shadow: var(--cmv2-shadow-card);
+}
+
+.cmv2-classroom-risk-resumen p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-soft);
+}
+
+.cmv2-classroom-risk-resumen button { justify-self: start; }
+
+.cmv2-classroom-risk-resumen[data-severidad="alta"] {
+  border-color: color-mix(in srgb, var(--pulso-danger-fg) 36%, var(--cmv2-border));
+}

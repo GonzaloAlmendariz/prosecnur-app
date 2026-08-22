@@ -23,11 +23,46 @@ export function classroomRiskRows(
 export function ClassroomRiskList({
   risks,
   audited,
+  resumen = false,
+  onVerDetalle,
 }: {
   risks?: NonNullable<CalcMuestraAulasMethodComparison["risk_flags"]> | unknown;
   audited: boolean;
+  /**
+   * La lista completa vivía en Método, Simulación y Auditoría con el MISMO
+   * contenido. Medido el 2026-08-22 sobre HSVG2026: cinco avisos, 613 px, una
+   * pantalla entera de las 6,3 que mide Método, repetida tres veces. Gonzalo:
+   * «hay como una cadena de riesgos gigante que no se termina de entender».
+   *
+   * En resumen sólo se dice cuántos hay y de qué gravedad, y se remite a
+   * Auditoría, que es la pestaña cuyo tema SON los riesgos. No se ocultan: se
+   * cuentan donde estorban y se detallan donde tocan.
+   */
+  resumen?: boolean;
+  onVerDetalle?: () => void;
 }) {
   const visible = classroomRiskRows(risks, audited);
+  if (resumen) {
+    const reales = visible.filter((r) => String(r.severity ?? "") !== "ok");
+    const altas = reales.filter((r) => String(r.severity ?? "") === "alta").length;
+    return (
+      <div className="cmv2-classroom-risk-resumen" data-severidad={altas > 0 ? "alta" : reales.length ? "media" : "ok"}>
+        <div className="cmv2-subhead"><strong>Riesgos detectados</strong></div>
+        <p>
+          {!reales.length
+            ? "La auditoría no reporta riesgos activos para el cálculo vigente."
+            : altas > 0
+              ? `${altas} de gravedad alta y ${reales.length - altas} de gravedad media.`
+              : `${reales.length} ${reales.length === 1 ? "aviso" : "avisos"} de gravedad media, ninguno crítico.`}
+        </p>
+        {onVerDetalle && reales.length ? (
+          <button type="button" className="cmv2-ghost" onClick={onVerDetalle}>
+            Verlos en Auditoría
+          </button>
+        ) : null}
+      </div>
+    );
+  }
   const severityIcon = (severity: string) => {
     if (severity === "alta") return TriangleAlert;
     if (severity === "ok" || severity === "baja") return CheckCircle2;
