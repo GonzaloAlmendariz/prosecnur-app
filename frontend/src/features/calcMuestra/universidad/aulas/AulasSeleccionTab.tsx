@@ -136,10 +136,15 @@ export function AulasSeleccionTab({
         <AulasStageNotice
           notice={stageNotice}
           onNavigate={onNavigate}
+          // Mandaba `recommendedMethodId`: el mismo defecto que f2623619
+          // reparó en la barra de acciones, vivo en este camino. Sortea con la
+          // configuración, como los otros dos. Y el candado por
+          // `comparisonReady` cae por lo mismo: el motor no exige comparar
+          // (router_calc_muestra.R:1063).
           onAction={stageNotice.localAction === "select"
-            ? () => void onSelectMethod(model.config, recommendedMethodId)
+            ? () => void onSelectMethod(model.config, model.metodoParaSortear)
             : undefined}
-          disabled={Boolean(stageNotice.localAction) && (Boolean(busy) || !comparisonReady)}
+          disabled={Boolean(stageNotice.localAction) && Boolean(busy)}
           disabledReason={
             busy
               ? `No se puede generar mientras corre «${busy}».`

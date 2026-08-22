@@ -20,6 +20,32 @@ const sinComentarios = (f: string) =>
 
 const CAMINOS = ["../AulasMetodoTab.tsx", "../AulasSimulacionTab.tsx", "../ClassroomLabCommandBar.tsx"];
 
+const CAMINOS_SORTEO = [
+  "../ClassroomLabCommandBar.tsx",
+  "../AulasSeleccionTab.tsx",
+  "../ClassroomMethodComparator.tsx",
+];
+
+describe("los caminos que sortean respetan la configuración", () => {
+  it("ninguno sortea con el método RECOMENDADO a espaldas del configurado", () => {
+    // f2623619 lo reparó en la barra de acciones y el defecto seguía vivo en el
+    // aviso de etapa de Selección, que mandaba `recommendedMethodId`. El tercer
+    // camino —«Usar método» en una tarjeta— manda el id de ESA tarjeta, que es
+    // una elección explícita y por eso es legítimo.
+    for (const rel of ["../ClassroomLabCommandBar.tsx", "../AulasSeleccionTab.tsx"]) {
+      const copy = sinComentarios(leer(rel));
+      expect(copy, `${rel} sortea con el recomendado`)
+        .not.toMatch(/onSelectMethod\([^)]*recommendedMethodId/);
+    }
+  });
+
+  it("los tres caminos existen y llaman a onSelectMethod", () => {
+    for (const rel of CAMINOS_SORTEO) {
+      expect(sinComentarios(leer(rel)), `${rel} ya no sortea`).toContain("onSelectMethod(");
+    }
+  });
+});
+
 describe("las corridas de la comparación salen de un solo sitio", () => {
   it("comparar es una pasada por método, no una simulación", () => {
     expect(CM_CORRIDAS_COMPARACION).toBe(0);
