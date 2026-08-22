@@ -907,3 +907,39 @@ hoja:
 
 7 tests nuevos, dos mutantes muertos (quitar la rama del plan ausente; dejar el
 rótulo genérico siempre), 1 rojo cada uno.
+
+
+## Serie E — el desnivel de grano del cruce parte↔plataforma
+
+Segundo hallazgo del mismo censo, y éste no es de rótulo sino de cálculo.
+
+`parteContraPlataforma` compara lo que el aplicador declaró con lo que llegó a
+plataforma. **Los dos lados tenían grano distinto**: el de plataforma se
+construía por `operational_code`; el del parte se recorría **fila a fila**.
+
+Un curso-horario con dos partes —dos sesiones, o el libro partido en dos filas—
+se comparaba dos veces contra el mismo total, así que **descuadraba dos veces
+aunque la suma cuadrara exacta**: 20 y 18 contra 38 daba dos descuadres de un
+cruce perfecto.
+
+El daño no se queda en el conteo. El panel tiene un umbral —
+`PROPORCION_QUE_DELATA_EL_MAPEO = 0.9` sobre al menos 20 casos— que acusa al
+**mapeo de identificadores** de estar roto. Con 20 cursos-horario que cuadran,
+cada uno partido en dos filas, el cruce fila a fila daba **40 comparables y 40
+descuadres**: el panel habría declarado el mapeo roto en un operativo que cuadra
+perfecto. Ese caso está ahora en un test.
+
+El perfil ya sabía que esta trampa existía: el comentario de `AulasCambioDeAula`
+dice literalmente que cuenta **210 partes** mientras el plan tiene **196 aulas**.
+La palabra estaba corregida ahí y el grano seguía mal aquí.
+
+### Reparado
+
+- Los partes se agrupan por curso-horario y se suman antes de comparar.
+- `comparables` pasa a ser cursos-horario de verdad, así que el rótulo se
+  corrige a **«cursos-horario comparables»** — «aulas» era la palabra de otra
+  población del mismo perfil.
+- Campo `conVariosPartes` **consumido en el panel**: «los 20 cuadran» significa
+  otra cosa si detrás hay 40 partes.
+
+6 tests nuevos, mutante (pisar en vez de sumar) mata 3.
