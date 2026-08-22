@@ -1295,3 +1295,29 @@ Comprobado: está dentro de un `<label>` cuyo texto es «Descontar estudiantes
 repetidos al seleccionar», así que el nombre se computa del label. **La heurística
 no miraba el ancestro**, no el marcado. Reportarlo habría mandado a alguien a
 arreglar algo que ya estaba bien.
+
+
+## Contraste y modo oscuro: dos respuestas, una de ellas «no aplica»
+
+**La app no tiene modo oscuro.** Comprobado con el navegador en `dark`:
+`prefers-color-scheme` da `true`, el body sigue claro (`rgb(243,245,249)` con
+texto `rgb(23,33,47)`), no hay `data-theme` ni clase en el root, y **el CSS de la
+app no declara ni una regla `@media (prefers-color-scheme)`** — cero en todas las
+hojas cargadas. Es un tema único deliberado, no un olvido. El check de la skill
+no aplica aquí, y queda dicho para que nadie lo vuelva a buscar.
+
+**El contraste está bien**: de los ocho textos añadidos en este loop, ninguno baja
+de 4,5:1 y el **mínimo es 8,0**.
+
+### La primera medición inventó dos defectos
+
+El primer barrido reportó dos textos a **2,52:1**, uno de ellos el pie de tabla
+que añadí. Era falso: el fondo venía como `color(srgb 0.998 0.997 0.998)` —casi
+blanco— y mi función leía esos decimales como valores 0–255, o sea casi negro.
+Arreglado el parser para entender `color(srgb …)` además de `rgb()`, los mismos
+elementos dan **8,24**.
+
+Es la segunda vez en la jornada que una medición mal hecha inventa un defecto: la
+otra fue leer «57/10 0» en un screenshot cuando lo que se partía era la etiqueta.
+**Antes de reparar lo que una medición señala, conviene comprobar que la medición
+sabe leer lo que mide.**
