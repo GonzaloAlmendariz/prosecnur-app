@@ -318,3 +318,48 @@ crecido solos y nada decía por qué.
 
 Ahora cada lista declara qué mira: **«Riesgos que detectó la comparación»** (5) y
 **«Riesgos de la comparación y de la estabilidad»** (8).
+
+
+## M9 — diagnóstico medido antes de mover nada
+
+Inventario del 2026-08-22 sobre HSVG2026_definitivo, viewport 1710x1107:
+
+| Método | px | % |
+|---|---|---|
+| Panel «Recomendado por el comparador vigente» | 125 | 4 % |
+| Barra de acciones | 50 | 2 % |
+| **Paso 1. Qué hace cada uno de los cuatro métodos** | **1.344** | **47 %** |
+| **Paso 2. Qué dio cada método con este marco** | **1.321** | **46 %** |
+| total | 2.888 | |
+
+Simulación: 1.474 px, de los cuales 1.400 son el cuerpo y 50 la barra.
+
+### Qué falta que hoy no está en ninguna de las dos
+
+**El veredicto.** Ninguna de las dos pestañas dice si lo que hay se puede mandar
+a campo. Comprobado por texto: no aparece ni una frase del tipo «lista para» /
+«ya puedes» en ninguna de las dos. El analista ve un método recomendado, siete
+puntajes de balance, un n efectivo y ocho avisos de gravedad media, y **tiene que
+sintetizar solo** la única pregunta que trajo: ¿esto está bien o no?
+
+### Qué está pero no se gana su espacio
+
+**La didáctica: 47 % de Método.** Los cuatro esquemas de «Paso 1» suman 1.953 px
+repartidos en dos columnas y explican cómo funciona cada método **en abstracto** —
+la propia tarjeta lo admite: «ESQUEMA ILUSTRATIVO · NO SON AULAS REALES»—. Es
+material de primera visita cobrado en cada visita. No se borra: se reordena o se
+consulta cuando hace falta.
+
+**El método recomendado se nombra tres veces en Método**: en el panel superior,
+en la barra de acciones («Recomendado: Optimizada para evitar repetidos») y en el
+resultado del paso 2.
+
+### Qué orden las haría leerse solas
+
+Hoy Método enseña primero y muestra el resultado con TU marco después. Para la
+primera visita el orden es correcto; a partir de la segunda está invertido, y el
+peaje son 1.344 px antes de ver lo propio.
+
+**Decisión pendiente de Gonzalo**: invertir el orden cambia la pedagogía de la
+pestaña, así que se propone y no se ejecuta. Lo que sí entra sin discusión es lo
+que falta —el veredicto—, porque agregar no destruye nada.
