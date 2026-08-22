@@ -209,6 +209,7 @@ export function AulasSimulacionTab({
 
       {!stageNotice && (
         <ClassroomLabCommandBar
+          mostrarRecomendado={false}
           model={model}
           busy={busy}
           acciones={["estabilidad"]}

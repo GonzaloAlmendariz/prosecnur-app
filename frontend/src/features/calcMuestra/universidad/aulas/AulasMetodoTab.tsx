@@ -117,6 +117,7 @@ export function AulasMetodoTab({
 
       {hayComparacion && (
         <ClassroomLabCommandBar
+          mostrarRecomendado={false}
           model={model}
           busy={busy}
           acciones={["comparar"]}
