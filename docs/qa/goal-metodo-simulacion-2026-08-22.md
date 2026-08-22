@@ -884,3 +884,37 @@ que no ocurre**.
 Sin desborde horizontal en ninguno de los cuatro. Grupos verificados simétricos
 en los dos viewports: las 4 tarjetas de método, las 16 celdas de puntaje, las 2
 tarjetas de preguntas, las 3 cifras de estabilidad y la franja de estado.
+
+
+## Barrido del `??` que deja pasar el cero
+
+El defecto de «500 corridas» era un `?? … || N`: `??` no cubre el cero y `||` lo
+reemplaza. En un módulo de estadística eso es peligroso, porque **el cero es un
+valor legítimo constantemente** —cero aulas, cero corridas, cero por ciento—.
+Barrido de las once ocurrencias del patrón en Cálculo de muestra:
+
+| Caso | Veredicto |
+|---|---|
+| `duracionComparacion` (corridas) | **Defecto, reparado** |
+| 8 casos sobre strings o booleanos | Correctos: `\|\|` sobre `""` o `false` es lo pretendido |
+| `FacultadDecisionBloque:461` | **Redundante, no defecto**: el `Math.max(20, …)` da 20 con o sin el `\|\| 10` |
+| `study.ts:590-591` | **Correcto por diseño**: `scenarioTarget` devuelve 0 como sentinela de «sin objetivo explícito» |
+| `ResumenDiseno:96` | Ver abajo |
+
+**Ninguno de los diez restantes es un defecto activo.**
+
+### Lo que sí apareció: un helper que colapsa ausencia y cero
+
+`frameAuditNumber` (`universidad/shared/frame.ts:416`) devuelve
+`safeNumber(valor, 0)`: **0 cuando el dato falta**. Así que «cero cursos-horario»
+y «sin dato» son indistinguibles en su valor de retorno, y el `|| null` de la
+cabecera no pisa un dato legítimo — no puede distinguirlo.
+
+Es la familia «una palabra para dos cosas» en un helper. El efecto visible sería
+un marco construido con cero cursos-horario que la cabecera muestra como
+pendiente en vez de como cero: **verde por ausencia**.
+
+**No se toca en este loop**: tiene **43 consumidores** y la reforma segura es un
+hermano `frameAuditNumberOrNull` para los sitios donde la distinción importa, no
+cambiar el default. Fuera del encargo de Método y Simulación, y sin medir cuántos
+de los 43 dependen del cero como fallback.
