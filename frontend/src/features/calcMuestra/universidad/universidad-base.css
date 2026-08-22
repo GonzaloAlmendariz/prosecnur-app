@@ -96,6 +96,33 @@
   align-items: start;
 }
 
+/* Una columna: el lateral se vacio al subir su contenido a la franja. */
+.cmv2-classroom-lab-grid--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Franja de estado: ancho completo, se lee antes de bajar al contenido. */
+.cmv2-classroom-lab-franja {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.cmv2-classroom-lab-franja .cmv2-classroom-risk-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+}
+
+.cmv2-classroom-lab-franja .cmv2-classroom-risk-resumen .cmv2-subhead {
+  margin: 0;
+}
+
+.cmv2-classroom-lab-franja .cmv2-classroom-risk-resumen p {
+  margin: 0;
+  flex: 1 1 240px;
+}
+
 .cmv2-classroom-lab-grid--routes {
   grid-template-columns: minmax(0, 1fr);
 }

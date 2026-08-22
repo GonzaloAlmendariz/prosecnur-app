@@ -1,5 +1,4 @@
 /** Método primero como decisión comprensible; el comparador queda colapsado. */
-import { BarChart3 } from "../../../../vendor/lucide-react";
 import type {
   CalcMuestraWorkspace,
   CalcMuestraWorkspaceAulasConfig,
@@ -133,7 +132,26 @@ export function AulasMetodoTab({
         />
       )}
 
-      <div className="cmv2-classroom-lab-grid">
+      {/* El resumen de riesgos vivía en una columna lateral propia. Medido el
+          2026-08-22 sobre HSVG2026: la columna izquierda 1.131 px y el aside
+          126, un 11 %, con ~1.000 px de hueco muerto en una franja de 387 px de
+          ancho. Y conceptualmente tampoco encajaba: es el ESTADO del cálculo,
+          no material para aprender, así que se lee antes de bajar a las
+          tarjetas, no al costado de ellas.
+
+          El párrafo que lo acompañaba explicaba los cuatro métodos OTRA VEZ,
+          con un juego de nombres propio —el quinto de la pestaña— que dejó de
+          existir en pantalla al unificarse los nombres. Lo que decía ya está en
+          las cuatro tarjetas; lo que cerraba —que la recomendación sale de
+          medir contra este marco— lo dice la nota al pie del comparador. */}
+      <div className="cmv2-classroom-lab-franja">
+        <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady}
+          resumen
+          alcance="Riesgos que detectó la comparación"
+          onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
+        />
+      </div>
+      <div className="cmv2-classroom-lab-grid cmv2-classroom-lab-grid--full">
         <div className="cmv2-classroom-lab-main">
           {/*
             * Los dos bloques de esta pestaña NO son dos comparaciones: arriba
@@ -164,29 +182,6 @@ export function AulasMetodoTab({
             onChange={setSequentialDiscount}
           />
         </div>
-        <aside className="cmv2-classroom-lab-side">
-          <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady}
-            resumen
-            alcance="Riesgos que detectó la comparación"
-            onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
-          />
-          {/* Decía «El PPS queda como base auditable. Cube prioriza balance;
-              pivotal añade dispersión; el pool reduce repetidos y exige
-              probabilidades finales estimadas por simulación»: cinco términos
-              técnicos en dos líneas, ninguno glosado. */}
-          <AvisoModulo tone="neutral" icon={BarChart3}>
-            <p>
-              Los cuatro se diferencian en qué priorizan al elegir. El <b>proporcional al
-              tamaño</b> da a cada aula una probabilidad proporcional a sus alumnos y es el
-              más simple de auditar. La <b>selección balanceada</b> exige además que la
-              muestra reproduzca la composición del marco. La <b>balanceada y distribuida</b>
-              añade que las aulas no queden concentradas en pocos programas u horarios. La{" "}
-              <b>optimizada para evitar repetidos</b> busca que el mismo alumno no aparezca
-              en varias aulas seleccionadas, y por eso necesita estimar sus probabilidades
-              repitiendo el sorteo muchas veces.
-            </p>
-          </AvisoModulo>
-        </aside>
       </div>
 
       <ClassroomMethodComparator
