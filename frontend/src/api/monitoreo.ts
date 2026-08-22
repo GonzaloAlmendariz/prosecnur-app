@@ -4506,6 +4506,12 @@ export async function apiMonitoreoAulasImportarLibro(origen: File | { file_id: s
     };
     hojas_ausentes: string[];
     control_sin_nombre: number[];
+    /** Cómo cruzó el libro con el plan que ya estaba. Ninguna coincidencia con
+     *  un plan previo no es «entraron aulas nuevas»: es un libro de otro
+     *  sorteo. Sólo viene cuando había plan previo. */
+    fusion?: { actualizadas: number; nuevas: number; intactas: number } | null;
+    /** Campos del bloque de agenda que ningún título de la hoja bautiza. */
+    agenda_campos_ausentes?: string[] | null;
     state: MonitoreoState;
   }>(
     // Sin `Content-Type` cuando va `FormData`: el navegador pone el boundary.
