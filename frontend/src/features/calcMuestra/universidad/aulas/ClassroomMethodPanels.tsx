@@ -395,10 +395,26 @@ export function ClassroomRecommendation({
   );
 }
 
+const BALANCE_FILAS_VISIBLES = 10;
+
 export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<string, unknown>> | unknown; methodId: string }) {
-  const visible = rowsFrom<Record<string, unknown>>(rows)
-    .filter((row) => !methodId || classroomRowText(row, ["method_id"]) === methodId)
-    .slice(0, 10);
+  const delMetodo = rowsFrom<Record<string, unknown>>(rows)
+    .filter((row) => !methodId || classroomRowText(row, ["method_id"]) === methodId);
+  // El recorte era `slice(0, 10)` sobre filas que llegan agrupadas por
+  // dimensión, así que las diez visibles eran siempre las diez primeras
+  // categorías de la PRIMERA dimensión. Medido en HSVG2026 el 2026-08-22: 90
+  // filas para el método recomendado en cinco dimensiones —facultad, programa,
+  // nivel, tamaño y sexo— de las que se veían diez, todas de facultad, y las
+  // otras cuatro dimensiones no aparecían en absoluto. Nada lo decía.
+  //
+  // Ahora el recorte tiene criterio: las diez categorías donde la selección más
+  // se aparta del marco, que es lo que hay que mirar, vengan de la dimensión que
+  // vengan. Y el pie declara qué se está viendo.
+  const visible = [...delMetodo]
+    .sort((a, b) => Math.abs(classroomRowNumber(b, ["diferencia_abs", "delta"]) || 0)
+      - Math.abs(classroomRowNumber(a, ["diferencia_abs", "delta"]) || 0))
+    .slice(0, BALANCE_FILAS_VISIBLES);
+  const dimensiones = new Set(delMetodo.map((row) => classroomRowText(row, ["variable"])));
   if (!visible.length) {
     return (
       <div className="cmv2-classroom-empty is-compact">
@@ -434,6 +450,14 @@ export function ClassroomBalanceTable({ rows, methodId }: { rows?: Array<Record<
           ))}
         </tbody>
       </table>
+      {delMetodo.length > visible.length && (
+        <p className="cmv2-classroom-table-pie">
+          Se muestran las <b>{visible.length} categorías con mayor diferencia</b> de las{" "}
+          {delMetodo.length} que se comparan, repartidas en {dimensiones.size}{" "}
+          {dimensiones.size === 1 ? "variable" : "variables"}. El detalle completo está en
+          Auditoría.
+        </p>
+      )}
     </div>
   );
 }

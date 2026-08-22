@@ -48,14 +48,34 @@ export function classroomScore(value: number | null | undefined) {
   return `${Math.round(score)}/100`;
 }
 
+/**
+ * Las siete dimensiones que el motor balancea, en español.
+ *
+ * La lista tenía tres entradas y su comentario decía «nada de `faculty` crudo»,
+ * pero `program` y `level` llegaban tal cual a la tabla de balance. No se veían
+ * porque el recorte de esa tabla mostraba siempre las diez primeras filas, que
+ * eran todas de facultad; al cambiar el recorte a «las de mayor diferencia»
+ * aparecieron en pantalla. La lista canónica está en
+ * `api/R/calc_muestra_aulas.R:294`, y `selectorFieldLabel.contract.test.ts`
+ * falla si una dimensión de allí no tiene traducción aquí.
+ */
+const SELECTOR_FIELD_LABELS: Record<string, string> = {
+  faculty: "facultad",
+  program: "programa",
+  level: "nivel o ciclo",
+  schedule: "horario",
+  modality: "modalidad",
+  size_group: "tamaño del curso-horario",
+  sex: "sexo esperado",
+  sex_top_1: "sexo esperado",
+};
+
 export function selectorFieldLabel(field: string) {
-  const labels: Record<string, string> = {
-    faculty: "facultad",
-    sex_top_1: "sexo esperado",
-    size_group: "tamaño del curso-horario",
-  };
-  return labels[field] ?? field;
+  return SELECTOR_FIELD_LABELS[field] ?? field;
 }
+
+/** Las dimensiones que el motor puede mandar; el contrato las verifica. */
+export const SELECTOR_FIELD_DIMENSIONES = Object.keys(SELECTOR_FIELD_LABELS);
 
 /** Variante capitalizada para celdas de tabla (QA H4: nada de `faculty` crudo). */
 export function selectorFieldLabelTitulo(field: string) {

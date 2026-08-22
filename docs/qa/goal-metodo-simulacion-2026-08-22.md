@@ -647,3 +647,36 @@ sola columna. **8,33 → 4,63 pantallas**, tarjetas de 285x390 en tres columnas.
 El comparador domina, y dentro de él la tabla de balance por categoría, que
 muestra **10 filas con `slice(0, 10)` sin decir cuántas hay**. Un recorte
 silencioso: la superficie no declara que está mostrando una parte.
+
+
+## Una tabla que mostraba el 11 % y lo presentaba como el balance
+
+Contado desde el payload real, no desde el DOM: el comparador trae **360 filas de
+balance, 90 por método**. La tabla mostraba **10**, con `slice(0, 10)` sobre
+filas que llegan **agrupadas por dimensión**, así que las diez visibles eran
+siempre las diez primeras categorías de la primera dimensión —facultad— y las
+otras cuatro —programa, nivel, tamaño, sexo— **no aparecían nunca**. Nada lo
+decía.
+
+Dos cambios:
+
+1. **El recorte tiene criterio**: las diez categorías donde la selección más se
+   aparta del marco, vengan de la dimensión que vengan. Y aparece lo que estaba
+   tapado: en HSVG2026 las mayores desviaciones son de **sexo esperado (8,2 % en
+   F y en M)**, por encima de cualquier facultad. Con el recorte viejo eso no se
+   veía jamás.
+2. **El pie declara qué se ve**: «Se muestran las 10 categorías con mayor
+   diferencia de las 90 que se comparan, repartidas en 5 variables».
+
+### Y el recorte tapaba jerga
+
+Al cambiar el criterio salieron a pantalla **«Program» y «Level» crudos**.
+`selectorFieldLabel` tenía tres entradas —faculty, sex_top_1, size_group— y su
+comentario decía «nada de `faculty` crudo», mientras el motor balancea **siete**
+dimensiones (`api/R/calc_muestra_aulas.R:294`). Las siete traducidas, con
+`selectorFieldLabel.contract.test.ts` copiando la lista del motor: 4 tests, y el
+mutante que quita `program` mata 2.
+
+**Lección**: un recorte sin criterio no sólo esconde datos, esconde defectos. Los
+nombres crudos llevaban ahí desde siempre y eran invisibles porque las filas que
+los mostraban nunca entraban en las diez primeras.

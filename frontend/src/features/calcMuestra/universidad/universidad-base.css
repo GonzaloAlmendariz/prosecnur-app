@@ -760,6 +760,19 @@
 }
 
 
+/* Un recorte que no se declara se lee como el total. */
+.cmv2-classroom-table-pie {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+}
+
+.cmv2-classroom-table-pie b {
+  color: var(--cmv2-text, var(--pulso-text));
+  font-weight: 600;
+}
+
 .cmv2-classroom-table-wrap {
   position: relative;
   max-height: 430px;
