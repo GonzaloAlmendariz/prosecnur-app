@@ -44,3 +44,33 @@ test_that("el payload de estado lleva el veredicto", {
   p <- prosecnurapp:::.collection_payload(estado, source_vigente = list(desfasado = TRUE))
   expect_true(p$source_vigente$desfasado)
 })
+
+# --- Rehacer el plan desde el sorteo vigente ---------------------------------
+#
+# `collection_state_seed` siembra una vez y no hace nada si el plan ya existe, y
+# no habia camino de vuelta: por eso HSVG2026 tenia un plan de hace veinte dias
+# conviviendo con otra seleccion. Rehacerlo NO es gratis —descarta despliegue y
+# handoff— y por eso la funcion devuelve que se pierde, para poder avisarlo antes.
+
+test_that("rehacer exige una seleccion vigente de la que partir", {
+  # La revision se toma del propio estado: pasar una a mano hace saltar antes el
+  # control de concurrencia y el test acabaria probando OTRA barrera.
+  sid <- session_create()
+  rev <- collection_state_get(sid)$state_revision
+  expect_error(collection_state_reseed(sid, rev), "seleccion|E_COLLECTION_SIN_ORIGEN")
+})
+
+test_that("el endpoint /reseed esta montado y exige revision", {
+  # El contrato del modulo: toda escritura pasa por expected_revision. Sin esto,
+  # rehacer el plan pisaria una escritura concurrente sin enterarse.
+  fuente <- readLines("../../R/router_recopiladores.R", warn = FALSE)
+  expect_true(any(grepl("/api/recopiladores/reseed", fuente, fixed = TRUE)))
+  bloque <- paste(fuente, collapse = "\n")
+  expect_true(grepl("collection_state_reseed\\(session_header\\(req\\), body\\$expected_revision\\)", bloque))
+})
+
+test_that("el error de origen ausente esta registrado", {
+  # Un E_* que no esta en el registro llega al cliente sin contrato.
+  registro <- paste(readLines("../../R/errors_registry.R", warn = FALSE), collapse = "\n")
+  expect_true(grepl("E_COLLECTION_SIN_ORIGEN", registro, fixed = TRUE))
+})

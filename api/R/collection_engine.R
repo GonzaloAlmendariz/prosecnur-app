@@ -453,6 +453,49 @@ collection_state_seed <- function(sid) {
   .collection_payload(seeded$state, seeded = TRUE, seed_available = FALSE)
 }
 
+#' Rehacer el plan desde el sorteo vigente.
+#'
+#' `collection_state_seed` siembra UNA vez y no hace nada si el plan ya existe, y
+#' entre los endpoints no habia ninguno de vuelta. Consecuencia medida en
+#' HSVG2026 el 2026-08-22: un plan del 1 de agosto —175 titulares, doce olas,
+#' codigos «AULA n», sin cadena de reemplazos— conviviendo con una seleccion del
+#' 21 de 190 titulares y cinco olas, y ninguna forma de rehacerlo desde la app.
+#'
+#' Regenerar NO es gratis y por eso es explicito: el plan esta congelado a
+#' proposito —es lo que fue a imprenta— y rehacerlo descarta el despliegue y su
+#' handoff. La funcion devuelve que se descarto para que la UI pueda decirlo
+#' ANTES, no despues.
+collection_state_reseed <- function(sid, expected_revision) {
+  s <- session_get(sid)
+  current <- .collection_current(s)
+  .collection_assert_revision(current, expected_revision)
+  origen <- .collection_seed_source(s)
+  if (!length(origen$rows)) {
+    stop_api(
+      409, "E_COLLECTION_SIN_ORIGEN",
+      "No hay seleccion de aulas vigente de la que rehacer el plan."
+    )
+  }
+  descartado <- list(
+    plan_run_id = .cm_aulas_scalar(current$plan$source_ref$run_id %||% "", ""),
+    unidades = length(current$plan$units %||% list()),
+    tenia_despliegue = is.list(current$deployment) && length(current$deployment) > 0L,
+    entregado = identical(.cm_aulas_scalar(current$deployment$status %||% "", ""), "handed_off")
+  )
+  seeded <- .collection_seed_from_legacy_state(s)
+  nuevo <- seeded$state
+  # La revision sigue creciendo: rehacer no reinicia el contador, porque los
+  # clientes lo usan para detectar escrituras concurrentes.
+  nuevo$state_revision <- as.integer(current$state_revision) + 1L
+  .collection_store(sid, nuevo)
+  payload <- .collection_payload(
+    nuevo, seeded = TRUE, source_vigente = .collection_source_vigente(session_get(sid), nuevo)
+  )
+  payload$reseeded <- TRUE
+  payload$descartado <- descartado
+  payload
+}
+
 collection_plan_put <- function(sid, plan, expected_revision) {
   s <- session_get(sid)
   current <- .collection_current(s)
