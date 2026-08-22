@@ -142,3 +142,54 @@ describe("cliente API de Recopiladores", () => {
     });
   });
 });
+
+describe("el normalizador no se come los campos nuevos", () => {
+  // Costó un diagnóstico entero el 2026-08-22: `source_vigente` llegaba correcto
+  // en el JSON —comprobado con curl contra la API— y no aparecía en pantalla,
+  // con el backend, el endpoint y el componente los tres bien. El normalizador
+  // reconstruye el payload campo por campo y lo descartaba en silencio.
+  const base = {
+    ok: true, noop: true, seeded: false, seed_available: false,
+    state: {
+      schema: "collection_state/v1", state_revision: 1,
+      plan: null, deployment: null, migration: null,
+    },
+  };
+
+  it("deja pasar el veredicto de vigencia del backend", () => {
+    const p = normalizeCollectionStatePayload({
+      ...base,
+      source_vigente: {
+        plan_run_id: "sel_aulas_20260801211224_e32c240d",
+        selection_run_id: "sel_aulas_20260821160928_bf10d14c",
+        desfasado: true,
+      },
+    });
+    expect(p.source_vigente?.desfasado).toBe(true);
+    expect(p.source_vigente?.plan_run_id).toBe("sel_aulas_20260801211224_e32c240d");
+  });
+
+  it("sin veredicto no inventa uno", () => {
+    expect(normalizeCollectionStatePayload(base).source_vigente).toBeNull();
+  });
+
+  it("un desfasado que no sea `true` no se lee como alarma", () => {
+    // El backend manda booleanos, pero un `"true"` de cadena no puede colarse
+    // como veredicto: la alarma diría que el plan está viejo sin saberlo.
+    const p = normalizeCollectionStatePayload({
+      ...base,
+      source_vigente: { plan_run_id: "a", selection_run_id: "b", desfasado: "true" },
+    });
+    expect(p.source_vigente?.desfasado).toBe(false);
+  });
+
+  it("deja pasar lo descartado tras rehacer el plan", () => {
+    const p = normalizeCollectionStatePayload({
+      ...base, reseeded: true,
+      descartado: { plan_run_id: "viejo", unidades: 2468, tenia_despliegue: true, entregado: false },
+    });
+    expect(p.reseeded).toBe(true);
+    expect(p.descartado?.unidades).toBe(2468);
+    expect(p.descartado?.entregado).toBe(false);
+  });
+});

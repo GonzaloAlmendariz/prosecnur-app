@@ -341,11 +341,30 @@ export function normalizeCollectionStatePayload(value: unknown): CollectionState
     material_instances: asArray<CollectionMaterialInstance>(rawState.material_instances),
     artifact_receipts: asArray<CollectionArtifactReceipt>(rawState.artifact_receipts),
   };
+  // El normalizador reconstruye el payload campo por campo, así que TODO campo
+  // nuevo del backend hay que añadirlo aquí o se pierde en silencio. Costó un
+  // diagnóstico entero el 2026-08-22: `source_vigente` llegaba correcto en el
+  // JSON —comprobado con curl contra la API— y no aparecía en pantalla, con el
+  // backend, el endpoint y el componente los tres bien.
+  const vigente = isRecord(value.source_vigente) ? value.source_vigente : null;
+  const descartado = isRecord(value.descartado) ? value.descartado : null;
   return {
     ok: true,
     noop: value.noop === true,
     seeded: value.seeded === true,
     seed_available: value.seed_available === true,
+    source_vigente: vigente === null ? null : {
+      plan_run_id: String(vigente.plan_run_id ?? ""),
+      selection_run_id: String(vigente.selection_run_id ?? ""),
+      desfasado: vigente.desfasado === true,
+    },
+    reseeded: value.reseeded === true,
+    descartado: descartado === null ? null : {
+      plan_run_id: String(descartado.plan_run_id ?? ""),
+      unidades: Number(descartado.unidades ?? 0),
+      tenia_despliegue: descartado.tenia_despliegue === true,
+      entregado: descartado.entregado === true,
+    },
     ...state,
     state,
     handoff: isRecord(value.handoff) ? value.handoff as CollectionHandoffReceipt : state.deployment?.handoff ?? null,
