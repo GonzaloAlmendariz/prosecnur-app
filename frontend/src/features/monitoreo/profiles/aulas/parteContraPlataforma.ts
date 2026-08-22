@@ -48,6 +48,14 @@ export type ParteContraPlataforma = {
    * simplemente cuenta regular sería igual de injusto que lo contrario.
    */
   fuentesSinCorrespondencia: boolean;
+  /**
+   * Cursos-horario que trajeron más de un parte de campo y cuyos declarados se
+   * sumaron para poder compararlos.
+   *
+   * Se declara porque cambia la lectura: «3 de 150 descuadran» significa otra
+   * cosa si detrás hay 160 partes que si hay 150.
+   */
+  conVariosPartes: number;
 };
 
 /** A partir de aquí, lo que falla es la correspondencia y no el conteo. */
@@ -70,14 +78,29 @@ export function parteContraPlataforma(
     if (facultad) facultades.set(codigo, facultad);
   }
 
-  const casos: DescuadreDeAula[] = [];
-  let comparables = 0;
+  // Los partes se AGRUPAN por curso-horario antes de comparar. Antes se comparaba
+  // fila a fila contra el total de plataforma, y un curso-horario con dos partes
+  // —dos sesiones, o el libro partido en dos filas— descuadraba DOS VECES aunque
+  // la suma cuadrara exacta: 20 y 18 contra 38 daba dos descuadres de un cruce
+  // perfecto. El lado de plataforma siempre fue por código; el del parte no, y
+  // ese desnivel de grano era el defecto.
+  const declaradasPorCodigo = new Map<string, number>();
+  const partesPorCodigo = new Map<string, number>();
   for (const p of partes) {
     const codigo = txt(p.operational_code);
     const declaradas = num(p.effective_surveys);
     if (!codigo || declaradas === null || !enPlataforma.has(codigo)) continue;
+    declaradasPorCodigo.set(codigo, (declaradasPorCodigo.get(codigo) ?? 0) + declaradas);
+    partesPorCodigo.set(codigo, (partesPorCodigo.get(codigo) ?? 0) + 1);
+  }
+
+  const casos: DescuadreDeAula[] = [];
+  let comparables = 0;
+  let conVariosPartes = 0;
+  for (const [codigo, declaradas] of declaradasPorCodigo) {
     const enP = enPlataforma.get(codigo)!;
     comparables += 1;
+    if ((partesPorCodigo.get(codigo) ?? 0) > 1) conVariosPartes += 1;
     const diferencia = declaradas - enP;
     if (diferencia !== 0) {
       casos.push({
@@ -96,6 +119,7 @@ export function parteContraPlataforma(
     comparables,
     descuadran: casos.length,
     casos,
+    conVariosPartes,
     fuentesSinCorrespondencia: comparables >= MINIMO_PARA_SOSPECHAR_DEL_MAPEO
       && casos.length >= comparables * PROPORCION_QUE_DELATA_EL_MAPEO,
   };

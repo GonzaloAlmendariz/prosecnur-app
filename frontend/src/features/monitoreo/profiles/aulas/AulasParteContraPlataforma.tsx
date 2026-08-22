@@ -45,7 +45,7 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
         </p>
         <p className="mon-profile-muted">
           Descuadran <strong>{fmt(r.descuadran)}</strong> de{" "}
-          {fmt(r.comparables)} aulas comparables. Con esa proporción el problema
+          {fmt(r.comparables)} cursos-horario comparables. Con esa proporción el problema
           no está en lo que anotó el campo: es que las respuestas no se están
           atribuyendo al mismo curso-horario que declara el parte. Revisa qué
           columna identifica el aula en la base, en Fuentes.
@@ -57,8 +57,13 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
   if (!r.descuadran) {
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Las {fmt(r.comparables)} aulas comparables cuadran: lo que el aplicador
-        declaró es lo que llegó a plataforma.
+        Los {fmt(r.comparables)} cursos-horario comparables cuadran: lo que el
+        aplicador declaró es lo que llegó a plataforma.
+        {/* Cuántos venían partidos en varias filas: «los 150 cuadran» dice otra
+            cosa si detrás hay 160 partes que si hay 150. */}
+        {r.conVariosPartes ? (
+          <> {fmt(r.conVariosPartes)} de ellos suman más de un parte de campo.</>
+        ) : null}
       </p>
     );
   }
@@ -66,8 +71,11 @@ export function AulasParteContraPlataforma({ partes, agenda }: {
   return (
     <div className="aulas-cruce" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       <p className="aulas-cadenas-lectura">
-        <strong>{fmt(r.descuadran)}</strong> de {fmt(r.comparables)} aulas
+        <strong>{fmt(r.descuadran)}</strong> de {fmt(r.comparables)} cursos-horario
         comparables no cuadran con plataforma
+        {r.conVariosPartes ? (
+          <> · {fmt(r.conVariosPartes)} suman varios partes</>
+        ) : null}
       </p>
       <ul className="aulas-cruce-lista">
         {r.casos.slice(0, 10).map((c) => (
