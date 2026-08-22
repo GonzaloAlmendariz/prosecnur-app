@@ -51,10 +51,21 @@ export function ClassroomMethodComparator({
         ) : null}
       </header>
       {!ready || !comparison ? (
+        // Decía «Sin comparación vigente · El método configurado no se
+        // presenta como recomendación hasta comparar el marco y el objetivo
+        // actuales»: un matiz técnico, sin nombrar el botón que lo llena. Al
+        // invertirse el orden de la pestaña este bloque pasó a ser LO PRIMERO
+        // que se ve, así que su vacío es la primera frase de la pestaña para
+        // quien llega sin haber comparado. Y desde f2623619 comparar dejó de
+        // ser requisito para sortear, así que el vacío también lo dice.
         <div className="cmv2-classroom-empty is-compact">
           <div>
-            <strong>Sin comparación vigente</strong>
-            <em>El método configurado no se presenta como recomendación hasta comparar el marco y el objetivo actuales.</em>
+            <strong>Todavía no has comparado los métodos</strong>
+            <em>
+              Pulsa <b>Comparar los cuatro métodos</b> arriba para ver qué da cada uno con este
+              marco. No es obligatorio: también puedes sortear directamente con el método que
+              tengas configurado.
+            </em>
           </div>
         </div>
       ) : (

@@ -1036,3 +1036,27 @@ nadie lo hace.
 `classroomRiskRows` deduplica por `severidad|título|detalle`, así que **dos copias
 del mismo aviso cuentan como una**. El primer intento del test usaba dos notas
 idénticas y salía en singular: el fallo era del fixture, no del código.
+
+
+## El vacío que pasó a ser la primera frase de la pestaña
+
+Invertir el orden dejó al comparador arriba, así que **su vacío es ahora lo
+primero que lee quien abre Método sin haber comparado**. Y decía:
+
+> **Sin comparación vigente** · El método configurado no se presenta como
+> recomendación hasta comparar el marco y el objetivo actuales.
+
+Un matiz técnico, sin nombrar el botón que lo llena —justo lo que ya se había
+corregido en los otros vacíos de estas pestañas—. Ahora dice qué falta, cómo se
+llena y, desde que comparar dejó de ser requisito, **que no es obligatorio**:
+
+> **Todavía no has comparado los métodos** · Pulsa **Comparar los cuatro
+> métodos** arriba para ver qué da cada uno con este marco. No es obligatorio:
+> también puedes sortear directamente con el método que tengas configurado.
+
+`comparadorVacio.contract.test.tsx`, 5 tests renderizados; el mutante que
+devuelve el título técnico mata 1.
+
+**Los cuatro vacíos de las dos pestañas quedan revisados**: el de resultados de
+simulación (que se repetía cuatro veces), el de balance sin filas, el del
+comparador y el del resumen de riesgos sin auditar.
