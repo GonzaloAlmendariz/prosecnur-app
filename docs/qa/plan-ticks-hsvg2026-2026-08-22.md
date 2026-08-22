@@ -787,3 +787,38 @@ componentes, y explica por qué un «sin hallazgos» sobre ellos no valdría nad
 monitoreo, partes, base de control y respuestas—, que es trabajo grande y decisión
 de Gonzalo. Hasta entonces, D2–D4 se declaran **cubiertos por código existente y
 no verificados con datos**, que no es lo mismo que verdes.
+
+
+## Lo primero que ve Monitoreo con este proyecto: una pregunta desde cero
+
+Abriendo `/monitoreo` con `HSVG2026_definitivo`, la pantalla es **«¿Qué tipo de
+estudio vas a monitorear?»** con cuatro tarjetas —acreditación, territorial,
+cursos-horario, telefónico— y ninguna marcada. El proyecto tiene **190 aulas
+sorteadas y un cálculo de muestra universitario**, y la app pregunta como si no
+supiera nada de él.
+
+### Contradice el contrato de navegación, pero no del todo
+
+CLAUDE.md, contrato v3: «**Modo** (opcional; reescribe el juego de secciones y
+**lo determina el estudio, no un click** — Monitoreo y Cálculo de muestra)».
+
+Aquí es un click. **Y sin embargo la elección explícita tiene razón de ser**: un
+estudio de aulas puede monitorearse por teléfono, y la pantalla dice «Declara el
+propósito de Monitoreo», que es una decisión legítima del analista, no una
+deducción.
+
+Así que el defecto no es que pregunte: es que **pregunta sin usar lo que ya
+sabe**.
+
+### La mejora que corresponde: sugerir, no imponer
+
+Con una selección de aulas en el proyecto, la tarjeta «Monitoreo de
+cursos-horario» debería llegar señalada —«tu proyecto tiene 190 cursos-horario
+sorteados»— sin quitar las otras tres. Eso respeta la decisión y aprovecha el
+dato.
+
+**No se implementa en este tick, y por una razón concreta**: `MonitoreoShell`
+recibe `MonitoreoState`, que no ve el estado del proyecto —comprobado: no hay
+ninguna referencia a `calc_muestra` ni a `aulas_selection` en su núcleo—. Sugerir
+exige una señal nueva desde el backend o el bootstrap, y hacerlo a medias dejaría
+una sugerencia que a veces acierta. Queda propuesto con su alcance medido.
