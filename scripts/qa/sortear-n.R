@@ -24,8 +24,11 @@ cfg$selector$n_aulas <- n_obj
 ft <- cfg$selector$faculty_targets
 base <- vapply(ft, function(x) as.numeric(x)[1], numeric(1))
 extra <- n_obj - sum(base)
-if (extra != 0) {
-  modo <- Sys.getenv("REPARTO", "proporcional")
+modo <- Sys.getenv("REPARTO", "proporcional")
+# `extra != 0` NO basta como guarda: un reparto dirigido puede mantener el total
+# —quitar de donde sobra y dar donde falta— y entonces extra es 0. La primera
+# corrida de A4 salio identica a la linea base por esto.
+if (extra != 0 || modo == "lista") {
   if (modo == "proporcional") {
     # Reparto de Hamilton: entero por proporción y los restos a los mayores.
     cuota <- base + extra * base / sum(base)
