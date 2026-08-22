@@ -43,6 +43,18 @@
   )
 }
 
+#' Anade el veredicto de vigencia a un payload ya armado.
+#'
+#' `source_vigente` se calculaba solo en `collection_state_get`, asi que las otras
+#' quince respuestas del modulo —seed, plan, deployment, prepare, reconcile,
+#' handoff— salian sin el y el aviso de plan desfasado desaparecia en cuanto el
+#' front hacia cualquier cosa. Es el mismo defecto que este loop lleva corrigiendo
+#' todo el dia: se anadio el dato donde se miro, no en todas las salidas.
+.collection_con_vigencia <- function(payload, sid) {
+  payload$source_vigente <- .collection_source_vigente(session_get(sid), payload$state)
+  payload
+}
+
 .collection_payload <- function(state, noop = FALSE, seeded = FALSE,
                                 seed_available = FALSE, source_vigente = NULL) {
   list(
@@ -441,16 +453,16 @@ collection_state_get <- function(sid) {
 collection_state_seed <- function(sid) {
   s <- session_get(sid)
   if (!is.null(s$collection_state)) {
-    return(.collection_payload(.collection_current(s), noop = TRUE, seeded = FALSE))
+    return(.collection_con_vigencia(.collection_payload(.collection_current(s), noop = TRUE, seeded = FALSE), sid))
   }
   if (!length(.collection_seed_source(s)$rows)) {
-    return(.collection_payload(
+    return(.collection_con_vigencia(.collection_payload(
       .collection_empty_state(), noop = TRUE, seeded = FALSE, seed_available = FALSE
-    ))
+    ), sid))
   }
   seeded <- .collection_seed_from_legacy_state(s)
   .collection_store(sid, seeded$state)
-  .collection_payload(seeded$state, seeded = TRUE, seed_available = FALSE)
+  .collection_con_vigencia(.collection_payload(seeded$state, seeded = TRUE, seed_available = FALSE), sid)
 }
 
 #' Rehacer el plan desde el sorteo vigente.
@@ -517,11 +529,11 @@ collection_plan_put <- function(sid, plan, expected_revision) {
     next_state$deployment$stale <- list(reasons = list("plan_fingerprint_changed"))
   }
   if (identical(next_state[c("plan", "deployment")], current[c("plan", "deployment")])) {
-    return(.collection_payload(current, noop = TRUE))
+    return(.collection_con_vigencia(.collection_payload(current, noop = TRUE), sid))
   }
   next_state$state_revision <- as.integer(current$state_revision) + 1L
   .collection_store(sid, next_state)
-  .collection_payload(next_state)
+  .collection_con_vigencia(.collection_payload(next_state), sid)
 }
 
 .collection_deployment_normalize <- function(deployment, plan) {
@@ -550,13 +562,13 @@ collection_deployment_put <- function(sid, deployment, expected_revision) {
     "El deployment no cumple collection_deployment/v1."
   )
   if (identical(candidate, current$deployment)) {
-    return(.collection_payload(current, noop = TRUE))
+    return(.collection_con_vigencia(.collection_payload(current, noop = TRUE), sid))
   }
   next_state <- current
   next_state$deployment <- candidate
   next_state$state_revision <- as.integer(current$state_revision) + 1L
   .collection_store(sid, next_state)
-  .collection_payload(next_state)
+  .collection_con_vigencia(.collection_payload(next_state), sid)
 }
 
 .collection_coverage <- function(plan, deployment) {
@@ -609,13 +621,13 @@ collection_deployment_prepare <- function(sid, expected_revision, deployment = N
     )
   }
   if (identical(candidate, current$deployment)) {
-    return(.collection_payload(current, noop = TRUE))
+    return(.collection_con_vigencia(.collection_payload(current, noop = TRUE), sid))
   }
   next_state <- current
   next_state$deployment <- candidate
   next_state$state_revision <- as.integer(current$state_revision) + 1L
   .collection_store(sid, next_state)
-  .collection_payload(next_state)
+  .collection_con_vigencia(.collection_payload(next_state), sid)
 }
 
 .collection_stale_reasons <- function(state, observed = list()) {
@@ -659,10 +671,10 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
     stop_api(422, "E_COLLECTION_RECONCILE_INVALID", "observed debe ser un objeto.")
   }
   reasons <- .collection_stale_reasons(current, observed)
-  if (!length(reasons)) return(.collection_payload(current, noop = TRUE))
+  if (!length(reasons)) return(.collection_con_vigencia(.collection_payload(current, noop = TRUE), sid))
   if (is.list(current$deployment) && identical(current$deployment$status, "stale") &&
       identical(unlist(current$deployment$stale$reasons), reasons)) {
-    return(.collection_payload(current, noop = TRUE))
+    return(.collection_con_vigencia(.collection_payload(current, noop = TRUE), sid))
   }
   next_state <- current
   if (is.list(next_state$deployment)) {
@@ -674,7 +686,7 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
   }
   next_state$state_revision <- as.integer(current$state_revision) + 1L
   .collection_store(sid, next_state)
-  .collection_payload(next_state)
+  .collection_con_vigencia(.collection_payload(next_state), sid)
 }
 
 # Cada proveedor nombra distinto el parametro de personalizacion: Kobo lo lee
@@ -839,7 +851,7 @@ collection_handoff <- function(sid, expected_revision, deployment_fingerprint = 
   receipt <- deployment$handoff
   if (identical(deployment$status, "handed_off") && is.list(receipt) &&
       identical(receipt$deployment_fingerprint, fingerprint)) {
-    return(.collection_payload(current, noop = TRUE))
+    return(.collection_con_vigencia(.collection_payload(current, noop = TRUE), sid))
   }
   .collection_assert_revision(current, expected_revision)
   if (!identical(deployment$status, "prepared")) {
@@ -866,7 +878,7 @@ collection_handoff <- function(sid, expected_revision, deployment_fingerprint = 
   }
   .collection_store(sid, next_state, monitoring_plan = monitoring_projection)
   monitoring <- session_get(sid)$monitoreo_aulas_plan
-  payload <- .collection_payload(next_state)
+  payload <- .collection_con_vigencia(.collection_payload(next_state), sid)
   payload$handoff <- receipt
   payload$monitoring_rows <- monitoring
   payload
