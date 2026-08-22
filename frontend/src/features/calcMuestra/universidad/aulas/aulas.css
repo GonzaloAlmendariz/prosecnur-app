@@ -1354,17 +1354,51 @@
   --cmv2-risk-accent: var(--cmv2-border, var(--pulso-border));
 }
 
-.cmv2-aulas-stack .cmv2-aulas-simulacion-nota {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--cmv2-text-soft, var(--pulso-text-muted));
-  max-width: 74ch;
+/* Dos preguntas, dos tarjetas, misma altura. Sustituyen a dos parrafos de
+   texto corrido que metian tres ideas seguidas sin contenedor. */
+.cmv2-aulas-stack .cmv2-aulas-preguntas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+  align-items: stretch;
 }
 
-.cmv2-aulas-stack .cmv2-aulas-simulacion-nota b {
+.cmv2-aulas-stack .cmv2-aulas-preguntas > article {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--cmv2-border);
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-surface-2);
+}
+
+.cmv2-aulas-stack .cmv2-aulas-preguntas h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cmv2-text, var(--pulso-text));
+}
+
+.cmv2-aulas-stack .cmv2-aulas-preguntas p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+}
+
+.cmv2-aulas-stack .cmv2-aulas-preguntas p b {
   color: var(--cmv2-text, var(--pulso-text));
   font-weight: 600;
+}
+
+.cmv2-aulas-stack .cmv2-aulas-preguntas-pie {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+  max-width: 88ch;
 }
 
 .cmv2-aulas-stack .cmv2-simulation-method-detail {

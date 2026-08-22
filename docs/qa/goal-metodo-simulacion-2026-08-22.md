@@ -505,3 +505,30 @@ donde la expresión admite uno. Seis errores de sintaxis, ninguno con esa palabr
 «JSX expressions must have one parent element» y cinco de paréntesis. Se
 resuelve envolviendo en fragmento, no tocando los paréntesis que el compilador
 señala.
+
+
+## «Esto sigue bien feo» — el texto que yo mismo metí
+
+Gonzalo señaló, con la vista puesta en el elemento, los dos párrafos que el tick
+de M6 había añadido bajo «Resultados de la simulación». Tenía razón y el defecto
+es exactamente el que él había pedido evitar dos mensajes antes: **texto seco sin
+contenedor**. Ocho líneas corridas el segundo, con tres ideas dentro —por qué no
+se elige la mejor, que el muestreo por rechazo existe, y cuánto se ganaría—
+apiladas sin separación.
+
+La respuesta se conserva entera; lo que cambia es la forma: **dos preguntas, dos
+tarjetas de 98 px idénticas** —«¿Para qué se repite el sorteo?» y «¿Por qué no
+nos quedamos con la mejor?»— y el matiz del muestreo por rechazo baja a un pie
+en cuerpo menor. Simulación: 1,47 → **1,42 pantallas**.
+
+**El contrato `cssHuerfano` cazó lo que quedó detrás**: al sustituir los párrafos
+por tarjetas, `.cmv2-aulas-simulacion-nota` quedó sin marcado y el test subió a
+18 clases muertas sobre un tope de 17. Es la clase de deuda que nadie ve y que
+sólo aparece si algo la cuenta.
+
+### Lección
+
+Un tick que contesta bien una pregunta puede introducir el defecto que otro tick
+acaba de cerrar. La respuesta de M6 era correcta en contenido y mala en forma, y
+se escribió **después** de que Gonzalo pidiera cuidar los textos sin contenedor.
+Contestar no exime de dar forma a la respuesta.
