@@ -402,3 +402,37 @@ no lo usa, pero **el stage de los jobs sí** («Selección proporcional al tama�
 corrida 8 de 17»), así que durante un sorteo el usuario lee un nombre que no
 existe en ninguna pantalla. Alinearlo exige tocar R, relanzar la API y
 `R CMD INSTALL` para que el worker lo vea.
+
+
+## «¿A qué se deben tantas alertas?» — no había nada roto
+
+Gonzalo, 2026-08-22, viendo cinco avisos seguidos en ámbar: «¿a qué se deben
+tantas alertas, es porque algo está mal? En todo caso, ¿qué podemos hacer para
+mejorarlo?».
+
+No lo estaba. Los cinco de HSVG2026, todos marcados «media»:
+
+| Aviso | Qué es de verdad |
+|---|---|
+| Baja profundidad de reservas — 5 celdas con menos reservas que titulares | **asunto**, pide una decisión |
+| «Las probabilidades de esta tarjeta son del diseño, no del sorteo» | nota: explica qué muestra la tarjeta |
+| «Balanceó con menos variables» en 4 estratos | nota: en esos estratos no había nada que balancear |
+| «Corrigió cuotas» en 8 estratos | nota: el redondeo entero no da cuotas exactas |
+| «Simulación corta para leer estabilidad» | pendiente: falta correr la simulación |
+
+**Tres naturalezas distintas en una sola lista con la misma gravedad.** Una
+escala donde todo vale lo mismo obliga a leerlos todos para descubrir que sólo
+uno pide algo.
+
+Reparado: `naturalezaDelAviso` clasifica en asunto / nota / pendiente, la píldora
+de cada fila dice qué clase de cosa es en vez de repetir «media», las notas
+pierden el ámbar —que queda para lo que pide una decisión— y el resumen cuenta
+por naturaleza. Medido después:
+
+- Método: **«1 asunto para revisar · 1 tarea pendiente · 3 notas de cómo salió el sorteo»**
+- Simulación: **«4 asuntos · 1 tarea pendiente · 3 notas»** — los tres asuntos extra
+  son las cifras de salud que cruzan su umbral (CV de pesos 0,65 sobre 0,50).
+
+Un aviso sin señal conocida se clasifica como **asunto**: callar algo que pedía
+atención es peor que pedir atención de más. 4 tests nuevos; el mutante que quita
+la clasificación de notas mata 1.
