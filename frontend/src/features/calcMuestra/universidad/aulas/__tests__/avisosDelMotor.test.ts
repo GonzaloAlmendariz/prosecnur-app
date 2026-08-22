@@ -63,3 +63,40 @@ describe("avisos del motor · no se leen crudos", () => {
     expect(traducirAvisoDelMotor("   ").resumen).toContain("auditoría técnica");
   });
 });
+
+describe("el título del aviso de sorteo dice lo que el aviso trae", () => {
+  const soloBalance = "balance del sorteo | balance del sorteo | balance del sorteo | balance del sorteo";
+  const soloAjuste = "ajuste de tamano divulgado | ajuste de tamano divulgado";
+  const ambos = "ajuste de tamano divulgado | balance del sorteo";
+
+  it("un aviso que sólo balanceó no anuncia que ajustó tamaños", () => {
+    const { titulo, resumen } = traducirAvisoDelMotor(soloBalance);
+    expect(titulo).toBe("El sorteo balanceó con menos variables de las pedidas");
+    // La prueba real del defecto: el título prometía «ajustó tamaños» sobre un
+    // aviso donde no hubo ningún ajuste.
+    expect(titulo ?? "").not.toMatch(/ajust/i);
+    expect(resumen).toContain("4 estratos");
+    expect(resumen).not.toContain("cuota y se corrigió");
+  });
+
+  it("un aviso que sólo corrigió cuotas no anuncia que balanceó", () => {
+    const { titulo, resumen } = traducirAvisoDelMotor(soloAjuste);
+    expect(titulo).toBe("El sorteo corrigió cuotas que no salieron exactas");
+    expect(titulo ?? "").not.toMatch(/balance/i);
+    expect(resumen).toContain("2 estratos");
+  });
+
+  it("dos avisos con contenidos distintos no comparten título", () => {
+    const a = traducirAvisoDelMotor(soloBalance).titulo;
+    const b = traducirAvisoDelMotor(ambos).titulo;
+    expect(a).not.toBe(b);
+  });
+
+  it("el aviso con las dos cosas las nombra las dos", () => {
+    const { titulo, resumen } = traducirAvisoDelMotor(ambos);
+    expect(titulo).toMatch(/cuotas/i);
+    expect(titulo).toMatch(/balance/i);
+    expect(resumen).toContain("1 estrato ");
+    expect(resumen).not.toContain("1 estratos");
+  });
+});

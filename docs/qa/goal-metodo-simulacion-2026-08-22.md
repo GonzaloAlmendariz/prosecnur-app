@@ -272,3 +272,36 @@ siguiente, no con `--amend`, para que el rojo quede en la historia.
 
 **Regla que sale de esto: el gate se corre después de la ÚLTIMA edición, nunca en
 el mismo bloque que la incluye.**
+
+
+## M7 — un título fijo sobre un contenido variable
+
+El caso anotado («dos riesgos con el mismo título exacto») resultó ser dos
+defectos apilados, y el segundo es peor:
+
+1. El primer aviso se titulaba **«El sorteo ajustó tamaños y balanceó con lo
+   disponible»** y su contenido decía sólo «en 4 estratos balanceó con menos
+   variables». **No hubo ningún ajuste de tamaños.** Familia «un rótulo que
+   promete otro número», en su versión de rótulo que promete un hecho que no
+   ocurrió.
+2. El segundo aviso traía 8 estratos de ajuste más los mismos 4 de balance, con
+   el título idéntico.
+
+La causa: el título era **fijo** en el diccionario mientras el contenido se
+componía de lo que el aviso trae. Y el propio archivo documenta ese defecto en
+su cabecera —«el motor mandaba dos avisos distintos bajo el mismo nombre, y dos
+cosas distintas con el mismo nombre se leen como una repetida»—: la reparación
+anterior lo arregló para «Fallback metodológico» y **lo reintrodujo** al meter
+ajuste y balance bajo un mismo patrón.
+
+Ahora el título lo compone `componerAvisoDeSorteo` a partir de lo que hay:
+«corrigió cuotas que no salieron exactas», «balanceó con menos variables de las
+pedidas» o las dos. 4 tests nuevos en `avisosDelMotor.test.ts`; el mutante que
+devuelve el título fijo mata 4.
+
+### Hallazgo abierto que sale de aquí
+
+**El segundo aviso CONTIENE al primero.** Los mismos 4 estratos de balance se
+cuentan en los dos avisos, así que el analista lee dos veces el mismo hecho. Eso
+ya no es de la traducción sino de quién emite o agrega los avisos, del lado del
+motor. Sin diagnosticar.
