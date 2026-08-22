@@ -1321,3 +1321,32 @@ Es la segunda vez en la jornada que una medición mal hecha inventa un defecto: 
 otra fue leer «57/10 0» en un screenshot cuando lo que se partía era la etiqueta.
 **Antes de reparar lo que una medición señala, conviene comprobar que la medición
 sabe leer lo que mide.**
+
+
+## El gate visual canónico, en verde sobre las dos pestañas
+
+`ui-quick-check` con proyecto real, las dos direcciones, los dos viewports y
+`--require-geometry --fail-on-issues`:
+
+| | capturas | grupos de geometría | issues | scroll jails | overflow | errores |
+|---|---|---|---|---|---|---|
+| **Simulación** | 2 | **8** | 0 | 0 | 0 | 0 |
+| **Método** | 2 | **10** | 0 | 0 | 0 | 0 |
+
+`geometryCoverageMisses=0` en ambas: no hay colecciones hermanas visibles sin
+contrato declarado. Eso es lo que distingue el verde por conformidad del verde
+por ausencia.
+
+**Una `--ir` por corrida.** El primer intento pasó las dos direcciones juntas y
+sólo midió la última: el runner captura la ruta, y la dirección que queda activa
+es la del último `--ir`. Se descubrió mirando el screenshot, no el resumen — el
+log dice «capturando /calc-muestra» y la URL del report no lleva la query. Con
+dos corridas separadas, cada pestaña tiene su medición.
+
+### Lo que el screenshot del gate destapó
+
+El panel de Método sigue diciendo «reduce mejor el **solape**», la jerga reparada
+en `893779ac`. **No es que el fix falle**: ese texto viene de la comparación ya
+guardada en el `.pulso`, generada con el motor anterior. Las explicaciones nuevas
+aparecen **al recomparar**; las corridas guardadas conservan el texto con el que
+se generaron, que es lo correcto para un artefacto auditable.
