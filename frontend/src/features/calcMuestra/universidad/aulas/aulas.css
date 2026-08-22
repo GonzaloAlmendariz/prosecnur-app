@@ -1343,6 +1343,19 @@
   letter-spacing: -0.01em;
 }
 
+.cmv2-aulas-stack .cmv2-aulas-simulacion-nota {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+  max-width: 74ch;
+}
+
+.cmv2-aulas-stack .cmv2-aulas-simulacion-nota b {
+  color: var(--cmv2-text, var(--pulso-text));
+  font-weight: 600;
+}
+
 .cmv2-aulas-stack .cmv2-simulation-method-detail {
   margin: 2px 0 0;
   font-size: 11px;
