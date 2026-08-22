@@ -245,6 +245,21 @@
   font-size: 15px;
 }
 
+/* El pie de la formula: lo que dice en llano. Vivia como parrafo suelto
+   despues de la figura, flotando entre la formula y el bloque siguiente. */
+.cmv2-uni-formula-nota {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--cmv2-text-soft, var(--pulso-text-muted));
+  max-width: 84ch;
+}
+
+.cmv2-uni-formula-nota b {
+  color: var(--cmv2-text, var(--pulso-text));
+  font-weight: 600;
+}
+
 .cmv2-uni-formula-terms {
   display: flex;
   flex-wrap: wrap;
@@ -635,6 +650,11 @@ button.cmv2-uni-flujo-etapa:focus-visible {
 /* --- CifraMotor: métrica con procedencia ------------------------------------------ */
 .cmv2-uni-cifra {
   display: grid;
+  /* Las cajas ya median lo mismo, pero su contenido no: un detalle de dos
+     lineas empuja su sello de procedencia mas abajo que el de al lado, y tres
+     sellos a 588, 576 y 580 px leen como un desajuste. La ultima fila absorbe
+     el sobrante y el sello queda al ras en todas. */
+  grid-template-rows: auto auto 1fr;
   gap: 3px;
   padding: 10px 12px;
   border: 1px solid var(--cmv2-border);
@@ -642,6 +662,10 @@ button.cmv2-uni-flujo-etapa:focus-visible {
   background: var(--cmv2-surface);
   box-shadow: var(--cmv2-shadow-card);
   min-width: 0;
+}
+
+.cmv2-uni-cifra > *:last-child {
+  align-self: end;
 }
 
 .cmv2-uni-cifra[data-hero="true"] {
