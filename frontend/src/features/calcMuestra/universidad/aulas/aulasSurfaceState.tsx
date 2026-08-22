@@ -127,7 +127,10 @@ export function resolveAulasStageNotice(
         ? "La evidencia almacenada no acredita la comparación vigente"
         : "Falta comparar los métodos",
       detail: partialSimulation
-        ? "La estabilidad de pesos o las probabilidades Monte Carlo sí están acreditadas y se muestran abajo. Compara métodos para completar el resumen sin ocultar esa evidencia."
+        // «probabilidades Monte Carlo» exige saber qué es Monte Carlo. Este
+        // aviso no se ve con un proyecto completo, así que el barrido de
+        // pantalla no lo alcanzaba y el contrato de copy no miraba este archivo.
+        ? "La estabilidad de pesos o la frecuencia con que sale cada aula al repetir el sorteo sí están acreditadas y se muestran abajo. Compara métodos para completar el resumen sin ocultar esa evidencia."
         : stored
         /* El aviso dice la causa, no solo el hecho: la mordida del workspace
            (n_aulas 202/MC 500 contra la corrida 203/0) fue indiagnosticable
@@ -157,7 +160,7 @@ export function resolveAulasStageNotice(
         ? "Hay evidencia parcial; falta el resumen por método"
         : "Faltan las corridas de simulación",
       detail: partial
-        ? "La estabilidad de pesos o las probabilidades Monte Carlo sí están acreditadas y se muestran abajo. Vuelve a comparar para completar el resumen sin ocultar esa evidencia."
+        ? "La estabilidad de pesos o la frecuencia con que sale cada aula al repetir el sorteo sí están acreditadas y se muestran abajo. Vuelve a comparar para completar el resumen sin ocultar esa evidencia."
         : "Vuelve a comparar con corridas de auditoría para medir estabilidad, probabilidades y variabilidad del diseño.",
       actionLabel: "Ejecutar corridas",
       localAction: "compare",

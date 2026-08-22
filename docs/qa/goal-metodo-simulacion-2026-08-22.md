@@ -1470,3 +1470,26 @@ R CMD INSTALL --no-docs --library="$R_LIBS_USER" api
 Sin él, los tres cambios de R de hoy están bien en el fuente, en los tests y en
 la vía síncrona; sólo la nota de la simulación se ve vieja si la corrida va por
 job.
+
+
+## Los estados que sólo ve quien empieza un estudio
+
+`resolveAulasStageNotice` tiene siete ramas —falta el marco, falta el objetivo,
+falta comparar, falta seleccionar…— y **ninguna se ve con un proyecto completo**,
+que es el único con el que se ha trabajado todo el loop. Son justo los estados
+que encuentra alguien empezando.
+
+Ahí seguía **«las probabilidades Monte Carlo sí están acreditadas»**, en **dos
+ramas casi idénticas** que sólo se diferencian en «Compara métodos» / «Vuelve a
+comparar». Ahora: «la frecuencia con que sale cada aula al repetir el sorteo».
+
+Reparar la primera y no la segunda habría sido la **quinta** vez en la jornada
+que un defecto sobrevive en la ruta que no se miró. Se vio porque el `grep` contó
+**2** ocurrencias, no porque yo revisara la segunda.
+
+`copySinJerga` cubre ahora `aulasSurfaceState.tsx`; el mutante que devuelve
+«Monte Carlo» a una sola rama mata 1.
+
+**Por qué importa el archivo**: el barrido de pantalla no alcanza estos textos
+—no se renderizan— y el contrato de copy no lo miraba. Entre los dos huecos,
+siete ramas sin revisar en el módulo que un usuario nuevo ve primero.
