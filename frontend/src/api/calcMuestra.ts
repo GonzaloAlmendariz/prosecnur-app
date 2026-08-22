@@ -2147,6 +2147,8 @@ export type CalcMuestraSexoPorFacultad = {
   base: string;
   tolerancia: number | null;
   /** Ordenadas de la peor brecha a la mejor. */
+  /** Contra qué se comparan las proporciones, según el motor. */
+  referencia?: string;
   filas: CalcMuestraSexoPorFacultadFila[];
 };
 
@@ -2188,6 +2190,11 @@ export function normalizeCalcMuestraSexoPorFacultad(
     schema: "calc_muestra_aulas_sexo_por_facultad_v1",
     base: asText(r.base) || "titulares",
     tolerancia: asNum(r.tolerancia),
+    // El motor declara CONTRA QUÉ compara (`referencia = "marco_incluido"`) y el
+    // normalizador lo descartaba. La tarjeta rotula esa columna «Su cuota pide»,
+    // que coincide con la proporción del marco sólo porque este diseño usa
+    // afijación proporcional: con otra referencia el rótulo mentiría.
+    referencia: asText(r.referencia),
     filas,
   };
 }

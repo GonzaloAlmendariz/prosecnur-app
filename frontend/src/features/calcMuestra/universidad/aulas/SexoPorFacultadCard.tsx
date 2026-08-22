@@ -20,6 +20,21 @@ import { fmtInt } from "../../sharedCore";
 
 const pct = (v: number | null): string => (v == null ? "—" : `${Math.round(v * 100)} %`);
 
+/**
+ * Cómo se llama la columna de referencia, según lo que el motor declare.
+ *
+ * Decía siempre «Su cuota pide». La cifra es la proporción del MARCO
+ * (`referencia = "marco_incluido"`), que coincide con la cuota sólo porque este
+ * diseño usa afijación proporcional. Con otra referencia el rótulo prometería un
+ * número que la columna no trae, que es la familia de defectos más repetida de
+ * este módulo.
+ */
+export function etiquetaReferencia(referencia?: string) {
+  if (referencia === "marco_incluido") return "El marco tiene";
+  if (referencia && referencia !== "") return `Referencia: ${referencia}`;
+  return "Su cuota pide";
+}
+
 export function SexoPorFacultadCard({
   balance,
 }: {
@@ -51,7 +66,7 @@ export function SexoPorFacultadCard({
             <tr>
               <th scope="col">Facultad</th>
               <th scope="col">Titulares</th>
-              <th scope="col">Su cuota pide</th>
+              <th scope="col">{etiquetaReferencia(balance.referencia)}</th>
               <th scope="col">Sus aulas ofrecen</th>
               <th scope="col" className="cmv2-sexo-th-barras">
                 % mujeres: <i data-serie="pide" /> pide · <i data-serie="ofrece" /> ofrece
