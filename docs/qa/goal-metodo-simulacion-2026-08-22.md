@@ -1350,3 +1350,17 @@ en `893779ac`. **No es que el fix falle**: ese texto viene de la comparación ya
 guardada en el `.pulso`, generada con el motor anterior. Las explicaciones nuevas
 aparecen **al recomparar**; las corridas guardadas conservan el texto con el que
 se generaron, que es lo correcto para un artefacto auditable.
+
+
+## Higiene de servidores, al cerrar el gate
+
+El gate visual levanta API y Vite propios y **los cierra solo** cuando no se pasa
+`--keep-servers`: comprobado, ni el 8789 ni el 5175 quedaron vivos.
+
+`make dev-status` destapó tres huérfanos STALE —27, 53 y 61 horas sin
+conexiones—, y uno de ellos era un Vite que **esta misma sesión** había dejado
+abandonado horas antes. `make dev-prune` los terminó y respetó los tres que
+tienen conexiones activas, incluido el 5174 que sirve el navegador de trabajo.
+El script nunca toca el 8787, que es del usuario.
+
+Entorno verificado después: Método sigue respondiendo en 5174, 1,88 pantallas.
