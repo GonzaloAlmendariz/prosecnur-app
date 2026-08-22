@@ -42,6 +42,24 @@ export function motorCopyText(value: string | null | undefined) {
   return MOTOR_COPY_FIXES[raw] ?? raw.replace(/\bSimulacion\b/g, "Simulación");
 }
 
+/**
+ * Qué compara cada familia de métricas, en una línea y sin jerga.
+ *
+ * Gonzalo, 2026-08-22: «hay distintos mecanismos para medir el balance, hay
+ * distintos balances, no termino de entender». Tenía razón por partida doble:
+ * la tarjeta ponía de eyebrow «BALANCE» —idéntico en las siete— y dejaba la
+ * dimensión, que es lo único que las distingue, en letra pequeña abajo; y
+ * ninguna decía contra qué se comparaba el puntaje.
+ */
+const METRIC_GROUP_GLOSA: Record<string, string> = {
+  balance: "Qué tan parecido es el reparto de las aulas sorteadas al del marco completo. 100 sería idéntico.",
+  coverage: "Cuánto del marco queda representado en la selección.",
+  overlap: "Cuántos estudiantes aparecen en más de un aula seleccionada.",
+  dispersion: "Qué tan repartida quedó la selección, sin concentrarse en unos pocos sitios.",
+  weights: "Qué tan parejo es lo que representa cada aula seleccionada.",
+  reserves: "Cuántos reemplazos quedaron disponibles por titular.",
+};
+
 export function RepresentativityMetricGrid({ metrics }: { metrics?: CalcMuestraAulasRepresentativityMetric[] | unknown }) {
   const visible = rowsFrom<CalcMuestraAulasRepresentativityMetric>(metrics)
     .filter((metric) => metric.active !== false && metric.score != null && Number.isFinite(safeNumber(metric.score, Number.NaN)))
@@ -50,19 +68,38 @@ export function RepresentativityMetricGrid({ metrics }: { metrics?: CalcMuestraA
   // Nivel semántico del puntaje (0-100): el meter y la cifra lo heredan para
   // que un 0/100 no se lea igual de neutro que un 100/100.
   const scoreLevel = (value: number) => (value < 40 ? "bajo" : value < 70 ? "medio" : "alto");
+  // La familia se dice UNA vez, con su glosa, y cada tarjeta se identifica por
+  // su dimensión. Mismo patrón que `agruparPorDimension` aplica a las filas de
+  // perfil unas líneas más abajo, por el mismo motivo.
+  const familias: { grupo: string; metricas: CalcMuestraAulasRepresentativityMetric[] }[] = [];
+  for (const metric of visible) {
+    const grupo = String(metric.metric_group ?? "");
+    const ultima = familias[familias.length - 1];
+    if (ultima && ultima.grupo === grupo) ultima.metricas.push(metric);
+    else familias.push({ grupo, metricas: [metric] });
+  }
   return (
-    <div className="cmv2-representativity-metric-grid">
-      {visible.map((metric) => {
-        const score = Math.max(0, Math.min(100, safeNumber(metric.score, 0)));
-        return (
-          <article key={metric.metric_id} data-nivel={scoreLevel(score)}>
-            <small>{METRIC_GROUP_LABELS[String(metric.metric_group ?? "")] ?? metric.metric_group}</small>
-            <strong>{classroomScore(metric.score)}</strong>
-            <span>{motorCopyText(metric.label)}</span>
-            <div aria-hidden="true"><i style={{ width: `${score}%` }} /></div>
-          </article>
-        );
-      })}
+    <div className="cmv2-representativity-metric-families">
+      {familias.map((familia) => (
+        <section key={familia.grupo || "sin-grupo"}>
+          <header>
+            <strong>{METRIC_GROUP_LABELS[familia.grupo] ?? familia.grupo}</strong>
+            {METRIC_GROUP_GLOSA[familia.grupo] ? <p>{METRIC_GROUP_GLOSA[familia.grupo]}</p> : null}
+          </header>
+          <div className="cmv2-representativity-metric-grid">
+            {familia.metricas.map((metric) => {
+              const score = Math.max(0, Math.min(100, safeNumber(metric.score, 0)));
+              return (
+                <article key={metric.metric_id} data-nivel={scoreLevel(score)}>
+                  <small>{motorCopyText(metric.label)}</small>
+                  <strong>{classroomScore(metric.score)}</strong>
+                  <div aria-hidden="true"><i style={{ width: `${score}%` }} /></div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
