@@ -5,11 +5,15 @@ import {
   type MonitoreoModo,
   type MonitoreoModoDefinicion,
 } from "./core/monitoreoRegistry";
+import type { SugerenciaDeModo } from "./core/sugerenciaDeModo";
 
 type MonitoreoModeChoiceProps = {
   modes?: MonitoreoModoDefinicion[];
   busyFamily?: MonitoreoModo | null;
   error?: string;
+  /** Modo que corresponde a lo que el proyecto ya tiene. Marca una tarjeta con
+      su motivo; no preselecciona ni deshabilita las demás. */
+  sugerencia?: SugerenciaDeModo | null;
   onChoose: (mode: MonitoreoModoDefinicion) => void;
 };
 
@@ -17,14 +21,22 @@ export function MonitoreoModeChoice({
   modes = MONITOREO_MODOS,
   busyFamily = null,
   error = "",
+  sugerencia = null,
   onChoose,
 }: MonitoreoModeChoiceProps) {
   const availableModes = modes.filter((mode) => mode.status === "active");
+  const sugerida = sugerencia && availableModes.some((m) => m.family === sugerencia.family)
+    ? sugerencia
+    : null;
 
   return (
     <PageFrame
       title="¿Qué tipo de estudio vas a monitorear?"
-      lead="Elige el modo que corresponde al diseño del estudio. Esta decisión configura las secciones, fuentes y reglas operativas de Monitoreo."
+      lead={
+        sugerida
+          ? `${sugerida.motivo} Puedes seguir esa lectura o elegir otro modo.`
+          : "Elige el modo que corresponde al diseño del estudio. Esta decisión configura las secciones, fuentes y reglas operativas de Monitoreo."
+      }
       className="mon-mode-choice-frame"
       layout="document"
       density="compact"
@@ -49,11 +61,13 @@ export function MonitoreoModeChoice({
           {availableModes.map((mode) => {
             const Icon = mode.icon;
             const choosing = busyFamily === mode.family;
+            const esSugerida = sugerida?.family === mode.family;
             return (
               <button
                 key={mode.family}
                 type="button"
-                className="mon-mode-choice__option"
+                className={`mon-mode-choice__option${esSugerida ? " mon-mode-choice__option--sugerida" : ""}`}
+                data-sugerida={esSugerida || undefined}
                 onClick={() => onChoose(mode)}
                 disabled={busyFamily !== null}
                 aria-busy={choosing || undefined}
@@ -66,9 +80,21 @@ export function MonitoreoModeChoice({
                   <strong>{mode.label}</strong>
                   <span>{mode.summary}</span>
                 </span>
+                {/* La marca va en la columna de acción, no junto al label: ahí
+                    no compite con títulos largos. Medido a 1024px, colgada del
+                    label envolvía a segunda línea y dejaba el contenido en 71px
+                    de los 72 disponibles — cabía por un píxel, que no es caber.
+                    El motivo con su cifra vive en el lead, porque una tercera
+                    línea dentro de la tarjeta rompería el alto fijo de 96px y
+                    con él el grupo `equal`. */}
                 <span className="mon-mode-choice__action" aria-hidden="true">
-                  {choosing ? "Guardando…" : "Elegir"}
-                  {!choosing && <ArrowRight size={14} />}
+                  {esSugerida && (
+                    <em className="mon-mode-choice__marca">Sugerido</em>
+                  )}
+                  <span className="mon-mode-choice__cta">
+                    {choosing ? "Guardando…" : "Elegir"}
+                    {!choosing && <ArrowRight size={14} />}
+                  </span>
                 </span>
               </button>
             );

@@ -817,8 +817,42 @@ cursos-horario» debería llegar señalada —«tu proyecto tiene 190 cursos-hor
 sorteados»— sin quitar las otras tres. Eso respeta la decisión y aprovecha el
 dato.
 
-**No se implementa en este tick, y por una razón concreta**: `MonitoreoShell`
-recibe `MonitoreoState`, que no ve el estado del proyecto —comprobado: no hay
-ninguna referencia a `calc_muestra` ni a `aulas_selection` en su núcleo—. Sugerir
-exige una señal nueva desde el backend o el bootstrap, y hacerlo a medias dejaría
-una sugerencia que a veces acierta. Queda propuesto con su alcance medido.
+**IMPLEMENTADO. Y la razón por la que casi no lo hago vale más que el cambio**:
+escribí que sugerir «exige una señal nueva desde el backend», tras comprobar que
+`MonitoreoShell` sólo recibe `MonitoreoState`. La comprobación era correcta y la
+conclusión falsa: miré al consumidor y no al productor. `project_overview.R:259`
+ya lee `calc_muestra_aulas_selection` y publica `facts.calc.mode = "aulas"` con
+`aulas_titulares`, tipado desde hace tiempo en `api/overview.ts:80`. La señal
+llevaba ahí todo el tiempo, a una llamada de distancia.
+
+Es la tercera vez esta semana que declaro una limitación sin intentarla, y las
+tres resultaron falsas. El patrón es siempre el mismo: **grep del consumidor,
+conclusión sobre el productor**.
+
+### Qué quedó
+
+- `core/sugerenciaDeModo.ts` — helper puro. Con selección de aulas sugiere
+  cursos-horario; con distritos, territorial; **con ambas señales no sugiere**,
+  porque un proyecto con aulas y hojas de ruta es justo aquel donde la elección
+  del analista importa. Sin señal, sin marca: una tarjeta marcada «por si acaso»
+  enseña a ignorar la marca.
+- `MonitoreoShell.tsx` — pide el overview aparte del estado de Monitoreo, a
+  propósito: si falla, la pantalla sigue funcionando sin marca. Una sugerencia no
+  puede bloquear la pantalla que sugiere.
+- `MonitoreoModeChoice.tsx` — chip «Sugerido» y el motivo con su cifra en el lead.
+- 9 tests, dos mutantes muertos (quitar la regla de las dos señales; quitar el
+  filtro de modo visible), 1 rojo cada uno.
+
+### Dónde va la marca, y por qué no donde la puse primero
+
+La tarjeta tiene `height: 96px` fijo y el grupo declara
+`data-qa-geometry-contract="equal"`, así que el motivo largo **no cabe dentro**:
+vive en el lead. El chip lo colgué primero del label, y medido a 1024×600
+envolvía a segunda línea y dejaba el contenido en **71 px de los 72
+disponibles** — cabía por un píxel, que no es caber. Movido a la columna de
+acción, sobre «Elegir».
+
+**Hallazgo aparte, y no lo causé yo**: medido el baseline sin sugerencia, la
+tarjeta de cursos-horario ya ocupaba **69 px de 72** a 1024×600 por su propio
+summary, el más largo de los cuatro. Vive a 3 px del desborde desde antes de
+este cambio.

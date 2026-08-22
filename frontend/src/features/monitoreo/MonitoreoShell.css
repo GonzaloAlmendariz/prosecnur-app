@@ -146,6 +146,35 @@
   line-height: 1.25;
 }
 
+/* Modo que corresponde a lo que el proyecto ya tiene. Marca, no preselección:
+   la tarjeta sigue siendo un botón igual que las otras tres. */
+.mon-mode-choice__option--sugerida {
+  border-color: var(--pulso-module-monitoring-border);
+  background: color-mix(in srgb, var(--pulso-module-monitoring-soft) 22%, var(--pulso-surface));
+}
+
+.mon-mode-choice__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mon-mode-choice__marca {
+  flex: none;
+  margin-bottom: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
 .mon-mode-choice__copy > span {
   color: var(--pulso-text-soft);
   font-size: 11.5px;
@@ -157,7 +186,9 @@
 .mon-mode-choice__action {
   min-height: 28px;
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
   gap: 5px;
   padding: 0 8px;
   border-radius: var(--pulso-radius-control);
