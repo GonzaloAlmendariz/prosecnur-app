@@ -1088,3 +1088,27 @@ pintado: mata 1.
 
 **La lección**: reparar el vacío total no repara el vacío parcial. El «todos» y el
 «alguno» son estados distintos, y el segundo casi nunca se mira.
+
+
+## La traducción no puede depender de que el motor la mande
+
+Aplicando el criterio del vacío parcial a la grilla de puntajes apareció otra
+cosa: renderizada con `label: "faculty"` pinta **`faculty` crudo**. En la app se
+ve «Facultad» sólo porque el motor manda ese label ya traducido… **y el mismo
+motor manda `faculty` y `program` crudos en la tabla de balance del mismo
+payload**, donde hubo que traducirlos.
+
+O sea: dos superficies del mismo bloque recibían el mismo concepto en dos formas,
+y cada una dependía de que le tocara la buena. `selectorFieldLabelTitulo` es
+idempotente —lo que ya viene en español no está en su diccionario y sale igual—,
+así que cubre las dos. Verificado en la app: las ocho dimensiones siguen en
+español, cero crudas.
+
+### Y lo que la grilla hace bien
+
+- Una métrica **sin puntaje no se pinta como cero**: un 0/100 es un resultado
+  malo y «no se midió» es la ausencia de resultado; confundirlos sería la familia
+  «verde por ausencia».
+- Un puntaje fuera de rango no rompe la barra (se acota a 0–100 %).
+- Si ninguna métrica tiene puntaje el bloque desaparece entero, con su encabezado
+  y su glosa dentro, así que **no queda un título huérfano sobre nada**.
