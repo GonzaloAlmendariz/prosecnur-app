@@ -1,4 +1,4 @@
-import { BarChart3, Loader2, RefreshCw, Table2 } from "lucide-react";
+import { BarChart3, Loader2, RefreshCw, Sigma, Table2 } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
 import type { ClassroomLabModel } from "./classroomLabModel";
@@ -14,12 +14,23 @@ export function ClassroomLabCommandBar({
 }: {
   model: ClassroomLabModel;
   busy: string | null;
-  acciones: Array<"comparar" | "seleccionar" | "reemplazos">;
+  /**
+   * `comparar` y `estabilidad` llamaban a la MISMA acción con las mismas 500
+   * corridas, en dos pestañas distintas: Método y Simulación ofrecían el mismo
+   * botón y no había forma de saber en qué se diferenciaban. Gonzalo,
+   * 2026-08-22: «no siento que los dos estén debidamente diferenciados
+   * contextualmente». Ahora responden a dos preguntas distintas:
+   *   comparar    -> cuál de los cuatro métodos uso (una corrida por método)
+   *   estabilidad -> cuánto varía el que ya elegí (N corridas del mismo)
+   */
+  acciones: Array<"comparar" | "estabilidad" | "seleccionar" | "reemplazos">;
   onCompare?: (config: CalcMuestraWorkspaceAulasConfig, simulationRuns: number) => void | Promise<void>;
   onSelectMethod?: (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) => void | Promise<void>;
   onSimulateReplacements?: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
 }) {
   const { config } = model;
+  // El número de corridas de estabilidad es del estudio, no del botón.
+  const corridasEstabilidad = Number(config.simulation_runs ?? config.monte_carlo_n ?? 500) || 500;
   return (
     <>
     <div className="cmv2-classroom-commandbar" aria-label="Acciones de selección de cursos-horario">
@@ -27,11 +38,27 @@ export function ClassroomLabCommandBar({
         <button
           type="button"
           className="cmv2-ghost"
-          onClick={() => void onCompare(config, config.simulation_runs ?? config.monte_carlo_n ?? 500)}
+          // Sin corridas de auditoría: una pasada por método, que es lo que hace
+          // falta para elegir. Las 500 de antes eran las de estabilidad, y
+          // convertían una decisión rápida en una espera larga.
+          onClick={() => void onCompare(config, 0)}
           disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
+          title="Corre una vez cada uno de los cuatro métodos y compara representatividad, balance, repetidos y cobertura, para decidir con cuál sortear."
         >
           {busy === "Comparando métodos" ? <Loader2 size={14} className="pulso-spin" /> : <BarChart3 size={14} />}
-          Comparar métodos
+          Comparar los cuatro métodos
+        </button>
+      )}
+      {acciones.includes("estabilidad") && onCompare && (
+        <button
+          type="button"
+          className="cmv2-ghost"
+          onClick={() => void onCompare(config, corridasEstabilidad)}
+          disabled={Boolean(busy) || !model.frameReady || !model.hasCalculatedQuota}
+          title="Repite el sorteo muchas veces sobre el mismo marco para medir cuánto cambia el resultado de una corrida a otra. Responde si la muestra es estable, no cuál método usar."
+        >
+          {busy === "Comparando métodos" ? <Loader2 size={14} className="pulso-spin" /> : <Sigma size={14} />}
+          Medir estabilidad ({corridasEstabilidad} corridas)
         </button>
       )}
       {acciones.includes("seleccionar") && onSelectMethod && (
@@ -42,7 +69,7 @@ export function ClassroomLabCommandBar({
           disabled={Boolean(busy) || !model.comparisonReady}
         >
           {busy === "Seleccionando cursos-horario" ? <Loader2 size={14} className="pulso-spin" /> : <Table2 size={14} />}
-          Seleccionar cursos-horario titulares
+          Sortear con {classroomMethodLabel(model.recommendedMethodId)}
         </button>
       )}
       {acciones.includes("reemplazos") && onSimulateReplacements && (

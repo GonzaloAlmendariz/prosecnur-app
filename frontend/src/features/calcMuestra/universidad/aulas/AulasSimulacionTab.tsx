@@ -200,7 +200,7 @@ export function AulasSimulacionTab({
         <ClassroomLabCommandBar
           model={model}
           busy={busy}
-          acciones={["comparar"]}
+          acciones={["estabilidad"]}
           onCompare={onCompare}
         />
       )}
