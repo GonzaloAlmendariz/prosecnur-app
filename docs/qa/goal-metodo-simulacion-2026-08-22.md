@@ -470,9 +470,15 @@ artificiales.
 
 **Método: 2,93 → 1,85 pantallas.** Desde el inicio del loop, 6,3 → 1,85.
 
-### Pendiente, visto en el screenshot
+### Cerrado en el tick siguiente
 
-- La leyenda del esquema se repite **cuatro veces**, una por tarjeta. Es el mismo
-  defecto que los siete «BALANCE»: lo común se dice una vez.
-- En «Paso 2» las cifras se parten: se lee **«57/10 0»** en vez de «57/100», y el
-  rótulo «representatividad» se corta como «represent atividad».
+- **La leyenda se repetía cuatro veces**, una por tarjeta, cuando los cuatro
+  esquemas comparten vocabulario visual. `MetodoGooEsquema` acepta
+  `leyenda={false}` y la grilla la dice una sola vez en la glosa del paso 1;
+  suelto —un esquema en otra superficie— la leyenda sigue viajando con él.
+- **«representatividad» se partía como «represent/atividad»**, justo debajo de su
+  cifra. Corrección de lo que dije al leer el screenshot: la cifra NO se parte;
+  se parte la etiqueta, y eso es lo que se lee como «57/10 0». La causa es una
+  grilla de cuatro columnas fijas que en una tarjeta de 290 px deja celdas de
+  68. Con `auto-fit minmax(118px, 1fr)` caen a 2×2 de 142 px y la palabra entra
+  entera. `hyphens: auto` queda como red de seguridad para etiquetas futuras.
