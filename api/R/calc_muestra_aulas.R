@@ -3439,8 +3439,8 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   if (engine == "sistematico_pps") return("Da más probabilidad a los cursos-horario con más estudiantes elegibles; sirve de punto de comparación para los demás métodos.")
   if (engine == "cube_balanceado") return("Busca que los cursos-horario seleccionados reproduzcan el marco en facultad, programa, nivel, horario y tamaño.")
   if (engine == "local_pivotal_balanceado") return("Además de balancear, intenta dispersar la muestra para evitar concentración académica u operativa.")
-  if (engine == "pool_controlado") return("Compara muestras candidatas y elige la que reduce mejor el solape, registrando probabilidades por simulación.")
-  if (engine == "estratificado_aleatorio") return("Selecciona dentro de cada estrato sin optimización adicional.")
+  if (engine == "pool_controlado") return("Sortea varias veces y se queda con la seleccion donde menos estudiantes se repiten entre cursos-horario; sus probabilidades se estiman por simulacion.")
+  if (engine == "estratificado_aleatorio") return("Sortea al azar dentro de cada grupo, sin ningun ajuste posterior.")
   "Requiere decisión documentada por el equipo metodológico."
 }
 

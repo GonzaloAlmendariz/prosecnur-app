@@ -1112,3 +1112,27 @@ español, cero crudas.
 - Un puntaje fuera de rango no rompe la barra (se acota a 0–100 %).
 - Si ninguna métrica tiene puntaje el bloque desaparece entero, con su encabezado
   y su glosa dentro, así que **no queda un título huérfano sobre nada**.
+
+
+## La jerga también entra por el motor
+
+`operational_reason` viene del motor y **gana** al `detail` del front
+(`method.operational_reason ?? classroomMethodReason(...)`). Es el mismo patrón
+de precedencia que hubo que invertir para el nombre del método… pero aquí la
+precedencia **se conserva**, porque el motor puede mandar la razón concreta de SU
+corrida —por ejemplo la de la réplica histórica— y el front no la conoce.
+
+Lo que no puede es traer jerga. De las seis explicaciones, cuatro estaban en
+español llano y dos no:
+
+- `pool_controlado`: «reduce mejor el **solape**» → «se queda con la selección
+  donde menos estudiantes se repiten entre cursos-horario».
+- `estratificado_aleatorio`: «Selecciona dentro de cada **estrato**» → «Sortea al
+  azar dentro de cada grupo».
+
+Verificado con el paquete cargado, barriendo ocho términos contra los seis
+motores: **0 de 6 con jerga**.
+
+**La regla que sale**: cuando el texto del motor gana al del front, carga la misma
+exigencia que el copy de la UI. Si no, la glosa se cuida en un lado y entra por el
+otro.
