@@ -91,7 +91,12 @@ export function RepresentativityMetricGrid({ metrics }: { metrics?: CalcMuestraA
               const score = Math.max(0, Math.min(100, safeNumber(metric.score, 0)));
               return (
                 <article key={metric.metric_id} data-nivel={scoreLevel(score)}>
-                  <small>{motorCopyText(metric.label)}</small>
+                  {/* La traducción no puede depender de que el motor la mande:
+                      manda «Facultad» aquí y `faculty` crudo en la tabla de
+                      balance del mismo payload. `selectorFieldLabelTitulo` es
+                      idempotente —lo que ya viene en español no está en su
+                      diccionario y sale igual—, así que cubre las dos formas. */}
+                  <small>{selectorFieldLabelTitulo(motorCopyText(metric.label))}</small>
                   <strong>{classroomScore(metric.score)}</strong>
                   <div aria-hidden="true"><i style={{ width: `${score}%` }} /></div>
                 </article>
