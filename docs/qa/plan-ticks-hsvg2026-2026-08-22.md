@@ -641,3 +641,27 @@ Los tests del componente pasaban porque le pasaban el payload **a mano**. Los de
 backend pasaban porque miraban el backend. **Ningún test cruzaba la frontera**, y
 el defecto vivía exactamente ahí. Lo cazó `curl` contra la API real comparado con
 lo que la pantalla mostraba: la única prueba que atravesaba las dos capas.
+
+
+## El contrato que faltaba: uno que cruce la frontera
+
+Barrido tras el hallazgo: **hoy no hay más campos perdidos**. Los once que emite
+`.collection_payload` están cubiertos por el normalizador. Pero el riesgo seguía
+vivo para el siguiente.
+
+`recopiladoresFrontera.contract.test.ts` lee la lista de campos del **fuente R**
+y comprueba que el normalizador de TS los nombra. Mutante: añadir
+`campo_nuevo_sin_cubrir = TRUE` al payload de R hace fallar el test con el
+mensaje que hacía falta —
+
+> el normalizador no menciona «campo_nuevo_sin_cubrir»: se perderá en silencio
+
+— y sin él, el campo habría llegado a producción invisible.
+
+El test se protege a sí mismo: si la lista de campos leída del R quedara vacía,
+el contrato pasaría sin comprobar nada, así que exige al menos ocho campos y dos
+concretos.
+
+**Por qué hacía falta un test de este tipo**: los del componente pasan porque les
+pasan el payload a mano; los del backend, porque miran el backend. Entre las dos
+capas no había nada, y ahí es donde vivía el defecto.
