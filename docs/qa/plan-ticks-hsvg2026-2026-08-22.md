@@ -1019,3 +1019,41 @@ que la casa ya tenía en la hoja hermana, no lo inventa.
 
 6 asertos en R y 4 en el frontend. Un token huérfano evitado en el camino
 (`--pulso-warning-strong` no existe; el real es `--pulso-warn-fg`).
+
+
+## Serie C — la vuelta por Sheets sólo estaba probada para un tercio del libro
+
+`test-carga-aulas-desde-sheets.R` cubría «Aulas Agendadas». Las otras dos hojas
+llevan **dos** filas de cabecera en vez de una y se leen con funciones
+distintas, así que el camino que el equipo usa de verdad —el libro vive en Drive
+y llega por `spreadsheets.values.get`— estaba sin cubrir para dos tercios del
+libro.
+
+Cubierto ahora: partes con sus cifras (incluido `actual_room`, sin el cual el
+cruce de cambio de aula se queda sin la mitad), filas de control, **filas
+recortadas** en las hojas de dos cabeceras (la API corta las celdas vacías
+finales, y ese caso sólo estaba probado en Agendadas) y el libro recién generado
+sin partes, que no debe inventar partes fantasma.
+
+10 asertos; el mutante que lee una sola fila de cabecera para las tres hojas
+mata 5.
+
+### Tres hipótesis de defecto, las tres falsas
+
+Vale la pena anotarlas, porque las tres eran plausibles y las tres se cayeron al
+medirlas:
+
+1. **«`aplicadas` devuelve 0 partes por Sheets»** — cierto, pero correcto: la
+   hoja recién generada aún no tiene partes, y las dos vías (Excel y Sheets) dan
+   lo mismo. Descartar bloques sin datos reales es deliberado.
+2. **«Sigue dando 0 con partes registrados»** — el fallo era mío: pasé
+   `asistentes`/`encuestas_efectivas` y el generador espera `observed_students`/
+   `effective_surveys`. Mi fixture no hablaba el idioma del generador, y la hoja
+   salió sin datos.
+3. **«"MATRICULADOS POBLACIÓN" aparece dos veces por bloque»** — es el
+   **mecanismo de corte**: la segunda aparición de `MATRICULADOS TOTAL DTI`
+   marca dónde empieza la parte de campo dentro del bloque, y el lector lo usa
+   explícitamente. Está comentado en `carga_aulas_aplicadas.R:55`.
+
+La tercera es la que más se parecía a un hallazgo —un título duplicado es
+exactamente la forma de los defectos que este perfil ha tenido— y era diseño.
