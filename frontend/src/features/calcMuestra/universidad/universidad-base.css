@@ -464,12 +464,20 @@
 
 .cmv2-classroom-quality-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Eran cuatro columnas fijas. En una tarjeta de 290 px cada celda queda en
+     68, y «representatividad» no cabe: se partia como «represent/atividad»
+     justo debajo de su cifra, que es donde peor se lee. Con auto-fit caen a
+     2x2 cuando no hay ancho, y siguen en fila cuando lo hay. */
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 6px;
 }
 
 .cmv2-classroom-quality-metrics span {
   min-width: 0;
+  /* Red de seguridad: si una etiqueta futura vuelve a no caber, que corte por
+     silaba y no por donde toque. */
+  hyphens: auto;
+  overflow-wrap: break-word;
   padding: 7px;
   border: 1px solid var(--cmv2-border);
   border-radius: var(--pulso-radius);

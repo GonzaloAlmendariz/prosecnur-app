@@ -4,6 +4,7 @@ import type {
   CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { AvisoModulo } from "../shared/AvisoModulo";
+import { METODO_GOO_LEYENDA } from "../../didactica/MetodoGooEsquema";
 import { fmtInt } from "../../sharedCore";
 import { avisoDuracionComparacion } from "./duracionComparacion";
 import { normalizeAulasSelectorEngine, normalizeUniversityAulasConfig } from "../shared/study";
@@ -166,7 +167,7 @@ export function AulasMetodoTab({
             <strong>Paso 1. Qué hace cada uno de los cuatro métodos</strong>
             <small>
               Aquí se explica en qué se diferencian. Más abajo, en el paso 2, están los
-              resultados que dio cada uno sobre este marco.
+              resultados que dio cada uno sobre este marco. {METODO_GOO_LEYENDA}
             </small>
           </div>
           <ClassroomMethodStories

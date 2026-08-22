@@ -70,7 +70,7 @@ export function ClassroomMethodStories({
             <p>{story.story}</p>
             {/* Mini-goo ilustrativo del mecanismo (didactica/): declara que no
                 son aulas reales; la corrida real se narra en el Relato. */}
-            <MetodoGooEsquema metodo={story.id} />
+            <MetodoGooEsquema metodo={story.id} leyenda={false} />
             <button
               type="button"
               className={configured ? "cmv2-primary" : "cmv2-ghost"}

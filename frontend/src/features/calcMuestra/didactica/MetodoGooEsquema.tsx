@@ -220,7 +220,19 @@ export const METODO_GOO_DECLARACION = "esquema ilustrativo · no son aulas reale
 export const METODO_GOO_LEYENDA =
   "Cada bola es un aula y su tamaño son los alumnos que tiene. Los hilos unen las aulas que el método mira juntas al decidir.";
 
-export function MetodoGooEsquema({ metodo }: { metodo: MetodoGooId }) {
+export function MetodoGooEsquema({
+  metodo,
+  leyenda = true,
+}: {
+  metodo: MetodoGooId;
+  /**
+   * Los cuatro esquemas comparten vocabulario visual, así que en una grilla que
+   * los muestra juntos la leyenda se dice UNA vez sobre la grilla y no cuatro
+   * veces, una por tarjeta. Suelto —un esquema solo, en otra superficie— la
+   * leyenda viaja con él.
+   */
+  leyenda?: boolean;
+}) {
   const esquema = METODO_GOO_ESQUEMAS[metodo];
   return (
     <figure className={`cmv2-mgoo is-${metodo}`}>
@@ -293,7 +305,7 @@ export function MetodoGooEsquema({ metodo }: { metodo: MetodoGooId }) {
         )}
       </svg>
       <figcaption className="cmv2-mgoo-declaracion">
-        <span className="cmv2-mgoo-leyenda">{METODO_GOO_LEYENDA}</span>
+        {leyenda && <span className="cmv2-mgoo-leyenda">{METODO_GOO_LEYENDA}</span>}
         <span className="cmv2-mgoo-marca">{METODO_GOO_DECLARACION}</span>
       </figcaption>
     </figure>
