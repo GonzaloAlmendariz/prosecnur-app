@@ -148,7 +148,7 @@ function PiMonteCarloHistogram({ model }: { model: ClassroomLabModel }) {
         <strong>Frecuencia entre corridas</strong>
         <small>{fmtInt(piRows.length)} cursos-horario con probabilidad simulada{mcRuns ? ` en ${fmtInt(mcRuns)} corridas` : ""}</small>
       </div>
-      <div className="cmv2-aulas-histo-bins" role="img" aria-label={`Histograma de π Monte Carlo para ${fmtInt(piRows.length)} cursos-horario`}>
+      <div className="cmv2-aulas-histo-bins" role="img" aria-label={`Con qué frecuencia salió cada uno de los ${fmtInt(piRows.length)} cursos-horario al repetir el sorteo`}>
         {bins.map((bin) => (
           <div key={bin.label} className="cmv2-aulas-histo-bin">
             <div aria-hidden="true"><i style={{ height: `${Math.max(bin.count ? 8 : 2, (bin.count / max) * 100)}%` }} /></div>
