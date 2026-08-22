@@ -135,9 +135,21 @@ export function AulasMetodoTab({
 
       <div className="cmv2-classroom-lab-grid">
         <div className="cmv2-classroom-lab-main">
+          {/*
+            * Los dos bloques de esta pestaña NO son dos comparaciones: arriba
+            * está qué hace cada método y abajo qué dio cada uno con estos datos.
+            * Nada lo decía, así que al bajar parecía que la comparación
+            * empezaba otra vez. Gonzalo, 2026-08-22: «luego abajo te pide por
+            * comparación de métodos otra vez […] no se entiende qué se está
+            * haciendo en cada una de las etapas». Se numeran para que se lean
+            * como un recorrido y no como dos intentos de lo mismo.
+            */}
           <div className="cmv2-subhead">
-            <strong>Cuatro maneras de construir la selección</strong>
-            <small>Primero entiende la historia; las métricas comparadas quedan al final.</small>
+            <strong>Paso 1. Qué hace cada uno de los cuatro métodos</strong>
+            <small>
+              Aquí se explica en qué se diferencian. Más abajo, en el paso 2, están los
+              resultados que dio cada uno sobre este marco.
+            </small>
           </div>
           <ClassroomMethodStories
             configuredMethodId={String(config.selector_engine ?? config.selector)}
@@ -154,9 +166,21 @@ export function AulasMetodoTab({
         </div>
         <aside className="cmv2-classroom-lab-side">
           <ClassroomRiskList risks={comparison?.risk_flags ?? []} audited={model.comparisonReady} />
+          {/* Decía «El PPS queda como base auditable. Cube prioriza balance;
+              pivotal añade dispersión; el pool reduce repetidos y exige
+              probabilidades finales estimadas por simulación»: cinco términos
+              técnicos en dos líneas, ninguno glosado. */}
           <AvisoModulo tone="neutral" icon={BarChart3}>
-            El PPS queda como base auditable. Cube prioriza balance; pivotal añade dispersión; el pool
-            reduce repetidos y exige probabilidades finales estimadas por simulación.
+            <p>
+              Los cuatro se diferencian en qué priorizan al elegir. El <b>proporcional al
+              tamaño</b> da a cada aula una probabilidad proporcional a sus alumnos y es el
+              más simple de auditar. La <b>selección balanceada</b> exige además que la
+              muestra reproduzca la composición del marco. La <b>balanceada y distribuida</b>
+              añade que las aulas no queden concentradas en pocos programas u horarios. La{" "}
+              <b>optimizada para evitar repetidos</b> busca que el mismo alumno no aparezca
+              en varias aulas seleccionadas, y por eso necesita estimar sus probabilidades
+              repitiendo el sorteo muchas veces.
+            </p>
           </AvisoModulo>
         </aside>
       </div>
