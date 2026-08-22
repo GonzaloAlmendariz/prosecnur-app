@@ -232,6 +232,28 @@ export function AulasSimulacionTab({
             <div className="cmv2-subhead">
               <strong>Resultados de la simulación</strong>
             </div>
+            {/* Gonzalo, 2026-08-22: «de esas quinientas, ¿se está usando sólo
+                para medir la efectividad del método o también para escoger el
+                mejor?» y «¿por qué no simulo quinientas y escojo la que más me
+                beneficia?». La respuesta no estaba escrita en ninguna pantalla.
+                Decidió que se explique en la UI y no se implemente elección por
+                resultado. */}
+            <p className="cmv2-aulas-simulacion-nota">
+              Las corridas <b>miden, no eligen</b>. Repetir el sorteo con semillas distintas sirve
+              para dos cosas: ver cuánto cambia el resultado de una vez a otra, y contar con qué
+              frecuencia sale cada aula, que es de donde salen los pesos. <b>La selección que va a
+              campo es un sorteo aparte</b>, con la semilla que queda registrada.
+            </p>
+            <p className="cmv2-aulas-simulacion-nota">
+              Quedarse con la mejor de las corridas parece gratis y no lo es: lo que hace válida a
+              una muestra es <b>el procedimiento, no el resultado</b>. Si se elige la selección por
+              su puntaje, las aulas que ayudan a subirlo salen más veces de lo que dice el diseño,
+              su probabilidad real deja de ser la declarada y los pesos —que son el inverso de esa
+              probabilidad— pasan a mentir. La versión legítima existe, se llama muestreo por
+              rechazo y exige fijar los criterios de antemano y recalcular las probabilidades; hoy
+              no está implementada. Además, el rango de arriba muestra cuánto se ganaría: suele ser
+              de pocos puntos, sobre un puntaje que todavía se está calibrando.
+            </p>
             {metodosListos && (
               <>
                 {simulationRows.length > 0 && (

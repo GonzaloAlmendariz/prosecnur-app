@@ -111,9 +111,9 @@ imperfecto elige la muestra que mejor engaña a la métrica.
 | M3 | Método deja de comparar dos veces | ☑ |
 | M4 | Riesgos deja de repetirse en las dos pestañas | ☑ `eb562932` |
 | M5 | La jerga se glosa: CV de pesos, estabilidad, sistemático, balance | ☑ los cuatro términos que nombró |
-| M6 | La UI explica qué se hace con las 500 corridas | ☐ |
+| M6 | La UI explica qué se hace con las 500 corridas | ☑ |
 | M7 | Cada bloque declara qué mide, cómo y para qué | ◐ |
-| M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ◐ Método 5,5 · **Simulación 1,29** |
+| M8 | Las dos pestañas bajan de 6,3 y 3,7 pantallas a algo legible | ◐ **Método 2,93** · **Simulación 1,49** |
 | **M9** | **Pensar las dos pestañas de nuevo, no pulirlas** | ☐ **va al final** |
 
 ## Trampas del entorno, medidas
@@ -236,3 +236,39 @@ Además se reescribieron cinco explicaciones que tenían **peor jerga que el
 nombre que explicaban**: «cuando hay auxiliares buenas», «ordena el marco
 depurado», «exige simulación para probabilidades finales», y la frase del
 esquema «salta la recta con paso k».
+
+
+## M6 cerrado — la respuesta vive ahora en la pantalla
+
+La pregunta de Gonzalo («¿esas quinientas se usan sólo para medir o también para
+escoger la mejor?», «¿por qué no simulo quinientas y me quedo con la que más me
+beneficia?») **no estaba contestada en ninguna pantalla de la app**: la respuesta
+existía sólo en este doc y en la conversación. Dos párrafos bajo «Resultados de
+la simulación» dicen las tres cosas que faltaban:
+
+1. Las corridas **miden, no eligen**, y sirven para dos cosas distintas: ver
+   cuánto cambia el resultado y contar con qué frecuencia sale cada aula, que es
+   de donde salen los pesos.
+2. **La selección que va a campo es un sorteo aparte**, con su semilla registrada.
+3. Por qué quedarse con la mejor no es gratis: la validez es del procedimiento,
+   no del resultado; si se elige por puntaje, la probabilidad real deja de ser la
+   declarada y los pesos, que son su inverso, pasan a mentir. Se nombra el
+   muestreo por rechazo como la versión legítima y se dice que hoy no está
+   implementado.
+
+Coste: Simulación 1,29 → **1,49 pantallas**.
+
+## Un test en rojo commiteado en `fbc307ca`
+
+El gate de ese commit se corrió **antes** de la última edición del mismo bloque
+—la glosa de «paso k»— y `classroomMethodStoriesModel.test.ts` exigía
+literalmente `/paso k/i`. Segunda vez en la sesión con la misma forma: gate,
+después edición, después commit.
+
+El aserto protegía algo legítimo —que cada historia nombre SU mecanismo y no una
+generalidad— pero clavado a la redacción. Ahora acepta `/paso k|uno de cada
+tantos/i`, que es el mismo mecanismo dicho sin sigla. Reparado en el commit
+siguiente, no con `--amend`, para que el rojo quede en la historia.
+
+**Regla que sale de esto: el gate se corre después de la ÚLTIMA edición, nunca en
+el mismo bloque que la incluye.**
