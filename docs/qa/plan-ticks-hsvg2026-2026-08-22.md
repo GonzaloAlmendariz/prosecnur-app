@@ -51,7 +51,7 @@ caída es una visita perdida y un reemplazo que hay que coordinar.
 
 | # | Tick | Qué verifica | Cerrado |
 |---|---|---|---|
-| B1 | Export de aulas → Monitoreo | que las 190 llegan con su código operativo y su estrato | ☐ |
+| B1 | Export de aulas → Monitoreo | ☑ identificadores completos y únicos |  |
 | B2 | Export → fichas QR | que cada ficha lleva el identificador que el campo va a escanear | ☐ |
 | B3 | Ida y vuelta | sortear, exportar, leer: ¿coincide el conteo? | ☐ |
 | B4 | Reemplazos en el export | ¿viajan las reservas y su orden de uso? | ☐ |
@@ -300,3 +300,45 @@ y el déficit de Derecho a medias.
 Aplicar el reparto de 193 exige **recalcular `faculty_targets` en el proyecto**, y
 eso es una decisión de Gonzalo: cambia el número de aulas de seis facultades y
 obliga a re-sortear. La corrida ya está medida; falta el visto bueno.
+
+
+---
+
+## B1 · Los identificadores del export
+
+El puente entre el sorteo y el campo es **`operational_code`**, con
+`classroom_id` de respaldo: así lo casan `monitoreo_aulas_control_facultad.R:33`
+y `monitoreo_aulas_cruce_hojas.R:88`.
+
+Medido sobre la selección definitiva:
+
+| Rol | filas | `operational_code` lleno | únicos | `classroom_id` lleno | únicos |
+|---|---|---|---|---|---|
+| titular | 190 | 190 | **190** | 190 | 190 |
+| reserva encadenada | 496 | 496 | **496** | 496 | 496 |
+| pool extra | 1.930 | 1.930 | **1.930** | 1.930 | 1.930 |
+
+**Cero códigos repetidos** en los 2.616 registros. Los titulares van de **CH 1 a
+CH 190 sin huecos**, y las reservas usan **`R <titular>.<orden>`** —`R 1.2` es la
+segunda opción del titular CH 1—, que es trazable a simple vista.
+
+*(Un falso positivo propio: las primeras filas mostraban «CH 4 · CH 6» y parecía
+faltar el 5; era el orden del data frame, no la numeración. Comprobado antes de
+reportarlo.)*
+
+## B2 · La cadena hasta la ficha QR, leída
+
+`.collection_legacy_unit` (`collection_engine.R:228`) toma como clave el primer
+campo disponible de:
+
+```
+operational_code → classroom_id → curso_horario → course_schedule_id → selection_slot_id → id_match → id
+```
+
+y de ahí saca `unit_id = stable_id("unit-aulas", source_key)`, conservando el
+código original en `dimensions$legacy_ref`. La ficha lleva `unit_id`, `access_id`
+y `qr_payload` (`collection_materials_job.R:58`).
+
+**La cadena usa el campo correcto y el orden de respaldo es sensato.** Falta
+comprobarlo con datos —generar las unidades desde la selección real y verificar
+que las 190 llegan con su código—, que es el siguiente tick.
