@@ -305,3 +305,16 @@ devuelve el título fijo mata 4.
 cuentan en los dos avisos, así que el analista lee dos veces el mismo hecho. Eso
 ya no es de la traducción sino de quién emite o agrega los avisos, del lado del
 motor. Sin diagnosticar.
+
+
+## Dos listas de riesgos con el mismo nombre
+
+Barrido de bloques del 2026-08-22: **«Riesgos detectados» decía 5 avisos en
+Método y 8 en Simulación.** No es un bug de conteo —Simulación suma a los flags
+del comparador los que derivan de las cifras de estabilidad (CV sobre umbral,
+balance fuera de banda, puntaje bajo)—, sino un rótulo idéntico sobre dos
+alcances distintos: al pasar de una pestaña a otra los riesgos parecían haber
+crecido solos y nada decía por qué.
+
+Ahora cada lista declara qué mira: **«Riesgos que detectó la comparación»** (5) y
+**«Riesgos de la comparación y de la estabilidad»** (8).

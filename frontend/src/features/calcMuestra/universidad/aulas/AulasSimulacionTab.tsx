@@ -267,6 +267,7 @@ export function AulasSimulacionTab({
             <ClassroomRecommendation comparison={comparison} fallbackMethod={engineOption.label} />
             <ClassroomRiskList risks={riesgosAgregados} audited={model.comparisonReady || model.selectionReady}
             resumen
+            alcance="Riesgos de la comparación y de la estabilidad"
             onVerDetalle={onNavigate ? () => onNavigate("aulas", "auditoria") : undefined}
           />
           </aside>
