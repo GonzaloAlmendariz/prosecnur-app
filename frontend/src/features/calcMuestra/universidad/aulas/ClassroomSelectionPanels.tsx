@@ -266,10 +266,36 @@ export function ClassroomOverlapGraph({ rows }: { rows?: Array<Record<string, un
   );
 }
 
+/**
+ * El paso «método» del recorrido de preparación.
+ *
+ * Decía «3. Método comparado», marcaba «por comparar» mientras no hubiera
+ * comparación y afirmaba «La app elige la opción con mejor balance y menos
+ * repetidos». Las tres cosas quedaron falsas el 2026-08-22, cuando comparar dejó
+ * de ser requisito para sortear y la configuración pasó a mandar: el paso es
+ * ELEGIR el método, se resuelve en cuanto hay uno vigente —comparando o no— y
+ * quien elige es el analista.
+ *
+ * Va como función pura porque este panel sólo se renderiza con `!selectionReady`
+ * y el proyecto de trabajo ya tiene selección, así que no hay forma de verlo en
+ * pantalla; y el proyecto no tiene entorno DOM en los tests. Aislarla es la
+ * única manera de verificar el cambio en vez de declararlo.
+ */
+export function pasoMetodoElegido(metodoVigenteLabel: string | undefined, comparisonReady: boolean) {
+  return {
+    listo: Boolean(metodoVigenteLabel),
+    valor: metodoVigenteLabel || "sin elegir",
+    glosa: comparisonReady
+      ? "Comparaste los cuatro; puedes quedarte con el recomendado o con otro."
+      : "Puedes compararlos antes o ir directo con el que tengas configurado.",
+  };
+}
+
 export function ClassroomSelectionPreparationPanel({
   frameReady,
   comparisonReady,
   recommendedMethodLabel,
+  metodoVigenteLabel,
   frameCount,
   targetForDisplay,
   m1ForDisplay,
@@ -277,10 +303,13 @@ export function ClassroomSelectionPreparationPanel({
   frameReady: boolean;
   comparisonReady: boolean;
   recommendedMethodLabel: string;
+  /** El método con el que se sortearía ahora mismo, venga de comparar o de la configuración. */
+  metodoVigenteLabel?: string;
   frameCount: number;
   targetForDisplay: number;
   m1ForDisplay: number;
 }) {
+  const pasoMetodo = pasoMetodoElegido(metodoVigenteLabel, comparisonReady);
   return (
     <div className="cmv2-classroom-preparation-panel">
       <div className="cmv2-classroom-tab-note">
@@ -301,10 +330,16 @@ export function ClassroomSelectionPreparationPanel({
           <strong>{targetForDisplay ? `${fmtInt(targetForDisplay)} entrevistas` : "pendiente"}</strong>
           <span>El cálculo fija cuánto se necesita representar.</span>
         </article>
-        <article className={comparisonReady ? "is-ready" : "is-working"}>
-          <small>3. Método comparado</small>
-          <strong>{comparisonReady ? recommendedMethodLabel : "por comparar"}</strong>
-          <span>La app elige la opción con mejor balance y menos repetidos.</span>
+        {/* Decía «3. Método comparado», marcaba «por comparar» mientras no
+            hubiera comparación y afirmaba «La app elige la opción con mejor
+            balance». Las tres cosas quedaron falsas el 2026-08-22, cuando
+            comparar dejó de ser requisito y la configuración pasó a mandar: el
+            paso es ELEGIR el método, se resuelve en cuanto hay uno vigente
+            —comparando o no—, y quien elige es el analista. */}
+        <article className={pasoMetodo.listo ? "is-ready" : "is-working"}>
+          <small>3. Método elegido</small>
+          <strong>{pasoMetodo.valor}</strong>
+          <span>{pasoMetodo.glosa}</span>
         </article>
         <article className={m1ForDisplay ? "is-ready" : "is-working"}>
           <small>4. Cursos-horario titulares</small>
