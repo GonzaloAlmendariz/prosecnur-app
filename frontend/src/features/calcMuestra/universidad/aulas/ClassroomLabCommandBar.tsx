@@ -85,7 +85,7 @@ export function ClassroomLabCommandBar({
       )}
       {model.comparison?.recommendation && (
         <span className="cmv2-classroom-recommendation">
-          Recomendado: <strong>{model.comparison.recommendation.method_label ?? classroomMethodLabel(model.recommendedMethodId)}</strong>
+          Recomendado: <strong>{classroomMethodLabel(model.recommendedMethodId) || model.comparison.recommendation.method_label}</strong>
         </span>
       )}
     </div>

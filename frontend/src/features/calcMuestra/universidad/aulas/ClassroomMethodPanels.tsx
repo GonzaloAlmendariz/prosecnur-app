@@ -352,7 +352,7 @@ export function MethodSummaryCard({
     <article className={`cmv2-classroom-quality-card ${active ? "is-recommended" : ""}`}>
       <div>
         <small>{active ? "Recomendado" : method.method_id}</small>
-        <strong>{method.method_label}</strong>
+        <strong>{classroomMethodLabel(String(method.method_id ?? "")) || method.method_label}</strong>
         <span>{method.operational_reason ?? classroomMethodReason(String(method.method_id))}</span>
       </div>
       <div className="cmv2-classroom-quality-metrics">
@@ -387,7 +387,7 @@ export function ClassroomRecommendation({
   return (
     <div className="cmv2-classroom-reco-panel is-ready">
       <small>Recomendación del laboratorio</small>
-      <strong>{comparison.recommendation.method_label ?? classroomMethodLabel(comparison.recommendation.method_id ?? "")}</strong>
+      <strong>{classroomMethodLabel(comparison.recommendation.method_id ?? "") || comparison.recommendation.method_label}</strong>
       <span>{comparison.recommendation.operational_reason}</span>
       <b>Calidad {classroomScore(comparison.recommendation.representativity_score ?? comparison.recommendation.overall_score)} · distancia {classroomNumberText(comparison.recommendation as Record<string, unknown>, ["representativity_distance"])}</b>
       <em>{comparison.recommendation.methodological_reason}</em>

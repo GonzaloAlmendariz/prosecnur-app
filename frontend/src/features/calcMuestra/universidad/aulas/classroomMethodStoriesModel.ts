@@ -1,4 +1,5 @@
 import type { CalcMuestraAulasMethodComparison } from "../../../../api/client";
+import { classroomMethodLabel as classroomMethodLabelFn } from "./classroomLabels";
 
 /**
  * Cada método tenía DOS nombres: el `title` de aquí, que ve la pestaña Método, y
@@ -65,7 +66,7 @@ export function resolveClassroomMethodDecision({
     return {
       kind: "recommended",
       methodId: recommendedId,
-      label: String(recommendation?.method_label ?? "").trim() || recommendedId,
+      label: classroomMethodLabelFn(recommendedId) || String(recommendation?.method_label ?? "").trim() || recommendedId,
       reason: String(recommendation?.operational_reason ?? recommendation?.methodological_reason ?? "").trim() ||
         "Obtuvo el mejor resultado en la comparación vigente.",
     };
