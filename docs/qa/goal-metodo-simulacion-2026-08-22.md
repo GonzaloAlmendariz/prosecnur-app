@@ -580,3 +580,29 @@ El método recomendado se nombra **dos veces en los primeros 100 px**: en el pan
 «Recomendado por el comparador vigente» y en la barra de acciones («Recomendado:
 Optimizar repetidos»). La barra es compartida con Simulación, donde el panel no
 está en el mismo sitio, así que no basta con borrarlo de un lado.
+
+
+## El nombre del método recomendado, contado
+
+Medido el 2026-08-22 buscando el nodo de texto exacto «Optimizar repetidos»:
+
+| | antes | después |
+|---|---|---|
+| Método | **5 veces** (y=404, 525, 735, 1341, 1760) | 4 |
+| Simulación | 2 veces (y=388, 471) | 1 |
+| Selección | 1 | 1 |
+
+Las tres últimas de Método son legítimas: son las tarjetas de cada método, y ahí
+el nombre ES la tarjeta. Las que sobraban eran las dos de arriba —la línea de la
+barra y la tarjeta de recomendación—, a 83–120 px de distancia, con la tarjeta
+diciendo lo mismo Y su descripción.
+
+No se borra la línea: se apaga donde sobra. En Selección y Reemplazos **es el
+único sitio que nombra el método vigente**, así que `ClassroomLabCommandBar`
+recibe `mostrarRecomendado` y las dos pestañas del encargo la pasan en `false`.
+Verificado en las tres pestañas: Selección conserva la suya.
+
+## Fuera del encargo, pero medido
+
+**Selección son 4,64 pantallas**, más del doble que Método y Simulación juntas
+ahora. Es la pestaña más larga de la sección.

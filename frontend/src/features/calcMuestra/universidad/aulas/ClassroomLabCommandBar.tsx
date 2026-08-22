@@ -11,7 +11,10 @@ export function ClassroomLabCommandBar({
   onCompare,
   onSelectMethod,
   onSimulateReplacements,
+  mostrarRecomendado = true,
 }: {
+  /** Muestra «Recomendado: X» en la barra. Se apaga donde la pestaña ya tiene la tarjeta de recomendación. */
+  mostrarRecomendado?: boolean;
   model: ClassroomLabModel;
   busy: string | null;
   /**
@@ -83,7 +86,13 @@ export function ClassroomLabCommandBar({
           Probar reemplazos
         </button>
       )}
-      {model.comparison?.recommendation && (
+      {/* En Método y Simulación esta línea repite, a 83-120 px de distancia, lo
+          que la tarjeta de recomendación ya dice con su nombre Y su
+          descripción: medido el 2026-08-22, «Optimizar repetidos» aparecía dos
+          veces en los primeros 100 px de scroll. Donde no hay tarjeta —
+          Selección, Reemplazos— esta línea es el único sitio que nombra el
+          método vigente, así que no se borra: se apaga donde sobra. */}
+      {mostrarRecomendado && model.comparison?.recommendation && (
         <span className="cmv2-classroom-recommendation">
           Recomendado: <strong>{classroomMethodLabel(model.recommendedMethodId) || model.comparison.recommendation.method_label}</strong>
         </span>
