@@ -84,3 +84,32 @@ export function avisoDuracionSorteo({
   // la diferencia entre un sorteo y cientos.
   return { avisar: esPool && sorteos >= 25, sorteos };
 }
+
+
+/** Corridas por defecto cuando el estudio no declara ninguna. */
+export const CM_CORRIDAS_ESTABILIDAD_DEFECTO = 500;
+
+/**
+ * Cuántas corridas mide el botón de estabilidad, y de dónde sale ese número.
+ *
+ * Estaba resuelto así:
+ *
+ *     // El número de corridas de estabilidad es del estudio, no del botón.
+ *     Number(config.simulation_runs ?? config.monte_carlo_n ?? 500) || 500
+ *
+ * y el comentario decía justo lo contrario de lo que hacía el código: `??` no
+ * cubre el cero y `|| 500` lo reemplaza, así que con el `simulation_runs: 0` que
+ * trae HSVG2026 el botón anunciaba «500 corridas» como si el estudio las hubiera
+ * pedido. Un rótulo que promete un número que su fuente no dijo.
+ *
+ * Ahora el origen viaja con la cifra, para que quien lea el botón sepa si está
+ * viendo una decisión del estudio o un valor por defecto.
+ */
+export function corridasDeEstabilidad(config: Record<string, unknown>) {
+  const declarado = Number(config.simulation_runs ?? config.monte_carlo_n ?? Number.NaN);
+  const delEstudio = Number.isFinite(declarado) && declarado > 0;
+  return {
+    corridas: delEstudio ? Math.floor(declarado) : CM_CORRIDAS_ESTABILIDAD_DEFECTO,
+    delEstudio,
+  };
+}

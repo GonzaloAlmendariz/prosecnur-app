@@ -853,3 +853,34 @@ Las otras diez están en monitoreo y gráficos, fuera de este encargo.
 apilar siempre aumenta la altura, así que reaccionar a `max-height` apilando sólo
 vale si el mismo bloque acota la altura de lo apilado. `motor.css:1961` hace lo
 contrario y es el modelo a seguir.
+
+
+## El botón de estabilidad anunciaba un número que el estudio no dijo
+
+```ts
+// El número de corridas de estabilidad es del estudio, no del botón.
+const corridasEstabilidad = Number(config.simulation_runs ?? config.monte_carlo_n ?? 500) || 500;
+```
+
+El comentario decía **lo contrario de lo que hacía el código**: `??` no cubre el
+cero y `|| 500` lo reemplaza. Con el `simulation_runs: 0` que trae HSVG2026, el
+botón anunciaba «500 corridas» como si el estudio las hubiera pedido.
+
+Ahora el origen viaja con la cifra: **«Medir estabilidad (500 corridas por
+defecto)»** cuando el estudio no declara ninguna, y sin el «por defecto» cuando
+sí. 5 tests; el mutante que devuelve el `?? … || 500` mata 3.
+
+Es la misma familia que lleva todo el día apareciendo —un rótulo que promete otro
+número— en su variante más difícil de ver: **el comentario que la describe dice
+que no ocurre**.
+
+## QA de la matriz, cerrado
+
+| | 1440x1000 | 1024x600 |
+|---|---|---|
+| Método | 1,87 pantallas | 4,67 |
+| Simulación | 1,43 | 2,52 |
+
+Sin desborde horizontal en ninguno de los cuatro. Grupos verificados simétricos
+en los dos viewports: las 4 tarjetas de método, las 16 celdas de puntaje, las 2
+tarjetas de preguntas, las 3 cifras de estabilidad y la franja de estado.

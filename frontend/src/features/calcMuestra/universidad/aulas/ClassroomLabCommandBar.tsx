@@ -1,3 +1,4 @@
+import { corridasDeEstabilidad } from "./duracionComparacion";
 import { BarChart3, Loader2, RefreshCw, Sigma, Table2 } from "lucide-react";
 import type { CalcMuestraWorkspaceAulasConfig } from "../../../../api/client";
 import { AulasStaleJobAviso } from "./AulasStaleJobAviso";
@@ -32,8 +33,10 @@ export function ClassroomLabCommandBar({
   onSimulateReplacements?: (config: CalcMuestraWorkspaceAulasConfig) => void | Promise<void>;
 }) {
   const { config } = model;
-  // El número de corridas de estabilidad es del estudio, no del botón.
-  const corridasEstabilidad = Number(config.simulation_runs ?? config.monte_carlo_n ?? 500) || 500;
+  // El número de corridas sale del estudio SI lo declara; si no, del defecto, y
+  // el botón dice cuál de las dos cosas es (`corridasDeEstabilidad`).
+  const estabilidad = corridasDeEstabilidad(config as unknown as Record<string, unknown>);
+  const corridasEstabilidad = estabilidad.corridas;
   return (
     <>
     <div className="cmv2-classroom-commandbar" aria-label="Acciones de selección de cursos-horario">
@@ -61,7 +64,7 @@ export function ClassroomLabCommandBar({
           title="Repite el sorteo muchas veces sobre el mismo marco para medir cuánto cambia el resultado de una corrida a otra. Responde si la muestra es estable, no cuál método usar."
         >
           {busy === "Comparando métodos" ? <Loader2 size={14} className="pulso-spin" /> : <Sigma size={14} />}
-          Medir estabilidad ({corridasEstabilidad} corridas)
+          Medir estabilidad ({corridasEstabilidad} corridas{estabilidad.delEstudio ? "" : " por defecto"})
         </button>
       )}
       {acciones.includes("seleccionar") && onSelectMethod && (
