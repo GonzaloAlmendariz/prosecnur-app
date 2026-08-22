@@ -4467,8 +4467,8 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tiempos-cifras li.is-alerta {
-  border-color: color-mix(in srgb, var(--pulso-warn) 40%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-warn) 8%, var(--pulso-surface-2));
+  border-color: color-mix(in srgb, var(--pulso-warn-accent) 40%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-warn-accent) 8%, var(--pulso-surface-2));
 }
 
 .mon-profile-page.is-aulas-flow .aulas-tiempos-cifras span {
@@ -4623,7 +4623,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-abiertas-lista li.is-relleno {
-  background: color-mix(in srgb, var(--pulso-warn) 9%, var(--pulso-surface-2));
+  background: color-mix(in srgb, var(--pulso-warn-accent) 9%, var(--pulso-surface-2));
 }
 
 .mon-profile-page.is-aulas-flow .aulas-abiertas-texto {
@@ -4642,7 +4642,7 @@
 
 .mon-profile-page.is-aulas-flow .aulas-abiertas-meta em {
   font-style: normal;
-  color: color-mix(in srgb, var(--pulso-warn) 70%, var(--pulso-text));
+  color: color-mix(in srgb, var(--pulso-warn-fg) 70%, var(--pulso-text));
 }
 
 /* ── Una tabla ancha avisa de que sigue ──────────────────────────────────
@@ -4716,9 +4716,9 @@
   gap: 7px;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, var(--pulso-warn) 38%, var(--pulso-border));
+  border: 1px solid color-mix(in srgb, var(--pulso-warn-accent) 38%, var(--pulso-border));
   border-radius: var(--pulso-radius-card);
-  background: color-mix(in srgb, var(--pulso-warn) 9%, var(--pulso-surface-2));
+  background: color-mix(in srgb, var(--pulso-warn-accent) 9%, var(--pulso-surface-2));
   font-size: 12px;
   line-height: 1.45;
   color: var(--pulso-text);
@@ -4783,7 +4783,7 @@
 .mon-profile-page.is-aulas-flow .aulas-cadena-caen.is-activo {
   font-size: 12px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--pulso-warn) 72%, var(--pulso-text));
+  color: color-mix(in srgb, var(--pulso-warn-fg) 72%, var(--pulso-text));
 }
 
 .mon-profile-page.is-aulas-flow .aulas-cadena-caen small {

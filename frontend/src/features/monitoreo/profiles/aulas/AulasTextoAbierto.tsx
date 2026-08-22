@@ -47,7 +47,12 @@ export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {
 
   return (
     <div className="aulas-abiertas" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-      <div className="aulas-abiertas-preguntas" role="tablist" aria-label="Preguntas abiertas">
+      <div
+        className="aulas-abiertas-preguntas"
+        role="tablist"
+        aria-label="Preguntas abiertas"
+        data-gliding-opt-out="Este selector lo dicta el instrumento, no el recorrido del módulo: son tantas píldoras como preguntas abiertas tenga el formulario y la tira envuelve en varias filas (flex-wrap), así que un indicador deslizante tendría que saltar de renglón. La pregunta activa se señala con su propia píldora entintada en el tono de Monitoreo."
+      >
         {t.preguntas.map((p, i) => (
           <button
             key={p.variable}
