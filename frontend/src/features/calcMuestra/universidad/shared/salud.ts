@@ -166,9 +166,13 @@ export function derivarSaludDiseno(piezas: SaludPiezas): SaludObservacion[] {
     observaciones.push({
       id: "cv-pesos",
       nivel: critico ? "danger" : "warn",
-      titulo: `CV de pesos ${fmtDec(piezas.cvPesos, 2)} sobre el umbral ${fmtDec(piezas.cvWarn, 2)}`,
-      detalle: "Pesos muy desiguales: unos pocos cursos-horario dominan la estimación y el n efectivo cae por debajo del nominal.",
-      accion: "Revisa la estabilidad de pesos en Simulación.",
+      // Decía «CV de pesos 0.65 sobre el umbral 0.50» mientras la cifra de la
+      // MISMA pestaña ya se llama «Desigualdad entre pesos»: el mismo concepto
+      // con dos nombres a 200 px de distancia. El aviso usa el nombre de la
+      // cifra que manda a mirar.
+      titulo: `Desigualdad entre pesos ${fmtDec(piezas.cvPesos, 2)}, por encima de ${fmtDec(piezas.cvWarn, 2)}`,
+      detalle: "Unas pocas aulas representan a muchas más que el resto, así que la muestra rinde como si fuera más pequeña de lo que es.",
+      accion: "Míralo en Simulación, en «Estabilidad de pesos».",
     });
   }
 
