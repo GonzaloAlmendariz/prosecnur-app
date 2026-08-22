@@ -1493,3 +1493,28 @@ que un defecto sobrevive en la ruta que no se miró. Se vio porque el `grep` con
 **Por qué importa el archivo**: el barrido de pantalla no alcanza estos textos
 —no se renderizan— y el contrato de copy no lo miraba. Entre los dos huecos,
 siete ramas sin revisar en el módulo que un usuario nuevo ve primero.
+
+
+## «Esto no está centrado y no tiene separación»
+
+Gonzalo, señalando el botón «Usar método» de las tarjetas del comparador. Medido:
+
+| | antes | ahora |
+|---|---|---|
+| Margen izquierdo / derecho | **12 / 199 px** | 12 / 12 |
+| Separación con las cifras | **0 px** | 8 |
+| Ancho del botón | 103 px en tarjeta de 314 | 290 |
+| Botones alineados entre tarjetas | no | **sí** |
+
+La causa: `.cmv2-classroom-method-card` era `display: block`, así que el botón
+—`inline-flex`— quedaba en el flujo, pegado al bloque de arriba y alineado a la
+izquierda. El texto **sí** estaba centrado dentro del botón; lo que no lo estaba
+era el botón dentro de la tarjeta, que es la clase de distinción que sólo se ve
+midiendo.
+
+En columna con `gap`, el botón se estira al ancho y gana su aire; con
+`margin-top: auto` los cuatro quedan al fondo y alineados entre sí, que es lo que
+hace que la fila se lea como una fila.
+
+Gate visual tras el cambio: **10 grupos de geometría, 0 issues, 0 coverage
+misses**.
