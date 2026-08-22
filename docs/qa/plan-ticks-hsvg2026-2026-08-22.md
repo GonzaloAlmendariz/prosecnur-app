@@ -54,7 +54,7 @@ caída es una visita perdida y un reemplazo que hay que coordinar.
 | B1 | Export de aulas → Monitoreo | ☑ identificadores completos y únicos |  |
 | B2 | Export → fichas QR | ☑ **la cadena está sana; el plan guardado NO** |  |
 | B3 | Ida y vuelta | ☑ el desfase se detecta y se avisa |  |
-| B4 | Reemplazos en el export | ¿viajan las reservas y su orden de uso? | ☐ |
+| B4 | Reemplazos en el export | ☑ el código sí; el plan guardado no |  |
 
 ### Serie C — El sheets de monitoreo
 
@@ -416,3 +416,46 @@ Verificación: 5 tests en R —incluido que sin selección vigente **no inventa 
 veredicto**, y que sin plan ni selección devuelve `NULL` en vez de un objeto
 vacío— y 2 en el front, renderizando el aviso con datos de las dos corridas
 reales.
+
+
+---
+
+## B4 · La cadena de reemplazos viaja, pero el plan guardado es de otro diseño
+
+`.collection_legacy_unit` conserva **`replacement_for`** entre las dimensiones de
+la unidad, con un comentario que dice exactamente por qué: «sin esto la ficha de
+un reemplazo no puede decir de quién lo es, que es justo lo que necesita saber
+quien la lleva al aula». El código está bien.
+
+El plan congelado en el proyecto, no:
+
+| | Plan guardado (1 ago) | Selección vigente (21 ago) |
+|---|---|---|
+| Titulares | **175** | 190 |
+| Reservas encadenadas | 1.547 | 496 |
+| Pool extra | 746 | 1.930 |
+| Olas | **M1 … M12** | M1 … M5 |
+| Dimensión `replacement_for` | **ausente** | disponible |
+
+No es sólo otra corrida: es **otro diseño**. Doce olas de reemplazo contra cinco
+—la reducción vino de la reparación de profundidad por facultad, que bajó las
+reservas pedidas de 2.090 a 496— y sin la cadena, que se añadió al código después
+de sembrar ese plan.
+
+### Cierre de la serie B
+
+| # | Resultado |
+|---|---|
+| B1 | Identificadores completos, únicos y trazables: CH 1…CH 190, R 1.2 |
+| B2 | El plan viene de un sorteo de hace veinte días, y la UI no lo decía |
+| B3 | Ahora el backend lo compara y la pantalla lo avisa |
+| B4 | La cadena viaja en el código; el plan guardado es de otro diseño |
+
+**Recomendación: regenerar el plan de recolección.** Hoy produciría fichas con
+175 aulas de agosto 1, códigos «AULA n», doce olas y sin cadena de reemplazos.
+Con la selección vigente daría 190 titulares, «CH n», cinco olas y cada reserva
+sabiendo a quién sustituye.
+
+Si además se aplica el reparto de 193 de la serie A, el orden es: **recalcular
+`faculty_targets` → re-sortear → regenerar el plan → generar materiales**. Saltarse
+el tercer paso es lo que produjo este desfase.
