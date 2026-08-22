@@ -44,3 +44,43 @@ export function avisoDuracionComparacion({
   const carga = n * f;
   return { avisar: carga >= CM_COMPARAR_UMBRAL_LARGO, carga };
 }
+
+/**
+ * Avisar ANTES de sortear cuando el método elegido repite el sorteo N veces.
+ *
+ * `pool_controlado` («Optimizar repetidos») no es un sorteo: es
+ * `candidate_pool_size` sorteos completos con el cubo como motor base, de los
+ * que se queda con el mejor (`.cm_aulas_select_once_pool`,
+ * `api/R/calc_muestra_aulas.R:2211`). Con el default de 500 y el cubo medido en
+ * ~1,9 s por corrida sobre el marco de HSVG2026, eso son ~16 minutos frente a
+ * los 22,8 s de los otros tres.
+ *
+ * Eso costó una espera de más de seis minutos hasta que Gonzalo canceló el
+ * 2026-08-22, y días de diagnóstico buscando el problema en el entorno del job
+ * cuando estaba en el método. La comparación ya avisa de su coste; el sorteo no
+ * avisaba de ninguno.
+ *
+ * Igual que su hermana, NO promete minutos: dice cuántos sorteos son, que es el
+ * hecho, y deja la escala al lector.
+ */
+export type AvisoSorteo = {
+  avisar: boolean;
+  /** Cuántos sorteos completos hace el método elegido. */
+  sorteos: number;
+};
+
+export function avisoDuracionSorteo({
+  metodoId,
+  candidatas,
+}: {
+  metodoId: string;
+  /** `candidate_pool_size` de la config vigente. */
+  candidatas: number;
+}): AvisoSorteo {
+  const esPool = metodoId === "pool_controlado";
+  const n = Number.isFinite(candidatas) && candidatas > 0 ? Math.floor(candidatas) : 0;
+  const sorteos = esPool ? Math.max(1, n) : 1;
+  // Un pool de una o dos candidatas no cambia la escala: el aviso existe para
+  // la diferencia entre un sorteo y cientos.
+  return { avisar: esPool && sorteos >= 25, sorteos };
+}

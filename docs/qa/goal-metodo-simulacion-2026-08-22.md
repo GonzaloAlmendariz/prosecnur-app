@@ -157,12 +157,20 @@ distintos**, uno de ellos 500 veces más caro por diseño.
 Queda **reparado como efecto colateral de `f2623619`**: ahora el botón manda la
 configuración, así que sortea con `cube_balanceado`.
 
-### Lo que sigue abierto de esto
+### Cerrado: el coste ahora se anuncia
 
-`pool_controlado` es legítimamente caro —500 sorteos es lo que hace— y **la UI no
-avisa de ese coste antes de lanzarlo**, al contrario que la comparación, que sí
-tiene su «va a tardar». Elegir «Optimizar repetidos» y pulsar sortear sigue
-costando ~16 minutos sin advertencia previa.
+`avisoDuracionSorteo` es la función hermana de `avisoDuracionComparacion` y sigue
+su misma regla: **no promete minutos**, dice cuántos sorteos son, que es el
+hecho. En Selección, con «Optimizar repetidos» vigente:
+
+> **Este método sortea muchas veces.** Optimizar repetidos no hace un sorteo:
+> hace **500** y se queda con el que mejor puntúa. Los otros tres hacen uno.
+
+Verificado en la app cambiando el método a `pool_controlado` y devolviéndolo a
+`cube_balanceado` después: con el pool aparece, con el cubo no. **Sin condicionar
+a `!selectionReady`**: re-sortear cuesta exactamente lo mismo que sortear la
+primera vez, y ocultar el aviso ahí habría sido el mismo defecto en su versión
+tardía. 4 tests de contrato.
 
 ### Lección
 

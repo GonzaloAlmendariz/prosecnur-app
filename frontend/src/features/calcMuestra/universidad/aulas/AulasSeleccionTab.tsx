@@ -44,6 +44,8 @@ import {
 } from "./aulasSurfaceState";
 import "../../didactica/didactica.css";
 import "./aulas.css";
+import { avisoDuracionSorteo } from "./duracionComparacion";
+import { AvisoModulo } from "../shared/AvisoModulo";
 
 export function AulasSeleccionTab({
   model,
@@ -99,6 +101,17 @@ export function AulasSeleccionTab({
   const methodUsedLabel = classroomMethodLabel(
     String(selection?.selector_engine_used ?? selection?.selector_engine ?? engineOption.label),
   );
+  // La comparación avisa de su coste; el sorteo no avisaba de ninguno, y
+  // «Optimizar repetidos» hace `candidate_pool_size` sorteos completos en vez
+  // de uno. Costó una espera de más de seis minutos hasta cancelarla.
+  const avisoSorteo = avisoDuracionSorteo({
+    metodoId: model.metodoParaSortear,
+    candidatas: Number(
+      (model.config as Record<string, unknown>).candidate_pool_size
+      ?? ((model.config as Record<string, unknown>).selector as Record<string, unknown> | undefined)?.candidate_pool_size
+      ?? Number.NaN,
+    ),
+  });
   const stageNotice = resolveAulasStageNotice(model, "seleccion");
   const inspectByClassroomId = (classroomId: string) => {
     if (!classroomId) return;
@@ -203,6 +216,23 @@ export function AulasSeleccionTab({
               </CifraFila>
             </div>
           </section>
+
+          {/* La comparación avisa de su coste; el sorteo no avisaba de
+              ninguno, y «Optimizar repetidos» hace `candidate_pool_size`
+              sorteos completos en vez de uno. Costó una espera de más de seis
+              minutos hasta cancelarla, y días buscando la causa en el entorno
+              del job. Sin condicionar a que no haya selección: re-sortear con
+              este método cuesta exactamente lo mismo. */}
+          {avisoSorteo.avisar && (
+            <AvisoModulo tone="info" title="Este método sortea muchas veces" compact>
+              <p>
+                <b>{classroomMethodLabel(model.metodoParaSortear)}</b> no hace un sorteo: hace{" "}
+                <b>{fmtInt(avisoSorteo.sorteos)}</b> y se queda con el que mejor puntúa. Los otros
+                tres hacen uno. Sobre un marco de este tamaño la diferencia se mide en minutos, no
+                en segundos, así que cuenta con ese tiempo antes de lanzarlo.
+              </p>
+            </AvisoModulo>
+          )}
 
           <ClassroomLabCommandBar
             model={model}
