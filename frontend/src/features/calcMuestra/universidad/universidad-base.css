@@ -334,6 +334,12 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* El boton al fondo: con las cuatro tarjetas a la misma altura, los cuatro
+   botones quedan alineados entre si en vez de flotar donde acabe su texto. */
+.cmv2-classroom-method-card > button {
+  margin-top: auto;
+}
+
 .cmv2-classroom-method-card,
 .cmv2-classroom-quality-card,
 .cmv2-classroom-reco-panel,
@@ -380,7 +386,14 @@
 }
 
 .cmv2-classroom-method-card {
-  display: block;
+  /* Era `display: block`, asi que el boton «Usar metodo» quedaba en el flujo:
+     pegado al bloque de cifras (0 px de separacion) y alineado a la izquierda,
+     con 12 px de margen a un lado y 199 al otro en una tarjeta de 314. Gonzalo,
+     2026-08-22: «esto no esta centrado y no tiene separacion». En columna, el
+     boton se estira al ancho de la tarjeta y el gap le da su aire. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-height: 156px;
   padding: 11px;
   color: var(--pulso-text);
