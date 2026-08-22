@@ -2,6 +2,59 @@
 
 Doc vivo. Abierto el 2026-08-22. Sólo Gonzalo lo da por terminado.
 
+---
+
+## Dónde está esto ahora
+
+| | al abrir | ahora |
+|---|---|---|
+| **Método** | 6,3 pantallas | **1,87** (1440x1000) · 4,67 (1024x600) |
+| **Simulación** | 3,7 pantallas | **1,43** · 2,52 |
+| Términos sin glosa en pantalla | 8 | **0** |
+| Juegos de nombres para los 4 métodos | **6** | **1** |
+| Tests del área | 1.387 | **1.748** |
+
+Tablero M1–M9: **completo**. El loop sigue abierto; lo que aparece ahora son
+hallazgos nuevos al mirar, no etapas pendientes.
+
+## Índice por familia de defecto
+
+Este doc creció como registro cronológico de un loop de muchos ticks. Para
+consultarlo, las secciones agrupadas por lo que tienen en común:
+
+**Un rótulo que promete otro número** — la familia dominante, ocho casos
+- «El sorteo ajustó tamaños» sobre un aviso que sólo balanceó → *M7 — un título fijo sobre un contenido variable*
+- «DOS formas de sortear» sobre cuatro tarjetas → *El hallazgo grande de M9*
+- «500 corridas» que el estudio no pidió → *El botón de estabilidad anunciaba un número que el estudio no dijo*
+- «Riesgos detectados»: 5 en una pestaña, 8 en otra → *Dos listas de riesgos con el mismo nombre*
+- Una tabla que mostraba el 11 % → *Una tabla que mostraba el 11 %…*
+- «La app elige» justo después de quitarle esa potestad → *Lo que el cambio anterior dejó mintiendo*
+- «puntaje medio de 0 sorteos» → *El estado principal de Simulación*
+- Un comentario que afirmaba lo contrario del código → *El botón de estabilidad…*
+
+**Varios nombres para la misma cosa** — seis juegos, unificados
+- *Un método, dos nombres* · *El hallazgo grande de M9* · *El quinto juego de nombres, el del motor* · *El copy accesible tenía el sexto juego de nombres*
+
+**Vacíos mal declarados**
+- *M6 cerrado* (cuatro tarjetas con el mismo vacío) · *El vacío que pasó a ser la primera frase* · *El estado principal de Simulación* (el vacío parcial) · *Las ramas que el proyecto real nunca alcanza*
+
+**Jerga y copy**
+- *Lo cerrado de M5* · *Los siete balances* · *La vara 1, medida y fijada* · *El copy accesible…* · *La jerga también entra por el motor* · *La traducción no puede depender de que el motor la mande*
+
+**Geometría y asimetría**
+- *Revamp visual de Método* · *Simulación: el mismo patrón* · *Dos asimetrías más* · *QA en 1024x600* · *Barrido: ¿había más reglas que apilaban por falta de altura?* · *QA de la matriz*
+
+**Rendimiento**
+- *RESUELTO — «el sorteo tarda 6 minutos…»* (eran dos métodos distintos, no dos entornos)
+
+**Decisiones de producto**
+- *Qué se hace con las 500 corridas* · *«¿Por qué te fuerza a compararlos siempre?»* · *El reorden conceptual* · *«¿A qué se deben tantas alertas?»*
+
+**Cómo no engañarse** — lecciones de método, las más caras
+- *Un test en rojo commiteado* · *Corrección: sí se puede verificar un componente sin jsdom* · *Deuda saldada* · *Barrido del `??` que deja pasar el cero* · *Las ramas que el proyecto real nunca alcanza* (el mutante que no murió)
+
+---
+
 ## La vara, textual
 
 Gonzalo, 2026-08-22, probando la app con HSVG2026_definitivo:
