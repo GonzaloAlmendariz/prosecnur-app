@@ -60,7 +60,7 @@ caída es una visita perdida y un reemplazo que hay que coordinar.
 
 | # | Tick | Qué verifica | Cerrado |
 |---|---|---|---|
-| C1 | Generación del sheets | qué columnas produce y si bastan para el control | ☐ |
+| C1 | Generación del libro | ☑ **la cadena está cortada** |  |
 | C2 | Inscripción | alta de encuestadores/aulas sin edición manual | ☐ |
 | C3 | Lectura | qué entiende el motor de lo que el campo escribe | ☐ |
 | C4 | Vuelta al monitoreo | el sheets leído se ve como avance real | ☐ |
@@ -459,3 +459,50 @@ sabiendo a quién sustituye.
 Si además se aplica el reparto de 193 de la serie A, el orden es: **recalcular
 `faculty_targets` → re-sortear → regenerar el plan → generar materiales**. Saltarse
 el tercer paso es lo que produjo este desfase.
+
+
+---
+
+## C1 · El libro operativo no se puede generar, y no por falta de datos
+
+El libro tiene tres hojas —`Aulas Agendadas`, `Aulas Aplicadas (Campo)` y `Base
+de control`— y su cabecera explica el ciclo: la app genera el libro con lo que
+sabe y **deja vacías las columnas de la persona**, quien agenda llama a los
+docentes, quien supervisa llena el parte, y la app relee el libro para decidir.
+
+Pero se genera desde `s$monitoreo_aulas_plan`
+(`router_monitoreo.R:4855`), y **ese plan no existe en el proyecto**. Hoy el
+endpoint devolvería `E_AULAS_LIBRO_SIN_PLAN`.
+
+### La cadena y dónde se corta
+
+| Paso | Qué lo produce | Estado en HSVG2026 |
+|---|---|---|
+| 1. Sorteo | `calc_muestra_aulas_selection` | ✓ 190 titulares, 21 ago |
+| 2. Plan de recolección | `collection_state_seed` | ⚠ existe, del **1 ago**, 175 titulares |
+| 3. `monitoreo_aulas_plan` | `collection_handoff` | ✗ **no se ha hecho** |
+| 4. Libro operativo | `aulas_libro_generar` | ✗ imposible sin el 3 |
+
+### El defecto de fondo: el plan se siembra una vez y no hay vuelta
+
+`collection_state_seed` empieza así:
+
+```r
+if (!is.null(s$collection_state)) return(.collection_payload(..., seeded = FALSE))
+```
+
+Sembrar dos veces **no hace nada**, y entre los diez endpoints de recopiladores
+**no hay ninguno de reset ni de re-siembra**. La única vía para cambiar el plan es
+`PUT /api/recopiladores/plan` con un plan construido a mano y su
+`expected_revision`.
+
+Por eso el proyecto tiene un plan de hace veinte días: **se sembró entonces y no
+hay botón para rehacerlo**. El aviso de B3 dice que está desfasado; lo que falta
+es poder hacer algo al respecto.
+
+### Capacidad que falta
+
+**«Regenerar el plan desde el sorteo vigente»**, con las cautelas que el propio
+diseño impone: el plan está congelado a propósito, así que regenerarlo debe ser
+explícito, avisar de lo que se pierde —despliegue, materiales ya generados— y
+quedar registrado. Es el siguiente tick.
