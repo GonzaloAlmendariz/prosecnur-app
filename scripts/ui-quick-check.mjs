@@ -1342,7 +1342,7 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
     // nodos de la vista de fondo una vez por cada disparador abierto.
     const raizMedicion = alcance ? document.querySelector(alcance) : null;
     if (alcance && !raizMedicion) {
-      return { issues: [], controlTextMetrics: [], scrollJails: [], geometryAudits: [], geometryIssues: [], geometryCoverageMisses: [], alcanceAusente: true };
+      return { issues: [], controlTextMetrics: [], scrollJails: [], derrames: [], solapes: [], desbordes: [], geometryAudits: [], geometryIssues: [], geometryCoverageMisses: [], alcanceAusente: true };
     }
     const ambito = raizMedicion || document;
     const issues = [];
@@ -1631,6 +1631,121 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
         },
       });
       if (scrollJails.length >= 40) break;
+    }
+
+    // ── Paneles aplastados: el contenido se pinta FUERA de su marco ─────────
+    //
+    // `scrollJails` sólo mira una lista fija de contenedores de layout, así que
+    // un PANEL aplastado por su grid no lo veía. Medido en Monitoreo > Fuentes a
+    // 1024x600 el 2026-08-23: dos paneles en 14 y 26 px con 57 y 220 de
+    // contenido, dibujándose encima del panel siguiente — y el check decía
+    // `issues=0`. Verde por ausencia de detector.
+    //
+    // El criterio es la DESPROPORCIÓN, no el exceso: un panel con 300 px de
+    // contenido en 280 sólo está apretado, y uno con 220 en 26 está aplastado.
+    // Se exige menos de la mitad para no gritar por cada recorte legítimo, que
+    // es como un guardián se vuelve ruido y se ignora.
+    const derrames = [];
+    for (const el of Array.from(document.querySelectorAll(".pulso-panel,.mon-profile-panel"))) {
+      if (!isVisibleElement(el)) continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.height < 4) continue;
+      const style = window.getComputedStyle(el);
+      if (scrollableYValues.has(style.overflowY) || clippingYValues.has(style.overflowY)) continue;
+      if (hasScrollableYDescendant(el)) continue;
+      const contenido = el.scrollHeight;
+      if (contenido <= rect.height * 2) continue;
+      derrames.push({
+        type: "panel-aplastado",
+        ...describeEl(el),
+        alto: Math.round(rect.height),
+        contenido,
+        overflowY: style.overflowY,
+      });
+      if (derrames.length >= 20) break;
+    }
+
+    // ── Hermanos que se pisan ───────────────────────────────────────────────
+    //
+    // Medido en la misma pantalla: «Trazable» quedaba DEBAJO del botón
+    // «Importar plan», 70x5 px, porque tres columnas de 150 px de mínimo no
+    // caben en una caja de 347 y el grid se desborda sobre el vecino.
+    //
+    // Sólo hermanos en flujo normal: un `absolute` o un `sticky` se solapan a
+    // propósito y marcarlos sería el ruido que hace que nadie lea el informe.
+    const solapes = [];
+    const enFlujo = (el) => {
+      const st = window.getComputedStyle(el);
+      return st.position === "static" || st.position === "relative";
+    };
+    for (const padre of Array.from(document.querySelectorAll(".pulso-panel,.mon-profile-panel,.mon-profile-stack"))) {
+      const hijos = Array.from(padre.children).filter(
+        (c) => isVisibleElement(c) && enFlujo(c) && c.getBoundingClientRect().height > 8,
+      );
+      for (let i = 0; i < hijos.length && solapes.length < 20; i += 1) {
+        for (let j = i + 1; j < hijos.length; j += 1) {
+          const a = hijos[i].getBoundingClientRect();
+          const b = hijos[j].getBoundingClientRect();
+          const ix = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const iy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (ix > 4 && iy > 4) {
+            solapes.push({
+              type: "hermanos-solapados",
+              a: describeEl(hijos[i]),
+              b: describeEl(hijos[j]),
+              interseccion: `${Math.round(ix)}x${Math.round(iy)}`,
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    // ── Contenido que se sale de su caja ────────────────────────────────────
+    //
+    // El tercero, y el que de verdad habría cazado el defecto de las tarjetas:
+    // `aulas-ops-grid` medía 347 px y sus tres columnas de mínimo 150 sumaban
+    // 450, así que las tarjetas se pintaban 103 px más allá del borde de su
+    // propio contenedor, encima de los botones de al lado. Las CAJAS de los dos
+    // hermanos no se solapaban —una acababa en 434 y la otra empezaba en 440—,
+    // así que el detector de hermanos no lo veía: lo que se salía era el
+    // contenido, no el marco.
+    //
+    // Sólo con `overflow: visible`: si el padre recorta, el desborde no se
+    // pinta encima de nadie y es otra conversación (la de C4, que ya tiene su
+    // propio detector).
+    // Se compara con el padre DIRECTO y no con el panel: en el caso medido, las
+    // tarjetas se salían de `aulas-ops-grid` —347 px— y el panel que lo contiene
+    // mide 920, así que respecto al panel no había desborde ninguno. El marco
+    // que se rompe es siempre el más cercano.
+    const desbordes = [];
+    const contenedores = Array.from(
+      document.querySelectorAll(".pulso-panel,.mon-profile-panel"),
+    ).flatMap((panel) => Array.from(panel.querySelectorAll("*")).concat([panel]));
+    for (const padre of contenedores) {
+      if (!isVisibleElement(padre)) continue;
+      const pStyle = window.getComputedStyle(padre);
+      if (pStyle.overflowX !== "visible") continue;
+      if (pStyle.display !== "grid" && pStyle.display !== "flex") continue;
+      const pr = padre.getBoundingClientRect();
+      if (pr.width < 40) continue;
+      for (const hijo of Array.from(padre.children)) {
+        if (!isVisibleElement(hijo)) continue;
+        const hStyle = window.getComputedStyle(hijo);
+        if (hStyle.position !== "static" && hStyle.position !== "relative") continue;
+        const hr = hijo.getBoundingClientRect();
+        const fuera = Math.round(hr.right - pr.right);
+        if (fuera > 8) {
+          desbordes.push({
+            type: "contenido-fuera-de-caja",
+            ...describeEl(hijo),
+            dentroDe: describeEl(padre),
+            seSale: fuera,
+          });
+          break;
+        }
+      }
+      if (desbordes.length >= 20) break;
     }
 
     const geometryAudits = [];
@@ -2084,6 +2199,9 @@ export async function inspectDom(page, { projectMode, geometryGroups, geometryTo
       textSample: text.replace(/\s+/g, " ").trim().slice(0, 500),
       controlTextMetrics,
       scrollJails,
+      derrames,
+      solapes,
+      desbordes,
       geometryAudits,
       geometryIssues,
       geometryCoverageMisses,
@@ -2274,6 +2392,11 @@ function summarize(results, opts) {
   const popoversSinSuperficie = popovers.filter((item) => item.estado === "sin-superficie");
   const visualIssues = [...results.flatMap((item) => item.issues || []), ...popoverIssues];
   const scrollJails = results.flatMap((item) => item.scrollJails || []);
+  // Contenido que se pinta fuera de su marco, y hermanos que se pisan: los dos
+  // defectos que este check daba por buenos hasta el 2026-08-23.
+  const derrames = results.flatMap((item) => item.derrames || []);
+  const solapes = results.flatMap((item) => item.solapes || []);
+  const desbordes = results.flatMap((item) => item.desbordes || []);
   const geometryAudits = results.flatMap((item) => item.geometryAudits || []);
   const geometryIssues = results.flatMap((item) => item.geometryIssues || []);
   const geometryCoverageMisses = results.flatMap((item) => item.geometryCoverageMisses || []);
@@ -2295,6 +2418,14 @@ function summarize(results, opts) {
     popoverIssues: popoverIssues.length,
     popoversSinSuperficie: popoversSinSuperficie.length,
     scrollJails: scrollJails.length,
+    derrames: derrames.length,
+    solapes: solapes.length,
+    desbordes: desbordes.length,
+    // Los primeros, con su elemento: un gate que falla sin decir DÓNDE obliga a
+    // repetir el trabajo de encontrarlo.
+    derrameDetalle: derrames.slice(0, 5),
+    solapeDetalle: solapes.slice(0, 5),
+    desbordeDetalle: desbordes.slice(0, 5),
     geometryGroups: geometryAudits.length,
     geometryIssues: geometryIssues.length,
     geometryCoverageMisses: geometryCoverageMisses.length,
@@ -2307,6 +2438,9 @@ function summarize(results, opts) {
     waitSelectorMisses: waitSelectorMisses.length + postClickWaitSelectorMisses.length,
     ok: visualIssues.length === 0 &&
       scrollJails.length === 0 &&
+      derrames.length === 0 &&
+      solapes.length === 0 &&
+      desbordes.length === 0 &&
       geometryIssues.length === 0 &&
       geometryCoverageMisses.length === 0 &&
       globalOverflow.length === 0 &&
@@ -2404,7 +2538,18 @@ async function main() {
     if (stack.apiUrl) console.log(`[ui-quick-check] api: ${stack.apiUrl}`);
     if (stack.session) console.log(`[ui-quick-check] session: ${stack.session}`);
     for (const shot of summary.screenshots) console.log(`[ui-quick-check] screenshot: ${shot}`);
-    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
+    // Un gate que falla sin decir dónde obliga a repetir el trabajo de
+    // encontrarlo. Los primeros hallazgos van a stdout con su elemento.
+    for (const d of summary.derrameDetalle || []) {
+      console.log(`[ui-quick-check] derrame: ${d.selector || d.tag || "?"} alto=${d.alto} contenido=${d.contenido}`);
+    }
+    for (const d of summary.desbordeDetalle || []) {
+      console.log(`[ui-quick-check] se sale ${d.seSale}px: ${d.selector || d.tag || "?"} dentro de ${d.dentroDe?.selector || "?"}`);
+    }
+    for (const o of summary.solapeDetalle || []) {
+      console.log(`[ui-quick-check] solape ${o.interseccion}: ${o.a?.selector || o.a?.tag || "?"} × ${o.b?.selector || o.b?.tag || "?"}`);
+    }
+    console.log(`[ui-quick-check] ok=${summary.ok} captures=${summary.captures} issues=${summary.visualIssues} popovers=${summary.popovers} popoverIssues=${summary.popoverIssues} scrollJails=${summary.scrollJails} derrames=${summary.derrames} solapes=${summary.solapes} desbordes=${summary.desbordes} geometryGroups=${summary.geometryGroups} geometryIssues=${summary.geometryIssues} geometryCoverageMisses=${summary.geometryCoverageMisses} overflow=${summary.globalOverflow} pageErrors=${summary.pageErrors} apiErrors=${summary.apiErrors} resourceErrors=${summary.resourceErrors} projectMisses=${summary.projectMisses} waitSelectorMisses=${summary.waitSelectorMisses}`);
     if (!summary.ok && opts.failOnIssues) process.exitCode = 1;
   } finally {
     await cleanup();
