@@ -180,6 +180,32 @@ export function RecopiladoresShell() {
   const status = state?.deployment?.status
     ?? (state?.plan ? "accesos sin preparar" : "sin plan de recolección");
 
+  /**
+   * Qué pasos del recorrido ya están dados.
+   *
+   * Las cuatro secciones **son** una secuencia —el plan entra, se preparan los
+   * accesos, se generan los materiales y se entrega— y el selector las pintaba
+   * como cuatro botones intercambiables. Quien abre el módulo a mitad de trabajo
+   * no sabía qué falta para poder salir a campo.
+   *
+   * Es el patrón «estás aquí» de Cálculo de cursos-horario, cuyo recorrido marca
+   * el paso en curso con un badge. Aquí basta con un punto: el selector es
+   * navegación y no debe convertirse en un panel.
+   */
+  const pasosHechos: Record<RecopiladoresSeccion, boolean> = {
+    "plan-recoleccion": Boolean(state?.plan?.units?.length),
+    accesos: Boolean(state?.deployment?.bindings?.length),
+    // Un material renderizado deja su recibo: es la prueba de que existe algo
+    // que llevar, no de que se haya elegido una plantilla.
+    materiales: Boolean(state?.artifact_receipts?.length),
+    "entrega-campo": Boolean(payload?.handoff ?? state?.deployment?.handoff),
+  };
+  // El siguiente paso es el primero que falta. Con todos dados no se marca
+  // ninguno: el recorrido terminó y señalar uno inventaría trabajo.
+  const siguientePaso = (MODULE.sections
+    .map((s) => s.id as RecopiladoresSeccion)
+    .find((id) => !pasosHechos[id])) ?? null;
+
   const sectionSelector = (
     <GlidingTabList
       className="rec-section-selector"
@@ -198,10 +224,25 @@ export function RecopiladoresShell() {
             type="button"
             data-gliding-key={section.id}
             aria-pressed={active}
+            data-paso={
+              pasosHechos[section.id as RecopiladoresSeccion] ? "hecho"
+              : section.id === siguientePaso ? "siguiente" : undefined
+            }
             onClick={() => selectSection(section.id as RecopiladoresSeccion)}
           >
             <Icon size={15} aria-hidden />
             {section.label}
+            {/* El punto va después del rótulo y con texto para lector de
+                pantalla: un color solo no es una señal accesible. */}
+            {pasosHechos[section.id as RecopiladoresSeccion] ? (
+              <span className="rec-paso-marca" title="Ya está hecho">
+                <span className="pulso-sr-only"> · hecho</span>
+              </span>
+            ) : section.id === siguientePaso ? (
+              <span className="rec-paso-marca is-siguiente" title="Es lo siguiente">
+                <span className="pulso-sr-only"> · es lo siguiente</span>
+              </span>
+            ) : null}
           </button>
         );
       })}
