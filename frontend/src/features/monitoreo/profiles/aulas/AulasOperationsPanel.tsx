@@ -42,6 +42,10 @@ export function aulasHayPlan(config: MonitoreoAulasConfig | null | undefined) {
 
 export type AulasOperationsPanelProps = {
   config: MonitoreoAulasConfig | null;
+  /** De qué sorteo viene el plan y cuántas aulas hay listas para traer. Sirve
+      para distinguir «no hay nada que importar» de «hay 686 esperando», que es
+      justo lo que el hueco de Selección no decía. */
+  origen?: { selection_run_id?: string; unidades_disponibles?: number } | null;
   sources: MonitoreoSource[];
   busy: boolean;
   onImportPlan: () => void;
@@ -53,7 +57,7 @@ export type AulasOperationsPanelProps = {
 };
 
 export function AulasOperationsPanel({
-  config, sources, busy, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
+  config, sources, busy, origen = null, onImportPlan, onSyncField, onGenerarLibro, onImportarLibro,
 }: AulasOperationsPanelProps) {
   const entradaLibro = useRef<HTMLInputElement | null>(null);
   const hayPlan = aulasHayPlan(config);
@@ -62,6 +66,11 @@ export function AulasOperationsPanel({
   const imported = aulasPlanImported(config);
   const methodologyReady = Boolean(config?.frame_hash || Object.keys(config?.methodology ?? {}).length);
   const activeSources = sources.filter((source) => source.enabled);
+  // Aulas listas para traer desde el cálculo de muestra, cuando todavía no hay
+  // plan. Con plan no se anuncia: ahí lo que importa es de qué corrida viene.
+  const esperando = !hayPlan && origen?.selection_run_id
+    ? Number(origen.unidades_disponibles) || 0
+    : 0;
   const sourceKinds = Array.from(new Set(activeSources.map((source) => source.kind).filter(Boolean))).join(" · ") || "sin fuentes";
   const cards = [
     {
@@ -78,11 +87,18 @@ export function AulasOperationsPanel({
       // dos caminos y el del libro no trae `selection_run_id` —la distinción ya
       // está escrita en `aulasHayPlan` y no llegaba a la pantalla—. Decir por
       // cuál llegó es lo que convierte el hueco en información.
+      // Faltaba el tercer caso, y es el más común al abrir un proyecto recién
+      // sorteado: NO hay plan y SÍ hay una selección esperando. «Sin corrida
+      // importada» valía igual para eso que para un proyecto sin sorteo, así que
+      // el hueco no distinguía «no hay nada» de «hay 686 listas y nadie las ha
+      // traído».
       hint: config?.selection_run_id
         ? aulasOpsShortId(config.selection_run_id)
         : hayPlan
           ? `${filasDelPlan} del libro · sin corrida de cálculo`
-          : "sin corrida importada",
+          : esperando
+            ? `${esperando} cursos-horario sorteados sin traer`
+            : "el cálculo de muestra todavía no sorteó aulas",
       ready: imported,
     },
     {
