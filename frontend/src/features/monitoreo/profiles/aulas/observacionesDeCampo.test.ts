@@ -52,3 +52,63 @@ describe("observacionesDeCampo", () => {
     expect(r.observaciones[0].aulas).toBe(3);
   });
 });
+
+/**
+ * Las observaciones llegan por DOS caminos y el panel leía uno.
+ *
+ * El registro de esta app guarda su `field_note` en la fila del plan; el parte
+ * del libro lo trae en su propia hoja. El panel leía sólo los partes mientras su
+ * vacío decía «se escriben al registrar un aula» — el camino que no miraba.
+ *
+ * Medido el 2026-08-23 sobre el estudio de 193: registrando un aula con
+ * observación, la nota quedaba en el plan, `aulas_aplicadas` subía a 1 y el
+ * panel seguía enseñando cero. Es media reparación de un defecto que este mismo
+ * archivo documenta: se le dio superficie de lectura al `field_note` del libro y
+ * se dejó sin ella al del registro, que era el caso original.
+ */
+describe("observacionesDeCampo · las dos fuentes", () => {
+  const fila = (extra: Record<string, unknown>) => ({ operational_code: "CH 1", ...extra });
+
+  it("lee la nota del registro de la app, no sólo la del libro", () => {
+    const r = observacionesDeCampo([], [fila({ field_note: "El docente pidió empezar al final" })]);
+    expect(r.observaciones).toHaveLength(1);
+    expect(r.conNota).toBe(1);
+    expect(r.observaciones[0]?.texto).toContain("empezar al final");
+  });
+
+  it("junta las dos fuentes y agrupa por lo que dicen", () => {
+    const r = observacionesDeCampo(
+      [fila({ operational_code: "CH 2", field_note: "Aula cambiada" })],
+      [fila({ operational_code: "CH 3", field_note: "aula cambiada." })],
+    );
+    // Mismo texto en dos aulas distintas: un patrón, no dos incidencias sueltas.
+    expect(r.observaciones).toHaveLength(1);
+    expect(r.observaciones[0]?.aulas).toBe(2);
+    expect(r.observaciones[0]?.codigos).toEqual(["CH 2", "CH 3"]);
+  });
+
+  it("la misma aula con la misma nota por los dos caminos cuenta UNA vez", () => {
+    // Se registró en la app y además se transcribió al libro. Es un aula.
+    const r = observacionesDeCampo(
+      [fila({ field_note: "Sin novedad" })],
+      [fila({ field_note: "sin novedad" })],
+    );
+    expect(r.observaciones).toHaveLength(1);
+    expect(r.observaciones[0]?.aulas).toBe(1);
+    expect(r.conNota).toBe(1);
+  });
+
+  it("pero dos notas DISTINTAS de la misma aula son dos cosas que alguien vio", () => {
+    const r = observacionesDeCampo(
+      [fila({ field_note: "El proyector no andaba" })],
+      [fila({ field_note: "El docente pidió el final de la clase" })],
+    );
+    expect(r.observaciones).toHaveLength(2);
+  });
+
+  it("el denominador cuenta cada aula una vez, no la suma de las dos listas", () => {
+    // Sumar las listas daría «2 aulas» sobre un operativo de una.
+    const r = observacionesDeCampo([fila({})], [fila({})]);
+    expect(r.partes).toBe(1);
+  });
+});
