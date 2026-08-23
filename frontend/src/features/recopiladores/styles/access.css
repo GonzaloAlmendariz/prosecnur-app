@@ -1,10 +1,14 @@
+/* `min-height: 100%` y no `min-height: 0`: el panel de pestaña que los contiene
+   es un bloque con altura ya resuelta, así que sin esto el layout medía lo que
+   midiera su contenido y dejaba el resto del alto en blanco fuera de toda
+   superficie. Con él, el marco es el mismo con datos y sin datos. */
 .rec-access-layout,
 .rec-package-layout,
 .rec-delivery-layout {
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
-  min-height: 0;
+  min-height: 100%;
 }
 
 /* rec-target-panel/rec-access-result: desde E10 (última pieza) usan
@@ -187,4 +191,24 @@
   .rec-delivery-layout {
     grid-template-columns: 1fr;
   }
+}
+
+/* El panel de configuración se queda con el alto de sus campos: estirarlo a 800
+   píxeles dejaría media tarjeta en blanco bajo el último input. El de resultado
+   sí llena, porque es el que tiene que contener su propio vacío (C3). */
+.rec-access-layout > .rec-target-panel {
+  align-self: start;
+}
+
+.rec-access-layout > .rec-access-result {
+  height: 100%;
+  min-height: 0;
+}
+
+/* El contenido del panel toma el alto sobrante: sin esto el grid del Panel da
+   `auto` a esa fila, el vacío se queda en sus 180px pegado al encabezado y la
+   tarjeta enseña 600px en blanco por dentro. Las filas de más —los bloqueos, el
+   error— siguen entrando como filas implícitas `auto` debajo. */
+.rec-access-layout > .rec-access-result {
+  grid-template-rows: auto minmax(0, 1fr);
 }
