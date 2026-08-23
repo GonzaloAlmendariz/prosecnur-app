@@ -48,27 +48,28 @@ describe("la tabla del plan habla en códigos de campo", () => {
     expect(html).not.toContain("unit-aulas-aula-1-5524e6773d");
   });
 
-  it("la columna de cadena agrupa titular y reserva, en vez de decir M1 y M2", () => {
+  it("la cabecera habla de cursos-horario y reservas, no de «Grupo»", () => {
+    // «Grupo M1/M2» era la ola de muestra, que no ubica a nadie. Y la reserva ya
+    // no ocupa fila: cuelga de su titular, contada.
     const html = render([
       { unit_id: "u1", label: "AUL01", role: "titular", group: "M1",
         dimensions: { legacy_ref: "CH 1" } },
       { unit_id: "u2", label: "AUL02", role: "chain_reserve", group: "M2",
         dimensions: { legacy_ref: "R 1.2", replacement_for: "CH 1" } },
     ]);
-    expect(html).toContain("Cadena");
-    expect(html).toContain("<strong>R 1.2</strong>");
-    // Las dos filas se leen como una misma cadena: el titular es cabeza de la
-    // suya y la reserva declara de quién es.
-    expect(html.match(/CH 1/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(html).toContain("Curso-horario");
+    expect(html).toContain("Reservas");
+    expect(html).toContain("1 reserva");
     expect(html).not.toContain(">M2<");
   });
 
-  it("el banco se declara como banco, no como una cadena", () => {
+  it("un plan que sólo trae banco no finge tener aulas que visitar", () => {
+    // El banco es reserva de capacidad, no trabajo pendiente.
     const html = render([
       { unit_id: "u3", label: "AUL03", role: "extra_reserve_pool", group: "Extra",
         dimensions: { legacy_ref: "EXTRA 7" } },
     ]);
-    expect(html).toContain("Banco");
+    expect(html).not.toContain("<strong>EXTRA 7</strong>");
   });
 
   it("sin código operativo la fila no se queda muda", () => {
@@ -88,75 +89,59 @@ describe("la tabla del plan habla en códigos de campo", () => {
 // planes que se creen desde ahora: un plan ya congelado conserva el orden con
 // el que se guardó, y el plan es justamente un objeto que se congela. Por eso la
 // vista ordena siempre.
-describe("la vista ordena el plan como se recorre el operativo", () => {
-  const u = (code: string, role: string, seq?: number, ord?: number) => ({
+// **La tabla ya no lista las reservas.** Gonzalo: «primordialmente las aulas
+// titulares, por favor; los reemplazos son esos reemplazos que aparecen EN CASO
+// que no se llegue a lo esperado». Antes eran 700 filas —193 titulares y 507
+// reservas al mismo nivel—; ahora son 193, cada una con su plan B contado.
+//
+// El ORDEN de las cadenas y el agrupado se prueban donde viven, en
+// `lib/cadenaOperativa.test.ts`: aquí se prueba lo que la tabla enseña.
+describe("la tabla lista titulares y cuenta sus reservas", () => {
+  const u = (code: string, role: string, seq?: number, ord?: number, de?: string) => ({
     unit_id: code, label: code, role, group: "M1",
-    dimensions: { legacy_ref: code, operational_sequence: seq, replacement_order: ord },
-  });
-
-  const codigosEnPantalla = (html: string) =>
-    [...html.matchAll(/<strong>([^<]+)<\/strong>/g)].map((m) => m[1])
-      .filter((t) => /^(CH|R|EXTRA)\s/.test(t));
-
-  it("cada titular con sus reservas detrás y las cadenas en orden", () => {
-    const html = render([
-      u("CH 2", "titular", 2), u("R 1.2", "chain_reserve", 1, 2),
-      u("CH 1", "titular", 1), u("R 2.1", "chain_reserve", 2, 1),
-      u("R 1.1", "chain_reserve", 1, 1),
-    ]);
-    expect(codigosEnPantalla(html)).toEqual(["CH 1", "R 1.1", "R 1.2", "CH 2", "R 2.1"]);
-  });
-
-  it("el banco va al final, detrás de todas las cadenas", () => {
-    const html = render([
-      u("EXTRA 1", "extra_reserve_pool", 1),
-      u("CH 1", "titular", 1),
-      u("R 1.1", "chain_reserve", 1, 1),
-    ]);
-    expect(codigosEnPantalla(html)).toEqual(["CH 1", "R 1.1", "EXTRA 1"]);
-  });
-
-  it("sin secuencia declarada nadie se va a un sitio arbitrario", () => {
-    // Un plan viejo, anterior a que `operational_sequence` viajara: conserva su
-    // orden de entrada en vez de barajarse.
-    const html = render([
-      u("CH 1", "titular"), u("CH 2", "titular"), u("CH 3", "titular"),
-    ]);
-    expect(codigosEnPantalla(html)).toEqual(["CH 1", "CH 2", "CH 3"]);
-  });
-});
-
-// Un plan anterior a que `operational_sequence` viajara —el del estudio real—
-// sigue sabiendo de quién es cada reserva: `replacement_for` está desde antes.
-// Sin usarlo, la tabla las enseñaba barajadas (R1.6, R3.6, R2.6…) aunque cada
-// una declarara su titular.
-describe("un plan sin secuencia se ordena por su titular", () => {
-  const titular = (code: string) => ({
-    unit_id: code, label: code, role: "titular", group: "M1",
-    dimensions: { legacy_ref: code },
-  });
-  const reserva = (code: string, de: string, orden: number) => ({
-    unit_id: code, label: code, role: "chain_reserve", group: "M2",
-    dimensions: { legacy_ref: code, replacement_for: de, replacement_order: orden },
+    dimensions: { legacy_ref: code, operational_sequence: seq, replacement_order: ord,
+                  replacement_for: de },
   });
   const codigos = (html: string) =>
     [...html.matchAll(/<strong>([^<]+)<\/strong>/g)].map((m) => m[1])
-      .filter((t) => /^(AULA|R)\s?\d/.test(t));
+      .filter((t) => /^(CH|R|EXTRA|AULA)\s?\d/.test(t));
 
-  it("agrupa cada reserva con su titular, en el orden de los titulares", () => {
+  it("las reservas no ocupan una fila: se cuentan", () => {
     const html = render([
-      titular("AULA 1"), titular("AULA 2"), titular("AULA 3"),
-      reserva("R1.6", "AULA 1", 6), reserva("R3.6", "AULA 3", 6),
-      reserva("R2.6", "AULA 2", 6), reserva("R1.1", "AULA 1", 1),
+      u("CH 1", "titular", 1),
+      u("R 1.1", "chain_reserve", 1, 1, "CH 1"),
+      u("R 1.2", "chain_reserve", 1, 2, "CH 1"),
+      u("CH 2", "titular", 2),
     ]);
-    expect(codigos(html)).toEqual(["AULA 1", "R1.1", "R1.6", "AULA 2", "R2.6", "AULA 3", "R3.6"]);
+    expect(codigos(html)).toEqual(["CH 1", "CH 2"]);
+    expect(html).toContain("2 reservas");
   });
 
-  it("una reserva huérfana no se cuela en medio de las cadenas", () => {
-    // Su titular no está en el plan: va al final de las cadenas, no entre ellas.
+  it("una titular sin reservas lo dice, en vez de dejar la celda muda", () => {
+    const html = render([u("CH 1", "titular", 1)]);
+    expect(html).toContain("sin reservas");
+  });
+
+  it("el singular es singular", () => {
     const html = render([
-      titular("AULA 1"), reserva("R9.1", "AULA 9", 1), reserva("R1.1", "AULA 1", 1),
+      u("CH 1", "titular", 1), u("R 1.1", "chain_reserve", 1, 1, "CH 1"),
     ]);
-    expect(codigos(html)).toEqual(["AULA 1", "R1.1", "R9.1"]);
+    expect(html).toContain("1 reserva");
+    expect(html).not.toContain("1 reservas");
+  });
+
+  it("el banco tampoco es una fila de trabajo", () => {
+    // Reserva de capacidad, no aulas que visitar.
+    const html = render([
+      u("CH 1", "titular", 1), u("EXTRA 1", "extra_reserve_pool", 1),
+    ]);
+    expect(codigos(html)).toEqual(["CH 1"]);
+  });
+
+  it("la cadena se puede desplegar: el botón declara que está cerrada", () => {
+    const html = render([
+      u("CH 1", "titular", 1), u("R 1.1", "chain_reserve", 1, 1, "CH 1"),
+    ]);
+    expect(html).toContain('aria-expanded="false"');
   });
 });

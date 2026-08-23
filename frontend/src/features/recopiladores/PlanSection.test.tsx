@@ -68,10 +68,15 @@ describe("rol de cada unidad, traducido igual que la ficha impresa", () => {
       <PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} />,
     );
     expect(markup).toContain("Titular");
-    expect(markup).toContain("Reemplazo de AUL01");
-    expect(markup).toContain("Reserva adicional");
-    // Un rol no mapeado se muestra tal cual, no se inventa una etiqueta.
+    // Las reservas de cadena y el banco ya NO son filas de la tabla: la lista
+    // primaria son las titulares y el plan B se cuenta —«1 reserva»— hasta que
+    // alguien lo despliega. La traducción de sus roles sigue viva y se prueba
+    // sobre el modelo en `lib/cadenaOperativa.test.ts` y al desplegar.
+    expect(markup).toContain("1 reserva");
+    // Un rol no mapeado se muestra tal cual y NO desaparece: no cuelga de
+    // ninguna cadena, así que sale al final como huérfano en vez de perderse.
     expect(markup).toContain("un_rol_futuro_no_mapeado");
+    expect(markup).toContain("sin titular en el plan");
     expect(markup).not.toContain("chain_reserve");
     expect(markup).not.toContain("extra_reserve_pool");
   });

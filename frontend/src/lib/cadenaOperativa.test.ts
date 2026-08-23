@@ -5,7 +5,7 @@
 // no se agenda» estaba escrita en cinco sitios y el libro de campo se olvidó de
 // ella —2 121 filas donde debían ser 191—.
 import { describe, expect, it } from "vitest";
-import { cadenaDesdeCodigo, ordenarPorCadenaOperativa } from "./cadenaOperativa";
+import { agruparEnCadenas, cadenaDesdeCodigo, ordenarPorCadenaOperativa } from "./cadenaOperativa";
 
 type Fila = { codigo: string; rol: string; secuencia?: number; orden?: number; de?: string };
 const leer = (f: Fila) => ({
@@ -72,5 +72,69 @@ describe("ordenarPorCadenaOperativa", () => {
 
   it("una lista vacía no rompe", () => {
     expect(ordenarPorCadenaOperativa([], leer)).toEqual([]);
+  });
+});
+
+// «Primordialmente las aulas titulares, por favor; los reemplazos son esos
+// reemplazos que aparecen EN CASO que no se llegue a lo esperado en el aula
+// titular o la titular no haya podido ser efectiva.» —Gonzalo.
+//
+// Las tablas listaban 193 titulares y 507 reservas al mismo nivel: 700 filas que
+// dicen «hay 700 aulas que atender». No las hay.
+describe("agruparEnCadenas", () => {
+  it("la lista primaria son las titulares y las reservas cuelgan", () => {
+    const r = agruparEnCadenas([
+      { codigo: "CH 1", rol: "titular", secuencia: 1 },
+      { codigo: "R 1.1", rol: "chain_reserve", secuencia: 1, orden: 1, de: "CH 1" },
+      { codigo: "R 1.2", rol: "chain_reserve", secuencia: 1, orden: 2, de: "CH 1" },
+      { codigo: "CH 2", rol: "titular", secuencia: 2 },
+    ], leer);
+    expect(r.cadenas).toHaveLength(2);
+    expect(r.cadenas[0].titular?.codigo).toBe("CH 1");
+    expect(r.cadenas[0].reservas.map((x) => x.codigo)).toEqual(["R 1.1", "R 1.2"]);
+    expect(r.cadenas[1].reservas).toHaveLength(0);
+  });
+
+  it("el banco no es trabajo pendiente: sale aparte", () => {
+    const r = agruparEnCadenas([
+      { codigo: "CH 1", rol: "titular", secuencia: 1 },
+      { codigo: "EXTRA 1", rol: "extra_reserve_pool", secuencia: 1 },
+      { codigo: "EXTRA 2", rol: "extra_reserve_pool", secuencia: 2 },
+    ], leer);
+    expect(r.cadenas).toHaveLength(1);
+    expect(r.banco).toHaveLength(2);
+  });
+
+  it("una reserva sin `replacement_for` se reconoce por su código", () => {
+    // El plan del estudio real: «R1.6» es de la cadena 1 aunque no lo diga.
+    const r = agruparEnCadenas([
+      { codigo: "AULA 1", rol: "titular" },
+      { codigo: "R1.6", rol: "chain_reserve" },
+    ], leer);
+    expect(r.cadenas[0].reservas.map((x) => x.codigo)).toEqual(["R1.6"]);
+    expect(r.huerfanas).toHaveLength(0);
+  });
+
+  it("una reserva huérfana se enseña suelta, no se descarta", () => {
+    // Perder una fila en silencio es peor que enseñarla sin sitio.
+    const r = agruparEnCadenas([
+      { codigo: "CH 1", rol: "titular", secuencia: 1 },
+      { codigo: "R 9.1", rol: "chain_reserve", secuencia: 9, orden: 1, de: "CH 9" },
+    ], leer);
+    expect(r.cadenas).toHaveLength(1);
+    expect(r.huerfanas.map((x) => x.codigo)).toEqual(["R 9.1"]);
+  });
+
+  it("ninguna unidad se pierde por el camino", () => {
+    const filas: Fila[] = [
+      { codigo: "CH 1", rol: "titular", secuencia: 1 },
+      { codigo: "R 1.1", rol: "chain_reserve", secuencia: 1, orden: 1, de: "CH 1" },
+      { codigo: "EXTRA 1", rol: "extra_reserve_pool", secuencia: 1 },
+      { codigo: "R 9.9", rol: "chain_reserve", secuencia: 9, de: "CH 9" },
+    ];
+    const r = agruparEnCadenas(filas, leer);
+    const total = r.cadenas.reduce((n, c) => n + (c.titular ? 1 : 0) + c.reservas.length, 0)
+      + r.banco.length + r.huerfanas.length;
+    expect(total).toBe(filas.length);
   });
 });
