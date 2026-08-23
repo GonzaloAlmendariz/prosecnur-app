@@ -54,6 +54,24 @@ type Props = {
   onCargando?: (cargando: boolean) => void;
 };
 
+/**
+ * Lo que el bloque lleva escrito, si lleva algo.
+ *
+ * El outline enseñaba la clave interna —«brand», «unit», «course»— debajo del
+ * rótulo, que en inglés repite lo que el rótulo ya dice. El primer intento la
+ * cambió por el binding, y salió igual de técnico: «Título · label».
+ *
+ * Sólo el texto fijo distingue de verdad un bloque de otro del mismo tipo —dos
+ * instrucciones dicen cosas distintas— y es lo único que aquí informa. **Si no
+ * hay nada útil que decir, no se dice**: la clave vive en el inspector, que es
+ * donde se edita y donde sirve para seguir un binding.
+ */
+function descripcionDelBloque(block: { text?: string | null }): string {
+  const texto = (block.text ?? "").trim();
+  if (!texto) return "";
+  return texto.length > 44 ? `${texto.slice(0, 44)}…` : texto;
+}
+
 const BLOCK_LABELS: Record<CollectionBlockType, string> = {
   brand_header: "Cabecera de marca",
   heading: "Título",
@@ -428,7 +446,8 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         <PulsoButton variant="primary" size="sm" disabled={!payload || saving} onClick={() => { void saveTemplate(); }}>{saving ? <Loader2 size={14} className="pulso-spin" /> : <Save size={14} />} Guardar plantilla</PulsoButton>
       </div>
       <aside className="rec-outline" aria-label="Estructura de bloques">
-        <header><span>Outline</span><strong>{blocks.length} bloques</strong></header>
+        {/* «Outline» es la palabra del editor, no la de quien arma una ficha. */}
+        <header><span>La ficha, por partes</span><strong>{blocks.length} bloques</strong></header>
         <ol>{blocks.map((block, index) => (
           <li key={block.block_id} className="rec-outline-item">
             <button
@@ -437,7 +456,18 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               aria-current={selected?.block_id === block.block_id ? "true" : undefined}
               onClick={() => setSelectedId(block.block_id)}
             >
-              <span>{index + 1}</span><div><strong>{BLOCK_LABELS[block.type]}</strong><small>{block.block_id}</small></div>
+              {/* La clave interna del bloque —«brand», «unit», «log»— vive en el
+                  inspector, que es donde se edita y donde sirve para seguir un
+                  binding. Aquí, debajo de «Cabecera de marca», sólo repite en
+                  inglés lo que el rótulo ya dice. Se enseña QUÉ PINTA, que es lo
+                  que distingue dos bloques del mismo tipo. */}
+              <span>{index + 1}</span>
+              <div>
+                <strong>{BLOCK_LABELS[block.type]}</strong>
+                {descripcionDelBloque(block)
+                  ? <small>{descripcionDelBloque(block)}</small>
+                  : null}
+              </div>
             </button>
             <div className="rec-outline-reorder">
               <PulsoButton
@@ -470,7 +500,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             ))}</fieldset> : null}
             <PulsoButton variant="danger" size="sm" disabled={selected.required === true || selected.type === "access_qr"} onClick={removeSelected}><Trash2 size={14} /> Eliminar bloque</PulsoButton>
           </div>
-        ) : <div className="rec-contained-empty">Selecciona un bloque del outline.</div>}
+        ) : <div className="rec-contained-empty">Elige una parte de la ficha para editarla.</div>}
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
       </aside>
     </div>
