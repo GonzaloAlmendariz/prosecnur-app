@@ -820,7 +820,17 @@ function renderAulasView(
             // El plan de verdad, no lo que cupo en el payload: `course_status`
             // llega topeado a 500 filas y contar las recibidas hacía decir
             // «ninguno de los 42» sobre un plan de 686.
-            totalDelPlan={Number(dashboard.course_status_total_plan ?? 0) || 0}
+            //
+            // Y son los TITULARES, no el plan entero: desde que la agenda lista
+            // titulares, decir «ninguno de los 700» al pie de una tabla de 193
+            // vuelve a poner dos denominadores en la misma pantalla. Es el mismo
+            // efecto colateral que dejó «Libro de 2616 aulas» sobre un libro de
+            // 190: al cambiar lo que se cuenta hay que revisar quién lo cuenta.
+            totalDelPlan={
+              Number(dashboard.kpis?.aulas_titulares ?? 0)
+              || Number(dashboard.course_status_total_plan ?? 0)
+              || 0
+            }
           />
           <DataTable
             rows={agendaRows(dashboard)}

@@ -283,3 +283,32 @@ Patrones 1 (KPIs con procedencia), 3 (recorrido con «estás aquí»), 5 (explic
 en prosa), 6 (estado por cifra) y 7 (columna de acción). El 2 —el rastro
 conceptual— exige decidir antes cuál es el hilo que une las secciones de
 Monitoreo, y eso es una decisión de producto.
+
+
+## Trasladado el patrón 1: cada cifra dice de dónde sale
+
+En Cálculo, bajo «29,027» dice «base completa» y bajo «190», «P1 · Universidad ·
+8 · marco vigente». En Monitoreo la pista decía sólo **qué** se cuenta.
+
+El KPI del plan pasa de «titulares y sus reservas encadenadas» a **«titulares y
+reservas · sorteo del 22 de agosto»**. Conserva lo que ya resolvía —un equívoco
+de denominador real, documentado— y añade lo que faltaba: con dos corridas en el
+mismo estudio, de cuál salen esas 700.
+
+Verificado en pantalla. Y comprobado antes de escribirlo que `selection_run_id`
+**viaja en el dashboard** (`monitoreo_aulas_universitarias.R:1847`), en vez de
+darlo por hecho.
+
+Tres abstenciones: sin corrida se conserva la pista de siempre —un plan venido
+del libro no la trae, e inventarle una fecha sería peor—; una corrida con forma
+rara no produce «Invalid Date»; y la fecha sale del id, no del reloj.
+
+### Un efecto colateral de mi propio cambio, cazado al mirar
+
+Desde que la agenda lista titulares, su aviso seguía diciendo «ninguno de los
+**700** cursos-horario» al pie de una tabla de **193**: dos denominadores en la
+misma pantalla otra vez. Es el mismo patrón que dejó «Libro de 2616 aulas» sobre
+un libro de 190 — **al cambiar lo que se cuenta hay que revisar quién lo cuenta**.
+Ahora usa los titulares.
+
+4 asertos del KPI; 711 tests del perfil en verde.
