@@ -382,9 +382,27 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
  * importan, y hacían que el panel dijera «236 cursos-horario» dos dedos debajo
  * de un KPI que decía 196: la misma palabra con dos cifras.
  */
+/**
+ * Las reservas que hay detrás de la agenda, para poder decir cuántas son.
+ *
+ * No se listan: la agenda es la vista del agendador, que llama TITULAR por
+ * titular. Una reserva es un plan B que sólo entra en juego el día que su
+ * titular se declara caída — enseñárselas mezcladas le multiplica la lista por
+ * 3,6 y le dice que hay 700 aulas que atender donde hay 193.
+ */
+function agendaReservas(dashboard: MonitoreoAulasDashboard | null) {
+  return ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
+    .filter((fila) => String(fila.sample_role ?? "") === "chain_reserve").length;
+}
+
 function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   const filas = ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
-    .filter((fila) => String(fila.sample_role ?? "") !== "extra_reserve_pool");
+    .filter((fila) => {
+      const rol = String(fila.sample_role ?? "");
+      // Ni el banco —capacidad, no visitas— ni las reservas de cadena. Ver
+      // `agendaReservas` y `docs/qa/roles-del-operativo-de-aulas-2026-08-22.md`.
+      return rol !== "extra_reserve_pool" && rol !== "chain_reserve";
+    });
   // En el orden en que se recorre el operativo: cada titular con sus reservas
   // detrás. La tabla las enseñaba en el orden crudo del plan, que agrupa por rol
   // —todos los titulares y después todas las reservas—, así que la cadena, que
@@ -750,8 +768,15 @@ function renderAulasView(
                 escribe `aulas_libro_hoja_agendadas()` y las vuelve a leer
                 `aulas_agendadas_leer()`. */}
             <h3>Aulas agendadas</h3>
-            {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. */}
-            <span>{fmt(agendaRows(dashboard).length)} cursos-horario</span>
+            {/* Cuenta lo que la tabla ENSEÑA, no lo que trae el payload. Y las
+                reservas se declaran al lado en vez de listarse: existen, pero no
+                son trabajo del agendador hasta que una titular se cae. */}
+            <span>
+              {fmt(agendaRows(dashboard).length)} cursos-horario
+              {agendaReservas(dashboard)
+                ? ` · ${fmt(agendaReservas(dashboard))} reservas detrás`
+                : ""}
+            </span>
           </div>
           {/* Primero cuándo se aplica cada cosa —que es lo que se pregunta al
               entrar a Agenda— y después la tabla, que es donde se busca un
