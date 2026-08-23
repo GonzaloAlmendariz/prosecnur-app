@@ -418,7 +418,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
                 <img src={downloadUrl(renderResult.file_id)} alt="Preview PNG autoritativa del material" />
               ) : null}
               <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
-              <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar artefacto</a>
+              <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
             </div>
           ) : <div className="rec-contained-empty">El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto.</div>}
           {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}

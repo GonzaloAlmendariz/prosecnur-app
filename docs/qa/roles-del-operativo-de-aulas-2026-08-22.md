@@ -652,3 +652,33 @@ En pantalla: «Instrucciones · Escanea el QR para responder…» lleva subtítu
 Y «outline», «wireframe» y «mockup» entran al guardián. Al hacerlo cazó una más
 que se me había pasado: «Selecciona un bloque del **outline**» → «Elige una parte
 de la ficha para editarla».
+
+
+## Entrega, y el límite que tenía el guardián
+
+Mirada la cuarta sección en pantalla, seguía diciendo «**HANDOFF LOCAL**»,
+«**Manifest** de entrega y **artefactos**», «**Target**» y «Falta preparar el
+**deployment**».
+
+Lo interesante no son los textos —«Entrega», «Recibo de lo entregado»,
+«Plataforma», «Falta preparar los accesos»— sino **por qué el guardián no los
+vio**:
+
+1. `handoff`, `manifest`, `artefacto` y `target` no estaban en la lista. Ya están.
+2. Y el más importante: **«Falta preparar un deployment» no vive en un `.tsx`**,
+   sino en `handoffModel.ts`. El guardián sólo miraba las pantallas.
+
+**Un guardián que sólo mira donde es cómodo mirar da verde por no haber ido al
+sitio.** Ahora recorre también los modelos que producen texto de usuario
+—`handoffModel`, `providerRules`, `navegacion`—.
+
+Al ampliarlo cazó otra que se me había pasado: «Descargar **artefacto**» →
+«Descargar la ficha».
+
+Medido en pantalla: cero apariciones de las cinco.
+
+### Estado del vocabulario
+
+Las **cuatro secciones** de Recopiladores y el perfil de aulas de Monitoreo pasan
+el guardián, que cubre pantallas **y** modelos, con su aserto contra el verde
+vacío y verificado inyectándole jerga a propósito.

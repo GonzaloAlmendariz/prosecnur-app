@@ -63,7 +63,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
     <div className="rec-delivery-layout">
       <Panel
         className="rec-handoff-card"
-        eyebrow="Handoff local"
+        eyebrow="Entrega"
         title={<><Send size={18} aria-hidden /> Lo que se entrega a Monitoreo</>}
       >
         <div className={`rec-handoff-status${readiness.delivered ? " is-delivered" : readiness.ready ? " is-ready" : " is-blocked"}`}>
@@ -73,7 +73,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
         <dl>
           <div><dt>Accesos</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>
           <div><dt>Cobertura</dt><dd>{deployment ? `${deployment.coverage.units_with_access}/${deployment.coverage.units_total}` : "—"}</dd></div>
-          <div><dt>Target</dt><dd>{deployment ? providerLabel(deployment.target.provider) : "—"}</dd></div>
+          <div><dt>Plataforma</dt><dd>{deployment ? providerLabel(deployment.target.provider) : "—"}</dd></div>
           <div><dt>Huella</dt><dd title={readiness.fingerprint}>{shortFingerprint(readiness.fingerprint)}</dd></div>
         </dl>
         <PulsoButton variant="primary" onClick={() => { void handoff(); }} disabled={!readiness.ready || readiness.delivered || busy}>
@@ -88,7 +88,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
         className="rec-receipt-card"
         data-qa-geometry-capacity="owned"
         eyebrow="Recibo estable"
-        title={<><FileCheck2 size={18} aria-hidden /> Manifest de entrega y artefactos</>}
+        title={<><FileCheck2 size={18} aria-hidden /> Recibo de lo entregado</>}
       >
         {receipt ? (
           <article className="rec-receipt">

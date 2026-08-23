@@ -23,12 +23,23 @@ import { jergaVisibleEn, textoVisibleDe } from "../../lib/qa/textoVisible";
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const leer = (archivo: string) => fs.readFileSync(path.join(aqui, archivo), "utf8");
 
+/**
+ * Las pantallas **y los modelos que producen su texto**.
+ *
+ * El guardián sólo miraba los `.tsx` y se le escapó «Falta preparar un
+ * deployment», que vive en `handoffModel.ts`: el texto de usuario no siempre
+ * está en el componente que lo pinta. Un guardián que sólo mira donde es cómodo
+ * mirar da verde por no haber ido al sitio.
+ */
 const SECCIONES = [
   "RecopiladoresShell.tsx",
   "PlanSection.tsx",
   "AccessSection.tsx",
   "MaterialsSection.tsx",
   "DeliverySection.tsx",
+  "handoffModel.ts",
+  "providerRules.ts",
+  "navegacion.ts",
 ];
 
 describe("ninguna pantalla de Recopiladores habla en jerga", () => {
