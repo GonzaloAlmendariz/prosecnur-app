@@ -5004,3 +5004,37 @@
   border-color: color-mix(in srgb, var(--pulso-module-monitoring) 45%, var(--pulso-border));
   color: var(--pulso-module-monitoring);
 }
+
+
+/* **Dónde está el operativo ahora mismo.** El recorrido de Cálculo marca con un
+   badge en qué paso estás; estas cuatro tarjetas eran una rejilla al mismo
+   nivel. La fase en curso es la primera que todavía no está lista.
+
+   `absolute` a propósito: el grupo declara contrato `equal` y un renglón de más
+   en una sola tarjeta rompería el alto común de las cuatro. Y el `article` es
+   un grid con áreas nombradas, así que un hijo en el flujo sin área asignada
+   descolocaría el resto. */
+.mon-profile-page.is-aulas-flow .mon-aulas-handoff-grid article {
+  position: relative;
+}
+
+.mon-profile-page.is-aulas-flow .mon-aulas-handoff-grid article[data-fase="actual"] {
+  border-color: var(--pulso-module-monitoring-border);
+}
+
+.mon-profile-page.is-aulas-flow .mon-aulas-fase-aqui {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--pulso-module-monitoring-border);
+  background: var(--pulso-module-monitoring-soft);
+  color: var(--pulso-module-monitoring);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}

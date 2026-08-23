@@ -530,13 +530,30 @@ function HandoffTracePanel({ dashboard }: { dashboard: MonitoreoAulasDashboard |
         // espacio interior.
         data-qa-geometry-capacity="owned"
       >
-        {cards.map((card) => (
-          <article key={card.label} className={`is-${card.tone}`}>
-            <span>{card.label}</span>
-            <strong>{card.value}</strong>
-            <p>{card.detail}</p>
-          </article>
-        ))}
+        {/* **En qué paso está el operativo.** Patrón 3 del catálogo: el
+            recorrido de Cálculo marca con un badge dónde estás, y estas cuatro
+            tarjetas eran una rejilla al mismo nivel —tenían tono `current` y
+            nadie lo leía como «aquí»—. La fase en curso es la primera que
+            todavía no está lista; si todas lo están, no se marca ninguna: el
+            operativo ya pasó la preparación.
+
+            El badge va POSICIONADO y no en el flujo: el grupo declara contrato
+            `equal` y una tarjeta con un renglón de más rompería el alto común. */}
+        {cards.map((card, i) => {
+          const enCurso = cards.findIndex((c) => c.tone !== "ready") === i;
+          return (
+            <article
+              key={card.label}
+              className={`is-${card.tone}`}
+              data-fase={enCurso ? "actual" : undefined}
+            >
+              {enCurso ? <em className="mon-aulas-fase-aqui">Estás aquí</em> : null}
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <p>{card.detail}</p>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
