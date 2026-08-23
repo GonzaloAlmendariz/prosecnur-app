@@ -215,39 +215,6 @@ export function RegistroDeCampo({
     ),
     [agenda],
   );
-  // Cuántas siguen sin pasar por aquí. Es lo que viene a saber quien abre la
-  // pestaña.
-  //
-  // **Un aula REEMPLAZADA no está «todavía sin registrar»: no va a registrarse
-  // nunca.** Cuando un titular cae, su reserva toma el relevo y él se queda en
-  // `planificada` para siempre —nunca llegó a salir—. Contar ese estado a secas
-  // decía «26 de 196 todavía sin registrar» y, medido, **las 26 eran
-  // reemplazadas**: la pestaña mandaba a registrar veintiséis aulas muertas y
-  // callaba las dieciocho que de verdad esperan su parte.
-  //
-  // La condición se escribe por lo que DESCARTA —muerta, o ya registrada— y todo
-  // lo demás cuenta: un estado que nadie previó sobre un aula viva es justo lo
-  // que alguien tiene que mirar.
-  const porRegistrar = useMemo(
-    () => filas.filter((r) => {
-      if (String(r.sample_status ?? "").toLowerCase() === "reemplazada") return false;
-      const circuito = String(r.operational_status ?? "").toLowerCase();
-      return circuito !== "aplicada" && circuito !== "cerrada";
-    }).length,
-    [filas],
-  );
-  // Las que NO se van a registrar nunca. Son el puente entre las 196 de la lista
-  // y el denominador de la cifra: sin nombrarlas, «18 de 170» junto a una lista
-  // de 196 filas se lee como que faltan aulas.
-  const reemplazadas = useMemo(
-    () => filas.filter((r) => String(r.sample_status ?? "").toLowerCase() === "reemplazada").length,
-    [filas],
-  );
-  const activa = useMemo(
-    () => filas.find((r) => String(r.operational_code ?? r.classroom_id) === seleccion) ?? null,
-    [filas, seleccion],
-  );
-
   // Cuántas de estas aulas YA tienen parte en el libro.
   //
   // Se cuenta contra la hoja de partes y NO contra `operational_status`, que fue
@@ -267,6 +234,50 @@ export function RegistroDeCampo({
     }
     return conParte;
   }, [partes]);
+
+  // Cuántas siguen sin pasar por aquí. Es lo que viene a saber quien abre la
+  // pestaña.
+  //
+  // **Un aula REEMPLAZADA no está «todavía sin registrar»: no va a registrarse
+  // nunca.** Cuando un titular cae, su reserva toma el relevo y él se queda en
+  // `planificada` para siempre —nunca llegó a salir—. Contar ese estado a secas
+  // decía «26 de 196 todavía sin registrar» y, medido, **las 26 eran
+  // reemplazadas**: la pestaña mandaba a registrar veintiséis aulas muertas y
+  // callaba las dieciocho que de verdad esperan su parte.
+  //
+  // La condición se escribe por lo que DESCARTA —muerta, o ya registrada— y todo
+  // lo demás cuenta: un estado que nadie previó sobre un aula viva es justo lo
+  // que alguien tiene que mirar.
+  //
+  // **Y tampoco lo está la que ya trae parte en el libro.** El descarte miraba
+  // sólo `operational_status`, que es justo el campo del que el contador de más
+  // abajo advierte —con estas palabras— que «se queda en planificada aunque el
+  // parte exista» porque lo mueve esta misma pantalla al guardar. Resultado
+  // medido con tres partes importados: la pestaña decía «700 de 700 todavía sin
+  // registrar» dos líneas debajo de «3 con parte en el libro». El mismo defecto
+  // estaba ya reparado en el contador de al lado y en el desglose por facultad;
+  // este se quedó atrás.
+  const porRegistrar = useMemo(
+    () => filas.filter((r) => {
+      if (String(r.sample_status ?? "").toLowerCase() === "reemplazada") return false;
+      if (codigosConParte.has(String(r.operational_code ?? "").trim())) return false;
+      const circuito = String(r.operational_status ?? "").toLowerCase();
+      return circuito !== "aplicada" && circuito !== "cerrada";
+    }).length,
+    [filas, codigosConParte],
+  );
+  // Las que NO se van a registrar nunca. Son el puente entre las 196 de la lista
+  // y el denominador de la cifra: sin nombrarlas, «18 de 170» junto a una lista
+  // de 196 filas se lee como que faltan aulas.
+  const reemplazadas = useMemo(
+    () => filas.filter((r) => String(r.sample_status ?? "").toLowerCase() === "reemplazada").length,
+    [filas],
+  );
+  const activa = useMemo(
+    () => filas.find((r) => String(r.operational_code ?? r.classroom_id) === seleccion) ?? null,
+    [filas, seleccion],
+  );
+
   const conRegistro = useMemo(
     () => (codigosConParte.size
       ? filas.filter((r) => codigosConParte.has(String(r.operational_code ?? "").trim())).length
