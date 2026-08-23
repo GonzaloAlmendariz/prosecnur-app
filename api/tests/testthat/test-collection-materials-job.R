@@ -5,12 +5,16 @@
     list(
       selection_run_id = "render-1", operational_code = "MAT-01", label = "Aula 1",
       wave = "M1", faculty = "Ingenieria", course_id = "Calculo",
+      # Con su rol: el paquete separa por facultad Y por rol, y sin declararlo
+      # las dos unidades caerian en el mismo cajon «Otros».
+      sample_role = "titular",
       schedule = "08:00", venue = "A-201", teacher = "Docente 1", eligible_n = 30,
       link = "https://kf.kobotoolbox.org/x/form?d%5BcollectorID%5D=MAT-01"
     ),
     list(
       selection_run_id = "render-1", operational_code = "MAT-02", label = "Aula 2",
       wave = "M1", faculty = "Derecho", course_id = "Derecho",
+      sample_role = "chain_reserve",
       schedule = "10:00", venue = "B-101", teacher = "Docente 2", eligible_n = 25,
       link = "https://kf.kobotoolbox.org/x/form?d%5BcollectorID%5D=MAT-02"
     )
@@ -127,10 +131,13 @@ test_that("bundle separa un PDF por unidad en Fichas/<facultad>/, sin manifest J
 
   result <- collection_material_render_job(snapshot_path, "bundle", path)
   listing <- utils::unzip(path, list = TRUE)$Name
-  # Fixture: "Aula 1" en Ingenieria, "Aula 2" en Derecho (facultades
-  # distintas) -> dos carpetas, un PDF cada una.
+  # Una carpeta por facultad y, dentro, un cajon por rol: quien imprime reparte
+  # por facultad y separa lo que SE VISITA de lo que solo entra si algo cae. Y
+  # el nombre del curso-horario va EN MAYUSCULAS.
   expect_setequal(listing, c(
-    "Fichas/Ingenieria/Aula 1.pdf", "Fichas/Derecho/Aula 2.pdf", "accesos.tsv"
+    "Fichas/Ingenieria/Titulares/AULA 1.pdf",
+    "Fichas/Derecho/Reemplazos/AULA 2.pdf",
+    "accesos.tsv"
   ))
   expect_false(any(grepl("manifest[.]json$", listing, ignore.case = TRUE)))
   expect_identical(result$media_type, "application/zip")
@@ -141,8 +148,8 @@ test_that("bundle separa un PDF por unidad en Fichas/<facultad>/, sin manifest J
   dir.create(unpack)
   utils::unzip(path, exdir = unpack)
   # Cada PDF por unidad tiene una sola pagina -ya no es un PDF combinado.
-  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Ingenieria/Aula 1.pdf")), 1L)
-  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Derecho/Aula 2.pdf")), 1L)
+  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Ingenieria/Titulares/AULA 1.pdf")), 1L)
+  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Derecho/Reemplazos/AULA 2.pdf")), 1L)
   tsv <- utils::read.delim(file.path(unpack, "accesos.tsv"), stringsAsFactors = FALSE)
   expect_identical(tsv$unit_id, vapply(result$page_map, `[[`, character(1), "unit_id"))
   expect_true(all(grepl("^https://", tsv$qr_payload)))
@@ -156,6 +163,9 @@ test_that("dos unidades de la misma facultad con el mismo label no se pisan", {
     list(
       selection_run_id = "render-1", operational_code = "MAT-01", label = "Aula 1",
       wave = "M1", faculty = "Ingenieria", course_id = "Calculo",
+      # Con su rol: el paquete separa por facultad Y por rol, y sin declararlo
+      # las dos unidades caerian en el mismo cajon «Otros».
+      sample_role = "titular",
       schedule = "08:00", venue = "A-201", teacher = "Docente 1", eligible_n = 30,
       link = "https://kf.kobotoolbox.org/x/form?d%5BcollectorID%5D=MAT-01"
     ),
@@ -178,7 +188,8 @@ test_that("dos unidades de la misma facultad con el mismo label no se pisan", {
   collection_material_render_job(snapshot_path, "bundle", path)
   listing <- utils::unzip(path, list = TRUE)$Name
   expect_setequal(listing, c(
-    "Fichas/Ingenieria/Aula 1.pdf", "Fichas/Ingenieria/Aula 1 (2).pdf", "accesos.tsv"
+    "Fichas/Ingenieria/Titulares/AULA 1.pdf", "Fichas/Ingenieria/Titulares/AULA 1 (2).pdf",
+    "accesos.tsv"
   ))
 })
 

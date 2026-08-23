@@ -39,6 +39,33 @@
   if (!nzchar(value)) fallback else value
 }
 
+#' La carpeta de un rol dentro de su facultad.
+#'
+#' Tres cajones y no uno solo: quien imprime reparte por facultad y dentro
+#' separa lo que SE VISITA de lo que solo entra si algo cae. Con las 2.616 fichas
+#' del sorteo del 22 en una sola carpeta por facultad, la de Ciencias e
+#' Ingenieria tiene 574 PDF y encontrar la de un titular concreto es imposible.
+#'
+#' Los nombres salen del diccionario de la propia ficha que va dentro
+#' (`.crf_role_label`): «Titular», «Reemplazo», «Reserva adicional». Que la
+#' carpeta se llame como el rol impreso en el papel que contiene es lo que
+#' evita tener que traducir dos veces.
+#'
+#' Un rol que no conocemos NO se reparte a ojo: va a «Otros» y se ve. Meterlo en
+#' cualquiera de los tres cajones cambiaria en silencio lo que alguien lleva a
+#' campo.
+.cmj_carpeta_de_rol <- function(role_key) {
+  key <- tolower(gsub("[ -]+", "_", trimws(as.character(role_key %||% "")[1])))
+  switch(
+    key,
+    titular = "Titulares",
+    chain_reserve = "Reemplazos",
+    reserva = "Reemplazos",
+    extra_reserve_pool = "Adicionales",
+    "Otros"
+  )
+}
+
 # Vista de una sola pagina sobre un `compiled` ya armado, para poder llamar a
 # `collection_material_render_compiled()` sin reimplementar el device PDF por
 # unidad. `layout_fingerprint` se conserva del compilado completo a
@@ -142,10 +169,17 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
     seen_names <- new.env(parent = emptyenv())
     for (i in seq_len(n_pages)) {
       page_i <- compiled$pages[[i]]
-      folder <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
+      facultad <- .cmj_path_segment(page_i$unit$faculty, "Sin facultad")
+      cajon <- .cmj_carpeta_de_rol(page_i$unit$role_key)
+      folder <- file.path(facultad, cajon)
       folder_path <- file.path(fichas_dir, folder)
-      dir.create(folder_path, showWarnings = FALSE)
-      base_name <- .cmj_path_segment(page_i$unit$label, page_i$unit$unit_id %||% sprintf("unidad-%d", i))
+      dir.create(folder_path, recursive = TRUE, showWarnings = FALSE)
+      # El nombre del curso-horario EN MAYUSCULAS. El marco lo trae en minuscula
+      # —«urb209_0601»— y en una carpeta de cientos de PDF la caja uniforme es
+      # lo que deja escanear la lista sin leerla entera.
+      base_name <- toupper(
+        .cmj_path_segment(page_i$unit$label, page_i$unit$unit_id %||% sprintf("unidad-%d", i))
+      )
       key <- file.path(folder, base_name)
       count <- (if (exists(key, envir = seen_names, inherits = FALSE)) get(key, envir = seen_names) else 0L) + 1L
       assign(key, count, envir = seen_names)
