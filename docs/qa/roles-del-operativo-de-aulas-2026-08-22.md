@@ -626,3 +626,29 @@ cinco sitios—.
 **Verificado contra sí mismo**: inyectada la frase «El deployment viene de otro
 fingerprint» en una pantalla, el test falla nombrando los dos términos. Un
 guardián que sólo se ha visto en verde no se ha visto.
+
+
+## El editor de la ficha hablaba de «outline» y de claves internas
+
+Mirada la sección Materiales en pantalla —sólo había traducido sus textos, no
+visto su pantalla—:
+
+- El panel de bloques se titulaba **«Outline»**, palabra de herramienta de
+  diseño. Ahora **«La ficha, por partes»**.
+- Y cada bloque llevaba debajo su **clave interna**: «Cabecera de marca ·
+  **brand**», «Título · **unit**», «Registro de aplicación · **log**». En inglés
+  y repitiendo lo que el rótulo ya dice.
+
+**Dos intentos, y el primero no valía**: cambié la clave por el binding y salió
+igual de técnico —«Título · label»—. Lo que de verdad distingue un bloque de otro
+del mismo tipo es **lo que lleva escrito**: dos instrucciones dicen cosas
+distintas. Así que el subtítulo es el texto fijo, y **si no hay nada útil que
+decir, no se dice**; la clave vive en el inspector, que es donde se edita y donde
+sirve para seguir un binding.
+
+En pantalla: «Instrucciones · Escanea el QR para responder…» lleva subtítulo;
+«Separador» y «Pie de página» no llevan ninguno.
+
+Y «outline», «wireframe» y «mockup» entran al guardián. Al hacerlo cazó una más
+que se me había pasado: «Selecciona un bloque del **outline**» → «Elige una parte
+de la ficha para editarla».

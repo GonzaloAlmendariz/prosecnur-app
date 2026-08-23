@@ -51,6 +51,9 @@ export const JERGA_DE_ARQUITECTURA = [
   "adapter", "backend", "artefacto renderizado", "fingerprint",
   "plantilla semántica", "recipient link", "autoritativo",
   "snapshot", "endpoint",
+  // Palabras de herramienta de diseño, no del operativo: el panel de bloques de
+  // la ficha se titulaba «Outline».
+  "outline", "wireframe", "mockup",
 ];
 
 /** Los términos de jerga que aparecen en el texto visible de un fuente. */
