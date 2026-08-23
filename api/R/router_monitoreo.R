@@ -1153,6 +1153,9 @@
   }
   list(
     ok = TRUE,
+    # De que sorteo viene el plan de aulas y si sigue siendo el vigente. La
+    # comparacion vive en `monitoreo_aulas_origen_vigente.R`.
+    aulas_origen = monitoreo_aulas_origen_vigente(s),
     sources = sources,
     config = cfg_payload,
     monitoreo_profile = cfg$monitoreo_profile %||% monitoreo_normalize_profile(list()),
