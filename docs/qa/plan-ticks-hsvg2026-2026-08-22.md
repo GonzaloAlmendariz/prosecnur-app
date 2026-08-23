@@ -1296,7 +1296,7 @@ API real: relanzada con el fix, la misma llamada que daba 500 guarda la elecció
   real estaría mostrando un aviso de desfase falso.
 
 
-## ABIERTO — la elección de modo no persiste (diagnóstico parcial)
+## ~~ABIERTO — la elección de modo no persiste~~ · FALSO, era mi instrumento
 
 Reparado el 500 del `$` parcial, la pantalla **sigue sin avanzar**, y ahora se ve
 por qué: la elección se aplica y **se revierte sola**.
@@ -1337,3 +1337,47 @@ general y el de aulas— y a que la normalización del perfil cae al default
 **No se afirma la causa sin comprobarla.** Queda como siguiente paso, con la
 reproducción ya montada: proyecto `HSVG2026_con_libro.pulso`, API en 8787, front
 en 5173.
+
+
+## El «defecto» de la elección de modo no existía: lo fabricó mi instrumento
+
+Reparado el 500 del `$`, la elección **funciona**. Se entra al perfil de aulas,
+modo «Cursos-horario», y ahí está la mesa de trabajo.
+
+Lo que me hizo creer lo contrario: **cada `curl` sin cabecera de sesión crea una
+sesión nueva**. `.monitoreo_session()` hace `session_create()` cuando no
+reconoce el `X-Pulso-Session`, y el bootstrap no expone el sid, así que:
+
+- mi POST escribía en una sesión efímera y mi GET leía otra, recién creada, con
+  la config por defecto — de ahí el «no persiste»;
+- y mis curls corrían **mientras miraba el log del servidor**, así que las líneas
+  `family=acreditacion` que leí como «se revierte sola» eran mías.
+
+Dos verificaciones que sí valían y que apuntaban a que el backend estaba bien:
+`monitoreo_normalize_config` conserva el perfil aunque el `previous_config` diga
+`acreditacion`, y normalizar tres veces seguidas con datos vacíos tampoco lo
+pierde. Ignoré esa señal y seguí buscando en el sitio equivocado.
+
+**La regla que faltaba**: una prueba por HTTP contra una API con sesión sólo vale
+si las peticiones comparten sesión. Si el sid no se puede fijar, la prueba se
+hace por la UI, que sí la mantiene — que es como se cerró.
+
+## ABIERTO — «CORTE» dice dos cosas opuestas en la misma pantalla
+
+Visto en la pantalla real, con el proyecto abierto y a la vez:
+
+| Dónde | Rótulo | Valor |
+|---|---|---|
+| Barra superior del módulo | CORTE | **Sin corte** |
+| Tarjeta de Fuentes | CORTE | **22/8/2026** |
+
+Mismo rótulo, valores contradictorios, visibles de un vistazo sin scrollear. Es
+la familia más productiva de este perfil —una palabra para dos cosas— y aquí no
+son dos denominadores: son dos **conceptos** distintos con el mismo nombre. Uno
+habla del corte de sincronización de datos y el otro del sello del tablero, que
+es contra el que se mide el atraso.
+
+Queda por decidir cuál se renombra. La tarjeta acaba de ganar su fecha en esta
+serie y su pista dice «todo el atraso se mide contra este día», así que es la que
+tiene el significado más cargado; el de la barra parece ser «última
+sincronización».
