@@ -126,9 +126,17 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
           : `Los ${fmt(enJuego)} cursos-horario en juego ya salieron.`}
         {/* Y las dormidas se nombran en vez de desaparecer de la frase: si el
             lector ve 269 en la cabecera y 199 aquí, la diferencia tiene que
-            estar dicha. */}
+            estar dicha.
+
+            «en reserva» y NO «en el banco»: son dos conjuntos distintos y la
+            frase llamaba banco al que no lo es. Medido el 2026-08-23 sobre el
+            sorteo del 22, las dos frases convivían en la misma pantalla —«las
+            otras 507 son reservas que esperan en el banco» y «1.916 son
+            reservas del banco»—, con la misma palabra para 507 y para 1.916.
+            Las 507 están ENCADENADAS a un titular concreto; el banco es
+            capacidad sin asignar. */}
         {total > enJuego
-          ? ` Las otras ${fmt(total - enJuego)} son reservas que esperan en el banco.`
+          ? ` Las otras ${fmt(total - enJuego)} esperan en reserva: sólo entran si cae su titular.`
           : ""}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}
