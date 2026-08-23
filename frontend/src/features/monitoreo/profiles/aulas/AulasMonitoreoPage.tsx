@@ -117,6 +117,7 @@ import "./aulasMonitoreo.css";
 import { recorteTabla } from "../../corte/corteContract";
 import { corteAulas } from "../../corte/corteAdapters";
 import { pct } from "../../core/formatoComun";
+import { columnasSinConstantesInertes, columnasSinDuplicados } from "./columnasQueAportan";
 
 const AULAS_ROUTE = MONITOREO_MODOS.find((route) => route.family === "aulas_universitarias") ?? MONITOREO_MODOS[2];
 
@@ -168,6 +169,17 @@ function dashboardFromState(state: MonitoreoState | null) {
  * code` y `replacement_chain_code` NO están aquí: «CH 1» y «R 1.2» son
  * legibles y dicen de qué cadena es la fila.
  */
+/**
+ * Se conservan aunque sean constantes, porque su valor unico ES el dato.
+ *
+ * Reusa la regla de estado que ya usa el chip —`status`, `*_status`,
+ * `*_state`— y suma la ACCION: «Llamar al docente» en las 193 filas dice que
+ * el operativo no ha empezado, igual que el estado del que sale.
+ */
+const COLUMNAS_QUE_SOBREVIVEN_CONSTANTES = {
+  has: (clave: string) => COLUMNAS_DE_ESTADO.has(clave) || clave === "que_toca",
+};
+
 const COLUMNAS_DE_INFRAESTRUCTURA = new Set([
   // El sello de la corrida ya vive en la cabecera del módulo y en Fuentes.
   "selection_run_id", "run_id", "frame_hash",
@@ -314,9 +326,21 @@ function DataTable({
   // Y una columna sin un solo dato no gasta ancho ni cuenta para el recorte:
   // no se «recorta», es que no tiene nada que enseñar. Declararla como recorte
   // diría que hay algo escondido detrás, y no lo hay.
-  const todasLasColumnas = columnasConDato(
+  // Y una columna que repite a otra, o que trae el mismo valor en las 193
+  // filas, tampoco gasta ancho: no es que se recorte, es que no informa. Medido
+  // en Agenda el 2026-08-23 sobre el sorteo del 22 —«Codigo titular» igual a
+  // «Curso-horario» en 193 de 193, «Rol de muestra» = Titular 193 veces,
+  // «Muestra» = M1, «Orden en la cadena» = 0—: cuatro columnas de doce. Todas
+  // existian para distinguir un titular de sus reservas, y la agenda paso a
+  // listar solo titulares. El estado SI se conserva aunque sea constante: «Sin
+  // contactar» en las 193 dice que el operativo no ha empezado.
+  const todasLasColumnas = columnasSinConstantesInertes(
     rows,
-    compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER),
+    columnasSinDuplicados(
+      rows,
+      columnasConDato(rows, compactColumns(rows, preferredColumns, Number.MAX_SAFE_INTEGER)),
+    ),
+    COLUMNAS_QUE_SOBREVIVEN_CONSTANTES,
   );
   const recorteColumnas = recorteTabla(todasLasColumnas, maxColumns, "columna");
   const columns = recorteColumnas.visibles;
