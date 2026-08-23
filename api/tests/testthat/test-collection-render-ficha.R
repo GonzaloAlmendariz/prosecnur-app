@@ -422,19 +422,26 @@ test_that("un enlace que encogiera el modulo por debajo del umbral se detecta", 
   # Control del control: un payload absurdo SI baja de 0.6 mm, asi que el
   # aserto de arriba no esta pasando por vacio.
   #
-  # El payload sube de 1.200 a 1.600 caracteres porque el QR crecio —0.34 a
-  # 0.42— y con mas milimetros por lado hace falta mas carga para estrangular
-  # el modulo: a 1.200 el modulo mide ahora 0,626 mm y ya no baja del umbral.
-  # Que este control haya tenido que crecer ES la prueba de que el codigo se
-  # agrando de verdad; si siguiera pasando con el payload de antes, el aumento
-  # no habria llegado al papel.
+  # **El payload se BUSCA, no se fija.** Estaba clavado en 1.200 caracteres y
+  # hubo que subirlo dos veces en la misma sesion al agrandar el QR —a 0.42 el
+  # modulo con 1.200 medía ya 0,626 mm y no cruzaba el umbral—. Una constante
+  # magica aqui convierte cada cambio legitimo de layout en un test rojo que
+  # parece un defecto y no lo es.
   #
-  # 1.600 y no mas: por encima de ~2.300 el payload excede la capacidad del QR
-  # y el generador falla, que es otro defecto y no este.
-  gigante <- paste0("https://ee.example.test/x/aB3xY9kQ?d%5BcollectorID%5D=", strrep("x", 1600L))
-  expect_lt(.crf_mm_por_modulo(gigante), 0.6)
+  # Se busca al alza hasta cruzar el umbral, con tope: por encima de ~2.300 el
+  # payload excede la capacidad del QR y el generador falla, que es otro
+  # defecto y no este.
+  cruza <- NA_real_
+  for (n in seq(1200L, 2200L, by = 200L)) {
+    mm <- tryCatch(
+      .crf_mm_por_modulo(paste0("https://ee.example.test/x/aB3xY9kQ?d%5BcollectorID%5D=", strrep("x", n))),
+      error = function(e) NA_real_
+    )
+    if (!is.na(mm) && mm < 0.6) { cruza <- mm; break }
+  }
+  expect_false(is.na(cruza), label = "ningun payload de hasta 2.200 caracteres baja de 0.6 mm")
+  expect_lt(cruza, 0.6)
 })
-
 # --- El orden de los bloques es funcional, no cosmetico ----------------------
 # Antes cada tipo de bloque tenia una `y` fija en `.crf_layout()`: reordenar en
 # el editor de Materiales no cambiaba nada en el PDF. Esto prueba que mover un
