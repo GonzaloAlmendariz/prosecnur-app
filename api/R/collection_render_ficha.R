@@ -18,10 +18,22 @@
   base <- list(
     # 0.38 y no mas: es el maximo VERIFICADO con el lector de QR del QA, que
     # reconstruye la matriz desde el PNG asumiendo esta misma geometria. Medido
-    # el 2026-08-23 con el payload largo del worker: 0.38 lee limpio, 0.42 y
-    # 0.46 devuelven un modulo cambiado. No es el borde de la pagina —el marco
-    # a 0.42 cabe en 0.9226 sobre un util de 0.925, comprobado— asi que la
-    # causa del desalineamiento por encima de 0.38 sigue sin localizar.
+    # el 2026-08-23 con el payload largo del worker (149 modulos): 0.38 lee
+    # limpio, 0.42 y 0.46 devuelven un modulo cambiado.
+    #
+    # **Cuatro hipotesis descartadas, para que nadie las repita:**
+    #  1. El lector. Falso: dibujado el QR AISLADO con esta misma geometria,
+    #     0.38 / 0.42 / 0.46 leen los 149 modulos sin una sola discrepancia.
+    #  2. La ficha completa tapandolo. Falso: con el payload normal (33
+    #     modulos), la hoja entera lee limpio hasta 0.46.
+    #  3. El borde derecho de la pagina. A 0.42 con `qr_x = 0.72` el marco SI
+    #     se sale —0.9426 sobre un util de 0.925—, pero corrido a 0.43/0.690 el
+    #     marco cae en 0.9179, dentro, y el lector sigue fallando.
+    #  4. El marco pegado al codigo. Reducirlo de 1.20 a 1.06 no cambio el
+    #     umbral.
+    #
+    # Lo que queda: solo falla con MUCHOS modulos y a la vez con el QR grande,
+    # en la ficha completa. Es un cruce de las dos cosas y no de ninguna sola.
     #
     # Se sube hasta donde se puede demostrar. Un QR mas grande con el
     # verificador leyendo el sitio equivocado seria peor que este: el gate
