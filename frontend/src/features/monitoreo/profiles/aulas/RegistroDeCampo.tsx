@@ -28,6 +28,7 @@ import { porQueEsaMeta } from "./porQueEsaMeta";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
 import { fmt } from "./kpisDeAulas";
+import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
 // alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
@@ -190,8 +191,28 @@ export function RegistroDeCampo({
   // La facultad elegida. Vacía es «todas», igual que en el banco de extras.
   const [facultad, setFacultad] = useState("");
 
+  // En orden de cadena: el titular y detrás sus reservas por turno. Medido el
+  // 2026-08-23 sobre las 700 del sorteo del 22, la lista llegaba «CH 1, CH 2,
+  // CH 3, R 3.3, R 11.3, R 2.3, R 1.3, R 1.1…» — **310 saltos hacia atrás en
+  // 700 elementos**—, y es la lista con la que alguien BUSCA un aula para
+  // registrar su parte. Es la misma regla que ordena el plan de Recopiladores y
+  // la cadena de reemplazos; vive en `lib/cadenaOperativa` para que las tres no
+  // discrepen.
   const filas = useMemo(
-    () => agenda.filter((r) => String(r.sample_role ?? "") !== "extra_reserve_pool"),
+    () => ordenarPorCadenaOperativa(
+      agenda.filter((r) => String(r.sample_role ?? "") !== "extra_reserve_pool"),
+      (fila) => ({
+        rol: String(fila.sample_role ?? ""),
+        secuencia: (fila as { operational_sequence?: unknown }).operational_sequence,
+        orden: (fila as { replacement_order?: unknown }).replacement_order,
+        codigo: String(fila.operational_code ?? ""),
+        reemplazaA: String(
+          (fila as { titular_operational_code?: unknown }).titular_operational_code
+          ?? (fila as { replacement_for?: unknown }).replacement_for
+          ?? "",
+        ),
+      }),
+    ),
     [agenda],
   );
   // Cuántas siguen sin pasar por aquí. Es lo que viene a saber quien abre la
