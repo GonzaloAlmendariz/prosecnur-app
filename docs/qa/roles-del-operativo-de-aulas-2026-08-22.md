@@ -151,3 +151,98 @@ el día que su titular se declara caída.
 relanzar la API y el plan hay que reimportarlo; el cambio es un filtro y su
 efecto está en test, pero no se ha visto en pantalla y eso queda dicho en vez de
 darse por hecho.
+
+---
+
+# Qué hace Cálculo de cursos-horario que las otras dos no hacen
+
+> «Siento que la UI de Monitoreo aún le faltan años luz, igual que a
+> Recopiladores. Enorme diferencia si la comparamos con Cálculo de
+> cursos-horario.» —Gonzalo
+
+Hay un referente **dentro de la misma app** y hay que copiarlo, no inventar. Esto
+es el catálogo de lo que hace, mirado en pantalla con el proyecto real.
+
+## Los siete patrones
+
+### 1. Banda de KPIs persistente, y cada cifra dice de dónde sale
+
+Ocho tarjetas fijas arriba en **todas** las secciones: universo de estudiantes,
+universo de cursos-horario, estudiantes elegibles, cursos-horario elegibles,
+muestra objetivo, sobremuestra operativa, cómo se dimensiona, aulas titulares.
+
+Lo decisivo no es que haya KPIs: es la **tercera línea de cada uno**. Debajo de
+«29,027» dice «base completa»; debajo de «190», «P1 · Universidad · 8 · marco
+vigente». **Cada cifra lleva su procedencia pegada.**
+
+En Monitoreo los KPIs cambian por sección y su pista, cuando existe, describe la
+métrica —no de dónde sale.
+
+### 2. Un rastro conceptual, no una ruta
+
+`DISEÑO VIGENTE · Universo → elegibles → operación → aulas`. No es la navegación:
+es **el razonamiento** del que salen las cifras de al lado.
+
+Monitoreo tiene secciones (Fuentes, Agenda, Validación, Consultas, Avance) y
+ningún hilo que las una.
+
+### 3. El recorrido ilustrado con «Estás aquí»
+
+Seis pasos en círculos —Definir · Subir bases · Mapear variables · Construir
+marco · Calcular · Seleccionar— **con los conectores etiquetados**: «con esto
+claro», «ya en Excel», «columnas listas», «sobre eso n», «para cubrir n». Y un
+badge morado marcando dónde estás.
+
+Es exactamente lo que Gonzalo pidió como «elementos no diagramados de explicación
+ilustrativa». **Monitoreo no tiene ninguno.**
+
+### 4. El mapa del recorrido: el embudo con sus deltas
+
+Vertical, a la derecha: 137,919 filas leídas → **−28,182 excluidas** → 109,737
+elegibles → 21,920 población → 2,500 muestra → 193 titulares. Cada escalón con
+una línea que lo explica.
+
+Contesta «¿de dónde salió este número?» sin salir de la pantalla. En Monitoreo
+esa pregunta no tiene respuesta en ninguna vista.
+
+### 5. La cadena de conversión, explicada en prosa
+
+«Conversión de N a cursos-horario»: 2,500 → 11–40 → 190 → 288, y **debajo el
+párrafo que lo explica**:
+
+> «El divisor son estudiantes elegibles por curso-horario (no matriculados
+> totales), calculado **por facultad**: por eso va de 11–40 […] Cada curso-horario
+> rinde alrededor del 58 % de sus elegibles. Cada titular lleva R1–R11 reservas
+> equivalentes +1 curso-horario de reserva operativa por facultad — **no cambian
+> la muestra**.»
+
+Un analista que abre eso entiende el cálculo. **Ninguna pantalla de Monitoreo
+explica lo que enseña.**
+
+### 6. Estado declarado por cifra
+
+Badges «cifra validada» en verde junto a los números que ya están cerrados, y
+«Guardado» / «Cálculo listo» arriba. Se sabe **qué es firme y qué no**.
+
+Monitoreo declara estados de aulas, no de sus propias cifras.
+
+### 7. Tablas con columnas del dominio y una columna de acción
+
+«Detalle por facultad»: FACULTAD · CUOTA · EST./CURSO-HORARIO · TITULARES ·
+RESERVAS · EXTRA · **A COORDINAR** —la última en negrita, porque es lo que hay
+que hacer—.
+
+Las tablas de Monitoreo y Recopiladores llevan las columnas que trae el payload,
+sin jerarquía y sin ninguna que diga qué hacer.
+
+## Lo que se deduce
+
+La diferencia no es estética. Cálculo **enseña a leerse**: cada cifra tiene
+origen, cada paso tiene sitio en un recorrido, y lo que no es obvio está
+explicado en prosa al lado. Monitoreo y Recopiladores **muestran datos y esperan
+que el lector sepa**.
+
+Los siete patrones son reutilizables tal cual y ya existen como componentes en el
+módulo de Cálculo. El trabajo no es diseñar: es **trasladarlos** con el contenido
+de cada rol —el agendador, el jefe de campo, el analista— que este mismo
+documento describe arriba.
