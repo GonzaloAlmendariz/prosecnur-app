@@ -713,6 +713,10 @@ function renderAulasView(
           <AulasAgendaPorDia
             filas={((dashboard.course_status ?? []) as MonitoreoAulasPlanRow[])
               .filter((f) => String((f as { sample_role?: unknown }).sample_role ?? "") !== "extra_reserve_pool")}
+            // El plan de verdad, no lo que cupo en el payload: `course_status`
+            // llega topeado a 500 filas y contar las recibidas hacía decir
+            // «ninguno de los 42» sobre un plan de 686.
+            totalDelPlan={Number(dashboard.course_status_total_plan ?? 0) || 0}
           />
           <DataTable
             rows={agendaRows(dashboard)}
