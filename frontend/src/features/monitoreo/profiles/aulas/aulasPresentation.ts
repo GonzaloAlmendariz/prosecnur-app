@@ -425,6 +425,24 @@ export function comparaCodigos(a: string, b: string) {
  * `attendance_pct` está en las dos hojas —el parte y el control— con el mismo
  * significado, así que una sola entrada cubre las dos tablas.
  */
+/**
+ * Columnas que cuentan COSAS, no proporciones: respuestas, personas, aulas.
+ *
+ * El motor calcula la meta de un aula dividiendo su cuota entre la tasa de
+ * efectividad, asi que llega fraccionaria: la tabla «Avance por curso-horario»
+ * enseñaba «Validas esperadas 27.8» —medido el 2026-08-23— y media respuesta no
+ * existe. Se redondea hacia ARRIBA al pintar, porque es algo que hay que
+ * alcanzar: con 27 no se cumple una meta de 27,8.
+ *
+ * El dato no se toca: esto es presentacion, y el motor sigue sumando con la
+ * fraccion. Lista corta y explicita a proposito — un campo de tasa metido aqui
+ * por descuido se redondearia a 1 y diria otra cosa.
+ */
+const COLUMNAS_DE_CUENTA = new Set([
+  "expected_valid",
+  "efectivas_esperadas",
+]);
+
 const COLUMNAS_DE_PORCENTAJE = new Set([
   "sent_vs_total",
   "sent_vs_population",
@@ -499,6 +517,12 @@ function comoPorcentaje(value: unknown, hayQueEscalar: boolean) {
 function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<string>) {
   if (value == null) return "";
   if (COLUMNAS_DE_PORCENTAJE.has(field)) return comoPorcentaje(value, Boolean(enProporcion?.has(field)));
+  if (COLUMNAS_DE_CUENTA.has(field)) {
+    const n = Number(value);
+    // Un valor que no es numero se devuelve tal cual: la columna puede traer
+    // un centinela del motor y convertirlo en «NaN» seria peor que enseñarlo.
+    if (Number.isFinite(n)) return Math.ceil(n - 1e-9) === 0 ? 0 : Math.ceil(n - 1e-9);
+  }
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);

@@ -72,7 +72,7 @@ import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
-import { aulasKpis, fmt } from "./kpisDeAulas";
+import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
@@ -1466,7 +1466,9 @@ function renderAulasView(
           <h3>Cumplimiento en respuestas</h3>
           {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
               recortado a 500 filas. */}
-          <span>meta {fmt(
+          {/* Una meta de respuestas no puede ser fraccionaria: sale de
+              dividir la cuota entre la tasa y llegaba «3.491,4». */}
+          <span>meta {fmtCuenta(
             Number(dashboard?.cumplimiento_respuestas?.meta)
             || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
           )}</span>

@@ -89,6 +89,30 @@ export function fmt(value: unknown, fallback = "0") {
   return String(value);
 }
 
+/**
+ * Una cuenta de cosas, que no se parte: respuestas, aulas, personas.
+ *
+ * `fmt()` conserva los decimales que trae el dato, y eso es correcto para una
+ * tasa o un porcentaje. Pero la meta de respuestas sale de dividir la cuota
+ * entre la tasa de efectividad, así que llega fraccionaria — y en pantalla se
+ * leía «576,5 respuestas faltan» y «meta 3.491,4». Media respuesta no existe.
+ *
+ * Redondea **hacia arriba** y no al más cercano: si faltan 576,5 respuestas,
+ * con 576 no se cumple la meta. El techo es el criterio conservador, que es el
+ * que corresponde a algo que hay que ALCANZAR. El dato exacto no se toca: esto
+ * es presentación, y el motor sigue calculando con la fracción.
+ */
+export function fmtCuenta(value: unknown, fallback = "0") {
+  if (value == null || value === "") return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  // Un negativo se redondea también hacia el entero que lo contiene: −0,4
+  // sobrantes son 0, no −1. Y el cero se normaliza: `Math.ceil(0 - 1e-9)` da
+  // `-0`, que `Intl` pinta como «-0» y nadie escribe así.
+  const entero = n < 0 ? Math.ceil(n) : Math.ceil(n - 1e-9);
+  return new Intl.NumberFormat("es-PE").format(entero === 0 ? 0 : entero);
+}
+
 /** Sólo la fecha del sello ISO del tablero; la hora no decide nada. */
 function fecha(iso: unknown) {
   const texto = typeof iso === "string" ? iso.trim() : "";

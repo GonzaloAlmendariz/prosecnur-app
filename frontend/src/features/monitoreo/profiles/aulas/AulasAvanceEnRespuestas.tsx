@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
+import { fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Cuánto se lleva de la meta del plan, en respuestas.
@@ -73,7 +74,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
   return (
     <div className="aulas-avance-respuestas">
       <p className="aulas-avance-titular">
-        <strong>{fmt(a.cubierto)}</strong> de <strong>{fmt(a.meta)}</strong> respuestas que pide
+        <strong>{fmtCuenta(a.cubierto)}</strong> de <strong>{fmtCuenta(a.meta)}</strong> respuestas que pide
         el plan · <span className="aulas-avance-pct">{a.avance}%</span>
       </p>
       {/* El hueco entre lo recogido y lo atribuido, DICHO. Hay estudios donde
@@ -102,7 +103,7 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
           <strong>{fmt(a.cubierto)}</strong> cubren meta
         </li>
         <li className="es-falta">
-          <strong>{fmt(a.falta)}</strong> faltan, en {fmt(a.aulasConBrecha)} cursos-horario
+          <strong>{fmtCuenta(a.falta)}</strong> faltan, en {fmt(a.aulasConBrecha)} cursos-horario
         </li>
         {a.excedente ? (
           <li className="es-excedente">

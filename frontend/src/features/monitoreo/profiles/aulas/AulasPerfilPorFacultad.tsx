@@ -5,6 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } from "./perfilPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Cada facultad contra su meta, ordenadas por lo que falta.
@@ -92,7 +93,7 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
             <span className="aulas-facultad-cifra">
               {f.falta ? (
                 <>
-                  <strong>{fmt(f.falta)}</strong>
+                  <strong>{fmtCuenta(f.falta)}</strong>
                   {/* Con espacio de verdad: el `gap` del flex separaba a la
                       vista pero el texto decía «287faltan», y eso es lo que lee
                       un lector de pantalla. Mismo defecto que la agenda por día
