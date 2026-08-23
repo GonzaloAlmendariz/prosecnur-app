@@ -141,9 +141,33 @@ function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   };
 }
 
+/**
+ * La fecha dentro de un `sel_aulas_AAAAMMDDHHMMSS_hash`.
+ *
+ * Un id de corrida no le dice nada a nadie; la fecha sí, y es lo que convierte
+ * «700 cursos-horario» en «700 del sorteo del 22 de agosto».
+ */
+function fechaDeCorrida(runId: unknown): string {
+  const m = /_(\d{4})(\d{2})(\d{2})\d{6}_/.exec(typeof runId === "string" ? runId : "");
+  if (!m) return "";
+  const fecha = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (Number.isNaN(fecha.getTime())) return "";
+  return fecha.toLocaleDateString("es-PE", { day: "numeric", month: "long" });
+}
+
 /** El plan importado: la tarjeta que abre casi todas las secciones. */
 function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
   const total = Number(dashboard?.kpis?.total_aulas ?? 0);
+  // **De dónde sale la cifra, pegada a la cifra.** Es el patrón que hace legible
+  // a Cálculo de cursos-horario: bajo «29,027» dice «base completa» y bajo «190»
+  // dice «P1 · Universidad · 8 · marco vigente». Aquí la pista decía sólo QUÉ se
+  // cuenta —«titulares y sus reservas encadenadas»—, que resuelve un equívoco de
+  // denominador real y hay que conservar, pero no de qué sorteo salen. Con dos
+  // corridas en el mismo estudio, esa es justo la pregunta.
+  const corrida = fechaDeCorrida(
+    (dashboard as { selection_run_id?: unknown } | null)?.selection_run_id
+    ?? (dashboard as { config?: { selection_run_id?: unknown } } | null)?.config?.selection_run_id,
+  );
   return {
     label: "Cursos-horario",
     icono: CalendarRange,
@@ -153,7 +177,9 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     // diferencia son las aulas EXTRA —las que no cuelgan de ningun titular—, que
     // tambien son reservas pero no forman cadena y viven en su propia pestaña.
     // El rotulo dice ahora cual de las dos cuenta.
-    pista: "titulares y sus reservas encadenadas",
+    pista: corrida
+      ? `titulares y reservas · sorteo del ${corrida}`
+      : "titulares y sus reservas encadenadas",
     tone: total ? "neutral" : "warn",
   };
 }
