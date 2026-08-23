@@ -485,6 +485,33 @@ export function reemplazosEnOrdenDeCadena(
   }));
 }
 
+/**
+ * Cuántos cursos-horario hay delante, y si son todos.
+ *
+ * «500 de 2.616 cursos-horario» se lee como un PROGRESO —500 aulas ya hicieron
+ * algo— cuando es lo contrario: un recorte del payload, porque el motor manda
+ * las primeras 500 filas. El mismo par de números admite las dos lecturas y son
+ * opuestas: una dice que el operativo avanza y la otra que la pantalla no está
+ * enseñando todo.
+ *
+ * «se ven» lo desambigua en dos palabras. Medido en Avance el 2026-08-23, donde
+ * la frase salía dos veces —«Status de aplicación» y «Cursos-horario por
+ * cobertura»— sobre un plan de 2.616.
+ *
+ * Sin recorte NO se dice «se ven»: ahí no hay nada escondido, y anunciar un
+ * recorte que no existe hace dudar de una cifra completa.
+ */
+export function contadorDeCursosHorario(
+  visibles: number,
+  total: number,
+  delBanco: number,
+): string {
+  const base = total > visibles
+    ? `se ven ${fmt(visibles)} de ${fmt(total)} cursos-horario`
+    : `${fmt(visibles)} cursos-horario`;
+  return delBanco ? `${base} · ${fmt(delBanco)} del banco` : base;
+}
+
 function cleanCell(value: unknown) {
   if (value == null) return "";
   return String(value).trim();
@@ -1438,12 +1465,8 @@ function renderAulasView(
     (n, row) => (String(row.sample_role ?? "") === "extra_reserve_pool" ? n + 1 : n),
     0,
   );
-  const contadorDeAulas = (visibles: number) => {
-    const base = totalAulas > visibles
-      ? `${fmt(visibles)} de ${fmt(totalAulas)} cursos-horario`
-      : `${fmt(visibles)} cursos-horario`;
-    return aulasExtra ? `${base} · ${fmt(aulasExtra)} del banco` : base;
-  };
+  const contadorDeAulas = (visibles: number) =>
+    contadorDeCursosHorario(visibles, totalAulas, aulasExtra);
   return (
     // `aulas-tablas-apiladas`: sin ella el stack es grid y asigna 0 px a la fila
     // cuyo contenido no la empuja —medido: el panel del gráfico quedaba en 26 px
