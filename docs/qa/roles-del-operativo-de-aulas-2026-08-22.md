@@ -92,3 +92,43 @@ excede un tick y toca decisiones de Gonzalo (qué ve cada rol primero, si hay un
 vista por rol o una con modos). Lo que sí queda decidido y es reparable ya:
 
 **la lista primaria son las titulares, y las reservas cuelgan de ellas.**
+
+
+---
+
+## Aplicado: la lista primaria son las titulares
+
+Primer cambio derivado del análisis, en la tabla del plan de Recopiladores.
+
+| | Antes | Ahora |
+|---|---|---|
+| Resumen | «2 468 unidades» | «**175 cursos-horario**» |
+| Listado | 2 468 filas al mismo nivel | 175 filas, **una por titular** |
+| Reservas | una fila cada una | «**11 reservas**», desplegable |
+| Banco | 746 filas de trabajo | «**+746 en banco**», fuera de la lista |
+| Paginación | 1 de 50 | **1 de 4** |
+
+Tres decisiones que sostienen el cambio:
+
+1. **La cadena se cuenta, no se despliega por defecto.** La reserva importa el
+   día que su titular se cae, no antes. El botón declara `aria-expanded`.
+2. **Una titular sin reservas lo dice** —«sin reservas»— en vez de dejar la celda
+   muda: significa que si esa aula cae hay que ir al banco.
+3. **Nada se pierde.** Una reserva cuyo titular no está en el plan, o un rol que
+   el motor todavía no traduce, salen al final como huérfanos con «sin titular en
+   el plan». Perder una fila en silencio es peor que enseñarla sin sitio — y eso
+   lo destapó un test existente, no yo: al agrupar, un rol desconocido
+   desaparecía de la tabla.
+
+**Un defecto propio que cazó otro test**: agrupaba a los titulares sólo por su
+código operativo, pero `replacement_for` apunta al **nombre** del aula en los
+planes venidos del libro. Sus reservas se quedaban huérfanas con la titular
+delante. Ahora el titular se registra por código **y** por nombre.
+
+### Lo que queda de la lista
+
+- La barra del módulo sigue diciendo «UNIDADES 2468»: es otro componente.
+- Monitoreo tiene el mismo modelo plano en su tabla de agenda.
+- Las columnas por rol —agendador, jefe de campo, analista— siguen sin
+  diferenciarse: es el trabajo grande que este documento describe y que no cabe
+  en un tick.

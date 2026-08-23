@@ -27,6 +27,14 @@ export type SenasDeCadena = {
   codigo?: string | null;
   /** Código del titular al que reemplaza, si lo declara. */
   reemplazaA?: string | null;
+  /**
+   * Otro nombre por el que esta unidad puede ser reconocida.
+   *
+   * `replacement_for` no siempre apunta al código operativo: en los planes que
+   * vienen del libro apunta al NOMBRE del aula. Sin este alias, sus reservas se
+   * quedaban huérfanas —la titular estaba delante y no se reconocían—.
+   */
+  alias?: string | null;
 };
 
 const INF = Number.POSITIVE_INFINITY;
@@ -111,4 +119,70 @@ export function ordenarPorCadenaOperativa<T>(
     .sort((a, b) =>
       a.banco - b.banco || a.cadena - b.cadena || a.dentro - b.dentro || a.entrada - b.entrada)
     .map((x) => x.item);
+}
+
+/** Un titular con las reservas que cuelgan de él. */
+export type CadenaDeUnidades<T> = {
+  titular: T | null;
+  reservas: T[];
+};
+
+export type OperativoAgrupado<T> = {
+  /** Las aulas que hay que visitar, cada una con su plan B detrás. */
+  cadenas: CadenaDeUnidades<T>[];
+  /** Reserva de capacidad, no trabajo pendiente. */
+  banco: T[];
+  /** Reservas cuyo titular no está en la lista. No se esconden. */
+  huerfanas: T[];
+};
+
+/**
+ * Agrupa el operativo como se trabaja: titulares primero, reservas colgando.
+ *
+ * Gonzalo: «primordialmente las aulas titulares, por favor; los reemplazos son
+ * esos reemplazos que aparecen **en caso** que no se llegue a lo esperado en el
+ * aula titular o la titular no haya podido ser efectiva».
+ *
+ * Las tablas listaban 193 titulares y 507 reservas al mismo nivel: 700 filas que
+ * dicen «hay 700 aulas que atender». No las hay — hay 193, y 507 contingencias
+ * que pueden no usarse nunca. El libro de Excel ya lo tenía bien (una fila por
+ * titular con su cadena en columnas); la UI copió las filas sin la jerarquía.
+ *
+ * Las huérfanas —reserva cuyo titular no aparece— se devuelven aparte en vez de
+ * descartarse: perder una fila en silencio es peor que enseñarla suelta.
+ */
+export function agruparEnCadenas<T>(
+  items: ReadonlyArray<T>,
+  leer: (item: T) => SenasDeCadena,
+): OperativoAgrupado<T> {
+  const enOrden = ordenarPorCadenaOperativa(items, leer);
+  const cadenas: CadenaDeUnidades<T>[] = [];
+  const banco: T[] = [];
+  const huerfanas: T[] = [];
+  const porCabeza = new Map<string, CadenaDeUnidades<T>>();
+
+  for (const item of enOrden) {
+    const s = leer(item);
+    const rol = rolNormalizado(s.rol);
+    if (rol === "extra_reserve_pool") { banco.push(item); continue; }
+    if (rol === "titular") {
+      const cadena: CadenaDeUnidades<T> = { titular: item, reservas: [] };
+      cadenas.push(cadena);
+      for (const nombre of [texto(s.codigo), texto(s.alias)]) {
+        if (nombre && !porCabeza.has(nombre)) porCabeza.set(nombre, cadena);
+      }
+      // También por número de cadena: un plan viejo no declara `replacement_for`
+      // y sus reservas sólo se reconocen por el código («R1.6» es de la 1).
+      const num = cadenaDesdeCodigo(s.codigo).cadena;
+      if (Number.isFinite(num)) porCabeza.set(`#${num}`, cadena);
+      continue;
+    }
+    const deQuien = texto(s.reemplazaA);
+    const porNumero = `#${cadenaDesdeCodigo(s.codigo).cadena}`;
+    const cadena = (deQuien && porCabeza.get(deQuien)) || porCabeza.get(porNumero);
+    if (cadena) cadena.reservas.push(item);
+    else huerfanas.push(item);
+  }
+
+  return { cadenas, banco, huerfanas };
 }

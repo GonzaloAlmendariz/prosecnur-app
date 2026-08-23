@@ -151,3 +151,51 @@
     background: var(--pulso-primary-soft);
   }
 }
+
+
+/* La cadena de una titular: contada por defecto, desplegable cuando hace falta.
+   El plan B no ocupa renglones de trabajo hasta que su titular se cae. */
+.rec-plan-cadena-toggle {
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-bg);
+  color: var(--pulso-text);
+  padding: 2px 9px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) ease, background var(--motion-dur-fast) ease;
+}
+
+.rec-plan-cadena-toggle:hover {
+  border-color: var(--pulso-primary);
+  background: var(--pulso-surface);
+}
+
+.rec-plan-cadena-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pulso-primary-ring);
+}
+
+/* Una titular sin plan B. Se dice, no se deja la celda muda: significa que si
+   esa aula cae hay que ir al banco. */
+.rec-plan-sin-reservas {
+  color: var(--pulso-text-soft);
+  font-size: 11.5px;
+}
+
+/* Las reservas desplegadas van sangradas y en tono menor: cuelgan de la fila de
+   arriba, no compiten con ella. */
+.rec-plan-reserva > td:first-child {
+  padding-left: 22px;
+}
+
+.rec-plan-reserva td {
+  color: var(--pulso-text-soft);
+}
+
+/* Lo que no cuelga de ninguna cadena. Se enseña igual —perder una fila en
+   silencio es peor— pero declarándose como lo que es. */
+.rec-plan-huerfana td {
+  color: var(--pulso-text-soft);
+}

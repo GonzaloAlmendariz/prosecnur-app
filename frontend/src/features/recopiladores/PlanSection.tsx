@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { apiRecopiladoresReseed,
   apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
-import { ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
+import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
@@ -209,18 +209,46 @@ export function PlanSection({ payload, onState }: Props) {
     );
   }
 
-  // Se ordena ANTES de paginar: paginar el orden crudo repartiría una misma
-  // cadena entre dos páginas.
-  const unidadesEnOrden = useMemo<CollectionUnit[]>(
-    () => ordenOperativoDeUnidades(plan.units), [plan.units]);
-  const pagination = paginatePlanUnits(unidadesEnOrden, requestedPage);
+  // **La lista primaria son las TITULARES.** Antes eran 700 filas —193 titulares
+  // y 507 reservas al mismo nivel—, que es tanto como decir que hay 700 aulas
+  // que atender. No las hay: hay 193, y las reservas son contingencias que
+  // pueden no usarse nunca. Se paginan cadenas, no unidades, así que una cadena
+  // no se parte entre dos páginas.
+  const operativo = useMemo(
+    () => agruparEnCadenas(plan.units, (unit) => ({
+      rol: unit.role,
+      secuencia: unit.dimensions?.operational_sequence,
+      orden: unit.dimensions?.replacement_order,
+      codigo: typeof unit.dimensions?.legacy_ref === "string" ? unit.dimensions.legacy_ref : "",
+      reemplazaA: typeof unit.dimensions?.replacement_for === "string"
+        ? unit.dimensions.replacement_for : "",
+      // El `replacement_for` de un plan venido del libro apunta al NOMBRE del
+      // aula, no a su código operativo.
+      alias: unit.label,
+    })),
+    [plan.units],
+  );
+  const pagination = paginatePlanUnits(operativo.cadenas, requestedPage);
+  // Qué cadenas están desplegadas. Colapsadas por defecto: la reserva importa
+  // el día que su titular se cae, no antes.
+  const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
+  const alternar = (id: string) => setAbiertas((previas) => {
+    const siguiente = new Set(previas);
+    if (siguiente.has(id)) siguiente.delete(id); else siguiente.add(id);
+    return siguiente;
+  });
 
   return (
     <div className="rec-plan-layout">
       <Panel
         className="rec-summary-card"
         eyebrow="Resumen del plan"
-        title={<><ClipboardList size={18} aria-hidden /> {plan.units.length} unidades</>}
+        title={
+          // Los cursos-horario que hay que visitar, no el total de unidades. Con
+          // 193 titulares y 507 reservas, «700 unidades» dice que hay 700 aulas
+          // que atender; el resto son contingencias y el banco, capacidad.
+          <><ClipboardList size={18} aria-hidden /> {operativo.cadenas.length} cursos-horario</>
+        }
       >
         <dl>
           <div><dt>Tipo</dt><dd>{plan.unit_type}</dd></div>
@@ -274,8 +302,14 @@ export function PlanSection({ payload, onState }: Props) {
         actions={(
           <div className="rec-plan-data-meta">
             <code title={plan.instrument_ref.sha256}>instrumento {instrumentRevisionLabel(plan.instrument_ref.revision_id)}</code>
-            {plan.units.length ? (
-              <span>{pagination.start + 1}–{pagination.end} de {plan.units.length}</span>
+            {operativo.cadenas.length ? (
+              <span>{pagination.start + 1}–{pagination.end} de {operativo.cadenas.length}</span>
+            ) : null}
+            {/* Lo que NO es una visita se dice al lado, sin ocupar la lista. */}
+            {operativo.banco.length ? (
+              <span title="Reserva de capacidad: no son visitas del plan">
+                +{operativo.banco.length} en banco
+              </span>
             ) : null}
           </div>
         )}
@@ -284,9 +318,13 @@ export function PlanSection({ payload, onState }: Props) {
           <>
             <TableScroll data-qa-geometry-capacity="owned">
               <table>
-                <thead><tr><th>Unidad</th><th>Rol</th><th>Cadena</th><th>Programación</th></tr></thead>
+                <thead><tr><th>Curso-horario</th><th>Rol</th><th>Reservas</th><th>Programación</th></tr></thead>
                 <tbody>
-                  {pagination.items.map((unit) => (
+                  {pagination.items.flatMap((cadena) => {
+                    const unit = cadena.titular;
+                    if (!unit) return [];
+                    const abierta = abiertas.has(unit.unit_id);
+                    return [
                     <tr key={unit.unit_id}>
                       {/* El código operativo manda y el nombre del aula queda
                           de apoyo. El `unit_id` sale de la vista: es un hash
@@ -297,10 +335,55 @@ export function PlanSection({ payload, onState }: Props) {
                         <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
                       </td>
                       <td>{unitRoleLabel(unit)}</td>
-                      <td>{unitChainLabel(unit)}</td>
+                      {/* El plan B, contado y no desplegado: «3 reservas» ocupa
+                          una celda donde tres filas ocupaban tres renglones de
+                          trabajo que probablemente no se haga. */}
+                      <td>
+                        {cadena.reservas.length ? (
+                          <button
+                            type="button"
+                            className="rec-plan-cadena-toggle"
+                            aria-expanded={abierta}
+                            onClick={() => alternar(unit.unit_id)}
+                          >
+                            {cadena.reservas.length}{" "}
+                            {cadena.reservas.length === 1 ? "reserva" : "reservas"}
+                          </button>
+                        ) : <span className="rec-plan-sin-reservas">sin reservas</span>}
+                      </td>
                       <td>{value(unit.dimensions?.schedule ?? unit.scheduling?.wave)}</td>
-                    </tr>
-                  ))}
+                    </tr>,
+                    ...(abierta ? cadena.reservas.map((reserva) => (
+                      <tr key={reserva.unit_id} className="rec-plan-reserva">
+                        <td>
+                          <strong>{unitOperationalCode(reserva) || reserva.label}</strong>
+                          <small>{unitOperationalCode(reserva) ? reserva.label : reserva.unit_id}</small>
+                        </td>
+                        <td>{unitRoleLabel(reserva)}</td>
+                        <td />
+                        <td>{value(reserva.dimensions?.schedule ?? reserva.scheduling?.wave)}</td>
+                      </tr>
+                    )) : []),
+                    ];
+                  })}
+                  {/* Lo que no cuelga de ninguna cadena se enseña igual: una
+                      reserva cuyo titular no está en el plan, o un rol que el
+                      motor todavía no traduce. Perder una fila en silencio es
+                      peor que enseñarla sin sitio — y sólo salen en la última
+                      página, para no partirlas entre dos. */}
+                  {pagination.end >= operativo.cadenas.length
+                    ? operativo.huerfanas.map((unit) => (
+                      <tr key={unit.unit_id} className="rec-plan-huerfana">
+                        <td>
+                          <strong>{unitOperationalCode(unit) || unit.label}</strong>
+                          <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
+                        </td>
+                        <td>{unitRoleLabel(unit)}</td>
+                        <td><span className="rec-plan-sin-reservas">sin titular en el plan</span></td>
+                        <td>{value(unit.dimensions?.schedule ?? unit.scheduling?.wave)}</td>
+                      </tr>
+                    ))
+                    : null}
                 </tbody>
               </table>
             </TableScroll>
