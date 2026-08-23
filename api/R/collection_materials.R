@@ -501,10 +501,20 @@ collection_material_builtin_template <- function() {
           # Y el renglon que deja libre es el recurso escaso de esta hoja: lo
           # que sobra arriba es lo que le falta abajo al registro, que se llena
           # a mano.
+          # **Lo que el aplicador necesita para entrar al aula**, y nada mas.
+          # Gonzalo, 2026-08-23: «no le interesa la muestra, le interesa mas el
+          # nombre del docente, el aula, el horario del curso, que el QR este
+          # grande y legible para todos los alumnos en el aula».
+          #
+          # «Muestra» decia «M1» en las 2.616 unidades del sorteo del 22 —lo
+          # mismo que ya obligo a quitarla de la tabla de Agenda—: un renglon
+          # impreso 2.616 veces para repetir la misma palabra.
+          #
+          # «Estudiantes» se queda: es el denominador contra el que el aplicador
+          # anota los asistentes en el registro de abajo, no un dato de adorno.
           list(label = "Horario", binding = "unit.schedule"),
-          list(label = "Salon", binding = "unit.venue"),
+          list(label = "Aula", binding = "unit.venue"),
           list(label = "Docente", binding = "unit.teacher"),
-          list(label = "Muestra", binding = "unit.sample_label"),
           list(label = "Estudiantes", binding = "unit.eligible_n")
         )),
         list(block_id = "rule", type = "divider"),
