@@ -309,6 +309,12 @@
       replacement_order = .collection_first_number(row, c(
         "replacement_order", "orden_reemplazo", "orden_de_reemplazo"
       )),
+      # El numero de la cadena: lo comparten el titular y TODAS sus reservas, y
+      # es lo que permite leer el plan como lo lee el sorteo —CH 1 con sus R 1.1
+      # y R 1.2 juntos, luego CH 2— en vez de como una lista plana por rol.
+      operational_sequence = .collection_first_number(row, c(
+        "operational_sequence", "secuencia_operativa"
+      )),
       eligible_n = .collection_first_number(row, c(
         "eligible_n", "matriculados_poblacion", "students_n"
       )),
@@ -389,6 +395,42 @@
   deployment
 }
 
+# Ordena las unidades como se recorre el operativo.
+#
+# Gonzalo, mirando la tabla: «no estaria en orden del primer curso-horario al
+# ultimo y los reemplazos asi como los extras deberian estar en ese orden de
+# importancia».
+#
+# El sorteo ya tiene la cadena resuelta —`operational_sequence` la comparten el
+# titular y sus reservas, `replacement_order` dice el lugar dentro de ella— y el
+# handoff copiaba las filas en el orden crudo, que agrupa por rol. Asi la tabla
+# ensenaba titulares sueltos y despues un bloque de banco, y la cadena —la unidad
+# con la que se decide cuando un aula cae— no se veia por ninguna parte.
+#
+# Orden: primero las cadenas por su numero y, dentro de cada una, el titular
+# antes que sus reservas; el banco al final, por su indice. Es el mismo recorrido
+# que ya ofrece Calculo de muestra.
+.collection_orden_operativo <- function(units) {
+  if (!length(units)) return(units)
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(x %||% NA))
+    if (!length(v) || !is.finite(v[[1]])) NA_real_ else v[[1]]
+  }
+  banco <- vapply(units, function(u) {
+    identical(tolower(trimws(as.character(u$role %||% ""))), "extra_reserve_pool")
+  }, logical(1))
+  seq_op <- vapply(units, function(u) num(u$dimensions$operational_sequence), numeric(1))
+  orden_rep <- vapply(units, function(u) num(u$dimensions$replacement_order), numeric(1))
+  # Sin secuencia declarada, la unidad conserva su posicion de entrada: inventarle
+  # un numero la moveria a un sitio arbitrario, que es peor que dejarla donde
+  # estaba.
+  entrada <- seq_along(units)
+  seq_op[is.na(seq_op)] <- Inf
+  # El titular no trae `replacement_order`; va antes que sus reservas.
+  orden_rep[is.na(orden_rep)] <- 0
+  units[order(banco, seq_op, orden_rep, entrada)]
+}
+
 .collection_seed_from_legacy_state <- function(s) {
   if (!is.null(s$collection_state)) return(list(state = s$collection_state, seeded = FALSE))
   seed_source <- .collection_seed_source(s)
@@ -396,6 +438,7 @@
   if (!length(rows)) return(list(state = .collection_empty_state(1L), seeded = TRUE))
   provider <- .collection_provider_from_rows(rows)
   units <- lapply(seq_along(rows), function(i) .collection_legacy_unit(rows[[i]], i))
+  units <- .collection_orden_operativo(units)
   source_fp <- collection_fingerprint(units)
   run_id <- .collection_first_string(rows[[1]], c("selection_run_id", "run_id"), "legacy-monitoreo-aulas")
   plan <- list(

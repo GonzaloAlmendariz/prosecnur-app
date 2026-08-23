@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { apiRecopiladoresReseed,
   apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
@@ -73,8 +73,14 @@ function unitChainLabel(unit: Pick<CollectionUnit, "role" | "group" | "dimension
     ? unit.dimensions.replacement_for.trim() : "";
   if (target) return target;
   const propio = unitOperationalCode(unit);
-  // Un titular es cabeza de su propia cadena. Sin código operativo se cae a lo
-  // que hubiera antes en vez de dejar la celda muda.
+  // Un titular es cabeza de su propia cadena.
+  if (key === "titular") return propio || value(unit.group);
+  // Una reserva sin `replacement_for` —los planes anteriores a que ese campo
+  // viajara— todavía lleva la cadena en su propio código: «R1.6» es de la 1.
+  // Repetir aquí «R1.6», que es lo que ya dice la columna Unidad, no informa de
+  // nada; el número de la cadena sí ubica la fila.
+  const delCodigo = /^[A-Za-zÁÉÍÓÚÑ]+\s*(\d+)\./.exec(propio);
+  if (delCodigo) return `Cadena ${delCodigo[1]}`;
   return propio || value(unit.group);
 }
 
@@ -90,6 +96,88 @@ function instrumentRevisionLabel(revisionId: string): string {
 }
 
 const PLAN_PAGE_SIZE = 50;
+
+/**
+ * Las unidades en el orden en que se recorre el operativo.
+ *
+ * Gonzalo: «no estaría en orden del primer curso-horario al último y los
+ * reemplazos así como los extras deberían estar en ese orden de importancia […]
+ * no lo siento coherente con la intuitividad que ya ofrece cálculo de
+ * cursos-horario y la cadena operativa».
+ *
+ * El orden se arregló también en el productor —`.collection_orden_operativo()`—,
+ * pero eso sólo alcanza a los planes que se creen desde ahora: un plan ya
+ * congelado conserva el orden con el que se guardó. Y el plan es justamente un
+ * objeto que se congela. Por eso la vista ordena siempre.
+ *
+ * Cadenas primero, por su número; dentro de cada una, el titular antes que sus
+ * reservas; el banco al final. Una unidad sin secuencia conserva su posición en
+ * vez de irse a un sitio arbitrario.
+ */
+export function ordenOperativoDeUnidades<T extends Pick<CollectionUnit, "role" | "dimensions">>(
+  units: ReadonlyArray<T>,
+): T[] {
+  const num = (v: unknown): number => {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
+  };
+  const txt = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+  const role = (u: { role?: string | null }) => (u.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
+
+  // Dónde aparece cada titular. Es el respaldo para los planes anteriores a que
+  // `operational_sequence` viajara —el del estudio real, sin ir más lejos—: sin
+  // él, esas reservas se quedaban donde estaban y la tabla las enseñaba
+  // barajadas (R1.6, R3.6, R2.6…) aunque cada una supiera de quién es.
+  const rangoDelTitular = new Map<string, number>();
+  units.forEach((unit, i) => {
+    if (role(unit) !== "titular") return;
+    const code = txt(unit.dimensions?.legacy_ref);
+    if (code && !rangoDelTitular.has(code)) rangoDelTitular.set(code, i);
+  });
+
+  return units
+    .map((unit, entrada) => {
+      const rol = role(unit);
+      const declarada = num(unit.dimensions?.operational_sequence);
+      const propio = txt(unit.dimensions?.legacy_ref);
+      const deQuien = txt(unit.dimensions?.replacement_for);
+      const cabeza = rol === "titular" ? propio : deQuien;
+      const porTitular = rangoDelTitular.has(cabeza)
+        ? (rangoDelTitular.get(cabeza) as number)
+        : Number.POSITIVE_INFINITY;
+      // Último respaldo: el propio código lleva la cadena dentro. «AULA 12» es la
+      // cadena 12 y «R1.6» es la sexta reserva de la 1. Sin esto, un plan que no
+      // trae ni secuencia ni `replacement_for` —el del 1 de agosto, que es el
+      // que hay en el estudio— sale en su orden de entrada: AULA 1, 2, 3, 4, 6,
+      // 9, 12, 5… que no es «del primer curso-horario al último».
+      const delCodigo = /^[A-Za-zÁÉÍÓÚÑ]+\s*(\d+)(?:\.(\d+))?/.exec(propio);
+      const cadenaDelCodigo = delCodigo ? Number(delCodigo[1]) : Number.POSITIVE_INFINITY;
+      const ordenDelCodigo = delCodigo && delCodigo[2] !== undefined ? Number(delCodigo[2]) : 0;
+      return {
+        unit,
+        entrada,
+        banco: rol === "extra_reserve_pool" ? 1 : 0,
+        // La secuencia declarada manda; el rango del titular la sustituye cuando
+        // no viene. Ambas ordenan igual: por cadena.
+        // Prioridad: la secuencia declarada, luego el número del propio código y
+        // sólo al final el rango del titular. El orden importa porque las tres
+        // son ESCALAS DISTINTAS y mezclarlas descoloca: el rango empieza en 0 y
+        // el número del código en 1, así que «AULA 2» (rango 1) se colaba entre
+        // «AULA 1» y sus «R1.x» (código 1). Que todos usen la misma es la
+        // condición para que el orden signifique algo.
+        cadena: declarada !== Number.POSITIVE_INFINITY
+          ? declarada
+          : cadenaDelCodigo !== Number.POSITIVE_INFINITY ? cadenaDelCodigo : porTitular,
+        // El titular no trae `replacement_order`: va delante de sus reservas.
+        dentro: num(unit.dimensions?.replacement_order) !== Number.POSITIVE_INFINITY
+          ? num(unit.dimensions?.replacement_order)
+          : ordenDelCodigo,
+      };
+    })
+    .sort((a, b) =>
+      a.banco - b.banco || a.cadena - b.cadena || a.dentro - b.dentro || a.entrada - b.entrada)
+    .map((x) => x.unit);
+}
 
 export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize = PLAN_PAGE_SIZE) {
   const safePageSize = Math.max(1, Math.floor(pageSize));
@@ -177,7 +265,11 @@ export function PlanSection({ payload, onState }: Props) {
     );
   }
 
-  const pagination = paginatePlanUnits(plan.units, requestedPage);
+  // Se ordena ANTES de paginar: paginar el orden crudo repartiría una misma
+  // cadena entre dos páginas.
+  const unidadesEnOrden = useMemo<CollectionUnit[]>(
+    () => ordenOperativoDeUnidades(plan.units), [plan.units]);
+  const pagination = paginatePlanUnits(unidadesEnOrden, requestedPage);
 
   return (
     <div className="rec-plan-layout">

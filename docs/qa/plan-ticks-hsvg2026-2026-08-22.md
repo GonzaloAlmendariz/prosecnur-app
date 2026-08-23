@@ -1664,3 +1664,50 @@ Gonzalo dice «tanto monitoreo como recopiladores». En Monitoreo la tabla de
 agenda **sí** muestra `CH 1`; falta censar las demás superficies del perfil por si
 alguna enseña `unit_id`, `classroom_id` o la ola donde debería ir el código
 operativo.
+
+
+## El plan no se leía como una cadena operativa
+
+Gonzalo: «no estaría en orden del primer curso-horario al último y los reemplazos
+así como los extras deberían estar en ese orden de importancia […] no lo siento
+coherente con la intuitividad que ya ofrece cálculo de cursos-horario y la cadena
+operativa».
+
+El sorteo tiene la cadena resuelta —`operational_sequence` la comparten el titular
+y sus reservas, `replacement_order` da el lugar dentro— y el handoff copiaba las
+filas en el orden crudo, agrupado por rol. La tabla enseñaba titulares sueltos y
+después un bloque de banco.
+
+### Dos capas, porque una no bastaba
+
+1. **El productor** (`.collection_orden_operativo`) ordena al crear el plan y
+   `operational_sequence` ya viaja en `dimensions`.
+2. **La vista** ordena siempre — y esto es lo que hacía falta de verdad: **el plan
+   se congela**. Un plan ya guardado conserva su orden, y el del estudio es del 1
+   de agosto. Arreglar sólo el productor habría dejado la pantalla igual, y así se
+   veía en la primera comprobación.
+
+### Tres respaldos, en una sola escala
+
+El plan real no trae `operational_sequence` **ni** `replacement_for` —es anterior
+a los dos—, así que hubo que bajar un escalón más: **el propio código lleva la
+cadena dentro**. `AULA 12` es la cadena 12 y `R1.6` es la sexta reserva de la 1.
+
+Prioridad: secuencia declarada → número del código → rango del titular. **El orden
+entre ellos importa y costó una pasada**: son escalas distintas —el rango empieza
+en 0 y el número del código en 1— y mezclarlas colaba «AULA 2» entre «AULA 1» y
+sus «R1.x». Que todos usen la misma es la condición para que el orden signifique
+algo.
+
+Resultado en pantalla, con el plan real: **AULA 1 · R1.1 · R1.2 … R1.11 · AULA 2
+…**, y el banco al final. La columna Cadena dice «Cadena 1» para las reservas sin
+`replacement_for`, en vez de repetir el código que ya está en la columna Unidad.
+
+9 asertos nuevos entre las dos capas; 5 en R con su mutante.
+
+### Un rojo mío que llevaba varios commits vivo
+
+`test-collection-router.R` exige «exactamente las trece rutas V1» y la serie B
+añadió `/api/recopiladores/reseed` sin actualizarlo. **Los gates iban filtrados
+por área y ese archivo no entraba en ninguno de los filtros usados.** Reparado con
+la ruta declarada y su verbo exigido, como las otras cuatro.

@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las trece rutas V1", {
+test_that("router de Recopiladores declara exactamente las catorce rutas V1", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -8,6 +8,11 @@ test_that("router de Recopiladores declara exactamente las trece rutas V1", {
   expect_setequal(unique(routes), c(
     "/api/recopiladores/state",
     "/api/recopiladores/seed",
+    # Rehacer el plan con el sorteo vigente. Se anadio al reparar el plan de
+    # recoleccion desfasado y esta lista cerrada no se actualizo con el: el rojo
+    # vivio varios commits porque los gates iban filtrados por area y este
+    # archivo no entraba en ninguno de los filtros que se usaron.
+    "/api/recopiladores/reseed",
     "/api/recopiladores/plan",
     "/api/recopiladores/deployment",
     "/api/recopiladores/deployment/prepare",
@@ -24,6 +29,7 @@ test_that("router de Recopiladores declara exactamente las trece rutas V1", {
   expect_match(text, 'pr_handle\\("PUT", "/api/recopiladores/material-template"')
   expect_match(text, 'pr_post\\("/api/recopiladores/provider-preflight"')
   expect_match(text, 'pr_post\\("/api/recopiladores/deployment/preview"')
+  expect_match(text, 'pr_post\\("/api/recopiladores/reseed"')
 })
 
 test_that("router parsea JSON y exige body explícito en PUT", {
