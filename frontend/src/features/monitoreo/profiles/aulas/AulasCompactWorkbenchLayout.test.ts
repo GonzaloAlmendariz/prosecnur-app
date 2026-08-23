@@ -51,7 +51,17 @@ describe("Aulas: workbench compacto sin fila fantasma", () => {
     );
 
     expect(view).toMatch(/overflow:\s*visible;/);
-    expect(sourceStack).toMatch(/grid-template-rows:\s*auto\s+auto;/);
+    // Fuentes se dimensiona por CONTENIDO, y con `grid-auto-rows` en vez de una
+    // lista fija de filas. Decía `auto auto` —dos— y el stack tiene TRES
+    // paneles: el tercero caía en una fila implícita y, como los paneles llevan
+    // `min-height: 0`, las dos declaradas se encogían para caber. Medido a
+    // 1024x600 el 2026-08-23: 14 px de panel con 57 de contenido y 26 con 220,
+    // derramando encima del panel siguiente.
+    //
+    // Se comprueba la propiedad —cada fila toma su contenido— y no una lista de
+    // longitud fija, que vuelve a romperse el día que se añada un panel.
+    expect(sourceStack).toMatch(/grid-auto-rows:\s*max-content;/);
+    expect(sourceStack).not.toMatch(/grid-template-rows:\s*auto\s+auto;/);
     expect(agendaStack).toMatch(/grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\);/);
     expect(agendaStack).toMatch(/align-content:\s*stretch;/);
     expect(agendaStack).toMatch(/overflow:\s*hidden;/);
