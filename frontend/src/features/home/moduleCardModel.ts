@@ -194,7 +194,11 @@ function routePhaseLabel(phase: string): string {
 const MONITOREO_FAMILY_LABEL: Record<string, string> = {
   territorial: "Territorial",
   telefonico: "Telefónico",
-  aulas_universitarias: "Aulas",
+  // «Cursos-horario» y no «Aulas»: es como lo llama el resto de la app —el modo
+  // en la barra de Monitoreo, el selector de propósito, las tarjetas del
+  // plan—. Dos nombres para la misma cosa obligan al lector a averiguar si son
+  // dos cosas.
+  aulas_universitarias: "Cursos-horario",
   acreditacion: "Acreditación",
   digital_general: "Digital",
 };
@@ -397,7 +401,15 @@ export function buildModuleCardView(
           { label: "último corte", value: formatCutDate(metrics.monitoreo_last_cut) },
           {
             label: collectedLabel,
-            value: monitoring.collected > 0 ? formatCount(monitoring.collected) : "Sin definir",
+            // «Sin definir» sobre un cero miente: está definido, y es cero. Lo
+            // que de verdad no se sabe es cuando todavía no ha llegado nada de
+            // la plataforma —ahí no hay un cero medido, hay un hueco—, y eso lo
+            // dice `has_snapshot`.
+            value: monitoring.collected > 0
+              ? formatCount(monitoring.collected)
+              : monitoring.has_snapshot
+                ? "0"
+                : "Sin sincronizar",
           },
         ],
         action: moduleAction(module, monitoring.alerts > 0 ? "Revisar alertas" : "Abrir monitoreo"),
@@ -596,9 +608,20 @@ export function buildModuleCardView(
             : collectors.without_link > 0
               ? `${formatCount(collectors.without_link)} fichas requieren enlace`
               : "Todas las fichas tienen enlace",
+        // Los pies dicen lo que la barra NO dice. Tenían «con enlace 0» y
+        // «faltantes 193» debajo de una barra que ya marcaba «0/193» y de un
+        // subtítulo que ya decía «193 fichas requieren enlace»: el mismo dato
+        // tres veces, gastando las tres ranuras de la tarjeta. `total` —las
+        // 2.616 unidades del plan, titulares más reservas más banco— no se
+        // enseñaba en ninguna parte.
+        //
+        // Dos pies y no tres a propósito: el otro dato disponible,
+        // `eligible_total`, cuenta los elegibles de las 2.616 unidades y la
+        // tarjeta de Cálculo, a diez centímetros, dice «5.987 estudiantes»
+        // contando los de las titulares. Dos denominadores en la misma pantalla
+        // es peor que un hueco.
         facts: [
-          { label: "con enlace", value: formatCount(collectors.with_link) },
-          { label: "faltantes", value: formatCount(collectors.without_link) },
+          { label: "unidades en el plan", value: formatCount(collectors.total) },
           { label: "facultades", value: formatCount(collectors.faculties_count) },
         ],
         action: moduleAction(
