@@ -1381,3 +1381,59 @@ Queda por decidir cuál se renombra. La tarjeta acaba de ganar su fecha en esta
 serie y su pista dice «todo el atraso se mide contra este día», así que es la que
 tiene el significado más cargado; el de la barra parece ser «última
 sincronización».
+
+
+## La cadena sorteo → Monitoreo → Excel, probada end-to-end
+
+Pregunta de Gonzalo: si el cálculo pide 193 aulas, ¿por qué no se pueden llevar a
+Monitoreo, ver la selección en la UI, generar el Excel de agendación y que
+Monitoreo lo lea?
+
+**Sí se puede: nunca se había ejecutado.** Estado del `.pulso` del 21:
+
+| Módulo | Estado |
+|---|---|
+| Cálculo de muestra | 2 616 filas — **190 titulares + 496 reservas + 1 930 extras**, corrida `sel_aulas_20260821160928` |
+| Monitoreo | `monitoreo_aulas_plan` **no existía**, sin plan y sin perfil |
+| Recopiladores | existe (el plan desfasado de la serie B) |
+
+Ejecutada la cadena en la app con el proyecto real:
+
+1. **Importar plan** → «PLAN DE MUESTRA: importado, 686 cursos-horario» (190
+   titulares + 496 reservas; los 1 930 extras se quedan de banco, correcto).
+   SELECCIÓN pasa a *Conectada*, MARCO a *Registrado*, METODOLOGÍA a *Trazable*.
+2. **Generar libro** → `HSVG2026_definitivo_libro_aulas_22_08_26.xlsx`, 840 KB,
+   con sus cinco hojas: Aulas Agendadas, Aulas Aplicadas (Campo), Base de
+   control, Cómo va el campo, Listas.
+
+Con 193 el camino es idéntico; lo que cambia es que re-sortear produce un
+`selection_run_id` nuevo, y entonces **hay que rehacer la cadena entera** —plan
+de recolección, plan de Monitoreo y fichas QR—. Los tres avisos de desfase que se
+construyeron en esta serie existen exactamente para que eso no pase inadvertido.
+
+### Tres defectos encontrados al recorrerla
+
+**(1) Fuentes tumbaba la aplicación entera. REPARADO.** Justo después de importar
+el plan —cuando aún no hay dashboard y el libro llega en su forma cruda—
+`LibroDelOperativo` hacía `recibo.hojas.map(...)` a ciegas: «Cannot read
+properties of undefined (reading 'length')» y pantalla de error. La línea es del
+17/08 y el mutante que quita la guarda reproduce el mismo mensaje exacto.
+
+**(2) «Ninguno de los 42 cursos-horario tiene fecha de aplicación»** cuando el
+plan tiene **686** y «POR AGENDAR» dice 686. Un rótulo con el denominador de otra
+cosa. ABIERTO.
+
+**(3) El Excel de agendación lleva el banco entero.** La hoja «Aulas Agendadas»
+trae **2 120 filas: 1 930 EXTRA + 190 CH**. El equipo recibiría sus 190 aulas a
+visitar mezcladas entre 1 930 de reserva. Y el perfil de Monitoreo **ya sabe**
+que el banco va fuera —`frenteDelOperativo` lo comenta: «El BANCO fuera. Los
+extras no están agendados […] contarlos hacía que el panel hablara de 236
+cursos-horario donde la agenda tiene 196»—. El panel lo corrigió; el generador
+del libro no. ABIERTO.
+
+### Y las 193
+
+Siguen **medidas y sin aplicar**. Es la única configuración con cero déficit y
+cero facultades sin margen, con 7 aulas menos que 200 proporcional. Aplicarlas
+exige recalcular `faculty_targets`, re-sortear y regenerar el `.pulso`: es una
+decisión de Gonzalo, no un cambio de código.

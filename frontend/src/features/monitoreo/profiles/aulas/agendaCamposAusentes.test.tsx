@@ -57,3 +57,46 @@ describe("la hoja de agenda declara los campos que no bautiza", () => {
     expect(render(recibo())).not.toContain("se leen vacías");
   });
 });
+
+// Un recibo sin `hojas` tumbaba la aplicación entera.
+//
+// `LibroDelOperativo` hacía `recibo.hojas.map(...)` a ciegas. Justo después de
+// importar el plan desde Cálculo de muestra —cuando todavía no hay dashboard y
+// el libro llega en su forma cruda— eso reventaba con «Cannot read properties of
+// undefined (reading 'length')» y la pantalla de «La aplicación se detuvo por un
+// error». Visto en la app con el proyecto real.
+describe("el recibo del libro tolera venir a medias", () => {
+  const sinHojas = { importado_en: "2026-08-22T10:00:00Z", hojas_ausentes: 0, control_sin_nombre: 0 };
+
+  it("sin `hojas` no revienta y no inventa un denominador", () => {
+    const html = renderToStaticMarkup(
+      <AulasFuentesDelEstudio
+        fuentes={[] as ReadonlyArray<MonitoreoSource>}
+        anonimas={false}
+        libro={sinHojas as unknown as ReciboDelLibro}
+        filas={0}
+        columnas={0}
+      />,
+    );
+    expect(html).toContain("hojas sin registrar todavía");
+    // «0 de 3» sería peor que no decir nada: afirma que faltan las tres.
+    expect(html).not.toContain("0 de 3 hojas");
+  });
+
+  it("con `hojas` sigue contando como siempre", () => {
+    const html = renderToStaticMarkup(
+      <AulasFuentesDelEstudio
+        fuentes={[] as ReadonlyArray<MonitoreoSource>}
+        anonimas={false}
+        libro={{ ...sinHojas, hojas_ausentes: 1, hojas: [
+          { hoja: "Aulas Agendadas", vino: true },
+          { hoja: "Aulas Aplicadas (Campo)", vino: true },
+          { hoja: "Base de control", vino: false },
+        ] } as ReciboDelLibro}
+        filas={0}
+        columnas={0}
+      />,
+    );
+    expect(html).toContain("2 de 3 hojas");
+  });
+});
