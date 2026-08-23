@@ -115,3 +115,118 @@
     justify-content: space-between;
   }
 }
+
+/* Composición por facultad.
+   La barra va de FONDO de la fila y no como elemento aparte: en 270px de
+   columna, una barra propia deja el nombre en dos líneas y quince facultades
+   se vuelven treinta renglones. De fondo, la proporción se lee sin gastar
+   ancho. */
+.rec-facultades-card svg {
+  color: var(--rec-accent);
+  flex-shrink: 0;
+}
+
+.rec-facultades-lead {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 8px 0 10px;
+}
+
+.rec-facultades-lista {
+  display: grid;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-facultades-lista li {
+  align-items: center;
+  display: grid;
+  font-size: 11.5px;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 30px 50px;
+  isolation: isolate;
+  padding: 4px 5px;
+  position: relative;
+}
+
+.rec-facultades-lista li::before {
+  background: color-mix(in srgb, var(--rec-accent) 13%, transparent);
+  border-radius: 3px;
+  content: "";
+  inset: 0 auto 0 0;
+  position: absolute;
+  width: var(--peso, 0%);
+  z-index: -1;
+}
+
+.rec-facultades-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-facultades-n,
+.rec-facultades-eleg {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.rec-facultades-n {
+  font-weight: 600;
+}
+
+.rec-facultades-eleg {
+  color: var(--pulso-text-faint);
+}
+
+/* La cabecera nombra las dos columnas de números. Sin ella, «34» y «1.150» son
+   dos cifras sin rótulo, que es justo lo que no puede pasar en esta pantalla.
+   Va ARRIBA y no de pie: se lee antes que los números, no después. Las palabras
+   no se parten —`nowrap`— porque en 30px «aulas» se rompia en «aul as». */
+.rec-facultades-cabecera {
+  color: var(--pulso-text-faint);
+  display: grid;
+  font-size: 9.5px;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 30px 50px;
+  letter-spacing: .02em;
+  margin: 0 0 3px;
+  padding: 0 5px;
+  text-transform: uppercase;
+}
+
+.rec-facultades-cabecera span {
+  overflow: visible;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rec-facultades-cabecera span:first-child {
+  grid-column: 2;
+}
+
+.rec-facultades-cabecera span:last-child {
+  grid-column: 3;
+}
+
+.rec-facultades-vacio,
+.rec-facultades-aviso {
+  color: var(--pulso-text-faint);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+
+.rec-facultades-aviso {
+  border-top: 1px solid var(--pulso-border);
+  padding-top: 8px;
+}
+
+.rec-plan-aside {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
