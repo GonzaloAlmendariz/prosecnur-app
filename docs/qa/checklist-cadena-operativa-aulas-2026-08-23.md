@@ -24,7 +24,7 @@ altura*. No es un detalle de una tanda: es el objetivo de todas.
 | 4 | → Libro de agendación | ☑ | 700 filas = 193 + 507, con desglose declarado |
 | 5 | → Fichas QR | ☑ | el atajo aterriza en el editor de fichas |
 
-## Las nueve reparaciones
+## Las veinticuatro reparaciones
 
 | # | Qué estaba mal | Commit |
 |---|---|---|
@@ -42,6 +42,16 @@ altura*. No es un detalle de una tanda: es el objetivo de todas.
 | 12 | El resumen del plan no decía si hay con qué reemplazar | `22661e9d` |
 | 13 | «2109» y «2,109» en la misma pantalla | `036c0fe2` |
 | 14 | «576,5 respuestas faltan» | `06f233c4` |
+| 15 | La TERCERA lista sin orden de cadena, con su guardián | `02094a77` |
+| 16 | `fmt` significaba tres cosas distintas según el archivo | `bedcd231` |
+| 17 | El proyecto escondía su propio trabajo en el homepage | `7846c956` |
+| 18 | La tarjeta de Recopiladores decía el mismo número tres veces | `f80609ae` |
+| 19 | La tarjeta de Monitoreo decía «Sin fuentes» y «conectado» a la vez | `f7079672` |
+| 20 | «190» y «193» en la misma pantalla sin decir cuál es cuál | `27d7ba99` |
+| 21 | «Fichas 0» no decía de cuántas | `c703dc4d` |
+| 22 | «500 de 2 616» se leía como progreso y era un recorte | `919f5f4c` |
+| 23 | «reservas del banco» nombraba dos conjuntos distintos | `8531b05c` |
+| 24 | «2 109 en juego» sobre un operativo de 193 visitas | `3d6f20cf` |
 
 ## Lo que espera decisión tuya
 
@@ -60,7 +70,29 @@ altura*. No es un detalle de una tanda: es el objetivo de todas.
   son las mismas tautologías que se quitaron de la tabla de Agenda, pero en una
   de reserva sí informan. Hay que decidirlo por tipo de ficha, no en bloque.
 
-## Dos trampas que costaron tiempo y se repiten
+## Verificaciones negativas — buscado y NO hay defecto
+
+Valen tanto como los hallazgos: evitan que la próxima sesión vuelva a mirar.
+
+| Qué se buscó | Resultado |
+|---|---|
+| Una **cuarta lista** sin orden de cadena | No la hay. `AulasControlDelLibro` es la única candidata y sus filas vienen del libro importado, no del plan. |
+| **Datos del dashboard sin consumidor** | 29 de los 30 campos del payload se consumen. El único suelto, `criterio_aula`, no es brecha: el frontend calcula el mismo contraste con `contrasteDeValidadores`, y sobre el mismo universo —`control_calidad` viaja sin tope—. Queda la duplicación, no comprobable sin un libro llenado. |
+| **Coherencia numérica de Recopiladores** | Limpia. Las cuatro secciones hablan del mismo denominador (193) y sus cifras coinciden con la verdad medida en R. |
+| Los cuatro «—» de **Entrega** | Correctos: no hay entrega, así que no hay datos de entrega, y el aviso ya dice por qué. |
+
+## Qué hace bueno al módulo referente
+
+Medido en Cálculo de muestra, para poder trasladarlo:
+
+1. **Rastro conceptual declarado arriba** — «Universo → elegibles → operación → aulas».
+2. **Cada KPI con su procedencia** debajo de la cifra, no sólo el número.
+3. **Diagrama de pasos con «Estás aquí»**.
+4. **Mapa del recorrido con las mermas**: 137 919 → 109 737 (−28 182 excluidas) → 21 920 → 2 500 → 193.
+
+El 4 es el que falta llevar, y es el que depende de decidir el hilo de Monitoreo.
+
+## Cuatro trampas que costaron tiempo y se repiten
 
 1. **Un punto entre dígitos no es un decimal.** «R 152.3» es la reserva 3 de la
    cadena 152. Cazó dos veces en la misma sesión: al filtrar accesos a propiedad
@@ -68,10 +100,24 @@ altura*. No es un detalle de una tanda: es el objetivo de todas.
 2. **Al cambiar lo que se cuenta hay que revisar quién lo cuenta.** «Libro de
    2616 aulas» se arregló ajustando el total y el rótulo siguió diciendo
    «aulas»; las columnas de rol se quedaron cuando la agenda pasó a listar sólo
-   titulares.
+   titulares. Y pasó **dentro de la misma sesión**: al descontar el banco del
+   denominador de «en juego», el numerador se quedó atrás y la pantalla dijo
+   «2 109 de 193».
+3. **Grep del consumidor, conclusión sobre el productor.** Tres veces esta
+   sesión. La última: dije que el payload no traía el desglose por rol tras
+   mirar sólo `kpis`; el motor lo contaba, el router lo emitía y el tipo lo
+   declaraba. La pregunta que lo desarma: *¿comprobé que nadie lo produce, o
+   sólo que este de acá no lo recibe?*
+4. **Un test que lee el código en vez de la pantalla se cree lo que el código
+   diga.** Un guardián buscó una frase vieja en el fuente y la encontró en el
+   comentario que la citaba como evidencia.
 
 ## Gate al cierre
 
-`tsc` limpio · **5 696** tests de frontend (711 archivos) · **38** archivos de R
-entre `carga-aulas` y `collection` · `sync-agentic-os --audit` y `--check` en
-verde · 60 tests del sincronizador.
+`tsc` limpio · **5 712+** tests de frontend (713 archivos) · **902** en el perfil
+de aulas · **38** archivos de R entre `carga-aulas` y `collection` ·
+`sync-agentic-os --audit` y `--check` en verde · 60 tests del sincronizador.
+
+Y la cadena entera, revalidada tras veinte commits: sorteo 2 616 → Monitoreo
+2 616 (193 titulares, no desfasado) → Recopiladores 2 616 = 193 + 507 + 1 916 →
+libro 700 = 193 + 507, cuadra.
