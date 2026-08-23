@@ -278,20 +278,35 @@ monitoreo_aulas_default_config <- function() {
   )
 }
 
+# **El `$` de R parcial-matchea, y este body viene del cliente.**
+#
+# `config$plan` con una lista que NO trae `plan` pero SI trae `plan_rows` devuelve
+# `plan_rows`. Y `plan_rows` lo anade el propio payload de estado para la UI, asi
+# que el ciclo se cerraba solo: el backend emite la config con `plan_rows`, el
+# front la reenvia entera al elegir el modo, y aqui `config$plan` pescaba el
+# entero y reventaba con «El insumo 'plan' debe ser una tabla o lista de filas»
+# —un E_INTERNAL al pulsar «Elegir» en la pantalla de modo—.
+#
+# Reproducido con curl contra la API: reenviar sin tocar la config que el propio
+# backend acababa de devolver bastaba para el 500.
+#
+# `control` vs `control_sin_nombre` es la misma trampa esperando, asi que TODO el
+# body se lee con `[[`, que es exacto. `defaults$` se deja como esta: es interno
+# y no lo escribe nadie de fuera.
 monitoreo_aulas_normalize_config <- function(config = list()) {
   if (is.null(config) || !is.list(config)) config <- list()
   defaults <- monitoreo_aulas_default_config()
-  mapping <- config$source_mapping %||% config$mapeo_fuentes %||% list()
+  mapping <- config[["source_mapping"]] %||% config[["mapeo_fuentes"]] %||% list()
   if (!is.list(mapping)) mapping <- list()
-  alerts <- config$alerts %||% config$alertas %||% list()
+  alerts <- config[["alerts"]] %||% config[["alertas"]] %||% list()
   if (!is.list(alerts)) alerts <- list()
   list(
     schema = "monitoreo_aulas_universitarias_v1",
-    enabled = .monitoreo_bool(config$enabled %||% config$activo, defaults$enabled),
-    selection_run_id = .monitoreo_scalar(config$selection_run_id %||% config$run_id, defaults$selection_run_id),
-    frame_hash = .monitoreo_scalar(config$frame_hash, defaults$frame_hash),
-    imported_at = .monitoreo_scalar(config$imported_at %||% config$importado_en, defaults$imported_at),
-    anonymous_responses = .monitoreo_bool(config$anonymous_responses %||% config$respuestas_anonimas, defaults$anonymous_responses),
+    enabled = .monitoreo_bool(config[["enabled"]] %||% config[["activo"]], defaults$enabled),
+    selection_run_id = .monitoreo_scalar(config[["selection_run_id"]] %||% config[["run_id"]], defaults$selection_run_id),
+    frame_hash = .monitoreo_scalar(config[["frame_hash"]], defaults$frame_hash),
+    imported_at = .monitoreo_scalar(config[["imported_at"]] %||% config[["importado_en"]], defaults$imported_at),
+    anonymous_responses = .monitoreo_bool(config[["anonymous_responses"]] %||% config[["respuestas_anonimas"]], defaults$anonymous_responses),
     source_mapping = list(
       classroom_id_var = .monitoreo_scalar(mapping$classroom_id_var %||% mapping$aula_var, defaults$source_mapping$classroom_id_var),
       collector_var = .monitoreo_scalar(mapping$collector_var %||% mapping$collector, defaults$source_mapping$collector_var),
@@ -335,7 +350,7 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # `NULL` cuando no se declaro, que es como estan todos los estudios de hoy.
     aula_valida = local({
       crit <- monitoreo_aulas_criterio_aula(list(
-        aula_valida = config$aula_valida %||% defaults$aula_valida
+        aula_valida = config[["aula_valida"]] %||% defaults$aula_valida
       ))
       if (is.null(crit)) NULL else crit
     }),
@@ -346,12 +361,12 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # acnur_acg, <5 min marca el 4.3 % de las respuestas y <7 min el 13.6 %.
     duracion_sospecha_min = local({
       crit <- monitoreo_tiempos_criterio(list(
-        duracion_sospecha_min = config$duracion_sospecha_min %||%
+        duracion_sospecha_min = config[["duracion_sospecha_min"]] %||%
           defaults$duracion_sospecha_min
       ))
       if (isTRUE(crit$declarado)) crit$umbral_min else NULL
     }),
-    plan = monitoreo_aulas_normalize_plan(config$plan %||% config$agenda %||% defaults$plan),
+    plan = monitoreo_aulas_normalize_plan(config[["plan"]] %||% config[["agenda"]] %||% defaults$plan),
     # Ver la nota en `monitoreo_aulas_default_config()`: sin esta linea el
     # normalizador descartaba los partes y el control de reconciliacion no
     # tenia nada que comprobar.
@@ -360,27 +375,27 @@ monitoreo_aulas_normalize_config <- function(config = list()) {
     # respuesta de la importacion sin que nadie lo mirara: una capacidad sin
     # consumidor. Aqui entra al tablero.
     control_sin_nombre = {
-      v <- suppressWarnings(as.integer(config$control_sin_nombre %||% defaults$control_sin_nombre %||% 0L))
+      v <- suppressWarnings(as.integer(config[["control_sin_nombre"]] %||% defaults$control_sin_nombre %||% 0L))
       if (length(v) != 1L || !is.finite(v) || v < 0L) 0L else v
     },
     partes_campo = {
-      pc <- config$partes_campo %||% config$partes %||% defaults$partes_campo
+      pc <- config[["partes_campo"]] %||% config[["partes"]] %||% defaults$partes_campo
       if (is.list(pc)) unname(Filter(is.list, pc)) else list()
     },
     # Las filas de «Base de control». Mismo tratamiento que los partes: se
     # conservan como vienen del lector y el motor las publica sin recalcular
     # nada, porque las formulas de control son del equipo, no de la app.
     control = {
-      ct <- config$control %||% config$base_control %||% defaults$control
+      ct <- config[["control"]] %||% config[["base_control"]] %||% defaults$control
       if (is.list(ct)) unname(Filter(is.list, ct)) else list()
     },
     # El recibo de la importacion. Se conserva tal cual: no es configuracion
     # editable, es el sello de que libro se leyo y cuando.
-    libro = if (is.list(config$libro)) config$libro else NULL,
-    quotas = config$quotas %||% config$cuotas %||% defaults$quotas,
-    variables_control = config$variables_control %||% config$variablesControl %||% defaults$variables_control,
-    methodology = config$methodology %||% config$metodologia %||% defaults$methodology,
-    representativity = config$representativity %||% config$representatividad %||% defaults$representativity,
+    libro = if (is.list(config[["libro"]])) config[["libro"]] else NULL,
+    quotas = config[["quotas"]] %||% config[["cuotas"]] %||% defaults$quotas,
+    variables_control = config[["variables_control"]] %||% config[["variablesControl"]] %||% defaults$variables_control,
+    methodology = config[["methodology"]] %||% config[["metodologia"]] %||% defaults$methodology,
+    representativity = config[["representativity"]] %||% config[["representatividad"]] %||% defaults$representativity,
     alerts = list(
       min_valid_per_class = max(1L, .monitoreo_int(alerts$min_valid_per_class %||% alerts$min_validas_aula, defaults$alerts$min_valid_per_class)),
       warn_partial_under_valid = max(1L, .monitoreo_int(alerts$warn_partial_under_valid %||% alerts$alerta_parcial_menor_a, defaults$alerts$warn_partial_under_valid))
