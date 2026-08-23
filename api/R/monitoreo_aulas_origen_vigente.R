@@ -16,7 +16,9 @@
 #'
 #' @param s estado de sesion.
 #' @return lista con `plan_run_id` (el del plan que Monitoreo muestra),
-#'   `selection_run_id` (el del sorteo vigente) y `desfasado`.
+#'   `selection_run_id` (el del sorteo vigente), `desfasado` y
+#'   `unidades_disponibles` (cuantas aulas trae ese sorteo para traer, sin el
+#'   banco de extras).
 #' @export
 monitoreo_aulas_origen_vigente <- function(s) {
   s <- s %||% list()
@@ -35,9 +37,25 @@ monitoreo_aulas_origen_vigente <- function(s) {
     if (length(valores) == 1L) vigente <- valores[[1]]
   }
 
+  # Cuantas hay listas para traer, SIN el banco: es la cifra que Monitoreo
+  # acabaria mostrando, y decir 2 616 donde el plan seran 686 seria prometer otro
+  # numero. El banco no se agenda —misma regla que el libro de campo—.
+  disponibles <- 0L
+  filas <- sel$selection
+  if (is.data.frame(filas) && nrow(filas)) {
+    roles <- if ("sample_role" %in% names(filas)) {
+      tolower(trimws(as.character(filas$sample_role)))
+    } else rep("", nrow(filas))
+    disponibles <- as.integer(sum(roles != "extra_reserve_pool"))
+  } else if (is.list(filas) && length(filas)) {
+    roles <- vapply(filas, function(f) tolower(trimws(as.character(f$sample_role %||% ""))), character(1))
+    disponibles <- as.integer(sum(roles != "extra_reserve_pool"))
+  }
+
   list(
     plan_run_id = plan_run,
     selection_run_id = vigente,
+    unidades_disponibles = disponibles,
     # Se afirma SOLO con las dos corridas conocidas y distintas. Un plan traido
     # por libro no trae `selection_run_id` —la distincion ya existe en
     # `AulasOperationsPanel`— y acusarlo de desfasado seria acusarlo por no

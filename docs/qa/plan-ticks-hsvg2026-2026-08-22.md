@@ -1492,3 +1492,39 @@ sacarlo de donde ese número se produce, no de la entrada más cercana.
 
 Con esto, las tres cifras del libro vuelven a decir lo mismo: **190 aulas** en el
 plan de campo, 190 filas en la hoja y «Libro de 190 aulas» en el aviso.
+
+
+## «Si el cálculo ya tiene el plan, ¿por qué Monitoreo no lo consume?»
+
+Sí lo consume — pero sólo cuando alguien pulsa **Importar plan**. Y hay una razón
+real para que sea una copia y no una lectura en vivo:
+
+**El plan de Monitoreo tiene dos orígenes y evoluciona.** Puede venir del cálculo
+de muestra *o del propio libro Excel llenado en campo*, y ese segundo camino no
+trae `selection_run_id`. Una vez en marcha se le pegan fechas, partes, estados y
+aulas que alguien añadió a mano. Si Monitoreo leyera la selección en vivo,
+perdería todo eso en cada recarga. La distinción ya estaba escrita en
+`aulasHayPlan`: *«importas 196 aulas y no puedes regenerar el libro»*.
+
+Así que el paso manual no es el defecto. **El defecto es que la app no dijera que
+había algo esperando.**
+
+### El hueco valía igual para dos estados opuestos
+
+El estado de Selección decía «sin corrida importada» tanto para un proyecto **sin
+sorteo** como para uno con **686 aulas sorteadas que nadie ha traído** — que es
+el caso más común al abrir un proyecto recién sorteado, y justo el que hace
+preguntar por qué Monitoreo no consume el plan.
+
+| Estado | Antes | Ahora |
+|---|---|---|
+| Sorteo hecho, plan vacío | «sin corrida importada» | **«686 cursos-horario sorteados sin traer»** |
+| Sin sorteo | «sin corrida importada» | «el cálculo de muestra todavía no sorteó aulas» |
+| Plan del libro | «196 del libro · sin corrida de cálculo» | igual |
+| Plan importado | la corrida | igual |
+
+La cifra sale de `aulas_origen`, la señal que ya se construyó para avisar del
+desfase — segundo consumidor del mismo dato— y **excluye el banco**: son 686 y no
+2 616, porque 686 es lo que Monitoreo acabará mostrando.
+
+4 asertos en el frontend; el mutante que devuelve el texto único mata 2.

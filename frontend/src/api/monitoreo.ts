@@ -3059,6 +3059,8 @@ export type MonitoreoAulasOrigen = {
   plan_run_id: string;
   selection_run_id: string;
   desfasado: boolean;
+  /** Aulas que ese sorteo tiene listas para traer, sin el banco de extras. */
+  unidades_disponibles?: number;
 };
 
 export type MonitoreoState = {

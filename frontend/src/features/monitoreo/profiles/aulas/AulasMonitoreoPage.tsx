@@ -2299,6 +2299,7 @@ export default function AulasMonitoreoPage() {
                 config={aulasConfig}
                 sources={state?.sources ?? []}
                 busy={busy}
+                origen={state?.aulas_origen}
                 onImportPlan={() => { void importPlan(); }}
                 onSyncField={() => { void syncField(); }}
                 onGenerarLibro={() => { void generarLibro(); }}
