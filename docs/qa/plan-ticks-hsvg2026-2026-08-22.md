@@ -1750,3 +1750,36 @@ cursos-horario tiene fecha de aplicación. La agenda dibuja los **500** que cabe
 en esta vista». Antes decía «los 42».
 
 8 asertos del módulo compartido; 1 832 tests del frontend en verde.
+
+
+## La tabla enseñaba más metadatos cuanto menos campo había
+
+Última pieza de «no se ve nada amigable». La tabla pone delante las columnas
+preferidas y **rellena el resto con lo que traiga el payload, en su orden**.
+
+En Agenda las preferidas son el ciclo de contacto —a quién llamo, por qué medio,
+cuándo, cuántas veces, en qué quedó—, que está **vacío hasta que el equipo sale a
+campo**. Al no tener dato desaparecen, y el hueco lo llenaban
+`sel_aulas_20260822204345_bf10d14c`, `slot_001` y la secuencia operativa.
+
+Dicho de otro modo: **cuanto menos trabajo de campo hay, más metadatos internos
+enseña la tabla** — justo al abrir un estudio, que es cuando menos se sabe.
+
+| | Antes | Ahora |
+|---|---|---|
+| Columnas | … Corrida de selección · Código titular · Cadena de reemplazo · Secuencia operativa · Posición de muestra … | … Código titular · Cadena de reemplazo · Rol · Muestra · Orden en la cadena · **Nombre del curso · Horario** |
+
+Se excluyen sólo los campos que no aportan en **ninguna** lectura: el sello de la
+corrida —que ya vive en la cabecera y en Fuentes—, las ranuras internas del
+sorteo y los identificadores con equivalente legible en la misma tabla.
+`titular_operational_code` y `replacement_chain_code` **no** se excluyen: «CH 1»
+y «R 1.2» dicen de qué cadena es la fila.
+
+Y una preferida declarada gana sobre la exclusión —si una tabla necesita ver la
+corrida, la enseña—, así que la lista sólo sirve si nadie la pide de relleno. Un
+test lo comprueba sobre las `preferredColumns` del perfil.
+
+En pantalla, con el sorteo de 193: **CH 1** (Titular, cadena CH 1) seguido de
+**R 1.1** (Reserva encadenada, código titular CH 1, orden 1).
+
+4 asertos nuevos.

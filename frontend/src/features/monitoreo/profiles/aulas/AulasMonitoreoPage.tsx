@@ -144,6 +144,34 @@ function dashboardFromState(state: MonitoreoState | null) {
 
 // El límite deja de estar incrustado: quien llama decide, y el recorte se
 // declara en la vista (antes se perdían columnas sin aviso).
+/**
+ * Campos que identifican un registro pero no le dicen nada a quien opera.
+ *
+ * Gonzalo: «usa estos códigos internos y no se ve nada amigable».
+ *
+ * La tabla pone delante las columnas preferidas y **rellena el resto con lo que
+ * traiga el payload, en su orden**. En Agenda las preferidas son el ciclo de
+ * contacto —a quién llamo, por qué medio, cuándo, cuántas veces—, que está vacío
+ * hasta que el equipo sale a campo; al no tener dato desaparecen, y el hueco se
+ * llenaba con `sel_aulas_20260822204345_bf10d14c`, `slot_001` y la secuencia
+ * operativa. Es decir: **cuanto menos trabajo de campo hay, más metadatos
+ * enseña la tabla**.
+ *
+ * Se excluyen sólo los que no aportan en ninguna lectura. `titular_operational_
+ * code` y `replacement_chain_code` NO están aquí: «CH 1» y «R 1.2» son
+ * legibles y dicen de qué cadena es la fila.
+ */
+const COLUMNAS_DE_INFRAESTRUCTURA = new Set([
+  // El sello de la corrida ya vive en la cabecera del módulo y en Fuentes.
+  "selection_run_id", "run_id", "frame_hash",
+  // Ranuras e índices internos del sorteo: «slot_001» no es una posición que
+  // alguien use, es cómo se numeran las plazas por dentro.
+  "selection_slot_id", "slot_id", "operational_sequence", "orden", "order",
+  // Identificadores técnicos con su equivalente legible ya en la tabla:
+  // `operational_code` es «CH 1» y `course_name` el nombre del curso.
+  "classroom_id", "course_id", "unit_id",
+]);
+
 function compactColumns(
   rows: Array<Record<string, unknown>>,
   preferred: string[] = [],
@@ -151,7 +179,12 @@ function compactColumns(
 ) {
   const seen = new Set<string>();
   const keys = [...preferred, ...rows.flatMap((row) => Object.keys(row))]
-    .filter((key) => key && !key.startsWith("_") && !seen.has(key) && (seen.add(key), true));
+    .filter((key) => key
+      && !key.startsWith("_")
+      // Una preferida declarada explícitamente gana: si una tabla pide ver la
+      // corrida, la enseña. Lo que se evita es que aparezca de relleno.
+      && (preferred.includes(key) || !COLUMNAS_DE_INFRAESTRUCTURA.has(key))
+      && !seen.has(key) && (seen.add(key), true));
   return keys.slice(0, maxColumns);
 }
 
