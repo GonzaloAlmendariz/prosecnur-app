@@ -53,7 +53,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
     try {
       onState(await apiRecopiladoresHandoff(payload.state_revision, readiness.fingerprint));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo completar el handoff.");
+      setError(cause instanceof Error ? cause.message : "No se pudo completar la entrega.");
     } finally {
       setBusy(false);
     }

@@ -18,6 +18,10 @@ const PARECE_CODIGO = [
   /[{}]/, /===/, /=>/, /\?\?/, /\|\|/,
   // Llamada a función o continuación de argumentos.
   /[A-Za-z_$][\w$]*\s*\(/, /,\s*$/, /^\s*[A-Za-z_$][\w$]*\s*,/,
+  // Una firma genérica deja código entre `>` y `<`: `useState<Foo | null>(null);
+  // const [preview, setPreview] = useState<` pescaba «(null); const [preview,
+  // setPreview] = useState» como si fuera copy.
+  /[;[\]]/, /\w\s*=\s*\w/,
 ];
 
 /**
@@ -33,7 +37,28 @@ export function textoVisibleDe(fuente: string): string[] {
   const attrs = [...limpio.matchAll(
     /(?:title|label|eyebrow|empty|lead|placeholder|aria-label)=["']([^"']{6,160})["']/g,
   )].map((m) => m[1]);
-  return [...jsx, ...attrs]
+  // **El copy que vive dentro de una expresión.**
+  //
+  // `{deployment ? etiqueta(deployment.status) : "sin deployment"}` pinta «sin
+  // deployment» en pantalla y ninguno de los dos patrones de arriba lo ve: no
+  // está entre `>` y `<` ni es un atributo de copy. Y ahí es justo donde vive el
+  // texto de los ESTADOS, que es el que más jerga arrastra —medido el
+  // 2026-08-23 en Materiales: «sin deployment» llevaba meses en pantalla con el
+  // guardián en verde—.
+  //
+  // Se piden dos palabras separadas por espacio para no pescar identificadores,
+  // clases (`rec-plan-curso`), rutas (`/api/...`) ni claves de diccionario, que
+  // son literales de código y no copy.
+  const enExpresiones = [...limpio.matchAll(/["']([^"'\n]{6,160})["']/g)]
+    .map((m) => m[1])
+    .filter((t) => /\s/.test(t.trim())
+      && !/[/<>{}]/.test(t)
+      // Señales inequívocas de código: el regex de literales pesca trozos
+      // cuando hay comillas sueltas en una firma —«(null); const [preview,
+      // setPreview] = useState»— y un guardián que grita de más se ignora.
+      && !/[;=[\]]/.test(t)
+      && !/^[a-z]+([-_][a-z]+)+$/.test(t));
+  return [...jsx, ...attrs, ...enExpresiones]
     .map((t) => t.replace(/\s+/g, " ").trim())
     .filter(Boolean)
     .filter((t) => !PARECE_CODIGO.some((re) => re.test(t)));
@@ -57,6 +82,12 @@ export const JERGA_DE_ARQUITECTURA = [
   // Nombres de pasos y objetos del motor que llegaron a la pantalla de Entrega:
   // «Handoff local», «Manifest de entrega y artefactos», «Target».
   "handoff", "manifest", "artefacto", "target",
+  // Verbos y objetos de herramienta que llegaron a Materiales > Paquetes:
+  // «Preview PNG», «Render PDF», «Render paquete», «Template:
+  // template-ficha-aplicacion-a4-v1», «Instancias 0», «Crear instancias».
+  // «Instancia» es como el motor llama a la ficha de UN aula; en la pantalla es
+  // una ficha.
+  "preview", "render", "template", "instancia",
 ];
 
 /** Los términos de jerga que aparecen en el texto visible de un fuente. */

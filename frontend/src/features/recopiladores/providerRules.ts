@@ -100,7 +100,7 @@ export function localProviderBlocking(
     return [
       captureUrlIssue(target.base_access_url),
       target.asset_type === "survey" ? null : "Kobo exige un asset_type survey observado.",
-      target.deployment_active === true ? null : "Kobo exige un deployment activo observado.",
+      target.deployment_active === true ? null : "Kobo exige un formulario publicado y activo.",
     ].filter((item): item is string => Boolean(item));
   }
   if (adapterId === "surveymonkey_weblink_existing_v1") {

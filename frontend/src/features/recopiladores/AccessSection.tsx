@@ -210,7 +210,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         target_ref: target,
       }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo comprobar el target.");
+      setError(cause instanceof Error ? cause.message : "No se pudo comprobar la conexión.");
     } finally {
       setBusy(null);
     }
@@ -237,7 +237,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
     try {
       onState(await apiRecopiladoresDeploymentPut(payload.state_revision, deployment));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo guardar el deployment local.");
+      setError(cause instanceof Error ? cause.message : "No se pudieron guardar los accesos.");
     } finally {
       setBusy(null);
     }
@@ -250,7 +250,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
     try {
       onState(await apiRecopiladoresDeploymentPrepare(payload.state_revision, candidate));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo preparar el deployment.");
+      setError(cause instanceof Error ? cause.message : "No se pudieron preparar los accesos.");
     } finally {
       setBusy(null);
     }
