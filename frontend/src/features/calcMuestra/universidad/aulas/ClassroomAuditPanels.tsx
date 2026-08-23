@@ -42,7 +42,10 @@ export function ClassroomOperationalHandoffPanel({
           { label: "Sugerencias", value: fmtInt(sugerencias), tone: sugerencias ? "current" : "neutral" },
         ]}
         secondaryAction={{ to: "/monitoreo", label: "Ver monitoreo de cursos-horario" }}
-        action={{ to: "/recopiladores", label: "Abrir fichas QR", disabled: !hasSelection }}
+        // A la sección donde se preparan las fichas, no al módulo a secas:
+        // «/recopiladores» aterriza en el plan de recolección y el botón promete
+        // fichas. Medido el 2026-08-23: llevaba a la lista de las 193 aulas.
+        action={{ to: "/recopiladores?seccion=materiales", label: "Abrir fichas QR", disabled: !hasSelection }}
       />
     </div>
   );
