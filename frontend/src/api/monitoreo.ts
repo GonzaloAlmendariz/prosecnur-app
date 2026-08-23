@@ -807,6 +807,10 @@ export type MonitoreoAulasDashboard = {
    * en pantalla como «el estudio tiene 500 aulas».
    */
   course_status_total?: number;
+  /** Cursos-horario del plan SIN el banco de extras. `course_status_total`
+      incluye el banco —2 616 donde el plan de campo son 686— y ninguna de las
+      dos cifras sirve para las dos preguntas. */
+  course_status_total_plan?: number;
   /**
    * Avance agregado POR FACULTAD, calculado en el motor sobre el mismo conjunto
    * que las demás cifras —un aula por slot, sin banco—. La vista lo calculaba

@@ -1310,8 +1310,27 @@ monitoreo_aulas_criterio_texto <- function(crit) {
     list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)))
   })
 
+  # **El banco al final ANTES de recortar.** El tope corta por posicion, y con el
+  # banco mezclado se llevaba por delante el plan real: medido en el estudio, de
+  # las 500 filas que llegaban al cliente solo 42 no eran banco, sobre un plan de
+  # 686. La agenda por dia dibujaba 42 de 686 y su aviso decia «ninguno de los 42
+  # cursos-horario», presentando un recorte de payload como si fuera el universo.
+  #
+  # No sube el tope ni saca el banco del payload —otros paneles lo necesitan y
+  # `sample_role` viaja para distinguirlo—: solo decide QUE se sacrifica cuando
+  # hay que sacrificar algo. Lo que se quede fuera sigue declarandose en `total`.
+  if (nrow(out)) {
+    del_banco <- as.character(out$sample_role %||% rep("", nrow(out))) == "extra_reserve_pool"
+    out <- out[order(del_banco), , drop = FALSE]
+  }
   recortado <- .monitoreo_aulas_records(out, max_rows = MONITOREO_AULAS_COURSE_STATUS_TOPE)
   attr(recortado, "total") <- nrow(out)
+  # El total SIN banco, que es el universo del que hablan la agenda y sus avisos.
+  # `total` a secas incluye el banco —2 616 donde el plan de campo son 686— y
+  # ninguna de las dos cifras sirve para las dos preguntas.
+  attr(recortado, "total_plan") <- as.integer(sum(
+    as.character(out$sample_role %||% rep("", nrow(out))) != "extra_reserve_pool"
+  ))
   attr(recortado, "estados") <- estados
   attr(recortado, "estados_desconocidos") <- estados_desconocidos
   attr(recortado, "cobertura") <- cobertura
@@ -1865,6 +1884,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # Cuantas hay DE VERDAD. Sin esto, `course_status` de 500 sobre un plan de
     # 2 615 se leia como «el estudio tiene 500 aulas».
     course_status_total = as.integer(attr(course_status, "total") %||% length(course_status)),
+    course_status_total_plan = as.integer(attr(course_status, "total_plan") %||% 0L),
     # Los dos repartos que la vista sumaba sobre el payload recortado.
     course_status_estados = attr(course_status, "estados") %||% list(),
     course_status_estados_desconocidos = as.integer(attr(course_status, "estados_desconocidos") %||% 0L),

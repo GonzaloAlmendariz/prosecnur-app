@@ -17,7 +17,18 @@ import { agendaPorDia } from "./agendaPorDia";
 /** Alto por debajo del cual la franja de días no cabe junto a una tabla usable. */
 const ALTO_COMPACTO = 820;
 
-export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
+const fmt = (n: number) => n.toLocaleString("es-PE");
+
+export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  /** Cursos-horario que tiene el plan de verdad, sin el banco.
+   *
+   * `filas` llega recortada: `course_status` se topea a 500 antes de salir del
+   * backend. Contar lo que llegó y llamarlo «los N cursos-horario» presentaba un
+   * recorte de payload como si fuera el universo — medido: «ninguno de los 42»
+   * sobre un plan de 686. */
+  totalDelPlan?: number;
+}) {
   // Se mide una vez y se escucha el cambio: el usuario redimensiona la ventana
   // y la franja tiene que abrirse o cerrarse con ella.
   const [compacto, setCompacto] = useState(
@@ -40,10 +51,17 @@ export function AulasAgendaPorDia({ filas }: { filas: ReadonlyArray<MonitoreoAul
   // Sin ninguna fecha en el plan no hay calendario que dibujar; decirlo es más
   // útil que una barra única con todo dentro.
   if (!diasDeCampo) {
+    // El total manda sobre lo que llegó; si no viene, se usa lo contado, que es
+    // lo que había antes.
+    const cuantos = totalDelPlan > 0 ? totalDelPlan : sinFecha;
+    // Y cuando lo que llegó es menos que el plan, se dice: la agenda está
+    // mirando una parte y callarlo haría creer que se vio todo.
+    const parcial = totalDelPlan > 0 && sinFecha > 0 && sinFecha < totalDelPlan;
     return (
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ninguno de los {sinFecha} cursos-horario tiene fecha de aplicación. Se
+        Ninguno de los {fmt(cuantos)} cursos-horario tiene fecha de aplicación. Se
         declara en la columna «Fecha de aplicación» del libro.
+        {parcial ? <> La agenda dibuja los {fmt(sinFecha)} que caben en esta vista.</> : null}
       </p>
     );
   }

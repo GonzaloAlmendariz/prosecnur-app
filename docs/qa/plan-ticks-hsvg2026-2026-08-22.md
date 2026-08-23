@@ -1528,3 +1528,32 @@ desfase — segundo consumidor del mismo dato— y **excluye el banco**: son 686
 2 616, porque 686 es lo que Monitoreo acabará mostrando.
 
 4 asertos en el frontend; el mutante que devuelve el texto único mata 2.
+
+
+## «Ninguno de los 42 cursos-horario» sobre un plan de 686. REPARADO
+
+El defecto (2) del recorrido, y su causa era de payload, no de texto.
+
+`course_status` sale del backend **topeado a 500 filas** —`MONITOREO_AULAS_
+COURSE_STATUS_TOPE`— y trae el banco mezclado a propósito, porque otros paneles
+lo necesitan y `sample_role` viaja para distinguirlo. El cliente filtra el banco
+**después** del tope, así que de 2 616 unidades llegaban 500 y sobrevivían **42**.
+
+El aviso contaba lo recibido y lo llamaba «los N cursos-horario»: presentaba un
+recorte de payload como si fuera el universo. Y no era sólo el texto — la agenda
+por día se dibujaba sobre 42 de 686.
+
+### Tres reparaciones, cada una en su capa
+
+1. **El banco al final antes de recortar.** El tope corta por posición; con el
+   banco mezclado se llevaba por delante el plan real. No sube el tope ni saca el
+   banco del payload: sólo decide **qué se sacrifica** cuando hay que sacrificar
+   algo.
+2. **`course_status_total_plan`**, el total sin banco. `course_status_total`
+   incluye el banco —2 616 donde el plan de campo son 686— y ninguna de las dos
+   cifras sirve para las dos preguntas.
+3. **El aviso usa el total** y, cuando lo recibido es menos, lo dice: «La agenda
+   dibuja los 42 que caben en esta vista». Callarlo haría creer que se vio todo.
+
+4 asertos; el mutante que vuelve a contar lo recibido mata 1. Sin total declarado
+—un dashboard viejo— se comporta como antes.
