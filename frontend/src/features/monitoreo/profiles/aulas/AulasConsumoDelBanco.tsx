@@ -4,6 +4,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { consumoDelBanco } from "./consumoDelBanco";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cuánto cubre la reserva de cada facultad al ritmo de reemplazos observado.
@@ -19,8 +20,6 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * otro: cuando una facultad se queda sin reservas, un aula que caiga ya no se
  * puede reemplazar.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;

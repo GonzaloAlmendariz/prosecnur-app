@@ -18,7 +18,11 @@ import { fichaDeAula } from "./fichaDeAula";
  * aula donde no se encuestó a nadie.
  */
 
-const fmt = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"));
+// `fmtOGuion` y no `fmt`: el nombre corto está tomado por el formateador de
+// enteros del perfil, que para un valor ausente devuelve «0». Aquí un dato que
+// no llegó tiene que verse como hueco —«—»— y no como un cero, que es una
+// medición.
+const fmtOGuion = (n: number | null) => (n === null ? "—" : n.toLocaleString("es-PE"));
 
 type Fuentes = {
   agenda?: ReadonlyArray<Readonly<Record<string, unknown>>>;
@@ -75,31 +79,31 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
       <dl className="aulas-ficha-cifras">
         <div>
           <dt>Se esperaba</dt>
-          <dd>{fmt(ficha.esperado)}</dd>
-          <small>{ficha.elegibles === null ? "sin elegibles declarados" : `de ${fmt(ficha.elegibles)} elegibles`}</small>
+          <dd>{fmtOGuion(ficha.esperado)}</dd>
+          <small>{ficha.elegibles === null ? "sin elegibles declarados" : `de ${fmtOGuion(ficha.elegibles)} elegibles`}</small>
         </div>
         <div>
           <dt>Llegó a plataforma</dt>
-          <dd>{fmt(ficha.validas)}</dd>
-          <small>{ficha.brecha === null ? "sin brecha calculada" : `brecha ${fmt(ficha.brecha)}`}</small>
+          <dd>{fmtOGuion(ficha.validas)}</dd>
+          <small>{ficha.brecha === null ? "sin brecha calculada" : `brecha ${fmtOGuion(ficha.brecha)}`}</small>
         </div>
         <div>
           <dt>Anotó el campo</dt>
-          <dd>{ficha.parte.hay ? fmt(ficha.parte.encuestas) : "—"}</dd>
+          <dd>{ficha.parte.hay ? fmtOGuion(ficha.parte.encuestas) : "—"}</dd>
           <small>
             {/* Un «— asistentes» se lee como una cifra rota. Cuando el parte
                 llegó pero ese campo viene vacío, se dice cuál falta. */}
             {!ficha.parte.hay
               ? "sin parte de campo"
               : [
-                ficha.parte.asistentes !== null ? `${fmt(ficha.parte.asistentes)} asistentes` : "sin asistentes anotados",
-                ficha.parte.rechazos !== null ? `${fmt(ficha.parte.rechazos)} rechazos` : null,
+                ficha.parte.asistentes !== null ? `${fmtOGuion(ficha.parte.asistentes)} asistentes` : "sin asistentes anotados",
+                ficha.parte.rechazos !== null ? `${fmtOGuion(ficha.parte.rechazos)} rechazos` : null,
               ].filter(Boolean).join(" · ")}
           </small>
         </div>
         <div>
           <dt>Contó el libro</dt>
-          <dd>{ficha.control.hay ? fmt(ficha.control.enviadas) : "—"}</dd>
+          <dd>{ficha.control.hay ? fmtOGuion(ficha.control.enviadas) : "—"}</dd>
           <small>{ficha.control.hay ? "enviadas según el equipo" : "sin fila en el libro"}</small>
         </div>
       </dl>
@@ -135,18 +139,18 @@ export function AulasFichaDeAula({ codigo, fuentes, onCerrar, onRegistrar }: {
           es por facultad. */}
       {ficha.brecha !== null && ficha.brecha > 0 && salida?.conocida ? (
         <p className="aulas-ficha-salida">
-          Le faltan <strong>{fmt(ficha.brecha)}</strong>.{" "}
+          Le faltan <strong>{fmtOGuion(ficha.brecha)}</strong>.{" "}
           {salida.reservasLibres > 0 ? (
             <>
               En {salida.facultad} {salida.reservasLibres === 1 ? "queda" : "quedan"}{" "}
-              <strong>{fmt(salida.reservasLibres)}</strong>{" "}
+              <strong>{fmtOGuion(salida.reservasLibres)}</strong>{" "}
               {salida.reservasLibres === 1 ? "reserva sin usar" : "reservas sin usar"}.
             </>
           ) : (
             <>
               En {salida.facultad} <strong>no queda ninguna reserva sin usar</strong>
               {salida.cadenasAgotadas > 0
-                ? `: sus ${fmt(salida.cadenasAgotadas)} cadenas con reemplazo ya las gastaron.`
+                ? `: sus ${fmtOGuion(salida.cadenasAgotadas)} cadenas con reemplazo ya las gastaron.`
                 : "; el diseño no le dio ninguna."}{" "}
               Lo que quede tiene que salir del banco de extras.
             </>

@@ -5,7 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { perfilDesdeElMotor, perfilPorFacultad, type FilaDeFacultadDelMotor } from "./perfilPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
-import { fmtCuenta } from "./kpisDeAulas";
+import { fmt, fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Cada facultad contra su meta, ordenadas por lo que falta.
@@ -17,8 +17,6 @@ import { fmtCuenta } from "./kpisDeAulas";
  *
  * Barras en CSS, sin Plotly, como el resto de la sección.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;

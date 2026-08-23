@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { TriangleAlert } from "../../../../vendor/lucide-react";
 import { parteContraPlataforma } from "./parteContraPlataforma";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Lo que el aplicador declaró contra lo que llegó a plataforma.
@@ -11,8 +12,6 @@ import { parteContraPlataforma } from "./parteContraPlataforma";
  * unas pocas son casos que revisar; con casi todas, el problema es el mapeo del
  * identificador y listarlas acusaría al equipo de un error de configuración.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasParteContraPlataforma({ partes, agenda }: {
   partes: ReadonlyArray<Readonly<Record<string, unknown>>>;

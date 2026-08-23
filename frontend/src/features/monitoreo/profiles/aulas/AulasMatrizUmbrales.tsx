@@ -1,4 +1,5 @@
 import type { VeredictoDeControl } from "./AulasControlDelLibro";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Los dos umbrales, como matriz.
@@ -14,8 +15,6 @@ import type { VeredictoDeControl } from "./AulasControlDelLibro";
  * que decide si volver al aula sirve de algo — si faltó gente en clase, volver
  * a la misma sesión no la trae.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasMatrizUmbrales({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
   const solo = (v.solo_asistentes ?? 0) + (v.solo_poblacion ?? 0);

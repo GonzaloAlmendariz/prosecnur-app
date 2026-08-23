@@ -6,6 +6,7 @@ import type { BancoDeExtras } from "./AulasBancoExtras";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { caidaObservada, DESENLACES_MINIMOS } from "./tasaDeCaida";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * ¿Alcanza el banco para cerrar la cuota que falta?
@@ -20,7 +21,6 @@ import { caidaObservada, DESENLACES_MINIMOS } from "./tasaDeCaida";
  * después de gastarlo todo.
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 const pct = (n: number) => `${(n * 100).toFixed(1).replace(".", ",")} %`;
 
 const VEREDICTO = {

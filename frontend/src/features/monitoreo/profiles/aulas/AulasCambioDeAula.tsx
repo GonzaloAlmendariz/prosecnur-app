@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { aulaRealVsAgendada } from "./aulaRealVsAgendada";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Las aulas que se aplicaron en otro salón.
@@ -9,8 +10,6 @@ import { aulaRealVsAgendada } from "./aulaRealVsAgendada";
  * Va con el parte de campo porque es lo que anotó quien estuvo allí, y hasta
  * ahora nadie lo cruzaba con el plan.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasCambioDeAula({ partes, plan }: {
   partes: ReadonlyArray<MonitoreoRow>;

@@ -5,6 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { celdasPrevistas, piramideDeCuota, type LadoDeCuota } from "./piramideDeCuota";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * La cuota de sexo por facultad, enfrentada como una pirámide.
@@ -18,7 +19,6 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * Barras en CSS, sin Plotly: son doce barras y esta pestaña ya carga bastante.
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 /** `2026-08-24` → `24/08`. */
 const dm = (iso: string) => {
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);

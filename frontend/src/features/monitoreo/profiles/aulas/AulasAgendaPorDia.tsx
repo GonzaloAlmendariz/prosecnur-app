@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorDia } from "./agendaPorDia";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * La agenda de campo, día por día.
@@ -16,8 +17,6 @@ import { agendaPorDia } from "./agendaPorDia";
  */
 /** Alto por debajo del cual la franja de días no cabe junto a una tabla usable. */
 const ALTO_COMPACTO = 820;
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;

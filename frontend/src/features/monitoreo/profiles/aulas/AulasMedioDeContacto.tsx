@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { difereDeVerdad, medioDeContacto } from "./medioDeContacto";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Qué medio agenda mejor y a qué coste en intentos.
@@ -11,8 +12,6 @@ import { difereDeVerdad, medioDeContacto } from "./medioDeContacto";
  * correo sale 19,65 por unas fechas de Excel coladas en la columna, y creérsela
  * llevaría a prohibir el correo cuando el dato real dice «prefiere llamar».
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
   const medios = useMemo(() => medioDeContacto(filas), [filas]);

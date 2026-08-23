@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { Filter, TriangleAlert } from "../../../../vendor/lucide-react";
 import { cadenaDeFiltros } from "./cadenaDeFiltros";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cuántas respuestas descarta cada filtro declarado.
@@ -11,8 +12,6 @@ import { cadenaDeFiltros } from "./cadenaDeFiltros";
  * es el de un filtro que **no descarta nada**: declararlo da la apariencia de
  * control sin ejercerlo, y el total sale idéntico al de no tener criterio.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
   const c = useMemo(() => cadenaDeFiltros(bloque), [bloque]);

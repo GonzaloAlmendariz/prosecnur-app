@@ -4,6 +4,7 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar, porFacultad } from "./loQueFaltaParaCerrar";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cuánto cuesta cerrar las aulas que no llegaron.
@@ -20,8 +21,6 @@ import { aulasQueCierran, cierranConHasta, loQueFaltaParaCerrar, porFacultad } f
  * dice que se pueda volver a ella. Dice cuánto costaría si se puede, que es lo
  * que hoy no se sabe.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 const MARGEN = 6;
 

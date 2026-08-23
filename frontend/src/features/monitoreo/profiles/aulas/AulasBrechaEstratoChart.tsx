@@ -6,9 +6,9 @@ import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { brechaPorEstrato } from "./brechaPorEstrato";
+import { fmt } from "./kpisDeAulas";
 
 /** El mismo formato que el resto del perfil: «3,743» y no «3743». */
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /**
  * Dónde falta más, de un vistazo.
