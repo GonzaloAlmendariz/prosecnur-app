@@ -483,3 +483,28 @@ Aplicado el mismo censo que destapó `classroom_course_schedule` en Recopiladore
 **cero snake_case visible** en la pantalla de Monitoreo con la tabla cargada, y
 ningún literal con términos de arquitectura. El problema del vocabulario era del
 otro módulo.
+
+
+## Censo de coherencia: todas las cifras dicen lo mismo
+
+En vez de esperar a la cuarta aparición del patrón, el barrido completo.
+
+**Sección Agenda — coherente**, las seis cifras en 193: por agendar, «que se van
+a visitar», Kobo + QR, plan importado, título de la tabla y el aviso de fechas.
+Y 507 reservas declaradas aparte, no sumadas.
+
+**Sección Fuentes — una contradicción, y de la peor clase**: el KPI decía
+«CURSOS-HORARIO **700**» mientras el recorrido que se añadió dos ticks antes
+decía «Cursos-horario del plan **193**». Dos cifras casi con el mismo nombre **a
+un dedo de distancia en la misma pantalla**, y la misma palabra valiendo 193 en
+la pestaña de al lado.
+
+La regla que queda, y que unifica todo el módulo:
+
+> **La cifra principal son las visitas. Las reservas van al lado, declaradas.**
+
+El KPI pasa a «**193** · +507 reservas · sorteo del 22 de agosto». Sin
+`aulas_titulares` en el tablero se cae al total, que es lo que había antes.
+
+Medido después en las dos secciones: **193 en todas**, con las 507 siempre
+nombradas como reservas y nunca sumadas al trabajo.

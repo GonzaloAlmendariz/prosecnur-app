@@ -157,7 +157,20 @@ function fechaDeCorrida(runId: unknown): string {
 
 /** El plan importado: la tarjeta que abre casi todas las secciones. */
 function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
-  const total = Number(dashboard?.kpis?.total_aulas ?? 0);
+  // **La cifra principal son las visitas, siempre.**
+  //
+  // Este KPI contaba las 700 unidades del plan —193 titulares y 507 reservas— y
+  // se llamaba «Cursos-horario». En Agenda, la misma palabra vale 193. Y en la
+  // propia sección de Fuentes convivía con «Cursos-horario del plan: 193» del
+  // recorrido: dos cifras casi con el mismo nombre a un dedo de distancia.
+  //
+  // Ahora enseña los titulares —lo que alguien va a visitar— y las reservas van
+  // en la pista, que es donde ya vivía el matiz. Sin titulares declarados se cae
+  // al total, que es lo que había antes.
+  const titulares = Number(dashboard?.kpis?.aulas_titulares ?? 0);
+  const unidades = Number(dashboard?.kpis?.total_aulas ?? 0);
+  const total = titulares || unidades;
+  const reservas = titulares && unidades > titulares ? unidades - titulares : 0;
   // **De dónde sale la cifra, pegada a la cifra.** Es el patrón que hace legible
   // a Cálculo de cursos-horario: bajo «29,027» dice «base completa» y bajo «190»
   // dice «P1 · Universidad · 8 · marco vigente». Aquí la pista decía sólo QUÉ se
@@ -177,9 +190,10 @@ function planKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     // diferencia son las aulas EXTRA —las que no cuelgan de ningun titular—, que
     // tambien son reservas pero no forman cadena y viven en su propia pestaña.
     // El rotulo dice ahora cual de las dos cuenta.
-    pista: corrida
-      ? `titulares y reservas · sorteo del ${corrida}`
-      : "titulares y sus reservas encadenadas",
+    pista: [
+      reservas ? `+${fmt(reservas)} reservas` : "titulares y sus reservas encadenadas",
+      corrida ? `sorteo del ${corrida}` : "",
+    ].filter(Boolean).join(" · "),
     tone: total ? "neutral" : "warn",
   };
 }
