@@ -246,3 +246,40 @@ Los siete patrones son reutilizables tal cual y ya existen como componentes en e
 módulo de Cálculo. El trabajo no es diseñar: es **trasladarlos** con el contenido
 de cada rol —el agendador, el jefe de campo, el analista— que este mismo
 documento describe arriba.
+
+
+---
+
+## Trasladado el patrón 4: el recorrido del operativo
+
+Primer patrón del catálogo llevado a Monitoreo, reutilizando el componente que ya
+existe —`FlujoVertical`, que soporta etapas con valor, detalle, estado y **merma
+en la arista**—.
+
+En pantalla, sección Fuentes, con el proyecto de 193:
+
+> **Del plan a las encuestas que cuentan** · *dónde está cada curso-horario ahora
+> mismo*
+>
+> **193** cursos-horario del plan · *titulares sorteados* → **−193 sin aplicar
+> todavía** → **0** aplicadas en campo
+
+Tres decisiones que lo hacen honesto:
+
+1. **Sin plan no hay embudo.** Un recorrido de ceros no explica nada y ocupa el
+   sitio de un vacío que sí podría decir qué falta.
+2. **Las respuestas sólo entran si la plataforma trajo algo.** Sin fuentes
+   conectadas, dos escalones en cero dirían que se perdió todo el camino.
+3. **La merma no acusa**: lo que falta por aplicar es trabajo pendiente, no una
+   pérdida, y el rótulo lo dice —«sin aplicar todavía»—.
+
+7 asertos. **Deuda declarada**: `FlujoVertical` vive en `features/calcMuestra/` y
+se importa entre features. Moverlo a `components/` tocaría muchos imports de otra
+feature a la vez; queda anotado en el propio import.
+
+### Lo que sigue del catálogo
+
+Patrones 1 (KPIs con procedencia), 3 (recorrido con «estás aquí»), 5 (explicación
+en prosa), 6 (estado por cifra) y 7 (columna de acción). El 2 —el rastro
+conceptual— exige decidir antes cuál es el hilo que une las secciones de
+Monitoreo, y eso es una decisión de producto.
