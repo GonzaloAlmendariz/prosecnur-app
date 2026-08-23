@@ -78,6 +78,7 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
+import { queTocaConCadaAula } from "./queTocaConCadaAula";
 // Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
 // y es genérico —etapas con valor, detalle, estado y merma—. Importarlo entre
 // features es un olor; moverlo a `components/` tocaría muchos imports de otra
@@ -416,7 +417,14 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   //
   // Misma regla que la tabla del plan de Recopiladores, y por eso vive en
   // `lib/cadenaOperativa` y no aquí.
-  return ordenarPorCadenaOperativa(filas, (fila) => ({
+  // Qué toca hacer con cada aula, calculado aquí y no en la cabeza del
+  // agendador: la tabla enseñaba el estado y él lo traducía a una acción 193
+  // veces. Ver `queTocaConCadaAula.ts`.
+  const corte = String((dashboard as { generated_at?: unknown } | null)?.generated_at ?? "").slice(0, 10);
+  const conAccion: Array<Record<string, unknown>> = filas.map((fila) => ({
+    ...fila, que_toca: queTocaConCadaAula(fila, corte),
+  }));
+  return ordenarPorCadenaOperativa(conAccion, (fila) => ({
     rol: String(fila.sample_role ?? ""),
     secuencia: fila.operational_sequence,
     orden: fila.replacement_order,
@@ -858,7 +866,10 @@ function renderAulasView(
             // aquí. El orden es el de quien agenda: a quién llamo, cómo, cuándo
             // llamé, cuántas veces, en qué quedó, para cuándo quedó.
             maxColumns={12}
-            preferredColumns={["operational_code", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
+            // «Qué toca» va DELANTE del status: la acción manda sobre el
+            // estado del que sale. Es el orden que ya usa la tabla de Cálculo,
+            // donde «A coordinar» cierra la fila con lo accionable.
+            preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
           />
         </section>
         ) : null}

@@ -126,6 +126,9 @@ const FIELD_LABELS: Record<string, string> = {
   // `STATUS MUESTRA` en «Aulas Agendadas»: AGENDADA · REAGENDADA · EN RESERVA n
   // · REEMPLAZADA. El rótulo es la columna.
   sample_status: "Status de muestra",
+  // La columna que dice qué hacer, no qué pasa. Patrón 7 del catálogo: la tabla
+  // de Cálculo termina en «A coordinar» por la misma razón.
+  que_toca: "Qué toca",
   // `MUESTRA` es como el Excel rotula la ola (M1, M2). Se usa su palabra
   // aunque «muestra» tambien nombre el diseño: es la que lee el equipo.
   wave: "Muestra",
