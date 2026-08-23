@@ -26,7 +26,7 @@
     # `row_step` es el paso MAXIMO, no el fijo: las filas reparten la banda que
     # les toca en vez de amontonarse arriba y dejar el hueco abajo. `row_step_min`
     # es lo mas apretado que se admite antes de recortar filas.
-    row_step = 0.075,
+    row_step = 0.048,
     row_step_min = 0.045,
     y_link = 0.330,
     y_instructions = 0.262,
@@ -624,7 +624,12 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   }
 
   if (!is.null(qr)) {
-    grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side * 1.20, geo))
+    # El marco va justo, no un 20% mayor: la zona de silencio del QR viaja
+    # DENTRO de la matriz —cuatro modulos por lado— y el marco exterior le
+    # sumaba un segundo margen. Con los dos, el codigo ocupaba poco mas de la
+    # mitad de su caja, y el QR de esta ficha se escanea desde el fondo de un
+    # aula. El generador anterior recortaba un 7% de la imagen por lo mismo.
+    grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side * 1.06, geo))
     grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = tokens$rule, lwd = 0.7))
     grid::popViewport()
     payload <- .crf_txt(qr$value, "")

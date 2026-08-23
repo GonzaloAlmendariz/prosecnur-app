@@ -135,10 +135,16 @@ test_that("la ficha distingue titular de reemplazo y dice de quien", {
   expect_identical(sum(grepl("^Reemplazo de ", roles)), 3L)
   # El control de L3: en crudo esto valia "chain_reserve" y no distinguia nada.
   expect_false(any(grepl("_", roles, fixed = TRUE)))
-  # Y el rol llega dibujado al grid, no solo al contexto.
+  # El rol YA NO se imprime en el grid de la ficha —«al aplicador no le sirve
+  # mucho saber si el aula es titular o reemplazo»; quien entra al aula aplica
+  # igual en las dos—. Sigue distinguiendose donde lo necesita quien REPARTE:
+  # en la carpeta del paquete y en el nombre del PDF.
+  #
+  # Lo que este test protege —que el rol llegue distinguido y no en crudo—
+  # sigue comprobado arriba, sobre el contexto de cada pagina.
   grid <- Filter(function(b) identical(b$type, "field_grid"), compiled$pages[[5]]$blocks)[[1]]
   impreso <- vapply(grid$rows, function(r) as.character(r$value %||% ""), character(1))
-  expect_true(any(grepl("^Reemplazo de AULA-01$", impreso)))
+  expect_false(any(grepl("^Reemplazo de ", impreso)))
 })
 
 test_that("ninguna plantilla de la casa desborda el grid en la costura real", {
