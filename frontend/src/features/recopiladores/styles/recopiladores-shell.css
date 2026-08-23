@@ -240,3 +240,30 @@
     display: none;
   }
 }
+
+/* **Las cuatro secciones son un recorrido, no cuatro botones intercambiables.**
+   El plan entra, se preparan los accesos, se generan los materiales y se
+   entrega; quien abre el módulo a mitad de trabajo no sabía qué falta para
+   poder salir a campo.
+
+   Un punto y no un badge: el selector es navegación y no debe convertirse en un
+   panel. El texto para lector de pantalla va aparte, porque un color solo no es
+   una señal accesible. */
+.rec-section-selector button {
+  position: relative;
+}
+
+.rec-paso-marca {
+  width: 5px;
+  height: 5px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--pulso-success, var(--pulso-primary));
+  display: inline-block;
+  flex: none;
+}
+
+.rec-paso-marca.is-siguiente {
+  background: transparent;
+  border: 1.5px solid var(--pulso-primary);
+}

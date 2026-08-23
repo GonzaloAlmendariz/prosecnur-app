@@ -508,3 +508,36 @@ El KPI pasa a «**193** · +507 reservas · sorteo del 22 de agosto». Sin
 
 Medido después en las dos secciones: **193 en todas**, con las 507 siempre
 nombradas como reservas y nunca sumadas al trabajo.
+
+
+## El patrón «estás aquí», también en Recopiladores
+
+Sus cuatro secciones **son** una secuencia —el plan entra, se preparan los
+accesos, se generan los materiales y se entrega— y el selector las pintaba como
+cuatro botones intercambiables. Quien abre el módulo a mitad de trabajo no sabía
+qué falta para poder salir a campo.
+
+En pantalla, con el plan del estudio: **Plan «hecho» → Accesos «es lo
+siguiente»**, y los dos últimos sin marcar.
+
+Tres decisiones:
+
+1. **Cada paso se declara hecho por su propia evidencia**, no por la sección
+   visitada: entrar en Materiales no genera materiales. El plan cuenta si tiene
+   unidades; los accesos, si hay enlaces preparados; los materiales, si hay un
+   recibo —la prueba de que existe algo que llevar, no de que se eligiera una
+   plantilla—.
+2. **Con todos los pasos dados no se marca ninguno**: el recorrido terminó y
+   señalar uno inventaría trabajo.
+3. **Un punto, no un badge.** El selector es navegación y no debe convertirse en
+   un panel. Y el punto lleva texto para lector de pantalla: un color solo no es
+   una señal accesible.
+
+4 asertos.
+
+### Barrido amplio de esta tanda
+
+- `tsc` limpio · **vitest completo: 5 468 tests en 697 archivos**
+- Suites R de `collection`, `monitoreo`, `carga-aulas` y `router`: sin fallos
+- Congelados en rojo: los **dos ajenos** de siempre (`territorialProfile.css`,
+  `HojasRutaPage.tsx`), ninguno tocado por este trabajo
