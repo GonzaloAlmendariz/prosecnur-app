@@ -17,6 +17,8 @@ import { COLLECTION_ADAPTER_LABELS } from "./providerRules";
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
+import { capitalizarDelMarco } from "./textoDelMarco";
+import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -34,9 +36,22 @@ function value(value: unknown) {
 // tabla (lo primero que el analista ve del plan) no debería quedarse atrás.
 // Un rol que no reconocemos se muestra tal cual -inventarle una etiqueta
 // sería peor que mostrar la clave-, igual que en el renderer.
-function unitRoleLabel(unit: Pick<CollectionUnit, "role" | "dimensions">): string {
+/**
+ * @param titular el titular de su cadena, cuando se conoce.
+ *
+ * `replacement_for` guarda el NOMBRE académico del aula titular —«urb209_0601»—
+ * y no su código operativo, así que una reserva se anunciaba como «Reemplazo de
+ * urb209_0601»: el código interno que nadie dice en voz alta, en la misma
+ * pantalla que ya llama a esa aula «CH 1». Cuando el titular de la cadena está
+ * a mano, su código manda; si no, se cae al nombre antes que a nada.
+ */
+export function unitRoleLabel(
+  unit: Pick<CollectionUnit, "role" | "dimensions">,
+  titular?: Pick<CollectionUnit, "dimensions"> | null,
+): string {
   const key = (unit.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
-  const target = typeof unit.dimensions?.replacement_for === "string" ? unit.dimensions.replacement_for : "";
+  const nombre = typeof unit.dimensions?.replacement_for === "string" ? unit.dimensions.replacement_for : "";
+  const target = (titular ? unitOperationalCode(titular) : "") || nombre;
   if (key === "titular") return "Titular";
   if (key === "chain_reserve" || key === "reserva") return target ? `Reemplazo de ${target}` : "Reemplazo";
   if (key === "extra_reserve_pool") return "Reserva adicional";
@@ -56,6 +71,24 @@ function unitRoleLabel(unit: Pick<CollectionUnit, "role" | "dimensions">): strin
  * que `.collection_legacy_unit()` usa como `source_key` para derivar el
  * `unit_id`. Llegaba y no se pintaba.
  */
+/** Una dimensión que se va a pintar: string limpio o vacío, nunca `undefined`. */
+function texto(valor: unknown): string {
+  return typeof valor === "string" ? valor.trim() : "";
+}
+
+/**
+ * Los alumnos elegibles del aula, que es la cifra con la que se decide si vale
+ * la pena la visita. Un 0 se pinta como tal —no como raya— porque un aula con
+ * cero elegibles es un problema, no un dato ausente.
+ */
+function elegibles(unit: Pick<CollectionUnit, "dimensions">): string {
+  const bruto = unit.dimensions?.eligible_n;
+  const n = typeof bruto === "number" ? bruto : Number(texto(bruto));
+  return Number.isFinite(n) && texto(bruto) !== "" || typeof bruto === "number"
+    ? n.toLocaleString("es-PE")
+    : "—";
+}
+
 function unitOperationalCode(unit: Pick<CollectionUnit, "dimensions">): string {
   const ref = unit.dimensions?.legacy_ref;
   return typeof ref === "string" ? ref.trim() : "";
@@ -330,8 +363,14 @@ export function PlanSection({ payload, onState }: Props) {
         {plan.units.length ? (
           <>
             <TableScroll data-qa-geometry-capacity="owned">
-              <table>
-                <thead><tr><th>Curso-horario</th><th>Rol</th><th>Reservas</th><th>Programación</th></tr></thead>
+              <table className="rec-plan-tabla">
+                <thead><tr>
+                  <th>Curso-horario</th>
+                  <th>Curso</th>
+                  <th>Docente</th>
+                  <th className="rec-plan-num">Elegibles</th>
+                  <th>Reservas</th>
+                </tr></thead>
                 <tbody>
                   {pagination.items.flatMap((cadena) => {
                     const unit = cadena.titular;
@@ -347,7 +386,18 @@ export function PlanSection({ payload, onState }: Props) {
                         <strong>{unitOperationalCode(unit) || unit.label}</strong>
                         <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
                       </td>
-                      <td>{unitRoleLabel(unit)}</td>
+                      {/* Lo que un agendador necesita para levantar el
+                          teléfono: qué curso es y con quién se habla. Estaban
+                          en el plan desde siempre —193 de 193 unidades traen
+                          docente— y la tabla no los leía. */}
+                      <td className="rec-plan-curso">
+                        <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name))|| "—"}</strong>
+                        <small>{nombreCortoDeFacultad(texto(unit.dimensions?.faculty))}</small>
+                      </td>
+                      <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
+                        {capitalizarDelMarco(texto(unit.dimensions?.teacher)) || <span className="rec-plan-sin-reservas">sin docente</span>}
+                      </td>
+                      <td className="rec-plan-num">{elegibles(unit)}</td>
                       {/* El plan B, contado y no desplegado: «3 reservas» ocupa
                           una celda donde tres filas ocupaban tres renglones de
                           trabajo que probablemente no se haga. */}
@@ -364,7 +414,6 @@ export function PlanSection({ payload, onState }: Props) {
                           </button>
                         ) : <span className="rec-plan-sin-reservas">sin reservas</span>}
                       </td>
-                      <td>{value(unit.dimensions?.schedule ?? unit.scheduling?.wave)}</td>
                     </tr>,
                     ...(abierta ? cadena.reservas.map((reserva) => (
                       <tr key={reserva.unit_id} className="rec-plan-reserva">
@@ -372,9 +421,15 @@ export function PlanSection({ payload, onState }: Props) {
                           <strong>{unitOperationalCode(reserva) || reserva.label}</strong>
                           <small>{unitOperationalCode(reserva) ? reserva.label : reserva.unit_id}</small>
                         </td>
-                        <td>{unitRoleLabel(reserva)}</td>
+                        <td className="rec-plan-curso">
+                          <strong>{capitalizarDelMarco(texto(reserva.dimensions?.course_name)) || "—"}</strong>
+                          <small>{unitRoleLabel(reserva, unit)}</small>
+                        </td>
+                        <td className="rec-plan-docente" title={texto(reserva.dimensions?.teacher)}>
+                          {capitalizarDelMarco(texto(reserva.dimensions?.teacher))}
+                        </td>
+                        <td className="rec-plan-num">{elegibles(reserva)}</td>
                         <td />
-                        <td>{value(reserva.dimensions?.schedule ?? reserva.scheduling?.wave)}</td>
                       </tr>
                     )) : []),
                     ];
@@ -391,9 +446,15 @@ export function PlanSection({ payload, onState }: Props) {
                           <strong>{unitOperationalCode(unit) || unit.label}</strong>
                           <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
                         </td>
-                        <td>{unitRoleLabel(unit)}</td>
+                        <td className="rec-plan-curso">
+                          <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name)) || "—"}</strong>
+                          <small>{unitRoleLabel(unit)}</small>
+                        </td>
+                        <td className="rec-plan-docente" title={texto(unit.dimensions?.teacher)}>
+                          {capitalizarDelMarco(texto(unit.dimensions?.teacher))}
+                        </td>
+                        <td className="rec-plan-num">{elegibles(unit)}</td>
                         <td><span className="rec-plan-sin-reservas">sin titular en el plan</span></td>
-                        <td>{value(unit.dimensions?.schedule ?? unit.scheduling?.wave)}</td>
                       </tr>
                     ))
                     : null}

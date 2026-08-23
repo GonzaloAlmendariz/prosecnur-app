@@ -230,3 +230,63 @@
   gap: 12px;
   min-width: 0;
 }
+
+/* La tabla del plan la lee un agendador: qué curso, con quién se habla y
+   cuántos alumnos hay detrás. Los anchos dan el sitio a esas tres y dejan las
+   dos cifras en columna fija para que se comparen en vertical. */
+.rec-plan-curso strong {
+  display: block;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-plan-curso small {
+  color: var(--pulso-text-faint);
+  display: block;
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-plan-docente {
+  color: var(--pulso-text-soft, var(--pulso-text-faint));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reparto fijo: sin él, el navegador da el ancho al contenido más largo y el
+   docente —la columna con la que se levanta el teléfono— quedaba en
+   «Chinchayán B…» mientras «Reservas» se llevaba sitio que no necesita. */
+.rec-plan-tabla {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.rec-plan-tabla th:nth-child(1),
+.rec-plan-tabla td:nth-child(1) { width: 15%; }
+
+.rec-plan-tabla th:nth-child(2),
+.rec-plan-tabla td:nth-child(2) { width: 31%; }
+
+.rec-plan-tabla th:nth-child(3),
+.rec-plan-tabla td:nth-child(3) { width: 30%; }
+
+.rec-plan-tabla th:nth-child(4),
+.rec-plan-tabla td:nth-child(4) { width: 10%; }
+
+.rec-plan-tabla th:nth-child(5),
+.rec-plan-tabla td:nth-child(5) { width: 14%; }
+
+.rec-plan-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rec-data-card thead th.rec-plan-num {
+  text-align: right;
+}
