@@ -390,12 +390,25 @@ export function buildModuleCardView(
             ? "activity"
             : undefined,
         viz,
+        // **El subtítulo no puede contradecir a la cifra que tiene encima.**
+        //
+        // `nodeState` lo declara el backend a partir del protocolo, y da
+        // «ready» en cuanto el estudio declara su familia de monitoreo —aunque
+        // no haya conectado ninguna fuente—. Medido en HSVG2026 el 2026-08-23,
+        // la tarjeta decía a la vez «Sin fuentes» en grande y «Tablero
+        // operativo conectado» debajo. Las dos salían del mismo payload y se
+        // negaban entre sí.
+        //
+        // Sin fuentes manda la ausencia, porque es lo accionable: lo que hay
+        // que hacer es conectar una, no leer que está conectado.
         sub:
           [progressText, lagging].filter(Boolean).join(" · ") ||
           alertText ||
-          (nodeState === "ready"
-            ? "Tablero operativo conectado"
-            : "Conecta una fuente para iniciar el seguimiento"),
+          (protocol.monitoring_sources_count === 0
+            ? "Conecta una fuente para iniciar el seguimiento"
+            : nodeState === "ready"
+              ? "Tablero operativo conectado"
+              : "Conecta una fuente para iniciar el seguimiento"),
         facts: [
           { label: "tipo", value: family },
           { label: "último corte", value: formatCutDate(metrics.monitoreo_last_cut) },

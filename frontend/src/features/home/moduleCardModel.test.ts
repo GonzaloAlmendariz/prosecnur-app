@@ -465,3 +465,40 @@ describe("el vocabulario de la tarjeta es el de la app", () => {
     expect(tipo?.value).toBe("Cursos-horario");
   });
 });
+
+describe("la tarjeta no se contradice consigo misma", () => {
+  it("Monitoreo: sin fuentes no dice «Tablero operativo conectado»", () => {
+    // Medido en HSVG2026: la tarjeta decía «Sin fuentes» en grande y «Tablero
+    // operativo conectado» debajo. Las dos salían del mismo payload —el estado
+    // del protocolo da «ready» en cuanto se declara la familia, aunque no haya
+    // ninguna fuente— y se negaban entre sí.
+    const sinFuentes = makeOverview();
+    sinFuentes.protocol.monitoring_sources_count = 0;
+    // Sin fuentes Y sin casos: es el estado real de un estudio que ya declaró
+    // su familia de monitoreo y todavía no ha salido a campo.
+    sinFuentes.facts.monitoreo.collected = 0;
+    sinFuentes.facts.monitoreo.target = 0;
+    sinFuentes.facts.monitoreo.valid = 0;
+    sinFuentes.facts.monitoreo.avance_pct = -1;
+    // Sin alertas: una alerta SÍ debe mandar sobre el estado —es lo accionable—
+    // y taparía el caso que este test mide.
+    sinFuentes.facts.monitoreo.alerts = 0;
+    const v = view("monitoreo", sinFuentes);
+    expect(v.viz).toMatchObject({ value: "Sin fuentes" });
+    expect(v.sub).not.toContain("conectado");
+    expect(v.sub).toContain("Conecta una fuente");
+  });
+
+  it("y con fuentes conectadas la cifra deja de ser el hueco", () => {
+    const conFuentes = makeOverview();
+    conFuentes.protocol.monitoring_sources_count = 2;
+    conFuentes.facts.monitoreo.collected = 0;
+    conFuentes.facts.monitoreo.target = 0;
+    conFuentes.facts.monitoreo.valid = 0;
+    conFuentes.facts.monitoreo.avance_pct = -1;
+    conFuentes.facts.monitoreo.alerts = 0;
+    const v = view("monitoreo", conFuentes);
+    expect(v.viz).not.toMatchObject({ value: "Sin fuentes" });
+    expect(v.sub).not.toContain("Conecta una fuente");
+  });
+});
