@@ -5,7 +5,7 @@
 // salir de la pantalla. Monitoreo enseñaba KPIs sueltos sin decir cómo se
 // encadenan.
 import { describe, expect, it } from "vitest";
-import { embudoDelOperativo } from "./embudoDelOperativo";
+import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
 
 describe("embudoDelOperativo", () => {
   it("encadena el plan con lo aplicado y declara lo que falta", () => {
@@ -60,5 +60,49 @@ describe("embudoDelOperativo", () => {
     });
     expect(e[1].valor).toBe("0");
     expect(e.map((x) => x.id)).not.toContain("recibidas");
+  });
+});
+
+// Patrón 5 del catálogo: la explicación debajo de las cifras.
+//
+// Cálculo pone bajo su cadena de conversión un párrafo que explica por qué el
+// divisor son elegibles y por qué las reservas no cambian la muestra. Ninguna
+// pantalla de Monitoreo explicaba lo que enseña.
+//
+// Cada frase corresponde a una regla del motor, así que estos asertos defienden
+// que lo dicho siga siendo verdad.
+describe("explicacionDelEmbudo", () => {
+  it("distingue el parte de campo de las respuestas", () => {
+    // Son dos ejes: el motor los combina con un OR, no con un AND.
+    const [primera] = explicacionDelEmbudo({ aulas_titulares: 193 });
+    expect(primera).toContain("aunque todavía no haya llegado ninguna respuesta");
+    expect(primera).toContain("otro camino");
+  });
+
+  it("dice que una reserva sustituye, no suma", () => {
+    const frases = explicacionDelEmbudo({ aulas_titulares: 193 });
+    expect(frases.join(" ")).toContain("no uno más");
+    expect(frases.join(" ")).toContain("193");
+  });
+
+  it("con reservas ya activadas lo cuenta, sin cambiar el total del plan", () => {
+    const frases = explicacionDelEmbudo({ aulas_titulares: 193, reemplazos_usados: 7 });
+    expect(frases.join(" ")).toContain("ya han entrado 7");
+    expect(frases.join(" ")).toContain("no se suma a él");
+  });
+
+  it("la regla de los filtros sólo se explica si hay respuestas", () => {
+    const sin = explicacionDelEmbudo({ aulas_titulares: 193 });
+    expect(sin.join(" ")).not.toContain("filtros");
+
+    const con = explicacionDelEmbudo({ aulas_titulares: 193, respuestas_total: 900 });
+    expect(con.join(" ")).toContain("todos los filtros");
+    // Y la abstención del motor: una columna ausente no descarta la respuesta.
+    expect(con.join(" ")).toContain("no se aplica y se avisa aparte");
+  });
+
+  it("sin plan no explica nada", () => {
+    expect(explicacionDelEmbudo({})).toEqual([]);
+    expect(explicacionDelEmbudo(null)).toEqual([]);
   });
 });
