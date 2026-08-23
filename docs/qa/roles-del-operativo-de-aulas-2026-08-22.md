@@ -450,3 +450,36 @@ Medido después: **cero apariciones** de `classroom_course_schedule`, `deploymen
 
 4 asertos, y la lista de jerga vive en el test: no es una opinión sobre el estilo,
 son términos de arquitectura que sólo significan algo dentro del código.
+
+
+## «0 de 700 que se van a visitar», sobre una tabla de 193
+
+El KPI de la sección Agenda contaba **las 507 reservas encadenadas** como aulas
+por agendar. No era sólo una cifra descuadrada frente a la tabla: **nadie va a
+llamar a los docentes de esas 507**. Una reserva entra en juego el día que su
+titular se cae, y hasta entonces pedirle cita sería llamar a un aula que no toca.
+
+La regla de «dormida» no se inventó: es la del motor —una `chain_reserve` con
+estado vacío, `en_reserva` o `sin_contactar` está esperando; con cualquier otro
+ya la activaron—.
+
+| | Antes | Ahora |
+|---|---|---|
+| Agendadas | 0 **de 700** que se van a visitar | 0 **de 193** |
+| Por agendar | 700 | **193** |
+
+Es la **tercera vez** en esta serie que aparece el mismo efecto: se cambia lo que
+una vista cuenta y quedan atrás los rótulos que lo contaban —«Libro de 2616
+aulas» sobre un libro de 190, «ninguno de los 700» sobre una tabla de 193, y
+esto—. La regla que queda escrita: **al cambiar lo que se cuenta, hay que buscar
+todos los sitios que lo cuentan.**
+
+6 asertos, incluidos los estados tal como el libro los escribe («EN RESERVA»,
+«Sin Contactar»).
+
+### Censo de jerga en Monitoreo: limpio
+
+Aplicado el mismo censo que destapó `classroom_course_schedule` en Recopiladores:
+**cero snake_case visible** en la pantalla de Monitoreo con la tabla cargada, y
+ningún literal con términos de arquitectura. El problema del vocabulario era del
+otro módulo.
