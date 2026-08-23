@@ -4923,9 +4923,17 @@ mount_monitoreo <- function(pr) {
       # fuera y contar el plan crudo hacia decir «Libro de 2616 aulas» de un
       # libro con 190.
       unidades_escritas <- as.integer(attr(escrito, "unidades") %||% length(unidades))
+      # Desglosado: «700 aulas» promete 700 visitas y son 193 cursos-horario mas
+      # 507 reservas que solo entran si una titular cae. Al cambiar lo que se
+      # cuenta hay que revisar quien lo cuenta, y el aviso seguia diciendo el
+      # total a secas.
+      titulares_escritos <- as.integer(attr(escrito, "titulares") %||% NA_integer_)
+      reservas_escritas <- as.integer(attr(escrito, "reservas") %||% NA_integer_)
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
       list(ok = TRUE, file_id = meta$file_id, filename = nombre,
            unidades = unidades_escritas, partes = length(partes),
+           titulares = if (is.na(titulares_escritos)) NULL else titulares_escritos,
+           reservas = if (is.na(reservas_escritas)) NULL else reservas_escritas,
            control = length(control),
            # Cuantas aulas llevan su cifra de efectivas dentro. Sin esto, un
            # libro generado antes de la primera sincronizacion se ve igual que
