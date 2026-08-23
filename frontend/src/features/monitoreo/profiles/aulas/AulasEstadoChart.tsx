@@ -15,12 +15,56 @@ import { fmt } from "./kpisDeAulas";
  * punto del circuito**, y sobre todo separa «sin agendar» de «agendada y aún sin
  * empezar», que la cobertura mete en el mismo saco.
  */
-export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
+type TramoContado = { clave: string; aulas: number };
+
+/** Las que de verdad tienen que salir a campo: ni dormidas ni de banco. */
+function enJuegoDe(estados: ReadonlyArray<TramoContado>, banco?: number): number {
+  const vivas = estados
+    .filter((e) => e.clave !== "en_reserva")
+    .reduce((n, e) => n + e.aulas, 0);
+  return Math.max(0, vivas - (banco ?? 0));
+}
+
+const acotar = (n: number, techo: number) => Math.min(Math.max(n, 0), techo);
+
+/**
+ * Dónde están las que no cuentan como «en juego».
+ *
+ * Son dos cosas distintas y la frase las metía en una: las ENCADENADAS esperan
+ * a que caiga su titular, y el BANCO es capacidad sin asignar a nadie. Decir de
+ * las 2.423 que «sólo entran si cae su titular» es falso para 1.916 de ellas.
+ */
+function dondeEstanLasOtras(fuera: number, banco: number): string {
+  const dormidas = Math.max(0, fuera - banco);
+  const enBanco = Math.min(banco, fuera);
+  if (dormidas > 0 && enBanco > 0) {
+    return `Las otras ${fmt(dormidas)} esperan en reserva —sólo entran si cae su titular— y ${fmt(enBanco)} están en el banco.`;
+  }
+  if (enBanco > 0) return `Las otras ${fmt(enBanco)} están en el banco, sin asignar a ninguna cadena.`;
+  return `Las otras ${fmt(dormidas)} esperan en reserva: sólo entran si cae su titular.`;
+}
+
+export function AulasEstadoChart({ filas, resumen, desconocidasMotor, bancoMotor }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
   /** Estados que el motor no supo clasificar: se declaran, no se tragan. */
   desconocidasMotor?: number;
+  /**
+   * Cuántas de las filas son del banco, contadas por el motor sobre TODAS.
+   *
+   * `enJuego` las descontaba por ESTADO —las de clave `en_reserva`— y eso sólo
+   * funciona si el motor marca el banco así. Medido el 2026-08-23 sobre el
+   * sorteo del 22: clasificó las 507 reservas encadenadas como `en_reserva` y
+   * las 1.916 del banco como «Sin agendar», así que el pie decía «2.109 de
+   * 2.109 cursos-horario en juego todavía no salen a campo» sobre un operativo
+   * de 193 visitas. Diez veces el trabajo que hay.
+   *
+   * El motor ya lo contaba —`attr(recortado, "banco")`, con `en_juego_cs`
+   * excluyendo el banco explícitamente— y lo emite como
+   * `course_status_banco`. Sólo faltaba consumirlo.
+   */
+  bancoMotor?: number;
 }) {
   const { estados, desconocidas, total, sinSalirACampo, enJuego } = useMemo(
     () => {
@@ -39,9 +83,18 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
           return {
             estados, total,
             desconocidas: desconocidasMotor ?? 0,
-            sinSalirACampo: estados
-              .filter((e) => e.clave === "pendiente" || e.clave === "lista")
-              .reduce((n, e) => n + e.aulas, 0),
+            // El numerador descuenta el banco IGUAL que el denominador. Al
+            // arreglar sólo el de abajo, la frase quedó en «2.109 de 193», que
+            // es la misma mitad-y-mitad de antes con los papeles cambiados:
+            // el banco cae en `pendiente`, así que estaba en los dos lados.
+            // Acotado a [0, en juego] porque un desglose incoherente no puede
+            // producir un numerador negativo ni mayor que su total.
+            sinSalirACampo: acotar(
+              estados
+                .filter((e) => e.clave === "pendiente" || e.clave === "lista")
+                .reduce((n, e) => n + e.aulas, 0) - (bancoMotor ?? 0),
+              enJuegoDe(estados, bancoMotor),
+            ),
             // **El denominador de esa frase no es el total.**
             //
             // «5 de 269 cursos-horario todavía no salen a campo» se lee como que
@@ -50,9 +103,9 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
             // excluía —sólo suma `pendiente` y `lista`— y el denominador las
             // metía: la mitad de la fracción contaba una cosa y la otra mitad,
             // otra. Las que están en juego son el total menos las dormidas.
-            enJuego: estados
-              .filter((e) => e.clave !== "en_reserva")
-              .reduce((n, e) => n + e.aulas, 0),
+            // Menos las dormidas por estado Y menos el banco, que el motor
+            // cuenta aparte porque no siempre cae en `en_reserva`.
+            enJuego: enJuegoDe(estados, bancoMotor),
           };
         }
       }
@@ -64,7 +117,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
           .reduce((n, e) => n + e.aulas, 0),
       };
     },
-    [filas, resumen, desconocidasMotor],
+    [filas, resumen, desconocidasMotor, bancoMotor],
   );
 
   if (!total) {
@@ -135,9 +188,7 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
             reservas del banco»—, con la misma palabra para 507 y para 1.916.
             Las 507 están ENCADENADAS a un titular concreto; el banco es
             capacidad sin asignar. */}
-        {total > enJuego
-          ? ` Las otras ${fmt(total - enJuego)} esperan en reserva: sólo entran si cae su titular.`
-          : ""}
+        {total > enJuego ? ` ${dondeEstanLasOtras(total - enJuego, bancoMotor ?? 0)}` : ""}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}
         {desconocidas
