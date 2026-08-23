@@ -72,11 +72,26 @@ describe("embudoDelOperativo", () => {
 // Cada frase corresponde a una regla del motor, así que estos asertos defienden
 // que lo dicho siga siendo verdad.
 describe("explicacionDelEmbudo", () => {
-  it("distingue el parte de campo de las respuestas", () => {
-    // Son dos ejes: el motor los combina con un OR, no con un AND.
+  it("nombra las tres fuentes y dice cuál mueve la cifra", () => {
+    // **La frase decía «cuando su parte de campo lo declara», y el parte de
+    // campo es justo lo que NO la mueve.** En esta app «parte de campo» es el
+    // artefacto del libro —la hoja que el jefe de campo transcribe desde las
+    // fichas de papel, que la pantalla de al lado rotula «3 con parte en el
+    // libro»—. `aulas_aplicadas` cuenta `operational_status`, y ese lo escribe
+    // el registro de la APP: medido, tres partes «Aplicada» importados dejaban
+    // `aulas_aplicadas = 0`.
+    //
+    // Quien lee la explicación, importa el libro y ve «Aplicadas 0» concluye
+    // que la app está rota. Este test defiende que la frase distinga los tres
+    // caminos y no vuelva a prometer el que no manda.
     const [primera] = explicacionDelEmbudo({ aulas_titulares: 193 });
+    expect(primera).toContain("alguien lo registra en esta app");
     expect(primera).toContain("aunque todavía no haya llegado ninguna respuesta");
-    expect(primera).toContain("otro camino");
+    // El libro se nombra, y se dice explícitamente que no mueve la cifra.
+    expect(primera).toContain("libro");
+    expect(primera).toContain("no la mueve");
+    // Y no vuelve a atribuirle la cifra al parte.
+    expect(primera).not.toContain("cuando su parte de campo lo declara");
   });
 
   it("dice que una reserva sustituye, no suma", () => {
