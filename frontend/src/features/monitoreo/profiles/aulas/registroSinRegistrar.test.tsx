@@ -60,3 +60,54 @@ describe("«todavía sin registrar» no cuenta aulas muertas", () => {
     expect(html).toMatch(/1<\/strong> de 2/);
   });
 });
+
+/**
+ * Y tampoco cuenta la que YA trae su parte en el libro.
+ *
+ * Es el mismo defecto que arriba en otro campo. `operational_status` lo mueve
+ * esta pantalla al guardar, así que un aula cuyo parte llegó por el libro
+ * —transcrito por el jefe de campo desde la ficha de papel— se queda en
+ * «planificada». Medido el 2026-08-23 con tres partes importados sobre el
+ * estudio de 193: la pestaña decía **«700 de 700 todavía sin registrar»** dos
+ * líneas debajo de su propio **«3 con parte en el libro»**.
+ *
+ * Lo caro no es el 700: es que la misma pantalla diga las dos cosas. Quien
+ * transcribió tres partes lee «700 de 700» y concluye que la app no leyó su
+ * Excel.
+ *
+ * El descuento ya estaba hecho en el contador de al lado y en el desglose por
+ * facultad —los dos reciben `codigosConParte`—; sólo este se quedó atrás, que es
+ * como vuelve un defecto ya reparado.
+ */
+describe("«todavía sin registrar» descuenta las que ya tienen parte en el libro", () => {
+  const parte = (codigo: string) => ({ operational_code: codigo, observed_students: 28 });
+
+  it("tres partes importados salen del pendiente aunque el plan diga «planificada»", () => {
+    const filas = Array.from({ length: 10 }, (_, i) => aula(`CH ${i + 1}`, "agendada", "planificada"));
+    const html = renderToStaticMarkup(
+      <RegistroDeCampo agenda={filas} partes={[parte("CH 1"), parte("CH 2"), parte("CH 3")]} onGuardado={() => {}} />,
+    );
+    expect(html).toMatch(/7<\/strong> de 10/);
+    expect(html).not.toMatch(/10<\/strong> de 10/);
+  });
+
+  it("y el recuento de partes de la cabecera cuadra con el descuento", () => {
+    // Las dos cifras salen del mismo conjunto: si discrepan, la pantalla vuelve
+    // a decir dos cosas del mismo hecho.
+    const filas = Array.from({ length: 10 }, (_, i) => aula(`CH ${i + 1}`, "agendada", "planificada"));
+    const html = renderToStaticMarkup(
+      <RegistroDeCampo agenda={filas} partes={[parte("CH 1"), parte("CH 2"), parte("CH 3")]} onGuardado={() => {}} />,
+    );
+    expect(html).toContain("3 con parte en el libro");
+  });
+
+  it("un parte de un codigo que no esta en la lista no descuenta nada", () => {
+    // Une por `operational_code`, la misma clave con la que el parte se cruza
+    // con el plan. Un codigo ajeno no puede bajar el pendiente en silencio.
+    const filas = Array.from({ length: 4 }, (_, i) => aula(`CH ${i + 1}`, "agendada", "planificada"));
+    const html = renderToStaticMarkup(
+      <RegistroDeCampo agenda={filas} partes={[parte("R 99.9")]} onGuardado={() => {}} />,
+    );
+    expect(html).toMatch(/4<\/strong> de 4/);
+  });
+});
