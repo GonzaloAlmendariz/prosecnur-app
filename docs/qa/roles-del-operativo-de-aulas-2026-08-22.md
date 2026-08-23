@@ -344,3 +344,35 @@ respuestas: explicar un filtro que todavía no se aplicó sería ruido.
 
 5 asertos, escritos para que si una de esas reglas cambia, la frase deje de ser
 verdad y el test lo diga.
+
+
+## Trasladado el patrón 7: la columna que dice qué hacer
+
+La tabla «Detalle por facultad» de Cálculo termina en **A COORDINAR**, en
+negrita, porque es lo que hay que hacer. Las de Monitoreo llevaban las columnas
+del payload y ninguna decía qué toca.
+
+Y es la vista del **agendador**: su trabajo es llevar cada titular de «sin
+contactar» a «con fecha cerrada». Una tabla que le enseña el estado le obliga a
+traducirlo a una acción en su cabeza, fila por fila, **193 veces**.
+
+| Situación | Qué toca |
+|---|---|
+| sin contactar | **Llamar al docente** |
+| contactada, sin fecha | **Cerrar fecha** — no «llamar» otra vez: es el caso que más se atasca y volver a empezar borraría lo avanzado |
+| con fecha por venir | Esperar al día |
+| la fecha pasó y no hay parte | **Confirmar si se aplicó** |
+| con parte, aplicada o cerrada | — |
+| reemplazada | Reemplazada — su reserva ocupó su sitio; llamar a ese docente sería un error |
+| en reserva | En reserva |
+
+En pantalla: `Curso-horario · **Qué toca** · Facultad · Docente · Status`, con la
+acción **delante** del estado del que sale.
+
+Dos decisiones: el día contra el que se mide el atraso es el sello del tablero y
+**no el reloj del navegador** —si no, la misma tabla diría cosas distintas según
+cuándo se abra—; y **sin corte no se acusa a nadie**, una fecha pasada no se
+declara vencida si no hay contra qué medirla.
+
+9 asertos, incluidos los estados tal como el libro los escribe —«Sin Contactar»,
+«EN-RESERVA»—, que es como llegan de verdad.
