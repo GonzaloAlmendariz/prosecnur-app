@@ -457,6 +457,34 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   }));
 }
 
+/**
+ * La cadena de reemplazos, en el orden en que se lee.
+ *
+ * Medido el 2026-08-23 sobre las 507 reservas del sorteo del 22: la tabla
+ * llegaba «R 3.3, R 11.3, R 2.3, R 1.3, R 1.1…», con **146 saltos hacia atrás
+ * en 400 filas**, y cerraba en «R 158.1, R 156.1, R 148.1» hacia abajo. Buscar
+ * una cadena concreta obligaba a recorrer la tabla entera.
+ *
+ * Usa la misma regla que ordena el plan de Recopiladores —vive en
+ * `lib/cadenaOperativa` justamente para que las dos no discrepen— con una
+ * diferencia deliberada en las señas: aquí manda `replacement_for`, porque en
+ * esta lista una reserva puede declarar a quién reemplaza sin traer el código
+ * operativo del titular.
+ */
+export function reemplazosEnOrdenDeCadena(
+  filas: unknown,
+): Array<Record<string, unknown>> {
+  const lista = (filas ?? []) as Array<Record<string, unknown>>;
+  return ordenarPorCadenaOperativa(lista, (fila) => ({
+    rol: cleanCell(fila.sample_role),
+    secuencia: fila.operational_sequence,
+    orden: fila.replacement_order,
+    codigo: cleanCell(fila.operational_code),
+    reemplazaA: cleanCell(fila.replacement_for) || cleanCell(fila.titular_operational_code),
+    alias: cleanCell(fila.label),
+  }));
+}
+
 function cleanCell(value: unknown) {
   if (value == null) return "";
   return String(value).trim();
@@ -1166,7 +1194,7 @@ function renderAulasView(
     // Las tres listas van en paneles propios. Concatenadas producian una tabla
     // donde la misma aula salia hasta tres veces sin que ninguna columna dijera
     // de cual lista venia cada fila: 7 aulas se veian como 15 filas.
-    const reemplazos = (dashboard.reemplazos ?? []) as Array<Record<string, unknown>>;
+    const reemplazos = reemplazosEnOrdenDeCadena(dashboard.reemplazos);
     const brechas = (dashboard.brechas ?? []) as Array<Record<string, unknown>>;
     const cuadre = parteDeCampo((dashboard.partes_campo ?? []) as MonitoreoRow[], (dashboard.agenda ?? []) as MonitoreoRow[]);
     // El PLAN entero, no `reemplazos`: la historia y el gráfico necesitan también

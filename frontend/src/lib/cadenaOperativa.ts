@@ -74,14 +74,24 @@ export function ordenarPorCadenaOperativa<T>(
   items: ReadonlyArray<T>,
   leer: (item: T) => SenasDeCadena,
 ): T[] {
-  // Dónde aparece cada titular, para las reservas que declaran a quién
-  // reemplazan pero no traen número de cadena.
-  const rangoDelTitular = new Map<string, number>();
+  // La cadena YA RESUELTA de cada titular, para las reservas que declaran a
+  // quién reemplazan pero no traen número de cadena.
+  //
+  // Se guarda el número de cadena del titular y no su POSICIÓN en la lista, que
+  // es lo que se guardaba antes: si el titular «CH 4» declara cadena 4 y llega
+  // en la fila 1, su reserva heredaba 1 y se ordenaba junto a la cadena 1 —lejos
+  // del titular del que cuelga—. Son dos escalas distintas y mezclarlas separa
+  // justo lo que esta función existe para juntar. La posición sigue sirviendo
+  // como último recurso, cuando el titular tampoco se puede situar.
+  const cadenaDelTitular = new Map<string, number>();
   items.forEach((item, i) => {
     const s = leer(item);
     if (rolNormalizado(s.rol) !== "titular") return;
     const code = texto(s.codigo);
-    if (code && !rangoDelTitular.has(code)) rangoDelTitular.set(code, i);
+    if (!code || cadenaDelTitular.has(code)) return;
+    const declarada = numero(s.secuencia);
+    const porCodigo = cadenaDesdeCodigo(s.codigo).cadena;
+    cadenaDelTitular.set(code, declarada !== INF ? declarada : porCodigo !== INF ? porCodigo : i);
   });
 
   return items
@@ -91,24 +101,25 @@ export function ordenarPorCadenaOperativa<T>(
       const declarada = numero(s.secuencia);
       const porCodigo = cadenaDesdeCodigo(s.codigo);
       const cabeza = rol === "titular" ? texto(s.codigo) : texto(s.reemplazaA);
-      const porTitular = rangoDelTitular.has(cabeza)
-        ? (rangoDelTitular.get(cabeza) as number)
+      const porTitular = cadenaDelTitular.has(cabeza)
+        ? (cadenaDelTitular.get(cabeza) as number)
         : INF;
       const ordenDeclarado = numero(s.orden);
       return {
         item,
         entrada,
         banco: rol === "extra_reserve_pool" ? 1 : 0,
-        // **Prioridad, y el orden entre las tres importa**: son escalas
-        // distintas —el rango del titular empieza en 0 y el número del código en
-        // 1— y mezclarlas colaba «AULA 2» entre «AULA 1» y sus «R1.x». Que todas
-        // las filas usen la misma es la condición para que el orden signifique
-        // algo.
-        // El rango del titular sólo salva a las RESERVAS que declaran de quién
-        // son: es su caso legítimo. Para un titular que no trae ni secuencia ni
-        // número en el código, el rango es su propia posición, y usarlo lo
-        // colaba en medio de cadenas numeradas —«RARO» entre «CH 1» y «CH 2»—.
-        // Lo que no se puede situar va al final, no en medio.
+        // **Prioridad, y el orden entre las tres importa**: todas las filas
+        // tienen que medir la cadena en la MISMA escala, o el orden no
+        // significa nada. Mezclarlas colaba «AULA 2» entre «AULA 1» y sus
+        // «R1.x», y una reserva sin número de cadena acababa lejos del titular
+        // del que cuelga.
+        // `porTitular` es la cadena ya resuelta del titular —no su posición—,
+        // así que hereda la escala de él. Sólo salva a las RESERVAS que
+        // declaran de quién son: es su caso legítimo. Para un titular que no
+        // trae ni secuencia ni número en el código, situarlo por su propia
+        // posición lo colaba en medio de cadenas numeradas —«RARO» entre «CH 1»
+        // y «CH 2»—. Lo que no se puede situar va al final, no en medio.
         cadena: declarada !== INF ? declarada
           : porCodigo.cadena !== INF ? porCodigo.cadena
           : rol === "titular" ? INF : porTitular,
