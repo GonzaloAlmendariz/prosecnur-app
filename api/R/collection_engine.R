@@ -286,6 +286,17 @@
         "course_name", "nombre_del_curso", "nombre_curso", "curso_nombre", "asignatura"
       )),
       schedule = .collection_first_string(row, c("schedule", "horario")),
+      # **La escuela, que el marco trae y el plan tiraba.** `program` viene con
+      # dato en las 2.616 unidades del estudio —ARQUITECTURA, DISEÑO GRAFICO,
+      # PINTURA— y se quedaba en la seleccion: la ficha no podia decir de que
+      # escuela es el curso porque el dato moria un eslabon antes de llegar.
+      #
+      # Al aplicador le importa: una facultad como ARTE Y DISEÑO agrupa escuelas
+      # que ni comparten edificio, y es lo que le dice si esta en el sitio
+      # correcto. El generador anterior la imprimia («ESCUELA: …»).
+      program = .collection_first_string(row, c(
+        "program", "escuela", "school", "especialidad", "carrera", "programa"
+      )),
       # **Sin `label` al final de la lista.** Era el ultimo candidato «por si
       # acaso» y acabo siendo el unico: medido sobre las 2.616 unidades del
       # estudio de aulas, las 2.616 tenian `venue` IDENTICO a `label`, o sea el

@@ -38,9 +38,9 @@
     # `qr_full_width` es lo que el planificador de flujo mira para arrancar
     # DEBAJO del simbolo en vez de a su izquierda.
     qr_full_width = TRUE,
-    qr_side = 0.38,
+    qr_side = 0.40,
     qr_x = 0.50,
-    qr_y = 0.734,
+    qr_y = 0.727,
     x_left = 0.075,
     x_right = 0.925,
     y_title = 0.868,
@@ -83,8 +83,8 @@
   # de alto y el flujo de abajo es el mismo —cinco campos, enlace, aviso y un
   # registro de nueve casillas—. Medido, a 0.46 el grid se quedaba en dos
   # renglones y «Docente» y «Estudiantes» se caian de la hoja.
-  base$qr_side <- 0.32
-  base$qr_y <- 0.802 - (0.32 * 8.27 / 11.69) / 2
+  base$qr_side <- 0.36
+  base$qr_y <- 0.802 - (0.36 * 8.27 / 11.69) / 2
   base
 }
 
@@ -262,6 +262,15 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     replacement_for = replacement_for,
     group = .crf_txt(unit$group, ""),
     faculty = .crf_txt(dims$faculty %||% unit$faculty, ""),
+    # La escuela dentro de la facultad: ARTE Y DISEÑO agrupa escuelas que no
+    # comparten ni edificio, y es lo que le dice al aplicador si esta en el
+    # sitio correcto.
+    program = .crf_txt(dims$program %||% unit$program, ""),
+    # El aula CRUDA, sin el relleno. `venue` de mas abajo pasa por `.crf_txt`,
+    # que sustituye el vacio por «Por confirmar»: preguntarle a esa cadena si
+    # hay aula responde que si SIEMPRE, y el registro dejaba de pedirla en una
+    # ficha que arriba decia «Por confirmar». Medido en el render.
+    venue_raw = trimws(as.character(dims$venue %||% unit$venue %||% "")[1]),
     course_name = .crf_txt(
       dims$course_name %||% dims$course %||% dims$course_id %||% unit$course_name,
       .crf_txt(unit$label, "Curso sin nombre")
@@ -287,6 +296,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     "unit.replacement_for" = context$unit$replacement_for,
     "unit.group" = context$unit$group,
     "unit.faculty" = context$unit$faculty,
+    "unit.program" = context$unit$program,
     "unit.course_name" = context$unit$course_name,
     "unit.schedule" = context$unit$schedule,
     "unit.venue" = context$unit$venue,
@@ -553,7 +563,11 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   # se caian de la ficha por 0,004 npc mientras ese aire seguia reservado.
   link_size <- max(6.5, type$code - 0.5)
   n_link <- length(.crf_wrap(payload, width = .crf_flow_chars(L$x_right, L$x_left, 92L), max_lines = 3L))
-  link_h <- 0.045 + max(1L, n_link) * (link_size * 1.05 / 72) / geo$page_h + 0.006
+  # 0.030 y no 0.045 entre la regla y la URL: ese hueco se dimensiono cuando el
+  # bloque vivia en una `y` fija con aire regalado alrededor. Medido sobre el
+  # PNG, dejaba una franja muerta entre el rotulo y el enlace mas alta que el
+  # propio enlace, y es sitio que los campos y el QR si usan.
+  link_h <- 0.030 + max(1L, n_link) * (link_size * 1.05 / 72) / geo$page_h + 0.006
   ancho <- isTRUE(L$qr_full_width)
   # Simbolo mas su zona de silencio, en el caso peor. El simbolo mide `qr_side`
   # exacto; la zona de silencio se derrama fuera y mide cuatro modulos por lado,
@@ -786,6 +800,52 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   list(lines = .crf_wrap(texto, as.integer(round(chars / minimo)), 3L), size = size * minimo)
 }
 
+#' Casillas del registro, quitando la que la ficha ya responde impresa.
+#'
+#' El aula es el unico dato del registro que la ficha PUEDE traer impreso: los
+#' demas —asistentes, rechazos, quien aplico, cuando— solo existen despues de la
+#' aplicacion. Cuando el marco trae el aula, preguntarla es pedirle al aplicador
+#' que copie a mano un dato que tiene tres centimetros mas arriba, y ese renglon
+#' se lo queda «Aplicador:» entero.
+#'
+#' Cuando NO la trae —hoy, las 2.616 unidades del estudio— la casilla es el
+#' unico sitio donde el aula puede quedar registrada y se mantiene.
+#'
+#' Se compara contra el valor CRUDO de la unidad, no contra lo que la ficha
+#' imprime: `.crf_txt` sustituye el vacio por «Por confirmar», y preguntarle a
+#' esa cadena si hay aula responde que si siempre.
+#'
+#' @param labels etiquetas declaradas por la plantilla.
+#' @param venue aula de la unidad, tal como llega del plan.
+#' @keywords internal
+.crf_log_labels <- function(labels, venue) {
+  etiquetas <- as.character(unlist(labels %||% list(), use.names = FALSE))
+  impresa <- nzchar(trimws(as.character(venue %||% "")[1]))
+  if (!impresa) return(etiquetas)
+  # Se quita la casilla, no el renglon: su compañera se queda con la hoja
+  # entera, que es justo lo que le viene bien a un nombre de aplicador.
+  vapply(etiquetas, function(fila) {
+    partes <- trimws(strsplit(fila, "|", fixed = TRUE)[[1]])
+    partes <- partes[nzchar(partes)]
+    quedan <- partes[!grepl("^aula\\b", tolower(partes))]
+    if (!length(quedan)) return("")
+    paste(quedan, collapse = " | ")
+  }, character(1), USE.NAMES = FALSE) |> (\(x) x[nzchar(x)])()
+}
+
+#' Tipografia de la ficha: la del kit, un punto por encima.
+#'
+#' Sube los cuerpos que se leen a mano —rotulo, valor y titulo— y deja el resto
+#' como esta. El enlace impreso NO sube: es un respaldo que se teclea, no que se
+#' lee de lejos, y ya ocupa dos lineas con las URL reales de Kobo.
+#' @keywords internal
+.crf_type_ficha <- function(type, escala = 1.22) {
+  type$caption <- type$caption * escala
+  type$body <- type$body * escala
+  type$section <- type$section * escala
+  type
+}
+
 #' Ancho util del VALOR de un campo cuando comparte renglon, en npc.
 #' @keywords internal
 .crf_hueco_medio <- function(L, right = NULL) {
@@ -809,7 +869,17 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
                                            brand_assets = list()) {
   tokens <- pulso_pdf_tokens()
-  type <- pulso_pdf_type()
+  # **Esta hoja se lee de pie en un aula, no sentado ante una pantalla.**
+  #
+  # El kit dimensiona su tipografia para informes que se leen a distancia de
+  # escritorio. La ficha es otra cosa: el aplicador la sostiene, la llena a mano
+  # con la clase esperando y la lee de un vistazo para comprobar que es el aula
+  # que le toca. Los rotulos a `caption` quedaban en el limite de lo comodo.
+  #
+  # Escala local y no cambio del kit: subir `pulso_pdf_type()` moveria todos los
+  # PDF del sistema —informes, cuestionarios, hojas de ruta— por una necesidad
+  # de una sola superficie.
+  type <- .crf_type_ficha(pulso_pdf_type())
   geo <- pulso_pdf_geo(page$orientation %||% "portrait")
   brand <- .crf_block(page, "brand_strip")
   L <- .crf_layout(branded = !is.null(brand))
@@ -979,7 +1049,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
         gp = grid::gpar(col = tokens$navy, fontsize = type$caption, fontface = "bold")
       )
       y0 <- item$y_top - 0.028
-      etiquetas <- as.character(unlist(log_block$labels %||% list(), use.names = FALSE))
+      etiquetas <- .crf_log_labels(log_block$labels, page$unit$venue_raw)
       banda_log <- max(0, item$height - 0.028)
       max_log <- max(1L, as.integer(floor(banda_log / L$log_row_step_min)) + 1L)
       if (rows_n > max_log) {
@@ -1039,7 +1109,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       # en cuanto el anclaje dejo de ser una `y` fija con aire regalado encima.
       pulso_pdf_hairline(L$x_left, item$right_edge, item$y_top, tokens = tokens)
       grid::grid.text(
-        "Enlace de la encuesta", x = L$x_left, y = item$y_top - 0.023,
+        "Enlace de la encuesta", x = L$x_left, y = item$y_top - 0.016,
         just = "left", default.units = "npc",
         gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
       )
@@ -1047,7 +1117,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       chars <- .crf_flow_chars(item$right_edge, L$x_left, 92L)
       link_lines <- .crf_wrap(payload, width = chars, max_lines = 3L)
       if (!length(link_lines)) link_lines <- "Pendiente de generar"
-      text_top <- item$y_top - 0.045
+      text_top <- item$y_top - 0.032
       .crf_draw_lines(
         link_lines, L$x_left, text_top,
         grid::gpar(col = tokens$navy, fontsize = link_size), lineheight = 1.05

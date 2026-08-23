@@ -145,7 +145,7 @@ test_that("las lineas para llenar a mano no invaden la columna del QR", {
   # El grid ya no vive en una `y` fija: su banda sale del plan de flujo, que
   # depende de cuanto ocupen los bloques que lo preceden en el orden real.
   plan <- prosecnurapp:::.crf_flow_plan(
-    compiled$pages[[1]]$blocks, L, prosecnurapp:::pulso_pdf_type(), prosecnurapp:::pulso_pdf_geo("portrait")
+    compiled$pages[[1]]$blocks, L, prosecnurapp:::.crf_type_ficha(prosecnurapp:::pulso_pdf_type()), prosecnurapp:::pulso_pdf_geo("portrait")
   )
   grid_item <- Find(function(it) identical(it$type, "field_grid"), plan$items)
   fila <- round((1 - (grid_item$y_top - 0.004)) * nrow(g))

@@ -249,7 +249,7 @@ test_that("la ficha built-in NO imprime el rol: no es dato del aplicador", {
   compiled <- .crf_render_test_compiled(template)
   page <- compiled$pages[[1]]
   L <- .crf_layout(branded = !is.null(.crf_block(page, "brand_strip")))
-  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  plan <- .crf_flow_plan(page$blocks, L, .crf_type_ficha(pulso_pdf_type()), pulso_pdf_geo("portrait"))
   list(L = L, item = Find(function(it) identical(it$type, "field_grid"), plan$items))
 }
 
@@ -310,7 +310,7 @@ test_that("el lector de QR usa la geometria de la variante que dibujo la hoja", 
   compiled <- .crf_render_test_compiled(template)
   page <- compiled$pages[[1]]
   L <- .crf_layout(branded = !is.null(.crf_block(page, "brand_strip")))
-  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  plan <- .crf_flow_plan(page$blocks, L, .crf_type_ficha(pulso_pdf_type()), pulso_pdf_geo("portrait"))
   list(L = L, item = Find(function(it) identical(it$type, "application_log"), plan$items))
 }
 
@@ -477,7 +477,14 @@ test_that("un enlace que encogiera el modulo por debajo del umbral se detecta", 
 }
 
 test_that("subir 'Instrucciones' antes del grid en el array lo sube de verdad en la hoja", {
-  original <- collection_material_builtin_template()
+  # **La plantilla con careta, porque la built-in ya no lleva instrucciones.**
+  # Se le quitaron: decian «Escanea el QR para responder» sobre una hoja donde
+  # el QR ocupa media pagina. Lo que este test defiende —que reordenar el array
+  # reordene la hoja— no depende de esa plantilla, asi que se prueba sobre una
+  # que si declara el bloque en vez de resucitarlo donde sobra.
+  original <- collection_material_branded_sheet_template(
+    assets = "logo-x", instructions = "Texto de prueba para el bloque de instrucciones."
+  )
   ids_original <- vapply(original$pages[[1]]$blocks, function(b) b$block_id, character(1))
   expect_lt(which(ids_original == "details"), which(ids_original == "instructions"))
 
@@ -490,7 +497,7 @@ test_that("subir 'Instrucciones' antes del grid en el array lo sube de verdad en
     function(it) identical(it$block_id, "instructions"),
     .crf_flow_plan(
       .crf_render_test_compiled(original)$pages[[1]]$blocks, plan_original$L,
-      pulso_pdf_type(), pulso_pdf_geo("portrait")
+      .crf_type_ficha(pulso_pdf_type()), pulso_pdf_geo("portrait")
     )$items
   )
   # En el orden original el grid ("details") va arriba de las instrucciones.
@@ -501,7 +508,7 @@ test_that("subir 'Instrucciones' antes del grid en el array lo sube de verdad en
     function(it) identical(it$block_id, "instructions"),
     .crf_flow_plan(
       .crf_render_test_compiled(reordenada)$pages[[1]]$blocks, plan_reordenada$L,
-      pulso_pdf_type(), pulso_pdf_geo("portrait")
+      .crf_type_ficha(pulso_pdf_type()), pulso_pdf_geo("portrait")
     )$items
   )
   # Reordenado, las instrucciones deben quedar ARRIBA del grid: el mismo
@@ -528,7 +535,7 @@ test_that("el bloque divider deja una linea de tinta en su banda", {
   compiled <- .crf_render_test_compiled(template)
   page <- compiled$pages[[1]]
   L <- .crf_layout(branded = FALSE)
-  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  plan <- .crf_flow_plan(page$blocks, L, .crf_type_ficha(pulso_pdf_type()), pulso_pdf_geo("portrait"))
   divider_item <- Find(function(it) identical(it$type, "divider"), plan$items)
   expect_false(is.null(divider_item))
 
@@ -557,7 +564,7 @@ test_that("quitar el divider del array no deja una linea fantasma en su lugar", 
   compiled <- .crf_render_test_compiled(template)
   page <- compiled$pages[[1]]
   L <- .crf_layout(branded = FALSE)
-  plan <- .crf_flow_plan(page$blocks, L, pulso_pdf_type(), pulso_pdf_geo("portrait"))
+  plan <- .crf_flow_plan(page$blocks, L, .crf_type_ficha(pulso_pdf_type()), pulso_pdf_geo("portrait"))
   expect_null(Find(function(it) identical(it$type, "divider"), plan$items))
 
   rendered <- collection_material_render_compiled(
@@ -700,4 +707,26 @@ test_that("el titulo largo baja de cuerpo en vez de robarle sitio a lo de abajo"
   expect_lt(largo$size, 13)
   # Y no baja por debajo de lo legible en una hoja impresa.
   expect_gte(largo$size, 13 * 0.72)
+})
+
+
+# --- El plan que se verifica es el que se dibuja ---------------------------
+#
+# Estos tests calculan `.crf_flow_plan` por su cuenta para saber DONDE quedo
+# cada bloque, y el dibujante no usa la tipografia del kit a secas: la ficha se
+# llena a mano de pie en un aula y sube un punto (`.crf_type_ficha`). Pasandole
+# `pulso_pdf_type()` crudo, el plan del test sale de otra hoja que la dibujada:
+# medido al subir la escala, tres asertos geometricos fallaron buscando tinta
+# donde el test creia que estaba la linea y no donde el motor la puso.
+#
+# Es la misma familia que el relector del QR heredando la geometria: quien
+# verifica no puede recalcular por su cuenta lo que el motor decide.
+test_that("ningun test mide el flujo con una tipografia distinta de la que dibuja", {
+  fuente <- readLines("test-collection-render-ficha.R", warn = FALSE)
+  fuente <- c(fuente, readLines("test-collection-ficha-marca.R", warn = FALSE))
+  llamadas <- grep("crf_flow_plan\\(", fuente, value = TRUE)
+  # Las que pasan el `type` en la misma linea tienen que pasarlo escalado.
+  con_type <- grep("pulso_pdf_type\\(\\)", llamadas, value = TRUE)
+  crudas <- con_type[!grepl("crf_type_ficha", con_type)]
+  expect_equal(crudas, character(0))
 })
