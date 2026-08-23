@@ -121,9 +121,28 @@ export function explicacionDelEmbudo(cifras: CifrasDelOperativo | null | undefin
   if (!titulares) return [];
 
   const frases = [
-    "Un curso-horario cuenta como aplicado cuando su parte de campo lo declara, "
-    + "aunque todavía no haya llegado ninguna respuesta: el parte lo escribe quien "
-    + "estuvo en el aula y las respuestas llegan por la plataforma, que es otro camino.",
+    // **«Parte de campo» nombraba aquí lo que NO mueve esta cifra.**
+    //
+    // La frase decía «cuenta como aplicado cuando su parte de campo lo declara»,
+    // y en esta app «parte de campo» es el nombre del artefacto del LIBRO: la
+    // hoja «Aulas Aplicadas (Campo)» que el jefe de campo transcribe desde las
+    // fichas de papel, que viaja como `partes_campo` y que esta misma pantalla
+    // rotula «3 con parte en el libro».
+    //
+    // Ese parte NO mueve esta cifra. `aulas_aplicadas` cuenta
+    // `operational_status ∈ {aplicada, cerrada}`, y ese campo lo escribe el
+    // registro de campo de la APP. Medido el 2026-08-23: tres partes importados
+    // con estado «Aplicada» y `aulas_aplicadas = 0`.
+    //
+    // Es deliberado —son dos medidas del mismo aula y mezclarlas perdería de
+    // cuál viene cada número— pero la explicación decía lo contrario, así que un
+    // analista que importa el libro y ve «Aplicadas 0» concluye que la app está
+    // rota. Ahora nombra las tres fuentes y dice cuál manda.
+    "Un curso-horario cuenta como aplicado cuando alguien lo registra en esta app, "
+    + "aunque todavía no haya llegado ninguna respuesta. Son tres caminos distintos y "
+    + "sólo el primero mueve esta cifra: el registro de la app, el parte de papel que "
+    + "se transcribe al libro —que se guarda y se contrasta, pero no la mueve— y las "
+    + "respuestas, que llegan por la plataforma.",
   ];
 
   // Las reservas sólo se explican si las hay: sin cadena, la frase sobra.
