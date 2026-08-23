@@ -42,6 +42,7 @@ import {
   templateHistoryShortcut,
 } from "./templateHistory";
 import "./styles/materials.css";
+import { titularesDelPlan } from "./codigoOperativo";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -116,6 +117,21 @@ const BINDING_LABELS: Record<string, string> = {
   "project.name": "Nombre del proyecto",
   "project.period": "Periodo del proyecto",
 };
+
+/**
+ * Cuántas fichas hay hechas, de cuántas hacen falta.
+ *
+ * «Fichas 0» no dice de cuántas, y las que hay que hacer son las aulas que se
+ * van a visitar. Es el mismo ancla que ya lleva el vacío de Accesos —«Ninguna
+ * de las 193 aulas del plan tiene acceso todavía»— y aquí faltaba.
+ *
+ * Sin plan no se inventa un denominador: se dice la cuenta a secas, porque «0
+ * de 0» promete una comparación que no se puede hacer.
+ */
+export function cuentaDeFichas(hechas: number, delPlan: number): string {
+  const n = (v: number) => v.toLocaleString("es-PE");
+  return delPlan > 0 ? `${n(hechas)} de ${n(delPlan)}` : n(hechas);
+}
 
 export function bindingLabel(binding: string): string {
   return BINDING_LABELS[binding] ?? binding;
@@ -230,6 +246,9 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const presentBlockTypes = new Set(blocks.map((block) => block.type));
   const addableBlockTypes = COLLECTION_BLOCK_TYPES.filter((type) => !presentBlockTypes.has(type));
   const deployment = payload?.state.deployment ?? null;
+  // Las aulas que se van a visitar: son las fichas que hay que llegar a tener.
+  const aulasDelPlan = titularesDelPlan(payload?.state.plan);
+  const fichasHechas = cuentaDeFichas(instances.length, aulasDelPlan);
   const activeAdapter = payload?.state.plan?.adapter.id ?? null;
   const adapterCompatible = activeAdapter ? template.compatible_adapters.includes(activeAdapter) : true;
 
@@ -387,7 +406,14 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           <dl>
             <div><dt>Plantilla</dt><dd>{template.template_id}</dd></div>
             <div><dt>Accesos</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
-            <div><dt>Fichas</dt><dd>{instances.length}</dd></div>
+            {/* Con su denominador: «Fichas 0» no dice de cuántas, y las que
+                hay que hacer son las aulas que se van a visitar. Es el mismo
+                ancla que ya lleva el vacío de Accesos —«Ninguna de las 193
+                aulas del plan tiene acceso todavía»— y aquí faltaba. */}
+            <div>
+              <dt>Fichas</dt>
+              <dd>{fichasHechas}</dd>
+            </div>
             <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin preparar"}</dd></div>
           </dl>
           <PulsoButton variant="secondary" onClick={() => { void createInstances(); }} disabled={!deployment || instanceBusy}>
