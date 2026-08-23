@@ -1557,3 +1557,50 @@ por día se dibujaba sobre 42 de 686.
 
 4 asertos; el mutante que vuelve a contar lo recibido mata 1. Sin total declarado
 —un dashboard viejo— se comporta como antes.
+
+
+## Las 193 aplicadas, y la cadena rehecha detrás
+
+Gonzalo: «Hazlo».
+
+### El sorteo
+
+`scripts/qa/aplicar-193.R` — reparto dirigido sobre las 190, **no proporcional**:
+quita donde sobraba margen y da donde estaba al límite.
+
+| Facultad | 190 | 193 |
+|---|---|---|
+| Ciencias e Ingeniería | 40 | **37** |
+| EE.GG. Ciencias | 30 | **27** |
+| Derecho | 16 | **20** |
+| Gestión y Alta Dirección | 7 | **9** |
+| Ciencias Contables | 2 | **3** |
+| Letras y Ciencias Humanas | 3 | **4** |
+| Psicología | 6 | **7** |
+| *(las otras ocho)* | — | sin cambio |
+
+Resultado, 22,6 s: **193 titulares · 507 reservas · 1 916 extras**, corrida
+`sel_aulas_20260822204345`. **DÉFICIT 0 · SIN MARGEN 0** — las catorce facultades
+con cuota toleran al menos una caída, y cinco toleran cinco. Esperadas 3 352
+frente al objetivo de 2 500; margen 852.
+
+### La cadena, verificada paso a paso en la app
+
+| Paso | Resultado |
+|---|---|
+| Abrir Monitoreo | «Tu cálculo de muestra ya tiene **193** cursos-horario sorteados» |
+| Estado de Selección | «**700 cursos-horario sorteados sin traer**» (193 + 507, sin banco) |
+| Importar plan | CURSOS-HORARIO **700** |
+| Generar libro | `HSVG2026_193_libro_aulas.xlsx` · Agendadas **194 filas = cabecera + 193 CH**, cero extras |
+
+Las cinco reparaciones de la sesión se ven funcionando sobre datos nuevos: la
+sugerencia leyó 193, el hueco de Selección dijo cuántas esperaban, y el libro
+salió sin el banco —con el defecto viejo habrían sido 2 109 filas—.
+
+### Lo que NO se tocó, a propósito
+
+El plan de recolección y el de Monitoreo del `.pulso` quedan **del sorteo
+anterior**: rehacerlos es una acción del usuario, y los avisos de desfase
+construidos en esta serie existen justo para que se vea que hay que hacerlo.
+
+El `.pulso` de entrada tampoco se pisa: la salida es `HSVG2026_193.pulso`.
