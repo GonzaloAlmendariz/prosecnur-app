@@ -66,7 +66,7 @@ COLLECTION_MATERIAL_BINDINGS <- c(
   # En un papel impreso eso no se corrige despues.
   "unit.unit_id", "unit.operational_code", "unit.label", "unit.role",
   "unit.replacement_for", "unit.group",
-  "unit.faculty", "unit.course_name", "unit.schedule", "unit.venue",
+  "unit.faculty", "unit.program", "unit.course_name", "unit.schedule", "unit.venue",
   "unit.teacher", "unit.sample_label", "unit.eligible_n",
   "access.access_id", "access.logical_collector_id", "access.qr_payload"
 )
@@ -446,11 +446,15 @@ collection_material_application_log_labels <- function() {
   # catalogo: el estudio ya tuvo cambios de aula y la hoja tiene columna para
   # ello. Observaciones se queda con el renglon entero porque es lo unico que
   # se escribe en prosa.
+  # **La fecha y la hora dicen en que formato se escriben.** Una raya en blanco
+  # detras de «Fecha:» se llena «3 set», «03/09», «03-09-26» y «lunes», y quien
+  # transcribe al libro interpreta 193 veces. Cuatro caracteres en la etiqueta
+  # ahorran esa interpretacion.
   c(
     "Asistentes: | Efectivas:",
     "Rechazos: | Duplicados:",
     "Aula: | Aplicador:",
-    "Fecha: | Hora:",
+    "Fecha (DD/MM/AA): | Hora (00:00 AM/PM):",
     "Observaciones:"
   )
 }
@@ -512,16 +516,31 @@ collection_material_builtin_template <- function() {
           #
           # «Estudiantes» se queda: es el denominador contra el que el aplicador
           # anota los asistentes en el registro de abajo, no un dato de adorno.
-          list(label = "Horario", binding = "unit.schedule"),
-          list(label = "Aula", binding = "unit.venue"),
+          # **El docente primero, y el orden decide como se emparejan.** Es lo
+          # que el aplicador busca para comprobar que esta en el aula correcta.
+          # Va solo en su renglon porque los nombres reales no caben en media
+          # hoja; puesto en medio partia el emparejado de los demas y cada campo
+          # gastaba un renglon entero para once caracteres de dato.
+          #
+          # **«Aula» va aqui, impresa, y por eso el registro deja de pedirla.**
+          # Gonzalo, 2026-08-23: «si el aula ya esta arriba y viene impresa, el
+          # aplicador ya no tendria que llenarlo». La casilla del registro se
+          # emite solo cuando esta llega vacia —ver `.crf_log_labels`—, que es
+          # hoy el caso de las 2.616 unidades del estudio: el marco no trae el
+          # aula. Cuando la traiga, la ficha deja de preguntar lo que ya dice.
           list(label = "Docente", binding = "unit.teacher"),
+          list(label = "Escuela", binding = "unit.program"),
+          list(label = "Aula", binding = "unit.venue"),
+          list(label = "Horario", binding = "unit.schedule"),
           list(label = "Estudiantes", binding = "unit.eligible_n")
         )),
+        # **Sin la instruccion de uso.** Decia «Escanea el QR para responder. Si
+        # no abre, digita el enlace visible.» sobre una hoja donde el QR ocupa
+        # media pagina y el enlace esta impreso debajo con su rotulo. Gonzalo,
+        # 2026-08-23: «sin la indicacion innecesaria». Explicar que un QR se
+        # escanea es parafrasear lo que la hoja ya ensena, y ese renglon —linea
+        # mas gap— es sitio que el QR y los datos si aprovechan.
         list(block_id = "rule", type = "divider"),
-        list(
-          block_id = "instructions", type = "instructions",
-          text = "Escanea el QR para responder. Si no abre, digita el enlace visible.", max_lines = 4L
-        ),
         list(
           block_id = "log", type = "application_log", text = "Registro de aplicacion",
           rows = 5L, labels = as.list(collection_material_application_log_labels())
@@ -552,8 +571,8 @@ collection_material_builtin_template <- function() {
 #' @export
 collection_material_branded_sheet_template <- function(assets, status_tag = NULL,
                                                        fields = NULL,
-                                                       instructions = "Escanea el QR para responder. Si no abre, digita el enlace visible.",
-                                                       log_rows = 3L) {
+                                                       instructions = "",
+                                                       log_rows = 5L) {
   if (is.null(fields)) {
     fields <- list(
       # Los MISMOS campos que la plantilla sin careta, y por la misma razon: al
@@ -561,10 +580,12 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
       # el nombre del PDF— ni cual es la muestra. Se quitaron de la built-in y
       # esta gemela se quedo con «Rol» y «Muestra» dos semanas mas; arreglar una
       # superficie y dejar su copia es como vuelve un defecto ya reparado.
-      list(label = "Fecha", blank = TRUE),
-      list(label = "Horario", binding = "unit.schedule"),
-      list(label = "Aula", binding = "unit.venue"),
+      # Los mismos campos que la plantilla sin careta, y por las mismas razones:
+      # «Aula» se pregunta en el registro y la fecha tambien, con su formato.
       list(label = "Docente", binding = "unit.teacher"),
+      list(label = "Escuela", binding = "unit.program"),
+      list(label = "Aula", binding = "unit.venue"),
+      list(label = "Horario", binding = "unit.schedule"),
       list(label = "Estudiantes", binding = "unit.eligible_n")
     )
   }
@@ -581,12 +602,19 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
     ),
     list(block_id = "details", type = "field_grid", fields = fields),
     list(block_id = "rule", type = "divider"),
-    list(block_id = "instructions", type = "instructions", text = instructions, max_lines = 4L),
+    # Sin texto no hay bloque: emitirlo vacio le reservaba su gap al flujo.
+    if (nzchar(trimws(instructions))) {
+      list(block_id = "instructions", type = "instructions", text = instructions, max_lines = 4L)
+    } else NULL,
     list(block_id = "log", type = "application_log", text = "Registro de aplicacion",
          rows = as.integer(log_rows),
          labels = as.list(utils::head(collection_material_application_log_labels(), log_rows))),
     list(block_id = "footer", type = "footer", binding = "project.period")
   )
+  # `list(a, NULL, b)` deja un hueco de tres, no de dos: el bloque de
+  # instrucciones ausente viajaria como un elemento NULL y el validador de
+  # plantilla lo rechaza por no tener `type`.
+  blocks <- Filter(Negate(is.null), blocks)
   if (!is.null(status_tag)) {
     blocks <- append(blocks, list(list(
       block_id = "estado", type = "status_tag", text = as.character(status_tag)[1]

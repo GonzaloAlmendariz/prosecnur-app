@@ -64,7 +64,11 @@ test_that("el titular conserva su clave aunque su frase no lleve numero", {
 
 test_that("cada casilla del papel tiene su columna en la hoja del libro", {
   casillas <- unlist(strsplit(collection_material_application_log_labels(), "|", fixed = TRUE))
-  casillas <- tolower(trimws(gsub(":", "", casillas)))
+  # **La pista de formato no es parte del nombre.** «Fecha (DD/MM/AA):» le dice
+  # al aplicador como escribir; la columna del libro se llama «FECHA DE
+  # APLICACIÓN». Comparar la etiqueta entera hacia fallar la correspondencia por
+  # el parentesis, que es justo lo que este test NO vigila.
+  casillas <- tolower(trimws(gsub(":", "", gsub("\\s*\\([^)]*\\)", "", casillas))))
   columnas <- tolower(prosecnurapp:::.calg_titulos_campo())
 
   # Cada casilla aparece dentro del nombre de alguna columna de la hoja.
@@ -121,4 +125,52 @@ test_that("con columna de aula de verdad, la usa", {
     list(label = "1edu92_0801", aula = "H-201"),
     c("pabellon_aula", "pabellon", "venue", "aula", "salon", "room", "building_room")
   ), "H-201")
+})
+
+# --- El registro no pide lo que la ficha ya responde -----------------------
+#
+# El aula es el UNICO dato del registro que la ficha puede traer impreso: los
+# demas —asistentes, rechazos, quien aplico, cuando— solo existen despues de la
+# aplicacion. Gonzalo, 2026-08-23: «si el aula ya esta arriba y viene impresa,
+# el aplicador ya no tendria que llenarlo».
+#
+# La comparacion va contra el valor CRUDO y no contra lo que la ficha imprime.
+# La primera version miro `context$venue`, que pasa por `.crf_txt` y devuelve
+# «Por confirmar» cuando no hay aula: preguntarle a esa cadena si hay aula
+# responde que si siempre, y el registro dejaba de pedirla en una ficha que
+# arriba decia «Por confirmar». Se vio en el render, no en el codigo.
+
+test_that("con el aula impresa, el registro no la vuelve a pedir", {
+  etiquetas <- as.list(collection_material_application_log_labels())
+  con <- prosecnurapp:::.crf_log_labels(etiquetas, "H-201")
+  expect_false(any(grepl("Aula", con)))
+  # Se quita la casilla, no el renglon: su compañera se queda la hoja entera.
+  expect_length(con, length(etiquetas))
+  expect_true(any(grepl("Aplicador", con)))
+})
+
+test_that("sin aula, la casilla se mantiene: es el unico sitio donde puede quedar", {
+  etiquetas <- as.list(collection_material_application_log_labels())
+  expect_true(any(grepl("Aula", prosecnurapp:::.crf_log_labels(etiquetas, ""))))
+  expect_true(any(grepl("Aula", prosecnurapp:::.crf_log_labels(etiquetas, NULL))))
+})
+
+test_that("el contexto lleva el aula cruda ademas de la que imprime", {
+  # El control que mata la version que miraba el texto impreso.
+  sin <- prosecnurapp:::.crf_unit_context(list(unit_id = "u", label = "x", dimensions = list()))
+  expect_identical(sin$venue, "Por confirmar")
+  expect_identical(sin$venue_raw, "")
+  expect_true(any(grepl("Aula", prosecnurapp:::.crf_log_labels(
+    as.list(collection_material_application_log_labels()), sin$venue_raw))))
+})
+
+test_that("la escuela viaja del marco a la ficha", {
+  # `program` venia con dato en las 2.616 unidades del estudio y moria en la
+  # seleccion: la ficha no podia decir de que escuela es el curso.
+  ctx <- prosecnurapp:::.crf_unit_context(list(
+    unit_id = "u", label = "x", dimensions = list(program = "DISEÑO GRAFICO")))
+  expect_identical(ctx$program, "DISEÑO GRAFICO")
+  expect_identical(prosecnurapp:::.collection_first_string(
+    list(program = "ARQUITECTURA"),
+    c("program", "escuela", "school", "especialidad", "carrera", "programa")), "ARQUITECTURA")
 })

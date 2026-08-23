@@ -40,9 +40,14 @@ test_that("el built-in congela los tres contratos V1 y reproduce el registro cer
   # usa. Comparar contra cualquiera de los dos hace fallar el test cada vez que
   # se agrega una opcion, sin que el built-in haya cambiado.
   types <- vapply(template$pages[[1]]$blocks, `[[`, character(1), "type")
+  # Sin `instructions`: la ficha decia «Escanea el QR para responder. Si no
+  # abre, digita el enlace visible.» sobre una hoja donde el QR ocupa media
+  # pagina y el enlace va impreso debajo con su rotulo. Explicar que un QR se
+  # escanea es parafrasear lo que la hoja ya ensena, y ese renglon es sitio que
+  # el QR y los campos si aprovechan.
   expect_identical(types, c(
     "brand_header", "heading", "body", "access_qr", "field_grid",
-    "divider", "instructions", "application_log", "footer"
+    "divider", "application_log", "footer"
   ))
   expect_true(all(types %in% COLLECTION_MATERIAL_PRESETS$ficha_aplicacion_a4_v1$blocks))
   expect_true(all(vapply(
