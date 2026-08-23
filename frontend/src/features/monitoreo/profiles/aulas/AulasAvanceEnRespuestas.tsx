@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { avanceEnRespuestas } from "./avanceEnRespuestas";
-import { fmtCuenta } from "./kpisDeAulas";
+import { fmt, fmtCuenta } from "./kpisDeAulas";
 
 /**
  * Cuánto se lleva de la meta del plan, en respuestas.
@@ -14,8 +14,6 @@ import { fmtCuenta } from "./kpisDeAulas";
  *
  * Barra en CSS y no Plotly, como el histórico: es una lectura de tres tramos.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;

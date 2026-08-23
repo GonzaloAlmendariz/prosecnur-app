@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { colchonPorFacultad } from "./consumoDeCadena";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Dónde se está quedando sin reservas el operativo.
@@ -15,8 +16,6 @@ import { colchonPorFacultad } from "./consumoDeCadena";
  * De 11 a 20 facultades es lo normal, así que cada facultad es UNA línea y las
  * de riesgo abren la lista.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
   const facultades = useMemo(() => colchonPorFacultad(filas), [filas]);

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { MessageSquareText } from "../../../../vendor/lucide-react";
 import { observacionesDeCampo } from "./observacionesDeCampo";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Lo que el campo reportó.
@@ -15,8 +16,6 @@ import { observacionesDeCampo } from "./observacionesDeCampo";
  * Una a una serían dieciséis incidencias; juntas son un patrón del operativo
  * —«el docente pide empezar al final de la clase»— que cambia cómo se agenda.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasObservacionesDeCampo({ partes }: {
   partes: ReadonlyArray<Readonly<Record<string, unknown>>>;

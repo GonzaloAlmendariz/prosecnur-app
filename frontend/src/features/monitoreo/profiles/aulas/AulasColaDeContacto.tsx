@@ -4,6 +4,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { colaDeContacto } from "./colaDeContacto";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * A quién llamar hoy, y cuánto ha costado agendar.
@@ -12,8 +13,6 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * esfuerzo ya gastado por facultad, que es lo único que el ciclo de contacto
  * todavía puede decir y sirve para la próxima ola.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;

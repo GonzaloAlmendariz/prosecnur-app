@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { embudoDelAula } from "./embudoDelAula";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * De cuántos estaban en el aula a cuántas respuestas quedaron.
@@ -16,8 +17,6 @@ import { embudoDelAula } from "./embudoDelAula";
  * Barras en CSS y no Plotly: son tres pasos, y lo que se compara es cuánto
  * angosta cada uno.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasEmbudoDelAula({ filas }: { filas: ReadonlyArray<MonitoreoRow> }) {
   const e = useMemo(() => embudoDelAula(filas), [filas]);

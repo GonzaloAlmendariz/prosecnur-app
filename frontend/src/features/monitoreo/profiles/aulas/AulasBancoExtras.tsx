@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Las aulas extra, por facultad.
@@ -52,7 +53,6 @@ export type BancoDeExtras = {
   extras: ExtraDeBanco[];
 };
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 /** «—» y no «0»: no declarar el sexo no es lo mismo que no tener a nadie. */
 const cifra = (n: number | null | undefined) => (n == null ? "—" : fmt(n));
 

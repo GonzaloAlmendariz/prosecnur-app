@@ -12,8 +12,7 @@
 // Este es el mismo recorrido para el operativo de campo: del plan a las
 // encuestas que cuentan.
 import type { FlujoEtapa } from "../../../calcMuestra/universidad/ui/FlujoVertical";
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
+import { fmt } from "./kpisDeAulas";
 
 /** Las cifras del tablero que este embudo necesita. */
 export type CifrasDelOperativo = {

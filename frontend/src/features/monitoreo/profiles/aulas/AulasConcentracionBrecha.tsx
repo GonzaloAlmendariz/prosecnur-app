@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { concentracionDeBrecha } from "./concentracionDeBrecha";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * ¿Hay atajo? — la lectura que le faltaba a Brechas.
@@ -14,8 +15,6 @@ import { concentracionDeBrecha } from "./concentracionDeBrecha";
  * No duplica Avance: allí la brecha se reparte por facultad y por estrato, que
  * es *dónde*; esto es *en cuántas aulas*.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasConcentracionBrecha({ filas }: { filas: ReadonlyArray<MonitoreoRow> }) {
   const c = useMemo(() => concentracionDeBrecha(filas), [filas]);

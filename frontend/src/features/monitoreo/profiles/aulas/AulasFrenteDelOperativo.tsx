@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { frenteDelOperativo } from "./frenteDelOperativo";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * A qué aulas hay que ir a reclamar hoy.
@@ -11,8 +12,6 @@ import { frenteDelOperativo } from "./frenteDelOperativo";
  * distintas: un operativo puede ir al 90 % de respuestas y tener treinta aulas
  * que pasaron su día sin que nadie las registrara.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 function fechaCorta(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);

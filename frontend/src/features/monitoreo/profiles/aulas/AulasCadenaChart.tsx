@@ -4,6 +4,7 @@ import { contar } from "../../fuentes/vocabulario";
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { consumoDeCadena } from "./consumoDeCadena";
+import { fmt } from "./kpisDeAulas";
 
 /** De cadena intacta a cadena muy consumida: el color acompaña el desgaste. */
 const TONOS = [
@@ -12,8 +13,6 @@ const TONOS = [
   COLOR_RESULTADO.rechazo,
   COLOR_RESULTADO.rechazo,
 ];
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /**
  * Cuánta reserva lleva gastada el operativo.

@@ -4,6 +4,7 @@ import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { escalaDeEje } from "./AulasSerieDeRendimiento";
 import { pronosticoDeCierre, sumarDiasDeCampo } from "./pronosticoDeCierre";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * En qué semana se termina de aplicar el plan, al ritmo que se lleva.
@@ -12,8 +13,6 @@ import { pronosticoDeCierre, sumarDiasDeCampo } from "./pronosticoDeCierre";
  * banda entre el ritmo más lento y el más rápido ya vistos. Nunca un punto: una
  * fecha sola se lee como una promesa.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 function dm(iso: string): string {
   const [, m, d] = iso.split("-");

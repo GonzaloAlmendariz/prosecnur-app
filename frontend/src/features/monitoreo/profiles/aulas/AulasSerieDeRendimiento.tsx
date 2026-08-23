@@ -6,6 +6,7 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { sexSeriesKind, sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { personasPorAula, personasProyectadas } from "./redondeoConservador";
 import { serieDeRendimiento } from "./serieDeRendimiento";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * El rendimiento diario de cada facultad, y el que cabe esperar de la próxima
@@ -33,7 +34,6 @@ import { serieDeRendimiento } from "./serieDeRendimiento";
 
 const MARGEN = 4;
 const UTIL = 100 - MARGEN * 2;
-const fmt = (n: number) => n.toLocaleString("es-PE");
 const dm = (fecha: string) => {
   const m = fecha.match(/(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}/${m[2]}` : fecha;

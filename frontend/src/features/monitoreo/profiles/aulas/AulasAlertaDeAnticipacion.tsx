@@ -12,6 +12,7 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { caidaObservada } from "./tasaDeCaida";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * A quién hay que salir a agendar, cuántas aulas y hasta qué día se puede esperar.
@@ -29,8 +30,6 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * no hay de dónde sacar esas aulas y el problema vuelve a Cálculo de muestra.
  * Decir «pide 14» sin mirar si existen es mandar a llamar al vacío.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /** `2026-08-24` → `24/08`. En UTC: con hora local sale el día anterior. */
 function diaCorto(iso: string): string {

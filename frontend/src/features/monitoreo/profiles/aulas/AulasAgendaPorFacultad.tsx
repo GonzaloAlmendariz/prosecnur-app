@@ -4,6 +4,7 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { agendaPorFacultad } from "./agendaPorFacultad";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import { ESTADOS_OPERATIVOS } from "./aulasPresentation";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * A dónde hay que ir, facultad por facultad.
@@ -12,8 +13,6 @@ import { ESTADOS_OPERATIVOS } from "./aulasPresentation";
  * una fila cuando ya se sabe el código. Esta vista contesta la otra pregunta,
  * la de campo: «hoy toca esta facultad, ¿qué aulas son, a qué hora y dónde?».
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 const ROTULO = new Map(ESTADOS_OPERATIVOS.map((e) => [e.value, e.label]));
 

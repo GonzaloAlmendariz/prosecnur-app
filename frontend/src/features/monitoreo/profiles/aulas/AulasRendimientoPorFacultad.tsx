@@ -6,6 +6,7 @@ import { personasPorAula } from "./redondeoConservador";
 import { rendimientoPorFacultad } from "./rendimientoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Qué está rindiendo más y qué menos, facultad por facultad.
@@ -15,7 +16,6 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * asistencia deja más que una pequeña que «cumple».
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("es-PE")} %`);
 
 export function AulasRendimientoPorFacultad({

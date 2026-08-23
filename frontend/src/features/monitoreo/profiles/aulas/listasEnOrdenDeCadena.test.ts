@@ -42,6 +42,22 @@ describe("las listas de unidades usan la regla de orden de cadena", () => {
     expect(fuente).toContain("ordenarPorCadenaOperativa");
   });
 
+  it("y nadie redefine el formateador de cifras dentro del perfil", () => {
+    // Medido el 2026-08-23: **treinta archivos** llevaban la MISMA línea
+    // —`const fmt = (n) => n.toLocaleString("es-PE")`— mientras el compartido
+    // vivía en `kpisDeAulas.ts`. Y tres más definían un `fmt` que hacía otra
+    // cosa: uno con un decimal, otro devolviendo «—» para el dato ausente.
+    //
+    // Lo caro no era la duplicación, era el NOMBRE: `fmt(x)` significaba tres
+    // cosas distintas según el archivo, y había que abrirlo para saber cuál.
+    const propios = fs
+      .readdirSync(aqui)
+      .filter((f) => (f.endsWith(".tsx") || f.endsWith(".ts")) && !f.includes(".test."))
+      .filter((f) => f !== "kpisDeAulas.ts")
+      .filter((f) => /^(?:const|function)\s+fmt\b/m.test(fs.readFileSync(path.join(aqui, f), "utf8")));
+    expect(propios, `redefinen «fmt»: ${propios.join(", ")}`).toEqual([]);
+  });
+
   it("y la regla sigue viviendo en un solo sitio", () => {
     // Si alguien copiara el comparador dentro del perfil, las listas
     // empezarían a discrepar en silencio: dos ordenaciones parecidas son peor

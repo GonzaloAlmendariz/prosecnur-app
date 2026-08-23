@@ -1,4 +1,5 @@
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cómo avanzó la recolección, día por día.
@@ -24,8 +25,6 @@ export type RitmoDiario = {
   media_diaria: number;
   meta: number;
 };
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /** «Lun 10/08», que es como se nombra un día de campo en el resto del perfil. */
 function etiquetaDeDia(iso: string) {

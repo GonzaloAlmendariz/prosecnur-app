@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { MessageSquare } from "../../../../vendor/lucide-react";
 import { textoAbierto } from "./textoAbierto";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Las respuestas abiertas, para leerlas rápido.
@@ -15,7 +16,6 @@ import { textoAbierto } from "./textoAbierto";
  * nombre del encuestador se repiten, y ahí repetir es lo correcto.
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 const pct = (n: number | null) => (n === null ? "—" : `${n.toLocaleString("es-PE", { maximumFractionDigits: 1 })} %`);
 
 export function AulasTextoAbierto({ bloque }: { bloque: unknown }) {

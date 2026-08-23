@@ -5,6 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { ritmoPorFacultad } from "./ritmoPorFacultad";
 import { NombreDeFacultad } from "./NombreDeFacultad";
 import type { FocoDeCuota } from "./AulasCuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cómo va cada facultad día a día, y hacia dónde.
@@ -13,8 +14,6 @@ import type { FocoDeCuota } from "./AulasCuotasResumen";
  * paró. Una barra por día del rango, compartiendo escala entre facultades para
  * que las series se puedan comparar de un vistazo.
  */
-
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /** «2026-08-11» → «11/08». La fecha larga no cabe bajo una barra de 8 px. */
 function dm(iso: string): string {

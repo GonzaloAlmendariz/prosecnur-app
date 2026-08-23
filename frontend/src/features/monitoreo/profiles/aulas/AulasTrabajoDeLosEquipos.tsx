@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { produccionPorAplicador } from "./produccionPorAplicador";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cómo trabaja cada equipo.
@@ -17,7 +18,11 @@ import { produccionPorAplicador } from "./produccionPorAplicador";
  * el hallazgo, no un vacío.
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+// Se llamaba `fmt`, igual que el formateador de enteros que usan los otros
+// treinta archivos del perfil, y hacía otra cosa: aquí SÍ hay decimal, porque
+// «2,4 días de respuesta» es el dato. Dos comportamientos bajo el mismo nombre
+// obligan a abrir el archivo para saber cuál manda.
+const fmtUnDecimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
 /**
  * Las medias SIEMPRE con un decimal.
  *
@@ -79,10 +84,10 @@ export function AulasTrabajoDeLosEquipos({ partes }: {
             <span className="aulas-equipos-por">
               por aula en {e.aulas} · ±{fmt1(2 * e.ee)}
               {e.rechazosPorCien !== null && e.rechazosPorCien > 0
-                ? ` · ${fmt(e.rechazosPorCien)} rechazos/100`
+                ? ` · ${fmtUnDecimal(e.rechazosPorCien)} rechazos/100`
                 : ""}
               {e.duplicadosPorCien !== null && e.duplicadosPorCien > 0
-                ? ` · ${fmt(e.duplicadosPorCien)} duplicados/100`
+                ? ` · ${fmtUnDecimal(e.duplicadosPorCien)} duplicados/100`
                 : ""}
             </span>
           </li>

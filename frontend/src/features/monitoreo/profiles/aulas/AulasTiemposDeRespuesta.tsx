@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { Clock, TriangleAlert } from "../../../../vendor/lucide-react";
 import { tiemposDeRespuesta } from "./tiemposDeRespuesta";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cuánto duran las respuestas, para el analista.
@@ -17,8 +18,12 @@ import { tiemposDeRespuesta } from "./tiemposDeRespuesta";
  * máximo son siete días— y promediarlas movería la cifra sin decir nada.
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
-const min = (n: number | null) => (n === null ? "—" : `${fmt(n)} min`);
+// Se llamaba `fmt`, igual que el formateador de enteros que usan los otros
+// treinta archivos del perfil, y hacía otra cosa: aquí SÍ hay decimal, porque
+// «2,4 días de respuesta» es el dato. Dos comportamientos bajo el mismo nombre
+// obligan a abrir el archivo para saber cuál manda.
+const fmtUnDecimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
+const min = (n: number | null) => (n === null ? "—" : `${fmtUnDecimal(n)} min`);
 
 export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
   const t = useMemo(() => tiemposDeRespuesta(tiempos), [tiempos]);
@@ -61,13 +66,13 @@ export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
         {r && r.colaLarga !== null && r.colaMin !== null && (
           <li>
             <span>{fmt(r.colaLarga)}</span>
-            <small>pasan de {fmt(r.colaMin)} min</small>
+            <small>pasan de {fmtUnDecimal(r.colaMin)} min</small>
           </li>
         )}
         {t.marcadas && (
           <li className={t.marcadas.n > 0 ? "is-alerta" : undefined}>
             <span>{fmt(t.marcadas.n)}</span>
-            <small>bajo el umbral de {fmt(t.umbral.minutos ?? 0)} min</small>
+            <small>bajo el umbral de {fmtUnDecimal(t.umbral.minutos ?? 0)} min</small>
           </li>
         )}
       </ul>
@@ -94,11 +99,11 @@ export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
                 <span className="aulas-tiempos-med">
                   <strong>{min(a.mediana)}</strong>
                   {a.bandaInf !== null && a.bandaSup !== null && (
-                    <small> ({fmt(a.bandaInf)}–{fmt(a.bandaSup)})</small>
+                    <small> ({fmtUnDecimal(a.bandaInf)}–{fmtUnDecimal(a.bandaSup)})</small>
                   )}
                 </span>
                 <span className="aulas-tiempos-resto">
-                  resto {min(a.medianaResto)} · {fmt(a.n)} resp.
+                  resto {min(a.medianaResto)} · {fmtUnDecimal(a.n)} resp.
                 </span>
               </li>
             ))}
