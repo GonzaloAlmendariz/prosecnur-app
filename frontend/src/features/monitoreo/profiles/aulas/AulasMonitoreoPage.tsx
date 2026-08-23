@@ -77,7 +77,7 @@ import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
-import { embudoDelOperativo } from "./embudoDelOperativo";
+import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
 // Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
 // y es genérico —etapas con valor, detalle, estado y merma—. Importarlo entre
 // features es un olor; moverlo a `components/` tocaría muchos imports de otra
@@ -635,6 +635,15 @@ function renderAulasView(
                 orientacion="horizontal"
                 ariaLabel="Recorrido del operativo: del plan a las encuestas válidas"
               />
+              {/* **La explicación debajo de las cifras**, patrón 5 del catálogo.
+                  Cálculo pone bajo su cadena de conversión un párrafo que explica
+                  por qué el divisor son elegibles y por qué las reservas no
+                  cambian la muestra; un analista que lo abre entiende el cálculo.
+                  Aquí cada frase corresponde a una regla del motor, no a una
+                  intuición — las referencias están en `embudoDelOperativo.ts`. */}
+              {explicacionDelEmbudo(dashboard?.kpis).map((frase) => (
+                <p className="aulas-embudo-prosa" key={frase.slice(0, 32)}>{frase}</p>
+              ))}
             </div>
           </section>
         ) : null}

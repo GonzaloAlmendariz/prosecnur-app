@@ -1768,6 +1768,21 @@
   font-size: var(--aulas-sec);
 }
 
+/* La explicación del recorrido: prosa debajo de sus cifras, no un tooltip.
+   Ancho de lectura acotado —un párrafo a todo lo ancho de una A4 no se lee— y
+   tono menor, porque acompaña a las cifras y no compite con ellas. */
+.mon-profile-page.is-aulas-flow .aulas-embudo-prosa {
+  max-width: 78ch;
+  margin: 10px 0 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-sec);
+  line-height: 1.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-embudo-prosa + .aulas-embudo-prosa {
+  margin-top: 7px;
+}
+
 /* El plan que se está mirando no es el del sorteo vigente. Ocupa el ancho porque
    califica TODO lo que hay debajo, no un panel concreto. */
 .mon-profile-page.is-aulas-flow .aulas-origen-desfasado {

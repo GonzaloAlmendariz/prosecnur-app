@@ -312,3 +312,35 @@ un libro de 190 — **al cambiar lo que se cuenta hay que revisar quién lo cuen
 Ahora usa los titulares.
 
 4 asertos del KPI; 711 tests del perfil en verde.
+
+
+## Trasladado el patrón 5: la explicación debajo de las cifras
+
+Cálculo pone bajo su cadena de conversión un párrafo que explica **por qué** el
+divisor son elegibles y por qué las reservas no cambian la muestra. Un analista
+que lo abre entiende el cálculo. Monitoreo no explicaba nada de lo que enseña.
+
+En pantalla, bajo el recorrido:
+
+> Un curso-horario cuenta como aplicado cuando su parte de campo lo declara,
+> aunque todavía no haya llegado ninguna respuesta: el parte lo escribe quien
+> estuvo en el aula y las respuestas llegan por la plataforma, que es otro camino.
+>
+> Las reservas no aparecen en este recorrido: entran sólo cuando su titular se
+> cae, y entonces lo sustituyen — el plan sigue teniendo 193 cursos-horario que
+> visitar, no uno más.
+
+**Cada frase corresponde a una regla del motor, no a una intuición**, y las
+referencias están escritas en el código:
+
+| Frase | Regla |
+|---|---|
+| aplicado ≠ con respuestas | `:1211` los combina con un OR, no con un AND |
+| una reserva sustituye, no suma | la cadena es un slot con respaldos |
+| cuentan las que pasan **todos** los filtros, y una columna ausente no descarta | `:974` |
+
+El tercer párrafo —el de los filtros— **no aparece** hasta que la plataforma trae
+respuestas: explicar un filtro que todavía no se aplicó sería ruido.
+
+5 asertos, escritos para que si una de esas reglas cambia, la frase deje de ser
+verdad y el test lo diga.

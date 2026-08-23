@@ -96,3 +96,56 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
 
   return etapas;
 }
+
+/**
+ * El recorrido explicado en prosa, debajo de sus cifras.
+ *
+ * Patrón 5 del catálogo. Cálculo de cursos-horario pone bajo su cadena de
+ * conversión un párrafo que explica **por qué** el divisor son elegibles y no
+ * matriculados, y por qué las reservas no cambian la muestra. Un analista que
+ * abre eso entiende el cálculo. Ninguna pantalla de Monitoreo explicaba lo que
+ * enseña.
+ *
+ * Cada frase se corresponde con una regla del motor, no con una intuición:
+ *
+ * - «aplicado» sale de `operational_status ∈ {aplicada, cerrada}`, que es un eje
+ *   distinto del de las respuestas —`monitoreo_aulas_universitarias.R:1211` las
+ *   combina con un OR, no con un AND—.
+ * - los filtros de validez se exigen TODOS, y uno cuya columna no está en la
+ *   base **no se aplica** y se declara aparte (`:974`).
+ * - el banco no cuelga de ningún titular: es respaldo del estrato, no aulas que
+ *   alguien vaya a visitar (`:1873`).
+ */
+export function explicacionDelEmbudo(cifras: CifrasDelOperativo | null | undefined): string[] {
+  const c = cifras ?? {};
+  const titulares = entero(c.aulas_titulares);
+  if (!titulares) return [];
+
+  const frases = [
+    "Un curso-horario cuenta como aplicado cuando su parte de campo lo declara, "
+    + "aunque todavía no haya llegado ninguna respuesta: el parte lo escribe quien "
+    + "estuvo en el aula y las respuestas llegan por la plataforma, que es otro camino.",
+  ];
+
+  // Las reservas sólo se explican si las hay: sin cadena, la frase sobra.
+  const reemplazos = entero(c.reemplazos_usados);
+  frases.push(
+    reemplazos
+      ? `Las reservas no aparecen en este recorrido: entran sólo cuando su titular se cae, `
+        + `y ya han entrado ${reemplazos}. Aun así el plan sigue teniendo ${titulares.toLocaleString("es-PE")} `
+        + `cursos-horario que visitar — una reserva sustituye a su titular, no se suma a él.`
+      : `Las reservas no aparecen en este recorrido: entran sólo cuando su titular se cae, `
+        + `y entonces lo sustituyen — el plan sigue teniendo ${titulares.toLocaleString("es-PE")} `
+        + `cursos-horario que visitar, no uno más.`,
+  );
+
+  if (entero(c.respuestas_total)) {
+    frases.push(
+      "De las respuestas que llegan cuentan las que pasan todos los filtros que el "
+      + "estudio declaró. Un filtro cuya columna no está en la base no se aplica y se "
+      + "avisa aparte: descartarlas todas por una columna ausente sería peor que contar de más.",
+    );
+  }
+
+  return frases;
+}
