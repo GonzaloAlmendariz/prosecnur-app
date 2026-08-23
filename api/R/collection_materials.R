@@ -556,12 +556,15 @@ collection_material_branded_sheet_template <- function(assets, status_tag = NULL
                                                        log_rows = 3L) {
   if (is.null(fields)) {
     fields <- list(
+      # Los MISMOS campos que la plantilla sin careta, y por la misma razon: al
+      # aplicador no le sirve saber si el aula es titular o reemplazo —eso va en
+      # el nombre del PDF— ni cual es la muestra. Se quitaron de la built-in y
+      # esta gemela se quedo con «Rol» y «Muestra» dos semanas mas; arreglar una
+      # superficie y dejar su copia es como vuelve un defecto ya reparado.
       list(label = "Fecha", blank = TRUE),
-      list(label = "Rol", binding = "unit.role"),
       list(label = "Horario", binding = "unit.schedule"),
-      list(label = "Salon", binding = "unit.venue"),
+      list(label = "Aula", binding = "unit.venue"),
       list(label = "Docente", binding = "unit.teacher"),
-      list(label = "Muestra", binding = "unit.sample_label"),
       list(label = "Estudiantes", binding = "unit.eligible_n")
     )
   }
