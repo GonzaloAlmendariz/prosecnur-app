@@ -413,12 +413,45 @@ COLLECTION_MATERIAL_BINDINGS <- c(
 #' @return vector de etiquetas, una por renglon.
 #' @export
 collection_material_application_log_labels <- function() {
+  # **Los nombres son los de la columna del Excel que va a recibir el dato.**
+  #
+  # Esta ficha es un objeto de PAPEL: el aplicador la llena a mano en el aula,
+  # se la entrega al jefe de campo y el jefe de campo TRANSCRIBE al libro, que
+  # es lo que la app relee para actualizar Monitoreo. La ficha es, literalmente,
+  # el formulario de captura de la hoja «Aulas Aplicadas (Campo)».
+  #
+  # Y no coincidian. La ficha pedia «Alumnos en aula» donde la hoja espera
+  # «CANTIDAD DE ASISTENTES», y «Encuestas aplicadas» donde espera «CANTIDAD DE
+  # EFECTIVAS»: quien transcribe tenia que traducir dos nombres en cada aula, y
+  # una traduccion repetida 193 veces es una fuente de error que no hacia falta
+  # tener.
+  #
+  # «Observaciones» estaba en la hoja —«OBSERVACIONES SOBRE APLICACIONES»— y en
+  # el generador de fichas anterior, y no en esta ficha: lo que el aplicador
+  # anotaba se perdia entre el aula y el libro.
+  #
+  # **Dos casillas por renglon**, separadas por « | ». El bloque admite seis
+  # renglones y la hoja pide ocho columnas de campo; una cantidad de tres
+  # digitos no necesita doce centimetros de linea. Es lo que ya hacia el
+  # generador anterior: «RECHAZOS: ___   N° DE MENORES: ___».
+  #
+  # Cada casilla lleva el nombre de SU columna en la hoja, para que transcribir
+  # sea copiar y no traducir:
+  #
+  #   CANTIDAD DE ASISTENTES · CANTIDAD DE EFECTIVAS · CANTIDAD DE RECHAZOS
+  #   DUPLICADOS (YA RESPONDIERON) · AULA · APLICADOR
+  #   FECHA DE APLICACION · HORA DE APLICACION · OBSERVACIONES SOBRE APLICACIONES
+  #
+  # «Aula» es el salon donde DE VERDAD se aplico, que puede no ser el del
+  # catalogo: el estudio ya tuvo cambios de aula y la hoja tiene columna para
+  # ello. Observaciones se queda con el renglon entero porque es lo unico que
+  # se escribe en prosa.
   c(
-    "Alumnos en aula:",
-    "Encuestas aplicadas:",
-    "Rechazos:",
-    "Aplicador/a:",
-    "Fecha y hora:"
+    "Asistentes: | Efectivas:",
+    "Rechazos: | Duplicados:",
+    "Aula: | Aplicador:",
+    "Fecha: | Hora:",
+    "Observaciones:"
   )
 }
 
