@@ -31,6 +31,10 @@
     #     marco cae en 0.9179, dentro, y el lector sigue fallando.
     #  4. El marco pegado al codigo. Reducirlo de 1.20 a 1.06 no cambio el
     #     umbral.
+    #  5. El antialiasing del device, con el lector pinchando UN pixel por
+    #     modulo. El lector se hizo robusto —promedia el nucleo de la celda— y
+    #     es mejor asi, pero el umbral no se movio: 0.42 con el marco dentro
+    #     del util sigue dando un modulo cambiado.
     #
     # Lo que queda: solo falla con MUCHOS modulos y a la vez con el QR grande,
     # en la ficha completa. Es un cruce de las dos cosas y no de ninguna sola.
@@ -1035,11 +1039,24 @@ collection_qr_matrix_from_png <- function(png_path, n, dpi = 150,
   y0 <- cy - side_px / 2
   cell <- side_px / n
   out <- matrix(FALSE, nrow = n, ncol = n)
+  # **Se promedia el nucleo del modulo, no se pincha un pixel.**
+  #
+  # Muestrear un solo punto hace que el bit lo decida un pixel, y ese pixel
+  # puede caer en el borde suavizado que deja el antialiasing del device. Con
+  # un QR de 149 modulos el modulo mide ~7 px, asi que medio pixel de deriva
+  # basta para leer negro donde hay blanco: es lo que hacia que el mismo QR
+  # leyera limpio dibujado aislado y con un modulo cambiado dentro de la ficha.
+  #
+  # El nucleo es el 50% central de la celda: deja fuera el borde y sigue siendo
+  # un area, no un punto, aunque el modulo baje a tres pixeles.
+  radio <- max(0, (cell * 0.25) - 0.5)
   for (r in seq_len(n)) {
     for (c in seq_len(n)) {
-      px <- max(1L, min(px_w, round(x0 + (c - 0.5) * cell)))
-      py <- max(1L, min(px_h, round(y0 + (r - 0.5) * cell)))
-      out[r, c] <- grey[py, px] < 0.5
+      cxm <- x0 + (c - 0.5) * cell
+      cym <- y0 + (r - 0.5) * cell
+      xs <- unique(pmax(1L, pmin(px_w, round(c(cxm - radio, cxm, cxm + radio)))))
+      ys <- unique(pmax(1L, pmin(px_h, round(c(cym - radio, cym, cym + radio)))))
+      out[r, c] <- mean(grey[ys, xs, drop = FALSE]) < 0.5
     }
   }
   out
