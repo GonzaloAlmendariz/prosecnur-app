@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { CollectionPlan, CollectionStatePayload } from "../../api/recopiladores";
-import { paginatePlanUnits, PlanSection } from "./PlanSection";
+import { paginatePlanUnits, PlanSection, unitRoleLabel } from "./PlanSection";
 
 function emptyPayload(seedAvailable: boolean): CollectionStatePayload {
   const state = {
@@ -67,7 +67,11 @@ describe("rol de cada unidad, traducido igual que la ficha impresa", () => {
     const markup = renderToStaticMarkup(
       <PlanSection payload={payloadWithPlan(BASE_PLAN)} onState={() => undefined} />,
     );
-    expect(markup).toContain("Titular");
+    // La columna «Rol» se fue: decía «Titular» en el 100% de las filas
+    // principales —el código operativo «CH n» ya lo dice— y ese ancho hacía
+    // falta para el curso y el docente, que es con lo que se agenda. Lo que
+    // este test protege de verdad sigue en pie: que ninguna clave del motor
+    // salga cruda, abajo.
     // Las reservas de cadena y el banco ya NO son filas de la tabla: la lista
     // primaria son las titulares y el plan B se cuenta —«1 reserva»— hasta que
     // alguien lo despliega. La traducción de sus roles sigue viva y se prueba
@@ -79,6 +83,67 @@ describe("rol de cada unidad, traducido igual que la ficha impresa", () => {
     expect(markup).toContain("sin titular en el plan");
     expect(markup).not.toContain("chain_reserve");
     expect(markup).not.toContain("extra_reserve_pool");
+  });
+});
+
+describe("de quién es reemplazo cada reserva", () => {
+  it("nombra al titular por su código operativo, no por el código interno", () => {
+    // `replacement_for` guarda el NOMBRE académico del aula —«urb209_0601»— y
+    // la reserva se anunciaba «Reemplazo de urb209_0601» en la misma pantalla
+    // que ya llama a esa aula «CH 1». Medido en HSVG2026 el 2026-08-23.
+    const plan: CollectionPlan = {
+      ...BASE_PLAN,
+      units: [
+        {
+          unit_id: "t1", label: "urb209_0601", role: "titular", group: "M1",
+          dimensions: { legacy_ref: "CH 1", operational_sequence: 1, replacement_order: 0 },
+        },
+        {
+          unit_id: "r1", label: "1arc66_0601", role: "chain_reserve", group: "M1",
+          dimensions: {
+            legacy_ref: "R 1.1", operational_sequence: 1, replacement_order: 1,
+            replacement_for: "urb209_0601",
+          },
+        },
+      ],
+    };
+    const markup = renderToStaticMarkup(
+      <PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} />,
+    );
+    expect(markup).not.toContain("Reemplazo de urb209_0601");
+
+    // La reserva está colapsada en la tabla, así que el `not.toContain` de
+    // arriba pasaría igual sin arreglar nada: la regla se comprueba en
+    // positivo sobre el helper, que es donde vive.
+    const titular = plan.units[0];
+    const reserva = plan.units[1];
+    expect(unitRoleLabel(reserva, titular)).toBe("Reemplazo de CH 1");
+    // Y sin el titular a mano, el comportamiento viejo: el nombre interno.
+    expect(unitRoleLabel(reserva)).toBe("Reemplazo de urb209_0601");
+  });
+
+  it("cae al nombre del aula sólo si no hay código operativo del titular", () => {
+    // Sin `legacy_ref` no se puede traducir; decir «Reemplazo» a secas perdería
+    // de quién es, que es lo único que la reserva necesita declarar.
+    const plan: CollectionPlan = {
+      ...BASE_PLAN,
+      units: [
+        { unit_id: "t1", label: "AUL01", role: "titular", group: "M1",
+          dimensions: { operational_sequence: 1, replacement_order: 0 } },
+        { unit_id: "r1", label: "AUL02", role: "chain_reserve", group: "M1",
+          dimensions: { operational_sequence: 1, replacement_order: 1, replacement_for: "AUL01" } },
+      ],
+    };
+    const markup = renderToStaticMarkup(
+      <PlanSection payload={payloadWithPlan(plan)} onState={() => undefined} />,
+    );
+    expect(markup).not.toContain("chain_reserve");
+    const [titular, reserva] = plan.units;
+    expect(unitRoleLabel(reserva, titular)).toBe("Reemplazo de AUL01");
+    // Un titular nunca se anuncia como reemplazo de nadie.
+    expect(unitRoleLabel(titular, titular)).toBe("Titular");
+    // Y el banco no cuelga de ninguna cadena.
+    expect(unitRoleLabel({ role: "extra_reserve_pool", dimensions: {} })).toBe("Reserva adicional");
   });
 });
 
