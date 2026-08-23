@@ -36,12 +36,29 @@ export type Agendamiento = {
   medios: Array<{ medio: string; aulas: number }>;
 };
 
-/** Un aula del banco o ya reemplazada no la va a agendar nadie. */
+/**
+ * Un aula del banco, ya reemplazada o **dormida en su cadena** no la va a
+ * agendar nadie.
+ *
+ * Contaba las 507 reservas encadenadas como aulas por agendar, así que el KPI
+ * decía «0 de **700** que se van a visitar» al pie de una tabla de **193**. Y no
+ * es sólo una cifra descuadrada: nadie va a llamar a los docentes de esas 507.
+ * Una reserva entra en juego el día que su titular se cae, y hasta entonces
+ * pedirle cita sería llamar a un aula que no toca.
+ *
+ * La regla de «dormida» es la del motor —`monitoreo_aulas_universitarias.R`:
+ * una `chain_reserve` con estado vacío, `en_reserva` o `sin_contactar` está
+ * esperando—. Con cualquier otro estado ya la activaron y sí se agenda.
+ */
 function seVaAAgendar(fila: Fila): boolean {
   const rol = txt(fila.sample_role).toLowerCase();
   if (rol === "extra_reserve_pool") return false;
-  const estado = txt(fila.sample_status).toLowerCase();
-  return estado !== "reemplazada";
+  const estado = txt(fila.sample_status).toLowerCase().replace(/[\s-]+/g, "_");
+  if (estado === "reemplazada") return false;
+  if (rol === "chain_reserve") {
+    return Boolean(estado) && estado !== "en_reserva" && estado !== "sin_contactar";
+  }
+  return true;
 }
 
 export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
