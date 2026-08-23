@@ -33,7 +33,7 @@ const PROCESAMIENTO_SUBMODULES = ["carga", "validacion", "codificacion", "analit
 
 // Cuando el proyecto nunca curó su lista de módulos, derivamos un default a
 // partir del avance real: solo los módulos que ya tienen trabajo.
-function deriveDefaultAdded(overview: ProjectOverview): string[] {
+export function deriveDefaultAdded(overview: ProjectOverview): string[] {
   const byId = new Map(overview.modules.map((m) => [m.id, m] as const));
   const hasWork = (id: string) => {
     const m = byId.get(id);
@@ -50,8 +50,54 @@ function deriveDefaultAdded(overview: ProjectOverview): string[] {
   return out;
 }
 
-function canonicalOrder(slugs: string[]): string[] {
+export function canonicalOrder(slugs: string[]): string[] {
   return PRIMARY_MODULE_SLUGS.filter((slug) => slugs.includes(slug));
+}
+
+/**
+ * Los módulos que el homepage enseña: los que el proyecto curó **más los que
+ * tienen trabajo dentro**.
+ *
+ * La lista curada sustituía por completo a la derivada, así que un proyecto que
+ * la curó hace tiempo no se enteraba nunca de lo que vino después. Medido en
+ * HSVG2026 el 2026-08-23: el backend declaraba `recopiladores` y `monitoreo` en
+ * estado «ready» —con su evidencia: «Agenda de aulas», «Plan desde Cálculo de
+ * muestra»— sobre un plan de 193 titulares y 2.616 unidades, y el homepage
+ * enseñaba dos tarjetas: Cálculo y Formularios. El proyecto escondía su propio
+ * trabajo.
+ *
+ * La curación se respeta para lo que está VACÍO —quitar de la vista un módulo
+ * que no se usa es justo para lo que existe— y no para lo que ya tiene algo
+ * dentro: un módulo con trabajo hecho que no aparece hace que la pantalla de
+ * inicio mienta sobre el estado del proyecto.
+ */
+export function modulosVisibles(
+  curados: string[] | null,
+  overview: ProjectOverview | null,
+): string[] {
+  if (!overview) return curados ? canonicalOrder(curados) : [];
+  const derivados = deriveDefaultAdded(overview);
+  if (!curados) return derivados;
+  // Lo que se AÑADE a la curación es sólo lo que tiene trabajo de verdad, no
+  // todo lo que el default abriría. `deriveDefaultAdded` también mete la
+  // bitácora cuando el estudio está en marcha —aunque no tenga ni una entrada—,
+  // y eso es correcto para un proyecto sin curar y no para uno que ya decidió
+  // qué ver: medido en pantalla, la unión a secas colaba una tarjeta «Bitácora ·
+  // Sin actividad» que su dueño había quitado a propósito.
+  const conTrabajo = derivados.filter((slug) => tieneTrabajo(overview, slug));
+  return canonicalOrder([...curados, ...conTrabajo]);
+}
+
+/** Un módulo con algo dentro: el backend lo declara fuera de «pending». */
+function tieneTrabajo(overview: ProjectOverview, slug: string): boolean {
+  if (slug === "procesamiento") {
+    return PROCESAMIENTO_SUBMODULES.some((id) => estadoDe(overview, id) !== "pending");
+  }
+  return estadoDe(overview, slug) !== "pending";
+}
+
+function estadoDe(overview: ProjectOverview, id: string): string {
+  return overview.modules.find((m) => m.id === id)?.state ?? "pending";
 }
 
 type ProjectModulesValue = {
@@ -100,11 +146,27 @@ export function ProjectModulesProvider({ children }: { children: ReactNode }) {
     void load();
   }, [load, pathname, sessionId]);
 
-  const addedSlugs = useMemo(() => {
-    if (explicit) return canonicalOrder(explicit);
-    if (overview) return deriveDefaultAdded(overview);
-    return [];
-  }, [explicit, overview]);
+  /**
+   * Los módulos que el homepage enseña: los que el proyecto curó **más los que
+   * tienen trabajo dentro**.
+   *
+   * La lista curada sustituía por completo a la derivada, así que un proyecto
+   * que la curó hace tiempo no se enteraba nunca de lo que vino después. Medido
+   * en HSVG2026 el 2026-08-23: el backend declaraba `recopiladores` y
+   * `monitoreo` en estado «ready» —con su evidencia: «Agenda de aulas», «Plan
+   * desde Cálculo de muestra»— sobre un plan de 193 titulares y 2.616 unidades,
+   * y el homepage enseñaba dos tarjetas: Cálculo y Formularios. El proyecto
+   * escondía su propio trabajo.
+   *
+   * La curación se respeta para lo que está VACÍO —quitar de la vista un módulo
+   * que no se usa es justo para lo que existe— y no para lo que ya tiene algo
+   * dentro: un módulo con trabajo hecho que no aparece hace que la pantalla de
+   * inicio mienta sobre el estado del proyecto.
+   */
+  const addedSlugs = useMemo(
+    () => modulosVisibles(explicit, overview),
+    [explicit, overview],
+  );
 
   const persist = useCallback(async (next: string[]) => {
     const clean = canonicalOrder(next);
