@@ -2461,7 +2461,9 @@ export default function AulasMonitoreoPage() {
               // sitio y que esta vista sólo mira.
               summary="Cada paso se hace en su módulo; aquí sólo se sigue."
               secondaryAction={{ to: AULAS_SAMPLE_ROUTE, label: "Ver muestra de cursos-horario" }}
-              action={{ to: "/recopiladores", label: "Abrir fichas QR" }}
+              // Con su sección: el botón promete fichas y «/recopiladores» a
+              // secas aterriza en el plan de recolección.
+              action={{ to: "/recopiladores?seccion=materiales", label: "Abrir fichas QR" }}
             />
           ) : null}
           <div
