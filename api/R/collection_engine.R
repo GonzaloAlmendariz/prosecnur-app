@@ -432,7 +432,19 @@
 }
 
 .collection_seed_from_legacy_state <- function(s) {
+  # La guarda protege lo congelado: sembrar NO reemplaza un plan que ya existe,
+  # porque es el que fue a imprenta. Rehacer, en cambio, tiene que reemplazarlo
+  # —y por eso llama a `.collection_seed_build()` y no a esta funcion. Durante
+  # un tiempo llamo a esta, y rehacer devolvia intacto el plan que pretendia
+  # reemplazar mientras respondia `reseeded = TRUE`.
   if (!is.null(s$collection_state)) return(list(state = s$collection_state, seeded = FALSE))
+  .collection_seed_build(s)
+}
+
+#' Construye el estado de recoleccion desde la fuente vigente, SIN mirar si ya
+#' hay uno. Todo el que quiera respetar el plan congelado usa
+#' `.collection_seed_from_legacy_state()`, que pone la guarda delante.
+.collection_seed_build <- function(s) {
   seed_source <- .collection_seed_source(s)
   rows <- seed_source$rows
   if (!length(rows)) return(list(state = .collection_empty_state(1L), seeded = TRUE))
@@ -537,7 +549,9 @@ collection_state_reseed <- function(sid, expected_revision) {
     tenia_despliegue = is.list(current$deployment) && length(current$deployment) > 0L,
     entregado = identical(.cm_aulas_scalar(current$deployment$status %||% "", ""), "handed_off")
   )
-  seeded <- .collection_seed_from_legacy_state(s)
+  # Construye SIEMPRE: `.collection_seed_from_legacy_state()` devolveria aqui el
+  # plan que estamos reemplazando, que es justo lo contrario de rehacer.
+  seeded <- .collection_seed_build(s)
   nuevo <- seeded$state
   # La revision sigue creciendo: rehacer no reinicia el contador, porque los
   # clientes lo usan para detectar escrituras concurrentes.
