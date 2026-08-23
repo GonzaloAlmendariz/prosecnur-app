@@ -430,3 +430,38 @@ describe("moduleCardModel", () => {
     expect(view("editor-xlsform").emphasis).toBeUndefined();
   });
 });
+
+describe("la tarjeta no gasta sus ranuras repitiendo el mismo dato", () => {
+  it("Recopiladores: los pies dicen lo que la barra NO dice", () => {
+    // Medido en HSVG2026 el 2026-08-23: la barra marcaba «0/193 fichas con
+    // enlace», el subtítulo «193 fichas requieren enlace» y los pies «con
+    // enlace 0 · faltantes 193 · facultades 15». La misma pareja de números
+    // TRES veces, mientras `total` —las 2.616 unidades del plan— no se
+    // enseñaba en ninguna parte.
+    const v = view("recopiladores");
+    const etiquetas = (v.facts ?? []).map((f) => f.label);
+    expect(etiquetas).toContain("unidades en el plan");
+    expect(etiquetas).not.toContain("con enlace");
+    expect(etiquetas).not.toContain("faltantes");
+    // Y el dato sigue estando: en la barra, que es donde se lee de un vistazo.
+    expect(v.viz).toMatchObject({ kind: "progress", display: "0/4" });
+  });
+
+  it("Recopiladores: no mete un segundo denominador de elegibles", () => {
+    // `eligible_total` cuenta los elegibles de TODAS las unidades y la tarjeta
+    // de Cálculo, a diez centímetros, cuenta los de las titulares. Dos
+    // denominadores en la misma pantalla es peor que un hueco.
+    const etiquetas = (view("recopiladores").facts ?? []).map((f) => f.label);
+    expect(etiquetas.some((l) => /elegible/i.test(l))).toBe(false);
+  });
+});
+
+describe("el vocabulario de la tarjeta es el de la app", () => {
+  it("Monitoreo de aulas se llama «Cursos-horario», como en todo el módulo", () => {
+    // El diccionario decía «Aulas» mientras la barra del módulo, el selector de
+    // propósito y las tarjetas del plan dicen «Cursos-horario». Dos nombres
+    // para la misma cosa obligan a averiguar si son dos cosas.
+    const tipo = (view("monitoreo").facts ?? []).find((f) => f.label === "tipo");
+    expect(tipo?.value).toBe("Cursos-horario");
+  });
+});
