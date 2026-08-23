@@ -1294,3 +1294,46 @@ API real: relanzada con el fix, la misma llamada que daba 500 guarda la elecció
   llega marcada. Y `aulas_origen` llega **vacío** en este proyecto porque su plan
   vino por libro — justo la abstención que se programó. Sin ella, este proyecto
   real estaría mostrando un aviso de desfase falso.
+
+
+## ABIERTO — la elección de modo no persiste (diagnóstico parcial)
+
+Reparado el 500 del `$` parcial, la pantalla **sigue sin avanzar**, y ahora se ve
+por qué: la elección se aplica y **se revierte sola**.
+
+### Evidencia
+
+Traza del servidor tras un clic en «Monitoreo de cursos-horario»:
+
+```
+state family=aulas_universitarias scope=light    ← la elección SÍ se aplicó
+state family=aulas_universitarias scope=source
+state family=acreditacion         scope=full     ← y volvió atrás
+```
+
+Y `GET /api/monitoreo/state` termina en `family=acreditacion`,
+`route_selected=false`.
+
+### Lo que ya está descartado
+
+- **No es el clic.** Las coordenadas del primer intento no aterrizaron —no hubo
+  ningún POST en la red—, pero con `ref` y con `.click()` nativo el POST sí sale
+  y el servidor lo procesa.
+- **No son los botones.** Los cuatro están `disabled:false`, con
+  `pointer-events:auto` y su texto completo. (El árbol de accesibilidad los
+  muestra sin nombre en modo `interactive`; comprobado en el DOM, sí lo tienen.)
+- **No es el 500 anterior.** El log de la API ya no registra ningún
+  `E_INTERNAL`; el error que quedaba en la consola del navegador era histórico.
+
+### Lo que falta por decidir
+
+Fijar el perfil directamente —`POST /api/monitoreo/config` con
+`monitoreo_profile.family = "aulas_universitarias"`— **tampoco persiste**,
+mientras que el POST con la config entera sí llegó a aplicarse por un momento.
+Esa asimetría es la pista: apunta a que hay **dos endpoints de config** —el
+general y el de aulas— y a que la normalización del perfil cae al default
+`"acreditacion"` cuando el body no lo trae, en vez de conservar lo guardado.
+
+**No se afirma la causa sin comprobarla.** Queda como siguiente paso, con la
+reproducción ya montada: proyecto `HSVG2026_con_libro.pulso`, API en 8787, front
+en 5173.
