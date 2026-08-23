@@ -331,13 +331,17 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
             {busy === "preview" ? <Loader2 size={14} className="pulso-spin" /> : <Eye size={14} />} Vista previa local
           </PulsoButton>
         </div>
-        <p className="rec-policy-note"><ShieldCheck size={13} /> La escritura hacia el proveedor está deshabilitada en esta versión. Esta pantalla no crea ni modifica recursos del proveedor.</p>
+        {/* La garantía es real —el motor declara `remote_write` deshabilitada en
+            v1— y se dice como se dice: quien prepara una salida a campo necesita
+            saber que esto no le va a tocar el formulario, no leer «escritura
+            hacia el proveedor». */}
+        <p className="rec-policy-note"><ShieldCheck size={13} /> Esta pantalla sólo lee: no crea ni cambia nada en la plataforma.</p>
       </Panel>
 
       <Panel
         className="rec-access-result"
         data-qa-geometry-capacity="owned"
-        eyebrow={activeTab === "canales" ? "Capacidades observadas" : "Vinculación"}
+        eyebrow={activeTab === "canales" ? "Qué se puede hacer" : "Vinculación"}
         title={activeTab === "canales" ? "Comprobación del origen" : "Unidad ↔ acceso"}
         actions={activeTab === "canales" ? undefined : (
           <div className="rec-result-actions">
@@ -366,7 +370,16 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
                   </article>
                 ))}
               </div>
-            ) : <div className="rec-contained-empty">Ejecuta el preflight para separar soporte del proveedor, implementación y política vigente.</div>}
+            ) : (
+              // El texto anterior era exacto y aun así ilegible: los tres ejes
+              // que separa el preflight son de verdad tres —`supported`,
+              // `available` y la política de la versión— y se dicen así.
+              <div className="rec-contained-empty">
+                Comprueba el formulario antes de usarlo. Son tres cosas distintas:
+                si la plataforma lo permite, si Pulso ya sabe hacerlo, y si esta
+                versión lo autoriza.
+              </div>
+            )}
           </>
         ) : (
           <>

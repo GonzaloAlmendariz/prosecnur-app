@@ -541,3 +541,33 @@ Tres decisiones:
 - Suites R de `collection`, `monitoreo`, `carga-aulas` y `router`: sin fallos
 - Congelados en rojo: los **dos ajenos** de siempre (`territorialProfile.css`,
   `HojasRutaPage.tsx`), ninguno tocado por este trabajo
+
+
+## La jerga también estaba dentro de las secciones
+
+Traducidos los subtítulos, el interior de Accesos —el paso que el recorrido marca
+como siguiente— seguía diciendo:
+
+> «Ejecuta el **preflight** para separar **soporte del proveedor**,
+> **implementación** y **política vigente**.»
+
+Ese texto era **exacto y aun así ilegible**. El preflight separa de verdad tres
+ejes —`supported`, `available` y la política de la versión—, así que traducirlo
+mal habría cambiado un texto incomprensible por uno falso. Ahora dice:
+
+> «Comprueba el formulario antes de usarlo. Son tres cosas distintas: si la
+> plataforma lo permite, si Pulso ya sabe hacerlo, y si esta versión lo autoriza.»
+
+Y dos más: «Capacidades observadas» → «Qué se puede hacer»; «La escritura hacia
+el proveedor está deshabilitada en esta versión» → «Esta pantalla sólo lee: no
+crea ni cambia nada en la plataforma» —la garantía es real, `remote_write` está
+deshabilitada en v1, y sigue dicha—.
+
+**Un test mal planteado, corregido**: el primer intento buscaba la palabra
+«preflight» en el archivo y fallaba por `setPreflight` y `busy === "preflight"`,
+que son **nombres de variable**, no texto. Una palabra suelta no distingue copy
+de código: el test busca ahora **frases** que sólo pueden venir del texto visible,
+con los comentarios fuera —ahí sí deben usarse los nombres reales del motor— y
+los espacios normalizados, porque el JSX parte las frases en varias líneas.
+
+Medido en pantalla: cero apariciones de las tres.

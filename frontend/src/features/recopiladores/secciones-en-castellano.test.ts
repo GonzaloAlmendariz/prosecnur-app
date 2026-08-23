@@ -48,3 +48,45 @@ describe("las secciones se explican en el idioma de quien las usa", () => {
     expect(leads[3]).toContain("deja constancia");
   });
 });
+
+// La misma vara dentro de las secciones, no sólo en sus subtítulos. La de
+// Accesos decía «Ejecuta el preflight para separar soporte del proveedor,
+// implementación y política vigente» —exacto y aun así ilegible— y «La escritura
+// hacia el proveedor está deshabilitada en esta versión».
+describe("Accesos se explica sin jerga", () => {
+  const accesos = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "AccessSection.tsx"),
+    "utf8",
+  );
+  // Sólo lo que se pinta, y con los espacios normalizados: el JSX parte las
+  // frases en varias líneas con indentación. Los comentarios se quitan porque
+  // ahí SÍ deben usarse los nombres reales del motor, y las palabras sueltas no
+  // sirven de criterio —`preflight` es también el nombre de un estado de React—:
+  // se buscan FRASES que sólo pueden venir del texto visible.
+  const visible = accesos
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "")
+    .replace(/\s+/g, " ");
+
+  it("no le pide al usuario «ejecutar el preflight»", () => {
+    const frases = [
+      "Ejecuta el preflight",
+      "escritura hacia el proveedor",
+      "Capacidades observadas",
+      "soporte del proveedor, implementación y política vigente",
+    ];
+    expect(frases.filter((t) => visible.includes(t))).toEqual([]);
+  });
+
+  it("los tres ejes del preflight se siguen diciendo, en castellano", () => {
+    // Son tres de verdad —`supported`, `available` y la política de la versión—
+    // y perderlos al traducir habría cambiado un texto ilegible por uno falso.
+    expect(visible).toContain("si la plataforma lo permite");
+    expect(visible).toContain("si Pulso ya sabe hacerlo");
+    expect(visible).toContain("si esta versión lo autoriza");
+  });
+
+  it("la garantía de sólo lectura sigue dicha", () => {
+    expect(visible).toContain("no crea ni cambia nada en la plataforma");
+  });
+});
