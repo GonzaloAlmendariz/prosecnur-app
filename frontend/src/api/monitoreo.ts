@@ -4492,6 +4492,16 @@ export async function apiMonitoreoAulasGenerarLibro() {
     /** Filas de «Base de control» que viajan dentro. Sin esto, el libro sale
      *  con siete de sus 39 columnas y regenerarlo borra el trabajo de control. */
     control: number;
+    /** Cuántas de las `unidades` son visitas y cuántas son plan B.
+     *
+     *  Sin el desglose el aviso decía «Libro de 700 aulas», y 700 no son 700
+     *  visitas: son 193 cursos-horario y 507 reservas que sólo entran si una
+     *  titular cae. Es exactamente el mismo arreglo que `importar-libro` ya
+     *  tenía dos funciones más abajo —«el backend lo contaba y el tipo no lo
+     *  declaraba»—, que aquí no se hizo. Opcionales porque un backend anterior
+     *  no los manda y el aviso cae al total en vez de inventar un reparto. */
+    titulares?: number | null;
+    reservas?: number | null;
   }>(
     await apiFetch("/api/monitoreo/aulas/generar-libro", {
       method: "POST",

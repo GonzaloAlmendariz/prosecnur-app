@@ -859,5 +859,13 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # que el banco sin usar se filtra aqui, esa cifra ya no describe el archivo.
   # El aviso decia «Libro de 2616 aulas» de un libro con 190.
   attr(path, "unidades") <- length(unidades)
+  # Y el DESGLOSE, porque «700 aulas» no describe el libro: son 193
+  # cursos-horario que se van a visitar y 507 reservas que solo entran si una
+  # titular cae. Un total sin desglose vuelve a poner dos cosas distintas bajo
+  # la misma palabra, que es lo que ya paso con «Libro de 2616 aulas».
+  attr(path, "titulares") <- sum(vapply(
+    unidades, function(u) identical(.calg_txt(u$sample_role), "titular"), logical(1)
+  ))
+  attr(path, "reservas") <- length(unidades) - attr(path, "titulares")
   path
 }
