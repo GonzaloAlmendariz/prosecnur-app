@@ -1579,6 +1579,10 @@ function renderAulasView(
           filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}
           resumen={dashboard.course_status_estados ?? null}
           desconocidasMotor={dashboard.course_status_estados_desconocidos}
+          // El banco, contado por el motor sobre TODAS las filas: sin él, el
+          // pie decía «2.109 de 2.109 cursos-horario en juego» sobre un
+          // operativo de 193 visitas.
+          bancoMotor={dashboard.course_status_banco}
         />
       </section>
       )}

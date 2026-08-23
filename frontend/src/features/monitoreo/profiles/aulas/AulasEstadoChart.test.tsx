@@ -68,3 +68,52 @@ describe("«banco» no nombra dos conjuntos distintos", () => {
     expect(out).not.toContain("en el banco");
   });
 });
+
+describe("el banco tampoco está «en juego», aunque el motor no lo marque dormido", () => {
+  const conBanco = (r: typeof resumen, banco: number) =>
+    renderToStaticMarkup(
+      <AulasEstadoChart filas={[]} resumen={r as never} desconocidasMotor={0} bancoMotor={banco} />,
+    );
+
+  it("lo descuenta del denominador", () => {
+    // Medido el 2026-08-23 sobre el sorteo del 22: el motor clasificó las 507
+    // reservas encadenadas como `en_reserva` y las 1.916 del banco como «Sin
+    // agendar». Descontar sólo por estado dejaba «2.109 de 2.109 cursos-horario
+    // en juego» sobre un operativo de 193 visitas: diez veces el trabajo real.
+    //
+    // Aquí: denominador 269 − 70 dormidas − 2 de banco = 197, y el numerador
+    // baja igual —5 − 2 = 3— porque el banco cae en `pendiente` y estaba en
+    // los DOS lados de la fracción.
+    const out = conBanco(resumen, 2);
+    expect(out).toContain("3 de 197");
+    expect(out).not.toContain("5 de 199");
+  });
+
+  it("el numerador descuenta el banco igual que el denominador", () => {
+    // Arreglar sólo el denominador dejó en pantalla «2.109 de 193»: la misma
+    // mitad-y-mitad de antes con los papeles cambiados.
+    const out = conBanco(resumen, 2);
+    expect(out).not.toMatch(/5 de 19[0-9]/);
+  });
+
+  it("sin banco declarado se comporta como antes", () => {
+    // Un payload anterior no manda `course_status_banco`; ahí el descuento por
+    // estado es lo único que hay y sigue siendo mejor que nada.
+    expect(conBanco(resumen, 0)).toContain("5 de 199");
+  });
+
+  it("no baja de cero aunque el banco supere lo que queda", () => {
+    // Un desglose incoherente no puede producir cifras negativas: la frase
+    // diría «−95 de −20», que no significa nada.
+    const out = conBanco(resumen, 5000);
+    expect(out).not.toMatch(/-\d/);
+  });
+
+  it("separa las dormidas del banco en vez de meterlas en un saco", () => {
+    // «Las otras 2.423 sólo entran si cae su titular» es falso para 1.916 de
+    // ellas: el banco no está asignado a ninguna cadena.
+    const out = conBanco(resumen, 2);
+    expect(out).toContain("esperan en reserva");
+    expect(out).toContain("en el banco");
+  });
+});
