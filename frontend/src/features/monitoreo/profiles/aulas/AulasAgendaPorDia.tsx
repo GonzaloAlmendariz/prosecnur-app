@@ -92,7 +92,7 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
               className="aulas-agenda-barra"
               style={{ width: `${tope ? Math.max(6, (100 * dia.aulas) / tope) : 0}%` }}
               role="img"
-              aria-label={`${dia.aulas} cursos-horario, ${dia.cumplen} cumplen`}
+              aria-label={`${fmt(dia.aulas)} cursos-horario, ${dia.cumplen} cumplen`}
             >
               {dia.tramos.filter((t) => t.aulas > 0).map((tramo) => (
                 <i

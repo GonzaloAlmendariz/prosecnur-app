@@ -80,7 +80,7 @@ export function AulasFrenteDelOperativo({ filas, partes, corte }: {
       </p>
       {f.vencidas ? (
         <div className="aulas-frente-carril" role="img"
-          aria-label={`${f.vencidasConParte} de ${f.vencidas} aulas vencidas con parte`}>
+          aria-label={`${fmt(f.vencidasConParte)} de ${fmt(f.vencidas)} aulas vencidas con parte`}>
           <i style={{ width: `${ancho}%`, background: COLOR_RESULTADO.efectiva }} />
           <i style={{ width: `${100 - ancho}%`, background: COLOR_RESULTADO.rechazo }} />
         </div>

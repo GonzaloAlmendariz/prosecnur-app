@@ -59,7 +59,13 @@ describe("el filtro llega a la lista", () => {
   it("el contador del panel sigue hablando del total, no de lo filtrado", () => {
     // `filas.length` en la cabecera: con «Gestión» puesto, decir «12
     // cursos-horario» convertiría el filtro en el denominador del panel.
-    expect(src).toContain("${filas.length} cursos-horario");
+    //
+    // Se comprueba que cuenta `filas` y NO `visibles`, no el literal exacto: la
+    // cifra pasa ahora por el formateador —`fmt(filas.length)`— y fijar el
+    // texto crudo ataba este test a cómo se escribe el número, que es otra
+    // cosa de la que aquí se protege.
+    expect(src).toMatch(/\$\{fmt\(filas\.length\)\} cursos-horario/);
+    expect(src).not.toMatch(/\$\{[^}]*visibles\.length[^}]*\} cursos-horario/);
   });
 });
 

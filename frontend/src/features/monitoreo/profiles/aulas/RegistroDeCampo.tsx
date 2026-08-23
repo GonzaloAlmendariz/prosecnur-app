@@ -27,6 +27,7 @@ import { etiquetaSinRepetir, facultadesDelRegistro } from "./registroPorFacultad
 import { porQueEsaMeta } from "./porQueEsaMeta";
 import { EstadoEnCelda } from "./EstadoEnCelda";
 import "./registroDeCampo.css";
+import { fmt } from "./kpisDeAulas";
 
 // Mudado a `aulasPresentation`, que es donde vive el vocabulario: acá sólo
 // alimentaba este select y la tabla que pinta la misma columna no lo alcanzaba.
@@ -372,7 +373,7 @@ export function RegistroDeCampo({
             el panel lista otra cosa. El contador lo zanja con dato: dice cuánto
             de la hoja está lleno, que además es lo que se viene a saber. */}
         <span>{filas.length
-          ? `${filas.length} cursos-horario · ${conRegistro} con parte en el libro`
+          ? `${fmt(filas.length)} cursos-horario · ${conRegistro} con parte en el libro`
           : "sin agenda"}</span>
       </div>
 
@@ -528,7 +529,7 @@ export function RegistroDeCampo({
                       {pq.factorFacultad !== null && Math.abs(pq.factorFacultad - 1) > 0.001 ? (
                         <>
                           {" "}× {p(pq.factorFacultad)} de su facultad
-                          {pq.facultadK ? ` (${pq.facultadK} aulas de referencia)` : ""}
+                          {pq.facultadK ? ` (${fmt(pq.facultadK)} aulas de referencia)` : ""}
                         </>
                       ) : null}
                       .

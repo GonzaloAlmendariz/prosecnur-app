@@ -9,6 +9,7 @@ import { useRef } from "react";
 import { contar } from "../../fuentes/vocabulario";
 import { Download, FileCheck2, FileSpreadsheet, Link2, Loader2, RefreshCw, Target, Upload } from "../../../../vendor/lucide-react";
 import type { MonitoreoAulasConfig, MonitoreoSource } from "../../../../api/client";
+import { fmt } from "./kpisDeAulas";
 
 // Movido del monolito (aulasShortId): compacta hashes/run-ids largos.
 function aulasOpsShortId(value: unknown, limit = 18) {
@@ -97,7 +98,7 @@ export function AulasOperationsPanel({
         : hayPlan
           ? `${filasDelPlan} del libro · sin corrida de cálculo`
           : esperando
-            ? `${esperando} cursos-horario sorteados sin traer`
+            ? `${fmt(esperando)} cursos-horario sorteados sin traer`
             : "el cálculo de muestra todavía no sorteó aulas",
       ready: imported,
     },

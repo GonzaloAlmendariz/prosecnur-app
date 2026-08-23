@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { historiaDeCadena, type EslabonDeCadena, type HistoriaDeCadena } from "./historiaDeCadena";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cómo llegó cada cadena a su meta —o por qué sigue abierta.
@@ -85,7 +86,7 @@ function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCad
                       cadena abierta recibió respuestas, y repetir veintiuna
                       veces «nadie recibió respuestas» grita más que el dato.
                       El hecho se dice UNA vez, en la lectura de arriba. */}
-                  {mejor ? `${mejor.codigo}, ${mejor.validas} de ${mejor.meta}` : "—"}
+                  {mejor ? `${mejor.codigo}, ${fmt(mejor.validas)} de ${mejor.meta}` : "—"}
                 </td>
               </tr>
             );
@@ -123,7 +124,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           // Decía «ninguno necesitó reemplazo», que suena a la mejor noticia
           // posible y es justo lo contrario: son las aulas que, si caen, no
           // tienen con qué cubrirse.
-          ? `Ninguno de los ${sinReserva} cursos-horario titulares tiene reserva asignada.`
+          ? `Ninguno de los ${fmt(sinReserva)} cursos-horario titulares tiene reserva asignada.`
           : "El plan todavía no declara cadenas de reemplazo."}
       </p>
     );
@@ -158,7 +159,7 @@ export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoA
           ? ` · ${sinReserva} ${sinReserva === 1 ? "curso-horario titular" : "cursos-horario titulares"} sin reserva asignada`
           : ""}
         {sinRespuestaAlguna
-          ? ` · ${sinRespuestaAlguna} de las abiertas no han recibido ni una respuesta`
+          ? ` · ${fmt(sinRespuestaAlguna)} de las abiertas no han recibido ni una respuesta`
           : ""}
       </p>
       {juntaronSinCerrar ? (

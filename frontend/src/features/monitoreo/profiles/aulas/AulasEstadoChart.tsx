@@ -5,6 +5,7 @@ import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_SEPARADOR_BARRA } from "../../coloresDeResultado";
 import { TRAMOS_DE_APLICACION, estadoDeAplicacion } from "./estadoDeAplicacion";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * El STATUS DE APLICACIÓN en una barra: cuántas cumplen y cuántas ni se han tocado.
@@ -82,7 +83,10 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
       // contiguos cuando uno de ellos es muy corto.
       line: { color: COLOR_SEPARADOR_BARRA, width: 1 },
     },
-    text: [estado.aulas ? String(estado.aulas) : ""],
+    // La etiqueta de la barra pasa por el mismo formateador que la frase de
+    // abajo: sin esto, el grafico decia «2109» encima de un pie que decia
+    // «2,109». Dos formatos para el mismo numero, a dos centimetros.
+    text: [estado.aulas ? fmt(estado.aulas) : ""],
     textposition: "inside",
     insidetextanchor: "middle",
     hovertemplate: `${estado.etiqueta}: %{x} de ${total}<extra></extra>`,
@@ -118,13 +122,13 @@ export function AulasEstadoChart({ filas, resumen, desconocidasMotor }: {
           // El pie de ESTE gráfico habla de su propio eje. Decía «no han
           // recibido ni una respuesta» y contaba agendamiento: 14 aquí contra
           // los 48 que el panel de cobertura mostraba un dedo más abajo.
-          ? `${sinSalirACampo} de ${enJuego} cursos-horario en juego todavía no salen a campo.`
-          : `Los ${enJuego} cursos-horario en juego ya salieron.`}
+          ? `${fmt(sinSalirACampo)} de ${fmt(enJuego)} cursos-horario en juego todavía no salen a campo.`
+          : `Los ${fmt(enJuego)} cursos-horario en juego ya salieron.`}
         {/* Y las dormidas se nombran en vez de desaparecer de la frase: si el
             lector ve 269 en la cabecera y 199 aquí, la diferencia tiene que
             estar dicha. */}
         {total > enJuego
-          ? ` Las otras ${total - enJuego} son reservas que esperan en el banco.`
+          ? ` Las otras ${fmt(total - enJuego)} son reservas que esperan en el banco.`
           : ""}
         {/* Un estado que el motor no declare se dice, no se descarta: es el
             mismo patrón de lista cerrada que ya costó doce ítems. */}

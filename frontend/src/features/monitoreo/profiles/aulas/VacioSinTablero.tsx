@@ -15,6 +15,7 @@
 import { CalendarRange, RefreshCw } from "../../../../vendor/lucide-react";
 import { contar } from "../../fuentes/vocabulario";
 import { VacioConSalida } from "../../core/VacioConSalida";
+import { fmt } from "./kpisDeAulas";
 
 export function VacioSinTablero({
   planImportado,
@@ -32,7 +33,7 @@ export function VacioSinTablero({
       icon={planImportado ? RefreshCw : CalendarRange}
       titulo={planImportado ? "Falta sincronizar el campo" : "Falta importar el plan"}
       dato={planImportado
-        ? `${fuentesActivas} de ${contar(fuentesDeclaradas, "fuente activa", "fuentes activas")}`
+        ? `${fmt(fuentesActivas)} de ${contar(fuentesDeclaradas, "fuente activa", "fuentes activas")}`
         : "El plan de cursos-horario sale del cálculo de muestra"}
       accion={onIrAFuentes ? { label: "Ir a Fuentes", onClick: onIrAFuentes } : undefined}
     />

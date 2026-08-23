@@ -1,3 +1,4 @@
+import { fmt } from "./kpisDeAulas";
 /**
  * Qué entró al releer el libro que el equipo llenó.
  *
@@ -61,8 +62,8 @@ export function avisoLibroImportado(res: {
     ].filter(Boolean);
     frases.push(
       cadena.length
-        ? `Entraron ${r.unidades} aulas (${cadena.join(" y ")})`
-        : `Entraron ${r.unidades} aulas`,
+        ? `Entraron ${fmt(r.unidades)} aulas (${cadena.join(" y ")})`
+        : `Entraron ${fmt(r.unidades)} aulas`,
     );
   }
   const registros = [
@@ -92,7 +93,7 @@ export function avisoLibroImportado(res: {
   const noCruza = Boolean(f && f.intactas > 0 && f.actualizadas === 0 && f.nuevas > 0);
   if (noCruza && f) {
     texto.push(
-      `Ninguna de las ${f.nuevas} aulas del libro estaba en el plan: se añadieron al lado de las ${f.intactas} que ya había. Si esperabas que actualizara el plan, el libro es de otro sorteo.`,
+      `Ninguna de las ${fmt(f.nuevas)} aulas del libro estaba en el plan: se añadieron al lado de las ${f.intactas} que ya había. Si esperabas que actualizara el plan, el libro es de otro sorteo.`,
     );
   } else if (f && f.nuevas > 0 && f.actualizadas > 0) {
     // Pocas nuevas junto a actualizaciones: es lo normal, se dice sin alarmar.
