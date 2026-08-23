@@ -171,7 +171,9 @@ test_that("ninguna plantilla de la casa desborda el grid en la costura real", {
   expect_false("text_truncated" %in% codigos)
   # Y las seis filas con dato siguen en la hoja, no solo "sin warning".
   grid <- Filter(function(b) identical(b$type, "field_grid"), compiled$pages[[5]]$blocks)[[1]]
-  expect_length(grid$rows, 7L)
+  # Cinco, no siete: «Rol» y «Muestra» salieron de las DOS plantillas de la casa
+  # —al aplicador no le sirven, y el rol ya viaja en el nombre del PDF—.
+  expect_length(grid$rows, 5L)
   expect_true(any(grepl("^33$", vapply(grid$rows, function(r) as.character(r$value %||% ""), character(1)))))
 })
 

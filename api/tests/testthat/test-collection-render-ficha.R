@@ -261,8 +261,14 @@ test_that("las plantillas de la casa caben en su propia hoja", {
   cap_branded <- .crf_grid_plan_item(collection_material_branded_sheet_template(assets = "logo-x"))
   capacidad <- function(res) max(1L, as.integer(floor(res$item$height / res$L$row_step_min)) + 1L)
 
-  expect_lte(length(builtin), capacidad(cap_builtin))
-  expect_lte(length(branded), capacidad(cap_branded))
+  # **En renglones, no en campos.** Desde que dos campos cortos comparten
+  # renglon, la banda no tiene que dar para tantas filas como campos: da para
+  # tantas como renglones salgan de emparejarlos. Comparar campos con renglones
+  # exigia el doble de banda de la que la hoja necesita, y declaraba que no cabe
+  # una ficha que cabe.
+  renglones <- function(campos) length(prosecnurapp:::.crf_emparejar(campos))
+  expect_lte(renglones(builtin), capacidad(cap_builtin))
+  expect_lte(renglones(branded), capacidad(cap_branded))
 })
 
 test_that("pocas filas reparten la banda en vez de dejar el hueco abajo", {
@@ -274,10 +280,12 @@ test_that("pocas filas reparten la banda en vez de dejar el hueco abajo", {
   fondo <- function(n) res$item$y_top - (n - 1L) * paso(n)
   capacidad <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
 
-  # Con 6 campos el grid llega casi al piso de su banda: no deja un hueco
-  # muerto abajo antes del siguiente bloque.
-  expect_gt(fondo(6L), banda_floor)
-  expect_lt(fondo(6L) - banda_floor, band * 0.5)
+  # Con la banda llena el grid llega casi a su piso: no deja un hueco muerto
+  # abajo antes del siguiente bloque. Se mide a la CAPACIDAD de la banda y no a
+  # un 6 fijo, que era el numero de campos de entonces; con los campos
+  # emparejados, seis campos son tres renglones y el aserto medi­a otra cosa.
+  expect_gt(fondo(capacidad), banda_floor)
+  expect_lt(fondo(capacidad) - banda_floor, band * 0.5)
   # Y nunca se aprieta por debajo del minimo legible.
   expect_gte(paso(capacidad), L$row_step_min * 0.999)
 })
@@ -404,8 +412,16 @@ test_that("el QR impreso deja modulos comodos incluso con el enlace mas largo", 
   # 0,4 mm es el minimo para un lector decente; 0,6 es la zona comoda para la
   # camara de un telefono a medio metro. Hoy sobra: el simbolo mide ~71 mm.
   expect_gt(mm, 0.6)
-  # Y con careta el QR no cambia de tamano, solo de sitio.
-  expect_equal(.crf_mm_por_modulo(.crf_payload_realista(), branded = TRUE), mm)
+  # **Con careta el QR es mas pequeno, y es deliberado.** Antes se pedia que
+  # midiera lo mismo «solo cambia de sitio», y se cumplia porque el QR era
+  # pequeno y sobraba hoja. Con el simbolo a todo el ancho ya no sobra: la banda
+  # de logos se lleva 0.066 de alto y ese alto sale de algun sitio. Sale del QR,
+  # no de los campos —a igual tamano, «Docente» y «Estudiantes» se caian de la
+  # hoja—. Lo que se defiende es que siga siendo COMODO de escanear, no que sea
+  # identico.
+  mm_marca <- .crf_mm_por_modulo(.crf_payload_realista(), branded = TRUE)
+  expect_gt(mm_marca, 0.6)
+  expect_lt(mm_marca, mm)
 })
 
 test_that("el fixture de QR representa el enlace que el sistema produce", {
@@ -548,4 +564,55 @@ test_that("quitar el divider del array no deja una linea fantasma en su lugar", 
     compiled, tempfile(fileext = ".pdf"), device = "pdf"
   )
   expect_type(rendered$warnings, "list")
+})
+
+# --- El sitio del QR es del QR, medido en la tinta ------------------------
+#
+# `collection_qr_matrix_from_png` no sirve para esto y conviene decir por que:
+# relee los modulos usando `.crf_qr_lado_total`, la MISMA cuenta con la que el
+# dibujante los pinto. Comparten la suposicion, asi que se mueven juntas: al
+# revertir esa funcion a `qr_side` a secas —el simbolo cediendole su sitio a la
+# zona de silencio otra vez— las suites de `collection` seguian TODAS en verde.
+# Un lector que hereda la geometria del que dibujo confirma que el simbolo esta
+# donde el dibujante lo dejo, nunca que ocupa el sitio que se le reservo.
+#
+# Este mide la tinta: donde empieza y donde acaba el negro en la franja del QR.
+# No pregunta por el layout mas que para saber donde mirar.
+.crf_extension_tinta <- function(branded = FALSE) {
+  skip_if_not_installed("png")
+  plantilla <- if (branded) {
+    collection_material_branded_sheet_template(assets = "logo-x")
+  } else {
+    collection_material_builtin_template()
+  }
+  compiled <- .crf_render_test_compiled(plantilla)
+  path <- withr::local_tempfile(fileext = ".png")
+  collection_material_render_compiled(compiled, path, device = "png", page = 1L, dpi = 150)
+  img <- png::readPNG(path)
+  g <- if (length(dim(img)) == 3L) img[, , 1] else img
+  L <- .crf_layout(branded = branded)
+  # Franja horizontal por el centro del simbolo: ahi la fila mas ancha del QR
+  # va de borde a borde y no hay otro elemento de la ficha.
+  centro <- round((1 - L$qr_y) * nrow(g))
+  franja <- g[max(1L, centro - 3L):min(nrow(g), centro + 3L), , drop = FALSE]
+  tinta <- which(apply(franja < 0.5, 2, any))
+  list(ancho = (max(tinta) - min(tinta) + 1L) / ncol(g), L = L, cols = ncol(g))
+}
+
+test_that("el simbolo del QR ocupa el sitio que el layout le reserva", {
+  m <- .crf_extension_tinta()
+  # El ancho de la tinta es el del simbolo: la zona de silencio es blanca y no
+  # cuenta. Tolerancia de un modulo por lado para el antialiasing del device.
+  modulo <- m$L$qr_side / 25
+  expect_gt(m$ancho, m$L$qr_side - 2 * modulo)
+  expect_lt(m$ancho, m$L$qr_side + 2 * modulo)
+})
+
+test_that("y con careta tambien, con el tamano menor que le toca", {
+  m <- .crf_extension_tinta(branded = TRUE)
+  modulo <- m$L$qr_side / 25
+  expect_gt(m$ancho, m$L$qr_side - 2 * modulo)
+  expect_lt(m$ancho, m$L$qr_side + 2 * modulo)
+  # Y el layout con careta reserva menos que el de sin, que es la decision.
+  expect_lt(m$L$qr_side, .crf_layout(branded = FALSE)$qr_side)
 })

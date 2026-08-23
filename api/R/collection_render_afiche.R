@@ -118,7 +118,11 @@
 
   gap <- 0.020
   link_h <- 0.075
-  qr_half_h <- (L$qr_side * geo$page_w) / geo$page_h / 2
+  # Simbolo MAS zona de silencio, caso peor (ver `.crf_qr_lado_total`): el texto
+  # no puede invadirla. Media con `qr_side` a secas, que es solo el simbolo, y al
+  # dejar de reservarle sitio a la zona de silencio el titulo se le monto encima
+  # —el relector del PNG lo caza como modulos cambiados, no como texto—.
+  qr_half_h <- (min(L$qr_side * (1 + 8 / 25), L$x_right - L$x_left) * geo$page_w) / geo$page_h / 2
   qr_top <- L$qr_y + qr_half_h
   qr_bottom <- L$qr_y - qr_half_h
 
@@ -213,12 +217,17 @@ collection_material_draw_poster <- function(page, page_no = 1L, total_pages = 1L
   payload <- .crf_txt(qr$value, "")
   if (!is.null(qr)) {
     if (nzchar(payload)) {
-      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))
-      .crf_draw_qr_modules(collection_qr_matrix(
-        payload,
-        correction = qr$correction %||% "M",
-        quiet_zone = qr$quiet_zone %||% 4L
+      # El sitio reservado es del simbolo, no de su zona de silencio: esta se
+      # derrama sobre el blanco del afiche, que la silencia igual. Misma cuenta
+      # que la ficha, por la misma funcion —el relector del PNG la aplica a los
+      # tres presets, asi que dibujar de otro modo aqui lo dejaria leyendo el
+      # simbolo desplazado—. Un afiche se escanea desde mas lejos que una ficha.
+      qz <- qr$quiet_zone %||% 4L
+      mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
+      grid::pushViewport(.crf_qr_viewport(
+        L$qr_x, L$qr_y, .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left), geo
       ))
+      .crf_draw_qr_modules(mm)
       grid::popViewport()
     } else {
       # Los otros dos presets (ficha, ficha_campo) pasan por un helper

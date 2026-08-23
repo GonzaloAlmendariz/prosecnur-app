@@ -255,7 +255,13 @@ test_that("el QR domina la pagina y se relee con la geometria de este layout", {
   collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
 
   L <- prosecnurapp:::.cfc_layout()
-  expect_gt(L$qr_side * 8.27 * 25.4, 130)
+  # **El umbral mide el simbolo, no su caja.** Decia `> 130` sobre un `qr_side`
+  # de 0.68 y parecia holgadisimo, pero ese 0.68 era la matriz CON su zona de
+  # silencio dentro: el simbolo real medi­a 0.68 * 25/33 = 108 mm con un enlace
+  # corto. Ahora `qr_side` es el simbolo y vale 115 mm garantizados —mas QR con
+  # un numero mas bajo—. Un umbral sobre la caja da por buena una hoja cuyo
+  # codigo encogio, que es exactamente lo que este aserto existe para impedir.
+  expect_gt(L$qr_side * 8.27 * 25.4, 110)
 
   esperada <- collection_qr_matrix(url, correction = "M", quiet_zone = 4L)
   expect_identical(

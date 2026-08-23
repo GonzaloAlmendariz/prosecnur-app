@@ -28,13 +28,19 @@
     # ensuciaba sus modulos de la izquierda —el verificador fallaba en las
     # columnas 1 y 3, que es exactamente por donde entraba—.
     #
-    # Arreglado eso, el lector lee limpio en 0.42, 0.46, 0.50 y 0.54. Lo que
-    # manda ahora es la hoja: con `qr_x = 0.70`, el marco termina en 0.9226
-    # sobre un util de 0.925 y arranca en 0.4774, por delante del grid de datos
-    # (0.428). 0.46 ya se saldria por la derecha.
-    qr_side = 0.42,
-    qr_x = 0.70,
-    qr_y = 0.685,
+    # Arreglado eso, el lector lee limpio en 0.42, 0.46, 0.50 y 0.54.
+    #
+    # **Y el QR dejo de compartir fila con los datos.** Mientras la ficha ponia
+    # el codigo en una columna y el curso, el horario, el aula y el docente en
+    # la de al lado, el ancho del QR era lo que sobrara de la banda: 8,8 cm, y
+    # cada centimetro que ganaba se lo quitaba al nombre del docente. Ahora el
+    # QR ocupa el ancho entero y los datos van debajo, en filas de dos campos.
+    # `qr_full_width` es lo que el planificador de flujo mira para arrancar
+    # DEBAJO del simbolo en vez de a su izquierda.
+    qr_full_width = TRUE,
+    qr_side = 0.46,
+    qr_x = 0.50,
+    qr_y = 0.705,
     x_left = 0.075,
     x_right = 0.925,
     y_title = 0.868,
@@ -73,7 +79,12 @@
   base$y_header_rule <- 0.852
   base$y_title <- 0.802
   base$y_rows_top <- 0.712
-  base$qr_y <- 0.622
+  # Con careta el QR es menor, y no por gusto: la banda de logos se lleva 0.066
+  # de alto y el flujo de abajo es el mismo —cinco campos, enlace, aviso y un
+  # registro de nueve casillas—. Medido, a 0.46 el grid se quedaba en dos
+  # renglones y «Docente» y «Estudiantes» se caian de la hoja.
+  base$qr_side <- 0.36
+  base$qr_y <- 0.802 - (0.36 * 8.27 / 11.69) / 2
   base
 }
 
@@ -133,6 +144,40 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   cols <- quiet_zone + seq_len(ncol(core))
   out[rows, cols] <- core
   out
+}
+
+#' Lado del viewport donde se dibuja la matriz ENTERA del QR.
+#'
+#' `qr_side` es el sitio que el layout le reserva al simbolo. La matriz que
+#' devuelve `collection_qr_matrix` no es solo el simbolo: trae cuatro modulos
+#' blancos de zona de silencio por lado. Dibujada tal cual dentro de `qr_side`,
+#' esos ocho modulos se comen el borde —con 41 modulos utiles, el 16% del lado—
+#' y el simbolo visible ocupa el 84% de su hueco.
+#'
+#' La zona de silencio tiene que existir, pero no tiene por que ser sitio
+#' RESERVADO: la ficha es blanca alrededor del QR, asi que la silencia igual si
+#' se derrama sobre ella. Este lado amplia el viewport lo justo para que el
+#' simbolo util llene `qr_side` exacto y el blanco caiga fuera.
+#'
+#' La usan el dibujante Y el relector del PNG. Que sea una sola cuenta no es
+#' aseo: un verificador que asume por su cuenta donde esta el simbolo lee el
+#' sitio equivocado y da verde sin mirar —ya paso con `branded`—.
+#'
+#' @param qr_side lado reservado por el layout, en npc de ancho.
+#' @param n modulos por lado de la matriz completa.
+#' @param quiet_zone modulos de silencio por lado incluidos en la matriz.
+#' @keywords internal
+.crf_qr_lado_total <- function(qr_side, n, quiet_zone = 4L, max_total = Inf) {
+  n <- as.integer(n[[1]]); qz <- as.integer(quiet_zone[[1]])
+  util <- n - 2L * qz
+  if (is.na(util) || util < 1L) return(min(qr_side, max_total))
+  # El tope existe porque el derrame tiene un limite fisico: la hoja. Medido en
+  # `field_form`, cuyo QR ya ocupaba casi el ancho util, la matriz ampliada
+  # llegaba a 0.949 de ancho y a 0.987 de alto —fuera del papel—, y un QR
+  # recortado por el borde no se escanea. Cuando toca el tope, el simbolo deja
+  # de medir `qr_side` y mide lo que quepa; sigue siendo mas de lo que media
+  # cuando la zona de silencio iba dentro del hueco.
+  min(qr_side * n / util, max_total)
 }
 
 .crf_qr_viewport <- function(x, y, side_npc, geo = pulso_pdf_geo("portrait")) {
@@ -491,15 +536,35 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 # puede reordenar- asi que se ancla justo debajo del ultimo `field_grid` (o
 # del `body` si no hay grid) para que la hoja siga leyendose de arriba a abajo
 # pase lo que pase con el orden de los demas bloques.
-.crf_flow_plan <- function(blocks, L, type, geo) {
+.crf_flow_plan <- function(blocks, L, type, geo, payload = "") {
   flow_types <- c("body", "field_grid", "divider", "instructions", "application_log")
   items <- Filter(function(b) b$type %in% flow_types, blocks %||% list())
   gap <- 0.018
-  link_h <- 0.085
-  row_right <- min(L$x_right, L$qr_x - L$qr_side * 0.60 - 0.02)
-  qr_outer_h <- (L$qr_side * 1.20 * geo$page_w) / geo$page_h
+  # **El enlace pide lo que ocupa, no un alto de catalogo.**
+  #
+  # 0.085 era el sitio de tres lineas de URL, y el dibujante de mas abajo ya
+  # calculaba el alto REAL a partir de las lineas que salen. Con una URL corta
+  # sobraban dos lineas de blanco… que no quedaban debajo del enlace, sino que
+  # se le restaban al grid de datos: con el QR grande, «Docente» y «Estudiantes»
+  # se caian de la ficha por 0,004 npc mientras ese aire seguia reservado.
+  link_size <- max(6.5, type$code - 0.5)
+  n_link <- length(.crf_wrap(payload, width = .crf_flow_chars(L$x_right, L$x_left, 92L), max_lines = 3L))
+  link_h <- 0.045 + max(1L, n_link) * (link_size * 1.05 / 72) / geo$page_h + 0.006
+  ancho <- isTRUE(L$qr_full_width)
+  # Simbolo mas su zona de silencio, en el caso peor. El simbolo mide `qr_side`
+  # exacto; la zona de silencio se derrama fuera y mide cuatro modulos por lado,
+  # asi que en npc vale `4 * qr_side / modulos_utiles`: cuantos MENOS modulos,
+  # mas ancha. El minimo que devuelve `qrcode` son 25, de donde sale el
+  # `8/25`. El texto no puede invadirla —dejaria de silenciar—, asi que el flujo
+  # arranca por debajo de ella y no del borde del simbolo. Usar el caso peor y
+  # no el payload de turno mantiene el sitio del texto FIJO: si no, la ficha se
+  # recompondria segun lo larga que sea la URL.
+  qr_outer_h <- (L$qr_side * (1 + 8 / 25) * geo$page_w) / geo$page_h
   qr_bottom <- L$qr_y - qr_outer_h / 2
-  flow_top <- L$y_title
+  # Con el QR a todo el ancho no hay banda a su izquierda que repartir: el flujo
+  # entero empieza debajo y usa la hoja completa.
+  row_right <- if (ancho) L$x_right else min(L$x_right, L$qr_x - L$qr_side * 0.60 - 0.02)
+  flow_top <- if (ancho) qr_bottom - gap else L$y_title
   flow_floor <- L$y_log_floor
 
   fixed_h <- function(b) {
@@ -518,7 +583,9 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   }
   nat_h <- function(b) {
     if (identical(b$type, "field_grid")) {
-      n <- length(b$rows %||% list())
+      # Renglones, no campos: emparejados son la mitad, y pedir sitio para todos
+      # dejaria media banda muerta debajo del ultimo.
+      n <- length(.crf_emparejar(b$rows %||% list()))
       return(if (n > 1L) (n - 1L) * L$row_step else L$row_step * 0.6)
     }
     if (identical(b$type, "application_log")) {
@@ -590,6 +657,42 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 # libre (`instructions`, el enlace) se calibraron a mano contra el ancho
 # completo de la hoja; si el orden los deja en la banda angosta junto al QR
 # hay que encoger el wrap en la misma proporcion o el texto invade el simbolo.
+#' Agrupa los campos de la ficha en renglones de uno o dos.
+#'
+#' Emparejar por posicion —1 con 2, 3 con 4— es lo que hace el registro de
+#' aplicacion, y ahi funciona porque todas sus casillas van vacias y miden lo
+#' mismo. Aqui los campos traen valor, y «CHINCHAYAN BARRETO, RUTH ZARAGOZA»
+#' son 33 caracteres: en media hoja se parte en dos lineas y el renglon de al
+#' lado se queda con «53» y un palmo de blanco. Peor que no emparejar.
+#'
+#' Asi que empareja por ANCHO: dos campos comparten renglon solo si los dos
+#' caben holgados en su mitad. El umbral son los caracteres que entran en media
+#' hoja a cuerpo normal, con margen para no rozar la casilla vecina.
+#'
+#' @param rows lista de campos con `label` y `value`.
+#' @param corto ancho maximo, en caracteres, de un valor que admite compañia.
+#' @return lista de renglones; cada uno con uno o dos campos.
+#' @keywords internal
+.crf_emparejar <- function(rows, corto = 20L) {
+  rows <- rows %||% list()
+  cabe <- function(f) {
+    # Un campo en blanco es una casilla para rellenar a mano: ocupa lo que le
+    # den, asi que siempre admite compañia.
+    if (isTRUE(f$blank)) return(TRUE)
+    txt <- paste(as.character(f$lines %||% f$value %||% ""), collapse = " ")
+    nchar(txt, type = "chars") <= corto
+  }
+  out <- list(); i <- 1L
+  while (i <= length(rows)) {
+    if (i < length(rows) && cabe(rows[[i]]) && cabe(rows[[i + 1L]])) {
+      out[[length(out) + 1L]] <- list(rows[[i]], rows[[i + 1L]]); i <- i + 2L
+    } else {
+      out[[length(out) + 1L]] <- list(rows[[i]]); i <- i + 1L
+    }
+  }
+  out
+}
+
 .crf_flow_chars <- function(right_edge, x_left, full_chars, full_span = 0.85) {
   span <- max(0.05, right_edge - x_left)
   max(14L, as.integer(round(full_chars * span / full_span)))
@@ -640,22 +743,26 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   }
 
   if (!is.null(qr)) {
-    # El marco va justo, no un 20% mayor: la zona de silencio del QR viaja
-    # DENTRO de la matriz —cuatro modulos por lado— y el marco exterior le
-    # sumaba un segundo margen. Con los dos, el codigo ocupaba poco mas de la
-    # mitad de su caja, y el QR de esta ficha se escanea desde el fondo de un
-    # aula. El generador anterior recortaba un 7% de la imagen por lo mismo.
-    grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side * 1.06, geo))
-    grid::grid.rect(gp = grid::gpar(fill = "#ffffff", col = tokens$rule, lwd = 0.7))
-    grid::popViewport()
+    # **Ni marco ni margen: el sitio del QR es del QR.**
+    #
+    # Habia DOS margenes sumandose sobre el mismo simbolo. Uno visible —un marco
+    # blanco un 6% mayor con su filete— y otro que no se veia: la zona de
+    # silencio viaja DENTRO de la matriz, cuatro modulos por lado, que con 41
+    # modulos utiles son el 16% del lado. Entre los dos, el codigo ocupaba el
+    # 79% de su hueco y el resto era aire con un borde dibujado alrededor.
+    #
+    # El filete no delimitaba nada que la hoja no delimite ya, y la zona de
+    # silencio la da el blanco del papel. Fuera los dos: el simbolo llena su
+    # sitio y crece un 26% de lado, un 59% de area, sin robarle un milimetro a
+    # los datos. Esta ficha se escanea desde el fondo de un aula.
     payload <- .crf_txt(qr$value, "")
     if (nzchar(payload)) {
-      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))
-      .crf_draw_qr_modules(collection_qr_matrix(
-        payload,
-        correction = qr$correction %||% "M",
-        quiet_zone = qr$quiet_zone %||% 4L
+      qz <- qr$quiet_zone %||% 4L
+      mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
+      grid::pushViewport(.crf_qr_viewport(
+        L$qr_x, L$qr_y, .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left), geo
       ))
+      .crf_draw_qr_modules(mm)
       grid::popViewport()
     } else {
       grid::grid.text(
@@ -665,7 +772,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
     }
   }
 
-  plan <- .crf_flow_plan(page$blocks, L, type, geo)
+  plan <- .crf_flow_plan(page$blocks, L, type, geo, payload = .crf_txt(page$access$qr_payload, ""))
   links <- list()
   payload <- .crf_txt(page$access$qr_payload, "")
 
@@ -701,31 +808,49 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       # Capacidad real de la banda que le toco por orden. Una fila de mas no
       # se "aprieta" indefinidamente: por debajo de `row_step_min` se recorta
       # y se avisa, igual que antes.
+      # **Dos campos por renglon, igual que el registro de mas abajo.**
+      #
+      # «Horario» son cuatro digitos y «Estudiantes» dos: puestos uno debajo de
+      # otro gastaban un renglon entero cada uno para tres caracteres. Ahora los
+      # renglones son pares y el que sobra —un numero impar de campos— cierra
+      # solo a todo el ancho, que es donde va bien un nombre de docente largo.
+      pares <- .crf_emparejar(rows)
       max_rows <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
-      if (length(rows) > max_rows) {
+      if (length(pares) > max_rows) {
         warnings[[length(warnings) + 1L]] <- list(
           code = "field_grid_overflow", page = page_no,
-          rows = length(rows), visible_rows = max_rows
+          rows = length(rows), visible_rows = max_rows * 2L
         )
-        rows <- rows[seq_len(max_rows)]
+        pares <- pares[seq_len(max_rows)]
       }
-      row_step <- if (length(rows) > 1L) min(L$row_step, band / (length(rows) - 1L)) else 0
-      for (i in seq_along(rows)) {
+      row_step <- if (length(pares) > 1L) min(L$row_step, band / (length(pares) - 1L)) else 0
+      medio <- L$x_left + (row_right - L$x_left) / 2
+      for (i in seq_along(pares)) {
         y <- item$y_top - (i - 1L) * row_step
-        grid::grid.text(
-          .crf_txt(rows[[i]]$label, "Dato"), x = L$x_left, y = y,
-          just = "left", default.units = "npc",
-          gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
-        )
-        if (isTRUE(rows[[i]]$blank)) {
-          pulso_pdf_hairline(L$x_left + L$label_w, row_right, y - 0.004, tokens = tokens, lwd = 0.5)
-          next
+        par_i <- pares[[i]]
+        # Un campo solo en su renglon se queda con la hoja entera; dos la parten.
+        arranques <- if (length(par_i) < 2L) L$x_left else c(L$x_left, medio + 0.012)
+        topes <- if (length(par_i) < 2L) row_right else c(medio - 0.012, row_right)
+        for (k in seq_along(par_i)) {
+          campo <- par_i[[k]]
+          grid::grid.text(
+            .crf_txt(campo$label, "Dato"), x = arranques[[k]], y = y,
+            just = "left", default.units = "npc",
+            gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
+          )
+          if (isTRUE(campo$blank)) {
+            pulso_pdf_hairline(arranques[[k]] + L$label_w, topes[[k]], y - 0.004, tokens = tokens, lwd = 0.5)
+            next
+          }
+          # El wrap se calibra al hueco real de la casilla, no a un 31 fijo: en
+          # media hoja caben ~24 caracteres y en la hoja entera ~55.
+          ancho_valor <- max(0.05, topes[[k]] - arranques[[k]] - L$label_w)
+          .crf_draw_lines(
+            campo$lines %||% .crf_wrap(campo$value, .crf_flow_chars(ancho_valor + L$x_left, L$x_left, 55L), 2L),
+            arranques[[k]] + L$label_w, y + 0.008,
+            grid::gpar(col = tokens$ink, fontsize = type$body), lineheight = 1.05
+          )
         }
-        .crf_draw_lines(
-          rows[[i]]$lines %||% .crf_wrap(rows[[i]]$value, 31L, 2L),
-          L$x_left + L$label_w, y + 0.008,
-          grid::gpar(col = tokens$ink, fontsize = type$body), lineheight = 1.05
-        )
       }
     } else if (identical(item$type, "instructions")) {
       block <- .crf_block(page, "instructions")
@@ -1009,6 +1134,8 @@ collection_render_ficha_receipt <- function(ficha, path, device = c("pdf", "png"
 #' @param png_path ruta PNG.
 #' @param n modulos por lado.
 #' @param dpi resolucion usada.
+#' @param quiet_zone modulos de silencio por lado con los que se dibujo, para
+#'   reconstruir el mismo lado que uso el dibujante.
 #' @param layout_preset layout con el que se dibujo la pagina; decide donde
 #'   buscar el simbolo. Releer un afiche con la geometria de la ficha devuelve
 #'   ruido blanco, no un fallo, asi que el preset es parte de la pregunta.
@@ -1016,7 +1143,7 @@ collection_render_ficha_receipt <- function(ficha, path, device = c("pdf", "png"
 #' @export
 collection_qr_matrix_from_png <- function(png_path, n, dpi = 150,
                                           layout_preset = c("single_sheet", "poster_qr", "field_form"),
-                                          branded = FALSE) {
+                                          branded = FALSE, quiet_zone = 4L) {
   if (!requireNamespace("png", quietly = TRUE)) {
     stop("Se necesita el paquete 'png' para releer la matriz del QR.", call. = FALSE)
   }
@@ -1036,7 +1163,11 @@ collection_qr_matrix_from_png <- function(png_path, n, dpi = 150,
   )
   px_w <- ncol(grey)
   px_h <- nrow(grey)
-  side_px <- L$qr_side * px_w
+  # El mismo lado que usa el dibujante, por la misma funcion. Antes esta linea
+  # decia `L$qr_side * px_w` por su cuenta, y valia mientras la matriz entera
+  # llenaba el hueco reservado; desde que la zona de silencio se derrama fuera,
+  # asumirlo aqui leeria el simbolo desplazado.
+  side_px <- .crf_qr_lado_total(L$qr_side, n, quiet_zone, L$x_right - L$x_left) * px_w
   cx <- L$qr_x * px_w
   cy <- (1 - L$qr_y) * px_h
   x0 <- cx - side_px / 2

@@ -15,7 +15,11 @@
 
 .cfc_layout <- function() {
   list(
-    qr_side = 0.68,
+    # 0.55 de simbolo UTIL, no 0.68 de matriz con su zona de silencio dentro:
+    # con 33 modulos aquello dejaba 0.515 de simbolo real. El tope no es el ancho
+    # de la hoja sino el titulo, que en este layout va DEBAJO del QR (`y_title`
+    # 0.392): la matriz ampliada llegaba a 0.368 y se lo comia.
+    qr_side = 0.55,
     qr_x = 0.50,
     qr_y = 0.669,
     x_left = 0.075,
@@ -160,12 +164,15 @@ collection_material_draw_field_form <- function(page, page_no = 1L, total_pages 
   payload <- .crf_txt(qr$value, "")
   if (!is.null(qr)) {
     if (nzchar(payload)) {
-      grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))
-      .crf_draw_qr_modules(collection_qr_matrix(
-        payload,
-        correction = qr$correction %||% "M",
-        quiet_zone = qr$quiet_zone %||% 4L
+      # El hueco reservado es del simbolo; la zona de silencio se derrama sobre
+      # el blanco de la hoja. Misma cuenta que la ficha y el afiche, y por la
+      # misma funcion: el relector del PNG la aplica a los tres presets.
+      qz <- qr$quiet_zone %||% 4L
+      mm <- collection_qr_matrix(payload, correction = qr$correction %||% "M", quiet_zone = qz)
+      grid::pushViewport(.crf_qr_viewport(
+        L$qr_x, L$qr_y, .crf_qr_lado_total(L$qr_side, nrow(mm), qz, L$x_right - L$x_left), geo
       ))
+      .crf_draw_qr_modules(mm)
       grid::popViewport()
     } else {
       grid::pushViewport(.crf_qr_viewport(L$qr_x, L$qr_y, L$qr_side, geo))

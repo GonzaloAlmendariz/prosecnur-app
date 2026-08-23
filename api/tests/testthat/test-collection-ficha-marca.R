@@ -163,9 +163,21 @@ test_that("las lineas para llenar a mano no invaden la columna del QR", {
   linea <- con_tinta[con_tinta >= inicio - 3L]
   corte <- which(diff(linea) > 5L)
   if (length(corte)) linea <- linea[seq_len(corte[[1]])]
-  qr_izq <- (L$qr_x - L$qr_side * 1.20 / 2) * ncol(g)
+  # **La linea ya no esquiva al QR por el lado: pasa por DEBAJO.** Mientras el
+  # simbolo vivia en una columna a la derecha, «no invadirlo» era morir antes de
+  # su borde izquierdo. Ahora ocupa el ancho entero y los datos van bajo el, asi
+  # que lo que hay que comprobar es que la fila esta por debajo del simbolo —si
+  # no, lo ensucia— y que aprovecha la hoja hasta el margen, que es lo que se
+  # gano al bajarla.
+  qr_bajo <- (1 - (L$qr_y - (L$qr_side * (1 + 8 / 25) * 8.27 / 11.69) / 2)) * nrow(g)
+  expect_gt(fila, qr_bajo)
   expect_gt(length(linea), 50L)
-  expect_lt(max(linea), qr_izq)
+  # Hasta el medio, no hasta el margen: «Fecha» es un campo corto y comparte
+  # renglon con el de al lado, asi que su casilla es media hoja. Exigirle el
+  # ancho entero seria exigir que NO se empareje.
+  medio <- (L$x_left + (L$x_right - L$x_left) / 2) * ncol(g)
+  expect_gt(max(linea), medio * 0.85)
+  expect_lt(max(linea), L$x_right * ncol(g))
 })
 
 test_that("mas filas de las que caben se recortan con aviso en vez de pisar el enlace", {
