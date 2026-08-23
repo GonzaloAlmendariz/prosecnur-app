@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import { apiRecopiladoresReseed,
   apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
+import { ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
@@ -100,83 +101,26 @@ const PLAN_PAGE_SIZE = 50;
 /**
  * Las unidades en el orden en que se recorre el operativo.
  *
- * Gonzalo: «no estaría en orden del primer curso-horario al último y los
- * reemplazos así como los extras deberían estar en ese orden de importancia […]
- * no lo siento coherente con la intuitividad que ya ofrece cálculo de
- * cursos-horario y la cadena operativa».
+ * La regla vive en `lib/cadenaOperativa`: es la misma que usa la tabla de agenda
+ * de Monitoreo, y tenerla en un solo sitio es justo lo que faltaba en este
+ * dominio —«el banco no se agenda» estaba escrita en cinco pantallas distintas y
+ * el libro de campo se olvidó de ella—.
  *
- * El orden se arregló también en el productor —`.collection_orden_operativo()`—,
- * pero eso sólo alcanza a los planes que se creen desde ahora: un plan ya
- * congelado conserva el orden con el que se guardó. Y el plan es justamente un
- * objeto que se congela. Por eso la vista ordena siempre.
- *
- * Cadenas primero, por su número; dentro de cada una, el titular antes que sus
- * reservas; el banco al final. Una unidad sin secuencia conserva su posición en
- * vez de irse a un sitio arbitrario.
+ * El productor también ordena (`.collection_orden_operativo`), pero eso sólo
+ * alcanza a los planes que se creen desde ahora: un plan ya congelado conserva su
+ * orden, y el plan es justamente un objeto que se congela.
  */
 export function ordenOperativoDeUnidades<T extends Pick<CollectionUnit, "role" | "dimensions">>(
   units: ReadonlyArray<T>,
 ): T[] {
-  const num = (v: unknown): number => {
-    const n = typeof v === "number" ? v : Number(v);
-    return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
-  };
-  const txt = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
-  const role = (u: { role?: string | null }) => (u.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
-
-  // Dónde aparece cada titular. Es el respaldo para los planes anteriores a que
-  // `operational_sequence` viajara —el del estudio real, sin ir más lejos—: sin
-  // él, esas reservas se quedaban donde estaban y la tabla las enseñaba
-  // barajadas (R1.6, R3.6, R2.6…) aunque cada una supiera de quién es.
-  const rangoDelTitular = new Map<string, number>();
-  units.forEach((unit, i) => {
-    if (role(unit) !== "titular") return;
-    const code = txt(unit.dimensions?.legacy_ref);
-    if (code && !rangoDelTitular.has(code)) rangoDelTitular.set(code, i);
-  });
-
-  return units
-    .map((unit, entrada) => {
-      const rol = role(unit);
-      const declarada = num(unit.dimensions?.operational_sequence);
-      const propio = txt(unit.dimensions?.legacy_ref);
-      const deQuien = txt(unit.dimensions?.replacement_for);
-      const cabeza = rol === "titular" ? propio : deQuien;
-      const porTitular = rangoDelTitular.has(cabeza)
-        ? (rangoDelTitular.get(cabeza) as number)
-        : Number.POSITIVE_INFINITY;
-      // Último respaldo: el propio código lleva la cadena dentro. «AULA 12» es la
-      // cadena 12 y «R1.6» es la sexta reserva de la 1. Sin esto, un plan que no
-      // trae ni secuencia ni `replacement_for` —el del 1 de agosto, que es el
-      // que hay en el estudio— sale en su orden de entrada: AULA 1, 2, 3, 4, 6,
-      // 9, 12, 5… que no es «del primer curso-horario al último».
-      const delCodigo = /^[A-Za-zÁÉÍÓÚÑ]+\s*(\d+)(?:\.(\d+))?/.exec(propio);
-      const cadenaDelCodigo = delCodigo ? Number(delCodigo[1]) : Number.POSITIVE_INFINITY;
-      const ordenDelCodigo = delCodigo && delCodigo[2] !== undefined ? Number(delCodigo[2]) : 0;
-      return {
-        unit,
-        entrada,
-        banco: rol === "extra_reserve_pool" ? 1 : 0,
-        // La secuencia declarada manda; el rango del titular la sustituye cuando
-        // no viene. Ambas ordenan igual: por cadena.
-        // Prioridad: la secuencia declarada, luego el número del propio código y
-        // sólo al final el rango del titular. El orden importa porque las tres
-        // son ESCALAS DISTINTAS y mezclarlas descoloca: el rango empieza en 0 y
-        // el número del código en 1, así que «AULA 2» (rango 1) se colaba entre
-        // «AULA 1» y sus «R1.x» (código 1). Que todos usen la misma es la
-        // condición para que el orden signifique algo.
-        cadena: declarada !== Number.POSITIVE_INFINITY
-          ? declarada
-          : cadenaDelCodigo !== Number.POSITIVE_INFINITY ? cadenaDelCodigo : porTitular,
-        // El titular no trae `replacement_order`: va delante de sus reservas.
-        dentro: num(unit.dimensions?.replacement_order) !== Number.POSITIVE_INFINITY
-          ? num(unit.dimensions?.replacement_order)
-          : ordenDelCodigo,
-      };
-    })
-    .sort((a, b) =>
-      a.banco - b.banco || a.cadena - b.cadena || a.dentro - b.dentro || a.entrada - b.entrada)
-    .map((x) => x.unit);
+  return ordenarPorCadenaOperativa(units, (unit) => ({
+    rol: unit.role,
+    secuencia: unit.dimensions?.operational_sequence,
+    orden: unit.dimensions?.replacement_order,
+    codigo: typeof unit.dimensions?.legacy_ref === "string" ? unit.dimensions.legacy_ref : "",
+    reemplazaA: typeof unit.dimensions?.replacement_for === "string"
+      ? unit.dimensions.replacement_for : "",
+  }));
 }
 
 export function paginatePlanUnits<T>(units: T[], requestedPage: number, pageSize = PLAN_PAGE_SIZE) {

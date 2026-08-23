@@ -76,6 +76,7 @@ import { aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
+import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import {
   MONITOREO_PESTANAS,
   pestanasDeMonitoreo,
@@ -349,8 +350,22 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
  * de un KPI que decía 196: la misma palabra con dos cifras.
  */
 function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
-  return ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
+  const filas = ((dashboard?.agenda ?? []) as unknown as Array<Record<string, unknown>>)
     .filter((fila) => String(fila.sample_role ?? "") !== "extra_reserve_pool");
+  // En el orden en que se recorre el operativo: cada titular con sus reservas
+  // detrás. La tabla las enseñaba en el orden crudo del plan, que agrupa por rol
+  // —todos los titulares y después todas las reservas—, así que la cadena, que
+  // es la unidad con la que se decide cuando un aula cae, no se veía.
+  //
+  // Misma regla que la tabla del plan de Recopiladores, y por eso vive en
+  // `lib/cadenaOperativa` y no aquí.
+  return ordenarPorCadenaOperativa(filas, (fila) => ({
+    rol: String(fila.sample_role ?? ""),
+    secuencia: fila.operational_sequence,
+    orden: fila.replacement_order,
+    codigo: String(fila.operational_code ?? ""),
+    reemplazaA: String(fila.titular_operational_code ?? fila.replacement_for ?? ""),
+  }));
 }
 
 function cleanCell(value: unknown) {
