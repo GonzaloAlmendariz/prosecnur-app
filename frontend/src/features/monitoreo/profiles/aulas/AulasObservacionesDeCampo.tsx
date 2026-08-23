@@ -17,10 +17,16 @@ import { fmt } from "./kpisDeAulas";
  * —«el docente pide empezar al final de la clase»— que cambia cómo se agenda.
  */
 
-export function AulasObservacionesDeCampo({ partes }: {
+export function AulasObservacionesDeCampo({ partes, registros = [] }: {
   partes: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  /**
+   * Las filas del plan, que es donde el registro de ESTA app guarda su
+   * `field_note`. Sin ellas el panel leía sólo los partes del libro mientras su
+   * vacío decía «se escriben al registrar un aula» — el camino que no miraba.
+   */
+  registros?: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }) {
-  const r = useMemo(() => observacionesDeCampo(partes), [partes]);
+  const r = useMemo(() => observacionesDeCampo(partes, registros), [partes, registros]);
 
   if (!r.observaciones.length) {
     // C5 categoría 1: el vacío dice de dónde saldría el dato y quién lo escribe.
@@ -37,8 +43,8 @@ export function AulasObservacionesDeCampo({ partes }: {
             «ninguno de los 0 partes trae observaciones» afirma haber contado
             sobre un conjunto vacío. Misma familia que `c4af437d`. */}
         {r.partes
-          ? `Ninguno de los ${fmt(r.partes)} partes trae observaciones. Se escriben al registrar un aula, en el campo «Observaciones», y son lo que el aplicador vio y no cabe en un número.`
-          : "Todavía no hay partes de campo. Las observaciones se escriben al registrar un aula, en el campo «Observaciones», y son lo que el aplicador vio y no cabe en un número."}
+          ? `Ninguna de las ${fmt(r.partes)} aulas con parte o registro trae observaciones. Se escriben al registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el aplicador vio y no cabe en un número.`
+          : "Todavía no hay partes ni registros de campo. Las observaciones se escriben al registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el aplicador vio y no cabe en un número."}
       </p>
     );
   }

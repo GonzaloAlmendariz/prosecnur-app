@@ -1021,10 +1021,15 @@ function renderAulasView(
           >
             <div className="mon-profile-panel-head">
               <h3>Lo que reportó el campo</h3>
-              <span>observaciones de los partes</span>
+              <span>observaciones de partes y registros</span>
             </div>
+            {/* Las DOS fuentes: el parte del libro y el registro de esta app,
+                que guarda su `field_note` en la fila del plan. El panel leía
+                sólo la primera mientras su vacío decía «se escriben al registrar
+                un aula» — el camino que no miraba. */}
             <AulasObservacionesDeCampo
               partes={(dashboard.partes_campo ?? []) as Array<Record<string, unknown>>}
+              registros={(dashboard.agenda ?? []) as Array<Record<string, unknown>>}
             />
           </section>
           {/* **Cómo trabaja cada equipo, en Validación y no enterrado en
