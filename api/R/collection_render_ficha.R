@@ -38,9 +38,9 @@
     # `qr_full_width` es lo que el planificador de flujo mira para arrancar
     # DEBAJO del simbolo en vez de a su izquierda.
     qr_full_width = TRUE,
-    qr_side = 0.46,
+    qr_side = 0.38,
     qr_x = 0.50,
-    qr_y = 0.705,
+    qr_y = 0.734,
     x_left = 0.075,
     x_right = 0.925,
     y_title = 0.868,
@@ -83,8 +83,8 @@
   # de alto y el flujo de abajo es el mismo —cinco campos, enlace, aviso y un
   # registro de nueve casillas—. Medido, a 0.46 el grid se quedaba en dos
   # renglones y «Docente» y «Estudiantes» se caian de la hoja.
-  base$qr_side <- 0.36
-  base$qr_y <- 0.802 - (0.36 * 8.27 / 11.69) / 2
+  base$qr_side <- 0.32
+  base$qr_y <- 0.802 - (0.32 * 8.27 / 11.69) / 2
   base
 }
 
@@ -310,7 +310,11 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   warnings <- list()
   if (block$type %in% c("heading", "body", "instructions")) {
     max_lines <- as.integer(block$max_lines %||% switch(block$type, heading = 2L, body = 3L, 4L))
-    width <- switch(block$type, heading = 35L, body = 42L, 72L)
+    # 46 y no 42: el 42 era el ancho de la columna estrecha de cuando el QR
+    # compartia fila con los datos. Medido a 13 pt sobre la hoja entera caben 46
+    # emes, y con 42 el nombre de curso mas largo del estudio —111 caracteres,
+    # EDUCACION— se partia en cuatro lineas y se truncaba con aviso.
+    width <- switch(block$type, heading = 35L, body = 46L, 72L)
     all_lines <- .crf_wrap(out$value, width = width)
     out$lines <- .crf_wrap(out$value, width = width, max_lines = max_lines)
     if (length(all_lines) > max_lines) {
@@ -569,9 +573,10 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 
   fixed_h <- function(b) {
     if (identical(b$type, "body")) {
-      n <- length(b$lines %||% list())
-      if (n == 0L) return(0)
-      return(n * (type$section * 1.15 / 72) / geo$page_h + 0.012)
+      if (!length(b$lines %||% list())) return(0)
+      aj <- .crf_ajuste_titulo(paste(b$lines, collapse = " "),
+                               .crf_flow_chars(L$x_right, L$x_left, 46L), type$section)
+      return(length(aj$lines) * (aj$size * 1.15 / 72) / geo$page_h + 0.012)
     }
     if (identical(b$type, "divider")) return(0.020)
     if (identical(b$type, "instructions")) {
@@ -585,7 +590,7 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
     if (identical(b$type, "field_grid")) {
       # Renglones, no campos: emparejados son la mitad, y pedir sitio para todos
       # dejaria media banda muerta debajo del ultimo.
-      n <- length(.crf_emparejar(b$rows %||% list()))
+      n <- length(.crf_emparejar(b$rows %||% list(), .crf_hueco_medio(L), type$body, geo))
       return(if (n > 1L) (n - 1L) * L$row_step else L$row_step * 0.6)
     }
     if (identical(b$type, "application_log")) {
@@ -619,12 +624,47 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   # Son dos criterios estéticos en tensión —campos apretados con aire al final,
   # o campos repartidos sin hueco— y el vigente está fijado con su test. No se
   # cambia sin que lo decida quien mira la ficha impresa.
+  # **Primero el minimo de cada uno; el sobrante, en proporcion.**
+  #
+  # El reparto era proporcional al alto NATURAL a secas, y eso no es lo mismo
+  # que repartir bien: un bloque puede quedarse sin sitio para una fila que
+  # necesita mientras el otro recibe mas del que le hace falta. Medido en la
+  # ficha de EDUCACION del estudio real —el curso mas largo, 111 caracteres—,
+  # el grid recibia el 43% de un hueco que le sobraba al registro y perdia
+  # «Docente», que es justo el dato que el aplicador va a buscar.
+  #
+  # El minimo no es una preferencia: es lo que ocupan TODAS sus filas al paso
+  # mas apretado que el propio bloque admite antes de recortar. Por debajo de
+  # eso el bloque no se aprieta, pierde filas.
   elastic <- Filter(function(b) b$type %in% c("field_grid", "application_log"), items)
-  nat_sum <- sum(vapply(elastic, nat_h, numeric(1)))
+  min_h <- function(b) {
+    if (identical(b$type, "field_grid")) {
+      n <- length(.crf_emparejar(b$rows %||% list(), .crf_hueco_medio(L), type$body, geo))
+      return(if (n > 1L) (n - 1L) * L$row_step_min else 0)
+    }
+    n <- as.integer(b$rows %||% 3L)
+    0.028 + (if (n > 1L) (n - 1L) * L$log_row_step_min else 0)
+  }
+  minimos <- vapply(elastic, min_h, numeric(1))
+  nats <- vapply(elastic, nat_h, numeric(1))
   elastic_h <- list()
-  for (b in elastic) {
-    share <- if (nat_sum > 0) available * nat_h(b) / nat_sum else available / length(elastic)
-    elastic_h[[b$block_id]] <- max(0, share)
+  if (sum(minimos) <= available && length(elastic)) {
+    # Cabe todo: cada uno se lleva su minimo y el sobrante estira en proporcion
+    # al natural, que es lo que evita que pocas filas dejen un hueco muerto.
+    sobra <- available - sum(minimos)
+    for (i in seq_along(elastic)) {
+      extra <- if (sum(nats) > 0) sobra * nats[[i]] / sum(nats) else sobra / length(elastic)
+      elastic_h[[elastic[[i]]$block_id]] <- max(0, minimos[[i]] + extra)
+    }
+  } else {
+    # No cabe ni lo minimo: se reparte en proporcion a lo que cada uno NECESITA
+    # —no a lo que le gustaria—, y quien recorte lo avisara. Repartir por el
+    # natural aqui castiga al bloque compacto, que es el que peor lo lleva.
+    base <- if (sum(minimos) > 0) minimos else nats
+    for (i in seq_along(elastic)) {
+      share <- if (sum(base) > 0) available * base[[i]] / sum(base) else available / length(elastic)
+      elastic_h[[elastic[[i]]$block_id]] <- max(0, share)
+    }
   }
 
   grid_ids <- vapply(Filter(function(b) identical(b$type, "field_grid"), items), function(b) b$block_id, character(1))
@@ -657,30 +697,48 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
 # libre (`instructions`, el enlace) se calibraron a mano contra el ancho
 # completo de la hoja; si el orden los deja en la banda angosta junto al QR
 # hay que encoger el wrap en la misma proporcion o el texto invade el simbolo.
+#' Ancho de un texto en npc de ANCHO de pagina, medido por el device.
+#'
+#' `stringWidth` con un `fontsize` en puntos da una medida absoluta, asi que
+#' pasar por pulgadas y dividir por el ancho de pagina la hace independiente del
+#' device en el que se mida. Contar caracteres no sirve: en media hoja caben 25
+#' emes y 33 letras de un nombre real.
+#' @keywords internal
+.crf_ancho_texto <- function(txt, size, geo) {
+  txt <- paste(as.character(txt %||% ""), collapse = " ")
+  if (!nzchar(txt)) return(0)
+  grid::pushViewport(grid::viewport(gp = grid::gpar(fontsize = size)))
+  on.exit(grid::popViewport(), add = TRUE)
+  grid::convertWidth(grid::stringWidth(txt), "inches", valueOnly = TRUE) / geo$page_w
+}
+
 #' Agrupa los campos de la ficha en renglones de uno o dos.
 #'
 #' Emparejar por posicion —1 con 2, 3 con 4— es lo que hace el registro de
-#' aplicacion, y ahi funciona porque todas sus casillas van vacias y miden lo
-#' mismo. Aqui los campos traen valor, y «CHINCHAYAN BARRETO, RUTH ZARAGOZA»
-#' son 33 caracteres: en media hoja se parte en dos lineas y el renglon de al
-#' lado se queda con «53» y un palmo de blanco. Peor que no emparejar.
+#' aplicacion, y ahi funciona porque todas sus casillas van vacias. Aqui los
+#' campos traen valor y los valores tienen anchos muy distintos: si uno no cabe
+#' en su mitad se parte en dos lineas mientras el de al lado se queda con «53» y
+#' un palmo de blanco. Peor que no emparejar.
 #'
-#' Asi que empareja por ANCHO: dos campos comparten renglon solo si los dos
-#' caben holgados en su mitad. El umbral son los caracteres que entran en media
-#' hoja a cuerpo normal, con margen para no rozar la casilla vecina.
+#' Asi que empareja por ANCHO MEDIDO, no por numero de caracteres. La primera
+#' version puso el umbral en 20 caracteres a ojo y dejaba solo en su renglon a
+#' «KOC CHUKUONG, ANDREA DEL PILAR», que mide 0.246 npc y cabe de sobra en los
+#' 0.283 de media hoja: contar caracteres castiga los nombres largos en letras
+#' estrechas y perdona los cortos en mayusculas anchas.
 #'
 #' @param rows lista de campos con `label` y `value`.
-#' @param corto ancho maximo, en caracteres, de un valor que admite compañia.
+#' @param hueco ancho disponible para el VALOR en media hoja, en npc.
+#' @param size cuerpo con el que se dibuja el valor.
+#' @param geo geometria de pagina.
 #' @return lista de renglones; cada uno con uno o dos campos.
 #' @keywords internal
-.crf_emparejar <- function(rows, corto = 20L) {
+.crf_emparejar <- function(rows, hueco = 0.283, size = 9, geo = pulso_pdf_geo("portrait")) {
   rows <- rows %||% list()
   cabe <- function(f) {
     # Un campo en blanco es una casilla para rellenar a mano: ocupa lo que le
     # den, asi que siempre admite compañia.
     if (isTRUE(f$blank)) return(TRUE)
-    txt <- paste(as.character(f$lines %||% f$value %||% ""), collapse = " ")
-    nchar(txt, type = "chars") <= corto
+    .crf_ancho_texto(f$lines %||% f$value, size, geo) <= hueco
   }
   out <- list(); i <- 1L
   while (i <= length(rows)) {
@@ -691,6 +749,48 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
     }
   }
   out
+}
+
+#' Ajusta el titulo del curso para que quepa en dos lineas.
+#'
+#' Los nombres de curso del estudio van de «CALCULO 1» a los 111 caracteres de
+#' «DETECCION OPORTUNA, DERIVACION Y SEGUIMIENTO A LOS ESTUDIANTES CON
+#' NECESIDADES EDUCATIVAS ESPECIALES ASOCIADAS A LA DISCAPACIDAD». A cuerpo fijo
+#' ese ocupa tres lineas, y las dos de mas salen del flujo de abajo: medido, se
+#' llevaban por delante un renglon del grid y otro del registro.
+#'
+#' Las tres salidas malas eran recortar el nombre —el aplicador tiene que
+#' reconocer su aula—, encoger el QR segun lo largo que sea el curso —fichas
+#' distintas entre si— y dejar que desborde. La cuarta es la que usa cualquiera
+#' que componga un titulo: bajarle el cuerpo hasta que entre, con un minimo por
+#' debajo del cual no se baja. Asi el alto del bloque es SIEMPRE el mismo y el
+#' resto de la hoja no depende del aula que toque.
+#'
+#' @param texto nombre del curso.
+#' @param chars caracteres por linea al cuerpo base.
+#' @param size cuerpo base.
+#' @param minimo cuerpo por debajo del cual se prefiere una tercera linea.
+#' @return lista con `lines` y `size`.
+#' @keywords internal
+.crf_ajuste_titulo <- function(texto, chars, size, minimo = 0.72) {
+  base <- .crf_wrap(texto, chars, NULL)
+  if (length(base) <= 2L) return(list(lines = base, size = size))
+  for (f in c(0.92, 0.85, 0.78, minimo)) {
+    # Menos cuerpo, mas caracteres por linea en la misma anchura.
+    l <- .crf_wrap(texto, as.integer(round(chars / f)), NULL)
+    if (length(l) <= 2L) return(list(lines = l, size = size * f))
+  }
+  # Ni al minimo entra en dos: se le dan tres al cuerpo minimo antes que
+  # truncar el nombre. Es el unico caso en que el bloque crece, y `fixed_h`
+  # cuenta las lineas que este mismo calculo devuelve, no un supuesto.
+  list(lines = .crf_wrap(texto, as.integer(round(chars / minimo)), 3L), size = size * minimo)
+}
+
+#' Ancho util del VALOR de un campo cuando comparte renglon, en npc.
+#' @keywords internal
+.crf_hueco_medio <- function(L, right = NULL) {
+  derecha <- right %||% L$x_right
+  (derecha - L$x_left) / 2 - 0.012 - L$label_w
 }
 
 .crf_flow_chars <- function(right_edge, x_left, full_chars, full_span = 0.85) {
@@ -793,10 +893,16 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       # IZQUIERDO del QR, justo por donde entra el texto—. Cinco hipotesis
       # anteriores fallaron por buscar la causa en el lector, en el marco o en
       # el borde de la pagina; estaba en quien dibuja al lado.
-      chars <- .crf_flow_chars(item$right_edge, L$x_left, 38L)
+      # 46 y no 38: el 38 era el ancho de la columna estrecha. Y el cuerpo lo
+      # decide `.crf_ajuste_titulo`, que es el MISMO calculo con el que
+      # `fixed_h` reservo el alto de este bloque; si aqui se dibujara a otro
+      # cuerpo, el bloque ocuparia mas o menos de lo reservado y el desfase se
+      # lo comeria el registro de abajo.
+      chars <- .crf_flow_chars(item$right_edge, L$x_left, 46L)
+      aj <- .crf_ajuste_titulo(page$unit$course_name, chars, type$section)
       .crf_draw_lines(
-        .crf_wrap(page$unit$course_name, chars, 3L),
-        L$x_left, item$y_top, grid::gpar(col = tokens$navy, fontsize = type$section, fontface = "bold")
+        aj$lines,
+        L$x_left, item$y_top, grid::gpar(col = tokens$navy, fontsize = aj$size, fontface = "bold")
       )
     } else if (identical(item$type, "divider")) {
       pulso_pdf_hairline(L$x_left, item$right_edge, item$y_top - item$height * 0.5, tokens = tokens)
@@ -814,7 +920,7 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
       # otro gastaban un renglon entero cada uno para tres caracteres. Ahora los
       # renglones son pares y el que sobra —un numero impar de campos— cierra
       # solo a todo el ancho, que es donde va bien un nombre de docente largo.
-      pares <- .crf_emparejar(rows)
+      pares <- .crf_emparejar(rows, .crf_hueco_medio(L, row_right), type$body, geo)
       max_rows <- max(1L, as.integer(floor(band / L$row_step_min)) + 1L)
       if (length(pares) > max_rows) {
         warnings[[length(warnings) + 1L]] <- list(

@@ -616,3 +616,88 @@ test_that("y con careta tambien, con el tamano menor que le toca", {
   # Y el layout con careta reserva menos que el de sin, que es la decision.
   expect_lt(m$L$qr_side, .crf_layout(branded = FALSE)$qr_side)
 })
+
+# --- La hoja aguanta los nombres que el estudio produce de verdad -----------
+#
+# El fixture de estas pruebas trae «Curso de prueba» y «Por confirmar»: 13 y 13
+# caracteres. Con el QR ocupando el ancho entero eso ya no representa nada.
+# Medido sobre las 2.616 unidades del estudio de aulas, los nombres reales van
+# hasta 111 caracteres —«DETECCION OPORTUNA, DERIVACION Y SEGUIMIENTO A LOS
+# ESTUDIANTES CON NECESIDADES EDUCATIVAS ESPECIALES ASOCIADAS A LA
+# DISCAPACIDAD», EDUCACION— con docentes de 30. A `qr_side = 0.46` quince de las
+# cien fichas mas largas perdian «Docente» y renglones del registro; a 0.40 no
+# desborda ninguna de las 250 mas largas.
+#
+# Este caso es esa unidad, sin dato de cliente: nombre y docente son los largos
+# medidos, con texto inventado. Lo que fija es el ALTO que consumen, que es lo
+# que hacia desbordar la hoja.
+.crf_unidad_larga <- function() {
+  list(
+    unit_id = "u1", label = "1edu92_0801", role = "titular", group = "M1",
+    dimensions = list(
+      faculty = "FACULTAD CON NOMBRE LARGO",
+      course_name = paste(
+        "DETECCION OPORTUNA, DERIVACION Y SEGUIMIENTO A LOS ESTUDIANTES CON",
+        "NECESIDADES EDUCATIVAS ESPECIALES ASOCIADAS A LA DISCAPACIDAD"
+      ),
+      # 57 caracteres: el docente mas largo del estudio. No es una exageracion
+      # inventada —368 de las 2.616 unidades pasan de 34— y no coincide con la
+      # unidad del curso mas largo: el peor caso de la hoja es la COMBINACION de
+      # los dos, que no existe como fila pero puede existir manana.
+      teacher = "APELLIDO COMPUESTO APELLIDO, NOMBRE SEGUNDO DEL NOMBRE",
+      schedule = "0801", venue = "Por confirmar", eligible_n = 53
+    )
+  )
+}
+
+test_that("la ficha aguanta el curso y el docente mas largos del estudio", {
+  skip_if_not_installed("png")
+  tp <- collection_material_builtin_template()
+  compiled <- .crf_render_test_compiled(tp)
+  # Se sustituye la unidad del fixture y se recompila con la misma plantilla.
+  un <- .crf_unidad_larga()
+  binding <- list(access_id = "a1", logical_collector_id = un$unit_id, unit_id = un$unit_id,
+                  access_kind = "manual_handoff", access_ref = .crf_payload_realista(), status = "ready")
+  deployment <- list(deployment_id = "d1", target = list(provider = "kobo"),
+                     bindings = list(binding), sensitivity = list(access_urls = "operational"),
+                     status = "prepared")
+  fp <- function(x) collection_fingerprint(x)
+  instance <- list(
+    schema = COLLECTION_MATERIAL_INSTANCE_SCHEMA, instance_id = "m1",
+    template_ref = list(template_id = tp$template_id, revision = 1L, sha256 = tp$template_sha256),
+    deployment_id = "d1", deployment_fingerprint = fp(deployment),
+    access_fingerprint = fp(list(binding)), instance_fingerprint = fp("m1"),
+    unit_refs = list(un$unit_id), access_refs = list("a1"),
+    locale = "es-PE", status = "ready", sensitivity = "operational", warnings = list()
+  )
+  compiled <- collection_material_compile(
+    tp, instance, project = list(name = "Estudio", period = "2026-1"),
+    plan = list(plan_id = "p1", units = list(un)), deployment = deployment
+  )
+  path <- withr::local_tempfile(fileext = ".png")
+  r <- collection_material_render_compiled(compiled, path, device = "png", page = 1L, dpi = 96)
+  codigos <- vapply(r$warnings %||% list(), function(w) as.character(w$code %||% ""), character(1))
+
+  # Ningun bloque pierde filas ni recorta texto: es lo que fallaba.
+  expect_false("field_grid_overflow" %in% codigos)
+  expect_false("application_log_overflow" %in% codigos)
+  expect_false("text_truncated" %in% codigos)
+})
+
+test_that("el titulo largo baja de cuerpo en vez de robarle sitio a lo de abajo", {
+  chars <- 46L
+  corto <- .crf_ajuste_titulo("CALCULO 1", chars, 13)
+  largo <- .crf_ajuste_titulo(.crf_unidad_larga()$dimensions$course_name, chars, 13)
+
+  # El corto no se toca. El largo baja de cuerpo, y si ni al minimo entra en dos
+  # lineas se le dan tres antes que truncar el nombre —el aplicador tiene que
+  # reconocer su aula—. Con 128 caracteres, que es el curso mas largo del
+  # estudio, pasa justo eso: tres lineas al cuerpo minimo. Exigirle dos seria
+  # exigirle que recorte.
+  expect_equal(corto$size, 13)
+  expect_length(corto$lines, 1L)
+  expect_lte(length(largo$lines), 3L)
+  expect_lt(largo$size, 13)
+  # Y no baja por debajo de lo legible en una hoja impresa.
+  expect_gte(largo$size, 13 * 0.72)
+})
