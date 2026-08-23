@@ -18,31 +18,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { jergaVisibleEn, textoVisibleDe } from "../../lib/qa/textoVisible";
+
 const aqui = path.dirname(fileURLToPath(import.meta.url));
-
-/** Términos de arquitectura: significan algo dentro del código y nada fuera. */
-const JERGA = [
-  "preflight", "deployment", "idempotente", "payload", "binding",
-  "adapter", "backend", "artefacto renderizado", "fingerprint",
-  "plantilla semántica", "recipient link", "autoritativo",
-];
-
-/** Lo que la pantalla pinta: literales JSX y atributos de copy. */
-function textoVisible(archivo: string): string[] {
-  const src = fs.readFileSync(path.join(aqui, archivo), "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "");
-  const jsx = [...src.matchAll(/>\s*([^<>{}\n][^<>{}]{6,160})\s*</g)].map((m) => m[1]);
-  const attrs = [...src.matchAll(/(?:title|label|eyebrow|empty|lead|placeholder|aria-label)=["']([^"']{6,160})["']/g)]
-    .map((m) => m[1]);
-  return [...jsx, ...attrs]
-    .map((t) => t.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    // Fuera lo que es código: el JSX parte expresiones en varias líneas y el
-    // extractor pescaba trozos como «{adapterId ===». Un falso positivo aquí
-    // gasta el crédito del guardián.
-    .filter((t) => !/[{}]|===|=>|\?\?|\|\|/.test(t));
-}
+const leer = (archivo: string) => fs.readFileSync(path.join(aqui, archivo), "utf8");
 
 const SECCIONES = [
   "RecopiladoresShell.tsx",
@@ -54,14 +33,13 @@ const SECCIONES = [
 
 describe("ninguna pantalla de Recopiladores habla en jerga", () => {
   it.each(SECCIONES)("%s", (archivo) => {
-    const hallazgos = textoVisible(archivo).flatMap((linea) =>
-      JERGA.filter((t) => linea.toLowerCase().includes(t)).map((t) => `«${t}» en: ${linea.slice(0, 80)}`));
+    const hallazgos = jergaVisibleEn(leer(archivo));
     expect(hallazgos, hallazgos.join("\n")).toEqual([]);
   });
 
   it("el extractor encuentra texto de verdad", () => {
     // Sin esto, un extractor roto daría verde en las cinco por no mirar nada.
-    expect(textoVisible("PlanSection.tsx").length).toBeGreaterThan(5);
-    expect(textoVisible("AccessSection.tsx").length).toBeGreaterThan(5);
+    expect(textoVisibleDe(leer("PlanSection.tsx")).length).toBeGreaterThan(5);
+    expect(textoVisibleDe(leer("AccessSection.tsx")).length).toBeGreaterThan(5);
   });
 });
