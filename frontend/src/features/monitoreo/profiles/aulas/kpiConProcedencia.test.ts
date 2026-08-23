@@ -20,10 +20,26 @@ const planDe = (d: MonitoreoAulasDashboard) =>
 describe("el KPI del plan declara de qué sorteo sale", () => {
   it("pega la fecha de la corrida a la cifra", () => {
     const kpi = planDe(tablero({ selection_run_id: "sel_aulas_20260822204345_bf10d14c" }));
-    expect(kpi?.value).toBe("700");
     expect(kpi?.pista).toContain("22 de agosto");
-    // Y no pierde lo que ya resolvía: qué se cuenta.
-    expect(kpi?.pista).toContain("titulares y reservas");
+  });
+
+  it("la cifra son las VISITAS y las reservas van en la pista", () => {
+    // Contaba las 700 unidades del plan y se llamaba «Cursos-horario», la misma
+    // palabra que en Agenda vale 193. Y en la propia sección convivía con
+    // «Cursos-horario del plan: 193» del recorrido.
+    const kpi = planDe(tablero({
+      kpis: { total_aulas: 700, aulas_titulares: 193 },
+      selection_run_id: "sel_aulas_20260822204345_bf10d14c",
+    }));
+    expect(kpi?.value).toBe("193");
+    expect(kpi?.pista).toContain("+507 reservas");
+  });
+
+  it("sin titulares declarados se comporta como antes", () => {
+    // Un tablero viejo no trae `aulas_titulares`: mejor el total que un cero.
+    const kpi = planDe(tablero({ kpis: { total_aulas: 700 } }));
+    expect(kpi?.value).toBe("700");
+    expect(kpi?.pista).toContain("titulares y sus reservas encadenadas");
   });
 
   it("sin corrida conserva la pista de siempre", () => {
