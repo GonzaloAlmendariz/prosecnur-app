@@ -51,3 +51,45 @@ test_that("el titular conserva su clave aunque su frase no lleve numero", {
   expect_equal(ctx$role_key, "titular")
   expect_equal(ctx$role, "Titular")
 })
+
+# --- El registro de aplicacion es el formulario de captura del libro ---------
+#
+# La ficha es un objeto de PAPEL: el aplicador la llena a mano en el aula, se la
+# entrega al jefe de campo y el jefe de campo TRANSCRIBE a la hoja «Aulas
+# Aplicadas (Campo)», que es lo que la app relee para actualizar Monitoreo.
+#
+# Si los dos formularios no usan los mismos nombres, quien transcribe traduce
+# 193 veces; y si el papel no pide una columna, ese dato no existe cuando toca
+# llenarla.
+
+test_that("cada casilla del papel tiene su columna en la hoja del libro", {
+  casillas <- unlist(strsplit(collection_material_application_log_labels(), "|", fixed = TRUE))
+  casillas <- tolower(trimws(gsub(":", "", casillas)))
+  columnas <- tolower(prosecnurapp:::.calg_titulos_campo())
+
+  # Cada casilla aparece dentro del nombre de alguna columna de la hoja.
+  for (c in casillas) {
+    expect_true(
+      any(grepl(c, columnas, fixed = TRUE)),
+      info = sprintf("la casilla «%s» no corresponde a ninguna columna del libro", c)
+    )
+  }
+})
+
+test_that("las columnas que el aplicador puede llenar tienen casilla en el papel", {
+  casillas <- tolower(paste(collection_material_application_log_labels(), collapse = " "))
+  # Lo que solo se sabe estando en el aula. Quedan fuera a proposito los
+  # derivados —«% asistencia»— y los que trae el marco —«matriculados»—.
+  for (col in c("asistentes", "efectivas", "rechazos", "duplicados", "aplicador",
+                "aula", "fecha", "hora", "observaciones")) {
+    expect_true(grepl(col, casillas, fixed = TRUE),
+                info = sprintf("«%s» se pide en el libro y no en el papel", col))
+  }
+})
+
+test_that("dos casillas por renglon caben en los seis que admite el bloque", {
+  etiquetas <- collection_material_application_log_labels()
+  expect_lte(length(etiquetas), 6L)
+  # Y el emparejado es lo que las hace caber: nueve casillas en cinco renglones.
+  expect_gt(length(unlist(strsplit(etiquetas, "|", fixed = TRUE))), length(etiquetas))
+})

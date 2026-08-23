@@ -729,13 +729,40 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
         # Sin ella cae al ordinal de siempre, que no compromete a nada.
         etiqueta <- if (i <= length(etiquetas)) etiquetas[[i]] else ""
         con_etiqueta <- nzchar(etiqueta)
-        grid::grid.text(
-          if (con_etiqueta) etiqueta else sprintf("%d", i),
-          x = L$x_left, y = y, just = "left", default.units = "npc",
-          gp = grid::gpar(col = if (con_etiqueta) tokens$soft else tokens$faint, fontsize = type$caption)
-        )
-        inicio <- if (con_etiqueta) L$x_left + L$log_label_w else L$x_left + 0.03
-        pulso_pdf_hairline(inicio, item$right_edge, y - 0.006, tokens = tokens, lwd = 0.5)
+        # **Dos casillas por renglon cuando la etiqueta trae « | ».**
+        #
+        # El papel se llena a mano y las cantidades ocupan tres digitos: una
+        # linea de doce centimetros para escribir «34» desperdicia el renglon,
+        # y los renglones son el recurso escaso —el bloque admite seis—. Es lo
+        # que ya hacia el generador anterior: «RECHAZOS: ___   N° DE MENORES:
+        # ___» en la misma linea.
+        partes <- if (con_etiqueta) trimws(strsplit(etiqueta, "|", fixed = TRUE)[[1]]) else ""
+        partes <- partes[nzchar(partes)]
+        if (length(partes) < 2L) {
+          grid::grid.text(
+            if (con_etiqueta) etiqueta else sprintf("%d", i),
+            x = L$x_left, y = y, just = "left", default.units = "npc",
+            gp = grid::gpar(col = if (con_etiqueta) tokens$soft else tokens$faint, fontsize = type$caption)
+          )
+          inicio <- if (con_etiqueta) L$x_left + L$log_label_w else L$x_left + 0.03
+          pulso_pdf_hairline(inicio, item$right_edge, y - 0.006, tokens = tokens, lwd = 0.5)
+        } else {
+          medio <- L$x_left + (item$right_edge - L$x_left) / 2
+          # La segunda columna arranca con un respiro para que las dos casillas
+          # no se lean como una sola linea partida.
+          arranques <- c(L$x_left, medio + 0.012)
+          topes <- c(medio - 0.012, item$right_edge)
+          for (k in seq_len(min(2L, length(partes)))) {
+            grid::grid.text(
+              partes[[k]], x = arranques[[k]], y = y, just = "left", default.units = "npc",
+              gp = grid::gpar(col = tokens$soft, fontsize = type$caption)
+            )
+            pulso_pdf_hairline(
+              arranques[[k]] + L$log_label_w * 0.72, topes[[k]], y - 0.006,
+              tokens = tokens, lwd = 0.5
+            )
+          }
+        }
       }
     } else if (identical(item$type, "link")) {
       # `item$y_top` es el punto mas alto que ocupa el bloque -igual que
