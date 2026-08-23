@@ -93,3 +93,32 @@ test_that("dos casillas por renglon caben en los seis que admite el bloque", {
   # Y el emparejado es lo que las hace caber: nueve casillas en cinco renglones.
   expect_gt(length(unlist(strsplit(etiquetas, "|", fixed = TRUE))), length(etiquetas))
 })
+
+# --- El aula no se inventa con el codigo del curso -------------------------
+#
+# La lista de candidatos de `venue` terminaba en `label`, el ultimo «por si
+# acaso», y acabo siendo el unico: medido sobre las 2.616 unidades del estudio
+# de aulas, las 2.616 traian en «Aula» el codigo del curso-horario
+# —`1edu92_0801`—. El marco NO trae el aula porque el aula no se sabe hasta el
+# dia de la aplicacion: es uno de los datos que el aplicador anota a mano.
+#
+# Rellenar un campo con el valor de otro no es un fallback: quien lee la ficha
+# no puede distinguir un aula que se conoce de una que no.
+
+test_that("sin columna de aula, el aula queda vacia y no copia el codigo", {
+  fila <- list(label = "1edu92_0801", faculty = "EDUCACION", schedule = "0801")
+  expect_identical(prosecnurapp:::.collection_first_string(
+    fila, c("pabellon_aula", "pabellon", "venue", "aula", "salon", "room", "building_room")
+  ), "")
+  # Y el control que lo hace fallar si alguien devuelve `label` a la lista.
+  expect_identical(prosecnurapp:::.collection_first_string(
+    fila, c("pabellon_aula", "aula", "label")
+  ), "1edu92_0801")
+})
+
+test_that("con columna de aula de verdad, la usa", {
+  expect_identical(prosecnurapp:::.collection_first_string(
+    list(label = "1edu92_0801", aula = "H-201"),
+    c("pabellon_aula", "pabellon", "venue", "aula", "salon", "room", "building_room")
+  ), "H-201")
+})
