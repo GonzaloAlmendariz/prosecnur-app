@@ -1437,3 +1437,42 @@ Siguen **medidas y sin aplicar**. Es la única configuración con cero déficit 
 cero facultades sin margen, con 7 aulas menos que 200 proporcional. Aplicarlas
 exige recalcular `faculty_targets`, re-sortear y regenerar el `.pulso`: es una
 decisión de Gonzalo, no un cambio de código.
+
+
+## El Excel de campo llevaba el banco entero. REPARADO
+
+El defecto (3) del recorrido, medido y cerrado.
+
+`monitoreo_aulas_plan` guarda **las 2 616 unidades** de la selección —190
+titulares, 496 reservas y 1 930 extras—, y **la UI filtra el banco en cada panel,
+uno por uno**: `AulasAgendaPorDia` lo filtra en el sitio donde se monta,
+`frenteDelOperativo` lo comenta explícitamente, la hoja de control lo filtra…
+El generador del libro no. Resultado, medido en el archivo real:
+
+| | Antes | Ahora |
+|---|---|---|
+| Filas de «Aulas Agendadas» | **2 121** | **191** |
+| Cursos-horario en la hoja | 1 930 EXTRA + 190 CH | **190 CH**, cero extras |
+
+El equipo recibía sus 190 aulas a visitar mezcladas entre 1 930 de reserva que
+nadie agendó.
+
+### El matiz que evitó romperlo
+
+Un extra **activado** sí tiene que salir: se aplica igual que un titular, y
+`test-carga-aulas-libro-roundtrip.R` lo fija con todas sus letras —«escribir sólo
+titulares costó 22 filas en el estudio de trabajo»—. Filtrar por rol a secas
+habría roto ese caso.
+
+Por eso el filtro mira **si el extra tiene parte o control registrado**, no su
+rol. Y un plan que sólo trae banco sin usar ya no escribe un libro de 1 930
+filas: lo dice con un `E_AULAS_LIBRO_SIN_PLAN` que nombra la causa.
+
+6 asertos nuevos; suites `libro` y `carga-aulas` sin fallos, roundtrip incluido.
+Verificado regenerando el libro real desde la app.
+
+### Y el defecto de fondo detrás de los tres
+
+Cada consumidor decide por su cuenta si el banco entra, y basta que uno se olvide
+para que salga a campo. La regla —«el banco no se agenda»— vive repetida en cinco
+sitios en vez de una vez.

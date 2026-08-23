@@ -500,10 +500,52 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 #'   no lo que el aplicador anota en su parte.
 #' @return la ruta escrita.
 #' @export
+# **El banco de extras NO se agenda, asi que no va al libro de campo.**
+#
+# Medido en el estudio real: el plan de Monitoreo guarda las 2 616 unidades de la
+# seleccion —190 titulares, 496 reservas encadenadas y 1 930 extras— y la UI
+# filtra el banco EN CADA PANEL, uno por uno. El generador del libro no lo hacia,
+# asi que la hoja «Aulas Agendadas» salia con 2 120 filas: las 190 que el equipo
+# tiene que visitar mezcladas entre 1 930 de reserva que nadie agendo.
+#
+# Un extra ACTIVADO es otra cosa y si tiene que salir: se aplica igual que un
+# titular, y escribir solo titulares costo 22 filas en el estudio de trabajo (ver
+# test-carga-aulas-libro-roundtrip.R). Por eso el filtro mira si el extra tiene
+# parte o control registrado, y no su rol a secas.
+.calg_codigos_usados <- function(...) {
+  fuentes <- list(...)
+  codigos <- character(0)
+  for (fuente in fuentes) {
+    for (fila in fuente %||% list()) {
+      if (!is.list(fila)) next
+      cod <- .calg_txt(fila$operational_code, .calg_txt(fila$classroom_id))
+      if (nzchar(cod)) codigos <- c(codigos, cod)
+    }
+  }
+  unique(codigos)
+}
+
+#' Las unidades que van al libro: todo menos el banco sin usar.
+#' @keywords internal
+.calg_unidades_del_libro <- function(unidades, partes = list(), control = list()) {
+  usados <- .calg_codigos_usados(partes, control)
+  Filter(function(u) {
+    rol <- tolower(trimws(as.character(u$sample_role %||% "")))
+    if (!identical(rol, "extra_reserve_pool")) return(TRUE)
+    cod <- .calg_txt(u$operational_code, .calg_txt(u$classroom_id))
+    nzchar(cod) && cod %in% usados
+  }, unidades %||% list())
+}
+
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
                                efectivas = NULL, responses = NULL, validas = NULL) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
+  }
+  unidades <- .calg_unidades_del_libro(unidades, partes = partes, control = control)
+  if (!length(unidades)) {
+    stop_api(409, "E_AULAS_LIBRO_SIN_PLAN",
+             "El plan solo trae banco de extras sin usar: no hay aulas agendadas que llevar al libro.")
   }
   hojas <- list(
     `Aulas Agendadas` = aulas_libro_hoja_agendadas(unidades),
