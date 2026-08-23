@@ -3052,9 +3052,19 @@ export type MonitoreoCalidadCampo = {
     | string;
 };
 
+/** De qué corrida del sorteo viene el plan de aulas que Monitoreo muestra, y si
+    esa corrida sigue siendo la vigente. Lo calcula
+    `monitoreo_aulas_origen_vigente()`. */
+export type MonitoreoAulasOrigen = {
+  plan_run_id: string;
+  selection_run_id: string;
+  desfasado: boolean;
+};
+
 export type MonitoreoState = {
   ok: true;
   sources: MonitoreoSource[];
+  aulas_origen?: MonitoreoAulasOrigen | null;
   config: MonitoreoConfig;
   monitoreo_profile?: MonitoreoProfile;
   has_snapshot: boolean;

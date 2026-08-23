@@ -1202,3 +1202,48 @@ nombra: fusion».
 Los dos llevan un aserto contra el verde vacío —`expect_gt(length(producidos), 0)`
 y `emitidos.length >= 4`—: si el extractor deja de encontrar el `list(...)`, el
 test falla en vez de aprobar por no haber mirado nada.
+
+
+## Serie E — Monitoreo no sabía que su plan era de otro sorteo
+
+Tercer consumidor del mismo dato, y el más importante de los tres.
+
+`monitoreo_aulas_from_calc()` guarda el `selection_run_id` del sorteo en la
+config de aulas, así que **Monitoreo siempre supo de dónde venía su plan**. Lo
+que no había era la comparación con el sorteo vigente.
+
+Recopiladores sí la tenía —la de la serie B, con su aviso y su botón de
+rehacer—. Monitoreo no, **y es donde se mira el avance del campo**: se
+re-sortea, Recopiladores avisa, y Monitoreo sigue enseñando el avance, las
+cuotas y los atrasos de un plan que ya no existe, sin decir nada.
+
+### Reparado
+
+`monitoreo_aulas_origen_vigente(s)` en archivo propio, colgado del payload de
+estado como `aulas_origen`, y `AulasOrigenDesfasado` entre el chrome de módulo y
+la mesa de trabajo — ahí porque califica **todo** lo que hay debajo, no un panel.
+
+Tres abstenciones, las mismas que en los otros dos sitios:
+
+- Un plan **sin** `selection_run_id` no se acusa: el que viene por libro no trae
+  ese campo, y marcarlo sería acusarlo por no tenerlo.
+- Sin sorteo vigente tampoco hay con qué comparar.
+- Una selección con **dos corridas mezcladas** dentro no decide: inventar cuál
+  es la vigente produciría un desfase falso o taparía uno real.
+
+Y acepta la corrida leída de las filas de la selección, que es la forma que usa
+`.collection_source_vigente()`: si no la aceptara, las dos superficies
+discreparían sobre cuál es el sorteo vigente, que es peor que no avisar.
+
+El aviso **no lleva botón**, a diferencia del de Recopiladores: rehacer el plan
+de Monitoreo es reimportarlo desde Cálculo de muestra y eso pisa lo que el libro
+haya traído encima. Es una decisión con consecuencias, no un clic al paso.
+
+11 asertos en R y 5 en el frontend.
+
+### De paso: dos congelados ajenos siguen en rojo
+
+`node agentic/sync-agentic-os.mjs --audit` falla por
+`territorialProfile.css` (+7) y `HojasRutaPage.tsx` (+3). **No son de este
+trabajo.** `router_monitoreo.R` sí está congelado y las líneas que le añadí no
+lo acercan al límite: 5 345 contra una base de 6 046.

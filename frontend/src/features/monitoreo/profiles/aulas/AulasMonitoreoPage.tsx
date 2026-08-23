@@ -52,6 +52,7 @@ import { AulasControles } from "./AulasControles";
 import { AulasControlDelLibro, columnasDelControl, type ResumenDeControl } from "./AulasControlDelLibro";
 import { avisoLibroGenerado } from "./avisoLibroGenerado";
 import { avisoLibroImportado, type TonoAviso } from "./avisoLibroImportado";
+import { AulasOrigenDesfasado } from "./AulasOrigenDesfasado";
 import { columnasDeLaTabla } from "./columnasDeLaTabla";
 import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
@@ -2161,6 +2162,10 @@ export default function AulasMonitoreoPage() {
           if (view !== seccionActiva) setActiveView(view);
         }}
       />
+
+      {/* Va ENTRE el chrome de módulo y la mesa de trabajo porque califica todo
+          lo que hay debajo —avance, cuotas, atrasos—, no un panel concreto. */}
+      <AulasOrigenDesfasado origen={state?.aulas_origen} />
 
       {/* Las pestañas viven en el RAIL lateral con íconos, no en píldoras
           arriba: es el patrón de telefónico y acreditación y criterio de toda la

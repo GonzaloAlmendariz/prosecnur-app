@@ -1768,6 +1768,27 @@
   font-size: var(--aulas-sec);
 }
 
+/* El plan que se está mirando no es el del sorteo vigente. Ocupa el ancho porque
+   califica TODO lo que hay debajo, no un panel concreto. */
+.mon-profile-page.is-aulas-flow .aulas-origen-desfasado {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--pulso-warn-border);
+  border-radius: var(--pulso-radius-panel);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+  font-size: var(--aulas-sec);
+  line-height: 1.45;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-origen-desfasado svg {
+  flex: none;
+  margin-top: 1px;
+}
+
 /* El dia contra el que se mide el atraso. Va con el peso de un pie de cifra, no
    con el del dato: acompaña la lectura, no compite con ella. */
 .mon-profile-page.is-aulas-flow .aulas-frente-corte {
