@@ -72,7 +72,7 @@ export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<Monito
             <span
               className="aulas-colchon-barra"
               role="img"
-              aria-label={`${f.gastadas} reservas gastadas y ${f.libres} libres`}
+              aria-label={`${fmt(f.gastadas)} reservas gastadas y ${f.libres} libres`}
             >
               {f.gastadas ? (
                 <i style={{ width: `${(100 * f.gastadas) / tope}%`, background: COLOR_RESULTADO.rechazo }}>

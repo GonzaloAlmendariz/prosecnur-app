@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { MonitoreoRow } from "../../../../api/monitoreo";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { cuotasResumen, type CorteDeCuota } from "./cuotasResumen";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * La cuota del estudio en personas, y sus dos desagregados.
@@ -69,7 +70,7 @@ export function AulasCuotasResumen({ filas }: { filas: ReadonlyArray<MonitoreoRo
     return (
       <p className="mon-profile-muted">
         {sinMeta
-          ? `Las ${sinMeta} celdas de cuota del plan no declaran objetivo.`
+          ? `Las ${fmt(sinMeta)} celdas de cuota del plan no declaran objetivo.`
           : "El plan no declara composición por sexo para estos cursos-horario."}
       </p>
     );

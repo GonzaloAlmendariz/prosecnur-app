@@ -606,8 +606,8 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ],
       metasSeñaladas, hayObservadasPorSexo: hayObservadasPorSexo || hayLibroPorSexo,
       etiqueta: elegida
-        ? `Acumulado de ${elegida.facultad}: ${Math.round(ultimo)} de ${meta}`
-        : `Acumulado del estudio: ${Math.round(ultimo)} de ${meta}`,
+        ? `Acumulado de ${elegida.facultad}: ${fmt(Math.round(ultimo))} de ${meta}`
+        : `Acumulado del estudio: ${fmt(Math.round(ultimo))} de ${meta}`,
     };
   })();
 
@@ -957,7 +957,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             role="img"
             aria-label={elegida
               ? `Rendimiento diario de ${elegida.facultad}; esperado ${elegida.esperadoFinal} encuestas por aula`
-              : `Rendimiento diario de ${facultades.length} facultades; media del estudio ${mediaDelEstudio}`}>
+              : `Rendimiento diario de ${fmt(facultades.length)} facultades; media del estudio ${mediaDelEstudio}`}>
             {/* LA ZONA DE LO AGENDADO, debajo de todo. Ver el comentario del
                 acumulado: la raya sola no separaba nada porque iba del color de
                 la rejilla. */}

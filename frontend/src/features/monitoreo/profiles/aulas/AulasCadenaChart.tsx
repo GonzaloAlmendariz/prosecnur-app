@@ -35,7 +35,7 @@ export function AulasCadenaChart({ filas }: { filas: ReadonlyArray<MonitoreoAula
         {sinReserva
           // No es lo mismo «no hay plan» que «el plan no dotó reservas»: la
           // segunda es una decisión de la muestra y hay que poder verla (L54).
-          ? `Ninguno de los ${sinReserva} cursos-horario titulares tiene reserva en el plan.`
+          ? `Ninguno de los ${fmt(sinReserva)} cursos-horario titulares tiene reserva en el plan.`
           : "El plan todavía no declara cadenas de reemplazo."}
       </p>
     );

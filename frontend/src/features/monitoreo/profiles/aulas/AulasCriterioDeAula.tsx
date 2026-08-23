@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Target } from "../../../../vendor/lucide-react";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Qué es un aula válida en este estudio.
@@ -98,7 +99,7 @@ export function AulasCriterioDeAula({ criterio, hayMetas, onGuardar }: {
             Se compara con lo que el diseño esperaba de cada curso-horario
             (`efectivas_esperadas` del cálculo de muestra).{" "}
             {hayMetas > 0
-              ? `${hayMetas} aulas del plan la traen; las que no, quedarán sin juzgar.`
+              ? `${fmt(hayMetas)} aulas del plan la traen; las que no, quedarán sin juzgar.`
               : "Ninguna aula del plan la trae, así que este criterio no podría juzgar ninguna: el plan tiene que venir del cálculo de muestra."}
           </p>
         </div>

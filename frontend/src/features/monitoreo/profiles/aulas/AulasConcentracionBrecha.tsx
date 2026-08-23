@@ -50,7 +50,7 @@ export function AulasConcentracionBrecha({ filas }: { filas: ReadonlyArray<Monit
               Las <strong>{fmt(t.aulas)}</strong> con más brecha
             </span>
             <span className="aulas-concentracion-carril" role="img"
-              aria-label={`${t.aulas} cursos-horario cubren el ${t.pct}% de lo que falta`}>
+              aria-label={`${fmt(t.aulas)} cursos-horario cubren el ${t.pct}% de lo que falta`}>
               <i style={{ width: `${Math.max(1, t.pct)}%`, background: COLOR_RESULTADO.efectiva }} />
             </span>
             <span className="aulas-concentracion-cifra">

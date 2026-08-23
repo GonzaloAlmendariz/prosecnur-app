@@ -5,6 +5,7 @@ import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cuántos cursos-horario hay en cada nivel de cobertura.
@@ -136,7 +137,7 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
           {bancoMotor ? (
             <>
               {sinMeta ? " " : ""}
-              {bancoMotor} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
+              {fmt(bancoMotor)} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
               {" "}esperan en su estrato y contarlas como «sin respuestas» las volvería una alarma.
             </>
           ) : null}
