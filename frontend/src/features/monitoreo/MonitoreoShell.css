@@ -40,6 +40,17 @@
   font-size: 12px;
 }
 
+/* `start`, y no `center`, PROBADO Y MEDIDO.
+   Medido a 1440x1000: el bloque termina en y=463 y deja 537 px muertos debajo,
+   más de la mitad de la primera pantalla de Monitoreo. Centrarlo parecía la
+   respuesta —el diálogo de abrir proyecto, que es la otra pantalla de decisión
+   de la app, sí se centra— y **empeora**: el título del PageFrame vive FUERA de
+   este body, así que centrar el body deja el título arriba solo y el bloque
+   flotando al medio, separados por 300 px. El hueco en medio parte la relación
+   título↔contenido; el hueco abajo sólo sobra.
+   Repartos medidos: `start` deja 206 arriba y 537 abajo; `center`, 396 y 268.
+   Llenar ese espacio con algo útil es la salida buena, y es una decisión de
+   producto, no de CSS. */
 .mon-mode-choice-frame .pulso-page-frame-body {
   display: grid;
   align-items: start;

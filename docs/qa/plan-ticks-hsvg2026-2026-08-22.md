@@ -1247,3 +1247,50 @@ haya traído encima. Es una decisión con consecuencias, no un clic al paso.
 `territorialProfile.css` (+7) y `HojasRutaPage.tsx` (+3). **No son de este
 trabajo.** `router_monitoreo.R` sí está congelado y las líneas que le añadí no
 lo acercan al límite: 5 345 contra una base de 6 046.
+
+
+## Un 500 al pulsar «Elegir» en la pantalla de modo
+
+Este apareció **mirando la pantalla**, no leyendo código, y es el defecto más
+grave de la serie: elegir «Monitoreo de cursos-horario» sobre el proyecto real
+devolvía `E_INTERNAL` y no guardaba nada.
+
+### El ciclo se cerraba solo
+
+1. El payload de estado **añade `plan_rows`** a la config de aulas, para que la
+   UI tenga el conteo.
+2. `chooseMode` reenvía **la config entera** que recibió, más el perfil.
+3. En `monitoreo_aulas_normalize_config`, `config$plan` —con `$`, que
+   **parcial-matchea**— no encontraba `plan`, encontraba `plan_rows`, y devolvía
+   el entero.
+4. `.monitoreo_aulas_df(0L, "plan")` → «El insumo 'plan' debe ser una tabla o
+   lista de filas» → 500.
+
+Reproducido con curl: **reenviar sin tocar nada la config que el propio backend
+acababa de devolver** bastaba para el error. El backend emitía algo que él mismo
+no aceptaba de vuelta.
+
+El repo ya conocía esta trampa —`config$plan`/`plan_rows`— en otro punto. Aquí
+seguía viva. Y `control` vs `control_sin_nombre` era la siguiente esperando: de
+ahí que se hayan convertido **las 32 lecturas** del body a `[[`, que es exacto, y
+no sólo la que fallaba hoy. `defaults$` se deja como está: es interno y no lo
+escribe nadie de fuera.
+
+7 asertos; el mutante que devuelve el `$` mata 3. Verificado además contra la
+API real: relanzada con el fix, la misma llamada que daba 500 guarda la elección.
+
+### Dos cosas que medí y no llegaron a arreglo
+
+- **Más de media pantalla vacía en la elección de modo.** A 1440×1000 el bloque
+  termina en y=463 y deja **537 px muertos**. Centrarlo parecía la respuesta —el
+  diálogo de abrir proyecto, la otra pantalla de decisión de la app, sí se
+  centra— y **empeora**: el título del `PageFrame` vive fuera de ese body, así
+  que centrar deja el título arriba solo y el bloque flotando al medio,
+  separados por 300 px. Repartos medidos: `start` da 206/537; `center`, 396/268.
+  Revertido, con la medición anotada en el CSS. Llenar ese espacio con algo útil
+  es la salida buena, y es decisión de producto.
+- **La sugerencia de modo verificada con el proyecto real**: el lead dice «Tu
+  cálculo de muestra ya tiene 190 cursos-horario sorteados» y la tarjeta correcta
+  llega marcada. Y `aulas_origen` llega **vacío** en este proyecto porque su plan
+  vino por libro — justo la abstención que se programó. Sin ella, este proyecto
+  real estaría mostrando un aviso de desfase falso.
