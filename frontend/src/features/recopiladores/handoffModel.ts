@@ -9,7 +9,7 @@ export type HandoffReadiness = {
 };
 
 export function handoffReadiness(deployment: CollectionDeployment | null): HandoffReadiness {
-  if (!deployment) return { ready: false, delivered: false, fingerprint: "", receipt: null, reason: "Falta preparar un deployment." };
+  if (!deployment) return { ready: false, delivered: false, fingerprint: "", receipt: null, reason: "Falta preparar los accesos." };
   const receipt = deployment.handoff?.schema === "collection_handoff/v1" ? deployment.handoff : null;
   const fingerprint = deployment.deployment_fingerprint ?? receipt?.deployment_fingerprint ?? "";
   if (deployment.status === "handed_off" && receipt) {

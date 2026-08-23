@@ -54,6 +54,9 @@ export const JERGA_DE_ARQUITECTURA = [
   // Palabras de herramienta de diseño, no del operativo: el panel de bloques de
   // la ficha se titulaba «Outline».
   "outline", "wireframe", "mockup",
+  // Nombres de pasos y objetos del motor que llegaron a la pantalla de Entrega:
+  // «Handoff local», «Manifest de entrega y artefactos», «Target».
+  "handoff", "manifest", "artefacto", "target",
 ];
 
 /** Los términos de jerga que aparecen en el texto visible de un fuente. */
