@@ -421,7 +421,17 @@ test_that("el fixture de QR representa el enlace que el sistema produce", {
 test_that("un enlace que encogiera el modulo por debajo del umbral se detecta", {
   # Control del control: un payload absurdo SI baja de 0.6 mm, asi que el
   # aserto de arriba no esta pasando por vacio.
-  gigante <- paste0("https://ee.example.test/x/aB3xY9kQ?d%5BcollectorID%5D=", strrep("x", 1200L))
+  #
+  # El payload sube de 1.200 a 1.600 caracteres porque el QR crecio —0.34 a
+  # 0.42— y con mas milimetros por lado hace falta mas carga para estrangular
+  # el modulo: a 1.200 el modulo mide ahora 0,626 mm y ya no baja del umbral.
+  # Que este control haya tenido que crecer ES la prueba de que el codigo se
+  # agrando de verdad; si siguiera pasando con el payload de antes, el aumento
+  # no habria llegado al papel.
+  #
+  # 1.600 y no mas: por encima de ~2.300 el payload excede la capacidad del QR
+  # y el generador falla, que es otro defecto y no este.
+  gigante <- paste0("https://ee.example.test/x/aB3xY9kQ?d%5BcollectorID%5D=", strrep("x", 1600L))
   expect_lt(.crf_mm_por_modulo(gigante), 0.6)
 })
 

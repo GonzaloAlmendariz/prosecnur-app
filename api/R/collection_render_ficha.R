@@ -16,35 +16,24 @@
 # justo donde ya sobraba.
 .crf_layout <- function(branded = FALSE) {
   base <- list(
-    # 0.38 y no mas: es el maximo VERIFICADO con el lector de QR del QA, que
-    # reconstruye la matriz desde el PNG asumiendo esta misma geometria. Medido
-    # el 2026-08-23 con el payload largo del worker (149 modulos): 0.38 lee
-    # limpio, 0.42 y 0.46 devuelven un modulo cambiado.
+    # **0.42, y el limite ahora es el papel y no el verificador.**
     #
-    # **Cuatro hipotesis descartadas, para que nadie las repita:**
-    #  1. El lector. Falso: dibujado el QR AISLADO con esta misma geometria,
-    #     0.38 / 0.42 / 0.46 leen los 149 modulos sin una sola discrepancia.
-    #  2. La ficha completa tapandolo. Falso: con el payload normal (33
-    #     modulos), la hoja entera lee limpio hasta 0.46.
-    #  3. El borde derecho de la pagina. A 0.42 con `qr_x = 0.72` el marco SI
-    #     se sale —0.9426 sobre un util de 0.925—, pero corrido a 0.43/0.690 el
-    #     marco cae en 0.9179, dentro, y el lector sigue fallando.
-    #  4. El marco pegado al codigo. Reducirlo de 1.20 a 1.06 no cambio el
-    #     umbral.
-    #  5. El antialiasing del device, con el lector pinchando UN pixel por
-    #     modulo. El lector se hizo robusto —promedia el nucleo de la celda— y
-    #     es mejor asi, pero el umbral no se movio: 0.42 con el marco dentro
-    #     del util sigue dando un modulo cambiado.
+    # Durante tres ticks el QR no pudo pasar de 0.34 porque el verificador de QR
+    # del QA leia un modulo cambiado, y se descartaron cinco hipotesis buscando
+    # la causa en el lector, en el marco, en el antialiasing y en el borde de la
+    # pagina. Estaba en otro sitio: **el bloque del nombre del curso se envolvia
+    # a 38 caracteres fijos** mientras el resto del flujo respeta un
+    # `right_edge` que se acorta a la altura del QR. Con el codigo pequeño
+    # sobraba sitio; al agrandarlo, el texto se metia POR DEBAJO del QR y
+    # ensuciaba sus modulos de la izquierda —el verificador fallaba en las
+    # columnas 1 y 3, que es exactamente por donde entraba—.
     #
-    # Lo que queda: solo falla con MUCHOS modulos y a la vez con el QR grande,
-    # en la ficha completa. Es un cruce de las dos cosas y no de ninguna sola.
-    #
-    # Se sube hasta donde se puede demostrar. Un QR mas grande con el
-    # verificador leyendo el sitio equivocado seria peor que este: el gate
-    # dejaria de proteger justo lo unico que esta hoja tiene que garantizar,
-    # que es que el codigo se escanee.
-    qr_side = 0.38,
-    qr_x = 0.72,
+    # Arreglado eso, el lector lee limpio en 0.42, 0.46, 0.50 y 0.54. Lo que
+    # manda ahora es la hoja: con `qr_x = 0.70`, el marco termina en 0.9226
+    # sobre un util de 0.925 y arranca en 0.4774, por delante del grid de datos
+    # (0.428). 0.46 ya se saldria por la derecha.
+    qr_side = 0.42,
+    qr_x = 0.70,
     qr_y = 0.685,
     x_left = 0.075,
     x_right = 0.925,
@@ -683,8 +672,23 @@ collection_material_draw_sheet <- function(page, page_no = 1L, total_pages = 1L,
   for (item in plan$items) {
     if (identical(item$type, "body")) {
       block <- .crf_block(page, "body")
+      # **El ancho de envuelto sale del sitio que le toca, no de un 38 fijo.**
+      #
+      # Todos los bloques del flujo reciben un `right_edge` que se acorta cuando
+      # caen a la altura del QR —`if (cursor > qr_bottom) row_right`—; este se
+      # envolvia a 38 caracteres pasara lo que pasara. Con el QR pequeño no se
+      # notaba porque 38 caracteres cabian de sobra; al agrandarlo, `row_right`
+      # baja y el nombre del curso segui midiendo lo mismo: se metia DEBAJO del
+      # codigo.
+      #
+      # Medido el 2026-08-23 con el payload largo del worker y `qr_side = 0.42`:
+      # el verificador leia mal los modulos de las columnas 1 y 3 —el borde
+      # IZQUIERDO del QR, justo por donde entra el texto—. Cinco hipotesis
+      # anteriores fallaron por buscar la causa en el lector, en el marco o en
+      # el borde de la pagina; estaba en quien dibuja al lado.
+      chars <- .crf_flow_chars(item$right_edge, L$x_left, 38L)
       .crf_draw_lines(
-        block$lines %||% .crf_wrap(page$unit$course_name, 38L, 3L),
+        .crf_wrap(page$unit$course_name, chars, 3L),
         L$x_left, item$y_top, grid::gpar(col = tokens$navy, fontsize = type$section, fontface = "bold")
       )
     } else if (identical(item$type, "divider")) {
