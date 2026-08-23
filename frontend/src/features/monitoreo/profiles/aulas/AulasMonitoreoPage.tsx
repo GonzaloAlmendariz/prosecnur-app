@@ -2109,7 +2109,10 @@ export default function AulasMonitoreoPage() {
     ? "Actualizando vista de cursos-horario..."
     : `Recargar ${activeDef.shortLabel ?? activeDef.label} desde la memoria local del proyecto`;
   const advanceTitle = imported
-    ? "Recalcular el corte de campo de cursos-horario con el snapshot y la agenda locales"
+    // «snapshot» es como se llama por dentro a la copia descargada de la
+    // plataforma; quien lee el tooltip lo que necesita saber es que se usa lo
+    // que ya está en el proyecto y no se vuelve a la red.
+    ? "Recalcular el corte de campo con las respuestas y la agenda que ya están en el proyecto"
     : "Primero importa el plan desde el cálculo de muestra (sección Fuentes)";
 
   /**

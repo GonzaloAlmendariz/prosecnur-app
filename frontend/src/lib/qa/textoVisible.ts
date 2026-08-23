@@ -57,6 +57,15 @@ export function textoVisibleDe(fuente: string): string[] {
       // cuando hay comillas sueltas en una firma —«(null); const [preview,
       // setPreview] = useState»— y un guardián que grita de más se ignora.
       && !/[;=[\]]/.test(t)
+      // Acceso a propiedad: `handoff.linked` es codigo, no copy. LETRA punto
+      // LETRA, no `\w`: con `\w` se caia tambien cualquier frase que nombrara
+      // un codigo de reserva —«la R 1.2 entra si cae la titular»— y el guardian
+      // se quedaba ciego justo en el vocabulario del operativo.
+      && !/[A-Za-z]\.[A-Za-z]/.test(t)
+      // Un `className` con varias clases pasa el filtro de «dos palabras»:
+      // «mon-profile-panel mon-aulas-handoff-panel» son dos, separadas por
+      // espacio. Si TODAS las palabras son kebab-case, no es una frase.
+      && !t.trim().split(/\s+/).every((w) => /^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(w))
       && !/^[a-z]+([-_][a-z]+)+$/.test(t));
   return [...jsx, ...attrs, ...enExpresiones]
     .map((t) => t.replace(/\s+/g, " ").trim())
