@@ -1711,3 +1711,42 @@ Resultado en pantalla, con el plan real: **AULA 1 · R1.1 · R1.2 … R1.11 · A
 añadió `/api/recopiladores/reseed` sin actualizarlo. **Los gates iban filtrados
 por área y ese archivo no entraba en ninguno de los filtros usados.** Reparado con
 la ruta declarada y su verbo exigido, como las otras cuatro.
+
+
+## La regla del orden operativo, en un solo sitio
+
+Faltaba Monitoreo: `agendaRows()` filtraba el banco y **no ordenaba**, así que su
+tabla tenía el mismo defecto que la de Recopiladores.
+
+Antes de duplicar la regla se extrajo a `lib/cadenaOperativa.ts`. **El defecto que
+más se ha repetido en este dominio es exactamente ese**: una regla del operativo
+—«el banco no se agenda», «la cadena va junta»— implementada en cada consumidor
+por separado. Basta que uno se olvide, y se olvidó en el libro de campo (2 121
+filas donde debían ser 191), en la agenda por día y en el plan de recolección.
+Una definición, dos consumidores.
+
+### Los tres respaldos, y por qué el orden entre ellos importa
+
+`operational_sequence` declarada → número del propio código → rango del titular.
+
+Son **escalas distintas** y mezclarlas descoloca. Costó dos pasadas:
+
+1. El rango empieza en 0 y el número del código en 1, así que «AULA 2» (rango 1)
+   se colaba entre «AULA 1» y sus «R1.x» (código 1).
+2. Y el rango sólo puede salvar a las **reservas** que declaran de quién son. Para
+   un titular sin secuencia ni número, su rango es su propia posición, y usarlo lo
+   colaba en medio de cadenas numeradas. Lo que no se puede situar va **al final**,
+   no en medio.
+
+### Verificado en las dos pantallas
+
+- **Recopiladores**, plan del 1 de agosto sin `operational_sequence` ni
+  `replacement_for`: AULA 1 · R1.1 · R1.2 … R1.11 · AULA 2 …
+- **Monitoreo**, plan del sorteo de 193: CH 1 (Titular) · R 1.1 (Reserva
+  encadenada), con su secuencia y su código de titular en la tabla.
+
+Y en la misma pantalla, el arreglo del tope: «Ninguno de los **700**
+cursos-horario tiene fecha de aplicación. La agenda dibuja los **500** que caben
+en esta vista». Antes decía «los 42».
+
+8 asertos del módulo compartido; 1 832 tests del frontend en verde.
