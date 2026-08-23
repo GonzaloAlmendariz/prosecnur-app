@@ -64,23 +64,23 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
       <Panel
         className="rec-handoff-card"
         eyebrow="Handoff local"
-        title={<><Send size={18} aria-hidden /> Deployment → Monitoreo</>}
+        title={<><Send size={18} aria-hidden /> Lo que se entrega a Monitoreo</>}
       >
         <div className={`rec-handoff-status${readiness.delivered ? " is-delivered" : readiness.ready ? " is-ready" : " is-blocked"}`}>
           {readiness.delivered ? <CheckCircle2 size={22} /> : <ShieldCheck size={22} />}
           <div><strong>{readiness.delivered ? "Entrega registrada" : readiness.ready ? "Listo para entregar" : "Entrega bloqueada"}</strong><p>{readiness.reason}</p></div>
         </div>
         <dl>
-          <div><dt>Deployment</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>
+          <div><dt>Accesos</dt><dd title={deployment?.deployment_id ?? undefined}>{shortFingerprint(deployment?.deployment_id)}</dd></div>
           <div><dt>Cobertura</dt><dd>{deployment ? `${deployment.coverage.units_with_access}/${deployment.coverage.units_total}` : "—"}</dd></div>
           <div><dt>Target</dt><dd>{deployment ? providerLabel(deployment.target.provider) : "—"}</dd></div>
-          <div><dt>Fingerprint</dt><dd title={readiness.fingerprint}>{shortFingerprint(readiness.fingerprint)}</dd></div>
+          <div><dt>Huella</dt><dd title={readiness.fingerprint}>{shortFingerprint(readiness.fingerprint)}</dd></div>
         </dl>
         <PulsoButton variant="primary" onClick={() => { void handoff(); }} disabled={!readiness.ready || readiness.delivered || busy}>
           {busy ? <Loader2 size={15} className="pulso-spin" /> : <Send size={15} />}
           {readiness.delivered ? "Entregado" : "Entregar a Monitoreo"}
         </PulsoButton>
-        <p className="rec-policy-note">La operación es idempotente: el mismo fingerprint conserva un único recibo y no repite el traspaso.</p>
+        <p className="rec-policy-note">Entregar dos veces no duplica nada: con la misma huella se conserva un solo recibo y el traspaso no se repite.</p>
         {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
       </Panel>
 
@@ -97,10 +97,10 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
               <div><dt>Fecha</dt><dd>{receipt.handed_off_at}</dd></div>
               <div><dt>Revisión</dt><dd>{receipt.state_revision}</dd></div>
               <div><dt>Plan</dt><dd title={receipt.plan_fingerprint}>{shortFingerprint(receipt.plan_fingerprint)}</dd></div>
-              <div><dt>Deployment</dt><dd title={receipt.deployment_fingerprint}>{shortFingerprint(receipt.deployment_fingerprint)}</dd></div>
+              <div><dt>Accesos</dt><dd title={receipt.deployment_fingerprint}>{shortFingerprint(receipt.deployment_fingerprint)}</dd></div>
             </dl>
           </article>
-        ) : <div className="rec-contained-empty">El recibo aparece aquí después de entregar un deployment preparado.</div>}
+        ) : <div className="rec-contained-empty">El recibo aparece aquí cuando se entregan unos accesos ya preparados.</div>}
 
         <div className="rec-artifact-list" data-qa-geometry-group="recopiladores/artefactos" data-qa-geometry-contract="intrinsic">
           {/* El aviso va ARRIBA de la lista: se descarga desde cada fila, así que
@@ -135,7 +135,7 @@ export function DeliverySection({ payload, latestArtifact, onState }: Props) {
           ))}
           {!artifacts.length ? (
             <div className="rec-contained-empty" data-qa-geometry-capacity="owned">
-              Aún no hay un recibo de artefacto renderizado en esta sesión.
+              Todavía no se ha generado ningún material en esta sesión.
             </div>
           ) : null}
         </div>

@@ -571,3 +571,38 @@ con los comentarios fuera —ahí sí deben usarse los nombres reales del motor�
 los espacios normalizados, porque el JSX parte las frases en varias líneas.
 
 Medido en pantalla: cero apariciones de las tres.
+
+
+## Un guardián del vocabulario, en vez de traducir de tanda en tanda
+
+La jerga apareció en tres tandas —los subtítulos, el interior de Accesos, y
+Materiales y Entrega—. Traducir tanda a tanda es esperar a que salga la
+siguiente, así que ahora hay un test que recorre **las cinco pantallas** del
+módulo.
+
+Lo que encontró al estrenarse, y ya está traducido:
+
+| Decía | Dice |
+|---|---|
+| «QR **autoritativo del backend**» | «QR generado por Pulso» |
+| «**Deployment** → Monitoreo» | «Lo que se entrega a Monitoreo» |
+| «Aún no hay un recibo de **artefacto renderizado**» | «Todavía no se ha generado ningún material» |
+| «La operación es **idempotente**: el mismo **fingerprint** conserva un único recibo» | «Entregar dos veces no duplica nada: con la misma huella se conserva un solo recibo» |
+| «Leyendo **plantilla semántica**…» | «Leyendo la plantilla de la ficha…» |
+| «La vista previa no produjo **bindings**. Los **recipient links** sólo aparecen…» | «…no produjo enlaces. Los enlaces individuales sólo aparecen…» |
+| «El **binario** y su **preview** se generan en **backend**» | «El archivo y su vista previa los genera Pulso» |
+| «**Deployment** activo observado» | «El formulario acepta respuestas» |
+| «**Fingerprint**» | «Huella» |
+
+Tres decisiones sobre el guardián:
+
+1. **Los comentarios quedan fuera.** Ahí sí deben usarse los nombres reales del
+   motor: son lo que permite seguir el rastro hasta el código que manda.
+2. **Se busca dentro del texto visible, no del archivo.** Una palabra suelta no
+   distingue copy de código — `preflight` es también un estado de React.
+3. **Un aserto contra el verde vacío**: si el extractor deja de encontrar texto,
+   el test falla en vez de aprobar las cinco por no mirar nada.
+
+Y un falso positivo corregido al estrenarlo: el extractor pescaba trozos de
+código partido por el JSX («{adapterId ===»). **Un falso positivo gasta el
+crédito del guardián**, así que se filtran las líneas con signos de expresión.

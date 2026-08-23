@@ -170,7 +170,7 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
             onClick={() => onSelect(block.block_id)}
           >
             <span>{BLOCK_LABELS[block.type]}</span>
-            {block.type === "access_qr" ? <strong>QR autoritativo del backend</strong> : null}
+            {block.type === "access_qr" ? <strong>QR generado por Pulso</strong> : null}
             {block.text ? <strong>{block.text}</strong> : null}
             {block.fields?.length ? <small>{block.fields.map(materialFieldCanvasLabel).join(" · ")}</small> : null}
             {block.binding && block.type !== "access_qr" ? <small>{bindingLabel(block.binding)}</small> : null}
@@ -356,7 +356,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     void onStateRefresh();
   }, [onArtifact, onStateRefresh]);
 
-  if (loading) return <div className="rec-loading">Leyendo plantilla semántica…</div>;
+  if (loading) return <div className="rec-loading">Leyendo la plantilla de la ficha…</div>;
 
   if (activeTab === "paquetes") {
     return (
@@ -364,11 +364,11 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         <Panel
           className="rec-package-card"
           eyebrow="Instancias"
-          title={<><Archive size={18} aria-hidden /> Receta ligada al deployment</>}
+          title={<><Archive size={18} aria-hidden /> La ficha de estos accesos</>}
         >
           <dl>
             <div><dt>Template</dt><dd>{template.template_id}</dd></div>
-            <div><dt>Deployment</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
+            <div><dt>Accesos</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
             <div><dt>Instancias</dt><dd>{instances.length}</dd></div>
             <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin deployment"}</dd></div>
           </dl>
@@ -379,7 +379,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         <Panel
           className="rec-render-card"
           data-qa-geometry-capacity="owned"
-          eyebrow="Renderer autoritativo"
+          eyebrow="Lo genera Pulso"
           title="PNG, PDF o paquete"
         >
           <div className="rec-render-actions">
@@ -402,7 +402,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar artefacto</a>
             </div>
-          ) : <div className="rec-contained-empty">El binario y su preview se generan en backend y quedan fuera del proyecto `.pulso`.</div>}
+          ) : <div className="rec-contained-empty">El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto.</div>}
           {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
         </Panel>
       </div>

@@ -285,7 +285,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
                 <option value="survey">survey</option><option value="collection">collection</option><option value="unknown">unknown</option>
               </select>
             </label>
-            <label className="rec-check"><input type="checkbox" aria-label="Deployment activo observado" checked={active} onChange={(event) => setActive(event.target.checked)} /> Deployment activo observado</label>
+            <label className="rec-check"><input type="checkbox" aria-label="El formulario acepta respuestas" checked={active} onChange={(event) => setActive(event.target.checked)} /> El formulario acepta respuestas</label>
             <span className="rec-field-group-heading">Personalización del enlace</span>
             <label>Campo de personalización (avanzado)
               <input
@@ -391,7 +391,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
                   ))}</tbody>
                 </table>
               </TableScroll>
-            ) : <div className="rec-contained-empty">La vista previa todavía no produjo bindings. Los recipient links solo aparecen si ya llegaron del proveedor.</div>}
+            ) : <div className="rec-contained-empty">La vista previa todavía no produjo enlaces. Los enlaces individuales sólo aparecen si ya llegaron de la plataforma.</div>}
           </>
         )}
 
