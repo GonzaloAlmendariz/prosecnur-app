@@ -16,6 +16,7 @@ import {
 import { COLLECTION_ADAPTER_LABELS } from "./providerRules";
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
+import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -241,6 +242,10 @@ export function PlanSection({ payload, onState }: Props) {
 
   return (
     <div className="rec-plan-layout">
+      {/* Los dos paneles de contexto van en una columna propia: el layout es de
+          dos columnas y un tercer hijo suelto caeria bajo el resumen empujando
+          la tabla a la fila siguiente. */}
+      <div className="rec-plan-aside">
       <Panel
         className="rec-summary-card"
         eyebrow="Resumen del plan"
@@ -298,6 +303,11 @@ export function PlanSection({ payload, onState }: Props) {
           </div>
         ) : null}
       </Panel>
+      {/* Con qué facultades se reparte el operativo. Va bajo el resumen y sobre
+          la tabla porque es la pregunta con la que se abre esta pantalla: no
+          «cuántas aulas hay» sino «de quién son». */}
+      <ComposicionPorFacultad unidades={plan.units} />
+      </div>
       <Panel
         className="rec-data-card"
         eyebrow="Plan congelado"
