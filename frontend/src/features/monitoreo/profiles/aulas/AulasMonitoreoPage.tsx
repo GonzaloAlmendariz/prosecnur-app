@@ -77,6 +77,12 @@ import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
+import { embudoDelOperativo } from "./embudoDelOperativo";
+// Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
+// y es genérico —etapas con valor, detalle, estado y merma—. Importarlo entre
+// features es un olor; moverlo a `components/` tocaría muchos imports de otra
+// feature a la vez. Se reutiliza aquí y el traslado queda anotado.
+import { FlujoVertical } from "../../../calcMuestra/universidad/ui/FlujoVertical";
 import {
   MONITOREO_PESTANAS,
   pestanasDeMonitoreo,
@@ -604,9 +610,34 @@ function renderAulasView(
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
     // sin dashboard: importar el plan es justamente la acción de arranque.
+    const embudo = embudoDelOperativo(dashboard?.kpis);
     return (
       <div className="mon-profile-stack aulas-fuentes-stack">
         {operations}
+        {/* **El recorrido, con su merma en cada paso.** Es el patrón 4 del
+            catálogo: Cálculo tiene un mapa que va de las filas leídas a los
+            titulares y contesta «¿de dónde salió este número?» sin salir de la
+            pantalla; Monitoreo enseñaba KPIs sueltos sin decir cómo se encadenan.
+            Ver docs/qa/roles-del-operativo-de-aulas-2026-08-22.md.
+            Vacío cuando no hay plan: el embudo de ceros no explica nada. */}
+        {embudo.length ? (
+          <section
+            className="mon-profile-panel aulas-embudo-panel"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Del plan a las encuestas que cuentan</h3>
+              <span>dónde está cada curso-horario ahora mismo</span>
+            </div>
+            <div data-qa-geometry-capacity="owned">
+              <FlujoVertical
+                etapas={embudo}
+                orientacion="horizontal"
+                ariaLabel="Recorrido del operativo: del plan a las encuestas válidas"
+              />
+            </div>
+          </section>
+        ) : null}
         <section
           className="mon-profile-panel"
           // Sin grupo en el `section`: con él, la CABECERA entra como miembro y sus
