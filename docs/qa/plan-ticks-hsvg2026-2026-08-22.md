@@ -1604,3 +1604,25 @@ anterior**: rehacerlos es una acción del usuario, y los avisos de desfase
 construidos en esta serie existen justo para que se vea que hay que hacerlo.
 
 El `.pulso` de entrada tampoco se pisa: la salida es `HSVG2026_193.pulso`.
+
+
+## El aviso de desfase, validado con el sorteo nuevo
+
+Aplicadas las 193, el `.pulso` quedó con el plan de recolección del sorteo del 1
+de agosto y una selección vigente del 22. Abriendo Recopiladores, el aviso de la
+serie B se dispara solo y con las dos fechas leídas de los `run_id`:
+
+> Este plan se armó con el **sorteo del 1 ago 2026, 21:12**, y la selección
+> vigente es **otra** (del **22 ago 2026, 20:43**). Los materiales que se generen
+> ahora llevarán las aulas del plan, no las del sorteo actual.
+>
+> Rehacerlo lo reemplaza por las aulas del sorteo vigente y **descarta el
+> despliegue preparado**. Las fichas ya impresas dejan de corresponder al plan.
+
+Es la cadena completa cerrándose sobre sí misma: el defecto que abrió la serie B
+—un plan de recolección desfasado y mudo— ahora se anuncia solo, con su coste
+dicho antes de actuar, en el primer proyecto donde el desfase ocurre de verdad.
+
+**No se pulsa el botón.** Rehacer descarta el despliegue preparado y deja sin
+valor las fichas impresas: es una decisión con coste, y el aviso existe
+precisamente para que la tome quien puede asumirlo.
