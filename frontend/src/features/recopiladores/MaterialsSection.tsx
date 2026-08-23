@@ -195,7 +195,7 @@ function MaterialCanvas({ template, selectedId, onSelect }: {
           </button>
         ))}
       </div>
-      <p>Este lienzo representa la receta. La preview PNG del job es la única prueba autoritativa del material final.</p>
+      <p>Esto es el diseño de la ficha. La imagen que genera Pulso es la única prueba de cómo saldrá impresa.</p>
     </div>
   );
 }
@@ -341,7 +341,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       setInstances(result.instances);
       return result.instances;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudieron crear las instancias.");
+      setError(cause instanceof Error ? cause.message : "No se pudieron crear las fichas.");
       return [];
     } finally {
       setInstanceBusy(false);
@@ -363,7 +363,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       setJobFormat(format);
       setJobId(job.job_id);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo iniciar el render.");
+      setError(cause instanceof Error ? cause.message : "No se pudo generar el archivo.");
     }
   };
 
@@ -381,17 +381,17 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
       <div className="rec-package-layout">
         <Panel
           className="rec-package-card"
-          eyebrow="Instancias"
+          eyebrow="Fichas"
           title={<><Archive size={18} aria-hidden /> La ficha de estos accesos</>}
         >
           <dl>
-            <div><dt>Template</dt><dd>{template.template_id}</dd></div>
+            <div><dt>Plantilla</dt><dd>{template.template_id}</dd></div>
             <div><dt>Accesos</dt><dd>{deployment?.deployment_id ?? "pendiente"}</dd></div>
-            <div><dt>Instancias</dt><dd>{instances.length}</dd></div>
-            <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin deployment"}</dd></div>
+            <div><dt>Fichas</dt><dd>{instances.length}</dd></div>
+            <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin preparar"}</dd></div>
           </dl>
           <PulsoButton variant="secondary" onClick={() => { void createInstances(); }} disabled={!deployment || instanceBusy}>
-            {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : <Layers size={15} />} Crear instancias
+            {instanceBusy ? <Loader2 size={15} className="pulso-spin" /> : <Layers size={15} />} Crear las fichas
           </PulsoButton>
         </Panel>
         <Panel
@@ -401,9 +401,9 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           title="PNG, PDF o paquete"
         >
           <div className="rec-render-actions">
-            <PulsoButton variant="secondary" onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Preview PNG</PulsoButton>
-            <PulsoButton variant="primary" onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Render PDF</PulsoButton>
-            <PulsoButton variant="secondary" onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Render paquete</PulsoButton>
+            <PulsoButton variant="secondary" onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Ver imagen</PulsoButton>
+            <PulsoButton variant="primary" onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
+            <PulsoButton variant="secondary" onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
           </div>
           <JobProgress<CollectionMaterialRenderResult>
             label={`Render ${jobFormat ?? "material"}`}
@@ -415,7 +415,7 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           {renderResult ? (
             <div className="rec-render-result">
               {renderResult.media_type === "image/png" ? (
-                <img src={downloadUrl(renderResult.file_id)} alt="Preview PNG autoritativa del material" />
+                <img src={downloadUrl(renderResult.file_id)} alt="La ficha tal como la genera Pulso" />
               ) : null}
               <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>

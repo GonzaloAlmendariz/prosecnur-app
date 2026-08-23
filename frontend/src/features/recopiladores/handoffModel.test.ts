@@ -39,6 +39,12 @@ describe("handoff idempotente", () => {
   it("solo habilita un deployment preparado y con fingerprint", () => {
     expect(handoffReadiness(deployment("prepared")).ready).toBe(true);
     expect(handoffReadiness(deployment("draft")).ready).toBe(false);
-    expect(handoffReadiness(deployment("stale")).reason).toMatch(/reconciliarse/);
+    // El motivo distingue «todavía no está» de «se quedó viejo», que son dos
+    // acciones distintas para quien lo lee. Se comprueba esa distinción y no la
+    // palabra «reconciliarse», que era jerga y salía en pantalla.
+    const viejo = handoffReadiness(deployment("stale")).reason ?? "";
+    const sinPreparar = handoffReadiness(deployment("draft")).reason ?? "";
+    expect(viejo).toMatch(/cambiaron/);
+    expect(viejo).not.toBe(sinPreparar);
   });
 });
