@@ -1844,3 +1844,32 @@ Ni siquiera existía el binding: `COLLECTION_MATERIAL_BINDINGS` tenía
   que esta serie lleva reparando.
 
 6 asertos; el mutante que devuelve el nombre académico mata 1.
+
+
+## La ficha, verificada en el PDF impreso
+
+No basta con cambiar la plantilla: hay que abrir el papel. Generada una ficha por
+el camino real —semilla, deployment, instancia, compilación y render a PDF— y
+leída con `pdftotext`:
+
+```
+AULA−01
+Ciencias Sociales
+   Curso 01
+   Rol      Titular
+```
+
+y la de una reserva:
+
+```
+AULA−03
+Ciencias Sociales
+   Curso 03
+   Rol      Reemplazo de AULA−01
+```
+
+El fixture distingue a propósito `operational_code = "AULA-01"` de
+`label = "Aula 01"`: si el título dijera «Aula 01» el arreglo no habría llegado
+al papel. Dice el código, y el rol de la reserva nombra a su titular.
+
+Sin warnings de render: ni `field_grid_overflow` ni `text_truncated`.
