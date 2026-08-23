@@ -53,6 +53,38 @@ altura*. No es un detalle de una tanda: es el objetivo de todas.
 | 23 | «reservas del banco» nombraba dos conjuntos distintos | `8531b05c` |
 | 24 | «2 109 en juego» sobre un operativo de 193 visitas | `3d6f20cf` |
 
+## La línea papel → Excel → app, verificada de punta a punta
+
+Gonzalo, textual: «esto lo van a llenar los aplicadores en papel una vez que
+vayan al aula… ese papel se le da al jefe de campo, y el jefe de campo lo llena
+en el Excel, para que luego ese Excel sea leído por la aplicación y actualizado
+el monitoreo».
+
+Probada el 2026-08-23 con el proyecto de 193, llenando tres partes en la hoja
+«Aulas Aplicadas (Campo)» como los transcribiría el jefe de campo:
+
+| Eslabón | Estado | Evidencia |
+|---|---|---|
+| Ficha de papel pide las 9 casillas | ☑ | cada casilla existe como columna del libro (test de correspondencia) |
+| Libro generado del plan real | ☑ | 5 hojas, 700 unidades, 193 filas de control |
+| Jefe de campo transcribe | ☑ | 3 partes escritos en las columnas 24–34 del bloque 1 |
+| App lee el Excel | ☑ | los 3 llegan con sus 14 campos: `observed_students`, `effective_surveys`, `actual_room`… |
+| Llegan a la sesión y a la config | ☑ | `monitoreo_aulas_partes_campo` = 3 y `config.aulas_universitarias.partes_campo` = 3 |
+| El dashboard los publica | ☑ | `partes_campo` con 13 campos por parte, incluidos `esperado`, `diferencia`, `cuadra` |
+| Reconciliación aritmética | ☑ | `monitoreo_aulas_reconciliacion_partes` corre; 0 descuadres con partes que cuadran |
+| **El avance NO se mueve** | ⚠ | `aulas_aplicadas` sigue en 0 con 3 partes «Aplicada» |
+
+El último renglón **no es un defecto encontrado, es una decisión de diseño que
+hay que confirmar**. `aulas_aplicadas` cuenta `operational_status` del plan, y
+ese lo llena el **registro de campo de la app**, no el parte del libro. Está
+documentado en el propio código: «el parte de campo y el control son medidas
+distintas del mismo aula y mezclarlas perdería de cuál viene cada número».
+
+La pregunta para Gonzalo: al importar el libro con partes «Aplicada», ¿debe
+moverse el avance de Monitoreo, o el avance es sólo del registro de la app y el
+parte se queda como control de calidad? Cambiar esto cambia qué significa el
+número de avance, así que no se toca sin que lo decida él.
+
 ## Lo que espera decisión tuya
 
 | Tema | Por qué está bloqueado |
