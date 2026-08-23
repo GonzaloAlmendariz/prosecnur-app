@@ -770,7 +770,22 @@ test_that("golden: seleccion de cadenas es identica al snapshot (seed 515)", {
   expect_identical(golden_capture_selection(selection), readRDS(gp))
 })
 
-test_that("golden: simulacion de reemplazos es identica al snapshot (seed 202)", {
+# Este golden NO compara qué aulas salieron, y la excepción tiene motivo.
+#
+# Su fixture sortea por `cube_balanceado` sobre una matriz de balance de rango
+# DEFICIENTE (12x2 con un valor singular exactamente 0). La fase de vuelo pide
+# el vector del núcleo con `svd(X1)$u[, p + 1]` y, sin rango completo, ese
+# vector no es único ni salvo signo: es libre dentro de un subespacio, y cada
+# LAPACK devuelve el suyo. macOS y Linux eligen aulas distintas con la misma
+# semilla. El ADR 0073 reparó la mitad del defecto (el signo) y declara viva la
+# otra mitad.
+#
+# Comparar ids exactos aquí solo puede producir un rojo que se apaga
+# regenerando el golden en la plataforma de turno, que es justo como el defecto
+# sobrevivió meses. Así que este test congela lo que SÍ debe ser igual en toda
+# máquina, y la reproducibilidad de los ids la persigue
+# test-calc-muestra-aulas-cube-reproducible.R, que ataca la causa.
+test_that("golden: la simulacion de reemplazos conserva su forma (seed 202)", {
   skip_if_not_installed("sampling")
   gp <- golden_path("simulacion")
   skip_if_not(file.exists(gp), "Falta golden simulacion.rds; corre api/tools/gen_golden_aulas.R")
@@ -778,7 +793,43 @@ test_that("golden: simulacion de reemplazos es identica al snapshot (seed 202)",
   frame <- calc_muestra_aulas_construir(base_madre = f$base, config = f$cfg)
   selection <- calc_muestra_aulas_seleccionar(frame, f$cfg)
   replacement <- calc_muestra_aulas_simular_reemplazos(frame, selection, f$cfg)
-  expect_identical(golden_capture_sim(replacement), readRDS(gp))
+
+  got <- golden_capture_sim(replacement)
+  esperado <- readRDS(gp)
+
+  # Estructura y tamaño de la cadena: cuántos titulares reciben reemplazo y
+  # cuántas reservas le tocan a cada uno.
+  expect_identical(names(got), names(esperado))
+  expect_identical(nrow(got), nrow(esperado))
+  expect_identical(sort(got$rank), sort(esperado$rank))
+  expect_identical(
+    unname(table(table(got$titular_classroom_id))),
+    unname(table(table(esperado$titular_classroom_id)))
+  )
+
+  # El REPARTO entre niveles no se congela: depende de qué aulas salieron, y
+  # eso es justo lo que varía entre plataformas (medido: 5 misma_celda / 3
+  # equivalente en macOS contra 6 / 2 en el runner Linux). Lo que sí se exige es
+  # el vocabulario y la correspondencia nivel-puntaje, que el motor define y
+  # ninguna plataforma puede alterar.
+  expect_true(all(got$match_level %in% unique(esperado$match_level)))
+  expect_true(all(got$score %in% unique(esperado$score)))
+  puntaje_de <- function(d) {
+    vapply(split(d$score, d$match_level), function(v) unique(v), numeric(1))
+  }
+  observado <- puntaje_de(got)
+  referencia <- puntaje_de(esperado)
+  expect_identical(observado, referencia[names(observado)])
+
+  # El fixture no mueve el puntaje de la composición: entra y sale igual.
+  expect_identical(unique(got$score_delta), unique(esperado$score_delta))
+  expect_identical(unique(got$before_score), unique(esperado$before_score))
+  expect_identical(unique(got$after_score), unique(esperado$after_score))
+
+  # Invariantes de la cadena que ninguna plataforma puede romper.
+  expect_false(any(got$titular_classroom_id == got$reserve_classroom_id))
+  expect_false(any(duplicated(got[c("titular_classroom_id", "rank")])))
+  expect_false(any(duplicated(got$reserve_classroom_id)))
 })
 
 test_that("golden: seleccion a escala con empates es identica al snapshot (150 aulas)", {

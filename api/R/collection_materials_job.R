@@ -174,12 +174,27 @@ collection_material_render_job <- function(snapshot_path, format, result_path,
       folder <- file.path(facultad, cajon)
       folder_path <- file.path(fichas_dir, folder)
       dir.create(folder_path, recursive = TRUE, showWarnings = FALSE)
-      # El nombre del curso-horario EN MAYUSCULAS. El marco lo trae en minuscula
-      # —«urb209_0601»— y en una carpeta de cientos de PDF la caja uniforme es
-      # lo que deja escanear la lista sin leerla entera.
-      base_name <- toupper(
+      # **El codigo del aula delante, y el curso-horario en MAYUSCULAS.**
+      #
+      # «CH 5 - URB209_0601.pdf», «R 5.3 - 1ARC66_0601.pdf». Gonzalo,
+      # 2026-08-23: el rol y el codigo salen de la ficha y se van al nombre del
+      # archivo, que es donde los necesita quien reparte y no quien aplica.
+      #
+      # Ademas ORDENA la carpeta como se trabaja: por cadena. Con solo el codigo
+      # academico, «1ARC66_0601» y «URB209_0601» quedaban en orden alfabetico,
+      # que no es ningun orden para el operativo.
+      #
+      # El marco trae el label en minuscula y en una carpeta de cientos de PDF
+      # la caja uniforme deja escanear la lista sin leerla entera.
+      codigo <- .crf_txt(page_i$unit$operational_code, "")
+      curso <- toupper(
         .cmj_path_segment(page_i$unit$label, page_i$unit$unit_id %||% sprintf("unidad-%d", i))
       )
+      base_name <- if (nzchar(codigo) && !identical(toupper(codigo), curso)) {
+        .cmj_path_segment(sprintf("%s - %s", toupper(codigo), curso), curso)
+      } else {
+        curso
+      }
       key <- file.path(folder, base_name)
       count <- (if (exists(key, envir = seen_names, inherits = FALSE)) get(key, envir = seen_names) else 0L) + 1L
       assign(key, count, envir = seen_names)

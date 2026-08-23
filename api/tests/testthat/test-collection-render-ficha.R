@@ -183,15 +183,23 @@ test_that("una ficha de titular y una de reemplazo no se confunden", {
   expect_identical(reserva$replacement_for, "CH 1")
 })
 
-test_that("la ficha built-in imprime el rol", {
-  # El registro de bindings puede permitir `unit.role` y la plantilla no usarlo:
-  # permitir no es dibujar.
+test_that("la ficha built-in NO imprime el rol: no es dato del aplicador", {
+  # Gonzalo, 2026-08-23: «al aplicador no le sirve mucho saber si el aula es
+  # titular o reemplazo». Quien entra al aula aplica igual en las dos; el rol lo
+  # necesita quien REPARTE las fichas, y para eso vive en la carpeta del paquete
+  # —Titulares / Reemplazos / Adicionales— y en el nombre del PDF.
+  #
+  # El binding sigue PERMITIDO en el registro: una plantilla de estudio puede
+  # quererlo. Lo que cambia es que la hoja de la casa no gasta un renglon en el,
+  # y ese renglon es el recurso escaso de una ficha que se llena a mano.
   fields <- collection_material_builtin_template()$pages[[1]]$blocks
   grid <- Filter(function(b) identical(b$type, "field_grid"), fields)[[1]]
   bindings <- vapply(grid$fields, function(f) as.character(f$binding %||% ""), character(1))
 
-  expect_true("unit.role" %in% bindings)
-  expect_identical(grid$fields[[which(bindings == "unit.role")]]$label, "Rol")
+  expect_false("unit.role" %in% bindings)
+  # Y el rol sigue viajando en el contexto, que es de donde lo toma el paquete
+  # para decidir su carpeta.
+  expect_true("unit.role" %in% prosecnurapp:::COLLECTION_MATERIAL_BINDINGS)
 })
 
 # --- Capacidad y reparto del grid --------------------------------------------

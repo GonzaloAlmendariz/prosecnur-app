@@ -135,8 +135,8 @@ test_that("bundle separa un PDF por unidad en Fichas/<facultad>/, sin manifest J
   # por facultad y separa lo que SE VISITA de lo que solo entra si algo cae. Y
   # el nombre del curso-horario va EN MAYUSCULAS.
   expect_setequal(listing, c(
-    "Fichas/Ingenieria/Titulares/AULA 1.pdf",
-    "Fichas/Derecho/Reemplazos/AULA 2.pdf",
+    "Fichas/Ingenieria/Titulares/MAT-01 - AULA 1.pdf",
+    "Fichas/Derecho/Reemplazos/MAT-02 - AULA 2.pdf",
     "accesos.tsv"
   ))
   expect_false(any(grepl("manifest[.]json$", listing, ignore.case = TRUE)))
@@ -148,8 +148,8 @@ test_that("bundle separa un PDF por unidad en Fichas/<facultad>/, sin manifest J
   dir.create(unpack)
   utils::unzip(path, exdir = unpack)
   # Cada PDF por unidad tiene una sola pagina -ya no es un PDF combinado.
-  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Ingenieria/Titulares/AULA 1.pdf")), 1L)
-  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Derecho/Reemplazos/AULA 2.pdf")), 1L)
+  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Ingenieria/Titulares/MAT-01 - AULA 1.pdf")), 1L)
+  expect_identical(qpdf::pdf_length(file.path(unpack, "Fichas/Derecho/Reemplazos/MAT-02 - AULA 2.pdf")), 1L)
   tsv <- utils::read.delim(file.path(unpack, "accesos.tsv"), stringsAsFactors = FALSE)
   expect_identical(tsv$unit_id, vapply(result$page_map, `[[`, character(1), "unit_id"))
   expect_true(all(grepl("^https://", tsv$qr_payload)))
@@ -188,7 +188,15 @@ test_that("dos unidades de la misma facultad con el mismo label no se pisan", {
   collection_material_render_job(snapshot_path, "bundle", path)
   listing <- utils::unzip(path, list = TRUE)$Name
   expect_setequal(listing, c(
-    "Fichas/Ingenieria/Titulares/AULA 1.pdf", "Fichas/Ingenieria/Titulares/AULA 1 (2).pdf",
+    # **Ya no hacen falta los «(2)».** Con el codigo del aula delante, dos
+    # secciones del mismo curso son «MAT-01 - AULA 1» y «MAT-02 - AULA 1»: el
+    # codigo operativo es unico por definicion y resuelve la colision de raiz.
+    # El contador sigue vivo como red —dos unidades podrian compartir codigo si
+    # el plan viniera roto— y este test comprueba que no se activa cuando no
+    # hace falta: un «(2)» sobre archivos que ya se distinguen haria dudar de
+    # cual es cual.
+    "Fichas/Ingenieria/Titulares/MAT-01 - AULA 1.pdf",
+    "Fichas/Ingenieria/Titulares/MAT-02 - AULA 1.pdf",
     "accesos.tsv"
   ))
 })

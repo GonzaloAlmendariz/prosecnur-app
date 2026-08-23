@@ -884,3 +884,55 @@ test_that("plan ACNUR/Kobo respeta opciones explicitas de mapas y comparativo", 
   )
   expect_identical(suggested$report_inputs$profile, list(available = FALSE))
 })
+
+test_that("el filtro de identificadores no alcanza a las preguntas cerradas", {
+  # ACNUR V3 / PDM MedVida 2026: cinco preguntas cerradas con 6 a 87 respuestas
+  # quedaban fuera del mazo porque su ENUNCIADO mencionaba «WhatsApp»,
+  # «empresa» u «observaciones», y `.graficos_is_identifier_like()` busca sus
+  # patrones sobre `name` + `label` concatenados. Una pregunta cerrada responde
+  # con su lista de opciones y nunca con un dato de contacto.
+  # Ver `docs/qa/checklist-acnur-v3-preguntas-ausentes-2026-08-19.md`.
+  cerradas <- list(
+    c("WhatsAppGroup", "select_one yesnoDnPs",
+      "¿Ingresó a algún grupo o comunidad de WhatsApp administrado por World Vision?"),
+    c("UtilityWhatsAppGroup", "select_one utility",
+      "Si ingresó, ¿los mensajes del grupo de WhatsApp eran útiles para encontrar oportunidades laborales?"),
+    c("ProcessSatisfaction", "select_one satisfaction",
+      "¿Qué tan satisfecho(a) está con el proceso de articulación que hizo World Vision entre usted y la empresa?"),
+    c("reva_Tram_obs", "select_one reva_Tram_obs",
+      "Si tuvo observaciones, ¿Pudo resolverlas por su cuenta o con apoyo del equipo?"),
+    c("Sos_empresa", "select_one YesNoKnow",
+      "¿Alguna empresa le ha solicitado expresamente la homologación para contratarlo/a?"),
+    c("RevB_barriers", "select_multiple RevB_barriers",
+      "¿Qué tipo de barreras enfrenta actualmente para ejercer su profesión?")
+  )
+  for (v in cerradas) {
+    res <- .graficos_graphable_reason(list(
+      name = v[[1]], tipo = v[[2]], label = v[[3]], data_available = TRUE
+    ))
+    expect_true(res$graphable, info = paste("debía graficarse:", v[[1]]))
+    expect_identical(res$reason, "")
+  }
+
+  # Los campos de contacto reales son abiertos y siguen fuera.
+  abiertas <- list(
+    c("telephone", "text", "Número de teléfono de contacto"),
+    c("empresa_ppl", "text", "¿En qué empresa trabaja actualmente?"),
+    c("correo", "text", "Correo electrónico")
+  )
+  for (v in abiertas) {
+    res <- .graficos_graphable_reason(list(
+      name = v[[1]], tipo = v[[2]], label = v[[3]], data_available = TRUE
+    ))
+    expect_false(res$graphable, info = paste("no debía graficarse:", v[[1]]))
+    expect_identical(res$reason, "identificador/contacto/texto sensible")
+  }
+
+  # El control operativo sigue mandando sobre las cerradas.
+  consent <- .graficos_graphable_reason(list(
+    name = "Consent", tipo = "select_one Yes_no",
+    label = "¿Acepta continuar con la encuesta?", data_available = TRUE
+  ))
+  expect_false(consent$graphable)
+  expect_identical(consent$reason, "metadato/control operativo del formulario")
+})
