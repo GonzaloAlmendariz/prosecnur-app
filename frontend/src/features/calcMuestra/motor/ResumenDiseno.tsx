@@ -261,7 +261,19 @@ export function ResumenDiseno({
       tone: "operation",
     },
     {
-      label: "Aulas titulares",
+      // «Aulas que pide el cálculo» y no «Aulas titulares» a secas.
+      //
+      // Este KPI suma `aulas_base` del reparto por facultad: es lo que el
+      // diseño EXIGE. Las que se sortean pueden ser más —el sorteo añade
+      // adicionales donde una facultad no llegaría a su cuota— y el mapa del
+      // recorrido, en la misma pantalla, enseña esa otra cifra bajo
+      // «cursos-horario titulares sorteados».
+      //
+      // Medido en HSVG2026 el 2026-08-23: «AULAS TITULARES 190» arriba y
+      // «CURSOS-HORARIO M1 193» a la derecha. Los dos números son correctos y
+      // la diferencia ES información —son los tres adicionales—, pero con el
+      // mismo rótulo se leen como una contradicción y no como un dato.
+      label: "Aulas que pide el cálculo",
       value: aulasTitulares,
       note: resultNote,
       icon: <School size={16} aria-hidden="true" />,

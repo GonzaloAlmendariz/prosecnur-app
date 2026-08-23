@@ -134,3 +134,23 @@ describe("ResumenDiseno bajo contrato I19", () => {
     expect(source).not.toContain("CountUp");
   });
 });
+
+describe("el KPI de aulas dice de qué aulas habla", () => {
+  it("se rotula como las que pide el cálculo, no «Aulas titulares» a secas", () => {
+    // Medido en HSVG2026 el 2026-08-23: el resumen decía «AULAS TITULARES 190»
+    // y el mapa del recorrido, en la MISMA pantalla, «CURSOS-HORARIO M1 193 ·
+    // cursos-horario titulares sorteados».
+    //
+    // Los dos números son correctos y distintos a propósito: 190 es lo que el
+    // reparto por facultad exige (`aulas_base`) y 193 lo que el sorteo produjo,
+    // con los adicionales de las facultades que no llegaban a su cuota. La
+    // diferencia ES información. Con el mismo rótulo se lee como una
+    // contradicción y no como un dato.
+    const fuente = readFileSync(
+      new URL("../ResumenDiseno.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(fuente).toContain('label: "Aulas que pide el cálculo"');
+    expect(fuente).not.toContain('label: "Aulas titulares"');
+  });
+});
