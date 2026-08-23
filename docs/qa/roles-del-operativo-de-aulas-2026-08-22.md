@@ -376,3 +376,44 @@ declara vencida si no hay contra qué medirla.
 
 9 asertos, incluidos los estados tal como el libro los escribe —«Sin Contactar»,
 «EN-RESERVA»—, que es como llegan de verdad.
+
+
+## Trasladado el patrón 3: en qué paso está el operativo
+
+El recorrido de Cálculo marca con un badge dónde estás. Las cuatro tarjetas de
+«Preparación de campo» —Plan de muestra · Kobo + QR · Fichas PDF · Monitoreo—
+eran una rejilla al mismo nivel: **tenían tono `current` y nadie lo leía como
+«aquí»**.
+
+La fase en curso es **la primera que todavía no está lista**. Si todas lo están,
+no se marca ninguna: el operativo ya pasó la preparación y señalar una fase
+inventaría trabajo pendiente.
+
+En pantalla, con el plan de 193 importado: «Kobo + QR» lleva **«Estás aquí»**, que
+es correcto — el plan ya entró y los enlaces todavía no.
+
+**El badge va posicionado, no en el flujo**, y por dos razones concretas: el grupo
+declara contrato `equal` y un renglón de más en una sola tarjeta rompería el alto
+común de las cuatro; y el `article` es un grid con áreas nombradas, donde un hijo
+sin área descolocaría el resto. Medido después: las cuatro siguen en **87 px**.
+
+4 asertos, uno de ellos sobre el CSS —que la regla sea `absolute`—, porque esa es
+la condición que protege la geometría.
+
+---
+
+## Estado del traslado
+
+| Patrón | |
+|---|---|
+| 1 · cada cifra dice de dónde sale | ☑ |
+| 3 · en qué paso estás | ☑ |
+| 4 · el recorrido con sus mermas | ☑ |
+| 5 · la explicación en prosa | ☑ |
+| 7 · la columna que dice qué hacer | ☑ |
+| 6 · estado declarado por cifra | pendiente |
+| 2 · el rastro conceptual | **necesita decidir** cuál es el hilo que une las secciones de Monitoreo |
+
+Y lo que sigue siendo trabajo grande, no un patrón: **una vista por rol**. El
+agendador, el jefe de campo y el analista comparten hoy las mismas cinco
+secciones y el mismo juego de columnas.
