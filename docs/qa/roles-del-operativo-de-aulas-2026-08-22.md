@@ -606,3 +606,23 @@ Tres decisiones sobre el guardián:
 Y un falso positivo corregido al estrenarlo: el extractor pescaba trozos de
 código partido por el JSX («{adapterId ===»). **Un falso positivo gasta el
 crédito del guardián**, así que se filtran las líneas con signos de expresión.
+
+
+## El guardián, también en Monitoreo — y su extractor en un solo sitio
+
+Aplicado el censo al perfil de aulas: **salió limpio**. El único hallazgo era
+código partido por el JSX —`renderAulasView( seccionActiva,`—, un falso positivo
+que el extractor ahora filtra junto a los demás signos de expresión.
+
+Y aun así el test se escribe, por la razón que importa: **un módulo limpio hoy es
+exactamente el que nadie vigila mañana.**
+
+El extractor y la lista de términos se mudan a `lib/qa/textoVisible.ts`,
+compartidos por los dos módulos. Es la lección de esta serie aplicada al propio
+utillaje: dos copias de la misma regla acaban divergiendo, y la que se quede
+atrás da verde sin mirar lo mismo —le pasó a «el banco no se agenda», escrita en
+cinco sitios—.
+
+**Verificado contra sí mismo**: inyectada la frase «El deployment viene de otro
+fingerprint» en una pantalla, el test falla nombrando los dos términos. Un
+guardián que sólo se ha visto en verde no se ha visto.
