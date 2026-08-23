@@ -286,9 +286,20 @@
         "course_name", "nombre_del_curso", "nombre_curso", "curso_nombre", "asignatura"
       )),
       schedule = .collection_first_string(row, c("schedule", "horario")),
+      # **Sin `label` al final de la lista.** Era el ultimo candidato «por si
+      # acaso» y acabo siendo el unico: medido sobre las 2.616 unidades del
+      # estudio de aulas, las 2.616 tenian `venue` IDENTICO a `label`, o sea el
+      # codigo del curso-horario impreso bajo el rotulo «Aula». El marco no trae
+      # el aula porque el aula no se sabe hasta el dia de la aplicacion: es uno
+      # de los datos que el aplicador anota a mano en la ficha.
+      #
+      # Rellenar un campo con el valor de otro no es un fallback, es una
+      # respuesta inventada: quien lee la ficha no puede distinguir un aula que
+      # se conoce de una que no. Vacio, la ficha imprime «Por confirmar», que es
+      # la verdad, y el registro de aplicacion ya tiene su casilla «Aula:».
       venue = .collection_first_string(row, c(
         "pabellon_aula", "pabellon", "venue", "aula", "salon", "room",
-        "building_room", "label"
+        "building_room"
       )),
       teacher = .collection_first_string(row, c(
         "teacher", "docente", "nombre_de_docente", "nombre_del_docente", "profesor", "profesora"

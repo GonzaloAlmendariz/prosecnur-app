@@ -71,7 +71,13 @@ export function calcSelectionAgenda(calcState: CalcMuestraState | null): Monitor
       link: sourceRowText(row, ["link", "url", "acortador", "enlace", "survey_link"]),
       qr: sourceRowText(row, ["qr", "qr_url", "qr_link"]),
       cursohorario: classroomId || sourceRowText(row, ["cursohorario", "curso_horario", "course_schedule_id", "id_match"]),
-      pabellon_aula: sourceRowText(row, ["pabellon_aula", "pabellon", "aula", "salon", "room", "building_room", "venue", "label"]),
+      // Sin "label" al final: era el ultimo candidato "por si acaso" y acababa
+      // siendo el unico, porque el marco no trae el aula —no se sabe hasta el
+      // dia de la aplicacion—. Medido sobre las 2.616 unidades del estudio, las
+      // 2.616 traian aqui el codigo del curso-horario. La misma lista, con el
+      // mismo fallo, vivia ademas en `.collection_first_string` del backend.
+      // Vacio es la respuesta correcta: el aula la anota el aplicador.
+      pabellon_aula: sourceRowText(row, ["pabellon_aula", "pabellon", "aula", "salon", "room", "building_room", "venue"]),
       collector_id: sourceRowText(row, ["collector_id", "recopilador_id"]),
       responsible: sourceRowText(row, ["responsible", "responsable"]),
       operational_status: "pendiente",

@@ -72,7 +72,13 @@ test_that("seed aulas_v1 acepta la selección decidida de Cálculo de muestra", 
     sample_role = c("titular", "reserva"),
     wave = c("M1", "R1"),
     classroom_id = c("class-1", "class-2"),
-    label = c("Aula Cálculo", "Aula Derecho"),
+    # **Codigos, no «Aula Calculo».** El fixture llamaba «Aula Calculo» al
+    # label, asi que el aserto de mas abajo —«el aula es "Aula Calculo"»—
+    # parecia correcto cuando lo que comprobaba era que `venue` CAE al label por
+    # falta de columna de aula. Con el codigo real que trae el estudio,
+    # `1mat101_0801`, el mismo aserto se lee como lo que era: la ficha
+    # imprimiendo el curso-horario bajo el rotulo «Aula».
+    label = c("1mat101_0801", "1der101_1001"),
     course_id = c("MAT101", "DER101"),
     course_name = c("Cálculo I", "Derecho I"),
     schedule = c("08:00", "10:00"),
@@ -96,7 +102,10 @@ test_that("seed aulas_v1 acepta la selección decidida de Cálculo de muestra", 
   expect_identical(seeded$plan$units[[1]]$dimensions$course_name, "Cálculo I")
   expect_identical(seeded$plan$units[[1]]$dimensions$teacher, "Docente Uno")
   expect_identical(seeded$plan$units[[1]]$dimensions$sample_label, "M1")
-  expect_identical(seeded$plan$units[[1]]$dimensions$venue, "Aula Cálculo")
+  # Sin columna de aula el aula queda VACIA, y la ficha imprime «Por
+  # confirmar». Es la verdad: el aula no se sabe hasta el dia de la aplicacion
+  # y el aplicador la anota a mano en el registro.
+  expect_identical(seeded$plan$units[[1]]$dimensions$venue, "")
   expect_identical(seeded$plan$units[[1]]$dimensions$eligible_n, 30)
   rendered <- .crf_unit_context(seeded$plan$units[[1]])
   expect_identical(rendered$course_name, "Cálculo I")
