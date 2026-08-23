@@ -1816,3 +1816,31 @@ trabajo costaría más que el rojo.
 Es el mismo patrón que costó `ea62de2d` —lista de candidatos ampliada + matcher
 difuso = pesca la columna equivocada— y merece cerrarse con la guarda por pareja
 extendida a los candidatos con espacios.
+
+
+## La ficha que llega al aula no llevaba su código
+
+El mismo defecto que la tabla del plan, **un artefacto más allá y en el peor
+sitio**: un papel impreso no se corrige después.
+
+La plantilla de la ficha se titulaba con `unit.label` —«1ges08_0601», el nombre
+académico del aula— y el código operativo sólo aparecía **de refilón**, dentro
+del rol de un reemplazo: «Reemplazo de CH 3». Quien tiene la ficha en la mano
+busca «CH 1» en su lista, que es como el aula se llama en el libro de agendación,
+en Monitoreo y en voz alta.
+
+Ni siquiera existía el binding: `COLLECTION_MATERIAL_BINDINGS` tenía
+`unit.unit_id` —el hash— y `unit.label`, y nada para el código.
+
+### Reparado
+
+- Binding `unit.operational_code`, que sale de `dimensions.legacy_ref` **con el
+  nombre académico de respaldo**: una ficha sin título sería peor que una
+  titulada con el nombre del sistema.
+- El encabezado de la plantilla lo usa.
+- **La plantilla sube a `revision = 4L`.** Un recibo viejo apunta a
+  `template_ref.revision`; dejar el mismo número con otro contenido haría que dos
+  fichas distintas dijeran ser la misma — justo el tipo de trampa de procedencia
+  que esta serie lleva reparando.
+
+6 asertos; el mutante que devuelve el nombre académico mata 1.
