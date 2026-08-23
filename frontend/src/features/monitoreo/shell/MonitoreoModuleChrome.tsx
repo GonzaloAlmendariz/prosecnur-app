@@ -143,7 +143,27 @@ export function MonitoreoModuleChrome({
       ? "Modo fijado"
       : "Modo por elegir"
     : `${activeRoutes} tipos disponibles`;
-  const cutLabel = syncedAt ? "Listo" : hasSnapshot ? "Snapshot" : "Sin corte";
+  // **Dos «Corte» distintos en la misma pantalla.**
+  //
+  // Este indicador miraba el sello del ESTADO —cuándo se sincronizaron los
+  // datos— y la tarjeta de Fuentes, dos dedos más abajo, mira el del TABLERO
+  // —contra qué día se mide el atraso—. Son dos cosas distintas y las dos se
+  // llamaban «Corte»: con un proyecto recién importado, arriba decía «Snapshot»
+  // y abajo «23/8/2026», sin forma de saber que hablaban de cosas diferentes.
+  //
+  // Este pasa a llamarse **Sincronizado**, que es lo que mide, y enseña la fecha
+  // cuando la hay. «Corte» se queda para el sello del tablero, que es donde esa
+  // palabra significa algo en el operativo.
+  const cutDate = (() => {
+    const iso = String(generatedAt || syncedAt || "").trim();
+    if (!iso) return "";
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso.slice(0, 10) : d.toLocaleDateString("es-PE");
+  })();
+  const cutOrigen = syncedAt
+    ? "última sincronización de datos"
+    : hasSnapshot ? "datos del proyecto guardado, sin sincronizar" : "todavía sin datos sincronizados";
+  const cutLabel = cutDate || (hasSnapshot ? "Del proyecto" : "Sin sincronizar");
   const syncingAdvance = Boolean(syncing && (!syncProgress?.active || syncProgress.active === "advance"));
   const syncingFull = Boolean(syncing && (!syncProgress?.active || syncProgress.active === "full"));
   const advanceProgress = syncingAdvance ? syncProgress : null;
@@ -261,7 +281,7 @@ export function MonitoreoModuleChrome({
       resumen={[
         generationInfo ? `${generationInfo.label}: ${generationInfo.value}` : null,
         `Registros: ${formatChromeCount(nRows)}`,
-        `Corte: ${cutLabel}`,
+        `Sincronizado: ${cutLabel}`,
       ].filter(Boolean).join(" · ")}
     >
       {generationInfo ? (
@@ -273,7 +293,12 @@ export function MonitoreoModuleChrome({
         />
       ) : null}
       <ChromeIndicator label="Registros" value={formatChromeCount(nRows)} prioridad="alta" />
-      <ChromeIndicator label="Corte" value={cutLabel} prioridad="media" />
+      <ChromeIndicator
+        label="Sincronizado"
+        value={cutLabel}
+        prioridad="media"
+        detalle={cutOrigen}
+      />
     </ChromeIndicatorGroup>
   ) : null;
 

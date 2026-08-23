@@ -1362,7 +1362,7 @@ pierde. Ignoré esa señal y seguí buscando en el sitio equivocado.
 si las peticiones comparten sesión. Si el sid no se puede fijar, la prueba se
 hace por la UI, que sí la mantiene — que es como se cerró.
 
-## ABIERTO — «CORTE» dice dos cosas opuestas en la misma pantalla
+## ~~ABIERTO~~ CERRADO — «CORTE» decía dos cosas opuestas en la misma pantalla
 
 Visto en la pantalla real, con el proyecto abierto y a la vez:
 
@@ -1905,3 +1905,27 @@ cambia por preferencia. Queda medido y revertido, con la razón escrita en el
 propio código para que nadie repita el intento a ciegas.
 
 **Lo que sí decide esto**: quién mira la ficha impresa en campo.
+
+
+## Cerrado: los dos «Corte» eran dos conceptos distintos
+
+El hallazgo G, resuelto al llegar al patrón 6 del catálogo.
+
+No eran dos valores del mismo dato: **eran dos datos con el mismo nombre**.
+
+| Dónde | Qué mide de verdad | Decía |
+|---|---|---|
+| Barra del módulo | el sello del **estado**: cuándo se sincronizaron los datos | «Snapshot» |
+| Tarjeta de Fuentes | el sello del **tablero**: contra qué día se mide el atraso | «23/8/2026» |
+
+Con un proyecto recién importado, arriba «Snapshot» y abajo «23/8/2026», sin nada
+que dijera que hablaban de cosas diferentes. Y «Snapshot» es además el nombre
+interno del origen del dato, no algo que nadie diga en voz alta.
+
+El de la barra pasa a llamarse **«Sincronizado»** —que es lo que mide— y enseña
+la fecha cuando la hay: «Del proyecto» / «Sin sincronizar» cuando no. El origen
+baja al detalle. **«Corte» se queda para el sello del tablero**, que es donde esa
+palabra significa algo en el operativo.
+
+4 asertos. El indicador es compartido por los cuatro perfiles de Monitoreo, así
+que la aclaración les llega a todos.
