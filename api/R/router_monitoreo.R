@@ -4916,12 +4916,16 @@ mount_monitoreo <- function(pr) {
         } else NULL,
         error = function(e) NULL
       )
-      aulas_libro_generar(unidades, destino, partes = partes, control = control,
+      escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
                           efectivas = efectivas, responses = respuestas,
                           validas = validas)
+      # Las que entraron al archivo, no las del plan: el banco sin usar se queda
+      # fuera y contar el plan crudo hacia decir «Libro de 2616 aulas» de un
+      # libro con 190.
+      unidades_escritas <- as.integer(attr(escrito, "unidades") %||% length(unidades))
       meta <- .register_output_file(sid, "aulas_libro", destino, original_name = nombre)
       list(ok = TRUE, file_id = meta$file_id, filename = nombre,
-           unidades = length(unidades), partes = length(partes),
+           unidades = unidades_escritas, partes = length(partes),
            control = length(control),
            # Cuantas aulas llevan su cifra de efectivas dentro. Sin esto, un
            # libro generado antes de la primera sincronizacion se ve igual que

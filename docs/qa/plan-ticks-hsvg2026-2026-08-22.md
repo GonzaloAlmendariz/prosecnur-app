@@ -1476,3 +1476,19 @@ Verificado regenerando el libro real desde la app.
 Cada consumidor decide por su cuenta si el banco entra, y basta que uno se olvide
 para que salga a campo. La regla —«el banco no se agenda»— vive repetida en cinco
 sitios en vez de una vez.
+
+
+## El aviso decía «Libro de 2616 aulas» de un libro con 190
+
+Efecto colateral del arreglo anterior, y visto en la pantalla al regenerar: el
+endpoint contaba `length(unidades)` sobre el **plan crudo**, y desde que el banco
+sin usar se filtra dentro del generador esa cifra ya no describe el archivo.
+
+Ahora la cuenta la devuelve **quien escribe el archivo** —como atributo, sin
+cambiar el retorno— y el router la usa. Un rótulo que promete un número tiene que
+sacarlo de donde ese número se produce, no de la entrada más cercana.
+
+2 asertos más; el mutante que quita la declaración mata los 2.
+
+Con esto, las tres cifras del libro vuelven a decir lo mismo: **190 aulas** en el
+plan de campo, 190 filas en la hoja y «Libro de 190 aulas» en el aviso.
