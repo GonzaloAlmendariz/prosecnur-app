@@ -596,8 +596,28 @@
     overflow: visible;
   }
 
+  /* `grid-auto-rows: max-content` y NO una lista fija de filas.
+   *
+   * Decía `grid-template-rows: auto auto` —dos filas— y Fuentes tiene TRES
+   * paneles. El tercero caía en una fila implícita, y como los paneles llevan
+   * `min-height: 0`, las dos declaradas se encogían para caber en el alto
+   * disponible. Medido a 1024x600 el 2026-08-23: el panel de operación quedaba
+   * en **14 px** con 57 de contenido y el del embudo en **26 px** con 220, y su
+   * contenido se dibujaba encima del panel siguiente. Sólo sobrevivía el
+   * último, porque tiene `min-height: 180px`.
+   *
+   * Es el mismo defecto que ya obligó a crear `aulas-tablas-apiladas` —«el
+   * stack es grid y asigna 0 px a la fila cuyo contenido no la empuja… el panel
+   * del gráfico quedaba en 26 px»—, con el mismo número, en otra superficie. El
+   * arreglo de allí se acotó a esa vista y éste se quedó fuera.
+   *
+   * Con `max-content` cada fila toma el alto de su panel sea cual sea el número
+   * de paneles, y el alto sobrante lo absorbe el contenedor de contenido, que
+   * es el dueño de scroll declarado. Una lista fija vuelve a romperse el día
+   * que se añada un panel. */
   .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack.aulas-fuentes-stack {
-    grid-template-rows: auto auto;
+    grid-template-rows: none;
+    grid-auto-rows: max-content;
     align-content: start;
     overflow: visible;
   }
