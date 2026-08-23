@@ -129,10 +129,21 @@ export type ReciboDelLibro = {
  */
 function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
   const cuando = textoDeImportacion(recibo.importado_en);
+  // **El recibo puede llegar SIN `hojas`.** Este componente hacía
+  // `recibo.hojas.map(...)` a ciegas y tumbaba la aplicación entera —pantalla de
+  // «La aplicación se detuvo por un error»— justo después de importar el plan
+  // desde Cálculo de muestra, que es cuando todavía no hay dashboard construido
+  // y el libro llega en su forma cruda, sin el recibo que arma
+  // `monitoreo_aulas_libro_recibo()`.
+  //
+  // Un payload crítico se normaliza en el consumidor: es la regla de la casa y
+  // aquí la diferencia entre una tarjeta incompleta y perder la vista entera.
+  const hojas = Array.isArray(recibo.hojas) ? recibo.hojas : [];
+  const ausentes = Number(recibo.hojas_ausentes) || 0;
   return (
     <article className="aulas-fuente aulas-fuente-libro">
       <i aria-hidden="true">
-        {recibo.hojas_ausentes ? <CircleOff size={15} /> : <CheckCircle2 size={15} />}
+        {ausentes ? <CircleOff size={15} /> : <CheckCircle2 size={15} />}
       </i>
       <div>
         <p className="aulas-fuente-titulo">
@@ -140,12 +151,16 @@ function LibroDelOperativo({ recibo }: { recibo: ReciboDelLibro }) {
           {/* La conformidad se declara UNA vez y con su denominador; repetir
               «leída» en cada hoja era tres veces la misma palabra. Lo que sí se
               marca hoja por hoja es la que falta, que es lo que cambia algo. */}
-          <span>{recibo.hojas.length - recibo.hojas_ausentes} de {recibo.hojas.length} hojas</span>
+          {/* Sin la lista de hojas no se inventa un denominador: se dice que
+              todavía no consta, que es distinto de «0 de 3». */}
+          {hojas.length
+            ? <span>{hojas.length - ausentes} de {hojas.length} hojas</span>
+            : <span>hojas sin registrar todavía</span>}
         </p>
         {/* Se nombran las tres, vinieran o no: saber cuál falta es el dato, y
             un renglón de servicio encima repetiría los mismos tres nombres. */}
         <ul className="aulas-libro-hojas">
-          {recibo.hojas.map((h) => (
+          {hojas.map((h) => (
             <li key={h.hoja} className={h.vino ? "es-vino" : "es-falta"}>
               {h.hoja}
               {h.vino ? null : <span>no vino</span>}
