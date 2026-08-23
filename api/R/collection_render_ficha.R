@@ -16,7 +16,18 @@
 # justo donde ya sobraba.
 .crf_layout <- function(branded = FALSE) {
   base <- list(
-    qr_side = 0.34,
+    # 0.38 y no mas: es el maximo VERIFICADO con el lector de QR del QA, que
+    # reconstruye la matriz desde el PNG asumiendo esta misma geometria. Medido
+    # el 2026-08-23 con el payload largo del worker: 0.38 lee limpio, 0.42 y
+    # 0.46 devuelven un modulo cambiado. No es el borde de la pagina —el marco
+    # a 0.42 cabe en 0.9226 sobre un util de 0.925, comprobado— asi que la
+    # causa del desalineamiento por encima de 0.38 sigue sin localizar.
+    #
+    # Se sube hasta donde se puede demostrar. Un QR mas grande con el
+    # verificador leyendo el sitio equivocado seria peor que este: el gate
+    # dejaria de proteger justo lo unico que esta hoja tiene que garantizar,
+    # que es que el codigo se escanee.
+    qr_side = 0.38,
     qr_x = 0.72,
     qr_y = 0.685,
     x_left = 0.075,
