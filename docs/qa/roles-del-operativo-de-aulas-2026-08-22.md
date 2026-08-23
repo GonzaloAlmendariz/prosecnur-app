@@ -132,3 +132,22 @@ delante. Ahora el titular se registra por código **y** por nombre.
 - Las columnas por rol —agendador, jefe de campo, analista— siguen sin
   diferenciarse: es el trabajo grande que este documento describe y que no cabe
   en un tick.
+
+
+## Aplicado también en Monitoreo: la agenda es del agendador
+
+La tabla de agenda listaba las 700 filas del plan al mismo nivel. Es **la vista
+del agendador**, y él llama titular por titular: una reserva sólo entra en juego
+el día que su titular se declara caída.
+
+- La tabla lista **titulares**. Ni el banco —capacidad— ni las reservas de cadena.
+- Las reservas **no se esconden**: se cuentan junto al título, «193
+  cursos-horario · 507 reservas detrás». Desaparecer 507 filas sin dejar rastro
+  sería peor que listarlas.
+- La cuenta mira **sólo** las de cadena: sumar el banco diría 1 916 reservas
+  donde hay 507.
+
+3 asertos. **Verificación visual pendiente**: la sesión de la app se reinició al
+relanzar la API y el plan hay que reimportarlo; el cambio es un filtro y su
+efecto está en test, pero no se ha visto en pantalla y eso queda dicho en vez de
+darse por hecho.
