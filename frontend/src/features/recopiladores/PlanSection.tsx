@@ -18,6 +18,7 @@ import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
 import { capitalizarDelMarco } from "./textoDelMarco";
+import { codigoOperativoDe } from "./codigoOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 
 type Props = {
@@ -51,26 +52,13 @@ export function unitRoleLabel(
 ): string {
   const key = (unit.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
   const nombre = typeof unit.dimensions?.replacement_for === "string" ? unit.dimensions.replacement_for : "";
-  const target = (titular ? unitOperationalCode(titular) : "") || nombre;
+  const target = (titular ? codigoOperativoDe(titular) : "") || nombre;
   if (key === "titular") return "Titular";
   if (key === "chain_reserve" || key === "reserva") return target ? `Reemplazo de ${target}` : "Reemplazo";
   if (key === "extra_reserve_pool") return "Reserva adicional";
   return value(unit.role);
 }
 
-/**
- * El código con el que el equipo llama a esta aula: `CH 1`, `R 1.2`.
- *
- * La tabla enseñaba el nombre académico del aula —«1ges08_0601»— y debajo el
- * `unit_id`, que es un hash de infraestructura —«unit-aulas-aula-1-5524e6773d»—.
- * Ninguno de los dos es el código con el que se habla del aula en campo, en el
- * libro de agendación o en las fichas QR, y el operativo entero se coordina con
- * ese código.
- *
- * Está desde el principio en `dimensions.legacy_ref`: es el `operational_code`
- * que `.collection_legacy_unit()` usa como `source_key` para derivar el
- * `unit_id`. Llegaba y no se pintaba.
- */
 /** Una dimensión que se va a pintar: string limpio o vacío, nunca `undefined`. */
 function texto(valor: unknown): string {
   return typeof valor === "string" ? valor.trim() : "";
@@ -89,11 +77,6 @@ function elegibles(unit: Pick<CollectionUnit, "dimensions">): string {
     : "—";
 }
 
-function unitOperationalCode(unit: Pick<CollectionUnit, "dimensions">): string {
-  const ref = unit.dimensions?.legacy_ref;
-  return typeof ref === "string" ? ref.trim() : "";
-}
-
 /**
  * La cadena a la que pertenece la unidad.
  *
@@ -108,7 +91,7 @@ function unitChainLabel(unit: Pick<CollectionUnit, "role" | "group" | "dimension
   const target = typeof unit.dimensions?.replacement_for === "string"
     ? unit.dimensions.replacement_for.trim() : "";
   if (target) return target;
-  const propio = unitOperationalCode(unit);
+  const propio = codigoOperativoDe(unit);
   // Un titular es cabeza de su propia cadena.
   if (key === "titular") return propio || value(unit.group);
   // Una reserva sin `replacement_for` —los planes anteriores a que ese campo
@@ -383,8 +366,8 @@ export function PlanSection({ payload, onState }: Props) {
                           para juntar registros, no algo que nadie diga en voz
                           alta. Sigue siendo la `key` de la fila. */}
                       <td>
-                        <strong>{unitOperationalCode(unit) || unit.label}</strong>
-                        <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
+                        <strong>{codigoOperativoDe(unit) || unit.label}</strong>
+                        <small>{codigoOperativoDe(unit) ? unit.label : unit.unit_id}</small>
                       </td>
                       {/* Lo que un agendador necesita para levantar el
                           teléfono: qué curso es y con quién se habla. Estaban
@@ -418,8 +401,8 @@ export function PlanSection({ payload, onState }: Props) {
                     ...(abierta ? cadena.reservas.map((reserva) => (
                       <tr key={reserva.unit_id} className="rec-plan-reserva">
                         <td>
-                          <strong>{unitOperationalCode(reserva) || reserva.label}</strong>
-                          <small>{unitOperationalCode(reserva) ? reserva.label : reserva.unit_id}</small>
+                          <strong>{codigoOperativoDe(reserva) || reserva.label}</strong>
+                          <small>{codigoOperativoDe(reserva) ? reserva.label : reserva.unit_id}</small>
                         </td>
                         <td className="rec-plan-curso">
                           <strong>{capitalizarDelMarco(texto(reserva.dimensions?.course_name)) || "—"}</strong>
@@ -443,8 +426,8 @@ export function PlanSection({ payload, onState }: Props) {
                     ? operativo.huerfanas.map((unit) => (
                       <tr key={unit.unit_id} className="rec-plan-huerfana">
                         <td>
-                          <strong>{unitOperationalCode(unit) || unit.label}</strong>
-                          <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
+                          <strong>{codigoOperativoDe(unit) || unit.label}</strong>
+                          <small>{codigoOperativoDe(unit) ? unit.label : unit.unit_id}</small>
                         </td>
                         <td className="rec-plan-curso">
                           <strong>{capitalizarDelMarco(texto(unit.dimensions?.course_name)) || "—"}</strong>

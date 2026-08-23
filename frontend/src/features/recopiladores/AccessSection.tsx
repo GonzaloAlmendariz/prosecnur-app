@@ -28,6 +28,7 @@ import {
 } from "./providerRules";
 import type { RecopiladoresPestana } from "./navegacion";
 import { TableScroll } from "./TableScroll";
+import { mapaDeCodigosDelPlan, titularesDelPlan } from "./codigoOperativo";
 import "./styles/access.css";
 
 type Props = {
@@ -160,6 +161,10 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
   }), [active, adapterId, assetType, baseUrl, customVariable, prefillField, profile, recipientJson, remoteId, returnUrl]);
   const localBlocking = useMemo(() => localProviderBlocking(adapterId, target), [adapterId, target]);
   const candidate = deploymentFromPreview(preview) ?? currentDeployment;
+  // El plan es de dónde salen las aulas y su código de campo: la vinculación
+  // sólo guarda `unit_id`, que es un hash.
+  const codigosDeUnidad = useMemo(() => mapaDeCodigosDelPlan(payload?.state.plan), [payload?.state.plan]);
+  const aulasDelPlan = titularesDelPlan(payload?.state.plan);
   const backendBlocking = preflight?.blocking ?? [];
   const blocked = localBlocking.length > 0 || backendBlocking.length > 0;
 
@@ -342,7 +347,7 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
         className="rec-access-result"
         data-qa-geometry-capacity="owned"
         eyebrow={activeTab === "canales" ? "Qué se puede hacer" : "Vinculación"}
-        title={activeTab === "canales" ? "Comprobación del origen" : "Unidad ↔ acceso"}
+        title={activeTab === "canales" ? "Comprobación del origen" : "Qué aula usa qué acceso"}
         actions={activeTab === "canales" ? undefined : (
           <div className="rec-result-actions">
             <PulsoButton variant="secondary" size="sm" onClick={() => { void save(); }} disabled={!deploymentFromPreview(preview) || Boolean(busy)}><Save size={14} /> Guardar borrador</PulsoButton>
@@ -385,13 +390,26 @@ export function AccessSection({ payload, activeTab, onState }: Props) {
           <>
             {candidate?.bindings.length ? (
               <TableScroll>
-                <table><thead><tr><th>Unidad</th><th>Tipo</th><th>Identidad lógica</th><th>Estado</th></tr></thead>
+                <table><thead><tr><th>Curso-horario</th><th>Tipo</th><th>Recopilador</th><th>Estado</th></tr></thead>
                   <tbody>{candidate.bindings.map((binding) => (
-                    <tr key={binding.access_id}><td><strong>{binding.unit_id}</strong><small>{binding.access_id}</small></td><td>{accessKindLabel(binding.access_kind)}</td><td>{binding.logical_collector_id}</td><td><span className={`rec-state is-${binding.status}`}>{bindingStatusLabel(binding.status)}</span></td></tr>
+                    // El `unit_id` es un hash —«unit-aulas-urb209-5524e6773d»—
+                    // y era lo único que esta tabla enseñaba. El código de
+                    // campo manda; el hash deja de verse porque nadie lo dice
+                    // en voz alta.
+                    <tr key={binding.access_id}><td><strong>{codigosDeUnidad.get(binding.unit_id) || binding.unit_id}</strong><small>{binding.access_id}</small></td><td>{accessKindLabel(binding.access_kind)}</td><td>{binding.logical_collector_id}</td><td><span className={`rec-state is-${binding.status}`}>{bindingStatusLabel(binding.status)}</span></td></tr>
                   ))}</tbody>
                 </table>
               </TableScroll>
-            ) : <div className="rec-contained-empty">La vista previa todavía no produjo enlaces. Los enlaces individuales sólo aparecen si ya llegaron de la plataforma.</div>}
+            ) : (
+              // El vacío decía «la vista previa no produjo enlaces», que es
+              // cierto y no ubica: no dice cuántas aulas esperan acceso ni
+              // cuántas llevan. El plan tiene ese número desde que se sembró.
+              <div className="rec-contained-empty">
+                {aulasDelPlan > 0
+                  ? <>{"Ninguna de las "}<b>{aulasDelPlan.toLocaleString("es-PE")} aulas</b>{" del plan tiene acceso todavía. Los enlaces aparecen aquí cuando llegan de la plataforma."}</>
+                  : <>Todavía no hay plan del que colgar accesos.</>}
+              </div>
+            )}
           </>
         )}
 

@@ -36,11 +36,34 @@
   color: var(--pulso-text);
 }
 
+/* El workbench ya declaraba `minmax(0, 1fr)` en su fila de contenido, o sea que
+   estaba escrito para llenar el alto. Lo que faltaba es recibirlo: su padre
+   —`pulso-page-frame-body--fill`— es flex y esto era `flex: 0 1 auto`, así que
+   medía lo que midiera su contenido. Medido en Accesos el 2026-08-23: el frame
+   daba 825px, el workbench tomaba 359 y quedaban 484px de blanco bajo los
+   paneles —casi media pantalla— con el vacío flotando fuera de toda superficie.
+   C2: el marco responde al viewport, no a lo que haya dentro. */
 .rec-workbench {
   display: grid;
+  flex: 1 1 auto;
   gap: 10px;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+}
+
+/* Las dos filas del workbench se asignan a mano porque no todas las secciones
+   tienen pestañas: sin lista, el panel de contenido caía en la fila `auto` —la
+   de las pestañas— y medía lo que midiera su contenido. Medido en Entrega el
+   2026-08-23: 463px de panel dentro de un workbench de 825, con 380 en blanco
+   debajo, mientras Accesos —que sí tiene pestañas— llenaba. Con la fila fija, la
+   1 queda vacía cuando no hay lista y el contenido toma igual el `1fr`. */
+.rec-tab-list {
+  grid-row: 1;
+}
+
+.rec-tab-panel,
+.rec-editor {
+  grid-row: 2;
 }
 
 .rec-tab-list {
