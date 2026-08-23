@@ -557,9 +557,35 @@
     display: none;
   }
 
+  /* `minmax(0, 1fr)` y no `minmax(150px, 1fr)`.
+   *
+   * Tres mínimos de 150 px son 450, y a 1024 de ventana esta caja mide 347: el
+   * grid se desbordaba 103 px hacia la derecha, justo donde empiezan los
+   * botones de acción. Medido el 2026-08-23: «Trazable» —el pie de la tarjeta
+   * de metodología— quedaba DEBAJO del botón «Importar plan», solapados 70x5.
+   *
+   * Un mínimo en píxeles dentro de una caja que no los tiene no reserva
+   * espacio: lo pide prestado al vecino. Con mínimo 0 las tarjetas se encogen
+   * y truncan su rótulo, que es lo que corresponde — truncar es legible y
+   * pisar al de al lado no. */
   .mon-profile-page.is-aulas-flow .aulas-ops-grid {
-    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 5px;
+  }
+
+  /* El rótulo y su valor se TRUNCAN, no se parten.
+   *
+   * Heredan `overflow-wrap: anywhere`, que está para que un identificador largo
+   * —`sel_aulas_20260822…`— no desborde su caja, y en el pie hace falta. Pero
+   * aplicado a palabras normales las corta a mitad: con las columnas ya
+   * encogidas a 112 px se leía «MARCO INSTITUCI / ONAL» y «Conectad / a».
+   * Partir una palabra no es truncarla; el corte con puntos suspensivos dice
+   * que falta texto y el otro sólo confunde. */
+  .mon-profile-page.is-aulas-flow .aulas-ops-grid article > *:not(svg) {
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mon-profile-page.is-aulas-flow .aulas-ops-grid article {
