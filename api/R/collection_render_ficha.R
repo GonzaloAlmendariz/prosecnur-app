@@ -182,6 +182,12 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   replacement_for <- .crf_txt(dims$replacement_for %||% unit$replacement_for, "")
   list(
     unit_id = .crf_txt(unit$unit_id, ""),
+    # El codigo operativo —«CH 1», «R 1.2»— con el nombre del aula de respaldo:
+    # una ficha sin titulo seria peor que una titulada con el nombre academico.
+    operational_code = .crf_txt(
+      dims$legacy_ref %||% unit$operational_code,
+      .crf_txt(unit$label, "Unidad de aplicacion")
+    ),
     label = .crf_txt(unit$label, "Unidad de aplicacion"),
     role = .crf_role_label(
       unit$role, replacement_for,
@@ -209,6 +215,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     "deployment.deployment_id" = context$deployment$deployment_id,
     "deployment.provider" = context$deployment$provider,
     "unit.unit_id" = context$unit$unit_id,
+    "unit.operational_code" = context$unit$operational_code,
     "unit.label" = context$unit$label,
     "unit.role" = context$unit$role,
     "unit.replacement_for" = context$unit$replacement_for,

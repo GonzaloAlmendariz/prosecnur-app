@@ -59,7 +59,13 @@ COLLECTION_MATERIAL_PRESETS <- list(
 COLLECTION_MATERIAL_BINDINGS <- c(
   "project.name", "project.period",
   "deployment.deployment_id", "deployment.provider",
-  "unit.unit_id", "unit.label", "unit.role", "unit.replacement_for", "unit.group",
+  # `unit.operational_code` es «CH 1» / «R 1.2»: el codigo con el que el equipo
+  # llama al aula en el libro de agendacion, en Monitoreo y en voz alta. La ficha
+  # se titulaba con `unit.label` —«1ges08_0601», el nombre academico— y ese codigo
+  # solo aparecia de refilon, dentro del rol de un reemplazo («Reemplazo de CH 3»).
+  # En un papel impreso eso no se corrige despues.
+  "unit.unit_id", "unit.operational_code", "unit.label", "unit.role",
+  "unit.replacement_for", "unit.group",
   "unit.faculty", "unit.course_name", "unit.schedule", "unit.venue",
   "unit.teacher", "unit.sample_label", "unit.eligible_n",
   "access.access_id", "access.logical_collector_id", "access.qr_payload"
@@ -429,7 +435,12 @@ collection_material_builtin_template <- function() {
     # que solo entiende quien conoce la nomenclatura.
     # r3: el registro de aplicacion dice que anotar, en vez de tres renglones
     # numerados que cada aplicador rellenaba a su criterio.
-    revision = 3L,
+    # r4: el titulo es el CODIGO OPERATIVO —«CH 1», «R 1.2»— y no el nombre
+    # academico del aula. Es el codigo con el que el equipo la llama en el libro
+    # de agendacion, en Monitoreo y en voz alta; la ficha se titulaba
+    # «1ges08_0601» y ese codigo solo aparecia de refilon dentro del rol de un
+    # reemplazo. En un papel impreso eso no se corrige despues.
+    revision = 4L,
     preset_id = "ficha_aplicacion_a4_v1",
     material_kind = "application_sheet",
     compatible_adapters = list("aulas_v1"),
@@ -439,7 +450,9 @@ collection_material_builtin_template <- function() {
       layout_preset = "single_sheet",
       blocks = list(
         list(block_id = "brand", type = "brand_header"),
-        list(block_id = "unit", type = "heading", binding = "unit.label", max_lines = 2L),
+        # El titulo es el codigo operativo y el aula queda debajo: quien tiene la
+        # ficha en la mano busca «CH 1» en su lista, no «1ges08_0601».
+        list(block_id = "unit", type = "heading", binding = "unit.operational_code", max_lines = 2L),
         list(block_id = "course", type = "body", binding = "unit.course_name", max_lines = 3L),
         list(
           block_id = "qr", type = "access_qr", binding = "access.qr_payload",
