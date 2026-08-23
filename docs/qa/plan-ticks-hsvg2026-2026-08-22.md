@@ -1783,3 +1783,36 @@ En pantalla, con el sorteo de 193: **CH 1** (Titular, cadena CH 1) seguido de
 **R 1.1** (Reserva encadenada, código titular CH 1, orden 1).
 
 4 asertos nuevos.
+
+
+## Barrido amplio: el frontend sano y un rojo ajeno en calc-muestra
+
+Después de una sesión larga con gates filtrados por área —que ya escondió un rojo
+propio durante varios commits—, un barrido ancho.
+
+**Verde:**
+
+- `tsc` limpio.
+- **vitest completo: 5 414 tests en 689 archivos.**
+- Suites R de `collection`, `monitoreo`, `carga-aulas` y `router`: sin fallos.
+- Working tree sin nada propio suelto; los congelados en rojo
+  (`territorialProfile.css` +7, `HojasRutaPage.tsx` +3) siguen siendo ajenos.
+
+**Rojo, y NO es de este trabajo:**
+`test-calc-muestra-aulas-tipo-curso-mapeo.R:80` — «una columna ajena NO se toma
+por tipo de curso». Con una base cuya columna de tipo se llama «Sabor Favorito»,
+`session_type` acaba leyendo la columna **`curso`** y se llena con «C1».
+
+Es el control-del-control de ese archivo, y **el repo ya conoce el defecto**:
+`.cm_aulas_pares_prohibidos` existe precisamente para que `curso` no resuelva
+`tipo_curso`, con una nota que lo mide —«con una columna `curso` y sin tipo,
+`session_type` se llenaba con "C1"»—. La guarda está y este caso se le escapa.
+
+Los tres commits de hoy que tocan `calc_muestra_aulas*.R` son de texto y jerga,
+del loop anterior; ninguno de esta tanda entra ahí. **No se repara aquí**: otra
+sesión tiene `test-calc-muestra-aulas.R` modificado en el árbol y pisar su
+trabajo costaría más que el rojo.
+
+Es el mismo patrón que costó `ea62de2d` —lista de candidatos ampliada + matcher
+difuso = pesca la columna equivocada— y merece cerrarse con la guarda por pareja
+extendida a los candidatos con espacios.
