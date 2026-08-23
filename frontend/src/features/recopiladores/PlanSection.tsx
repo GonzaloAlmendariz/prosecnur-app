@@ -40,6 +40,44 @@ function unitRoleLabel(unit: Pick<CollectionUnit, "role" | "dimensions">): strin
   return value(unit.role);
 }
 
+/**
+ * El código con el que el equipo llama a esta aula: `CH 1`, `R 1.2`.
+ *
+ * La tabla enseñaba el nombre académico del aula —«1ges08_0601»— y debajo el
+ * `unit_id`, que es un hash de infraestructura —«unit-aulas-aula-1-5524e6773d»—.
+ * Ninguno de los dos es el código con el que se habla del aula en campo, en el
+ * libro de agendación o en las fichas QR, y el operativo entero se coordina con
+ * ese código.
+ *
+ * Está desde el principio en `dimensions.legacy_ref`: es el `operational_code`
+ * que `.collection_legacy_unit()` usa como `source_key` para derivar el
+ * `unit_id`. Llegaba y no se pintaba.
+ */
+function unitOperationalCode(unit: Pick<CollectionUnit, "dimensions">): string {
+  const ref = unit.dimensions?.legacy_ref;
+  return typeof ref === "string" ? ref.trim() : "";
+}
+
+/**
+ * La cadena a la que pertenece la unidad.
+ *
+ * La columna decía «M1» —la ola de muestra, `wave`— para todas las titulares y
+ * «Extra» para el banco. Eso no ubica a nadie: lo que hace falta es saber qué
+ * titular y qué reservas forman un mismo grupo, que es la unidad con la que se
+ * decide en campo cuando un aula cae.
+ */
+function unitChainLabel(unit: Pick<CollectionUnit, "role" | "group" | "dimensions">): string {
+  const key = (unit.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
+  if (key === "extra_reserve_pool") return "Banco";
+  const target = typeof unit.dimensions?.replacement_for === "string"
+    ? unit.dimensions.replacement_for.trim() : "";
+  if (target) return target;
+  const propio = unitOperationalCode(unit);
+  // Un titular es cabeza de su propia cadena. Sin código operativo se cae a lo
+  // que hubiera antes en vez de dejar la celda muda.
+  return propio || value(unit.group);
+}
+
 // `.collection_instrument_ref()` (api/R/collection_engine.R) devuelve el
 // centinela "legacy-instrument-unpinned" cuando el plan no tiene una
 // revisión de instrumento fijada -no es un id real, es la señal de que no
@@ -210,13 +248,20 @@ export function PlanSection({ payload, onState }: Props) {
           <>
             <TableScroll data-qa-geometry-capacity="owned">
               <table>
-                <thead><tr><th>Unidad</th><th>Rol</th><th>Grupo</th><th>Programación</th></tr></thead>
+                <thead><tr><th>Unidad</th><th>Rol</th><th>Cadena</th><th>Programación</th></tr></thead>
                 <tbody>
                   {pagination.items.map((unit) => (
                     <tr key={unit.unit_id}>
-                      <td><strong>{unit.label}</strong><small>{unit.unit_id}</small></td>
+                      {/* El código operativo manda y el nombre del aula queda
+                          de apoyo. El `unit_id` sale de la vista: es un hash
+                          para juntar registros, no algo que nadie diga en voz
+                          alta. Sigue siendo la `key` de la fila. */}
+                      <td>
+                        <strong>{unitOperationalCode(unit) || unit.label}</strong>
+                        <small>{unitOperationalCode(unit) ? unit.label : unit.unit_id}</small>
+                      </td>
                       <td>{unitRoleLabel(unit)}</td>
-                      <td>{value(unit.group)}</td>
+                      <td>{unitChainLabel(unit)}</td>
                       <td>{value(unit.dimensions?.schedule ?? unit.scheduling?.wave)}</td>
                     </tr>
                   ))}

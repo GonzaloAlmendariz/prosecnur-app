@@ -1626,3 +1626,41 @@ dicho antes de actuar, en el primer proyecto donde el desfase ocurre de verdad.
 **No se pulsa el botón.** Rehacer descarta el despliegue preparado y deja sin
 valor las fichas impresas: es una decisión con coste, y el aviso existe
 precisamente para que la tome quien puede asumirlo.
+
+
+## La tabla del plan hablaba en códigos internos
+
+Gonzalo, señalando la celda: «tanto monitoreo como recopiladores usa estos
+códigos internos y no se ve nada amigable, además sigue usando M1 y M2 en vez de
+CH 1 y R 1 o R 1.2».
+
+La columna Unidad enseñaba el nombre académico del aula —`1ges08_0601`— y debajo
+el `unit_id`, que es un hash de infraestructura
+—`unit-aulas-aula-1-5524e6773d`—. La columna Grupo decía `M1` para todas las
+titulares y `M2` para las reservas: la **ola de muestra**, que no ubica a nadie.
+
+**El código operativo llegaba desde el principio.** Vive en
+`dimensions.legacy_ref`: es el `operational_code` que `.collection_legacy_unit()`
+usa como `source_key` **para derivar el propio `unit_id`**. Se pintaba el hash
+derivado y se escondía el original.
+
+| Columna | Antes | Ahora |
+|---|---|---|
+| Unidad | `1ges08_0601` + hash | **`AULA 1`** + `1ges08_0601` |
+| Grupo → **Cadena** | `M1` / `M2` / `Extra` | **`AULA 1`** para la cadena, **`Banco`** para el banco |
+
+En pantalla, con el plan real del 1 de agosto: AULA 1, AULA 2, EXTRA 1… Dice
+«AULA» y no «CH» porque **ese** sorteo usaba esa nomenclatura —la diferencia que
+ya había anotado la serie B: plan del 1 ago con «AULA n» frente a selección del
+21 con «CH n»—. Con un plan del sorteo vigente dirá `CH 1` y `R 1.2`.
+
+El rol ya traducía «Reemplazo de AULA 1»; ese trabajo estaba hecho y no se toca.
+
+4 asertos nuevos; los 7 de `PlanSection.test.tsx` siguen verdes.
+
+### Queda por mirar
+
+Gonzalo dice «tanto monitoreo como recopiladores». En Monitoreo la tabla de
+agenda **sí** muestra `CH 1`; falta censar las demás superficies del perfil por si
+alguna enseña `unit_id`, `classroom_id` o la ola donde debería ir el código
+operativo.
