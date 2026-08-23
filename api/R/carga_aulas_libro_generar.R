@@ -854,5 +854,10 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     )
   )
   openxlsx::saveWorkbook(wb, path, overwrite = TRUE)
+  # Cuantas unidades entraron DE VERDAD, como atributo para no cambiar el
+  # retorno: el llamador contaba `length(unidades)` sobre el plan crudo y desde
+  # que el banco sin usar se filtra aqui, esa cifra ya no describe el archivo.
+  # El aviso decia «Libro de 2616 aulas» de un libro con 190.
+  attr(path, "unidades") <- length(unidades)
   path
 }

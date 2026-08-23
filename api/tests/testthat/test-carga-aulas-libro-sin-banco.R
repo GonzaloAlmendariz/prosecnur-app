@@ -66,3 +66,23 @@ test_that("un plan que solo trae banco sin usar no genera un libro vacio", {
   path <- file.path(tempdir(), "libro_solo_banco.xlsx")
   expect_error(aulas_libro_generar(solo_banco, path), "banco de extras sin usar")
 })
+
+test_that("el generador declara cuantas unidades escribio de verdad", {
+  # El aviso de la app decia «Libro de 2616 aulas» de un libro con 190: contaba
+  # el plan crudo. Desde que el banco sin usar se filtra aqui, la unica cifra que
+  # describe el archivo es la que devuelve quien lo escribe.
+  skip_if_not_installed("openxlsx")
+  path <- file.path(tempdir(), "libro_cuenta.xlsx")
+  escrito <- aulas_libro_generar(.banco_plan(5L), path)
+  expect_identical(as.integer(attr(escrito, "unidades")), 2L)
+})
+
+test_that("con un extra activado la cuenta lo incluye", {
+  skip_if_not_installed("openxlsx")
+  path <- file.path(tempdir(), "libro_cuenta2.xlsx")
+  escrito <- aulas_libro_generar(
+    .banco_plan(5L), path,
+    control = list(list(operational_code = "EXTRA 4", sent_total = 7))
+  )
+  expect_identical(as.integer(attr(escrito, "unidades")), 3L)
+})
