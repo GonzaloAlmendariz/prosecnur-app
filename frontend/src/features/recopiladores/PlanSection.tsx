@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { apiRecopiladoresReseed,
   apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
 import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
+import { TIPO_DE_UNIDAD } from "./RecopiladoresShell";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
@@ -251,7 +252,9 @@ export function PlanSection({ payload, onState }: Props) {
         }
       >
         <dl>
-          <div><dt>Tipo</dt><dd>{plan.unit_type}</dd></div>
+          {/* En castellano, con la misma lista que usa la barra del módulo: dos
+              diccionarios para el mismo campo acabarían discrepando. */}
+          <div><dt>Tipo</dt><dd>{TIPO_DE_UNIDAD[plan.unit_type] ?? plan.unit_type}</dd></div>
           <div><dt>Método</dt><dd>{COLLECTION_ADAPTER_LABELS[plan.adapter.id] ?? plan.adapter.id}</dd></div>
           <div><dt>Revisión</dt><dd>{plan.revision}</dd></div>
           {/* Decía sólo «calc-muestra», que es el módulo y nunca cambia. El

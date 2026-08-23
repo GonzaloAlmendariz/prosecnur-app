@@ -417,3 +417,36 @@ la condición que protege la geometría.
 Y lo que sigue siendo trabajo grande, no un patrón: **una vista por rol**. El
 agendador, el jefe de campo y el analista comparten hoy las mismas cinco
 secciones y el mismo juego de columnas.
+
+
+## Recopiladores hablaba en lenguaje de implementación
+
+Empezando por sus cuatro subtítulos, que son lo primero que se lee de cada
+sección:
+
+| Sección | Decía | Dice |
+|---|---|---|
+| Plan | «Confirma las unidades ya decididas y la revisión local del instrumento» | «Las aulas que entran a campo y con qué versión del cuestionario se aplican» |
+| Accesos | «Inspecciona un **target** existente y prepara accesos sin crear **recursos remotos**» | «El enlace por el que responde cada aula. Se prepara sobre un formulario que ya existe, **sin tocar nada en la plataforma**» |
+| Materiales | «Edita una **receta semántica** y renderiza con el **compilador autoritativo del backend**» | «Las fichas que se imprimen y se llevan al aula: código, QR, horario, salón y docente» |
+| Entrega | «Cierra el **deployment** con un **recibo idempotente**» | «Cierra el plan y deja constancia de qué se entregó. **Repetirla no duplica nada**, y Monitoreo la lee de ahí» |
+
+**Las garantías técnicas no se pierden, se dicen en castellano**: que Accesos no
+toca la plataforma y que la entrega se puede repetir sin duplicar eran promesas
+reales del motor, y siguen dichas.
+
+Y en la barra del módulo, tres más que aparecieron al mirar:
+
+- **`classroom_course_schedule`** junto a «TIPO» — la clave del adaptador, no
+  algo que nadie diga. Ahora «Cursos-horario», con **un solo diccionario**
+  compartido por la barra y el resumen: dos listas para el mismo campo acabarían
+  discrepando.
+- **«sin deployment»** → «accesos sin preparar».
+- **«UNIDADES 2 468»** → «**CURSOS-HORARIO 175**», que además concuerda con el
+  resumen de abajo. Eran dos cifras para lo mismo en la misma pantalla.
+
+Medido después: **cero apariciones** de `classroom_course_schedule`, `deployment`,
+`idempotente` y `target` en la pantalla.
+
+4 asertos, y la lista de jerga vive en el test: no es una opinión sobre el estilo,
+son términos de arquitectura que sólo significan algo dentro del código.

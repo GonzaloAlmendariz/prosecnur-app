@@ -24,22 +24,55 @@ import "./styles/recopiladores-shell.css";
 
 const MODULE = PROSECNUR_MODULES.find((item) => item.slug === "recopiladores")!;
 
+/**
+ * Qué hace cada sección, en el idioma de quien la usa.
+ *
+ * Los cuatro subtítulos hablaban en lenguaje de implementación —«inspecciona un
+ * target existente y prepara accesos sin crear recursos remotos», «renderiza con
+ * el compilador autoritativo del backend», «cierra el deployment con un recibo
+ * idempotente»—. Quien prepara una salida a campo no sabe qué es un recibo
+ * idempotente, y el módulo entero se lee como si no fuera para él.
+ *
+ * Las garantías técnicas que decían no se pierden, se dicen en castellano: que
+ * Accesos no toca nada en la plataforma, y que la entrega se puede repetir sin
+ * duplicar lo entregado.
+ *
+ * El referente es Cálculo de cursos-horario, cuyos subtítulos son «Cuotas y
+ * cursos-horario necesarios» o «nombre, cliente y alcance»: el dominio, no la
+ * arquitectura. Ver `docs/qa/roles-del-operativo-de-aulas-2026-08-22.md`.
+ */
+/**
+ * El tipo de unidad, dicho como se dice.
+ *
+ * La barra enseñaba `classroom_course_schedule` —la clave del adaptador— junto a
+ * «TIPO». Es el nombre con el que el motor distingue una familia de plan, no
+ * algo que nadie diga: en la app, en el libro y en campo son «cursos-horario».
+ *
+ * Una clave que no esté aquí se muestra tal cual: inventarle un nombre sería
+ * peor que enseñar la clave, porque el lector no podría contrastarla con nada.
+ */
+export const TIPO_DE_UNIDAD: Record<string, string> = {
+  classroom_course_schedule: "Cursos-horario",
+  household: "Viviendas",
+  person: "Personas",
+};
+
 const SECTION_COPY: Record<RecopiladoresSeccion, { title: string; lead: string }> = {
   "plan-recoleccion": {
     title: "Plan de recolección",
-    lead: "Confirma las unidades ya decididas y la revisión local del instrumento.",
+    lead: "Las aulas que entran a campo y con qué versión del cuestionario se aplican.",
   },
   accesos: {
     title: "Accesos",
-    lead: "Inspecciona un target existente y prepara accesos sin crear recursos remotos.",
+    lead: "El enlace por el que responde cada aula. Se prepara sobre un formulario que ya existe, sin tocar nada en la plataforma.",
   },
   materiales: {
     title: "Materiales",
-    lead: "Edita una receta semántica y renderiza con el compilador autoritativo del backend.",
+    lead: "Las fichas que se imprimen y se llevan al aula: código, QR, horario, salón y docente.",
   },
   "entrega-campo": {
     title: "Entrega a campo",
-    lead: "Cierra el deployment con un recibo idempotente para Monitoreo.",
+    lead: "Cierra el plan y deja constancia de qué se entregó. Repetirla no duplica nada, y Monitoreo la lee de ahí.",
   },
 };
 
@@ -141,7 +174,11 @@ export function RecopiladoresShell() {
   const tabs = activeMeta?.tabs ?? [];
   const copy = SECTION_COPY[direction.seccion];
   const state = payload?.state ?? null;
-  const status = state?.deployment?.status ?? (state?.plan ? "sin deployment" : "sin plan");
+  // «sin deployment» es la palabra del motor para «los accesos todavía no están
+  // preparados». En la barra de un módulo que usa quien sale a campo, no dice
+  // nada.
+  const status = state?.deployment?.status
+    ?? (state?.plan ? "accesos sin preparar" : "sin plan de recolección");
 
   const sectionSelector = (
     <GlidingTabList
@@ -192,13 +229,24 @@ export function RecopiladoresShell() {
             // entradas, Hojas de ruta distritos, Cálculo la mesa—. Aquí el dato
             // es la forma del plan: cuántas unidades y de qué tipo.
             <ChromeIndicatorGroup ariaLabel="Contexto de Recopiladores">
+              {/* Los cursos-horario que hay que visitar, no el total de filas
+                  del plan. Decía «2 468 unidades» mientras el resumen de abajo
+                  decía «175 cursos-horario»: la diferencia son las reservas y el
+                  banco, que no son visitas. Dos cifras para lo mismo en la misma
+                  pantalla es justo lo que este módulo lleva corrigiendo. */}
               <ChromeIndicator
-                label="Unidades"
-                value={String(state.plan.units.length)}
+                label="Cursos-horario"
+                value={String(
+                  state.plan.units.filter((u) => (u.role ?? "") === "titular").length
+                  || state.plan.units.length,
+                )}
                 prioridad="alta"
               />
               {state.plan.unit_type ? (
-                <ChromeIndicator label="Tipo" value={state.plan.unit_type} />
+                <ChromeIndicator
+                  label="Tipo"
+                  value={TIPO_DE_UNIDAD[state.plan.unit_type] ?? state.plan.unit_type}
+                />
               ) : null}
             </ChromeIndicatorGroup>
           ) : null}
