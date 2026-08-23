@@ -1873,3 +1873,35 @@ El fixture distingue a propósito `operational_code = "AULA-01"` de
 al papel. Dice el código, y el rol de la reserva nombra a su titular.
 
 Sin warnings de render: ni `field_grid_overflow` ni `text_truncated`.
+
+
+## La diagramación de la ficha: una tensión que decide Gonzalo
+
+Renderizada la ficha a PNG y mirada de verdad, con la vara de `/revamp-visual`.
+
+**Lo medido**: los seis campos del grid se reparten **488 px** de banda. Entre
+«Rol · Titular» y «Horario · 08:00-10:00» quedan casi **cien píxeles de nada**,
+con el QR compacto al lado. La etiqueta queda además a ~120 px de su valor, así
+que la pareja no se lee como pareja.
+
+**Lo intentado**: separar los dos bloques elásticos —el `field_grid` toma su alto
+natural y el `application_log` absorbe el sobrante—. Lo que se lee va junto; lo
+que se escribe a mano necesita espacio. Compacta la ficha.
+
+**Por qué no se aplicó**: rompe `test-collection-render-ficha.R:271`, que defiende
+exactamente lo contrario con todas sus letras — *«pocas filas reparten la banda en
+vez de dejar el hueco abajo»*, con dos asertos: que el grid llegue cerca del piso
+de su banda y que el paso nunca baje del mínimo legible.
+
+Son **dos criterios estéticos en tensión**:
+
+| | A favor | En contra |
+|---|---|---|
+| Repartir (vigente) | sin hueco muerto antes del bloque siguiente | los campos flotan; la etiqueta se separa de su valor |
+| Compactar | se lee de un vistazo | deja aire al final de la hoja |
+
+El vigente es una decisión deliberada **y está fijada con su test**, así que no se
+cambia por preferencia. Queda medido y revertido, con la razón escrita en el
+propio código para que nadie repita el intento a ciegas.
+
+**Lo que sí decide esto**: quién mira la ficha impresa en campo.

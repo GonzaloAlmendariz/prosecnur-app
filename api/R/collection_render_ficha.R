@@ -517,6 +517,20 @@ collection_material_draw_page <- function(page, page_no = 1L, total_pages = 1L,
   # pagina, escribiendo encima del pie -medido con un render real, no a ojo.
   available <- max(0, (flow_top - flow_floor) - fixed_total - gap_total - link_h - gap)
 
+  # **Se probó separar el grid del registro y NO se aplicó.**
+  #
+  # Los dos bloques elásticos se reparten el hueco en proporción a su alto
+  # natural, así que con una hoja A4 para seis campos el `field_grid` estira sus
+  # filas hasta 488 px: entre «Rol · Titular» y «Horario · 08:00-10:00» quedan
+  # casi cien px de nada, con el QR compacto al lado. Medido sobre el PNG de una
+  # ficha real.
+  #
+  # Dejar que el grid tome su alto natural y que el registro absorba el sobrante
+  # lo compacta… y rompe `test-collection-render-ficha.R:271`, que defiende justo
+  # lo contrario: «pocas filas reparten la banda en vez de dejar el hueco abajo».
+  # Son dos criterios estéticos en tensión —campos apretados con aire al final,
+  # o campos repartidos sin hueco— y el vigente está fijado con su test. No se
+  # cambia sin que lo decida quien mira la ficha impresa.
   elastic <- Filter(function(b) b$type %in% c("field_grid", "application_log"), items)
   nat_sum <- sum(vapply(elastic, nat_h, numeric(1)))
   elastic_h <- list()
