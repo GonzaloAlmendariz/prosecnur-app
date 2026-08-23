@@ -193,6 +193,11 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
       unit$role, replacement_for,
       dims$replacement_order %||% unit$replacement_order
     ),
+    # La CLAVE del rol, ademas de la frase. `role` sale ya redactado —«Reemplazo
+    # 2»— porque es lo que se imprime, y quien tiene que AGRUPAR por rol
+    # necesita el termino canonico: leerlo del texto obligaria a parsear una
+    # frase que existe para leerse, no para compararse.
+    role_key = tolower(gsub("[ -]+", "_", trimws(as.character(unit$role %||% "")[1]))),
     replacement_for = replacement_for,
     group = .crf_txt(unit$group, ""),
     faculty = .crf_txt(dims$faculty %||% unit$faculty, ""),
