@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { apiRecopiladoresReseed,
   apiRecopiladoresSeed, type CollectionStatePayload, type CollectionUnit } from "../../api/recopiladores";
 import { agruparEnCadenas, ordenarPorCadenaOperativa } from "../../lib/cadenaOperativa";
-import { TIPO_DE_UNIDAD } from "./RecopiladoresShell";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
 import {
@@ -13,12 +12,12 @@ import {
   DatabaseZap,
   Loader2,
 } from "../../vendor/lucide-react";
-import { COLLECTION_ADAPTER_LABELS } from "./providerRules";
 import { TableScroll } from "./TableScroll";
 import "./styles/plan.css";
 import { ComposicionPorFacultad } from "./ComposicionPorFacultad";
 import { capitalizarDelMarco } from "./textoDelMarco";
 import { codigoOperativoDe } from "./codigoOperativo";
+import { formaDelOperativo, type FormaDelOperativo } from "./formaDelOperativo";
 import { nombreCortoDeFacultad } from "./nombreDeFacultad";
 
 type Props = {
@@ -57,6 +56,28 @@ export function unitRoleLabel(
   if (key === "chain_reserve" || key === "reserva") return target ? `Reemplazo de ${target}` : "Reemplazo";
   if (key === "extra_reserve_pool") return "Reserva adicional";
   return value(unit.role);
+}
+
+/**
+ * Qué tan cubierto está el operativo, en una frase.
+ *
+ * La cifra que manda es el MÍNIMO, no el promedio: un plan con media de tres
+ * reservas y once aulas sin ninguna está descubierto en esas once, y el
+ * promedio lo esconde. Si hay aulas sin respaldo se dicen primero, porque es la
+ * única parte accionable de todo el panel.
+ */
+export function lecturaDelRespaldo(forma: FormaDelOperativo): string {
+  if (forma.titulares === 0) return "Todavía no hay aulas en el plan.";
+  if (forma.sinReserva > 0) {
+    const n = forma.sinReserva.toLocaleString("es-PE");
+    return forma.sinReserva === 1
+      ? `Un curso-horario se quedó sin ninguna reserva detrás: si cae, no hay plan B.`
+      : `${n} cursos-horario se quedaron sin ninguna reserva detrás: si caen, no hay plan B.`;
+  }
+  if (forma.minReservas === forma.maxReservas) {
+    return `Cada aula lleva ${forma.minReservas} ${forma.minReservas === 1 ? "reserva" : "reservas"} detrás.`;
+  }
+  return `Ninguna aula se queda sin plan B: cada una lleva entre ${forma.minReservas} y ${forma.maxReservas} reservas detrás.`;
 }
 
 /** Una dimensión que se va a pintar: string limpio o vacío, nunca `undefined`. */
@@ -247,6 +268,7 @@ export function PlanSection({ payload, onState }: Props) {
     [plan.units],
   );
   const pagination = paginatePlanUnits(operativo.cadenas, requestedPage);
+  const forma = useMemo(() => formaDelOperativo(plan.units), [plan.units]);
   // Qué cadenas están desplegadas. Colapsadas por defecto: la reserva importa
   // el día que su titular se cae, no antes.
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -272,12 +294,23 @@ export function PlanSection({ payload, onState }: Props) {
           <><ClipboardList size={18} aria-hidden /> {operativo.cadenas.length} cursos-horario</>
         }
       >
+        {/* **La forma del operativo, antes que sus metadatos.**
+            «Tipo: Cursos-horario» estaba repetido en la barra del módulo dos
+            centímetros más arriba, «Método» era el nombre del adaptador y
+            «Revisión» un contador. Ninguno contesta la pregunta con la que se
+            abre esta pantalla: si se me cae un aula, ¿tengo con qué? */}
+        <div className="rec-forma">
+          <div>
+            <strong>{forma.reservas.toLocaleString("es-PE")}</strong>
+            <span>reservas encadenadas</span>
+          </div>
+          <div>
+            <strong>{forma.banco.toLocaleString("es-PE")}</strong>
+            <span>en banco</span>
+          </div>
+        </div>
+        <p className="rec-forma-lectura">{lecturaDelRespaldo(forma)}</p>
         <dl>
-          {/* En castellano, con la misma lista que usa la barra del módulo: dos
-              diccionarios para el mismo campo acabarían discrepando. */}
-          <div><dt>Tipo</dt><dd>{TIPO_DE_UNIDAD[plan.unit_type] ?? plan.unit_type}</dd></div>
-          <div><dt>Método</dt><dd>{COLLECTION_ADAPTER_LABELS[plan.adapter.id] ?? plan.adapter.id}</dd></div>
-          <div><dt>Revisión</dt><dd>{plan.revision}</dd></div>
           {/* Decía sólo «calc-muestra», que es el módulo y nunca cambia. El
               plan guarda ADEMÁS de qué corrida salió (`source_ref.run_id`) y ese
               dato no se pintaba en ninguna parte. Medido en HSVG2026 el
