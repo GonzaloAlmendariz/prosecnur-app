@@ -570,7 +570,12 @@ export function aulasKpis(
   // ya publica esa cuenta, calculada en el motor sobre TODAS las filas y con el
   // filtro de validez aplicado, asi que se lee de ahi en vez de recomponerla.
   const cobertura = (dashboard?.course_status_cobertura ?? []) as Array<{ clave?: unknown; aulas?: unknown }>;
-  const cumplen = Number(cobertura.find((c) => c.clave === "cumplida")?.aulas ?? 0) || 0;
+  // La clave es `pleno` desde el recorte de tramos: `cumplida` significaba DOS
+  // cosas —este tramo del aula y el estado de la celda facultad x sexo— y por
+  // eso se separaron. Si el motor deja de publicarla, esto da 0 y el rotulo
+  // miente en silencio; el test de kpis fija el 7 del fixture para que ese caso
+  // falle en vez de pasar desapercibido.
+  const cumplen = Number(cobertura.find((c) => c.clave === "pleno")?.aulas ?? 0) || 0;
   // El denominador tambien sale del motor: son las filas con meta, o sea el
   // total menos las que no la declaran. Contarlo sobre `course_status` lo dejaba
   // a merced del recorte a 500 filas.
