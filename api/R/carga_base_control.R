@@ -77,8 +77,22 @@ BASE_CONTROL_CAMPOS <- list(
   list(campo = "efectivas_pct_esperado", titulos = c("% EFECTIVAS ESPERADO")),
   list(campo = "efectivas_pct_obtenido", titulos = c("% EFECTIVAS OBTENIDO")),
   list(campo = "efectivas_brecha",    titulos = c("EFECTIVAS: DIFERENCIA")),
-  # Elegibles esperados contra los que dieron una efectiva.
-  list(campo = "elegibles_esperados", titulos = c("ELEGIBLES ESPERADOS")),
+  # **El denominador del porcentaje, a la vista y con su nombre.**
+  #
+  # Es `eligible_n` —el mismo numero que «MATRICULADOS POBLACION» de esta misma
+  # fila—, repetido aqui a proposito para que el `% EFECTIVAS ESPERADO` se pueda
+  # leer sin cruzar la hoja entera hasta las columnas de identidad.
+  #
+  # Se llamaba «ELEGIBLES ESPERADOS», y ese nombre prometia un pronostico
+  # —cuantos elegibles esperamos— cuando lo que lleva es el padron ya conocido.
+  # Costo un defecto real: el veredicto de aula valida lo tomo como meta, y usar
+  # el padron como vara exige el 100 % de asistencia efectiva. Gonzalo,
+  # 2026-08-24: «deberiamos tenerlo todo muy validado a lo ultimo que tenemos y
+  # realmente usamos». La meta es «EFECTIVAS ESPERADAS», que esta dos columnas
+  # antes. El titulo viejo queda como ALIAS de lectura: los libros ya emitidos
+  # se siguen leyendo sin tocar nada.
+  list(campo = "elegibles_esperados",
+       titulos = c("ELEGIBLES: BASE DEL %", "ELEGIBLES ESPERADOS")),
 
   # Control - duracion
   list(campo = "last_response_day",   titulos = c("ULTIMO DIA DE RESPUESTA")),

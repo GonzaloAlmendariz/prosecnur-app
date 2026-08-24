@@ -34,8 +34,12 @@ export type AulaPorCerrar = {
   enviadas: number;
   /** El umbral que decide, ya en encuestas. */
   umbral: number;
-  /** Cuál de los dos falló: los dos, el total o la población. */
-  falla: "ambos" | "total" | "poblacion";
+  /**
+   * Contra qué se midió y qué falló. Los tres primeros son los umbrales del
+   * 70 % de los libros de 2025; `meta` es la vara vigente —lo que el diseño
+   * esperaba de ESA aula— y es la única que aplica en los estudios nuevos.
+   */
+  falla: "ambos" | "total" | "poblacion" | "meta";
 };
 
 export type LoQueFalta = {
@@ -79,11 +83,27 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
   for (const fila of filas) {
     const t = fila.cumple_total;
     const p = fila.cumple_poblacion;
+    // **El veredicto ya compuesto, no los dos umbrales sueltos.**
+    //
+    // Exigir que `cumple_total` y `cumple_poblacion` fueran booleanos dejaba el
+    // panel vacío en cualquier estudio de 2026: esos dos salen de las columnas
+    // `70T`/`70P`, que la app ya no escribe, así que ambos son nulos y las
+    // 2.616 aulas se descartaban como «sin evaluar». `efectiva` es el veredicto
+    // con su prioridad ya resuelta —veredicto de la hoja, umbral del 70, meta
+    // del diseño— y por eso es el que decide quién entra.
+    // Se DERIVA cuando la fila no lo trae: el motor siempre lo publica, pero
+    // una fila cruda —o un consumidor que arme el payload a mano— no tiene por
+    // qué, y quedarse sin panel por un campo ausente es peor que recomponerlo.
+    const veredicto = typeof fila.efectiva === "boolean"
+      ? fila.efectiva
+      : (t === true || t === false) && (p === true || p === false)
+        ? (t as boolean) && (p as boolean)
+        : null;
     // Sin evaluar no es lo mismo que no llegó: un aula que nadie miró no tiene
     // faltante, tiene una hoja sin llenar. Va fuera del panel entero.
-    if ((t !== true && t !== false) || (p !== true && p !== false)) continue;
+    if (veredicto !== true && veredicto !== false) continue;
     evaluadas += 1;
-    if (t && p) continue;
+    if (veredicto) continue;
     noEfectivas += 1;
 
     const enviadas = num(fila.sent_total);
@@ -93,15 +113,32 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
     // número de encuestas; el motor ya descarta ese caso al decidir y aquí se
     // descarta por el mismo motivo.
     const usable = (u: number | null) => (u !== null && u > 1 ? u : null);
-    const faltaT = !t ? usable(uT) : null;
-    const faltaP = !p ? usable(uP) : null;
-    if (enviadas === null || (faltaT === null && faltaP === null)) {
+    const faltaT = t === false ? usable(uT) : null;
+    const faltaP = p === false ? usable(uP) : null;
+
+    // **La vara vigente, cuando el libro no trae los umbrales del 70 %.**
+    //
+    // La brecha es meta − obtenidas, y las dos cifras ya viajan: la meta en
+    // `expected_valid`, que el cálculo de muestra publica por curso-horario
+    // (2.616 de 2.616, mediana 17), y lo conseguido en las efectivas. Sin esto
+    // el panel decía «el libro no trae con qué calcular cuánto les falta» y
+    // mandaba a buscar dos columnas que ya no existen.
+    const porUmbral = faltaT !== null || faltaP !== null;
+    const meta = num(fila.expected_valid) ?? num(fila.efectivas_esperadas);
+    const logrado = num(fila.efectivas_obtenidas) ?? num(fila.effective_surveys) ?? enviadas;
+
+    if (!porUmbral && (meta === null || meta <= 0 || logrado === null)) {
+      sinCifras += 1;
+      continue;
+    }
+    if (porUmbral && enviadas === null) {
       sinCifras += 1;
       continue;
     }
 
-    const umbral = Math.max(faltaT ?? 0, faltaP ?? 0);
-    const faltan = Math.ceil(umbral - enviadas);
+    const umbral = porUmbral ? Math.max(faltaT ?? 0, faltaP ?? 0) : (meta as number);
+    const base = porUmbral ? (enviadas as number) : (logrado as number);
+    const faltan = Math.ceil(umbral - base);
     if (faltan <= 0) {
       contradicciones += 1;
       continue;
@@ -110,9 +147,15 @@ export function loQueFaltaParaCerrar(filas: ReadonlyArray<FilaDeControl>): LoQue
       codigo: txt(fila.operational_code) || txt(fila.course_code) || "—",
       facultad: txt(fila.faculty),
       faltan,
-      enviadas,
+      enviadas: base,
       umbral,
-      falla: !t && !p ? "ambos" : !t ? "total" : "poblacion",
+      falla: !porUmbral
+        ? "meta"
+        : faltaT !== null && faltaP !== null
+          ? "ambos"
+          : faltaT !== null
+            ? "total"
+            : "poblacion",
     });
   }
 
