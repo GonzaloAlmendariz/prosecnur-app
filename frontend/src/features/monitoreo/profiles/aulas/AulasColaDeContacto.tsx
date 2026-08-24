@@ -14,6 +14,29 @@ import { fmt } from "./kpisDeAulas";
  * todavía puede decir y sirve para la próxima ola.
  */
 
+/**
+ * La fecha de una cita, en calendario y no en ISO.
+ *
+ * `scheduled_date` llega como «2026-09-01», que es el formato en que la guarda
+ * el libro pero no en el que nadie agenda: para saber si una cita cae en día
+ * laborable hay que leer el día de la semana, y ahí no está.
+ *
+ * **Lo que no parsea se devuelve entero.** Ese campo lo puede escribir a mano
+ * quien edita la agendación en el Excel, así que puede traer «1/9», «lunes» o
+ * cualquier cosa; enseñarla tal cual deja ver el error, e inventarle una fecha
+ * lo escondería.
+ */
+const CALENDARIO = new Intl.DateTimeFormat("es-PE", { weekday: "short", day: "numeric", month: "short" });
+
+function diaLegible(iso: string): string {
+  if (!iso) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (!m) return iso;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (Number.isNaN(d.getTime())) return iso;
+  return CALENDARIO.format(d).replace(/\.$/, "");
+}
+
 export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /**
@@ -38,6 +61,14 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
       { clase: "es-citada", etiqueta: "Con cita", n: citadas.length - aplicadas },
       { clase: "es-aplicada", etiqueta: "Aplicadas", n: aplicadas },
     ].filter((x) => x.n > 0);
+  }, [pendientes, citadas]);
+  // Hay desglose sólo si algún grupo mezcla estados; si cada grupo es de un
+  // solo color, los chips serían los conteos de las tablas repetidos.
+  const desglosa = useMemo(() => {
+    const insistiendo = pendientes.filter((p) => p.intentos > 0).length;
+    const aplicadas = citadas.filter((c) => c.aplicada).length;
+    return (insistiendo > 0 && insistiendo < pendientes.length)
+      || (aplicadas > 0 && aplicadas < citadas.length);
   }, [pendientes, citadas]);
 
   // **Dos causas, y ninguna era la que decía el mensaje.** Con filas presentes la
@@ -77,8 +108,16 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
        *
        * El resumen usa los MISMOS chips que las filas, así que la vista de
        * conjunto y el detalle se reconocen entre sí; y sólo muestra los estados
-       * que existen, para no llenar la banda de ceros. */}
-      {resumen.length > 1 ? (
+       * que existen, para no llenar la banda de ceros.
+       *
+       * **Y sólo cuando desglosa algo que las dos tablas no dicen ya.** Cada
+       * tabla lleva su conteo en el rótulo del grupo —«Citas fijadas 10», «Por
+       * contactar 183»—, así que con los dos grupos homogéneos los chips
+       * repetían esas mismas dos cifras dos centímetros más arriba. Aparecen
+       * cuando dentro de algún grupo hay más de un estado: ahí sí dicen algo
+       * nuevo —cuántos de los pendientes ya se están atascando, cuántas citas
+       * siguen sin aplicarse—. */}
+      {desglosa ? (
         <p className="aulas-cola-resumen">
           {resumen.map(({ clase, etiqueta, n }) => (
             <span key={clase} className={`aulas-cola-estado ${clase}`}>
@@ -99,67 +138,104 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
        * Las citadas entran con su fecha y hora: antes no salían nunca porque el
        * panel enseñaba sólo la cola, y quien agenda necesita ver lo conseguido
        * además de lo que falta. */}
-      {pendientes.length || citadas.length ? (
-        <table className="aulas-cola-tabla" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-          <thead>
-            <tr>
-              <th scope="col">Curso-horario</th>
-              <th scope="col">Docente</th>
-              <th scope="col">Contacto</th>
-              <th scope="col" className="es-num">Gestiones</th>
-              <th scope="col">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pendientes.map((p) => (
-              <tr key={`p-${p.codigo}`}>
-                <td className="aulas-cola-codigo">{p.codigo}</td>
-                <td className="aulas-cola-quien" title={`${p.docente} · ${p.facultad}`}>
-                  {p.docente || "—"}
-                  <em>{p.facultad}</em>
-                </td>
-                {/* El teléfono y el medio JUNTOS: es lo que se necesita en la
-                    mano para hacer la llamada. */}
-                <td className="aulas-cola-como">
-                  {p.telefono || "—"}
-                  {p.medio ? <em> · {p.medio}</em> : null}
-                </td>
-                <td className="aulas-cola-intentos es-num">
-                  {p.intentos > 0 ? <strong>{fmt(p.intentos)}</strong> : <span className="es-vacio">—</span>}
-                  {p.ultimaLlamada ? <em>última: {p.ultimaLlamada}</em> : null}
-                </td>
-                <td>
-                  {/* Sin gestiones aún no es lo mismo que insistiendo: la
-                      primera está sin empezar y la segunda se está atascando. */}
-                  <span className={`aulas-cola-estado ${p.intentos > 0 ? "es-insistiendo" : "es-sin-empezar"}`}>
-                    {p.intentos > 0 ? "Insistiendo" : "Sin contactar"}
-                  </span>
-                </td>
+      {/* **Dos tablas, no una con dos naturalezas de fila.**
+       *
+       * La columna se llamaba «Contacto» y servía dos contenidos distintos: el
+       * teléfono en las filas pendientes y la fecha de la cita en las citadas.
+       * Un rótulo que promete un contenido y entrega otro es el defecto más
+       * repetido de este módulo, y aquí además obligaba a redactar el
+       * encabezado en abstracto para que cubriera las dos cosas.
+       *
+       * Separadas, cada encabezado dice exactamente lo que hay debajo, y el
+       * orden pasa a tener sentido: **primero lo comprometido** —una fecha con
+       * hora es un compromiso, y son diez— y después la cola de 183. Antes las
+       * citadas iban al final, a 6.500 px de scroll de la primera fila. */}
+      {citadas.length ? (
+        <div className="aulas-cola-bloque">
+          <p className="aulas-cola-grupo">
+            Citas fijadas <span>{fmt(citadas.length)}</span>
+          </p>
+          <table className="aulas-cola-tabla" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+            <thead>
+              <tr>
+                <th scope="col">Curso-horario</th>
+                <th scope="col">Docente</th>
+                <th scope="col">Día y hora</th>
+                <th scope="col" className="es-num">Gestiones</th>
+                <th scope="col">Estado</th>
               </tr>
-            ))}
-            {citadas.map((c) => (
-              <tr key={`c-${c.codigo}`} className="es-citada">
-                <td className="aulas-cola-codigo">{c.codigo}</td>
-                <td className="aulas-cola-quien" title={`${c.docente} · ${c.facultad}`}>
-                  {c.docente || "—"}
-                  <em>{c.facultad}</em>
-                </td>
-                <td className="aulas-cola-cita">
-                  {c.fecha || "—"}
-                  {c.hora ? <em> · {c.hora}</em> : null}
-                </td>
-                <td className="aulas-cola-intentos es-num">
-                  {c.intentos > 0 ? <strong>{fmt(c.intentos)}</strong> : <span className="es-vacio">—</span>}
-                </td>
-                <td>
-                  <span className={`aulas-cola-estado ${c.aplicada ? "es-aplicada" : "es-citada"}`}>
-                    {c.aplicada ? "Aplicada" : "Con cita"}
-                  </span>
-                </td>
+            </thead>
+            <tbody>
+              {citadas.map((c) => (
+                <tr key={`c-${c.codigo}`} className="es-citada">
+                  <td className="aulas-cola-codigo">{c.codigo}</td>
+                  <td className="aulas-cola-quien" title={`${c.docente} · ${c.facultad}`}>
+                    {c.docente || "—"}
+                    <em>{c.facultad}</em>
+                  </td>
+                  <td className="aulas-cola-cita">
+                    {diaLegible(c.fecha)}
+                    {c.hora ? <em> · {c.hora}</em> : null}
+                  </td>
+                  <td className="aulas-cola-intentos es-num">
+                    {c.intentos > 0 ? <strong>{fmt(c.intentos)}</strong> : <span className="es-vacio">—</span>}
+                  </td>
+                  <td>
+                    <span className={`aulas-cola-estado ${c.aplicada ? "es-aplicada" : "es-citada"}`}>
+                      {c.aplicada ? "Aplicada" : "Con cita"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      {pendientes.length ? (
+        <div className="aulas-cola-bloque">
+          <p className="aulas-cola-grupo">
+            Por contactar <span>{fmt(pendientes.length)}</span>
+          </p>
+          <table className="aulas-cola-tabla" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+            <thead>
+              <tr>
+                <th scope="col">Curso-horario</th>
+                <th scope="col">Docente</th>
+                <th scope="col">Teléfono</th>
+                <th scope="col" className="es-num">Gestiones</th>
+                <th scope="col">Estado</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pendientes.map((p) => (
+                <tr key={`p-${p.codigo}`}>
+                  <td className="aulas-cola-codigo">{p.codigo}</td>
+                  <td className="aulas-cola-quien" title={`${p.docente} · ${p.facultad}`}>
+                    {p.docente || "—"}
+                    <em>{p.facultad}</em>
+                  </td>
+                  {/* El teléfono y el medio JUNTOS: es lo que se necesita en la
+                      mano para hacer la llamada. */}
+                  <td className="aulas-cola-como">
+                    {p.telefono || "—"}
+                    {p.medio ? <em> · {p.medio}</em> : null}
+                  </td>
+                  <td className="aulas-cola-intentos es-num">
+                    {p.intentos > 0 ? <strong>{fmt(p.intentos)}</strong> : <span className="es-vacio">—</span>}
+                    {p.ultimaLlamada ? <em>última: {p.ultimaLlamada}</em> : null}
+                  </td>
+                  <td>
+                    {/* Sin gestiones aún no es lo mismo que insistiendo: la
+                        primera está sin empezar y la segunda se está atascando. */}
+                    <span className={`aulas-cola-estado ${p.intentos > 0 ? "es-insistiendo" : "es-sin-empezar"}`}>
+                      {p.intentos > 0 ? "Insistiendo" : "Sin contactar"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
       {esfuerzo.length ? (
         <>
