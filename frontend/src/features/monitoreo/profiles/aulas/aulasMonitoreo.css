@@ -5084,3 +5084,21 @@
   line-height: 1.5;
   white-space: nowrap;
 }
+
+/* **El sobrante del panel va a la tabla, no al párrafo de arriba.**
+ *
+ * `.aulas-agenda-panel` toma `1fr` del stack a propósito —para que la tabla no
+ * se quede en 88 px, ver la nota de `aulas-agenda-stack`— pero por dentro es un
+ * grid con `align-content` implícito, así que repartía el alto sobrante entre
+ * TODAS sus filas. Medido el 2026-08-24 en «Aulas agendadas»: `grid-template-
+ * rows: 50.7px **132.6px** 200px` con un párrafo de dos líneas que necesita 35.
+ * Ochenta píxeles de nada entre la frase y la tabla, y ochenta que la tabla no
+ * tenía.
+ *
+ * `min-content` en las filas automáticas las deja en su alto natural; la última
+ * —la tabla o la franja de días, según el estado— se queda con lo que sobre.
+ * Se declara por hijo y no por posición porque el panel cambia de contenido:
+ * con fechas trae el calendario, sin ellas el párrafo del vacío. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel:not(:has(.aulas-agenda-dias)) {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
