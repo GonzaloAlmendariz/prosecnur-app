@@ -104,3 +104,97 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
   previsto <- suppressWarnings(as.numeric(previsto))
   ifelse(is.finite(previsto) & previsto > 0 & is.finite(logrado), logrado / previsto, NA_real_)
 }
+
+# Etiquetas para persona, no para programa.
+#
+# Gonzalo (2026-08-24): «que la informacion de los graficos e indicadores no sea
+# muy criptica en la app sino que se entienda claramente sin caer en jerga».
+# `deficit_no_subsanable` es una clave correcta y una etiqueta pesima: la clave
+# viaja en el payload y la frase es lo que lee quien decide.
+#
+# Cada etiqueta dice lo que PASA y, cuando hace falta, cuanto: «faltan 3
+# encuestas» manda a alguien a un aula; «deficit proyectado» no.
+.mac_etiqueta_estado <- function(estado, brecha = NA_integer_) {
+  b <- suppressWarnings(as.integer(brecha)[1])
+  switch(as.character(estado)[1],
+    sin_cuota = "Sin cuota trazada",
+    asegurada = "Va a llegar, con margen",
+    ajustada = "Va a llegar, sin margen: hay que vigilarla",
+    deficit_proyectado = if (is.finite(b) && b > 0)
+      sprintf("No va a llegar: %s", if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
+      else "No va a llegar",
+    deficit_no_subsanable = if (is.finite(b) && b > 0)
+      sprintf("No va a llegar y ya no quedan aulas: %s y habra que ponderar",
+              if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
+      else "No va a llegar y ya no quedan aulas: habra que ponderar",
+    "Sin estado"
+  )
+}
+
+# La calibracion en una frase. El numero solo -0,85- no dice ni en que direccion
+# ni de que; la frase dice las dos cosas y no usa la palabra «calibracion».
+.mac_etiqueta_calibracion <- function(cal) {
+  c1 <- suppressWarnings(as.numeric(cal)[1])
+  if (!is.finite(c1)) return("Todavia sin aulas aplicadas con que comparar")
+  pct <- round(abs(c1 - 1) * 100)
+  if (pct < 1) return("El campo esta rindiendo lo previsto")
+  sprintf("El campo esta rindiendo un %d %% %s de lo previsto", pct,
+          if (c1 < 1) "menos" else "mas")
+}
+
+#' Avance por celda facultad x sexo, con las cuatro series.
+#'
+#' @param plan lista de filas del plan; cada una con `faculty`,
+#'   `operational_status` y los esperados por sexo (`mujeres_esperadas`,
+#'   `hombres_esperados`).
+#' @param cuotas lista de celdas con `faculty`, `sex`, `target`, `observed`.
+#' @param pool_restante lista opcional `facultad|sexo -> aulas disponibles`.
+#' @return lista de celdas con logrado, previsto, proyeccion, calibracion,
+#'   brecha, estado y sus etiquetas.
+#' @export
+monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
+                                                 pool_restante = list()) {
+  if (!length(cuotas)) return(list())
+  # Los esperados por sexo se acumulan separando APLICADAS de PENDIENTES: el
+  # previsto es el denominador de la calibracion y solo puede contar aulas que
+  # ya ocurrieron. Meter las pendientes ahi pintaria de rojo el primer dia.
+  acc <- new.env(parent = emptyenv())
+  campo <- c(F = "mujeres_esperadas", M = "hombres_esperados")
+  for (fila in plan) {
+    if (!is.list(fila)) next
+    fac <- .monitoreo_text_key(.monitoreo_scalar(fila$faculty %||% "", ""))
+    if (!nzchar(fac)) next
+    aplicada <- identical(.monitoreo_aulas_status(fila$operational_status %||% ""), "aplicada")
+    for (sx in names(campo)) {
+      v <- suppressWarnings(as.numeric(.monitoreo_scalar(fila[[campo[[sx]]]], NA))[1])
+      if (!is.finite(v)) next
+      k <- paste0(fac, "|", sx, "|", if (aplicada) "ap" else "pe")
+      acc[[k]] <- (acc[[k]] %||% 0) + v
+    }
+  }
+  lapply(cuotas, function(celda) {
+    fac <- .monitoreo_text_key(.monitoreo_scalar(celda$faculty %||% "", ""))
+    sx <- toupper(.monitoreo_scalar(celda$sex %||% "", ""))
+    cuota <- suppressWarnings(as.numeric(.monitoreo_scalar(celda$target %||% 0, 0))[1])
+    logrado <- suppressWarnings(as.numeric(.monitoreo_scalar(celda$observed %||% 0, 0))[1])
+    previsto <- acc[[paste0(fac, "|", sx, "|ap")]] %||% NA_real_
+    pendiente <- acc[[paste0(fac, "|", sx, "|pe")]] %||% 0
+    proyeccion <- (if (is.finite(logrado)) logrado else 0) + pendiente
+    pool <- suppressWarnings(as.numeric(pool_restante[[paste0(fac, "|", sx)]] %||% NA_real_)[1])
+    estado <- .mac_estado_proyectado(cuota, proyeccion, pool)
+    brecha <- .mac_brecha(cuota, proyeccion)
+    cal <- .mac_calibracion(logrado, previsto)
+    list(
+      faculty = .monitoreo_scalar(celda$faculty %||% "", ""), sex = sx,
+      cuota = cuota, logrado = logrado,
+      previsto = if (is.finite(previsto)) round(previsto, 1) else NA_real_,
+      aporte_pendiente = round(pendiente, 1),
+      proyeccion = round(proyeccion, 1),
+      brecha = brecha,
+      calibracion = if (is.finite(cal)) round(cal, 3) else NA_real_,
+      estado = estado,
+      etiqueta = .mac_etiqueta_estado(estado, brecha),
+      etiqueta_calibracion = .mac_etiqueta_calibracion(cal)
+    )
+  })
+}
