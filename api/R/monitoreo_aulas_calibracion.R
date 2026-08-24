@@ -142,6 +142,48 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
           if (c1 < 1) "menos" else "mas")
 }
 
+
+# Las efectivas esperadas de un aula, repartidas por sexo.
+#
+# Dos fuentes y se declara cual se uso, porque no valen lo mismo:
+#
+#   . `mujeres_esperadas` / `hombres_esperados` — los escribe la app en la hoja
+#     de control. Es el dato directo cuando existe.
+#   . `expected_valid` x la composicion del aula (`sex_top_1_n` / `sex_top_2_n`)
+#     — la derivacion, que es la que ya usaba
+#     `.monitoreo_aulas_plan_sex_faculty_targets` para las metas. Reparte lo que
+#     el aula promete en la proporcion de sexos de SUS elegibles.
+#
+# La derivacion asume que la tasa de efectividad no depende del sexo. Es
+# exactamente el supuesto que la calibracion existe para poner a prueba: en 2025
+# la composicion lograda se fue +3,4 pp hacia mujeres. Por eso el origen viaja
+# en el payload: una calibracion sobre un previsto derivado mide el supuesto y
+# el campo a la vez, y quien lea tiene que poder saberlo.
+.mac_esperadas_por_sexo <- function(fila) {
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(.monitoreo_scalar(x, NA))[1])
+    if (is.finite(v)) v else NA_real_
+  }
+  m <- num(fila$mujeres_esperadas); h <- num(fila$hombres_esperados)
+  if (is.finite(m) || is.finite(h)) {
+    v <- c(F = if (is.finite(m)) m else 0, M = if (is.finite(h)) h else 0)
+    return(list(valores = v, origen = "hoja_de_control"))
+  }
+  esp <- num(fila$expected_valid %||% fila$efectivas_esperadas)
+  s1 <- toupper(.monitoreo_scalar(fila$sex_top_1 %||% "", ""))
+  s2 <- toupper(.monitoreo_scalar(fila$sex_top_2 %||% "", ""))
+  n1 <- num(fila$sex_top_1_n); n2 <- num(fila$sex_top_2_n)
+  n1 <- if (is.finite(n1)) n1 else 0; n2 <- if (is.finite(n2)) n2 else 0
+  total <- n1 + n2
+  if (!is.finite(esp) || esp <= 0 || total <= 0 || !nzchar(s1)) {
+    return(list(valores = numeric(0), origen = "sin_dato"))
+  }
+  v <- c(esp * n1 / total)
+  names(v) <- s1
+  if (nzchar(s2) && n2 > 0) v[[s2]] <- esp * n2 / total
+  list(valores = v, origen = "composicion_del_aula")
+}
+
 #' Avance por celda facultad x sexo, con las cuatro series.
 #'
 #' @param plan lista de filas del plan; cada una con `faculty`,
@@ -159,19 +201,23 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
   # previsto es el denominador de la calibracion y solo puede contar aulas que
   # ya ocurrieron. Meter las pendientes ahi pintaria de rojo el primer dia.
   acc <- new.env(parent = emptyenv())
-  campo <- c(F = "mujeres_esperadas", M = "hombres_esperados")
+  origenes <- character(0)
   for (fila in plan) {
     if (!is.list(fila)) next
-    fac <- .monitoreo_text_key(.monitoreo_scalar(fila$faculty %||% "", ""))
+    fac <- .monitoreo_text_key(.monitoreo_scalar(fila$faculty %||% fila$stratum %||% "", ""))
     if (!nzchar(fac)) next
     aplicada <- identical(.monitoreo_aulas_status(fila$operational_status %||% ""), "aplicada")
-    for (sx in names(campo)) {
-      v <- suppressWarnings(as.numeric(.monitoreo_scalar(fila[[campo[[sx]]]], NA))[1])
-      if (!is.finite(v)) next
+    esp <- .mac_esperadas_por_sexo(fila)
+    if (!length(esp$valores)) next
+    origenes <- c(origenes, esp$origen)
+    for (sx in names(esp$valores)) {
       k <- paste0(fac, "|", sx, "|", if (aplicada) "ap" else "pe")
-      acc[[k]] <- (acc[[k]] %||% 0) + v
+      acc[[k]] <- (acc[[k]] %||% 0) + esp$valores[[sx]]
     }
   }
+  origen <- if (!length(origenes)) "sin_dato"
+            else if (length(unique(origenes)) == 1L) unique(origenes)
+            else "mixto"
   lapply(cuotas, function(celda) {
     fac <- .monitoreo_text_key(.monitoreo_scalar(celda$faculty %||% "", ""))
     sx <- toupper(.monitoreo_scalar(celda$sex %||% "", ""))
@@ -193,6 +239,7 @@ monitoreo_aulas_avance_sexo_facultad <- function(plan = list(), cuotas = list(),
       brecha = brecha,
       calibracion = if (is.finite(cal)) round(cal, 3) else NA_real_,
       estado = estado,
+      previsto_origen = origen,
       etiqueta = .mac_etiqueta_estado(estado, brecha),
       etiqueta_calibracion = .mac_etiqueta_calibracion(cal)
     )

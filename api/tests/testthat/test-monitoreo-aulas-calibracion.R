@@ -171,3 +171,55 @@ test_that("ninguna etiqueta usa jerga prohibida", {
   )
   expect_false(any(grepl(jerga, frases, ignore.case = TRUE)))
 })
+
+
+# --- De donde sale el previsto por sexo --------------------------------------
+
+test_that("la hoja de control manda cuando trae los esperados por sexo", {
+  r <- monitoreo_aulas_avance_sexo_facultad(
+    list(list(faculty = "DERECHO", operational_status = "aplicada",
+              mujeres_esperadas = 80, hombres_esperados = 40,
+              # Aunque tambien venga la composicion, el dato directo gana.
+              expected_valid = 999, sex_top_1 = "F", sex_top_1_n = 1,
+              sex_top_2 = "M", sex_top_2_n = 1)),
+    list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 68))
+  )
+  expect_equal(r[[1]]$previsto, 80)
+  expect_identical(r[[1]]$previsto_origen, "hoja_de_control")
+})
+
+test_that("sin esperados por sexo se derivan de la composicion del aula", {
+  # 120 esperadas repartidas 30/10 dan 90 mujeres y 30 hombres. Es la misma
+  # aritmetica que ya usaba `.monitoreo_aulas_plan_sex_faculty_targets` para las
+  # metas; lo nuevo es separarla por estado de aplicacion.
+  r <- monitoreo_aulas_avance_sexo_facultad(
+    list(list(faculty = "DERECHO", operational_status = "aplicada", expected_valid = 120,
+              sex_top_1 = "F", sex_top_1_n = 30, sex_top_2 = "M", sex_top_2_n = 10)),
+    list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 76),
+         list(faculty = "DERECHO", sex = "M", target = 100, observed = 28))
+  )
+  celdas <- stats::setNames(r, vapply(r, function(c) c$sex, character(1)))
+  expect_equal(celdas[["F"]]$previsto, 90)
+  expect_equal(celdas[["M"]]$previsto, 30)
+  expect_identical(celdas[["F"]]$previsto_origen, "composicion_del_aula")
+})
+
+test_that("el origen del previsto VIAJA, porque los dos no valen lo mismo", {
+  # La derivacion asume que la efectividad no depende del sexo — que es
+  # exactamente el supuesto que la calibracion existe para poner a prueba. Una
+  # calibracion sobre un previsto derivado mide el supuesto y el campo a la vez,
+  # y quien lea tiene que poder saberlo.
+  mixto <- monitoreo_aulas_avance_sexo_facultad(
+    list(list(faculty = "DERECHO", operational_status = "aplicada", mujeres_esperadas = 80),
+         list(faculty = "DERECHO", operational_status = "aplicada", expected_valid = 40,
+              sex_top_1 = "F", sex_top_1_n = 10)),
+    list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 100))
+  )
+  expect_identical(mixto[[1]]$previsto_origen, "mixto")
+  sin <- monitoreo_aulas_avance_sexo_facultad(
+    list(list(faculty = "DERECHO", operational_status = "aplicada")),
+    list(list(faculty = "DERECHO", sex = "F", target = 200, observed = 0))
+  )
+  expect_identical(sin[[1]]$previsto_origen, "sin_dato")
+  expect_true(is.na(sin[[1]]$previsto))
+})
