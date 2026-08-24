@@ -38,8 +38,11 @@
   if (!length(x)) return(character(0))
   decimales <- suppressWarnings(as.integer(decimales)[1])
   if (!is.finite(decimales) || decimales < 0) decimales <- 0L
+  # Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`). Se redondea
+  # antes de formatear, así que `nsmall` ya no puede contagiar decimales de un
+  # elemento a otro: ninguno conserva más de `decimales`.
   out <- format(
-    round(x, decimales),
+    .pulso_round_half_up(x, decimales),
     nsmall = decimales,
     big.mark = ",",
     scientific = FALSE,

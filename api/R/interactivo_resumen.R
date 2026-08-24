@@ -1087,13 +1087,13 @@
     tab$txt <- ifelse(
       tab$pct < 0.04,
       "",
-      paste0("<b>", round(100 * tab$pct, 0), "%</b>")
+      paste0("<b>", .pulso_round_half_up(100 * tab$pct, 0), "%</b>")
     )
     tab$text_pos <- ifelse(tab$pct < 0.04, "none", "inside")
     tab$hover <- sprintf(
       "%s: %s%%<br>n: %s",
       as.character(tab$label),
-      round(100 * tab$pct, 1),
+      .pulso_round_half_up(100 * tab$pct, 1),
       format(tab$n, big.mark = ",")
     )
 
@@ -1225,14 +1225,14 @@
       stringsAsFactors = FALSE
     )
 
-    pct_num <- round(100 * pct_y, 0)
+    pct_num <- .pulso_round_half_up(100 * pct_y, 0)
     pct_txt_plain  <- paste0(pct_num, "%")
     pct_txt_inside <- paste0("<b>", pct_txt_plain, "</b>")
 
     seg$hover <- c(
       sprintf(
         "Sí: %s%%<br>n: %s<br>N: %s",
-        round(100 * pct_y, 1),
+        .pulso_round_half_up(100 * pct_y, 1),
         format(n_yes, big.mark = ","),
         format(N, big.mark = ",")
       ),

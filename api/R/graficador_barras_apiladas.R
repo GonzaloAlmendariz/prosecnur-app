@@ -2407,10 +2407,11 @@ graficar_barras_apiladas <- function(
     }
   }
 
-  .format_pct_clean <- function(x, dec){
-    x_round <- round(x, dec)
-    format(x_round, nsmall = dec, trim = TRUE, scientific = FALSE)
-  }
+  # La barra extra (Top2Box/Bottom2Box) es un porcentaje independiente, así que
+  # sigue el redondeo de la casa: el 0,5 sube. Las etiquetas DENTRO de la barra
+  # apilada no pasan por aquí — usan reparto por resto mayor
+  # (`.asignar_pct_exacto`) para que la barra sume exactamente 100 %.
+  .format_pct_clean <- function(x, dec) .pulso_fmt_half_up(x, dec)
 
   extra_map <- df_wide_extra |>
     dplyr::mutate(.cat_chr = as.character(.data[[var_categoria]])) |>
