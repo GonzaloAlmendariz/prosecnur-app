@@ -17,3 +17,15 @@
   line-height: 1.5;
   color: var(--pulso-text);
 }
+
+/* La composición del total de fichas, debajo de la cuenta.
+   Bloque propio y no un sufijo en la misma línea: «0 de 2.616» y «193
+   titulares · 507 reemplazos · 1.916 adicionales» son dos lecturas y una sola
+   línea las aplasta. */
+.rec-cuenta-composicion {
+  display: block;
+  margin-top: 2px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
