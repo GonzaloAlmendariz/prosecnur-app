@@ -1469,6 +1469,40 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   faculty
 }
 
+#' Estado de una celda de cuota facultad x sexo.
+#'
+#' **Es RETROSPECTIVO: mide lo ya observado, no lo que se va a alcanzar.** Por
+#' eso los nombres dicen «alcanzada» y «en progreso» y no «asegurada» ni
+#' «deficit proyectado»: esos cuatro estados del contrato de indicadores
+#' (`asegurada / ajustada / deficit_proyectado / deficit_no_subsanable`) exigen
+#' la proyeccion —lo observado mas el aporte de las aulas pendientes— que
+#' todavia no existe. Ponerles ese nombre a estos seria prometer una lectura que
+#' el dato no da.
+#'
+#' Los nombres anteriores mentian de dos formas:
+#'
+#'   · `en_riesgo` no medía riesgo: medía «ya empezó». Una celda al 10 % y otra
+#'     al 99 % caían las dos ahí.
+#'   · `pendiente` sonaba benigno y era el caso PEOR —cero observadas— así que
+#'     la lectura tranquilizaba justo donde había que mirar.
+#'
+#' Aqui viven los cuatro estados y en ningun otro sitio: es el unico lugar donde
+#' se decide como se llama esto.
+#'
+#' @param target cuota de la celda.
+#' @param observed efectivas observadas en la celda.
+#' @return vector de estados.
+#' @keywords internal
+.monitoreo_aulas_quota_estado <- function(target, observed) {
+  target <- suppressWarnings(as.numeric(target))
+  observed <- suppressWarnings(as.numeric(observed))
+  target[!is.finite(target)] <- 0
+  observed[!is.finite(observed)] <- 0
+  ifelse(target <= 0, "sin_cuota",
+  ifelse(observed >= target, "alcanzada",
+  ifelse(observed > 0, "en_progreso", "sin_avance")))
+}
+
 .monitoreo_aulas_quota_sex_faculty <- function(plan_df, responses, cfg, valid_response, response_classroom) {
   targets <- .monitoreo_aulas_quota_targets(plan_df, cfg)
   if (!is.data.frame(targets) || !nrow(targets)) return(list())
@@ -1498,8 +1532,12 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   out$target <- as.integer(pmax(0L, round(target_num)))
   out$missing <- as.integer(pmax(0L, out$target - out$observed))
   out$progress_pct <- ifelse(out$target > 0L, round(100 * out$observed / out$target, 1), NA_real_)
-  out$status <- ifelse(out$target <= 0L, "sin_meta", ifelse(out$observed >= out$target, "cumplida", ifelse(out$observed > 0L, "en_riesgo", "pendiente")))
-  out <- out[order(out$status != "en_riesgo", out$status != "pendiente", -out$missing, out$faculty, out$sex), , drop = FALSE]
+  out$status <- .monitoreo_aulas_quota_estado(out$target, out$observed)
+  # Mismo criterio de siempre, con los nombres nuevos. Ojo: renombrar sin tocar
+  # esta linea NO rompia nada visible —las dos comparaciones daban FALSE para
+  # todas las filas y la tabla quedaba ordenada solo por brecha—, que es la
+  # forma mas silenciosa de romper un orden.
+  out <- out[order(out$status != "en_progreso", out$status != "sin_avance", -out$missing, out$faculty, out$sex), , drop = FALSE]
   .monitoreo_aulas_records(out, max_rows = 240L)
 }
 
@@ -1779,7 +1817,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # expresar— se mostraba como «Correcto».
       .monitoreo_aulas_representatividad_estado(representativity),
       monitoreo_aulas_estado_control(length(quota_status) > 0L,
-                                     any(quota_status %in% c("pendiente", "en_riesgo")), "warning"),
+                                     any(quota_status %in% c("sin_avance", "en_progreso")), "warning"),
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
@@ -1829,7 +1867,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         sprintf("%d respuestas repetidas.", respuestas_repetidas)
       },
       .monitoreo_aulas_representatividad_texto(representativity),
-      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("pendiente", "en_riesgo"))) else "Sin cuota sexo x facultad detectable.",
+      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("sin_avance", "en_progreso"))) else "Sin cuota sexo x facultad detectable.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
       } else if (length(partes_campo)) {
@@ -1903,8 +1941,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # por debajo de su meta convertia el banco en deuda.
       brechas = as.integer(sum(tracked_df$brecha > 0)),
       quota_cells = as.integer(length(quotas_sex_faculty)),
-      quota_cells_ok = as.integer(sum(quota_status == "cumplida")),
-      quota_cells_pending = as.integer(sum(quota_status %in% c("pendiente", "en_riesgo"))),
+      quota_cells_ok = as.integer(sum(quota_status == "alcanzada")),
+      quota_cells_pending = as.integer(sum(quota_status %in% c("sin_avance", "en_progreso"))),
       representativity_effective_score = representativity$effective_score,
       representativity_score_loss = representativity$score_loss
     ),
