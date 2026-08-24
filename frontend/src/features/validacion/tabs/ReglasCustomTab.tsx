@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { codigoDeError, esEstadoInicial, vacioSinDatos } from "../estadoEsperado";
 import {
   ArrowRight,
   AlertTriangle,
@@ -56,6 +57,9 @@ export default function ReglasCustomTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
+  // El CODIGO ademas del mensaje: `E_NO_DATA_INST` es «todavia no hay base», un
+  // estado esperado, y sin el codigo no se puede distinguir de una averia.
+  const [errorCode, setErrorCode] = useState<string>("");
   const [editing, setEditing] = useState<ReglaCustom | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -64,6 +68,7 @@ export default function ReglasCustomTab() {
   const refetch = useCallback(async () => {
     setLoading(true);
     setError("");
+    setErrorCode("");
     try {
       const [l, i, sem] = await Promise.all([
         apiV2ReglasCustomList(baseNombre),
@@ -77,6 +82,7 @@ export default function ReglasCustomTab() {
       setSemillas(sem?.semillas ?? []);
     } catch (e) {
       setError((e as Error).message);
+      setErrorCode(codigoDeError(e));
     } finally {
       setLoading(false);
     }
@@ -173,6 +179,18 @@ export default function ReglasCustomTab() {
   }
 
   if (loading) return <LoadingBlock label="Cargando reglas…" />;
+  // **Tres cosas distintas que caian en el mismo cartel de averia.**
+  //
+  // La condicion era `!list || !inv` con el mensaje del error o «Estado
+  // desconocido», y mezclaba: (1) el proyecto aun no tiene base —el estado
+  // NORMAL de un estudio recien creado, que el backend responde como 409
+  // `E_NO_DATA_INST`—, (2) una averia de verdad, y (3) un caso que no deberia
+  // ocurrir. Medido en pantalla el 2026-08-23 sobre un proyecto sin cargar:
+  // «No se pudo cargar · No hay data o instrumento cargado para esta base. ·
+  // E_NO_DATA_INST», con el codigo tecnico a la vista.
+  if (esEstadoInicial(errorCode)) {
+    return <EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("para revisar")} />;
+  }
   if (!list || !inv) {
     return (
       <EmptyState
