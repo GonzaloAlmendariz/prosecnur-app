@@ -71,3 +71,31 @@ describe("las listas de unidades usan la regla de orden de cadena", () => {
     expect(propias, `redefinen el orden: ${propias.join(", ")}`).toEqual([]);
   });
 });
+
+/**
+ * **Dos cuentas del mismo objetivo, cada una diciendo de dónde sale.**
+ *
+ * Medido en pantalla el 2026-08-23 sobre el estudio de 193: la tarjeta «Cuota
+ * por recoger» decía **3.491** y tres centímetros más abajo la barra
+ * «Cumplimiento en respuestas» decía **0 de 3.492**. Son dos cuentas distintas
+ * del mismo objetivo —una suma objetivos de 30 celdas sexo × facultad, la otra
+ * metas por curso-horario— y el total real es 3.491,4: a 0,4 de distancia, el
+ * redondeo las separa en uno.
+ *
+ * No es un error de cálculo y por eso mismo es peligroso: quien lee encuentra
+ * la diferencia, no puede explicarla y desconfía de las dos cifras. La tarjeta
+ * de cuota ya resolvía lo suyo explicando que lo que falta se suma celda a
+ * celda; a la barra le faltaba nombrar su unidad.
+ */
+describe("las dos cifras del objetivo declaran su procedencia", () => {
+  const fuente = (archivo: string) =>
+    fs.readFileSync(path.join(aqui, archivo), "utf8");
+
+  it("la barra de cumplimiento dice que suma metas por curso-horario", () => {
+    expect(fuente("AulasMonitoreoPage.tsx")).toContain("suma de metas por curso-horario");
+  });
+
+  it("y la tarjeta de cuota dice que sus celdas son sexo × facultad", () => {
+    expect(fuente("kpisDeAulas.ts")).toContain("celdas sexo × facultad");
+  });
+});
