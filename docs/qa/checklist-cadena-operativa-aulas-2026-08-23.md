@@ -85,6 +85,53 @@ moverse el avance de Monitoreo, o el avance es sólo del registro de la app y el
 parte se queda como control de calidad? Cambiar esto cambia qué significa el
 número de avance, así que no se toca sin que lo decida él.
 
+## Recorrido visual de la app — 2026-08-23
+
+Todos los tabs abiertos con captura sobre el proyecto de 193 con partes dentro.
+Verde = mirado y sin defecto; el resto, con su commit.
+
+| Módulo · tab | Qué salió |
+|---|---|
+| Monitoreo · Fuentes | «Libro del operativo · Sin importar» con el libro importado — `33e7046e` · «Aplicadas en campo · con parte de campo» — `33e7046e` |
+| Monitoreo · Agenda | «Sesiones y aula» enseñaba el código del curso — `c58a0a4c` |
+| Monitoreo · Validación | «700 de 700 sin registrar» bajo «3 con parte» — `875b518d` |
+| Monitoreo · Consultas | un aula cancelada y una sin asistentes salían iguales — `946e043d` |
+| Monitoreo · Avance | «3.491» y «3.492» del mismo objetivo — `8ab0d702` |
+| Recopiladores · Plan | ☑ sin defecto |
+| Recopiladores · Accesos | vacío de 706 px para 40 caracteres — `8c15112f` |
+| Recopiladores · Materiales | «0 de 193» y el botón crea 2.616 — `4b68f525` · botones apagados sin decir por qué + CSS huérfano — `802b0a18` |
+| Recopiladores · Entrega | ☑ sin defecto — el aviso ámbar y el botón bloqueado ya están bien |
+| Homepage | «ficha» con dos significados — `dd3aa05f` · la tarjeta no veía su snapshot — `c5dfab50` |
+| Cálculo · Coincidencia | «190» y «Total 193» sin decir qué cuenta cada uno — `2679d1c3` |
+| Cálculo · Tablas | **la tabla de cuotas por sexo, invertida** — `9b87c54a` · 3 fallbacks más — `d59230de` |
+| Chrome | el chip de estado se veía como un botón — `ed6566da` |
+
+**El más grave**: la tabla de cuotas por facultad y sexo —la que se marca
+«Incluir en reporte»— tenía las dos columnas intercambiadas. `sub_a` es la
+categoría de sexo **más frecuente**, no «mujeres», y cuatro superficies lo
+asumían fijo. Se detectó contrastando contra el marco: Ciencias e Ingeniería
+tiene 535 aulas de mayoría masculina y la tabla le daba «398 mujeres».
+
+### Verificaciones negativas del recorrido
+
+| Qué se buscó | Resultado |
+|---|---|
+| «Cómo se está trabajando» duplicado en Avance y Validación | Deliberado y documentado. Casi lo «arreglo». |
+| Navegación rota (`ir()` devolvía `false`) | Era mi dirección: la sección es `modelo` y «Agenda» su pestaña. |
+| El vacío estirado en Monitoreo | Cero casos: era de Recopiladores. |
+| El gráfico de barras por sexo | Usa la vía de población, que sí lee el sexo real. Correcto. |
+| El «0 %» de un aula cancelada | Venía de mi propio fixture, no del motor. |
+| 150 clases sin regla CSS | Verificadas 6: dos defectos, una de componente muerto, tres no llegan al DOM. Herramienta, no gate. |
+
+### Deuda medida y no tocada
+
+- **28 componentes que nadie importa**, entre ellos `EnumeradoresPane.tsx` (801
+  líneas), `SurveyMonkeyMultibaseWizard.tsx` (463), `DefinicionGlobal.tsx` (351).
+  Borrar exige doble confirmación.
+- **2.168 de las 2.616 aulas tienen meta fraccionaria** (21,7 · 22,5 · 37,2).
+  Redondear por aula subiría la meta del estudio en 1.112 respuestas: decisión
+  metodológica.
+
 ## Lo que espera decisión tuya
 
 | Tema | Por qué está bloqueado |
