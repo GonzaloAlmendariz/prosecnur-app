@@ -1,7 +1,7 @@
 # ADR 0073 — El sorteo balanceado da la misma muestra en toda máquina
 
 - **Estado**: aceptada
-- **Implementación**: completa
+- **Implementación**: parcial — el signo está resuelto; el rango deficiente sigue abierto (ver «Lo que esta decisión todavía no consigue»)
 - **Fecha**: 2026-08-11
 - **Contexto previo**: ADR 0066 (la probabilidad publicada es la del sorteo ejecutado), ADR 0019 (monitoreo de aulas). Este ADR es la condición que faltaba para que la promesa del 0066 se sostenga fuera de la máquina donde se sorteó.
 - **Origen**: el gate del corte 0.8.0. `backend-r` falló en el runner Linux con el golden de simulación de reemplazos mientras la misma suite pasaba en macOS.
@@ -71,10 +71,37 @@ deliberada y acotada: si el paquete deja de exportar `fastflightcube` o
 `.cm_aulas_cube_determinista()` devuelve `NULL` y quien llama decide. Nunca se
 sortea a medias.
 
+## Lo que esta decisión todavía no consigue
+
+La canonicalización resuelve el signo, y solo el signo. Se verificó por
+separado: sustituyendo `base::svd` por uno que devuelve los vectores con el
+signo contrario, la selección ya no se mueve.
+
+**No alcanza cuando la matriz de balance tiene rango deficiente.** El fixture
+golden de simulación es 12×2 con un valor singular exactamente 0. Ahí
+`svd(X1)$u[, p + 1]` no está determinado salvo signo: es libre dentro de un
+subespacio, y cada LAPACK devuelve una base distinta del mismo espacio nulo.
+Ninguna regla de signo puede fijar eso. Medido tras la reparación, en el run
+31542938949: macOS eligió `A11/A2/A3/A8` y el runner Linux `A3/A6/A8/A9`.
+
+El defecto sigue vivo, con su alcance acotado: **un sorteo balanceado sobre una
+matriz de rango deficiente no es reproducible entre plataformas.** Lo que ya no
+puede ocurrir es que la causa se pierda: el signo está cerrado con su prueba, y
+esta sección nombra lo que falta.
+
+La reparación completa pasa por no pedirle a LAPACK el vector del núcleo:
+calcularlo con una rutina propia y determinista (eliminación por orden de
+índice, sin pivoteo por magnitud), de modo que la elección dentro del espacio
+nulo sea una decisión del repositorio y no de la biblioteca de álgebra lineal.
+Queda como trabajo propio, no como nota al pie de este corte.
+
 ## Consecuencias
 
-- El mismo proyecto con la misma semilla produce la misma muestra en macOS,
-  Windows y Linux.
+- El signo que devuelve LAPACK ya no cambia la muestra.
+- Un sorteo balanceado sobre matriz de rango deficiente **sigue sin ser
+  reproducible entre plataformas**. Mientras eso siga abierto, una selección se
+  reproduce partiendo del plan guardado en el `.pulso`, nunca re-ejecutando el
+  sorteo.
 - **Las selecciones ejecutadas antes de este ADR no son reproducibles.** Un
   estudio ya entregado conserva su muestra y sus probabilidades, que siguen
   siendo válidas: el método del cubo garantiza los `pik` sea cual sea el vector
@@ -96,8 +123,17 @@ sortea a medias.
 - Verificado RED→GREEN el 2026-08-11: con el camino anterior
   (`sampling::samplecube` directo) las dos plataformas simuladas dan
   `A3 A4 A2 …` y `A2 A3 A4 …`; con la envoltura, idénticas.
-- `api/tests/testthat/test-calc-muestra-aulas.R` conserva los tres goldens de
-  caracterización.
+- `api/tests/testthat/test-calc-muestra-aulas.R` conserva los goldens de
+  `cadenas` y `escala` con identidad exacta. El de `simulacion` pasa a congelar
+  la FORMA de la cadena (tamaño, reparto de reservas por titular, vocabulario de
+  nivel, correspondencia nivel–puntaje e invariantes de no autorreemplazo y no
+  repetición) y ya no los ids concretos, porque su fixture cae en el caso de
+  rango deficiente que sigue abierto. El reparto entre niveles tampoco se
+  congela: es 5/3 en macOS y 6/2 en Linux.
+- Ese test relajado se validó contra el resultado REAL del runner Linux
+  transcrito del run 31542938949, no contra una perturbación simulada. La
+  distinción importa: la verificación anterior usó una perturbación que la
+  propia canonicalización neutralizaba, dio verde y el CI la desmintió.
 
 ## Notas
 
