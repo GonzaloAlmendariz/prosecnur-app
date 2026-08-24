@@ -138,3 +138,65 @@ describe("porFacultad", () => {
     expect(r.filas).toEqual([{ facultad: "A", aulas: 1, costo: 5, baratas: 1 }]);
   });
 });
+
+/**
+ * La vara vigente: la meta del diseño, no los umbrales del 70 %.
+ *
+ * Gonzalo, 2026-08-24: «déjalo todo consistente». El panel exigía que
+ * `cumple_total` y `cumple_poblacion` fueran booleanos, y esos dos salen de las
+ * columnas `70T`/`70P` que la app ya no escribe: en un estudio de 2026 las
+ * 2.616 aulas se descartaban como «sin evaluar» y el panel quedaba vacío.
+ */
+describe("la brecha se calcula contra la meta cuando no hay umbrales del 70 %", () => {
+  it("un aula juzgada por meta entra al panel con su faltante", () => {
+    const r = loQueFaltaParaCerrar([
+      {
+        operational_code: "CH 1", faculty: "DERECHO",
+        // Sin 70T/70P: el veredicto vino por meta y ya está compuesto.
+        cumple_total: null, cumple_poblacion: null, efectiva: false,
+        expected_valid: 17.3, efectivas_obtenidas: 11,
+      },
+    ] as never);
+    expect(r.evaluadas).toBe(1);
+    expect(r.noEfectivas).toBe(1);
+    expect(r.aulas).toHaveLength(1);
+    // 17,3 − 11 = 6,3 → 7 encuestas, redondeando hacia arriba: media encuesta
+    // no cierra un aula.
+    expect(r.aulas[0]?.faltan).toBe(7);
+    expect(r.aulas[0]?.umbral).toBe(17.3);
+    expect(r.aulas[0]?.falla).toBe("meta");
+  });
+
+  it("el aula que alcanzó su meta no aparece, y sí cuenta como evaluada", () => {
+    const r = loQueFaltaParaCerrar([
+      {
+        operational_code: "CH 2", cumple_total: null, cumple_poblacion: null,
+        efectiva: true, expected_valid: 17.3, efectivas_obtenidas: 20,
+      },
+    ] as never);
+    expect(r.evaluadas).toBe(1);
+    expect(r.noEfectivas).toBe(0);
+    expect(r.aulas).toHaveLength(0);
+  });
+
+  it("sin meta y sin umbrales, se declara sin cifras en vez de inventar una", () => {
+    const r = loQueFaltaParaCerrar([
+      { operational_code: "CH 3", cumple_total: null, cumple_poblacion: null, efectiva: false },
+    ] as never);
+    expect(r.aulas).toHaveLength(0);
+    expect(r.sinCifras).toBe(1);
+  });
+
+  it("los libros de 2025 siguen midiéndose por su umbral, no por la meta", () => {
+    // Con umbral presente manda el umbral: la meta no lo pisa.
+    const r = loQueFaltaParaCerrar([
+      {
+        operational_code: "CH 4", cumple_total: false, cumple_poblacion: true,
+        efectiva: false, sent_total: 30, threshold_total: 42,
+        expected_valid: 10, efectivas_obtenidas: 30,
+      },
+    ] as never);
+    expect(r.aulas[0]?.faltan).toBe(12);
+    expect(r.aulas[0]?.falla).toBe("total");
+  });
+});

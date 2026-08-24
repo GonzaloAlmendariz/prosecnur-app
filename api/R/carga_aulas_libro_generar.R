@@ -439,7 +439,10 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
     pct <- function(x) if (is.finite(x) && is.finite(eleg) && eleg > 0) x / eleg else NA_real_
 
     pon("EFECTIVAS ESPERADAS", .calg_num_txt(esperadas))
-    pon("ELEGIBLES ESPERADOS", .calg_num_txt(eleg))
+    # El denominador del % de al lado. Es el mismo `eligible_n` de
+    # «MATRICULADOS POBLACION»: se repite para que el porcentaje se lea sin
+    # cruzar la hoja. NO es una meta — la meta es «EFECTIVAS ESPERADAS».
+    pon("ELEGIBLES: BASE DEL %", .calg_num_txt(eleg))
     pon("% EFECTIVAS ESPERADO", .calg_num_txt(pct(esperadas)))
     # Sin respuestas leidas la columna se queda VACIA, no en cero: cero
     # efectivas y «todavia no sabemos» son dos noticias distintas, y en un aula
@@ -700,7 +703,7 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
     c("MATRICULADOS TOTALES", "MATRICULADOS POBLACION",
       # Las cuentas del bloque nuevo: esperadas, obtenidas y la diferencia.
       "EFECTIVAS ESPERADAS", "EFECTIVAS OBTENIDAS", "EFECTIVAS: DIFERENCIA",
-      "ELEGIBLES ESPERADOS", "MUJERES ESPERADAS", "HOMBRES ESPERADOS"),
+      "ELEGIBLES: BASE DEL %", "MUJERES ESPERADAS", "HOMBRES ESPERADOS"),
     .calg_col_control, integer(1), USE.NAMES = FALSE)
   cols_control <- cols_control[cols_control > 0L]
   # Y los dos porcentajes, que se escriben en 0-1 y hay que ENSEÑAR como
