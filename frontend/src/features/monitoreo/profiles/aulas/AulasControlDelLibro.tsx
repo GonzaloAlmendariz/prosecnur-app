@@ -142,6 +142,9 @@ function Veredicto({ v, aulas }: { v: VeredictoDeControl; aulas: number }) {
  */
 const NOMBRE_DE_GRUPO: Record<string, string> = {
   cuenta: "Cuenta",
+  // El grupo se llama por lo que compara, no por la columna que lo abre: la
+  // pregunta que contesta es si el aula llegó a lo que se esperaba de ella.
+  esperado: "Esperado vs obtenido",
   duracion: "Duración",
   cuotas: "Cuotas",
   horario: "Rango horario",
@@ -159,10 +162,23 @@ const CAMPOS_POR_GRUPO: Record<string, string[]> = {
     "short_total", "short_vs_total", "long_total", "long_vs_total",
     "threshold_total", "threshold_population", "valid_total", "valid_population",
   ],
+  // **El bloque que decide.** `efectivas_esperadas` es la vara vigente y sus
+  // columnas viajan en el libro desde que sustituyeron al 70 %; no estaban en
+  // ningún grupo, así que esta tabla pintaba `70T` y `70P` —retirados— y no la
+  // meta ni la brecha. La pantalla que enseña lo que trae el libro enseñaba lo
+  // viejo y escondía lo vigente.
+  esperado: [
+    "efectivas_esperadas", "efectivas_obtenidas",
+    "efectivas_pct_esperado", "efectivas_pct_obtenido",
+    "efectivas_brecha", "elegibles_esperados",
+  ],
   duracion: ["last_response_day"],
   cuotas: [
     "observed_students", "non_respondents", "attendance_pct",
-    "quota_pct", "quota_missing", "women_n", "men_n", "women_pct", "men_pct",
+    "quota_pct", "quota_missing",
+    // Cada esperado junto a su obtenido: la cuota de sexo se veía sin su vara.
+    "mujeres_esperadas", "women_n", "women_pct",
+    "hombres_esperados", "men_n", "men_pct",
   ],
   horario: ["schedule_norm", "schedule_range"],
 };
@@ -183,6 +199,9 @@ const COLUMNAS_DE_CIFRA = new Set([
   "threshold_total", "threshold_population",
   "observed_students", "non_respondents", "attendance_pct",
   "quota_pct", "quota_missing", "women_n", "men_n", "women_pct", "men_pct",
+  "efectivas_esperadas", "efectivas_obtenidas", "efectivas_pct_esperado",
+  "efectivas_pct_obtenido", "efectivas_brecha", "elegibles_esperados",
+  "mujeres_esperadas", "hombres_esperados",
 ]);
 
 /**
