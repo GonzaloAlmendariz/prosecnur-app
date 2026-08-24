@@ -145,7 +145,24 @@
 # en acreditacion/telefonico es "efectivas sobre universo". Una tarjeta que
 # rotule ambas igual miente aunque las cifras sean correctas.
 .overview_monitoreo_facts <- function(s, family) {
+  # **El snapshot de aulas vive en su propia clave, y este lector miraba la
+  # generica.**
+  #
+  # `monitoreo_aulas_snapshot` es donde el perfil de cursos-horario guarda su
+  # corte y su tablero; `monitoreo_snapshot` es de las familias que sincronizan
+  # con una plataforma. Medido el 2026-08-23 sobre el estudio de 193: el
+  # generico estaba VACIO y el de aulas traia `synced_at` y un tablero con 700
+  # unidades y 193 titulares, asi que la tarjeta del homepage salia con
+  # `has_snapshot = FALSE` y todos sus KPIs en cero —«Sin corte», «Sin
+  # sincronizar»— sobre un modulo con trabajo dentro.
+  #
+  # Se elige por CONTENIDO y no con `%||%`: la clave generica puede existir
+  # vacia, y entonces el operador la conserva y no mira la otra. Mismo defecto
+  # que el rescate del libro en `router_monitoreo.R`.
   snap <- s$monitoreo_snapshot %||% list()
+  if (!length(snap) && identical(.diseno_scalar(family, ""), "aulas_universitarias")) {
+    snap <- s$monitoreo_aulas_snapshot %||% list()
+  }
   dash <- snap$dashboard %||% list()
   fam <- .diseno_scalar(family, "")
   collected <- 0L; valid <- 0L; target <- 0L; avance <- -1; alerts <- 0L
@@ -176,11 +193,29 @@
     # familias para que "avance" signifique lo mismo en toda la app.
     if (target > 0L) avance_label <- "avance de meta"
   } else if (identical(fam, "aulas_universitarias")) {
-    k <- snap$aulas_overview_facts %||% (dash$aulas_universitarias_reports %||% list())$kpis %||% list()
+    # `dash$kpis` al final: es donde estan de verdad cuando el snapshot viene
+    # del propio perfil de aulas y no de un reporte publicado.
+    k <- snap$aulas_overview_facts %||% (dash$aulas_universitarias_reports %||% list())$kpis %||%
+      dash$kpis %||% list()
     collected <- as.integer(.diseno_num(k$respuestas_total, 0))
     valid <- as.integer(.diseno_num(k$respuestas_validas, 0))
     avance <- .overview_pct(k$avance_pct)
-    alerts <- as.integer(.diseno_num(k$quota_cells_pending, 0) + .diseno_num(k$brechas, 0))
+    # **Una brecha antes de salir a campo no es una alerta: es el trabajo.**
+    #
+    # `brechas` cuenta cursos-horario por debajo de su meta y
+    # `quota_cells_pending` celdas de cuota sin cubrir. En un estudio que aun no
+    # aplico nada, eso son TODAS: medido sobre el de 193 sin una sola
+    # aplicacion, la suma daba **223** y la tarjeta habria dicho «223 por
+    # revisar» sobre un modulo donde no hay nada que revisar todavia.
+    #
+    # Alertar de lo que falta hacer antes de empezar es la forma mas rapida de
+    # que nadie mire las alertas cuando de verdad las haya.
+    hay_campo <- .diseno_num(k$aulas_aplicadas, 0) > 0 || collected > 0
+    alerts <- if (hay_campo) {
+      as.integer(.diseno_num(k$quota_cells_pending, 0) + .diseno_num(k$brechas, 0))
+    } else {
+      0L
+    }
     valid_label <- "válidas"
   } else if (fam %in% c("acreditacion", "telefonico")) {
     # Modelo de efectividad de la familia: efectivas sobre universo, el mismo
