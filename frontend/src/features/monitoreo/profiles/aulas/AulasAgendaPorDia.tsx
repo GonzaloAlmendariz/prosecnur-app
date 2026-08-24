@@ -50,6 +50,11 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
   // Sin ninguna fecha en el plan no hay calendario que dibujar; decirlo es más
   // útil que una barra única con todo dentro.
   if (!diasDeCampo) {
+    // Un aula aplicada NO está «por agendar»: el vacío tiene que decirlo o
+    // parece que el operativo no ha empezado.
+    const aplicadas = filas.filter(
+      (f) => ["aplicada", "cerrada"].includes(String(f.operational_status ?? "").toLowerCase()),
+    ).length;
     // El total manda sobre lo que llegó; si no viene, se usa lo contado, que es
     // lo que había antes.
     const cuantos = totalDelPlan > 0 ? totalDelPlan : sinFecha;
@@ -57,9 +62,24 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
     // mirando una parte y callarlo haría creer que se vio todo.
     const parcial = totalDelPlan > 0 && sinFecha > 0 && sinFecha < totalDelPlan;
     return (
+      /* **«Fecha agendada», no «fecha de aplicación»: son dos ejes.**
+       *
+       * Este panel agrupa por `scheduled_date` —cuándo se VA a aplicar— y su
+       * vacío hablaba de la fecha en que se aplicó. En el libro esas dos
+       * columnas se llamaban igual y ya se resolvió renombrando la de agenda a
+       * «FECHA AGENDADA» (`carga_aulas_libro_generar.R`); aquí se quedó el
+       * nombre viejo.
+       *
+       * Con campo dentro la frase se vuelve directamente falsa: medido el
+       * 2026-08-24 con diez aulas aplicadas entre el 1 y el 5 de septiembre, el
+       * panel decía «Ninguno de los 193 tiene fecha de aplicación». */
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        Ninguno de los {fmt(cuantos)} cursos-horario tiene fecha de aplicación. Se
-        declara en la columna «Fecha de aplicación» del libro.
+        Ninguno de los {fmt(cuantos)} cursos-horario tiene fecha agendada. Se
+        declara en la columna «Fecha agendada» del libro.
+        {aplicadas > 0 ? (
+          <> Hay {fmt(aplicadas)} ya aplicados: se aplicaron sin agenda previa, y su fecha
+          de aplicación vive en el parte de campo.</>
+        ) : null}
         {parcial ? <> La agenda dibuja los {fmt(sinFecha)} que caben en esta vista.</> : null}
       </p>
     );
