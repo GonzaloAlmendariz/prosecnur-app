@@ -556,6 +556,22 @@ export function aulasKpis(
   const banco = Number(dashboard?.course_status_banco ?? 0) || 0;
   const conMeta = Math.max(0, totalDelMotor - sinMeta - banco);
   return [
+    // **Las aulas aplicadas van PRIMERO, y antes no estaban.**
+    //
+    // La banda de Avance abria con «Válidas», que cuenta respuestas de la
+    // plataforma. Medido el 2026-08-24 simulando cinco dias de campo —10 aulas
+    // aplicadas, 213 efectivas registradas a mano, ninguna respuesta de Kobo
+    // todavia—: los cinco KPIs salian en 0 o S/D y la pantalla que se llama
+    // «Avance», subtitulada «Cursos-horario **aplicados**, cuotas y brechas»,
+    // no enseñaba los aplicados en ninguna parte.
+    //
+    // El KPI ya existia —`registroKpi`, con su pista «declaradas en el registro
+    // de campo»— y se usaba en otra banda. Aqui faltaba, que es donde primero se
+    // mira si el operativo arranco.
+    //
+    // Va primero porque es lo que ocurre ANTES: se aplica el aula, luego llegan
+    // las respuestas. La banda cuenta el recorrido en su orden.
+    registroKpi(dashboard),
     validasKpi(dashboard),
     {
       label: "Llegaron a su meta",
