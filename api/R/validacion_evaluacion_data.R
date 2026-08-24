@@ -316,7 +316,8 @@ cargar_plan_excel <- function(path, sheet = "Plan"){
 #' @param hoja_principal hoja a leer si `datos` es ruta
 #' @return lista con `principal` y `tablas`
 #' @family validacion
-#' @export
+#' @keywords internal
+#' @noRd
 .resolver_datos_multitabla <- function(datos, hoja_principal = NULL) {
   if (is.data.frame(datos)) {
     return(list(principal = datos, tablas = list(principal = datos)))
@@ -421,7 +422,8 @@ cargar_plan_excel <- function(path, sheet = "Plan"){
 #' @param choices lista nombrada: `var` -> named character `c(code="Etiqueta", ...)`
 #' @return data.frame con columnas `var_label` añadidas (si aplica)
 #' @family validacion
-#' @export
+#' @keywords internal
+#' @noRd
 .mapear_etiquetas <- function(df, choices){
   if (!is.data.frame(df) || is.null(choices) || !length(choices)) return(df)
   for (v in intersect(names(choices), names(df))) {

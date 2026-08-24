@@ -105,7 +105,8 @@ assemble_validation_data_multibase <- function(main_data_path,
 #' Devuelve una lista de specs planos (paths + repeat_group) lista para pasar
 #' como argumento de datos a un job callr (sin capturar funciones ni estado del
 #' entorno dev). Vacía si la base no es madre de ningún repeat.
-#' @export
+#' @keywords internal
+#' @noRd
 .validacion_resolve_repeat_children <- function(sid, base_nombre = NULL) {
   if (is.null(base_nombre) || !nzchar(as.character(base_nombre))) return(list())
   s <- session_get(sid, required = FALSE)

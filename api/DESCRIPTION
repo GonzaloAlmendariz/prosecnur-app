@@ -80,4 +80,5 @@ Suggests:
     sampling,
     BalancedSampling
 RoxygenNote: 7.3.3
+Roxygen: list(roclets = c("namespace"))
 Config/testthat/edition: 3
