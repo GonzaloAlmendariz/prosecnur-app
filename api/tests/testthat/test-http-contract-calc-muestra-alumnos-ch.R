@@ -54,10 +54,10 @@
       estratos = list(
         list(label = "FAC A", N = 100, N_a = 50, N_b = 50,
              sub_a_label = "F", sub_b_label = "M",
-             promedio_conglomerado = 999, aulas_base_fijas = 999L, tau = 1),
+             promedio_conglomerado = 999, tau = 1),
         list(label = "FAC B", N = 80, N_a = 40, N_b = 40,
              sub_a_label = "F", sub_b_label = "M",
-             promedio_conglomerado = 999, aulas_base_fijas = 999L, tau = 1)
+             promedio_conglomerado = 999, tau = 1)
       )
     ),
     parametros = list(

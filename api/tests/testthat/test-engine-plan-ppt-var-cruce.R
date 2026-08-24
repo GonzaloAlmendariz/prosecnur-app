@@ -1,3 +1,15 @@
+# **La cifra interior no va fija en blanco: toma su color del relleno.**
+#
+# Desde `e5562909` el color de una etiqueta que cae DENTRO de su barra se decide
+# por luminancia del segmento: sobre relleno oscuro va blanco, sobre relleno
+# claro va el azul de marca (`#081F5C`). Antes estaba fija en blanco y dejo de
+# funcionar cuando la receta 4 cambio el extremo de la escala de rojo oscuro a
+# naranja claro: las cifras se volvieron invisibles en 37 laminas. Medido al
+# repararlo: cifras ilegibles 134 a 0.
+#
+# Por eso los asserts de abajo esperan `#081F5C` donde el segmento es claro.
+# Un `white` de vuelta significaria que el contraste dejo de aplicarse.
+
 make_plan_ppt_fixture <- function() {
   df <- data.frame(
     p1 = c("Alto", "Medio", "Alto", "Bajo", "Medio", "Alto"),
@@ -1870,7 +1882,7 @@ test_that("graficar_barras_apiladas separa horizontalmente etiquetas pequenas", 
   expect_false(row_2$.label_fuera)
   expect_false(row_3$.label_fuera)
   expect_equal(row_2$.col_label, "white")
-  expect_equal(row_3$.col_label, "white")
+  expect_equal(row_3$.col_label, "#081F5C")
   expect_gte(row_2$x_label, 0)
   expect_lte(row_2$x_label, 1)
   expect_gte(row_3$x_label, 0)
@@ -2034,7 +2046,7 @@ test_that("graficar_barras_apiladas permite desactivar repulsion de etiquetas pe
   expect_gte(row_2$x_label, 0)
   expect_lte(row_2$x_label, 1)
   expect_false(row_3$.label_fuera)
-  expect_equal(row_3$.col_label, "white")
+  expect_equal(row_3$.col_label, "#081F5C")
 })
 
 test_that("graficar_barras_apiladas admite umbrales explicitos de mostrar y tamano normal", {
@@ -2129,7 +2141,7 @@ test_that("graficar_barras_apiladas repela etiquetas pequenas con umbrales expli
   expect_false(row_2$.label_fuera)
   expect_false(row_3$.label_fuera)
   expect_equal(row_2$.col_label, "white")
-  expect_equal(row_3$.col_label, "white")
+  expect_equal(row_3$.col_label, "#081F5C")
   expect_gt(.min_span_gap_apiladas(layer_data), 0.006)
   expect_true(all(layer_data$x_label >= -0.20 & layer_data$x_label <= 1))
 })
@@ -2252,7 +2264,7 @@ test_that("graficar_barras_apiladas en modo uniforme empuja hacia adentro en bor
   expect_gte(row_right$x_label, 0)
   expect_lte(row_right$x_label, 1)
   expect_false(row_right$.label_fuera)
-  expect_equal(row_right$.col_label, "white")
+  expect_equal(row_right$.col_label, "#081F5C")
   width_right <- .estimate_label_fit_width_apiladas(row_right$lab, row_right$.size_label)
   expect_lte(row_right$x_label + (1 - row_right$.hjust_label) * width_right, 1)
 })
@@ -2349,7 +2361,7 @@ test_that("graficar_barras_apiladas en modo uniforme saca solo etiquetas que no 
 
   rows_inside <- layer_data[layer_data$lab %in% c("16%", "81%"), , drop = FALSE]
   expect_false(any(rows_inside$.label_fuera))
-  expect_true(all(rows_inside$.col_label == "white"))
+  expect_true(all(rows_inside$.col_label == "#081F5C"))
   expect_gt(.min_span_gap_apiladas(layer_data), 0.006)
   expect_gt(.min_visual_span_gap_apiladas(layer_data), 0.006)
 })
@@ -2386,7 +2398,7 @@ test_that("graficar_barras_apiladas evita superposicion cerca de segmentos peque
   expect_false(row_16$.label_fuera)
   expect_gte(row_16$x_label, 0)
   expect_lte(row_16$x_label, 1)
-  expect_equal(row_16$.col_label, "white")
+  expect_equal(row_16$.col_label, "#081F5C")
   expect_gt(.min_visual_span_gap_apiladas(layer_16), 0.006)
 
   layer_21 <- mk_layer(c(0.01, 0.03, 0.21, 0.75))
@@ -2394,7 +2406,7 @@ test_that("graficar_barras_apiladas evita superposicion cerca de segmentos peque
   expect_false(row_21$.label_fuera)
   expect_gte(row_21$x_label, 0)
   expect_lte(row_21$x_label, 1)
-  expect_equal(row_21$.col_label, "white")
+  expect_equal(row_21$.col_label, "#081F5C")
   expect_gt(.min_visual_span_gap_apiladas(layer_21), 0.006)
 })
 
