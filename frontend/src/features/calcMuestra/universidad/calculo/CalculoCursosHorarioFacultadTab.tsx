@@ -12,6 +12,8 @@ import type { UniversityAulasScenario } from "../shared/study";
 import { CertezaCoberturaPanel } from "./CertezaCoberturaPanel";
 import {
   certezaVistaDesdeEstado,
+  motivoSinProbabilidad,
+  probabilidadPorEstrato,
   type CertezaEstratoPayload,
 } from "./certezaCoberturaModel";
 import {
@@ -60,6 +62,22 @@ export function CalculoCursosHorarioFacultadTab({
     model && (!frameHashVigente || model.decision.frame_hash !== frameHashVigente),
   );
   const resultadoDesactualizado = marcoDesactualizado || frameDesactualizado;
+
+  // **La probabilidad de cumplir viaja en la misma tabla que el cupo.**
+  //
+  // El número de titulares sale de la fórmula, que apunta al CENTRO de la
+  // distribución; la certeza dice qué garantía compra ese número. Estaban en dos
+  // superficies —la tabla arriba, el panel debajo— y con el panel sin medir la
+  // tabla se leía como si sus cupos estuvieran auditados. Medido sobre el
+  // estudio: DERECHO con 16 titulares cumple en el 48 % de los sorteos y con 17
+  // en el 94 %; el plan le dio 16 y el libro operativo acabó poniéndole 20 por
+  // criterio, sin el número delante.
+  //
+  // La vista se calcula UNA sola vez y la comparten tabla y panel: dos cálculos
+  // del mismo dato es cómo dos superficies empiezan a discrepar.
+  const vistaCerteza = certezaVistaDesdeEstado(certeza, frameHashVigente);
+  const probPorEstrato = probabilidadPorEstrato(vistaCerteza);
+  const motivoSinProb = motivoSinProbabilidad(vistaCerteza);
   const actual = model ? planCursosHorarioPublicado(model) : {};
   const estado = model
     ? estadoPlanCursosHorario({ confirmado, marcoDesactualizado: resultadoDesactualizado, actual, guardado })
@@ -117,6 +135,9 @@ export function CalculoCursosHorarioFacultadTab({
               : "No existe un marco vigente que acredite este resultado. Reconstruye el marco y recalcula antes de publicar este plan."}
         </AvisoModulo>
       )}
+      {/* La vista se calcula UNA vez: la tabla de cupos y el panel de certeza
+          tienen que decir lo mismo. Calcularla dos veces es cómo dos superficies
+          empiezan a discrepar sin que nadie lo note. */}
       <section className="cmv2-panel cmv2-ch-panel" data-qa-geometry-member>
         <div className="cmv2-panel-head">
           <div>
@@ -140,7 +161,7 @@ export function CalculoCursosHorarioFacultadTab({
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
-            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Cupo de reserva que el plan presupuesta para esta facultad: la mitad de sus titulares, redondeada hacia arriba. NO es el número de aulas de reemplazo que el sorteo construye: esas son las cadenas R1, R2… y son muchas más (en HSVG2026, 6 de cupo contra 69 encadenadas en ARQUITECTURA). Las cadenas viven en Selección → Reemplazos.">Cupo de reserva</th><th>Del plan</th></tr></thead>
+            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Con cuántos de los sorteos posibles esos titulares alcanzan la cuota de la facultad. El número de titulares sale de la fórmula, que apunta al centro; esta columna dice qué garantía compra. Sale de la certeza de cobertura: si no se ha medido sobre el marco vigente, lo dice.">Probabilidad de cumplir</th><th title="Cupo de reserva que el plan presupuesta para esta facultad: la mitad de sus titulares, redondeada hacia arriba. NO es el número de aulas de reemplazo que el sorteo construye: esas son las cadenas R1, R2… y son muchas más (en HSVG2026, 6 de cupo contra 69 encadenadas en ARQUITECTURA). Las cadenas viven en Selección → Reemplazos.">Cupo de reserva</th><th>Del plan</th></tr></thead>
             <tbody>
               {model.filas.map((fila) => (
                 <tr key={fila.estrato}>
@@ -153,6 +174,17 @@ export function CalculoCursosHorarioFacultadTab({
                     return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1).replace(".", ",")} %` : "—";
                   })()}</td>
                   <td>{fmtInt(fila.aulas_base)}</td>
+                  {/* **Nunca en blanco ni con un guion.** Un cupo sin auditar y
+                      un cupo con probabilidad baja son cosas distintas, y el
+                      guion las volvía la misma. Si no está medida sobre el
+                      marco vigente, la celda lo dice con esas palabras. */}
+                  <td className="cmv2-ch-tabla-prob" data-sin-medir={probPorEstrato.has(fila.estrato) ? undefined : ""}>
+                    {(() => {
+                      const p = probPorEstrato.get(fila.estrato);
+                      if (p == null) return <em>{motivoSinProb}</em>;
+                      return `${(p * 100).toFixed(0)} %`;
+                    })()}
+                  </td>
                   <td>{fmtInt(fila.aulas_reemplazo)}</td>
                   <td className="cmv2-ch-tabla-final"><strong>{fmtInt(fila.aulas_total)}</strong></td>
                 </tr>
@@ -169,7 +201,7 @@ export function CalculoCursosHorarioFacultadTab({
       {onMedirCerteza && (
         <CertezaCoberturaPanel
           filasResultado={model.filas}
-          vista={certezaVistaDesdeEstado(certeza, frameHashVigente)}
+          vista={vistaCerteza}
           busy={certezaEnCurso}
           onMedir={onMedirCerteza}
           marcoDesactualizado={resultadoDesactualizado}
