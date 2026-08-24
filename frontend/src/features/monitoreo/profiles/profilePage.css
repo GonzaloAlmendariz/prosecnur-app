@@ -1258,6 +1258,19 @@
   color: var(--pulso-text-soft);
   font-size: 12px;
   line-height: 1.45;
+  /* **Un párrafo no se estira con su panel.**
+   *
+   * `.mon-profile-panel` es un `grid`, y en un grid `align-self` vale `stretch`
+   * por defecto: la fila del párrafo crece hasta llenar lo que el panel tenga
+   * de alto. Medido el 2026-08-24 en Agenda > «Aulas agendadas»: dos líneas de
+   * texto con `line-height` de 17,4 px ocupaban **133 px** —`grid-template-rows:
+   * 50.7px 132.6px 200px`—, y esos ~80 px de nada entre la frase y la tabla es
+   * justo lo que se ve como espacio muerto.
+   *
+   * Es el mismo defecto que ya se corrigió en los vacíos de Recopiladores. Va
+   * en la regla compartida y no en un panel concreto porque la clase se usa en
+   * decenas de paneles del perfil, todos en grid. */
+  align-self: start;
 }
 
 .mon-profile-local-tabs {
