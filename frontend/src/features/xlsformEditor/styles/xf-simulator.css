@@ -416,15 +416,27 @@
   max-width: 420px;
 }
 
-.pulso-xfsim-range-input {
+/*
+ * theme.css estiliza `input[type="range"]` y sus pseudo-elementos de forma
+ * global: (0,1,1) para el elemento y (0,1,2) para track y thumb. Una clase
+ * sola —(0,1,0) y (0,1,1)— pierde siempre, así que el slider del simulador se
+ * veía con el disco sólido del tema y su riel en degradé, no con lo declarado
+ * aquí. Todos los selectores de abajo se cualifican con el elemento para
+ * sumar la clase por encima de la especificidad del tema; así ganan sin
+ * depender del orden en que el bundle mezcle las hojas.
+ */
+input[type="range"].pulso-xfsim-range-input {
   flex: 1;
   min-width: 0;
-  height: 5px;
+  width: auto;
+  /* El alto del input es el área de arrastre; el riel fino lo pinta el track
+     para no dejar 5px de target al afinar el carril. */
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   appearance: none;
   -webkit-appearance: none;
-  border-radius: 999px;
-  background: var(--pulso-surface-2);
-  border: 1px solid var(--pulso-border);
   accent-color: var(--pulso-primary);
   cursor: pointer;
 }
@@ -434,10 +446,22 @@
   opacity: 0.5;
 }
 
-.pulso-xfsim-range-input::-webkit-slider-thumb {
+input[type="range"].pulso-xfsim-range-input::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+  box-shadow: none;
+}
+
+input[type="range"].pulso-xfsim-range-input::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 16px;
   height: 16px;
+  /* Centra el thumb sobre el carril: (5px - 16px) / 2. Neutraliza el
+     margin-top: -6px del tema, calculado para su riel de 6px. */
+  margin-top: -5.5px;
   border-radius: 50%;
   background: var(--pulso-surface);
   border: 2px solid var(--pulso-primary);
@@ -445,7 +469,22 @@
   cursor: grab;
 }
 
-.pulso-xfsim-range-input::-moz-range-thumb {
+/* El tema agranda y ensombrece su thumb al arrastrar; aquí el gesto solo
+   cambia el cursor y afirma la sombra propia. */
+input[type="range"].pulso-xfsim-range-input::-webkit-slider-thumb:active {
+  transform: none;
+  box-shadow: 0 2px 5px rgba(0, 36, 87, 0.28);
+  cursor: grabbing;
+}
+
+input[type="range"].pulso-xfsim-range-input::-moz-range-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  border: 1px solid var(--pulso-border);
+}
+
+input[type="range"].pulso-xfsim-range-input::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
