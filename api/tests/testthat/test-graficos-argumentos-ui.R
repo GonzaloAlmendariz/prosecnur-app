@@ -869,7 +869,14 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$encabezado_separacion_in, 0.18)
   expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
   expect_equal(.PRESETS_DEFAULT_PULSO$multi_apiladas$color_barra_extra, .PULSO_PPT_COLORS$verde_top2)
-  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_texto_barras, 5.6)
+  # **Calibre del entregable aprobado** (`1019c001` y `a297207d`, 2026-08-16).
+  # Comparando tamaño por ROL, el motor escribia un tercio mas grande que el
+  # mazo aprobado: cifras 15.93 pt contra 14, etiquetas 15.99 contra 12-13.
+  # `size_texto_barras` va en MILIMETROS —asi mide ggplot—, y 5.6 mm son 15.93
+  # pt; a 4.92 salen 13.99. `size_ejes` y `size_leyenda` van en puntos: 16 a 12.
+  # La leyenda ademas no cabia: 48 de 48 del motor contra 8 de 53 del aprobado,
+  # y en la lamina 69 flotaba en medio de las barras tapando el enunciado.
+  expect_equal(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_texto_barras, 4.92)
   expect_equal(
     .PRESETS_DEFAULT_PULSO$multi_apiladas$size_texto_barras,
     .PRESETS_DEFAULT_PULSO$barras_apiladas$size_texto_barras
@@ -878,7 +885,7 @@ test_that("preset Pulso deja la barra extra configurable y con defaults neutros"
     .PRESETS_DEFAULT_PULSO$multi_apiladas$size_texto_barras_peq,
     .PRESETS_DEFAULT_PULSO$barras_apiladas$size_texto_barras_peq
   )
-  expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_leyenda, 16)
+  expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_leyenda, 12)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$size_barra_extra, 16)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_apiladas$grosor_barras, 0.68)
   expect_gte(.PRESETS_DEFAULT_PULSO$barras_agrupadas$grosor_barras, 0.68)
@@ -923,8 +930,9 @@ test_that("preset Pulso PPT usa paleta y escala de texto institucional", {
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo, 16)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_subtitulo_slide, 16)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_cuerpo_slide, 16)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 16)
-  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 16)
+  # Mismo calibre del entregable aprobado: la leyenda y los ejes van a 12 pt.
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_leyenda, 12)
+  expect_equal(.PRESETS_DEFAULT_PULSO$base$size_ejes, 12)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$size_nota_pie, 14)
   expect_equal(.PRESETS_DEFAULT_PULSO$base$color_titulo, .PULSO_PPT_COLORS$rojo)
 	  expect_equal(.PRESETS_DEFAULT_PULSO$base$color_subtitulo, .PULSO_PPT_COLORS$azul)
