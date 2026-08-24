@@ -1311,12 +1311,30 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   en_juego_cs <- !(tolower(trimws(as.character(out$sample_role %||% ""))) %in% "extra_reserve_pool")
   con_meta <- meta_cs > 0 & en_juego_cs
   razon <- ifelse(con_meta, val_cs / pmax(meta_cs, 1), NA_real_)
+  # **Los tramos separan «le falto una» de «no fue nadie».**
+  #
+  # El corte anterior (`hasta_25 / hasta_50 / hasta_99 / cumplida`) metia en
+  # `hasta_99` todo lo que estuviera entre el 51 % y el 99 %. Medido sobre las
+  # 194 aulas aplicadas de 2025 eso son **82 aulas que van de 8 a 270 encuestas
+  # faltantes en total**: la banda tapaba justo la distincion que decide si vale
+  # la pena volver. Con este corte, las 17 aulas `satisfactorio` suman **8
+  # encuestas faltantes entre todas** y las 51 de `insuficiente` + `critico`
+  # suman 353.
+  #
+  # Los nombres son la escala de cumplimiento del aula, monotona y en un solo
+  # eje. `pleno` sustituye a `cumplida`, que significaba DOS cosas: este tramo y
+  # el estado de la celda facultad x sexo (`quota_status`, mas abajo).
+  #
+  # La clave viaja al cliente y el grafico empareja POR CLAVE: emparejar por
+  # posicion —como se hacia— convierte cualquier recorte futuro en etiquetas
+  # cambiadas de sitio sin que nada falle.
   tramo <- ifelse(is.na(razon), NA_character_,
-           ifelse(razon <= 0, "sin_respuestas",
-           ifelse(razon <= 0.25, "hasta_25",
-           ifelse(razon <= 0.5, "hasta_50",
-           ifelse(razon < 1, "hasta_99", "cumplida")))))
-  claves_cob <- c("sin_respuestas", "hasta_25", "hasta_50", "hasta_99", "cumplida")
+           ifelse(razon <= 0, "nulo",
+           ifelse(razon <= 0.50, "critico",
+           ifelse(razon <= 0.75, "insuficiente",
+           ifelse(razon <= 0.90, "parcial",
+           ifelse(razon < 1, "satisfactorio", "pleno"))))))
+  claves_cob <- c("nulo", "critico", "insuficiente", "parcial", "satisfactorio", "pleno")
   cobertura <- lapply(claves_cob, function(k) {
     list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)))
   })

@@ -19,8 +19,15 @@ test_that("las reservas extra quedan fuera del reparto y se cuentan aparte", {
   reparto <- vapply(d$course_status_cobertura, function(x) x$aulas, integer(1))
   names(reparto) <- vapply(d$course_status_cobertura, function(x) x$clave, character(1))
 
+  # **El juego de claves, primero y completo.** Sin esto, renombrar un tramo no
+  # hacia fallar el test: hacia que el `[[` de abajo reventara con «subscript
+  # out of bounds», y un error aborta el bloque sin sumar `failed` — el resumen
+  # bajaba de 8 a 4 pass y seguia diciendo 0 fallos.
+  expect_identical(names(reparto),
+                   c("nulo", "critico", "insuficiente", "parcial", "satisfactorio", "pleno"))
+
   # Las 4 titulares, sin respuestas. Las 6 del banco, fuera.
-  expect_identical(unname(reparto[["sin_respuestas"]]), 4L)
+  expect_identical(unname(reparto[["nulo"]]), 4L)
   expect_identical(sum(reparto), 4L)
   expect_identical(d$course_status_banco, 6L)
   # El total sigue siendo el del plan entero: es la cabecera del panel.

@@ -65,9 +65,12 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
     // ordenadas por tramo del circuito.
     if (resumen?.length) {
       const porClave = new Map(resumen.map((e) => [e.clave, Number(e.aulas) || 0]));
-      const claves = ["sin_respuestas", "hasta_25", "hasta_50", "hasta_99", "cumplida"] as const;
+      // **Por clave, nunca por posición.** Antes esto pareaba una lista local de
+      // claves con los tramos por índice: dos definiciones en dos lenguajes que
+      // tenían que coincidir en orden sin que nada lo obligara, así que recortar
+      // una banda habría movido los números de etiqueta sin romper un test.
       const base = coberturaPorAula([]);
-      const tramosMotor = base.tramos.map((t, i) => ({ ...t, aulas: porClave.get(claves[i]) ?? 0 }));
+      const tramosMotor = base.tramos.map((t) => ({ ...t, aulas: porClave.get(t.clave) ?? 0 }));
       const totalMotor = tramosMotor.reduce((n, t) => n + t.aulas, 0);
       if (totalMotor) return { tramos: tramosMotor, sinMeta: sinMetaMotor ?? 0, total: totalMotor };
     }

@@ -183,8 +183,8 @@ describe("«llegaron a su meta» sale del motor y no del estado operativo", () =
   // cobertura —dos paneles mas abajo, misma pantalla— decia 0.
   const conCobertura = (cumplida: number, total: number, sinMeta: number) => ({
     course_status_cobertura: [
-      { clave: "sin_respuestas", aulas: total - sinMeta - cumplida },
-      { clave: "cumplida", aulas: cumplida },
+      { clave: "nulo", aulas: total - sinMeta - cumplida },
+      { clave: "pleno", aulas: cumplida },
     ],
     course_status_total: total,
     course_status_sin_meta: sinMeta,
