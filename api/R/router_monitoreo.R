@@ -39,6 +39,10 @@
 .monitoreo_invalidate_dashboard_caches <- function(sid, snapshot = NULL) {
   s <- session_get(sid)
   monitoreo_perf_variables_cache_invalidate(sid)
+  # El dashboard de aulas vive en memoria del proceso, no en la sesion, asi que
+  # no lo alcanza el borrado de claves de abajo: se invalida aparte o un .pulso
+  # nuevo sobre un `sid` reusado leeria las cifras del proyecto anterior.
+  monitoreo_aulas_cache_invalidate(sid)
   scopes <- c("source", "route_summary", "advance_summary", "validation_summary", "queries_summary", "phone_summary", "full")
   # Nombres en NULL, no borrados: si algún día un scope queda fuera de `scopes`,
   # `s$monitoreo_dashboard_cache` resolvería por partial matching a ese scoped.
@@ -1125,7 +1129,20 @@
       aulas_cfg$partes_campo, s$monitoreo_aulas_partes_campo, list()
     )
     aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
-    aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
+    # **Aulas era la unica familia que reconstruia su dashboard en cada request.**
+    # Aqui arriba territorial pasa por su cache de mapa y acreditacion/telefonico
+    # por la suya; esta linea llamaba al motor a pelo, y encima FUERA del
+    # `if (should_build_dashboard)`, asi que se reconstruia incluso cuando el
+    # tablero general venia de cache. Medido: 6,6 s por request sobre 2.616
+    # cursos-horario x 6 requests que dispara abrir un proyecto = ~40 s con
+    # Plumber bloqueado. Detalle y token en `monitoreo_aulas_cache.R`.
+    aulas_cache_token <- monitoreo_aulas_cache_token(
+      cache_token, aulas_plan, aulas_cfg, scope = report_scope
+    )
+    aulas_cache <- monitoreo_aulas_dashboard_cached(
+      sid, aulas_plan, display_data, aulas_cfg, aulas_cache_token
+    )
+    aulas_dashboard <- aulas_cache$dashboard
     if (is.null(dashboard) || !is.list(dashboard)) {
       dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
     }
