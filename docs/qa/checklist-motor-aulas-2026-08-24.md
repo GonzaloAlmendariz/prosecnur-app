@@ -241,6 +241,28 @@ verificables:
 4. **Los avisos dicen la causa, no sólo el hecho.** «Derecho mujeres en déficit proyectado de 3
    porque las 4 aulas pendientes aportan 21 y faltan 24», no «Derecho en riesgo».
 5. **Sin sobreexplicar.** Un rótulo, su número y su denominador. Parafrasear el título es ruido.
+6. **Sin jerga.** Instrucción de Gonzalo (24-08): *«que la información de los gráficos e
+   indicadores no sea muy críptica en la app sino que se entienda claramente sin caer en jerga»*.
+   La regla operativa: **la clave es técnica, la etiqueta que lee una persona es una frase que se
+   entiende sola y lleva su denominador.**
+
+| Clave (código) | Etiqueta (superficie) |
+|---|---|
+| `pleno` | «Llegó a su meta» |
+| `satisfactorio` | «Casi llegó (90-100 % de lo esperado)» |
+| `insuficiente` | «Se quedó a la mitad (50-75 %)» |
+| `asegurada` | «Va a llegar, con margen» |
+| `ajustada` | «Va a llegar, sin margen» |
+| `deficit_proyectado` | «No va a llegar: faltan N encuestas» |
+| `deficit_no_subsanable` | «No va a llegar y ya no quedan aulas: hay que ponderar» |
+| calibración 0,85 | «El campo está rindiendo un 15 % menos de lo previsto» |
+
+**Prohibido en superficie**: τ, deff, residual, P25, bootstrap, Madow, cubo, estrato,
+`frame_hash`, «tramo», «vara».
+
+**Es una vara transversal**, no una condición sólo de H: aplica a cada superficie que se toque.
+Y crea una deuda declarada — los estados sellados en los ítems G e I son claves correctas **sin
+etiqueta humana todavía**, y esa pasada es parte de H.
 
 **Verificación**: `ui-quick-check` sobre las superficies de Monitoreo con proyecto real, más un
 test de contrato de idioma que falle si aparece un estado fuera del vocabulario de G.
