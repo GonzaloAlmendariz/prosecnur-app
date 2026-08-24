@@ -68,6 +68,8 @@ const KNOWN_KEYS = new Set([
   "canvasViewport",
   "scope_rules",
   "scopeRules",
+  "auto_otros_slides",
+  "autoOtrosSlides",
   "_unknown",
 ]);
 
@@ -149,6 +151,7 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
   const canvasViewport = pick(source, "canvas_viewport", ["canvasViewport"]);
   const scopeRules = pick(source, "scope_rules", ["scopeRules"]);
   const equivalenciasRevision = pick(source, "equivalencias_revision", ["equivalenciasRevision"]);
+  const autoOtrosSlides = pick(source, "auto_otros_slides", ["autoOtrosSlides"]);
 
   const config: Dict = {
     version: "graficos/4",
@@ -168,6 +171,19 @@ export function normalizeGraficosConfig(input: unknown, options: { includeLegacy
     // sobreviviría por accidente, y este sello es el que decide si el aviso de
     // desfase aparece.
     equivalencias_revision: typeof equivalenciasRevision === "string" ? equivalenciasRevision : "",
+    // B42/G-18: campo de primera clase por la misma razón que el sello de
+    // equivalencias. Desde `_unknown` el booleano sobreviviría sólo por
+    // accidente, y este es el que decide si el PPT lleva las láminas de
+    // «Otros» — en ACRD ING el plan guardado las tenía apagadas y al
+    // regenerar desaparecían sin aviso (31 slides contra 39 entregadas).
+    // La raíz manda; `scope_rules.global` es el fallback para una config
+    // editada a mano antes de que existiera el interruptor. El fallback vive
+    // ACÁ y no en un hidratador: los cuatro caminos de hydrate pasan por esta
+    // función, y ponerlo en uno solo dejaba al import de paquete compartido
+    // apagando una bandera que nadie tocó.
+    auto_otros_slides: autoOtrosSlides === true ||
+      (autoOtrosSlides === undefined && isObj(scopeRules) &&
+        isObj(scopeRules.global) && scopeRules.global.auto_otros_slides === true),
   };
 
   config.scope_rules = isObj(scopeRules)
