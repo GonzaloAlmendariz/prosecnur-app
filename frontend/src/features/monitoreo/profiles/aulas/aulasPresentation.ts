@@ -307,6 +307,32 @@ function fallbackLabel(value: string) {
  * pasar por aquí devolvía «El tablero agrega por aula/collector/link» a la
  * pantalla, que es justo la jerga del motor que este helper existe para tapar.
  */
+/**
+ * El tipo de sesión del curso, sin el paréntesis del DTI.
+ *
+ * La base llega con `TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)`: el tipo
+ * principal y, entre paréntesis, la lista de subtipos que ese tipo agrupa en el
+ * catálogo. Esa lista es la misma para todas las aulas del tipo —no dice nada
+ * de ESTA aula—, y ocupa 45 caracteres en cada fila.
+ *
+ * Medido el 2026-08-24 sobre el plan de 193 titulares: **183 filas idénticas**
+ * con esa cadena y 10 con «TALLER». La columna ensanchaba la tabla hasta 1.425
+ * px en un contenedor de 1.153 y empujaba «Carrera», «Nivel del curso» y
+ * «Tamaño de aula» fuera de la vista.
+ *
+ * Queda el tipo, en capitalización normal. **El detalle no se pierde**: la
+ * tabla lo conserva en el `title` de la celda, que es donde vive lo que no
+ * cabe. Y un valor sin paréntesis se devuelve tal cual: si el DTI cambia el
+ * formato, se ve el crudo en vez de una traducción que se quedó vieja.
+ */
+export function tipoDeSesionLabel(value: unknown) {
+  const crudo = String(value ?? "").trim();
+  if (!crudo) return "";
+  const principal = crudo.replace(/\s*\(.*\)\s*$/, "").trim();
+  if (!principal) return crudo;
+  return principal.charAt(0) + principal.slice(1).toLowerCase();
+}
+
 export function presentDetail(value: unknown) {
   return String(value ?? "")
     .replaceAll("aula/collector/link", "curso-horario, origen y enlace")
@@ -526,6 +552,7 @@ function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<
     if (Number.isFinite(n)) return Math.ceil(n - 1e-9) === 0 ? 0 : Math.ceil(n - 1e-9);
   }
   if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (field === "session_type" || field === "tipo_sesion") return tipoDeSesionLabel(value);
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);
   if (field === "campo") return aulasFieldLabel(String(value));
