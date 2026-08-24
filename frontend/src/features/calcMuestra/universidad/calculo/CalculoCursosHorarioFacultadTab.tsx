@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Check, Grid3X3, RotateCcw } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
@@ -11,7 +11,9 @@ import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "
 import type { UniversityAulasScenario } from "../shared/study";
 import { CertezaCoberturaPanel } from "./CertezaCoberturaPanel";
 import {
+  certezaEstratosDesdeResultado,
   certezaVistaDesdeEstado,
+  debeMedirCertezaSola,
   motivoSinProbabilidad,
   probabilidadPorEstrato,
   type CertezaEstratoPayload,
@@ -78,6 +80,39 @@ export function CalculoCursosHorarioFacultadTab({
   const vistaCerteza = certezaVistaDesdeEstado(certeza, frameHashVigente);
   const probPorEstrato = probabilidadPorEstrato(vistaCerteza);
   const motivoSinProb = motivoSinProbabilidad(vistaCerteza);
+
+  // **La certeza se mide sola, una vez por marco.**
+  //
+  // Era un botón, y un botón que nadie aprieta deja los cupos yendo a campo sin
+  // auditar: el plan le dio 16 titulares a DERECHO —48 % de probabilidad de
+  // cumplir— y eso se corrigió a 20 por criterio, no porque el número estuviera
+  // delante.
+  //
+  // Los estratos se construyen desde el modelo que ESTA pestaña muestra, así que
+  // el disparo vive aquí y no junto a `calculateSample`: la página no los
+  // conoce.
+  //
+  // Cuatro guardas, y las cuatro hacen falta:
+  //   · una sola vez por `frame_hash` (un ref, no un estado: no repinta);
+  //   · nunca si ya hay una medición vigente para ese marco;
+  //   · nunca mientras otra corre;
+  //   · nunca con el resultado desactualizado — mediría estratos que ya no son.
+  // El hash se marca ANTES de disparar: si la medición falla, no reintenta en
+  // bucle. El botón sigue ahí para eso.
+  const certezaAutoRef = useRef<string | null>(null);
+  const puedeMedirSola = Boolean(onMedirCerteza) && debeMedirCertezaSola({
+    vista: vistaCerteza,
+    frameHash: frameHashVigente,
+    hayFilas: Boolean(model && model.filas.length > 0),
+    midiendo: Boolean(certezaEnCurso),
+    resultadoDesactualizado,
+    yaDisparadoPara: certezaAutoRef.current,
+  });
+  useEffect(() => {
+    if (!puedeMedirSola || !onMedirCerteza || !model || !frameHashVigente) return;
+    certezaAutoRef.current = frameHashVigente;
+    void onMedirCerteza({ estratos: certezaEstratosDesdeResultado(model.filas), nivel: 0.95 });
+  }, [puedeMedirSola, onMedirCerteza, model, frameHashVigente]);
   const actual = model ? planCursosHorarioPublicado(model) : {};
   const estado = model
     ? estadoPlanCursosHorario({ confirmado, marcoDesactualizado: resultadoDesactualizado, actual, guardado })
