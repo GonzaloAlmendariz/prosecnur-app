@@ -43,21 +43,40 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
             «ninguno de los 0 partes trae observaciones» afirma haber contado
             sobre un conjunto vacío. Misma familia que `c4af437d`. */}
         {r.partes
-          ? `Ninguna de las ${fmt(r.partes)} aulas con parte o registro trae observaciones. Se escriben al registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el aplicador vio y no cabe en un número.`
-          : "Todavía no hay partes ni registros de campo. Las observaciones se escriben al registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el aplicador vio y no cabe en un número."}
+          // Con la norma puesta —siempre se anota algo al gestionar—, cero
+          // observaciones sobre aulas ya gestionadas deja de ser un vacío
+          // neutro: dice que lo anotado se está quedando fuera de la app.
+          ? `Ninguna de las ${fmt(r.partes)} aulas gestionadas trae observación, y anotarlas es lo normal: se escriben al agendar o registrar un aula aquí, o en la columna «Observaciones» del libro. Si el equipo las está apuntando en otro sitio, aquí no llegan.`
+          : "Todavía no hay aulas gestionadas. Las observaciones se escriben al agendar o registrar un aula aquí, o en la columna «Observaciones» del libro, y son lo que el equipo vio y no cabe en un número."}
       </p>
     );
   }
 
   return (
     <div className="aulas-observaciones" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+      {/* **Escribir observación es la norma, no la excepción.** Gonzalo,
+          2026-08-24: «la observación va a ser algo que el agendador siempre va a
+          escribir, por lo que ponerlo como algo que a veces se hace no es muy
+          realista». La línea decía «4 de 13 partes traen observación» y se leía
+          como un dato curioso; con la norma puesta, lo que hay que mirar es el
+          hueco —las gestionadas que NO traen nota—, porque ésas son las que
+          faltan por anotar. Y el denominador se llama por lo que es: aulas
+          gestionadas, no partes. */}
       <p className="aulas-cadenas-lectura">
-        <strong>{fmt(r.conNota)}</strong> de {fmt(r.partes)} partes traen
-        observación
+        <strong>{fmt(r.conNota)}</strong> de {fmt(r.partes)}{" "}
+        {r.partes === 1 ? "aula gestionada trae" : "aulas gestionadas traen"} observación
         {r.observaciones.length < r.conNota ? (
           <>
             {" "}· <strong>{fmt(r.observaciones.length)}</strong>{" "}
             {r.observaciones.length === 1 ? "cosa distinta" : "cosas distintas"}
+          </>
+        ) : null}
+        {r.partes > r.conNota ? (
+          <>
+            {" "}·{" "}
+            <span className="aulas-observaciones-hueco">
+              {fmt(r.partes - r.conNota)} sin anotar
+            </span>
           </>
         ) : null}
       </p>
@@ -69,6 +88,19 @@ export function AulasObservacionesDeCampo({ partes, registros = [] }: {
               {o.texto}
             </p>
             <p className="aulas-observaciones-quien">
+              {/* **De qué columna salió.** El libro tiene dos: «OBSERVACIONES»
+                  en la hoja de agendadas y «OBSERVACIONES SOBRE APLICACIONES» en
+                  la de aplicadas, y son dos hechos distintos —lo que costó
+                  conseguir el aula y lo que pasó dentro—. Mezclarlas sin decir
+                  cuál es cuál convierte «el docente pidió otro día» y «el
+                  docente pidió empezar al final» en la misma cosa. Cuando un
+                  texto viene de las dos se marcan las dos: se anticipó al
+                  agendar y volvió a pasar al aplicar. */}
+              {o.origenes.map((org) => (
+                <span key={org} className={`aulas-observaciones-origen es-${org}`}>
+                  {org === "agenda" ? "Agendación" : "Aplicación"}
+                </span>
+              ))}
               {/* Las aulas primero: una observación repetida en ocho aulas es
                   otra cosa que la misma frase en una. */}
               <strong>{o.aulas === 1 ? "1 aula" : `${fmt(o.aulas)} aulas`}</strong>

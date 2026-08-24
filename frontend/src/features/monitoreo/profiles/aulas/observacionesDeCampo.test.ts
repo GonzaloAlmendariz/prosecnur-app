@@ -138,6 +138,39 @@ describe("observacionesDeCampo · las dos fuentes", () => {
       expect(r.conNota).toBe(1);
     });
 
+    /**
+     * **La observación la escribe quien agenda, no sólo quien aplica.**
+     * Gonzalo, 2026-08-24: «la observación va a ser algo que el agendador
+     * siempre va a escribir, por lo que ponerlo como algo que a veces se hace
+     * no es muy realista».
+     *
+     * Exigir señal de campo dejaba fuera del denominador el caso más común —una
+     * nota escrita al gestionar la cita— y producía el absurdo de contar más
+     * notas que unidades: dos observaciones sobre una sola aula aplicada
+     * publicaban «2 de 1».
+     */
+    it("una nota escrita al agendar cuenta, aunque nadie haya pisado el aula", () => {
+      const r = observacionesDeCampo([], [
+        { operational_code: "CH 1", scheduled_date: "2026-09-01", field_note: "El docente pidió el final de la clase" },
+        { operational_code: "CH 2", scheduled_date: "2026-09-02", field_note: "No contesta el anexo" },
+        { operational_code: "CH 3", operational_status: "aplicada" },
+      ]);
+      expect(r.conNota).toBe(2);
+      expect(r.partes).toBe(3);
+    });
+
+    it("nunca hay más notas que unidades: si trae nota, entra al denominador", () => {
+      // La guarda del absurdo. Una fila sin ninguna otra señal —ni cita, ni
+      // campo, ni cifras— pero con observación escrita: alguien la escribió, así
+      // que esa unidad tuvo gestión por definición.
+      const r = observacionesDeCampo([], [
+        { operational_code: "CH 7", field_note: "Cambió de aula" },
+        { operational_code: "CH 8", field_note: "Cambió de aula" },
+      ]);
+      expect(r.conNota).toBe(2);
+      expect(r.partes).toBeGreaterThanOrEqual(r.conNota);
+    });
+
     it("un aula con parte en el libro cuenta aunque su fila de agenda esté cruda", () => {
       // El parte llega del Excel y la agenda todavía no lo refleja: la unidad
       // pasó por campo igual, y descartarla escondería su observación.

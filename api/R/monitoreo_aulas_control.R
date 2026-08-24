@@ -130,6 +130,42 @@ monitoreo_aulas_control_umbral <- function(fila, campo_verdict, campo_umbral) {
   NA
 }
 
+#' Si el aula alcanzo la meta que el diseno le puso.
+#'
+#' **El criterio del 70 % quedo desfasado.** Gonzalo, 2026-08-24: «en la base de
+#' control el 70P y 70T ya estan desfasados porque nosotros usamos un sistema de
+#' elegibles esperados para ver si el aula es valida: si llega a esa cuenta o
+#' no». Y no es solo que el criterio haya cambiado de idea: las columnas `70T` y
+#' `70P` estan marcadas `solo_lectura` en `BASE_CONTROL_CAMPOS` desde que la app
+#' genera el libro, asi que **no las escribe nadie**. Medido el 2026-08-24: un
+#' aula con 48 efectivas contra 42 esperadas salia `efectiva = NA`, y en un
+#' estudio de 2026 eso pasa en el 100 % de las filas — el panel de control
+#' declaraba «sin evaluar» el operativo entero.
+#'
+#' La meta se busca en dos nombres porque son dos cosas que el operativo llama
+#' igual: `elegibles_esperados` es la columna del libro —declarada y hoy sin
+#' productor— y `efectivas_esperadas` es la que el calculo de muestra si escribe
+#' en cada aula (2.616 de 2.616 en el estudio de referencia, mediana 17). Se
+#' prefiere la del libro cuando viene, porque es la que el equipo puede corregir
+#' a mano.
+#'
+#' Lo conseguido se lee de las efectivas y, si faltan, de las enviadas: son dos
+#' denominadores distintos y el fallback esta declarado, no es un empate.
+#'
+#' @param fila fila de «Base de control».
+#' @return `TRUE`, `FALSE` o `NA` si no hay meta o no hay conteo.
+#' @export
+monitoreo_aulas_control_meta <- function(fila) {
+  meta <- .mac_num(fila[["elegibles_esperados"]])
+  if (!is.finite(meta)) meta <- .mac_num(fila[["efectivas_esperadas"]])
+  if (!is.finite(meta) || meta <= 0) return(NA)
+  logrado <- .mac_num(fila[["efectivas_obtenidas"]])
+  if (!is.finite(logrado)) logrado <- .mac_num(fila[["effective_surveys"]])
+  if (!is.finite(logrado)) logrado <- .mac_num(fila[["sent_total"]])
+  if (!is.finite(logrado)) return(NA)
+  logrado >= meta
+}
+
 #' Filas de «Base de control» listas para publicar.
 #'
 #' @param control lista de filas del lector de la hoja.
@@ -156,9 +192,17 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
     # llegar cuando lo que pasa es que nadie la evaluo.
     cumple_t <- monitoreo_aulas_control_umbral(fila, "valid_total", "threshold_total")
     cumple_p <- monitoreo_aulas_control_umbral(fila, "valid_population", "threshold_population")
+    cumple_m <- monitoreo_aulas_control_meta(fila)
     fila$cumple_total <- cumple_t
     fila$cumple_poblacion <- cumple_p
-    fila$efectiva <- if (is.na(cumple_t) || is.na(cumple_p)) NA else (cumple_t && cumple_p)
+    fila$cumple_meta <- cumple_m
+    # **Con que criterio se juzgo esta aula.** No se cambia un veredicto en
+    # silencio: la UI tiene que poder decir si el aula se midio contra el 70 %
+    # del libro viejo o contra la meta que el diseno le puso.
+    fila$criterio <- if (!is.na(cumple_t) && !is.na(cumple_p)) "umbral70"
+      else if (!is.na(cumple_m)) "meta"
+      else ""
+    fila$efectiva <- if (!is.na(cumple_t) && !is.na(cumple_p)) (cumple_t && cumple_p) else cumple_m
     out[[length(out) + 1L]] <- fila
   }
   .mac_ordenar(out)
@@ -183,7 +227,14 @@ monitoreo_aulas_control_publicado <- function(control = list()) {
   if (length(filas) < 2L) return(filas)
   rango <- vapply(filas, function(f) {
     t <- f$cumple_total; p <- f$cumple_poblacion
-    if (is.na(t) || is.na(p)) return(2L)
+    # Juzgada por meta: un solo veredicto, asi que no existe el «cumple uno de
+    # los dos». Alcanzada al final —no se consulta—; no alcanzada, diagnostico
+    # cerrado; sin meta ni umbrales, sin evaluar.
+    if (is.na(t) || is.na(p)) {
+      m <- f$cumple_meta
+      if (is.null(m) || is.na(m)) return(2L)
+      return(if (isTRUE(m)) 4L else 3L)
+    }
     if (xor(t, p)) return(1L)
     if (t && p) return(4L)
     3L
