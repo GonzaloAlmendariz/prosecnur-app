@@ -502,3 +502,47 @@ describe("la tarjeta no se contradice consigo misma", () => {
     expect(v.sub).not.toContain("Conecta una fuente");
   });
 });
+
+/**
+ * **«Ficha» significaba dos cosas a un click de distancia.**
+ *
+ * La tarjeta de Recopiladores decía «193 fichas requieren enlace» y «0/193
+ * fichas con enlace»; Materiales, un click más allá, dice «0 de 2.616» porque
+ * una reserva necesita su ficha impresa el día que su titular cae.
+ *
+ * Las dos cifras son correctas y miden cosas distintas: el homepage sigue el
+ * operativo real —«las reservas son respaldo», dice el motor— y Materiales
+ * cuenta lo que se va a imprimir. Lo que estaba mal era la palabra.
+ */
+describe("la tarjeta de Recopiladores nombra lo que cuenta", () => {
+  // Se usa el mismo `view()` que el resto del archivo, con el overview base al
+  // que se le fija el bloque de recopiladores.
+  const conFichas = (over: Partial<Record<string, number>> = {}) => {
+    const overview = makeOverview();
+    overview.facts = {
+      ...(overview.facts ?? {}),
+      recopiladores: {
+        total: 2616, titulares: 193, with_link: 0, without_link: 193,
+        faculties_count: 15, eligible_total: 84110, ...over,
+      },
+    } as typeof overview.facts;
+    return view("recopiladores", overview);
+  };
+
+  it("la barra habla de titulares, no de fichas", () => {
+    const card = conFichas();
+    expect((card.viz as { label?: string })?.label).toBe("titulares con enlace");
+    expect(JSON.stringify(card)).not.toContain("fichas con enlace");
+  });
+
+  it("y el subtitulo tambien, en sus dos ramas", () => {
+    expect(conFichas().sub).toContain("titulares requieren enlace");
+    expect(conFichas({ with_link: 193, without_link: 0 }).sub).toContain("Todos los titulares");
+  });
+
+  it("el total del plan sigue visible en los pies: son las 2.616", () => {
+    // El denominador del operativo es 193, pero el plan tiene 2.616 y esa es la
+    // cifra que cuadra con Materiales.
+    expect(JSON.stringify(conFichas().facts)).toContain("2,616");
+  });
+});
