@@ -121,3 +121,34 @@ describe("explicacionDelEmbudo", () => {
     expect(explicacionDelEmbudo(null)).toEqual([]);
   });
 });
+
+
+/**
+ * **Y el rótulo de la etapa tampoco puede prometer el parte.**
+ *
+ * La prosa del embudo se corrigió porque decía «cuenta como aplicado cuando su
+ * parte de campo lo declara» sobre una cifra que el parte no mueve. El detalle
+ * de la etapa «Aplicadas en campo» decía «con parte de campo registrado» y se
+ * quedó atrás, en el MISMO archivo: visto en pantalla en Fuentes, «0 · con
+ * parte de campo registrado» con tres partes importados.
+ *
+ * Un test por superficie no basta cuando la misma frase vive en dos sitios del
+ * mismo módulo; este cubre las dos a la vez.
+ */
+describe("embudoDelOperativo · ninguna superficie atribuye la cifra al parte", () => {
+  it("la etapa de aplicadas dice que las registra la app", () => {
+    const etapas = embudoDelOperativo({ aulas_titulares: 193, aulas_aplicadas: 0 });
+    const aplicadas = etapas.find((e) => e.id === "aplicadas");
+    expect(aplicadas?.detalle).toContain("esta app");
+    expect(aplicadas?.detalle).not.toContain("parte de campo");
+  });
+
+  it("y ninguna etapa del recorrido nombra el parte como su fuente", () => {
+    const etapas = embudoDelOperativo({
+      aulas_titulares: 193, aulas_aplicadas: 12, respuestas_total: 300, respuestas_validas: 280,
+    });
+    for (const etapa of etapas) {
+      expect(String(etapa.detalle ?? "")).not.toContain("parte de campo");
+    }
+  });
+});
