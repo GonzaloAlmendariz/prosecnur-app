@@ -109,6 +109,22 @@
   min-height: 180px;
   padding: 28px;
   text-align: center;
+  /* **El vacío conserva su alto, no el del panel que lo aloja.**
+   *
+   * Los layouts de este módulo son grids de dos columnas que igualan altura, y
+   * un panel sin contenido heredaba la de su vecino: medido el 2026-08-23 en
+   * Accesos > Canales, el vacío de «Comprobación del origen» ocupaba **706 px**
+   * —con `min-height: 180`— para dos líneas de texto, porque la fila del grid
+   * medía 782 y `align-items: stretch` es el defecto.
+   *
+   * Una caja punteada de 706 px con cuarenta caracteres centrados no se lee
+   * como un vacío explicado: se lee como algo que falló al cargar. Con el alto
+   * propio, el panel sigue alineado con su columna y el aviso parece lo que es.
+   *
+   * C3 del Contrato de Superficie: el vacío contiene su propio hueco y conserva
+   * alto intrínseco. */
+  align-self: start;
+  flex: 0 0 auto;
 }
 
 /* Vara V3: el motor dijo que la mutación no cambió nada. Es un aviso, no un

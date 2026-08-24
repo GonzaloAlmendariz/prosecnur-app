@@ -57,3 +57,36 @@ describe("las clases rec-* del feature tienen estilo en un CSS importado", () =>
     expect(marcador).not.toMatch(/^\s*\.[\w-]+\s*\{/m);
   });
 });
+
+/**
+ * **Un vacío no hereda el alto del panel que lo aloja.**
+ *
+ * Los layouts de este módulo son grids de dos columnas que igualan altura, y
+ * `align-items: stretch` es el defecto de un grid. Medido en pantalla el
+ * 2026-08-23 en Accesos > Canales: el vacío de «Comprobación del origen» ocupaba
+ * **706 px** —declarando `min-height: 180px`— para dos líneas de texto, porque
+ * la fila del grid medía 782.
+ *
+ * Una caja punteada de 706 px con cuarenta caracteres centrados no se lee como
+ * un vacío explicado: se lee como algo que falló al cargar. Tras la regla, 180.
+ *
+ * C3 del Contrato de Superficie: el vacío contiene su propio hueco y conserva
+ * alto intrínseco.
+ */
+describe("los vacíos del módulo conservan alto intrínseco", () => {
+  const shell = leer("styles/recopiladores-shell.css");
+
+  it("la familia de vacíos no se estira con su contenedor", () => {
+    const bloque = shell.slice(shell.indexOf(".rec-contained-empty"));
+    const regla = bloque.slice(0, bloque.indexOf("}"));
+    expect(regla).toContain("align-self: start");
+    expect(regla).toContain("flex: 0 0 auto");
+  });
+
+  it("y siguen declarando su alto mínimo, que es lo que les da cuerpo", () => {
+    // Sin `min-height` un vacío de una línea sería una franja de 40 px que no
+    // se distingue de un párrafo suelto.
+    const bloque = shell.slice(shell.indexOf(".rec-contained-empty"));
+    expect(bloque.slice(0, bloque.indexOf("}"))).toContain("min-height: 180px");
+  });
+});
