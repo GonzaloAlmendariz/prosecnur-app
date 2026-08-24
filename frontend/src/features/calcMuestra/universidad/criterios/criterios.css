@@ -124,78 +124,6 @@
 .cmv2-crit-empty p { margin: 0; max-width: 60ch; font-size: 12px; line-height: 1.55; }
 .cmv2-crit-empty svg { color: var(--cmv2-accent-fg); }
 
-/* --- Franja de impacto en vivo --------------------------------------------- */
-.cmv2-crit-impact {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--cmv2-accent-border);
-  border-radius: var(--pulso-radius);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--cmv2-accent-soft) 70%, var(--pulso-surface)) 0%,
-    var(--pulso-surface) 100%
-  );
-}
-.cmv2-crit-impact-metric {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: start;
-  gap: 10px;
-  padding: 4px 6px;
-  position: relative;
-}
-.cmv2-crit-impact-metric + .cmv2-crit-impact-metric::before {
-  content: "";
-  position: absolute;
-  left: -5px;
-  top: 4px;
-  bottom: 4px;
-  width: 1px;
-  background: var(--cmv2-border);
-}
-.cmv2-crit-impact-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--cmv2-accent-soft);
-  color: var(--cmv2-accent-fg);
-}
-.cmv2-crit-impact-body { display: grid; gap: 1px; min-width: 0; }
-.cmv2-crit-impact-label {
-  font-size: 10px;
-  font-weight: var(--pulso-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--pulso-text-muted);
-}
-.cmv2-crit-impact-value {
-  font-size: 21px;
-  font-weight: var(--pulso-weight-black);
-  line-height: 1;
-  color: var(--pulso-text);
-  font-variant-numeric: tabular-nums;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-}
-.cmv2-crit-impact-value[data-reduced="true"] { color: var(--cmv2-accent-fg); }
-.cmv2-crit-impact-ref {
-  font-size: 10.5px;
-  line-height: 1.4;
-  color: var(--pulso-text-muted);
-}
-.cmv2-crit-impact-ref strong { color: var(--pulso-text); font-variant-numeric: tabular-nums; }
-.cmv2-crit-impact-delta {
-  color: var(--cmv2-accent-fg);
-  font-weight: var(--pulso-weight-semibold);
-  font-variant-numeric: tabular-nums;
-}
-
 /* --- Secciones (estudiante / aula) ----------------------------------------- */
 .cmv2-crit-section { display: grid; gap: 12px; }
 
@@ -1021,15 +949,6 @@
 @media (max-width: 1024px) {
   .cmv2-crit-grid { grid-template-columns: minmax(0, 1fr); }
   .cmv2-crit-list[data-long="true"] { columns: auto; }
-  .cmv2-crit-impact { grid-template-columns: 1fr; }
-  .cmv2-crit-impact-metric + .cmv2-crit-impact-metric::before {
-    left: 4px;
-    right: 4px;
-    top: -5px;
-    bottom: auto;
-    width: auto;
-    height: 1px;
-  }
 }
 
 @media (max-width: 1180px) {
