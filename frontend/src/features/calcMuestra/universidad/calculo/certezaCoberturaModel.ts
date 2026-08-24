@@ -140,3 +140,32 @@ export function certezaEstratosDesdeResultado(
       aulas_formula: fila.aulas_base,
     }));
 }
+
+/**
+ * La probabilidad de cumplir de cada estrato, para pegarla al lado de su cupo.
+ *
+ * **Sólo entrega números de una medición VIGENTE.** Una certeza medida sobre
+ * otro marco no es un dato viejo que redondear: es la respuesta a otra pregunta,
+ * y ponerla junto a los cupos nuevos haría que la tabla pareciera auditada
+ * cuando no lo está. Con el marco cambiado devuelve un mapa vacío y la
+ * superficie dice por qué.
+ */
+export function probabilidadPorEstrato(vista: CertezaVista | null): Map<string, number> {
+  if (!vista || !vista.vigente) return new Map();
+  return new Map(
+    vista.filas
+      .filter((f) => typeof f.probabilidad_formula === "number" && Number.isFinite(f.probabilidad_formula))
+      .map((f) => [f.label, f.probabilidad_formula as number])
+  );
+}
+
+/**
+ * Por qué una celda de probabilidad no trae número. **El motivo, no sólo el
+ * hecho**: «sin medir» y «medida sobre otro marco» piden acciones distintas —la
+ * primera pide apretar el botón, la segunda pide recalcular— y un guion las
+ * volvía la misma cosa.
+ */
+export function motivoSinProbabilidad(vista: CertezaVista | null): string {
+  if (!vista) return "sin medir";
+  return vista.vigente ? "sin dato" : "medida sobre otro marco";
+}
