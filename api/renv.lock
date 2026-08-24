@@ -9,6 +9,17 @@
     ]
   },
   "Packages": {
+    "BalancedSampling": {
+      "Package": "BalancedSampling",
+      "Version": "2.1.1",
+      "Imports": "Rcpp (>= 1.0.13)",
+      "LinkingTo": "Rcpp, RcppArmadillo",
+      "License": "AGPL-3",
+      "MD5sum": "79e1533ab0d9c532b6d5516fef25a3ba",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
     "DBI": {
       "Package": "DBI",
       "Version": "1.3.0",
@@ -85,6 +96,18 @@
       "Suggests": "tinytest, inline, rbenchmark, pkgKitten (>= 0.1.2)",
       "License": "GPL (>= 2)",
       "MD5sum": "353d35176db9c570705a0a324c06fdca",
+      "NeedsCompilation": "yes",
+      "Repository": "CRAN",
+      "Source": "Repository"
+    },
+    "RcppArmadillo": {
+      "Package": "RcppArmadillo",
+      "Version": "15.4.2-1",
+      "Depends": "R (>= 3.3.0)",
+      "Imports": "Rcpp (>= 1.1.1), stats, utils, methods",
+      "LinkingTo": "Rcpp",
+      "License": "GPL (>= 2)",
+      "MD5sum": "b446a94020b100db656ff06e30d2f52f",
       "NeedsCompilation": "yes",
       "Repository": "CRAN",
       "Source": "Repository"
