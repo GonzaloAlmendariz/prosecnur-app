@@ -42,6 +42,34 @@ test_that("delivery_options no enciende la lamina Otros por defecto (G-18)", {
   expect_true(.graficos_delivery_options(list(auto_otros_slides = TRUE))$auto_otros_slides)
 })
 
+test_that("la lamina Otros sobrevive el round-trip de la config del proyecto", {
+  # El interruptor de la UI se persiste como un campo mas de la config de
+  # Graficos: si el normalizador lo dejara caer, al reabrir el .pulso el PPT
+  # volveria a generarse sin las laminas (ACRD ING: 31 slides contra 39).
+  guardado <- .graficos_normalize_config(list(auto_otros_slides = TRUE))
+  expect_true(guardado$auto_otros_slides)
+  expect_true(.graficos_delivery_options(guardado)$auto_otros_slides)
+
+  # El front escribe ambas vias; la de `scope_rules$global` es la que el
+  # motor consulta primero.
+  ambas <- .graficos_normalize_config(list(
+    auto_otros_slides = TRUE,
+    scope_rules = list(global = list(auto_otros_slides = TRUE))
+  ))
+  expect_true(.graficos_delivery_options(ambas)$auto_otros_slides)
+
+  expect_true(.graficos_normalize_config(list(autoOtrosSlides = TRUE))$auto_otros_slides)
+})
+
+test_that("la config por defecto declara la lamina Otros apagada", {
+  # Explicita, no ausente: el front necesita distinguir "apagada" de "este
+  # backend no sabe de la bandera".
+  expect_false(.graficos_default_config()$auto_otros_slides)
+  expect_false(.graficos_normalize_config(list())$auto_otros_slides)
+  # Un valor que no es logical(1) no enciende nada.
+  expect_false(.graficos_normalize_config(list(auto_otros_slides = "si"))$auto_otros_slides)
+})
+
 test_that("etiquetas_arriba_si_no_caben TRUE fosilizado migra a FALSE (B45)", {
   presets <- list(barras_apiladas = list(args = list(etiquetas_arriba_si_no_caben = TRUE)))
   out <- .graficos_migrar_defaults_fosiles(presets)

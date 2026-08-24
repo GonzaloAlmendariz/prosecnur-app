@@ -1188,6 +1188,10 @@
     canvas_viewport = list(x = 0, y = 0, zoom = 1),
     profile_id = "",
     template_id = "",
+    # B42/G-18: opt-in universal. Va en los defaults para que el GET de config
+    # SIEMPRE traiga la clave — si no, el front no puede distinguir "apagada"
+    # de "el backend no sabe de esto" y el interruptor arranca indefinido.
+    auto_otros_slides = FALSE,
     scope_rules = list()
   )
 }
