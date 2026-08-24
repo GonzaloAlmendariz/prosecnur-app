@@ -115,6 +115,18 @@ monitoreo_aulas_partes_publicados <- function(partes = list(), tolerancia = 0.5)
       esperado = if (is.null(d)) NA_real_ else d$esperado,
       diferencia = if (is.null(d)) NA_real_ else d$diferencia,
       cuadra = if (is.null(d)) NA else abs(d$diferencia) <= tolerancia,
+      # **El estado, que el lector leia y el publicador tiraba.**
+      #
+      # `application_status` viene de «STATUS DE APLICACION» del libro —«No
+      # aplicada», «Aplicada»— y es lo que explica una fila de ceros. La tabla
+      # de Consultas lo pide por nombre en sus `preferredColumns` desde que se
+      # escribio, y nunca llego: visto en pantalla el 2026-08-23, un parte de un
+      # aula que el docente cancelo salia como «0 asistentes · 0 % · 0
+      # efectivas» junto a dos aplicadas, sin nada que distinguiera «no se
+      # aplico» de «se aplico y no vino nadie».
+      #
+      # Son dos hechos MUY distintos para quien decide si reagendar.
+      application_status = txt(p$application_status %||% p$status),
       applied_by = txt(p$applied_by %||% p$applicator),
       actual_room = txt(p$actual_room),
       applied_at = txt(p$applied_at %||% paste(txt(p$applied_date), txt(p$applied_time))),
