@@ -1,4 +1,4 @@
-# ADR 0035: Editor XLSForm — colección multi-formulario con espejo del activo
+# ADR 0081: Editor XLSForm — colección multi-formulario con espejo del activo
 
 Estado: Aceptado
 
