@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ApiError } from "../../../api/core";
 import {
   AlertTriangle,
   ChevronLeft,
@@ -70,6 +71,7 @@ export default function ExplorarTab({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [errorCode, setErrorCode] = useState<string>("");
   // Fuente de los datos que se exploran: "raw" = data cargada original;
   // "final" = data ya procesada por Limpieza (decisiones aplicadas).
   const [fuente, setFuente] = useState<ExplorarFuente>("raw");
@@ -164,7 +166,13 @@ export default function ExplorarTab({
         if (!cancel) setInv(i);
       })
       .catch((e) => {
-        if (!cancel) setError((e as Error).message);
+        if (cancel) return;
+        setError((e as Error).message);
+        // El CODIGO, no solo el mensaje: hay estados esperados que llegan como
+        // error HTTP —«todavia no hay data»— y merecen otra pantalla que una
+        // averia. Sin esto, el unico dato disponible era el texto, que ademas
+        // arrastra el codigo pegado («… · E_NO_DATA_INST»).
+        setErrorCode(e instanceof ApiError ? e.code : "");
       })
       .finally(() => {
         if (!cancel) setLoading(false);
@@ -235,7 +243,11 @@ export default function ExplorarTab({
         if (!cancel) setUni(u);
       })
       .catch((e) => {
-        if (!cancel) setError((e as Error).message);
+        if (cancel) return;
+        // Aqui NO se toca `errorCode`: este error es de una variable concreta
+        // que el usuario acaba de pedir, no del estado del proyecto, y marcarlo
+        // cambiaria la pantalla entera por un fallo de una sola consulta.
+        setError((e as Error).message);
       })
       .finally(() => {
         if (!cancel) setBusy("");
@@ -263,7 +275,13 @@ export default function ExplorarTab({
         if (!cancel) setBiv(b);
       })
       .catch((e) => {
-        if (!cancel) setError((e as Error).message);
+        if (cancel) return;
+        setError((e as Error).message);
+        // El CODIGO, no solo el mensaje: hay estados esperados que llegan como
+        // error HTTP —«todavia no hay data»— y merecen otra pantalla que una
+        // averia. Sin esto, el unico dato disponible era el texto, que ademas
+        // arrastra el codigo pegado («… · E_NO_DATA_INST»).
+        setErrorCode(e instanceof ApiError ? e.code : "");
       })
       .finally(() => {
         if (!cancel) setBusy("");
@@ -316,6 +334,26 @@ export default function ExplorarTab({
     : null;
 
   if (loading) return <ExplorarLoadingPanel />;
+  // **«Todavia no hay data» no es «no se pudo cargar».**
+  //
+  // El backend responde 409 `E_NO_DATA_INST` cuando el proyecto aun no tiene
+  // base ni instrumento para esta pestaña, que es el estado NORMAL de un
+  // estudio recien abierto. Caia en la rama de averia: visto en pantalla el
+  // 2026-08-23 sobre un proyecto sin cargar, «No se pudo cargar el explorador ·
+  // No hay data o instrumento cargado para esta base. · E_NO_DATA_INST».
+  //
+  // Tres cosas mal a la vez: el titulo dice que algo fallo, el texto ensena un
+  // codigo tecnico, y ninguno dice donde se resuelve. Un vacio esperado que
+  // parece una averia hace que la gente busque el problema donde no esta.
+  if (errorCode === "E_NO_DATA_INST" && !inv) {
+    return (
+      <EmptyState
+        icon={<Compass size={20} />}
+        title="Todavía no hay datos que explorar"
+        hint="Esta pestaña lee la base cargada del proyecto. Carga una en Procesamiento › Carga y sus distribuciones aparecen aquí."
+      />
+    );
+  }
   if (error && !inv) {
     return (
       <EmptyState
