@@ -87,8 +87,26 @@ tablero general venía de caché**. Los 6 requests de una apertura pasan de
   mínimo de elegibles**. El guardado no filtra nada: es `strip_caches` +
   `saveRDS`.
 
-  **Lo que pasa cuando un proyecto aparece «vacío» es otra cosa**: es un proyecto
-  con OTRO marco. Medido en `HSVG2026.pulso` (24 Ago): catálogo de **5.263**
+  **Y cuando un proyecto aparece «vacío» la causa es otra**: tiene cargada otra
+  base. Medido el 2026-08-24 sobre `HSVG2026.pulso`, sus archivos fuente son
+  `2025.00507905 BD estudiantes y curso-horario` y
+  `HSVBG2025_referencia_para_motor.xlsx` — **la base de 2025**. La copia con la
+  selección de 193 carga `207915-Alumnos matriculados 2026-2.xlsx` y
+  `207915-Cursos-Horarios 2026-2.xlsx`, que es el semestre del estudio.
+
+  La prueba que lo delata sin abrir los archivos: **el catálogo del proyecto
+  activo contiene el 100 % (1.012 de 1.012) de los cursos-horario del marco
+  2025**, y el de 2026-2 contiene el 89 % (896). Un catálogo de un semestre nuevo
+  no puede contener entero el marco del anterior. Los dos catálogos comparten
+  sólo **4.045 códigos**: 1.218 están sólo en uno y 1.224 sólo en el otro, y
+  quitando el sufijo de horario siguen siendo ~490 cursos distintos en cada
+  lado — no es una redescarga con retoques, son dos bases.
+
+  **Regenerar el cálculo sobre el proyecto activo no lo arregla: sortearía aulas
+  del semestre pasado.** El cálculo no estaba roto; estaba bien calculado sobre
+  la base equivocada.
+
+  El resto de esta nota describe el mismo caso desde el lado del marco: Medido en `HSVG2026.pulso` (24 Ago): catálogo de **5.263**
   cursos-horario y `confirmado_at` vacío, contra el de la selección buena, que
   tiene **5.269** y su decisión firmada contra ese hash. Sin decisión confirmada
   no hay estadístico divisor, y el cálculo devuelve **269 y 431 aulas** en vez de
