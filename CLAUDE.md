@@ -189,4 +189,4 @@ CI (`.github/workflows/quality.yml`, tres jobs en paralelo): **agentic-os** (tes
 
 ## Versionado y release
 
-`api/DESCRIPTION` es la fuente única de la versión (hoy `0.5.19`). El mapa de versiones y nombres operativos vive en `docs/versiones-app.md`; las notas se redactan en tres superficies (Novedades in-app, ese doc y las release notes de GitHub) con el skill `/notas-parche`. El corte se hace con `/preparar-release` (tree limpio + gate completo + bump + tag `v*`) y la publicación con `/publicar`. Commits en español, conventional commits.
+`api/DESCRIPTION` es la fuente única de la versión (hoy `0.8.0`). El mapa de versiones y nombres operativos vive en `docs/versiones-app.md`; las notas se redactan en tres superficies (Novedades in-app, ese doc y las release notes de GitHub) con el skill `/notas-parche`. El corte se hace con `/preparar-release` (tree limpio + gate completo + bump + tag `v*`) y la publicación con `/publicar`. Commits en español, conventional commits.
