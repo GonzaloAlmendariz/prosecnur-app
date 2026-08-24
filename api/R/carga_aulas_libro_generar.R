@@ -330,14 +330,12 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
   as.data.frame(do.call(rbind, c(list(grupo), list(campos), filas)), stringsAsFactors = FALSE)
 }
 
-#' Arma la hoja «Base de control».
-#'
-#' Se genera con la identidad y los denominadores; las columnas de control las
-#' calcula el equipo con sus formulas.
-#'
-#' @param unidades filas del plan.
-#' @return data.frame con dos filas de cabecera.
-#' @export
+# Los campos de la Base de control que la hoja ESCRIBE: todos menos los que la
+# spec marca `solo_lectura`, que existen para releer libros viejos.
+.calg_control_escritos <- function() {
+  Filter(function(spec) !isTRUE(spec$solo_lectura), BASE_CONTROL_CAMPOS)
+}
+
 #' Los cuatro tramos de la «Base de control», anclados por NOMBRE.
 #'
 #' Estaban puestos por indice a mano —`grupo[[8]]`, `grupo[[14]]`,
@@ -348,12 +346,6 @@ aulas_libro_hoja_aplicadas <- function(unidades, intentos = 3L, partes = list())
 #'
 #' @return lista `list(etiqueta, desde, hasta)` con las posiciones resueltas.
 #' @export
-# Los campos de la Base de control que la hoja ESCRIBE: todos menos los que la
-# spec marca `solo_lectura`, que existen para releer libros viejos.
-.calg_control_escritos <- function() {
-  Filter(function(spec) !isTRUE(spec$solo_lectura), BASE_CONTROL_CAMPOS)
-}
-
 aulas_libro_grupos_control <- function() {
   campos <- vapply(.calg_control_escritos(), function(spec) spec$titulos[[1]], character(1))
   anclas <- list(
@@ -490,16 +482,6 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   as.data.frame(do.call(rbind, c(list(grupo), list(campos), filas)), stringsAsFactors = FALSE)
 }
 
-#' Genera el libro operativo completo del estudio.
-#'
-#' @param unidades filas del plan (formato largo).
-#' @param path destino `.xlsx`.
-#' @param control filas de «Base de control» ya registradas, que vuelven al libro.
-#' @param efectivas vector con nombre: respuestas efectivas por codigo operativo.
-#'   Efectiva es la de la PLATAFORMA —encuesta completa que pasa los filtros—,
-#'   no lo que el aplicador anota en su parte.
-#' @return la ruta escrita.
-#' @export
 # **El banco de extras NO se agenda, asi que no va al libro de campo.**
 #
 # Medido en el estudio real: el plan de Monitoreo guarda las 2 616 unidades de la
@@ -537,6 +519,16 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
   }, unidades %||% list())
 }
 
+#' Genera el libro operativo completo del estudio.
+#'
+#' @param unidades filas del plan (formato largo).
+#' @param path destino `.xlsx`.
+#' @param control filas de «Base de control» ya registradas, que vuelven al libro.
+#' @param efectivas vector con nombre: respuestas efectivas por codigo operativo.
+#'   Efectiva es la de la PLATAFORMA —encuesta completa que pasa los filtros—,
+#'   no lo que el aplicador anota en su parte.
+#' @return la ruta escrita.
+#' @export
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
                                efectivas = NULL, responses = NULL, validas = NULL) {
   if (!length(unidades)) {
