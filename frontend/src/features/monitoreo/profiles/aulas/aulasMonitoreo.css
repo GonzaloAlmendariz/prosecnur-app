@@ -5252,3 +5252,22 @@
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
+
+/* El antetítulo de los dos paneles que son hojas del libro. Va en el flujo del
+   encabezado, encima del `h3`, y no ocupa fila propia del grid. */
+.mon-profile-page.is-aulas-flow .registro-campo-hoja {
+  margin: 0 0 1px;
+  color: var(--pulso-text-faint);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* El estadístico dentro de la cabecera de su columna: mismo tamaño, sin peso,
+   para que se lea como apellido del rótulo y no como un segundo rótulo. */
+.mon-profile-page.is-aulas-flow .aulas-medio-cabecera em {
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.75;
+}

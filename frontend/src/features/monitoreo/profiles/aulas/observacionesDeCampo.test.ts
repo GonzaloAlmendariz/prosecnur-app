@@ -111,4 +111,42 @@ describe("observacionesDeCampo · las dos fuentes", () => {
     const r = observacionesDeCampo([fila({})], [fila({})]);
     expect(r.partes).toBe(1);
   });
+
+  /**
+   * **El denominador son las aulas que pasaron por campo, no la agenda.**
+   *
+   * El panel recibe la agenda entera como `registros` —ahí es donde el registro
+   * de esta app deja su `field_note`—, así que una agenda de 2.616 filas con
+   * diez aplicadas publicaba «4 de 2.616 partes traen observación». Las cuatro
+   * eran ciertas; el denominador convertía un tercio del campo en un 0,15 %.
+   */
+  describe("el denominador sólo cuenta lo que pasó por campo", () => {
+    const agenda = [
+      { operational_code: "CH 1", operational_status: "aplicada", field_note: "El proyector no andaba" },
+      { operational_code: "CH 2", applied_at: "2026-09-01 08:00" },
+      { operational_code: "CH 3", effective_surveys: 21 },
+      // Las tres siguientes son agenda pura: nadie estuvo ahí todavía.
+      { operational_code: "CH 4", operational_status: "planificada" },
+      { operational_code: "CH 5" },
+      { operational_code: "CH 6", operational_status: "planificada", effective_surveys: 0 },
+    ];
+
+    it("no cuenta las filas de agenda sin aplicar", () => {
+      const r = observacionesDeCampo([], agenda);
+      // Tres pasaron por campo por tres señales distintas; tres no pasaron.
+      expect(r.partes).toBe(3);
+      expect(r.conNota).toBe(1);
+    });
+
+    it("un aula con parte en el libro cuenta aunque su fila de agenda esté cruda", () => {
+      // El parte llega del Excel y la agenda todavía no lo refleja: la unidad
+      // pasó por campo igual, y descartarla escondería su observación.
+      const r = observacionesDeCampo(
+        [{ operational_code: "CH 9", field_note: "Aula cambiada a última hora" }],
+        [...agenda, { operational_code: "CH 9" }],
+      );
+      expect(r.partes).toBe(4);
+      expect(r.conNota).toBe(2);
+    });
+  });
 });

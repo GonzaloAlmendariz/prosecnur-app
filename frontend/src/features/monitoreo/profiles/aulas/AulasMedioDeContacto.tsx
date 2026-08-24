@@ -64,7 +64,15 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
       </p>
       <ul className="aulas-medio-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <li className="aulas-medio-cabecera" aria-hidden="true">
-          <span>Medio</span><span>{medios.length > 1 ? "Agenda" : "Resultado"}</span><span>Intentos</span>
+          <span>Medio</span>
+          <span>{medios.length > 1 ? "Agenda" : "Resultado"}</span>
+          {/* **El estadístico va en la cabecera de su columna, no en un pie.**
+              Es mediana y no promedio, y eso hay que decirlo siempre: un
+              «Intentos: 3» sin apellido se lee como promedio. Dicho aquí ocupa
+              dos palabras y está donde se mira el número; el pie queda libre
+              para la justificación, que sólo hace falta cuando hay medios que
+              comparar y el estadístico decide cuál gana. */}
+          <span>Intentos · <em>mediana</em></span>
         </li>
         {medios.map((m) => (
           <li key={m.medio}>
