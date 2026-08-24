@@ -633,15 +633,48 @@ export function estimateOperationalExtra(estratos: CalcMuestraEstrato[], config:
  * de la distribución VALIDADA del motor (`resultado.distribucion_estratos` +
  * `distribucion_sub`). Sin resultado del motor devuelve [].
  */
+/**
+ * El nombre legible de una categoría de sexo, o el código tal cual.
+ *
+ * El marco NO guarda «Mujeres» y «Hombres»: guarda el valor que trae la base
+ * —«M», «F», «Masculino»…— y `sub_a` es, por construcción, **la categoría más
+ * frecuente de la población**, no un sexo fijo (ver `universityFrameFromRows`:
+ * `sexosOrdenados[0]`).
+ *
+ * Lo que no se reconoce se devuelve entero: inventarle un sexo a un código
+ * desconocido es peor que enseñarlo.
+ */
+export function etiquetaDeSexo(codigo: string | null | undefined): string {
+  const v = String(codigo ?? "").trim();
+  if (!v) return "";
+  const k = v.toLowerCase();
+  if (k === "f" || k.startsWith("fem") || k.startsWith("muj")) return "Mujeres";
+  if (k === "m" || k.startsWith("mas") || k.startsWith("hom") || k.startsWith("var")) return "Hombres";
+  return v;
+}
+
 export function universityDistributionRows(comp: CalcMuestraComponente) {
   const estratos = comp.marco.estratos ?? [];
   const subs = comp.resultado?.distribucion_sub ?? [];
   return (comp.resultado?.distribucion_estratos ?? []).map((row) => {
     const marcoRow = estratos.find((e) => e.label === row.estrato);
-    const subA = subs.find((s) => s.estrato === row.estrato && s.sub === (marcoRow?.sub_a_label ?? "Mujeres")) ??
-      subs.find((s) => s.estrato === row.estrato && s.sub.toLowerCase().includes("mujer"));
-    const subB = subs.find((s) => s.estrato === row.estrato && s.sub === (marcoRow?.sub_b_label ?? "Hombres")) ??
-      subs.find((s) => s.estrato === row.estrato && s.sub.toLowerCase().includes("hombre"));
+    // **`sub_a` NO es «Mujeres»: es la categoría más frecuente de la
+    // población.** Lo fija `universityFrameFromRows` ordenando por frecuencia,
+    // así que en un estudio de mayoría masculina `sub_a` vale «M».
+    //
+    // Esta función buscaba `sub_a_label ?? "Mujeres"` y devolvía ese número en
+    // el campo `mujeres`, que la tabla pinta bajo un encabezado fijo
+    // «Mujeres». Medido en HSVG2026 el 2026-08-23: el marco declara
+    // `sub_a_label = "M"`, la distribución da ARQUITECTURA M=40 y F=85, y la
+    // tabla enseñaba «Mujeres 40 · Hombres 85». Las dos columnas invertidas,
+    // en la tabla de cuotas que se marca «Incluir en reporte».
+    //
+    // Ahora se resuelve cada subgrupo por lo que ES —su etiqueta normalizada—
+    // y no por la posición que ocupa.
+    const porSexo = (sexo: "Mujeres" | "Hombres") =>
+      subs.find((s) => s.estrato === row.estrato && etiquetaDeSexo(s.sub) === sexo);
+    const subA = porSexo("Mujeres");
+    const subB = porSexo("Hombres");
     return {
       facultad: row.estrato,
       N: safeNumber(row.N),
