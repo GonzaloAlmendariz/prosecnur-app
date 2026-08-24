@@ -131,8 +131,13 @@ test_that("graficar_barras_agrupadas sin override usa la paleta institucional, n
     cols_porcentaje = "pct", etiquetas_series = c(pct = "Porcentaje"),
     mostrar_barra_extra = FALSE, exportar = "rplot", usar_canvas = FALSE
   )
-  esperado_1 <- unname(.graficos_mk_palette("Porcentaje"))
-  expect_true(esperado_1 %in% fills_de(p1))
+  # Con UNA sola columna de porcentaje el grafico es un PERFIL, no una
+  # comparacion: las barras van monocromas en el azul institucional y no toman
+  # el primer color de la paleta generica. Medido sobre el entregable aprobado,
+  # sus laminas de perfil llevan 51 de 52 barras asi. Lo que este test cuida
+  # sigue en pie y se comprueba abajo: que NO salga el salmon por defecto de
+  # ggplot.
+  expect_true("#081F5C" %in% fills_de(p1))
   expect_false("#F8766D" %in% fills_de(p1))
 
   df2 <- .barras_override_fixture_2series()

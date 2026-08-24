@@ -165,12 +165,14 @@ test_that("el canal del rotulo se mide por su texto, no por un fijo", {
 
 test_that("un ancho declarado por la lamina o el preset manda sobre la medida", {
   # `missing()` responde la pregunta correcta —si lo declararon— sin anadir una
-  # bandera que haya que mantener sincronizada. El preset multiactor declara
-  # 0.17 y tiene que conservarlo.
+  # bandera que haya que mantener sincronizada. El reparto de fabrica lo declara
+  # `.MULTIACTOR_CANVAS_BASE`: desde `b87d656b` el ancho dejo de ser una
+  # constante escrita a mano —que el motor mezclaba POR ENCIMA del preset, asi
+  # que el mando del analista no llegaba— y el de fabrica es 0.10.
   fml <- names(formals(graficar_barras_apiladas))
   expect_true("canvas_w_etiquetas" %in% fml)
   expect_false("canvas_w_etiquetas_auto" %in% fml)
-  expect_equal(.reporte_plan_multiactor_canvas_defaults()$canvas_w_etiquetas, 0.17)
+  expect_equal(.reporte_plan_multiactor_canvas_defaults()$canvas_w_etiquetas, 0.10)
 })
 
 # El ajuste del cuerpo de letra estaba sujeto a `n_rows > 1`, o sea que con UNA

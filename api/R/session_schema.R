@@ -323,6 +323,9 @@ session_schema <- function() {
     "monitoreo_aulas_plan",        "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_aulas_snapshot",    "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_aulas_publication", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
+    "monitoreo_aulas_libro",        "literal", "persistible",    "carga_aulas_libro.R", "session_set", "libro operativo importado: hojas, sello y recibo de la carga",
+    "monitoreo_aulas_partes_campo", "literal", "persistible",    "carga_aulas_libro.R", "session_set", "partes de campo leidos de la hoja «Aulas Aplicadas (Campo)»",
+    "monitoreo_aulas_control",      "literal", "persistible",    "carga_aulas_libro.R", "session_set", "filas de la hoja «Base de control» que el equipo llena en campo",
     "monitoreo_client_report_pdf", "literal", "persistible",    "router_monitoreo.R", "session_set", "",
     "monitoreo_production_report_pdf", "literal", "persistible", "router_monitoreo.R", "session_set", "",
     "monitoreo_telefonico_report_pdf", "literal", "persistible", "router_monitoreo_telefonico.R", "session_set", "meta del PDF de avance telefonico; analoga a client/production_report_pdf",
@@ -364,6 +367,7 @@ session_schema <- function() {
     "calc_muestra_aulas_certeza",  "literal", "persistible",    "router_calc_muestra.R", "session_set", "resultado del job de certeza de cobertura; se guarda como sus hermanas de job porque recalcularla exige volver a correrlo. Al reabrir, .cm_aulas_run_vigente la valida contra el frame_hash y la config, y calc_muestra_alumnos_por_ch.R la anula cuando cambia el insumo",
     "calc_muestra_aulas_replacement_simulation", "literal", "persistible", "router_calc_muestra.R", "session_set", "",
     "calc_muestra_aulas_stale_job_result", "literal", "persistible", "router_calc_muestra.R", "session_set", "",
+    "calc_muestra_referencia_criterios", "literal", "persistible", "router_calc_muestra_criterios.R", "session_set", "referencia historica de criterios del estudio anterior, leida del libro",
 
     # --- Otros módulos ---
     "plan_trabajo",                "literal", "persistible",    "router_plan_trabajo.R", "session_set", "esquema propio plan_trabajo_v<N>; load_pulso migra por saltos en .bitacora_migrar_estado (ADR 0047)",
