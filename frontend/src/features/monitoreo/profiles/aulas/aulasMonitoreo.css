@@ -4132,13 +4132,11 @@
   margin: 4px 0 0; color: var(--pulso-text-faint); font-size: var(--aulas-min);
   letter-spacing: 0.04em; text-transform: uppercase;
 }
-.mon-profile-page.is-aulas-flow .aulas-cola-lista,
+/* `aulas-cola-lista` se retiró el 2026-08-24: la cola pasó a `<table>` con
+   cabeceras y chip de estado, y sus cuatro columnas sin encabezar dejaron de
+   existir. El contrato `cssSinDuenoTests` lo cazó al dejar la regla huérfana. */
 .mon-profile-page.is-aulas-flow .aulas-cola-esfuerzo {
   display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; min-width: 0;
-}
-.mon-profile-page.is-aulas-flow .aulas-cola-lista > li {
-  display: grid; grid-template-columns: 74px minmax(0, 1.4fr) minmax(0, 1.2fr) 120px;
-  align-items: center; gap: 10px; padding: 3px 6px; border-radius: 6px; min-width: 0; font-size: var(--aulas-txt);
 }
 /* 180 y no 150: la mediana puede traer decimal —«1.5 intentos · 8
    cursos-horario»— y con 150 esas dos filas envolvían a 28 px mientras las otras
@@ -5129,4 +5127,97 @@
  * `50.7 / 132.6 / 200`—. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel:not(:has(.aulas-agenda-dias)) {
   grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+/* ── La cola de contacto, con cabeceras y estado ──────────────────────────────
+   Era una `<ul>` de cuatro columnas sin encabezar: código, docente, «—» y «0».
+   Con 193 filas iguales no se sabía qué era cada columna ni en qué punto estaba
+   la agendación, y los horarios fijados no aparecían nunca porque el panel sólo
+   pintaba la cola de pendientes.
+
+   Tabla de verdad: `<th>` que nombran cada columna, cifras tabulares y un chip
+   de estado por fila. */
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px;
+  border-bottom: 1px solid var(--pulso-border);
+  background: #fff;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla td {
+  padding: 4px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pulso-border) 45%, transparent);
+  vertical-align: middle;
+}
+
+/* Las cifras se comparan en columna: tabulares y a la derecha. */
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla .es-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Un dato ausente en gris claro: presente como hueco, sin peso de dato. */
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla .es-vacio {
+  color: var(--pulso-text-faint);
+}
+
+/* Una fila ya resuelta pesa menos que una que pide trabajo. */
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla tr.es-citada td {
+  color: var(--pulso-text-soft);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-tabla .aulas-cola-intentos em {
+  display: block;
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-style: normal;
+}
+
+/* El chip de estado: cuatro estados con su tono, ninguno inventado —salen de
+   lo que la fila declara: gestiones, cita y aplicación—. */
+.mon-profile-page.is-aulas-flow .aulas-cola-estado {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-estado.es-insistiendo {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-estado.es-citada {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-estado.es-aplicada {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
 }
