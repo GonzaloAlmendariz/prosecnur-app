@@ -2007,8 +2007,37 @@ monitoreo_aulas_update_agenda <- function(current, updates = list()) {
     if (!length(idx)) next
     row <- upd_df[i, , drop = FALSE]
     for (nm in names(row)) {
+      # **Los alias que la normalizacion acepta, el update los descartaba.**
+      #
+      # `monitoreo_aulas_normalize_plan` resuelve la fecha de aplicacion con una
+      # lista de candidatos —`applied_at`, `fecha_aplicacion`,
+      # `hora_aplicacion`— asi que el plan normalizado solo tiene `applied_at`.
+      # Aqui, `if (!nm %in% names(plan_df)) next` tira TODO lo demas sin decir
+      # nada: un update con `applied_date` —el nombre que usa el parte del
+      # libro, «FECHA DE APLICACION»— se perdia entero.
+      #
+      # Medido el 2026-08-24 simulando cinco dias de campo: las diez aulas
+      # quedaron «aplicada» con sus efectivas y su aplicador, y **sin una sola
+      # fecha**. El aviso de «cursos-horario vencidos sin aplicar» y el ritmo
+      # diario se calculan sobre esa fecha.
+      #
+      # Se traduce en vez de descartar. Que la lista viva aqui y no en un
+      # helper compartido es deliberado: son los alias de ESTE update, y el
+      # normalizador ya tiene los suyos para leer un plan externo.
+      # `origen` es la columna que LLEGA; `nm`, la del plan donde se escribe.
+      # Separarlas no es aseo: leer `row[[nm]]` con el nombre ya traducido
+      # devuelve NULL, porque en la fila entrante ese nombre no existe.
+      origen <- nm
+      nm <- switch(nm,
+        applied_date = "applied_at",
+        fecha_aplicacion = "applied_at",
+        hora_aplicacion = "applied_time",
+        observaciones = "field_note",
+        aplicador = "applied_by",
+        nm
+      )
       if (!nm %in% names(plan_df)) next
-      value <- .monitoreo_scalar(row[[nm]], "")
+      value <- .monitoreo_scalar(row[[origen]], "")
       if (!nzchar(value) && !nm %in% c("link", "qr", "word_link", "pdf_link", "package_label", "package_status", "collector_id", "responsible", "replacement_note",
                                     "applied_by", "applied_at", "field_note")) next
       # El enlace de aplicación es lo que termina impreso en el QR: una URL que
