@@ -1495,11 +1495,19 @@ function renderAulasView(
           {/* La meta del MOTOR: sumarla acá la calculaba sobre un payload
               recortado a 500 filas. */}
           {/* Una meta de respuestas no puede ser fraccionaria: sale de
-              dividir la cuota entre la tasa y llegaba «3.491,4». */}
+              dividir la cuota entre la tasa y llegaba «3.491,4».
+              **Y por eso hay que decir de dónde sale.** Redondeada da 3.492
+              mientras la tarjeta «Cuota por recoger», tres centímetros más
+              arriba, dice 3.491: son dos cuentas distintas del mismo objetivo
+              —una suma metas por curso-horario, la otra objetivos de 30 celdas
+              sexo × facultad— y a 0,4 de distancia el redondeo las separa en
+              uno. Sin nombrar la procedencia, quien lee encuentra la diferencia
+              y desconfía de las dos, que es exactamente lo que la tarjeta de
+              cuota ya resuelve explicando su resta celda a celda. */}
           <span>meta {fmtCuenta(
             Number(dashboard?.cumplimiento_respuestas?.meta)
             || avanceEnRespuestas(aulaRows as unknown as MonitoreoAulasPlanRow[]).meta,
-          )}</span>
+          )} · suma de metas por curso-horario</span>
         </div>
         <AulasAvanceEnRespuestas
           filas={aulaRows as unknown as MonitoreoAulasPlanRow[]}

@@ -159,8 +159,12 @@ function cuotaKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     // la tarjeta dice 701. No es un error —lo que falta se suma celda a celda,
     // porque pasarse en una facultad no cubre lo que falta en otra— pero sin
     // decirlo el lector encuentra la diferencia y desconfía de las dos cifras.
+    // Y nombra su unidad: «Cumplimiento en respuestas», tres centímetros más
+    // abajo, cuenta lo MISMO por otro camino —metas por curso-horario— y a 0,4
+    // de distancia el redondeo separa las dos cifras en uno. Decir de dónde
+    // sale cada una es lo que impide leer esa diferencia como un error.
     detalle: cuota.celdas
-      ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} celdas cumplidas · lo que falta se suma celda a celda`
+      ? `${fmt(cuota.logrado)} de ${fmt(cuota.meta)} personas · ${fmt(cuota.celdasCumplidas)} de ${fmt(cuota.celdas)} celdas sexo × facultad · lo que falta se suma celda a celda`
       : "el plan no declara cuotas de sexo por facultad",
   };
 }
