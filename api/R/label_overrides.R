@@ -155,8 +155,9 @@
 # --- Aplicación en la capa de instrumento -----------------------------------
 
 #' Aplica el override al objeto instrumento (`prosecnur_instrumento`). Reescribe
-#' `choices$label` (y `choices_raw` si existe) para `(list_name, code)` que
-#' casen, `survey$label` (+ `survey_raw` + `var_labels`) para títulos, y
+#' TODAS las columnas de etiqueta (`label`, `label::es`, …) del `choices` (y del
+#' `choices_raw` si existe) para `(list_name, code)` que casen, las del `survey`
+#' (+ `survey_raw` + `var_labels`) para títulos, y
 #' RE-DERIVA `dicc_code_to_label`, `dicc_label_to_code`, `orders_list$labels`
 #' y `orders_list$label` desde lo ya reescrito. Idempotente; sin override
 #' aplicable devuelve `inst` intacto.
@@ -171,15 +172,19 @@
   titles <- ov$titles
 
   # (1) choices$label por (list_name, name). Fuente real de los dicc/orders.
+  # Se escriben TODAS las columnas de etiqueta de la fila, no solo la `label`
+  # derivada: el instrumento canónico conserva ahí las crudas (`label::es`) y el
+  # XLSForm final exporta esa misma hoja, así que tocar una sola dejaba el
+  # entregable contradiciéndose (ver `.bases_set_label_cols`).
   if (length(values) && !is.null(inst$choices) && is.data.frame(inst$choices) &&
-      all(c("list_name", "name") %in% names(inst$choices)) && "label" %in% names(inst$choices)) {
+      all(c("list_name", "name") %in% names(inst$choices))) {
     ln_col <- as.character(inst$choices$list_name)
     nm_col <- as.character(inst$choices$name)
     for (ln in names(values)) {
       code_map <- values[[ln]]
       for (code in names(code_map)) {
         hit <- which(ln_col == ln & nm_col == code)
-        if (length(hit)) inst$choices$label[hit] <- code_map[[code]]
+        inst$choices <- .bases_set_label_cols(inst$choices, hit, code_map[[code]])
       }
     }
   }
@@ -189,16 +194,13 @@
   # las re-lee).
   if (length(values) && !is.null(inst$choices_raw) && is.data.frame(inst$choices_raw) &&
       all(c("list_name", "name") %in% names(inst$choices_raw))) {
-    label_cols <- grep("^label", names(inst$choices_raw), ignore.case = TRUE, value = TRUE)
-    if (length(label_cols)) {
-      ln_col <- as.character(inst$choices_raw$list_name)
-      nm_col <- as.character(inst$choices_raw$name)
-      for (ln in names(values)) {
-        code_map <- values[[ln]]
-        for (code in names(code_map)) {
-          hit <- which(ln_col == ln & nm_col == code)
-          if (length(hit)) for (col in label_cols) inst$choices_raw[[col]][hit] <- code_map[[code]]
-        }
+    ln_col <- as.character(inst$choices_raw$list_name)
+    nm_col <- as.character(inst$choices_raw$name)
+    for (ln in names(values)) {
+      code_map <- values[[ln]]
+      for (code in names(code_map)) {
+        hit <- which(ln_col == ln & nm_col == code)
+        inst$choices_raw <- .bases_set_label_cols(inst$choices_raw, hit, code_map[[code]])
       }
     }
   }
@@ -206,22 +208,19 @@
   # (3) survey$label + survey_raw + var_labels por variable (títulos bilingües).
   if (length(titles)) {
     if (!is.null(inst$survey) && is.data.frame(inst$survey) &&
-        "name" %in% names(inst$survey) && "label" %in% names(inst$survey)) {
+        "name" %in% names(inst$survey)) {
       sv_names <- as.character(inst$survey$name)
       for (var in names(titles)) {
         hit <- which(sv_names == var)
-        if (length(hit)) inst$survey$label[hit] <- titles[[var]]
+        inst$survey <- .bases_set_label_cols(inst$survey, hit, titles[[var]])
       }
     }
     if (!is.null(inst$survey_raw) && is.data.frame(inst$survey_raw) &&
         "name" %in% names(inst$survey_raw)) {
-      label_cols <- grep("^label", names(inst$survey_raw), ignore.case = TRUE, value = TRUE)
-      if (length(label_cols)) {
-        sv_names <- as.character(inst$survey_raw$name)
-        for (var in names(titles)) {
-          hit <- which(sv_names == var)
-          if (length(hit)) for (col in label_cols) inst$survey_raw[[col]][hit] <- titles[[var]]
-        }
+      sv_names <- as.character(inst$survey_raw$name)
+      for (var in names(titles)) {
+        hit <- which(sv_names == var)
+        inst$survey_raw <- .bases_set_label_cols(inst$survey_raw, hit, titles[[var]])
       }
     }
     if (!is.null(inst$var_labels) && length(inst$var_labels)) {

@@ -1,12 +1,8 @@
 # El XLSForm final ignora los overrides de etiqueta en `label::es`
 
-Tipo: Defecto documentado sin reparar
-Estado: En curso
-Fecha: 2026-08-14
-Autoridad: Descripción del síntoma y su alcance; la causa raíz no está confirmada y la app sigue con el defecto
-
 **Encontrado**: 14 de agosto de 2026, preparando la entrega ACRD ING.
-Se sorteó en el entregable, no en la app.
+**Estado**: REPARADO el 14 de agosto de 2026. Causa raíz confirmada y cubierta
+por `api/tests/testthat/test-analitica-label-overrides-xlsform.R`.
 
 ## Qué pasa
 
@@ -70,8 +66,55 @@ sin tocar y además una columna `label` que en ese `choices_raw` no existe — s
 de que el objeto que llega al export no es el que se inspeccionó, y de que el
 override entra por `inst$choices` y no por la variante raw.
 
-**No está confirmada la causa raíz.** Lo verificado es el síntoma, su alcance y
-que el export prefiere `choices_raw`.
+## Causa raíz (confirmada al repararlo)
+
+La sospecha del párrafo anterior era la buena: **el objeto que llega al export no
+tiene `choices_raw`**. `reporte_instrumento()` no devuelve `survey_raw` /
+`choices_raw`: deja las hojas crudas del XLSForm en `survey` / `choices` y les
+AÑADE una columna `label` derivada del idioma elegido
+([reporte_instrumento.R:249](../../api/R/reporte_instrumento.R#L249)). O sea el
+instrumento canónico del pipeline tiene `choices` = `list_name | name |
+label::es | label`, y `choices_raw` vale `NULL`.
+
+Con eso, las dos mitades del defecto encajan:
+
+1. `.analitica_apply_label_overrides()` escribía la columna canónica `label` y
+   nada más en `survey` / `choices`. Las ramas que sí barrían **todas** las
+   columnas `label*` eran las de `survey_raw` / `choices_raw` — código muerto en
+   este camino, porque esos objetos son `NULL`.
+2. `.analitica_write_final_xlsform()` hace `choices_raw %||% choices`: con
+   `choices_raw` nulo exporta `choices`, que trae el override en `label` y la
+   etiqueta vieja en `label::es`.
+
+Eso explica también la columna `label` «que no existía»: no venía del XLSForm de
+origen sino del propio `reporte_instrumento()`.
+
+Reproducido en limpio con un XLSForm de dos filas y `label::es`, antes de tocar
+nada:
+
+```
+== choices_raw NULL? TRUE   survey_raw NULL? TRUE
+== names(inst$choices): list_name | name | label::es | label
+      list_name name        label::es       label
+1 lst_p12_recod    1      Universidad Universidad
+2 lst_p12_recod   14 Otra institución       Otros     ← la contradicción
+```
+
+## La reparación
+
+Un helper compartido, `.bases_set_label_cols()`
+([helpers_bases.R](../../api/R/helpers_bases.R)), escribe la etiqueta curada en
+**todas** las columnas `label*` de la fila (`label`, `label::es`,
+`label::English`, …). Una etiqueta curada es una decisión de análisis, no una
+traducción, así que manda sobre todas las variantes de esa fila. Lo usan las
+cuatro hojas (`survey`, `survey_raw`, `choices`, `choices_raw`), con lo que la
+asimetría que causó el bug desaparece y da igual cuál de las dos prefiera el
+export.
+
+El **mismo defecto de clase** estaba en el otro mecanismo de override, el
+permanente por proyecto (`label_overrides.R`, el que resuelve las etiquetas
+bilingües de ACNUR): también escribía solo `choices$label` / `survey$label`.
+Verificado que se manifestaba igual y reparado con el mismo helper.
 
 ## Alcance
 
@@ -87,12 +130,27 @@ Post-proceso sobre los nueve instrumentos: copiar `label` sobre `label::es` en
 las filas que tocan los overrides** (1 en survey y 11 en choices por carrera), así
 que la copia no pisa nada más.
 
-Eso arregla el archivo entregado. **La app sigue con el defecto.**
+Eso arregló el archivo entregado. La app quedó reparada después, en esta misma
+tanda; el post-proceso ya no hace falta para entregas nuevas.
 
-## Al arreglarlo
+## Regresión
 
-Un test de regresión sobre `.analitica_apply_label_overrides()` que declare un
-override y compruebe que llega tanto a `label` como a `label::es` de las variantes
-raw. La función tiene dos llamantes —Analítica y Gráficos— y existe justamente
-para que una etiqueta curada no valga distinto en cada uno; el test debería cubrir
-esa promesa también para el XLSForm final.
+`api/tests/testthat/test-analitica-label-overrides-xlsform.R` — declara un
+override de opción y otro de pregunta y comprueba que llegan a `label` y a
+`label::es` en el instrumento canónico (sin `*_raw`), en las variantes raw
+cuando existen, y en el XLSForm final ya exportado y releído desde disco. Cubre
+además que las filas sin override no se tocan, la idempotencia y un choices sin
+columnas de etiqueta. Verificado rojo sin el fix (4 fallas) y verde con él.
+
+El gemelo del override permanente vive en `test-label-overrides.R`
+(«el override reescribe `label::es` además de `label`»), rojo sin el fix
+(2 fallas).
+
+## Lo que este bug deja pendiente
+
+El XLSForm final exportado desde el instrumento canónico arrastra columnas
+internas del pipeline y pierde la lista en el `type`: sale
+`type = "select_one"` con una columna `list_name` aparte y un `measure_sugerida`
+al lado, en vez del `type = "select_one lst_p12_recod"` que un XLSForm necesita.
+Es visible en el mismo archivo, es de la misma función de export y **no se tocó
+aquí**: no es lo que se reportó y merece su propia unidad.
