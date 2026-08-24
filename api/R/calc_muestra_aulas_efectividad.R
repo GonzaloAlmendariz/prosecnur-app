@@ -341,6 +341,31 @@
     # aula se aplique. El riesgo del docente NO descuenta efectivas (la cadena
     # repone caidas); vive en p_aplicada_ref para presupuesto y cadena.
     aula_frame$efectivas_esperadas <- round(el * r * factor, 1)
+    # **El denominador propio, al lado del del aula.**
+    #
+    # `eligible_n` cuenta TODOS los elegibles de la seccion, sean de la facultad
+    # del aula o no, y es con ese numero con el que se dimensiona. Medido sobre
+    # el estudio HSVG 2026: nuestras 193 titulares cargan 6.896 elegibles y
+    # 6.555 son de su facultad (95,1 %). No muerde hoy porque la atribucion es
+    # limpia -el sorteo balancea por facultad-, pero el metodo es el mismo que
+    # deja una seleccion ajena en 4,8 % en GASTRONOMIA.
+    #
+    # `faculty_match_share` YA lo mide (criterio 8, parte 1: proporcion de
+    # elegibles unicos cuya facultad coincide con la del curso). Lo que faltaba
+    # no era calcularlo: era publicarlo como conteo y ponerlo donde se ve.
+    #
+    # **Se publican los dos y NO se cambia el que dimensiona.** Cambiar el
+    # denominador mueve todos los esperados y todos los cupos de golpe: eso es
+    # una decision del estudio, no un arreglo. Aqui queda la brecha a la vista
+    # para poder tomarla.
+    #
+    # `round` y no `floor`: `share` es una proporcion de conteos redondeada a 4
+    # decimales, asi que el producto RECONSTRUYE un entero que ya existia; no es
+    # una promesa que redondear a la baja.
+    share <- suppressWarnings(as.numeric(aula_frame$faculty_match_share %||% rep(NA_real_, nrow(aula_frame))))
+    el_prop <- ifelse(is.finite(share), round(el * share), NA_real_)
+    aula_frame$eligible_n_propios <- as.integer(el_prop)
+    aula_frame$efectivas_esperadas_propias <- round(el_prop * r * factor, 1)
   }
   # La procedencia viaja en la fila: la UI y Monitoreo la leen, no la asumen.
   aula_frame$efectividad_fuente <- as.character(cal$fuente)
