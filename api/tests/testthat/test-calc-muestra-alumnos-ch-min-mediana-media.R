@@ -189,10 +189,16 @@ test_that("la decision firmada baja el minimo al divisor de cada estrato", {
   for (componente in resuelto$estudio$componentes) {
     divisores <- vapply(componente$marco$estratos, `[[`, numeric(1), "promedio_conglomerado")
     expect_equal(divisores, c(20, 40))
-    # El legacy que el frontend hubiese materializado no sobrevive.
+    # **La fijacion de titulares SOBREVIVE al recalculo.** Este test exigia
+    # `c(0, 0)`: el resolver borraba `aulas_base_fijas` de forma incondicional
+    # para protegerse de las fijas que los defaults de auditoria espolvoreaban
+    # en el frontend. Esa contaminacion se corto en la fuente (`f51a3c1a`), y
+    # entonces el borrado pasaba a matar una decision registrada del usuario
+    # —medido: fija 9, calcular, 0—. La decision vigente fija el DIVISOR; la
+    # fijacion de titulares es otra decision y no se toca.
     expect_equal(
       vapply(componente$marco$estratos, `[[`, numeric(1), "aulas_base_fijas"),
-      c(0, 0)
+      c(777, 888)
     )
   }
 

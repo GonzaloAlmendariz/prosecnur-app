@@ -102,14 +102,14 @@
           sub_a_label = "Mujeres", sub_b_label = "Hombres",
           e_facultad = 0.10, p_facultad = 0.30,
           confianza_facultad = 0.90, promedio_conglomerado = 999,
-          aulas_base_fijas = 999L, tau = 1
+          tau = 1
         ),
         list(
           label = "FAC B", N = 80L, N_a = 45L, N_b = 35L,
           sub_a_label = "Mujeres", sub_b_label = "Hombres",
           e_facultad = 0.20, p_facultad = 0.50,
           confianza_facultad = 0.99, promedio_conglomerado = 999,
-          aulas_base_fijas = 999L, tau = 1
+          tau = 1
         )
       )
     ),

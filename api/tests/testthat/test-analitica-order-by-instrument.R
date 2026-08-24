@@ -310,7 +310,12 @@ test_that(".orden_grupos_recod_por_parent extrae los códigos en orden del array
 test_that(".apply_grupos_recod_orden reordena orders_list de la recodificada", {
   inst <- make_inst_recod(c("1", "2", "96", "10", "9"))
   inst2 <- .apply_grupos_recod_orden(inst, list(smx = c("96", "10", "9", "1", "2")))
-  expect_equal(inst2$orders_list$smx_recod$names, c("96", "10", "9", "1", "2"))
+  # El orden pedido se respeta, pero los codigos en [80,100) van SIEMPRE al
+  # final: el editor de Codificacion agrega cada categoria nueva despues del
+  # «Otros» (96) y del «Ninguno» (97), y propagar ese array tal cual metia
+  # categorias reales detras de los especiales (`bf0019e6`, medido en ACNUR V3).
+  # Este test es de julio y conservaba la expectativa anterior a esa regla.
+  expect_equal(inst2$orders_list$smx_recod$names, c("10", "9", "1", "2", "96"))
 })
 
 test_that("el orden de las flechas gobierna los dummies, con especial al final", {
