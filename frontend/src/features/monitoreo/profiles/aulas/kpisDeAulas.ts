@@ -415,7 +415,12 @@ export function aulasKpis(
           label: "Por agendar",
           icono: CalendarClock,
           value: fmt(ag.porAgendar),
-          pista: "sin fecha cerrada todavía",
+          // Las ya aplicadas no están «por agendar» y tampoco fueron agendadas:
+          // se hicieron sin cita previa. Nombrarlas explica la resta —«193 en
+          // juego, 0 agendadas, 183 por agendar»— que si no parece un error.
+          pista: ag.aplicadasSinAgenda
+            ? `sin fecha cerrada · ${fmt(ag.aplicadasSinAgenda)} ya aplicadas sin cita previa`
+            : "sin fecha cerrada todavía",
           tone: ag.porAgendar ? "warn" : "neutral",
         },
       ];

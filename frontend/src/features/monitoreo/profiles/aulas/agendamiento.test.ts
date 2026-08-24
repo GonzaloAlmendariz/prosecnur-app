@@ -52,3 +52,51 @@ describe("agendamiento", () => {
     expect(r.medios).toEqual([{ medio: "Llamada", aulas: 2 }, { medio: "Correo", aulas: 1 }]);
   });
 });
+
+/**
+ * **Una ya aplicada no está «por agendar».**
+ *
+ * `seVaAAgendar` saca el banco, las reemplazadas y las reservas dormidas —«no la
+ * va a agendar nadie»— y se dejaba fuera este caso. Medido en pantalla el
+ * 2026-08-24, con diez aulas aplicadas entre el 1 y el 5 de septiembre: el KPI
+ * decía «Por agendar 193» sobre un plan de 193 en el que diez ya estaban hechas.
+ *
+ * No suman a `agendadas` porque no lo estuvieron: se aplicaron sin cita previa.
+ * Cuentan aparte para que la pista pueda explicar la resta.
+ */
+describe("agendamiento · las aplicadas salen del pendiente", () => {
+  const fila = (over: Record<string, unknown>) =>
+    ({ sample_role: "titular", sample_status: "agendada", ...over }) as never;
+
+  it("una aplicada sin fecha no cuenta como por agendar", () => {
+    const r = agendamiento([
+      fila({ operational_status: "aplicada" }),
+      fila({ operational_status: "planificada" }),
+    ]);
+    expect(r.enJuego).toBe(2);
+    expect(r.agendadas).toBe(0);
+    expect(r.aplicadasSinAgenda).toBe(1);
+    expect(r.porAgendar).toBe(1);
+  });
+
+  it("una aplicada CON fecha sigue contando como agendada", () => {
+    // Se agendó y además se aplicó: el hecho de la fecha manda, como ya decía
+    // el comentario del bucle.
+    const r = agendamiento([
+      fila({ operational_status: "aplicada", scheduled_date: "2026-09-01" }),
+    ]);
+    expect(r.agendadas).toBe(1);
+    expect(r.aplicadasSinAgenda).toBe(0);
+    expect(r.porAgendar).toBe(0);
+  });
+
+  it("las tres cifras siguen sumando el total en juego", () => {
+    const r = agendamiento([
+      fila({ operational_status: "aplicada" }),
+      fila({ scheduled_date: "2026-09-02" }),
+      fila({}),
+      fila({}),
+    ]);
+    expect(r.agendadas + r.aplicadasSinAgenda + r.porAgendar).toBe(r.enJuego);
+  });
+});
