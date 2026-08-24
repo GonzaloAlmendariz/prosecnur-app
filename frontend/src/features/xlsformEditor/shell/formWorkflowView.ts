@@ -52,17 +52,38 @@ export function getFormWorkflowView(
   const revisionNo = publication.latest_revision?.revision_no;
   const hasAvailableRevision = revisionNo != null;
 
-  const logic: FormWorkflowStage = logicNeedsReview
+  // **Un formulario vacío no tiene la lógica lista: no tiene lógica.**
+  //
+  // `logicNeedsReview` mira si hay bloqueadores de lógica que confirmar, y un
+  // instrumento sin preguntas no tiene ninguno — así que salía en verde
+  // «Lista · La estructura lógica no tiene revisiones pendientes». Visto en
+  // pantalla el 2026-08-23: la tarjeta «Nuevo formulario» decía eso con **0
+  // preguntas y 0 secciones**, tres centímetros encima de su propio aviso
+  // «Instrumento sin preguntas sustantivas».
+  //
+  // Es verde por ausencia: el chip afirma sobre un conjunto vacío. Y no es
+  // inocuo, porque los tres hitos de la tarjeta existen para decir de un
+  // vistazo qué falta; uno en verde dice que eso ya está.
+  const sinPreguntas = publication.blockers.some(
+    (blocker) => blocker.id === "no_substantive_questions",
+  );
+  const logic: FormWorkflowStage = sinPreguntas
     ? {
-        label: "Revisión necesaria",
-        tone: "warning",
-        detail: "Abre el formulario y revisa sus saltos antes de confirmar la lógica.",
+        label: "Sin preguntas",
+        tone: "neutral",
+        detail: "La lógica aparece cuando el formulario tenga preguntas que enlazar.",
       }
-    : {
-        label: "Lista",
-        tone: "success",
-        detail: "La estructura lógica no tiene revisiones pendientes.",
-      };
+    : logicNeedsReview
+      ? {
+          label: "Revisión necesaria",
+          tone: "warning",
+          detail: "Abre el formulario y revisa sus saltos antes de confirmar la lógica.",
+        }
+      : {
+          label: "Lista",
+          tone: "success",
+          detail: "La estructura lógica no tiene revisiones pendientes.",
+        };
 
   const audience: FormWorkflowStage = !audienceRequired
     ? actorKey
