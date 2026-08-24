@@ -80,9 +80,12 @@ function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCad
                 <td>{historia.facultad}</td>
                 <td className="es-cifra">{historia.eslabones.length - 1}</td>
                 <td className="es-cifra">{historia.validas}</td>
-                {/* La meta puede ser fraccionaria —sale de elegibles × tasa— y
-                    salía como «13.4»: punto decimal en una app que escribe en
-                    español peruano, donde el separador es la coma. */}
+                {/* **En es-PE el decimal ES el punto**: `13.4` estaba bien, y la
+                    corrección que se hizo aquí partía de una premisa falsa —Perú
+                    usa la convención 1,234.56, no la coma decimal—. El
+                    `toLocaleString` se queda porque sí aporta lo otro: la meta
+                    sale de elegibles × tasa y una de más de mil llevaría su coma
+                    de miles, que escrita cruda no tendría. */}
                 <td className="es-cifra">{historia.meta.toLocaleString("es-PE")}</td>
                 <td>
                   {/* «—» y no una frase: en el operativo real casi ninguna
