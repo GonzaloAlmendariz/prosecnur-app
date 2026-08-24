@@ -1,56 +1,25 @@
 # Prosecnur 0.8.0 · el operativo de aulas se dimensiona por facultad y se mide contra su cuota
 
-- **Cambio de contrato.** Tu proyecto guarda ahora solo lo que decidiste, no una copia de los valores de fábrica. Un mazo puede verse distinto tras actualizar la app: las mejoras de estilo llegan a los proyectos existentes en vez de quedar tapadas por la copia del día en que se guardaron. Lo que sí elegiste se conserva.
-- Cálculo de muestra: cada facultad dimensiona con su propia tasa de efectividad. Antes un solo divisor global servía para las quince, y ahora cada facultad publica la suya con los dos factores que la componen; la certificación suma las encuestas esperadas aula por aula y declara con qué método las estimó.
-- Cálculo de muestra: la selección se certifica en alumnos garantizados por facultad, no en aulas contadas. La tarjeta trae las cuotas de hombre y de mujer por celda, y el balance de sexo se publica facultad por facultad en barras pareadas de cuota contra oferta.
-- Cálculo de muestra: Coincidencia compara la selección nueva contra lo que el estudio anterior aplicó de verdad, no contra lo que planeó. El embudo comparado pone la diferencia al frente y se abre por facultad.
-- Cálculo de muestra: construir el marco deja de congelar la app. Los trabajos largos dicen lo que van a tardar antes de lanzarse, siguen corriendo si sales de la vista, y la app los retoma donde estaban al volver.
-- Cálculo de muestra: una facultad puede quedar exenta de un criterio general. Cada ficha dice qué criterios rigen solo ahí, y las facultades excluidas se declaran en lugar de deducirse de la tabla.
-- Cálculo de muestra: la cuenta del dimensionamiento se abre por facultad y responde por qué salen 203 aulas y no 170. La distribución de elegibles por aula se dibuja, así que el estadístico con el que se dimensiona se ve en vez de citarse.
-- Cálculo de muestra: un mismo docente deja de salir repetido entre titulares, y los intercambios que eso provoca quedan registrados a la vista.
-- Cálculo de muestra: Variables dice qué columna está usando el motor para cada rol y se confirma de un clic. También nombra las columnas que el archivo ya no tiene, en vez de resolverlas en silencio.
-- Cálculo de muestra: el marco se lee cuando el encabezado viene desplazado, que es como lo emite el formato de la DTI.
-- Cálculo de muestra: el sorteo balanceado da la misma muestra en cualquier máquina cuando la matriz de balance tiene rango completo. Sobre una matriz de rango deficiente sigue sin ser reproducible entre plataformas, y mientras eso siga abierto una selección se reproduce partiendo del plan guardado en el proyecto.
-- **Cambio de contrato.** Monitoreo de aulas: el avance se mide contra la cuota del diseño y no contra la suma de las metas por aula. Las dos cifras conviven con rótulos distintos, porque una dice si el estudio se cumple y la otra dirige el campo; medir con la segunda subestimaba el cumplimiento y un estrato podía no llegar nunca al 100 % con su cuota cubierta.
-- Monitoreo de aulas: la agenda se recorre día por día y por facultad, y el acumulado dice cuándo se llega a la meta con su proyección punteada. Cada sexo se proyecta sobre lo agendado y declara cuándo alcanza su propia cuota.
-- Monitoreo de aulas: el libro operativo entra como fuente y se lee también desde una pestaña de Google Sheets. Sale con portada, desplegables, cabecera y panel congelado, y distingue lo que trae la app de lo que llena la persona en campo.
-- Monitoreo de aulas: el descuadre del parte de campo se ve al escribirlo y no al importarlo, y el control de identificadores personales dejó de dar siempre el mismo resultado.
-- Monitoreo de aulas: el banco de extras dice si alcanza para cubrir la cuota, no solo cuántas aulas tiene. El colchón de reservas se abre facultad por facultad y un reemplazo se activa desde el registro de campo.
-- Monitoreo: las señales de calidad de campo separan lo que sigue produciendo daño de lo que ya terminó de producirlo. Solo el formulario desactualizado avisa fuerte, porque cada hora que pasa cuesta otra encuesta perdida; nombres mal escritos o encuestas superpuestas son hechos ya ocurridos e informan sin frenar el campo.
-- Recopiladores: la ficha de campo dice lo que el aplicador necesita para saber que está en el aula correcta, y pide los cuatro números del cuadre. El paquete se reparte por facultad y por rol en vez de salir como un PDF combinado.
-- Recopiladores: el plan avisa cuando viene de un sorteo distinto del vigente, y ofrece rehacerlo con el coste por delante.
-- **Cambio de contrato.** Limpieza: la base depurada se promueve y llega al entregable. Antes quedaba como descarga recomendada que ningún consumidor leía, y dos casos excluidos con decisión y justificación reaparecieron en el entregable de un estudio ya cerrado.
-- Validación: apagar una regla o dejar una variable fuera de la auditoría exige decir por qué. El informe metodológico declara de cuántas a cuántas encuestas va y qué preguntas no cubre el plan.
-- Codificación: «no categorizar» se registra como decisión con su motivo. Decidir no categorizar una variable por casos insuficientes no tenía dónde vivir y se confundía con un olvido; ahora la lista distingue los cuatro estados y cuenta lo que sigue pendiente.
-- Gráficos: cada gráfico se denomina sobre quien pudo responder la pregunta, no sobre la muestra entera.
-- Gráficos: el redondeo y los decimales se configuran por tipo de gráfico, y el informe declara cómo redondea. El 0,5 sube siempre, así que un mismo empate deja de subir o bajar según la paridad del número vecino.
-- PowerPoint: las tablas salen nativas del programa, con color por fila para armar la leyenda de la escala.
-- Gráficos: una sola regla de negrita para todos los tipos de gráfico. Van en negrita el título, el subtítulo y las cifras; el resto queda apagado y se enciende cuando hace falta.
-- Gráficos: siete interruptores de negrita que no cambiaban nada ahora funcionan. El título del boxplot, el subtítulo de las barras agrupadas y los títulos de bloque de las multiapiladas estaban fijos en el motor aunque la casilla existiera.
-- Gráficos: en las láminas de perfil, cada gráfico dice sobre cuántos casos habla. Antes una sola línea al pie servía para los cuatro paneles aunque midieran públicos distintos.
-- Gráficos: numerar los grupos usa la palabra de tu estudio. Escribes «OE», «Dimensión» o «Eje»; antes el motor solo sabía escribir «OE» y a veces la ponía sin que nadie la pidiera.
-- Gráficos: el ancho de las columnas de una lámina que compara varios públicos se edita. El enunciado, el nombre del público y la barra extra tienen su medida, y las barras se ajustan con lo que quede.
-- Gráficos: el texto de la lámina de Objetivo ya no sale girado en PowerPoint.
-- Gráficos: el Top 2 Box se declara por nombre de categoría y deja de deducirse del orden de la escala. La regla anterior sumaba las dos últimas columnas dando por hecho que la escala iba de peor a mejor; cuando no lo era, sumaba las dos equivocadas sin decir nada. Si hoy no hay categorías declaradas, la columna se omite y el motor avisa por qué.
-- Gráficos: las categorías del Top 2 Box se marcan sobre las escalas reales del estudio. El selector fusiona las escalas idénticas, cabe en el panel e ignora mayúsculas y tildes al emparejar, así que «De acuerdo» y «DE ACUERDO» son la misma categoría.
-- Gráficos: el Top 2 Box compara contra la medición anterior. La lámina muestra el valor de hoy junto al de la ola previa, que es la lectura que pide un informe de acreditación.
-- Gráficos: el estilo de acreditación se enciende desde la interfaz. La paleta se ancla a la etiqueta real de cada categoría y los cortes del semáforo se editan sin salir de la vista.
-- Gráficos: buscador de ajustes en la base visual y en el inspector de cada lámina. Encuentra escribiendo sin tildes y solo cuenta los ajustes que de verdad puede mostrar.
-- Gráficos: el orden manual de barras se reordena arrastrando, no tecleando. La lista ofrece la escala de esa pregunta en vez de las 23 del estudio, y el orden guardado llega al motor además de al proyecto.
-- Gráficos: los arreglos que el motor aplica solo llegan al analista. Antes corregía en silencio y la lámina salía distinta de lo pedido sin que constara en ninguna parte; los avisos repetidos se agrupan en vez de inundar la pantalla.
-- Gráficos: el recorte de enunciados deja de ser silencioso, y el aviso lleva al control que lo resuelve.
-- Gráficos: cinco tipos nuevos en el catálogo: serie temporal, divergentes, dumbbell, lollipop y puntos comparativos. Las barras agrupadas y las apiladas con cruce marcan las diferencias significativas.
-- Gráficos: el texto usa el azul de la marca en los ocho motores. Barras agrupadas ya lo hacía y los otros siete pintaban en negro puro, que era el segundo color más usado del mazo medido.
-- Gráficos: la leyenda de dos filas reparte parejo, deja de pisarse en multilista y ya no reserva el doble de la banda que dibuja.
-- Gráficos: ranuras con nombre para colores e íconos, tomadas de las secciones del estudio en lugar de una lista fija. Cada campo pide el dato que espera recibir.
-- Gráficos: el editor de espacios habla en las medidas de la lámina y no en las del motor.
-- Cálculo de muestra: el Relato cuenta la selección escena por escena, del marco al sorteo. Cada cuadro es un hecho de la corrida ejecutada, así que la selección se puede defender mostrando el proceso y no solo la tabla final.
-- Cálculo de muestra: la probabilidad publicada es la del sorteo que realmente ocurrió. Tres configuraciones publicaban la del diseño nominal, y con esa cifra se ponderaba todo lo que viniera después.
-- Cálculo de muestra: el dimensionamiento responde si el marco alcanza, en vez de apuntar siempre al centro del rango.
-- Cálculo de muestra: el mapa de selección dice quién dicta cada curso-horario y muestra sus nombres legibles.
-- Cálculo de muestra: los ids de alumno se subrogan al guardar en lugar de borrarse. Sin ellos no había traslape que descontar, así que al reabrir un proyecto la siguiente selección corría sin descontar repetidos. Del proyecto guardado se lee que dos aulas comparten siete alumnos; no se puede nombrar a ninguno.
-- Formularios: una base queda ligada a la revisión publicada de su instrumento en cualquier vía de carga, no solo en acreditación. El bloqueo de publicación dice qué hacer y separa los avisos de los impedimentos reales.
-- Word: la columna extra recupera su piso y el bloque de multilista conserva la exclusión de opciones. Una batería que excluía «Sin información» la recuperaba al exportar, y el porcentaje cambiaba entre la pantalla y el documento.
-- Proyecto: guardar avisa de lo que no pudo viajar dentro del proyecto.
+- Tu proyecto guarda solo lo que decidiste, no una copia de los valores de fábrica. Al actualizar la app, las mejoras de estilo llegan a los proyectos que ya tenías; lo que elegiste a mano se conserva.
+- Cálculo de muestra: cada facultad se dimensiona con su propio rendimiento en vez de un promedio único, y la selección se certifica en alumnos garantizados por facultad, con las cuotas de hombre y mujer a la vista.
+- Cálculo de muestra: puedes comparar la selección nueva contra lo que el estudio anterior aplicó de verdad, facultad por facultad.
+- Cálculo de muestra: construir el marco ya no congela la app. Los cálculos largos avisan lo que van a tardar, siguen corriendo si te vas a otra vista y los retomas al volver.
+- Cálculo de muestra: una facultad puede quedar exenta de un criterio general, y cada ficha dice qué criterios rigen solo ahí.
+- Cálculo de muestra: el Relato cuenta la selección escena por escena, del marco al sorteo, así que puedes defenderla mostrando el proceso y no solo la tabla final.
+- Monitoreo de aulas: el avance se mide contra la cuota del diseño. Antes se medía contra la suma de metas por aula, que es más alta, y el porcentaje se quedaba corto aunque la cuota estuviera cubierta.
+- Monitoreo de aulas: la agenda se recorre día por día y por facultad, y el acumulado dice cuándo llegas a la meta. Cada sexo proyecta cuándo alcanza su propia cuota.
+- Monitoreo de aulas: el libro operativo del equipo entra como fuente y se lee también desde una pestaña de Google Sheets. Los descuadres del parte de campo se ven al escribirlos, no al importar.
+- Monitoreo de aulas: el banco de aulas extra dice si alcanza para cubrir lo que falta, no solo cuántas tiene, y un reemplazo se activa desde el registro de campo.
+- Recopiladores: la ficha de campo trae lo que el aplicador necesita para saber que está en el aula correcta, y el paquete se reparte por facultad y por rol en vez de salir como un PDF combinado.
+- Gráficos: el Top 2 Box se declara marcando las categorías que suman, en vez de deducirse del orden de la escala. Si la escala no iba de peor a mejor, antes sumaba las dos columnas equivocadas sin avisar.
+- Gráficos: el estilo de acreditación se enciende desde la interfaz, con la paleta anclada a cada categoría y los cortes del semáforo editables.
+- Gráficos: cinco tipos nuevos en el catálogo (serie temporal, divergentes, dumbbell, lollipop y puntos comparativos), y las barras marcan las diferencias significativas.
+- Gráficos: buscador de ajustes en la base visual y en cada lámina, y el orden de las barras se reordena arrastrando.
+- Gráficos: los arreglos que el motor aplica solo ahora se avisan. Antes corregía en silencio y la lámina salía distinta de lo pedido.
+- PowerPoint: las tablas salen nativas del programa, editables como cualquier tabla, y el texto usa el azul de la marca en todos los gráficos.
+- Limpieza: la base depurada se promueve y llega al entregable. Antes quedaba como descarga recomendada y los casos que excluías podían reaparecer en el informe final.
+- Validación: apagar una regla o dejar una variable fuera de la auditoría pide un motivo, y el informe metodológico dice qué no cubre el plan.
+- Codificación: «no categorizar» se registra como decisión con su motivo, así que ya no se confunde con un olvido.
+- Formularios: una base queda ligada a la revisión publicada de su instrumento en cualquier vía de carga.
 
 Los instalables salen sin firmar: SmartScreen advierte en Windows y Gatekeeper pide «Abrir igualmente» en macOS. Windows conserva su actualizador automático; macOS se actualiza descargando el DMG.
