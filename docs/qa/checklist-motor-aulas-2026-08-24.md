@@ -32,7 +32,7 @@ es superficie y está bloqueado por un fixture (ver «Lo que falta y por qué»)
 | **E** | Reserva dirigida, por celda en déficit | medio | ☑ | `c52ff3c8` `0abc1f85` |
 | **F** | Reglas de redondeo — los elegibles son personas | bajo | ☑ | `c8cabcab` `416a1d55` |
 | **G** | Nomenclatura y estados de los indicadores | medio | ☑ | `24e6e3d1` `344f1d57` |
-| **H** | Monitoreo reporta con responsabilidad **y sin jerga** | medio | ◐ | `9406a174` `5d399047` `0833f624` `ca8be59d` `8b54fd75` `698c58d9` `d849ef39` |
+| **H** | Monitoreo reporta con responsabilidad **y sin jerga** | medio | ◐ | `9406a174` `5d399047` `0833f624` `ca8be59d` `8b54fd75` `698c58d9` `d849ef39` `340866fe` |
 | **I** | Avance por sexo × facultad con calibración | medio | ☑ | `8aa5ea6e` `67aab9a0` `2b19bca0` |
 | **—** | Vara de accesibilidad como norma transversal | — | ☑ | `90862a64` |
 
