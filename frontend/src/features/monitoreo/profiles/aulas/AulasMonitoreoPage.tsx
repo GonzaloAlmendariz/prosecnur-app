@@ -249,12 +249,29 @@ function columnasDeCifra(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard, seccion, pestana }: {
+function AulasKpiBand({ dashboard, seccion, pestana, cargando = false }: {
   dashboard: MonitoreoAulasDashboard | null;
   seccion: MonitoreoSeccion;
   pestana: string;
+  /** El proyecto todavía se está leyendo y no hay dashboard con qué contar. */
+  cargando?: boolean;
 }) {
   const kpis = aulasKpis(dashboard, seccion, pestana);
+  // **Un cero mientras se carga no es un dato, es una cuenta que aún no se
+  // pudo hacer.**
+  //
+  // Sin dashboard, `aulasKpis` devuelve sus tiles con ceros, y la banda queda
+  // publicando «Agendadas 0 · de 0 que se van a visitar» sobre un proyecto de
+  // 193 titulares. Medido el 2026-08-24 abriendo el estudio real: **la lectura
+  // del proyecto tarda entre 48 s y 3 min** —el backend queda al 100 % de CPU y
+  // Plumber atiende en un solo hilo—, o sea minutos enteros enseñando ceros que
+  // se leen como «no hay nada». El panel de abajo sí declara «Preparando
+  // vista»; estas tarjetas contradecían ese mismo aviso dos centímetros arriba.
+  //
+  // El marco se queda (C2: no depende de los datos) y las cifras se declaran
+  // pendientes. Es el mismo criterio de `c4af437d`: cuando la cuenta no se
+  // puede hacer, se dice, no se resuelve a cero.
+  const enEspera = cargando && !dashboard;
   // Sin tiles no hay banda: pintarla vacía dejaría 111 px de marco sin nada
   // dentro, que es peor que la repetición que se viene a quitar.
   if (!kpis.length) return null;
@@ -272,8 +289,10 @@ function AulasKpiBand({ dashboard, seccion, pestana }: {
           <div
             key={kpi.label}
             className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
-            title={kpi.detalle}
-            aria-label={kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
+            title={enEspera ? "Todavía se está leyendo el proyecto" : kpi.detalle}
+            aria-label={enEspera
+              ? `${kpi.label}: todavía se está leyendo el proyecto`
+              : kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
           >
             {/* Ícono y pista son el patrón de telefónico y acreditación: cada
                 cifra se reconoce de un vistazo y dice de dónde sale. Los llevan
@@ -284,8 +303,8 @@ function AulasKpiBand({ dashboard, seccion, pestana }: {
               <Icono size={13} aria-hidden="true" />
               {kpi.label}
             </span>
-            <strong>{kpi.value}</strong>
-            <small>{kpi.pista}</small>
+            <strong>{enEspera ? "—" : kpi.value}</strong>
+            <small>{enEspera ? "leyendo el proyecto" : kpi.pista}</small>
           </div>
         );
       })}
@@ -2500,7 +2519,12 @@ export default function AulasMonitoreoPage() {
         )}
       >
 
-          <AulasKpiBand dashboard={dashboard} seccion={seccionActiva} pestana={pestanaActiva} />
+          <AulasKpiBand
+            dashboard={dashboard}
+            seccion={seccionActiva}
+            pestana={pestanaActiva}
+            cargando={loading}
+          />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
               tone="monitoreo"
