@@ -1642,6 +1642,7 @@ function renderAulasView(
           resumen={dashboard.course_status_cobertura ?? null}
           sinMetaMotor={dashboard.course_status_sin_meta}
           bancoMotor={dashboard.course_status_banco}
+          dormidasMotor={dashboard.course_status_reservas_dormidas}
         />
       </section>
       <section

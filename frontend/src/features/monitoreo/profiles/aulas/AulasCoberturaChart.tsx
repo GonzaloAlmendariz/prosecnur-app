@@ -30,7 +30,7 @@ import { fmt } from "./kpisDeAulas";
 const ALTO_COMPACTO = 820;
 const ALTO_DEL_GRAFICO = { amplio: 360, compacto: 220 };
 
-export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0 }: {
+export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0, dormidasMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
   resumen?: ReadonlyArray<{ clave: string; aulas: number; etiqueta?: string }> | null;
@@ -45,6 +45,14 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
    * cabecera del panel y este pie.
    */
   bancoMotor?: number;
+  /**
+   * Reservas de cadena que todavia esperan a que caiga su titular.
+   *
+   * Son otra poblacion que el banco y hay que nombrarlas aparte: si no, el pie
+   * deja dos totales que no cuadran —el reparto cuenta 30, el banco 2 108 y el
+   * encabezado dice 2 468— y las 330 que faltan no aparecen en ninguna frase.
+   */
+  dormidasMotor?: number;
 }) {
   // Se mide una vez y se escucha el cambio: el usuario redimensiona y el grafico
   // tiene que encogerse con la ventana, no en la siguiente carga.
@@ -136,7 +144,7 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
         }}
         config={{ displayModeBar: false, responsive: true }}
       />
-      {sinMeta || bancoMotor ? (
+      {sinMeta || bancoMotor || dormidasMotor ? (
         // No se esconde ni se reparte: un aula sin meta no cabe en una escala
         // relativa, y decir cuántas son es parte de lo que el gráfico informa.
         <p className="mon-profile-table-recorte">
@@ -151,6 +159,16 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
               {sinMeta ? " " : ""}
               {fmt(bancoMotor)} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
               {" "}esperan en su estrato y contarlas como «sin respuestas» las volvería una alarma.
+            </>
+          ) : null}
+          {dormidasMotor ? (
+            <>
+              {sinMeta || bancoMotor ? " " : ""}
+              {fmt(dormidasMotor)}{" "}
+              {dormidasMotor === 1
+                ? "es un reemplazo que todavía espera a su titular"
+                : "son reemplazos que todavía esperan a su titular"}
+              , y sólo salen a campo si ese curso-horario se cae.
             </>
           ) : null}
         </p>
