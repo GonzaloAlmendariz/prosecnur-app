@@ -147,6 +147,7 @@ Regla transversal: **toda rama que toque código termina en el agente `verificad
 - Engine nuevo = test nuevo (testthat, edition 3). Lógica calculable siempre con test; render (PDF/PPT/XLSX) al menos con contrato de artefactos (`expect_report_artifacts_registered`) o golden.
 - Routers delgados: validación de input + llamada a engine + serialización. La lógica de dominio nueva va al engine, no al `mount_*`. Todo mount nuevo se registra en `plumber_app.R`.
 - Dependencias nuevas van a `api/DESCRIPTION`; el CI instala exactamente lo declarado ahí.
+- **`api/NAMESPACE` se genera, nunca se edita a mano** (ADR 0070). Exportar una función es `@export` en su roxygen + `Rscript -e 'roxygen2::roxygenise("api")'`; `DESCRIPTION` fija `roclets = c("namespace")` así que esa corrida no crea `api/man/`. `@export` significa *alcanzable por nombre desde fuera del namespace* (worker `callr`, launcher, script, consola): lo que solo se llaman entre sí los engines y routers no se exporta, y un nombre con punto inicial (`.helper`) es interno y se alcanza con `:::`. Los `@importFrom` transversales viven en `api/R/prosecnurapp-package.R`. El gate es `test-namespace-contract.R`.
 
 ## Reglas de código — frontend
 
