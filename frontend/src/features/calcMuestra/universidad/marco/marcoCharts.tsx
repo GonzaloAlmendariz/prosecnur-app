@@ -15,6 +15,7 @@ import type {
 } from "../../../../api/client";
 import { fmtInt, rowsFrom, safeNumber } from "../../sharedCore";
 import { sexSeriesCssColor, sexSeriesCssColorForKind, sexSeriesKind, sexSeriesLabel } from "../../sexoPalette";
+import { etiquetaDeSexo } from "../shared/study";
 import {
   classroomRowNumber,
   classroomRowText,
@@ -509,10 +510,18 @@ export function universityFacultySexCross(
   );
   if (fromPopulation.rows.length) return fromPopulation;
   if (profileTable?.rows.length && profileTable.columns.length) return profileTable;
+  // **`N_a` NO es «mujeres»: es la categoria de sexo mas frecuente.** Lo fija
+  // `universityFrameFromRows` ordenando por frecuencia, asi que en un estudio de
+  // mayoria masculina `sub_a_label` vale «M» y `N_a` cuenta hombres. Este
+  // fallback —solo entra sin filas de poblacion— los rotulaba al reves. Mismo
+  // defecto que ya invirtio las columnas de la tabla de cuotas.
   const rows = (totalComp.marco.estratos ?? [])
     .map((estrato) => {
-      const mujeres = safeNumber(estrato.N_a, 0);
-      const hombres = safeNumber(estrato.N_b, 0);
+      const nA = safeNumber(estrato.N_a, 0);
+      const nB = safeNumber(estrato.N_b, 0);
+      const etiquetaA = etiquetaDeSexo(estrato.sub_a_label);
+      const mujeres = etiquetaA === "Mujeres" ? nA : nB;
+      const hombres = etiquetaA === "Mujeres" ? nB : nA;
       return {
         label: estrato.label,
         values: {

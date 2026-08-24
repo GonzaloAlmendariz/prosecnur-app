@@ -1,3 +1,4 @@
+import { etiquetaDeSexo } from "./study";
 import {
   type CalcMuestraAulasSheetInspectionSheet,
   type CalcMuestraAulasState,
@@ -764,12 +765,33 @@ export function universityCategoryProfileRows(
   if (summarized.length) return summarized;
   const normalizedKeys = keys.map(normalizeColumnName);
   if (normalizedKeys.some((key) => ["sex", "sexo", "genero", "gender"].includes(key))) {
-    const mujeres = fallbackEstratos.reduce((sum, row) => sum + safeNumber(row.N_a, 0), 0);
-    const hombres = fallbackEstratos.reduce((sum, row) => sum + safeNumber(row.N_b, 0), 0);
-    return [
-      { label: "Mujeres", value: mujeres },
-      { label: "Hombres", value: hombres },
-    ].filter((row) => row.value > 0);
+    // **`N_a` NO es «mujeres»: es la categoria de sexo mas frecuente.**
+    //
+    // `universityFrameFromRows` fija `sub_a` ordenando la poblacion por
+    // frecuencia, asi que en un estudio de mayoria masculina `sub_a_label` vale
+    // «M» y `N_a` cuenta hombres. Este fallback los rotulaba «Mujeres» a secas.
+    //
+    // Es el mismo defecto que ya invirtio las dos columnas de la tabla de
+    // cuotas; aqui esta latente porque solo entra cuando NO hay filas de
+    // poblacion. Se resuelve por lo que cada subgrupo ES.
+    const porEtiqueta = new Map<string, number>();
+    for (const row of fallbackEstratos) {
+      for (const [codigo, n] of [
+        [row.sub_a_label, safeNumber(row.N_a, 0)] as const,
+        [row.sub_b_label, safeNumber(row.N_b, 0)] as const,
+      ]) {
+        const etiqueta = etiquetaDeSexo(codigo);
+        if (!etiqueta || !n) continue;
+        porEtiqueta.set(etiqueta, (porEtiqueta.get(etiqueta) ?? 0) + n);
+      }
+    }
+    // Orden estable y legible: mujeres, hombres, y lo demas por tamaño. Sin
+    // esto el orden lo decidiria la primera facultad del array.
+    const orden = (label: string) => (label === "Mujeres" ? 0 : label === "Hombres" ? 1 : 2);
+    return [...porEtiqueta.entries()]
+      .map(([label, value]) => ({ label, value }))
+      .filter((row) => row.value > 0)
+      .sort((a, b) => orden(a.label) - orden(b.label) || b.value - a.value);
   }
   return [];
 }
