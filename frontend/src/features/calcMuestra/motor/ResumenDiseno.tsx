@@ -94,6 +94,24 @@ export function ResumenDiseno({
   const universoEstudiantes = frameProfile?.universo ?? null;
   const universoCursosHorario =
     frameProfile?.aulas_totales ?? (frameAuditNumber(frame, "classroom_n") || null);
+  // **De qué semestre son estos datos.**
+  //
+  // Un `.pulso` llamado HSVG2026 con la base de 2025 cargada calcula sin
+  // protestar: el único síntoma es un aviso genérico y unas cifras fuera de
+  // rango. Medido el 2026-08-24 sobre el proyecto real — contra la base
+  // correcta, ARTE Y DISEÑO pasa de 63 cursos-horario elegibles a 228 y la
+  // ESCUELA DE POSGRADO de 2 a 0. El marco guardaba `generated_at`, que es
+  // cuándo se construyó, no de cuándo son los datos: son dos fechas distintas y
+  // sólo una contesta «¿esto es del semestre del estudio?».
+  const periodoMarco = String((frame as { periodo?: unknown } | null)?.periodo ?? "").trim();
+  // Se compara sólo el AÑO: el ciclo puede no estar en el nombre del estudio y
+  // saltar por eso convertiría el aviso en ruido. Sin uno de los dos, no se
+  // afirma nada.
+  const anio = (t: string) => (t.match(/20\d{2}/) ?? [""])[0];
+  const periodoCuadra =
+    periodoMarco && anio(perfil.nombre)
+      ? anio(periodoMarco) === anio(perfil.nombre)
+      : null;
   const estudiantesElegibles = marcoPublicable ? frameProfile?.poblacion_n ?? null : null;
   const cursosHorarioElegibles = integridadFrame.marcoAulas;
 
@@ -220,9 +238,17 @@ export function ResumenDiseno({
     {
       label: "Universo de cursos-horario",
       value: universoCursosHorario,
-      note: "unidades únicas",
+      // El periodo va en la nota de ESTA tarjeta porque es su base la que
+      // define el catálogo. Cuando el año no cuadra con el del estudio se dice
+      // entero —«base 2025 · el estudio es 2026»—: nombrar los dos es lo que
+      // deja ver el error sin abrir ningún archivo.
+      note: periodoMarco
+        ? periodoCuadra === false
+          ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
+          : `base ${periodoMarco} · unidades únicas`
+        : "unidades únicas",
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: "universe",
+      tone: periodoCuadra === false ? "estimated" : "universe",
     },
     {
       label: "Estudiantes elegibles",

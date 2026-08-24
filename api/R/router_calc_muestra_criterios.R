@@ -58,6 +58,12 @@
   prepared$frame$config <- .cm_alumnos_por_ch_resellar_config(
     prepared$frame$config, prepared$frame$frame_hash
   )
+  # De que semestre son los datos de este marco. Un `.pulso` llamado HSVG2026
+  # con la base de 2025 dentro calcula sin protestar y sólo se nota en cifras
+  # fuera de rango; el porqué y las cifras, en `calc_muestra_aulas_periodo.R`.
+  prepared$frame <- calc_muestra_aulas_declarar_periodo(
+    prepared$frame, session_get(sid, required = FALSE)[["files"]] %||% list()
+  )
   session_set(sid, "calc_muestra_aulas_config", prepared$frame$config)
   session_set(sid, "calc_muestra_aulas_frame", prepared$frame)
   session_set(sid, "calc_muestra_aulas_criterios_contexto", prepared$context)
