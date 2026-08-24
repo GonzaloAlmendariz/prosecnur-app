@@ -28,6 +28,18 @@ export type PendienteDeContacto = {
   intentos: number;
 };
 
+/** Una cita ya cerrada: el trabajo hecho, con el horario que se fijó. */
+export type CitaFijada = {
+  codigo: string;
+  facultad: string;
+  docente: string;
+  fecha: string;
+  hora: string;
+  intentos: number;
+  /** `true` cuando ya se aplicó: la cita se cumplió. */
+  aplicada: boolean;
+};
+
 export type EsfuerzoDeFacultad = {
   facultad: string;
   aulas: number;
@@ -54,9 +66,17 @@ function tieneCita(fila: MonitoreoAulasPlanRow): boolean {
 
 export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
   pendientes: PendienteDeContacto[];
+  citadas: CitaFijada[];
   esfuerzo: EsfuerzoDeFacultad[];
 } {
   const pendientes: PendienteDeContacto[] = [];
+  // **Las citadas también salen, con su horario.**
+  //
+  // El panel enseñaba sólo la cola —lo que falta— así que un horario fijado no
+  // se veía nunca: por definición, quien tiene cita no está en la cola. Quien
+  // agenda necesita las dos mitades, y la fecha que consiguió es el resultado
+  // de su trabajo, no un dato de archivo.
+  const citadas: CitaFijada[] = [];
   const porFacultad = new Map<string, number[]>();
 
   for (const fila of filas) {
@@ -75,6 +95,15 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
         xs.push(intentos);
         porFacultad.set(facultad, xs);
       }
+      citadas.push({
+        codigo: texto(fila.operational_code),
+        facultad,
+        docente: texto(fila.teacher),
+        fecha: texto(fila.scheduled_date),
+        hora: texto(fila.scheduled_time),
+        intentos: Number.isFinite(intentos) ? intentos : 0,
+        aplicada: ["aplicada", "cerrada"].includes(texto(fila.operational_status).toLowerCase()),
+      });
       continue;
     }
     if (dormida) continue;
@@ -97,9 +126,14 @@ export function colaDeContacto(filas: ReadonlyArray<MonitoreoAulasPlanRow>): {
     || a.facultad.localeCompare(b.facultad, "es")
     || a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
 
+  // Por fecha: la agenda se lee en orden de calendario, no por esfuerzo.
+  citadas.sort((a, b) => a.fecha.localeCompare(b.fecha)
+    || a.hora.localeCompare(b.hora)
+    || a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
+
   const esfuerzo = [...porFacultad.entries()]
     .map(([facultad, xs]) => ({ facultad, aulas: xs.length, intentos: mediana(xs) }))
     .sort((x, y) => (y.intentos ?? 0) - (x.intentos ?? 0) || y.aulas - x.aulas);
 
-  return { pendientes, esfuerzo };
+  return { pendientes, citadas, esfuerzo };
 }
