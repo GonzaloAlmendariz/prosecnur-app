@@ -119,9 +119,13 @@ describe("«med.» no es una unidad", () => {
           contact_attempts: 4, sample_status: "agendada" },
       ] as unknown as MonitoreoAulasPlanRow[]} />);
     expect(html).not.toContain("med.");
-    // La unidad sigue declarada donde toca: la cabecera y el pie.
-    expect(html).toContain("<span>Intentos</span>");
-    expect(html).toContain("<strong>mediana</strong>");
+    // La unidad sigue declarada donde toca: la cabecera de su columna.
+    expect(html).toContain("Intentos · <em>mediana</em>");
+    // El estadístico se declara en la CABECERA de la columna, que es donde se
+    // mira el número. El pie que lo justificaba sólo aparece cuando hay medios
+    // que comparar: con uno solo, esa justificación no cambia ninguna decisión
+    // y era metodología en una pantalla operativa.
+    expect(html).toContain("<em>mediana</em>");
   });
 });
 

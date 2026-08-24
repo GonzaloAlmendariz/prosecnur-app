@@ -278,6 +278,21 @@ export function RegistroDeCampo({
     [filas, seleccion],
   );
 
+  // Lo que el registro de ESTA APP marcó como aplicado. Es el otro eje, y el
+  // que la lista pinta chip a chip: sin él, la cabecera decía «3 con parte en
+  // el libro» mientras diez filas de abajo llevaban su chip «Aplicada», y quien
+  // cuenta los chips no llega nunca al 3. Los dos ejes se mantienen separados a
+  // propósito —el libro lo escribe el jefe de campo en Excel, el registro lo
+  // escribe esta pantalla—, así que la cabecera los nombra por separado en vez
+  // de elegir uno y callar el otro.
+  const aplicadas = useMemo(
+    () => filas.filter((r) => {
+      const circuito = String(r.operational_status ?? "").toLowerCase();
+      return circuito === "aplicada" || circuito === "cerrada";
+    }).length,
+    [filas],
+  );
+
   const conRegistro = useMemo(
     () => (codigosConParte.size
       ? filas.filter((r) => codigosConParte.has(String(r.operational_code ?? "").trim())).length
@@ -397,6 +412,13 @@ export function RegistroDeCampo({
             de en Excel: asistentes, rechazos, duplicados, efectivas, aplicador,
             aula y momento son sus columnas. La pestaña sigue diciendo «Registro
             de campo» —lo que se hace—; el panel dice qué se está llenando. */}
+        {/* **Que se lea como la hoja que es, no como un recuento.**
+            El nombre es deliberado —es la hoja «Aulas Aplicadas (Campo)» del
+            libro, y llamarla igual es lo que deja reconocerla sin explicación—,
+            pero sobre una lista de 700 filas donde 690 están en «Planificada»
+            el título se lee como si afirmara que esas 700 se aplicaron. El
+            antetítulo lo convierte en lo que es: un destino del libro. */}
+        <p className="registro-campo-hoja">Hoja del libro</p>
         <h3>Aulas aplicadas (campo)</h3>
         {/* Cuántas de esas filas YA tienen registro. El panel se llama como su
             hoja —«Aulas Aplicadas (Campo)»— y sobre este corte enseña 196 aulas
@@ -405,7 +427,13 @@ export function RegistroDeCampo({
             el panel lista otra cosa. El contador lo zanja con dato: dice cuánto
             de la hoja está lleno, que además es lo que se viene a saber. */}
         <span>{filas.length
-          ? `${fmt(filas.length)} cursos-horario · ${conRegistro} con parte en el libro`
+          ? [
+            `${fmt(filas.length)} cursos-horario`,
+            // Sólo cuando aporta: si los dos ejes coinciden, decirlo dos veces
+            // con dos nombres distintos sugiere que son dos cosas.
+            aplicadas && aplicadas !== conRegistro ? `${fmt(aplicadas)} con registro` : "",
+            `${conRegistro} con parte en el libro`,
+          ].filter(Boolean).join(" · ")
           : "sin agenda"}</span>
       </div>
 
