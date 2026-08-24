@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { codigoDeError, esEstadoInicial, vacioSinDatos } from "../estadoEsperado";
 import { Activity, AlertTriangle } from "lucide-react";
 // TODO(sprint-5): cuando exista, importar de la fuente real:
 //   import { apiV2Panorama } from "../../../api/client";
@@ -48,6 +49,9 @@ export default function PanoramaTab() {
   const [data, setData] = useState<PanoramaSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  // El CODIGO, no solo el mensaje: hay estados esperados que llegan como error
+  // HTTP y merecen otra pantalla que una averia.
+  const [errorCode, setErrorCode] = useState<string>("");
 
   useEffect(() => {
     let cancel = false;
@@ -55,12 +59,19 @@ export default function PanoramaTab() {
     setError("");
     apiV2Panorama(baseNombre)
       .then((p: PanoramaSummary) => { if (!cancel) setData(p); })
-      .catch((e: unknown) => { if (!cancel) setError((e as Error).message); })
+      .catch((e: unknown) => {
+        if (cancel) return;
+        setError((e as Error).message);
+        setErrorCode(codigoDeError(e));
+      })
       .finally(() => { if (!cancel) setLoading(false); });
     return () => { cancel = true; };
   }, [baseNombre, version]);
 
   if (loading) return <LoadingBlock label="Cargando panorama…" />;
+  // «Todavía no hay datos» no es «no se pudo cargar»: ver `estadoEsperado.ts`.
+  if (esEstadoInicial(errorCode))
+    return <EmptyState icon={<AlertTriangle size={20} />} {...vacioSinDatos("en el panorama")} />;
   if (error)
     return (
       <EmptyState
