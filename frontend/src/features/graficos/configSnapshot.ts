@@ -38,11 +38,17 @@ export function buildGraficosConfigFromStore(): GraficosConfig {
     density: state.density,
     canvas_viewport: state.canvasViewport,
     equivalencias_revision: state.equivalenciasRevision,
+    auto_otros_slides: state.autoOtrosSlides,
+    // El interruptor va también dentro de `scope_rules.global` porque
+    // `.graficos_delivery_options()` resuelve global ANTES que la raíz: un
+    // valor heredado de una línea visual ahí le ganaría al que el usuario
+    // acaba de elegir. Escribir ambos deja una sola respuesta posible.
     scope_rules: buildGraficosScopeRules(state.scopeRules, {
       presets: state.presets,
       paletas: state.paletas,
       overrides_reusables: state.overridesReusables,
       debug_ph: state.debugPh,
+      auto_otros_slides: state.autoOtrosSlides,
     }),
   }) as GraficosConfig;
 }

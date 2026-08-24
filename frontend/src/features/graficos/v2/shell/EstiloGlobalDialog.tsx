@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles, CheckCircle2 } from "lucide-react";
+import { X, Sliders, FileText, Palette, Image as ImageIcon, Layers3, Sparkles, CheckCircle2, ListPlus } from "lucide-react";
 import { IconModes } from "../../../../lib/icons";
 import { PaletasEditor } from "../../PaletasEditor";
 import { PptStyleProfilesPanel } from "../../PptStyleProfilesPanel";
@@ -8,6 +8,7 @@ import { IconosEditor } from "../../IconosEditor";
 import { PresetsEditor } from "../../PresetsEditor";
 import { OverridesEditor } from "../../OverridesEditor";
 import { WordPresetsEditor } from "../../WordPresetsEditor";
+import { ContenidoEditor } from "../../ContenidoEditor";
 import { GlidingTabList } from "../../../../components/GlidingTabList";
 
 // Popup unificado de "Estilo global". Reemplaza los 3 botones del header
@@ -18,7 +19,7 @@ import { GlidingTabList } from "../../../../components/GlidingTabList";
 // Cada tab monta una superficie visual. Los ajustes que todavía no tienen
 // catálogo curado no se editan desde acá para evitar campos crudos.
 
-type Tab = "ppt" | "word" | "paletas" | "lineas" | "iconos" | "modos";
+type Tab = "ppt" | "word" | "paletas" | "lineas" | "iconos" | "modos" | "contenido";
 
 const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hint: string; summary: string }[] = [
   {
@@ -68,6 +69,14 @@ const TABS: { key: Tab; label: string; eyebrow: string; Icon: typeof Sliders; hi
     Icon: IconModes,
     hint: "Apariencias reutilizables como compacto, narrativo o alta densidad",
     summary: "Crea estilos que puedes aplicar a varios gráficos sin repetir ajustes.",
+  },
+  {
+    key: "contenido",
+    label: "Contenido",
+    eyebrow: "Qué entra",
+    Icon: ListPlus,
+    hint: "Láminas que el reporte agrega además de las del plan",
+    summary: "Decide qué diapositivas extra acompañan a tus gráficos al exportar.",
   },
 ];
 
@@ -249,6 +258,7 @@ export function EstiloGlobalDialog({ open, onClose, initialTab = "ppt" }: Estilo
               {tab === "lineas" && <PptStyleProfilesPanel />}
               {tab === "iconos" && <IconosEditor />}
               {tab === "modos" && <OverridesEditor />}
+              {tab === "contenido" && <ContenidoEditor />}
             </div>
           </section>
         </div>
