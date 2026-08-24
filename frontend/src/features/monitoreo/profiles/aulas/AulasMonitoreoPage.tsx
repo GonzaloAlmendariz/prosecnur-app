@@ -71,6 +71,7 @@ import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
+import { AulasAvanceProyectado } from "./AulasAvanceProyectado";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
@@ -1994,6 +1995,14 @@ function renderAulasView(
             dos gráficos del mismo cruce le quitaban protagonismo al que sí
             contesta la pregunta. */}
         <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
+        {/* Y justo debajo, la otra pregunta: **¿va a llegar?** El resumen de
+            arriba dice dónde está cada celda; ésta proyecta lo que aportarán
+            las aulas que faltan por aplicar y avisa si el campo está rindiendo
+            distinto de lo previsto. Es el único panel del perfil que manda a
+            alguien a un aula, y por eso encabeza por lo que exige decisión. */}
+        <AulasAvanceProyectado
+          celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
+        />
         {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
             contra SU propia meta. Se ve de qué lado va corta cada facultad, que
             es la pregunta con la que se sale a campo, y es además quien lleva el
