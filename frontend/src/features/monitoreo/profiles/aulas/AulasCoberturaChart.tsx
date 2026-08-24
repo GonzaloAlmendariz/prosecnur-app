@@ -78,11 +78,15 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
   // la columna que hay que rellenar, y distingue ese caso de no tener plan.
   if (!total) {
     return (
-      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        {sinMeta
-          ? `Ninguno de los ${sinMeta.toLocaleString("es-PE")} cursos-horario del plan declara cuántas respuestas espera, así que no hay cobertura que repartir en tramos.`
-          : "El plan todavía no trae cursos-horario."}
-      </p>
+      // La anatomía del vacío del perfil (precedente en `AulasAvanceCuota`):
+      // el wrap exento declara su capacidad y sus reglas ciñen el `p`.
+      <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <p className="mon-profile-muted">
+          {sinMeta
+            ? `Ninguno de los ${sinMeta.toLocaleString("es-PE")} cursos-horario del plan declara cuántas respuestas espera, así que no hay cobertura que repartir en tramos.`
+            : "El plan todavía no trae cursos-horario."}
+        </p>
+      </div>
     );
   }
 

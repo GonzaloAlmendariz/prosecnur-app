@@ -72,6 +72,8 @@ import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { AulasAvanceCuota } from "./AulasAvanceCuota";
+import { avanceCuota } from "./avanceCuota";
 import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
 import { AulasEstadoChart } from "./AulasEstadoChart";
 import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
@@ -1459,6 +1461,10 @@ function renderAulasView(
       : String(fila.sex ?? "") === foco.valor
   ));
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
+  // El view-model del cumplimiento contra el diseño se calcula UNA vez y
+  // alimenta el chip del encabezado y el cuerpo del panel: los dos no pueden
+  // discrepar. La lógica vive en `avanceCuota.ts`, no aquí.
+  const cuotaDiseno = avanceCuota(dashboard.avance_cuota);
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
   // Cuántas de esas filas son EXTRAS del banco. Avance cuenta 236 donde Fuentes
@@ -2024,6 +2030,29 @@ function renderAulasView(
           </p>
         ) : null}
         <DataTable rows={quotaEnFoco} empty="El plan no declara composición por sexo para estos cursos-horario." />
+      </section>
+      )}
+      {pestana !== "cuotas" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* La OTRA vara de la pestaña: arriba, las celdas de sexo del plan;
+              aquí, lo recogido contra la cuota de ALUMNOS del cálculo de
+              muestra —más baja que la meta del plan por diseño—, con
+              titulares caídos y reservas incluidos. «… contra el diseño» y no
+              «… por facultad» ni «… de la cuota»: esas colas ya tienen dueño
+              y el guard de títulos caza a quien termina igual que un vecino. */}
+          <h3>Cumplimiento contra el diseño</h3>
+          {/* El chip declara el denominador —y su degradación, si la hay—; el
+              porqué viaja en el title, como el `detalle` de los KPIs. */}
+          <span title={cuotaDiseno.procedencia.detalle || undefined}>
+            {cuotaDiseno.procedencia.chip}
+          </span>
+        </div>
+        <AulasAvanceCuota vista={cuotaDiseno} />
       </section>
       )}
     </div>

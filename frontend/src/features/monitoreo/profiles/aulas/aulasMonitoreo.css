@@ -211,6 +211,11 @@
 }
 
 /* ── La vista de seccion ocupa el canvas restante ───────────────────────── */
+/* ── La vista de seccion ocupa el canvas restante ─────────────────────────
+   Este es el grid de RELLENO: vale cuando el contenido es UNA superficie que
+   scrollea por dentro (la agenda del modelo, el registro, Salidas). El padre
+   flex le da altura definida, el `1fr` la estira y la tabla scrollea dentro de
+   su panel — No Scroll Jail. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view {
   min-height: 0;
   display: grid;
@@ -222,6 +227,41 @@
   gap: 10px;
 }
 
+/* Las secciones APILADAS miden por contenido; el scroll es del contenedor.
+   `aulas-tablas-apiladas` (Avance, Calidad, Consultas) y `aulas-fuentes-stack`
+   son el modo contrario al relleno: paneles intrínsecos cuyo total lo absorbe
+   `.mon-profile-content`, el dueño de scroll declarado. Ahí la altura de la
+   vista es INDEFINIDA, y `minmax(0, 1fr)` con espacio indefinido renuncia al
+   mínimo de contenido: medido (QA 2026-08-18, hsvg2026 a 1024x600), la vista
+   computaba `grid-template-rows: 0px`, el stack quedaba con clientHeight 0 y
+   los paneles se pintaban por overflow. El runner descarta cajas de alto ≤ 1,
+   así que dejaba de ver la vista entera y elegía como «último contenido» el
+   `small` de la banda KPI: `scroll-unreachable` falso en
+   monitoring-aulas-avance. Filas `auto` y sin flex que la estire ni la encoja:
+   la vista mide lo que sus paneles miden y el sobrante queda en el scroller. */
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .mon-profile-stack.aulas-tablas-apiladas),
+.mon-profile-page.is-aulas-flow .aulas-mon-view:has(> .mon-profile-stack.aulas-fuentes-stack) {
+  flex: 0 0 auto;
+  grid-template-rows: auto;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-mon-tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Solo geometría y reposo: hover, activo y foco los gobierna nav-states.css a
+ * través de `data-nav-item`, y el relleno del activo lo pinta el indicador
+ * deslizante de GlidingTabList. */
+.mon-profile-page.is-aulas-flow .aulas-mon-tabs button {
+  padding: 7px 14px;
+  border: 1px solid var(--pulso-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pulso-text-soft);
+  background: var(--pulso-surface-2);
+}
 
 /* Stack de una sola tabla (avance, fuentes, calidad, consultas): la tabla llena */
 .mon-profile-page.is-aulas-flow .aulas-mon-view > .mon-profile-stack {

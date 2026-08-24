@@ -55,11 +55,17 @@ export function AulasAvanceEnRespuestas({ filas, resumen, validasTotales = 0 }: 
 
   if (!a.meta) {
     return (
-      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        {a.sinMeta
-          ? `Ninguno de los ${fmt(a.sinMeta)} cursos-horario del plan declara cuántas respuestas espera.`
-          : "El plan todavía no declara metas por curso-horario."}
-      </p>
+      // El vacío dentro de `.mon-profile-table-wrap` y no como `p` suelto, por
+      // la misma razón medida en `AulasAvanceCuota`: las reglas del perfil que
+      // matan el margen del `p` y ciñen el panel cuelgan del wrap, y el wrap
+      // exento (`owned` + member) saca al head del fallback de miembros.
+      <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <p className="mon-profile-muted">
+          {a.sinMeta
+            ? `Ninguno de los ${fmt(a.sinMeta)} cursos-horario del plan declara cuántas respuestas espera.`
+            : "El plan todavía no declara metas por curso-horario."}
+        </p>
+      </div>
     );
   }
 

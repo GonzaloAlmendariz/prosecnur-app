@@ -286,6 +286,9 @@ export const STATUS_LABELS: Record<string, string> = {
   pendiente_enlace: "Falta enlace",
   plan_sex_top: "Plan por sexo",
   calc_muestra_faculty_sex: "Cálculo de muestra",
+  // La fuente nueva de las celdas de cuota: la cuota de alumnos del diseño.
+  // Sin rótulo, la columna Fuente mostraba el fallback «Design cuota sexo».
+  design_cuota_sexo: "Cuota del diseño",
 };
 
 function normalizedKey(value: unknown) {

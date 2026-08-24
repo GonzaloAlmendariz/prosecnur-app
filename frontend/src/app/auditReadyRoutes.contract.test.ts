@@ -497,6 +497,10 @@ describe("audit-ready route root contract", () => {
 
     const value = readinessValue(tag, "auditReady", "Recopiladores");
     expectSemanticReadiness(value, "Recopiladores", "recopiladores/");
+    // `seccionCargando` es parte del contrato desde 1eff7b4c: Materiales se
+    // declaraba lista mientras leía su plantilla semántica, y el QA medía un
+    // panel de carga como si fuera la superficie final. La readiness espera a
+    // las DOS cargas —la del shell y la de la sección— antes de publicarse.
     expect(compactExpression(value), "Recopiladores exact directional readiness and polarity").toBe(
       "loading||seccionCargando?false:`recopiladores/${direction.seccion}/${direction.pestana}`",
     );

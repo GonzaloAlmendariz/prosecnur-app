@@ -25,7 +25,7 @@ frontend/       React 18 + Vite 6 + TS estricto + zustand + react-router
 desktop/        Shell Electron (main.cjs, preload.cjs, auto-updater.cjs)
 launcher/       launch.R (entry del backend) + install-r-deps.R
 agentic/        Sincronizador de adaptadores Claude↔Codex + política de orquestación
-.claude/        agents/ (13) · skills/ (16) · workflows/ — fuentes canónicas
+.claude/        agents/ (13) · skills/ (18) · workflows/ — fuentes canónicas
 .codex/, .agents/  Adaptadores GENERADOS; nunca editar a mano
 docs/           adrs/ (0001–0048), qa/, arquitectura, layout, versiones-app.md
 branding/       Identidad visual v3, tokens, logos, catálogo

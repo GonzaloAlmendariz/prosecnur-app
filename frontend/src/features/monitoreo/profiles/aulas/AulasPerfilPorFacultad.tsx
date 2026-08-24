@@ -38,11 +38,16 @@ export function AulasPerfilPorFacultad({ filas, resumen, facultadEnFoco, onFoco 
 
   if (!facultades.length) {
     return (
-      <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        {sinFacultad
-          ? `Ninguno de los ${fmt(sinFacultad)} cursos-horario del plan declara facultad.`
-          : "El plan todavía no trae cursos-horario."}
-      </p>
+      // La anatomía del vacío del perfil (precedente en `AulasAvanceCuota`):
+      // el wrap exento declara su capacidad y sus reglas ciñen el `p`, en
+      // cualquier pestaña donde este componente se monte.
+      <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <p className="mon-profile-muted">
+          {sinFacultad
+            ? `Ninguno de los ${fmt(sinFacultad)} cursos-horario del plan declara facultad.`
+            : "El plan todavía no trae cursos-horario."}
+        </p>
+      </div>
     );
   }
 
