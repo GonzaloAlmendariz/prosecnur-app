@@ -5,7 +5,7 @@ import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { sexSeriesKind, sexSeriesLabel } from "../../../calcMuestra/sexoPalette";
 import { personasPorAula, personasProyectadas } from "./redondeoConservador";
-import { serieDeRendimiento } from "./serieDeRendimiento";
+import { serieDeRendimiento, veredictoDeCeldaDeCuota } from "./serieDeRendimiento";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -1208,22 +1208,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
             </tr>
           </thead>
           <tbody>
-            {proyectada.cuotas.map((c) => (
-              <tr key={c.sexo} className={c.faltan === 0 ? "es-cumplida" : c.alcanza ? "es-llega" : "es-corta"}>
+            {proyectada.cuotas.map((c) => {
+              // El veredicto lo da `veredictoDeCeldaDeCuota`, no esta fila: aquí
+              // no se podía comprobar —la tabla sólo se monta con una facultad
+              // elegida, y el render estático nunca la ve— y era justo donde
+              // vivía el tercer `0 >= 0` del módulo.
+              const v = veredictoDeCeldaDeCuota(c, fmt, dm);
+              return (
+              <tr key={c.sexo} className={v.clase}>
                 <th scope="row">{c.sexo}</th>
-                <td>{fmt(c.meta)}</td>
+                <td>{v.sinCuota ? "—" : fmt(c.meta)}</td>
                 <td>{fmt(c.observadas)}</td>
-                <td>{c.faltan === 0 ? "—" : fmt(c.faltan)}</td>
+                <td>{v.sinCuota || c.faltan === 0 ? "—" : fmt(c.faltan)}</td>
                 <td>{proyectada.aulasAgendadas ? `~${personasProyectadas(c.esperadasDeLaAgenda)}` : "—"}</td>
-                <td>
-                  {c.faltan === 0
-                    ? "cuota cumplida"
-                    : c.fechaDeCruce
-                      ? `llega el ${dm(c.fechaDeCruce)}`
-                      : `no llega · faltarían ${fmt(c.faltanAlCerrarAgenda)}`}
-                </td>
+                <td>{v.texto}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       ) : null}

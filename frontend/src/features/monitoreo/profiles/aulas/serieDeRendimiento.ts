@@ -257,3 +257,45 @@ export function serieDeRendimiento(
     mediaDelEstudio: redondea(aulasEstudio ? efectivasEstudio / aulasEstudio : 0),
   };
 }
+
+/** El veredicto de una celda de cuota en la tabla de la serie. */
+export type VeredictoDeCeldaDeCuota = {
+  /** Clase de la fila. `es-sin-cuota` cuando no hay objetivo que cerrar. */
+  clase: "es-sin-cuota" | "es-cumplida" | "es-llega" | "es-corta";
+  /** Lo que dice la última columna. */
+  texto: string;
+  /** `true` cuando la celda no declara objetivo: la meta y lo que falta se callan. */
+  sinCuota: boolean;
+};
+
+/**
+ * Qué dice una celda de cuota de la tabla de la serie.
+ *
+ * Vive fuera del componente porque **el veredicto se comprobaba en el markup y
+ * el markup no se podía comprobar**: la tabla sólo se monta con una facultad
+ * elegida, así que un test sobre `renderToStaticMarkup` pasaba sin llegar a
+ * verla nunca. Sacarlo a una función es lo que permite fijar el contrato.
+ *
+ * Y lo que había que fijar es el `0 >= 0` de siempre, en su tercera aparición
+ * tras el KPI de cierre y el panel de avance proyectado: **una celda sin cuota
+ * no es una cuota cumplida**. Con meta 0 la resta da 0, y la fila salía verde y
+ * rotulada «cuota cumplida» sobre un objetivo que nadie pidió.
+ */
+export function veredictoDeCeldaDeCuota(
+  celda: { meta: number; faltan: number; alcanza: boolean; fechaDeCruce: string | null; faltanAlCerrarAgenda: number },
+  fmtNumero: (n: number) => string,
+  fmtFecha: (f: string) => string,
+): VeredictoDeCeldaDeCuota {
+  if (!(celda.meta > 0)) {
+    return { clase: "es-sin-cuota", texto: "sin cuota declarada", sinCuota: true };
+  }
+  if (celda.faltan === 0) return { clase: "es-cumplida", texto: "cuota cumplida", sinCuota: false };
+  if (celda.fechaDeCruce) {
+    return { clase: "es-llega", texto: `llega el ${fmtFecha(celda.fechaDeCruce)}`, sinCuota: false };
+  }
+  return {
+    clase: celda.alcanza ? "es-llega" : "es-corta",
+    texto: `no llega · faltarían ${fmtNumero(celda.faltanAlCerrarAgenda)}`,
+    sinCuota: false,
+  };
+}
