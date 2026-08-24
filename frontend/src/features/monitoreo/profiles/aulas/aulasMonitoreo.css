@@ -5246,7 +5246,7 @@
   align-items: center;
   gap: 6px;
   margin: 0 0 4px;
-  color: var(--pulso-text-secondary);
+  color: var(--pulso-text-soft);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.01em;
@@ -5266,7 +5266,7 @@
    Ocupa la misma celda de la rejilla para que la fila no se recomponga cuando
    aparezca un segundo medio y la barra vuelva. */
 .mon-profile-page.is-aulas-flow .aulas-medio-solo {
-  color: var(--pulso-text-secondary);
+  color: var(--pulso-text-soft);
   font-size: var(--aulas-txt);
 }
 
