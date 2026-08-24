@@ -4,28 +4,10 @@
  */
 
 
-/* El plan viene de un sorteo distinto del vigente: los materiales que se generen
-   llevaran las aulas del plan. No es un error del plan —esta congelado a
-   proposito— pero callarlo hace que las fichas salgan con aulas de otra corrida. */
-.rec-plan-desfase {
-  margin: 10px 0 0;
-  padding: 9px 11px;
-  border: 1px solid var(--pulso-warn-border, var(--pulso-border));
-  border-radius: var(--pulso-radius);
-  background: var(--pulso-warn-surface, var(--pulso-surface-2));
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--pulso-text);
-}
-
-/* La composición del total de fichas, debajo de la cuenta.
-   Bloque propio y no un sufijo en la misma línea: «0 de 2.616» y «193
-   titulares · 507 reemplazos · 1.916 adicionales» son dos lecturas y una sola
-   línea las aplasta. */
-.rec-cuenta-composicion {
-  display: block;
-  margin-top: 2px;
-  color: var(--pulso-text-muted);
-  font-size: 11px;
-  line-height: 1.35;
-}
+/* Vaciado el 2026-08-23: `.rec-plan-desfase` vivia AQUI y su componente en
+ * `PlanSection.tsx`, que importa `./styles/plan.css` y no este archivo. El aviso
+ * de plan desfasado se pintaba sin borde ni fondo de advertencia —texto corrido
+ * junto a los demas parrafos— pese a ser el que evita imprimir 2.616 fichas de
+ * una corrida equivocada. La regla se mudo a `styles/plan.css`, que es quien
+ * llega a pantalla.
+ */

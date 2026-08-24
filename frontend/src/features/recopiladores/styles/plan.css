@@ -329,3 +329,40 @@
   line-height: 1.45;
   margin: 9px 0 0;
 }
+
+/* **El aviso de plan desfasado, que se pintaba sin estilo ninguno.**
+ *
+ * `.rec-plan-desfase` tenía su regla —borde y fondo de advertencia— sólo en
+ * `recopiladores.css`, que NO lo importa nadie: su cabecera dice que es un
+ * marcador de compatibilidad y que las reglas nuevas no vuelvan ahí. Resultado
+ * medido el 2026-08-23: el aviso de que «los materiales llevarán las aulas del
+ * plan, no las del sorteo actual» salía como texto corrido, sin nada que lo
+ * distinguiera del párrafo de al lado. Es el aviso que evita imprimir 2.616
+ * fichas de una corrida equivocada.
+ *
+ * `.rec-plan-desfase-coste` no tenía regla en ningún sitio.
+ */
+.rec-plan-desfase {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-warn-border, var(--pulso-border));
+  border-left-width: 3px;
+  border-radius: var(--pulso-radius);
+  background: var(--pulso-warn-surface, var(--pulso-surface-2));
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pulso-text);
+}
+
+.rec-plan-desfase p {
+  margin: 0;
+}
+
+/* El coste de rehacer va separado del hecho: son dos lecturas —qué pasa y qué
+   perderías— y corridas se leen como una sola advertencia larga. */
+.rec-plan-desfase-coste {
+  margin-top: 8px !important;
+  padding-top: 8px;
+  border-top: 1px solid var(--pulso-warn-border, var(--pulso-border));
+  color: var(--pulso-text-soft);
+}
