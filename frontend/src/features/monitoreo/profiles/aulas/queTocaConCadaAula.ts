@@ -38,7 +38,18 @@ export function queTocaConCadaAula(fila: FilaDeAgenda, corte: string): string {
   const aplicacion = clave(fila.operational_status);
   const tieneParte = Boolean(texto(fila.applied_at) || texto(fila.applied_date));
   // Aplicada o cerrada: el agendador ya no tiene nada que hacer aquí.
-  if (tieneParte || aplicacion === "aplicada" || aplicacion === "cerrada") return "—";
+  //
+  // **«Aplicada», no «—».** El guion decía bien que no toca nada y no decía por
+  // qué, y en esa misma fila la columna de al lado marca «Sin contactar»
+  // —`sample_status` llega vacío del libro y el motor lo normaliza así—. Las dos
+  // juntas se leen como un aula olvidada. Medido el 2026-08-24 con la
+  // simulación de campo: CH 1 a CH 5, aplicadas entre el 1 y el 5 de
+  // septiembre, salían «Sin contactar · —».
+  //
+  // Sigue sin ser una acción, que es lo que esta columna promete para el resto
+  // de filas; es el motivo de que no haya ninguna, y eso es justo lo que
+  // faltaba para poder leer la fila entera.
+  if (tieneParte || aplicacion === "aplicada" || aplicacion === "cerrada") return "Aplicada";
 
   const estado = clave(fila.sample_status);
   // Una reemplazada salió del plan por su reserva: ya no se llama a este docente.
