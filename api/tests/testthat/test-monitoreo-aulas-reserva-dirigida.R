@@ -97,3 +97,102 @@ test_that("sin banco o sin facultad no inventa candidatos", {
   expect_equal(length(monitoreo_aulas_reserva_dirigida(list(), "DERECHO", "F")), 0L)
   expect_equal(length(monitoreo_aulas_reserva_dirigida(.mard_pool(), "", "F")), 0L)
 })
+
+
+# --- Candidatos por celda, solo donde hay decision que tomar -----------------
+
+.mard_avance <- function() list(
+  list(faculty = "DERECHO", sex = "F", brecha = 5L, estado = "deficit_proyectado"),
+  list(faculty = "DERECHO", sex = "M", brecha = 0L, estado = "asegurada"),
+  list(faculty = "PSICOLOGIA", sex = "F", brecha = 90L, estado = "deficit_no_subsanable")
+)
+
+.mard_plan <- function() list(
+  # El banco: lo que sobro tras armar las cadenas.
+  c(.mard_aula("E1", "DERECHO", 40, "F", 34, "M", 6), list(sample_role = "extra_reserve_pool")),
+  c(.mard_aula("E2", "DERECHO", 40, "F", 20, "M", 20), list(sample_role = "extra_reserve_pool")),
+  c(.mard_aula("E3", "PSICOLOGIA", 20, "F", 18, "M", 2), list(sample_role = "extra_reserve_pool")),
+  # Un titular NO es banco: usarlo seria mandar al equipo a un aula que ya
+  # estaba en el plan.
+  c(.mard_aula("T1", "DERECHO", 40, "F", 40, "M", 0), list(sample_role = "titular"))
+)
+
+.mard_por_celda <- function() {
+  r <- monitoreo_aulas_reserva_por_celda(.mard_avance(), .mard_plan())
+  stats::setNames(r, vapply(r, function(x) paste0(x$faculty, "|", x$sex), character(1)))
+}
+
+test_that("solo se calculan candidatos para las celdas que NO van a llegar", {
+  # Una celda asegurada no necesita candidatos, y calcularlos para las quince
+  # seria trabajo que nadie mira.
+  r <- .mard_por_celda()
+  expect_setequal(names(r), c("DERECHO|F", "PSICOLOGIA|F"))
+})
+
+test_that("los titulares NO son banco", {
+  # Mandar al equipo a un aula que ya estaba en el plan no cierra nada.
+  ids <- vapply(.mard_por_celda()[["DERECHO|F"]]$candidatos,
+                function(x) x$classroom_id, character(1))
+  expect_false("T1" %in% ids)
+  expect_true(all(ids %in% c("E1", "E2")))
+})
+
+test_that("la frase dice si el banco ALCANZA, no cuantas aulas tiene", {
+  # «Hay 2 candidatos» no responde si con esos 2 se cierra la brecha.
+  d <- .mard_por_celda()[["DERECHO|F"]]
+  expect_true(d$alcanza)
+  expect_match(d$etiqueta, "se cierra")
+  expect_match(d$etiqueta, "faltan 5")
+
+  # Y cuando no alcanza, lo dice con las dos cifras.
+  p <- .mard_por_celda()[["PSICOLOGIA|F"]]
+  expect_false(p$alcanza)
+  expect_match(p$etiqueta, "no alcanza")
+  expect_match(p$etiqueta, "faltan 90")
+})
+
+test_that("una celda sin banco de su facultad lo dice, no devuelve una lista vacia muda", {
+  r <- monitoreo_aulas_reserva_por_celda(
+    list(list(faculty = "EDUCACION", sex = "F", brecha = 3L, estado = "deficit_proyectado")),
+    .mard_plan()
+  )
+  expect_equal(length(r), 1L)
+  expect_equal(length(r[[1]]$candidatos), 0L)
+  expect_false(r[[1]]$alcanza)
+  expect_match(r[[1]]$etiqueta, "no tiene aulas de esa facultad")
+})
+
+test_that("sin banco o sin celdas en deficit no devuelve nada", {
+  solo_titulares <- Filter(function(f) identical(f$sample_role, "titular"), .mard_plan())
+  expect_equal(length(monitoreo_aulas_reserva_por_celda(.mard_avance(), solo_titulares)), 0L)
+  sanas <- list(list(faculty = "DERECHO", sex = "F", brecha = 0L, estado = "asegurada"))
+  expect_equal(length(monitoreo_aulas_reserva_por_celda(sanas, .mard_plan())), 0L)
+})
+
+test_that("ninguna frase de la reserva usa jerga", {
+  frases <- vapply(.mard_por_celda(), function(x) x$etiqueta, character(1))
+  expect_false(any(grepl(MONITOREO_AULAS_JERGA_PROHIBIDA, frases, ignore.case = TRUE)))
+})
+
+
+test_that("la reserva dirigida viaja en el payload del dashboard", {
+  # El contrato del cableado. Sin el, quitar la linea del ensamblador no rompe
+  # nada y la vista se queda sin candidatos en silencio -que es peor que no
+  # tenerlos: parece que el banco no sirve-.
+  plan <- list(
+    list(operational_code = "CH 1", classroom_id = "a1", faculty = "DERECHO",
+         sample_role = "titular", expected_valid = 10, eligible_n = 30,
+         sample_status = "agendada", operational_status = "aplicada", responses_total = 4),
+    list(operational_code = "E 1", classroom_id = "e1", faculty = "DERECHO",
+         sample_role = "extra_reserve_pool", eligible_n = 30,
+         sex_top_1 = "F", sex_top_1_n = 25, sex_top_2 = "M", sex_top_2_n = 5)
+  )
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list())
+  # Presente y con forma de lista, aunque este vacia: `NULL` significaria que el
+  # motor no la publica, y vacia que no hay celda en deficit. No es lo mismo.
+  expect_false(is.null(d$reserva_dirigida))
+  expect_true(is.list(d$reserva_dirigida))
+  # Y el avance que la alimenta se publica al lado, no en su lugar.
+  expect_false(is.null(d$avance_sexo_facultad))
+  expect_false(is.null(d$quotas_sex_faculty))
+})

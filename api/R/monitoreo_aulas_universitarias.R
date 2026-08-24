@@ -1602,6 +1602,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # con 4 476 mientras los dos paneles de debajo decian 4 336: los 140 del banco,
   # otra vez, y en la unica cifra que se lee sin bajar la vista.
   quotas_sex_faculty <- .monitoreo_aulas_quota_sex_faculty(tracked_df, responses, cfg, valid_response, response_classroom)
+  # El avance se calcula UNA vez: lo consumen el payload y la reserva dirigida,
+  # y dos cálculos del mismo dato es cómo dos lecturas empiezan a discrepar.
+  # Sobre `tracked_df`, que excluye el banco: el previsto sale de las aulas del
+  # plan, no de las que están esperando en el estrato.
+  .mau_avance_celdas <- monitoreo_aulas_avance_sexo_facultad(
+    .monitoreo_aulas_records(tracked_df), quotas_sex_faculty
+  )
 
   # POR FACULTAD, en el motor y no en la vista.
   #
@@ -1992,8 +1999,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # retrospectivo y no en su lugar: `quotas_sex_faculty` dice donde estas y
     # esto dice si vas a llegar y si el campo se comporta como el modelo. Son
     # dos lecturas y las dos sirven.
-    avance_sexo_facultad = monitoreo_aulas_avance_sexo_facultad(
-      .monitoreo_aulas_records(tracked_df), quotas_sex_faculty
+    avance_sexo_facultad = .mau_avance_celdas,
+    # Y para las celdas que NO van a llegar, a que aula del banco ir. Solo donde
+    # hay decision que tomar: una celda asegurada no necesita candidatos.
+    reserva_dirigida = monitoreo_aulas_reserva_por_celda(
+      .mau_avance_celdas, .monitoreo_aulas_records(plan_df)
     ),
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
