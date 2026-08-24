@@ -191,7 +191,25 @@ monitoreo_aulas_control_meta <- function(fila) {
   if (!is.finite(logrado)) logrado <- .mac_num(fila[["effective_surveys"]])
   if (!is.finite(logrado)) logrado <- .mac_num(fila[["sent_total"]])
   if (!is.finite(logrado)) return(NA)
-  logrado >= meta
+  # **La meta se redondea antes de comparar, y la media vuelta va ARRIBA.**
+  #
+  # `logrado >= meta` con la meta cruda parece «no redondear» y no lo es: lo
+  # conseguido son personas, siempre entero, asi que `17 >= 17,4` es identico a
+  # `17 >= 18`. Es un techo implicito que nadie decidio, y pide a cada aula
+  # rendir por encima de su propia media cuando por construccion la mitad cae por
+  # debajo. Medido sobre las 194 aulas aplicadas de 2025 —191 de ellas con meta
+  # no entera—: el criterio crudo declara 103 conformes y este declara 113. Las
+  # diez de diferencia llegaron a su meta; una entrego 19 contra una meta de
+  # 19,02 que la superficie mostraba como «19,0».
+  #
+  # `floor(x + 0.5)` y NO `round()`: R redondea al par —`round(16.5)` es 16,
+  # `round(17.5)` es 18, `round(0.5)` es 0—, asi que la mitad de los empates
+  # caeria hacia abajo sin avisar.
+  #
+  # Esto es la vara de UNA aula. Los agregados (balance del dia, cobertura de la
+  # celda) suman metas CRUDAS: sumar metas ya redondeadas mueve el total sin que
+  # nadie haya ido a ningun sitio.
+  logrado >= floor(meta + 0.5)
 }
 
 #' Filas de «Base de control» listas para publicar.
