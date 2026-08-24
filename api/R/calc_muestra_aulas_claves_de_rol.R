@@ -22,12 +22,38 @@
 #' resuelve `course_id`. Los dos niveles de arriba —nombre exacto y clave
 #' normalizada— siguen intactos, que es como «Tipo Curso» se resuelve de verdad.
 #'
+#' **La enumeración no se sostuvo.** La lista literal nombraba `tipo_curso` y
+#' `tipo_de_curso`, y después se sumaron a `session_type` tres candidatos más
+#' —`desctipocurso`, `desc_tipo_curso`, `descripcion_tipo_curso`—: los tres
+#' contienen «curso», ninguno estaba en la lista, y `desctipocurso` volvió a
+#' enganchar la columna `curso`. Ampliar los candidatos y la guarda son dos
+#' actos separados, y el segundo se olvida. Por eso la prohibición se DERIVA
+#' (ver `.cm_aulas_par_prohibido()`) en vez de enumerarse.
+#'
+#' Este vector queda para parejas que la regla no cubra; hoy está vacío.
+#'
 #' @keywords internal
-.cm_aulas_pares_prohibidos <- c("curso|tipo_curso", "curso|tipo_de_curso")
+.cm_aulas_pares_prohibidos <- character(0)
 
 #' ¿Esta pareja columna–candidato está prohibida por subcadena inversa?
 #'
+#' Regla: la columna `curso` —el CÓDIGO del curso— nunca resuelve por subcadena
+#' inversa un candidato que denote el TIPO de curso. Un candidato es «de tipo»
+#' cuando su clave contiene a la vez `curso` y `tipo`, que es lo que comparten
+#' las cinco variantes de `session_type` sin excepción.
+#'
+#' Deja intacto lo que el tercer nivel sí debe hacer: `curso` → `curso_id`
+#' (`course_id`) no menciona `tipo`, así que sigue resolviendo.
+#'
 #' @keywords internal
 .cm_aulas_par_prohibido <- function(col_key, cand_key) {
+  col_key <- as.character(col_key)[1]
+  cand_key <- as.character(cand_key)[1]
+  if (is.na(col_key) || is.na(cand_key)) return(FALSE)
+  if (identical(col_key, "curso") &&
+      grepl("curso", cand_key, fixed = TRUE) &&
+      grepl("tipo", cand_key, fixed = TRUE)) {
+    return(TRUE)
+  }
   paste0(col_key, "|", cand_key) %in% .cm_aulas_pares_prohibidos
 }
