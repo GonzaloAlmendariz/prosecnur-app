@@ -204,3 +204,66 @@
     display: none;
   }
 }
+
+/* **El chip de estado de la barra de módulo, que se veía como un botón más.**
+ *
+ * `.pulso-chrome-status-chip` no tenía regla en ningún CSS importado: el
+ * elemento es un `<button>` y heredaba el padding del botón genérico, así que
+ * «accesos sin preparar» —el aviso que explica por qué los tres botones de
+ * render están apagados— se leía como una acción disponible más de la barra.
+ * Medido el 2026-08-23 con `getComputedStyle` y la lista de reglas que le
+ * aplican: sólo `*`, `button, input` y `button`, ninguna suya.
+ *
+ * Y `data-tone` lo escribía el componente sin que nadie lo leyera: los cinco
+ * tonos del tipo `ChromeStatusTone` pintaban exactamente igual.
+ */
+.pulso-chrome-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--pulso-border);
+  border-radius: 999px;
+  background: var(--pulso-surface-2);
+  color: var(--pulso-text-soft);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* Un chip sin acción no es un botón apagado: es una etiqueta. Sin esto se veía
+   como una acción que no se puede pulsar, que es otra cosa. */
+.pulso-chrome-status-chip:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.pulso-chrome-status-chip:not(:disabled):hover {
+  border-color: var(--pulso-border-strong);
+  background: var(--pulso-surface);
+}
+
+.pulso-chrome-status-chip[data-tone="info"] {
+  border-color: var(--pulso-info-border);
+  background: var(--pulso-info-bg);
+  color: var(--pulso-info-fg);
+}
+
+.pulso-chrome-status-chip[data-tone="success"] {
+  border-color: var(--pulso-success-border);
+  background: var(--pulso-success-bg);
+  color: var(--pulso-success-fg);
+}
+
+.pulso-chrome-status-chip[data-tone="warn"] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+  color: var(--pulso-warn-fg);
+}
+
+.pulso-chrome-status-chip[data-tone="danger"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+  color: var(--pulso-danger-fg);
+}
