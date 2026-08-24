@@ -130,12 +130,6 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
   list(meta = meta, diario = diario, aplicadores = aplicadores)
 }
 
-#' Escribe la hoja de indicadores en el workbook.
-#'
-#' @param wb workbook abierto.
-#' @param ind salida de `aulas_libro_indicadores()`.
-#' @param hoja nombre de la hoja.
-#' @export
 #' Por que no hay avance diario, en una frase.
 #'
 #' Un «—» dice que falta el dato; no dice que hacer. Las dos causas piden cosas
