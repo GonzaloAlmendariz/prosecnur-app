@@ -1274,7 +1274,13 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
     decimales = 0
   )
   layer_apiladas_fuera <- Filter(function(layer) inherits(layer$geom, "GeomText"), p_apiladas_fuera$layers)[[1]]$data
-  expect_true(all(layer_apiladas_fuera$.col_label == "white"))
+  # Las tres etiquetas caen DENTRO de su barra, y ahi el color lo decide la
+  # luminancia del segmento sobre el que se pintan: blanco sobre los dos
+  # oscuros, azul de marca sobre el claro. `color_texto_barras` fija el color
+  # de partida, no el resultado final del contraste.
+  col_por_lab <- setNames(layer_apiladas_fuera$.col_label, layer_apiladas_fuera$lab)
+  expect_equal(unname(col_por_lab[c("20%", "35%")]), c("white", "white"))
+  expect_equal(unname(col_por_lab[["45%"]]), "#081F5C")
   expect_true(all(layer_apiladas_fuera$.hjust_label == 0.5))
   expect_false(any(layer_apiladas_fuera$.label_fuera))
 
@@ -1411,7 +1417,12 @@ test_that("barras de PPT pueden mostrar porcentaje con frecuencia", {
   layout_agrupadas <- attr(p_agrupadas_100, "pulso_barras_agrupadas_layout")
   expect_equal(layout_agrupadas$base_max, 1)
   expect_false(layout_agrupadas$usar_eje_libre)
-  expect_equal(layout_agrupadas$grosor_eff, 0.68 * 5 / 8, tolerance = 1e-8)
+  # `0.68 * 5 / 8` es lo que da la fraccion de fila
+  # (`.barras_agrupadas_grosor_eff`), pero NO es lo que se publica: encima corre
+  # el piso en centimetros (`.grosor_con_piso_in`), que sube 0.425 a 0.6095. El
+  # piso se añadio porque la fraccion controla el nivel y no la dispersion:
+  # medido sobre el mazo, once graficos caian por debajo del entregable aprobado.
+  expect_equal(layout_agrupadas$grosor_eff, 0.6095238095, tolerance = 1e-8)
 })
 
 test_that("barras ACNUR conservan 16 pt y asignan ancho segun sus etiquetas", {
@@ -1536,7 +1547,11 @@ test_that("PPT usa textos pulidos para selección múltiple y Top 2 Box", {
   slide_files <- grep("^ppt/slides/slide[0-9]+\\.xml$", unzip(out, list = TRUE)$Name, value = TRUE)
   xml <- paste(unlist(lapply(unzip(out, files = slide_files, exdir = tempdir()), readLines, warn = FALSE)), collapse = " ")
 
-  expect_true(grepl("Top 2 Box", xml, fixed = TRUE))
+  # El rotulo es «TOP TWO BOX», como lo escribe el entregable aprobado en sus
+  # 41 laminas (`.PPT_ROTULO_TOP_TWO_BOX`). Buscar «Top 2 Box» sobre ese mismo
+  # entregable devolvia 0 columnas cuando tiene 40, que es lo que motivo el
+  # cambio de forma.
+  expect_true(grepl("TOP TWO BOX", xml, fixed = TRUE))
   expect_false(grepl("N =", xml, fixed = TRUE))
   expect_true(grepl("Pregunta de opción múltiple", xml, fixed = TRUE))
 })

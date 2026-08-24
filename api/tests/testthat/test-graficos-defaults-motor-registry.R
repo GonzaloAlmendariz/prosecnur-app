@@ -54,6 +54,8 @@ source("setup-load-all.R")
     "El preset ordena la leyenda como el pie se dibuja; el motor no asume sentido de giro.",
   "pie|ordenar_categorias" =
     "El preset ordena por tamaño natural del sector; el motor respeta el orden recibido.",
+  "donut|ordenar_categorias" =
+    "Misma razón que `pie|ordenar_categorias`: el donut es el mismo gráfico con el centro hueco, así que su preset ordena por tamaño natural del sector y el motor desnudo respeta el orden recibido.",
   "pie|tipo_pie" =
     "El motor nace donut por su uso en grids densas; el preset del tipo `pie` lo devuelve a pie.",
   "barras_numericas|mostrar_n_sobre_barras" =

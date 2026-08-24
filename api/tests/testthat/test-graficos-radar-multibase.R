@@ -360,7 +360,10 @@ test_that("el encabezado de la tabla se escribe a mano y las columnas se renombr
   # Las columnas de publico se renombran por clave; lo que no se nombra se queda.
   renom <- .radar_mb_nombres_tabla(tabla, encabezados = list(docentes = "Docentes"))
   expect_equal(renom[2], "Docentes")
-  expect_equal(.radar_mb_nombres_tabla(tabla, encabezados = list(nadie = "X"))[2], "docentes")
+  # Una clave que no existe no renombra nada, pero la capitalizacion de los
+  # nombres crudos ya se aplico: solo un encabezado declarado a mano sale
+  # literal en minuscula.
+  expect_equal(.radar_mb_nombres_tabla(tabla, encabezados = list(nadie = "X"))[2], "Docentes")
 })
 
 test_that("los renombres se declaran como en las multiapiladas", {
