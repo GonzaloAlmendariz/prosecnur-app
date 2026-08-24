@@ -601,7 +601,7 @@ export function buildModuleCardView(
           state === "warning"
             ? "Requiere atención"
             : state === "ready"
-              ? "Listas para imprimir"
+              ? "Titulares con enlace"
               : state === "active"
                 ? "En preparación"
                 : "Por iniciar",
@@ -611,16 +611,24 @@ export function buildModuleCardView(
               current,
               total,
               display: `${current}/${total}`,
-              label: "fichas con enlace",
+              // **«titulares», no «fichas».** El denominador es
+              // `collectors.titulares` porque el operativo real se mide sobre
+              // ellas —«las reservas son respaldo», dice el motor—, pero la
+              // palabra «ficha» significa otra cosa a un click de aqui: en
+              // Materiales las fichas son las **2.616** unidades del plan,
+              // porque una reserva necesita la suya impresa el dia que su
+              // titular cae. Medido el 2026-08-23: «193 fichas» aqui y «0 de
+              // 2.616» alla, las dos correctas y la misma palabra.
+              label: "titulares con enlace",
             }
-          : { kind: "stat", value: "Sin fichas", label: "plan de recopilación" },
+          : { kind: "stat", value: "Sin titulares", label: "plan de recopilación" },
         emphasis: total > 0 ? undefined : "activity",
         sub:
           total === 0
             ? "Aún no hay aulas titulares en el plan"
             : collectors.without_link > 0
-              ? `${formatCount(collectors.without_link)} fichas requieren enlace`
-              : "Todas las fichas tienen enlace",
+              ? `${formatCount(collectors.without_link)} titulares requieren enlace`
+              : "Todos los titulares tienen enlace",
         // Los pies dicen lo que la barra NO dice. Tenían «con enlace 0» y
         // «faltantes 193» debajo de una barra que ya marcaba «0/193» y de un
         // subtítulo que ya decía «193 fichas requieren enlace»: el mismo dato
