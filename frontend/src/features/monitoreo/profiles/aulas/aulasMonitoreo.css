@@ -5135,10 +5135,16 @@
  * Ochenta píxeles de nada entre la frase y la tabla, y ochenta que la tabla no
  * tenía.
  *
- * `min-content` en las filas automáticas las deja en su alto natural; la última
- * —la tabla o la franja de días, según el estado— se queda con lo que sobre.
- * Se declara por hijo y no por posición porque el panel cambia de contenido:
- * con fechas trae el calendario, sin ellas el párrafo del vacío. */
+ * La regla de arriba —`auto minmax(0, 0.9fr) minmax(200px, 1fr)`— reparte
+ * pensando en la franja de días como SEGUNDO hijo. Cuando no hay días, ese
+ * segundo hijo es el párrafo del vacío y se queda con la fracción que era del
+ * calendario. Se corrige sólo en ese estado, con `:has()`, que es como el resto
+ * de este archivo distingue las variantes del panel.
+ *
+ * Un `grid-auto-rows: min-content` no servía: las dos primeras filas están
+ * declaradas explícitamente, y `grid-auto-rows` sólo alcanza a las implícitas.
+ * Comprobado en el navegador antes de cambiarlo —las filas seguían en
+ * `50.7 / 132.6 / 200`—. */
 .mon-profile-page.is-aulas-flow .aulas-mon-view .mon-profile-panel.aulas-agenda-panel:not(:has(.aulas-agenda-dias)) {
   grid-template-rows: auto auto minmax(0, 1fr);
 }
