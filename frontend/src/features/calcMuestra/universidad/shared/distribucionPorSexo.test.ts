@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { etiquetaDeSexo, universityDistributionRows } from "./study";
-import type { CalcMuestraComponente } from "./study";
+// El tipo vive en la capa de API, no en `study.ts`, que sólo lo reexporta para
+// su propio uso.
+import type { CalcMuestraComponente } from "../../../../api/calcMuestra";
 
 /**
  * **Las dos columnas de la tabla de cuotas salían intercambiadas.**
