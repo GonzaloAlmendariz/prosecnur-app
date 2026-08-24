@@ -29,15 +29,15 @@ Las reparaciones de producto fueron iteraciones acotadas sobre cache:
 
 | Perfil | Proyecto usado | Tipo | Estado en esta pasada |
 | --- | --- | --- | --- |
-| Territorial | `/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso` | Real | all-tabs real vigente; queda alto el costo de import/montaje territorial en dev |
-| Acreditacion | `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso` | Real | intento real; scope cache elimina duplicados y deja como cuello principal el costo de preparacion inicial/render all |
-| Aulas universitarias | `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/monitoreo-audit/monitoreo-aulas_universitarias.pulso` | Fixture local | medido de extremo a extremo |
-| Telefonico | `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/monitoreo-telefonico-profile.pulso` | Fixture local | medido de extremo a extremo |
+| Territorial | `<ruta de trabajo local> ACNUR/ACNURCG.pulso` | Real | all-tabs real vigente; queda alto el costo de import/montaje territorial en dev |
+| Acreditacion | `<ruta de trabajo local>` | Real | intento real; scope cache elimina duplicados y deja como cuello principal el costo de preparacion inicial/render all |
+| Aulas universitarias | `<ruta de trabajo local>` | Fixture local | medido de extremo a extremo |
+| Telefonico | `<ruta de trabajo local>` | Fixture local | medido de extremo a extremo |
 
 Inventario verificado en esta pasada:
 
-- `/Users/gonzaloalmendariz/Documents/Pulso/HSVG2026.pulso` es un proyecto real con `calc_muestra_aulas_config` y `calc_muestra_aulas_frame`, pero no contiene `monitoreo_config`, `monitoreo_snapshot`, `monitoreo_aulas_plan` ni `monitoreo_aulas_snapshot`; por tanto no prueba Monitoreo Aulas.
-- `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/api/inst/audit_reference/prosecnur_audit_reference.pulso` y `tmp/monitoreo-audit/monitoreo-aulas_universitarias.pulso` si tienen `family=aulas_universitarias`, pero son fixtures/canonicos, no proyectos reales de campo.
+- `<ruta de trabajo local>` es un proyecto real con `calc_muestra_aulas_config` y `calc_muestra_aulas_frame`, pero no contiene `monitoreo_config`, `monitoreo_snapshot`, `monitoreo_aulas_plan` ni `monitoreo_aulas_snapshot`; por tanto no prueba Monitoreo Aulas.
+- `<ruta de trabajo local>` y `tmp/monitoreo-audit/monitoreo-aulas_universitarias.pulso` si tienen `family=aulas_universitarias`, pero son fixtures/canonicos, no proyectos reales de campo.
 - No se encontro un proyecto telefonico real adicional; el unico `.pulso` con `family=telefonico` localizado es el fixture `tmp/visual-qa/monitoreo-telefonico-profile.pulso`.
 
 ## Harness
@@ -46,10 +46,10 @@ Comando canonico:
 
 ```bash
 node scripts/monitoreo-hydration-performance-check.mjs \
-  --project-territorial "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso" \
-  --project-acreditacion "/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso" \
-  --project-aulas "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/monitoreo-audit/monitoreo-aulas_universitarias.pulso" \
-  --project-telefonico "/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/monitoreo-telefonico-profile.pulso" \
+  --project-territorial "<ruta de trabajo local> ACNUR/ACNURCG.pulso" \
+  --project-acreditacion "<ruta de trabajo local>" \
+  --project-aulas "<ruta de trabajo local>" \
+  --project-telefonico "<ruta de trabajo local>" \
   --url http://127.0.0.1:5174/ \
   --api-url http://127.0.0.1:8788 \
   --out tmp/perf/monitoreo-hydration \

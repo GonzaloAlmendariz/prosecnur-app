@@ -1,5 +1,11 @@
 # GOAL — Método y Simulación se entienden solas
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-22
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Doc vivo. Abierto el 2026-08-22. Sólo Gonzalo lo da por terminado.
 
 ---
@@ -1447,7 +1453,7 @@ nota. La comprobación vale cuando se hace para **cada** cadena que se toca.
 
 ## El worker de jobs va con el paquete instalado, no con el fuente
 
-Comprobado sobre `/Users/gonzaloalmendariz/Library/R/arm64/4.5/library/prosecnurapp`:
+Comprobado sobre `<ruta de trabajo local>`:
 
 | Cambio de esta jornada | ¿está en el instalado? |
 |---|---|

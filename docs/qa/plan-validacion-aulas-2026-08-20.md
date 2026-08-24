@@ -1,5 +1,11 @@
 # Plan de 25 ticks — Monitoreo de aulas: Validación como instrumento
 
+Tipo: Plan de trabajo QA
+Estado: Vigente
+Fecha: 2026-08-20
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Encargo de Gonzalo, 2026-08-20: «necesitas diseñar desde ya un plan de
 aproximadamente veinticinco ticks, porque lo que tienes que hacer es amplio y
 creo que no lo estás planificando con ese nivel de largo plazo».

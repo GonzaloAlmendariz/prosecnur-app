@@ -24,8 +24,8 @@ Loop date: 2026-06-27
 - Canonical topbar sections detected: Fuentes, Modelo operativo, Consultas, Telefonico, Avance.
 - Canonical nested tabs/modes detected: Fuentes `survey/sheets/activas`; Modelo `estructura/casos/enlaces/reglas/estrategias`; Consultas `casos/efectivas/faltantes/duplicados/diferencias`; Telefonico `resumen/dia/responsables/alertas`; Avance `resumen/actores/encuestas/detalle/salidas`.
 - Backend/API reviewed: report scopes/cache, state payload, accreditation reports, seguimiento, cierre, case reconciliation, publication outputs.
-- User-provided project used after objective update: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
-- User-provided CSV used as reconciliation parity evidence: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-alertas-appscript-vs-reconciliacion-app-20260623.csv`.
+- User-provided project used after objective update: `<ruta de trabajo local>`.
+- User-provided CSV used as reconciliation parity evidence: `<ruta de trabajo local>`.
 
 ## Iteration contract
 

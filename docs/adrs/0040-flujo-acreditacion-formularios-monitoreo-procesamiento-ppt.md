@@ -307,5 +307,5 @@ ADRs relacionados: [0013](0013-importacion-workbook-surveymonkey-offline.md),
 [0030](0030-grupos-repeat-end-to-end.md),
 [0032](0032-handoff-instrumento-siempre-local.md),
 [0033](0033-reconciliacion-variables-data-xlsform.md),
-[0035 — Editor multi-formulario](0035-editor-xlsform-coleccion-multi-formulario.md)
+[0035 — Editor multi-formulario](0081-editor-xlsform-coleccion-multi-formulario.md)
 y [0036](0036-filtro-universo-manual-en-carga.md).

@@ -49,7 +49,7 @@ Scope lock:
   - `pnpm --dir frontend typecheck`
   - `git diff --check -- api/R/surveymonkey_multibase.R api/tests/testthat/test-acreditacion-multi-actor-processing.R frontend/src/api/client.ts frontend/src/api/client.test.ts frontend/src/features/carga/BasesPanel.tsx frontend/src/features/carga/BasesPanel.test.ts frontend/src/app/theme.css`
   - QA visual manual Playwright con
-    `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+    `<ruta de trabajo local>`.
 - Result: todos los comandos pasaron. Evidencia visual:
   - `tmp/visual-qa/manual/acrconta-sm-actor-logic/report.json`
   - `tmp/visual-qa/manual/acrconta-sm-actor-logic/carga-sm-actor-logic-1440x1000.png`

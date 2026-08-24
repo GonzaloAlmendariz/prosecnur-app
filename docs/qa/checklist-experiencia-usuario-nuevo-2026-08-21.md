@@ -1,5 +1,11 @@
 # Checklist — experiencia del usuario nuevo en Cálculo de muestra (2026-08-21)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-21
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Regla de la casa: un pedido con varias indicaciones se convierte en checklist
 antes de tocar código, con **dónde vive** cada una y su estado. Se dibuja
 entero cada vez que se menciona; sólo Gonzalo lo da por terminado.

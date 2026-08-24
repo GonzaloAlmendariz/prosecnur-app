@@ -1,5 +1,11 @@
 # Checklist — nueve arreglos al motor, los presets y el proyecto
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-11
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Pedido de Gonzalo, 2026-08-11. Documento vivo: se marca sobre él y sólo él lo
 cierra. Cada ítem lleva **dónde vive** (motor / preset / proyecto), porque eso
 decide quién lo puede tocar y con qué gate.
@@ -62,7 +68,7 @@ exportar con PowerPoint:
 ```
 osascript -e 'tell application "Microsoft PowerPoint"
   open POSIX file "/ruta/mazo.pptx"
-  save active presentation in POSIX file "/tmp/real.pdf" as save as PDF
+  save active presentation in POSIX file "<ruta temporal>/real.pdf" as save as PDF
   close active presentation saving no
 end tell'
 ```

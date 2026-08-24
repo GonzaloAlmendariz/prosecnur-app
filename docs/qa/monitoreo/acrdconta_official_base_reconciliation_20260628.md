@@ -32,7 +32,7 @@ one valid canonical base record.
 ## Inputs
 
 - Project used:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+  `<ruta de trabajo local>`.
 - Sheet compared:
   `https://docs.google.com/spreadsheets/d/1htx4wsvw7eX67k_C1dmD5krsP_1gdDFa0Wd9g0bIJW4/edit?gid=153446394#gid=153446394`.
 - Sheet tab: `Resumen`, updated there as `28/06/2026 12:52`.
@@ -137,9 +137,9 @@ At user request, the project `.pulso` itself was updated after the comparison.
 The Google Sheet was still not written.
 
 - Updated project:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+  `<ruta de trabajo local>`.
 - Backup created before overwrite:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.backup-20260628-135817.pulso`.
+  `<ruta de trabajo local>`.
 - SHA-256 before:
   `a4f61b76c93fa9503e4b0d87ebe709aabab9cd58540f57b127f00e6b52aaa59e`.
 - SHA-256 after:

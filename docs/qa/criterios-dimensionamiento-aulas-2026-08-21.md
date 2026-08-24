@@ -1,5 +1,11 @@
 # Criterios de dimensionamiento del muestreo de aulas
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-21
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Doc vivo. Abierto el 2026-08-21 a partir de la pregunta de Gonzalo: «¿qué más
 podemos dimensionar o tener como criterio de dimensionamiento?».
 

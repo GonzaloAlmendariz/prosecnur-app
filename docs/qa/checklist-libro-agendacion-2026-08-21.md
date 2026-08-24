@@ -1,5 +1,11 @@
 # Checklist — el libro de agendación deja de calcar el Excel viejo
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-21
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Quién usa este libro** (aclaración suya, y es el criterio que ordena todo lo demás): «el agendador solo ve el excel, no la app; la app se nutre del excel para alimentar la app». Dos personas, dos herramientas. Este libro es de quien agenda y de quien aplica — cada hoja que no se llena le quita sitio a las que sí, y **L7 sube de prioridad**: si el Excel es su única herramienta, no ver el teléfono mientras escribe es más grave.
 
 **Origen**: revisión de Gonzalo del 21/08/2026 sobre

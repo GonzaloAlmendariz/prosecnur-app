@@ -1,5 +1,11 @@
 # Las preguntas que el libro permite y la app contesta (o no)
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-08-18
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Las tres hojas del operativo están mapeadas campo a campo desde `267db02f`
 —agendamiento 20, parte de campo 11, base de control 25—. Ese inventario dice
 **qué datos hay**. Este documento dice **qué preguntas permiten**, quién las

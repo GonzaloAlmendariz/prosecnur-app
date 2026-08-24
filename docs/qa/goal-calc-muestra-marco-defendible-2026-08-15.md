@@ -1,7 +1,7 @@
 # GOAL — Cálculo de muestra: el marco se puede defender
 
 Tipo: Goal operativo (loop de convergencia)
-Estado: Abierto
+Estado: En curso
 Fecha: 2026-08-15
 Autoridad: Objetivo de trabajo medible; **sólo Gonzalo lo cierra**
 
@@ -275,7 +275,7 @@ fixture que miente.
 | Exclusiones sin causa | 0 | 0 |
 
 Los 21.362 reconcilian con los 21.365 del frame guardado. Resultado en
-`outputs/reference-runs/hsvg2026-reparado.pulso`, con marco y selección dentro.
+`hsvg2026-reparado.pulso` (bajo el directorio de salidas, no versionado), con marco y selección dentro.
 
 **Nota del contrato `.pulso`:** al reabrir, `population` baja de 21.362 a 238
 porque los caches derivables se podan al guardar (es lo esperado, ADR del

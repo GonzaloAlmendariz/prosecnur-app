@@ -1,5 +1,11 @@
 # GOAL — el mazo sale sin retoques
 
+Tipo: Registro de goal loop
+Estado: Vigente
+Fecha: 2026-08-12
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Abierto 2026-08-12 desde el checklist de los dos lotes, que ya está cerrado en lo
 implementado. Documento vivo: **sólo Gonzalo lo cierra**.
 

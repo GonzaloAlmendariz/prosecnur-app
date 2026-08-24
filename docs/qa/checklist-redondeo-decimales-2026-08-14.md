@@ -1,5 +1,11 @@
 # Checklist — redondeo y decimales como configuración general de Gráficos
 
+Tipo: Checklist QA fechado
+Estado: Vigente
+Fecha: 2026-08-14
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-14 · **Origen**: revisión de `ACRD CONTA/Revisón graficos.xlsx`
 (64 observaciones PPT vs SPSS) · **Estado**: cerrado. Cinco tandas: motor,
 configuración, interfaz, entregable y —tras regenerar el PPT y verlo sin

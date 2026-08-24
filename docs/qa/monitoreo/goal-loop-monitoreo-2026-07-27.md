@@ -1045,7 +1045,7 @@ explícito ni metadata operacional inequívoca quedan fuera.
 #### Resultado medido — iteración 68
 
 - El original
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`
+  `<ruta de trabajo local>`
   no se modificó: `mtime 2026-07-25 19:42:48 -0500`, tamaño `269798` y SHA-256
   `b1b27e2c77db51c3b3bab8f2f3bbe8851e0cf9d853b1ef4ca89ea3e6d6da0e34`.
   Todo el QA mutante/visual usó la copia descartable

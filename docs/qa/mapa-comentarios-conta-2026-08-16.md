@@ -1,5 +1,11 @@
 # Mapa de los 57 comentarios del mazo de Contabilidad
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-16
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Fuente**: `Informe Conta 12-08_REVISADO HASTA SLIDE 32.pptx` · **Abierto**: 2026-08-16
 
 Los 57 comentarios, uno por uno, con la regla del recetario que les corresponde

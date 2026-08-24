@@ -1,5 +1,11 @@
 # Quién usa estas pantallas y qué hace con ellas
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-08-22
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Gonzalo, después de tres tandas de arreglos puntuales:
 
 > «Sigue todo Monitoreo y Recopiladores francamente horrible y sin formato en sus

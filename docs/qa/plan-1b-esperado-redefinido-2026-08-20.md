@@ -1,5 +1,11 @@
 # Plan 1b — el esperado redefinido, de punta a punta
 
+Tipo: Plan de trabajo QA
+Estado: Vigente
+Fecha: 2026-08-20
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Aprobación conceptual de Gonzalo (2026-08-20, cierre del loop de aulas).
 Este plan ejecuta el rediseño completo tras la revisión exhaustiva
 (campañas V1–V7 en `validez-cadena-esperado-2026-08-20.md`). El barrido

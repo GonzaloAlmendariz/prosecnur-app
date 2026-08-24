@@ -1,7 +1,7 @@
 # GOAL — Cálculo de muestra: reconstruir HSyVbG desde cero y llegar al 2025
 
 Tipo: Goal operativo (loop de convergencia)
-Estado: Abierto
+Estado: En curso
 Fecha: 2026-08-16
 Autoridad: Objetivo de trabajo medible; **sólo Gonzalo lo cierra**
 

@@ -1,5 +1,11 @@
 # Plan de ticks — de la selección de aulas al control de campo
 
+Tipo: Plan de trabajo QA
+Estado: Vigente
+Fecha: 2026-08-22
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Doc vivo. Abierto el 2026-08-22 por encargo de Gonzalo. Sólo él lo da por
 terminado. Cadencia: **5 minutos entre tick y tick**.
 

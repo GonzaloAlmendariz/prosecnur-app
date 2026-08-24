@@ -1,5 +1,11 @@
 # Checklist — la cadena operativa de aulas, de punta a punta
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-23
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Encargo (textual):** «tenemos que testear que podemos generar desde cero las
 aprox 190 aulas, con algunos adicionales si no se cubre derecho por ejemplo, y
 luego poner a prueba que podemos usar esas mismas titulares, reemplazos y extras

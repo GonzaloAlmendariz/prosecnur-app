@@ -1,5 +1,11 @@
 # GOAL — La validación deja de ser un espejo del instrumento
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-12
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto:** 2026-08-12 · **Cierra:** solo Gonzalo · **Cadencia:** lote por lote
 
 ## Cómo avanza este GOAL

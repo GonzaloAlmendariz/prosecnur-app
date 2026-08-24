@@ -1,5 +1,11 @@
 # Recorrido del usuario nuevo — Cálculo de muestra (2026-08-21)
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-21
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Mandato de Gonzalo: «que la experiencia usuaria de un usuario nuevo sea muy
 limpia y muy pulcra y no falle… si le paso este motor a otra persona, que sea
 capaz de subir la base de estudiantes, la de cursos-horario y la histórica sin

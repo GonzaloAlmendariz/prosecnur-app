@@ -1,5 +1,11 @@
 # Checklist — sinergia calc-muestra ↔ Monitoreo: el excel de agendación (2026-08-20)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-20
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Mandato textual de Gonzalo: «Ahora que finalizamos lo pendiente vamos con la
 sinergia con monitoreo, debe comunicarse muy bien con él por ejemplo para poder
 hacer que la selección y reemplazos generen el excel de agendación correcto.»

@@ -1,5 +1,11 @@
 # Anatomía de los tres Excel de un estudio de aulas
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-16
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Fuente: `HSTVG2026/Historico 2025/Hostigamiento PUCP 2025_BD Aulas Agendadas-6.xlsx`
 (19 hojas; tres son las que gobiernan el operativo). Leído el 2026-08-16.
 
