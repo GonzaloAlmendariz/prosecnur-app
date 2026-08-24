@@ -78,6 +78,23 @@ tablero general venía de caché**. Los 6 requests de una apertura pasan de
 
 ### Lo que ya se descartó midiendo — no volver a mirarlo
 
+- **La configuración SÍ sobrevive al `.pulso`.** Era la hipótesis abierta del
+  loop anterior («S2: la config no sobrevive»), y es **falsa**. Probado el
+  ciclo completo sobre el proyecto de 193 titulares: tras `strip_caches`
+  (guardar) y `.pulso_renormalize_after_load` (abrir), sobreviven intactos
+  `estadistico_default = "p25"`, su `frame_hash`, el `confirmado_at`, las 2.616
+  unidades de la selección, los **15 rangos de nivel** y las **10 facultades con
+  mínimo de elegibles**. El guardado no filtra nada: es `strip_caches` +
+  `saveRDS`.
+
+  **Lo que pasa cuando un proyecto aparece «vacío» es otra cosa**: es un proyecto
+  con OTRO marco. Medido en `HSVG2026.pulso` (24 Ago): catálogo de **5.263**
+  cursos-horario y `confirmado_at` vacío, contra el de la selección buena, que
+  tiene **5.269** y su decisión firmada contra ese hash. Sin decisión confirmada
+  no hay estadístico divisor, y el cálculo devuelve **269 y 431 aulas** en vez de
+  ~190 — fuera de la vara de 170–210. Se arregla confirmando la decisión en
+  Marco › Alumnos por CH, no tocando la persistencia.
+
 - **El session store no cuesta**: 0,00 s para leer o escribir el state de 230 MB.
   Es un environment, no copia.
 - `readRDS` del state: 0,56 s. `unzip` del `.pulso`: 0,08 s.
