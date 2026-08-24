@@ -1366,9 +1366,10 @@ export type CalcMuestraAulasFrame = {
   population?: MonitoreoRow[];
   /**
    * Universo de estudiantes SIN filtrar por elegibilidad, con atributos crudos
-   * por estudiante (student_id/faculty/level/age/formation/condition). Lo usa el
-   * conteo EN VIVO de criterios de alumno (criteriosImpacto): `population` ya
-   * viene recortada por edad/condición/formación y no permite recomputarlos.
+   * por estudiante (student_id/faculty/level/age/formation/condition). Es la
+   * única lectura del universo completo: `population` ya viene recortada por
+   * edad/condición/formación. Lo consumen la cobertura del motor
+   * (`TabCobertura`) y el inventario de únicos del marco.
    */
   population_pool?: MonitoreoRow[];
   aula_frame: MonitoreoRow[];

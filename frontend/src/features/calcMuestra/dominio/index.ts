@@ -43,12 +43,7 @@ export {
   type EstadoGrupo,
   type ResumenVariable,
 } from "./criteriosMarco";
-export {
-  computeImpactoMarco,
-  unidadCriterio,
-  textKey,
-  type ImpactoMarco,
-} from "./criteriosImpacto";
+export { unidadCriterio, textKey } from "./criteriosImpacto";
 export {
   rationaleParaCriterio,
   ELEGIBLES_POR_AULA_ID,
