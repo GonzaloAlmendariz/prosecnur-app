@@ -29,12 +29,21 @@ describe("queTocaConCadaAula", () => {
       .toBe("Confirmar si se aplicó");
   });
 
-  it("con parte de campo ya no toca nada", () => {
+  it("con parte de campo ya no toca nada, y se dice por qué", () => {
+    // **«Aplicada» y no «—».** El guion decía bien que no toca nada y no decía
+    // por qué, y en la misma fila la columna de al lado marca «Sin contactar»
+    // —`sample_status` llega vacío del libro y el motor lo normaliza así—. Las
+    // dos juntas se leen como un aula olvidada: medido con la simulación de
+    // campo, CH 1 a CH 5 salían «Sin contactar · —» estando aplicadas.
     expect(queTocaConCadaAula(
       { sample_status: "agendada", scheduled_date: "2026-08-11", applied_at: "2026-08-11" }, CORTE,
-    )).toBe("—");
-    expect(queTocaConCadaAula({ operational_status: "aplicada" }, CORTE)).toBe("—");
-    expect(queTocaConCadaAula({ operational_status: "cerrada" }, CORTE)).toBe("—");
+    )).toBe("Aplicada");
+    expect(queTocaConCadaAula({ operational_status: "aplicada" }, CORTE)).toBe("Aplicada");
+    expect(queTocaConCadaAula({ operational_status: "cerrada" }, CORTE)).toBe("Aplicada");
+    // Y manda sobre el estado de muestra vacío, que es el caso de la simulación.
+    expect(queTocaConCadaAula(
+      { sample_status: "sin_contactar", operational_status: "aplicada" }, CORTE,
+    )).toBe("Aplicada");
   });
 
   it("una reemplazada sale del trabajo del agendador", () => {
