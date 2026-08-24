@@ -1,4 +1,9 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+
+const aqui = path.dirname(fileURLToPath(import.meta.url));
 
 import { ApiError } from "../../api/core";
 import { codigoDeError, esEstadoInicial, vacioSinDatos } from "./estadoEsperado";
@@ -40,5 +45,34 @@ describe("estadoEsperado", () => {
     expect(v.hint).toContain("Procesamiento › Carga");
     // Y no arrastra el código técnico que el mensaje del error lleva pegado.
     expect(`${v.title} ${v.hint}`).not.toContain("E_NO_DATA_INST");
+  });
+});
+
+/**
+ * **Y las tres pestañas usan el mismo criterio, no una copia cada una.**
+ *
+ * Explorar, Panorama y Reglas tenían el mismo cartel de avería para el mismo
+ * estado esperado, y cada una con su propia condición: `if (error)` en dos de
+ * ellas y `if (!list || !inv)` en la tercera, que además mezclaba «falló» con
+ * «todavía no llegó» y con un «Estado desconocido» que no debería ocurrir.
+ *
+ * Este guardián no comprueba lo que se ve —eso se verificó en pantalla, tres
+ * veces— sino que ninguna vuelva a decidirlo por su cuenta: en cuanto una lo
+ * haga, las tres divergen otra vez.
+ */
+describe("las tres pestañas de Validación comparten el criterio", () => {
+  const leer = (rel: string) =>
+    fs.readFileSync(path.join(aqui, rel), "utf8");
+
+  it.each([
+    ["tabs/ExplorarTab.tsx"],
+    ["tabs/PanoramaTab.tsx"],
+    ["tabs/ReglasCustomTab.tsx"],
+  ])("%s lo importa en vez de reimplementarlo", (archivo) => {
+    const fuente = leer(archivo);
+    expect(fuente).toContain("esEstadoInicial");
+    expect(fuente).toContain("vacioSinDatos");
+    // Y ninguna compara el código a mano: ahí es donde vuelven a divergir.
+    expect(fuente).not.toContain('=== "E_NO_DATA_INST"');
   });
 });
