@@ -26,7 +26,9 @@ export type Agendamiento = {
   enJuego: number;
   /** De ésas, con fecha y hora cerradas. */
   agendadas: number;
-  /** Las que aún no tienen cita. */
+  /** Aplicadas sin cita previa: hechas, así que ya no se agendan. */
+  aplicadasSinAgenda: number;
+  /** Las que aún no tienen cita NI se han aplicado. */
   porAgendar: number;
   /** Cuántas necesitaron más de una gestión. */
   conInsistencia: number;
@@ -68,10 +70,25 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
   const intentos: number[] = [];
   const porMedio = new Map<string, number>();
 
+  let aplicadasSinAgenda = 0;
   for (const fila of enJuego) {
     // Con FECHA, no por el estado: «agendada» es lo que dice la hoja y la fecha
     // es lo que se puede visitar. Cuando los dos discrepan manda el hecho.
-    if (txt(fila.scheduled_date)) agendadas += 1;
+    if (txt(fila.scheduled_date)) {
+      agendadas += 1;
+    } else if (["aplicada", "cerrada"].includes(txt(fila.operational_status).toLowerCase())) {
+      // **Una ya aplicada tampoco se va a agendar.**
+      //
+      // El filtro de arriba saca el banco, las reemplazadas y las reservas
+      // dormidas —«no la va a agendar nadie»— y se dejaba fuera este caso.
+      // Medido el 2026-08-24 con diez aulas aplicadas entre el 1 y el 5 de
+      // septiembre: el KPI decía «Por agendar 193» sobre un plan de 193 en el
+      // que diez ya estaban hechas.
+      //
+      // No suma a `agendadas` porque no lo estuvo: se aplicó sin cita previa.
+      // Cuenta aparte para que la pista lo pueda decir.
+      aplicadasSinAgenda += 1;
+    }
     const n = num(fila.contact_attempts);
     if (n !== null && n > 0) {
       intentos.push(n);
@@ -89,7 +106,9 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
   return {
     enJuego: enJuego.length,
     agendadas,
-    porAgendar: enJuego.length - agendadas,
+    aplicadasSinAgenda,
+    // Lo que de verdad queda por agendar: ni con fecha, ni ya aplicada.
+    porAgendar: enJuego.length - agendadas - aplicadasSinAgenda,
     conInsistencia,
     intentosMedianos: mediana,
     medios: [...porMedio.entries()]
