@@ -237,9 +237,29 @@ export default function AnaliticaPage() {
                     {active === "dimensiones"  && <DimensionesPane />}
                   </>
                 ) : (
-                  <Alert kind="warn">
-                    La preparación automática de datos aún no terminó o falló. Recarga la página para reintentar.
-                  </Alert>
+                  /* **«Aún no terminó» y «falló» no son el mismo estado, y el
+                      dato para distinguirlos ya estaba aquí.**
+
+                      El aviso decía las dos cosas a la vez —«aún no terminó o
+                      falló»— y remataba con «Recarga la página», que es lo que
+                      se hace cuando no se sabe qué pasa. `prepError` vive en
+                      este mismo componente desde siempre y lo usa el header de
+                      al lado; el aviso lo ignoraba.
+
+                      Con error, se dice cuál y qué hacer. Sin error, la
+                      preparación simplemente no ha corrido todavía: eso no
+                      necesita que nadie recargue nada. */
+                  prepError ? (
+                    <Alert kind="error">
+                      La preparación automática de datos falló: {prepError}. Vuelve a entrar a
+                      Analítica para reintentarla; si se repite, revisa la base en Carga.
+                    </Alert>
+                  ) : (
+                    <Alert kind="warn">
+                      La preparación automática de datos todavía no ha corrido. Se lanza sola al
+                      entrar a Analítica y sus resultados aparecen aquí.
+                    </Alert>
+                  )
                 )}
               </div>
             </>
