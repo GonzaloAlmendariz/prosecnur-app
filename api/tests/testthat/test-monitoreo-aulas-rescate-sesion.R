@@ -83,3 +83,37 @@ test_that("el router NO rescata estas claves con `%||%`", {
   expect_true(all(grepl(".monitoreo_con_contenido", bloque, fixed = TRUE)))
 })
 
+
+# --- Un parte de ceros y un parte de un aula cancelada no son lo mismo -----
+#
+# `application_status` viene de «STATUS DE APLICACION» del libro —«Aplicada»,
+# «No aplicada»— y es lo que explica una fila de ceros. El lector lo leia, la
+# tabla de Consultas lo pedia por nombre en sus `preferredColumns`… y el
+# publicador no lo emitia.
+#
+# Visto en pantalla el 2026-08-23: el parte de un aula que el docente cancelo
+# salia como «0 asistentes · 0 % · 0 efectivas» junto a dos aplicadas, sin nada
+# que distinguiera «no se aplico» de «se aplico y no vino nadie». Son dos hechos
+# muy distintos para quien decide si reagendar.
+
+test_that("el parte publicado lleva el estado de aplicacion", {
+  pub <- monitoreo_aulas_partes_publicados(list(
+    list(operational_code = "CH 1", observed_students = 28, effective_surveys = 25,
+         refusals = 2, duplicates = 1, application_status = "Aplicada"),
+    list(operational_code = "CH 3", observed_students = 0, effective_surveys = 0,
+         refusals = 0, duplicates = 0, application_status = "No aplicada",
+         field_note = "Docente cancelo la clase")
+  ))
+  expect_length(pub, 2L)
+  expect_identical(pub[[1]]$application_status, "Aplicada")
+  expect_identical(pub[[2]]$application_status, "No aplicada")
+})
+
+test_that("sin estado declarado se publica vacio, no se inventa uno", {
+  # Un parte sin «STATUS DE APLICACION» no dice que se aplicara: dice que no se
+  # anoto. Rellenarlo con «Aplicada» seria afirmar lo que nadie afirmo.
+  pub <- monitoreo_aulas_partes_publicados(list(
+    list(operational_code = "CH 9", observed_students = 10, effective_surveys = 9)
+  ))
+  expect_identical(pub[[1]]$application_status, "")
+})
