@@ -68,7 +68,17 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
       id: "aplicadas",
       label: "Aplicadas en campo",
       valor: fmt(aplicadas),
-      detalle: "con parte de campo registrado",
+      // **«registradas en esta app», no «con parte de campo».**
+      //
+      // `aulas_aplicadas` cuenta `operational_status`, que escribe el registro
+      // de la app. El «parte de campo» es el artefacto del LIBRO —la hoja que
+      // el jefe de campo transcribe desde las fichas de papel— y NO mueve esta
+      // cifra. Medido: tres partes importados con estado «Aplicada» y la etapa
+      // seguia en 0 debajo de un rotulo que los nombraba.
+      //
+      // La prosa de mas abajo se corrigio por esto mismo y este renglon se
+      // quedo atras, en el MISMO archivo: es como vuelve un defecto reparado.
+      detalle: "registradas en esta app",
       estado: aplicadas ? "ready" : "pending",
     },
   ];

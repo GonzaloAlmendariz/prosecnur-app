@@ -884,6 +884,21 @@
   )
 }
 
+#' Primer valor CON CONTENIDO, no el primero que no sea NULL.
+#'
+#' `%||%` resuelve «no viene» y no resuelve «viene vacio», que en esta sesion es
+#' el caso comun: la config del perfil declara sus claves aunque no tengan nada
+#' dentro, asi que `cfg$libro %||% s$monitoreo_aulas_libro` se queda siempre con
+#' la lista vacia de la config y nunca mira la sesion.
+#'
+#' @param ... candidatos en orden de preferencia.
+#' @param .default valor si ninguno trae contenido.
+#' @keywords internal
+.monitoreo_con_contenido <- function(..., .default = NULL) {
+  for (v in list(...)) if (length(v)) return(v)
+  .default
+}
+
 .monitoreo_state_payload <- function(sid, include_reports = TRUE, report_scope = "full") {
   started_at <- Sys.time()
   dashboard_source <- "none"
@@ -1092,11 +1107,23 @@
     # sesion si —o al reves—. Sin esta linea `monitoreo_aulas_control` era una
     # clave escrita y jamas leida, que es como la Base de control estuvo un dia
     # entero marcada como hecha.
-    aulas_cfg$control <- aulas_cfg$control %||% s$monitoreo_aulas_control %||% list()
+    #
+    # **Y se leen con `.monitoreo_con_contenido`, no con `%||%`.** Ese operador
+    # sustituye NULL y solo NULL: una config que trae `libro = list()` —vacia
+    # pero presente— se queda con la vacia y el rescate no rescata nada. Medido
+    # el 2026-08-23 sobre un proyecto con el libro YA importado: la sesion tenia
+    # el recibo con sus cinco campos, `cfg$libro` valia `list()`, y Fuentes
+    # enseñaba «Libro del operativo · Sin importar». Un guard que no guarda es
+    # peor que no tenerlo: parece cubierto.
+    aulas_cfg$control <- .monitoreo_con_contenido(aulas_cfg$control, s$monitoreo_aulas_control, list())
     # El recibo del libro: cuando se leyo, que hojas trajo y cuales no. Viajaba
     # solo en la respuesta de la importacion, asi que era un aviso de un momento
     # —al recargar la app, nadie sabia de que libro salian estos numeros—.
-    aulas_cfg$libro <- aulas_cfg$libro %||% s$monitoreo_aulas_libro %||% NULL
+    aulas_cfg$libro <- .monitoreo_con_contenido(aulas_cfg$libro, s$monitoreo_aulas_libro, NULL)
+    # Los partes de campo no tenian rescate ninguno, solo el camino de la config.
+    aulas_cfg$partes_campo <- .monitoreo_con_contenido(
+      aulas_cfg$partes_campo, s$monitoreo_aulas_partes_campo, list()
+    )
     aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
     aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
     if (is.null(dashboard) || !is.list(dashboard)) {
