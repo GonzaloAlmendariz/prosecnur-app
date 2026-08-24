@@ -44,3 +44,35 @@ describe("el denominador de fichas y las unidades que se crean", () => {
     expect(fuente).toContain("adicionales");
   });
 });
+
+/**
+ * **Un botón apagado dice por qué lo está, y en su sitio.**
+ *
+ * Visto en Materiales el 2026-08-23: los tres botones de render —Ver imagen,
+ * Generar PDF, Generar el paquete— salían grises y el motivo vivía arriba a la
+ * derecha, en otra banda, como «accesos sin preparar». Quien pulsa mira el
+ * botón, no la esquina opuesta.
+ *
+ * Y el hueco de al lado, que ocupa dos tercios del panel, explicaba **dónde no
+ * se guardan** unos archivos que todavía no se pueden generar: información
+ * correcta contestando otra pregunta.
+ */
+describe("el panel de render explica su propio bloqueo", () => {
+  it("hay un motivo único que alimenta los tres botones y el vacío", () => {
+    // Uno solo: dos textos distintos para el mismo bloqueo vuelven a separarse
+    // en cuanto alguien toque uno.
+    expect(fuente).toContain("const motivoBloqueo = deployment");
+    expect(fuente.match(/title=\{motivoBloqueo/g) ?? []).toHaveLength(3);
+  });
+
+  it("el motivo dice la causa, no sólo el hecho", () => {
+    // «Sin accesos» es el hecho; que la ficha no tenga enlace que codificar es
+    // la causa, y es lo que deja actuar.
+    expect(fuente).toContain("no tiene enlace que codificar");
+    expect(fuente).toContain("Los accesos se preparan en la seccion Accesos");
+  });
+
+  it("con accesos listos, el vacío vuelve a su nota de archivo", () => {
+    expect(fuente).toContain("no se guardan dentro del proyecto");
+  });
+});

@@ -335,3 +335,38 @@
     margin-top: 8px;
   }
 }
+
+/* La composición del total de fichas, debajo de la cuenta.
+   Bloque propio y no un sufijo en la misma línea: «0 de 2.616» y «193
+   titulares · 507 reemplazos · 1.916 adicionales» son dos lecturas y una sola
+   línea las aplasta. */
+.rec-cuenta-composicion {
+  display: block;
+  margin-top: 2px;
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* El vacío del panel de render cuando explica un bloqueo: dos lecturas —qué
+   pasa y qué hacer— y por eso van en bloques, no en una línea corrida. */
+/* El vacío del panel de render explica un bloqueo: son dos lecturas —qué pasa
+   y qué hacer— y `.rec-contained-empty` es `display:flex; row`, así que sin
+   cambiar la dirección salían lado a lado como dos columnas. */
+.rec-render-card .rec-contained-empty {
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  text-align: center;
+}
+.rec-render-card .rec-contained-empty strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--pulso-text);
+  font-weight: 600;
+}
+.rec-render-card .rec-contained-empty span {
+  display: block;
+  max-width: 46ch;
+  margin: 0 auto;
+}

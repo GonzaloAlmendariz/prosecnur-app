@@ -252,6 +252,11 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   // creaba 2.616.
   const aulasDelPlan = unidadesDelPlan(payload?.state.plan);
   const composicion = composicionDelPlan(payload?.state.plan);
+  // Por que estan apagados los tres botones de render. `null` cuando no lo
+  // estan: asi el vacio y los `title` preguntan lo mismo en un solo sitio.
+  const motivoBloqueo = deployment
+    ? null
+    : "Todavia no hay accesos preparados, asi que la ficha no tiene enlace que codificar.";
   const fichasHechas = cuentaDeFichas(instances.length, aulasDelPlan);
   const activeAdapter = payload?.state.plan?.adapter.id ?? null;
   const adapterCompatible = activeAdapter ? template.compatible_adapters.includes(activeAdapter) : true;
@@ -445,10 +450,15 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
           eyebrow="Lo genera Pulso"
           title="PNG, PDF o paquete"
         >
+          {/* **Un boton apagado dice por que lo esta, y en su sitio.** Los tres
+              se apagan con `!deployment` —sin accesos preparados no hay enlace
+              que meter en el QR— y el motivo vivia arriba a la derecha, en otra
+              banda, como «accesos sin preparar». Quien pulsa mira el boton, no
+              la esquina opuesta. */}
           <div className="rec-render-actions">
-            <PulsoButton variant="secondary" onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Ver imagen</PulsoButton>
-            <PulsoButton variant="primary" onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
-            <PulsoButton variant="secondary" onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
+            <PulsoButton variant="secondary" title={motivoBloqueo ?? undefined} onClick={() => { void render("png"); }} disabled={!deployment || Boolean(jobId)}><Image size={15} /> Ver imagen</PulsoButton>
+            <PulsoButton variant="primary" title={motivoBloqueo ?? undefined} onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
+            <PulsoButton variant="secondary" title={motivoBloqueo ?? undefined} onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
           </div>
           <JobProgress<CollectionMaterialRenderResult>
             label={`Render ${jobFormat ?? "material"}`}
@@ -465,7 +475,28 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
               <div><strong>{renderResult.filename}</strong><span>{renderResult.media_type} · {renderResult.page_count} páginas · {renderResult.size_bytes} bytes</span><code>{renderResult.sha256}</code></div>
               <a href={downloadUrl(renderResult.file_id)}><Download size={14} /> Descargar la ficha</a>
             </div>
-          ) : <div className="rec-contained-empty">El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto.</div>}
+          ) : (
+            /* **El vacio dice lo que hace falta, no una nota de archivo.**
+               Sin accesos preparados los tres botones estan apagados y este
+               hueco explicaba donde NO se guardan unos archivos que todavia no
+               se pueden generar: informacion correcta contestando otra
+               pregunta. Con accesos listos vuelve a ser esa nota, que ahi si es
+               lo unico que queda por decir. */
+            <div className="rec-contained-empty">
+              {motivoBloqueo ? (
+                <>
+                  <strong>{motivoBloqueo}</strong>
+                  <span>
+                    Los accesos se preparan en la seccion Accesos: cada
+                    curso-horario recibe su enlace y ese enlace es lo que va
+                    dentro del QR de su ficha.
+                  </span>
+                </>
+              ) : (
+                "El archivo y su vista previa los genera Pulso, y no se guardan dentro del proyecto."
+              )}
+            </div>
+          )}
           {error ? <p className="rec-inline-error" role="alert">{error}</p> : null}
         </Panel>
       </div>
