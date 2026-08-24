@@ -581,6 +581,31 @@
   df
 }
 
+# Escribe `value` en TODAS las columnas de etiqueta (`label`, `label::es`,
+# `label::English`, …) de las filas `rows` de una hoja del XLSForm.
+#
+# Existe porque el instrumento canónico NO trae `survey_raw`/`choices_raw`:
+# `reporte_instrumento()` deja las hojas crudas en `survey`/`choices` y les AÑADE
+# una columna `label` derivada del idioma elegido. Un override que escribiera
+# solo esa columna derivada dejaba el XLSForm final —que exporta esas mismas
+# hojas— diciendo la etiqueta curada en `label` y la vieja en `label::es`, que es
+# justo la que un XLSForm usa para español: el instrumento entregado se
+# contradecía consigo mismo y con la base. Una etiqueta curada es una decisión de
+# análisis, no una traducción, así que manda sobre todas las variantes de la fila.
+# Compartido por los dos mecanismos de override (config de Analítica y
+# `label_overrides` del proyecto) para que no vuelvan a divergir.
+.bases_set_label_cols <- function(df, rows, value) {
+  if (is.null(df) || !is.data.frame(df) || !length(rows)) return(df)
+  rows <- rows[!is.na(rows)]
+  if (!length(rows)) return(df)
+  for (col in grep("^label", names(df), ignore.case = TRUE, value = TRUE)) {
+    if (is.list(df[[col]])) next
+    df[[col]] <- as.character(df[[col]])
+    df[[col]][rows] <- value
+  }
+  df
+}
+
 .bases_clean_choice_df <- function(df) {
   if (is.null(df) || !is.data.frame(df) || !nrow(df)) return(df)
   label_cols <- grep("^label", names(df), value = TRUE, ignore.case = TRUE)
