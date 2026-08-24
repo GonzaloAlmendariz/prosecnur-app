@@ -58,6 +58,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
+import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
 import { AulasFichaDeAula } from "./AulasFichaDeAula";
 import { dondeSeSaca } from "./dondeSeSaca";
@@ -1479,6 +1480,19 @@ function renderAulasView(
       : String(fila.sex ?? "") === foco.valor
   ));
   const estratoRows = (dashboard.avance_por_estrato ?? []) as Array<Record<string, unknown>>;
+  // `stratum` es una CLAVE del motor —facultad / sexo predominante / tramo de
+  // tamaño, pegados—, no una etiqueta. Se traduce para la vista y sólo para la
+  // vista: el original sigue siendo el que empareja.
+  // Sin `useMemo`: `renderAulasView` NO es un componente —lo dice el comentario
+  // de su propia cabecera— y un hook aquí es una violación de las reglas de
+  // hooks que sólo funciona por accidente.
+  const estratoRowsLegibles = estratoRows.map((fila) => {
+    const clave = fila.stratum ?? fila.estrato;
+    if (typeof clave !== "string" || !clave) return fila;
+    return fila.stratum
+      ? { ...fila, stratum: etiquetaDeEstrato(clave) }
+      : { ...fila, estrato: etiquetaDeEstrato(clave) };
+  });
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
   // Cuántas de esas filas son EXTRAS del banco. Avance cuenta 236 donde Fuentes
@@ -1727,7 +1741,11 @@ function renderAulasView(
             contesta la pregunta del día siguiente —a dónde mando el equipo— que
             la tabla obliga a resolver restando de cabeza. */}
         <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
-        <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+        {/* La tabla dice el estrato con las mismas palabras que el eje del
+            gráfico que tiene encima. Enseñaba la clave cruda —«GESTIÓN Y ALTA
+            DIRECCIÓN / F / G3»— mientras el eje, ya traducido, decía otra cosa
+            para la misma fila. */}
+        <DataTable rows={estratoRowsLegibles} empty="No hay avance por estrato preparado." />
       </section>
       )}
       {pestana !== "rendimiento" ? null : (
