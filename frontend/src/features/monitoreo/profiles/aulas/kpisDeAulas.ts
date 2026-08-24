@@ -270,17 +270,25 @@ function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     (dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[],
   );
   const celdas = proyeccion.flatMap((f) => f.cuotas);
-  const cierran = celdas.filter((c) => c.alcanza).length;
+  // Sólo las celdas que declaran objetivo entran en la cuenta. Sin este filtro,
+  // una celda con meta 0 da `faltan === 0` y por tanto `alcanza === true`: el
+  // KPI contaba la ausencia de objetivo como un cierre logrado. En el estudio
+  // real, sus «10 cierran» eran exactamente las 10 celdas sin cuota, con cero
+  // aulas agendadas y cero aplicadas.
+  const evaluables = celdas.filter((c) => c.meta > 0);
+  const sinObjetivo = celdas.length - evaluables.length;
+  const cierran = evaluables.filter((c) => c.alcanza).length;
+  const pistaSinObjetivo = sinObjetivo ? ` · ${fmt(sinObjetivo)} sin objetivo declarado` : "";
   return {
     label: "Cierran con lo agendado",
     icono: CalendarRange,
-    value: celdas.length ? fmt(cierran) : "S/D",
-    pista: celdas.length
-      ? `de ${fmt(celdas.length)} celdas sexo × facultad`
+    value: evaluables.length ? fmt(cierran) : "S/D",
+    pista: evaluables.length
+      ? `de ${fmt(evaluables.length)} celdas sexo × facultad con objetivo${pistaSinObjetivo}`
       : "el estudio no declara cuotas por sexo y facultad",
-    tone: celdas.length && cierran < celdas.length ? "warn" : "neutral",
-    detalle: celdas.length
-      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las que no cierran se ven una a una en Cuotas."
+    tone: evaluables.length && cierran < evaluables.length ? "warn" : "neutral",
+    detalle: evaluables.length
+      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las celdas que no declaran cuota quedan fuera de la cuenta, porque no hay objetivo que cerrar. Las que no cierran se ven una a una en Cuotas."
       : undefined,
   };
 }

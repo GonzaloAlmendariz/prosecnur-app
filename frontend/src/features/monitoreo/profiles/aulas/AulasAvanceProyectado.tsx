@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
-import { avanceProyectado, celdasQuePidenAccion, type CeldaAvance } from "./avanceProyectado";
+import { avanceProyectado, celdasEvaluables, celdasQuePidenAccion, type CeldaAvance } from "./avanceProyectado";
 import { fmt } from "./kpisDeAulas";
 
 /**
@@ -32,6 +32,10 @@ const TONO: Record<string, string> = {
 export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<CeldaAvance> | null }) {
   const filas = useMemo(() => avanceProyectado(celdas), [celdas]);
   const piden = celdasQuePidenAccion(filas);
+  // El denominador son las celdas CON cuota, no todas: las que no tienen
+  // objetivo declarado no van a llegar ni dejan de hacerlo. Contarlas hacía que
+  // este panel y el KPI de arriba dijeran «10 de 30» significando lo contrario.
+  const evaluables = celdasEvaluables(filas);
 
   // **Nada verde por ausencia, pero un solo dueño del aviso.**
   //
@@ -52,9 +56,16 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
       {/* El titular dice cuántas piden decisión, no cuántas hay: el denominador
           a la vista y sin obligar a contar filas. Cero es cero, no «todo bien». */}
       <p className="aulas-avance-titular">
-        {piden === 0
-          ? `Ninguna de las ${fmt(filas.length)} celdas se queda corta con lo que falta por aplicar.`
-          : `${fmt(piden)} de ${fmt(filas.length)} celdas no van a llegar con lo que falta por aplicar.`}
+        {evaluables === 0
+          ? `Ninguna de las ${fmt(filas.length)} celdas declara objetivo, así que no hay proyección que hacer.`
+          : piden === 0
+            ? `Ninguna de las ${fmt(evaluables)} celdas con objetivo se queda corta con lo que falta por aplicar.`
+            : `${fmt(piden)} de ${fmt(evaluables)} celdas con objetivo no van a llegar con lo que falta por aplicar.`}
+        {/* Las que no se evalúan se dicen aparte, no se esconden en el
+            denominador: son trabajo de gabinete, no de campo. */}
+        {filas.length > evaluables
+          ? ` ${fmt(filas.length - evaluables)} más no declaran objetivo.`
+          : null}
       </p>
 
       <ul className="aulas-avance-lista">

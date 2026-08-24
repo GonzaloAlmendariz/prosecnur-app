@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { avanceProyectado, celdasQuePidenAccion, porqueDeLaCelda } from "./avanceProyectado";
+import { avanceProyectado, celdasEvaluables, celdasQuePidenAccion, porqueDeLaCelda } from "./avanceProyectado";
 
 const celda = (over: Record<string, unknown> = {}) => ({
   faculty: "DERECHO", sex: "F", cuota: 200, logrado: 68, previsto: 80,
@@ -84,5 +84,33 @@ describe("avance proyectado por celda", () => {
     expect(avanceProyectado([celda()])[0].origen).toBe("hoja_de_control");
     expect(avanceProyectado([celda({ previsto_origen: "composicion_del_aula" })])[0].origen)
       .toBe("composicion_del_aula");
+  });
+});
+
+describe("el denominador del titular", () => {
+  const celda = (over: Record<string, unknown> = {}) => ({
+    faculty: "A", sex: "F", cuota: 200, logrado: 68, proyeccion: 128, brecha: 72,
+    estado: "deficit_proyectado", etiqueta: "x", ...over,
+  });
+
+  it("cuenta sólo las celdas con objetivo declarado", () => {
+    // Visto en la app: el KPI decía «10 de 30 cierran» y este panel «10 de 30 no
+    // van a llegar», los dos ciertos y sobre el mismo 30, porque 10 de esas
+    // celdas no tienen objetivo y no son ninguna de las dos cosas. Juntos se
+    // leían como una contradicción.
+    const filas = avanceProyectado([
+      celda({ faculty: "A", estado: "deficit_proyectado" }),
+      celda({ faculty: "B", estado: "asegurada" }),
+      celda({ faculty: "C", estado: "sin_cuota" }),
+      celda({ faculty: "D", estado: "sin_cuota" }),
+    ]);
+    expect(filas.length).toBe(4);
+    expect(celdasEvaluables(filas)).toBe(2);
+    expect(celdasQuePidenAccion(filas)).toBe(1);
+  });
+
+  it("sin ninguna celda evaluable, el denominador es cero y no uno inventado", () => {
+    const filas = avanceProyectado([celda({ estado: "sin_cuota" })]);
+    expect(celdasEvaluables(filas)).toBe(0);
   });
 });
