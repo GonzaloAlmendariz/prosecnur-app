@@ -64,7 +64,15 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
       </p>
       <ul className="aulas-medio-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <li className="aulas-medio-cabecera" aria-hidden="true">
-          <span>Medio</span><span>Agenda</span><span>Intentos</span>
+          <span>Medio</span>
+          <span>{medios.length > 1 ? "Agenda" : "Resultado"}</span>
+          {/* **El estadístico va en la cabecera de su columna, no en un pie.**
+              Es mediana y no promedio, y eso hay que decirlo siempre: un
+              «Intentos: 3» sin apellido se lee como promedio. Dicho aquí ocupa
+              dos palabras y está donde se mira el número; el pie queda libre
+              para la justificación, que sólo hace falta cuando hay medios que
+              comparar y el estadístico decide cuál gana. */}
+          <span>Intentos · <em>mediana</em></span>
         </li>
         {medios.map((m) => (
           <li key={m.medio}>
@@ -72,12 +80,24 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
               {m.medio}
               <em>{fmt(m.agendadas)} de {fmt(m.aulas)}</em>
             </span>
-            <span className="aulas-medio-barra" role="img"
-              aria-label={`${m.tasa} % agendadas por ${m.medio}`}>
-              <i style={{ width: `${Math.max(4, m.tasa)}%`, background: COLOR_RESULTADO.efectiva }}>
-                {m.tasa.toLocaleString("es-PE")} %
-              </i>
-            </span>
+            {/* **La barra existe para comparar; con un medio no compara nada.**
+                Una barra al 100 % ocupando el ancho de la fila se lee como un
+                ranking ganado, cuando lo único que dice es que todo el contacto
+                se hizo por ese medio —que el texto de arriba ya declara—. Con
+                un solo medio queda la cifra sola, que es el dato de verdad: qué
+                proporción de lo contactado por ahí llegó a agendarse. */}
+            {medios.length > 1 ? (
+              <span className="aulas-medio-barra" role="img"
+                aria-label={`${m.tasa} % agendadas por ${m.medio}`}>
+                <i style={{ width: `${Math.max(4, m.tasa)}%`, background: COLOR_RESULTADO.efectiva }}>
+                  {m.tasa.toLocaleString("es-PE")} %
+                </i>
+              </span>
+            ) : (
+              <span className="aulas-medio-solo">
+                <strong>{m.tasa.toLocaleString("es-PE")} %</strong> agendadas
+              </span>
+            )}
             {/* MEDIANA, y dicho: la media del correo en el libro real sale 19,65
                 por fechas de Excel coladas en la columna.
                 **Sin el «med.»**: la columna de arriba ya se llama «Intentos» y el
@@ -91,15 +111,34 @@ export function AulasMedioDeContacto({ filas }: { filas: ReadonlyArray<Monitoreo
           </li>
         ))}
       </ul>
-      <p className="mon-profile-muted aulas-medio-pie">
-        «Intentos» es la <strong>mediana</strong>, no el promedio: un número de intentos absurdo
-        —una fecha colada en la columna— dispara el promedio y haría descartar un medio que
-        funciona.
-        {descartados ? (
-          <> Se dejaron fuera <strong>{fmt(descartados)}</strong>{" "}
-            {descartados === 1 ? "valor imposible" : "valores imposibles"}.</>
-        ) : null}
-      </p>
+      {/* **La justificación del estadístico sólo cuando cambia una decisión.**
+       *
+       * El pie explicaba SIEMPRE por qué «Intentos» es la mediana y no el
+       * promedio. Es cierto y está bien razonado, pero es metodología en una
+       * pantalla de trabajo: con un solo medio no hay nada que comparar, así que
+       * ese párrafo era una línea permanente que nadie va a accionar.
+       *
+       * Se muestra cuando de verdad importa: si hay medios que comparar —ahí la
+       * elección del estadístico decide cuál «gana»— o si se descartaron
+       * valores, que es un hecho sobre ESTOS datos y no una nota de método. */}
+      {medios.length > 1 || descartados ? (
+        <p className="mon-profile-muted aulas-medio-pie">
+          {medios.length > 1 ? (
+            <>
+              «Intentos» es la <strong>mediana</strong>, no el promedio: un número absurdo
+              —una fecha colada en la columna— dispara el promedio y haría descartar un medio
+              que funciona.
+            </>
+          ) : null}
+          {descartados ? (
+            <>
+              {medios.length > 1 ? " " : ""}
+              Se dejaron fuera <strong>{fmt(descartados)}</strong>{" "}
+              {descartados === 1 ? "valor imposible" : "valores imposibles"}.
+            </>
+          ) : null}
+        </p>
+      ) : null}
     </div>
   );
 }

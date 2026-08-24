@@ -5230,3 +5230,66 @@
   gap: 6px;
   margin: 0 0 8px;
 }
+
+/* Los dos bloques de la cola de contacto: citas fijadas y por contactar.
+
+   Van en tablas separadas porque su tercera columna no es la misma cosa —día y
+   hora contra teléfono—, y cada encabezado tiene que poder decir la verdad. El
+   rótulo del grupo lleva su conteo al lado para que el reparto se lea sin
+   contar filas. */
+.mon-profile-page.is-aulas-flow .aulas-cola-bloque + .aulas-cola-bloque {
+  margin-top: 14px;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-grupo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: var(--pulso-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-cola-grupo span {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pulso-border) 40%, transparent);
+  color: var(--pulso-text-faint);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un único medio de contacto: la cifra en el hueco de la barra.
+
+   Ocupa la misma celda de la rejilla para que la fila no se recomponga cuando
+   aparezca un segundo medio y la barra vuelva. */
+.mon-profile-page.is-aulas-flow .aulas-medio-solo {
+  color: var(--pulso-text-secondary);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-medio-solo strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El antetítulo de los dos paneles que son hojas del libro. Va en el flujo del
+   encabezado, encima del `h3`, y no ocupa fila propia del grid. */
+.mon-profile-page.is-aulas-flow .registro-campo-hoja {
+  margin: 0 0 1px;
+  color: var(--pulso-text-faint);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* El estadístico dentro de la cabecera de su columna: mismo tamaño, sin peso,
+   para que se lea como apellido del rótulo y no como un segundo rótulo. */
+.mon-profile-page.is-aulas-flow .aulas-medio-cabecera em {
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.75;
+}
