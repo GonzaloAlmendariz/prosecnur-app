@@ -32,7 +32,7 @@ es superficie y está bloqueado por un fixture (ver «Lo que falta y por qué»)
 | **E** | Reserva dirigida, por celda en déficit | medio | ☑ | `c52ff3c8` `0abc1f85` |
 | **F** | Reglas de redondeo — los elegibles son personas | bajo | ☑ | `c8cabcab` `416a1d55` |
 | **G** | Nomenclatura y estados de los indicadores | medio | ☑ | `24e6e3d1` `344f1d57` |
-| **H** | Monitoreo reporta con responsabilidad **y sin jerga** | medio | ◐ | `9406a174` `5d399047` `0833f624` `ca8be59d` `8b54fd75` `698c58d9` `d849ef39` `340866fe` |
+| **H** | Monitoreo reporta con responsabilidad **y sin jerga** | medio | ☑ | `9406a174` `5d399047` `0833f624` `ca8be59d` `8b54fd75` `698c58d9` `d849ef39` `340866fe` `8f977230` |
 | **I** | Avance por sexo × facultad con calibración | medio | ☑ | `8aa5ea6e` `67aab9a0` `2b19bca0` |
 | **—** | Vara de accesibilidad como norma transversal | — | ☑ | `90862a64` |
 
@@ -43,31 +43,34 @@ es superficie y está bloqueado por un fixture (ver «Lo que falta y por qué»)
 
 ---
 
-## Lo que falta, y por qué no se puede cerrar
+## Lo que falta
 
-**Sólo queda la pieza 6 del ítem H**: que las cuatro superficies de cuota
-(`AulasPiramideCuota`, `AulasSerieDeRendimiento`, `AulasPerfilPorFacultad`, `AulasCuotasResumen`)
-**consuman el veredicto del motor** en vez de recalcularlo cada una por su cuenta.
+**Los 13 ítems están cerrados.** El bloqueo de fixture que tenía la pieza 6 del ítem H se
+disolvió: el marco SÍ estaba guardado en el `.pulso` de HSVG (5 263 aulas, 2 468 incluidas) y lo
+único vacío era la selección. Sorteando sobre ese marco e inyectándola se obtuvo
+`hsvg2026_fixture.pulso`, con el que la sección «Cuota sexo por facultad» se ve **poblada por
+primera vez**: 30 celdas, 20 con objetivo, 1 154 personas por recoger. La decisión A/B que este
+documento planteaba ya no aplica — se hizo la A.
 
-**Está bloqueado por un fixture, y el bloqueo es más grande que este ítem.** Medido:
+Mirar esa sección poblada destapó tres defectos que ningún test veía, todos la misma forma
+(`0 >= 0`: con meta 0, «lo que falta» da 0 y el veredicto sale cumplido):
 
-| Proyecto | Celdas de cuota |
-|---|---:|
-| `hsvg2026` (referencia) | **0** |
-| `HSVG2026.pulso` (el real) | **0** |
-| Los cinco de referencia — `sex_by_faculty` en su `state.rds` | **0 apariciones** |
-
-Las cuotas de Monitoreo las llena `monitoreo_aulas_from_calc` al traer el plan desde Cálculo de
-muestra, y **ese traspaso no está hecho en ningún proyecto disponible**. Consecuencia: toda la
-sección «Cuota sexo por facultad» —no sólo lo que este checklist toca— **sólo se puede ver
-vacía**. Nadie la ha visto con datos.
-
-**La decisión, que es de Gonzalo:**
-
-| | Opción | Qué implica |
+| Superficie | Decía | Dice |
 |---|---|---|
-| **A** | Fabricar el fixture primero | Un proyecto de referencia con el traspaso hecho. Desbloquea la verificación visual de **toda** la sección. |
-| **B** | Cerrar H a ciegas | Con cobertura de vitest, declarando en cada commit que el poblado no se verificó. |
+| KPI «Cierran con lo agendado» | 10 de 30 · con **cero** aulas agendadas | 0 de 20 con objetivo · 10 sin objetivo |
+| Panel de avance proyectado | 10 de 30 no van a llegar | 10 de 20 con objetivo · 10 más no declaran |
+| Tabla de cuota de la serie | «cuota cumplida», fila en verde | «sin cuota declarada», en gris |
+
+Y un cuarto, de otra familia pero del mismo vicio —recalcular en el consumidor lo que el motor
+ya publica—: el reparto de cobertura y «Llegaron a su meta» corrían sobre **360** filas cuando
+los cursos-horario que alguien va a visitar son **30**, porque contaban las 330 reservas de
+cadena dormidas.
+
+**Lo que queda sin ver, y hay que decirlo:** la tabla de cuota de `AulasSerieDeRendimiento` no
+se pudo verificar en pantalla. Este estudio no tiene partes de campo —sin ellos la serie entera
+no se monta— y sus cinco facultades con celda muda no tienen ningún curso-horario, que es lo
+único que esa tabla lista. Queda fijada a nivel de modelo con mutante comprobado; verla exige un
+fixture con partes de campo.
 
 ---
 
