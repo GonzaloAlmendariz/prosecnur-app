@@ -165,9 +165,22 @@
         # directos (Derecho 1,115 rinde por encima de su mix) — un residual
         # mayor a 2 si seria absurdo y se descarta.
         if (!nzchar(fac) || !is.finite(tv) || tv <= 0 || tv > 2) return(NULL)
+        # `aplicar` es EXPLICITO y por defecto TRUE: los sellos existentes
+        # -las 6 con base suficiente- siguen aplicandose sin tocarlos. Una
+        # entrada con `aplicar = FALSE` viaja como REFERENCIA: se publica lo
+        # que el historico observo y el modelo no lo usa. Es la unica forma de
+        # que una facultad sin base declare su residual sin que ese residual
+        # entre por la puerta de atras.
+        ap <- e$aplicar
+        aplicar <- !(length(ap) == 1L && identical(as.logical(ap)[1], FALSE))
+        num_opt <- function(nm) {
+          v <- suppressWarnings(as.numeric(e[[nm]])[1])
+          if (is.finite(v)) v else NULL
+        }
         list(facultad = fac, tau = tv,
              k = if (length(kv) == 1L && !is.na(kv)) kv else NA_integer_,
-             suficiencia = suf)
+             suficiencia = suf, aplicar = aplicar,
+             ic_low = num_opt("ic_low"), ic_high = num_opt("ic_high"))
       })
       limpio <- Filter(Negate(is.null), limpio)
       if (length(limpio)) por_facultad <- limpio
@@ -279,6 +292,11 @@
     # pudo generar informacion especifica para esta facultad".
     factor <- rep(1, nrow(aula_frame))
     k_fac <- rep(NA_integer_, nrow(aula_frame))
+    res_ref <- rep(NA_real_, nrow(aula_frame))
+    res_ref_k <- rep(NA_integer_, nrow(aula_frame))
+    res_ref_lo <- rep(NA_real_, nrow(aula_frame))
+    res_ref_hi <- rep(NA_real_, nrow(aula_frame))
+    res_aplicado <- rep(FALSE, nrow(aula_frame))
     pf <- cal$por_facultad
     tau_base <- suppressWarnings(as.numeric(cal$tau_base))
     if (is.list(pf) && length(pf) && length(tau_base) == 1L &&
@@ -290,13 +308,33 @@
         kv <- suppressWarnings(as.integer(e$k)[1])
         if (nzchar(fk) && is.finite(tv) && tv > 0) {
           idx <- fac_col == fk
-          factor[idx] <- tv / tau_base
-          k_fac[idx] <- kv
+          # El residual OBSERVADO viaja siempre; el APLICADO solo si el sello lo
+          # autoriza. Son dos columnas y no una a proposito: `factor_facultad`
+          # es lo que el modelo usa y `residual_ref` es lo que el historico vio.
+          # Colapsarlas haria que una facultad sin base pareciera calibrada.
+          res_ref[idx] <- tv / tau_base
+          res_ref_k[idx] <- kv
+          res_ref_lo[idx] <- if (is.null(e$ic_low)) NA_real_ else e$ic_low / tau_base
+          res_ref_hi[idx] <- if (is.null(e$ic_high)) NA_real_ else e$ic_high / tau_base
+          if (isTRUE(e$aplicar)) {
+            res_aplicado[idx] <- TRUE
+            factor[idx] <- tv / tau_base
+            k_fac[idx] <- kv
+          }
         }
       }
     }
     aula_frame$factor_facultad <- round(factor, 3)
     aula_frame$facultad_k <- k_fac
+    # Referencia: lo que el historico observo para ESTA facultad, aplicado o no,
+    # con su k y su intervalo. Una facultad sin base suficiente publica aqui su
+    # residual y un `residual_aplicado = FALSE` al lado, que es exactamente lo
+    # que se pidio: que quede absolutamente claro y que no toque el modelo.
+    aula_frame$residual_ref <- round(res_ref, 3)
+    aula_frame$residual_ref_k <- res_ref_k
+    aula_frame$residual_ref_ic_low <- round(res_ref_lo, 3)
+    aula_frame$residual_ref_ic_high <- round(res_ref_hi, 3)
+    aula_frame$residual_aplicado <- res_aplicado
     # La tasa de efectividad DEL AULA (nombre propio, V7): R(tamano) x F(fac).
     aula_frame$tasa_efectividad_aula <- round(r * factor, 3)
     # EFECTIVAS ESPERADAS = elegibles x tasa del aula — CONDICIONAL a que el
