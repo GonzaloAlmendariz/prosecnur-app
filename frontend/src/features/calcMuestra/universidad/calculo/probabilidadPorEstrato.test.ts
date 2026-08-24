@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { motivoSinProbabilidad, probabilidadPorEstrato } from "./certezaCoberturaModel";
+import { debeMedirCertezaSola, motivoSinProbabilidad, probabilidadPorEstrato } from "./certezaCoberturaModel";
 
 /**
  * La columna «Probabilidad de cumplir» vive al lado del cupo, y su regla dura es
@@ -44,5 +44,50 @@ describe("probabilidad por estrato", () => {
     expect(motivoSinProbabilidad(null)).toBe("sin medir");
     expect(motivoSinProbabilidad(vista({ vigente: false }))).toBe("medida sobre otro marco");
     expect(motivoSinProbabilidad(vista())).toBe("sin dato");
+  });
+});
+
+describe("cuándo la certeza se mide sola", () => {
+  const base = {
+    vista: null as never,
+    frameHash: "abc123",
+    hayFilas: true,
+    midiendo: false,
+    resultadoDesactualizado: false,
+    yaDisparadoPara: null as string | null,
+  };
+
+  it("se dispara con un marco identificado, filas y ninguna medición vigente", () => {
+    expect(debeMedirCertezaSola(base)).toBe(true);
+  });
+
+  it("no se dispara dos veces para el mismo marco", () => {
+    // La guarda que evita encolar trabajo pesado en cada repintado.
+    expect(debeMedirCertezaSola({ ...base, yaDisparadoPara: "abc123" })).toBe(false);
+    // Pero un marco nuevo sí vuelve a medir.
+    expect(debeMedirCertezaSola({ ...base, yaDisparadoPara: "otro" })).toBe(true);
+  });
+
+  it("no se dispara si ya hay una medición vigente para ese marco", () => {
+    expect(debeMedirCertezaSola({ ...base, vista: { vigente: true } as never })).toBe(false);
+    // Una medición de OTRO marco no cuenta como vigente: hay que volver a medir.
+    expect(debeMedirCertezaSola({ ...base, vista: { vigente: false } as never })).toBe(true);
+  });
+
+  it("no se dispara mientras otra corre", () => {
+    expect(debeMedirCertezaSola({ ...base, midiendo: true })).toBe(false);
+  });
+
+  it("no se dispara con el resultado desactualizado", () => {
+    // Mediría la certeza de unos estratos que ya no son los del marco: una
+    // probabilidad correcta sobre la pregunta equivocada es peor que ninguna.
+    expect(debeMedirCertezaSola({ ...base, resultadoDesactualizado: true })).toBe(false);
+  });
+
+  it("no se dispara sin marco o sin filas", () => {
+    expect(debeMedirCertezaSola({ ...base, frameHash: "" })).toBe(false);
+    expect(debeMedirCertezaSola({ ...base, frameHash: "   " })).toBe(false);
+    expect(debeMedirCertezaSola({ ...base, frameHash: null })).toBe(false);
+    expect(debeMedirCertezaSola({ ...base, hayFilas: false })).toBe(false);
   });
 });

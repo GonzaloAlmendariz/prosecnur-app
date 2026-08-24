@@ -169,3 +169,36 @@ export function motivoSinProbabilidad(vista: CertezaVista | null): string {
   if (!vista) return "sin medir";
   return vista.vigente ? "sin dato" : "medida sobre otro marco";
 }
+
+/**
+ * Si la certeza debe medirse sola para este marco.
+ *
+ * Era un botón, y un botón que nadie aprieta deja los cupos yendo a campo sin
+ * auditar. Pero un disparo automático mal guardado encola trabajo pesado en cada
+ * repintado, así que las cuatro condiciones se declaran aquí y se prueban una
+ * por una:
+ *
+ *   · hay un marco identificado y filas que medir;
+ *   · **no** hay ya una medición vigente para ese marco;
+ *   · **no** hay otra corriendo;
+ *   · el resultado **no** está desactualizado —medirlo daría la certeza de unos
+ *     estratos que ya no son los del marco—;
+ *   · y no se disparó ya para este mismo `frame_hash`.
+ *
+ * El último se comprueba contra el hash que el llamador marca ANTES de disparar:
+ * si la medición falla, no reintenta en bucle. Para eso sigue estando el botón.
+ */
+export function debeMedirCertezaSola(args: {
+  vista: CertezaVista | null;
+  frameHash: string | null | undefined;
+  hayFilas: boolean;
+  midiendo: boolean;
+  resultadoDesactualizado: boolean;
+  yaDisparadoPara: string | null;
+}): boolean {
+  const hash = typeof args.frameHash === "string" ? args.frameHash.trim() : "";
+  if (!hash || !args.hayFilas) return false;
+  if (args.midiendo || args.resultadoDesactualizado) return false;
+  if (args.vista?.vigente) return false;
+  return args.yaDisparadoPara !== hash;
+}
