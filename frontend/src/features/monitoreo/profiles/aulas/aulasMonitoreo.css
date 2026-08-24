@@ -5339,7 +5339,12 @@
   display: block;
   height: 0.5rem;
   border-radius: var(--pulso-radius-sm);
-  background: var(--pulso-surface-sunken);
+  /* El canal de la barra. `--pulso-surface-sunken` NO existe -lo escribi de
+     memoria- y caia a transparente: el relleno quedaba flotando sin nada contra
+     lo que compararse, asi que la barra no decia cuanto falta. Es el mismo mix
+     que usa la pista de cuotas, tres paneles mas arriba. Se vio mirando la app;
+     ningun test compara un color computado con el token que se pretendia. */
+  background: color-mix(in srgb, var(--pulso-surface-2) 70%, #fff);
   overflow: hidden;
 }
 
