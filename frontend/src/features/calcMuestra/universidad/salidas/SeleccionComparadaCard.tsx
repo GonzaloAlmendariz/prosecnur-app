@@ -138,6 +138,22 @@ export function SeleccionComparadaCard({
           llegó a levantar datos; «titulares» es lo planificado hoy, antes de campo.
         </p>
       )}
+      {/* **El total de aquí puede no ser el de «Aulas que pide el cálculo».**
+       *
+       * Esta tabla cuenta los titulares SORTEADOS; el KPI de la cabecera, en la
+       * misma pantalla, suma lo que el diseño EXIGE por facultad. Medido en
+       * HSVG2026 el 2026-08-23: «190» arriba y «Total 193» aquí. Los dos son
+       * correctos y su diferencia es información —los adicionales que el sorteo
+       * añade donde una facultad no llegaría a su cuota— pero sin decirlo se
+       * leen como una contradicción a diez centímetros.
+       *
+       * El KPI ya lo explica en su propio código; en pantalla no lo decía
+       * nadie. */}
+      <p className="cmv2-nota-denominador">
+        El total son los cursos-horario <b>sorteados</b>. «Aulas que pide el cálculo», arriba,
+        cuenta lo que el diseño exige por facultad: si son distintos, la diferencia son los
+        adicionales que el sorteo añade donde una facultad no llegaría a su cuota.
+      </p>
       {tooltip}
     </section>
   );
