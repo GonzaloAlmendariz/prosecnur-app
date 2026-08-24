@@ -108,6 +108,73 @@
   )
 }
 
+#' Cuantas lineas produce el envoltorio en la etiqueta mas larga
+#'
+#' `str_wrap` corta por palabras, asi que el numero de lineas no sale de dividir
+#' los caracteres: una etiqueta de 23 caracteres con un envoltorio de 18 puede
+#' dar dos lineas o tres segun donde caigan los espacios.
+#'
+#' @param etiquetas Niveles del eje.
+#' @param ancho_max Envoltorio en caracteres, o `NULL` si no hay.
+#' @return Numero de lineas de la etiqueta que mas produce.
+#' @keywords internal
+.agrupadas_lineas_eje <- function(etiquetas, ancho_max) {
+  et <- as.character(etiquetas %||% character(0))
+  et <- et[nzchar(trimws(et))]
+  if (!length(et)) return(1L)
+  w <- suppressWarnings(as.integer(ancho_max)[1])
+  if (!is.finite(w) || is.na(w) || w <= 0) return(1L)
+  if (!requireNamespace("stringr", quietly = TRUE)) {
+    # Sin `stringr` se estima por caracteres, que sobreestima antes que
+    # subestimar: una linea de mas encoge el texto, una de menos lo solapa.
+    return(max(1L, as.integer(ceiling(max(nchar(et)) / w))))
+  }
+  max(1L, max(vapply(
+    strsplit(stringr::str_wrap(et, width = w), "\n", fixed = TRUE),
+    length, integer(1)
+  )))
+}
+
+
+#' Cuerpo de la etiqueta de eje que cabe en su fila
+#'
+#' La fila la fija el panel y no se puede crecer —a diferencia de
+#' `barras_apiladas`, que sube el alto con `needs_tall_label_slot`—, asi que lo
+#' que cede es el cuerpo del texto.
+#'
+#' Con PISO: por debajo de `minimo_pt` no se sigue encogiendo, porque una
+#' etiqueta ilegible no es mejor que una solapada. Si ni al minimo cabe, se
+#' devuelve el minimo y el solape se ve —que es informacion, no un fallo
+#' silencioso—.
+#'
+#' @param size_pt Cuerpo actual.
+#' @param lineas Lineas que produce el envoltorio.
+#' @param n_categorias Filas del panel.
+#' @param alto_in Alto fisico del cajon, en pulgadas.
+#' @param lineheight Interlineado.
+#' @param frac_panel Fraccion del cajon que ocupa el panel de barras.
+#' @param minimo_pt Piso de legibilidad.
+#' @return El cuerpo que cabe.
+#' @keywords internal
+.agrupadas_size_que_cabe <- function(size_pt, lineas, n_categorias, alto_in,
+                                     lineheight = 1.2, frac_panel = 0.62,
+                                     minimo_pt = 8) {
+  s <- suppressWarnings(as.numeric(size_pt)[1])
+  if (!is.finite(s) || s <= 0) return(size_pt)
+  n_lin <- suppressWarnings(as.integer(lineas)[1])
+  if (!is.finite(n_lin) || is.na(n_lin) || n_lin <= 1L) return(s)
+  n_cat <- suppressWarnings(as.integer(n_categorias)[1])
+  alto <- suppressWarnings(as.numeric(alto_in)[1])
+  if (!is.finite(n_cat) || n_cat <= 0 || !is.finite(alto) || alto <= 0) return(s)
+  lh <- suppressWarnings(as.numeric(lineheight)[1])
+  if (!is.finite(lh) || lh <= 0) lh <- 1.2
+
+  fila_in <- alto * frac_panel / n_cat
+  alto_texto_in <- n_lin * s * lh / 72
+  if (alto_texto_in <= fila_in) return(s)
+  max(minimo_pt, s * fila_in / alto_texto_in)
+}
+
 #' Graficar barras agrupadas para porcentajes por categoria
 #'
 #' Construye un grafico de **barras agrupadas** para comparar una o mas series de
@@ -303,72 +370,6 @@
 #'
 #' @family graficador
 #' @export
-#' Cuantas lineas produce el envoltorio en la etiqueta mas larga
-#'
-#' `str_wrap` corta por palabras, asi que el numero de lineas no sale de dividir
-#' los caracteres: una etiqueta de 23 caracteres con un envoltorio de 18 puede
-#' dar dos lineas o tres segun donde caigan los espacios.
-#'
-#' @param etiquetas Niveles del eje.
-#' @param ancho_max Envoltorio en caracteres, o `NULL` si no hay.
-#' @return Numero de lineas de la etiqueta que mas produce.
-#' @keywords internal
-.agrupadas_lineas_eje <- function(etiquetas, ancho_max) {
-  et <- as.character(etiquetas %||% character(0))
-  et <- et[nzchar(trimws(et))]
-  if (!length(et)) return(1L)
-  w <- suppressWarnings(as.integer(ancho_max)[1])
-  if (!is.finite(w) || is.na(w) || w <= 0) return(1L)
-  if (!requireNamespace("stringr", quietly = TRUE)) {
-    # Sin `stringr` se estima por caracteres, que sobreestima antes que
-    # subestimar: una linea de mas encoge el texto, una de menos lo solapa.
-    return(max(1L, as.integer(ceiling(max(nchar(et)) / w))))
-  }
-  max(1L, max(vapply(
-    strsplit(stringr::str_wrap(et, width = w), "\n", fixed = TRUE),
-    length, integer(1)
-  )))
-}
-
-
-#' Cuerpo de la etiqueta de eje que cabe en su fila
-#'
-#' La fila la fija el panel y no se puede crecer —a diferencia de
-#' `barras_apiladas`, que sube el alto con `needs_tall_label_slot`—, asi que lo
-#' que cede es el cuerpo del texto.
-#'
-#' Con PISO: por debajo de `minimo_pt` no se sigue encogiendo, porque una
-#' etiqueta ilegible no es mejor que una solapada. Si ni al minimo cabe, se
-#' devuelve el minimo y el solape se ve —que es informacion, no un fallo
-#' silencioso—.
-#'
-#' @param size_pt Cuerpo actual.
-#' @param lineas Lineas que produce el envoltorio.
-#' @param n_categorias Filas del panel.
-#' @param alto_in Alto fisico del cajon, en pulgadas.
-#' @param lineheight Interlineado.
-#' @param frac_panel Fraccion del cajon que ocupa el panel de barras.
-#' @param minimo_pt Piso de legibilidad.
-#' @return El cuerpo que cabe.
-#' @keywords internal
-.agrupadas_size_que_cabe <- function(size_pt, lineas, n_categorias, alto_in,
-                                     lineheight = 1.2, frac_panel = 0.62,
-                                     minimo_pt = 8) {
-  s <- suppressWarnings(as.numeric(size_pt)[1])
-  if (!is.finite(s) || s <= 0) return(size_pt)
-  n_lin <- suppressWarnings(as.integer(lineas)[1])
-  if (!is.finite(n_lin) || is.na(n_lin) || n_lin <= 1L) return(s)
-  n_cat <- suppressWarnings(as.integer(n_categorias)[1])
-  alto <- suppressWarnings(as.numeric(alto_in)[1])
-  if (!is.finite(n_cat) || n_cat <= 0 || !is.finite(alto) || alto <= 0) return(s)
-  lh <- suppressWarnings(as.numeric(lineheight)[1])
-  if (!is.finite(lh) || lh <= 0) lh <- 1.2
-
-  fila_in <- alto * frac_panel / n_cat
-  alto_texto_in <- n_lin * s * lh / 72
-  if (alto_texto_in <= fila_in) return(s)
-  max(minimo_pt, s * fila_in / alto_texto_in)
-}
 
 
 graficar_barras_agrupadas <- function(

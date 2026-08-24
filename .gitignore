@@ -12,6 +12,13 @@ renv/local/
 renv/staging/
 .Rprofile.local
 
+# Documentación .Rd del paquete. `prosecnurapp` es una app, no una librería
+# distribuible: se instala con `R CMD INSTALL --no-docs` en CI y en dev, y
+# `api/DESCRIPTION` fija `Roxygen: list(roclets = c("namespace"))` para que
+# `roxygenise()` regenere solo el NAMESPACE. Si alguien fuerza el roclet `rd`,
+# los ~390 .Rd generados no entran al repo.
+api/man/
+
 # Node / frontend
 node_modules/
 .vite/

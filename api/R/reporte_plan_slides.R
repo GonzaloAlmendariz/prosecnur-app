@@ -266,17 +266,6 @@ p_slide_seccion <- function(titulo, subtitulo = NULL, introduccion_word = NULL, 
   ))
 }
 
-#' @title Slide de texto
-#'
-#' @param titulo Titulo principal.
-#' @param texto Texto libre o vector de parrafos.
-#' @param bullets Vector opcional de bullets; se convierte en listado.
-#' @param base Texto/base opcional al final del cuerpo.
-#' @param meta Lista libre para notas internas.
-#'
-#' @return Objeto con clase `"ppt_slide"`.
-#' @family reporte
-#' @export
 #' Que diagrama le toca a una lamina de texto por su titulo
 #'
 #' Los planes ya guardados en los `.pulso` no traen `diagrama`: se escribieron
@@ -301,6 +290,18 @@ p_slide_seccion <- function(titulo, subtitulo = NULL, introduccion_word = NULL, 
   if (!is.na(t) && grepl("^N[U]?MERO DE RESPUESTAS$", t)) return("numero_respuestas")
   NULL
 }
+
+#' @title Slide de texto
+#'
+#' @param titulo Titulo principal.
+#' @param texto Texto libre o vector de parrafos.
+#' @param bullets Vector opcional de bullets; se convierte en listado.
+#' @param base Texto/base opcional al final del cuerpo.
+#' @param meta Lista libre para notas internas.
+#'
+#' @return Objeto con clase `"ppt_slide"`.
+#' @family reporte
+#' @export
 
 
 p_slide_texto <- function(
