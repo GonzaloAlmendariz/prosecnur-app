@@ -2032,7 +2032,10 @@ function renderAulasView(
             Vuelve a pulsar su fila en la pirámide para ver todas.
           </p>
         ) : null}
-        <DataTable rows={quotaEnFoco} empty="El plan no declara composición por sexo para estos cursos-horario." />
+        {/* El vacío de la tabla, en términos de tabla. La causa la explica el
+            resumen que encabeza la sección: repetirla aquí la convertía en la
+            tercera copia literal de la misma frase en la misma pantalla. */}
+        <DataTable rows={quotaEnFoco} empty="Sin celdas de cuota que listar." />
       </section>
       )}
     </div>
