@@ -127,3 +127,64 @@ monitoreo_aulas_reserva_dirigida <- function(pool = list(), facultad = "", sexo 
                  vapply(filas, function(f) f$classroom_id, character(1)))
   utils::head(filas[orden], max(0L, as.integer(tope)[1]))
 }
+
+#' Candidatos del banco para CADA celda que no va a llegar.
+#'
+#' Sólo se calcula donde hay decisión que tomar: una celda asegurada no necesita
+#' candidatos y calcularlos para las quince sería trabajo que nadie mira. El
+#' banco son las filas del plan con `sample_role == "extra_reserve_pool"` —hoy un
+#' residuo de armar las cadenas; esto es lo que le da función.
+#'
+#' @param avance salida de `monitoreo_aulas_avance_sexo_facultad`.
+#' @param plan filas del plan (incluye el banco).
+#' @param ya_medidos ids de alumnos ya medidos.
+#' @param tope candidatos por celda.
+#' @return lista por celda en déficit con sus candidatos.
+#' @export
+monitoreo_aulas_reserva_por_celda <- function(avance = list(), plan = list(),
+                                              ya_medidos = character(0), tope = 5L) {
+  if (!length(avance) || !length(plan)) return(list())
+  banco <- Filter(function(f) {
+    is.list(f) && identical(
+      tolower(trimws(as.character(.monitoreo_scalar(f$sample_role %||% "", "")))),
+      "extra_reserve_pool"
+    )
+  }, plan)
+  if (!length(banco)) return(list())
+  en_deficit <- Filter(function(c1) {
+    is.list(c1) && .monitoreo_scalar(c1$estado %||% "", "") %in%
+      c("deficit_proyectado", "deficit_no_subsanable")
+  }, avance)
+  if (!length(en_deficit)) return(list())
+  out <- lapply(en_deficit, function(c1) {
+    cand <- monitoreo_aulas_reserva_dirigida(
+      pool = banco, facultad = .monitoreo_scalar(c1$faculty %||% "", ""),
+      sexo = .monitoreo_scalar(c1$sex %||% "F", "F"),
+      ya_medidos = ya_medidos, tope = tope
+    )
+    aporte <- if (length(cand)) sum(vapply(cand, function(x) x$aporte_esperado, numeric(1))) else 0
+    brecha <- suppressWarnings(as.integer(.monitoreo_scalar(c1$brecha %||% 0, 0))[1])
+    if (!is.finite(brecha)) brecha <- 0L
+    list(
+      faculty = .monitoreo_scalar(c1$faculty %||% "", ""),
+      sex = .monitoreo_scalar(c1$sex %||% "", ""),
+      brecha = brecha,
+      candidatos = cand,
+      aporte_de_los_candidatos = round(aporte, 1),
+      # **Si el banco alcanza o no.** Es la frase que decide, y por eso dice las
+      # dos cifras: un «hay 5 candidatos» no responde si con esos 5 se cierra.
+      alcanza = length(cand) > 0 && aporte >= brecha,
+      etiqueta = if (!length(cand))
+          "El banco no tiene aulas de esa facultad y ese sexo"
+        else if (aporte >= brecha)
+          sprintf("Con %d aula%s del banco se cierra: aportan %s y faltan %d",
+                  length(cand), if (length(cand) == 1L) "" else "s",
+                  round(aporte, 1), brecha)
+        else
+          sprintf("El banco no alcanza: sus %d aula%s aportan %s y faltan %d",
+                  length(cand), if (length(cand) == 1L) "" else "s",
+                  round(aporte, 1), brecha)
+    )
+  })
+  out
+}
