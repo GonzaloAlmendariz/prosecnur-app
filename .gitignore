@@ -65,6 +65,11 @@ outputs/
 # Backups puntuales (ej. fixes manuales de data con .bak_edad_fix)
 *.bak_edad_fix
 *.bak_*
+*.bak
+
+# Salida del script de replicacion de la base (ADR 0031): lleva columnas de
+# identidad del encuestador, no se versiona.
+base_final_replicada.csv
 
 # Datos del analista (no van al repo)
 insumos/
