@@ -392,7 +392,7 @@ calc_muestra_aulas_default_config <- function() {
     selector = list(
       seed = 20260619L,
       n_aulas = 30L,
-      replacement_waves = 11L,
+      replacement_waves = 5L,
       selector_engine = "cube_balanceado",
       method_family = "balanced_probability",
       strata_cols = as.list(c("faculty", "sex_top_1", "size_group")),
