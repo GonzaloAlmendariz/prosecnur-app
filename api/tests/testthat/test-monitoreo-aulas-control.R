@@ -311,10 +311,28 @@ test_that("sin meta y sin umbrales sigue siendo indeterminado, no un FALSE", {
   expect_equal(pub$criterio, "")
 })
 
-test_that("la meta del libro gana a la del diseno: es la que el equipo corrige", {
+test_that("`elegibles_esperados` NO es la meta: lleva el padron entero", {
+  # La columna del libro se rotula «ELEGIBLES ESPERADOS» y escribe `eligible_n`.
+  # Medido: un aula con 36 elegibles y meta 17,3 recibe 36 en esa columna. Si se
+  # usa como vara, un aula que consiguio 20 de las 17,3 que se le pedian sale
+  # suspendida por no llegar a 36 — o sea, se exige el 100 % de asistencia
+  # efectiva a todas las aulas.
   fila <- list(
-    operational_code = "CH 5", efectivas_obtenidas = 30,
-    elegibles_esperados = 25, efectivas_esperadas = 45
+    operational_code = "CH 5", efectivas_obtenidas = 20,
+    eligible_n = 36, elegibles_esperados = 36,
+    expected_valid = 17.3, efectivas_esperadas = 17.3
+  )
+  pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
+  expect_true(pub$efectiva)
+  expect_equal(pub$criterio, "meta")
+})
+
+test_that("`expected_valid` manda sobre `efectivas_esperadas`", {
+  # `expected_valid` es lo que `monitoreo_aulas_universitarias` ya compuso por
+  # fila; si difiere del crudo del plan, es porque esa capa lo resolvio.
+  fila <- list(
+    operational_code = "CH 6", efectivas_obtenidas = 30,
+    expected_valid = 25, efectivas_esperadas = 45
   )
   pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
   expect_true(pub$efectiva)

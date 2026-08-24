@@ -142,12 +142,21 @@ monitoreo_aulas_control_umbral <- function(fila, campo_verdict, campo_umbral) {
 #' estudio de 2026 eso pasa en el 100 % de las filas — el panel de control
 #' declaraba «sin evaluar» el operativo entero.
 #'
-#' La meta se busca en dos nombres porque son dos cosas que el operativo llama
-#' igual: `elegibles_esperados` es la columna del libro —declarada y hoy sin
-#' productor— y `efectivas_esperadas` es la que el calculo de muestra si escribe
-#' en cada aula (2.616 de 2.616 en el estudio de referencia, mediana 17). Se
-#' prefiere la del libro cuando viene, porque es la que el equipo puede corregir
-#' a mano.
+#' **La meta NO es `elegibles_esperados`, por mucho que se llame asi.** Esa
+#' columna del libro se rotula «ELEGIBLES ESPERADOS» y lo que lleva dentro es
+#' `eligible_n`: el padron entero del aula. Medido el 2026-08-24 sobre un aula
+#' con 36 elegibles y meta 17,3, la columna escribe **36**. El frontend ya la
+#' nombra por lo que es —«Elegibles del padron»—. Usarla como vara pediria el
+#' 100 % de asistencia efectiva y suspenderia a casi todas las aulas.
+#'
+#' La meta de verdad viaja en `expected_valid`, que
+#' `monitoreo_aulas_universitarias` compone por fila desde `efectivas_esperadas`
+#' —lo que el calculo de muestra publica por curso-horario:
+#' `eligible_n` x rendimiento(tramo de tamaño) x P(aplicada | tipo de docente) x
+#' **factor por facultad**, calibrado con el 2025 ejecutado y aplicado solo en
+#' las facultades donde el historico tuvo suficiencia (6 de 15; las otras van con
+#' factor 1 y `facultad_k = NA`)—. En el marco 2026 va de 7,4 a 51,7 encuestas
+#' por aula.
 #'
 #' Lo conseguido se lee de las efectivas y, si faltan, de las enviadas: son dos
 #' denominadores distintos y el fallback esta declarado, no es un empate.
@@ -156,7 +165,7 @@ monitoreo_aulas_control_umbral <- function(fila, campo_verdict, campo_umbral) {
 #' @return `TRUE`, `FALSE` o `NA` si no hay meta o no hay conteo.
 #' @export
 monitoreo_aulas_control_meta <- function(fila) {
-  meta <- .mac_num(fila[["elegibles_esperados"]])
+  meta <- .mac_num(fila[["expected_valid"]])
   if (!is.finite(meta)) meta <- .mac_num(fila[["efectivas_esperadas"]])
   if (!is.finite(meta) || meta <= 0) return(NA)
   logrado <- .mac_num(fila[["efectivas_obtenidas"]])
