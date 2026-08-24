@@ -593,7 +593,16 @@ export function aulasKpis(
   // mismo motivo por el que ya no entraba en `brechas`, asi que el denominador
   // de esta cifra tiene que seguirlo o diria «0 de 267» sobre un reparto de 194.
   const banco = Number(dashboard?.course_status_banco ?? 0) || 0;
-  const conMeta = Math.max(0, totalDelMotor - sinMeta - banco);
+  // **El denominador lo publica el motor.** Restarlo aqui obligaba a conocer
+  // TODAS las poblaciones que no entran y a acertar con todas: faltaban las
+  // reservas de cadena dormidas, que no son banco, y el KPI decia «de 360»
+  // sobre un plan de 30 slots con 330 reservas detras — 12 veces el
+  // denominador real, en la misma pantalla donde la agenda decia «de 30 que se
+  // van a visitar». La resta queda de respaldo para un payload viejo.
+  const conMetaDelMotor = Number(dashboard?.course_status_con_meta ?? NaN);
+  const conMeta = Number.isFinite(conMetaDelMotor)
+    ? conMetaDelMotor
+    : Math.max(0, totalDelMotor - sinMeta - banco);
   return [
     // **Las aulas aplicadas van PRIMERO, y antes no estaban.**
     //

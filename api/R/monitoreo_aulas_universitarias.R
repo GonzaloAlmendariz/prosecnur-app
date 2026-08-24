@@ -1308,7 +1308,22 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   #
   # Se cuentan aparte para que la vista pueda nombrarlas: sacarlas del reparto y
   # no decir donde fueron deja al lector con dos totales que no cuadran.
-  en_juego_cs <- !(tolower(trimws(as.character(out$sample_role %||% ""))) %in% "extra_reserve_pool")
+  #
+  # Y «en juego» es el del motor, no el rol: `monitoreo_aulas_en_juego()` ya lo
+  # calculo unas lineas mas arriba y viaja en `out$en_juego`. La version que
+  # vivia aqui —«no es del banco de extras»— dejaba dentro las RESERVAS DE
+  # CADENA dormidas, que es el mismo defecto una capa mas abajo: medido sobre el
+  # estudio de HSVG, el reparto y el denominador de «Llegaron a su meta» corrian
+  # sobre **360** filas cuando los slots que alguien va a visitar son **30** —30
+  # titulares con 330 reservas detras—. Un reemplazo dormido no es un aula sin
+  # respuestas: es un aula a la que no le toca, y sale a campo solo si su
+  # titular cae.
+  del_banco_cs <- tolower(trimws(as.character(out$sample_role %||% ""))) %in% "extra_reserve_pool"
+  en_juego_cs <- if (!is.null(out$en_juego)) {
+    v <- as.logical(out$en_juego); v[is.na(v)] <- FALSE; v
+  } else {
+    !del_banco_cs
+  }
   con_meta <- meta_cs > 0 & en_juego_cs
   razon <- ifelse(con_meta, val_cs / pmax(meta_cs, 1), NA_real_)
   # **Los tramos separan «le falto una» de «no fue nadie».**
@@ -1372,7 +1387,17 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   # Las que no declaran meta, contadas SOLO entre las que estan en juego: una
   # reserva del banco sin meta no es un dato que falte, es que no le toca.
   attr(recortado, "sin_meta") <- as.integer(sum(en_juego_cs & !(meta_cs > 0)))
-  attr(recortado, "banco") <- as.integer(sum(!en_juego_cs))
+  # `banco` sigue siendo el BANCO DE EXTRAS y nada mas: la vista lo nombra asi
+  # («N del banco») y meterle las reservas dormidas le pondria un nombre que no
+  # es. Las dormidas se cuentan aparte, que son otra poblacion: el banco espera
+  # en su estrato, la reserva espera a que caiga SU titular.
+  attr(recortado, "banco") <- as.integer(sum(del_banco_cs))
+  attr(recortado, "reservas_dormidas") <- as.integer(sum(!en_juego_cs & !del_banco_cs))
+  # El denominador de «cuantos llegaron a su meta», publicado en vez de dejar
+  # que el cliente lo reste. Restarlo obligaba a conocer las tres poblaciones y
+  # a acertar con las tres: el KPI hacia `total - sin_meta - banco` y le salia
+  # 360 porque las dormidas no estaban en ninguno de los dos sustraendos.
+  attr(recortado, "con_meta") <- as.integer(sum(con_meta))
   recortado
 }
 
@@ -1975,6 +2000,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # Cuantas del reparto son banco. La vista las nombra en vez de dejar dos
     # totales que no cuadran entre la cabecera y el pie.
     course_status_banco = as.integer(attr(course_status, "banco") %||% 0L),
+    course_status_reservas_dormidas = as.integer(attr(course_status, "reservas_dormidas") %||% 0L),
+    course_status_con_meta = as.integer(attr(course_status, "con_meta") %||% 0L),
     # El BANCO de extras. No es una tercera copia del plan: es el segundo nivel
     # de respaldo —reservas que no cuelgan de ningun titular, repartidas por
     # estrato— y hasta ahora no se veia en ninguna pantalla, asi que cuando una

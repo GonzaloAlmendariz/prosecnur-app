@@ -901,6 +901,8 @@ export type MonitoreoAulasDashboard = {
 	   * adicionales esperando en su estrato, no aulas que alguien vaya a visitar.
 	   */
 	  course_status_banco?: number;
+	  course_status_reservas_dormidas?: number;
+	  course_status_con_meta?: number;
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;
