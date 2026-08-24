@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getFormWorkflowView } from "./formWorkflowView";
-import type { XlsformFormPublication } from "../../../api/xlsform";
+import type { XlsformFormPublication } from "../../../api/client";
 
 /**
  * **Un formulario vacío no tiene la lógica lista: no tiene lógica.**
