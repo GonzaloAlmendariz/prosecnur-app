@@ -98,3 +98,33 @@ describe("la columna «dónde» entrega el aula, no otra vez la hora", () => {
     expect(soloElAula("   ")).toBe("");
   });
 });
+
+/**
+ * **Un código académico no es un aula, por mucho que ocupe esa columna.**
+ *
+ * `SESIONES Y AULA` es descriptivo cuando el equipo lo escribe a mano —«LUN
+ * 16:00 V110»— pero en un plan que viene del sorteo `label` ES el código del
+ * curso-horario. Medido en pantalla el 2026-08-23 sobre el estudio de 193: la
+ * columna «Sesiones y aula» enseñaba `urb209_0601` en las 193 filas, en una
+ * columna rotulada **dónde**, con el código ya presente dos columnas antes.
+ *
+ * Tercera aparición del mismo defecto —el `venue` de la ficha y la agenda del
+ * libro fueron las otras dos, ambas rellenando el aula con el código—.
+ */
+describe("soloElAula · un código no pasa por aula", () => {
+  it("calla cuando el texto es el mismo código que la fila ya muestra", () => {
+    expect(soloElAula("urb209_0601", "urb209_0601")).toBe("");
+    // Sin importar la caja: el marco mezcla minúsculas y mayúsculas.
+    expect(soloElAula("URB209_0601", "urb209_0601")).toBe("");
+  });
+
+  it("pero un aula de verdad se mantiene, con o sin prefijo de día y hora", () => {
+    expect(soloElAula("LUN 16:00 V110", "urb209_0601")).toBe("V110");
+    expect(soloElAula("V110", "urb209_0601")).toBe("V110");
+  });
+
+  it("sin código con el que comparar no se inventa nada: el texto pasa entero", () => {
+    // No adivina si algo «parece» un código: eso descartaría aulas legítimas.
+    expect(soloElAula("urb209_0601")).toBe("urb209_0601");
+  });
+});

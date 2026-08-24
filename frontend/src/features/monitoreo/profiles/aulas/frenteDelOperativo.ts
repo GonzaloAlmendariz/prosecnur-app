@@ -80,9 +80,26 @@ function dias(desde: string, hasta: string): number {
  * —es el que usa el equipo— pero eso no obliga a decir dos veces lo mismo en la
  * misma fila. El texto completo sigue en el `title`.
  */
-export function soloElAula(label: string): string {
+export function soloElAula(label: string, codigoAcademico = ""): string {
   const limpio = label.trim();
   if (!limpio) return "";
+  // **Un codigo academico no es un aula, por mucho que ocupe esa columna.**
+  //
+  // `SESIONES Y AULA` es descriptivo cuando el equipo lo escribe a mano —«LUN
+  // 16:00 V110»—, pero en un plan que viene del sorteo `label` ES el codigo del
+  // curso-horario. Medido el 2026-08-23 sobre el estudio de 193: la columna
+  // «Sesiones y aula» enseñaba `urb209_0601` en las 193 filas, o sea el codigo
+  // otra vez, en una columna rotulada **donde**.
+  //
+  // Es el mismo defecto que ya se reparo dos veces —el `venue` de la ficha y la
+  // agenda del libro, las dos rellenando el aula con el codigo—. Aqui no hay
+  // fallback que quitar: hay que reconocer que el texto no describe un sitio.
+  //
+  // El criterio no adivina: si el texto es EL MISMO codigo que la fila ya
+  // muestra en su columna de curso-horario, no aporta nada y se calla. Un
+  // «V110» suelto, sin dia ni hora, si es un aula y se mantiene.
+  const codigo = codigoAcademico.trim();
+  if (codigo && limpio.toLowerCase() === codigo.toLowerCase()) return "";
   // `LUN 16:00 V110` · `LUN 8:00 A101` · `MIE 14:00 N121`. Sin dia o sin hora no
   // se toca: adivinar donde acaba el prefijo seria peor que dejarlo.
   const sinDiaYHora = limpio.replace(/^[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,10}\.?\s+\d{1,2}:\d{2}\s+/, "");
@@ -127,7 +144,7 @@ export function frenteDelOperativo(
       facultad: texto(fila.faculty) || "Sin facultad",
       fecha,
       hora: texto(fila.scheduled_time),
-      donde: soloElAula(texto(fila.label)),
+      donde: soloElAula(texto(fila.label), texto(fila.classroom_id) || texto(fila.course_id)),
       sesion: texto(fila.label),
       dias: dias(fecha, corte),
     });
