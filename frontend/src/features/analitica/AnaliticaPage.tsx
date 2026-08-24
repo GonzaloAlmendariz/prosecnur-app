@@ -51,7 +51,24 @@ export default function AnaliticaPage() {
   useAnaliticaAutosave();
 
   const prepOk = !!state?.analitica_prep_ok;
-  const prereqOk = prepOk || (!!state?.xlsform && !!state?.data);
+  // **Los prerequisitos son insumos UTILIZABLES, no archivos subidos.**
+  //
+  // Miraba `xlsform && data`, que valen `true` en cuanto hay ficheros en la
+  // sesion, aunque nadie los haya parseado. Medido el 2026-08-23 sobre un
+  // proyecto con los dos archivos y ningun paso corrido —`instrumento_parsed`
+  // y `data_previewed` en `false`—: la compuerta «Carga los insumos del
+  // estudio» NO se mostraba, Analitica lanzaba la preparacion igual y esta
+  // fallaba con «faltan 119 de 119 variables esperadas».
+  //
+  // Tres superficies contando lo mismo de tres formas: Carga decia «Pendiente ·
+  // Aun no hay datos», Analitica un error de 119 variables, y el estado
+  // `data: true`. Las tres eran ciertas y ninguna se entendia junto a las
+  // otras.
+  //
+  // `prepOk` sigue mandando: un proyecto que YA preparo no vuelve a la
+  // compuerta porque sus flags de paso intermedio esten en otro sitio.
+  const prereqOk = prepOk
+    || (!!state?.instrumento_parsed && !!state?.data_previewed);
   const independentSiblings = state?.estudio_processing_mode === "independent_siblings";
   const reportes = pestanasAnaliticaDisponibles({
     multibaseDisponible: Boolean(state?.analitica_multibase_available),
