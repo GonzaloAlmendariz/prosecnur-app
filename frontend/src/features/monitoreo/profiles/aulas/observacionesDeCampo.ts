@@ -30,6 +30,26 @@ type Fila = Readonly<Record<string, unknown>>;
 
 const txt = (v: unknown) => String(v ?? "").trim();
 
+/**
+ * Si esta fila de la agenda pasó por campo.
+ *
+ * Cualquiera de las tres señales que deja el registro sirve: el momento en que
+ * se aplicó, el estado operativo o una cifra declarada. Se miran las tres
+ * porque una fila editada a mano en el Excel puede traer los números sin el
+ * estado, o el estado sin la hora, y descartarla por el campo que le falta
+ * borraría un aula que sí se visitó.
+ */
+function pasoPorCampo(fila: Fila): boolean {
+  if (txt(fila.applied_at) || txt(fila.applied_date)) return true;
+  const estado = txt(fila.operational_status).toLowerCase();
+  if (estado === "aplicada" || estado === "aplicado") return true;
+  for (const k of ["effective_surveys", "efectivas", "attendees", "asistentes"]) {
+    const v = fila[k];
+    if (v != null && v !== "" && Number(v) > 0) return true;
+  }
+  return false;
+}
+
 /** Para agrupar: mismo mensaje escrito con otra caja o espacios es el mismo. */
 const clave = (s: string) => s.toLowerCase().replace(/\s+/g, " ").replace(/[.;,]+$/, "").trim();
 
@@ -111,8 +131,23 @@ export function observacionesDeCampo(
   // El denominador son las unidades que PUDIERON traer observación por
   // cualquiera de los dos caminos, contadas una vez: sumar las dos listas daría
   // un total mayor que el operativo.
+  //
+  // **Y sólo las que YA pasaron por campo.** El panel recibe como `registros`
+  // la agenda entera —2.616 filas— porque ahí es donde el registro de esta app
+  // deja su `field_note`, pero una fila de la agenda sin aplicar no es un
+  // registro: nadie estuvo en esa aula y no pudo observar nada. Medido el
+  // 2026-08-24 sobre el proyecto simulado, con 3 partes en el libro y 10 aulas
+  // registradas, el panel publicaba **«4 de 2.616 partes traen observación»**.
+  // Las cuatro son las mismas; el denominador convertía un tercio del campo en
+  // un residuo del 0,15 %, que es la diferencia entre «el campo está
+  // reportando» y «el campo no reporta nada».
   const universo = new Set<string>();
-  for (const p of [...partes, ...registros]) {
+  for (const p of partes) {
+    const codigo = txt(p.operational_code);
+    if (codigo) universo.add(codigo);
+  }
+  for (const p of registros) {
+    if (!pasoPorCampo(p)) continue;
     const codigo = txt(p.operational_code);
     if (codigo) universo.add(codigo);
   }
