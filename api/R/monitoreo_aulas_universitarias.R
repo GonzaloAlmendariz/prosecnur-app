@@ -505,10 +505,21 @@ monitoreo_aulas_normalize_plan <- function(plan = list()) {
     #
     # Gonzalo: «el que monitorea tiene que saber por que estamos asignando esa
     # validez a ese curso horario». La meta no es un numero caido del cielo:
-    # `eligible_n` x `p_aplicada_ref` (probabilidad de que el aula llegue a
-    # aplicarse, segun el tipo de docente) x `rendimiento_ref` (lo que rinde un
-    # aula de ese tamaño) = `efectivas_esperadas`. Los tres campos viajan para
-    # que la pantalla pueda decir «24 x 73 % x 69 % → 12» sin recalcular nada.
+    #
+    #   `efectivas_esperadas` = `eligible_n` x `rendimiento_ref` (lo que rinde un
+    #   aula de ese tamaño) x `factor_facultad`.
+    #
+    # **El tipo de docente NO entra.** Gonzalo, 2026-08-24: «no es por tipo de
+    # docente, eso lo descartamos». `p_aplicada_ref` es capa OPERATIVA —anticipa
+    # si el aula llega a aplicarse y cuantas visitas presupuestar—, no cuanto
+    # rinde adentro; la tarjeta «De donde sale el esperado» ya lo rotula «Dato
+    # operativo». Este comentario describia la formula anterior y decia que la
+    # pantalla podia enseñar «24 x 73 % x 69 % → 12»: esa cuenta NO reproduce el
+    # numero. Verificado el 2026-08-24 sobre las 2.616 del marco simulado —
+    # **2.616 de 2.616** cuadran sin `p_aplicada_ref`, **0 de 2.616** con el.
+    #
+    # Los campos viajan igual para que la pantalla enseñe la cuenta sin
+    # recalcular nada, incluido el operativo, que se muestra aparte.
     #
     # `teacher_type` puede venir COMPUESTO cuando el aula tiene dos docentes
     # —«ORDINARIO - PRINCIPAL | CONTRATADO»— y la tasa aplicada es la del mas

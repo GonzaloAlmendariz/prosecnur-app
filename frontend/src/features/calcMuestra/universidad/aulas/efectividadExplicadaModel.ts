@@ -39,7 +39,8 @@ export type GrupoTamano = {
 export type EjemploAula = {
   curso: string;
   elegibles: number;
-  pAplicada: number;
+  /** Operativo, y opcional: el modo τ global no lo escribe. */
+  pAplicada: number | null;
   rendimiento: number;
   esperadas: number;
   /** Tipo de docente del aula, tal cual viene («DOCENTE ORDINARIO - PRINCIPAL»). */
@@ -57,18 +58,25 @@ export type EfectividadExplicada = {
    *  selección (condicional, V7: el docente no descuenta). Es un resumen de
    *  control; la vara real vive por facultad y por aula. */
   tasaGlobal: number;
-  /** P(aplicada) media ponderada por elegibles. */
+  /**
+   * P(aplicada) media ponderada por elegibles. **Resumen OPERATIVO**: cuántas
+   * de las aulas previstas se espera que lleguen a aplicarse, que es lo que
+   * dimensiona visitas y cadena. No entra en la efectividad.
+   */
   pAplicadaMedia: number;
-  /** tasaGlobal / pAplicadaMedia — reconstruye el τ del dimensionamiento. */
-  tauImplicito: number;
   ejemplo: EjemploAula | null;
 };
 
 export function efectividadExplicada(rows: Fila[] | null): EfectividadExplicada | null {
+  // **`p_aplicada_ref` NO condiciona la entrada.** Es dato operativo y estaba en
+  // el filtro desde cuando multiplicaba en la fórmula; con la V7 ya no lo hace,
+  // así que exigirlo hacía desaparecer la tarjeta entera en los estudios que no
+  // lo traen —el modo τ global lo deja NA a propósito, junto a
+  // `rendimiento_ref`—. La explicación del esperado no puede depender de un
+  // campo que no participa del esperado.
   const filas = (rows ?? []).filter(
     (f) =>
       num(f.eligible_n) != null &&
-      num(f.p_aplicada_ref) != null &&
       num(f.rendimiento_ref) != null &&
       num(f.efectivas_esperadas) != null,
   );
@@ -122,7 +130,8 @@ export function efectividadExplicada(rows: Fila[] | null): EfectividadExplicada 
       String(primera.course_name ?? "").trim() ||
       String(primera.course_id ?? "").trim(),
     elegibles: num(primera.eligible_n) as number,
-    pAplicada: num(primera.p_aplicada_ref) as number,
+    // Puede faltar: es operativo y no todos los modos lo escriben.
+    pAplicada: num(primera.p_aplicada_ref),
     rendimiento: rEj,
     esperadas: num(primera.efectivas_esperadas) as number,
     docente: String(primera.teacher_type ?? "").trim() || "sin tipo declarado",
@@ -142,7 +151,6 @@ export function efectividadExplicada(rows: Fila[] | null): EfectividadExplicada 
     totalEsperadas,
     tasaGlobal,
     pAplicadaMedia,
-    tauImplicito: pAplicadaMedia > 0 ? tasaGlobal / pAplicadaMedia : 0,
     ejemplo,
   };
 }

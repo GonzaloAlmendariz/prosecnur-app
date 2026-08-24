@@ -68,10 +68,15 @@ export function AulasLoQueFalta({ filas, facultadEnFoco, onFoco }: {
   }
   if (!r.aulas.length) {
     return (
+      // **No se manda a buscar columnas que ya no se escriben.**
+      // Decía «hacen falta las enviadas y el umbral en encuestas (columnas 70T
+      // y 70P)», y esas dos columnas la app dejó de escribirlas: en un libro de
+      // 2026 el equipo iba a buscarlas y no estaban. Lo que falta hoy es lo que
+      // el aula consiguió, porque la meta ya viaja con cada curso-horario.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-        {fmt(r.noEfectivas)} aulas no alcanzaron sus umbrales, pero el libro no
-        trae con qué calcular cuánto les falta: hacen falta las enviadas y el
-        umbral en encuestas (columnas 70T y 70P).
+        {fmt(r.noEfectivas)} aulas no alcanzaron su meta, pero el libro no trae
+        con qué calcular cuánto les falta: hace falta cuántas efectivas
+        consiguió cada una (columna «EFECTIVAS OBTENIDAS»).
       </p>
     );
   }

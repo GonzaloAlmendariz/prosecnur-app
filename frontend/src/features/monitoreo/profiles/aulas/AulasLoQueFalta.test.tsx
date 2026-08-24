@@ -27,7 +27,12 @@ describe("AulasLoQueFalta · los vacíos", () => {
       <AulasLoQueFalta filas={[{ operational_code: "CH 1", cumple_total: false, cumple_poblacion: false }]} />,
     );
     expect(html).toContain("no trae con qué calcular cuánto les falta");
-    expect(html).toContain("70T");
+    // **La columna que se nombra tiene que existir en el libro de hoy.** Decía
+    // «(columnas 70T y 70P)», y la app dejó de escribirlas: el equipo iba a
+    // buscarlas al Excel y no estaban. La meta ya viaja con cada curso-horario,
+    // así que lo que falta es lo conseguido.
+    expect(html).toContain("EFECTIVAS OBTENIDAS");
+    expect(html).not.toContain("70T");
     // El control: si el panel tratara «sin cifras» como faltante cero, dibujaría
     // la escalera con un aula de coste cero en vez de decir qué le falta al libro.
     expect(html).not.toContain("aulas-falta-grafico");

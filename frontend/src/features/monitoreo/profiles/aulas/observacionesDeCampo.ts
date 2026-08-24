@@ -31,15 +31,26 @@ type Fila = Readonly<Record<string, unknown>>;
 const txt = (v: unknown) => String(v ?? "").trim();
 
 /**
- * Si esta fila de la agenda pasó por campo.
+ * Si esta unidad ya tuvo gestión, y por tanto pudo traer observación.
  *
- * Cualquiera de las tres señales que deja el registro sirve: el momento en que
- * se aplicó, el estado operativo o una cifra declarada. Se miran las tres
- * porque una fila editada a mano en el Excel puede traer los números sin el
- * estado, o el estado sin la hora, y descartarla por el campo que le falta
- * borraría un aula que sí se visitó.
+ * **La observación la escribe quien agenda, no sólo quien aplica.** Gonzalo,
+ * 2026-08-24: «la observación va a ser algo que el agendador siempre va a
+ * escribir». Una llamada que no entra, un docente que pide otro día o un aula
+ * que cambió de sitio se anotan al gestionar la cita, mucho antes de que nadie
+ * pise el aula — así que exigir señal de campo dejaba fuera del denominador
+ * justo el caso más común. Medido: dos notas escritas al agendar contra una
+ * sola aula aplicada publicaban **«2 de 1»**.
+ *
+ * Cuentan cuatro señales, y la primera es la decisiva: **si trae nota, alguien
+ * la escribió**, y una unidad no puede quedar fuera del denominador de su
+ * propia observación. Las otras tres —cita fijada, paso por campo, cifra
+ * declarada— se miran todas porque una fila corregida a mano en el Excel puede
+ * traer los números sin el estado, o el estado sin la hora, y descartarla por
+ * el campo que le falta borraría un aula que sí se gestionó.
  */
-function pasoPorCampo(fila: Fila): boolean {
+function tuvoGestion(fila: Fila): boolean {
+  if (txt(fila.field_note) || txt(fila.replacement_note)) return true;
+  if (txt(fila.scheduled_date) || txt(fila.scheduled_time)) return true;
   if (txt(fila.applied_at) || txt(fila.applied_date)) return true;
   const estado = txt(fila.operational_status).toLowerCase();
   if (estado === "aplicada" || estado === "aplicado") return true;
@@ -53,10 +64,36 @@ function pasoPorCampo(fila: Fila): boolean {
 /** Para agrupar: mismo mensaje escrito con otra caja o espacios es el mismo. */
 const clave = (s: string) => s.toLowerCase().replace(/\s+/g, " ").replace(/[.;,]+$/, "").trim();
 
+/**
+ * De cuál de las dos columnas del libro salió la observación.
+ *
+ * **Son dos campos distintos en dos hojas distintas**, y hasta hoy el panel
+ * leía uno solo:
+ *
+ * - `agenda` → hoja «Aulas Agendadas», columna «OBSERVACIONES (SOBRE AULAS
+ *   AGENDADAS)». Viaja en `replacement_note` —el nombre es heredado y dice
+ *   «nota de reemplazo», que es otra cosa—. La escribe quien gestiona la cita:
+ *   por qué costó, qué pidió el docente, si cambió el aula.
+ * - `aplicacion` → hoja «Aulas Aplicadas (Campo)», columna «OBSERVACIONES SOBRE
+ *   APLICACIONES», en `field_note`. La escribe quien estuvo en el aula.
+ *
+ * La de agendación es la más abundante —en 2025 fueron 190, prácticamente una
+ * por aula— y era justo la que no llegaba a este panel: se veía sólo como una
+ * línea suelta dentro de la ruta del día, sin agruparse con ninguna otra. Un
+ * patrón repetido en cuarenta aulas no se ve mirando cuarenta líneas sueltas.
+ */
+export type OrigenDeObservacion = "agenda" | "aplicacion";
+
 export type ObservacionDeCampo = {
   /** El texto tal como lo escribió quien estuvo en el aula. */
   texto: string;
   aulas: number;
+  /**
+   * Las columnas de las que salió este texto. Casi siempre una; las dos cuando
+   * lo mismo se anotó al agendar y al aplicar, que es información: el problema
+   * se anticipó y volvió a pasar.
+   */
+  origenes: OrigenDeObservacion[];
   /** Códigos de las aulas, para poder ir a ellas. */
   codigos: string[];
   /** Quién lo reportó, de más a menos veces. */
@@ -86,35 +123,53 @@ export function observacionesDeCampo(
   // las dos cuentan: son dos cosas que alguien vio.
   const vistos = new Set<string>();
 
+  // Cada unidad puede traer DOS observaciones, una por columna del libro, y son
+  // dos cosas distintas: lo que costó agendarla y lo que pasó al aplicarla.
+  const notasDe = (fila: Fila): Array<[OrigenDeObservacion, string]> => {
+    const out: Array<[OrigenDeObservacion, string]> = [];
+    const agenda = txt(fila.replacement_note);
+    if (agenda) out.push(["agenda", agenda]);
+    const aplicacion = txt(fila.field_note);
+    if (aplicacion) out.push(["aplicacion", aplicacion]);
+    return out;
+  };
+
   for (const p of [...partes, ...registros]) {
-    const texto = txt(p.field_note);
-    if (!texto) continue;
-    // **Sólo se deduplica lo que se puede identificar.** Sin `operational_code`
-    // no hay forma de saber si dos notas iguales son la misma aula por dos
-    // caminos o dos aulas distintas que reportaron lo mismo —que es justo el
-    // patrón que este panel existe para enseñar—. Ante la duda cuentan las dos:
-    // fundir dos incidencias reales en una borra la mitad del hallazgo.
-    const codigo = txt(p.operational_code);
-    if (codigo) {
-      const huella = `${codigo}\u0000${clave(texto)}`;
-      if (vistos.has(huella)) continue;
-      vistos.add(huella);
+    for (const [origen, texto] of notasDe(p)) {
+      // **Sólo se deduplica lo que se puede identificar.** Sin `operational_code`
+      // no hay forma de saber si dos notas iguales son la misma aula por dos
+      // caminos o dos aulas distintas que reportaron lo mismo —que es justo el
+      // patrón que este panel existe para enseñar—. Ante la duda cuentan las dos:
+      // fundir dos incidencias reales en una borra la mitad del hallazgo.
+      const codigo = txt(p.operational_code);
+      if (codigo) {
+        // La huella lleva el origen: la misma frase anotada al agendar y al
+        // aplicar son dos hechos —se anticipó y volvió a pasar—, no una nota
+        // repetida. Lo que se deduplica es la MISMA columna llegando dos veces,
+        // que es lo que ocurre cuando el parte del libro y el registro de la app
+        // dicen lo mismo.
+        const huella = `${codigo}\u0000${origen}\u0000${clave(texto)}`;
+        if (vistos.has(huella)) continue;
+        vistos.add(huella);
+      }
+      conNota += 1;
+      const k = clave(texto);
+      const g = grupos.get(k) ?? {
+        texto, aulas: 0, origenes: [] as OrigenDeObservacion[],
+        codigos: [], aplicadores: [], facultades: [], ultima: "",
+        porAplicador: new Map<string, number>(),
+      };
+      g.aulas += 1;
+      if (!g.origenes.includes(origen)) g.origenes.push(origen);
+      if (codigo && !g.codigos.includes(codigo)) g.codigos.push(codigo);
+      const quien = txt(p.applied_by);
+      if (quien) g.porAplicador.set(quien, (g.porAplicador.get(quien) ?? 0) + 1);
+      const fecha = txt(p.applied_date) || txt(p.scheduled_date);
+      const facultad = txt(p.faculty);
+      if (facultad && !g.facultades.includes(facultad)) g.facultades.push(facultad);
+      if (fecha > g.ultima) g.ultima = fecha;
+      grupos.set(k, g);
     }
-    conNota += 1;
-    const k = clave(texto);
-    const g = grupos.get(k) ?? {
-      texto, aulas: 0, codigos: [], aplicadores: [], facultades: [], ultima: "",
-      porAplicador: new Map<string, number>(),
-    };
-    g.aulas += 1;
-    if (codigo && !g.codigos.includes(codigo)) g.codigos.push(codigo);
-    const quien = txt(p.applied_by);
-    if (quien) g.porAplicador.set(quien, (g.porAplicador.get(quien) ?? 0) + 1);
-    const facultad = txt(p.faculty);
-    if (facultad && !g.facultades.includes(facultad)) g.facultades.push(facultad);
-    const fecha = txt(p.applied_date);
-    if (fecha > g.ultima) g.ultima = fecha;
-    grupos.set(k, g);
   }
 
   const observaciones = [...grupos.values()]
@@ -132,22 +187,21 @@ export function observacionesDeCampo(
   // cualquiera de los dos caminos, contadas una vez: sumar las dos listas daría
   // un total mayor que el operativo.
   //
-  // **Y sólo las que YA pasaron por campo.** El panel recibe como `registros`
-  // la agenda entera —2.616 filas— porque ahí es donde el registro de esta app
-  // deja su `field_note`, pero una fila de la agenda sin aplicar no es un
-  // registro: nadie estuvo en esa aula y no pudo observar nada. Medido el
-  // 2026-08-24 sobre el proyecto simulado, con 3 partes en el libro y 10 aulas
-  // registradas, el panel publicaba **«4 de 2.616 partes traen observación»**.
-  // Las cuatro son las mismas; el denominador convertía un tercio del campo en
-  // un residuo del 0,15 %, que es la diferencia entre «el campo está
-  // reportando» y «el campo no reporta nada».
+  // **Y sólo las que ya tuvieron gestión.** El panel recibe como `registros` la
+  // agenda entera —2.616 filas— porque ahí es donde esta app deja su
+  // `field_note`, pero una fila que nadie ha tocado todavía no pudo observar
+  // nada. Medido el 2026-08-24 sobre el proyecto simulado, con 3 partes en el
+  // libro y 13 unidades gestionadas, el panel publicaba **«4 de 2.616 partes
+  // traen observación»**. Las cuatro son las mismas; el denominador convertía
+  // un tercio de la gestión en un residuo del 0,15 %, que es la diferencia
+  // entre «el campo está reportando» y «el campo no reporta nada».
   const universo = new Set<string>();
   for (const p of partes) {
     const codigo = txt(p.operational_code);
     if (codigo) universo.add(codigo);
   }
   for (const p of registros) {
-    if (!pasoPorCampo(p)) continue;
+    if (!tuvoGestion(p)) continue;
     const codigo = txt(p.operational_code);
     if (codigo) universo.add(codigo);
   }

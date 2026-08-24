@@ -133,3 +133,28 @@ test_that("un libro con las columnas viejas se sigue leyendo entero", {
   expect_gt(length(filas), 0L)
   expect_equal(as.numeric(filas[[1]]$threshold_total), 1)
 })
+
+# «ELEGIBLES ESPERADOS» prometia un pronostico y llevaba el padron.
+#
+# Gonzalo, 2026-08-24: «deberiamos tenerlo todo muy validado a lo ultimo que
+# tenemos y realmente usamos». La columna escribe `eligible_n` —el mismo numero
+# que «MATRICULADOS POBLACION» de la misma fila— y esta ahi para que el
+# `% EFECTIVAS ESPERADO` se lea sin cruzar la hoja. Su nombre viejo costo un
+# defecto real: el veredicto de aula valida la tomo por meta, y usar el padron
+# como vara exige el 100 % de asistencia efectiva.
+test_that("la base del % es el padron, y la meta es otra columna", {
+  u <- list(.ce_aula("CH 1", eleg = 36, esperadas = 17.3))
+  fila <- .ce_fila(u)
+  expect_equal(fila[[.ce_titulo("ELEGIBLES: BASE DEL %")]], "36")
+  expect_equal(fila[[.ce_titulo("MATRICULADOS POBLACION")]], "36")
+  # La meta NO es ninguna de las dos.
+  expect_equal(fila[[.ce_titulo("EFECTIVAS ESPERADAS")]], "17.3")
+})
+
+test_that("el titulo viejo sigue leyendose: los libros ya emitidos no se rompen", {
+  spec <- Filter(function(s) identical(s$campo, "elegibles_esperados"),
+                 BASE_CONTROL_CAMPOS)[[1]]
+  # El primero es el que se ESCRIBE; los siguientes son alias de lectura.
+  expect_equal(spec$titulos[[1]], "ELEGIBLES: BASE DEL %")
+  expect_true("ELEGIBLES ESPERADOS" %in% spec$titulos)
+})

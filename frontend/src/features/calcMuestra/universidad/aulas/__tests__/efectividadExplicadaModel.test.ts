@@ -39,8 +39,12 @@ describe("efectividadExplicada", () => {
     expect(m!.tasaGlobal).toBeCloseTo(45.7 / 104, 5);
     // P media ponderada por elegibles: (44×0,87 + 60×0,73) / 104.
     expect(m!.pAplicadaMedia).toBeCloseTo((44 * 0.87 + 60 * 0.73) / 104, 5);
-    // La identidad se cierra: tasaGlobal = pMedia × tauImplicito.
-    expect(m!.pAplicadaMedia * m!.tauImplicito).toBeCloseTo(m!.tasaGlobal, 10);
+    // **Ya no se reconstruye ningún τ dividiendo por la p.** `tasaGlobal` ES la
+    // tasa del dimensionamiento —`Σesperadas / Σelegibles`— porque desde la V7
+    // el esperado es `elegibles × rendimiento × factor_facultad` y el tipo de
+    // docente no entra. Dividirla por `pAplicadaMedia` inflaba el número hasta
+    // un τ que ya no existe en ninguna parte del motor.
+    expect(m!.tasaGlobal).toBeCloseTo(m!.totalEsperadas / m!.totalElegibles, 10);
     // El ejemplo es la primera fila, con su cuenta completa Y sus referencias
     // concretas (qué docente, qué rango de tamaño) — «nunca se especifica qué
     // tamaño ni a qué haces referencia» (Gonzalo, 2026-08-20).

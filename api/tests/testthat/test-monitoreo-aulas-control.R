@@ -251,3 +251,89 @@ test_that("el recibo viaja al payload del tablero", {
   expect_length(d$libro$hojas, 3L)
   expect_identical(d$libro$hojas_ausentes, 0L)
 })
+
+# El criterio del 70 % quedo desfasado y sus columnas ya no se escriben.
+#
+# Gonzalo, 2026-08-24: «en la base de control el 70P y 70T ya estan desfasados
+# porque nosotros usamos un sistema de elegibles esperados para ver si el aula es
+# valida: si llega a esa cuenta o no».
+#
+# Y no es solo un cambio de criterio: `threshold_total` y `threshold_population`
+# estan marcadas `solo_lectura` en `BASE_CONTROL_CAMPOS`, asi que un libro
+# generado por la app no las trae. Sin el fallback, un estudio de 2026 entero
+# sale `efectiva = NA` y el panel declara «sin evaluar» las 2.616 filas.
+test_that("las columnas del 70 % ya no se escriben en el libro", {
+  escritos <- vapply(
+    Filter(function(s) !isTRUE(s$solo_lectura), BASE_CONTROL_CAMPOS),
+    function(s) s$campo, character(1)
+  )
+  expect_false("threshold_total" %in% escritos)
+  expect_false("threshold_population" %in% escritos)
+})
+
+test_that("sin 70T/70P, el aula se juzga contra la meta que le puso el diseno", {
+  fila <- list(
+    operational_code = "CH 1", sent_total = 48,
+    efectivas_esperadas = 42, efectivas_obtenidas = 48
+  )
+  pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
+  expect_true(pub$efectiva)
+  expect_equal(pub$criterio, "meta")
+})
+
+test_that("no alcanzar la meta es un veredicto, no un indeterminado", {
+  fila <- list(
+    operational_code = "CH 2", sent_total = 12,
+    efectivas_esperadas = 40, efectivas_obtenidas = 12
+  )
+  pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
+  expect_false(pub$efectiva)
+  expect_equal(pub$criterio, "meta")
+})
+
+test_that("el 70 % manda cuando el libro viejo si lo trae", {
+  # Un libro de 2025 con sus umbrales calculados: el veredicto del equipo es el
+  # que vale, y la meta no lo pisa.
+  fila <- list(
+    operational_code = "CH 3", sent_total = 100,
+    threshold_total = 80, threshold_population = 60,
+    efectivas_esperadas = 500, efectivas_obtenidas = 100
+  )
+  pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
+  expect_true(pub$efectiva)
+  expect_equal(pub$criterio, "umbral70")
+})
+
+test_that("sin meta y sin umbrales sigue siendo indeterminado, no un FALSE", {
+  # Acusar a un aula de no llegar cuando nadie la evaluo es peor que callarse.
+  pub <- monitoreo_aulas_control_publicado(list(list(operational_code = "CH 4", sent_total = 10)))[[1]]
+  expect_true(is.na(pub$efectiva))
+  expect_equal(pub$criterio, "")
+})
+
+test_that("`elegibles_esperados` NO es la meta: lleva el padron entero", {
+  # La columna del libro se rotula «ELEGIBLES ESPERADOS» y escribe `eligible_n`.
+  # Medido: un aula con 36 elegibles y meta 17,3 recibe 36 en esa columna. Si se
+  # usa como vara, un aula que consiguio 20 de las 17,3 que se le pedian sale
+  # suspendida por no llegar a 36 — o sea, se exige el 100 % de asistencia
+  # efectiva a todas las aulas.
+  fila <- list(
+    operational_code = "CH 5", efectivas_obtenidas = 20,
+    eligible_n = 36, elegibles_esperados = 36,
+    expected_valid = 17.3, efectivas_esperadas = 17.3
+  )
+  pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
+  expect_true(pub$efectiva)
+  expect_equal(pub$criterio, "meta")
+})
+
+test_that("`expected_valid` manda sobre `efectivas_esperadas`", {
+  # `expected_valid` es lo que `monitoreo_aulas_universitarias` ya compuso por
+  # fila; si difiere del crudo del plan, es porque esa capa lo resolvio.
+  fila <- list(
+    operational_code = "CH 6", efectivas_obtenidas = 30,
+    expected_valid = 25, efectivas_esperadas = 45
+  )
+  pub <- monitoreo_aulas_control_publicado(list(fila))[[1]]
+  expect_true(pub$efectiva)
+})
