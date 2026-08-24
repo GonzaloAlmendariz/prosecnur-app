@@ -3,6 +3,7 @@ import type {
   MonitoreoAulasAvanceCuotaFacultad,
   MonitoreoAulasAvanceCuotaTotal,
 } from "../../../../api/monitoreo";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cumplimiento contra la cuota del DISEÑO, listo para pintar.
@@ -94,7 +95,6 @@ function texto(valor: unknown): string {
   return typeof valor === "string" ? valor.trim() : "";
 }
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 /** Porcentaje con coma decimal y a lo sumo un decimal; sin cap. */
 function pctTexto(n: number): string {
