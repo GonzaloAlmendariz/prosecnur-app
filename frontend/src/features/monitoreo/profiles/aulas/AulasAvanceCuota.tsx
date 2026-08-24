@@ -1,5 +1,6 @@
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import type { VistaDeAvanceCuota } from "./avanceCuota";
+import { fmt } from "./kpisDeAulas";
 
 /**
  * Cumplimiento contra la cuota de alumnos del DISEÑO, por facultad.
@@ -15,7 +16,6 @@ import type { VistaDeAvanceCuota } from "./avanceCuota";
  * resto de la sección; clases de las hojas ya importadas por la página.
  */
 
-const fmt = (n: number) => n.toLocaleString("es-PE");
 
 export function AulasAvanceCuota({ vista }: { vista: VistaDeAvanceCuota }) {
   const { total, filas } = vista;
