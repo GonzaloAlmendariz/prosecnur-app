@@ -825,15 +825,19 @@ graficar_barras_agrupadas <- function(
     dec <- suppressWarnings(as.numeric(decimales))
     if (!is.finite(dec) || dec < 0) dec <- 1
 
+    # Se redondea PRIMERO con la regla de la casa (el 0,5 sube) y recién
+    # después se decide si la cifra es entera. Hacerlo al revés dejaba el
+    # empate en manos de `round()`/`sprintf()`, que redondean al par: 12,5 %
+    # bajaba a 12 % mientras 87,5 % subía a 88 % en el mismo gráfico.
     pct_num <- df_lab$.valor_plot * 100
+    pct_round <- .pulso_round_half_up(pct_num, dec)
     tol <- 10^(-(dec + 1))
-    es_entero <- is.finite(pct_num) & (abs(pct_num - round(pct_num)) < tol)
+    es_entero <- is.finite(pct_round) & (abs(pct_round - round(pct_round)) < tol)
 
     lab_base <- character(nrow(df_lab))
-    fmt_no_entero <- paste0("%.", dec, "f%%")
 
-    lab_base[es_entero]  <- sprintf("%d%%", round(pct_num[es_entero]))
-    lab_base[!es_entero] <- sprintf(fmt_no_entero, pct_num[!es_entero])
+    lab_base[es_entero]  <- paste0(.pulso_fmt_half_up(pct_round[es_entero], 0), "%")
+    lab_base[!es_entero] <- paste0(.pulso_fmt_half_up(pct_round[!es_entero], dec), "%")
 
     mask_zero <- !is.na(df_lab$.valor_plot) & df_lab$.valor_plot <= 0
     if (mostrar_ceros) {
@@ -1002,7 +1006,7 @@ graficar_barras_agrupadas <- function(
         ggplot2::scale_y_continuous(
           limits = c(0, y_lim),
           breaks = breaks_y,
-          labels = scales::percent_format(accuracy = 1),
+          labels = function(z) .pulso_fmt_pct_half_up(z, 0),
           expand = ggplot2::expansion(mult = c(0, 0.02))
         )
     } else {
@@ -1014,7 +1018,7 @@ graficar_barras_agrupadas <- function(
         ggplot2::scale_y_continuous(
           limits = c(0, base_max),
           breaks = breaks_y,
-          labels = scales::percent_format(accuracy = 1),
+          labels = function(z) .pulso_fmt_pct_half_up(z, 0),
           expand = ggplot2::expansion(mult = c(0, 0))
         )
     }

@@ -361,8 +361,9 @@ graficar_boxplot <- function(
       "#FFFFFF"
     }
     chip_texto_eff <- if (isTRUE(semaforo_activo)) chip_texto_color else color_media
+    # Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`).
     mean_df$chip_label <- paste0(
-      format(round(mean_df$media, chip_decimales), nsmall = chip_decimales, trim = TRUE),
+      .pulso_fmt_half_up(mean_df$media, chip_decimales),
       chip_sufijo
     )
 

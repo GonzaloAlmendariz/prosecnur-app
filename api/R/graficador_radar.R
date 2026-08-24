@@ -468,11 +468,12 @@ graficar_radar <- function(
       tidyr::complete(eje = ejes, grupo = grupos, fill = list(valor = 0)) |>
       tidyr::pivot_wider(names_from = "grupo", values_from = "valor")
 
+    # Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`). `sprintf`
+    # redondeaba al par por su cuenta, así que no bastaba con tocar `round()`.
     fmt_pct <- function(x) {
       x <- suppressWarnings(as.numeric(x))
       x[!is.finite(x) | is.na(x)] <- 0
-      p <- round(x * 100, digits)
-      if (digits == 0L) sprintf("%.0f%%", p) else sprintf(paste0("%.", digits, "f%%"), p)
+      .pulso_fmt_pct_half_up(x, digits)
     }
 
     out <- as.data.frame(wide)
@@ -976,7 +977,7 @@ graficar_radar <- function(
         # paso casi todas las etiquetas. No se veia porque ningun estilo
         # encendia `mostrar_valores` con datos en 0-100.
         .pct = .data$.valor * 100,
-        .lab_val = paste0(formatC(round(.data$.pct, dec_val), format = "f", digits = dec_val), "%"),
+        .lab_val = .pulso_fmt_pct_half_up(.data$.pct, dec_val, escala = 1),
         # Hacia adentro cuando se pide: con valores altos el anillo exterior ya
         # lo ocupa el nombre del eje y la cifra se escribia encima de el.
         #
@@ -1047,7 +1048,7 @@ graficar_radar <- function(
   if (isTRUE(mostrar_niveles) && !is.null(level_lab)) {
     p <- p + ggplot2::geom_text(
       data = level_lab,
-      ggplot2::aes(x = .data$x, y = .data$y, label = paste0(round(.data$.nivel * 100), "%")),
+      ggplot2::aes(x = .data$x, y = .data$y, label = .pulso_fmt_pct_half_up(.data$.nivel, 0)),
       size = 3,
       color = "grey40",
       fontface = if ("niveles" %in% textos_negrita) "bold" else "plain",
@@ -1925,7 +1926,7 @@ graficar_radar <- function(
       if (isTRUE(mostrar_niveles) && !is.null(level_lab)) {
         p_ppt <- p_ppt + ggplot2::geom_text(
           data = level_lab,
-          ggplot2::aes(x = .data$x, y = .data$y, label = paste0(round(.data$.nivel * 100), "%")),
+          ggplot2::aes(x = .data$x, y = .data$y, label = .pulso_fmt_pct_half_up(.data$.nivel, 0)),
           size = 3,
           color = "grey40",
           family = "sans",

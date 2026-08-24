@@ -319,10 +319,8 @@ graficar_pie <- function(
 
   df$categoria <- factor(df$categoria, levels = df$categoria)
 
-  .fmt_pct <- function(x) {
-    out <- format(round(x * 100, decimales_pct), nsmall = decimales_pct, trim = TRUE, scientific = FALSE)
-    paste0(out, "%")
-  }
+  # Redondeo de la casa: el 0,5 sube (`helpers_calc_comunes.R`).
+  .fmt_pct <- function(x) .pulso_fmt_pct_half_up(x, decimales_pct)
   .fmt_n <- function(x) {
     x <- suppressWarnings(as.numeric(x))
     out <- rep("", length(x))

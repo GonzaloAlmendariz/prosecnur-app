@@ -921,10 +921,12 @@
     tidyr::complete(eje = ejes, grupo = grupos, fill = list(valor = 0)) |>
     tidyr::pivot_wider(names_from = "grupo", values_from = "valor")
 
+  # El resto del módulo ya redondeaba con `.dim_round_half_up`; esta tabla se
+  # había quedado en `sprintf`, que redondea al par. Ahora sigue la misma regla.
   fmt_pct <- function(x) {
     x <- suppressWarnings(as.numeric(x))
     x[!is.finite(x) | is.na(x)] <- 0
-    if (digits == 0L) sprintf("%.0f%%", x) else sprintf(paste0("%.", digits, "f%%"), x)
+    .pulso_fmt_pct_half_up(x, digits, escala = 1)
   }
 
   out <- as.data.frame(wide)

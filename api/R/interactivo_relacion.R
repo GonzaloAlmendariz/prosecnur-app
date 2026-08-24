@@ -854,7 +854,7 @@ relacion_tab_server <- function(
           "%s<br>%s: %s%%<br>n: %s",
           as.character(dfo$estrato_label),
           opt,
-          round(100 * dfo$pct, 1),
+          .pulso_round_half_up(100 * dfo$pct, 1),
           format(round(dfo$n, 0), big.mark = ",")
         )
 
@@ -867,7 +867,7 @@ relacion_tab_server <- function(
             y                = ~estrato_label,
             name             = opt,
             orientation      = "h",
-            text             = ~paste0("<b>", round(100 * pct, 0), "%</b>"),
+            text             = ~paste0("<b>", .pulso_round_half_up(100 * pct, 0), "%</b>"),
             textposition     = "inside",
             insidetextanchor = "middle",
             textfont         = list(color = "white", size = 11),
@@ -980,12 +980,12 @@ relacion_tab_server <- function(
       dfi$pct_bg <- 1 - dfi$pct_yes
       left_margin <- .calc_left_margin(as.character(dfi$estrato_label))
 
-      dfi$txt <- paste0("<b>", round(100 * dfi$pct_yes, 0), "%</b>")
+      dfi$txt <- paste0("<b>", .pulso_round_half_up(100 * dfi$pct_yes, 0), "%</b>")
       dfi$hover <- sprintf(
         "%s<br>%s: %s%%<br>n: %s<br>N: %s",
         as.character(dfi$estrato_label),
         opt_label,
-        round(100 * dfi$pct_yes, 1),
+        .pulso_round_half_up(100 * dfi$pct_yes, 1),
         format(round(dfi$n_yes, 0), big.mark = ","),
         format(round(dfi$N, 0), big.mark = ",")
       )

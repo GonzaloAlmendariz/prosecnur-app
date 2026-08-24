@@ -43,6 +43,59 @@
 }
 
 # ---------------------------------------------------------------------------
+# Redondeo de la casa: el 0,5 SIEMPRE sube
+# ---------------------------------------------------------------------------
+#
+# `round()` de R redondea al entero PAR ante un empate (`round(12.5) == 12`,
+# `round(13.5) == 14`) y el `sprintf` de C hace exactamente lo mismo, así que
+# el mismo 0,5 subía o bajaba según la paridad del vecino. En un solo gráfico
+# de los informes ACRD Ingeniería convivían 87,5 % → 88 % y 12,5 % → 12 %: no
+# hay regla que el lector pueda seguir.
+#
+# La familia de dimensiones ya redondeaba hacia arriba con un helper propio,
+# duplicado en `indicador_dimensiones_shared.R` e `interactivo_dimensiones.R`.
+# Ésta es la única implementación del paquete; aquellos delegan aquí.
+#
+# `.pulso_fmt_half_up()` existe porque cambiar sólo las llamadas a `round()`
+# no basta: `sprintf("%.1f", x)` redondea al par por su cuenta, y
+# `format(x, nsmall = d)` iguala los decimales de TODO el vector (con
+# `nsmall = 1`, `c(12.5, 3.25)` sale como "12.50" "3.25"). El formateo va
+# elemento por elemento sobre el valor ya redondeado.
+
+#' @keywords internal
+.pulso_round_half_up <- function(x, digits = 0L) {
+  s <- 10^as.integer(digits)
+  out <- ifelse(
+    is.na(x),
+    NA_real_,
+    ifelse(x >= 0, floor(x * s + 0.5), ceiling(x * s - 0.5)) / s
+  )
+  as.numeric(out)
+}
+
+#' @keywords internal
+.pulso_fmt_half_up <- function(x, digits = 0L) {
+  digits <- suppressWarnings(as.integer(digits)[1])
+  if (!is.finite(digits) || digits < 0L) digits <- 0L
+  x <- suppressWarnings(as.numeric(x))
+  if (!length(x)) return(character(0))
+  out <- formatC(.pulso_round_half_up(x, digits), format = "f", digits = digits)
+  # Un valor ausente no tiene etiqueta. Devolver "NA" pintaba literalmente
+  # «NA%» sobre el gráfico (y sobre los breaks fuera de rango de un eje).
+  out[!is.finite(x)] <- NA_character_
+  out
+}
+
+#' @keywords internal
+.pulso_fmt_pct_half_up <- function(x, digits = 0L, escala = 100, sufijo = "%") {
+  x <- suppressWarnings(as.numeric(x))
+  if (!length(x)) return(character(0))
+  out <- paste0(.pulso_fmt_half_up(x * escala, digits), sufijo)
+  out[!is.finite(x)] <- NA_character_
+  out
+}
+
+# ---------------------------------------------------------------------------
 # Fórmula clásica de tamaño muestral con FPC y deff
 # ---------------------------------------------------------------------------
 

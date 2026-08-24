@@ -270,18 +270,10 @@
     as.character(x[i])[1]
   }
 
-  .round_half_up <- function(x, digits = 0L) {
-    s <- 10^as.integer(digits)
-    out <- ifelse(
-      is.na(x),
-      NA_real_,
-      ifelse(x >= 0, floor(x * s + 0.5), ceiling(x * s - 0.5)) / s
-    )
-    as.numeric(out)
-  }
-
+  # El redondeo de la casa (0,5 hacia arriba) es `.pulso_round_half_up()` de
+  # `helpers_calc_comunes.R`. Aquí vivía una copia idéntica.
   .fmt_int <- function(x) {
-    x <- .round_half_up(x, 0)
+    x <- .pulso_round_half_up(x, 0)
     ifelse(is.na(x), "", format(as.integer(x), trim = TRUE, scientific = FALSE))
   }
 
@@ -1237,7 +1229,7 @@
     pick <- iter_pick()
     if (is.null(pick)) return(NULL)
 
-    base_txt <- format(.round_half_up(pick$base, 0), big.mark = ",", scientific = FALSE)
+    base_txt <- format(.pulso_round_half_up(pick$base, 0), big.mark = ",", scientific = FALSE)
     it <- iter_payload()
     items <- lapply(seq_len(nrow(it$rows_all)), function(i) {
       list(
@@ -1245,7 +1237,7 @@
         label = as.character(it$rows_all$label[i]),
         meta = paste0(
           "N ",
-          format(.round_half_up(as.numeric(it$rows_all$base[i]), 0), big.mark = ",", scientific = FALSE)
+          format(.pulso_round_half_up(as.numeric(it$rows_all$base[i]), 0), big.mark = ",", scientific = FALSE)
         )
       )
     })
