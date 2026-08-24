@@ -17,22 +17,74 @@ entre el primer dato real.
 
 ## El checklist completo
 
-| # | Qué | Dónde vive | Costo | Estado |
-|---|---|---|---|---|
-| **1** | Certeza automática + columna de probabilidad por facultad | `router_calc_muestra.R` · `CalculoCursosHorarioFacultadTab` | bajo | ☐ |
-| **2** | Criterios del marco documentados facultad por facultad, con la tabla a la vista | `calc_muestra_aulas_criterios.R` · superficie de criterios | medio | ☐ |
-| **3** | Registrar la tabla de asistencia de Kamila como validación independiente | `docs/qa/` · memoria | — | ☑ |
-| **A** | Partir τ en **asistencia × respuesta** | `cfg$efectividad` · `calc_muestra_aulas_efectividad.R` | bajo | ☐ |
-| **B** | Reparar el denominador: elegibles **de la facultad**, no del aula | `calc_muestra_aulas*.R` · libro | medio | ☐ |
-| **C** | Residual de las 9 facultades: **reportar con su IC, no corregir el modelo** | `cfg$efectividad` · superficie de referencia | bajo | ☐ |
-| **D** | Recortar la cadena de reemplazo de 11 a 5 | `calc_muestra_aulas.R:395` | bajo | ☐ |
-| **E** | Reserva dirigida: el pool de extras deja de ser residuo | Monitoreo + motor de efectividad | medio | ☐ |
-| **F** | Reglas de redondeo — los elegibles son personas | `calc_muestra_aulas_efectividad.R` · superficies | bajo | ☐ |
-| **G** | Nomenclatura y estados de los cuatro indicadores | `monitoreo_aulas_*.R` · contratos de idioma | medio | ☐ |
-| **H** | Monitoreo reporta los cuatro **con responsabilidad** | superficies de Monitoreo | medio | ☐ |
-| **I** | Avance por **sexo × facultad** con calibración, y los gráficos de avance a ese grano | `monitoreo_aulas_universitarias.R` · gráficos de avance | medio | ☐ |
+**Estado al 24-08, tras 23 commits.** Los trece ítems están **cerrados en el motor**; lo que queda
+es superficie y está bloqueado por un fixture (ver «Lo que falta y por qué»).
 
-☐ pendiente · ⛔ bloqueado (espera decisión) · ☑ hecho
+| # | Qué | Costo | Estado | Commits |
+|---|---|---|---|---|
+| **1** | Certeza automática + columna de probabilidad | bajo | ☑ | `1d76e296` `510376c9` |
+| **2** | Cuánto recorta cada criterio, facultad por facultad | medio | ☑ | `8c4f96c1` `596daa48` |
+| **3** | Tabla de asistencia de Kamila como validación independiente | — | ☑ | — |
+| **A** | Partir τ en **tres** piernas (asistencia × respuesta × validez) | bajo | ☑ | `01dea6ce` |
+| **B** | Denominador propio publicado al lado del del aula | medio | ☑ | `354733e4` |
+| **C** | Residual de las 9: se reporta con su IC y **no** corrige el modelo | bajo | ☑ | `243d1ef6` |
+| **D** | Cadena de reemplazo 11 → 5 | bajo | ☑ | `2e19b691` |
+| **E** | Reserva dirigida, por celda en déficit | medio | ☑ | `c52ff3c8` `0abc1f85` |
+| **F** | Reglas de redondeo — los elegibles son personas | bajo | ☑ | `c8cabcab` `416a1d55` |
+| **G** | Nomenclatura y estados de los indicadores | medio | ☑ | `24e6e3d1` `344f1d57` |
+| **H** | Monitoreo reporta con responsabilidad **y sin jerga** | medio | ◐ | `9406a174` `5d399047` `0833f624` `ca8be59d` `8b54fd75` |
+| **I** | Avance por sexo × facultad con calibración | medio | ☑ | `8aa5ea6e` `67aab9a0` `2b19bca0` |
+| **—** | Vara de accesibilidad como norma transversal | — | ☑ | `90862a64` |
+
+☑ hecho · ◐ parcial · ☐ pendiente
+
+**Gate**: de **480 pass** de línea base a **823 pass · 0 fail · 0 error · 0 skip** en 27 suites del
+área, más vitest (monitoreo 1.750 · calcMuestra 1.795) y typecheck limpio.
+
+---
+
+## Lo que falta, y por qué no se puede cerrar
+
+**Sólo queda la pieza 6 del ítem H**: que las cuatro superficies de cuota
+(`AulasPiramideCuota`, `AulasSerieDeRendimiento`, `AulasPerfilPorFacultad`, `AulasCuotasResumen`)
+**consuman el veredicto del motor** en vez de recalcularlo cada una por su cuenta.
+
+**Está bloqueado por un fixture, y el bloqueo es más grande que este ítem.** Medido:
+
+| Proyecto | Celdas de cuota |
+|---|---:|
+| `hsvg2026` (referencia) | **0** |
+| `HSVG2026.pulso` (el real) | **0** |
+| Los cinco de referencia — `sex_by_faculty` en su `state.rds` | **0 apariciones** |
+
+Las cuotas de Monitoreo las llena `monitoreo_aulas_from_calc` al traer el plan desde Cálculo de
+muestra, y **ese traspaso no está hecho en ningún proyecto disponible**. Consecuencia: toda la
+sección «Cuota sexo por facultad» —no sólo lo que este checklist toca— **sólo se puede ver
+vacía**. Nadie la ha visto con datos.
+
+**La decisión, que es de Gonzalo:**
+
+| | Opción | Qué implica |
+|---|---|---|
+| **A** | Fabricar el fixture primero | Un proyecto de referencia con el traspaso hecho. Desbloquea la verificación visual de **toda** la sección. |
+| **B** | Cerrar H a ciegas | Con cobertura de vitest, declarando en cada commit que el poblado no se verificó. |
+
+---
+
+## Lo que el loop aprendió, y que vale para el próximo
+
+- **El dato suele existir y nadie lo consume.** Cuatro ítems seguidos resultaron ser eso:
+  `suficiencia` que el aplicador ignoraba (C), `faculty_match_share` encerrado en su gate (B), la
+  aritmética del reparto por sexo ya escrita (I) y el contrafactual de la matriz de embudo (2).
+  **Antes de construir: grep del concepto, no del nombre que uno le pondría.**
+- **Hay defectos que sólo se ven mirando.** El mismo aviso repetido tres veces en la misma pantalla
+  pasó por typecheck, vitest y cinco ticks: ningún test compara el texto de dos componentes. Y su
+  contrario también — la decisión de **no** tocar dos KPIs sólo se puede tomar viendo el layout.
+- **Un contrato de cableado hay que matarlo con su mutante.** Un test que sólo comprueba que el
+  campo existe pasa igual de verde cuando el campo desaparece por otra vía.
+- **El verde por ausencia tiene muchas formas**: un gate que no cuenta errores, un `test_that` que
+  queda en `skip`, un `replace` que no aplica, una aserción vacua. **Se caza por el conteo, nunca
+  por el veredicto.**
 
 ---
 
