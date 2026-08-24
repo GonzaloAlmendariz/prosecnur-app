@@ -1,4 +1,4 @@
-# ADR 0079 — El workspace se resella entero, no campo a campo
+# ADR 0080 — El workspace se resella entero, no campo a campo
 
 - **Estado**: Propuesto (borrador del loop de Cálculo de muestra; la decisión
   es de Gonzalo)
