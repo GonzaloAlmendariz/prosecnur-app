@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codigoOperativoDe, mapaDeCodigosDelPlan, titularesDelPlan } from "./codigoOperativo";
+import { codigoOperativoDe, composicionDelPlan, mapaDeCodigosDelPlan, titularesDelPlan, unidadesDelPlan } from "./codigoOperativo";
 import type { CollectionPlan } from "../../api/recopiladores";
 
 const plan = (units: CollectionPlan["units"]): Pick<CollectionPlan, "units"> => ({ units });
@@ -66,5 +66,45 @@ describe("titularesDelPlan", () => {
 
   it("sin plan devuelve cero, no NaN", () => {
     expect(titularesDelPlan(null)).toBe(0);
+  });
+});
+
+/**
+ * **El denominador de las fichas es lo que el botón va a crear.**
+ *
+ * Medido en pantalla el 2026-08-23 sobre el estudio de 193: Materiales decía
+ * «Fichas 0 de **193**» y `createInstances`, en el botón de al lado, manda
+ * `plan.units.map(...)` entero — **2.616**. El rótulo prometía una cosa y la
+ * acción hacía otra.
+ *
+ * Y crearlas todas es lo correcto: una reserva encadenada necesita su ficha el
+ * día que su titular cae, y un extra cuando cierra una cuota. Por eso el
+ * paquete las reparte en tres cajones por facultad.
+ */
+describe("unidadesDelPlan · el denominador de las fichas", () => {
+  const plan = {
+    units: [
+      ...Array.from({ length: 3 }, (_, i) => ({ unit_id: `t${i}`, role: "titular" })),
+      ...Array.from({ length: 5 }, (_, i) => ({ unit_id: `r${i}`, role: "chain_reserve" })),
+      ...Array.from({ length: 7 }, (_, i) => ({ unit_id: `e${i}`, role: "extra_reserve_pool" })),
+    ],
+  } as unknown as Parameters<typeof unidadesDelPlan>[0];
+
+  it("cuenta TODAS las unidades, no sólo las que se van a visitar", () => {
+    expect(unidadesDelPlan(plan)).toBe(15);
+    // Y el control que lo separa del contador viejo, que sigue existiendo para
+    // el desglose: si los dos dieran lo mismo, este test no probaría nada.
+    expect(titularesDelPlan(plan)).toBe(3);
+  });
+
+  it("la composición reparte el total en los tres cajones del paquete", () => {
+    const c = composicionDelPlan(plan);
+    expect(c).toEqual({ titulares: 3, reemplazos: 5, adicionales: 7 });
+    expect(c.titulares + c.reemplazos + c.adicionales).toBe(unidadesDelPlan(plan));
+  });
+
+  it("sin plan no inventa un total", () => {
+    expect(unidadesDelPlan(null)).toBe(0);
+    expect(composicionDelPlan(undefined)).toEqual({ titulares: 0, reemplazos: 0, adicionales: 0 });
   });
 });

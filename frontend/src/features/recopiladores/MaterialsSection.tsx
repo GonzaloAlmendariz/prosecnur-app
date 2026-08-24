@@ -42,7 +42,7 @@ import {
   templateHistoryShortcut,
 } from "./templateHistory";
 import "./styles/materials.css";
-import { titularesDelPlan } from "./codigoOperativo";
+import { composicionDelPlan, unidadesDelPlan } from "./codigoOperativo";
 
 type Props = {
   payload: CollectionStatePayload | null;
@@ -247,7 +247,11 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const addableBlockTypes = COLLECTION_BLOCK_TYPES.filter((type) => !presentBlockTypes.has(type));
   const deployment = payload?.state.deployment ?? null;
   // Las aulas que se van a visitar: son las fichas que hay que llegar a tener.
-  const aulasDelPlan = titularesDelPlan(payload?.state.plan);
+  // El denominador es lo que el botón de al lado va a crear: `createInstances`
+  // manda `plan.units.map(...)` entero. Contar titulares prometía 193 fichas y
+  // creaba 2.616.
+  const aulasDelPlan = unidadesDelPlan(payload?.state.plan);
+  const composicion = composicionDelPlan(payload?.state.plan);
   const fichasHechas = cuentaDeFichas(instances.length, aulasDelPlan);
   const activeAdapter = payload?.state.plan?.adapter.id ?? null;
   const adapterCompatible = activeAdapter ? template.compatible_adapters.includes(activeAdapter) : true;
@@ -412,7 +416,22 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
                 aulas del plan tiene acceso todavía»— y aquí faltaba. */}
             <div>
               <dt>Fichas</dt>
-              <dd>{fichasHechas}</dd>
+              <dd>
+                {fichasHechas}
+                {/* El total con su composición: «2.616» a secas no dice que ahí
+                    dentro van los tres cajones que el paquete reparte por
+                    facultad, y sin eso se lee como si se fuera a visitar 2.616
+                    aulas. */}
+                {aulasDelPlan > 0 && composicion.titulares > 0 ? (
+                  <small className="rec-cuenta-composicion">
+                    {composicion.titulares.toLocaleString("es-PE")} titulares
+                    {composicion.reemplazos > 0
+                      ? ` · ${composicion.reemplazos.toLocaleString("es-PE")} reemplazos` : ""}
+                    {composicion.adicionales > 0
+                      ? ` · ${composicion.adicionales.toLocaleString("es-PE")} adicionales` : ""}
+                  </small>
+                ) : null}
+              </dd>
             </div>
             <div><dt>Estado</dt><dd>{deployment ? deploymentStatusLabel(deployment.status) : "sin preparar"}</dd></div>
           </dl>

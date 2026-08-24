@@ -38,6 +38,34 @@ export function mapaDeCodigosDelPlan(plan: Pick<CollectionPlan, "units"> | null 
 }
 
 /** Cuántas aulas del plan son visitas —titulares—, que es lo que hay que cubrir. */
+/**
+ * Cuántas fichas hay que hacer: TODAS las unidades del plan.
+ *
+ * No son las que se van a visitar. Una reserva encadenada necesita su ficha el
+ * día que su titular cae —si no la tiene impresa, no entra— y un extra la
+ * necesita cuando cierra una cuota. Por eso el paquete las reparte en tres
+ * cajones por facultad: Titulares, Reemplazos y Adicionales.
+ *
+ * Medido el 2026-08-23 sobre el estudio de 193: la pantalla decía «Fichas 0 de
+ * **193**» y el botón de al lado creaba **2.616**, porque manda
+ * `plan.units.map(...)` entero. El rótulo prometía una cosa y la acción hacía
+ * otra, que es la familia de «Libro de 2616 aulas» ya reparada en Monitoreo.
+ */
+export function unidadesDelPlan(plan: Pick<CollectionPlan, "units"> | null | undefined): number {
+  return (plan?.units ?? []).length;
+}
+
+/** Desglose por rol, para que el total no sea un número sin composición. */
+export function composicionDelPlan(plan: Pick<CollectionPlan, "units"> | null | undefined) {
+  const rol = (u: { role?: string | null }) => (u.role ?? "").toLowerCase().replace(/[ -]+/g, "_");
+  const units = plan?.units ?? [];
+  return {
+    titulares: units.filter((u) => rol(u) === "titular").length,
+    reemplazos: units.filter((u) => rol(u) === "chain_reserve").length,
+    adicionales: units.filter((u) => rol(u) === "extra_reserve_pool").length,
+  };
+}
+
 export function titularesDelPlan(plan: Pick<CollectionPlan, "units"> | null | undefined): number {
   return (plan?.units ?? []).filter(
     (u) => (u.role ?? "").toLowerCase().replace(/[ -]+/g, "_") === "titular",
