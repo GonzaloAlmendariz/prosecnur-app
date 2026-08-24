@@ -4005,6 +4005,13 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-cumplida td:last-child { color: var(--pulso-resultado-efectiva); }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-llega td:last-child { color: var(--pulso-resultado-parcial); }
 .mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-corta td:last-child { color: var(--pulso-resultado-rechazo); }
+/* Sin cuota no es ni logro ni alarma: se dice, en voz baja. Mismo tratamiento
+   que el lado sin cuota de la pirámide, para que la misma situación se lea
+   igual en las dos superficies. */
+.mon-profile-page.is-aulas-flow .aulas-serie-cuotas tr.es-sin-cuota td:last-child {
+  color: var(--pulso-text-soft);
+  font-style: italic;
+}
 
 .mon-profile-page.is-aulas-flow .aulas-serie-aviso {
   margin: 2px 0 0; padding: 7px 10px; border-radius: 8px;

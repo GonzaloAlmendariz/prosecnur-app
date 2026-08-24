@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { veredictoDeCeldaDeCuota } from "./serieDeRendimiento";
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -407,5 +408,52 @@ describe("las etiquetas de meta no se montan una sobre otra", () => {
     const fuera = separaLasMetas([{ clave: "a", y: 50 }, { clave: "b", y: 50 }, { clave: "c", y: 50 }]);
     expect(fuera[1].y - fuera[0].y).toBeCloseTo(MINIMO, 5);
     expect(fuera[2].y - fuera[1].y).toBeCloseTo(MINIMO, 5);
+  });
+});
+
+describe("una celda sin cuota declarada no es una cuota cumplida", () => {
+  /**
+   * El tercer sitio del mismo `0 >= 0`, después del KPI de cierre y del panel de
+   * avance proyectado: con meta 0 la resta da 0 y la fila salía pintada de verde
+   * y rotulada «cuota cumplida» sobre un objetivo que nadie pidió.
+   *
+   * Se comprueba sobre `veredictoDeCeldaDeCuota` y no sobre el markup **porque
+   * el markup no se puede comprobar**: la tabla sólo se monta con una facultad
+   * elegida, así que la primera versión de este test —un `toContain` sobre
+   * `renderToStaticMarkup`— pasaba sin llegar a ver la tabla nunca. Verde por
+   * ausencia, en el test escrito para cazar un verde por ausencia.
+   */
+  const celda = (meta: number, faltan: number, extra: Partial<Parametros> = {}) => ({
+    meta, faltan, alcanza: false, fechaDeCruce: null, faltanAlCerrarAgenda: faltan, ...extra,
+  });
+  type Parametros = { alcanza: boolean; fechaDeCruce: string | null; faltanAlCerrarAgenda: number };
+  const n = (x: number) => String(x);
+  const f = (x: string) => x;
+
+  it("la nombra por lo que es y no la pinta como logro", () => {
+    const v = veredictoDeCeldaDeCuota(celda(0, 0), n, f);
+    expect(v.clase).toBe("es-sin-cuota");
+    expect(v.texto).toBe("sin cuota declarada");
+    expect(v.sinCuota).toBe(true);
+  });
+
+  it("la que sí llegó a su cuota conserva su lectura", () => {
+    // El control del mutante: si «sin cuota» se leyera como «no falta nada», una
+    // celda de verdad cumplida perdería su veredicto.
+    const v = veredictoDeCeldaDeCuota(celda(100, 0), n, f);
+    expect(v.clase).toBe("es-cumplida");
+    expect(v.texto).toBe("cuota cumplida");
+  });
+
+  it("y la que va corta dice cuánto le faltaría", () => {
+    const v = veredictoDeCeldaDeCuota(celda(100, 40), n, f);
+    expect(v.clase).toBe("es-corta");
+    expect(v.texto).toContain("faltarían 40");
+  });
+
+  it("una meta negativa o rota se trata como ausente, no como cumplida", () => {
+    // `!(meta > 0)` y no `meta === 0`: un NaN colado desde el payload pasaría el
+    // segundo y volvería a pintar la fila de verde.
+    expect(veredictoDeCeldaDeCuota(celda(Number.NaN, 0), n, f).clase).toBe("es-sin-cuota");
   });
 });
