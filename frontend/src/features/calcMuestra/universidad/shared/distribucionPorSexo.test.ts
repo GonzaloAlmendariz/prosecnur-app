@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { etiquetaDeSexo, universityDistributionRows } from "./study";
+import { universityCategoryProfileRows } from "./categorias";
 // El tipo vive en la capa de API, no en `study.ts`, que sólo lo reexporta para
 // su propio uso.
 import type { CalcMuestraComponente } from "../../../../api/calcMuestra";
@@ -72,5 +73,47 @@ describe("etiquetaDeSexo", () => {
     expect(etiquetaDeSexo("Sin dato")).toBe("Sin dato");
     expect(etiquetaDeSexo("X")).toBe("X");
     expect(etiquetaDeSexo("")).toBe("");
+  });
+});
+
+/**
+ * **Y los fallbacks sin población tenían el mismo defecto, latente.**
+ *
+ * Cuando el marco no trae filas de población, tres superficies caen a los
+ * estratos y leen `N_a` como «mujeres»: el perfil de categorías, las tarjetas
+ * del marco y el gráfico de barras por facultad. `N_a` es la categoría de sexo
+ * MÁS FRECUENTE, así que en un estudio de mayoría masculina los tres pintarían
+ * los sexos al revés — el mismo defecto que ya invirtió la tabla de cuotas,
+ * esperando a un estudio sin población.
+ */
+describe("el fallback por estratos respeta la etiqueta de cada subgrupo", () => {
+  const estratos = [
+    { label: "CIENCIAS E INGENIERIA", N: 4623, N_a: 3400, N_b: 1223, sub_a_label: "M", sub_b_label: "F" },
+    { label: "ARTE Y DISEÑO", N: 1045, N_a: 200, N_b: 845, sub_a_label: "M", sub_b_label: "F" },
+  ];
+
+  it("suma cada sexo por lo que su etiqueta dice, no por su posición", () => {
+    const filas = universityCategoryProfileRows(
+      [], ["sexo"], estratos as never, undefined,
+    );
+    const porLabel = Object.fromEntries(filas.map((f) => [f.label, f.value]));
+    // Hombres = los «M» de las dos facultades: 3.400 + 200.
+    expect(porLabel.Hombres).toBe(3600);
+    expect(porLabel.Mujeres).toBe(2068);
+  });
+
+  it("y con el marco al revés da lo mismo, que es el punto", () => {
+    const invertido = estratos.map((e) => ({
+      ...e, N_a: e.N_b, N_b: e.N_a, sub_a_label: "F", sub_b_label: "M",
+    }));
+    const filas = universityCategoryProfileRows([], ["sexo"], invertido as never, undefined);
+    const porLabel = Object.fromEntries(filas.map((f) => [f.label, f.value]));
+    expect(porLabel.Hombres).toBe(3600);
+    expect(porLabel.Mujeres).toBe(2068);
+  });
+
+  it("mujeres primero y hombres después, sin depender del array", () => {
+    const filas = universityCategoryProfileRows([], ["sexo"], estratos as never, undefined);
+    expect(filas.map((f) => f.label)).toEqual(["Mujeres", "Hombres"]);
   });
 });
