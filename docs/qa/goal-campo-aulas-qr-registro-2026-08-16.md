@@ -1,5 +1,11 @@
 # GOAL — el aula se recoge sola: del sorteo al dato, sin planilla paralela
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-16
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-16 · **Doc vivo** · Sólo Gonzalo lo cierra.
 
 La calidad que persigue este loop: que un estudio de aulas por Kobo con id de
@@ -1637,7 +1643,7 @@ bloque del cuadre interno y campos de un grupo que la tabla no muestra.
 
 Todo lo verificado en esta tanda —los cinco gates, las 24 capturas del gate
 visual, el cuadre entre hojas, el ritmo diario— está medido sobre **un solo
-fixture**, `/tmp/cierres.pulso`, que produce `api/scripts/qa_pulso_aulas_campo.R`
+fixture**, `cierres.pulso`, que produce `api/scripts/qa_pulso_aulas_campo.R`
 y que he editado cinco veces hoy.
 
 Intenté una segunda opinión sobre `hsvg2026` y **el verde no valía**: el runner
@@ -1709,7 +1715,7 @@ consola antes de dudar del código.
 ## 2026-08-18 — C5 categoría 2: lo que el fixture NO puede enseñar
 
 Barrido de los estados vacíos y avisos de los paneles del perfil. **84 ramas**
-en total; la clasificación deja dos grupos que el fixture `/tmp/cierres.pulso`
+en total; la clasificación deja dos grupos que el fixture `cierres.pulso`
 **no puede producir**, y por razones opuestas.
 
 ### 19 ramas de «sin dato» — el fixture tiene datos en todo

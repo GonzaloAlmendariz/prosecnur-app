@@ -1,5 +1,11 @@
 # GOAL — la interfaz dice lo que el motor ya sabe
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-15
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-15 · **Origen**: revisión del primer entregable de PDM
 Medios de Vida 2026 (ACNUR V3), que destapó seis defectos de motor y dos ADR.
 **Sólo Gonzalo lo cierra.**

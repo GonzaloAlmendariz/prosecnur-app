@@ -1,5 +1,11 @@
 # Checklist — las 19 preguntas que Ulises marcó en el XLSForm de ACNUR V3
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-19
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-19 · **Cierra**: sólo Gonzalo.
 Insumo: `PDM_MedVida2026/Preparaicon del 2do entregable/XLS Forms V3-Resaltado preguntas.xlsx`
 y `ACNUR V3 (3).pulso` (guardado 2026-08-14, app **0.6.3**).

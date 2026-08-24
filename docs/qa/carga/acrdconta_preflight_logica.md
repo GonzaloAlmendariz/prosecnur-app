@@ -9,13 +9,13 @@ Consolidado en: [Síntesis de Carga y acreditación](../historico/carga-acredita
 Fecha: 2026-07-20
 
 Fuente auditada:
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-listo-revision-logica.pulso`
+`<ruta de trabajo local>`
 
 SHA-256:
 `312a86e991d84a8e40d26d2cadb919e5f617a206335073c32fc18820d48c4432`
 
 Copia corregida recomendada para continuar:
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-preflight-logica.pulso`
+`<ruta de trabajo local>`
 
 SHA-256:
 `474524ea2719836a2a8a5aa4972a9e0edc3f77faf92f660b037abf0b315d7261`
@@ -195,7 +195,7 @@ identica a la copia anterior: 519 en rollup, 410 efectivas, 109 excluidas y
 ## Propuesta metodologica v3
 
 Proyecto recomendado para la siguiente revision:
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-propuestas-v3.pulso`
+`<ruta de trabajo local>`
 
 SHA-256:
 `5ef298077892ba624bbb8ad86e0996015e56be557916b0d3fc6ac37173799e64`
@@ -234,7 +234,7 @@ identicos a la preflight: 519/410/109 y 15/52/178/165.
 ## Propuesta metodologica v4
 
 Proyecto recomendado para la revision humana:
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-propuestas-v4.pulso`
+`<ruta de trabajo local>`
 
 SHA-256:
 `a8ee9739e101926d3c8a3ee473ff7d9e0eba314d51f808c7910931fa2fe26d05`
@@ -264,7 +264,7 @@ efectivos, 109 excluidos y 15/52/178/165 por actor.
 ## Resolucion metodologica v5.1
 
 Proyecto recomendado para confirmar y publicar en una copia posterior:
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-resueltas-v5-1.pulso`
+`<ruta de trabajo local>`
 
 SHA-256:
 `eaea064910ce7e339edf87a8eee03fa42130270b1d747d6a60ebc3567ec27f9e`
@@ -327,7 +327,7 @@ preview real quedo `ready`, con cuatro entradas compatibles y cero variables
 canonicas ausentes.
 
 Resultado ejecutado en
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-procesado-v7.pulso`:
+`<ruta de trabajo local>`:
 
 | Actor | Filas | Reglas | No soportadas | Inconsistencias |
 |---|---:|---:|---:|---:|

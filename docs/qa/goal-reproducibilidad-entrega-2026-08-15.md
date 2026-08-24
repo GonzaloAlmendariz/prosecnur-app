@@ -1,5 +1,11 @@
 # GOAL — la entrega se explica sola, sin exponer el caso
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-15
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-15 · **Doc vivo** · **Sólo Gonzalo lo cierra**
 **Origen**: [reproducibilidad-decisiones-pendiente-2026-08-15.md](reproducibilidad-decisiones-pendiente-2026-08-15.md)
 **Relación**: [ADR 0076](../adrs/0076-una-base-depurada-se-promueve-no-se-recomienda.md)

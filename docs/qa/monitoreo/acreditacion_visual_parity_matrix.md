@@ -9,55 +9,55 @@ Consolidado en: [Síntesis de Monitoreo de acreditación](../historico/monitoreo
 ## Scope lock - Iteration 24
 
 - Canonical comparison target: original accreditation collector/editor affordances and the independent profile route for `Modelo > Enlaces`.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: load local snapshot, inspect first viewport and scroll behavior, avoid source sync or destructive saves on the user project.
 
 ## Scope lock - Iteration 25
 
 - Canonical comparison target: original `PhoneDailyTrend` chart grammar and independent `Telefono > Dia`.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: direct `Telefono > Dia` route QA, screenshot inspection, and comparator capture; no `.pulso` writes or mutating actions.
 - Data source of truth: raw `monitoreo_telefonico.avance_efectivo_dia` block, including the `Sin fecha` row.
 
 ## Scope lock - Iteration 26
 
 - Canonical comparison target: original and independent `Telefono > Alertas` first viewport.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: comparator target deep-link, screenshot inspection, and hydration blockers; no `.pulso` writes or mutating actions.
 - Source of truth: phone supervision workflow (`Casos telefónicos por revisar`, alert counters, priority cards and control sample) must hydrate in both panes before scoring visual parity.
 
 ## Scope lock - Iteration 27
 
 - Canonical comparison target: independent `Telefono > Alertas` alert-count semantics against the canonical `Alertas` sheet.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: direct `Telefono > Alertas` route QA, screenshot inspection, and a comparator attempt; no `.pulso` writes or mutating actions.
 - Source of truth: `phone_summary` must expose `monitoreo_telefonico` plus `alertas`, and the independent supervision board must prefer canonical active alerts over pending/insistence fallback rows.
 
 ## Scope lock - Iteration 28
 
 - Canonical comparison target: original and independent `Telefono > Alertas` readiness after `phone_summary` cache and scope interleaving.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: strict side-by-side comparator with a fresh session, target-scope prefetch and screenshot inspection; no `.pulso` writes or mutating actions.
 - Source of truth: once a valid `phone_summary` has loaded, later non-phone report scopes must not replace the visible phone alert workbook while the active view remains `Telefono`.
 
 ## Scope lock - Iteration 29
 
 - Canonical comparison target: original and independent `Consultas > Casos` first viewport.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: strict side-by-side comparator, screenshot inspection and baseline direct QA; no `.pulso` writes or case-reconciliation mutations.
 - Source of truth: `queries_summary` must expose official cases, audit cases and source counts, and both frames must keep that report while the active view remains `Consultas`.
 
 ## Scope lock - Iteration 30
 
 - Canonical comparison target: independent `Consultas > Efectivas` and `Consultas > Faltantes` first viewport against the query explorer grammar.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: direct ACRDCONTA QA screenshots for both tabs, no `.pulso` writes and no case-reconciliation mutations.
 - Source of truth: `queries_summary` official cases, `internal_queries.pending_exit`, filterable date/channel/collector facets and empty-state behavior for missing pending exits.
 
 ## Scope lock - Iteration 31
 
 - Canonical comparison target: `Consultas` direct-route QA harness readiness for `queries_summary` prefetch and session reuse.
-- Project fixture: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`.
+- Project fixture: `<ruta de trabajo local>`.
 - Non-mutating visual proof: same-session ACRDCONTA screenshots/logs, no `.pulso` writes, no case-reconciliation mutations, no product UI changes.
 - Source of truth: one seeded session must be used by prefetch and page navigation; heavy report scopes may wait long enough for cold ACRDCONTA builds, but reports must distinguish cache-readiness from true product performance.
 

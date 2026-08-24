@@ -1,5 +1,11 @@
 # El XLSForm final ignora los overrides de etiqueta en `label::es`
 
+Tipo: Registro de defecto
+Estado: Vigente
+Fecha: 2026-08-14
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Encontrado**: 14 de agosto de 2026, preparando la entrega ACRD ING.
 **Estado**: REPARADO el 14 de agosto de 2026. Causa raíz confirmada y cubierta
 por `api/tests/testthat/test-analitica-label-overrides-xlsform.R`.

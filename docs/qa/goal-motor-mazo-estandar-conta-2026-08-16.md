@@ -1,7 +1,7 @@
 # GOAL — El motor produce el informe de Contabilidad, y después mejor
 
 Tipo: Goal operativo (loop de convergencia)
-Estado: Abierto — **lo lleva otra sesión** (Gonzalo, 2026-08-16)
+Estado: En curso
 Fecha: 2026-08-16
 Autoridad: Objetivo de trabajo medible; **sólo Gonzalo lo cierra**
 

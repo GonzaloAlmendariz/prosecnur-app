@@ -716,7 +716,7 @@ Ejecucion sobre una copia controlada del proyecto real:
 Certificacion read-only iniciada 2026-07-20:
 
 - proyecto auditado:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`;
+  `<ruta de trabajo local>`;
 - SHA-256 antes y despues:
   `24d97e7dc355565d8bc190a419de1470df01d1e4611a513c7025526a36a226c0`;
 - snapshot persistido: 1270 filas y 450 columnas; el `case_rollup` oficial
@@ -745,7 +745,7 @@ Certificacion read-only iniciada 2026-07-20:
   y `version`; el hash del payload HTTP crudo queda solo como observacion y no
   como identidad estable;
 - se creo la copia controlada
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-instrumentos-borrador.pulso`
+  `<ruta de trabajo local>`
   (SHA-256
   `12b1d0ab99193eeb67b83a3ceae88f8a395e1673667e22d3c289671c1a5af0ad`)
   con cuatro formularios editables: Administrativos, Estudiantes, Docentes y
@@ -794,7 +794,7 @@ Preparacion controlada previa a la revision humana:
 - preflight reproducible:
   [ACRDCONTA: auditoria de logica](acrdconta_preflight_logica.md);
 - el borrador anterior se preservo sin cambios y se genero una segunda copia,
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-listo-revision-logica.pulso`
+  `<ruta de trabajo local>`
   (SHA-256
   `312a86e991d84a8e40d26d2cadb919e5f617a206335073c32fc18820d48c4432`),
   destinada exclusivamente a revisar y confirmar la logica;
@@ -828,7 +828,7 @@ Preflight metodologico posterior:
   rechazo de consentimiento y solo una o dos preguntas respondidas, mientras
   la traduccion XLSForm no conservaba esa salida temprana;
 - se creo, sin sobrescribir copias previas,
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-preflight-logica.pulso`
+  `<ruta de trabajo local>`
   (SHA-256
   `474524ea2719836a2a8a5aa4972a9e0edc3f77faf92f660b037abf0b315d7261`);
 - la copia incorpora `${p1} = '1'` al correo posterior y a los grupos
@@ -846,7 +846,7 @@ Preflight metodologico posterior:
 Propuesta metodologica v3:
 
 - se genero
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-propuestas-v3.pulso`
+  `<ruta de trabajo local>`
   (SHA-256
   `5ef298077892ba624bbb8ad86e0996015e56be557916b0d3fc6ac37173799e64`);
 - incorpora codigo PUCP como texto/trace-only, titulacion y empleo
@@ -863,7 +863,7 @@ Propuesta metodologica v3:
 Propuesta metodologica v4:
 
 - se genero, sin sobrescribir ninguna copia previa,
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-propuestas-v4.pulso`
+  `<ruta de trabajo local>`
   (SHA-256
   `a8ee9739e101926d3c8a3ee473ff7d9e0eba314d51f808c7910931fa2fe26d05`);
 - conserva bit a bit el contenido procesable de los cuatro workbooks de la v3
@@ -1016,7 +1016,7 @@ Diagnostico causal:
 
 Preparacion metodologica v5.1:
 
-- copia: `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-resueltas-v5-1.pulso`;
+- copia: `<ruta de trabajo local>`;
 - SHA-256: `eaea064910ce7e339edf87a8eee03fa42130270b1d747d6a60ebc3567ec27f9e`;
 - cuatro formularios, cero revisiones/bases/intake, cero warnings y un blocker
   de confirmacion manual por actor;
@@ -1121,7 +1121,7 @@ La secuencia completa se ejecuto sobre una copia, sin escribir en SurveyMonkey
 ni sobrescribir `ACRDCONTA.pulso`:
 
 - proyecto procesado:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-procesado-v7.pulso`;
+  `<ruta de trabajo local>`;
 - SHA-256 final de v7:
   `1b217a33beb4fcf3e7f9296cb803a3018df48111d9f3c9a92c9fbb53e27d0bfe`;
 - original preservado:
@@ -1141,11 +1141,11 @@ ni sobrescribir `ACRDCONTA.pulso`:
 Entregable compartido:
 
 - PPT:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-informe-consolidado-v7.pptx`;
+  `<ruta de trabajo local>`;
 - SHA-256:
   `0319d59c1dc41057f2f50a6d954d577701c6f918f5963b66e131bd3cda991e9e`;
 - manifiesto:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-informe-consolidado-v7-manifest.json`;
+  `<ruta de trabajo local>`;
 - SHA-256 del manifiesto:
   `85e8427bbee6df0cc96ac9765c5e7052fb20d26dc3a27be323b9805b17378227`;
 - 94 laminas y 4 comparaciones por actor con barras multiapiladas;

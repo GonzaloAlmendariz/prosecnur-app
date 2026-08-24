@@ -1,5 +1,11 @@
 # Checklist — el pipeline de aulas de punta a punta (2026-08-16)
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-16
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Pedido de Gonzalo**: recorrer el pipeline *etapa por etapa* para estar seguros
 de que ya se pueden generar todas las aulas y los reemplazos de cada titular sin
 problemas. Empezar desde la base y subir; en cada etapa, comprobar que

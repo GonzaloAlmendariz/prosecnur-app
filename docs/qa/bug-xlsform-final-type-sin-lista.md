@@ -1,5 +1,11 @@
 # El XLSForm final exportado no es un XLSForm
 
+Tipo: Registro de defecto
+Estado: Vigente
+Fecha: 2026-08-14
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Encontrado**: 14 de agosto de 2026, reparando el bug de `label::es`
 (`bug-xlsform-final-label-es-sin-overrides.md`, sección «Lo que este bug deja
 pendiente»). Se dejó deliberadamente fuera de aquella unidad.

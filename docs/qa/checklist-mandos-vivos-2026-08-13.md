@@ -1,5 +1,11 @@
 # Checklist — que ningún control declarado pueda no llegar
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-13
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Abierto 2026-08-13 a partir de las tres recomendaciones que salieron del GOAL
 del motor de gráficos. Documento vivo: **sólo Gonzalo lo cierra**.
 

@@ -1,5 +1,11 @@
 # Checklist — el mazo revisado contra PowerPoint, no contra LibreOffice
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-16
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-16 · **Cierra**: sólo Gonzalo.
 GOAL padre: `goal-mazo-sin-retoques-2026-08-14.md`.
 

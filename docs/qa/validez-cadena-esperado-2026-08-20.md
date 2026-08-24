@@ -1,5 +1,11 @@
 # Validez estadística de la cadena del esperado — revisión exhaustiva
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-08-20
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Mandato de Gonzalo (2026-08-20, textual): «esto a pie a que hagamos una
 revisión bien exhaustiva de si la forma como calculamos todo lo que estamos
 calculando ahora es efectiva, es válida y toma en consideración todos los

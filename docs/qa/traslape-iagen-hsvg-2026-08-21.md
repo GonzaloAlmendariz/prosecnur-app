@@ -1,5 +1,11 @@
 # Traslape entre el estudio IAGen (DAA) y HSVG 2026
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-21
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Doc vivo. Abierto el 2026-08-21 a partir del insumo
 `Cursos_horario_Estudio IAGen_DAA_2026_info a OIGD.docx` (DAA / Oficina de
 Gestión Curricular y Evaluación, semestre 2026-2), que lista los cursos-horario

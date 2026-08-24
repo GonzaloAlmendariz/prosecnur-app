@@ -159,41 +159,41 @@ Fecha: 2026-06-28
 ## Evidence
 
 - Build: `pnpm --dir frontend build` passed. Existing warning remains: circular chunk between monitoreo-acreditacion and monitoreo-territorial.
-- Visual QA: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-flow-hostigamiento-route/report.json`
-- Final QR screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-flow-final-human-labels/quick-recopiladores-1280x800-auto.png`
-- Package engine screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-fichas-package-engine/recopiladores-paquete-pdf-final-1280x800-v4.png`
-- Final hostigamiento flow report: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-fichas-final-hostigamiento/report.json`
-- Printable package PDF: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/output/pdf/ejemplo-ficha-qr-hostigamiento-pucp.pdf`
-- Printable package screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-fichas-iteration5/recopiladores-paquete-preparado-1280x800-v4.png`
-- Rendered PDF pages: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/aulas-fichas-iteration5/ficha-qr-hostigamiento-1.png`, `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/aulas-fichas-iteration5/ficha-qr-hostigamiento-2.png`, `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/aulas-fichas-iteration5/ficha-qr-hostigamiento-last-9.png`
-- Recovered classroom sample screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-integration-iteration6-final/quick-muestra-aulas-1440x1000-auto.png`
-- Monitoreo handoff Avance screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-integration-iteration7-baseline/monitoreo-avance-final.png`
-- Monitoreo handoff Agenda screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-integration-iteration7-baseline/monitoreo-agenda-final-copy.png`
-- Calc-Muestra Salida handoff screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-integration-iteration8-baseline/calc-salida-seguimiento-final-v2.png`
-- Hostigamiento contract report: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-hostigamiento-contract-iteration9/report.json`
-- Hostigamiento sample screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-hostigamiento-contract-iteration9/quick-muestra-aulas-1440x1000-auto.png`
-- Hostigamiento fichas screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-hostigamiento-contract-iteration9/quick-recopiladores-1440x1000-auto.png`
-- Hostigamiento monitoring screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-hostigamiento-contract-iteration9/quick-monitoreo-1440x1000-auto.png`
-- Aulas circuit contract report: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-circuit-contract-iteration10/report.json`
-- Aulas circuit sample screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-circuit-contract-iteration10/quick-muestra-aulas-1440x1000-auto.png`
-- Aulas circuit fichas screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-circuit-contract-iteration10/quick-recopiladores-1440x1000-auto.png`
-- Aulas circuit monitoring screenshot: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-circuit-contract-iteration10/quick-monitoreo-1440x1000-auto.png`
-- Polished QR ficha PDF: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/output/pdf/ejemplo-ficha-qr-hostigamiento-pucp.pdf`
-- Polished QR ficha cover render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-polished-v2-1.png`
-- Polished QR ficha first render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-polished-v2-2.png`
-- Polished QR ficha last render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-polished-v2-9.png`
-- Fichas QR UI after link generation: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-ficha-pdf-polish-check/recopiladores-after-links-v2.png`
-- Full-field QR ficha PDF: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/output/pdf/ejemplo-ficha-qr-hostigamiento-pucp.pdf`
-- Full-field QR ficha cover render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-all-fields-1.png`
-- Full-field QR ficha first render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-all-fields-2.png`
-- Full-field QR ficha last render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-all-fields-9.png`
-- QR-first ficha UI after link generation: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-ficha-qr-hero-check/recopiladores-after-links.png`
-- QR-first ficha print preview: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-ficha-qr-hero-check/recopiladores-print-preview.png`
-- QR-first ficha cover render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-qr-hero-1.png`
-- QR-first ficha first render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-qr-hero-2.png`
-- QR-first ficha last render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-qr-hero-9.png`
-- Reference scanned ficha render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/reference-ficha/reference-1.png`
-- Reference-form UI after link generation: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-ficha-reference-form-check/recopiladores-after-links.png`
-- Reference-form print preview: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/visual-qa/aulas-ficha-reference-form-check/recopiladores-print-preview-v2.png`
-- Reference-form ficha first render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-reference-form-v2-2.png`
-- Reference-form ficha last render: `/Users/gonzaloalmendariz/Documents/Pulso/prosecnur-app/tmp/pdfs/ficha-reference-form-v2-9.png`
+- Visual QA: `<ruta de trabajo local>`
+- Final QR screenshot: `<ruta de trabajo local>`
+- Package engine screenshot: `<ruta de trabajo local>`
+- Final hostigamiento flow report: `<ruta de trabajo local>`
+- Printable package PDF: `<ruta de trabajo local>`
+- Printable package screenshot: `<ruta de trabajo local>`
+- Rendered PDF pages: `<ruta de trabajo local>`, `<ruta de trabajo local>`, `<ruta de trabajo local>`
+- Recovered classroom sample screenshot: `<ruta de trabajo local>`
+- Monitoreo handoff Avance screenshot: `<ruta de trabajo local>`
+- Monitoreo handoff Agenda screenshot: `<ruta de trabajo local>`
+- Calc-Muestra Salida handoff screenshot: `<ruta de trabajo local>`
+- Hostigamiento contract report: `<ruta de trabajo local>`
+- Hostigamiento sample screenshot: `<ruta de trabajo local>`
+- Hostigamiento fichas screenshot: `<ruta de trabajo local>`
+- Hostigamiento monitoring screenshot: `<ruta de trabajo local>`
+- Aulas circuit contract report: `<ruta de trabajo local>`
+- Aulas circuit sample screenshot: `<ruta de trabajo local>`
+- Aulas circuit fichas screenshot: `<ruta de trabajo local>`
+- Aulas circuit monitoring screenshot: `<ruta de trabajo local>`
+- Polished QR ficha PDF: `<ruta de trabajo local>`
+- Polished QR ficha cover render: `<ruta de trabajo local>`
+- Polished QR ficha first render: `<ruta de trabajo local>`
+- Polished QR ficha last render: `<ruta de trabajo local>`
+- Fichas QR UI after link generation: `<ruta de trabajo local>`
+- Full-field QR ficha PDF: `<ruta de trabajo local>`
+- Full-field QR ficha cover render: `<ruta de trabajo local>`
+- Full-field QR ficha first render: `<ruta de trabajo local>`
+- Full-field QR ficha last render: `<ruta de trabajo local>`
+- QR-first ficha UI after link generation: `<ruta de trabajo local>`
+- QR-first ficha print preview: `<ruta de trabajo local>`
+- QR-first ficha cover render: `<ruta de trabajo local>`
+- QR-first ficha first render: `<ruta de trabajo local>`
+- QR-first ficha last render: `<ruta de trabajo local>`
+- Reference scanned ficha render: `<ruta de trabajo local>`
+- Reference-form UI after link generation: `<ruta de trabajo local>`
+- Reference-form print preview: `<ruta de trabajo local>`
+- Reference-form ficha first render: `<ruta de trabajo local>`
+- Reference-form ficha last render: `<ruta de trabajo local>`

@@ -1,5 +1,10 @@
 # Recetario del mazo de acreditación — valores medidos, no propuestos
 
+Tipo: Registro QA fechado
+Fecha: 2026-08-14
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-14 · **Sustituye** al primer borrador de estándar, que
 proponía números a ojo. Todo lo de aquí está **medido** sobre tres mazos:
 `Informe Conta 12-08_REVISADO` (el que Gabriela criticó, 37 láminas con barras),
@@ -102,7 +107,7 @@ Es exactamente lo que Gabriela pide en las láminas 22 y 28 («evaluar si es mej
 ponerlo en dos slides», «hay que poner letra más grande o ver de dividir en dos
 slides»). Umbral operativo: **más de 9 premisas → dos láminas**.
 
-Estado: `preservar_tamanos_texto` ya fija la letra. **El partido automático no
+Estado: Vigente
 existe**: es el desarrollo principal que sale de este recetario.
 
 ## Receta 3 — Tipografía, por rol y no por lámina

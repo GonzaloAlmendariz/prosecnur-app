@@ -1,5 +1,11 @@
 # Implicancias de retirar del marco los cursos-horario del estudio IAGen
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-22
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Doc vivo. Abierto el 2026-08-22.
 
 La Dirección de Asuntos Académicos aplicará su propia encuesta, correspondiente a un

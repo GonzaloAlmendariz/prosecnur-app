@@ -1,5 +1,11 @@
 # El script y el informe deben quedar claros y reproducibles, sin exponer el caso
 
+Tipo: Registro QA fechado
+Estado: En curso
+Fecha: 2026-08-15
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Fecha**: 2026-08-15 · **Medido sobre**: `ACNUR_V3_final.pulso` (PDM Medios de
 Vida 2026), 103 casos recibidos, 101 entregados, 2 excluidos ·
 **Relación**: [ADR 0076](../adrs/0076-una-base-depurada-se-promueve-no-se-recomienda.md)

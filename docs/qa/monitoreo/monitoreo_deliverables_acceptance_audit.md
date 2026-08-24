@@ -55,7 +55,7 @@ local source-response movement payload.
   `Rscript -e 'pkgload::load_all("api", quiet=TRUE); testthat::test_file("api/tests/testthat/test-monitoreo-engine.R")'`
   -> 1359 pass, 0 fail.
 - ACRDCONTA direct `.pulso` check:
-  `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`
+  `<ruta de trabajo local>`
   -> Egresados `270 / 157 / 5 / 0 / 108`, avance universo `58.1%`.
 - ACRDCONTA live disposable Google Sheets publish/readback:
   client Sheet `https://docs.google.com/spreadsheets/d/1Qg-jUYB_yu_4cmCmd7PYamEpeJXuN-Oai4RlJWr_G5M`;

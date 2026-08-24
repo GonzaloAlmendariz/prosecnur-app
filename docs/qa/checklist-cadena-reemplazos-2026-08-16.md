@@ -1,5 +1,11 @@
 # Checklist — cadena de reemplazos, objetivo de profundidad y rendimiento P05
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-16
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 Pedido de Gonzalo (2026-08-16): «Haz todo esto» sobre las tres decisiones que el
 GOAL A tenía bloqueadas esperándolo.
 

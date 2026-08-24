@@ -1,5 +1,11 @@
 # GOAL — Monitoreo mira cómo se está trabajando, no solo cuánto falta
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-13
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto:** 2026-08-13 · **Cierra:** solo Gonzalo · **Cadencia:** lote por lote
 **Ámbito:** módulo **Monitoreo** (`/monitoreo`). Parte del código que se cita
 vive hoy en archivos de Validación (`reglas_custom_*.R`): traerlo es el trabajo,

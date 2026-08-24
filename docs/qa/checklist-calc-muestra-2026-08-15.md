@@ -1,7 +1,7 @@
 # Checklist — pendientes de Cálculo de muestra tras la revisión del 2026-08-15
 
 Tipo: Checklist de trabajo (documento vivo)
-Estado: Abierto
+Estado: En curso
 Fecha: 2026-08-15
 Autoridad: Inventario verificado de pendientes; **sólo Gonzalo lo cierra**
 
@@ -499,7 +499,7 @@ exacta y marco cerca de 2483** contra la base canónica real — se salta siempr
 .crit_canonico_path <- function() {
   p <- Sys.getenv("PULSO_CALC_MUESTRA_CANONICO", "")
   if (nzchar(p)) return(p)
-  file.path("/private/tmp/claude-501",
+  file.path(Sys.getenv("SCRATCH_DIR"),
             "-Users-gonzaloalmendariz-Documents-Pulso-prosecnur-app",
             "d3fb0ab9-eaa6-4dbe-a202-fd6df5f384bb", "scratchpad", "canonico.xlsx")
 }

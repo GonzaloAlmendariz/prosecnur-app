@@ -70,7 +70,7 @@ as `Canal operativo`, `Responsable de carga`, `Mínimo esperado` and
 `Brecha mínimo` through structured empty-state rows, so compact workbooks pass
 format validation without inventing progress data. The real ACRDCONTA contract
 was regenerated from
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`:
+`<ruta de trabajo local>`:
 client and internal preflights are `ready`, all client/internal XLSX checks are
 true, the PDF text/render checks pass, and internal `Seguimiento` reads back as
 1086 rows x 110 columns with `Brecha mínimo`, `Rechazos plataforma`,

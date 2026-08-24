@@ -9,7 +9,7 @@ Consolidado en: [Síntesis de Carga y acreditación](../historico/carga-acredita
 Fecha de preparacion: 2026-07-20
 
 Proyecto de trabajo recomendado:
-`/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA-reglas-resueltas-v5-1.pulso`
+`<ruta de trabajo local>`
 
 SHA-256 de entrada:
 `eaea064910ce7e339edf87a8eee03fa42130270b1d747d6a60ebc3567ec27f9e`

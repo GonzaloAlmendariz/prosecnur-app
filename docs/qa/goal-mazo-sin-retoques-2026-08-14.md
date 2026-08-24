@@ -1,5 +1,11 @@
 # GOAL — el mazo de acreditación sale conforme al recetario, sin retoques
 
+Tipo: Registro de goal loop
+Estado: En curso
+Fecha: 2026-08-14
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-14 · **Doc vivo**. Sólo Gonzalo lo cierra.
 **Recetario**: `cookbook-mazo-acreditacion-2026-08-14.md` ·
 **Disposiciones**: artefacto «Disposiciones del Mazo» ·

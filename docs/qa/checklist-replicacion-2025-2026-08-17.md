@@ -1,5 +1,11 @@
 # Replicar 2025 con el motor de 2026 — doc vivo
 
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-17
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Encargo de Gonzalo (2026-08-17)**: analizar en estricta profundidad qué aulas
 seleccionó el estudio 2025 por facultad y con qué criterios; y si aplicando esos
 mismos criterios con el motor actual y el mismo cálculo de alumnos por

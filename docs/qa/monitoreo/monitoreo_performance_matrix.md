@@ -12,8 +12,8 @@ Command template:
 
 ```bash
 node scripts/monitoreo-performance-check.mjs \
-  --project-territorial "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso" \
-  --project-acreditacion "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120147.pulso" \
+  --project-territorial "<ruta de trabajo local> ACNUR/ACNURCG.pulso" \
+  --project-acreditacion "<ruta de trabajo local> CONTA/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120147.pulso" \
   --url http://127.0.0.1:5174/ \
   --api-url http://127.0.0.1:8788 \
   --out tmp/perf/monitoreo-performance \
@@ -36,7 +36,7 @@ Latest validated run:
 Latest ACRDCONTA phone-scope run:
 `tmp/perf/acrdconta-phone-summary-20260628`. The frontend URL used
 `http://localhost:5174/`; the API used `http://127.0.0.1:8788`.
-This run used `/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso`
+This run used `<ruta de trabajo local>`
 and validates the new `phone_summary` scope after restarting the R API.
 
 This matrix separates two different waits:
@@ -83,7 +83,7 @@ hydrated tabs is the current failure surface:
 
 | Check | Result | Evidence |
 |---|---|---|
-| BootGate + all-tab timing script | Passed as harness, not as product acceptance | Combined v4 run: `node scripts/monitoreo-performance-check.mjs --project-territorial "/Users/gonzaloalmendariz/Documents/Pulso/ACOGIDA ACNUR/ACNURCG.pulso" --project-acreditacion "/Users/gonzaloalmendariz/Documents/Pulso/ACRD CONTA/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120147.pulso" --url http://localhost:5176/ --api-url http://127.0.0.1:8791 --out tmp/perf/monitoreo-loading-vs-tabs-v4-20260628 --timeout-ms 180000 --probe-timeout-ms 60000 --entry-mode bootgate --tab-scope all --tab-probe-timeout-ms 12000`. |
+| BootGate + all-tab timing script | Passed as harness, not as product acceptance | Combined v4 run: `node scripts/monitoreo-performance-check.mjs --project-territorial "<ruta de trabajo local> ACNUR/ACNURCG.pulso" --project-acreditacion "<ruta de trabajo local> CONTA/monitoreo-acreditacion-contabilidad-multiactor-sheets-readonly-20260606-120147.pulso" --url http://localhost:5176/ --api-url http://127.0.0.1:8791 --out tmp/perf/monitoreo-loading-vs-tabs-v4-20260628 --timeout-ms 180000 --probe-timeout-ms 60000 --entry-mode bootgate --tab-scope all --tab-probe-timeout-ms 12000`. |
 | Duplicate light state requests | Remaining issue | Territorial duplicated `/api/monitoreo/state?include_reports=0`; Acreditacion duplicated light state plus `advance_summary` and `queries_summary`. |
 | Full report scope during all-tab navigation | Remaining issue for Acreditacion | Territorial avoided `report_scope=full`; Acreditacion used `report_scope=full` when Telefonico tabs were measured. |
 | Territorial hydrated visual QA | Partial | Entry, summary and map probes passed, but all-tab pass is 19/24 because five tabs still had loading indicators after the strict 12s guard. |
@@ -150,7 +150,7 @@ Run:
 
 ```bash
 node scripts/monitoreo-performance-check.mjs \
-  --project-acreditacion "/Users/gonzaloalmendariz/Documents/Pulso/pruebas-monitoreo/ACRDCONTA.pulso" \
+  --project-acreditacion "<ruta de trabajo local>" \
   --url http://localhost:5174/ \
   --api-url http://127.0.0.1:8788 \
   --out tmp/perf/acrdconta-phone-summary-20260628 \

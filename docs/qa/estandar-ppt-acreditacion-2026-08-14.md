@@ -1,5 +1,11 @@
 # Estándar de PPT de acreditación — de 51 comentarios a 17 reglas
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-14
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Abierto**: 2026-08-14 · **Origen**: los 57 comentarios de
 `Informe Conta 12-08_REVISADO HASTA SLIDE 32.pptx` (51 de Gabriela, 4 de Renzo,
 1 de Alice) contrastados contra el entregable final `Informe Contabilidad

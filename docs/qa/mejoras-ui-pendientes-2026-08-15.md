@@ -1,5 +1,11 @@
 # Mejoras de UI pendientes — salidas de la revisión de ACNUR V3
 
+Tipo: Registro QA fechado
+Estado: Vigente
+Fecha: 2026-08-15
+Autoridad: Evidencia de la ejecución que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+
 **Fecha**: 2026-08-15 · **Origen**: revisión del primer entregable de PDM Medios
 de Vida 2026, que destapó seis defectos de motor y dos ADR.
 
