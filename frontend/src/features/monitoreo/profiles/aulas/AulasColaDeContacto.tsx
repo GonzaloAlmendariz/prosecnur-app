@@ -27,6 +27,18 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
   onFoco?: (foco: FocoDeCuota) => void;
 }) {
   const { pendientes, citadas, esfuerzo } = useMemo(() => colaDeContacto(filas), [filas]);
+  // Los cuatro estados con su conteo, sin los que valen cero: un «0 con cita»
+  // permanente entrena a no mirar la banda.
+  const resumen = useMemo(() => {
+    const insistiendo = pendientes.filter((p) => p.intentos > 0).length;
+    const aplicadas = citadas.filter((c) => c.aplicada).length;
+    return [
+      { clase: "es-sin-empezar", etiqueta: "Sin contactar", n: pendientes.length - insistiendo },
+      { clase: "es-insistiendo", etiqueta: "Insistiendo", n: insistiendo },
+      { clase: "es-citada", etiqueta: "Con cita", n: citadas.length - aplicadas },
+      { clase: "es-aplicada", etiqueta: "Aplicadas", n: aplicadas },
+    ].filter((x) => x.n > 0);
+  }, [pendientes, citadas]);
 
   // **Dos causas, y ninguna era la que decía el mensaje.** Con filas presentes la
   // cola sólo queda vacía si TODAS quedan fuera por una razón buena —banco,
@@ -57,6 +69,24 @@ export function AulasColaDeContacto({ filas, facultadEnFoco, onFoco }: {
           <>Todos los cursos-horario del plan tienen cita: no queda nadie a quien llamar.</>
         )}
       </p>
+      {/* **El reparto por estado, antes de la tabla.**
+       *
+       * La tabla mide 6.877 px y su ventana 526: para ver las citadas —que van
+       * al final, porque delante va lo accionable— hay que bajar 6.500. Lo
+       * conseguido quedaba invisible.
+       *
+       * El resumen usa los MISMOS chips que las filas, así que la vista de
+       * conjunto y el detalle se reconocen entre sí; y sólo muestra los estados
+       * que existen, para no llenar la banda de ceros. */}
+      {resumen.length > 1 ? (
+        <p className="aulas-cola-resumen">
+          {resumen.map(({ clase, etiqueta, n }) => (
+            <span key={clase} className={`aulas-cola-estado ${clase}`}>
+              {fmt(n)} {etiqueta.toLowerCase()}
+            </span>
+          ))}
+        </p>
+      ) : null}
       {/* **Con cabeceras, y el estado en su columna.**
        *
        * La lista pintaba cuatro columnas sin encabezar: código, docente, «—» y
