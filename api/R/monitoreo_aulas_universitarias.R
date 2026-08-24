@@ -1335,8 +1335,14 @@ monitoreo_aulas_criterio_texto <- function(crit) {
            ifelse(razon <= 0.90, "parcial",
            ifelse(razon < 1, "satisfactorio", "pleno"))))))
   claves_cob <- c("nulo", "critico", "insuficiente", "parcial", "satisfactorio", "pleno")
+  # La frase viaja CON la clave. Traducir en R y no en el front tiene un motivo
+  # medido: en el tick de los tramos, la definicion estaba duplicada en los dos
+  # lenguajes y el grafico las emparejaba por posicion, asi que un recorte movia
+  # los numeros de etiqueta sin romper nada. Un solo dueño del idioma evita esa
+  # familia entera de defectos, y el test anti-jerga ya vive de este lado.
   cobertura <- lapply(claves_cob, function(k) {
-    list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)))
+    list(clave = k, aulas = as.integer(sum(tramo == k, na.rm = TRUE)),
+         etiqueta = monitoreo_aulas_etiqueta_tramo(k))
   })
 
   # **El banco al final ANTES de recortar.** El tope corta por posicion, y con el
@@ -1533,6 +1539,8 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   out$missing <- as.integer(pmax(0L, out$target - out$observed))
   out$progress_pct <- ifelse(out$target > 0L, round(100 * out$observed / out$target, 1), NA_real_)
   out$status <- .monitoreo_aulas_quota_estado(out$target, out$observed)
+  # La frase, al lado de la clave y no en el front: un solo dueño del idioma.
+  out$etiqueta <- vapply(out$status, monitoreo_aulas_etiqueta_celda, character(1), USE.NAMES = FALSE)
   # Mismo criterio de siempre, con los nombres nuevos. Ojo: renombrar sin tocar
   # esta linea NO rompia nada visible —las dos comparaciones daban FALSE para
   # todas las filas y la tabla quedaba ordenada solo por brecha—, que es la

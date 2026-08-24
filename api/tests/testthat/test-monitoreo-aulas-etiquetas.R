@@ -66,3 +66,40 @@ test_that("la lista publicable cubre TODAS las claves que los motores emiten", {
     expect_true(monitoreo_aulas_etiqueta_tramo(t) %in% frases)
   }
 })
+
+
+# --- La frase viaja en el payload -------------------------------------------
+#
+# Traducir en R y no en el front tiene un motivo medido: en el recorte de tramos
+# la definicion estaba duplicada en los dos lenguajes y el grafico las emparejaba
+# POR POSICION, asi que mover una banda cambiaba los numeros de etiqueta sin
+# romper nada. Un solo dueño del idioma mata esa familia entera de defectos.
+
+test_that("los tramos de cobertura publican su frase junto a la clave", {
+  plan <- lapply(1:3, function(i) list(
+    operational_code = sprintf("CH %d", i), classroom_id = sprintf("a%d", i),
+    faculty = "DERECHO", sample_role = "titular", expected_valid = 10,
+    eligible_n = 30, sample_status = "agendada", operational_status = "aplicada",
+    responses_total = c(0, 5, 12)[i]
+  ))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list())
+  claves <- vapply(d$course_status_cobertura, function(x) x$clave, character(1))
+  frases <- vapply(d$course_status_cobertura, function(x) x$etiqueta %||% "", character(1))
+  expect_identical(claves, c("nulo", "critico", "insuficiente", "parcial", "satisfactorio", "pleno"))
+  # Cada clave con SU frase, y ninguna vacia: una etiqueta ausente en el payload
+  # obliga al front a inventarse una, que es de donde salen las divergencias.
+  expect_true(all(nzchar(frases)))
+  expect_identical(frases, vapply(claves, monitoreo_aulas_etiqueta_tramo, character(1), USE.NAMES = FALSE))
+})
+
+test_that("ninguna frase del payload cae en la jerga prohibida", {
+  # El test de arriba comprueba las frases de la funcion; este comprueba las que
+  # SALEN de verdad, que es lo que ve una persona.
+  plan <- list(list(operational_code = "CH 1", classroom_id = "a1", faculty = "DERECHO",
+                    sample_role = "titular", expected_valid = 10, eligible_n = 30,
+                    sample_status = "agendada", operational_status = "aplicada",
+                    responses_total = 4))
+  d <- monitoreo_aulas_dashboard(plan, data.frame(), list())
+  frases <- vapply(d$course_status_cobertura, function(x) as.character(x$etiqueta %||% ""), character(1))
+  expect_false(any(grepl(MONITOREO_AULAS_JERGA_PROHIBIDA, frases, ignore.case = TRUE)))
+})

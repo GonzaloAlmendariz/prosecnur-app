@@ -33,7 +33,7 @@ const ALTO_DEL_GRAFICO = { amplio: 360, compacto: 220 };
 export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
-  resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
+  resumen?: ReadonlyArray<{ clave: string; aulas: number; etiqueta?: string }> | null;
   /** Las aulas sin meta declarada, también del motor. */
   sinMetaMotor?: number;
   /**
@@ -64,13 +64,22 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
     // vista lo sumaba sobre las 500 filas que viajan de 2 615, y ésas están
     // ordenadas por tramo del circuito.
     if (resumen?.length) {
-      const porClave = new Map(resumen.map((e) => [e.clave, Number(e.aulas) || 0]));
+      const porClave = new Map(resumen.map((e) => [e.clave, e]));
       // **Por clave, nunca por posición.** Antes esto pareaba una lista local de
       // claves con los tramos por índice: dos definiciones en dos lenguajes que
       // tenían que coincidir en orden sin que nada lo obligara, así que recortar
       // una banda habría movido los números de etiqueta sin romper un test.
+      //
+      // **Y la etiqueta también viene del motor.** El texto local se queda sólo
+      // como respaldo para el cálculo sin payload: con dos redacciones vivas, la
+      // del gráfico y la del motor, la pantalla acabaría diciendo dos cosas del
+      // mismo tramo y ningún test lo vería.
       const base = coberturaPorAula([]);
-      const tramosMotor = base.tramos.map((t) => ({ ...t, aulas: porClave.get(t.clave) ?? 0 }));
+      const tramosMotor = base.tramos.map((t) => {
+        const e = porClave.get(t.clave);
+        const delMotor = typeof e?.etiqueta === "string" ? e.etiqueta.trim() : "";
+        return { ...t, aulas: Number(e?.aulas) || 0, etiqueta: delMotor || t.etiqueta };
+      });
       const totalMotor = tramosMotor.reduce((n, t) => n + t.aulas, 0);
       if (totalMotor) return { tramos: tramosMotor, sinMeta: sinMetaMotor ?? 0, total: totalMotor };
     }
