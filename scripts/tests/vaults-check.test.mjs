@@ -216,7 +216,9 @@ test('la convergencia tiene cobertura real y no verde por ausencia', () => {
   assert.equal(Object.keys(report.coberturaPorClave).length, report.resumen.nodosContrato)
   assert.equal(report.resumen.anclasBoceto, 1)
   assert.equal(report.resumen.anclasPromovidas, 1)
-  assert.equal(report.resumen.entradasAgentic, 29)
+  // 31 desde 2026-08-18: 18 skills de producto + 13 agentes. El literal existe
+  // para que sumar una entrada sea deliberado, asi que se sube a mano al hacerlo.
+  assert.equal(report.resumen.entradasAgentic, 31)
   assert.equal(report.resumen.ramasAgentic, 8)
 
   const codigosCerrados = new Set(['V1b', 'V3', 'V4', 'V5', 'V8', 'V9', 'V10', 'C3', 'G1'])
@@ -229,16 +231,11 @@ test('la convergencia tiene cobertura real y no verde por ausencia', () => {
     .filter(([, nodo]) => nodo.direccionPublicada === false)
     .map(([clave]) => clave)
     .sort()
-  assert.deepEqual(noPublicadas, [
-    'dashboard/dashboard/base_datos',
-    'dashboard/dashboard/dimensiones',
-    'dashboard/dashboard/relaciones',
-    'dashboard/dashboard/resumen',
-    'procesamiento/validacion/explorar',
-    'procesamiento/validacion/instrumento',
-    'procesamiento/validacion/limpieza',
-    'procesamiento/validacion/reglas_custom',
-  ])
+  // Vacia desde 2026-08-24: los ocho nodos que no publicaban direccion —las
+  // cuatro pestañas del Dashboard y las cuatro de Validacion— ya la publican.
+  // La lista se conserva como control: si un nodo nuevo nace sin direccion,
+  // este assert lo dice en vez de dejarlo pasar.
+  assert.deepEqual(noPublicadas, [])
 })
 
 test('el índice de direcciones es íntegramente generado', () => {

@@ -10,7 +10,7 @@ Módulo `procesamiento` · ruta `/procesamiento` · 32 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `procesamiento` | modulo | Procesamiento | sí | d5f1f9e8 | sí | — |
+| `procesamiento` | modulo | Procesamiento | sí | 0b8ec51c | sí | — |
 | `procesamiento/carga` | seccion | Carga | sí | 54b0fe12 | sí | — |
 | `procesamiento/carga/plan` | pestana | Plan | sí | 15be26db | sí | — |
 | `procesamiento/carga/fuentes` | pestana | Fuentes | sí | 2af0cc2d | sí | — |
@@ -18,11 +18,11 @@ Módulo `procesamiento` · ruta `/procesamiento` · 32 direcciones.
 | `procesamiento/carga/estructura` | pestana | Estructura | sí | a11a637c | sí | — |
 | `procesamiento/carga/datos` | pestana | Datos | sí | 7ba2907b | sí | — |
 | `procesamiento/carga/equivalencias` | pestana | Equivalencias | sí | c59f981b | sí | — |
-| `procesamiento/validacion` | seccion | Validación | sí | cf25e7fd | sí | — |
-| `procesamiento/validacion/explorar` | pestana | Explorar respuestas | no; usa `nodo:` | 0d982e69 | sí | — |
-| `procesamiento/validacion/instrumento` | pestana | Reglas del formulario | no; usa `nodo:` | be600079 | sí | — |
-| `procesamiento/validacion/reglas_custom` | pestana | Criterios de revisión | no; usa `nodo:` | 0def12ee | sí | — |
-| `procesamiento/validacion/limpieza` | pestana | Cierre de base | no; usa `nodo:` | 6fb80b99 | sí | — |
+| `procesamiento/validacion` | seccion | Validación | sí | 6b4155d5 | sí | — |
+| `procesamiento/validacion/explorar` | pestana | Explorar respuestas | sí | 88cb15d2 | sí | — |
+| `procesamiento/validacion/instrumento` | pestana | Reglas del formulario | sí | 0fa49ebd | sí | — |
+| `procesamiento/validacion/reglas_custom` | pestana | Criterios de revisión | sí | 70b88a58 | sí | — |
+| `procesamiento/validacion/limpieza` | pestana | Cierre de base | sí | d518e086 | sí | — |
 | `procesamiento/codificacion` | seccion | Codificación | sí | 50f6b10c | sí | — |
 | `procesamiento/codificacion/organizar` | pestana | Preparar | sí | 1e879e7e | sí | — |
 | `procesamiento/codificacion/codificar` | pestana | Codificar | sí | 1f64d398 | sí | — |

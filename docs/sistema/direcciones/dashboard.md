@@ -10,9 +10,9 @@ Módulo `dashboard` · ruta `/tablero` · 6 direcciones.
 
 | Dirección | Tipo | Nombre visible | URL publicada | Sello | Documentada | Gobernada por |
 | --- | --- | --- | --- | --- | --- | --- |
-| `dashboard` | modulo | Dashboard interactivo | sí | 943dca62 | sí | — |
-| `dashboard/dashboard` | seccion | Dashboard | sí | e770113e | sí | — |
-| `dashboard/dashboard/resumen` | pestana | Resumen | no; usa `nodo:` | 6705e247 | sí | — |
-| `dashboard/dashboard/relaciones` | pestana | Relaciones | no; usa `nodo:` | a63b4600 | sí | — |
-| `dashboard/dashboard/base_datos` | pestana | Base de datos | no; usa `nodo:` | f231eace | sí | — |
-| `dashboard/dashboard/dimensiones` | pestana | Dimensiones | no; usa `nodo:` | 138f9ded | sí | — |
+| `dashboard` | modulo | Dashboard interactivo | sí | 4cdcdd68 | sí | — |
+| `dashboard/dashboard` | seccion | Dashboard | sí | 4a5f282a | sí | — |
+| `dashboard/dashboard/resumen` | pestana | Resumen | sí | eee4a430 | sí | — |
+| `dashboard/dashboard/relaciones` | pestana | Relaciones | sí | f49a671e | sí | — |
+| `dashboard/dashboard/base_datos` | pestana | Base de datos | sí | c5a8f800 | sí | — |
+| `dashboard/dashboard/dimensiones` | pestana | Dimensiones | sí | 87cebd04 | sí | — |
