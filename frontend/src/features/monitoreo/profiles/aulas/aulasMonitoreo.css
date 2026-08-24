@@ -5271,3 +5271,36 @@
   font-weight: 400;
   opacity: 0.75;
 }
+
+/* Las aulas gestionadas que aún no traen observación. Anotarlas es la norma, así
+   que el hueco es lo accionable de la línea: se marca en el tono de aviso, sin
+   pasar a alarma —no anotar todavía no rompe nada, sólo queda pendiente—. */
+.mon-profile-page.is-aulas-flow .aulas-observaciones-hueco {
+  color: var(--pulso-warning-text, var(--pulso-text-secondary));
+  font-weight: 600;
+}
+
+/* De qué columna del libro salió cada observación. Dos hojas, dos hechos: lo que
+   costó agendar el aula y lo que pasó dentro. Se distinguen por tono, no por
+   forma, para que la lista siga leyéndose de un tirón. */
+.mon-profile-page.is-aulas-flow .aulas-observaciones-origen {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-agenda {
+  background: color-mix(in srgb, var(--pulso-module-monitoreo, var(--pulso-accent)) 14%, transparent);
+  color: var(--pulso-module-monitoreo, var(--pulso-accent));
+}
+
+.mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-aplicacion {
+  background: color-mix(in srgb, var(--pulso-success) 14%, transparent);
+  color: var(--pulso-success-text, var(--pulso-success));
+}
