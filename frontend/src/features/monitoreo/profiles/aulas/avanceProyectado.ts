@@ -124,3 +124,20 @@ export function avanceProyectado(celdas: ReadonlyArray<CeldaAvance> | null | und
 export function celdasQuePidenAccion(filas: ReadonlyArray<FilaAvance>): number {
   return filas.filter((f) => f.estado === "deficit_proyectado" || f.estado === "deficit_no_subsanable").length;
 }
+
+/**
+ * Cuántas celdas se pueden evaluar: las que tienen cuota trazada.
+ *
+ * **El denominador del titular, y no es el total.** Visto en la app con el
+ * panel poblado: el KPI decía «cierran con lo agendado: 10 de 30» y este panel
+ * «10 de 30 no van a llegar», los dos ciertos y contándose sobre el mismo 30 —
+ * porque 10 de esas 30 celdas no tienen objetivo declarado y no son ninguna de
+ * las dos cosas. Puestos uno al lado del otro se leían como una contradicción.
+ *
+ * Con este denominador el titular dice «10 de 20», que es lo que también dice
+ * el resumen de arriba («0 de 20 celdas cumplidas · 10 sin objetivo declarado»)
+ * y ya no hay dos cuentas del mismo cruce diciendo cosas distintas.
+ */
+export function celdasEvaluables(filas: ReadonlyArray<FilaAvance>): number {
+  return filas.filter((f) => f.estado !== "sin_cuota").length;
+}
