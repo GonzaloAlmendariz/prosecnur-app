@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiError } from "../../../api/core";
+import { codigoDeError, esEstadoInicial, vacioSinDatos } from "../estadoEsperado";
 import {
   AlertTriangle,
   ChevronLeft,
@@ -172,7 +172,7 @@ export default function ExplorarTab({
         // error HTTP —«todavia no hay data»— y merecen otra pantalla que una
         // averia. Sin esto, el unico dato disponible era el texto, que ademas
         // arrastra el codigo pegado («… · E_NO_DATA_INST»).
-        setErrorCode(e instanceof ApiError ? e.code : "");
+        setErrorCode(codigoDeError(e));
       })
       .finally(() => {
         if (!cancel) setLoading(false);
@@ -281,7 +281,7 @@ export default function ExplorarTab({
         // error HTTP —«todavia no hay data»— y merecen otra pantalla que una
         // averia. Sin esto, el unico dato disponible era el texto, que ademas
         // arrastra el codigo pegado («… · E_NO_DATA_INST»).
-        setErrorCode(e instanceof ApiError ? e.code : "");
+        setErrorCode(codigoDeError(e));
       })
       .finally(() => {
         if (!cancel) setBusy("");
@@ -345,14 +345,8 @@ export default function ExplorarTab({
   // Tres cosas mal a la vez: el titulo dice que algo fallo, el texto ensena un
   // codigo tecnico, y ninguno dice donde se resuelve. Un vacio esperado que
   // parece una averia hace que la gente busque el problema donde no esta.
-  if (errorCode === "E_NO_DATA_INST" && !inv) {
-    return (
-      <EmptyState
-        icon={<Compass size={20} />}
-        title="Todavía no hay datos que explorar"
-        hint="Esta pestaña lee la base cargada del proyecto. Carga una en Procesamiento › Carga y sus distribuciones aparecen aquí."
-      />
-    );
+  if (esEstadoInicial(errorCode) && !inv) {
+    return <EmptyState icon={<Compass size={20} />} {...vacioSinDatos("que explorar")} />;
   }
   if (error && !inv) {
     return (
