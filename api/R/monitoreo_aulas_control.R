@@ -44,6 +44,21 @@ MONITOREO_AULAS_CONTROL_GRUPOS <- list(
                "threshold_total", "threshold_population",
                "valid_total", "valid_population")
   ),
+  # **El bloque que decide, y que no estaba en ningun grupo.**
+  #
+  # `efectivas_esperadas` es la vara vigente —la meta que el diseño calculo para
+  # ESA aula— y sus columnas viajan en el libro desde que sustituyeron al 70 %.
+  # Ninguna estaba agrupada, asi que el inspector de la Base de control pintaba
+  # las 27 columnas del grupo «cuenta» —incluidos `70T` y `70P`, retirados— y
+  # NO enseñaba la meta ni la brecha. La pantalla que existe para mostrar lo que
+  # trae el libro enseñaba lo viejo y escondia lo vigente.
+  list(
+    clave = "esperado",
+    etiqueta = "Control - esperado vs obtenido",
+    campos = c("efectivas_esperadas", "efectivas_obtenidas",
+               "efectivas_pct_esperado", "efectivas_pct_obtenido",
+               "efectivas_brecha", "elegibles_esperados")
+  ),
   list(
     clave = "duracion",
     etiqueta = "Control - duracion",
@@ -52,9 +67,13 @@ MONITOREO_AULAS_CONTROL_GRUPOS <- list(
   list(
     clave = "cuotas",
     etiqueta = "Control - cuotas",
+    # Cada esperado al lado de su obtenido: `mujeres_esperadas` y
+    # `hombres_esperados` los escribe la app y no estaban en ningun grupo, asi
+    # que la cuota de sexo del aula se veia sin su vara.
     campos = c("observed_students", "non_respondents", "attendance_pct",
                "quota_pct", "quota_missing",
-               "women_n", "men_n", "women_pct", "men_pct")
+               "mujeres_esperadas", "women_n", "women_pct",
+               "hombres_esperados", "men_n", "men_pct")
   ),
   list(
     clave = "horario",

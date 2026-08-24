@@ -22,7 +22,7 @@ function Eslabon({ eslabon, cerro }: { eslabon: EslabonDeCadena; cerro: boolean 
         {eslabon.orden === 0 ? "titular" : `en reserva ${eslabon.orden}`}
       </span>
       <span className="aulas-eslabon-cifra">
-        {eslabon.validas} de {eslabon.meta}
+        {eslabon.validas} de {eslabon.meta.toLocaleString("es-PE")}
       </span>
       {cerro ? <span className="aulas-eslabon-sello">cumple</span> : null}
     </li>
@@ -80,13 +80,18 @@ function CadenasAbiertas({ historias }: { historias: ReadonlyArray<HistoriaDeCad
                 <td>{historia.facultad}</td>
                 <td className="es-cifra">{historia.eslabones.length - 1}</td>
                 <td className="es-cifra">{historia.validas}</td>
-                <td className="es-cifra">{historia.meta}</td>
+                {/* La meta puede ser fraccionaria —sale de elegibles × tasa— y
+                    salía como «13.4»: punto decimal en una app que escribe en
+                    español peruano, donde el separador es la coma. */}
+                <td className="es-cifra">{historia.meta.toLocaleString("es-PE")}</td>
                 <td>
                   {/* «—» y no una frase: en el operativo real casi ninguna
                       cadena abierta recibió respuestas, y repetir veintiuna
                       veces «nadie recibió respuestas» grita más que el dato.
                       El hecho se dice UNA vez, en la lectura de arriba. */}
-                  {mejor ? `${mejor.codigo}, ${fmt(mejor.validas)} de ${mejor.meta}` : "—"}
+                  {mejor
+                    ? `${mejor.codigo}, ${fmt(mejor.validas)} de ${mejor.meta.toLocaleString("es-PE")}`
+                    : "—"}
                 </td>
               </tr>
             );
@@ -110,11 +115,12 @@ const GRUPOS = [
 ];
 
 export function AulasHistoriaCadena({ filas }: { filas: ReadonlyArray<MonitoreoAulasPlanRow> }) {
-  const { historias, sinReserva, cerraronEnTitular, cerraronEnReemplazo, abiertas } =
-    useMemo(() => historiaDeCadena(filas), [filas]);
-  // Se dice aquí y no en cada fila: es la misma frase para casi todas.
-  const sinRespuestaAlguna = historias
-    .filter((h) => h.desenlace === "abierta" && !h.validas).length;
+  // `sinRespuestaAlguna` sale del modelo: el KPI de arriba usa el mismo número
+  // para decidir su pista, y dos cuentas separadas del mismo hecho se separan.
+  const {
+    historias, sinReserva, cerraronEnTitular, cerraronEnReemplazo, abiertas,
+    sinRespuestaAlguna,
+  } = useMemo(() => historiaDeCadena(filas), [filas]);
 
   if (!historias.length) {
     return (

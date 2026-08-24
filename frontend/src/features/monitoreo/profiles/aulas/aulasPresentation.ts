@@ -80,7 +80,9 @@ const FIELD_LABELS: Record<string, string> = {
   efectivas_pct_esperado: "% de efectivas esperado",
   efectivas_pct_obtenido: "% de efectivas logrado",
   efectivas_brecha: "Efectivas: cuánto falta",
-  elegibles_esperados: "Elegibles del padrón",
+  // La columna del libro se llama «ELEGIBLES: BASE DEL %»: es el padrón, y está
+  // ahí como denominador visible del porcentaje esperado. No es una meta.
+  elegibles_esperados: "Elegibles (base del %)",
   mujeres_esperadas: "Mujeres que espera el aula",
   hombres_esperados: "Hombres que espera el aula",
   last_response_day: "Último día de respuesta",

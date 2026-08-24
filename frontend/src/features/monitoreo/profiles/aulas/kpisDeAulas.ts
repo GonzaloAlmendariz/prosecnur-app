@@ -536,7 +536,16 @@ export function aulasKpis(
         label: "Cadenas sin cerrar",
         icono: Link2Off,
         value: fmt(cadenas.abiertas),
-        pista: "ningún eslabón llegó a su meta",
+        // **La pista dice por qué está abierta, y son dos motivos distintos.**
+        // «Ningún eslabón llegó a su meta» acusa de haber fallado; sobre un
+        // operativo recién empezado —193 abiertas y 183 sin una sola respuesta—
+        // eso convierte trabajo pendiente en fracaso. Cuando todas están sin
+        // estrenar se dice eso, y cuando es mezcla se declara el reparto.
+        pista: cadenas.sinRespuestaAlguna >= cadenas.abiertas
+          ? "todavía sin una sola respuesta"
+          : cadenas.sinRespuestaAlguna > 0
+            ? `${fmt(cadenas.sinRespuestaAlguna)} sin una sola respuesta · el resto no llegó a su meta`
+            : "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
         detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinReserva)} sin reserva asignada`,
       },

@@ -162,5 +162,11 @@ export function historiaDeCadena(filas: ReadonlyArray<MonitoreoAulasPlanRow>) {
     cerraronEnTitular: historias.filter((h) => h.desenlace === "titular").length,
     cerraronEnReemplazo: historias.filter((h) => h.desenlace === "reemplazo").length,
     abiertas: historias.filter((h) => h.desenlace === "abierta").length,
+    // **Sin intentar no es lo mismo que no llegó.** Una cadena abierta que no
+    // ha recibido ni una respuesta no falló su meta: todavía no se aplicó. El
+    // KPI decía «ningún eslabón llegó a su meta» sobre las 193, cuando 183 ni
+    // se habían visitado — y eso convierte trabajo pendiente en fracaso.
+    sinRespuestaAlguna: historias
+      .filter((h) => h.desenlace === "abierta" && !h.validas).length,
   };
 }
