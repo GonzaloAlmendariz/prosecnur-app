@@ -55,6 +55,58 @@
   r
 }
 
+# Las TRES piernas del rendimiento del aula.
+#
+# `tasa` es el producto y sigue siendo la cifra que dimensiona; las piernas son
+# su descomposicion, medida sobre las 194 aulas aplicadas de 2025 (razon de
+# sumas) y reproducen la `tasa` sellada EXACTO en los cinco tramos:
+#
+#   tramo   asistencia  respuesta  validez   producto  sellado
+#   <=15      1,1262      0,7960    0,9025    0,80905   0,809
+#   16-25     0,8460      0,8298    0,9148    0,64220   0,642
+#   26-35     0,9043      0,7103    0,8808    0,56576   0,566
+#   36-50     0,7676      0,7282    0,8954    0,50050   0,500
+#   >50       0,6354      0,7357    0,8757    0,40936   0,409
+#
+# Cuatro decimales y no tres: con tres, el tramo 26-35 daba 0,56546 contra una
+# tasa de 0,566, un desvio por encima del propio redondeo de la tasa. La
+# descomposicion tiene que caber dentro de la cifra que describe.
+#
+# Por que importan separadas: **todo el castigo del aula grande esta en la
+# asistencia** (1,126 -> 0,635), la respuesta baja poco y la validez es plana
+# (0,876-0,915). Son tres problemas con tres palancas distintas —agenda y
+# horario / aplicador, tiempo e instrumento / completitud y consentimiento— y
+# una sola cifra no dice cual esta fallando.
+#
+# La asistencia pasa de 1 en el tramo chico porque `asistentes` cuenta gente en
+# el salon, no necesariamente elegible. NO se topa aqui: toparla rompería el
+# producto, que es el invariante que un test fija.
+#
+# **Sin sello no hay piernas.** La calibracion embebida es de otra ola y su
+# producto no sale de esta descomposicion; inventarle una seria publicar una
+# lectura que nadie midio. Devuelve NA y la superficie lo declara.
+.cm_efectividad_piernas <- function(eligible_n, tramos = NULL) {
+  e <- suppressWarnings(as.numeric(eligible_n))
+  e[!is.finite(e)] <- 0
+  vacio <- list(asistencia = rep(NA_real_, length(e)),
+                respuesta = rep(NA_real_, length(e)),
+                validez = rep(NA_real_, length(e)))
+  if (!is.list(tramos) || !length(tramos)) return(vacio)
+  out <- vacio
+  restante <- rep(TRUE, length(e))
+  for (tr in tramos) {
+    hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
+    if (!is.finite(hasta)) hasta <- Inf
+    idx <- restante & e <= hasta
+    for (nm in c("asistencia", "respuesta", "validez")) {
+      v <- suppressWarnings(as.numeric(tr[[nm]])[1])
+      out[[nm]][idx] <- if (is.finite(v) && v > 0) v else NA_real_
+    }
+    restante <- restante & !idx
+  }
+  out
+}
+
 #' Tasa de aplicacion por tipo de docente desde la tabla sellada; un aula con
 #' docentes compuestos («A | B») lleva la del mas restrictivo (min), que es
 #' como el campo se comporta: basta que uno rechace.
@@ -131,7 +183,16 @@
         hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
         tasa <- suppressWarnings(as.numeric(tr$tasa)[1])
         if (!is.finite(tasa) || tasa <= 0 || tasa > 1) return(NULL)
-        list(hasta = if (is.finite(hasta)) hasta else NA_real_, tasa = tasa)
+        # Las tres piernas son OPCIONALES y se conservan solo si son legibles:
+        # un tramo sin ellas sigue siendo valido —la `tasa` es lo que
+        # dimensiona— y publica NA en vez de un numero inventado.
+        pierna <- function(nm) {
+          v <- suppressWarnings(as.numeric(tr[[nm]])[1])
+          if (is.finite(v) && v > 0) v else NULL
+        }
+        list(hasta = if (is.finite(hasta)) hasta else NA_real_, tasa = tasa,
+             asistencia = pierna("asistencia"), respuesta = pierna("respuesta"),
+             validez = pierna("validez"))
       })
       limpio_t <- Filter(Negate(is.null), limpio_t)
       hastas <- vapply(limpio_t, function(x) if (is.finite(x$hasta)) x$hasta else Inf, numeric(1))
@@ -206,6 +267,13 @@
     r <- .cm_efectividad_rendimiento(aula_frame$eligible_n, tramos = cal$rendimiento_tramos)
     aula_frame$p_aplicada_ref <- round(p, 3)
     aula_frame$rendimiento_ref <- round(r, 3)
+    # Las tres piernas de `rendimiento_ref`, para que Monitoreo pueda decir CUAL
+    # falla y no solo que falla. No cambian ningun esperado: su producto es
+    # `rendimiento_ref`.
+    piernas <- .cm_efectividad_piernas(aula_frame$eligible_n, tramos = cal$rendimiento_tramos)
+    aula_frame$tasa_asistencia_aula <- round(piernas$asistencia, 3)
+    aula_frame$tasa_respuesta_aula <- round(piernas$respuesta, 3)
+    aula_frame$tasa_validez_aula <- round(piernas$validez, 3)
     # Ajuste por facultad: solo donde el historico declaro un tau con
     # suficiencia; el resto queda en 1 con k=NA — la UI dice "el historico no
     # pudo generar informacion especifica para esta facultad".
