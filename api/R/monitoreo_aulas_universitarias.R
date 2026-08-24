@@ -1980,6 +1980,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       meta = sum(suppressWarnings(as.numeric(tracked_df$expected_valid)), na.rm = TRUE)
     ),
     quotas_sex_faculty = quotas_sex_faculty,
+    # El avance por celda con sus cuatro series. Va AL LADO del estado
+    # retrospectivo y no en su lugar: `quotas_sex_faculty` dice donde estas y
+    # esto dice si vas a llegar y si el campo se comporta como el modelo. Son
+    # dos lecturas y las dos sirven.
+    avance_sexo_facultad = monitoreo_aulas_avance_sexo_facultad(
+      .monitoreo_aulas_records(tracked_df), quotas_sex_faculty
+    ),
     brechas = .monitoreo_aulas_records(brechas),
     reemplazos = .monitoreo_aulas_records(replacements),
     # El parte de campo entero, no solo lo que no cuadra. El control de
