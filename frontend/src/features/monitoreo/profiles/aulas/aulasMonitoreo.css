@@ -5221,3 +5221,12 @@
   background: var(--pulso-success-bg);
   color: var(--pulso-success-fg);
 }
+
+/* El reparto por estado, encima de la tabla. Fila de chips y no una lista:
+   se lee de un vistazo y no compite con el detalle que viene debajo. */
+.mon-profile-page.is-aulas-flow .aulas-cola-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
