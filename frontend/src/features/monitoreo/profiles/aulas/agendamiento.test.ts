@@ -54,21 +54,24 @@ describe("agendamiento", () => {
 });
 
 /**
- * **Una ya aplicada no está «por agendar».**
+ * **Aplicada sin fecha agendada: un descuadre, no un estado del operativo.**
  *
- * `seVaAAgendar` saca el banco, las reemplazadas y las reservas dormidas —«no la
- * va a agendar nadie»— y se dejaba fuera este caso. Medido en pantalla el
- * 2026-08-24, con diez aulas aplicadas entre el 1 y el 5 de septiembre: el KPI
- * decía «Por agendar 193» sobre un plan de 193 en el que diez ya estaban hechas.
+ * Regla del operativo (Gonzalo, 2026-08-24): «si no se agenda un aula, no se
+ * aplica; esa situación no puede suceder». La primera versión de este test
+ * llamaba al caso «aplicadas sin cita previa» y lo daba por bueno, porque mi
+ * simulación de campo aplicaba sin agendar antes — fabriqué un imposible y
+ * después escribí UI que lo normalizaba.
  *
- * No suman a `agendadas` porque no lo estuvieron: se aplicaron sin cita previa.
- * Cuentan aparte para que la pista pueda explicar la resta.
+ * Se cuenta y no se bloquea: la combinación puede llegar del Excel por un error
+ * de transcripción —falta la fecha en la agenda, o el parte se anotó en la fila
+ * equivocada— y rechazar la importación perdería un parte real. Descartarlo en
+ * silencio lo escondería.
  */
-describe("agendamiento · las aplicadas salen del pendiente", () => {
+describe("agendamiento · una aplicada sin agenda es un descuadre", () => {
   const fila = (over: Record<string, unknown>) =>
     ({ sample_role: "titular", sample_status: "agendada", ...over }) as never;
 
-  it("una aplicada sin fecha no cuenta como por agendar", () => {
+  it("no cuenta como por agendar: no hay cita que cerrar, hay algo que revisar", () => {
     const r = agendamiento([
       fila({ operational_status: "aplicada" }),
       fila({ operational_status: "planificada" }),
@@ -90,7 +93,7 @@ describe("agendamiento · las aplicadas salen del pendiente", () => {
     expect(r.porAgendar).toBe(0);
   });
 
-  it("las tres cifras siguen sumando el total en juego", () => {
+  it("las tres cifras siguen particionando el total en juego", () => {
     const r = agendamiento([
       fila({ operational_status: "aplicada" }),
       fila({ scheduled_date: "2026-09-02" }),

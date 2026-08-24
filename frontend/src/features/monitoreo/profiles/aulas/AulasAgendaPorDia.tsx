@@ -77,8 +77,12 @@ export function AulasAgendaPorDia({ filas, totalDelPlan = 0 }: {
         Ninguno de los {fmt(cuantos)} cursos-horario tiene fecha agendada. Se
         declara en la columna «Fecha agendada» del libro.
         {aplicadas > 0 ? (
-          <> Hay {fmt(aplicadas)} ya aplicados: se aplicaron sin agenda previa, y su fecha
-          de aplicación vive en el parte de campo.</>
+          /* Sin agenda no se aplica, asi que esto no es un caso legitimo que
+             explicar sino un descuadre que avisar. La primera version decia
+             «se aplicaron sin agenda previa» como si fuera normal. */
+          <> Y hay {fmt(aplicadas)} con parte de campo pero sin fecha agendada: eso no
+          debería ocurrir, porque sin agendar no se aplica. Revisa la fecha en la hoja de
+          agenda o si el parte se anotó en la fila que no era.</>
         ) : null}
         {parcial ? <> La agenda dibuja los {fmt(sinFecha)} que caben en esta vista.</> : null}
       </p>

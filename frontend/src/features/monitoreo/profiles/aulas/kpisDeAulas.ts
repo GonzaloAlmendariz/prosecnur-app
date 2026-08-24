@@ -415,15 +415,27 @@ export function aulasKpis(
           label: "Por agendar",
           icono: CalendarClock,
           value: fmt(ag.porAgendar),
-          // Las ya aplicadas no están «por agendar» y tampoco fueron agendadas:
-          // se hicieron sin cita previa. Nombrarlas explica la resta —«193 en
-          // juego, 0 agendadas, 183 por agendar»— que si no parece un error.
-          pista: ag.aplicadasSinAgenda
-            ? `sin fecha cerrada · ${fmt(ag.aplicadasSinAgenda)} ya aplicadas sin cita previa`
-            : "sin fecha cerrada todavía",
+          pista: "sin fecha cerrada todavía",
           tone: ag.porAgendar ? "warn" : "neutral",
         },
       ];
+      // **Un aula aplicada sin fecha agendada es un descuadre, no un estado.**
+      //
+      // Si no se agenda un aula no se aplica, asi que esta combinacion sólo
+      // puede venir de un error de transcripcion en el Excel: falta la fecha en
+      // la agenda, o el parte se anoto en la fila equivocada. El tile aparece
+      // sólo cuando las hay —un «0 descuadres» permanente entrena a no mirarlo—
+      // y en tono de alerta, porque pide una correccion.
+      if (ag.aplicadasSinAgenda > 0) {
+        tiles.push({
+          label: "Aplicadas sin agenda",
+          icono: CalendarClock,
+          value: fmt(ag.aplicadasSinAgenda),
+          pista: "tienen parte y no tienen fecha agendada",
+          detalle: "No deberia ocurrir: sin agendar no se aplica. Revisa la fecha en la hoja de agenda o si el parte se anoto en la fila que no era.",
+          tone: "warn",
+        });
+      }
       // La insistencia sólo cuando hay gestiones registradas: sin ellas el tile
       // diría «0 cuestan más de una gestión», que se lee como que todas salen a
       // la primera cuando lo que pasa es que nadie anotó.

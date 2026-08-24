@@ -26,7 +26,11 @@ export type Agendamiento = {
   enJuego: number;
   /** De ésas, con fecha y hora cerradas. */
   agendadas: number;
-  /** Aplicadas sin cita previa: hechas, así que ya no se agendan. */
+  /**
+   * Aplicadas SIN fecha agendada. No es un estado legítimo: si no se agenda un
+   * aula no se aplica, así que cada una es un descuadre entre la agenda y el
+   * parte que alguien tiene que mirar.
+   */
   aplicadasSinAgenda: number;
   /** Las que aún no tienen cita NI se han aplicado. */
   porAgendar: number;
@@ -77,16 +81,21 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     if (txt(fila.scheduled_date)) {
       agendadas += 1;
     } else if (["aplicada", "cerrada"].includes(txt(fila.operational_status).toLowerCase())) {
-      // **Una ya aplicada tampoco se va a agendar.**
+      // **Aplicada sin fecha agendada: eso no debería existir.**
       //
-      // El filtro de arriba saca el banco, las reemplazadas y las reservas
-      // dormidas —«no la va a agendar nadie»— y se dejaba fuera este caso.
-      // Medido el 2026-08-24 con diez aulas aplicadas entre el 1 y el 5 de
-      // septiembre: el KPI decía «Por agendar 193» sobre un plan de 193 en el
-      // que diez ya estaban hechas.
+      // Regla del operativo (Gonzalo, 2026-08-24): «si no se agenda un aula, no
+      // se aplica; esa situación no puede suceder». Así que esta rama NO es un
+      // caso normal que contar aparte —como decía la primera versión de este
+      // código, que lo llamaba «aplicadas sin cita previa» y lo daba por
+      // bueno—: es un **descuadre** entre la hoja de agenda y el parte.
       //
-      // No suma a `agendadas` porque no lo estuvo: se aplicó sin cita previa.
-      // Cuenta aparte para que la pista lo pueda decir.
+      // Se cuenta, no se bloquea. La combinación puede llegar del Excel por un
+      // error de transcripción —falta la fecha en la agenda, o el parte se
+      // anotó en la fila equivocada— y rechazar la importación perdería un
+      // parte real. Descartarlo en silencio lo escondería. Contarlo lo deja
+      // visible y accionable.
+      //
+      // Tampoco suma a `agendadas`: no lo estuvo.
       aplicadasSinAgenda += 1;
     }
     const n = num(fila.contact_attempts);
