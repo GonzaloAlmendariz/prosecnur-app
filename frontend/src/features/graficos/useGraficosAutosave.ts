@@ -37,13 +37,16 @@ const DEFAULT_CONFIG: GraficosConfig = {
   density: "comfortable",
   canvas_viewport: DEFAULT_CANVAS_VIEWPORT,
   scope_rules: {},
+  auto_otros_slides: false,
 };
 
 // Migración v1 → v2 → v3: si el backend devuelve un config viejo (sin
 // paletas/iconos/overrides_reusables o sin UI-state v3), los rellena con
 // defaults tolerantes. Version se normaliza a 3 en el merge; el próximo
 // autosave lo persiste así.
-function mergeWithDefaults(remote: unknown): GraficosConfig {
+// Exportada sólo para test: es una whitelist campo a campo, y un campo nuevo
+// que no se agregue acá se pierde en silencio al hidratar.
+export function mergeWithDefaults(remote: unknown): GraficosConfig {
   if (!remote || typeof remote !== "object") return DEFAULT_CONFIG;
   const r = normalizeGraficosConfig(remote) as Partial<GraficosConfig>;
   const isObj = (x: unknown): x is Record<string, unknown> =>
@@ -77,6 +80,9 @@ function mergeWithDefaults(remote: unknown): GraficosConfig {
     density: validDensity(r.density) ? r.density : "comfortable",
     canvas_viewport: validViewport(r.canvas_viewport) ? r.canvas_viewport : DEFAULT_CANVAS_VIEWPORT,
     scope_rules: isObj(r.scope_rules) ? (r.scope_rules as GraficosConfig["scope_rules"]) : {},
+    // Ya viene resuelta por `normalizeGraficosConfig` (raíz, con
+    // `scope_rules.global` como fallback para configs editadas a mano).
+    auto_otros_slides: r.auto_otros_slides === true,
     _unknown: isObj(r._unknown) ? (r._unknown as GraficosConfig["_unknown"]) : undefined,
   };
 }
@@ -95,6 +101,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
   const density = usePlanStore((s) => s.density);
   const canvasViewport = usePlanStore((s) => s.canvasViewport);
   const scopeRules = usePlanStore((s) => s.scopeRules);
+  const autoOtrosSlides = usePlanStore((s) => s.autoOtrosSlides);
   const dirty = usePlanStore((s) => s.dirty);
   const hydrated = usePlanStore((s) => s.hydrated);
   const hydrate = usePlanStore((s) => s.hydrate);
@@ -240,11 +247,13 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
         inspector_tab: inspectorTab,
         density,
         canvas_viewport: canvasViewport,
+        auto_otros_slides: autoOtrosSlides,
         scope_rules: buildGraficosScopeRules(scopeRules, {
           presets,
           paletas,
           overrides_reusables: overridesReusables,
           debug_ph: debugPh,
+          auto_otros_slides: autoOtrosSlides,
         }),
       };
       try {
@@ -266,7 +275,7 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
     plan, presets, wPresets, selectedSlideId,
     paletas, iconos, overridesReusables, debugPh,
     viewMode, inspectorTab, density, canvasViewport,
-    scopeRules,
+    scopeRules, autoOtrosSlides,
     reportScope,
     persistConsolidated,
     dirty, hydrated, markClean,
@@ -292,12 +301,13 @@ export function useGraficosAutosave(reportScope: GraficosReportScope = "active")
       inspector_tab: inspectorTab,
       density,
       canvas_viewport: canvasViewport,
+      auto_otros_slides: autoOtrosSlides,
       scope_rules: scopeRules,
     });
   }, [
     hydrate, presets, wPresets, selectedSlideId, paletas, iconos,
     overridesReusables, debugPh, viewMode, inspectorTab, density,
-    canvasViewport, scopeRules,
+    canvasViewport, scopeRules, autoOtrosSlides,
   ]);
 
   return { saveConsolidatedNow, consolidatedDraftRevision, seedConsolidatedPlan };

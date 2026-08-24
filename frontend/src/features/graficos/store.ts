@@ -83,6 +83,9 @@ export type GraficosConfig = {
   /** ADR 0063: revisión de la declaración con la que se armó el plan. */
   equivalencias_revision?: string;
 
+  /** B42/G-18: si el PPT lleva las láminas de listado de «Otros». Opt-in. */
+  auto_otros_slides?: boolean;
+
   // Bloque v4: reglas flexibles por alcance. La UI puede ignorarlas; el
   // backend las conserva y las resuelve para export/render.
   scope_rules?: Record<string, unknown>;
@@ -135,6 +138,13 @@ type PlanStore = {
    */
   equivalenciasRevision: string;
   setEquivalenciasRevision: (revision: string) => void;
+  /**
+   * B42/G-18: inserta una lámina con el listado literal de respuestas «Otros»
+   * después de cada gráfico cuya pregunta tenga campo abierto. Apagada por
+   * defecto: es una opción del entregable, no una sorpresa del template.
+   */
+  autoOtrosSlides: boolean;
+  setAutoOtrosSlides: (value: boolean) => void;
   hydrated: boolean;
   /**
    * La carga de la config reintenta con backoff (hasta 15 s) y hasta ahora lo
@@ -384,6 +394,8 @@ export const usePlanStore = create<PlanStore>((set) => ({
 
   equivalenciasRevision: "",
   setEquivalenciasRevision: (revision) => set({ equivalenciasRevision: revision, dirty: true }),
+  autoOtrosSlides: false,
+  setAutoOtrosSlides: (value) => set({ autoOtrosSlides: value, dirty: true }),
   hydrated: false,
   hydrationRetrying: false,
   setHydrationRetrying: (retrying) => set({ hydrationRetrying: retrying }),
@@ -439,6 +451,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     density: cfg.density ?? "comfortable",
     canvasViewport: cfg.canvas_viewport ?? DEFAULT_CANVAS_VIEWPORT,
     equivalenciasRevision: cfg.equivalencias_revision ?? "",
+    autoOtrosSlides: cfg.auto_otros_slides === true,
     hydrated: true,
     hydrationRetrying: false,
     dirty: false,
@@ -607,6 +620,7 @@ export const usePlanStore = create<PlanStore>((set) => ({
     paletas: {}, iconos: [], overridesReusables: [],
     debugPh: DEFAULT_DEBUG_PH,
     scopeRules: {},
+    autoOtrosSlides: false,
   })),
 
   // ----- Paletas ----------------------------------------------------------
