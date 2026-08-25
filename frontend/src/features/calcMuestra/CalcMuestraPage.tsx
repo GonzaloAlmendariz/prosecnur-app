@@ -2738,6 +2738,7 @@ export default function CalcMuestraPage() {
               onPatchEstudio={patchEstudio}
               workspace={workspace}
               aulasState={aulasState}
+              aulasStateComprobado={aulasStateChecked}
               motorPideRefirmarAlumnosCh={refirmaAlumnosCh}
               referenciaAsistencia={referenciaAsistencia}
               motor={universityMotor}

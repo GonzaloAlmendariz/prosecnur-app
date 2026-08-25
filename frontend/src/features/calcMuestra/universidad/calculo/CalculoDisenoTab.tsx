@@ -155,6 +155,12 @@ export function CalculoDisenoTab({
     <div
       className="cmv2-calc-stack"
       // Declarada para que el gate visual pueda auditarla.
+      // Readiness declarada: la geometría ya estaba, pero el puente
+      // (`window.__pulsoNav.listo()`) busca `[data-audit-ready]` y sin él
+      // respondía `sin-marca-de-readiness`, así que el QA cortaba y nadie
+      // podía saber si la pestaña terminó de montar. `true` al montar: esta
+      // vista no carga nada por su cuenta, recibe sus datos por props.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/calculo-diseno"
       data-qa-geometry-contract="intrinsic"
     >

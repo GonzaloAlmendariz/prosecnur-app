@@ -92,6 +92,7 @@ export function UniversidadDesk({
   estudio,
   workspace,
   aulasState,
+  aulasStateComprobado = true,
   motorPideRefirmarAlumnosCh = false,
   referenciaAsistencia,
   motor,
@@ -133,6 +134,9 @@ export function UniversidadDesk({
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  /** ¿La página ya consultó el estado de aulas? Sin esto, `aulasState: null`
+   *  se lee como «no hay marco» cuando significa «aún no pregunté». */
+  aulasStateComprobado?: boolean;
   /** F36 · El motor rechazó comparar por `decision_stale`; reabre la refirma. */
   motorPideRefirmarAlumnosCh?: boolean;
   referenciaAsistencia: CalcMuestraReferenciaAsistencia | null;
@@ -858,6 +862,7 @@ export function UniversidadDesk({
                   escenario={escenarioAulas}
                   onEscenario={seleccionarEscenarioAulas}
                   marcoDesactualizado={marcoDesactualizado}
+                  marcoComprobado={aulasStateComprobado}
                   certeza={aulasState?.certeza ?? null}
                   certezaEnCurso={midiendoCerteza}
                   onMedirCerteza={onMedirCerteza}

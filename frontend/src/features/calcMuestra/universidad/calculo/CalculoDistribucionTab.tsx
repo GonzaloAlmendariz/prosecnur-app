@@ -84,6 +84,12 @@ function DistributionState({ state }: { state: Exclude<CalcMuestraDistribucionI1
       className="cmv2-dist-state"
       role={state.kind === "invalid" ? "alert" : "status"}
       data-state={state.kind}
+      // Los tres estados de aquí —vacío, contrato viejo y no acreditado— son
+      // TERMINALES: la vista ya resolvió qué mostrar. Sin la marca, el puente
+      // respondía `sin-marca-de-readiness` (la rama con datos, más abajo, sí la
+      // declara) y el gate se cortaba justo en los estados en que más importa
+      // mirar. Precedente sellado en auditReadyRoutes.contract.test.ts.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/distribucion-estado"
       data-qa-geometry-contract="intrinsic"
     >
