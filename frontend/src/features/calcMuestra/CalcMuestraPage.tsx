@@ -2516,7 +2516,27 @@ export default function CalcMuestraPage() {
     navegarPestanaLocal(tab.targetId);
   }
 
-  if (!hydrated) return <LoadingBlock label="Cargando mesa de muestra..." />;
+  // Declara que está cargando, en vez de no declarar nada.
+  //
+  // Este early return se pinta mientras el store se hidrata: no es el BootGate
+  // (hay proyecto) ni la pantalla de warm start (otro selector), y sin marca el
+  // puente respondía `sin-marca-de-readiness` — que se lee como «esta pestaña
+  // no declara readiness» y acusa a la vista que se intentaba medir. Medido el
+  // 2026-08-25: con la máquina cargada esta ventana se alarga y el QA cae
+  // dentro; fue la causa REAL de los rojos de `def-explorador`,
+  // `marco-poblacion`, `marco-aulas` y `calculo-distribucion`, y de que se
+  // «repararan» cuatro pestañas que no tenían nada.
+  //
+  // `false` es la respuesta correcta y no un parche: la mesa AFIRMA que todavía
+  // no está lista, el puente devuelve `marca-en-false` y el runner sigue
+  // esperando en vez de culpar a la pestaña.
+  if (!hydrated) {
+    return (
+      <div data-audit-ready="false" data-audit-desk="calc-muestra-hidratando">
+        <LoadingBlock label="Cargando mesa de muestra..." />
+      </div>
+    );
+  }
 
   return (
     <PageFrame

@@ -32,12 +32,13 @@ import { panelesMontados } from "./paneles";
 export type EstadoListo = {
   listo: boolean;
   /** Motivo del "todavía no", para que el runner reporte en vez de adivinar. */
-  motivo?: "warm-start" | "sin-marca-de-readiness" | "marca-en-false";
+  motivo?: "warm-start" | "sin-proyecto-abierto" | "sin-marca-de-readiness" | "marca-en-false";
   marca?: string;
 };
 
 const SELECTOR_WARMUP = ".pulso-module-warmup";
 const SELECTOR_READY = "[data-audit-ready]";
+const SELECTOR_BOOT_GATE = "[data-boot-gate]";
 
 /**
  * Readiness real de la vista actual.
@@ -51,6 +52,16 @@ export function estadoListo(): EstadoListo {
   if (typeof document === "undefined") return { listo: false };
   if (document.querySelector(SELECTOR_WARMUP)) {
     return { listo: false, motivo: "warm-start" };
+  }
+  // El BootGate antes de abrir proyecto: sin puente, sin marca y sin warm
+  // start. Sin esta rama respondía `sin-marca-de-readiness`, que acusa a la
+  // vista que se intentaba medir cuando el problema es que la sesión no tiene
+  // proyecto — medido el 2026-08-25, fue la causa de rojos que ninguna
+  // hipótesis sobre esas pestañas explicaba. Devuelve `listo: false` a
+  // propósito: declararlo listo haría que el QA capturara el BootGate creyendo
+  // que es la pestaña pedida.
+  if (document.querySelector(SELECTOR_BOOT_GATE)) {
+    return { listo: false, motivo: "sin-proyecto-abierto" };
   }
   const marca = document.querySelector(SELECTOR_READY);
   if (!marca) return { listo: false, motivo: "sin-marca-de-readiness" };

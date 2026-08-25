@@ -79,6 +79,42 @@ un número de conformes: una superficie sin reporte no es una superficie conform
 | B16 | Selección › Perfil de la muestra | **C1 · readiness** | El estado vacío declaraba **`data-audit-ready="false"`**. Un vacío es un estado TERMINAL, no una carga: decía «no he terminado» de una vista terminada, el gate no la medía y el puente la daba por no lista. Mismo precedente que Analítica, ya sellado en `auditReadyRoutes.contract.test.ts` | ✅ reparado |
 | — | Selección › Perfil de la muestra | C3 | **DESCARTADO tras mirar el CSS**: parecía que el panel estiraba el vacío ~400 px, pero `.cmv2-perfil-vacio` es `min-height: 240px` y no estira; el alto lo pone el panel de sección, que tiene frontera visible — capacidad legítima, no hueco sin dueño. Lectura apresurada de la captura | ❌ falso |
 
+## 🔬 LA CAUSA REAL DE LOS `sin-marca-de-readiness`, y las tres hipótesis falsas
+
+Esto costó la mayor parte del barrido y es lo más reutilizable que salió de él.
+
+**La causa**: `CalcMuestraPage.tsx` devolvía, mientras el store se hidrataba, un
+`<LoadingBlock label="Cargando mesa de muestra..." />` **sin marca alguna**. Ese
+estado no es el BootGate (hay proyecto) ni la pantalla de warm start (otro
+selector), así que `estadoListo()` no encontraba `[data-audit-ready]` y devolvía
+`sin-marca-de-readiness` — un mensaje que se lee como «esta pestaña no declara
+readiness» y **acusa a la vista que se intentaba medir**.
+
+**La prueba**: al declarar ese estado con `data-audit-ready="false"`, el mismo
+runner sobre la misma dirección pasó de `sin-marca-de-readiness` a
+**`marca-en-false`**. El mensaje dejó de acusar a la pestaña y pasó a decir la
+verdad: la mesa afirma que todavía no está lista.
+
+**Y el resto del fallo es TIEMPO, no defecto**: el runner espera 30 s
+(`UI_QA_TIMEOUT_MS`) y un `.pulso` real de ~12 MB tarda más en hidratar. Para
+barrer un proyecto de este tamaño hay que pasar `--timeout-ms 90000`.
+
+### Las tres hipótesis que resultaron falsas — no las repitas
+
+| # | Hipótesis | Cómo se refutó |
+|---|---|---|
+| 1 | «Las pestañas no declaran readiness» | `calculo-diseno` **siguió fallando** después de añadirle `data-audit-ready` |
+| 2 | «Es sólo contención de CPU» | Cierta pero parcial: explicaba los rojos que bailaban, no los `ROJO 3/3` |
+| 3 | «Es el BootGate» | Se le añadió `data-boot-gate` y un motivo propio en el puente; el runner **siguió diciendo `sin-marca-de-readiness`**, no `sin-proyecto-abierto` |
+
+Las reparaciones que salieron de 1 y 3 **se conservan** —declarar readiness en una
+pestaña raíz y distinguir el BootGate son correctas por contrato— pero ninguna
+era la causa, y venderlas como tal habría dejado el defecto vivo.
+
+**Nota sobre el BootGate**: se marcó con `data-boot-gate`, NO con
+`data-audit-ready`. Declararlo listo haría que el QA capturara esa pantalla
+creyendo que es la pestaña pedida: cambiar un rojo honesto por un verde falso.
+
 ### ⚠️ TODOS los `sin-marca-de-readiness` de esta corrida son RUIDO, no defectos
 
 **Medido, no supuesto.** La misma dirección (`aulas/objetivo`) corrida tres veces

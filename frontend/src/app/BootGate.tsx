@@ -1242,7 +1242,24 @@ function ChooserView({
   }, [canManage, managing]);
 
   return (
-    <div className="boot-welcome" data-phase={phase}>
+    <div
+      className="boot-welcome"
+      data-phase={phase}
+      // El BootGate no declaraba NADA: sin puente de navegación, sin marca de
+      // readiness y sin pantalla de warm start. Cualquier medición que cayera
+      // aquí recibía `sin-marca-de-readiness`, un mensaje que culpa a la VISTA
+      // que se pretendía medir cuando lo que pasa es que la sesión no tiene
+      // proyecto. Medido el 2026-08-25: así se explicaron los rojos de
+      // `def-explorador` y `marco-poblacion`, que ninguna hipótesis sobre esas
+      // pestañas conseguía justificar.
+      //
+      // Se marca con `data-boot-gate`, NO con `data-audit-ready`: declararlo
+      // listo haría que el QA capturara ESTA pantalla creyendo que es la
+      // pestaña pedida — cambiar un rojo honesto por un verde falso. Quien lo
+      // interpreta es el puente (lib/navegacion/runtime.ts), que devuelve el
+      // motivo `sin-proyecto-abierto`.
+      data-boot-gate="sin-proyecto"
+    >
       <div className="boot-hero">
         <div className="boot-hero-brand">
           <BootBrandMark />
