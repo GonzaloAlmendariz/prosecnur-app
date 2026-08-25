@@ -41,10 +41,10 @@ monitoreo_aulas_etiqueta_celda <- function(estado) {
   switch(as.character(estado)[1],
     sin_cuota = "Sin cuota trazada",
     alcanzada = "Ya llego a su cuota",
-    en_progreso = "Empezo, todavia no llega",
+    en_progreso = "Empezó, todavía no llega",
     # `sin_avance` es el caso PEOR y la frase tiene que sonar como tal: el
     # nombre viejo, «pendiente», tranquilizaba justo donde habia que mirar.
-    sin_avance = "Todavia sin ninguna encuesta",
+    sin_avance = "Todavía sin ninguna encuesta",
     "Sin estado"
   )
 }
