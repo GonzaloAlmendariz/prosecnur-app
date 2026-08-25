@@ -528,14 +528,6 @@ export function CursosHorarioMarcoTab({
     () => new Map(criterioCardsForScope(criteriosModel, "aula").map((card) => [card.cardId, card])),
     [criteriosModel],
   );
-  const criterioEvidence: CriterioFacultadEvidence | null = radiografiaV2 ? {
-    radiografia: radiografiaV2,
-    totals: i18b.totals,
-    cascade: i18b.cascade,
-    anchors: i18b.anchors,
-    previewRequest: i18b.previewRequest,
-    complete: i18b.status === "complete",
-  } : null;
 
   /*
    * G39 · La cascada que la superficie enseña es la viva, no sólo la ejecutada.
@@ -578,6 +570,19 @@ export function CursosHorarioMarcoTab({
    */
   const previewBloqueado =
     previewCascada?.status === "stale" ? previewCascada.message : null;
+
+  /* La evidencia de cada tarjeta lleva la cascada VIVA, no la ejecutada: es la
+     que responde al borrador. Con la ejecutada, mover el mínimo propio de una
+     facultad cambiaba el criterio y dejaba «899 CH que cumplen · 62 quedan
+     fuera» clavado en las cifras del último marco construido. */
+  const criterioEvidence: CriterioFacultadEvidence | null = radiografiaV2 ? {
+    radiografia: radiografiaV2,
+    totals: i18b.totals,
+    cascade: cascadaViva,
+    anchors: i18b.anchors,
+    previewRequest: i18b.previewRequest,
+    complete: i18b.status === "complete",
+  } : null;
 
   /**
    * G11 · La celda que la matriz resalta.

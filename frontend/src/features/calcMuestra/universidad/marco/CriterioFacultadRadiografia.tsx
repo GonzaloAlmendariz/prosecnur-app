@@ -92,6 +92,32 @@ function aporteDeFila(row: {
 }
 
 /**
+ * Cifras VIVAS de un criterio-gate en una facultad, desde la cascada del
+ * borrador.
+ *
+ * `aporteDeFila()` describe el marco CONSTRUIDO: es lo que publica la
+ * radiografía. Para un criterio de un solo segmento —el mínimo de elegibles, el
+ * nivel del curso— eso significaba que mover su umbral cambiaba la decisión y
+ * dejaba «CH que cumplen» y «quedan fuera» clavados en las cifras del último
+ * marco. Reportado por Gonzalo el 2026-08-25 moviendo el mínimo propio de
+ * Ingeniería: el criterio pasaba a ≥ 11 y la tarjeta seguía diciendo 899 y 62.
+ *
+ * Sólo se aplica con UN segmento: la cascada publica el corte por criterio y
+ * facultad, no por categoría, así que en un criterio de set no hay con qué
+ * sustituir cada barra y las suyas se quedan como están.
+ */
+function aporteVivo(
+  cascade: CalcMuestraCriteriosCascada | null,
+  criterionId: string,
+  facultyKey: string,
+): { ch: number; nFuera: number } | null {
+  const paso = cascade?.steps.find((s) => s.criterion_id === criterionId);
+  const fila = paso?.faculties.find((f) => f.faculty_key === facultyKey);
+  if (!fila) return null;
+  return { ch: fila.after_ch, nFuera: Math.max(0, fila.before_ch - fila.after_ch) };
+}
+
+/**
  * G38 · El aporte de una regla común, para su tarjeta.
  *
  * Composición no admite umbral por facultad —el contrato del motor no lo tiene—
@@ -239,7 +265,12 @@ export function CriterioFacultadRadiografia({
                     Las cuatro existían con sus guards y sólo `categoria` estaba
                     montada: se construyeron, se probaron y nunca se cablearon. */}
                 <CategoriaEvidencia
-                  aporte={aporteDeFila(row)}
+                  aporte={(() => {
+                    const base = aporteDeFila(row);
+                    if (visibleRows.length !== 1) return base;
+                    const vivo = aporteVivo(evidence?.cascade ?? null, entry.id, facultyKey);
+                    return vivo ? { ...base, ch: vivo.ch, nFuera: vivo.nFuera } : base;
+                  })()}
                   dominio={domain}
                   variante={varianteDeCriterio(entry.id)}
                 />
