@@ -1420,6 +1420,16 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 .cm_criterios_eval_course_ranges <- function(course_pairs, ranges, faculty_keys = NULL) {
   n <- length(course_pairs)
   if (!length(ranges)) return(rep(TRUE, n))
+  # Claves guardadas antes del arreglo de la eñe, traducidas con las etiquetas
+  # reales del marco — igual que `crit$exceptions` y `minEligible$byFaculty`.
+  # Sin esto el rango de «ARTE Y DISEÑO» viaja como `arte_y_dise_no`, no casa con
+  # ninguna facultad, y como el mapa NO está vacío el criterio sí se aplica: el
+  # bucle no encuentra par que decida y devuelve FALSE. Es decir, la facultad
+  # entera sale del marco — incluidas las aulas cuyo nivel está DENTRO del rango
+  # declarado. Medido: nivel 3 contra un rango 1–5 daba excluida.
+  # La canonización va aquí y no en el llamador porque los tres consumidores
+  # —marco, cascada viva y radiografía— pasan por esta función.
+  if (length(faculty_keys)) ranges <- .cm_aulas_canonizar_claves(ranges, faculty_keys)
   claves <- .cm_criterios_fac_key(names(ranges))
   # La EXENCION se decide contra la facultad DEL AULA, no contra la del curso.
   # Medido en HSVG2026: un curso de Estudios Generales esta catalogado bajo la

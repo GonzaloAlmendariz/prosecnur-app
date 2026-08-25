@@ -71,3 +71,43 @@ test_that("un umbral general propio convive con las excepciones por facultad", {
     c(FALSE, TRUE, FALSE, TRUE)
   )
 })
+
+# Rango de nivel por facultad guardado antes del arreglo de la eñe (a9c217c0).
+#
+# `crit$exceptions` y `minEligible$byFaculty` pasan por
+# `.cm_aulas_canonizar_claves()`; `courseLevelRanges` no lo hacía, pese a que el
+# contrato de ADR 0080 lo nombra. El efecto no era «el rango se ignora»: como el
+# mapa NO está vacío el criterio sí se aplica, el bucle no encuentra ningún par
+# que decida y devuelve FALSE, así que la facultad entera sale del marco —
+# incluidas las aulas cuyo nivel está DENTRO del rango declarado.
+
+test_that("un rango por facultad con clave legada sigue decidiendo", {
+  etiqueta <- "ARTE Y DISEÑO"
+  legada <- .cm_aulas_text_key_legada(etiqueta)
+  expect_false(identical(legada, .cm_aulas_text_key(etiqueta)))
+
+  rangos <- stats::setNames(list(list(list(min = 1, max = 5))), legada)
+  dentro <- paste(etiqueta, "3", sep = .cm_catalogo_pair_fld)
+  fuera <- paste(etiqueta, "9", sep = .cm_catalogo_pair_fld)
+
+  # Dentro del rango declarado: entra. Antes salía excluida.
+  expect_true(.cm_criterios_eval_course_ranges(dentro, rangos, etiqueta))
+  # Fuera del rango: sigue saliendo.
+  expect_false(.cm_criterios_eval_course_ranges(fuera, rangos, etiqueta))
+})
+
+test_that("la clave legada de un rango decide igual que la vigente", {
+  etiqueta <- "ARTE Y DISEÑO"
+  rango <- list(list(min = 1, max = 5))
+  vigente <- stats::setNames(list(rango), .cm_aulas_text_key(etiqueta))
+  legada <- stats::setNames(list(rango), .cm_aulas_text_key_legada(etiqueta))
+
+  for (nivel in c("1", "3", "5", "6", "9")) {
+    par <- paste(etiqueta, nivel, sep = .cm_catalogo_pair_fld)
+    expect_identical(
+      .cm_criterios_eval_course_ranges(par, legada, etiqueta),
+      .cm_criterios_eval_course_ranges(par, vigente, etiqueta),
+      info = paste("nivel", nivel)
+    )
+  }
+})
