@@ -87,6 +87,7 @@
   audit$teacher_type_values <- 0L
   audit$campus_values <- 0L
   audit$course_level_values <- 0L
+  audit$modality_values <- 0L
   if (!is.data.frame(raw) || !nrow(raw) || !is.data.frame(catalogo) || !nrow(catalogo)) {
     return(list(data = raw, audit = audit))
   }
@@ -99,6 +100,23 @@
   nivel <- .cm_catalogo_rellenar_rol(raw, catalogo, mapping, raw_key, catalog_key, "course_level", concat = FALSE)
   raw <- nivel$data
   audit$course_level_values <- nivel$filled
+  # MODALIDAD. Faltaba, y es el mismo caso que el docente: el mapeo apunta a
+  # `MODALIDADCURSO`, que sólo existe en el CATÁLOGO, y el marco la leía de la
+  # base del alumno —donde esa columna no está—. Resultado medido el 2026-08-25
+  # sobre HSVG 2026: `modality` vacía en las 5.269 aulas y la tarjeta de salud
+  # avisando «está declarado pero su columna llega vacía: el criterio no puede
+  # filtrar a nadie y no es que deje pasar a todos».
+  #
+  # El marco seguía saliendo bien —las 2.446 incluidas son 100 % presenciales,
+  # porque el path legacy por patrones excluye virtual/distancia leyendo la base
+  # fila a fila—, así que esto NO cambia a quién se filtra hoy. Lo que arregla es
+  # que la señal EXISTA: sin ella el criterio por categorías no se puede evaluar,
+  # la salud del marco miente en rojo, y `modality` —que es una de las
+  # `replacement_equivalence_vars`— no puede usarse para decidir qué aula
+  # sustituye a cuál.
+  modal <- .cm_catalogo_rellenar_rol(raw, catalogo, mapping, raw_key, catalog_key, "modality", concat = FALSE)
+  raw <- modal$data
+  audit$modality_values <- modal$filled
   list(data = raw, audit = audit)
 }
 

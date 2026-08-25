@@ -1164,7 +1164,11 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   section <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$section), "")
   schedule <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$schedule), "")
   classroom_label <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$classroom_label), "")
-  modality <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$modality), "")
+  # Por la vía sintética, como el docente: el mapeo puede apuntar a una columna
+  # que sólo existe en el catálogo (`MODALIDADCURSO` en el proyecto de Gonzalo) y
+  # entonces el resolver contra la base no encuentra nada. El enriquecido escribe
+  # la señal en una columna nombrada por el ROL; ver calc_muestra_aulas_catalogo.R.
+  modality <- .cm_aulas_values(raw, .cm_aulas_col_o_sintetica(raw, mapping$modality, "modality"), "")
   session_type <- .cm_aulas_values(raw, .cm_aulas_col(raw, mapping$session_type), "")
   # G44 · El docente enriquecido vive en la columna sintética `teacher`.
   #
