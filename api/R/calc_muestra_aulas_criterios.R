@@ -222,9 +222,27 @@
   course_ranges <- .cm_criterios_normalize_nivel_por_unidad(x$courseLevelRanges %||% x$rangos_nivel_curso)
   min_elig <- NULL
   me <- x$minEligible %||% x$min_elegibles
-  if (is.list(me) && !is.null(me$threshold)) {
+  bf_in <- if (is.list(me)) me$byFaculty %||% me$por_facultad else NULL
+  # **El umbral NO es obligatorio para que existan mínimos por facultad.**
+  #
+  # La guarda pedía `threshold` y sólo `threshold`. Pero la app manda el umbral
+  # general únicamente cuando el usuario lo cambia: si deja el general por
+  # defecto y declara diez mínimos propios, el payload viaja como
+  # `{byFaculty: {...}}` SIN threshold — y esta condición lo descartaba entero.
+  #
+  # Medido en la app el 2026-08-25 sobre HSVG 2026: se declararon y confirmaron
+  # los diez mínimos por facultad del diseño, la tarjeta mostraba «Propio: ≥ 20»,
+  # el contador de pendientes se ponía en cero y el `.pulso` guardaba
+  # `minEligible: {}`. El marco se construyó con el mismo mínimo para las quince
+  # facultades: Artes Escénicas quedó con 33 cursos-horario en vez de 92.
+  #
+  # Se conserva la intención original —que una `attendance_rate` suelta no
+  # active la suite— exigiendo threshold O mínimos por facultad, nunca la tasa
+  # sola. Sin threshold viaja NA y `.cm_criterios_min_eligible_efectivo()` cae
+  # a `min_eligible_per_class`, que es el general declarado.
+  if (is.list(me) && (!is.null(me$threshold) || (is.list(bf_in) && length(bf_in)))) {
     by_fac <- list()
-    bf <- me$byFaculty %||% me$por_facultad
+    bf <- bf_in
     if (is.list(bf) && length(bf)) {
       for (fac in names(bf)) {
         k <- .cm_criterios_fac_key(fac)
