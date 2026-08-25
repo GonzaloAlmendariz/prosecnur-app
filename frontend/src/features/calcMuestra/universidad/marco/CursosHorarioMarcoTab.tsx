@@ -1095,6 +1095,9 @@ export function CursosHorarioMarcoTab({
                       onMinimoFacultad={editarMinimoFacultad}
                       onToggleAula={editarExclusionAula}
                       onReactivarAulas={reactivarAulas}
+                      /* La lista final sale del `aula_frame` construido; si los
+                         criterios cambiaron, lo que enseña es anterior a ellos. */
+                      marcoDesactualizado={necesitaRecalculo}
                       /* G40 · La apertura ya no monta criterios comunes.
                           ADR 0057 los había traído aquí desde la sección
                           «transversales» para meterlos en el embudo, pero

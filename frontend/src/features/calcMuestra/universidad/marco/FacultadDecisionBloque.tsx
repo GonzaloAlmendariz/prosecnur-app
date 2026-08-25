@@ -675,6 +675,7 @@ export function FacultadDecisionBloque({
   onMinimoFacultad,
   onToggleAula,
   onReactivarAulas,
+  marcoDesactualizado,
   sinPlegado,
   slotApertura,
   slotCierre,
@@ -706,6 +707,8 @@ export function FacultadDecisionBloque({
   onToggleAula: (classroomId: string, excluida: boolean) => void;
   /** Reactiva todos los CH apagados de esta facultad (claves en text_key). */
   onReactivarAulas: (clavesTextKey: string[]) => void;
+  /** El marco vigente ya no refleja los criterios: la lista final lo declara. */
+  marcoDesactualizado?: boolean;
   /** F41 · Se muestra una sola facultad: nada que plegar. */
   sinPlegado?: boolean;
   /** ADR 0057 · Criterio que abre el embudo (matriculados / población). */
@@ -989,6 +992,7 @@ export function FacultadDecisionBloque({
               facLabel={facLabel}
               onToggle={onToggleAula}
               onReactivarTodas={onReactivarAulas}
+              marcoDesactualizado={marcoDesactualizado}
             />
             <CierreDelRecorrido
               {...(cierreDelRecorrido ?? { quedan: null, universo: null })}
