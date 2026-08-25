@@ -40,6 +40,23 @@
 .cm_aulas_text_key <- function(x) {
   x <- trimws(tolower(as.character(x %||% "")))
   x[is.na(x)] <- ""
+  # La eñe ANTES del iconv, o se parte en dos.
+  #
+  # `ASCII//TRANSLIT` traduce «ñ» a «~n» en macOS, y el «~» cae luego en
+  # `[^a-z0-9]+` como separador: «ARTE Y DISEÑO» daba `arte_y_dise_no`, «AÑO»
+  # daba `a_no`. Como TRANSLIT depende de la plataforma, la misma facultad podía
+  # tener una clave en un Mac y otra en el Linux del CI.
+  #
+  # Medido en la app el 2026-08-25: el catálogo de criterios publicaba
+  # `arte_y_dise_no` y `.cm_criterios_fac_key()` —que ya hacía esta sustitución—
+  # resolvía `arte_y_diseno`. El mínimo por facultad de Arte y Diseño se guardaba
+  # con la clave del catálogo y el motor lo buscaba con la otra: se ignoraba en
+  # silencio, sin aviso ni error.
+  #
+  # La defensa vivía en `.cm_criterios_fac_key`, que envuelve a ésta. Se mueve
+  # aquí porque el problema no es de facultades: afecta a CUALQUIER valor con
+  # eñe que se use como clave.
+  x <- gsub("[\u00f1\u00d1]", "n", x)
   x <- iconv(x, to = "ASCII//TRANSLIT", sub = "")
   x <- gsub("[`'´’]", "", x)
   x <- gsub("[^a-z0-9]+", "_", x)
