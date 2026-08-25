@@ -294,17 +294,33 @@ export function recorteTabla<T>(
   rows: readonly T[],
   limite: number,
   sustantivo: "fila" | "columna" = "fila",
+  /**
+   * Cuántas filas hay DE VERDAD, cuando el payload ya llegó recortado.
+   *
+   * Sin esto el denominador es el largo del array recibido, que en Aulas es el
+   * tope del servidor: `MONITOREO_AULAS_COURSE_STATUS_TOPE` manda 500 filas de
+   * un plan de 3.409, y el pie decía «Mostrando 400 de 500». Quien lo lee
+   * concluye que faltan 100 y faltan 3.009 — un rótulo que promete otro número.
+   *
+   * Y cubre el caso peor, que no se ve: si el servidor manda MENOS que el tope
+   * local (300 de 3.409), no hay recorte local, `recortado` era `false` y la
+   * tabla no rotulaba nada. El truncado del servidor desaparecía en silencio,
+   * que es justo lo que esta función existe para impedir.
+   */
+  totalReal?: number,
 ): RecorteTabla<T> {
-  const total = rows.length;
-  if (!Number.isFinite(limite) || limite <= 0 || total <= limite) {
-    return { visibles: rows, total, recortado: false, etiqueta: "" };
+  const total = Math.max(rows.length, Number.isFinite(totalReal) ? Number(totalReal) : 0);
+  const cabenTodas = !Number.isFinite(limite) || limite <= 0 || rows.length <= limite;
+  const visibles = cabenTodas ? rows : rows.slice(0, limite);
+  if (visibles.length >= total) {
+    return { visibles, total, recortado: false, etiqueta: "" };
   }
   const plural = sustantivo === "fila" ? "filas" : "columnas";
   return {
-    visibles: rows.slice(0, limite),
+    visibles,
     total,
     recortado: true,
-    etiqueta: `Mostrando ${limite} de ${total.toLocaleString("es-PE")} ${plural}`,
+    etiqueta: `Mostrando ${visibles.length} de ${total.toLocaleString("es-PE")} ${plural}`,
   };
 }
 

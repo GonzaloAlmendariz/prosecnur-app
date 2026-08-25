@@ -161,3 +161,45 @@ describe("textoAvance", () => {
     expect(textoAvance(null, 1200)).toBe("S/D");
   });
 });
+
+/**
+ * **El denominador es el plan, no lo que cupo en la respuesta.**
+ *
+ * Medido en pantalla el 2026-08-25 sobre el recorrido de 400 titulares: el pie
+ * decía «Mostrando 400 de 500 filas» y el plan tenía 3.409. Ese 500 no es
+ * ningún total del proyecto — es `MONITOREO_AULAS_COURSE_STATUS_TOPE`, el tope
+ * del payload. El lector concluye que faltan 100 aulas y faltan 3.009.
+ *
+ * El segundo caso es el que no se ve y el peor: cuando el servidor manda MENOS
+ * filas que el tope local, no hay recorte local, y la tabla no rotulaba nada.
+ * El truncado desaparecía en silencio, que es justo lo que esta función existe
+ * para impedir.
+ */
+describe("recorteTabla con el total real del motor", () => {
+  it("divide por el plan y no por el payload topeado", () => {
+    const payload = Array.from({ length: 500 }, (_, i) => i);
+    const recorte = recorteTabla(payload, 400, "fila", 3409);
+    expect(recorte.etiqueta).toBe("Mostrando 400 de 3,409 filas");
+    expect(recorte.total).toBe(3409);
+  });
+
+  it("declara el recorte del servidor aunque no haya recorte local", () => {
+    const payload = Array.from({ length: 300 }, (_, i) => i);
+    const recorte = recorteTabla(payload, 400, "fila", 3409);
+    expect(recorte.recortado).toBe(true);
+    expect(recorte.etiqueta).toBe("Mostrando 300 de 3,409 filas");
+  });
+
+  it("sin recorte del servidor se comporta igual que antes", () => {
+    const payload = Array.from({ length: 300 }, (_, i) => i);
+    expect(recorteTabla(payload, 400, "fila", 300).etiqueta).toBe("");
+    expect(recorteTabla(payload, 400, "fila").recortado).toBe(false);
+  });
+
+  it("un total menor que las filas recibidas no encoge el denominador", () => {
+    // Defensivo: si el motor mandara un total incoherente, el pie no puede
+    // prometer menos filas de las que ya tiene en la mano.
+    const payload = Array.from({ length: 500 }, (_, i) => i);
+    expect(recorteTabla(payload, 400, "fila", 12).etiqueta).toBe("Mostrando 400 de 500 filas");
+  });
+});
