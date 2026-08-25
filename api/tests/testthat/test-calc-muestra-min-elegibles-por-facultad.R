@@ -111,3 +111,58 @@ test_that("la clave legada de un rango decide igual que la vigente", {
     )
   }
 })
+
+# Contexto de criterios rehidratado desde el marco GUARDADO.
+#
+# El contexto completo lleva la tabla atómica estudiante x CH y es
+# `cache_stripped`: al abrir un `.pulso` NUNCA existe, así que el preview quedaba
+# muerto y el embudo caía a la cascada ejecutada sin decirlo. La versión reducida
+# devuelve el recorrido vivo para los pasos de curso-horario —que no necesitan
+# esa tabla— y declara los de alumno como `sin_recuento` en vez de dejarlos
+# correr sobre `eligible_n = NA`, donde el mínimo pasaría a todos en silencio.
+
+test_that("las membresias del marco salen de la columna, no de NA", {
+  frame <- data.frame(
+    classroom_id = c("a", "b"),
+    eligible_n = c(4, 40),
+    prevalence_ratio = c(0.5, 0.9),
+    faculty_match_share = c(0.6, 0.95),
+    level_match_share = c(0.7, 0.99),
+    stringsAsFactors = FALSE
+  )
+  m <- .cm_criterios_membresias_del_marco(frame)
+  expect_identical(m$eligible_n, c(4, 40))
+  # Se declara que NO es del borrador: el preview lo usa para marcar los pasos
+  # de alumno como `sin_recuento`.
+  expect_false(m$valido)
+  expect_true(m$desde_marco)
+
+  comp <- .cm_criterios_composicion_del_marco(frame)
+  expect_identical(comp$c7, c(0.5, 0.9))
+  expect_identical(comp$c8_facultad, c(0.6, 0.95))
+  expect_identical(comp$c8, c(0.7, 0.99))
+})
+
+test_that("el minimo sigue mordiendo con las cifras del marco", {
+  frame <- data.frame(
+    classroom_id = c("a", "b"), eligible_n = c(4, 40), stringsAsFactors = FALSE
+  )
+  m <- .cm_criterios_membresias_del_marco(frame)
+  regla <- .cm_criterios_min_elig_con_fallback(
+    list(threshold = 20, byFaculty = list()), 1L
+  )
+  # Lo que se evitaba: con `eligible_n` en NA, `eval_min_eligible` devuelve TRUE
+  # para todos y el criterio deja de recortar sin que nada avise.
+  expect_identical(
+    .cm_criterios_eval_min_eligible(m$eligible_n, .cm_criterios_fac_key(c("F", "F")), regla),
+    c(FALSE, TRUE)
+  )
+})
+
+test_that("un marco sin aulas no produce contexto rehidratado", {
+  expect_null(.cm_criterios_contexto_desde_marco(NULL))
+  expect_null(.cm_criterios_contexto_desde_marco(list(aula_frame = NULL)))
+  expect_null(.cm_criterios_contexto_desde_marco(
+    list(aula_frame = data.frame(classroom_id = character(0)))
+  ))
+})

@@ -554,6 +554,13 @@ export function CursosHorarioMarcoTab({
   const cascadaViva = previewCascada?.status === "ready" ? previewCascada.data : i18b.cascade;
   /** El recorrido está vivo: lo que se ve ya incluye los criterios confirmados. */
   const previewVivo = previewCascada?.status === "ready";
+  /**
+   * …y sus pasos de ALUMNO también van con el borrador. `false` cuando el
+   * preview corre sobre un contexto rehidratado del marco guardado: el embudo
+   * de curso-horario es vivo, pero el efecto de un criterio de estudiante no se
+   * puede recalcular sin la tabla atómica, que no viaja en el `.pulso`.
+   */
+  const alumnosVivos = cascadaViva?.alumnos_vivos !== false;
   /** …y hay otro recálculo en camino, así que la cifra aún no es la del umbral. */
   const previewRecalculando = previewCascada?.status === "ready" &&
     previewCascada.recalculando === true;
@@ -871,7 +878,13 @@ export function CursosHorarioMarcoTab({
                * una decisión y no un reflejo.
                */
               ? previewVivo
-                ? "El recorrido ya refleja tus criterios. La población de estudiantes se recalcula al reconstruir."
+                ? alumnosVivos
+                  ? "El recorrido ya refleja tus criterios. La población de estudiantes se recalcula al reconstruir."
+                  /* Contexto rehidratado del marco guardado: los pasos de
+                     curso-horario son del borrador y los de alumno son los del
+                     marco construido. Decirlo es lo que impide que la pantalla
+                     tenga dos relojes y sólo uno a la vista. */
+                  : "El recorrido de cursos-horario ya refleja tus criterios. Los criterios de estudiante son los del último marco construido: para verlos aplicados, recalcula."
                 : "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
 

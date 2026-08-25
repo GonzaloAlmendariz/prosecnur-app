@@ -97,6 +97,25 @@ mount_calc_muestra_criterios <- function(pr) {
       context_criteria_hash <- .cm_aulas_scalar(
         (context %||% list())$current_criteria_hash, ""
       )
+      # Contexto ausente o de otro marco: se reconstruye del marco GUARDADO.
+      #
+      # El contexto completo es `cache_stripped` —lleva la tabla atomica
+      # estudiante x CH— asi que al abrir un `.pulso` NUNCA existe, y hasta aqui
+      # eso dejaba el preview muerto para el resto de la sesion: el embudo caia
+      # a la cascada ejecutada sin decirlo. La version reducida devuelve el
+      # recorrido vivo para los pasos de curso-horario y declara los de alumno
+      # como `sin_recuento`.
+      if (is.list(frame) && nzchar(source_frame_hash) &&
+          identical(source_frame_hash, frame_hash) &&
+          (!is.list(context) || !identical(source_frame_hash, context_hash))) {
+        rehidratado <- .cm_criterios_contexto_desde_marco(frame)
+        if (is.list(rehidratado)) {
+          context <- rehidratado
+          context_hash <- .cm_aulas_scalar(context$source_frame_hash, "")
+          context_criteria_hash <- .cm_aulas_scalar(context$current_criteria_hash, "")
+          session_set(sid, "calc_muestra_aulas_criterios_contexto", context)
+        }
+      }
       if (!is.list(frame) || !is.list(context) ||
           !nzchar(source_frame_hash) || !nzchar(criteria_hash) ||
           !identical(source_frame_hash, frame_hash) ||
