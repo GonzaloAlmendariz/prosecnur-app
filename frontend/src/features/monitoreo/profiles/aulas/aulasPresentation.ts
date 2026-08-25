@@ -1,3 +1,5 @@
+import { segmentoDeEstrato } from "./etiquetaDeEstrato";
+
 const FIELD_LABELS: Record<string, string> = {
   // Ciclo de contacto (L31): por que un aula no esta agendada todavia.
   contact_medium: "Medio de contacto",
@@ -290,6 +292,14 @@ export const STATUS_LABELS: Record<string, string> = {
   calc_muestra_faculty_sex: "Cálculo de muestra",
 };
 
+/** `F`/`M` de un aula, dicho en palabras. Lo que no reconoce lo deja pasar. */
+function sexoDeAula(value: string) {
+  const clave = value.trim().toLowerCase();
+  if (clave === "f") return "Mujeres";
+  if (clave === "m") return "Hombres";
+  return value;
+}
+
 function normalizedKey(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
@@ -553,6 +563,15 @@ function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<
   }
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (field === "session_type" || field === "tipo_sesion") return tipoDeSesionLabel(value);
+  // `G2` bajo una columna llamada «Tamaño de aula» no dice el tamaño: los
+  // cortes viven en `calc_muestra_aulas.R` y quien lee la tabla no los tiene.
+  if (field === "size_group") return segmentoDeEstrato(String(value));
+  // Aquí SÍ va «Mujeres» y no «mayoría mujeres», al revés que en la clave del
+  // estrato: la columna ya se llama «Sexo mayoritario», así que el matiz lo
+  // pone el encabezado y repetirlo en cada celda diría «Sexo mayoritario:
+  // mayoría mujeres». Sin nombre de columna que lo sostenga —el estrato— hay
+  // que decirlo entero, porque esa F no son las mujeres de la cuota.
+  if (field === "sex_top_1" || field === "sex_top_2") return sexoDeAula(String(value));
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);
   if (field === "campo") return aulasFieldLabel(String(value));
