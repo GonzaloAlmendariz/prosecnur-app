@@ -95,3 +95,63 @@ test_that("sin historico no se inventa sello", {
   expect_null(calc_muestra_aulas_sellar_efectividad(list(), NULL)$efectividad)
   expect_null(calc_muestra_aulas_sellar_efectividad(list(), list())$efectividad)
 })
+
+# --- Segundo eslabón: del marco al estrato del cálculo ------------------------
+#
+# Los estratos viven en `comp$marco$estratos`. Un primer intento los buscó en
+# `comp$estratos`, no encontró nada y se retiró por código muerto; este test
+# fija la ruta para que el error no se repita.
+
+.tau_estudio <- function(...) {
+  list(componentes = list(list(marco = list(estratos = list(...)))))
+}
+
+test_that("la tasa del marco baja al estrato que no declara la suya", {
+  frame <- list(tasas_efectividad_facultad = list(
+    list(facultad = "DERECHO", tasa = 0.562),
+    list(facultad = "ESTUDIOS GENERALES CIENCIAS", tasa = 0.436)
+  ))
+  est <- .tau_estudio(
+    list(label = "DERECHO", tau = 0),
+    list(label = "ESTUDIOS GENERALES CIENCIAS", tau = 0)
+  )
+  out <- calc_muestra_aulas_resolver_tau_estratos(est, frame)
+  expect_equal(out$componentes[[1]]$marco$estratos[[1]]$tau, 0.562)
+  expect_equal(out$componentes[[1]]$marco$estratos[[2]]$tau, 0.436)
+})
+
+test_that("no se escribe en comp$estratos, que es otra ruta", {
+  # Si alguien mueve la lectura a `comp$estratos` este test lo caza: ahí no hay
+  # estratos y el τ se quedaría en 0 para las quince facultades.
+  frame <- list(tasas_efectividad_facultad = list(list(facultad = "DERECHO", tasa = 0.562)))
+  est <- list(componentes = list(list(estratos = list(list(label = "DERECHO", tau = 0)))))
+  out <- calc_muestra_aulas_resolver_tau_estratos(est, frame)
+  expect_equal(out$componentes[[1]]$estratos[[1]]$tau, 0)
+})
+
+test_that("un estrato que ya declara su tau manda sobre el marco", {
+  frame <- list(tasas_efectividad_facultad = list(list(facultad = "DERECHO", tasa = 0.562)))
+  out <- calc_muestra_aulas_resolver_tau_estratos(.tau_estudio(list(label = "DERECHO", tau = 0.9)), frame)
+  expect_equal(out$componentes[[1]]$marco$estratos[[1]]$tau, 0.9)
+})
+
+test_that("una facultad sin tasa publicada se queda en cero y cae al global", {
+  frame <- list(tasas_efectividad_facultad = list(list(facultad = "DERECHO", tasa = 0.562)))
+  out <- calc_muestra_aulas_resolver_tau_estratos(.tau_estudio(list(label = "PSICOLOGÍA", tau = 0)), frame)
+  expect_equal(out$componentes[[1]]$marco$estratos[[1]]$tau, 0)
+})
+
+test_that("una tasa fuera de rango no se baja", {
+  frame <- list(tasas_efectividad_facultad = list(
+    list(facultad = "DERECHO", tasa = 1.4), list(facultad = "EDUCACION", tasa = 0)))
+  out <- calc_muestra_aulas_resolver_tau_estratos(
+    .tau_estudio(list(label = "DERECHO", tau = 0), list(label = "EDUCACION", tau = 0)), frame)
+  expect_equal(out$componentes[[1]]$marco$estratos[[1]]$tau, 0)
+  expect_equal(out$componentes[[1]]$marco$estratos[[2]]$tau, 0)
+})
+
+test_that("sin marco el estudio sale intacto", {
+  est <- .tau_estudio(list(label = "DERECHO", tau = 0))
+  expect_identical(calc_muestra_aulas_resolver_tau_estratos(est, NULL), est)
+  expect_identical(calc_muestra_aulas_resolver_tau_estratos(est, list()), est)
+})

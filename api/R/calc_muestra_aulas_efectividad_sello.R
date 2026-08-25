@@ -124,29 +124,61 @@ calc_muestra_aulas_sellar_efectividad <- function(config, referencia = NULL) {
   config
 }
 
-# EL SEGUNDO ESLABÓN, DIAGNOSTICADO Y NO CABLEADO (2026-08-25).
-#
-# Sellar el multiplicador mueve `factor_facultad` dentro del marco —medido: de
-# un único valor a siete distintos, 0,861 a 1,015— pero el DIMENSIONAMIENTO
-# sigue sin verlos: la tabla por facultad publica «TASA DE EFECTIVIDAD 53,0 %»
-# idéntica en las quince y el total se queda en 184 en vez de ~190.
-#
-# La cadena, hasta donde llegó el rastreo: `.cm_dist_ch_required_one(quota,
-# divisor, tau)` toma su τ de `aulas_result$rows[[faculty_key]]$tau`
-# (calc_muestra_distribucion.R:469), que sale de `result$aulas_por_estrato`,
-# que `calc_muestra_engine.R:1365` calcula con
-# `tau_e <- if (e$tau > 0) e$tau else par$tau` sobre los estratos del
-# componente. **Y esos estratos están vacíos**: medido sobre el `.pulso` real,
-# los dos componentes traen `estratos: 0`, también DESPUÉS de
-# `calc_muestra_alumnos_por_ch_resolver_estudio()`. Las quince filas por
-# facultad se arman en un punto que este rastreo no localizó.
-#
-# Se escribió una función que bajaba `frame$tasas_efectividad_facultad` a
-# `comp$estratos[[j]]$tau` y SE RETIRÓ: sin estratos no hacía nada, y dejar
-# código que no se ejecuta es exactamente lo que el ADR 0080 prohíbe («un
-# camino descartado que sigue escrito se lee como el camino vigente»).
-#
-# QUÉ FALTA, concreto: encontrar quién construye las filas por facultad del
-# cálculo y darles el τ del marco allí. La aritmética ya está comprobada: con
-# el multiplicador 0,861 de EEGG Ciencias su τ pasa de 0,506 a 0,436 y sus
-# aulas de 25 a 30, que es justo lo que dice el documento metodológico.
+#' Baja la tasa de efectividad de cada facultad a su estrato del cálculo.
+#'
+#' EL SEGUNDO ESLABÓN. Sellar el multiplicador mueve `factor_facultad` y
+#' `tasa_efectividad_aula` dentro del marco —medido: de un único valor a siete
+#' distintos, 0,861 a 1,015— pero el DIMENSIONAMIENTO no los veía. El motor usa
+#' `tau_e <- if (e$tau > 0) e$tau else par$tau` (calc_muestra_engine.R:1365) y
+#' ningún proceso llenaba `e$tau`: medido sobre el `.pulso` real, los 15
+#' estratos traían `tau: 0` con su divisor ya resuelto en 23,5. Ese cero es la
+#' marca de «no declarada» y hacía caer las quince facultades al τ global. En
+#' pantalla: «TASA DE EFECTIVIDAD 53,0 %» idéntica en las quince, con el marco
+#' publicando tasas de 0,44 a 0,80.
+#'
+#' **LOS ESTRATOS VIVEN EN `comp$marco$estratos`, NO EN `comp$estratos`.** Un
+#' primer intento buscó un nivel más arriba, no encontró nada y se retiró por
+#' código muerto; queda escrito porque el error costó una vuelta entera.
+#'
+#' El dato ya existía y tenía un solo dueño: `frame$tasas_efectividad_facultad`
+#' (`calc_muestra_aulas_tasas_facultad`), que hasta ahora sólo consumían dos
+#' tarjetas de la UI. Esto lo conecta al cálculo sin recalcular nada.
+#'
+#' Aditivo: un estrato que YA declara su τ manda. Una facultad sin tasa
+#' publicada se queda en 0 y cae al global, que es el neutro declarado.
+#'
+#' @param estudio estudio con sus componentes.
+#' @param frame marco de aulas vigente.
+#' @return el estudio, con `tau` por estrato donde el marco lo publica.
+#' @export
+calc_muestra_aulas_resolver_tau_estratos <- function(estudio, frame = NULL) {
+  filas <- frame$tasas_efectividad_facultad %||% NULL
+  if (!is.list(estudio) || !is.list(filas) || !length(filas)) return(estudio)
+  por_clave <- list()
+  for (f in filas) {
+    if (!is.list(f)) next
+    clave <- .cm_criterios_fac_key(f$facultad %||% "")
+    tasa <- suppressWarnings(as.numeric(f$tasa %||% NA_real_)[1])
+    if (!nzchar(clave) || !is.finite(tasa) || tasa <= 0 || tasa > 1) next
+    por_clave[[clave]] <- tasa
+  }
+  if (!length(por_clave)) return(estudio)
+  comps <- estudio$componentes %||% list()
+  for (i in seq_along(comps)) {
+    estratos <- comps[[i]]$marco$estratos %||% list()
+    if (!length(estratos)) next
+    for (j in seq_along(estratos)) {
+      e <- estratos[[j]]
+      declarado <- suppressWarnings(as.numeric(e$tau %||% 0)[1])
+      if (is.finite(declarado) && declarado > 0) next
+      clave <- .cm_criterios_fac_key(e$label %||% e$estrato %||% "")
+      tasa <- por_clave[[clave]]
+      if (is.null(tasa)) next
+      e$tau <- tasa
+      estratos[[j]] <- e
+    }
+    comps[[i]]$marco$estratos <- estratos
+  }
+  estudio$componentes <- comps
+  estudio
+}
