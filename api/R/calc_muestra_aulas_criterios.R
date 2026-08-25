@@ -1327,7 +1327,11 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     if (!nzchar(vk[[i]])) return(TRUE)
     cats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
     if (!length(cats)) return(TRUE)
+    # Primero la clave vigente —que aquí puede ser el bucket de vacíos, ya
+    # sustituido arriba— y sólo si no casa, la anterior al arreglo de la eñe:
+    # las categorías las guarda la config y el normalizador cambió después.
     inset <- vk[[i]] %in% cats
+    if (!inset) inset <- isTRUE(.cm_aulas_clave_en(values[[i]], cats))
     if (identical(crit$mode, "exclude")) !inset else inset
   }, logical(1))
 }
@@ -1514,6 +1518,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     crit <- by[[id]]
     if (!identical(crit$scope, "aula")) next
     if (!.cm_criterios_regla_aula_accionable(crit)) next
+    # Las excepciones se buscan por clave de facultad: misma traducción que el
+    # mínimo por facultad (calc_muestra_aulas_claves_legadas.R).
+    crit$exceptions <- .cm_aulas_canonizar_claves(crit$exceptions, vals$faculty)
     empty_key <- if (id %in% empty_bucket_cols) registry[[id]]$emptyBucket$key else NULL
     flag <- switch(crit$kind,
       flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys,
@@ -1545,6 +1552,12 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   # El FLAG se conserva —el corte debe seguir aplicándose— y sólo se calla la
   # razón: cuando el umbral es heredado, quien la publica es el filtro legacy,
   # que es de quien realmente viene la decisión.
+  # Config guardada antes del arreglo de la eñe: sus claves por facultad se
+  # traducen a la vigente con las etiquetas reales del marco, o el override de
+  # «ARTE Y DISEÑO» se ignora en silencio (calc_muestra_aulas_claves_legadas.R).
+  if (is.list(min_elig)) {
+    min_elig$byFaculty <- .cm_aulas_canonizar_claves(min_elig$byFaculty, vals$faculty)
+  }
   min_elig_propio <- !is.null(min_elig) && is.finite(min_elig$threshold)
   if (!min_elig_propio) {
     min_elig <- list(threshold = max(1L, .cm_aulas_int(min_eligible_fallback, 1L)), byFaculty = list())
