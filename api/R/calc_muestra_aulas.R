@@ -1113,7 +1113,8 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
                                          inscripciones = NULL,
                                          catalogo_curso_horario = NULL,
                                          config = list(),
-                                         on_progress = NULL) {
+                                         on_progress = NULL,
+                                         solo_criterios = FALSE) {
   # I21b: hitos de progreso para la vía job. Son etapas reales del build, no un
   # reloj: el worker las escribe y la UI las muestra. Sin callback no cuesta
   # nada, y ninguna toca RNG, así que la vía job y la síncrona dan el MISMO
@@ -1471,6 +1472,17 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     catalog_signals = catalog_signals,
     empty_bucket_cols = .cm_criterios_empty_bucket_cols(raw, mapping, catalog_signals)
   )
+  # `solo_criterios`: parar aquí y devolver la tabla atómica estudiante x CH.
+  #
+  # El contexto de criterios que alimenta el recorrido vivo se borra al guardar
+  # (`cache_stripped`) y depende de esta tabla, que es de origen y no viaja en el
+  # marco. Rehacer el build entero para recuperarla cuesta 185 s; parar aquí
+  # cuesta 57, porque los pasos 5-8 sólo publican agregados que un `.pulso`
+  # guardado YA trae. Ver `calc_muestra_aulas_criterios_rehidratar.R`.
+  #
+  # Devuelve `criterios` tal cual, sin tocar `out`: quien rehidrata compone el
+  # contexto con los agregados del marco guardado.
+  if (isTRUE(solo_criterios)) return(criterios)
   aula_frame <- criterios$aula_frame
   # Particularidades del marco (asesoría 2026-07-15 §12): las decisiones
   # manuales se aplican DESPUÉS de los criterios y ANTES de perfiles/auditoría
@@ -1620,61 +1632,17 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   ))
   # Enumeración de la suite de criterios por categoría (ambos scopes): la
   # lógica vive en calc_muestra_aulas_criterios.R; aquí solo se adjunta.
-  .p(5L, "Perfilando el marco")
-  out$criterios_catalogo <- calc_muestra_aulas_criterios_catalogo(
-    aula_frame = aula_frame,
-    catalog_signals = catalog_signals,
-    filas_alumno = list(
+  .cm_aulas_construir_cola(
+    out, criterios,
+    list(
+      aula_frame = aula_frame, catalog_signals = catalog_signals, raw = raw,
+      mapping = mapping, cfg = cfg, alumno_sel = alumno_sel,
+      particularidades_aplicadas = particularidades_aplicadas,
       student_id = student_id, formation = formation, condition = condition,
       age = age, faculty = faculty, level = level
     ),
-    mapped_columns = list(
-      formation = .cm_criterios_col_exacta(raw, mapping$formation),
-      condition = .cm_aulas_col(raw, mapping$condition),
-      faculty = .cm_aulas_col(raw, mapping$faculty),
-      age = .cm_aulas_col(raw, mapping$age),
-      level = .cm_aulas_col(raw, mapping$level),
-      modality = .cm_aulas_col(raw, mapping$modality),
-      session_type = .cm_aulas_col(raw, mapping$session_type),
-      teacher_type = .cm_criterios_col_teacher_type(raw, mapping),
-      course_level = .cm_criterios_col_course_level(raw, mapping),
-      condicion_curso = .cm_criterios_col_condicion_curso(raw, mapping),
-      enrolled_total = .cm_aulas_col(raw, mapping$enrolled_total),
-      campus = .cm_aulas_col(raw, mapping$campus)
-    )
+    .p
   )
-  out$criterios_seleccion <- cfg$criterios_seleccion
-  # ADR 0035: orden EFECTIVO de jerarquía docente usado en este build (ya
-  # resuelto por .cm_criterios_normalize_teacher_orden en la config; NULL/vacío
-  # colapsó al default académico). El frontend lo compara con el orden que el
-  # usuario tiene en pantalla para marcar el marco DESACTUALIZADO al reordenar.
-  # Se expone como lista para forzar un array JSON aunque el orden tenga un solo
-  # elemento.
-  out$teacher_type_orden <- as.list(cfg$teacher_type_orden)
-  out$criterios_alumno_report <- alumno_sel$report
-  # Particularidades (§12): señales detectadas + eco de decisiones, paso
-  # manual del embudo y rastro en la auditoría. Un solo call-site; la lógica
-  # vive en calc_muestra_aulas_particularidades.R.
-  out <- .cm_particularidades_adjuntar(out, catalog_signals, particularidades_aplicadas)
-  # Radiografía del marco por facultad (pestaña «Explorador de aulas»): reusa
-  # las señales ya adjuntadas en out$particularidades. Un solo call-site; la
-  # lógica vive en calc_muestra_aulas_exploracion.R (este archivo no debe
-  # crecer).
-  # L11: las dos radiografías se emiten por separado porque su coste no se
-  # parece. Medido a escala real (5.263 CH): la del marco publica 0,6 MB y la
-  # de criterios 19,5 MB, y juntas se llevaban 114 de los 177 s del build con
-  # la barra clavada en el último hito. Un progreso repartido por etapas del
-  # código y no por coste miente aunque cada etapa exista.
-  .p(6L, "Radiografía del marco")
-  out <- .cm_exploracion_adjuntar(out, criterios)
-  .p(7L, "Radiografía por criterio y facultad")
-  out <- .cm_criterios_i18b_adjuntar(out, criterios)
-  # Impacto del tipo de sesión por facultad (guard §12 «doble selección del
-  # taller», schema cm_session_type_impacto_v1): un solo call-site; la lógica
-  # vive en calc_muestra_aulas_criterios.R (este archivo no debe crecer).
-  .p(8L, "Impacto del tipo de sesión")
-  out <- .cm_criterios_session_impacto_adjuntar(out, catalog_signals)
-  out
 }
 
 .cm_aulas_student_ids <- function(x) {

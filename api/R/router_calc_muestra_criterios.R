@@ -81,6 +81,48 @@
 }
 
 mount_calc_muestra_criterios <- function(pr) {
+  # Recuperar el recuento de ESTUDIANTES releyendo la base.
+  #
+  # El recorrido de curso-horario ya vive desde el marco guardado
+  # (`.cm_criterios_contexto_desde_marco`), pero el efecto de un criterio de
+  # alumno exige la tabla atómica, que no viaja en el `.pulso`. Se relee con las
+  # fuentes que el marco firma. Medido sobre HSVG26DEF: 60 s parando en el paso 4
+  # frente a 186 del build entero, y el resultado se verifica contra el marco
+  # antes de adoptarse.
+  #
+  # Va como job porque plumber es monohilo: un minuto síncrono congela la app.
+  pr <- plumber::pr_post(
+    pr,
+    "/api/calc-muestra/marco/criterios/rehidratar",
+    wrap_endpoint(function(req, res, ...) {
+      sid <- session_header(req)
+      state <- session_get(sid)
+      frame <- state$calc_muestra_aulas_frame
+      if (!is.list(frame) || !is.data.frame(frame$aula_frame)) {
+        stop_api(409, "E_CALC_MUESTRA_CRITERIOS_REHIDRATAR_SIN_MARCO",
+                 "No hay marco construido que rehidratar.")
+      }
+      contexto <- state$calc_muestra_aulas_criterios_contexto
+      atomica <- ((contexto %||% list())$criterios %||% list())$radiografia_contexto
+      if (length((atomica %||% list())$filas %||% list())) {
+        return(list(ok = TRUE, mode = "ya_vivo"))
+      }
+      tablas <- .cm_criterios_fuentes_del_marco(sid, frame)
+      if (!length(tablas)) {
+        stop_api(409, "E_CALC_MUESTRA_CRITERIOS_REHIDRATAR_SIN_FUENTES",
+                 paste("El marco no declara con qué archivos se construyó, o ya no están",
+                       "en el proyecto. Reconstruye el marco desde tus fuentes."))
+      }
+      job_id <- job_submit(
+        sid = sid,
+        kind = "calc_muestra_aulas_criterios_rehidratar",
+        func = calc_muestra_aulas_criterios_rehidratar_job,
+        args = list(tablas = tablas, frame = frame),
+        on_complete = .cm_criterios_rehidratar_on_complete(sid)
+      )
+      list(ok = TRUE, mode = "job", job_id = job_id)
+    })
+  )
   plumber::pr_post(
     pr,
     "/api/calc-muestra/marco/criterios/preview",
