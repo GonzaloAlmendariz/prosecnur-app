@@ -37,6 +37,7 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore, useMotorStore } from "./store";
 import { useMotorPersistencia } from "./motor/useMotorPersistencia";
+import { useAvisoCaducidadResuelta } from "./avisoCaducidadResuelta";
 import { ResumenDiseno } from "./motor/ResumenDiseno";
 import { usePerfilEfectivo } from "./motor/usePerfilEfectivo";
 import { EMPTY_WORKSPACE } from "./workspaceDefaults";
@@ -1027,6 +1028,7 @@ export default function CalcMuestraPage() {
     setReporteMeta,
   } = useCalcMuestraStore();
   const [msg, setMsg] = useState<Msg>(null);
+  const limpiarMsg = useCallback(() => setMsg(null), []);
   const [busy, setBusy] = useState<string | null>(null);
   // F36 · El motor rechazó comparar por decisión caducada. Vive aquí porque lo
   // enciende la respuesta del motor y lo consume la pestaña que lo repara, que
@@ -1077,6 +1079,15 @@ export default function CalcMuestraPage() {
   useEffect(() => {
     aulasStateRef.current = aulasState;
   }, [aulasState]);
+  // Un aviso de caducidad que sobrevive a la reparación miente: la lógica y el
+  // porqué viven en avisoCaducidadResuelta.ts.
+  useAvisoCaducidadResuelta(msg, limpiarMsg, {
+    frameHash: aulasState?.frame?.frame_hash,
+    contratoHash: aulasState?.frame?.alumnos_por_ch?.frame_hash,
+    decisionHashes: estudio.componentes.flatMap((comp) =>
+      (comp.resultado?.aulas_por_estrato ?? []).map((fila) => fila.alumnos_por_ch?.frame_hash),
+    ),
+  });
   const [referenciaAsistencia, setReferenciaAsistencia] =
     useState<CalcMuestraReferenciaAsistencia | null>(null);
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
