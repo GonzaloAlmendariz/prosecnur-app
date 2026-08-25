@@ -153,11 +153,11 @@ test_that("la etiqueta del deficit dice CUANTO falta, que es lo que manda a algu
 })
 
 test_that("la calibracion se lee en direccion y magnitud, sin decir «calibracion»", {
-  expect_identical(.mac_etiqueta_calibracion(0.85), "El campo esta rindiendo un 15 % menos de lo previsto")
-  expect_identical(.mac_etiqueta_calibracion(1.2), "El campo esta rindiendo un 20 % mas de lo previsto")
-  expect_identical(.mac_etiqueta_calibracion(1), "El campo esta rindiendo lo previsto")
+  expect_identical(.mac_etiqueta_calibracion(0.85), "El campo está rindiendo un 15 % menos de lo previsto")
+  expect_identical(.mac_etiqueta_calibracion(1.2), "El campo está rindiendo un 20 % más de lo previsto")
+  expect_identical(.mac_etiqueta_calibracion(1), "El campo está rindiendo lo previsto")
   # Sin dato NO es cero ni es «sin calibrar»: es que aun no hay con que comparar.
-  expect_identical(.mac_etiqueta_calibracion(NA), "Todavia sin aulas aplicadas con que comparar")
+  expect_identical(.mac_etiqueta_calibracion(NA), "Todavía sin aulas aplicadas con qué comparar")
 })
 
 test_that("ninguna etiqueta usa jerga prohibida", {

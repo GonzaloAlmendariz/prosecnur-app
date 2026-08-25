@@ -124,9 +124,9 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
       sprintf("No va a llegar: %s", if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
       else "No va a llegar",
     deficit_no_subsanable = if (is.finite(b) && b > 0)
-      sprintf("No va a llegar y ya no quedan aulas: %s y habra que ponderar",
+      sprintf("No va a llegar y ya no quedan aulas: %s y habrá que ponderar",
               if (b == 1L) "falta 1 encuesta" else sprintf("faltan %d encuestas", b))
-      else "No va a llegar y ya no quedan aulas: habra que ponderar",
+      else "No va a llegar y ya no quedan aulas: habrá que ponderar",
     "Sin estado"
   )
 }
@@ -135,11 +135,11 @@ MONITOREO_AULAS_CALIBRACION_SCHEMA <- "monitoreo_aulas_avance_sexo_facultad_v1"
 # ni de que; la frase dice las dos cosas y no usa la palabra «calibracion».
 .mac_etiqueta_calibracion <- function(cal) {
   c1 <- suppressWarnings(as.numeric(cal)[1])
-  if (!is.finite(c1)) return("Todavia sin aulas aplicadas con que comparar")
+  if (!is.finite(c1)) return("Todavía sin aulas aplicadas con qué comparar")
   pct <- round(abs(c1 - 1) * 100)
-  if (pct < 1) return("El campo esta rindiendo lo previsto")
-  sprintf("El campo esta rindiendo un %d %% %s de lo previsto", pct,
-          if (c1 < 1) "menos" else "mas")
+  if (pct < 1) return("El campo está rindiendo lo previsto")
+  sprintf("El campo está rindiendo un %d %% %s de lo previsto", pct,
+          if (c1 < 1) "menos" else "más")
 }
 
 

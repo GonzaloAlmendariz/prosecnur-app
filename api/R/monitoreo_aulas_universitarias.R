@@ -859,7 +859,7 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
     score = score,
     distance = round(avg_abs %||% NA_real_, 6),
     table = table,
-    warning = if (is.finite(max_abs) && max_abs > 0.10) "La muestra efectiva se aleja mas de 10 pp en al menos una celda." else ""
+    warning = if (is.finite(max_abs) && max_abs > 0.10) "La muestra efectiva se aleja más de 10 pp en al menos una celda." else ""
   )
 }
 
@@ -883,10 +883,10 @@ monitoreo_aulas_from_calc <- function(estudio = NULL, selection = NULL, frame = 
   score <- suppressWarnings(as.numeric(rep$effective_score %||% NA_real_))
   dist <- suppressWarnings(as.numeric(rep$effective_distance %||% NA_real_))
   if (!is.finite(score)) {
-    return(if (nzchar(rep$warning %||% "")) rep$warning else "Todavia no hay muestra efectiva que comparar con la planificada.")
+    return(if (nzchar(rep$warning %||% "")) rep$warning else "Todavía no hay muestra efectiva que comparar con la planificada.")
   }
   base <- sprintf(
-    "Puntaje %.1f de 100: la muestra efectiva se desvia %.1f pp en promedio de la planificada (100 = identica, 0 = 5 pp o mas).",
+    "Puntaje %.1f de 100: la muestra efectiva se desvía %.1f pp en promedio de la planificada (100 = idéntica, 0 = 5 pp o más).",
     score, 100 * (if (is.finite(dist)) dist else 0)
   )
   if (nzchar(rep$warning %||% "")) paste(base, rep$warning) else base
@@ -1085,7 +1085,7 @@ monitoreo_aulas_criterio_texto <- function(crit) {
   total <- as.integer(crit$total %||% 0L)
   validas <- as.integer(crit$validas %||% 0L)
   switch(crit$modo %||% "sin_datos",
-    sin_datos = "Todavia no hay respuestas que contar.",
+    sin_datos = "Todavía no hay respuestas que contar.",
     declarada_ausente = sprintf(
       "El estudio declara la columna de estado '%s' y la base no la trae, asi que se conto por '%s': %d de %d respuestas.",
       crit$declarada %||% "", crit$columna %||% "(ninguna)", validas, total),
@@ -1093,7 +1093,7 @@ monitoreo_aulas_criterio_texto <- function(crit) {
       "La base no trae columna de estado, asi que cuentan las %d respuestas. Si el formulario marca incompletas, declara cual es esa columna.",
       total),
     por_columna = sprintf(
-      "Cuentan las respuestas cuyo '%s' esta en la lista de estados validos: %d de %d.",
+      "Cuentan las respuestas cuyo '%s' está en la lista de estados válidos: %d de %d.",
       crit$columna %||% "", validas, total),
     # **Los filtros se NOMBRAN.** Decir «se aplicaron 4 filtros» sin cuales
     # obligaria a abrir la config para saber que se esta contando, y una columna
@@ -1104,7 +1104,7 @@ monitoreo_aulas_criterio_texto <- function(crit) {
       ausentes <- crit$filtros_ausentes %||% character(0)
       paste0(
         if (length(nombres) == 1L)
-        sprintf("Una respuesta cuenta si su '%s' esta entre los valores declarados: %d de %d.",
+        sprintf("Una respuesta cuenta si su '%s' está entre los valores declarados: %d de %d.",
                 nombres[[1]], validas, total)
       else
         sprintf("Una respuesta cuenta si cumple %d condiciones a la vez (%s): %d de %d.",
@@ -1899,7 +1899,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         # El estado ya dice `sin_datos`; el texto tiene que decir lo mismo. Con
         # cero respuestas, «todas se atribuyeron» afirma un recuento que no se
         # hizo.
-        "Todavia no hay respuestas validas que atribuir a un aula."
+        "Todavía no hay respuestas válidas que atribuir a un aula."
       },
       if (!nzchar(respuesta_id_col)) {
         "La fuente no trae identificador de respuesta; no se puede comprobar."
@@ -1930,11 +1930,11 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
           cruce$comparables
         )
       } else {
-        "Ninguna aula esta en las dos hojas a la vez, asi que no hay nada que cruzar."
+        "Ninguna aula está en las dos hojas a la vez, así que no hay nada que cruzar."
       },
       if ((cfg$control_sin_nombre %||% 0L) > 0L) {
         sprintf(
-          "%d columnas de la Base de control tienen datos pero su cabecera esta vacia en el Excel, asi que no se leyeron. Ponles nombre en la hoja para que entren.",
+          "%d columnas de la Base de control tienen datos pero su cabecera está vacía en el Excel, así que no se leyeron. Ponles nombre en la hoja para que entren.",
           cfg$control_sin_nombre
         )
       } else if (length(cfg$control %||% list()) || (cfg$control_sin_nombre %||% 0L) > 0L) {
