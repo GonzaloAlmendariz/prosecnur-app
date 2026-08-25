@@ -1963,7 +1963,27 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # cuota, ritmo— si van por slot, sobre `tracked_df`.
       total_aulas = as.integer(nrow(seguidas)),
       aulas_titulares = as.integer(sum(seguidas$wave == "M1")),
-      aulas_aplicadas = as.integer(sum(seguidas$operational_status %in% c("aplicada", "cerrada"))),
+      # **El registro de campo cuenta, que es lo que promete el rotulo.**
+      #
+      # La tarjeta dice «APLICADAS · declaradas en el registro de campo» y la
+      # cifra salia SOLO de `operational_status`, que es el estado del PLAN.
+      # Medido el 2026-08-25 importando una semana simulada de 40 partes (35
+      # APLICADA): Consultas ensenaba «40 partes · de 586 personas en el aula
+      # quedaron 540 respuestas» y la tarjeta seguia diciendo 0.
+      #
+      # Y no era un olvido del operativo: desde el libro ese estado NO PUEDE
+      # llegar a «aplicada». Los unicos valores que la hoja «Listas» ofrece para
+      # STATUS MUESTRA son AGENDADA / REAGENDADA / REEMPLAZADA / EN RESERVA n, y
+      # ninguno mapea a «aplicada» en `.monitoreo_aulas_status`. El parte guarda
+      # su veredicto en `application_status`, que es OTRO campo de la MISMA fila.
+      #
+      # Se unen en vez de sustituir: `operational_status` la enciende por otras
+      # vias —handoff, sincronizacion— y quedarse solo con el parte bajaria la
+      # cifra de los estudios que no llenan el libro.
+      aulas_aplicadas = as.integer(sum(
+        seguidas$operational_status %in% c("aplicada", "cerrada") |
+          seguidas$application_status %in% "aplicada"
+      )),
       aulas_parciales = as.integer(sum(seguidas$operational_status == "parcial")),
       # Reemplazos GASTADOS: cuenta reservas que entraron, asi que necesita ver
       # la cadena entera y no solo el eslabon en juego.
