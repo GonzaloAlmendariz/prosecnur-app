@@ -1806,6 +1806,34 @@ export default function CalcMuestraPage() {
     throw new Error("La lectura histórica se importa como selección o agenda; no reconstruye el marco base.");
   }
 
+  /**
+   * Las fuentes que se mandarían a construir AHORA, en la forma que el marco
+   * firma al construirse (`sources_used`).
+   *
+   * Sale de `universityMarcoPayload`, la misma función que arma el payload:
+   * derivarla aparte era pedir que las dos versiones divergieran, que es
+   * exactamente el defecto que este mecanismo existe para cazar.
+   *
+   * Si el payload no se puede armar —faltan fuentes— devuelve lista vacía: no
+   * hay nada que comparar y el marco, si existe, es de otras fuentes.
+   */
+  function firmaDeFuentesActuales(): Array<{ role: string; file_id?: string; sheet?: string }> {
+    let payload: Record<string, unknown>;
+    try {
+      payload = universityMarcoPayload(workspace) as unknown as Record<string, unknown>;
+    } catch {
+      return [];
+    }
+    const roles = ["base_madre", "estudiantes", "inscripciones", "catalogo_curso_horario"];
+    return roles
+      .map((role) => ({
+        role,
+        file_id: (payload[`${role}_file_id`] as string | undefined) ?? undefined,
+        sheet: (payload[`${role}_sheet`] as string | undefined) ?? undefined,
+      }))
+      .filter((item) => Boolean(item.file_id));
+  }
+
   async function construirMarcoDesdeFuentes(nextWorkspace: CalcMuestraWorkspace = workspace) {
     setMsg(null);
     setBusy("Leyendo base institucional");
@@ -2594,7 +2622,13 @@ export default function CalcMuestraPage() {
             }
           />
           {desk === "opinion_universitaria" && (
-            <ResumenDiseno motor={universityMotor} estudio={estudio} workspace={workspace} aulasState={aulasState} />
+            <ResumenDiseno
+              motor={universityMotor}
+              estudio={estudio}
+              workspace={workspace}
+              aulasState={aulasState}
+              fuentesActuales={firmaDeFuentesActuales()}
+            />
           )}
         </div>
       }
