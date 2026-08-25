@@ -73,6 +73,20 @@ hice yo— concluye que hay que reconectarlas, que es exactamente la decisión q
 el equipo había rechazado. Cuando se retira un camino, se retira su código o se
 escribe en el sitio por qué no se reconecta.
 
+**7 · Lo que se persiste es la clave normalizada, así que el normalizador es
+un contrato.** Los criterios del estudio no guardan «ARTE Y DISEÑO», guardan
+`arte_y_dise_no`. Al reparar `.cm_aulas_text_key()` para que la eñe dejara de
+partirse, esa misma facultad pasó a normalizar como `arte_y_diseno` y el
+criterio de facultad —un `include`— dejó de reconocer sus propias categorías
+guardadas: 248 aulas con `eligible_n = 0`, 5.327 alumnos excluidos, la facultad
+fuera del perfil y la tabla del cálculo con 14 filas presentándose como el
+estudio completo. Reparar un normalizador cuyo resultado se persiste es un
+cambio de contrato, no una corrección interna, y exige leer también la forma
+anterior. La compatibilidad va del lado de la **lectura**
+(`calc_muestra_aulas_claves_legadas.R`): migrar el archivo al abrirlo arregla
+ese `.pulso` y deja rotos los que no se abran, además de mutar el archivo del
+cliente sin que nadie lo pida.
+
 ## Consecuencias
 
 - El recorrido desde cero es reproducible y está escrito paso a paso en
@@ -92,4 +106,6 @@ escribe en el sitio por qué no se reconecta.
 - `api/R/calc_muestra_aulas_efectividad_sello.R` — el sello y su aritmética.
 - `api/R/calc_muestra_aulas_tau_facultad.R` — por qué no se reconecta el
   selector de tasas.
+- `api/R/calc_muestra_aulas_claves_legadas.R` — la lectura tolerante de claves
+  persistidas y por qué no se migra el archivo.
 - ADR 0043 y 0044 — proyectos de referencia y gramática de navegación.
