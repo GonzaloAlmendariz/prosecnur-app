@@ -35,6 +35,7 @@ export function AulasFinalesCard({
   onReactivarTodas,
   marcoDesactualizado = false,
   desfasadas = null,
+  descartadas,
 }: {
   /**
    * Asistencia histórica del marco, para estimar presentes por curso-horario.
@@ -69,6 +70,14 @@ export function AulasFinalesCard({
    * `null` cuando no hay recorrido vivo con el que comparar.
    */
   desfasadas?: number | null;
+  /**
+   * `classroom_id` que el borrador ya descarta, tal como los publica el motor.
+   * La lista los OCULTA: enseñarlos y avisar de que sobran obliga a apagar a
+   * mano lo que el recálculo iba a quitar solo, que es justo lo que pasó.
+   * No se evalúan aquí los criterios —eso pondría la regla en dos sitios—: se
+   * consume la identidad que decide el motor.
+   */
+  descartadas?: ReadonlySet<string>;
 }) {
   // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
   // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
@@ -85,18 +94,25 @@ export function AulasFinalesCard({
   const [abierto, setAbierto] = usarPlegado(true);
   const [q, setQ] = useState("");
   const [verTodas, setVerTodas] = useState(false);
-  const claves = useMemo(() => aulas.map((a) => a.classroomKey), [aulas]);
-  const total = aulas.length;
+  /* Fuera las que el borrador ya descarta: la lista enseña lo que va a quedar,
+     no lo que quedó la última vez. */
+  const vigentes = useMemo(
+    () => (descartadas?.size ? aulas.filter((a) => !descartadas.has(a.classroomId)) : aulas),
+    [aulas, descartadas],
+  );
+  const ocultas = aulas.length - vigentes.length;
+  const claves = useMemo(() => vigentes.map((a) => a.classroomKey), [vigentes]);
+  const total = vigentes.length;
   const apagadas = contarExcluidas(seleccion, claves);
   const activas = total - apagadas;
   const propia = apagadas > 0;
   const filtradas = useMemo(() => {
     const t = normalizarBusqueda(q);
-    if (!t) return aulas;
-    return aulas.filter(
+    if (!t) return vigentes;
+    return vigentes.filter(
       (a) => normalizarBusqueda(a.label).includes(t) || normalizarBusqueda(a.detalle).includes(t),
     );
-  }, [aulas, q]);
+  }, [vigentes, q]);
 
   // Medido: la lista renderizaba sus 646 filas, cada una con su conmutador —**646
   // paradas de tabulación** para pasar de aquí con el teclado—. Es el mismo
@@ -153,15 +169,15 @@ export function AulasFinalesCard({
               pasar»— sobre una lista que el recálculo iba a cambiar sola. La
               superficie no puede impedir el recálculo, pero sí decir de cuándo
               es lo que enseña. */}
-          {desfasadas != null && desfasadas > 0 ? (
-            <AvisoModulo tone="warn" role="status" compact>
-              <strong>{fmtInt(desfasadas)}</strong> de estos cursos-horario ya no pasan tus
-              criterios: saldrán solos al recalcular, así que apagarlos a mano es trabajo perdido.
+          {ocultas > 0 ? (
+            <AvisoModulo tone="info" role="status" compact>
+              <strong>{fmtInt(ocultas)}</strong> cursos-horario del último marco ya no pasan tus
+              criterios y no se listan. Vuelven a aparecer si aflojas el criterio que los deja fuera.
             </AvisoModulo>
           ) : desfasadas == null && marcoDesactualizado ? (
             <AvisoModulo tone="warn" role="status" compact>
               Esta lista es la del último marco construido y tus criterios cambiaron. Sin
-              recorrido vivo no se puede decir cuántos sobran: recalcula para verla al día.
+              recorrido vivo no se puede decir cuáles sobran: recalcula para verla al día.
             </AvisoModulo>
           ) : null}
           <div className="cmv2-aulas-finales-toolbar">

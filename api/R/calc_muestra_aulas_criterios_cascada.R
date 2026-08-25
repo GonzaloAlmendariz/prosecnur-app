@@ -544,7 +544,7 @@ calc_muestra_aulas_criterios_totales <- function(context) {
 }
 
 .cm_criterios_cascade_root <- function(context, criteria_hash, moment, steps,
-                                       alumnos_vivos = TRUE) {
+                                       alumnos_vivos = TRUE, descartadas = NULL) {
   list(
     schema = .cm_criterios_cascada_schema,
     owner = "calc_muestra_aulas_frame_v1.criterios_cascada",
@@ -558,6 +558,13 @@ calc_muestra_aulas_criterios_totales <- function(context) {
     # pasos de curso-horario son del borrador, los de alumno son los del marco
     # construido. La UI tiene que decirlo; callarlo sería un tercer reloj mudo.
     alumnos_vivos = isTRUE(alumnos_vivos),
+    # QUIÉNES caen, no sólo cuántos. La lista de cursos-horario del marco sale
+    # del `aula_frame` ejecutado y no tiene forma de saber cuáles descarta el
+    # borrador: contar no basta para dejar de enseñarlos. Evaluar los criterios
+    # otra vez en el frontend sería tener la regla en dos sitios, así que la
+    # identidad la publica quien decide. Vacío en la cascada ejecutada: ahí el
+    # marco YA es el resultado.
+    descartadas = as.character(descartadas %||% character(0)),
     steps = steps
   )
 }
@@ -885,9 +892,14 @@ calc_muestra_aulas_criterios_preview <- function(
       faculties = counts$faculties, total = counts$total
     )
   }
+  # Las que el marco construido incluye y el borrador ya no: son exactamente las
+  # que la lista sigue enseñando y no deberían estar.
+  incluidas_marco <- .cm_aulas_values(context$aula_frame, "included", "") %in% c(TRUE, "TRUE", "true")
+  ids_marco <- .cm_aulas_values(context$aula_frame, "classroom_id", "")
+  descartadas <- ids_marco[incluidas_marco & !current & nzchar(ids_marco)]
   .cm_criterios_cascade_root(
     context, .cm_criterios_hash(cfg), "borrador_no_persistido", steps,
-    alumnos_vivos = !sin_atomica
+    alumnos_vivos = !sin_atomica, descartadas = descartadas
   )
 }
 

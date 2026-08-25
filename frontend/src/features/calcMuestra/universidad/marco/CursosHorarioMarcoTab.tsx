@@ -575,6 +575,13 @@ export function CursosHorarioMarcoTab({
      que responde al borrador. Con la ejecutada, mover el mínimo propio de una
      facultad cambiaba el criterio y dejaba «899 CH que cumplen · 62 quedan
      fuera» clavado en las cifras del último marco construido. */
+  /* Los cursos-horario que el borrador descarta, por id. Los publica el motor
+     en la cascada viva: la lista no vuelve a evaluar criterios. */
+  const descartadasSet = useMemo(
+    () => new Set(cascadaViva?.descartadas ?? []),
+    [cascadaViva],
+  );
+
   const criterioEvidence: CriterioFacultadEvidence | null = radiografiaV2 ? {
     radiografia: radiografiaV2,
     totals: i18b.totals,
@@ -1116,6 +1123,7 @@ export function CursosHorarioMarcoTab({
                       /* La lista final sale del `aula_frame` construido; si los
                          criterios cambiaron, lo que enseña es anterior a ellos. */
                       marcoDesactualizado={necesitaRecalculo}
+                      descartadasSet={descartadasSet}
 
                       /* G40 · La apertura ya no monta criterios comunes.
                           ADR 0057 los había traído aquí desde la sección

@@ -677,6 +677,7 @@ export function FacultadDecisionBloque({
   onToggleAula,
   onReactivarAulas,
   marcoDesactualizado,
+  descartadasSet,
   sinPlegado,
   slotApertura,
   slotCierre,
@@ -710,6 +711,8 @@ export function FacultadDecisionBloque({
   onReactivarAulas: (clavesTextKey: string[]) => void;
   /** El marco vigente ya no refleja los criterios: la lista final lo declara. */
   marcoDesactualizado?: boolean;
+  /** `classroom_id` que el borrador descarta; la lista final deja de listarlos. */
+  descartadasSet?: ReadonlySet<string>;
   /** F41 · Se muestra una sola facultad: nada que plegar. */
   sinPlegado?: boolean;
   /** ADR 0057 · Criterio que abre el embudo (matriculados / población). */
@@ -997,11 +1000,7 @@ export function FacultadDecisionBloque({
               /* Cuántas de las que la lista enseña ya no pasan el borrador. Se
                  compara contra las ACTIVAS: las que el analista apagó a mano ya
                  están descontadas en las dos cifras. */
-              desfasadas={
-                cierreDelRecorrido
-                  ? Math.max(0, (aulasFinales.length - contarExcluidas(seleccion, aulasFinales.map((a) => a.classroomKey))) - cierreDelRecorrido.quedan)
-                  : null
-              }
+              descartadas={descartadasSet}
             />
             <CierreDelRecorrido
               {...(cierreDelRecorrido ?? { quedan: null, universo: null })}
