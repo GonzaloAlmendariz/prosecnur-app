@@ -50,3 +50,38 @@ test_that("sin fuentes con file_id la firma es vacia, no NULL", {
   # NULL se perderia al serializar.
   expect_identical(.cm_aulas_sources_signature(list()), list())
 })
+
+test_that("la via JOB tambien firma el marco, que es la que corre a escala real", {
+  # El agujero: la firma se ponia solo en la rama sincrona, y con las bases
+  # reales (137.919 filas) el build SIEMPRE va por job. Resultado medido en la
+  # app: un marco recien construido desde las fuentes cargadas seguia diciendo
+  # «no consta de qué bases salió». La firma solo funcionaba con marcos de
+  # juguete, que es justo donde no hace falta.
+  firma <- .cm_aulas_sources_signature(list(
+    base_madre_file_id = "f-2026", base_madre_sheet = "Data",
+    catalogo_curso_horario_file_id = "f-cat", catalogo_curso_horario_sheet = "Data"
+  ))
+  visto <- NULL
+  local_mocked_bindings(
+    .cm_criterios_frame_guardar = function(sid, frame, referencia) { visto <<- frame; frame },
+    session_get = function(sid, required = TRUE) list(id = sid),
+    session_set = function(...) invisible(NULL)
+  )
+  handler <- .cm_aulas_construir_on_complete("sid-x", NULL, sources_used = firma)
+  handler(list(result_data = list(frame_hash = "h", aula_frame = data.frame())))
+  expect_identical(visto$sources_used, firma)
+})
+
+test_that("sin firma, la via job no inventa una", {
+  # `NULL` tiene que dejar el marco sin `sources_used`, no escribir una firma
+  # vacia: «no consta» y «consta que se construyo con nada» son cosas distintas.
+  visto <- NULL
+  local_mocked_bindings(
+    .cm_criterios_frame_guardar = function(sid, frame, referencia) { visto <<- frame; frame },
+    session_get = function(sid, required = TRUE) list(id = sid),
+    session_set = function(...) invisible(NULL)
+  )
+  handler <- .cm_aulas_construir_on_complete("sid-x", NULL, sources_used = NULL)
+  handler(list(result_data = list(frame_hash = "h")))
+  expect_null(visto$sources_used)
+})
