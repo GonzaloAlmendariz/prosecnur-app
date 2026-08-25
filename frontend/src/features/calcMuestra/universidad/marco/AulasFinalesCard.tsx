@@ -34,7 +34,7 @@ export function AulasFinalesCard({
   onToggle,
   onReactivarTodas,
   marcoDesactualizado = false,
-  embudoVivo = false,
+  desfasadas = null,
 }: {
   /**
    * Asistencia histórica del marco, para estimar presentes por curso-horario.
@@ -57,13 +57,18 @@ export function AulasFinalesCard({
    */
   marcoDesactualizado?: boolean;
   /**
-   * El embudo de la facultad SÍ tiene recorrido vivo: sus «llegan a este
-   * criterio» ya cuentan el borrador. Esta lista nunca lo tiene —sale del
-   * `aula_frame` ejecutado—, así que con el preview vivo la pantalla enseña dos
-   * relojes distintos a tres centímetros uno del otro y el aviso tiene que
-   * decir cuál va adelantado. Sin preview, ambos van con el mismo retraso.
+   * Cuántos cursos-horario de los que ESTA lista enseña ya no pasan los
+   * criterios del borrador, según el recorrido vivo de la facultad.
+   *
+   * La lista sale del `aula_frame` ejecutado y el embudo de arriba va con el
+   * borrador: son dos relojes. Pero avisar cada vez que difieren convierte el
+   * aviso en permanente —con el recorrido vivo, diferir ES el estado normal de
+   * trabajo— y un aviso siempre encendido deja de ser señal. Con la cifra, sólo
+   * aparece cuando de verdad sobran filas, y dice cuántas.
+   *
+   * `null` cuando no hay recorrido vivo con el que comparar.
    */
-  embudoVivo?: boolean;
+  desfasadas?: number | null;
 }) {
   // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
   // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
@@ -148,11 +153,15 @@ export function AulasFinalesCard({
               pasar»— sobre una lista que el recálculo iba a cambiar sola. La
               superficie no puede impedir el recálculo, pero sí decir de cuándo
               es lo que enseña. */}
-          {marcoDesactualizado ? (
+          {desfasadas != null && desfasadas > 0 ? (
             <AvisoModulo tone="warn" role="status" compact>
-              {embudoVivo
-                ? "El embudo de arriba ya refleja tus criterios; esta lista todavía no — sale del último marco construido. Al recalcular varios de estos cursos-horario saldrán solos, así que apagarlos ahora puede ser trabajo perdido."
-                : "Esta lista es la del último marco construido y tus criterios cambiaron. Al recalcular varios de estos cursos-horario saldrán solos, así que apagarlos ahora puede ser trabajo perdido."}
+              <strong>{fmtInt(desfasadas)}</strong> de estos cursos-horario ya no pasan tus
+              criterios: saldrán solos al recalcular, así que apagarlos a mano es trabajo perdido.
+            </AvisoModulo>
+          ) : desfasadas == null && marcoDesactualizado ? (
+            <AvisoModulo tone="warn" role="status" compact>
+              Esta lista es la del último marco construido y tus criterios cambiaron. Sin
+              recorrido vivo no se puede decir cuántos sobran: recalcula para verla al día.
             </AvisoModulo>
           ) : null}
           <div className="cmv2-aulas-finales-toolbar">
