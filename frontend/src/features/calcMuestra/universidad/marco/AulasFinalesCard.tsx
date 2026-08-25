@@ -34,6 +34,7 @@ export function AulasFinalesCard({
   onToggle,
   onReactivarTodas,
   marcoDesactualizado = false,
+  embudoVivo = false,
 }: {
   /**
    * Asistencia histórica del marco, para estimar presentes por curso-horario.
@@ -55,6 +56,14 @@ export function AulasFinalesCard({
    * criterios de ahora y hay que decirlo antes de que alguien apague a mano.
    */
   marcoDesactualizado?: boolean;
+  /**
+   * El embudo de la facultad SÍ tiene recorrido vivo: sus «llegan a este
+   * criterio» ya cuentan el borrador. Esta lista nunca lo tiene —sale del
+   * `aula_frame` ejecutado—, así que con el preview vivo la pantalla enseña dos
+   * relojes distintos a tres centímetros uno del otro y el aviso tiene que
+   * decir cuál va adelantado. Sin preview, ambos van con el mismo retraso.
+   */
+  embudoVivo?: boolean;
 }) {
   // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
   // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
@@ -141,9 +150,9 @@ export function AulasFinalesCard({
               es lo que enseña. */}
           {marcoDesactualizado ? (
             <AvisoModulo tone="warn" role="status" compact>
-              Esta lista es la del último marco construido. Tus criterios cambiaron:
-              al recalcular, varios de estos cursos-horario saldrán solos y apagarlos
-              ahora puede ser trabajo perdido.
+              {embudoVivo
+                ? "El embudo de arriba ya refleja tus criterios; esta lista todavía no — sale del último marco construido. Al recalcular varios de estos cursos-horario saldrán solos, así que apagarlos ahora puede ser trabajo perdido."
+                : "Esta lista es la del último marco construido y tus criterios cambiaron. Al recalcular varios de estos cursos-horario saldrán solos, así que apagarlos ahora puede ser trabajo perdido."}
             </AvisoModulo>
           ) : null}
           <div className="cmv2-aulas-finales-toolbar">
