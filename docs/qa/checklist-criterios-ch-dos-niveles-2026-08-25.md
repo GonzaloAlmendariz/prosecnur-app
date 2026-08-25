@@ -277,3 +277,52 @@ decidir**.
 | `exceptions[fac]` con op `exenta` | ✅ exime a su facultad, no libra a las demás |
 | `minEligible.byFaculty` sin umbral general | ✅ **reparado en esta tanda** |
 | `courseLevelRanges[fac]` con clave legada | ✅ **reparado en esta tanda** |
+
+## Quinta unidad — la cascada vuelve a ser viva desde un `.pulso` guardado
+
+Pedido de Gonzalo: «la idea es que la cascada siempre sea en vivo y dinámica, no
+que el preview no funcione».
+
+Resultaron ser **dos** bloqueos encadenados, no uno.
+
+### 1. El contexto transitorio no se podía rehidratar
+
+`calc_muestra_aulas_criterios_contexto` es `cache_stripped` porque lleva la tabla
+atómica estudiante × CH: se borra al guardar y no vuelve. Medido: los pasos de
+**curso-horario no la necesitan** —`preview_aula_flag` lee `aula_frame`, `values`
+y `composition`— y las tres cifras que sí venían de ella (`eligible_n` y las
+señales de composición) el marco las publica como columnas.
+
+`.cm_criterios_contexto_desde_marco()` reconstruye el contexto sin la tabla; el
+router lo usa cuando el contexto falta. Los pasos de alumno se declaran
+`sin_recuento` y la raíz publica `alumnos_vivos = FALSE`, en vez de correr sobre
+`eligible_n = NA` —donde el mínimo habría dejado pasar a todos en silencio—.
+
+### 2. Un rótulo vacío apagaba el recorrido entero
+
+Con el contexto ya rehidratable, el front **seguía sin pedir el preview**. La
+causa estaba mucho antes: `normalizeCalcMuestraCriteriosI18bBundle` devolvía
+`invalid: ["anchors"]`, y como el bundle es todo-o-nada caían con las anclas los
+totales y la cascada, dejando `previewRequest` nulo.
+
+Medido sobre HSVG26DEF: `periodo` llegaba **vacío en la raíz y en las 260 filas**
+—la referencia de asistencia está cargada sin etiqueta de periodo— y `text()`
+trata la cadena vacía como INVALID. Todos los demás campos exigidos estaban
+completos en las 260 filas.
+
+`periodo` es un rótulo, no una identidad: la identidad es `reference_hash`. Pasa
+a leerse con `optionalLabel()`, que admite vacío.
+
+### Verificado en la app, con el `.pulso` guardado
+
+| | Antes | Después |
+|---|---|---|
+| bundle I18b | `invalid: ["anchors"]` | `complete` |
+| `previewRequest` | nulo | emitido |
+| barra de estado | «Los criterios cambiaron — el marco vigente ya no los refleja» | «El recorrido de cursos-horario ya refleja tus criterios. Los criterios de estudiante son los del último marco construido» |
+| aviso de la lista | «Esta lista es la del último marco construido» | «El embudo de arriba ya refleja tus criterios; esta lista todavía no» |
+
+Y contra el motor, desde el `.pulso` guardado: `solo TEÓRICO → 3.448`,
+`solo TALLER → 258`, `solo SEMINARIO → 121`, contra 4.095 de la config guardada.
+La cascada rehidratada reproduce exactamente el total del marco construido
+(4.095), que es la comprobación de que no inventa cifras.
