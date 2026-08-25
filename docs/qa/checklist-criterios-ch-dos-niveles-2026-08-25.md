@@ -242,3 +242,38 @@ rango declarado**. Medido con el motor: `ARTE Y DISEÑO` con rango 1–5 y clave
 
 Reparado dentro de `.cm_criterios_eval_course_ranges()`, que es por donde pasan
 los tres consumidores. Regresión en el mismo archivo de tests (17 asserts).
+
+## Los dos relojes de la pantalla
+
+El embudo por facultad **sí** es vivo cuando hay preview: `useCascadePreview`
+publica `cascadaViva` y los «llegan a este criterio» cuentan el borrador antes de
+recalcular. La lista de cursos-horario **nunca** lo es: sale del `aula_frame`
+ejecutado y siempre va un recálculo por detrás. Con preview vivo, la misma
+pantalla enseña una barra con el criterio nuevo y, a tres centímetros, una lista
+que ese criterio ya descartó.
+
+El aviso de la lista distingue ahora los dos casos: con preview vivo dice que el
+embudo va adelantado y la lista no; sin él, que ambos son del último marco.
+
+### Verificado sobre HSVG26DEF abierto desde disco
+
+El preview **no está vivo**: el motor exige que el marco se haya construido en
+la sesión y el contexto transitorio se borra al guardar
+(`router_calc_muestra_criterios.R:107`). Medido en pantalla: el aviso sale con la
+redacción de «sin preview».
+
+**Hueco que queda abierto**: en ese estado no aparece ningún «preview bloqueado».
+`previewBloqueado` sólo se puebla con `status === "stale"`, y aquí el estado
+nunca llega a stale, así que el embudo cae a la cascada ejecutada **en silencio**
+y la barra muestra el aviso genérico de `marcoDesactualizado`. Mientras eso siga
+así, la regla fiable es la de Gonzalo: **confirmar → recalcular → mirar →
+decidir**.
+
+### Los tres canales por facultad, probados contra el motor
+
+| Canal | Estado |
+|---|---|
+| `exceptions[fac]` con base vacía y op `replace` | ✅ recorta sólo en su facultad; las demás pasan |
+| `exceptions[fac]` con op `exenta` | ✅ exime a su facultad, no libra a las demás |
+| `minEligible.byFaculty` sin umbral general | ✅ **reparado en esta tanda** |
+| `courseLevelRanges[fac]` con clave legada | ✅ **reparado en esta tanda** |
