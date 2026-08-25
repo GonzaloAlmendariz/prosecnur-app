@@ -131,9 +131,13 @@ test_that("cascada ejecutada usa inventario dinamico y reconcilia el ultimo paso
   # cascada EJECUTADA siempre es TRUE: se construyó con la tabla delante.
   expect_named(cascade, c(
     "schema", "owner", "source_frame_hash", "criteria_hash", "momento",
-    "grain", "unit", "order_source", "alumnos_vivos", "steps"
+    "grain", "unit", "order_source", "alumnos_vivos", "descartadas", "steps"
   ))
   expect_true(cascade$alumnos_vivos)
+  # `descartadas` nombra los CH que el BORRADOR descarta y el marco construido
+  # incluye. En la cascada ejecutada está vacío por definición: ahí el marco ya
+  # es el resultado, no hay borrador del que separarse.
+  expect_length(cascade$descartadas, 0L)
   expect_identical(cascade$schema, "calc_muestra_aulas_criterios_cascada_v1")
   expect_identical(cascade$owner, "calc_muestra_aulas_frame_v1.criterios_cascada")
   expect_identical(cascade$source_frame_hash, frame$frame_hash)

@@ -107,6 +107,14 @@ export type CalcMuestraCriteriosCascada = {
    * `sin_recuento`. Ausente en payloads anteriores ⇒ se asume `true`.
    */
   alumnos_vivos: boolean;
+  /**
+   * `classroom_id` de los cursos-horario que el marco CONSTRUIDO incluye y el
+   * borrador ya no. La lista del marco sale del `aula_frame` ejecutado y no
+   * tiene forma de saber cuáles descarta el borrador: contar no basta para
+   * dejar de enseñarlos, y reevaluar los criterios aquí sería tener la regla en
+   * dos sitios. La identidad la publica quien decide. Vacío en la ejecutada.
+   */
+  descartadas: string[];
   grain: "paso_x_facultad_efectiva";
   unit: "curso_horario_unico";
   order_source: "motor_r";
@@ -658,6 +666,9 @@ export function normalizeCalcMuestraCriteriosCascada(
     // que es como se comportaba el preview cuando sólo existía con el marco
     // construido en la sesión.
     alumnos_vivos: source.alumnos_vivos !== false,
+    descartadas: (Array.isArray(source.descartadas) ? source.descartadas : [])
+      .map((id) => (typeof id === "string" ? id.trim() : ""))
+      .filter((id) => id.length > 0),
     grain,
     unit,
     order_source: orderSource,
