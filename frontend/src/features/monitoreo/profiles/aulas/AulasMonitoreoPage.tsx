@@ -318,10 +318,16 @@ function DataTable({
   empty,
   preferredColumns = [],
   maxColumns = 8,
+  totalReal,
 }: {
   rows: Array<Record<string, unknown>>;
   empty: string;
   preferredColumns?: string[];
+  /**
+   * El total del motor cuando el payload viene topeado, para que el pie divida
+   * por el plan y no por lo que cupo en la respuesta. Ver `recorteTabla`.
+   */
+  totalReal?: number;
   /**
    * Cuántas columnas caben. Por defecto ocho, y lo que sobra hasta ocho lo
    * rellena el payload en su propio orden — que es como la tabla de brechas
@@ -373,7 +379,12 @@ function DataTable({
   // si el recorte dejara fuera justo la que pasa de 1, la misma columna se
   // formatearía distinto según cuántas filas quepan.
   const enProporcion = escalaDeProporciones(rows);
-  const recorteFilas = recorteTabla(rows.map((row) => presentAulasRow(row, enProporcion)), 400);
+  const recorteFilas = recorteTabla(
+    rows.map((row) => presentAulasRow(row, enProporcion)),
+    400,
+    "fila",
+    totalReal,
+  );
   const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   // Sobre las filas ya presentadas y ya recortadas: son las que se pintan.
   const cifras = columnasDeCifra(recorteFilas.visibles, columns);
@@ -1724,6 +1735,11 @@ function renderAulasView(
           rows={aulaRows}
           empty="Todavía no hay respuestas que atribuir a un curso-horario."
           preferredColumns={["operational_code", "faculty", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
+          // El plan entero, no lo que cupo en el payload. `course_status` llega
+          // topeado a 500 filas y el pie decía «Mostrando 400 de 500» sobre un
+          // plan de 3.409: quien lo leía creía que faltaban 100. `totalAulas`
+          // ya traía el dato bueno acá al lado, sin que nadie lo usara.
+          totalReal={totalAulas}
         />
       </section>
       )}
