@@ -387,7 +387,22 @@ calc_muestra_aulas_default_config <- function() {
       exclude_modality_patterns = as.list(c("virtual", "remoto", "online", "distancia", "asincron")),
       exclude_session_patterns = list(),
       excluded_faculties = list(),
-      min_eligible_per_class = 15L
+      # **Sin criterios declarados, elegibles = universo.** Este default era 15 y
+      # recortaba el marco de un proyecto recien creado sin que nadie lo
+      # decidiera: medido con las bases 2026, 3.491 de 5.269 cursos-horario, y
+      # el recorte cae desigual —Artes Escenicas 45 de 440, Posgrado 173 de 811,
+      # EE.GG. Ciencias 486 de 507—. Justo lo que un minimo GLOBAL le hace a una
+      # facultad chica.
+      #
+      # Y contradice la metodologia de la casa, que documenta el minimo de
+      # elegibles como decision POR FACULTAD, no global. La maquinaria ya
+      # existe: cada facultad declara su «minimo propio» en la radiografia
+      # (`test-calc-muestra-aulas-min-elegibles-por-facultad.R`). Un default
+      # global se le adelantaba y decidia por ella en silencio.
+      #
+      # 1 y no 0 porque `.cm_aulas_int` lo acota con `max(1L, …)`: un aula sin
+      # ningun elegible no es un aula.
+      min_eligible_per_class = 1L
     ), .cm_criterios_default_filters()),
     selector = list(
       seed = 20260619L,
