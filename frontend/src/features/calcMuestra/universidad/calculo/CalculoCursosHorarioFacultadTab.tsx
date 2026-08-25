@@ -32,6 +32,7 @@ export function CalculoCursosHorarioFacultadTab({
   escenario,
   onEscenario,
   marcoDesactualizado = false,
+  marcoComprobado = true,
   certeza = null,
   certezaEnCurso = false,
   onMedirCerteza,
@@ -42,6 +43,9 @@ export function CalculoCursosHorarioFacultadTab({
   escenario: UniversityAulasScenario;
   onEscenario: (escenario: UniversityAulasScenario) => void;
   marcoDesactualizado?: boolean;
+  /** ¿Ya se consultó el estado de aulas? `false` = todavía no lo sabemos, que
+   *  NO es lo mismo que «no hay marco». Ver el aviso de abajo. */
+  marcoComprobado?: boolean;
   certeza?: CalcMuestraAulasCerteza | null;
   certezaEnCurso?: boolean;
   onMedirCerteza?: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
@@ -161,7 +165,13 @@ export function CalculoCursosHorarioFacultadTab({
       data-qa-geometry-contract="intrinsic"
     >
       <SinDecisionAlumnosChAviso filas={filasSinDecision} />
-      {resultadoDesactualizado && (
+      {/* «No existe un marco vigente» sólo se dice cuando SE PREGUNTÓ. Sin
+          `marcoComprobado`, `aulasState` es null porque la página todavía no
+          respondió, no porque falte el marco — y la vista afirmaba la ausencia
+          igual. Gonzalo lo leyó con el marco construido y las 179 aulas ya
+          calculadas: «sigo sin entender si estamos en el .pulso definitivo».
+          Mientras no se sabe, no se afirma nada. */}
+      {resultadoDesactualizado && (marcoComprobado || marcoDesactualizado || frameHashVigente) && (
         <AvisoModulo tone="warn" role="status">
           {marcoDesactualizado
             ? "Los criterios del marco cambiaron después del cálculo. Reconfirma Alumnos por CH y recalcula antes de publicar este plan."
