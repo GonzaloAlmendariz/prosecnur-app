@@ -887,8 +887,12 @@ mount_calc_muestra <- function(pr) {
             catalogo_curso_horario = tablas$catalogo_curso_horario,
             config = config
           ),
+          # La firma viaja al job: a escala real SIEMPRE se construye por aqui,
+          # asi que firmar solo en la via sincrona era firmar solo los marcos de
+          # juguete.
           on_complete = .cm_aulas_construir_on_complete(
-            sid, s$calc_muestra_referencia_asistencia
+            sid, s$calc_muestra_referencia_asistencia,
+            sources_used = .cm_aulas_sources_signature(body)
           )
         )
         return(list(ok = TRUE, mode = "job", job_id = job_id, input_rows = input_rows))
