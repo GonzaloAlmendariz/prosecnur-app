@@ -250,14 +250,12 @@ export function CalculoCursosHorarioFacultadTab({
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>
         <div className="cmv2-calc-confirm-copy">
           <strong>{estado.vigente ? "Cursos-horario requeridos confirmados" : "Cursos-horario requeridos pendientes de confirmación"}</strong>
-          {/* «A coordinar» era falso: las reservas son cupos dimensionados del
-              plan, no visitas que se agenden (Gonzalo, 2026-08-21: «ojo, las
-              aulas de reserva no se coordinan así»). Se dicen por separado. */}
-          <span>
-            {fmtInt(model.aulasBaseTotal)} titulares
-            {model.aulasExtraTotal > 0 && <> y {fmtInt(model.aulasExtraTotal)} de reserva</>} según el
-            resultado vigente.
-          </span>
+          {/* Sólo titulares. Antes decía «y N de reserva» y ese N era el cupo
+              retirado del panel: un fijo de 1 por facultad que no consumía
+              nadie. Dejarlo aquí reintroducía por la puerta de atrás el número
+              que la tabla dejó de mostrar, y encima en la frase que describe lo
+              que se está firmando. */}
+          <span>{fmtInt(model.aulasBaseTotal)} titulares según el resultado vigente.</span>
           {/* Qué hace confirmar, porque no se adivina: Gonzalo supuso que
               desbloqueaba algo («me imagino que si le das a confirmar el plan,
               eso permitiría marcar cuántas aulas»). No abre ninguna puerta —el
