@@ -229,6 +229,11 @@ export function SalidasEntregablesTab({
     <div
       className="cmv2-sal-stack"
       // Declarada para que el gate visual pueda auditarla.
+      // Y la readiness con ella: sin `[data-audit-ready]` el puente responde
+      // `sin-marca-de-readiness` y la pestaña queda SIN MEDIR, que no es lo
+      // mismo que conforme. `true` al montar: los entregables se piden desde
+      // aquí, la vista no espera nada para pintarse.
+      data-audit-ready="true"
       data-qa-geometry-group="calc-muestra/salidas-entregables"
       data-qa-geometry-contract="intrinsic"
     >
