@@ -1,0 +1,213 @@
+# Checklist — Criterios de curso-horario: el nivel global se retira
+
+Tipo: Checklist QA
+Estado: En curso
+Fecha: 2026-08-25
+Autoridad: Documento vivo de la tanda; sólo Gonzalo lo da por cerrado
+
+Pestaña `marco-ch-radiografia` («Cursos-horario: criterios + radiografía»),
+sección Marco del desk universitario de `calc-muestra`.
+Rama de trabajo: `trabajo/criterios-ch-dos-niveles`, sobre
+`rescate/graficos-lote-nueve` (f6c0df52).
+
+## Qué se reportó y qué se midió
+
+Gonzalo, 2026-08-25 sobre `HSVG26DEF.pulso`: la pantalla apila
+`CriteriosMarcoTab scope="aula"` (regla común) y `CursosHorarioMarcoTab`
+(excepciones por facultad) con dos encabezados del mismo nivel. Esperaba sólo el
+bloque por facultad y temió que los criterios hubieran dejado de aplicarse por
+facultad.
+
+Medido en pantalla, viewport 1440×1000, proyecto real con marco construido:
+
+| Medida | Valor |
+|---|---|
+| Alto del bloque global (`calc-muestra/criterios`) | **5.040 px** (~8,4 pantallas de 599 px) |
+| Barras de acción idénticas en la misma pantalla | **2** (`.cmv2-crit-apply`, mismo texto y mismo botón) |
+| Tarjetas del bloque global que no declaran nada | **6 de 8** («no filtra» / «sin filtro») |
+| Controles interactivos dentro del `<button>` de recálculo | **15**, aplastados a 36 px con `overflow:hidden` |
+| Scroll total de la pestaña | 17.832 px |
+
+**El hallazgo que decide el rumbo**: el ADR 0057 (aceptada, 2026-08-02), regla 1,
+dice literal «**Todos los criterios son por facultad. No existe el criterio
+general.**» El bloque global lo reintrodujo el commit `878916dd` — con motivo
+legítimo: el preset HST 2025 dejaba cuatro variables de curso pendientes sin
+superficie que las confirmara. La reparación correcta no es rotular mejor ese
+bloque, sino devolver esa capacidad al bloque por facultad y retirarlo.
+
+Decisión de Gonzalo en esta sesión: **retirar el nivel global**, y reparar los
+tres defectos verificados.
+
+## Ítems
+
+| # | Indicación | Dónde vive | Estado |
+|---|---|---|---|
+| 1 | Retirar el montaje `CriteriosMarcoTab scope="aula"` de la pestaña | `UniversidadDesk.tsx:680` | **hecho** — verificado: 1 barra de acción (era 2), scroll 12.783 px (era 17.832) |
+| 2 | El preset HST 2025 sigue disponible y confirmable **en esta pestaña** | `CursosHorarioMarcoTab.tsx` barra de acción | **hecho** — visible, 390×28, fuera de todo `<button>` |
+| 3 | `enrolled_total` no queda huérfano | — | **cerrado sin tocar código**: G40 ya lo había retirado a propósito («su decisión la toma Mínimo de alumnos elegibles, que sí tiene valor por facultad»). Retirar el bloque global *restaura* esa decisión |
+| 4 | `SaludCriteriosCard` viaja a la pestaña de aula | `CursosHorarioMarcoTab.tsx` | **hecho** — no pinta en este proyecto porque devuelve `null` sin filas (C5 categoría 1, vacío legítimo) |
+| 5 | `FacultadesExcluidasCard` sale de dentro del `<button>` | `CursosHorarioMarcoTab.tsx` | **hecho** — 0 controles interactivos dentro del botón (eran 15) |
+| 6 | La tabla «Por facultad» alinea sus columnas (`subgrid`) | `criterios.css` | **hecho, NO verificable en pantalla** — ver «consecuencia» abajo |
+| 7 | El estado de fila deja de imprimir la etiqueta cruda | `TipoSesionPorFacultad.tsx` | **hecho, NO verificable en pantalla** — ver «consecuencia» abajo |
+| 8 | La tarjeta de facultades excluidas se veía tosca al quedar a la vista | `criterios.css` | **hecho** — 0 nombres truncados (eran 2), padding propio, casilla fija, pie con filo |
+
+## Consecuencia que exige decisión de Gonzalo
+
+`TipoSesionPorFacultad` —la tabla de los ítems 6 y 7— **sólo se montaba dentro de
+`CriterioCard`, y `CriterioCard` sólo lo renderizaba el bloque global**. Al
+retirar el bloque, esa tabla se queda sin punto de montaje: es la vista «las 17
+facultades a la vez para el criterio de tipo de sesión».
+
+Las reparaciones 6 y 7 están hechas y son correctas, pero hoy no se ven en
+pantalla. Lo que cubre esa lectura ahora:
+
+- `MatrizEmbudoCriterios` («cada criterio, lo que quita en cada facultad»),
+- el Panorama por facultad (tabla de 17 filas).
+
+**Decisión pendiente**: o la vista por-criterio×facultad de tipo de sesión se
+remonta en la sección por facultad, o se retira el componente con su historia
+(precedente: `ExcepcionesFacultad`, conservado sin montaje). No se decide aquí.
+
+## Segunda deuda declarada
+
+Con el bloque global fuera, **el set base (`categories`) deja de ser editable a
+mano**: el bloque por facultad sólo escribe `exceptions[fac]` con op `replace`.
+Hoy el base se puede fijar por el preset HST 2025 (que sigue en la pestaña) o
+viene del proyecto guardado. En HSVG26DEF hay al menos un criterio con base
+propia: **Modalidad, «1 de 4 · ~4.630 cursos-horario»**.
+
+Es la cara práctica de lo que el ADR 0057 regla 1 declara: si ningún criterio es
+general, el base es vestigial y toda facultad debería declarar el suyo. La
+alternativa —una fila «Todas las facultades» encabezando las quince sobre el
+mismo eje— era la opción B y no se eligió. Queda como decisión abierta.
+
+## Auditoría de capacidad previa al retiro (gate 3 de la casa)
+
+Qué vivía **sólo** en el bloque global y dónde queda:
+
+| Capacidad | Destino |
+|---|---|
+| `PresetCanonicoButton` (HST 2025) | ítem 2 — a la barra de acción de esta pestaña |
+| Tarjeta `enrolled_total` (kind `numeric`) | ítem 3 — al cierre `CursosHorarioBaseGlobal` |
+| `SaludCriteriosCard` | ítem 4 — a esta pestaña, que es donde se deciden los criterios de aula |
+| `MinElegiblesCard` global | ya existe por facultad (`minEligible.byFaculty`); G33 lo había retirado por duplicar |
+| `CriterioComposicionCard` | ya se renderizaba **dos veces**; queda la del cierre por facultad |
+| Confirmar/descartar por variable | `confirmarTodo()` + `confirmadorDe(id)` ya cubren cualquier pendiente |
+| `TeacherTypeOrden` («Orden de jerarquía») | **se me pasó en la primera vuelta**; lo encontró el `verificador`. Ver abajo |
+| `CondicionCursoAviso` | **se me pasó**; pérdida latente. Ver abajo |
+
+### Lo que esta auditoría NO vio a la primera
+
+Escribí «ninguna capacidad se pierde en silencio» y era **falso**. El gate
+independiente lo midió en pantalla:
+
+- **`TeacherTypeOrden`** — su único proveedor de callback era
+  `CriteriosMarcoTab:564`, dentro de la rama `showAula`. Al retirar el montaje
+  de aula, `.cmv2-crit-ttorden` pasó de 1 a **0** y **ninguna superficie de la
+  app escribía ya `aulas_config.teacher_type_orden`**, valor que el motor sí lee
+  (`universidad/shared/frame.ts:99-103,180`). No es un criterio —no incluye ni
+  excluye a nadie—: es la regla con la que el motor elige el docente de mayor
+  rango de cada curso-horario (`teacher_type_top`). **Reparado**: se remonta en
+  `CursosHorarioBaseGlobal`, el cierre de reglas que el motor aplica igual a
+  todas las facultades. Verificado en pantalla: `.cmv2-crit-ttorden` = **1**.
+- **`CondicionCursoAviso`** (`CriterioCard:252`, único montaje) — aviso de
+  cobertura «N de M cursos-horario sin dato de condición». No se observa en
+  HSVG26DEF porque no llega al umbral del 30%, así que la pérdida es **latente**.
+  **Pendiente de decisión**: remontarlo junto al criterio de condición del curso
+  en el bloque por facultad, o retirarlo con su historia.
+
+La lección: una auditoría de capacidad hecha leyendo el componente que se retira
+no ve lo que ese componente **pasaba como prop** a sus hijos. Se mide contando
+en pantalla antes y después, que es lo que hizo el gate.
+
+## Por qué `enrolled_total` no se borra
+
+El ADR 0057 regla 1 lo nombra explícitamente («el mínimo de matriculados es el
+criterio 1»), así que su destino correcto es tener variante **por facultad**. Hoy
+no puede tenerla: `exceptions[fac]` sólo transporta `categories`, y el único
+umbral por facultad que el contrato admite es `minEligible.byFaculty`. Darle
+variante propia exige cambio de contrato React↔R y su ADR. Hasta entonces se
+conserva declarado como regla sin variante por facultad, junto a la composición,
+que está exactamente en la misma situación.
+
+**Deuda declarada**: `enrolled_total` por facultad, pendiente de ADR.
+
+## Restricciones respetadas
+
+- No se cambió el orden ni la semántica del motor.
+- No se pisó el borrador sin commitear de `CriteriosMarcoTab.tsx` (props
+  `borradorExterno`/`onBorrador`/`pendientesExternas`/`onPendientes`), que vive
+  en el worktree principal. Este trabajo **no toca** ese archivo.
+- El QA se hizo con marco construido; sin marco la pantalla cae al fallback.
+
+
+## Abierto tras el gate (2026-08-25)
+
+| # | Qué | Estado |
+|---|---|---|
+| 9 | `CondicionCursoAviso` sin punto de montaje (latente) | decisión pendiente |
+| 10 | `TipoSesionPorFacultad` sin punto de montaje; los ítems 6-7 arreglan una superficie que hoy no se ve | decisión pendiente |
+| 11 | El set base (`categories`) deja de ser editable a mano; en HSVG26DEF **Modalidad** tiene base propia («1 de 4 · ~4.630 CH») | decisión pendiente |
+| 12 | El rótulo dice «N variables pendientes» contando las de estudiante, en una pantalla que sólo muestra criterios de curso | por reparar |
+| 13 | `SaludCriteriosCard` quedó montada en las dos pestañas; con este proyecto devuelve `null`, así que sólo la respalda el typecheck | por verificar con un proyecto que tenga `salud_criterios` con filas |
+| 14 | Ningún test fija el bug de `878916dd` ni detecta superficies muertas: 1514 tests antes y después | por escribir |
+
+### Observado por Gonzalo, fuera de esta tanda
+
+| # | Qué | Estado |
+|---|---|---|
+| 15 | **«Nivel del curso» enseña otro número**: su tarjeta rotula «Elegibles por curso-horario según nivel del curso» y dibuja la distribución de elegibles, no la de niveles. Con el criterio sin rango sólo hay una categoría («Todos los niveles»), así que el boxplot no reparte por nivel — que es lo que el título promete | **sin diagnosticar** |
+| 16 | **Cursos-horario de 1 alumno elegible siguen listados en Ingeniería** pese al mínimo de elegibles. En la captura hay «1 variable pendiente de confirmar», así que la hipótesis primera es que la lista describe el marco construido y no el criterio pendiente — pero **no está verificado** | **sin diagnosticar** |
+
+## Segunda unidad de trabajo — el mínimo por facultad se descartaba (motor R)
+
+Distinta de la de composición; se commitea aparte.
+
+`.cm_criterios_normalize_seleccion()` se reparó **hoy** para conservar
+`minEligible = {byFaculty: {...}}` sin `threshold` (la app manda el general sólo
+cuando el usuario lo cambia). Sus **tres** consumidores repetían la guarda vieja
+`!is.finite(threshold)` y reemplazaban el objeto entero por uno con
+`byFaculty = list()`: la normalización salvaba los mínimos propios y el
+evaluador los tiraba tres líneas después, **sin aviso**.
+
+| Sitio | Efecto |
+|---|---|
+| `calc_muestra_aulas_criterios.R:1561` | la construcción del marco ignora los mínimos por facultad |
+| `calc_muestra_aulas_criterios_cascada.R:648` | el embudo vivo evalúa otro umbral que el marco |
+| `calc_muestra_aulas_criterio_radiografia.R:896` | las cifras de la tarjeta («quedan fuera») ídem |
+
+**Reparado** con un helper único, `.cm_criterios_min_elig_con_fallback()`, y la
+razón de exclusión (`min_eligible`) pasa a atribuirse también cuando el criterio
+del usuario es un mínimo por facultad sin umbral general.
+
+Regresión: `api/tests/testthat/test-calc-muestra-min-elegibles-por-facultad.R`
+(9 asserts). **Calibrada contra el artefacto roto**: con la lógica vieja pasan
+5 de 5 aulas —incluida una de 1 elegible frente a un mínimo de 20— en vez de 2.
+
+### Precisión sobre las 333 aulas de Ingeniería
+
+Medí 333 aulas incluidas con <20 elegibles y dije que **no** era marco viejo.
+Era una afirmación de más: lo que probé es que el defecto de código existe, no
+que causara ese estado. El marco de HSVG26DEF está construido **antes** de
+declararse los criterios de curso-horario —la propia cabecera dice «criterios
+cambiados · reconstruye»—, así que esas 333 se explican por el marco desfasado.
+
+Lo que sí sostiene la medición: `minEligible` está guardado como
+`{threshold: NA, byFaculty: {ciencias_e_ingenieria: 20}}`, y **con el código
+anterior una reconstrucción habría vuelto a dejarlas dentro**, porque `byFaculty`
+se descartaba y el umbral efectivo caía a 1. El arreglo es lo que hace que la
+próxima reconstrucción respete el mínimo de 20.
+
+### Gate de esta unidad
+
+- Suites R de criterios: de 10 fallos a 5; los 5 restantes
+  (`test-http-contract-calc-muestra-criterios-preview.R`, un `500` del que
+  cuelgan los otros 4) son **idénticos en el commit base f6c0df52**, verificado
+  en un worktree desechable.
+
+## Abierto, reportado por Gonzalo
+
+| # | Qué | Estado |
+|---|---|---|
+| 15 | «Nivel del curso» rotula «Elegibles por curso-horario según nivel del curso» y dibuja elegibles, no niveles. El título es una plantilla fija (`CriterioFacultadRadiografia.tsx:195`); sin rango declarado hay una sola categoría («Todos los niveles»), así que no reparte por nivel | **diagnosticado, sin reparar** |
+| 16 | `AulasFinalesCard` lista lo que el marco **construido** marcó `included`, no lo que dicen los criterios pendientes: se excluye a mano sobre una lista que va a cambiar. Gonzalo: «de todas formas no debería pasar». Falta que la superficie declare que describe el marco vigente | **diagnosticado, sin reparar** |

@@ -678,37 +678,33 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("marco-ch-radiografia") && <div id="cmv2-local-marco-ch-radiografia">
-              {/* **Los criterios de curso-horario, que no tenían dónde declararse.**
-                  `CriteriosMarcoTab` soporta los dos alcances desde que se escribió
-                  —`scope: "alumno" | "aula"`, con su `showAula` y su filtro por
-                  `v.scope === "aula"`— pero el único punto de montaje de toda la app
-                  pasaba `scope="alumno"`. El bloque de aula era código sin ruta.
-                  Medido el 2026-08-25 sobre las bases reales de HSVG 2026: «Partir de
-                  los criterios de un estudio anterior (HST 2025)» precarga SIETE
-                  variables; se confirman las cinco del estudiante y las cuatro de
-                  curso —modalidad, tipo de sesión, tipo de docente y condición del
-                  curso— quedaban contadas como «4 variables pendientes de confirmar»
-                  sin superficie que las confirmara. La confirmación es variable a
-                  variable (`copiarVariableCriterio`), así que sin botón no salían
-                  nunca del borrador.
-                  El coste no era cosmético: esos cuatro criterios retiran 277, 465 y
-                  103 cursos-horario en el diseño del estudio. Sin ellos el marco se
-                  quedaba en 4.111 elegibles en vez de 2.616, y el cálculo pedía 403
-                  aulas donde la metodología pide 190.
-                  Va aquí, encima de la radiografía, porque ése es el orden real:
-                  primero la regla común de curso, debajo sus excepciones por
-                  facultad. */}
-              <CriteriosMarcoTab
-                scope="aula"
-                workspace={syncedWorkspace}
-                aulasState={aulasState}
-                facultades={motor.perfil.facultades.map((f) => f.nombre)}
-                onWorkspace={onWorkspace}
-                onReconstruir={() => void onSourceBuild(syncedWorkspace)}
-                puedeReconstruir={puedeReconstruirMarco && !busy}
-                reconstruyendo={Boolean(busy)}
-                onNavigate={onNavigate}
-              />
+              {/* **Aquí NO va un bloque de criterios «generales» de curso.**
+                  Lo hubo: `878916dd` montó `CriteriosMarcoTab scope="aula"` encima
+                  de la radiografía porque el preset HST 2025 precarga las variables
+                  de curso —modalidad, tipo de sesión, tipo de docente, condición—
+                  y quedaban contadas como «pendientes de confirmar» sin superficie
+                  que las confirmara. El problema era real; la solución trajo consigo
+                  una segunda superficie de criterios.
+                  Medido el 2026-08-25 sobre HSVG26DEF con marco construido: ese
+                  bloque ocupaba 5.040 px —unas ocho pantallas— antes de la primera
+                  facultad, repetía la barra de acción entera (dos «Calcular
+                  población y cursos-horario elegibles» idénticos en la misma
+                  pantalla) y seis de sus ocho tarjetas no declaraban nada («no
+                  filtra» / «sin filtro»), porque las decisiones de este estudio se
+                  toman por facultad. Gonzalo leyó el bloque de arriba como una
+                  regresión: que los criterios habían dejado de aplicarse por
+                  facultad.
+                  Y sobre todo contradecía el ADR 0057 regla 1, aceptada: «Todos los
+                  criterios son por facultad. No existe el criterio general.» Es la
+                  misma superficie que G40 ya había retirado de
+                  `CursosHorarioBaseGlobal` por esa razón.
+                  La capacidad que `878916dd` necesitaba NO se pierde: el preset vive
+                  ahora en la barra de acción de `CursosHorarioMarcoTab` —el mismo
+                  componente cuyo `confirmarTodo()` puede confirmarlo, que es lo que
+                  faltaba— junto con la salud de criterios y la única regla de curso
+                  que hoy no admite variante por facultad (`enrolled_total`, en el
+                  cierre `CursosHorarioBaseGlobal`). El detalle está en
+                  `docs/qa/checklist-criterios-ch-dos-niveles-2026-08-25.md`. */}
               <CursosHorarioMarcoTab
                 workspace={syncedWorkspace}
                 aulasState={aulasState}

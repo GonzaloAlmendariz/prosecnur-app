@@ -149,6 +149,9 @@ arquitectura canónica.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [Checklist de los criterios de curso-horario y su nivel global](qa/checklist-criterios-ch-dos-niveles-2026-08-25.md):
+  por qué la pestaña apilaba dos superficies de criterios, qué se midió antes de
+  retirar la global y las capacidades que hubo que reubicar.
 - [El XLSForm final ignora los overrides en `label::es`](qa/bug-xlsform-final-label-es-sin-overrides.md):
   defecto abierto; el instrumento exportado se contradice con la base de datos.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
