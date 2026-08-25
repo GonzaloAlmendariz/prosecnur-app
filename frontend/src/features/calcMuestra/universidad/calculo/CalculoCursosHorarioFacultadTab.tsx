@@ -188,15 +188,21 @@ export function CalculoCursosHorarioFacultadTab({
           </div>
         </div>
 
+        {/* UN solo total, y es el que viaja. El panel publicaba además un
+            «cupo de reserva» y un «CH del plan» que NADIE consumía —ni la
+            selección, ni las cadenas, ni el banco de extras, ni Monitoreo— y
+            que encima se calculaban con un fijo de 1 por facultad mientras el
+            rótulo prometía «la mitad de los titulares». Los targets del sorteo
+            salen de `aulas_base` (afijacionTargets.ts), así que ese total era
+            una cuarta magnitud decorativa justo donde importa distinguir la
+            muestra de la sobremuestra. */}
         <div className="cmv2-ch-kpis" data-qa-geometry-group="calc-muestra/cursos-horario-totales" data-qa-geometry-contract="equal">
-          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Los cursos-horario que el sorteo intenta primero: se visitan sí o sí."><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
-          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Cupos adicionales dimensionados por la regla del diseño (la mitad de los titulares, redondeando arriba): se activan si un titular cae."><span>{fmtInt(model.aulasExtraTotal)}</span><small>CH de reserva</small></div>
-          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title={`El plan dimensiona ${fmtInt(model.aulasBaseTotal)} titulares y ${fmtInt(model.aulasExtraTotal)} de reserva. Se agendan los titulares; las reservas entran cuando una cae.`}><span>{fmtInt(model.aulasTotal)}</span><small>CH del plan = {fmtInt(model.aulasBaseTotal)} titulares + {fmtInt(model.aulasExtraTotal)} reserva</small></div>
+          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Los cursos-horario que hay que visitar: el sorteo reparte exactamente estos por facultad. Las aulas de reemplazo no se cuentan aquí; las construye la selección en cadenas por titular."><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
         </div>
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
-            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Con cuántos de los sorteos posibles esos titulares alcanzan la cuota de la facultad. El número de titulares sale de la fórmula, que apunta al centro; esta columna dice qué garantía compra. Sale de la certeza de cobertura: si no se ha medido sobre el marco vigente, lo dice.">Probabilidad de cumplir</th><th title="Cupo de reserva que el plan presupuesta para esta facultad: la mitad de sus titulares, redondeada hacia arriba. NO es el número de aulas de reemplazo que el sorteo construye: esas son las cadenas R1, R2… y son muchas más (en HSVG2026, 6 de cupo contra 69 encadenadas en ARQUITECTURA). Las cadenas viven en Selección → Reemplazos.">Cupo de reserva</th><th>Del plan</th></tr></thead>
+            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Con cuántos de los sorteos posibles esos titulares alcanzan la cuota de la facultad. El número de titulares sale de la fórmula, que apunta al centro; esta columna dice qué garantía compra. Sale de la certeza de cobertura: si no se ha medido sobre el marco vigente, lo dice.">Probabilidad de cumplir</th></tr></thead>
             <tbody>
               {model.filas.map((fila) => (
                 <tr key={fila.estrato}>
@@ -208,7 +214,7 @@ export function CalculoCursosHorarioFacultadTab({
                     const t = Number((fila as Record<string, unknown>).tau);
                     return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1).replace(".", ",")} %` : "—";
                   })()}</td>
-                  <td>{fmtInt(fila.aulas_base)}</td>
+                  <td className="cmv2-ch-tabla-final"><strong>{fmtInt(fila.aulas_base)}</strong></td>
                   {/* **Nunca en blanco ni con un guion.** Un cupo sin auditar y
                       un cupo con probabilidad baja son cosas distintas, y el
                       guion las volvía la misma. Si no está medida sobre el
@@ -220,8 +226,6 @@ export function CalculoCursosHorarioFacultadTab({
                       return `${(p * 100).toFixed(0)} %`;
                     })()}
                   </td>
-                  <td>{fmtInt(fila.aulas_reemplazo)}</td>
-                  <td className="cmv2-ch-tabla-final"><strong>{fmtInt(fila.aulas_total)}</strong></td>
                 </tr>
               ))}
             </tbody>
