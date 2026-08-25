@@ -121,6 +121,24 @@
   }
 }
 
+# Firma de las fuentes con las que se construyó un marco: por rol, el `file_id`
+# y la hoja que el cliente mandó. Se guarda en el marco para que la vista pueda
+# decir «esto es del marco anterior» sin reconstruirlo.
+#
+# Solo roles con `file_id`: una tabla mandada inline no tiene identidad estable y
+# firmarla con un valor inventado daría un desfase fantasma en cada build.
+.cm_aulas_sources_signature <- function(body) {
+  roles <- c("base_madre", "estudiantes", "inscripciones", "catalogo_curso_horario")
+  out <- list()
+  for (rol in roles) {
+    fid <- calc_str(body[[paste0(rol, "_file_id")]] %||% body[[paste0(rol, "FileId")]], "")
+    if (!nzchar(fid)) next
+    hoja <- calc_str(body[[paste0(rol, "_sheet")]] %||% body[[paste0(rol, "Sheet")]], "")
+    out[[rol]] <- list(file_id = fid, sheet = hoja)
+  }
+  out
+}
+
 .cm_table_from_payload <- function(sid, body, key) {
   direct <- body[[key]] %||% NULL
   if (!is.null(direct)) return(.cm_aulas_as_df(direct, key))
@@ -889,6 +907,22 @@ mount_calc_muestra <- function(pr) {
           stop_api(400, "E_CALC_MUESTRA_AULAS_FRAME", conditionMessage(e))
         }
       )
+      # El marco FIRMA con qué fuentes se construyó.
+      #
+      # Sin esto, subir bases nuevas no invalida nada de lo derivado: la banda de
+      # KPIs seguía diciendo «UNIVERSO DE ESTUDIANTES 29,090 · marco vigente» y
+      # Consistencia «136,284 filas leídas» —cifras de la base del año anterior—
+      # mientras el Explorador, en la MISMA sección, leía el archivo nuevo y
+      # decía 137,919. Dos pestañas contando el mismo archivo distinto.
+      #
+      # Y lo grave no es el tamaño del desfase sino lo pequeño que puede ser:
+      # medido con las bases 2026 de HSVG, lo viejo y lo nuevo se diferencian en
+      # 63 estudiantes y 6 cursos-horario. Nadie lo nota mirando.
+      #
+      # La firma son los `file_id` y las hojas que el cliente mandó a construir.
+      # El cliente conoce los suyos actuales, así que puede comparar y declarar
+      # el desfase sin reconstruir nada.
+      frame$sources_used <- .cm_aulas_sources_signature(body)
       frame <- .cm_criterios_frame_guardar(
         sid, frame, s$calc_muestra_referencia_asistencia
       )
