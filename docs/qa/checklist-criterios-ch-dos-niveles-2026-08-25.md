@@ -209,5 +209,36 @@ próxima reconstrucción respete el mínimo de 20.
 
 | # | Qué | Estado |
 |---|---|---|
-| 15 | «Nivel del curso» rotula «Elegibles por curso-horario según nivel del curso» y dibuja elegibles, no niveles. El título es una plantilla fija (`CriterioFacultadRadiografia.tsx:195`); sin rango declarado hay una sola categoría («Todos los niveles»), así que no reparte por nivel | **diagnosticado, sin reparar** |
-| 16 | `AulasFinalesCard` lista lo que el marco **construido** marcó `included`, no lo que dicen los criterios pendientes: se excluye a mano sobre una lista que va a cambiar. Gonzalo: «de todas formas no debería pasar». Falta que la superficie declare que describe el marco vigente | **diagnosticado, sin reparar** |
+| 15 | «Nivel del curso» rotula «Elegibles por curso-horario según nivel del curso» y dibuja elegibles, no niveles | **reparado** |
+| 16 | `AulasFinalesCard` lista lo que el marco **construido** marcó `included`, no lo que dicen los criterios pendientes: se excluye a mano sobre una lista que va a cambiar. Gonzalo: «de todas formas no debería pasar» | **reparado** |
+
+
+## Tercera unidad — el rótulo que prometía otro desglose y la lista sin fecha
+
+- **«Nivel del curso» enseñaba otra cosa.** `CriterioFacultadRadiografia.tsx`
+  rotulaba siempre «Elegibles por curso-horario según X», incluso cuando X no
+  reparte: con el criterio sin rango declarado la única fila es «Todos los
+  niveles» y el boxplot no separa por nivel ninguno. Ahora el «según X» sale
+  sólo cuando hay más de una categoría. Verificado en pantalla: las dos tarjetas
+  visibles de Ingeniería (`minEligible` y `course_level`) tienen **1 segmento**,
+  así que ninguna promete desglose.
+- **La lista final no decía de cuándo era.** `AulasFinalesCard` sale del
+  `aula_frame` construido; con criterios cambiados enseñaba cursos que esos
+  criterios ya descartan y dejaba apagarlos a mano. Declara ahora que es la foto
+  del último marco y avisa de que el recálculo va a cambiarla.
+
+## Cuarta unidad — un rango de nivel por facultad con clave legada borraba la facultad
+
+Auditando «¿puedo aplicar criterios específicos por facultad sin problema?»
+apareció el mismo patrón que el mínimo, en el tercer sitio que el ADR 0080
+nombra pero nadie cubría: `crit$exceptions` y `minEligible$byFaculty` pasan por
+`.cm_aulas_canonizar_claves()`; **`courseLevelRanges` no**.
+
+El efecto no era «el rango se ignora». Como el mapa NO está vacío el criterio sí
+se aplica, el bucle no encuentra ningún par que decida y devuelve `FALSE`: la
+facultad entera sale del marco, **incluidas las aulas cuyo nivel está dentro del
+rango declarado**. Medido con el motor: `ARTE Y DISEÑO` con rango 1–5 y clave
+`arte_y_dise_no` dejaba fuera un aula de nivel 3.
+
+Reparado dentro de `.cm_criterios_eval_course_ranges()`, que es por donde pasan
+los tres consumidores. Regresión en el mismo archivo de tests (17 asserts).

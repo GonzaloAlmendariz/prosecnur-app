@@ -191,8 +191,20 @@ export function CriterioFacultadRadiografia({
                 preposición: leídas seguidas, parecen la misma sección repetida.
                 Cada una se nombra por lo que muestra. */}
             <span>Distribución por categoría</span>
-            {/* «Dato de R» nombra de dónde sale el número, no qué es. */}
-            <strong>Elegibles por curso-horario según {card.label.toLocaleLowerCase("es-PE")}</strong>
+            {/* «Dato de R» nombra de dónde sale el número, no qué es.
+                «según X» sólo cuando X reparte de verdad. Con una sola categoría
+                el título prometía un desglose que no ocurre: en «Nivel del curso»
+                sin rango declarado la única fila es «Todos los niveles», y la
+                cabecera anunciaba «Elegibles por curso-horario según nivel del
+                curso» sobre un boxplot que no separa por nivel ninguno.
+                Reportado por Gonzalo el 2026-08-25: «Nivel de curso me muestra
+                otra cosa». El número siempre fue el correcto; el rótulo prometía
+                otro. */}
+            <strong>
+              {visibleRows.length > 1
+                ? `Elegibles por curso-horario según ${card.label.toLocaleLowerCase("es-PE")}`
+                : "Elegibles por curso-horario"}
+            </strong>
           </div>
           <span className="cmv2-crc-compact-state">{card.state === "v2" ? "vigente" : card.state.replace("_", " ")}</span>
         </header>

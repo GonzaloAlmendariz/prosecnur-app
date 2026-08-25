@@ -13,6 +13,7 @@ import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import type { CriteriosSeleccionMarco } from "../../../../api/client";
 import type { AulaFinal } from "../../dominio/criteriosImpacto";
 import { fmtInt } from "../../sharedCore";
+import { AvisoModulo } from "../shared/AvisoModulo";
 import { Switch } from "../criterios/Switch";
 import { aulaExcluida, contarExcluidas, reactivarTodas } from "../criterios/aulasFinalesModel";
 
@@ -32,6 +33,7 @@ export function AulasFinalesCard({
   facLabel,
   onToggle,
   onReactivarTodas,
+  marcoDesactualizado = false,
 }: {
   /**
    * Asistencia histórica del marco, para estimar presentes por curso-horario.
@@ -47,6 +49,12 @@ export function AulasFinalesCard({
   onToggle: (classroomId: string, excluida: boolean) => void;
   /** Reactiva todos los apagados de esta facultad (claves en text_key). */
   onReactivarTodas: (clavesTextKey: string[]) => void;
+  /**
+   * El marco vigente ya no refleja los criterios declarados. La lista sale de
+   * ese marco, así que cuando es true lo que se ve es una foto anterior a los
+   * criterios de ahora y hay que decirlo antes de que alguien apague a mano.
+   */
+  marcoDesactualizado?: boolean;
 }) {
   // ADR 0057 · Este es el «mayor detalle, ver uno por uno» que cierra el embudo
   // de la facultad: es su destino, no un anexo. Plegado medía 50 px y exigía un
@@ -120,6 +128,24 @@ export function AulasFinalesCard({
           <p className="cmv2-chfp-selecciona-nota">
             Todos entran por defecto; apaga los cursos-horario de {facLabel} que no quieras en el marco.
           </p>
+          {/* C1 · La lista describe el MARCO CONSTRUIDO, no el borrador.
+              `aulasSupervivientesFacultad` filtra por `included` del último
+              `aula_frame`, así que con criterios cambiados sin recalcular
+              enseña cursos que esos criterios ya descartan. Medido el
+              2026-08-25 sobre HSVG26DEF: Ingeniería listaba 899 cursos-horario
+              con laboratorios y seminarios dentro porque el marco vigente se
+              construyó antes de declararse los criterios de curso-horario.
+              Gonzalo estuvo apagándolos a mano —«de todas formas no debería
+              pasar»— sobre una lista que el recálculo iba a cambiar sola. La
+              superficie no puede impedir el recálculo, pero sí decir de cuándo
+              es lo que enseña. */}
+          {marcoDesactualizado ? (
+            <AvisoModulo tone="warn" role="status" compact>
+              Esta lista es la del último marco construido. Tus criterios cambiaron:
+              al recalcular, varios de estos cursos-horario saldrán solos y apagarlos
+              ahora puede ser trabajo perdido.
+            </AvisoModulo>
+          ) : null}
           <div className="cmv2-aulas-finales-toolbar">
             <span className="cmv2-aulas-finales-search">
               <Search size={13} aria-hidden="true" />
