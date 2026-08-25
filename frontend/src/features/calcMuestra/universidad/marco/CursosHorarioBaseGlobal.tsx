@@ -26,6 +26,7 @@ export function CursosHorarioBaseGlobal({
   recorteComposicion,
   sinSenalComposicion,
   confirmador,
+  ordenJerarquia,
 }: {
   config: CalcMuestraWorkspaceAulasConfig;
   onPatchConfig: (patch: Partial<CalcMuestraWorkspaceAulasConfig>) => void;
@@ -52,6 +53,17 @@ export function CursosHorarioBaseGlobal({
   sinSenalComposicion?: (criterioId: string) => number | null;
   /** G41 · El confirmador de la composición, como el de cualquier criterio. */
   confirmador?: ReactNode;
+  /**
+   * Orden de jerarquía del tipo de docente. NO es un criterio —no incluye ni
+   * excluye a nadie—: es la regla con la que el motor elige el docente de mayor
+   * rango de cada curso-horario (`teacher_type_top`), y la aplica igual a todas
+   * las facultades. Por eso vive en este cierre y no en el bloque de una.
+   *
+   * Llegó aquí al retirarse el bloque de criterios generales: era su único
+   * punto de montaje en toda la app y, sin él, ninguna superficie escribía
+   * `aulas_config.teacher_type_orden`, que el motor sí lee.
+   */
+  ordenJerarquia?: ReactNode;
 }) {
   return (
     <div
@@ -73,6 +85,7 @@ export function CursosHorarioBaseGlobal({
         sinSenalDe={sinSenalComposicion}
         confirmador={confirmador}
       />
+      {ordenJerarquia}
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
   normalizeCalcMuestraAulasCriteriosRadiografia,
   normalizeCalcMuestraAulasExploracion,
   normalizeCalcMuestraAulasParticularidades,
+  normalizeCalcMuestraSaludCriterios,
   normalizeCriteriosCatalogo,
   type CalcMuestraAulasState,
   type CalcMuestraWorkspace,
@@ -57,6 +58,10 @@ import {
 } from "../criterios/borradorCriterios";
 import type { FacultadRef } from "../criterios/facultades";
 import { FacultadesExcluidasCard } from "../criterios/FacultadesExcluidasCard";
+import { PresetCanonicoButton } from "../criterios/PresetCanonicoButton";
+import type { PresetCanonicoPlan } from "../criterios/presetCanonicoModel";
+import { SaludCriteriosCard } from "../criterios/SaludCriteriosCard";
+import { TeacherTypeOrden } from "../criterios/TeacherTypeOrden";
 import type { FacultadMinRef } from "../criterios/MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criterios/minElegiblesModel";
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
@@ -106,6 +111,14 @@ export function CursosHorarioMarcoTab({
   const catalogo = useMemo(
     () => normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null),
     [aulasState?.frame?.criterios_catalogo],
+  );
+  /* Qué criterios de AULA no pueden evaluarse sobre el marco vigente. Su sitio
+     es esta pestaña —la que decide criterios de curso-horario—, no la del
+     estudiante: la tarjeta habla de columnas de aula sin señal. Llegó aquí al
+     retirarse el bloque de criterios generales, que era donde se renderizaba. */
+  const saludCriterios = useMemo(
+    () => normalizeCalcMuestraSaludCriterios(aulasState?.salud_criterios ?? null),
+    [aulasState?.salud_criterios],
   );
   const integridadFrame = useMemo(
     () => frameIntegrity(aulasState?.frame),
@@ -170,6 +183,11 @@ export function CursosHorarioMarcoTab({
   );
   const sessionVariable = useMemo(() => aula.find((v) => v.id === "session_type") ?? null, [aula]);
   const rangeVariable = useMemo(() => aula.find((v) => v.kind === "range") ?? null, [aula]);
+  /* El tipo de docente, para su orden de jerarquía. No entra por `aulaToggle`
+     —eso son las categorías que se incluyen o excluyen— sino por el cierre
+     común: el orden decide qué docente representa al curso-horario, no quién
+     entra al marco. */
+  const teacherVariable = useMemo(() => aula.find((v) => v.id === "teacher_type") ?? null, [aula]);
   const variablesPorFacultadIds = useMemo(
     () => [
       ...aulaToggle.map((variable) => variable.id),
@@ -343,6 +361,20 @@ export function CursosHorarioMarcoTab({
     setBorrador(seleccion);
     setBorradorComposicion({});
     setPendientes(new Set());
+  }
+
+  /**
+   * Precarga del preset canónico (HST 2025) sobre el borrador de ESTA pestaña.
+   *
+   * Nada se confirma ni llega al marco: deja el borrador y las pendientes, y
+   * quien las cierra es `confirmarTodo` —o el confirmador de cada criterio—.
+   * Vive aquí porque el borrador es local: precargarlo en un componente y
+   * confirmarlo en otro es exactamente lo que dejaba las variables de curso
+   * atrapadas en «pendientes de confirmar» sin salida.
+   */
+  function precargarPreset(plan: PresetCanonicoPlan) {
+    setBorrador(plan.seleccion);
+    setPendientes(new Set(plan.pendientes));
   }
 
   /*
@@ -872,6 +904,21 @@ export function CursosHorarioMarcoTab({
                 </button>
               </div>
             ) : null}
+            {/* El preset vive aquí desde que esta pestaña dejó de tener encima un
+                bloque de criterios «generales» (ver `UniversidadDesk`). Tiene que
+                estar en ESTE componente y no en otro: `precargarPreset` escribe
+                sobre el borrador local, y el único botón que puede confirmarlo
+                después es el `Confirmar cambios` de arriba, que lee ese mismo
+                borrador. Separarlos es lo que dejaba variables precargadas sin
+                forma de salir del borrador. */}
+            {ready ? (
+              <PresetCanonicoButton
+                catalogo={catalogo}
+                seleccion={seleccion}
+                borradoresSinConfirmar={totalPendientes}
+                onPrecargar={precargarPreset}
+              />
+            ) : null}
             <button
               type="button"
               className="cmv2-crit-apply-btn"
@@ -895,20 +942,35 @@ export function CursosHorarioMarcoTab({
                 ) : (
                   <RefreshCw size={15} aria-hidden="true" />
                 )}
-      {/* Las exclusiones gobiernan qué facultades aparecen en los bloques de
-          abajo: van PRIMERO (pedido textual de Gonzalo, 2026-08-20; antes
-          vivía en criterios de estudiante, donde no pertenecía). */}
-      <FacultadesExcluidasCard
-        config={config}
-        facultades={facRefs}
-        onPatch={patchAulasConfig}
-      />
                 Calcular población y cursos-horario elegibles
               </span>
             </button>
           </div>
         </div>
       )}
+
+      {/* Las exclusiones gobiernan qué facultades aparecen en los bloques de
+          abajo: van PRIMERO (pedido textual de Gonzalo, 2026-08-20; antes
+          vivía en criterios de estudiante, donde no pertenecía).
+          Estaba escrita DENTRO del `<span>` del botón de recalcular, es decir
+          dentro del propio `<button>`. Medido el 2026-08-25 sobre HSVG26DEF: la
+          tarjeta entera —15 controles interactivos— quedaba encerrada en una caja
+          de 772×36 px con `overflow:hidden`, el nombre accesible del botón pasaba
+          a ser «Facultades excluidas No participan del estudio…» en vez de la
+          acción, y cualquier click sobre una casilla disparaba el recálculo del
+          marco en vez de excluir la facultad. La tarjeta que debía ir primero era
+          la menos alcanzable de la pantalla. */}
+      <FacultadesExcluidasCard
+        config={config}
+        facultades={facRefs}
+        onPatch={patchAulasConfig}
+      />
+
+      {/* Va ANTES del estado vacío a propósito: cuando el catálogo no está, el
+          aviso de que un criterio no puede filtrar es justo lo que explica por
+          qué. Un criterio sin señal deja pasar a todos y eso NO es lo mismo que
+          uno que se midió y no recortó. */}
+      <SaludCriteriosCard salud={saludCriterios} />
 
       {!ready ? (
         <div className="cmv2-crit-empty">
@@ -1057,6 +1119,15 @@ export function CursosHorarioMarcoTab({
                           evidenciaComposicion={evidenciaComposicion}
                           recorteComposicion={recorteDe}
                           sinSenalComposicion={sinSenalDe}
+                          ordenJerarquia={
+                            teacherVariable ? (
+                              <TeacherTypeOrden
+                                variable={teacherVariable}
+                                orden={config.teacher_type_orden}
+                                onOrden={patchTeacherTypeOrden}
+                              />
+                            ) : null
+                          }
                         />
                       }
                     />
