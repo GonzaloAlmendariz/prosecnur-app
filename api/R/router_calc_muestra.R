@@ -848,6 +848,16 @@ mount_calc_muestra <- function(pr) {
         body$config %||% s$calc_muestra_aulas_config %||% list(), body
       )
       config <- calc_muestra_aulas_normalize_config(config_input)
+      # El multiplicador por facultad, sellado desde el histórico ANTES de
+      # construir: el marco anota `factor_facultad` dentro de
+      # `calc_muestra_aulas_construir()`, que no recibe la referencia. Sellarlo
+      # después sería tarde y el factor se quedaría en 1 —que es justo lo que
+      # pasaba: medido el 2026-08-25, `efectividad` era NULL en los seis
+      # `.pulso` del repo y las quince facultades dimensionaban con la misma
+      # tasa. Ver calc_muestra_aulas_efectividad_sello.R.
+      config <- calc_muestra_aulas_sellar_efectividad(
+        config, s$calc_muestra_referencia_asistencia %||% NULL
+      )
       # Las lecturas de payload también fallan con stop() crudo (tabla
       # malformada, hoja inexistente): dentro del tryCatch se traducen al
       # mismo 400 accionable en vez de filtrarse como 500 E_INTERNAL. Un
