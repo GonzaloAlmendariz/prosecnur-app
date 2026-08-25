@@ -168,7 +168,19 @@ export function ResumenDiseno({
   // una afirmación, y aquí no consta de qué bases salió. Se dice lo que se
   // sabe. Un marco construido desde este contrato firma siempre, así que la
   // frase desaparece en cuanto se reconstruye.
-  const procedenciaDesconocida = correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
+  //
+  // `frame != null` es la mitad que faltaba: en un proyecto SIN marco esta nota
+  // salía igual —«no consta de qué bases salió» sobre un estudio recién creado
+  // donde no hay nada que constar— y tapaba la nota correcta, que es «sin
+  // construir · calcula elegibles». Sólo se pregunta por la procedencia de algo
+  // que existe.
+  // «Hay marco» se mide por sus filas de entrada, no por `frame != null`: en un
+  // proyecto en blanco `frame` llega como objeto vacío, no como null, y la nota
+  // salía igual sobre un estudio donde no hay nada cuya procedencia constar.
+  // Es la misma prueba que usa `universidadTabs` para decidir si hay marco.
+  const hayMarco = frameAuditNumber(frame, "input_rows") > 0;
+  const procedenciaDesconocida =
+    hayMarco && correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
   const notaDeFuentes = fuentesCambiaron
     ? "otras bases cargadas · reconstruye"
     : procedenciaDesconocida
