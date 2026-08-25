@@ -50,6 +50,7 @@ import {
 } from "./CriterioFacultadRadiografia";
 import type { CriterioRadiografiaCard } from "./criteriosRadiografiaModel";
 import { resumenDecisionFacultad, type FacultadBloque } from "./facultadDecisionModel";
+import { contarExcluidas } from "../criterios/aulasFinalesModel";
 
 /**
  * G41 · Lo que el motor sabe del criterio que se está decidiendo: cuántos
@@ -676,7 +677,6 @@ export function FacultadDecisionBloque({
   onToggleAula,
   onReactivarAulas,
   marcoDesactualizado,
-  embudoVivo,
   sinPlegado,
   slotApertura,
   slotCierre,
@@ -710,8 +710,6 @@ export function FacultadDecisionBloque({
   onReactivarAulas: (clavesTextKey: string[]) => void;
   /** El marco vigente ya no refleja los criterios: la lista final lo declara. */
   marcoDesactualizado?: boolean;
-  /** El embudo de esta facultad va con el borrador (preview vivo). */
-  embudoVivo?: boolean;
   /** F41 · Se muestra una sola facultad: nada que plegar. */
   sinPlegado?: boolean;
   /** ADR 0057 · Criterio que abre el embudo (matriculados / población). */
@@ -996,7 +994,14 @@ export function FacultadDecisionBloque({
               onToggle={onToggleAula}
               onReactivarTodas={onReactivarAulas}
               marcoDesactualizado={marcoDesactualizado}
-              embudoVivo={embudoVivo}
+              /* Cuántas de las que la lista enseña ya no pasan el borrador. Se
+                 compara contra las ACTIVAS: las que el analista apagó a mano ya
+                 están descontadas en las dos cifras. */
+              desfasadas={
+                cierreDelRecorrido
+                  ? Math.max(0, (aulasFinales.length - contarExcluidas(seleccion, aulasFinales.map((a) => a.classroomKey))) - cierreDelRecorrido.quedan)
+                  : null
+              }
             />
             <CierreDelRecorrido
               {...(cierreDelRecorrido ?? { quedan: null, universo: null })}
