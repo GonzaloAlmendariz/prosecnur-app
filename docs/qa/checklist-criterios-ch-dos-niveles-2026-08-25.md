@@ -327,7 +327,7 @@ Y contra el motor, desde el `.pulso` guardado: `solo TEÓRICO → 3.448`,
 La cascada rehidratada reproduce exactamente el total del marco construido
 (4.095), que es la comprobación de que no inventa cifras.
 
-## Ruta 2 (releer la base para el recuento de estudiantes) — medida, no implementada
+## Ruta 2 (releer la base para el recuento de estudiantes) — IMPLEMENTADA
 
 Pedido: recuperar también el recuento de estudiantes releyendo la base.
 **Es viable y está medido**; lo que la desaconseja hoy no es la técnica sino el
@@ -384,3 +384,54 @@ Bloquear plumber 57 s no es opción, así que iría como job `callr`.
 es (a) extraer la etapa de filas a archivo propio y bajar la línea base del
 congelado, (b) job `callr` de ~57 s, (c) adoptar el contexto sólo si el
 `frame_hash` reconstruido coincide con el guardado.
+
+
+## Ruta 2, hecha
+
+Lo que la desaconsejaba era el precio (186 s) y que el seam caía en un archivo
+congelado. Las dos cosas se resolvieron.
+
+**El seam.** Se extrae la cola del build —pasos 5 a 8, los agregados que un
+`.pulso` guardado YA trae— a `calc_muestra_aulas_construir_cola.R`, y
+`construir()` gana `solo_criterios = TRUE`, que para en el paso 4, donde la
+tabla atómica ya existe. El archivo congelado BAJA (4661 antes de añadir el
+corte; 4673 después, contra 4705 de línea base), así que el gate sigue verde sin
+subir el techo.
+
+| | s |
+|---|---|
+| build completo | 186,2 |
+| **`solo_criterios = TRUE`** | **59,7** |
+
+**La paridad.** El gate del refactor es que el marco no cambie:
+`frame_hash` reconstruido = `e432bc731dad9890…` = el guardado. **Idéntico.**
+
+**La operación.** `.cm_criterios_rehidratar_contexto()` compone los agregados
+del marco guardado con la tabla atómica releída, y **rechaza** el resultado si
+los `classroom_id` no coinciden con el marco: si la base cambió, no se publica
+un contexto que describe otro universo. Va como job `callr` porque plumber es
+monohilo.
+
+**Verificado end-to-end**, HTTP y UI, sobre HSVG26DEF:
+
+| | |
+|---|---|
+| job | `done` en ~70 s, `adoptado: true` |
+| segunda llamada | `ya_vivo` |
+| preview tras rehidratar | `alumnos_vivos: TRUE`, los cuatro criterios de alumno pasan de `sin_recuento` a `aplicado` |
+| total final | 4.095 — el mismo del marco construido |
+| UI | el botón «Recuperar el recuento de estudiantes (~1 min)» aparece sólo cuando hace falta, y **desaparece** al terminar |
+
+No se dispara solo: es un minuto de CPU y sólo hace falta al decidir un criterio
+de alumno, así que se ofrece y se explica en vez de gastarlo por si acaso.
+
+### Dos trampas que costaron una vuelta
+
+- `roxygen2::roxygenise("api")` creó `api/man/` (992 archivos, no versionados) y
+  además dejaba el NAMESPACE con **+339/−34**: el commiteado está
+  desincronizado. Se revirtió y se borró el artefacto. Los jobs NO necesitan
+  export —`calc_muestra_aulas_construir_job` tampoco lo tiene—, así que el
+  `@export` sobraba. **Deuda declarada**: el NAMESPACE del repo no reproduce lo
+  que roxygen generaría.
+- `job_progress_writer()` no acepta `force`; pasárselo mata el worker de `callr`
+  con un error que sólo se ve en el snapshot del job.

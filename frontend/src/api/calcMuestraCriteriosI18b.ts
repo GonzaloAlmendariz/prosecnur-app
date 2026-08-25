@@ -1054,6 +1054,31 @@ export type CalcMuestraCriteriosPreviewResponse = {
   preview: CalcMuestraCriteriosCascada;
 };
 
+/**
+ * Pide recuperar el recuento de ESTUDIANTES releyendo la base.
+ *
+ * El recorrido de curso-horario ya vive desde el marco guardado; el efecto de un
+ * criterio de alumno exige la tabla atómica, que no viaja en el `.pulso`. El
+ * backend la relee con las fuentes que el marco firma y verifica el resultado
+ * contra ese marco antes de adoptarlo. Va como job: medido sobre HSVG26DEF, ~70 s.
+ *
+ * `ya_vivo` cuando la sesión ya tiene la tabla y no hay nada que releer.
+ */
+export async function apiCalcMuestraCriteriosRehidratar(): Promise<
+  { mode: "ya_vivo" } | { mode: "job"; jobId: string }
+> {
+  const response = await handle<{ ok: true; mode: string; job_id?: string }>(
+    await apiFetch("/api/calc-muestra/marco/criterios/rehidratar", {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: "{}",
+    }),
+  );
+  return response.mode === "job" && response.job_id
+    ? { mode: "job", jobId: response.job_id }
+    : { mode: "ya_vivo" };
+}
+
 export async function apiCalcMuestraCriteriosPreview(
   input: CalcMuestraCriteriosPreviewInput,
   options: { signal?: AbortSignal } = {},

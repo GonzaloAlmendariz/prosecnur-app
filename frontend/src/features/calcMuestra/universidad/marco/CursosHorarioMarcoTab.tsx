@@ -82,6 +82,8 @@ import { useCriteriosI18bSurface } from "./useCriteriosI18bSurface";
 import { aporteGlobalDeCard } from "./CriterioFacultadRadiografia";
 import type { CriterioFacultadEvidence } from "./CriterioFacultadRadiografia";
 import { useCascadePreview } from "./CriteriosEmbudoVivo";
+import { apiCalcMuestraCriteriosRehidratar } from "../../../../api/calcMuestraCriteriosI18b";
+import { apiJobStatus } from "../../../../api/jobs";
 import { construirMatrizCascada } from "./matrizCascadaModel";
 import { MatrizCascadaCriterios } from "./MatrizCascadaCriterios";
 import { MatrizEmbudoCriterios } from "./MatrizEmbudoCriterios";
@@ -108,6 +110,9 @@ export function CursosHorarioMarcoTab({
   reconstruyendo?: boolean;
   onNavigate?: (section: string, tab?: string) => void;
 }) {
+  /* Se incrementa al recuperar el recuento de estudiantes: el contexto cambia en
+     el servidor y el borrador no, así que hay que pedir el preview otra vez. */
+  const [recargaContexto, setRecargaContexto] = useState(0);
   const catalogo = useMemo(
     () => normalizeCriteriosCatalogo(aulasState?.frame?.criterios_catalogo ?? null),
     [aulasState?.frame?.criterios_catalogo],
@@ -511,6 +516,7 @@ export function CursosHorarioMarcoTab({
       borrador,
       filtersPayload,
       previewEnabled: totalPendientes > 0 || marcoDesactualizado,
+      nonce: recargaContexto,
     },
     radiografiaV2?.frame_hash ?? null,
     radiografiaV2,
@@ -553,6 +559,43 @@ export function CursosHorarioMarcoTab({
    * puede recalcular sin la tabla atómica, que no viaja en el `.pulso`.
    */
   const alumnosVivos = cascadaViva?.alumnos_vivos !== false;
+  /* Recuperar el recuento de estudiantes releyendo la base. El backend lo hace
+     en un job (~70 s medidos) y verifica lo releído contra el marco antes de
+     adoptarlo; aquí sólo se dispara y se espera. */
+  const [rehidratando, setRehidratando] = useState(false);
+  const [rehidratarError, setRehidratarError] = useState<string | null>(null);
+  async function recuperarRecuentoAlumnos() {
+    if (rehidratando) return;
+    setRehidratando(true);
+    setRehidratarError(null);
+    try {
+      const inicio = await apiCalcMuestraCriteriosRehidratar();
+      if (inicio.mode === "job") {
+        // El job vive fuera de React: se pregunta hasta que termina. Un fallo se
+        // dice; el recorrido de curso-horario sigue vivo mientras tanto.
+        for (;;) {
+          await new Promise((r) => setTimeout(r, 3000));
+          const estado = await apiJobStatus(inicio.jobId);
+          if (estado.status === "done") break;
+          if (estado.status === "error" || estado.status === "cancelled") {
+            setRehidratarError(
+              typeof estado.error === "string" && estado.error
+                ? estado.error
+                : "La relectura no pudo completarse.",
+            );
+            return;
+          }
+        }
+      }
+      // Con la tabla atómica en sesión, el siguiente preview ya trae los pasos
+      // de alumno vivos: se fuerza pidiéndolo de nuevo.
+      setRecargaContexto((n) => n + 1);
+    } catch (e) {
+      setRehidratarError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRehidratando(false);
+    }
+  }
   /** …y hay otro recálculo en camino, así que la cifra aún no es la del umbral. */
   const previewRecalculando = previewCascada?.status === "ready" &&
     previewCascada.recalculando === true;
@@ -896,7 +939,7 @@ export function CursosHorarioMarcoTab({
                      curso-horario son del borrador y los de alumno son los del
                      marco construido. Decirlo es lo que impide que la pantalla
                      tenga dos relojes y sólo uno a la vista. */
-                  : "El recorrido de cursos-horario ya refleja tus criterios. Los criterios de estudiante son los del último marco construido: para verlos aplicados, recalcula."
+                  : "El recorrido de cursos-horario ya refleja tus criterios. Los criterios de estudiante son los del último marco construido."
                 : "Los criterios cambiaron — el marco vigente ya no los refleja. Recalcula para actualizarlo."
               : "El marco está al día con los criterios confirmados.";
 
@@ -936,6 +979,31 @@ export function CursosHorarioMarcoTab({
                 después es el `Confirmar cambios` de arriba, que lee ese mismo
                 borrador. Separarlos es lo que dejaba variables precargadas sin
                 forma de salir del borrador. */}
+            {/* El recuento de estudiantes se recupera releyendo la base. No se
+                hace solo: es ~1 min de CPU y sólo hace falta cuando se está
+                decidiendo un criterio de alumno, así que se ofrece y se explica
+                en vez de gastarlo por si acaso. */}
+            {ready && !alumnosVivos && marcoConstruido ? (
+              <button
+                type="button"
+                className="cmv2-crit-preset-btn"
+                onClick={() => void recuperarRecuentoAlumnos()}
+                disabled={rehidratando}
+                title={
+                  rehidratarError ??
+                  "Vuelve a leer la base con las fuentes que firma el marco para que los criterios de estudiante también respondan al borrador"
+                }
+              >
+                {rehidratando ? (
+                  <Loader2 size={14} className="pulso-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw size={14} aria-hidden="true" />
+                )}
+                {rehidratando
+                  ? "Releyendo la base…"
+                  : "Recuperar el recuento de estudiantes (~1 min)"}
+              </button>
+            ) : null}
             {ready ? (
               <PresetCanonicoButton
                 catalogo={catalogo}
