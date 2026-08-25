@@ -104,6 +104,7 @@ import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
+import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import { railDeAulas } from "./railDeAulas";
 import { parteDeCampo } from "./parteDeCampo";
 import {
@@ -1483,7 +1484,14 @@ function renderAulasView(
   // ? quotaRows : avance_por_estrato`—, y como un estudio de cursos-horario
   // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
   // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
-  const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+  // Por FACULTAD, y dentro de ella por sexo. Venía ordenada por `missing`
+  // descendente, así que las dos celdas de una misma facultad salían separadas
+  // por doce filas y no se podía leer cómo va ninguna. La urgencia sigue: ahora
+  // la que más pide es la FACULTAD que más pide, no la celda suelta.
+  const quotaRows = ordenarPorFacultadYSexo(
+    (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+    (fila) => Number(fila.missing ?? 0),
+  );
   // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
   // doce celdas; con foco, sólo las de esa facultad o ese sexo.
   const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (

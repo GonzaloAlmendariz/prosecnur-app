@@ -69,10 +69,22 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
       </p>
 
       <ul className="aulas-avance-lista">
-        {filas.map((f) => (
-          <li key={f.clave} className="aulas-avance-fila" data-estado={f.estado}>
+        {filas.map((f, i) => {
+          // La facultad es la unidad de lectura, así que se escribe UNA vez por
+          // bloque y las filas siguientes sólo dicen su sexo. Repetirla en las
+          // dos hacía que el ojo leyera treinta entradas sueltas en vez de
+          // quince facultades con dos sexos cada una.
+          const abreGrupo = i === 0 || filas[i - 1].facultad !== f.facultad;
+          return (
+          <li key={f.clave} className="aulas-avance-fila" data-estado={f.estado}
+              data-grupo={abreGrupo ? "inicio" : "sigue"}>
             <span className="aulas-avance-celda">
-              <strong>{f.facultad}</strong> · {f.sexo}
+              {/* El sexo viaja pegado a su separador: suelto, el `·` se quedaba
+                  huérfano al final de la línea cuando el nombre de la facultad
+                  ocupaba las dos. */}
+              {abreGrupo ? <strong>{f.facultad}</strong> : null}
+              {abreGrupo ? " " : null}
+              <span className="aulas-avance-sexo">{abreGrupo ? "· " : ""}{f.sexo}</span>
             </span>
             <span className="aulas-avance-pista" role="img"
                   aria-label={`${f.facultad} ${f.sexo}: ${f.etiqueta}`}>
@@ -89,7 +101,8 @@ export function AulasAvanceProyectado({ celdas }: { celdas?: ReadonlyArray<Celda
               {f.etiquetaCalibracion ? <small>{f.etiquetaCalibracion}</small> : null}
             </span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
