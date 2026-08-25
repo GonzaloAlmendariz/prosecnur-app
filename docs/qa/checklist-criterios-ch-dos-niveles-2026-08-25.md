@@ -326,3 +326,61 @@ Y contra el motor, desde el `.pulso` guardado: `solo TEÓRICO → 3.448`,
 `solo TALLER → 258`, `solo SEMINARIO → 121`, contra 4.095 de la config guardada.
 La cascada rehidratada reproduce exactamente el total del marco construido
 (4.095), que es la comprobación de que no inventa cifras.
+
+## Ruta 2 (releer la base para el recuento de estudiantes) — medida, no implementada
+
+Pedido: recuperar también el recuento de estudiantes releyendo la base.
+**Es viable y está medido**; lo que la desaconseja hoy no es la técnica sino el
+balance.
+
+### Lo que sí funciona
+
+El marco guardado firma sus fuentes (`sources_used`) y los archivos siguen
+resolviendo tras abrir el `.pulso`:
+
+| rol | archivo | resuelve |
+|---|---|---|
+| `base_madre` | 137.919 filas, hoja `Data` | sí |
+| `catalogo_curso_horario` | 22.058 filas, hoja `Data` | sí |
+
+Y la reconstrucción es **exacta**: `calc_muestra_aulas_construir()` con esas
+fuentes y la config guardada devuelve `frame_hash` **idéntico** al del `.pulso`
+(`e432bc731dad9890`), con las 137.919 filas atómicas. O sea, el contexto
+rehidratado sería válido para el marco que la pantalla enseña.
+
+### El costo, por etapa
+
+| paso | s | acum |
+|---|---|---|
+| 1 Leyendo la base | 0,0 | 0,0 |
+| 2 Depurando elegibles | 32,2 | 32,2 |
+| 3 Agrupando cursos-horario | 22,6 | 54,7 |
+| **4 Aplicando criterios del marco** | 2,2 | **57,0** ← aquí ya existe la tabla atómica |
+| 5 Perfilando el marco | 6,9 | 63,9 |
+| 6 Radiografía del marco | 2,7 | 66,5 |
+| 7 Radiografía por criterio y facultad | 67,2 | 133,7 |
+| 8 Impacto del tipo de sesión | 51,4 | 185,1 |
+
+Los pasos 5-8 (128 s, el 69%) producen agregados que el marco guardado **ya
+trae**, así que rehidratar sólo necesita llegar al paso 4: **~57 s**, no 185.
+Bloquear plumber 57 s no es opción, así que iría como job `callr`.
+
+### Por qué no se implementó en esta tanda
+
+1. **El seam está en un archivo congelado.** Cortar en el paso 4 exige un
+   parámetro y un return temprano en `calc_muestra_aulas_construir()`, dentro de
+   `api/R/calc_muestra_aulas.R`, que es congelado a crecimiento **y ya está +36
+   líneas sobre su línea base** (fallo pre-existente del gate, idéntico en el
+   commit base; también `CalcMuestraPage.tsx`, +66). La salida correcta según la
+   regla de la casa es extraer la etapa de filas a un archivo propio, que es un
+   refactor del núcleo del build y pide la suite R completa.
+2. **El balance es débil.** Tras cualquier recálculo el contexto COMPLETO ya
+   queda en sesión (`router_calc_muestra_criterios.R:69`), así que los pasos de
+   estudiante se vuelven vivos solos. La ruta 2 sólo ahorra **una** recálculo en
+   la ventana «acabo de abrir el proyecto y aún no he recalculado» — y el propio
+   flujo de trabajo (confirmar → recalcular → mirar → decidir) pasa por ahí.
+
+**Queda como decisión abierta**, con el terreno ya medido: si se hace, el orden
+es (a) extraer la etapa de filas a archivo propio y bajar la línea base del
+congelado, (b) job `callr` de ~57 s, (c) adoptar el contexto sólo si el
+`frame_hash` reconstruido coincide con el guardado.
