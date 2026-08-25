@@ -643,12 +643,9 @@ calc_muestra_aulas_criterios_totales <- function(context) {
   values <- context$values %||% list()
   faculty_keys <- .cm_criterios_fac_key(values$faculty %||% rep("", n))
   if (identical(id, "minEligible")) {
-    rule <- selection$minEligible
-    if (is.null(rule) || !is.finite(rule$threshold)) {
-      rule <- list(
-        threshold = .cm_criterios_min_eligible_efectivo(cfg), byFaculty = list()
-      )
-    }
+    rule <- .cm_criterios_min_elig_con_fallback(
+      selection$minEligible, .cm_criterios_min_eligible_efectivo(cfg)
+    )
     return(list(
       flag = .cm_criterios_eval_min_eligible(
         membership$eligible_n, faculty_keys, rule
