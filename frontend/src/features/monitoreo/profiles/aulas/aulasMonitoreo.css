@@ -5231,7 +5231,7 @@
   align-items: center;
   gap: 6px;
   margin: 0 0 4px;
-  color: var(--pulso-text-secondary);
+  color: var(--pulso-text-soft);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.01em;
@@ -5251,7 +5251,7 @@
    Ocupa la misma celda de la rejilla para que la fila no se recomponga cuando
    aparezca un segundo medio y la barra vuelva. */
 .mon-profile-page.is-aulas-flow .aulas-medio-solo {
-  color: var(--pulso-text-secondary);
+  color: var(--pulso-text-soft);
   font-size: var(--aulas-txt);
 }
 
@@ -5283,7 +5283,7 @@
    que el hueco es lo accionable de la línea: se marca en el tono de aviso, sin
    pasar a alarma —no anotar todavía no rompe nada, sólo queda pendiente—. */
 .mon-profile-page.is-aulas-flow .aulas-observaciones-hueco {
-  color: var(--pulso-warning-text, var(--pulso-text-secondary));
+  color: var(--pulso-warning-text, var(--pulso-text-soft));
   font-weight: 600;
 }
 
@@ -5318,8 +5318,8 @@
    lee de izquierda a derecha como una decision: quien, cuanto, y que hacer.
    La causa y la calibracion van apagadas: son el porque, no el titular. */
 .mon-profile-page.is-aulas-flow .aulas-avance-titular {
-  margin: 0 0 var(--pulso-space-sm);
-  color: var(--pulso-text-secondary);
+  margin: 0 0 var(--pulso-space-3);
+  color: var(--pulso-text-soft);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-lista {
@@ -5327,25 +5327,58 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--pulso-space-xs);
+  gap: var(--pulso-space-2);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-fila {
   display: grid;
-  grid-template-columns: minmax(9rem, 14rem) minmax(4rem, 1fr) minmax(12rem, 2fr);
-  align-items: center;
-  gap: var(--pulso-space-sm);
+  grid-template-columns: minmax(11rem, 16rem) minmax(4rem, 1fr) minmax(14rem, 2fr);
+  /* `center` centraba una etiqueta de una línea contra un bloque de TRES
+     (titular + causa + calibración), así que la fila parecía flotar y ninguna
+     columna empezaba donde empezaba la de al lado. Alineadas arriba, las tres
+     arrancan en la misma línea de texto y la fila se lee como una fila. */
+  align-items: start;
+  gap: var(--pulso-space-3);
+}
+
+/* La separación entre filas, en DOS niveles, porque la unidad es la facultad y
+   no la celda. El hairline separa facultades; los dos sexos de una misma
+   facultad quedan pegados y sin línea entre ellos, así que el bloque se ve. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila + .aulas-avance-fila {
+  margin-top: var(--pulso-space-1);
+  padding-top: var(--pulso-space-1);
+}
+
+/* Sólo la fila que ABRE facultad lleva separador —y sólo si no es la primera de
+   la lista—. Una regla que se lo pusiera a «la fila que sigue a un inicio» sería
+   justo la contraria: esa fila es el segundo sexo de la MISMA facultad. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila + .aulas-avance-fila[data-grupo="inicio"] {
+  margin-top: var(--pulso-space-3);
+  padding-top: var(--pulso-space-3);
+  border-top: 1px solid var(--pulso-border);
+}
+
+/* La segunda fila del bloque sólo dice «Hombres»: entra bajo el nombre de su
+   facultad para que se lea como parte de ella. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila[data-grupo="sigue"] .aulas-avance-celda {
+  padding-left: var(--pulso-space-3);
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-celda {
-  color: var(--pulso-text-secondary);
+  color: var(--pulso-text-soft);
   font-size: 0.92em;
+}
+
+/* «CIENCIAS E INGENIERIA ·⏎Hombres» dejaba el punto medio huérfano al final de
+   la línea. El sexo viaja pegado a su separador y no se parte. */
+.mon-profile-page.is-aulas-flow .aulas-avance-sexo {
+  white-space: nowrap;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-pista {
   display: block;
   height: 0.5rem;
-  border-radius: var(--pulso-radius-sm);
+  border-radius: 999px;
   /* El canal de la barra. `--pulso-surface-sunken` NO existe -lo escribi de
      memoria- y caia a transparente: el relleno quedaba flotando sin nada contra
      lo que compararse, asi que la barra no decia cuanto falta. Es el mismo mix
@@ -5360,9 +5393,22 @@
   height: 100%;
 }
 
+/* Con la fila alineada arriba, la barra tiene que bajar hasta la línea base del
+   titular: si no, queda colgando del borde superior de la celda. */
+.mon-profile-page.is-aulas-flow .aulas-avance-fila > .aulas-avance-pista {
+  margin-top: 0.42rem;
+}
+
 .mon-profile-page.is-aulas-flow .aulas-avance-dicho {
   display: grid;
   gap: 0.1rem;
+}
+
+/* El titular de la fila es lo único que cambia entre las 19: «faltan 101»,
+   «faltan 36». Con cifras tabulares los números caen en columna y la lista se
+   escanea por la cifra en vez de por la palabra repetida. */
+.mon-profile-page.is-aulas-flow .aulas-avance-dicho > strong {
+  font-variant-numeric: tabular-nums;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-avance-dicho em,

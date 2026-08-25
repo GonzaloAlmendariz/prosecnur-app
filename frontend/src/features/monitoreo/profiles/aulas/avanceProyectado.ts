@@ -1,4 +1,7 @@
 import { fmt } from "./kpisDeAulas";
+// El orden de los sexos es UNO en todo el perfil: si esta lista y la tabla de
+// cuotas lo definieran cada una, acabarían discrepando en cuanto una cambiara.
+import { ORDEN_SEXO } from "./ordenFacultadSexo";
 
 /**
  * El avance por celda facultad × sexo, ordenado por lo que hay que hacer.
@@ -48,9 +51,18 @@ export type FilaAvance = {
 };
 
 /**
- * Orden de urgencia. Primero lo que exige una decisión hoy y al final lo que no
- * se consulta: una lista que abre por lo que está bien obliga a buscar el
- * problema, que es justo lo que una pantalla de campo no puede pedir.
+ * Orden de urgencia **de la facultad**, no de la celda suelta.
+ *
+ * Gonzalo, fijando la unidad de lectura: «la vista prioritaria es siempre por
+ * facultad y en facultad hombre y mujeres, el cruce de ambos no va separado, o
+ * sea no puedo tener hombre de una facultad y mujeres de otra; debe estar
+ * ordenado por facultad y en cada facultad por sexo».
+ *
+ * Ordenar por estado y luego por brecha —que es lo que hacía— partía las
+ * facultades: Derecho·Mujeres salía cuarta y Derecho·Hombres a diez filas de
+ * distancia, así que nadie podía leer cómo va Derecho. La urgencia no se pierde:
+ * pasa a ser de la facultad —manda su celda más urgente y, a igualdad, su brecha
+ * total—, y dentro de ella los dos sexos van siempre juntos y en el mismo orden.
  */
 const ORDEN: Record<string, number> = {
   deficit_no_subsanable: 0,
@@ -110,13 +122,33 @@ export function avanceProyectado(celdas: ReadonlyArray<CeldaAvance> | null | und
       origen: txt(c.previsto_origen),
     };
   });
+  // La facultad es la unidad: se le calcula su urgencia (la de su celda más
+  // urgente) y su brecha total, y con eso compiten entre ellas. Las celdas nunca
+  // compiten sueltas.
+  const urgencia = new Map<string, number>();
+  const brechaTotal = new Map<string, number>();
+  for (const f of filas) {
+    const o = ORDEN[f.estado] ?? 9;
+    urgencia.set(f.facultad, Math.min(urgencia.get(f.facultad) ?? 9, o));
+    brechaTotal.set(f.facultad, (brechaTotal.get(f.facultad) ?? 0) + f.brecha);
+  }
   return filas.sort((a, b) => {
-    const oa = ORDEN[a.estado] ?? 9;
-    const ob = ORDEN[b.estado] ?? 9;
-    if (oa !== ob) return oa - ob;
-    // Dentro del mismo estado manda la brecha: la celda que más pide primero.
-    if (b.brecha !== a.brecha) return b.brecha - a.brecha;
-    return a.clave.localeCompare(b.clave, "es");
+    if (a.facultad !== b.facultad) {
+      const ua = urgencia.get(a.facultad) ?? 9;
+      const ub = urgencia.get(b.facultad) ?? 9;
+      if (ua !== ub) return ua - ub;
+      const ba = brechaTotal.get(a.facultad) ?? 0;
+      const bb = brechaTotal.get(b.facultad) ?? 0;
+      if (bb !== ba) return bb - ba;
+      return a.facultad.localeCompare(b.facultad, "es");
+    }
+    // Dentro de la facultad, el sexo manda y en un orden FIJO: el mismo en las
+    // quince facultades, para que la lista se pueda escanear en vertical. F
+    // antes que M es el orden en que la propia base los sirve.
+    const sa = ORDEN_SEXO[a.sexo] ?? 9;
+    const sb = ORDEN_SEXO[b.sexo] ?? 9;
+    if (sa !== sb) return sa - sb;
+    return a.sexo.localeCompare(b.sexo, "es");
   });
 }
 
