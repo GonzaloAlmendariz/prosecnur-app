@@ -67,6 +67,19 @@ function aporteDeFila(row: {
    */
   const senal = row.signal_distribution ?? null;
   const esProporcion = senal?.unit === "proporcion";
+  /*
+   * La señal propia se usa SIEMPRE que exista, no sólo cuando es proporción.
+   *
+   * La guarda era `unit === "proporcion"`, así que un criterio con señal en otra
+   * unidad caía al genérico. Medido sobre HSVG26DEF: «Nivel del curso» publica
+   * la suya con `unit: "valor_criterio"` —la distribución de niveles, que es lo
+   * que ese criterio decide— y la tarjeta dibujaba en su lugar «elegibles por
+   * curso-horario», el MISMO boxplot que «Mínimo de alumnos elegibles»: mismos
+   * 961, 0, 4.776, Q1 13, mediana 26. Dos criterios distintos con una figura
+   * idéntica, y ninguna de las dos describía el nivel del curso.
+   * `esProporcion` sigue mandando sólo donde debe: en cómo se rotula el eje.
+   */
+  const usaSenal = senal != null;
   return {
     ch: row.actual.n_ch,
     chContraste: row.contraste_total.n_ch,
@@ -74,11 +87,11 @@ function aporteDeFila(row: {
     elegibles: row.actual.n_estudiantes_unicos,
     mediaContraste: row.contraste_total.distribution.media,
     tasaAsistencia: null,
-    distribucion: (esProporcion
+    distribucion: (usaSenal
       ? senal
       : row.actual.distribution) as AporteCategoria["distribucion"],
-    escalaEje: esProporcion ? senal.escala : null,
-    nFuera: esProporcion ? senal.n_fuera : null,
+    escalaEje: usaSenal ? senal.escala : null,
+    nFuera: usaSenal ? senal.n_fuera : null,
     descartePorCorte:
       esProporcion &&
       senal.hist_breaks != null &&
@@ -111,6 +124,12 @@ function aporteVivo(
   criterionId: string,
   facultyKey: string,
 ): { ch: number; nFuera: number } | null {
+  // Sólo la cascada del BORRADOR. La ejecutada describe el marco construido, y
+  // ahí el mínimo no recorta nada porque se construyó con el umbral viejo: leer
+  // de ella daba «961 CH que cumplen · 0 quedan fuera» —«no excluye a nadie»—
+  // cada vez que el preview estaba recalculando. Sin cascada viva se conservan
+  // las cifras de la radiografía, que al menos son de un marco real.
+  if (cascade?.momento !== "borrador_no_persistido") return null;
   const paso = cascade?.steps.find((s) => s.criterion_id === criterionId);
   const fila = paso?.faculties.find((f) => f.faculty_key === facultyKey);
   if (!fila) return null;
@@ -201,6 +220,8 @@ export function CriterioFacultadRadiografia({
   // S4: las categorías de un criterio se comparan entre sí sobre una escala
   // única, calculada sobre TODAS sus filas.
   const domain = dominioCategorias(compactRows.map(({ row }) => aporteDeFila(row)));
+
+
 
   return (
     <div
