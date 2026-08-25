@@ -61,14 +61,15 @@ export function CadenaFormulaFacultad({
           <small>las aulas que hay que visitar</small>
         </li>
       </ol>
-      {/* La nota decía «reservas» igual que la columna, así que aclaraba una
-          palabra usando la misma palabra. Ahora la columna se llama «cupo de
-          reserva» y la nota explica la diferencia con una cifra: en HSVG2026,
-          ARQUITECTURA tiene 6 de cupo y 69 aulas encadenadas. */}
+      {/* La tabla mostraba además un «cupo de reserva» que esta nota tenía que
+          explicar. Se retiró —no lo consumía nadie y lo calculaba un fijo de 1
+          por facultad—, así que la nota ya no desambigua una columna: dice
+          dónde vive el reemplazo de verdad, que es lo que el analista busca al
+          no encontrarlo aquí. */}
       <p className="cmv2-cadfor-nota">
-        El <b>cupo de reserva</b> de esta tabla es lo que el plan presupuesta (la mitad de
-        los titulares): cuántas visitas extra se prevén, no qué aulas son. Las aulas de
-        reemplazo concretas las sortea la selección en cadenas por titular (R1, R2…) y son
+        Estos son los <b>titulares</b>: las aulas que hay que visitar, y las que el sorteo
+        reparte por facultad. El reemplazo no se dimensiona aquí — la selección construye
+        una cadena por titular (R1, R2…) más un banco de extras por facultad, y son
         bastantes más; viven en <i>Selección → Reemplazos</i>.
       </p>
     </div>
