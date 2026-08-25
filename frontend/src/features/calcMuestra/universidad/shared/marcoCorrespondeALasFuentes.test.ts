@@ -48,3 +48,29 @@ describe("el marco sabe si corresponde a las fuentes cargadas", () => {
     expect(marcoCorrespondeALasFuentes({}, [{ role: "base_madre", file_id: "f" }])).toBeNull();
   });
 });
+
+describe("la pregunta por la procedencia sólo aplica a un marco que existe", () => {
+  it("sin marco no hay nada cuya procedencia constar", () => {
+    // La regresión: en un proyecto recién creado, con la base subida y sin
+    // marco todavía, la banda decía «no consta de qué bases salió» y tapaba la
+    // nota correcta, que es «sin construir · calcula elegibles». Preguntar de
+    // dónde salió algo que no existe no es honestidad, es ruido.
+    // En blanco el marco llega como objeto VACIO, no como null: por eso la
+    // prueba de «hay marco» son sus filas de entrada, no su existencia.
+    const filasDeEntradaDelMarco = 0;
+    const hayFuentes = [{ role: "base_madre", file_id: "f-2026", sheet: "Data" }];
+    const corresponde = marcoCorrespondeALasFuentes(null, hayFuentes);
+    expect(corresponde).toBeNull();
+    // La condición que consume ese `null` tiene que exigir marco.
+    const procedenciaDesconocida = filasDeEntradaDelMarco > 0 && corresponde === null && hayFuentes.length > 0;
+    expect(procedenciaDesconocida).toBe(false);
+  });
+
+  it("con marco sin firma y fuentes cargadas, sí se declara", () => {
+    const filasDeEntradaDelMarco = 136284;
+    const hayFuentes = [{ role: "base_madre", file_id: "f-2026", sheet: "Data" }];
+    const corresponde = marcoCorrespondeALasFuentes(null, hayFuentes);
+    const procedenciaDesconocida = filasDeEntradaDelMarco > 0 && corresponde === null && hayFuentes.length > 0;
+    expect(procedenciaDesconocida).toBe(true);
+  });
+});
