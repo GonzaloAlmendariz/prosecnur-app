@@ -1135,7 +1135,15 @@ calc_muestra_distribucion_construir <- function(component, frame) {
     reasons <- .cm_dist_add_reason(
       reasons,
       "source_frame_hash_missing",
-      "El resultado no conserva la firma de la decisión Alumnos/CH."
+      # Nombra el paso que falta, no el mecanismo que lo detecta.
+      #
+      # El texto anterior hablaba de que el resultado no conservaba «la firma»
+      # de la decision, y dejaba las cuatro tarjetas de la banda en «—» sin que
+      # nadie pudiera saber que hacer: «firma» es vocabulario del motor.
+      # Medido en el recorrido desde cero: la causa era simplemente que la
+      # decision de «Alumnos por CH» no estaba confirmada en Marco. Al
+      # confirmarla —P25— y recalcular, la banda publico.
+      "Falta confirmar Alumnos por CH en Marco: es la decision que fija cuantos alumnos aporta cada curso-horario."
     )
   }
   if (!nzchar(current_frame_hash)) {
