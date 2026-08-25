@@ -26,6 +26,7 @@ import {
 import { useMotorStore } from "../store";
 import type { MotorEfectivo } from "./usePerfilEfectivo";
 import "./motor.css";
+import { marcoCorrespondeALasFuentes, type FirmaDeFuentes } from "../universidad/shared/frame";
 
 /**
  * La primera razón por la que el motor rechazó el resultado, lista para la
@@ -71,11 +72,17 @@ export function ResumenDiseno({
   estudio,
   workspace,
   aulasState,
+  fuentesActuales,
 }: {
   motor: MotorEfectivo;
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  /**
+   * Las fuentes cargadas AHORA, para contrastarlas con las que construyeron el
+   * marco. Sale del mismo `universityMarcoPayload` que se manda a construir.
+   */
+  fuentesActuales?: ReadonlyArray<{ role?: string; file_id?: string; sheet?: string }>;
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
   const opcionalesActivos = useMotorStore((s) => s.decisiones.opcionalesActivos);
@@ -140,6 +147,33 @@ export function ResumenDiseno({
   // Criterios del estudiante, y aquí pesa más porque esta tira acompaña a TODAS
   // las pestañas del módulo.
   const notaIntegridad = notaEstadoDelMarco(frame);
+  // **El marco puede ser de OTRAS fuentes que las cargadas.**
+  //
+  // Medido en la app: con un proyecto de 2025 abierto y las bases 2026 subidas
+  // por la UI, esta banda seguía diciendo «Universo de estudiantes 29,090 ·
+  // Cursos-horario elegibles 2,468 · marco vigente» —cifras de 2025— mientras
+  // el Explorador, dos pestañas al lado, leía el archivo nuevo. Y lo que lo
+  // vuelve invisible es lo PARECIDAS que son: las bases 2026 tienen 29,027
+  // estudiantes y 5,269 cursos-horario únicos. Sesenta y tres y seis de
+  // diferencia; a ojo es el mismo número.
+  //
+  // `null` = el marco no trae firma (proyecto anterior al contrato). No se
+  // acusa desfase sin saberlo, pero tampoco se afirma que está al día.
+  const correspondeALasFuentes = marcoCorrespondeALasFuentes(
+    (frame as { sources_used?: FirmaDeFuentes } | null)?.sources_used ?? null,
+    fuentesActuales ?? [],
+  );
+  const fuentesCambiaron = correspondeALasFuentes === false;
+  // Y si el marco NO trae firma, tampoco se puede decir «marco vigente»: eso es
+  // una afirmación, y aquí no consta de qué bases salió. Se dice lo que se
+  // sabe. Un marco construido desde este contrato firma siempre, así que la
+  // frase desaparece en cuanto se reconstruye.
+  const procedenciaDesconocida = correspondeALasFuentes === null && (fuentesActuales?.length ?? 0) > 0;
+  const notaDeFuentes = fuentesCambiaron
+    ? "otras bases cargadas · reconstruye"
+    : procedenciaDesconocida
+      ? "no consta de qué bases salió · reconstruye"
+      : null;
 
   // Metas operativas: el mismo selector P1/P2 y el mismo normalizador de la
   // superficie Distribución acreditan actor, escenario, owner R y frame. Un
@@ -231,7 +265,7 @@ export function ResumenDiseno({
     {
       label: "Universo de estudiantes",
       value: universoEstudiantes,
-      note: "base completa",
+      note: notaDeFuentes ?? "base completa",
       icon: <Users size={16} aria-hidden="true" />,
       tone: "universe",
     },
@@ -242,27 +276,27 @@ export function ResumenDiseno({
       // define el catálogo. Cuando el año no cuadra con el del estudio se dice
       // entero —«base 2025 · el estudio es 2026»—: nombrar los dos es lo que
       // deja ver el error sin abrir ningún archivo.
-      note: periodoMarco
+      note: notaDeFuentes ?? (periodoMarco
         ? periodoCuadra === false
           ? `base ${periodoMarco} · el estudio es ${anio(perfil.nombre)}`
           : `base ${periodoMarco} · unidades únicas`
-        : "unidades únicas",
+        : "unidades únicas"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: periodoCuadra === false ? "estimated" : "universe",
+      tone: fuentesCambiaron || procedenciaDesconocida || periodoCuadra === false ? "estimated" : "universe",
     },
     {
       label: "Estudiantes elegibles",
       value: estudiantesElegibles,
-      note: notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaDeFuentes ?? notaIntegridad ?? (estudiantesDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <ClipboardCheck size={16} aria-hidden="true" />,
-      tone: estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
+      tone: fuentesCambiaron || procedenciaDesconocida || estudiantesDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Cursos-horario elegibles",
       value: cursosHorarioElegibles,
-      note: notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
+      note: notaDeFuentes ?? notaIntegridad ?? (cursosDesactualizados ? "criterios cambiados · reconstruye" : "marco vigente"),
       icon: <BookOpenCheck size={16} aria-hidden="true" />,
-      tone: cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
+      tone: fuentesCambiaron || procedenciaDesconocida || cursosDesactualizados || !marcoPublicable ? "estimated" : "confirmed",
     },
     {
       label: "Muestra objetivo",
