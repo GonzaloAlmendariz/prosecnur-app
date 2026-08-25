@@ -1450,6 +1450,37 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   }, logical(1))
 }
 
+# El umbral general falta, pero los mínimos por facultad NO se tiran.
+#
+# `.cm_criterios_normalize_seleccion()` ya conserva `{byFaculty: {...}}` sin
+# `threshold` —la app manda el general sólo cuando el usuario lo cambia—, pero
+# sus TRES consumidores repetían la guarda vieja `!is.finite(threshold)` y
+# reemplazaban el objeto entero por uno con `byFaculty = list()`. Es decir: la
+# normalización salvaba los mínimos propios y el evaluador los descartaba tres
+# líneas después, sin aviso.
+#
+# Medido el 2026-08-25 sobre HSVG26DEF: `minEligible = {threshold: NA,
+# byFaculty: {ciencias_e_ingenieria: 20}}` y el marco construido dejó DENTRO
+# 333 de las 899 aulas incluidas de Ingeniería con menos de 20 elegibles —una
+# con 1—, y ninguna fila excluida por `min_eligible_per_class`.
+#
+# Los tres sitios eran el marco (`.cm_criterios_evaluar_aula`), la cascada viva
+# y la radiografía por criterio, así que el «quedan fuera» de la tarjeta tampoco
+# se movía al cambiar el mínimo: los tres evaluaban el mismo umbral general.
+.cm_criterios_min_elig_con_fallback <- function(min_elig, fallback) {
+  piso <- max(1L, .cm_aulas_int(fallback, 1L))
+  por_facultad <- if (is.list(min_elig)) min_elig$byFaculty %||% list() else list()
+  # Sin umbral propio NI mínimos por facultad no hay criterio del usuario: manda
+  # el piso legacy, como antes.
+  if (!is.list(min_elig) || (!is.finite(min_elig$threshold) && !length(por_facultad))) {
+    return(list(threshold = piso, byFaculty = list()))
+  }
+  # Con mínimos por facultad y sin general, el general es el piso y cada
+  # facultad con valor propio lo sobrescribe en `.cm_criterios_eval_min_eligible`.
+  if (!is.finite(min_elig$threshold)) min_elig$threshold <- piso
+  min_elig
+}
+
 # Umbral de matriculados/población por aula con override por facultad.
 .cm_criterios_eval_min_eligible <- function(enrolled, faculty_keys, min_elig) {
   thr <- min_elig$threshold
@@ -1558,10 +1589,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   if (is.list(min_elig)) {
     min_elig$byFaculty <- .cm_aulas_canonizar_claves(min_elig$byFaculty, vals$faculty)
   }
-  min_elig_propio <- !is.null(min_elig) && is.finite(min_elig$threshold)
-  if (!min_elig_propio) {
-    min_elig <- list(threshold = max(1L, .cm_aulas_int(min_eligible_fallback, 1L)), byFaculty = list())
-  }
+  # La razón se atribuye al criterio del usuario sólo cuando el usuario lo
+  # declaró; con el piso legacy la exclusión ya la nombra el marco base. Un
+  # mínimo POR FACULTAD sin umbral general también es criterio del usuario: sin
+  # esta segunda condición, las aulas que caen por él se excluían sin razón.
+  min_elig_propio <- is.list(min_elig) &&
+    (is.finite(min_elig$threshold) || length(min_elig$byFaculty %||% list()) > 0L)
+  min_elig <- .cm_criterios_min_elig_con_fallback(min_elig, min_eligible_fallback)
   add(
     "minEligible",
     .cm_criterios_eval_min_eligible(vals$eligible_n, fac_keys, min_elig),
