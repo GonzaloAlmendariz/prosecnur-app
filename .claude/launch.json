@@ -2,6 +2,33 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "Backend QA aulas en campo (8811)",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "launcher/launch.R"
+      ],
+      "env": {
+        "PULSO_PORT": "8811",
+        "PULSO_OPEN_BROWSER": "false",
+        "PULSO_BOOTSTRAP_PROJECT": "/private/tmp/claude-501/-Users-gonzaloalmendariz-Documents-Pulso-prosecnur-app--claude-worktrees-infallible-mayer-024785/79a3c874-bd2a-4e83-9b8f-5b1bcf3cba56/scratchpad/aulas_campo.pulso"
+      },
+      "port": 8811
+    },
+    {
+      "name": "Frontend (dev vs 8811)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "frontend",
+        "dev"
+      ],
+      "env": {
+        "VITE_API_PROXY_TARGET": "http://127.0.0.1:8811"
+      },
+      "port": 5173,
+      "autoPort": true
+    },
+    {
       "name": "Backend Conta 10-08 (8806)",
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
