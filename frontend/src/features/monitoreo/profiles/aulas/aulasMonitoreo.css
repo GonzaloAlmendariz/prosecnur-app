@@ -3522,8 +3522,11 @@
   grid-template-columns: minmax(120px, 1.1fr) minmax(0, 1.7fr) 76px 92px 88px;
   align-items: center; gap: 9px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
+/* Sin `text-transform: uppercase`: a este tamaño compite con los datos, y es el
+   mismo ajuste que se hizo en la tabla de Efectividad —ahí además rompía la «τ»,
+   que salía como «Τ» mayúscula griega—. El peso distingue la cabecera. */
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-soft); font-size: var(--aulas-min); font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-cabecera > span:nth-child(n + 3) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre {
@@ -3531,6 +3534,16 @@
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-nombre em {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
+}
+/* La celda que envuelve la barra: lleva el `role="cell"` y la geometría que
+   tenía la barra, para que la rejilla siga viendo cinco hijos y ni un píxel se
+   mueva. La barra de dentro conserva su `role="img"`: si el rol de celda fuera
+   suyo, el lector perdería la posición en la fila. */
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-barra-celda {
+  display: flex; align-items: center; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-rendimiento-barra-celda > .aulas-rendimiento-barra {
+  flex: 1;
 }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-barra { display: flex; align-items: center; height: 18px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-rendimiento-barra i {

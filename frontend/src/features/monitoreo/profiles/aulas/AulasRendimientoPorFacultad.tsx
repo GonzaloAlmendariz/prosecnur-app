@@ -91,20 +91,36 @@ export function AulasRendimientoPorFacultad({
         {" "}· <strong>{personasPorAula(media)}</strong> de media en{" "}
         {fmt(aulas)} {aulas === 1 ? "aula visitada" : "aulas visitadas"}
       </p>
-      <ul className="aulas-rendimiento-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <li className="aulas-rendimiento-cabecera" aria-hidden="true">
-          <span>{unidad}</span>
-          <span>Por aula</span>
-          <span>Ajustado</span>
-          <span>De los asistentes</span>
-          <span>Del potencial</span>
+      {/* SEMÁNTICA DE TABLA SOBRE LA REJILLA, no `<table>`.
+          La cabecera iba con `aria-hidden="true"`, así que un lector de pantalla
+          recibía 21 filas de cinco cifras SIN un solo nombre de columna —medido
+          en vivo el 2026-08-26—. La reparación de la tabla de Efectividad fue
+          volver a `<table>`; aquí no, y es una decisión, no un atajo: esta
+          rejilla la comparten CUATRO instancias (facultad, aplicador, franja,
+          día) y una variante compacta cuyos anchos están calculados desde la
+          palabra más larga de cada cabecera. Reescribirla como tabla rehace esa
+          geometría en dos regímenes a la vez, y el defecto que hay que reparar
+          es de nombres, no de maquetación. Los roles ARIA dan los nombres sin
+          tocar un píxel. */}
+      <ul className="aulas-rendimiento-lista" role="table"
+        aria-label={`Rendimiento por ${unidad.toLowerCase()}`}
+        data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        <li className="aulas-rendimiento-cabecera" role="row">
+          <span role="columnheader">{unidad}</span>
+          <span role="columnheader">Por aula</span>
+          <span role="columnheader">Ajustado</span>
+          <span role="columnheader">De los asistentes</span>
+          <span role="columnheader">Del potencial</span>
         </li>
         {filas.map((f) => (
-          <li key={f.facultad} className={clave === "faculty" && f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
+          <li key={f.facultad} role="row"
+            className={clave === "faculty" && f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             {/* Sólo es control cuando agrupa POR FACULTAD: en las otras lentes
                 la fila es una franja o un día, y poner el foco de facultad desde
                 ahí pondría el nombre de una franja donde va una facultad. */}
+            {/* `rowheader`: identifica la fila, igual que un `th scope="row"`. */}
             <NombreDeFacultad facultad={f.facultad} className="aulas-rendimiento-nombre"
+              rol="rowheader"
               enFoco={clave === "faculty" && f.facultad === facultadEnFoco}
               onFoco={clave === "faculty" ? onFoco : undefined}>
               {f.facultad}
@@ -113,12 +129,17 @@ export function AulasRendimientoPorFacultad({
             {/* La barra mide POR AULA, que es la pregunta del panel. Escala
                 compartida entre facultades: normalizar cada una a sí misma haría
                 que todas se vieran iguales. */}
+            {/* La celda lleva el rol y la barra de dentro sigue siendo la
+                imagen con su alternativa: si el `role="img"` se pusiera en la
+                celda, el lector perdería la posición en la fila. */}
+            <span role="cell" className="aulas-rendimiento-barra-celda">
             <span className="aulas-rendimiento-barra" role="img"
-              aria-label={`${f.porAula ?? 0} encuestas por aula`}>
+              aria-label={`${personasPorAula(f.porAula)} encuestas por aula`}>
               <i style={{
                 width: `${Math.max(4, (100 * (f.porAula ?? 0)) / tope)}%`,
                 background: (f.porAula ?? 0) >= media ? COLOR_RESULTADO.efectiva : COLOR_RESULTADO.parcial,
               }}>{personasPorAula(f.porAula)}</i>
+            </span>
             </span>
             {/* Las dos tasas conviven con la barra y NO la sustituyen: miden
                 cosas distintas —el trabajo del aplicador y cuánto queda por
@@ -126,11 +147,11 @@ export function AulasRendimientoPorFacultad({
             {/* El AJUSTADO al lado del crudo, nunca en su lugar. En el estudio
                 real las facultades van de 2 a 39 aulas, y una de dos aulas
                 afortunadas encabeza la lista cruda sin merecerlo. */}
-            <span className="aulas-rendimiento-tasa">
+            <span role="cell" className="aulas-rendimiento-tasa">
               {personasPorAula(f.porAulaAjustado)}
             </span>
-            <span className="aulas-rendimiento-tasa">{pct(f.deLosAsistentes)}</span>
-            <span className="aulas-rendimiento-tasa">{pct(f.delPotencial)}</span>
+            <span role="cell" className="aulas-rendimiento-tasa">{pct(f.deLosAsistentes)}</span>
+            <span role="cell" className="aulas-rendimiento-tasa">{pct(f.delPotencial)}</span>
           </li>
         ))}
       </ul>
