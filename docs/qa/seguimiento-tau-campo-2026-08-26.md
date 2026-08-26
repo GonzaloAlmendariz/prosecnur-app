@@ -136,6 +136,104 @@ reportó—, así que se señalan y no se reparan dentro de esta tanda. La opci�
 realinear también el banco se ofreció y no fue la elegida: cambiaría una cifra
 que el equipo ya viene leyendo.
 
+## E1 — Backtest contra el campo 2025 (2026-08-26)
+
+Se reprodujo el campo 2025 semana a semana contra `.maes_banda_razon()` y
+`.maes_senal()`, sobre `calc_muestra_referencia_asistencia$cadenas_reemplazo`
+del proyecto real (170 cadenas, **194 escalones aplicados con semana y
+elegibles**, 15 facultades, 4 semanas). La τ prevista salió de
+`calc_muestra_estudio$componentes[[1]]$aulas_por_estrato[[i]]$tau`.
+
+**La pregunta NO es si converge al final.** La τ de 2026 se ajustó sobre estos
+datos, así que la convergencia está garantizada por construcción. Lo que el
+backtest mide es el camino: falsas alarmas, ancho de banda y oportunidad.
+
+### Hallazgo 1 — La regla no puede disparar en el escenario que la motivó
+
+La caída de τ que la banda al 95 % detecta es **la semi-amplitud de la banda**
+(1,96 × SE), y ésta es la medida:
+
+| Corte | Aulas | Caída detectable (mediana) | Mejor | Peor | Facultades donde −5 % sería detectable |
+|---|---|---|---|---|---|
+| Tras semana 1 | 86 | 16,3 pp | 5,7 | 26,6 | **0 de 12** |
+| Tras semana 2 | 154 | 13,6 pp | 4,7 | 35,5 | **0 de 15** |
+| Tras semana 3 | 190 | 12,7 pp | 3,6 | 26,6 | **0 de 15** |
+
+El escenario de estrés que motivó todo esto —τ un 5 % por debajo— vale entre
+**2,0 y 4,0 pp** según la facultad. **Ninguna facultad lo detectaría en ningún
+corte.** Ni siquiera a nivel de estudio con 190 aulas: detectable 3,2 pp contra
+2,6 pp necesarios.
+
+### Hallazgo 2 — La única señal «bajo» del backtest fue falsa
+
+**EE.GG. Ciencias, semana 1**: τ observada 0,332 contra 0,409 prevista, banda
+[0,267 – 0,397] → señalada `bajo`. En la semana 2 volvió a `conforme` y ahí se
+quedó hasta el final. Es la alarma que se desdice sola, y cayó justo sobre la
+facultad de τ más baja — donde equivocarse es más caro.
+
+### Hallazgo 3 — La τ compuesta no reproduce a dos facultades de su propio histórico
+
+Dos señales `sobre` persistieron desde la semana 1 hasta el final, y **no son
+ruido**:
+
+| Facultad | τ prevista | τ observada 2025 | Banda | k | Brecha |
+|---|---|---|---|---|---|
+| Arquitectura y Urbanismo | 0,546 | 0,722 | [0,568 – 0,875] | 7 | **+17,6 pp** |
+| Gastronomía, Hotelería y Turismo | 0,682 | 0,924 | [0,888 – 0,961] | 3 | **+24,2 pp** |
+
+Las dos llevan residual 1,000 por `k < 12`. Es la advertencia del ADR con
+número: **un 1,000 por falta de base no es «rinde según su mix»**, y aquí el
+mix se equivoca por 17 y 24 puntos contra el histórico del que salió.
+
+### Hallazgo 4 — La ventana de reacción se cierra antes que la evidencia llegue
+
+El campo se concentra al principio: **86 · 68 · 36 · 4** aulas por semana. Para
+el final de la semana 3 ya se aplicó el **98 %** (190 de 194). Con
+`DIAS_DE_ANTICIPACION = 7`, una señal en la semana 2 llega con una semana útil
+de agenda; en la semana 3 ya no queda nada que activar.
+
+### Hallazgo 5 — El 4,1 % de las aulas rinde por encima de 1
+
+8 de 194 tienen `efectivas > elegibles`, máximo **1,29**. Los dos campos no
+comparten universo exacto. No invalida el τ agregado (0,5300 global 2025), pero
+la pantalla puede llegar a mostrar una τ observada mayor que 1 y eso pide una
+explicación que hoy no da.
+
+### Agotamiento por semana, medido aquí
+
+τ no acumulada: **0,5515 · 0,5007 · 0,5632 · 0,3239**. Confirma la no
+monotonía ya documentada y que la cola de la semana 4 (4 aulas) es la que
+arrastra el promedio.
+
+### Qué exige esto decidir
+
+La cláusula 5 del ADR —«la banda dispara la señal, el punto no»— **cumple bien
+su mitad defensiva** (mantuvo callada a 13 de 15 facultades y evitó actuar
+sobre ruido) y **falla su mitad ofensiva**: no detecta la caída que importa.
+Las opciones medidas, para que Gonzalo decida:
+
+- **(a) Cambiar el estadístico**: del test sobre τ al **consumo del margen** —
+  el diseño compró aforo de más (`⌈cuota / (p25 × τ)⌉` más reservas), y la
+  pregunta operativa es cuánto de ese margen se lleva gastado, no si τ difiere.
+  Es la misma vara que ya usa `alcanceDelBanco`.
+- **(b) Una cola al 80 %** en vez de dos al 95 %: z de 1,96 → 0,84 baja la
+  detectable de 13,6 a ~5,8 pp de mediana. **No alcanza sola** (hacen falta
+  2–4 pp) y sube la falsa alarma que el hallazgo 2 ya mostró.
+- **(c) Agrupar por tramo de τ** en vez de por facultad: las de τ baja juntas
+  (EGC + EGL) dan k=38 y banda mucho más estrecha. Detecta el fenómeno antes;
+  la acción sigue siendo por facultad.
+- **(d) Conservar la banda sólo como guarda contra el ruido** —para lo que sí
+  funciona— y que el disparador sea (a).
+
+Reproducible con los scripts del scratchpad de la sesión: `bt/backtest.R`,
+`bt/poder2.R`.
+
+**Trampa cazada al medir esto**: la primera versión calculó la caída detectable
+como «distancia del extremo de la banda a la τ prevista», que es negativa
+cuando la facultad conforma, y comparándola contra un umbral positivo dio
+«15 de 15 detectarían» — exactamente lo contrario de la verdad. La banda se
+centra en lo OBSERVADO: la caída detectable es su semi-amplitud.
+
 ## Lo aprendido que no hay que reinvestigar
 
 - La τ del diseño **ya llega** a Monitoreo: `.monitoreo_aulas_metas_diseno()`
