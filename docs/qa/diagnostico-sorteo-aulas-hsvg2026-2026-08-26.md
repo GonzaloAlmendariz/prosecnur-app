@@ -182,3 +182,58 @@ marco por la selección cuando `s$calc_muestra_aulas_selection` existe.
 obtiene una curva plana. Con una cuota alcanzable leería que cualquier número de
 aulas sirve; con una alta, que ninguno sirve. En los dos casos el número que ve
 no responde a la pregunta que hizo.
+
+### El defecto, localizado: la certeza no limpia `faculty_targets` del selector
+
+Comparando el selector de las dos sesiones, sólo tres claves difieren, y una lo
+explica todo:
+
+| clave | corrida que certificó | sesión reabierta |
+|---|---|---|
+| `faculty_targets` | vacío | **15 facultades** |
+| `n_aulas` | 30 | 174 |
+| `seed` | 20260619 | 202 |
+
+La comprobación anterior, que dio «vacío» en las dos, miró el `state.rds` del
+`.pulso`. El config **vivo** de la sesión, el que la ruta lee primero, sí los
+lleva: `afijacionTargets.ts` los inyecta en cada selección, por diseño.
+
+**La cadena:**
+
+1. `.cm_certeza_evaluar` (`calc_muestra_aulas_certeza.R:112`) clona el selector y
+   fija `sim_selector$n_aulas <- aulas` y `sim_selector$replacement_waves <- 0L`.
+   **No limpia `faculty_targets`.**
+2. `.cm_aulas_select_once_engine` (`calc_muestra_aulas.R:2127`) calcula
+   `n_total` desde `selector$n_aulas`, correcto, y llama a
+   `.cm_aulas_quota_estratos(aula_frame, n_total, selector)`.
+3. `.cm_aulas_quota_estratos` (`calc_muestra_aulas_afijacion.R`) dice en su
+   propio comentario: *«Nivel 1 — facultades con target: su n manda, capado a lo
+   disponible»*. Con `DERECHO = 19` en los targets, el sorteo toma **19 aulas
+   pase lo que pase**, y `n_total` sólo reparte el remanente entre las
+   facultades **sin** target.
+
+Por eso la curva es plana: el candidato de la certificación nunca llega al
+sorteo. Y por eso el valor constante era ~394, que son las 19 aulas del reparto
+aplicado a Derecho (675 únicos medidos, 693 observados).
+
+**La reparación es una línea** en `.cm_certeza_evaluar`, junto a las dos que ya
+están: `sim_selector$faculty_targets <- NULL`. En una certificación el candidato
+tiene que mandar; es la pregunta que la certificación hace.
+
+**La regresión que lo fija**: certificar un estrato con `faculty_targets`
+poblados y exigir que `rendimiento_medio` crezca con el candidato. Hoy da
+392,7 con 40 aulas y 394,6 con 55; con la reparación debe subir de forma
+monótona.
+
+**Ironía a registrar**: `faculty_targets` se introdujo para reparar que el
+sorteo ignorara el reparto por facultad (`afijacionTargets.ts` documenta
+«DERECHO diseño 18 → sorteo 36»). Esa reparación rompió la certificación, que
+reusa el mismo selector. Es el patrón de un fix que corrige la superficie
+vecina: el 33 % de los fixes de este repo tocan archivos que un feat tocó uno a
+tres commits antes.
+
+Queda descartado, y no debe re-investigarse: pérdida del mapa de estudiantes,
+degradado a `suma_elegibles`, `docente_unico` (246 docentes distintos en
+Derecho, no topa en 20), el descuento secuencial (su greedy daría 1 694 únicos
+con 40 aulas, no 693) y la asignación por estrato (con un solo estrato devuelve
+`n_total` correctamente).
