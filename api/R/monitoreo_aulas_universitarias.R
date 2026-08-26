@@ -1571,8 +1571,12 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # insumos con `avance_cuota` y contesta otra pregunta: aquél mide si ya
   # tenemos a la gente, éste si las aulas rinden lo que se supuso al comprar el
   # aforo. Vive en `monitoreo_aulas_efectividad_seguimiento.R`.
+  # Recibe `avance_cuota` porque el conseguido y la cuota de cada facultad son
+  # SUYOS (ADR 0079) y aqui no se recalculan: el margen se proyecta sobre el
+  # mismo numerador con el que se mide el cumplimiento.
   efectividad_seguimiento <- .monitoreo_aulas_efectividad_seguimiento(
-    plan_df, tracked_df, responses, cfg, valid_response, response_classroom
+    plan_df, tracked_df, responses, cfg, valid_response, response_classroom,
+    avance_cuota = avance_cuota
   )
 
   # POR FACULTAD, en el motor y no en la vista.

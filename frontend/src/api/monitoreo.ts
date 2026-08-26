@@ -847,7 +847,30 @@ export type MonitoreoAulasEfectividadFacultad = {
   alumnos_corte: number | null;
   /** El mismo cálculo extendido al aforo pendiente. */
   alumnos_cierre: number | null;
+  /**
+   * El veredicto de la BANDA: ¿τ difiere de lo supuesto? Es la GUARDA contra el
+   * ruido, no el disparador. Medido sobre 2025: por sí sola detecta caídas de
+   * 13,6 pp de mediana y el escenario que importa vale 2–4 pp.
+   */
   senal: "bajo" | "sobre" | "conforme" | "sin_banda" | "sin_previsto";
+  /**
+   * El veredicto del MARGEN, y **éste es el que decide**: ¿la proyección cierra
+   * la cuota? `riesgo_firme` = ni proyectando al extremo optimista de la banda.
+   * Una facultad puede rendir bajo su τ y estar `holgado`: en la selección 2026
+   * el margen mediano es +49,2 % de la cuota.
+   */
+  riesgo: "holgado" | "ajustado" | "riesgo" | "riesgo_firme" | "sin_campo" | "sin_cuota" | "sin_cumplimiento";
+  /** La cuota de alumnos del diseño para esta facultad. */
+  cuota: number | null;
+  /** Válidas de plataforma ya conseguidas. Sale de `avance_cuota`, no se recalcula. */
+  conseguido: number | null;
+  /** `conseguido + elegibles_pendientes × τ observada`. Nunca × τ prevista. */
+  proyectado: number | null;
+  /** La misma proyección a los extremos de la banda. */
+  proyectado_optimista: number | null;
+  proyectado_pesimista: number | null;
+  /** `proyectado − cuota`. Negativo = no cierra. */
+  margen_restante: number | null;
   residual: number | null;
   residual_k: number | null;
   /**
@@ -878,6 +901,10 @@ export type MonitoreoAulasEfectividadSeguimiento = {
   criterio: {
     numerador: string;
     denominador: string;
+    /** Qué dispara la señal: el margen restante. */
+    disparador: string;
+    /** Qué papel juega la banda: acotar la proyección. */
+    guarda: string;
     senal: string;
     no_cubre: string;
   };
@@ -889,8 +916,15 @@ export type MonitoreoAulasEfectividadSeguimiento = {
     aulas_aplicadas: number;
     elegibles_aplicados: number;
     efectivas: number;
-    facultades_senaladas: number;
-    /** Sólo el déficit de las señaladas: no se compensa entre facultades. */
+  /**
+   * Rinden bajo su τ con evidencia que lo sostiene. NO es lo mismo que estar en
+   * riesgo de no cerrar, y publicarlo como un solo número fue lo que el
+   * backtest mostró que engaña.
+   */
+    facultades_bajo_su_tau: number;
+    /** Las que su proyección no cierra la cuota. Éste es el número que decide. */
+    facultades_en_riesgo: number;
+    /** Sólo el déficit de las que están en riesgo: no se compensa entre facultades. */
     alumnos_en_riesgo: number;
   };
   facultades: MonitoreoAulasEfectividadFacultad[];

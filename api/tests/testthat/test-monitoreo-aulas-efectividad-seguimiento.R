@@ -155,7 +155,7 @@ test_that("con una sola aula no hay banda y la facultad no se señala", {
   expect_identical(f$banda_bajo, NA_real_)
   expect_identical(f$banda_alto, NA_real_)
   expect_identical(f$senal, "sin_banda")
-  expect_identical(d$efectividad_seguimiento$total$facultades_senaladas, 0L)
+  expect_identical(d$efectividad_seguimiento$total$facultades_bajo_su_tau, 0L)
 })
 
 test_that("con muchas aulas consistentemente bajas, la banda excluye la τ y se señala", {
@@ -172,20 +172,26 @@ test_that("con muchas aulas consistentemente bajas, la banda excluye la τ y se 
   expect_identical(f$senal, "bajo")
   # 800 elegibles aplicados × (0,30 − 0,50) = 160 alumnos menos de lo supuesto.
   expect_equal(f$alumnos_corte, -160)
-  expect_identical(d$efectividad_seguimiento$total$facultades_senaladas, 1L)
+  expect_identical(d$efectividad_seguimiento$total$facultades_bajo_su_tau, 1L)
 })
 
 test_that("una diferencia que la banda no sostiene queda conforme y no gasta reservas", {
   # Ocho aulas alrededor de 0,48 con dispersión real: el punto está por debajo
   # de 0,50 pero la banda lo cruza. Señalar aquí gastaría colchón contra ruido.
-  efectivas <- c(60, 40, 55, 45, 50, 38, 62, 34)
+  efectivas <- c(60, 40, 55, 45, 50, 38, 62, 34)   # 384 en total
   plan <- lapply(1:8, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100, orden = i))
   ids <- unlist(lapply(1:8, function(i) rep(sprintf("A%d", i), efectivas[[i]])))
-  d <- .efs_dash(plan, .efs_resp(ids), dt = .efs_dt(list(.efs_fac("FAC1", cuota = 400, tau = 0.5))))
+  # Cuota 200: la facultad va sobrada, así que lo único que se está probando
+  # aquí es el veredicto de la BANDA. Con cuota 400 estaría corta de 16 alumnos
+  # de verdad y el test mediría el margen sin quererlo.
+  d <- .efs_dash(plan, .efs_resp(ids), dt = .efs_dt(list(.efs_fac("FAC1", cuota = 200, tau = 0.5))))
   f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
 
   expect_lt(f$tau_observado, 0.5)
   expect_identical(f$senal, "conforme")
+  # Y no gasta reservas: el disparador es el margen, y con la cuota cubierta
+  # no hay hueco que cerrar por mucho que el punto esté bajo la τ prevista.
+  expect_identical(f$riesgo, "holgado")
   expect_equal(f$reservas_necesarias, 0L)
 })
 
@@ -209,9 +215,13 @@ test_that("un superávit en una facultad no descuenta el déficit de otra", {
 
   expect_identical(.efs_fila(b, "FAC1")$senal, "bajo")
   expect_identical(.efs_fila(b, "FAC2")$senal, "sobre")
-  expect_identical(b$total$facultades_senaladas, 1L)
-  # Los 160 de FAC1 siguen enteros pese a los +320 de FAC2.
-  expect_equal(b$total$alumnos_en_riesgo, 160)
+  expect_identical(b$total$facultades_bajo_su_tau, 1L)
+  # FAC1 rinde bajo su τ Y no cierra su cuota (400 contra 240 conseguidas), así
+  # que los dos conteos coinciden aquí. El déficit del margen de FAC1 sigue
+  # entero pese al superávit de FAC2: no se compensa entre facultades.
+  expect_identical(b$total$facultades_en_riesgo, 1L)
+  expect_gt(b$total$alumnos_en_riesgo, 0)
+  expect_identical(.efs_fila(b, "FAC2")$riesgo, "holgado")
   # Y la señalada abre la lista: el orden es de decisión, no alfabético.
   expect_identical(as.character(b$facultades[[1]]$faculty_key), .cm_criterios_fac_key("FAC1"))
 })
@@ -259,4 +269,81 @@ test_that("un residual de 1 sin k del histórico se declara sin_base, no como me
   f2 <- .efs_fila(b, "FAC2")
   expect_identical(f2$residual_base, "sin_base")
   expect_identical(f2$residual_k, NA_integer_)
+})
+
+# --- EL DISPARADOR: el margen, no la banda (opcion «d», 2026-08-26) ----------
+
+test_that("una facultad puede rendir bajo su tau y NO estar en riesgo, porque compro colchon", {
+  # Ocho aulas de 100 elegibles rindiendo 0,30 contra 0,50 previsto: la banda la
+  # senala `bajo`. Pero su cuota es 100 y ya lleva 240: el margen sobra.
+  # Medido en la seleccion 2026, el margen mediano es +49,2 % de la cuota, asi
+  # que este caso es el NORMAL, no el raro.
+  plan <- lapply(1:8, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100, orden = i))
+  ids <- unlist(lapply(1:8, function(i) rep(sprintf("A%d", i), 30)))
+  d <- .efs_dash(plan, .efs_resp(ids), dt = .efs_dt(list(.efs_fac("FAC1", cuota = 100, tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_identical(f$senal, "bajo")        # la banda dice que rinde por debajo
+  expect_identical(f$riesgo, "holgado")    # y aun asi la cuota esta cubierta
+  expect_equal(f$conseguido, 240)
+  expect_gt(f$margen_restante, 0)
+  # Y NO gasta reservas por rendir bajo: el hueco que cierran es el del margen.
+  expect_equal(f$reservas_necesarias, 0L)
+  expect_identical(d$efectividad_seguimiento$total$facultades_en_riesgo, 0L)
+  expect_identical(d$efectividad_seguimiento$total$facultades_bajo_su_tau, 1L)
+})
+
+test_that("el riesgo es FIRME solo cuando ni el extremo optimista de la banda cierra", {
+  # Cuatro aulas aplicadas de 100 y cuatro pendientes de 100. Rinde 0,30 con
+  # dispersion; la cuota de 600 no la alcanza ni proyectando al mejor extremo.
+  aplicadas <- lapply(1:4, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100, orden = i))
+  pendientes <- lapply(5:8, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100,
+                                                  orden = i, aplicada = FALSE))
+  ids <- unlist(lapply(1:4, function(i) rep(sprintf("A%d", i), c(34, 26, 32, 28)[i])))
+  d <- .efs_dash(c(aplicadas, pendientes), .efs_resp(ids),
+                 dt = .efs_dt(list(.efs_fac("FAC1", cuota = 600, tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_identical(f$riesgo, "riesgo_firme")
+  expect_lt(f$proyectado_optimista, 600)
+  expect_lt(f$margen_restante, 0)
+  expect_identical(d$efectividad_seguimiento$total$facultades_en_riesgo, 1L)
+})
+
+test_that("el aforo pendiente se proyecta a la tau OBSERVADA, no a la prevista", {
+  # 2 aplicadas de 100 rindiendo 0,30 y 2 pendientes de 100. A la observada la
+  # proyeccion es 60 + 60 = 120; a la prevista (0,50) seria 60 + 100 = 160.
+  # Con cuota 150, la eleccion decide si esta en riesgo o no.
+  aplicadas <- lapply(1:2, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100, orden = i))
+  pendientes <- lapply(3:4, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100,
+                                                  orden = i, aplicada = FALSE))
+  ids <- unlist(lapply(1:2, function(i) rep(sprintf("A%d", i), 30)))
+  d <- .efs_dash(c(aplicadas, pendientes), .efs_resp(ids),
+                 dt = .efs_dt(list(.efs_fac("FAC1", cuota = 150, tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_equal(f$conseguido, 60)
+  expect_identical(f$elegibles_pendientes, 200L)
+  expect_equal(f$proyectado, 120)          # 60 + 200 x 0,30
+  expect_false(isTRUE(all.equal(f$proyectado, 160)))  # NO 60 + 200 x 0,50
+  expect_true(f$riesgo %in% c("riesgo", "riesgo_firme"))
+})
+
+test_that("sin campo el margen no se proyecta con la tau prevista: se declara", {
+  # Publicar el supuesto como si fuera medicion es lo que el ADR 0082 existe
+  # para impedir.
+  plan <- list(.efs_aula("A1", "FAC1", eligible = 100, orden = 1, aplicada = FALSE))
+  d <- .efs_dash(plan, data.frame(), dt = .efs_dt(list(.efs_fac("FAC1", cuota = 50, tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_identical(f$riesgo, "sin_campo")
+  expect_identical(f$proyectado, NA_real_)
+  expect_identical(f$margen_restante, NA_real_)
+})
+
+test_that("el criterio declara que el disparador es el margen y la banda es la guarda", {
+  d <- monitoreo_aulas_dashboard(list(), data.frame(), list(enabled = TRUE))
+  cr <- d$efectividad_seguimiento$criterio
+  expect_match(cr$disparador, "margen")
+  expect_match(cr$guarda, "banda")
 })
