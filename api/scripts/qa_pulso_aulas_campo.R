@@ -782,14 +782,7 @@ session_set(sid, "monitoreo_aulas_partes_campo", partes)
   el <- suppressWarnings(as.numeric(pd$eligible_n)); el[!is.finite(el)] <- 0
   facs <- unique(pd$faculty[tit & nzchar(pd$faculty)])
   facs <- sort(facs)
-  # tau reproducible y sin RNG: se reparte el rango real por orden alfabetico.
-  taus <- round(seq(0.41, 0.80, length.out = max(1L, length(facs))), 3)
-  # LA CUOTA SE CALIBRA CONTRA LO QUE EL FIXTURE REALMENTE CONSIGUE, no contra
-  # `elegibles x tau`. Primer intento: se puso la cuota a 1,08 del esperado
-  # segun tau y salieron las VEINTE facultades en `holgado`, porque el fixture
-  # rinde ~0,69 y las tau asignadas van de 0,41 a 0,80 — la cuota quedaba
-  # calibrada contra una tasa que nadie sigue. Una pantalla de riesgo que solo
-  # se puede ver apagada no esta comprobada.
+  # Se calcula ANTES de las tau porque las tau se derivan de esto.
   conseguido <- local({
     aula <- .monitoreo_aulas_response_classroom(data, list(
       source_mapping = list(collector_var = "collectorID")))
@@ -799,6 +792,34 @@ session_set(sid, "monitoreo_aulas_partes_campo", partes)
     stats::setNames(as.integer(tb), names(tb))
   })
   toma <- function(f) { v <- suppressWarnings(as.integer(conseguido[f])); if (length(v) != 1L || is.na(v)) 0L else v }
+  # LA TAU SE DERIVA DE LO QUE CADA FACULTAD RINDE, no de un rango repartido por
+  # orden alfabetico.
+  #
+  # Primer intento: `seq(0.41, 0.80)` por orden alfabetico. Visto en pantalla el
+  # 2026-08-26, las VEINTE barras salian verdes —el fixture rinde ~0,69 y casi
+  # ninguna tau asignada llegaba ahi—, asi que el estado «responde por debajo de
+  # lo esperado» no se podia ver nunca. Una pantalla que solo se puede ver
+  # apagada no esta comprobada, y es la segunda vez que este fixture cae en lo
+  # mismo (antes con la cuota).
+  #
+  # Ahora la tau de cada facultad es su propio rendimiento multiplicado por un
+  # factor que ALTERNA alrededor de 1: las de indice par quedan por encima de lo
+  # esperado y las impares por debajo. Reproducible, sin RNG, y las dos mitades
+  # de la escala se ven a la vez.
+  factores <- rep(c(0.82, 1.18), length.out = max(1L, length(facs)))
+  taus <- round(vapply(seq_along(facs), function(i) {
+    f <- facs[[i]]
+    el_f <- sum(el[tit & pd$faculty == f])
+    logrado_f <- toma(f)
+    rinde <- if (el_f > 0 && logrado_f > 0) logrado_f / el_f else 0.55
+    max(0.20, min(0.95, rinde * factores[[i]]))
+  }, numeric(1)), 3)
+  # LA CUOTA SE CALIBRA CONTRA LO QUE EL FIXTURE REALMENTE CONSIGUE, no contra
+  # `elegibles x tau`. Primer intento: se puso la cuota a 1,08 del esperado
+  # segun tau y salieron las VEINTE facultades en `holgado`, porque el fixture
+  # rinde ~0,69 y las tau asignadas van de 0,41 a 0,80 — la cuota quedaba
+  # calibrada contra una tasa que nadie sigue. Una pantalla de riesgo que solo
+  # se puede ver apagada no esta comprobada.
   # Tres estados sembrados a proposito, para que la pantalla se pueda ver en
   # los tres: una CORTA (no cierra ni en el mejor escenario), una AJUSTADA
   # (cierra justo) y el resto holgadas.
