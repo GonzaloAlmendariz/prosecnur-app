@@ -95,3 +95,48 @@ en esta sesión y no debe darse por hecho.
 
 Por eso el documento reporta el éxito de Derecho con 19 aulas como **≥ 95,1 %**,
 la cota que da su certificación a 18, y no un valor medido.
+
+### Corrección: el `.pulso` NO pierde el mapa de estudiantes
+
+La sección anterior atribuyó la diferencia de rendimiento a que «la sesión
+reabierta perdió el mapa estudiante→aula». **Es falso, y se midió.**
+
+El `.pulso` conserva `unique_student_ids` en el marco. Sobre las 293 aulas
+seleccionables de Derecho: **11 596 ids en total, 2 550 distintos, 78 % de
+traslape**. El motor puede ver el solape y lo ve.
+
+El motor además tiene un degradado honesto para marcos sin ids
+(`.cm_certeza_estudiantes_netos`, `calc_muestra_aulas_certeza.R:97`): cae a la
+suma de elegibles y lo declara como `base_conteo = "suma_elegibles"`, con un
+comentario que dice que es la cota superior «para que nadie lea un optimismo
+estructural como si fuera una medición». Ese camino no se activó: ambas corridas
+declararon `estudiantes_unicos`.
+
+**Lo que sí está medido**, simulando 400 sorteos uniformes de Derecho:
+
+| aulas | únicos | suma elegibles | rend. únicos | rend. suma |
+|---|---|---|---|---|
+| 16 | 568 | 635 | 322,7 | 360,6 |
+| 18 | 629 | 713 | 357,6 | 405,4 |
+| 19 | 660 | 753 | 375,1 | 428,1 |
+
+La certificación original da 16→340,1 · 17→357,6 · 18→376,3, coherente con
+conteo de únicos bajo un sorteo equilibrado por tamaño, que toma aulas algo más
+grandes que el uniforme.
+
+La sesión reabierta reporta **~394 para todo candidato que evalúa**, en las dos
+direcciones de búsqueda: con `aulas_formula: 19` dio 394,11 etiquetado «4
+aulas», y con `aulas_formula: 16` dio 393,7 y 394,6 etiquetados 15 y 16. Un
+rendimiento constante ante candidatos distintos no es ruido: es que no está
+evaluando el candidato que nombra. 394 corresponde a unas 19–20 aulas.
+
+**Hipótesis, no medición:** en un proyecto reabierto con la selección ya
+aplicada, el config de sesión lleva el reparto final (Derecho 19) y la ruta de
+certeza lo toma por encima del candidato. Esto uniría D2, D3 y la precedencia
+distinta de `router_calc_muestra.R` (~1052 contra ~1106). **Falta probarlo**:
+certificar sobre un `.pulso` con marco y sin selección aplicada, y ver si la
+curva vuelve a moverse con el candidato.
+
+Consecuencia práctica para el documento metodológico: la nota que reporta el
+éxito de Derecho con 19 aulas como «≥ 95,1 %» sigue siendo correcta, porque se
+apoya en la certificación original y en la monotonía, no en estas corridas.
