@@ -49,7 +49,7 @@ export type CriterioFacultadEvidence = {
  */
 function aporteDeFila(row: {
   actual: { n_ch: number; n_ch_con_dato: number; n_estudiantes_unicos: number | null; distribution: unknown };
-  contraste_total: { n_ch: number; distribution: { media: number | null } };
+  contraste_total: { n_ch: number; n_estudiantes_unicos?: number | null; distribution: { media: number | null } };
   signal_distribution?: CalcMuestraAulasCriterioSignalDistribution | null;
 }): AporteCategoria {
   /*
@@ -83,6 +83,7 @@ function aporteDeFila(row: {
   return {
     ch: row.actual.n_ch,
     chContraste: row.contraste_total.n_ch,
+    elegiblesContraste: row.contraste_total.n_estudiantes_unicos ?? null,
     chConDato: row.actual.n_ch_con_dato,
     elegibles: row.actual.n_estudiantes_unicos,
     mediaContraste: row.contraste_total.distribution.media,

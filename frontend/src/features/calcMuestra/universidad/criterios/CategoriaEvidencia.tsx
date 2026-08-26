@@ -270,9 +270,18 @@ export function CategoriaEvidencia({
           <span data-tono={fuera && fuera > 0 ? "aviso" : undefined}>
             <strong>{fuera == null ? "—" : fmtInt(fuera)}</strong>quedan fuera
           </span>
-          <span title="Estudiantes únicos elegibles que sobreviven al corte">
+          {/* El 0 de una categoría que hoy queda fuera decía «aquí no hay
+              alumnos» cuando quería decir «ninguno entra todavía». Medido en
+              HSVG26DEF: «TEORICO OBLIGATORIO» de Arte y Diseño mostraba 0
+              teniendo 1.154 elegibles, y por esa cifra se estuvo a punto de
+              descartar la categoría. Cuando el total difiere de los que
+              sobreviven, se enseñan los dos. */}
+          <span title="Estudiantes únicos elegibles que sobreviven al corte; el total es cuántos tiene la categoría al margen del marco">
             <strong>{aporte.elegibles == null ? "—" : fmtInt(aporte.elegibles)}</strong>
             {plural(aporte.elegibles, "alumno elegible", "alumnos elegibles")}
+            {aporte.elegiblesContraste != null && aporte.elegiblesContraste !== aporte.elegibles ? (
+              <em>de {fmtInt(aporte.elegiblesContraste)} en total</em>
+            ) : null}
           </span>
           <span title="Supuesto de asistencia del marco, aplicado a los alumnos que sobreviven al corte">
             {presentes != null ? (

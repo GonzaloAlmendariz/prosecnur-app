@@ -37,6 +37,7 @@ export function evidenciaPorCategoria(
       if (porSegmento.has(clave)) continue;
       porSegmento.set(clave, {
         elegibles: row.actual?.n_estudiantes_unicos ?? null,
+        elegiblesContraste: row.contraste_total?.n_estudiantes_unicos ?? null,
         ch: row.actual?.n_ch ?? null,
         chContraste: row.contraste_total?.n_ch ?? null,
         mediaContraste: row.contraste_total?.distribution?.media ?? null,
