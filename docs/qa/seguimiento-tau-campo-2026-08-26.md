@@ -86,40 +86,55 @@ caso de HSVG2026.
 
 ## Checklist
 
-| # | Ítem | Dónde vive | Estado |
+**Regla del loop, instrucción de Gonzalo del 2026-08-26, textual: «debemos
+tener un checklist para el loop y debemos poder comprobarlos en la UI, debe ser
+una aplicación conjunta con un perfeccionamiento de la UI».**
+
+Consecuencia, y cambia cómo se cierra cada ítem:
+
+1. **Ningún ítem se cierra con tests.** Cada uno declara qué se mira en
+   pantalla, con la dirección canónica, y no pasa a ☑ hasta que se vio ahí.
+2. **Motor y UI van en la misma aplicación.** Nada de cerrar el backend y dejar
+   la superficie para después: un bloque sin consumidor no es una capacidad.
+3. Por eso **la fixture del operativo pasa a ser el primer ítem**, no el
+   último: sin una superficie poblada no se puede comprobar ninguno de los
+   demás, y eso convierte «bloqueado» en «lo primero».
+
+Dirección de toda la columna de comprobación:
+`/monitoreo?modo=aulas&seccion=avance&pestana=efectividad`, con `/ver-ui`.
+
+| # | Ítem | Cómo se comprueba EN LA UI | Estado |
 |---|---|---|---|
-| 1 | ADR que registra τ como supuesto declarado, su origen, alcance y qué no cubre | `docs/adrs/0082-*.md` | **Hecho** — aceptado y ratificado el 2026-08-26 |
-| 2 | Decidir ubicación de la superficie | `lib/navegacion/catalogos/monitoreo.ts` | **Hecho** — pestaña propia `avance > efectividad` |
-| 3 | Fijar el numerador de τ observado como la efectiva de plataforma | ADR 0082 cláusula 3 | **Hecho** — decidido y con test que lo discrimina del parte |
-| 4 | Resolver el choque de rótulos: «Del potencial» (parte) vs τ (plataforma) | `rendimientoPorFacultad.ts` | **Pendiente** — fuera del alcance de esta tanda; ver abajo |
-| 5 | Motor `monitoreo_aulas_efectividad_seguimiento.R` con τ prevista/observada, banda, k, déficit | `api/R/` | **Hecho** — 49 aserciones |
-| 6 | `avance_cuota` publica `tau_prevista` por fila de facultad | `api/R/monitoreo_aulas_avance_cuota.R` | **Hecho** — 120 aserciones sin regresión |
-| 7 | Tabla de decisión por facultad con reservas y «cuántas cierran» | `AulasEfectividadSeguimiento.tsx` | **Hecho** — 10 aserciones de render |
-| 8 | Marca visible de residual 1,000 = sin base propia (9 de 15 facultades) | motor + fila de la tabla | **Hecho** — `residual_base` en {propia, sin_base, sin_dato} |
-| 9 | Serie diaria acumulada del estudio + tabla semanal por facultad | frontend | **Pendiente** — siguiente tanda |
-| 10 | Tercera línea (esperado del diseño) en `serieDeRendimiento` | `serieDeRendimiento.ts` | **Pendiente** — siguiente tanda |
-| 11 | Tests 1–5 del ADR (contrato, numerador, denominador, banda, no compensación) | `api/tests/testthat/` | **Hecho** |
-| 12 | `ui-quick-check` sobre la superficie poblada | QA visual | **Bloqueado** — ver abajo |
+| **E11** | **Fixture sintética del operativo de aulas** — plan con titulares, reservas de cadena y banco; partes de campo; respuestas de plataforma; base de control | La pestaña deja de mostrar el vacío y lista las quince facultades con cifras | ☐ **SIGUIENTE** |
+| E0 | ADR 0082 + motor + `tau_prevista` por fila + tabla + marca de residual sin base | La tabla muestra τ prevista y observada por facultad, y las nueve sin base propia lo dicen en su fila | ☑ código · ☐ **UI** |
+| E10 | El disparador es el consumo del margen; la banda queda como guarda | Una facultad con `senal: bajo` y `riesgo: holgado` **no** sale pintada; la que no cierra, sí | ☑ código · ☐ **UI** |
+| E4 | El banco entra al conteo de reservas | Una facultad sin reservas de cadena pero con banco deja de decir «sin reservas libres» | ☐ |
+| E2 | Ventana de reacción (7 días de anticipación) | La fila en riesgo dice «pedir antes del DD/MM»; sin margen, lo dice distinto | ☐ |
+| E3 | El sexo en la decisión de reservas | La fila dice de qué sexo es lo que falta, no sólo cuántos alumnos | ☐ |
+| E5 | Sesgo de agotamiento | La proyección muestra dos cifras: a la τ acumulada y a la de los últimos días | ☐ |
+| E6 | Serie diaria acumulada + tabla semanal por facultad | Los dos paneles se ven y su eje temporal cuadra con el ritmo diario | ☐ |
+| E7 | Tercera línea (el esperado del diseño) en `serieDeRendimiento` | El gráfico dibuja tres líneas y la leyenda las nombra | ☐ |
+| E8 | Choque de rótulos «Del potencial» / banco | Ninguna pestaña llama igual a dos tasas con numeradores distintos | ☐ **espera a Gonzalo** |
+| **E12** | **Perfeccionamiento de la UI de la pestaña** | `ui-quick-check` con `--require-geometry --fail-on-issues` en los cinco viewports (1710×1107, 1440×1000, 1366×768, 1280×720, 1024×600), vacíos clasificados y C1–C4 | ☐ |
 
-### Por qué el 12 está bloqueado y no pendiente
+### E11, y por qué era «bloqueado» hasta hoy
 
-**Ningún proyecto en disco llega poblado a esta superficie.** Se comprobó el
-2026-08-26: los cinco proyectos de referencia versionados declaran
-`monitoreo: false` en HSVG2026 —el único con el marco de aulas— y los seis
-`.pulso` de HSTVG2026 del disco del usuario traen `calc-muestra: ready` con
-`monitoreo: pending`, que es el estado real del estudio: **todavía no sale a
-campo**. Sembrar la selección en el proyecto anonimizado tampoco vale:
-`reference_project_seed_aulas_selection.R` se detiene porque el descuento
-secuencial necesita los ids de alumno, que son PII y no viajan en un proyecto
-de referencia.
+Medido el 2026-08-26: **ningún proyecto en disco llega poblado a esta
+superficie.** Los seis `.pulso` de `~/Documents/Pulso/HSTVG2026/` traen
+`calc-muestra: ready` con `monitoreo: pending` —el estudio no ha salido a
+campo—; `api/inst/reference_projects/hsvg2026/` declara `monitoreo: false`; y
+sembrar la selección en el anonimizado se detiene porque el descuento
+secuencial necesita los ids de alumno, que son PII y no viajan
+(`make reference-project-seed-aulas REFERENCE_PROJECT=hsvg2026`).
+`scripts/ui-quick-check.mjs` stubea el workspace de calc-muestra, no el
+dashboard de Monitoreo.
 
-Lo que sí se verificó del render son las diez aserciones de
-`AulasEfectividadSeguimiento.test.tsx`, que cubren C1 (declara qué mide antes
-de la primera cifra), C3 (sus dos vacíos, distinguibles entre sí) y la regla de
-la señal. Lo que queda sin ver en pantalla es la tabla con quince filas reales
-y su geometría a 1024×600. **Se desbloquea con el primer corte de campo**, o
-antes con una fixture sintética del operativo de aulas, que hoy no existe en el
-repo (`ui-quick-check` stubea calc-muestra pero no el dashboard de Monitoreo).
+**La salida es fabricar la fixture, y desbloquea todo el perfil de aulas, no un
+ítem.** Es sintética y determinista: no lleva PII, puede vivir en el repo junto
+a `api/inst/audit_reference/`, y da a las quince facultades un estado con
+titulares aplicados, reservas dormidas, banco y respuestas de plataforma. Las
+cifras del backtest de 2025 sirven de calibración para que el estado se parezca
+a un campo real en vez de a números redondos.
 
 ### El ítem 4, dicho y no tocado
 
