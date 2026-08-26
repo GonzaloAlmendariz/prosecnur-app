@@ -760,6 +760,69 @@ libro_recibo <- list(
 )
 session_set(sid, "monitoreo_aulas_libro", libro_recibo)
 session_set(sid, "monitoreo_aulas_partes_campo", partes)
+# --- metas del diseno, para que la pestana de Efectividad tenga vara ----------
+#
+# Sin `design_targets` el seguimiento de tau (ADR 0082) sale vacio declarado:
+# no hay tau prevista contra la que medir ni cuota contra la que proyectar el
+# margen. El fixture las fabrica aqui porque su plan NO viene de un import de
+# Calculo de muestra.
+#
+# Calibrado con lo medido en el campo 2025 y en la seleccion 2026 para que se
+# parezca a un operativo real y no a numeros redondos:
+#
+#   - tau por facultad entre 0,41 y 0,80, que es el rango real de HSVG2026.
+#   - la cuota deja un margen mediano de ~+47 % del esperado, cerca del +49,2 %
+#     que tiene la seleccion 2026 de 193 titulares.
+#   - UNA facultad se siembra CORTA a proposito. Sin ella la senal de riesgo
+#     solo se podria ver apagada, y una pantalla que nunca se ha visto encendida
+#     no esta comprobada.
+.qa_design_targets <- local({
+  pd <- .monitoreo_aulas_df(monitoreo_aulas_normalize_plan(plan), "plan")
+  tit <- pd$sample_role == "titular"
+  el <- suppressWarnings(as.numeric(pd$eligible_n)); el[!is.finite(el)] <- 0
+  facs <- unique(pd$faculty[tit & nzchar(pd$faculty)])
+  facs <- sort(facs)
+  # tau reproducible y sin RNG: se reparte el rango real por orden alfabetico.
+  taus <- round(seq(0.41, 0.80, length.out = max(1L, length(facs))), 3)
+  # LA CUOTA SE CALIBRA CONTRA LO QUE EL FIXTURE REALMENTE CONSIGUE, no contra
+  # `elegibles x tau`. Primer intento: se puso la cuota a 1,08 del esperado
+  # segun tau y salieron las VEINTE facultades en `holgado`, porque el fixture
+  # rinde ~0,69 y las tau asignadas van de 0,41 a 0,80 — la cuota quedaba
+  # calibrada contra una tasa que nadie sigue. Una pantalla de riesgo que solo
+  # se puede ver apagada no esta comprobada.
+  conseguido <- local({
+    aula <- .monitoreo_aulas_response_classroom(data, list(
+      source_mapping = list(collector_var = "collectorID")))
+    codigo_de <- stats::setNames(pd$faculty, pd$classroom_id)
+    fac_resp <- unname(codigo_de[aula]); fac_resp[is.na(fac_resp)] <- ""
+    tb <- table(fac_resp[nzchar(fac_resp)])
+    stats::setNames(as.integer(tb), names(tb))
+  })
+  toma <- function(f) { v <- suppressWarnings(as.integer(conseguido[f])); if (length(v) != 1L || is.na(v)) 0L else v }
+  # Tres estados sembrados a proposito, para que la pantalla se pueda ver en
+  # los tres: una CORTA (no cierra ni en el mejor escenario), una AJUSTADA
+  # (cierra justo) y el resto holgadas.
+  corta <- facs[[1]]
+  ajustada <- if (length(facs) > 1L) facs[[2]] else facs[[1]]
+  filas <- lapply(seq_along(facs), function(i) {
+    f <- facs[[i]]; tau <- taus[[i]]
+    logrado <- toma(f)
+    esperado <- sum(el[tit & pd$faculty == f]) * tau
+    cuota <- if (identical(f, corta)) round(logrado * 1.25)
+             else if (identical(f, ajustada)) round(logrado * 1.02)
+             else round(esperado * 0.68)
+    list(facultad = f, faculty_key = .cm_criterios_fac_key(f),
+         cuota = max(1, cuota),
+         cuota_sexo = list(F = round(cuota * 0.52), M = cuota - round(cuota * 0.52)),
+         tau = tau)
+  })
+  list(schema = "monitoreo_aulas_design_targets_v1", source = "calc-muestra",
+       tasa_esperada = NA_real_, tasa_fuente = "tau_disenio",
+       total_cuota = sum(vapply(filas, function(x) as.numeric(x$cuota), numeric(1))),
+       facultades = filas,
+       selection_run_id = "qa-aulas-campo-run-1", frame_hash = "qa-aulas-campo-frame-1")
+})
+
 session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
   monitoreo_profile = list(family = "aulas_universitarias", variant = "multi_actor",
                            status = "active", route_selected = TRUE),
@@ -770,6 +833,10 @@ session_set(sid, "monitoreo_config", monitoreo_normalize_config(list(
     # respuestas, porque Kobo deja esa columna vacia mientras nadie las revisa
     # a mano —y "" no esta entre los estados validos. Es la otra cara de L12.
     source_mapping = list(collector_var = "collectorID", valid_filters = FILTROS_DE_EFECTIVA),
+    # Los sellos van con el bloque Y en la config: si difieren, `avance_cuota`
+    # degrada a la meta del plan y lo declara, que es otra pantalla.
+    selection_run_id = "qa-aulas-campo-run-1", frame_hash = "qa-aulas-campo-frame-1",
+    design_targets = .qa_design_targets,
     # Siete columnas huerfanas, como las que trae la Base de control del estudio
     # de 2025: tienen datos y su cabecera esta vacia en la hoja.
     control_sin_nombre = 7L
@@ -789,6 +856,8 @@ invisible(capture.output(build_pulso(sid, destino, project_name = "QA aulas en c
 tablero <- monitoreo_aulas_dashboard(plan, data, monitoreo_aulas_normalize_config(list(
   enabled = TRUE, plan = plan, partes_campo = partes, control = control, libro = libro_recibo,
   source_mapping = list(collector_var = "collectorID", valid_filters = FILTROS_DE_EFECTIVA),
+  selection_run_id = "qa-aulas-campo-run-1", frame_hash = "qa-aulas-campo-frame-1",
+  design_targets = .qa_design_targets,
   control_sin_nombre = 7L
 )))
 

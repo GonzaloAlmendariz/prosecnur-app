@@ -22,7 +22,12 @@
     sample_role = rol, wave = "M1", orden = orden,
     eligible_n = eligible, expected_valid = round(eligible * 0.5),
     sample_status = status,
-    application_status = if (aplicada) "aplicada" else "pendiente"
+    # El eje de aplicacion es `operational_status`, que es el que cuenta el KPI
+    # del tablero. `application_status` se deja DIVERGENTE a proposito —siempre
+    # sin llenar, como llega de un estudio real— para que un motor que lea la
+    # columna equivocada de rojo aqui en vez de en pantalla.
+    operational_status = if (aplicada) "aplicada" else "agendada",
+    application_status = ""
   )
   # `effective_surveys` es lo que el aplicador ANOTÓ: se siembra a propósito
   # distinto de lo que llega a plataforma para que un test pueda distinguirlos.
@@ -346,4 +351,38 @@ test_that("el criterio declara que el disparador es el margen y la banda es la g
   cr <- d$efectividad_seguimiento$criterio
   expect_match(cr$disparador, "margen")
   expect_match(cr$guarda, "banda")
+})
+
+# --- el eje de aplicacion, con su regresion ----------------------------------
+
+test_that("un aula aplicada cuenta aunque el parte no declare nada", {
+  # Medido sobre la fixture del operativo completo el 2026-08-26: 152 aulas
+  # aplicadas por `operational_status` y CERO por `application_status`, que
+  # llega vacio en las 269 filas. El motor leia la segunda y la pestana salia
+  # vacia entera al lado de un KPI que decia 152.
+  plan <- list(
+    .efs_aula("A1", "FAC1", eligible = 100, orden = 1, aplicada = TRUE),
+    .efs_aula("A2", "FAC1", eligible = 100, orden = 2, aplicada = FALSE)
+  )
+  # Ni una sola fila declara `application_status`: es el estado real del plan.
+  expect_true(all(vapply(plan, function(f) !nzchar(f$application_status), logical(1))))
+
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 40)), dt = .efs_dt(list(.efs_fac("FAC1", tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_identical(f$aulas_aplicadas, 1L)
+  expect_identical(f$elegibles_aplicados, 100L)
+  expect_equal(f$tau_observado, 0.40)
+  # Y coincide con el KPI del mismo tablero: dos superficies vecinas que cuentan
+  # lo mismo de dos maneras acaban discrepando.
+  expect_identical(d$kpis$aulas_aplicadas, 1L)
+})
+
+test_that("`cerrada` tambien es aplicada, igual que en el KPI", {
+  plan <- list(.efs_aula("A1", "FAC1", eligible = 100, orden = 1, aplicada = TRUE))
+  plan[[1]]$operational_status <- "cerrada"
+  d <- .efs_dash(plan, .efs_resp(rep("A1", 50)), dt = .efs_dt(list(.efs_fac("FAC1", tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+  expect_identical(f$aulas_aplicadas, 1L)
+  expect_equal(f$tau_observado, 0.50)
 })

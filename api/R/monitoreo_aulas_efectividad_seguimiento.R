@@ -203,8 +203,8 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   if (!n) return(rep(FALSE, 0))
   rol <- .maac_chr_col(plan_df, "sample_role")
   est <- .maac_chr_col(plan_df, "sample_status")
-  apl <- .maac_chr_col(plan_df, "application_status")
-  rol == "chain_reserve" & .maej_dormido(est) & apl != "aplicada"
+  apl <- .maac_chr_col(plan_df, "operational_status")
+  rol == "chain_reserve" & .maej_dormido(est) & !(apl %in% c("aplicada", "cerrada"))
 }
 
 #' Cuántas de esas reservas cierran un déficit, y cuánto queda si no alcanzan.
@@ -260,7 +260,26 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   atr <- .maac_atribucion(plan_df, valid_response, response_classroom)
 
   n_plan <- if (is.data.frame(plan_df)) nrow(plan_df) else 0L
-  aplicada <- if (n_plan) .maac_chr_col(plan_df, "application_status") == "aplicada" else logical(0)
+  # QUE UN AULA ESTE APLICADA LO DICE `operational_status`, NO `application_status`.
+  #
+  # Son dos ejes distintos y el normalizador lo dice en su propio comentario:
+  # `application_status` viene del PARTE (`status_de_aplicacion`, lo que anota
+  # el aplicador) y `operational_status` es «el eje de la aplicacion», el que
+  # cuenta el KPI del tablero (`sum(operational_status %in% c("aplicada",
+  # "cerrada"))`).
+  #
+  # Medido sobre la fixture del operativo completo (`qa_pulso_aulas_campo.R
+  # --escala 2025`): **152 aulas aplicadas por `operational_status` y CERO por
+  # `application_status`**, que llega `pendiente` en las 269 filas. Leyendo la
+  # columna equivocada esta pantalla salia vacia entera —«todavia no hay aulas
+  # aplicadas»— al lado de un KPI que decia 152, y ninguno de los tests del
+  # motor lo cazo porque sus fixtures escribian `application_status` a mano.
+  #
+  # Se usa el MISMO predicado que el KPI, no uno propio: dos superficies
+  # vecinas que cuentan lo mismo de dos maneras acaban discrepando.
+  aplicada <- if (n_plan) {
+    .maac_chr_col(plan_df, "operational_status") %in% c("aplicada", "cerrada")
+  } else logical(0)
   elegibles <- if (n_plan) .maac_num_col(plan_df, "eligible_n") else numeric(0)
   elegibles[!is.finite(elegibles) | elegibles < 0] <- 0
   fk_plan <- if (n_plan) .maac_fac_key(.maac_chr_col(plan_df, "faculty")) else character(0)
@@ -287,7 +306,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   fk_track <- .maac_fac_key(.maac_chr_col(tracked_df, "faculty"))
   el_track <- .maac_num_col(tracked_df, "eligible_n")
   el_track[!is.finite(el_track) | el_track < 0] <- 0
-  apl_track <- .maac_chr_col(tracked_df, "application_status") == "aplicada"
+  apl_track <- .maac_chr_col(tracked_df, "operational_status") %in% c("aplicada", "cerrada")
   pend <- !apl_track & el_track > 0
   pendientes_k <- if (any(pend)) tapply(el_track[pend], fk_track[pend], sum) else numeric(0)
 
