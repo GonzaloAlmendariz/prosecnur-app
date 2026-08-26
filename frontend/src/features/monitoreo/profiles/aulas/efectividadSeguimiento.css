@@ -1,0 +1,182 @@
+/* La τ del diseño contra la del campo (ADR 0082).
+ *
+ * Hoja propia y no un bloque más de `aulasMonitoreo.css`, que ya pasa de 5 000
+ * líneas. Las clases llevan prefijo `aulas-tau-` para que el contrato de CSS sin
+ * dueño las reconozca como del perfil.
+ *
+ * Toda la geometría cuelga de la fila: tres columnas fijas a la derecha —τ, la
+ * banda y los alumnos— con el nombre cediendo el ancho. Es la misma decisión que
+ * el colchón por facultad: los números se leen EN COLUMNA entre facultades, que
+ * es lo único que permite comparar de un vistazo. */
+
+.mon-profile-page.is-aulas-flow .aulas-tau {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 6px 0 2px;
+}
+
+/* El supuesto del estudio, en una línea. No es una tarjeta: es el encabezado
+   que da sentido a todo lo de abajo. */
+.mon-profile-page.is-aulas-flow .aulas-tau-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--pulso-text-soft);
+  font-size: var(--aulas-txt);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cabeza strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-sello {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-lista {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-lista > li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.3fr) 64px minmax(0, 1.6fr) 84px 92px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cabecera {
+  padding-bottom: 2px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cabecera > span:nth-child(n + 4) {
+  text-align: right;
+}
+
+/* Sólo la señalada por la BANDA se pinta. Una diferencia puntual que la banda
+   no sostiene queda en gris: pintarla invitaría a gastar reservas contra
+   ruido. */
+.mon-profile-page.is-aulas-flow .aulas-tau-lista > li.es-bajo {
+  border-left-color: var(--pulso-danger-fg);
+  background: var(--pulso-surface-2);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-lista > li.es-sobre {
+  border-left-color: var(--pulso-success-fg);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  overflow-wrap: anywhere;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-nombre em {
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra {
+  color: var(--pulso-text);
+  font-size: var(--aulas-txt);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-cifra.es-debil {
+  color: var(--pulso-text-faint);
+}
+
+/* La banda, sobre una escala COMPARTIDA por todas las facultades: normalizar
+   cada una a la suya haría que la de 0,41 se viera igual que la de 0,80 y la
+   comparación diría lo contrario de lo que pasa. */
+.mon-profile-page.is-aulas-flow .aulas-tau-pista {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--pulso-surface-3);
+  min-width: 0;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-banda {
+  position: absolute;
+  top: 3px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--pulso-text-faint);
+  opacity: 0.55;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-lista > li.es-bajo .aulas-tau-banda {
+  background: var(--pulso-danger-fg);
+  opacity: 0.65;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-lista > li.es-sobre .aulas-tau-banda {
+  background: var(--pulso-success-fg);
+  opacity: 0.6;
+}
+
+/* El punto observado, cuando no hay banda que dibujar: con una sola aula
+   aplicada el punto se ve y la banda no existe, y eso es exactamente lo que la
+   pantalla tiene que comunicar. */
+.mon-profile-page.is-aulas-flow .aulas-tau-punto {
+  position: absolute;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--pulso-text-soft);
+}
+
+/* La τ prevista: una marca vertical. Es la vara, no un valor más. */
+.mon-profile-page.is-aulas-flow .aulas-tau-vara {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--pulso-text);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-pie {
+  margin: 2px 0 0;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+}
+
+.mon-profile-page.is-aulas-flow .aulas-tau-pie code {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El foco cruza toda la sección y aquí se RESALTA, no filtra: filtrar destruiría
+   la comparación entre facultades, que es lo único que esta tabla aporta. */
+.mon-profile-page.is-aulas-flow .aulas-tau-lista > li.es-en-foco {
+  outline: 1px solid var(--pulso-accent);
+  outline-offset: -1px;
+}

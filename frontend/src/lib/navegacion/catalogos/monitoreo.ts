@@ -11,6 +11,7 @@ import {
   ContactRound,
   DatabaseZap,
   Download,
+  Gauge,
   Layers3,
   Link2,
   ListChecks,
@@ -232,6 +233,18 @@ export const MONITOREO_PESTANAS = {
       // contra un umbral. Va en pestaña propia y no apilada en Resumen, que ya
       // lleva siete paneles.
       pestana("aulas", "avance", "rendimiento", "Rendimiento", "Qué rinde más, por facultad", TrendingUp),
+      // **Pestaña propia, y no un panel dentro de Rendimiento** (ADR 0082,
+      // decisión de Gonzalo del 2026-08-26). Las dos miden efectivas sobre
+      // elegibles y ahí se acaba el parecido: Rendimiento ordena facultades por
+      // lo que deja cada visita —un ranking para decidir a dónde ir mañana, con
+      // el numerador del PARTE— y esto contrasta la τ que dimensionó la muestra
+      // contra la que rinde el campo, con el numerador de PLATAFORMA. Apiladas,
+      // los dos numeradores quedarían uno debajo del otro sin que nada los
+      // distinga, que es el defecto más caro de este perfil; y la tabla de
+      // decisión son quince filas con banda y reservas que necesitan la vista
+      // entera. El `detail` es el que las separa: los rótulos cortos son
+      // sinónimos en castellano.
+      pestana("aulas", "avance", "efectividad", "Efectividad", "La τ del diseño contra la del campo", Gauge),
       pestana("aulas", "avance", "salidas", "Salidas", "Publicación a Sheets", Download),
     ],
     // Validación tenía las dos superficies apiladas y la hoja quedaba enterrada
