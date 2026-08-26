@@ -249,6 +249,40 @@ cuando la facultad conforma, y comparándola contra un umbral positivo dio
 «15 de 15 detectarían» — exactamente lo contrario de la verdad. La banda se
 centra en lo OBSERVADO: la caída detectable es su semi-amplitud.
 
+## El criterio de la tabla se extiende al resto del perfil (E13)
+
+Instrucción de Gonzalo del 2026-08-26, ya aprobada la tabla: **«ese mismo
+criterio se le debe aplicar al resto de elementos de esta UI, para que estén
+igual de estéticamente limpios»**.
+
+El criterio, tal como quedó al reparar la tabla de Efectividad:
+
+1. Datos tabulares en `<table>` con `<th scope>` y `caption`; nunca una lista
+   con grid y el encabezado en `aria-hidden`.
+2. Rótulos en castellano llano, sin jerga ni símbolos que el lector no comparta.
+3. Sin `text-transform: uppercase` en texto pequeño: rompe letras griegas y
+   compite con los datos.
+4. Tasas en porcentaje; personas en enteros y por el lado cauto.
+5. El estado nunca sólo por color: palabra además de tono.
+6. Todo gráfico con alternativa textual (`role="img"` + `aria-label`), y la
+   leyenda visual junto a la pieza, no en prosa al pie.
+7. Cifras alineadas con su encabezado.
+
+### Lo medido en el perfil, 2026-08-26
+
+| Señal | Conteo | Qué exige |
+|---|---|---|
+| `aria-hidden="true"` en componentes del perfil | **12 archivos** | Triaje: distinguir el ícono decorativo (legítimo) de la fila de encabezados (defecto) |
+| `grid-template-columns` en `aulasMonitoreo.css` | **61** | Triaje: cuáles son datos tabulares que deberían ser `<table>` |
+| `text-transform: uppercase` en `aulasMonitoreo.css` | **21** | Revisar tamaño y contenido; es el defecto que convirtió «τ» en «Τ» |
+| `title=` sin `aria-label` | **22** contra 39 `aria-label` | Los que dependen sólo del tooltip no son alcanzables por teclado |
+| `Math.round(n * 10) / 10` | **8 sitios** | Varios proyectan encuestas, o sea personas: `proyeccionPorAgenda`, `pronosticoDeCierre`, `serieDeRendimiento` |
+
+**No es una lista de defectos: es una lista de sitios que hay que mirar.** No
+todo `aria-hidden` es un error ni toda rejilla es una tabla; el conteo dice
+dónde buscar, y cada uno se decide viéndolo. La regla de cierre sigue siendo la
+misma: no se cierra sin verlo en pantalla.
+
 ## Lo aprendido que no hay que reinvestigar
 
 - La τ del diseño **ya llega** a Monitoreo: `.monitoreo_aulas_metas_diseno()`
