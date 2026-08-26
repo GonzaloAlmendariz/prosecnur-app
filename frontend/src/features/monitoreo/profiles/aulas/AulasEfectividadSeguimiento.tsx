@@ -55,12 +55,33 @@ function disponibles(f: MonitoreoAulasEfectividadFacultad): string {
 const p1 = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("es-PE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-/** Alumnos con signo: el signo ES el dato, y un «4,1» pelado no dice de qué lado. */
+/**
+ * Alumnos, en PERSONAS ENTERAS y siempre por el lado cauto.
+ *
+ * Gonzalo: «en términos numéricos no podemos estar 3.4 alumnos por encima». No
+ * existe medio alumno encuestado, y es la misma regla que ya rige el ranking de
+ * rendimiento (`personasPorAula`): hacia abajo siempre, incluso desde 3,9.
+ *
+ * Con signo hay que decidir en los DOS sentidos, y la cautela cambia de lado:
+ *
+ * - **Sobra +3,4 → «+3»**: se promete de menos, nunca de más.
+ * - **Falta −22,4 → «−23»**: el faltante se redondea hacia arriba en
+ *   magnitud. Decir que faltan 22 cuando faltan 22,4 es prometer que se cierra
+ *   con menos de lo que hace falta, que es el error caro en una pantalla que
+ *   decide si se activan reservas.
+ */
 const alumnos = (n: number | null | undefined) => {
   if (n == null || !Number.isFinite(n)) return "—";
-  const v = Math.round(Math.abs(n) * 10) / 10;
+  const v = n < 0 ? Math.ceil(Math.abs(n)) : Math.floor(n);
   if (v === 0) return "0";
   return `${n < 0 ? "−" : "+"}${v.toLocaleString("es-PE")}`;
+};
+
+/** El margen de error en puntos porcentuales, entero. `null` si no hay banda. */
+const margenError = (f: MonitoreoAulasEfectividadFacultad): string | null => {
+  if (f.banda_bajo == null || f.banda_alto == null) return null;
+  const pts = Math.round(((f.banda_alto - f.banda_bajo) / 2) * 100);
+  return pts > 0 ? `± ${pts}` : null;
 };
 
 /**
@@ -138,15 +159,15 @@ const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok"
  */
 function bandaEnPalabras(f: MonitoreoAulasEfectividadFacultad): string {
   if (f.tau_previsto == null) return "El diseño no supuso una tasa para esta facultad.";
-  const previsto = `previsto ${pct(f.tau_previsto)}`;
-  if (f.tau_observado == null) return `${previsto}; todavía sin aulas aplicadas.`;
+  const esperado = `Se esperaba ${pct(f.tau_previsto)}`;
+  if (f.tau_observado == null) return `${esperado}; todavía sin aulas aplicadas.`;
   if (f.banda_bajo == null || f.banda_alto == null) {
-    return `${previsto}, va rindiendo ${pct(f.tau_observado)} con una sola aula: todavía no se puede afirmar una diferencia.`;
+    return `${esperado} y va respondiendo ${pct(f.tau_observado)}, con una sola aula: todavía no se puede afirmar una diferencia.`;
   }
   const rel = f.senal === "bajo" ? "por debajo de lo previsto"
     : f.senal === "sobre" ? "por encima de lo previsto"
     : "dentro de lo previsto";
-  return `${previsto}, va rindiendo ${pct(f.tau_observado)} (entre ${pct(f.banda_bajo)} y ${pct(f.banda_alto)}): ${rel}.`;
+  return `${esperado} y va respondiendo ${pct(f.tau_observado)}, entre ${pct(f.banda_bajo)} y ${pct(f.banda_alto)}: ${rel}.`;
 }
 
 export function AulasEfectividadSeguimiento({
@@ -203,13 +224,9 @@ export function AulasEfectividadSeguimiento({
           dos porcentajes juntos son dos números sin pregunta. */}
       <p className="aulas-tau-cabeza">
         <span>
-          El diseño contaba con que respondiera el <strong>{pct(t.tau_previsto)}</strong> de los
-          alumnos del aforo ya aplicado; está respondiendo el{" "}
-          <strong>{pct(t.tau_observado)}</strong>
-          {t.banda_bajo != null && t.banda_alto != null
-            ? <> (entre {pct(t.banda_bajo)} y {pct(t.banda_alto)})</>
-            : null}
-          {" "}en {fmt(t.aulas_aplicadas)} {t.aulas_aplicadas === 1 ? "aula aplicada" : "aulas aplicadas"}.
+          En las {fmt(t.aulas_aplicadas)} aulas ya aplicadas se esperaba que respondiera el{" "}
+          <strong>{pct(t.tau_previsto)}</strong> de los alumnos. Está respondiendo el{" "}
+          <strong>{pct(t.tau_observado)}</strong>.
         </span>
         {t.facultades_en_riesgo > 0 ? (
           <span>
@@ -236,8 +253,8 @@ export function AulasEfectividadSeguimiento({
       {/* La leyenda es VISUAL y va junto a la tabla, no en prosa al pie: quien
           mira la barra tiene que poder decodificarla ahí mismo. */}
       <p className="aulas-tau-leyenda">
-        <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> lo previsto</span>
-        <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> lo que va rindiendo (0 a 100 %), con su margen de error</span>
+        <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> dónde se esperaba llegar</span>
+        <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> hasta dónde va, de 0 a 100 %</span>
       </p>
 
       {/* Es una TABLA de datos y va como tabla: el encabezado anterior era un
@@ -250,11 +267,17 @@ export function AulasEfectividadSeguimiento({
           </caption>
           <thead>
             <tr>
+              {/* Las DOS tasas, cada una con su columna y su número. Antes sólo
+                  se leía la observada y lo esperado era una marca en la barra:
+                  Gonzalo, «no se sabe cuánta es la efectividad esperada y cuál
+                  es la efectividad que va ahora». Una barra ilustra una
+                  comparación; no la sustituye. */}
               <th scope="col">Facultad</th>
-              <th scope="col" className="es-num">Responde</th>
-              <th scope="col">Frente a lo previsto</th>
-              <th scope="col" className="es-num">Alumnos de más o de menos</th>
-              <th scope="col">Aulas de respaldo</th>
+              <th scope="col" className="es-num">Se esperaba</th>
+              <th scope="col" className="es-num">Va respondiendo</th>
+              <th scope="col">Comparación</th>
+              <th scope="col" className="es-num">Alumnos</th>
+              <th scope="col">Si hace falta más</th>
             </tr>
           </thead>
           <tbody>
@@ -284,8 +307,12 @@ export function AulasEfectividadSeguimiento({
                       </em>
                     </NombreDeFacultad>
                   </th>
+                  <td className="aulas-tau-cifra es-debil">{pct(f.tau_previsto)}</td>
                   <td className={`aulas-tau-cifra${f.senal === "sin_banda" ? " es-debil" : ""}`}>
                     {pct(f.tau_observado)}
+                    {/* El margen de error, en número y no como un bigote sobre
+                        la barra: ahí estaba feo y no se sabía qué medía. */}
+                    {margenError(f) ? <em className="aulas-tau-error">{margenError(f)} pts</em> : null}
                   </td>
                   <td>
                     <span className="aulas-tau-pista" role="img" aria-label={bandaEnPalabras(f)}>
@@ -298,15 +325,6 @@ export function AulasEfectividadSeguimiento({
                             f.tau_previsto == null ? ""
                               : f.tau_observado >= f.tau_previsto ? " es-mejor" : " es-peor"}`}
                           style={{ width: pos(f.tau_observado) }}
-                        />
-                      ) : null}
-                      {/* El margen de error, como bigote fino sobre el borde del
-                          relleno. Va en segundo plano a propósito: informa de
-                          cuánto se puede fiar el borde sin competir con él. */}
-                      {f.banda_bajo != null && f.banda_alto != null ? (
-                        <span
-                          className="aulas-tau-bigote"
-                          style={{ left: pos(f.banda_bajo), width: `calc(${pos(f.banda_alto)} - ${pos(f.banda_bajo)})` }}
                         />
                       ) : null}
                       {/* LA MARCA: lo que el diseño supuso. Es la vara. */}
@@ -336,10 +354,12 @@ export function AulasEfectividadSeguimiento({
       </div>
 
       <p className="aulas-tau-pie">
-        <strong>Alumnos de más o de menos</strong> es lo que sobra o falta contra la cuota,
-        contando que lo que queda por aplicar responda igual que lo aplicado hasta ahora. No es la
-        diferencia contra lo previsto: una facultad puede tenerla en contra y cerrar su cuota igual,
-        porque el diseño compró aulas de más.
+        <strong>Alumnos</strong> son los que van a sobrar o a faltar para la cuota de la facultad,
+        contando que las aulas que quedan por aplicar respondan igual que las de hasta ahora. No es
+        lo mismo que responder por debajo de lo esperado: el diseño compró aulas de más, así que una
+        facultad puede responder poco y llegar a su cuota igual.{" "}
+        <strong>± pts</strong> es cuánto puede moverse todavía el porcentaje con las aulas que lleva:
+        cuantas menos aulas, más grande.
       </p>
     </div>
   );
