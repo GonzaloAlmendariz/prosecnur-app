@@ -11,6 +11,10 @@ function facultad(sobre: Partial<MonitoreoAulasAvanceCuotaFacultad> = {}): Monit
     facultad: "Derecho",
     faculty_key: "derecho",
     cuota: 380,
+    // La τ que dimensionó esta facultad (ADR 0082). El motor la publica por
+    // fila desde que `tasa_esperada` dejó de alcanzar: queda en `null` justo
+    // cuando las τ difieren entre facultades, que es siempre en HSVG2026.
+    tau_prevista: 0.53,
     respuestas_validas: 182,
     brecha: 198,
     avance_pct: 47.9,

@@ -775,6 +775,13 @@ export type MonitoreoAulasAvanceCuotaFacultad = {
   faculty_key: string;
   /** `null` = facultad del plan sin cuota en el diseño: no hay denominador. */
   cuota: number | null;
+  /**
+   * La τ que dimensionó ESTA facultad. `null` cuando el diseño no la trazó o
+   * cuando el bloque degradó a la meta del plan. Existe porque `tasa_esperada`
+   * —la compartida— queda en `null` justo cuando las τ difieren por facultad,
+   * que en HSVG2026 es siempre: van de 0,409 a 0,800.
+   */
+  tau_prevista: number | null;
   respuestas_validas: number;
   /** `null` en las filas sin cuota: sin denominador no hay resta. */
   brecha: number | null;
@@ -810,9 +817,94 @@ export type MonitoreoAulasAvanceCuota = {
   facultades: MonitoreoAulasAvanceCuotaFacultad[];
 };
 
+/**
+ * Una facultad en el seguimiento de τ (ADR 0082).
+ *
+ * `senal` es lo único que autoriza a pintar una fila en rojo, y la dispara la
+ * BANDA, nunca el punto: con dos o tres aulas aplicadas la τ de una facultad es
+ * ruido, y el motor lo sabe —el mismo repo midió que dos tercios de la varianza
+ * entre facultades del histórico es error de estimación—.
+ */
+export type MonitoreoAulasEfectividadFacultad = {
+  facultad: string;
+  faculty_key: string;
+  /** La τ que el diseño supuso. `null` cuando no trazó esta facultad. */
+  tau_previsto: number | null;
+  /** Efectivas de plataforma / elegibles de las aulas aplicadas. */
+  tau_observado: number | null;
+  /** Extremos de la banda al 95 %. `null` con menos de dos aulas aplicadas. */
+  banda_bajo: number | null;
+  banda_alto: number | null;
+  aulas_aplicadas: number;
+  elegibles_aplicados: number;
+  /** Aforo del plan vigente que todavía no se aplicó. */
+  elegibles_pendientes: number;
+  efectivas: number;
+  /**
+   * Alumnos de diferencia ATRIBUIBLES A τ, no brecha contra la cuota: esa vive
+   * en `avance_cuota` y tiene otro denominador. Negativo = por debajo.
+   */
+  alumnos_corte: number | null;
+  /** El mismo cálculo extendido al aforo pendiente. */
+  alumnos_cierre: number | null;
+  senal: "bajo" | "sobre" | "conforme" | "sin_banda" | "sin_previsto";
+  residual: number | null;
+  residual_k: number | null;
+  /**
+   * `sin_base` = el residual vale 1 porque el histórico no le dio base propia
+   * (nueve de quince facultades en HSVG2026), no porque se midiera en 1.
+   * `sin_dato` = el plan no trae la columna, que es otra cosa.
+   */
+  residual_base: "propia" | "sin_base" | "sin_dato";
+  reservas_libres: number;
+  /** `null` cuando las libres no alcanzan a cerrar el déficit. */
+  reservas_necesarias: number | null;
+  reservas_alcanzan: boolean;
+  /** Alumnos que seguirían faltando con TODA la reserva libre activada. */
+  sin_cubrir: number | null;
+  estado: "ok" | "sin_previsto" | "sin_campo";
+};
+
+/**
+ * La τ del diseño contra la del campo. Contrato congelado con el motor: la UI
+ * lo proyecta sin recalcular tasas, bandas ni déficits.
+ */
+export type MonitoreoAulasEfectividadSeguimiento = {
+  schema: "monitoreo_aulas_efectividad_seguimiento_v1" | string;
+  generado_en: string;
+  fuente: "design_targets" | "plan_expected";
+  vigencia: "vigente" | "no_verificable" | "obsoleta" | "sin_diseno";
+  motivo: string;
+  criterio: {
+    numerador: string;
+    denominador: string;
+    senal: string;
+    no_cubre: string;
+  };
+  total: {
+    tau_previsto: number | null;
+    tau_observado: number | null;
+    banda_bajo: number | null;
+    banda_alto: number | null;
+    aulas_aplicadas: number;
+    elegibles_aplicados: number;
+    efectivas: number;
+    facultades_senaladas: number;
+    /** Sólo el déficit de las señaladas: no se compensa entre facultades. */
+    alumnos_en_riesgo: number;
+  };
+  facultades: MonitoreoAulasEfectividadFacultad[];
+};
+
 export type MonitoreoAulasDashboard = {
   schema: "monitoreo_aulas_dashboard_v1" | string;
   generated_at: string;
+  /**
+   * El supuesto que dimensionó, contrastado con el campo (ADR 0082). Llega
+   * SIEMPRE, también sin plan: sin aulas aplicadas la pantalla tiene que poder
+   * decirlo, que es distinto de quedarse sin superficie.
+   */
+  efectividad_seguimiento?: MonitoreoAulasEfectividadSeguimiento | null;
   /**
    * El banco de reservas extra: las que NO cuelgan de ningún titular, agregadas
    * por facultad con su composición por sexo. Es el segundo nivel de respaldo

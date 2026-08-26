@@ -44,6 +44,7 @@ import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
+import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
@@ -1713,6 +1714,26 @@ function renderAulasView(
             la tabla obliga a resolver restando de cabeza. */}
         <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
         <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+      </section>
+      )}
+      {pestana !== "efectividad" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* C1: el título dice contra qué se mide, no «Efectividad» a secas.
+              El rótulo corto de la pestaña es sinónimo de «Rendimiento» en
+              castellano y lo que las separa es el numerador; aquí se declara. */}
+          <h3>El campo contra la tasa que dimensionó la muestra</h3>
+          <span>por facultad · numerador de plataforma</span>
+        </div>
+        <AulasEfectividadSeguimiento
+          bloque={dashboard.efectividad_seguimiento}
+          facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
+        />
       </section>
       )}
       {pestana !== "rendimiento" ? null : (

@@ -1510,6 +1510,14 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         .monitoreo_aulas_valid_response(responses, cfg),
         .monitoreo_aulas_response_classroom(responses, cfg)
       ),
+      # Y el del seguimiento de tau tambien (C2): sin plan la pantalla tiene
+      # que poder decir «todavia no hay aulas aplicadas», que es distinto de no
+      # tener bloque y quedarse sin superficie.
+      efectividad_seguimiento = .monitoreo_aulas_efectividad_seguimiento(
+        plan_df, plan_df, responses, cfg,
+        .monitoreo_aulas_valid_response(responses, cfg),
+        .monitoreo_aulas_response_classroom(responses, cfg)
+      ),
       brechas = list(),
       reemplazos = list(),
       validation = list()
@@ -1559,6 +1567,13 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # denominador del bloque de metas mientras su sello siga vigente, y meta del
   # plan —declarada como tal— cuando no lo este.
   avance_cuota <- .monitoreo_aulas_avance_cuota(plan_df, tracked_df, responses, cfg, valid_response, response_classroom)
+  # El SUPUESTO que dimensionó, contrastado con el campo (ADR 0082). Comparte
+  # insumos con `avance_cuota` y contesta otra pregunta: aquél mide si ya
+  # tenemos a la gente, éste si las aulas rinden lo que se supuso al comprar el
+  # aforo. Vive en `monitoreo_aulas_efectividad_seguimiento.R`.
+  efectividad_seguimiento <- .monitoreo_aulas_efectividad_seguimiento(
+    plan_df, tracked_df, responses, cfg, valid_response, response_classroom
+  )
 
   # POR FACULTAD, en el motor y no en la vista.
   #
@@ -1941,6 +1956,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     # por facultad y global miden contra `design_targets`; el resto del payload
     # sigue midiendo el operativo aula a aula contra la meta del plan.
     avance_cuota = avance_cuota,
+    # La τ del diseño contra la del campo, por facultad, con banda y reservas.
+    # No es cumplimiento: el déficit que publica es el ATRIBUIBLE A τ, y su
+    # denominador son las aulas ya aplicadas, no la cuota.
+    efectividad_seguimiento = efectividad_seguimiento,
     # El eje de TIEMPO, que aulas no tenia y los otros perfiles llevan desde
     # hace tiempo. La meta viaja con la serie para que la vista no tenga que
     # recomponerla desde otro bloque del payload. Es el denominador global de

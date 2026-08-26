@@ -269,6 +269,12 @@
         },
         faculty_key = k,
         cuota = if (con_cuota) cuota else NA_real_,
+        # La τ que dimensionó ESTA facultad. El agregado `tasa_esperada` queda
+        # en NA cuando las τ difieren —el motor se niega a promediar quince
+        # tasas que el diseño trazó por separado— y eso es justo cuando hace
+        # falta: en HSVG2026 van de 0,409 a 0,800. Por fila no hay promedio que
+        # esconder. Consumidor: el seguimiento de τ del ADR 0082.
+        tau_prevista = .monitoreo_num(f$tau, NA_real_),
         respuestas_validas = .maac_toma_int(num_k, k),
         # Una facultad del diseño sin cuota legible no gana denominador
         # inventado: se declara `sin_cuota` igual que una fuera del diseño.
@@ -286,6 +292,8 @@
       if (k %in% vistas) next
       filas[[length(filas) + 1L]] <- list(
         facultad = etiqueta_plan(k), faculty_key = k, cuota = NA_real_,
+        # El diseño no trazó esta facultad: no le supuso τ tampoco.
+        tau_prevista = NA_real_,
         respuestas_validas = .maac_toma_int(num_k, k),
         fuente_fila = "sin_cuota", estado = "sin_cuota",
         fuera_universo = .maac_toma_int(fuera_k, k),
@@ -301,6 +309,10 @@
       filas[[length(filas) + 1L]] <- list(
         facultad = etiqueta_plan(k), faculty_key = k,
         cuota = .maac_toma_num(denom_plan, k, 0),
+        # Con el denominador del plan no hay τ del diseño vigente que publicar:
+        # declararla aquí sería atribuirle al diseño una cifra que el bloque
+        # acaba de declarar no vigente.
+        tau_prevista = NA_real_,
         respuestas_validas = .maac_toma_int(num_k, k),
         fuente_fila = "plan", estado = "ok",
         fuera_universo = .maac_toma_int(fuera_k, k),
@@ -323,9 +335,9 @@
       x$brecha <- NA_real_
       x$avance_pct <- NA_real_
     }
-    x[c("facultad", "faculty_key", "cuota", "respuestas_validas", "brecha",
-        "avance_pct", "fuente_fila", "estado", "fuera_universo",
-        "respuestas_sin_sexo")]
+    x[c("facultad", "faculty_key", "cuota", "tau_prevista",
+        "respuestas_validas", "brecha", "avance_pct", "fuente_fila", "estado",
+        "fuera_universo", "respuestas_sin_sexo")]
   })
   if (!identical(vig$fuente, "design_targets") && length(filas) > 1L) {
     # Con denominador del plan, el orden es el de `avance_por_facultad`: la que
