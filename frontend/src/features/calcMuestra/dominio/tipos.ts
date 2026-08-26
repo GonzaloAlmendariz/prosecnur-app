@@ -58,6 +58,11 @@ export type EmbudoPaso = {
   conteo: number;
   /** Explicación llana de qué hace el filtro y por qué. */
   porQue: string;
+  /** Este paso dejó el marco en 0 viniendo de N>0 — es LA causa, no un paso
+   *  que heredó el cero. Lo decide el motor, que es quien ve el antes. */
+  vaciaMarco?: boolean;
+  /** Aviso del motor para ese paso (vacío cuando no vacía el marco). */
+  aviso?: string;
   sello?: SelloCifra;
 };
 
