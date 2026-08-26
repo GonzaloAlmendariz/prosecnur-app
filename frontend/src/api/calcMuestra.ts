@@ -1027,6 +1027,11 @@ export type CalcMuestraAulasPerfilEmbudoPaso = {
   label: string;
   conteo: number;
   excluidos: number;
+  /** El paso que dejó el embudo en 0 viniendo de N>0. SOLO el primero: los
+   *  siguientes heredan el cero y no lo causaron. Ausente en frames viejos. */
+  vacia_marco?: boolean;
+  /** Aviso redactado por el motor para ese paso; "" cuando no vacía el marco. */
+  aviso?: string;
 };
 
 /** Agregados por unidad académica del perfil (facultad/escuela) sobre el marco depurado. */

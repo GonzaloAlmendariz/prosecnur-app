@@ -18,11 +18,17 @@ export function embudoEtapas(pasos: EmbudoPaso[], sustantivo: string): FlujoEtap
     const siguiente = pasos[i + 1];
     // La merma se muestra en la arista que sale de este nodo (drop al siguiente).
     const excluidos = siguiente ? Math.max(0, paso.conteo - siguiente.conteo) : 0;
+    // Un paso en 0 se pintaba "pending" —indistinguible de un paso que aún no
+    // corrió— y su cifra desaparecía. El criterio que VACÍA el marco es lo
+    // contrario de algo pendiente: es el único que decidió. Medido en
+    // HSVG26DEF, el cero de `course_level` se leía nueve pasos más abajo.
+    const vacia = paso.vaciaMarco === true;
     return {
       id: paso.id,
       label: paso.label,
-      valor: paso.conteo > 0 ? fmtInt(paso.conteo) : undefined,
-      estado: paso.conteo > 0 ? "ready" : "pending",
+      valor: paso.conteo > 0 || vacia ? fmtInt(paso.conteo) : undefined,
+      estado: paso.conteo > 0 ? "ready" : vacia ? "alerta" : "pending",
+      detalle: vacia ? paso.aviso : undefined,
       merma: excluidos > 0 ? { n: excluidos, label: sustantivo } : undefined,
     };
   });
