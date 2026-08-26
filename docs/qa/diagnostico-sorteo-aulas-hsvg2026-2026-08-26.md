@@ -140,3 +140,45 @@ curva vuelve a moverse con el candidato.
 Consecuencia práctica para el documento metodológico: la nota que reporta el
 éxito de Derecho con 19 aulas como «≥ 95,1 %» sigue siendo correcta, porque se
 apoya en la certificación original y en la monotonía, no en estas corridas.
+
+### La causa, medida: con la selección aplicada, la certeza sortea la selección
+
+Experimento decisivo. Sobre el proyecto reabierto, certificar Derecho con
+`aulas_formula: 40` y cuota 900, para forzar la búsqueda a barrer hacia arriba:
+
+| aulas | rendimiento | Δ |
+|---|---|---|
+| 40 | 392,7 | |
+| 45 | 393,3 | +0,6 en 5 aulas |
+| 50 | 394,8 | |
+| 55 | 394,6 | **−0,2 en 15 aulas** |
+
+`disponibles: 293`, así que el marco está ahí. Pero el rendimiento es **plano**:
+quince aulas más no mueven nada. En la certificación original cada aula sumaba
+~18 (16→340,1 · 17→357,6 · 18→376,3).
+
+El valor constante lo identifica: 394 ⁄ 0,5683 = **693 estudiantes únicos**. Los
+**19 titulares de Derecho ya seleccionados** reúnen **675 únicos**, rendimiento
+383,6. Coincide dentro del 3 %.
+
+**Conclusión: en un proyecto con la selección aplicada, la certificación sortea
+sobre las aulas ya seleccionadas en vez de sobre el marco.** Por eso su curva es
+plana, por eso ignora el candidato, y por eso da números que no se parecen a los
+de la certificación que produjo ese mismo diseño.
+
+Lo que descarta el experimento:
+- No es pérdida del mapa de estudiantes: está entero, 78 % de traslape.
+- No es el degradado a `suma_elegibles`: nunca se activó.
+- No es `faculty_targets`: viene **vacío** en el config de sesión y en el del
+  marco de este proyecto.
+- No es `.cm_certeza_evaluar`: fija `sim_selector$n_aulas <- aulas` y
+  `replacement_waves <- 0L` correctamente antes de despachar el sorteo.
+
+**Dónde seguir:** el `rows` que llega a `.cm_certeza_evaluar` y el despacho
+`.cm_aulas_select_once_dispatch`. Algo entre la ruta y esa llamada sustituye el
+marco por la selección cuando `s$calc_muestra_aulas_selection` existe.
+
+**Impacto para el usuario:** quien reabre su proyecto y vuelve a certificar
+obtiene una curva plana. Con una cuota alcanzable leería que cualquier número de
+aulas sirve; con una alta, que ninguno sirve. En los dos casos el número que ve
+no responde a la pregunta que hizo.
