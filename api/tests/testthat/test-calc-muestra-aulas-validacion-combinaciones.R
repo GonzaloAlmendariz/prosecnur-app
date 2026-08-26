@@ -213,7 +213,13 @@
 .a_level_range    <- function(fac_ranges) function(a) {
   vapply(seq_len(nrow(a)), function(i) {
     rr <- fac_ranges[[a$faculty[[i]]]]
-    if (is.null(rr)) return(FALSE)  # facultad ausente del mapa no acredita
+    # Facultad AUSENTE del mapa = no declara tramo = NO RESTRINGE. Hasta
+    # 2026-08-25 este oráculo devolvía FALSE ("ausente no acredita") y el motor
+    # hacía lo mismo: con rangos en 2 de 15 facultades las otras 13 perdían
+    # TODAS sus aulas, mientras la UI prometía «Sin rango, la facultad admite
+    # todos los niveles y no filtra». El mapa sólo gobierna lo que nombra; para
+    # dejar una facultad fuera del estudio está el criterio de FACULTAD.
+    if (is.null(rr)) return(TRUE)
     any(vapply(rr, function(r) a$nivel_curso[[i]] >= r[[1]] && a$nivel_curso[[i]] <= r[[2]], logical(1)))
   }, logical(1))
 }
@@ -322,7 +328,8 @@ test_that("teacher_type opera sobre 'Tipo de docente', no sobre 'Condición' del
 })
 
 test_that("course_level opera sobre 'Nivel del curso', no sobre el código de 'Curso'", {
-  # Rangos por facultad: FACA/FACB niveles 1-5, FACC nunca (ausente del mapa).
+  # Rangos por facultad: FACA/FACB niveles 1-5; FACC ausente del mapa → sin
+  # tramo declarado, así que el criterio de nivel no la restringe.
   fac_ranges <- list(FACA = list(list(min = 1, max = 5)), FACB = list(list(min = 1, max = 5)))
   suite <- list(courseLevelRanges = fac_ranges)
   r <- .vc_run(suite = suite)
@@ -331,9 +338,12 @@ test_that("course_level opera sobre 'Nivel del curso', no sobre el código de 'C
   )))
   expect_identical(r$included, esperado)
   # Niveles del curso: A1=1,A2=3,A3=5 (FACA in range); A6=2,A7=4 (FACB in range).
-  # A4=7,A5=9 fuera; A8=6 fuera; A9/A10 FACC no mapeada.
-  expect_identical(sort(names(which(r$included))), c("A1", "A2", "A3", "A6", "A7"))
-  expect_identical(r$classroom_included_n, 5L)
+  # A4=7,A5=9 fuera de FACA; A8=6 fuera de FACB. A9/A10 son FACC, sin tramo
+  # declarado: entran. El criterio SIGUE mordiendo donde se declaró — que es
+  # justo lo que este test protege: que opere sobre el NIVEL y no sobre el
+  # código de curso.
+  expect_identical(sort(names(which(r$included))), c("A1", "A10", "A2", "A3", "A6", "A7", "A9"))
+  expect_identical(r$classroom_included_n, 7L)
 })
 
 test_that("condicion_curso es su propio criterio (no la condición del estudiante)", {
