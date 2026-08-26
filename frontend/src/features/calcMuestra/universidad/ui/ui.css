@@ -464,6 +464,22 @@ button.cmv2-uni-flujo-etapa:focus-visible {
   border-color: transparent;
 }
 
+/* El paso que dejó el flujo en 0: no es "pendiente", es el que lo rompió. */
+.cmv2-uni-flujo-etapa[data-estado="alerta"] {
+  border-color: var(--pulso-danger-border);
+  background: var(--pulso-danger-bg);
+}
+
+.cmv2-uni-flujo-etapa[data-estado="alerta"] .cmv2-uni-flujo-dot {
+  background: var(--pulso-danger-fg);
+  border-color: transparent;
+}
+
+.cmv2-uni-flujo-etapa[data-estado="alerta"] .cmv2-uni-flujo-valor,
+.cmv2-uni-flujo-etapa[data-estado="alerta"] .cmv2-uni-flujo-detalle {
+  color: var(--pulso-danger-fg);
+}
+
 .cmv2-uni-flujo-dot {
   flex: none;
   width: 9px;
