@@ -278,6 +278,52 @@ El criterio, tal como quedó al reparar la tabla de Efectividad:
 | `title=` sin `aria-label` | **22** contra 39 `aria-label` | Los que dependen sólo del tooltip no son alcanzables por teclado |
 | `Math.round(n * 10) / 10` | **8 sitios** | Varios proyectan encuestas, o sea personas: `proyeccionPorAgenda`, `pronosticoDeCierre`, `serieDeRendimiento` |
 
+### Triaje hecho (E13a, 2026-08-26)
+
+Se ejercitaron tres pestañas del perfil con la fixture del operativo completo
+—`efectividad`, `rendimiento`, `cuotas`— con sus paneles montados y con datos.
+
+**Los 8 redondeos a un decimal NO son un defecto de pantalla. Se cierran.**
+Cero decimales sobre personas en las tres pestañas. La doctrina de la casa está
+bien aplicada: los modelos conservan el decimal —`redondeoConservador.ts` lo
+exige, porque un ranking que ordena por el número truncado empata 28,9 con
+28,1— y las vistas eligen formateador según la magnitud. Hay **tres** y cada uno
+tiene su regla:
+
+| Formateador | Redondeo | Para qué |
+|---|---|---|
+| `fmt()` | conserva decimales | tasas y porcentajes |
+| `fmtCuenta()` | hacia **arriba** | lo que hay que ALCANZAR: metas, faltantes |
+| `personasPorAula()` | hacia **abajo** | lo que se PROMETE: rendimientos |
+
+Dos falsos positivos por el camino, los dos por leer el texto sin su unidad:
+«3,700 respuestas» es 3 700 con separador inglés, y «faltan · 80,2» resultó ser
+«80,2 **%**». **Un número sin su unidad no se puede juzgar.**
+
+**El `aria-hidden` SÍ es un defecto real, y son seis componentes.** Todos con la
+misma forma: una lista de datos cuya fila de encabezados lleva
+`aria-hidden="true"`, sin ningún ícono que lo justifique.
+
+| Componente | Contenedor |
+|---|---|
+| `AulasAlertaDeAnticipacion` | `aulas-anticipacion-cabecera` |
+| `AulasColchonPorFacultad` | `aulas-colchon-cabecera` |
+| `AulasConsumoDelBanco` | `aulas-banco-consumo-lista` |
+| `AulasMedioDeContacto` | `aulas-medio-lista` |
+| `AulasRendimientoPorFacultad` | `aulas-rendimiento-lista` |
+| `AulasRitmoPorFacultad` | `aulas-ritmofac-lista` |
+
+Verificado en vivo sobre `AulasRendimientoPorFacultad`: es un `<UL>` de **21
+filas** y su encabezado —«Facultad · Por aula · Ajustado · De los asistentes ·
+Del potencial»— está oculto, así que un lector de pantalla recibe veintiún
+juegos de cinco números sin un solo nombre de columna.
+
+Legítimos y no se tocan: `AulasEfectividadSeguimiento` y `AulasPiramideCuota`
+lo llevan en su **leyenda**, sobre marcas pintadas que sí son decorativas.
+
+**Siguiente**: los seis, con la misma reparación que la tabla de Efectividad
+—`<table>` con `<th scope>` y `caption`—, y cada uno cerrado viéndolo.
+
 **No es una lista de defectos: es una lista de sitios que hay que mirar.** No
 todo `aria-hidden` es un error ni toda rejilla es una tabla; el conteo dice
 dónde buscar, y cada uno se decide viéndolo. La regla de cierre sigue siendo la
