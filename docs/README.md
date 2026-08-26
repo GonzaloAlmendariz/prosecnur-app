@@ -152,6 +152,9 @@ arquitectura canónica.
 - [Checklist de los criterios de curso-horario y su nivel global](qa/checklist-criterios-ch-dos-niveles-2026-08-25.md):
   por qué la pestaña apilaba dos superficies de criterios, qué se midió antes de
   retirar la global y las capacidades que hubo que reubicar.
+- [Checklist del criterio de nivel que vaciaba el marco](qa/checklist-nivel-curso-vacia-marco-2026-08-25.md):
+  por qué mapear la facultad a mano dejaba el marco en 0 de 5.269, y la decisión
+  sobre qué significa una facultad sin tramo declarado.
 - [El XLSForm final ignora los overrides en `label::es`](qa/bug-xlsform-final-label-es-sin-overrides.md):
   defecto abierto; el instrumento exportado se contradice con la base de datos.
 - [Prompt del loop de la superficie](qa/prompt-goal-loop-calc-muestra-frontend.md).
