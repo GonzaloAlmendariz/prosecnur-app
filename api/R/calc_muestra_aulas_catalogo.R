@@ -171,7 +171,28 @@
       c(mapping$condicion_curso, "condicion")
     },
     enrolled_total = mapping$enrolled_total,
-    faculty_curso  = c("facultad_del_curso", "facultad del curso", mapping$faculty),
+    # La facultad DEL CURSO es un rol PROPIO del catálogo y no puede derivar sus
+    # genéricos del mapeo de la facultad DEL ALUMNO. Antes el vector era
+    # c("facultad_del_curso", "facultad del curso", mapping$faculty): con
+    # `faculty` en defaults arrastraba el genérico "facultad" y por ahí resolvía
+    # la columna FACULTAD del catálogo —por accidente, no por diseño—. Al mapear
+    # `faculty` A MANO (ADR 0035, mapeo exclusivo) el genérico desaparecía y
+    # ninguna clave calzaba: la señal quedaba VACÍA, los pares (facultad, nivel)
+    # salían degradados y el criterio de nivel vaciaba el marco ENTERO. Medido
+    # en HSVG26DEF con PUCP 2026-2: 0 de 5.269 aulas con `faculty` a mano contra
+    # 1.222 con `faculty` en automático — el mismo estudio, el mismo catálogo.
+    #
+    # A diferencia de condicion_curso, aquí NO hay homónima sucia que temer: un
+    # catálogo de curso-horario no tiene estudiantes, así que su "Facultad" es
+    # la del curso por construcción. Los genéricos van SIEMPRE; `mapping$faculty`
+    # se conserva al final para el catálogo que nombra su columna igual que la
+    # base (p. ej. ambas NOMBREFAC), donde es lo único que la encuentra.
+    faculty_curso  = c(
+      "facultad_del_curso", "facultad del curso", "facultad_curso",
+      "facultad", "nombre_facultad", "nombrefac",
+      "unidad_academica", "unidad_academica_curso",
+      mapping$faculty
+    ),
     campus         = mapping$campus,
     character(0)
   )
