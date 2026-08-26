@@ -207,6 +207,23 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   rol == "chain_reserve" & .maej_dormido(est) & !(apl %in% c("aplicada", "cerrada"))
 }
 
+#' El BANCO de extras disponible de cada facultad.
+#'
+#' Va aparte de las reservas de cadena porque son dos recursos distintos: la
+#' reserva reemplaza a un titular caído, el banco son aulas adicionales que el
+#' diseño dotó para cerrar cuota por facultad y sexo. Pero para tapar un hueco
+#' de margen SIRVEN LAS DOS, y contar sólo la cadena fue un defecto medido:
+#' sobre la fixture del operativo completo las veinte facultades salían con
+#' «0 reservas libres» teniendo 73 aulas de banco delante.
+#' @keywords internal
+.maes_banco_disponible <- function(plan_df) {
+  n <- if (is.data.frame(plan_df)) nrow(plan_df) else 0L
+  if (!n) return(rep(FALSE, 0))
+  rol <- .maac_chr_col(plan_df, "sample_role")
+  apl <- .maac_chr_col(plan_df, "operational_status")
+  rol == "extra_reserve_pool" & !(apl %in% c("aplicada", "cerrada"))
+}
+
 #' Cuántas de esas reservas cierran un déficit, y cuánto queda si no alcanzan.
 #'
 #' Se proyecta cada reserva con la τ **observada** de su facultad, no con la
@@ -216,25 +233,38 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
 #' `alcanceDelBanco` —ningún alumno de una reserva es una encuesta— aplicada
 #' por facultad.
 #'
-#' Las mayores primero: cierran el hueco con menos visitas, que es lo que el
-#' operativo puede permitirse.
+#' La CADENA primero y el BANCO después, y se declara cuántas salen de cada uno:
+#' activar una reserva de cadena es seguir el plan, y echar mano del banco es
+#' una decisión distinta que el operativo tiene que ver por separado.
+#'
+#' Dentro de cada fuente, las mayores primero: cierran el hueco con menos
+#' visitas, que es lo que el operativo puede permitirse.
 #' @keywords internal
-.maes_reservas_que_cierran <- function(elegibles_libres, deficit, tau) {
-  n <- length(elegibles_libres)
+.maes_reservas_que_cierran <- function(elegibles_cadena, elegibles_banco, deficit, tau) {
   if (!is.finite(deficit) || deficit <= 0) {
-    return(list(necesarias = 0L, alcanzan = TRUE, sobrante = NA_real_))
+    return(list(necesarias = 0L, de_cadena = 0L, de_banco = 0L,
+                alcanzan = TRUE, sobrante = NA_real_))
   }
-  if (!n || !is.finite(tau) || tau <= 0) {
-    return(list(necesarias = NA_integer_, alcanzan = FALSE, sobrante = deficit))
+  disponible <- c(sort(elegibles_cadena, decreasing = TRUE),
+                  sort(elegibles_banco, decreasing = TRUE))
+  n_cadena <- length(elegibles_cadena)
+  if (!length(disponible) || !is.finite(tau) || tau <= 0) {
+    return(list(necesarias = NA_integer_, de_cadena = 0L, de_banco = 0L,
+                alcanzan = FALSE, sobrante = deficit))
   }
-  rinde <- sort(elegibles_libres * tau, decreasing = TRUE)
-  acumulado <- cumsum(rinde)
+  acumulado <- cumsum(disponible * tau)
   hit <- which(acumulado >= deficit)
   if (!length(hit)) {
-    return(list(necesarias = NA_integer_, alcanzan = FALSE,
+    return(list(necesarias = NA_integer_, de_cadena = as.integer(n_cadena),
+                de_banco = as.integer(length(disponible) - n_cadena),
+                alcanzan = FALSE,
                 sobrante = deficit - acumulado[[length(acumulado)]]))
   }
-  list(necesarias = as.integer(hit[[1]]), alcanzan = TRUE, sobrante = 0)
+  k <- as.integer(hit[[1]])
+  list(necesarias = k,
+       de_cadena = as.integer(min(k, n_cadena)),
+       de_banco = as.integer(max(0L, k - n_cadena)),
+       alcanzan = TRUE, sobrante = 0)
 }
 
 # --- el bloque ---------------------------------------------------------------
@@ -311,6 +341,7 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
   pendientes_k <- if (any(pend)) tapply(el_track[pend], fk_track[pend], sum) else numeric(0)
 
   libres <- .maes_reservas_libres(plan_df)
+  banco <- .maes_banco_disponible(plan_df)
 
   # El CONSEGUIDO de cada facultad lo publica `avance_cuota` (ADR 0079) y aqui
   # NO se recalcula: su numerador incluye reservas activadas y excluye
@@ -389,7 +420,9 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
     deficit <- if (margen$estado %in% c("riesgo", "riesgo_firme") &&
                    is.finite(margen$restante)) -margen$restante else 0
     libres_k <- libres & en_plan
-    cierre <- .maes_reservas_que_cierran(elegibles[libres_k], deficit, banda$tau)
+    banco_k <- banco & en_plan
+    cierre <- .maes_reservas_que_cierran(elegibles[libres_k], elegibles[banco_k],
+                                         deficit, banda$tau)
 
     # ¿El residual de esta facultad tiene base propia en el histórico? Se lee
     # de sus filas del plan, no se infiere del valor: un factor 1 medido y un
@@ -433,7 +466,12 @@ MONITOREO_AULAS_EFECTIVIDAD_SCHEMA <- "monitoreo_aulas_efectividad_seguimiento_v
       residual_k = if (length(k_hist)) as.integer(max(k_hist)) else NA_integer_,
       residual_base = if (!length(fac_res)) "sin_dato" else if (length(k_hist)) "propia" else "sin_base",
       reservas_libres = as.integer(sum(libres_k)),
+      # El banco va con nombre propio: es otro recurso y activarlo es otra
+      # decisión. Sumarlo a las reservas de cadena escondería cuál se gasta.
+      banco_disponible = as.integer(sum(banco_k)),
       reservas_necesarias = cierre$necesarias,
+      reservas_de_cadena = cierre$de_cadena,
+      reservas_de_banco = cierre$de_banco,
       reservas_alcanzan = isTRUE(cierre$alcanzan),
       # Alumnos que seguirían faltando si se activara TODA la reserva libre.
       sin_cubrir = if (is.finite(cierre$sobrante)) round(cierre$sobrante, 1) else NA_real_,

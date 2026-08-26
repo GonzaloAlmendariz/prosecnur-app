@@ -51,7 +51,10 @@ function fac(sobre: Partial<MonitoreoAulasEfectividadFacultad> = {}): MonitoreoA
     residual_k: 16,
     residual_base: "propia",
     reservas_libres: 4,
+    banco_disponible: 6,
     reservas_necesarias: 0,
+    reservas_de_cadena: 0,
+    reservas_de_banco: 0,
     reservas_alcanzan: true,
     sin_cubrir: null,
     estado: "ok",
@@ -103,14 +106,51 @@ const sinSeparador = (html: string) => html.replace(/(\d)[.,](\d)/g, "$1|$2");
 describe("la τ del diseño contra la del campo", () => {
   // --- C1: declara qué mide ---------------------------------------------------
 
-  it("dice el supuesto y lo observado antes de cualquier tabla, y de dónde sale el numerador", () => {
+  it("dice el supuesto y lo observado en PORCENTAJE, que es como lo lee quien no diseñó la muestra", () => {
     const html = sinSeparador(render(bloque()));
-    expect(html).toContain("0|530");
-    expect(html).toContain("0|510");
+    // 0,53 se publica como «53,0 %»: «0.530» no significa nada fuera del equipo.
+    expect(html).toContain("53|0 %");
+    expect(html).toContain("51|0 %");
     expect(html).toContain("68");
-    // El numerador se DECLARA: es lo único que distingue esta tasa de las otras
-    // dos que el mismo perfil publica.
+    // El numerador se DECLARA, y sin jerga: es lo único que distingue esta tasa
+    // de las otras dos que el mismo perfil publica.
     expect(html).toContain("plataforma");
+    expect(html).not.toContain("numerador:");
+  });
+
+  it("es una tabla de verdad, con encabezados nombrados y sin aria-hidden", () => {
+    // El encabezado anterior era un `li` con `aria-hidden`, así que un lector de
+    // pantalla recibía cinco columnas de números sin un solo nombre.
+    const html = render(bloque());
+    expect(html).toContain("<table");
+    expect(html).toContain('scope="col"');
+    expect(html).toContain('scope="row"');
+    expect(html).toContain("<caption");
+    expect(html).not.toContain('aria-hidden="true"><span>Facultad');
+  });
+
+  it("la barra tiene alternativa textual: su lectura no depende de verla", () => {
+    const html = render(bloque({
+      facultades: [fac({ tau_previsto: 0.5, tau_observado: 0.3, banda_bajo: 0.26, banda_alto: 0.34, senal: "bajo" })],
+    }));
+    expect(html).toContain('role="img"');
+    expect(html).toContain("aria-label");
+    expect(sinSeparador(html)).toContain("por debajo de lo previsto");
+  });
+
+  it("el veredicto va en PALABRA además de en color", () => {
+    // Quien no distingue los tonos —o proyecta, o imprime— recibía el estado
+    // sólo por el borde de color de la fila.
+    expect(render(bloque({ facultades: [fac({ riesgo: "riesgo_firme" })] }))).toContain("No cierra");
+    expect(render(bloque({ facultades: [fac({ riesgo: "holgado" })] }))).toContain("Cubierta");
+    expect(render(bloque({ facultades: [fac({ riesgo: "ajustado" })] }))).toContain("Justo");
+  });
+
+  it("la leyenda de la barra es visual y vive junto a la tabla, no sólo en el pie", () => {
+    const html = render(bloque());
+    expect(html).toContain("aulas-tau-muestra-vara");
+    expect(html).toContain("aulas-tau-muestra-banda");
+    expect(html).toContain("lo previsto");
   });
 
   it("cuando ninguna facultad se queda corta lo dice, en vez de callar y parecer vacía", () => {
@@ -154,7 +194,8 @@ describe("la τ del diseño contra la del campo", () => {
       facultades: [fac({
         tau_observado: 0.3, tau_previsto: 0.5, banda_bajo: 0.26, banda_alto: 0.34,
         senal: "bajo", riesgo: "riesgo_firme", margen_restante: -160,
-        reservas_libres: 6, reservas_necesarias: 4, reservas_alcanzan: true,
+        reservas_libres: 6, banco_disponible: 0, reservas_necesarias: 4,
+        reservas_de_cadena: 4, reservas_de_banco: 0, reservas_alcanzan: true,
       })],
     }));
     expect(html).toContain("es-bajo");
@@ -173,19 +214,41 @@ describe("la τ del diseño contra la del campo", () => {
     expect(html).not.toContain("es-bajo");
     expect(html).toContain("Ninguna facultad se queda corta");
     // Y aun así se dice que rinde por debajo: el dato no se esconde.
-    expect(html).toContain("bajo su tasa prevista");
+    expect(html).toContain("por debajo de lo previsto");
   });
 
-  it("con una sola aula aplicada no hay banda que dibujar y el punto queda atenuado", () => {
+  it("con una sola aula aplicada la barra se rellena pero sin margen de error", () => {
+    // El relleno se dibuja igual —es lo que va rindiendo— pero el bigote no,
+    // porque con una observación no hay dispersión que medir.
     const html = render(bloque({
       facultades: [fac({
-        aulas_aplicadas: 1, tau_observado: 0.1, banda_bajo: null, banda_alto: null,
-        senal: "sin_banda", alumnos_cierre: null,
+        aulas_aplicadas: 1, tau_observado: 0.1, tau_previsto: 0.5,
+        banda_bajo: null, banda_alto: null, senal: "sin_banda", riesgo: "holgado",
       })],
     }));
-    expect(html).toContain("aulas-tau-punto");
-    expect(html).not.toContain("aulas-tau-banda");
+    expect(html).toContain("aulas-tau-relleno");
+    expect(html).not.toContain("aulas-tau-bigote");
     expect(html).not.toContain("es-bajo");
+  });
+
+  it("la barra va de 0 a 100 y se rellena con lo que se viene rindiendo", () => {
+    // 0,30 se dibuja como 30 % del ancho, no como una fracción de una escala
+    // recortada al máximo observado: sin extremos conocidos la barra no dice
+    // qué es «lleno».
+    const html = render(bloque({
+      facultades: [fac({ tau_observado: 0.3, tau_previsto: 0.5, banda_bajo: 0.26, banda_alto: 0.34 })],
+    }));
+    expect(html).toContain("width:30%");
+    expect(html).toContain("left:50%");   // la marca, en lo previsto
+  });
+
+  it("el relleno es verde cuando llega a la marca y rojo cuando se queda corto", () => {
+    const corto = render(bloque({ facultades: [fac({ tau_observado: 0.3, tau_previsto: 0.5 })] }));
+    const pasa = render(bloque({ facultades: [fac({ tau_observado: 0.7, tau_previsto: 0.5 })] }));
+    expect(corto).toContain("es-peor");
+    expect(corto).not.toContain("es-mejor");
+    expect(pasa).toContain("es-mejor");
+    expect(pasa).not.toContain("es-peor");
   });
 
   // --- el residual sin base no se lee como medición ---------------------------
@@ -213,9 +276,9 @@ describe("la τ del diseño contra la del campo", () => {
     expect(html).not.toContain("−80");
   });
 
-  it("el pie dice que el margen se proyecta a la tasa observada, no a la prevista", () => {
+  it("el pie dice que el margen se proyecta a lo que se viene rindiendo, no a lo previsto", () => {
     const html = render(bloque());
-    expect(html).toContain("la tasa que el campo está rindiendo");
-    expect(html).toContain("no la diferencia contra la tasa prevista");
+    expect(html).toContain("responda igual que lo aplicado hasta ahora");
+    expect(html).toContain("No es la");
   });
 });

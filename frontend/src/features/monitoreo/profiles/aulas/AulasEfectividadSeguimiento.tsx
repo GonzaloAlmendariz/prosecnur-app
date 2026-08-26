@@ -37,6 +37,21 @@ import "./efectividadSeguimiento.css";
  * ADR vino a separar.
  */
 
+/**
+ * Lo que una facultad tiene a mano, nombrando cada fuente.
+ *
+ * «0 libres» era falso en veinte facultades de la fixture: tenían banco. Y la
+ * concordancia importa —«1 libres» se leyó en pantalla— porque una cifra mal
+ * concordada delata que nadie miró la fila con un solo elemento.
+ */
+function disponibles(f: MonitoreoAulasEfectividadFacultad): string {
+  const partes: string[] = [];
+  if (f.reservas_libres > 0) partes.push(`${fmt(f.reservas_libres)} en cadena`);
+  if (f.banco_disponible > 0) partes.push(`${fmt(f.banco_disponible)} de banco`);
+  if (!partes.length) return "sin reservas";
+  return partes.join(" · ");
+}
+
 const p1 = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("es-PE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
@@ -74,12 +89,64 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
   const firme = f.riesgo === "riesgo_firme"
     ? "No cierra la cuota ni en el mejor escenario del dato"
     : "Su proyección no cierra la cuota";
-  if (f.reservas_libres === 0) return `${firme}: faltan ${fmt(falta)} y no le quedan reservas libres.`;
+  const aMano = f.reservas_libres + f.banco_disponible;
+  if (aMano === 0) return `${firme}: faltan ${fmt(falta)} y no le queda ninguna aula de respaldo.`;
   if (f.reservas_alcanzan && f.reservas_necesarias != null) {
-    return `${firme}: ${fmt(f.reservas_necesarias)} ${f.reservas_necesarias === 1 ? "reserva cierra" : "reservas cierran"} los ${fmt(falta)} que faltan.`;
+    const de = f.reservas_de_banco > 0 && f.reservas_de_cadena > 0
+      ? ` (${fmt(f.reservas_de_cadena)} de cadena y ${fmt(f.reservas_de_banco)} de banco)`
+      : f.reservas_de_banco > 0 ? " del banco" : " de su cadena";
+    return `${firme}: ${fmt(f.reservas_necesarias)} ${f.reservas_necesarias === 1 ? "aula cierra" : "aulas cierran"}${de} los ${fmt(falta)} que faltan.`;
   }
   const resto = f.sin_cubrir != null && Number.isFinite(f.sin_cubrir) ? Math.round(f.sin_cubrir) : null;
-  return `${firme}: ni activando sus ${fmt(f.reservas_libres)} reservas se cierran los ${fmt(falta)}${resto ? `, quedarían ${fmt(resto)}` : ""}.`;
+  return `${firme}: ni activando las ${fmt(aMano)} que le quedan se cierran los ${fmt(falta)}${resto ? `, quedarían ${fmt(resto)}` : ""}.`;
+}
+
+
+/**
+ * Una tasa, dicha como la lee alguien que no es del equipo.
+ *
+ * τ es 0,693. **«0.693» no significa nada para quien no diseñó la muestra**, y
+ * la pantalla es para el jefe de campo tanto como para el analista. Un
+ * porcentaje sí: «69,3 %» de los que estaban en el aula respondieron.
+ */
+const pct = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(n) ? "—" : `${(n * 100).toLocaleString("es-PE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+
+/**
+ * El veredicto en PALABRAS, además de en color.
+ *
+ * El estado se transmitía sólo por el borde de color de la fila. Quien no
+ * distingue rojo de verde —o mira la pantalla proyectada, o la imprime— no
+ * recibía el dato principal. Es también lo que permite que la tabla se entienda
+ * sin leer el pie.
+ */
+const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok" | "neutro" }> = {
+  riesgo_firme: { texto: "No cierra", tono: "riesgo" },
+  riesgo: { texto: "No cierra", tono: "riesgo" },
+  ajustado: { texto: "Justo", tono: "aviso" },
+  holgado: { texto: "Cubierta", tono: "ok" },
+  sin_campo: { texto: "Sin campo", tono: "neutro" },
+  sin_cuota: { texto: "Sin cuota", tono: "neutro" },
+  sin_cumplimiento: { texto: "Sin dato", tono: "neutro" },
+};
+
+/**
+ * La lectura de la banda para quien no la ve.
+ *
+ * La barra sólo tenía `title`, así que su contenido —el dato principal de la
+ * fila— no existía para un lector de pantalla ni para quien navega con teclado.
+ */
+function bandaEnPalabras(f: MonitoreoAulasEfectividadFacultad): string {
+  if (f.tau_previsto == null) return "El diseño no supuso una tasa para esta facultad.";
+  const previsto = `previsto ${pct(f.tau_previsto)}`;
+  if (f.tau_observado == null) return `${previsto}; todavía sin aulas aplicadas.`;
+  if (f.banda_bajo == null || f.banda_alto == null) {
+    return `${previsto}, va rindiendo ${pct(f.tau_observado)} con una sola aula: todavía no se puede afirmar una diferencia.`;
+  }
+  const rel = f.senal === "bajo" ? "por debajo de lo previsto"
+    : f.senal === "sobre" ? "por encima de lo previsto"
+    : "dentro de lo previsto";
+  return `${previsto}, va rindiendo ${pct(f.tau_observado)} (entre ${pct(f.banda_bajo)} y ${pct(f.banda_alto)}): ${rel}.`;
 }
 
 export function AulasEfectividadSeguimiento({
@@ -95,15 +162,6 @@ export function AulasEfectividadSeguimiento({
     [bloque],
   );
 
-  // La escala COMPARTIDA por todas las filas. Se calcula sobre lo que hay que
-  // dibujar —previstas, observadas y extremos de banda— y no sobre [0,1]: con
-  // τ entre 0,4 y 0,8 la mitad de la pista quedaría siempre vacía y las
-  // diferencias que deciden se verían como matices.
-  const tope = useMemo(() => {
-    const vals = filas.flatMap((f) => [f.tau_previsto, f.tau_observado, f.banda_alto])
-      .filter((v): v is number => v != null && Number.isFinite(v));
-    return Math.min(1, Math.max(0.2, ...vals) * 1.08);
-  }, [filas]);
 
   // C3: el vacío es SUYO y dice cuál de los dos vacíos es. «Sin diseño» y «sin
   // campo» se arreglan de maneras distintas, y un mensaje único obligaría a
@@ -126,24 +184,33 @@ export function AulasEfectividadSeguimiento({
   }
 
   const t = bloque.total;
-  const pos = (v: number) => `${Math.max(0, Math.min(100, (v / tope) * 100))}%`;
+  // LA ESCALA ES 0–100 %, FIJA.
+  //
+  // Antes la barra era un segmento flotante sobre una escala recortada al
+  // máximo observado. Gonzalo, mirándola: «la barra no debería ser de 0 al
+  // 100 % con el tick en lo previsto y llenando de izquierda a derecha con la
+  // tasa actual… ahora está pintando medio raro». Tenía razón: un segmento que
+  // flota sobre una escala sin extremos conocidos no se puede leer —no hay
+  // forma de saber qué es «lleno»— y obliga a decodificarlo con la leyenda.
+  //
+  // Con relleno desde la izquierda, la lectura es inmediata y no necesita
+  // explicación: la barra llega o no llega a la marca.
+  const pos = (v: number) => `${Math.max(0, Math.min(100, v * 100))}%`;
 
   return (
     <div className="aulas-tau" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
       {/* C1: la superficie declara qué mide ANTES de la primera cifra. Sin esto,
-          «0,51» junto a «0,53» son dos números sin pregunta. */}
+          dos porcentajes juntos son dos números sin pregunta. */}
       <p className="aulas-tau-cabeza">
         <span>
-          El diseño supuso <strong>{p1(t.tau_previsto)}</strong> de efectividad para el aforo ya
-          aplicado; el campo está rindiendo <strong>{p1(t.tau_observado)}</strong>
+          El diseño contaba con que respondiera el <strong>{pct(t.tau_previsto)}</strong> de los
+          alumnos del aforo ya aplicado; está respondiendo el{" "}
+          <strong>{pct(t.tau_observado)}</strong>
           {t.banda_bajo != null && t.banda_alto != null
-            ? <> (banda {p1(t.banda_bajo)}–{p1(t.banda_alto)})</>
+            ? <> (entre {pct(t.banda_bajo)} y {pct(t.banda_alto)})</>
             : null}
-          {" "}sobre {fmt(t.aulas_aplicadas)} {t.aulas_aplicadas === 1 ? "aula aplicada" : "aulas aplicadas"}.
+          {" "}en {fmt(t.aulas_aplicadas)} {t.aulas_aplicadas === 1 ? "aula aplicada" : "aulas aplicadas"}.
         </span>
-        {/* Los alumnos en riesgo NO se compensan entre facultades: pasarse en una
-            no cubre lo que falta en otra. Por eso se dice cuántas facultades los
-            producen, en vez de un neto que siempre saldría más favorable. */}
         {t.facultades_en_riesgo > 0 ? (
           <span>
             <strong>{fmt(Math.round(t.alumnos_en_riesgo))}</strong> alumnos en riesgo en{" "}
@@ -152,92 +219,127 @@ export function AulasEfectividadSeguimiento({
         ) : (
           <span>Ninguna facultad se queda corta de su cuota con lo que va rindiendo.</span>
         )}
-        {/* Los dos conteos son distintos a propósito: se puede rendir bajo la τ
-            prevista y cerrar igual, porque el diseño compró colchón. Decir sólo
-            uno obligaría a inferir el otro. */}
+        {/* Los dos conteos son distintos a propósito: se puede rendir bajo lo
+            previsto y cerrar igual, porque el diseño compró colchón. */}
         {t.facultades_bajo_su_tau > 0 ? (
           <span className="aulas-tau-sello">
             {fmt(t.facultades_bajo_su_tau)}{" "}
-            {t.facultades_bajo_su_tau === 1 ? "rinde" : "rinden"} bajo su tasa prevista
+            {t.facultades_bajo_su_tau === 1 ? "rinde" : "rinden"} por debajo de lo previsto
           </span>
         ) : null}
         <span className="aulas-tau-sello">
-          numerador: efectiva de plataforma · respaldo del supuesto: campo anterior
+          se cuenta la respuesta que llegó a la plataforma y pasó los filtros
           {bloque.vigencia !== "vigente" && bloque.motivo ? ` · ${bloque.motivo}` : ""}
         </span>
       </p>
 
-      <ul className="aulas-tau-lista">
-        <li className="aulas-tau-cabecera" aria-hidden="true">
-          <span>Facultad</span>
-          <span>τ campo</span>
-          <span>banda contra la τ del diseño</span>
-          <span>margen</span>
-          <span>reservas</span>
-        </li>
-        {filas.map((f) => {
-          const enFoco = f.facultad === facultadEnFoco;
-          // Pinta el RIESGO del margen, no la señal de la banda: rendir bajo la
-          // τ prevista y cerrar igual es el caso normal, y pintarlo de rojo
-          // mandaría a gastar reservas que no hacen falta.
-          const enRiesgo = f.riesgo === "riesgo" || f.riesgo === "riesgo_firme";
-          const clases = [
-            enRiesgo ? "es-bajo" : f.riesgo === "holgado" && f.senal === "sobre" ? "es-sobre" : "",
-            enFoco ? "es-en-foco" : "",
-          ].filter(Boolean).join(" ");
-          return (
-            <li key={f.faculty_key} className={clases || undefined}>
-              <NombreDeFacultad facultad={f.facultad} className="aulas-tau-nombre"
-                enFoco={enFoco} onFoco={onFoco}>
-                {f.facultad}
-                <em>
-                  {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "aula" : "aulas"} ·{" "}
-                  {fmt(f.efectivas)} de {fmt(f.elegibles_aplicados)}
-                  {/* Un residual de 1 sin base propia se DICE. Nueve de quince
-                      facultades lo llevan y hasta hoy se leían como medidas. */}
-                  {f.residual_base === "sin_base" ? " · sin base histórica propia" : ""}
-                </em>
-              </NombreDeFacultad>
-              <span className={`aulas-tau-cifra${f.senal === "sin_banda" ? " es-debil" : ""}`}>
-                {p1(f.tau_observado)}
-              </span>
-              <span className="aulas-tau-pista" title={lectura(f)}>
-                {f.banda_bajo != null && f.banda_alto != null ? (
-                  <span
-                    className="aulas-tau-banda"
-                    style={{ left: pos(f.banda_bajo), width: `calc(${pos(f.banda_alto)} - ${pos(f.banda_bajo)})` }}
-                  />
-                ) : f.tau_observado != null ? (
-                  <span className="aulas-tau-punto" style={{ left: pos(f.tau_observado) }} />
-                ) : null}
-                {f.tau_previsto != null ? (
-                  <span className="aulas-tau-vara" style={{ left: pos(f.tau_previsto) }} title={`τ del diseño ${p1(f.tau_previsto)}`} />
-                ) : null}
-              </span>
-              {/* El MARGEN, que es lo que decide, y no los alumnos atribuibles a
-                  τ: una facultad puede perder 40 por rendir bajo y cerrar igual. */}
-              <span className={`aulas-tau-cifra${enRiesgo ? "" : " es-debil"}`}>
-                {alumnos(f.margen_restante)}
-              </span>
-              <span className="aulas-tau-cifra es-debil">
-                {enRiesgo && f.reservas_alcanzan && f.reservas_necesarias != null
-                  ? `${fmt(f.reservas_necesarias)} de ${fmt(f.reservas_libres)}`
-                  : `${fmt(f.reservas_libres)} libres`}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      {/* La leyenda es VISUAL y va junto a la tabla, no en prosa al pie: quien
+          mira la barra tiene que poder decodificarla ahí mismo. */}
+      <p className="aulas-tau-leyenda">
+        <span><i className="aulas-tau-muestra-vara" aria-hidden="true" /> lo previsto</span>
+        <span><i className="aulas-tau-muestra-banda" aria-hidden="true" /> lo que va rindiendo (0 a 100 %), con su margen de error</span>
+      </p>
 
-      {/* El pie nombra las columnas que no se explican solas, una vez. Sin él,
-          «alumnos» se lee como brecha contra la cuota, que es otro número. */}
+      {/* Es una TABLA de datos y va como tabla: el encabezado anterior era un
+          `li` con `aria-hidden`, así que un lector de pantalla recibía cinco
+          columnas de números sin un solo nombre. */}
+      <div className="aulas-tau-marco">
+        <table className="aulas-tau-tabla">
+          <caption className="aulas-tau-caption">
+            Cuánto responde cada facultad frente a lo que el diseño supuso, y si su cuota cierra
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Facultad</th>
+              <th scope="col" className="es-num">Responde</th>
+              <th scope="col">Frente a lo previsto</th>
+              <th scope="col" className="es-num">Alumnos de más o de menos</th>
+              <th scope="col">Aulas de respaldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => {
+              const enFoco = f.facultad === facultadEnFoco;
+              // Pinta el RIESGO del margen, no la señal de la banda: rendir por
+              // debajo y cerrar igual es el caso normal.
+              const enRiesgo = f.riesgo === "riesgo" || f.riesgo === "riesgo_firme";
+              const v = VEREDICTO[f.riesgo] ?? VEREDICTO.sin_cumplimiento;
+              const clases = [
+                enRiesgo ? "es-bajo" : f.riesgo === "holgado" && f.senal === "sobre" ? "es-sobre" : "",
+                enFoco ? "es-en-foco" : "",
+              ].filter(Boolean).join(" ");
+              return (
+                <tr key={f.faculty_key} className={clases || undefined}>
+                  <th scope="row" className="aulas-tau-nombre-celda">
+                    {/* El veredicto en palabra Y en color: quien no distingue
+                        los tonos recibe el dato igual. */}
+                    <span className={`aulas-tau-chip es-${v.tono}`}>{v.texto}</span>
+                    <NombreDeFacultad facultad={f.facultad} className="aulas-tau-nombre"
+                      enFoco={enFoco} onFoco={onFoco}>
+                      {f.facultad}
+                      <em>
+                        {fmt(f.aulas_aplicadas)} {f.aulas_aplicadas === 1 ? "aula aplicada" : "aulas aplicadas"} ·{" "}
+                        {fmt(f.efectivas)} de {fmt(f.elegibles_aplicados)} alumnos
+                        {f.residual_base === "sin_base" ? " · sin base histórica propia" : ""}
+                      </em>
+                    </NombreDeFacultad>
+                  </th>
+                  <td className={`aulas-tau-cifra${f.senal === "sin_banda" ? " es-debil" : ""}`}>
+                    {pct(f.tau_observado)}
+                  </td>
+                  <td>
+                    <span className="aulas-tau-pista" role="img" aria-label={bandaEnPalabras(f)}>
+                      {/* El RELLENO, desde 0 hasta lo que se viene rindiendo.
+                          Verde si llega o pasa la marca, rojo si se queda
+                          corto: la lectura es «llega o no llega». */}
+                      {f.tau_observado != null ? (
+                        <span
+                          className={`aulas-tau-relleno${
+                            f.tau_previsto == null ? ""
+                              : f.tau_observado >= f.tau_previsto ? " es-mejor" : " es-peor"}`}
+                          style={{ width: pos(f.tau_observado) }}
+                        />
+                      ) : null}
+                      {/* El margen de error, como bigote fino sobre el borde del
+                          relleno. Va en segundo plano a propósito: informa de
+                          cuánto se puede fiar el borde sin competir con él. */}
+                      {f.banda_bajo != null && f.banda_alto != null ? (
+                        <span
+                          className="aulas-tau-bigote"
+                          style={{ left: pos(f.banda_bajo), width: `calc(${pos(f.banda_alto)} - ${pos(f.banda_bajo)})` }}
+                        />
+                      ) : null}
+                      {/* LA MARCA: lo que el diseño supuso. Es la vara. */}
+                      {f.tau_previsto != null ? (
+                        <span className="aulas-tau-vara" style={{ left: pos(f.tau_previsto) }} />
+                      ) : null}
+                    </span>
+                  </td>
+                  {/* La unidad va en la celda, no sólo en el encabezado: «−22,4»
+                      solo no dice de qué. */}
+                  <td className={`aulas-tau-cifra${enRiesgo ? "" : " es-debil"}`}>
+                    {alumnos(f.margen_restante)}
+                  </td>
+                  {/* Texto, no cifra: alineado a la izquierda como su
+                      encabezado. Iba con `aulas-tau-cifra`, que lo pegaba a la
+                      derecha bajo un encabezado alineado a la izquierda. */}
+                  <td className="aulas-tau-respaldo">
+                    {enRiesgo && f.reservas_alcanzan && f.reservas_necesarias != null
+                      ? `hacen falta ${fmt(f.reservas_necesarias)} de ${fmt(f.reservas_libres + f.banco_disponible)}`
+                      : disponibles(f)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
       <p className="aulas-tau-pie">
-        La marca vertical es la <code>τ</code> que el diseño supuso para esa facultad; la barra, lo
-        que el campo rinde con su margen al 95 %. Se señala cuando la barra no llega a tocar la
-        marca — nunca por la diferencia sola, que con pocas aulas es ruido.{" "}
-        <strong>Margen</strong> es lo que sobra o falta contra la cuota proyectando el aforo que
-        queda a la tasa que el campo está rindiendo — no la diferencia contra la tasa prevista, que
-        una facultad puede tener en contra y cerrar igual.
+        <strong>Alumnos de más o de menos</strong> es lo que sobra o falta contra la cuota,
+        contando que lo que queda por aplicar responda igual que lo aplicado hasta ahora. No es la
+        diferencia contra lo previsto: una facultad puede tenerla en contra y cerrar su cuota igual,
+        porque el diseño compró aulas de más.
       </p>
     </div>
   );

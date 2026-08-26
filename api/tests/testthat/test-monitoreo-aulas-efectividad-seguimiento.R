@@ -386,3 +386,49 @@ test_that("`cerrada` tambien es aplicada, igual que en el KPI", {
   expect_identical(f$aulas_aplicadas, 1L)
   expect_equal(f$tau_observado, 0.50)
 })
+
+# --- el banco cuenta como recurso ---------------------------------------------
+
+test_that("una facultad sin reservas de cadena pero con banco deja de decir «0 libres»", {
+  # Medido en pantalla el 2026-08-26 sobre la fixture del operativo completo:
+  # las VEINTE facultades salian «0 libres» teniendo 73 aulas de banco delante.
+  # El banco no reemplaza a un titular —son aulas adicionales para cerrar cuota
+  # por facultad y sexo— pero para tapar un hueco de margen sirve igual.
+  aplicadas <- lapply(1:4, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100, orden = i))
+  banco <- lapply(1:5, function(i) .efs_aula(sprintf("X%d", i), "FAC1", eligible = 100,
+                                             orden = 300 + i, aplicada = FALSE,
+                                             rol = "extra_reserve_pool", status = "en_reserva"))
+  ids <- unlist(lapply(1:4, function(i) rep(sprintf("A%d", i), 30)))
+  d <- .efs_dash(c(aplicadas, banco), .efs_resp(ids),
+                 dt = .efs_dt(list(.efs_fac("FAC1", cuota = 200, tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_identical(f$reservas_libres, 0L)      # ninguna cadena
+  expect_identical(f$banco_disponible, 5L)     # pero cinco de banco
+  expect_true(f$riesgo %in% c("riesgo", "riesgo_firme"))
+  # Y las que cierran salen del banco, declarado como tal.
+  expect_true(f$reservas_alcanzan)
+  expect_identical(f$reservas_de_cadena, 0L)
+  expect_gt(f$reservas_de_banco, 0L)
+})
+
+test_that("la cadena se gasta antes que el banco, y se dice cuantas de cada uno", {
+  aplicadas <- lapply(1:4, function(i) .efs_aula(sprintf("A%d", i), "FAC1", eligible = 100, orden = i))
+  cadena <- .efs_aula("R1", "FAC1", eligible = 100, orden = 200, aplicada = FALSE,
+                      rol = "chain_reserve", status = "en_reserva",
+                      titular_code = "CH 1", replacement_order = 1)
+  banco <- lapply(1:5, function(i) .efs_aula(sprintf("X%d", i), "FAC1", eligible = 100,
+                                             orden = 300 + i, aplicada = FALSE,
+                                             rol = "extra_reserve_pool", status = "en_reserva"))
+  ids <- unlist(lapply(1:4, function(i) rep(sprintf("A%d", i), 30)))
+  d <- .efs_dash(c(aplicadas, list(cadena), banco), .efs_resp(ids),
+                 dt = .efs_dt(list(.efs_fac("FAC1", cuota = 250, tau = 0.5))))
+  f <- .efs_fila(d$efectividad_seguimiento, "FAC1")
+
+  expect_identical(f$reservas_libres, 1L)
+  expect_identical(f$banco_disponible, 5L)
+  # Activar la cadena es seguir el plan; echar mano del banco es otra decisión.
+  expect_identical(f$reservas_de_cadena, 1L)
+  expect_gt(f$reservas_de_banco, 0L)
+  expect_equal(f$reservas_necesarias, f$reservas_de_cadena + f$reservas_de_banco)
+})

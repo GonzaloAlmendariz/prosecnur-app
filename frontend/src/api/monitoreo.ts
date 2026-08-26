@@ -880,8 +880,18 @@ export type MonitoreoAulasEfectividadFacultad = {
    */
   residual_base: "propia" | "sin_base" | "sin_dato";
   reservas_libres: number;
-  /** `null` cuando las libres no alcanzan a cerrar el déficit. */
+  /**
+   * Aulas del banco de extras sin aplicar. Recurso DISTINTO de la reserva de
+   * cadena —el banco no reemplaza a nadie— pero sirve igual para tapar un
+   * hueco de margen, y contar sólo la cadena dejaba veinte facultades en
+   * «0 libres» con 73 aulas de banco delante.
+   */
+  banco_disponible: number;
+  /** `null` cuando ni cadena ni banco alcanzan a cerrar el déficit. */
   reservas_necesarias: number | null;
+  /** De las necesarias, cuántas salen de la cadena y cuántas del banco. */
+  reservas_de_cadena: number;
+  reservas_de_banco: number;
   reservas_alcanzan: boolean;
   /** Alumnos que seguirían faltando con TODA la reserva libre activada. */
   sin_cubrir: number | null;
