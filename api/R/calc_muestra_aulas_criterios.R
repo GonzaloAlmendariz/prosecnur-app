@@ -352,9 +352,13 @@
   # constructor lo hacen por separado— y el centinela ya normalizado tiene que
   # reconocerse a si mismo. Sin esto, la segunda pasada no lo veia como
   # exencion, `.cm_criterios_normalize_rangos` no le encontraba min/max y la
-  # clave DESAPARECIA del mapa; sin rango declarado el evaluador excluye, asi
-  # que declarar una exencion borraba la facultad. Medido en HSVG2026: mande 15
-  # facultades y el motor guardo 13.
+  # clave DESAPARECIA del mapa. Cuando esto se escribio, sin rango declarado el
+  # evaluador EXCLUIA, asi que declarar una exencion borraba la facultad: medido
+  # en HSVG2026, mande 15 facultades y el motor guardo 13. Desde 2026-08-25 la
+  # ausencia ya no excluye (ver .cm_criterios_eval_course_ranges), asi que la
+  # perdida del centinela seria silenciosa en vez de destructiva — sigue siendo
+  # un defecto: la exencion es una declaracion auditable y `llegada.R` la usa
+  # para no anunciar como nueva una facultad que el estudio ya considero.
   if (.cm_criterios_es_rango_exento(entrada)) return(TRUE)
   if (is.character(entrada)) {
     return(any(.cm_aulas_text_key(entrada) %in% c("exenta", "exento", "no_aplica")))
@@ -1153,6 +1157,33 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   vapply(seq_along(x), function(i) .cm_criterios_parse_nivel(x[[i]]), numeric(1))
 }
 
+# Repara los pares (facultad del curso, nivel) a los que les falta la FACULTAD.
+# Un par sin facultad no puede casar con ningún rango declarado y, por la regla
+# "cualquier par", arrastra al aula entera a FALSE. Se sustituye por la facultad
+# EFECTIVA del aula, que es exactamente lo que hace el fallback de par modal
+# cuando no hay catálogo — misma semántica, aplicada par a par.
+.cm_criterios_pares_con_facultad <- function(course_pairs, faculty) {
+  if (!length(course_pairs)) return(course_pairs)
+  fld <- .cm_catalogo_pair_fld
+  rec <- .cm_catalogo_pair_rec
+  vapply(seq_along(course_pairs), function(i) {
+    set <- course_pairs[[i]]
+    if (is.na(set)) return("")
+    if (!nzchar(set)) return(set)
+    # Sin par degradado no se toca nada: el set queda bit a bit como llegó.
+    if (!startsWith(set, fld) && !grepl(paste0(rec, fld), set, fixed = TRUE)) return(set)
+    fac_aula <- if (length(faculty) >= i) (faculty[[i]] %||% "") else ""
+    pares <- strsplit(set, rec, fixed = TRUE)[[1]]
+    reparados <- vapply(pares, function(p) {
+      kv <- strsplit(p, fld, fixed = TRUE)[[1]]
+      fac <- if (length(kv) >= 1L) kv[[1]] else ""
+      if (nzchar(fac)) return(p)
+      paste0(fac_aula, fld, if (length(kv) >= 2L) kv[[2]] else "")
+    }, character(1), USE.NAMES = FALSE)
+    paste(unique(reparados), collapse = rec)
+  }, character(1), USE.NAMES = FALSE)
+}
+
 # Valores CONSTANTES por aula para el scope aula: catálogo autoritativo (fix del
 # −281) con fallback a las columnas modales de la base cuando no hay catálogo.
 .cm_criterios_valores_aula <- function(aula_frame, catalog_signals, base_course_level_num) {
@@ -1192,6 +1223,13 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   course_pairs <- if (length(pairs_sig)) unname(pairs_sig[afk]) else rep(NA_character_, n)
   fallback_pair <- paste0(faculty, .cm_catalogo_pair_fld, ifelse(is.finite(course_level), course_level, ""))
   course_pairs <- ifelse(is.na(course_pairs) | !nzchar(course_pairs), fallback_pair, course_pairs)
+  # El par DEGRADADO —el que trae nivel pero NO facultad, "<US>2"— no está
+  # vacío, así que sobrevivía al fallback de arriba y llegaba entero al
+  # evaluador, que busca la facultad del par en el mapa de rangos, no la
+  # encuentra y devuelve FALSE. Medido en HSVG26DEF: TODAS las aulas caían por
+  # un separador. Repararlo por PAR (no por set) conserva los pares buenos
+  # cuando solo algunas filas del catálogo traen la facultad en blanco.
+  course_pairs <- .cm_criterios_pares_con_facultad(course_pairs, faculty)
   list(
     modality = pick_chr("modality", "modality"),
     session_type = pick_chr("session_type", "session_type"),
@@ -1404,12 +1442,19 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 # (§3ter). Un curso-horario le cuenta a varias carreras/facultades en distinto
 # ciclo (1609/5262 aulas sirven a ≥2), así que el aula pasa si ALGUNA de sus
 # (facultad del curso, nivel) cae en el rango de esa facultad. Reglas:
-#   - facultad AUSENTE del mapa NO aporta (el mapa es la whitelist de unidades
-#     objetivo: Consorcio/Estudios Especiales/Posgrado quedan fuera);
+#   - facultad AUSENTE del mapa: no declara tramo, así que no restringe a SUS
+#     aulas (se resuelve abajo por la facultad DEL AULA, igual que la exención).
+#     Como par ajeno NO aporta: que un curso del aula esté catalogado en una
+#     facultad sin tramo no libra al aula de la facultad que sí lo declaró.
+#     Hasta 2026-08-25 la ausencia EXCLUÍA el aula entera (el mapa se leía como
+#     whitelist de unidades objetivo); decidido con Gonzalo que el mapa sólo
+#     gobierna lo que nombra — para dejar una facultad fuera del estudio está el
+#     criterio de FACULTAD, no el de nivel;
 #   - un par pasa SOLO con nivel PARSEABLE dentro del rango; un par cuyo nivel
 #     no se puede leer NO aporta (no se puede confirmar que el curso esté en el
-#     nivel objetivo → no acredita al aula). El aula se EXCLUYE si ningún par
-#     (facultad mapeada, nivel en rango) existe.
+#     nivel objetivo → no acredita al aula). Un aula cuya PROPIA facultad sí
+#     declaró tramo se EXCLUYE si ningún par (facultad mapeada, nivel en rango)
+#     existe.
 # Nota canónica: la comparación de facultad usa .cm_criterios_fac_key, robusta a
 # la ñ Y a los apóstrofes que iconv/ASCII//TRANSLIT mete en macOS (ÉNICAS →
 # 'ENICAS); sin esa limpieza las 5 facultades acentuadas (Escénicas, Psicología,
@@ -1440,11 +1485,31 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   fac_aula <- if (length(faculty_keys) == n) .cm_criterios_fac_key(faculty_keys) else rep("", n)
   vapply(seq_len(n), function(i) {
     if (nzchar(fac_aula[[i]]) && fac_aula[[i]] %in% exentas) return(TRUE)
+    # SIN ENTRADA DECLARADA la facultad NO RESTRINGE a sus aulas: el mapa sólo
+    # gobierna lo que nombra. Antes la ausencia las EXCLUÍA enteras — con rangos
+    # en 2 de 15 facultades las otras 13 perdían TODAS sus aulas (Artes Escénicas
+    # 438, Arte y Diseño 342, Ciencias Sociales 207…)— mientras tres superficies
+    # de la UI prometían lo contrario y el toggle «Aplica», al apagarse, BORRABA
+    # la clave: apagar el criterio de una facultad la borraba del marco. La
+    # discontinuidad lo delataba: con CERO facultades declaradas pasaban todas, y
+    # bastaba declarar UNA para que las demás desaparecieran.
+    #
+    # Se decide AQUÍ, contra la facultad DEL AULA, por la misma razón que la
+    # exención y no un renglón más abajo: resolverlo dentro del bucle por par
+    # dejaría que UN curso catalogado en una facultad sin tramo acreditara al
+    # aula entera, y entonces la ausencia sería MÁS permisiva que la exención
+    # explícita —que deliberadamente no libra a aulas ajenas—. El criterio tiene
+    # que seguir mordiendo donde SÍ se declaró.
+    if (nzchar(fac_aula[[i]]) && !(fac_aula[[i]] %in% claves)) return(TRUE)
     pares <- strsplit(course_pairs[[i]], .cm_catalogo_pair_rec, fixed = TRUE)[[1]]
     for (p in pares) {
       kv <- strsplit(p, .cm_catalogo_pair_fld, fixed = TRUE)[[1]]
       fac <- .cm_criterios_fac_key(kv[[1]])
       hit <- which(claves == fac)
+      # Par de facultad sin tramo declarado: no decide. No acredita al aula —
+      # mismo trato que el par de una facultad exenta (ver abajo). Que la
+      # ausencia no restrinja a SUS aulas se resolvió arriba, por la facultad
+      # del aula.
       if (!length(hit)) next
       nivel <- .cm_criterios_parse_nivel(if (length(kv) >= 2L) kv[[2]] else "")
       if (!is.finite(nivel)) next
