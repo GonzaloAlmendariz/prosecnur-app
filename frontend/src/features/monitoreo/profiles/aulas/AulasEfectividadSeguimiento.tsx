@@ -57,23 +57,29 @@ const alumnos = (n: number | null | undefined) => {
  * es lo que impide que alguien lea un silencio como un visto bueno.
  */
 function lectura(f: MonitoreoAulasEfectividadFacultad): string {
-  if (f.senal === "sin_previsto") return "El diseño no le supuso una tasa: no hay vara contra la que medir.";
-  if (f.senal === "sin_banda") {
-    return f.aulas_aplicadas === 0
-      ? "Todavía no tiene aulas aplicadas."
-      : "Una sola aula aplicada: no hay dispersión que medir todavía.";
-  }
-  if (f.senal === "sobre") return "Rinde por encima de lo supuesto.";
-  if (f.senal === "conforme") return "La diferencia cabe dentro de lo que el dato sostiene.";
-  const falta = f.alumnos_cierre != null && f.alumnos_cierre < 0 ? Math.round(Math.abs(f.alumnos_cierre)) : 0;
-  if (f.reservas_libres === 0) {
-    return `Rinde por debajo: al cierre faltarían ${fmt(falta)} y no le quedan reservas libres.`;
-  }
+  // Primero el MARGEN, que es lo que decide. El veredicto de la banda se añade
+  // detrás porque explica el porqué, no porque mande.
+  if (f.riesgo === "sin_campo") return "Todavía no tiene aulas aplicadas: no hay tasa con la que proyectar.";
+  if (f.riesgo === "sin_cuota") return "El diseño no le trazó cuota: no hay margen que medir.";
+  if (f.riesgo === "sin_cumplimiento") return "No se pudo leer lo conseguido de esta facultad.";
+
+  const falta = f.margen_restante != null && f.margen_restante < 0 ? Math.round(Math.abs(f.margen_restante)) : 0;
+  const porque = f.senal === "bajo" ? " Rinde por debajo de su tasa prevista."
+    : f.senal === "sobre" ? " Rinde por encima de su tasa prevista."
+    : "";
+
+  if (f.riesgo === "holgado") return `Su proyección cierra la cuota con margen.${porque}`;
+  if (f.riesgo === "ajustado") return `Cierra la cuota, pero sin margen para que el rendimiento baje.${porque}`;
+
+  const firme = f.riesgo === "riesgo_firme"
+    ? "No cierra la cuota ni en el mejor escenario del dato"
+    : "Su proyección no cierra la cuota";
+  if (f.reservas_libres === 0) return `${firme}: faltan ${fmt(falta)} y no le quedan reservas libres.`;
   if (f.reservas_alcanzan && f.reservas_necesarias != null) {
-    return `Rinde por debajo: ${fmt(f.reservas_necesarias)} ${f.reservas_necesarias === 1 ? "reserva cierra" : "reservas cierran"} los ${fmt(falta)} que faltarían al cierre.`;
+    return `${firme}: ${fmt(f.reservas_necesarias)} ${f.reservas_necesarias === 1 ? "reserva cierra" : "reservas cierran"} los ${fmt(falta)} que faltan.`;
   }
   const resto = f.sin_cubrir != null && Number.isFinite(f.sin_cubrir) ? Math.round(f.sin_cubrir) : null;
-  return `Rinde por debajo: ni activando sus ${fmt(f.reservas_libres)} reservas se cierran los ${fmt(falta)}${resto ? `, quedarían ${fmt(resto)}` : ""}.`;
+  return `${firme}: ni activando sus ${fmt(f.reservas_libres)} reservas se cierran los ${fmt(falta)}${resto ? `, quedarían ${fmt(resto)}` : ""}.`;
 }
 
 export function AulasEfectividadSeguimiento({
@@ -138,14 +144,23 @@ export function AulasEfectividadSeguimiento({
         {/* Los alumnos en riesgo NO se compensan entre facultades: pasarse en una
             no cubre lo que falta en otra. Por eso se dice cuántas facultades los
             producen, en vez de un neto que siempre saldría más favorable. */}
-        {t.facultades_senaladas > 0 ? (
+        {t.facultades_en_riesgo > 0 ? (
           <span>
             <strong>{fmt(Math.round(t.alumnos_en_riesgo))}</strong> alumnos en riesgo en{" "}
-            {fmt(t.facultades_senaladas)} {t.facultades_senaladas === 1 ? "facultad" : "facultades"}.
+            {fmt(t.facultades_en_riesgo)} {t.facultades_en_riesgo === 1 ? "facultad" : "facultades"}.
           </span>
         ) : (
-          <span>Ninguna facultad rinde por debajo de forma que el dato lo sostenga.</span>
+          <span>Ninguna facultad se queda corta de su cuota con lo que va rindiendo.</span>
         )}
+        {/* Los dos conteos son distintos a propósito: se puede rendir bajo la τ
+            prevista y cerrar igual, porque el diseño compró colchón. Decir sólo
+            uno obligaría a inferir el otro. */}
+        {t.facultades_bajo_su_tau > 0 ? (
+          <span className="aulas-tau-sello">
+            {fmt(t.facultades_bajo_su_tau)}{" "}
+            {t.facultades_bajo_su_tau === 1 ? "rinde" : "rinden"} bajo su tasa prevista
+          </span>
+        ) : null}
         <span className="aulas-tau-sello">
           numerador: efectiva de plataforma · respaldo del supuesto: campo anterior
           {bloque.vigencia !== "vigente" && bloque.motivo ? ` · ${bloque.motivo}` : ""}
@@ -157,13 +172,17 @@ export function AulasEfectividadSeguimiento({
           <span>Facultad</span>
           <span>τ campo</span>
           <span>banda contra la τ del diseño</span>
-          <span>alumnos</span>
+          <span>margen</span>
           <span>reservas</span>
         </li>
         {filas.map((f) => {
           const enFoco = f.facultad === facultadEnFoco;
+          // Pinta el RIESGO del margen, no la señal de la banda: rendir bajo la
+          // τ prevista y cerrar igual es el caso normal, y pintarlo de rojo
+          // mandaría a gastar reservas que no hacen falta.
+          const enRiesgo = f.riesgo === "riesgo" || f.riesgo === "riesgo_firme";
           const clases = [
-            f.senal === "bajo" ? "es-bajo" : f.senal === "sobre" ? "es-sobre" : "",
+            enRiesgo ? "es-bajo" : f.riesgo === "holgado" && f.senal === "sobre" ? "es-sobre" : "",
             enFoco ? "es-en-foco" : "",
           ].filter(Boolean).join(" ");
           return (
@@ -195,11 +214,13 @@ export function AulasEfectividadSeguimiento({
                   <span className="aulas-tau-vara" style={{ left: pos(f.tau_previsto) }} title={`τ del diseño ${p1(f.tau_previsto)}`} />
                 ) : null}
               </span>
-              <span className={`aulas-tau-cifra${f.senal === "bajo" ? "" : " es-debil"}`}>
-                {alumnos(f.alumnos_cierre)}
+              {/* El MARGEN, que es lo que decide, y no los alumnos atribuibles a
+                  τ: una facultad puede perder 40 por rendir bajo y cerrar igual. */}
+              <span className={`aulas-tau-cifra${enRiesgo ? "" : " es-debil"}`}>
+                {alumnos(f.margen_restante)}
               </span>
               <span className="aulas-tau-cifra es-debil">
-                {f.senal === "bajo" && f.reservas_alcanzan && f.reservas_necesarias != null
+                {enRiesgo && f.reservas_alcanzan && f.reservas_necesarias != null
                   ? `${fmt(f.reservas_necesarias)} de ${fmt(f.reservas_libres)}`
                   : `${fmt(f.reservas_libres)} libres`}
               </span>
@@ -214,8 +235,9 @@ export function AulasEfectividadSeguimiento({
         La marca vertical es la <code>τ</code> que el diseño supuso para esa facultad; la barra, lo
         que el campo rinde con su margen al 95 %. Se señala cuando la barra no llega a tocar la
         marca — nunca por la diferencia sola, que con pocas aulas es ruido.{" "}
-        <strong>Alumnos</strong> son los que sobran o faltan por rendir distinto de lo supuesto, no
-        la brecha contra la cuota.
+        <strong>Margen</strong> es lo que sobra o falta contra la cuota proyectando el aforo que
+        queda a la tasa que el campo está rindiendo — no la diferencia contra la tasa prevista, que
+        una facultad puede tener en contra y cerrar igual.
       </p>
     </div>
   );

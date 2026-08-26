@@ -40,6 +40,13 @@ function fac(sobre: Partial<MonitoreoAulasEfectividadFacultad> = {}): MonitoreoA
     alumnos_corte: -8.8,
     alumnos_cierre: -11,
     senal: "conforme",
+    riesgo: "holgado",
+    cuota: 363,
+    conseguido: 216,
+    proyectado: 270,
+    proyectado_optimista: 274,
+    proyectado_pesimista: 266,
+    margen_restante: -93,
     residual: 1.115,
     residual_k: 16,
     residual_base: "propia",
@@ -62,14 +69,16 @@ function bloque(sobre: Partial<MonitoreoAulasEfectividadSeguimiento> = {}): Moni
     criterio: {
       numerador: "efectiva de plataforma (respuesta que pasa los filtros declarados)",
       denominador: "elegibles de las aulas aplicadas al corte",
-      senal: "la banda al 95 % excluye la τ prevista; el punto solo no señala",
+      disparador: "el margen restante: conseguido + aforo pendiente x tau observada, contra la cuota del diseno",
+      guarda: "la banda al 95 % acota la proyeccion; riesgo firme es que ni su extremo optimista cierre la cuota",
+      senal: "la banda tambien dice si tau difiere de lo supuesto, que es otra pregunta",
       no_cubre: "Por qué cambió el rendimiento.",
     },
     total: {
       tau_previsto: 0.53, tau_observado: 0.51,
       banda_bajo: 0.48, banda_alto: 0.54,
       aulas_aplicadas: 68, elegibles_aplicados: 2000, efectivas: 1020,
-      facultades_senaladas: 0, alumnos_en_riesgo: 0,
+      facultades_bajo_su_tau: 0, facultades_en_riesgo: 0, alumnos_en_riesgo: 0,
     },
     facultades: [fac()],
     ...sobre,
@@ -104,9 +113,9 @@ describe("la τ del diseño contra la del campo", () => {
     expect(html).toContain("plataforma");
   });
 
-  it("cuando nadie rinde por debajo lo dice, en vez de callar y parecer vacía", () => {
+  it("cuando ninguna facultad se queda corta lo dice, en vez de callar y parecer vacía", () => {
     const html = render(bloque());
-    expect(html).toContain("Ninguna facultad rinde por debajo");
+    expect(html).toContain("Ninguna facultad se queda corta");
   });
 
   // --- C3: dos vacíos, y se distinguen ---------------------------------------
@@ -139,19 +148,32 @@ describe("la τ del diseño contra la del campo", () => {
     expect(html).toContain("es-debil");
   });
 
-  it("cuando la banda excluye la vara, la fila se marca y dice cuántas reservas cierran", () => {
+  it("cuando el MARGEN no cierra, la fila se marca y dice cuántas reservas cierran", () => {
     const html = render(bloque({
-      total: { ...bloque().total, facultades_senaladas: 1, alumnos_en_riesgo: 160 },
+      total: { ...bloque().total, facultades_bajo_su_tau: 1, facultades_en_riesgo: 1, alumnos_en_riesgo: 160 },
       facultades: [fac({
         tau_observado: 0.3, tau_previsto: 0.5, banda_bajo: 0.26, banda_alto: 0.34,
-        senal: "bajo", alumnos_cierre: -160, reservas_libres: 6, reservas_necesarias: 4,
-        reservas_alcanzan: true,
+        senal: "bajo", riesgo: "riesgo_firme", margen_restante: -160,
+        reservas_libres: 6, reservas_necesarias: 4, reservas_alcanzan: true,
       })],
     }));
     expect(html).toContain("es-bajo");
     expect(html).toContain("4 de 6");
     expect(html).toContain("160");
     expect(html).toContain("alumnos en riesgo");
+  });
+
+  it("rendir bajo la τ prevista NO pinta la fila si la cuota igual se cierra", () => {
+    // El caso normal: en la selección 2026 el margen mediano es +49,2 % de la
+    // cuota. Pintarlo de rojo mandaría a gastar reservas que no hacen falta.
+    const html = render(bloque({
+      total: { ...bloque().total, facultades_bajo_su_tau: 1, facultades_en_riesgo: 0 },
+      facultades: [fac({ senal: "bajo", riesgo: "holgado", margen_restante: 120 })],
+    }));
+    expect(html).not.toContain("es-bajo");
+    expect(html).toContain("Ninguna facultad se queda corta");
+    // Y aun así se dice que rinde por debajo: el dato no se esconde.
+    expect(html).toContain("bajo su tasa prevista");
   });
 
   it("con una sola aula aplicada no hay banda que dibujar y el punto queda atenuado", () => {
@@ -177,22 +199,23 @@ describe("la τ del diseño contra la del campo", () => {
 
   // --- no recalcula ----------------------------------------------------------
 
-  it("los alumnos que muestra son los del bloque, con su signo, y no una resta propia", () => {
-    // Si la vista recompusiera el déficit desde τ y elegibles daría −80; el
+  it("el margen que muestra es el del bloque, con su signo, y no una resta propia", () => {
+    // Si la vista recompusiera el margen desde τ y elegibles daría −80; el
     // bloque dice −160 y es el bloque quien manda.
     const html = render(bloque({
       facultades: [fac({
         tau_observado: 0.3, tau_previsto: 0.5, elegibles_aplicados: 400,
-        senal: "bajo", banda_bajo: 0.26, banda_alto: 0.34, alumnos_cierre: -160,
+        senal: "bajo", riesgo: "riesgo", banda_bajo: 0.26, banda_alto: 0.34,
+        margen_restante: -160, alumnos_cierre: -80,
       })],
     }));
     expect(html).toContain("−160");
     expect(html).not.toContain("−80");
   });
 
-  it("el pie separa estos alumnos de la brecha contra la cuota, que es otro número", () => {
+  it("el pie dice que el margen se proyecta a la tasa observada, no a la prevista", () => {
     const html = render(bloque());
-    expect(html).toContain("no");
-    expect(html).toContain("la brecha contra la cuota");
+    expect(html).toContain("la tasa que el campo está rindiendo");
+    expect(html).toContain("no la diferencia contra la tasa prevista");
   });
 });
