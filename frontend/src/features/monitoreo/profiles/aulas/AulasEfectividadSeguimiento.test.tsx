@@ -276,9 +276,44 @@ describe("la τ del diseño contra la del campo", () => {
     expect(html).not.toContain("−80");
   });
 
-  it("el pie dice que el margen se proyecta a lo que se viene rindiendo, no a lo previsto", () => {
+  it("el pie dice que los alumnos se proyectan a lo que se viene respondiendo", () => {
     const html = render(bloque());
-    expect(html).toContain("responda igual que lo aplicado hasta ahora");
-    expect(html).toContain("No es la");
+    expect(html).toContain("respondan igual que las de hasta ahora");
+    expect(html).toContain("compró aulas de más");
+  });
+
+  it("las DOS tasas se leen como número, no sólo la observada", () => {
+    // «no se sabe cuánta es la efectividad esperada y cuál es la efectividad que
+    // va ahora»: lo esperado era sólo una marca en la barra. Una barra ilustra
+    // una comparación, no la sustituye.
+    const html = sinSeparador(render(bloque({
+      facultades: [fac({ tau_previsto: 0.5, tau_observado: 0.3 })],
+    })));
+    expect(html).toContain("50|0 %");   // se esperaba
+    expect(html).toContain("30|0 %");   // va respondiendo
+    expect(html).toContain("Se esperaba");
+    expect(html).toContain("Va respondiendo");
+  });
+
+  it("los alumnos van en personas enteras y por el lado cauto", () => {
+    // «en términos numéricos no podemos estar 3.4 alumnos por encima». Y la
+    // cautela cambia de lado con el signo: lo que sobra se promete de menos, lo
+    // que falta no se subestima.
+    const sobra = render(bloque({ facultades: [fac({ margen_restante: 3.4 })] }));
+    expect(sobra).toContain("+3");
+    expect(sobra).not.toContain("3,4");
+    expect(sobra).not.toContain("3.4");
+    const falta = render(bloque({
+      facultades: [fac({ riesgo: "riesgo", margen_restante: -22.4 })],
+    }));
+    expect(falta).toContain("−23");     // no −22: faltar 22,4 no se dice «faltan 22»
+  });
+
+  it("el margen de error se dice en puntos, no se dibuja sobre la barra", () => {
+    const html = render(bloque({
+      facultades: [fac({ tau_observado: 0.5, banda_bajo: 0.44, banda_alto: 0.56 })],
+    }));
+    expect(html).toContain("± 6 pts");
+    expect(html).not.toContain("aulas-tau-bigote");
   });
 });

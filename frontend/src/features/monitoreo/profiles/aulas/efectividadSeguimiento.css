@@ -254,14 +254,15 @@
   opacity: 0.55;
 }
 
-/* El margen de error, en segundo plano: informa de cuánto se puede fiar el
-   borde del relleno sin competir con él. */
-.mon-profile-page.is-aulas-flow .aulas-tau-bigote {
-  position: absolute;
-  top: 6px;
-  height: 2px;
-  background: var(--pulso-text);
-  opacity: 0.35;
+/* El margen de error va como NÚMERO junto a la tasa, no como bigote sobre la
+   barra. Dibujado ahí quedaba feo y, peor, no se sabía qué medía: una línea que
+   cruza el relleno se lee como parte del relleno. */
+.mon-profile-page.is-aulas-flow .aulas-tau-error {
+  margin-left: 5px;
+  color: var(--pulso-text-faint);
+  font-size: var(--aulas-min);
+  font-style: normal;
+  white-space: nowrap;
 }
 
 /* LA MARCA: lo que el diseño supuso. Va por encima de todo —es la vara contra
