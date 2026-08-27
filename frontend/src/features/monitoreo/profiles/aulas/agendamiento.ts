@@ -55,6 +55,17 @@ export type Agendamiento = {
   sinMedioDeContacto: number;
   /** Mediana de intentos entre las que registran alguno. */
   intentosMedianos: number | null;
+  /**
+   * Cuántas aulas llevan cada número de gestiones, de 1 en adelante.
+   *
+   * La mediana sola dice dónde está el centro y **esconde la cola**, que es
+   * justo donde vive el riesgo: en 2025 la mediana fue 2 y aun así 33 aulas de
+   * 170 llegaron a la cuarta llamada o más. Con la distribución, la cola se ve.
+   *
+   * `enRiesgo` marca los tramos que están en o por encima de `UMBRAL_DE_RIESGO`,
+   * para que el corte se dibuje sin que quien pinta tenga que saber el umbral.
+   */
+  distribucionDeGestiones: Array<{ gestiones: number; aulas: number; enRiesgo: boolean }>;
   /** Por qué medio se contactó, de más a menos. */
   medios: Array<{ medio: string; aulas: number }>;
 };
@@ -140,6 +151,18 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     else if (!tieneFecha) sinMedioDeContacto += 1;
   }
 
+  // La distribución completa, no sólo su centro. Se agrupa por número entero de
+  // gestiones —lo que la hoja anota— y se ordena de menos a más, que es como se
+  // lee una cola.
+  const porGestiones = new Map<number, number>();
+  for (const n of intentos) {
+    const k = Math.max(1, Math.round(n));
+    porGestiones.set(k, (porGestiones.get(k) ?? 0) + 1);
+  }
+  const distribucionDeGestiones = [...porGestiones.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([gestiones, aulas]) => ({ gestiones, aulas, enRiesgo: gestiones >= UMBRAL_DE_RIESGO }));
+
   intentos.sort((a, b) => a - b);
   const mediana = intentos.length
     ? intentos[Math.floor((intentos.length - 1) / 2)]
@@ -152,6 +175,7 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     // Lo que de verdad queda por agendar: ni con fecha, ni ya aplicada.
     porAgendar: enJuego.length - agendadas - aplicadasSinAgenda,
     conInsistencia,
+    distribucionDeGestiones,
     enUmbralDeRiesgo,
     sinMedioDeContacto,
     intentosMedianos: mediana,

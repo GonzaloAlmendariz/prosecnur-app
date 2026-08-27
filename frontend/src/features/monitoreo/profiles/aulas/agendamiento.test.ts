@@ -144,4 +144,49 @@ describe("agendamiento · una aplicada sin agenda es un descuadre", () => {
       expect(r.sinMedioDeContacto).toBe(0);
     });
   });
+
+  describe("la distribución de gestiones, que la mediana esconde", () => {
+    it("agrupa por número de llamadas y marca el tramo en riesgo", () => {
+      const r = agendamiento([
+        { sample_role: "titular", contact_attempts: 1 },
+        { sample_role: "titular", contact_attempts: 1 },
+        { sample_role: "titular", contact_attempts: 2 },
+        { sample_role: "titular", contact_attempts: 4 },
+      ]);
+      expect(r.distribucionDeGestiones).toEqual([
+        { gestiones: 1, aulas: 2, enRiesgo: false },
+        { gestiones: 2, aulas: 1, enRiesgo: false },
+        { gestiones: 4, aulas: 1, enRiesgo: true },
+      ]);
+    });
+
+    it("la mediana no basta: con mediana 2 puede haber cola larga", () => {
+      // El caso de 2025: mediana 2 y aun así 33 de 170 en la cuarta o más. Un
+      // tile con la mediana da la misma cifra con cola y sin ella.
+      const conCola = agendamiento([
+        ...Array.from({ length: 6 }, () => ({ sample_role: "titular", contact_attempts: 2 })),
+        ...Array.from({ length: 3 }, () => ({ sample_role: "titular", contact_attempts: 6 })),
+      ]);
+      const sinCola = agendamiento(
+        Array.from({ length: 9 }, () => ({ sample_role: "titular", contact_attempts: 2 })),
+      );
+      expect(conCola.intentosMedianos).toBe(sinCola.intentosMedianos);
+      expect(conCola.distribucionDeGestiones).not.toEqual(sinCola.distribucionDeGestiones);
+    });
+
+    it("sin gestiones anotadas la distribución va vacía, no en cero", () => {
+      // Una barra única en cero se leería como «todas salen a la primera», que
+      // es lo contrario de que nadie apuntó nada.
+      const r = agendamiento([{ sample_role: "titular" }, { sample_role: "titular" }]);
+      expect(r.distribucionDeGestiones).toEqual([]);
+    });
+
+    it("las reservas dormidas no entran en la distribución", () => {
+      const r = agendamiento([
+        { sample_role: "chain_reserve", sample_status: "", contact_attempts: 5 },
+        { sample_role: "titular", contact_attempts: 1 },
+      ]);
+      expect(r.distribucionDeGestiones).toEqual([{ gestiones: 1, aulas: 1, enRiesgo: false }]);
+    });
+  });
 });

@@ -3758,6 +3758,48 @@
    tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
    línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
    sólida— y las dos cosas dejaron de corresponderse. */
+/* El histograma de gestiones. Barras verticales sobre una base común: el eje X
+   son llamadas y el alto, aulas. El tramo en riesgo cambia de tono en vez de
+   llevar una línea de corte encima, que a esta altura (56 px) no se vería.
+   Los tokens son los medidos como resolubles en esta página. */
+.mon-profile-page.is-aulas-flow .aulas-gestiones-lectura {
+  margin: 0 0 8px; font-size: var(--aulas-sec); color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-lectura small {
+  display: block; margin-top: 2px;
+  font-size: var(--aulas-min); color: var(--pulso-text-soft); font-weight: 500;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras {
+  display: flex; align-items: flex-end; gap: 8px;
+  margin: 0; padding: 0; list-style: none;
+  border-bottom: 1px solid var(--pulso-border);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras li {
+  display: grid; justify-items: center; gap: 2px;
+  flex: 1 1 0; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barra {
+  display: flex; align-items: flex-end;
+  width: 100%; height: 56px;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barra i {
+  display: block; width: 100%; border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--pulso-primary) 34%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras li.es-riesgo .aulas-gestiones-barra i {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 62%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-n {
+  font-size: var(--aulas-min); font-weight: 600; color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-x {
+  font-size: var(--aulas-min); color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-barras li.es-riesgo .aulas-gestiones-x {
+  color: var(--pulso-warn-fg); font-weight: 600;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-pie { margin: 6px 0 0; }
+
 /* La escalera de la cadena de filtros. Los pasos comparten escala —la de lo que
    entra a la cadena— para que el descenso se lea como forma. El tramo que cae va
    pegado al que queda, no encima: así la fila entera mide lo que ese filtro
