@@ -119,3 +119,35 @@ test_that("un criterio mal formado no se acepta a medias", {
     celdas = data.frame(faculty_key = "derecho", cuota_f = 1, cuota_m = 1, tau = 0)
   )))
 })
+
+# EL CABLEADO. Una funcion probada que nadie llama no cambia nada: estos dos
+# fijan que el criterio viaja por la config y que el bloque sale al resultado.
+
+test_that("la config normaliza el bloque y no lo enciende sin criterio", {
+  sin <- prosecnurapp:::.cm_rerandom_normalize_config(list(activa = TRUE))
+  expect_false(sin$activa)
+  expect_null(sin$criterio)
+
+  con <- prosecnurapp:::.cm_rerandom_normalize_config(list(activa = TRUE, tope = 12, criterio = .rr_criterio()))
+  expect_true(con$activa)
+  expect_equal(con$tope, 12L)
+  expect_identical(con$criterio$tipo, "cobertura_celdas")
+
+  # Pedirla sin decir contra que aceptar NO es rerandomizar.
+  expect_false(prosecnurapp:::.cm_rerandom_normalize_config(list(activa = TRUE, criterio = list(tipo = "otro")))$activa)
+  # Y el tope se acota a rangos que un operativo puede pagar.
+  expect_equal(prosecnurapp:::.cm_rerandom_normalize_config(list(criterio = .rr_criterio(), tope = 99999))$tope,
+               prosecnurapp:::.CM_RERANDOM_TOPE_MAX)
+})
+
+test_that("el selector normalizado lleva el bloque hasta el sorteo", {
+  cfg <- calc_muestra_aulas_normalize_config(list(
+    selector = list(rerandomizacion = list(activa = TRUE, tope = 7, criterio = .rr_criterio()))
+  ))
+  rr <- cfg$selector$rerandomizacion
+  expect_true(rr$activa)
+  expect_equal(rr$tope, 7L)
+  # Sin declararla, el sorteo se comporta como siempre y lo dice.
+  vacia <- calc_muestra_aulas_normalize_config(list())$selector$rerandomizacion
+  expect_false(vacia$activa)
+})
