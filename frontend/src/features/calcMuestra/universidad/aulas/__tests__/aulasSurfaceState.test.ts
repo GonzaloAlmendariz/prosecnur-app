@@ -105,7 +105,10 @@ describe("superficie Aulas — causa compartida por etapa", () => {
   });
 
   it("encadena los faltantes acreditados sin saltar guards", () => {
-    expect(resolveAulasStageNotice(model({ comparisonReady: false }), "seleccion")?.destination)
+    // Sin seleccion valida, «seleccion» sigue mandando a Metodo. CON una
+    // seleccion valida ya no lo hace: la comparacion es prerrequisito de
+    // ejecutar, no de leer.
+    expect(resolveAulasStageNotice(model({ comparisonReady: false, selectionReady: false }), "seleccion")?.destination)
       .toEqual({ section: "aulas", tab: "metodo" });
     expect(resolveAulasStageNotice(model({ selectionReady: false }), "reemplazos")?.destination)
       .toEqual({ section: "aulas", tab: "seleccion" });
@@ -126,7 +129,7 @@ describe("el aviso de comparación no vigente dice la causa", () => {
       hasStoredComparison: true,
       simulationRows: [],
       comparisonConfigDiff: ["n_aulas (corrida 202 · vigente 203)"],
-    }), "seleccion");
+    }), "metodo");
     expect(notice?.kind).toBe("missing-comparison");
     expect(notice?.detail).toContain("n_aulas (corrida 202 · vigente 203)");
   });
@@ -137,7 +140,45 @@ describe("el aviso de comparación no vigente dice la causa", () => {
       hasStoredComparison: true,
       simulationRows: [],
       comparisonConfigDiff: [],
-    }), "seleccion");
+    }), "metodo");
     expect(notice?.detail).toContain("no coincide con el objetivo o la firma vigente");
+  });
+});
+
+// La comparacion de metodos es prerrequisito de EJECUTAR un sorteo nuevo, no de
+// LEER uno hecho. Decision de Gonzalo (2026-08-27), textual: «lo segundo».
+//
+// Medido sobre HSVG26ULT, que tiene su seleccion de 174 aulas completa y
+// verificada: CUATRO de las seis pestañas de Aulas —Seleccion, Reemplazos,
+// Auditoria y Relato— decian «vuelve a comparar metodos» sobre una seleccion
+// correcta. Y de las cuatro claves que invalidaban la comparacion, dos
+// (`monte_carlo_n` y `simulation_runs`) ni siquiera cambian que aulas salen.
+// Re-comparar tampoco lo arreglaba: el campo desactualizado vive en el
+// workspace, que es la mordida 1 del ADR 0080.
+describe("la comparacion vieja no apaga la lectura de una seleccion valida", () => {
+  const conSeleccionValida = { comparisonReady: false, selectionReady: true, hasStoredSelection: true };
+
+  it.each(["seleccion", "relato", "reemplazos", "auditoria", "perfil", "solidez"] as AulasSurfaceStage[])(
+    "%s se lee aunque la comparacion haya envejecido",
+    (stage) => {
+      const aviso = resolveAulasStageNotice(model(conSeleccionValida), stage);
+      expect(aviso?.kind).not.toBe("missing-comparison");
+    },
+  );
+
+  it.each(["metodo", "laboratorio"] as AulasSurfaceStage[])(
+    "%s SI la exige, porque ahi se ejecuta",
+    (stage) => {
+      const aviso = resolveAulasStageNotice(model(conSeleccionValida), stage);
+      expect(aviso?.kind).toBe("missing-comparison");
+    },
+  );
+
+  it("sin seleccion valida, leer tampoco tiene sentido y el aviso vuelve", () => {
+    const aviso = resolveAulasStageNotice(
+      model({ comparisonReady: false, selectionReady: false, hasStoredSelection: false }),
+      "seleccion",
+    );
+    expect(aviso?.kind).toBe("missing-comparison");
   });
 });
