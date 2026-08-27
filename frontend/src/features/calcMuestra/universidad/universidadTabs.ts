@@ -182,6 +182,18 @@ function classroomLabStatusesForSidebar(
     // ADR 0067: el relato narra la corrida persistida — mismo gate que Perfil.
     "aulas-relato": guideStatus(selectionReady, selectionReady),
     auditoria: guideStatus(selectionReady || comparisonReady, hasCalculatedQuota),
+    // ADR 0082. Se habilita con el cálculo por facultad —de ahí salen las
+    // cuotas y τ que forman el criterio— y sólo se acredita cuando una corrida
+    // declaró rerandomización de verdad. Darla por lista con sólo tener
+    // selección la pintaría verde sin que nadie haya aceptado ni rechazado
+    // nada, que es el mismo error que ya se corrigió en «¿Alcanza?».
+    "aulas-rerandomizacion": guideStatus(
+      Boolean(
+        (aulasState?.selection as { rerandomizacion?: { aplicada?: boolean } } | null)
+          ?.rerandomizacion?.aplicada,
+      ),
+      hasCalculatedQuota,
+    ),
   };
 }
 

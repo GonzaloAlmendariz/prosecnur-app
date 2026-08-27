@@ -22,8 +22,8 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 31 pestañas vivas de Muestra universitaria con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(31);
+  it("fija las 32 pestañas vivas de Muestra universitaria con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(32);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
@@ -73,6 +73,9 @@ describe("catálogos canónicos de pestañas", () => {
       // Sustento técnico porque publica los mismos números de la misma corrida.
       "aulas-relato:Relato",
       "auditoria:Sustento técnico",
+      // ADR 0082: la última de Selección, porque es la última decisión antes
+      // de fijar la muestra.
+      "aulas-rerandomizacion:¿Este sorteo o otro?",
     ]);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.salidas)).toEqual([
       // Primera y con protagonismo propio: es la pregunta con la que se cierra

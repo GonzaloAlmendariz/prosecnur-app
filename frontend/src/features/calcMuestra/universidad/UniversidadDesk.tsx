@@ -72,6 +72,7 @@ import {
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conRerandomizacionDelEstudio } from "./aulas/criterioRerandomizacion";
+import { AulasRerandomizacionTab } from "./aulas/AulasRerandomizacionTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
 import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
 import {
@@ -853,6 +854,25 @@ export function UniversidadDesk({
               <RelatoTab model={labModel} foco={activeFocus} onNavigate={onNavigate} />
             )}
             {activeLabTab === "auditoria" && <AulasAuditoriaTab model={labModel} onNavigate={onNavigate} />}
+            {/* ADR 0082: la última de Selección, porque es la última decisión
+                antes de fijar la muestra. */}
+            {activeLabTab === "aulas-rerandomizacion" && (
+              <AulasRerandomizacionTab
+                config={conRerandomizacionDelEstudio(
+                  syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig,
+                  compCalculo,
+                  sexoBalance,
+                )}
+                selection={aulasState?.selection ?? null}
+                onConfig={(patch) => onWorkspace({
+                  ...syncedWorkspace,
+                  aulas_config: {
+                    ...(syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig),
+                    ...patch,
+                  },
+                })}
+              />
+            )}
           </div>
         )}
 

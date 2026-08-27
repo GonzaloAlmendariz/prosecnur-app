@@ -23,7 +23,7 @@ import {
   Users,
   type LucideIcon,
   Link2,
-} from "../../../vendor/lucide-react";
+  Shuffle,} from "../../../vendor/lucide-react";
 
 export type CalcMuestraUniversidadSeccionId =
   | "definicion"
@@ -41,7 +41,8 @@ export type ClassroomLabTab =
   | "perfil"
   | "reemplazos"
   | "aulas-relato"
-  | "auditoria";
+  | "auditoria"
+  | "aulas-rerandomizacion";
 
 export type PestanaCalcMuestraUniversidad<Key extends string = string> = {
   readonly id: Key;
@@ -139,6 +140,10 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     // porque publica los MISMOS números de la misma corrida.
     pestanaAula("aulas-relato", "Relato", "La corrida contada escena por escena", CirclePlay),
     pestanaAula("auditoria", "Sustento técnico", "Campos, pesos y fuentes", FileText),
+    // ADR 0082, aceptado 2026-08-27. Va la ÚLTIMA porque es la última decisión
+    // antes de fijar la muestra: con el criterio ya declarado, aceptar o
+    // rechazar sorteos es lo que queda por decidir.
+    pestanaAula("aulas-rerandomizacion", "¿Este sorteo o otro?", "aceptar o rechazar contra un criterio fijado antes", Shuffle),
   ],
   salidas: [
     // Primera de Entrega y con su propio protagonismo: es la pregunta con la que

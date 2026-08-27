@@ -1,0 +1,21 @@
+/* «¿Este sorteo o otro?»: explicación primero, criterio después, evidencia al
+   final. El texto lleva medida de lectura para no estirarse con la pantalla. */
+.cmv2-rr-intro p { max-width: 78ch; margin: 0 0 var(--pulso-space-2); color: var(--pulso-text-muted); }
+.cmv2-rr-nota { display: block; max-width: 78ch; color: var(--pulso-text-muted); font-size: 12px; }
+.cmv2-rr-criterio { max-width: 78ch; margin: 0 0 var(--pulso-space-2); }
+
+.cmv2-rr-controles { display: flex; flex-wrap: wrap; align-items: center; gap: var(--pulso-space-3); margin-bottom: var(--pulso-space-2); }
+.cmv2-rr-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.cmv2-rr-switch span { display: inline-flex; align-items: center; gap: 5px; }
+.cmv2-rr-tope { display: inline-flex; align-items: center; gap: 6px; color: var(--pulso-text-muted); font-size: 12px; }
+.cmv2-rr-tope input {
+  width: 5.5em; padding: 2px 6px; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface); color: var(--pulso-text);
+}
+.cmv2-rr-tope input:disabled { opacity: 0.5; }
+
+/* Las cuatro cifras de la corrida, en una fila que se parte sin apretarse. */
+.cmv2-rr-cifras { display: flex; flex-wrap: wrap; gap: var(--pulso-space-4); margin: var(--pulso-space-2) 0; }
+.cmv2-rr-cifras dt { color: var(--pulso-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.cmv2-rr-cifras dd { margin: 2px 0 0; font-size: 20px; font-variant-numeric: tabular-nums; font-weight: var(--pulso-weight-semibold); }
