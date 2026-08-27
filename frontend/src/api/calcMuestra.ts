@@ -941,6 +941,14 @@ export type CalcMuestraCorrida = {
     sobremuestra?: number;
     waves?: number;
     aulas_objetivo?: number;
+    /**
+     * La divergencia entre el objetivo que guarda el workspace y el que el
+     * sorteo usó de verdad. Sólo aparecen cuando difieren: una corrida válida
+     * ya no se descarta por eso, pero la diferencia se declara para que la
+     * superficie pueda nombrarla. Repararlo en origen es el ADR 0080.
+     */
+    objetivo_workspace?: number;
+    objetivo_corrida?: number;
   };
   /** Resumen de resultados para comparar corridas lado a lado. */
   resumen?: {
