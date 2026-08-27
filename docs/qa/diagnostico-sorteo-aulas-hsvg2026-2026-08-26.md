@@ -432,3 +432,33 @@ cambio de cambiarle el diseño sin decírselo.
 **Regla que queda para el resto del tablero**: un ítem no se cierra con el
 motor reparado. Se cierra cuando el usuario puede ver el efecto o tomar la
 decisión desde la pantalla.
+
+### D6-front, localizado: el aviso llega y se filtra por accidente
+
+Rastreado el camino entero. El aviso **sí** sale del motor y **sí** llega tipado
+al frontend, pero muere en un filtro:
+
+1. R lo emite en `.cm_aulas_balance_descartadas_warning` y viaja en el campo
+   **`methodological_warning`** de la selección, no en `warnings`. Verificado
+   sobre el estado real: la lista trae los mensajes de balance.
+2. El front lo tipa: `api/calcMuestra.ts:2344`.
+3. `aulas/relato/relatoModel.ts:918` lo lee y arma `advertencias`… y acto
+   seguido se queda solo con las que casan `/tama|size/`, bajo el nombre
+   `ajustesTamano`. **`advertencias` no se devuelve**: el modelo retorna
+   `ajustesTamano` y el resto de la lista se descarta.
+
+El aviso de balance sobrevive **por accidente**, porque su texto contiene
+`size_group`, y entonces se muestra bajo la etiqueta equivocada: aparece como
+un ajuste de tamaño cuando es un descarte de variables de equilibrio.
+
+Lo que falta en el front, entonces, no es «pintar los warnings» sino dejar de
+filtrarlos por una expresión regular sobre el texto. Un aviso que el motor
+declara y que la UI clasifica adivinando por su redacción se pierde en cuanto
+alguien cambia una palabra del mensaje.
+
+**Corrección de método, tercera vez hoy.** Dije que ningún `.tsx` pintaba los
+avisos porque busqué `warnings`, y el campo se llama `methodological_warning`.
+Antes había dicho que `seed` no tenía control porque la UI lo llama `semilla`.
+El patrón es siempre el mismo: **auditar el frontend con el vocabulario del
+backend**. La regla que queda: buscar el dato por su valor o por su ruta en el
+payload real, no por el nombre que uno espera.
