@@ -718,6 +718,15 @@ export type MonitoreoAulasConfig = {
    * cálculo de muestra calculó para cada curso-horario.
    */
   aula_valida?: { modo?: "esperado" | "proporcion"; alfa?: number; umbral?: number; exige?: string } | null;
+  /**
+   * A partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * El motor lo aceptaba desde siempre —misma doctrina que `aula_valida`: sin
+   * declarar no juzga— pero **no estaba en este tipo**, así que el frontend no
+   * podía enviarlo y la pantalla decía qué faltaba sin dejar ponerlo. Una
+   * capacidad sin consumidor.
+   */
+  duracion_sospecha_min?: number | null;
   /** Cuantas unidades tiene el plan. Viaja en vez del plan entero en `state`. */
   plan_rows?: number;
   schema: "monitoreo_aulas_universitarias_v1" | string;

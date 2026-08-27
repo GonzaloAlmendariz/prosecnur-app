@@ -725,6 +725,15 @@ function renderAulasView(
    * cada sección es el componente de arriba.
    */
   irAPestana: ((clave: string) => void) | null = null,
+  /**
+   * Declarar a partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * Va como función y no como nodo ya construido —al revés que
+   * `criterioDeEfectiva` y `criterioDeAula`— porque el control vive DENTRO del
+   * panel de tiempos, junto a la distribución con la que se elige el número.
+   * Sacarlo a un nodo aparte lo alejaría del histograma que lo justifica.
+   */
+  onDeclararUmbralDeDuracion: ((minutos: number) => void | Promise<void>) | null = null,
 ) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
@@ -1155,7 +1164,8 @@ function renderAulasView(
               <h3>Cuánto se tarda en responder</h3>
               <span>duración por respuesta y por aula</span>
             </div>
-            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos} />
+            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos}
+              onDeclararUmbral={onDeclararUmbralDeDuracion ?? undefined} />
           </section>
 
           {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
@@ -2459,6 +2469,27 @@ export default function AulasMonitoreoPage() {
    * cambia viaja ahí: sin eso el panel seguiría enseñando el reparto anterior y
    * el botón parecería no hacer nada.
    */
+  /**
+   * Declarar el umbral de duración sospechosa.
+   *
+   * Mismo camino que `aula_valida` y que el criterio de respuesta válida: la
+   * config de aulas y después un refresco con el scope de VALIDACIÓN, porque el
+   * veredicto que cambia viaja ahí. Sin ese scope el panel seguiría enseñando
+   * «no ha declarado» después de declararlo, y un botón que no puede mostrar su
+   * propio efecto enseña a desconfiar del botón.
+   */
+  const guardarUmbralDeDuracion = useCallback(async (minutos: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ duracion_sospecha_min: minutos } as Partial<MonitoreoAulasConfig>);
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
   const guardarCriterioDeAula = useCallback(async (valor: { modo: string; alfa: number }) => {
     try {
       await apiMonitoreoAulasConfig({ aula_valida: valor } as Partial<MonitoreoAulasConfig>);
@@ -2768,6 +2799,9 @@ export default function AulasMonitoreoPage() {
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
               (clave) => elegirPestana(seccionActiva, clave),
+              // El umbral de duración sospechosa: el motor lo aceptaba desde
+              // siempre y no había dónde ponerlo.
+              guardarUmbralDeDuracion,
             )}
           </div>
       </MonitoreoWorkbenchChrome>
