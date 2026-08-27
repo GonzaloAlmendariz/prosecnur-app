@@ -2578,6 +2578,13 @@ export type CalcMuestraAulasCertezaPunto = {
   probabilidad: number;
   rendimiento_medio: number;
   rendimiento_p05: number;
+  /**
+   * Cuántas aulas devolvió el sorteo de verdad, promediadas sobre las corridas.
+   * Debe seguir a `aulas`: si no se mueve mientras `aulas` crece, la config
+   * está fijando el número por su cuenta y la curva no mide su propio eje
+   * (fue el defecto de `faculty_targets`, ver calc_muestra_aulas_certeza.R).
+   */
+  aulas_efectivas?: number;
 };
 
 export type CalcMuestraAulasCertezaFila = {
