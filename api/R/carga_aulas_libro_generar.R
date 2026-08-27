@@ -533,7 +533,8 @@ aulas_libro_hoja_control <- function(unidades, control = list(), efectivas = NUL
 #' @return la ruta escrita.
 #' @export
 aulas_libro_generar <- function(unidades, path, partes = list(), control = list(),
-                               efectivas = NULL, responses = NULL, validas = NULL) {
+                               efectivas = NULL, responses = NULL, validas = NULL,
+                               cuotas = NULL, cfg = list()) {
   if (!length(unidades)) {
     stop_api(409, "E_AULAS_LIBRO_SIN_PLAN", "No hay plan de aulas del que generar el libro.")
   }
@@ -577,7 +578,8 @@ aulas_libro_generar <- function(unidades, path, partes = list(), control = list(
   # quien agenda, y su hoja tiene que ser la primera; quien viene a mirar como
   # va el campo la busca, y encontrarla al final no le cuesta nada.
   aulas_libro_escribir_indicadores(
-    wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas)
+    wb, aulas_libro_indicadores(unidades, efectivas, responses, partes, validas,
+                                cuotas = cuotas, cfg = cfg)
   )
 
   # **El formato solo no basta: hay que escribir el dato con su tipo.**

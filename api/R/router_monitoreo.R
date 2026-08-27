@@ -4945,7 +4945,12 @@ mount_monitoreo <- function(pr) {
       )
       escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
                           efectivas = efectivas, responses = respuestas,
-                          validas = validas)
+                          validas = validas,
+                          # Las cuotas del diseño, para el avance por facultad y
+                          # sexo de la hoja de indicadores. Sin ellas ese bloque
+                          # no se escribe: la cuota no se reconstruye.
+                          cuotas = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$design_targets,
+                          cfg = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list()))
       # Las que entraron al archivo, no las del plan: el banco sin usar se queda
       # fuera y contar el plan crudo hacia decir «Libro de 2616 aulas» de un
       # libro con 190.
