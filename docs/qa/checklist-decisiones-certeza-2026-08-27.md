@@ -264,6 +264,43 @@ handlers del stepper; ahora está reparada en el repartidor. Explica además el
 |---|---|
 | «Necesito que lo repares porque la otra sesión está validando monitoreo y necesita tener las 174 aulas reales del sorteo» — la corrida no se publicaba por diferir en cantidad | ☑ `bcb33dff` + `0bfe6d27`: ahora decide la identidad y la cantidad se declara |
 
+## Una hoja llamada «Validaciones» que no validaba nada
+
+Lo destapó otra sesión el 2026-08-27: en
+`HSVG2026_matriz_seleccion_202.xlsx` la fila 1 de **Validaciones** decía
+«Cobertura minima 1.14 (Derecho)» cuando el mínimo real es **1,081 en
+EE.GG. Letras** —Derecho está en 1,165— y el 1,14 **no existe** en esa columna.
+
+**No era un caché ni un número envejecido.** El libro no lo genera Prosecnur:
+lo genera el runner `matriz2.R` del scratchpad de este loop, y su hoja
+Validaciones era un `read.csv(text="...")` con **36 filas literales y cero
+interpolación**. Ninguna fila se calculaba, así que la columna Estado decía
+«OK» porque alguien tecleó «OK». **La hoja no podía fallar por construcción**,
+y la fila 2 —que parecía sana— tampoco verificaba nada: sólo no se había
+desactualizado. Otra fila citaba un «ADR 0082» que no existía.
+
+**Reparado**: las 17 filas se calculan de los datos del propio libro y el Estado
+se deriva. Cuatro estados con significados distintos: **OK** (comprobado y
+pasa), **AVISO** (comprobado, no es defecto, campo debe saberlo), **REVISAR**
+(exige decisión) y **DATO** —nuevo— para las constancias del diseño, que dejan
+de decir OK porque nunca fueron comprobaciones.
+
+**Tres defectos míos aparecieron al escribirlo**, y valen como aviso de que
+sustituir prosa por cálculo sólo sirve si el cálculo es correcto: filtré los
+reemplazos por un `sample_role` que no existe (el real es `chain_reserve`, y
+daban 0 de 1.259), comparé el techo operativo contra el pool de candidatas en
+vez del cupo de reserva, y busqué las marcas DAA por cadenas equivocadas.
+
+**Comprobado contra la versión tecleada**: la fila del traslape reproduce
+exactamente los **CH 34 42 54 90 124 155** que estaban escritos a mano, y el
+reparto 174 + 1.259 + 79 = 1.512 cuadra. **Y comprobado que puede fallar**:
+subiendo el umbral de cobertura a 1,20 la fila pasa a REVISAR y el conteo baja
+de 11 OK a 10.
+
+El libro corregido queda al lado del original, sin pisarlo, como
+`HSVG2026_matriz_seleccion_202_validado.xlsx`.
+
+
 ## Hallazgos abiertos por otras sesiones
 
 | Hallazgo | Quién lo mide | Qué implica de mi lado |
