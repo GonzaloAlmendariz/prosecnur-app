@@ -212,59 +212,64 @@ Las tres se deshacen mirando la ESTRUCTURA en vez del texto: nodos hoja, su
 cadena de padres y su unidad. **Un número sin su estructura no se puede
 juzgar**, igual que no se puede sin su unidad.
 
-## De dónde salen los 174, medido (2026-08-26)
+## De dónde salen los 174 — y por qué la app muestra 165
 
-Gonzalo: «no me explico por qué hay 165, deberían de haber 174». La respuesta
-está en el propio proyecto, y **no es la que ninguno de los dos suponía**.
+Gonzalo: «no me explico por qué hay 165, deberían de haber 174». **Tenía razón**,
+y la causa es precisa.
 
-Los dos MDs del 25-08 (`Revision_muestra_Ramiro`, `Revision_calculo_Kamila`) no
-traen esta derivación: el único «174» que aparece es la población de Ciencias y
-Artes de la Comunicación, coincidencia.
+### El estudio tiene DOS componentes y la app está mirando el otro
 
-Lo que sí la trae es el artefacto de certeza que el proyecto guarda
-(`calc_muestra_aulas_certeza`, schema `…cobertura_v1`, nivel 0,95, engine cube
-balanceado):
+| Componente | Actor declarado | Aulas base |
+|---|---|---|
+| `cmp-cine0qk8` | Muestra con representatividad a nivel **universidad** | **165** |
+| `cmp-cine0qk8-fac` | Muestra con representatividad a nivel **facultad** | **174** |
 
-| | Aulas |
-|---|---|
-| Fórmula | **165** |
-| Certeza | **167** |
-| Σ max(fórmula, certeza) por facultad | **173** |
-| **Titulares realmente seleccionados** | **174** |
+HSVG2026 corre con representatividad **a nivel facultad** —cuotas por facultad,
+15 estratos, todo el ADR 0079—, así que el componente vigente es el segundo y
+el número del estudio es **174**.
 
-**La certeza NO lleva de 165 a 174: lleva a 167.** Y no lo hace sumando: baja
-en unas facultades y sube en otras (de −3 a +2, con 6 estratos cortos).
+**Y la selección hizo exactamente eso**: comparando `aulas_base` por estrato del
+componente de facultad contra los titulares realmente sorteados, **coinciden las
+15 de 15 facultades**, suma 174 contra 174, cero discrepancias.
 
-### La regla que sí explica el 174
+### El defecto
 
-Comparando facultad por facultad, la selección sigue **`max(fórmula, certeza)`**:
-donde la certeza pide más, manda la certeza; donde pide menos, se conserva la
-fórmula. Es decir, **la certeza puede añadir aulas pero no quitarlas**.
+`workspace.aulas_config.n_aulas` guarda **165** —el objetivo del escenario de
+universidad— mientras el estudio corre por facultad. Y el workspace **no declara
+qué escenario rige** (`escenario` es `null`; sólo hay una lista `escenarios`),
+así que el pipeline lo infiere.
 
-Eso da 173. Los cuatro sitios donde la fórmula se impuso sobre una certeza más
-baja son Arquitectura (8 contra 7), Arte y Diseño (15 contra 13), Ciencias e
-Ingeniería (37 contra 34) y —al revés— Derecho.
+De ahí sale todo lo demás en cascada, porque **la misma comparación vive en tres
+capas** de `classroomHandoff.ts`:
 
-### La excepción: un aula en Derecho
+1. `currentAulasTarget` se anula a 0 si el objetivo guardado no iguala al del
+   componente elegido.
+2. `runIsCurrent` exige que el objetivo de la corrida iguale a ése.
+3. `selectionReady` exigía lo mismo de la selección.
 
-**DERECHO es la única facultad que no sigue la regla**: fórmula 16, certeza 18,
-máximo 18, y **titulares 19**. Un aula por encima de las dos varas.
+Con 165 guardado y 174 ejecutado, las tres fallan y el pase a Monitoreo se apaga
+entero, mostrando «pendiente» y «completa la selección» sobre una selección
+completa y correcta.
 
-Ese +1 es el que separa 173 de 174, y **no tiene origen documentado**. Puede ser
-un ajuste operativo deliberado —Derecho es de las facultades con cadena más
-profunda— pero hoy no lo dice ningún artefacto del proyecto.
+### Retractación
 
-### Qué significa para el pase a Monitoreo
+En el tick anterior reporté que 174 salía de una regla `max(fórmula, certeza)`
+por facultad más un aula suelta en Derecho. **Eso era numerología y se retira.**
+Salió de comparar la selección contra el artefacto de certeza, que está calculado
+sobre el componente de **universidad** (fórmula 165 → certeza 167): el escenario
+equivocado. Con el componente correcto no hay regla que inferir ni aula
+huérfana — las 15 facultades cuadran exactamente.
 
-El criterio de Gonzalo —«lo que declare el cálculo de muestra es lo que
-monitoreo utiliza»— se sostiene igual: `selector.faculty_targets` **suma
-exactamente 174** y esos son objetivos declarados por facultad, no un accidente
-del sorteo. Lo que hace falta es que la pantalla deje de mostrar 165 como «lo
-que pide el cálculo» cuando el cálculo, con certeza aplicada y sin recortes,
-pide 173 y se ejecutaron 174.
+La lección: **comparar contra el artefacto equivocado produce un patrón que
+parece una regla.** Antes de explicar una diferencia, comprobar que los dos
+lados son del mismo escenario.
 
-**Pendiente de Gonzalo**: confirmar la regla «la certeza añade pero no quita» y
-explicar el aula de más de Derecho, o quitarla.
+### Qué falta decidir
+
+El arreglo de fondo no es aflojar guardas: es que **el workspace guarde el
+objetivo del componente vigente** y que el escenario se declare en vez de
+inferirse. Eso toca `calc-muestra`, no Monitoreo, y conviene coordinarlo con la
+sesión hermana antes de tocarlo.
 
 ## Lo que ya está cerrado y no se rehace
 
