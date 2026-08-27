@@ -30,7 +30,7 @@ Y la regla de evidencia, también suya:
 |---|---|---|---|---|---|
 | 1 | «Lo segundo» — la comparación de métodos no es prerrequisito para **leer** una selección ya hecha, sólo para ejecutar una nueva | `aulas/aulasSurfaceState.tsx` | — | `eae20369` | ☑ **cerrada** |
 | 2 | «Si ratifica» — ADR 0080, el workspace se resella entero | `docs/adrs/0080-…md` | — | — | ☑ **cerrada** `f233cc8c` (Ratificado + mordidas 6 y 7) |
-| 3 | «Verificar como se hizo en el archivo ULT, entiendo que allí cada una fue 1000 corridas» | `calc_muestra_aulas_certeza.R` · `CertezaCoberturaPanel.tsx` | medido | `10ef2c7e` | 🔒 **EVALUADA CON TIEMPOS MEDIDOS, decide Gonzalo** — ver el análisis abajo |
+| 3 | «Verificar como se hizo en el archivo ULT, entiendo que allí cada una fue 1000 corridas» | `calc_muestra_aulas_certeza.R` · `CertezaCoberturaPanel.tsx` | medido | `10ef2c7e` | 🔒 **RECOMENDACIÓN CORREGIDA: opción A** — el veredicto es estable aunque la probabilidad sea ruidosa. Queda un arreglo aparte: el rótulo «en el ruido» mide el estadístico equivocado |
 | 4a | «se muda a cálculo» — el editor de afijación | `calculo/TitularesFacultadEditor.tsx` | `a3b8918b` | `b98f9635` | ☑ **cerrada y vista en pantalla** — el stepper bajó a la columna Titulares de «Cursos-horario requeridos» y ya no exige certificación corrida |
 | 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
@@ -84,6 +84,53 @@ menos.
 Con las dos corridas juntas el margen es 0,61pp y hacen falta ~4.500 — caro,
 pero no absurdo. La decisión sobre Derecho es real y no está cerrada de
 antemano.
+
+
+### Corrección: mi recomendación medía el estadístico equivocado
+
+Gonzalo, 2026-08-27: «¿qué fue lo que utilizó en hostigamiento último? porque
+siento que allí se hizo muy bien». Al medirlo, tiene razón, y el porqué obliga
+a retirar la recomendación anterior.
+
+**Qué se usó en HSVG26ULT: exactamente la fórmula de hoy.** Se pidieron 1.000
+sorteos y el motor los escaló por facultad a 144–1.000. Nada más.
+
+**Lo que lo hizo robusto no fue la precisión, fueron dos mecanismos:**
+
+**1 · La regla `max(fórmula, certeza)`.** Verificada contra el archivo: explica
+**14 de 15** facultades exactas; la única excepción es Derecho, que recibió +1 a
+mano (18 → 19). Sumas: fórmula **165** · certeza **167** · max **173** ·
+final **174**. Como la certificación sólo puede *añadir* aulas, un veredicto
+ruidoso a la baja no hace daño: la cuenta directa lo pisa.
+
+**2 · La curva es empinada justo en el punto de decisión.** Lo que decide no es
+la probabilidad sino qué entero es el mínimo, y cada aula extra mueve la
+probabilidad decenas de puntos:
+
+| Facultad | p(n−1) | p(n) | salto | pp que faltan para voltear | en errores estándar |
+|---|---:|---:|---:|---:|---:|
+| DERECHO (18) | 28,29 % | 95,12 % | 66,8 | 66,7pp | **21,2 EE** |
+| EE.GG. CIENCIAS (22) | 63,33 % | 95,95 % | 32,6 | 31,7pp | **13,5 EE** |
+| CIENCIAS E INGENIERÍA (34) | 87,50 % | 97,22 % | 9,7 | 7,5pp | **2,7 EE** |
+
+Y aunque C&I —la única con alguna chance— volteara de 34 a 33, la fórmula pedía
+37 y `max` deja 37: **efecto cero sobre el número final**.
+
+**La prueba empírica**: la corrida limpia de Derecho del 2026-08-27 dio
+p(17) = 29,27 % y p(18) = 96,10 % contra los 28,29 % y 95,12 % originales.
+La probabilidad se movió casi un punto y **el veredicto fue idéntico: 18**.
+
+**Conclusión: la opción es A, dejar la fórmula.** Mi recomendación de C se
+apoyaba en `margen / EE`, que mide cuán seguro es afirmar «este número alcanza
+el 95 %». Pero la decisión no es esa: es cuál entero es el mínimo, y eso lo
+gobierna el hueco entre candidatos consecutivos, que es enorme.
+
+**Lo que sí queda por arreglar, y es barato**: el veredicto «en el ruido» de la
+pestaña ¿Alcanza? mide el estadístico equivocado —`precisionVeredicto()` en
+`certezaCoberturaModel.ts` compara el margen sobre el 95 % contra el error
+binomial— y por eso marca como ambiguas tres facultades cuyo veredicto no lo es.
+Debe medir la **estabilidad del mínimo**: la distancia de `p(n−1)` al umbral.
+Es una falsa alarma que yo mismo introduje.
 
 
 ## Decisión 5, analizada — no es un renombre
