@@ -51,8 +51,8 @@ sin verlo en la aplicación.
 | **T2** | Fabricar **una semana** de campo sobre ese traslado | copia de trabajo, nunca el original | C-C, C-E | ☐ **bloqueado por T1** |
 | **T3** | Poner a prueba C-A a C-E contra ese estado y anotar qué se rompe | recorrido por la UI | todos | ☐ |
 | **T4** | Definición de encuesta efectiva desde los filtros iniciales: comprobar que se declara y que el motor la respeta | `criterio_validez`, `valid_filters` | C-C | ☐ |
-| **T5** | Efectivas vs elegibles: buscar dónde comparten rótulo o denominador | perfil de aulas | C-B | ☐ |
-| **T6** | Cuotas por facultad y por sexo: que ninguna superficie compense entre celdas | `avance_cuota`, cuotas | C-A | ☐ |
+| **T5** | Efectivas vs elegibles: dónde comparten rótulo | perfil de aulas | C-B | **☑ medido**: 3 700 contra 3 508 en la misma pantalla; **no se repara**, es E8 y espera a Gonzalo |
+| **T6** | Cuotas por facultad y sexo sin compensar entre celdas | `avance_cuota`, cuotas | C-A | **☑ conforme**: 37 + 17 = 54, igual que el KPI |
 | **T7** | Las tres dimensiones del libro: leerlas y juzgar si se entienden en campo | `carga_aulas_libro_generar.R` (ya existe, **no se construye**) | C-E | ☐ |
 | **T8** | **La tabla de avance para el cliente**, en **tres formas**: pantalla en Avance, PDF y Excel | pantalla + `router_monitoreo.R:3159` (patrón de territorial y telefónico) | C-A | ☐ diseñado, bloqueado por T1+T2 |
 | **T9** | Gráficos y diagramas: mejorar los actuales y proponer los que faltan | perfil de aulas | C-D | ☐ |
@@ -163,6 +163,54 @@ La 2 es la que menos promete de más y la que más se parece a lo que el repo ya
 hace en otros sellos, pero **cambia cuándo se considera vigente una selección**
 y eso es decisión suya, no mía. Mientras tanto **T2 queda bloqueado**: sin
 traslado no hay estado de Monitoreo sobre el que fabricar la semana de campo.
+
+## T5 y T6 — medidos en pantalla (2026-08-26)
+
+### T5 · C-B: dos totales del mismo concepto, en la misma pantalla
+
+En `avance > rendimiento`, a la vez y sin nada que los distinga:
+
+| Qué se ve | Cifra | De dónde sale |
+|---|---|---|
+| KPI **VÁLIDAS** | **3 700** | plataforma — «respuestas de Kobo que pasan el filtro» |
+| Ranking, sumando sus 20 facultades | **3 508** | parte de campo — «251 encuestas» por fila |
+
+**192 encuestas de diferencia**, las dos llamadas «encuestas». Las cuatro lentes
+del ranking —facultad, aplicador, franja, día— coinciden entre sí (3 508 sobre
+152 aulas cada una), así que no es un fallo de una lente: es la distancia
+parte↔plataforma, que es exactamente lo que el criterio C-B existe para no
+esconder.
+
+Lo que hace la diferencia legible o no es el rótulo: **la banda de KPI sí
+declara su fuente** («declaradas en el registro de campo» para aplicadas,
+«respuestas de Kobo» para válidas) y **el ranking no dice nada**: pone «251
+encuestas» a secas.
+
+**No se repara aquí.** Es la misma familia que E8 —«Del potencial» y la
+proyección del banco— y E8 **espera a Gonzalo**. Queda listado con su pantalla y
+su número, que es lo que él pidió.
+
+### T6 · C-A: conforme, y con el conteo
+
+La pirámide de cuota publica exactamente **dos** cifras de faltante, **37
+mujeres + 17 hombres = 54**, idéntico al KPI «CUOTA POR RECOGER 54 · 37 mujeres
+· 17 hombres». No hay compensación entre celdas ni neteo. «CIERRAN CON LO
+AGENDADO 38 de 40 celdas sexo × facultad» también es por celda, sobre 20
+facultades.
+
+### La trampa que ya va por la tercera vez
+
+Contar sobre el TEXTO renderizado con una expresión regular ha dado tres falsos
+positivos en esta sesión:
+
+1. «3,700 respuestas» leído como 3,7 — era 3 700 con separador inglés.
+2. «faltan · 80,2» leído como personas — era 80,2 **%**, la regex cortó el signo.
+3. Aquí: tres coincidencias de «por recoger» sumando 108 contra un KPI de 54 —
+   la regex contaba también la línea del propio KPI, y 108 es 2 × 54.
+
+Las tres se deshacen mirando la ESTRUCTURA en vez del texto: nodos hoja, su
+cadena de padres y su unidad. **Un número sin su estructura no se puede
+juzgar**, igual que no se puede sin su unidad.
 
 ## Lo que ya está cerrado y no se rehace
 
