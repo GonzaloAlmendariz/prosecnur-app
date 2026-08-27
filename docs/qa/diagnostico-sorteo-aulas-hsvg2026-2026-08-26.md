@@ -819,3 +819,28 @@ ser prerrequisito de ver la selección? Se puede argumentar que sí para
 *ejecutar* un sorteo nuevo, pero no para *leer* uno hecho. Queda para Gonzalo, y
 es más urgente que el resto del tablero porque afecta el uso normal de un
 proyecto terminado.
+
+## B3 no es una brecha: el contacto ya está en el libro (2026-08-27)
+
+La hoja `Selección` del libro exportado lleva `teacher`, `teacher_email` y
+`teacher_type`, **poblados en las 1 512 filas** —los 174 titulares, las 1 259 de
+cadena y las 79 del banco de extras—. El dato de contacto está entero en el
+entregable.
+
+Lo que se armó aparte para OIGD fue una **vista reordenada**: un docente por
+fila, sin repetir, con los cursos que dicta. Eso es presentación, no dato que
+falte. Si conviene que la app la produzca es una decisión de producto, no un
+defecto que reparar.
+
+**Con esto el tablero queda sin nada construible sin decisión de Gonzalo.** De
+los tres ítems que el audit listaba como «hechos fuera», dos resultaron existir
+—el libro de las tres dimensiones y esta base de contactos— y el tercero, la
+matriz por facultad con sexo, se cerró exportando lo que ya se calculaba
+(`e3330224`).
+
+Vale la pena anotar el patrón, porque se repitió cinco veces en este loop: **de
+lo que el audit dio por faltante, la mayoría existía.** El audit se hizo leyendo
+código y buscando por el vocabulario equivocado; cada vez que se fue a construir
+y primero se verificó, apareció la capacidad ya hecha. La regla que queda es la
+que ya estaba escrita en el repo y no se aplicó al hacer el audit: verificar
+dónde vive algo antes de declarar que no existe.
