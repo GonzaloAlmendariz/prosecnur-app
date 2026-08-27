@@ -28,6 +28,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Mapa de los 57 comentarios del mazo de Contabilidad](mapa-comentarios-conta-2026-08-16.md): registro qa fechado.
 - [Plan 1b — el esperado redefinido, de punta a punta](plan-1b-esperado-redefinido-2026-08-20.md): plan de trabajo qa.
 - [Plan de ticks — de la selección de aulas al control de campo](plan-ticks-hsvg2026-2026-08-22.md): plan de trabajo qa.
+- [Checklist dimensionado: las tres fuentes de Monitoreo](checklist-tres-fuentes-monitoreo-2026-08-27.md): agendación, registro de campo y base de control, cada una con qué está cubierto, qué es parcial y qué falta; más los filtros de encuesta válida, la procedencia y la crítica de forma.
 - [Simular la primera semana de HSVG2026 con el campo real de 2025](simulacion-semana1-hsvg2026-2026-08-27.md): qué saldría tras una semana sobre las 174 reales calibrando con 2025 —nueve de quince facultades no llegarían con sus titulares— y qué destapa eso en Monitoreo, incluido el criterio C-F de procedencia.
 - [Monitoreo: criterios generales y prueba con la selección real](checklist-monitoreo-criterios-2026-08-26.md): los cinco criterios de dominio que Monitoreo tiene que sostener, y el plan para probarlos con las 174 aulas de HSVG26ULT.
 - [Seguimiento de τ en campo — diseño de la superficie](seguimiento-tau-campo-2026-08-26.md): dónde vive el contraste entre la τ que dimensionó y la que rinde el campo, con su checklist.
