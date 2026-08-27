@@ -735,3 +735,33 @@ Tres consecuencias:
 3. Es una **decisión de producto**, no un defecto: construir el control con su
    etiqueta correcta, o dejarlos como parámetro de motor y sacarlos de la firma.
    Queda para Gonzalo.
+
+### Corrección al inventario, y el ADR que ya cubre la familia
+
+Dos precisiones sobre lo anterior.
+
+**«Bloquea por parámetros y no comprueba procedencia» es demasiado amplio.** Es
+cierto de `classroomComparisonMatchesConfig()` **por sí sola**, pero no del
+sistema: sus llamadores en `resolveClassroomArtifactStatus` añaden
+`matchesFrame(...)` con el `frame_hash`, y `selectionReady` exige además
+`selection_run_id`. Por la vía del handoff **sí** se comprueba identidad. Lo que
+falta es donde esa función se use suelta.
+
+**La familia entera ya tiene ADR, y está sin implementar.** `docs/adrs/0080-el-
+workspace-se-resella-entero-no-campo-a-campo.md`, estado **Propuesto** desde el
+18 de agosto, con la decisión esperando a Gonzalo. Sus cinco mordidas medidas
+incluyen literalmente las dos que aparecieron aquí: `n_aulas` desfasado entre
+workspace y corrida, y `simulation_runs`/`monte_carlo_n` en 500 contra 0. **Lo
+de este loop es la sexta mordida de la misma familia.**
+
+Y el ADR ya evaluó y descartó tratar la divergencia campo a campo: lo llama «el
+statu quo, cinco mordidas en dos meses». Su decisión propuesta es no producir la
+divergencia, resellando el workspace entero al aceptar una corrida.
+
+**Consecuencia para este loop**: reclasificar las 22 claves en bloqueantes y no
+bloqueantes **no se hace ahora**. Encendería el Relato, pero afinaría el detector
+de un problema cuya dirección ya está decidida y dejaría viva la familia. El
+inventario queda como insumo de la implementación del 0080, que es justo la
+lista que esa implementación necesita.
+
+Lo que **sí** se toma, porque no es arquitectura: el default `30`.
