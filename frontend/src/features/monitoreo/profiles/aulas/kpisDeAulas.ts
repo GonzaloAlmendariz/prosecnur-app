@@ -447,6 +447,36 @@ export function aulasKpis(
           pista: `gestiones; la mediana es ${fmt(ag.intentosMedianos)}`,
         });
       }
+      // **La insistencia describía; ahora también avisa.**
+      //
+      // «12 cuestan más de una gestión» no dice qué hacer. Medido sobre el campo
+      // de 2025 (170 titulares): las que se cerraron en una o dos gestiones se
+      // cayeron el 17-19 %, y de la TERCERA en adelante el 36-38 %. O sea que a
+      // partir de la tercera llamada el aula tiene el doble de probabilidad de
+      // no sostenerse, y eso se sabe ANTES de que se caiga — que es cuando
+      // todavía sirve para activar una reserva.
+      if (ag.enUmbralDeRiesgo > 0) {
+        tiles.push({
+          label: "Van por la tercera",
+          icono: PhoneCall,
+          value: fmt(ag.enUmbralDeRiesgo),
+          pista: "gestiones y siguen sin fecha",
+          detalle: "En el campo de 2025, un aula que llegaba a la tercera gestión se caía el doble de veces que una cerrada en una o dos (36 % contra 18 %). Conviene mirar su reserva antes de que se caiga.",
+          tone: "warn",
+        });
+      }
+      // Sin medio de contacto no es «difícil»: es que no hay por dónde llamar.
+      // En 2025 fueron 14 de 170 y se cayeron LAS CATORCE.
+      if (ag.sinMedioDeContacto > 0) {
+        tiles.push({
+          label: "Sin medio de contacto",
+          icono: PhoneCall,
+          value: fmt(ag.sinMedioDeContacto),
+          pista: "ni teléfono ni correo anotado",
+          detalle: "En 2025 las 14 aulas sin medio de contacto anotado se cayeron todas. No es que sean difíciles: es que no hay por dónde llamarlas.",
+          tone: "warn",
+        });
+      }
       return tiles;
     }
     // La sección de la agenda y el registro: cuántas hay, cuántas se

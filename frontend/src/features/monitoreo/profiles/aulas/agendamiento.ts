@@ -36,6 +36,23 @@ export type Agendamiento = {
   porAgendar: number;
   /** Cuántas necesitaron más de una gestión. */
   conInsistencia: number;
+  /**
+   * Las que van por su TERCERA gestión y siguen sin fecha.
+   *
+   * No es un umbral elegido: sale medido del campo de 2025 (170 titulares,
+   * hoja «Aulas Agendadas»). De las que se cerraron en una o dos gestiones se
+   * cayó el **17–19 %**; a partir de la tercera, el **36–38 %** —el doble—.
+   * La insistencia deja de ser una molestia y pasa a ser un pronóstico.
+   */
+  enUmbralDeRiesgo: number;
+  /**
+   * Las que siguen en juego y **no tienen medio de contacto anotado**.
+   *
+   * En 2025 fueron 14 de 170 y **se cayeron las catorce**. No es que sean
+   * difíciles: es que no hay por dónde llamarlas, y una reserva se activa antes
+   * si eso se ve el primer día en vez del último.
+   */
+  sinMedioDeContacto: number;
   /** Mediana de intentos entre las que registran alguno. */
   intentosMedianos: number | null;
   /** Por qué medio se contactó, de más a menos. */
@@ -67,18 +84,29 @@ function seVaAAgendar(fila: Fila): boolean {
   return true;
 }
 
+/**
+ * A partir de cuántas gestiones un aula deja de ser insistencia y pasa a ser
+ * pronóstico. **Medido, no elegido**: en el campo de 2025 las que se cerraron en
+ * una o dos gestiones se cayeron el 17-19 %; de la tercera en adelante, el
+ * 36-38 %.
+ */
+export const UMBRAL_DE_RIESGO = 3;
+
 export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
   const enJuego = filas.filter(seVaAAgendar);
   let agendadas = 0;
   let conInsistencia = 0;
+  let enUmbralDeRiesgo = 0;
+  let sinMedioDeContacto = 0;
   const intentos: number[] = [];
   const porMedio = new Map<string, number>();
 
   let aplicadasSinAgenda = 0;
   for (const fila of enJuego) {
+    const tieneFecha = Boolean(txt(fila.scheduled_date));
     // Con FECHA, no por el estado: «agendada» es lo que dice la hoja y la fecha
     // es lo que se puede visitar. Cuando los dos discrepan manda el hecho.
-    if (txt(fila.scheduled_date)) {
+    if (tieneFecha) {
       agendadas += 1;
     } else if (["aplicada", "cerrada"].includes(txt(fila.operational_status).toLowerCase())) {
       // **Aplicada sin fecha agendada: eso no debería existir.**
@@ -102,9 +130,14 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     if (n !== null && n > 0) {
       intentos.push(n);
       if (n > 1) conInsistencia += 1;
+      // El riesgo se cuenta sólo sobre las que TODAVÍA no tienen fecha: una que
+      // costó cuatro llamadas pero ya está agendada no es un pronóstico, es una
+      // historia.
+      if (n >= UMBRAL_DE_RIESGO && !tieneFecha) enUmbralDeRiesgo += 1;
     }
     const medio = txt(fila.contact_medium);
     if (medio) porMedio.set(medio, (porMedio.get(medio) ?? 0) + 1);
+    else if (!tieneFecha) sinMedioDeContacto += 1;
   }
 
   intentos.sort((a, b) => a - b);
@@ -119,6 +152,8 @@ export function agendamiento(filas: ReadonlyArray<Fila>): Agendamiento {
     // Lo que de verdad queda por agendar: ni con fecha, ni ya aplicada.
     porAgendar: enJuego.length - agendadas - aplicadasSinAgenda,
     conInsistencia,
+    enUmbralDeRiesgo,
+    sinMedioDeContacto,
     intentosMedianos: mediana,
     medios: [...porMedio.entries()]
       .map(([medio, aulas]) => ({ medio, aulas }))
