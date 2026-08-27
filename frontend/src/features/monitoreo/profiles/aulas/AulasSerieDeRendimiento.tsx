@@ -404,6 +404,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? [`${x(corteX)},${yy(ultimo)}`, ...proyectadas.map((v, i) => `${xp(i)},${yy(v)}`)].join(" ")
       : "";
     const alCerrar = proyectadas.length ? proyectadas[proyectadas.length - 1] : ultimo;
+    // **La segunda llegada: la del diseño.** La de arriba corre con la tasa que
+    // el campo lleva y responde «¿a dónde llego si sigo rindiendo como rindo?».
+    // Ésta responde la otra mitad —«¿a dónde habría llegado si rindiera lo que
+    // el diseño supuso?»— que es el contraste que manda el ADR 0082.
+    //
+    // No es otra tasa: es la suma del `expected_valid` de las aulas AGENDADAS,
+    // cada una con su tamaño. Una agenda de tres aulas grandes no es la misma
+    // que una de tres pequeñas, y una tasa por un número de aulas no distingue
+    // las dos.
+    const disenoDeLaAgenda = proyectada
+      ? { total: proyectada.esperadasPorDisenoTotal, conVara: proyectada.aulasConDiseno, agendadas: proyectada.aulasAgendadas }
+      : proyeccion.reduce<{ total: number | null; conVara: number; agendadas: number }>((acc, f) => ({
+        total: f.esperadasPorDisenoTotal == null ? acc.total : (acc.total ?? 0) + f.esperadasPorDisenoTotal,
+        conVara: acc.conVara + f.aulasConDiseno,
+        agendadas: acc.agendadas + f.aulasAgendadas,
+      }), { total: null, conVara: 0, agendadas: 0 });
+    const alCerrarPorDiseno = disenoDeLaAgenda.total == null ? null : ultimo + disenoDeLaAgenda.total;
 
     // Una línea por sexo, con su cuota señalizada. El desglose por DÍA no existe
     // en el dato —el parte no trae sexo—, así que la serie de cada sexo es el
@@ -538,12 +555,31 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       : "";
     // La cifra que manda es la de la CUOTA, no la del parte: es la que decide si
     // el estudio llega. La del parte se dice aparte y con su nombre.
+    // **Las dos llegadas, dichas juntas.** Sin la del diseño al lado, «se
+    // llegaría a X» es un número sin vara: no se sabe si ese X es lo que se
+    // había planeado o la mitad. Sólo se dice cuando difiere de verdad —menos
+    // de una encuesta de diferencia no es información— y declarando sobre
+    // cuántas aulas se calculó, porque no todas traen meta del diseño.
+    // Desanidado a propósito: un template literal dentro de la expresión de
+    // otro esconde sus cifras del contrato de formato del perfil, que las busca
+    // en el fuente. El contrato tenía razón y la reparación es no anidar.
+    const coberturaDelDiseno = disenoDeLaAgenda.conVara < disenoDeLaAgenda.agendadas
+      ? ` (de ${fmt(disenoDeLaAgenda.conVara)} de las ${fmt(disenoDeLaAgenda.agendadas)} agendadas)`
+      : "";
+    const segundaLlegada = alCerrarPorDiseno != null && Math.abs(alCerrarPorDiseno - alCerrar) >= 1
+      ? ` · con lo que el diseño pedía de esas aulas, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
+      : "";
     const lectura = meta > 0
       ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de las aulas visitadas · ${
           alCerrar >= meta
-            ? "con lo agendado se pasa de esa meta"
+            // **La cifra se dice también cuando se pasa.** Decir sólo «se pasa
+            // de esa meta» dejaba la segunda llegada —la del diseño— sin nada
+            // con que compararse: la pantalla mostraba «se pasa de esa meta ·
+            // con lo que el diseño pedía, 3 795» y ese 3 795 no significaba
+            // nada solo. Las dos llegadas se leen en pareja o no se leen.
+            ? `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, por encima de esa meta`
             : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
-        }`
+        }${segundaLlegada}`
       : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esas aulas`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
