@@ -1,7 +1,12 @@
 # Checklist — las siete decisiones de Gonzalo y la cola del loop de cobertura
 
-Fecha de apertura: 2026-08-27. Doc vivo: se marca conforme se cierra cada ítem
-y **sólo Gonzalo lo da por terminado**.
+Tipo: Checklist QA fechado
+Estado: En curso
+Fecha: 2026-08-27
+Autoridad: Evidencia de las decisiones que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+Doc vivo: se marca conforme se cierra cada ítem y **sólo Gonzalo lo da por
+terminado**.
 
 ## La vara
 

@@ -1,7 +1,8 @@
 # ADR 0080 — El workspace se resella entero, no campo a campo
 
-- **Estado**: **Ratificado** por Gonzalo el 2026-08-27, textual: «Si ratifica».
-  Propuesto el 2026-08-18 como borrador del loop de Cálculo de muestra.
+- **Estado**: Aceptado · **Ratificado** por Gonzalo el 2026-08-27, textual:
+  «Si ratifica». Propuesto el 2026-08-18 como borrador del loop de Cálculo de
+  muestra.
 - **Implementación**: No iniciada. Lo commiteado hasta ahora **no** es esta
   decisión sino contención de sus consecuencias en la capa que lee, y así se
   declara en cada commit.
