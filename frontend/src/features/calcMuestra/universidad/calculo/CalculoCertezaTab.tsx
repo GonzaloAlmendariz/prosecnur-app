@@ -31,6 +31,7 @@ export function CalculoCertezaTab({
   certezaEnCurso,
   onMedirCerteza,
   onFijarAulas,
+  onFijarTodas,
   marcoDesactualizado = false,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
@@ -40,6 +41,7 @@ export function CalculoCertezaTab({
   certezaEnCurso: boolean;
   onMedirCerteza?: React.ComponentProps<typeof CertezaCoberturaPanel>["onMedir"];
   onFijarAulas?: (facultad: string, aulas: number) => void;
+  onFijarTodas?: () => void;
   marcoDesactualizado?: boolean;
 }) {
   // Mismo criterio que «Cursos-horario requeridos»: la certeza se mide sobre el
@@ -125,6 +127,7 @@ export function CalculoCertezaTab({
           onMedir={onMedirCerteza as NonNullable<typeof onMedirCerteza>}
           marcoDesactualizado={marcoDesactualizado || frameDesactualizado}
           onFijarAulas={onFijarAulas}
+          onFijarTodas={onFijarTodas}
         />
       ) : (
         <p className="cmv2-calc-certeza-nota">

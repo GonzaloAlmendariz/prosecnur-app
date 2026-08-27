@@ -202,6 +202,7 @@ export function CertezaCoberturaPanel({
   onMedir,
   marcoDesactualizado = false,
   onFijarAulas,
+  onFijarTodas,
 }: {
   filasResultado: readonly CalcMuestraAulasEstrato[];
   vista: CertezaVista | null;
@@ -213,6 +214,8 @@ export function CertezaCoberturaPanel({
   marcoDesactualizado?: boolean;
   /** Aplica el minimo certificado a una facultad sin salir de este panel. */
   onFijarAulas?: (facultad: string, aulas: number) => void;
+  /** Aplica de una vez el minimo de TODAS las facultades que se quedan cortas. */
+  onFijarTodas?: () => void;
 }) {
   const [nivel, setNivel] = useState<number>(0.95);
   const estratos = certezaEstratosDesdeResultado(filasResultado);
@@ -350,6 +353,29 @@ export function CertezaCoberturaPanel({
               }
             >
               {vista.criticos.map((fila) => fila.label).join(", ")}.
+              {/*
+                Las que faltan se aplican juntas porque la certeza las midió
+                juntas y sus mínimos son independientes: el de Derecho no cambia
+                porque se fije Psicología. De a una obligaba a fijar, recalcular
+                y volver a medir una vez por facultad — al fijar la primera el
+                resultado del componente se invalida y esta pantalla se queda
+                sin nada sobre lo que medir.
+              */}
+              {onFijarTodas != null && vista.brechaSoloSubidas > 0 && (
+                <p className="cmv2-certeza-aplicar">
+                  <button type="button" className="cmv2-btn" onClick={onFijarTodas}>
+                    {vista.criticos.length === 1
+                      ? "Llevar esa facultad a su mínimo"
+                      : `Llevar las ${fmtInt(vista.criticos.length)} a su mínimo`}
+                  </button>
+                  <span>
+                    Suma {fmtInt(vista.brechaSoloSubidas)}{" "}
+                    {vista.brechaSoloSubidas === 1 ? "aula" : "aulas"} y deja el diseño
+                    en <strong>{fmtInt(vista.aulasSoloSubidas)}</strong> titulares. Hay que
+                    volver a sortear.
+                  </span>
+                </p>
+              )}
             </AvisoModulo>
           ) : (
             <AvisoModulo tone="success" role="status">
