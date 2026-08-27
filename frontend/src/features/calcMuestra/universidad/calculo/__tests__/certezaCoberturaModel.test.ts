@@ -9,6 +9,7 @@ import {
   certezaEstratosDesdeResultado,
   certezaVistaDesdeEstado,
   curvaResumen,
+  precisionVeredicto,
 } from "../certezaCoberturaModel";
 
 function fila(patch: Partial<CalcMuestraAulasCertezaFila> = {}): CalcMuestraAulasCertezaFila {
@@ -192,5 +193,41 @@ describe("curvaResumen", () => {
     expect(curvaResumen([punto(5, 100)]).plana).toBe(false);
     expect(curvaResumen([]).plana).toBe(false);
     expect(curvaResumen(undefined).puntos).toEqual([]);
+  });
+});
+
+// El motor no corre las mil simulaciones que se le piden: las reduce en las
+// facultades de marco grande porque cada sorteo cuesta mas. En HSVG2026 fueron
+// de 144 (Ciencias e Ingenieria, 417 aulas) a 1 000, y eso invierte la
+// precision justo donde mas pesa, porque las de mayor cuota son las de marco
+// mas grande. Derecho paso con 195 sorteos de 205: su margen sobre el 0,95 es
+// doce veces menor que el error de muestreo con el que se midio, asi que con
+// esa evidencia no se puede distinguir si cumple. El panel publicaba el
+// veredicto sin decir con cuantos sorteos se tomo.
+describe("precisionVeredicto", () => {
+  const f = (probabilidad_certeza: number, corridas: number) =>
+    ({ probabilidad_certeza, corridas }) as Parameters<typeof precisionVeredicto>[0];
+
+  it("marca dentro del ruido el veredicto cuyo margen no supera su error", () => {
+    const r = precisionVeredicto(f(0.9512, 205), 0.95);
+    expect(r.corridas).toBe(205);
+    expect(r.error).toBeCloseTo(0.0150, 3);
+    expect(r.margen).toBeCloseTo(0.0012, 4);
+    expect(r.dentroDelRuido).toBe(true);
+  });
+
+  it("un margen holgado frente a su error no se marca", () => {
+    expect(precisionVeredicto(f(0.993, 1000), 0.95).dentroDelRuido).toBe(false);
+  });
+
+  it("una probabilidad de 1 no tiene error de muestreo que reportar", () => {
+    const r = precisionVeredicto(f(1, 1000), 0.95);
+    expect(r.error).toBe(0);
+    expect(r.dentroDelRuido).toBe(false);
+  });
+
+  it("sin corridas no hay juicio que emitir", () => {
+    expect(precisionVeredicto(f(0.96, 0), 0.95).dentroDelRuido).toBe(false);
+    expect(precisionVeredicto(null, 0.95).corridas).toBeNull();
   });
 });
