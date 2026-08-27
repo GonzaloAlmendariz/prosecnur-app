@@ -708,3 +708,30 @@ Dos observaciones más del inventario:
 
 `candidate_pool_size` además sólo tiene efecto con el motor `pool_controlado`;
 con `cube_balanceado` bloquea por un parámetro que el sorteo ni mira.
+
+## F3 medido: qué hacen de verdad `pps_weight` y `coverage_weight` (2026-08-27)
+
+Antes de darles control había que saber si el motor vigente los respeta. Los usa
+en **dos sitios distintos**, y sólo uno decide la muestra:
+
+| función | qué hace | ¿corre con `cube_balanceado`? |
+|---|---|---|
+| `.cm_aulas_candidate_score` (`calc_muestra_aulas.R:2200`) | puntúa candidatas y **decide cuáles entran** | **no**: sólo la llama `.cm_aulas_select_once_pool`, que corre con `pool_controlado` |
+| `.cm_aulas_annotate_selection_metrics` (`:2103`) | calcula una columna `score` por aula, **después** del sorteo | sí, para todos los motores |
+
+**Con el motor de este estudio, esos pesos no cambian qué aulas salen.** Sólo
+alimentan una métrica anotada que se reporta por aula.
+
+Tres consecuencias:
+
+1. **Un control sin más sería un rótulo que promete otro número.** Puesto junto a
+   las decisiones de método, parecería que mueve el sorteo, y con
+   `cube_balanceado` no lo mueve. Si se construye, tiene que decir bajo qué motor
+   surte efecto, o aparecer sólo con `pool_controlado`.
+2. **Su presencia en la firma que bloquea es incorrecta** para este motor. No
+   pueden cambiar la muestra, así que no deberían invalidar una corrida
+   guardada. Se suman a `simulation_runs`, `candidate_pool_size` y
+   `monte_carlo_n` en el grupo que sobra.
+3. Es una **decisión de producto**, no un defecto: construir el control con su
+   etiqueta correcta, o dejarlos como parámetro de motor y sacarlos de la firma.
+   Queda para Gonzalo.
