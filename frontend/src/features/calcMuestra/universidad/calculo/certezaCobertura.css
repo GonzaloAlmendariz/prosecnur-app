@@ -154,3 +154,17 @@
    distingue cumplir de no cumplir. */
 .cmv2-certeza-corridas { display: block; font-size: 9px; color: var(--pulso-text-muted); white-space: nowrap; }
 .cmv2-certeza-corridas[data-ruido] { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-medium); }
+
+/* El neto del motor, dicho sin competir con los tres KPI de arriba. */
+.cmv2-certeza-neto {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+  max-width: 760px;
+}
+
+.cmv2-certeza-neto strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}

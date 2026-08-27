@@ -140,8 +140,28 @@ export type CertezaVista = {
   /** Estratos que exigen una decisión antes de salir a campo. */
   criticos: CertezaFilaVista[];
   aulasFormula: number;
+  /**
+   * El total que publica R: el neto, que compensa las facultades que piden
+   * mas con las que piden menos.
+   */
   aulasCerteza: number;
   brecha: number;
+  /**
+   * El total con la regla de la casa: se SUBE donde la certeza pide mas y no
+   * se baja donde pide menos (Gonzalo, 2026-08-26: «no bajes ninguna, solo
+   * sube donde haga falta»). Es el numero que el diseño va a usar de verdad.
+   *
+   * Medido en HSVG 2026 el 2026-08-27: el neto decia 167 —165 mas dos— porque
+   * seis facultades pedian +8 y tres pedian -6. Con la regla de la casa son
+   * 173, y el diseño ejecutado tiene 174: las ocho de la certeza mas una
+   * agregacion operativa en Derecho. Un encabezado que dice 167 promete un
+   * total que el estudio nunca va a tomar.
+   */
+  aulasSoloSubidas: number;
+  /** Cuanto suman las subidas. Es `aulasSoloSubidas - aulasFormula`. */
+  brechaSoloSubidas: number;
+  /** Cuantas aulas se dejarian de sortear si tambien se bajara. */
+  aulasQueNoSeBajan: number;
   hayCotaSuperior: boolean;
   /** El marco al que se le midió la certeza sigue siendo el vigente. */
   vigente: boolean;
@@ -201,6 +221,23 @@ export function certezaVistaDesdeEstado(
     return a.label.localeCompare(b.label, "es");
   });
 
+  // Se deriva de las filas y no del total de R a proposito: el total de R es el
+  // neto, y esta cifra tiene que sobrevivir a que R cambie como lo calcula.
+  const soloSubidas = (() => {
+    let subidas = 0;
+    let noBajadas = 0;
+    for (const fila of filas) {
+      if (!esFinito(fila.brecha)) continue;
+      if (fila.brecha > 0) subidas += fila.brecha;
+      else if (fila.brecha < 0) noBajadas += -fila.brecha;
+    }
+    return {
+      aulasSoloSubidas: certeza.total.aulas_formula + subidas,
+      brechaSoloSubidas: subidas,
+      aulasQueNoSeBajan: noBajadas,
+    };
+  })();
+
   const hashVigente = typeof frameHashVigente === "string" ? frameHashVigente.trim() : "";
   return {
     certeza,
@@ -210,6 +247,7 @@ export function certezaVistaDesdeEstado(
     aulasFormula: certeza.total.aulas_formula,
     aulasCerteza: certeza.total.aulas_certeza,
     brecha: certeza.total.brecha,
+    ...soloSubidas,
     hayCotaSuperior: ordenadas.some((fila) => fila.cotaSuperior),
     vigente: Boolean(hashVigente) && certeza.frame_hash === hashVigente,
   };

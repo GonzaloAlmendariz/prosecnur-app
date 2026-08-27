@@ -263,3 +263,82 @@ describe("precisionVeredicto — mide si el ruido puede mover el MÍNIMO", () =>
     expect(precisionVeredicto(null, 0.95).corridas).toBeNull();
   });
 });
+
+describe("el total con la regla de la casa: sube y no baja", () => {
+  // Las quince facultades de HSVG 2026, medidas el 2026-08-27 en la pestaña
+  // ¿Alcanza? al 95%: seis piden mas (+8) y tres piden menos (-6). El neto que
+  // publica R es +2 → 167, pero el diseño no le quita tres aulas a Ciencias e
+  // Ingenieria: sube ocho y se queda en 173. Las 174 ejecutadas son esas mas
+  // una agregacion operativa en Derecho.
+  const HSVG2026: ReadonlyArray<readonly [string, number, number]> = [
+    ["DERECHO", 16, 18],
+    ["ESTUDIOS GENERALES LETRAS", 18, 20],
+    ["CIENCIAS CONTABLES", 2, 3],
+    ["GESTIÓN Y ALTA DIRECCIÓN", 6, 7],
+    ["LETRAS Y CIENCIAS HUMANAS", 3, 4],
+    ["PSICOLOGÍA", 5, 6],
+    ["CIENCIAS E INGENIERIA", 37, 34],
+    ["ARTE Y DISEÑO", 15, 13],
+    ["ARQUITECTURA Y URBANISMO", 8, 7],
+    ["ARTES ESCÉNICAS", 8, 8],
+    ["CIENCIAS SOCIALES", 12, 12],
+    ["CIENCIAS Y ARTES DE LA COMUN.", 7, 7],
+    ["EDUCACION", 3, 3],
+    ["ESTUDIOS GENERALES CIENCIAS", 22, 22],
+    ["GASTRONOMÍA, HOTELERÍA Y TURISMO", 3, 3],
+  ];
+
+  const vistaHsvg = () => certezaVistaDesdeEstado(
+    certeza(
+      HSVG2026.map(([label, formula, conCerteza], i) => fila({
+        key: `f${i}`,
+        label,
+        aulas_formula: formula,
+        aulas_certeza: conCerteza,
+        brecha: conCerteza - formula,
+      })),
+      { total: { aulas_formula: 165, aulas_certeza: 167, brecha: 2, estratos_cortos: 6, estratos_agotados: 0, estratos_sin_ids: 0 } },
+    ),
+    "hash-vigente",
+  );
+
+  it("no baja donde la certeza dice que sobra: 173 y no 167", () => {
+    const vista = vistaHsvg();
+    expect(vista).not.toBeNull();
+    expect(vista!.aulasFormula).toBe(165);
+    expect(vista!.aulasCerteza).toBe(167);
+    expect(vista!.aulasSoloSubidas).toBe(173);
+    expect(vista!.brechaSoloSubidas).toBe(8);
+    expect(vista!.aulasQueNoSeBajan).toBe(6);
+  });
+
+  it("sin facultades que sobren, el total con la regla coincide con el neto", () => {
+    const vista = certezaVistaDesdeEstado(
+      certeza(
+        [
+          fila({ key: "a", aulas_formula: 10, aulas_certeza: 12, brecha: 2 }),
+          fila({ key: "b", aulas_formula: 5, aulas_certeza: 5, brecha: 0 }),
+        ],
+        { total: { aulas_formula: 15, aulas_certeza: 17, brecha: 2, estratos_cortos: 1, estratos_agotados: 0, estratos_sin_ids: 0 } },
+      ),
+      "hash-vigente",
+    );
+    expect(vista!.aulasSoloSubidas).toBe(17);
+    expect(vista!.aulasQueNoSeBajan).toBe(0);
+  });
+
+  it("una brecha que no es un numero no mueve el total", () => {
+    const vista = certezaVistaDesdeEstado(
+      certeza(
+        [
+          fila({ key: "a", aulas_formula: 10, aulas_certeza: 12, brecha: 2 }),
+          fila({ key: "b", aulas_formula: 5, aulas_certeza: null, brecha: null, alcanzable: false }),
+        ],
+        { total: { aulas_formula: 15, aulas_certeza: 17, brecha: 2, estratos_cortos: 1, estratos_agotados: 0, estratos_sin_ids: 0 } },
+      ),
+      "hash-vigente",
+    );
+    expect(vista!.aulasSoloSubidas).toBe(17);
+    expect(vista!.brechaSoloSubidas).toBe(2);
+  });
+});
