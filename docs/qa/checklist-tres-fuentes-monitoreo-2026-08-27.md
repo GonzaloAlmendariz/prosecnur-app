@@ -253,3 +253,63 @@ Es una familia, no un caso:
 **Decisión pendiente de Gonzalo**: hay tensión real entre fidelidad al nombre del
 libro —que sirve para cruzar con el Excel— y el ancho. No se resuelve por cuenta
 propia.
+
+## Los criterios de encuesta efectiva salen del XLSForm 2026, no del calco
+
+**Encargo de Gonzalo**: «parece que estuvieras haciendo un calco en vez de revisar
+los criterios que hacen efectiva una encuesta **usando el XLSForm que tenemos** y
+cómo declaramos los filtros iniciales **con las variables que tenemos**».
+
+Leído el instrumento real —`BBDD2026/Instrumento2026.xlsx`, hoja `survey`, 161
+filas—, esto es lo que declara:
+
+| variable | tipo | qué pregunta |
+|---|---|---|
+| `consent_1` | `select_one yesno` · **required** | ¿estás dispuesto(a) a participar voluntariamente? |
+| `consent_2` | `select_one yesno` · **required** | ¿a que la información se conserve y se emplee para investigación? |
+| `filtro` | `select_one yesno` · **required** | ¿tienes más de un ciclo/semestre estudiando en la PUCP? |
+
+- Valores: **`1` = Sí · `2` = No**.
+- **La cascada la declara el propio formulario**: el `relevant` de `filtro` es
+  literalmente `${consent_1} = '1' and ${consent_2} = '1'`. El orden no se
+  inventa — está escrito en el instrumento.
+- `consent_1` y `consent_2` gobiernan 11 preguntas cada uno; `filtro`, 10.
+
+Resembrada la simulación con esas variables, la cadena de validez enseña:
+
+> De 1 811 respuestas, la cadena deja **1 607**.
+> `consent_1` −45 (**30 sólo por éste**) · `consent_2` −66 (0 sólo por éste) ·
+> `filtro` −93
+
+Las dos lecturas del módulo —cascada y exclusiva— se separan de verdad en el
+primer paso, que es para lo que existen.
+
+### El 70T/70P: el generador ya lo había reemplazado; la tabla no se enteró
+
+`carga_base_control.R` marca `70T`/`70P` como `solo_lectura` y dice que «la hoja
+que generamos YA NO ESCRIBE esa columna»; se conservan sólo para leer un libro
+viejo. Pero `AulasControlDelLibro` las pintaba igual, vacías, junto con los tres
+validadores y cortas/largas. Aplicado `columnasConDato` —el criterio ya existía y
+ésta era la única tabla del perfil que no lo usaba—: **de 26 columnas a 9**.
+
+### Los tiempos: el instrumento SÍ los declara
+
+`start` y `end` son tipos del XLSForm y Kobo los rellena solo. La pantalla decía
+«este estudio no trae tiempos de respuesta» y **era la fixture, no el producto**:
+sembrados, aparece
+
+> La mitad de las respuestas se contestó en **16 min o menos** (la mitad central,
+> entre 11 y 21 min) · **1 811** respuestas con duración · **0** pasan de 120 min
+
+**Y ahí está el control fino que falta**, dicho por la propia pantalla: «este
+estudio **no ha declarado a partir de cuántos minutos una respuesta es
+sospechosa**». La maquinaria de duración existe; el umbral no está declarado. Es
+el equivalente temporal de los `valid_filters`, y hoy no hay dónde declararlo.
+
+### Décima falsa ausencia, y el patrón ya es ley
+
+Cuatro veces en este loop una fixture sin sembrar hizo parecer inexistente una
+capacidad del producto: `efectivas_esperadas` (sin vara del diseño),
+`valid_filters` (sin cadena de filtros), `libro` (sin Base de control) y ahora
+`start`/`end` (sin tiempos). **Antes de declarar que la app no puede hacer algo,
+comprobar que la fixture lo alimenta.**
