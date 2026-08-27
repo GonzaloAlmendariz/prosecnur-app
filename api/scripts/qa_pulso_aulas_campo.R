@@ -111,6 +111,9 @@ aula <- function(codigo, unidad, rol, facultad, elegibles, validas_meta,
     teacher_email = sprintf("docente.%s@ejemplo.edu", tolower(gsub("[^A-Za-z0-9]", "", codigo))),
     sample_role = rol, wave = "M1", orden = orden,
     eligible_n = elegibles, expected_valid = validas_meta,
+    # La misma vara del diseno que siembra el lote grande, para que las aulas
+    # escritas a mano no salgan sin ella y rompan la serie por facultad.
+    efectivas_esperadas = validas_meta, meta_origen = "diseno",
     faculty = facultad, stratum = facultad, level = "Pregrado",
     sample_status = estado_muestra,
     contact_attempts = if (identical(estado_muestra, "agendada")) 1L else 3L,
@@ -315,6 +318,29 @@ if (ESCALA_2025) {
               # ello (`AulasAvanceEnRespuestas` y `AulasCoberturaChart`) no se
               # ven NUNCA aunque esten escritas.
               expected_valid = if (i %in% c(58L, 133L)) 0 else max(1, round((20 + (i %% 25)) * 0.7)),
+              # **La meta DEL DISENO, que es otra cosa que `expected_valid`.**
+              #
+              # El motor publica `meta_origen` justo para no colapsar tres cosas
+              # en un numero: `diseno` es lo que el calculo de muestra computo
+              # —`eligible_n` x el rendimiento de referencia de esa facultad—,
+              # `declarada` es lo que alguien escribio a mano, y `elegibles` no
+              # es una meta: es el techo puesto ahi porque no habia ninguna.
+              #
+              # Sin sembrarla, TODA la fixture derivaba a `declarada` y la vara
+              # del diseno no se dibujaba en ninguna pantalla de QA. En el
+              # proyecto real las 1512 filas del plan son `diseno` con razon
+              # meta/elegibles entre 0,41 y 0,80 por facultad, asi que aqui se
+              # siembra en ese mismo rango y variando POR FACULTAD, que es lo que
+              # hace que la vara se lea distinta de una a otra.
+              #
+              # **Y no todas.** Una de cada nueve se deja sin meta del diseno
+              # para que el dia salga MEZCLADO —unas aulas con vara y otras
+              # sin— y se pueda ver que el promedio se toma sobre las que la
+              # tienen y no sobre todas. Con las 196 declarando diseno, ese caso
+              # no se ve nunca aunque este escrito.
+              efectivas_esperadas = if (i %in% c(58L, 133L) || i %% 9L == 4L) NULL else
+                round((20 + (i %% 25)) * (0.40 + 0.04 * (abs(sum(utf8ToInt(fac))) %% 11L)), 1),
+              meta_origen = if (i %in% c(58L, 133L) || i %% 9L == 4L) "" else "diseno",
               sample_status = est,
               sex_top_1 = "F", sex_top_1_n = 11 + (i %% 8),
               sex_top_2 = "M", sex_top_2_n = 9 + (i %% 6),

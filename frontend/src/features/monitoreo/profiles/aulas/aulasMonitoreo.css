@@ -3754,6 +3754,16 @@
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-gris::before {
   background: var(--pulso-border-strong);
 }
+/* La vara del diseño no es un trazo: es la ZONA baja de la barra, y su marca
+   tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
+   línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
+   sólida— y las dos cosas dejaron de corresponderse. */
+.mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-zona::before {
+  width: 11px; height: 9px; border-radius: 1px;
+  background: color-mix(in srgb, var(--pulso-text) 10%, transparent);
+  border-top: 1.5px solid var(--pulso-text-soft);
+  box-sizing: border-box;
+}
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-ausente {
   color: var(--pulso-text-faint); font-weight: 500;
 }
