@@ -3758,6 +3758,18 @@
    tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
    línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
    sólida— y las dos cosas dejaron de corresponderse. */
+/* Plegado, el histograma sólo ocupa su resumen. La sección es de política
+   `viewport` y sus paneles se REPARTEN el alto: un panel nuevo siempre le quita
+   sitio a los demás, y aquí le quitó el suyo a la franja de días —medida en
+   0 px—. La cifra que decide vive en el `summary`, así que cerrado no se pierde
+   nada; la forma se abre cuando se quiere mirar. */
+.mon-profile-page.is-aulas-flow .aulas-gestiones-detalle > summary {
+  cursor: pointer; list-style: none;
+}
+.mon-profile-page.is-aulas-flow .aulas-gestiones-detalle > summary::-webkit-details-marker {
+  display: none;
+}
+
 /* El histograma de gestiones. Barras verticales sobre una base común: el eje X
    son llamadas y el alto, aulas. El tramo en riesgo cambia de tono en vez de
    llevar una línea de corte encima, que a esta altura (56 px) no se vería.
