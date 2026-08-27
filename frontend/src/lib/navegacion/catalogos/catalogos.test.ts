@@ -22,8 +22,8 @@ function firma(pestanas: readonly { id: string; label: string }[]) {
 }
 
 describe("catálogos canónicos de pestañas", () => {
-  it("fija las 30 pestañas vivas de Muestra universitaria con su orden y copy", () => {
-    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(30);
+  it("fija las 31 pestañas vivas de Muestra universitaria con su orden y copy", () => {
+    expect(TOTAL_PESTANAS_CALC_MUESTRA_UNIVERSIDAD).toBe(31);
     expect(firma(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.definicion)).toEqual([
       "def-estudio:Estudio",
       "def-bases:Fuentes",
@@ -50,6 +50,11 @@ describe("catálogos canónicos de pestañas", () => {
       "calculo-propuestas:Propuestas",
       "calculo-ch-facultad:Cursos-horario requeridos",
       "calculo-distribucion:Distribución",
+      // La certeza deja de ser un panel dentro de «Cursos-horario requeridos» y
+      // pasa a pestaña propia AL FINAL. Decisión de Gonzalo (2026-08-27):
+      // «certeza completo se va a calculo y tiene su propia pestaña bien
+      // explicada al final de las demas pestañas».
+      "calculo-certeza:¿Alcanza?",
     ]);
     expect(CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo[2]).toMatchObject({
       id: "calculo-ch-facultad",

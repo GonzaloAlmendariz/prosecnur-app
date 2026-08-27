@@ -119,6 +119,10 @@ export const CALC_MUESTRA_UNIVERSIDAD_PESTANAS = {
     pestana("calculo", "calculo-propuestas", "Propuestas", "N y cuotas por facultad (motor R)", Calculator, { targetId: "cmv2-local-calculo-propuestas" }),
     pestana("calculo", "calculo-ch-facultad", "Cursos-horario requeridos", "alumnos por CH y CH definitivos", Grid3X3, { targetId: "cmv2-local-calculo-ch-facultad" }),
     pestana("calculo", "calculo-distribucion", "Distribución", "población y cuota planificada por unidad × sexo", PieChart, { targetId: "cmv2-local-calculo-distribucion" }),
+    // La certeza era un panel dentro de «Cursos-horario requeridos» y contesta
+    // una pregunta propia —si el número que pide la fórmula alcanza de verdad—
+    // con su propio método. Va la última porque es lo último que se decide.
+    pestana("calculo", "calculo-certeza", "¿Alcanza?", "simula el sorteo y dice cuántos cursos-horario hacen falta de verdad", ShieldCheck, { targetId: "cmv2-local-calculo-certeza" }),
   ],
   aulas: [
     pestanaAula("objetivo", "Objetivo de muestra", "Cuotas y cursos-horario necesarios", Target),

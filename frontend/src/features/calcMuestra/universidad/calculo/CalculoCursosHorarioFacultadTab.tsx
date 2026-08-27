@@ -9,9 +9,7 @@ import { etiquetaAlumnosPorChMetodo } from "../marco/alumnosPorChDecisionModel";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import type { UniversityAulasScenario } from "../shared/study";
-import { CertezaCoberturaPanel } from "./CertezaCoberturaPanel";
 import {
-  certezaVistaDesdeEstado,
   type CertezaEstratoPayload,
 } from "./certezaCoberturaModel";
 import {
@@ -28,24 +26,15 @@ export function CalculoCursosHorarioFacultadTab({
   escenario,
   onEscenario,
   marcoDesactualizado = false,
-  certeza = null,
-  certezaEnCurso = false,
-  onMedirCerteza,
   onIrAAlumnosPorCh,
-  onFijarAulas,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
   escenario: UniversityAulasScenario;
   onEscenario: (escenario: UniversityAulasScenario) => void;
   marcoDesactualizado?: boolean;
-  certeza?: CalcMuestraAulasCerteza | null;
-  certezaEnCurso?: boolean;
-  onMedirCerteza?: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
   /** Lleva a Marco › Alumnos por CH, donde se decide el divisor de la cadena. */
   onIrAAlumnosPorCh?: () => void;
-  /** Aplica el minimo certificado a una facultad, donde aparece el hallazgo. */
-  onFijarAulas?: (facultad: string, aulas: number) => void;
 }) {
   const actorId = escenario === "e2"
     ? UNIVERSITY_FACULTY_COMPONENT_ID
@@ -166,19 +155,10 @@ export function CalculoCursosHorarioFacultadTab({
         <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
       </section>
 
-      {/* La tabla de arriba dice CUÁNTAS aulas pide la fórmula; este panel dice
-          si ese número alcanza. Van juntos a propósito: separarlos deja al
-          usuario decidiendo con la mitad de la respuesta. */}
-      {onMedirCerteza && (
-        <CertezaCoberturaPanel
-          filasResultado={model.filas}
-          onFijarAulas={onFijarAulas}
-          vista={certezaVistaDesdeEstado(certeza, frameHashVigente)}
-          busy={certezaEnCurso}
-          onMedir={onMedirCerteza}
-          marcoDesactualizado={resultadoDesactualizado}
-        />
-      )}
+      {/* La certeza vivía aquí debajo. Se mudó a su pestaña propia al final de
+          Cálculo (decisión de Gonzalo, 2026-08-27): contesta otra pregunta y con
+          otro método —la fórmula divide, la certeza simula el sorteo y cuenta—,
+          y es lo último que se decide antes de sortear. */}
 
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>
         <div className="cmv2-calc-confirm-copy">
