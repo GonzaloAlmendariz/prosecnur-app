@@ -591,3 +591,48 @@ estadístico es el primer cuartil**, y es una decisión confirmada por el usuari
 no un accidente. Lo que engaña es sólo el nombre del campo donde se guarda el
 valor, `promedio_conglomerado`. Eso baja D4 de «el valor no es lo que dice» a «el
 campo se llama mal», que es otra reparación y bastante menor.
+
+## Verificación en pantalla de lo construido en el loop (2026-08-27)
+
+Siete ítems se habían cerrado tocando UI sin abrir la app ni una vez. Hecho con
+`/ver-ui` sobre una copia de `HSVG26ULT.pulso`, Vite en 5201 contra el backend
+propio de :8791, navegando con `window.__pulsoNav.ir(...)`.
+
+### Cálculo · Cursos-horario requeridos — el panel «¿Alcanza?»
+
+| qué | resultado |
+|---|---|
+| columna de curva | **15 de 15** filas |
+| curvas planas | 0, correcto: la certificación guardada es la buena |
+| celda de corridas | 15 de 15 |
+| marcadas «en el ruido» | **DERECHO y ESTUDIOS GENERALES CIENCIAS** |
+| botones «Llevar a N» | **6**, las seis facultades con brecha positiva |
+
+La fila de Derecho se lee: `363 · 293 · 16 · 0% · 18 · 205 sorteos · en el ruido
+· +2 · Llevar a 18 · 340.1 P05 326.3 · Faltan aulas`, con el title completo:
+«el margen sobre el nivel exigido (0.12 puntos) es menor que el error de
+muestreo (±1.50). Con esta evidencia no se distingue si cumple».
+
+### Aulas · Método — el control de variables de balance
+
+Las seis variables con sus niveles reales: `faculty` 15, `sex_top_1` 2,
+`size_group` 4, **`program` 1 049**, `level` 11 y **`schedule` 381**. Las dos de
+cardinalidad alta salen marcadas «se descartará en los estratos grandes».
+
+**El toggle funciona de punta a punta**: destildar `program` lo pasó a
+desmarcado, las marcadas bajaron de 5 a 4 y el proyecto quedó «sin guardar», o
+sea que el cambio llegó al workspace.
+
+### Aulas · Relato — pendiente
+
+No se pudo verificar: destildar `program` invalidó los artefactos de selección
+—que es el comportamiento correcto y prueba que el control se engancha a la
+cadena de invalidación—, y sin selección el relato no tiene qué narrar. El
+`.pulso` sí trae los cuatro avisos de balance en `methodological_warning`, así
+que el dato está; falta ver su etiquetado con una selección vigente.
+
+**Trampa en la que se cayó de paso**: un `fetch("/api/...")` escrito a mano
+dentro de la página no lleva la cabecera de sesión y devolvió `selection: null`
+sobre un proyecto que sí la tiene. Es la misma trampa del `curl` sin sesión, en
+el navegador. Para leer estado desde la página hay que usar el cliente de la
+app, no un `fetch` crudo.
