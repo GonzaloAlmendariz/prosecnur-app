@@ -206,4 +206,48 @@ describe("el puente entre esta cuenta y el KPI de válidas", () => {
     expect(html).not.toMatch(/eslabones que ya/);
     expect(html).not.toContain("-10");
   });
+
+  describe("las personas se cuentan enteras", () => {
+    const f = (x: Record<string, unknown>) => x as never;
+
+    it("una meta fraccionaria no derrama decimales sobre las personas", () => {
+      // El caso medido en pantalla: «1 306,3 cubren meta» y «504,7 de más».
+      // `expected_valid` es `eligible_n × rendimiento × factor`, así que llega
+      // con decimales, y capar un conteo entero contra una fracción los
+      // arrastraba.
+      const a = avanceEnRespuestas([
+        f({ expected_valid: 18.2, respuestas_validas: 12 }),
+        f({ expected_valid: 18.2, respuestas_validas: 25 }),
+      ]);
+      for (const v of [a.meta, a.cubierto, a.excedente, a.falta]) {
+        expect(Number.isInteger(v)).toBe(true);
+      }
+    });
+
+    it("redondea la meta hacia ARRIBA: con 18 no se cumple una de 18,2", () => {
+      const a = avanceEnRespuestas([f({ expected_valid: 18.2, respuestas_validas: 18 })]);
+      expect(a.meta).toBe(19);
+      expect(a.cubierto).toBe(18);
+      expect(a.falta).toBe(1);
+    });
+
+    it("cubierto y excedente siguen sumando las válidas", () => {
+      // Es lo que se rompería redondeando sólo al pintar: dos cifras de la misma
+      // banda que no cuadran con la tercera.
+      const a = avanceEnRespuestas([
+        f({ expected_valid: 18.2, respuestas_validas: 25 }),
+        f({ expected_valid: 7.5, respuestas_validas: 3 }),
+        f({ expected_valid: 12.9, respuestas_validas: 13 }),
+      ]);
+      expect(a.cubierto + a.excedente).toBe(a.validas);
+    });
+
+    it("una meta de cero sigue siendo «sin meta», no una de uno", () => {
+      // `Math.ceil(0)` es 0, así que el descarte por meta no declarada no cambia.
+      const a = avanceEnRespuestas([f({ expected_valid: 0, respuestas_validas: 4 })]);
+      expect(a.sinMeta).toBe(1);
+      expect(a.meta).toBe(0);
+      expect(a.validas).toBe(4);
+    });
+  });
 });
