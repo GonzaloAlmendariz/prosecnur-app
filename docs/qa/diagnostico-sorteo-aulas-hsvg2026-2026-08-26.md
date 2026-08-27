@@ -346,3 +346,45 @@ El agregador de aulas que Gonzalo nombra vive en
 `aulas/CertificacionFacultadCard.tsx:252-261` como un stepper −1/+1, y la
 tarjeta entera devuelve `null` sin certificación corrida (línea 130), así que
 sin certificar no existe en pantalla.
+
+### Corrección: la semilla SÍ tiene control, y la penalización también
+
+La tabla anterior está mal en dos filas, y el error de método es el mismo de
+siempre: **se grepearon los nombres del backend y se concluyó sobre el frontend,
+que usa los suyos en español.**
+
+`AulasObjetivoTab.tsx:321-345`, dentro del PanelAvanzado «Auditoría y
+reproducibilidad», tiene los dos controles que declaré ausentes:
+
+```tsx
+<span>Semilla</span>
+<NumberCell value={config.semilla} min={1} step={1}
+            onChange={(v) => updateConfig({ semilla: Math.round(v) })} />
+…
+<span>Evitar repetidos</span>
+<NumberCell value={config.penalizacion_repetidos} min={0} step={0.05}
+            onChange={(v) => updateConfig({ penalizacion_repetidos: v })} />
+```
+
+`semilla` es `seed` y `penalizacion_repetidos` es `duplicate_penalty`.
+
+**Lo editable de verdad**, listado desde los `updateConfig` de los componentes:
+`semilla`, `penalizacion_repetidos`, `candidate_pool_size`, `simulation_runs`,
+`monte_carlo_n`, `docente_unico`, `selector_engine`, `sequential_discount`,
+`grupos_tamano`, `usar_grupos_tamano`, `min_elegibles_aula`, `bolsas_reemplazo`,
+`techo_aulas_visitadas`, `aulas_extra_operativas_default`, `criterios_seleccion`,
+`modalidad`, `alumnos_por_ch_decision` y `particularidades_decisiones`.
+
+**Lo que sigue sin control, verificado con los dos vocabularios:**
+`balance_vars`, `spread_vars`, `coverage_weight` y `pps_weight`. Se leen desde
+`config.*` pero no aparecen en ningún `updateConfig`; el único que coincide por
+nombre es `spreadsheet_id`, que es de Sheets.
+
+Cuatro, no seis. Y la consecuencia cambia:
+
+- **La afirmación «sin `seed` no hay rerandomización» era falsa.** La semilla se
+  fija desde la pantalla. Lo que falta para la rerandomización es el **bucle**
+  sobre N semillas y el **criterio de aceptación declarado**, no el control.
+- **`balance_vars` sin control se sostiene, y es la que importa**: es la que
+  metió `program` con 1 049 niveles y colgó el sorteo. La cota del commit
+  `a288a0d5` evita el cuelgue; elegir qué se balancea sigue sin superficie.
