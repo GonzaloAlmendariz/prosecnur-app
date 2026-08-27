@@ -22,6 +22,7 @@ import type {
   CalcMuestraAulasEstrato,
   CalcMuestraComponente,
   CalcMuestraSexoPorFacultad,
+  CalcMuestraWorkspaceAulasConfig,
 } from "../../../../api/client";
 import { claveFacultad } from "../../dominio/rangosNivel";
 import { safeNumber } from "../../sharedCore";
@@ -49,6 +50,10 @@ export type CriterioResumen = {
 
 /** El umbral del ADR: toda celda alcanza su cuota. */
 export const UMBRAL_COBERTURA_POR_DEFECTO = 1;
+
+/** Cincuenta, que es lo que costó el diseño de HSVG 2026: 25 de 50 sorteos
+ *  cerraban las 30 celdas. Con un criterio más duro la espera crece rápido. */
+export const TOPE_SORTEOS_POR_DEFECTO = 50;
 
 export function criterioRerandomizacionDesdeEstudio(
   componente: CalcMuestraComponente | null | undefined,
@@ -91,4 +96,51 @@ export function criterioRerandomizacionDesdeEstudio(
   // nada. Se devuelve null para que la pantalla pueda decir por qué.
   if (!celdas.length) return { criterio: null, omitidas };
   return { criterio: { tipo: "cobertura_celdas", umbral, celdas }, omitidas };
+}
+
+/**
+ * Adjunta el criterio a la config con la que se va a sortear.
+ *
+ * Mismo patrón que `conAfijacionDelEstudio`: la pantalla no inventa el dato, lo
+ * deriva del estudio y lo cuelga de la config.
+ *
+ * **El criterio se adjunta siempre; encender la rerandomización es otra cosa.**
+ * Adjuntarlo hace que el `.pulso` lo recuerde y que el sustento pueda citarlo,
+ * como pide el ADR. Encenderla cambia el diseño —la muestra pasa a salir de la
+ * condicional dado el criterio— y eso es una decisión del analista, no un
+ * efecto colateral de abrir una pantalla: `activa` sólo se respeta si venía
+ * declarada.
+ */
+export function conRerandomizacionDelEstudio(
+  config: CalcMuestraWorkspaceAulasConfig,
+  componente: CalcMuestraComponente | null | undefined,
+  sexoPorFacultad: CalcMuestraSexoPorFacultad | null | undefined,
+): CalcMuestraWorkspaceAulasConfig {
+  const previo = config.rerandomizacion;
+  const { criterio } = criterioRerandomizacionDesdeEstudio(
+    componente,
+    sexoPorFacultad,
+    previo?.criterio?.umbral ?? UMBRAL_COBERTURA_POR_DEFECTO,
+  );
+  // Sin criterio construible no se toca la config: dejarla con un criterio
+  // vacío encendería una rerandomización que no evalúa nada, y el motor la
+  // apagaría igual pero sin que nadie supiera por qué.
+  if (!criterio) {
+    if (!previo) return config;
+    return { ...config, rerandomizacion: { ...previo, activa: false, criterio: null } };
+  }
+  return {
+    ...config,
+    rerandomizacion: {
+      activa: previo?.activa === true,
+      tope: previo?.tope && previo.tope > 0 ? previo.tope : TOPE_SORTEOS_POR_DEFECTO,
+      criterio: {
+        tipo: criterio.tipo,
+        umbral: criterio.umbral,
+        celdas: criterio.celdas.map(({ faculty_key, cuota_f, cuota_m, tau }) => ({
+          faculty_key, cuota_f, cuota_m, tau,
+        })),
+      },
+    },
+  };
 }

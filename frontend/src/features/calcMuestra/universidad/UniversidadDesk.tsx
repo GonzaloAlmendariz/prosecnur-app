@@ -71,6 +71,7 @@ import {
   buildClassroomLabModel,
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
+import { conRerandomizacionDelEstudio } from "./aulas/criterioRerandomizacion";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
 import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
 import {
@@ -478,16 +479,32 @@ export function UniversidadDesk({
   // La afijación del diseño viaja en el config del seleccionar: sin esto el
   // sorteo reparte por masa de elegibles e ignora el aulas_base por facultad
   // que el propio cálculo publicó (medido: desvío 68/202 en HSVG2026).
-  const onSeleccionarAulasConAfijacion = useCallback(
-    (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) =>
-      onSeleccionarAulas(conAfijacionDelEstudio(config, margenFilas), methodId),
-    [onSeleccionarAulas, margenFilas],
-  );
+  // Las acciones de la seccion Calculo escriben en el MISMO componente que sus
+  // pestañas muestran. `compActivo` se resuelve por el escenario del workspace
+  // y las pestañas de Calculo por el del motor: cuando los dos difieren, el
+  // editor enseña un numero y escribe en otro sitio.
+  const compCalculo = escenarioAulas === "e2" ? facultyComp : totalComp;
+
   const sexoBalance = useMemo(
     () => normalizeCalcMuestraSexoPorFacultad(
       (aulasState?.selection as { sexo_por_facultad?: unknown } | null)?.sexo_por_facultad ?? null,
     ),
     [aulasState?.selection],
+  );
+  // ADR 0082: el criterio de rerandomizacion viaja con la config del sorteo,
+  // derivado del estudio como la afijacion. Adjuntarlo NO la enciende: eso lo
+  // decide el analista, porque cambia el diseño.
+  const onSeleccionarAulasConAfijacion = useCallback(
+    (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) =>
+      onSeleccionarAulas(
+        conRerandomizacionDelEstudio(
+          conAfijacionDelEstudio(config, margenFilas),
+          compCalculo,
+          sexoBalance,
+        ),
+        methodId,
+      ),
+    [onSeleccionarAulas, margenFilas, compCalculo, sexoBalance],
   );
   // La certificación por facultad de la selección (Gonzalo: «tiene que
   // certificarse de esa forma»): derivada al servir por el motor, la UI solo
@@ -587,11 +604,6 @@ export function UniversidadDesk({
     [compActivo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
 
-  // Las acciones de la seccion Calculo escriben en el MISMO componente que sus
-  // pestañas muestran. `compActivo` se resuelve por el escenario del workspace
-  // y las pestañas de Calculo por el del motor: cuando los dos difieren, el
-  // editor enseña un numero y escribe en otro sitio.
-  const compCalculo = escenarioAulas === "e2" ? facultyComp : totalComp;
 
   // Decision de Gonzalo (2026-08-27), «se muda a calculo»: el editor del
   // reparto por facultad deja de vivir solo dentro de la tarjeta de
