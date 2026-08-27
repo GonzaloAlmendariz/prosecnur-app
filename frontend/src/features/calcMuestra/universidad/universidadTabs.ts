@@ -302,7 +302,7 @@ export function universitySidebarTabs({
     ];
   }
   if (activeSection === "calculo") {
-    const [disenoTab, propuestasTab, chFacultadTab, distribucionTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo;
+    const [disenoTab, propuestasTab, chFacultadTab, distribucionTab, certezaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo;
     return [
       // Diseño absorbe los supuestos de la fórmula (§5.1.2): fórmula, significado
       // y regulación de cada parámetro (global y por facultad).
@@ -312,6 +312,11 @@ export function universitySidebarTabs({
       // definitivos por facultad.
       { ...chFacultadTab, status: guideStatus(hasResult, effectiveMarcoReady) },
       { ...distribucionTab, status: guideStatus(true) },
+      // «¿Alcanza?»: la certificación por simulación. Se habilita con el cálculo
+      // por facultad —es lo que mide— y sólo queda acreditada cuando la corrida
+      // existe de verdad; declararla lista por tener resultado la pintaría verde
+      // sin haber simulado nada.
+      { ...certezaTab, status: guideStatus(Boolean(aulasState?.certeza?.filas?.length), hasResult) },
     ];
   }
   if (activeSection === "aulas") {

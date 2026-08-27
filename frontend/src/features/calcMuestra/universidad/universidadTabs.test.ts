@@ -7,6 +7,7 @@ import {
   resolveUniversityClassroomTab,
   universitySidebarTabs,
 } from "./universidadTabs";
+import { CALC_MUESTRA_UNIVERSIDAD_PESTANAS } from "../../../lib/navegacion/catalogos/calcMuestra";
 
 const estudioConResultado = {
   titulo: "Estudio mínimo",
@@ -92,5 +93,29 @@ describe("universitySidebarTabs — Selección", () => {
       "aulas-relato:pending",
       "auditoria:working",
     ]);
+  });
+});
+
+describe("universitySidebarTabs — el strip no puede quedarse corto", () => {
+  // Las pestañas se declaran en el catálogo de navegación y el strip las
+  // consume desestructurando por posición: `const [a, b, c, d] = …`. Esa forma
+  // DESCARTA EN SILENCIO todo lo que venga después, así que declarar una
+  // pestaña nueva en el catálogo la deja enrutable —la URL responde, el panel
+  // monta— pero invisible: no hay botón para llegar. Pasó al añadir
+  // «¿Alcanza?» (2026-08-27), y ningún test lo vio porque los de contrato
+  // cuentan el catálogo, que sí tenía las cinco.
+  const secciones = ["definicion", "marco", "calculo", "salidas"] as const;
+
+  it.each(secciones)("%s publica todas las pestañas que declara el catálogo", (seccion) => {
+    const tabs = universitySidebarTabs({
+      activeSection: seccion,
+      estudio: estudioConResultado,
+      workspace: workspaceSinPublicacion,
+      aulasState: null,
+    });
+
+    expect(tabs?.map((tab) => tab.id)).toEqual(
+      CALC_MUESTRA_UNIVERSIDAD_PESTANAS[seccion].map((tab) => tab.id),
+    );
   });
 });
