@@ -54,9 +54,58 @@ sin verlo en la aplicación.
 | **T5** | Efectivas vs elegibles: buscar dónde comparten rótulo o denominador | perfil de aulas | C-B | ☐ |
 | **T6** | Cuotas por facultad y por sexo: que ninguna superficie compense entre celdas | `avance_cuota`, cuotas | C-A | ☐ |
 | **T7** | Las tres dimensiones del libro: leerlas y juzgar si se entienden en campo | `carga_aulas_libro_generar.R` (ya existe, **no se construye**) | C-E | ☐ |
-| **T8** | **La tabla de avance para el cliente**: avance por facultad × sexo contra **muestra y sobremuestra**, más **aulas aplicadas** | entregable, por definir dónde | C-A | ☐ |
+| **T8** | **La tabla de avance para el cliente**, en **tres formas**: pantalla en Avance, PDF y Excel | pantalla + `router_monitoreo.R:3159` (patrón de territorial y telefónico) | C-A | ☐ diseñado, bloqueado por T1+T2 |
 | **T9** | Gráficos y diagramas: mejorar los actuales y proponer los que faltan | perfil de aulas | C-D | ☐ |
 | **T10** | Formato y estética del resto del perfil, con el criterio ya aprobado | perfil de aulas | — | ◐ parcial (seis listas y contraste hechos) |
+
+## T8 — la tabla de avance para el cliente: las tres formas
+
+Decisión de Gonzalo del 2026-08-26: **«las tres formas, una en avance y las
+otras dos en un PDF para poder enviarlos a sus correos y un Excel para poder
+compartírselos»**. Mismo contenido, tres soportes:
+
+| Soporte | Para qué |
+|---|---|
+| **Pantalla**, en Avance | mirarlo mientras el campo corre |
+| **PDF** | enviarlo por correo |
+| **Excel** | compartirlo y que lo manipulen |
+
+### Qué lleva
+
+Avance **por facultad × sexo** contra **la muestra y la sobremuestra**, más
+**la cantidad de aulas aplicadas**.
+
+Las dos varas ya tienen nombre en el repo y **no se inventan**:
+`calc_muestra_asistencia_referencia.R` lee `sobremuestra` —alias
+`muestra_operativa`— y `ratio_sobremuestra` —alias `factor_sobremuestra`—, y
+las dos viajan en la whitelist de persistencia del `.pulso`. La **muestra** es
+la cuota comprometida; la **sobremuestra**, lo que hay que salir a buscar
+contando que sólo responde una fracción.
+
+Medido en el diseño real de HSVG26ULT: cuota **2 500** alumnos repartida en 15
+facultades y por sexo dentro de cada una (Arquitectura M=40 · F=85), y
+**165 aulas base + 15 de reemplazo + 15 extra = 180**. Ojo: la selección
+ejecutada trae **174 titulares**, no 165 — el ejecutado y el nominal del diseño
+difieren, y la tabla tiene que decir cuál está mostrando.
+
+### El mecanismo YA EXISTE. No se inventa: se añade el tercer perfil
+
+`router_monitoreo.R:3159` despacha el reporte a cliente por perfil:
+
+- territorial → `avance_territorial_monitoreo` (`monitoreo.territorial_advance_pdf`)
+- telefónico → `avance_telefonico_monitoreo` (`monitoreo.telefonico_advance_pdf`)
+- **todo lo demás, aulas incluido → el genérico `reporte_cliente_monitoreo`**
+
+Así que aulas **no tiene** PDF de avance propio y cae al genérico, mientras los
+otros dos perfiles sí lo tienen. T8 es añadir el tercero siguiendo el patrón de
+los dos que ya funcionan —`report_kind`, slug, `job_kind`, y el modelo que
+`.monitoreo_client_report_model_for_snapshot()` arma—, no construir un motor.
+
+Para el Excel, el camino es el de los exports que ya existen; se decide al
+llegar, después de ver el PDF.
+
+**Bloqueo de secuencia**: T8 no se puede juzgar sin T1 y T2 —el traslado y la
+semana de campo—, porque una tabla de avance sin avance no dice si se entiende.
 
 ## Lo que ya está cerrado y no se rehace
 
