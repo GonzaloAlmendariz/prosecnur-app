@@ -27,14 +27,21 @@ export function AulasGestionesPorAula({ distribucion }: {
   const total = distribucion.reduce((n, d) => n + d.aulas, 0);
 
   return (
-    <div className="aulas-gestiones" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
-      <p className="aulas-gestiones-lectura">
+    <details className="aulas-gestiones aulas-gestiones-detalle"
+      data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
+      {/* **Plegado por defecto, y la cifra que decide en el resumen.** La
+          sección es de política `viewport`: sus paneles se reparten el alto, así
+          que un panel nuevo abierto le quita sitio a los demás —medido: dejó la
+          franja de días del panel vecino en 0 px—. Cerrado no se pierde nada,
+          porque el resumen lleva el número; la forma se abre cuando se quiere
+          mirar la cola. */}
+      <summary className="aulas-gestiones-lectura">
         <strong>{fmt(enRiesgo)}</strong> de {fmt(total)} aulas con gestión anotada van
         por la {UMBRAL_DE_RIESGO}.ª llamada o más
         <small>
           en 2025 ésas se cayeron el doble que las cerradas en una o dos
         </small>
-      </p>
+      </summary>
       {/* Las cifras de cada barra van en su propia etiqueta, así que la
           geometría es refuerzo y no la única forma de leerlas. */}
       <ol className="aulas-gestiones-barras">
@@ -52,6 +59,6 @@ export function AulasGestionesPorAula({ distribucion }: {
         Llamadas hasta cerrar el aula. A partir de la {UMBRAL_DE_RIESGO}.ª el aula
         se cae el doble de veces, y eso se sabe antes de que se caiga.
       </p>
-    </div>
+    </details>
   );
 }
