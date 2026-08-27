@@ -1125,6 +1125,19 @@
       aulas_cfg$partes_campo, s$monitoreo_aulas_partes_campo, list()
     )
     aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
+    # **El instrumento, que el motor pedia y nadie le daba.**
+    #
+    # `monitoreo_aulas_dashboard` lee `cfg$instrumento_survey` para el bloque de
+    # texto abierto —«este estudio no trae instrumento, asi que la vista...»—
+    # pero **ninguna ruta lo escribia**: un consumidor sin productor. El
+    # instrumento vive en la sesion desde que se carga la base
+    # (`router_carga.R`: `session_set(sid, "instrumento", inst)`) y es local por
+    # contrato (ADR 0032), asi que no hay nada que pedir fuera: solo pasarlo.
+    #
+    # Se toma de la sesion y NO se persiste en la config: el instrumento ya
+    # viaja en el `.pulso` por su propio camino, y duplicarlo dentro de la
+    # config de monitoreo crearia dos copias que podrian discrepar.
+    aulas_cfg$instrumento_survey <- aulas_cfg$instrumento_survey %||% s$instrumento$survey
     aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
     if (is.null(dashboard) || !is.list(dashboard)) {
       dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
