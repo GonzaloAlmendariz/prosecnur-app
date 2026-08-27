@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, fijasPendientes } from "../certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosDelComponente, fijasPendientes } from "../certificacionAcciones";
 import { presupuestoVisitas } from "../PresupuestoVisitasCard";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
@@ -44,7 +44,10 @@ describe("cableado de la acción", () => {
   it("la tarjeta ofrece +1 aula en filas comprometidas y el Desk la registra", () => {
     expect(card).toMatch(/filaComprometida\(f\)/);
     expect(card).toMatch(/onAgregarAula\(f\.facultad, f\.aulas_titulares\)/);
-    expect(desk).toMatch(/estratosConAulaExtra\(compActivo\.marco\?\.estratos/);
+    // Los estratos ya NO se leen del componente normalizado: ése llega con el
+    // marco del otro y escribir de vuelta borraba sus fijaciones.
+    expect(desk).toMatch(/estratosConAulaExtra\(estratosPropiosDe\(compActivo\.id/);
+    expect(desk).not.toMatch(/estratosCon\w+\(comp\w+\.marco\?\.estratos/);
     expect(desk).toMatch(/onComponente\(compActivo\.id, \{ marco: \{ estratos: nuevos \} \}\)/);
     expect(desk).toMatch(/onAgregarAula=\{onAgregarAulaFacultad\}/);
   });
@@ -164,5 +167,55 @@ describe("estratosConAulasFijadas", () => {
     expect(estratosConAulasFijadas(base, "GASTRONOMÍA", 4)).toBeNull();
     expect(estratosConAulasFijadas([], "DERECHO", 4)).toBeNull();
     expect(estratosConAulasFijadas(null, "DERECHO", 4)).toBeNull();
+  });
+});
+
+describe("estratosDelComponente (el marco compartido se comía las fijaciones)", () => {
+  // El caso real de HSVG2026: el componente de universidad NO tiene ninguna
+  // fijación y el de facultad tiene quince, que son las que sostienen el
+  // objetivo de 174 con el que ya se sorteó. `universityComponents` reparte el
+  // marco del PRIMERO a los dos, así que la UI veía el de facultad con cero.
+  const universidad = {
+    id: "cmp-x",
+    marco: { estratos: [{ label: "ARQUITECTURA Y URBANISMO" }, { label: "DERECHO" }] },
+  };
+  const facultad = {
+    id: "cmp-x-fac",
+    marco: {
+      estratos: [
+        { label: "ARQUITECTURA Y URBANISMO", aulas_base_fijas: 8 },
+        { label: "DERECHO", aulas_base_fijas: 19 },
+      ],
+    },
+  };
+  const estudio = [universidad, facultad] as never;
+
+  it("devuelve los estratos del componente pedido, no los del que se le pasa de respaldo", () => {
+    const propios = estratosDelComponente(estudio, "cmp-x-fac", universidad.marco.estratos as never);
+    expect(propios?.map((e) => (e as { aulas_base_fijas?: number }).aulas_base_fijas)).toEqual([8, 19]);
+  });
+
+  it("un ajuste sobre una facultad CONSERVA las fijaciones de las demás", () => {
+    // El mutante que mata: con el respaldo (los estratos de universidad) el
+    // resultado traía UNA sola fijación y DERECHO=19 desaparecía.
+    const nuevos = estratosConAjusteAula(
+      estratosDelComponente(estudio, "cmp-x-fac", universidad.marco.estratos as never),
+      "ARQUITECTURA Y URBANISMO",
+      8,
+      1,
+    );
+    const fijas = (nuevos ?? []).filter((e) => Number((e as { aulas_base_fijas?: unknown }).aulas_base_fijas) > 0);
+    expect(fijas).toHaveLength(2);
+    expect(fijas.map((e) => `${e.label}=${(e as { aulas_base_fijas?: number }).aulas_base_fijas}`)).toEqual([
+      "ARQUITECTURA Y URBANISMO=9",
+      "DERECHO=19",
+    ]);
+  });
+
+  it("cae al respaldo sólo cuando el componente todavía no tiene estratos propios", () => {
+    expect(estratosDelComponente(estudio, "cmp-nuevo", universidad.marco.estratos as never))
+      .toEqual(universidad.marco.estratos);
+    expect(estratosDelComponente(estudio, "cmp-nuevo", null)).toBeNull();
+    expect(estratosDelComponente(null, "cmp-x-fac", null)).toBeNull();
   });
 });

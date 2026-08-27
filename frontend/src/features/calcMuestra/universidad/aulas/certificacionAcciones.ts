@@ -143,3 +143,53 @@ export function fijasPendientes(
   return out;
 }
 
+/**
+ * Los estratos PROPIOS de un componente, no los del normalizado.
+ *
+ * `universityComponents` reparte UN SOLO marco a los dos componentes de
+ * universidad —el de nivel universidad manda si tiene estratos— porque el
+ * marco es dato compartido. Pero `aulas_base_fijas` NO es dato del marco: es
+ * una decisión del analista sobre ESE componente, y viaja de polizón dentro
+ * de un objeto que se comparte. El componente de facultad llega entonces a la
+ * UI con las fijaciones del otro, que normalmente son ninguna.
+ *
+ * Leer de ahí y escribir de vuelta las borra, porque `updateComponente` hace
+ * `{ ...c.marco, ...patch.marco }`: `estratos` se REEMPLAZA entero, no se
+ * funde estrato a estrato. Medido en HSVG2026 el 2026-08-27: un «+1» sobre
+ * ARQUITECTURA dejaba el componente de facultad con **una** fijación de 9
+ * donde tenía **quince que sumaban 174**.
+ *
+ * `respaldo` cubre el componente que aún no tiene estratos propios (recién
+ * creado): ahí el marco compartido sí es la única fuente.
+ */
+export function estratosDelComponente(
+  componentes: ReadonlyArray<{ id: string; marco?: { estratos?: CalcMuestraEstrato[] | null } | null }> | null | undefined,
+  id: string,
+  respaldo?: CalcMuestraEstrato[] | null,
+): CalcMuestraEstrato[] | null {
+  const propios = (componentes ?? []).find((c) => c.id === id)?.marco?.estratos;
+  if (propios?.length) return propios;
+  return respaldo?.length ? respaldo : null;
+}
+
+/**
+ * Cuántas facultades llevan titulares fijados a mano y cuánto suman.
+ *
+ * Vive acá y no en la pestaña de Cálculo por una razón de contrato: esa
+ * pestaña tiene prohibida la aritmética (`calculoSinRecalculo.contract.test`),
+ * porque su trabajo es PROYECTAR lo que publica R y no recalcularlo. Estas
+ * cifras no son de R —son las fijaciones que el analista escribió y que el
+ * motor todavía no ha incorporado—, pero contarlas dentro de la pestaña
+ * abriría un boquete en una guarda que sí importa.
+ */
+export function resumenFijaciones(
+  estratos: ReadonlyArray<CalcMuestraEstrato> | null | undefined,
+): { total: number; suma: number } {
+  let total = 0;
+  let suma = 0;
+  for (const e of estratos ?? []) {
+    const n = Number((e as { aulas_base_fijas?: unknown }).aulas_base_fijas);
+    if (Number.isFinite(n) && n > 0) { total += 1; suma += n; }
+  }
+  return { total, suma };
+}

@@ -15,6 +15,7 @@ import {
   type CalcMuestraAulasState,
   type CalcMuestraAlumnosPorChDecision,
   type CalcMuestraComponente,
+  type CalcMuestraEstrato,
   type CalcMuestraEstudio,
   type CalcMuestraReferenciaAsistencia,
   type CalcMuestraWorkspace,
@@ -70,7 +71,7 @@ import {
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
-import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas } from "./aulas/certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosDelComponente } from "./aulas/certificacionAcciones";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -532,25 +533,66 @@ export function UniversidadDesk({
       }),
     [margenFilas, aulasState?.frame?.aula_frame, compActivo, syncedWorkspace.aulas_config],
   );
+  // Los estratos del componente REAL, no los del normalizado.
+  //
+  // `universityComponents` reparte UN SOLO marco a los dos componentes: el de
+  // universidad manda si tiene estratos, y el de facultad recibe ESOS. Como
+  // `aulas_base_fijas` es una decisión por componente y no dato del marco, el
+  // componente de facultad llega a la UI sin sus propias fijaciones. Parchear
+  // sobre esa copia y mandarla las BORRA, porque `updateComponente` reemplaza
+  // `estratos` entero en vez de fundirlo estrato a estrato.
+  //
+  // Medido en HSVG2026 el 2026-08-27: un solo clic de «+1» sobre ARQUITECTURA
+  // dejaba el componente de facultad con **1 fijación de 9** donde tenía
+  // **15 que sumaban 174** — las catorce decisiones restantes desaparecían sin
+  // aviso, y con ellas el objetivo que el sorteo ya había usado.
+  const estratosPropiosDe = useCallback(
+    (id: string, respaldo: CalcMuestraEstrato[] | null | undefined) =>
+      estratosDelComponente(estudio.componentes, id, respaldo),
+    [estudio.componentes],
+  );
+
   const onAgregarAulaFacultad = useCallback(
     (facultad: string, aulasActuales: number) => {
       if (!compActivo) return;
-      const nuevos = estratosConAulaExtra(compActivo.marco?.estratos ?? null, facultad, aulasActuales);
+      const nuevos = estratosConAulaExtra(estratosPropiosDe(compActivo.id, compActivo.marco?.estratos), facultad, aulasActuales);
       if (!nuevos) return;
       onComponente(compActivo.id, { marco: { estratos: nuevos } });
       onInvalidateAulasArtifacts();
     },
-    [compActivo, onComponente, onInvalidateAulasArtifacts],
+    [compActivo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
   const onAjustarAulaFacultad = useCallback(
     (facultad: string, aulasActuales: number, delta: 1 | -1) => {
       if (!compActivo) return;
-      const nuevos = estratosConAjusteAula(compActivo.marco?.estratos ?? null, facultad, aulasActuales, delta);
+      const nuevos = estratosConAjusteAula(estratosPropiosDe(compActivo.id, compActivo.marco?.estratos), facultad, aulasActuales, delta);
       if (!nuevos) return;
       onComponente(compActivo.id, { marco: { estratos: nuevos } });
       onInvalidateAulasArtifacts();
     },
-    [compActivo, onComponente, onInvalidateAulasArtifacts],
+    [compActivo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
+  );
+
+  // Las acciones de la seccion Calculo escriben en el MISMO componente que sus
+  // pestañas muestran. `compActivo` se resuelve por el escenario del workspace
+  // y las pestañas de Calculo por el del motor: cuando los dos difieren, el
+  // editor enseña un numero y escribe en otro sitio.
+  const compCalculo = escenarioAulas === "e2" ? facultyComp : totalComp;
+
+  // Decision de Gonzalo (2026-08-27), «se muda a calculo»: el editor del
+  // reparto por facultad deja de vivir solo dentro de la tarjeta de
+  // certificacion —que no existe hasta haber sorteado— y baja a la tabla de
+  // Calculo · Cursos-horario requeridos, donde el numero se lee por primera
+  // vez.
+  const onAjustarAulaCalculo = useCallback(
+    (facultad: string, aulasActuales: number, delta: 1 | -1) => {
+      if (!compCalculo) return;
+      const nuevos = estratosConAjusteAula(estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos), facultad, aulasActuales, delta);
+      if (!nuevos) return;
+      onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [compCalculo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
 
   // El panel «¿Alcanza?» publica el minimo certificado en la seccion Calculo;
@@ -558,13 +600,13 @@ export function UniversidadDesk({
   // el stepper tantas veces como diga la diferencia.
   const onFijarAulasFacultad = useCallback(
     (facultad: string, aulas: number) => {
-      if (!compActivo) return;
-      const nuevos = estratosConAulasFijadas(compActivo.marco?.estratos ?? null, facultad, aulas);
+      if (!compCalculo) return;
+      const nuevos = estratosConAulasFijadas(estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos), facultad, aulas);
       if (!nuevos) return;
-      onComponente(compActivo.id, { marco: { estratos: nuevos } });
+      onComponente(compCalculo.id, { marco: { estratos: nuevos } });
       onInvalidateAulasArtifacts();
     },
-    [compActivo, onComponente, onInvalidateAulasArtifacts],
+    [compCalculo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
 
   // Marco construido pero cálculo en N = 0 y sin población en memoria
@@ -842,6 +884,8 @@ export function UniversidadDesk({
                   onEscenario={seleccionarEscenarioAulas}
                   marcoDesactualizado={marcoDesactualizado}
                   onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
+                  onAjustarAula={onAjustarAulaCalculo}
+                  estratosPropios={estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos)}
                 />
               </div>
             </div>}
