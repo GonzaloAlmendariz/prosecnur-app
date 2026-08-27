@@ -4,7 +4,8 @@
  */
 import { describe, expect, it } from "vitest";
 import type { CalcMuestraComponente, CalcMuestraSexoPorFacultad } from "../../../../../api/client";
-import { criterioRerandomizacionDesdeEstudio } from "../criterioRerandomizacion";
+import { conRerandomizacionDelEstudio, criterioRerandomizacionDesdeEstudio } from "../criterioRerandomizacion";
+import type { CalcMuestraWorkspaceAulasConfig } from "../../../../../api/client";
 
 const comp = (filas: Array<Record<string, unknown>>) =>
   ({ resultado: { aulas_por_estrato: filas } }) as unknown as CalcMuestraComponente;
@@ -84,5 +85,40 @@ describe("criterioRerandomizacionDesdeEstudio", () => {
       sexo([{ faculty_key: "x", facultad: "X", marco_prop_mujeres: 0.5 }]),
     );
     expect(omitidas).toEqual([{ facultad: "X", motivo: "sin_tau" }]);
+  });
+});
+
+describe("conRerandomizacionDelEstudio", () => {
+  const cfg = { schema: "calc_muestra_workspace_aulas_v1" } as unknown as CalcMuestraWorkspaceAulasConfig;
+  const est = () => comp([{ estrato: "DERECHO", cuota: 363, tau: 0.5683 }]);
+  const sx = () => sexo([{ faculty_key: "derecho", facultad: "DERECHO", marco_prop_mujeres: 0.55 }]);
+
+  it("adjunta el criterio pero NO enciende la rerandomizacion", () => {
+    // Adjuntarlo hace que el proyecto lo recuerde; encenderla cambia el diseño
+    // y eso lo decide el analista, no el hecho de abrir una pantalla.
+    const out = conRerandomizacionDelEstudio(cfg, est(), sx());
+    expect(out.rerandomizacion?.criterio?.celdas).toHaveLength(1);
+    expect(out.rerandomizacion?.activa).toBe(false);
+    expect(out.rerandomizacion?.tope).toBe(50);
+  });
+
+  it("respeta lo que el analista ya habia declarado", () => {
+    const previo = { ...cfg, rerandomizacion: { activa: true, tope: 200, criterio: null } };
+    const out = conRerandomizacionDelEstudio(previo, est(), sx());
+    expect(out.rerandomizacion?.activa).toBe(true);
+    expect(out.rerandomizacion?.tope).toBe(200);
+    // Y el criterio se refresca desde el estudio, no se conserva el viejo.
+    expect(out.rerandomizacion?.criterio?.celdas[0].faculty_key).toBe("derecho");
+  });
+
+  it("sin criterio construible la apaga en vez de dejarla encendida en falso", () => {
+    const previo = { ...cfg, rerandomizacion: { activa: true, tope: 50, criterio: null } };
+    const out = conRerandomizacionDelEstudio(previo, comp([]), sexo([]));
+    expect(out.rerandomizacion?.activa).toBe(false);
+    expect(out.rerandomizacion?.criterio).toBeNull();
+  });
+
+  it("sin criterio y sin declaracion previa no toca la config", () => {
+    expect(conRerandomizacionDelEstudio(cfg, comp([]), sexo([]))).toBe(cfg);
   });
 });
