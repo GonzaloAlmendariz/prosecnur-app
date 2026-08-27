@@ -253,9 +253,15 @@ describe("E4 · el sorteo", () => {
         certeza: false,
       },
     ]);
+    // La familia de tamaño se reconoce por su PREFIJO, no por que el texto
+    // contenga "size" en cualquier posicion: el aviso de balance lleva
+    // "size_group" y entraba aqui, etiquetado como un ajuste que no es.
     expect(escena.ajustesTamano).toEqual([
       "Ajuste de tamaño divulgado: un estrato pidió más cursos-horario que sus elegibles.",
     ]);
+    // Las otras dos familias de la fixture NO se cuelan aqui; E6 · El cierre
+    // publica la lista entera, que es donde el usuario las lee.
+    expect(escena.ajustesTamano).toHaveLength(1);
     expect(escena.huecos).toEqual([]);
   });
 
@@ -475,7 +481,7 @@ describe("E6 · el cierre", () => {
     expect(escena.frameHash).toBe("hash-abc");
     // El peso viene publicado en la fila (weight_classroom), no se calcula aquí.
     expect(escena.pesoEjemplo).toEqual({ code: "CH 1", pi: 0.25, peso: 4 });
-    expect(escena.advertencias).toHaveLength(1);
+    expect(escena.advertencias).toHaveLength(3);
   });
 });
 
