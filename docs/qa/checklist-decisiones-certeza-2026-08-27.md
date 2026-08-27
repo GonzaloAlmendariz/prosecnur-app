@@ -336,6 +336,38 @@ capítulo 9. Dos consecuencias que conviene decidir antes de construir:
    reusarla, no reinventarla.
 
 
+### Corrección al inventario: hay más construido de lo que dije
+
+Al ir a construir el ensamblador encontré tres cosas que mi inventario no
+recogía, y las tres reducen el trabajo:
+
+1. **Selección ya tiene una pestaña «Sustento técnico»** (`AulasAuditoriaTab`,
+   266 líneas) que renderiza las **fórmulas del diseño con los valores reales
+   del estudio** —en LaTeX, con sus términos— y un bloque de
+   **reproducibilidad**. Yo había atribuido la reproducibilidad al cierre del
+   relato; está en los dos.
+2. **El export ya lleva una hoja «Bitácora metodológica»**: 20 campos con
+   `selection_run_id`, `frame_hash`, semilla, motor solicitado y usado, fuente
+   de probabilidades y de pesos, políticas de no respuesta y reemplazo,
+   advertencias y las tres referencias. Es el antecesor directo del documento y
+   explica por qué el ítem original de la cola se llamaba **«sustento
+   metodológico como documento, no hoja de Excel»**.
+3. **El motor ya redacta prosa**: `selection_result$methodology` trae siete
+   campos escritos —diseño, selector, probabilidades, Monte Carlo, pesos,
+   representatividad y advertencia—. Terso y en registro de bitácora, pero
+   redactado.
+
+**Lo que sigue faltando, y ahora está mejor delimitado**: nada produce un
+**documento** con los once capítulos en el registro del PDF de 23 páginas. Las
+piezas están repartidas entre cuatro superficies —el sustento técnico, el
+relato, la bitácora del export y la prosa del motor— y ninguna las reúne.
+
+El ensamblador, entonces, no escribe contenido nuevo: **recoge, ordena y sube de
+registro** lo que ya existe, y sólo tiene que redactar de cero los enlaces entre
+capítulos. Sigue en pie que el capítulo 9 vive en Monitoreo y que eso exige la
+decisión de Gonzalo.
+
+
 ## Una hoja llamada «Validaciones» que no validaba nada
 
 Lo destapó otra sesión el 2026-08-27: en
