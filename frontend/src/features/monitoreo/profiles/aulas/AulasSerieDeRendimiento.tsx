@@ -759,8 +759,19 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 las cuatro explicaciones fijas más el aviso más la sobremuestra, el
                 hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
             <span className="aulas-serie-leyenda">
+              {/* **«Meta» a secas nombraba dos cosas casi con el mismo número.**
+                  En esta misma línea de leyenda conviven la meta del plan sobre
+                  las aulas ya visitadas —2 693 en la fixture— y las dos cuotas
+                  por sexo, que suman 2 710. Diecisiete de diferencia entre dos
+                  cantidades que no tienen nada que ver: una es lo que el plan
+                  pedía de las aulas que se han pisado y la otra, lo que el
+                  estudio necesita en total. El pie lo decía bien —«de las aulas
+                  visitadas»— pero el pie está tres bandas más abajo y lo que la
+                  gente lee es el chip. */}
               {acumulado.meta > 0 ? (
-                <em className="es-horizontal es-gris">Meta {fmt(acumulado.meta)}</em>
+                <em className="es-horizontal es-gris">
+                  Meta de lo visitado {fmt(acumulado.meta)}
+                </em>
               ) : null}
               {acumulado.hayObservadasPorSexo ? null : (
                 <em className="es-ausente">
