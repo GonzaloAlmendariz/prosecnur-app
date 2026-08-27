@@ -84,6 +84,7 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
+import { corteDelEstudio } from "./corteDelEstudio";
 import { estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
 // Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
@@ -451,7 +452,14 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   // Qué toca hacer con cada aula, calculado aquí y no en la cabeza del
   // agendador: la tabla enseñaba el estado y él lo traducía a una acción 193
   // veces. Ver `queTocaConCadaAula.ts`.
-  const corte = String((dashboard as { generated_at?: unknown } | null)?.generated_at ?? "").slice(0, 10);
+  // **El corte del ESTUDIO, no el sello del tablero.** `generated_at` dice
+  // cuándo se calculó el tablero —el reloj de la máquina que lo abrió— y con él
+  // «qué toca» se calculaba contra un día que el campo no vivió. Ver
+  // `corteDelEstudio.ts`: el «hoy» del estudio es su último parte.
+  const corte = corteDelEstudio(
+    ((dashboard as { partes_campo?: unknown } | null)?.partes_campo ?? []) as Array<Record<string, unknown>>,
+    (dashboard as { generated_at?: unknown } | null)?.generated_at,
+  ).dia;
   const conAccion: Array<Record<string, unknown>> = filas.map((fila) => ({
     ...fila, que_toca: queTocaConCadaAula(fila, corte),
     // **Una fila no puede decir «Aplicada» y «Sin contactar» a la vez.** El
@@ -1633,7 +1641,16 @@ function renderAulasView(
           // El día del corte y NO `new Date()`: un panel que lee el reloj da un
           // resultado distinto cada vez que se abre y no hay forma de fijarlo en
           // un test ni de reproducir lo que vio el usuario.
-          corte={String(dashboard?.generated_at ?? "").slice(0, 10)}
+          //
+          // **Pero `generated_at` tampoco era el corte**: es cuándo se calculó
+          // el tablero, o sea el mismo reloj por otra puerta. Medido: este panel
+          // decía «al 27 de agosto» con el estudio sincronizado al 12/09/2026 y
+          // concluía «174 aún por venir» con 78 ya aplicadas. El corte del
+          // estudio es su último parte — `corteDelEstudio.ts`.
+          corte={corteDelEstudio(
+            (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
+            dashboard?.generated_at,
+          ).dia}
         />
       </section>
       )}
