@@ -148,3 +148,9 @@
   background: transparent; color: var(--pulso-text-muted); cursor: pointer;
 }
 .cmv2-certeza-fijar:hover { color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }
+
+/* Con cuántos sorteos se decidió el mínimo. En el ruido significa que el margen
+   sobre el nivel exigido es menor que el error de muestreo: el veredicto no
+   distingue cumplir de no cumplir. */
+.cmv2-certeza-corridas { display: block; font-size: 9px; color: var(--pulso-text-muted); white-space: nowrap; }
+.cmv2-certeza-corridas[data-ruido] { color: var(--pulso-warn-fg); font-weight: var(--pulso-weight-medium); }

@@ -53,6 +53,37 @@ export function curvaResumen(
   return { puntos, plana: (ultimo - primero) / primero < 0.01 };
 }
 
+/**
+ * Con cuánta evidencia se tomó el veredicto de una facultad.
+ *
+ * El motor no corre las mil simulaciones que se le piden: las reduce en los
+ * marcos grandes porque cada sorteo cuesta más (`.cm_certeza_corridas` escala
+ * como `pedidas · 60 / n_aulas`). En HSVG2026 fueron de 144 en Ciencias e
+ * Ingeniería, con 417 aulas, a 1 000 en las pequeñas — y eso invierte la
+ * precisión justo donde más pesa, porque las facultades de mayor cuota son las
+ * de marco más grande.
+ *
+ * Derecho pasó el umbral con 195 sorteos de 205: su margen sobre el 0,95 es
+ * doce veces menor que el error de muestreo con el que se midió. Con esa
+ * evidencia no se puede distinguir si cumple, y el panel publicaba el veredicto
+ * sin decir con cuántos sorteos se tomó.
+ *
+ * El error es el estándar de una proporción binomial, √(p·(1−p)/n).
+ */
+export function precisionVeredicto(
+  fila: Pick<CalcMuestraAulasCertezaFila, "probabilidad_certeza" | "corridas"> | null | undefined,
+  nivel: number,
+): { corridas: number | null; error: number; margen: number; dentroDelRuido: boolean } {
+  const corridas = Number.isFinite(fila?.corridas) ? (fila!.corridas as number) : null;
+  const p = Number.isFinite(fila?.probabilidad_certeza) ? (fila!.probabilidad_certeza as number) : null;
+  if (corridas == null || p == null || corridas <= 0) {
+    return { corridas, error: 0, margen: 0, dentroDelRuido: false };
+  }
+  const error = Math.sqrt((p * (1 - p)) / corridas);
+  const margen = p - nivel;
+  return { corridas, error, margen, dentroDelRuido: error > 0 && margen < error };
+}
+
 export type CertezaFilaVista = CalcMuestraAulasCertezaFila & {
   estado: CertezaEstado;
   /** El rendimiento esperado es una cota superior: el marco no trae ids. */

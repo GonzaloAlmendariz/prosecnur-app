@@ -15,6 +15,7 @@ import { CifraFila, CifraMotor } from "../ui";
 import {
   certezaEstratosDesdeResultado,
   curvaResumen,
+  precisionVeredicto,
   type CertezaEstado,
   type CertezaFilaVista,
   type CertezaVista,
@@ -111,6 +112,7 @@ function FilaCerteza({ fila, nivel, onFijarAulas }: {
   // es 95% pase lo que pase, y el nivel lo declara el estudio: la cabecera ya
   // muestra «Titulares para 90%» mientras la columna seguía midiendo contra 95.
   // Con un nivel exigido más alto, filas que NO lo alcanzan salían sin marcar.
+  const precision = precisionVeredicto(fila, nivel);
   const bajo = typeof fila.probabilidad_formula === "number"
     && Number.isFinite(nivel) && nivel > 0
     && fila.probabilidad_formula < nivel;
@@ -132,6 +134,24 @@ function FilaCerteza({ fila, nivel, onFijarAulas }: {
       </td>
       <td className="cmv2-certeza-minimo">
         <strong>{fila.aulas_certeza == null ? "—" : fmtInt(fila.aulas_certeza)}</strong>
+        {/* Con cuántos sorteos se decidió. El motor los recorta en los marcos
+            grandes, así que las facultades de mayor cuota son las que menos
+            evidencia reciben, y sin este dato el veredicto se lee como si
+            todos valieran lo mismo. */}
+        {precision.corridas != null && (
+          <small
+            className="cmv2-certeza-corridas"
+            data-ruido={precision.dentroDelRuido ? "" : undefined}
+            title={
+              precision.dentroDelRuido
+                ? `Decidido con ${precision.corridas} sorteos: el margen sobre el nivel exigido (${(precision.margen * 100).toFixed(2)} puntos) es menor que el error de muestreo (±${(precision.error * 100).toFixed(2)}). Con esta evidencia no se distingue si cumple.`
+                : `Decidido con ${precision.corridas} sorteos · error de muestreo ±${(precision.error * 100).toFixed(2)} puntos`
+            }
+          >
+            {fmtInt(precision.corridas)} sorteos
+            {precision.dentroDelRuido && " · en el ruido"}
+          </small>
+        )}
       </td>
       <td className="cmv2-certeza-brecha">
         {fmtBrecha(fila.brecha)}
