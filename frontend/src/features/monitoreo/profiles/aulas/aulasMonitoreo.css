@@ -3179,7 +3179,7 @@
   color: var(--pulso-text-faint);
   font-size: var(--aulas-min);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-colchon-cabecera > span:nth-child(n + 3) {
@@ -3211,6 +3211,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Celda que envuelve la barra: lleva el `role="cell"` y la geometría, para
+   que la rejilla siga viendo el mismo número de hijos. */
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra-celda { display: flex; align-items: center; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-colchon-barra-celda > .aulas-colchon-barra { flex: 1; }
 .mon-profile-page.is-aulas-flow .aulas-colchon-barra {
   display: flex;
   align-items: center;
@@ -3574,6 +3578,12 @@
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-nombre em {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
+/* Celda que envuelve la serie: lleva el `role="cell"` y no cambia la geometría
+   —la serie de dentro conserva su alto y su alineación al pie—. */
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-serie-celda {
+  display: flex; align-items: center; min-width: 0;
+}
+.mon-profile-page.is-aulas-flow .aulas-ritmofac-serie-celda > .aulas-ritmofac-serie { flex: 1; }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-serie {
   display: flex; align-items: flex-end; gap: 2px; height: 26px; min-width: 0;
 }
@@ -3677,7 +3687,7 @@
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li > span:not(:first-child) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-cabecera {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-weight: 600;
-  letter-spacing: 0.02em; text-transform: uppercase;
+  letter-spacing: 0.02em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-anticipacion-lista li.es-urgente {
   background: color-mix(in srgb, var(--pulso-resultado-rechazo) 4%, transparent);
@@ -4067,7 +4077,7 @@
   border-left: 3px solid transparent; border-radius: 6px; min-width: 0; font-size: var(--aulas-txt);
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-cabecera > span:nth-child(n + 2) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-banco-consumo-lista > li.es-seca {
@@ -4097,7 +4107,7 @@
   align-items: center; gap: 10px; padding: 4px 6px; border-radius: 6px; min-width: 0;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-medio-cabecera > span:nth-child(3) { text-align: right; }
 .mon-profile-page.is-aulas-flow .aulas-medio-nombre {
@@ -4106,6 +4116,10 @@
 .mon-profile-page.is-aulas-flow .aulas-medio-nombre em {
   color: var(--pulso-text-faint); font-size: var(--aulas-min); font-style: normal; font-variant-numeric: tabular-nums;
 }
+/* Celda que envuelve la barra: lleva el `role="cell"` y la geometría, para
+   que la rejilla siga viendo el mismo número de hijos. */
+.mon-profile-page.is-aulas-flow .aulas-medio-barra-celda { display: flex; align-items: center; min-width: 0; }
+.mon-profile-page.is-aulas-flow .aulas-medio-barra-celda > .aulas-medio-barra { flex: 1; }
 .mon-profile-page.is-aulas-flow .aulas-medio-barra { display: flex; align-items: center; height: 20px; min-width: 0; }
 .mon-profile-page.is-aulas-flow .aulas-medio-barra i {
   display: flex; align-items: center; justify-content: flex-end; height: 100%; padding-right: 6px;
@@ -4197,7 +4211,7 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera {
-  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pulso-text-faint); font-size: var(--aulas-min); letter-spacing: 0.04em; font-weight: 600;
 }
 .mon-profile-page.is-aulas-flow .aulas-ritmofac-cabecera > span:nth-child(3) { text-align: right; }
 
