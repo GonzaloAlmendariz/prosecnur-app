@@ -44,7 +44,25 @@ export function embudoDelOperativo(cifras: CifrasDelOperativo | null | undefined
   const aplicadas = entero(c.aulas_aplicadas);
   const recibidas = entero(c.respuestas_total);
   const validas = entero(c.respuestas_validas);
-  const rechazadas = entero(c.filter_rejected);
+  // **La merma de una etapa es la diferencia con la siguiente, no otra cuenta.**
+  //
+  // Se leía de `filter_rejected`, que el motor calcula con
+  // `.monitoreo_aulas_filter_passed()` — y esa función **no mira la cadena de
+  // filtros declarada**: busca en la base una columna llamada `filter_passed`,
+  // `apto`, `elegible`, `consent` o `consentimiento`, y si la encuentra cuenta
+  // sobre ella. Como el instrumento de este estudio abre con la pregunta de
+  // consentimiento, la columna se llama exactamente así, y la merma pasó a ser
+  // la caída de ESE filtro en vez de la de los dos declarados.
+  //
+  // Medido en pantalla: «1 811 recibidas · −67 descartadas» sobre «1 637 que
+  // cuentan», y 1 811 − 1 637 = **174**. Dos etapas contiguas del mismo embudo
+  // contando con criterios distintos.
+  //
+  // Restar las dos etapas hace la merma **cierta por construcción**: es lo que
+  // se pierde entre este escalón y el de abajo, que es lo que un embudo dice.
+  // La heurística del motor sigue sirviendo donde nació —estudios que no
+  // declaran criterio— y ahí las dos cuentas coinciden.
+  const rechazadas = Math.max(0, recibidas - validas);
   const reemplazos = entero(c.reemplazos_usados);
 
   const etapas: FlujoEtapa[] = [
