@@ -28,6 +28,7 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
 - [Mapa de los 57 comentarios del mazo de Contabilidad](mapa-comentarios-conta-2026-08-16.md): registro qa fechado.
 - [Plan 1b — el esperado redefinido, de punta a punta](plan-1b-esperado-redefinido-2026-08-20.md): plan de trabajo qa.
 - [Plan de ticks — de la selección de aulas al control de campo](plan-ticks-hsvg2026-2026-08-22.md): plan de trabajo qa.
+- [Monitoreo: criterios generales y prueba con la selección real](checklist-monitoreo-criterios-2026-08-26.md): los cinco criterios de dominio que Monitoreo tiene que sostener, y el plan para probarlos con las 174 aulas de HSVG26ULT.
 - [Seguimiento de τ en campo — diseño de la superficie](seguimiento-tau-campo-2026-08-26.md): dónde vive el contraste entre la τ que dimensionó y la que rinde el campo, con su checklist.
 - [Plan de 25 ticks — Monitoreo de aulas: Validación como instrumento](plan-validacion-aulas-2026-08-20.md): plan de trabajo qa.
 - [Recorrido del usuario nuevo — Cálculo de muestra (2026-08-21)](recorrido-usuario-nuevo-2026-08-21.md): registro qa fechado.
