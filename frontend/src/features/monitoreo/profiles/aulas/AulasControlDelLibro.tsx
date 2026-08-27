@@ -1,6 +1,8 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
 import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
+import { fmt } from "./kpisDeAulas";
+import { perdidaDelControl } from "./perdidaDelControl";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -298,6 +300,12 @@ export function AulasControlDelLibro({
   criterio?: CriterioDelEstudio | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
+  // **La cuarta cifra de «cuántas encuestas hay», y la única sin dibujar.**
+  // La cadena es asistentes → enviadas → válidas → efectivas del parte, y esta
+  // tabla trae `sent_total` y `valid_total` aula por aula: para saber cuánto se
+  // pierde en total había que sumar 190 filas a mano. Medido en 2025: se pierde
+  // el 9-13 %, y no es constante (91 % · 87 % · 88 % por semana).
+  const perdida = perdidaDelControl(filas);
   const grupos = resumen?.grupos ?? [];
   const aulas = resumen?.aulas ?? filas.length;
 
@@ -429,6 +437,30 @@ export function AulasControlDelLibro({
           del equipo y vuelven al importar el libro.
         </p>
       ) : (
+      <>
+      {/* La banda va ANTES de la tabla porque contesta la pregunta con la que
+          se entra —«¿cuánto de lo que mandamos cuenta?»— y la tabla es donde se
+          busca un aula concreta. Una sola línea: la sección reparte alto y un
+          panel nuevo se lo quitaría a los vecinos. */}
+      {perdida ? (
+        <p className="aulas-perdida" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          <span className="aulas-perdida-cifras">
+            De <strong>{fmt(perdida.enviadas)}</strong> enviadas cuentan{" "}
+            <strong>{fmt(perdida.validas)}</strong>
+            {perdida.pierde > 0 ? <> · se pierden {fmt(perdida.pierde)}</> : null}
+            {" "}({Math.round(perdida.pasa * 100)} % pasa)
+            {/* Las que nadie ha revisado NO son pérdida: decirlo evita leer el
+                porcentaje como si el libro estuviera completo. */}
+            {perdida.sinRevisar > 0 ? (
+              <small> · {fmt(perdida.sinRevisar)} sin revisar todavía, fuera de la cuenta</small>
+            ) : null}
+          </span>
+          <span className="aulas-perdida-barra" aria-hidden="true">
+            <i className="es-cuenta" style={{ width: `${perdida.pasa * 100}%` }} />
+            <i className="es-pierde" style={{ width: `${(1 - perdida.pasa) * 100}%` }} />
+          </span>
+        </p>
+      ) : null}
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <table className="mon-profile-table">
           <thead>
@@ -506,6 +538,7 @@ export function AulasControlDelLibro({
           </tbody>
         </table>
       </div>
+      </>
       )}
     </div>
   );

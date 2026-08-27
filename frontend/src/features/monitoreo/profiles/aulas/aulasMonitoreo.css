@@ -3758,6 +3758,28 @@
    tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
    línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
    sólida— y las dos cosas dejaron de corresponderse. */
+/* La pérdida enviadas → válidas del libro: una sola línea con su barra. Es la
+   cuarta cifra de «cuántas encuestas hay» y la única que no se dibujaba. Tokens
+   medidos como resolubles en esta página. */
+.mon-profile-page.is-aulas-flow .aulas-perdida {
+  display: grid; gap: 4px; margin: 0 0 10px;
+  font-size: var(--aulas-sec); color: var(--pulso-text);
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-cifras small {
+  color: var(--pulso-text-soft); font-weight: 500;
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra {
+  display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra i { display: block; height: 100%; }
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra i.es-cuenta {
+  background: color-mix(in srgb, var(--pulso-success-fg) 82%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-perdida-barra i.es-pierde {
+  background: color-mix(in srgb, var(--pulso-warn-fg) 55%, transparent);
+}
+
 /* Plegado, el histograma sólo ocupa su resumen. La sección es de política
    `viewport` y sus paneles se REPARTEN el alto: un panel nuevo siempre le quita
    sitio a los demás, y aquí le quitó el suyo a la franja de días —medida en
