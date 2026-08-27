@@ -52,6 +52,8 @@ canónica. Vuelva al [índice general](../README.md) para consultar la precedenc
   medición del motor contra una vara externa, lámina por lámina.
 - [Checklist — las 19 preguntas que Ulises marcó en el XLSForm de ACNUR V3](checklist-acnur-v3-preguntas-ausentes-2026-08-19.md): checklist qa fechado.
 - [Checklist — la cadena operativa de aulas, de punta a punta](checklist-cadena-operativa-aulas-2026-08-23.md): checklist qa fechado.
+- [Checklist — las siete decisiones de Gonzalo y la cola del loop de cobertura](checklist-decisiones-certeza-2026-08-27.md): checklist qa fechado.
+- [Diagnóstico — el sorteo de aulas de HSVG 2026, medido contra el motor](diagnostico-sorteo-aulas-hsvg2026-2026-08-26.md): diagnóstico qa fechado.
 - [Checklist — cadena de reemplazos, objetivo de profundidad y rendimiento P05](checklist-cadena-reemplazos-2026-08-16.md): checklist qa fechado.
 - [Checklist — pendientes de Cálculo de muestra tras la revisión del 2026-08-15](checklist-calc-muestra-2026-08-15.md): checklist de trabajo (documento vivo).
 - [Checklist — experiencia del usuario nuevo en Cálculo de muestra (2026-08-21)](checklist-experiencia-usuario-nuevo-2026-08-21.md): checklist qa fechado.

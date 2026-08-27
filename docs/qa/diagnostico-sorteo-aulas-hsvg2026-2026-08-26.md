@@ -1,3 +1,14 @@
+# Diagnóstico — el sorteo de aulas de HSVG 2026, medido contra el motor
+
+Tipo: Diagnóstico QA fechado
+Estado: En curso
+Fecha: 2026-08-26
+Autoridad: Evidencia de las mediciones que documenta; no reemplaza contratos ejecutables ni ADR aceptados
+
+Doc vivo del loop de cobertura: cada medición se anexa con su cifra y su
+denominador, y lo que se descarta se anota como descartado para no
+reinvestigarlo.
+
 
 ## La cadena completa de τ, medida contra el motor (2026-08-26)
 
