@@ -1,0 +1,8 @@
+/* La pestaña «¿Alcanza?»: explicación primero, tabla después. El texto lleva
+   medida de lectura para que no se estire con el ancho de la pantalla. */
+.cmv2-calc-certeza-tab { display: grid; gap: var(--pulso-space-3); }
+.cmv2-calc-certeza-intro { max-width: 78ch; }
+.cmv2-calc-certeza-intro header { display: flex; align-items: center; gap: 6px; margin-bottom: var(--pulso-space-1); }
+.cmv2-calc-certeza-intro header strong { font-weight: var(--pulso-weight-semibold); }
+.cmv2-calc-certeza-intro p { margin: 0 0 var(--pulso-space-1); color: var(--pulso-text-muted); }
+.cmv2-calc-certeza-nota { max-width: 78ch; color: var(--pulso-text-muted); font-size: 12px; }

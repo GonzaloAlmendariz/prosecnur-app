@@ -53,7 +53,7 @@ import { criteriosGeneralesDeEstudio } from "./criterios/criteriosGeneralesModel
 import { criteriosMarcoDeEstudio } from "./criterios/criteriosMarcoModel";
 import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
-import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
+import { CalculoCertezaTab, CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import { DistribucionElegiblesCard } from "./calculo/DistribucionElegiblesCard";
 import { MuestraOperativaCard } from "./calculo/MuestraOperativaCard";
 import { TasaEfectividadFacultadCard } from "./calculo/TasaEfectividadFacultadCard";
@@ -836,15 +836,11 @@ export function UniversidadDesk({
               <div className="cmv2-recorrido-paso" data-paso="3">
                 <span className="cmv2-recorrido-kicker">Paso 3 · Qué se pide: titulares, reservas y si llegan a la cuota</span>
                 <CalculoCursosHorarioFacultadTab
-                  onFijarAulas={onFijarAulasFacultad}
                   componentes={[totalComp, facultyComp]}
                   currentFrameHash={aulasState?.frame?.frame_hash}
                   escenario={escenarioAulas}
                   onEscenario={seleccionarEscenarioAulas}
                   marcoDesactualizado={marcoDesactualizado}
-                  certeza={aulasState?.certeza ?? null}
-                  certezaEnCurso={midiendoCerteza}
-                  onMedirCerteza={onMedirCerteza}
                   onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
                 />
               </div>
@@ -855,6 +851,18 @@ export function UniversidadDesk({
                 currentFrameHash={aulasState?.frame?.frame_hash}
                 escenario={escenarioAulas}
                 onEscenario={seleccionarEscenarioAulas}
+              />
+            </div>}
+            {showLocalTab("calculo-certeza") && <div id="cmv2-local-calculo-certeza">
+              <CalculoCertezaTab
+                componentes={[totalComp, facultyComp]}
+                currentFrameHash={aulasState?.frame?.frame_hash}
+                escenario={escenarioAulas}
+                certeza={aulasState?.certeza ?? null}
+                certezaEnCurso={midiendoCerteza}
+                onMedirCerteza={onMedirCerteza}
+                onFijarAulas={onFijarAulasFacultad}
+                marcoDesactualizado={marcoDesactualizado}
               />
             </div>}
           </div>
