@@ -37,6 +37,7 @@ import {
   materializeUniversityAulasTarget,
   normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
+  universityComponentForScenario,
   universityComponents,
   universityDefaultWorkspace,
   universityWorkspace,
@@ -502,7 +503,20 @@ export function UniversidadDesk({
     [aulasState?.selection],
   );
   const labModel = useMemo(
-    () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado }),
+    () => buildClassroomLabModel({
+      workspace: syncedWorkspace,
+      totalComp,
+      facultyComp,
+      aulasState,
+      marcoDesactualizado,
+      // Sin esto Selección no ve las fijaciones —el normalizado trae el marco
+      // del otro componente— y su aviso de «fijaste titulares, recalcula» no
+      // se enciende nunca.
+      estratosPropios: estratosDelComponente(
+        estudio.componentes,
+        universityComponentForScenario([totalComp, facultyComp], syncedWorkspace)?.id ?? facultyComp.id,
+      ),
+    }),
     [syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado],
   );
   const calculationReady = labModel.selectedResultReady;
