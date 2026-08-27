@@ -537,11 +537,25 @@ quitando el filtro de origen.
 la meta del diseño de estas aulas»). Ninguna facultad de la fixture se queda a
 cero, así que sólo la cubre el test unitario.
 
-**Latente, no tocado**: `metaDeLoVisitado` —la meta del gráfico *acumulado*— suma
-`expected_valid` **sin mirar el origen**. En el proyecto real da igual porque las
-1512 son `diseno`, pero sobre un plan con metas a mano o sin meta inflaría la
-meta con techos. No se cambia aquí porque alteraría el acumulado y merece su
-propia medición.
+**El latente, ya medido (2026-08-27): NO es un defecto.** `metaDeLoVisitado` —la
+meta del gráfico *acumulado*— suma `expected_valid` sin mirar el origen, y el
+delta sobre la fixture es **406 de 2 694 (15,1 %)**. Pero viene **entero de 20
+aulas con origen `declarada`**, y el campo está documentado como «lo que el plan
+espera de las aulas visitadas»: para una meta escrita a mano eso es cierto. **No
+hay ni una fila con origen `elegibles`** —el techo disfrazado de meta, que sí
+sería defecto— ni en la fixture ni en el proyecto real, donde las 1512 son
+`diseno` y el delta es **cero**. Se deja como está.
+
+La medición se hizo contra el **plan publicado**, no contra el crudo: suman 4.945
+y 6.040 respectivamente, y el front lee el publicado. Contra el crudo daba 3.339
+y no cuadraba con el 2.693 de la pantalla; contra el publicado da 2.694. Es la
+misma disciplina de siempre —medir contra lo que el consumidor consume— y aquí
+la diferencia era del 24 %.
+
+**Lo que sí salió de esa medición**: en la misma línea de leyenda conviven «Meta
+2 693» y las dos cuotas por sexo, que suman **2 710**. Diecisiete de diferencia
+entre dos cantidades que no tienen nada que ver. El chip ahora dice «Meta de lo
+visitado». ☑ hecho
 
 ### Séptima advertencia sobre los conteos, y una octava sobre el arranque
 
