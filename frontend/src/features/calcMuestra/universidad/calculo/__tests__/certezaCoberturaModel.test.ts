@@ -8,6 +8,7 @@ import {
   certezaEstadoDeFila,
   certezaEstratosDesdeResultado,
   certezaVistaDesdeEstado,
+  curvaResumen,
 } from "../certezaCoberturaModel";
 
 function fila(patch: Partial<CalcMuestraAulasCertezaFila> = {}): CalcMuestraAulasCertezaFila {
@@ -162,5 +163,34 @@ describe("certezaEstratosDesdeResultado", () => {
 
   it("un tau invalido viaja como null para que R aplique su respaldo", () => {
     expect(certezaEstratosDesdeResultado([estrato({ tau: 0 })])[0].tau).toBeNull();
+  });
+});
+
+// El rendimiento de una facultad no puede quedarse quieto cuando se le suman
+// aulas: cada aula agrega estudiantes, aunque sean pocos por el traslape. Una
+// curva plana significa que el sorteo no esta evaluando el candidato que la
+// fila nombra, y eso paso de verdad: con `faculty_targets` puestos, la certeza
+// devolvia 392,7 con 40 aulas y 394,6 con 55, y la pantalla no lo delataba
+// porque publicaba una sola cifra final. Es un invariante, no una opinion.
+describe("curvaResumen", () => {
+  const punto = (aulas: number, rendimiento: number) => ({
+    aulas, probabilidad: 0.9, rendimiento_medio: rendimiento, rendimiento_p05: rendimiento * 0.95,
+  });
+
+  it("marca plana la curva cuya rendimiento no crece con el candidato", () => {
+    const r = curvaResumen([punto(40, 392.7), punto(45, 393.3), punto(50, 394.8), punto(55, 394.6)]);
+    expect(r.plana).toBe(true);
+    expect(r.puntos).toHaveLength(4);
+  });
+
+  it("una curva que crece de verdad no se marca", () => {
+    const r = curvaResumen([punto(16, 340.1), punto(17, 357.6), punto(18, 376.3)]);
+    expect(r.plana).toBe(false);
+  });
+
+  it("con menos de dos puntos no hay invariante que juzgar", () => {
+    expect(curvaResumen([punto(5, 100)]).plana).toBe(false);
+    expect(curvaResumen([]).plana).toBe(false);
+    expect(curvaResumen(undefined).puntos).toEqual([]);
   });
 });

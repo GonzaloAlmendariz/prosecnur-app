@@ -129,3 +129,12 @@
 .cmv2-certeza-pie svg {
   vertical-align: -1px;
 }
+
+/* La curva de la que sale el número certificado: evidencia, no adorno. Plana
+   marca el caso imposible —el rendimiento no puede quedarse quieto al sumar
+   aulas— para que se note sin abrir el detalle. */
+.cmv2-certeza-curva { width: 62px; text-align: center; }
+.cmv2-certeza-curva svg { width: 46px; height: 16px; display: block; margin: 0 auto; overflow: visible; }
+.cmv2-certeza-curva polyline { fill: none; stroke: var(--pulso-text-muted); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.cmv2-certeza-curva[data-plana] polyline { stroke: var(--pulso-danger-fg); }
+.cmv2-certeza-curva[data-plana] small { display: block; font-size: 8.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--pulso-danger-fg); }

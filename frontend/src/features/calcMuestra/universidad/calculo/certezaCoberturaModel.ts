@@ -10,6 +10,7 @@ import {
   CALC_MUESTRA_AULAS_CERTEZA_SCHEMA,
   type CalcMuestraAulasCerteza,
   type CalcMuestraAulasCertezaFila,
+  type CalcMuestraAulasCertezaPunto,
   type CalcMuestraAulasEstrato,
 } from "../../../../api/client";
 
@@ -24,6 +25,33 @@ import {
  * - `sin_datos` — el estrato no tiene aulas en el marco o no se pudo evaluar.
  */
 export type CertezaEstado = "agotado" | "corta" | "sobra" | "ajustada" | "sin_datos";
+
+/**
+ * La curva de la certeza, lista para dibujar, y el invariante que la juzga.
+ *
+ * El rendimiento de una facultad no puede quedarse quieto cuando se le suman
+ * aulas: cada aula agrega estudiantes, aunque el traslape haga que sean pocos.
+ * Una curva plana significa que el sorteo no evalua el candidato que la fila
+ * nombra. Paso de verdad: con `faculty_targets` puestos, el motor sorteaba
+ * siempre el reparto aplicado y devolvia 392,7 con 40 aulas y 394,6 con 55.
+ * La pantalla no lo delataba porque publicaba una sola cifra final.
+ *
+ * El umbral es relativo al recorrido del candidato: se exige que el rendimiento
+ * crezca al menos un 1 % entre el primer punto y el ultimo. Por debajo de eso
+ * la curva no esta respondiendo a lo que se le pregunta.
+ */
+export function curvaResumen(
+  curva: CalcMuestraAulasCertezaPunto[] | null | undefined,
+): { puntos: CalcMuestraAulasCertezaPunto[]; plana: boolean } {
+  const puntos = (curva ?? []).filter(
+    (p) => Number.isFinite(p?.aulas) && Number.isFinite(p?.rendimiento_medio),
+  );
+  if (puntos.length < 2) return { puntos, plana: false };
+  const primero = puntos[0]!.rendimiento_medio;
+  const ultimo = puntos[puntos.length - 1]!.rendimiento_medio;
+  if (!(primero > 0)) return { puntos, plana: false };
+  return { puntos, plana: (ultimo - primero) / primero < 0.01 };
+}
 
 export type CertezaFilaVista = CalcMuestraAulasCertezaFila & {
   estado: CertezaEstado;
