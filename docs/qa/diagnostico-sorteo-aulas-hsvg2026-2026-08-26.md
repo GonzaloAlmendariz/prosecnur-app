@@ -765,3 +765,57 @@ inventario queda como insumo de la implementación del 0080, que es justo la
 lista que esa implementación necesita.
 
 Lo que **sí** se toma, porque no es arquitectura: el default `30`.
+
+## Cuatro de las seis pestañas de Aulas están apagadas sobre una selección válida
+
+Medido en pantalla sobre `HSVG26ULT.pulso`, que tiene su selección de 174 aulas
+completa y verificada:
+
+| pestaña | estado |
+|---|---|
+| Selección | **bloqueada** |
+| Reemplazos | **bloqueada** |
+| Auditoría | **bloqueada** |
+| Relato | **bloqueada** |
+| Solidez | pasa |
+| Perfil | pasa |
+
+El motivo es una sola línea de `aulas/aulasSurfaceState.tsx:117`:
+
+```ts
+if (!model.comparisonReady) { …aviso «falta comparar»… }
+```
+
+Está **antes** que todo lo demás y se aplica a cada etapa salvo `objetivo`. O
+sea que **la comparación de métodos gobierna superficies que no narran la
+comparación, sino la selección**.
+
+### Por qué la comparación está vieja
+
+Las claves desfasadas entre la corrida guardada y el config vigente:
+
+| clave | en la corrida | en el config | ¿cambia la muestra? |
+|---|---|---|---|
+| `seed` | 20260619 | **202** | sí |
+| `n_aulas` | 30 | **174** | sí |
+| `monte_carlo_n` | 20 | 500 | **no** |
+| `simulation_runs` | 20 | 500 | **no** |
+
+La comparación es genuinamente vieja: se corrió con la semilla por defecto y con
+el `n_aulas` fabricado. Pero **dos de las cuatro claves que la invalidan no
+cambian qué aulas salen**, y ninguna de las cuatro dice nada sobre si la
+selección guardada es correcta.
+
+### Lo que esto significa para el usuario
+
+Un analista que abre su proyecto terminado no puede ver **su propia selección**,
+ni los reemplazos, ni la auditoría, ni el relato. Ve cuatro veces «vuelve a
+comparar métodos». Y re-comparar no arregla el desfase, porque el campo
+desactualizado vive en el workspace: es exactamente el callejón que el ADR 0080
+documenta como su mordida 1.
+
+**Es una decisión de contrato, no un bug de una línea**: ¿debe la comparación
+ser prerrequisito de ver la selección? Se puede argumentar que sí para
+*ejecutar* un sorteo nuevo, pero no para *leer* uno hecho. Queda para Gonzalo, y
+es más urgente que el resto del tablero porque afecta el uso normal de un
+proyecto terminado.
