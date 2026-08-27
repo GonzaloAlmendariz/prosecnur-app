@@ -53,7 +53,7 @@ sin verlo en la aplicación.
 | **T4** | Definición de encuesta efectiva desde los filtros iniciales: comprobar que se declara y que el motor la respeta | `criterio_validez`, `valid_filters` | C-C | ☐ |
 | **T5** | Efectivas vs elegibles: dónde comparten rótulo | perfil de aulas | C-B | **☑ medido**: 3 700 contra 3 508 en la misma pantalla; **no se repara**, es E8 y espera a Gonzalo |
 | **T6** | Cuotas por facultad y sexo sin compensar entre celdas | `avance_cuota`, cuotas | C-A | **☑ conforme**: 37 + 17 = 54, igual que el KPI |
-| **T7** | Las tres dimensiones del libro: leerlas y juzgar si se entienden en campo | `carga_aulas_libro_generar.R` (ya existe, **no se construye**) | C-E | ☐ |
+| **T7** | El libro leído | `carga_aulas_libro_generar.R` | C-E | **☑** son 5 hojas y está bien formado; 3 puntos a mirar |
 | **T8** | **La tabla de avance para el cliente**, en **tres formas**: pantalla en Avance, PDF y Excel | pantalla + `router_monitoreo.R:3159` (patrón de territorial y telefónico) | C-A | ☐ diseñado, bloqueado por T1+T2 |
 | **T9** | Gráficos y diagramas: mejorar los actuales y proponer los que faltan | perfil de aulas | C-D | ☐ |
 | **T10** | Formato y estética del resto del perfil, con el criterio ya aprobado | perfil de aulas | — | ◐ parcial (seis listas y contraste hechos) |
@@ -301,6 +301,56 @@ El arreglo de fondo no es aflojar guardas: es que **el workspace guarde el
 objetivo del componente vigente** y que el escenario se declare en vez de
 inferirse. Eso toca `calc-muestra`, no Monitoreo, y conviene coordinarlo con la
 sesión hermana antes de tocarlo.
+
+## T7 — el libro leído (2026-08-26)
+
+Generado con la fixture del operativo completo y **todos** sus insumos —plan,
+partes, control, efectivas de plataforma, respuestas y el vector de validez—,
+que es como lo llama el router.
+
+### Son CINCO hojas, no tres
+
+| Hoja | Tamaño |
+|---|---|
+| Aulas Agendadas | 171 × 61 |
+| Aulas Aplicadas (Campo) | 194 × **102** |
+| Base de control | 194 × 43 |
+| **Cómo va el campo** | 34 × 4 |
+| Listas | 7 × 4 |
+
+**«Cómo va el campo» ya es una tabla de avance** y nadie la había nombrado en el
+encargo. Trae la meta, las conseguidas, el avance, lo que falta, las aulas que
+llegaron a su meta, la producción por aplicador y el **avance diario acumulado
+con lo que falta día a día**.
+
+### El libro está bien formado
+
+Se llena entero y los porcentajes llevan formato `0.0%` en la celda: el
+«Avance» que en crudo es `0.987456…` **se muestra como 98,7 %**.
+
+**Dos veces estuve a punto de reportar defectos que no existían**: primero
+llamé vacía a la hoja porque la generé sin `efectivas`/`responses`/`validas` —el
+router sí los pasa—, y después llamé cruda a una cifra que la celda formatea.
+
+### Lo que sí merece mirada
+
+1. **«Aulas Aplicadas (Campo)» tiene 102 columnas**, y es la hoja que llena el
+   aplicador. Es la pregunta de usabilidad más grande del libro.
+2. **«Aulas del operativo: 170» contra «Aulas que llegaron a SU meta: 106»**. El
+   denominador es el plan, no lo aplicado (152 en la fixture). Un lector calcula
+   106/170 = 62 % cuando sobre aplicadas sería 106/152 = 70 %.
+3. **C-B, y aquí el Excel va POR DELANTE de la UI**: en la misma hoja conviven
+   «Efectivas declaradas» por aplicador (suma **3 508**, el parte) y «Efectivas
+   conseguidas» (**3 700**, plataforma) — pero **los rótulos las distinguen**.
+   En la pantalla de Rendimiento las mismas dos cifras aparecen sin que nada las
+   separe. El libro ya resuelve lo que la UI tiene abierto en E8.
+
+### Y esto cambia T8
+
+**T8 no es crear la tabla de avance: es extender «Cómo va el campo»**, que ya
+existe y ya se genera. Lo que le falta es exactamente lo que Gonzalo pidió: **el
+corte por facultad y por sexo, contra muestra y sobremuestra, y las aulas
+aplicadas**. Hoy sólo da el agregado del estudio.
 
 ## Lo que ya está cerrado y no se rehace
 
