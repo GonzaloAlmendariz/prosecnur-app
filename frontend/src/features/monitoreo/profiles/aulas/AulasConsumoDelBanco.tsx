@@ -69,23 +69,28 @@ export function AulasConsumoDelBanco({ filas, diasDeCampo = 0, facultadEnFoco, o
         ) : null}
         {sinFecha ? <> · {fmt(sinFecha)} sin fecha de reemplazo, fuera del cálculo</> : null}
       </p>
-      <ul className="aulas-banco-consumo-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <li className="aulas-banco-consumo-cabecera" aria-hidden="true">
-          <span>Facultad</span><span>Reemplazadas</span><span>Reserva libre</span><span>Días de reserva</span>
+      <ul role="table" aria-label="Consumo de la reserva por facultad" className="aulas-banco-consumo-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* Semántica de tabla sobre la rejilla: la cabecera iba con
+            `aria-hidden` y un lector de pantalla recibía cifras sin nombre de
+            columna. Roles y no `<table>`: la geometría está afinada y el
+            defecto es de nombres. */}
+        <li className="aulas-banco-consumo-cabecera" role="row">
+          <span role="columnheader">Facultad</span><span role="columnheader">Reemplazadas</span><span role="columnheader">Reserva libre</span><span role="columnheader">Días de reserva</span>
         </li>
         {facultades.map((f) => (
-          <li key={f.facultad} className={`${f.quedan === 0 ? "es-seca" : ""}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`.trim() || undefined}>
+          <li key={f.facultad} role="row" className={`${f.quedan === 0 ? "es-seca" : ""}${f.facultad === facultadEnFoco ? " es-en-foco" : ""}`.trim() || undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-banco-consumo-nombre"
+              rol="rowheader"
               enFoco={f.facultad === facultadEnFoco} onFoco={onFoco} />
-            <span className="aulas-banco-consumo-cifra">
+            <span role="cell" className="aulas-banco-consumo-cifra">
               {fmt(f.caidas)}
               {f.ritmo ? <em> · {f.ritmo.toLocaleString("es-PE")}/día</em> : null}
             </span>
-            <span className="aulas-banco-consumo-cifra">{fmt(f.quedan)}</span>
+            <span role="cell" className="aulas-banco-consumo-cifra">{fmt(f.quedan)}</span>
             {/* En días de campo y no en una fecha: el ritmo de reemplazos es
                 mucho más irregular que el de aplicación, y poner una fecha exacta
                 le daría una precisión que no tiene. */}
-            <span className="aulas-banco-consumo-aguanta">
+            <span role="cell" className="aulas-banco-consumo-aguanta">
               {f.quedan === 0
                 ? <strong>sin reserva</strong>
                 : f.diasHastaAgotarse == null

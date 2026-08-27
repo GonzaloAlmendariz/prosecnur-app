@@ -52,26 +52,33 @@ export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<Monito
           : null}
       </p>
       <ul
+        role="table"
+        aria-label="Reservas por facultad"
         className="aulas-colchon-lista"
         data-qa-geometry-capacity="owned"
         data-qa-geometry-member
       >
-        <li className="aulas-colchon-cabecera" aria-hidden="true">
-          <span>Facultad</span>
-          <span>Reservas gastadas y libres</span>
-          <span>Agotadas</span>
-          <span>Sin dotar</span>
+        {/* Roles de tabla sobre la rejilla, no `<table>`: el defecto era la
+            cabecera oculta, no la maquetación. */}
+        <li className="aulas-colchon-cabecera" role="row">
+          <span role="columnheader">Facultad</span>
+          <span role="columnheader">Reservas gastadas y libres</span>
+          <span role="columnheader">Agotadas</span>
+          <span role="columnheader">Sin dotar</span>
         </li>
         {facultades.map((f) => (
-          <li key={f.facultad} className={f.agotadas ? "es-riesgo" : "es-cubierta"}>
-            <span className="aulas-colchon-nombre" title={f.facultad}>
+          <li key={f.facultad} role="row" className={f.agotadas ? "es-riesgo" : "es-cubierta"}>
+            <span role="rowheader" className="aulas-colchon-nombre" title={f.facultad}>
               {f.facultad}
               <em>{fmt(f.titulares)} {f.titulares === 1 ? "curso-horario" : "cursos-horario"}</em>
             </span>
+            {/* La barra conserva su `role="img"` dentro de una celda propia: si
+                el rol de celda fuera suyo, el lector perdería la posición. */}
+            <span role="cell" className="aulas-colchon-barra-celda">
             <span
               className="aulas-colchon-barra"
               role="img"
-              aria-label={`${fmt(f.gastadas)} reservas gastadas y ${f.libres} libres`}
+              aria-label={`${fmt(f.gastadas)} reservas gastadas y ${fmt(f.libres)} libres`}
             >
               {f.gastadas ? (
                 <i style={{ width: `${(100 * f.gastadas) / tope}%`, background: COLOR_RESULTADO.rechazo }}>
@@ -88,10 +95,11 @@ export function AulasColchonPorFacultad({ filas }: { filas: ReadonlyArray<Monito
                   diseño muestral y el segundo del operativo. */}
               {!f.gastadas && !f.libres ? <em>el plan no le dio reservas</em> : null}
             </span>
-            <span className="aulas-colchon-riesgo">
+            </span>
+            <span role="cell" className="aulas-colchon-riesgo">
               {f.agotadas ? <strong>{fmt(f.agotadas)}</strong> : <em>—</em>}
             </span>
-            <span className="aulas-colchon-sindotar">
+            <span role="cell" className="aulas-colchon-sindotar">
               {f.nuncaTuvo ? fmt(f.nuncaTuvo) : <em>—</em>}
             </span>
           </li>
