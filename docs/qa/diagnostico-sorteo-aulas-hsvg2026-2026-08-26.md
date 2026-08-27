@@ -518,3 +518,37 @@ declarando el escenario: hay que leer el objetivo vigente de los estratos
 **Sobre la advertencia de que la certeza está corrida sobre el componente de
 universidad**: es cierto y no es un riesgo, porque ése es el componente que
 gobierna el sorteo de aulas.
+
+### Corrección: el 294 salía de un `state.rds` de seis horas antes
+
+La sección anterior afirmó que el componente de facultad suma 294 y no coincide
+con el sorteo. **Es falso, y la causa es de método.**
+
+El `state.rds` con el que se midió estaba extraído el 26 de agosto a las **03:10**;
+el del `.pulso` actual es de las **09:33**. Se extrajo una vez y se reusó durante
+horas mientras el proyecto se volvía a guardar.
+
+Extraído del archivo actual:
+
+| | viejo 03:10 | actual 09:33 |
+|---|---|---|
+| comp1 `aulas_base` | 165 | **165** |
+| comp2 `aulas_base` | 294 | **174** |
+| `frame_hash` | 87df265f… | idéntico |
+| aulas `included` | 1 512 | idéntico |
+
+**Sólo comp2 cambió.** El componente de facultad del archivo actual **es la
+afijación posterior a la certificación ya persistida**, con sus 174 y con el aula
+extra de Derecho incluida.
+
+**Alcance del error, acotado campo por campo**: no toca el documento
+metodológico ni las reparaciones de este loop, porque todo eso cuelga del marco y
+de comp1. Verificado entre las dos versiones: los 15 P25 idénticos a 0,0000, los
+15 τ idénticos a 0,000000, `eligible_n` de las 5 269 filas idéntico, y
+`tasas_efectividad_facultad` idéntica objeto por objeto.
+
+**La regla que queda**: un `state.rds` extraído es una foto y el `.pulso` sigue
+vivo. Comparar el timestamp del extraído contra el del `.pulso` antes de medir.
+En la misma carpeta existe además un `HSVG26ULT` **sin extensión** de las 03:10
+que no es un zip válido; el archivo bueno es `HSVG26ULT.pulso`, 12 158 921 bytes,
+sha256 `73963fc8…`.
