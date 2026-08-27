@@ -179,3 +179,23 @@ export function componenteEnVigor(
 ): CalcMuestraComponente | undefined {
   return componentes.find((c) => c.actor_id === ACTOR_POR_ESCENARIO[vigor.escenario]);
 }
+
+/**
+ * Si un clic en el selector tiene que escribirse.
+ *
+ * La pregunta es si `next` ya esta DECLARADO, no si coincide con el valor que
+ * la pantalla muestra. Cuando el escenario se infiere del sorteo, la pantalla
+ * puede estar mostrando `e2` mientras el store —que responde `e1` a falta de
+ * decision— dice `e1`: una guarda que compare contra el store deja MUERTO el
+ * boton de `e1`, y el usuario ve `e2` marcado, clickea `e1` y no pasa nada.
+ * Medido en la app el 2026-08-27.
+ *
+ * Sin declaracion previa cualquier clic se escribe, porque el clic ES la
+ * declaracion; y con `e1` ya declarado, volver a elegir `e1` no hace nada.
+ */
+export function declararEscenarioEscribe(
+  vigor: Pick<EscenarioEnVigor, "declarado">,
+  next: UniversityAulasScenario,
+): boolean {
+  return vigor.declarado !== next;
+}

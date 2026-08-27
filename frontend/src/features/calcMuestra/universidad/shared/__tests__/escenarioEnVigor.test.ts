@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { CalcMuestraComponente, CalcMuestraWorkspace } from "../../../../../api/client";
-import { escenarioEnVigor, titularesPorFacultad } from "../escenarioEnVigor";
+import { declararEscenarioEscribe, escenarioEnVigor, titularesPorFacultad } from "../escenarioEnVigor";
 
 /** [facultad, aulas en Universidad, aulas en Facultades] */
 const HSVG2026: ReadonlyArray<readonly [string, number, number]> = [
@@ -145,5 +145,30 @@ describe("escenarioEnVigor", () => {
     expect(vigor.origen).toBe("defecto");
     expect(vigor.delSorteo).toBeNull();
     expect(vigor.titularesSorteados).toBe(166);
+  });
+});
+
+describe("declararEscenarioEscribe", () => {
+  it("sin decision previa, cualquier clic se escribe aunque el sorteo diga otra cosa", () => {
+    // El caso que dejo muerto el boton: la pantalla muestra e2 por inferencia
+    // y el store responde e1 por defecto. Clickear e1 TIENE que escribirse.
+    const vigor = escenarioEnVigor({
+      workspace: workspace(),
+      componentes: COMPONENTES,
+      seleccion: sorteo(),
+    });
+    expect(vigor.escenario).toBe("e2");
+    expect(declararEscenarioEscribe(vigor, "e1")).toBe(true);
+    expect(declararEscenarioEscribe(vigor, "e2")).toBe(true);
+  });
+
+  it("con la decision ya declarada, reelegirla no escribe", () => {
+    const vigor = escenarioEnVigor({
+      workspace: workspace("e1"),
+      componentes: COMPONENTES,
+      seleccion: sorteo(),
+    });
+    expect(declararEscenarioEscribe(vigor, "e1")).toBe(false);
+    expect(declararEscenarioEscribe(vigor, "e2")).toBe(true);
   });
 });
