@@ -204,30 +204,62 @@ describe("curvaResumen", () => {
 // doce veces menor que el error de muestreo con el que se midio, asi que con
 // esa evidencia no se puede distinguir si cumple. El panel publicaba el
 // veredicto sin decir con cuantos sorteos se tomo.
-describe("precisionVeredicto", () => {
-  const f = (probabilidad_certeza: number, corridas: number) =>
-    ({ probabilidad_certeza, corridas }) as Parameters<typeof precisionVeredicto>[0];
+describe("precisionVeredicto — mide si el ruido puede mover el MÍNIMO", () => {
+  // Los tres casos son los de HSVG2026, con sus curvas reales. La vara vieja
+  // comparaba el margen de p(n) sobre el nivel contra el error binomial y
+  // marcaba los tres como ambiguos; ninguno lo era.
+  const fila = (
+    aulas_certeza: number,
+    corridas: number,
+    curva: Array<[number, number]>,
+  ) =>
+    ({
+      aulas_certeza,
+      corridas,
+      probabilidad_certeza: curva.find(([a]) => a === aulas_certeza)?.[1] ?? null,
+      curva: curva.map(([aulas, probabilidad]) => ({
+        aulas,
+        probabilidad,
+        rendimiento_medio: 0,
+        rendimiento_p05: 0,
+      })),
+    }) as Parameters<typeof precisionVeredicto>[0];
 
-  it("marca dentro del ruido el veredicto cuyo margen no supera su error", () => {
-    const r = precisionVeredicto(f(0.9512, 205), 0.95);
+  it("DERECHO: la probabilidad roza el umbral y aun así el veredicto es firme", () => {
+    // p(18) = 95,12 % contra un umbral de 95 %: margen 0,12pp, doce veces menor
+    // que su error. La vara vieja lo marcaba. Pero para que el mínimo bajara a
+    // 17, p(17) tendría que subir de 28,29 % a 95 %.
+    const r = precisionVeredicto(fila(18, 205, [[16, 0], [17, 0.2829], [18, 0.9512]]), 0.95);
     expect(r.corridas).toBe(205);
-    expect(r.error).toBeCloseTo(0.0150, 3);
-    expect(r.margen).toBeCloseTo(0.0012, 4);
-    expect(r.dentroDelRuido).toBe(true);
-  });
-
-  it("un margen holgado frente a su error no se marca", () => {
-    expect(precisionVeredicto(f(0.993, 1000), 0.95).dentroDelRuido).toBe(false);
-  });
-
-  it("una probabilidad de 1 no tiene error de muestreo que reportar", () => {
-    const r = precisionVeredicto(f(1, 1000), 0.95);
-    expect(r.error).toBe(0);
+    expect(r.distancia).toBeCloseTo(0.6671, 3);
+    expect(r.erroresHastaVoltear).toBeGreaterThan(20);
     expect(r.dentroDelRuido).toBe(false);
   });
 
-  it("sin corridas no hay juicio que emitir", () => {
-    expect(precisionVeredicto(f(0.96, 0), 0.95).dentroDelRuido).toBe(false);
+  it("EE.GG. CIENCIAS: mismo caso, 13 errores estándar de holgura", () => {
+    const r = precisionVeredicto(fila(22, 420, [[21, 0.6333], [22, 0.9595]]), 0.95);
+    expect(r.erroresHastaVoltear).toBeGreaterThan(13);
+    expect(r.dentroDelRuido).toBe(false);
+  });
+
+  it("CIENCIAS E INGENIERÍA: la más apretada de las tres, y aun así aguanta", () => {
+    const r = precisionVeredicto(fila(34, 144, [[33, 0.875], [34, 0.9722]]), 0.95);
+    expect(r.erroresHastaVoltear).toBeGreaterThan(2);
+    expect(r.dentroDelRuido).toBe(false);
+  });
+
+  it("marca frágil el veredicto cuyo candidato anterior roza el nivel", () => {
+    // Aquí sí: con p(n−1) = 94 % y 200 sorteos, medio punto de distancia es
+    // menos de dos errores estándar y otra corrida podría dejar el mínimo abajo.
+    const r = precisionVeredicto(fila(10, 200, [[9, 0.945], [10, 0.97]]), 0.95);
+    expect(r.erroresHastaVoltear).toBeLessThan(2);
+    expect(r.dentroDelRuido).toBe(true);
+  });
+
+  it("sin punto anterior no hay juicio que emitir, y no se inventa una alarma", () => {
+    expect(precisionVeredicto(fila(3, 1000, [[3, 1]]), 0.95).erroresHastaVoltear).toBeNull();
+    expect(precisionVeredicto(fila(3, 1000, [[3, 1]]), 0.95).dentroDelRuido).toBe(false);
+    expect(precisionVeredicto(fila(10, 0, [[9, 0.9], [10, 0.96]]), 0.95).dentroDelRuido).toBe(false);
     expect(precisionVeredicto(null, 0.95).corridas).toBeNull();
   });
 });
