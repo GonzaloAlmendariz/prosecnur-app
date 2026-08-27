@@ -257,3 +257,89 @@ sigue pendiente y es decisión con su propio gate.
 - La leyenda dice «Agendada 96 · En cierre 78 · **En reserva 326**» y el
   proyecto tiene 1 338 reservas. Otro denominador recortado, misma familia que
   S1 y S5.
+
+## Los tres denominadores recortados: no era una causa, eran dos
+
+**Encargo de Gonzalo**: «mide los tres denominadores recortados juntos».
+
+| cifra | cuánto debería ser | causa |
+|---|---|---|
+| «355 sin fecha» | 29 (el tile de al lado) | **recorte del payload** |
+| «En reserva 326» | 1 338 | **recorte del payload** |
+| «25 922 respuestas que pide el plan» | 3 150 o 4 050 | **universo equivocado** |
+
+**Los dos primeros son la misma causa y se prueban con la aritmética**:
+`course_status` viaja topeado a 500 filas (`MONITOREO_AULAS_COURSE_STATUS_TOPE`).
+Los tres tramos de la leyenda —**96 + 78 + 326 = 500** exactos— y **500 − 145 con
+fecha = 355**. Todo el panel dibuja 500 de 1 512 sin decirlo.
+
+**El tercero no**: 25 922 = 3 150 (titulares) + 22 772 (las 1 259 reservas de
+cadena). Ahí no falta nada, sobra: cuenta reservas dormidas como si el plan las
+pidiera.
+
+Reparado el primero declarando el recorte donde se leen sus cifras. El backend ya
+publica `course_status_estados` y `course_status_cobertura` —su comentario dice
+que son «los dos repartos que la vista sumaba sobre el payload recortado»— y
+`AulasEstadoChart` ya los consume; migrar este panel repararía **el conteo** y no
+sólo la afirmación.
+
+## Las tres fuentes, semana 1 contra semana 2 (campo real de 2025)
+
+**Encargo de Gonzalo**: «hay tres hojas del Excel que hay que revisar: la de
+agendación, cómo va el campo, y la base de control».
+
+### 1 · Agendación — para la semana 2 ya no se agendaba
+
+Las llamadas corrieron del **2 al 16 de septiembre**; el campo arrancó el **8**.
+
+| cuándo se llamó | llamadas | agendada | reserva | reagend. | **reemplazada** | no se sostuvo |
+|---|---|---|---|---|---|---|
+| **antes del campo** | 95 | 76 | 10 | 3 | 6 | **16 %** |
+| **durante la semana 1** | 74 | 43 | 9 | 4 | **18** | **36 %** |
+| semana 2 | **1** | — | — | 1 | — | — |
+
+**Respuesta directa a la pregunta**: en la semana 2 **no se seguía agendando** —
+una sola llamada. El esfuerzo se concentró en la semana previa al campo y en la
+primera.
+
+**Y el hallazgo nuevo**: un titular llamado **durante** el campo se cayó
+**2,3 veces más** que uno llamado antes (36 % contra 16 %). Llamar tarde es en sí
+un factor de riesgo, y se acumula con el umbral de la tercera gestión.
+
+**Consecuencia para el producto**: `TASA_DE_CAIDA = 0.235` es un promedio global
+que **esconde ese abanico**. La misma constante vale 0,16 para lo agendado con
+antelación y 0,36 para lo agendado sobre la marcha.
+
+**Lo que sí está bien calibrado**: `DIAS_DE_ANTICIPACION = 7` dice ser «la
+mediana de los titulares, 2025» y la medición independiente da **exactamente 7**
+(p10 = 2 · p90 = 13 · máx 21). Confirmado.
+
+### 2 · Registro de campo — el ritmo y su caída
+
+| semana | aulas | acum. | población | enviadas | válidas | efectividad |
+|---|---|---|---|---|---|---|
+| 1 | 86 | 86 | 2 756 | 1 666 | 1 520 | **55,2 %** |
+| 2 | 68 | 154 | 2 121 | 1 217 | 1 062 | **50,1 %** |
+| 3 | 36 | 190 | 1 179 | 754 | 666 | 56,5 % |
+| 4 | 4 | 194 | 176 | 61 | 56 | 31,8 % |
+
+La semana 2 aplica **21 % menos aulas** y rinde **5 puntos menos**. No es
+agotamiento monótono —la 3 recupera— pero la 2 es el valle.
+
+### 3 · Base de control — se llena entera y a tiempo
+
+De las 190 aulas de las tres primeras semanas, **todas** traen reparto por sexo,
+enviadas y asistentes. La base de control no va por detrás del campo.
+
+**Lo que sí revela es una tercera tasa**: entre **enviadas** y **válidas** se
+pierde el 9-13 %.
+
+| semana | enviadas | válidas | pasa |
+|---|---|---|---|
+| 1 | 1 666 | 1 520 | 91 % |
+| 2 | 1 217 | 1 062 | **87 %** |
+| 3 | 754 | 666 | 88 % |
+
+Es la cuarta cifra de la familia «cuántas encuestas hay»: **asistentes → enviadas
+→ válidas → efectivas del parte**. Cada una tiene su denominador y las cuatro
+conviven en el perfil.
