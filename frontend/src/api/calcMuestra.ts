@@ -353,6 +353,18 @@ export type CalcMuestraEstrato = {
   aulas_extra_operativas?: number;
   promedio_conglomerado: number;
   /**
+   * El divisor SELLADO por la decisión de alumnos por CH, con su estadístico
+   * al lado. Manda sobre el par `promedio_`/`mediana_conglomerado`.
+   *
+   * Vive en campo propio desde 2026-08-27 (decisión de Gonzalo, «la separación
+   * para el 5»). Antes el estadístico elegido —P25 incluido— se materializaba
+   * dentro de `promedio_conglomerado`, que además obligaba a poner la mediana
+   * en 0: sellar borraba la medida del marco y `min_media_mediana` se quedaba
+   * sin con qué. 0 = no hay decisión sellada.
+   */
+  divisor_conglomerado?: number;
+  divisor_estadistico?: string;
+  /**
    * Mediana del tamaño de conglomerado del estrato. El motor R la acepta desde
    * siempre y la usa cuando `estadistico_conglomerado` vale `mediana` o
    * `min_media_mediana` —la regla del diseño de 2025—, pero degrada a la media

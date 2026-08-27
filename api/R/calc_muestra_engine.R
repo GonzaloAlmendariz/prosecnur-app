@@ -1056,6 +1056,11 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
+      # entonces manda el par promedio/mediana como siempre.
+      divisor_conglomerado  = calc_num(e$divisor_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      divisor_estadistico   = calc_str(e$divisor_estadistico, ""),
       # Mediana del tamaño de conglomerado del estrato (opcional, la aporta el
       # perfil del marco de aulas: est_aula_mediana por facultad). Solo se usa
       # cuando parametros$estadistico_conglomerado la pide; 0 = ausente.
@@ -1249,6 +1254,18 @@ calc_muestra_calcular_componente <- function(comp) {
 # est_aula_mediana por facultad); sin mediana degradan DECLARADAMENTE a la
 # media. `usado` audita esa degradación por estrato en la salida de cuotas.
 .cm_estadistico_conglomerado_estrato <- function(e, par) {
+  # El divisor SELLADO manda sobre todo lo demas: es la decision vigente de
+  # alumnos por CH, ya resuelta por estrato, y su estadistico viaja al lado.
+  # Vive en campo propio desde 2026-08-27 (decision de Gonzalo, «la separacion
+  # para el 5»); antes se materializaba dentro de `promedio_conglomerado`, que
+  # ademas obligaba a poner la mediana en 0 y con eso borraba la medida del
+  # marco. Los proyectos anteriores no traen este campo y caen a la logica de
+  # siempre, que sigue intacta debajo.
+  sellado <- calc_num(e$divisor_conglomerado, 0, min = 0,
+                      max = .CM_CONGLOMERADO_DIVISOR_MAX)
+  if (sellado > 0) {
+    return(list(valor = sellado, usado = calc_str(e$divisor_estadistico, "media")))
+  }
   media <- if ((e$promedio_conglomerado %||% 0) > 0) e$promedio_conglomerado else par$promedio_conglomerado
   mediana <- calc_num(e$mediana_conglomerado, 0, min = 0,
                       max = .CM_CONGLOMERADO_DIVISOR_MAX)
@@ -2398,6 +2415,11 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
+      # entonces manda el par promedio/mediana como siempre.
+      divisor_conglomerado  = calc_num(e$divisor_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      divisor_estadistico   = calc_str(e$divisor_estadistico, ""),
       tau                   = calc_num(e$tau, 0, min = 0, max = 1)
     )
   })
