@@ -26,7 +26,7 @@ Y la regla de evidencia, también suya:
 | 1 | «Lo segundo» — la comparación de métodos no es prerrequisito para **leer** una selección ya hecha, sólo para ejecutar una nueva | `aulas/aulasSurfaceState.tsx` | — | `eae20369` | ☑ **cerrada** |
 | 2 | «Si ratifica» — ADR 0080, el workspace se resella entero | `docs/adrs/0080-…md` | — | — | ☑ **cerrada** `f233cc8c` (Ratificado + mordidas 6 y 7) |
 | 3 | «Verificar como se hizo en el archivo ULT, entiendo que allí cada una fue 1000 corridas» | `calc_muestra_aulas_certeza.R` · `CertezaCoberturaPanel.tsx` | medido | `10ef2c7e` | ◐ **medida, falta su decisión** — pidió 1.000 y corrió **144–1.000**; 9 facultades sí hicieron las mil, 6 no. La pantalla ya dice cuántas hizo cada una. **Bloqueada en**: elegir entre dejar la fórmula `1000 × 60 / aulas` o pasar a presupuesto de tiempo |
-| 4a | «se muda a cálculo» — el editor de afijación | `aulas/AulasObjetivoTab.tsx` · `aulas/CertificacionFacultadCard.tsx` | — | — | ☐ **pendiente** — avisar antes a la sesión `infallible-mayer-024785-cb`, que tiene ese archivo |
+| 4a | «se muda a cálculo» — el editor de afijación | `calculo/TitularesFacultadEditor.tsx` | `a3b8918b` | `b98f9635` | ☑ **cerrada y vista en pantalla** — el stepper bajó a la columna Titulares de «Cursos-horario requeridos» y ya no exige certificación corrida |
 | 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/certificacionAcciones.ts` · Selección | — | — | ☐ **pendiente** |
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R` · workspace | — | — | ☐ **pendiente** — el dato está bien y el estadístico ya se declara (`estadistico = p25`); lo que engaña es el nombre del campo |
@@ -37,7 +37,7 @@ Y la regla de evidencia, también suya:
 
 | # | Ítem | Dónde vive | Estado |
 |---|---|---|---|
-| D1 | El agregador de aulas de certeza | `aulas/CertificacionFacultadCard.tsx:130` | ◐ acción añadida donde aparece el hallazgo (`b2e04be1`); **sigue abierto** dónde vive el editor — es la decisión 4a |
+| D1 | El agregador de aulas de certeza | `calculo/TitularesFacultadEditor.tsx` | ☑ `b98f9635` — el editor salió de la tarjeta de certificación, que lo escondía hasta haber sorteado |
 | D2 | La certeza no limpiaba `faculty_targets` y sorteaba la selección, no el marco | `calc_muestra_aulas_certeza.R` | ☑ los dos lados: `8ed2f0a3` + `042be9d8` |
 | D3 | La búsqueda no evaluaba el candidato que nombra | — | ☑ es D2, no era defecto aparte |
 | D4 | `promedio_conglomerado` guarda el P25 | workspace | 🔒 más suave de lo dicho: sólo el nombre engaña — es la decisión 5 |
@@ -60,6 +60,22 @@ Y la regla de evidencia, también suya:
 |---|---|
 | «Necesito que lo repares porque la otra sesión está validando monitoreo y necesita tener las 174 aulas reales del sorteo» — la corrida no se publicaba por diferir en cantidad | ☑ `bcb33dff` + `0bfe6d27`: ahora decide la identidad y la cantidad se declara |
 
+## Hallazgos abiertos por otras sesiones
+
+| Hallazgo | Quién lo mide | Qué implica de mi lado |
+|---|---|---|
+| El 25 % de los titulares de 2025 no se sostuvo (24 reemplazadas, 19 a reserva, 8 reagendadas de 170), y se cae en las facultades **pequeñas**: Artes Escénicas 4 de 7, Gestión 3 de 6, Educación 2 de 4, Gastronomía 1 de 2 | `infallible-mayer-024785-cb` | Son las mismas que la simulación dice que no llegan a su cuota. La holgura ahí no es refinamiento: es condición para que la facultad exista en el resultado. **Insumo de la decisión de afijación** |
+| `aplicada` es canónico para `operational_status` y NO existe para `sample_status`; las seis palabras reales caen a `sin_contactar` | idem, `monitoreo_aulas_estados_no_reconocidos.R` | Una reserva marcada «aplicada» se cuenta como reserva **libre** y la cola de contacto la vuelve a llamar. No tocar `sample_status` sin avisarles |
+
+## El 165 contra 174, resuelto
+
+No era una cifra desfasada: **es el otro escenario**. `cmp-cine0qk8`
+(universidad) tiene cero fijaciones y `aulas_base_total = 165`;
+`cmp-cine0qk8-fac` (facultad) tiene las **15 `aulas_base_fijas` que suman 174**.
+La app abre en `P1 · Universidad` y el sorteo real se hizo con `P2 · Facultades`.
+Cualquier superficie que lea `currentAulasTarget` sin fijar el escenario dirá
+165 con datos vigentes.
+
 ## Lo aprendido en los que aún no se tocan
 
 - **4a**: el mecanismo existe entero (`estratosConAulaExtra`, `estratosConAjusteAula`,
@@ -75,6 +91,12 @@ Y la regla de evidencia, también suya:
 
 ## Trampas que costaron un ciclo
 
+- **Un objeto compartido arrastra decisiones que no son suyas.** El marco se
+  reparte a los dos componentes por diseño, pero `aulas_base_fijas` viajaba
+  dentro y el componente de facultad llegaba sin las suyas. Escribir de vuelta
+  las borraba: un clic pasó de **15 fijaciones que suman 174** a **1 que suma 9**.
+  Reparado en `a3b8918b`. El tell fue mirar el estado real cuando la pantalla
+  decía cero fijaciones y la API decía quince.
 - **Declarar una pestaña en el catálogo no la hace visible.** El strip la consume
   desestructurando por posición y descarta el resto en silencio. Cerrado con test
   de paridad en `universidadTabs.test.ts`, para las cuatro secciones.
