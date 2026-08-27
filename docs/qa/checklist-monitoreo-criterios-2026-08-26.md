@@ -569,6 +569,46 @@ visitado». ☑ hecho
 - Y lo ya anotado: el dev server escucha en **IPv6**, así que `127.0.0.1:5291`
   da 000 y `localhost:5291` da 200.
 
+## E5 — las dos llegadas ☑ hecho (2026-08-27)
+
+El pronóstico corría con **una sola tasa**, la del campo. Ahora dice también a
+dónde se llegaría con lo que el diseño pedía de las aulas agendadas, que es el
+contraste del ADR 0082.
+
+**No es otra tasa**: es la suma del `expected_valid` de las aulas agendadas, cada
+una con su tamaño. Una agenda de tres aulas grandes no es la misma que una de
+tres pequeñas, y `tasa × nº de aulas` no distingue las dos. Mismo filtro por
+`meta_origen === "diseno"` que E7, misma declaración de cobertura, mismo `null`
+en vez de cero.
+
+Un detalle del acumulado que no es obvio: **arrastra los días anteriores aunque
+ESE día no traiga vara**. Sin eso, la segunda línea caía a cero al primer día sin
+meta y parecía que el diseño había dejado de pedir nada.
+
+**Verificado en pantalla** (`avance > rendimiento`, fixture de campo):
+
+> 3 508 de 2 693 encuestas que el plan espera de las aulas visitadas · con lo
+> agendado se llegaría a **3 878**, por encima de esa meta · con lo que el diseño
+> pedía de esas aulas, **3 795**
+
+### Dos cosas que sólo se vieron mirando
+
+1. **La cifra desaparecía al pasar la meta.** El texto decía «con lo agendado se
+   pasa de esa meta» sin dar el número, así que la llegada del diseño quedaba
+   sin par: «se pasa de esa meta · con lo que el diseño pedía, 3 795», y ese
+   3 795 solo no significa nada. Las dos se dicen ahora siempre juntas.
+2. **`cifrasConFormato` cazó un template literal anidado** dentro de la
+   expresión de otro, que escondía sus cifras del escaneo del contrato. El
+   contrato tenía razón; la reparación es desanidar, no debilitarlo.
+
+### Y una corrección a la nota de arranque del tick anterior
+
+El **deep-link `?pulso=` es el camino fiable**, no el bootstrap. Con la API
+recién arrancada y bootstrap intacto, una recarga dura del SPA aterrizó tres
+veces seguidas en el BootGate; con `?pulso=` entró a la primera. El bootstrap
+sigue siendo de un solo uso —y sigue sin servir de sonda— pero **no es la vía de
+entrada**: la vía es el deep-link.
+
 ## Decisiones que esperan a Gonzalo
 
 1. **Cinco del libro de agendación**, abiertas desde el 2026-08-20 en
