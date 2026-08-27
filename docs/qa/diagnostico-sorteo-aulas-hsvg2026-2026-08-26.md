@@ -552,3 +552,42 @@ vivo. Comparar el timestamp del extraído contra el del `.pulso` antes de medir.
 En la misma carpeta existe además un `HSVG26ULT` **sin extensión** de las 03:10
 que no es un zip válido; el archivo bueno es `HSVG26ULT.pulso`, 12 158 921 bytes,
 sha256 `73963fc8…`.
+
+## D8 medido: los dos configs difieren justo en `faculty_targets` (2026-08-27)
+
+`/aulas/certeza` lee `s$calc_muestra_aulas_config %||% frame$config`
+(`router_calc_muestra.R` ~1052) y `/aulas/seleccionar` lo lee al revés (~1106).
+Comparados los dos configs del proyecto real, clave a clave: **715 comparadas,
+24 difieren**, y la divergencia es exactamente la que más pesa.
+
+| clave | config de sesión | config del marco |
+|---|---|---|
+| `selector.faculty_targets` | **15 facultades** (Derecho 19, Arte y Diseño 15, …) | **ausente** |
+| `alumnos_por_ch_decision.*` | poblado | vacío |
+
+Cada ruta recibe justo el que no le sirve:
+
+- **certeza** toma el de sesión y hereda unos `faculty_targets` que debe ignorar,
+  porque el candidato es lo que está midiendo. Es la causa de D2, reparada en el
+  motor con `8ed2f0a3`.
+- **seleccionar** toma el del marco y **no** ve unos targets que sí debe
+  respetar. De ahí que `afijacionTargets.ts` los inyecte en el body de cada
+  petición: es un rodeo del front a una precedencia invertida en el backend.
+
+La precedencia está al revés en las dos rutas, y ninguna lo declara.
+
+**Reparación propuesta, que no inventa contrato**: que las dos lean lo mismo,
+fusionado con `calc_muestra_aulas_config_fusionar(frame$config, s$config)`. Ese
+archivo ya declara el contrato —«lo ausente hereda de la vigente; un `null`
+explícito borra»— y está probado. Hoy resuelve sólo el POST parcial de
+`/marco/config`; aplicarlo a las lecturas cierra la divergencia sin decidir un
+ganador arbitrario.
+
+### De paso, D4 queda más suave de lo que se dijo
+
+El config de sesión trae `alumnos_por_ch_decision.estadistico = **p25**`, con su
+`frame_hash` y su `confirmado_at`. O sea que **la app sí registra que el
+estadístico es el primer cuartil**, y es una decisión confirmada por el usuario,
+no un accidente. Lo que engaña es sólo el nombre del campo donde se guarda el
+valor, `promedio_conglomerado`. Eso baja D4 de «el valor no es lo que dice» a «el
+campo se llama mal», que es otra reparación y bastante menor.
