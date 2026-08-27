@@ -25,13 +25,61 @@ Y la regla de evidencia, también suya:
 |---|---|---|---|---|---|
 | 1 | «Lo segundo» — la comparación de métodos no es prerrequisito para **leer** una selección ya hecha, sólo para ejecutar una nueva | `aulas/aulasSurfaceState.tsx` | — | `eae20369` | ☑ **cerrada** |
 | 2 | «Si ratifica» — ADR 0080, el workspace se resella entero | `docs/adrs/0080-…md` | — | — | ☑ **cerrada** `f233cc8c` (Ratificado + mordidas 6 y 7) |
-| 3 | «Verificar como se hizo en el archivo ULT, entiendo que allí cada una fue 1000 corridas» | `calc_muestra_aulas_certeza.R` · `CertezaCoberturaPanel.tsx` | medido | `10ef2c7e` | ◐ **medida, falta su decisión** — pidió 1.000 y corrió **144–1.000**; 9 facultades sí hicieron las mil, 6 no. La pantalla ya dice cuántas hizo cada una. **Bloqueada en**: elegir entre dejar la fórmula `1000 × 60 / aulas` o pasar a presupuesto de tiempo |
+| 3 | «Verificar como se hizo en el archivo ULT, entiendo que allí cada una fue 1000 corridas» | `calc_muestra_aulas_certeza.R` · `CertezaCoberturaPanel.tsx` | medido | `10ef2c7e` | 🔒 **EVALUADA CON TIEMPOS MEDIDOS, decide Gonzalo** — ver el análisis abajo |
 | 4a | «se muda a cálculo» — el editor de afijación | `calculo/TitularesFacultadEditor.tsx` | `a3b8918b` | `b98f9635` | ☑ **cerrada y vista en pantalla** — el stepper bajó a la columna Titulares de «Cursos-horario requeridos» y ya no exige certificación corrida |
 | 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R` · workspace | — | — | ☐ **pendiente** — el dato está bien y el estadístico ya se declara (`estadistico = p25`); lo que engaña es el nombre del campo |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
 | 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ☐ **pendiente** |
+
+## Decisión 3, evaluada — tiempos medidos, no estimados
+
+**Qué hace hoy.** `.cm_certeza_corridas` reproduce las 15 facultades exactas:
+`disponibles ≤ 60` → las 1.000 pedidas; si no, `⌈1.000 × 60 / disponibles⌉`.
+Es un presupuesto de **tiempo**: mantiene `corridas × disponibles ≈ 60.000`.
+
+**Calibración medida el 2026-08-27** sobre el backend con el código actual:
+Derecho solo, 3 evaluaciones × 205 sorteos sobre 293 filas = **64 segundos**,
+o sea **355 µs por (sorteo × fila de marco)**. Con eso, la certificación
+completa de las 15 cuesta **10,5 min**.
+
+**Tres veredictos quedan dentro de su propio error de muestreo** (margen sobre
+el 95% menor que 2 EE): CIENCIAS E INGENIERÍA (m/EE 1,62), EE.GG. CIENCIAS
+(0,99) y DERECHO (0,08). Son las tres de marco más grande, es decir las de
+mayor cuota: **el reparto da menos evidencia justo donde el veredicto está más
+apretado**.
+
+**La prueba directa de que es ruido**: la misma medición de Derecho con 18
+aulas, repetida con la misma configuración y los mismos 205 sorteos, dio
+**95,12 %** la primera vez y **96,10 %** la segunda. La diferencia (0,98pp) es
+0,68 EE, perfectamente normal — pero el umbral está en 95,00 %, así que una
+corrida deja margen 0,12pp y la otra 1,10pp. **El veredicto de Derecho se
+decide por dónde cayó el ruido.**
+
+| Opción | Tiempo | Qué resuelve |
+|---|---:|---|
+| **A** · dejar la fórmula | 10,5 min | nada nuevo; tres veredictos en el ruido |
+| **B** · 1.000 para todas | **29,3 min** (2,80×) | sólo C&I |
+| **C** · segunda pasada dirigida a lo que su margen pide, tope 1.000 | **13,6 min** (1,30×) | C&I y EE.GG. Ciencias |
+| **D** · resolver también Derecho (~4.500 sorteos) | **36,0 min** (3,43×) | las tres |
+
+Sorteos que cada una necesita para que su margen valga 2 EE: C&I **219** (tiene
+144), EE.GG. Ciencias **1.722** (tiene 420), Derecho **~4.500** juntando las dos
+corridas (tiene 205).
+
+**Recomendación: C.** El tope se queda en 1.000; una segunda pasada vuelve a
+correr sólo las facultades cuyo margen esté dentro de 2 EE, con los sorteos que
+su margen pide (`4·p(1−p)/margen²`); lo que ni así se resuelve se declara
+empate en vez de seguir gastando. B cuesta 16 minutos más que C y resuelve
+menos.
+
+**Corrección de una cifra que di antes**: estimé que Derecho necesitaba
+~129.000 sorteos. Ese número salía de un solo punto ruidoso (margen 0,12pp).
+Con las dos corridas juntas el margen es 0,61pp y hacen falta ~4.500 — caro,
+pero no absurdo. La decisión sobre Derecho es real y no está cerrada de
+antemano.
+
 
 ## La cola del loop de cobertura
 
