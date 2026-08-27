@@ -599,6 +599,12 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     spread_vars = .cm_normalize_chr_list(cfg$spread_vars %||% c("program", "level", "schedule", "size_group")),
     candidate_pool_size = calc_int(cfg$candidate_pool_size, 500L, min = 1L, max = 100000L),
     simulation_runs = calc_int(cfg$simulation_runs, 500L, min = 0L, max = 100000L),
+    # ADR 0082: el criterio de rerandomizacion se PERSISTE, y esta whitelist es
+    # estricta —lo que no este aqui se pierde en el round-trip sin avisar—. El
+    # ADR exige que el `.pulso` lo guarde para que el sustento pueda citarlo:
+    # una muestra aceptada por un criterio que el proyecto no recuerda no se
+    # puede reconstruir.
+    rerandomizacion = .cm_rerandom_normalize_config(cfg$rerandomizacion),
     mos_strategy = calc_str(cfg$mos_strategy, "eligible_yield_winsorized"),
     coordination_mode = calc_str(cfg$coordination_mode, "permanent_random_number"),
     # W1: campos de reemplazos del DEFAULT_UNIVERSITY_AULAS_CONFIG (TS,

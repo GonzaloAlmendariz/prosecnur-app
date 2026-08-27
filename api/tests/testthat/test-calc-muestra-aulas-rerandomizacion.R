@@ -151,3 +151,23 @@ test_that("el selector normalizado lleva el bloque hasta el sorteo", {
   vacia <- calc_muestra_aulas_normalize_config(list())$selector$rerandomizacion
   expect_false(vacia$activa)
 })
+
+test_that("el criterio SOBREVIVE el round-trip del workspace", {
+  # La whitelist de `.cm_normalize_workspace_aulas_config` es estricta: lo que no
+  # este declarado se pierde sin avisar. El ADR exige que el `.pulso` guarde el
+  # criterio —una muestra aceptada por un criterio que el proyecto no recuerda no
+  # se puede reconstruir—, asi que este test es el que impide que muera ahi.
+  ws <- list(aulas_config = list(
+    rerandomizacion = list(activa = TRUE, tope = 40, criterio = .rr_criterio())
+  ))
+  out <- prosecnurapp:::.cm_normalize_workspace(ws)$aulas_config$rerandomizacion
+  expect_true(out$activa)
+  expect_equal(out$tope, 40L)
+  expect_identical(out$criterio$tipo, "cobertura_celdas")
+  expect_equal(nrow(out$criterio$celdas), 2L)
+
+  # Idempotente: normalizar lo ya normalizado no lo degrada.
+  otra <- prosecnurapp:::.cm_normalize_workspace(list(aulas_config = out2 <- list(rerandomizacion = out)))$aulas_config$rerandomizacion
+  expect_true(otra$activa)
+  expect_equal(nrow(otra$criterio$celdas), 2L)
+})

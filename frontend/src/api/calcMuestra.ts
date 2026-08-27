@@ -689,6 +689,24 @@ export type CalcMuestraWorkspaceAulasConfig = {
   /** Afijación del diseño: facultad → aulas titulares (el motor la respeta en
    *  el sorteo; ver calc_muestra_aulas_afijacion.R y afijacionTargets.ts). */
   faculty_targets?: Record<string, number>;
+  /**
+   * ADR 0082: la rerandomización, con su criterio como dato.
+   *
+   * Se persiste en el `.pulso` porque una muestra aceptada por un criterio que
+   * el proyecto no recuerda no se puede reconstruir. `activa` sólo enciende si
+   * hay criterio: pedirla sin decir contra qué aceptar dejaría la corrida
+   * declarando una propiedad que nadie evaluó.
+   */
+  rerandomizacion?: {
+    activa: boolean;
+    /** Tope de sorteos. Con un criterio duro, la espera crece rápido. */
+    tope: number;
+    criterio: {
+      tipo: "cobertura_celdas";
+      umbral: number;
+      celdas: Array<{ faculty_key: string; cuota_f: number; cuota_m: number; tau: number }>;
+    } | null;
+  };
   selector_engine?: CalcMuestraWorkspaceAulasSelector | string;
   method_family?: string;
   min_elegibles_aula: number;
@@ -2365,6 +2383,29 @@ export type CalcMuestraAulasSelection = {
   sexo_por_facultad?: unknown;
   /** Certificación por facultad; derivada al servir, puede no venir. */
   certificacion_facultad?: unknown;
+  /**
+   * ADR 0082: qué pasó con la rerandomización en ESTA corrida. Ausente cuando
+   * no la hubo. Sin este bloque la muestra aceptada y la primera que salió del
+   * sorteo se ven idénticas, y el proyecto describiría un diseño que no es el
+   * ejecutado.
+   */
+  rerandomizacion?: {
+    schema: string;
+    aplicada: boolean;
+    motivo: "aceptada_por_criterio" | "presupuesto_agotado_sin_aceptar" | "sin_criterio" | string;
+    sorteos: number;
+    tope?: number;
+    aceptados: number;
+    /** Dato del diseño, no telemetría: un 50 % avisa de que el criterio está al
+     *  filo de lo que el marco da; un 2 %, de que el criterio es irreal. */
+    tasa_aceptacion?: number | null;
+    cobertura_minima?: number | null;
+    sorteo_elegido?: number | null;
+    /** El presupuesto se agotó sin aceptar ninguno: lo que se entrega es el
+     *  mejor de los que NO pasaron, y hay que decirlo. */
+    agotado?: boolean;
+    criterio?: { tipo: string; umbral: number; celdas_n: number };
+  };
   selection_run_id: string;
   generated_at: string;
   frame_hash: string;
