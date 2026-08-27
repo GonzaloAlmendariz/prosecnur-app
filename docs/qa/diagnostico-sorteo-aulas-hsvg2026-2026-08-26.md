@@ -462,3 +462,26 @@ Antes había dicho que `seed` no tenía control porque la UI lo llama `semilla`.
 El patrón es siempre el mismo: **auditar el frontend con el vocabulario del
 backend**. La regla que queda: buscar el dato por su valor o por su ruta en el
 payload real, no por el nombre que uno espera.
+
+### D6-front cerrado, y la premisa era falsa otra vez
+
+`EscenaCierre.tsx:25-27` **ya publica la lista entera** de
+`methodological_warning`. Los avisos del motor se ven; lo que estaba roto era
+sólo el etiquetado.
+
+El relato separa los «ajustes de tamaño» del resto filtrando `/tama|size/` sobre
+el texto completo. El aviso del saneo del balance nombra las variables
+descartadas, y entre ellas suele estar `size_group`, así que entraba en esa
+lista y se mostraba bajo «Ajustes de tamaño divulgados por la corrida» siendo un
+descarte de variables de equilibrio. Reparado en `569905b9` reconociendo la
+familia por su **prefijo**, que es lo que el motor declara.
+
+Se evaluó añadir una segunda lista en la escena del sorteo y **se descartó por
+duplicar** lo que E6 ya muestra.
+
+**Cuarta premisa falsa de la sesión.** Las cuatro son la misma: afirmar que al
+frontend le falta algo sin haber mirado el frontend con su propio vocabulario ni
+seguido el dato hasta su render. `seed` existía como `semilla`; el aviso existía
+como `methodological_warning`; y la lista existía, en otra escena. Lo único real
+de las cuatro era el etiquetado, y se encontró al ir a construir lo que ya
+estaba.
