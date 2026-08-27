@@ -171,3 +171,29 @@
   )
   out
 }
+
+#' Normaliza el bloque de rerandomizacion de la config
+#'
+#' Devuelve siempre una lista con `activa`, `tope` y `criterio`. `activa` es
+#' FALSE cuando no hay criterio utilizable: pedir rerandomizacion sin decir
+#' contra que aceptar no es rerandomizar, y encenderla igual dejaria el sorteo
+#' declarando una propiedad que nadie evaluo.
+#'
+#' @keywords internal
+.cm_rerandom_normalize_config <- function(x) {
+  vacio <- list(
+    schema = "calc_muestra_aulas_rerandomizacion_config_v1",
+    activa = FALSE, tope = .CM_RERANDOM_TOPE_DEFAULT, criterio = NULL
+  )
+  if (!is.list(x) || !length(x)) return(vacio)
+  criterio <- .cm_rerandom_normalize_criterio(x$criterio %||% x$criterion)
+  pedida <- .cm_aulas_bool(x$activa %||% x$activo %||% x$enabled, !is.null(criterio))
+  tope <- .cm_aulas_int(x$tope %||% x$max_sorteos %||% x$max_draws, .CM_RERANDOM_TOPE_DEFAULT)
+  tope <- max(1L, min(.CM_RERANDOM_TOPE_MAX, tope))
+  list(
+    schema = vacio$schema,
+    activa = isTRUE(pedida) && !is.null(criterio),
+    tope = tope,
+    criterio = criterio
+  )
+}
