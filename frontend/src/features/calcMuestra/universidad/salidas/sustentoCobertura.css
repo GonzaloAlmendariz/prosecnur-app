@@ -16,3 +16,6 @@
 .cmv2-sustento-titulo { min-width: 0; }
 .cmv2-sustento-detalle { min-width: 0; color: var(--pulso-text-muted); font-size: 11px; }
 .cmv2-sustento-nota { display: inline-flex; align-items: center; gap: 5px; max-width: 78ch; color: var(--pulso-text-muted); font-size: 12px; }
+
+/* Idem: la nota de cierre no arrastra margen inferior. */
+.cmv2-sustento > :last-child { margin-bottom: 0; }

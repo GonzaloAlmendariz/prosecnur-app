@@ -19,3 +19,11 @@
 .cmv2-rr-cifras { display: flex; flex-wrap: wrap; gap: var(--pulso-space-4); margin: var(--pulso-space-2) 0; }
 .cmv2-rr-cifras dt { color: var(--pulso-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
 .cmv2-rr-cifras dd { margin: 2px 0 0; font-size: 20px; font-variant-numeric: tabular-nums; font-weight: var(--pulso-weight-semibold); }
+
+/* El margen inferior del último hijo no es contenido: deja aire muerto al pie
+   del panel —medido, 9 y 13 px— y el gate de geometría lo reporta como
+   capacidad sin usar. Es la diferencia entre una superficie que parece acabada
+   y una que no. */
+.cmv2-rr-intro > :last-child,
+.cmv2-panel > .cmv2-rr-cifras:last-child,
+.cmv2-panel > .cmv2-rr-nota:last-child { margin-bottom: 0; }

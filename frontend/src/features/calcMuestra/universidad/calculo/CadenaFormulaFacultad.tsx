@@ -27,15 +27,20 @@ export function CadenaFormulaFacultad({
 }) {
   return (
     <div className="cmv2-cadfor" aria-label="Cómo se calculan los titulares de cada facultad">
-      <ol className="cmv2-cadfor-linea">
-        <li className="cmv2-cadfor-pieza" data-rol="entrada">
+      {/* La cadena declara su geometría: sus piezas —cuota, divisor, τ, operadores—
+          tienen anchos propios por diseño, así que el contrato es `intrinsic` y
+          no el `equal` que se asume por defecto. Sin declararlo, el gate visual
+          contaba seis colecciones sin contrato y la vista no podía pasar por
+          conformidad, sólo por que nadie mirara. */}
+      <ol className="cmv2-cadfor-linea" data-qa-geometry-group="calc-muestra/cadena-formula" data-qa-geometry-contract="intrinsic">
+        <li className="cmv2-cadfor-pieza" data-qa-geometry-capacity="owned" data-rol="entrada">
           <b>cuota</b>
           <small>de la afijación del diseño</small>
         </li>
-        <li className="cmv2-cadfor-op" aria-hidden="true">÷</li>
-        <li className="cmv2-cadfor-grupo">
-          <span className="cmv2-cadfor-parentesis" aria-hidden="true">(</span>
-          <span className="cmv2-cadfor-pieza" data-rol="factor">
+        <li className="cmv2-cadfor-op" data-qa-geometry-capacity="owned" aria-hidden="true">÷</li>
+        <li className="cmv2-cadfor-grupo" data-qa-geometry-group="calc-muestra/cadena-formula-grupo" data-qa-geometry-contract="intrinsic">
+          <span className="cmv2-cadfor-parentesis" data-qa-geometry-capacity="owned" aria-hidden="true">(</span>
+          <span className="cmv2-cadfor-pieza" data-qa-geometry-capacity="owned" data-rol="factor">
             <b>{nombreDivisor.toLowerCase() === "aula típica" ? "aula típica" : nombreDivisor}</b>
             <small>
               alumnos por curso-horario ·{" "}
@@ -48,15 +53,15 @@ export function CadenaFormulaFacultad({
               )}
             </small>
           </span>
-          <span className="cmv2-cadfor-op" aria-hidden="true">×</span>
-          <span className="cmv2-cadfor-pieza" data-rol="factor">
+          <span className="cmv2-cadfor-op" data-qa-geometry-capacity="owned" aria-hidden="true">×</span>
+          <span className="cmv2-cadfor-pieza" data-qa-geometry-capacity="owned" data-rol="factor">
             <b>tasa de efectividad</b>
             <small>composición × razón O/E</small>
           </span>
-          <span className="cmv2-cadfor-parentesis" aria-hidden="true">)</span>
+          <span className="cmv2-cadfor-parentesis" data-qa-geometry-capacity="owned" aria-hidden="true">)</span>
         </li>
-        <li className="cmv2-cadfor-op" aria-hidden="true">→</li>
-        <li className="cmv2-cadfor-pieza" data-rol="salida">
+        <li className="cmv2-cadfor-op" data-qa-geometry-capacity="owned" aria-hidden="true">→</li>
+        <li className="cmv2-cadfor-pieza" data-qa-geometry-capacity="owned" data-rol="salida">
           <b>titulares</b>
           <small>las aulas que hay que visitar</small>
         </li>

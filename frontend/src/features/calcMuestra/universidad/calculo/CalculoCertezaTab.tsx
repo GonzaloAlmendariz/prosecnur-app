@@ -55,7 +55,16 @@ export function CalculoCertezaTab({
   );
 
   return (
-    <div className="cmv2-calc-certeza-tab" data-qa-geometry-group="calc-muestra/calculo-certeza">
+    <div
+      className="cmv2-calc-certeza-tab"
+      data-qa-geometry-group="calc-muestra/calculo-certeza"
+      /* Prosa y tabla no se igualan: dos secciones de texto y un panel de datos
+         tienen alturas y anchos propios por diseño. Sin declararlo, el grupo
+         cae en el contrato `equal` por defecto y el gate reportaba una deriva
+         de 1.149 px que no es un defecto — y un gate que grita donde no hay
+         nada deja de leerse. */
+      data-qa-geometry-contract="intrinsic"
+    >
       <section className="cmv2-calc-certeza-intro">
         <header>
           <ShieldCheck size={16} aria-hidden="true" />
