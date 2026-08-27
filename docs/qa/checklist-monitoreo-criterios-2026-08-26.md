@@ -416,9 +416,33 @@ escala con extremos conocidos, el color nunca como único portador):
 | `AulasEfectividadSeguimiento` | 1 | conforme |
 | **`AulasPiramideCuota`** | 0 → **1** | **era defecto, reparado** |
 | `AulasRitmoDiario` | 0 | **NO es defecto**, ver abajo |
-| `AulasBrechaEstratoChart` | 0 | pendiente de triaje |
-| `AulasEstadoChart` | 0 | pendiente de triaje |
-| `AulasCoberturaChart` | 0 | pendiente de triaje |
+| `AulasBrechaEstratoChart` | 0 propio | **conforme**: es Plotly |
+| `AulasEstadoChart` | 0 propio | **conforme**: es Plotly |
+| `AulasCoberturaChart` | 0 propio | **conforme**: es Plotly |
+
+### El inventario cierra: 1 defecto de 10, ya reparado
+
+Los tres que salían sin etiqueta son **exactamente** los tres que dibuja
+`PlotlyChart`, y ese envoltorio compartido **ya pone `role="img"` y
+`aria-label`** (líneas 237-238). Comprobado: los tres le pasan su `ariaLabel`
+—«Respuestas recogidas y brecha por estrato», «Cursos-horario por status de
+aplicación», «Cursos-horario por nivel de cobertura de su meta»—.
+
+Así que de los diez: **ocho ya estaban conformes**, uno es decorativo declarado
+y correcto (`AulasRitmoDiario`), y **uno era defecto y está reparado**
+(`AulasPiramideCuota`). El «5 sin etiqueta» del conteo era **1**.
+
+Y una trampa de medición propia por el camino: el patrón `Plot\b` no casa
+«PlotlyChart» —la frontera de palabra cae dentro del nombre—, así que el primer
+barrido dijo que ninguno era Plotly y estuve a punto de tratarlos como divs
+dibujados a mano.
+
+**Consecuencia para T9**: la parte de inventario está cerrada y los gráficos
+están sanos. Lo que queda es la parte que Gonzalo pidió y que sigue sin tocarse
+—«gráficos y diagramas adicionales útiles y un mejoramiento de los actuales»—,
+y para eso los candidatos ya identificados en este loop son **E7** (la tercera
+línea del diseño en `serieDeRendimiento`, que hoy dibuja observado y esperado
+bayesiano pero no lo que el diseño supuso) y **E5** (la proyección a dos tasas).
 
 ### El que sí era defecto
 
