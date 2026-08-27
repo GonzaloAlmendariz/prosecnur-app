@@ -198,3 +198,26 @@ test_that("por debajo de la cota no se descarta nada por cardinalidad", {
   expect_false("program" %in% attr(m, "balance_vars_descartadas"))
   expect_false("level" %in% attr(m, "balance_vars_descartadas"))
 })
+
+# El aviso de balance se recalcula aparte de la matriz, asi que las dos lecturas
+# de la misma regla pueden divergir: cuando la cota por cardinalidad entro, el
+# aviso seguia reportando solo las variables SIN VARIACION y callaba el descarte
+# que de verdad cambia el diseno del usuario. La capacidad existe solo si el
+# analista puede verla.
+test_that("el aviso nombra tambien lo descartado por cardinalidad, no solo lo constante", {
+  df <- .bs_estrato_ancho()
+  selector <- list(balance_vars = .bs_vars, spread_vars = list())
+  msg <- .cm_aulas_balance_descartadas_warning(df, selector, "cube_balanceado")
+
+  expect_length(msg, 1L)
+  expect_match(msg, "program")           # la que la cota descarta
+  expect_match(msg, "niveles|cardinal")  # y POR QUE se descarto
+  expect_match(msg, "faculty")           # las constantes se siguen declarando
+})
+
+test_that("sin descartes por cardinalidad el aviso no inventa ninguno", {
+  df <- .bs_estrato_ancho(n = 40L, niveles = 3L)
+  selector <- list(balance_vars = .bs_vars, spread_vars = list())
+  msg <- .cm_aulas_balance_descartadas_warning(df, selector, "cube_balanceado")
+  expect_false(any(grepl("niveles|cardinal", msg)))
+})
