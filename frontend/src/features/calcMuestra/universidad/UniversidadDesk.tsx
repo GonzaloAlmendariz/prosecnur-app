@@ -75,6 +75,7 @@ import { conRerandomizacionDelEstudio } from "./aulas/criterioRerandomizacion";
 import { AulasRerandomizacionTab } from "./aulas/AulasRerandomizacionTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
 import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
+import { escenarioEnVigor } from "./shared/escenarioEnVigor";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -484,7 +485,27 @@ export function UniversidadDesk({
   // pestañas muestran. `compActivo` se resuelve por el escenario del workspace
   // y las pestañas de Calculo por el del motor: cuando los dos difieren, el
   // editor enseña un numero y escribe en otro sitio.
-  const compCalculo = escenarioAulas === "e2" ? facultyComp : totalComp;
+  //
+  // Y los dos difieren hoy: `escenarioAulas` sale del store, que responde `e1`
+  // mientras nadie elija. Medido en HSVG 2026 el 2026-08-27: el sorteo sellado
+  // dimensiono con el componente de Facultades en las quince facultades y
+  // `motor_recorrido.decisiones` estaba vacio, con lo cual estas pestañas
+  // enseñaban el de Universidad y las fijaciones de la certificacion habrian
+  // aterrizado ahi —en el componente que el estudio NO usa—.
+  //
+  // El selector sigue leyendo el store (`seleccionarEscenarioAulas` compara
+  // contra lo declarado: si comparara contra lo inferido, elegir el escenario
+  // que ya rige seria un no-op y la decision nunca quedaria escrita).
+  const vigor = useMemo(
+    () => escenarioEnVigor({
+      workspace: syncedWorkspace,
+      componentes: [totalComp, facultyComp],
+      seleccion: aulasState?.selection ?? null,
+    }),
+    [syncedWorkspace, totalComp, facultyComp, aulasState?.selection],
+  );
+  const escenarioVigente = vigor.escenario;
+  const compCalculo = escenarioVigente === "e2" ? facultyComp : totalComp;
 
   const sexoBalance = useMemo(
     () => normalizeCalcMuestraSexoPorFacultad(
@@ -940,7 +961,7 @@ export function UniversidadDesk({
                 <CalculoCursosHorarioFacultadTab
                   componentes={[totalComp, facultyComp]}
                   currentFrameHash={aulasState?.frame?.frame_hash}
-                  escenario={escenarioAulas}
+                  escenario={escenarioVigente}
                   onEscenario={seleccionarEscenarioAulas}
                   marcoDesactualizado={marcoDesactualizado}
                   onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
@@ -954,7 +975,7 @@ export function UniversidadDesk({
               <CalculoDistribucionTab
                 componentes={[totalComp, facultyComp]}
                 currentFrameHash={aulasState?.frame?.frame_hash}
-                escenario={escenarioAulas}
+                escenario={escenarioVigente}
                 onEscenario={seleccionarEscenarioAulas}
               />
             </div>}
@@ -962,7 +983,7 @@ export function UniversidadDesk({
               <CalculoCertezaTab
                 componentes={[totalComp, facultyComp]}
                 currentFrameHash={aulasState?.frame?.frame_hash}
-                escenario={escenarioAulas}
+                escenario={escenarioVigente}
                 certeza={aulasState?.certeza ?? null}
                 certezaEnCurso={midiendoCerteza}
                 onMedirCerteza={onMedirCerteza}
