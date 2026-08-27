@@ -636,3 +636,30 @@ dentro de la página no lleva la cabecera de sesión y devolvió `selection: nul
 sobre un proyecto que sí la tiene. Es la misma trampa del `curl` sin sesión, en
 el navegador. Para leer estado desde la página hay que usar el cliente de la
 app, no un `fetch` crudo.
+
+### El relato está inalcanzable, y por la misma familia del `n_aulas`
+
+Abierta una copia limpia de `HSVG26ULT.pulso` —con su selección intacta— la
+pestaña Aulas · Relato **no muestra el relato**. En su lugar:
+
+> «La evidencia almacenada no acredita la comparación vigente. Existe una corrida
+> previa, pero difiere de la firma vigente en: `monte_carlo_n` (corrida 20 ·
+> vigente 500); **`n_aulas` (corrida 30 · vigente 165)**; `simulation_runs`
+> (corrida 20 · vigente 500). Vuelve a comparar sin publicar esa evidencia como
+> actual.»
+
+O sea que la superficie está guardada tras un chequeo de frescura que compara la
+firma de la corrida contra el config vigente, y falla en tres claves. Es la
+misma familia que la otra sesión persigue en `classroomHandoff.ts`: **el
+workspace guarda un `n_aulas` que no es el de la corrida**, y de ahí se apagan
+superficies enteras sobre artefactos correctos.
+
+Consecuencia para la verificación: el etiquetado del aviso de balance
+(`569905b9`) **no se pudo comprobar en pantalla sobre este proyecto**. Queda
+cubierto por su vitest, que fija el comportamiento con fixture —el aviso con
+`size_group` ya no entra en `ajustesTamano` y E6 sigue publicando la lista
+entera—, pero no por observación. Se declara como tal.
+
+Y hay un dato nuevo para esa reparación: el desajuste **no es sólo de `n_aulas`**.
+`monte_carlo_n` y `simulation_runs` también difieren (20 en la corrida contra 500
+vigentes), así que arreglar sólo el objetivo dejaría la superficie apagada igual.
