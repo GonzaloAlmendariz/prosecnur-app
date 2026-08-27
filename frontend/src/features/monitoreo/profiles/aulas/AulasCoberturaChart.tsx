@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import { PlotlyChart } from "../../../../lib/PlotlyChart";
-import { fuenteDeEjeAulas } from "./ejesDeAulas";
-import { COLOR_RESULTADO } from "../../coloresDeResultado";
+import { altoDeclarado, fuenteDeCifraEnBarra, fuenteDeEjeAulas } from "./ejesDeAulas";
+import { COLOR_ACUMULADO, COLOR_RESULTADO, tintaSobre } from "../../coloresDeResultado";
 import { coberturaPorAula } from "./coberturaPorAula";
 import { fmt } from "./kpisDeAulas";
 
@@ -28,7 +28,11 @@ import { fmt } from "./kpisDeAulas";
  * razon de ser del alto grande.
  */
 const ALTO_COMPACTO = 820;
-const ALTO_DEL_GRAFICO = { amplio: 360, compacto: 220 };
+/* El alto amplio lo declara la hoja (`--aulas-cobertura-alto`), porque el tope
+   de la lista de facultades se deriva de el y no puede haber dos copias. El 360
+   es solo el respaldo. El compacto no participa de la pareja —a esa altura se
+   apila— asi que se queda aqui. */
+const ALTO_COMPACTO_DEL_GRAFICO = 220;
 
 export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -90,6 +94,8 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
     );
   }
 
+  const rellenos = tramos.map((t) => COLOR_RESULTADO[t.tono]).reverse();
+
   const data = [{
     type: "bar",
     orientation: "h",
@@ -97,9 +103,16 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
     // peor, y lo que exige acción queda al pie, que es donde cae la vista.
     y: tramos.map((t) => t.etiqueta).reverse(),
     x: tramos.map((t) => t.aulas).reverse(),
-    marker: { color: tramos.map((t) => COLOR_RESULTADO[t.tono]).reverse() },
-    text: tramos.map((t) => (t.aulas ? String(t.aulas) : "")).reverse(),
+    marker: { color: rellenos },
+    // `String()` dejaba «1355» a dos centimetros del «1,259» del panel de al
+    // lado: el mismo numero en dos formatos. Va por el formateador de la casa.
+    text: tramos.map((t) => (t.aulas ? fmt(t.aulas) : "")).reverse(),
+    // «auto» deja que Plotly saque la cifra fuera cuando la barra es corta, y
+    // ahi el fondo es el papel, no el relleno. Por eso las dos tintas se
+    // declaran por separado en vez de forzar una sola.
     textposition: "auto",
+    insidetextfont: fuenteDeCifraEnBarra(rellenos.map(tintaSobre)),
+    outsidetextfont: fuenteDeCifraEnBarra(COLOR_ACUMULADO),
     hovertemplate: "%{y}: %{x} cursos-horario<extra></extra>",
   }];
 
@@ -115,7 +128,7 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
       <PlotlyChart
         data={data}
         // Plotly no crece con su fila: el alto va en la prop, no en el CSS.
-        height={compacto ? ALTO_DEL_GRAFICO.compacto : ALTO_DEL_GRAFICO.amplio}
+        height={compacto ? ALTO_COMPACTO_DEL_GRAFICO : altoDeclarado("--aulas-cobertura-alto", 360)}
         ariaLabel="Cursos-horario por nivel de cobertura de su meta"
         layout={{
           // La escala de eje del perfil, no el default compartido de Plotly.

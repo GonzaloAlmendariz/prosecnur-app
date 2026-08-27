@@ -25,6 +25,10 @@
  */
 .mon-profile-page.is-aulas-flow {
   --aulas-txt: 12px;   /* la lectura de cada grafico y el texto de una fila */
+  /* Alto del grafico de cobertura, y por tanto de la pareja de Avance. Vive
+     aqui y no en el TSX porque su vecino —el tope de `.aulas-facultades-scroll`—
+     se deriva de el: una sola fuente para los dos lados de la pareja. */
+  --aulas-cobertura-alto: 360px;
   --aulas-sec: 11px;   /* leyenda, tabla, pie */
   --aulas-min: 10px;   /* ejes, marcas y rotulos micro */
 }
@@ -2212,10 +2216,17 @@
  * `capacity-drift` de 380 px. Se acota quien impone el alto, que es la lista.
  * El envoltorio es el dueño declarado de su scroll, así que no es una jaula. */
 .mon-profile-page.is-aulas-flow .aulas-facultades-scroll {
-  /* 400 px son nueve facultades y pico; con el grafico vecino a 360 los dos
-   * paneles quedan a la par. Medido: 311 vs 654 antes, y el hueco era de 343
-   * incluso tras el primer recorte. */
-  max-height: 400px;
+  /* El tope NO es un numero elegido: es el del grafico vecino mas la diferencia
+     de lo que cada panel lleva alrededor. Estaban a mano —400 aqui y 360 en el
+     TSX del grafico, en archivos que no se referencian— y por eso se descasaron:
+     al sumarse la linea «15 facultades · 0 con su meta cumplida» el escalon entre
+     los dos paneles de la pareja fue de 31 px, que es justo lo que se ve.
+
+     Los +10 son la cuenta: el pie del grafico (26) y su hueco (6) menos la
+     lectura de la lista y los suyos (22). Si alguien mueve el alto del grafico,
+     este tope se mueve solo; si mueve el pie o la lectura, tiene que tocar este
+     numero, y el comentario dice por que. */
+  max-height: calc(var(--aulas-cobertura-alto) + 10px);
   overflow-y: auto;
   min-height: 0;
   /* Sitio para la barra, o la última columna queda debajo de ella. */
@@ -2242,6 +2253,19 @@
   display: grid;
   gap: 1px;
   min-width: 0;
+  /* Es un <button>, y el user-agent lo centra. Cada facultad arrancaba en una x
+     distinta —«DERECHO» en 736, «ESTUDIOS GENERALES LETRAS» en 687— y la columna
+     se leia como un bloque irregular en vez de como una lista.
+
+     Hacen falta las TRES, y `justify-content` es la que de verdad lo arregla:
+     `text-align` gobierna el texto dentro de su linea, `justify-items` coloca
+     cada hijo dentro de la columna del grid —medido: con solo esas dos el
+     rotulo ya encogia a su contenido pero seguia desplazado—, y
+     `justify-content` es la que coloca LA COLUMNA dentro del boton. El centrado
+     estaba en esta ultima. */
+  justify-content: start;
+  justify-items: start;
+  text-align: left;
   /* Los nombres largos se salian de la caja. `min-width: 0` deja que la celda
      se encoja, pero sin esto el CONTENIDO sigue pintandose fuera. */
   overflow: hidden;
@@ -2250,14 +2274,34 @@
   font-weight: var(--pulso-weight-medium);
 }
 
-/* Nombre y cuenta, cada uno en una linea y con elipsis. Sin `nowrap` el nombre
-   envolveria a dos lineas y la fila creceria: el marco no puede depender del
-   largo del nombre de una facultad (C2). */
-.mon-profile-page.is-aulas-flow .aulas-facultad-rotulo,
+/* El conteo de abajo si cabe en una linea y se corta con puntos. El nombre ya
+   no: ver la regla siguiente y su motivo. El marco sigue sin depender del largo
+   del nombre porque quien acota la altura es `.aulas-facultades-scroll`, no la
+   fila (C2). */
 .mon-profile-page.is-aulas-flow .aulas-facultad-nombre em {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+}
+
+/* El nombre de la facultad, en cambio, no puede cortarse en una linea: en 190 px
+   «ESTUDIOS GENERALES LETRAS» y «ESTUDIOS GENERALES CIENCIAS» quedaban las dos
+   como «ESTUDIOS GENERALES ...» —dos filas con cifras distintas y el mismo texto
+   visible, imposible saber cual es cual—. Dos lineas dejan ver la palabra que
+   las separa, y las cortas siguen ocupando una sola. */
+.mon-profile-page.is-aulas-flow .aulas-facultad-rotulo {
+  /* Medido: el computado del rotulo era `nowrap` y NINGUNA regla que le case lo
+     declara —viene heredado de un ancestro fuera de esta hoja—. Por eso hay que
+     reponerlo aqui de forma explicita en vez de darlo por normal. */
+  white-space: normal;
+  /* `-webkit-box` con line-clamp no sirve aqui: el rotulo es item de un grid y
+     el navegador blockifica ese display —queda en `flow-root`— dejando el clamp
+     inerte. Dos lineas de alto con el sobrante oculto hacen el mismo trabajo sin
+     depender de un display que el layout puede reescribir. */
+  line-height: 1.2;
+  max-height: 2.4em;
+  overflow: hidden;
   min-width: 0;
 }
 
@@ -2280,13 +2324,27 @@
   height: 100%;
 }
 
+/* **La cifra se apila sobre su rótulo, y no se parte nunca.**
+   Iban en la MISMA fila flex dentro de una pista de 128 px —«7,006» más
+   «respuestas faltan · 3%»— así que el `strong` se encogía por debajo de su
+   contenido y el número **se partía a mitad**: en pantalla se leía «7,00» y
+   debajo «6». Un número roto en dos líneas no es un número.
+
+   Apilados caben los dos, y alineados a la derecha la columna se recorre con el
+   ojo, que es lo que `tabular-nums` promete y el flex impedía. */
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  min-width: 0;
   color: var(--pulso-text);
   font-size: var(--aulas-txt);
   font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.mon-profile-page.is-aulas-flow .aulas-facultad-cifra strong {
+  white-space: nowrap;
 }
 
 .mon-profile-page.is-aulas-flow .aulas-facultad-cifra em {
