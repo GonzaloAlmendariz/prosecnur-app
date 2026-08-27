@@ -1,0 +1,86 @@
+# Checklist — las siete decisiones de Gonzalo y la cola del loop de cobertura
+
+Fecha de apertura: 2026-08-27. Doc vivo: se marca conforme se cierra cada ítem
+y **sólo Gonzalo lo da por terminado**.
+
+## La vara
+
+Gonzalo, textual (2026-08-27):
+
+> «cada uno de ellos no sólo es una comprobación e implementación en el backend,
+> también lo es en el frontend»
+
+Un ítem se cierra cuando el usuario **puede ver el efecto o tomar la decisión
+desde la pantalla**, no cuando el motor está reparado y el test verde. Todo ítem
+cerrado en backend se reabre con su mitad front hasta que esa mitad exista.
+
+Y la regla de evidencia, también suya:
+
+> «valida todo, no solo des por confirmar las cosas, porque sí, y validalas
+> siempre desde la aplicación misma»
+
+## Las siete decisiones
+
+| # | Decisión (textual de Gonzalo) | Dónde vive | Backend | Frontend | Estado |
+|---|---|---|---|---|---|
+| 1 | «Lo segundo» — la comparación de métodos no es prerrequisito para **leer** una selección ya hecha, sólo para ejecutar una nueva | `aulas/aulasSurfaceState.tsx` | — | `eae20369` | ☑ **cerrada** |
+| 2 | «Si ratifica» — ADR 0080, el workspace se resella entero | `docs/adrs/0080-…md` | — | — | ☑ **cerrada** `f233cc8c` (Ratificado + mordidas 6 y 7) |
+| 3 | «Verificar como se hizo en el archivo ULT, entiendo que allí cada una fue 1000 corridas» | `calc_muestra_aulas_certeza.R` · `CertezaCoberturaPanel.tsx` | medido | `10ef2c7e` | ◐ **medida, falta su decisión** — pidió 1.000 y corrió **144–1.000**; 9 facultades sí hicieron las mil, 6 no. La pantalla ya dice cuántas hizo cada una. **Bloqueada en**: elegir entre dejar la fórmula `1000 × 60 / aulas` o pasar a presupuesto de tiempo |
+| 4a | «se muda a cálculo» — el editor de afijación | `aulas/AulasObjetivoTab.tsx` · `aulas/CertificacionFacultadCard.tsx` | — | — | ☐ **pendiente** — avisar antes a la sesión `infallible-mayer-024785-cb`, que tiene ese archivo |
+| 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
+| 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/certificacionAcciones.ts` · Selección | — | — | ☐ **pendiente** |
+| 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R` · workspace | — | — | ☐ **pendiente** — el dato está bien y el estadístico ya se declara (`estadistico = p25`); lo que engaña es el nombre del campo |
+| 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
+| 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ☐ **pendiente** |
+
+## La cola del loop de cobertura
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| D1 | El agregador de aulas de certeza | `aulas/CertificacionFacultadCard.tsx:130` | ◐ acción añadida donde aparece el hallazgo (`b2e04be1`); **sigue abierto** dónde vive el editor — es la decisión 4a |
+| D2 | La certeza no limpiaba `faculty_targets` y sorteaba la selección, no el marco | `calc_muestra_aulas_certeza.R` | ☑ los dos lados: `8ed2f0a3` + `042be9d8` |
+| D3 | La búsqueda no evaluaba el candidato que nombra | — | ☑ es D2, no era defecto aparte |
+| D4 | `promedio_conglomerado` guarda el P25 | workspace | 🔒 más suave de lo dicho: sólo el nombre engaña — es la decisión 5 |
+| D5 | `.cm_certeza_corridas` escala por marco, no por precisión | `calc_muestra_aulas_certeza.R` | ◐ front cerrado (`10ef2c7e`: se ven las corridas y el ruido); **cuántas correr decide Gonzalo** — es la decisión 3 |
+| D6 | El landing del cubo se colgaba con muchas columnas de balance | `calc_muestra_aulas_balance_saneo.R` | ☑ `a288a0d5`, `dadf4547`, `569905b9` |
+| D7 | `program` en `balance_vars` degeneraba el cubo | idem | ☑ neutralizado y declarado en pantalla con su cifra |
+| D8 | Las cuatro rutas de aulas resolvían el config distinto | `calc_muestra_aulas_config_fusion.R` | ☑ `17ac55d9` — era la raíz de D2 vista desde el config |
+| F1 | `seed` sin control en la UI | `aulas/AulasObjetivoTab.tsx:329` | ☑ **falso** — el control existe como `semilla`. NO construirlo |
+| F2 | `balance_vars` sin control | `aulas/VariablesBalanceControl.tsx` | ☑ `fa500edd` — falta verlo en pantalla |
+| F3 | `coverage_weight` y `pps_weight` sin control | `calc_muestra_aulas_cube_determinista.R` | ☑ medido (`84727850`): con el motor vigente sólo anotan un score; sólo deciden con `pool_controlado`. Construir el control es decisión de producto, no defecto |
+| B1 | Rerandomización: falta el bucle y el criterio | — | ☐ es la decisión 6 |
+| B2 | Matriz por CH y facultad con sexo | `calc_muestra_aulas_export_workbook.R` | ☑ `e3330224` — hoja «Sexo por facultad» |
+| B3 | Base de contactos de docentes titulares | — | ☐ pendiente |
+| B4 | Sustento metodológico como documento, no hoja de Excel | — | 🔒 **bloqueado** — es la decisión 7 |
+| B5 | El libro de tres dimensiones | — | ☑ ya existía; cerrado por la sesión de Monitoreo |
+
+## Fuera de la lista, por pedido urgente suyo
+
+| Ítem | Estado |
+|---|---|
+| «Necesito que lo repares porque la otra sesión está validando monitoreo y necesita tener las 174 aulas reales del sorteo» — la corrida no se publicaba por diferir en cantidad | ☑ `bcb33dff` + `0bfe6d27`: ahora decide la identidad y la cantidad se declara |
+
+## Lo aprendido en los que aún no se tocan
+
+- **4a**: el mecanismo existe entero (`estratosConAulaExtra`, `estratosConAjusteAula`,
+  `fijasPendientes`) y el stepper ±1 está en `CertificacionFacultadCard.tsx:252-261`.
+  **La causa** de que no se pueda usar es la línea 130: `if (!certificacion) return null`.
+  Sin certificación corrida no hay forma de subir aulas desde la pantalla. En
+  `AulasObjetivoTab.tsx:87-95` el número se muestra pero es de sólo lectura.
+- **5**: `alumnos_por_ch_decision.estadistico = p25` sí está registrado y confirmado
+  por el usuario. El P25 coincide exacto en las 15 facultades; la media difiere
+  hasta 12 puntos (EGC 52,9 real contra 46,5 declarado).
+- **6**: de 50 sorteos sólo **25** cerraban las 30 celdas; cobertura mínima mediana
+  **0,998**; la elegida fue semilla **202** con cobertura mínima **1,079**.
+
+## Trampas que costaron un ciclo
+
+- **Declarar una pestaña en el catálogo no la hace visible.** El strip la consume
+  desestructurando por posición y descarta el resto en silencio. Cerrado con test
+  de paridad en `universidadTabs.test.ts`, para las cuatro secciones.
+- **Tres contadores separados** cuentan las pestañas: `catalogos.test.ts`,
+  `manifiesto.test.ts` y `modulesNavigation.test.ts`. Los tres suben juntos.
+- **Vitest da rojos falsos con el dev server arriba**: tres contratos que leen
+  disco se pasan de los 5 s. Corridos solos, verdes.
+- **Un `state.rds` extraído es una foto y el `.pulso` sigue vivo.** Comparar
+  timestamps antes de medir.
