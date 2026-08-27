@@ -482,6 +482,79 @@ gráficos sin etiqueta dan 1 confirmado y 3 por triar.
   `aulas_libro_hoja_aplicadas()`, `aulas_libro_hoja_control()`, por
   `POST /api/monitoreo/aulas/generar-libro`. T7 lo audita, no lo construye.
 
+## E7 — la tercera altura de la serie diaria ☑ hecho (2026-08-27)
+
+La serie de rendimiento tenía **dos** alturas por día: el techo de elegibles y
+lo conseguido. Comparaba el campo consigo mismo y con la media del estudio,
+nunca contra la vara con la que se dimensionó. Entra la tercera.
+
+**De dónde sale, y por qué no de `tau_previsto`.** El encargo decía tomar la τ
+prevista de `efectividad_seguimiento`, y eso habría sido un error de unidades:
+el eje son **encuestas por aula** y τ es una **tasa**. La vara correcta es
+`expected_valid` del plan, que para las aulas del diseño ya es
+`eligible_n × rendimiento_ref × factor_facultad` —la misma τ, aplicada a esa
+aula— y viene del par plan+parte, sin cruzar fuentes.
+
+**La trampa que casi repito.** `expected_valid` colapsa tres cosas y el motor lo
+declara en `meta_origen`:
+
+| origen | qué es | ¿sirve de vara? |
+|---|---|---|
+| `diseno` | lo que el cálculo de muestra computó | **sí** |
+| `declarada` | lo que alguien escribió a mano | no |
+| `elegibles` | el techo, puesto porque no había meta | **no**: es el techo |
+
+Promediarlas daría una vara que en parte es el techo, y dibujada pegada al techo
+se leería como que el diseño esperaba el 100 %. Es literalmente el defecto que
+`api/R/monitoreo_aulas_universitarias.R:496` ya documenta —«la pantalla decía "la
+meta que el cálculo de muestra calculó" sobre filas que no venían de ningún
+diseño»—. Se filtra por origen y **el promedio se toma sobre las que tienen
+vara**, no sobre todas las del día.
+
+**La fixture no la sembraba.** `qa_pulso_aulas_campo.R` escribía `expected_valid`
+pero nunca `efectivas_esperadas` ni `meta_origen`, así que toda derivaba a
+`declarada` y la vara no se dibujaba en **ninguna** pantalla de QA. Medido en el
+proyecto real: las 1512 filas del plan son `diseno`, razón meta/elegibles 0,41 a
+0,80 por facultad, y **174 titulares** —la cifra vuelve a salir sola desde una
+extracción fresca—. La fixture ahora siembra en ese rango, variando por facultad
+y dejando una de cada nueve sin vara para que el día mezclado se vea.
+
+**Un defecto propio, cazado mirando.** La vara empezó siendo una raya punteada
+gris. En este gráfico **ya hay otra punteada gris** —el esperado—, o sea dos
+cosas distintas con el mismo trazo y una sola en la leyenda. Se reencuadró: la
+barra va en dos tonos y el relleno es la señal primaria; la raya queda de
+refuerzo. Y el gráfico, que **no tenía leyenda**, ahora nombra los cuatro
+trazos, incluido el esperado, que llevaba dibujado desde siempre y sólo se
+explicaba en el pie tres bandas más abajo.
+
+**Verificado en pantalla** (fixture de campo, `avance > rendimiento`): 17 de 21
+facultades declaran la mezcla («en 7 de 8 aulas») y la vara va de **11 a 22**
+según la facultad —un número fijo no habría servido de nada—. Gate: 211
+archivos, 1.780 pass, typecheck limpio; los tres tests nuevos se vieron rojos
+quitando el filtro de origen.
+
+**Lo que queda sin ver en pantalla**: la rama de ausencia total («el plan no trae
+la meta del diseño de estas aulas»). Ninguna facultad de la fixture se queda a
+cero, así que sólo la cubre el test unitario.
+
+**Latente, no tocado**: `metaDeLoVisitado` —la meta del gráfico *acumulado*— suma
+`expected_valid` **sin mirar el origen**. En el proyecto real da igual porque las
+1512 son `diseno`, pero sobre un plan con metas a mano o sin meta inflaría la
+meta con techos. No se cambia aquí porque alteraría el acumulado y merece su
+propia medición.
+
+### Séptima advertencia sobre los conteos, y una octava sobre el arranque
+
+- `Plot\b` **no casa «PlotlyChart»**: la frontera de palabra cae dentro del
+  nombre. El primer barrido concluyó que ninguno de los tres gráficos restantes
+  era Plotly. Un patrón que no encuentra nada puede estar mal escrito.
+- **`/api/system/bootstrap` se consume en la primera lectura**
+  (`router_sistema.R:213`). Usarlo como sonda de «¿ya arrancó?» se lo come antes
+  de que el SPA lo pida, y la app se queda en el BootGate sin que nada falle.
+  Para esperar a la API va `/api/system/diagnostic`, que no consume nada.
+- Y lo ya anotado: el dev server escucha en **IPv6**, así que `127.0.0.1:5291`
+  da 000 y `localhost:5291` da 200.
+
 ## Decisiones que esperan a Gonzalo
 
 1. **Cinco del libro de agendación**, abiertas desde el 2026-08-20 en
