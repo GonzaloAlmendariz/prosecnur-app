@@ -73,6 +73,7 @@ import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { AulasAvanceParaCliente } from "./AulasAvanceParaCliente";
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { avanceCuota } from "./avanceCuota";
 import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
@@ -1997,6 +1998,30 @@ function renderAulasView(
         <AulasConsumoDelBanco
           filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
           diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
+          facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
+        />
+      </section>
+      )}
+      {pestana !== "cuotas" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* La tabla que se le enseña al cliente, y la misma que va al PDF y a
+              la hoja «Cómo va el campo» del libro: un contenido en tres
+              soportes. Va PRIMERO en la pestaña porque es la lectura de
+              conjunto; el detalle celda a celda viene después. */}
+          <h3>El avance que ve el cliente</h3>
+          <span>contra la cuota del diseño, por sexo</span>
+        </div>
+        <AulasAvanceParaCliente
+          avanceCuota={dashboard.avance_cuota}
+          celdasSexo={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+          efectividad={dashboard.efectividad_seguimiento}
+          avancePorFacultad={(dashboard.avance_por_facultad ?? []) as MonitoreoRow[]}
           facultadEnFoco={facultadEnFoco}
           onFoco={onFoco}
         />

@@ -43,7 +43,7 @@ function fuentesDelFrontend(dir: string, acc: string[] = []): string[] {
 
 describe("el CSS del perfil no estila clases que ya no existen", () => {
   it("cada clase propia que declara la hoja la usa algún componente", () => {
-    const css = ["aulasMonitoreo.css", "registroDeCampo.css", "efectividadSeguimiento.css"]
+    const css = ["aulasMonitoreo.css", "registroDeCampo.css", "efectividadSeguimiento.css", "avanceParaCliente.css"]
       .map((f) => readFileSync(join(AQUI, f), "utf-8")).join("\n");
     const declaradas = new Set(
       [...css.matchAll(/\.((?:aulas|registro-campo)[a-z0-9-]*)/g)].map((m) => m[1]),
