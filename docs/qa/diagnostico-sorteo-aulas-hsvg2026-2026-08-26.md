@@ -237,3 +237,68 @@ degradado a `suma_elegibles`, `docente_unico` (246 docentes distintos en
 Derecho, no topa en 20), el descuento secuencial (su greedy daría 1 694 únicos
 con 40 aulas, no 693) y la asignación por estrato (con un solo estrato devuelve
 `n_total` correctamente).
+
+## El costo del landing del cubo, medido (2026-08-27)
+
+El encargo traía la hipótesis de que el landing «desborda el entero de R en
+q≥31 y produce NA en silencio». **No es eso.** Medido sobre
+`.cm_aulas_samplecube_estable` con 60 aulas y cuota 20, variando el número de
+columnas de balance:
+
+| columnas | resultado | segundos |
+|---|---|---|
+| 4 | 20 índices | 0,1 |
+| 12 | 20 índices | 0,2 |
+| 16 | 20 índices | 1,4 |
+| 20 | 20 índices | **29,2** |
+| 24 | no terminó | **930,3** |
+
+El costo crece como 2^q, como corresponde a la enumeración del aterrizaje. Dos
+consecuencias que no estaban anotadas:
+
+1. **No falla: se cuelga.** El `tryCatch` de `.cm_aulas_samplecube_estable` sólo
+   atrapa `error`, y acá no hay error.
+2. **Un timeout no lo rescata.** `R.utils::withTimeout(..., timeout = 45)` no
+   pudo interrumpirlo y el caso corrió 930 s, porque el trabajo ocurre en código
+   compilado que no atiende interrupciones. Cualquier guarda tiene que ir
+   **antes** de entrar al landing.
+
+### Cuántas columnas tiene el caso real
+
+`balance_vars` del proyecto guardado: `faculty, sex_top_1, size_group, program,
+level`. Los niveles distintos sobre las 1 512 aulas del marco:
+
+| variable | niveles | columnas |
+|---|---|---|
+| faculty | 15 | 14 |
+| sex_top_1 | 2 | 1 |
+| size_group | 4 | 3 |
+| **program** | **1 049** | **1 048** |
+| level | 11 | 10 |
+
+El saneo por columna (`.cm_aulas_balance_matrix_saneada`) descarta las variables
+**sin variación** dentro del estrato, que es lo que documenta su cabecera, pero
+**no acota por cardinalidad**. Aplicándolo de verdad sobre los 76 estratos del
+marco:
+
+- mediana **9** columnas, máximo **146** (DERECHO | F | G4, 220 aulas)
+- **18 de 76 estratos superan las 20 columnas**, y 24 ya no termina
+
+Los diez peores van de 38 a 146 columnas. Con la curva medida arriba, esos
+estratos no completan un sorteo.
+
+**Es el síntoma con el que abrió esta sesión**: el sorteo colgado en Gestión y
+Psicología. Se resolvió sacando `program` de `balance_vars`, pero **el proyecto
+guardado sigue declarándolo**, así que quien reabra `HSVG26ULT.pulso` y vuelva a
+sortear se encuentra el mismo cuelgue.
+
+**La reparación** es una cota previa sobre el número de columnas de balance por
+estrato, que falle con `stop_api` y nombre la variable culpable antes de entrar
+al landing. El umbral sale de la medición: 16 columnas es instantáneo, 20 cuesta
+29 s por sorteo, y la certificación hace 205 sorteos por candidato. La norma ya
+está escrita en el propio repo, en `.cm_aulas_quota_estratos`: «Config
+contradictoria -> se falla FUERTE, no se traga en silencio».
+
+**No medido:** no se re-corrió el sorteo con el config guardado, porque por
+construcción no terminaría. La afirmación de que colgaría es inferencia sobre
+la curva, no observación.
