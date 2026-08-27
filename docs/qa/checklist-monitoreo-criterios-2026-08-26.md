@@ -212,6 +212,60 @@ Las tres se deshacen mirando la ESTRUCTURA en vez del texto: nodos hoja, su
 cadena de padres y su unidad. **Un número sin su estructura no se puede
 juzgar**, igual que no se puede sin su unidad.
 
+## De dónde salen los 174, medido (2026-08-26)
+
+Gonzalo: «no me explico por qué hay 165, deberían de haber 174». La respuesta
+está en el propio proyecto, y **no es la que ninguno de los dos suponía**.
+
+Los dos MDs del 25-08 (`Revision_muestra_Ramiro`, `Revision_calculo_Kamila`) no
+traen esta derivación: el único «174» que aparece es la población de Ciencias y
+Artes de la Comunicación, coincidencia.
+
+Lo que sí la trae es el artefacto de certeza que el proyecto guarda
+(`calc_muestra_aulas_certeza`, schema `…cobertura_v1`, nivel 0,95, engine cube
+balanceado):
+
+| | Aulas |
+|---|---|
+| Fórmula | **165** |
+| Certeza | **167** |
+| Σ max(fórmula, certeza) por facultad | **173** |
+| **Titulares realmente seleccionados** | **174** |
+
+**La certeza NO lleva de 165 a 174: lleva a 167.** Y no lo hace sumando: baja
+en unas facultades y sube en otras (de −3 a +2, con 6 estratos cortos).
+
+### La regla que sí explica el 174
+
+Comparando facultad por facultad, la selección sigue **`max(fórmula, certeza)`**:
+donde la certeza pide más, manda la certeza; donde pide menos, se conserva la
+fórmula. Es decir, **la certeza puede añadir aulas pero no quitarlas**.
+
+Eso da 173. Los cuatro sitios donde la fórmula se impuso sobre una certeza más
+baja son Arquitectura (8 contra 7), Arte y Diseño (15 contra 13), Ciencias e
+Ingeniería (37 contra 34) y —al revés— Derecho.
+
+### La excepción: un aula en Derecho
+
+**DERECHO es la única facultad que no sigue la regla**: fórmula 16, certeza 18,
+máximo 18, y **titulares 19**. Un aula por encima de las dos varas.
+
+Ese +1 es el que separa 173 de 174, y **no tiene origen documentado**. Puede ser
+un ajuste operativo deliberado —Derecho es de las facultades con cadena más
+profunda— pero hoy no lo dice ningún artefacto del proyecto.
+
+### Qué significa para el pase a Monitoreo
+
+El criterio de Gonzalo —«lo que declare el cálculo de muestra es lo que
+monitoreo utiliza»— se sostiene igual: `selector.faculty_targets` **suma
+exactamente 174** y esos son objetivos declarados por facultad, no un accidente
+del sorteo. Lo que hace falta es que la pantalla deje de mostrar 165 como «lo
+que pide el cálculo» cuando el cálculo, con certeza aplicada y sin recortes,
+pide 173 y se ejecutaron 174.
+
+**Pendiente de Gonzalo**: confirmar la regla «la certeza añade pero no quita» y
+explicar el aula de más de Derecho, o quitarla.
+
 ## Lo que ya está cerrado y no se rehace
 
 - Seguimiento de τ (ADR 0082): motor, tabla, disparador por margen, backtest
