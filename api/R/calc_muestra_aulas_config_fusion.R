@@ -46,3 +46,29 @@ calc_muestra_aulas_config_fusionar <- function(vigente, entrante) {
   }
   out
 }
+
+#' El config con el que una ruta de aulas debe trabajar.
+#'
+#' La resolucion vivia INLINE en cada ruta y AL REVES entre ellas:
+#' `/aulas/certeza` como `s$calc_muestra_aulas_config %||% frame$config` y
+#' `/aulas/seleccionar` como `frame$config %||% s$...`. Con `%||%` la primera
+#' lista no vacia gana ENTERA y la otra se descarta completa, asi que no se
+#' preferia una clave: se perdia todo el resto.
+#'
+#' Medido sobre HSVG2026 el 2026-08-27: los dos configs difieren en 24 de 715
+#' claves, y la divergencia cae justo en `selector$faculty_targets`, que la
+#' sesion trae con las 15 facultades y el marco no trae. Cada ruta recibia el
+#' que NO le sirve —certeza heredaba unos targets que debe ignorar, y por eso su
+#' curva salia plana; seleccionar no veia unos que si debe respetar, y el
+#' frontend acabo inyectandolos en el body de cada peticion—.
+#'
+#' Orden: el marco es la base, la sesion manda sobre el, y el body manda sobre
+#' los dos. Lo ausente hereda en cada paso, que es el contrato que este archivo
+#' ya declara y prueba.
+#'
+#' @keywords internal
+.cm_aulas_config_vigente <- function(session_config, frame_config, body_config = NULL) {
+  base <- calc_muestra_aulas_config_fusionar(frame_config %||% list(), session_config %||% list())
+  if (is.null(body_config) || !length(body_config)) return(base)
+  calc_muestra_aulas_config_fusionar(base, body_config)
+}
