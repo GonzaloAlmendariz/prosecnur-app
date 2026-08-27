@@ -15260,12 +15260,12 @@ button.mon-territorial-ump-audit-scrim {
 }
 
 .mon-field-occurrences-flow span.is-ready {
-  border-color: color-mix(in srgb, var(--pulso-success) 34%, var(--pulso-border));
-  background: color-mix(in srgb, var(--pulso-success) 8%, #fff);
+  border-color: color-mix(in srgb, var(--pulso-success-fg) 34%, var(--pulso-border));
+  background: color-mix(in srgb, var(--pulso-success-fg) 8%, #fff);
 }
 
 .mon-field-occurrences-flow span.is-ready svg {
-  color: color-mix(in srgb, var(--pulso-success) 72%, var(--pulso-text));
+  color: color-mix(in srgb, var(--pulso-success-fg) 72%, var(--pulso-text));
 }
 
 .mon-field-occurrences-actions {
