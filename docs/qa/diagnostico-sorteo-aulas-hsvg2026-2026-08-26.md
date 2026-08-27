@@ -844,3 +844,33 @@ código y buscando por el vocabulario equivocado; cada vez que se fue a construi
 y primero se verificó, apareció la capacidad ya hecha. La regla que queda es la
 que ya estaba escrita en el repo y no se aplicó al hacer el audit: verificar
 dónde vive algo antes de declarar que no existe.
+
+### La hoja de sexo, verificada con datos reales
+
+Generado el libro completo desde el estado del proyecto: 26 hojas, con «Sexo por
+facultad» en sexto lugar, tras las de selección y antes de la auditoría.
+
+Las 15 facultades salen con `estado = medido`, las ocho columnas numéricas son
+numéricas, y **la brecha publicada coincide con la resta de las dos proporciones
+en 15 de 15**. Lo que la hoja hace visible:
+
+| facultad | marco | seleccionado | brecha |
+|---|---|---|---|
+| CIENCIAS CONTABLES | 51,9 % | 40,0 % | **−11,9 pp** |
+| ARTES ESCÉNICAS | 61,5 % | 53,7 % | −7,7 pp |
+| CIENCIAS E INGENIERIA | 25,0 % | 27,7 % | +2,7 pp |
+
+Es exactamente lo que el agregado global esconde: el eje sexo cuadra en el total
+y Ciencias Contables ofrece doce puntos menos de mujeres que su propio marco.
+
+**Aviso de método**: al leer la salida por primera vez pareció que la brecha no
+cuadraba —Artes Escénicas con marco 0,6147 y titulares 0,4000 contra una brecha
+de −11,9—. Era una lectura mal alineada: la tabla impresa se partió y se
+emparejó el marco de una facultad con los titulares de la siguiente. Medido
+columna contra columna, las quince cuadran. Antes de reportar un número que no
+cuadra, comprobar que se están leyendo las dos celdas de la misma fila.
+
+**Queda una opción de legibilidad, no un defecto**: las proporciones van en
+crudo (0,6147) y la brecha en puntos porcentuales. Es consistente con el nombre
+de cada columna, pero obliga a convertir mentalmente para cotejarlas. Si conviene
+publicarlas como porcentaje es decisión de Gonzalo.
