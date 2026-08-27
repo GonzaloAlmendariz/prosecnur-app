@@ -36,7 +36,7 @@ Y la regla de evidencia, también suya:
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
-| 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ☐ **pendiente** |
+| 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ◐ **inventariada** — el contenido de los 11 capítulos ya existe; falta el ensamblador. Ver abajo |
 | 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R` · `calculo/TitularesFacultadEditor.tsx` | `1b37a151` | `1b37a151` | ☑ **cerrada y vista en pantalla** — el nombre entra como VALOR del origen, no como campo, así que no choca con `aulas_extra_operativas` |
 
 ## Decisión 3, evaluada — tiempos medidos, no estimados
@@ -263,6 +263,45 @@ handlers del stepper; ahora está reparada en el repartidor. Explica además el
 | Ítem | Estado |
 |---|---|
 | «Necesito que lo repares porque la otra sesión está validando monitoreo y necesita tener las 174 aulas reales del sorteo» — la corrida no se publicaba por diferir en cantidad | ☑ `bcb33dff` + `0bfe6d27`: ahora decide la identidad y la cantidad se declara |
+
+## Decisión 7 — el inventario dice que falta el ensamblador, no el contenido
+
+Gonzalo: «el que crea la app debe ser más general pero de todas formas
+considerar a detalle todo lo que escribimos en el de las 23 páginas y nuestro
+motor tiene esa información». Mapeados los once capítulos contra la app,
+comprobando cada uno en el código en vez de suponerlo:
+
+| Cap. | Contenido | Dónde vive hoy |
+|---|---|---|
+| 1 | Quiénes entran al estudio | Marco › Criterios · el embudo (`EmbudoComparadoFacultades`) |
+| 2 | Qué aulas pueden usarse | Marco › Aulas · criterios del marco |
+| 3 | Cuántas encuestas necesita | Cálculo › Diseño (`CalculoDisenoTab`, la fórmula con sus supuestos) |
+| 4 | **τ: cuántas encuestas produce un aula** | **SÍ existe descompuesto**: el motor publica `rendimiento_mix` y `factor_residual` (`calc_muestra_aulas_efectividad.R:316`) y la pantalla los muestra con una guarda que sólo desglosa si el producto cuadra (`tasaFacultadModel.ts:115`) |
+| 5 | Cuántas aulas hacen falta | Cálculo › Cursos-horario requeridos · `CadenaFormulaFacultad` |
+| 6 | Cuáles aulas y por qué esas | Selección › Relato, siete escenas (ADR 0067) |
+| 7 | Las cuotas por sexo | `sexo_por_facultad` · hoja del libro (`e3330224`) |
+| 8 | Qué hacer cuando un aula no se aplica | Selección › Reemplazos |
+| 9 | Criterios para el campo y su monitoreo | **En Monitoreo, no en Cálculo**: `AulasCriterioDeAula`, `AulasPronosticoDeCierre`, `alcanceDelBanco`, `agendamiento`, `tiemposDeRespuesta` |
+| 10 | Contraste con la propuesta técnica | `SalidasCoincidenciaTab` |
+| 11 | Cómo reproducir la selección | Relato › cierre (motor, semilla, hash) |
+
+**El contenido de los once capítulos ya existe en la app.** Lo que no existe es
+el **documento**: el relato vive en pantalla y no se exporta, y el contenido del
+capítulo 9 vive en otro módulo. `paqueteDefensa.ts` empaqueta artefactos con su
+huella, pero no redacta.
+
+**Eso reencuadra la decisión 7**: no es escribir un motor de contenido, es
+escribir un **ensamblador** que recorra las once secciones leyendo lo que cada
+superficie ya calcula, y que cruce el límite Cálculo ↔ Monitoreo para el
+capítulo 9. Dos consecuencias que conviene decidir antes de construir:
+
+1. **Un sustento que cruza módulos necesita que Monitoreo publique sus criterios
+   como dato**, no sólo como pantalla. Hoy `AulasCriterioDeAula` los pinta.
+2. **El documento hereda el problema de los artefactos**: si se genera desde un
+   estado que ya cambió, afirma un diseño que no es el ejecutado. El
+   fingerprint de `paqueteDefensa.ts` es la pieza que lo resuelve y hay que
+   reusarla, no reinventarla.
+
 
 ## Una hoja llamada «Validaciones» que no validaba nada
 
