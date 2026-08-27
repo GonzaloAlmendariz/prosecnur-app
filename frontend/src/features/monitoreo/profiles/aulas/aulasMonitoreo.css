@@ -3758,6 +3758,28 @@
    tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
    línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
    sólida— y las dos cosas dejaron de corresponderse. */
+/* El formulario del umbral de duración. Una línea: es una cifra sola y el panel
+   ya reparte alto con el resto de la sección. */
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 8px; font-size: var(--aulas-sec); color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral input {
+  width: 76px; height: 26px; padding: 0 8px;
+  border: 1px solid var(--pulso-border); border-radius: 6px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: var(--aulas-sec); font-variant-numeric: tabular-nums;
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral button {
+  height: 26px; padding: 0 12px;
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: var(--pulso-surface); color: var(--pulso-text);
+  font-size: var(--aulas-sec); font-weight: 600; cursor: pointer;
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral button:hover {
+  border-color: var(--pulso-border-strong);
+}
+
 /* La pérdida enviadas → válidas del libro: una sola línea con su barra. Es la
    cuarta cifra de «cuántas encuestas hay» y la única que no se dibujaba. Tokens
    medidos como resolubles en esta página. */

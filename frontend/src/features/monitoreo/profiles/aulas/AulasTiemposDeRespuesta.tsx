@@ -25,7 +25,23 @@ import { fmt } from "./kpisDeAulas";
 const fmtUnDecimal = (n: number) => n.toLocaleString("es-PE", { maximumFractionDigits: 1 });
 const min = (n: number | null) => (n === null ? "—" : `${fmtUnDecimal(n)} min`);
 
-export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
+export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
+  tiempos: unknown;
+  /**
+   * Declarar a partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * **La capacidad ya existía en el motor y no tenía consumidor**:
+   * `duracion_sospecha_min` se acepta en la config de aulas con la misma
+   * doctrina que `aula_valida` —«sin declarar no juzga»— pero **cero
+   * referencias en el frontend**, así que no había dónde ponerlo.
+   *
+   * El número lo pone quien conoce el cuestionario, no el motor, y el propio
+   * módulo dice por qué: medido en `acnur_acg`, **no hay valle donde cortar**
+   * —<5 min marca el 4,3 % de las respuestas y <7 min el 13,6 %, la cifra se
+   * triplica entre cinco y siete—.
+   */
+  onDeclararUmbral?: (minutos: number) => void | Promise<void>;
+}) {
   const t = useMemo(() => tiemposDeRespuesta(tiempos), [tiempos]);
 
   if (!t.disponible) {
@@ -82,6 +98,35 @@ export function AulasTiemposDeRespuesta({ tiempos }: { tiempos: unknown }) {
           <Clock size={13} aria-hidden="true" /> {t.umbral.leyenda} Mientras no se
           declare, aquí se describe cuánto se tarda y no se señala a nadie.
         </p>
+      )}
+
+      {/* **Dónde declararlo.** El motor lo aceptaba desde siempre y no había
+          formulario: la pantalla decía qué falta y no dejaba ponerlo. Se ofrece
+          también cuando ya está declarado, porque el umbral se afina al ver la
+          distribución —que es justo lo que hay encima—. */}
+      {onDeclararUmbral && (
+        <form
+          className="aulas-tiempos-umbral"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const dato = new FormData(e.currentTarget).get("minutos");
+            const n = Number.parseFloat(String(dato ?? "").replace(",", "."));
+            // Un umbral de cero o negativo no marca nada y el motor lo
+            // descartaría igual; rechazarlo aquí evita el botón que no hace nada.
+            if (Number.isFinite(n) && n > 0) void onDeclararUmbral(n);
+          }}
+        >
+          <label htmlFor="aulas-umbral-duracion">
+            {t.umbral.declarado ? "Cambiar el umbral" : "Marcar como sospechosas las de menos de"}
+          </label>
+          <input
+            id="aulas-umbral-duracion" name="minutos" type="number"
+            min={1} step={1} inputMode="numeric"
+            defaultValue={t.umbral.declarado ? String(t.umbral.minutos ?? "") : ""}
+            placeholder="min"
+          />
+          <button type="submit">Declarar</button>
+        </form>
       )}
 
       {destacan.length > 0 && (
