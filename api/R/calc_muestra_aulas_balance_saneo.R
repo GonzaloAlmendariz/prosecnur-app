@@ -20,6 +20,18 @@
 # Vive en archivo propio porque calc_muestra_aulas.R está congelado a
 # crecimiento: el builder de allá delega aquí (y encoge).
 
+# Cota de columnas que llegan al aterrizaje del cubo.
+#
+# El costo de `landingcube` crece como 2^columnas. Medido sobre 60 aulas con
+# cuota 20: 4 columnas 0,1 s · 12 columnas 0,2 s · 16 columnas 1,4 s ·
+# 20 columnas 29,2 s · 24 columnas NO TERMINO en 930 s. No lanza error, se
+# cuelga, y `withTimeout` no lo interrumpe porque el trabajo ocurre en codigo
+# compilado que no atiende interrupciones: la unica guarda posible es previa.
+#
+# 16 deja el sorteo instantaneo y la certeza —que hace ~200 sorteos por
+# candidato— usable. Subirlo a 20 costaria ~100 minutos por candidato.
+.CM_AULAS_MAX_BALANCE_COLS <- 16L
+
 #' Matriz de balance saneada por columna, con las descartadas declaradas.
 #' @keywords internal
 .cm_aulas_balance_matrix_saneada <- function(df, vars, pik = NULL) {
@@ -42,6 +54,17 @@
         descartadas <- c(descartadas, nm)
         data[[nm]] <- NULL
       }
+    }
+    # Una variable que aporta mas columnas de las que el aterrizaje puede
+    # recorrer no balancea nada: cae en la misma categoria que una constante y
+    # se trata igual. Se descartan las de mayor cardinalidad primero, que son
+    # las que dominan el costo, hasta que el total cabe bajo la cota.
+    costo <- function(nm) if (is.numeric(data[[nm]])) 1L else max(1L, length(unique(data[[nm]])) - 1L)
+    while (length(data) && sum(vapply(names(data), costo, integer(1))) > .CM_AULAS_MAX_BALANCE_COLS) {
+      caras <- vapply(names(data), costo, integer(1))
+      peor <- names(data)[[which.max(caras)]]
+      descartadas <- c(descartadas, peor)
+      data[[peor]] <- NULL
     }
   }
   intercepto <- function() {
