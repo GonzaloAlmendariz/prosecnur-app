@@ -91,13 +91,20 @@ function Lado({ lado, tope, hacia }: {
       : lado.cierra
         ? ` · con lo agendado llega${lado.cierraEl ? ` el ${dm(lado.cierraEl)}` : ""}`
         : ` · con lo agendado se queda a ${fmt(lado.faltanAlCerrar)}`;
+  // La lectura completa de la celda, UNA vez, para el tooltip y para el lector
+  // de pantalla. Estaba sólo en `title`: las cifras de esta celda —observadas,
+  // meta y avance— no aparecen como texto en ninguna otra parte de la fila, así
+  // que quien no pueda pasar el ratón por encima no las tenía. Un `title` no es
+  // alcanzable por teclado y los lectores lo tratan de forma desigual.
+  const lectura = `${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} · ${lado.avance}%${detalle}`;
   return (
     <span
       className={`aulas-piramide-lado es-${hacia}`}
-      title={`${lado.sexo}: ${fmt(lado.observadas)} de ${fmt(lado.meta)} · ${lado.avance}%${detalle}`}
+      title={lectura}
     >
       <span className={`aulas-piramide-cifra es-${v.estado}`}>{v.texto}</span>
-      <span className="aulas-piramide-carril" style={{ width: `${carril}%` }}>
+      <span className="aulas-piramide-carril" style={{ width: `${carril}%` }}
+        role="img" aria-label={lectura}>
         <i style={{ width: `${relleno}%`, background: tono(lado) }} />
         {/* **La sombra de lo que la agenda va a traer.** Sale del relleno hacia
             la meta, en el mismo carril y con la misma escala, así que si no

@@ -401,6 +401,53 @@ La estética la da el kit compartido (`pulso_pdf_theme.R`: `pulso_pdf_header`,
 que resuelve cabecera, pie, logo y paleta pero **no dibuja tablas**: eso lo pone
 cada motor.
 
+## T9 — inventario de los gráficos, y el conteo vuelve a sobrestimar
+
+Antes de proponer gráficos nuevos, qué hay. Diez piezas en el perfil, medidas
+contra el criterio aprobado (alternativa textual, leyenda junto a la pieza,
+escala con extremos conocidos, el color nunca como único portador):
+
+| Gráfico | `role="img"` | Veredicto |
+|---|---|---|
+| `AulasSerieDeRendimiento` | 5 | conforme |
+| `AulasRitmoPorFacultad` | 2 | conforme (reparado hoy) |
+| `AulasCadenaChart` | 1 | conforme |
+| `AulasConcentracionBrecha` | 1 | conforme |
+| `AulasEfectividadSeguimiento` | 1 | conforme |
+| **`AulasPiramideCuota`** | 0 → **1** | **era defecto, reparado** |
+| `AulasRitmoDiario` | 0 | **NO es defecto**, ver abajo |
+| `AulasBrechaEstratoChart` | 0 | pendiente de triaje |
+| `AulasEstadoChart` | 0 | pendiente de triaje |
+| `AulasCoberturaChart` | 0 | pendiente de triaje |
+
+### El que sí era defecto
+
+**`AulasPiramideCuota`**: las cifras de cada celda —observadas, meta y avance—
+vivían **sólo en un `title`**. Un tooltip no es alcanzable por teclado y los
+lectores de pantalla lo tratan de forma desigual, así que quien no pudiera pasar
+el ratón no tenía el dato: no aparece como texto en ninguna otra parte de la
+fila. Ahora el carril lleva `role="img"` y una `aria-label` con la misma lectura
+que el tooltip. Verificado en pantalla: **40 celdas, las 40 con etiqueta**, del
+tipo «F: 92 de 121 · 76% · con lo agendado se queda a 18».
+
+### El que NO lo era, y por qué el conteo engaña
+
+**`AulasRitmoDiario`** sale con cero `role="img"` y su barra lleva
+`aria-hidden="true"`. **Es correcto, y el propio código lo declara**: las dos
+cifras de la fila —las del día y el acumulado— ya son texto en las celdas de al
+lado, así que un lector de pantalla tiene el dato sin la barra. El comentario
+incluso contrasta con la agenda por día, que sí etiqueta las suyas porque allí
+la barra reparte tramos que no están escritos en ningún otro sitio.
+
+**La regla del triaje, entonces**: un gráfico cuyo dato ya está en texto junto a
+él no necesita alternativa; uno cuya información vive sólo en la geometría o en
+un tooltip, sí. Aplicar el conteo sin esa distinción habría "reparado" una pieza
+que ya estaba bien y habría añadido ruido a un lector de pantalla.
+
+Es la **quinta vez en esta sesión** que un conteo de grep sobrestima: 8
+redondeos daban 0 defectos, 12 archivos con `aria-hidden` daban 6, y aquí 5
+gráficos sin etiqueta dan 1 confirmado y 3 por triar.
+
 ## Lo que ya está cerrado y no se rehace
 
 - Seguimiento de τ (ADR 0082): motor, tabla, disparador por margen, backtest
