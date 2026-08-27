@@ -2403,6 +2403,17 @@
       include_targets = include_targets
     ))
   }
+  # Aulas universitarias tiene su propio reporte de avance desde 2026-08-27.
+  # Antes caia al `else` de acreditacion, que NO es un generico: su modelo y su
+  # renderizador hablan de `actors`, `daily_actor` y `channel_labels`, asi que
+  # informar aulas con el obligaba a llamar «actores» a las facultades.
+  if (identical(.monitoreo_publication_family_key(publication_family), "aulas_universitarias")) {
+    return(build_monitoreo_aulas_report_model(
+      snapshot = snapshot,
+      cfg = cfg,
+      include_targets = include_targets
+    ))
+  }
   dashboard <- snapshot$dashboard %||% NULL
   reports <- if (is.list(dashboard)) dashboard$acreditacion_reports %||% list() else list()
   model <- reports$client_report %||% NULL
@@ -2717,6 +2728,9 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
   } else if (identical(report_kind, "telefonico_advance_pdf") || identical(family, "telefonico")) {
     report("render", percent = 55, message = "Renderizando avance telefónico...")
     monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
+  } else if (identical(report_kind, "aulas_advance_pdf") || identical(family, "aulas_universitarias")) {
+    report("render", percent = 55, message = "Renderizando avance de cursos-horario...")
+    monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets)
   } else {
     report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
     monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
@@ -3156,8 +3170,16 @@ mount_monitoreo <- function(pr) {
         identical(.monitoreo_publication_family_key(model$family %||% ""), "territorial")
       is_telefonico_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "telefonico_advance_pdf") ||
         identical(.monitoreo_publication_family_key(model$family %||% ""), "telefonico")
-      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo" else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo" else "reporte_cliente_monitoreo"
-      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf" else "monitoreo.client_report_pdf"
+      is_aulas_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "aulas_advance_pdf") ||
+        identical(.monitoreo_publication_family_key(model$family %||% ""), "aulas_universitarias")
+      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo"
+        else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo"
+        else if (isTRUE(is_aulas_pdf)) "avance_aulas_monitoreo"
+        else "reporte_cliente_monitoreo"
+      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf"
+        else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf"
+        else if (isTRUE(is_aulas_pdf)) "monitoreo.aulas_advance_pdf"
+        else "monitoreo.client_report_pdf"
       filename <- .export_filename(sid, report_slug, "pdf")
       pdf_job_runner <- monitoreo_client_report_pdf_job_runner
       attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_client_report_pdf_job_runner"

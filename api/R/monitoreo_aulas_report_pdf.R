@@ -260,11 +260,16 @@ monitoreo_aulas_advance_report_pdf <- function(model, output_file,
     }
 
     if (p == length(paginas)) {
-      grid::grid.text(
-        paste("Se cuenta", model$criterio$numerador, "contra", model$criterio$denominador, "·",
-              model$criterio$no_cubre),
-        x = x0, y = max(0.05, y - 0.01), just = c("left", "top"),
-        gp = grid::gpar(col = tok$faint, fontsize = ty$foot))
+      # ENVUELTO, no `grid.text`: el pie es una frase larga y sin envoltura se
+      # salía por el borde derecho —«…que el diseño fijó por fa»—. Visto en el
+      # PNG de la última página, que es la única donde el pie aparece.
+      ancho <- xs[length(xs)] - x0
+      .form_pdf_text(
+        paste0("Se cuenta ", model$criterio$numerador, " contra ",
+               model$criterio$denominador, ". ", model$criterio$no_cubre),
+        x = x0, y = max(0.09, y - 0.012), w = ancho,
+        chars = pulso_pdf_chars(ancho), fontsize = ty$foot,
+        col = tok$faint, line_h = 0.022)
     }
     pulso_pdf_footer(p, periodo, tokens = tok, geo = geo)
   }
