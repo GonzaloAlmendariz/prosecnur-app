@@ -75,6 +75,13 @@ Hoja «Base de control». Responde **si lo recogido vale**.
 | D5 | **C-F procedencia**, tercera pregunta: ¿de qué corrida del sorteo sale cada cifra? | ⚠ | sólo el KPI «Cursos-horario» estampa el `selection_run_id` |
 | D6 | **Abuso de tablas sin complemento visual** (Gonzalo) | ☐ | ver § abajo |
 | D7 | **Códigos poco entendibles para una persona común** (Gonzalo) | ☐ | «CH 1», «M1», `sin_contactar`, «70T» |
+| D9 | **Cifras que no se leen: texto oscuro sobre barra oscura** (Gonzalo) | ☑ | medido, no juzgado a ojo: 5 de 8 etiquetas bajo 3,0 de contraste. Ver § abajo |
+| D10 | **Cifras partidas a media cifra** en «Dónde falta más» (Gonzalo) | ☑ | «7,006» rompía como «7,00» / «6»: el `<strong>` encogía bajo su contenido dentro de 128 px |
+| D11 | **Dos facultades distintas que se leen igual** | ☑ | «ESTUDIOS GENERALES LETRAS» y «… CIENCIAS» truncaban ambas a «ESTUDIOS GENERALES …» |
+| D12 | **Las facultades siguen desalineadas** (Gonzalo, 2ª pasada) | ☑ | `.aulas-facultad-nombre` es un `<button>` y **un botón centra su texto**: nadie declaró `text-align` y se heredaba del user-agent |
+| D13 | **Todos los números son bastante pequeños** (Gonzalo, 2ª pasada) | ☑ | `layout.font` de Plotly gobierna el tick **y** la cifra dentro de la barra: el dato salía a 10 px, tamaño de mobiliario de eje |
+| D14 | **Verificar que Plotly no encoja de vuelta las cifras de 12 px** | ☑ | medido con los anchos reales: **no encoge**. Ver § abajo |
+| D15 | **La pareja de Avance no termina a la misma altura** (Gonzalo) | ☑ | escalón de **31 px**; la paridad se sostenía con dos números casados a mano en dos archivos. Ver § abajo |
 
 ---
 
@@ -253,6 +260,173 @@ Es una familia, no un caso:
 **Decisión pendiente de Gonzalo**: hay tensión real entre fidelidad al nombre del
 libro —que sirve para cruzar con el Excel— y el ancho. No se resuelve por cuenta
 propia.
+
+## D9-D11 · lo que se veía mal, medido
+
+Gonzalo lo dijo mirando por encima: «veo barras con colores oscuros y texto negro
+que casi ni se nota, o diseños desalineados con texto gigante». Las tres cosas
+eran reales y ninguna se parecía a las otras.
+
+**El texto sobre las barras.** Plotly elige solo el color del texto que va DENTRO
+de una barra, y su heurístico se equivoca justo en el medio de la escala: sobre
+`pendiente` (#7a8796) dejaba su gris #444. Contraste **2,66**. La misma barra con
+la tinta de la casa da **4,43**.
+
+| etiqueta | dónde | antes | ahora |
+|---|---|---|---|
+| `79` | Status de aplicación | 2,66 | **4,43** |
+| `1355` → `1,355` | Cursos-horario por cobertura | 2,66 | **4,43** |
+| `1,259` | Status de aplicación | 3,78 | **6,30** |
+| `38` · `34` · `6` | Cursos-horario por cobertura | 5,01 | **16,22** |
+
+Medir antes de reparar evitó tres reparaciones inventadas: `38`, `34` y `6`
+**caían fuera de la barra**, sobre papel blanco, y ya estaban bien. Sólo se ven
+mal si uno compara el texto contra el relleno del `path` hermano sin mirar dónde
+cae la caja. El criterio correcto es geométrico, no de parentesco en el DOM.
+
+El arreglo no recolorea nada: `tintaSobre()` elige, entre la tinta oscura de la
+app y el blanco, la que más contrasta con el relleno que ya existe. Su contrato
+(`tintaLegible.contract.test.ts`) exige **4,3 y no 4,5**, y eso está declarado:
+`efectiva`, `parcial` y `pendiente` tocan techo en 4,37-4,43 con cualquiera de
+las dos tintas. Llegar a los 4,5 de WCAG exige oscurecer la paleta, que es una
+decisión de identidad —arrastra a PPT y PDF, que leen los mismos hex— y no de
+este helper. **Un contrato que afirmara 4,5 excluyendo a los tres que no llegan
+sería verde por ausencia**, que es justo lo que esta sesión viene evitando.
+
+De paso: Cobertura escribía `String(t.aulas)` → «1355» a dos centímetros del
+«1,259» del panel de al lado. El mismo número en dos formatos. El comentario del
+otro gráfico ya avisaba de ese defecto —arreglado ahí, no aquí—.
+
+**Segunda pasada: lo que seguía mal después de arreglar el contraste.**
+
+Gonzalo volvió a mirar y señaló tres cosas más. Las tres eran ciertas y ninguna
+la había cazado yo, porque las tres viven en un default que nadie escribió.
+
+*Las facultades desalineadas* no eran el truncado —eso ya estaba arreglado—:
+`.aulas-facultad-nombre` es un `<button>`, y **un botón centra su texto por
+defecto**. Con los nombres centrados, «DERECHO» arranca en x≈128 y «ESTUDIOS
+GENERALES LETRAS» en x≈83: la columna se lee como un bloque irregular en vez de
+como una lista. Ninguna regla del proyecto declaraba `text-align`; el valor lo
+ponía el user-agent. Es el mismo patrón que el `white-space: nowrap` heredado
+del padre: **el estilo que gobierna no está en el archivo que uno lee**.
+
+*Los números pequeños* salen de que `layout.font` de Plotly gobierna dos cosas
+distintas con un solo valor: los ticks del eje **y** el texto dentro de la
+barra. `fuenteDeEjeAulas()` declara 10 px porque los ejes de este perfil van a
+10 px —decisión deliberada, documentada ahí mismo—, y de propina la cifra sobre
+la barra heredaba el tamaño de una marca de eje. Pero **el tick es mobiliario y
+el número sobre la barra es el dato**. Se separan: `fuenteDeCifraEnBarra()` a
+12 px semibold, el eje se queda donde estaba.
+
+*El «79» que se sigue viendo gris* es la misma cosa por el otro lado. Su relleno
+**es** gris (`pendiente`), y eso no se toca sin recolorear la paleta. Pero 4,43
+de contraste a 10 px se siente flojo y a 12 px semibold no: es exactamente la
+razón por la que WCAG pide 4,5 en texto normal y acepta 3,0 en texto grande. El
+contraste y el tamaño no eran dos quejas: eran una.
+
+**Las cifras partidas.** `.aulas-facultad-cifra` era un flex dentro de una
+columna de 128 px, compartida con «respuestas faltan · 3%». El `<strong>` encogía
+por debajo de su contenido y «7,006» se rompía **a media cifra**. Pasa a grid
+alineado a la derecha, con la cifra sobre el rótulo y `white-space: nowrap`.
+
+**Las dos facultades idénticas.** El rótulo truncaba a una línea en 190 px, así
+que «ESTUDIOS GENERALES LETRAS» y «ESTUDIOS GENERALES CIENCIAS» quedaban las dos
+como «ESTUDIOS GENERALES …»: dos filas con cifras distintas (3 245 y 2 908) y el
+mismo texto visible. Ensanchar la columna vuelve a aplastar las cifras; abreviar
+sería inventar nombres. Se le dan dos líneas: las cortas siguen ocupando una.
+
+Con eso, **las 15 facultades se leen enteras y no queda ninguna colisión**.
+
+La trampa del arreglo merece nota: el primer intento fue `-webkit-line-clamp`
+con `display: -webkit-box`, y **el clamp se aplicaba pero no hacía nada**. El
+rótulo es item de un grid, y un grid item blockifica su display: quedaba en
+`flow-root` y el box legacy nunca existía. El computado lo dice —`clamp: 2` con
+`display: flow-root`— pero sólo si uno lo lee en vez de asumir que la regla que
+ganó la cascada es la que gobierna. Además `white-space: nowrap` no venía de
+ninguna regla propia: **se heredaba del botón padre**.
+
+### D14 · el riesgo de subir el tamaño, que hay que medir
+
+Subir la cifra a 12 px puede deshacerse solo. `AulasEstadoChart` usa
+`textposition: "inside"` fija, y Plotly trae `constraintext` activo por defecto
+en barras: **si el texto no cabe en el segmento, lo encoge para que quepa**. Los
+segmentos de «sin agendar» (79), «agendada» (96) y «aplicada» (78) son
+estrechos, así que sus cifras podrían volver a ~10 px por su cuenta y dejar la
+mejora sólo en los tramos anchos.
+
+**Medido, y el riesgo no se materializa.** Con los anchos reales de los cuatro
+segmentos, pedir 12 px da 12 px computados en los cuatro, con el `weight: 600`
+aplicado y todos cabiendo dentro de su barra:
+
+| cifra | ancho de su barra | pedido | computado | ¿cabe? |
+|---|---|---|---|---|
+| `79` | 56 px | 12 | **12 px** | sí |
+| `96` | 68 px | 12 | **12 px** | sí |
+| `78` | 55 px | 12 | **12 px** | sí |
+| `1,259` | 894 px | 12 | **12 px** | sí |
+
+Se midió el `font-size` **computado del `<text>` en el SVG**, no el que pedimos
+en el trace —que es la diferencia entre declarar y comprobar—, y se comparó
+contra una corrida idéntica pidiendo 10 px para tener el contraste del método.
+
+Lo interesante es **cómo** se midió, porque la librería R estaba bloqueada por
+la instalación de una tercera sesión y sin paquete no se puede abrir un `.pulso`:
+se montó el mismo trace en una página suelta servida por el propio dev server,
+con los anchos y las cifras reales. **Una pregunta sobre Plotly no necesitaba la
+app entera para contestarse**, y eso desbloqueó una verificación que parecía
+tener que esperar media hora.
+
+### D15 · un ajuste no es un criterio
+
+Gonzalo lo dijo señalando el panel: «éste tiene menos altura que el de su lado,
+¿ves? Son esas cosas las que me hacen dar cuenta de que no tiene muchos criterios
+muchas veces». Tenía razón en el hecho y, sobre todo, en el diagnóstico.
+
+**El hecho, medido.** Los dos paneles de `.aulas-avance-pareja` terminaban con
+31 px de diferencia: 464 contra 495.
+
+| | izquierda | derecha |
+|---|---|---|
+| cabecera | 36 | 36 |
+| cuerpo | **392** = gráfico 360 + pie 26 + hueco 6 | **422** = lectura 14 + hueco 8 + lista 400 |
+
+**La causa no es un descuido, es una ausencia de mecanismo.** La paridad existía
+y era deliberada: el CSS de la lista decía «400 px […] con el gráfico vecino a
+360 los dos paneles quedan a la par», y el TSX del gráfico decía «sube a 360 para
+que la pareja quede pareja». Dos comentarios que declaran la misma intención, dos
+constantes en **archivos que no se referencian**. Cuando después se añadió la
+línea «15 facultades · 0 con su meta cumplida», quien la añadió no tenía forma de
+saber que acababa de romper un equilibrio: nada en su archivo lo mencionaba.
+
+Un ajuste sólo aguanta hasta el siguiente cambio. Un criterio sobrevive.
+
+**El arreglo es el mecanismo, no el número.** Un solo token en la hoja, y el tope
+de la lista derivado de él con la cuenta escrita:
+
+```css
+--aulas-cobertura-alto: 360px;
+max-height: calc(var(--aulas-cobertura-alto) + 10px);
+```
+
+Los +10 son el pie del gráfico (26) y su hueco (6) menos la lectura de la lista y
+los suyos (22). El TSX ya no guarda su copia del 360: lo lee de la hoja con
+`altoDeclarado()`, el mismo idiom con el que `fuenteDeEjeAulas()` ya leía los
+colores. **Mover el alto del gráfico ahora mueve el tope de la lista solo.**
+
+Escalón resultante, medido: **1 px**.
+
+**Lo que NO se tocó, y por qué.** El `align-items: start` de la pareja es una
+decisión documentada: forzar `stretch` estiraba el gráfico —cuyo alto fija
+Plotly y por tanto no puede crecer— y el gate lo marcó como `capacity-drift` de
+380 px de hueco muerto. Así que la igualdad no se impone desde fuera: se hace que
+el lado que **sí puede** encoger (la lista, que scrollea) se ajuste al que no
+puede. Sin vacío sin dueño.
+
+**El patrón general, que es lo aprovechable.** Cuando dos valores tienen que
+moverse juntos y viven separados, el comentario que explica la relación no la
+protege —la documenta para quien ya está mirando ese archivo, que es justo quien
+no la va a romper—. La rompe el que toca el otro. La única defensa es que exista
+**una sola fuente**, o un gate que compare las dos.
 
 ## Los criterios de encuesta efectiva salen del XLSForm 2026, no del calco
 
