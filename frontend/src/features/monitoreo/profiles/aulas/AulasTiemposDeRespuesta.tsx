@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { Clock, TriangleAlert } from "../../../../vendor/lucide-react";
+import { AulasUmbralDeDuracion } from "./AulasUmbralDeDuracion";
 import { tiemposDeRespuesta } from "./tiemposDeRespuesta";
 import { fmt } from "./kpisDeAulas";
 
@@ -100,33 +101,16 @@ export function AulasTiemposDeRespuesta({ tiempos, onDeclararUmbral }: {
         </p>
       )}
 
-      {/* **Dónde declararlo.** El motor lo aceptaba desde siempre y no había
-          formulario: la pantalla decía qué falta y no dejaba ponerlo. Se ofrece
-          también cuando ya está declarado, porque el umbral se afina al ver la
-          distribución —que es justo lo que hay encima—. */}
+      {/* El mismo control que vive en Fuentes: aquí se **afina** viendo la
+          distribución que está justo encima; allí se **declara** antes de que
+          llegue la primera respuesta. Un solo componente para que las dos
+          pantallas no se contradigan. */}
       {onDeclararUmbral && (
-        <form
-          className="aulas-tiempos-umbral"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const dato = new FormData(e.currentTarget).get("minutos");
-            const n = Number.parseFloat(String(dato ?? "").replace(",", "."));
-            // Un umbral de cero o negativo no marca nada y el motor lo
-            // descartaría igual; rechazarlo aquí evita el botón que no hace nada.
-            if (Number.isFinite(n) && n > 0) void onDeclararUmbral(n);
-          }}
-        >
-          <label htmlFor="aulas-umbral-duracion">
-            {t.umbral.declarado ? "Cambiar el umbral" : "Marcar como sospechosas las de menos de"}
-          </label>
-          <input
-            id="aulas-umbral-duracion" name="minutos" type="number"
-            min={1} step={1} inputMode="numeric"
-            defaultValue={t.umbral.declarado ? String(t.umbral.minutos ?? "") : ""}
-            placeholder="min"
-          />
-          <button type="submit">Declarar</button>
-        </form>
+        <AulasUmbralDeDuracion
+          declarado={t.umbral.declarado}
+          minutos={t.umbral.minutos}
+          onDeclarar={onDeclararUmbral}
+        />
       )}
 
       {destacan.length > 0 && (
