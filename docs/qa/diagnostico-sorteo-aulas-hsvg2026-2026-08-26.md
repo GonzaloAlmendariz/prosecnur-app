@@ -663,3 +663,48 @@ entera—, pero no por observación. Se declara como tal.
 Y hay un dato nuevo para esa reparación: el desajuste **no es sólo de `n_aulas`**.
 `monte_carlo_n` y `simulation_runs` también difieren (20 en la corrida contra 500
 vigentes), así que arreglar sólo el objetivo dejaría la superficie apagada igual.
+
+## Inventario de la firma que apaga superficies (2026-08-27)
+
+El chequeo que deja el Relato inalcanzable no compara campo a campo escrito a
+mano: compara un **snapshot** completo,
+`classroomComparisonSelectorSnapshot(config)` en
+`frontend/src/features/calcMuestra/universidad/aulas/classroomHandoff.ts`, contra
+el `selector` que la corrida guardó. **Cualquier clave que entre en ese snapshot
+bloquea.** Hoy entran unas veinte.
+
+Su propio comentario registra que ésta es «la quinta mordida de la familia de
+copias».
+
+### De dónde sale el `n_aulas = 30`
+
+```ts
+n_aulas: Math.max(1, Math.round(safeNumber(config.n_aulas, 30))),
+```
+
+**30 es el default de esa línea.** El «corrida 30» del aviso no fue una decisión
+de nadie: es lo que el snapshot escribe cuando `config.n_aulas` no está. El
+chequeo de frescura compara, entonces, contra un valor que nunca se eligió.
+
+### Las claves no prueban lo mismo, y por eso no deberían bloquear igual
+
+| grupo | claves | ¿debe bloquear? |
+|---|---|---|
+| **Identidad** | `schema` | sí |
+| **Parámetros que cambian el sorteo** | `seed`, `n_aulas`, `strata_cols`, `balance_vars`, `spread_vars`, `mos_strategy`, `coordination_mode`, `duplicate_penalty`, `sequential_discount`, `replacement_*` | sí: con otro valor, la muestra sería otra |
+| **Parámetros que sólo cambian el diagnóstico** | `simulation_runs`, `candidate_pool_size`, `monte_carlo_n` | **no**: la muestra guardada sigue siendo la correcta; sólo cambia cuánta simulación la acompaña |
+
+Ese tercer grupo es el que sobra. Que `simulation_runs` pase de 20 a 500 no
+vuelve incorrecta la comparación guardada, y sin embargo la apaga.
+
+Dos observaciones más del inventario:
+
+- **`frame_hash` y `run_id` NO están en el snapshot.** Lo único que prueba
+  identidad ahí es `schema`. Se bloquea por parámetros y no se comprueba la
+  procedencia, que es al revés de lo que uno esperaría.
+- **`pps_weight` y `coverage_weight` están en la firma y no tienen control en la
+  UI** (es la brecha F3). No pueden divergir por acción del usuario: sólo si
+  cambia un default del código. Están bloqueando algo que nadie puede provocar.
+
+`candidate_pool_size` además sólo tiene efecto con el motor `pool_controlado`;
+con `cube_balanceado` bloquea por un parámetro que el sorteo ni mira.
