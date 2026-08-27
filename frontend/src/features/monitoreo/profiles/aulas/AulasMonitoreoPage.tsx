@@ -955,6 +955,14 @@ function renderAulasView(
               || Number(dashboard.course_status_total_plan ?? 0)
               || 0
             }
+            // El recorte se calcula AQUÍ, que es donde se ven las dos cifras:
+            // cuántas filas trajo el payload y cuántas hay de verdad. El panel
+            // no puede deducirlo de `totalDelPlan`, que cuenta titulares
+            // mientras `filas` trae además las reservas encadenadas.
+            recorte={{
+              recibidas: ((dashboard.course_status ?? []) as unknown[]).length,
+              total: Number(dashboard.course_status_total ?? 0),
+            }}
           />
           <DataTable
             rows={agendaRows(dashboard)}
