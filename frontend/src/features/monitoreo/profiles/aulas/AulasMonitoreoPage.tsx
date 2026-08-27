@@ -26,6 +26,8 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
+import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
+import { agendamiento } from "./agendamiento";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
@@ -964,6 +966,12 @@ function renderAulasView(
               total: Number(dashboard.course_status_total ?? 0),
             }}
           />
+          {/* **La cola de las gestiones, que la mediana esconde.** Los dos tiles
+              de arriba dicen «cuestan más de una» y «van por la tercera», pero
+              con la mediana no se ve cuántas están en la cola cara: en 2025 la
+              mediana fue 2 y aun así 33 de 170 llegaron a la cuarta llamada. La
+              distribución ya la calculaba `agendamiento.ts`; sólo publicaba su
+              centro. */}
           <DataTable
             rows={agendaRows(dashboard)}
             empty="No hay agenda importada para cursos-horario."
@@ -987,6 +995,44 @@ function renderAulasView(
             preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
           />
         </section>
+        ) : null}
+        {pestana === "agenda"
+          || (pestana !== "facultad" && pestana !== "contacto") ? (
+          <>
+          {/* **En su propio panel, y no dentro del de la agenda.**
+              El panel «Aulas agendadas» reparte su alto en filas fijas y la de
+              la franja va a `minmax(0, 1fr)`: metiendo aquí un cuarto hijo, esa
+              fila se quedó en **0 px** —medido— y la lista de días se pintó
+              encima de su leyenda. Es exactamente la compresión de la que se
+              queja el encargo, causada por añadir sin mirar el presupuesto
+              vertical del contenedor.
+
+              El propio panel lo advierte en su comentario y no lo leí a tiempo:
+              «este panel tiene TRES filas —cabecera, lectura por día y tabla— y
+              la regla común declara dos. Un hijo de más se lleva una fila
+              declarada y se dibuja encima del siguiente». */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Cuánto cuesta cerrar un aula</h3>
+              <span>llamadas hasta la cita, y cuántas están en la cola cara</span>
+            </div>
+            <AulasGestionesPorAula
+              // **`agenda`, no `course_status`**: es la fuente que usan los dos
+              // tiles de gestiones de esta misma sección, y la única que trae el
+              // ciclo de contacto entero. `course_status` viaja recortado a 500
+              // filas y con menos columnas, así que la distribución salía vacía
+              // y el histograma no se dibujaba —con los tiles de al lado
+              // marcando 119 y 29 sobre los mismos datos—.
+              distribucion={agendamiento(
+                ((dashboard.agenda ?? []) as Array<Record<string, unknown>>),
+              ).distribucionDeGestiones}
+            />
+          </section>
+          </>
         ) : null}
       </div>
     );
