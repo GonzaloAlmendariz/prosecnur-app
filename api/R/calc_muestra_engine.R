@@ -52,6 +52,24 @@
 
 # Dominio en el que un divisor por conglomerado sobrevive exactamente la
 # normalización y entra a las fórmulas sin el piso `max(valor, 1)`.
+# De dónde sale el número de titulares de un estrato. `aulas_base_fijas` es un
+# entero pelado y el motor lo respeta venga de donde venga, así que sin esta
+# etiqueta los tres orígenes producen números idénticos a la vista y el sustento
+# no puede reconstruir el diseño.
+#
+# - "formula"       lo que calcula `cuota / (divisor × tau)`
+# - "certificacion" lo que certificó la simulación de cobertura
+# - "operativa"     lo que decidió el analista por juicio, sin criterio
+#                   estadístico (Gonzalo, 2026-08-27: «si veo que derecho va muy
+#                   justo le puedo agregar una más… esa agregación se puede
+#                   llamar agregación operativa»). En HSVG26ULT es exactamente
+#                   un aula: `max(fórmula, certeza)` da 173 y el final es 174.
+# - ""              origen desconocido: proyectos anteriores a este campo.
+#
+# NO confundir con `aulas_extra_operativas`, que es el cupo de RESERVA y suma a
+# `aulas_total`, no a los titulares.
+.CM_AULAS_BASE_ORIGENES <- c("formula", "certificacion", "operativa")
+
 .CM_CONGLOMERADO_DIVISOR_MIN <- 1
 .CM_CONGLOMERADO_DIVISOR_MAX <- 1000
 
@@ -1033,6 +1051,8 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
+      aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
@@ -1363,10 +1383,22 @@ calc_muestra_calcular_componente <- function(comp) {
     est_e <- .cm_estadistico_conglomerado_estrato(e, par)
     avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
-    aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
-      as.integer(e$aulas_base_fijas)
+    aulas_formula <- as.integer(ceiling(
+      cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))
+    ))
+    fijado <- (e$aulas_base_fijas %||% 0L) > 0L
+    aulas_base <- if (fijado) as.integer(e$aulas_base_fijas) else aulas_formula
+    # El origen viaja al resultado o el dato muere acá: la pantalla y el
+    # sustento leen `aulas_por_estrato`, no los estratos del componente. Un
+    # número fijado que coincide con la fórmula NO es una fijación efectiva y
+    # se declara como fórmula, para no atribuir una decisión donde no la hubo.
+    origen_declarado <- calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+    aulas_base_origen <- if (!fijado || aulas_base == aulas_formula) {
+      "formula"
+    } else if (nzchar(origen_declarado)) {
+      origen_declarado
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
+      ""
     }
     aulas_reemplazo <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1386,6 +1418,9 @@ calc_muestra_calcular_componente <- function(comp) {
       estadistico_usado = est_e$usado,
       tau             = tau_e,
       aulas_base      = aulas_base,
+      aulas_formula   = aulas_formula,
+      aulas_base_origen = aulas_base_origen,
+      aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_reemplazo,
       aulas_extra_operativas = aulas_reemplazo,
       aulas_total     = aulas_total,
@@ -1715,10 +1750,22 @@ calc_muestra_calcular_componente <- function(comp) {
     est_e <- .cm_estadistico_conglomerado_estrato(e, par)
     avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
-    aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
-      as.integer(e$aulas_base_fijas)
+    # SEGUNDO constructor de `aulas_por_estrato`. Existe otro casi idéntico más
+    # arriba y es el que primero ganó los campos de origen; éste se quedó atrás
+    # y por eso la ruta de cálculo publicaba filas sin `aulas_formula`. Los dos
+    # tienen que declarar lo mismo o el dato muere según por dónde entre.
+    aulas_formula <- as.integer(ceiling(
+      cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))
+    ))
+    fijado <- (e$aulas_base_fijas %||% 0L) > 0L
+    aulas_base <- if (fijado) as.integer(e$aulas_base_fijas) else aulas_formula
+    origen_declarado <- calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+    aulas_base_origen <- if (!fijado || aulas_base == aulas_formula) {
+      "formula"
+    } else if (nzchar(origen_declarado)) {
+      origen_declarado
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
+      ""
     }
     aulas_extra <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1733,6 +1780,9 @@ calc_muestra_calcular_componente <- function(comp) {
       estadistico_usado = est_e$usado,
       tau = tau_e,
       aulas_base = aulas_base,
+      aulas_formula = aulas_formula,
+      aulas_base_origen = aulas_base_origen,
+      aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_extra,
       aulas_extra_operativas = aulas_extra,
       aulas_total = aulas_base + aulas_extra,
@@ -2343,6 +2393,8 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
+      aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),

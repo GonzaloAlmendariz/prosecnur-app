@@ -17,6 +17,7 @@
  * recalcule, el número de la tabla sigue siendo el de la fórmula y el fijado
  * está esperando. El aviso `FijasPendientesAviso` nombra la cadena completa.
  */
+import { useState } from "react";
 import { Pin } from "../../../../vendor/lucide-react";
 import { fmtInt } from "../../sharedCore";
 import "./titularesEditor.css";
@@ -25,14 +26,23 @@ export function TitularesFacultadEditor({
   facultad,
   calculadas,
   fijadas,
+  origen,
+  nota,
   onAjustar,
+  onNota,
 }: {
   facultad: string;
   /** Lo que publicó el motor para esta facultad en la corrida vigente. */
   calculadas: number;
   /** El override escrito en el estrato, si lo hay. */
   fijadas: number | null;
+  /** De dónde sale la fijación. Vacío en proyectos anteriores al campo. */
+  origen?: "" | "formula" | "certificacion" | "operativa";
+  /** El motivo, cuando el origen es `operativa`. */
+  nota?: string;
   onAjustar: (facultad: string, aulasActuales: number, delta: 1 | -1) => void;
+  /** Sin este callback la nota se muestra pero no se puede escribir. */
+  onNota?: (facultad: string, nota: string) => void;
 }) {
   // El stepper opera sobre el número VIGENTE de la facultad: el fijado si
   // existe, y si no el calculado. Sumar sobre el calculado cuando ya hay una
@@ -40,6 +50,19 @@ export function TitularesFacultadEditor({
   // comería la decisión sin decirlo.
   const vigente = fijadas ?? calculadas;
   const pendiente = fijadas != null && fijadas !== calculadas;
+
+  // Sólo se declara operativa una fijación que de verdad se aparta de la
+  // fórmula: fijar el mismo número que la fórmula calcula no es una decisión y
+  // pintarla como tal atribuiría un juicio que nadie hizo.
+  const esOperativa = origen === "operativa" && fijadas != null && fijadas !== calculadas;
+  const notaEscrita = (nota ?? "").trim();
+  const [editando, setEditando] = useState(false);
+  const [borrador, setBorrador] = useState(notaEscrita);
+
+  const guardar = () => {
+    onNota?.(facultad, borrador);
+    setEditando(false);
+  };
 
   return (
     <span className="cmv2-titulares-editor" data-fijada={fijadas != null || undefined}>
@@ -71,7 +94,45 @@ export function TitularesFacultadEditor({
       {pendiente && (
         <small className="cmv2-titulares-pendiente">
           la fórmula calcula {fmtInt(calculadas)}
+          {origen === "certificacion" && " · lo pide la certificación"}
+          {esOperativa && " · agregación operativa"}
         </small>
+      )}
+      {/* El motivo de una agregación operativa. Se declara faltante en vez de
+          quedarse callado: sin él, dentro de tres meses esta cifra es
+          indistinguible de un error de dedo. */}
+      {esOperativa && (
+        editando || (!notaEscrita && onNota) ? (
+          <span className="cmv2-titulares-nota-edit">
+            {/* El campo vacío NO declara que falta algo: parece opcional. Se
+                marca como pendiente hasta que tenga texto, que es lo que hace
+                la diferencia entre un vacío declarado y uno silencioso. */}
+            <input
+              type="text"
+              data-falta={borrador.trim() ? undefined : ""}
+              value={borrador}
+              placeholder={`Por qué ${facultad} lleva ${fijadas} y no ${calculadas}`}
+              aria-label={`Motivo de la agregación operativa en ${facultad}`}
+              onChange={(event) => setBorrador(event.target.value)}
+              onBlur={guardar}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") guardar();
+                if (event.key === "Escape") { setBorrador(notaEscrita); setEditando(false); }
+              }}
+            />
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="cmv2-titulares-nota"
+            data-falta={notaEscrita ? undefined : ""}
+            title={notaEscrita || "Esta agregación no sigue un criterio estadístico: escribe por qué"}
+            onClick={() => { setBorrador(notaEscrita); setEditando(true); }}
+            disabled={!onNota}
+          >
+            {notaEscrita || "falta el motivo"}
+          </button>
+        )
       )}
     </span>
   );

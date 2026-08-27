@@ -33,6 +33,7 @@ export function CalculoCursosHorarioFacultadTab({
   marcoDesactualizado = false,
   onIrAAlumnosPorCh,
   onAjustarAula,
+  onNotaAula,
   estratosPropios,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
@@ -46,6 +47,8 @@ export function CalculoCursosHorarioFacultadTab({
    *  el número se lee, y deja de exigir una certificación corrida. Sin este
    *  callback la columna es de sólo lectura, como era antes. */
   onAjustarAula?: (facultad: string, aulasActuales: number, delta: 1 | -1) => void;
+  /** Escribe el motivo de una agregación operativa. */
+  onNotaAula?: (facultad: string, nota: string) => void;
   /** Los estratos del componente REAL. No se leen de `componentes`: el
    *  normalizador reparte un solo marco a los dos y el de facultad llega sin
    *  sus propias fijaciones (ver `estratosPropiosDe` en UniversidadDesk). */
@@ -85,10 +88,10 @@ export function CalculoCursosHorarioFacultadTab({
   // normalizado llega con el marco del OTRO componente y declararía cero
   // fijaciones donde hay quince.
   const estratos: CalcMuestraEstrato[] = estratosPropios ?? componente?.marco?.estratos ?? [];
-  const fijadaPorFacultad = new Map<string, number>();
+  const fijadaPorFacultad = new Map<string, CalcMuestraEstrato>();
   for (const e of estratos) {
     const n = Number((e as { aulas_base_fijas?: unknown }).aulas_base_fijas);
-    if (Number.isFinite(n) && n > 0) fijadaPorFacultad.set(claveFacultad(e.label), n);
+    if (Number.isFinite(n) && n > 0) fijadaPorFacultad.set(claveFacultad(e.label), e);
   }
   // Ajustar titulares invalida el resultado, así que el clic siguiente aterriza
   // en el estado sin modelo: la tabla que se estaba editando desaparece. Ese
@@ -184,12 +187,22 @@ export function CalculoCursosHorarioFacultadTab({
                   })()}</td>
                   <td>
                     {onAjustarAula ? (
-                      <TitularesFacultadEditor
-                        facultad={String(fila.estrato)}
-                        calculadas={fila.aulas_base}
-                        fijadas={fijadaPorFacultad.get(claveFacultad(fila.estrato)) ?? null}
-                        onAjustar={onAjustarAula}
-                      />
+                      (() => {
+                        const propio = fijadaPorFacultad.get(claveFacultad(fila.estrato));
+                        return (
+                          <TitularesFacultadEditor
+                            facultad={String(fila.estrato)}
+                            // La fórmula pura, cuando R la publica: sin ella el
+                            // «la fórmula calcula N» repetiría el número fijado.
+                            calculadas={fila.aulas_formula ?? fila.aulas_base}
+                            fijadas={propio ? Number(propio.aulas_base_fijas) : null}
+                            origen={propio?.aulas_base_origen ?? fila.aulas_base_origen}
+                            nota={propio?.aulas_base_nota ?? fila.aulas_base_nota}
+                            onAjustar={onAjustarAula}
+                            onNota={onNotaAula}
+                          />
+                        );
+                      })()
                     ) : (
                       fmtInt(fila.aulas_base)
                     )}

@@ -337,6 +337,19 @@ export type CalcMuestraEstrato = {
   cuota_fija?: number;
   sobremuestra_fija?: number;
   aulas_base_fijas?: number;
+  /**
+   * De dónde sale `aulas_base_fijas`. Sin esta etiqueta los tres orígenes
+   * producen números idénticos a la vista y el sustento no puede reconstruir
+   * el diseño: en HSVG2026 `max(fórmula, certeza)` da 173 y el final es 174,
+   * y ese aula de diferencia es una decisión que el proyecto no distinguía.
+   *
+   * `operativa` es la que Gonzalo nombró (2026-08-27): la que se añade por
+   * juicio, sin criterio estadístico. NO confundir con
+   * `aulas_extra_operativas`, que es el cupo de RESERVA.
+   */
+  aulas_base_origen?: "" | "formula" | "certificacion" | "operativa";
+  /** Por qué se agregó. Obligatoria cuando el origen es `operativa`. */
+  aulas_base_nota?: string;
   aulas_extra_operativas?: number;
   promedio_conglomerado: number;
   /**
@@ -420,6 +433,13 @@ export type CalcMuestraAulasEstrato = {
   avg_conglomerado: number;
   tau: number;
   aulas_base: number;
+  /** Lo que pide la fórmula, siempre, aunque el estrato traiga una fijación.
+   *  Sin esto la pantalla no puede decir cuánto se apartó una decisión. */
+  aulas_formula?: number;
+  /** De dónde sale `aulas_base`. Vacío en resultados anteriores al campo. */
+  aulas_base_origen?: "" | "formula" | "certificacion" | "operativa";
+  /** El motivo de una agregación operativa. */
+  aulas_base_nota?: string;
   aulas_reemplazo: number;
   aulas_extra_operativas?: number;
   aulas_total: number;
