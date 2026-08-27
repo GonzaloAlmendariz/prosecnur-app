@@ -67,7 +67,8 @@ Hoja «Base de control». Responde **si lo recogido vale**.
 | # | Qué | Estado | Nota |
 |---|---|---|---|
 | D1 | **Definir los filtros de encuesta válida desde la app** | ☑ | **Sí existe**: `guardarCriterio` escribe `valid_filters` y el panel enseña «cuentan N de M». Era la octava vez en esta sesión que verificar antes de declarar una ausencia evitó una afirmación falsa |
-| D2 | **Ver QUÉ respuestas no pasan y por cuál filtro** | ☐ | Hay el conteo («N de M») y el embudo del parte, pero **no un desglose por criterio**. Es lo que Gonzalo pide y es lo que falta de verdad |
+| D2 | **Ver QUÉ respuestas no pasan y por cuál filtro** | ☑ | **Existe de punta a punta**: `monitoreo_aulas_cadena_filtros()` publica el desglose con **dos lecturas distintas** —`caen` en cascada y `caen_solo_aqui`— y `AulasCadenaDeFiltros` lo dibuja. No lo veía porque **mi fixture declaraba `valid_filters` vacío**. Novena falsa ausencia de la sesión |
+| D8 | **El embudo de Fuentes cuenta las descartadas con otro criterio que la etapa de al lado** | ☐ | ver § abajo — dice «−67 descartadas» y caen **174** |
 | D3 | **Declarar el instrumento** (qué XLSForm rige) desde Fuentes | ☐ | distinto de D1 |
 | D4 | **S1 · la meta cuenta reservas dormidas**: 25 922 = 3 150 titulares + 22 772 de 1 259 reservas | ⛔ | varas: titulares 3 150 · cuota facultad 4 050 · objetivo 2 500 · sobremuestra 3 750. **Cuál manda lo decide Gonzalo** |
 | D5 | **C-F procedencia**, tercera pregunta: ¿de qué corrida del sorteo sale cada cifra? | ⚠ | sólo el KPI «Cursos-horario» estampa el `selection_run_id` |
@@ -129,3 +130,41 @@ Candidatos con dato ya disponible, sin motor nuevo:
   distribución existe (`intentos`), sólo se publica su mediana.
 - **Base de control**: la pérdida `enviadas → válidas` como banda, que hoy no se
   dibuja en ningún sitio.
+
+
+## D8 · «−67 descartadas» cuando caen 174
+
+Con los filtros del instrumento sembrados —consentimiento y screener de más de un
+ciclo— el embudo de **Fuentes** dice:
+
+> RESPUESTAS RECIBIDAS **1 811** · *−67 descartadas por el filtro*
+> ENCUESTAS QUE CUENTAN **1 637** · pasan el filtro de efectividad
+
+**1 811 − 1 637 = 174**, no 67. Las dos etapas del mismo embudo cuentan con
+criterios distintos:
+
+- «Encuestas que cuentan» sale de `respuestas_validas`, o sea de la **cadena de
+  filtros declarada**.
+- La merma sale de `filter_rejected`, que se calcula con
+  `.monitoreo_aulas_filter_passed()`.
+
+Y esa función **no mira la cadena declarada**: busca en la base una columna
+llamada `filter_passed`, `pasa_filtro`, `apto`, `elegible`, `eligible`,
+`screening_status`, `estado_filtro`, `consent` o **`consentimiento`**, y si la
+encuentra, cuenta sobre ella. Como el instrumento de este estudio abre con la
+pregunta de consentimiento, **la columna se llama exactamente así**, y la merma
+pasó a ser la caída de ese único filtro (1 811 ÷ 27 ≈ 67) en vez de la de los dos.
+
+Es la familia de «una lista cerrada se traga lo que no reconoce», del revés: una
+lista que **reconoce de más**. Un estudio que nombre su variable de consentimiento
+de la forma natural ve su embudo medido por esa columna y no por el criterio que
+declaró.
+
+**La regla que falta**: cuando el estudio declara `valid_filters`, la cadena
+declarada manda; la heurística por nombre de columna es el camino para estudios
+que no declaran nada.
+
+**No lo reparo todavía** porque toca `monitoreo_aulas_universitarias.R`, que es
+archivo congelado a crecimiento, y porque la heurística existe para un caso real
+—estudios sin criterio declarado— que hay que preservar. Queda medido y con la
+regla propuesta.
