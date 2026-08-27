@@ -137,19 +137,28 @@ function FilaCerteza({ fila, nivel, onFijarAulas }: {
         {/* Con cuántos sorteos se decidió. El motor los recorta en los marcos
             grandes, así que las facultades de mayor cuota son las que menos
             evidencia reciben, y sin este dato el veredicto se lee como si
-            todos valieran lo mismo. */}
+            todos valieran lo mismo.
+
+            El aviso de riesgo mide si el ruido puede mover EL MÍNIMO, no si la
+            probabilidad está lejos del umbral: lo que decide es si el candidato
+            anterior alcanza el nivel, y ese hueco suele ser enorme. Medirlo
+            como margen sobre el umbral marcaba tres facultades de HSVG2026
+            como ambiguas cuando sus veredictos aguantaban 21, 13 y 3 errores
+            estándar. */}
         {precision.corridas != null && (
           <small
             className="cmv2-certeza-corridas"
             data-ruido={precision.dentroDelRuido ? "" : undefined}
             title={
               precision.dentroDelRuido
-                ? `Decidido con ${precision.corridas} sorteos: el margen sobre el nivel exigido (${(precision.margen * 100).toFixed(2)} puntos) es menor que el error de muestreo (±${(precision.error * 100).toFixed(2)}). Con esta evidencia no se distingue si cumple.`
-                : `Decidido con ${precision.corridas} sorteos · error de muestreo ±${(precision.error * 100).toFixed(2)} puntos`
+                ? `Decidido con ${precision.corridas} sorteos, y el veredicto es frágil: a ${fila.aulas_certeza! - 1} aulas le falta sólo ${(precision.distancia * 100).toFixed(2)} puntos para alcanzar el nivel, que son ${precision.erroresHastaVoltear!.toFixed(1)} veces el error de muestreo (±${(precision.error * 100).toFixed(2)}). Otra corrida podría dejar el mínimo en ${fila.aulas_certeza! - 1}.`
+                : precision.erroresHastaVoltear == null
+                  ? `Decidido con ${precision.corridas} sorteos`
+                  : `Decidido con ${precision.corridas} sorteos · el veredicto aguanta: a ${fila.aulas_certeza! - 1} aulas le faltan ${(precision.distancia * 100).toFixed(1)} puntos para el nivel, ${precision.erroresHastaVoltear.toFixed(1)} veces el error de muestreo`
             }
           >
             {fmtInt(precision.corridas)} sorteos
-            {precision.dentroDelRuido && " · en el ruido"}
+            {precision.dentroDelRuido && " · veredicto frágil"}
           </small>
         )}
       </td>
