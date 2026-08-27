@@ -29,7 +29,7 @@ Y la regla de evidencia, también suya:
 | 4a | «se muda a cálculo» — el editor de afijación | `calculo/TitularesFacultadEditor.tsx` | `a3b8918b` | `b98f9635` | ☑ **cerrada y vista en pantalla** — el stepper bajó a la columna Titulares de «Cursos-horario requeridos» y ya no exige certificación corrida |
 | 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
-| 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R` · workspace | — | — | ☐ **pendiente** — el dato está bien y el estadístico ya se declara (`estadistico = p25`); lo que engaña es el nombre del campo |
+| 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
 | 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ☐ **pendiente** |
 
@@ -79,6 +79,53 @@ menos.
 Con las dos corridas juntas el margen es 0,61pp y hacen falta ~4.500 — caro,
 pero no absurdo. La decisión sobre Derecho es real y no está cerrada de
 antemano.
+
+
+## Decisión 5, analizada — no es un renombre
+
+`promedio_conglomerado` aparece en **38 sitios de 15 archivos** (3 en R, 12 en
+frontend) y **viaja dentro del `.pulso`**. Pero el problema no es el nombre:
+**el campo tiene dos significados vivos y uno destruye al otro.**
+
+**Significado 1, el que dice el nombre.** `.cm_estadistico_conglomerado_estrato`
+(`calc_muestra_engine.R:1231`) usa el par `promedio_conglomerado` /
+`mediana_conglomerado` para resolver el divisor según
+`parametros.estadistico_conglomerado`: con `mediana` toma la mediana, con
+`min_media_mediana` toma el mínimo de las dos —la regla del diseño de 2025—, y
+sin mediana degrada a la media. Ese camino **está vivo**: `divisorDelMarco.ts`
+existe precisamente para poblar los dos divisores desde el perfil del marco, y
+su comentario documenta que antes sólo llegaba la media y por eso
+`min_media_mediana` no podía dispararse nunca.
+
+**Significado 2, el que Gonzalo detectó.** Al sellar la decisión de alumnos por
+CH, `calc_muestra_alumnos_por_ch.R:569` escribe en ese mismo campo **el valor
+del estadístico elegido, sea cual sea** —P25 incluido—, pone
+`mediana_conglomerado <- 0` y deja `estadistico_conglomerado <- "media"`. No es
+un descuido: es una materialización deliberada del divisor, y el comentario lo
+declara.
+
+**El costo que nadie declaró.** Sellar la decisión **borra la mediana medida del
+marco**, y `divisorDelMarco` sólo repuebla cuando el marco todavía no está
+validado (`marco_validado > 0` corta la sincronización). O sea: después de
+sellar, un estudio que quisiera volver a `min_media_mediana` ya no tiene con qué.
+
+**El rótulo del usuario NO está roto**: `criteriosGeneralesModel.ts:113` ya lee
+la decisión sellada por encima del parámetro, con historia documentada de
+haberlo reparado —«la tarjeta decía media mientras el estudio dimensionaba con
+p25, medido en HSVG2026».
+
+### Las dos formas de arreglarlo
+
+| | Qué se hace | Riesgo |
+|---|---|---|
+| **Renombre con alias** | `promedio_conglomerado` → nombre nuevo; leer los dos, escribir el nuevo | Mecánico, 38 sitios. **Pero no arregla nada**: el campo sigue teniendo los dos significados, sólo que con otro nombre |
+| **Separación** (recomendada) | Campo nuevo `divisor_conglomerado` para el divisor sellado; `promedio_` y `mediana_` vuelven a ser lo que dicen y dejan de borrarse; el motor prefiere el sellado cuando existe | Es aditivo —ningún `.pulso` viejo cambia de significado— pero **cambia el comportamiento del divisor de todo estudio** y hay que mover los 38 consumidores a preferir el campo nuevo, o las pantallas pasarían a mostrar la media cruda |
+
+**Por qué está bloqueada y no pendiente**: «cambiémoslo, sí» autoriza el cambio
+pero no cuál de los dos, y el segundo toca el divisor del que cuelga toda la
+muestra. Además la separación recupera una capacidad que hoy se pierde en
+silencio (`min_media_mediana` después de sellar), lo cual la hace más que un
+saneamiento de nombres y probablemente merezca ADR.
 
 
 ## La cola del loop de cobertura
