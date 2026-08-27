@@ -1008,6 +1008,8 @@ export function UniversidadDesk({
                 model={labModel}
                 workspace={syncedWorkspace}
                 onWorkspace={onWorkspace}
+                estudio={estudio}
+                aulasState={aulasState}
                 reporte={{
                   puedeGenerar: calculationReady,
                   enCurso: reporteEnCurso,
