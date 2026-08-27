@@ -65,11 +65,13 @@ export function CalculoCertezaTab({
          nada deja de leerse. */
       data-qa-geometry-contract="intrinsic"
     >
-      <section className="cmv2-calc-certeza-intro">
-        <header>
-          <ShieldCheck size={16} aria-hidden="true" />
-          <strong>Por qué la división no basta</strong>
-        </header>
+      <section className="cmv2-panel cmv2-calc-certeza-intro" data-qa-geometry-member>
+        <div className="cmv2-subhead">
+          <strong>
+            <ShieldCheck size={13} aria-hidden="true" /> Por qué la división no basta
+          </strong>
+          <small>la cuenta directa pide menos aulas de las necesarias</small>
+        </div>
         <p>
           La pestaña anterior divide: la cuota de una facultad entre lo que rinde un
           curso-horario. Esa cuenta supone que los estudiantes de las aulas sorteadas son
@@ -84,8 +86,11 @@ export function CalculoCertezaTab({
         </p>
       </section>
 
-      <section className="cmv2-calc-certeza-intro">
-        <header><strong>Qué hace esta pantalla</strong></header>
+      <section className="cmv2-panel cmv2-calc-certeza-intro" data-qa-geometry-member>
+        <div className="cmv2-subhead">
+          <strong>Qué hace esta pantalla</strong>
+          <small>simula el sorteo y cuenta, en vez de estimar</small>
+        </div>
         <p>
           Para cada número candidato de aulas ejecuta <b>sorteos completos</b>, con el mismo
           motor que hará la selección definitiva. En cada uno cuenta los{" "}
