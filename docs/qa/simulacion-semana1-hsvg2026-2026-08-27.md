@@ -140,3 +140,88 @@ números inventados.
 **Relacionado**: el `n_aulas: 30` que `classroomComparisonSelectorSnapshot`
 fabricaba sí era invención —y está persistido en HSVG26ULT—; y el **165** que la
 UI publica contra las **174** sorteadas es la misma familia vista desde Cálculo.
+
+## Los reemplazos de 2025: qué se cayó, dónde, y qué lo anunciaba
+
+**Encargo de Gonzalo**: «los reemplazos que hubieron, en qué facultades, a qué se
+debió. Yo sé que no se sabe exactamente, pero podemos intuirlo».
+
+Hoja «Aulas Agendadas», los **170 titulares** de Muestra 01:
+
+| estado final | aulas | |
+|---|---|---|
+| AGENDADA | 119 | 70 % |
+| **REEMPLAZADA** | **24** | 14,1 % |
+| **EN RESERVA 1** | **19** | 11,2 % |
+| REAGENDADA | 8 | 4,7 % |
+
+**43 de 170 titulares (25 %) no se sostuvieron.**
+
+### Dónde: en las pequeñas
+
+| Facultad | titulares | no se sostuvieron | |
+|---|---|---|---|
+| Artes Escénicas | 7 | 4 | **57 %** |
+| Gestión y Alta Dirección | 6 | 3 | **50 %** |
+| Educación | 4 | 2 | **50 %** |
+| Gastronomía | 2 | 1 | **50 %** |
+| Arte y Diseño | 9 | 3 | 33 % |
+| Ciencias e Ingeniería | 39 | 12 | 31 % |
+| Derecho | 16 | 4 | 25 % |
+| … | | | |
+| Contables · Letras y CC.HH. · Psicología | 2 · 4 · 6 | 0 | 0 % |
+
+**Y es el mismo grupo.** Las facultades donde más titulares se caen —Artes
+Escénicas, Gestión, Educación, Gastronomía— son **las mismas** que la simulación
+de la primera semana enseña que no llegarían a su cuota con sus titulares. Doble
+castigo sobre las mismas: pocas aulas, y de esas pocas se cae la mitad.
+
+### Qué lo anunciaba: la contactabilidad, no el motivo
+
+Las 133 observaciones son sobre todo **coordinación logística** —a qué minuto de
+la clase aplicar, confirmaciones—: sólo 26 mencionan «no responde» y 11 una
+reprogramación. El motivo del reemplazo casi nunca está escrito.
+
+Pero **sí hay señal, y está en el plan antes de que el aula se caiga**:
+
+| señal | no se sostuvo | |
+|---|---|---|
+| observación menciona problema de contacto (apagado, equivocado, restringido, sin número) | 18 de 41 | **44 %** |
+| sin ese problema | 25 de 129 | 19 % |
+| | | **riesgo 2,3×** |
+
+| gestiones | no se sostuvo | |
+|---|---|---|
+| 1 | 12 de 64 | 19 % |
+| 2 | 7 de 41 | 17 % |
+| **3** | 11 de 29 | **38 %** |
+| **4–7** | 12 de 33 | **36 %** |
+
+| medio de contacto | no se sostuvo |
+|---|---|
+| **ninguno anotado** | **14 de 14 · 100 %** |
+| Correo electrónico | 24 % |
+| Llamada | 17 % |
+
+**La tercera gestión es el punto de quiebre**: hasta la segunda, una de cada
+cinco se cae; desde la tercera, dos de cada cinco. Y las que no tienen por dónde
+ser llamadas se cayeron todas.
+
+### Lo que entra en el producto
+
+`agendamiento.ts` ya leía `contact_attempts` y `contact_medium`, pero sólo para
+**describir** (`conInsistencia`, `intentosMedianos`). Con la medición pasa a
+**avisar**: dos tiles nuevos, **«Van por la tercera»** y **«Sin medio de
+contacto»**, contados sólo sobre las que siguen sin fecha —una que costó cuatro
+llamadas pero ya está agendada es una historia, no un pronóstico— y sin tocar
+las reservas dormidas. La constante `UMBRAL_DE_RIESGO = 3` lleva la medición en
+su comentario: **no es un umbral elegido**.
+
+### Una nota sobre S1 que sale de aquí
+
+La cabecera de `agendamiento.ts` documenta que ese módulo **ya sufrió y reparó
+S1**: «contaba las 507 reservas encadenadas como aulas por agendar, así que el
+KPI decía "0 de 700 que se van a visitar" al pie de una tabla de 193». Su
+función `seVaAAgendar()` encierra la regla correcta —una reserva dormida no la
+agenda nadie—. **La reparación de S1 es aplicar esa misma regla a la meta**, y
+tiene precedente en el propio perfil.
