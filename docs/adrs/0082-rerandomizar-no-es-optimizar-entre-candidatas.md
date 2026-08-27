@@ -1,8 +1,9 @@
 # ADR 0082 — Rerandomizar no es optimizar entre candidatas
 
-- **Estado**: **Propuesto**. Pedido por Gonzalo el 2026-08-27, textual:
-  «Necesita su ADR, necesita su propia pestaña al final de las pestañas
-  actuales de selección porque es la última decisión».
+- **Estado**: **Aceptado** por Gonzalo el 2026-08-27, textual: «acepta el ADR
+  0082». Pedido por él ese mismo día: «Necesita su ADR, necesita su propia
+  pestaña al final de las pestañas actuales de selección porque es la última
+  decisión».
 - **Implementación**: No iniciada.
 - **Ámbito**: Cálculo de muestra · motor de selección de aulas
   (`calc_muestra_aulas.R`) · sección Selección
