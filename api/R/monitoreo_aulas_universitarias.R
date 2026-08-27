@@ -1619,7 +1619,17 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
     v <- suppressWarnings(as.numeric(x))
     ifelse(is.finite(v), v, 0)
   }
-  .meta_por_aula <- .aulas_num(tracked_df$expected_valid)
+  # La meta de un aula se redondea HACIA ARRIBA, y aqui: `expected_valid` llega
+  # fraccionario —es `eligible_n x rendimiento x factor`, p. ej. 18,2— y capar un
+  # conteo entero contra una fraccion arrastraba el decimal a las PERSONAS: la
+  # pantalla decia «1 248,9 cubren meta» y «358,1 de mas». Media respuesta no
+  # existe. Hacia arriba y no al mas cercano, por la misma razon que `fmtCuenta`
+  # en el frontend: con 18 no se cumple una meta de 18,2.
+  #
+  # Se redondea en la meta POR AULA y no en las sumas, para que `cubierto`,
+  # `excedente` y `falta` sigan reconciliando: con el objetivo entero las tres
+  # salen enteras y `cubierto + excedente` sigue siendo las validas.
+  .meta_por_aula <- ceiling(.aulas_num(tracked_df$expected_valid))
   .validas_por_aula <- .aulas_num(tracked_df$respuestas_validas)
   .con_meta <- .meta_por_aula > 0
   cumplimiento_respuestas <- list(
