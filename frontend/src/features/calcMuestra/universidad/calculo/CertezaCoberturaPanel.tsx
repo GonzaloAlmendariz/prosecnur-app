@@ -14,6 +14,7 @@ import { AvisoModulo } from "../shared/AvisoModulo";
 import { CifraFila, CifraMotor } from "../ui";
 import {
   certezaEstratosDesdeResultado,
+  curvaResumen,
   type CertezaEstado,
   type CertezaFilaVista,
   type CertezaVista,
@@ -64,6 +65,42 @@ function fmtRendimiento(value: number | null): string {
   return typeof value === "number" && Number.isFinite(value) ? fmtDec(value, 1) : "—";
 }
 
+/**
+ * La curva de la que sale el número certificado, en el ancho de una celda.
+ *
+ * El panel publicaba sólo el resultado, y con eso una certificación degenerada
+ * era invisible: el motor devolvía 392,7 con 40 aulas y 394,6 con 55 y en
+ * pantalla se veía una cifra sola, perfectamente creíble. Dibujar la curva
+ * convierte ese caso en algo que se nota sin leer el API.
+ */
+function CurvaCerteza({ fila }: { fila: CertezaFilaVista }) {
+  const { puntos, plana } = curvaResumen(fila.curva);
+  if (puntos.length < 2) return <td className="cmv2-certeza-curva">—</td>;
+  const rends = puntos.map((p) => p.rendimiento_medio);
+  const min = Math.min(...rends);
+  const max = Math.max(...rends);
+  const rango = max - min || 1;
+  const linea = puntos
+    .map((p, i) => {
+      const x = (i / (puntos.length - 1)) * 46;
+      const y = 14 - ((p.rendimiento_medio - min) / rango) * 12;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const titulo = plana
+    ? `El rendimiento no crece al sumar aulas (${puntos[0]!.aulas} → ${puntos[puntos.length - 1]!.aulas}): la corrida no está evaluando el número que declara.`
+    : puntos.map((p) => `${p.aulas} aulas: ${Math.round(p.rendimiento_medio)}`).join(" · ");
+  return (
+    <td className="cmv2-certeza-curva" data-plana={plana ? "" : undefined}>
+      <svg viewBox="0 0 46 16" role="img" aria-label={titulo}>
+        <title>{titulo}</title>
+        <polyline points={linea} />
+      </svg>
+      {plana && <small>plana</small>}
+    </td>
+  );
+}
+
 function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number }) {
   const texto = ESTADO_TEXTO[fila.estado];
   // Marcar «probabilidad baja» contra un 0,95 escrito a mano decía que el nivel
@@ -100,6 +137,7 @@ function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number })
         <strong>{fmtRendimiento(fila.rendimiento_medio)}</strong>
         <small>P05 {fmtRendimiento(fila.rendimiento_p05)}</small>
       </td>
+      <CurvaCerteza fila={fila} />
       <td>
         <span className="cmv2-certeza-chip" data-estado={fila.estado} title={texto.detalle}>
           {texto.etiqueta}
@@ -266,6 +304,9 @@ export function CertezaCoberturaPanel({
                   <th>Dif.</th>
                   <th title="Alumnos que rinde un aula en la simulación: la media arriba, y debajo el percentil 5 —el peor escenario razonable—.">
                     Alumnos por aula
+                  </th>
+                  <th title="Cómo crece el rendimiento a medida que se suman aulas. Una curva plana significa que la corrida no está evaluando el número que declara.">
+                    Curva
                   </th>
                   <th>Estado</th>
                 </tr>
