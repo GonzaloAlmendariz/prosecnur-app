@@ -251,18 +251,49 @@ Con 165 guardado y 174 ejecutado, las tres fallan y el pase a Monitoreo se apaga
 entero, mostrando «pendiente» y «completa la selección» sobre una selección
 completa y correcta.
 
-### Retractación
+### La regla NO era numerología: se des-retracta
 
-En el tick anterior reporté que 174 salía de una regla `max(fórmula, certeza)`
-por facultad más un aula suelta en Derecho. **Eso era numerología y se retira.**
-Salió de comparar la selección contra el artefacto de certeza, que está calculado
-sobre el componente de **universidad** (fórmula 165 → certeza 167): el escenario
-equivocado. Con el componente correcto no hay regla que inferir ni aula
-huérfana — las 15 facultades cuadran exactamente.
+En un tick reporté la regla `max(fórmula, certeza)` + un aula en Derecho; en el
+siguiente la retracté al ver que el componente de facultad cuadraba 15 de 15.
+**La retractación estaba mal, y la sesión hermana tenía razón al pedir que no la
+diera por falsa.** Las dos cosas son ciertas porque describen el mismo objeto:
 
-La lección: **comparar contra el artefacto equivocado produce un patrón que
-parece una regla.** Antes de explicar una diferencia, comprobar que los dos
-lados son del mismo escenario.
+| Facultad | comp1 | certeza | max | **comp2** | ¿comp2 = max? |
+|---|---|---|---|---|---|
+| Arquitectura | 8 | 7 | 8 | 8 | sí |
+| Arte y Diseño | 15 | 13 | 15 | 15 | sí |
+| Ciencias e Ingeniería | 37 | 34 | 37 | 37 | sí |
+| **Derecho** | 16 | 18 | **18** | **19** | **NO** |
+| EE.GG. Letras | 18 | 20 | 20 | 20 | sí |
+| … las otras diez | | | | | sí |
+| **suma** | **165** | **167** | **173** | **174** | |
+
+**`comp2 = max(comp1, certeza)` en 14 de 15 facultades.** La única excepción es
+Derecho —18 contra 19—, el aula añadida a mano que la sesión hermana localizó
+documentada en el PDF metodológico §5.3 (a 18 la certificación daba 0,9512).
+
+Es decir: **el componente de facultad ES la afijación posterior a la
+certificación, ya persistida**, incluida la decisión de Derecho. No hay que
+reconstruirla ni buscarla en otro sitio.
+
+### Lo que no reproduce, y hay que cruzar
+
+La sesión hermana midió `comp2` sumando **294** y coincidiendo **0 de 15** con
+el sorteo. Sobre este archivo eso no reproduce: leyendo el `state.rds` en crudo,
+sin API, `comp2$resultado$aulas_base_total` es **174** y la suma de sus
+`aulas_base` por estrato también. Y el archivo es el mismo —la copia de trabajo
+tiene el **hash idéntico** al original (`73963fc8…`)—.
+
+Tampoco existe `aulas_base_fijas` en ninguno de los dos componentes, así que la
+reparación no puede leerse de ahí.
+
+### Dónde queda el defecto, ya reconciliado
+
+No es «el workspace guarda el escenario que no rige»: es que
+`workspace.aulas_config.n_aulas` guarda **165** —el `aulas_base_total` de comp1,
+o sea el objetivo **pre-certificación**— mientras la afijación operativa vive en
+`comp2.aulas_base_total` = **174**. El objetivo vigente hay que leerlo del
+componente operativo, no de `aulas_config.n_aulas`.
 
 ### Qué falta decidir
 
