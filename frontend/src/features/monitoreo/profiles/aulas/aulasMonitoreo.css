@@ -3779,6 +3779,13 @@
 .mon-profile-page.is-aulas-flow .aulas-tiempos-umbral button:hover {
   border-color: var(--pulso-border-strong);
 }
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral-leyenda {
+  display: inline-flex; align-items: center; gap: 5px;
+  flex-basis: 100%; color: var(--pulso-text-soft);
+}
+.mon-profile-page.is-aulas-flow .aulas-tiempos-umbral-unidad {
+  margin-left: -4px; color: var(--pulso-text-soft);
+}
 
 /* La pérdida enviadas → válidas del libro: una sola línea con su barra. Es la
    cuarta cifra de «cuántas encuestas hay» y la única que no se dibujaba. Tokens

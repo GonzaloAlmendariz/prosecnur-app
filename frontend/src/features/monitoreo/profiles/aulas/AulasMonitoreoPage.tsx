@@ -84,6 +84,7 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
+import { AulasUmbralDeDuracion } from "./AulasUmbralDeDuracion";
 import { corteDelEstudio } from "./corteDelEstudio";
 import { estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
@@ -740,6 +741,14 @@ function renderAulasView(
   // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
   // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
   const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
+  // El umbral declarado, leído del mismo bloque que dibuja el panel de tiempos
+  // para que las dos pantallas no puedan discrepar.
+  const umbralDeDuracion = (() => {
+    const u = (dashboard as { tiempos?: { umbral?: { declarado?: unknown; minutos?: unknown } } } | null)
+      ?.tiempos?.umbral;
+    const m = Number(u?.minutos);
+    return { declarado: u?.declarado === true, minutos: Number.isFinite(m) ? m : null };
+  })();
 
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -826,6 +835,25 @@ function renderAulasView(
               </span>
             </div>
             {criterioDeEfectiva}
+            {/* **El umbral de duración también se declara aquí, al principio.**
+                Gonzalo: «el umbral es menos de 5 minutos, configurable a 8 u
+                otros números, pero **lo ideal es definirlos al principio**».
+                Una respuesta contestada en dos minutos no vale, igual que una
+                sin consentimiento: es parte de «de qué vale cada una», que es lo
+                que esta sección promete. En Validación está el MISMO control,
+                junto a la distribución, porque el número se afina viendo la
+                forma del dato — pero el sitio para fijarlo antes de que llegue
+                la primera respuesta es éste. */}
+            {onDeclararUmbralDeDuracion ? (
+              <AulasUmbralDeDuracion
+                declarado={umbralDeDuracion.declarado}
+                minutos={umbralDeDuracion.minutos}
+                onDeclarar={onDeclararUmbralDeDuracion}
+                leyenda={umbralDeDuracion.declarado
+                  ? `Ahora se marcan las de menos de ${umbralDeDuracion.minutos} min.`
+                  : "Cuánto tiene que durar una respuesta para contar."}
+              />
+            ) : null}
           </section>
         ) : null}
       </div>
