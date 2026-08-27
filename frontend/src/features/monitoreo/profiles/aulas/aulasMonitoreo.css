@@ -5323,6 +5323,6 @@
 }
 
 .mon-profile-page.is-aulas-flow .aulas-observaciones-origen.es-aplicacion {
-  background: color-mix(in srgb, var(--pulso-success) 14%, transparent);
-  color: var(--pulso-success-text, var(--pulso-success));
+  background: color-mix(in srgb, var(--pulso-success-fg) 14%, transparent);
+  color: var(--pulso-success-text, var(--pulso-success-fg));
 }
