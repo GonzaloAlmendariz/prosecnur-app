@@ -225,3 +225,35 @@ KPI decía "0 de 700 que se van a visitar" al pie de una tabla de 193». Su
 función `seVaAAgendar()` encierra la regla correcta —una reserva dormida no la
 agenda nadie—. **La reparación de S1 es aplicar esa misma regla a la meta**, y
 tiene precedente en el propio perfil.
+
+## Lo que el proyecto simulado destapó en la sección de Agenda
+
+Con `contact_attempts` y `contact_medium` sembrados con la distribución real de
+2025 —64/41/29/17/4/8/4 gestiones y 123 llamada · 33 correo · **14 sin medio**—
+y dejando sin fecha la misma proporción que 2025 (119 de 170 llegaron a
+AGENDADA), la sección de Agenda enseña:
+
+**Los dos avisos nuevos funcionan**: «VAN POR LA TERCERA · 29 · gestiones y
+siguen sin fecha», en ámbar, junto a «Agendadas 145» y «Por agendar 29».
+
+**S6 · La tabla afirmaba una contradicción sin señalarla.** 78 de 174 filas
+decían **«Aplicada»** en «qué toca» y **«Sin contactar»** en status. La causa
+está medida y documentada en `monitoreo_aulas_estados_no_reconocidos.R`: el
+normalizador es una lista cerrada y las seis palabras reales —«aplicada»,
+«contactada», «en campo», «cerrada», «parcial», «efectiva»— caen todas al
+default. La consecuencia que ese módulo nombra es grave y es de otra sección:
+**una reserva marcada «aplicada» se cuenta como reserva LIBRE** y la cola de
+contacto la manda a llamar otra vez.
+
+Reparado en la capa que muestra, no en el mapeo: `estadoDeMuestraLegible.ts`.
+Verificado en pantalla: **78 marcadas, 0 sin señalar**. Abrir la lista cerrada
+sigue pendiente y es decisión con su propio gate.
+
+**Pendiente de mirar en esa misma pantalla** (medido, sin diagnosticar):
+
+- «18 días de campo · de Lunes 07/09 a Viernes 25/09 · **355 sin fecha**» — el
+  plan tiene 1 512 filas y 145 con fecha, así que sin fecha son 1 367. De dónde
+  sale 355 no está claro.
+- La leyenda dice «Agendada 96 · En cierre 78 · **En reserva 326**» y el
+  proyecto tiene 1 338 reservas. Otro denominador recortado, misma familia que
+  S1 y S5.
