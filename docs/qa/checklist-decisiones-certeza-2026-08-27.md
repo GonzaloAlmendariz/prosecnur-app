@@ -37,6 +37,7 @@ Y la regla de evidencia, también suya:
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
 | 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ☐ **pendiente** |
+| 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R:1366` · estrato | — | — | 🔒 **bloqueada** — el concepto es real y ya ocurrió (el +1 a Derecho); falta resolver la colisión de nombre con `aulas_extra_operativas`. Ver abajo |
 
 ## Decisión 3, evaluada — tiempos medidos, no estimados
 
@@ -178,6 +179,50 @@ pero no cuál de los dos, y el segundo toca el divisor del que cuelga toda la
 muestra. Además la separación recupera una capacidad que hoy se pierde en
 silencio (`min_media_mediana` después de sellar), lo cual la hace más que un
 saneamiento de nombres y probablemente merezca ADR.
+
+
+## Decisión 8 — la agregación operativa
+
+Gonzalo, 2026-08-27, textual: «aun con la certeza yo puedo agregar aulas
+adicionales al sorteo si lo veo conveniente, es decir si veo por ejemplo que
+derecho va muy justo le puedo agregar una más a pesar de que la certeza me diga
+que sólo le agregue 3 y yo le agrego 4 porque sí; esa agregación se puede llamar
+**agregación operativa**, ya que no sigue un criterio estadístico como tal».
+
+**Ya ocurrió, y está medido.** En HSVG26ULT, `max(fórmula, certeza)` explica 14
+de las 15 facultades exactas. La quincuagésima —Derecho, 18 → 19— es
+precisamente eso: una agregación operativa. Las sumas lo dicen solas:
+fórmula 165 · certeza 167 · max **173** · final **174**. **Ese aula de
+diferencia es la decisión de Gonzalo, y hoy el proyecto no la distingue de las
+otras 173.**
+
+**Lo que falta.** `aulas_base_fijas` es un entero pelado: el motor lo lee y lo
+usa como `aulas_base` si es mayor que 0 (`calc_muestra_engine.R:1366`), sin
+registrar de dónde salió. Los tres orígenes posibles —lo que calculó la
+fórmula, lo que certificó la simulación y lo que decidió el analista— viven en
+el mismo campo y producen números idénticos a la vista. Es la misma familia que
+el punto 6 del [ADR 0082](../adrs/0082-rerandomizar-no-es-optimizar-entre-candidatas.md):
+un artefacto que no declara cuál mecanismo produjo su número no permite
+reconstruir el diseño.
+
+**Trampa de nombre, y hay que resolverla antes de adoptarlo.**
+`aulas_extra_operativas` **ya existe y significa otra cosa**: es el cupo de
+reserva por facultad (`aulas_reemplazo`, `calc_muestra_engine.R:1371`), lo que
+se suma a los titulares para dar `aulas_total`. Llamar «agregación operativa» a
+lo que suma **titulares** dejaría dos cosas distintas con casi el mismo nombre
+en el mismo estrato — exactamente el defecto que más veces ha mordido en este
+proyecto. O el concepto se llama distinto, o el campo viejo se renombra.
+
+**Forma propuesta**: `aulas_base_fijas` gana un hermano que declare el origen
+—`formula` · `certificacion` · `operativa`— y, para el tercero, una nota breve.
+El stepper de Cálculo escribe `operativa`; «Llevar a N» escribe
+`certificacion`. Con eso el sustento puede decir «Derecho: 16 por fórmula, 18
+certificado, 19 por decisión operativa» en vez de un 19 sin padre. Es aditivo:
+ningún `.pulso` viejo cambia de significado, y los que no traen el campo se
+leen como origen desconocido.
+
+**Estado**: 🔒 bloqueada — decide Gonzalo el nombre (por la colisión) y si la
+nota es obligatoria.
 
 
 ## La cola del loop de cobertura
