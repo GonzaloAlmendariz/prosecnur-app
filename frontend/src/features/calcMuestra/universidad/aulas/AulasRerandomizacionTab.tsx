@@ -43,7 +43,11 @@ export function AulasRerandomizacionTab({
   };
 
   return (
-    <div className="cmv2-aulas-stack" data-qa-geometry-group="calc-muestra/aulas-rerandomizacion">
+    <div
+      className="cmv2-aulas-stack"
+      data-qa-geometry-group="calc-muestra/aulas-rerandomizacion"
+      data-qa-geometry-contract="intrinsic"
+    >
       <section className="cmv2-panel cmv2-rr-intro" data-qa-geometry-member>
         <div className="cmv2-subhead">
           <strong>Sortear una vez, o sortear hasta que sirva</strong>

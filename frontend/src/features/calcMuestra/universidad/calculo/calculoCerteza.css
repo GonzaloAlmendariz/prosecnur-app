@@ -6,3 +6,7 @@
 .cmv2-calc-certeza-intro header strong { font-weight: var(--pulso-weight-semibold); }
 .cmv2-calc-certeza-intro p { margin: 0 0 var(--pulso-space-1); color: var(--pulso-text-muted); }
 .cmv2-calc-certeza-nota { max-width: 78ch; color: var(--pulso-text-muted); font-size: 12px; }
+
+/* Mismo motivo que en la pestaña de rerandomización: el margen del último
+   párrafo deja aire muerto al pie de la sección. */
+.cmv2-calc-certeza-intro > :last-child { margin-bottom: 0; }
