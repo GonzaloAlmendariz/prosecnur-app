@@ -71,7 +71,7 @@ describe("universitySidebarTabs — Selección", () => {
     expect(resolveUniversityClassroomTab("auditoria")).toBe("auditoria");
   });
 
-  it("expone solo las nueve pestañas vivas y conserva sus gates", () => {
+  it("expone solo las diez pestañas vivas y conserva sus gates", () => {
     // ADR 0067: «Relato» (aulas-relato) entra junto a Sustento con el mismo
     // gate que Perfil — narra la selección persistida, así que existe en
     // cuanto ella existe.
@@ -92,6 +92,11 @@ describe("universitySidebarTabs — Selección", () => {
       "reemplazos:pending",
       "aulas-relato:pending",
       "auditoria:working",
+      // ADR 0082: la última. Se habilita con el cálculo por facultad y sólo se
+      // acredita cuando una corrida rerandomizó de verdad — darla por lista con
+      // sólo tener selección la pintaría verde sin que nadie aceptara ni
+      // rechazara nada.
+      "aulas-rerandomizacion:working",
     ]);
   });
 });
