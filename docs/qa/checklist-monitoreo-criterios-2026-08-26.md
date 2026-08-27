@@ -47,8 +47,8 @@ sin verlo en la aplicación.
 
 | # | Ítem | Dónde vive | Criterio | Estado |
 |---|---|---|---|---|
-| **T1** | Trasladar la selección de 174 aulas de Cálculo de muestra a Monitoreo **desde la UI**, no por script | `SalidasMonitoreoTab.tsx` → import de Monitoreo | C-E | ☐ **SIGUIENTE** |
-| **T2** | Fabricar **una semana** de campo sobre ese traslado: agendación, aplicación, respuestas de plataforma y base de control | copia de trabajo, nunca el original | C-C, C-E | ☐ |
+| **T1** | Trasladar la selección de 174 aulas a Monitoreo desde la UI | `classroomHandoff.ts:342` | C-E | **☑ probado: NO se puede.** Causa medida; **bloqueado por decisión de Gonzalo** |
+| **T2** | Fabricar **una semana** de campo sobre ese traslado | copia de trabajo, nunca el original | C-C, C-E | ☐ **bloqueado por T1** |
 | **T3** | Poner a prueba C-A a C-E contra ese estado y anotar qué se rompe | recorrido por la UI | todos | ☐ |
 | **T4** | Definición de encuesta efectiva desde los filtros iniciales: comprobar que se declara y que el motor la respeta | `criterio_validez`, `valid_filters` | C-C | ☐ |
 | **T5** | Efectivas vs elegibles: buscar dónde comparten rótulo o denominador | perfil de aulas | C-B | ☐ |
@@ -106,6 +106,63 @@ llegar, después de ver el PDF.
 
 **Bloqueo de secuencia**: T8 no se puede juzgar sin T1 y T2 —el traslado y la
 semana de campo—, porque una tabla de avance sin avance no dice si se entiende.
+
+## T1 — la selección de 174 aulas NO se puede trasladar hoy, y ésta es la razón
+
+Probado el 2026-08-26 sobre la copia de trabajo de `HSVG26ULT.pulso`, abriendo
+la aplicación y recorriendo `Cálculo de muestra → Entrega → Pase a Monitoreo`.
+
+**La pestaña muestra «pendiente» en sus cuatro filas** —cursos-horario
+titulares, cursos-horario de reemplazo, método y simulación de reemplazos— y
+bajo ellas «Completa la selección antes de emitir fichas». **No hay ningún
+botón de traslado.** Y la selección está cerrada.
+
+### La causa, medida
+
+`selectionReady` (`classroomHandoff.ts:342`) exige siete condiciones a la vez.
+Consultado el estado por la propia sesión del navegador:
+
+| Condición | Estado |
+|---|---|
+| Selección presente | ✅ 1 512 filas: **174 titulares**, 1 259 de cadena, 79 de banco |
+| `selection_run_id` | ✅ `sel_aulas_20260826…` |
+| `frame_hash` de la selección = el del marco | ✅ los dos `87df265f50d247` |
+| **`selector.n_aulas` = lo que pide el cálculo** | ❌ **174 contra 165** |
+
+**Ése es el único que falla.** La selección se hizo para 174 aulas y el cálculo
+vigente pide 165, así que la guarda la trata como si no correspondiera al diseño
+y apaga el handoff entero.
+
+### Por qué importa que sean 174 y no 165
+
+Los 9 de diferencia no son un desajuste accidente: la propia app, en su tabla de
+coincidencia contra el estudio anterior, anota junto a las aulas a visitar
+«**ejecutado tras ajuste manual de agenda; no es el dimensionamiento de su
+diseño**». Es decir, el repo ya reconoce que una selección puede apartarse del
+número nominal por decisión operativa — pero la guarda del handoff no lo
+contempla y lo lee como obsolescencia.
+
+**Consecuencia**: cualquier ajuste deliberado del número de aulas deja el pase a
+Monitoreo bloqueado, sin decir por qué. El mensaje que se ve —«completa la
+selección»— es además engañoso: la selección está completa.
+
+### Lo que NO se hace sin decisión de Gonzalo
+
+Hay al menos tres salidas y no son equivalentes:
+
+1. **Que el objetivo siga a la selección**: si se sorteó para 174, el objetivo
+   vigente pasa a 174. Riesgo: un objetivo que se reescribe solo deja de ser la
+   vara contra la que se comprueba el sorteo.
+2. **Que la guarda compare identidad y no cantidad**: `selection_run_id` +
+   `frame_hash` ya coinciden, y son lo que prueba que la selección es de este
+   marco. La cantidad pasaría a ser un aviso, no un bloqueo.
+3. **Que exista un modo declarado de «ajuste operativo»** que registre por qué
+   174 y no 165, y desbloquee con esa constancia.
+
+La 2 es la que menos promete de más y la que más se parece a lo que el repo ya
+hace en otros sellos, pero **cambia cuándo se considera vigente una selección**
+y eso es decisión suya, no mía. Mientras tanto **T2 queda bloqueado**: sin
+traslado no hay estado de Monitoreo sobre el que fabricar la semana de campo.
 
 ## Lo que ya está cerrado y no se rehace
 
