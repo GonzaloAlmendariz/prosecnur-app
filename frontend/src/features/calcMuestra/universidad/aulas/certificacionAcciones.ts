@@ -80,6 +80,38 @@ export function estratosConAjusteAula(
 }
 
 /**
+ * Llevar una facultad al numero que la certificacion pide, de un golpe.
+ *
+ * El panel «¿Alcanza?» dice en Calculo · CH por facultad que Derecho necesita
+ * 19 titulares cuando el diseno pide 16; el stepper de ±1 vive en Aulas ·
+ * Seleccion. El hallazgo aparece en un sitio y la accion esta en otro, y
+ * cubrir esa diferencia son tres clics. Esto la vuelve uno, donde aparece el
+ * hallazgo, que es para lo que existe este modulo.
+ *
+ * Mismo piso que `estratosConAjusteAula`: bajar a 0 titulares es excluir la
+ * facultad del sorteo, y eso es otra decision con otra puerta.
+ */
+export function estratosConAulasFijadas(
+  estratos: CalcMuestraEstrato[] | null | undefined,
+  facultad: string,
+  aulas: number,
+): CalcMuestraEstrato[] | null {
+  if (!Array.isArray(estratos) || !estratos.length) return null;
+  if (!Number.isFinite(aulas)) return null;
+  const nuevo = Math.round(aulas);
+  if (nuevo < 1) return null;
+  const objetivo = claveFacultad(facultad);
+  if (!objetivo) return null;
+  let tocado = false;
+  const nuevos = estratos.map((e) => {
+    if (claveFacultad(e.label) !== objetivo) return e;
+    tocado = true;
+    return { ...e, aulas_base_fijas: nuevo };
+  });
+  return tocado ? nuevos : null;
+}
+
+/**
  * Las fijaciones PENDIENTES: estratos con `aulas_base_fijas` que el resultado
  * calculado aún no refleja. Hallazgo del click-test (EF8c): al fijar, la
  * selección se invalida en cadena pero NADA nombraba la causa — el usuario

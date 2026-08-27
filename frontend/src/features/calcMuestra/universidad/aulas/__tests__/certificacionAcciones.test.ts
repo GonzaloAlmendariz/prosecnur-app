@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { estratosConAjusteAula, estratosConAulaExtra, fijasPendientes } from "../certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, fijasPendientes } from "../certificacionAcciones";
 import { presupuestoVisitas } from "../PresupuestoVisitasCard";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
@@ -134,5 +134,35 @@ describe("presupuestoVisitas (opción B: el techo manda)", () => {
     const p = presupuestoVisitas(200, [{ otra: 1 }, { otra: 2 }] as never);
     expect(p?.activacionesEsperadas).toBeNull();
     expect(p?.gestiones).toBeNull();
+  });
+});
+
+// El panel de certeza dice «esta facultad necesita 19 y el diseño pide 16» en
+// la sección Cálculo, y el stepper ±1 vive en Aulas · Selección: el hallazgo
+// aparece en un sitio y la acción esta en otro, y llevar 16 a 19 son tres
+// clics. `certificacionAcciones` existe para volverlo «un clic donde aparece
+// el hallazgo», que es lo que dice su propia cabecera.
+describe("estratosConAulasFijadas", () => {
+  const base = [estrato("DERECHO"), estrato("PSICOLOGÍA")];
+
+  it("fija el numero de una facultad de un golpe, sin pasar por el delta", () => {
+    const out = estratosConAulasFijadas(base, "DERECHO", 19);
+    expect(out?.find((e) => e.label === "DERECHO")?.aulas_base_fijas).toBe(19);
+    expect(out?.find((e) => e.label === "PSICOLOGÍA")?.aulas_base_fijas).toBeUndefined();
+  });
+
+  it("respeta el piso de 1: bajar a cero es excluir la facultad, y eso es otra puerta", () => {
+    expect(estratosConAulasFijadas(base, "DERECHO", 0)).toBeNull();
+    expect(estratosConAulasFijadas(base, "DERECHO", -3)).toBeNull();
+  });
+
+  it("empareja la facultad por su clave normalizada, con tildes y ñ", () => {
+    expect(estratosConAulasFijadas(base, "psicologia", 6)?.find((e) => e.label === "PSICOLOGÍA")?.aulas_base_fijas).toBe(6);
+  });
+
+  it("devuelve null si la facultad no esta en el marco o no hay estratos", () => {
+    expect(estratosConAulasFijadas(base, "GASTRONOMÍA", 4)).toBeNull();
+    expect(estratosConAulasFijadas([], "DERECHO", 4)).toBeNull();
+    expect(estratosConAulasFijadas(null, "DERECHO", 4)).toBeNull();
   });
 });

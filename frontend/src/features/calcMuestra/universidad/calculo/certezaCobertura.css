@@ -138,3 +138,13 @@
 .cmv2-certeza-curva polyline { fill: none; stroke: var(--pulso-text-muted); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
 .cmv2-certeza-curva[data-plana] polyline { stroke: var(--pulso-danger-fg); }
 .cmv2-certeza-curva[data-plana] small { display: block; font-size: 8.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--pulso-danger-fg); }
+
+/* La acción donde aparece el hallazgo. Discreta: sólo asoma en las filas cuya
+   brecha es positiva, que son las que piden algo. */
+.cmv2-certeza-fijar {
+  display: block; margin-top: 2px; padding: 1px 6px;
+  font-size: 10px; line-height: 1.5; white-space: nowrap;
+  border: 1px solid var(--pulso-border); border-radius: 999px;
+  background: transparent; color: var(--pulso-text-muted); cursor: pointer;
+}
+.cmv2-certeza-fijar:hover { color: var(--pulso-warn-fg); border-color: var(--pulso-warn-fg); }

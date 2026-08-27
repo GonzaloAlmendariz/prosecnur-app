@@ -32,6 +32,7 @@ export function CalculoCursosHorarioFacultadTab({
   certezaEnCurso = false,
   onMedirCerteza,
   onIrAAlumnosPorCh,
+  onFijarAulas,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
@@ -43,6 +44,8 @@ export function CalculoCursosHorarioFacultadTab({
   onMedirCerteza?: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
   /** Lleva a Marco › Alumnos por CH, donde se decide el divisor de la cadena. */
   onIrAAlumnosPorCh?: () => void;
+  /** Aplica el minimo certificado a una facultad, donde aparece el hallazgo. */
+  onFijarAulas?: (facultad: string, aulas: number) => void;
 }) {
   const actorId = escenario === "e2"
     ? UNIVERSITY_FACULTY_COMPONENT_ID
@@ -169,6 +172,7 @@ export function CalculoCursosHorarioFacultadTab({
       {onMedirCerteza && (
         <CertezaCoberturaPanel
           filasResultado={model.filas}
+          onFijarAulas={onFijarAulas}
           vista={certezaVistaDesdeEstado(certeza, frameHashVigente)}
           busy={certezaEnCurso}
           onMedir={onMedirCerteza}
