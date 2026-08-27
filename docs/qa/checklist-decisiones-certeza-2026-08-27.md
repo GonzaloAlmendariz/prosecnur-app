@@ -37,7 +37,7 @@ Y la regla de evidencia, también suya:
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
 | 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ☐ **pendiente** |
-| 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R:1366` · estrato | — | — | 🔒 **bloqueada** — el concepto es real y ya ocurrió (el +1 a Derecho); falta resolver la colisión de nombre con `aulas_extra_operativas`. Ver abajo |
+| 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R` · `calculo/TitularesFacultadEditor.tsx` | `1b37a151` | `1b37a151` | ☑ **cerrada y vista en pantalla** — el nombre entra como VALOR del origen, no como campo, así que no choca con `aulas_extra_operativas` |
 
 ## Decisión 3, evaluada — tiempos medidos, no estimados
 
@@ -221,8 +221,20 @@ certificado, 19 por decisión operativa» en vez de un 19 sin padre. Es aditivo:
 ningún `.pulso` viejo cambia de significado, y los que no traen el campo se
 leen como origen desconocido.
 
-**Estado**: 🔒 bloqueada — decide Gonzalo el nombre (por la colisión) y si la
-nota es obligatoria.
+**Estado**: ☑ **cerrada** (`1b37a151`). Gonzalo: «Hazlo». La nota quedó
+obligatoria pero sin bloquear el clic: el ajuste se aplica en el momento y la
+celda declara el vacío en ámbar hasta que se escribe. El nombre entra como
+**valor** del origen (`origen: "operativa"`) y no como nombre de campo, así que
+no compite con `aulas_extra_operativas`.
+
+**Y al verificarlo apareció el defecto más grave del día**, reparado en
+`aa0f8671`: **«Recalcular muestra» borraba las quince fijaciones**.
+`prepareUniversityStudyForCalculation` pasa por `universityComponents`, que
+reparte un solo marco a los dos componentes, y persistía el resultado. Medido en
+la app: 15 fijaciones que sumaban 175 → **cero**, objetivo de 175 a **294**. Es
+la misma raíz que `a3b8918b`, donde se había contenido sólo en los cuatro
+handlers del stepper; ahora está reparada en el repartidor. Explica además el
+294 que se había atribuido a un `state.rds` viejo.
 
 
 ## La cola del loop de cobertura
