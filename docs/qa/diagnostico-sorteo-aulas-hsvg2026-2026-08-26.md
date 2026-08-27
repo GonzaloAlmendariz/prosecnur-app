@@ -485,3 +485,36 @@ seguido el dato hasta su render. `seed` existía como `semilla`; el aviso exist�
 como `methodological_warning`; y la lista existía, en otra escena. Lo único real
 de las cuatro era el etiquetado, y se encontró al ir a construir lo que ya
 estaba.
+
+## Verificado: de dónde sale el 174, contra los dos componentes (2026-08-27)
+
+Otra sesión reportó que el estudio tiene dos componentes y que el 174 es el
+número del de **facultad**, con coincidencia 15 de 15. Medido sobre
+`HSVG26ULT.pulso`, comparando `resultado$aulas_por_estrato[].aulas_base` de cada
+componente contra los titulares sorteados, **no reproduce**:
+
+| | suma | coincide con el sorteo |
+|---|---|---|
+| `cmp-cine0qk8` · universidad · conglomerado multietápico | **165** | 9 de 15 |
+| `cmp-cine0qk8-fac` · facultad · estratificado independiente | **294** | **0 de 15** |
+| sorteo real | **174** | |
+
+Y esto lo cierra: **`max(comp1, certificado)` reproduce el sorteo en 14 de 15
+facultades exactas.** La única excepción es Derecho, `max(16, 18) = 18` contra
+19 sorteadas, que es el aula añadida a mano porque a 18 la certificación daba
+0,9512. Las seis facultades donde comp1 y el sorteo difieren son exactamente las
+seis que la certificación subió.
+
+**El documento metodológico queda confirmado**, secciones 5.2 y 5.3 incluidas.
+
+**Lo que sí cambia**, y es un hallazgo para la otra sesión: el 174 **no** es el
+número del componente de facultad. Es el 165 del componente de universidad
+subido facultad por facultad por la certificación. Por tanto el
+`aulas_config.n_aulas = 165` del workspace no es «el escenario equivocado», es
+el objetivo **pre-certificación del escenario correcto**. El hueco no se cierra
+declarando el escenario: hay que leer el objetivo vigente de los estratos
+(`aulas_base_fijas` cuando existe), que es lo que el sorteo obedece.
+
+**Sobre la advertencia de que la certeza está corrida sobre el componente de
+universidad**: es cierto y no es un riesgo, porque ése es el componente que
+gobierna el sorteo de aulas.
