@@ -6,6 +6,7 @@ import type {
   CalcMuestraAulasSimulationSummary,
   CalcMuestraAulasState,
   CalcMuestraComponente,
+  CalcMuestraEstrato,
   CalcMuestraWorkspace,
 } from "../../../../api/client";
 import { rowsFrom, safeNumber } from "../../sharedCore";
@@ -59,12 +60,20 @@ export function buildClassroomLabModel({
   facultyComp,
   aulasState,
   marcoDesactualizado = false,
+  estratosPropios,
 }: {
   workspace: CalcMuestraWorkspace;
   totalComp: CalcMuestraComponente;
   facultyComp: CalcMuestraComponente;
   aulasState: CalcMuestraAulasState | null;
   marcoDesactualizado?: boolean;
+  /** Los estratos del componente REAL. `universityComponents` reparte un solo
+   *  marco a los dos y `aulas_base_fijas` viaja dentro, así que el componente
+   *  de facultad llega aquí SIN sus propias fijaciones: sin esto, el aviso de
+   *  fijaciones pendientes de Selección no se enciende nunca. Los demás campos
+   *  del estrato son idénticos entre los dos (verificado en HSVG2026: mismos
+   *  labels, mismos N, mismas cuotas). */
+  estratosPropios?: CalcMuestraEstrato[] | null;
 }) {
   const frame = aulasState?.frame ?? null;
   const rawComparison = classroomComparisonForState(aulasState);
@@ -144,7 +153,7 @@ export function buildClassroomLabModel({
   const reserveRows = selectionReady ? classroomReserveRowsForState(aulasState) : [];
   const extraReserveRows = selectionReady ? classroomExtraReserveRowsForState(aulasState) : [];
   const recommendedMethod = comparisonMethods.find((method) => method.method_id === recommendedMethodId) ?? null;
-  const facultades = selectedComp.marco.estratos ?? [];
+  const facultades = (estratosPropios?.length ? estratosPropios : selectedComp.marco.estratos) ?? [];
   const extraOperativo = estimateOperationalExtra(facultades, config);
   const sobremuestraPct = selectedComp.parametros.oversample_pct;
   const selectorFields = config.estratos_selector.map(selectorFieldLabel);
