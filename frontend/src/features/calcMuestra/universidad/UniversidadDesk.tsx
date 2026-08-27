@@ -70,7 +70,7 @@ import {
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
-import { estratosConAjusteAula, estratosConAulaExtra } from "./aulas/certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas } from "./aulas/certificacionAcciones";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -553,6 +553,20 @@ export function UniversidadDesk({
     [compActivo, onComponente, onInvalidateAulasArtifacts],
   );
 
+  // El panel «¿Alcanza?» publica el minimo certificado en la seccion Calculo;
+  // sin esto la unica forma de aplicarlo es cruzar a Aulas · Seleccion y pulsar
+  // el stepper tantas veces como diga la diferencia.
+  const onFijarAulasFacultad = useCallback(
+    (facultad: string, aulas: number) => {
+      if (!compActivo) return;
+      const nuevos = estratosConAulasFijadas(compActivo.marco?.estratos ?? null, facultad, aulas);
+      if (!nuevos) return;
+      onComponente(compActivo.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [compActivo, onComponente, onInvalidateAulasArtifacts],
+  );
+
   // Marco construido pero cálculo en N = 0 y sin población en memoria
   // (proyectos guardados antes del sync automático): la reparación exige
   // reconstruir el marco desde la base embebida — CTA visible de un clic.
@@ -822,6 +836,7 @@ export function UniversidadDesk({
               <div className="cmv2-recorrido-paso" data-paso="3">
                 <span className="cmv2-recorrido-kicker">Paso 3 · Qué se pide: titulares, reservas y si llegan a la cuota</span>
                 <CalculoCursosHorarioFacultadTab
+                  onFijarAulas={onFijarAulasFacultad}
                   componentes={[totalComp, facultyComp]}
                   currentFrameHash={aulasState?.frame?.frame_hash}
                   escenario={escenarioAulas}

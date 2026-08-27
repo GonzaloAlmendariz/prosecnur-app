@@ -101,7 +101,11 @@ function CurvaCerteza({ fila }: { fila: CertezaFilaVista }) {
   );
 }
 
-function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number }) {
+function FilaCerteza({ fila, nivel, onFijarAulas }: {
+  fila: CertezaFilaVista;
+  nivel: number;
+  onFijarAulas?: (facultad: string, aulas: number) => void;
+}) {
   const texto = ESTADO_TEXTO[fila.estado];
   // Marcar «probabilidad baja» contra un 0,95 escrito a mano decía que el nivel
   // es 95% pase lo que pase, y el nivel lo declara el estudio: la cabecera ya
@@ -129,7 +133,22 @@ function FilaCerteza({ fila, nivel }: { fila: CertezaFilaVista; nivel: number })
       <td className="cmv2-certeza-minimo">
         <strong>{fila.aulas_certeza == null ? "—" : fmtInt(fila.aulas_certeza)}</strong>
       </td>
-      <td className="cmv2-certeza-brecha">{fmtBrecha(fila.brecha)}</td>
+      <td className="cmv2-certeza-brecha">
+        {fmtBrecha(fila.brecha)}
+        {/* La accion donde aparece el hallazgo: sin esto, aplicar lo que dice
+            esta fila obliga a cruzar a Aulas · Seleccion y pulsar el stepper
+            de ±1 tantas veces como diga la diferencia. */}
+        {onFijarAulas != null && fila.aulas_certeza != null && (fila.brecha ?? 0) > 0 && (
+          <button
+            type="button"
+            className="cmv2-certeza-fijar"
+            onClick={() => onFijarAulas(fila.label, fila.aulas_certeza as number)}
+            title={`Fija ${fila.label} en ${fila.aulas_certeza} titulares, el mínimo que alcanza el nivel exigido. Invalida la selección vigente: hay que volver a sortear.`}
+          >
+            Llevar a {fmtInt(fila.aulas_certeza)}
+          </button>
+        )}
+      </td>
       {/* El motor simulaba el rendimiento y publicaba las dos cifras; ninguna
           pantalla las mostraba. El P05 es el que decide si la cuota aguanta un
           mal día: la media puede alcanzar y el peor 5% quedarse corto. */}
@@ -153,6 +172,7 @@ export function CertezaCoberturaPanel({
   busy,
   onMedir,
   marcoDesactualizado = false,
+  onFijarAulas,
 }: {
   filasResultado: readonly CalcMuestraAulasEstrato[];
   vista: CertezaVista | null;
@@ -162,6 +182,8 @@ export function CertezaCoberturaPanel({
     nivel: number;
   }) => void | Promise<void>;
   marcoDesactualizado?: boolean;
+  /** Aplica el minimo certificado a una facultad sin salir de este panel. */
+  onFijarAulas?: (facultad: string, aulas: number) => void;
 }) {
   const [nivel, setNivel] = useState<number>(0.95);
   const estratos = certezaEstratosDesdeResultado(filasResultado);
@@ -313,7 +335,7 @@ export function CertezaCoberturaPanel({
               </thead>
               <tbody>
                 {vista.filas.map((fila) => (
-                  <FilaCerteza key={fila.key} fila={fila} nivel={nivelMostrado} />
+                  <FilaCerteza key={fila.key} fila={fila} nivel={nivelMostrado} onFijarAulas={onFijarAulas} />
                 ))}
               </tbody>
             </table>
