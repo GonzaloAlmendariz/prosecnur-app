@@ -388,3 +388,47 @@ Cuatro, no seis. Y la consecuencia cambia:
 - **`balance_vars` sin control se sostiene, y es la que importa**: es la que
   metió `program` con 1 049 niveles y colgó el sorteo. La cota del commit
   `a288a0d5` evita el cuelgue; elegir qué se balancea sigue sin superficie.
+
+## Cada reparación tiene dos lados (2026-08-27)
+
+Gonzalo, textual: *«cada uno de ellos no sólo es una comprobación e
+implementación en el backend, también lo es en el frontend»*. Aplicado a las dos
+reparaciones ya commiteadas, las dos quedan a medias.
+
+### D2 · la certeza muestra la respuesta, no la evidencia
+
+`CertezaCoberturaPanel` está bien hecho: publica `disponibles`,
+`probabilidad_formula`, `aulas_certeza` y el rendimiento, y marca como **cota
+superior** el caso `base_conteo == "suma_elegibles"`, que es justo la
+degradación honesta del motor.
+
+Lo que **no** muestra es la **curva**: los puntos candidato a candidato. Y la
+curva era todo el hallazgo. Con el defecto activo, la certificación devolvía
+392,7 con 40 aulas y 394,6 con 55, y **nada en pantalla lo habría delatado**,
+porque el panel enseña una sola cifra final. El defecto se cazó leyendo la curva
+cruda del API.
+
+Falta, entonces: la curva en pantalla, y un aviso cuando sea plana. Una curva de
+cobertura que no crece con el candidato es imposible, así que es un invariante
+que la propia UI puede vigilar.
+
+### D6 · el motor declara las variables descartadas y nadie las pinta
+
+La cota del commit `a288a0d5` descarta variables de balance por cardinalidad y
+las declara, reusando `balance_vars_descartadas` y
+`.cm_aulas_balance_descartadas_warning`. Ese aviso viaja en el campo `warnings`
+del resultado de la selección.
+
+- R lo produce en cinco sitios (`calc_muestra_aulas.R:1552, 3307, 3926, 4739, 5032`)
+- El front lo **tipa**: `frontend/src/api/calcMuestra.ts:195, 209, 1440, 2393, 2455`
+- **Ningún `.tsx` de producción lo renderiza.** Las únicas coincidencias en el
+  feature son archivos de test.
+
+Es el patrón de descartar en silencio, y ahora lo agrava mi propia reparación:
+sobre el marco de HSVG2026 la cota descarta `program` en los 18 estratos que
+pasaban de 20 columnas, y el usuario no se entera. La cota evita el cuelgue a
+cambio de cambiarle el diseño sin decírselo.
+
+**Regla que queda para el resto del tablero**: un ítem no se cierra con el
+motor reparado. Se cierra cuando el usuario puede ver el efecto o tomar la
+decisión desde la pantalla.
