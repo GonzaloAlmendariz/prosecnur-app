@@ -3758,6 +3758,40 @@
    tiene que parecerse a eso. Con el swatch de raya, la leyenda prometía una
    línea punteada que el gráfico ya no dibuja —la vara pasó a relleno + línea
    sólida— y las dos cosas dejaron de corresponderse. */
+/* La escalera de la cadena de filtros. Los pasos comparten escala —la de lo que
+   entra a la cadena— para que el descenso se lea como forma. El tramo que cae va
+   pegado al que queda, no encima: así la fila entera mide lo que ese filtro
+   recibió, y el hueco a la derecha es lo que se perdió antes. */
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra {
+  display: flex; align-items: stretch;
+  grid-column: 1 / -1;
+  height: 6px; margin-top: 4px;
+  border-radius: 3px; overflow: hidden;
+  background: color-mix(in srgb, var(--pulso-text) 6%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra i {
+  display: block; height: 100%;
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra i.es-queda {
+  /* **Medido en el navegador, no elegido por grep.** `--pulso-accent` aparece
+     definido en `monitoreo.css` pero su valor computado en esta página es
+     **vacío**, así que la barra salía transparente justo en el tramo que más
+     importa. Lo mismo `--pulso-module-accent` y `--pulso-ok-fg`. Los que sí
+     resuelven aquí son `--pulso-primary`, `--pulso-success-fg` y `--pulso-text`;
+     se usa el positivo, que es lo que este tramo significa: lo que sobrevive al
+     filtro.
+
+     La lección va con el token: **un token se verifica por su valor computado
+     en el contexto donde se usa**, no por encontrar su definición en el árbol. */
+  background: color-mix(in srgb, var(--pulso-success-fg) 82%, transparent);
+}
+.mon-profile-page.is-aulas-flow .aulas-cadena-barra i.es-cae {
+  /* `--pulso-warn-fg`, el mismo token con el que esta lista ya pinta su «−N
+     cae» dos reglas más abajo. NO `--pulso-danger`: ese token **no existe** en
+     `theme.css` y usarlo dejaría la barra transparente en el tramo que más
+     importa. */
+  background: color-mix(in srgb, var(--pulso-warn-fg) 55%, transparent);
+}
 .mon-profile-page.is-aulas-flow .aulas-serie-leyenda em.es-zona::before {
   width: 11px; height: 9px; border-radius: 1px;
   background: color-mix(in srgb, var(--pulso-text) 10%, transparent);
