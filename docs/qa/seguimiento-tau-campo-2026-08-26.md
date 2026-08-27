@@ -329,6 +329,64 @@ todo `aria-hidden` es un error ni toda rejilla es una tabla; el conteo dice
 dónde buscar, y cada uno se decide viéndolo. La regla de cierre sigue siendo la
 misma: no se cierra sin verlo en pantalla.
 
+## E13b y E13c — las seis cabeceras, y el contraste medido (2026-08-26)
+
+### Las seis, hechas y verificadas en vivo
+
+`AulasRendimientoPorFacultad` · `AulasAlertaDeAnticipacion` ·
+`AulasColchonPorFacultad` · `AulasConsumoDelBanco` · `AulasMedioDeContacto` ·
+`AulasRitmoPorFacultad`.
+
+**No se convirtieron en `<table>`, y es una decisión.** Sus rejillas están
+afinadas —una de ellas la comparten cuatro instancias y una variante compacta
+cuyos anchos salen de la palabra más larga de cada cabecera— y el defecto a
+reparar era de NOMBRES, no de maquetación. Se resolvió con roles ARIA de tabla,
+que no mueven un píxel. Medido tras el cambio, en cada una:
+
+| Componente | Columnas | Celdas por fila | Desvío cabecera↔fila |
+|---|---|---|---|
+| Rendimiento por facultad | 5 | 5 | **0 px** |
+| Consumo del banco | 4 | 4 | **0 px** |
+| Ritmo por facultad | 3 | 3 | **0 px** |
+| Alerta de anticipación | 5 | 5 | **0 px** |
+| Colchón por facultad | 4 | 4 | **0 px** (20 filas) |
+| Medio de contacto | 3 | 3 | **0 px** |
+
+Ninguna página quedó con scroll horizontal. La comprobación que lo cazó todo es
+contar **hijos de la fila** y **celdas con rol**: en `AulasMedioDeContacto`
+salían 3 hijos y sólo 2 celdas, y así apareció una que se había quedado sin rol.
+
+### Contraste: verde por conformidad, con el conteo
+
+Nunca se había medido. Barrido sobre cinco direcciones con la fixture del
+operativo completo, criterio WCAG AA (4,5:1 normal, 3:1 texto grande):
+
+| Dirección | Elementos medidos | Incumplen | Peor ratio |
+|---|---|---|---|
+| `avance/efectividad` | 102 | 0 | 4,84 |
+| `avance/rendimiento` | 191 | 0 | 5,01 |
+| `avance/resumen` | 192 | 0 | 5,01 |
+| `avance/cuotas` | 61 | 0 | 6,51 |
+| `consultas/reemplazos` | 48 | 0 | 6,51 |
+
+**594 elementos, cero incumplimientos.** Los más justos son de esta misma tanda:
+`aulas-tau-error` y `aulas-tau-respaldo` a 10 px dan **4,84** contra un mínimo
+de 4,5 — pasan con poco margen, así que si el tema aclara `--pulso-text-faint`
+o el fondo, son los primeros que caen.
+
+**El primer intento de `consultas/reemplazos` midió 0 elementos** por esperar
+1,3 s en vez de 4: eso no es verde, es cobertura pendiente, y se repitió antes
+de darlo por bueno. Un barrido que no midió nada informa cero incumplimientos
+exactamente igual que uno conforme.
+
+### Lo que NO se tocó, y por qué
+
+Las tarjetas de KPI llevan `text-transform: uppercase` a 10 px, igual que las
+cabeceras que se repararon. **No es el mismo caso**: ahí la etiqueta va sobre un
+número grande dentro de una tarjeta —que es donde las versalitas funcionan— y no
+compite con datos en la misma línea ni lleva letras griegas que romper. Es
+decisión de diseño, no defecto.
+
 ## Lo aprendido que no hay que reinvestigar
 
 - La τ del diseño **ya llega** a Monitoreo: `.monitoreo_aulas_metas_diseno()`
