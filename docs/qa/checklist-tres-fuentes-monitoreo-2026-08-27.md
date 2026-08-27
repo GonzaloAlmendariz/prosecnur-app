@@ -58,8 +58,8 @@ Hoja «Base de control». Responde **si lo recogido vale**.
 | C1 | Se llena entera y a tiempo | ☑ | medido: **190 de 190** aulas de las tres primeras semanas traen reparto por sexo, enviadas y asistentes |
 | C2 | Reparto por sexo aula por aula, y la serie que lo dibuja | ☑ | `serieDeRendimiento` |
 | C3 | Reconciliación parte ↔ control (asistentes, % asistencia, quién aplicó) | ☑ | control `book_sheets_cross_check` |
-| C4 | **7 columnas con datos y cabecera vacía** — se avisa pero no se leen | ⚠ | `unnamed_control_columns` |
-| C5 | **70T / 70P**, el criterio de aula válida de 2025, no se usa en ninguna superficie de 2026 | ☐ | ver [[dos-observaciones-y-el-70T-70P-desfasado]] |
+| C4 | 7 columnas con datos y cabecera vacía | ☑ | **funciona como debe**: el control las detecta y da el remedio —«ponles nombre en la hoja para que entren»—. Sin cabecera no hay a qué campo mapearlas; el arreglo es del Excel, no de la app |
+| C5 | El reemplazo de 70T / 70P | ☑ | **ya está hecho**: ver § abajo |
 
 ---
 
@@ -313,3 +313,48 @@ capacidad del producto: `efectivas_esperadas` (sin vara del diseño),
 `valid_filters` (sin cadena de filtros), `libro` (sin Base de control) y ahora
 `start`/`end` (sin tiempos). **Antes de declarar que la app no puede hacer algo,
 comprobar que la fixture lo alimenta.**
+
+
+## C4 y C5 no eran huecos: los escribí yo mal
+
+Séptima y octava vez en este loop que doy por ausente algo que existe — y estas
+dos llegaron al checklist que Gonzalo leyó, así que la corrección importa.
+
+### C5 · el reemplazo de 70T/70P está hecho, y es lo que Gonzalo pidió
+
+El generador del libro **ya no escribe** esas dos casillas de sí/no. Escribe seis
+columnas en su lugar:
+
+`EFECTIVAS ESPERADAS` · `ELEGIBLES: BASE DEL %` · `% EFECTIVAS ESPERADO` ·
+`EFECTIVAS OBTENIDAS` · `% EFECTIVAS OBTENIDO` · `EFECTIVAS: DIFERENCIA`
+
+Que es, literalmente, lo que Gonzalo había pedido al revisar el libro: «en vez de
+setenta t y setenta p debería ser el porcentaje de efectivas, si ese porcentaje…
+cuál es el esperado, cuál es el que se hizo, y si ese porcentaje es superior o
+inferior». Y con dos cuidados que valen: el % lleva su denominador al lado para
+no cruzar la hoja, y **un aula sin aplicar deja la celda vacía, no en cero** —
+«cero efectivas» y «todavía no sabemos» son dos noticias distintas.
+
+Lo que yo escribí en C5 **conflacionaba dos cosas**: las columnas del libro (que
+están reemplazadas) y el **criterio de aula válida** (`aula_valida`), que es otra
+cosa. Ése existe, se declara desde la pantalla, y en este estudio simplemente no
+está declarado — que es la app funcionando como debe: «sin declarar no juzga».
+
+### C4 · el aviso ES el producto funcionando
+
+Las 7 columnas con datos y cabecera vacía no se pueden leer **por definición**:
+sin título no hay a qué campo mapearlas. El control las detecta, dice cuántas
+son y da el remedio exacto —«ponles nombre en la hoja para que entren»—. El
+arreglo es del Excel del equipo, no de la app.
+
+### El coste del patrón, que ya conviene nombrar
+
+Ocho veces en este loop: `efectivas_esperadas`, `valid_filters`, `libro`,
+`start`/`end`, `duracion_sospecha_min`, `cadena_filtros`, C5 y C4. Cinco eran
+**fixture sin sembrar**, una **tipo sin ampliar**, y dos **premisa mía sin
+comprobar**. Las dos últimas son las peores porque no las cazó ninguna medición:
+las escribí en un checklist y ahí se quedaron hasta que fui a trabajarlas.
+
+**Regla**: un ítem de checklist que dice «falta X» no se escribe sin haber
+buscado X. Y si el ítem lleva tiempo escrito, se re-verifica antes de trabajarlo,
+porque el que lo escribió —yo— pudo equivocarse.
