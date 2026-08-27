@@ -302,3 +302,47 @@ contradictoria -> se falla FUERTE, no se traga en silencio».
 **No medido:** no se re-corrió el sorteo con el config guardado, porque por
 construcción no terminaría. La afirmación de que colgaría es inferencia sobre
 la curva, no observación.
+
+## Qué del sorteo se puede tocar desde la pantalla, y qué no (2026-08-27)
+
+Gonzalo, textual: *«todo lo relacionado a las simulaciones Monte Carlo, los
+múltiples sorteos de cubo y selección del mejor y los criterios de selección,
+hay muchísimas cosas que terminamos haciendo en el backend pero que finalmente
+no hicimos en el frontend; el agregador de aulas específicamente en certeza»*.
+
+Medido sobre `frontend/src/features/calcMuestra/universidad/`, distinguiendo
+entre un parámetro **tipado con default** (aparece en `constants.ts` o
+`study.ts`) y uno con **control editable** (un `.tsx` que lo toca con
+`NumberCell`, `<input>` o `updateConfig`):
+
+| parámetro del selector | control editable | dónde |
+|---|---|---|
+| `monte_carlo_n` | sí | Aulas · Objetivo |
+| `simulation_runs` | sí | Aulas · Objetivo |
+| `candidate_pool_size` | sí | Aulas · Objetivo |
+| `selector_engine` | sí | Aulas · Método |
+| `sequential_discount` | sí | Aulas · Método |
+| `docente_unico` | sí | Aulas · Objetivo |
+| **`seed`** | **no** | — |
+| **`balance_vars`** | **no** | — |
+| **`spread_vars`** | **no** | — |
+| **`coverage_weight`** | **no** | `ObjectiveWeightsPanel` sólo los muestra |
+| **`pps_weight`** | **no** | idem |
+| **`duplicate_penalty`** | **no** | — |
+
+Dos consecuencias concretas, no generales:
+
+1. **`balance_vars` sin control es el defecto de arriba, visto desde la
+   pantalla.** `program` con 1 049 niveles colgaba el sorteo y el usuario no
+   tiene forma de sacarlo del balanceo: hubo que hacerlo por API. La cota del
+   commit `a288a0d5` evita el cuelgue, pero elegir qué se balancea sigue sin
+   superficie.
+2. **`seed` sin control es lo que impide la rerandomización.** Correr N sorteos
+   con semillas declaradas y elegir por criterio previo necesita fijar la
+   semilla desde la UI; hoy sólo la escribe el motor. Es la pieza que falta para
+   B1, y la única brecha con consecuencia metodológica del audit de cobertura.
+
+El agregador de aulas que Gonzalo nombra vive en
+`aulas/CertificacionFacultadCard.tsx:252-261` como un stepper −1/+1, y la
+tarjeta entera devuelve `null` sin certificación corrida (línea 130), así que
+sin certificar no existe en pantalla.
