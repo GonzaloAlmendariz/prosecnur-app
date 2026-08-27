@@ -168,3 +168,23 @@
   color: var(--pulso-text);
   font-variant-numeric: tabular-nums;
 }
+
+/* La acción que aplica todos los mínimos, dentro del aviso que los nombra. */
+.cmv2-certeza-aplicar {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 10px 0 0;
+}
+
+.cmv2-certeza-aplicar span {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--pulso-text-muted);
+}
+
+.cmv2-certeza-aplicar strong {
+  color: var(--pulso-text);
+  font-variant-numeric: tabular-nums;
+}

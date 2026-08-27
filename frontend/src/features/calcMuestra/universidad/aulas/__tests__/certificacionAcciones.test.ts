@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente, fijasPendientes } from "../certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConMinimosCertificados, estratosConNotaOperativa, estratosDelComponente, fijasPendientes } from "../certificacionAcciones";
 import { presupuestoVisitas } from "../PresupuestoVisitasCard";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
@@ -255,5 +255,62 @@ describe("el origen del número de titulares", () => {
   it("sin blanco no parchea a medias", () => {
     expect(estratosConNotaOperativa(estratos, "GESTIÓN", "x")).toBeNull();
     expect(estratosConNotaOperativa(null, "DERECHO", "x")).toBeNull();
+  });
+});
+
+describe("estratosConMinimosCertificados", () => {
+  // Las seis facultades cortas de HSVG 2026 al 95%, medidas el 2026-08-27, mas
+  // las tres donde la certeza dice que sobran aulas.
+  const base = [
+    estrato("DERECHO"), estrato("ESTUDIOS GENERALES LETRAS"), estrato("CIENCIAS CONTABLES"),
+    estrato("GESTIÓN Y ALTA DIRECCIÓN"), estrato("LETRAS Y CIENCIAS HUMANAS"), estrato("PSICOLOGÍA"),
+    estrato("CIENCIAS E INGENIERIA"), estrato("ARTE Y DISEÑO"), estrato("ARQUITECTURA Y URBANISMO"),
+  ];
+  const minimos = [
+    { label: "DERECHO", aulas: 18, brecha: 2 },
+    { label: "ESTUDIOS GENERALES LETRAS", aulas: 20, brecha: 2 },
+    { label: "CIENCIAS CONTABLES", aulas: 3, brecha: 1 },
+    { label: "GESTIÓN Y ALTA DIRECCIÓN", aulas: 7, brecha: 1 },
+    { label: "LETRAS Y CIENCIAS HUMANAS", aulas: 4, brecha: 1 },
+    { label: "PSICOLOGÍA", aulas: 6, brecha: 1 },
+    { label: "CIENCIAS E INGENIERIA", aulas: 34, brecha: -3 },
+    { label: "ARTE Y DISEÑO", aulas: 13, brecha: -2 },
+    { label: "ARQUITECTURA Y URBANISMO", aulas: 7, brecha: -1 },
+  ];
+
+  it("fija las seis que faltan y declara que las puso la certificacion", () => {
+    const out = estratosConMinimosCertificados(base, minimos);
+    expect(out).not.toBeNull();
+    const fijadas = out!.filter((e) => Number(e.aulas_base_fijas) > 0);
+    expect(fijadas.map((e) => e.label).sort()).toEqual([
+      "CIENCIAS CONTABLES", "DERECHO", "ESTUDIOS GENERALES LETRAS",
+      "GESTIÓN Y ALTA DIRECCIÓN", "LETRAS Y CIENCIAS HUMANAS", "PSICOLOGÍA",
+    ]);
+    expect(fijadas.every((e) => e.aulas_base_origen === "certificacion")).toBe(true);
+    expect(out!.find((e) => e.label === "DERECHO")?.aulas_base_fijas).toBe(18);
+  });
+
+  it("no baja las tres donde la certeza dice que sobran", () => {
+    const out = estratosConMinimosCertificados(base, minimos);
+    for (const label of ["CIENCIAS E INGENIERIA", "ARTE Y DISEÑO", "ARQUITECTURA Y URBANISMO"]) {
+      const fila = out!.find((e) => e.label === label);
+      expect(fila?.aulas_base_fijas).toBeFalsy();
+      expect(fila?.aulas_base_origen ?? "").toBe("");
+    }
+  });
+
+  it("sin ninguna que subir no escribe nada", () => {
+    expect(estratosConMinimosCertificados(base, minimos.filter((m) => m.brecha < 0))).toBeNull();
+    expect(estratosConMinimosCertificados(base, [])).toBeNull();
+    expect(estratosConMinimosCertificados([], minimos)).toBeNull();
+  });
+
+  it("una facultad que no esta en los estratos no inventa una fila", () => {
+    const out = estratosConMinimosCertificados(
+      [estrato("DERECHO")],
+      [{ label: "DERECHO", aulas: 18, brecha: 2 }, { label: "NO EXISTE", aulas: 9, brecha: 4 }],
+    );
+    expect(out).toHaveLength(1);
+    expect(out![0].aulas_base_fijas).toBe(18);
   });
 });

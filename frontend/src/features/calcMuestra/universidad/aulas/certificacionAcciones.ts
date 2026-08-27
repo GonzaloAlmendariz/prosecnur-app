@@ -219,3 +219,46 @@ export function estratosConNotaOperativa(
   });
   return tocado ? nuevos : null;
 }
+
+/**
+ * Todas las facultades cortas llevadas a su minimo certificado de una vez.
+ *
+ * La certeza mide los quince minimos en UNA corrida y son independientes entre
+ * si: el minimo de Derecho no cambia porque se fije Psicologia. Pero fijar una
+ * invalida el resultado del componente, y con el resultado invalido la pantalla
+ * ya no tiene sobre que medir: «Todavia no hay un calculo por facultad sobre el
+ * que medir». Aplicarlas de a una obligaba a fijar → recalcular → volver a
+ * medir seis veces para una evidencia que ya estaba completa.
+ *
+ * Gonzalo, sobre este mismo mecanismo: «nada puede ser manual y todo tiene que
+ * estar registrado en la aplicacion».
+ *
+ * Solo SUBE: las facultades donde la certeza dice que sobran aulas se dejan en
+ * lo que pide la formula («no bajes ninguna, solo sube donde haga falta»).
+ * Devuelve `null` si no hay ninguna que subir, para que el caller no escriba un
+ * cambio vacio.
+ */
+export function estratosConMinimosCertificados(
+  estratos: CalcMuestraEstrato[] | null | undefined,
+  minimos: ReadonlyArray<{ label: string; aulas: number | null; brecha: number | null }>,
+): CalcMuestraEstrato[] | null {
+  if (!Array.isArray(estratos) || !estratos.length) return null;
+  const porFacultad = new Map<string, number>();
+  for (const fila of minimos) {
+    const clave = claveFacultad(fila.label);
+    const aulas = Number(fila.aulas);
+    const brecha = Number(fila.brecha);
+    if (!clave || !Number.isFinite(aulas) || aulas < 1) continue;
+    if (!Number.isFinite(brecha) || brecha <= 0) continue;
+    porFacultad.set(clave, Math.round(aulas));
+  }
+  if (porFacultad.size === 0) return null;
+  let tocado = false;
+  const nuevos = estratos.map((e) => {
+    const objetivo = porFacultad.get(claveFacultad(e.label));
+    if (objetivo == null) return e;
+    tocado = true;
+    return { ...e, aulas_base_fijas: objetivo, aulas_base_origen: "certificacion" as const };
+  });
+  return tocado ? nuevos : null;
+}
