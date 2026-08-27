@@ -45,6 +45,7 @@ Parte de campo. Responde el trabajo de **quien va al aula**.
 | B5 | **El «hoy» del estudio**: `generated_at` **no es el corte** — dice «al 27 de agosto» con el estudio sincronizado al 12/09 | ☐ | `AulasMonitoreoPage:1572` (S4) |
 | B6 | **Decimales sobre personas**: «1 306,3 cubren meta» | ☐ | S3 |
 | B7 | **Las cuatro cifras de «cuántas encuestas hay»** conviven sin distinguirse: asistentes → **enviadas** → válidas → efectivas del parte. Entre enviadas y válidas se pierde el **9-13 %** | ⚠ | veta «una palabra para dos cosas» |
+| B8 | **«El parte contra la plataforma» da un diagnóstico equivocado y manda a arreglar lo que no está roto** | ☐ | ver § abajo |
 
 ---
 
@@ -168,3 +169,36 @@ que no declaran nada.
 archivo congelado a crecimiento, y porque la heurística existe para un caso real
 —estudios sin criterio declarado— que hay que preservar. Queda medido y con la
 regla propuesta.
+
+
+## B8 · un diagnóstico seguro y equivocado
+
+Con los filtros del instrumento declarados, el panel «El parte contra la
+plataforma» dice:
+
+> ⚠ **Las dos fuentes no se corresponden.** Descuadran **74 de 78** cursos-horario
+> comparables. Con esa proporción el problema no está en lo que anotó el campo:
+> es que **las respuestas no se están atribuyendo al mismo curso-horario** que
+> declara el parte. Revisa qué columna identifica el aula en la base, en Fuentes.
+
+**La atribución está perfecta.** Medido sobre los mismos datos: el filtro descarta
+al menos una respuesta en **exactamente 74** de las 78 aulas, y en las otras **4**
+no descarta ninguna. El descuadre es el filtro, no la atribución.
+
+Las dos cifras que compara son **legítimamente distintas**:
+
+- el **parte** declara `effective_surveys`, lo que el aplicador contó en el aula;
+- la **plataforma** aporta las respuestas **que pasan la cadena de filtros**.
+
+En cuanto un estudio declara un criterio de validez, las dos dejan de coincidir
+**por diseño**. El panel interpreta esa diferencia como fallo de atribución,
+afirma que «el problema no está en lo que anotó el campo» y manda a revisar una
+columna que está bien. Un analista se iría a cazar un problema inexistente.
+
+Es la veta de siempre —dos cosas distintas con el mismo nombre, aquí «encuestas
+del aula»— y la cuarta cifra del catálogo de B7.
+
+**La regla que falta**: antes de acusar a la atribución hay que descontar lo que
+el filtro explica. Si `parte − plataforma ≈ descartadas por el filtro`, no hay
+descuadre que reportar; y si sobra diferencia después de descontarlo, **ésa** es
+la que apunta a la atribución.
