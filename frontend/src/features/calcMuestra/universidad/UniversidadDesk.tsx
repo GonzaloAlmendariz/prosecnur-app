@@ -74,8 +74,8 @@ import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conRerandomizacionDelEstudio } from "./aulas/criterioRerandomizacion";
 import { AulasRerandomizacionTab } from "./aulas/AulasRerandomizacionTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
-import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
-import { escenarioEnVigor } from "./shared/escenarioEnVigor";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConMinimosCertificados, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
+import { declararEscenarioEscribe, escenarioEnVigor } from "./shared/escenarioEnVigor";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -366,7 +366,13 @@ export function UniversidadDesk({
     if (cursosHorarioConfirmado) invalidarCursosHorarioPorMarco(marcoDesactualizado);
   }, [marcoDesactualizado, cursosHorarioConfirmado, invalidarCursosHorarioPorMarco]);
   function seleccionarEscenarioAulas(next: UniversityAulasScenario) {
-    if (next === escenarioAulas) return;
+    // La guarda pregunta si `next` ya esta DECLARADO, no si coincide con el
+    // valor del store. El store responde `e1` mientras nadie elija, asi que
+    // comparar contra el dejaba muerto el boton P1 en cuanto la pantalla
+    // mostraba P2 por inferencia: el usuario veia P2 marcado, clickeaba P1 y
+    // no pasaba nada. Sin declaracion previa cualquier clic tiene que
+    // escribirse, porque el clic ES la declaracion.
+    if (!declararEscenarioEscribe(vigor, next)) return;
     onWorkspace(materializeUniversityAulasTarget({
       workspace: syncedWorkspace,
       escenario: next,
@@ -670,6 +676,25 @@ export function UniversidadDesk({
     },
     [compCalculo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
+
+  // Todas las facultades cortas a su mínimo certificado, de un clic.
+  //
+  // Las mide la misma corrida y sus mínimos son independientes, pero fijar UNA
+  // invalida el resultado del componente y la pantalla de certeza se queda sin
+  // nada sobre lo que medir. De a una, aplicar la evidencia de una sola corrida
+  // costaba una ronda de fijar → recalcular → volver a medir por facultad.
+  const onFijarTodasLasCortas = useCallback(() => {
+    if (!compCalculo) return;
+    const filas = aulasState?.certeza?.filas;
+    if (!Array.isArray(filas) || !filas.length) return;
+    const nuevos = estratosConMinimosCertificados(
+      estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos),
+      filas.map((fila) => ({ label: fila.label, aulas: fila.aulas_certeza, brecha: fila.brecha })),
+    );
+    if (!nuevos) return;
+    onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+    onInvalidateAulasArtifacts();
+  }, [compCalculo, aulasState?.certeza, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts]);
 
   // Marco construido pero cálculo en N = 0 y sin población en memoria
   // (proyectos guardados antes del sync automático): la reparación exige
@@ -988,6 +1013,7 @@ export function UniversidadDesk({
                 certezaEnCurso={midiendoCerteza}
                 onMedirCerteza={onMedirCerteza}
                 onFijarAulas={onFijarAulasFacultad}
+                onFijarTodas={onFijarTodasLasCortas}
                 marcoDesactualizado={marcoDesactualizado}
               />
             </div>}
