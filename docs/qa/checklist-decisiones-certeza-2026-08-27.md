@@ -35,7 +35,7 @@ Y la regla de evidencia, también suya:
 | 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
-| 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | ADR nuevo · `aulas/` | — | — | ☐ **pendiente** — la de más valor metodológico |
+| 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | [ADR 0082](../adrs/0082-rerandomizar-no-es-optimizar-entre-candidatas.md) · `calc_muestra_aulas_rerandomizacion.R` · `aulas/AulasRerandomizacionTab.tsx` | `598a9a94` `785929fc` `133c537b` | `689ee0ca` `8227aef6` `ff2b2cf9` | ☑ **cerrada entera y vista en pantalla** |
 | 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ◐ **inventariada** — el contenido de los 11 capítulos ya existe; falta el ensamblador. Ver abajo |
 | 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R` · `calculo/TitularesFacultadEditor.tsx` | `1b37a151` | `1b37a151` | ☑ **cerrada y vista en pantalla** — el nombre entra como VALOR del origen, no como campo, así que no choca con `aulas_extra_operativas` |
 
@@ -263,6 +263,39 @@ handlers del stepper; ahora está reparada en el repartidor. Explica además el
 | Ítem | Estado |
 |---|---|
 | «Necesito que lo repares porque la otra sesión está validando monitoreo y necesita tener las 174 aulas reales del sorteo» — la corrida no se publicaba por diferir en cantidad | ☑ `bcb33dff` + `0bfe6d27`: ahora decide la identidad y la cantidad se declara |
+
+## Decisión 6 — cerrada de punta a punta
+
+ADR **aceptado** por Gonzalo (`d9c10507`), y las cinco piezas construidas:
+
+| Pieza | Dónde | Commit |
+|---|---|---|
+| El motor: aceptar/rechazar contra criterio | `calc_muestra_aulas_rerandomizacion.R` | `598a9a94` |
+| Cableado al sorteo de titulares y al resultado | `calc_muestra_aulas.R` | `785929fc` |
+| El criterio sobrevive el round-trip del workspace | `calc_muestra_engine.R` | `133c537b` |
+| El criterio se deriva del estudio | `aulas/criterioRerandomizacion.ts` | `689ee0ca` `8227aef6` |
+| La pestaña, última de Selección | `aulas/AulasRerandomizacionTab.tsx` | `ff2b2cf9` |
+
+**Verificado en la app** con HSVG26ULT: la pestaña aparece la décima y última de
+Selección, el criterio se declara como «toda celda facultad × sexo alcanza al
+menos el 100 % de su cuota · **30 celdas de 15 facultades**», y al encender el
+interruptor la decisión **persiste con cifras que cuadran**: ARQUITECTURA sale
+con `cuota_f 86,4875 + cuota_m 38,5125 = 125` —su cuota exacta— y
+`tau 0,5461`, el mismo 54,6 % que muestra la tabla de cursos-horario.
+
+**Tres defectos aparecieron construyéndola y ninguno era del diseño:**
+
+1. El criterio **moría en la whitelist del workspace** —`.cm_normalize_workspace_aulas_config`
+   es estricta y no lo declaraba—, así que el `.pulso` lo habría perdido en cada
+   guardado. Cuarta vez en el día que un dato muere entre capas.
+2. El motor tiene **dos constructores** de `aulas_por_estrato`, uno por técnica,
+   y el del reparto por facultad se quedó sin los campos nuevos en la primera
+   pasada.
+3. Al verificar el interruptor, el dato **no aparecía en el estado**: no era un
+   defecto de persistencia sino que el backend llevaba corriendo desde 86
+   minutos antes del cambio. Lo cazó comparar `ps -o lstart=` contra la hora del
+   commit antes de concluir.
+
 
 ## Decisión 7 — el inventario dice que falta el ensamblador, no el contenido
 
