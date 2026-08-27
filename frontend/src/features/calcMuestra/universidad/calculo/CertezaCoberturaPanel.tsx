@@ -300,21 +300,44 @@ export function CertezaCoberturaPanel({
               detalle="lo que pide la división"
               origen="motor"
             />
+            {/*
+              El total que se muestra es el de SUBIR donde falta sin bajar donde
+              sobra, porque es el que el diseño va a tomar: la regla de la casa
+              es «no bajes ninguna, solo sube donde haga falta».
+
+              El neto de R decía 167 en HSVG 2026 —165 más dos— mientras seis
+              facultades pedían +8 y tres pedían −6. Nadie iba a quitarle tres
+              aulas a Ciencias e Ingeniería, así que el encabezado prometía un
+              total que el estudio nunca iba a usar. Con la regla, 173.
+            */}
             <CifraMotor
               label={`Titulares para ${PCT.format(nivelMostrado)}`}
-              value={fmtInt(vista.aulasCerteza)}
-              detalle="mínimo que sostiene el nivel"
+              value={fmtInt(vista.aulasSoloSubidas)}
+              detalle="subiendo donde falta, sin bajar donde sobra"
               origen="motor"
               hero
             />
             <CifraMotor
               label="Diferencia"
-              value={fmtBrecha(vista.brecha)}
-              detalle={vista.brecha > 0 ? "aulas que faltan" : vista.brecha < 0 ? "aulas que sobran" : "sin cambios"}
+              value={fmtBrecha(vista.brechaSoloSubidas)}
+              detalle={vista.brechaSoloSubidas > 0 ? "aulas que faltan" : "sin cambios"}
               origen="motor"
-              tono={vista.brecha > 0 ? "alerta" : "ok"}
+              tono={vista.brechaSoloSubidas > 0 ? "alerta" : "ok"}
             />
           </CifraFila>
+
+          {/*
+            El neto no desaparece porque no lo usemos: se dice. Sin esta línea
+            el encabezado y el total que publica el motor difieren y nadie
+            puede saber por qué.
+          */}
+          {vista.aulasQueNoSeBajan > 0 && (
+            <p className="cmv2-certeza-neto">
+              El motor calcula <strong>{fmtInt(vista.aulasCerteza)}</strong> compensando
+              con {fmtInt(vista.aulasQueNoSeBajan)} {vista.aulasQueNoSeBajan === 1 ? "aula" : "aulas"} que
+              daría por sobrantes. No se bajan.
+            </p>
+          )}
 
           {vista.criticos.length > 0 ? (
             <AvisoModulo
