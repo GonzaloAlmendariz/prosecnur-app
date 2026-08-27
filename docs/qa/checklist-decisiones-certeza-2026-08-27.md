@@ -36,7 +36,7 @@ Y la regla de evidencia, también suya:
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
 | 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | [ADR 0082](../adrs/0082-rerandomizar-no-es-optimizar-entre-candidatas.md) · `calc_muestra_aulas_rerandomizacion.R` · `aulas/AulasRerandomizacionTab.tsx` | `598a9a94` `785929fc` `133c537b` | `689ee0ca` `8227aef6` `ff2b2cf9` | ☑ **cerrada entera y vista en pantalla** |
-| 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | motor de entregables | — | — | ◐ **inventariada** — el contenido de los 11 capítulos ya existe; falta el ensamblador. Ver abajo |
+| 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | `salidas/sustentoSecciones.ts` · `salidas/SustentoCoberturaCard.tsx` | — | `f0b3507a` `e01a5410` | ◐ **espina hecha y vista en pantalla** — los 11 capítulos declarados y la cobertura visible en Entregables; falta el render del documento |
 | 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R` · `calculo/TitularesFacultadEditor.tsx` | `1b37a151` | `1b37a151` | ☑ **cerrada y vista en pantalla** — el nombre entra como VALOR del origen, no como campo, así que no choca con `aulas_extra_operativas` |
 
 ## Decisión 3, evaluada — tiempos medidos, no estimados
@@ -366,6 +366,23 @@ El ensamblador, entonces, no escribe contenido nuevo: **recoge, ordena y sube de
 registro** lo que ya existe, y sólo tiene que redactar de cero los enlaces entre
 capítulos. Sigue en pie que el capítulo 9 vive en Monitoreo y que eso exige la
 decisión de Gonzalo.
+
+
+### La espina, vista en pantalla
+
+Verificado con HSVG26ULT en Salidas › Entregables, debajo de donde se genera el
+reporte: **«10 de 11 capítulos se pueden escribir con lo que el estudio tiene
+ahora. Uno depende de otro módulo y no se resuelve trabajando acá.»** Diez
+listos, uno externo, cero pendientes.
+
+El capítulo externo se lee entero y sin eufemismo: «Este capítulo vive en
+Monitoreo, que hoy lo muestra en pantalla pero no lo publica como dato. El
+documento puede citarlo pero no reconstruirlo.» Y los disponibles muestran su
+fuente literal — el de τ dice `aulas_por_estrato[].tau`, con su descomposición
+en `rendimiento_mix × factor_residual`.
+
+**Lo que falta de la 7**: el render del documento. La espina ya dice qué
+recoger y de dónde.
 
 
 ## Una hoja llamada «Validaciones» que no validaba nada
