@@ -352,6 +352,55 @@ existe y ya se genera. Lo que le falta es exactamente lo que Gonzalo pidió: **e
 corte por facultad y por sexo, contra muestra y sobremuestra, y las aulas
 aplicadas**. Hoy sólo da el agregado del estudio.
 
+## T8c — el PDF: el camino, medido antes de escribirlo
+
+Dos de las tres formas están hechas: el **Excel** (bloque de once columnas en la
+hoja «Cómo va el campo») y la **pantalla** (`AulasAvanceParaCliente`, en
+`avance > cuotas`, verificada con desvío 0). Falta el PDF, y esto es lo que hay
+que saber antes de empezarlo.
+
+### Aulas no cae a un genérico: cae al modelo de ACREDITACIÓN
+
+`.monitoreo_client_report_model_for_snapshot()` (`router_monitoreo.R:2352`)
+ramifica en tres:
+
+| Familia | Modelo | `report_kind` |
+|---|---|---|
+| territorial | `monitoreo_publication_model(audience="client")` | `territorial_advance_pdf` |
+| telefónico | `build_monitoreo_telefonico_report_model()` | `telefonico_advance_pdf` |
+| **todo lo demás, aulas incluido** | `monitoreo_acreditacion_client_report_model()` | `acreditacion_client_report_pdf` |
+
+Y el runner (`router_monitoreo.R:2705`) ramifica igual hacia tres renderizadores.
+
+### Por qué NO se puede reusar el renderizador de acreditación
+
+Su modelo de hojas **parece** genérico —`sheet` → `block` → `data.frame`— pero
+el renderizador no lo consume: `monitoreo_acreditacion_client_report_pdf()` lee
+`model$actors`, `model$daily_actor`, `model$daily_general`, `model$sources` y
+`model$channel_labels`. **Tiene forma de acreditación.**
+
+Reusarlo exigiría mapear facultades a «actores», y eso es llamar una cosa por el
+nombre de otra dentro del propio modelo — el defecto que este perfil ya arrastra
+con las tasas homónimas. **No se hace.**
+
+### El camino, entonces
+
+Un motor propio siguiendo el precedente telefónico
+(`monitoreo_telefonico_report_pdf.R`, **1 068 líneas**, modelo y renderizador en
+el mismo archivo). Es trabajo de varios ticks, no de uno.
+
+**Lo que NO hay que rehacer**: el contenido ya está decidido y probado en
+`avanceParaCliente.ts` —muestra y su reparto por sexo, conseguidas y el suyo,
+aulas aplicadas sobre las del plan, avance y faltantes, ordenado por lo que
+falta— y en `carga_aulas_libro_avance_facultad.R` del lado R, con 19 aserciones.
+**El modelo del PDF debe leer de ahí, no recalcular**: tres tablas del mismo
+nombre con cifras distintas es exactamente lo que este perfil no puede permitirse.
+
+La estética la da el kit compartido (`pulso_pdf_theme.R`: `pulso_pdf_header`,
+`pulso_pdf_footer`, `pulso_pdf_hairline`, `pulso_pdf_tokens`, `pulso_pdf_geo`),
+que resuelve cabecera, pie, logo y paleta pero **no dibuja tablas**: eso lo pone
+cada motor.
+
 ## Lo que ya está cerrado y no se rehace
 
 - Seguimiento de τ (ADR 0082): motor, tabla, disparador por margen, backtest
