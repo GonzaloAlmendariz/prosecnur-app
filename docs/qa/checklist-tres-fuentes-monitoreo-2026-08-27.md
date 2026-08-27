@@ -202,3 +202,54 @@ del aula»— y la cuarta cifra del catálogo de B7.
 el filtro explica. Si `parte − plataforma ≈ descartadas por el filtro`, no hay
 descuadre que reportar; y si sobra diferencia después de descontarlo, **ésa** es
 la que apunta a la atribución.
+
+## Las tres piezas visuales, cerradas y vistas
+
+**Encargo de Gonzalo**: «hay muchas tablas por todas partes, pero no hay ningún
+elemento visual que lo complemente».
+
+| pieza | dónde | qué enseña | visto |
+|---|---|---|---|
+| **Escalera de la cadena de filtros** | Validación · registro | qué filtro cuesta más, en escala común | ☑ «de 1 811 la cadena deja 1 637», pasos a 96,3 % y 90,4 % |
+| **Histograma de gestiones** | Agenda, panel propio y **plegado** | la cola que la mediana esconde | ☑ 55·90 y cola de 7·5·7·6·4 = **29** |
+| **Banda de pérdida** | Validación · base | la cuarta cifra, sin representación hasta ahora | ☑ «de 2 009 enviadas cuentan 1 811 · se pierden 198 (90 % pasa)» |
+
+### Lo que costó cada una, que es la parte reutilizable
+
+- **Medir contra lo que el consumidor consume.** El histograma salía vacío por
+  leer `course_status` —recortado a 500 filas y con menos columnas— en vez de
+  `dashboard.agenda`, **con los tiles de al lado marcando 119 y 29 sobre los
+  mismos datos**.
+- **La sección es de política `viewport`: sus paneles se reparten el alto.** Un
+  panel nuevo abierto dejó la franja de días del vecino en **0 px**. El propio
+  panel lo advertía en su comentario. Se repara plegando, no con `min-height`:
+  eso la devuelve pero **invade la tabla 78 px**, y el CSS ya decía «acotar el
+  ELEMENTO no sirve, hay que acotar la PISTA».
+- **Un token se verifica por su valor computado**, no por encontrar su
+  definición. Medidos en esta página: `--pulso-accent`,
+  `--pulso-module-accent`, `--pulso-ok-fg` y `--pulso-danger` salen **vacíos**;
+  `--pulso-primary`, `--pulso-success-fg`, `--pulso-warn-fg` y `--pulso-text`
+  resuelven.
+- **Una fixture que no siembra un bloque hace parecer inexistente su
+  superficie.** Pasó tres veces: sin `efectivas_esperadas` no había vara del
+  diseño, sin `valid_filters` no había cadena de filtros, y sin `libro` no había
+  Base de control. La tercera vez ya era patrón.
+
+### Rótulos largos en columnas de cifras — criterio abierto
+
+Gonzalo lo señaló sobre «Número de intentos»: celdas de **un dígito** y ~150 px
+de columna, porque `.es-cifra` lleva `white-space: nowrap` y **la cabecera fija
+el ancho**. Ahora es «Intentos» y mide **78**.
+
+Es una familia, no un caso:
+
+| rótulo | ancho | nota |
+|---|---|---|
+| «Nivel del curso» | **122 px** sobre dígitos sueltos | **no tocado**: es canónico del mapeo de Cálculo y tiene tests allí |
+| «Cantidad de asistentes» | | su comentario dice que copia el nombre del libro **a propósito** |
+| «Cantidad de efectivas» · «Cantidad de rechazos» | | «cantidad de» es redundante en una columna de cifras |
+| «Estudiantes del sexo mayoritario» | 31 caracteres | junto a una columna «Sexo mayoritario» |
+
+**Decisión pendiente de Gonzalo**: hay tensión real entre fidelidad al nombre del
+libro —que sirve para cruzar con el Excel— y el ancho. No se resuelve por cuenta
+propia.
