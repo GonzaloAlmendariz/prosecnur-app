@@ -193,12 +193,47 @@ describe("corridaDeSeleccion", () => {
     expect(corridaDeSeleccion({ aulasState: null, workspace: workspaceBase() })).toBeNull();
   });
 
-  it("no registra una selección producida para otro target", () => {
+  // Lo que prueba que una corrida es de aquí es su IDENTIDAD —`frame_hash` y
+  // `selection_run_id`—, no que su cantidad coincida con la copia del
+  // workspace. Descartarla por cantidad tiraba corridas correctas en silencio.
+  //
+  // Medido sobre HSVG26ULT: el workspace guarda `n_aulas` 165 (el objetivo
+  // ANTERIOR a la certificación) y el sorteo produjo 174 titulares. Con eso la
+  // corrida no se publicaba en absoluto, y el proyecto nunca llegó a Monitoreo:
+  // sin `monitoreo_config`, sin snapshot, sin plan y sin partes.
+  it("publica la corrida aunque el workspace guarde otro objetivo, y DECLARA la diferencia", () => {
     const workspace = workspaceBase({
       aulas_config: { n_aulas: 29 } as CalcMuestraWorkspace["aulas_config"],
     });
 
-    expect(corridaDeSeleccion({ aulasState, workspace })).toBeNull();
+    const record = corridaDeSeleccion({ aulasState, workspace });
+    expect(record).not.toBeNull();
+    // Las 2 titulares del fixture salen, con sus reservas.
+    expect(record?.resumen).toMatchObject({ titulares: 2, reservas: 2 });
+    // Y la divergencia viaja: el objetivo del workspace contra el de la corrida.
+    expect(record?.parametros?.objetivo_workspace).toBe(29);
+    expect(record?.parametros?.objetivo_corrida).toBe(2);
+  });
+
+  it("sin divergencia no inventa el aviso", () => {
+    const workspace = workspaceBase({
+      aulas_config: { n_aulas: 2 } as CalcMuestraWorkspace["aulas_config"],
+    });
+    const record = corridaDeSeleccion({ aulasState, workspace });
+    expect(record?.parametros?.objetivo_workspace).toBeUndefined();
+    expect(record?.parametros?.objetivo_corrida).toBeUndefined();
+  });
+
+  // La identidad SÍ descarta: un artefacto de otro marco no es de aquí.
+  it("no registra una selección de otro marco", () => {
+    const workspace = workspaceBase({
+      aulas_config: { n_aulas: 2 } as CalcMuestraWorkspace["aulas_config"],
+    });
+    const otroMarco: CalcMuestraAulasState = {
+      ...aulasState,
+      selection: { ...aulasState.selection!, frame_hash: "otro" },
+    };
+    expect(corridaDeSeleccion({ aulasState: otroMarco, workspace })).toBeNull();
   });
 
   it("no registra una selección sin id propio de corrida", () => {
