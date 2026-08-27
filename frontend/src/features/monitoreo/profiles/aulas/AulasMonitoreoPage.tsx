@@ -82,6 +82,7 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
+import { estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
 // Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
 // y es genérico —etapas con valor, detalle, estado y merma—. Importarlo entre
@@ -451,6 +452,12 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   const corte = String((dashboard as { generated_at?: unknown } | null)?.generated_at ?? "").slice(0, 10);
   const conAccion: Array<Record<string, unknown>> = filas.map((fila) => ({
     ...fila, que_toca: queTocaConCadaAula(fila, corte),
+    // **Una fila no puede decir «Aplicada» y «Sin contactar» a la vez.** El
+    // normalizador del estado de muestra es una lista cerrada y las seis
+    // palabras que los equipos escriben de verdad caen todas al default. Ver
+    // `estadoDeMuestraLegible.ts`: no cambia el mapeo, sólo impide que la tabla
+    // afirme la contradicción sin señalarla.
+    sample_status: estadoDeMuestraLegible(fila.sample_status, fila.operational_status),
   }));
   return ordenarPorCadenaOperativa(conAccion, (fila) => ({
     rol: String(fila.sample_role ?? ""),
