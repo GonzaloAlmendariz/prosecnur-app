@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosDelComponente, fijasPendientes } from "../certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente, fijasPendientes } from "../certificacionAcciones";
 import { presupuestoVisitas } from "../PresupuestoVisitasCard";
 import type { CalcMuestraEstrato } from "../../../../../api/calcMuestra";
 
@@ -217,5 +217,43 @@ describe("estratosDelComponente (el marco compartido se comía las fijaciones)",
       .toEqual(universidad.marco.estratos);
     expect(estratosDelComponente(estudio, "cmp-nuevo", null)).toBeNull();
     expect(estratosDelComponente(null, "cmp-x-fac", null)).toBeNull();
+  });
+});
+
+describe("el origen del número de titulares", () => {
+  // Gonzalo, 2026-08-27: «esa agregación se puede llamar agregación operativa,
+  // ya que no sigue un criterio estadístico como tal». Sin declararlo, los tres
+  // orígenes producen enteros idénticos: en HSVG2026 `max(fórmula, certeza)` da
+  // 173 y el final es 174, y ese aula no se distinguía de las otras 173.
+  const estratos = [{ label: "DERECHO", aulas_base_fijas: 18 }] as never;
+
+  it("el stepper declara la agregación como operativa", () => {
+    expect(estratosConAjusteAula(estratos, "DERECHO", 18, 1)?.[0])
+      .toMatchObject({ aulas_base_fijas: 19, aulas_base_origen: "operativa" });
+    expect(estratosConAulaExtra(estratos, "DERECHO", 18)?.[0])
+      .toMatchObject({ aulas_base_fijas: 19, aulas_base_origen: "operativa" });
+  });
+
+  it("«Llevar a N» declara que el número lo pide la certificación", () => {
+    expect(estratosConAulasFijadas(estratos, "DERECHO", 18)?.[0])
+      .toMatchObject({ aulas_base_fijas: 18, aulas_base_origen: "certificacion" });
+  });
+
+  it("el motivo se escribe sin tocar el número", () => {
+    const out = estratosConNotaOperativa(
+      [{ label: "DERECHO", aulas_base_fijas: 19, aulas_base_origen: "operativa" }] as never,
+      "DERECHO",
+      "  va muy justa en la celda de mujeres  ",
+    );
+    expect(out?.[0]).toMatchObject({
+      aulas_base_fijas: 19,
+      aulas_base_origen: "operativa",
+      aulas_base_nota: "va muy justa en la celda de mujeres",
+    });
+  });
+
+  it("sin blanco no parchea a medias", () => {
+    expect(estratosConNotaOperativa(estratos, "GESTIÓN", "x")).toBeNull();
+    expect(estratosConNotaOperativa(null, "DERECHO", "x")).toBeNull();
   });
 });

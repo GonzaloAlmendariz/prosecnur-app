@@ -72,7 +72,7 @@ import {
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
-import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosDelComponente } from "./aulas/certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -612,6 +612,20 @@ export function UniversidadDesk({
   // El panel «¿Alcanza?» publica el minimo certificado en la seccion Calculo;
   // sin esto la unica forma de aplicarlo es cruzar a Aulas · Seleccion y pulsar
   // el stepper tantas veces como diga la diferencia.
+  const onNotaAulaCalculo = useCallback(
+    (facultad: string, nota: string) => {
+      if (!compCalculo) return;
+      const nuevos = estratosConNotaOperativa(
+        estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos), facultad, nota,
+      );
+      if (!nuevos) return;
+      // Escribir el motivo NO invalida nada: no cambia ningún número, sólo
+      // dice por qué. Invalidar aquí obligaría a recalcular por documentar.
+      onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+    },
+    [compCalculo, estratosPropiosDe, onComponente],
+  );
+
   const onFijarAulasFacultad = useCallback(
     (facultad: string, aulas: number) => {
       if (!compCalculo) return;
@@ -899,6 +913,7 @@ export function UniversidadDesk({
                   marcoDesactualizado={marcoDesactualizado}
                   onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
                   onAjustarAula={onAjustarAulaCalculo}
+                  onNotaAula={onNotaAulaCalculo}
                   estratosPropios={estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos)}
                 />
               </div>

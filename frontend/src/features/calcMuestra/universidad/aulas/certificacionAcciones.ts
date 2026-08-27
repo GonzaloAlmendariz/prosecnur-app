@@ -47,7 +47,7 @@ export function estratosConAulaExtra(
   const nuevos = estratos.map((e) => {
     if (claveFacultad(e.label) !== objetivo) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: Math.round(aulasActuales) + 1 };
+    return { ...e, aulas_base_fijas: Math.round(aulasActuales) + 1, aulas_base_origen: "operativa" as const };
   });
   return tocado ? nuevos : null;
 }
@@ -74,7 +74,7 @@ export function estratosConAjusteAula(
   const nuevos = estratos.map((e) => {
     if (claveFacultad(e.label) !== objetivo) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: nuevo };
+    return { ...e, aulas_base_fijas: nuevo, aulas_base_origen: "operativa" as const };
   });
   return tocado ? nuevos : null;
 }
@@ -106,7 +106,7 @@ export function estratosConAulasFijadas(
   const nuevos = estratos.map((e) => {
     if (claveFacultad(e.label) !== objetivo) return e;
     tocado = true;
-    return { ...e, aulas_base_fijas: nuevo };
+    return { ...e, aulas_base_fijas: nuevo, aulas_base_origen: "certificacion" as const };
   });
   return tocado ? nuevos : null;
 }
@@ -192,4 +192,30 @@ export function resumenFijaciones(
     if (Number.isFinite(n) && n > 0) { total += 1; suma += n; }
   }
   return { total, suma };
+}
+
+/**
+ * El motivo de una agregación operativa.
+ *
+ * Va aparte del ajuste porque el número se aplica en el momento y el motivo se
+ * escribe después: exigirlo en el mismo clic convertiría un stepper de ±1 en un
+ * formulario. Lo que no se puede es quedarse sin él — una agregación operativa
+ * sin motivo escrito es indistinguible de un error de dedo tres meses después,
+ * y por eso la celda declara que falta hasta que se escribe.
+ */
+export function estratosConNotaOperativa(
+  estratos: CalcMuestraEstrato[] | null | undefined,
+  facultad: string,
+  nota: string,
+): CalcMuestraEstrato[] | null {
+  if (!Array.isArray(estratos) || !estratos.length) return null;
+  const objetivo = claveFacultad(facultad);
+  if (!objetivo) return null;
+  let tocado = false;
+  const nuevos = estratos.map((e) => {
+    if (claveFacultad(e.label) !== objetivo) return e;
+    tocado = true;
+    return { ...e, aulas_base_nota: nota.trim() };
+  });
+  return tocado ? nuevos : null;
 }
