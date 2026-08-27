@@ -119,6 +119,13 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   # el operativo si todo falla y todo se reemplaza— y haría pasar como
   # suficiente un diseño que solo cierra agotando el respaldo.
   sim_selector$replacement_waves <- 0L
+  # La afijación del diseño fija cuántas aulas toca cada facultad, y dentro de
+  # una certificación eso deja la pregunta sin objeto: el candidato ES lo que se
+  # está midiendo. Con `faculty_targets` puestos, `.cm_aulas_quota_estratos`
+  # aplica su regla declarada —«facultades con target: su n manda»— y sortea
+  # siempre el mismo número, así que la curva sale plana. Medido en HSVG2026:
+  # con DERECHO = 19 el rendimiento quedaba en 394 de 40 a 55 aulas.
+  sim_selector$faculty_targets <- NULL
 
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
