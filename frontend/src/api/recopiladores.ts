@@ -513,6 +513,50 @@ export async function apiRecopiladoresMaterialInstances(input: {
   } as CollectionMaterialInstancesPayload;
 }
 
+/**
+ * Ficha suelta con un identificador inventado —`PRUEBA_2026`, `CAPACITACION`,
+ * `prueba_interna`— y el MISMO enlace del operativo.
+ *
+ * No pasa por `materials/instances`: no persiste nada. Una ficha de prueba
+ * dentro del plan movería el conteo de unidades y el handoff a Monitoreo.
+ */
+export async function apiRecopiladoresMaterialPrueba(input: {
+  codigo: string;
+  etiqueta?: string;
+}) {
+  const raw = await handle<unknown>(await apiFetch(
+    "/api/recopiladores/materials/prueba",
+    json("POST", input),
+  ));
+  if (!isRecord(raw) || typeof raw.job_id !== "string" || !raw.job_id) {
+    throw contractError("materials/prueba no devolvió job_id.");
+  }
+  return raw as JobStart;
+}
+
+export type CollectionFichaPrueba = {
+  codigo: string;
+  etiqueta: string;
+  enlace: string;
+  creada_en: string;
+  deployment_fingerprint?: string;
+  /** El enlace sigue siendo el del despliegue actual. Lo calcula el backend al
+      leer, no se guarda: es una relación con el despliegue de HOY. */
+  vigente: boolean;
+};
+
+/**
+ * Las fichas de prueba ya generadas, con su enlace tal como se generó.
+ *
+ * Viven en `collection_state$pruebas`, hermanas de `plan`. Del PDF se guarda el
+ * enlace y no el archivo: regenerarlo es determinista.
+ */
+export async function apiRecopiladoresMaterialPruebas() {
+  const raw = await handle<unknown>(await apiFetch("/api/recopiladores/materials/pruebas"));
+  if (!isRecord(raw)) throw contractError("materials/pruebas no es un objeto.");
+  return asArray<CollectionFichaPrueba>(raw.pruebas).filter((x) => Boolean(x?.codigo));
+}
+
 export async function apiRecopiladoresMaterialsRender(input: {
   format: "png" | "pdf" | "bundle";
   instance_id: string;
