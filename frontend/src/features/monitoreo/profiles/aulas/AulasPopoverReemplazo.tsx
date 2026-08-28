@@ -101,10 +101,19 @@ function Barra({ valor, tono }: { valor: number; tono: "parecido" | "ayuda" }) {
 function Candidato({
   c,
   puesto,
+  conBrecha,
   onElegir,
 }: {
   c: CandidatoDeReemplazo;
   puesto: number;
+  /**
+   * Si hay una brecha con la que medir «cierra brecha». Sin ella la medida no
+   * se calcula y **no se dibuja**: una barra a 0 % se lee como «esta aula no
+   * ayuda a cerrar nada», que es una afirmación sobre el aula. La verdad es
+   * otra —aquí no se está midiendo eso— y son cosas distintas. Un cero medido
+   * y un cero por no medir no pueden verse igual.
+   */
+  conBrecha: boolean;
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
 }) {
   const f = c.fila;
@@ -155,11 +164,13 @@ function Candidato({
           <Barra valor={c.parecido} tono="parecido" />
           <strong>{pct(c.parecido)}</strong>
         </span>
-        <span className="aulas-reemplazo-medida">
-          <em>cierra brecha</em>
-          <Barra valor={c.ayuda} tono="ayuda" />
-          <strong>{pct(c.ayuda)}</strong>
-        </span>
+        {conBrecha ? (
+          <span className="aulas-reemplazo-medida">
+            <em>cierra brecha</em>
+            <Barra valor={c.ayuda} tono="ayuda" />
+            <strong>{pct(c.ayuda)}</strong>
+          </span>
+        ) : null}
       </div>
 
       {/* Lo que se concede al tomarlo. Vacío cuando es de la misma celda: ahí no
@@ -212,6 +223,13 @@ export function AulasPopoverReemplazo({
   // un click que solo sirve para descubrir que la lista esta vacia.
   const inicial = GRUPOS.find((g) => candidatos[g.id].length)?.id ?? "cadena";
   const activo: OrigenDeCandidato = grupo ?? inicial;
+  // Hay brecha con la que medir cuando alguien la pasa Y pide algo: una brecha
+  // de cero es una facultad cubierta, y ahí «cierra brecha» tampoco significa
+  // nada. Montado en Registro de campo el popover no recibe brecha —esa vista
+  // no tiene las cuotas—, y sin esta bandera los tres candidatos salian con una
+  // barra a «0 %» que se leia como «ninguno ayuda».
+  const hayBrecha = Boolean(brecha && (brecha.mujeres > 0 || brecha.hombres > 0));
+
   const lista = candidatos[activo];
   const meta = GRUPOS.find((g) => g.id === activo)!;
 
@@ -251,7 +269,13 @@ export function AulasPopoverReemplazo({
       {lista.length ? (
         <ol className="aulas-reemplazo-lista">
           {lista.map((c, i) => (
-            <Candidato key={c.fila.operational_code || c.fila.classroom_id} c={c} puesto={i + 1} onElegir={onElegir} />
+            <Candidato
+              key={c.fila.operational_code || c.fila.classroom_id}
+              c={c}
+              puesto={i + 1}
+              conBrecha={hayBrecha}
+              onElegir={onElegir}
+            />
           ))}
         </ol>
       ) : (

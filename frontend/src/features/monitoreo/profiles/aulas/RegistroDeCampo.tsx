@@ -16,7 +16,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { contar } from "../../fuentes/vocabulario";
-import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, TriangleAlert } from "../../../../vendor/lucide-react";
+import { ArrowRightLeft, ClipboardCheck, ClipboardList, Loader2, Search, TriangleAlert } from "../../../../vendor/lucide-react";
+import { AulasPopoverReemplazo } from "./AulasPopoverReemplazo";
 import {
   apiMonitoreoAulasActivarReemplazo,
   apiMonitoreoAulasAgenda,
@@ -182,6 +183,10 @@ export function RegistroDeCampo({
   const [form, setForm] = useState<RegistroForm>(FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
   const [activando, setActivando] = useState(false);
+  // El popover de elección. Va aquí y no en una superficie nueva porque ESTE es
+  // el sitio donde ya vive la única acción que activa un reemplazo: separar la
+  // elección de la activación habría dejado dos caminos para lo mismo.
+  const [eligiendo, setEligiendo] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   // La advertencia de ponderación de la reserva activada. Vive aparte de `ok`
@@ -342,7 +347,17 @@ export function RegistroDeCampo({
   const set = <K extends keyof RegistroForm>(campo: K, valor: RegistroForm[K]) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
-  const activarReemplazo = async () => {
+  /**
+   * Activa un reemplazo para el aula en foco.
+   *
+   * Sin `elegida` entra la que toca por orden de cadena, que es lo que este
+   * botón hizo siempre. Con `elegida` entra ESA, y el backend comprueba que
+   * exista, no sea la caída, siga dormida y sea de la misma facultad.
+   *
+   * La cadena sigue siendo la guía —«el orden recomendado, no un candado»—; el
+   * popover existe para el caso en que la que toca no sirve y hay una mejor.
+   */
+  const activarReemplazo = async (elegida?: string) => {
     if (!activa) return;
     const codigo = String(activa.operational_code ?? activa.classroom_id ?? "").trim();
     if (!codigo) return;
@@ -359,7 +374,9 @@ export function RegistroDeCampo({
         // distintos —`sin_acceso` es un estado, `docente_no_autoriza` un
         // motivo— y colarlo aquí lo normalizaba a «otro», perdiendo el dato.
         motivo: form.motivo.trim(),
+        ...(elegida ? { elegida } : {}),
       });
+      setEligiendo(false);
       // El mensaje del motor dice la consecuencia —cuántas reservas quedan, o
       // que la cadena se agotó y esa meta se queda sin cubrir—, así que se
       // muestra tal cual en vez de resumirlo aquí.
@@ -737,7 +754,7 @@ export function RegistroDeCampo({
                     <button
                       type="button"
                       className="registro-campo-reemplazo"
-                      onClick={activarReemplazo}
+                      onClick={() => void activarReemplazo()}
                       disabled={guardando || activando}
                       title="Marca este curso-horario como reemplazado y pone en campo su siguiente reserva"
                     >
@@ -745,9 +762,31 @@ export function RegistroDeCampo({
                       {activando ? "Activando…" : "Activar reemplazo"}
                     </button>
                   ) : null}
+                  {aulaPuedeReemplazarse(form.estado, activa) ? (
+                    <button
+                      type="button"
+                      className="registro-campo-elegir"
+                      onClick={() => setEligiendo(true)}
+                      disabled={guardando || activando}
+                      title="Compara las reservas disponibles y elige cuál entra, en vez de seguir el orden"
+                    >
+                      <Search size={14} /> Elegir reemplazo
+                    </button>
+                  ) : null}
                   {ok ? <span className="registro-campo-ok">{ok}</span> : null}
                   {error ? <span className="registro-campo-error">{error}</span> : null}
                 </div>
+                {eligiendo && activa ? (
+                  <AulasPopoverReemplazo
+                    caido={activa}
+                    filas={agenda}
+                    onElegir={(fila) => {
+                      const cod = String(fila.operational_code ?? fila.classroom_id ?? "").trim();
+                      if (cod) void activarReemplazo(cod);
+                    }}
+                    onCerrar={() => setEligiendo(false)}
+                  />
+                ) : null}
                 {avisoPeso ? (
                   <p className="registro-campo-peso">
                     <TriangleAlert size={13} aria-hidden="true" />

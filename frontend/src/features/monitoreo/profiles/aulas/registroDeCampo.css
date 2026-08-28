@@ -322,6 +322,26 @@
   border-color: var(--pulso-border-strong);
 }
 
+/* Elegir reemplazo, junto a activar el que toca.
+ *
+ * Los dos hacen lo mismo al final —activan una reserva— pero uno sigue el
+ * orden de la cadena y el otro abre la comparacion. Se distinguen por el
+ * borde punteado, no por color ni peso: activar-el-que-toca es la accion
+ * recomendada y no puede perder jerarquia frente a la que la matiza. La
+ * cadena es la guia, y elegir es la salida lateral para cuando no sirve.
+ */
+.registro-campo-acciones button.registro-campo-elegir {
+  background: transparent;
+  color: var(--pulso-text-soft);
+  border: 1px dashed var(--pulso-border);
+}
+
+.registro-campo-acciones button.registro-campo-elegir:hover:not(:disabled) {
+  color: var(--pulso-text);
+  background: var(--pulso-surface-2);
+  border-color: var(--pulso-border-strong);
+}
+
 /* Con el registro en su propia pestaña ya no compite con la tabla, así que el
  * stack deja de reservar la fila elástica que era para ella. Sin esto el
  * registro seguía topando contra un `minmax(0, 1fr)` pensado para otra
