@@ -1581,6 +1581,28 @@ export default function CalcMuestraPage() {
       hydrate(res.estudio);
       registrarCorridaDeCalculo(res.estudio);
       useMotorStore.getState().invalidarCursosHorario();
+      // Calcular DESCARTA los artefactos derivados —certeza, comparacion de
+      // metodos, seleccion— y `/calcular` solo devuelve `{ok, estudio}`, asi
+      // que la pantalla no tiene como enterarse: se queda con el `aulasState`
+      // anterior y sigue enseñando lo que el motor ya tiro.
+      //
+      // Medido el 2026-08-28 sobre el segundo sorteo de HSVG 2026: tras
+      // recalcular, `aulas.certeza` venia VACIO del backend y la pestaña
+      // «¿Alcanza?» seguia mostrando la medicion anterior rotulada «cifra
+      // validada», con su boton «Llevar las 5 a su minimo» ofreciendo escribir
+      // fijaciones derivadas de un marco que ya no existe. Un `location.reload`
+      // dejaba ver la verdad: «Sin medir todavia».
+      //
+      // La autoridad sobre que sobrevivio es el backend, no una invalidacion
+      // adivinada aca: se relee el estado, como ya hacen los otros flujos.
+      try {
+        const estadoTrasCalcular = await apiCalcMuestraState();
+        setAulasState(estadoTrasCalcular.aulas ?? null);
+      } catch {
+        // Si la relectura falla, es peor conservar artefactos que el motor
+        // descarto que quedarse sin ellos: se limpian y la pantalla lo dice.
+        setAulasState(null);
+      }
       // Contar componentes no es contar éxitos: si el motor marcó alguna
       // distribución «incompatible», el aviso lo dice en vez de felicitar.
       setMsg(avisoTrasCalcular(res.estudio.componentes));
