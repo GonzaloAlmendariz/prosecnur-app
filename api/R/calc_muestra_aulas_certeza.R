@@ -124,6 +124,20 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
 # solo puede ser una instrucción contradictoria con la pregunta que se hace.
 .CM_CERTEZA_CLAVES_AFIJACION <- c("faculty_targets", "afijacion_facultades")
 
+# Por qué `faculty_targets` es de esta lista y no un caso aparte: la afijación
+# del diseño fija cuántas aulas toca cada facultad, y dentro de una
+# certificación eso deja la pregunta sin objeto —el candidato ES lo que se está
+# midiendo—. Con `faculty_targets` puestos, `.cm_aulas_quota_estratos` aplica su
+# regla declarada —«facultades con target: su n manda»— y sortea siempre el
+# mismo número, así que la curva sale plana. Medido en HSVG2026: con
+# DERECHO = 19 el rendimiento quedaba en 394 de 40 a 55 aulas.
+#
+# Este es el ÚNICO punto de saneo, a propósito. `.cm_certeza_evaluar` llevaba
+# además un `sim_selector$faculty_targets <- NULL` suelto que hacía lo mismo, y
+# esa redundancia apagó en silencio la regresión que la vigila: el test la
+# neutraliza mockeando esta función, y con la segunda limpieza en pie el
+# síntoma ya no volvía. La red contra la clase entera del defecto —una clave
+# nueva que compita con `n_aulas`— es `aulas_efectivas`, no una segunda copia.
 .cm_certeza_selector_sin_afijacion <- function(selector) {
   if (!is.list(selector)) return(selector)
   for (clave in .CM_CERTEZA_CLAVES_AFIJACION) selector[[clave]] <- NULL
@@ -153,13 +167,6 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   # el operativo si todo falla y todo se reemplaza— y haría pasar como
   # suficiente un diseño que solo cierra agotando el respaldo.
   sim_selector$replacement_waves <- 0L
-  # La afijación del diseño fija cuántas aulas toca cada facultad, y dentro de
-  # una certificación eso deja la pregunta sin objeto: el candidato ES lo que se
-  # está midiendo. Con `faculty_targets` puestos, `.cm_aulas_quota_estratos`
-  # aplica su regla declarada —«facultades con target: su n manda»— y sortea
-  # siempre el mismo número, así que la curva sale plana. Medido en HSVG2026:
-  # con DERECHO = 19 el rendimiento quedaba en 394 de 40 a 55 aulas.
-  sim_selector$faculty_targets <- NULL
 
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
