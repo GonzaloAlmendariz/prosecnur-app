@@ -45,8 +45,57 @@ monitoreo_aulas_etiqueta_celda <- function(estado) {
     # `sin_avance` es el caso PEOR y la frase tiene que sonar como tal: el
     # nombre viejo, «pendiente», tranquilizaba justo donde habia que mirar.
     sin_avance = "Todavía sin ninguna encuesta",
+    # Los mismos cuatro estados con las claves que emite el tablero. Sin esto
+    # la celda salia rotulada «Sin estado» teniendo estado.
+    sin_meta = "Sin cuota trazada",
+    cumplida = "Ya llego a su cuota",
+    en_riesgo = "Empezó, todavía no llega",
+    pendiente = "Todavía sin ninguna encuesta",
     "Sin estado"
   )
+}
+
+# --- las DOS taxonomias vivas de una celda, y su equivalencia ----------------
+#
+# En el repo conviven dos juegos de claves para el MISMO estado de una celda
+# facultad x sexo, y ninguno esta mal:
+#
+#   · `sin_cuota / alcanzada / en_progreso / sin_avance` — los de
+#     `.monitoreo_aulas_quota_estado()`, con los nombres que dicen lo que miden.
+#   · `sin_meta / cumplida / en_riesgo / pendiente` — los que emite
+#     `.monitoreo_aulas_cuotas_sexo_celdas()`, que es la que alimenta el tablero.
+#
+# Que convivan es tolerable; que cada consumidor escriba su propia lista
+# literal, no. Al unificar las ramas el tablero quedo con el productor de un
+# juego y CUATRO consumidores contando el otro: `quota_cells_ok`,
+# `quota_cells_pending`, el control de estado y la frase de brechas daban 0
+# sobre un estudio con celdas de sobra, sin que nada fallara —`0 >= 0` es
+# cierto—. Solo lo caz un test que exigia `> 0`.
+#
+# La equivalencia se declara UNA vez y aqui, que es donde ya vive el idioma.
+
+.MONITOREO_AULAS_CELDA_CUBIERTA <- c("alcanzada", "cumplida")
+.MONITOREO_AULAS_CELDA_EN_DEUDA <- c("en_progreso", "sin_avance", "en_riesgo", "pendiente")
+
+#' La celda ya llego a su cuota, en cualquiera de los dos vocabularios.
+#'
+#' @param estado clave de estado de celda.
+#' @return logico del mismo largo.
+#' @export
+monitoreo_aulas_celda_cubierta <- function(estado) {
+  as.character(estado) %in% .MONITOREO_AULAS_CELDA_CUBIERTA
+}
+
+#' La celda tiene cuota y todavia no llego, en cualquiera de los dos vocabularios.
+#'
+#' No es la negacion de `monitoreo_aulas_celda_cubierta()`: una celda SIN cuota
+#' no esta en deuda, y contarla lo estaria seria inventar una brecha.
+#'
+#' @param estado clave de estado de celda.
+#' @return logico del mismo largo.
+#' @export
+monitoreo_aulas_celda_en_deuda <- function(estado) {
+  as.character(estado) %in% .MONITOREO_AULAS_CELDA_EN_DEUDA
 }
 
 #' Etiqueta de un tramo de cumplimiento del aula.
@@ -80,7 +129,8 @@ monitoreo_aulas_etiqueta_tramo <- function(tramo) {
 #' @export
 monitoreo_aulas_etiquetas_publicables <- function() {
   c(
-    vapply(c("sin_cuota", "alcanzada", "en_progreso", "sin_avance", "otra"),
+    vapply(c("sin_cuota", "alcanzada", "en_progreso", "sin_avance",
+             "sin_meta", "cumplida", "en_riesgo", "pendiente", "otra"),
            monitoreo_aulas_etiqueta_celda, character(1)),
     vapply(c("pleno", "satisfactorio", "parcial", "insuficiente", "critico", "nulo", "otra"),
            monitoreo_aulas_etiqueta_tramo, character(1)),
