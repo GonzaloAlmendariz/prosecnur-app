@@ -998,7 +998,14 @@ export function esDecisionAlumnosChCaducada(e: unknown): boolean {
   const code = (e as { code?: unknown } | null)?.code;
   if (typeof code === "string" && code === "E_CALC_MUESTRA_ALUMNOS_CH_DECISION") return true;
   const texto = e instanceof Error ? e.message : typeof e === "string" ? e : "";
-  return /alumnos por ch/i.test(texto) && /cambi|caduc|stale/i.test(texto);
+  // El motor tiene DOS razones bajo el mismo codigo y cada una redacta distinto:
+  // `decision_stale` dice «cambió desde esta corrida» y `frame_stale` —el que
+  // sale al abrir un sorteo posterior— dice «no corresponde al marco vigente».
+  // El regex se escribio contra la primera, asi que la segunda no se reconocia
+  // cuando el codigo se perdia en el camino. Medido sobre el segundo sorteo de
+  // HSVG 2026 el 2026-08-28.
+  return /alumnos por ch/i.test(texto)
+    && /cambi|caduc|stale|no corresponde al marco/i.test(texto);
 }
 
 function msgDeFallo(e: unknown, fallback: string): Msg {
@@ -1578,7 +1585,30 @@ export default function CalcMuestraPage() {
       // distribución «incompatible», el aviso lo dice en vez de felicitar.
       setMsg(avisoTrasCalcular(res.estudio.componentes));
     } catch (e) {
-      setMsg({ kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." });
+      // El mismo 409 se leia de dos maneras segun por donde entrara.
+      //
+      // `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` («la decision de alumnos por CH no
+      // corresponde al marco vigente») ya tenia trato en comparar metodos: se
+      // dice donde se resuelve y se enciende la superficie de Marco que pide
+      // reconfirmar. Por aqui salia el mensaje crudo del backend con el codigo
+      // interno pegado —«… · E_CALC_MUESTRA_ALUMNOS_CH_DECISION»—, sin decir
+      // que hacer y sin encender nada.
+      //
+      // Medido el 2026-08-28 abriendo el SEGUNDO sorteo de HSVG 2026: sus
+      // componentes vienen calculados contra el marco del primero
+      // (`87df265f…` frente a `f1ab83df…`, 1.512 aulas elegibles frente a
+      // 1.392), asi que «Recalcular muestra» es lo primero que un analista
+      // toca al abrirlo, y es justo el camino que no explicaba nada.
+      const caducada = esDecisionAlumnosChCaducada(e);
+      setRefirmaAlumnosCh(caducada);
+      setMsg(
+        caducada
+          ? {
+              kind: "error",
+              text: "La decisión de «Alumnos por CH» quedó sellada contra un marco anterior. Vuelve a confirmarla en Marco › Alumnos por CH y recalcula.",
+            }
+          : { kind: "error", text: e instanceof Error ? e.message : "No se pudo calcular." },
+      );
     } finally {
       setCalculando(false);
     }
