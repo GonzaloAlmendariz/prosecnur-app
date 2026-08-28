@@ -110,16 +110,30 @@ export function corridaDeSeleccion({
   const selection = classroomSelectionForState(aulasState);
   const m1Rows = classroomM1RowsForState(aulasState);
   if (!selection || m1Rows.length === 0) return null;
+  // Lo que prueba que una corrida es de aquí es su IDENTIDAD —el `frame_hash`
+  // del marco y su `selection_run_id` propio—, no que su cantidad coincida con
+  // la copia que guarda el workspace. Descartarla por cantidad tiraba corridas
+  // correctas en silencio.
+  //
+  // Medido sobre HSVG26ULT: el workspace guarda `n_aulas` 165, que es el
+  // objetivo ANTERIOR a la certificación, y el sorteo produjo 174 titulares más
+  // 1 259 de cadena y 79 de banco. Con 174 ≠ 165 la corrida no se publicaba en
+  // absoluto, sin aviso, y el proyecto nunca llegó a Monitoreo: ni
+  // `monitoreo_config`, ni snapshot, ni plan, ni partes.
+  //
+  // La divergencia no se calla: viaja en `parametros` para que la superficie que
+  // lo muestre pueda nombrarla. Repararla en origen es el ADR 0080, ratificado
+  // por Gonzalo el 2026-08-27.
   const expectedTarget = safeNumber(workspace.aulas_config?.n_aulas, 0);
+  const runTarget = classroomSelectorTarget(selection);
   const frameHash = String(aulasState?.frame?.frame_hash ?? "").trim();
   const selectionRunId = String(selection.selection_run_id ?? "").trim();
   if (
-    expectedTarget <= 0 ||
-    classroomSelectorTarget(selection) !== expectedTarget ||
     !frameHash ||
     !selectionRunId ||
     selection.frame_hash !== frameHash
   ) return null;
+  const objetivoDivergente = expectedTarget > 0 && runTarget > 0 && runTarget !== expectedTarget;
   const reservas =
     classroomReserveRowsForState(aulasState).length +
     classroomExtraReserveRowsForState(aulasState).length;
@@ -136,6 +150,9 @@ export function corridaDeSeleccion({
     parametros: {
       waves: numeroOpcional(config?.bolsas_reemplazo),
       aulas_objetivo: m1Rows.length,
+      ...(objetivoDivergente
+        ? { objetivo_workspace: expectedTarget, objetivo_corrida: runTarget }
+        : {}),
     },
     resumen: {
       titulares: m1Rows.length,

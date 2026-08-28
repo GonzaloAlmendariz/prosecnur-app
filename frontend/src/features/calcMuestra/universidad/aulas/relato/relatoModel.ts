@@ -918,9 +918,12 @@ function escenaSorteo(
   const advertencias = (selection.methodological_warning ?? [])
     .map((texto) => String(texto ?? "").trim())
     .filter(Boolean);
-  const ajustesTamano = advertencias.filter((texto) =>
-    /tama|size/i.test(texto),
-  );
+  // La familia se reconoce por su PREFIJO, que es lo que el motor declara, y no
+  // por que el texto contenga "size" en cualquier posicion. El aviso del saneo
+  // del balance lleva "size_group" y entraba aqui, mostrandose bajo la etiqueta
+  // «ajustes de tamano» cuando es un descarte de variables de equilibrio.
+  // El resto de familias no se pierde: E6 · El cierre publica la lista entera.
+  const ajustesTamano = advertencias.filter((texto) => /^ajuste de tama/i.test(texto));
   const descuento = resolveDiscountMode(selection);
   const balance = balanceDelEnsamblaje(fuente, titulares, selection, foco);
   if (balance) huecos.push(...balance.huecos);

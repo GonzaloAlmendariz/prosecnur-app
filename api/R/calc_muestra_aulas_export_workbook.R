@@ -153,6 +153,36 @@ calc_muestra_aulas_exportar_workbook <- function(frame_result, selection_result,
   write_sheet("Aulas titulares", selection_df[roles == "titular" | selection_df$wave == "M1", , drop = FALSE])
   write_sheet("Reemplazos por titular", selection_result$diagnostics$replacement_chains %||% .cm_aulas_replacement_chains_table(selection_df))
   write_sheet("Reserva extra", selection_result$diagnostics$extra_reserve_pool %||% .cm_aulas_extra_pool_table(selection_df))
+  # El balance de sexo POR FACULTAD ya se calcula y la UI lo recibe: el router
+  # lo deriva al servir. Al libro no llegaba, y el libro es lo que el cliente
+  # revisa. Importa porque el agregado global esconde el cruce: 53,8 % de
+  # mujeres en el marco contra 52,1 % en lo seleccionado pasa la tolerancia
+  # mientras ARTE Y DISENO ofrece 62 % donde su cuota pide 78 %. Se deriva aqui
+  # tambien, con el mismo patron aditivo, en vez de exigir que venga adjunto.
+  sexo_facultad <- tryCatch(
+    calc_muestra_aulas_adjuntar_sexo_facultad(selection_result, frame_result)$sexo_por_facultad,
+    error = function(e) NULL
+  )
+  filas_sexo <- .cm_aulas_as_df(sexo_facultad$filas, "sexo_por_facultad")
+  # `.cm_aulas_as_df` devuelve TODO como texto, y una hoja de Excel con numeros
+  # en texto no se puede sumar: cada celda sale con el aviso de «numero
+  # almacenado como texto» y el cliente no puede totalizar una columna. Se
+  # devuelven a numero las que lo son; el vacio del `sin_dato` queda en NA, que
+  # es celda en blanco, y no en cero, que seria una medicion falsa.
+  if (is.data.frame(filas_sexo) && nrow(filas_sexo)) {
+    numericas <- c(
+      "aulas_titulares", "marco_mujeres", "marco_hombres", "marco_prop_mujeres",
+      "titulares_mujeres", "titulares_hombres", "titulares_prop_mujeres", "brecha_pp"
+    )
+    for (col in intersect(numericas, names(filas_sexo))) {
+      filas_sexo[[col]] <- suppressWarnings(as.numeric(filas_sexo[[col]]))
+    }
+  }
+  # Sin composicion de sexo en el marco no hay balance que publicar: la hoja se
+  # omite en vez de salir vacia y aparentar que se midio algo.
+  if (is.data.frame(filas_sexo) && nrow(filas_sexo)) {
+    write_sheet("Sexo por facultad", filas_sexo)
+  }
   openxlsx::addWorksheet(wb, "Auditoria marco")
   openxlsx::writeData(wb, "Auditoria marco", .cm_aulas_as_df(frame_result$audit, "audit"))
   openxlsx::addWorksheet(wb, "Resumen seleccion")

@@ -146,6 +146,12 @@ function classroomComparisonObjectiveSnapshot(rawObjective: unknown): Record<str
   };
 }
 
+/** El objetivo que el config declara, o `null` si no declara ninguno. */
+function nAulasDeclarado(config: CalcMuestraWorkspaceAulasConfig): number | null {
+  const n = safeNumber(config.n_aulas, 0);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
 /**
  * Espejo sin el método elegido: el comparador corre todos los métodos, pero
  * estas decisiones sí cambian sus sorteos o diagnósticos. La forma coincide
@@ -159,7 +165,12 @@ export function classroomComparisonSelectorSnapshot(
   return {
     schema: CLASSROOM_COMPARISON_SELECTOR_SCHEMA,
     seed: Math.round(safeNumber(config.semilla, 20260619)),
-    n_aulas: Math.max(1, Math.round(safeNumber(config.n_aulas, 30))),
+    // Sin objetivo declarado NO se fabrica uno. Escribir 30 aqui hacia que el
+    // chequeo de frescura comparase contra un numero que nadie eligio: sobre
+    // HSVG2026 el aviso decia «n_aulas (corrida 30 · vigente 165)» y ese 30 era
+    // este default, no un valor guardado. Un aviso que nombra una cifra
+    // fabricada manda a buscar donde no hay nada.
+    n_aulas: nAulasDeclarado(config),
     replacement_waves: Math.max(0, Math.round(safeNumber(config.bolsas_reemplazo, 0))),
     strata_cols: config.estratos_selector,
     balance_vars: config.balance_vars ?? [],
@@ -251,7 +262,7 @@ export function classroomComparisonConfigDiff(
   const corrida = selector as unknown as Record<string, unknown>;
   const compacto = (value: unknown): string => {
     const stable = stableComparisonValue(value);
-    if (stable === undefined || stable === null || stable === "") return "—";
+    if (stable === undefined || stable === null || stable === "") return "sin declarar";
     const texto = typeof stable === "object" ? JSON.stringify(stable) : String(stable);
     return texto.length > 48 ? `${texto.slice(0, 45)}…` : texto;
   };

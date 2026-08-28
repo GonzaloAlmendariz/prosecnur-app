@@ -9,9 +9,7 @@ import { etiquetaAlumnosPorChMetodo } from "../marco/alumnosPorChDecisionModel";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_FACULTY_COMPONENT_ID, UNIVERSITY_TOTAL_COMPONENT_ID } from "../shared/constants";
 import type { UniversityAulasScenario } from "../shared/study";
-import { CertezaCoberturaPanel } from "./CertezaCoberturaPanel";
 import {
-  certezaVistaDesdeEstado,
   type CertezaEstratoPayload,
 } from "./certezaCoberturaModel";
 import {
@@ -21,6 +19,11 @@ import {
 } from "./cursosHorarioResultadoModel";
 import "./calculo.css";
 import { SinDecisionAlumnosChAviso } from "./SinDecisionAlumnosChAviso";
+import { TitularesFacultadEditor } from "./TitularesFacultadEditor";
+import { FijasPendientesAviso } from "../aulas/FijasPendientesAviso";
+import { resumenFijaciones } from "../aulas/certificacionAcciones";
+import type { CalcMuestraEstrato } from "../../../../api/calcMuestra";
+import { claveFacultad } from "../../dominio/rangosNivel";
 
 export function CalculoCursosHorarioFacultadTab({
   componentes,
@@ -28,21 +31,28 @@ export function CalculoCursosHorarioFacultadTab({
   escenario,
   onEscenario,
   marcoDesactualizado = false,
-  certeza = null,
-  certezaEnCurso = false,
-  onMedirCerteza,
   onIrAAlumnosPorCh,
+  onAjustarAula,
+  onNotaAula,
+  estratosPropios,
 }: {
   componentes: [CalcMuestraComponente, CalcMuestraComponente];
   currentFrameHash: string | null | undefined;
   escenario: UniversityAulasScenario;
   onEscenario: (escenario: UniversityAulasScenario) => void;
   marcoDesactualizado?: boolean;
-  certeza?: CalcMuestraAulasCerteza | null;
-  certezaEnCurso?: boolean;
-  onMedirCerteza?: (payload: { estratos: CertezaEstratoPayload[]; nivel: number }) => void | Promise<void>;
   /** Lleva a Marco › Alumnos por CH, donde se decide el divisor de la cadena. */
   onIrAAlumnosPorCh?: () => void;
+  /** Decisión de Gonzalo (2026-08-27): el editor del reparto se muda acá, donde
+   *  el número se lee, y deja de exigir una certificación corrida. Sin este
+   *  callback la columna es de sólo lectura, como era antes. */
+  onAjustarAula?: (facultad: string, aulasActuales: number, delta: 1 | -1) => void;
+  /** Escribe el motivo de una agregación operativa. */
+  onNotaAula?: (facultad: string, nota: string) => void;
+  /** Los estratos del componente REAL. No se leen de `componentes`: el
+   *  normalizador reparte un solo marco a los dos y el de facultad llega sin
+   *  sus propias fijaciones (ver `estratosPropiosDe` en UniversidadDesk). */
+  estratosPropios?: CalcMuestraEstrato[] | null;
 }) {
   const actorId = escenario === "e2"
     ? UNIVERSITY_FACULTY_COMPONENT_ID
@@ -74,6 +84,21 @@ export function CalculoCursosHorarioFacultadTab({
   // que la pantalla no puede mostrar el detalle por facultad.
   const filasSinDecision = componentes.flatMap((c) => c.resultado?.aulas_por_estrato ?? []);
 
+  // Las fijaciones se leen del componente REAL que esta pestaña muestra: el
+  // normalizado llega con el marco del OTRO componente y declararía cero
+  // fijaciones donde hay quince.
+  const estratos: CalcMuestraEstrato[] = estratosPropios ?? componente?.marco?.estratos ?? [];
+  const fijadaPorFacultad = new Map<string, CalcMuestraEstrato>();
+  for (const e of estratos) {
+    const n = Number((e as { aulas_base_fijas?: unknown }).aulas_base_fijas);
+    if (Number.isFinite(n) && n > 0) fijadaPorFacultad.set(claveFacultad(e.label), e);
+  }
+  // Ajustar titulares invalida el resultado, así que el clic siguiente aterriza
+  // en el estado sin modelo: la tabla que se estaba editando desaparece. Ese
+  // vacío tiene que nombrar SU causa —«fijaste titulares, recalcula»— y no la
+  // genérica de un proyecto que todavía no calculó nada.
+  const { total: fijadasTotal, suma: fijadasSuma } = resumenFijaciones(estratos);
+
   if (!model) {
     return (
       <div
@@ -88,8 +113,12 @@ export function CalculoCursosHorarioFacultadTab({
         <section className="cmv2-panel" data-qa-geometry-member>
           <EmptyState
             icon={<Grid3X3 size={20} />}
-            title="Los cursos-horario requeridos aparecen al recalcular la muestra"
-            hint="Confirma Alumnos por CH en Marco y ejecuta la propuesta. Esta vista no reconstruye estadísticas ni aulas en React."
+            title={fijadasTotal > 0
+              ? "El cálculo quedó pendiente de recalcular"
+              : "Los cursos-horario requeridos aparecen al recalcular la muestra"}
+            hint={fijadasTotal > 0
+              ? `Hay ${fijadasTotal} ${fijadasTotal === 1 ? "facultad" : "facultades"} con titulares fijados a mano, ${fijadasSuma} en total. Una fijación reemplaza al número que calcula la fórmula: ejecuta la propuesta en Cálculo › Propuestas para aplicarla, y vuelve a seleccionar.`
+              : "Confirma Alumnos por CH en Marco y ejecuta la propuesta. Esta vista no reconstruye estadísticas ni aulas en React."}
           />
         </section>
       </div>
@@ -108,6 +137,10 @@ export function CalculoCursosHorarioFacultadTab({
       data-qa-geometry-contract="intrinsic"
     >
       <SinDecisionAlumnosChAviso filas={filasSinDecision} />
+      {/* Fijar titulares invalida la selección en cadena. El aviso vive también
+          en Aulas · Selección, pero ahora la edición ocurre ACÁ y la causa
+          tiene que nombrarse donde se produce. */}
+      <FijasPendientesAviso estratos={estratos} aulasPorEstrato={model.filas} />
       {resultadoDesactualizado && (
         <AvisoModulo tone="warn" role="status">
           {marcoDesactualizado
@@ -152,7 +185,28 @@ export function CalculoCursosHorarioFacultadTab({
                     const t = Number((fila as Record<string, unknown>).tau);
                     return Number.isFinite(t) && t > 0 ? `${(t * 100).toFixed(1).replace(".", ",")} %` : "—";
                   })()}</td>
-                  <td>{fmtInt(fila.aulas_base)}</td>
+                  <td>
+                    {onAjustarAula ? (
+                      (() => {
+                        const propio = fijadaPorFacultad.get(claveFacultad(fila.estrato));
+                        return (
+                          <TitularesFacultadEditor
+                            facultad={String(fila.estrato)}
+                            // La fórmula pura, cuando R la publica: sin ella el
+                            // «la fórmula calcula N» repetiría el número fijado.
+                            calculadas={fila.aulas_formula ?? fila.aulas_base}
+                            fijadas={propio ? Number(propio.aulas_base_fijas) : null}
+                            origen={propio?.aulas_base_origen ?? fila.aulas_base_origen}
+                            nota={propio?.aulas_base_nota ?? fila.aulas_base_nota}
+                            onAjustar={onAjustarAula}
+                            onNota={onNotaAula}
+                          />
+                        );
+                      })()
+                    ) : (
+                      fmtInt(fila.aulas_base)
+                    )}
+                  </td>
                   <td>{fmtInt(fila.aulas_reemplazo)}</td>
                   <td className="cmv2-ch-tabla-final"><strong>{fmtInt(fila.aulas_total)}</strong></td>
                 </tr>
@@ -163,18 +217,10 @@ export function CalculoCursosHorarioFacultadTab({
         <small className="cmv2-calc-diseno-nota">Marco firmado: {model.decision.frame_hash.slice(0, 12)} · confirmación {model.decision.confirmado_at}</small>
       </section>
 
-      {/* La tabla de arriba dice CUÁNTAS aulas pide la fórmula; este panel dice
-          si ese número alcanza. Van juntos a propósito: separarlos deja al
-          usuario decidiendo con la mitad de la respuesta. */}
-      {onMedirCerteza && (
-        <CertezaCoberturaPanel
-          filasResultado={model.filas}
-          vista={certezaVistaDesdeEstado(certeza, frameHashVigente)}
-          busy={certezaEnCurso}
-          onMedir={onMedirCerteza}
-          marcoDesactualizado={resultadoDesactualizado}
-        />
-      )}
+      {/* La certeza vivía aquí debajo. Se mudó a su pestaña propia al final de
+          Cálculo (decisión de Gonzalo, 2026-08-27): contesta otra pregunta y con
+          otro método —la fórmula divide, la certeza simula el sorteo y cuenta—,
+          y es lo último que se decide antes de sortear. */}
 
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>
         <div className="cmv2-calc-confirm-copy">

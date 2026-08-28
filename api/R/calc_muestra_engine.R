@@ -52,6 +52,24 @@
 
 # Dominio en el que un divisor por conglomerado sobrevive exactamente la
 # normalización y entra a las fórmulas sin el piso `max(valor, 1)`.
+# De dónde sale el número de titulares de un estrato. `aulas_base_fijas` es un
+# entero pelado y el motor lo respeta venga de donde venga, así que sin esta
+# etiqueta los tres orígenes producen números idénticos a la vista y el sustento
+# no puede reconstruir el diseño.
+#
+# - "formula"       lo que calcula `cuota / (divisor × tau)`
+# - "certificacion" lo que certificó la simulación de cobertura
+# - "operativa"     lo que decidió el analista por juicio, sin criterio
+#                   estadístico (Gonzalo, 2026-08-27: «si veo que derecho va muy
+#                   justo le puedo agregar una más… esa agregación se puede
+#                   llamar agregación operativa»). En HSVG26ULT es exactamente
+#                   un aula: `max(fórmula, certeza)` da 173 y el final es 174.
+# - ""              origen desconocido: proyectos anteriores a este campo.
+#
+# NO confundir con `aulas_extra_operativas`, que es el cupo de RESERVA y suma a
+# `aulas_total`, no a los titulares.
+.CM_AULAS_BASE_ORIGENES <- c("formula", "certificacion", "operativa")
+
 .CM_CONGLOMERADO_DIVISOR_MIN <- 1
 .CM_CONGLOMERADO_DIVISOR_MAX <- 1000
 
@@ -581,6 +599,12 @@ calc_muestra_reporte_meta_marcar_stale <- function(meta) {
     spread_vars = .cm_normalize_chr_list(cfg$spread_vars %||% c("program", "level", "schedule", "size_group")),
     candidate_pool_size = calc_int(cfg$candidate_pool_size, 500L, min = 1L, max = 100000L),
     simulation_runs = calc_int(cfg$simulation_runs, 500L, min = 0L, max = 100000L),
+    # ADR 0082: el criterio de rerandomizacion se PERSISTE, y esta whitelist es
+    # estricta —lo que no este aqui se pierde en el round-trip sin avisar—. El
+    # ADR exige que el `.pulso` lo guarde para que el sustento pueda citarlo:
+    # una muestra aceptada por un criterio que el proyecto no recuerda no se
+    # puede reconstruir.
+    rerandomizacion = .cm_rerandom_normalize_config(cfg$rerandomizacion),
     mos_strategy = calc_str(cfg$mos_strategy, "eligible_yield_winsorized"),
     coordination_mode = calc_str(cfg$coordination_mode, "permanent_random_number"),
     # W1: campos de reemplazos del DEFAULT_UNIVERSITY_AULAS_CONFIG (TS,
@@ -1033,9 +1057,17 @@ calc_muestra_componentes_sin <- function(componentes, id) {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_certificada = calc_int(e$aulas_base_certificada, 0L, min = 0L),
+      aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
+      aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
+      # entonces manda el par promedio/mediana como siempre.
+      divisor_conglomerado  = calc_num(e$divisor_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      divisor_estadistico   = calc_str(e$divisor_estadistico, ""),
       # Mediana del tamaño de conglomerado del estrato (opcional, la aporta el
       # perfil del marco de aulas: est_aula_mediana por facultad). Solo se usa
       # cuando parametros$estadistico_conglomerado la pide; 0 = ausente.
@@ -1229,6 +1261,18 @@ calc_muestra_calcular_componente <- function(comp) {
 # est_aula_mediana por facultad); sin mediana degradan DECLARADAMENTE a la
 # media. `usado` audita esa degradación por estrato en la salida de cuotas.
 .cm_estadistico_conglomerado_estrato <- function(e, par) {
+  # El divisor SELLADO manda sobre todo lo demas: es la decision vigente de
+  # alumnos por CH, ya resuelta por estrato, y su estadistico viaja al lado.
+  # Vive en campo propio desde 2026-08-27 (decision de Gonzalo, «la separacion
+  # para el 5»); antes se materializaba dentro de `promedio_conglomerado`, que
+  # ademas obligaba a poner la mediana en 0 y con eso borraba la medida del
+  # marco. Los proyectos anteriores no traen este campo y caen a la logica de
+  # siempre, que sigue intacta debajo.
+  sellado <- calc_num(e$divisor_conglomerado, 0, min = 0,
+                      max = .CM_CONGLOMERADO_DIVISOR_MAX)
+  if (sellado > 0) {
+    return(list(valor = sellado, usado = calc_str(e$divisor_estadistico, "media")))
+  }
   media <- if ((e$promedio_conglomerado %||% 0) > 0) e$promedio_conglomerado else par$promedio_conglomerado
   mediana <- calc_num(e$mediana_conglomerado, 0, min = 0,
                       max = .CM_CONGLOMERADO_DIVISOR_MAX)
@@ -1363,10 +1407,46 @@ calc_muestra_calcular_componente <- function(comp) {
     est_e <- .cm_estadistico_conglomerado_estrato(e, par)
     avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
-    aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
-      as.integer(e$aulas_base_fijas)
+    aulas_formula <- as.integer(ceiling(
+      cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))
+    ))
+    fijado <- (e$aulas_base_fijas %||% 0L) > 0L
+    aulas_base <- if (fijado) as.integer(e$aulas_base_fijas) else aulas_formula
+    # El origen viaja al resultado o el dato muere acá: la pantalla y el
+    # sustento leen `aulas_por_estrato`, no los estratos del componente. Un
+    # número fijado que coincide con la fórmula NO es una fijación efectiva y
+    # se declara como fórmula, para no atribuir una decisión donde no la hubo.
+    origen_declarado <- calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+    aulas_base_origen <- if (!fijado || aulas_base == aulas_formula) {
+      "formula"
+    } else if (nzchar(origen_declarado)) {
+      origen_declarado
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
+      ""
+    }
+    # Hasta donde llego la CERTIFICACION, aparte de donde quedo la base.
+    #
+    # `aulas_base_origen` es un solo campo y solo puede nombrar UN dueño, asi
+    # que un estrato con dos decisiones encima pierde la primera. Medido en
+    # HSVG 2026 el 2026-08-27: Derecho tenia 18 por certificacion —la formula
+    # pedia 16— y al subirlo a 19 con el stepper quedo entero como "operativa";
+    # el total seguia siendo 174 pero la descomposicion decia 6 aulas de
+    # certificacion y 3 operativas, en vez de 8 y 1.
+    #
+    # Con este campo la descomposicion se deriva sin ambiguedad:
+    # formula -> `aulas_base_certificada` -> `aulas_base`. Vale 0 cuando la
+    # certificacion no pidio nada por encima de la formula, y nunca pasa de la
+    # base: una certificacion por encima de lo que se va a sortear no es lo
+    # certificado, es una decision de quedarse por debajo.
+    certificada_cruda <- calc_int(e$aulas_base_certificada, 0L, min = 0L)
+    aulas_base_certificada <- if (certificada_cruda > aulas_formula) {
+      min(certificada_cruda, aulas_base)
+    } else if (identical(aulas_base_origen, "certificacion")) {
+      # Proyectos anteriores al campo: si el origen dice certificacion, la base
+      # ES lo que la certificacion pidio.
+      aulas_base
+    } else {
+      0L
     }
     aulas_reemplazo <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1386,6 +1466,10 @@ calc_muestra_calcular_componente <- function(comp) {
       estadistico_usado = est_e$usado,
       tau             = tau_e,
       aulas_base      = aulas_base,
+      aulas_formula   = aulas_formula,
+      aulas_base_certificada = aulas_base_certificada,
+      aulas_base_origen = aulas_base_origen,
+      aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_reemplazo,
       aulas_extra_operativas = aulas_reemplazo,
       aulas_total     = aulas_total,
@@ -1715,10 +1799,46 @@ calc_muestra_calcular_componente <- function(comp) {
     est_e <- .cm_estadistico_conglomerado_estrato(e, par)
     avg_e <- est_e$valor
     tau_e <- if (e$tau > 0) e$tau else par$tau
-    aulas_base <- if ((e$aulas_base_fijas %||% 0L) > 0L) {
-      as.integer(e$aulas_base_fijas)
+    # SEGUNDO constructor de `aulas_por_estrato`. Existe otro casi idéntico más
+    # arriba y es el que primero ganó los campos de origen; éste se quedó atrás
+    # y por eso la ruta de cálculo publicaba filas sin `aulas_formula`. Los dos
+    # tienen que declarar lo mismo o el dato muere según por dónde entre.
+    aulas_formula <- as.integer(ceiling(
+      cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))
+    ))
+    fijado <- (e$aulas_base_fijas %||% 0L) > 0L
+    aulas_base <- if (fijado) as.integer(e$aulas_base_fijas) else aulas_formula
+    origen_declarado <- calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, "")
+    aulas_base_origen <- if (!fijado || aulas_base == aulas_formula) {
+      "formula"
+    } else if (nzchar(origen_declarado)) {
+      origen_declarado
     } else {
-      as.integer(ceiling(cuota / (max(avg_e, .CM_CONGLOMERADO_DIVISOR_MIN) * max(tau_e, 0.01))))
+      ""
+    }
+    # Hasta donde llego la CERTIFICACION, aparte de donde quedo la base.
+    #
+    # `aulas_base_origen` es un solo campo y solo puede nombrar UN dueño, asi
+    # que un estrato con dos decisiones encima pierde la primera. Medido en
+    # HSVG 2026 el 2026-08-27: Derecho tenia 18 por certificacion —la formula
+    # pedia 16— y al subirlo a 19 con el stepper quedo entero como "operativa";
+    # el total seguia siendo 174 pero la descomposicion decia 6 aulas de
+    # certificacion y 3 operativas, en vez de 8 y 1.
+    #
+    # Con este campo la descomposicion se deriva sin ambiguedad:
+    # formula -> `aulas_base_certificada` -> `aulas_base`. Vale 0 cuando la
+    # certificacion no pidio nada por encima de la formula, y nunca pasa de la
+    # base: una certificacion por encima de lo que se va a sortear no es lo
+    # certificado, es una decision de quedarse por debajo.
+    certificada_cruda <- calc_int(e$aulas_base_certificada, 0L, min = 0L)
+    aulas_base_certificada <- if (certificada_cruda > aulas_formula) {
+      min(certificada_cruda, aulas_base)
+    } else if (identical(aulas_base_origen, "certificacion")) {
+      # Proyectos anteriores al campo: si el origen dice certificacion, la base
+      # ES lo que la certificacion pidio.
+      aulas_base
+    } else {
+      0L
     }
     aulas_extra <- if ((e$aulas_extra_operativas %||% 0L) > 0L) {
       as.integer(e$aulas_extra_operativas)
@@ -1733,6 +1853,10 @@ calc_muestra_calcular_componente <- function(comp) {
       estadistico_usado = est_e$usado,
       tau = tau_e,
       aulas_base = aulas_base,
+      aulas_formula = aulas_formula,
+      aulas_base_certificada = aulas_base_certificada,
+      aulas_base_origen = aulas_base_origen,
+      aulas_base_nota = calc_str(e$aulas_base_nota, ""),
       aulas_reemplazo = aulas_extra,
       aulas_extra_operativas = aulas_extra,
       aulas_total = aulas_base + aulas_extra,
@@ -2343,9 +2467,17 @@ calc_muestra_aplicar_preset_hsvg <- function() {
       cuota_fija            = calc_int(e$cuota_fija, 0L, min = 0L),
       sobremuestra_fija     = calc_int(e$sobremuestra_fija, 0L, min = 0L),
       aulas_base_fijas      = calc_int(e$aulas_base_fijas, 0L, min = 0L),
+      aulas_base_certificada = calc_int(e$aulas_base_certificada, 0L, min = 0L),
+      aulas_base_origen     = calc_enum(e$aulas_base_origen, .CM_AULAS_BASE_ORIGENES, ""),
+      aulas_base_nota       = calc_str(e$aulas_base_nota, ""),
       aulas_extra_operativas = calc_int(e$aulas_extra_operativas, 0L, min = 0L),
       promedio_conglomerado = calc_num(e$promedio_conglomerado, 0, min = 0,
                                         max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      # El divisor sellado y su estadistico. 0 = no hay decision sellada, y
+      # entonces manda el par promedio/mediana como siempre.
+      divisor_conglomerado  = calc_num(e$divisor_conglomerado, 0, min = 0,
+                                       max = .CM_CONGLOMERADO_DIVISOR_MAX),
+      divisor_estadistico   = calc_str(e$divisor_estadistico, ""),
       tau                   = calc_num(e$tau, 0, min = 0, max = 1)
     )
   })
