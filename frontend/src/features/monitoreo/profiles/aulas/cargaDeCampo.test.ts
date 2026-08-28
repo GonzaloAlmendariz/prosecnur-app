@@ -353,6 +353,45 @@ describe("eje calendario", () => {
     expect(cal.firmes[0][cal.franjas.indexOf(11 * 60)]).toBe(1);
   });
 
+  it("el pico del calendario son las FECHAS: el carril no compite con un dia concreto", () => {
+    // Tres lunes sin agendar de tres semanas distintas caen todos en la fila
+    // «lunes» del carril, que asi acumula 3 mientras cada fecha confirmada
+    // tiene 1. Si el carril entrara al pico, ganaria siempre y el titular
+    // diria «0 confirmados» con el operativo confirmado.
+    const plan = [
+      aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-14" }),
+      aula({ classroom_id: "b", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-21" }),
+      aula({ classroom_id: "c", sesiones_dia_hora: "LUN 10:00-12:00" }),
+      aula({ classroom_id: "d", sesiones_dia_hora: "LUN 10:00-12:00" }),
+      aula({ classroom_id: "e", sesiones_dia_hora: "LUN 10:00-12:00" }),
+    ];
+    const cal = calcularCarga(plan, { duracionMin: 30, eje: "calendario" });
+    expect(cal.pico!.fila.porAgendar).toBeFalsy();
+    expect(cal.pico!.firmes).toBe(1);
+    expect(cal.pico!.fila.fecha).toBe("2026-09-14");
+    // El carril no se pierde: se mide aparte, con su propio denominador.
+    expect(cal.picoPorAgendar!.plausibles).toBe(3);
+    expect(cal.picoPorAgendar!.fila.porAgendar).toBe(true);
+  });
+
+  it("sin ninguna fecha, el pico no se inventa desde el carril", () => {
+    const cal = calcularCarga(
+      [aula({ classroom_id: "c", sesiones_dia_hora: "LUN 10:00-12:00" })],
+      { duracionMin: 30, eje: "calendario" },
+    );
+    expect(cal.pico).toBeNull();
+    expect(cal.picoPorAgendar!.plausibles).toBe(1);
+  });
+
+  it("en el eje semanal el pico no cambia y no hay pico de carril", () => {
+    const semana = calcularCarga(
+      [aula({ classroom_id: "a", sesiones_dia_hora: "LUN 10:00-12:00", scheduled_time: "10:00", scheduled_date: "2026-09-14" })],
+      { duracionMin: 30 },
+    );
+    expect(semana.pico!.firmes).toBe(1);
+    expect(semana.picoPorAgendar).toBeNull();
+  });
+
   it("el eje semanal conserva sus seis filas", () => {
     const semana = calcularCarga(dosSemanas, { duracionMin: 30 });
     expect(semana.eje).toBe("semana");

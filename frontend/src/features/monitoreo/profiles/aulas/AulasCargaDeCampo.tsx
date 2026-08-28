@@ -85,10 +85,17 @@ export function AulasCargaDeCampo({
         .filter((j) => malla.filas.some((__, d) => malla.aulas[d][j] > 0)),
     [malla],
   );
-  const tope = Math.max(
-    1,
-    ...malla.filas.map((_, d) => malla.franjas.map((__, j) => malla.firmes[d][j] + malla.plausibles[d][j])).flat(),
-  );
+  // Una escala por capa. Con un tope unico, el carril —que suma todas las
+  // semanas— marcaba el maximo y las fechas quedaban todas en el tono mas
+  // palido: 15 dias de operativo se veian como un lavado uniforme.
+  // El suelo es 2, no 1. Con un maximo de 1 aula simultanea, dividir por el
+  // maximo pinta TODA celda ocupada al 100% y la malla dice «pico en todas
+  // partes» donde en realidad no se solapa nada: un aplicador a la vez no es
+  // carga maxima. Con el suelo, 1 se lee palido y el color solo se satura
+  // cuando de verdad hay concurrencia.
+  const escala = (matriz: number[][]) => Math.max(2, ...malla.filas.map((_, d) => Math.max(...matriz[d])));
+  const topeFirme = escala(malla.firmes);
+  const topePlausible = escala(malla.plausibles);
   const conHorario = filas.filter((f) => !f.sample_role || f.sample_role === "titular").length - malla.sinHorario;
 
   if (!conHorario) {
@@ -113,15 +120,15 @@ export function AulasCargaDeCampo({
    * posible—, que es justo la distinción que esta vista existe para mostrar.
    */
   const celda = (firme: number, plausible: number) => {
-    const n = firme + plausible;
-    if (n === 0) return { background: "var(--pulso-surface-2)", color: "var(--pulso-text-faint)" };
-    const t = n / tope;
+    if (firme + plausible === 0) return { background: "var(--pulso-surface-2)", color: "var(--pulso-text-faint)" };
     if (firme > 0) {
+      const t = firme / topeFirme;
       return {
         background: `color-mix(in srgb, var(--pulso-success-fg) ${Math.round(22 + t * 78)}%, var(--pulso-surface-2))`,
         color: t > 0.45 ? "var(--pulso-surface)" : "var(--pulso-text)",
       };
     }
+    const t = plausible / topePlausible;
     return {
       color: "var(--pulso-text-soft)",
       background: `color-mix(in srgb, var(--pulso-module-monitoring) ${Math.round(8 + t * 30)}%, var(--pulso-surface))`,
@@ -130,9 +137,7 @@ export function AulasCargaDeCampo({
   };
 
   const primeraPorAgendar = malla.filas.findIndex((f) => f.porAgendar);
-  const cuando = malla.pico
-    ? `${malla.pico.fila.etiqueta} ${comoHora(malla.pico.franja)}${malla.pico.fila.porAgendar ? " · por agendar" : ""}`
-    : "—";
+  const cuando = malla.pico ? `${malla.pico.fila.etiqueta} ${comoHora(malla.pico.franja)}` : "—";
 
   return (
     <section className="aulas-carga" data-qa-geometry-group="aulas-carga" data-qa-geometry-contract="intrinsic">
@@ -193,18 +198,41 @@ export function AulasCargaDeCampo({
             <dt>Confirmados en el pico</dt>
             <dd>{fmt(malla.pico?.firmes ?? 0)}</dd>
           </div>
-          <div>
-            <dt>Hasta, si caen los que faltan</dt>
-            <dd>{fmt((malla.pico?.firmes ?? 0) + (malla.pico?.plausibles ?? 0))}</dd>
-          </div>
-          <div>
-            <dt>Cuándo</dt>
-            <dd className="es-texto">{cuando}</dd>
-          </div>
-          <div>
-            <dt>{eje === "calendario" ? "Días de campo" : "Aulas en curso entonces"}</dt>
-            <dd>{fmt(eje === "calendario" ? malla.fechas : malla.pico?.aulas ?? 0)}</dd>
-          </div>
+          {/* El segundo indicador NO puede sumar el carril al pico de una fecha:
+              son dos denominadores distintos —un día concreto contra el patrón
+              de todas las semanas— y sumarlos da un número que no ocurre nunca.
+              Por eso cada lectura tiene los suyos. */}
+          {eje === "calendario" ? (
+            <>
+              <div>
+                <dt>Cuándo</dt>
+                <dd className="es-texto">{cuando}</dd>
+              </div>
+              <div>
+                <dt>Por agendar, en el pico del patrón</dt>
+                <dd>{fmt(malla.picoPorAgendar?.plausibles ?? 0)}</dd>
+              </div>
+              <div>
+                <dt>Días de campo</dt>
+                <dd>{fmt(malla.fechas)}</dd>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <dt>Hasta, si caen los que faltan</dt>
+                <dd>{fmt((malla.pico?.firmes ?? 0) + (malla.pico?.plausibles ?? 0))}</dd>
+              </div>
+              <div>
+                <dt>Cuándo</dt>
+                <dd className="es-texto">{cuando}</dd>
+              </div>
+              <div>
+                <dt>Aulas en curso entonces</dt>
+                <dd>{fmt(malla.pico?.aulas ?? 0)}</dd>
+              </div>
+            </>
+          )}
         </dl>
       </div>
 
@@ -269,8 +297,8 @@ export function AulasCargaDeCampo({
 
       <div className="aulas-carga-pie">
         <ul className="aulas-carga-leyenda">
-          <li><i style={celda(Math.max(1, Math.round(tope / 2)), 0)} aria-hidden="true" />Confirmado · hora acordada</li>
-          <li><i style={celda(0, Math.max(1, Math.round(tope / 2)))} aria-hidden="true" />Por agendar · toda su clase es posible</li>
+          <li><i style={celda(topeFirme, 0)} aria-hidden="true" />Confirmado · hora acordada</li>
+          <li><i style={celda(0, topePlausible)} aria-hidden="true" />Por agendar · toda su clase es posible</li>
           <li className="aulas-carga-estado">
             {fmt(malla.agendadas)} de {fmt(malla.agendadas + malla.porAgendar)} aulas ya tienen hora
           </li>

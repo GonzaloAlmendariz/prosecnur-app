@@ -131,7 +131,13 @@ export type Malla = {
   firmes: number[][];
   /** Aulas que PODRÍAN caer en esa franja porque su clase la cubre. Es un techo. */
   plausibles: number[][];
+  /**
+   * El momento de mas carga. En el calendario se calcula SOLO sobre las fechas
+   * —ver `calcularCarga`—, porque el carril no es un dia sino un patron.
+   */
   pico: { firmes: number; plausibles: number; dia: number; fila: FilaDeCarga; franja: number; aulas: number } | null;
+  /** El pico del carril de «por agendar». `null` fuera del eje calendario. */
+  picoPorAgendar: { firmes: number; plausibles: number; dia: number; fila: FilaDeCarga; franja: number; aulas: number } | null;
   sinHorario: number;
   agendadas: number;
   porAgendar: number;
@@ -334,18 +340,31 @@ export function calcularCarga(
     agendadasSinFecha = unidades.filter((u) => u.hora !== null && !u.fecha).length;
   }
 
-  let mejor = -1;
-  let pico: Malla["pico"] = null;
-  filas.forEach((fila, d) =>
-    franjas.forEach((f, j) => {
-      const total = firmes[d][j] + plausibles[d][j];
-      if (total > mejor) {
-        mejor = total;
-        pico = { firmes: firmes[d][j], plausibles: plausibles[d][j], dia: d, fila, franja: f, aulas: aulas[d][j] };
-      }
-    }),
-  );
-  if (mejor <= 0) pico = null;
+  const picoDe = (incluir: (f: FilaDeCarga) => boolean): Malla["pico"] => {
+    let mejor = -1;
+    let out: Malla["pico"] = null;
+    filas.forEach((fila, d) => {
+      if (!incluir(fila)) return;
+      franjas.forEach((f, j) => {
+        const total = firmes[d][j] + plausibles[d][j];
+        if (total > mejor) {
+          mejor = total;
+          out = { firmes: firmes[d][j], plausibles: plausibles[d][j], dia: d, fila, franja: f, aulas: aulas[d][j] };
+        }
+      });
+    });
+    return mejor > 0 ? out : null;
+  };
+  // En el calendario el pico son las FECHAS, y el carril se mide aparte.
+  //
+  // El carril junta en una sola fila «lunes» todos los lunes sin agendar de
+  // TODAS las semanas, asi que sus numeros son estructuralmente mayores que los
+  // de cualquier fecha concreta y ganarian el pico casi siempre: medido sobre un
+  // operativo de 174 aulas en tres semanas, el titular decia «0 confirmados en
+  // el pico» con 120 aulas ya confirmadas. Es exactamente el apilamiento de
+  // semanas que este eje vino a corregir, colado en el indicador.
+  const pico = picoDe((f) => (eje === "calendario" ? !f.porAgendar : true));
+  const picoPorAgendar = eje === "calendario" ? picoDe((f) => Boolean(f.porAgendar)) : null;
 
   return {
     eje,
@@ -355,6 +374,7 @@ export function calcularCarga(
     firmes,
     plausibles,
     pico,
+    picoPorAgendar,
     sinHorario,
     agendadas,
     porAgendar: unidades.length - agendadas,
