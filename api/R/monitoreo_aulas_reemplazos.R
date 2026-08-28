@@ -35,6 +35,78 @@
   if (nzchar(rf)) rf else .mar_txt(fila$operational_code)
 }
 
+# Activar un aula ELEGIDA, que puede no ser la que tocaba.
+#
+# Las cuatro guardas, y por que cada una rechaza en vez de corregir: una
+# activacion mal hecha manda gente a un aula equivocada, y equivocarse en
+# silencio cuesta un dia de campo. Se devuelve un `stop_api` con su codigo para
+# que la UI pueda decir QUE pasa, no un "no se pudo".
+#
+#  · Que exista.
+#  · Que NO sea la propia caida.
+#  · Que siga dormida — si ya esta agendada, esta comprometida con otra cosa.
+#  · **Que sea de la misma facultad.** «El bolson es siempre siempre siempre
+#    dentro de la misma facultad, jamas de otra», y medido sobre ULT2 ninguna de
+#    las 1 173 reservas de cadena cruza. La cuota se reparte por facultad y sexo:
+#    un aula de otra deja a una corta y a la otra pasada.
+.mar_activar_elegida <- function(plan, pos_caida, codigo, elegida, motivo, ahora) {
+  pos <- which(vapply(plan, function(r) identical(.mar_txt(r$operational_code), elegida), logical(1)))
+  if (!length(pos)) {
+    stop_api(404, "E_AULA_NO_ENCONTRADA",
+             sprintf("No existe el curso-horario '%s' en el plan.", elegida))
+  }
+  pos <- pos[[1]]
+  if (identical(pos, pos_caida)) {
+    stop_api(409, "E_REEMPLAZO_MISMA_AULA",
+             "Un curso-horario no puede reemplazarse a si mismo.")
+  }
+
+  cand <- plan[[pos]]
+  caida <- plan[[pos_caida]]
+
+  if (!.mar_txt(cand$sample_status) %in% MONITOREO_AULAS_ESTADOS_DORMIDOS) {
+    stop_api(409, "E_REEMPLAZO_NO_DISPONIBLE",
+             sprintf("'%s' ya esta comprometida (%s): no se puede activar para otra cosa.",
+                     elegida, .mar_txt(cand$sample_status, "sin estado")))
+  }
+
+  fac_cand <- .mar_txt(cand$faculty)
+  fac_caida <- .mar_txt(caida$faculty)
+  if (nzchar(fac_caida) && nzchar(fac_cand) && !identical(fac_cand, fac_caida)) {
+    stop_api(409, "E_REEMPLAZO_OTRA_FACULTAD",
+             sprintf("'%s' es de %s y '%s' de %s: un reemplazo no cruza de facultad.",
+                     elegida, fac_cand, codigo, fac_caida))
+  }
+
+  # De donde sale, para que el plan lo recuerde. Un reemplazo de su cadena y uno
+  # tomado del bolson son decisiones distintas y no pueden leerse igual despues.
+  origen <- if (identical(.mar_txt(cand$sample_role), "extra_reserve_pool")) {
+    "extra"
+  } else if (identical(.mar_titular_de(cand), .mar_titular_de(caida))) {
+    "cadena"
+  } else {
+    "otra_cadena"
+  }
+
+  plan[[pos_caida]]$sample_status <- "reemplazada"
+  if (nzchar(motivo)) plan[[pos_caida]]$replacement_reason <- motivo
+  plan[[pos_caida]]$replaced_at <- ahora
+  plan[[pos_caida]]$replaced_by <- elegida
+
+  plan[[pos]]$sample_status <- "agendada"
+  plan[[pos]]$activated_at <- ahora
+  plan[[pos]]$activation_origin <- origen
+  # Cubre a ESTE titular aunque su cadena fuera otra. Sin esto, el avance
+  # seguiria atribuyendola a su cadena original y la caida quedaria sin cubrir.
+  plan[[pos]]$activated_for <- codigo
+  if (nzchar(motivo)) plan[[pos]]$activation_reason <- motivo
+
+  list(plan = plan, activada = elegida, reemplazada = codigo,
+       agotada = FALSE, origen = origen,
+       restantes = length(monitoreo_aulas_reservas_disponibles(plan, codigo)),
+       advertencia_peso = .mar_txt(plan[[pos]]$analysis_weight_warning))
+}
+
 #' Reservas disponibles para cubrir un aula caida.
 #'
 #' @param plan filas del plan (formato largo).
@@ -77,11 +149,25 @@ monitoreo_aulas_reservas_disponibles <- function(plan = list(), codigo = "") {
 #' @param motivo por que cae; se guarda en la caida y en la reserva.
 #' @param ahora marca de tiempo ISO; parametro para que el resultado sea
 #'   reproducible en test.
+#' @param elegida codigo operativo del aula con la que se quiere reemplazar.
+#'   Vacio mantiene el comportamiento de siempre: la siguiente de SU cadena.
+#'   Con valor, entra esa —y puede venir de otra cadena o del bolson extra—.
+#'
+#'   Existe porque la cadena es una guia, no un candado: «no es que los
+#'   reemplazos no esten atados a su titular en forma de cadena, si lo estan,
+#'   pero es una guia de procedimiento […] mas no es un requisito exclusivo y
+#'   fundamental». Lo que la funcion NO hace es elegir por su cuenta: si nadie
+#'   pasa `elegida`, sigue la cadena, que es el procedimiento.
 #' @return lista con `plan` actualizado, `activada` (codigo o `NULL`),
-#'   `reemplazada` y `agotada` (TRUE si no quedaban reservas).
+#'   `reemplazada`, `agotada` (TRUE si no quedaban reservas) y `origen` de la
+#'   activada (`"cadena"`, `"otra_cadena"` o `"extra"`). **El origen se devuelve
+#'   siempre**: reponer con la reserva que le tocaba y reponer con un aula de
+#'   otro sitio son dos operaciones distintas, y quien lea el plan despues
+#'   necesita poder distinguirlas.
 #' @export
 monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
-                                              motivo = "", ahora = NULL) {
+                                              motivo = "", ahora = NULL,
+                                              elegida = "") {
   codigo <- .mar_txt(codigo)
   if (!length(plan)) {
     stop_api(409, "E_AULAS_SIN_PLAN", "No hay plan de cursos-horario sobre el que activar un reemplazo.")
@@ -95,6 +181,11 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
   ahora <- .mar_txt(ahora, format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
   motivo <- .mar_txt(motivo)
 
+  elegida <- .mar_txt(elegida)
+  if (nzchar(elegida)) {
+    return(.mar_activar_elegida(plan, pos_caida, codigo, elegida, motivo, ahora))
+  }
+
   disponibles <- monitoreo_aulas_reservas_disponibles(plan, codigo)
   if (!length(disponibles)) {
     # La cadena se agoto. No se marca la caida como `reemplazada`: no lo esta.
@@ -103,10 +194,11 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
     usadas <- sum(vapply(plan, function(r) {
       identical(.mar_txt(r$sample_role), "chain_reserve") &&
         identical(.mar_titular_de(r), cadena) &&
-        !.mar_txt(r$sample_status) %in% c("en_reserva", "sin_contactar", "")
+        !.mar_txt(r$sample_status) %in% MONITOREO_AULAS_ESTADOS_DORMIDOS
     }, logical(1)))
     return(list(plan = plan, activada = NULL, reemplazada = codigo,
-                agotada = TRUE, reservas_usadas = as.integer(usadas)))
+                agotada = TRUE, origen = NA_character_,
+                reservas_usadas = as.integer(usadas)))
   }
 
   pos_reserva <- disponibles[[1]]
@@ -122,7 +214,7 @@ monitoreo_aulas_activar_reemplazo <- function(plan = list(), codigo = "",
 
   list(plan = plan,
        activada = .mar_txt(plan[[pos_reserva]]$operational_code),
-       reemplazada = codigo, agotada = FALSE,
+       reemplazada = codigo, agotada = FALSE, origen = "cadena",
        restantes = as.integer(length(disponibles) - 1L),
        # La advertencia de ponderacion de la reserva que ENTRA. La escribe
        # Calculo de muestra —«usar peso analitico final solo si se activa en

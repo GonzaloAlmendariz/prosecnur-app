@@ -343,3 +343,77 @@ test_that("y una ya agendada sigue sin estarlo", {
   expect_length(idx, 1L)
   expect_equal(plan[[idx]]$operational_code, "R 1.2")
 })
+
+# --- Activar un aula ELEGIDA, que puede no ser la que tocaba -----------------
+
+plan_eleccion <- function() list(
+  list(operational_code = "CH 1", sample_role = "titular", faculty = "ARQ", sample_status = "agendada"),
+  list(operational_code = "R 1.1", sample_role = "chain_reserve", replacement_for = "CH 1",
+       replacement_order = 1, faculty = "ARQ", sample_status = "en_reserva"),
+  # De otra cadena, ya libre
+  list(operational_code = "CH 2", sample_role = "titular", faculty = "ARQ", sample_status = "agendada"),
+  list(operational_code = "R 2.1", sample_role = "chain_reserve", replacement_for = "CH 2",
+       replacement_order = 1, faculty = "ARQ", sample_status = "en_reserva"),
+  # Del bolson, de su facultad y de otra
+  list(operational_code = "E-ARQ", sample_role = "extra_reserve_pool", faculty = "ARQ", sample_status = "en_reserva"),
+  list(operational_code = "E-DER", sample_role = "extra_reserve_pool", faculty = "DERECHO", sample_status = "en_reserva"),
+  # Ya comprometida
+  list(operational_code = "R 2.2", sample_role = "chain_reserve", replacement_for = "CH 2",
+       replacement_order = 2, faculty = "ARQ", sample_status = "agendada")
+)
+
+test_that("sin `elegida` sigue la cadena: el procedimiento manda por defecto", {
+  r <- monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$activada, "R 1.1")
+  expect_equal(r$origen, "cadena")
+})
+
+test_that("con `elegida` de otra cadena, entra esa y el origen lo dice", {
+  r <- monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "R 2.1",
+                                         ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$activada, "R 2.1")
+  expect_equal(r$origen, "otra_cadena")
+  # El plan recuerda a QUIEN cubre, aunque su cadena fuera otra: sin esto el
+  # avance la seguiria atribuyendo a CH 2 y CH 1 quedaria sin cubrir.
+  act <- Filter(function(x) identical(x$operational_code, "R 2.1"), r$plan)[[1]]
+  expect_equal(act$activated_for, "CH 1")
+  expect_equal(act$activation_origin, "otra_cadena")
+  caida <- Filter(function(x) identical(x$operational_code, "CH 1"), r$plan)[[1]]
+  expect_equal(caida$replaced_by, "R 2.1")
+})
+
+test_that("con `elegida` del bolson, el origen es `extra`", {
+  r <- monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "E-ARQ",
+                                         ahora = "2026-01-01T00:00:00Z")
+  expect_equal(r$origen, "extra")
+})
+
+test_that("una elegida de OTRA FACULTAD se rechaza con su codigo", {
+  # «El bolson es siempre siempre siempre dentro de la misma facultad, jamas de
+  # otra.» Rechaza en vez de corregir: la UI necesita poder decir que pasa.
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "E-DER"),
+    class = "api_error"
+  )
+})
+
+test_that("una elegida ya comprometida se rechaza", {
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "R 2.2"),
+    class = "api_error"
+  )
+})
+
+test_that("un aula no puede reemplazarse a si misma", {
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "CH 1"),
+    class = "api_error"
+  )
+})
+
+test_that("una elegida que no existe se rechaza", {
+  expect_error(
+    monitoreo_aulas_activar_reemplazo(plan_eleccion(), "CH 1", elegida = "NO EXISTE"),
+    class = "api_error"
+  )
+})
