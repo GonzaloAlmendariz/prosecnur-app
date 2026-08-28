@@ -311,3 +311,35 @@ test_that("una reserva sin advertencia devuelve cadena vacia, no NULL ni NA", {
 
   expect_identical(res$advertencia_peso, "")
 })
+
+test_that("una reserva con el «-» del Excel se ve como disponible", {
+  # `-` es como el equipo escribe «todavia nada aqui» en STATUS MUESTRA: 1 810
+  # de 2 040 celdas en el estudio de 2025. Esta funcion tenia su propia lista de
+  # estados libres, con tres valores contra los cinco de la canonica
+  # `MONITOREO_AULAS_ESTADOS_DORMIDOS`, y `-` no estaba: con un libro asi habria
+  # respondido «no quedan reservas» teniendolas todas.
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", sample_status = "agendada"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 1, sample_status = "-"),
+    list(operational_code = "R 1.2", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 2, sample_status = "planificada")
+  )
+  idx <- monitoreo_aulas_reservas_disponibles(plan, "CH 1")
+  expect_length(idx, 2L)
+  expect_equal(vapply(plan[idx], function(r) r$operational_code, character(1)),
+               c("R 1.1", "R 1.2"))
+})
+
+test_that("y una ya agendada sigue sin estarlo", {
+  plan <- list(
+    list(operational_code = "CH 1", sample_role = "titular", sample_status = "agendada"),
+    list(operational_code = "R 1.1", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 1, sample_status = "agendada"),
+    list(operational_code = "R 1.2", sample_role = "chain_reserve", replacement_for = "CH 1",
+         replacement_order = 2, sample_status = "en_reserva")
+  )
+  idx <- monitoreo_aulas_reservas_disponibles(plan, "CH 1")
+  expect_length(idx, 1L)
+  expect_equal(plan[[idx]]$operational_code, "R 1.2")
+})
