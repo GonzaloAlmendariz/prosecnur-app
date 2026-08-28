@@ -1756,6 +1756,8 @@
 }
 
 .cmv2-cadena-b-nota {
+  /* Medida de lectura de la casa: a 1440 esta prosa llegaba a ~1.270px. */
+  max-width: 760px;
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--pulso-radius-md, 8px);
