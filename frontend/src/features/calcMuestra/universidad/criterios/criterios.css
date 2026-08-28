@@ -838,7 +838,13 @@
 .cmv2-crit-exc-form { display: grid; gap: 8px; }
 .cmv2-crit-exc-cats-pick { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.cmv2-crit-empty-note { margin: 0; font-size: 11px; color: var(--pulso-text-muted); }
+.cmv2-crit-empty-note {
+  /* Medida de lectura de la casa: a 1440 esta prosa llegaba a ~1.270px. */
+  max-width: 760px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--pulso-text-muted);
+}
 
 /* --- Listas planas largas: tarjeta ancha + lista multi-columna -------------
    Facultad (18), Tipo de sesión (11), Condición (8) crecían en una sola
@@ -1323,6 +1329,8 @@
 
 /* --- Criterio 8 · dos pasos ordenados -------------------------------------- */
 .cmv2-crit-paso-intro {
+  /* Medida de lectura de la casa: a 1440 esta prosa llegaba a ~1.270px. */
+  max-width: 760px;
   margin: 0 0 10px;
   font-size: 11.5px;
   line-height: 1.5;
