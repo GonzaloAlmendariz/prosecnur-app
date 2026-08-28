@@ -66,6 +66,7 @@ import type { FacultadMinRef } from "../criterios/MinElegiblesCard";
 import { setMinimoFacultad, setTasaAsistencia, tasaAsistencia } from "../criterios/minElegiblesModel";
 import { senalAgrupamientoDti } from "../criterios/tipoSesionModel";
 import { MANUAL_EXCLUDED_ID, reactivarTodas, setAulaExcluida } from "../criterios/aulasFinalesModel";
+import { ExcluirEnBloqueCard } from "./ExcluirEnBloqueCard";
 import { rowsFrom } from "../../sharedCore";
 import { CursosHorarioBaseGlobal } from "./CursosHorarioBaseGlobal";
 import { FacultadDecisionBloque, type RepartoCriterio } from "./FacultadDecisionBloque";
@@ -156,6 +157,14 @@ export function CursosHorarioMarcoTab({
     }
     return ids;
   }, [exploracion]);
+  // Claves de TODO el marco para el pegado en bloque: una lista real cruza
+  // facultades, asi que no puede salir de un bloque suelto.
+  const clavesDelMarco = useMemo<string[]>(
+    () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame)
+      .map((r) => String(r.classroom_id ?? r.label ?? ""))
+      .filter(Boolean),
+    [aulasState?.frame?.aula_frame],
+  );
   const aulaFrame = useMemo<MonitoreoRow[]>(
     () => rowsFrom<MonitoreoRow>(aulasState?.frame?.aula_frame),
     [aulasState?.frame?.aula_frame],
@@ -339,6 +348,10 @@ export function CursosHorarioMarcoTab({
   }
   function editarExclusionAula(classroomId: string, excluida: boolean) {
     setBorrador((prev) => setAulaExcluida(prev, classroomId, excluida));
+    marcarPendiente(MANUAL_EXCLUDED_ID);
+  }
+  function excluirAulasEnBloque(siguiente: CriteriosSeleccionMarco) {
+    setBorrador(siguiente);
     marcarPendiente(MANUAL_EXCLUDED_ID);
   }
   function reactivarAulas(clavesTextKey: string[]) {
@@ -1142,6 +1155,11 @@ export function CursosHorarioMarcoTab({
                       comparar y escondían la decisión detrás de un click. Con el
                       selector, la facultad elegida se muestra entera: hay alto
                       de sobra para el mayor detalle y no queda nada plegado. */}
+                  <ExcluirEnBloqueCard
+                    seleccion={borrador}
+                    clavesDelMarco={clavesDelMarco}
+                    onExcluir={excluirAulasEnBloque}
+                  />
                   <label className="cmv2-chfp-selector">
                     <span>Facultad</span>
                     {/* F109 · El `<label>` que lo envuelve ya lo nombra, pero
