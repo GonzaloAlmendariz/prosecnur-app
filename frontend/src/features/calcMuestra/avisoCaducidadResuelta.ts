@@ -24,7 +24,7 @@
  * Sólo se retiran los códigos de caducidad. Un error de verdad (no se pudo
  * calcular, el job falló) no lo borra nadie salvo el usuario.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /** Códigos cuyo mensaje deja de ser cierto en cuanto el estado se realinea. */
 const CODIGOS_CADUCIDAD = [
@@ -68,9 +68,48 @@ export function estadoAlineado(estado: EstadoDeAlineacion): boolean {
 }
 
 /**
+ * ¿Este aviso hay que retirarlo?
+ *
+ * La alineación de los tres hashes prueba que UNA caducidad se resolvió, no que
+ * se resolvieron todas: el motor tiene condiciones que esos hashes no ven —los
+ * artefactos de aulas, por ejemplo—. Por eso la señal no es «¿está alineado
+ * ahora?» sino «¿se alineó DESPUÉS de que apareciera este aviso?».
+ *
+ * Un aviso que nace con el estado ya alineado no son restos de nada: es un
+ * error vivo, y retirarlo deja al usuario pulsando un botón que falla en
+ * silencio.
+ */
+export function debeRetirarAviso(señales: {
+  /** El mensaje es de los que caducan (`esAvisoDeCaducidad`). */
+  caduco: boolean;
+  /** El estado está alineado AHORA (`estadoAlineado`). */
+  alineado: boolean;
+  /** El estado ya estaba alineado cuando este aviso apareció. */
+  nacioAlineado: boolean;
+}): boolean {
+  return señales.caduco && señales.alineado && !señales.nacioAlineado;
+}
+
+/**
  * Retira el aviso de caducidad en cuanto el estado que lo motivó se realinea.
  *
  * No toca ningún otro mensaje ni reintroduce uno retirado por el usuario.
+ *
+ * SÓLO retira avisos que NACIERON desfasados. Un aviso que aparece con el
+ * estado YA alineado no son restos de nada: es un error vivo que el motor acaba
+ * de dar, y borrarlo deja al usuario pulsando un botón que falla en silencio.
+ *
+ * Medido el 2026-08-28 sobre el segundo sorteo de HSVG 2026. Con el marco, el
+ * contrato y las firmas los tres en `f1ab83dfa6` —o sea alineados—, «Medir
+ * certeza» devolvía 409 `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` porque faltaba
+ * regenerar los ARTEFACTOS DE AULAS, que es una cuarta condición que estos tres
+ * hashes no ven. El aviso se pintaba y este hook lo borraba en el mismo tick:
+ * el chip de estado parpadeaba «Midiendo certeza de cobertura» y todo volvía a
+ * su sitio sin decir una palabra.
+ *
+ * La alineación de los tres hashes prueba que UNA caducidad se resolvió, no que
+ * se resolvieron todas. Por eso la señal no es «¿está alineado ahora?» sino
+ * «¿se alineó DESPUÉS de que apareciera este aviso?».
  */
 export function useAvisoCaducidadResuelta(
   msg: AvisoMinimo,
@@ -79,7 +118,13 @@ export function useAvisoCaducidadResuelta(
 ): void {
   const caduco = esAvisoDeCaducidad(msg);
   const alineado = estadoAlineado(estado);
+  const msgVisto = useRef<AvisoMinimo>(null);
+  const nacioAlineado = useRef(false);
   useEffect(() => {
-    if (caduco && alineado) limpiar();
-  }, [caduco, alineado, limpiar]);
+    if (msg !== msgVisto.current) {
+      msgVisto.current = msg;
+      nacioAlineado.current = alineado;
+    }
+    if (debeRetirarAviso({ caduco, alineado, nacioAlineado: nacioAlineado.current })) limpiar();
+  }, [msg, caduco, alineado, limpiar]);
 }

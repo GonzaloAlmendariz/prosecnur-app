@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAvisoDeCaducidad, estadoAlineado } from "../avisoCaducidadResuelta";
+import { debeRetirarAviso, esAvisoDeCaducidad, estadoAlineado } from "../avisoCaducidadResuelta";
 
 // Gonzalo, 2026-08-25, con el marco reconstruido y las 179 ya calculadas: «sigo
 // sin entender si estamos en el .pulso definitivo porque esto sigue saliendo».
@@ -47,5 +47,34 @@ describe("estadoAlineado", () => {
   it("sin marco vigente no hay alineación posible", () => {
     expect(estadoAlineado({ frameHash: "", contratoHash: "", decisionHashes: [] })).toBe(false);
     expect(estadoAlineado({ decisionHashes: [H] })).toBe(false);
+  });
+});
+
+/**
+ * Medido el 2026-08-28 sobre el SEGUNDO sorteo de HSVG 2026. Con el marco, el
+ * contrato y las firmas los tres en `f1ab83dfa6` —alineados—, «Medir certeza»
+ * devolvía 409 `E_CALC_MUESTRA_ALUMNOS_CH_DECISION` porque faltaba regenerar
+ * los ARTEFACTOS DE AULAS, una cuarta condición que esos hashes no ven. El
+ * aviso se pintaba y el hook lo borraba en el mismo tick: el botón fallaba sin
+ * decir una palabra.
+ */
+describe("debeRetirarAviso", () => {
+  it("retira el aviso que NACIÓ desfasado y luego se realineó", () => {
+    // El caso original: el analista ve el aviso, repara, y el aviso se va.
+    expect(debeRetirarAviso({ caduco: true, alineado: true, nacioAlineado: false })).toBe(true);
+  });
+
+  it("NO retira un aviso que nació con el estado ya alineado", () => {
+    // El error vivo de «Medir certeza». Si esto devolviera true, el botón
+    // vuelve a fallar en silencio.
+    expect(debeRetirarAviso({ caduco: true, alineado: true, nacioAlineado: true })).toBe(false);
+  });
+
+  it("no retira nada mientras el estado siga desfasado", () => {
+    expect(debeRetirarAviso({ caduco: true, alineado: false, nacioAlineado: false })).toBe(false);
+  });
+
+  it("no toca un mensaje que no es de caducidad", () => {
+    expect(debeRetirarAviso({ caduco: false, alineado: true, nacioAlineado: false })).toBe(false);
   });
 });
