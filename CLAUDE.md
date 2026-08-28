@@ -179,7 +179,16 @@ Verificación:
 
 - Front: `pnpm -C frontend typecheck` · `pnpm -C frontend test` · `pnpm -C frontend exec tsc --noEmit --pretty false`
 - R focalizado: `Rscript -e 'pkgload::load_all("api"); testthat::test_file("api/tests/testthat/test-<X>.R")'`
-- R completo (igual que CI): `Rscript -e 'pkgload::load_all("api", quiet = TRUE); testthat::test_dir("api/tests/testthat", reporter = "summary")'`. Los tests que disparan jobs `callr` reales necesitan además `R CMD INSTALL --no-docs --library="$R_LIBS_USER" api`.
+- R completo (igual que CI): `Rscript -e 'pkgload::load_all("api", quiet = TRUE); testthat::test_dir("api/tests/testthat", reporter = "summary")'`. Los tests que disparan jobs `callr` reales necesitan además instalar el paquete:
+
+  ```bash
+  R CMD INSTALL --no-docs --no-multiarch --library="$(Rscript -e 'cat(.libPaths()[1])')" api
+  ```
+
+  Dos avisos que costaron una sesión con la app caída (2026-08-27):
+
+  - **`$R_LIBS_USER` no sirve en un shell.** Aquí decía `--library="$R_LIBS_USER"`, y esa variable **está vacía en el entorno del shell**: sólo la resuelve R por su cuenta. El comando expandía a `--library=""`. Se pide con `Rscript -e 'cat(.libPaths()[1])'`, que es lo que R usaría.
+  - **Nunca dos instalaciones a la vez, y nunca interrumpir una.** `R CMD INSTALL` borra el paquete antes de escribirlo, así que una corrida abortada —o dos sesiones instalando sobre la misma librería— deja el directorio **vacío**: ningún backend puede cargar `prosecnurapp` y la UI entera responde *failed to fetch*. Antes de instalar, comprobar que nadie más lo está haciendo (`pgrep -f "R CMD INSTALL"`, y que no exista `00LOCK-api` en la librería) y dejar terminar sin matar el proceso: tarda varios minutos por el `inst/`. Con worktrees paralelos esto es fácil de provocar; ver `docs/loops-reparacion.md`.
 - Agentic OS: `node agentic/sync-agentic-os.mjs --check` · `node --test agentic/tests/*.test.mjs`
 - Visual: `make ui-quick-check` · `make visual-qa` · `make monitoreo-qa`
 - Auditoría canónica: `make audit-reference-build` · `make audit-project-visual-matrix` · `make desktop-audit`

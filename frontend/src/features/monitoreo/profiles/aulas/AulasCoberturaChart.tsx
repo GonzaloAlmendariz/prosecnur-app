@@ -34,10 +34,10 @@ const ALTO_COMPACTO = 820;
    apila— asi que se queda aqui. */
 const ALTO_COMPACTO_DEL_GRAFICO = 220;
 
-export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0 }: {
+export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor = 0, dormidasMotor = 0 }: {
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
   /** El reparto del motor, sobre TODAS las filas y no sobre las 500 que viajan. */
-  resumen?: ReadonlyArray<{ clave: string; aulas: number }> | null;
+  resumen?: ReadonlyArray<{ clave: string; aulas: number; etiqueta?: string }> | null;
   /** Las aulas sin meta declarada, también del motor. */
   sinMetaMotor?: number;
   /**
@@ -49,6 +49,14 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
    * cabecera del panel y este pie.
    */
   bancoMotor?: number;
+  /**
+   * Reservas de cadena que todavia esperan a que caiga su titular.
+   *
+   * Son otra poblacion que el banco y hay que nombrarlas aparte: si no, el pie
+   * deja dos totales que no cuadran —el reparto cuenta 30, el banco 2 108 y el
+   * encabezado dice 2 468— y las 330 que faltan no aparecen en ninguna frase.
+   */
+  dormidasMotor?: number;
 }) {
   // Se mide una vez y se escucha el cambio: el usuario redimensiona y el grafico
   // tiene que encogerse con la ventana, no en la siguiente carga.
@@ -68,10 +76,22 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
     // vista lo sumaba sobre las 500 filas que viajan de 2 615, y ésas están
     // ordenadas por tramo del circuito.
     if (resumen?.length) {
-      const porClave = new Map(resumen.map((e) => [e.clave, Number(e.aulas) || 0]));
-      const claves = ["sin_respuestas", "hasta_25", "hasta_50", "hasta_99", "cumplida"] as const;
+      const porClave = new Map(resumen.map((e) => [e.clave, e]));
+      // **Por clave, nunca por posición.** Antes esto pareaba una lista local de
+      // claves con los tramos por índice: dos definiciones en dos lenguajes que
+      // tenían que coincidir en orden sin que nada lo obligara, así que recortar
+      // una banda habría movido los números de etiqueta sin romper un test.
+      //
+      // **Y la etiqueta también viene del motor.** El texto local se queda sólo
+      // como respaldo para el cálculo sin payload: con dos redacciones vivas, la
+      // del gráfico y la del motor, la pantalla acabaría diciendo dos cosas del
+      // mismo tramo y ningún test lo vería.
       const base = coberturaPorAula([]);
-      const tramosMotor = base.tramos.map((t, i) => ({ ...t, aulas: porClave.get(claves[i]) ?? 0 }));
+      const tramosMotor = base.tramos.map((t) => {
+        const e = porClave.get(t.clave);
+        const delMotor = typeof e?.etiqueta === "string" ? e.etiqueta.trim() : "";
+        return { ...t, aulas: Number(e?.aulas) || 0, etiqueta: delMotor || t.etiqueta };
+      });
       const totalMotor = tramosMotor.reduce((n, t) => n + t.aulas, 0);
       if (totalMotor) return { tramos: tramosMotor, sinMeta: sinMetaMotor ?? 0, total: totalMotor };
     }
@@ -141,7 +161,7 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
         }}
         config={{ displayModeBar: false, responsive: true }}
       />
-      {sinMeta || bancoMotor ? (
+      {sinMeta || bancoMotor || dormidasMotor ? (
         // No se esconde ni se reparte: un aula sin meta no cabe en una escala
         // relativa, y decir cuántas son es parte de lo que el gráfico informa.
         <p className="mon-profile-table-recorte">
@@ -156,6 +176,16 @@ export function AulasCoberturaChart({ filas, resumen, sinMetaMotor, bancoMotor =
               {sinMeta ? " " : ""}
               {fmt(bancoMotor)} {bancoMotor === 1 ? "es reserva del banco y tampoco entra" : "son reservas del banco y tampoco entran"}:
               {" "}esperan en su estrato y contarlas como «sin respuestas» las volvería una alarma.
+            </>
+          ) : null}
+          {dormidasMotor ? (
+            <>
+              {sinMeta || bancoMotor ? " " : ""}
+              {fmt(dormidasMotor)}{" "}
+              {dormidasMotor === 1
+                ? "es un reemplazo que todavía espera a su titular"
+                : "son reemplazos que todavía esperan a su titular"}
+              , y sólo salen a campo si ese curso-horario se cae.
             </>
           ) : null}
         </p>

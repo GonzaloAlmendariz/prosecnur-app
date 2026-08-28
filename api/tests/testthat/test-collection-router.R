@@ -1,4 +1,4 @@
-test_that("router de Recopiladores declara exactamente las catorce rutas V1", {
+test_that("router de Recopiladores declara exactamente las dieciseis rutas V1", {
   source_path <- test_path("..", "..", "R", "router_recopiladores.R")
   text <- paste(readLines(source_path, warn = FALSE), collapse = "\n")
   routes <- regmatches(
@@ -21,6 +21,12 @@ test_that("router de Recopiladores declara exactamente las catorce rutas V1", {
     "/api/recopiladores/material-template",
     "/api/recopiladores/materials/instances",
     "/api/recopiladores/materials/render",
+    # Ficha suelta con un colector inventado (`PRUEBA_2026`, `CAPACITACION`)
+    # para escanear antes de imprimir el lote y para la capacitacion. No
+    # persiste nada: entrar al plan moveria el conteo de unidades y el handoff.
+    "/api/recopiladores/materials/prueba",
+    # Y su historico: que enlace tenia cada una y cuando se hizo.
+    "/api/recopiladores/materials/pruebas",
     "/api/recopiladores/provider-preflight",
     "/api/recopiladores/deployment/preview"
   ))

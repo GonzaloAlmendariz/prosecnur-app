@@ -1,5 +1,7 @@
 import { useId } from "react";
 
+import { CampoNumero } from "./CampoNumero";
+
 import "./controlUmbral.css";
 
 /**
@@ -98,22 +100,16 @@ export function ControlUmbral({
           aria-label={`${etiqueta} — deslizador`}
           onChange={(e) => onCambio(acotar(Number(e.currentTarget.value)))}
         />
-        <span className="cmv2-umbral-campo">
-          <input
-            type="number"
-            id={`${id}-n`}
-            min={min}
-            max={max}
-            step={paso}
-            value={valor}
-            disabled={deshabilitado}
-            onChange={(e) => {
-              const v = Number(e.currentTarget.value);
-              if (Number.isFinite(v)) onCambio(acotar(v));
-            }}
-          />
-          {sufijo ? <em aria-hidden="true">{sufijo}</em> : null}
-        </span>
+        <CampoNumero
+          id={`${id}-n`}
+          valor={valor}
+          min={min}
+          max={max}
+          paso={paso}
+          sufijo={sufijo}
+          deshabilitado={deshabilitado}
+          onConfirmar={(v) => onCambio(acotar(v))}
+        />
       </div>
       {/* La consecuencia del valor, cuando el motor la publica. Es lo único que
           justifica ocupar una línea más: dice qué pasa si se deja aquí. */}

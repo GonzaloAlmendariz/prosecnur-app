@@ -115,13 +115,20 @@ attr(calc_muestra_aulas_construir_job, "prosecnur_job_function_name") <- "calc_m
 #'
 #' El payload que devuelve es liviano a propósito: el marco completo vive en la
 #' sesión y el frontend lo lee con GET /api/calc-muestra/state.
-.cm_aulas_construir_on_complete <- function(sid, referencia_asistencia = NULL) {
+#' @param sources_used Firma de las fuentes con las que se mando construir
+#'   (`.cm_aulas_sources_signature`). **Sin esto la via JOB guarda el marco sin
+#'   firmar**, y a escala real SIEMPRE se construye por job: la firma solo
+#'   funcionaba con marcos de juguete. Medido con las bases 2026 (137.919 filas):
+#'   el marco recien construido seguia diciendo «no consta de que bases salio».
+.cm_aulas_construir_on_complete <- function(sid, referencia_asistencia = NULL,
+                                            sources_used = NULL) {
   function(j) {
     frame <- j$result_data
     s_now <- session_get(sid, required = FALSE)
     if (is.null(s_now) || !is.list(frame)) {
       return(list(ok = TRUE, kind = "calc_muestra_aulas_construir", persisted = FALSE))
     }
+    if (!is.null(sources_used)) frame$sources_used <- sources_used
     frame <- .cm_criterios_frame_guardar(sid, frame, referencia_asistencia)
     session_set(sid, "calc_muestra_aulas_selection", NULL)
     session_set(sid, "calc_muestra_aulas_method_comparison", NULL)

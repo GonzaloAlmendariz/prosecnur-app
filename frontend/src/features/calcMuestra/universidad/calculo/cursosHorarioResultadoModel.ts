@@ -79,11 +79,18 @@ export function cursosHorarioDesdeResultado(
   };
 }
 
-/** Handoff operativo: copia los totales por facultad; no deriva aulas. */
+/** Handoff operativo: copia los TITULARES por facultad; no deriva aulas.
+ *
+ * Publica `aulas_base`, no `aulas_total`. El total incluía un «cupo de reserva»
+ * que no consumía nadie —los targets del sorteo salen de `aulas_base`
+ * (afijacionTargets.ts)— y que el motor rellenaba con un fijo de 1 por facultad
+ * mientras la superficie prometía «la mitad de los titulares». Confirmar un plan
+ * de 194 cuando la selección iba a repartir 179 era firmar un número que no
+ * existía en ninguna otra parte del recorrido. */
 export function planCursosHorarioPublicado(
   resultado: CursosHorarioResultado,
 ): Record<string, number> {
-  return Object.fromEntries(resultado.filas.map((fila) => [fila.estrato, fila.aulas_total]));
+  return Object.fromEntries(resultado.filas.map((fila) => [fila.estrato, fila.aulas_base]));
 }
 
 export function planesCursosHorarioIguales(

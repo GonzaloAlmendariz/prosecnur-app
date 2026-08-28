@@ -1,3 +1,5 @@
+import { segmentoDeEstrato } from "./etiquetaDeEstrato";
+
 const FIELD_LABELS: Record<string, string> = {
   // Ciclo de contacto (L31): por que un aula no esta agendada todavia.
   contact_medium: "Medio de contacto",
@@ -84,7 +86,9 @@ const FIELD_LABELS: Record<string, string> = {
   efectivas_pct_esperado: "% de efectivas esperado",
   efectivas_pct_obtenido: "% de efectivas logrado",
   efectivas_brecha: "Efectivas: cuánto falta",
-  elegibles_esperados: "Elegibles del padrón",
+  // La columna del libro se llama «ELEGIBLES: BASE DEL %»: es el padrón, y está
+  // ahí como denominador visible del porcentaje esperado. No es una meta.
+  elegibles_esperados: "Elegibles (base del %)",
   mujeres_esperadas: "Mujeres que espera el aula",
   hombres_esperados: "Hombres que espera el aula",
   last_response_day: "Último día de respuesta",
@@ -295,6 +299,14 @@ export const STATUS_LABELS: Record<string, string> = {
   design_cuota_sexo: "Cuota del diseño",
 };
 
+/** `F`/`M` de un aula, dicho en palabras. Lo que no reconoce lo deja pasar. */
+function sexoDeAula(value: string) {
+  const clave = value.trim().toLowerCase();
+  if (clave === "f") return "Mujeres";
+  if (clave === "m") return "Hombres";
+  return value;
+}
+
 function normalizedKey(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
@@ -312,6 +324,32 @@ function fallbackLabel(value: string) {
  * pasar por aquí devolvía «El tablero agrega por aula/collector/link» a la
  * pantalla, que es justo la jerga del motor que este helper existe para tapar.
  */
+/**
+ * El tipo de sesión del curso, sin el paréntesis del DTI.
+ *
+ * La base llega con `TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)`: el tipo
+ * principal y, entre paréntesis, la lista de subtipos que ese tipo agrupa en el
+ * catálogo. Esa lista es la misma para todas las aulas del tipo —no dice nada
+ * de ESTA aula—, y ocupa 45 caracteres en cada fila.
+ *
+ * Medido el 2026-08-24 sobre el plan de 193 titulares: **183 filas idénticas**
+ * con esa cadena y 10 con «TALLER». La columna ensanchaba la tabla hasta 1.425
+ * px en un contenedor de 1.153 y empujaba «Carrera», «Nivel del curso» y
+ * «Tamaño de aula» fuera de la vista.
+ *
+ * Queda el tipo, en capitalización normal. **El detalle no se pierde**: la
+ * tabla lo conserva en el `title` de la celda, que es donde vive lo que no
+ * cabe. Y un valor sin paréntesis se devuelve tal cual: si el DTI cambia el
+ * formato, se ve el crudo en vez de una traducción que se quedó vieja.
+ */
+export function tipoDeSesionLabel(value: unknown) {
+  const crudo = String(value ?? "").trim();
+  if (!crudo) return "";
+  const principal = crudo.replace(/\s*\(.*\)\s*$/, "").trim();
+  if (!principal) return crudo;
+  return principal.charAt(0) + principal.slice(1).toLowerCase();
+}
+
 export function presentDetail(value: unknown) {
   return String(value ?? "")
     .replaceAll("aula/collector/link", "curso-horario, origen y enlace")
@@ -531,6 +569,16 @@ function presentValue(field: string, value: unknown, enProporcion?: ReadonlySet<
     if (Number.isFinite(n)) return Math.ceil(n - 1e-9) === 0 ? 0 : Math.ceil(n - 1e-9);
   }
   if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (field === "session_type" || field === "tipo_sesion") return tipoDeSesionLabel(value);
+  // `G2` bajo una columna llamada «Tamaño de aula» no dice el tamaño: los
+  // cortes viven en `calc_muestra_aulas.R` y quien lee la tabla no los tiene.
+  if (field === "size_group") return segmentoDeEstrato(String(value));
+  // Aquí SÍ va «Mujeres» y no «mayoría mujeres», al revés que en la clave del
+  // estrato: la columna ya se llama «Sexo mayoritario», así que el matiz lo
+  // pone el encabezado y repetirlo en cada celda diría «Sexo mayoritario:
+  // mayoría mujeres». Sin nombre de columna que lo sostenga —el estrato— hay
+  // que decirlo entero, porque esa F no son las mujeres de la cuota.
+  if (field === "sex_top_1" || field === "sex_top_2") return sexoDeAula(String(value));
   if (field === "check") return aulasCheckLabel(value);
   if (field === "detail") return presentDetail(value);
   if (field === "campo") return aulasFieldLabel(String(value));

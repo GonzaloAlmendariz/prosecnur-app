@@ -4,6 +4,8 @@ import { downloadUrl } from "../../api/core";
 import {
   COLLECTION_BLOCK_TYPES,
   apiRecopiladoresMaterialInstances,
+  apiRecopiladoresMaterialPrueba,
+  apiRecopiladoresMaterialPruebas,
   apiRecopiladoresMaterialsRender,
   apiRecopiladoresMaterialTemplateGet,
   apiRecopiladoresMaterialTemplatePut,
@@ -11,11 +13,14 @@ import {
   type CollectionBlockType,
   type CollectionMaterialBlock,
   type CollectionMaterialField,
+  type CollectionFichaPrueba,
   type CollectionMaterialInstance,
   type CollectionMaterialRenderResult,
   type CollectionMaterialTemplate,
   type CollectionStatePayload,
 } from "../../api/recopiladores";
+import { FichaPruebaControl } from "./FichaPruebaControl";
+import { FichasPruebaHistorico } from "./FichasPruebaHistorico";
 import { JobProgress } from "../../components/JobProgress";
 import { Panel } from "../../components/Panel";
 import { PulsoButton } from "../../components/PulsoButton";
@@ -225,6 +230,8 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
   const [instanceBusy, setInstanceBusy] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobFormat, setJobFormat] = useState<"png" | "pdf" | "bundle" | null>(null);
+  const [codigoPrueba, setCodigoPrueba] = useState("");
+  const [pruebas, setPruebas] = useState<CollectionFichaPrueba[]>([]);
   const [renderResult, setRenderResult] = useState<CollectionMaterialRenderResult | null>(null);
   const [error, setError] = useState("");
   useEffect(() => { onCargando?.(loading); }, [loading, onCargando]);
@@ -280,6 +287,16 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
         if (alive) setError(cause instanceof Error ? cause.message : "No se pudo leer la plantilla.");
       })
       .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  // El histórico de fichas de prueba se lee aparte de la plantilla: si fallara,
+  // el editor tiene que abrir igual. Un error aquí no vale un panel en blanco.
+  useEffect(() => {
+    let alive = true;
+    void apiRecopiladoresMaterialPruebas()
+      .then((lista) => { if (alive) setPruebas(lista); })
+      .catch(() => { if (alive) setPruebas([]); });
     return () => { alive = false; };
   }, []);
 
@@ -395,6 +412,28 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
     }
   };
 
+  // Ficha suelta con un identificador inventado: la que se escanea ANTES de
+  // imprimir las 1.512 para comprobar que el QR abre y que la respuesta llega
+  // con su colector, y la que se usa en la capacitación sin ensuciar el estudio.
+  // No pasa por `createInstances()`: no persiste nada en el plan.
+  const renderPrueba = async (codigoPedido?: string) => {
+    const codigo = (codigoPedido ?? codigoPrueba).trim();
+    if (!deployment || !codigo) return;
+    setError("");
+    setRenderResult(null);
+    try {
+      const job = await apiRecopiladoresMaterialPrueba({ codigo });
+      setJobFormat("pdf");
+      setJobId(job.job_id);
+      // El histórico se relee del backend en vez de añadir la entrada a mano:
+      // ahí es donde se decide si un código ya existía —se actualiza en su
+      // sitio— y si su enlace sigue siendo el del despliegue de hoy.
+      setPruebas(await apiRecopiladoresMaterialPruebas());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo generar la ficha de prueba.");
+    }
+  };
+
   const onRenderDone = useCallback((result: CollectionMaterialRenderResult) => {
     setJobId(null);
     setRenderResult(result);
@@ -460,6 +499,24 @@ export function MaterialsSection({ payload, activeTab, onStateRefresh, onArtifac
             <PulsoButton variant="primary" title={motivoBloqueo ?? undefined} onClick={() => { void render("pdf"); }} disabled={!deployment || Boolean(jobId)}><FileText size={15} /> Generar PDF</PulsoButton>
             <PulsoButton variant="secondary" title={motivoBloqueo ?? undefined} onClick={() => { void render("bundle"); }} disabled={!deployment || Boolean(jobId)}><Archive size={15} /> Generar el paquete</PulsoButton>
           </div>
+          {/* **La ficha de ensayo no es un formato mas, por eso va aparte.**
+              No sale del plan ni deja instancia: es una hoja con el MISMO
+              enlace del operativo y un colector inventado, para escanearla
+              antes de imprimir el lote y para la capacitacion. Vive en su
+              propio archivo para poder renderizarla y mirar su markup. */}
+          <FichaPruebaControl
+            codigo={codigoPrueba}
+            onCodigo={setCodigoPrueba}
+            onGenerar={() => { void renderPrueba(); }}
+            motivoBloqueo={motivoBloqueo}
+            listo={Boolean(deployment)}
+            ocupado={Boolean(jobId)}
+          />
+          <FichasPruebaHistorico
+            fichas={pruebas}
+            onPdf={(codigo) => { void renderPrueba(codigo); }}
+            ocupado={Boolean(jobId)}
+          />
           <JobProgress<CollectionMaterialRenderResult>
             label={`Render ${jobFormat ?? "material"}`}
             jobId={jobId}

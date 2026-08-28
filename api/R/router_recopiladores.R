@@ -117,6 +117,24 @@ mount_recopiladores <- function(pr) {
         audience = body$audience %||% "field_team"
       )
     })) |>
+    # El historico de fichas de prueba: que enlace tenia `CAPACITACION` y cuando
+    # se hizo, para poder volver a abrirlo o reimprimir la hoja del taller.
+    plumber::pr_get("/api/recopiladores/materials/pruebas", wrap_endpoint(function(req, res, ...) {
+      collection_prueba_historico(session_header(req))
+    })) |>
+    # Ficha suelta con un identificador inventado (`PRUEBA_2026`,
+    # `CAPACITACION`): mismo enlace del operativo, otro colector. NO pasa por
+    # `materials/instances`, porque una ficha de prueba dentro de `plan$units`
+    # moveria el conteo de unidades y el handoff. Queda en
+    # `collection_state$pruebas`, que es una lista hermana.
+    plumber::pr_post("/api/recopiladores/materials/prueba", wrap_endpoint(function(req, res, ...) {
+      body <- .collection_parse_body(req)
+      collection_material_prueba_start(
+        session_header(req),
+        codigo = body$codigo %||% body$code,
+        etiqueta = body$etiqueta %||% body$label
+      )
+    })) |>
     plumber::pr_post("/api/recopiladores/provider-preflight", wrap_endpoint(function(req, res, ...) {
       body <- .collection_parse_body(req)
       adapter <- .collection_adapter_or_stop(body$adapter_id)

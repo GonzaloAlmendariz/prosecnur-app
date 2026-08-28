@@ -384,6 +384,11 @@ graficar_barras_agrupadas <- function(
     orientacion               = c("horizontal", "vertical"),
     colores_series            = NULL,
     colores_categorias        = NULL,
+    # Medicion anterior declarada por categoria (ver graficos_barras_comparativo.R).
+    # Convierte la serie unica del perfil en dos: la ola actual y la previa en
+    # gris. Se declara en el plan de laminas porque es un DATO de la pregunta,
+    # no una preferencia visual — mismo criterio que `barra_extra_comparativo`.
+    comparativo               = NULL,
     mostrar_valores           = TRUE,
     decimales                 = 1,
     umbral_etiqueta           = 0.03,
@@ -570,6 +575,61 @@ graficar_barras_agrupadas <- function(
   # canvas: solo horizontal (por diseno de placeholders por filas)
   if (isTRUE(usar_canvas) && orientacion != "horizontal") {
     stop("`usar_canvas = TRUE` solo esta soportado para `orientacion = \"horizontal\"`.", call. = FALSE)
+  }
+
+  comparativo_activo <- FALSE
+  # Medicion anterior: se expande ANTES de validar porque lo que entrega es
+  # justamente el juego de columnas que las validaciones de abajo comprueban.
+  # Devuelve NULL —y aqui no cambia nada— cuando no hay spec, cuando el grafico
+  # ya trae un cruce, o cuando ninguna categoria del spec resuelve contra las
+  # de la lamina.
+  if (!is.null(comparativo)) {
+    .cmp <- .barras_comparativo_expandir(
+      data             = data,
+      var_categoria    = var_categoria,
+      cols_porcentaje  = cols_porcentaje,
+      etiquetas_series = etiquetas_series,
+      cols_n           = cols_n,
+      colores_series   = colores_series,
+      comparativo      = comparativo,
+      escala_valor     = escala_valor
+    )
+    if (!is.null(.cmp)) {
+      data             <- .cmp$data
+      cols_porcentaje  <- .cmp$cols_porcentaje
+      etiquetas_series <- .cmp$etiquetas_series
+      cols_n           <- .cmp$cols_n
+      colores_series   <- .cmp$colores_series
+      comparativo_activo <- TRUE
+      # La cifra va blanca en las DOS series —coherencia de lamina, igual que en
+      # la familia dicotomica—, asi que la legibilidad la carga el color de la
+      # barra. Si el declarado es demasiado claro, se avisa y no se corrige: el
+      # color lo eligio el analista.
+      .barras_comparativo_avisar_contraste(colores_series, color_texto_barras)
+      # El color pasa a estar declarado por SERIE (una ola, un color), asi que
+      # la paleta por categoria del perfil deja de aplicar: si sobreviviera,
+      # ganaria ella y las dos olas saldrian del mismo color.
+      #
+      # La leyenda no se fuerza: con dos series ya no aplica la regla que la
+      # apaga para la serie sintetica unica ("Porcentaje"), asi que aparece
+      # sola. Forzarla pisaria a un analista que la apago a proposito.
+      colores_categorias <- NULL
+      # La cabecera declarada reserva mas alto del que ocupa el titulo, y ese
+      # sobrante sale del panel. Con una serie no molesta; con dos es justo lo
+      # que le falta a la barra para no salir delgada.
+      canvas_h_header_in <- .barras_comparativo_header(canvas_h_header_in, size_titulo)
+      # Y la leyenda pesa MAS que la cabecera —0,750 in medidos contra 0,422—
+      # para una sola linea de texto. Es la mayor bolsa de alto recuperable de
+      # la lamina, y con dos series el panel la necesita.
+      canvas_h_legend_in <- .barras_comparativo_header(canvas_h_legend_in, size_leyenda)
+      # La leyenda tiene que leerse en el MISMO orden en que estan las barras.
+      # En horizontal el eje va volteado, asi que la serie que se declara
+      # primera (la actual) se dibuja ABAJO de su grupo mientras la leyenda la
+      # nombra primera: el lector ve gris arriba y lee «2026, 2021». Invertirla
+      # las alinea y de paso deja el orden cronologico, que es como se lee una
+      # comparacion entre olas.
+      invertir_leyenda <- !isTRUE(invertir_leyenda)
+    }
   }
 
   # validaciones
@@ -1015,6 +1075,51 @@ graficar_barras_agrupadas <- function(
     )
   }
 
+  # Ancho del grupo dentro de la unidad de categoria. 0.70 deja un 30 % de aire
+  # ENTRE categorias, que con una sola barra por categoria separa bien. Con dos
+  # series ese aire es lo unico que sobra: las barras se parten en dos y el
+  # hueco vacio pasa a medir tanto como una barra entera. Se aprieta a 0.90
+  # —queda aire, no se tocan— y cada barra gana un 29 % de alto, que es lo que
+  # decide si la cifra cabe o no.
+  width_dodge_eff <- if (isTRUE(comparativo_activo)) .BARRAS_COMPARATIVO_DODGE else 0.70
+
+  # Las dos barras de una categoria son la MISMA medida en dos olas: van
+  # pegadas, y el aire va entre categorias, que es donde separa algo. Con
+  # `width` menor que el dodge, ggplot deja hueco DENTRO del par y el ojo lee
+  # doce barras sueltas en vez de seis pares. Igualarlos cierra ese hueco sin
+  # tocar el que queda entre categorias, que lo fija el dodge.
+  if (isTRUE(comparativo_activo)) grosor_barras_eff <- width_dodge_eff
+
+  # La escala de arriba reparte por NUMERO de series y no mira el alto real, asi
+  # que con dos series no reduce nada —y `preservar_tamanos_texto` no reduce
+  # nunca—. Mientras la lamina tuvo una sola serie eso estuvo bien; al pedir la
+  # ola anterior, la categoria se parte en dos y la cifra declarada deja de
+  # entrar en su barra. Solo se acota cuando hay comparativo: los cruces
+  # existentes conservan su tamano tal cual (ver graficos_barras_comparativo.R).
+  if (isTRUE(comparativo_activo)) {
+    size_texto_barras_eff <- .barras_comparativo_size_cifra(
+      size_texto_barras_eff,
+      n_categorias = length(cat_lvls),
+      n_series     = n_series,
+      # El alto del CAJON, igual que `.agrupadas_size_que_cabe` para el eje. El
+      # nominal (`n_cat * alto_por_categoria`) miente: dice 6,12 in donde hay
+      # 2,565, y con esa cuenta nada se reduce nunca.
+      alto_in      = suppressWarnings(as.numeric(alto)[1]),
+      # El cromo que el motor descuenta antes del panel, con los mismos valores
+      # que usara mas abajo. Estimarlo con una fraccion fallaba por un 34 %.
+      header_in    = canvas_h_header_in,
+      legend_in    = if (isTRUE(mostrar_leyenda) &&
+                         !leyenda_posicion %in% c("derecha", "izquierda", "ninguna")) {
+                       canvas_h_legend_in
+                     } else 0,
+      caption_in   = canvas_h_reserva_pie_in,
+      # Sin el dodge la cuenta cree que las barras llenan toda la categoria y
+      # da un alto un 43 % mayor que el real: por eso la cifra «cabia» y salia
+      # montada sobre el borde de su propia barra.
+      dodge        = width_dodge_eff
+    )
+  }
+
   max_valor <- suppressWarnings(max(df_long$.valor_plot, na.rm = TRUE))
   if (!is.finite(max_valor)) max_valor <- 0
 
@@ -1027,7 +1132,7 @@ graficar_barras_agrupadas <- function(
   # ---------------------------------------------------------------------------
   # 2) Plot base agrupado
   # ---------------------------------------------------------------------------
-  width_dodge <- 0.70
+  width_dodge <- width_dodge_eff
 
   .draw_key_cuadrado <- .graficos_key_glyph_cuadrado(legend_key_cm)
 

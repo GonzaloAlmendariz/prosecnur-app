@@ -153,6 +153,21 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
   usa_tau_disenio <- any(is.finite(taus_disenio))
   tasa_fuente <- if (usa_tau_disenio) "tau_disenio" else if (is.finite(tasa_referencia)) "referencia" else "sin_tasa"
   fmt1 <- function(x) format(round(x, 1), trim = TRUE, scientific = FALSE, big.mark = " ")
+  # **Las encuestas son personas: el aviso que lee un humano no lleva decimales,
+  # y la direccion del redondeo no es la misma en los dos numeros del aviso.**
+  #
+  #   · lo que PROMETEMOS (las efectivas esperadas) va hacia ABAJO: prometer
+  #     media persona de mas es lo contrario de dimensionar con prudencia;
+  #   · lo que PEDIMOS (las que faltan) va hacia ARRIBA: si faltan 2,6 encuestas
+  #     faltan 3 personas, y con 2 la facultad sigue corta.
+  #
+  # Solo cambia lo PUBLICADO. `esperadas` sigue crudo para el margen y para el
+  # estado: redondear antes de comparar convertiria una facultad de 99,6 sobre
+  # una cuota de 100 en certificada.
+  #
+  # Las tasas y porcentajes NO pasan por aqui: ahi el decimal es la informacion.
+  fmt_prometido <- function(x) format(floor(x), trim = TRUE, scientific = FALSE, big.mark = " ")
+  fmt_pedido <- function(x) format(ceiling(x), trim = TRUE, scientific = FALSE, big.mark = " ")
   filas <- list()
   certificadas <- 0L
   evaluables <- 0L
@@ -200,21 +215,21 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
     aviso <- switch(estado,
       certificada = if (identical(metodo_fila, "suma_esperadas")) sprintf(
         "Sus %d titulares suman %s efectivas esperadas (aula por aula, seg\u00fan el tama\u00f1o y la facultad de cada una) para una cuota de %s.",
-        aulas, fmt1(esperadas), fmt1(cuota)
+        aulas, fmt_prometido(esperadas), fmt1(cuota)
       ) else sprintf(
         "Sus %d titulares cargan %s elegibles; con la tasa de rendimiento %s de %s %% rinden %s efectivas para una cuota de %s.",
         aulas, fmt1(elegibles),
         if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
-        fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota)
+        fmt1(tasa * 100), fmt_prometido(esperadas), fmt1(cuota)
       ),
       no_cubre = if (identical(metodo_fila, "suma_esperadas")) sprintf(
         "NO CUBRE: sus %d titulares suman %s efectivas esperadas (aula por aula) frente a una cuota de %s. Faltan %s.",
-        aulas, fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
+        aulas, fmt_prometido(esperadas), fmt1(cuota), fmt_pedido(cuota - esperadas)
       ) else sprintf(
         "NO CUBRE: sus %d titulares cargan %s elegibles y con la tasa de rendimiento %s de %s %% rinden %s efectivas, por debajo de la cuota de %s. Faltan %s.",
         aulas, fmt1(elegibles),
         if (identical(tasa_fuente, "tau_disenio")) "del dise\u00f1o (\u03c4)" else "esperada",
-        fmt1(tasa * 100), fmt1(esperadas), fmt1(cuota), fmt1(cuota - esperadas)
+        fmt1(tasa * 100), fmt_prometido(esperadas), fmt1(cuota), fmt_pedido(cuota - esperadas)
       ),
       sin_titulares = "El sorteo vigente no le asignó titulares: no hay con qué certificar.",
       sin_tasa = "El diseño no declara la tasa de asistencia esperada: los elegibles están medidos pero la certificación no se puede afirmar.",
@@ -238,7 +253,10 @@ calc_muestra_aulas_adjuntar_certificacion <- function(selection, estudio = NULL,
           sexo = sx,
           cuota = round(cuota_sx),
           elegibles = round(el_sx),
-          esperadas = if (is.finite(esp_sx)) round(esp_sx) else NA_real_,
+          # Promesa por celda: hacia ABAJO, igual que el aviso de la facultad.
+          # `cubre` y `margen` siguen saliendo del valor CRUDO, dos lineas mas
+          # abajo: el entero es para leer, no para decidir.
+          esperadas = if (is.finite(esp_sx)) floor(esp_sx) else NA_real_,
           margen = if (is.finite(esp_sx) && cuota_sx > 0) round(esp_sx / cuota_sx, 2) else NA_real_,
           cubre = if (is.finite(esp_sx)) esp_sx >= cuota_sx else NA
         )

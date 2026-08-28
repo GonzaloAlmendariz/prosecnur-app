@@ -70,6 +70,12 @@ export function SalidasCoincidenciaTab({
     <section
       className="cmv2-coincidencia"
       aria-label="Coincidencia con el estudio anterior"
+      // La geometría ya se declaraba (abajo); faltaba la readiness, y sin ella
+      // el puente cortaba con `sin-marca-de-readiness`: la pestaña quedaba SIN
+      // MEDIR, que no es lo mismo que conforme. `true` al montar porque recibe
+      // sus datos por props ya resueltas, vacío incluido — un bloque sin
+      // selección también terminó de cargar.
+      data-audit-ready="true"
       // La superficie declara su geometría: sin esto `ui-quick-check` sólo
       // auditaba el resumen del toolbar y devolvía «ok=true» sin haber medido
       // nada de esta pestaña. Verde por ausencia, no por conformidad.

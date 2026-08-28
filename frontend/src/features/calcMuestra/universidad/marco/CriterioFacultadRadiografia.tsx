@@ -49,7 +49,7 @@ export type CriterioFacultadEvidence = {
  */
 function aporteDeFila(row: {
   actual: { n_ch: number; n_ch_con_dato: number; n_estudiantes_unicos: number | null; distribution: unknown };
-  contraste_total: { n_ch: number; distribution: { media: number | null } };
+  contraste_total: { n_ch: number; n_estudiantes_unicos?: number | null; distribution: { media: number | null } };
   signal_distribution?: CalcMuestraAulasCriterioSignalDistribution | null;
 }): AporteCategoria {
   /*
@@ -67,18 +67,32 @@ function aporteDeFila(row: {
    */
   const senal = row.signal_distribution ?? null;
   const esProporcion = senal?.unit === "proporcion";
+  /*
+   * La señal propia se usa SIEMPRE que exista, no sólo cuando es proporción.
+   *
+   * La guarda era `unit === "proporcion"`, así que un criterio con señal en otra
+   * unidad caía al genérico. Medido sobre HSVG26DEF: «Nivel del curso» publica
+   * la suya con `unit: "valor_criterio"` —la distribución de niveles, que es lo
+   * que ese criterio decide— y la tarjeta dibujaba en su lugar «elegibles por
+   * curso-horario», el MISMO boxplot que «Mínimo de alumnos elegibles»: mismos
+   * 961, 0, 4.776, Q1 13, mediana 26. Dos criterios distintos con una figura
+   * idéntica, y ninguna de las dos describía el nivel del curso.
+   * `esProporcion` sigue mandando sólo donde debe: en cómo se rotula el eje.
+   */
+  const usaSenal = senal != null;
   return {
     ch: row.actual.n_ch,
     chContraste: row.contraste_total.n_ch,
+    elegiblesContraste: row.contraste_total.n_estudiantes_unicos ?? null,
     chConDato: row.actual.n_ch_con_dato,
     elegibles: row.actual.n_estudiantes_unicos,
     mediaContraste: row.contraste_total.distribution.media,
     tasaAsistencia: null,
-    distribucion: (esProporcion
+    distribucion: (usaSenal
       ? senal
       : row.actual.distribution) as AporteCategoria["distribucion"],
-    escalaEje: esProporcion ? senal.escala : null,
-    nFuera: esProporcion ? senal.n_fuera : null,
+    escalaEje: usaSenal ? senal.escala : null,
+    nFuera: usaSenal ? senal.n_fuera : null,
     descartePorCorte:
       esProporcion &&
       senal.hist_breaks != null &&
@@ -89,6 +103,38 @@ function aporteDeFila(row: {
         // plausible y falsa, que es peor que no dar ninguna.
         : null,
   };
+}
+
+/**
+ * Cifras VIVAS de un criterio-gate en una facultad, desde la cascada del
+ * borrador.
+ *
+ * `aporteDeFila()` describe el marco CONSTRUIDO: es lo que publica la
+ * radiografía. Para un criterio de un solo segmento —el mínimo de elegibles, el
+ * nivel del curso— eso significaba que mover su umbral cambiaba la decisión y
+ * dejaba «CH que cumplen» y «quedan fuera» clavados en las cifras del último
+ * marco. Reportado por Gonzalo el 2026-08-25 moviendo el mínimo propio de
+ * Ingeniería: el criterio pasaba a ≥ 11 y la tarjeta seguía diciendo 899 y 62.
+ *
+ * Sólo se aplica con UN segmento: la cascada publica el corte por criterio y
+ * facultad, no por categoría, así que en un criterio de set no hay con qué
+ * sustituir cada barra y las suyas se quedan como están.
+ */
+function aporteVivo(
+  cascade: CalcMuestraCriteriosCascada | null,
+  criterionId: string,
+  facultyKey: string,
+): { ch: number; nFuera: number } | null {
+  // Sólo la cascada del BORRADOR. La ejecutada describe el marco construido, y
+  // ahí el mínimo no recorta nada porque se construyó con el umbral viejo: leer
+  // de ella daba «961 CH que cumplen · 0 quedan fuera» —«no excluye a nadie»—
+  // cada vez que el preview estaba recalculando. Sin cascada viva se conservan
+  // las cifras de la radiografía, que al menos son de un marco real.
+  if (cascade?.momento !== "borrador_no_persistido") return null;
+  const paso = cascade?.steps.find((s) => s.criterion_id === criterionId);
+  const fila = paso?.faculties.find((f) => f.faculty_key === facultyKey);
+  if (!fila) return null;
+  return { ch: fila.after_ch, nFuera: Math.max(0, fila.before_ch - fila.after_ch) };
 }
 
 /**
@@ -176,6 +222,8 @@ export function CriterioFacultadRadiografia({
   // única, calculada sobre TODAS sus filas.
   const domain = dominioCategorias(compactRows.map(({ row }) => aporteDeFila(row)));
 
+
+
   return (
     <div
       className="cmv2-crc-faculty-inline"
@@ -191,8 +239,20 @@ export function CriterioFacultadRadiografia({
                 preposición: leídas seguidas, parecen la misma sección repetida.
                 Cada una se nombra por lo que muestra. */}
             <span>Distribución por categoría</span>
-            {/* «Dato de R» nombra de dónde sale el número, no qué es. */}
-            <strong>Elegibles por curso-horario según {card.label.toLocaleLowerCase("es-PE")}</strong>
+            {/* «Dato de R» nombra de dónde sale el número, no qué es.
+                «según X» sólo cuando X reparte de verdad. Con una sola categoría
+                el título prometía un desglose que no ocurre: en «Nivel del curso»
+                sin rango declarado la única fila es «Todos los niveles», y la
+                cabecera anunciaba «Elegibles por curso-horario según nivel del
+                curso» sobre un boxplot que no separa por nivel ninguno.
+                Reportado por Gonzalo el 2026-08-25: «Nivel de curso me muestra
+                otra cosa». El número siempre fue el correcto; el rótulo prometía
+                otro. */}
+            <strong>
+              {visibleRows.length > 1
+                ? `Elegibles por curso-horario según ${card.label.toLocaleLowerCase("es-PE")}`
+                : "Elegibles por curso-horario"}
+            </strong>
           </div>
           <span className="cmv2-crc-compact-state">{card.state === "v2" ? "vigente" : card.state.replace("_", " ")}</span>
         </header>
@@ -227,7 +287,12 @@ export function CriterioFacultadRadiografia({
                     Las cuatro existían con sus guards y sólo `categoria` estaba
                     montada: se construyeron, se probaron y nunca se cablearon. */}
                 <CategoriaEvidencia
-                  aporte={aporteDeFila(row)}
+                  aporte={(() => {
+                    const base = aporteDeFila(row);
+                    if (visibleRows.length !== 1) return base;
+                    const vivo = aporteVivo(evidence?.cascade ?? null, entry.id, facultyKey);
+                    return vivo ? { ...base, ch: vivo.ch, nFuera: vivo.nFuera } : base;
+                  })()}
                   dominio={domain}
                   variante={varianteDeCriterio(entry.id)}
                 />

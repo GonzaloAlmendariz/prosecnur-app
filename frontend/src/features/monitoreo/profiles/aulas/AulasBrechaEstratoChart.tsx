@@ -6,6 +6,7 @@ import { PlotlyChart } from "../../../../lib/PlotlyChart";
 import { fuenteDeEjeAulas } from "./ejesDeAulas";
 import { COLOR_RESULTADO } from "../../coloresDeResultado";
 import { brechaPorEstrato } from "./brechaPorEstrato";
+import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { fmt } from "./kpisDeAulas";
 
 /** El mismo formato que el resto del perfil: «3,743» y no «3743». */
@@ -61,7 +62,7 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
       // `CANTIDAD DE EFECTIVAS` es la columna del parte de campo; «Recogidas»
       // era mío.
       name: "Efectivas",
-      y: orden.map((e) => e.estrato),
+      y: orden.map((e) => etiquetaDeEstrato(e.estrato)),
       x: orden.map((e) => e.validas),
       marker: { color: COLOR_RESULTADO.efectiva },
       hovertemplate: "%{y}: %{x} efectivas<extra></extra>",
@@ -70,7 +71,7 @@ export function AulasBrechaEstratoChart({ filas }: { filas: ReadonlyArray<Monito
       type: "bar",
       orientation: "h",
       name: "Faltan",
-      y: orden.map((e) => e.estrato),
+      y: orden.map((e) => etiquetaDeEstrato(e.estrato)),
       x: orden.map((e) => e.brecha),
       marker: { color: COLOR_RESULTADO.parcial },
       text: orden.map((e) => (e.brecha ? String(e.brecha) : "")),

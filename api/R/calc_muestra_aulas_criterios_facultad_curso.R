@@ -49,13 +49,14 @@
   n <- length(faculties)
   if (!n) return(logical(0))
   if (is.null(crit)) return(rep(TRUE, n))
-  vk <- .cm_aulas_text_key(faculties)
-  cats <- as.character(unlist(crit$categories, use.names = FALSE))
-  cats <- cats[!is.na(cats) & nzchar(cats)]
-  inset <- vk %in% cats
+  # `.cm_aulas_clave_en` casa por la clave vigente y, si no, por la anterior al
+  # arreglo de la eñe: las categorias guardadas en un `.pulso` viejo dicen
+  # `arte_y_dise_no` y el marco de hoy emite `arte_y_diseno`. Ver
+  # calc_muestra_aulas_claves_legadas.R.
+  inset <- .cm_aulas_clave_en(faculties, crit$categories)
   if (identical(crit$mode, "exclude")) inset <- !inset
   # Sin senal pasa, se pida incluir o excluir.
-  inset[!nzchar(vk)] <- TRUE
+  inset[is.na(inset)] <- TRUE
   inset
 }
 

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Check, Grid3X3, RotateCcw } from "../../../../vendor/lucide-react";
 import type { CalcMuestraAulasCerteza, CalcMuestraComponente } from "../../../../api/client";
 import { EmptyState } from "../../../../components/States";
@@ -70,6 +70,55 @@ export function CalculoCursosHorarioFacultadTab({
     model && (!frameHashVigente || model.decision.frame_hash !== frameHashVigente),
   );
   const resultadoDesactualizado = marcoDesactualizado || frameDesactualizado;
+
+  // **La probabilidad de cumplir viaja en la misma tabla que el cupo.**
+  //
+  // El número de titulares sale de la fórmula, que apunta al CENTRO de la
+  // distribución; la certeza dice qué garantía compra ese número. Estaban en dos
+  // superficies —la tabla arriba, el panel debajo— y con el panel sin medir la
+  // tabla se leía como si sus cupos estuvieran auditados. Medido sobre el
+  // estudio: DERECHO con 16 titulares cumple en el 48 % de los sorteos y con 17
+  // en el 94 %; el plan le dio 16 y el libro operativo acabó poniéndole 20 por
+  // criterio, sin el número delante.
+  //
+  // La vista se calcula UNA sola vez y la comparten tabla y panel: dos cálculos
+  // del mismo dato es cómo dos superficies empiezan a discrepar.
+  const vistaCerteza = certezaVistaDesdeEstado(certeza, frameHashVigente);
+  const probPorEstrato = probabilidadPorEstrato(vistaCerteza);
+  const motivoSinProb = motivoSinProbabilidad(vistaCerteza);
+
+  // **La certeza se mide sola, una vez por marco.**
+  //
+  // Era un botón, y un botón que nadie aprieta deja los cupos yendo a campo sin
+  // auditar: el plan le dio 16 titulares a DERECHO —48 % de probabilidad de
+  // cumplir— y eso se corrigió a 20 por criterio, no porque el número estuviera
+  // delante.
+  //
+  // Los estratos se construyen desde el modelo que ESTA pestaña muestra, así que
+  // el disparo vive aquí y no junto a `calculateSample`: la página no los
+  // conoce.
+  //
+  // Cuatro guardas, y las cuatro hacen falta:
+  //   · una sola vez por `frame_hash` (un ref, no un estado: no repinta);
+  //   · nunca si ya hay una medición vigente para ese marco;
+  //   · nunca mientras otra corre;
+  //   · nunca con el resultado desactualizado — mediría estratos que ya no son.
+  // El hash se marca ANTES de disparar: si la medición falla, no reintenta en
+  // bucle. El botón sigue ahí para eso.
+  const certezaAutoRef = useRef<string | null>(null);
+  const puedeMedirSola = Boolean(onMedirCerteza) && debeMedirCertezaSola({
+    vista: vistaCerteza,
+    frameHash: frameHashVigente,
+    hayFilas: Boolean(model && model.filas.length > 0),
+    midiendo: Boolean(certezaEnCurso),
+    resultadoDesactualizado,
+    yaDisparadoPara: certezaAutoRef.current,
+  });
+  useEffect(() => {
+    if (!puedeMedirSola || !onMedirCerteza || !model || !frameHashVigente) return;
+    certezaAutoRef.current = frameHashVigente;
+    void onMedirCerteza({ estratos: certezaEstratosDesdeResultado(model.filas), nivel: 0.95 });
+  }, [puedeMedirSola, onMedirCerteza, model, frameHashVigente]);
   const actual = model ? planCursosHorarioPublicado(model) : {};
   const estado = model
     ? estadoPlanCursosHorario({ confirmado, marcoDesactualizado: resultadoDesactualizado, actual, guardado })
@@ -150,6 +199,9 @@ export function CalculoCursosHorarioFacultadTab({
               : "No existe un marco vigente que acredite este resultado. Reconstruye el marco y recalcula antes de publicar este plan."}
         </AvisoModulo>
       )}
+      {/* La vista se calcula UNA vez: la tabla de cupos y el panel de certeza
+          tienen que decir lo mismo. Calcularla dos veces es cómo dos superficies
+          empiezan a discrepar sin que nadie lo note. */}
       <section className="cmv2-panel cmv2-ch-panel" data-qa-geometry-member>
         <div className="cmv2-panel-head">
           <div>
@@ -165,15 +217,21 @@ export function CalculoCursosHorarioFacultadTab({
           </div>
         </div>
 
+        {/* UN solo total, y es el que viaja. El panel publicaba además un
+            «cupo de reserva» y un «CH del plan» que NADIE consumía —ni la
+            selección, ni las cadenas, ni el banco de extras, ni Monitoreo— y
+            que encima se calculaban con un fijo de 1 por facultad mientras el
+            rótulo prometía «la mitad de los titulares». Los targets del sorteo
+            salen de `aulas_base` (afijacionTargets.ts), así que ese total era
+            una cuarta magnitud decorativa justo donde importa distinguir la
+            muestra de la sobremuestra. */}
         <div className="cmv2-ch-kpis" data-qa-geometry-group="calc-muestra/cursos-horario-totales" data-qa-geometry-contract="equal">
-          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Los cursos-horario que el sorteo intenta primero: se visitan sí o sí."><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
-          <div className="cmv2-ch-kpi" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Cupos adicionales dimensionados por la regla del diseño (la mitad de los titulares, redondeando arriba): se activan si un titular cae."><span>{fmtInt(model.aulasExtraTotal)}</span><small>CH de reserva</small></div>
-          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title={`El plan dimensiona ${fmtInt(model.aulasBaseTotal)} titulares y ${fmtInt(model.aulasExtraTotal)} de reserva. Se agendan los titulares; las reservas entran cuando una cae.`}><span>{fmtInt(model.aulasTotal)}</span><small>CH del plan = {fmtInt(model.aulasBaseTotal)} titulares + {fmtInt(model.aulasExtraTotal)} reserva</small></div>
+          <div className="cmv2-ch-kpi cmv2-ch-kpi--hero" data-qa-geometry-member data-qa-geometry-capacity="owned" title="Los cursos-horario que hay que visitar: el sorteo reparte exactamente estos por facultad. Las aulas de reemplazo no se cuentan aquí; las construye la selección en cadenas por titular."><span>{fmtInt(model.aulasBaseTotal)}</span><small>CH titulares</small></div>
         </div>
 
         <div className="cmv2-table-wrap cmv2-ch-tabla-wrap" tabIndex={0} aria-label="Cursos-horario requeridos por facultad" data-qa-geometry-capacity="owned">
           <table className="cmv2-table cmv2-table--university cmv2-ch-tabla">
-            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Cupo de reserva que el plan presupuesta para esta facultad: la mitad de sus titulares, redondeada hacia arriba. NO es el número de aulas de reemplazo que el sorteo construye: esas son las cadenas R1, R2… y son muchas más (en HSVG2026, 6 de cupo contra 69 encadenadas en ARQUITECTURA). Las cadenas viven en Selección → Reemplazos.">Cupo de reserva</th><th>Del plan</th></tr></thead>
+            <thead><tr><th>Facultad</th><th>Cuota</th><th>Estadístico</th><th>Alumnos por CH</th><th>Tasa de efectividad</th><th>Titulares</th><th title="Con cuántos de los sorteos posibles esos titulares alcanzan la cuota de la facultad. El número de titulares sale de la fórmula, que apunta al centro; esta columna dice qué garantía compra. Sale de la certeza de cobertura: si no se ha medido sobre el marco vigente, lo dice.">Probabilidad de cumplir</th></tr></thead>
             <tbody>
               {model.filas.map((fila) => (
                 <tr key={fila.estrato}>
@@ -225,14 +283,12 @@ export function CalculoCursosHorarioFacultadTab({
       <div className="cmv2-calc-confirm-bar cmv2-calc-confirm-bar--flujo" role="region" aria-label="Confirmar cursos-horario requeridos" data-qa-geometry-member>
         <div className="cmv2-calc-confirm-copy">
           <strong>{estado.vigente ? "Cursos-horario requeridos confirmados" : "Cursos-horario requeridos pendientes de confirmación"}</strong>
-          {/* «A coordinar» era falso: las reservas son cupos dimensionados del
-              plan, no visitas que se agenden (Gonzalo, 2026-08-21: «ojo, las
-              aulas de reserva no se coordinan así»). Se dicen por separado. */}
-          <span>
-            {fmtInt(model.aulasBaseTotal)} titulares
-            {model.aulasExtraTotal > 0 && <> y {fmtInt(model.aulasExtraTotal)} de reserva</>} según el
-            resultado vigente.
-          </span>
+          {/* Sólo titulares. Antes decía «y N de reserva» y ese N era el cupo
+              retirado del panel: un fijo de 1 por facultad que no consumía
+              nadie. Dejarlo aquí reintroducía por la puerta de atrás el número
+              que la tabla dejó de mostrar, y encima en la frase que describe lo
+              que se está firmando. */}
+          <span>{fmtInt(model.aulasBaseTotal)} titulares según el resultado vigente.</span>
           {/* Qué hace confirmar, porque no se adivina: Gonzalo supuso que
               desbloqueaba algo («me imagino que si le das a confirmar el plan,
               eso permitiría marcar cuántas aulas»). No abre ninguna puerta —el

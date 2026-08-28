@@ -29,7 +29,7 @@ monitoreo_aulas_identificadores <- function(responses = data.frame(), anonimo = 
     # el verde por ausencia que ya se corrigió en el control de duplicados.
     return(list(
       status = "sin_datos",
-      detail = "Todavia no hay base de respuestas con que comprobarlo.",
+      detail = "Todavía no hay base de respuestas con qué comprobarlo.",
       columnas = list()
     ))
   }

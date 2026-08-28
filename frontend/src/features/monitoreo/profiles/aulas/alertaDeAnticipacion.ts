@@ -96,10 +96,16 @@ export type AlertaDeFacultad = {
    */
   faltanPorSexo: Array<{ sexo: string; faltan: number }>;
   esperadoPorAula: number;
-  /** Aulas que cubrirían esa brecha si todas se aplicaran. */
-  aulasNecesarias: number;
-  /** Las que hay que pedir contando con que una parte se caerá. */
-  aulasAPedir: number;
+  /**
+   * Aulas que cubrirían esa brecha si todas se aplicaran. `null` cuando la
+   * facultad tiene brecha pero todavía no se sabe cuánto rinde un aula suya:
+   * sin rendimiento observado no hay entre qué dividir. Devolver 0 diría «no
+   * hace falta ninguna» justo de la facultad a la que más le falta — que es el
+   * mismo error que `bancoDisponible` evita unas líneas más abajo.
+   */
+  aulasNecesarias: number | null;
+  /** Las que hay que pedir contando con que una parte se caerá. `null` igual que arriba. */
+  aulasAPedir: number | null;
   /** Aulas ya agendadas por delante, que es lo que amortigua. */
   aulasAgendadas: number;
   /** Último día con agenda de esa facultad, o `null` si no tiene ninguna. */
@@ -155,13 +161,21 @@ export function alertaDeAnticipacion(
         .map((c) => ({ sexo: c.sexo, faltan: c.faltanAlCerrarAgenda }))
         .sort((a, b) => b.faltan - a.faltan);
       const porAula = f.esperadoPorAula > 0 ? f.esperadoPorAula : 0;
-      const aulasNecesarias = faltan > 0 && porAula > 0 ? Math.ceil(faltan / porAula) : 0;
+      // Tres estados, no dos. Sin brecha son 0 aulas —eso es un hecho—; con
+      // brecha y sin rendimiento observado es `null`, que es «no se sabe».
+      // Medido el 2026-08-25 con el plan de 400 recién importado: las 15
+      // facultades tenían brecha (983 en Artes Escénicas, 1.340 en Ciencias e
+      // Ingeniería) y la cabecera decía «hay que pedir 0 en total», porque
+      // `porAula` vale 0 antes del primer parte y el 0 se sumaba como cifra.
+      const aulasNecesarias = faltan <= 0
+        ? 0
+        : porAula > 0 ? Math.ceil(faltan / porAula) : null;
       // Pedir exactamente las que faltan es pedir de menos: una de cada cuatro no
       // se va a aplicar. Se pide sobre el neto, que es como se dimensiona una
       // reserva.
-      const aulasAPedir = aulasNecesarias > 0
-        ? Math.ceil(aulasNecesarias / (1 - TASA_DE_CAIDA))
-        : 0;
+      const aulasAPedir = aulasNecesarias == null
+        ? null
+        : aulasNecesarias > 0 ? Math.ceil(aulasNecesarias / (1 - TASA_DE_CAIDA)) : 0;
 
       const primerDiaAgendado = f.dias.length ? f.dias[0].fecha : null;
       const ultimoDiaAgendado = f.dias.length ? f.dias[f.dias.length - 1].fecha : null;
@@ -198,7 +212,7 @@ export function alertaDeAnticipacion(
           ? restarDiasDeCampo(ultimoDiaAgendado, DIAS_DE_ANTICIPACION)
           : null,
         bancoDisponible,
-        bancoAlcanza: bancoDisponible == null || aulasAPedir <= 0
+        bancoAlcanza: bancoDisponible == null || aulasAPedir == null || aulasAPedir <= 0
           ? null
           : bancoDisponible >= aulasAPedir,
         urgencia,
@@ -221,7 +235,10 @@ export function alertaDeAnticipacion(
       if (a.urgencia === "hay margen" && a.pedirAntesDe && b.pedirAntesDe && a.pedirAntesDe !== b.pedirAntesDe) {
         return a.pedirAntesDe.localeCompare(b.pedirAntesDe);
       }
-      return b.aulasAPedir - a.aulasAPedir
+      // Las que no se pueden dimensionar van al final del grupo: no compiten por
+      // tamaño con las que sí tienen cifra, y ordenarlas como 0 las escondería
+      // entre las que no necesitan nada.
+      return (b.aulasAPedir ?? -1) - (a.aulasAPedir ?? -1)
         || a.facultad.localeCompare(b.facultad, "es");
     });
 }

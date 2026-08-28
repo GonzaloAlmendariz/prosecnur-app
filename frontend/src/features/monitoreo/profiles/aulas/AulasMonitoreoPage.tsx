@@ -61,6 +61,7 @@ import { AulasCriterioDeAula } from "./AulasCriterioDeAula";
 import { AulasObservacionesDeCampo } from "./AulasObservacionesDeCampo";
 import { AulasTrabajoDeLosEquipos } from "./AulasTrabajoDeLosEquipos";
 import { AulasParteContraPlataforma } from "./AulasParteContraPlataforma";
+import { etiquetaDeEstrato } from "./etiquetaDeEstrato";
 import { AulasCadenaDeFiltros } from "./AulasCadenaDeFiltros";
 import { AulasFichaDeAula } from "./AulasFichaDeAula";
 import { dondeSeSaca } from "./dondeSeSaca";
@@ -74,6 +75,7 @@ import { AulasHistoriaCadena } from "./AulasHistoriaCadena";
 import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
+import { AulasAvanceProyectado } from "./AulasAvanceProyectado";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
 import { AulasAvanceParaCliente } from "./AulasAvanceParaCliente";
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
@@ -111,6 +113,7 @@ import { useRegistrarPestanasMonitoreo } from "../../useRegistrarPestanas";
 import { MonitoreoModuleChrome } from "../../shell/MonitoreoModuleChrome";
 import { MonitoreoOutputsWorkbench } from "../../salidas/MonitoreoOutputsWorkbench";
 import { MonitoreoWorkbenchChrome, MonitoreoWorkbenchHead, MonitoreoWorkbenchRail } from "../../components";
+import { ordenarPorFacultadYSexo } from "./ordenFacultadSexo";
 import { railDeAulas } from "./railDeAulas";
 import { parteDeCampo } from "./parteDeCampo";
 import {
@@ -257,12 +260,29 @@ function columnasDeCifra(
 // La banda vive en `kpisDeAulas.ts`: el KPI de cuota comparte cálculo con el
 // panel de Avance y así se puede probar sin montar la página.
 
-function AulasKpiBand({ dashboard, seccion, pestana }: {
+function AulasKpiBand({ dashboard, seccion, pestana, cargando = false }: {
   dashboard: MonitoreoAulasDashboard | null;
   seccion: MonitoreoSeccion;
   pestana: string;
+  /** El proyecto todavía se está leyendo y no hay dashboard con qué contar. */
+  cargando?: boolean;
 }) {
   const kpis = aulasKpis(dashboard, seccion, pestana);
+  // **Un cero mientras se carga no es un dato, es una cuenta que aún no se
+  // pudo hacer.**
+  //
+  // Sin dashboard, `aulasKpis` devuelve sus tiles con ceros, y la banda queda
+  // publicando «Agendadas 0 · de 0 que se van a visitar» sobre un proyecto de
+  // 193 titulares. Medido el 2026-08-24 abriendo el estudio real: **la lectura
+  // del proyecto tarda entre 48 s y 3 min** —el backend queda al 100 % de CPU y
+  // Plumber atiende en un solo hilo—, o sea minutos enteros enseñando ceros que
+  // se leen como «no hay nada». El panel de abajo sí declara «Preparando
+  // vista»; estas tarjetas contradecían ese mismo aviso dos centímetros arriba.
+  //
+  // El marco se queda (C2: no depende de los datos) y las cifras se declaran
+  // pendientes. Es el mismo criterio de `c4af437d`: cuando la cuenta no se
+  // puede hacer, se dice, no se resuelve a cero.
+  const enEspera = cargando && !dashboard;
   // Sin tiles no hay banda: pintarla vacía dejaría 111 px de marco sin nada
   // dentro, que es peor que la repetición que se viene a quitar.
   if (!kpis.length) return null;
@@ -280,8 +300,10 @@ function AulasKpiBand({ dashboard, seccion, pestana }: {
           <div
             key={kpi.label}
             className={`aulas-kpi aulas-kpi--${kpi.tone ?? "neutral"}`}
-            title={kpi.detalle}
-            aria-label={kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
+            title={enEspera ? "Todavía se está leyendo el proyecto" : kpi.detalle}
+            aria-label={enEspera
+              ? `${kpi.label}: todavía se está leyendo el proyecto`
+              : kpi.detalle ? `${kpi.label}: ${kpi.value} — ${kpi.detalle}` : undefined}
           >
             {/* Ícono y pista son el patrón de telefónico y acreditación: cada
                 cifra se reconoce de un vistazo y dice de dónde sale. Los llevan
@@ -292,8 +314,8 @@ function AulasKpiBand({ dashboard, seccion, pestana }: {
               <Icono size={13} aria-hidden="true" />
               {kpi.label}
             </span>
-            <strong>{kpi.value}</strong>
-            <small>{kpi.pista}</small>
+            <strong>{enEspera ? "—" : kpi.value}</strong>
+            <small>{enEspera ? "leyendo el proyecto" : kpi.pista}</small>
           </div>
         );
       })}
@@ -306,10 +328,16 @@ function DataTable({
   empty,
   preferredColumns = [],
   maxColumns = 8,
+  totalReal,
 }: {
   rows: Array<Record<string, unknown>>;
   empty: string;
   preferredColumns?: string[];
+  /**
+   * El total del motor cuando el payload viene topeado, para que el pie divida
+   * por el plan y no por lo que cupo en la respuesta. Ver `recorteTabla`.
+   */
+  totalReal?: number;
   /**
    * Cuántas columnas caben. Por defecto ocho, y lo que sobra hasta ocho lo
    * rellena el payload en su propio orden — que es como la tabla de brechas
@@ -361,7 +389,12 @@ function DataTable({
   // si el recorte dejara fuera justo la que pasa de 1, la misma columna se
   // formatearía distinto según cuántas filas quepan.
   const enProporcion = escalaDeProporciones(rows);
-  const recorteFilas = recorteTabla(rows.map((row) => presentAulasRow(row, enProporcion)), 400);
+  const recorteFilas = recorteTabla(
+    rows.map((row) => presentAulasRow(row, enProporcion)),
+    400,
+    "fila",
+    totalReal,
+  );
   const avisos = [recorteFilas.etiqueta, recorteColumnas.etiqueta].filter(Boolean);
   // Sobre las filas ya presentadas y ya recortadas: son las que se pintan.
   const cifras = columnasDeCifra(recorteFilas.visibles, columns);
@@ -1562,7 +1595,14 @@ function renderAulasView(
   // ? quotaRows : avance_por_estrato`—, y como un estudio de cursos-horario
   // siempre trae cuotas del calculo de muestra, el avance por estrato no se veia
   // nunca. El avance por aula ni siquiera estaba: vivia en Consultas, mezclado.
-  const quotaRows = (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>;
+  // Por FACULTAD, y dentro de ella por sexo. Venía ordenada por `missing`
+  // descendente, así que las dos celdas de una misma facultad salían separadas
+  // por doce filas y no se podía leer cómo va ninguna. La urgencia sigue: ahora
+  // la que más pide es la FACULTAD que más pide, no la celda suelta.
+  const quotaRows = ordenarPorFacultadYSexo(
+    (dashboard.quotas_sex_faculty ?? []) as Array<Record<string, unknown>>,
+    (fila) => Number(fila.missing ?? 0),
+  );
   // El detalle de abajo obedece al corte elegido arriba. Sin foco se ven las
   // doce celdas; con foco, sólo las de esa facultad o ese sexo.
   const quotaEnFoco = !foco ? quotaRows : quotaRows.filter((fila) => (
@@ -1574,6 +1614,20 @@ function renderAulasView(
   // alimenta el chip del encabezado y el cuerpo del panel: los dos no pueden
   // discrepar. La lógica vive en `avanceCuota.ts`, no aquí.
   const cuotaDiseno = avanceCuota(dashboard.avance_cuota);
+
+  // `stratum` es una CLAVE del motor —facultad / sexo predominante / tramo de
+  // tamaño, pegados—, no una etiqueta. Se traduce para la vista y sólo para la
+  // vista: el original sigue siendo el que empareja.
+  // Sin `useMemo`: `renderAulasView` NO es un componente —lo dice el comentario
+  // de su propia cabecera— y un hook aquí es una violación de las reglas de
+  // hooks que sólo funciona por accidente.
+  const estratoRowsLegibles = estratoRows.map((fila) => {
+    const clave = fila.stratum ?? fila.estrato;
+    if (typeof clave !== "string" || !clave) return fila;
+    return fila.stratum
+      ? { ...fila, stratum: etiquetaDeEstrato(clave) }
+      : { ...fila, estrato: etiquetaDeEstrato(clave) };
+  });
   const aulaRows = (dashboard.course_status ?? []) as Array<Record<string, unknown>>;
   const totalAulas = Number(dashboard.course_status_total ?? aulaRows.length) || aulaRows.length;
   // Cuántas de esas filas son EXTRAS del banco. Avance cuenta 236 donde Fuentes
@@ -1765,6 +1819,7 @@ function renderAulasView(
           resumen={dashboard.course_status_cobertura ?? null}
           sinMetaMotor={dashboard.course_status_sin_meta}
           bancoMotor={dashboard.course_status_banco}
+          dormidasMotor={dashboard.course_status_reservas_dormidas}
         />
       </section>
       <section
@@ -1813,6 +1868,11 @@ function renderAulasView(
           rows={aulaRows}
           empty="Todavía no hay respuestas que atribuir a un curso-horario."
           preferredColumns={["operational_code", "faculty", "label", "respuestas_validas", "expected_valid", "brecha", "application_state"]}
+          // El plan entero, no lo que cupo en el payload. `course_status` llega
+          // topeado a 500 filas y el pie decía «Mostrando 400 de 500» sobre un
+          // plan de 3.409: quien lo leía creía que faltaban 100. `totalAulas`
+          // ya traía el dato bueno acá al lado, sin que nadie lo usara.
+          totalReal={totalAulas}
         />
       </section>
       )}
@@ -1830,7 +1890,11 @@ function renderAulasView(
             contesta la pregunta del día siguiente —a dónde mando el equipo— que
             la tabla obliga a resolver restando de cabeza. */}
         <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
-        <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+        {/* La tabla dice el estrato con las mismas palabras que el eje del
+            gráfico que tiene encima. Enseñaba la clave cruda —«GESTIÓN Y ALTA
+            DIRECCIÓN / F / G3»— mientras el eje, ya traducido, decía otra cosa
+            para la misma fila. */}
+        <DataTable rows={estratoRowsLegibles} empty="No hay avance por estrato preparado." />
       </section>
       )}
       {pestana !== "efectividad" ? null : (
@@ -2162,6 +2226,14 @@ function renderAulasView(
             dos gráficos del mismo cruce le quitaban protagonismo al que sí
             contesta la pregunta. */}
         <AulasCuotasResumen filas={quotaRows as MonitoreoRow[]} />
+        {/* Y justo debajo, la otra pregunta: **¿va a llegar?** El resumen de
+            arriba dice dónde está cada celda; ésta proyecta lo que aportarán
+            las aulas que faltan por aplicar y avisa si el campo está rindiendo
+            distinto de lo previsto. Es el único panel del perfil que manda a
+            alguien a un aula, y por eso encabeza por lo que exige decisión. */}
+        <AulasAvanceProyectado
+          celdas={(dashboard.avance_sexo_facultad ?? []) as Array<Record<string, unknown>>}
+        />
         {/* Pirámide: una facultad por fila y un sexo a cada lado, cada uno
             contra SU propia meta. Se ve de qué lado va corta cada facultad, que
             es la pregunta con la que se sale a campo, y es además quien lleva el
@@ -2191,7 +2263,10 @@ function renderAulasView(
             Vuelve a pulsar su fila en la pirámide para ver todas.
           </p>
         ) : null}
-        <DataTable rows={quotaEnFoco} empty="El plan no declara composición por sexo para estos cursos-horario." />
+        {/* El vacío de la tabla, en términos de tabla. La causa la explica el
+            resumen que encabeza la sección: repetirla aquí la convertía en la
+            tercera copia literal de la misma frase en la misma pantalla. */}
+        <DataTable rows={quotaEnFoco} empty="Sin celdas de cuota que listar." />
       </section>
       )}
       {pestana !== "cuotas" ? null : (
@@ -2699,7 +2774,12 @@ export default function AulasMonitoreoPage() {
         )}
       >
 
-          <AulasKpiBand dashboard={dashboard} seccion={seccionActiva} pestana={pestanaActiva} />
+          <AulasKpiBand
+            dashboard={dashboard}
+            seccion={seccionActiva}
+            pestana={pestanaActiva}
+            cargando={loading}
+          />
           {seccionActiva === "fuentes" ? (
             <AulasApplicationFlow
               tone="monitoreo"

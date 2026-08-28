@@ -37,6 +37,7 @@ import { GlidingTabList } from "../../components/GlidingTabList";
 import { useCalcMuestraAutosave } from "./hooks/useCalcMuestraAutosave";
 import { useCalcMuestraStore, useMotorStore } from "./store";
 import { useMotorPersistencia } from "./motor/useMotorPersistencia";
+import { useAvisoCaducidadResuelta } from "./avisoCaducidadResuelta";
 import { ResumenDiseno } from "./motor/ResumenDiseno";
 import { usePerfilEfectivo } from "./motor/usePerfilEfectivo";
 import { EMPTY_WORKSPACE } from "./workspaceDefaults";
@@ -179,6 +180,7 @@ import { presentResultadoPrecision } from "./resultadoPrecision";
 import { resolveUniversityClassroomTab, resolveUniversityLocalTab, universitySectionStates, universitySidebarTabs, type CalcMuestraSidebarTab } from "./universidad/universidadTabs";
 import "./universidad/universidad-base.css";
 import "./calcMuestra.css";
+import { EstratosTable, MatrizServiciosTable, estrato, matrizGizEjemplo } from "./ComponenteTablas";
 
 type Msg = { kind: "info" | "warn" | "error"; text: string } | null;
 type GuidancePoint = {
@@ -1027,6 +1029,7 @@ export default function CalcMuestraPage() {
     setReporteMeta,
   } = useCalcMuestraStore();
   const [msg, setMsg] = useState<Msg>(null);
+  const limpiarMsg = useCallback(() => setMsg(null), []);
   const [busy, setBusy] = useState<string | null>(null);
   // F36 · El motor rechazó comparar por decisión caducada. Vive aquí porque lo
   // enciende la respuesta del motor y lo consume la pestaña que lo repara, que
@@ -1077,6 +1080,15 @@ export default function CalcMuestraPage() {
   useEffect(() => {
     aulasStateRef.current = aulasState;
   }, [aulasState]);
+  // Un aviso de caducidad que sobrevive a la reparación miente: la lógica y el
+  // porqué viven en avisoCaducidadResuelta.ts.
+  useAvisoCaducidadResuelta(msg, limpiarMsg, {
+    frameHash: aulasState?.frame?.frame_hash,
+    contratoHash: aulasState?.frame?.alumnos_por_ch?.frame_hash,
+    decisionHashes: estudio.componentes.flatMap((comp) =>
+      (comp.resultado?.aulas_por_estrato ?? []).map((fila) => fila.alumnos_por_ch?.frame_hash),
+    ),
+  });
   const [referenciaAsistencia, setReferenciaAsistencia] =
     useState<CalcMuestraReferenciaAsistencia | null>(null);
   const [aulasStateChecked, setAulasStateChecked] = useState(false);
@@ -1806,6 +1818,34 @@ export default function CalcMuestraPage() {
     throw new Error("La lectura histórica se importa como selección o agenda; no reconstruye el marco base.");
   }
 
+  /**
+   * Las fuentes que se mandarían a construir AHORA, en la forma que el marco
+   * firma al construirse (`sources_used`).
+   *
+   * Sale de `universityMarcoPayload`, la misma función que arma el payload:
+   * derivarla aparte era pedir que las dos versiones divergieran, que es
+   * exactamente el defecto que este mecanismo existe para cazar.
+   *
+   * Si el payload no se puede armar —faltan fuentes— devuelve lista vacía: no
+   * hay nada que comparar y el marco, si existe, es de otras fuentes.
+   */
+  function firmaDeFuentesActuales(): Array<{ role: string; file_id?: string; sheet?: string }> {
+    let payload: Record<string, unknown>;
+    try {
+      payload = universityMarcoPayload(workspace) as unknown as Record<string, unknown>;
+    } catch {
+      return [];
+    }
+    const roles = ["base_madre", "estudiantes", "inscripciones", "catalogo_curso_horario"];
+    return roles
+      .map((role) => ({
+        role,
+        file_id: (payload[`${role}_file_id`] as string | undefined) ?? undefined,
+        sheet: (payload[`${role}_sheet`] as string | undefined) ?? undefined,
+      }))
+      .filter((item) => Boolean(item.file_id));
+  }
+
   async function construirMarcoDesdeFuentes(nextWorkspace: CalcMuestraWorkspace = workspace) {
     setMsg(null);
     setBusy("Leyendo base institucional");
@@ -2477,7 +2517,27 @@ export default function CalcMuestraPage() {
     navegarPestanaLocal(tab.targetId);
   }
 
-  if (!hydrated) return <LoadingBlock label="Cargando mesa de muestra..." />;
+  // Declara que está cargando, en vez de no declarar nada.
+  //
+  // Este early return se pinta mientras el store se hidrata: no es el BootGate
+  // (hay proyecto) ni la pantalla de warm start (otro selector), y sin marca el
+  // puente respondía `sin-marca-de-readiness` — que se lee como «esta pestaña
+  // no declara readiness» y acusa a la vista que se intentaba medir. Medido el
+  // 2026-08-25: con la máquina cargada esta ventana se alarga y el QA cae
+  // dentro; fue la causa REAL de los rojos de `def-explorador`,
+  // `marco-poblacion`, `marco-aulas` y `calculo-distribucion`, y de que se
+  // «repararan» cuatro pestañas que no tenían nada.
+  //
+  // `false` es la respuesta correcta y no un parche: la mesa AFIRMA que todavía
+  // no está lista, el puente devuelve `marca-en-false` y el runner sigue
+  // esperando en vez de culpar a la pestaña.
+  if (!hydrated) {
+    return (
+      <div data-audit-ready="false" data-audit-desk="calc-muestra-hidratando">
+        <LoadingBlock label="Cargando mesa de muestra..." />
+      </div>
+    );
+  }
 
   return (
     <PageFrame
@@ -2594,7 +2654,13 @@ export default function CalcMuestraPage() {
             }
           />
           {desk === "opinion_universitaria" && (
-            <ResumenDiseno motor={universityMotor} estudio={estudio} workspace={workspace} aulasState={aulasState} />
+            <ResumenDiseno
+              motor={universityMotor}
+              estudio={estudio}
+              workspace={workspace}
+              aulasState={aulasState}
+              fuentesActuales={firmaDeFuentesActuales()}
+            />
           )}
         </div>
       }
@@ -2693,6 +2759,7 @@ export default function CalcMuestraPage() {
               onPatchEstudio={patchEstudio}
               workspace={workspace}
               aulasState={aulasState}
+              aulasStateComprobado={aulasStateChecked}
               motorPideRefirmarAlumnosCh={refirmaAlumnosCh}
               referenciaAsistencia={referenciaAsistencia}
               motor={universityMotor}
@@ -3710,193 +3777,6 @@ function NestedOutputs({ componentes }: { componentes: CalcMuestraComponente[] }
   );
 }
 
-function EstratosTable({
-  comp,
-  onComponente,
-  variant = "estratos",
-}: {
-  comp: CalcMuestraComponente;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-  variant?: "estratos" | "facultades";
-}) {
-  const estratos = comp.marco.estratos ?? [];
-  const facultades = variant === "facultades";
-  const title = facultades ? "Facultades del marco" : "Estratos del marco";
-  const primaryLabel = facultades ? "Facultad" : "Estrato";
-  const subALabel = facultades ? "Mujeres" : "Sub A";
-  const subBLabel = facultades ? "Hombres" : "Sub B";
-  const avgLabel = "Promedio unidad";
-  const tauLabel = "Rendimiento";
-  const addLabel = facultades ? "Agregar facultad" : "Agregar estrato";
-  function update(index: number, patch: Partial<CalcMuestraEstrato>) {
-    const next = estratos.map((e, i) => (i === index ? { ...e, ...patch } : e));
-    const total = next.reduce((sum, e) => sum + safeNumber(e.N), 0);
-    onComponente(comp.id, { marco: { estratos: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-  }
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>{title}</strong>
-      </div>
-      <div className="cmv2-table-wrap">
-        <table className="cmv2-table">
-          <thead>
-            <tr>
-              <th>{primaryLabel}</th>
-              <th>Total</th>
-              <th>{subALabel}</th>
-              <th>{subBLabel}</th>
-              {facultades && <th>Error facultad</th>}
-              {facultades && <th>Confianza</th>}
-              {facultades && <th>p éxito</th>}
-              {facultades && <th>+ aulas</th>}
-              {!facultades && <th>{avgLabel}</th>}
-              {!facultades && <th>{tauLabel}</th>}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {estratos.map((e, i) => (
-              <tr key={e.id}>
-                <td><input className="cmv2-table-input" value={e.label} onChange={(ev) => update(i, { label: ev.currentTarget.value })} /></td>
-                <td><NumberCell value={e.N} onChange={(v) => {
-                  const N = Math.round(v);
-                  update(i, facultades ? { N, e_facultad: universityFacultyError(N), confianza_facultad: universityFacultyConfidence(N) } : { N });
-                }} /></td>
-                <td><NumberCell value={e.N_a} onChange={(v) => update(i, { N_a: Math.round(v) })} /></td>
-                <td><NumberCell value={e.N_b} onChange={(v) => update(i, { N_b: Math.round(v) })} /></td>
-                {facultades && <td><NumberCell value={e.e_facultad} step={0.005} suffix="prop." onChange={(v) => update(i, { e_facultad: v })} /></td>}
-                {facultades && <td><NumberCell value={e.confianza_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { confianza_facultad: v, z_facultad: undefined })} /></td>}
-                {facultades && <td><NumberCell value={e.p_facultad} step={0.01} suffix="prop." onChange={(v) => update(i, { p_facultad: v })} /></td>}
-                {facultades && <td><NumberCell value={e.aulas_extra_operativas} step={1} onChange={(v) => update(i, { aulas_extra_operativas: Math.max(0, Math.round(v)) })} /></td>}
-                {!facultades && <td><NumberCell value={e.promedio_conglomerado} onChange={(v) => update(i, { promedio_conglomerado: v })} /></td>}
-                {!facultades && <td><NumberCell value={e.tau} step={0.05} onChange={(v) => update(i, { tau: v })} /></td>}
-                <td>
-                  <button
-                    type="button"
-                    className="cmv2-icon-button"
-                    onClick={() => {
-                      const next = estratos.filter((_, idx) => idx !== i);
-                      const total = next.reduce((sum, item) => sum + safeNumber(item.N), 0);
-                      onComponente(comp.id, { marco: { estratos: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-                    }}
-                    aria-label={facultades ? "Eliminar facultad" : "Eliminar estrato"}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="cmv2-inline-actions">
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => {
-            const next = [
-              ...estratos,
-              estrato(facultades ? `Facultad ${estratos.length + 1}` : `Estrato ${estratos.length + 1}`, 0, {
-                sub_a_label: facultades ? "Mujeres" : "Sub A",
-                sub_b_label: facultades ? "Hombres" : "Sub B",
-                e_facultad: facultades ? universityFacultyError(0) : undefined,
-                confianza_facultad: facultades ? universityFacultyConfidence(0) : undefined,
-                p_facultad: facultades ? 0.5 : undefined,
-                aulas_extra_operativas: facultades ? 1 : undefined,
-              }),
-            ];
-            onComponente(comp.id, { marco: { estratos: next } });
-          }}
-        >
-          <Plus size={14} /> {addLabel}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function MatrizServiciosTable({
-  comp,
-  onComponente,
-}: {
-  comp: CalcMuestraComponente;
-  onComponente: (id: string, patch: ComponentePatch) => void;
-}) {
-  const matriz = comp.marco.matriz_operativa ?? [];
-  function update(index: number, patch: Partial<CalcMuestraMatrizOperativaCelda>) {
-    const next = matriz.map((m, i) => (i === index ? { ...m, ...patch } : m));
-    const total = next.reduce((sum, item) => sum + safeNumber(item.N), 0);
-    onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-  }
-  return (
-    <section className="cmv2-panel">
-      <div className="cmv2-panel-head">
-        <span className="cmv2-eyebrow">Tabla editable</span>
-        <strong>Atenciones por servicio y municipalidad</strong>
-      </div>
-      <div className="cmv2-table-wrap">
-        <table className="cmv2-table">
-          <thead>
-            <tr>
-              <th>Municipalidad / territorio</th>
-              <th>Servicio</th>
-              <th>Volumen del marco</th>
-              <th>Notas</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {matriz.map((row, i) => (
-              <tr key={row.id}>
-                <td><input className="cmv2-table-input" value={row.territorio} onChange={(e) => update(i, { territorio: e.currentTarget.value })} /></td>
-                <td><input className="cmv2-table-input" value={row.servicio} onChange={(e) => update(i, { servicio: e.currentTarget.value })} /></td>
-                <td><NumberCell value={row.N} onChange={(v) => update(i, { N: Math.round(v) })} /></td>
-                <td><input className="cmv2-table-input" value={row.notas} onChange={(e) => update(i, { notas: e.currentTarget.value })} /></td>
-                <td>
-                  <button
-                    type="button"
-                    className="cmv2-icon-button"
-                    onClick={() => {
-                      const next = matriz.filter((_, idx) => idx !== i);
-                      const total = next.reduce((sum, item) => sum + safeNumber(item.N), 0);
-                      onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-                    }}
-                    aria-label="Eliminar fila"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="cmv2-inline-actions">
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => onComponente(comp.id, { marco: { matriz_operativa: [...matriz, matrizCell()] } })}
-        >
-          <Plus size={14} /> Agregar celda
-        </button>
-        <button
-          type="button"
-          className="cmv2-ghost"
-          onClick={() => {
-            const next = matrizGizEjemplo();
-            const total = next.reduce((sum, item) => sum + item.N, 0);
-            onComponente(comp.id, { marco: { matriz_operativa: next, marco_validado: total, universo_bruto: total, marco_contactable: total } });
-          }}
-        >
-          <Wand2 size={14} /> Cargar ejemplo GIZ
-        </button>
-      </div>
-    </section>
-  );
-}
-
 function VariablesControl({
   workspace,
   onWorkspace,
@@ -3983,66 +3863,6 @@ function LegacyDesk({ onNew, onClear }: { onNew: () => void; onClear: () => void
       </div>
     </section>
   );
-}
-
-function estrato(
-  label: string,
-  N: number,
-  overrides: Partial<CalcMuestraEstrato> = {},
-): CalcMuestraEstrato {
-  const a = Math.floor(N / 2);
-  return {
-    id: uid("est"),
-    label,
-    N,
-    N_a: a,
-    N_b: N - a,
-    sub_a_label: overrides.sub_a_label ?? "Sub A",
-    sub_b_label: overrides.sub_b_label ?? "Sub B",
-    e_facultad: overrides.e_facultad,
-    p_facultad: overrides.p_facultad,
-    confianza_facultad: overrides.confianza_facultad,
-    z_facultad: overrides.z_facultad,
-    cuota_fija: overrides.cuota_fija,
-    sobremuestra_fija: overrides.sobremuestra_fija,
-    aulas_base_fijas: overrides.aulas_base_fijas,
-    aulas_extra_operativas: overrides.aulas_extra_operativas,
-    promedio_conglomerado: overrides.promedio_conglomerado ?? 25,
-    tau: overrides.tau ?? 0.7,
-  };
-}
-
-function matrizCell(): CalcMuestraMatrizOperativaCelda {
-  return {
-    id: uid("cell"),
-    territorio: "Territorio",
-    servicio: "Servicio",
-    N: 0,
-    notas: "",
-  };
-}
-
-function matrizGizEjemplo(): CalcMuestraMatrizOperativaCelda[] {
-  return [
-    ["Villa El Salvador", "ULE", 280],
-    ["Villa El Salvador", "CIAM", 210],
-    ["Villa El Salvador", "OMAPED", 110],
-    ["Villa El Salvador", "DEMUNA", 213],
-    ["San Juan de Lurigancho", "ULE", 90],
-    ["San Juan de Lurigancho", "CIAM", 460],
-    ["San Juan de Lurigancho", "OMAPED", 230],
-    ["San Juan de Lurigancho", "DEMUNA", 131],
-    ["Ate", "ULE", 165],
-    ["Ate", "CIAM", 135],
-    ["Ate", "OMAPED", 145],
-    ["Ate", "DEMUNA", 271],
-  ].map(([territorio, servicio, N]) => ({
-    id: uid("cell"),
-    territorio: String(territorio),
-    servicio: String(servicio),
-    N: Number(N),
-    notas: "",
-  }));
 }
 
 function labelMarcoOcasional(kind: MarcoOcasional) {

@@ -54,8 +54,8 @@ test_that("el aviso explica la escala, no solo el numero", {
   # «Score efectivo 0.0» no le dice a nadie si 0 es bueno o malo.
   plan <- list(.mrp_aula("CH 1", "Ciencias", 30), .mrp_aula("CH 2", "Letras", 30))
   detalle <- as.character(.mrp_aviso(plan)$detail)
-  expect_match(detalle, "100 = identica")
-  expect_match(detalle, "5 pp o mas")
+  expect_match(detalle, "100 = idéntica")
+  expect_match(detalle, "5 pp o más")
   expect_match(detalle, "pp en promedio")
 })
 
@@ -65,5 +65,5 @@ test_that("sin muestra efectiva lo dice en vez de fingir un puntaje", {
   # Ni «ok» —no hay nada que aprobar— ni alerta de representatividad: no hay
   # desvio, hay ausencia.
   expect_identical(as.character(aviso$status), "review")
-  expect_match(as.character(aviso$detail), "Todavia no hay muestra efectiva|Sin datos suficientes")
+  expect_match(as.character(aviso$detail), "Todavía no hay muestra efectiva|Sin datos suficientes")
 })

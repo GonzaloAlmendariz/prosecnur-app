@@ -222,9 +222,27 @@
   course_ranges <- .cm_criterios_normalize_nivel_por_unidad(x$courseLevelRanges %||% x$rangos_nivel_curso)
   min_elig <- NULL
   me <- x$minEligible %||% x$min_elegibles
-  if (is.list(me) && !is.null(me$threshold)) {
+  bf_in <- if (is.list(me)) me$byFaculty %||% me$por_facultad else NULL
+  # **El umbral NO es obligatorio para que existan mínimos por facultad.**
+  #
+  # La guarda pedía `threshold` y sólo `threshold`. Pero la app manda el umbral
+  # general únicamente cuando el usuario lo cambia: si deja el general por
+  # defecto y declara diez mínimos propios, el payload viaja como
+  # `{byFaculty: {...}}` SIN threshold — y esta condición lo descartaba entero.
+  #
+  # Medido en la app el 2026-08-25 sobre HSVG 2026: se declararon y confirmaron
+  # los diez mínimos por facultad del diseño, la tarjeta mostraba «Propio: ≥ 20»,
+  # el contador de pendientes se ponía en cero y el `.pulso` guardaba
+  # `minEligible: {}`. El marco se construyó con el mismo mínimo para las quince
+  # facultades: Artes Escénicas quedó con 33 cursos-horario en vez de 92.
+  #
+  # Se conserva la intención original —que una `attendance_rate` suelta no
+  # active la suite— exigiendo threshold O mínimos por facultad, nunca la tasa
+  # sola. Sin threshold viaja NA y `.cm_criterios_min_eligible_efectivo()` cae
+  # a `min_eligible_per_class`, que es el general declarado.
+  if (is.list(me) && (!is.null(me$threshold) || (is.list(bf_in) && length(bf_in)))) {
     by_fac <- list()
-    bf <- me$byFaculty %||% me$por_facultad
+    bf <- bf_in
     if (is.list(bf) && length(bf)) {
       for (fac in names(bf)) {
         k <- .cm_criterios_fac_key(fac)
@@ -1347,7 +1365,11 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     if (!nzchar(vk[[i]])) return(TRUE)
     cats <- .cm_criterios_eff_cats(crit, faculty_keys[[i]])
     if (!length(cats)) return(TRUE)
+    # Primero la clave vigente —que aquí puede ser el bucket de vacíos, ya
+    # sustituido arriba— y sólo si no casa, la anterior al arreglo de la eñe:
+    # las categorías las guarda la config y el normalizador cambió después.
     inset <- vk[[i]] %in% cats
+    if (!inset) inset <- isTRUE(.cm_aulas_clave_en(values[[i]], cats))
     if (identical(crit$mode, "exclude")) !inset else inset
   }, logical(1))
 }
@@ -1443,6 +1465,16 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
 .cm_criterios_eval_course_ranges <- function(course_pairs, ranges, faculty_keys = NULL) {
   n <- length(course_pairs)
   if (!length(ranges)) return(rep(TRUE, n))
+  # Claves guardadas antes del arreglo de la eñe, traducidas con las etiquetas
+  # reales del marco — igual que `crit$exceptions` y `minEligible$byFaculty`.
+  # Sin esto el rango de «ARTE Y DISEÑO» viaja como `arte_y_dise_no`, no casa con
+  # ninguna facultad, y como el mapa NO está vacío el criterio sí se aplica: el
+  # bucle no encuentra par que decida y devuelve FALSE. Es decir, la facultad
+  # entera sale del marco — incluidas las aulas cuyo nivel está DENTRO del rango
+  # declarado. Medido: nivel 3 contra un rango 1–5 daba excluida.
+  # La canonización va aquí y no en el llamador porque los tres consumidores
+  # —marco, cascada viva y radiografía— pasan por esta función.
+  if (length(faculty_keys)) ranges <- .cm_aulas_canonizar_claves(ranges, faculty_keys)
   claves <- .cm_criterios_fac_key(names(ranges))
   # La EXENCION se decide contra la facultad DEL AULA, no contra la del curso.
   # Medido en HSVG2026: un curso de Estudios Generales esta catalogado bajo la
@@ -1491,6 +1523,37 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     }
     FALSE
   }, logical(1))
+}
+
+# El umbral general falta, pero los mínimos por facultad NO se tiran.
+#
+# `.cm_criterios_normalize_seleccion()` ya conserva `{byFaculty: {...}}` sin
+# `threshold` —la app manda el general sólo cuando el usuario lo cambia—, pero
+# sus TRES consumidores repetían la guarda vieja `!is.finite(threshold)` y
+# reemplazaban el objeto entero por uno con `byFaculty = list()`. Es decir: la
+# normalización salvaba los mínimos propios y el evaluador los descartaba tres
+# líneas después, sin aviso.
+#
+# Medido el 2026-08-25 sobre HSVG26DEF: `minEligible = {threshold: NA,
+# byFaculty: {ciencias_e_ingenieria: 20}}` y el marco construido dejó DENTRO
+# 333 de las 899 aulas incluidas de Ingeniería con menos de 20 elegibles —una
+# con 1—, y ninguna fila excluida por `min_eligible_per_class`.
+#
+# Los tres sitios eran el marco (`.cm_criterios_evaluar_aula`), la cascada viva
+# y la radiografía por criterio, así que el «quedan fuera» de la tarjeta tampoco
+# se movía al cambiar el mínimo: los tres evaluaban el mismo umbral general.
+.cm_criterios_min_elig_con_fallback <- function(min_elig, fallback) {
+  piso <- max(1L, .cm_aulas_int(fallback, 1L))
+  por_facultad <- if (is.list(min_elig)) min_elig$byFaculty %||% list() else list()
+  # Sin umbral propio NI mínimos por facultad no hay criterio del usuario: manda
+  # el piso legacy, como antes.
+  if (!is.list(min_elig) || (!is.finite(min_elig$threshold) && !length(por_facultad))) {
+    return(list(threshold = piso, byFaculty = list()))
+  }
+  # Con mínimos por facultad y sin general, el general es el piso y cada
+  # facultad con valor propio lo sobrescribe en `.cm_criterios_eval_min_eligible`.
+  if (!is.finite(min_elig$threshold)) min_elig$threshold <- piso
+  min_elig
 }
 
 # Umbral de matriculados/población por aula con override por facultad.
@@ -1561,6 +1624,9 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     crit <- by[[id]]
     if (!identical(crit$scope, "aula")) next
     if (!.cm_criterios_regla_aula_accionable(crit)) next
+    # Las excepciones se buscan por clave de facultad: misma traducción que el
+    # mínimo por facultad (calc_muestra_aulas_claves_legadas.R).
+    crit$exceptions <- .cm_aulas_canonizar_claves(crit$exceptions, vals$faculty)
     empty_key <- if (id %in% empty_bucket_cols) registry[[id]]$emptyBucket$key else NULL
     flag <- switch(crit$kind,
       flat = .cm_criterios_eval_flat_vec(vals[[id]] %||% rep("", n), crit, fac_keys,
@@ -1592,10 +1658,19 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
   # El FLAG se conserva —el corte debe seguir aplicándose— y sólo se calla la
   # razón: cuando el umbral es heredado, quien la publica es el filtro legacy,
   # que es de quien realmente viene la decisión.
-  min_elig_propio <- !is.null(min_elig) && is.finite(min_elig$threshold)
-  if (!min_elig_propio) {
-    min_elig <- list(threshold = max(1L, .cm_aulas_int(min_eligible_fallback, 1L)), byFaculty = list())
+  # Config guardada antes del arreglo de la eñe: sus claves por facultad se
+  # traducen a la vigente con las etiquetas reales del marco, o el override de
+  # «ARTE Y DISEÑO» se ignora en silencio (calc_muestra_aulas_claves_legadas.R).
+  if (is.list(min_elig)) {
+    min_elig$byFaculty <- .cm_aulas_canonizar_claves(min_elig$byFaculty, vals$faculty)
   }
+  # La razón se atribuye al criterio del usuario sólo cuando el usuario lo
+  # declaró; con el piso legacy la exclusión ya la nombra el marco base. Un
+  # mínimo POR FACULTAD sin umbral general también es criterio del usuario: sin
+  # esta segunda condición, las aulas que caen por él se excluían sin razón.
+  min_elig_propio <- is.list(min_elig) &&
+    (is.finite(min_elig$threshold) || length(min_elig$byFaculty %||% list()) > 0L)
+  min_elig <- .cm_criterios_min_elig_con_fallback(min_elig, min_eligible_fallback)
   add(
     "minEligible",
     .cm_criterios_eval_min_eligible(vals$eligible_n, fac_keys, min_elig),

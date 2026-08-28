@@ -127,6 +127,30 @@
   gap: 7px;
 }
 
+/* La ficha de ensayo va separada de los tres botones de formato por una
+   hairline: no es un formato más del paquete, es una hoja que NO se reparte. */
+.rec-prueba-campo {
+  border-top: 1px solid var(--pulso-border);
+  display: block;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.rec-prueba-fila {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+/* El campo cede el ancho sobrante y el botón conserva el suyo: al revés, un
+   código largo empujaba «Generar» fuera del panel. */
+.rec-prueba-fila input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
 .rec-capability-grid {
   display: grid;
   gap: 8px;
@@ -211,4 +235,99 @@
    error— siguen entrando como filas implícitas `auto` debajo. */
 .rec-access-layout > .rec-access-result {
   grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* El histórico de fichas de prueba: cuáles se hicieron y con qué enlace. */
+.rec-prueba-historico {
+  margin-top: 10px;
+}
+
+.rec-prueba-historico h4 {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.rec-prueba-historico ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-prueba-historico li {
+  align-items: center;
+  background: var(--pulso-bg);
+  border: 1px solid var(--pulso-border);
+  border-radius: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 6px 9px;
+}
+
+/* Una ficha de un despliegue anterior sigue sirviendo para la hoja repartida,
+   pero no es la que se genera hoy: se atenúa y lo dice, en vez de parecer
+   vigente. */
+.rec-prueba-historico li.is-desfasada {
+  border-style: dashed;
+  opacity: 0.72;
+}
+
+.rec-prueba-codigo {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rec-prueba-codigo em {
+  color: var(--pulso-text-muted);
+  font-style: normal;
+}
+
+.rec-prueba-codigo small {
+  color: var(--pulso-text-muted);
+  font-size: 11px;
+}
+
+.rec-prueba-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rec-prueba-acciones a,
+.rec-prueba-acciones button {
+  align-items: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--pulso-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  gap: 4px;
+  padding: 3px 7px;
+  text-decoration: none;
+}
+
+.rec-prueba-acciones a:hover,
+.rec-prueba-acciones button:hover:not(:disabled) {
+  background: var(--pulso-surface);
+  border-color: var(--pulso-border);
+  color: var(--pulso-text);
+}
+
+.rec-prueba-acciones button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }

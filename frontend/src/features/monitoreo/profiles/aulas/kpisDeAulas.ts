@@ -270,17 +270,25 @@ function cierreKpi(dashboard: MonitoreoAulasDashboard | null): AulasKpi {
     (dashboard?.quotas_sex_faculty ?? []) as MonitoreoRow[],
   );
   const celdas = proyeccion.flatMap((f) => f.cuotas);
-  const cierran = celdas.filter((c) => c.alcanza).length;
+  // Sólo las celdas que declaran objetivo entran en la cuenta. Sin este filtro,
+  // una celda con meta 0 da `faltan === 0` y por tanto `alcanza === true`: el
+  // KPI contaba la ausencia de objetivo como un cierre logrado. En el estudio
+  // real, sus «10 cierran» eran exactamente las 10 celdas sin cuota, con cero
+  // aulas agendadas y cero aplicadas.
+  const evaluables = celdas.filter((c) => c.meta > 0);
+  const sinObjetivo = celdas.length - evaluables.length;
+  const cierran = evaluables.filter((c) => c.alcanza).length;
+  const pistaSinObjetivo = sinObjetivo ? ` · ${fmt(sinObjetivo)} sin objetivo declarado` : "";
   return {
     label: "Cierran con lo agendado",
     icono: CalendarRange,
-    value: celdas.length ? fmt(cierran) : "S/D",
-    pista: celdas.length
-      ? `de ${fmt(celdas.length)} celdas sexo × facultad`
+    value: evaluables.length ? fmt(cierran) : "S/D",
+    pista: evaluables.length
+      ? `de ${fmt(evaluables.length)} celdas sexo × facultad con objetivo${pistaSinObjetivo}`
       : "el estudio no declara cuotas por sexo y facultad",
-    tone: celdas.length && cierran < celdas.length ? "warn" : "neutral",
-    detalle: celdas.length
-      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las que no cierran se ven una a una en Cuotas."
+    tone: evaluables.length && cierran < evaluables.length ? "warn" : "neutral",
+    detalle: evaluables.length
+      ? "Cuenta las celdas que llegarían a su cuota con las aulas YA agendadas, no al ritmo observado: la agenda son aulas con fecha, no una proyección. Las celdas que no declaran cuota quedan fuera de la cuenta, porque no hay objetivo que cerrar. Las que no cierran se ven una a una en Cuotas."
       : undefined,
   };
 }
@@ -566,7 +574,16 @@ export function aulasKpis(
         label: "Cadenas sin cerrar",
         icono: Link2Off,
         value: fmt(cadenas.abiertas),
-        pista: "ningún eslabón llegó a su meta",
+        // **La pista dice por qué está abierta, y son dos motivos distintos.**
+        // «Ningún eslabón llegó a su meta» acusa de haber fallado; sobre un
+        // operativo recién empezado —193 abiertas y 183 sin una sola respuesta—
+        // eso convierte trabajo pendiente en fracaso. Cuando todas están sin
+        // estrenar se dice eso, y cuando es mezcla se declara el reparto.
+        pista: cadenas.sinRespuestaAlguna >= cadenas.abiertas
+          ? "todavía sin una sola respuesta"
+          : cadenas.sinRespuestaAlguna > 0
+            ? `${fmt(cadenas.sinRespuestaAlguna)} sin una sola respuesta · el resto no llegó a su meta`
+            : "ningún eslabón llegó a su meta",
         tone: cadenas.abiertas ? "warn" : "neutral",
         detalle: `${fmt(cadenas.cerraronEnTitular)} cerraron con el titular · ${fmt(cadenas.cerraronEnReemplazo)} con un reemplazo · ${fmt(cadenas.sinReserva)} sin reserva asignada`,
       },
@@ -591,7 +608,12 @@ export function aulasKpis(
   // ya publica esa cuenta, calculada en el motor sobre TODAS las filas y con el
   // filtro de validez aplicado, asi que se lee de ahi en vez de recomponerla.
   const cobertura = (dashboard?.course_status_cobertura ?? []) as Array<{ clave?: unknown; aulas?: unknown }>;
-  const cumplen = Number(cobertura.find((c) => c.clave === "cumplida")?.aulas ?? 0) || 0;
+  // La clave es `pleno` desde el recorte de tramos: `cumplida` significaba DOS
+  // cosas —este tramo del aula y el estado de la celda facultad x sexo— y por
+  // eso se separaron. Si el motor deja de publicarla, esto da 0 y el rotulo
+  // miente en silencio; el test de kpis fija el 7 del fixture para que ese caso
+  // falle en vez de pasar desapercibido.
+  const cumplen = Number(cobertura.find((c) => c.clave === "pleno")?.aulas ?? 0) || 0;
   // El denominador tambien sale del motor: son las filas con meta, o sea el
   // total menos las que no la declaran. Contarlo sobre `course_status` lo dejaba
   // a merced del recorte a 500 filas.
@@ -601,7 +623,16 @@ export function aulasKpis(
   // mismo motivo por el que ya no entraba en `brechas`, asi que el denominador
   // de esta cifra tiene que seguirlo o diria «0 de 267» sobre un reparto de 194.
   const banco = Number(dashboard?.course_status_banco ?? 0) || 0;
-  const conMeta = Math.max(0, totalDelMotor - sinMeta - banco);
+  // **El denominador lo publica el motor.** Restarlo aqui obligaba a conocer
+  // TODAS las poblaciones que no entran y a acertar con todas: faltaban las
+  // reservas de cadena dormidas, que no son banco, y el KPI decia «de 360»
+  // sobre un plan de 30 slots con 330 reservas detras — 12 veces el
+  // denominador real, en la misma pantalla donde la agenda decia «de 30 que se
+  // van a visitar». La resta queda de respaldo para un payload viejo.
+  const conMetaDelMotor = Number(dashboard?.course_status_con_meta ?? NaN);
+  const conMeta = Number.isFinite(conMetaDelMotor)
+    ? conMetaDelMotor
+    : Math.max(0, totalDelMotor - sinMeta - banco);
   return [
     // **Las aulas aplicadas van PRIMERO, y antes no estaban.**
     //
