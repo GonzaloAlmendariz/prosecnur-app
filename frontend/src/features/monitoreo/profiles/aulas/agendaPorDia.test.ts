@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { agendaPorDia } from "./agendaPorDia";
+import { agendaPorDia, etiquetaDeFecha, fechaIsoReal } from "./agendaPorDia";
 
 /**
  * La sección se llama Agenda y no se podía leer como agenda.
@@ -68,5 +68,37 @@ describe("la agenda por día", () => {
     expect(res.dias[0].cumplen).toBe(1);
     // Sin agendar más agendadas: las dos que todavía no recibieron respuestas.
     expect(res.dias[0].sinEmpezar).toBe(2);
+  });
+});
+
+describe("etiquetaDeFecha", () => {
+  it("compone el dia de la semana desde la fecha", () => {
+    expect(etiquetaDeFecha("2026-09-14")).toBe("Lunes 14/09");
+    expect(etiquetaDeFecha("2026-09-20")).toBe("Domingo 20/09");
+    expect(etiquetaDeFecha("")).toBe("Sin fecha agendada");
+  });
+
+  it("una fecha IMPOSIBLE se devuelve cruda, sin inventarle dia de la semana", () => {
+    // `Date.UTC(2026, 8, 31)` no falla: corre al 1 de octubre y devuelve un
+    // instante valido, asi que `Number.isNaN` no lo caza. El numero salia del
+    // texto crudo y el nombre de la fecha corrida: «Jueves 31/09», un dia de la
+    // semana de otra fecha pegado a una que no existe.
+    expect(etiquetaDeFecha("2026-09-31")).toBe("2026-09-31");
+    expect(etiquetaDeFecha("2026-02-30")).toBe("2026-02-30");
+    expect(etiquetaDeFecha("2026-13-01")).toBe("2026-13-01");
+  });
+
+  it("el 29 de febrero existe en bisiesto y no en el resto", () => {
+    expect(etiquetaDeFecha("2028-02-29")).toBe("Martes 29/02");
+    expect(etiquetaDeFecha("2026-02-29")).toBe("2026-02-29");
+  });
+});
+
+describe("fechaIsoReal", () => {
+  it("acepta lo que existe y rechaza lo que no", () => {
+    expect(fechaIsoReal("2026-09-14")?.dia).toBe(14);
+    expect(fechaIsoReal("2026-09-31")).toBeNull();
+    expect(fechaIsoReal("")).toBeNull();
+    expect(fechaIsoReal("no-es-fecha")).toBeNull();
   });
 });

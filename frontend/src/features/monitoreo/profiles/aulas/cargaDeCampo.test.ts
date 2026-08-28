@@ -236,6 +236,28 @@ describe("leerFecha y diaDeFecha", () => {
     expect(leerFecha(null)).toBe("");
   });
 
+  it("una fecha imposible no se corre al dia siguiente: no hay dia", () => {
+    // Sin la comprobacion, `2026-09-31` se convertia en el 1 de octubre —jueves—
+    // y `bloqueDeFecha` elegia el bloque del jueves para un curso que no se
+    // dicta ese dia, pintando la ventana firme en la franja equivocada.
+    expect(diaDeFecha("2026-09-31")).toBe(-1);
+    expect(diaDeFecha("2026-02-30")).toBe(-1);
+  });
+
+  it("la fila de una fecha imposible cae al bloque preliminar, no a uno ajeno", () => {
+    const cal = calcularCarga(
+      [aula({
+        classroom_id: "a", sesiones_dia_hora: "MAR 08:00-10:00 · JUE 15:00-17:00",
+        scheduled_time: "08:00", scheduled_moment: "final", scheduled_date: "2026-09-31",
+      })],
+      { duracionMin: 30, eje: "calendario" },
+    );
+    // Cae en el bloque del MARTES —la primera sesion— y no en el del jueves,
+    // que es al que la fecha corrida habria apuntado.
+    expect(cal.firmes[0][cal.franjas.indexOf(9 * 60 + 30)]).toBe(1);
+    expect(cal.firmes[0][cal.franjas.indexOf(16 * 60 + 30)]).toBe(0);
+  });
+
   it("traduce la fecha al dia de la semana de la malla", () => {
     expect(diaDeFecha("2026-09-14")).toBe(0); // lunes
     expect(diaDeFecha("2026-09-15")).toBe(1); // martes

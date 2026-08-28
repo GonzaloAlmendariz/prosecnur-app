@@ -58,17 +58,37 @@ function texto(valor: unknown) {
  * semana escrito a mano puede no corresponder a la fecha, y entonces el grupo
  * diría un día y contendría otro.
  */
+/**
+ * `"2026-09-15"` → la fecha construida, o `null` si ese día NO existe.
+ *
+ * `Date.UTC` no rechaza un 31 de septiembre: lo **corre** al 1 de octubre y
+ * devuelve un instante perfectamente válido, así que `Number.isNaN` no lo
+ * detecta. Como el número impreso salía del texto crudo y el nombre del día de
+ * la fecha corrida, un `2026-09-31` del libro se rotulaba «Jueves 31/09»: un día
+ * de la semana que pertenece a otra fecha, pegado a una que no existe. Se
+ * comprueba que la fecha construida sea la misma que se pidió.
+ *
+ * Mediodía UTC por lo de siempre: a medianoche el desfase horario del navegador
+ * corre la fecha un día y con ella el nombre del día.
+ */
+export function fechaIsoReal(fecha: string): { anio: number; mes: number; dia: number; fecha: Date } | null {
+  const [anio, mes, dia] = fecha.split("-").map((n) => Number(n));
+  if (!anio || !mes || !dia) return null;
+  const dt = new Date(Date.UTC(anio, mes - 1, dia, 12));
+  if (Number.isNaN(dt.getTime())) return null;
+  if (dt.getUTCFullYear() !== anio || dt.getUTCMonth() !== mes - 1 || dt.getUTCDate() !== dia) return null;
+  return { anio, mes, dia, fecha: dt };
+}
+
 export function etiquetaDeFecha(fecha: string) {
   if (!fecha) return "Sin fecha agendada";
-  const [y, m, d] = fecha.split("-").map((n) => Number(n));
-  if (!y || !m || !d) return fecha;
-  // Mediodía UTC: a medianoche, el desfase horario del navegador puede correr
-  // la fecha un día y cambiar el nombre del día de la semana.
-  const dt = new Date(Date.UTC(y, m - 1, d, 12));
-  if (Number.isNaN(dt.getTime())) return fecha;
-  const nombre = DIAS[dt.getUTCDay()] ?? "";
-  const dia = String(d).padStart(2, "0");
-  const mes = String(m).padStart(2, "0");
+  const partes = fechaIsoReal(fecha);
+  // Una fecha imposible se devuelve TAL CUAL, sin nombre de día. Inventarle uno
+  // la disfrazaba de fecha buena; cruda se ve que el libro trae un problema.
+  if (!partes) return fecha;
+  const nombre = DIAS[partes.fecha.getUTCDay()] ?? "";
+  const dia = String(partes.dia).padStart(2, "0");
+  const mes = String(partes.mes).padStart(2, "0");
   return nombre ? `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${dia}/${mes}` : `${dia}/${mes}`;
 }
 

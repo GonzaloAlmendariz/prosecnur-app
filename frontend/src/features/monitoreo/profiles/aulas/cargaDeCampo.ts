@@ -46,7 +46,7 @@
  * agendar», con una fila por día de la semana y su banda de siempre.
  */
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
-import { etiquetaDeFecha } from "./agendaPorDia";
+import { etiquetaDeFecha, fechaIsoReal } from "./agendaPorDia";
 
 export const DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
 export type Dia = (typeof DIAS)[number];
@@ -179,17 +179,20 @@ export function leerFecha(valor: unknown): string {
 }
 
 /**
- * Índice en `DIAS` (0 = lunes) de una fecha ISO; `-1` si es domingo o no parsea.
+ * Índice en `DIAS` (0 = lunes) de una fecha ISO; `-1` si es domingo, si no
+ * parsea o si ese día no existe.
  *
- * Mediodía UTC por la misma razón que en `agendaPorDia`: a medianoche el desfase
- * horario del navegador corre la fecha un día y con ella el día de la semana.
+ * La comprobación de que la fecha es REAL la hace `fechaIsoReal`, el mismo dueño
+ * que rotula las fechas —una sola definición de «esto es una fecha»—. Aquí
+ * importa el doble: con un `2026-09-31`, `Date.UTC` lo corría al 1 de octubre y
+ * este índice devolvía JUEVES, así que `bloqueDeFecha` elegía el bloque de clase
+ * del jueves para un curso que no se dicta ese día y la ventana firme se pintaba
+ * en la franja equivocada.
  */
 export function diaDeFecha(iso: string): number {
-  const [y, m, d] = iso.split("-").map((n) => Number(n));
-  if (!y || !m || !d) return -1;
-  const dt = new Date(Date.UTC(y, m - 1, d, 12));
-  if (Number.isNaN(dt.getTime())) return -1;
-  const dow = dt.getUTCDay();
+  const partes = fechaIsoReal(iso);
+  if (!partes) return -1;
+  const dow = partes.fecha.getUTCDay();
   return dow === 0 ? -1 : dow - 1;
 }
 
