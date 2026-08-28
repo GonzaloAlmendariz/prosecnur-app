@@ -566,8 +566,21 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
       # calcular → 0). Un .pulso viejo con semillas ya no las pierde en
       # silencio: el letrero de fijaciones las MUESTRA y el stepper las
       # corrige.
-      estrato$promedio_conglomerado <- normalized_value
-      estrato$mediana_conglomerado <- 0
+      # ADR: el divisor SELLADO tiene campo propio (decisión de Gonzalo,
+      # 2026-08-27: «la separación para el 5»).
+      #
+      # Antes esto escribía el estadístico elegido —P25 incluido— dentro de
+      # `promedio_conglomerado` y ponía la mediana en 0. Dos costos: el campo
+      # decía «promedio» guardando otra cosa, y **sellar borraba la mediana
+      # medida del marco**, de modo que un estudio que después quisiera volver
+      # a `min_media_mediana` ya no tenía con qué (el sincronizador sólo
+      # repuebla mientras el marco no está validado).
+      #
+      # Ahora el divisor sellado vive en `divisor_conglomerado` con su
+      # estadístico al lado, y `promedio_`/`mediana_conglomerado` vuelven a ser
+      # lo que dicen: las medidas del perfil del marco, intactas.
+      estrato$divisor_conglomerado <- normalized_value
+      estrato$divisor_estadistico <- method
       estratos[[j]] <- estrato
       audit_rows[[length(audit_rows) + 1L]] <- list(
         estrato = estrato$label,
@@ -577,7 +590,11 @@ calc_muestra_alumnos_por_ch_resolver_estudio <- function(estudio, frame = NULL) 
       )
     }
     comp$marco$estratos <- estratos
-    comp$parametros$estadistico_conglomerado <- "media"
+    # `estadistico_conglomerado` ya NO se fuerza a "media". Se forzaba para que
+    # `.cm_estadistico_conglomerado_estrato` tomara la rama de la media, que era
+    # donde quedaba el valor materializado. Con `divisor_conglomerado` esa rama
+    # manda por sí sola, así que el parámetro puede seguir declarando lo que el
+    # estudio eligió en vez de decir «media» sobre un P25.
     estudio$componentes[[i]] <- comp
     audit_components[[comp$actor_id]] <- list(
       component_id = comp$id,

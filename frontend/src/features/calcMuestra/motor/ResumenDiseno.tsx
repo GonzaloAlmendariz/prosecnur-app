@@ -19,6 +19,7 @@ import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoD
 import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import { frameIntegrity, notaEstadoDelMarco } from "../universidad/shared/frameIntegrity";
+import { escenarioEnVigor } from "../universidad/shared/escenarioEnVigor";
 import {
   normalizeUniversityAulasConfig,
   universityComponentForScenario,
@@ -79,12 +80,33 @@ export function ResumenDiseno({
 }) {
   const resetCanon = useMotorStore((s) => s.resetCanon);
   const opcionalesActivos = useMotorStore((s) => s.decisiones.opcionalesActivos);
-  const escenario = useMotorStore((s) => s.decisiones.escenario);
   const { perfil } = motor;
   const frame = aulasState?.frame ?? null;
   const frameProfile = frame?.perfil ?? null;
   const integridadFrame = frameIntegrity(frame);
   const marcoPublicable = integridadFrame.status === "consistent";
+
+  // Con qué escenario está dimensionado el estudio DE VERDAD.
+  //
+  // El store responde `e1` mientras nadie elija, y esa respuesta por defecto es
+  // indistinguible de una decisión tomada. Medido en HSVG 2026 el 2026-08-27:
+  // esta tira decía «165» —componente Universidad, el que sale por defecto—
+  // mientras la corrida sellada el 2026-08-26 llevaba 174 aulas y seguía al
+  // componente Facultades en las quince facultades, sin una sola discrepancia;
+  // `motor_recorrido.decisiones` estaba vacío. Tres superficies, tres números,
+  // y nada en pantalla lo advertía.
+  //
+  // Una corrida sellada es evidencia de con qué se dimensionó. Una decisión
+  // declarada le sigue ganando (ADR 0074) y la contradicción se publica.
+  const vigor = useMemo(
+    () => escenarioEnVigor({
+      workspace,
+      componentes: estudio.componentes,
+      seleccion: aulasState?.selection ?? null,
+    }),
+    [workspace, estudio.componentes, aulasState?.selection],
+  );
+  const escenario = vigor.escenario;
 
   const config = useMemo(() => normalizeUniversityAulasConfig(workspace.aulas_config), [workspace.aulas_config]);
 
@@ -191,6 +213,15 @@ export function ResumenDiseno({
       && conResidual.some((f) => (f as { con_residual?: unknown })?.con_residual === true);
     return `${divisor} × tasa ${hayHistorico ? "histórica" : "de referencia"}`;
   })();
+  // De dónde sale el escenario, dicho en la tira. Un número correcto con un
+  // origen invisible es exactamente lo que dejó a HSVG 2026 mostrando 165
+  // mientras el sorteo llevaba 174: la elección nunca se hizo y la pantalla no
+  // tenía cómo decirlo. El aviso nombra la causa, no sólo el hecho.
+  const notaEscenario = vigor.discrepa && vigor.delSorteo
+    ? `el sorteo ejecutado dimensionó con ${calculoDistribucionScenarioMeta(vigor.delSorteo).shortLabel} · revisa`
+    : vigor.origen === "sorteo"
+      ? "escenario tomado del sorteo ejecutado; nadie lo eligió"
+      : null;
   // Vocabulario de la pantalla, no del código: aquí decía «frame» —inglés en
   // una interfaz en español— y «contrato anterior», que no le dice a nadie qué
   // hacer. Los estados que piden acción la nombran: «recalcula».
@@ -208,6 +239,7 @@ export function ResumenDiseno({
         : resultModel.state.kind === "legacy"
           ? `${resultModel.selection.shortLabel} · calculado con una versión anterior · recalcula`
           : `${resultModel.selection.shortLabel} · falta calcular`;
+  const notaResultado = notaEscenario ? `${resultNote} · ${notaEscenario}` : resultNote;
 
   const metrics: SummaryMetric[] = [
     {
@@ -241,14 +273,14 @@ export function ResumenDiseno({
     {
       label: "Muestra objetivo",
       value: muestraObjetivo,
-      note: resultNote,
+      note: notaResultado,
       icon: <Target size={16} aria-hidden="true" />,
       tone: "operation",
     },
     {
       label: "Sobremuestra operativa",
       value: sobremuestraOperativa,
-      note: resultNote,
+      note: notaResultado,
       icon: <ShieldCheck size={16} aria-hidden="true" />,
       tone: "operation",
     },
@@ -256,7 +288,7 @@ export function ResumenDiseno({
       label: "Se dimensiona con",
       value: null,
       texto: metodoDimensionado ?? "—",
-      note: metodoDimensionado ? "alumnos por CH × efectividad" : resultNote,
+      note: metodoDimensionado ? "alumnos por CH × efectividad" : notaResultado,
       icon: <Sigma size={16} aria-hidden="true" />,
       tone: "operation",
     },
@@ -275,7 +307,7 @@ export function ResumenDiseno({
       // mismo rótulo se leen como una contradicción y no como un dato.
       label: "Aulas que pide el cálculo",
       value: aulasTitulares,
-      note: resultNote,
+      note: notaResultado,
       icon: <School size={16} aria-hidden="true" />,
       tone: "operation",
     },

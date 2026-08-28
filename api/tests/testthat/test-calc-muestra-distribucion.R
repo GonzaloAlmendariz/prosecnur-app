@@ -747,3 +747,64 @@ test_that("round-trip .pulso conserva solo el contrato agregado sin PII", {
     restored$calc_muestra_aulas_frame$population_cross_profiles
   ))
 })
+
+test_that("una base que sube por encima de la formula pasa si declara su origen", {
+  # Medido en HSVG 2026 el 2026-08-27: el componente que cargaba las 174 aulas
+  # del diseno ejecutado salia `invalid` entero porque seis facultades tenian
+  # mas aulas de las que su formula pedia. El motor ya sabe declarar de donde
+  # sale cada base; esta regla no conocia ese vocabulario.
+  frame <- .dist_frame()
+  calculated <- .dist_calculated(frame = frame)
+  component <- calculated$componentes[[1L]]
+  row <- component$resultado$aulas_por_estrato[[1L]]
+  formula <- as.integer(ceiling(row$cuota / (row$avg_conglomerado * row$tau)))
+  expect_identical(row$aulas_base, formula)
+
+  con_base <- function(base, origen, formula_declarada) {
+    comp <- component
+    delta <- base - comp$resultado$aulas_por_estrato[[1L]]$aulas_base
+    comp$resultado$aulas_por_estrato[[1L]]$aulas_base <- base
+    comp$resultado$aulas_por_estrato[[1L]]$aulas_total <-
+      comp$resultado$aulas_por_estrato[[1L]]$aulas_total + delta
+    comp$resultado$aulas_por_estrato[[1L]]$aulas_base_origen <- origen
+    comp$resultado$aulas_por_estrato[[1L]]$aulas_formula <- formula_declarada
+    comp$resultado$aulas_base_total <- comp$resultado$aulas_base_total + delta
+    comp$resultado$aulas_total <- comp$resultado$aulas_total + delta
+    .dist_reason_codes(calc_muestra_distribucion_construir(comp, frame))
+  }
+
+  # Sube una y declara que la puso la certificacion por facultad: pasa.
+  expect_false(
+    "design_divisor_ch_required_mismatch" %in%
+      con_base(formula + 1L, "certificacion", formula)
+  )
+  # Lo mismo para una agregacion operativa, que no sigue un criterio
+  # estadistico pero es una decision declarada del analista.
+  expect_false(
+    "design_divisor_ch_required_mismatch" %in%
+      con_base(formula + 2L, "operativa", formula)
+  )
+
+  # Sin origen declarado sigue siendo un numero que nadie puede auditar.
+  expect_true(
+    "design_divisor_ch_required_mismatch" %in%
+      con_base(formula + 1L, "", formula)
+  )
+  # Con origen "formula" tampoco: ese origen afirma que NO se aparto.
+  expect_true(
+    "design_divisor_ch_required_mismatch" %in%
+      con_base(formula + 1L, "formula", formula)
+  )
+  # `aulas_formula` tiene que conservar lo que la formula pedia. Si miente, el
+  # apartamiento deja de ser auditable y la excepcion no aplica.
+  expect_true(
+    "design_divisor_ch_required_mismatch" %in%
+      con_base(formula + 1L, "certificacion", formula + 1L)
+  )
+  # Y solo sube. Bajar por debajo de la formula es perder representatividad,
+  # y ninguna declaracion lo vuelve legitimo.
+  expect_true(
+    "design_divisor_ch_required_mismatch" %in%
+      con_base(formula - 1L, "certificacion", formula)
+  )
+})

@@ -554,7 +554,15 @@ calc_muestra_aulas_normalize_config <- function(config = list()) {
       nonresponse_policy = .cm_aulas_scalar(selector$nonresponse_policy %||% selector$politica_no_respuesta %||% config$nonresponse_policy, defaults$selector$nonresponse_policy),
       # Afijación del diseño (calc_muestra_aulas_afijacion.R): mapa facultad→n.
       faculty_targets = .cm_afijacion_normalize_targets(selector$faculty_targets %||% selector$afijacion_facultades %||% config$faculty_targets),
-      replacement_policy = .cm_aulas_scalar(selector$replacement_policy %||% selector$politica_reemplazos %||% config$replacement_policy, defaults$selector$replacement_policy)
+      replacement_policy = .cm_aulas_scalar(selector$replacement_policy %||% selector$politica_reemplazos %||% config$replacement_policy, defaults$selector$replacement_policy),
+      # ADR 0082: rerandomizacion. Vive DENTRO del selector porque gobierna como
+      # se sortea y porque es lo que viaja hasta `.cm_aulas_select_waves`, que
+      # es donde el bucle tiene que envolver el sorteo de TITULARES. Envolver la
+      # llamada completa rehacria tambien las cadenas de reemplazo en cada
+      # intento, que es el grueso del costo y no participa del criterio.
+      rerandomizacion = .cm_rerandom_normalize_config(
+        selector$rerandomizacion %||% config$rerandomizacion %||% config$rerandomization
+      )
     ),
     objective = .cm_aulas_normalize_objective(objective_input),
     # Selección por categorías (scope alumno/aula); normalización defensiva en
@@ -2622,7 +2630,17 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   waves <- .cm_aulas_chr_vec(waves)
   include_reserves <- length(waves) > 1L || .cm_aulas_int(selector$replacement_waves, 0L) > 0L
   .cm_aulas_progress(on_progress, "sorteo_titulares", message = "Sorteo de titulares", force = TRUE)
-  titulars <- .cm_aulas_select_once_dispatch(aula_frame, selector, engine, seed = if (is.null(seed)) NULL else seed + 1009L, objective = objective)
+  rr_cfg <- selector$rerandomizacion
+  titulars <- if (isTRUE(rr_cfg$activa)) {
+    .cm_aulas_rerandomizar(
+      aula_frame, selector, engine, rr_cfg$criterio,
+      seed = if (is.null(seed)) NULL else seed + 1009L,
+      objective = objective, tope = rr_cfg$tope
+    )
+  } else {
+    .cm_aulas_select_once_dispatch(aula_frame, selector, engine, seed = if (is.null(seed)) NULL else seed + 1009L, objective = objective)
+  }
+  rerandomizacion <- attr(titulars, "rerandomizacion") %||% NULL
   warnings <- attr(titulars, "warnings") %||% character(0)
   used <- attr(titulars, "engine_used") %||% engine
   # D2: el ajuste de tamano del sorteo de titulares viaja como dato hasta la
@@ -2638,6 +2656,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
     attr(out, "warnings") <- unique(warnings)
     attr(out, "size_adjustment") <- size_adjustment
     attr(out, "recorrido") <- recorrido
+    attr(out, "rerandomizacion") <- rerandomizacion
     return(out)
   }
   titulars$wave <- "M1"
@@ -2680,6 +2699,7 @@ calc_muestra_aulas_construir <- function(base_madre = NULL,
   attr(out, "warnings") <- unique(warnings)
   attr(out, "size_adjustment") <- size_adjustment
   attr(out, "recorrido") <- recorrido
+  attr(out, "rerandomizacion") <- rerandomizacion
   out
 }
 
@@ -3852,6 +3872,9 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
   selected <- .cm_aulas_select_waves(aula_frame, local_selector, engine, waves, seed = local_selector$seed, objective = objective)
   engine_used <- .cm_aulas_scalar(attr(selected, "engine_used"), engine)
   warnings <- attr(selected, "warnings") %||% character(0)
+  # ADR 0082: la corrida declara si hubo rerandomizacion y con que evidencia.
+  # Sin esto la muestra aceptada y la primera que salio se ven identicas.
+  rerandomizacion <- attr(selected, "rerandomizacion") %||% NULL
   design_pi <- .cm_aulas_design_probabilities(aula_frame, local_selector, engine)
   selected$pi_final <- as.numeric(design_pi[selected$classroom_id])
   selected$weight_classroom <- ifelse(selected$pi_final > 0, 1 / selected$pi_final, NA_real_)
@@ -3942,6 +3965,10 @@ calc_muestra_aulas_representativity_objective <- function(frame_result, selectio
     representativity = representativity,
     simulation_summary = simulation_summary,
     reserve_depth = reserve_depth,
+    # ADR 0082: NULL cuando no hubo rerandomizacion. Sin este bloque la muestra
+    # aceptada y la primera que salio del sorteo se ven identicas, y el `.pulso`
+    # describiria un diseño que no es el ejecutado.
+    rerandomizacion = rerandomizacion,
     risk_flags = risk_flags
   )
 }

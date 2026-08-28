@@ -23,7 +23,9 @@ export type FlujoEtapa = {
   /** Cifra principal ya formateada (ej. "2,356"). */
   valor?: string;
   detalle?: string;
-  estado?: "ready" | "working" | "pending";
+  /** "alerta" es el paso que dejó el flujo en 0 viniendo de N>0: no es un paso
+   *  pendiente, es el que rompió la cadena y tiene que verse distinto. */
+  estado?: "ready" | "working" | "pending" | "alerta";
   /** Merma en la arista que llega a la SIGUIENTE etapa (ej. −520 excluidos). */
   merma?: { n: number; label: string };
 };

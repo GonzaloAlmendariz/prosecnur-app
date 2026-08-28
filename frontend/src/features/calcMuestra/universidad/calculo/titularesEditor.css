@@ -1,0 +1,60 @@
+/* El editor de titulares vive DENTRO de una celda de tabla que ya existía y
+   que hasta hoy sólo mostraba un entero. El stepper aparece al pasar el mouse
+   o al enfocarlo con el teclado: si estuviera siempre visible, quince pares de
+   botones convertirían una tabla de lectura en una botonera. */
+.cmv2-titulares-editor { display: inline-flex; align-items: center; gap: var(--pulso-space-1); flex-wrap: wrap; }
+.cmv2-titulares-valor { display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+.cmv2-titulares-editor[data-fijada] .cmv2-titulares-valor { font-weight: var(--pulso-weight-semibold); }
+.cmv2-titulares-pin { color: var(--pulso-accent-amber); flex: none; }
+
+.cmv2-titulares-stepper { display: inline-flex; gap: 2px; opacity: 0; transition: opacity 120ms ease; }
+.cmv2-titulares-editor:hover .cmv2-titulares-stepper,
+.cmv2-titulares-editor:focus-within .cmv2-titulares-stepper { opacity: 1; }
+@media (hover: none) { .cmv2-titulares-stepper { opacity: 1; } }
+
+.cmv2-titulares-stepper button {
+  min-width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface-2); color: var(--pulso-text-soft);
+  font-size: 12px; line-height: 1; cursor: pointer;
+}
+.cmv2-titulares-stepper button:hover:not(:disabled) { color: var(--pulso-text); border-color: var(--pulso-text-faint); }
+.cmv2-titulares-stepper button:disabled { opacity: 0.35; cursor: default; }
+
+/* Mientras la fijación no se recalcula, la celda muestra el número FIJADO y
+   dice cuál era el de la fórmula. Sin esta línea los dos números se
+   confundirían en uno. */
+.cmv2-titulares-pendiente { flex-basis: 100%; color: var(--pulso-text-muted); font-size: 11px; }
+
+/* El motivo de una agregación operativa. Cuando falta, la celda lo dice: es la
+   única de las tres procedencias que no tiene un criterio detrás, así que sin
+   motivo escrito no se puede reconstruir por qué ese número es ése. */
+.cmv2-titulares-nota {
+  flex-basis: 100%; text-align: left; max-width: 24ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 1px 6px; border-radius: var(--pulso-radius-chip);
+  border: 1px solid var(--pulso-warn-border, var(--pulso-border));
+  background: var(--pulso-warn-bg); color: var(--pulso-warn-fg);
+  font-size: 11px; cursor: pointer;
+}
+.cmv2-titulares-nota:not([data-falta]) {
+  background: transparent; border-color: transparent;
+  color: var(--pulso-text-muted); font-style: italic;
+}
+.cmv2-titulares-nota:disabled { cursor: default; }
+
+.cmv2-titulares-nota-edit { flex-basis: 100%; }
+.cmv2-titulares-nota-edit input {
+  width: 100%; max-width: 26ch; font-size: 11px; padding: 1px 6px;
+  border: 1px solid var(--pulso-border); border-radius: var(--pulso-radius-chip);
+  background: var(--pulso-surface); color: var(--pulso-text);
+}
+
+/* Un campo de motivo vacío se declara pendiente. Sin esto parece opcional, y la
+   nota de una agregación operativa no lo es: es lo único que distingue una
+   decisión de un error de dedo. */
+.cmv2-titulares-nota-edit input[data-falta] {
+  border-color: var(--pulso-warn-border);
+  background: var(--pulso-warn-bg);
+}
+.cmv2-titulares-nota-edit input[data-falta]::placeholder { color: var(--pulso-warn-fg); }

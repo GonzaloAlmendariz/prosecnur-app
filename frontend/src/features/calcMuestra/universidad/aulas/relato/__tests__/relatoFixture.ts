@@ -108,6 +108,12 @@ export function seleccionSintetica(
     probability_source: "monte_carlo_sequential_discount",
     methodological_warning: [
       "Ajuste de tamaño divulgado: un estrato pidió más cursos-horario que sus elegibles.",
+      // El motor declara una docena de familias de aviso; el relato mostraba
+      // solo la de tamaño. Esta la emite el saneo del balance y su texto lleva
+      // "size_group", asi que el filtro /tama|size/ la colaba bajo la etiqueta
+      // equivocada mientras descartaba todas las demas.
+      "Balance del sorteo: size_group, faculty sin variacion dentro del estrato; y program (139 niveles) con demasiados niveles para el aterrizaje del cubo, que admite 16 columnas; se balancea con level.",
+      "Marco grande: la corrida se resolvio como job en segundo plano.",
     ],
     sequential_discount: {
       schema: "calc_muestra_aulas_descuento_v1",

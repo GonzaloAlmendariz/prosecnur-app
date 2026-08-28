@@ -124,7 +124,7 @@ describe("manifiesto de navegación", () => {
     );
   });
 
-  it("expone las 30 pestañas de Muestra, 26 de Procesamiento y 4 de Dashboard", () => {
+  it("expone las 32 pestañas de Muestra, 26 de Procesamiento y 4 de Dashboard", () => {
     const muestra = nodosDe("calc-muestra").filter(
       (nodo) =>
         nodo.nivel === "pestana"
@@ -139,7 +139,11 @@ describe("manifiesto de navegación", () => {
 
     // ADR 0067: Selección gana «Relato» (aulas-relato). 27 → 28.
     // Partición de titulares (2026-08-20): Selección gana «Solidez». 29 → 30.
-    expect(muestra).toHaveLength(30);
+    // La certeza sale de ser un panel dentro de «Cursos-horario requeridos» y
+    // gana pestaña propia al final de Cálculo (2026-08-27). 30 → 31.
+    // ADR 0082 (2026-08-27): Selección gana «¿Este sorteo o otro?»
+    // (`aulas-rerandomizacion`), la última. 31 → 32.
+    expect(muestra).toHaveLength(32);
     expect(nodoPorClave("calc-muestra/opinion-universitaria/aulas/marco")).toBeNull();
     expect(
       nodoPorClave("calc-muestra/opinion-universitaria/aulas/aulas-relato"),

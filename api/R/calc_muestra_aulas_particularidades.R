@@ -286,15 +286,23 @@ calc_muestra_aulas_particularidades <- function(aula_frame, catalog_signals = NU
   if (n_excluidas <= 0L || !is.list(perfil)) return(perfil)
   embudo <- perfil$embudo_aula
   if (!is.data.frame(embudo) || !nrow(embudo) ||
-      !all(c("id", "label", "conteo", "excluidos") %in% names(embudo))) {
+      !all(c("id", "label", "conteo", "excluidos", "vacia_marco", "aviso") %in% names(embudo))) {
     return(perfil)
   }
   prev <- .cm_aulas_int(embudo$conteo[[nrow(embudo)]], 0L)
+  conteo <- as.integer(max(prev - n_excluidas, 0L))
+  # El paso manual también puede vaciar el marco, y entonces también lo dice:
+  # el `rbind` tiene que traer las MISMAS columnas que .cm_perfil_embudo_df o
+  # el data.frame se rompe al añadirle la fila.
+  vacia <- prev > 0L && conteo == 0L
+  etiqueta <- "Particularidades (decisión manual)"
   fila <- data.frame(
     id = "particularidad_manual",
-    label = "Particularidades (decisión manual)",
-    conteo = as.integer(max(prev - n_excluidas, 0L)),
+    label = etiqueta,
+    conteo = conteo,
     excluidos = n_excluidas,
+    vacia_marco = vacia,
+    aviso = if (vacia) .cm_perfil_embudo_aviso("particularidad_manual", etiqueta, prev) else "",
     stringsAsFactors = FALSE,
     check.names = FALSE
   )

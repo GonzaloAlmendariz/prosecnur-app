@@ -920,7 +920,7 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame)) {
         stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de comparar métodos.")
       }
-      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config_input <- body$config %||% base_config
       if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
@@ -1000,7 +1000,7 @@ mount_calc_muestra <- function(pr) {
       # sesión —la misma contra la que valida el guard de la decisión—, no la
       # copia congelada dentro del marco: con esa copia el guard rebota una
       # medición que no cambia ninguna configuración.
-      base_config <- s$calc_muestra_aulas_config %||% frame$config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config <- calc_muestra_aulas_normalize_config(body$config %||% base_config)
       .cm_aulas_assert_decision_vigente(s, config)
       estratos <- body$estratos %||% body$aulas_por_estrato %||% list()
@@ -1053,7 +1053,7 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame)) {
         stop_api(409, "E_SIN_MARCO_AULAS", "Construye el marco de aulas antes de seleccionar.")
       }
-      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config_input <- body$config %||% base_config
       if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad
@@ -1133,7 +1133,7 @@ mount_calc_muestra <- function(pr) {
       if (is.null(frame) || is.null(selection)) {
         stop_api(409, "E_SIN_SELECCION_AULAS", "Selecciona aulas antes de simular reemplazos.")
       }
-      base_config <- frame$config %||% s$calc_muestra_aulas_config %||% list()
+      base_config <- .cm_aulas_config_vigente(s$calc_muestra_aulas_config, frame$config)
       config_input <- body$config %||% base_config
       if (!is.null(body$objective_config) || !is.null(body$objetivo_representatividad)) {
         config_input$objective <- body$objective_config %||% body$objetivo_representatividad

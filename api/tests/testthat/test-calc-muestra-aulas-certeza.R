@@ -246,3 +246,34 @@ test_that("sin estratos con cuota el motor falla con codigo de API, no en silenc
     class = "api_error"
   )
 })
+
+# La afijación del diseño (`faculty_targets`) existe para que el SORTEO respete
+# el reparto por facultad. Dentro de la certificación manda el candidato: la
+# pregunta que la certificación hace es justamente cuántas aulas hacen falta, y
+# un target que fije ese número la deja sin objeto. Medido en HSVG2026: con
+# DERECHO = 19 en los targets, la curva quedaba plana en 394 de rendimiento
+# entre 40 y 55 aulas, porque el sorteo tomaba 19 pase lo que pase.
+test_that("los faculty_targets del diseno no fijan el candidato de la certificacion", {
+  cfg <- certeza_cfg()
+  cfg$selector$faculty_targets <- list(FAC1 = 3L)
+  # Guarda contra el verde falso: si la normalización se comiera los targets, el
+  # test pasaría sin haber ejercitado nada.
+  cfg <- calc_muestra_aulas_normalize_config(cfg)
+  expect_length(cfg$selector$faculty_targets, 1L)
+
+  frame <- calc_muestra_aulas_construir(base_madre = certeza_base_disjunta(), config = cfg)
+  fila <- certeza_fila(calc_muestra_aulas_certeza(
+    frame, cfg, certeza_estrato(cuota = 100, aulas_formula = 2L), corridas = 40L
+  ))
+
+  # Mismo marco y misma cuota que el primer test de este archivo: 12 aulas de 20
+  # disjuntas, tau = 1, cuota 100 -> 5 aulas. El target de 3 no puede cambiarlo.
+  expect_equal(fila$aulas_certeza, 5L)
+  expect_true(fila$alcanzable)
+
+  # Y el rendimiento tiene que crecer con el candidato: con padrones disjuntos
+  # son exactamente 20 estudiantes por aula.
+  rend <- vapply(fila$curva, function(p) p$rendimiento_medio, numeric(1))
+  aulas <- vapply(fila$curva, function(p) p$aulas, integer(1))
+  expect_equal(rend, 20 * as.numeric(aulas))
+})

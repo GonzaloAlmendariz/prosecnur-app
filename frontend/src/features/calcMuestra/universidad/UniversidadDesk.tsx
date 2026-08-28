@@ -15,6 +15,7 @@ import {
   type CalcMuestraAulasState,
   type CalcMuestraAlumnosPorChDecision,
   type CalcMuestraComponente,
+  type CalcMuestraEstrato,
   type CalcMuestraEstudio,
   type CalcMuestraReferenciaAsistencia,
   type CalcMuestraWorkspace,
@@ -36,6 +37,7 @@ import {
   materializeUniversityAulasTarget,
   normalizeUniversityAulasConfig,
   prepareUniversityStudyForCalculation,
+  universityComponentForScenario,
   universityComponents,
   universityDefaultWorkspace,
   universityWorkspace,
@@ -53,7 +55,7 @@ import { criteriosGeneralesDeEstudio } from "./criterios/criteriosGeneralesModel
 import { criteriosMarcoDeEstudio } from "./criterios/criteriosMarcoModel";
 import { SalidasCoincidenciaTab } from "./salidas/SalidasCoincidenciaTab";
 import { claveFicha, fichaDeFacultad, filasParaFichas } from "./criterios/fichaFacultadModel";
-import { CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
+import { CalculoCertezaTab, CalculoCursosHorarioFacultadTab, CalculoDisenoTab, CalculoDistribucionTab, CalculoPropuestasTab, type CertezaEstratoPayload } from "./calculo";
 import { DistribucionElegiblesCard } from "./calculo/DistribucionElegiblesCard";
 import { MuestraOperativaCard } from "./calculo/MuestraOperativaCard";
 import { TasaEfectividadFacultadCard } from "./calculo/TasaEfectividadFacultadCard";
@@ -69,8 +71,11 @@ import {
   buildClassroomLabModel,
 } from "./aulas";
 import { RelatoTab } from "./aulas/relato/RelatoTab";
+import { conRerandomizacionDelEstudio } from "./aulas/criterioRerandomizacion";
+import { AulasRerandomizacionTab } from "./aulas/AulasRerandomizacionTab";
 import { conAfijacionDelEstudio } from "./aulas/afijacionTargets";
-import { estratosConAjusteAula, estratosConAulaExtra } from "./aulas/certificacionAcciones";
+import { estratosConAjusteAula, estratosConAulaExtra, estratosConAulasFijadas, estratosConMinimosCertificados, estratosConNotaOperativa, estratosDelComponente } from "./aulas/certificacionAcciones";
+import { declararEscenarioEscribe, escenarioEnVigor } from "./shared/escenarioEnVigor";
 import {
   SalidasCierreTab,
   SalidasEntregablesTab,
@@ -361,7 +366,13 @@ export function UniversidadDesk({
     if (cursosHorarioConfirmado) invalidarCursosHorarioPorMarco(marcoDesactualizado);
   }, [marcoDesactualizado, cursosHorarioConfirmado, invalidarCursosHorarioPorMarco]);
   function seleccionarEscenarioAulas(next: UniversityAulasScenario) {
-    if (next === escenarioAulas) return;
+    // La guarda pregunta si `next` ya esta DECLARADO, no si coincide con el
+    // valor del store. El store responde `e1` mientras nadie elija, asi que
+    // comparar contra el dejaba muerto el boton P1 en cuanto la pantalla
+    // mostraba P2 por inferencia: el usuario veia P2 marcado, clickeaba P1 y
+    // no pasaba nada. Sin declaracion previa cualquier clic tiene que
+    // escribirse, porque el clic ES la declaracion.
+    if (!declararEscenarioEscribe(vigor, next)) return;
     onWorkspace(materializeUniversityAulasTarget({
       workspace: syncedWorkspace,
       escenario: next,
@@ -476,16 +487,52 @@ export function UniversidadDesk({
   // La afijación del diseño viaja en el config del seleccionar: sin esto el
   // sorteo reparte por masa de elegibles e ignora el aulas_base por facultad
   // que el propio cálculo publicó (medido: desvío 68/202 en HSVG2026).
-  const onSeleccionarAulasConAfijacion = useCallback(
-    (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) =>
-      onSeleccionarAulas(conAfijacionDelEstudio(config, margenFilas), methodId),
-    [onSeleccionarAulas, margenFilas],
+  // Las acciones de la seccion Calculo escriben en el MISMO componente que sus
+  // pestañas muestran. `compActivo` se resuelve por el escenario del workspace
+  // y las pestañas de Calculo por el del motor: cuando los dos difieren, el
+  // editor enseña un numero y escribe en otro sitio.
+  //
+  // Y los dos difieren hoy: `escenarioAulas` sale del store, que responde `e1`
+  // mientras nadie elija. Medido en HSVG 2026 el 2026-08-27: el sorteo sellado
+  // dimensiono con el componente de Facultades en las quince facultades y
+  // `motor_recorrido.decisiones` estaba vacio, con lo cual estas pestañas
+  // enseñaban el de Universidad y las fijaciones de la certificacion habrian
+  // aterrizado ahi —en el componente que el estudio NO usa—.
+  //
+  // El selector sigue leyendo el store (`seleccionarEscenarioAulas` compara
+  // contra lo declarado: si comparara contra lo inferido, elegir el escenario
+  // que ya rige seria un no-op y la decision nunca quedaria escrita).
+  const vigor = useMemo(
+    () => escenarioEnVigor({
+      workspace: syncedWorkspace,
+      componentes: [totalComp, facultyComp],
+      seleccion: aulasState?.selection ?? null,
+    }),
+    [syncedWorkspace, totalComp, facultyComp, aulasState?.selection],
   );
+  const escenarioVigente = vigor.escenario;
+  const compCalculo = escenarioVigente === "e2" ? facultyComp : totalComp;
+
   const sexoBalance = useMemo(
     () => normalizeCalcMuestraSexoPorFacultad(
       (aulasState?.selection as { sexo_por_facultad?: unknown } | null)?.sexo_por_facultad ?? null,
     ),
     [aulasState?.selection],
+  );
+  // ADR 0082: el criterio de rerandomizacion viaja con la config del sorteo,
+  // derivado del estudio como la afijacion. Adjuntarlo NO la enciende: eso lo
+  // decide el analista, porque cambia el diseño.
+  const onSeleccionarAulasConAfijacion = useCallback(
+    (config: CalcMuestraWorkspaceAulasConfig, methodId?: string) =>
+      onSeleccionarAulas(
+        conRerandomizacionDelEstudio(
+          conAfijacionDelEstudio(config, margenFilas),
+          compCalculo,
+          sexoBalance,
+        ),
+        methodId,
+      ),
+    [onSeleccionarAulas, margenFilas, compCalculo, sexoBalance],
   );
   // La certificación por facultad de la selección (Gonzalo: «tiene que
   // certificarse de esa forma»): derivada al servir por el motor, la UI solo
@@ -501,7 +548,20 @@ export function UniversidadDesk({
     [aulasState?.selection],
   );
   const labModel = useMemo(
-    () => buildClassroomLabModel({ workspace: syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado }),
+    () => buildClassroomLabModel({
+      workspace: syncedWorkspace,
+      totalComp,
+      facultyComp,
+      aulasState,
+      marcoDesactualizado,
+      // Sin esto Selección no ve las fijaciones —el normalizado trae el marco
+      // del otro componente— y su aviso de «fijaste titulares, recalcula» no
+      // se enciende nunca.
+      estratosPropios: estratosDelComponente(
+        estudio.componentes,
+        universityComponentForScenario([totalComp, facultyComp], syncedWorkspace)?.id ?? facultyComp.id,
+      ),
+    }),
     [syncedWorkspace, totalComp, facultyComp, aulasState, marcoDesactualizado],
   );
   const calculationReady = labModel.selectedResultReady;
@@ -532,26 +592,109 @@ export function UniversidadDesk({
       }),
     [margenFilas, aulasState?.frame?.aula_frame, compActivo, syncedWorkspace.aulas_config],
   );
+  // Los estratos del componente REAL, no los del normalizado.
+  //
+  // `universityComponents` reparte UN SOLO marco a los dos componentes: el de
+  // universidad manda si tiene estratos, y el de facultad recibe ESOS. Como
+  // `aulas_base_fijas` es una decisión por componente y no dato del marco, el
+  // componente de facultad llega a la UI sin sus propias fijaciones. Parchear
+  // sobre esa copia y mandarla las BORRA, porque `updateComponente` reemplaza
+  // `estratos` entero en vez de fundirlo estrato a estrato.
+  //
+  // Medido en HSVG2026 el 2026-08-27: un solo clic de «+1» sobre ARQUITECTURA
+  // dejaba el componente de facultad con **1 fijación de 9** donde tenía
+  // **15 que sumaban 174** — las catorce decisiones restantes desaparecían sin
+  // aviso, y con ellas el objetivo que el sorteo ya había usado.
+  const estratosPropiosDe = useCallback(
+    (id: string, respaldo: CalcMuestraEstrato[] | null | undefined) =>
+      estratosDelComponente(estudio.componentes, id, respaldo),
+    [estudio.componentes],
+  );
+
   const onAgregarAulaFacultad = useCallback(
     (facultad: string, aulasActuales: number) => {
       if (!compActivo) return;
-      const nuevos = estratosConAulaExtra(compActivo.marco?.estratos ?? null, facultad, aulasActuales);
+      const nuevos = estratosConAulaExtra(estratosPropiosDe(compActivo.id, compActivo.marco?.estratos), facultad, aulasActuales);
       if (!nuevos) return;
       onComponente(compActivo.id, { marco: { estratos: nuevos } });
       onInvalidateAulasArtifacts();
     },
-    [compActivo, onComponente, onInvalidateAulasArtifacts],
+    [compActivo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
   const onAjustarAulaFacultad = useCallback(
     (facultad: string, aulasActuales: number, delta: 1 | -1) => {
       if (!compActivo) return;
-      const nuevos = estratosConAjusteAula(compActivo.marco?.estratos ?? null, facultad, aulasActuales, delta);
+      const nuevos = estratosConAjusteAula(estratosPropiosDe(compActivo.id, compActivo.marco?.estratos), facultad, aulasActuales, delta);
       if (!nuevos) return;
       onComponente(compActivo.id, { marco: { estratos: nuevos } });
       onInvalidateAulasArtifacts();
     },
-    [compActivo, onComponente, onInvalidateAulasArtifacts],
+    [compActivo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
   );
+
+
+  // Decision de Gonzalo (2026-08-27), «se muda a calculo»: el editor del
+  // reparto por facultad deja de vivir solo dentro de la tarjeta de
+  // certificacion —que no existe hasta haber sorteado— y baja a la tabla de
+  // Calculo · Cursos-horario requeridos, donde el numero se lee por primera
+  // vez.
+  const onAjustarAulaCalculo = useCallback(
+    (facultad: string, aulasActuales: number, delta: 1 | -1) => {
+      if (!compCalculo) return;
+      const nuevos = estratosConAjusteAula(estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos), facultad, aulasActuales, delta);
+      if (!nuevos) return;
+      onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [compCalculo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
+  );
+
+  // El panel «¿Alcanza?» publica el minimo certificado en la seccion Calculo;
+  // sin esto la unica forma de aplicarlo es cruzar a Aulas · Seleccion y pulsar
+  // el stepper tantas veces como diga la diferencia.
+  const onNotaAulaCalculo = useCallback(
+    (facultad: string, nota: string) => {
+      if (!compCalculo) return;
+      const nuevos = estratosConNotaOperativa(
+        estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos), facultad, nota,
+      );
+      if (!nuevos) return;
+      // Escribir el motivo NO invalida nada: no cambia ningún número, sólo
+      // dice por qué. Invalidar aquí obligaría a recalcular por documentar.
+      onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+    },
+    [compCalculo, estratosPropiosDe, onComponente],
+  );
+
+  const onFijarAulasFacultad = useCallback(
+    (facultad: string, aulas: number) => {
+      if (!compCalculo) return;
+      const nuevos = estratosConAulasFijadas(estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos), facultad, aulas);
+      if (!nuevos) return;
+      onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+      onInvalidateAulasArtifacts();
+    },
+    [compCalculo, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts],
+  );
+
+  // Todas las facultades cortas a su mínimo certificado, de un clic.
+  //
+  // Las mide la misma corrida y sus mínimos son independientes, pero fijar UNA
+  // invalida el resultado del componente y la pantalla de certeza se queda sin
+  // nada sobre lo que medir. De a una, aplicar la evidencia de una sola corrida
+  // costaba una ronda de fijar → recalcular → volver a medir por facultad.
+  const onFijarTodasLasCortas = useCallback(() => {
+    if (!compCalculo) return;
+    const filas = aulasState?.certeza?.filas;
+    if (!Array.isArray(filas) || !filas.length) return;
+    const nuevos = estratosConMinimosCertificados(
+      estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos),
+      filas.map((fila) => ({ label: fila.label, aulas: fila.aulas_certeza, brecha: fila.brecha })),
+    );
+    if (!nuevos) return;
+    onComponente(compCalculo.id, { marco: { estratos: nuevos } });
+    onInvalidateAulasArtifacts();
+  }, [compCalculo, aulasState?.certeza, estratosPropiosDe, onComponente, onInvalidateAulasArtifacts]);
 
   // Marco construido pero cálculo en N = 0 y sin población en memoria
   // (proyectos guardados antes del sync automático): la reparación exige
@@ -757,6 +900,25 @@ export function UniversidadDesk({
               <RelatoTab model={labModel} foco={activeFocus} onNavigate={onNavigate} />
             )}
             {activeLabTab === "auditoria" && <AulasAuditoriaTab model={labModel} onNavigate={onNavigate} />}
+            {/* ADR 0082: la última de Selección, porque es la última decisión
+                antes de fijar la muestra. */}
+            {activeLabTab === "aulas-rerandomizacion" && (
+              <AulasRerandomizacionTab
+                config={conRerandomizacionDelEstudio(
+                  syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig,
+                  compCalculo,
+                  sexoBalance,
+                )}
+                selection={aulasState?.selection ?? null}
+                onConfig={(patch) => onWorkspace({
+                  ...syncedWorkspace,
+                  aulas_config: {
+                    ...(syncedWorkspace.aulas_config as CalcMuestraWorkspaceAulasConfig),
+                    ...patch,
+                  },
+                })}
+              />
+            )}
           </div>
         )}
 
@@ -824,13 +986,13 @@ export function UniversidadDesk({
                 <CalculoCursosHorarioFacultadTab
                   componentes={[totalComp, facultyComp]}
                   currentFrameHash={aulasState?.frame?.frame_hash}
-                  escenario={escenarioAulas}
+                  escenario={escenarioVigente}
                   onEscenario={seleccionarEscenarioAulas}
                   marcoDesactualizado={marcoDesactualizado}
-                  certeza={aulasState?.certeza ?? null}
-                  certezaEnCurso={midiendoCerteza}
-                  onMedirCerteza={onMedirCerteza}
                   onIrAAlumnosPorCh={() => onNavigate("marco", "marco-alumnos-ch")}
+                  onAjustarAula={onAjustarAulaCalculo}
+                  onNotaAula={onNotaAulaCalculo}
+                  estratosPropios={estratosPropiosDe(compCalculo.id, compCalculo.marco?.estratos)}
                 />
               </div>
             </div>}
@@ -838,8 +1000,21 @@ export function UniversidadDesk({
               <CalculoDistribucionTab
                 componentes={[totalComp, facultyComp]}
                 currentFrameHash={aulasState?.frame?.frame_hash}
-                escenario={escenarioAulas}
+                escenario={escenarioVigente}
                 onEscenario={seleccionarEscenarioAulas}
+              />
+            </div>}
+            {showLocalTab("calculo-certeza") && <div id="cmv2-local-calculo-certeza">
+              <CalculoCertezaTab
+                componentes={[totalComp, facultyComp]}
+                currentFrameHash={aulasState?.frame?.frame_hash}
+                escenario={escenarioVigente}
+                certeza={aulasState?.certeza ?? null}
+                certezaEnCurso={midiendoCerteza}
+                onMedirCerteza={onMedirCerteza}
+                onFijarAulas={onFijarAulasFacultad}
+                onFijarTodas={onFijarTodasLasCortas}
+                marcoDesactualizado={marcoDesactualizado}
               />
             </div>}
           </div>
@@ -880,6 +1055,8 @@ export function UniversidadDesk({
                 model={labModel}
                 workspace={syncedWorkspace}
                 onWorkspace={onWorkspace}
+                estudio={estudio}
+                aulasState={aulasState}
                 reporte={{
                   puedeGenerar: calculationReady,
                   enCurso: reporteEnCurso,

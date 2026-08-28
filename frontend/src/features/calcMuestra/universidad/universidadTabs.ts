@@ -182,6 +182,18 @@ function classroomLabStatusesForSidebar(
     // ADR 0067: el relato narra la corrida persistida — mismo gate que Perfil.
     "aulas-relato": guideStatus(selectionReady, selectionReady),
     auditoria: guideStatus(selectionReady || comparisonReady, hasCalculatedQuota),
+    // ADR 0082. Se habilita con el cálculo por facultad —de ahí salen las
+    // cuotas y τ que forman el criterio— y sólo se acredita cuando una corrida
+    // declaró rerandomización de verdad. Darla por lista con sólo tener
+    // selección la pintaría verde sin que nadie haya aceptado ni rechazado
+    // nada, que es el mismo error que ya se corrigió en «¿Alcanza?».
+    "aulas-rerandomizacion": guideStatus(
+      Boolean(
+        (aulasState?.selection as { rerandomizacion?: { aplicada?: boolean } } | null)
+          ?.rerandomizacion?.aplicada,
+      ),
+      hasCalculatedQuota,
+    ),
   };
 }
 
@@ -302,7 +314,7 @@ export function universitySidebarTabs({
     ];
   }
   if (activeSection === "calculo") {
-    const [disenoTab, propuestasTab, chFacultadTab, distribucionTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo;
+    const [disenoTab, propuestasTab, chFacultadTab, distribucionTab, certezaTab] = CALC_MUESTRA_UNIVERSIDAD_PESTANAS.calculo;
     return [
       // Diseño absorbe los supuestos de la fórmula (§5.1.2): fórmula, significado
       // y regulación de cada parámetro (global y por facultad).
@@ -312,6 +324,11 @@ export function universitySidebarTabs({
       // definitivos por facultad.
       { ...chFacultadTab, status: guideStatus(hasResult, effectiveMarcoReady) },
       { ...distribucionTab, status: guideStatus(true) },
+      // «¿Alcanza?»: la certificación por simulación. Se habilita con el cálculo
+      // por facultad —es lo que mide— y sólo queda acreditada cuando la corrida
+      // existe de verdad; declararla lista por tener resultado la pintaría verde
+      // sin haber simulado nada.
+      { ...certezaTab, status: guideStatus(Boolean(aulasState?.certeza?.filas?.length), hasResult) },
     ];
   }
   if (activeSection === "aulas") {
