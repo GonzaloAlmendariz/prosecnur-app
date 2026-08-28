@@ -1909,6 +1909,10 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
   # una columna equivocada dan numeros muy distintos.
   criterio <- monitoreo_aulas_criterio_validez(responses, cfg)
   quota_status <- vapply(quotas_sex_faculty, function(row) .monitoreo_scalar(row$status %||% "", ""), character(1))
+  # Los cuatro consumidores de abajo NO comparan contra una lista literal: el
+  # productor de estas celdas emite `sin_meta/cumplida/en_riesgo/pendiente` y
+  # existe otro juego de claves para lo mismo. La equivalencia vive en
+  # `monitoreo_aulas_etiquetas.R`, que es el dueno del idioma.
   # Las dos hojas del libro cuentan la misma aula en dos momentos y nadie las
   # comparaba: el cuadre de arriba mira la aritmetica DENTRO del parte.
   cruce <- monitoreo_aulas_cruce_hojas(partes_campo, cfg$control %||% list())
@@ -1944,7 +1948,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # expresar— se mostraba como «Correcto».
       .monitoreo_aulas_representatividad_estado(representativity),
       monitoreo_aulas_estado_control(length(quota_status) > 0L,
-                                     any(quota_status %in% c("sin_avance", "en_progreso")), "warning"),
+                                     any(monitoreo_aulas_celda_en_deuda(quota_status)), "warning"),
       # El Excel no comprueba que asistentes - rechazos - duplicados cuadre con
       # las efectivas. Son pocos casos y por eso nadie los ve a ojo en una hoja
       # de 101 columnas.
@@ -1994,7 +1998,7 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
         sprintf("%d respuestas repetidas.", respuestas_repetidas)
       },
       .monitoreo_aulas_representatividad_texto(representativity),
-      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(quota_status %in% c("sin_avance", "en_progreso"))) else "Sin cuota sexo x facultad detectable.",
+      if (length(quota_status)) sprintf("%s celdas sexo x facultad con brecha.", sum(monitoreo_aulas_celda_en_deuda(quota_status))) else "Sin cuota sexo x facultad detectable.",
       if (length(descuadres)) {
         paste(vapply(utils::head(descuadres, 3), monitoreo_aulas_descuadre_texto, character(1)), collapse = " ")
       } else if (length(partes_campo)) {
@@ -2088,8 +2092,8 @@ monitoreo_aulas_dashboard <- function(plan = list(), responses = data.frame(), c
       # por debajo de su meta convertia el banco en deuda.
       brechas = as.integer(sum(tracked_df$brecha > 0)),
       quota_cells = as.integer(length(quotas_sex_faculty)),
-      quota_cells_ok = as.integer(sum(quota_status == "alcanzada")),
-      quota_cells_pending = as.integer(sum(quota_status %in% c("sin_avance", "en_progreso"))),
+      quota_cells_ok = as.integer(sum(monitoreo_aulas_celda_cubierta(quota_status))),
+      quota_cells_pending = as.integer(sum(monitoreo_aulas_celda_en_deuda(quota_status))),
       representativity_effective_score = representativity$effective_score,
       representativity_score_loss = representativity$score_loss
     ),
