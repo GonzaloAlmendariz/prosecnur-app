@@ -34,7 +34,7 @@ Y la regla de evidencia, también suya:
 | 4a | «se muda a cálculo» — el editor de afijación | `calculo/TitularesFacultadEditor.tsx` | `a3b8918b` | `b98f9635` | ☑ **cerrada y vista en pantalla** — el stepper bajó a la columna Titulares de «Cursos-horario requeridos» y ya no exige certificación corrida |
 | 4b | «certeza completo se va a cálculo y tiene su propia pestaña bien explicada al final de las demás pestañas» | `calculo/CalculoCertezaTab.tsx` | — | `d93e9bd5` + `e34ee2b3` | ☑ **cerrada y vista en pantalla** |
 | 4c | «y selección ya sabes de los cambios de aulas hechos en certeza» | `aulas/classroomLabModel.ts` · `aulas/FijasPendientesAviso.tsx` | — | `d13e624c` | ☑ **cerrada y vista en pantalla** — el aviso existía pero no se encendía nunca para el componente de facultad, y además decía «fijaste 15» cuando el analista tocó una |
-| 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | 🔒 **BLOQUEADA con análisis** — no es un renombre: el campo tiene dos significados vivos y separarlos toca el divisor de todo estudio. Ver abajo |
+| 5 | «Cambiémoslo, sí» — renombrar `promedio_conglomerado`, que guarda el P25 | `calc_muestra_engine.R:1231` · `calc_muestra_alumnos_por_ch.R:569` | — | — | ☑ **CERRADA** — se hizo la **separación**, que es la opción que Gonzalo eligió el 2026-08-27 («la separación para el 5»). El divisor sellado vive en `divisor_conglomerado` con `divisor_estadistico` al lado (`calc_muestra_alumnos_por_ch.R:582`) y el motor lo prefiere (`calc_muestra_engine.R:1271`). `promedio_`/`mediana_conglomerado` vuelven a ser lo que dicen: **cero sitios** ponen ya la mediana a cero al sellar, y `estadistico_conglomerado` dejó de forzarse a «media» sobre un P25. **El renombre ya no aplica**: el nombre dejó de mentir, así que cambiarlo tocaría 38 sitios y un campo persistido del `.pulso` sin arreglar nada |
 | 6 | «Necesita su ADR, necesita su propia pestaña al final de las pestañas actuales de selección porque es la última decisión» — rerandomización | [ADR 0082](../adrs/0082-rerandomizar-no-es-optimizar-entre-candidatas.md) · `calc_muestra_aulas_rerandomizacion.R` · `aulas/AulasRerandomizacionTab.tsx` | `598a9a94` `785929fc` `133c537b` | `689ee0ca` `8227aef6` `ff2b2cf9` | ☑ **cerrada entera y vista en pantalla** |
 | 7 | «El sustento metodológico que creamos fue específico… el que crea la app debe ser más general pero considerar a detalle todo lo que escribimos en el de las 23 páginas» | `salidas/sustentoSecciones.ts` · `salidas/SustentoCoberturaCard.tsx` | — | `f0b3507a` `e01a5410` | ◐ **espina hecha y vista en pantalla** — los 11 capítulos declarados y la cobertura visible en Entregables; falta el render del documento |
 | 8 | «esa agregación se puede llamar agregación operativa, ya que no sigue un criterio estadístico como tal» | `calc_muestra_engine.R` · `calculo/TitularesFacultadEditor.tsx` | `1b37a151` | `1b37a151` | ☑ **cerrada y vista en pantalla** — el nombre entra como VALOR del origen, no como campo, así que no choca con `aulas_extra_operativas` |
@@ -133,6 +133,13 @@ binomial— y por eso marca como ambiguas tres facultades cuyo veredicto no lo e
 Debe medir la **estabilidad del mínimo**: la distancia de `p(n−1)` al umbral.
 Es una falsa alarma que yo mismo introduje.
 
+
+## Decisión 5 — RESUELTA por separación (2026-08-28)
+
+> **Desenlace**: se implementó la separación recomendada abajo. `promedio_` y
+> `mediana_conglomerado` ya no se pisan al sellar y el divisor sellado tiene
+> campo propio. Lo que sigue es el análisis que llevó a esa elección; se
+> conserva porque explica **por qué** el renombre no era la salida.
 
 ## Decisión 5, analizada — no es un renombre
 
