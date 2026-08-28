@@ -93,17 +93,45 @@ const sexoDominante = (fila: MonitoreoAulasPlanRow): string => {
 };
 
 /**
- * Estados en los que una cadena ya se resolvió y sus eslabones quedan libres.
+ * Disponible son DOS condiciones sobre DOS ejes, no una.
  *
- * Lista ABIERTA por diseño: se nombra lo que libera, y cualquier otro estado
- * deja la reserva comprometida. Al revés —nombrar lo que retiene— un estado
- * nuevo que nadie mapeara liberaría reservas que su cadena todavía necesita, y
- * el error caro es ofrecer un aula que no está libre.
+ * El backend y esta vista llegaron a preguntarlo de dos maneras distintas, y
+ * eso es la deriva que hay que evitar. Reconciliadas, son complementarias:
+ *
+ *  1. **Su cadena ya no la necesita** — algún eslabón de esa cadena se aplicó,
+ *     así que el slot está cubierto. Vive en `operational_status`, que es el eje
+ *     de la APLICACIÓN.
+ *  2. **Ella misma sigue sin desplegarse** — nadie la ha agendado todavía. Vive
+ *     en `sample_status`, que es el eje de la AGENDACIÓN.
+ *
+ * Son ejes distintos y las dos preguntas hacen falta: una reserva de una cadena
+ * resuelta pero que ya se agendó para otra cosa NO está libre.
+ *
+ * `ESTADOS_DORMIDOS` replica `MONITOREO_AULAS_ESTADOS_DORMIDOS` del motor
+ * (`api/R/monitoreo_aulas_en_juego.R`). El `"-"` está porque es como el equipo
+ * escribe «todavía nada aquí» en el Excel: 1.810 de 2.040 celdas en 2025.
  */
 const ESTADOS_QUE_LIBERAN = new Set(["aplicada", "cerrada", "en_cierre"]);
+const ESTADOS_DORMIDOS = new Set(["", "-", "sin_contactar", "en_reserva", "planificada"]);
 
+/** Su cadena ya se resolvió: alguien de ella salió. Eje de aplicación. */
 const seResolvio = (fila: MonitoreoAulasPlanRow | undefined): boolean =>
   !!fila && ESTADOS_QUE_LIBERAN.has(texto(fila.operational_status).toLowerCase());
+
+/**
+ * Ella misma sigue sin desplegarse. Eje de agendación.
+ *
+ * Lista CERRADA a propósito, igual que en el motor: se nombra lo que está
+ * dormido y cualquier otro estado cuenta como desplegado. Al revés, un estado
+ * nuevo que nadie mapeara ofrecería un aula que ya está agendada para otra
+ * cosa, y ése es el error caro.
+ */
+const sigueDormida = (fila: MonitoreoAulasPlanRow): boolean => {
+  const v = texto((fila as { sample_status?: string }).sample_status).toLowerCase();
+  // «en reserva 3» es el vocabulario del Excel para la que todavía espera.
+  const norm = v.replace(/^en reserva.*$/, "en_reserva");
+  return ESTADOS_DORMIDOS.has(norm);
+};
 
 /**
  * Reservas al aire: las de una cadena cuyo titular —o algún eslabón previo— ya
@@ -135,7 +163,8 @@ export function reservasDisponibles(
     if (!cadena.some(seResolvio)) continue;
     for (const f of cadena) {
       if (texto(f.sample_role) === "titular") continue;
-      if (seResolvio(f)) continue; // ésa es la que cubrió el slot
+      if (seResolvio(f)) continue;   // ésa es la que cubrió el slot
+      if (!sigueDormida(f)) continue; // ya está agendada para otra cosa
       libres.push(f);
     }
   }
@@ -176,6 +205,7 @@ export function bolsonExtra(
     (f) =>
       texto(f.sample_role) === "extra_reserve_pool" &&
       !seResolvio(f) &&
+      sigueDormida(f) &&
       (!fac || texto(f.faculty) === fac),
   );
 }

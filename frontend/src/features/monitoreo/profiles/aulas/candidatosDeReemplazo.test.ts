@@ -76,6 +76,55 @@ describe("qué reserva está DISPONIBLE", () => {
   });
 });
 
+describe("disponible son DOS condiciones, sobre dos ejes", () => {
+  // El backend y esta vista lo preguntaban de dos maneras distintas. Ahora:
+  // (1) su cadena ya no la necesita —eje de aplicación— y (2) ella misma sigue
+  // sin desplegarse —eje de agendación—. Las dos hacen falta.
+  const base = [
+    fila({ operational_code: "CH 1", titular_operational_code: "CH 1", sample_role: "titular", operational_status: "aplicada" }),
+    fila({ operational_code: "CH 2", titular_operational_code: "CH 2", sample_role: "titular" }),
+  ];
+
+  it("una reserva de cadena resuelta pero YA AGENDADA no está libre", () => {
+    const filas = [...base,
+      fila({ operational_code: "R 1.1", titular_operational_code: "CH 1", sample_role: "chain_reserve",
+             sample_status: "agendada" } as never),
+      fila({ operational_code: "R 1.2", titular_operational_code: "CH 1", sample_role: "chain_reserve",
+             sample_status: "en_reserva" } as never),
+    ];
+    const caido = filas.find((f) => f.operational_code === "CH 2")!;
+    expect(reservasDisponibles(filas, caido).map((f) => f.operational_code)).toEqual(["R 1.2"]);
+  });
+
+  it("el «-» del Excel cuenta como dormida, no como desplegada", () => {
+    // 1.810 de 2.040 celdas de STATUS MUESTRA en 2025 llevan «-». Tratarlo como
+    // desplegada dejaria la lista vacia teniendo reservas.
+    const filas = [...base,
+      fila({ operational_code: "R 1.1", titular_operational_code: "CH 1", sample_role: "chain_reserve",
+             sample_status: "-" } as never),
+    ];
+    const caido = filas.find((f) => f.operational_code === "CH 2")!;
+    expect(reservasDisponibles(filas, caido).map((f) => f.operational_code)).toEqual(["R 1.1"]);
+  });
+
+  it("«en reserva 3», como lo escribe el Excel, tambien es dormida", () => {
+    const filas = [...base,
+      fila({ operational_code: "R 1.1", titular_operational_code: "CH 1", sample_role: "chain_reserve",
+             sample_status: "En reserva 3" } as never),
+    ];
+    const caido = filas.find((f) => f.operational_code === "CH 2")!;
+    expect(reservasDisponibles(filas, caido)).toHaveLength(1);
+  });
+
+  it("un extra ya agendado sale del bolsón", () => {
+    const filas = [
+      fila({ operational_code: "E1", sample_role: "extra_reserve_pool", sample_status: "en_reserva" } as never),
+      fila({ operational_code: "E2", sample_role: "extra_reserve_pool", sample_status: "agendada" } as never),
+    ];
+    expect(bolsonExtra(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1"]);
+  });
+});
+
 describe("el parecido nombra lo que se concede", () => {
   const caido = fila({ operational_code: "CH 1", stratum: "ARQ / M / G1", eligible_n: 20, faculty: "ARQ", level: "3" });
 

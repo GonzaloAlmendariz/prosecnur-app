@@ -48,7 +48,16 @@ monitoreo_aulas_reservas_disponibles <- function(plan = list(), codigo = "") {
   if (!length(caida)) return(integer(0))
   cadena <- .mar_titular_de(caida[[1]])
   # Una reserva ya agendada o ya aplicada no esta disponible: esta en campo.
-  libres <- c("en_reserva", "sin_contactar", "")
+  #
+  # La lista es la CANONICA de `monitoreo_aulas_en_juego.R`, no un literal
+  # propio. Aqui habia uno paralelo con tres valores contra los cinco de aquella:
+  # le faltaban `"-"` y `"planificada"`. En los fixtures actuales no muerde
+  # —ninguna reserva los lleva— pero `"-"` es como el equipo escribe «todavia
+  # nada aqui» en el Excel, 1 810 de 2 040 celdas de STATUS MUESTRA en 2025. Con
+  # un libro asi, esta funcion habria dicho «no quedan reservas» teniendolas
+  # todas. Dos listas para el mismo concepto es la deriva que se arregla
+  # borrando una, no sincronizandolas.
+  libres <- MONITOREO_AULAS_ESTADOS_DORMIDOS
   idx <- which(vapply(plan, function(r) {
     identical(.mar_txt(r$sample_role), "chain_reserve") &&
       identical(.mar_titular_de(r), cadena) &&
