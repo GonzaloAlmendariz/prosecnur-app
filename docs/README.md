@@ -121,6 +121,9 @@ arquitectura canónica.
 
 ### Planes de dominio y mejora
 
+- [GOAL de Cálculo de muestra desde el segundo sorteo](qa/goal-calc-muestra-ult2-2026-08-28.md):
+  el módulo mirado sobre HSVG26ULT2 — la cadena del marco (1.632 → 1.573 →
+  1.392), el criterio «Aula asignada» y el barrido estético de las 21 pestañas.
 - [GOAL v2 de Cálculo de muestra](qa/goal-loop-calc-muestra-v2-2026-08-01.md):
   loop permanente vigente, ledger y cola de lotes del módulo.
 - [GOAL de la superficie de Cálculo de muestra](qa/goal-loop-calc-muestra-frontend-2026-08-02.md):
