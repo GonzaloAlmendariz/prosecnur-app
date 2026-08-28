@@ -41,7 +41,10 @@
     Modalidad = "Presencial",
     check.names = FALSE, stringsAsFactors = FALSE
   )
-  if (con_columna) d[["Aula"]] <- c("A101", "A101", "B202", "C303", "", "   ")
+  if (con_columna) d[["SESIONES"]] <- c(
+    "LUN 10:00-12:00 C A101", "MAR 08:00-10:00 C A101", "MIE 14:00-16:00 H B202",
+    "JUE 16:00-18:00 C C303", "VIE 09:00-11:00 C", "LUN 18:00-20:00 H"
+  )
   d
 }
 
@@ -53,7 +56,7 @@
     course_name = "Nombre.del.curso", schedule = "Horario",
     modality = "Modalidad", condition = "Condición", formation = "Formación"
   )
-  if (con_columna) m$classroom <- "Aula"
+  if (con_columna) m$classroom_label <- "SESIONES"
   m
 }
 
@@ -72,7 +75,7 @@
 
 .sinaula_var <- function(frame) {
   for (v in frame$criterios_catalogo$variables) {
-    if (identical(v$id, "classroom") && identical(v$scope, "aula")) return(v)
+    if (identical(v$id, "venue") && identical(v$scope, "aula")) return(v)
   }
   NULL
 }
@@ -115,7 +118,7 @@ test_that("omitir 'sin_aula' recorta del marco los cursos-horario sin salón", {
   reales <- Filter(function(k) !identical(k, "sin_aula"),
                    vapply(var$categories, function(c) c$key %||% "", character(1)))
   suite <- list(byVariable = list(
-    classroom = list(mode = "include", categories = as.list(reales))
+    venue = list(mode = "include", categories = as.list(reales))
   ))
   inc <- .sinaula_included(.sinaula_construir(suite = suite))
   expect_true(all(inc[c("C1-H1", "C2-H1", "C3-H1", "C4-H1")]))
@@ -126,7 +129,7 @@ test_that("incluir 'sin_aula' las conserva, como cualquier otra categoría", {
   var <- .sinaula_var(.sinaula_construir())
   todas <- as.list(vapply(var$categories, function(c) c$key %||% "", character(1)))
   suite <- list(byVariable = list(
-    classroom = list(mode = "include", categories = todas)
+    venue = list(mode = "include", categories = todas)
   ))
   inc <- .sinaula_included(.sinaula_construir(suite = suite))
   expect_true(all(inc[sprintf("C%d-H1", 1:6)]))
@@ -134,7 +137,7 @@ test_that("incluir 'sin_aula' las conserva, como cualquier otra categoría", {
 
 test_that("seleccionar SOLO 'sin_aula' deja unicamente las que no tienen salon", {
   suite <- list(byVariable = list(
-    classroom = list(mode = "include", categories = list("sin_aula"))
+    venue = list(mode = "include", categories = list("sin_aula"))
   ))
   inc <- .sinaula_included(.sinaula_construir(suite = suite))
   expect_true(all(inc[c("C5-H1", "C6-H1")]))
