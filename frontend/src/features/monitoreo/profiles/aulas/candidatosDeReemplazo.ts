@@ -21,6 +21,21 @@ import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
  * reemplazando, porque no podemos hacer eso, nos estaríamos ahorcando
  * demasiado».
  *
+ * ## La facultad es una frontera dura, no una preferencia
+ *
+ * Gonzalo: «el bolsón es siempre siempre siempre dentro de la misma facultad,
+ * jamás de otra». Y no es sólo el bolsón: **el motor nunca sale de la facultad**.
+ * Medido sobre ULT2: de 1.173 reservas de cadena, **cero** tienen una facultad
+ * distinta a la de su titular, y `equivalence_level` tope es `misma_facultad`.
+ *
+ * La razón es la cuota: se reparte por facultad y sexo, así que un aula de
+ * Derecho no cierra nada en Arquitectura —deja a una corta y a la otra pasada—.
+ * Un candidato de otra facultad no es un reemplazo peor: **no es un reemplazo**.
+ *
+ * Por eso el filtro va en el origen y no en la puntuación. Puntuarlo bajo lo
+ * dejaría aparecer cuando no hubiera nada mejor, que es exactamente cuando más
+ * daño hace.
+ *
  * ## Qué significa DISPONIBLE
  *
  * También suyo, y es una definición operativa, no una del sorteo: una reserva
@@ -98,8 +113,11 @@ export function reservasDisponibles(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
   caido: MonitoreoAulasPlanRow,
 ): MonitoreoAulasPlanRow[] {
+  const facultad = texto(caido.faculty);
   const porCadena = new Map<string, MonitoreoAulasPlanRow[]>();
   for (const f of filas) {
+    // La facultad es frontera dura: ver la nota de arriba.
+    if (facultad && texto(f.faculty) !== facultad) continue;
     const clave = texto(f.titular_operational_code) || texto(f.operational_code);
     if (!clave) continue;
     const lista = porCadena.get(clave) ?? [];
@@ -141,11 +159,25 @@ export function cadenaPropia(
     .sort((a, b) => numero(a.replacement_order) - numero(b.replacement_order));
 }
 
-/** El bolsón extra, incluidas las aulas de una ampliación declarada. */
+/**
+ * El bolsón extra DE SU FACULTAD, incluidas las aulas de una ampliación
+ * declarada.
+ *
+ * «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
+ * otra.» Sin `facultad` no se filtra —quien llame así se lleva todo—, pero
+ * `candidatosDeReemplazo()` siempre la pasa.
+ */
 export function bolsonExtra(
   filas: ReadonlyArray<MonitoreoAulasPlanRow>,
+  facultad?: string,
 ): MonitoreoAulasPlanRow[] {
-  return filas.filter((f) => texto(f.sample_role) === "extra_reserve_pool" && !seResolvio(f));
+  const fac = texto(facultad);
+  return filas.filter(
+    (f) =>
+      texto(f.sample_role) === "extra_reserve_pool" &&
+      !seResolvio(f) &&
+      (!fac || texto(f.faculty) === fac),
+  );
 }
 
 /** Cuánto se parece un candidato al aula que cae, y qué se concede al tomarlo. */
@@ -256,6 +288,6 @@ export function candidatosDeReemplazo(
       .map((f) => puntuar(f, "cadena"))
       .slice(0, tope),
     otra_cadena: mejores(reservasDisponibles(filas, caido), "otra_cadena"),
-    extra: mejores(bolsonExtra(filas), "extra"),
+    extra: mejores(bolsonExtra(filas, caido.faculty), "extra"),
   };
 }

@@ -141,6 +141,43 @@ describe("el orden de la cadena propia es el del sorteo, no el de la puntuación
   });
 });
 
+describe("la facultad es frontera dura, no una preferencia", () => {
+  // «El bolsón es siempre siempre siempre dentro de la misma facultad, jamás de
+  // otra.» Y medido sobre ULT2: 0 de 1.173 reservas de cadena cruzan facultad.
+  // Un candidato de otra facultad no es un reemplazo peor: no es un reemplazo,
+  // porque la cuota se reparte por facultad y sexo.
+  const escena = [
+    fila({ operational_code: "CH 1", titular_operational_code: "CH 1", sample_role: "titular", faculty: "ARQ", stratum: "ARQ / M / G1" }),
+    // Otra cadena de SU facultad, ya resuelta
+    fila({ operational_code: "CH 2", titular_operational_code: "CH 2", sample_role: "titular", faculty: "ARQ", stratum: "ARQ / F / G1", operational_status: "aplicada" }),
+    fila({ operational_code: "R 2.1", titular_operational_code: "CH 2", sample_role: "chain_reserve", faculty: "ARQ", stratum: "ARQ / F / G1" }),
+    // Otra cadena de OTRA facultad, tambien resuelta
+    fila({ operational_code: "CH 9", titular_operational_code: "CH 9", sample_role: "titular", faculty: "DERECHO", stratum: "DERECHO / F / G4", operational_status: "aplicada" }),
+    fila({ operational_code: "R 9.1", titular_operational_code: "CH 9", sample_role: "chain_reserve", faculty: "DERECHO", stratum: "DERECHO / F / G4" }),
+    // Extras de las dos
+    fila({ operational_code: "E-ARQ", sample_role: "extra_reserve_pool", faculty: "ARQ", stratum: "ARQ / F / G2" }),
+    fila({ operational_code: "E-DER", sample_role: "extra_reserve_pool", faculty: "DERECHO", stratum: "DERECHO / F / G4" }),
+  ];
+  const caido = escena[0];
+
+  it("el bolsón no ofrece extras de otra facultad", () => {
+    expect(bolsonExtra(escena, "ARQ").map((f) => f.operational_code)).toEqual(["E-ARQ"]);
+  });
+
+  it("las reservas al aire tampoco cruzan de facultad", () => {
+    expect(reservasDisponibles(escena, caido).map((f) => f.operational_code)).toEqual(["R 2.1"]);
+  });
+
+  it("y el conjunto completo se queda dentro de la facultad del que cae", () => {
+    const r = candidatosDeReemplazo(escena, caido, { mujeres: 40, hombres: 0 });
+    const todos = [...r.cadena, ...r.otra_cadena, ...r.extra].map((c) => c.fila.faculty);
+    expect(todos.every((f) => f === "ARQ")).toBe(true);
+    // …aunque el de Derecho cerraria mas brecha: por eso el filtro va en el
+    // origen y no en la puntuacion.
+    expect([...r.otra_cadena, ...r.extra].map((c) => c.fila.operational_code)).not.toContain("E-DER");
+  });
+});
+
 describe("el bolsón extra", () => {
   it("incluye las aulas de una ampliación declarada, que también son extra", () => {
     const filas = [
@@ -149,7 +186,7 @@ describe("el bolsón extra", () => {
       fila({ operational_code: "E3", sample_role: "extra_reserve_pool", operational_status: "aplicada" }),
       fila({ operational_code: "CH 1", sample_role: "titular" }),
     ];
-    expect(bolsonExtra(filas).map((f) => f.operational_code)).toEqual(["E1", "E2"]);
+    expect(bolsonExtra(filas, "ARQ").map((f) => f.operational_code)).toEqual(["E1", "E2"]);
   });
 });
 
