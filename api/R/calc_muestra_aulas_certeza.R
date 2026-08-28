@@ -200,6 +200,33 @@ CALC_MUESTRA_AULAS_CERTEZA_SCHEMA <- "calc_muestra_aulas_certeza_cobertura_v1"
   # No se cambia porque cambiarlo es una decision de contrato —`estratos$tau`
   # dejaria de gobernar la simulacion— por un efecto del tamano del ruido de
   # la propia simulacion. Queda declarado y no implicito.
+  #
+  # Y OJO CON EL OTRO EXTREMO: la tasa YA TRAE PARTE DEL TRASLAPE
+  #
+  # Los tramos que alimentan `tasa_efectividad_aula` son `efectivas/elegibles`
+  # de 2025 con denominador PADRON, y ese padron incluye a quienes ya habian
+  # respondido en otra aula: el sello publica `ya_medidas = 446` sobre
+  # `elegibles = 6 232` (`referencia_asistencia$encuentros`). Esos 446 no podian
+  # convertir, asi que **el 7,2 % del traslape esta dentro de la tasa** y
+  # multiplicar los unicos netos por ella lo descuenta dos veces.
+  #
+  # Lo que NO se sigue de eso es que haya que volver al padron bruto. El
+  # traslape incrustado de 2025 (7,2 %; 10,1 % si se extrapola a los ausentes)
+  # NO es el traslape de 2026 (11,4 %), y no tienen por que serlo: son dos
+  # poblaciones. Ademas no es uniforme — por facultad va de x1,000 en las tres
+  # que no tuvieron repetidos en 2025 (Contabilidad, Gastronomia, Letras y
+  # CC.HH.) a x1,2115 en Educacion.
+  #
+  # Es decir: `brutos x tasa` sobreacredita y `unicos x tasa` subacredita, y
+  # ninguna de las dos convenciones globales es la correcta. La cuenta correcta
+  # limpia la tasa de su traslape 2025 y recien entonces la aplica a los unicos
+  # de 2026. El factor exacto es POR TRAMO DE TAMANO y no se puede derivar de lo
+  # sellado (los embudos van por facultad, no por tamano, y los escalones no
+  # traen `ya_medidas`); hace falta el `ya_medidas` por aula de la base 2025.
+  #
+  # Esto se deja escrito para que nadie "corrija" `certificacion.R` hacia el
+  # neto ni la certeza hacia el bruto creyendo que cierra la brecha: las dos
+  # correcciones ingenuas estan mal, en sentidos opuestos.
   rendimientos <- numeric(corridas)
   bases <- character(corridas)
   sorteadas <- integer(corridas)
