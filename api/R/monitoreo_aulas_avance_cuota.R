@@ -501,6 +501,35 @@
   sexo_key <- .maac_sexo_key(sexo_raw)
 
   keep <- atr$valid & nzchar(facultad) & sexo_key %in% c("F", "M") & !(atr$matched & atr$fuera)
+
+  # **La columna esta y ninguno de sus valores se reconoce.**
+  #
+  # `.maac_sexo_key()` acepta palabras —«f/fem…/mujer…», «m/masc…/hombre…»— pero
+  # una base de Kobo trae lo que el XLSForm guarda como NOMBRE de la opcion, y
+  # el instrumento de HSVG2026 usa `1` = Mujer y `2` = Hombre. Con codigos,
+  # `sexo_key` sale vacia en TODAS las filas, las treinta celdas quedan a cero y
+  # nada falla: la pantalla dice «0 de 30 celdas» y «cuota por recoger 2.500»
+  # con mil quinientas respuestas ya atribuidas a su aula.
+  #
+  # No se adivina que `1` es mujer —otro estudio puede numerarlo al reves y eso
+  # seria inventar el dato—: se dice la CAUSA, con los valores que llegaron, para
+  # que quien lo lea sepa que hay que declarar la equivalencia y no salga a
+  # revisar el enlace del recopilador.
+  aviso_sexo <- ""
+  if (nzchar(sex_col) && any(atr$valid) && !any(keep & sexo_key %in% c("F", "M"))) {
+    crudos <- unique(trimws(sexo_raw[atr$valid]))
+    crudos <- crudos[nzchar(crudos)]
+    if (length(crudos)) {
+      muestra <- paste(utils::head(sort(crudos), 4L), collapse = ", ")
+      aviso_sexo <- sprintf(
+        paste0("La columna «%s» trae valores que no se reconocen como sexo (%s%s). ",
+               "Se esperan etiquetas como «Mujer»/«Hombre» o «F»/«M»; una base sin ",
+               "decodificar trae el codigo de la opcion. Mientras no se declare la ",
+               "equivalencia, ninguna respuesta cae en su celda."),
+        sex_col, muestra, if (length(crudos) > 4L) ", …" else ""
+      )
+    }
+  }
   observed <- if (any(keep)) {
     stats::aggregate(
       rep(1L, sum(keep)),
@@ -545,6 +574,10 @@
   out$sex_key <- NULL
   if ("warning" %in% names(out)) {
     out$warning[is.na(out$warning)] <- ""
+    # El aviso del sexo va en TODAS las filas: el fallo no es de una celda, es
+    # de la columna entera, y ponerlo solo en la primera lo escondería en cuanto
+    # alguien ordene la tabla por otra cosa.
+    if (nzchar(aviso_sexo)) out$warning <- aviso_sexo
     if (!any(nzchar(out$warning))) out$warning <- NULL
   }
   primeras <- intersect(

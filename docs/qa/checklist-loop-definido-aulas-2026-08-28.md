@@ -1,0 +1,233 @@
+# Loop DEFINIDO — Monitoreo de aulas cierra lo que el simulacro destapó
+
+**Abierto** 2026-08-28 · **Sustituye** al loop indefinido de investigación /
+creatividad / implementación, que ya entregó lo suyo: el diagnóstico está hecho
+y lo que queda es construirlo.
+
+**Condición de término.** Los diez ítems en verde y el gate del área corrido.
+No lo cierra el reloj: lo cierra la lista, y sólo Gonzalo la da por terminada.
+
+## De dónde sale la lista
+
+De abrir el simulacro de semana y media en su peor escenario
+(`HSVG2026_sem15_campo_malo.pulso`, factor 0,52 = el decil bajo de 2025) y
+hacerle a la pantalla las tres preguntas de un coordinador. Medido sobre el DOM,
+no a ojo:
+
+| pregunta | qué contesta hoy la pantalla |
+|---|---|
+| ¿Ya decidimos ir a reemplazos? | «reemplaz» aparece **6 veces**, todas como etiqueta de estado. Las 18 decisiones están en los datos; ninguna superficie las presenta. |
+| ¿Llegamos? | Ves el presente (45,6 %, 154 brechas, 974 por recoger). «no llega», «alcanza», «probabilidad», «proyección»: **cero coincidencias**. |
+| ¿Se ven las τ? | **Cero menciones** de τ, rendimiento o efectividad en toda la vista de Avance. |
+
+## La lista
+
+| # | Ítem | Dónde vive | Estado |
+|---|---|---|---|
+| 1 | El botón «Reemplazar» abre el popover en una fila real | `RegistroDeCampo.tsx` | **cerrado** `3e9b186c` |
+| 2 | «Reemplazar con ésta» activa de verdad la elegida | `router_monitoreo.R` + contrato HTTP | **cerrado** `3e9b186c` |
+| 3 | Las decisiones ya tomadas se ven como decisiones | pestaña `consultas/reemplazos` (ya existe) | **cerrado sin cambio** |
+| 4 | Suficiencia en probabilidad por facultad | pestaña `avance/efectividad` (ya existía) | **cerrado** — ver abajo |
+| 5 | τ de diseño / observado / operativo, visibles | pestaña `avance/efectividad` (ya existe) | **cerrado** — ver abajo |
+| 6 | La meta sale del escenario ACTIVO | `.cm_estudio_componente_activo()` | **cerrado** `ce7203b2` |
+| 7 | El conteo de aulas sale de la selección, no de `aulas_base_total` | `monitoreo_aulas_metas_diseno.R` | **cerrado sin cambio** — ver abajo |
+| 8 | `TASA_DE_CAIDA` no reproduce del libro: retirar o rehacer | `kpisDeAulas.ts` | **bloqueado** — depende de A7 |
+| 9 | Alertas específicas por sexo | avance por celda | pendiente |
+| 10 | Un sexo en código (`1`/`2`) no puede dar cero mudo | `monitoreo_aulas_avance_cuota.R` | **mitad cerrada** — ver abajo |
+| 11 | Un 500 transitorio deja «Preparando vista» para siempre | `AulasMonitoreoPage.tsx` | **nuevo** — hipótesis por verificar |
+
+**El 8 está bloqueado, no pendiente.** Necesita que se cierre A7 —qué evento
+cuenta como «caída»—, y los términos de esa pregunta cambiaron cuando se
+descubrió que `FECHA.DE.LLAMADA` registra cuándo el contacto tuvo éxito, no
+cuándo se intentó. Preguntarlo antes de eso sería hacer decidir dos veces.
+
+## Lo que el simulacro ya pagó
+
+Tres defectos, y los tres sólo aparecen cuando el campo va mal:
+
+1. **Mío, y la app lo cazó bien**: el `collectorID` llevaba el código operativo
+   en vez del `classroom_id`, y la pantalla dijo «las respuestas llegan sin
+   identificar su curso-horario». Nombró la causa en vez de mostrar un cero.
+2. **Del producto**: el rótulo de Válidas decía «curso-horario» midiendo celdas
+   sexo × facultad. Corregido en `cab2311d`.
+3. **Del fixture, con pregunta abierta**: `.maac_sexo_key()` acepta etiquetas
+   pero no los códigos del XLSForm. Es el ítem 10.
+
+## Los tres escenarios
+
+Mismo ritmo, misma fecha de corte, sólo cambia el rendimiento — así cualquier
+diferencia entre las tres pantallas es del rendimiento y de nada más. Los
+factores no son castigos inventados: son dos formas en que 2025 ya rindió.
+
+| escenario | factor | origen | respuestas | por aula |
+|---|---|---|---|---|
+| como 2025 | 1,00 | la mediana | 2 817 | 18,5 |
+| campo flojo | 0,73 | su p25 | 2 127 | 14,0 |
+| campo malo | 0,52 | su p10 | 1 595 | 10,5 |
+
+
+## Correcciones a la lista, con su evidencia
+
+**El 5 estaba mal planteado y la culpa es de cómo lo medí.** Dije «las τ no
+aparecen en absoluto» habiendo medido **sólo la pestaña Resumen**. Avance tiene
+pestañas propias, y dos son exactamente esto: «Rendimiento — qué rinde más, por
+facultad» y «Efectividad — la τ del diseño contra la del campo». Detrás hay
+`AulasEfectividadSeguimiento.tsx` consumiendo `tau_observado` y
+`facultades_bajo_su_tau`, y `AulasRendimientoPorFacultad.tsx` con encogimiento
+hacia la media del estudio (`PESO_DEL_PRIOR`), que es la idea del τ operativo ya
+construida. El ítem pasa de «construir» a «verificar qué muestran con el campo
+malo y qué les falta» — construir un segundo motor de τ habría sido duplicar lo
+que ya funciona.
+
+**El 7 no necesitaba cambio y comprobarlo era el trabajo.** El diseño declara
+165 aulas base y el sorteo tiene 174 titulares; la diferencia son +1 a +3 en
+seis facultades —el sorteo redondeando hacia arriba para cubrir cuota— y nueve
+cuadran exactas. Pero `aulas_base` **no viaja** a monitoreo: `design_targets`
+lleva `facultad`, `faculty_key`, `cuota`, `cuota_sexo` y `tau`, sin conteo de
+aulas, y `grep` en el frontend de monitoreo no lo encuentra. El lado de
+calc-muestra ya publica las dos cifras a propósito y tiene test de contrato. El
+165 que preocupó a Gonzalo salió de **mi reporte**, no de la app.
+
+**El 6 sí era un defecto y estaba escondido.** Los dos selectores de la
+certificación elegían «el primer componente que publica margen», cada uno por su
+cuenta. HSVG2026 tiene dos con margen —2 500 y 4 050— y acertaban por ORDEN.
+
+## Regla que sale de esta tanda
+
+Dos de los diez ítems eran falsas ausencias, y las dos las escribí yo midiendo
+la superficie equivocada o el denominador equivocado. Antes de construir, la
+pregunta es **dónde vive ya**: `grep` del consumidor, y mirar la pestaña que
+lleva el nombre de lo que se busca.
+
+
+## El 4 y el 5, resueltos revelando en vez de construyendo
+
+La pestaña **Efectividad** ya daba, por facultad: la τ del diseño contra la del
+campo con banda (`52,7 % → 26,9 % ± 6 pts`), el veredicto de cierre, cuántos
+alumnos van a faltar (`−188`) y cuántas aulas más hacen falta sobre las
+disponibles (`14 de 311`). La disponibilidad usa la regla de dos ejes —reserva
+dormida **y** no aplicada—, respeta la frontera de facultad, y proyecta las
+reservas con la **τ observada**, no la prevista, razonado en el código: proyectar
+al supuesto que ya falló diría que el hueco cierra con menos aulas de las que
+hacen falta. Y el pie distingue lo que hay que distinguir: responder poco no es
+no llegar, porque el diseño compró aulas de más.
+
+Lo que faltaba no era motor. Era que la superficie **tiraba tres cosas que el
+backend ya calculaba**:
+
+**Un veredicto con cuatro estados dibujado con tres palabras.** `riesgo_firme`
+(«no cierra ni en el mejor escenario del dato») y `riesgo` («la proyección
+central no cierra, pero la banda todavía alcanza») salían los dos como «No
+cierra». En el campo malo conviven 11 `riesgo_firme` y 1 `riesgo`: Artes
+Escénicas con **1** alumno de déficit llevaba la misma insignia roja que Ciencias
+e Ingeniería con **188**. Ahora la escalera tiene sus cuatro peldaños —Cubierta ·
+Justo · Puede no cerrar · No cierra—, que es lo que dice cuánto correr.
+
+**El caso «no alcanza» se descartaba en silencio.** Cuando activar todo el
+respaldo todavía no cierra, la celda caía en `disponibles()`, que lista los
+recursos sin decir que no bastan: la fila mostraba «49 en cadena» y quien la
+leía entendía que estaba cubierta. Es justo el momento de escalar por encima de
+los reemplazos, y era el que la pantalla no nombraba. Ahora dice «no alcanzan
+las 49 que quedan: quedarían 120».
+
+**`lectura()` estaba escrita y muerta.** La función que produce la frase de qué
+hacer —«4 aulas de su cadena cierran los 59 que faltan»— se definía en la línea
+95 y **no se llamaba desde ningún sitio**, ni la esperaba ningún test. Va en la
+insignia.
+
+Verificado revirtiendo: los cuatro tests nuevos se ponen rojos sin el arreglo y
+verdes con él. 25 pass en el archivo.
+
+**Nota sobre el campo malo**: las 12 facultades en riesgo muestran «hacen falta N
+de M», o sea que aun en el escenario p10 **todas pueden cerrar activando
+reservas**. Ninguna queda fuera de rescate. Eso responde la preocupación de
+fondo: el problema del p10 no es que falten aulas, es que hay que decidir pronto.
+
+
+## La corrección que ordena todo lo anterior
+
+**Mis «tres huecos» eran un artefacto de haber medido una sola pestaña.** Medí
+`avance/resumen` y generalicé a «la app no contesta esto». El perfil de aulas
+tiene **cinco secciones y unas dieciocho pestañas**:
+
+| sección | pestañas |
+|---|---|
+| `modelo` | Agenda · Por facultad · Contacto · Carga |
+| `avance` | Resumen · Estratos · Cuotas · Rendimiento · Efectividad · Salidas |
+| `calidad` | Registro de campo · Controles · Base de control · Respuestas abiertas |
+| `consultas` | **Reemplazos** · Brechas · Parte de campo · Extras |
+
+Las tres cosas que dije que faltaban existen, y una tiene pestaña propia:
+`consultas/reemplazos`, «Cadena por curso-horario caído», que en el campo malo
+ya publica «Cerraron con reemplazo 3» y «Cadenas sin cerrar 154 · 23 sin una
+sola respuesta». Existe además `AulasConsumoDelBanco`, que mide el ritmo de
+caídas por día de campo y cuántos días de reserva quedan.
+
+Lo que sí valió fue mirar de cerca las pestañas que ya existían: los tres
+descartes silenciosos del veredicto (`d3d47a5f`) y el escenario elegido por orden
+(`ce7203b2`) son defectos reales que sólo se ven acercándose, no inventando
+superficies nuevas.
+
+**La regla, ya con tres casos**: antes de construir, abrir el catálogo de
+navegación y leer los nombres de las pestañas. `frontend/src/lib/navegacion/
+catalogos/monitoreo.ts` lista las dieciocho con su descripción de una línea; las
+tres falsas ausencias estaban nombradas ahí, en castellano, esperando.
+
+## El ítem 11, recién visto
+
+Al abrir `consultas/reemplazos` la vista se quedó en «Preparando vista · Leyendo
+cache local del proyecto…» indefinidamente, con cuatro 500 en la consola. Al
+repetir las peticiones a mano, **los cinco scopes devolvieron 200**: el fallo fue
+transitorio. Pero `loading` se quedó en `true` para siempre, sin reintento y sin
+mostrar el error —el componente TIENE estado de `error` y una rama que lo pinta,
+y no se usó—.
+
+Si eso pasa en campo, el coordinador abre Reemplazos en el momento de decidir y
+la pantalla se queda cargando sin decir por qué. **Es hipótesis, no hallazgo**:
+falta comprobar que el 500 es la causa y no una coincidencia.
+
+
+## El 10, confirmado contra el instrumento real
+
+Ya no es hipótesis. La hoja `choices` de `Instrumento2026.xlsx` declara:
+
+```
+list_name  name   label
+sex        1      Mujer
+sex        2      Hombre
+```
+
+Kobo devuelve el **nombre** de la opción, no la etiqueta. Y el camino está
+rastreado entero: para el perfil de aulas `display_data` es el snapshot **crudo**
+—`monitoreo_state_cache.R` sólo aplica metadatos de fuente y, fuera de
+territorial, pasa `data` tal cual—, así que no hay decodificación en ninguna
+parte. En campo real las 30 celdas saldrían a cero, «cuota por recoger» diría
+2 500 con 1 500 respuestas ya atribuidas a su aula, y nada fallaría.
+
+**Cerrado**: el cero deja de ser mudo. Cuando la columna existe y ningún valor
+resuelve, el aviso nombra la columna y los valores que llegaron. No se adivina
+que `1` es mujer —otro estudio puede numerarlo al revés y eso sería inventar el
+dato—: se dice la causa para que nadie salga a revisar el enlace del recopilador.
+
+**Abierto, y necesita decisión**: decodificar de verdad. `source_mapping` declara
+`classroom_id_var`, `collector_var`, `link_var`, `date_var` y `status_var` —
+**no** la del sexo, que se adivina por nombre de columna y se normaliza por
+palabras. La decisión es **dónde se declara la equivalencia**; el sitio natural
+existe ya: Validación › «Qué es un caso en este estudio», que es donde se declara
+quién recolecta.
+
+### Una nota del código que estaba equivocada
+
+`router_monitoreo.R:1132` explica que el instrumento no llega al tablero de aulas
+y que arreglarlo exige abrir `monitoreo_aulas_normalize_config`, «y ese archivo
+está CONGELADO a crecimiento». **No lo está**: `api/R/monitoreo_aulas_universitarias.R`
+no aparece en `policy.frozen_growth_files` de `agentic/manifest.json` ni tiene
+línea base. Son 2 339 líneas. El camino para decodificar con el instrumento está
+abierto; lo que falta es la decisión, no el permiso.
+
+## La auditoría de congelados está en rojo, y no es de esta tanda
+
+`node agentic/sync-agentic-os.mjs --audit` falla por
+`frontend/src/features/calcMuestra/CalcMuestraPage.tsx`: 3 930 líneas contra
+3 878 de línea base (+52). Entró en `2f0c825f` desde otra sesión. No se le sube
+la línea base a trabajo ajeno; queda dicho para que su autor decida.
