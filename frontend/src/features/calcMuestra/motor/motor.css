@@ -1988,6 +1988,18 @@
     display: none;
   }
 
+  /* El desglose sobrevive a la franja corta, aunque las notas no.
+   *
+   * La regla de arriba deja caer la nota de procedencia para ganar alto, y el
+   * desglose es hermano suyo en el marcado, así que se iba con ella. Pero no es
+   * una nota: es de qué está hecho el número de arriba. Ocultarlo devuelve
+   * exactamente el problema que vino a resolver —«174» a secas, con tres
+   * decisiones indistinguibles— y lo devuelve en 1280x720 y 1024x600, dos de
+   * los cinco viewports de la matriz de QA. Cuesta una línea de 10px. */
+  .rec-resumen-item-copy > .rec-resumen-desglose {
+    display: flex;
+  }
+
   .rec-resumen-item strong {
     font-size: 13px;
   }
