@@ -1262,7 +1262,12 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     faculty_aula = faculty_aula,
     condicion_curso = pick_chr("condicion_curso", "condicion_curso"),
     campus = pick_chr("campus", "campus"),
-    venue = pick_chr("venue", "venue")
+    # PRESENCIA, no identidad. El valor crudo es el nombre del salon y hay
+    # ~1.000 distintos: enumerarlos daria una tarjeta con mil fichas —«LHID
+    # 22 CH», «A601 17 CH»…— y nadie muestrea por nombre de salon. La decision
+    # real es binaria: entra o no entra el curso-horario que no tiene aula.
+    # Se colapsa a un solo valor; el vacio lo recoge el bucket sintetico.
+    venue = ifelse(nzchar(pick_chr("venue", "venue")), "Con aula asignada", "")
   )
 }
 
