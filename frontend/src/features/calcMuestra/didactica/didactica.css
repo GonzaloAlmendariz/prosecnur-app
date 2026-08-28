@@ -211,6 +211,8 @@
 }
 
 .cmv2-did-respaldo-body p {
+  /* Medida de lectura de la casa: a 1440 esta prosa llegaba a ~1.270px. */
+  max-width: 760px;
   margin: 9px 0 0;
   font-size: 12px;
   line-height: 1.55;
