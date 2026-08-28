@@ -5913,13 +5913,44 @@
  * ya scrollea. Lo que no puede desaparecer nunca es el marco.
  */
 .aulas-reemplazo-fondo .aulas-reemplazo-popover {
-  max-height: calc(100vh - 48px);
+  /* Los 420 px venian de cuando esto colgaba de un boton y no podia tapar media
+   * pantalla. Como ventana centrada puede respirar, y hacia falta: con 420 el
+   * interior son 392 y la fila de tres solapas —«Su cadena», «Reservas al aire»,
+   * «Bolson extra», con sus contadores— pide 422. Se salia 30 px.
+   */
+  width: min(500px, 92vw);
+  /* `minmax(0, 1fr)` y no el `auto` implicito: un hijo de grid tampoco encoge
+   * por debajo de su contenido minimo salvo que se le permita, asi que la
+   * CABECERA se dimensionaba a su contenido —421 px dentro de una tarjeta cuyo
+   * interior son 392— y empujaba la × 16 px fuera del borde, sobre el velo.
+   * Culpar a la × era mirar el sintoma: sin esto, `min-width: 0` en el bloque
+   * de titulo no sirve de nada porque el que no encoge es el `header`.
+   */
+  grid-template-columns: minmax(0, 1fr);
+  /* El `max()` es un SUELO. Medido en un panel que reportaba `100vh` = 0: la
+   * ventana quedaba en 30 px, con la lista a cero y ningun candidato visible —
+   * inservible y sin decir por que. Un viewport degenerado no puede colapsar la
+   * unica salida que tiene el usuario.
+   */
+  max-height: max(320px, calc(100vh - 48px));
   grid-template-rows: auto auto auto minmax(0, 1fr);
 }
 
 .aulas-reemplazo-fondo .aulas-reemplazo-lista {
+  /* SIN tope propio: lo gobierna el grid de la ventana.
+   *
+   * Con `max-height: min(52vh, 440px)` la lista scrolleaba SIEMPRE, tambien en
+   * pantallas donde los tres candidatos caben de sobra —el contenido son ~750 px
+   * y a 994 de alto la ventana admite 946—. Y como solo se enseñan tres, no hay
+   * ninguna razon para desplazar donde hay sitio: el corte difuminado del final
+   * se leia como si la ventana desbordara, que es justo lo contrario de lo que
+   * el difuminado pretende decir.
+   *
+   * Con `minmax(0, 1fr)` arriba y el `max-height` de la ventana, la lista toma
+   * lo que sobra: cabe entera cuando cabe, y scrollea solo cuando la pantalla
+   * obliga (1024x600).
+   */
   min-height: 0;
-  max-height: min(52vh, 440px);
   overflow-y: auto;
   overscroll-behavior: contain;
   mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
@@ -5978,14 +6009,35 @@
 .aulas-reemplazo-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
 .aulas-reemplazo-titulo { margin: 0; font-size: 14px; font-weight: var(--pulso-weight-semibold); }
 .aulas-reemplazo-sub { margin: 2px 0 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
+/* El bloque de titulo cede, la × no.
+ *
+ * Un item flex no encoge por debajo de su ancho de contenido minimo salvo que
+ * se le permita, asi que el titulo largo —«EVALUACIÓN ECONÓMICA DE PROYECTOS DE
+ * EDIFICACIÓN · CIENCIAS E INGENIERIA / M / G2 · 28 elegibles»— empujaba a la ×
+ * **16 px fuera del borde derecho de la tarjeta**, colgando sobre el velo.
+ * Medido, no supuesto: tarjeta hasta 850, × hasta 866.
+ */
+.aulas-reemplazo-head > :first-child { min-width: 0; }
+
 .aulas-reemplazo-cerrar {
+  flex: 0 0 auto;
   border: 0; background: none; cursor: pointer; padding: 0 4px;
   color: var(--pulso-text-soft); font-size: 18px; line-height: 1;
 }
 
 .aulas-reemplazo-solapas { display: flex; gap: 4px; border-bottom: 1px solid var(--pulso-border); }
+/* Las solapas ceden antes que salirse.
+ *
+ * Aunque la ventana ya da el ancho, un rotulo mas largo —o una facultad con
+ * nombre kilometrico en otro estudio— volveria a desbordar. `min-width: 0` deja
+ * que el texto se recorte con puntos suspensivos; el CONTADOR nunca se recorta,
+ * porque es el dato por el que se mira la solapa.
+ */
+.aulas-reemplazo-solapas { min-width: 0; }
+
 .aulas-reemplazo-solapa {
   display: flex; align-items: center; gap: 5px;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   padding: 6px 9px; border: 0; border-bottom: 2px solid transparent;
   background: none; cursor: pointer;
   color: var(--pulso-text-soft); font-size: var(--aulas-min);
@@ -5993,6 +6045,7 @@
 }
 .aulas-reemplazo-solapa.es-activa { color: var(--pulso-text); border-bottom-color: var(--pulso-module-monitoreo, var(--pulso-text)); }
 .aulas-reemplazo-cuenta {
+  flex: 0 0 auto;
   min-width: 16px; padding: 0 4px; border-radius: 8px;
   background: var(--pulso-surface-muted); color: var(--pulso-text-soft);
   font-size: 9px; font-variant-numeric: tabular-nums; text-align: center;
@@ -6027,8 +6080,34 @@
 .aulas-reemplazo-datos { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0; color: var(--pulso-text-soft); font-size: var(--aulas-min); }
 .aulas-reemplazo-datos span { white-space: nowrap; }
 
-.aulas-reemplazo-medidas { display: grid; gap: 3px; }
-.aulas-reemplazo-medida { display: grid; grid-template-columns: 72px minmax(0, 1fr) 34px; align-items: center; gap: 6px; }
+/* Las dos medidas comparten columnas, y la del valor se mide sola.
+ *
+ * Estaba clavada a `34px`, ancho de «99%». «100%» tiene un caracter mas y pedia
+ * 48: se salia 14 px y el usuario veia el porcentaje cortado. Un ancho fijo para
+ * un texto variable falla en el caso extremo, que aqui es justo el que mas
+ * importa —un candidato que se parece al 100 %—.
+ *
+ * `display: contents` en cada fila hace que sus tres partes sean items del
+ * MISMO grid, asi que la columna del valor se dimensiona con `max-content` sobre
+ * las dos filas a la vez: nunca recorta y las barras siguen acabando alineadas.
+ * Con una columna por fila, «99 %» y «100 %» dejarian las barras desparejas.
+ */
+.aulas-reemplazo-medidas {
+  display: grid;
+  /* `minmax(48px, max-content)`: 48 es el SUELO —lo que mide «100 %», el valor
+   * mas ancho posible— y `max-content` el techo. El suelo alinea las barras
+   * ENTRE tarjetas, que es donde se nota: con `max-content` a secas, una tarjeta
+   * al 99 % reservaba 37 px y otra al 100 % reservaba 48, y las barras acababan
+   * desparejas bajando por la lista. El techo garantiza que si la fuente crece
+   * el valor sigue sin recortarse, que era el defecto original —una columna
+   * clavada a 34 px para un texto que a veces pide 48—.
+   */
+  grid-template-columns: 72px minmax(0, 1fr) minmax(48px, max-content);
+  align-items: center;
+  gap: 3px 6px;
+}
+
+.aulas-reemplazo-medida { display: contents; }
 .aulas-reemplazo-medida em { color: var(--pulso-text-soft); font-size: var(--aulas-min); font-style: normal; }
 .aulas-reemplazo-medida strong { font-size: var(--aulas-min); font-variant-numeric: tabular-nums; text-align: right; }
 .aulas-reemplazo-barra { display: block; height: 5px; border-radius: 3px; background: var(--pulso-border); overflow: hidden; }
