@@ -206,46 +206,56 @@ export function RecopiladoresShell() {
     .map((s) => s.id as RecopiladoresSeccion)
     .find((id) => !pasosHechos[id])) ?? null;
 
+  // **Las píldoras de fase compartidas, no un selector propio.**
+  //
+  // Esto dibujaba botones planos con `rec-section-selector` y su propio CSS,
+  // mientras Cálculo de muestra, Hojas de ruta y Monitoreo usan
+  // `pulso-phase-pillbar` de `theme.css`: mismo alto, mismo número en su
+  // círculo, mismo relieve en la activa y los mismos estados. Tres módulos con
+  // un lenguaje y éste con otro es justo lo que hace que Recopiladores «se vea
+  // peor» al lado de los demás (Gonzalo, 2026-08-28).
+  //
+  // La semántica de pasos que ya tenía —hecho / es lo siguiente— mapea sin
+  // traducción a `is-done` / `is-next`, así que no se pierde nada: el avance del
+  // recorrido se sigue viendo, ahora con la misma señal que el resto de la app.
   const sectionSelector = (
     <GlidingTabList
-      className="rec-section-selector"
+      className="pulso-phase-pillbar rec-section-selector"
       activeKey={direction.seccion}
       mode="tabs"
       role="group"
       aria-label="Secciones de Recopiladores"
       onRovingKeyChange={(key) => selectSection(key as RecopiladoresSeccion)}
     >
-      {MODULE.sections.map((section) => {
-        const active = section.id === direction.seccion;
-        const Icon = section.icon;
-        return (
-          <button
-            key={section.id}
-            type="button"
-            data-gliding-key={section.id}
-            aria-pressed={active}
-            data-paso={
-              pasosHechos[section.id as RecopiladoresSeccion] ? "hecho"
-              : section.id === siguientePaso ? "siguiente" : undefined
-            }
-            onClick={() => selectSection(section.id as RecopiladoresSeccion)}
-          >
-            <Icon size={15} aria-hidden />
-            {section.label}
-            {/* El punto va después del rótulo y con texto para lector de
-                pantalla: un color solo no es una señal accesible. */}
-            {pasosHechos[section.id as RecopiladoresSeccion] ? (
-              <span className="rec-paso-marca" title="Ya está hecho">
-                <span className="pulso-sr-only"> · hecho</span>
-              </span>
-            ) : section.id === siguientePaso ? (
-              <span className="rec-paso-marca is-siguiente" title="Es lo siguiente">
-                <span className="pulso-sr-only"> · es lo siguiente</span>
-              </span>
-            ) : null}
-          </button>
-        );
-      })}
+      <ol className="pulso-phase-pill-list">
+        {MODULE.sections.map((section, index) => {
+          const id = section.id as RecopiladoresSeccion;
+          const active = section.id === direction.seccion;
+          const hecho = pasosHechos[id];
+          const siguiente = section.id === siguientePaso;
+          const estado = hecho ? "hecho" : siguiente ? "es lo siguiente" : "";
+          return (
+            <li key={section.id} className="pulso-phase-pill-item">
+              <button
+                type="button"
+                data-gliding-key={section.id}
+                className={`pulso-phase-pill${active ? " is-active" : ""}${hecho ? " is-done" : ""}${siguiente ? " is-next" : ""}`}
+                aria-pressed={active}
+                // El estado va en el `title` y en el nombre accesible, no sólo
+                // en el color del círculo: un tinte no es una señal accesible.
+                title={estado ? `${section.label} · ${estado}` : section.label}
+                onClick={() => selectSection(id)}
+              >
+                <span className="pulso-phase-pill-number" aria-hidden="true">{index + 1}</span>
+                <span className="pulso-phase-pill-stack">
+                  <span className="pulso-phase-pill-label">{section.label}</span>
+                </span>
+                {estado ? <span className="pulso-sr-only"> · {estado}</span> : null}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </GlidingTabList>
   );
 
