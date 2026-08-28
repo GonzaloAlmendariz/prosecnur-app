@@ -196,3 +196,34 @@ test_that("matriz degrada deltas si el final N9 no reconcilia included", {
     "delta_ch", "delta_matriculas", "delta_estudiantes_unicos"
   )]))))
 })
+
+
+test_that("el recorte por facultad viaja en el payload, junto a la matriz", {
+  # La funcion existia y no la llamaba nadie: publicarla es lo que la convierte
+  # en algo que el equipo puede leer. Sin este contrato, quitar la linea del
+  # ensamblador no rompe nada y la vista se queda sin datos en silencio.
+  frame <- .me_frame()
+  recorte <- frame$criterios_radiografia$recorte_por_facultad
+
+  expect_true(is.list(recorte))
+  expect_gt(length(recorte), 0L)
+
+  # Un criterio por columna de la matriz, en el mismo orden: son la misma
+  # lectura y no pueden divergir.
+  expect_identical(
+    vapply(recorte, function(x) x$criterion_id, character(1)),
+    vapply(frame$criterios_radiografia$matriz_embudo$columns,
+           function(x) x$criterion_id, character(1))
+  )
+
+  # Y las filas son las facultades de la matriz SIN la fila Total.
+  facultades <- Filter(function(r) !identical(r$row_kind, "total"),
+                       frame$criterios_radiografia$matriz_embudo$rows)
+  expect_identical(length(recorte[[1]]$filas), length(facultades))
+
+  # Cada fila trae su frase y ninguna cae en jerga.
+  frases <- unlist(lapply(recorte, function(cr)
+    c(cr$etiqueta, vapply(cr$filas, function(f) f$etiqueta, character(1)))))
+  expect_true(all(nzchar(frases)))
+  expect_false(any(grepl(MONITOREO_AULAS_JERGA_PROHIBIDA, frases, ignore.case = TRUE)))
+})

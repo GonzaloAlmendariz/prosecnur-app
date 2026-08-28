@@ -5,7 +5,7 @@
  * → aulas M1 — con cifras vivas del motor cuando existen. La primera vez
  * (sin bases ni marco) abre con un hero que responde "¿con qué insumo
  * empiezas?" y el recorrido completo ilustrado; con avance, el recorrido se
- * compacta arriba del mapa con el "Estás aquí" según lo que ya esté listo.
+ * compacta arriba del mapa con el pin "Lo siguiente" según lo que ya esté listo.
  * La capa didáctica (contexto llano, ejemplo trabajado y respaldo citable)
  * vive en esta misma pestaña, dentro de UniversidadDesk.
  */
@@ -57,7 +57,7 @@ export type MuestraRecorridoDerivado = {
 const RECORRIDO_ORDEN: MuestraFlowNodeKey[] = ["definir", "bases", "variables", "marco", "calcular", "aulas"];
 
 /**
- * Deriva estados + "Estás aquí" del MuestraFlowDiagram a partir de señales del
+ * Deriva estados + el pin "Lo siguiente" del MuestraFlowDiagram a partir de señales del
  * estudio. El recorrido es secuencial, así que la derivación es monótona: si
  * una etapa posterior está completa, todas las anteriores se leen como
  * completas aunque su señal directa falte (p. ej. marco construido sin binding
@@ -96,7 +96,7 @@ export function deriveMuestraRecorrido({
     RECORRIDO_ORDEN.map((key) => [key, done[key] ? "ready" : "pending"]),
   ) as Record<MuestraFlowNodeKey, "ready" | "pending">;
 
-  // "Estás aquí": primera etapa pendiente después de Definir (esta pestaña YA
+  // Pin "Lo siguiente": primera etapa pendiente después de Definir (esta pestaña YA
   // es Definir); con todo completo, el pin descansa en la última etapa.
   const highlight = RECORRIDO_ORDEN.slice(1).find((key) => !done[key]) ?? "aulas";
 
@@ -134,7 +134,7 @@ export function DefEstudioTab({
 
   // Recorrido completo: qué pasos ya rindieron resultado. Con nada cargado
   // (ni base ni marco) el tab abre con el hero de primera vez; con avance, el
-  // recorrido se compacta y el "Estás aquí" apunta al primer paso pendiente.
+  // recorrido se compacta y el pin apunta al primer paso pendiente.
   const hasFileBinding = universityFrameSourceBindings(workspace.source_bindings)
     .some((binding) => Boolean(binding.file_id));
   const variablesListas = UNIVERSITY_REQUIRED_VARIABLES
@@ -307,7 +307,7 @@ const HERO_ICONS: Record<CalcMuestraWorkspaceSourceMode, typeof FileSpreadsheet>
  * izquierdo son iconos sin rótulo, así que a quien entra por primera vez
  * «ve la pestaña Bases» no le sirve —no existe ese nombre en pantalla— y
  * «ve la pestaña Fuentes» tampoco del todo, porque tiene que descubrir cuál
- * de los seis iconos lo es. Debajo, el recorrido completo con "Estás aquí"
+ * de los seis iconos lo es. Debajo, el recorrido completo con el pin "Lo siguiente"
  * en Definir.
  */
 function HeroPrimeraVez({

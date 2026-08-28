@@ -184,10 +184,12 @@ test_that("el preflight de un target ecoa return_url, no solo prefill_field", {
 })
 
 test_that("sin prefill_field explicito, el campo por defecto es la ruta XPath del asset", {
-  # El enlace real que Gonzalo confirmo en produccion usa `d[/<asset_uid>/collectorID]`,
-  # no `d[collectorID]`. Con el asset conocido y SIN override, el motor tiene que
-  # producir esa ruta por defecto -no el nombre pelado que algunos servidores
-  # Enketo rechazan-.
+  # `d[/<asset_uid>/collectorID]`, que es el del formulario de 2026 —el enlace
+  # que Gonzalo confirmo el 2026-08-27— y NO el nombre pelado `d[collectorID]`
+  # que uso el operativo de 2025. Los dos enlaces son reales y del mismo
+  # servidor; manda el formulario que se va a usar.
+  #
+  # El otro camino no se perdio: vive en el test de mas abajo.
   adapter <- .collection_adapter_env$collection_adapter_get("kobo_existing_v1")
   inspected <- adapter$inspect_target(list(), list(
     asset_uid = "aNNuP72AedZ886EoAUeV5o", asset_type = "survey", deployment_active = TRUE,
@@ -201,7 +203,9 @@ test_that("sin prefill_field explicito, el campo por defecto es la ruta XPath de
   # donde vive esa funcion.
 })
 
-test_that("prefill_field explicito sigue ganando aunque el asset_uid se conozca", {
+test_that("prefill_field explicito recupera el nombre pelado", {
+  # La salida para un formulario que espera `collectorID` a secas, como el del
+  # operativo de 2025: ahi la ruta XPath no resuelve.
   adapter <- .collection_adapter_env$collection_adapter_get("kobo_existing_v1")
   inspected <- adapter$inspect_target(list(), list(
     asset_uid = "aNNuP72AedZ886EoAUeV5o", asset_type = "survey", deployment_active = TRUE,

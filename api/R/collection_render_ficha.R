@@ -237,6 +237,30 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
   if (nzchar(target)) paste0("Reemplazo", pos, " de ", target) else paste0("Reemplazo", pos)
 }
 
+#' Compone el titulo de una ficha: codigo operativo + curso-horario.
+#'
+#' Devuelve `"CH 1 MAT202_0591"`. Si falta uno de los dos, devuelve el otro
+#' entero: media identidad es mejor que una cadena con un hueco. Si los dos son
+#' el mismo valor —hay marcos donde el codigo operativo ES el curso-horario— no
+#' lo repite.
+#'
+#' @param codigo codigo operativo («CH 1», «R 1.2», «EXTRA 7»).
+#' @param curso codigo academico del curso-horario, como venga del marco.
+#' @return una cadena; vacia solo si ambos lo estan.
+#' @keywords internal
+.crf_codigo_ficha <- function(codigo, curso) {
+  codigo <- toupper(trimws(as.character(codigo %||% "")[1]))
+  curso <- toupper(trimws(as.character(curso %||% "")[1]))
+  # El guion bajo se CONSERVA: «MAT202_0591» es la forma estandar del
+  # curso-horario —la del marco, la del nombre del PDF y la del identificador que
+  # viaja en el QR—. Traducirlo a guion daba dos escrituras del mismo codigo en
+  # la misma hoja, que es la clase de detalle que obliga a comprobar dos veces si
+  # se esta hablando de lo mismo. Solo se sube la caja.
+  if (!nzchar(codigo)) return(curso)
+  if (!nzchar(curso) || identical(codigo, curso)) return(codigo)
+  paste(codigo, curso)
+}
+
 .crf_unit_context <- function(unit) {
   dims <- unit$dimensions %||% list()
   scheduling <- unit$scheduling %||% list()
@@ -250,6 +274,21 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
       .crf_txt(unit$label, "Unidad de aplicacion")
     ),
     label = .crf_txt(unit$label, "Unidad de aplicacion"),
+    # Los DOS codigos juntos, que es como se titula la ficha: «CH 1 MAT202_0591».
+    #
+    # Por separado ninguno basta. El academico solo —«mat202_0591»— era el titulo
+    # hasta el 2026-08-27 y no dice nada del operativo: el equipo habla de «CH 1»
+    # y ese codigo solo aparecia en el nombre del archivo, que se pierde en
+    # cuanto la hoja se imprime. El operativo solo no identifica el curso.
+    #
+    # El curso-horario va en caja alta y con su guion bajo —MAT202_0591, la
+    # forma estandar— porque asi se lee de un vistazo en una pila de papeles y
+    # coincide letra por letra con el nombre del archivo y con el identificador
+    # del QR.
+    codigo_ficha = .crf_codigo_ficha(
+      .crf_txt(dims$legacy_ref %||% unit$operational_code, ""),
+      .crf_txt(unit$label, "")
+    ),
     role = .crf_role_label(
       unit$role, replacement_for,
       dims$replacement_order %||% unit$replacement_order
@@ -291,6 +330,7 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     "deployment.provider" = context$deployment$provider,
     "unit.unit_id" = context$unit$unit_id,
     "unit.operational_code" = context$unit$operational_code,
+    "unit.codigo_ficha" = context$unit$codigo_ficha,
     "unit.label" = context$unit$label,
     "unit.role" = context$unit$role,
     "unit.replacement_for" = context$unit$replacement_for,

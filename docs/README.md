@@ -149,6 +149,9 @@ arquitectura canónica.
 - [Checklist de `respondent_id` y decimales de Frecuencias](qa/checklist-respondent-id-decimales-2026-08-14.md):
   las tres barreras que dejaban el identificador de caso fuera de la BBDD y
   hasta dónde se decidió llevar la metadata de SurveyMonkey.
+- [Checklist de los criterios de curso-horario y su nivel global](qa/checklist-criterios-ch-dos-niveles-2026-08-25.md):
+  por qué la pestaña apilaba dos superficies de criterios, qué se midió antes de
+  retirar la global y las capacidades que hubo que reubicar.
 - [Checklist del criterio de nivel que vaciaba el marco](qa/checklist-nivel-curso-vacia-marco-2026-08-25.md):
   por qué mapear la facultad a mano dejaba el marco en 0 de 5.269, y la decisión
   sobre qué significa una facultad sin tramo declarado.

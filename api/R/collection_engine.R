@@ -264,6 +264,40 @@
   collection_fingerprint(material)
 }
 
+# A quien reemplaza esta unidad, en el vocabulario del operativo.
+#
+# Dos defectos que vivian juntos en la lista de candidatos anterior
+# —`c("replacement_for", "reemplazo_de", "titular_operational_code", …)`—,
+# medidos sobre las 1.512 unidades de HSVG2026:
+#
+# 1. **Los 174 titulares se reemplazaban a si mismos.** Su `replacement_for`
+#    viene vacio, asi que el fallback caia en `titular_operational_code`, que
+#    para un titular ES su propio codigo: los 174, sin excepcion, quedaban con
+#    «CH n reemplaza a CH n». Nadie es reemplazo de si mismo.
+# 2. **Las 1.259 reservas apuntaban con el vocabulario equivocado.** Su
+#    `replacement_for` trae el `classroom_id` del titular —«mat202_0591»—, no su
+#    codigo operativo. Medido: **0 de 1.259** coincidian con el `legacy_ref` de
+#    ninguna unidad del plan, asi que el campo no enlazaba con nada. Es el mismo
+#    hallazgo que ya tenia anotado `monitoreo_aulas_en_juego.R` («ninguno de sus
+#    202 valores coincidia con un titular») y que `PlanSection.tsx` parcheaba
+#    pasando el titular por separado.
+#
+# `titular_operational_code` arregla los dos de una vez: es la cabeza de la
+# cadena en el idioma con el que el equipo habla —«CH 1», no «mat202_0591»—, y
+# para un titular coincide con el suyo, que es justo la señal de que no
+# reemplaza a nadie. Por eso va PRIMERO y con guarda de autorreferencia.
+#
+# El marco que traiga un `replacement_for` propio y bueno sigue mandando cuando
+# no hay codigo de titular; para el pool extra, que no tiene cadena, los dos
+# vienen vacios y el campo queda vacio.
+.collection_replacement_for <- function(row, source_key) {
+  valor <- .collection_first_string(row, c(
+    "titular_operational_code", "replacement_for", "reemplazo_de", "codigo_aula_titular"
+  ))
+  propio <- trimws(as.character(source_key %||% "")[1])
+  if (identical(toupper(valor), toupper(propio))) "" else valor
+}
+
 .collection_legacy_unit <- function(row, index) {
   source_key <- .collection_first_string(row, c(
     "operational_code", "classroom_id", "curso_horario", "course_schedule_id",
@@ -280,12 +314,25 @@
     group = .collection_first_string(row, c("wave", "muestra", "sample_wave"), "M1"),
     dimensions = list(
       legacy_ref = source_key,
+      # El curso-horario: es lo que viaja en el QR y lo que empareja las
+      # respuestas. `.monitoreo_aulas_contar_por_fila()` prueba `classroom_id`
+      # ANTES que `collection_unit_id`, así que un enlace que lo lleva cuadra sin
+      # que nadie traduzca nada, y lo ya recogido con el slug sigue resolviendo
+      # por el segundo intento: las dos generaciones conviven sin reimprimir.
+      classroom_id = .collection_first_string(row, c(
+        "classroom_id", "curso_horario", "course_schedule_id", "id_match"
+      )),
       faculty = .collection_first_string(row, c("faculty", "facultad", "stratum")),
       course_id = .collection_first_string(row, c("course_id", "curso_id", "curso")),
       course_name = .collection_first_string(row, c(
         "course_name", "nombre_del_curso", "nombre_curso", "curso_nombre", "asignatura"
       )),
-      schedule = .collection_first_string(row, c("schedule", "horario")),
+      # `sesiones_dia_hora` primero: es el día y la hora («MIE 17:00-20:00»),
+      # mientras que `schedule` es el CÓDIGO de la sección («0591»). La ficha
+      # rotula la casilla «Horario del curso», así que quien la lee espera lo
+      # primero. El código sigue de respaldo para los marcos que no traen
+      # sesiones, y para ellos nada cambia.
+      schedule = .collection_first_string(row, c("sesiones_dia_hora", "schedule", "horario")),
       # **La escuela, que el marco trae y el plan tiraba.** `program` viene con
       # dato en las 2.616 unidades del estudio —ARQUITECTURA, DISEÑO GRAFICO,
       # PINTURA— y se quedaba en la seleccion: la ficha no podia decir de que
@@ -300,14 +347,17 @@
       # **Sin `label` al final de la lista.** Era el ultimo candidato «por si
       # acaso» y acabo siendo el unico: medido sobre las 2.616 unidades del
       # estudio de aulas, las 2.616 tenian `venue` IDENTICO a `label`, o sea el
-      # codigo del curso-horario impreso bajo el rotulo «Aula». El marco no trae
-      # el aula porque el aula no se sabe hasta el dia de la aplicacion: es uno
-      # de los datos que el aplicador anota a mano en la ficha.
+      # codigo del curso-horario impreso bajo el rotulo «Aula».
       #
       # Rellenar un campo con el valor de otro no es un fallback, es una
       # respuesta inventada: quien lee la ficha no puede distinguir un aula que
-      # se conoce de una que no. Vacio, la ficha imprime «Por confirmar», que es
-      # la verdad, y el registro de aplicacion ya tiene su casilla «Aula:».
+      # se conoce de una que no. Vacio, la ficha deja su raya, que es la verdad.
+      #
+      # `pabellon_aula` va primero y desde 2026-08-27 llega con dato: el catalogo
+      # de cursos-horarios SI dice el aula, dentro de `SESIONES`
+      # («MIE 17:00-20:00 C  A506»), y `calc_muestra_aulas_sesiones.R` la extrae.
+      # La premisa de que «el aula no se sabe hasta el dia de la aplicacion» valia
+      # para el marco de entonces, no para este.
       venue = .collection_first_string(row, c(
         "pabellon_aula", "pabellon", "venue", "aula", "salon", "room",
         "building_room"
@@ -321,9 +371,7 @@
       # A quien reemplaza esta unidad. Sin esto la ficha de un reemplazo no
       # puede decir de quien lo es, que es justo lo que necesita saber quien la
       # lleva al aula.
-      replacement_for = .collection_first_string(row, c(
-        "replacement_for", "reemplazo_de", "titular_operational_code", "codigo_aula_titular"
-      )),
+      replacement_for = .collection_replacement_for(row, source_key),
       # Y en que LUGAR de la cadena entra. Con cadenas de uno o dos no hacia
       # falta; desde que el candado por facultad las deja llegar a once, seis
       # fichas de la misma cadena decian todas «Reemplazo de AULA-01» y quien
@@ -828,6 +876,20 @@ collection_reconcile <- function(sid, expected_revision, observed = list()) {
     }, character(1)), collapse = "&")
     url <- paste0(url, if (grepl("?", url, fixed = TRUE)) "&" else "?", query)
   }
+  # `returnUrl` en camelCase y con el valor codificado: es el del formulario de
+  # ESTE estudio.
+  #
+  # Hay dos enlaces reales y no coinciden. El del operativo de 2025 usaba
+  # `&return_url=https://drive.google.com/…/view?usp=sharing` —snake_case y
+  # literal—; el de 2026, que Gonzalo confirmó el 2026-08-27, usa
+  # `&returnUrl=https%3A%2F%2Fpulso.pucp.edu.pe%2Fnoticias%2Fenlace`. Manda el
+  # formulario que se va a usar, no el del año pasado.
+  #
+  # El precio de equivocarse aquí es asimétrico y silencioso: un parámetro de
+  # retorno que el servidor no reconoce no rompe nada visible —el formulario
+  # abre, la respuesta entra— y sólo se nota porque el encuestado se queda
+  # mirando la pantalla de Enketo al terminar. Por eso esto se cambia con un
+  # enlace delante y no con un argumento sobre lo que debería funcionar.
   return_url <- suppressWarnings(as.character(return_url %||% "")[1])
   return_url <- if (is.na(return_url)) "" else trimws(return_url)
   if (nzchar(return_url)) {

@@ -183,8 +183,8 @@ describe("«llegaron a su meta» sale del motor y no del estado operativo", () =
   // cobertura —dos paneles mas abajo, misma pantalla— decia 0.
   const conCobertura = (cumplida: number, total: number, sinMeta: number) => ({
     course_status_cobertura: [
-      { clave: "sin_respuestas", aulas: total - sinMeta - cumplida },
-      { clave: "cumplida", aulas: cumplida },
+      { clave: "nulo", aulas: total - sinMeta - cumplida },
+      { clave: "pleno", aulas: cumplida },
     ],
     course_status_total: total,
     course_status_sin_meta: sinMeta,
@@ -271,6 +271,32 @@ describe("«¿vamos a llegar?» tiene por fin una cifra", () => {
     const k = cierre({ ...tableroCon(30, 10, 5), quotas_sex_faculty: [] });
     expect(k?.value).toBe("S/D");
     expect(k?.tone).toBe("neutral");
+  });
+
+  it("una celda sin objetivo no cuenta como cerrada ni infla el denominador", () => {
+    // El defecto real, visible en la portada del perfil con el estudio de HSVG:
+    // «CIERRAN CON LO AGENDADO 10 de 30» con CERO aulas agendadas y cero
+    // aplicadas. Las diez eran justo las diez celdas sin cuota: con meta 0,
+    // `faltan` da 0 y `alcanza` sale true. La ausencia de objetivo se contaba
+    // como objetivo cumplido.
+    const base = tableroCon(300, 0, 0);
+    const k = cierre({
+      ...base,
+      quotas_sex_faculty: [
+        ...base.quotas_sex_faculty,
+        { faculty: "Artes Escenicas", sex: "Mujer", target: 0, observed: 0 },
+        { faculty: "Artes Escenicas", sex: "Hombre", target: 0, observed: 0 },
+      ],
+    });
+    expect(k?.value).toBe("0");
+    expect(k?.pista).toBe("de 2 celdas sexo × facultad con objetivo · 2 sin objetivo declarado");
+    expect(k?.tone).toBe("warn");
+  });
+
+  it("sin celdas mudas la pista no menciona objetivos ausentes", () => {
+    // El control del mutante: si el sufijo se imprimiera siempre, esta pista
+    // diria «· 0 sin objetivo declarado» y estaria inventando un vacio.
+    expect(cierre(tableroCon(30, 10, 5))?.pista).toBe("de 2 celdas sexo × facultad con objetivo");
   });
 });
 

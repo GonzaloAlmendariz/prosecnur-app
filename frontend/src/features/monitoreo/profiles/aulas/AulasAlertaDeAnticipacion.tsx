@@ -88,7 +88,13 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
   );
 
   const conBrecha = filas.filter((f) => f.urgencia !== "sin brecha");
-  const aulasTotales = conBrecha.reduce((n, f) => n + f.aulasAPedir, 0);
+  // Sólo se suma lo que tiene cifra. Las facultades cuyo pedido no se puede
+  // dimensionar todavía —brecha conocida, rendimiento por aula aún no— se
+  // cuentan aparte y se dicen: sumarlas como 0 hacía que la lectura declarara
+  // «hay que pedir 0 en total» encima de una tabla con 983 y 1.340 en FALTAN.
+  const dimensionadas = conBrecha.filter((f) => f.aulasAPedir != null);
+  const sinDimensionar = conBrecha.length - dimensionadas.length;
+  const aulasTotales = dimensionadas.reduce((n, f) => n + (f.aulasAPedir ?? 0), 0);
   const paradas = conBrecha.filter((f) => f.urgencia === "sin agenda").length;
   const sinBanco = conBrecha.filter((f) => f.bancoAlcanza === false).length;
   // Si NINGUNA fila sabe cuánto banco le queda, la columna sería «S/D» veinte
@@ -128,8 +134,14 @@ export function AulasAlertaDeAnticipacion({ partes, agenda = [], cuotas = [], ba
     <div className="aulas-anticipacion">
       <p className="aulas-cadenas-lectura">
         <strong>{fmt(conBrecha.length)}</strong>{" "}
-        {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} aulas nuevas ·
-        hay que pedir <strong>{fmt(aulasTotales)}</strong> en total
+        {conBrecha.length === 1 ? "facultad necesita" : "facultades necesitan"} aulas nuevas
+        {dimensionadas.length
+          ? <> · hay que pedir <strong>{fmt(aulasTotales)}</strong> en total</>
+          : null}
+        {sinDimensionar
+          ? <> · <strong>{fmt(sinDimensionar)}</strong> sin dimensionar todavía: hace falta
+              la primera aula aplicada para saber cuánto rinde una</>
+          : null}
         {/* Las paradas van en la lectura y no sólo en la tabla: son las que
             tienen días de campo perdiéndose ahora mismo. */}
         {paradas > 0

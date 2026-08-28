@@ -543,7 +543,8 @@ calc_muestra_aulas_criterios_totales <- function(context) {
   !is.null(criterion)
 }
 
-.cm_criterios_cascade_root <- function(context, criteria_hash, moment, steps) {
+.cm_criterios_cascade_root <- function(context, criteria_hash, moment, steps,
+                                       alumnos_vivos = TRUE, descartadas = NULL) {
   list(
     schema = .cm_criterios_cascada_schema,
     owner = "calc_muestra_aulas_frame_v1.criterios_cascada",
@@ -553,7 +554,46 @@ calc_muestra_aulas_criterios_totales <- function(context) {
     grain = "paso_x_facultad_efectiva",
     unit = "curso_horario_unico",
     order_source = "motor_r",
+    # FALSE cuando el preview corre sin la tabla atómica estudiante x CH: los
+    # pasos de curso-horario son del borrador, los de alumno son los del marco
+    # construido. La UI tiene que decirlo; callarlo sería un tercer reloj mudo.
+    alumnos_vivos = isTRUE(alumnos_vivos),
+    # QUIÉNES caen, no sólo cuántos. La lista de cursos-horario del marco sale
+    # del `aula_frame` ejecutado y no tiene forma de saber cuáles descarta el
+    # borrador: contar no basta para dejar de enseñarlos. Evaluar los criterios
+    # otra vez en el frontend sería tener la regla en dos sitios, así que la
+    # identidad la publica quien decide. Vacío en la cascada ejecutada: ahí el
+    # marco YA es el resultado.
+    descartadas = as.character(descartadas %||% character(0)),
     steps = steps
+  )
+}
+
+# Recuento de elegibles por aula SIN la tabla atómica: la columna que el marco
+# ya publica. Es el valor del marco CONSTRUIDO, no del borrador — sólo vale
+# mientras el borrador no cambie ningún criterio de alumno, y por eso el preview
+# marca esos pasos como no vivos en vez de recalcularlos.
+.cm_criterios_membresias_del_marco <- function(aula_frame) {
+  n <- nrow(aula_frame)
+  list(
+    eligible_n = .cm_aulas_num_values(aula_frame, "eligible_n", NA_real_),
+    ids = list(pair_ch = integer(0), pair_student = integer(0), valido = FALSE),
+    row_ok = logical(0),
+    row_ch = integer(0),
+    valido = FALSE,
+    desde_marco = TRUE,
+    n_ch = n
+  )
+}
+
+# Señales de composición (criterios 7 y 8) SIN la tabla atómica. El marco las
+# publica ya calculadas por aula, con los mismos nombres que produce
+# `.cm_criterio_radiografia_composicion()`.
+.cm_criterios_composicion_del_marco <- function(aula_frame) {
+  list(
+    c7 = .cm_aulas_num_values(aula_frame, "prevalence_ratio", NA_real_),
+    c8_facultad = .cm_aulas_num_values(aula_frame, "faculty_match_share", NA_real_),
+    c8 = .cm_aulas_num_values(aula_frame, "level_match_share", NA_real_)
   )
 }
 
@@ -643,12 +683,9 @@ calc_muestra_aulas_criterios_totales <- function(context) {
   values <- context$values %||% list()
   faculty_keys <- .cm_criterios_fac_key(values$faculty %||% rep("", n))
   if (identical(id, "minEligible")) {
-    rule <- selection$minEligible
-    if (is.null(rule) || !is.finite(rule$threshold)) {
-      rule <- list(
-        threshold = .cm_criterios_min_eligible_efectivo(cfg), byFaculty = list()
-      )
-    }
+    rule <- .cm_criterios_min_elig_con_fallback(
+      selection$minEligible, .cm_criterios_min_eligible_efectivo(cfg)
+    )
     return(list(
       flag = .cm_criterios_eval_min_eligible(
         membership$eligible_n, faculty_keys, rule
@@ -757,6 +794,23 @@ calc_muestra_aulas_criterios_preview <- function(
   if (!is.list(index)) {
     index <- .cm_criterio_radiografia_indice_alumno(context$aula_frame, filas)
   }
+  # SIN LA TABLA ATOMICA (contexto rehidratado desde el marco guardado).
+  #
+  # `calc_muestra_aulas_criterios_contexto` es cache_stripped: se borra al
+  # guardar y no puede volver, porque la tabla estudiante x CH es de origen y no
+  # viaja en el marco. Hasta aqui eso dejaba el preview MUERTO al abrir un
+  # `.pulso`, y la cascada caia a la ejecutada sin decirlo.
+  #
+  # Los pasos de CURSO-HORARIO no necesitan esa tabla: `preview_aula_flag` lee
+  # `aula_frame`, `values` y `composition`, y las tres cifras que sí venian de
+  # ella —elegibles por aula y las señales de composicion— el marco las publica
+  # como columnas. Con eso el embudo de CH vuelve a ser vivo siempre.
+  #
+  # Lo que NO se puede recalcular es el efecto de un criterio de ALUMNO sobre
+  # esas cifras. Se declara: sus pasos quedan `sin_recuento` y la raiz publica
+  # `alumnos_vivos = FALSE`. Dejarlos correr sobre `eligible_n = NA` los haria
+  # pasar a todos y el minimo mentiria sin que nada avisara.
+  sin_atomica <- !n_rows || !isTRUE(index$valido)
   current <- rep(TRUE, n_ch)
   membership <- NULL
   composition <- NULL
@@ -781,7 +835,11 @@ calc_muestra_aulas_criterios_preview <- function(
     } else if (identical(spec$scope, "alumno")) {
       criterion <- (selection$byVariable %||% list())[[id]]
       applies <- !is.null(criterion)
-      if (applies && identical(.cm_aulas_scalar(criterion$layer, "marco"), "marco")) {
+      if (applies && sin_atomica) {
+        # El criterio existe y sigue rigiendo el marco construido; lo que no se
+        # puede es recalcular su efecto aqui. Se dice, no se simula.
+        status <- "sin_recuento"
+      } else if (applies && identical(.cm_aulas_scalar(criterion$layer, "marco"), "marco")) {
         student_flag <- .cm_criterios_preview_student_flag(
           id, criterion, context, index
         )
@@ -798,15 +856,23 @@ calc_muestra_aulas_criterios_preview <- function(
       }
     } else {
       if (is.null(membership)) {
-        membership <- .cm_criterio_radiografia_membresias(
-          context$aula_frame, filas, row_ok, index
-        )
+        membership <- if (sin_atomica) {
+          .cm_criterios_membresias_del_marco(context$aula_frame)
+        } else {
+          .cm_criterio_radiografia_membresias(
+            context$aula_frame, filas, row_ok, index
+          )
+        }
       }
       if (is.null(composition)) {
-        composition <- .cm_criterio_radiografia_composicion(
-          context$aula_frame, filas, membership, context$values,
-          context$criterios$radiografia_contexto %||% list()
-        )
+        composition <- if (sin_atomica) {
+          .cm_criterios_composicion_del_marco(context$aula_frame)
+        } else {
+          .cm_criterio_radiografia_composicion(
+            context$aula_frame, filas, membership, context$values,
+            context$criterios$radiografia_contexto %||% list()
+          )
+        }
       }
       evaluated <- .cm_criterios_preview_aula_flag(
         id, selection, cfg, context, membership, composition
@@ -826,8 +892,14 @@ calc_muestra_aulas_criterios_preview <- function(
       faculties = counts$faculties, total = counts$total
     )
   }
+  # Las que el marco construido incluye y el borrador ya no: son exactamente las
+  # que la lista sigue enseñando y no deberían estar.
+  incluidas_marco <- .cm_aulas_values(context$aula_frame, "included", "") %in% c(TRUE, "TRUE", "true")
+  ids_marco <- .cm_aulas_values(context$aula_frame, "classroom_id", "")
+  descartadas <- ids_marco[incluidas_marco & !current & nzchar(ids_marco)]
   .cm_criterios_cascade_root(
-    context, .cm_criterios_hash(cfg), "borrador_no_persistido", steps
+    context, .cm_criterios_hash(cfg), "borrador_no_persistido", steps,
+    alumnos_vivos = !sin_atomica, descartadas = descartadas
   )
 }
 
@@ -847,6 +919,54 @@ calc_muestra_aulas_criterios_preview <- function(
     particularidades = out$particularidades,
     criterios = criterios,
     values = values
+  )
+}
+
+#' Contexto de criterios reconstruido desde el marco GUARDADO.
+#'
+#' El contexto completo lleva la tabla atomica estudiante x CH y por eso es
+#' `cache_stripped`: se borra al guardar y no puede rehidratarse, porque esa
+#' tabla es de origen y no viaja en el marco. Sin el, el preview quedaba muerto
+#' en cuanto se abria un `.pulso` y el embudo caia a la cascada ejecutada.
+#'
+#' Esta version reducida reconstruye lo que SI persiste —`aula_frame`, catalogo,
+#' radiografia, particularidades y la config— y deja fuera la tabla atomica. Con
+#' eso los pasos de curso-horario vuelven a ser vivos; los de alumno se declaran
+#' `sin_recuento` (ver `calc_muestra_aulas_criterios_preview`).
+#'
+#' `values` se recalcula del propio marco: sin el catalogo de origen,
+#' `.cm_criterios_valores_aula()` cae a las columnas del `aula_frame`, que es
+#' justo lo que la UI enseña y contra lo que el analista declara sus reglas. El
+#' nivel del curso se pasa desde `course_level_num`, que el marco publica.
+#'
+#' @param frame marco de aulas persistido (`calc_muestra_aulas_frame`).
+#' @return el contexto reducido, o NULL si el marco no alcanza.
+#' @keywords internal
+.cm_criterios_contexto_desde_marco <- function(frame) {
+  if (!is.list(frame) || !is.data.frame(frame$aula_frame) ||
+      !nrow(frame$aula_frame)) {
+    return(NULL)
+  }
+  aula_frame <- frame$aula_frame
+  valores <- .cm_criterios_valores_aula(
+    aula_frame,
+    list(),
+    .cm_aulas_num_values(aula_frame, "course_level_num", NA_real_)
+  )
+  list(
+    schema = .cm_criterios_contexto_schema,
+    source_frame_hash = .cm_aulas_scalar(frame$frame_hash, ""),
+    current_criteria_hash = .cm_criterios_hash(frame$config),
+    config = frame$config,
+    aula_frame = aula_frame,
+    criterios_catalogo = frame$criterios_catalogo,
+    criterios_radiografia = frame$criterios_radiografia,
+    student_index = NULL,
+    particularidades = frame$particularidades,
+    # Sin `radiografia_contexto$filas`: es la tabla atomica que no viaja.
+    criterios = list(),
+    values = valores,
+    desde_marco = TRUE
   )
 }
 

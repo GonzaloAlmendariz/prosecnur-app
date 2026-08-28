@@ -55,6 +55,58 @@
   r
 }
 
+# Las TRES piernas del rendimiento del aula.
+#
+# `tasa` es el producto y sigue siendo la cifra que dimensiona; las piernas son
+# su descomposicion, medida sobre las 194 aulas aplicadas de 2025 (razon de
+# sumas) y reproducen la `tasa` sellada EXACTO en los cinco tramos:
+#
+#   tramo   asistencia  respuesta  validez   producto  sellado
+#   <=15      1,1262      0,7960    0,9025    0,80905   0,809
+#   16-25     0,8460      0,8298    0,9148    0,64220   0,642
+#   26-35     0,9043      0,7103    0,8808    0,56576   0,566
+#   36-50     0,7676      0,7282    0,8954    0,50050   0,500
+#   >50       0,6354      0,7357    0,8757    0,40936   0,409
+#
+# Cuatro decimales y no tres: con tres, el tramo 26-35 daba 0,56546 contra una
+# tasa de 0,566, un desvio por encima del propio redondeo de la tasa. La
+# descomposicion tiene que caber dentro de la cifra que describe.
+#
+# Por que importan separadas: **todo el castigo del aula grande esta en la
+# asistencia** (1,126 -> 0,635), la respuesta baja poco y la validez es plana
+# (0,876-0,915). Son tres problemas con tres palancas distintas —agenda y
+# horario / aplicador, tiempo e instrumento / completitud y consentimiento— y
+# una sola cifra no dice cual esta fallando.
+#
+# La asistencia pasa de 1 en el tramo chico porque `asistentes` cuenta gente en
+# el salon, no necesariamente elegible. NO se topa aqui: toparla rompería el
+# producto, que es el invariante que un test fija.
+#
+# **Sin sello no hay piernas.** La calibracion embebida es de otra ola y su
+# producto no sale de esta descomposicion; inventarle una seria publicar una
+# lectura que nadie midio. Devuelve NA y la superficie lo declara.
+.cm_efectividad_piernas <- function(eligible_n, tramos = NULL) {
+  e <- suppressWarnings(as.numeric(eligible_n))
+  e[!is.finite(e)] <- 0
+  vacio <- list(asistencia = rep(NA_real_, length(e)),
+                respuesta = rep(NA_real_, length(e)),
+                validez = rep(NA_real_, length(e)))
+  if (!is.list(tramos) || !length(tramos)) return(vacio)
+  out <- vacio
+  restante <- rep(TRUE, length(e))
+  for (tr in tramos) {
+    hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
+    if (!is.finite(hasta)) hasta <- Inf
+    idx <- restante & e <= hasta
+    for (nm in c("asistencia", "respuesta", "validez")) {
+      v <- suppressWarnings(as.numeric(tr[[nm]])[1])
+      out[[nm]][idx] <- if (is.finite(v) && v > 0) v else NA_real_
+    }
+    restante <- restante & !idx
+  }
+  out
+}
+
 #' Tasa de aplicacion por tipo de docente desde la tabla sellada; un aula con
 #' docentes compuestos («A | B») lleva la del mas restrictivo (min), que es
 #' como el campo se comporta: basta que uno rechace.
@@ -113,9 +165,22 @@
         # directos (Derecho 1,115 rinde por encima de su mix) — un residual
         # mayor a 2 si seria absurdo y se descarta.
         if (!nzchar(fac) || !is.finite(tv) || tv <= 0 || tv > 2) return(NULL)
+        # `aplicar` es EXPLICITO y por defecto TRUE: los sellos existentes
+        # -las 6 con base suficiente- siguen aplicandose sin tocarlos. Una
+        # entrada con `aplicar = FALSE` viaja como REFERENCIA: se publica lo
+        # que el historico observo y el modelo no lo usa. Es la unica forma de
+        # que una facultad sin base declare su residual sin que ese residual
+        # entre por la puerta de atras.
+        ap <- e$aplicar
+        aplicar <- !(length(ap) == 1L && identical(as.logical(ap)[1], FALSE))
+        num_opt <- function(nm) {
+          v <- suppressWarnings(as.numeric(e[[nm]])[1])
+          if (is.finite(v)) v else NULL
+        }
         list(facultad = fac, tau = tv,
              k = if (length(kv) == 1L && !is.na(kv)) kv else NA_integer_,
-             suficiencia = suf)
+             suficiencia = suf, aplicar = aplicar,
+             ic_low = num_opt("ic_low"), ic_high = num_opt("ic_high"))
       })
       limpio <- Filter(Negate(is.null), limpio)
       if (length(limpio)) por_facultad <- limpio
@@ -131,7 +196,16 @@
         hasta <- suppressWarnings(as.numeric(tr$hasta)[1])
         tasa <- suppressWarnings(as.numeric(tr$tasa)[1])
         if (!is.finite(tasa) || tasa <= 0 || tasa > 1) return(NULL)
-        list(hasta = if (is.finite(hasta)) hasta else NA_real_, tasa = tasa)
+        # Las tres piernas son OPCIONALES y se conservan solo si son legibles:
+        # un tramo sin ellas sigue siendo valido —la `tasa` es lo que
+        # dimensiona— y publica NA en vez de un numero inventado.
+        pierna <- function(nm) {
+          v <- suppressWarnings(as.numeric(tr[[nm]])[1])
+          if (is.finite(v) && v > 0) v else NULL
+        }
+        list(hasta = if (is.finite(hasta)) hasta else NA_real_, tasa = tasa,
+             asistencia = pierna("asistencia"), respuesta = pierna("respuesta"),
+             validez = pierna("validez"))
       })
       limpio_t <- Filter(Negate(is.null), limpio_t)
       hastas <- vapply(limpio_t, function(x) if (is.finite(x$hasta)) x$hasta else Inf, numeric(1))
@@ -206,11 +280,23 @@
     r <- .cm_efectividad_rendimiento(aula_frame$eligible_n, tramos = cal$rendimiento_tramos)
     aula_frame$p_aplicada_ref <- round(p, 3)
     aula_frame$rendimiento_ref <- round(r, 3)
+    # Las tres piernas de `rendimiento_ref`, para que Monitoreo pueda decir CUAL
+    # falla y no solo que falla. No cambian ningun esperado: su producto es
+    # `rendimiento_ref`.
+    piernas <- .cm_efectividad_piernas(aula_frame$eligible_n, tramos = cal$rendimiento_tramos)
+    aula_frame$tasa_asistencia_aula <- round(piernas$asistencia, 3)
+    aula_frame$tasa_respuesta_aula <- round(piernas$respuesta, 3)
+    aula_frame$tasa_validez_aula <- round(piernas$validez, 3)
     # Ajuste por facultad: solo donde el historico declaro un tau con
     # suficiencia; el resto queda en 1 con k=NA — la UI dice "el historico no
     # pudo generar informacion especifica para esta facultad".
     factor <- rep(1, nrow(aula_frame))
     k_fac <- rep(NA_integer_, nrow(aula_frame))
+    res_ref <- rep(NA_real_, nrow(aula_frame))
+    res_ref_k <- rep(NA_integer_, nrow(aula_frame))
+    res_ref_lo <- rep(NA_real_, nrow(aula_frame))
+    res_ref_hi <- rep(NA_real_, nrow(aula_frame))
+    res_aplicado <- rep(FALSE, nrow(aula_frame))
     pf <- cal$por_facultad
     tau_base <- suppressWarnings(as.numeric(cal$tau_base))
     if (is.list(pf) && length(pf) && length(tau_base) == 1L &&
@@ -222,19 +308,64 @@
         kv <- suppressWarnings(as.integer(e$k)[1])
         if (nzchar(fk) && is.finite(tv) && tv > 0) {
           idx <- fac_col == fk
-          factor[idx] <- tv / tau_base
-          k_fac[idx] <- kv
+          # El residual OBSERVADO viaja siempre; el APLICADO solo si el sello lo
+          # autoriza. Son dos columnas y no una a proposito: `factor_facultad`
+          # es lo que el modelo usa y `residual_ref` es lo que el historico vio.
+          # Colapsarlas haria que una facultad sin base pareciera calibrada.
+          res_ref[idx] <- tv / tau_base
+          res_ref_k[idx] <- kv
+          res_ref_lo[idx] <- if (is.null(e$ic_low)) NA_real_ else e$ic_low / tau_base
+          res_ref_hi[idx] <- if (is.null(e$ic_high)) NA_real_ else e$ic_high / tau_base
+          if (isTRUE(e$aplicar)) {
+            res_aplicado[idx] <- TRUE
+            factor[idx] <- tv / tau_base
+            k_fac[idx] <- kv
+          }
         }
       }
     }
     aula_frame$factor_facultad <- round(factor, 3)
     aula_frame$facultad_k <- k_fac
+    # Referencia: lo que el historico observo para ESTA facultad, aplicado o no,
+    # con su k y su intervalo. Una facultad sin base suficiente publica aqui su
+    # residual y un `residual_aplicado = FALSE` al lado, que es exactamente lo
+    # que se pidio: que quede absolutamente claro y que no toque el modelo.
+    aula_frame$residual_ref <- round(res_ref, 3)
+    aula_frame$residual_ref_k <- res_ref_k
+    aula_frame$residual_ref_ic_low <- round(res_ref_lo, 3)
+    aula_frame$residual_ref_ic_high <- round(res_ref_hi, 3)
+    aula_frame$residual_aplicado <- res_aplicado
     # La tasa de efectividad DEL AULA (nombre propio, V7): R(tamano) x F(fac).
     aula_frame$tasa_efectividad_aula <- round(r * factor, 3)
     # EFECTIVAS ESPERADAS = elegibles x tasa del aula — CONDICIONAL a que el
     # aula se aplique. El riesgo del docente NO descuenta efectivas (la cadena
     # repone caidas); vive en p_aplicada_ref para presupuesto y cadena.
     aula_frame$efectivas_esperadas <- round(el * r * factor, 1)
+    # **El denominador propio, al lado del del aula.**
+    #
+    # `eligible_n` cuenta TODOS los elegibles de la seccion, sean de la facultad
+    # del aula o no, y es con ese numero con el que se dimensiona. Medido sobre
+    # el estudio HSVG 2026: nuestras 193 titulares cargan 6.896 elegibles y
+    # 6.555 son de su facultad (95,1 %). No muerde hoy porque la atribucion es
+    # limpia -el sorteo balancea por facultad-, pero el metodo es el mismo que
+    # deja una seleccion ajena en 4,8 % en GASTRONOMIA.
+    #
+    # `faculty_match_share` YA lo mide (criterio 8, parte 1: proporcion de
+    # elegibles unicos cuya facultad coincide con la del curso). Lo que faltaba
+    # no era calcularlo: era publicarlo como conteo y ponerlo donde se ve.
+    #
+    # **Se publican los dos y NO se cambia el que dimensiona.** Cambiar el
+    # denominador mueve todos los esperados y todos los cupos de golpe: eso es
+    # una decision del estudio, no un arreglo. Aqui queda la brecha a la vista
+    # para poder tomarla.
+    #
+    # `round` y no `floor`: `share` es una proporcion de conteos redondeada a 4
+    # decimales, asi que el producto RECONSTRUYE un entero que ya existia; no es
+    # una promesa que redondear a la baja.
+    share <- suppressWarnings(as.numeric(aula_frame$faculty_match_share %||% rep(NA_real_, nrow(aula_frame))))
+    el_prop <- ifelse(is.finite(share), round(el * share), NA_real_)
+    aula_frame$eligible_n_propios <- as.integer(el_prop)
+    aula_frame$efectivas_esperadas_propias <- round(el_prop * r * factor, 1)
   }
   # La procedencia viaja en la fila: la UI y Monitoreo la leen, no la asumen.
   aula_frame$efectividad_fuente <- as.character(cal$fuente)

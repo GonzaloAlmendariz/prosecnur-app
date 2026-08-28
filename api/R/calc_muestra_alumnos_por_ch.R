@@ -674,7 +674,11 @@ calc_muestra_alumnos_por_ch_adjuntar_auditoria <- function(estudio, auditoria) {
 # auditoría. El router no deriva estadísticos ni manipula el resultado.
 calc_muestra_alumnos_por_ch_calcular_estudio <- function(estudio, frame = NULL) {
   decision_resuelta <- calc_muestra_alumnos_por_ch_resolver_estudio(estudio, frame)
-  calculado <- calc_muestra_calcular_estudio(decision_resuelta$estudio)
+  # Y la tasa de efectividad de cada facultad, del marco a su estrato: el
+  # divisor ya se resuelve arriba y el τ caía al global para las quince.
+  # Ver calc_muestra_aulas_efectividad_sello.R.
+  con_tau <- calc_muestra_aulas_resolver_tau_estratos(decision_resuelta$estudio, frame)
+  calculado <- calc_muestra_calcular_estudio(con_tau)
   auditado <- calc_muestra_alumnos_por_ch_adjuntar_auditoria(
     calculado,
     decision_resuelta$auditoria

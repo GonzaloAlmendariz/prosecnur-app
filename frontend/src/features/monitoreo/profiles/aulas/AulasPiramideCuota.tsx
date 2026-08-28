@@ -151,10 +151,17 @@ export function AulasPiramideCuota({ filas, foco, onFoco, agenda = [], partes = 
 
   if (!facultades.length || !izquierda) {
     return (
+      // **La causa se dice UNA vez, arriba.** `AulasCuotasResumen` encabeza la
+      // sección y ya explica por qué no hay cuotas; verlo en la app dejó claro
+      // que aquí se repetía literal —la misma frase salía tres veces en la
+      // misma pantalla, más dos KPIs en «S/D» diciendo lo mismo—. Repetir la
+      // causa no informa, tapa. Esta pieza declara su propio vacío en SUS
+      // términos: una pirámide compara dos lados, y sin celdas no hay nada que
+      // enfrentar.
       <p className="mon-profile-muted" data-qa-geometry-capacity="owned" data-qa-geometry-member="true">
         {sinMeta
           ? `Las ${fmt(sinMeta)} celdas de cuota del plan no declaran objetivo.`
-          : "El plan no declara composición por sexo para estos cursos-horario."}
+          : "Sin celdas que enfrentar."}
       </p>
     );
   }

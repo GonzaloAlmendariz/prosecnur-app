@@ -83,3 +83,50 @@ test_that("monitoreo_aulas_estado_control separa los tres desenlaces", {
   expect_identical(monitoreo_aulas_estado_control(TRUE, TRUE), "review")
   expect_identical(monitoreo_aulas_estado_control(TRUE, TRUE, "warning"), "warning")
 })
+
+# ---------------------------------------------------------------------------
+# «APLICADAS» cuenta lo que el registro de campo declara
+# ---------------------------------------------------------------------------
+
+# Medido en la app el 2026-08-25, importando una semana simulada de 40 partes de
+# los que 35 dicen APLICADA: Consultas > Parte de campo ensenaba «40 partes · de
+# 586 personas en el aula quedaron 540 respuestas» y, dos pestanas mas alla, la
+# tarjeta «APLICADAS · declaradas en el registro de campo» seguia diciendo 0.
+#
+# La cifra salia solo de `operational_status`, el estado del PLAN, y desde el
+# libro ese estado no puede llegar nunca a «aplicada»: la hoja «Listas» solo
+# ofrece AGENDADA / REAGENDADA / REEMPLAZADA / EN RESERVA n para STATUS MUESTRA.
+# El veredicto del parte vive en `application_status`, en la misma fila.
+
+.vpa_aula <- function(codigo, ...) {
+  c(list(classroom_id = codigo, operational_code = codigo, label = codigo,
+         faculty = "Derecho", wave = "M1", sample_role = "titular",
+         orden = 1, eligible_n = 30), list(...))
+}
+
+.vpa_aplicadas <- function(plan) {
+  monitoreo_aulas_dashboard(plan, data.frame(), list(enabled = TRUE, plan = plan))$kpis$aulas_aplicadas
+}
+
+test_that("una aula con parte APLICADA cuenta como aplicada", {
+  expect_identical(.vpa_aplicadas(list(
+    .vpa_aula("CH 1", application_status = "APLICADA"),
+    .vpa_aula("CH 2", application_status = "NO APLICADA"),
+    .vpa_aula("CH 3")
+  )), 1L)
+})
+
+test_that("el estado del plan sigue contando aunque no haya parte", {
+  # La union no puede bajarle la cifra a los estudios que no llenan el libro.
+  expect_identical(.vpa_aplicadas(list(
+    .vpa_aula("CH 1", operational_status = "aplicada"),
+    .vpa_aula("CH 2", operational_status = "cerrada"),
+    .vpa_aula("CH 3", operational_status = "agendada")
+  )), 2L)
+})
+
+test_that("no se cuenta dos veces la que trae las dos senales", {
+  expect_identical(.vpa_aplicadas(list(
+    .vpa_aula("CH 1", operational_status = "aplicada", application_status = "APLICADA")
+  )), 1L)
+})

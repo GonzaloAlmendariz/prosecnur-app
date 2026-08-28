@@ -68,7 +68,10 @@ test_that("la ficha de campo declara su propio preset y no el de la ficha de pla
   # El titulo es la etiqueta legible de la unidad (no el id logico del
   # colector: ese cae en un hash para el origen de aulas, ver V7) y el pie
   # nombra el estudio. La careta va centrada, no arrimada al margen.
-  expect_identical(bloque("titulo")$binding, "unit.label")
+  # Los DOS codigos: «CH 1 MAT202_0591». El academico solo identifica el curso
+  # pero no el operativo; «CH 1» solo vivia en el nombre del archivo, que
+  # desaparece al imprimir la hoja.
+  expect_identical(bloque("titulo")$binding, "unit.codigo_ficha")
   expect_identical(bloque("footer")$binding, "project.name")
   expect_identical(bloque("careta")$align, "center")
 
@@ -181,14 +184,59 @@ test_that("los renglones por defecto son los de la hoja en uso", {
   # La hoja no desdobla la aplicacion en fisico y virtual: es una sola cifra.
   expect_false(any(grepl("virtual|físico|fisico", etiquetas, ignore.case = TRUE)))
 
-  # El unico campo con dato pre-impreso es matriculados -viene del plan-; el
-  # resto sigue siendo espacio en blanco (sin `binding`) para llenar a mano.
-  con_binding <- Filter(function(r) {
-    any(vapply(r$fields, function(f) !is.null(f$binding), logical(1)))
-  }, rows)
-  expect_length(con_binding, 1L)
-  expect_identical(con_binding[[1]]$fields[[1]]$label, "N° de alumnos matriculados:")
-  expect_identical(con_binding[[1]]$fields[[1]]$binding, "unit.eligible_n")
+  # Que un campo se imprima o se deje en blanco lo decide UNA pregunta: si el
+  # plan conoce el dato antes de imprimir. Este bloque sella las dos listas.
+  #
+  # Hasta el 2026-08-27 el unico con dato era matriculados, y los otros cinco que
+  # el plan tambien sabe salian en blanco: el aplicador tenia que copiarlos de
+  # otra hoja, que es el paso que la ficha existe para ahorrar. El pabellon y el
+  # horario venian en `SESIONES` del catalogo y el nombre del docente en
+  # `NOMBREDOCENTE`; ver calc_muestra_aulas_sesiones.R.
+  bindings <- list()
+  for (r in rows) for (f in r$fields) {
+    if (!is.null(f$binding)) bindings[[f$label]] <- f$binding
+  }
+  expect_identical(bindings[["Facultad"]], "unit.faculty")
+  expect_identical(bindings[["Pabellón y aula:"]], "unit.venue")
+  expect_identical(bindings[["Curso:"]], "unit.course_name")
+  expect_identical(bindings[["Horario del curso:"]], "unit.schedule")
+  expect_identical(bindings[["Docente:"]], "unit.teacher")
+  expect_identical(bindings[["N° de alumnos matriculados:"]], "unit.eligible_n")
+
+  # Y lo que NO se sabe hasta entrar al aula sigue siendo raya en blanco. Sin
+  # esta mitad, un binding de mas -«efectivas», «rechazos»- pasaria sin ruido.
+  sin_dato <- c(
+    "N° de alumnos en aula", "Hombres:", "Mujeres:", "Menores de edad:",
+    "N° de encuestas aplicadas:", "Rechazos:", "Ya respondieron:", "Efectivas:",
+    "Aplicador/a", "Fecha:", "Hora de aplicación:", "Observaciones:"
+  )
+  expect_true(all(vapply(sin_dato, function(l) is.null(bindings[[l]]), logical(1))))
+})
+
+test_that("un valor mas largo que su celda se recorta y no invade la de al lado", {
+  # Medido sobre el libro de HSVG2026: el horario llega a 141 caracteres con
+  # cuatro sesiones y el nombre del curso a 128, contra un p99 de 51 y 65. El
+  # renderer dibujaba el valor donde terminaba la etiqueta sin medir nada, asi
+  # que esos pocos se comian la celda vecina o el margen de la hoja — un defecto
+  # que se descubre en la impresora.
+  gp <- grid::gpar(fontsize = 8.6)
+  largo <- paste(rep("DETECCION OPORTUNA Y DERIVACION", 6), collapse = " ")
+
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  grid::grid.newpage()
+
+  recortado <- .cfc_recortar(largo, 0.2, gp)
+  expect_lt(nchar(recortado), nchar(largo))
+  expect_match(recortado, "…$")
+  expect_lte(.cfc_text_width(recortado, gp), 0.2)
+
+  # Lo que ya cabe se imprime entero, sin elipsis de adorno.
+  expect_identical(.cfc_recortar("A506", 0.5, gp), "A506")
+  # Vacio y sin sitio no inventan nada. Sin hueco NO se imprime: dejar pasar el
+  # valor entero «porque no cabe igual» es lo que deformaba la hoja.
+  expect_identical(.cfc_recortar("", 0.5, gp), "")
+  expect_identical(.cfc_recortar("A506", 0, gp), "")
 })
 
 test_that("matriculados se imprime desde el plan, no se deja en blanco para copiar a mano", {
@@ -276,12 +324,14 @@ test_that("el QR domina la pagina y se relee con la geometria de este layout", {
   ))
 })
 
-test_that("el titulo es la etiqueta de la unidad, centrado y debajo del QR", {
+test_that("el titulo son los codigos de la unidad, centrado y debajo del QR", {
   skip_if_not_installed("png")
   compiled <- .cfx_compiled(collection_material_field_sheet_template())
+  # Sin codigo operativo en las dimensiones, el fixture solo tiene la etiqueta:
+  # media identidad en caja alta, que es mejor que una cadena con un hueco.
   expect_identical(
     Filter(function(b) identical(b$block_id, "titulo"), compiled$pages[[1]]$blocks)[[1]]$value,
-    "Rotulo de la unidad"
+    "ROTULO DE LA UNIDAD"
   )
 
   dir <- tempfile("cfx-title-"); dir.create(dir)
@@ -408,4 +458,132 @@ test_that("los cuatro numeros de cada fila con cuatro campos no se pisan entre s
     expect_gte(min(columnas), round(L$x_left * ncol(g)) - 4L, label = sprintf("fila %d", fila_idx))
     expect_lte(max(columnas), round(L$x_right * ncol(g)) + 4L, label = sprintf("fila %d", fila_idx))
   }
+})
+
+test_that("el aire de la hoja no se acumula en el margen de arriba", {
+  skip_if_not_installed("png")
+  # Pedido de Gonzalo (2026-08-27): «hay mucho margen entre la parte inferior y
+  # superior del QR». Medido sobre el PNG a 150 dpi antes de tocarlo: 239 px de
+  # blanco por encima del QR contra 43 por debajo del pie —13,6 % del alto
+  # arriba y 2,5 % abajo—, y otros 144 px entre el QR y su título.
+  #
+  # Este test mide TINTA sobre la página, no el layout contra sí mismo: los
+  # otros calculan la posición de cada renglón con `L$form_top` y `L$form_step`,
+  # así que se mueven con la geometría y nunca habrían visto el margen. Por eso
+  # el defecto llegó a una hoja que ya se había mirado varias veces.
+  compiled <- .cfx_compiled(collection_material_field_sheet_template())
+  dir <- tempfile("cfx-aire-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .cfx_grey(png_path)
+  con_tinta <- which(apply(g < 0.5, 1, any))
+  arriba <- min(con_tinta) - 1L
+  abajo <- nrow(g) - max(con_tinta)
+
+  # El margen de arriba no puede ser un múltiplo del de abajo: la hoja se lee
+  # como una sola pieza o como un QR flotando sobre un formulario.
+  expect_lt(arriba / nrow(g), 0.06)
+  expect_lt(arriba, abajo * 2L)
+})
+
+test_that("observaciones deja DOS renglones para escribir, no medio", {
+  skip_if_not_installed("png")
+  # La casilla existe justo para lo que ninguna otra previó, y con una sola
+  # línea lo que quedaba después de la etiqueta era media. `lines = 2` en el
+  # campo, no una fila extra sin etiqueta: el contrato de plantilla exige que
+  # toda línea diga a quien la llena lo que va en ella.
+  rows <- collection_material_field_form_rows()
+  obs <- rows[[length(rows)]]$fields[[1]]
+  expect_identical(obs$label, "Observaciones:")
+  expect_identical(as.integer(obs$lines), 2L)
+
+  compiled <- .cfx_compiled(collection_material_field_sheet_template())
+  dir <- tempfile("cfx-obs-"); dir.create(dir)
+  png_path <- file.path(dir, "ficha.png")
+  collection_material_render_compiled(compiled, png_path, device = "png", page = 1L, dpi = 150)
+
+  g <- .cfx_grey(png_path)
+  L <- prosecnurapp:::.cfc_layout()
+  # Observaciones es la última fila; con las anteriores de una línea, su primer
+  # renglón cae en el índice length(rows)-1 contando desde 0.
+  y1 <- L$form_top - (length(rows) - 1L) * L$form_step
+  y2 <- y1 - L$form_step
+  franja <- L$form_step / 3
+  tinta_en <- function(y) {
+    desde <- round((1 - (y + franja)) * nrow(g))
+    hasta <- round((1 - (y - franja)) * nrow(g))
+    tramo <- g[max(1L, desde):min(nrow(g), hasta), , drop = FALSE]
+    which(apply(tramo < 0.5, 2, any))
+  }
+  # Las dos con línea real, y la segunda arrancando en el margen izquierdo
+  # —sangrarla bajo la etiqueta sólo robaría sitio para escribir—.
+  expect_gt(length(tinta_en(y1)), 100L)
+  segunda <- tinta_en(y2)
+  expect_gt(length(segunda), 100L)
+  expect_lte(min(segunda), round(L$x_left * ncol(g)) + 6L)
+})
+
+test_that("la capacidad se cuenta en renglones dibujados, no en filas", {
+  # Un campo con `lines = 2` ocupa dos renglones de papel. Contando filas, una
+  # hoja que no cabe pasaba el control y se dibujaba por debajo del suelo.
+  L <- prosecnurapp:::.cfc_layout()
+  capacity <- as.integer(floor((L$form_top - L$form_floor) / L$form_step)) + 1L
+  fila <- function(...) list(fields = list(...))
+  campo <- function(label, span, lines = NULL) list(label = label, span = span, lines = lines)
+
+  # Justo `capacity` filas de una línea: cabe entera, sin aviso.
+  justas <- lapply(seq_len(capacity), function(i) fila(campo(paste("Campo", i), 1)))
+  r <- collection_material_render_compiled(
+    .cfx_compiled(collection_material_field_sheet_template(rows = justas)),
+    file.path(tempdir(), "cap-ok.pdf"), device = "pdf"
+  )
+  expect_length(Filter(function(w) identical(w$code, "form_lines_overflow"), r$warnings), 0L)
+
+  # Las mismas filas pero con la última pidiendo dos líneas: ya no cabe.
+  con_extra <- justas
+  con_extra[[capacity]] <- fila(campo("Observaciones:", 1, lines = 2L))
+  r2 <- collection_material_render_compiled(
+    .cfx_compiled(collection_material_field_sheet_template(rows = con_extra)),
+    file.path(tempdir(), "cap-overflow.pdf"), device = "pdf"
+  )
+  expect_length(Filter(function(w) identical(w$code, "form_lines_overflow"), r2$warnings), 1L)
+})
+
+test_that("lines fuera de rango lo rechaza el contrato de plantilla", {
+  expect_true("bad_form_lines_count" %in% .cfx_codes(.cfx_validate_rows(
+    list(list(fields = list(list(label = "Observaciones:", span = 1, lines = 9L))))
+  )))
+  expect_true("bad_form_lines_count" %in% .cfx_codes(.cfx_validate_rows(
+    list(list(fields = list(list(label = "Observaciones:", span = 1, lines = 0L))))
+  )))
+  expect_false("bad_form_lines_count" %in% .cfx_codes(.cfx_validate_rows(
+    list(list(fields = list(list(label = "Observaciones:", span = 1, lines = 2L))))
+  )))
+})
+
+test_that("el titulo lleva los DOS codigos: operativo y curso-horario", {
+  # Pedido de Gonzalo (2026-08-27): «el titulo debe decir CH X COD-COD».
+  # Por separado ninguno basta. El académico solo —«mat202_0591»— identifica el
+  # curso pero no el operativo, y «CH 1» vivía sólo en el nombre del archivo,
+  # que desaparece en cuanto la hoja se imprime.
+  expect_identical(.crf_codigo_ficha("CH 1", "mat202_0591"), "CH 1 MAT202_0591")
+  expect_identical(.crf_codigo_ficha("R 1.2", "1mat37_0521"), "R 1.2 1MAT37_0521")
+  expect_identical(.crf_codigo_ficha("EXTRA 79", "1cce17_0506"), "EXTRA 79 1CCE17_0506")
+
+  # Media identidad es mejor que una cadena con un hueco.
+  expect_identical(.crf_codigo_ficha("", "mat202_0591"), "MAT202_0591")
+  expect_identical(.crf_codigo_ficha("CH 1", ""), "CH 1")
+  expect_identical(.crf_codigo_ficha("", ""), "")
+  # Hay marcos donde el código operativo ES el curso-horario: no se repite.
+  expect_identical(.crf_codigo_ficha("MAT202_0591", "mat202_0591"), "MAT202_0591")
+  # El guion bajo se conserva: es la forma del marco, la del nombre del PDF y la
+  # del identificador que viaja en el QR. Traducirlo daria dos escrituras del
+  # mismo codigo en la misma hoja.
+  expect_false(grepl("-", .crf_codigo_ficha("CH 1", "mat202_0591"), fixed = TRUE))
+
+  # Y llega compilado al bloque de título, no sólo calculado.
+  template <- collection_material_field_sheet_template()
+  compiled <- .cfx_compiled(template, dimensions = list(legacy_ref = "CH 1"))
+  expect_identical(.crf_block(compiled$pages[[1]], "heading")$value, "CH 1 ROTULO DE LA UNIDAD")
 })

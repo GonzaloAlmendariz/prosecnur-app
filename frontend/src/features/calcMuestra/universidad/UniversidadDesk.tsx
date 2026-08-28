@@ -97,6 +97,7 @@ export function UniversidadDesk({
   estudio,
   workspace,
   aulasState,
+  aulasStateComprobado = true,
   motorPideRefirmarAlumnosCh = false,
   referenciaAsistencia,
   motor,
@@ -138,6 +139,9 @@ export function UniversidadDesk({
   estudio: CalcMuestraEstudio;
   workspace: CalcMuestraWorkspace;
   aulasState: CalcMuestraAulasState | null;
+  /** ¿La página ya consultó el estado de aulas? Sin esto, `aulasState: null`
+   *  se lee como «no hay marco» cuando significa «aún no pregunté». */
+  aulasStateComprobado?: boolean;
   /** F36 · El motor rechazó comparar por `decision_stale`; reabre la refirma. */
   motorPideRefirmarAlumnosCh?: boolean;
   referenciaAsistencia: CalcMuestraReferenciaAsistencia | null;
@@ -817,6 +821,33 @@ export function UniversidadDesk({
               />
             </div>}
             {showLocalTab("marco-ch-radiografia") && <div id="cmv2-local-marco-ch-radiografia">
+              {/* **Aquí NO va un bloque de criterios «generales» de curso.**
+                  Lo hubo: `878916dd` montó `CriteriosMarcoTab scope="aula"` encima
+                  de la radiografía porque el preset HST 2025 precarga las variables
+                  de curso —modalidad, tipo de sesión, tipo de docente, condición—
+                  y quedaban contadas como «pendientes de confirmar» sin superficie
+                  que las confirmara. El problema era real; la solución trajo consigo
+                  una segunda superficie de criterios.
+                  Medido el 2026-08-25 sobre HSVG26DEF con marco construido: ese
+                  bloque ocupaba 5.040 px —unas ocho pantallas— antes de la primera
+                  facultad, repetía la barra de acción entera (dos «Calcular
+                  población y cursos-horario elegibles» idénticos en la misma
+                  pantalla) y seis de sus ocho tarjetas no declaraban nada («no
+                  filtra» / «sin filtro»), porque las decisiones de este estudio se
+                  toman por facultad. Gonzalo leyó el bloque de arriba como una
+                  regresión: que los criterios habían dejado de aplicarse por
+                  facultad.
+                  Y sobre todo contradecía el ADR 0057 regla 1, aceptada: «Todos los
+                  criterios son por facultad. No existe el criterio general.» Es la
+                  misma superficie que G40 ya había retirado de
+                  `CursosHorarioBaseGlobal` por esa razón.
+                  La capacidad que `878916dd` necesitaba NO se pierde: el preset vive
+                  ahora en la barra de acción de `CursosHorarioMarcoTab` —el mismo
+                  componente cuyo `confirmarTodo()` puede confirmarlo, que es lo que
+                  faltaba— junto con la salud de criterios y la única regla de curso
+                  que hoy no admite variante por facultad (`enrolled_total`, en el
+                  cierre `CursosHorarioBaseGlobal`). El detalle está en
+                  `docs/qa/checklist-criterios-ch-dos-niveles-2026-08-25.md`. */}
               <CursosHorarioMarcoTab
                 workspace={syncedWorkspace}
                 aulasState={aulasState}

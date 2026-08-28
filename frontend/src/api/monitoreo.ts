@@ -1046,6 +1046,11 @@ export type MonitoreoAulasDashboard = {
 	  course_status?: MonitoreoRow[];
 	  avance_por_estrato: MonitoreoRow[];
 	  quotas_sex_faculty?: MonitoreoRow[];
+	  /** Avance por celda facultad × sexo: logrado, previsto, proyectado y si el
+	   *  campo se está comportando como el modelo. Va AL LADO de
+	   *  `quotas_sex_faculty`, no en su lugar: una dice dónde estás y la otra si
+	   *  vas a llegar. Las frases vienen del motor. */
+	  avance_sexo_facultad?: Array<Record<string, unknown>>;
 	  brechas: MonitoreoRow[];
 	  reemplazos: MonitoreoRow[];
 	  /** El parte de campo de cada aula, con su resta ya hecha por el motor. */
@@ -1101,6 +1106,8 @@ export type MonitoreoAulasDashboard = {
 	   * adicionales esperando en su estrato, no aulas que alguien vaya a visitar.
 	   */
 	  course_status_banco?: number;
+	  course_status_reservas_dormidas?: number;
+	  course_status_con_meta?: number;
 	  control_calidad?: MonitoreoRow[];
 	  control_calidad_resumen?: {
 	    aulas: number;

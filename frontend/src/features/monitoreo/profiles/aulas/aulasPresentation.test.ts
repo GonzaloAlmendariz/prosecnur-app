@@ -382,3 +382,29 @@ describe("la escala de una columna la decide su grueso, no su tope", () => {
     expect(escalaDeProporciones(filas).has("quota_pct")).toBe(true);
   });
 });
+
+describe("los códigos del marco no llegan crudos a la tabla", () => {
+  it("el tramo de tamaño se dice en alumnos, no en G-algo", () => {
+    // «G2» bajo una columna llamada «Tamaño de aula» no dice el tamaño: los
+    // cortes viven en `calc_muestra_aulas.R` y quien lee la tabla no los tiene.
+    const fila = presentAulasRow({ size_group: "G2" });
+    expect(fila.size_group).toBe("21-30 alumnos");
+    expect(presentAulasRow({ size_group: "G4" }).size_group).toBe("41 alumnos o más");
+  });
+
+  it("el sexo mayoritario se dice en palabras", () => {
+    // Aquí basta «Mujeres» porque el encabezado ya dice «Sexo mayoritario». En
+    // la CLAVE del estrato, que no tiene encabezado, hace falta decir «mayoría
+    // mujeres» entero: esa F no son las mujeres de la cuota.
+    expect(presentAulasRow({ sex_top_1: "F" }).sex_top_1).toBe("Mujeres");
+    expect(presentAulasRow({ sex_top_2: "M" }).sex_top_2).toBe("Hombres");
+  });
+
+  it("un código que no reconoce lo deja ver, no lo borra", () => {
+    // El control: si el motor añade un tramo, la celda tiene que enseñarlo tal
+    // cual. Una lista cerrada que se traga lo que no entiende deja la columna
+    // vacía y el defecto se ve como un hueco, no como un error.
+    expect(presentAulasRow({ size_group: "G9" }).size_group).toBe("G9");
+    expect(presentAulasRow({ sex_top_1: "X" }).sex_top_1).toBe("X");
+  });
+});

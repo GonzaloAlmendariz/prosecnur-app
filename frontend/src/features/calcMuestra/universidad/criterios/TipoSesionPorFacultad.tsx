@@ -2,7 +2,7 @@
  * Vista POR FACULTAD del criterio de tipo de sesión (reunión con el asesor
  * muestral §4): una fila por facultad con la mini-distribución de sus tipos
  * (CH del catálogo `por_facultad` + elegibles del Explorador) y el estado de
- * la decisión («Hereda el global» / «Propia»). Al expandir una facultad, los
+ * la decisión («Sin ajustes propios» / «Propia»). Al expandir una facultad, los
  * mismos toggles de tipos pero de ESA facultad; la edición compila a
  * `exceptions[facKey] = { categories, op: "replace" }` y respeta el flujo
  * borrador→confirmar de la tarjeta (todo pasa por `onSel`).
@@ -24,6 +24,7 @@ import { fmtInt } from "../../sharedCore";
 import { AvisoModulo } from "../shared/AvisoModulo";
 import { UNIVERSITY_SESSION_TYPE_SUGERENCIAS } from "../shared/constants";
 import type { FacultadRef } from "./facultades";
+import { analizarEtiquetaCategoria } from "./etiquetaCategoria";
 import { FacultadCategoriaToggles } from "./FacultadCategoriaToggles";
 import {
   aplicarSugerencia,
@@ -41,6 +42,18 @@ import {
 function listar(items: string[]): string {
   if (items.length <= 1) return items[0] ?? "";
   return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
+}
+
+/**
+ * Nombre corto de una categoría para el estado de la fila: el nombre del grupo
+ * y, cuando agrupa varios valores, cuántos son — «TEORICO · agrupa 3», que es
+ * como ya lo rotulan los toggles. No cambia el dato: la etiqueta completa viaja
+ * en el `title` de la celda.
+ */
+function etiquetaCorta(label: string): string {
+  const { base, agrupadas } = analizarEtiquetaCategoria(label);
+  if (!base) return label;
+  return agrupadas.length > 1 ? `${base} · agrupa ${agrupadas.length}` : base;
 }
 
 /** Mini-distribución de tipos de una facultad: barra apilada proporcional al CH. */
@@ -182,10 +195,31 @@ export function TipoSesionPorFacultad({
                     <span className="cmv2-crit-tsf-fac-label">{fila.facLabel}</span>
                   </button>
                   <MiniDistribucion fila={fila} />
-                  <span className="cmv2-crit-tsf-estado" data-decision={fila.decision}>
+                  {/* La etiqueta de la fila usa el nombre CORTO de cada
+                      categoría, el mismo que muestran los toggles de abajo. La
+                      fuente concatena varios valores en uno
+                      (`TEORICO(TEORICO-PRACTICO,TEORICO-LABORATORIO)`) y la fila
+                      lo imprimía crudo: una decisión sobre dos categorías se
+                      leía como un párrafo. El detalle completo sigue disponible
+                      en el `title` y al expandir la facultad.
+                      «Sin ajustes propios» en vez de «Hereda el global»: el
+                      bloque de criterios generales dejó de existir en esta
+                      pestaña (ADR 0057 regla 1), así que nombrar un «global» que
+                      no se ve en ninguna parte mandaba a buscar una superficie
+                      inexistente. Es además el mismo rótulo que ya usa el
+                      resumen de la facultad. */}
+                  <span
+                    className="cmv2-crit-tsf-estado"
+                    data-decision={fila.decision}
+                    title={
+                      fila.decision === "hereda" || !activos.length
+                        ? undefined
+                        : activos.map((t) => t.label).join(", ")
+                    }
+                  >
                     {fila.decision === "hereda"
-                      ? "Hereda el global"
-                      : `Propia: ${activos.length ? activos.map((t) => t.label).join(", ") : "ninguna categoría"}`}
+                      ? "Sin ajustes propios"
+                      : `Propia: ${activos.length ? activos.map((t) => etiquetaCorta(t.label)).join(", ") : "ninguna categoría"}`}
                   </span>
                   {sug ? (
                     <span className="cmv2-crit-tsf-sug" title={sug.porque}>
