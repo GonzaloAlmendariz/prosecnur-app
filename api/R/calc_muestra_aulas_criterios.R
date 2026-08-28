@@ -68,7 +68,21 @@
     condicion_curso = list(scope = "aula",  kind = "flat",         label = "Condición del curso",
                            emptyBucket = list(key = "sin_condicion", label = "Sin condición")),
     enrolled_total = list(scope = "aula",   kind = "numeric",      label = "Matriculados / población"),
-    campus         = list(scope = "aula",   kind = "flat",         label = "Sede")
+    campus         = list(scope = "aula",   kind = "flat",         label = "Sede"),
+    # El aula del reporte. NO es identidad —una faceta suelta jamas identifica
+    # un curso-horario, ver `facetas_sueltas` en calc_muestra_aulas.R— pero SI
+    # es criterio de marco, y de los mas basicos: a un curso-horario sin aula
+    # asignada no se puede ir.
+    #
+    # El reporte de la DTI declara presenciales cursos-horario con dia y hora y
+    # sin aula. Medido en HSVG 2026, segundo sorteo: **61 de 1.573**. Hasta hoy
+    # ese recorte se hacia FUERA de la app, a mano en un Excel, y por eso el
+    # marco del sorteo no se reproducia desde el proyecto.
+    #
+    # El bucket sintetico es lo que vuelve util al criterio: lo que se filtra no
+    # es un valor, es la AUSENCIA de valor. Mismo mecanismo que condicion_curso.
+    classroom      = list(scope = "aula",   kind = "flat",         label = "Aula asignada",
+                          emptyBucket = list(key = "sin_aula", label = "Sin aula asignada"))
   )
 }
 
@@ -641,14 +655,18 @@
 # catálogo. El bucket sintético "Sin condición" solo se activa para estas: sin
 # columna la variable ni siquiera se enumera, y el vacío no debe forzar recorte
 # (graceful). La gate replica la de la enumeración (col_or: catálogo OR base).
-# Hoy solo condicion_curso; sumar otra variable es una entrada aquí + emptyBucket
-# en .cm_criterios_var_registry.
+# Hoy condicion_curso y classroom; sumar otra variable es una entrada aquí +
+# emptyBucket en .cm_criterios_var_registry.
 .cm_criterios_empty_bucket_cols <- function(raw, mapping, catalog_signals = list()) {
   cols <- (catalog_signals %||% list())$columns %||% list()
   out <- character(0)
   cc_existe <- nzchar(.cm_criterios_col_condicion_curso(raw, mapping)) ||
     nzchar(.cm_aulas_scalar(cols$condicion_curso, ""))
   if (cc_existe) out <- c(out, "condicion_curso")
+  # El aula: su columna puede venir del catalogo de curso-horario o de la base.
+  aula_existe <- nzchar(.cm_aulas_col(raw, mapping$classroom)) ||
+    nzchar(.cm_aulas_scalar(cols$classroom, ""))
+  if (aula_existe) out <- c(out, "classroom")
   out
 }
 
@@ -1241,7 +1259,8 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
     faculty = faculty,
     faculty_aula = faculty_aula,
     condicion_curso = pick_chr("condicion_curso", "condicion_curso"),
-    campus = pick_chr("campus", "campus")
+    campus = pick_chr("campus", "campus"),
+    classroom = pick_chr("classroom", "classroom")
   )
 }
 
@@ -1605,7 +1624,10 @@ calc_muestra_aulas_aplicar_criterios <- function(aula_frame, filas, population, 
       .cm_criterios_facultad_curso_label(crit_fac)
     )
   }
-  orden <- c("modality", "session_type", "teacher_type", "course_level", "condicion_curso", "enrolled_total", "campus")
+  # Listas paralelas: agregar una variable de aula exige tocar ESTE orden, los
+  # `vals` de .cm_criterios_valores_aula y la enumeracion. Si falta en una sola,
+  # el criterio se guarda y NO filtra, en silencio.
+  orden <- c("modality", "session_type", "teacher_type", "course_level", "condicion_curso", "enrolled_total", "campus", "classroom")
   for (id in orden) {
     if (identical(id, "course_level")) {
       if (length(seleccion$courseLevelRanges)) {
@@ -1990,6 +2012,7 @@ calc_muestra_aulas_criterios_catalogo <- function(aula_frame, catalog_signals,
     push(.cm_criterios_enum_flat("condicion_curso", registry$condicion_curso, vals$condicion_curso, col_or("condicion_curso", "condicion_curso"), "aula", facultades = vals$faculty))
     push(.cm_criterios_enum_numeric("enrolled_total", registry$enrolled_total, vals$enrolled_total, col_or("enrolled_total", "enrolled_total"), "aula"))
     push(.cm_criterios_enum_flat("campus", registry$campus, vals$campus, col_or("campus", "campus"), "aula", facultades = vals$faculty))
+    push(.cm_criterios_enum_flat("classroom", registry$classroom, vals$classroom, col_or("classroom", "classroom"), "aula", facultades = vals$faculty))
   }
 
   list(schema = "calc_muestra_aulas_criterios_catalogo_v1", variables = vars)
