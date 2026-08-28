@@ -104,21 +104,23 @@ test_that("la enumeración del aula trae 'sin_aula' con el conteo de las que no 
   expect_identical(bucket$label, "Sin aula asignada")
   expect_true(isTRUE(bucket$synthetic))
 
-  # Las aulas reales conservan su etiqueta cruda y no se funden entre sí.
-  keys <- vapply(var$categories, function(c) c$key %||% "", character(1))
+  # PRESENCIA, no identidad: exactamente DOS categorias. El nombre del salon no
+  # es criterio de nadie y enumerarlo daba una tarjeta con ~1.000 fichas.
+  keys <- sort(vapply(var$categories, function(c) c$key %||% "", character(1)))
+  expect_length(keys, 2L)
   expect_true("sin_aula" %in% keys)
-  expect_true(length(keys) >= 2L)
+  # La otra categoria se muestra legible, no con su clave cruda.
+  con <- Filter(function(c) !identical(c$key, "sin_aula"), var$categories)[[1]]
+  expect_identical(con$label, "Con aula asignada")
+  expect_equal(con$aulas, 4L)
 })
 
 # ---- 2. Evaluación / filtro ---------------------------------------------------
 
 test_that("omitir 'sin_aula' recorta del marco los cursos-horario sin salón", {
   # El caso de HSVG 2026: se incluyen todas las aulas reales y NO el bucket.
-  var <- .sinaula_var(.sinaula_construir())
-  reales <- Filter(function(k) !identical(k, "sin_aula"),
-                   vapply(var$categories, function(c) c$key %||% "", character(1)))
   suite <- list(byVariable = list(
-    venue = list(mode = "include", categories = as.list(reales))
+    venue = list(mode = "include", categories = list("con_aula_asignada"))
   ))
   inc <- .sinaula_included(.sinaula_construir(suite = suite))
   expect_true(all(inc[c("C1-H1", "C2-H1", "C3-H1", "C4-H1")]))
@@ -126,10 +128,8 @@ test_that("omitir 'sin_aula' recorta del marco los cursos-horario sin salón", {
 })
 
 test_that("incluir 'sin_aula' las conserva, como cualquier otra categoría", {
-  var <- .sinaula_var(.sinaula_construir())
-  todas <- as.list(vapply(var$categories, function(c) c$key %||% "", character(1)))
   suite <- list(byVariable = list(
-    venue = list(mode = "include", categories = todas)
+    venue = list(mode = "include", categories = list("con_aula_asignada", "sin_aula"))
   ))
   inc <- .sinaula_included(.sinaula_construir(suite = suite))
   expect_true(all(inc[sprintf("C%d-H1", 1:6)]))
