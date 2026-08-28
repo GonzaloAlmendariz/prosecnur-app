@@ -299,6 +299,13 @@ collection_qr_matrix <- function(link, correction = "M", quiet_zone = 4L) {
     # frase que existe para leerse, no para compararse.
     role_key = tolower(gsub("[ -]+", "_", trimws(as.character(unit$role %||% "")[1]))),
     replacement_for = replacement_for,
+    # El NUMERO del eslabon, ademas de la frase. `role` sale ya redactado
+    # —«Reemplazo 2»— y quien tiene que agrupar por nivel necesita el entero:
+    # el paquete reparte los 1.259 reemplazos en una carpeta por nivel, y
+    # sacarlo del texto obligaria a parsear una frase que existe para leerse.
+    replacement_order = suppressWarnings(as.integer(
+      dims$replacement_order %||% unit$replacement_order %||% NA
+    )),
     group = .crf_txt(unit$group, ""),
     faculty = .crf_txt(dims$faculty %||% unit$faculty, ""),
     # La escuela dentro de la facultad: ARTE Y DISEÑO agrupa escuelas que no
