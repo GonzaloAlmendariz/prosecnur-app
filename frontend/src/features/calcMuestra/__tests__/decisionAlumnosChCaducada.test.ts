@@ -39,3 +39,35 @@ describe("esDecisionAlumnosChCaducada", () => {
     expect(esDecisionAlumnosChCaducada(undefined)).toBe(false);
   });
 });
+
+/**
+ * El motor tiene DOS razones bajo el mismo código y redactan distinto.
+ *
+ * Medido sobre el SEGUNDO sorteo de HSVG 2026 el 2026-08-28: sus componentes
+ * vienen calculados contra el marco del primero, así que `POST
+ * /api/calc-muestra/calcular` devuelve 409 con `reason: "frame_stale"` y el
+ * texto «La decisión de alumnos por CH no corresponde al marco vigente.» —no el
+ * «cambió desde esta corrida» de `decision_stale`, que es contra el que se
+ * escribió el reconocimiento por texto.
+ */
+describe("las dos redacciones del mismo código", () => {
+  it("reconoce `frame_stale`, que es la que sale al abrir un sorteo posterior", () => {
+    expect(
+      esDecisionAlumnosChCaducada(
+        new Error("La decisión de alumnos por CH no corresponde al marco vigente."),
+      ),
+    ).toBe(true);
+  });
+
+  it("sigue reconociendo `decision_stale`", () => {
+    expect(
+      esDecisionAlumnosChCaducada(
+        new Error("La decisión de alumnos por CH cambió desde esta corrida."),
+      ),
+    ).toBe(true);
+  });
+
+  it("no se dispara con un fallo cualquiera que mencione el marco", () => {
+    expect(esDecisionAlumnosChCaducada(new Error("El marco vigente no tiene aulas."))).toBe(false);
+  });
+});
