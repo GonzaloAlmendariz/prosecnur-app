@@ -119,6 +119,7 @@ export { default as FileUp } from "lucide-react/dist/esm/icons/file-up.mjs";
 export { default as FileWarning } from "lucide-react/dist/esm/icons/file-exclamation-point.mjs";
 export { default as Filter } from "lucide-react/dist/esm/icons/funnel.mjs";
 export { default as Flag } from "lucide-react/dist/esm/icons/flag.mjs";
+export { default as FlaskConical } from "lucide-react/dist/esm/icons/flask-conical.mjs";
 export { default as Folder } from "lucide-react/dist/esm/icons/folder.mjs";
 export { default as FolderClosed } from "lucide-react/dist/esm/icons/folder-closed.mjs";
 export { default as FolderMinus } from "lucide-react/dist/esm/icons/folder-minus.mjs";
