@@ -466,3 +466,53 @@ test_that("el ritmo hereda la cuota vigente y el bloque es la unica fuente del a
   expect_false("cuota_diseno_total" %in% names(d$kpis))
   expect_false("avance_cuota_pct" %in% names(d$kpis))
 })
+
+# --- Un sexo sin decodificar no puede dar cero mudo --------------------------
+# `.maac_sexo_key()` acepta palabras («mujer», «hombre», «F», «M») pero Kobo
+# devuelve lo que el XLSForm guarda como NOMBRE de opcion, y el instrumento real
+# de HSVG2026 usa `1` = Mujer y `2` = Hombre. Con codigos, las treinta celdas
+# salen a cero y nada falla. Medido sobre el instrumento del estudio.
+
+.avc_plan_sexo <- function() list(
+  .avc_aula("A1", "DERECHO", expected = 10, eligible = 20)
+)
+
+.avc_dt_sexo <- function() .avc_dt(list(.avc_fac("DERECHO", 10, F = 6, M = 4)))
+
+test_that("con el sexo en codigo, el aviso dice la CAUSA y nombra los valores", {
+  d <- .avc_dash(.avc_plan_sexo(),
+                 .avc_resp(rep("A1", 3), sexo = c("1", "1", "2")),
+                 .avc_dt_sexo())
+  celda <- .avc_celda(d, "F")
+  expect_false(is.null(celda))
+  # Las respuestas SI se atribuyeron a su aula; lo que no resolvio es el sexo.
+  expect_identical(as.integer(celda$observed), 0L)
+  aviso <- as.character(celda$warning %||% "")
+  expect_true(nzchar(aviso))
+  # Nombra la columna y los valores que llegaron: sin eso hay que adivinar.
+  expect_match(aviso, "sexo", fixed = TRUE)
+  expect_match(aviso, "1", fixed = TRUE)
+  expect_match(aviso, "2", fixed = TRUE)
+  # Y NO adivina que 1 es mujer: otro estudio puede numerarlo al reves.
+  expect_false(grepl("1 es Mujer|1 = Mujer", aviso))
+})
+
+test_that("con etiquetas reconocibles no hay aviso y las celdas se llenan", {
+  # El control: sin esto, un aviso que saliera SIEMPRE pasaria el test de arriba.
+  d <- .avc_dash(.avc_plan_sexo(),
+                 .avc_resp(rep("A1", 3), sexo = c("Mujer", "Mujer", "Hombre")),
+                 .avc_dt_sexo())
+  f <- .avc_celda(d, "F")
+  m <- .avc_celda(d, "M")
+  expect_identical(as.integer(f$observed), 2L)
+  expect_identical(as.integer(m$observed), 1L)
+  expect_false(nzchar(as.character(f$warning %||% "")))
+})
+
+test_that("sin columna de sexo no se inventa un aviso sobre ella", {
+  # Que no exista la columna es otro problema —y ya tiene su propia lectura—:
+  # este aviso habla de valores que no se reconocen, y sin columna no hay valores.
+  d <- .avc_dash(.avc_plan_sexo(), .avc_resp(rep("A1", 3)), .avc_dt_sexo())
+  celda <- .avc_celda(d, "F")
+  expect_false(grepl("no se reconocen", as.character(celda$warning %||% "")))
+})
