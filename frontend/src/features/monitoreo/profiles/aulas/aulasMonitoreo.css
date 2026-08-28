@@ -5864,16 +5864,69 @@
    Parecido y ayuda nunca se funden en una barra: son la eleccion, y una sola
    barra la escondería.
    --------------------------------------------------------------------------- */
-/* Dentro de la primitiva compartida (`components/Popover`), el MARCO ya lo pone
- * `.pulso-popover`: borde, sombra, fondo, radio y padding. Repetirlos aquí
- * dibujaba una tarjeta dentro de otra, con doble borde y doble aire.
+/* Ventana modal, no popover anclado.
  *
- * Y el panel flota: montado en el flujo del formulario, la caja empujaba el
- * registro entero hacia abajo, que es justo lo que un popover no puede hacer.
+ * Gonzalo: «debe ser un pop up que te limite scrollear hasta que o lo cierres o
+ * decidas… una ventana algo mas pequena que se abre encima, y limita y pone
+ * gris lo de atras». Montada en el flujo empujaba el formulario entero; anclada
+ * al boton dejaba hojear el fondo mientras se decide.
+ *
+ * El velo cubre el viewport y atenua lo de detras para que la ventana sea lo
+ * unico con lo que se puede interactuar. `position: fixed` sobre `body`, asi
+ * que ningun contenedor con overflow o stacking propio la recorta.
  */
-.pulso-popover.aulas-reemplazo-pop { padding: 0; }
+.aulas-reemplazo-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 42%);
+  backdrop-filter: blur(2px);
+  animation: aulas-reemplazo-velo 140ms ease-out;
+}
 
-.aulas-reemplazo-pop .aulas-reemplazo-popover {
+@keyframes aulas-reemplazo-velo {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aulas-reemplazo-fondo { animation: none; }
+}
+
+/* La lista scrollea DENTRO; el fondo no se mueve. El corte del final se
+ * difumina en vez de partir una fila por la mitad.
+ *
+ * La tecnica clasica de sombras de scroll —cuatro capas de `background`— no
+ * pinta nada aqui: las tarjetas de candidato son blanco OPACO y tapan el fondo
+ * del contenedor, comprobado midiendo su `backgroundColor`. La mascara si actua
+ * sobre lo ya pintado, tarjetas incluidas.
+ */
+/* La ventana nunca es mas alta que la pantalla, y lo que cede es la LISTA.
+ *
+ * Medida con el simulacro: 643 px de alto. La matriz de QA baja hasta 1024x600,
+ * donde eso no cabe y el velo la recortaria por arriba y por abajo a la vez
+ * —`place-items: center`—, dejando la cabecera y el boton de elegir fuera de
+ * pantalla sin forma de llegar a ellos. Con la cabecera, las solapas y el pie en
+ * `auto` y la lista en `minmax(0, 1fr)`, encoger la ventana encoge la lista, que
+ * ya scrollea. Lo que no puede desaparecer nunca es el marco.
+ */
+.aulas-reemplazo-fondo .aulas-reemplazo-popover {
+  max-height: calc(100vh - 48px);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.aulas-reemplazo-fondo .aulas-reemplazo-lista {
+  min-height: 0;
+  max-height: min(52vh, 440px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgb(0 0 0 / 0%));
+}
+
+.aulas-reemplazo-popover {
   /* Conserva su ancho declarado (`min(420px, 92vw)`). Con `auto` el panel se
    * dimensiona al contenido y las tres columnas de la tabla de sexo lo dejaban
    * estrecho y apretado; el `maxWidth={440}` del trigger le da sitio de sobra.

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { MonitoreoAulasPlanRow } from "../../../../api/monitoreo";
 import {
@@ -192,12 +193,22 @@ function Candidato({
   );
 }
 
-export function AulasPopoverReemplazo({
+/**
+ * El PANEL, sin cascarón: cabecera, solapas y candidatos.
+ *
+ * Va aparte del modal por dos razones. La estructural: el cascarón —velo,
+ * bloqueo de scroll, portal, salidas— no sabe nada de reemplazos, y el panel no
+ * sabe nada de ventanas. La práctica: `createPortal` pinta en `document.body`,
+ * así que un `renderToStaticMarkup` del modal devuelve cadena VACÍA y no se
+ * puede probar nada de lo que hay dentro.
+ */
+export function ContenidoDeReemplazo({
   caido,
   filas,
   brecha,
   onElegir,
   onCerrar,
+  innerRef,
 }: {
   caido: MonitoreoAulasPlanRow;
   filas: ReadonlyArray<MonitoreoAulasPlanRow>;
@@ -205,6 +216,8 @@ export function AulasPopoverReemplazo({
   brecha?: BrechaPorSexo;
   onElegir?: (fila: MonitoreoAulasPlanRow) => void;
   onCerrar?: () => void;
+  /** Lo pone el modal para saber qué es «dentro» al detectar clicks fuera. */
+  innerRef?: (el: HTMLDivElement | null) => void;
 }) {
   // `null` y no `"cadena"`: con un valor inicial concreto habia que derivar el
   // efectivo con una segunda regla, y esa derivacion abria en la solapa
@@ -235,8 +248,7 @@ export function AulasPopoverReemplazo({
   const meta = GRUPOS.find((g) => g.id === activo)!;
 
   return (
-    <div className="aulas-reemplazo-popover" data-pulso-panel="aulas-reemplazo" role="dialog"
-         aria-label={`Reemplazar ${caido.operational_code || caido.classroom_id}`}>
+    <div className="aulas-reemplazo-popover" data-pulso-panel="aulas-reemplazo" ref={innerRef}>
       <header className="aulas-reemplazo-head">
         <div>
           <p className="aulas-reemplazo-titulo">Reemplazar {caido.operational_code || caido.classroom_id}</p>
@@ -297,5 +309,78 @@ export function AulasPopoverReemplazo({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * La VENTANA: el panel de elección, encima de todo y con el fondo detenido.
+ *
+ * Gonzalo, en dos pasos: «debe ser un pop up que te limite scrollear hasta que o
+ * lo cierres o decidas» y «es como una ventana algo más pequeña que se abre
+ * encima, y limita y pone gris lo de atrás».
+ *
+ * Por qué modal y no popover anclado: esto es una DECISIÓN —qué aula entra en
+ * campo— y no una consulta. Dejar el fondo vivo invita a hojear en vez de
+ * decidir, y anclarlo al botón lo dejaba compitiendo con el formulario que hay
+ * debajo. Antes de esto estaba montado en el flujo y empujaba el registro
+ * entero hacia abajo.
+ *
+ * Dos salidas y ninguna más: cerrar —Escape, click en el velo, la × de la
+ * cabecera— o decidir, que cierra sola al elegir.
+ */
+export function AulasPopoverReemplazo({
+  abierto = true,
+  onCerrar,
+  ...resto
+}: {
+  /** Cerrada no pinta nada, no bloquea el scroll y no escucha teclas. */
+  abierto?: boolean;
+  caido: MonitoreoAulasPlanRow;
+  filas: ReadonlyArray<MonitoreoAulasPlanRow>;
+  brecha?: BrechaPorSexo;
+  onElegir?: (fila: MonitoreoAulasPlanRow) => void;
+  onCerrar?: () => void;
+}) {
+  const caja = useRef<HTMLDivElement | null>(null);
+
+  // El fondo se detiene mientras se decide. Se guarda el valor previo y se
+  // restaura en vez de escribir `""`: eso pisaría un `overflow` que otra capa
+  // hubiera puesto. Es como lo hace `EstiloGlobalDialog`.
+  useEffect(() => {
+    if (!abierto || typeof document === "undefined") return;
+    const previo = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previo; };
+  }, [abierto]);
+
+  useEffect(() => {
+    if (!abierto || !onCerrar) return;
+    const porTecla = (e: KeyboardEvent) => { if (e.key === "Escape") onCerrar(); };
+    // `mousedown` y no `click`: con click, soltar el botón sobre el velo tras
+    // arrastrar desde dentro del panel —seleccionando texto, por ejemplo—
+    // cerraría la ventana en mitad de un gesto que no la señalaba.
+    const porFuera = (e: MouseEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) onCerrar();
+    };
+    window.addEventListener("keydown", porTecla);
+    document.addEventListener("mousedown", porFuera);
+    return () => {
+      window.removeEventListener("keydown", porTecla);
+      document.removeEventListener("mousedown", porFuera);
+    };
+  }, [abierto, onCerrar]);
+
+  if (!abierto || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="aulas-reemplazo-fondo"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Reemplazar ${resto.caido.operational_code || resto.caido.classroom_id}`}
+    >
+      <ContenidoDeReemplazo {...resto} onCerrar={onCerrar} innerRef={(el) => { caja.current = el; }} />
+    </div>,
+    document.body,
   );
 }
