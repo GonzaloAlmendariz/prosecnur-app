@@ -18,6 +18,43 @@
 # por eso nunca queda desfasada de la selección vigente. Se mide sobre las
 # TITULARES, que son las que se visitan y entregan la cuota.
 
+# El escenario que RIGE, y su componente.
+#
+# El workspace marca cual manda con `activo = TRUE` y lo enlaza a su componente
+# por `component_id`. Antes ambos selectores de aqui usaban «el primero que
+# publica margen» como proxy, y en HSVG2026 acertaban por ORDEN, no por regla:
+# el estudio tiene dos componentes con margen —`cmp-cine0qk8` con n_objetivo
+# 2 500 y `cmp-cine0qk8-fac` con 4 050— y el activo resulta ser el primero.
+# Activar «facultades» habria dejado a monitoreo publicando 2 500 contra un
+# diseno de 4 050 sin que nada fallara: un 62 % de diferencia en la meta.
+#
+# La regla vive AQUI y solo aqui; `.maoe_escenario_activo()` la lee de esta
+# funcion en vez de reimplementarla, porque dos capas leyendo «cual es el
+# activo» a su manera es como se separan en silencio.
+.cm_estudio_escenario_activo <- function(estudio) {
+  if (!is.list(estudio)) return(NULL)
+  escenarios <- estudio$workspace$escenarios %||% list()
+  if (!is.list(escenarios)) return(NULL)
+  for (esc in escenarios) {
+    if (is.list(esc) && isTRUE(esc$activo)) return(esc)
+  }
+  NULL
+}
+
+# El componente del escenario activo, o NULL si no hay escenario activo, no
+# declara `component_id`, o el id no existe entre los componentes. NULL significa
+# «no hay declaracion», y cada llamador decide su respaldo: no se adivina aqui.
+.cm_estudio_componente_activo <- function(estudio) {
+  esc <- .cm_estudio_escenario_activo(estudio)
+  if (!is.list(esc)) return(NULL)
+  id <- trimws(as.character(esc$component_id %||% ""))
+  if (!nzchar(id)) return(NULL)
+  for (cmp in (estudio$componentes %||% list())) {
+    if (is.list(cmp) && identical(trimws(as.character(cmp$id %||% "")), id)) return(cmp)
+  }
+  NULL
+}
+
 .cm_certificacion_componente_facultad <- function(estudio) {
   if (!is.list(estudio)) return(NULL)
   componentes <- estudio$componentes
@@ -26,8 +63,14 @@
     is.list(c) && is.list(c$resultado) && length(c$resultado$aulas_por_estrato)
   }, componentes)
   if (!length(con_filas)) return(NULL)
-  # Igual que filasParaFichas en la UI: manda el primer componente cuyo
-  # resultado publica margen (el escenario vigente del diseño).
+  # Manda el componente del escenario ACTIVO. Solo si el estudio no lo declara
+  # se cae al proxy historico —el primero que publica margen, igual que
+  # filasParaFichas en la UI—, que es lo correcto para estudios de un unico
+  # escenario y para los guardados antes de que el workspace marcara el activo.
+  activo <- .cm_estudio_componente_activo(estudio)
+  if (is.list(activo) && length(activo$resultado$aulas_por_estrato)) {
+    return(activo$resultado$aulas_por_estrato)
+  }
   con_margen <- Filter(function(c) {
     any(vapply(c$resultado$aulas_por_estrato, function(f) !is.null(f$margen), logical(1)))
   }, con_filas)
@@ -43,8 +86,16 @@
   if (!is.list(estudio)) return(list())
   componentes <- estudio$componentes
   if (!is.list(componentes)) return(list())
+  # Misma regla que arriba: el activo manda. Este selector iba por su cuenta
+  # («el primero con distribucion_sub»), asi que las cuotas por sexo podian
+  # salir de un escenario distinto al de las cuotas por facultad sin que nada
+  # lo delatara.
   sub <- NULL
-  for (comp in componentes) {
+  activo <- .cm_estudio_componente_activo(estudio)
+  if (is.list(activo) && length(activo$resultado$distribucion_sub)) {
+    sub <- activo$resultado$distribucion_sub
+  }
+  for (comp in if (is.null(sub)) componentes else list()) {
     if (is.list(comp) && is.list(comp$resultado) && length(comp$resultado$distribucion_sub)) {
       sub <- comp$resultado$distribucion_sub
       break

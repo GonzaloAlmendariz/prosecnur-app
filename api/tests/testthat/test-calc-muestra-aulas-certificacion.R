@@ -187,3 +187,68 @@ test_that("E4: una facultad con esperados PARCIALES no mezcla varas (cae a plana
   expect_identical(sel$certificacion_facultad$filas[[1]]$metodo, "tasa_plana")
 })
 
+
+# --- El escenario activo manda, aunque no sea el primero ---------------------
+# HSVG2026 tiene dos componentes CON margen: uno de 2 500 y otro de 4 050. Los
+# dos selectores usaban «el primero que publica margen» y acertaban por ORDEN.
+# Este fixture invierte el orden para que el proxy historico dé lo contrario que
+# la regla: si alguien vuelve al proxy, estas pruebas se ponen rojas.
+
+.cert_estudio_dos_escenarios <- function() {
+  componente <- function(id, cuota, tau, n_obj) list(
+    id = id,
+    resultado = list(
+      n_objetivo = n_obj,
+      aulas_por_estrato = list(
+        list(estrato = "DERECHO", cuota = cuota, tau = tau, margen = 0.025)
+      ),
+      distribucion_sub = list(
+        list(estrato = "DERECHO", sub = "F", n = cuota / 2),
+        list(estrato = "DERECHO", sub = "M", n = cuota / 2)
+      )
+    )
+  )
+  list(
+    # El INACTIVO va primero a proposito.
+    componentes = list(componente("cmp-fac", 4050, 0.40, 4050),
+                       componente("cmp-uni", 2500, 0.53, 2500)),
+    workspace = list(escenarios = list(
+      list(id = "facultades", activo = FALSE, component_id = "cmp-fac"),
+      list(id = "total-universidad", activo = TRUE, component_id = "cmp-uni")
+    ))
+  )
+}
+
+test_that("las cuotas por facultad salen del escenario activo, no del primero", {
+  filas <- .cm_certificacion_componente_facultad(.cert_estudio_dos_escenarios())
+  expect_equal(length(filas), 1L)
+  expect_equal(filas[[1]]$cuota, 2500)
+  expect_equal(filas[[1]]$tau, 0.53)
+})
+
+test_that("las cuotas por sexo salen del MISMO escenario que las de facultad", {
+  # El riesgo que cubre: cada selector iba por su cuenta, asi que la cuota por
+  # facultad podia venir de un escenario y su reparto por sexo de otro. Sumadas
+  # no cuadrarian y nada lo diria.
+  est <- .cert_estudio_dos_escenarios()
+  sexo <- .cm_certificacion_cuotas_sexo(est)
+  k <- .cm_criterios_fac_key("DERECHO")
+  expect_equal(sexo[[k]]$F + sexo[[k]]$M, 2500)
+})
+
+test_that("sin escenario activo declarado se conserva el respaldo historico", {
+  # Estudios de un solo escenario y los guardados antes de que el workspace
+  # marcara el activo: manda el primero con margen, como siempre.
+  est <- .cert_estudio_dos_escenarios()
+  est$workspace$escenarios <- list()
+  filas <- .cm_certificacion_componente_facultad(est)
+  expect_equal(filas[[1]]$cuota, 4050)
+})
+
+test_that("un component_id que no existe no inventa un componente", {
+  est <- .cert_estudio_dos_escenarios()
+  est$workspace$escenarios[[2]]$component_id <- "cmp-que-no-esta"
+  expect_null(.cm_estudio_componente_activo(est))
+  # Y el llamador cae a su respaldo en vez de quedarse sin filas.
+  expect_equal(.cm_certificacion_componente_facultad(est)[[1]]$cuota, 4050)
+})
