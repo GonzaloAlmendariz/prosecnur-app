@@ -127,4 +127,67 @@ describe("los elegibles del pasado son el techo de cada día", () => {
     const partes = [parte({ operational_code: "Z", faculty: "Derecho", applied_at: "2026-08-10", effective_surveys: 9 })];
     expect(serieDeRendimiento(partes, plan).facultades[0].dias[0].elegibles).toBe(0);
   });
+
+  describe("la vara del diseño", () => {
+    const plan = (f: Partial<MonitoreoRow>) => f as MonitoreoRow;
+
+    it("sólo cuenta las aulas cuya meta viene del diseño", () => {
+      // **El defecto que este test cierra**: `expected_valid` colapsa tres cosas
+      // —lo que el diseño computó, lo que alguien escribió a mano, y el propio
+      // techo de elegibles cuando no había ninguna— y el motor lo dice en
+      // `meta_origen`. Promediarlas juntas daría una vara que en parte es la
+      // vara y en parte es el techo, y dibujarla pegada al techo se leería como
+      // que el diseño esperaba el 100 %.
+      const partes = [
+        parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 12, operational_code: "A" }),
+        parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 12, operational_code: "B" }),
+      ];
+      const planFilas = [
+        plan({ operational_code: "A", eligible_n: 30, expected_valid: 18, meta_origen: "diseno" }),
+        // Misma cifra, otro origen: es el techo, no una meta. No debe promediarse.
+        plan({ operational_code: "B", eligible_n: 30, expected_valid: 30, meta_origen: "elegibles" }),
+      ];
+      const { facultades } = serieDeRendimiento(partes, planFilas);
+      const dia = facultades[0]!.dias[0]!;
+      expect(dia.aulas).toBe(2);
+      expect(dia.aulasConDiseno).toBe(1);
+      // 18, la del diseño. Si contara las dos daría 24 y la vara se iría al techo.
+      expect(dia.metaPorAula).toBe(18);
+    });
+
+    it("sin ninguna meta del diseño devuelve null, que es ausencia y no cero", () => {
+      // Un cero diría que el diseño no pedía nada de esas aulas. Lo que pasa es
+      // que el plan no lo dice, y eso se dibuja como ausencia.
+      const partes = [parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 12, operational_code: "A" })];
+      const planFilas = [plan({ operational_code: "A", eligible_n: 30, expected_valid: 21, meta_origen: "declarada" })];
+      const { facultades } = serieDeRendimiento(partes, planFilas);
+      expect(facultades[0]!.dias[0]!.metaPorAula).toBeNull();
+      expect(facultades[0]!.dias[0]!.aulasConDiseno).toBe(0);
+    });
+
+    it("promedia sobre las aulas con vara, no sobre todas las del día", () => {
+      // Tres aulas, dos con vara de 20 y 30. La vara del día es 25, no 16,7:
+      // dividir entre las tres hundiría la altura sin que nada lo dijera.
+      const partes = ["A", "B", "C"].map((c) =>
+        parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 10, operational_code: c }));
+      const planFilas = [
+        plan({ operational_code: "A", eligible_n: 40, expected_valid: 20, meta_origen: "diseno" }),
+        plan({ operational_code: "B", eligible_n: 50, expected_valid: 30, meta_origen: "diseno" }),
+        plan({ operational_code: "C", eligible_n: 40, expected_valid: 40, meta_origen: "elegibles" }),
+      ];
+      const { facultades } = serieDeRendimiento(partes, planFilas);
+      const dia = facultades[0]!.dias[0]!;
+      expect(dia.aulasConDiseno).toBe(2);
+      expect(dia.metaPorAula).toBe(25);
+    });
+
+    it("una meta del diseño en cero no cuenta como vara", () => {
+      // Ocurre de verdad: una reserva que entra al plan sin que nadie le fije
+      // cuántas válidas se le piden. Cero no es «el diseño pedía cero».
+      const partes = [parte({ faculty: "F", applied_at: "2026-08-10", effective_surveys: 9, operational_code: "A" })];
+      const planFilas = [plan({ operational_code: "A", eligible_n: 30, expected_valid: 0, meta_origen: "diseno" })];
+      const { facultades } = serieDeRendimiento(partes, planFilas);
+      expect(facultades[0]!.dias[0]!.metaPorAula).toBeNull();
+    });
+  });
 });

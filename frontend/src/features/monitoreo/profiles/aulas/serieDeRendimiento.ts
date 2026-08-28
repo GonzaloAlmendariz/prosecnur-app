@@ -53,6 +53,32 @@ import { PESO_DEL_PRIOR } from "./rendimientoPorFacultad";
  * modelo una precisión que el dato no sostiene, y por eso **se asume constante y
  * se declara en la pantalla** en vez de asumirlo en silencio, que es lo peor de
  * los dos mundos.
+ *
+ * ## Lo que el diseño supuso, que es la tercera altura
+ *
+ * La serie tenía dos alturas por día: el **techo** —los elegibles de esas aulas,
+ * toda la gente que podía responder— y lo **conseguido**. Entre las dos hay una
+ * tercera que decide y no estaba: **cuánto supuso el diseño que dejaría cada una
+ * de esas aulas**. Sin ella el gráfico compara el campo consigo mismo y con la
+ * media del estudio, pero nunca contra la vara con la que se dimensionó.
+ *
+ * Sale de `expected_valid` del plan, que para las aulas del diseño es
+ * `eligible_n × rendimiento_ref × factor_facultad` —o sea la τ prevista de esa
+ * facultad aplicada a ESA aula—, y por eso está en las mismas unidades que el
+ * eje: encuestas por aula. No hay que convertir nada ni cruzar fuentes: plan y
+ * parte, el mismo par de siempre.
+ *
+ * **Pero `expected_valid` colapsa tres cosas distintas**, y el propio motor lo
+ * dice al publicar `meta_origen` junto a ella: `diseno` es lo que el cálculo de
+ * muestra computó, `declarada` es lo que alguien escribió a mano, y `elegibles`
+ * **no es una meta**: es el techo, puesto ahí porque no había ninguna. Promediar
+ * las tres daría una vara que en parte es la vara y en parte es el techo, y
+ * dibujarla pegada al techo se leería como que el diseño esperaba el 100 %.
+ *
+ * Así que la tercera altura **sólo cuenta las aulas con `meta_origen === "diseno"`**
+ * y se divide entre ESAS, no entre todas las del día: si de tres aulas sólo una
+ * viene del diseño, la altura es la de esa una. Los días sin ninguna no tienen
+ * vara y devuelven `null`, que se dibuja como ausencia y no como cero.
  */
 
 export type DiaDeRendimiento = {
@@ -88,6 +114,16 @@ export type DiaDeRendimiento = {
   efectivasAcumuladas: number;
   /** Media posterior Gamma-Poisson con el prior del estudio a esa fecha. */
   esperado: number;
+  /**
+   * Lo que el DISEÑO supuso que dejaría cada una de las aulas de ese día, en
+   * encuestas por aula. `null` cuando ninguna trae meta del diseño.
+   *
+   * Se promedia sobre `aulasConDiseno`, no sobre `aulas`: mezclar las que no
+   * tienen vara hundiría la altura sin que nada lo dijera.
+   */
+  metaPorAula: number | null;
+  /** Cuántas de las aulas del día traen meta del diseño. El denominador de arriba. */
+  aulasConDiseno: number;
 };
 
 export type RendimientoDiarioDeFacultad = {
@@ -141,7 +177,7 @@ export function serieDeRendimiento(
   mediaDelEstudio: number;
 } {
   const fechas = new Set<string>();
-  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number }>>();
+  const porFacultad = new Map<string, Map<string, { aulas: number; elegibles: number; efectivas: number; mujeres: number; hombres: number; conSexo: number; metaDiseno: number; aulasConDiseno: number }>>();
   const metaVisitadaPorFacultad = new Map<string, number>();
   // El reparto por sexo, aula por aula, tal como lo declara la Base de control.
   const sexoPorCodigo = new Map<string, { mujeres: number; hombres: number }>();
@@ -159,11 +195,18 @@ export function serieDeRendimiento(
   // hojas: si cada superficie uniera por su cuenta podrían discrepar.
   const elegiblesPorCodigo = new Map<string, number>();
   const metaPorCodigo = new Map<string, number>();
+  // La meta DEL DISEÑO, aparte. `expected_valid` también llega con metas escritas
+  // a mano y con el propio techo de elegibles cuando no había ninguna, y el motor
+  // lo dice en `meta_origen`. Ver la cabecera: promediarlas juntas daría una vara
+  // que en parte es el techo.
+  const metaDelDisenoPorCodigo = new Map<string, number>();
   for (const fila of plan) {
     const codigo = texto(fila.operational_code);
     if (!codigo) continue;
     elegiblesPorCodigo.set(codigo, numero(fila.eligible_n));
-    metaPorCodigo.set(codigo, numero(fila.expected_valid));
+    const meta = numero(fila.expected_valid);
+    metaPorCodigo.set(codigo, meta);
+    if (texto(fila.meta_origen) === "diseno" && meta > 0) metaDelDisenoPorCodigo.set(codigo, meta);
   }
 
   for (const fila of partes) {
@@ -180,10 +223,15 @@ export function serieDeRendimiento(
     fechas.add(fecha);
     if (!porFacultad.has(facultad)) porFacultad.set(facultad, new Map());
     const dias = porFacultad.get(facultad)!;
-    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0 };
+    const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, metaDiseno: 0, aulasConDiseno: 0 };
     dia.aulas += 1;
     dia.elegibles += elegibles;
     dia.efectivas += efectivas;
+    const metaDiseno = metaDelDisenoPorCodigo.get(codigo);
+    if (metaDiseno != null) {
+      dia.metaDiseno += metaDiseno;
+      dia.aulasConDiseno += 1;
+    }
     const sexo = sexoPorCodigo.get(codigo);
     if (sexo) {
       dia.mujeres += sexo.mujeres;
@@ -216,7 +264,7 @@ export function serieDeRendimiento(
     let aulasAcum = 0;
     let efectivasAcum = 0;
     const serie = orden.map((fecha) => {
-      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0 };
+      const dia = dias.get(fecha) ?? { aulas: 0, elegibles: 0, efectivas: 0, mujeres: 0, hombres: 0, conSexo: 0, metaDiseno: 0, aulasConDiseno: 0 };
       aulasAcum += dia.aulas;
       efectivasAcum += dia.efectivas;
       const media = mediaHasta.get(fecha) ?? 0;
@@ -234,6 +282,8 @@ export function serieDeRendimiento(
         aulasAcumuladas: aulasAcum,
         efectivasAcumuladas: efectivasAcum,
         esperado: redondea((efectivasAcum + PESO_DEL_PRIOR * media) / (aulasAcum + PESO_DEL_PRIOR)),
+        metaPorAula: dia.aulasConDiseno ? redondea(dia.metaDiseno / dia.aulasConDiseno) : null,
+        aulasConDiseno: dia.aulasConDiseno,
       } satisfies DiaDeRendimiento;
     });
     const ultimo = serie[serie.length - 1];

@@ -42,7 +42,8 @@
 #' @return lista con `meta`, `diario` y `aplicadores`.
 #' @export
 aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL,
-                                    partes = list(), validas = NULL) {
+                                    partes = list(), validas = NULL,
+                                    cuotas = NULL, cfg = list()) {
   titulares <- Filter(function(u) identical(.cai_txt(u$sample_role), "titular"), unidades)
   metas <- vapply(titulares, function(u) .cai_num(u$expected_valid), numeric(1))
   meta_total <- sum(metas[is.finite(metas)])
@@ -127,7 +128,16 @@ aulas_libro_indicadores <- function(unidades, efectivas = NULL, responses = NULL
     }
   }
 
-  list(meta = meta, diario = diario, aplicadores = aplicadores)
+  # **El corte por facultad y por sexo**: la cuota no se compensa entre celdas
+  # (ADR 0079), así que un avance global sano puede esconder facultades cortas.
+  # Vive en `carga_aulas_libro_avance_facultad.R`.
+  facultades <- .calaf_avance_por_facultad(
+    unidades, efectivas = efectivas, cuotas = cuotas,
+    responses = responses, validas = validas, cfg = cfg
+  )
+
+  list(meta = meta, diario = diario, aplicadores = aplicadores,
+       facultades = facultades)
 }
 
 #' Por que no hay avance diario, en una frase.
@@ -166,6 +176,10 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
   # el PDF. Las columnas de conteo se quedan con `numero` —«26.0 aulas» seria
   # ruido—; solo la media, que es un promedio, declara su decimal.
   promedio <- openxlsx::createStyle(halign = "right", numFmt = "#,##0.0")
+  # El porcentaje de una FILA de tabla, sin negrita: `pct` la lleva porque es
+  # la cifra grande del bloque de meta, y en una columna de veinte filas la
+  # negrita deja de destacar y sólo pesa.
+  porcentaje <- openxlsx::createStyle(halign = "right", numFmt = "0.0%")
 
   openxlsx::writeData(wb, hoja, "Cómo va el campo", startCol = 1, startRow = 1)
   openxlsx::addStyle(wb, hoja, titulo, rows = 1, cols = 1)
@@ -220,6 +234,46 @@ aulas_libro_escribir_indicadores <- function(wb, ind, hoja = "Cómo va el campo"
     )
     openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
     fila <- fila + 1L
+  }
+
+  # **El avance por facultad va ANTES que la producción por aplicador**: es la
+  # tabla que el cliente lee, y la cuota es por facultad. La producción dice a
+  # quién empujar; esto dice si el estudio cierra.
+  if (!is.null(ind$facultades) && nrow(ind$facultades)) {
+    ncol_fac <- ncol(ind$facultades)
+    fila <- fila + 1L
+    openxlsx::writeData(wb, hoja, "Avance por facultad", startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, seccion, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
+    fila <- fila + 1L
+    # La cuota NO se compensa entre facultades: se dice, porque quien mire el
+    # total de arriba y esta tabla junto va a querer restar.
+    openxlsx::writeData(
+      wb, hoja,
+      "La cuota es de cada facultad y de cada sexo: pasarse en una no cubre lo que falta en otra.",
+      startCol = 1, startRow = fila
+    )
+    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+    fila <- fila + 1L
+    openxlsx::writeData(wb, hoja, ind$facultades, startCol = 1, startRow = fila)
+    openxlsx::addStyle(wb, hoja, cabecera, rows = fila, cols = 1:ncol_fac, gridExpand = TRUE)
+    nf <- nrow(ind$facultades)
+    # Las cifras de personas, enteras; el avance, en porcentaje de celda.
+    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + nf), cols = 2:9,
+                       gridExpand = TRUE, stack = TRUE)
+    openxlsx::addStyle(wb, hoja, porcentaje, rows = (fila + 1L):(fila + nf), cols = 10,
+                       gridExpand = TRUE, stack = TRUE)
+    openxlsx::addStyle(wb, hoja, numero, rows = (fila + 1L):(fila + nf), cols = 11,
+                       gridExpand = TRUE, stack = TRUE)
+    fila <- fila + nf + 1L
+    # La sobremuestra NO se publica porque no viaja al libro, y decirlo es mejor
+    # que dejar creer que la tabla la contempla.
+    openxlsx::writeData(
+      wb, hoja,
+      "La muestra es la cuota del diseño. La sobremuestra operativa no llega al libro, así que esta tabla no la compara.",
+      startCol = 1, startRow = fila
+    )
+    openxlsx::addStyle(wb, hoja, etiqueta, rows = fila, cols = 1)
+    fila <- fila + 2L
   }
 
   if (!is.null(ind$aplicadores) && nrow(ind$aplicadores)) {

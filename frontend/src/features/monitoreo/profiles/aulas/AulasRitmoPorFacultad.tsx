@@ -75,13 +75,16 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
       {/* Cabecera, como en los demás paneles del perfil: sin ella el «−37,9 %»
           de la derecha es un número suelto y hay que bajar al pie para saber
           qué mide. */}
-      <ul className="aulas-ritmofac-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
-        <li className="aulas-ritmofac-cabecera" aria-hidden="true">
-          <span>Facultad</span><span>Día a día</span><span>Tendencia</span>
+      <ul role="table" aria-label="Ritmo diario por facultad" className="aulas-ritmofac-lista" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+        {/* Roles de tabla sobre la rejilla, no `<table>`: el defecto es que la
+            cabecera estaba oculta, no la maquetación. */}
+        <li className="aulas-ritmofac-cabecera" role="row">
+          <span role="columnheader">Facultad</span><span role="columnheader">Día a día</span><span role="columnheader">Tendencia</span>
         </li>
         {facultades.map((f) => (
-          <li key={f.facultad} className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
+          <li key={f.facultad} role="row" className={f.facultad === facultadEnFoco ? "es-en-foco" : undefined}>
             <NombreDeFacultad facultad={f.facultad} className="aulas-ritmofac-nombre"
+              rol="rowheader"
               enFoco={f.facultad === facultadEnFoco} onFoco={onFoco}>
               {f.facultad}
               <em>{fmt(f.efectivas)} en {fmt(f.diasConCampo)} {f.diasConCampo === 1 ? "día" : "días"} · {f.mediaDiaria.toLocaleString("es-PE")}/día</em>
@@ -89,8 +92,11 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
             {/* Una barra por día del rango COMPARTIDO: los huecos son días sin
                 recoger y tienen que ocupar su sitio, porque una facultad parada
                 tres días es lo que hay que ver. */}
+            {/* La serie conserva su `role="img"` dentro de una celda propia: si
+                el rol de celda fuera suyo, el lector perdería la posición. */}
+            <span role="cell" className="aulas-ritmofac-serie-celda">
             <span className="aulas-ritmofac-serie" role="img"
-              aria-label={`${f.efectivas} encuestas en ${f.diasConCampo} días`}>
+              aria-label={`${fmt(f.efectivas)} encuestas en ${fmt(f.diasConCampo)} días`}>
               {f.dias.map((d) => (
                 <i key={d.fecha} title={`${dm(d.fecha)}: ${fmt(d.efectivas)}`}
                   style={{
@@ -99,10 +105,12 @@ export function AulasRitmoPorFacultad({ partes, facultadEnFoco, onFoco }: {
                   }} />
               ))}
             </span>
+            </span>
             {/* La tendencia compara días YA OCURRIDOS: no es un pronóstico. Nula
                 cuando hay menos de cuatro días con campo, porque con menos es
                 ruido y decirlo sería inventar. */}
             <span
+              role="cell"
               className={`aulas-ritmofac-tend${
                 f.tendencia == null || !f.distinguible
                   ? " es-ruido"

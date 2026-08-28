@@ -1,6 +1,9 @@
 import { aulasFieldLabel, escalaDeProporciones, presentAulasRow } from "./aulasPresentation";
 import { AulasMatrizUmbrales } from "./AulasMatrizUmbrales";
 import { contrasteDeValidadores, type CriterioDelEstudio } from "./criterioDelEstudio";
+import { fmt } from "./kpisDeAulas";
+import { columnasConDato } from "./columnasConDato";
+import { perdidaDelControl } from "./perdidaDelControl";
 
 /**
  * «Base de control», la tercera hoja del operativo, leída en la app.
@@ -192,6 +195,34 @@ const COLUMNAS_DE_CIFRA = new Set([
  * releyendo la celda. El campo del motor y el umbral con el que se calcula el
  * respaldo van al lado del nombre de la columna porque son la misma decisión.
  */
+/**
+ * Qué columnas del bloque tienen algo que decir sobre estas filas.
+ *
+ * Es `columnasConDato` **más una excepción que un test cazó**: las columnas de
+ * veredicto no traen su valor en la fila, **la app las deriva** del umbral. Al
+ * descartarlas por venir vacías desaparecía «Válido total» justo en el caso que
+ * este componente existe para cubrir —la celda que la hoja no llenó y el motor
+ * resolvió—, y con ella su marca de «lo calculó la app».
+ *
+ * Así que una columna se queda si trae dato **o si se puede derivar**: si alguna
+ * fila trae su veredicto o el umbral con el que se calcula.
+ */
+function camposConAlgoQueDecir(
+  filas: ReadonlyArray<Record<string, unknown>>,
+  campos: ReadonlyArray<string>,
+): string[] {
+  const conDato = new Set(columnasConDato(filas, campos));
+  const hay = (clave: string) => filas.some((f) => {
+    const v = f[clave];
+    return v !== null && v !== undefined && String(v).trim() !== "";
+  });
+  return campos.filter((campo) => {
+    if (conDato.has(campo)) return true;
+    const derivada = COLUMNAS_DE_VEREDICTO.get(campo);
+    return Boolean(derivada) && (hay(derivada!.veredicto) || hay(derivada!.umbral));
+  });
+}
+
 const COLUMNAS_DE_VEREDICTO = new Map([
   ["valid_total", { veredicto: "cumple_total", umbral: "threshold_total", celda: "valid_total" }],
   ["valid_population", { veredicto: "cumple_poblacion", umbral: "threshold_population", celda: "valid_population" }],
@@ -298,6 +329,12 @@ export function AulasControlDelLibro({
   criterio?: CriterioDelEstudio | null;
 }) {
   const validadores = contrasteDeValidadores(criterio, filas);
+  // **La cuarta cifra de «cuántas encuestas hay», y la única sin dibujar.**
+  // La cadena es asistentes → enviadas → válidas → efectivas del parte, y esta
+  // tabla trae `sent_total` y `valid_total` aula por aula: para saber cuánto se
+  // pierde en total había que sumar 190 filas a mano. Medido en 2025: se pierde
+  // el 9-13 %, y no es constante (91 % · 87 % · 88 % por semana).
+  const perdida = perdidaDelControl(filas);
   const grupos = resumen?.grupos ?? [];
   const aulas = resumen?.aulas ?? filas.length;
 
@@ -329,10 +366,24 @@ export function AulasControlDelLibro({
   // «Control - cuenta», «- duracion», «- cuotas» y «- rango horario», y sin esa
   // banda las 27 columnas iban seguidas: no se veia donde acababa un bloque y
   // empezaba el siguiente, que es lo que convertia la tabla en un muro.
+  // **La tabla enseña lo que el libro TRAE, no la plantilla de 2025.**
+  //
+  // Gonzalo, al verla: «¿por qué sigue poniendo 70T y 70P? Veo que sigue siendo
+  // una copia de la tabla del año pasado [...] parece que estuvieras haciendo un
+  // calco». Tenía razón y el mecanismo es preciso: `carga_base_control.R` marca
+  // `70T`/`70P` como `solo_lectura` —«la hoja que generamos YA NO ESCRIBE esa
+  // columna», sólo se leen para no romper un libro viejo— pero esta tabla las
+  // pintaba igual, vacías. Y con ellas «Validador 1/2/3», «Total cortas» y
+  // «Total largas», que este estudio tampoco llena.
+  //
+  // `columnasConDato` ya encierra el criterio —«una columna vacía en TODAS las
+  // filas no llega a la tabla»— y esta tabla era la única del perfil que no lo
+  // usaba. Un libro de 2025 que SÍ traiga 70T las sigue viendo: se descarta lo
+  // vacío, no lo viejo.
   const bloques = conDato.map((g) => ({
     clave: g.clave,
     nombre: nombreDeGrupo(g),
-    campos: CAMPOS_POR_GRUPO[g.clave] ?? [],
+    campos: camposConAlgoQueDecir(filas, CAMPOS_POR_GRUPO[g.clave] ?? []),
   })).filter((b) => b.campos.length);
   const columnas = ["operational_code", ...bloques.flatMap((b) => b.campos)];
   // Que columna abre cada bloque, para pintarle la linea divisoria y que el ojo
@@ -429,6 +480,30 @@ export function AulasControlDelLibro({
           del equipo y vuelven al importar el libro.
         </p>
       ) : (
+      <>
+      {/* La banda va ANTES de la tabla porque contesta la pregunta con la que
+          se entra —«¿cuánto de lo que mandamos cuenta?»— y la tabla es donde se
+          busca un aula concreta. Una sola línea: la sección reparte alto y un
+          panel nuevo se lo quitaría a los vecinos. */}
+      {perdida ? (
+        <p className="aulas-perdida" data-qa-geometry-capacity="owned" data-qa-geometry-member>
+          <span className="aulas-perdida-cifras">
+            De <strong>{fmt(perdida.enviadas)}</strong> enviadas cuentan{" "}
+            <strong>{fmt(perdida.validas)}</strong>
+            {perdida.pierde > 0 ? <> · se pierden {fmt(perdida.pierde)}</> : null}
+            {" "}({Math.round(perdida.pasa * 100)} % pasa)
+            {/* Las que nadie ha revisado NO son pérdida: decirlo evita leer el
+                porcentaje como si el libro estuviera completo. */}
+            {perdida.sinRevisar > 0 ? (
+              <small> · {fmt(perdida.sinRevisar)} sin revisar todavía, fuera de la cuenta</small>
+            ) : null}
+          </span>
+          <span className="aulas-perdida-barra" aria-hidden="true">
+            <i className="es-cuenta" style={{ width: `${perdida.pasa * 100}%` }} />
+            <i className="es-pierde" style={{ width: `${(1 - perdida.pasa) * 100}%` }} />
+          </span>
+        </p>
+      ) : null}
       <div className="mon-profile-table-wrap" data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <table className="mon-profile-table">
           <thead>
@@ -506,6 +581,7 @@ export function AulasControlDelLibro({
           </tbody>
         </table>
       </div>
+      </>
       )}
     </div>
   );

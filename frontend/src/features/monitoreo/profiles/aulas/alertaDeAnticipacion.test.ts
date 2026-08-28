@@ -6,7 +6,13 @@ import { proyeccionPorAgenda } from "./proyeccionPorAgenda";
 import { DIAS_DE_ANTICIPACION, TASA_DE_CAIDA, alertaDeAnticipacion } from "./alertaDeAnticipacion";
 
 // Agosto de 2026: los domingos caen 2, 9, 16, 23 y 30.
-const dia = (fecha: string) => ({ fecha, aulas: 1, elegibles: 40, esperadas: 20, acumuladas: 20 });
+// La vara del diseño no la mira esta alerta —cuenta días de agenda, no
+// encuestas— así que se siembra neutra y el helper la absorbe: lo que este
+// archivo prueba no debe romperse cada vez que la proyección publique un campo.
+const dia = (fecha: string) => ({
+  fecha, aulas: 1, elegibles: 40, esperadas: 20, acumuladas: 20,
+  esperadasPorDiseno: null, acumuladasPorDiseno: null, aulasConDiseno: 0,
+});
 
 const facultad = (p: Partial<ProyeccionDeFacultad> & { facultad: string }): ProyeccionDeFacultad => ({
   esperadoPorAula: 20,
@@ -16,6 +22,8 @@ const facultad = (p: Partial<ProyeccionDeFacultad> & { facultad: string }): Proy
   reparto: "observada",
   alcanzaTodo: false,
   corte: "2026-08-10",
+  esperadasPorDisenoTotal: null,
+  aulasConDiseno: 0,
   ...p,
 });
 

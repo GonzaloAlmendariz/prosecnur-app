@@ -1125,6 +1125,23 @@
       aulas_cfg$partes_campo, s$monitoreo_aulas_partes_campo, list()
     )
     aulas_plan <- s$monitoreo_aulas_plan %||% aulas_cfg$plan %||% list()
+    # **El instrumento NO llega al tablero de aulas, y pasarlo aqui no basta.**
+    #
+    # `monitoreo_aulas_dashboard` lee `cfg$instrumento_survey` para el bloque de
+    # texto abierto —«este estudio no trae instrumento, asi que la vista...»—
+    # pero esa clave aparece **una sola vez en todo `api/R`**: en el consumidor.
+    # `monitoreo_aulas_normalize_config` construye una lista CERRADA y no la
+    # transporta, asi que `cfg$instrumento_survey` es NULL **por construccion** y
+    # el panel no puede decir otra cosa nunca.
+    #
+    # Probado: sembrando el instrumento real en la sesion y pasandolo aqui, el
+    # panel sigue diciendo que no lo hay. Escribirlo en esta ruta es necesario
+    # pero no suficiente; falta que el normalizador lo lleve, y ese archivo esta
+    # CONGELADO a crecimiento (`agentic/manifest.json`), asi que anadir el campo
+    # exige subir su linea base de forma deliberada.
+    #
+    # Se deja la nota y no el codigo muerto: `s$instrumento$survey` esta ahi
+    # cuando se decida abrir el normalizador.
     aulas_dashboard <- monitoreo_aulas_dashboard(aulas_plan, display_data, aulas_cfg)
     if (is.null(dashboard) || !is.list(dashboard)) {
       dashboard <- list(ok = TRUE, kpis = list(), progress = data.frame(), production = data.frame(), inconsistencies = data.frame())
@@ -2403,6 +2420,17 @@
       include_targets = include_targets
     ))
   }
+  # Aulas universitarias tiene su propio reporte de avance desde 2026-08-27.
+  # Antes caia al `else` de acreditacion, que NO es un generico: su modelo y su
+  # renderizador hablan de `actors`, `daily_actor` y `channel_labels`, asi que
+  # informar aulas con el obligaba a llamar «actores» a las facultades.
+  if (identical(.monitoreo_publication_family_key(publication_family), "aulas_universitarias")) {
+    return(build_monitoreo_aulas_report_model(
+      snapshot = snapshot,
+      cfg = cfg,
+      include_targets = include_targets
+    ))
+  }
   dashboard <- snapshot$dashboard %||% NULL
   reports <- if (is.list(dashboard)) dashboard$acreditacion_reports %||% list() else list()
   model <- reports$client_report %||% NULL
@@ -2717,6 +2745,9 @@ monitoreo_client_report_pdf_job_runner <- function(model_path,
   } else if (identical(report_kind, "telefonico_advance_pdf") || identical(family, "telefonico")) {
     report("render", percent = 55, message = "Renderizando avance telefónico...")
     monitoreo_telefonico_advance_report_pdf(model, result_path, include_targets = include_targets)
+  } else if (identical(report_kind, "aulas_advance_pdf") || identical(family, "aulas_universitarias")) {
+    report("render", percent = 55, message = "Renderizando avance de cursos-horario...")
+    monitoreo_aulas_advance_report_pdf(model, result_path, include_targets = include_targets)
   } else {
     report("render", percent = 55, message = "Renderizando PDF ejecutivo...")
     monitoreo_acreditacion_client_report_pdf(model, result_path, include_targets = include_targets)
@@ -3156,8 +3187,16 @@ mount_monitoreo <- function(pr) {
         identical(.monitoreo_publication_family_key(model$family %||% ""), "territorial")
       is_telefonico_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "telefonico_advance_pdf") ||
         identical(.monitoreo_publication_family_key(model$family %||% ""), "telefonico")
-      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo" else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo" else "reporte_cliente_monitoreo"
-      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf" else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf" else "monitoreo.client_report_pdf"
+      is_aulas_pdf <- identical(.monitoreo_scalar(model$report_kind, ""), "aulas_advance_pdf") ||
+        identical(.monitoreo_publication_family_key(model$family %||% ""), "aulas_universitarias")
+      report_slug <- if (isTRUE(is_territorial_pdf)) "avance_territorial_monitoreo"
+        else if (isTRUE(is_telefonico_pdf)) "avance_telefonico_monitoreo"
+        else if (isTRUE(is_aulas_pdf)) "avance_aulas_monitoreo"
+        else "reporte_cliente_monitoreo"
+      report_job_kind <- if (isTRUE(is_territorial_pdf)) "monitoreo.territorial_advance_pdf"
+        else if (isTRUE(is_telefonico_pdf)) "monitoreo.telefonico_advance_pdf"
+        else if (isTRUE(is_aulas_pdf)) "monitoreo.aulas_advance_pdf"
+        else "monitoreo.client_report_pdf"
       filename <- .export_filename(sid, report_slug, "pdf")
       pdf_job_runner <- monitoreo_client_report_pdf_job_runner
       attr(pdf_job_runner, "prosecnur_job_function_name") <- "monitoreo_client_report_pdf_job_runner"
@@ -4945,7 +4984,12 @@ mount_monitoreo <- function(pr) {
       )
       escrito <- aulas_libro_generar(unidades, destino, partes = partes, control = control,
                           efectivas = efectivas, responses = respuestas,
-                          validas = validas)
+                          validas = validas,
+                          # Las cuotas del diseño, para el avance por facultad y
+                          # sexo de la hoja de indicadores. Sin ellas ese bloque
+                          # no se escribe: la cuota no se reconstruye.
+                          cuotas = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list())$design_targets,
+                          cfg = ((s$monitoreo_config %||% list())$aulas_universitarias %||% list()))
       # Las que entraron al archivo, no las del plan: el banco sin usar se queda
       # fuera y contar el plan crudo hacia decir «Libro de 2616 aulas» de un
       # libro con 190.

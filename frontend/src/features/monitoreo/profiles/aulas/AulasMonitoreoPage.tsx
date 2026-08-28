@@ -26,6 +26,8 @@ import { RegistroDeCampo } from "./RegistroDeCampo";
 import { apiUpload } from "../../../../api/estudio";
 import { AulasBrechaEstratoChart } from "./AulasBrechaEstratoChart";
 import { AulasAgendaPorDia } from "./AulasAgendaPorDia";
+import { AulasGestionesPorAula } from "./AulasGestionesPorAula";
+import { agendamiento } from "./agendamiento";
 import { AulasBancoExtras } from "./AulasBancoExtras";
 import { AulasAlcanceDelBanco } from "./AulasAlcanceDelBanco";
 import { COLUMNAS_DE_ESTADO, EstadoEnCelda } from "./EstadoEnCelda";
@@ -44,6 +46,7 @@ import { AulasColchonPorFacultad } from "./AulasColchonPorFacultad";
 import { AulasConsumoDelBanco } from "./AulasConsumoDelBanco";
 import { AulasPronosticoDeCierre } from "./AulasPronosticoDeCierre";
 import { AulasRitmoPorFacultad } from "./AulasRitmoPorFacultad";
+import { AulasEfectividadSeguimiento } from "./AulasEfectividadSeguimiento";
 import { AulasRendimientoPorFacultad } from "./AulasRendimientoPorFacultad";
 import { AulasAlertaDeAnticipacion } from "./AulasAlertaDeAnticipacion";
 import { AulasSerieDeRendimiento } from "./AulasSerieDeRendimiento";
@@ -72,6 +75,7 @@ import { historiaDeCadena } from "./historiaDeCadena";
 import { AulasCoberturaChart } from "./AulasCoberturaChart";
 import { AulasPiramideCuota } from "./AulasPiramideCuota";
 import { AulasCuotasResumen, focoDesdeTexto, textoDesdeFoco, type FocoDeCuota } from "./AulasCuotasResumen";
+import { AulasAvanceParaCliente } from "./AulasAvanceParaCliente";
 import { AulasAvanceCuota } from "./AulasAvanceCuota";
 import { avanceCuota } from "./avanceCuota";
 import { fmtCuenta, aulasKpis, fmt } from "./kpisDeAulas";
@@ -80,6 +84,9 @@ import { AulasRitmoDiario, type RitmoDiario } from "./AulasRitmoDiario";
 import { MODULE_TONES } from "../../../../lib/modules";
 import { ordenarPorCadenaOperativa } from "../../../../lib/cadenaOperativa";
 import { embudoDelOperativo, explicacionDelEmbudo } from "./embudoDelOperativo";
+import { AulasUmbralDeDuracion } from "./AulasUmbralDeDuracion";
+import { corteDelEstudio } from "./corteDelEstudio";
+import { estadoDeMuestraLegible } from "./estadoDeMuestraLegible";
 import { queTocaConCadaAula } from "./queTocaConCadaAula";
 // Deuda declarada: `FlujoVertical` vive en `features/calcMuestra/universidad/ui/`
 // y es genérico —etapas con valor, detalle, estado y merma—. Importarlo entre
@@ -446,9 +453,22 @@ function agendaRows(dashboard: MonitoreoAulasDashboard | null) {
   // Qué toca hacer con cada aula, calculado aquí y no en la cabeza del
   // agendador: la tabla enseñaba el estado y él lo traducía a una acción 193
   // veces. Ver `queTocaConCadaAula.ts`.
-  const corte = String((dashboard as { generated_at?: unknown } | null)?.generated_at ?? "").slice(0, 10);
+  // **El corte del ESTUDIO, no el sello del tablero.** `generated_at` dice
+  // cuándo se calculó el tablero —el reloj de la máquina que lo abrió— y con él
+  // «qué toca» se calculaba contra un día que el campo no vivió. Ver
+  // `corteDelEstudio.ts`: el «hoy» del estudio es su último parte.
+  const corte = corteDelEstudio(
+    ((dashboard as { partes_campo?: unknown } | null)?.partes_campo ?? []) as Array<Record<string, unknown>>,
+    (dashboard as { generated_at?: unknown } | null)?.generated_at,
+  ).dia;
   const conAccion: Array<Record<string, unknown>> = filas.map((fila) => ({
     ...fila, que_toca: queTocaConCadaAula(fila, corte),
+    // **Una fila no puede decir «Aplicada» y «Sin contactar» a la vez.** El
+    // normalizador del estado de muestra es una lista cerrada y las seis
+    // palabras que los equipos escriben de verdad caen todas al default. Ver
+    // `estadoDeMuestraLegible.ts`: no cambia el mapeo, sólo impide que la tabla
+    // afirme la contradicción sin señalarla.
+    sample_status: estadoDeMuestraLegible(fila.sample_status, fila.operational_status),
   }));
   return ordenarPorCadenaOperativa(conAccion, (fila) => ({
     rol: String(fila.sample_role ?? ""),
@@ -706,12 +726,29 @@ function renderAulasView(
    * cada sección es el componente de arriba.
    */
   irAPestana: ((clave: string) => void) | null = null,
+  /**
+   * Declarar a partir de cuántos minutos una respuesta es sospechosa.
+   *
+   * Va como función y no como nodo ya construido —al revés que
+   * `criterioDeEfectiva` y `criterioDeAula`— porque el control vive DENTRO del
+   * panel de tiempos, junto a la distribución con la que se elige el número.
+   * Sacarlo a un nodo aparte lo alejaría del histograma que lo justifica.
+   */
+  onDeclararUmbralDeDuracion: ((minutos: number) => void | Promise<void>) | null = null,
 ) {
   // **El foco cruza la sección entera.** Es una dimensión declarada de la
   // gramática de navegación, viaja en la URL y lo obedecía UNA sola superficie
   // —la tabla de cuotas— teniendo el perfil SEIS listas de las mismas veinte
   // facultades. Para saber cómo va Derecho había que cazar su fila seis veces.
   const facultadEnFoco = foco?.tipo === "facultad" ? foco.valor : undefined;
+  // El umbral declarado, leído del mismo bloque que dibuja el panel de tiempos
+  // para que las dos pantallas no puedan discrepar.
+  const umbralDeDuracion = (() => {
+    const u = (dashboard as { tiempos?: { umbral?: { declarado?: unknown; minutos?: unknown } } } | null)
+      ?.tiempos?.umbral;
+    const m = Number(u?.minutos);
+    return { declarado: u?.declarado === true, minutos: Number.isFinite(m) ? m : null };
+  })();
 
   if (view === "fuentes") {
     // Las operaciones (importar plan / sincronizar campo) se muestran incluso
@@ -798,6 +835,25 @@ function renderAulasView(
               </span>
             </div>
             {criterioDeEfectiva}
+            {/* **El umbral de duración también se declara aquí, al principio.**
+                Gonzalo: «el umbral es menos de 5 minutos, configurable a 8 u
+                otros números, pero **lo ideal es definirlos al principio**».
+                Una respuesta contestada en dos minutos no vale, igual que una
+                sin consentimiento: es parte de «de qué vale cada una», que es lo
+                que esta sección promete. En Validación está el MISMO control,
+                junto a la distribución, porque el número se afina viendo la
+                forma del dato — pero el sitio para fijarlo antes de que llegue
+                la primera respuesta es éste. */}
+            {onDeclararUmbralDeDuracion ? (
+              <AulasUmbralDeDuracion
+                declarado={umbralDeDuracion.declarado}
+                minutos={umbralDeDuracion.minutos}
+                onDeclarar={onDeclararUmbralDeDuracion}
+                leyenda={umbralDeDuracion.declarado
+                  ? `Ahora se marcan las de menos de ${umbralDeDuracion.minutos} min.`
+                  : "Cuánto tiene que durar una respuesta para contar."}
+              />
+            ) : null}
           </section>
         ) : null}
       </div>
@@ -946,7 +1002,21 @@ function renderAulasView(
               || Number(dashboard.course_status_total_plan ?? 0)
               || 0
             }
+            // El recorte se calcula AQUÍ, que es donde se ven las dos cifras:
+            // cuántas filas trajo el payload y cuántas hay de verdad. El panel
+            // no puede deducirlo de `totalDelPlan`, que cuenta titulares
+            // mientras `filas` trae además las reservas encadenadas.
+            recorte={{
+              recibidas: ((dashboard.course_status ?? []) as unknown[]).length,
+              total: Number(dashboard.course_status_total ?? 0),
+            }}
           />
+          {/* **La cola de las gestiones, que la mediana esconde.** Los dos tiles
+              de arriba dicen «cuestan más de una» y «van por la tercera», pero
+              con la mediana no se ve cuántas están en la cola cara: en 2025 la
+              mediana fue 2 y aun así 33 de 170 llegaron a la cuarta llamada. La
+              distribución ya la calculaba `agendamiento.ts`; sólo publicaba su
+              centro. */}
           <DataTable
             rows={agendaRows(dashboard)}
             empty="No hay agenda importada para cursos-horario."
@@ -970,6 +1040,44 @@ function renderAulasView(
             preferredColumns={["operational_code", "que_toca", "faculty", "teacher", "teacher_phone", "contact_medium", "contact_date", "contact_attempts", "sample_status", "scheduled_date", "scheduled_time", "link", "label"]}
           />
         </section>
+        ) : null}
+        {pestana === "agenda"
+          || (pestana !== "facultad" && pestana !== "contacto") ? (
+          <>
+          {/* **En su propio panel, y no dentro del de la agenda.**
+              El panel «Aulas agendadas» reparte su alto en filas fijas y la de
+              la franja va a `minmax(0, 1fr)`: metiendo aquí un cuarto hijo, esa
+              fila se quedó en **0 px** —medido— y la lista de días se pintó
+              encima de su leyenda. Es exactamente la compresión de la que se
+              queja el encargo, causada por añadir sin mirar el presupuesto
+              vertical del contenedor.
+
+              El propio panel lo advierte en su comentario y no lo leí a tiempo:
+              «este panel tiene TRES filas —cabecera, lectura por día y tabla— y
+              la regla común declara dos. Un hijo de más se lleva una fila
+              declarada y se dibuja encima del siguiente». */}
+          <section
+            className="mon-profile-panel"
+            data-qa-geometry-group="monitoring-aulas-table"
+            data-qa-geometry-contract="intrinsic"
+          >
+            <div className="mon-profile-panel-head">
+              <h3>Cuánto cuesta cerrar un aula</h3>
+              <span>llamadas hasta la cita, y cuántas están en la cola cara</span>
+            </div>
+            <AulasGestionesPorAula
+              // **`agenda`, no `course_status`**: es la fuente que usan los dos
+              // tiles de gestiones de esta misma sección, y la única que trae el
+              // ciclo de contacto entero. `course_status` viaja recortado a 500
+              // filas y con menos columnas, así que la distribución salía vacía
+              // y el histograma no se dibujaba —con los tiles de al lado
+              // marcando 119 y 29 sobre los mismos datos—.
+              distribucion={agendamiento(
+                ((dashboard.agenda ?? []) as Array<Record<string, unknown>>),
+              ).distribucionDeGestiones}
+            />
+          </section>
+          </>
         ) : null}
       </div>
     );
@@ -1084,7 +1192,8 @@ function renderAulasView(
               <h3>Cuánto se tarda en responder</h3>
               <span>duración por respuesta y por aula</span>
             </div>
-            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos} />
+            <AulasTiemposDeRespuesta tiempos={dashboard.tiempos}
+              onDeclararUmbral={onDeclararUmbralDeDuracion ?? undefined} />
           </section>
 
           {/* **Qué descarta cada filtro.** Con sólo el total de válidas no se
@@ -1570,7 +1679,16 @@ function renderAulasView(
           // El día del corte y NO `new Date()`: un panel que lee el reloj da un
           // resultado distinto cada vez que se abre y no hay forma de fijarlo en
           // un test ni de reproducir lo que vio el usuario.
-          corte={String(dashboard?.generated_at ?? "").slice(0, 10)}
+          //
+          // **Pero `generated_at` tampoco era el corte**: es cuándo se calculó
+          // el tablero, o sea el mismo reloj por otra puerta. Medido: este panel
+          // decía «al 27 de agosto» con el estudio sincronizado al 12/09/2026 y
+          // concluía «174 aún por venir» con 78 ya aplicadas. El corte del
+          // estudio es su último parte — `corteDelEstudio.ts`.
+          corte={corteDelEstudio(
+            (dashboard?.partes_campo ?? []) as Array<Record<string, unknown>>,
+            dashboard?.generated_at,
+          ).dia}
         />
       </section>
       )}
@@ -1713,6 +1831,26 @@ function renderAulasView(
             la tabla obliga a resolver restando de cabeza. */}
         <AulasBrechaEstratoChart filas={estratoRows as MonitoreoRow[]} />
         <DataTable rows={estratoRows} empty="No hay avance por estrato preparado." />
+      </section>
+      )}
+      {pestana !== "efectividad" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* C1: el título dice contra qué se mide, no «Efectividad» a secas.
+              El rótulo corto de la pestaña es sinónimo de «Rendimiento» en
+              castellano y lo que las separa es el numerador; aquí se declara. */}
+          <h3>El campo contra la tasa que dimensionó la muestra</h3>
+          <span>por facultad · numerador de plataforma</span>
+        </div>
+        <AulasEfectividadSeguimiento
+          bloque={dashboard.efectividad_seguimiento}
+          facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
+        />
       </section>
       )}
       {pestana !== "rendimiento" ? null : (
@@ -1976,6 +2114,30 @@ function renderAulasView(
         <AulasConsumoDelBanco
           filas={(dashboard.agenda ?? []) as MonitoreoAulasPlanRow[]}
           diasDeCampo={diasDeCampoDelCorte((dashboard.partes_campo ?? []) as MonitoreoRow[])}
+          facultadEnFoco={facultadEnFoco}
+          onFoco={onFoco}
+        />
+      </section>
+      )}
+      {pestana !== "cuotas" ? null : (
+      <section
+        className="mon-profile-panel"
+        data-qa-geometry-group="monitoring-aulas-avance"
+        data-qa-geometry-contract="intrinsic"
+      >
+        <div className="mon-profile-panel-head">
+          {/* La tabla que se le enseña al cliente, y la misma que va al PDF y a
+              la hoja «Cómo va el campo» del libro: un contenido en tres
+              soportes. Va PRIMERO en la pestaña porque es la lectura de
+              conjunto; el detalle celda a celda viene después. */}
+          <h3>El avance que ve el cliente</h3>
+          <span>contra la cuota del diseño, por sexo</span>
+        </div>
+        <AulasAvanceParaCliente
+          avanceCuota={dashboard.avance_cuota}
+          celdasSexo={(dashboard.quotas_sex_faculty ?? []) as MonitoreoRow[]}
+          efectividad={dashboard.efectividad_seguimiento}
+          avancePorFacultad={(dashboard.avance_por_facultad ?? []) as MonitoreoRow[]}
           facultadEnFoco={facultadEnFoco}
           onFoco={onFoco}
         />
@@ -2335,6 +2497,27 @@ export default function AulasMonitoreoPage() {
    * cambia viaja ahí: sin eso el panel seguiría enseñando el reparto anterior y
    * el botón parecería no hacer nada.
    */
+  /**
+   * Declarar el umbral de duración sospechosa.
+   *
+   * Mismo camino que `aula_valida` y que el criterio de respuesta válida: la
+   * config de aulas y después un refresco con el scope de VALIDACIÓN, porque el
+   * veredicto que cambia viaja ahí. Sin ese scope el panel seguiría enseñando
+   * «no ha declarado» después de declararlo, y un botón que no puede mostrar su
+   * propio efecto enseña a desconfiar del botón.
+   */
+  const guardarUmbralDeDuracion = useCallback(async (minutos: number) => {
+    try {
+      await apiMonitoreoAulasConfig({ duracion_sospecha_min: minutos } as Partial<MonitoreoAulasConfig>);
+      const next = await apiMonitoreoState({
+        includeReports: true, reportScope: "validation_summary", force: true,
+      });
+      setState(next);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
   const guardarCriterioDeAula = useCallback(async (valor: { modo: string; alfa: number }) => {
     try {
       await apiMonitoreoAulasConfig({ aula_valida: valor } as Partial<MonitoreoAulasConfig>);
@@ -2644,6 +2827,9 @@ export default function AulasMonitoreoPage() {
               // Cambiar de pestaña dentro de la sección: quien recuerda la
               // activa de cada una es este componente, no el render.
               (clave) => elegirPestana(seccionActiva, clave),
+              // El umbral de duración sospechosa: el motor lo aceptaba desde
+              // siempre y no había dónde ponerlo.
+              guardarUmbralDeDuracion,
             )}
           </div>
       </MonitoreoWorkbenchChrome>

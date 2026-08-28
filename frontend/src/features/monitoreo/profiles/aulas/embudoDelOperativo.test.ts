@@ -35,6 +35,36 @@ describe("embudoDelOperativo", () => {
     expect(con[2].merma).toEqual({ n: 40, label: "descartadas por el filtro" });
   });
 
+  it("la merma es la diferencia con la etapa de abajo, no `filter_rejected`", () => {
+    // **El caso real, medido en pantalla sobre HSVG2026 con los filtros del
+    // instrumento sembrados**: el embudo decía «1 811 recibidas · −67
+    // descartadas» encima de «1 637 que cuentan», y 1 811 − 1 637 = 174.
+    //
+    // `filter_rejected` sale de `.monitoreo_aulas_filter_passed()`, que no mira
+    // la cadena de filtros declarada: busca una columna llamada `apto`,
+    // `elegible`, `consent` o `consentimiento` y cuenta sobre ella. El
+    // instrumento de este estudio abre con la pregunta de consentimiento, así
+    // que la columna se llama así y la merma pasó a ser la de ESE filtro.
+    //
+    // El fixture de arriba no distingue las dos cuentas porque es coherente
+    // consigo mismo (900 − 860 = 40). Éste sí: son 174 contra 67.
+    const e = embudoDelOperativo({
+      aulas_titulares: 174, aulas_aplicadas: 78,
+      respuestas_total: 1811, respuestas_validas: 1637, filter_rejected: 67,
+    });
+    expect(e[2].merma).toEqual({ n: 174, label: "descartadas por el filtro" });
+  });
+
+  it("nunca da una merma negativa", () => {
+    // Si por lo que sea llegaran más válidas que recibidas, un «−12
+    // descartadas» negativo se leería como que aparecieron respuestas.
+    const e = embudoDelOperativo({
+      aulas_titulares: 10, aulas_aplicadas: 5,
+      respuestas_total: 100, respuestas_validas: 112,
+    });
+    expect(e[2].merma).toBeUndefined();
+  });
+
   it("los reemplazos activados se declaran en la procedencia del plan", () => {
     // Es la cifra que explica por qué el plan de hoy no es el sorteo de ayer.
     const e = embudoDelOperativo({

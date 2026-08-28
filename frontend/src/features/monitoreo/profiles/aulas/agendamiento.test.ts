@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { agendamiento } from "./agendamiento";
+import { UMBRAL_DE_RIESGO, agendamiento } from "./agendamiento";
 
 const aula = (o: Record<string, unknown>) => ({ sample_role: "titular", ...o });
 
@@ -101,5 +101,92 @@ describe("agendamiento · una aplicada sin agenda es un descuadre", () => {
       fila({}),
     ]);
     expect(r.agendadas + r.aplicadasSinAgenda + r.porAgendar).toBe(r.enJuego);
+  });
+
+  describe("el umbral de riesgo, medido en 2025", () => {
+    it("cuenta las que van por la tercera gestión y siguen sin fecha", () => {
+      const r = agendamiento([
+        { sample_role: "titular", contact_attempts: 1 },
+        { sample_role: "titular", contact_attempts: 2 },
+        { sample_role: "titular", contact_attempts: 3 },
+        { sample_role: "titular", contact_attempts: 5 },
+      ]);
+      expect(r.enUmbralDeRiesgo).toBe(2);
+      expect(UMBRAL_DE_RIESGO).toBe(3);
+    });
+
+    it("una que costó cuatro llamadas pero YA está agendada no es riesgo", () => {
+      // Es una historia, no un pronóstico: el riesgo mide lo que puede caerse
+      // todavía, y una con fecha cerrada ya no se cae por no contactarla.
+      const r = agendamiento([
+        { sample_role: "titular", contact_attempts: 4, scheduled_date: "2026-09-10" },
+        { sample_role: "titular", contact_attempts: 4 },
+      ]);
+      expect(r.enUmbralDeRiesgo).toBe(1);
+      expect(r.conInsistencia).toBe(2);
+    });
+
+    it("sin medio de contacto se cuenta aparte, y sólo si sigue sin fecha", () => {
+      const r = agendamiento([
+        { sample_role: "titular" },
+        { sample_role: "titular", contact_medium: "Llamada" },
+        { sample_role: "titular", scheduled_date: "2026-09-10" },
+      ]);
+      expect(r.sinMedioDeContacto).toBe(1);
+    });
+
+    it("una reserva dormida no entra en ningún riesgo: nadie la va a llamar", () => {
+      const r = agendamiento([
+        { sample_role: "chain_reserve", sample_status: "", contact_attempts: 6 },
+        { sample_role: "chain_reserve", sample_status: "en_reserva" },
+      ]);
+      expect(r.enUmbralDeRiesgo).toBe(0);
+      expect(r.sinMedioDeContacto).toBe(0);
+    });
+  });
+
+  describe("la distribución de gestiones, que la mediana esconde", () => {
+    it("agrupa por número de llamadas y marca el tramo en riesgo", () => {
+      const r = agendamiento([
+        { sample_role: "titular", contact_attempts: 1 },
+        { sample_role: "titular", contact_attempts: 1 },
+        { sample_role: "titular", contact_attempts: 2 },
+        { sample_role: "titular", contact_attempts: 4 },
+      ]);
+      expect(r.distribucionDeGestiones).toEqual([
+        { gestiones: 1, aulas: 2, enRiesgo: false },
+        { gestiones: 2, aulas: 1, enRiesgo: false },
+        { gestiones: 4, aulas: 1, enRiesgo: true },
+      ]);
+    });
+
+    it("la mediana no basta: con mediana 2 puede haber cola larga", () => {
+      // El caso de 2025: mediana 2 y aun así 33 de 170 en la cuarta o más. Un
+      // tile con la mediana da la misma cifra con cola y sin ella.
+      const conCola = agendamiento([
+        ...Array.from({ length: 6 }, () => ({ sample_role: "titular", contact_attempts: 2 })),
+        ...Array.from({ length: 3 }, () => ({ sample_role: "titular", contact_attempts: 6 })),
+      ]);
+      const sinCola = agendamiento(
+        Array.from({ length: 9 }, () => ({ sample_role: "titular", contact_attempts: 2 })),
+      );
+      expect(conCola.intentosMedianos).toBe(sinCola.intentosMedianos);
+      expect(conCola.distribucionDeGestiones).not.toEqual(sinCola.distribucionDeGestiones);
+    });
+
+    it("sin gestiones anotadas la distribución va vacía, no en cero", () => {
+      // Una barra única en cero se leería como «todas salen a la primera», que
+      // es lo contrario de que nadie apuntó nada.
+      const r = agendamiento([{ sample_role: "titular" }, { sample_role: "titular" }]);
+      expect(r.distribucionDeGestiones).toEqual([]);
+    });
+
+    it("las reservas dormidas no entran en la distribución", () => {
+      const r = agendamiento([
+        { sample_role: "chain_reserve", sample_status: "", contact_attempts: 5 },
+        { sample_role: "titular", contact_attempts: 1 },
+      ]);
+      expect(r.distribucionDeGestiones).toEqual([{ gestiones: 1, aulas: 1, enRiesgo: false }]);
+    });
   });
 });

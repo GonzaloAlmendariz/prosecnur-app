@@ -47,9 +47,21 @@ export function AulasCadenaDeFiltros({ bloque }: { bloque: unknown }) {
         </p>
       )}
 
+      {/* **La escalera, que es lo que un embudo es.**
+          La lista decía bien las cifras pero no se veía de un vistazo qué filtro
+          cuesta más: había que restar cuatro parejas de números mentalmente. La
+          barra pone los pasos en la MISMA escala —la de lo que entra a la
+          cadena— así que el descenso se lee como forma y no como aritmética.
+          Va `aria-hidden`: cada cifra que dibuja está ya en el texto de su fila,
+          y una barra que repite lo que su vecino dice no aporta nada a un lector
+          de pantalla. */}
       <ol className="aulas-cadena-pasos">
         {c.pasos.map((p) => (
           <li key={`${p.orden}-${p.variable}`}>
+            <span className="aulas-cadena-barra" aria-hidden="true">
+              <i className="es-queda" style={{ width: `${c.entran ? (100 * p.quedan) / c.entran : 0}%` }} />
+              <i className="es-cae" style={{ width: `${c.entran ? (100 * p.caen) / c.entran : 0}%` }} />
+            </span>
             <span className="aulas-cadena-var">
               {p.variable}
               <small>{p.valores.join(" · ")}</small>

@@ -404,6 +404,23 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       ? [`${x(corteX)},${yy(ultimo)}`, ...proyectadas.map((v, i) => `${xp(i)},${yy(v)}`)].join(" ")
       : "";
     const alCerrar = proyectadas.length ? proyectadas[proyectadas.length - 1] : ultimo;
+    // **La segunda llegada: la del diseño.** La de arriba corre con la tasa que
+    // el campo lleva y responde «¿a dónde llego si sigo rindiendo como rindo?».
+    // Ésta responde la otra mitad —«¿a dónde habría llegado si rindiera lo que
+    // el diseño supuso?»— que es el contraste que manda el ADR 0082.
+    //
+    // No es otra tasa: es la suma del `expected_valid` de las aulas AGENDADAS,
+    // cada una con su tamaño. Una agenda de tres aulas grandes no es la misma
+    // que una de tres pequeñas, y una tasa por un número de aulas no distingue
+    // las dos.
+    const disenoDeLaAgenda = proyectada
+      ? { total: proyectada.esperadasPorDisenoTotal, conVara: proyectada.aulasConDiseno, agendadas: proyectada.aulasAgendadas }
+      : proyeccion.reduce<{ total: number | null; conVara: number; agendadas: number }>((acc, f) => ({
+        total: f.esperadasPorDisenoTotal == null ? acc.total : (acc.total ?? 0) + f.esperadasPorDisenoTotal,
+        conVara: acc.conVara + f.aulasConDiseno,
+        agendadas: acc.agendadas + f.aulasAgendadas,
+      }), { total: null, conVara: 0, agendadas: 0 });
+    const alCerrarPorDiseno = disenoDeLaAgenda.total == null ? null : ultimo + disenoDeLaAgenda.total;
 
     // Una línea por sexo, con su cuota señalizada. El desglose por DÍA no existe
     // en el dato —el parte no trae sexo—, así que la serie de cada sexo es el
@@ -538,12 +555,31 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       : "";
     // La cifra que manda es la de la CUOTA, no la del parte: es la que decide si
     // el estudio llega. La del parte se dice aparte y con su nombre.
+    // **Las dos llegadas, dichas juntas.** Sin la del diseño al lado, «se
+    // llegaría a X» es un número sin vara: no se sabe si ese X es lo que se
+    // había planeado o la mitad. Sólo se dice cuando difiere de verdad —menos
+    // de una encuesta de diferencia no es información— y declarando sobre
+    // cuántas aulas se calculó, porque no todas traen meta del diseño.
+    // Desanidado a propósito: un template literal dentro de la expresión de
+    // otro esconde sus cifras del contrato de formato del perfil, que las busca
+    // en el fuente. El contrato tenía razón y la reparación es no anidar.
+    const coberturaDelDiseno = disenoDeLaAgenda.conVara < disenoDeLaAgenda.agendadas
+      ? ` (de ${fmt(disenoDeLaAgenda.conVara)} de las ${fmt(disenoDeLaAgenda.agendadas)} agendadas)`
+      : "";
+    const segundaLlegada = alCerrarPorDiseno != null && Math.abs(alCerrarPorDiseno - alCerrar) >= 1
+      ? ` · con lo que el diseño pedía de esas aulas, ${fmt(Math.floor(alCerrarPorDiseno))}${coberturaDelDiseno}`
+      : "";
     const lectura = meta > 0
       ? `${fmt(Math.round(ultimo))} de ${fmt(meta)} encuestas que el plan espera de las aulas visitadas · ${
           alCerrar >= meta
-            ? "con lo agendado se pasa de esa meta"
+            // **La cifra se dice también cuando se pasa.** Decir sólo «se pasa
+            // de esa meta» dejaba la segunda llegada —la del diseño— sin nada
+            // con que compararse: la pantalla mostraba «se pasa de esa meta ·
+            // con lo que el diseño pedía, 3 795» y ese 3 795 no significaba
+            // nada solo. Las dos llegadas se leen en pareja o no se leen.
+            ? `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, por encima de esa meta`
             : `con lo agendado se llegaría a ${fmt(Math.floor(alCerrar))}, ${fmt(Math.ceil(meta - alCerrar))} por debajo`
-        }`
+        }${segundaLlegada}`
       : `${fmt(Math.round(ultimo))} encuestas del parte · el plan no declara meta para esas aulas`;
     // Las cuotas se siguen señalizando aunque no haya serie: son el objetivo, y
     // no depende de que alguien haya respondido.
@@ -637,11 +673,47 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
   };
 
   /** Lo que dice la pista de un día ya aplicado: el techo y lo conseguido. */
-  const lineasDelDia = (d: { fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null }) => [
+  const lineasDelDia = (d: {
+    fecha: string; aulas: number; elegibles: number; efectivas: number; porAula: number | null;
+    metaPorAula?: number | null; aulasConDiseno?: number;
+  }) => [
     `${dm(d.fecha)} · observado`,
     `${fmt(d.aulas)} ${d.aulas === 1 ? "aula" : "aulas"}${d.elegibles ? ` · ${fmt(d.elegibles)} elegibles` : ""}`,
     `${fmt(d.efectivas)} encuestas · ${personasPorAula(d.porAula)} por aula`,
+    // La vara del diseño y, cuando el día mezcla, sobre cuántas aulas se toma.
+    // Sin decir el denominador, un día con una sola aula del diseño y tres
+    // visitadas enseñaría una vara que no es la de las tres.
+    ...(d.metaPorAula != null
+      ? [`el diseño pedía ${personasPorAula(d.metaPorAula)} por aula`
+         + (d.aulasConDiseno && d.aulasConDiseno < d.aulas
+            ? ` (de ${fmt(d.aulasConDiseno)} de las ${fmt(d.aulas)}; el resto no trae meta del diseño)`
+            : "")]
+      : d.aulas ? ["ninguna de esas aulas trae meta del diseño"] : []),
   ];
+
+  /**
+   * La vara del diseño de la facultad elegida, y **sobre cuántas de sus aulas se
+   * conoce**.
+   *
+   * Las dos cifras van juntas a propósito. `expected_valid` llega también con
+   * metas escritas a mano y con el propio techo cuando no había ninguna, así que
+   * una vara dicha sin su cobertura puede ser la de una aula de veinte y leerse
+   * como la de las veinte.
+   */
+  const varaDelDiseno = useMemo(() => {
+    if (!elegida) return null;
+    let meta = 0;
+    let conVara = 0;
+    let todas = 0;
+    for (const d of elegida.dias) {
+      todas += d.aulas;
+      if (d.metaPorAula != null && d.aulasConDiseno > 0) {
+        meta += d.metaPorAula * d.aulasConDiseno;
+        conVara += d.aulasConDiseno;
+      }
+    }
+    return { porAula: conVara ? meta / conVara : null, conVara, todas };
+  }, [elegida]);
 
   const indice = elegida ? facultades.indexOf(elegida) : -1;
   const mover = (paso: number) => {
@@ -723,8 +795,19 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
                 las cuatro explicaciones fijas más el aviso más la sobremuestra, el
                 hueco entre los dos gráficos era un párrafo de 10 px ilegible. */}
             <span className="aulas-serie-leyenda">
+              {/* **«Meta» a secas nombraba dos cosas casi con el mismo número.**
+                  En esta misma línea de leyenda conviven la meta del plan sobre
+                  las aulas ya visitadas —2 693 en la fixture— y las dos cuotas
+                  por sexo, que suman 2 710. Diecisiete de diferencia entre dos
+                  cantidades que no tienen nada que ver: una es lo que el plan
+                  pedía de las aulas que se han pisado y la otra, lo que el
+                  estudio necesita en total. El pie lo decía bien —«de las aulas
+                  visitadas»— pero el pie está tres bandas más abajo y lo que la
+                  gente lee es el chip. */}
               {acumulado.meta > 0 ? (
-                <em className="es-horizontal es-gris">Meta {fmt(acumulado.meta)}</em>
+                <em className="es-horizontal es-gris">
+                  Meta de lo visitado {fmt(acumulado.meta)}
+                </em>
               ) : null}
               {acumulado.hayObservadasPorSexo ? null : (
                 <em className="es-ausente">
@@ -947,6 +1030,38 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
         data-qa-geometry-capacity="owned" data-qa-geometry-member>
         <p className="aulas-serie-rotulo">
           <b>Día a día <i>· encuestas por aula, con los elegibles de fondo</i></b>
+          {/* **Las tres alturas, nombradas.** El gráfico dibujaba techo, vara y
+              línea sin decir cuál era cuál: había que deducirlo del pie, tres
+              bandas más abajo, y el pie es prosa. Con la leyenda las tres se
+              distinguen por su trazo —relleno, punteado, sólido— y no sólo por
+              dónde caen. Sólo con una facultad elegida, que es cuando se dibujan. */}
+          {elegida ? (
+            <span className="aulas-serie-leyenda es-trazos">
+              <em className="es-gris">Techo: los elegibles del día</em>
+              {varaDelDiseno?.porAula != null ? (
+                <em className="es-zona">
+                  El diseño pedía {personasPorAula(varaDelDiseno.porAula)} por aula
+                  {varaDelDiseno.conVara < varaDelDiseno.todas
+                    ? ` · en ${fmt(varaDelDiseno.conVara)} de ${fmt(varaDelDiseno.todas)} aulas`
+                    : ""}
+                </em>
+              ) : (
+                <em className="es-ausente">
+                  El plan no trae la meta del diseño de estas aulas: no hay vara que dibujar
+                </em>
+              )}
+              <em style={{ "--aulas-serie-color": COLOR_RESULTADO.efectiva } as React.CSSProperties}>
+                Lo conseguido
+              </em>
+              {/* **El esperado también se nombra.** Estaba dibujado desde siempre
+                  y sólo se explicaba en el pie, tres bandas más abajo; al entrar
+                  la vara había dos grises punteados en el lienzo y un único
+                  rótulo, así que el lector no podía saber cuál era cuál. */}
+              <em className="es-punteado">
+                Lo que cabe esperar de la siguiente ({personasPorAula(elegida.esperadoFinal)})
+              </em>
+            </span>
+          ) : null}
         </p>
       <div className="aulas-serie-plot">
         <ul className="aulas-serie-y" aria-hidden="true">
@@ -1051,11 +1166,42 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
               if (!d.elegibles || !d.aulas) return null;
               const techo = d.elegibles / d.aulas;
               const ancho = fechas.length > 1 ? Math.min((UTIL / (fechas.length - 1)) * 0.36, 4.5) : 4.5;
+              // **La tercera altura: lo que el DISEÑO supuso de cada una de esas
+              //   aulas.** La barra era el techo y la línea lo conseguido, así que
+              //   el gráfico comparaba el campo consigo mismo y con la media del
+              //   estudio, pero nunca contra la vara con la que se dimensionó.
+              //
+              //   Va DENTRO de la barra y no como una cuarta línea suelta: es el
+              //   mismo patrón de la barra de efectividad —relleno hasta la vara,
+              //   tapa en el techo—, y una línea más sobre las tres que ya hay no
+              //   se leería. La zona baja es lo que el diseño pedía; lo que queda
+              //   sobre ella es techo que sobraba.
+              //
+              //   **Tapa sólida y vara punteada**, que es la convención que este
+              //   gráfico ya usa: lo medido va sólido y lo supuesto punteado.
+              const vara = d.metaPorAula;
               return (
                 <g key={`techo-obs-${d.fecha}`}>
                   <rect x={xa(i) - ancho / 2} y={y(techo)}
                     width={ancho} height={Math.max(0, MARGEN + UTIL - y(techo))}
                     fill="var(--pulso-text)" opacity="0.055" />
+                  {vara != null && vara > 0 ? (
+                    <>
+                      {/* **El relleno es la señal, no la raya.** Con las dos zonas
+                          al mismo tono la vara sólo se distinguía por una raya
+                          punteada gris, y en este gráfico YA hay otra punteada
+                          gris —el esperado—: dos cosas distintas con el mismo
+                          trazo. Con la zona baja más oscura la barra se lee de un
+                          vistazo en dos tramos, lo que el diseño pedía y el techo
+                          que sobraba, y la raya queda de refuerzo. */}
+                      <rect x={xa(i) - ancho / 2} y={y(Math.min(vara, techo))}
+                        width={ancho} height={Math.max(0, MARGEN + UTIL - y(Math.min(vara, techo)))}
+                        fill="var(--pulso-text)" opacity="0.10" />
+                      <line x1={xa(i) - ancho / 2} y1={y(vara)} x2={xa(i) + ancho / 2} y2={y(vara)}
+                        stroke="var(--pulso-text-soft)" strokeWidth="1.5"
+                        vectorEffect="non-scaling-stroke" opacity="0.85" />
+                    </>
+                  ) : null}
                   <line x1={xa(i) - ancho / 2} y1={y(techo)} x2={xa(i) + ancho / 2} y2={y(techo)}
                     stroke="var(--pulso-border-strong)" strokeWidth="1.5" opacity="0.9"
                     vectorEffect="non-scaling-stroke" />
@@ -1175,7 +1321,7 @@ export function AulasSerieDeRendimiento({ partes, agenda = [], cuotas = [], plan
       </p>
       <p className="mon-profile-muted aulas-serie-pie">
         {elegida
-          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
+          ? "Las barras son el techo de cada día —los elegibles de sus aulas, por aula— y la línea, lo que se consiguió de ellos: la distancia entre las dos es la efectividad. La barra va en dos tonos: el tramo oscuro de abajo es lo que el diseño pedía de cada aula y lo claro de arriba, el techo que sobraba. Con la línea por encima del corte el día dio más de lo dimensionado; por debajo, menos. A la derecha de la línea de corte se lee igual, pero con lo que se infiere de las aulas YA AGENDADAS, ni un día más allá. La punteada gris es lo que cabe esperar de la siguiente aula según lo que lleva —encogido hacia la media del estudio cuando tiene pocas—, y la raya horizontal es esa media. El esperado supone que el rendimiento no cambia con los días: no modela que una facultad se agote a medida que avanza el campo."
           : "La línea gruesa es la mediana del día y la banda, la mitad central de las facultades; detrás están las veinte, una por facultad. En verde y en granate, las dos que deciden: la que más rinde y la que menos. La raya horizontal es la media del estudio. Elige una facultad para ver su esperado y lo que se infiere de su agenda."}
       </p>
       </div>
