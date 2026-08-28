@@ -52,6 +52,25 @@ function disponibles(f: MonitoreoAulasEfectividadFacultad): string {
   return partes.join(" · ");
 }
 
+/**
+ * Cuando activar TODO lo que queda todavía no cierra.
+ *
+ * Este caso caía en `disponibles()`, que lista los recursos sin decir que no
+ * bastan: la fila mostraba «49 en cadena» y quien la leía entendía que estaba
+ * cubierta. Es el momento en que hay que escalar por encima de los reemplazos
+ * —pedir aulas fuera del marco, mover cuota entre facultades, alargar campo— y
+ * era justo el que la pantalla no nombraba.
+ *
+ * Se dice la causa además del hecho: cuántas hay, y cuántos quedarían igual.
+ */
+function noAlcanzan(f: MonitoreoAulasEfectividadFacultad): string {
+  const aMano = f.reservas_libres + f.banco_disponible;
+  const resto = f.sin_cubrir != null && Number.isFinite(f.sin_cubrir) ? Math.round(f.sin_cubrir) : null;
+  if (aMano === 0) return "sin respaldo que activar";
+  const cola = resto != null && resto > 0 ? `: quedarían ${fmt(resto)}` : "";
+  return `no alcanzan las ${fmt(aMano)} que quedan${cola}`;
+}
+
 const p1 = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : n.toLocaleString("es-PE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
@@ -116,7 +135,14 @@ function lectura(f: MonitoreoAulasEfectividadFacultad): string {
     const de = f.reservas_de_banco > 0 && f.reservas_de_cadena > 0
       ? ` (${fmt(f.reservas_de_cadena)} de cadena y ${fmt(f.reservas_de_banco)} de banco)`
       : f.reservas_de_banco > 0 ? " del banco" : " de su cadena";
-    return `${firme}: ${fmt(f.reservas_necesarias)} ${f.reservas_necesarias === 1 ? "aula cierra" : "aulas cierran"}${de} los ${fmt(falta)} que faltan.`;
+    // Concuerdan las DOS cifras, no sólo la primera. La frase salía «1 aula
+    // cierra de su cadena los 1 que faltan»: nadie lo había visto porque la
+    // función estaba muerta. Y el sujeto va junto a su origen —«14 aulas de su
+    // cadena cierran…»—, que es como se dice.
+    const sujeto = f.reservas_necesarias === 1 ? "aula" : "aulas";
+    const verbo = f.reservas_necesarias === 1 ? "cierra" : "cierran";
+    const objeto = falta === 1 ? "el 1 que falta" : `los ${fmt(falta)} que faltan`;
+    return `${firme}: ${fmt(f.reservas_necesarias)} ${sujeto}${de} ${verbo} ${objeto}.`;
   }
   const resto = f.sin_cubrir != null && Number.isFinite(f.sin_cubrir) ? Math.round(f.sin_cubrir) : null;
   return `${firme}: ni activando las ${fmt(aMano)} que le quedan se cierran los ${fmt(falta)}${resto ? `, quedarían ${fmt(resto)}` : ""}.`;
@@ -143,7 +169,14 @@ const pct = (n: number | null | undefined) =>
  */
 const VEREDICTO: Record<string, { texto: string; tono: "riesgo" | "aviso" | "ok" | "neutro" }> = {
   riesgo_firme: { texto: "No cierra", tono: "riesgo" },
-  riesgo: { texto: "No cierra", tono: "riesgo" },
+  // `riesgo` y `riesgo_firme` decían los dos «No cierra», y son decisiones
+  // distintas: en el simulacro de campo malo, Artes Escénicas es `riesgo` con
+  // 1 alumno de déficit y Ciencias e Ingeniería `riesgo_firme` con 188, bajo la
+  // misma insignia roja. `riesgo_firme` es «no cierra ni en el mejor escenario
+  // del dato»; `riesgo` es «la proyección central no cierra, pero la banda
+  // todavía alcanza». Una escalera de cuatro peldaños —Cubierta · Justo ·
+  // Puede no cerrar · No cierra— dice cuánto correr; una de tres, no.
+  riesgo: { texto: "Puede no cerrar", tono: "aviso" },
   ajustado: { texto: "Justo", tono: "aviso" },
   holgado: { texto: "Cubierta", tono: "ok" },
   sin_campo: { texto: "Sin campo", tono: "neutro" },
@@ -296,7 +329,11 @@ export function AulasEfectividadSeguimiento({
                   <th scope="row" className="aulas-tau-nombre-celda">
                     {/* El veredicto en palabra Y en color: quien no distingue
                         los tonos recibe el dato igual. */}
-                    <span className={`aulas-tau-chip es-${v.tono}`}>{v.texto}</span>
+                    {/* `lectura()` producía la frase que dice QUÉ HACER y no se
+                        llamaba desde ningún sitio: estaba escrita, probada por
+                        nadie y muerta. Va en la insignia, que es donde se mira
+                        cuando la palabra sola no basta. */}
+                    <span className={`aulas-tau-chip es-${v.tono}`} title={lectura(f)}>{v.texto}</span>
                     <NombreDeFacultad facultad={f.facultad} className="aulas-tau-nombre"
                       enFoco={enFoco} onFoco={onFoco}>
                       {f.facultad}
@@ -344,7 +381,9 @@ export function AulasEfectividadSeguimiento({
                   <td className="aulas-tau-respaldo">
                     {enRiesgo && f.reservas_alcanzan && f.reservas_necesarias != null
                       ? `hacen falta ${fmt(f.reservas_necesarias)} de ${fmt(f.reservas_libres + f.banco_disponible)}`
-                      : disponibles(f)}
+                      : enRiesgo && !f.reservas_alcanzan
+                        ? noAlcanzan(f)
+                        : disponibles(f)}
                   </td>
                 </tr>
               );

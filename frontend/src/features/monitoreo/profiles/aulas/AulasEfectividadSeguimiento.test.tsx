@@ -317,3 +317,92 @@ describe("la τ del diseño contra la del campo", () => {
     expect(html).not.toContain("aulas-tau-bigote");
   });
 });
+
+describe("los dos riesgos no se dicen igual", () => {
+  it("«riesgo» y «riesgo_firme» llevan palabras distintas", () => {
+    // En el simulacro de campo malo conviven 11 `riesgo_firme` y 1 `riesgo`, y
+    // los doce salían como «No cierra»: Artes Escénicas con 1 alumno de déficit
+    // junto a Ciencias e Ingeniería con 188. `riesgo_firme` es «no cierra ni en
+    // el mejor escenario del dato»; `riesgo` es «la central no cierra, la banda
+    // todavía alcanza». Son decisiones distintas.
+    const firme = render(bloque({ facultades: [fac({ riesgo: "riesgo_firme" })] }));
+    const blando = render(bloque({ facultades: [fac({ riesgo: "riesgo" })] }));
+    expect(firme).toContain("No cierra");
+    expect(blando).toContain("Puede no cerrar");
+    expect(blando).not.toContain(">No cierra<");
+  });
+
+  it("la escalera tiene los cuatro peldaños", () => {
+    const palabras = (["holgado", "ajustado", "riesgo", "riesgo_firme"] as const)
+      .map((r) => render(bloque({ facultades: [fac({ riesgo: r })] })));
+    expect(palabras[0]).toContain("Cubierta");
+    expect(palabras[1]).toContain("Justo");
+    expect(palabras[2]).toContain("Puede no cerrar");
+    expect(palabras[3]).toContain("No cierra");
+  });
+});
+
+describe("que el respaldo no baste se dice", () => {
+  it("no lista recursos como si cubrieran cuando no cubren", () => {
+    // El caso caía en `disponibles()`, que dice «49 en cadena» sin añadir que
+    // activando las 49 el hueco sigue abierto. Quien lee la fila entiende lo
+    // contrario de lo que pasa.
+    const html = render(bloque({
+      facultades: [fac({
+        riesgo: "riesgo_firme", margen_restante: -300,
+        reservas_alcanzan: false, reservas_libres: 40, banco_disponible: 9,
+        reservas_necesarias: null, sin_cubrir: 120,
+      })],
+    }));
+    expect(html).toContain("no alcanzan las 49 que quedan");
+    expect(html).toContain("quedarían 120");
+  });
+
+  it("sin nada que activar lo dice sin inventar una cifra", () => {
+    const html = render(bloque({
+      facultades: [fac({
+        riesgo: "riesgo_firme", margen_restante: -50,
+        reservas_alcanzan: false, reservas_libres: 0, banco_disponible: 0,
+        reservas_necesarias: null, sin_cubrir: 50,
+      })],
+    }));
+    expect(html).toContain("sin respaldo que activar");
+  });
+
+  it("cuando SÍ alcanzan se conserva el texto de siempre", () => {
+    const html = render(bloque({
+      facultades: [fac({
+        riesgo: "riesgo_firme", margen_restante: -188,
+        reservas_alcanzan: true, reservas_necesarias: 14,
+        reservas_libres: 64, banco_disponible: 247,
+      })],
+    }));
+    expect(html).toContain("hacen falta 14 de 311");
+  });
+});
+
+describe("la frase del veredicto concuerda", () => {
+  const leer = (extra: Record<string, unknown>) => {
+    const html = render(bloque({ facultades: [fac({ riesgo: "riesgo", reservas_alcanzan: true, ...extra })] }));
+    return (html.match(/title="([^"]*)"/g) || []).join(" ");
+  };
+
+  it("con UNA aula y UN alumno no dice «los 1 que faltan»", () => {
+    // Salía «1 aula cierra de su cadena los 1 que faltan». Nadie lo vio porque
+    // la función que la produce estaba muerta; el archivo ya advertía que una
+    // cifra mal concordada delata que nadie miró la fila de un solo elemento.
+    const t = leer({ reservas_necesarias: 1, margen_restante: -1, reservas_de_cadena: 1, reservas_de_banco: 0 });
+    expect(t).toContain("1 aula de su cadena cierra el 1 que falta");
+    expect(t).not.toContain("los 1 que faltan");
+  });
+
+  it("en plural mantiene el plural", () => {
+    const t = leer({ reservas_necesarias: 14, margen_restante: -188, reservas_de_cadena: 14, reservas_de_banco: 0 });
+    expect(t).toContain("14 aulas de su cadena cierran los 188 que faltan");
+  });
+
+  it("mezclando cadena y banco, el origen va junto al sujeto", () => {
+    const t = leer({ reservas_necesarias: 9, margen_restante: -40, reservas_de_cadena: 5, reservas_de_banco: 4 });
+    expect(t).toContain("9 aulas (5 de cadena y 4 de banco) cierran los 40 que faltan");
+  });
+});
