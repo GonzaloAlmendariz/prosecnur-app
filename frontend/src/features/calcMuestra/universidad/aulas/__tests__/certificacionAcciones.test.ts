@@ -314,3 +314,57 @@ describe("estratosConMinimosCertificados", () => {
     expect(out![0].aulas_base_fijas).toBe(18);
   });
 });
+
+// El caso que motivó `aulas_base_certificada`, medido en HSVG 2026 el
+// 2026-08-27: Derecho tenía 18 por certificación —la fórmula pedía 16— y al
+// subirlo a 19 con el stepper quedaba entero como `operativa`. El total seguía
+// dando 174, pero la descomposición decía 6 aulas de certificación y 3
+// operativas cuando eran 8 y 1: un campo solo puede nombrar UN dueño, y el
+// estrato tenía dos decisiones encima.
+describe("un estrato con dos decisiones encima no pierde la primera", () => {
+  const certificado = () => [
+    estrato("DERECHO", { aulas_base_fijas: 18, aulas_base_certificada: 18, aulas_base_origen: "certificacion" }),
+  ];
+
+  it("la certificación sella hasta dónde llegó", () => {
+    const out = estratosConAulasFijadas([estrato("DERECHO")], "DERECHO", 18);
+    expect(out?.[0].aulas_base_fijas).toBe(18);
+    expect(out?.[0].aulas_base_certificada).toBe(18);
+    expect(out?.[0].aulas_base_origen).toBe("certificacion");
+  });
+
+  it("aplicar los mínimos en bloque también lo sella", () => {
+    const out = estratosConMinimosCertificados(
+      [estrato("DERECHO"), estrato("PSICOLOGÍA")],
+      [{ label: "DERECHO", aulas: 18, brecha: 2 }, { label: "PSICOLOGÍA", aulas: 6, brecha: 1 }],
+    );
+    expect(out?.find((e) => e.label === "DERECHO")?.aulas_base_certificada).toBe(18);
+    expect(out?.find((e) => e.label === "PSICOLOGÍA")?.aulas_base_certificada).toBe(6);
+  });
+
+  it("subirlo por encima conserva lo certificado y sólo el margen es operativo", () => {
+    const out = estratosConAjusteAula(certificado(), "DERECHO", 18, 1);
+    expect(out?.[0].aulas_base_fijas).toBe(19);
+    // Sin esto, la descomposición atribuye las 3 aulas a la agregación
+    // operativa cuando 2 las pidió la certificación.
+    expect(out?.[0].aulas_base_certificada).toBe(18);
+    expect(out?.[0].aulas_base_origen).toBe("operativa");
+  });
+
+  it("volver exactamente al número certificado devuelve el origen a la certificación", () => {
+    const subido = estratosConAjusteAula(certificado(), "DERECHO", 18, 1)!;
+    const devuelto = estratosConAjusteAula(subido, "DERECHO", 19, -1);
+    expect(devuelto?.[0].aulas_base_fijas).toBe(18);
+    expect(devuelto?.[0].aulas_base_certificada).toBe(18);
+    // Ya no queda decisión del analista encima: el dueño vuelve a ser la
+    // certificación, no una «operativa» que no agregó nada.
+    expect(devuelto?.[0].aulas_base_origen).toBe("certificacion");
+  });
+
+  it("sin certificación previa, el ajuste sigue siendo operativo a secas", () => {
+    const out = estratosConAjusteAula([estrato("PSICOLOGÍA")], "PSICOLOGÍA", 5, 1);
+    expect(out?.[0].aulas_base_fijas).toBe(6);
+    expect(out?.[0].aulas_base_certificada).toBe(0);
+    expect(out?.[0].aulas_base_origen).toBe("operativa");
+  });
+});
