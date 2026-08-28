@@ -38,7 +38,8 @@ test_that("varias sesiones se unen sin repetir y en orden", {
   p <- calc_muestra_aulas_sesiones_partes(
     "LUN 16:00-18:00 C  L101<br />MIE 16:00-18:00 C  L220"
   )
-  expect_equal(p$horario, "LUN 16:00-18:00 · MIE 16:00-18:00")
+  # Los dos días comparten franja, así que la hora se dice una vez.
+  expect_equal(p$horario, "LUN y MIE 16:00-18:00")
   expect_equal(p$aula, "L101 · L220")
 
   repetida <- calc_muestra_aulas_sesiones_partes(
@@ -138,4 +139,52 @@ test_that("sin columna de sesiones la base sale intacta", {
     raw, catalogo, "X", "X", list(classroom_label = "no_existe")
   )
   expect_identical(out, raw)
+})
+
+test_that("los días que comparten franja se agrupan en vez de repetir la hora", {
+  # Pedido de Gonzalo (2026-08-28): los horarios partidos tienen que leerse bien
+  # en el papel. Medido sobre las 1.512 unidades del plan, **310 cambian** y el
+  # largo máximo baja de 87 a 63 caracteres — el que antes se recortaba con
+  # elipsis y le hacía perder días al aplicador.
+  parte <- function(x) calc_muestra_aulas_sesiones_partes(x)$horario
+
+  # Dos días, una franja: la hora se dice UNA vez.
+  expect_equal(parte("MIE 11:00-13:00 C  L1<br />VIE 11:00-13:00 C  L2"), "MIE y VIE 11:00-13:00")
+  # Tres o más, con coma y la «y» al final: esto se lee, no se parsea.
+  expect_equal(
+    parte("LUN 08:00-10:00 C<br />MIE 08:00-10:00 C<br />VIE 08:00-10:00 C"),
+    "LUN, MIE y VIE 08:00-10:00"
+  )
+  # Una sola sesión no cambia: son 977 de las 1.512.
+  expect_equal(parte("LUN 10:00-13:00 C  A501"), "LUN 10:00-13:00")
+})
+
+test_that("los días salen en orden de semana, no de aparición ni alfabético", {
+  # «VIE y LUN» o «JUE y LUN» leídos en un papel obligan a reordenar mentalmente.
+  expect_equal(
+    calc_muestra_aulas_sesiones_partes("VIE 09:00-11:00 C<br />LUN 09:00-11:00 C")$horario,
+    "LUN y VIE 09:00-11:00"
+  )
+  expect_equal(
+    calc_muestra_aulas_sesiones_partes("SAB 08:00-10:00 C<br />MAR 08:00-10:00 C")$horario,
+    "MAR y SAB 08:00-10:00"
+  )
+})
+
+test_that("franjas distintas siguen separadas, y cada una con sus días", {
+  # Agrupar por franja no puede fundir horas distintas en una.
+  expect_equal(
+    calc_muestra_aulas_sesiones_partes(
+      "LUN 10:00-13:00 C<br />MAR 10:00-13:00 C<br />MIE 11:00-13:00 C"
+    )$horario,
+    "LUN y MAR 10:00-13:00 · MIE 11:00-13:00"
+  )
+})
+
+test_that("un horario en texto libre no se agrupa, se deja como vino", {
+  # Inventarle una lectura a «A CONVENIR CON EL DOCENTE» sería peor que copiarlo.
+  expect_equal(
+    calc_muestra_aulas_sesiones_partes("A CONVENIR CON EL DOCENTE")$horario,
+    "A CONVENIR CON EL DOCENTE"
+  )
 })

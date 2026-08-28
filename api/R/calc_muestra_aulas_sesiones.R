@@ -57,6 +57,55 @@
   paste(v, collapse = " · ")
 }
 
+# Orden de la semana, no alfabético: «LUN y MIE» y no «MIE y LUN».
+.CM_AULAS_DIAS <- c("LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM")
+
+#' Agrupa los días que comparten franja horaria.
+#'
+#' Un curso-horario con dos sesiones venía como
+#' `"MIE 11:00-13:00 · VIE 11:00-13:00"`: la hora repetida dos veces para decir
+#' una sola cosa. Con cuatro sesiones llegaba a **87 caracteres** y la ficha lo
+#' recortaba con elipsis, o sea que el aplicador perdía días.
+#'
+#' Medido sobre las 1.512 unidades de HSVG2026: **977 tienen una sola sesión**
+#' (no cambian), **525 tienen dos**, 8 tienen tres y 2 tienen cuatro o más. El
+#' grueso del ahorro está en esas 525, que pasan a una franja con dos días.
+#'
+#' La conjunción va en español —«LUN y MIE», «LUN, MAR y MIE»— porque esto se
+#' lee en un papel, no se parsea.
+#'
+#' @param sesiones vector de `"DIA HH:MM-HH:MM"` ya normalizados.
+#' @return una cadena; franjas separadas por « · », en el orden en que aparecen.
+#' @keywords internal
+.cm_aulas_agrupar_horario <- function(sesiones) {
+  v <- trimws(as.character(sesiones %||% character(0)))
+  v <- v[!is.na(v) & nzchar(v)]
+  if (!length(v)) return("")
+  partes <- regmatches(v, regexec("^(\\S+)\\s+(.*)$", v))
+  # Lo que no tenga la forma «DIA resto» se deja tal cual: inventarle una
+  # agrupación a un texto libre («A CONVENIR CON EL DOCENTE») sería peor.
+  ok <- vapply(partes, function(m) length(m) == 3L, logical(1))
+  if (!all(ok)) return(.cm_aulas_sesiones_unir(v))
+
+  dia <- vapply(partes, function(m) m[[2]], character(1))
+  franja <- vapply(partes, function(m) m[[3]], character(1))
+  salida <- character(0)
+  for (f in unique(franja)) {
+    dias <- unique(dia[franja == f])
+    conocidos <- match(dias, .CM_AULAS_DIAS)
+    # Un día que no está en el calendario conserva su sitio de entrada en vez de
+    # irse al final: no se sabe dónde va, así que no se le inventa un orden.
+    if (!anyNA(conocidos)) dias <- dias[order(conocidos)]
+    etiqueta <- if (length(dias) == 1L) {
+      dias
+    } else {
+      paste(paste(utils::head(dias, -1L), collapse = ", "), "y", dias[[length(dias)]])
+    }
+    salida <- c(salida, paste(etiqueta, f))
+  }
+  paste(unique(salida), collapse = " · ")
+}
+
 #' Descompone el `SESIONES` de un curso-horario en horario y aula.
 #'
 #' @param sesiones cadena del catálogo, con una o varias sesiones separadas por
@@ -73,7 +122,7 @@ calc_muestra_aulas_sesiones_partes <- function(sesiones) {
   if (!length(trozos)) return(list(horario = "", aula = ""))
   partes <- lapply(trozos, .cm_aulas_sesion_partes)
   list(
-    horario = .cm_aulas_sesiones_unir(vapply(partes, function(p) p$horario, character(1))),
+    horario = .cm_aulas_agrupar_horario(vapply(partes, function(p) p$horario, character(1))),
     aula = .cm_aulas_sesiones_unir(vapply(partes, function(p) p$aula, character(1)))
   )
 }
