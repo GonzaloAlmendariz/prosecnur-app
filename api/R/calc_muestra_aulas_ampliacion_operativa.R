@@ -131,3 +131,56 @@ calc_muestra_aulas_ampliacion_operativa <- function(universo, facultad, criterio
     )
   )
 }
+
+# ---------------------------------------------------------------------------
+# La ampliacion se DECLARA, y las filas se derivan del marco cada vez.
+#
+# Guardar las 32 aulas como una foto las volveria un dato mas del `.pulso`,
+# indistinguible de las que salieron del sorteo y sin forma de reconstruir por
+# que estan ahi. Guardar la DECLARACION —que facultad, que criterio, que
+# categorias— hace lo contrario: viaja la decision, las filas se recalculan
+# contra el marco vigente, y si el marco cambia la ampliacion cambia con el en
+# vez de quedarse vieja en silencio. Es el mismo motivo por el que el numero de
+# aulas se lee de la seleccion que corrio y no del `aulas_base_total` guardado.
+# ---------------------------------------------------------------------------
+
+#' Aplica todas las ampliaciones declaradas y devuelve sus aulas y sus actas.
+#'
+#' @param universo `aula_frame` del marco, con `exclude_reason`.
+#' @param declaraciones Lista de listas con `facultad`, `criterio` y,
+#'   opcionalmente, `categorias` y `columna`.
+#' @return Lista con `aulas` (data.frame con todas las admitidas de todas las
+#'   declaraciones) y `actas` (una por declaracion, **incluidas las que no
+#'   admitieron ninguna**: una ampliacion que no anadio nada es un hecho que hay
+#'   que poder auditar igual).
+#' @export
+calc_muestra_aulas_ampliaciones_declaradas <- function(universo, declaraciones = list()) {
+  vacio <- list(aulas = if (is.data.frame(universo)) universo[0, , drop = FALSE] else NULL,
+                actas = list())
+  if (!is.list(declaraciones) || !length(declaraciones)) return(vacio)
+
+  trozos <- list(); actas <- list()
+  for (d in declaraciones) {
+    if (!is.list(d)) next
+    r <- calc_muestra_aulas_ampliacion_operativa(
+      universo,
+      facultad = d$facultad %||% "",
+      criterio = d$criterio %||% "",
+      categorias = d$categorias %||% NULL,
+      columna = d$columna %||% "session_type"
+    )
+    actas[[length(actas) + 1L]] <- r$acta
+    if (nrow(r$aulas)) trozos[[length(trozos) + 1L]] <- r$aulas
+  }
+  aulas <- if (length(trozos)) {
+    out <- do.call(rbind, trozos)
+    # Una misma aula podria calzar en dos declaraciones. Entra una sola vez: el
+    # bolson es un conjunto, y duplicarla la haria contar dos veces en cualquier
+    # suma de elegibles aguas abajo.
+    out <- out[!duplicated(out$classroom_id), , drop = FALSE]
+    rownames(out) <- NULL
+    out
+  } else vacio$aulas
+
+  list(aulas = aulas, actas = actas)
+}

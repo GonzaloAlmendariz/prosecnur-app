@@ -182,6 +182,20 @@
     .collection_rows(selection)
   }
   if (length(selection_rows)) {
+    # Las ampliaciones operativas DECLARADAS se unen aqui y no dentro de la
+    # seleccion: el sorteo esta sellado y sus filas no se tocan. Estas entran
+    # marcadas —`origen_operativo = "ampliacion_declarada"`— para que nunca se
+    # confundan con una extra sorteada, y se DERIVAN del marco cada vez, asi que
+    # si el marco cambia la ampliacion cambia con el en vez de quedarse vieja.
+    # Ver `calc_muestra_aulas_ampliacion_operativa.R`.
+    declaraciones <- (s$calc_muestra_aulas_config %||% list())$ampliaciones_operativas
+    marco <- (s$calc_muestra_aulas_frame %||% list())$aula_frame
+    if (is.list(declaraciones) && length(declaraciones) && is.data.frame(marco)) {
+      amp <- calc_muestra_aulas_ampliaciones_declaradas(marco, declaraciones)
+      if (is.data.frame(amp$aulas) && nrow(amp$aulas)) {
+        selection_rows <- c(selection_rows, .collection_rows(amp$aulas))
+      }
+    }
     return(list(
       rows = selection_rows,
       source = "calc_muestra_aulas_selection",
