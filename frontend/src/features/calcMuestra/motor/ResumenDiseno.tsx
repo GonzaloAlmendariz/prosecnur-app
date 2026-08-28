@@ -19,6 +19,7 @@ import { calculoDistribucionScenarioMeta } from "../universidad/calculo/calculoD
 import { estadisticoDelReparto, nombreEstadistico } from "../universidad/calculo/estadisticoAula";
 import { frameAuditNumber, marcoCriteriosDesactualizado } from "../universidad/shared/frame";
 import { frameIntegrity, notaEstadoDelMarco } from "../universidad/shared/frameIntegrity";
+import { desglosarAulas, partesDelDesglose } from "../universidad/shared/desgloseAulas";
 import { escenarioEnVigor } from "../universidad/shared/escenarioEnVigor";
 import {
   normalizeUniversityAulasConfig,
@@ -61,6 +62,8 @@ type SummaryMetric = {
   value: number | null;
   /** Valor de texto para el KPI que declara el método, no una cantidad. */
   texto?: string;
+  /** De qué está hecha la cifra, cuando la cifra es una suma de decisiones. */
+  desglose?: ReactNode;
   note: string;
   icon: ReactNode;
   tone: "universe" | "estimated" | "confirmed" | "operation";
@@ -258,6 +261,13 @@ export function ResumenDiseno({
     return total > 0 ? total : null;
   };
   const aulasTitulares = sumaDelReparto("aulas_base");
+  // De qué está hecho ese número. Gonzalo, 2026-08-27: «el 165 cambiar a 174
+  // tomando en cuenta el porqué de las aulas extra, separando las de certeza de
+  // las extra operativas». Las tres decisiones se veían como una sola cifra.
+  const desgloseAulas = useMemo(
+    () => (resultReady ? desglosarAulas(resultModel.component?.resultado?.aulas_por_estrato) : null),
+    [resultReady, resultModel.component],
+  );
   // CON QUÉ se dimensiona, justo antes de decir cuántas aulas salen. Gonzalo,
   // 2026-08-21: «ojo, las aulas de reserva no se coordinan así; más bien antes
   // de aulas titulares podría indicar que estamos usando P25 y tasa de
@@ -379,6 +389,20 @@ export function ResumenDiseno({
       // mismo rótulo se leen como una contradicción y no como un dato.
       label: "Aulas que pide el cálculo",
       value: aulasTitulares,
+      // Sólo cuando hay algo que separar: con todo por fórmula, «165 fórmula»
+      // repite el número de arriba y no dice nada.
+      desglose: desgloseAulas && partesDelDesglose(desgloseAulas).length > 1
+        ? (
+          <span className="rec-resumen-desglose">
+            {partesDelDesglose(desgloseAulas).map((parte, i) => (
+              <span key={parte.clave} data-parte={parte.clave}>
+                {i > 0 && <i aria-hidden="true">{parte.valor < 0 ? "−" : "+"}</i>}
+                <b>{fmtInt(Math.abs(parte.valor))}</b> {parte.etiqueta}
+              </span>
+            ))}
+          </span>
+        )
+        : undefined,
       note: notaResultado,
       icon: <School size={16} aria-hidden="true" />,
       tone: "operation",
@@ -428,6 +452,7 @@ export function ResumenDiseno({
               <strong data-texto={metric.texto ? "true" : undefined}>
                 {metric.texto ?? (metric.value == null ? "—" : fmtInt(metric.value))}
               </strong>
+              {metric.desglose}
               <span>{metric.note}</span>
             </span>
           </div>
