@@ -35,6 +35,25 @@
 #     remapeada a NA por Limpieza — el mecanismo real del deck Conta). Con
 #     filtro además, la marca aplica sobre el universo ya filtrado.
 
+# REVERTIDA (2026-08-25, dueño de entregables). La marca ya no se anexa por
+# defecto. Razón, en sus palabras: «la base ya dice cuando hay menos, no es
+# necesario poner respuestas válidas».
+#
+# Y es cierto: el defecto de arriba —«Base: 47» y «Base: 52» leídas como errata—
+# lo resuelve la CIFRA, que es distinta. La marca repetía en palabras lo que el
+# número ya decía, en el único sitio de la lámina donde no sobra espacio.
+#
+# No se borra el mecanismo: detectar el denominador reducido sigue siendo útil
+# —un llamador puede querer marcarlo— y la detección (`_na_reducida`,
+# `_universo`) es la parte cara y la que hay que conservar probada. Lo que
+# cambia es el default: `marcar = FALSE`.
+#
+# Para volver a activarla, `.reporte_plan_base_marca_criterio(..., marcar = TRUE)`.
+
+#' ¿Se anexa la marca editorial cuando el denominador quedó reducido?
+#' @noRd
+.REPORTE_PLAN_BASE_MARCAR_REDUCIDA <- FALSE
+
 #' Marca editorial canónica de base reducida por exclusión de opciones.
 #' @noRd
 .reporte_plan_base_marca_criterio_txt <- function() {
@@ -70,9 +89,14 @@
 #' Anexa la marca de criterio a un núcleo de nota de Base cuando el
 #' denominador quedó reducido por exclusión. Con `reducida = FALSE` devuelve
 #' el núcleo intacto (paridad byte a byte con el histórico).
+#'
+#' `marcar` gobierna si la marca se escribe: por defecto NO (ver la nota de
+#' reversión en la cabecera del archivo). La detección de base reducida sigue
+#' funcionando igual — lo que cambió es qué se hace con ella.
 #' @noRd
-.reporte_plan_base_marca_criterio <- function(base_core, reducida = FALSE) {
-  if (!isTRUE(reducida)) return(base_core)
+.reporte_plan_base_marca_criterio <- function(base_core, reducida = FALSE,
+                                              marcar = .REPORTE_PLAN_BASE_MARCAR_REDUCIDA) {
+  if (!isTRUE(reducida) || !isTRUE(marcar)) return(base_core)
   base1 <- as.character(base_core)[1]
   marca <- .reporte_plan_base_marca_criterio_txt()
   # Idempotente: cadenas re-selladas o re-compuestas no duplican la marca.
@@ -88,7 +112,8 @@
 .reporte_plan_base_componer_nota <- function(N_total,
                                              sufijo_auto = NULL,
                                              formato = "Base: %s",
-                                             reducida = FALSE) {
+                                             reducida = FALSE,
+                                             marcar = .REPORTE_PLAN_BASE_MARCAR_REDUCIDA) {
   N_pretty <- format(N_total, big.mark = ",", scientific = FALSE)
 
   suf <- NULL
@@ -98,5 +123,5 @@
   }
 
   base_core <- if (is.null(suf)) N_pretty else paste(N_pretty, suf)
-  sprintf(formato, .reporte_plan_base_marca_criterio(base_core, reducida))
+  sprintf(formato, .reporte_plan_base_marca_criterio(base_core, reducida, marcar))
 }

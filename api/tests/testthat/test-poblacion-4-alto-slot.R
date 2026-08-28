@@ -36,7 +36,9 @@ test_that("el alto medido del cajon existe y es el del XML de la lamina 13", {
   # `slide13.xml` del mazo de Conta. El ancho ya viajaba como 5.2; el alto es
   # este.
   expect_true(exists(".POBLACION_4_ALTO_SLOT_IN"))
-  expect_equal(.POBLACION_4_ALTO_SLOT_IN, 2.565)
+  # 2.82 desde que el contrato declara los huecos por coordenadas y recupera el
+  # aire muerto de la lámina. Antes 2.565, el alto del placeholder de plantilla.
+  expect_equal(.POBLACION_4_ALTO_SLOT_IN, 2.82)
 })
 
 
