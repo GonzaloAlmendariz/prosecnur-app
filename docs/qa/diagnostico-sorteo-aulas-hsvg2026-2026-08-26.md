@@ -885,3 +885,82 @@ cuadra, comprobar que se están leyendo las dos celdas de la misma fila.
 crudo (0,6147) y la brecha en puntos porcentuales. Es consistente con el nombre
 de cada columna, pero obliga a convertir mentalmente para cotejarlas. Si conviene
 publicarlas como porcentaje es decisión de Gonzalo.
+
+## El 174 es el criterio de universidad más certeza, alojado en el componente apagado
+
+Medido el 2026-08-27 sobre el estado vivo (`/api/calc-muestra/state`), a raíz de
+que el KPI «Aulas que pide el cálculo» seguía diciendo 165.
+
+**Lo que dice cada superficie, y son tres respuestas distintas:**
+
+| superficie | dice | de dónde sale |
+|---|---|---|
+| KPI de la tira (`ResumenDiseno.tsx:174`) | 165 | componente del escenario activo |
+| `aulas_config.n_aulas` | 165 | `materializeUniversityAulasTarget`, mismo escenario |
+| sorteo sellado 2026-08-26 14:28:33Z | **174** | componente `estudiantes_facultad` |
+
+**El escenario nunca se eligió.** `motor_recorrido.decisiones` está literalmente
+vacío (`clavesDecisiones: []`, `tocado: false`, `actualizado_at: ""`), y
+`universityAulasScenario()` (`shared/study.ts:227`) cae por defecto en `e1`
+→ componente Universidad → 165. R **no** es el culpable: el normalizador
+`.cm_normalize_workspace_motor_recorrido` (`calc_muestra_engine.R:346`) pasa
+`decisiones` entero sin filtrar. El campo nunca se escribió.
+
+**El sorteo siguió al componente Facultades exacto**, facultad por facultad, en
+las 15: `coincideConFac: true`, `discrepanciasVsFac: []`, `coincideConUni: false`.
+
+**Pero el 174 no es el número del criterio de facultad.** El bloque
+`certificacion_facultad` de la corrida lo delata:
+
+- se computa contra las cuotas de **Universidad** (125, 119, 64, 20, 528, 149,
+  84, 363, 24, 403, 397, 21, 105, 23, 75) — idénticas a la columna `cuota` del
+  componente `estudiantes_universidad`, no a las del de facultad (336, 372,
+  193, 48, 665, …);
+- certifica los **174** titulares sorteados y las 15 salen `certificada`,
+  `ok: true`, con márgenes 1,11–2,06;
+- el criterio de facultad, por su cuenta, pide **294** aulas (declara 174).
+
+Es decir: **el 174 = fórmula de universidad (165) + certeza**, guardado en el
+componente que la app tiene por inactivo.
+
+**Las +9 aulas, por facultad** (Universidad → Facultades):
+
+| facultad | uni | fac | dif |
+|---|---|---|---|
+| CIENCIAS CONTABLES | 2 | 3 | +1 |
+| DERECHO | 16 | 19 | +3 |
+| ESTUDIOS GENERALES LETRAS | 18 | 20 | +2 |
+| GESTIÓN Y ALTA DIRECCIÓN | 6 | 7 | +1 |
+| LETRAS Y CIENCIAS HUMANAS | 3 | 4 | +1 |
+| PSICOLOGÍA | 5 | 6 | +1 |
+
+Las otras nueve facultades son idénticas en ambos componentes, igual que
+`avg_conglomerado`, `tau`, `estadistico_usado` y el bloque `margen` entero
+(`aulas_requeridas` 8, 15, 8… = la columna de **universidad**): la maquinaria de
+cobertura se computó una vez y se pegó en los dos componentes.
+
+**Lo que NO se puede afirmar todavía.** Este estado lo computó el paquete
+instalado ANTES de los cambios de motor de esta sesión: `aulas_formula`,
+`aulas_base_origen` y `aulas_base_nota` vienen vacíos (`origenes: []`), y
+`estratos` está en cero en ambos componentes (`nEstratosDecl: 0`), o sea **no
+hay ninguna `aulas_base_fijas` guardada**. Por eso el motor no dice hoy *por
+qué* cada facultad recibió más, y la atribución fórmula/certeza/operativa por
+facultad no está medida — es exactamente lo que `.CM_AULAS_BASE_ORIGENES`
+publica y falta recomputar con el paquete nuevo.
+
+Las `aulas_extra_operativas` sí son un dato aparte y ya existen:
+`aulas_extra_operativas_default: 1`, **+1 por facultad, 15 en total** e
+idénticas en ambos componentes (165 → 180 titulares+extras; 174 → 189).
+No son las +9.
+
+**Qué hay que reparar, en orden:**
+
+1. El escenario en vigor tiene que **declararse y ser uno solo**: hoy el sorteo
+   lee un componente y el KPI otro, y nada avisa de la discrepancia. Cuando el
+   sorteo ya está sellado, el escenario debe inferirse de la corrida ejecutada
+   en vez de caer en `e1` por defecto.
+2. El criterio de universidad debe cargar **él mismo** el 165 + certeza = 174,
+   en vez de que ese número viva en el componente de facultad.
+3. El KPI debe mostrar 174 **descompuesto por origen** (fórmula / certeza /
+   operativa), que es lo que pidió Gonzalo. No inventar el desglose: recomputar
+   con el motor nuevo para que `aulas_base_origen` lo diga.
